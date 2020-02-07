@@ -1,7 +1,6 @@
-============================================================================================================
-`MILA will stop developing Theano <https://groups.google.com/d/msg/theano-users/7Poq8BZutbY/rNCIfvAEAwAJ>`_.
-============================================================================================================
-
+===================================================================================================
+Fork of the Theano library which will continue to be maintained for the purpose of supporting PyMC3
+===================================================================================================
 
 To install the package, see this page:
    http://deeplearning.net/software/theano/install.html
