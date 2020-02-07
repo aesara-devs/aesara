@@ -17,7 +17,7 @@ except ImportError:
 import versioneer
 
 CLASSIFIERS = """\
-Development Status :: 4 - Beta
+Development Status :: 6 - Mature
 Intended Audience :: Education
 Intended Audience :: Science/Research
 Intended Audience :: Developers
@@ -30,16 +30,13 @@ Operating System :: Microsoft :: Windows
 Operating System :: POSIX
 Operating System :: Unix
 Operating System :: MacOS
-Programming Language :: Python :: 2
-Programming Language :: Python :: 2.7
 Programming Language :: Python :: 3
-Programming Language :: Python :: 3.4
 Programming Language :: Python :: 3.5
 Programming Language :: Python :: 3.6
 """
-NAME                = 'Theano'
-MAINTAINER          = "LISA laboratory, University of Montreal"
-MAINTAINER_EMAIL    = "theano-dev@googlegroups.com"
+NAME                = 'Theano-PyMC'
+MAINTAINER          = "PyMC developers"
+MAINTAINER_EMAIL    = "pymc-devs@gmail.com"
 DESCRIPTION         = ('Optimizing compiler for evaluating mathematical ' +
                        'expressions on CPUs and GPUs.')
 LONG_DESCRIPTION    = (codecs.open("DESCRIPTION.txt", encoding='utf-8').read() +
@@ -49,7 +46,7 @@ DOWNLOAD_URL        = ""
 LICENSE             = 'BSD'
 CLASSIFIERS         = [_f for _f in CLASSIFIERS.split('\n') if _f]
 AUTHOR              = "LISA laboratory, University of Montreal"
-AUTHOR_EMAIL        = "theano-dev@googlegroups.com"
+AUTHOR_EMAIL        = "pymc-devs@gmail.com"
 PLATFORMS           = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"]
 
 
