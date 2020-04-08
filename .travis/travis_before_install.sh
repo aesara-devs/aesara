@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+set -e
+
 # Install miniconda to avoid compiling scipy
 if test -e $HOME/miniconda/bin ; then
     echo "miniconda already installed."
