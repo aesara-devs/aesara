@@ -15,6 +15,10 @@ python:
   - "3.7"
   - "3.6"
 
+stages:
+  - doc
+  - test
+
 env:
   global:
     - NUMPY_VERSION=1.18.1
