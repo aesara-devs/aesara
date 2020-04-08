@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# In Python 3.4, we test the min version of NumPy and SciPy. In Python 2.7, we test more recent version.
+
+hash -r
+conda config --set always_yes yes --set changeps1 no
+conda update -q conda
+conda info -a
+
 if test -e $HOME/miniconda/envs/pyenv; then
     echo "pyenv already exists."
 else

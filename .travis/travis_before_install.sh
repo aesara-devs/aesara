@@ -10,9 +10,3 @@ else
     wget -c https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O $HOME/download/miniconda.sh
     bash $HOME/download/miniconda.sh -b -p $HOME/miniconda
 fi
-
-source "$HOME/miniconda/etc/profile.d/conda.sh"
-hash -r
-conda config --set always_yes yes --set changeps1 no
-conda update -q conda
-conda info -a
