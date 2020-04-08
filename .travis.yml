@@ -31,10 +31,6 @@ env:
     - PART="theano/tensor/nnet -e test_abstract_conv.py"
     - PART="theano/tensor/nnet/tests/test_abstract_conv.py"
 
-before_install:
-  - ./.travis/travis_before_install.sh
-  - source "$HOME/miniconda/etc/profile.d/conda.sh"
-
 addons:
   apt_packages:
     - texlive-latex-recommended
@@ -42,15 +38,11 @@ addons:
     - texlive-fonts-recommended
     - dvipng
 
+before_install:
+  - source .travis/travis_before_install.sh
+
 install:
-  - ./.travis/travis_install.sh
-  - conda activate pyenv
-  # - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then pip install pydot; else pip install pydot-ng; fi
-  # - pip install . --no-deps --upgrade
-  # - pip install flake8-future-import parameterized sphinx_rtd_theme
-  # # nose-exclude plugin allow us to tell nosetests to exclude folder with --exclude-dir=path/to/directory.
-  # - pip install nose-exclude nose-timer
-  # - if [[ $NUMPY_VERSION == '1.13.1' ]]; then conda install --yes -q scipy=0.19.1; else conda install --yes -q scipy=0.14; fi  # Try to reinstall it to fix the problem
+  - source .travis/travis_install.sh
 
 jobs:
   include:
@@ -95,4 +87,4 @@ script:
   - if [[ $DOC == "1" ]]; then python doc/scripts/docgen.py --test --check; fi
 
 after_failure:
-  - cat /home/travis/.pip/pip.log
+  - cat $HOME/.pip/pip.log
