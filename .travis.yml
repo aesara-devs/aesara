@@ -44,7 +44,7 @@ addons:
 
 install:
   - ./.travis/travis_install.sh
-  - source activate pyenv
+  - conda activate pyenv
   # - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then pip install pydot; else pip install pydot-ng; fi
   # - pip install . --no-deps --upgrade
   # - pip install flake8-future-import parameterized sphinx_rtd_theme
