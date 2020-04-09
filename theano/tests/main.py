@@ -3,7 +3,11 @@ import os
 import unittest
 import sys
 
-from numpy.testing.nosetester import NoseTester
+try:
+    from numpy.testing.nosetester import NoseTester
+except ImportError:
+    # The tester has been moved in recent versions of numpy
+    from numpy.testing._private.nosetester import NoseTester
 
 
 # This class contains code adapted from NumPy,
@@ -31,51 +35,70 @@ class TheanoNoseTester(NoseTester):
         """
         # self.package_path = os.path.abspath(self.package_path)
         argv = [__file__, self.package_path]
-        argv += ['--verbosity', str(verbose)]
+        argv += ["--verbosity", str(verbose)]
         if extra_argv:
             argv += extra_argv
         return argv
 
     def _show_system_info(self):
         import theano
+
         print("Theano version %s" % theano.__version__)
         theano_dir = os.path.dirname(theano.__file__)
         print("theano is installed in %s" % theano_dir)
 
         super(TheanoNoseTester, self)._show_system_info()
 
-    def prepare_test_args(self, verbose=1, extra_argv=None, coverage=False,
-                          capture=True, knownfailure=True):
+    def prepare_test_args(
+        self,
+        verbose=1,
+        extra_argv=None,
+        coverage=False,
+        capture=True,
+        knownfailure=True,
+    ):
         """
         Prepare arguments for the `test` method.
 
         Takes the same arguments as `test`.
         """
         import nose.plugins.builtin
+
         # compile argv
         argv = self._test_argv(verbose, extra_argv)
 
         # numpy way of doing coverage
         if coverage:
-            argv += ['--cover-package=%s' % self.package_name,
-                     '--with-coverage', '--cover-tests',
-                     '--cover-inclusive', '--cover-erase']
+            argv += [
+                "--cover-package=%s" % self.package_name,
+                "--with-coverage",
+                "--cover-tests",
+                "--cover-inclusive",
+                "--cover-erase",
+            ]
 
         # Capture output only if needed
         if not capture:
-            argv += ['-s']
+            argv += ["-s"]
 
         # construct list of plugins
         plugins = []
         if knownfailure:
             from numpy.testing.noseclasses import KnownFailure
+
             plugins.append(KnownFailure())
         plugins += [p() for p in nose.plugins.builtin.plugins]
 
         return argv, plugins
 
-    def test(self, verbose=1, extra_argv=None, coverage=False, capture=True,
-             knownfailure=True):
+    def test(
+        self,
+        verbose=1,
+        extra_argv=None,
+        coverage=False,
+        capture=True,
+        knownfailure=True,
+    ):
         """
         Run tests for module using nose.
 
@@ -107,17 +130,21 @@ class TheanoNoseTester(NoseTester):
         from nose.config import Config
         from nose.plugins.manager import PluginManager
         from numpy.testing.noseclasses import NumpyTestProgram
+
         # Many Theano tests suppose device=cpu, so we need to raise an
         # error if device==gpu.
-        if not os.path.exists('theano/__init__.py'):
+        if not os.path.exists("theano/__init__.py"):
             try:
                 from theano import config
+
                 if config.device != "cpu":
-                    raise ValueError("Theano tests must be run with device=cpu."
-                                     " This will also run GPU tests when possible.\n"
-                                     " If you want GPU-related tests to run on a"
-                                     " specific GPU device, and not the default one,"
-                                     " you should use the init_gpu_device theano flag.")
+                    raise ValueError(
+                        "Theano tests must be run with device=cpu."
+                        " This will also run GPU tests when possible.\n"
+                        " If you want GPU-related tests to run on a"
+                        " specific GPU device, and not the default one,"
+                        " you should use the init_gpu_device theano flag."
+                    )
             except ImportError:
                 pass
 
@@ -129,15 +156,19 @@ class TheanoNoseTester(NoseTester):
         if self.package_path in os.listdir(cwd):
             # The tests give weird errors if the package to test is
             # in current directory.
-            raise RuntimeError((
-                "This function does not run correctly when, at the time "
-                "theano was imported, the working directory was theano's "
-                "parent directory. You should exit your Python prompt, change "
-                "directory, then launch Python again, import theano, then "
-                "launch theano.test()."))
+            raise RuntimeError(
+                (
+                    "This function does not run correctly when, at the time "
+                    "theano was imported, the working directory was theano's "
+                    "parent directory. You should exit your Python prompt, change "
+                    "directory, then launch Python again, import theano, then "
+                    "launch theano.test()."
+                )
+            )
 
-        argv, plugins = self.prepare_test_args(verbose, extra_argv, coverage,
-                                               capture, knownfailure)
+        argv, plugins = self.prepare_test_args(
+            verbose, extra_argv, coverage, capture, knownfailure
+        )
 
         # The "plugins" keyword of NumpyTestProgram gets ignored if config is
         # specified. Moreover, using "addplugins" instead can lead to strange
