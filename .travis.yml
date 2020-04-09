@@ -85,8 +85,6 @@ script:
   - python -c 'import theano; assert(theano.config.blas.ldflags != "")'
   # Run tests for the given part
   - theano-nose -v --with-timer --timer-top-n 10 $PART
-  # - if [[ $DOC == "1" ]]; then python doc/scripts/docgen.py --nopdf --check; fi
-  # - if [[ $DOC == "1" ]]; then python doc/scripts/docgen.py --test --check; fi
 
 after_failure:
   - cat $HOME/.pip/pip.log
