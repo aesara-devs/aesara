@@ -101,11 +101,17 @@ def main_function():
     if '--without-knownfailure' not in sys.argv:
         try:
             from numpy.testing.noseclasses import KnownFailure
-            addplugins.append(KnownFailure())
         except ImportError:
-            _logger.warn(
-                'KnownFailure plugin from NumPy could not be imported. '
-                'Use --without-knownfailure to disable this warning.')
+            try:
+                from numpy.testing._private.noseclasses import KnownFailure
+                addplugins.append(KnownFailure())
+            except ImportError:
+                _logger.warn(
+                    'KnownFailure plugin from NumPy could not be imported. '
+                    'Use --without-knownfailure to disable this warning.')
+        else:
+            addplugins.append(KnownFailure())
+
     else:
         sys.argv.remove('--without-knownfailure')
 
