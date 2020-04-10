@@ -1,0 +1,17 @@
+name: theano-docs
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.7
+  - gcc_linux-64
+  - gxx_linux-64
+  - numpy
+  - scipy
+  - six
+  - sphinx>=3
+  - sphinx_rtd_theme
+  - mock
+  - pillow
+  - pip:
+    - -e ..[doc]
