@@ -18,8 +18,15 @@ __docformat__ = "restructuredtext en"
 _logger = logging.getLogger("theano.tensor.signal.conv")
 
 
-def conv2d(input, filters, image_shape=None, filter_shape=None,
-           border_mode='valid', subsample=(1, 1), **kargs):
+def conv2d(
+    input,
+    filters,
+    image_shape=None,
+    filter_shape=None,
+    border_mode="valid",
+    subsample=(1, 1),
+    **kargs
+):
     """
     signal.conv.conv2d performs a basic 2D convolution of the input with the
     given filters. The input parameter can be a single 2D image or a 3D tensor,
@@ -90,9 +97,16 @@ def conv2d(input, filters, image_shape=None, filter_shape=None,
     filters4D = tensor.reshape(filters, new_filter_shape, ndim=4)
 
     # perform actual convolution ###
-    op = conv.ConvOp(output_mode=border_mode,
-                     dx=subsample[0], dy=subsample[1],
-                     imshp=imshp, kshp=kshp, nkern=nkern, bsize=bsize, **kargs)
+    op = conv.ConvOp(
+        output_mode=border_mode,
+        dx=subsample[0],
+        dy=subsample[1],
+        imshp=imshp,
+        kshp=kshp,
+        nkern=nkern,
+        bsize=bsize,
+        **kargs
+    )
 
     output = op(input4D, filters4D)
 
@@ -103,7 +117,8 @@ def conv2d(input, filters, image_shape=None, filter_shape=None,
                 "theano.tensor.signal.conv2d() now outputs a 2d tensor when both"
                 " inputs are 2d. To disable this warning, set the Theano flag"
                 " warn.signal_conv2d_interface to False",
-                stacklevel=3)
+                stacklevel=3,
+            )
 
         output = tensor.flatten(output.T, ndim=2).T
     elif input.ndim == 2 or filters.ndim == 2:

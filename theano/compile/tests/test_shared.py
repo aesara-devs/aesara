@@ -9,8 +9,7 @@ from theano.compile.sharedvalue import SharedVariable
 from theano.compile.sharedvalue import generic
 
 
-class Test_SharedVariable():
-
+class Test_SharedVariable:
     def test_ctors(self):
 
         if theano.configdefaults.python_int_bitwidth() == 32:
@@ -21,17 +20,18 @@ class Test_SharedVariable():
         assert shared(np.float32(7)).type == theano.tensor.fscalar
 
         # test tensor constructor
-        b = shared(np.zeros((5, 5), dtype='int32'))
-        assert b.type == TensorType('int32', broadcastable=[False, False])
+        b = shared(np.zeros((5, 5), dtype="int32"))
+        assert b.type == TensorType("int32", broadcastable=[False, False])
         b = shared(np.random.rand(4, 5))
-        assert b.type == TensorType('float64', broadcastable=[False, False])
+        assert b.type == TensorType("float64", broadcastable=[False, False])
         b = shared(np.random.rand(5, 1, 2))
-        assert b.type == TensorType('float64', broadcastable=[False, False, False])
+        assert b.type == TensorType("float64", broadcastable=[False, False, False])
 
         assert shared([]).type == generic
 
         def badfunc():
             shared(7, bad_kw=False)
+
         with pytest.raises(TypeError):
             badfunc()
 
@@ -40,8 +40,8 @@ class Test_SharedVariable():
         # this should work, because
         # generic can hold anything even when strict=True
 
-        u = shared('asdf', strict=False)
-        v = shared('asdf', strict=True)
+        u = shared("asdf", strict=False)
+        v = shared("asdf", strict=True)
 
         u.set_value(88)
         v.set_value(88)
@@ -51,35 +51,39 @@ class Test_SharedVariable():
         # here the value is perfect, and we're not strict about it,
         # so creation should work
         SharedVariable(
-            name='u',
-            type=Tensor(broadcastable=[False], dtype='float64'),
-            value=np.asarray([1., 2.]),
-            strict=False)
+            name="u",
+            type=Tensor(broadcastable=[False], dtype="float64"),
+            value=np.asarray([1.0, 2.0]),
+            strict=False,
+        )
 
         # here the value is castable, and we're not strict about it,
         # so creation should work
         SharedVariable(
-            name='u',
-            type=Tensor(broadcastable=[False], dtype='float64'),
-            value=[1., 2.],
-            strict=False)
+            name="u",
+            type=Tensor(broadcastable=[False], dtype="float64"),
+            value=[1.0, 2.0],
+            strict=False,
+        )
 
         # here the value is castable, and we're not strict about it,
         # so creation should work
         SharedVariable(
-            name='u',
-            type=Tensor(broadcastable=[False], dtype='float64'),
+            name="u",
+            type=Tensor(broadcastable=[False], dtype="float64"),
             value=[1, 2],  # different dtype and not a numpy array
-            strict=False)
+            strict=False,
+        )
 
         # here the value is not castable, and we're not strict about it,
         # this is beyond strictness, it must fail
         try:
             SharedVariable(
-                name='u',
-                type=Tensor(broadcastable=[False], dtype='float64'),
+                name="u",
+                type=Tensor(broadcastable=[False], dtype="float64"),
                 value=dict(),  # not an array by any stretch
-                strict=False)
+                strict=False,
+            )
             assert 0
         except TypeError:
             pass
@@ -89,26 +93,27 @@ class Test_SharedVariable():
         # here the value is perfect, and we're not strict about it,
         # so creation should work
         u = SharedVariable(
-            name='u',
-            type=Tensor(broadcastable=[False], dtype='float64'),
-            value=np.asarray([1., 2.]),
-            strict=False)
+            name="u",
+            type=Tensor(broadcastable=[False], dtype="float64"),
+            value=np.asarray([1.0, 2.0]),
+            strict=False,
+        )
 
         # check that assignments to value are cast properly
         u.set_value([3, 4])
         assert type(u.get_value()) is np.ndarray
-        assert str(u.get_value(borrow=True).dtype) == 'float64'
+        assert str(u.get_value(borrow=True).dtype) == "float64"
         assert np.all(u.get_value() == [3, 4])
 
         # check that assignments of nonsense fail
         try:
-            u.set_value('adsf')
+            u.set_value("adsf")
             assert 0
         except ValueError:
             pass
 
         # check that an assignment of a perfect value results in no copying
-        uval = theano._asarray([5, 6, 7, 8], dtype='float64')
+        uval = theano._asarray([5, 6, 7, 8], dtype="float64")
         u.set_value(uval, borrow=True)
         assert u.get_value(borrow=True) is uval
 
@@ -156,7 +161,7 @@ class Test_SharedVariable():
         with pytest.raises(TypeError):
             f(b, 8)
 
-        b = shared(np.zeros((5, 5), dtype='float32'))
+        b = shared(np.zeros((5, 5), dtype="float32"))
         with pytest.raises(TypeError):
             f(b, np.random.rand(5, 5))
 
@@ -194,19 +199,19 @@ class Test_SharedVariable():
         with pytest.raises(TypeError):
             f(b, 8)
 
-# np.float([7.234]) don't work
-#        b = shared(np.float([7.234]), strict=True)
-#        assert b.type == theano.tensor.dvector
-#        with pytest.raises(TypeError):
-#            f(b, 8)
+        # np.float([7.234]) don't work
+        #        b = shared(np.float([7.234]), strict=True)
+        #        assert b.type == theano.tensor.dvector
+        #        with pytest.raises(TypeError):
+        #            f(b, 8)
 
-# This generate a generic type. Should we cast? I don't think.
-#        b = shared([7.234], strict=True)
-#        assert b.type == theano.tensor.dvector
-#        with pytest.raises(TypeError):
-#            f(b, 8)
+        # This generate a generic type. Should we cast? I don't think.
+        #        b = shared([7.234], strict=True)
+        #        assert b.type == theano.tensor.dvector
+        #        with pytest.raises(TypeError):
+        #            f(b, 8)
 
-        b = shared(np.zeros((5, 5), dtype='float32'))
+        b = shared(np.zeros((5, 5), dtype="float32"))
         with pytest.raises(TypeError):
             f(b, np.random.rand(5, 5))
 
@@ -263,7 +268,7 @@ class Test_SharedVariable():
         f(b, 8)
         assert b.get_value() == 8
 
-        b = shared(np.zeros((5, 5), dtype='float32'))
+        b = shared(np.zeros((5, 5), dtype="float32"))
         with pytest.raises(TypeError):
             f(b, np.random.rand(5, 5))
 
@@ -301,23 +306,22 @@ class Test_SharedVariable():
         f(b, [8])
         assert b.get_value() == 8
 
-# np.float([7.234]) don't work
-#        b = shared(np.float([7.234]))
-#        assert b.type == theano.tensor.dvector
-#        f(b,[8])
+        # np.float([7.234]) don't work
+        #        b = shared(np.float([7.234]))
+        #        assert b.type == theano.tensor.dvector
+        #        f(b,[8])
 
-# This generate a generic type. Should we cast? I don't think.
-#        b = shared([7.234])
-#        assert b.type == theano.tensor.dvector
-#        f(b,[8])
+        # This generate a generic type. Should we cast? I don't think.
+        #        b = shared([7.234])
+        #        assert b.type == theano.tensor.dvector
+        #        f(b,[8])
 
-        b = shared(np.asarray([7.234], dtype=theano.config.floatX),
-                   allow_downcast=True)
+        b = shared(np.asarray([7.234], dtype=theano.config.floatX), allow_downcast=True)
         assert b.dtype == theano.config.floatX
         f(b, [8])
         assert b.get_value() == 8
 
-        b = shared(np.zeros((5, 5), dtype='float32'))
+        b = shared(np.zeros((5, 5), dtype="float32"))
         with pytest.raises(TypeError):
             f(b, np.random.rand(5, 5))
 

@@ -11,7 +11,6 @@ from theano.compile.debugmode import _lessbroken_deepcopy
 
 
 class _typed_list_py_operators:
-
     def __getitem__(self, index):
         return getitem(self, index)
 
@@ -51,6 +50,7 @@ class TypedListVariable(_typed_list_py_operators, Variable):
 
     """
 
+
 TypedListType.Variable = TypedListVariable
 
 
@@ -59,6 +59,7 @@ class TypedListConstant(_typed_list_py_operators, Constant):
     Subclass to add the typed list operators to the basic `Variable` class.
 
     """
+
 
 TypedListType.Constant = TypedListConstant
 
@@ -75,15 +76,15 @@ class GetItem(Op):
                 index = Constant(SliceType(), index)
                 return Apply(self, [x, index], [x.type()])
             else:
-                index = T.constant(index, ndim=0, dtype='int64')
+                index = T.constant(index, ndim=0, dtype="int64")
                 return Apply(self, [x, index], [x.ttype()])
         if isinstance(index.type, SliceType):
             return Apply(self, [x, index], [x.type()])
         elif isinstance(index, T.TensorVariable) and index.ndim == 0:
-            assert index.dtype == 'int64'
+            assert index.dtype == "int64"
             return Apply(self, [x, index], [x.ttype()])
         else:
-            raise TypeError('Expected scalar or slice as index.')
+            raise TypeError("Expected scalar or slice as index.")
 
     def perform(self, node, inputs, outputs):
         (x, index) = inputs
@@ -98,17 +99,21 @@ class GetItem(Op):
     def c_code(self, node, name, inp, out, sub):
         x_name, index = inp[0], inp[1]
         output_name = out[0]
-        fail = sub['fail']
-        return """
+        fail = sub["fail"]
+        return (
+            """
         %(output_name)s = (typeof %(output_name)s) PyList_GetItem( (PyObject*) %(x_name)s, *((npy_int64 *) PyArray_DATA(%(index)s)));
         if(%(output_name)s == NULL){
             %(fail)s
         }
         Py_INCREF(%(output_name)s);
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_code_cache_version(self):
         return (1,)
+
 
 getitem = GetItem()
 """
@@ -163,16 +168,24 @@ class Append(Op):
     def _c_code_(self, node, name, inp, out, sub):
         x_name, toAppend = inp[0], inp[1]
         output_name = out[0]
-        fail = sub['fail']
+        fail = sub["fail"]
         if not self.inplace:
-            init = """
+            init = (
+                """
             %(output_name)s = (PyListObject*) PyList_GetSlice((PyObject*) %(x_name)s, 0, PyList_GET_SIZE((PyObject*) %(x_name)s)) ;
-            """ % locals()
+            """
+                % locals()
+            )
         else:
-            init = """
+            init = (
+                """
             %(output_name)s =  %(x_name)s;
-            """ % locals()
-        return init + """
+            """
+                % locals()
+            )
+        return (
+            init
+            + """
         if(%(output_name)s==NULL){
                 %(fail)s
         };
@@ -180,10 +193,13 @@ class Append(Op):
             %(fail)s
         };
         Py_INCREF(%(output_name)s);
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_code_cache_version(self):
         return (1,)
+
 
 append = Append()
 """
@@ -240,16 +256,24 @@ class Extend(Op):
     def _c_code_(self, node, name, inp, out, sub):
         x_name, toAppend = inp[0], inp[1]
         output_name = out[0]
-        fail = sub['fail']
+        fail = sub["fail"]
         if not self.inplace:
-            init = """
+            init = (
+                """
             %(output_name)s = (PyListObject*) PyList_GetSlice((PyObject*) %(x_name)s, 0, PyList_GET_SIZE((PyObject*) %(x_name)s)) ;
-            """ % locals()
+            """
+                % locals()
+            )
         else:
-            init = """
+            init = (
+                """
             %(output_name)s =  %(x_name)s;
-            """ % locals()
-        return init + """
+            """
+                % locals()
+            )
+        return (
+            init
+            + """
         int i =0;
         int length = PyList_GET_SIZE((PyObject*) %(toAppend)s);
         if(%(output_name)s==NULL){
@@ -261,10 +285,13 @@ class Extend(Op):
             };
         }
         Py_INCREF(%(output_name)s);
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_code_cache_version_(self):
         return (1,)
+
 
 extend = Extend()
 """
@@ -300,9 +327,9 @@ class Insert(Op):
         assert isinstance(x.type, TypedListType)
         assert x.ttype == toInsert.type
         if not isinstance(index, Variable):
-            index = T.constant(index, ndim=0, dtype='int64')
+            index = T.constant(index, ndim=0, dtype="int64")
         else:
-            assert index.dtype == 'int64'
+            assert index.dtype == "int64"
             assert isinstance(index, T.TensorVariable) and index.ndim == 0
         return Apply(self, [x, index, toInsert], [x.type()])
 
@@ -324,16 +351,24 @@ class Insert(Op):
     def _c_code_(self, node, name, inp, out, sub):
         x_name, index, toInsert = inp[0], inp[1], inp[2]
         output_name = out[0]
-        fail = sub['fail']
+        fail = sub["fail"]
         if not self.inplace:
-            init = """
+            init = (
+                """
             %(output_name)s = (PyListObject*) PyList_GetSlice((PyObject*) %(x_name)s, 0, PyList_GET_SIZE((PyObject*) %(x_name)s)) ;
-            """ % locals()
+            """
+                % locals()
+            )
         else:
-            init = """
+            init = (
+                """
             %(output_name)s =  %(x_name)s;
-            """ % locals()
-        return init + """
+            """
+                % locals()
+            )
+        return (
+            init
+            + """
         if(%(output_name)s==NULL){
                 %(fail)s
         };
@@ -341,10 +376,13 @@ class Insert(Op):
             %(fail)s
         };
         Py_INCREF(%(output_name)s);
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_code_cache_version(self):
         return (1,)
+
 
 insert = Insert()
 """
@@ -392,12 +430,13 @@ class Remove(Op):
         being thrown when trying to remove a matrix from a matrices list.
         """
         for y in range(out[0].__len__()):
-                if node.inputs[0].ttype.values_eq(out[0][y], toRemove):
-                    del out[0][y]
-                    break
+            if node.inputs[0].ttype.values_eq(out[0][y], toRemove):
+                del out[0][y]
+                break
 
     def __str__(self):
         return self.__class__.__name__
+
 
 remove = Remove()
 """Remove an element from a typed list.
@@ -447,16 +486,24 @@ class Reverse(Op):
     def c_code(self, node, name, inp, out, sub):
         x_name = inp[0]
         output_name = out[0]
-        fail = sub['fail']
+        fail = sub["fail"]
         if not self.inplace:
-            init = """
+            init = (
+                """
             %(output_name)s = (PyListObject*) PyList_GetSlice((PyObject*) %(x_name)s, 0, PyList_GET_SIZE((PyObject*) %(x_name)s)) ;
-            """ % locals()
+            """
+                % locals()
+            )
         else:
-            init = """
+            init = (
+                """
             %(output_name)s =  %(x_name)s;
-            """ % locals()
-        return init + """
+            """
+                % locals()
+            )
+        return (
+            init
+            + """
         if(%(output_name)s==NULL){
                 %(fail)s
         };
@@ -464,10 +511,13 @@ class Reverse(Op):
             %(fail)s
         };
         Py_INCREF(%(output_name)s);
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_code_cache_version(self):
         return (1,)
+
 
 reverse = Reverse()
 """
@@ -506,6 +556,7 @@ class Index(Op):
     def __str__(self):
         return self.__class__.__name__
 
+
 index_ = Index()
 
 
@@ -535,6 +586,7 @@ class Count(Op):
     def __str__(self):
         return self.__class__.__name__
 
+
 count = Count()
 """
 Count the number of times an element is in the typed list.
@@ -561,11 +613,11 @@ class Length(Op):
 
     def make_node(self, x):
         assert isinstance(x.type, TypedListType)
-        return Apply(self, [x], [T.scalar(dtype='int64')])
+        return Apply(self, [x], [T.scalar(dtype="int64")])
 
     def perform(self, node, x, outputs):
         (out,) = outputs
-        out[0] = np.asarray(len(x[0]), 'int64')
+        out[0] = np.asarray(len(x[0]), "int64")
 
     def __str__(self):
         return self.__class__.__name__
@@ -573,16 +625,20 @@ class Length(Op):
     def c_code(self, node, name, inp, out, sub):
         x_name = inp[0]
         output_name = out[0]
-        fail = sub['fail']
-        return """
+        fail = sub["fail"]
+        return (
+            """
         if(!%(output_name)s)
             %(output_name)s=(PyArrayObject*)PyArray_EMPTY(0, NULL, NPY_INT64, 0);
         ((npy_int64*)PyArray_DATA(%(output_name)s))[0]=PyList_Size((PyObject*)%(x_name)s);
         Py_INCREF(%(output_name)s);
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_code_cache_version(self):
         return (1,)
+
 
 length = Length()
 """
@@ -607,8 +663,7 @@ class MakeList(Op):
                 elem = theano.tensor.as_tensor_variable(elem)
             a2.append(elem)
         if not all(a2[0].type == elem.type for elem in a2):
-            raise TypeError(
-                "MakeList need all input variable to be of the same type.")
+            raise TypeError("MakeList need all input variable to be of the same type.")
         tl = theano.typed_list.TypedListType(a2[0].type)()
 
         return Apply(self, a2, [tl])
@@ -617,6 +672,7 @@ class MakeList(Op):
         (out,) = outputs
         # We need to make sure that we don't get a view on our inputs
         out[0] = [_lessbroken_deepcopy(inp) for inp in inputs]
+
 
 make_list = MakeList()
 """

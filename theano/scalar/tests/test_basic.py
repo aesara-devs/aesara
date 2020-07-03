@@ -17,24 +17,67 @@ from theano.gof import FunctionGraph
 from theano import gof
 from theano.tests import unittest_tools as utt
 
-from theano.scalar.basic import (floats, float16, float32, float64,
-                                 ints, int8, int32, complex64, uint8,
-                                 ComplexError, IntDiv, TrueDiv,
-                                 Composite, add, div_proxy,
-                                 and_, eq, neq, invert, mul, Scalar, InRange,
-                                 cast, constant, switch)
 from theano.scalar.basic import (
-    true_div, inv, log, log2, log10, log1p, exp, exp2, expm1, sqrt, deg2rad,
-    rad2deg, cos, arccos, sin, arcsin, tan, arctan, arctan2, cosh, arccosh,
-    sinh, arcsinh, tanh, arctanh)
+    floats,
+    float16,
+    float32,
+    float64,
+    ints,
+    int8,
+    int32,
+    complex64,
+    uint8,
+    ComplexError,
+    IntDiv,
+    TrueDiv,
+    Composite,
+    add,
+    div_proxy,
+    and_,
+    eq,
+    neq,
+    invert,
+    mul,
+    Scalar,
+    InRange,
+    cast,
+    constant,
+    switch,
+)
+from theano.scalar.basic import (
+    true_div,
+    inv,
+    log,
+    log2,
+    log10,
+    log1p,
+    exp,
+    exp2,
+    expm1,
+    sqrt,
+    deg2rad,
+    rad2deg,
+    cos,
+    arccos,
+    sin,
+    arcsin,
+    tan,
+    arctan,
+    arctan2,
+    cosh,
+    arccosh,
+    sinh,
+    arcsinh,
+    tanh,
+    arctanh,
+)
 
 
 def inputs():
-    return floats('xyz')
+    return floats("xyz")
 
 
-class test_ScalarOps():
-
+class test_ScalarOps:
     def test_straightforward(self):
         x, y, z = inputs()
         e = mul(add(x, y), div_proxy(x, y))
@@ -54,12 +97,23 @@ class test_ScalarOps():
         # sign to the result. This check that the c_code of `Mod` is implemented
         # as Python. That is what we want.
 
-        x, y = ints('xy')
+        x, y = ints("xy")
         fn = gof.DualLinker().accept(FunctionGraph([x, y], [x % y])).make_function()
-        for a, b in ((0, 1), (1, 1), (0, -1), (1, -1), (-1, -1),
-                     (1, 2), (-1, 2), (1, -2), (-1, -2),
-                     (5, 3), (-5, 3), (5, -3), (-5, -3)
-                     ):
+        for a, b in (
+            (0, 1),
+            (1, 1),
+            (0, -1),
+            (1, -1),
+            (-1, -1),
+            (1, 2),
+            (-1, 2),
+            (1, -2),
+            (-1, -2),
+            (5, 3),
+            (-5, 3),
+            (5, -3),
+            (-5, -3),
+        ):
             assert fn(a, b) == a % b, (a,)
 
 
@@ -69,16 +123,23 @@ def has_f16(comp):
     return False
 
 
-class test_composite():
+class test_composite:
     def test_composite_clone_float32(self):
         w = int8()
         x = float16()
         y = float32()
-        cz = Composite([x, y], [tanh(x + cast(y, 'float16'))])
-        c = Composite([w, x, y], [cz(x, y) - cz(x, y)**2 +
-                                  cast(x, 'int16') + cast(x, 'float32') +
-                                  cast(w, 'float16') -
-                                  constant(np.float16(1.0))])
+        cz = Composite([x, y], [tanh(x + cast(y, "float16"))])
+        c = Composite(
+            [w, x, y],
+            [
+                cz(x, y)
+                - cz(x, y) ** 2
+                + cast(x, "int16")
+                + cast(x, "float32")
+                + cast(w, "float16")
+                - constant(np.float16(1.0))
+            ],
+        )
         assert has_f16(c)
         nc = c.clone_float32()
         assert not has_f16(nc)
@@ -122,7 +183,7 @@ class test_composite():
         e = mul(add(70.0, y), div_proxy(x, y))
         C = Composite([x, y], [e])
         c = C.make_node(x, y)
-        assert "70.0" in c.op.c_code(c, 'dummy', ['x', 'y'], ['z'], dict(id=0))
+        assert "70.0" in c.op.c_code(c, "dummy", ["x", "y"], ["z"], dict(id=0))
         # print c.c_code(['x', 'y'], ['z'], dict(id = 0))
         g = FunctionGraph([x, y], [c.out])
         fn = gof.DualLinker().accept(g).make_function()
@@ -141,7 +202,7 @@ class test_composite():
         assert fn(1.0, 2.0, 3.0) == [6.0, 7.0, 0.5]
 
     def test_composite_printing(self):
-        x, y, z = floats('xyz')
+        x, y, z = floats("xyz")
         e0 = x + y + z
         e1 = x + y * z
         e2 = x / y
@@ -155,12 +216,14 @@ class test_composite():
         g = FunctionGraph([x, y, z], c.outputs)
         gof.DualLinker().accept(g).make_function()
 
-        assert str(g) == ('[*1 -> Composite{((i0 + i1) + i2),'
-                          ' (i0 + (i1 * i2)), (i0 / i1), '
-                          '(i0 // Constant{5}), '
-                          '(-i0), (i0 - i1), ((i0 ** i1) + (-i2)),'
-                          ' (i0 % Constant{3})}(x, y, z), '
-                          '*1::1, *1::2, *1::3, *1::4, *1::5, *1::6, *1::7]')
+        assert str(g) == (
+            "[*1 -> Composite{((i0 + i1) + i2),"
+            " (i0 + (i1 * i2)), (i0 / i1), "
+            "(i0 // Constant{5}), "
+            "(-i0), (i0 - i1), ((i0 ** i1) + (-i2)),"
+            " (i0 % Constant{3})}(x, y, z), "
+            "*1::1, *1::2, *1::3, *1::4, *1::5, *1::6, *1::7]"
+        )
 
     def test_make_node_continue_graph(self):
         # This is a test for a bug (now fixed) that disabled the
@@ -174,8 +237,7 @@ class test_composite():
         si1 = theano.scalar.int8()
         si2 = theano.scalar.float32()
         sout = (si0 * si1) / si2
-        sop = theano.scalar.Composite([si0, si1, si2],
-                                      [sout])
+        sop = theano.scalar.Composite([si0, si1, si2], [sout])
         si0 = theano.scalar.int8()
         si1 = theano.scalar.int8()
         si2 = theano.scalar.float32()
@@ -183,79 +245,81 @@ class test_composite():
         sop.make_node(si0 * si3, si1, si2)
 
 
-class test_logical():
+class test_logical:
     def test_gt(self):
         x, y, z = inputs()
         fn = gof.DualLinker().accept(FunctionGraph([x, y], [x > y])).make_function()
-        for a, b in ((3., 9), (3, 0.9), (3, 3)):
+        for a, b in ((3.0, 9), (3, 0.9), (3, 3)):
             assert fn(a, b) == (a > b)
 
     def test_lt(self):
         x, y, z = inputs()
         fn = gof.DualLinker().accept(FunctionGraph([x, y], [x < y])).make_function()
-        for a, b in ((3., 9), (3, 0.9), (3, 3)):
+        for a, b in ((3.0, 9), (3, 0.9), (3, 3)):
             assert fn(a, b) == (a < b)
 
     def test_le(self):
         x, y, z = inputs()
         fn = gof.DualLinker().accept(FunctionGraph([x, y], [x <= y])).make_function()
-        for a, b in ((3., 9), (3, 0.9), (3, 3)):
+        for a, b in ((3.0, 9), (3, 0.9), (3, 3)):
             assert fn(a, b) == (a <= b)
 
     def test_ge(self):
         x, y, z = inputs()
         fn = gof.DualLinker().accept(FunctionGraph([x, y], [x >= y])).make_function()
-        for a, b in ((3., 9), (3, 0.9), (3, 3)):
+        for a, b in ((3.0, 9), (3, 0.9), (3, 3)):
             assert fn(a, b) == (a >= b)
 
     def test_eq(self):
         x, y, z = inputs()
         fn = gof.DualLinker().accept(FunctionGraph([x, y], [eq(x, y)])).make_function()
-        for a, b in ((3., 9), (3, 0.9), (3, 3)):
+        for a, b in ((3.0, 9), (3, 0.9), (3, 3)):
             assert fn(a, b) == (a == b)
 
     def test_neq(self):
         x, y, z = inputs()
         fn = gof.DualLinker().accept(FunctionGraph([x, y], [neq(x, y)])).make_function()
-        for a, b in ((3., 9), (3, 0.9), (3, 3)):
+        for a, b in ((3.0, 9), (3, 0.9), (3, 3)):
             assert fn(a, b) == (a != b)
 
     def test_or(self):
-        x, y, z = ints('xyz')
+        x, y, z = ints("xyz")
         fn = gof.DualLinker().accept(FunctionGraph([x, y], [x | y])).make_function()
         for a, b in ((0, 1), (0, 0), (1, 0), (1, 1)):
             assert fn(a, b) == (a | b), (a, b)
 
     def test_xor(self):
-        x, y, z = ints('xyz')
+        x, y, z = ints("xyz")
         fn = gof.DualLinker().accept(FunctionGraph([x, y], [x ^ y])).make_function()
         for a, b in ((0, 1), (0, 0), (1, 0), (1, 1)):
             assert fn(a, b) == (a ^ b), (a, b)
 
     def test_and(self):
-        x, y, z = ints('xyz')
-        fn = gof.DualLinker().accept(FunctionGraph([x, y], [and_(x, y)])).make_function()
+        x, y, z = ints("xyz")
+        fn = (
+            gof.DualLinker().accept(FunctionGraph([x, y], [and_(x, y)])).make_function()
+        )
         for a, b in ((0, 1), (0, 0), (1, 0), (1, 1)):
             assert fn(a, b) == (a & b), (a, b)
 
-        x, y, z = ints('xyz')
+        x, y, z = ints("xyz")
         fn = gof.DualLinker().accept(FunctionGraph([x, y], [x & y])).make_function()
         for a, b in ((0, 1), (0, 0), (1, 0), (1, 1)):
             assert fn(a, b) == (a & b), (a, b)
 
     def test_not(self):
-        x, y, z = ints('xyz')
+        x, y, z = ints("xyz")
         fn = gof.DualLinker().accept(FunctionGraph([x, y], [invert(x)])).make_function()
         for a, b in ((0, 1), (0, 0), (1, 0), (1, 1)):
             assert fn(a, b) == ~a, (a,)
 
-        x, y, z = ints('xyz')
+        x, y, z = ints("xyz")
         fn = gof.DualLinker().accept(FunctionGraph([x, y], [~x])).make_function()
         for a, b in ((0, 1), (0, 0), (1, 0), (1, 1)):
             assert fn(a, b) == ~a, (a,)
 
 
-class test_upgrade_to_float():
+class test_upgrade_to_float:
     # Test for Ops whose output has to be floating point, even when all
     # inputs are ints.
     # In particular, when the inputs are int8, the output should be
@@ -284,15 +348,15 @@ class test_upgrade_to_float():
         (tan, list(range(-3, 4))),
         (arctan, list(range(-127, 128))),
         (tanh, list(range(-127, 128))),
-        (arctanh, [0])]
+        (arctanh, [0]),
+    ]
 
-    binary_ops_vals = [
-        (arctan2, list(range(-127, 128)), list(range(-127, 128)))]
+    binary_ops_vals = [(arctan2, list(range(-127, 128)), list(range(-127, 128)))]
 
     @staticmethod
     def _test_unary(unary_op, x_range):
-        xi = int8('xi')
-        xf = float32('xf')
+        xi = int8("xi")
+        xf = float32("xf")
 
         ei = unary_op(xi)
         fi = theano.function([xi], ei)
@@ -304,15 +368,15 @@ class test_upgrade_to_float():
             outi = fi(x_val)
             outf = ff(x_val)
 
-            assert outi.dtype == outf.dtype, 'incorrect dtype'
-            assert np.allclose(outi, outf), 'insufficient precision'
+            assert outi.dtype == outf.dtype, "incorrect dtype"
+            assert np.allclose(outi, outf), "insufficient precision"
 
     @staticmethod
     def _test_binary(binary_op, x_range, y_range):
-        xi = int8('xi')
-        yi = int8('yi')
-        xf = float32('xf')
-        yf = float32('yf')
+        xi = int8("xi")
+        yi = int8("yi")
+        xf = float32("xf")
+        yf = float32("yf")
 
         ei = binary_op(xi, yi)
         fi = theano.function([xi, yi], ei)
@@ -325,8 +389,8 @@ class test_upgrade_to_float():
                 outi = fi(x_val, y_val)
                 outf = ff(x_val, y_val)
 
-                assert outi.dtype == outf.dtype, 'incorrect dtype'
-                assert np.allclose(outi, outf), 'insufficient precision'
+                assert outi.dtype == outf.dtype, "incorrect dtype"
+                assert np.allclose(outi, outf), "insufficient precision"
 
     def test_true_div(self):
         # true_div's upcast policy is not exactly "upgrade_to_float",
@@ -334,10 +398,10 @@ class test_upgrade_to_float():
         x_range = list(range(-127, 128))
         y_range = list(range(-127, 0)) + list(range(1, 127))
 
-        xi = int8('xi')
-        yi = int8('yi')
-        xf = Scalar(theano.config.floatX)('xf')
-        yf = Scalar(theano.config.floatX)('yf')
+        xi = int8("xi")
+        yi = int8("yi")
+        xf = Scalar(theano.config.floatX)("xf")
+        yf = Scalar(theano.config.floatX)("yf")
 
         ei = true_div(xi, yi)
         fi = theano.function([xi, yi], ei)
@@ -350,31 +414,33 @@ class test_upgrade_to_float():
                 outi = fi(x_val, y_val)
                 outf = ff(x_val, y_val)
 
-                assert outi.dtype == outf.dtype, 'incorrect dtype'
-                assert np.allclose(outi, outf), 'insufficient precision'
+                assert outi.dtype == outf.dtype, "incorrect dtype"
+                assert np.allclose(outi, outf), "insufficient precision"
 
     def test_unary(self):
         # Automatically define all individual unary tests
         for unary_op, x_range in self.unary_ops_vals:
-            test_name = 'test_%s' % unary_op.name
+            test_name = "test_%s" % unary_op.name
 
             def test():
                 self._test_unary(unary_op, x_range)
+
             test.description = test_name
             yield test
 
     def test_binary(self):
         # Automatically define all individual binary tests
         for binary_op, x_range, y_range in self.binary_ops_vals:
-            test_name = 'test_%s' % binary_op.name
+            test_name = "test_%s" % binary_op.name
 
             def test():
                 self._test_binary(binary_op, x_range, y_range)
+
             test.description = test_name
             yield test
 
 
-class test_complex_mod():
+class test_complex_mod:
     # Make sure % fails on complex numbers.
 
     def test_fail(self):
@@ -387,7 +453,7 @@ class test_complex_mod():
             pass
 
 
-class test_div():
+class test_div:
     def test_0(self):
         a = int8()
         b = int32()
@@ -407,11 +473,11 @@ class test_div():
 
 
 def test_grad_gt():
-    x = float32(name='x')
-    y = float32(name='y')
+    x = float32(name="x")
+    y = float32(name="y")
     z = x > y
     g = theano.gradient.grad(z, y)
-    assert g.eval({y: 1.}) == 0.
+    assert g.eval({y: 1.0}) == 0.0
 
 
 def test_grad_switch():
@@ -432,7 +498,7 @@ def test_grad_switch():
 
 def test_grad_identity():
     # Check that the grad method of Identity correctly handles int dytpes
-    x = theano.tensor.imatrix('x')
+    x = theano.tensor.imatrix("x")
     # tensor_copy is Elemwise{Identity}
     y = theano.tensor.tensor_copy(x)
     l = y.sum(dtype=theano.config.floatX)
@@ -443,9 +509,9 @@ def test_grad_inrange():
     for bound_definition in [(True, True), (False, False)]:
         # Instantiate op, and then take the gradient
         op = InRange(*bound_definition)
-        x = theano.tensor.fscalar('x')
-        low = theano.tensor.fscalar('low')
-        high = theano.tensor.fscalar('high')
+        x = theano.tensor.fscalar("x")
+        low = theano.tensor.fscalar("low")
+        high = theano.tensor.fscalar("high")
         out = op(x, low, high)
         gx, glow, ghigh = theano.tensor.grad(out, [x, low, high])
 
@@ -472,18 +538,18 @@ def test_grad_abs():
     f = theano.function([a], c, mode=theano.Mode(optimizer=None))
     # Currently Theano return 0.5, but it isn't sure it won't change
     # in the futur.
-    ret = f(0.)
+    ret = f(0.0)
     assert ret == 0.5, ret
+
 
 # Testing of Composite is done in tensor/tests/test_opt.py
 # in test_fusion, TestCompositeCodegen
 
 
 def test_constant():
-    c = constant(2, name='a')
-    assert c.name == 'a'
-    assert c.dtype == 'int8'
-    c = constant(2, dtype='float32')
+    c = constant(2, name="a")
+    assert c.name == "a"
+    assert c.dtype == "int8"
+    c = constant(2, dtype="float32")
     assert c.name is None
-    assert c.dtype == 'float32'
-
+    assert c.dtype == "float32"

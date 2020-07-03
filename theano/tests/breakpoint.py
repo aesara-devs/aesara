@@ -77,7 +77,7 @@ class PdbBreakpoint(Op):
 
         # Validate that the condition is a scalar (else it is not obvious how
         # is should be evaluated)
-        assert (condition.ndim == 0)
+        assert condition.ndim == 0
 
         # Because the user might be tempted to instantiate PdbBreakpoint only
         # once and apply it many times on different number of inputs, we must
@@ -105,9 +105,10 @@ class PdbBreakpoint(Op):
             try:
                 monitored = [np.asarray(inp) for inp in inputs[1:]]
             except Exception:
-                raise ValueError("Some of the inputs to the PdbBreakpoint op "
-                                 "'%s' could not be casted to NumPy arrays" %
-                                 self.name)
+                raise ValueError(
+                    "Some of the inputs to the PdbBreakpoint op "
+                    "'%s' could not be casted to NumPy arrays" % self.name
+                )
 
             print("\n")
             print("-------------------------------------------------")
@@ -118,14 +119,17 @@ class PdbBreakpoint(Op):
             print("resumes, the updated values will be used.")
             print("-------------------------------------------------")
 
-            if imp.find_module('pudb'):
+            if imp.find_module("pudb"):
                 import pudb
+
                 pudb.set_trace()
-            elif imp.find_module('ipdb'):
+            elif imp.find_module("ipdb"):
                 import ipdb
+
                 ipdb.set_trace()
             else:
                 import pdb
+
                 pdb.set_trace()
 
             # Take the new values in monitored, cast them back to their
@@ -139,7 +143,7 @@ class PdbBreakpoint(Op):
                 output_storage[i][0] = inputs[i + 1]
 
     def grad(self, inputs, output_gradients):
-        return ([DisconnectedType()()] + output_gradients)
+        return [DisconnectedType()()] + output_gradients
 
     def infer_shape(self, inputs, input_shapes):
         # Return the shape of every input but the condition (first input)
@@ -152,6 +156,8 @@ class PdbBreakpoint(Op):
 
         # First input is connected to no output and every other input n is
         # connected to input n-1
-        connections = [[out_idx == inp_idx - 1 for out_idx in range(nb_out)]
-                       for inp_idx in range(nb_inp)]
+        connections = [
+            [out_idx == inp_idx - 1 for out_idx in range(nb_out)]
+            for inp_idx in range(nb_inp)
+        ]
         return connections

@@ -7,6 +7,7 @@ import numpy as np
 
 try:
     import scipy.linalg
+
     imported_scipy = True
 except ImportError:
     # some ops (e.g. Cholesky, Solve, A_Xinv_b) won't work
@@ -20,14 +21,15 @@ from theano.gof import Op, Apply
 logger = logging.getLogger(__name__)
 
 MATRIX_STRUCTURES = (
-    'general',
-    'symmetric',
-    'lower_triangular',
-    'upper_triangular',
-    'hermitian',
-    'banded',
-    'diagonal',
-    'toeplitz')
+    "general",
+    "symmetric",
+    "lower_triangular",
+    "upper_triangular",
+    "hermitian",
+    "banded",
+    "diagonal",
+    "toeplitz",
+)
 
 
 class Cholesky(Op):
@@ -46,16 +48,17 @@ class Cholesky(Op):
         If on_error is set to 'nan', it will return a matrix containing
         nans instead.
     """
+
     # TODO: inplace
     # TODO: for specific dtypes
     # TODO: LAPACK wrapper with in-place behavior, for solve also
 
-    __props__ = ('lower', 'destructive', 'on_error')
+    __props__ = ("lower", "destructive", "on_error")
 
-    def __init__(self, lower=True, on_error='raise'):
+    def __init__(self, lower=True, on_error="raise"):
         self.lower = lower
         self.destructive = False
-        if on_error not in ['raise', 'nan']:
+        if on_error not in ["raise", "nan"]:
             raise ValueError('on_error must be one of "raise" or ""nan"')
         self.on_error = on_error
 
@@ -63,8 +66,9 @@ class Cholesky(Op):
         return [shapes[0]]
 
     def make_node(self, x):
-        assert imported_scipy, (
-            "Scipy not available. Scipy is needed for the Cholesky op")
+        assert (
+            imported_scipy
+        ), "Scipy not available. Scipy is needed for the Cholesky op"
         x = as_tensor_variable(x)
         assert x.ndim == 2
         return Apply(self, [x], [x.type()])
@@ -75,7 +79,7 @@ class Cholesky(Op):
         try:
             z[0] = scipy.linalg.cholesky(x, lower=self.lower).astype(x.dtype)
         except scipy.linalg.LinAlgError:
-            if self.on_error == 'raise':
+            if self.on_error == "raise":
                 raise
             else:
                 z[0] = (np.zeros(x.shape) * np.nan).astype(x.dtype)
@@ -98,7 +102,7 @@ class Cholesky(Op):
 
         # Replace the cholesky decomposition with 1 if there are nans
         # or solve_upper_triangular will throw a ValueError.
-        if self.on_error == 'nan':
+        if self.on_error == "nan":
             ok = ~tensor.any(tensor.isnan(chol_x))
             chol_x = tensor.switch(ok, chol_x, 1)
             dz = tensor.switch(ok, dz, 1)
@@ -110,25 +114,28 @@ class Cholesky(Op):
 
         def tril_and_halve_diagonal(mtx):
             """Extracts lower triangle of square matrix and halves diagonal."""
-            return tensor.tril(mtx) - tensor.diag(tensor.diagonal(mtx) / 2.)
+            return tensor.tril(mtx) - tensor.diag(tensor.diagonal(mtx) / 2.0)
 
         def conjugate_solve_triangular(outer, inner):
             """Computes L^{-T} P L^{-1} for lower-triangular L."""
             return solve_upper_triangular(
-                outer.T, solve_upper_triangular(outer.T, inner.T).T)
+                outer.T, solve_upper_triangular(outer.T, inner.T).T
+            )
 
         s = conjugate_solve_triangular(
-            chol_x, tril_and_halve_diagonal(chol_x.T.dot(dz)))
+            chol_x, tril_and_halve_diagonal(chol_x.T.dot(dz))
+        )
 
         if self.lower:
             grad = tensor.tril(s + s.T) - tensor.diag(tensor.diagonal(s))
         else:
             grad = tensor.triu(s + s.T) - tensor.diag(tensor.diagonal(s))
 
-        if self.on_error == 'nan':
+        if self.on_error == "nan":
             return [tensor.switch(ok, grad, np.nan)]
         else:
             return [grad]
+
 
 cholesky = Cholesky()
 
@@ -137,7 +144,7 @@ class CholeskyGrad(Op):
     """
     """
 
-    __props__ = ('lower', 'destructive')
+    __props__ = ("lower", "destructive")
 
     def __init__(self, lower=True):
         self.lower = lower
@@ -150,9 +157,9 @@ class CholeskyGrad(Op):
         assert x.ndim == 2
         assert l.ndim == 2
         assert dz.ndim == 2
-        assert l.owner.op.lower == self.lower, (
-            "lower/upper mismatch between Cholesky op and CholeskyGrad op"
-        )
+        assert (
+            l.owner.op.lower == self.lower
+        ), "lower/upper mismatch between Cholesky op and CholeskyGrad op"
         return Apply(self, [x, l, dz], [x.type()])
 
     def perform(self, node, inputs, outputs):
@@ -183,7 +190,7 @@ class CholeskyGrad(Op):
                 for j in xrange(k + 1, N):
                     F[j, k] /= L[k, k]
                     F[k, k] -= L[j, k] * F[j, k]
-                F[k, k] /= (2 * L[k, k])
+                F[k, k] /= 2 * L[k, k]
         else:
             F = np.triu(dz)
             for k in xrange(N - 1, -1, -1):
@@ -194,7 +201,7 @@ class CholeskyGrad(Op):
                 for j in xrange(k + 1, N):
                     F[k, j] /= L[k, k]
                     F[k, k] -= L[k, j] * F[k, j]
-                F[k, k] /= (2 * L[k, k])
+                F[k, k] /= 2 * L[k, k]
         dx[0] = F
 
     def infer_shape(self, node, shapes):
@@ -208,26 +215,23 @@ class Solve(Op):
     For on CPU and GPU.
     """
 
-    __props__ = ('A_structure', 'lower', 'overwrite_A', 'overwrite_b')
+    __props__ = ("A_structure", "lower", "overwrite_A", "overwrite_b")
 
-    def __init__(self,
-                 A_structure='general',
-                 lower=False,
-                 overwrite_A=False,
-                 overwrite_b=False):
+    def __init__(
+        self, A_structure="general", lower=False, overwrite_A=False, overwrite_b=False
+    ):
         if A_structure not in MATRIX_STRUCTURES:
-            raise ValueError('Invalid matrix structure argument', A_structure)
+            raise ValueError("Invalid matrix structure argument", A_structure)
         self.A_structure = A_structure
         self.lower = lower
         self.overwrite_A = overwrite_A
         self.overwrite_b = overwrite_b
 
     def __repr__(self):
-        return 'Solve{%s}' % str(self._props())
+        return "Solve{%s}" % str(self._props())
 
     def make_node(self, A, b):
-        assert imported_scipy, (
-            "Scipy not available. Scipy is needed for the Solve op")
+        assert imported_scipy, "Scipy not available. Scipy is needed for the Solve op"
         A = as_tensor_variable(A)
         b = as_tensor_variable(b)
         assert A.ndim == 2
@@ -236,21 +240,17 @@ class Solve(Op):
         # infer dtype by solving the most simple
         # case with (1, 1) matrices
         o_dtype = scipy.linalg.solve(
-            np.eye(1).astype(A.dtype),
-            np.eye(1).astype(b.dtype)).dtype
-        x = tensor.tensor(
-            broadcastable=b.broadcastable,
-            dtype=o_dtype)
+            np.eye(1).astype(A.dtype), np.eye(1).astype(b.dtype)
+        ).dtype
+        x = tensor.tensor(broadcastable=b.broadcastable, dtype=o_dtype)
         return Apply(self, [A, b], [x])
 
     def perform(self, node, inputs, output_storage):
         A, b = inputs
-        if self.A_structure == 'lower_triangular':
-            rval = scipy.linalg.solve_triangular(
-                A, b, lower=True)
-        elif self.A_structure == 'upper_triangular':
-            rval = scipy.linalg.solve_triangular(
-                A, b, lower=False)
+        if self.A_structure == "lower_triangular":
+            rval = scipy.linalg.solve_triangular(A, b, lower=True)
+        elif self.A_structure == "upper_triangular":
+            rval = scipy.linalg.solve_triangular(A, b, lower=False)
         else:
             rval = scipy.linalg.solve(A, b)
         output_storage[0][0] = rval
@@ -282,22 +282,23 @@ class Solve(Op):
         c = outputs[0]
         c_bar = output_gradients[0]
         trans_map = {
-            'lower_triangular': 'upper_triangular',
-            'upper_triangular': 'lower_triangular'
+            "lower_triangular": "upper_triangular",
+            "upper_triangular": "lower_triangular",
         }
         trans_solve_op = Solve(
             # update A_structure and lower to account for a transpose operation
             A_structure=trans_map.get(self.A_structure, self.A_structure),
-            lower=not self.lower
+            lower=not self.lower,
         )
         b_bar = trans_solve_op(A.T, c_bar)
         # force outer product if vector second input
         A_bar = -tensor.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
-        if self.A_structure == 'lower_triangular':
+        if self.A_structure == "lower_triangular":
             A_bar = tensor.tril(A_bar)
-        elif self.A_structure == 'upper_triangular':
+        elif self.A_structure == "upper_triangular":
             A_bar = tensor.triu(A_bar)
         return [A_bar, b_bar]
+
 
 solve = Solve()
 """
@@ -320,12 +321,12 @@ x : `(M, ) or (M, N) symbolic vector or matrix`
     x will have the same shape as b
 """
 # lower and upper triangular solves
-solve_lower_triangular = Solve(A_structure='lower_triangular', lower=True)
+solve_lower_triangular = Solve(A_structure="lower_triangular", lower=True)
 """Optimized implementation of :func:`theano.tensor.slinalg.solve` when A is lower triangular."""
-solve_upper_triangular = Solve(A_structure='upper_triangular', lower=False)
+solve_upper_triangular = Solve(A_structure="upper_triangular", lower=False)
 """Optimized implementation of :func:`theano.tensor.slinalg.solve` when A is upper triangular."""
 # symmetric solves
-solve_symmetric = Solve(A_structure='symmetric')
+solve_symmetric = Solve(A_structure="symmetric")
 """Optimized implementation of :func:`theano.tensor.slinalg.solve` when A is symmetric."""
 
 # TODO: Optimizations to replace multiplication by matrix inverse
@@ -338,15 +339,16 @@ class Eigvalsh(Op):
 
     """
 
-    __props__ = ('lower',)
+    __props__ = ("lower",)
 
     def __init__(self, lower=True):
         assert lower in [True, False]
         self.lower = lower
 
     def make_node(self, a, b):
-        assert imported_scipy, (
-            "Scipy not  available. Scipy is needed for the Eigvalsh op")
+        assert (
+            imported_scipy
+        ), "Scipy not  available. Scipy is needed for the Eigvalsh op"
 
         if b == theano.tensor.NoneConst:
             a = as_tensor_variable(a)
@@ -374,7 +376,7 @@ class Eigvalsh(Op):
 
     def grad(self, inputs, g_outputs):
         a, b = inputs
-        gw, = g_outputs
+        (gw,) = g_outputs
         return EigvalshGrad(self.lower)(a, b, gw)
 
     def infer_shape(self, node, shapes):
@@ -397,7 +399,7 @@ class EigvalshGrad(Op):
     # discussion on github at
     # https://github.com/Theano/Theano/pull/1846#discussion-diff-12486764
 
-    __props__ = ('lower',)
+    __props__ = ("lower",)
 
     def __init__(self, lower=True):
         assert lower in [True, False]
@@ -410,8 +412,9 @@ class EigvalshGrad(Op):
             self.tri1 = lambda a: np.tril(a, -1)
 
     def make_node(self, a, b, gw):
-        assert imported_scipy, (
-            "Scipy not available. Scipy is needed for the GEigvalsh op")
+        assert (
+            imported_scipy
+        ), "Scipy not available. Scipy is needed for the GEigvalsh op"
         a = as_tensor_variable(a)
         b = as_tensor_variable(b)
         gw = as_tensor_variable(gw)
@@ -428,7 +431,7 @@ class EigvalshGrad(Op):
         (a, b, gw) = inputs
         w, v = scipy.linalg.eigh(a, b, lower=self.lower)
         gA = v.dot(np.diag(gw).dot(v.T))
-        gB = - v.dot(np.diag(gw * w).dot(v.T))
+        gB = -v.dot(np.diag(gw * w).dot(v.T))
 
         # See EighGrad comments for an explanation of these lines
         out1 = self.tri0(gA) + self.tri1(gA).T
@@ -467,20 +470,22 @@ def kron(a, b):
     """
     a = tensor.as_tensor_variable(a)
     b = tensor.as_tensor_variable(b)
-    if (a.ndim + b.ndim <= 2):
-        raise TypeError('kron: inputs dimensions must sum to 3 or more. '
-                        'You passed %d and %d.' % (a.ndim, b.ndim))
+    if a.ndim + b.ndim <= 2:
+        raise TypeError(
+            "kron: inputs dimensions must sum to 3 or more. "
+            "You passed %d and %d." % (a.ndim, b.ndim)
+        )
     o = tensor.outer(a, b)
-    o = o.reshape(tensor.concatenate((a.shape, b.shape)),
-                  a.ndim + b.ndim)
-    shf = o.dimshuffle(0, 2, 1, * list(range(3, o.ndim)))
+    o = o.reshape(tensor.concatenate((a.shape, b.shape)), a.ndim + b.ndim)
+    shf = o.dimshuffle(0, 2, 1, *list(range(3, o.ndim)))
     if shf.ndim == 3:
         shf = o.dimshuffle(1, 0, 2)
         o = shf.flatten()
     else:
-        o = shf.reshape((o.shape[0] * o.shape[2],
-                         o.shape[1] * o.shape[3]) +
-                        tuple(o.shape[i] for i in xrange(4, o.ndim)))
+        o = shf.reshape(
+            (o.shape[0] * o.shape[2], o.shape[1] * o.shape[3])
+            + tuple(o.shape[i] for i in xrange(4, o.ndim))
+        )
     return o
 
 
@@ -493,13 +498,12 @@ class Expm(Op):
     __props__ = ()
 
     def make_node(self, A):
-        assert imported_scipy, (
-            "Scipy not available. Scipy is needed for the Expm op")
+        assert imported_scipy, "Scipy not available. Scipy is needed for the Expm op"
 
         A = as_tensor_variable(A)
         assert A.ndim == 2
         expm = theano.tensor.matrix(dtype=A.dtype)
-        return Apply(self, [A, ], [expm, ])
+        return Apply(self, [A,], [expm,])
 
     def perform(self, node, inputs, outputs):
         (A,) = inputs
@@ -524,12 +528,11 @@ class ExpmGrad(Op):
     __props__ = ()
 
     def make_node(self, A, gw):
-        assert imported_scipy, (
-            "Scipy not available. Scipy is needed for the Expm op")
+        assert imported_scipy, "Scipy not available. Scipy is needed for the Expm op"
         A = as_tensor_variable(A)
         assert A.ndim == 2
         out = theano.tensor.matrix(dtype=A.dtype)
-        return Apply(self, [A, gw], [out, ])
+        return Apply(self, [A, gw], [out,])
 
     def infer_shape(self, node, shapes):
         return [shapes[0]]

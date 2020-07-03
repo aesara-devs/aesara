@@ -75,8 +75,7 @@ class CLinkerType(CLinkerObject):
             Subclass does not implement this method.
 
         """
-        raise MethodNotDefined("c_literal", type(self),
-                               self.__class__.__name__)
+        raise MethodNotDefined("c_literal", type(self), self.__class__.__name__)
 
     def c_declare(self, name, sub, check_input=True):
         """
@@ -182,8 +181,7 @@ class CLinkerType(CLinkerObject):
                         'was expecting None'); %(fail)s;}"
 
         """
-        raise MethodNotDefined("c_extract", type(self),
-                               self.__class__.__name__)
+        raise MethodNotDefined("c_extract", type(self), self.__class__.__name__)
 
     def c_extract_out(self, name, sub, check_input=True):
         """
@@ -205,7 +203,8 @@ class CLinkerType(CLinkerObject):
         """ % dict(
             name=name,
             c_init_code=self.c_init(name, sub),
-            c_extract_code=self.c_extract(name, sub, check_input))
+            c_extract_code=self.c_extract(name, sub, check_input),
+        )
 
     def c_cleanup(self, name, sub):
         """
@@ -346,10 +345,11 @@ class PureType(object):
 
         if other.type != self:
             raise TypeError(
-                'Cannot convert Type %(othertype)s '
-                '(of Variable %(other)s) into Type %(self)s. '
-                'You can try to manually convert %(other)s into a %(self)s.'
-                % dict(othertype=other.type, other=other, self=self))
+                "Cannot convert Type %(othertype)s "
+                "(of Variable %(other)s) into Type %(self)s. "
+                "You can try to manually convert %(other)s into a %(self)s."
+                % dict(othertype=other.type, other=other, self=self)
+            )
         return other
 
     def convert_variable(self, var):
@@ -454,17 +454,18 @@ class PureType(object):
         """
         return self.values_eq(a, b)
 
-#    def get_shape_info(self, obj):
+        #    def get_shape_info(self, obj):
         """
         Optional function. See TensorType().get_shape_info for definition.
 
         """
 
-#    def get_size(self, shape_info):
+        #    def get_size(self, shape_info):
         """
         Optional function. See TensorType().get_size for definition.
 
         """
+
 
 _nothing = """
        """
@@ -571,33 +572,48 @@ class Generic(SingletonType):
         return True
 
     def c_declare(self, name, sub, check_input=True):
-        return """
+        return (
+            """
         PyObject* %(name)s;
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_init(self, name, sub):
-        return """
+        return (
+            """
         %(name)s = NULL;
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_extract(self, name, sub, check_input=True):
-        return """
+        return (
+            """
         Py_INCREF(py_%(name)s);
         %(name)s = py_%(name)s;
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_cleanup(self, name, sub):
-        return """
+        return (
+            """
         Py_XDECREF(%(name)s);
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_sync(self, name, sub):
-        return """
+        return (
+            """
         assert(py_%(name)s->ob_refcnt > 1);
         Py_DECREF(py_%(name)s);
         py_%(name)s = %(name)s ? %(name)s : Py_None;
         Py_INCREF(py_%(name)s);
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_code_cache_version(self):
         return (1,)
@@ -605,17 +621,19 @@ class Generic(SingletonType):
     def __str__(self):
         return self.__class__.__name__
 
+
 generic = Generic()
 
 _cdata_type = None
 
-if platform.python_implementation() != 'PyPy':
+if platform.python_implementation() != "PyPy":
     _cdata_type = ctypes.py_object.from_address(
-        ctypes.addressof(ctypes.pythonapi.PyCapsule_Type)).value
+        ctypes.addressof(ctypes.pythonapi.PyCapsule_Type)
+    ).value
 
 
 class _make_cdata(Op):
-    __props__ = ('rtype',)
+    __props__ = ("rtype",)
 
     def __init__(self, rtype):
         assert isinstance(rtype, CDataType)
@@ -628,13 +646,15 @@ class _make_cdata(Op):
         from theano.scalar import as_scalar
         from theano import Apply
 
-        val = as_scalar(val).astype('uint64')
+        val = as_scalar(val).astype("uint64")
         return Apply(self, [val], [self.rtype()])
 
     def c_code(self, node, name, inputs, outputs, sub):
         return """
         %(out)s = (%(ctype)s)%(inp)s;
-        """ % dict(ctype=self.rtype.ctype, out=outputs[0], inp=inputs[0])
+        """ % dict(
+            ctype=self.rtype.ctype, out=outputs[0], inp=inputs[0]
+        )
 
     def c_code_cache_version(self):
         if self.rtype.version is None:
@@ -661,13 +681,31 @@ class CDataType(Type):
     version
         The version to use in Theano cache system.
     """
-    __props__ = ('ctype', 'freefunc', 'headers', 'header_dirs',
-                 'libraries', 'lib_dirs', 'extra_support_code',
-                 'compile_args', 'version')
 
-    def __init__(self, ctype, freefunc=None, headers=(), header_dirs=(),
-                 libraries=(), lib_dirs=(), compile_args=(),
-                 extra_support_code="", version=None):
+    __props__ = (
+        "ctype",
+        "freefunc",
+        "headers",
+        "header_dirs",
+        "libraries",
+        "lib_dirs",
+        "extra_support_code",
+        "compile_args",
+        "version",
+    )
+
+    def __init__(
+        self,
+        ctype,
+        freefunc=None,
+        headers=(),
+        header_dirs=(),
+        libraries=(),
+        lib_dirs=(),
+        compile_args=(),
+        extra_support_code="",
+        version=None,
+    ):
         assert isinstance(ctype, string_types)
         self.ctype = ctype
         if freefunc is not None:
@@ -701,11 +739,14 @@ class CDataType(Type):
         from theano.scalar import get_scalar_type
 
         if self._fn is None:
-            with change_flags(compute_test_value='off'):
-                v = get_scalar_type('int64')()
-                self._fn = theano.function([v], _make_cdata(self)(v),
-                                           mode=theano.Mode(optimizer=None),
-                                           profile=False)
+            with change_flags(compute_test_value="off"):
+                v = get_scalar_type("int64")()
+                self._fn = theano.function(
+                    [v],
+                    _make_cdata(self)(v),
+                    mode=theano.Mode(optimizer=None),
+                    profile=False,
+                )
         return self._fn
 
     def make_value(self, ptr):
@@ -723,7 +764,9 @@ class CDataType(Type):
     def c_declare(self, name, sub, check_input=True):
         return """
         %(ctype)s %(name)s;
-        """ % dict(ctype=self.ctype, name=name)
+        """ % dict(
+            ctype=self.ctype, name=name
+        )
 
     def c_init(self, name, sub):
         return "%(name)s = NULL;" % dict(name=name)
@@ -732,17 +775,22 @@ class CDataType(Type):
         return """
   %(name)s = (%(ctype)s)PyCapsule_GetPointer(py_%(name)s, NULL);
   if (%(name)s == NULL) %(fail)s
-        """ % dict(name=name, ctype=self.ctype, fail=sub['fail'])
+        """ % dict(
+            name=name, ctype=self.ctype, fail=sub["fail"]
+        )
 
     def c_support_code(self):
-        return """
+        return (
+            """
 void _capsule_destructor(PyObject *o) {
     void *d = PyCapsule_GetContext(o);
     void *p = PyCapsule_GetPointer(o, NULL);
     void (*f)(void *) = (void (*)(void *))d;
     if (f != NULL) f(p);
 }
-""" + self.extra_support_code
+"""
+            + self.extra_support_code
+        )
 
     def c_sync(self, name, sub):
         freefunc = self.freefunc
@@ -793,7 +841,7 @@ if (py_%(name)s == NULL) { %(freefunc)s(%(name)s); }
         return self.compile_args
 
     def c_code_cache_version(self):
-        v = (3, )
+        v = (3,)
         if self.version is not None:
             v = v + (self.version,)
         return v
@@ -803,12 +851,12 @@ if (py_%(name)s == NULL) { %(freefunc)s(%(name)s); }
 
     def __setstate__(self, dct):
         self.__dict__.update(dct)
-        if not hasattr(self, 'headers'):
+        if not hasattr(self, "headers"):
             self.headers = ()
             self.header_dirs = ()
             self.libraries = ()
             self.lib_dirs = ()
-        if not hasattr(self, 'version'):
+        if not hasattr(self, "version"):
             self.version = None
 
 
@@ -822,6 +870,7 @@ class CDataTypeConstant(graph.Constant):
         # There is no way to put the data in the signature, so we
         # don't even try
         return (self.type,)
+
 
 CDataType.Constant = CDataTypeConstant
 
@@ -927,46 +976,63 @@ class EnumType(Type, dict):
         # C type may be a list of keywords, e.g. "unsigned long long".
         # We should check each part.
         ctype_parts = ctype.split()
-        if not all(re.match('^[A-Za-z_][A-Za-z0-9_]*$', el) for el in ctype_parts):
-            raise TypeError('%s: invalid C type.' % type(self).__name__)
-        self.ctype = ' '.join(ctype_parts)
+        if not all(re.match("^[A-Za-z_][A-Za-z0-9_]*$", el) for el in ctype_parts):
+            raise TypeError("%s: invalid C type." % type(self).__name__)
+        self.ctype = " ".join(ctype_parts)
 
     def __init_cname(self, cname):
-        if not re.match('^[A-Za-z_][A-Za-z0-9_]*$', cname):
+        if not re.match("^[A-Za-z_][A-Za-z0-9_]*$", cname):
             raise TypeError("%s: invalid C name." % type(self).__name__)
         self.cname = cname
 
     def __init__(self, **kwargs):
-        self.__init_ctype(kwargs.pop('ctype', 'double'))
-        self.__init_cname(kwargs.pop('cname', self.ctype.replace(' ', '_')))
+        self.__init_ctype(kwargs.pop("ctype", "double"))
+        self.__init_cname(kwargs.pop("cname", self.ctype.replace(" ", "_")))
         self.aliases = dict()
         for k in kwargs:
-            if re.match('^[A-Z][A-Z0-9_]*$', k) is None:
-                raise AttributeError('%s: invalid enum name: "%s". '
-                                     'Only capital letters, underscores and digits '
-                                     'are allowed.' % (type(self).__name__, k))
+            if re.match("^[A-Z][A-Z0-9_]*$", k) is None:
+                raise AttributeError(
+                    '%s: invalid enum name: "%s". '
+                    "Only capital letters, underscores and digits "
+                    "are allowed." % (type(self).__name__, k)
+                )
             if isinstance(kwargs[k], (list, tuple)):
                 if len(kwargs[k]) != 2:
-                    raise TypeError('%s: when using a tuple to define a constant, your tuple should contain 2 values: '
-                                    'constant alias followed by constant value.' % type(self).__name__)
+                    raise TypeError(
+                        "%s: when using a tuple to define a constant, your tuple should contain 2 values: "
+                        "constant alias followed by constant value."
+                        % type(self).__name__
+                    )
                 alias, value = kwargs[k]
                 if not isinstance(alias, str):
-                    raise TypeError('%s: constant alias should be a string, got "%s".'
-                                    % (type(self).__name__, alias))
+                    raise TypeError(
+                        '%s: constant alias should be a string, got "%s".'
+                        % (type(self).__name__, alias)
+                    )
                 if alias == k:
-                    raise TypeError("%s: it's useless to create an alias "
-                                    "with the same name as its associated constant." % type(self).__name__)
+                    raise TypeError(
+                        "%s: it's useless to create an alias "
+                        "with the same name as its associated constant."
+                        % type(self).__name__
+                    )
                 if alias in self.aliases:
-                    raise TypeError('%s: consant alias "%s" already used.' % (type(self).__name__, alias))
+                    raise TypeError(
+                        '%s: consant alias "%s" already used.'
+                        % (type(self).__name__, alias)
+                    )
                 self.aliases[alias] = k
                 kwargs[k] = value
             if isinstance(kwargs[k], bool):
                 kwargs[k] = int(kwargs[k])
             elif not isinstance(kwargs[k], (int, float)):
-                raise TypeError('%s: constant "%s": expected integer or floating value, got "%s".'
-                                % (type(self).__name__, k, type(kwargs[k]).__name__))
+                raise TypeError(
+                    '%s: constant "%s": expected integer or floating value, got "%s".'
+                    % (type(self).__name__, k, type(kwargs[k]).__name__)
+                )
         if [a for a in self.aliases if a in self]:
-            raise TypeError("%s: some aliases have same names as constants." % type(self).__name__)
+            raise TypeError(
+                "%s: some aliases have same names as constants." % type(self).__name__
+            )
         super(EnumType, self).__init__(**kwargs)
 
     def fromalias(self, alias):
@@ -990,11 +1056,17 @@ class EnumType(Type, dict):
         return tuple(sorted(self.aliases.keys()))
 
     def __repr__(self):
-        names_to_aliases = {constant_name: '' for constant_name in self}
+        names_to_aliases = {constant_name: "" for constant_name in self}
         for alias in self.aliases:
-            names_to_aliases[self.aliases[alias]] = '(%s)' % alias
-        return '%s<%s>(%s)' % (type(self).__name__, self.ctype,
-                               ', '.join('%s%s:%s' % (k, names_to_aliases[k], self[k]) for k in sorted(self.keys())))
+            names_to_aliases[self.aliases[alias]] = "(%s)" % alias
+        return "%s<%s>(%s)" % (
+            type(self).__name__,
+            self.ctype,
+            ", ".join(
+                "%s%s:%s" % (k, names_to_aliases[k], self[k])
+                for k in sorted(self.keys())
+            ),
+        )
 
     def __getattr__(self, key):
         if key in self:
@@ -1003,30 +1075,34 @@ class EnumType(Type, dict):
 
     def __setattr__(self, key, value):
         if key in self:
-            raise NotImplementedError('constant values are immutable.')
+            raise NotImplementedError("constant values are immutable.")
         Type.__setattr__(self, key, value)
 
     def __setitem__(self, key, value):
-        raise NotImplementedError('constant values are immutable.')
+        raise NotImplementedError("constant values are immutable.")
 
     def __delitem__(self, key):
-        raise NotImplementedError('constant values are immutable.')
+        raise NotImplementedError("constant values are immutable.")
 
     def __hash__(self):
         # All values are Python basic types, then easy to hash.
-        return hash((type(self), self.ctype) +
-                    tuple((k, self[k]) for k in sorted(self.keys())) +
-                    tuple((a, self.aliases[a]) for a in sorted(self.aliases.keys())))
+        return hash(
+            (type(self), self.ctype)
+            + tuple((k, self[k]) for k in sorted(self.keys()))
+            + tuple((a, self.aliases[a]) for a in sorted(self.aliases.keys()))
+        )
 
     def __eq__(self, other):
-        return (type(self) == type(other) and
-                self.ctype == other.ctype and
-                len(self) == len(other) and
-                len(self.aliases) == len(other.aliases) and
-                all(k in other for k in self) and
-                all(a in other.aliases for a in self.aliases) and
-                all(self[k] == other[k] for k in self) and
-                all(self.aliases[a] == other.aliases[a] for a in self.aliases))
+        return (
+            type(self) == type(other)
+            and self.ctype == other.ctype
+            and len(self) == len(other)
+            and len(self.aliases) == len(other.aliases)
+            and all(k in other for k in self)
+            and all(a in other.aliases for a in self.aliases)
+            and all(self[k] == other[k] for k in self)
+            and all(self.aliases[a] == other.aliases[a] for a in self.aliases)
+        )
 
     # EnumType should be used to create constants available in both Python and C code.
     # However, for convenience, we make sure EnumType can have a value, like other common types,
@@ -1094,19 +1170,30 @@ class EnumType(Type, dict):
             return ret;
         }
         #endif
-        """ % dict(cname=self.cname, ctype=self.ctype,
-                   classname=type(self).__name__,
-                   cases=''.join("""
+        """ % dict(
+            cname=self.cname,
+            ctype=self.ctype,
+            classname=type(self).__name__,
+            cases="".join(
+                """
                    case %(name)s: sprintf(out, "%(name)s"); break;
-                   """ % dict(name=name) for name in self))
+                   """
+                % dict(name=name)
+                for name in self
+            ),
+        )
 
     def c_support_code(self):
         return (
-            self.pyint_compat_code +
-            ''.join("""
+            self.pyint_compat_code
+            + "".join(
+                """
             #define %s %s
-            """ % (k, str(self[k])) for k in sorted(self.keys())) +
-            self.c_to_string()
+            """
+                % (k, str(self[k]))
+                for k in sorted(self.keys())
+            )
+            + self.c_to_string()
         )
 
     def c_declare(self, name, sub, check_input=True):
@@ -1128,7 +1215,9 @@ class EnumType(Type, dict):
         if (PyErr_Occurred()) {
             %(fail)s
         }
-        """ % dict(ctype=self.ctype, name=name, fail=sub['fail'])
+        """ % dict(
+            ctype=self.ctype, name=name, fail=sub["fail"]
+        )
 
     def c_code_cache_version(self):
         return (2, self.ctype, self.cname, tuple(self.items()))
@@ -1168,29 +1257,41 @@ class EnumList(EnumType):
     """
 
     def __init__(self, *args, **kwargs):
-        assert len(kwargs) in (0, 1, 2), (type(self).__name__ +
-                                          ': expected 0 to 2 extra parameters ("ctype", "cname").')
-        ctype = kwargs.pop('ctype', 'int')
-        cname = kwargs.pop('cname', None)
+        assert len(kwargs) in (0, 1, 2), (
+            type(self).__name__
+            + ': expected 0 to 2 extra parameters ("ctype", "cname").'
+        )
+        ctype = kwargs.pop("ctype", "int")
+        cname = kwargs.pop("cname", None)
 
         for arg_rank, arg in enumerate(args):
             if isinstance(arg, (list, tuple)):
                 if len(arg) != 2:
-                    raise TypeError('%s: when using a tuple to define a constant, your tuple should contain 2 values: '
-                                    'constant name followed by constant alias.' % type(self).__name__)
+                    raise TypeError(
+                        "%s: when using a tuple to define a constant, your tuple should contain 2 values: "
+                        "constant name followed by constant alias."
+                        % type(self).__name__
+                    )
                 constant_name, constant_alias = arg
                 if not isinstance(constant_alias, str):
-                    raise TypeError('%s: constant alias should be a string, got "%s".'
-                                    % (type(self).__name__, constant_alias))
+                    raise TypeError(
+                        '%s: constant alias should be a string, got "%s".'
+                        % (type(self).__name__, constant_alias)
+                    )
                 constant_value = (constant_alias, arg_rank)
             else:
                 constant_name = arg
                 constant_value = arg_rank
             if not isinstance(constant_name, str):
-                raise TypeError('%s: constant name should be a string, got "%s".'
-                                % (type(self).__name__, constant_name))
+                raise TypeError(
+                    '%s: constant name should be a string, got "%s".'
+                    % (type(self).__name__, constant_name)
+                )
             if constant_name in kwargs:
-                raise TypeError('%s: constant name already used ("%s").' % (type(self).__name__, constant_name))
+                raise TypeError(
+                    '%s: constant name already used ("%s").'
+                    % (type(self).__name__, constant_name)
+                )
             kwargs[constant_name] = constant_value
 
         kwargs.update(ctype=ctype)
@@ -1245,11 +1346,17 @@ class CEnumType(EnumList):
                 {%(fail)s}
                 break;
         }
-        """ % dict(name=name,
-                   cases=''.join("""
+        """ % dict(
+            name=name,
+            cases="".join(
+                """
                    case %(i)d: %(name)s = %(constant_cname)s; break;
-                   """ % dict(i=i, name=name, constant_cname=swapped_dict[i]) for i in sorted(swapped_dict.keys())),
-                   fail=sub['fail'])
+                   """
+                % dict(i=i, name=name, constant_cname=swapped_dict[i])
+                for i in sorted(swapped_dict.keys())
+            ),
+            fail=sub["fail"],
+        )
 
     def c_code_cache_version(self):
         return (1, super(CEnumType, self).c_code_cache_version())

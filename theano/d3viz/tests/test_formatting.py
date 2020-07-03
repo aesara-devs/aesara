@@ -8,18 +8,17 @@ from theano.d3viz.tests import models
 
 import pytest
 from theano.d3viz.formatting import pydot_imported, pydot_imported_msg
+
 if not pydot_imported:
-    pytest.skip('pydot not available: ' + pydot_imported_msg, allow_module_level=True)
+    pytest.skip("pydot not available: " + pydot_imported_msg, allow_module_level=True)
 
 
-class TestPyDotFormatter():
-
+class TestPyDotFormatter:
     def setup_method(self):
         self.rng = np.random.RandomState(0)
 
     def node_counts(self, graph):
-        node_types = [node.get_attributes()['node_type']
-                      for node in graph.get_nodes()]
+        node_types = [node.get_attributes()["node_type"] for node in graph.get_nodes()]
         a, b = np.unique(node_types, return_counts=True)
         nc = dict(zip(a, b))
         return nc
@@ -36,10 +35,10 @@ class TestPyDotFormatter():
         nc = self.node_counts(graph)
 
         if th.config.mode == "FAST_COMPILE":
-            assert nc['apply'] == 6
+            assert nc["apply"] == 6
         else:
-            assert nc['apply'] == 5
-        assert nc['output'] == 1
+            assert nc["apply"] == 5
+        assert nc["output"] == 1
 
     def test_ofg(self):
         m = models.Ofg()

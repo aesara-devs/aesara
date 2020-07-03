@@ -31,11 +31,14 @@ def memodict(f):
     Memoization decorator for a function taking a single argument.
 
     """
+
     class memodict(defaultdict):
         def __missing__(self, key):
             ret = self[key] = f(key)
             return ret
+
     return memodict().__getitem__
+
 
 # end of http://code.activestate.com/recipes/578231/ }}}
 
@@ -48,9 +51,10 @@ def make_depends():
 
         """
         a, b = pair
-        return (any(bout in a.inputs for bout in b.outputs) or
-                any(depends((ainp.owner, b)) for ainp in a.inputs
-                    if ainp.owner))
+        return any(bout in a.inputs for bout in b.outputs) or any(
+            depends((ainp.owner, b)) for ainp in a.inputs if ainp.owner
+        )
+
     return depends
 
 
@@ -102,7 +106,7 @@ def reverse_dict(d):
     result = {}
     for key in d:
         for val in d[key]:
-            result[val] = result.get(val, tuple()) + (key, )
+            result[val] = result.get(val, tuple()) + (key,)
     return result
 
 
@@ -135,8 +139,7 @@ def _toposort(edges):
 
     """
     incoming_edges = reverse_dict(edges)
-    incoming_edges = dict((k, set(val))
-                          for k, val in iteritems(incoming_edges))
+    incoming_edges = dict((k, set(val)) for k, val in iteritems(incoming_edges))
     S = set((v for v in edges if v not in incoming_edges))
     L = []
 
@@ -206,7 +209,7 @@ def posort(l, *cmps):
         """
         for a in l:
             for b in l:
-                assert not(b in comes_after[a] and a in comes_after[b])
+                assert not (b in comes_after[a] and a in comes_after[b])
 
     for cmp_fn in cmps:
         for a in l:
@@ -264,6 +267,7 @@ def sort_schedule_fn(*cmps):
 
         """
         return sort_apply_nodes(fgraph.inputs, fgraph.outputs, cmps)
+
     return schedule
 
 
@@ -271,6 +275,8 @@ def key_to_cmp(key):
     """
     comparator function based on "key" function
     """
+
     def key_cmp(a, b):
         return cmp(key(a), key(b))
+
     return key_cmp

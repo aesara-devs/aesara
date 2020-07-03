@@ -5,8 +5,13 @@ from theano.gof.type import Type
 from theano.gof import graph
 from theano.gof.graph import Variable, Apply
 from theano.gof.op import Op
-from theano.gof.opt import (OpKeyOptimizer, PatternSub, NavigatorOptimizer,
-                            TopoOptimizer, OpSub)
+from theano.gof.opt import (
+    OpKeyOptimizer,
+    PatternSub,
+    NavigatorOptimizer,
+    TopoOptimizer,
+    OpSub,
+)
 
 from theano.gof import destroyhandler
 from theano.gof.fg import FunctionGraph, InconsistencyError
@@ -23,8 +28,7 @@ def PatternOptimizer(p1, p2, ign=True):
 
 
 def OpSubOptimizer(op1, op2, fail=NavigatorOptimizer.warn_ignore, ign=True):
-    return TopoOptimizer(OpSub(op1, op2),
-                         ignore_newtrees=ign, failure_callback=fail)
+    return TopoOptimizer(OpSub(op1, op2), ignore_newtrees=ign, failure_callback=fail)
 
 
 def as_variable(x):
@@ -33,7 +37,6 @@ def as_variable(x):
 
 
 class MyType(Type):
-
     def filter(self, data):
         return data
 
@@ -50,10 +53,16 @@ def MyConstant(data):
 
 
 class MyOp(Op):
-
-    def __init__(self, nin, name, vmap=None, dmap=None, nout=1,
-                 destroyhandler_tolerate_same=None,
-                 destroyhandler_tolerate_aliased=None):
+    def __init__(
+        self,
+        nin,
+        name,
+        vmap=None,
+        dmap=None,
+        nout=1,
+        destroyhandler_tolerate_same=None,
+        destroyhandler_tolerate_aliased=None,
+    ):
         if vmap is None:
             vmap = {}
         if dmap is None:
@@ -84,25 +93,27 @@ class MyOp(Op):
         return self.name
 
 
-sigmoid = MyOp(1, 'Sigmoid')
-transpose_view = MyOp(1, 'TransposeView', vmap={0: [0]})
-add = MyOp(2, 'Add')
-add_in_place = MyOp(2, 'AddInPlace', dmap={0: [0]})
-add_in_place_2 = MyOp(2, 'AddInPlace', dmap={0: [0]},
-                      destroyhandler_tolerate_same=[(0, 1)])
-add_in_place_3 = MyOp(2, 'AddInPlace', dmap={0: [0]},
-                      destroyhandler_tolerate_aliased=[(0, 1)])
-dot = MyOp(2, 'Dot')
-multiple = MyOp(2, 'Multiple', nout=2)
-multiple_in_place_0 = MyOp(2, 'MultipleInPlace0', nout=2, dmap={0: [0]})
-multiple_in_place_1 = MyOp(2, 'MultipleInPlace1', nout=2, dmap={1: [1]})
-multiple_in_place_0_1 = MyOp(2, 'MultipleInPlace01', nout=2, dmap={0: [0], 1: [1]})
+sigmoid = MyOp(1, "Sigmoid")
+transpose_view = MyOp(1, "TransposeView", vmap={0: [0]})
+add = MyOp(2, "Add")
+add_in_place = MyOp(2, "AddInPlace", dmap={0: [0]})
+add_in_place_2 = MyOp(
+    2, "AddInPlace", dmap={0: [0]}, destroyhandler_tolerate_same=[(0, 1)]
+)
+add_in_place_3 = MyOp(
+    2, "AddInPlace", dmap={0: [0]}, destroyhandler_tolerate_aliased=[(0, 1)]
+)
+dot = MyOp(2, "Dot")
+multiple = MyOp(2, "Multiple", nout=2)
+multiple_in_place_0 = MyOp(2, "MultipleInPlace0", nout=2, dmap={0: [0]})
+multiple_in_place_1 = MyOp(2, "MultipleInPlace1", nout=2, dmap={1: [1]})
+multiple_in_place_0_1 = MyOp(2, "MultipleInPlace01", nout=2, dmap={0: [0], 1: [1]})
 
 
 def inputs():
-    x = MyVariable('x')
-    y = MyVariable('y')
-    z = MyVariable('z')
+    x = MyVariable("x")
+    y = MyVariable("y")
+    z = MyVariable("z")
     return x, y, z
 
 
@@ -145,6 +156,7 @@ def inconsistent(g):
         raise
     # print "Test OK"
 
+
 #################
 # Test protocol #
 #################
@@ -155,7 +167,7 @@ def test_misc():
     e = transpose_view(transpose_view(transpose_view(transpose_view(x))))
     g = Env([x, y, z], [e])
     consistent(g)
-    PatternOptimizer((transpose_view, (transpose_view, 'x')), 'x').optimize(g)
+    PatternOptimizer((transpose_view, (transpose_view, "x")), "x").optimize(g)
     assert str(g) == "[x]"
     new_e = add(x, y)
     g.replace_validate(x, new_e)
@@ -249,6 +261,7 @@ def test_destroyers_loop():
 # Misc #
 ########
 
+
 def test_aliased_inputs():
     x, y, z = inputs()
     e = add_in_place(x, x)
@@ -336,18 +349,14 @@ def test_indirect_2():
 @assertFailure_fast
 def test_long_destroyers_loop():
     x, y, z = inputs()
-    e = dot(dot(add_in_place(x, y),
-                add_in_place(y, z)),
-            add(z, x))
+    e = dot(dot(add_in_place(x, y), add_in_place(y, z)), add(z, x))
     g = Env([x, y, z], [e])
     consistent(g)
     OpSubOptimizer(add, add_in_place).optimize(g)
     consistent(g)
     # we don't want to see that!
     assert str(g) != "[Dot(Dot(AddInPlace(x, y), AddInPlace(y, z)), AddInPlace(z, x))]"
-    e2 = dot(dot(add_in_place(x, y),
-                 add_in_place(y, z)),
-             add_in_place(z, x))
+    e2 = dot(dot(add_in_place(x, y), add_in_place(y, z)), add_in_place(z, x))
     try:
         Env(*graph.clone([x, y, z], [e2]))
         raise Exception("Shouldn't have reached this point.")
@@ -421,8 +430,7 @@ def test_usage_loop_through_views():
 @assertFailure_fast
 def test_usage_loop_insert_views():
     x, y, z = inputs()
-    e = dot(add_in_place(x, add(y, z)),
-            sigmoid(sigmoid(sigmoid(sigmoid(sigmoid(x))))))
+    e = dot(add_in_place(x, add(y, z)), sigmoid(sigmoid(sigmoid(sigmoid(sigmoid(x))))))
     g = Env([x, y, z], [e])
     consistent(g)
     fail = FailureWatch()
@@ -442,7 +450,7 @@ def test_value_repl():
     consistent(g)
 
 
-@change_flags(compute_test_value='off')
+@change_flags(compute_test_value="off")
 def test_value_repl_2():
     x, y, z = inputs()
     sy = sigmoid(y)

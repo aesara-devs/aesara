@@ -10,31 +10,33 @@ from theano.tensor import fft
 N = 16
 
 
-class TestFFT():
-
+class TestFFT:
     def test_rfft_float(self):
         # Test that numpy's default float64 output is cast to theano input type
         eps = 1e-1
 
         def f_rfft(inp):
             return fft.rfft(inp)
+
         inputs_val = np.random.random((1, N)).astype(theano.config.floatX)
         utt.verify_grad(f_rfft, [inputs_val], eps=eps)
 
         def f_irfft(inp):
             return fft.irfft(inp)
+
         inputs_val = np.random.random((1, N // 2 + 1, 2)).astype(theano.config.floatX)
         utt.verify_grad(f_irfft, [inputs_val], eps=eps)
 
     def test_1Drfft(self):
         inputs_val = np.random.random((1, N)).astype(theano.config.floatX)
 
-        x = T.matrix('x')
+        x = T.matrix("x")
         rfft = fft.rfft(x)
         f_rfft = theano.function([x], rfft)
         res_rfft = f_rfft(inputs_val)
-        res_rfft_comp = (np.asarray(res_rfft[:, :, 0]) +
-                         1j * np.asarray(res_rfft[:, :, 1]))
+        res_rfft_comp = np.asarray(res_rfft[:, :, 0]) + 1j * np.asarray(
+            res_rfft[:, :, 1]
+        )
 
         rfft_ref = np.fft.rfft(inputs_val, axis=1)
 
@@ -54,11 +56,13 @@ class TestFFT():
 
         def f_rfft(inp):
             return fft.rfft(inp)
+
         inputs_val = np.random.random((1, N)).astype(theano.config.floatX)
         utt.verify_grad(f_rfft, [inputs_val], eps=eps)
 
         def f_irfft(inp):
             return fft.irfft(inp)
+
         inputs_val = np.random.random((1, N // 2 + 1, 2)).astype(theano.config.floatX)
         utt.verify_grad(f_irfft, [inputs_val], eps=eps)
 
@@ -69,8 +73,9 @@ class TestFFT():
         rfft = fft.rfft(inputs)
         f_rfft = theano.function([], rfft)
         res_rfft = f_rfft()
-        res_rfft_comp = (np.asarray(res_rfft[:, :, :, 0]) +
-                         1j * np.asarray(res_rfft[:, :, :, 1]))
+        res_rfft_comp = np.asarray(res_rfft[:, :, :, 0]) + 1j * np.asarray(
+            res_rfft[:, :, :, 1]
+        )
 
         rfft_ref = np.fft.rfftn(inputs_val, axes=(1, 2))
 
@@ -108,32 +113,36 @@ class TestFFT():
         inputs = theano.shared(inputs_val)
 
         # Unitary normalization
-        rfft = fft.rfft(inputs, norm='ortho')
+        rfft = fft.rfft(inputs, norm="ortho")
         f_rfft = theano.function([], rfft)
         res_rfft = f_rfft()
-        res_rfft_comp = (np.asarray(res_rfft[:, :, :, 0]) +
-                         1j * np.asarray(res_rfft[:, :, :, 1]))
+        res_rfft_comp = np.asarray(res_rfft[:, :, :, 0]) + 1j * np.asarray(
+            res_rfft[:, :, :, 1]
+        )
 
         rfft_ref = np.fft.rfftn(inputs_val, axes=(1, 2))
 
         utt.assert_allclose(rfft_ref / N, res_rfft_comp, atol=1e-4, rtol=1e-4)
 
         # No normalization
-        rfft = fft.rfft(inputs, norm='no_norm')
+        rfft = fft.rfft(inputs, norm="no_norm")
         f_rfft = theano.function([], rfft)
         res_rfft = f_rfft()
-        res_rfft_comp = (np.asarray(res_rfft[:, :, :, 0]) +
-                         1j * np.asarray(res_rfft[:, :, :, 1]))
+        res_rfft_comp = np.asarray(res_rfft[:, :, :, 0]) + 1j * np.asarray(
+            res_rfft[:, :, :, 1]
+        )
 
         utt.assert_allclose(rfft_ref, res_rfft_comp, atol=1e-4, rtol=1e-4)
 
         # Inverse FFT inputs
-        inputs_val = np.random.random((1, N, N // 2 + 1, 2)).astype(theano.config.floatX)
+        inputs_val = np.random.random((1, N, N // 2 + 1, 2)).astype(
+            theano.config.floatX
+        )
         inputs = theano.shared(inputs_val)
         inputs_ref = inputs_val[..., 0] + 1j * inputs_val[..., 1]
 
         # Unitary normalization inverse FFT
-        irfft = fft.irfft(inputs, norm='ortho')
+        irfft = fft.irfft(inputs, norm="ortho")
         f_irfft = theano.function([], irfft)
         res_irfft = f_irfft()
 
@@ -142,11 +151,11 @@ class TestFFT():
         utt.assert_allclose(irfft_ref * N, res_irfft, atol=1e-4, rtol=1e-4)
 
         # No normalization inverse FFT
-        irfft = fft.irfft(inputs, norm='no_norm')
+        irfft = fft.irfft(inputs, norm="no_norm")
         f_irfft = theano.function([], irfft)
         res_irfft = f_irfft()
 
-        utt.assert_allclose(irfft_ref * N**2, res_irfft, atol=1e-4, rtol=1e-4)
+        utt.assert_allclose(irfft_ref * N ** 2, res_irfft, atol=1e-4, rtol=1e-4)
 
     def test_params(self):
         inputs_val = np.random.random((1, N)).astype(theano.config.floatX)
@@ -170,20 +179,28 @@ class TestFFT():
 
         def f_rfft(inp):
             return fft.rfft(inp)
+
         inputs_val = np.random.random((1, N, N)).astype(theano.config.floatX)
         utt.verify_grad(f_rfft, [inputs_val], eps=eps)
 
         def f_irfft(inp):
             return fft.irfft(inp)
-        inputs_val = np.random.random((1, N, N // 2 + 1, 2)).astype(theano.config.floatX)
+
+        inputs_val = np.random.random((1, N, N // 2 + 1, 2)).astype(
+            theano.config.floatX
+        )
         utt.verify_grad(f_irfft, [inputs_val], eps=eps)
 
         def f_rfft(inp):
-            return fft.rfft(inp, norm='ortho')
+            return fft.rfft(inp, norm="ortho")
+
         inputs_val = np.random.random((1, N, N)).astype(theano.config.floatX)
         utt.verify_grad(f_rfft, [inputs_val], eps=eps)
 
         def f_irfft(inp):
-            return fft.irfft(inp, norm='no_norm')
-        inputs_val = np.random.random((1, N, N // 2 + 1, 2)).astype(theano.config.floatX)
+            return fft.irfft(inp, norm="no_norm")
+
+        inputs_val = np.random.random((1, N, N // 2 + 1, 2)).astype(
+            theano.config.floatX
+        )
         utt.verify_grad(f_irfft, [inputs_val], eps=eps)

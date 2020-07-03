@@ -29,15 +29,12 @@ from theano.tensor import opt
 from theano.scan_module.scan_utils import clone
 
 
-__docformat__ = 'restructedtext en'
-__authors__ = ("Razvan Pascanu "
-               "James Bergstra "
-               "Dumitru Erhan "
-               "David Warde-Farley")
+__docformat__ = "restructedtext en"
+__authors__ = "Razvan Pascanu " "James Bergstra " "Dumitru Erhan " "David Warde-Farley"
 __copyright__ = "(c) 2010, Universite de Montreal"
 __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
-_logger = logging.getLogger('theano.ifelse')
+_logger = logging.getLogger("theano.ifelse")
 
 
 class IfElse(Op):
@@ -67,6 +64,7 @@ class IfElse(Op):
         False branch before picking one.
 
     """
+
     def __init__(self, n_outs, as_view=False, gpu=False, name=None):
         if as_view:
             # check destroyhandler and others to ensure that a view_map with
@@ -92,10 +90,9 @@ class IfElse(Op):
         return True
 
     def __hash__(self):
-        rval = (hash(type(self)) ^
-                hash(self.as_view) ^
-                hash(self.gpu) ^
-                hash(self.n_outs))
+        rval = (
+            hash(type(self)) ^ hash(self.as_view) ^ hash(self.gpu) ^ hash(self.n_outs)
+        )
         return rval
 
     def __str__(self):
@@ -103,17 +100,17 @@ class IfElse(Op):
         if self.name is not None:
             args.append(self.name)
         if self.as_view:
-            args.append('inplace')
+            args.append("inplace")
         if self.gpu:
-            args.append('gpu')
-        return 'if{%s}' % ','.join(args)
+            args.append("gpu")
+        return "if{%s}" % ",".join(args)
 
     def infer_shape(self, node, inputs_shapes):
         # By construction, corresponding then/else pairs have the same number
         # of dimensions
 
-        ts_shapes = inputs_shapes[1:][:self.n_outs]
-        fs_shapes = inputs_shapes[1:][self.n_outs:]
+        ts_shapes = inputs_shapes[1:][: self.n_outs]
+        fs_shapes = inputs_shapes[1:][self.n_outs :]
         # All elements of all shape tuples for the true and false outputs are
         # unpacked into the inputs of a separate ifelse, and then the outputs
         # of that ifelse are packed back into shape tuples.
@@ -135,7 +132,7 @@ class IfElse(Op):
 
         assert len(new_ts_inputs) == len(new_fs_inputs)
         if len(new_ts_inputs + new_fs_inputs) > 0:
-            name_tokens = ['shape']
+            name_tokens = ["shape"]
             if self.name is not None:
                 name_tokens.append(self.name)
 
@@ -143,18 +140,21 @@ class IfElse(Op):
                 n_outs=len(new_ts_inputs),
                 as_view=False,
                 gpu=False,
-                name='_'.join(name_tokens))
-            new_outs = new_ifelse(node.inputs[0],
-                                  *(new_ts_inputs + new_fs_inputs),
-                                  **dict(return_list=True))
+                name="_".join(name_tokens),
+            )
+            new_outs = new_ifelse(
+                node.inputs[0],
+                *(new_ts_inputs + new_fs_inputs),
+                **dict(return_list=True)
+            )
         else:
             new_outs = []
 
         # generate pairs of shapes
         out_shapes = []
         for out in node.outputs:
-            out_shapes.append(tuple(new_outs[:out.ndim]))
-            new_outs = new_outs[out.ndim:]
+            out_shapes.append(tuple(new_outs[: out.ndim]))
+            new_outs = new_outs[out.ndim :]
 
         # new_outs should be an empty list after last iteration
         assert len(new_outs) == 0
@@ -172,74 +172,91 @@ class IfElse(Op):
             # to keep them as gpuarrays
             nw_args = []
             for x in args:
-                if hasattr(x, '_as_TensorVariable'):
+                if hasattr(x, "_as_TensorVariable"):
                     nw_args.append(x._as_TensorVariable())
                 elif isinstance(x, theano.Variable):
                     nw_args.append(x)
                 else:
                     nw_args.append(theano.tensor.as_tensor_variable(x))
             args = nw_args
-        ts = args[:self.n_outs]
-        fs = args[self.n_outs:]
+        ts = args[: self.n_outs]
+        fs = args[self.n_outs :]
 
         for t, f in izip(ts, fs):
             if t.type != f.type:
-                raise TypeError(('IfElse requires same types for true and '
-                                'false return values'), t, f, t.type, f.type)
+                raise TypeError(
+                    ("IfElse requires same types for true and " "false return values"),
+                    t,
+                    f,
+                    t.type,
+                    f.type,
+                )
         if c.ndim > 0:
-            raise TypeError(('Condition given to the op has to be a scalar '
-                             'with 0 standing for False, anything else '
-                             'for True'))
+            raise TypeError(
+                (
+                    "Condition given to the op has to be a scalar "
+                    "with 0 standing for False, anything else "
+                    "for True"
+                )
+            )
         return Apply(self, [c] + list(args), [t.type() for t in ts])
 
     def R_op(self, inputs, eval_points):
         return self(inputs[0], *eval_points[1:], **dict(return_list=True))
 
     def grad(self, ins, grads):
-        ts = ins[1:][:self.n_outs]
-        fs = ins[1:][self.n_outs:]
+        ts = ins[1:][: self.n_outs]
+        fs = ins[1:][self.n_outs :]
         if self.name is not None:
-            nw_name_t = self.name + '_grad_t'
-            nw_name_f = self.name + '_grad_f'
+            nw_name_t = self.name + "_grad_t"
+            nw_name_f = self.name + "_grad_f"
         else:
             nw_name_t = None
             nw_name_f = None
-        if_true_op = IfElse(n_outs=self.n_outs,
-                            as_view=self.as_view,
-                            gpu=self.gpu,
-                            name=nw_name_t)
+        if_true_op = IfElse(
+            n_outs=self.n_outs, as_view=self.as_view, gpu=self.gpu, name=nw_name_t
+        )
 
-        if_false_op = IfElse(n_outs=self.n_outs,
-                             as_view=self.as_view,
-                             gpu=self.gpu,
-                             name=nw_name_f)
+        if_false_op = IfElse(
+            n_outs=self.n_outs, as_view=self.as_view, gpu=self.gpu, name=nw_name_f
+        )
 
         # The grads can have a different dtype then the inputs.
         # As inputs true/false pair must have the same dtype,
         # we must cast the zeros to the corresponding grad dtype
         # and not the input dtype.
-        if_true = ([ins[0]] +
-                   grads +
-                   [theano.tensor.zeros_like(t, dtype=grads[i].dtype)
-                    for i, t in enumerate(ts)])
-        if_false = ([ins[0]] +
-                    [theano.tensor.zeros_like(f, dtype=grads[i].dtype)
-                     for i, f in enumerate(fs)] +
-                    grads)
+        if_true = (
+            [ins[0]]
+            + grads
+            + [
+                theano.tensor.zeros_like(t, dtype=grads[i].dtype)
+                for i, t in enumerate(ts)
+            ]
+        )
+        if_false = (
+            [ins[0]]
+            + [
+                theano.tensor.zeros_like(f, dtype=grads[i].dtype)
+                for i, f in enumerate(fs)
+            ]
+            + grads
+        )
 
         condition = ins[0]
         # condition does affect the elements of the output so it is connected.
         # For the sake of making the gradient convenient we assume that
         # condition + epsilon always triggers the same branch as condition
         condition_grad = condition.zeros_like().astype(theano.config.floatX)
-        return ([condition_grad] +
-                if_true_op(*if_true, **dict(return_list=True)) +
-                if_false_op(*if_false, **dict(return_list=True)))
+        return (
+            [condition_grad]
+            + if_true_op(*if_true, **dict(return_list=True))
+            + if_false_op(*if_false, **dict(return_list=True))
+        )
 
     def make_thunk(self, node, storage_map, compute_map, no_recycling, impl=None):
         cond = node.inputs[0]
-        ts = node.inputs[1:][:self.n_outs]
-        fs = node.inputs[1:][self.n_outs:]
+        ts = node.inputs[1:][: self.n_outs]
+        fs = node.inputs[1:][self.n_outs :]
         outputs = node.outputs
 
         def thunk():
@@ -248,8 +265,11 @@ class IfElse(Op):
             else:
                 truthval = storage_map[cond][0]
                 if truthval != 0:
-                    ls = [idx + 1 for idx in xrange(self.n_outs)
-                          if not compute_map[ts[idx]][0]]
+                    ls = [
+                        idx + 1
+                        for idx in xrange(self.n_outs)
+                        if not compute_map[ts[idx]][0]
+                    ]
                     if len(ls) > 0:
                         return ls
                     else:
@@ -265,8 +285,11 @@ class IfElse(Op):
                                 storage_map[out][0] = deepcopy(val)
                         return []
                 else:
-                    ls = [1 + idx + self.n_outs for idx in xrange(self.n_outs)
-                          if not compute_map[fs[idx]][0]]
+                    ls = [
+                        1 + idx + self.n_outs
+                        for idx in xrange(self.n_outs)
+                        if not compute_map[fs[idx]][0]
+                    ]
                     if len(ls) > 0:
                         return ls
                     else:
@@ -343,51 +366,54 @@ def ifelse(condition, then_branch, else_branch, name=None):
     new_else_branch = []
     for then_branch_elem, else_branch_elem in izip(then_branch, else_branch):
         if not isinstance(then_branch_elem, theano.Variable):
-            then_branch_elem = theano.tensor.as_tensor_variable(
-                then_branch_elem)
+            then_branch_elem = theano.tensor.as_tensor_variable(then_branch_elem)
         if not isinstance(else_branch_elem, theano.Variable):
-            else_branch_elem = theano.tensor.as_tensor_variable(
-                else_branch_elem)
+            else_branch_elem = theano.tensor.as_tensor_variable(else_branch_elem)
 
         if then_branch_elem.type != else_branch_elem.type:
             # If one of them is a TensorType, and the other one can be
             # converted into one, then we try to do that.
             # This case happens when one of the elements has a GPU type,
             # for instance a shared variable that was silently moved to GPU.
-            if (isinstance(then_branch_elem.type, TensorType) and not
-                    isinstance(else_branch_elem.type, TensorType)):
+            if isinstance(then_branch_elem.type, TensorType) and not isinstance(
+                else_branch_elem.type, TensorType
+            ):
                 else_branch_elem = then_branch_elem.type.filter_variable(
-                    else_branch_elem)
+                    else_branch_elem
+                )
 
-            elif (isinstance(else_branch_elem.type, TensorType) and not
-                    isinstance(then_branch_elem.type, TensorType)):
+            elif isinstance(else_branch_elem.type, TensorType) and not isinstance(
+                then_branch_elem.type, TensorType
+            ):
                 then_branch_elem = else_branch_elem.type.filter_variable(
-                    then_branch_elem)
+                    then_branch_elem
+                )
 
             if then_branch_elem.type != else_branch_elem.type:
                 # If the types still don't match, there is a problem.
                 raise TypeError(
-                    'The two branches should have identical types, but '
-                    'they are %s and %s respectively. This error could be '
-                    'raised if for example you provided a one element '
-                    'list on the `then` branch but a tensor on the `else` '
-                    'branch.' %
-                    (then_branch_elem.type, else_branch_elem.type))
+                    "The two branches should have identical types, but "
+                    "they are %s and %s respectively. This error could be "
+                    "raised if for example you provided a one element "
+                    "list on the `then` branch but a tensor on the `else` "
+                    "branch." % (then_branch_elem.type, else_branch_elem.type)
+                )
 
         new_then_branch.append(then_branch_elem)
         new_else_branch.append(else_branch_elem)
 
     if len(then_branch) != len(else_branch):
-        raise ValueError(('The number of values on the `then` branch'
-                          ' should have the same number of variables as '
-                          'the `else` branch : (variables on `then` '
-                          '%d' % len(then_branch) + ', variables on `else` '
-                          '%d' % len(else_branch) + ')'))
+        raise ValueError(
+            (
+                "The number of values on the `then` branch"
+                " should have the same number of variables as "
+                "the `else` branch : (variables on `then` "
+                "%d" % len(then_branch) + ", variables on `else` "
+                "%d" % len(else_branch) + ")"
+            )
+        )
 
-    new_ifelse = IfElse(n_outs=len(then_branch),
-                        as_view=False,
-                        gpu=False,
-                        name=name)
+    new_ifelse = IfElse(n_outs=len(then_branch), as_view=False, gpu=False, name=name)
 
     ins = [condition] + list(new_then_branch) + list(new_else_branch)
     rval = new_ifelse(*ins, **dict(return_list=True))
@@ -403,22 +429,30 @@ def ifelse(condition, then_branch, else_branch, name=None):
 @gof.local_optimizer([IfElse])
 def cond_make_inplace(node):
     op = node.op
-    if (isinstance(op, IfElse) and
-        not op.as_view and
+    if (
+        isinstance(op, IfElse)
+        and not op.as_view
+        and
         # For big graph, do not make inplace scalar to speed up
         # optimization.
-        (len(node.fgraph.apply_nodes) < 500 or
-         not all([getattr(o.type, 'ndim', -1) == 0
-                  for o in node.outputs]))):
-        return IfElse(n_outs=op.n_outs,
-                      as_view=True,
-                      gpu=op.gpu,
-                      name=op.name)(*node.inputs, **dict(return_list=True))
+        (
+            len(node.fgraph.apply_nodes) < 500
+            or not all([getattr(o.type, "ndim", -1) == 0 for o in node.outputs])
+        )
+    ):
+        return IfElse(n_outs=op.n_outs, as_view=True, gpu=op.gpu, name=op.name)(
+            *node.inputs, **dict(return_list=True)
+        )
     return False
 
 
-optdb.register('cond_make_inplace', opt.in2out(cond_make_inplace,
-               ignore_newtrees=True), 95, 'fast_run', 'inplace')
+optdb.register(
+    "cond_make_inplace",
+    opt.in2out(cond_make_inplace, ignore_newtrees=True),
+    95,
+    "fast_run",
+    "inplace",
+)
 
 # XXX: Optimizations commented pending further debugging (certain optimizations
 # make computation less lazy than it should be currently).
@@ -427,7 +461,7 @@ optdb.register('cond_make_inplace', opt.in2out(cond_make_inplace,
 # ifelse_seqopt = gof.SequenceDB()
 # ifelse_equilibrium.register('seq_ifelse', ifelse_seqopt, 'fast_run',
 #                             'ifelse')
-''' Comments:
+""" Comments:
 I've wrote this comments to explain how the optimization of ifelse function
 (for future developers that need to parse this part of code. Please try to
 keep this comments in sync with whatever changes you add to the code.
@@ -450,21 +484,23 @@ The optimizations are called in sequence as follows:
 where, each of the optimization do the following things:
     `ifelse_lift` (def cond_lift_single_if):
 
-'''
+"""
 # optdb.register('ifelse_equilibriumOpt', ifelse_equilibrium, .5, 'fast_run',
 #                'ifelse')
 
-acceptable_ops = (theano.tensor.basic.Dot,
-                  theano.tensor.basic.Reshape,
-                  theano.tensor.basic.Shape,
-                  theano.tensor.SpecifyShape,
-                  theano.tensor.basic.MaxAndArgmax,
-                  theano.tensor.Subtensor,
-                  theano.tensor.IncSubtensor,
-                  theano.tensor.basic.Rebroadcast,
-                  theano.tensor.basic.Alloc,
-                  theano.tensor.elemwise.Elemwise,
-                  theano.tensor.elemwise.DimShuffle)
+acceptable_ops = (
+    theano.tensor.basic.Dot,
+    theano.tensor.basic.Reshape,
+    theano.tensor.basic.Shape,
+    theano.tensor.SpecifyShape,
+    theano.tensor.basic.MaxAndArgmax,
+    theano.tensor.Subtensor,
+    theano.tensor.IncSubtensor,
+    theano.tensor.basic.Rebroadcast,
+    theano.tensor.basic.Alloc,
+    theano.tensor.elemwise.Elemwise,
+    theano.tensor.elemwise.DimShuffle,
+)
 
 
 @gof.local_optimizer(acceptable_ops)
@@ -481,8 +517,7 @@ def ifelse_lift_single_if_through_acceptable_ops(main_node):
     all_inp_nodes = set()
     for inp in main_node.inputs:
         all_inp_nodes.add(inp.owner)
-    ifnodes = [x for x in list(all_inp_nodes)
-               if x and isinstance(x.op, IfElse)]
+    ifnodes = [x for x in list(all_inp_nodes) if x and isinstance(x.op, IfElse)]
     # if we have multiple ifs as inputs .. it all becomes quite complicated
     # :)
     if len(ifnodes) != 1:
@@ -490,8 +525,8 @@ def ifelse_lift_single_if_through_acceptable_ops(main_node):
     node = ifnodes[0]
     op = node.op
 
-    ts = node.inputs[1:][:op.n_outs]
-    fs = node.inputs[1:][op.n_outs:]
+    ts = node.inputs[1:][: op.n_outs]
+    fs = node.inputs[1:][op.n_outs :]
 
     # outs = main_node.outputs
     mop = main_node.op
@@ -520,15 +555,18 @@ def cond_merge_ifs_true(node):
     op = node.op
     if not isinstance(op, IfElse):
         return False
-    t_ins = node.inputs[1:][:op.n_outs]
+    t_ins = node.inputs[1:][: op.n_outs]
 
     replace = {}
     for idx, tval in enumerate(t_ins):
-        if (tval.owner and isinstance(tval.owner.op, IfElse) and
-                tval.owner.inputs[0] == node.inputs[0]):
-                ins_op = tval.owner.op
-                ins_t = tval.owner.inputs[1:][:ins_op.n_outs]
-                replace[idx + 1] = ins_t[tval.owner.outputs.index(tval)]
+        if (
+            tval.owner
+            and isinstance(tval.owner.op, IfElse)
+            and tval.owner.inputs[0] == node.inputs[0]
+        ):
+            ins_op = tval.owner.op
+            ins_t = tval.owner.inputs[1:][: ins_op.n_outs]
+            replace[idx + 1] = ins_t[tval.owner.outputs.index(tval)]
 
     if len(replace) == 0:
         return False
@@ -544,16 +582,18 @@ def cond_merge_ifs_false(node):
     op = node.op
     if not isinstance(op, IfElse):
         return False
-    f_ins = node.inputs[1:][op.n_outs:]
+    f_ins = node.inputs[1:][op.n_outs :]
 
     replace = {}
     for idx, fval in enumerate(f_ins):
-        if (fval.owner and isinstance(fval.owner.op, IfElse) and
-                fval.owner.inputs[0] == node.inputs[0]):
-                ins_op = fval.owner.op
-                ins_t = fval.owner.inputs[1:][ins_op.n_outs:]
-                replace[idx + 1 + op.n_outs] = \
-                    ins_t[fval.owner.outputs.index(fval)]
+        if (
+            fval.owner
+            and isinstance(fval.owner.op, IfElse)
+            and fval.owner.inputs[0] == node.inputs[0]
+        ):
+            ins_op = fval.owner.op
+            ins_t = fval.owner.inputs[1:][ins_op.n_outs :]
+            replace[idx + 1 + op.n_outs] = ins_t[fval.owner.outputs.index(fval)]
 
     if len(replace) == 0:
         return False
@@ -566,6 +606,7 @@ def cond_merge_ifs_false(node):
 
 class CondMerge(gof.Optimizer):
     """ Graph Optimizer that merges different cond ops """
+
     def add_requirements(self, fgraph):
         fgraph.add_feature(gof.toolbox.ReplaceValidate())
 
@@ -576,19 +617,19 @@ class CondMerge(gof.Optimizer):
             return False
         merging_node = cond_nodes[0]
         for proposal in cond_nodes[1:]:
-            if (proposal.inputs[0] == merging_node.inputs[0] and
-                    not gof.graph.is_in_ancestors(proposal, merging_node)):
+            if proposal.inputs[0] == merging_node.inputs[
+                0
+            ] and not gof.graph.is_in_ancestors(proposal, merging_node):
                 # Create a list of replacements for proposal
-                mn_ts = merging_node.inputs[1:][:merging_node.op.n_outs]
-                mn_fs = merging_node.inputs[1:][merging_node.op.n_outs:]
-                pl_ts = proposal.inputs[1:][:proposal.op.n_outs]
-                pl_fs = proposal.inputs[1:][proposal.op.n_outs:]
-                new_ins = ([merging_node.inputs[0]] +
-                           mn_ts + pl_ts + mn_fs + pl_fs)
-                mn_name = '?'
+                mn_ts = merging_node.inputs[1:][: merging_node.op.n_outs]
+                mn_fs = merging_node.inputs[1:][merging_node.op.n_outs :]
+                pl_ts = proposal.inputs[1:][: proposal.op.n_outs]
+                pl_fs = proposal.inputs[1:][proposal.op.n_outs :]
+                new_ins = [merging_node.inputs[0]] + mn_ts + pl_ts + mn_fs + pl_fs
+                mn_name = "?"
                 if merging_node.op.name:
                     mn_name = merging_node.op.name
-                pl_name = '?'
+                pl_name = "?"
                 # mn_n_ts = len(mn_ts)
                 # mn_n_fs = len(mn_fs)
                 if proposal.op.name:
@@ -597,8 +638,9 @@ class CondMerge(gof.Optimizer):
                     n_outs=len(mn_ts + pl_ts),
                     as_view=False,
                     gpu=False,
-                    name=mn_name + '&' + pl_name)
-                print('here')
+                    name=mn_name + "&" + pl_name,
+                )
+                print("here")
                 new_outs = new_ifelse(*new_ins, **dict(return_list=True))
                 new_outs = [clone(x) for x in new_outs]
                 old_outs = []
@@ -611,7 +653,7 @@ class CondMerge(gof.Optimizer):
                 else:
                     old_outs += proposal.outputs
                 pairs = list(zip(old_outs, new_outs))
-                fgraph.replace_all_validate(pairs, reason='cond_merge')
+                fgraph.replace_all_validate(pairs, reason="cond_merge")
 
 
 @gof.local_optimizer([IfElse])
@@ -620,17 +662,15 @@ def cond_remove_identical(node):
 
     if not isinstance(op, IfElse):
         return False
-    ts = node.inputs[1:][:op.n_outs]
-    fs = node.inputs[1:][op.n_outs:]
+    ts = node.inputs[1:][: op.n_outs]
+    fs = node.inputs[1:][op.n_outs :]
 
     # sync outs
     out_map = {}
     for idx in xrange(len(node.outputs)):
         if idx not in out_map:
             for jdx in xrange(idx + 1, len(node.outputs)):
-                if (ts[idx] == ts[jdx] and
-                        fs[idx] == fs[jdx] and
-                        jdx not in out_map):
+                if ts[idx] == ts[jdx] and fs[idx] == fs[jdx] and jdx not in out_map:
                     out_map[jdx] = idx
 
     if len(out_map) == 0:
@@ -647,10 +687,7 @@ def cond_remove_identical(node):
             nw_ts.append(ts[idx])
             nw_fs.append(fs[idx])
 
-    new_ifelse = IfElse(n_outs=len(nw_ts),
-                        as_view=op.as_view,
-                        gpu=op.gpu,
-                        name=op.name)
+    new_ifelse = IfElse(n_outs=len(nw_ts), as_view=op.as_view, gpu=op.gpu, name=op.name)
 
     new_ins = [node.inputs[0]] + nw_ts + nw_fs
     new_outs = new_ifelse(*new_ins, **dict(return_list=True))
@@ -673,28 +710,28 @@ def cond_merge_random_op(main_node):
     all_inp_nodes = set()
     for inp in main_node.inputs:
         all_inp_nodes.add(inp.owner)
-    cond_nodes = [x for x in list(all_inp_nodes)
-                  if x and isinstance(x.op, IfElse)]
+    cond_nodes = [x for x in list(all_inp_nodes) if x and isinstance(x.op, IfElse)]
 
     if len(cond_nodes) < 2:
         return False
 
     merging_node = cond_nodes[0]
     for proposal in cond_nodes[1:]:
-        if (proposal.inputs[0] == merging_node.inputs[0] and
-                not gof.graph.is_in_ancestors(proposal, merging_node) and
-                not gof.graph.is_in_ancestors(merging_node, proposal)):
+        if (
+            proposal.inputs[0] == merging_node.inputs[0]
+            and not gof.graph.is_in_ancestors(proposal, merging_node)
+            and not gof.graph.is_in_ancestors(merging_node, proposal)
+        ):
             # Create a list of replacements for proposal
-            mn_ts = merging_node.inputs[1:][:merging_node.op.n_outs]
-            mn_fs = merging_node.inputs[1:][merging_node.op.n_outs:]
-            pl_ts = proposal.inputs[1:][:proposal.op.n_outs]
-            pl_fs = proposal.inputs[1:][proposal.op.n_outs:]
-            new_ins = ([merging_node.inputs[0]] +
-                       mn_ts + pl_ts + mn_fs + pl_fs)
-            mn_name = '?'
+            mn_ts = merging_node.inputs[1:][: merging_node.op.n_outs]
+            mn_fs = merging_node.inputs[1:][merging_node.op.n_outs :]
+            pl_ts = proposal.inputs[1:][: proposal.op.n_outs]
+            pl_fs = proposal.inputs[1:][proposal.op.n_outs :]
+            new_ins = [merging_node.inputs[0]] + mn_ts + pl_ts + mn_fs + pl_fs
+            mn_name = "?"
             if merging_node.op.name:
                 mn_name = merging_node.op.name
-            pl_name = '?'
+            pl_name = "?"
             # mn_n_ts = len(mn_ts)
             # mn_n_fs = len(mn_fs)
             if proposal.op.name:
@@ -703,7 +740,8 @@ def cond_merge_random_op(main_node):
                 n_outs=len(mn_ts + pl_ts),
                 as_view=False,
                 gpu=False,
-                name=mn_name + '&' + pl_name)
+                name=mn_name + "&" + pl_name,
+            )
             new_outs = new_ifelse(*new_ins, **dict(return_list=True))
             old_outs = []
             if type(merging_node.outputs) not in (list, tuple):

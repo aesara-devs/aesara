@@ -28,8 +28,9 @@ class RandomStateType(gof.Type):
     function that is used by DebugMode.
 
     """
+
     def __str__(self):
-        return 'RandomStateType'
+        return "RandomStateType"
 
     def filter(self, data, strict=False, allow_downcast=None):
         if self.is_valid_value(data):
@@ -86,6 +87,7 @@ class RandomStateType(gof.Type):
     def may_share_memory(a, b):
         return a is b
 
+
 # Register RandomStateType's C code for ViewOp.
 theano.compile.register_view_op_c_code(
     RandomStateType,
@@ -94,7 +96,8 @@ theano.compile.register_view_op_c_code(
     %(oname)s = %(iname)s;
     Py_XINCREF(%(oname)s);
     """,
-    1)
+    1,
+)
 
 random_state_type = RandomStateType()
 
@@ -134,17 +137,14 @@ class RandomFunction(gof.Op):
 
     def __getstate__(self):
         d = dict(self.__dict__)
-        del d['exec_fn']
-        if 'destroy_map' in d:
-            del d['destroy_map']
+        del d["exec_fn"]
+        if "destroy_map" in d:
+            del d["destroy_map"]
         return d
 
     def __setstate__(self, dct):
         if isinstance(dct, dict):
-            state = [dct['fn'],
-                     dct['outtype'],
-                     dct['inplace'],
-                     dct['ndim_added']]
+            state = [dct["fn"], dct["outtype"], dct["inplace"], dct["ndim_added"]]
             self.__dict__.update(dct)
         else:
             state = dct
@@ -161,7 +161,7 @@ class RandomFunction(gof.Op):
         self.ndim_added = ndim_added
 
     def __str__(self):
-        return 'RandomFunction{%s}' % self.exec_fn.__name__
+        return "RandomFunction{%s}" % self.exec_fn.__name__
 
     def make_node(self, r, shape, *args):
         """
@@ -196,13 +196,16 @@ class RandomFunction(gof.Op):
         """
         shape_ = tensor.as_tensor_variable(shape, ndim=1)
         if shape == ():
-            shape = shape_.astype('int64')
+            shape = shape_.astype("int64")
         else:
             shape = shape_
         assert shape.type.ndim == 1
-        assert (shape.type.dtype == 'int64') or (shape.type.dtype == 'int32')
+        assert (shape.type.dtype == "int64") or (shape.type.dtype == "int32")
         if not isinstance(r.type, RandomStateType):
-            print('WARNING: RandomState instances should be in RandomStateType', file=sys.stderr)
+            print(
+                "WARNING: RandomState instances should be in RandomStateType",
+                file=sys.stderr,
+            )
         # the following doesn't work because we want to ignore the
         # broadcastable flags in shape.type
         # assert shape.type == tensor.lvector
@@ -211,15 +214,13 @@ class RandomFunction(gof.Op):
         # and append enough None's to match the length of self.args
         args = list(map(tensor.as_tensor_variable, args))
 
-        return gof.Apply(self,
-                         [r, shape] + args,
-                         [r.type(), self.outtype()])
+        return gof.Apply(self, [r, shape] + args, [r.type(), self.outtype()])
 
     def infer_shape(self, node, i_shapes):
         r, shp = node.inputs[0:2]
 
         # if shp is a constant array of len 0, then it means 'automatic shape'
-        unknown_shape = len(getattr(shp, 'data', [0, 1, 2])) == 0
+        unknown_shape = len(getattr(shp, "data", [0, 1, 2])) == 0
 
         # if ndim_added == 0 and shape != () then shape
         if self.ndim_added == 0 and not unknown_shape:
@@ -249,17 +250,20 @@ class RandomFunction(gof.Op):
         else:
             shape = tuple(shape)
 
-        if (shape is not None and
-                self.outtype.ndim != len(shape) + self.ndim_added):
-            raise ValueError('Shape mismatch: self.outtype.ndim (%i) !='
-                             ' len(shape) (%i) + self.ndim_added (%i)'
-                             % (self.outtype.ndim, len(shape), self.ndim_added))
+        if shape is not None and self.outtype.ndim != len(shape) + self.ndim_added:
+            raise ValueError(
+                "Shape mismatch: self.outtype.ndim (%i) !="
+                " len(shape) (%i) + self.ndim_added (%i)"
+                % (self.outtype.ndim, len(shape), self.ndim_added)
+            )
         if not self.inplace:
             r = copy(r)
         rout[0] = r
         rval = self.exec_fn(r, *(args + [shape]))
-        if (not isinstance(rval, np.ndarray) or
-                str(rval.dtype) != node.outputs[1].type.dtype):
+        if (
+            not isinstance(rval, np.ndarray)
+            or str(rval.dtype) != node.outputs[1].type.dtype
+        ):
             rval = theano._asarray(rval, dtype=node.outputs[1].type.dtype)
 
         # When shape is None, numpy has a tendency to unexpectedly
@@ -269,32 +273,35 @@ class RandomFunction(gof.Op):
             rval = rval.reshape([1] * self.outtype.ndim)
 
         if len(rval.shape) != self.outtype.ndim:
-            raise ValueError('Shape mismatch: "out" should have dimension %i,'
-                             ' but the value produced by "perform" has'
-                             ' dimension %i'
-                             % (self.outtype.ndim, len(rval.shape)))
+            raise ValueError(
+                'Shape mismatch: "out" should have dimension %i,'
+                ' but the value produced by "perform" has'
+                " dimension %i" % (self.outtype.ndim, len(rval.shape))
+            )
 
         # Check the output has the right shape
         if shape is not None:
             if self.ndim_added == 0 and shape != rval.shape:
                 raise ValueError(
                     'Shape mismatch: "out" should have shape %s, but the'
-                    ' value produced by "perform" has shape %s'
-                    % (shape, rval.shape))
-            elif (self.ndim_added > 0 and
-                  shape != rval.shape[:-self.ndim_added]):
+                    ' value produced by "perform" has shape %s' % (shape, rval.shape)
+                )
+            elif self.ndim_added > 0 and shape != rval.shape[: -self.ndim_added]:
                 raise ValueError(
                     'Shape mismatch: "out" should have shape starting with'
-                    ' %s (plus %i extra dimensions), but the value produced'
-                    ' by "perform" has shape %s'
-                    % (shape, self.ndim_added, rval.shape))
+                    " %s (plus %i extra dimensions), but the value produced"
+                    ' by "perform" has shape %s' % (shape, self.ndim_added, rval.shape)
+                )
 
         out[0] = rval
 
     def grad(self, inputs, outputs):
-        return [theano.gradient.grad_undefined(self, k, inp,
-                'No gradient defined through raw random numbers op')
-                for k, inp in enumerate(inputs)]
+        return [
+            theano.gradient.grad_undefined(
+                self, k, inp, "No gradient defined through raw random numbers op"
+            )
+            for k, inp in enumerate(inputs)
+        ]
 
     def R_op(self, inputs, eval_points):
         return [None for i in eval_points]
@@ -332,14 +339,16 @@ def _infer_ndim_bcast(ndim, shape, *args):
             ndim = shape_ndim
         else:
             if shape_ndim != ndim:
-                raise ValueError('ndim should be equal to len(shape), but\n',
-                                 'ndim = %s, len(shape) = %s, shape = %s'
-                                 % (ndim, shape_ndim, shape))
+                raise ValueError(
+                    "ndim should be equal to len(shape), but\n",
+                    "ndim = %s, len(shape) = %s, shape = %s"
+                    % (ndim, shape_ndim, shape),
+                )
 
         bcast = []
         pre_v_shape = []
         for i, s in enumerate(shape):
-            if hasattr(s, 'type'):  # s is symbolic
+            if hasattr(s, "type"):  # s is symbolic
                 bcast.append(False)  # todo - introspect further
                 pre_v_shape.append(s)
             else:
@@ -361,19 +370,22 @@ def _infer_ndim_bcast(ndim, shape, *args):
                                 break
                     else:
                         if n_a_i == 0:
-                            raise ValueError((
-                                'Auto-shape of -1 must overlap'
-                                'with the shape of one of the broadcastable'
-                                'inputs'))
+                            raise ValueError(
+                                (
+                                    "Auto-shape of -1 must overlap"
+                                    "with the shape of one of the broadcastable"
+                                    "inputs"
+                                )
+                            )
                         else:
                             pre_v_shape.append(tensor.as_tensor_variable(1))
                             bcast.append(True)
                 else:
-                    ValueError('negative shape', s)
+                    ValueError("negative shape", s)
         # post-condition: shape may still contain both symbolic and
         # non-symbolic things
         if len(pre_v_shape) == 0:
-            v_shape = tensor.constant([], dtype='int64')
+            v_shape = tensor.constant([], dtype="int64")
         else:
             v_shape = tensor.stack(pre_v_shape)
 
@@ -381,8 +393,9 @@ def _infer_ndim_bcast(ndim, shape, *args):
         # The number of drawn samples will be determined automatically,
         # but we need to know ndim
         if not args:
-            raise TypeError(('_infer_ndim_bcast cannot infer shape without'
-                             ' either shape or args'))
+            raise TypeError(
+                ("_infer_ndim_bcast cannot infer shape without" " either shape or args")
+            )
         template = reduce(lambda a, b: a + b, args)
         v_shape = template.shape
         bcast = template.broadcastable
@@ -391,27 +404,28 @@ def _infer_ndim_bcast(ndim, shape, *args):
         v_shape = tensor.as_tensor_variable(shape)
         if v_shape.ndim != 1:
             raise TypeError(
-                "shape must be a vector or list of scalar, got '%s'" % v_shape)
+                "shape must be a vector or list of scalar, got '%s'" % v_shape
+            )
 
         if ndim is None:
             ndim = tensor.get_vector_length(v_shape)
         bcast = [False] * ndim
 
     if v_shape.ndim != 1:
-        raise TypeError("shape must be a vector or list of scalar, got '%s'" %
-                        v_shape)
+        raise TypeError("shape must be a vector or list of scalar, got '%s'" % v_shape)
 
     if v_shape.dtype not in theano.tensor.integer_dtypes:
-        raise TypeError('shape must be an integer vector or list',
-                        v_shape.dtype)
+        raise TypeError("shape must be an integer vector or list", v_shape.dtype)
 
     if args_ndim > ndim:
         raise ValueError(
-            'ndim should be at least as big as required by args value',
-            (ndim, args_ndim), args)
+            "ndim should be at least as big as required by args value",
+            (ndim, args_ndim),
+            args,
+        )
 
     assert ndim == len(bcast)
-    return ndim, tensor.cast(v_shape, 'int64'), tuple(bcast)
+    return ndim, tensor.cast(v_shape, "int64"), tuple(bcast)
 
 
 def _generate_broadcasting_indices(out_shape, *shapes):
@@ -447,10 +461,12 @@ def _generate_broadcasting_indices(out_shape, *shapes):
                 ranges.append([0] * out_shape[dim])
             else:
                 raise ValueError(
-                    'shape[%i] (%i) should be equal to out_shape[%i] (%i) or'
-                    ' to 1'
-                    % (dim, shape[dim], dim, out_shape[dim]), shape,
-                    out_shape, shapes)
+                    "shape[%i] (%i) should be equal to out_shape[%i] (%i) or"
+                    " to 1" % (dim, shape[dim], dim, out_shape[dim]),
+                    shape,
+                    out_shape,
+                    shapes,
+                )
 
         for prev_index in zip(*ret_indices):
             for dim_index in zip(*ranges):
@@ -480,8 +496,7 @@ def uniform(random_state, size=None, low=0.0, high=1.0, ndim=None, dtype=None):
     if dtype is None:
         dtype = tensor.scal.upcast(theano.config.floatX, low.dtype, high.dtype)
     ndim, size, bcast = _infer_ndim_bcast(ndim, size, low, high)
-    op = RandomFunction('uniform',
-                        tensor.TensorType(dtype=dtype, broadcastable=bcast))
+    op = RandomFunction("uniform", tensor.TensorType(dtype=dtype, broadcastable=bcast))
     return op(random_state, size, low, high)
 
 
@@ -505,13 +520,11 @@ def normal(random_state, size=None, avg=0.0, std=1.0, ndim=None, dtype=None):
     if dtype is None:
         dtype = tensor.scal.upcast(theano.config.floatX, avg.dtype, std.dtype)
     ndim, size, bcast = _infer_ndim_bcast(ndim, size, avg, std)
-    op = RandomFunction('normal',
-                        tensor.TensorType(dtype=dtype, broadcastable=bcast))
+    op = RandomFunction("normal", tensor.TensorType(dtype=dtype, broadcastable=bcast))
     return op(random_state, size, avg, std)
 
 
-def binomial(random_state, size=None, n=1, p=0.5, ndim=None,
-             dtype='int64', prob=None):
+def binomial(random_state, size=None, n=1, p=0.5, ndim=None, dtype="int64", prob=None):
     """
     Sample n times with probability of success prob for each trial,
     return the number of successes.
@@ -525,19 +538,25 @@ def binomial(random_state, size=None, n=1, p=0.5, ndim=None,
     """
     if prob is not None:
         p = prob
-        print("DEPRECATION WARNING: the parameter prob to the binomal fct have been renamed to p to have the same name as np.", file=sys.stderr)
+        print(
+            "DEPRECATION WARNING: the parameter prob to the binomal fct have been renamed to p to have the same name as np.",
+            file=sys.stderr,
+        )
     n = tensor.as_tensor_variable(n)
     p = tensor.as_tensor_variable(p)
     ndim, size, bcast = _infer_ndim_bcast(ndim, size, n, p)
-    if n.dtype == 'int64':
+    if n.dtype == "int64":
         try:
-            np.random.binomial(n=np.asarray([2, 3, 4], dtype='int64'), p=np.asarray([.1, .2, .3], dtype='float64'))
+            np.random.binomial(
+                n=np.asarray([2, 3, 4], dtype="int64"),
+                p=np.asarray([0.1, 0.2, 0.3], dtype="float64"),
+            )
         except TypeError:
             # THIS WORKS AROUND A NUMPY BUG on 32bit machine
-            n = tensor.cast(n, 'int32')
-    op = RandomFunction('binomial',
-                        tensor.TensorType(dtype=dtype,
-                                          broadcastable=(False,) * ndim))
+            n = tensor.cast(n, "int32")
+    op = RandomFunction(
+        "binomial", tensor.TensorType(dtype=dtype, broadcastable=(False,) * ndim)
+    )
     return op(random_state, size, n, p)
 
 
@@ -559,16 +578,21 @@ def random_integers_helper(random_state, low, high, size):
     # broadcast low and high to out_ndim dimensions
     if low.ndim > out_ndim:
         raise ValueError(
-            'low.ndim (%i) should not be larger than len(size) (%i)'
+            "low.ndim (%i) should not be larger than len(size) (%i)"
             % (low.ndim, out_ndim),
-            low, size)
+            low,
+            size,
+        )
     if low.ndim < out_ndim:
         low = low.reshape((1,) * (out_ndim - low.ndim) + low.shape)
 
     if high.ndim > out_ndim:
         raise ValueError(
-            'high.ndim (%i) should not be larger than len(size) (%i)'
-            % (high.ndim, out_ndim), high, size)
+            "high.ndim (%i) should not be larger than len(size) (%i)"
+            % (high.ndim, out_ndim),
+            high,
+            size,
+        )
     if high.ndim < out_ndim:
         high = high.reshape((1,) * (out_ndim - high.ndim) + high.shape)
 
@@ -582,8 +606,7 @@ def random_integers_helper(random_state, low, high, size):
 
     # Build the indices over which to loop
     out = np.ndarray(out_size)
-    broadcast_ind = _generate_broadcasting_indices(out_size, low.shape,
-                                                   high.shape)
+    broadcast_ind = _generate_broadcasting_indices(out_size, low.shape, high.shape)
     # Iterate over these indices, drawing one sample at a time from numpy
     for oi, li, hi in zip(*broadcast_ind):
         out[oi] = random_state.randint(low=low[li], high=high[hi] + 1)
@@ -591,8 +614,7 @@ def random_integers_helper(random_state, low, high, size):
     return out
 
 
-def random_integers(random_state, size=None, low=0, high=1, ndim=None,
-                    dtype='int64'):
+def random_integers(random_state, size=None, low=0, high=1, ndim=None, dtype="int64"):
     """
     Sample a random integer between low and high, both inclusive.
 
@@ -606,8 +628,9 @@ def random_integers(random_state, size=None, low=0, high=1, ndim=None,
     low = tensor.as_tensor_variable(low)
     high = tensor.as_tensor_variable(high)
     ndim, size, bcast = _infer_ndim_bcast(ndim, size, low, high)
-    op = RandomFunction(random_integers_helper,
-                        tensor.TensorType(dtype=dtype, broadcastable=bcast))
+    op = RandomFunction(
+        random_integers_helper, tensor.TensorType(dtype=dtype, broadcastable=bcast)
+    )
     return op(random_state, size, low, high)
 
 
@@ -621,18 +644,19 @@ def choice_helper(random_state, a, replace, p, size):
 
     """
     if a.ndim > 1:
-        raise ValueError('a.ndim (%i) must be 0 or 1' % a.ndim)
+        raise ValueError("a.ndim (%i) must be 0 or 1" % a.ndim)
     if p.ndim == 1:
         if p.size == 0:
             p = None
     else:
-        raise ValueError('p.ndim (%i) must be 1' % p.ndim)
+        raise ValueError("p.ndim (%i) must be 1" % p.ndim)
     replace = bool(replace)
     return random_state.choice(a, size, replace, p)
 
 
-def choice(random_state, size=None, a=2, replace=True, p=None, ndim=None,
-           dtype='int64'):
+def choice(
+    random_state, size=None, a=2, replace=True, p=None, ndim=None, dtype="int64"
+):
     """
     Choose values from `a` with or without replacement. `a` can be a 1-D array
     or a positive scalar. If `a` is a scalar, the samples are drawn from the
@@ -646,18 +670,19 @@ def choice(random_state, size=None, a=2, replace=True, p=None, ndim=None,
     """
     a = tensor.as_tensor_variable(a)
     if isinstance(replace, bool):
-        replace = tensor.constant(replace, dtype='int8')
+        replace = tensor.constant(replace, dtype="int8")
     else:
         replace = tensor.as_tensor_variable(replace)
     # encode p=None as an empty vector
     p = tensor.as_tensor_variable(p or [])
     ndim, size, bcast = _infer_ndim_bcast(ndim, size)
-    op = RandomFunction(choice_helper, tensor.TensorType(dtype=dtype,
-                                                         broadcastable=bcast))
+    op = RandomFunction(
+        choice_helper, tensor.TensorType(dtype=dtype, broadcastable=bcast)
+    )
     return op(random_state, size, a, replace, p)
 
 
-def poisson(random_state, size=None, lam=1.0, ndim=None, dtype='int64'):
+def poisson(random_state, size=None, lam=1.0, ndim=None, dtype="int64"):
     """
     Draw samples from a Poisson distribution.
 
@@ -681,8 +706,7 @@ def poisson(random_state, size=None, lam=1.0, ndim=None, dtype='int64'):
 
     ndim, size, bcast = _infer_ndim_bcast(ndim, size)
 
-    op = RandomFunction("poisson", tensor.TensorType(dtype=dtype,
-                                                     broadcastable=bcast))
+    op = RandomFunction("poisson", tensor.TensorType(dtype=dtype, broadcastable=bcast))
     return op(random_state, size, lam)
 
 
@@ -722,7 +746,7 @@ def permutation_helper(random_state, n, shape):
     return out
 
 
-def permutation(random_state, size=None, n=1, ndim=None, dtype='int64'):
+def permutation(random_state, size=None, n=1, ndim=None, dtype="int64"):
     """
     Return permutations of the integers between 0 and n-1.
 
@@ -740,19 +764,21 @@ def permutation(random_state, size=None, n=1, ndim=None, dtype='int64'):
 
     """
     if size is None or size == ():
-        if not(ndim is None or ndim == 1):
+        if not (ndim is None or ndim == 1):
             raise TypeError(
-                "You asked for just one permutation but asked for more then 1 dimensions.")
+                "You asked for just one permutation but asked for more then 1 dimensions."
+            )
         ndim = 1
         size = ()
         bcast = ()
     else:
         ndim, size, bcast = _infer_ndim_bcast(ndim, size)
     # print "NDIM", ndim, size
-    op = RandomFunction(permutation_helper,
-                        tensor.TensorType(dtype=dtype,
-                                          broadcastable=bcast + (False,)),
-                        ndim_added=1)
+    op = RandomFunction(
+        permutation_helper,
+        tensor.TensorType(dtype=dtype, broadcastable=bcast + (False,)),
+        ndim_added=1,
+    )
     return op(random_state, size, n)
 
 
@@ -774,16 +800,21 @@ def multinomial_helper(random_state, n, pvals, size):
 
     # broadcast n to ndim dimensions and pvals to ndim+1
     if n.ndim > ndim:
-        raise ValueError('n.ndim (%i) should not be larger than len(size) (%i)'
-                         % (n.ndim, ndim), n, size)
+        raise ValueError(
+            "n.ndim (%i) should not be larger than len(size) (%i)" % (n.ndim, ndim),
+            n,
+            size,
+        )
     if n.ndim < ndim:
         n = n.reshape((1,) * (ndim - n.ndim) + n.shape)
 
     if pvals.ndim - 1 > ndim:
         raise ValueError(
-            'pvals.ndim-1 (%i) should not be larger than len(size) (%i)'
+            "pvals.ndim-1 (%i) should not be larger than len(size) (%i)"
             % (pvals.ndim - 1, ndim),
-            pvals, size)
+            pvals,
+            size,
+        )
     if pvals.ndim - 1 < ndim:
         pvals = pvals.reshape((1,) * (ndim - pvals.ndim + 1) + pvals.shape)
 
@@ -800,8 +831,7 @@ def multinomial_helper(random_state, n, pvals, size):
     # Note that here, the rows (inner-most 1D subtensors) of pvals and out
     # are indexed, not their individual elements
     out = np.ndarray(out_size)
-    broadcast_ind = _generate_broadcasting_indices(size, n.shape,
-                                                   pvals.shape[:-1])
+    broadcast_ind = _generate_broadcasting_indices(size, n.shape, pvals.shape[:-1])
     # Iterate over these indices, drawing from one multinomial at a
     # time from numpy
     assert pvals.min() >= 0
@@ -824,13 +854,13 @@ def multinomial_helper(random_state, n, pvals, size):
             pvi = pvi * (1.0 - 5e-5)
             pisum = np.sum(pvi)
         assert pisum <= 1.0, pisum
-        out[mi] = random_state.multinomial(n=n[ni],
-                                           pvals=pvi.astype('float64'))
+        out[mi] = random_state.multinomial(n=n[ni], pvals=pvi.astype("float64"))
     return out
 
 
-def multinomial(random_state, size=None, n=1, pvals=[0.5, 0.5],
-                ndim=None, dtype='int64'):
+def multinomial(
+    random_state, size=None, n=1, pvals=[0.5, 0.5], ndim=None, dtype="int64"
+):
     """
     Sample from one or more multinomial distributions defined by
     one-dimensional slices in pvals.
@@ -897,10 +927,11 @@ def multinomial(random_state, size=None, n=1, pvals=[0.5, 0.5],
     tmp = pvals.T[0].T
     ndim, size, bcast = _infer_ndim_bcast(ndim, size, n, tmp)
     bcast = bcast + (pvals.type.broadcastable[-1],)
-    op = RandomFunction(multinomial_helper,
-                        tensor.TensorType(dtype=dtype,
-                                          broadcastable=bcast),
-                        ndim_added=1)
+    op = RandomFunction(
+        multinomial_helper,
+        tensor.TensorType(dtype=dtype, broadcastable=bcast),
+        ndim_added=1,
+    )
     return op(random_state, size, n, pvals)
 
 
@@ -911,20 +942,24 @@ def random_make_inplace(node):
         # Read op_fn from op.state, not from op.fn, since op.fn
         # may not be picklable.
         op_fn, op_outtype, op_inplace, op_ndim_added = op._props()
-        new_op = RandomFunction(op_fn, op_outtype, inplace=True,
-                                ndim_added=op_ndim_added)
+        new_op = RandomFunction(
+            op_fn, op_outtype, inplace=True, ndim_added=op_ndim_added
+        )
         return new_op.make_node(*node.inputs).outputs
     return False
 
-optdb.register('random_make_inplace', opt.in2out(random_make_inplace,
-                                                 ignore_newtrees=True),
-               99, 'fast_run', 'inplace')
+
+optdb.register(
+    "random_make_inplace",
+    opt.in2out(random_make_inplace, ignore_newtrees=True),
+    99,
+    "fast_run",
+    "inplace",
+)
 
 
 class RandomStreamsBase(object):
-
-    def binomial(self, size=None, n=1, p=0.5, ndim=None, dtype='int64',
-                 prob=None):
+    def binomial(self, size=None, n=1, p=0.5, ndim=None, dtype="int64", prob=None):
         """
         Sample n times with probability of success p for each trial and
         return the number of successes.
@@ -935,7 +970,10 @@ class RandomStreamsBase(object):
         """
         if prob is not None:
             p = prob
-            print("DEPRECATION WARNING: the parameter prob to the binomal fct have been renamed to p to have the same name as numpy.", file=sys.stderr)
+            print(
+                "DEPRECATION WARNING: the parameter prob to the binomal fct have been renamed to p to have the same name as numpy.",
+                file=sys.stderr,
+            )
         return self.gen(binomial, size, n, p, ndim=ndim, dtype=dtype)
 
     def uniform(self, size=None, low=0.0, high=1.0, ndim=None, dtype=None):
@@ -960,8 +998,7 @@ class RandomStreamsBase(object):
         """
         return self.gen(normal, size, avg, std, ndim=ndim, dtype=dtype)
 
-    def random_integers(self, size=None, low=0, high=1, ndim=None,
-                        dtype='int64'):
+    def random_integers(self, size=None, low=0, high=1, ndim=None, dtype="int64"):
         """
         Sample a random integer between low and high, both inclusive.
 
@@ -969,11 +1006,9 @@ class RandomStreamsBase(object):
         ndim may be a plain integer to supplement the missing information.
 
         """
-        return self.gen(random_integers, size, low, high, ndim=ndim,
-                        dtype=dtype)
+        return self.gen(random_integers, size, low, high, ndim=ndim, dtype=dtype)
 
-    def choice(self, size=None, a=2, replace=True, p=None, ndim=None,
-               dtype='int64'):
+    def choice(self, size=None, a=2, replace=True, p=None, ndim=None, dtype="int64"):
         """
         Choose values from `a` with or without replacement.
 
@@ -986,7 +1021,7 @@ class RandomStreamsBase(object):
         """
         return self.gen(choice, size, a, replace, p, ndim=ndim, dtype=dtype)
 
-    def poisson(self, size=None, lam=None, ndim=None, dtype='int64'):
+    def poisson(self, size=None, lam=None, ndim=None, dtype="int64"):
         """
         Draw samples from a Poisson distribution.
 
@@ -999,7 +1034,7 @@ class RandomStreamsBase(object):
         """
         return self.gen(poisson, size, lam, ndim=ndim, dtype=dtype)
 
-    def permutation(self, size=None, n=1, ndim=None, dtype='int64'):
+    def permutation(self, size=None, n=1, ndim=None, dtype="int64"):
         """
         Return permutations of the integers between 0 and n-1.
 
@@ -1019,8 +1054,7 @@ class RandomStreamsBase(object):
         """
         return self.gen(permutation, size, n, ndim=ndim, dtype=dtype)
 
-    def multinomial(self, size=None, n=1, pvals=[0.5, 0.5], ndim=None,
-                    dtype='int64'):
+    def multinomial(self, size=None, n=1, pvals=[0.5, 0.5], ndim=None, dtype="int64"):
         """
         Sample n times from a multinomial distribution defined by
         probabilities pvals, as many times as required by size. For
@@ -1046,8 +1080,9 @@ class RandomStreamsBase(object):
         the ``.permutation`` attribute of the return value.
 
         """
-        perm = self.permutation(size=input.shape[:-1], n=input.shape[-1],
-                                ndim=input.ndim - 1)
+        perm = self.permutation(
+            size=input.shape[:-1], n=input.shape[-1], ndim=input.ndim - 1
+        )
         shuffled = tensor.permute_row_elements(input, perm)
         shuffled.permutation = perm
         return shuffled

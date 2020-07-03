@@ -8,14 +8,25 @@ import theano.typed_list
 from theano import tensor as T
 from theano.tensor.type_other import SliceType
 from theano.typed_list.type import TypedListType
-from theano.typed_list.basic import (GetItem, Insert,
-                                     Append, Extend, Remove, Reverse,
-                                     Index, Count, Length, make_list)
+from theano.typed_list.basic import (
+    GetItem,
+    Insert,
+    Append,
+    Extend,
+    Remove,
+    Reverse,
+    Index,
+    Count,
+    Length,
+    make_list,
+)
 from theano import sparse
 from theano.tests import unittest_tools as utt
+
 # TODO, handle the case where scipy isn't installed.
 try:
     import scipy.sparse as sp
+
     scipy_imported = True
 except ImportError:
     scipy_imported = False
@@ -23,8 +34,10 @@ except ImportError:
 
 # took from tensors/tests/test_basic.py
 def rand_ranged_matrix(minimum, maximum, shape):
-    return np.asarray(np.random.rand(*shape) * (maximum - minimum) +
-                      minimum, dtype=theano.config.floatX)
+    return np.asarray(
+        np.random.rand(*shape) * (maximum - minimum) + minimum,
+        dtype=theano.config.floatX,
+    )
 
 
 # took from sparse/tests/test_basic.py
@@ -40,21 +53,19 @@ def random_lil(shape, dtype, nnz):
             value = int(value * 100)
         # The call to tuple is needed as scipy 0.13.1 do not support
         # ndarray with length 2 as idx tuple.
-        rval.__setitem__(
-            tuple(idx),
-            value)
+        rval.__setitem__(tuple(idx), value)
     return rval
 
 
-class test_get_item():
-
+class test_get_item:
     def setup_method(self):
         utt.seed_rng()
 
     def test_sanity_check_slice(self):
 
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
 
         mySymbolicSlice = SliceType()()
 
@@ -62,8 +73,7 @@ class test_get_item():
 
         assert not isinstance(z, T.TensorVariable)
 
-        f = theano.function([mySymbolicMatricesList, mySymbolicSlice],
-                            z)
+        f = theano.function([mySymbolicMatricesList, mySymbolicSlice], z)
 
         x = rand_ranged_matrix(-1000, 1000, [100, 101])
 
@@ -71,57 +81,57 @@ class test_get_item():
 
     def test_sanity_check_single(self):
 
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
 
-        mySymbolicScalar = T.scalar(dtype='int64')
+        mySymbolicScalar = T.scalar(dtype="int64")
 
         z = GetItem()(mySymbolicMatricesList, mySymbolicScalar)
 
-        f = theano.function([mySymbolicMatricesList, mySymbolicScalar],
-                            z)
+        f = theano.function([mySymbolicMatricesList, mySymbolicScalar], z)
 
         x = rand_ranged_matrix(-1000, 1000, [100, 101])
 
-        assert np.array_equal(f([x], np.asarray(0, dtype='int64')), x)
+        assert np.array_equal(f([x], np.asarray(0, dtype="int64")), x)
 
     def test_interface(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
-        mySymbolicScalar = T.scalar(dtype='int64')
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
+        mySymbolicScalar = T.scalar(dtype="int64")
 
         z = mySymbolicMatricesList[mySymbolicScalar]
 
-        f = theano.function([mySymbolicMatricesList, mySymbolicScalar],
-                            z)
+        f = theano.function([mySymbolicMatricesList, mySymbolicScalar], z)
 
         x = rand_ranged_matrix(-1000, 1000, [100, 101])
 
-        assert np.array_equal(f([x], np.asarray(0, dtype='int64')), x)
+        assert np.array_equal(f([x], np.asarray(0, dtype="int64")), x)
 
         z = mySymbolicMatricesList[0]
 
-        f = theano.function([mySymbolicMatricesList],
-                            z)
+        f = theano.function([mySymbolicMatricesList], z)
 
         assert np.array_equal(f([x]), x)
 
     def test_wrong_input(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
         mySymbolicMatrix = T.matrix()
 
         with pytest.raises(TypeError):
             GetItem()(mySymbolicMatricesList, mySymbolicMatrix)
 
     def test_constant_input(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
 
         z = GetItem()(mySymbolicMatricesList, 0)
 
-        f = theano.function([mySymbolicMatricesList],
-                            z)
+        f = theano.function([mySymbolicMatricesList], z)
 
         x = rand_ranged_matrix(-1000, 1000, [100, 101])
 
@@ -129,23 +139,21 @@ class test_get_item():
 
         z = GetItem()(mySymbolicMatricesList, slice(0, 1, 1))
 
-        f = theano.function([mySymbolicMatricesList],
-                            z)
+        f = theano.function([mySymbolicMatricesList], z)
 
         assert np.array_equal(f([x]), [x])
 
 
-class test_append():
-
+class test_append:
     def test_inplace(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
         myMatrix = T.matrix()
 
         z = Append(True)(mySymbolicMatricesList, myMatrix)
 
-        f = theano.function([mySymbolicMatricesList, myMatrix], z,
-                            accept_inplace=True)
+        f = theano.function([mySymbolicMatricesList, myMatrix], z, accept_inplace=True)
 
         x = rand_ranged_matrix(-1000, 1000, [100, 101])
 
@@ -154,8 +162,9 @@ class test_append():
         assert np.array_equal(f([x], y), [x, y])
 
     def test_sanity_check(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
         myMatrix = T.matrix()
 
         z = Append()(mySymbolicMatricesList, myMatrix)
@@ -169,8 +178,9 @@ class test_append():
         assert np.array_equal(f([x], y), [x, y])
 
     def test_interfaces(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
         myMatrix = T.matrix()
 
         z = mySymbolicMatricesList.append(myMatrix)
@@ -184,18 +194,20 @@ class test_append():
         assert np.array_equal(f([x], y), [x, y])
 
 
-class test_extend():
-
+class test_extend:
     def test_inplace(self):
-        mySymbolicMatricesList1 = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
-        mySymbolicMatricesList2 = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList1 = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
+        mySymbolicMatricesList2 = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
 
         z = Extend(True)(mySymbolicMatricesList1, mySymbolicMatricesList2)
 
-        f = theano.function([mySymbolicMatricesList1, mySymbolicMatricesList2],
-                            z, accept_inplace=True)
+        f = theano.function(
+            [mySymbolicMatricesList1, mySymbolicMatricesList2], z, accept_inplace=True
+        )
 
         x = rand_ranged_matrix(-1000, 1000, [100, 101])
 
@@ -204,15 +216,16 @@ class test_extend():
         assert np.array_equal(f([x], [y]), [x, y])
 
     def test_sanity_check(self):
-        mySymbolicMatricesList1 = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
-        mySymbolicMatricesList2 = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList1 = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
+        mySymbolicMatricesList2 = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
 
         z = Extend()(mySymbolicMatricesList1, mySymbolicMatricesList2)
 
-        f = theano.function([mySymbolicMatricesList1, mySymbolicMatricesList2],
-                            z)
+        f = theano.function([mySymbolicMatricesList1, mySymbolicMatricesList2], z)
 
         x = rand_ranged_matrix(-1000, 1000, [100, 101])
 
@@ -221,15 +234,16 @@ class test_extend():
         assert np.array_equal(f([x], [y]), [x, y])
 
     def test_interface(self):
-        mySymbolicMatricesList1 = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
-        mySymbolicMatricesList2 = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList1 = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
+        mySymbolicMatricesList2 = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
 
         z = mySymbolicMatricesList1.extend(mySymbolicMatricesList2)
 
-        f = theano.function([mySymbolicMatricesList1, mySymbolicMatricesList2],
-                            z)
+        f = theano.function([mySymbolicMatricesList1, mySymbolicMatricesList2], z)
 
         x = rand_ranged_matrix(-1000, 1000, [100, 101])
 
@@ -238,30 +252,32 @@ class test_extend():
         assert np.array_equal(f([x], [y]), [x, y])
 
 
-class test_insert():
-
+class test_insert:
     def test_inplace(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
         myMatrix = T.matrix()
-        myScalar = T.scalar(dtype='int64')
+        myScalar = T.scalar(dtype="int64")
 
         z = Insert(True)(mySymbolicMatricesList, myScalar, myMatrix)
 
-        f = theano.function([mySymbolicMatricesList, myScalar, myMatrix], z,
-                            accept_inplace=True)
+        f = theano.function(
+            [mySymbolicMatricesList, myScalar, myMatrix], z, accept_inplace=True
+        )
 
         x = rand_ranged_matrix(-1000, 1000, [100, 101])
 
         y = rand_ranged_matrix(-1000, 1000, [100, 101])
 
-        assert np.array_equal(f([x], np.asarray(1, dtype='int64'), y), [x, y])
+        assert np.array_equal(f([x], np.asarray(1, dtype="int64"), y), [x, y])
 
     def test_sanity_check(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
         myMatrix = T.matrix()
-        myScalar = T.scalar(dtype='int64')
+        myScalar = T.scalar(dtype="int64")
 
         z = Insert()(mySymbolicMatricesList, myScalar, myMatrix)
 
@@ -271,13 +287,14 @@ class test_insert():
 
         y = rand_ranged_matrix(-1000, 1000, [100, 101])
 
-        assert np.array_equal(f([x], np.asarray(1, dtype='int64'), y), [x, y])
+        assert np.array_equal(f([x], np.asarray(1, dtype="int64"), y), [x, y])
 
     def test_interface(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
         myMatrix = T.matrix()
-        myScalar = T.scalar(dtype='int64')
+        myScalar = T.scalar(dtype="int64")
 
         z = mySymbolicMatricesList.insert(myScalar, myMatrix)
 
@@ -287,20 +304,19 @@ class test_insert():
 
         y = rand_ranged_matrix(-1000, 1000, [100, 101])
 
-        assert np.array_equal(f([x], np.asarray(1, dtype='int64'), y), [x, y])
+        assert np.array_equal(f([x], np.asarray(1, dtype="int64"), y), [x, y])
 
 
-class test_remove():
-
+class test_remove:
     def test_inplace(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
         myMatrix = T.matrix()
 
         z = Remove(True)(mySymbolicMatricesList, myMatrix)
 
-        f = theano.function([mySymbolicMatricesList, myMatrix], z,
-                            accept_inplace=True)
+        f = theano.function([mySymbolicMatricesList, myMatrix], z, accept_inplace=True)
 
         x = rand_ranged_matrix(-1000, 1000, [100, 101])
 
@@ -309,8 +325,9 @@ class test_remove():
         assert np.array_equal(f([x, y], y), [x])
 
     def test_sanity_check(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
         myMatrix = T.matrix()
 
         z = Remove()(mySymbolicMatricesList, myMatrix)
@@ -324,8 +341,9 @@ class test_remove():
         assert np.array_equal(f([x, y], y), [x])
 
     def test_interface(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
         myMatrix = T.matrix()
 
         z = mySymbolicMatricesList.remove(myMatrix)
@@ -339,16 +357,15 @@ class test_remove():
         assert np.array_equal(f([x, y], y), [x])
 
 
-class test_reverse():
-
+class test_reverse:
     def test_inplace(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
 
         z = Reverse(True)(mySymbolicMatricesList)
 
-        f = theano.function([mySymbolicMatricesList], z,
-                            accept_inplace=True)
+        f = theano.function([mySymbolicMatricesList], z, accept_inplace=True)
 
         x = rand_ranged_matrix(-1000, 1000, [100, 101])
 
@@ -357,8 +374,9 @@ class test_reverse():
         assert np.array_equal(f([x, y]), [y, x])
 
     def test_sanity_check(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
 
         z = Reverse()(mySymbolicMatricesList)
 
@@ -371,8 +389,9 @@ class test_reverse():
         assert np.array_equal(f([x, y]), [y, x])
 
     def test_interface(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
 
         z = mySymbolicMatricesList.reverse()
 
@@ -385,11 +404,11 @@ class test_reverse():
         assert np.array_equal(f([x, y]), [y, x])
 
 
-class test_index():
-
+class test_index:
     def test_sanity_check(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
         myMatrix = T.matrix()
 
         z = Index()(mySymbolicMatricesList, myMatrix)
@@ -403,8 +422,9 @@ class test_index():
         assert f([x, y], y) == 1
 
     def test_interface(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
         myMatrix = T.matrix()
 
         z = mySymbolicMatricesList.ind(myMatrix)
@@ -418,15 +438,16 @@ class test_index():
         assert f([x, y], y) == 1
 
     def test_non_tensor_type(self):
-        mySymbolicNestedMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)), 1)()
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicNestedMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False)), 1
+        )()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
 
         z = Index()(mySymbolicNestedMatricesList, mySymbolicMatricesList)
 
-        f = theano.function([mySymbolicNestedMatricesList,
-                             mySymbolicMatricesList], z)
+        f = theano.function([mySymbolicNestedMatricesList, mySymbolicMatricesList], z)
 
         x = rand_ranged_matrix(-1000, 1000, [100, 101])
 
@@ -436,9 +457,10 @@ class test_index():
 
     def test_sparse(self):
         if not scipy_imported:
-            pytest.skip('Optional package SciPy not installed')
+            pytest.skip("Optional package SciPy not installed")
         mySymbolicSparseList = TypedListType(
-            sparse.SparseType('csr', theano.config.floatX))()
+            sparse.SparseType("csr", theano.config.floatX)
+        )()
         mySymbolicSparse = sparse.csr_matrix()
 
         z = Index()(mySymbolicSparseList, mySymbolicSparse)
@@ -451,11 +473,11 @@ class test_index():
         assert f([x, y], y) == 1
 
 
-class test_count():
-
+class test_count:
     def test_sanity_check(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
         myMatrix = T.matrix()
 
         z = Count()(mySymbolicMatricesList, myMatrix)
@@ -469,8 +491,9 @@ class test_count():
         assert f([y, y, x, y], y) == 3
 
     def test_interface(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
         myMatrix = T.matrix()
 
         z = mySymbolicMatricesList.count(myMatrix)
@@ -484,15 +507,16 @@ class test_count():
         assert f([x, y], y) == 1
 
     def test_non_tensor_type(self):
-        mySymbolicNestedMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)), 1)()
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicNestedMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False)), 1
+        )()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
 
         z = Count()(mySymbolicNestedMatricesList, mySymbolicMatricesList)
 
-        f = theano.function([mySymbolicNestedMatricesList,
-                             mySymbolicMatricesList], z)
+        f = theano.function([mySymbolicNestedMatricesList, mySymbolicMatricesList], z)
 
         x = rand_ranged_matrix(-1000, 1000, [100, 101])
 
@@ -502,9 +526,10 @@ class test_count():
 
     def test_sparse(self):
         if not scipy_imported:
-            pytest.skip('Optional package SciPy not installed')
+            pytest.skip("Optional package SciPy not installed")
         mySymbolicSparseList = TypedListType(
-            sparse.SparseType('csr', theano.config.floatX))()
+            sparse.SparseType("csr", theano.config.floatX)
+        )()
         mySymbolicSparse = sparse.csr_matrix()
 
         z = Count()(mySymbolicSparseList, mySymbolicSparse)
@@ -517,11 +542,11 @@ class test_count():
         assert f([x, y, y], y) == 2
 
 
-class test_length():
-
+class test_length:
     def test_sanity_check(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
 
         z = Length()(mySymbolicMatricesList)
 
@@ -532,8 +557,9 @@ class test_length():
         assert f([x, x, x, x]) == 4
 
     def test_interface(self):
-        mySymbolicMatricesList = TypedListType(T.TensorType(
-            theano.config.floatX, (False, False)))()
+        mySymbolicMatricesList = TypedListType(
+            T.TensorType(theano.config.floatX, (False, False))
+        )()
         z = mySymbolicMatricesList.__len__()
 
         f = theano.function([mySymbolicMatricesList], z)
@@ -543,8 +569,7 @@ class test_length():
         assert f([x, x]) == 2
 
 
-class TestMakeList():
-
+class TestMakeList:
     def test_wrong_shape(self):
         a = T.vector()
         b = T.matrix()
@@ -564,7 +589,7 @@ class TestMakeList():
         X = np.cast[theano.config.floatX](np.random.rand(5, 6, 1))
         Y = np.cast[theano.config.floatX](np.random.rand(1, 9, 3))
 
-        make_list((3., 4.))
+        make_list((3.0, 4.0))
         c = make_list((a, b))
         z = make_list((x, y))
         fc = theano.function([a, b], c)
@@ -573,4 +598,3 @@ class TestMakeList():
             assert (m == n).all()
         for m, n in zip(fz(X, Y), [X, Y]):
             assert (m == n).all()
-

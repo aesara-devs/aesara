@@ -35,11 +35,9 @@ functions: ``scan()``, ``map()``, ``reduce()``, ``foldl()``,
 
 """
 from __future__ import absolute_import, print_function, division
-__docformat__ = 'restructedtext en'
-__authors__ = ("Razvan Pascanu "
-               "Frederic Bastien "
-               "James Bergstra "
-               "Pascal Lamblin ")
+
+__docformat__ = "restructedtext en"
+__authors__ = "Razvan Pascanu " "Frederic Bastien " "James Bergstra " "Pascal Lamblin "
 __copyright__ = "(c) 2010, Universite de Montreal"
 __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
@@ -67,22 +65,24 @@ from theano.scan_module import scan_utils
 from theano.scan_module.scan_utils import safe_new, traverse
 
 # Logging function for sending warning or info
-_logger = logging.getLogger('theano.scan_module.scan')
+_logger = logging.getLogger("theano.scan_module.scan")
 
 
-def scan(fn,
-         sequences=None,
-         outputs_info=None,
-         non_sequences=None,
-         n_steps=None,
-         truncate_gradient=-1,
-         go_backwards=False,
-         mode=None,
-         name=None,
-         profile=False,
-         allow_gc=None,
-         strict=False,
-         return_list=False):
+def scan(
+    fn,
+    sequences=None,
+    outputs_info=None,
+    non_sequences=None,
+    n_steps=None,
+    truncate_gradient=-1,
+    go_backwards=False,
+    mode=None,
+    name=None,
+    profile=False,
+    allow_gc=None,
+    strict=False,
+    return_list=False,
+):
     """This function constructs and applies a Scan op to the provided
     arguments.
 
@@ -398,10 +398,10 @@ def scan(fn,
             n_fixed_steps = None
 
     # Check n_steps is an int
-    if (hasattr(n_steps, 'dtype') and
-        str(n_steps.dtype) not in tensor.integer_dtypes):
-        raise ValueError(' n_steps must be an int. dtype provided '
-                         'is %s' % n_steps.dtype)
+    if hasattr(n_steps, "dtype") and str(n_steps.dtype) not in tensor.integer_dtypes:
+        raise ValueError(
+            " n_steps must be an int. dtype provided " "is %s" % n_steps.dtype
+        )
 
     # compute number of sequences and number of outputs
     n_seqs = len(seqs)
@@ -411,55 +411,71 @@ def scan(fn,
     # wrap sequences in a dictionary if they are not already dictionaries
     for i in xrange(n_seqs):
         if not isinstance(seqs[i], dict):
-            seqs[i] = OrderedDict([('input', seqs[i]), ('taps', [0])])
-        elif seqs[i].get('taps', None) is not None:
-            seqs[i]['taps'] = wrap_into_list(seqs[i]['taps'])
-        elif seqs[i].get('taps', None) is None:
+            seqs[i] = OrderedDict([("input", seqs[i]), ("taps", [0])])
+        elif seqs[i].get("taps", None) is not None:
+            seqs[i]["taps"] = wrap_into_list(seqs[i]["taps"])
+        elif seqs[i].get("taps", None) is None:
             # seqs dictionary does not have the ``taps`` key
-            seqs[i]['taps'] = [0]
+            seqs[i]["taps"] = [0]
 
     # wrap outputs info in a dictionary if they are not already in one
     for i in xrange(n_outs):
         if outs_info[i] is not None:
             if isinstance(outs_info[i], dict):
                 # DEPRECATED :
-                if outs_info[i].get('return_steps', None) is not None:
+                if outs_info[i].get("return_steps", None) is not None:
                     raise ValueError(
-                            "Using `return_steps` has been deprecated. "
-                            "Simply select the entries you need using a "
-                            "subtensor. Scan will optimize memory "
-                            "consumption, so do not worry about that.")
+                        "Using `return_steps` has been deprecated. "
+                        "Simply select the entries you need using a "
+                        "subtensor. Scan will optimize memory "
+                        "consumption, so do not worry about that."
+                    )
                 # END
 
             if not isinstance(outs_info[i], dict):
                 # by default any output has a tap value of -1
-                outs_info[i] = OrderedDict([('initial', outs_info[i]), ('taps', [-1])])
-            elif (outs_info[i].get('initial', None) is None and
-                    outs_info[i].get('taps', None) is not None):
+                outs_info[i] = OrderedDict([("initial", outs_info[i]), ("taps", [-1])])
+            elif (
+                outs_info[i].get("initial", None) is None
+                and outs_info[i].get("taps", None) is not None
+            ):
                 # ^ no initial state but taps provided
-                raise ValueError(('If you are using slices of an output '
-                                  'you need to provide a initial state '
-                                  'for it'), outs_info[i])
-            elif (outs_info[i].get('initial', None) is not None and
-                  outs_info[i].get('taps', None) is None):
+                raise ValueError(
+                    (
+                        "If you are using slices of an output "
+                        "you need to provide a initial state "
+                        "for it"
+                    ),
+                    outs_info[i],
+                )
+            elif (
+                outs_info[i].get("initial", None) is not None
+                and outs_info[i].get("taps", None) is None
+            ):
                 # ^ initial state but taps not provided
-                if 'taps' in outs_info[i]:
+                if "taps" in outs_info[i]:
                     # ^ explicitly provided a None for taps
-                    _logger.warning('Output %s ( index %d) has a initial '
-                            'state but taps is explicitly set to None ',
-                             getattr(outs_info[i]['initial'], 'name', 'None'),
-                             i)
-                outs_info[i]['taps'] = [-1]
-            elif outs_info[i].get('taps', None) is not None:
+                    _logger.warning(
+                        "Output %s ( index %d) has a initial "
+                        "state but taps is explicitly set to None ",
+                        getattr(outs_info[i]["initial"], "name", "None"),
+                        i,
+                    )
+                outs_info[i]["taps"] = [-1]
+            elif outs_info[i].get("taps", None) is not None:
                 # Check that taps are valid (< 0 and all dfferent)
-                taps = outs_info[i]['taps']
+                taps = outs_info[i]["taps"]
                 if len(taps) > len(set(taps)):
-                    raise ValueError(('All the taps must be different in '
-                                      ' `outputs_info`'), outs_info[i])
+                    raise ValueError(
+                        ("All the taps must be different in " " `outputs_info`"),
+                        outs_info[i],
+                    )
                 for t in taps:
                     if t >= 0:
-                        raise ValueError(('All the tap values must be '
-                                          'smaller than 0.'), outs_info[i])
+                        raise ValueError(
+                            ("All the tap values must be " "smaller than 0."),
+                            outs_info[i],
+                        )
         else:
             # if a None is provided as the output info we replace it
             # with an empty OrdereDict() to simplify handling
@@ -478,24 +494,24 @@ def scan(fn,
     #        outputs
 
     n_seqs = 0
-    scan_seqs = []     # Variables passed as inputs to the scan op
-    inner_seqs = []    # Variables passed as inputs to the inner function
+    scan_seqs = []  # Variables passed as inputs to the scan op
+    inner_seqs = []  # Variables passed as inputs to the inner function
     inner_slices = []  # Actual slices if scan is removed from the picture
     # go through sequences picking up time slices as needed
     for i, seq in enumerate(seqs):
         # Note that you can have something like no taps for
         # a sequence, though is highly unlikely in practice
-        if 'taps' in seq:
+        if "taps" in seq:
             # go through the indicated slice
-            mintap = np.min(seq['taps'])
-            maxtap = np.max(seq['taps'])
+            mintap = np.min(seq["taps"])
+            maxtap = np.max(seq["taps"])
             # We cut the sequence such that seq[i] to correspond to
             # seq[i-k]. For the purposes of cutting the sequences, we
             # need to pretend tap 0 is used to avoid cutting the sequences
             # too long if the taps are all lower or all higher than 0.
             maxtap_proxy = max(maxtap, 0)
             mintap_proxy = min(mintap, 0)
-            for k in seq['taps']:
+            for k in seq["taps"]:
                 # create one slice of the input
                 # Later on, if we decide not to use scan because we are
                 # going for just one step, it makes things easier if we
@@ -505,46 +521,50 @@ def scan(fn,
 
                 # If not we need to use copies, that will be replaced at
                 # each frame by the corresponding slice
-                actual_slice = seq['input'][k - mintap_proxy]
-                _seq_val = tensor.as_tensor_variable(seq['input'])
+                actual_slice = seq["input"][k - mintap_proxy]
+                _seq_val = tensor.as_tensor_variable(seq["input"])
                 _seq_val_slice = _seq_val[k - mintap_proxy]
                 nw_slice = _seq_val_slice.type()
 
                 # Try to transfer test_value to the new variable
-                if config.compute_test_value != 'off':
+                if config.compute_test_value != "off":
                     try:
-                        nw_slice.tag.test_value = gof.Op._get_test_value(
-                            _seq_val_slice)
+                        nw_slice.tag.test_value = gof.Op._get_test_value(_seq_val_slice)
                     except AttributeError as e:
-                        if config.compute_test_value != 'ignore':
+                        if config.compute_test_value != "ignore":
                             # No need to print a warning or raise an error now,
                             # it will be done when fn will be called.
-                            _logger.info(('Cannot compute test value for '
-                                'the inner function of scan, input value '
-                                'missing %s'), e)
+                            _logger.info(
+                                (
+                                    "Cannot compute test value for "
+                                    "the inner function of scan, input value "
+                                    "missing %s"
+                                ),
+                                e,
+                            )
 
                 # Add names to slices for debugging and pretty printing ..
                 # that is if the input already has a name
-                if getattr(seq['input'], 'name', None) is not None:
+                if getattr(seq["input"], "name", None) is not None:
                     if k > 0:
-                        nw_name = seq['input'].name + '[t+%d]' % k
+                        nw_name = seq["input"].name + "[t+%d]" % k
                     elif k == 0:
-                        nw_name = seq['input'].name + '[t]'
+                        nw_name = seq["input"].name + "[t]"
                     else:
-                        nw_name = seq['input'].name + '[t%d]' % k
+                        nw_name = seq["input"].name + "[t%d]" % k
                     nw_slice.name = nw_name
 
-                start = (k - mintap_proxy)
+                start = k - mintap_proxy
                 nw_name = None
                 if k == maxtap_proxy:
-                    nw_seq = seq['input'][start:]
-                    if getattr(seq['input'], 'name', None) is not None:
-                        nw_name = seq['input'].name + "[%d:]" % start
+                    nw_seq = seq["input"][start:]
+                    if getattr(seq["input"], "name", None) is not None:
+                        nw_name = seq["input"].name + "[%d:]" % start
                 else:
                     end = -(maxtap_proxy - k)
-                    nw_seq = seq['input'][start:end]
-                    if getattr(seq['input'], 'name', None) is not None:
-                        nw_name = seq['input'].name + "[%d:%d]" % (start, end)
+                    nw_seq = seq["input"][start:end]
+                    if getattr(seq["input"], "name", None) is not None:
+                        nw_name = seq["input"].name + "[%d:%d]" % (start, end)
 
                 if go_backwards:
                     nw_seq = nw_seq[::-1]
@@ -569,10 +589,12 @@ def scan(fn,
 
     if len(lengths_vec) == 0:
         # ^ No information about the number of steps
-        raise ValueError('No information about the number of steps '
-                         'provided. Either provide a value for '
-                         'n_steps argument of scan or provide an input '
-                         'sequence')
+        raise ValueError(
+            "No information about the number of steps "
+            "provided. Either provide a value for "
+            "n_steps argument of scan or provide an input "
+            "sequence"
+        )
 
     # If the user has provided the number of steps, do that regardless ( and
     # raise an error if the sequences are not long enough )
@@ -626,9 +648,9 @@ def scan(fn,
         # makes code much cleaner for those who do not use taps. Otherwise
         # they would always had to shape_padleft the initial state ..
         # which is ugly
-        if init_out.get('taps', None) == [-1]:
+        if init_out.get("taps", None) == [-1]:
 
-            actual_arg = init_out['initial']
+            actual_arg = init_out["initial"]
             if not isinstance(actual_arg, tensor.Variable):
                 actual_arg = tensor.as_tensor_variable(actual_arg)
             arg = safe_new(actual_arg)
@@ -638,29 +660,33 @@ def scan(fn,
                 arg = arg.type()
 
             # Try to transfer test_value to the new variable
-            if config.compute_test_value != 'off':
+            if config.compute_test_value != "off":
                 try:
                     arg.tag.test_value = gof.Op._get_test_value(actual_arg)
                 except AttributeError as e:
-                    if config.compute_test_value != 'ignore':
+                    if config.compute_test_value != "ignore":
                         # No need to print a warning or raise an error now,
                         # it will be done when fn will be called.
-                        _logger.info(('Cannot compute test value for the '
-                            'inner function of scan, input value missing %s'),
-                                     e)
+                        _logger.info(
+                            (
+                                "Cannot compute test value for the "
+                                "inner function of scan, input value missing %s"
+                            ),
+                            e,
+                        )
 
-            if getattr(init_out['initial'], 'name', None) is not None:
-                arg.name = init_out['initial'].name + '[t-1]'
+            if getattr(init_out["initial"], "name", None) is not None:
+                arg.name = init_out["initial"].name + "[t-1]"
 
             # We need now to allocate space for storing the output and copy
             # the initial state over. We do this using the expand function
             # defined in scan utils
             sit_sot_scan_inputs.append(
                 scan_utils.expand_empty(
-                    tensor.unbroadcast(
-                        tensor.shape_padleft(actual_arg), 0),
-                    actual_n_steps
-                ))
+                    tensor.unbroadcast(tensor.shape_padleft(actual_arg), 0),
+                    actual_n_steps,
+                )
+            )
 
             sit_sot_inner_slices.append(actual_arg)
             if i in return_steps:
@@ -669,56 +695,59 @@ def scan(fn,
             sit_sot_rightOrder.append(i)
             n_sit_sot += 1
 
-        elif init_out.get('taps', None):
+        elif init_out.get("taps", None):
 
-            if np.any(np.array(init_out.get('taps', [])) > 0):
+            if np.any(np.array(init_out.get("taps", [])) > 0):
                 # Make sure we do not have requests for future values of a
                 # sequence we can not provide such values
-                raise ValueError('Can not use future taps of outputs',
-                                    init_out)
+                raise ValueError("Can not use future taps of outputs", init_out)
             # go through the taps
-            mintap = abs(np.min(init_out['taps']))
-            mit_sot_tap_array.append(init_out['taps'])
-            idx_offset = abs(np.min(init_out['taps']))
+            mintap = abs(np.min(init_out["taps"]))
+            mit_sot_tap_array.append(init_out["taps"])
+            idx_offset = abs(np.min(init_out["taps"]))
             # Sequence
             mit_sot_scan_inputs.append(
-                scan_utils.expand_empty(init_out['initial'][:mintap],
-                                        actual_n_steps))
+                scan_utils.expand_empty(init_out["initial"][:mintap], actual_n_steps)
+            )
 
             if i in return_steps:
                 mit_sot_return_steps[n_mit_sot] = return_steps[i]
             mit_sot_rightOrder.append(i)
             n_mit_sot += 1
-            for k in init_out['taps']:
+            for k in init_out["taps"]:
                 # create a new slice
-                actual_nw_slice = init_out['initial'][k + mintap]
-                _init_out_var = tensor.as_tensor_variable(init_out['initial'])
+                actual_nw_slice = init_out["initial"][k + mintap]
+                _init_out_var = tensor.as_tensor_variable(init_out["initial"])
                 _init_out_var_slice = _init_out_var[k + mintap]
                 nw_slice = _init_out_var_slice.type()
 
                 # Try to transfer test_value to the new variable
-                if config.compute_test_value != 'off':
+                if config.compute_test_value != "off":
                     try:
                         nw_slice.tag.test_value = gof.Op._get_test_value(
-                            _init_out_var_slice)
+                            _init_out_var_slice
+                        )
                     except AttributeError as e:
-                        if config.compute_test_value != 'ignore':
+                        if config.compute_test_value != "ignore":
                             # No need to print a warning or raise an error now,
                             # it will be done when fn will be called.
-                            _logger.info(('Cannot compute test value for '
-                                'the inner function of scan, input value '
-                                'missing. %s'), e)
+                            _logger.info(
+                                (
+                                    "Cannot compute test value for "
+                                    "the inner function of scan, input value "
+                                    "missing. %s"
+                                ),
+                                e,
+                            )
 
                 # give it a name or debugging and pretty printing
-                if getattr(init_out['initial'], 'name', None) is not None:
+                if getattr(init_out["initial"], "name", None) is not None:
                     if k > 0:
-                        nw_slice.name = (init_out['initial'].name +
-                                            '[t+%d]' % k)
+                        nw_slice.name = init_out["initial"].name + "[t+%d]" % k
                     elif k == 0:
-                        nw_slice.name = init_out['initial'].name + '[t]'
+                        nw_slice.name = init_out["initial"].name + "[t]"
                     else:
-                        nw_slice.name = (init_out['initial'].name +
-                                            '[t%d]' % k)
+                        nw_slice.name = init_out["initial"].name + "[t%d]" % k
                 mit_sot_inner_inputs.append(nw_slice)
                 mit_sot_inner_slices.append(actual_nw_slice)
         # NOTE: there is another case, in which we do not want to provide
@@ -734,40 +763,40 @@ def scan(fn,
     for idx in xrange(n_mit_sot):
         n_inputs = len(mit_sot_tap_array[idx])
         if n_fixed_steps in [1, -1]:
-            _ordered_args[mit_sot_rightOrder[idx]] = \
-                            mit_sot_inner_slices[offset:offset + n_inputs]
+            _ordered_args[mit_sot_rightOrder[idx]] = mit_sot_inner_slices[
+                offset : offset + n_inputs
+            ]
         else:
-            _ordered_args[mit_sot_rightOrder[idx]] = \
-                            mit_sot_inner_inputs[offset:offset + n_inputs]
+            _ordered_args[mit_sot_rightOrder[idx]] = mit_sot_inner_inputs[
+                offset : offset + n_inputs
+            ]
         offset += n_inputs
 
     for idx in xrange(n_sit_sot):
         if n_fixed_steps in [1, -1]:
-            _ordered_args[sit_sot_rightOrder[idx]] = \
-                                        [sit_sot_inner_slices[idx]]
+            _ordered_args[sit_sot_rightOrder[idx]] = [sit_sot_inner_slices[idx]]
         else:
-            _ordered_args[sit_sot_rightOrder[idx]] = \
-                                        [sit_sot_inner_inputs[idx]]
+            _ordered_args[sit_sot_rightOrder[idx]] = [sit_sot_inner_inputs[idx]]
 
     ordered_args = []
     for ls in _ordered_args:
         ordered_args += ls
     if n_fixed_steps in [1, -1]:
-        args = (inner_slices +
-                ordered_args +
-                non_seqs)
+        args = inner_slices + ordered_args + non_seqs
 
     else:
-        args = (inner_seqs +
-                ordered_args +
-                non_seqs)
+        args = inner_seqs + ordered_args + non_seqs
 
     # add only the non-shared variables and non-constants to the arguments of
     # the dummy function [ a function should not get shared variables or
     # constants as input ]
-    dummy_args = [arg for arg in args
-                  if (not isinstance(arg, SharedVariable) and
-                      not isinstance(arg, tensor.Constant))]
+    dummy_args = [
+        arg
+        for arg in args
+        if (
+            not isinstance(arg, SharedVariable) and not isinstance(arg, tensor.Constant)
+        )
+    ]
     # when we apply the lambda expression we get a mixture of update rules
     # and outputs that needs to be separated
 
@@ -784,9 +813,14 @@ def scan(fn,
         # We do not need to use the scan op anymore, so we can just return
         # the outputs and updates we have
         if condition is not None:
-            _logger.warning(('When the number of steps is fixed and equal '
-                    'to 1, the provided stopping condition, ',
-                    str(condition), ' is ignored'))
+            _logger.warning(
+                (
+                    "When the number of steps is fixed and equal "
+                    "to 1, the provided stopping condition, ",
+                    str(condition),
+                    " is ignored",
+                )
+            )
 
         for pos, inner_out in enumerate(outputs):
             # we need to see if we need to pad our sequences with an
@@ -795,10 +829,11 @@ def scan(fn,
             # then, if we return the output as given by the innner function
             # this will represent only a slice and it will have one
             # dimension less.
-            if (isinstance(inner_out.type, tensor.TensorType) and
-                return_steps.get(pos, 0) != 1):
-                outputs[pos] = tensor.unbroadcast(
-                    tensor.shape_padleft(inner_out), 0)
+            if (
+                isinstance(inner_out.type, tensor.TensorType)
+                and return_steps.get(pos, 0) != 1
+            ):
+                outputs[pos] = tensor.unbroadcast(tensor.shape_padleft(inner_out), 0)
 
         if return_list is not True and len(outputs) == 1:
             outputs = outputs[0]
@@ -822,14 +857,17 @@ def scan(fn,
     if condition is not None:
         outputs.append(condition)
     fake_nonseqs = [x.type() for x in non_seqs]
-    fake_outputs = scan_utils.clone(outputs,
-                                    replace=OrderedDict(izip(non_seqs,
-                                                             fake_nonseqs)))
+    fake_outputs = scan_utils.clone(
+        outputs, replace=OrderedDict(izip(non_seqs, fake_nonseqs))
+    )
     all_inputs = ifilter(
-        lambda x: (isinstance(x, gof.Variable) and
-                   not isinstance(x, SharedVariable) and
-                   not isinstance(x, gof.Constant)),
-        gof.graph.inputs(fake_outputs))
+        lambda x: (
+            isinstance(x, gof.Variable)
+            and not isinstance(x, SharedVariable)
+            and not isinstance(x, gof.Constant)
+        ),
+        gof.graph.inputs(fake_outputs),
+    )
     extra_inputs = [x for x in all_inputs if x not in args + fake_nonseqs]
     non_seqs += extra_inputs
     # Note we do not use all_inputs directly since the order of variables
@@ -840,17 +878,20 @@ def scan(fn,
     # Perform a try-except to provide a meaningful error message to the
     # user if inputs of the inner function are missing.
     try:
-        dummy_f = function(dummy_args,
-                           dummy_outs,
-                           updates=updates,
-                           mode=compile.mode.Mode(linker='py',
-                                                  optimizer=None),
-                           on_unused_input='ignore',
-                           profile=False)
+        dummy_f = function(
+            dummy_args,
+            dummy_outs,
+            updates=updates,
+            mode=compile.mode.Mode(linker="py", optimizer=None),
+            on_unused_input="ignore",
+            profile=False,
+        )
     except gof.fg.MissingInputError as err:
-        msg = ("\nPlease pass this variable to the scan's inner function. Do "
-               "not forget to also pass it to the `non_sequences` attribute "
-               "of scan.")
+        msg = (
+            "\nPlease pass this variable to the scan's inner function. Do "
+            "not forget to also pass it to the `non_sequences` attribute "
+            "of scan."
+        )
         raise gof.fg.MissingInputError(err.args[0] + msg)
     ##
     # Step 5. Re-arange inputs of scan into a more strict order
@@ -867,9 +908,11 @@ def scan(fn,
     if as_while:
         tmp_dummy_f_outs -= 1
     if not (tmp_dummy_f_outs == n_outs or outs_info == []):
-        raise ValueError('Please provide None as outputs_info for '
-                         'any output that does not feed back into '
-                         'scan (i.e. it behaves like a map) ')
+        raise ValueError(
+            "Please provide None as outputs_info for "
+            "any output that does not feed back into "
+            "scan (i.e. it behaves like a map) "
+        )
 
     if outs_info == []:
         n_outs = len(dummy_f.maker.outputs)
@@ -880,12 +923,12 @@ def scan(fn,
     # Step 5.1 Outputs with taps different then -1
 
     for i, out in enumerate(outs_info):
-        if 'taps' in out and out['taps'] != [-1]:
+        if "taps" in out and out["taps"] != [-1]:
             mit_sot_inner_outputs.append(outputs[i])
 
     # Step 5.2 Outputs with tap equal to -1
     for i, out in enumerate(outs_info):
-        if 'taps' in out and out['taps'] == [-1]:
+        if "taps" in out and out["taps"] == [-1]:
             sit_sot_inner_outputs.append(outputs[i])
 
     # Step 5.3 Outputs that correspond to update rules of shared variables
@@ -898,15 +941,16 @@ def scan(fn,
     for input in dummy_f.maker.expanded_inputs:
         if isinstance(input.variable, SharedVariable) and input.update:
             new_var = safe_new(input.variable)
-            if getattr(input.variable, 'name', None) is not None:
-                new_var.name = input.variable.name + '_copy'
+            if getattr(input.variable, "name", None) is not None:
+                new_var.name = input.variable.name + "_copy"
             if isinstance(new_var.type, ops.expandable_types):
                 sit_sot_inner_inputs.append(new_var)
                 sit_sot_scan_inputs.append(
                     scan_utils.expand_empty(
-                        tensor.unbroadcast(
-                            tensor.shape_padleft(input.variable), 0),
-                        actual_n_steps))
+                        tensor.unbroadcast(tensor.shape_padleft(input.variable), 0),
+                        actual_n_steps,
+                    )
+                )
                 tensor_update = tensor.as_tensor_variable(input.update)
                 sit_sot_inner_outputs.append(tensor_update)
                 # Not that pos is not a negative index. The sign of pos is used
@@ -933,7 +977,7 @@ def scan(fn,
     nit_sot_return_steps = OrderedDict()
     nit_sot_rightOrder = []
     for i, out in enumerate(outs_info):
-        if not 'taps' in out:
+        if not "taps" in out:
             nit_sot_inner_outputs.append(outputs[i])
             if i in return_steps:
                 nit_sot_return_steps[n_nit_sot] = return_steps[i]
@@ -944,59 +988,80 @@ def scan(fn,
     other_scan_args = []
     other_inner_args = []
 
-    other_scan_args += [arg for arg in non_seqs
-                        if (not isinstance(arg, SharedVariable) and
-                            not isinstance(arg, tensor.Constant))]
+    other_scan_args += [
+        arg
+        for arg in non_seqs
+        if (
+            not isinstance(arg, SharedVariable) and not isinstance(arg, tensor.Constant)
+        )
+    ]
 
     # Step 5.6 all shared variables with no update rules
-    other_inner_args += [safe_new(arg, '_copy') for arg in non_seqs
-                         if (not isinstance(arg, SharedVariable) and
-                             not isinstance(arg, tensor.Constant))]
+    other_inner_args += [
+        safe_new(arg, "_copy")
+        for arg in non_seqs
+        if (
+            not isinstance(arg, SharedVariable) and not isinstance(arg, tensor.Constant)
+        )
+    ]
 
     givens.update(OrderedDict(izip(other_scan_args, other_inner_args)))
 
     if strict:
         non_seqs_set = set(non_sequences if non_sequences is not None else [])
 
-        other_shared_scan_args = [arg.variable for arg
-                            in dummy_f.maker.expanded_inputs
-                            if (isinstance(arg.variable, SharedVariable) and
-                                not arg.update and
-                                arg.variable in non_seqs_set)]
-        other_shared_inner_args = [safe_new(arg.variable, '_copy') for arg
-                            in dummy_f.maker.expanded_inputs
-                            if (isinstance(arg.variable, SharedVariable) and
-                                not arg.update and
-                                arg.variable in non_seqs_set)]
+        other_shared_scan_args = [
+            arg.variable
+            for arg in dummy_f.maker.expanded_inputs
+            if (
+                isinstance(arg.variable, SharedVariable)
+                and not arg.update
+                and arg.variable in non_seqs_set
+            )
+        ]
+        other_shared_inner_args = [
+            safe_new(arg.variable, "_copy")
+            for arg in dummy_f.maker.expanded_inputs
+            if (
+                isinstance(arg.variable, SharedVariable)
+                and not arg.update
+                and arg.variable in non_seqs_set
+            )
+        ]
     else:
-        other_shared_scan_args = [arg.variable for arg
-                            in dummy_f.maker.expanded_inputs
-                            if (isinstance(arg.variable, SharedVariable) and
-                                not arg.update)]
-        other_shared_inner_args = [safe_new(arg.variable, '_copy') for arg
-                            in dummy_f.maker.expanded_inputs
-                            if (isinstance(arg.variable, SharedVariable) and
-                                not arg.update)]
-    givens.update(OrderedDict(izip(other_shared_scan_args,
-                                   other_shared_inner_args)))
+        other_shared_scan_args = [
+            arg.variable
+            for arg in dummy_f.maker.expanded_inputs
+            if (isinstance(arg.variable, SharedVariable) and not arg.update)
+        ]
+        other_shared_inner_args = [
+            safe_new(arg.variable, "_copy")
+            for arg in dummy_f.maker.expanded_inputs
+            if (isinstance(arg.variable, SharedVariable) and not arg.update)
+        ]
+    givens.update(OrderedDict(izip(other_shared_scan_args, other_shared_inner_args)))
 
     ##
     # Step 6. Re-order the outputs and clone them replacing things
     # using the givens
     ##
-    inner_inputs = (inner_seqs +
-                    mit_mot_inner_inputs +
-                    mit_sot_inner_inputs +
-                    sit_sot_inner_inputs +
-                    shared_inner_inputs +
-                    other_shared_inner_args +
-                    other_inner_args)
+    inner_inputs = (
+        inner_seqs
+        + mit_mot_inner_inputs
+        + mit_sot_inner_inputs
+        + sit_sot_inner_inputs
+        + shared_inner_inputs
+        + other_shared_inner_args
+        + other_inner_args
+    )
 
-    inner_outs = (mit_mot_inner_outputs +
-                  mit_sot_inner_outputs +
-                  sit_sot_inner_outputs +
-                  nit_sot_inner_outputs +
-                  shared_inner_outputs)
+    inner_outs = (
+        mit_mot_inner_outputs
+        + mit_sot_inner_outputs
+        + sit_sot_inner_outputs
+        + nit_sot_inner_outputs
+        + shared_inner_outputs
+    )
     if condition is not None:
         inner_outs.append(condition)
     # gpuarray is imported here, instead of being imported on top of
@@ -1004,6 +1069,7 @@ def scan(fn,
     # might do not want to. Currently we are working on removing the
     # dependencies on sandbox code completeley.
     from theano import gpuarray
+
     if gpuarray.pygpu_activated:
         # very often we end up in this situation when we want to
         # replace w with w_copy, where w is a GPU variable
@@ -1012,8 +1078,9 @@ def scan(fn,
         new_givens = OrderedDict()
 
         for w, w_copy in iteritems(givens):
-            if (isinstance(w.type, gpuarray.GpuArrayType) and
-                isinstance(w_copy.type, tensor.TensorType)):
+            if isinstance(w.type, gpuarray.GpuArrayType) and isinstance(
+                w_copy.type, tensor.TensorType
+            ):
                 for o in inner_outs:
                     new_givens = traverse(o, w, w_copy, new_givens)
             else:
@@ -1032,38 +1099,40 @@ def scan(fn,
         allow_gc = config.scan.allow_gc
     info = OrderedDict()
 
-    info['tap_array'] = tap_array
-    info['n_seqs'] = n_seqs
-    info['n_mit_mot'] = n_mit_mot
-    info['n_mit_mot_outs'] = n_mit_mot_outs
-    info['mit_mot_out_slices'] = mit_mot_out_slices
-    info['n_mit_sot'] = n_mit_sot
-    info['n_sit_sot'] = n_sit_sot
-    info['n_shared_outs'] = n_shared_outs
-    info['n_nit_sot'] = n_nit_sot
-    info['truncate_gradient'] = truncate_gradient
-    info['name'] = name
-    info['mode'] = mode
-    info['destroy_map'] = OrderedDict()
-    info['gpua'] = False
-    info['as_while'] = as_while
-    info['profile'] = profile
-    info['allow_gc'] = allow_gc
-    info['strict'] = strict
+    info["tap_array"] = tap_array
+    info["n_seqs"] = n_seqs
+    info["n_mit_mot"] = n_mit_mot
+    info["n_mit_mot_outs"] = n_mit_mot_outs
+    info["mit_mot_out_slices"] = mit_mot_out_slices
+    info["n_mit_sot"] = n_mit_sot
+    info["n_sit_sot"] = n_sit_sot
+    info["n_shared_outs"] = n_shared_outs
+    info["n_nit_sot"] = n_nit_sot
+    info["truncate_gradient"] = truncate_gradient
+    info["name"] = name
+    info["mode"] = mode
+    info["destroy_map"] = OrderedDict()
+    info["gpua"] = False
+    info["as_while"] = as_while
+    info["profile"] = profile
+    info["allow_gc"] = allow_gc
+    info["strict"] = strict
 
     local_op = scan_op.Scan(inner_inputs, new_outs, info)
 
     ##
     # Step 8. Compute the outputs using the scan op
     ##
-    _scan_inputs = (scan_seqs +
-                    mit_mot_scan_inputs +
-                    mit_sot_scan_inputs +
-                    sit_sot_scan_inputs +
-                    shared_scan_inputs +
-                    [actual_n_steps for x in xrange(n_nit_sot)] +
-                    other_shared_scan_args +
-                    other_scan_args)
+    _scan_inputs = (
+        scan_seqs
+        + mit_mot_scan_inputs
+        + mit_sot_scan_inputs
+        + sit_sot_scan_inputs
+        + shared_scan_inputs
+        + [actual_n_steps for x in xrange(n_nit_sot)]
+        + other_shared_scan_args
+        + other_scan_args
+    )
 
     scan_inputs = []
     for arg in [actual_n_steps] + _scan_inputs:
@@ -1089,48 +1158,41 @@ def scan(fn,
         for idx, out in enumerate(outs):
             if idx in steps_return:
                 if steps_return[idx] > 1:
-                    out_ls.append(out[-steps_return[idx]:])
+                    out_ls.append(out[-steps_return[idx] :])
                 else:
                     out_ls.append(out[-1])
             else:
                 if offsets is None:
                     out_ls.append(out)
                 else:
-                    out_ls.append(out[offsets[idx]:])
+                    out_ls.append(out[offsets[idx] :])
         return out_ls
 
     offset = n_mit_mot
     offsets = [abs(np.min(x)) for x in mit_sot_tap_array]
     mit_sot_outs = remove_dimensions(
-        scan_outs[offset:offset + n_mit_sot],
-        mit_sot_return_steps,
-        offsets)
+        scan_outs[offset : offset + n_mit_sot], mit_sot_return_steps, offsets
+    )
 
     offset += n_mit_sot
     offsets = [1 for x in xrange(n_sit_sot)]
     sit_sot_outs = remove_dimensions(
-        scan_outs[offset:offset + n_sit_sot],
-        sit_sot_return_steps,
-        offsets)
+        scan_outs[offset : offset + n_sit_sot], sit_sot_return_steps, offsets
+    )
 
     offset += n_sit_sot
     nit_sot_outs = remove_dimensions(
-        scan_outs[offset:offset + n_nit_sot],
-        nit_sot_return_steps)
+        scan_outs[offset : offset + n_nit_sot], nit_sot_return_steps
+    )
 
     offset += n_nit_sot
-    for idx, update_rule in enumerate(
-                scan_outs[offset:offset + n_shared_outs]):
+    for idx, update_rule in enumerate(scan_outs[offset : offset + n_shared_outs]):
         update_map[shared_scan_inputs[idx]] = update_rule
 
-    _scan_out_list = (mit_sot_outs +
-                      sit_sot_outs +
-                      nit_sot_outs)
+    _scan_out_list = mit_sot_outs + sit_sot_outs + nit_sot_outs
     # Step 10. I need to reorder the outputs to be in the order expected by
     # the user
-    rightOrder = (mit_sot_rightOrder +
-                  sit_sot_rightOrder +
-                  nit_sot_rightOrder)
+    rightOrder = mit_sot_rightOrder + sit_sot_rightOrder + nit_sot_rightOrder
     scan_out_list = [None] * len(rightOrder)
     for idx, pos in enumerate(rightOrder):
         if pos >= 0:

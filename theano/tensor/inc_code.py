@@ -2,12 +2,24 @@ from __future__ import absolute_import, print_function, division
 
 
 def inc_code():
-    types = ['npy_' + t for t in ['int8', 'int16', 'int32', 'int64',
-                                  'uint8', 'uint16', 'uint32', 'uint64',
-                                  'float16', 'float32', 'float64']]
+    types = [
+        "npy_" + t
+        for t in [
+            "int8",
+            "int16",
+            "int32",
+            "int64",
+            "uint8",
+            "uint16",
+            "uint32",
+            "uint64",
+            "float16",
+            "float32",
+            "float64",
+        ]
+    ]
 
-    complex_types = ['npy_' + t for t in ['complex32', 'complex64',
-                                          'complex128']]
+    complex_types = ["npy_" + t for t in ["complex32", "complex64", "complex128"]]
 
     inplace_map_template = """
     #if defined(%(typen)s)
@@ -25,9 +37,11 @@ def inc_code():
     #endif
     """
 
-    floatadd = ("((%(type)s*)mit->dataptr)[0] = "
-                "(inc_or_set ? ((%(type)s*)mit->dataptr)[0] : 0)"
-                " + ((%(type)s*)it->dataptr)[0];")
+    floatadd = (
+        "((%(type)s*)mit->dataptr)[0] = "
+        "(inc_or_set ? ((%(type)s*)mit->dataptr)[0] : 0)"
+        " + ((%(type)s*)it->dataptr)[0];"
+    )
     complexadd = """
     ((%(type)s*)mit->dataptr)[0].real =
         (inc_or_set ? ((%(type)s*)mit->dataptr)[0].real : 0)
@@ -37,39 +51,58 @@ def inc_code():
         + ((%(type)s*)it->dataptr)[0].imag;
     """
 
-    fns = ''.join([inplace_map_template % {'type': t, 'typen': t.upper(),
-                                           'op': floatadd % {'type': t}}
-                   for t in types] +
-                  [inplace_map_template % {'type': t, 'typen': t.upper(),
-                                           'op': complexadd % {'type': t}}
-                   for t in complex_types])
+    fns = "".join(
+        [
+            inplace_map_template
+            % {"type": t, "typen": t.upper(), "op": floatadd % {"type": t}}
+            for t in types
+        ]
+        + [
+            inplace_map_template
+            % {"type": t, "typen": t.upper(), "op": complexadd % {"type": t}}
+            for t in complex_types
+        ]
+    )
 
     def gen_binop(type, typen):
         return """
 #if defined(%(typen)s)
 %(type)s_inplace_add,
 #endif
-""" % dict(type=type, typen=typen)
+""" % dict(
+            type=type, typen=typen
+        )
 
-    fn_array = ("static inplace_map_binop addition_funcs[] = {" +
-                ''.join([gen_binop(type=t, typen=t.upper())
-                         for t in types + complex_types]) + "NULL};\n")
+    fn_array = (
+        "static inplace_map_binop addition_funcs[] = {"
+        + "".join([gen_binop(type=t, typen=t.upper()) for t in types + complex_types])
+        + "NULL};\n"
+    )
 
     def gen_num(typen):
         return """
 #if defined(%(typen)s)
 %(typen)s,
 #endif
-""" % dict(type=type, typen=typen)
+""" % dict(
+            type=type, typen=typen
+        )
 
-    type_number_array = ("static int type_numbers[] = {" +
-                         ''.join([gen_num(typen=t.upper())
-                                  for t in types + complex_types]) + "-1000};")
+    type_number_array = (
+        "static int type_numbers[] = {"
+        + "".join([gen_num(typen=t.upper()) for t in types + complex_types])
+        + "-1000};"
+    )
 
-    code = ("""
+    code = (
+        """
         typedef void (*inplace_map_binop)(PyArrayMapIterObject *,
                                           PyArrayIterObject *, int inc_or_set);
-        """ + fns + fn_array + type_number_array + """
+        """
+        + fns
+        + fn_array
+        + type_number_array
+        + """
 static int
 map_increment(PyArrayMapIterObject *mit, PyArrayObject *op,
               inplace_map_binop add_inplace, int inc_or_set)
@@ -157,6 +190,7 @@ fail:
 
     return -1;
 }
-""")
+"""
+    )
 
     return code

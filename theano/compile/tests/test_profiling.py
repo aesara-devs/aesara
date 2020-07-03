@@ -9,7 +9,7 @@ import theano.tensor as T
 from theano.ifelse import ifelse
 
 
-class Test_profiling():
+class Test_profiling:
     # Test of Theano profiling with min_peak_memory=True
 
     def test_profiling(self):
@@ -35,10 +35,9 @@ class Test_profiling():
             else:
                 m = None
 
-            f = theano.function(x, z, profile=p, name="test_profiling",
-                                mode=m)
+            f = theano.function(x, z, profile=p, name="test_profiling", mode=m)
 
-            inp = [np.arange(1024, dtype='float32') + 1 for i in range(len(x))]
+            inp = [np.arange(1024, dtype="float32") + 1 for i in range(len(x))]
             f(*inp)
 
             buf = StringIO()
@@ -48,19 +47,23 @@ class Test_profiling():
             the_string = buf.getvalue()
             lines1 = [l for l in the_string.split("\n") if "Max if linker" in l]
             lines2 = [l for l in the_string.split("\n") if "Minimum peak" in l]
-            if theano.config.device == 'cpu':
+            if theano.config.device == "cpu":
                 assert "CPU: 4112KB (4104KB)" in the_string, (lines1, lines2)
                 assert "CPU: 8204KB (8196KB)" in the_string, (lines1, lines2)
                 assert "CPU: 8208KB" in the_string, (lines1, lines2)
-                assert "Minimum peak from all valid apply node order is 4104KB" in the_string, (
-                    lines1, lines2)
+                assert (
+                    "Minimum peak from all valid apply node order is 4104KB"
+                    in the_string
+                ), (lines1, lines2)
             else:
                 assert "CPU: 16KB (16KB)" in the_string, (lines1, lines2)
                 assert "GPU: 8204KB (8204KB)" in the_string, (lines1, lines2)
                 assert "GPU: 12300KB (12300KB)" in the_string, (lines1, lines2)
                 assert "GPU: 8212KB" in the_string, (lines1, lines2)
-                assert "Minimum peak from all valid apply node order is 4116KB" in the_string, (
-                    lines1, lines2)
+                assert (
+                    "Minimum peak from all valid apply node order is 4116KB"
+                    in the_string
+                ), (lines1, lines2)
 
         finally:
             theano.config.profile = config1
@@ -75,8 +78,8 @@ class Test_profiling():
             theano.config.profile = True
             theano.config.profile_memory = True
 
-            a, b = T.scalars('a', 'b')
-            x, y = T.scalars('x', 'y')
+            a, b = T.scalars("a", "b")
+            x, y = T.scalars("x", "y")
 
             z = ifelse(T.lt(a, b), x * 2, y * 2)
 
@@ -87,11 +90,12 @@ class Test_profiling():
             else:
                 m = None
 
-            f_ifelse = theano.function([a, b, x, y], z, profile=p, name="test_ifelse",
-                                       mode=m)
+            f_ifelse = theano.function(
+                [a, b, x, y], z, profile=p, name="test_ifelse", mode=m
+            )
 
-            val1 = 0.
-            val2 = 1.
+            val1 = 0.0
+            val2 = 1.0
             big_mat1 = 10
             big_mat2 = 11
 
@@ -100,4 +104,3 @@ class Test_profiling():
         finally:
             theano.config.profile = config1
             theano.config.profile_memory = config2
-

@@ -7,9 +7,16 @@ from theano import gof, scalar, tensor
 from theano.compat import izip
 from theano.tensor import blas
 from theano.tensor.opt import register_specialize, register_canonicalize
-from theano.sparse import (CSC, CSR, csm_properties,
-                           csm_grad, usmm, csm_indices, csm_indptr,
-                           csm_data)
+from theano.sparse import (
+    CSC,
+    CSR,
+    csm_properties,
+    csm_grad,
+    usmm,
+    csm_indices,
+    csm_indptr,
+    csm_data,
+)
 from theano.sparse import basic as sparse
 
 _is_sparse_variable = sparse._is_sparse_variable
@@ -26,15 +33,19 @@ def local_csm_properties_csm(node):
 
     """
     if node.op == csm_properties:
-        csm, = node.inputs
+        (csm,) = node.inputs
         if csm.owner and (csm.owner.op == CSC or csm.owner.op == CSR):
             # csm.owner.inputs could be broadcastable. In that case, we have
             # to adjust the broadcasting flag here.
-            ret_var = [theano.tensor.patternbroadcast(i, o.broadcastable)
-                       for i, o in izip(csm.owner.inputs, node.outputs)]
+            ret_var = [
+                theano.tensor.patternbroadcast(i, o.broadcastable)
+                for i, o in izip(csm.owner.inputs, node.outputs)
+            ]
             return ret_var
 
     return False
+
+
 register_specialize(local_csm_properties_csm)
 
 
@@ -53,11 +64,16 @@ def local_inplace_remove0(node):
         return [new_node]
     return False
 
+
 theano.compile.optdb.register(
-    'local_inplace_remove0',
-    gof.TopoOptimizer(local_inplace_remove0,
-                      failure_callback=gof.TopoOptimizer.warn_inplace),
-    60, 'fast_run', 'inplace')
+    "local_inplace_remove0",
+    gof.TopoOptimizer(
+        local_inplace_remove0, failure_callback=gof.TopoOptimizer.warn_inplace
+    ),
+    60,
+    "fast_run",
+    "inplace",
+)
 
 
 class AddSD_ccode(gof.op.Op):
@@ -93,11 +109,10 @@ class AddSD_ccode(gof.op.Op):
             self.destroy_map = {0: [3]}
 
     def __str__(self):
-        inp = ''
+        inp = ""
         if self.inplace:
-            inp = ',inplace'
-        return "%s{%s%s}" % (self.__class__.__name__,
-                             self.format, inp)
+            inp = ",inplace"
+        return "%s{%s%s}" % (self.__class__.__name__, self.format, inp)
 
     def make_node(self, x, y):
         x, y = sparse.as_sparse_variable(x), tensor.as_tensor_variable(y)
@@ -111,17 +126,14 @@ class AddSD_ccode(gof.op.Op):
         # The magic number two here arises because L{scipy.sparse}
         # objects must be matrices (have dimension 2)
         assert y.type.ndim == 2
-        out = tensor.TensorType(dtype=out_dtype,
-                                broadcastable=y.type.broadcastable)()
-        return gof.Apply(self,
-                         [data, indices, indptr, y],
-                         [out])
+        out = tensor.TensorType(dtype=out_dtype, broadcastable=y.type.broadcastable)()
+        return gof.Apply(self, [data, indices, indptr, y], [out])
 
     def c_code(self, node, name, inputs, outputs, sub):
         (_data, _indices, _indptr, y) = inputs
         (z,) = outputs
         inplace = int(self.inplace)
-        format = {'csc': 0, 'csr': 1}[self.format]
+        format = {"csc": 0, "csr": 1}[self.format]
         out_typenum = node.outputs[0].type.dtype_specs()[2]
         code = """
                 Py_XDECREF(%(z)s);
@@ -165,7 +177,9 @@ class AddSD_ccode(gof.op.Op):
                   }
                  }
                 }
-             """ % dict(locals(), **sub)
+             """ % dict(
+            locals(), **sub
+        )
         return code
 
     def infer_shape(self, node, shapes):
@@ -185,15 +199,22 @@ def local_inplace_addsd_ccode(node):
         out_dtype = scalar.upcast(*node.inputs)
         if out_dtype != node.inputs[1].dtype:
             return
-        new_node = AddSD_ccode(format=node.inputs[0].type.format,
-                               inplace=True)(*node.inputs)
+        new_node = AddSD_ccode(format=node.inputs[0].type.format, inplace=True)(
+            *node.inputs
+        )
         return [new_node]
     return False
+
+
 theano.compile.optdb.register(
-    'local_inplace_addsd_ccode',
-    gof.TopoOptimizer(local_inplace_addsd_ccode,
-                      failure_callback=gof.TopoOptimizer.warn_inplace),
-    60, 'fast_run', 'inplace')
+    "local_inplace_addsd_ccode",
+    gof.TopoOptimizer(
+        local_inplace_addsd_ccode, failure_callback=gof.TopoOptimizer.warn_inplace
+    ),
+    60,
+    "fast_run",
+    "inplace",
+)
 
 
 @register_canonicalize("fast_compile")
@@ -216,10 +237,15 @@ def local_addsd_ccode(node):
         new_node = AddSD_ccode(format=node.inputs[0].type.format)(*node.inputs)
         return [new_node]
     return False
-theano.compile.optdb.register('local_addsd_ccode',
-                              gof.TopoOptimizer(local_addsd_ccode),
-                              # Must be after local_inplace_addsd_ccode at 60
-                              61, 'fast_run')
+
+
+theano.compile.optdb.register(
+    "local_addsd_ccode",
+    gof.TopoOptimizer(local_addsd_ccode),
+    # Must be after local_inplace_addsd_ccode at 60
+    61,
+    "fast_run",
+)
 
 
 class StructuredDotCSC(gof.Op):
@@ -252,17 +278,19 @@ class StructuredDotCSC(gof.Op):
 
     def make_node(self, a_val, a_ind, a_ptr, a_nrows, b):
         dtype_out = scalar.upcast(a_val.type.dtype, b.type.dtype)
-        r = gof.Apply(self, [a_val, a_ind, a_ptr, a_nrows, b],
-                      [tensor.tensor(dtype_out,
-                                     (False, b.type.broadcastable[1]))])
+        r = gof.Apply(
+            self,
+            [a_val, a_ind, a_ptr, a_nrows, b],
+            [tensor.tensor(dtype_out, (False, b.type.broadcastable[1]))],
+        )
         return r
 
     def perform(self, node, inputs, outputs):
         (a_val, a_ind, a_ptr, a_nrows, b) = inputs
         (out,) = outputs
-        a = scipy.sparse.csc_matrix((a_val, a_ind, a_ptr),
-                                    (a_nrows, b.shape[0]),
-                                    copy=False)
+        a = scipy.sparse.csc_matrix(
+            (a_val, a_ind, a_ptr), (a_nrows, b.shape[0]), copy=False
+        )
         # out[0] = a.dot(b)
         out[0] = theano._asarray(a * b, dtype=node.outputs[0].type.dtype)
         assert _is_dense(out[0])  # scipy 0.7 automatically converts to dense
@@ -282,10 +310,10 @@ class StructuredDotCSC(gof.Op):
 
         (a_val, a_ind, a_ptr, a_nrows, b) = inputs
         (z,) = outputs
-        if node.inputs[0].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for a_val')
-        if node.inputs[4].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for b')
+        if node.inputs[0].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for a_val")
+        if node.inputs[4].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for b")
 
         typenum_z = node.outputs[0].type.dtype_specs()[2]  # retrieve dtype number
         typenum_a_val = node.inputs[0].type.dtype_specs()[2]  # retrieve dtype number
@@ -411,12 +439,16 @@ class StructuredDotCSC(gof.Op):
                 }
             }
         }
-        """ % dict(locals(), **sub)
+        """ % dict(
+            locals(), **sub
+        )
 
         return rval
 
     def c_code_cache_version(self):
         return (3,)
+
+
 sd_csc = StructuredDotCSC()
 
 
@@ -447,22 +479,24 @@ class StructuredDotCSR(gof.Op):
     This op is used as an optimization for StructuredDot.
 
     """
+
     __props__ = ()
 
     def make_node(self, a_val, a_ind, a_ptr, b):
         self.dtype_out = scalar.upcast(a_val.type.dtype, b.type.dtype)
-        r = gof.Apply(self, [a_val, a_ind, a_ptr, b],
-                      [tensor.tensor(self.dtype_out,
-                                     (False, b.type.broadcastable[1]))])
+        r = gof.Apply(
+            self,
+            [a_val, a_ind, a_ptr, b],
+            [tensor.tensor(self.dtype_out, (False, b.type.broadcastable[1]))],
+        )
         return r
 
     def perform(self, node, inputs, outputs):
         (a_val, a_ind, a_ptr, b) = inputs
         (out,) = outputs
         a = scipy.sparse.csr_matrix(
-            (a_val, a_ind, a_ptr),
-            (len(a_ptr) - 1, b.shape[0]),
-            copy=True)  # use view_map before setting this to False
+            (a_val, a_ind, a_ptr), (len(a_ptr) - 1, b.shape[0]), copy=True
+        )  # use view_map before setting this to False
         # out[0] = a.dot(b)
         out[0] = a * b
         # scipy 0.7 automatically converts to dense, but not .6 sometimes
@@ -495,10 +529,10 @@ class StructuredDotCSR(gof.Op):
         (a_val, a_ind, a_ptr, b) = inputs
         (z,) = outputs
         typenum_z = tensor.TensorType(self.dtype_out, []).dtype_specs()[2]
-        if node.inputs[0].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for a_val')
-        if node.inputs[3].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for b')
+        if node.inputs[0].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for a_val")
+        if node.inputs[3].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for b")
 
         return """
         if (PyArray_NDIM(%(a_val)s) != 1) {PyErr_SetString(PyExc_NotImplementedError, "rank(a_val) != 1"); %(fail)s;}
@@ -592,10 +626,14 @@ class StructuredDotCSR(gof.Op):
             }
         }
 
-        """ % dict(locals(), **sub)
+        """ % dict(
+            locals(), **sub
+        )
 
     def c_code_cache_version(self):
         return (2,)
+
+
 sd_csr = StructuredDotCSR()
 
 
@@ -605,11 +643,11 @@ sd_csr = StructuredDotCSR()
 def local_structured_dot(node):
     if node.op == sparse._structured_dot:
         a, b = node.inputs
-        if a.type.format == 'csc':
+        if a.type.format == "csc":
             a_val, a_ind, a_ptr, a_shape = csm_properties(a)
             a_nsparse = a_shape[0]
             return [sd_csc(a_val, a_ind, a_ptr, a_nsparse, b)]
-        if a.type.format == 'csr':
+        if a.type.format == "csr":
             a_val, a_ind, a_ptr, a_shape = csm_properties(a)
             return [sd_csr(a_val, a_ind, a_ptr, b)]
     return False
@@ -657,9 +695,9 @@ class UsmmCscDense(gof.Op):
 
     def __str__(self):
         if self.inplace:
-            return 'UsmmCscDense{inplace}'
+            return "UsmmCscDense{inplace}"
         else:
-            return 'UsmmCscDense{no_inplace}'
+            return "UsmmCscDense{no_inplace}"
 
     def make_node(self, alpha, x_val, x_ind, x_ptr, x_nrows, y, z):
         alpha = tensor.as_tensor_variable(alpha)
@@ -669,20 +707,20 @@ class UsmmCscDense(gof.Op):
         x_nrows = tensor.as_tensor_variable(x_nrows)
         y = tensor.as_tensor_variable(y)
         z = tensor.as_tensor_variable(z)
-        assert x_ind.dtype == 'int32'
-        assert x_ptr.dtype == 'int32'
-        assert x_nrows.dtype == 'int32'
+        assert x_ind.dtype == "int32"
+        assert x_ptr.dtype == "int32"
+        assert x_nrows.dtype == "int32"
         assert alpha.ndim == 2 and alpha.type.broadcastable == (True, True)
         assert x_val.ndim == 1
         assert y.ndim == 2
         assert z.ndim == 2
 
-        dtype_out = scalar.upcast(alpha.type.dtype, x_val.type.dtype,
-                                  y.type.dtype, z.type.dtype)
+        dtype_out = scalar.upcast(
+            alpha.type.dtype, x_val.type.dtype, y.type.dtype, z.type.dtype
+        )
 
-        if dtype_out not in ('float32', 'float64'):
-            raise NotImplementedError('only float types are supported in '
-                                      'operands')
+        if dtype_out not in ("float32", "float64"):
+            raise NotImplementedError("only float types are supported in " "operands")
 
         if self.inplace:
             assert z.type.dtype == dtype_out
@@ -698,8 +736,10 @@ class UsmmCscDense(gof.Op):
             z = tensor.cast(z, dtype_out)
 
         r = gof.Apply(
-            self, [alpha, x_val, x_ind, x_ptr, x_nrows, y, z],
-            [tensor.tensor(dtype_out, (False, y.type.broadcastable[1]))])
+            self,
+            [alpha, x_val, x_ind, x_ptr, x_nrows, y, z],
+            [tensor.tensor(dtype_out, (False, y.type.broadcastable[1]))],
+        )
         return r
 
     def c_support_code(self):
@@ -720,13 +760,12 @@ class UsmmCscDense(gof.Op):
     def c_code(self, node, name, inputs, outputs, sub):
         alpha, x_val, x_ind, x_ptr, x_nrows, y, z = inputs
         zn = outputs[0]
-        if node.inputs[1].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for '
-                                      'x_val')
-        if node.inputs[5].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for y')
+        if node.inputs[1].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for " "x_val")
+        if node.inputs[5].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for y")
         if node.inputs[6].type.dtype != node.outputs[0].type.dtype:
-            raise NotImplementedError('z and output must have same type')
+            raise NotImplementedError("z and output must have same type")
 
         if node.inputs[1].type.dtype == "float32":
             conv_type = "float"
@@ -875,25 +914,38 @@ class UsmmCscDense(gof.Op):
                 }
             }
         }
-        """ % dict(locals(), **sub)
+        """ % dict(
+            locals(), **sub
+        )
 
         return rval
 
     def c_code_cache_version(self):
         return (3, blas.blas_header_version())
+
+
 usmm_csc_dense = UsmmCscDense(inplace=False)
 usmm_csc_dense_inplace = UsmmCscDense(inplace=True)
 
 
 # This is tested in tests/test_basic.py:UsmmTests
 local_usmm = gof.opt.PatternSub(
-    (theano.tensor.sub, 'z',
-     (theano.tensor.mul,
-      {'pattern': 'alpha',
-       'constraint': lambda expr: (np.all(expr.type.broadcastable) and
-                                   theano.config.blas.ldflags)},
-      (sparse._dot, 'x', 'y'))),
-    (usmm, (theano.tensor.neg, 'alpha'), 'x', 'y', 'z'))
+    (
+        theano.tensor.sub,
+        "z",
+        (
+            theano.tensor.mul,
+            {
+                "pattern": "alpha",
+                "constraint": lambda expr: (
+                    np.all(expr.type.broadcastable) and theano.config.blas.ldflags
+                ),
+            },
+            (sparse._dot, "x", "y"),
+        ),
+    ),
+    (usmm, (theano.tensor.neg, "alpha"), "x", "y", "z"),
+)
 register_specialize(local_usmm, name="local_usmm")
 
 
@@ -903,7 +955,9 @@ register_specialize(local_usmm, name="local_usmm")
 def local_usmm_csc_dense_inplace(node):
     if node.op == usmm_csc_dense:
         return [usmm_csc_dense_inplace(*node.inputs)]
-register_specialize(local_usmm_csc_dense_inplace, 'cxx_only', 'inplace')
+
+
+register_specialize(local_usmm_csc_dense_inplace, "cxx_only", "inplace")
 
 
 # This is tested in tests/test_basic.py:UsmmTests
@@ -920,42 +974,45 @@ def local_usmm_csx(node):
         y_is_sparse_variable = _is_sparse_variable(y)
 
         if x_is_sparse_variable and not y_is_sparse_variable:
-            if x.type.format == 'csc':
+            if x.type.format == "csc":
                 x_val, x_ind, x_ptr, x_shape = csm_properties(x)
                 x_nsparse = x_shape[0]
-                dtype_out = scalar.upcast(alpha.type.dtype, x.type.dtype,
-                                          y.type.dtype, z.type.dtype)
-                if dtype_out not in ('float32', 'float64'):
+                dtype_out = scalar.upcast(
+                    alpha.type.dtype, x.type.dtype, y.type.dtype, z.type.dtype
+                )
+                if dtype_out not in ("float32", "float64"):
                     return False
                 # Sparse cast is not implemented.
                 if y.type.dtype != dtype_out:
                     return False
 
-                return [usmm_csc_dense(alpha, x_val, x_ind, x_ptr,
-                                       x_nsparse, y, z)]
+                return [usmm_csc_dense(alpha, x_val, x_ind, x_ptr, x_nsparse, y, z)]
     return False
-register_specialize(local_usmm_csx, 'cxx_only')
+
+
+register_specialize(local_usmm_csx, "cxx_only")
 
 
 class CSMGradC(gof.Op):
 
     __props__ = ()
 
-    def make_node(self, a_val, a_ind, a_ptr, a_dim,
-                  b_val, b_ind, b_ptr, b_dim):
-        return gof.Apply(self, [a_val, a_ind, a_ptr, a_dim,
-                         b_val, b_ind, b_ptr, b_dim], [b_val.type()])
+    def make_node(self, a_val, a_ind, a_ptr, a_dim, b_val, b_ind, b_ptr, b_dim):
+        return gof.Apply(
+            self,
+            [a_val, a_ind, a_ptr, a_dim, b_val, b_ind, b_ptr, b_dim],
+            [b_val.type()],
+        )
 
     def c_code(self, node, name, inputs, outputs, sub):
         # retrieve dtype number
-        (a_val, a_ind, a_ptr, a_dim,
-         b_val, b_ind, b_ptr, b_dim) = inputs
+        (a_val, a_ind, a_ptr, a_dim, b_val, b_ind, b_ptr, b_dim) = inputs
         (z,) = outputs
         typenum_z = node.outputs[0].type.dtype_specs()[2]
-        if node.inputs[0].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for a_val')
-        if node.inputs[3].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for b_val')
+        if node.inputs[0].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for a_val")
+        if node.inputs[3].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for b_val")
 
         return """
         if (PyArray_NDIM(%(a_val)s) != 1) {PyErr_SetString(PyExc_NotImplementedError, "rank(a_val) != 1"); %(fail)s;}
@@ -1051,10 +1108,14 @@ class CSMGradC(gof.Op):
             }
         }
 
-        """ % dict(locals(), **sub)
+        """ % dict(
+            locals(), **sub
+        )
 
     def c_code_cache_version(self):
         return (3,)
+
+
 csm_grad_c = CSMGradC()
 
 
@@ -1069,6 +1130,8 @@ def local_csm_grad_c(node):
     if node.op == csm_grad(None):
         return [csm_grad_c(*node.inputs)]
     return False
+
+
 # DISABLED AS IT IS BROKEN FOR UNSORTED INDICES!
 # register_specialize(local_csm_grad_c, 'cxx_only')
 
@@ -1109,8 +1172,9 @@ class MulSDCSC(gof.Op):
 
     def make_node(self, a_data, a_indices, a_indptr, b):
         assert b.type.ndim == 2
-        return gof.Apply(self, [a_data, a_indices, a_indptr, b],
-                               [tensor.tensor(b.dtype, (False,))])
+        return gof.Apply(
+            self, [a_data, a_indices, a_indptr, b], [tensor.tensor(b.dtype, (False,))]
+        )
 
     def c_code_cache_version(self):
         return (3,)
@@ -1122,10 +1186,10 @@ class MulSDCSC(gof.Op):
 
         (_data, _indices, _indptr, _b,) = inputs
         (_zout,) = outputs
-        if node.inputs[0].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for a')
-        if node.inputs[3].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for b')
+        if node.inputs[0].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for a")
+        if node.inputs[3].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for b")
 
         return """
         if (PyArray_NDIM(%(_b)s) != 2) {
@@ -1193,10 +1257,14 @@ class MulSDCSC(gof.Op):
             }
         }
 
-        """ % dict(locals(), **sub)
+        """ % dict(
+            locals(), **sub
+        )
 
     def __str__(self):
         return self.__class__.__name__
+
+
 mul_s_d_csc = MulSDCSC()
 
 
@@ -1231,12 +1299,14 @@ class MulSDCSR(gof.Op):
     This op is used as an optimization of mul_s_d.
 
     """
+
     __props__ = ()
 
     def make_node(self, a_data, a_indices, a_indptr, b):
         assert b.type.ndim == 2
-        return gof.Apply(self, [a_data, a_indices, a_indptr, b],
-                               [tensor.tensor(b.dtype, (False,))])
+        return gof.Apply(
+            self, [a_data, a_indices, a_indptr, b], [tensor.tensor(b.dtype, (False,))]
+        )
 
     def c_code_cache_version(self):
         return (3,)
@@ -1248,10 +1318,10 @@ class MulSDCSR(gof.Op):
 
         (_data, _indices, _indptr, _b,) = inputs
         (_zout,) = outputs
-        if node.inputs[0].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for a')
-        if node.inputs[3].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for b')
+        if node.inputs[0].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for a")
+        if node.inputs[3].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for b")
 
         return """
         if (PyArray_NDIM(%(_b)s) != 2) {
@@ -1319,10 +1389,14 @@ class MulSDCSR(gof.Op):
             }
         }
 
-        """ % dict(locals(), **sub)
+        """ % dict(
+            locals(), **sub
+        )
 
     def __str__(self):
         return self.__class__.__name__
+
+
 mul_s_d_csr = MulSDCSR()
 
 
@@ -1343,10 +1417,10 @@ def local_mul_s_d(node):
 
         if dvar.type.ndim != 2:
             return False
-        if svar.type.format == 'csc':
+        if svar.type.format == "csc":
             CSx = sparse.CSC
             mul_s_d_csx = mul_s_d_csc
-        elif svar.type.format == 'csr':
+        elif svar.type.format == "csr":
             CSx = sparse.CSR
             mul_s_d_csx = mul_s_d_csr
         else:
@@ -1355,17 +1429,26 @@ def local_mul_s_d(node):
             # mul_s_d_csx don't support that case
             return
 
-        c_data = mul_s_d_csx(sparse.csm_data(svar),
-                             sparse.csm_indices(svar),
-                             sparse.csm_indptr(svar), dvar)
+        c_data = mul_s_d_csx(
+            sparse.csm_data(svar),
+            sparse.csm_indices(svar),
+            sparse.csm_indptr(svar),
+            dvar,
+        )
 
-        return [CSx(c_data,
-                    sparse.csm_indices(svar),
-                    sparse.csm_indptr(svar),
-                    sparse.csm_shape(svar))]
+        return [
+            CSx(
+                c_data,
+                sparse.csm_indices(svar),
+                sparse.csm_indptr(svar),
+                sparse.csm_shape(svar),
+            )
+        ]
 
     return False
-register_specialize(local_mul_s_d, 'cxx_only')
+
+
+register_specialize(local_mul_s_d, "cxx_only")
 
 
 class MulSVCSR(gof.Op):
@@ -1399,23 +1482,25 @@ class MulSVCSR(gof.Op):
     This op is used as an optimization of MulSV.
 
     """
+
     __props__ = ()
 
     def make_node(self, a_data, a_indices, a_indptr, b):
         assert b.type.ndim == 1
-        return gof.Apply(self, [a_data, a_indices, a_indptr, b],
-                               [tensor.tensor(b.dtype, (False,))])
+        return gof.Apply(
+            self, [a_data, a_indices, a_indptr, b], [tensor.tensor(b.dtype, (False,))]
+        )
 
     def c_code_cache_version(self):
         return (2,)
 
     def c_code(self, node, name, inputs, outputs, sub):
         _data, _indices, _indptr, _b, = inputs
-        _zout, = outputs
-        if node.inputs[0].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for a')
-        if node.inputs[3].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for b')
+        (_zout,) = outputs
+        if node.inputs[0].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for a")
+        if node.inputs[3].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for b")
 
         return """
         if (PyArray_NDIM(%(_b)s) != 1) {
@@ -1479,10 +1564,14 @@ class MulSVCSR(gof.Op):
             }
         }
 
-        """ % dict(locals(), **sub)
+        """ % dict(
+            locals(), **sub
+        )
 
     def __str__(self):
         return self.__class__.__name__
+
+
 mul_s_v_csr = MulSVCSR()
 
 
@@ -1503,7 +1592,7 @@ def local_mul_s_v(node):
 
         if dvar.type.ndim != 1:
             return False
-        elif svar.type.format == 'csr':
+        elif svar.type.format == "csr":
             CSx = sparse.CSR
             mul_s_v_csx = mul_s_v_csr
         else:
@@ -1516,7 +1605,9 @@ def local_mul_s_v(node):
         return [CSx(c_data, s_ind, s_ptr, s_shape)]
 
     return False
-register_specialize(local_mul_s_v, 'cxx_only')
+
+
+register_specialize(local_mul_s_v, "cxx_only")
 
 
 class StructuredAddSVCSR(gof.Op):
@@ -1561,19 +1652,20 @@ class StructuredAddSVCSR(gof.Op):
         assert a_indices.type.ndim == 1
         assert a_indptr.type.ndim == 1
         assert b.type.ndim == 1
-        return gof.Apply(self, [a_data, a_indices, a_indptr, b],
-                               [tensor.tensor(b.dtype, (False,))])
+        return gof.Apply(
+            self, [a_data, a_indices, a_indptr, b], [tensor.tensor(b.dtype, (False,))]
+        )
 
     def c_code_cache_version(self):
         return (3,)
 
     def c_code(self, node, name, inputs, outputs, sub):
         _data, _indices, _indptr, _b, = inputs
-        _zout, = outputs
-        if node.inputs[0].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for a')
-        if node.inputs[3].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for b')
+        (_zout,) = outputs
+        if node.inputs[0].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for a")
+        if node.inputs[3].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for b")
 
         return """
         if (PyArray_NDIM(%(_b)s) != 1) {
@@ -1644,10 +1736,14 @@ class StructuredAddSVCSR(gof.Op):
             }
         }
 
-        """ % dict(locals(), **sub)
+        """ % dict(
+            locals(), **sub
+        )
 
     def __str__(self):
         return self.__class__.__name__
+
+
 structured_add_s_v_csr = StructuredAddSVCSR()
 
 
@@ -1670,7 +1766,7 @@ def local_structured_add_s_v(node):
 
         if dvar.type.ndim != 1:
             return False
-        elif svar.type.format == 'csr':
+        elif svar.type.format == "csr":
             CSx = sparse.CSR
             structured_add_s_v_csx = structured_add_s_v_csr
         else:
@@ -1683,7 +1779,9 @@ def local_structured_add_s_v(node):
         return [CSx(c_data, s_ind, s_ptr, s_shape)]
 
     return False
-register_specialize(local_structured_add_s_v, 'cxx_only')
+
+
+register_specialize(local_structured_add_s_v, "cxx_only")
 
 
 class SamplingDotCSR(gof.Op):
@@ -1743,21 +1841,24 @@ class SamplingDotCSR(gof.Op):
         p_ptr = tensor.as_tensor_variable(p_ptr)
         p_ncols = tensor.as_tensor_variable(p_ncols)
 
-        assert p_ncols.dtype == 'int32'
+        assert p_ncols.dtype == "int32"
 
-        dtype_out = scalar.upcast(x.type.dtype, y.type.dtype,
-                                  p_data.type.dtype)
+        dtype_out = scalar.upcast(x.type.dtype, y.type.dtype, p_data.type.dtype)
         dot_out = scalar.upcast(x.type.dtype, y.type.dtype)
 
         # We call blas ?dot function that take only param of the same type
         x = tensor.cast(x, dot_out)
         y = tensor.cast(y, dot_out)
 
-        return gof.Apply(self, [x, y, p_data, p_ind, p_ptr, p_ncols], [
-            tensor.tensor(dtype=dtype_out, broadcastable=(False,)),
-            tensor.tensor(dtype=p_ind.type.dtype, broadcastable=(False,)),
-            tensor.tensor(dtype=p_ptr.type.dtype, broadcastable=(False,))
-        ])
+        return gof.Apply(
+            self,
+            [x, y, p_data, p_ind, p_ptr, p_ncols],
+            [
+                tensor.tensor(dtype=dtype_out, broadcastable=(False,)),
+                tensor.tensor(dtype=p_ind.type.dtype, broadcastable=(False,)),
+                tensor.tensor(dtype=p_ptr.type.dtype, broadcastable=(False,)),
+            ],
+        )
 
     def c_code_cache_version(self):
         return (4, blas.blas_header_version())
@@ -1780,16 +1881,14 @@ class SamplingDotCSR(gof.Op):
     def c_code(self, node, name, inputs, outputs, sub):
         x, y, p_data, p_ind, p_ptr, p_ncols = inputs
         z_data, z_ind, z_ptr = outputs
-        if node.inputs[0].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for x')
-        if node.inputs[1].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError('Complex types are not supported for y')
-        if node.inputs[2].type.dtype in ('complex64', 'complex128'):
-            raise NotImplementedError(
-                'Complex types are not supported for pattern')
+        if node.inputs[0].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for x")
+        if node.inputs[1].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for y")
+        if node.inputs[2].type.dtype in ("complex64", "complex128"):
+            raise NotImplementedError("Complex types are not supported for pattern")
 
-        dot_out = scalar.upcast(node.inputs[0].type.dtype,
-                                node.inputs[1].type.dtype)
+        dot_out = scalar.upcast(node.inputs[0].type.dtype, node.inputs[1].type.dtype)
 
         if dot_out == "float32":
             conv_type = "float"
@@ -1802,12 +1901,9 @@ class SamplingDotCSR(gof.Op):
         typenum_x = node.inputs[0].type.dtype_specs()[2]
         typenum_y = node.inputs[1].type.dtype_specs()[2]
         typenum_p = node.inputs[2].type.dtype_specs()[2]
-        typenum_zd = tensor.TensorType(node.outputs[0].dtype,
-                                       []).dtype_specs()[2]
-        typenum_zi = tensor.TensorType(node.outputs[1].dtype,
-                                       []).dtype_specs()[2]
-        typenum_zp = tensor.TensorType(node.outputs[2].dtype,
-                                       []).dtype_specs()[2]
+        typenum_zd = tensor.TensorType(node.outputs[0].dtype, []).dtype_specs()[2]
+        typenum_zi = tensor.TensorType(node.outputs[1].dtype, []).dtype_specs()[2]
+        typenum_zp = tensor.TensorType(node.outputs[2].dtype, []).dtype_specs()[2]
 
         rval = """
         if (PyArray_NDIM(%(x)s) != 2) {
@@ -1929,9 +2025,13 @@ PyErr_SetString(PyExc_NotImplementedError, "rank(y) != 2"); %(fail)s;}
                 }
             }
         }
-        """ % dict(locals(), **sub)
+        """ % dict(
+            locals(), **sub
+        )
 
         return rval
+
+
 sampling_dot_csr = SamplingDotCSR()
 
 
@@ -1943,15 +2043,15 @@ def local_sampling_dot_csr(node):
         return
     if node.op == sparse.sampling_dot:
         x, y, p = node.inputs
-        if p.type.format == 'csr':
+        if p.type.format == "csr":
             p_data, p_ind, p_ptr, p_shape = sparse.csm_properties(p)
 
-            z_data, z_ind, z_ptr = sampling_dot_csr(x, y, p_data,
-                                                    p_ind, p_ptr, p_shape[1])
+            z_data, z_ind, z_ptr = sampling_dot_csr(
+                x, y, p_data, p_ind, p_ptr, p_shape[1]
+            )
 
             return [sparse.CSR(z_data, z_ind, z_ptr, p_shape)]
     return False
 
-register_specialize(local_sampling_dot_csr,
-                    'cxx_only',
-                    name='local_sampling_dot_csr')
+
+register_specialize(local_sampling_dot_csr, "cxx_only", name="local_sampling_dot_csr")

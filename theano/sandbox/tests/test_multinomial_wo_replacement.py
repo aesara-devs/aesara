@@ -9,15 +9,14 @@ from theano.sandbox import multinomial
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
 
-class test_OP():
-
+class test_OP:
     def test_select_distinct(self):
         # Tests that ChoiceFromUniform always selects distinct elements
 
         p = tensor.fmatrix()
         u = tensor.fvector()
         n = tensor.iscalar()
-        m = multinomial.ChoiceFromUniform(odtype='auto')(p, u, n)
+        m = multinomial.ChoiceFromUniform(odtype="auto")(p, u, n)
 
         f = function([p, u, n], m, allow_input_downcast=True)
 
@@ -27,9 +26,63 @@ class test_OP():
         expected = [
             np.asarray([[931, 318, 185, 209, 559]]),
             np.asarray([[477, 887, 2, 717, 333, 665, 159, 559, 348, 136]]),
-            np.asarray([[546, 28, 79, 665, 295, 779, 433, 531, 411, 716, 244, 234, 70, 88, 612, 639, 383, 335,
-                         451, 100, 175, 492, 848, 771, 559, 214, 568, 596, 370, 486, 855, 925, 138, 300, 528, 507,
-                         730, 199, 882, 357, 58, 195, 705, 900, 66, 468, 513, 410, 816, 672]])]
+            np.asarray(
+                [
+                    [
+                        546,
+                        28,
+                        79,
+                        665,
+                        295,
+                        779,
+                        433,
+                        531,
+                        411,
+                        716,
+                        244,
+                        234,
+                        70,
+                        88,
+                        612,
+                        639,
+                        383,
+                        335,
+                        451,
+                        100,
+                        175,
+                        492,
+                        848,
+                        771,
+                        559,
+                        214,
+                        568,
+                        596,
+                        370,
+                        486,
+                        855,
+                        925,
+                        138,
+                        300,
+                        528,
+                        507,
+                        730,
+                        199,
+                        882,
+                        357,
+                        58,
+                        195,
+                        705,
+                        900,
+                        66,
+                        468,
+                        513,
+                        410,
+                        816,
+                        672,
+                    ]
+                ]
+            ),
+        ]
 
         for i in [5, 10, 50, 100, 500, n_elements]:
             uni = np.random.rand(i).astype(config.floatX)
@@ -50,7 +103,7 @@ class test_OP():
         p = tensor.fmatrix()
         u = tensor.fvector()
         n = tensor.iscalar()
-        m = multinomial.ChoiceFromUniform(odtype='auto')(p, u, n)
+        m = multinomial.ChoiceFromUniform(odtype="auto")(p, u, n)
 
         f = function([p, u, n], m, allow_input_downcast=True)
 
@@ -70,7 +123,7 @@ class test_OP():
         p = tensor.fmatrix()
         u = tensor.fvector()
         n = tensor.iscalar()
-        m = multinomial.ChoiceFromUniform(odtype='auto')(p, u, n)
+        m = multinomial.ChoiceFromUniform(odtype="auto")(p, u, n)
 
         f = function([p, u, n], m, allow_input_downcast=True)
 
@@ -92,8 +145,7 @@ class test_OP():
         assert avg_diff < mean_rtol, avg_diff
 
 
-class test_function():
-
+class test_function:
     def test_select_distinct(self):
         # Tests that multinomial_wo_replacement always selects distinct elements
 
@@ -166,10 +218,10 @@ class test_function():
 
     def test_unpickle_legacy_op(self):
         testfile_dir = os.path.dirname(os.path.realpath(__file__))
-        fname = 'test_sandbox_multinomial_wo_replacement.pkl'
+        fname = "test_sandbox_multinomial_wo_replacement.pkl"
 
         if not PY3:
-            with open(os.path.join(testfile_dir, fname), 'r') as fp:
+            with open(os.path.join(testfile_dir, fname), "r") as fp:
                 u = CompatUnpickler(fp)
                 m = u.load()
                 print(m)

@@ -10,12 +10,13 @@ from theano.tests import unittest_tools as utt
 mode = theano.compile.mode.get_mode(config.mode)
 
 
-class TestGaussNewton():
+class TestGaussNewton:
     """
     Regression test for code exhibiting various optimization errors.
 
     This test case is based on code by Sigurd Spieckermann.
     """
+
     def setup_method(self):
         self.rng = np.random.RandomState(utt.fetch_seed())
 
@@ -30,33 +31,33 @@ class TestGaussNewton():
 
         # make inputs and targets shared variables
         inputs = theano.shared(
-            self.rng.uniform(size=inputs_size).astype(config.floatX),
-            borrow=True)
+            self.rng.uniform(size=inputs_size).astype(config.floatX), borrow=True
+        )
         targets = theano.shared(
-            self.rng.uniform(size=targets_size).astype(config.floatX),
-            borrow=True)
+            self.rng.uniform(size=targets_size).astype(config.floatX), borrow=True
+        )
 
         # create symbolic inputs and targets variables
         if batch_size == 1:
-            x = T.matrix('inputs')
-            t = T.matrix('targets')
+            x = T.matrix("inputs")
+            t = T.matrix("targets")
         else:
-            x = T.tensor3('inputs')
-            t = T.tensor3('inputs')
+            x = T.tensor3("inputs")
+            t = T.tensor3("inputs")
         x.tag.test_value = inputs.get_value(borrow=True)
         t.tag.test_value = targets.get_value(borrow=True)
 
         # create a set of parameters for a simple RNN
         W_xh = theano.shared(
-            (0.01 * self.rng.uniform(
-                size=(num_features, 10))).astype(config.floatX),
-            borrow=True)
+            (0.01 * self.rng.uniform(size=(num_features, 10))).astype(config.floatX),
+            borrow=True,
+        )
         W_hh = theano.shared(
-            (0.01 * self.rng.uniform(size=(10, 10))).astype(config.floatX),
-            borrow=True)
+            (0.01 * self.rng.uniform(size=(10, 10))).astype(config.floatX), borrow=True
+        )
         W_hy = theano.shared(
-            (0.01 * self.rng.uniform(size=(10, 1))).astype(config.floatX),
-            borrow=True)
+            (0.01 * self.rng.uniform(size=(10, 1))).astype(config.floatX), borrow=True
+        )
         b_h = theano.shared(np.zeros(10).astype(config.floatX), borrow=True)
         b_y = theano.shared(np.zeros(1).astype(config.floatX), borrow=True)
 
@@ -72,9 +73,7 @@ class TestGaussNewton():
             h_0 = T.alloc(0.0, 10).astype(config.floatX)
         else:
             h_0 = T.alloc(0.0, batch_size, 10).astype(config.floatX)
-        h, updates = theano.scan(step,
-                                 sequences=[x],
-                                 outputs_info=[h_0])
+        h, updates = theano.scan(step, sequences=[x], outputs_info=[h_0])
         # network output
         y = T.dot(h, W_hy) + b_y
 
@@ -90,8 +89,7 @@ class TestGaussNewton():
         # during certain iterations of CG in the HF algorithm. There,
         # it's in fact `pi + current update proposal`.  For simplicity,
         # I just multiply by 2 here.
-        cost_ = theano.clone(cost,
-                             replace=dict([(pi, 2 * pi) for pi in params]))
+        cost_ = theano.clone(cost, replace=dict([(pi, 2 * pi) for pi in params]))
 
         # Compute Gauss-Newton-Matrix times some vector `v` which is `p` in CG,
         # but for simplicity, I just take the parameters vector because it's
@@ -99,8 +97,7 @@ class TestGaussNewton():
         Gv = gn(v=params, cost=cost, parameters=params, damp=T.constant(1.0))
 
         # compile Theano function
-        f = theano.function([], [cost_] + Gv, givens={x: inputs, t: targets},
-                            mode=mode)
+        f = theano.function([], [cost_] + Gv, givens={x: inputs, t: targets}, mode=mode)
         # execute
         f()
 
@@ -124,10 +121,8 @@ class GaussNewtonMatrix(object):
     def __call__(self, v, cost, parameters, damp):
         # compute Gauss-Newton Matrix right-multiplied by `v`
         Jv = T.Rop(self._s, parameters, v)
-        HJv = T.grad(T.sum(T.grad(cost, self._s) * Jv), self._s,
-                     consider_constant=[Jv])
-        JHJv = T.grad(T.sum(HJv * self._s), parameters,
-                      consider_constant=[HJv, Jv])
+        HJv = T.grad(T.sum(T.grad(cost, self._s) * Jv), self._s, consider_constant=[Jv])
+        JHJv = T.grad(T.sum(HJv * self._s), parameters, consider_constant=[HJv, Jv])
 
         # apply Tikhonov damping
         JHJv = [JHJvi + damp * vi for JHJvi, vi in zip(JHJv, v)]
@@ -161,8 +156,9 @@ class TestPushOutScanOutputDot(object):
         # Ensure that the optimization was performed correctly in f_opt
         # The inner function of scan should have only one output and it should
         # not be the result of a Dot
-        scan_node = [node for node in f_opt.maker.fgraph.toposort()
-                     if isinstance(node.op, Scan)][0]
+        scan_node = [
+            node for node in f_opt.maker.fgraph.toposort() if isinstance(node.op, Scan)
+        ][0]
         assert len(scan_node.op.outputs) == 1
         assert not isinstance(scan_node.op.outputs[0], T.Dot)
 
@@ -187,10 +183,9 @@ class TestPushOutScanOutputDot(object):
             vect_squared = vect ** 2
             return T.dot(vect_squared, mat), vect_squared
 
-        outputs, updates = theano.scan(fn=inner_fct,
-                                          outputs_info=[None]*2,
-                                          sequences=a,
-                                          non_sequences=b)
+        outputs, updates = theano.scan(
+            fn=inner_fct, outputs_info=[None] * 2, sequences=a, non_sequences=b
+        )
 
         # Compile the function twice, once with the optimization and once
         # without
@@ -203,8 +198,9 @@ class TestPushOutScanOutputDot(object):
         # Ensure that the optimization was performed correctly in f_opt
         # The inner function of scan should have only one output and it should
         # not be the result of a Dot
-        scan_node = [node for node in f_opt.maker.fgraph.toposort()
-                     if isinstance(node.op, Scan)][0]
+        scan_node = [
+            node for node in f_opt.maker.fgraph.toposort() if isinstance(node.op, Scan)
+        ][0]
         # NOTE: WHEN INFER_SHAPE IS REENABLED, BELOW THE SCAN MUST
         # HAVE ONLY 1 OUTPUT.
         assert len(scan_node.op.outputs) == 2
@@ -233,10 +229,9 @@ class TestPushOutScanOutputDot(object):
             output2 = T.dot(output1, nonseq1)
             return output1, output2
 
-        outputs, updates = theano.scan(fn=inner_fct,
-                                          outputs_info=[a[0], None],
-                                          sequences=a,
-                                          non_sequences=b)
+        outputs, updates = theano.scan(
+            fn=inner_fct, outputs_info=[a[0], None], sequences=a, non_sequences=b
+        )
 
         # Compile the function twice, once with the optimization and once
         # without
@@ -249,8 +244,9 @@ class TestPushOutScanOutputDot(object):
         # Ensure that the optimization was performed correctly in f_opt
         # The inner function of scan should have only one output and it should
         # not be the result of a Dot
-        scan_node = [node for node in f_opt.maker.fgraph.toposort()
-                     if isinstance(node.op, Scan)][0]
+        scan_node = [
+            node for node in f_opt.maker.fgraph.toposort() if isinstance(node.op, Scan)
+        ][0]
         assert len(scan_node.op.outputs) == 2
         assert not isinstance(scan_node.op.outputs[0], T.Dot)
 
@@ -266,7 +262,7 @@ class TestPushOutScanOutputDot(object):
         utt.assert_allclose(output_opt[1], output_no_opt[1])
 
 
-class TestPushOutSumOfDot():
+class TestPushOutSumOfDot:
     """
     Test case for the PushOutScanOutput optimizer in the case where the scan
     is used to compute the sum over the dot products between the corresponding
@@ -287,31 +283,37 @@ class TestPushOutSumOfDot():
         dim = 5
 
         # Weight matrices
-        U = theano.shared(np.random.normal(size=(dim, dim),
-                                              scale=0.0001).astype(config.floatX))
-        U.name = 'U'
+        U = theano.shared(
+            np.random.normal(size=(dim, dim), scale=0.0001).astype(config.floatX)
+        )
+        U.name = "U"
         V = theano.shared(U.get_value())
-        V.name = 'V'
+        V.name = "V"
         W = theano.shared(U.get_value())
-        W.name = 'W'
+        W.name = "W"
 
         # Variables and their values
-        x = T.tensor3('x')
-        x_value = np.random.normal(size=(seq_len, batch_size, dim),
-                                      scale=0.0001).astype(config.floatX)
+        x = T.tensor3("x")
+        x_value = np.random.normal(
+            size=(seq_len, batch_size, dim), scale=0.0001
+        ).astype(config.floatX)
 
-        ri = T.tensor3('ri')
+        ri = T.tensor3("ri")
         ri_value = x_value
 
-        zi = T.tensor3('zi')
+        zi = T.tensor3("zi")
         zi_value = x_value
 
         init = T.alloc(np.cast[config.floatX](0), batch_size, dim)
+
         def rnn_step1(
-                # sequences
-                x, ri, zi,
-                # outputs_info
-                h):
+            # sequences
+            x,
+            ri,
+            zi,
+            # outputs_info
+            h,
+        ):
             pre_r = ri + h.dot(U)
             pre_z = zi + h.dot(V)
             r = T.nnet.sigmoid(pre_r)
@@ -327,29 +329,41 @@ class TestPushOutSumOfDot():
         # Compile the function twice, once with the optimization and once
         # without
         opt_mode = mode.including("scan")
-        h, _ = theano.scan(rnn_step1, sequences=[x, ri, zi], n_steps=seq_len,
-                           outputs_info=init, name='fpass1', mode=opt_mode)
+        h, _ = theano.scan(
+            rnn_step1,
+            sequences=[x, ri, zi],
+            n_steps=seq_len,
+            outputs_info=init,
+            name="fpass1",
+            mode=opt_mode,
+        )
         cost = h[-1].sum()
         grad1 = T.grad(cost, [U, V, W])
-        f_opt = theano.function(inputs=[x, ri, zi], outputs=grad1,
-                                mode=opt_mode)
+        f_opt = theano.function(inputs=[x, ri, zi], outputs=grad1, mode=opt_mode)
 
         no_opt_mode = mode.excluding("scanOp_pushout_output")
-        h, _ = theano.scan(rnn_step1, sequences=[x, ri, zi], n_steps=seq_len,
-                outputs_info=init, name='fpass1', mode=no_opt_mode)
+        h, _ = theano.scan(
+            rnn_step1,
+            sequences=[x, ri, zi],
+            n_steps=seq_len,
+            outputs_info=init,
+            name="fpass1",
+            mode=no_opt_mode,
+        )
         cost = h[-1].sum()
         grad1 = T.grad(cost, [U, V, W])
-        f_no_opt = theano.function(inputs=[x, ri, zi], outputs=grad1,
-                                   mode=no_opt_mode)
+        f_no_opt = theano.function(inputs=[x, ri, zi], outputs=grad1, mode=no_opt_mode)
 
         # Validate that the optimization has been applied
-        scan_node_grad = [node for node in f_opt.maker.fgraph.toposort()
-                     if isinstance(node.op, Scan)][1]
+        scan_node_grad = [
+            node for node in f_opt.maker.fgraph.toposort() if isinstance(node.op, Scan)
+        ][1]
 
         for output in scan_node_grad.op.outputs:
-            assert not (isinstance(output.owner.op, T.elemwise.Elemwise) and
-                        any([isinstance(i, T.Dot) for i
-                             in output.owner.inputs]))
+            assert not (
+                isinstance(output.owner.op, T.elemwise.Elemwise)
+                and any([isinstance(i, T.Dot) for i in output.owner.inputs])
+            )
 
         # Compare the outputs of the two functions on the same input data.
         f_opt_output = f_opt(x_value, ri_value, zi_value)
@@ -377,22 +391,24 @@ class TestPushOutSumOfDot():
         # Compile the function twice, once with the optimization and once
         # without
         opt_mode = mode.including("scan")
-        h, _ = theano.scan(inner_fct,
-                sequences=[input1, input2, input3],
-                outputs_info=init,
-                mode=opt_mode)
+        h, _ = theano.scan(
+            inner_fct,
+            sequences=[input1, input2, input3],
+            outputs_info=init,
+            mode=opt_mode,
+        )
         output = h[-1]
-        f_opt = theano.function([input1, input2, input3], output,
-                                mode=opt_mode)
+        f_opt = theano.function([input1, input2, input3], output, mode=opt_mode)
 
         no_opt_mode = mode.excluding("scanOp_pushout_output")
-        h, _ = theano.scan(inner_fct,
-                sequences=[input1, input2, input3],
-                outputs_info=init,
-                mode=no_opt_mode)
+        h, _ = theano.scan(
+            inner_fct,
+            sequences=[input1, input2, input3],
+            outputs_info=init,
+            mode=no_opt_mode,
+        )
         output = h[-1]
-        f_no_opt = theano.function([input1, input2, input3], output,
-                                    mode=no_opt_mode)
+        f_no_opt = theano.function([input1, input2, input3], output, mode=no_opt_mode)
 
         # Ensure that the optimization has been applied for f_opt
         # TODO

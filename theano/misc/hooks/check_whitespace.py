@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import absolute_import, print_function, division
 
-__docformat__ = 'restructuredtext en'
+__docformat__ = "restructuredtext en"
 
 import difflib
 import operator
@@ -18,7 +18,8 @@ except ImportError:
     raise ImportError(
         "check_whitespace.py need Python module argparse introduced in"
         " Python 2.7. It is available in pypi for compatibility."
-        " You can install it with this command 'pip install argparse'")
+        " You can install it with this command 'pip install argparse'"
+    )
 
 import reindent
 from six import StringIO
@@ -45,7 +46,10 @@ def get_parse_error(code):
     except IndentationError as err:
         return "Indentation error: %s" % err
     except tabnanny.NannyNag as err:
-        return "Ambiguous tab at line %d; line is '%s'." % (err.get_lineno(), err.get_line())
+        return "Ambiguous tab at line %d; line is '%s'." % (
+            err.get_lineno(),
+            err.get_line(),
+        )
     return None
 
 
@@ -73,8 +77,12 @@ def get_correct_indentation_diff(code, filename):
     reindent_output = output_buffer.getvalue()
     output_buffer.close()
     if code != reindent_output:
-        diff_generator = difflib.unified_diff(code.splitlines(True), reindent_output.splitlines(True),
-                                              fromfile=filename, tofile=filename + " (reindented)")
+        diff_generator = difflib.unified_diff(
+            code.splitlines(True),
+            reindent_output.splitlines(True),
+            fromfile=filename,
+            tofile=filename + " (reindented)",
+        )
         # work around http://bugs.python.org/issue2142
         diff_tuple = map(clean_diff_line_for_python_bug_2142, diff_generator)
         diff = "".join(diff_tuple)
@@ -173,39 +181,52 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
-    parser = argparse.ArgumentParser(description="Pretxncommit hook for Mercurial to check for whitespace issues")
-    parser.add_argument("-n", "--no-indentation",
-                        action="store_const",
-                        default=False,
-                        const=True,
-                        help="don't check indentation, just basic parsing"
-                       )
-    parser.add_argument("-i", "--incremental",
-                        action="store_const",
-                        default=False,
-                        const=True,
-                        help="only block on newly introduced indentation problems; ignore all others"
-                       )
-    parser.add_argument("-p", "--incremental-with-patch",
-                        action="store_const",
-                        default=False,
-                        const=True,
-                        help="only block on newly introduced indentation problems; propose a patch for all others"
-                       )
-    parser.add_argument("-s", "--skip-after-failure",
-                        action="store_const",
-                        default=False,
-                        const=True,
-                        help="when this pre-commit hook fails, don't run it on the next commit; "
-                             "this lets you check in your changes and then check in "
-                             "any necessary whitespace changes in the subsequent commit"
-                       )
+    parser = argparse.ArgumentParser(
+        description="Pretxncommit hook for Mercurial to check for whitespace issues"
+    )
+    parser.add_argument(
+        "-n",
+        "--no-indentation",
+        action="store_const",
+        default=False,
+        const=True,
+        help="don't check indentation, just basic parsing",
+    )
+    parser.add_argument(
+        "-i",
+        "--incremental",
+        action="store_const",
+        default=False,
+        const=True,
+        help="only block on newly introduced indentation problems; ignore all others",
+    )
+    parser.add_argument(
+        "-p",
+        "--incremental-with-patch",
+        action="store_const",
+        default=False,
+        const=True,
+        help="only block on newly introduced indentation problems; propose a patch for all others",
+    )
+    parser.add_argument(
+        "-s",
+        "--skip-after-failure",
+        action="store_const",
+        default=False,
+        const=True,
+        help="when this pre-commit hook fails, don't run it on the next commit; "
+        "this lets you check in your changes and then check in "
+        "any necessary whitespace changes in the subsequent commit",
+    )
     args = parser.parse_args(argv)
 
     # -i and -s are incompatible; if you skip checking, you end up with a not-correctly-indented
     # file, which -i then causes you to ignore!
     if args.skip_after_failure and args.incremental:
-        print("*** check whitespace hook misconfigured! -i and -s are incompatible.", file=sys.stderr)
+        print(
+            "*** check whitespace hook misconfigured! -i and -s are incompatible.",
+            file=sys.stderr,
+        )
         return 1
 
     if is_merge():
@@ -229,7 +250,9 @@ def main(argv=None):
         code = get_file_contents(filename)
         parse_error = get_parse_error(code)
         if parse_error is not None:
-            print("*** %s has parse error: %s" % (filename, parse_error), file=sys.stderr)
+            print(
+                "*** %s has parse error: %s" % (filename, parse_error), file=sys.stderr
+            )
             block_commit = True
         else:
             # parsing succeeded, it is safe to check indentation
@@ -238,8 +261,12 @@ def main(argv=None):
                 # only calculate was_clean if it will matter to us
                 if args.incremental or args.incremental_with_patch:
                     if filename in changed_filenames:
-                        old_file_contents = get_file_contents(filename, revision=parent_commit())
-                        was_clean = get_correct_indentation_diff(old_file_contents, "") is None
+                        old_file_contents = get_file_contents(
+                            filename, revision=parent_commit()
+                        )
+                        was_clean = (
+                            get_correct_indentation_diff(old_file_contents, "") is None
+                        )
                     else:
                         was_clean = True  # by default -- it was newly added and thus had no prior problems
 
@@ -250,12 +277,18 @@ def main(argv=None):
                         if was_clean or not args.incremental_with_patch:
                             block_commit = True
                         diffs.append(indentation_diff)
-                        print("%s is not correctly indented" % filename, file=sys.stderr)
+                        print(
+                            "%s is not correctly indented" % filename, file=sys.stderr
+                        )
 
     if len(diffs) > 0:
         diffs_filename = ".hg/indentation_fixes.patch"
         save_diffs(diffs, diffs_filename)
-        print("*** To fix all indentation issues, run: cd `hg root` && patch -p0 < %s" % diffs_filename, file=sys.stderr)
+        print(
+            "*** To fix all indentation issues, run: cd `hg root` && patch -p0 < %s"
+            % diffs_filename,
+            file=sys.stderr,
+        )
 
     if block_commit:
         save_filename = ".hg/commit_message.saved"
@@ -264,10 +297,14 @@ def main(argv=None):
 
         if args.skip_after_failure:
             save_skip_next_commit()
-            print("*** Next commit attempt will not be checked. To change this, rm %s" % SKIP_WHITESPACE_CHECK_FILENAME, file=sys.stderr)
+            print(
+                "*** Next commit attempt will not be checked. To change this, rm %s"
+                % SKIP_WHITESPACE_CHECK_FILENAME,
+                file=sys.stderr,
+            )
 
     return int(block_commit)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

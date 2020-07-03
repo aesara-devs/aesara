@@ -31,6 +31,7 @@ class DoubleOp(theano.Op):
 
     .. versionadded:: 0.6
     """
+
     def __eq__(self, other):
         return type(self) == type(other)
 

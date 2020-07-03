@@ -58,7 +58,7 @@ def test002_jacobian_matrix():
     rng = np.random.RandomState(seed=utt.fetch_seed())
     ev = np.zeros((10, 10, 10))
     for dx in xrange(10):
-        ev[dx, :, dx] = 2.
+        ev[dx, :, dx] = 2.0
 
     # test when the jacobian is called with a tensor as wrt
     Jx = tensor.jacobian(y, x)
@@ -149,14 +149,14 @@ def test_jacobian_disconnected_inputs():
 
     v1 = tensor.vector()
     v2 = tensor.vector()
-    jacobian_v = theano.gradient.jacobian(1 + v1, v2, disconnected_inputs='ignore')
+    jacobian_v = theano.gradient.jacobian(1 + v1, v2, disconnected_inputs="ignore")
     func_v = theano.function([v1, v2], jacobian_v)
     val = np.arange(4.0).astype(theano.config.floatX)
     assert np.allclose(func_v(val, val), np.zeros((4, 4)))
 
     s1 = tensor.scalar()
     s2 = tensor.scalar()
-    jacobian_s = theano.gradient.jacobian(1 + s1, s2, disconnected_inputs='ignore')
+    jacobian_s = theano.gradient.jacobian(1 + s1, s2, disconnected_inputs="ignore")
     func_s = theano.function([s2], jacobian_s)
     val = np.array(1.0).astype(theano.config.floatX)
     assert np.allclose(func_s(val), np.zeros(1))

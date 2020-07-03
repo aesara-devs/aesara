@@ -8,23 +8,58 @@ from theano import gof, tensor
 from theano.tensor import discrete_dtypes, float_dtypes
 from theano.tensor.opt import register_specialize
 from theano.sparse.basic import (
-    as_sparse_variable, SparseType, add_s_s, neg,
-    mul_s_s, mul_s_d, dot,
-    CSMProperties, CSM,
-    _is_sparse_variable, _is_dense_variable, CSC, CSR,
-    csm_properties, csm_data, csm_indices, csm_indptr, csm_shape,
+    as_sparse_variable,
+    SparseType,
+    add_s_s,
+    neg,
+    mul_s_s,
+    mul_s_d,
+    dot,
+    CSMProperties,
+    CSM,
+    _is_sparse_variable,
+    _is_dense_variable,
+    CSC,
+    CSR,
+    csm_properties,
+    csm_data,
+    csm_indices,
+    csm_indptr,
+    csm_shape,
     _is_sparse,
     # To maintain compatibility
-    Remove0, remove0,
-    Cast, bcast, wcast, icast, lcast, fcast, dcast, ccast, zcast,
-    HStack, hstack, VStack, vstack,
-    AddSSData, add_s_s_data,
-    MulSV, mul_s_v,
+    Remove0,
+    remove0,
+    Cast,
+    bcast,
+    wcast,
+    icast,
+    lcast,
+    fcast,
+    dcast,
+    ccast,
+    zcast,
+    HStack,
+    hstack,
+    VStack,
+    vstack,
+    AddSSData,
+    add_s_s_data,
+    MulSV,
+    mul_s_v,
     structured_monoid,
-    structured_sigmoid, structured_exp, structured_log, structured_pow,
-    structured_minimum, structured_maximum, structured_add,
-    StructuredAddSV, structured_add_s_v,
-    SamplingDot, sampling_dot)
+    structured_sigmoid,
+    structured_exp,
+    structured_log,
+    structured_pow,
+    structured_minimum,
+    structured_maximum,
+    structured_add,
+    StructuredAddSV,
+    structured_add_s_v,
+    SamplingDot,
+    sampling_dot,
+)
 
 # Probability Ops are currently back in sandbox, because they do not respect
 # Theano's Op contract, as their behaviour is not reproducible: calling
@@ -36,12 +71,21 @@ from theano.sparse.basic import (
 
 # Also for compatibility
 from theano.sparse.opt import (
-    MulSDCSC, mul_s_d_csc, MulSDCSR, mul_s_d_csr,
-    MulSVCSR, mul_s_v_csr,
-    StructuredAddSVCSR, structured_add_s_v_csr,
-    SamplingDotCSR, sampling_dot_csr,
-    local_mul_s_d, local_mul_s_v,
-    local_structured_add_s_v, local_sampling_dot_csr)
+    MulSDCSC,
+    mul_s_d_csc,
+    MulSDCSR,
+    mul_s_d_csr,
+    MulSVCSR,
+    mul_s_v_csr,
+    StructuredAddSVCSR,
+    structured_add_s_v_csr,
+    SamplingDotCSR,
+    sampling_dot_csr,
+    local_mul_s_d,
+    local_mul_s_v,
+    local_structured_add_s_v,
+    local_sampling_dot_csr,
+)
 
 
 # Alias to maintain compatibility
@@ -63,6 +107,7 @@ class Poisson(gof.op.Op):
     :return: A sparse matrix of random integers of a Poisson density
              with mean of `x` element wise.
     """
+
     __props__ = ()
 
     def make_node(self, x):
@@ -75,18 +120,21 @@ class Poisson(gof.op.Op):
         assert _is_sparse(x)
         assert x.format in ["csr", "csc"]
         out[0] = x.copy()
-        out[0].data = np.asarray(np.random.poisson(out[0].data),
-                                    dtype=x.dtype)
+        out[0].data = np.asarray(np.random.poisson(out[0].data), dtype=x.dtype)
         out[0].eliminate_zeros()
 
     def grad(self, inputs, outputs_gradients):
         comment = "No gradient exists for class Poisson in\
                    theano/sparse/sandbox/sp2.py"
-        return [theano.gradient.grad_undefined(op=self, x_pos=0, x=inputs[0],
-                                               comment=comment)]
+        return [
+            theano.gradient.grad_undefined(
+                op=self, x_pos=0, x=inputs[0], comment=comment
+            )
+        ]
 
     def infer_shape(self, node, ins_shapes):
         return ins_shapes
+
 
 poisson = Poisson()
 
@@ -107,6 +155,7 @@ class Binomial(gof.op.Op):
     :return: A sparse matrix of integers representing the number
              of success.
     """
+
     __props__ = ("format", "dtype")
 
     def __init__(self, format, dtype):
@@ -122,15 +171,15 @@ class Binomial(gof.op.Op):
         assert p.dtype in float_dtypes
         assert shape.dtype in discrete_dtypes
 
-        return gof.Apply(self, [n, p, shape],
-                         [SparseType(dtype=self.dtype,
-                                     format=self.format)()])
+        return gof.Apply(
+            self, [n, p, shape], [SparseType(dtype=self.dtype, format=self.format)()]
+        )
 
     def perform(self, node, inputs, outputs):
         (n, p, shape) = inputs
         (out,) = outputs
         binomial = np.random.binomial(n, p, size=shape)
-        csx_matrix = getattr(scipy.sparse, self.format + '_matrix')
+        csx_matrix = getattr(scipy.sparse, self.format + "_matrix")
         out[0] = csx_matrix(binomial, dtype=self.dtype)
 
     def connection_pattern(self, node):
@@ -143,19 +192,20 @@ class Binomial(gof.op.Op):
                      Binomial of theano/sparse/sandbox/sp2.py"
         comment_p = "No gradient exists for the prob of success in class\
                      Binomial of theano/sparse/sandbox/sp2.py"
-        return [theano.gradient.grad_undefined(op=self, x_pos=0, x=n,
-                                               comment=comment_n),
-                theano.gradient.grad_undefined(op=self, x_pos=1, x=p,
-                                               comment=comment_p),
-                theano.gradient.disconnected_type()]
+        return [
+            theano.gradient.grad_undefined(op=self, x_pos=0, x=n, comment=comment_n),
+            theano.gradient.grad_undefined(op=self, x_pos=1, x=p, comment=comment_p),
+            theano.gradient.disconnected_type(),
+        ]
 
     def infer_shape(self, node, ins_shapes):
         return [(node.inputs[2][0], node.inputs[2][1])]
 
-csr_fbinomial = Binomial('csr', 'float32')
-csc_fbinomial = Binomial('csc', 'float32')
-csr_dbinomial = Binomial('csr', 'float64')
-csc_dbinomial = Binomial('csc', 'float64')
+
+csr_fbinomial = Binomial("csr", "float32")
+csc_fbinomial = Binomial("csc", "float32")
+csr_dbinomial = Binomial("csr", "float64")
+csc_dbinomial = Binomial("csc", "float64")
 
 
 class Multinomial(gof.op.Op):
@@ -179,6 +229,7 @@ class Multinomial(gof.op.Op):
 
     :note: It will works only if `p` have csr format.
     """
+
     __props__ = ()
 
     def make_node(self, n, p):
@@ -193,7 +244,7 @@ class Multinomial(gof.op.Op):
         (out,) = outputs
         assert _is_sparse(p)
 
-        if p.format != 'csr':
+        if p.format != "csr":
             raise NotImplementedError
 
         out[0] = p.copy()
@@ -204,8 +255,10 @@ class Multinomial(gof.op.Op):
                 out[0].data[k:l] = np.random.multinomial(n, p.data[k:l])
         elif n.ndim == 1:
             if n.shape[0] != p.shape[0]:
-                raise ValueError('The number of element of n must be '
-                                 'the same as the number of row of p.')
+                raise ValueError(
+                    "The number of element of n must be "
+                    "the same as the number of row of p."
+                )
             for i in xrange(p.shape[0]):
                 k, l = p.indptr[i], p.indptr[i + 1]
                 out[0].data[k:l] = np.random.multinomial(n[i], p.data[k:l])
@@ -215,12 +268,17 @@ class Multinomial(gof.op.Op):
                      Multinomial of theano/sparse/sandbox/sp2.py"
         comment_p = "No gradient exists for the prob of success in class\
                      Multinomial of theano/sparse/sandbox/sp2.py"
-        return [theano.gradient.grad_undefined(op=self, x_pos=0, x=inputs[0],
-                                               comment=comment_n),
-                theano.gradient.grad_undefined(op=self, x_pos=1, x=inputs[1],
-                                               comment=comment_p)]
+        return [
+            theano.gradient.grad_undefined(
+                op=self, x_pos=0, x=inputs[0], comment=comment_n
+            ),
+            theano.gradient.grad_undefined(
+                op=self, x_pos=1, x=inputs[1], comment=comment_p
+            ),
+        ]
 
     def infer_shape(self, node, ins_shapes):
         return [ins_shapes[1]]
+
 
 multinomial = Multinomial()

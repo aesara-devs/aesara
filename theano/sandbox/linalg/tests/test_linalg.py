@@ -13,30 +13,32 @@ from theano.tensor.nlinalg import MatrixInverse
 from theano.tensor import DimShuffle
 
 # The one in comment are not tested...
-from theano.sandbox.linalg.ops import (Cholesky,  # op class
-                                       matrix_inverse,
-                                       Solve,
-                                       solve,
-                                       # PSD_hint,
-                                       spectral_radius_bound,
-                                       imported_scipy,
-                                       inv_as_solve,
-                                       )
-
+from theano.sandbox.linalg.ops import (
+    Cholesky,  # op class
+    matrix_inverse,
+    Solve,
+    solve,
+    # PSD_hint,
+    spectral_radius_bound,
+    imported_scipy,
+    inv_as_solve,
+)
 
 
 def test_rop_lop():
-    mx = tensor.matrix('mx')
-    mv = tensor.matrix('mv')
-    v = tensor.vector('v')
+    mx = tensor.matrix("mx")
+    mv = tensor.matrix("mv")
+    v = tensor.vector("v")
     y = matrix_inverse(mx).sum(axis=0)
 
     yv = tensor.Rop(y, mx, mv)
     rop_f = function([mx, mv], yv)
 
-    sy, _ = theano.scan(lambda i, y, x, v: (tensor.grad(y[i], x) * v).sum(),
-                        sequences=tensor.arange(y.shape[0]),
-                        non_sequences=[y, mx, mv])
+    sy, _ = theano.scan(
+        lambda i, y, x, v: (tensor.grad(y[i], x) * v).sum(),
+        sequences=tensor.arange(y.shape[0]),
+        non_sequences=[y, mx, mv],
+    )
     scan_f = function([mx, mv], sy)
 
     rng = np.random.RandomState(utt.fetch_seed())
@@ -46,20 +48,20 @@ def test_rop_lop():
     v1 = rop_f(vx, vv)
     v2 = scan_f(vx, vv)
 
-    assert _allclose(v1, v2), ('ROP mismatch: %s %s' % (v1, v2))
+    assert _allclose(v1, v2), "ROP mismatch: %s %s" % (v1, v2)
 
     raised = False
     try:
-        tensor.Rop(
-            theano.clone(y, replace={mx: break_op(mx)}),
-            mx,
-            mv)
+        tensor.Rop(theano.clone(y, replace={mx: break_op(mx)}), mx, mv)
     except ValueError:
         raised = True
     if not raised:
-        raise Exception((
-            'Op did not raised an error even though the function'
-            ' is not differentiable'))
+        raise Exception(
+            (
+                "Op did not raised an error even though the function"
+                " is not differentiable"
+            )
+        )
 
     vv = np.asarray(rng.uniform(size=(4,)), theano.config.floatX)
     yv = tensor.Lop(y, mx, v)
@@ -70,7 +72,7 @@ def test_rop_lop():
 
     v1 = lop_f(vx, vv)
     v2 = scan_f(vx, vv)
-    assert _allclose(v1, v2), ('LOP mismatch: %s %s' % (v1, v2))
+    assert _allclose(v1, v2), "LOP mismatch: %s %s" % (v1, v2)
 
 
 def test_spectral_radius_bound():
@@ -106,7 +108,7 @@ def test_spectral_radius_bound():
     assert ok
     ok = False
     try:
-        spectral_radius_bound(x, 5.)
+        spectral_radius_bound(x, 5.0)
     except TypeError:
         ok = True
     assert ok
@@ -121,16 +123,16 @@ def test_spectral_radius_bound():
 
 
 def test_transinv_to_invtrans():
-    X = tensor.matrix('X')
+    X = tensor.matrix("X")
     Y = tensor.nlinalg.matrix_inverse(X)
     Z = Y.transpose()
     f = theano.function([X], Z)
-    if config.mode != 'FAST_COMPILE':
+    if config.mode != "FAST_COMPILE":
         for node in f.maker.fgraph.toposort():
             if isinstance(node.op, MatrixInverse):
                 assert isinstance(node.inputs[0].owner.op, DimShuffle)
             if isinstance(node.op, DimShuffle):
-                assert node.inputs[0].name == 'X'
+                assert node.inputs[0].name == "X"
 
 
 def test_tag_solve_triangular():
@@ -138,29 +140,29 @@ def test_tag_solve_triangular():
         pytest.skip("Scipy needed for the Cholesky op.")
     cholesky_lower = Cholesky(lower=True)
     cholesky_upper = Cholesky(lower=False)
-    A = tensor.matrix('A')
-    x = tensor.vector('x')
+    A = tensor.matrix("A")
+    x = tensor.vector("x")
     L = cholesky_lower(A)
     U = cholesky_upper(A)
     b1 = solve(L, x)
     b2 = solve(U, x)
     f = theano.function([A, x], b1)
-    if config.mode != 'FAST_COMPILE':
+    if config.mode != "FAST_COMPILE":
         for node in f.maker.fgraph.toposort():
             if isinstance(node.op, Solve):
-                assert node.op.A_structure == 'lower_triangular'
+                assert node.op.A_structure == "lower_triangular"
     f = theano.function([A, x], b2)
-    if config.mode != 'FAST_COMPILE':
+    if config.mode != "FAST_COMPILE":
         for node in f.maker.fgraph.toposort():
             if isinstance(node.op, Solve):
-                assert node.op.A_structure == 'upper_triangular'
+                assert node.op.A_structure == "upper_triangular"
 
 
 def test_matrix_inverse_solve():
     if not imported_scipy:
         pytest.skip("Scipy needed for the Solve op.")
-    A = theano.tensor.dmatrix('A')
-    b = theano.tensor.dmatrix('b')
+    A = theano.tensor.dmatrix("A")
+    b = theano.tensor.dmatrix("b")
     node = matrix_inverse(A).dot(b).owner
     [out] = inv_as_solve.transform(node)
     assert isinstance(out.owner.op, Solve)

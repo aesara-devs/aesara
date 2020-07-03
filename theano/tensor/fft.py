@@ -11,14 +11,15 @@ class RFFTOp(gof.Op):
 
     def output_type(self, inp):
         # add extra dim for real/imag
-        return T.TensorType(inp.dtype,
-                            broadcastable=[False] * (inp.type.ndim + 1))
+        return T.TensorType(inp.dtype, broadcastable=[False] * (inp.type.ndim + 1))
 
     def make_node(self, a, s=None):
         a = T.as_tensor_variable(a)
         if a.ndim < 2:
-            raise TypeError('%s: input must have dimension > 2, with first dimension batches' %
-                            self.__class__.__name__)
+            raise TypeError(
+                "%s: input must have dimension > 2, with first dimension batches"
+                % self.__class__.__name__
+            )
 
         if s is None:
             s = a.shape[1:]
@@ -26,8 +27,10 @@ class RFFTOp(gof.Op):
         else:
             s = T.as_tensor_variable(s)
             if s.dtype not in T.integer_dtypes:
-                raise TypeError('%s: length of the transformed axis must be'
-                                ' of type integer' % self.__class__.__name__)
+                raise TypeError(
+                    "%s: length of the transformed axis must be"
+                    " of type integer" % self.__class__.__name__
+                )
         return gof.Apply(self, [a, s], [self.output_type(a)()])
 
     def perform(self, node, inputs, output_storage):
@@ -42,19 +45,23 @@ class RFFTOp(gof.Op):
         output_storage[0][0] = out
 
     def grad(self, inputs, output_grads):
-        gout, = output_grads
+        (gout,) = output_grads
         s = inputs[1]
         # Divide the last dimension of the output gradients by 2, they are
         # double-counted by the real-IFFT due to symmetry, except the first
         # and last elements (for even transforms) which are unique.
-        idx = [slice(None)] * (gout.ndim - 2) \
-            + [slice(1, (s[-1] // 2) + (s[-1] % 2))] + [slice(None)]
+        idx = (
+            [slice(None)] * (gout.ndim - 2)
+            + [slice(1, (s[-1] // 2) + (s[-1] % 2))]
+            + [slice(None)]
+        )
         gout = T.set_subtensor(gout[idx], gout[idx] * 0.5)
         return [irfft_op(gout, s), DisconnectedType()()]
 
     def connection_pattern(self, node):
         # Specificy that shape input parameter has no connection to graph and gradients.
         return [[True], [False]]
+
 
 rfft_op = RFFTOp()
 
@@ -65,15 +72,15 @@ class IRFFTOp(gof.Op):
 
     def output_type(self, inp):
         # remove extra dim for real/imag
-        return T.TensorType(inp.dtype,
-                            broadcastable=[False] * (inp.type.ndim - 1))
+        return T.TensorType(inp.dtype, broadcastable=[False] * (inp.type.ndim - 1))
 
     def make_node(self, a, s=None):
         a = T.as_tensor_variable(a)
         if a.ndim < 3:
-            raise TypeError('%s: input must have dimension >= 3,  with ' %
-                            self.__class__.__name__ +
-                            'first dimension batches and last real/imag parts')
+            raise TypeError(
+                "%s: input must have dimension >= 3,  with " % self.__class__.__name__
+                + "first dimension batches and last real/imag parts"
+            )
 
         if s is None:
             s = a.shape[1:-1]
@@ -82,8 +89,10 @@ class IRFFTOp(gof.Op):
         else:
             s = T.as_tensor_variable(s)
             if s.dtype not in T.integer_dtypes:
-                raise TypeError('%s: length of the transformed axis must be'
-                                ' of type integer' % self.__class__.__name__)
+                raise TypeError(
+                    "%s: length of the transformed axis must be"
+                    " of type integer" % self.__class__.__name__
+                )
         return gof.Apply(self, [a, s], [self.output_type(a)()])
 
     def perform(self, node, inputs, output_storage):
@@ -98,20 +107,24 @@ class IRFFTOp(gof.Op):
         output_storage[0][0] = (out * s.prod()).astype(a.dtype)
 
     def grad(self, inputs, output_grads):
-        gout, = output_grads
+        (gout,) = output_grads
         s = inputs[1]
         gf = rfft_op(gout, s)
         # Multiply the last dimension of the gradient by 2, they represent
         # both positive and negative frequencies, except the first
         # and last elements (for even transforms) which are unique.
-        idx = [slice(None)] * (gf.ndim - 2) \
-            + [slice(1, (s[-1] // 2) + (s[-1] % 2))] + [slice(None)]
+        idx = (
+            [slice(None)] * (gf.ndim - 2)
+            + [slice(1, (s[-1] // 2) + (s[-1] % 2))]
+            + [slice(None)]
+        )
         gf = T.set_subtensor(gf[idx], gf[idx] * 2)
         return [gf, DisconnectedType()()]
 
     def connection_pattern(self, node):
         # Specificy that shape input parameter has no connection to graph and gradients.
         return [[True], [False]]
+
 
 irfft_op = IRFFTOp()
 
@@ -201,6 +214,7 @@ def irfft(inp, norm=None, is_odd=False):
 
 def _unitary(norm):
     if norm not in (None, "ortho", "no_norm"):
-        raise ValueError("Invalid value %s for norm, must be None, 'ortho' or "
-                         "'no norm'" % norm)
+        raise ValueError(
+            "Invalid value %s for norm, must be None, 'ortho' or " "'no norm'" % norm
+        )
     return norm

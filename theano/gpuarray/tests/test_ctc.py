@@ -1,4 +1,4 @@
-from __future__ import (division, absolute_import, print_function)
+from __future__ import division, absolute_import, print_function
 
 import numpy as np
 import pytest
@@ -7,18 +7,28 @@ import theano
 import theano.tensor as T
 from theano.tests import unittest_tools as utt
 import theano.gpuarray
-from theano.gpuarray.ctc import (gpu_ctc, GpuConnectionistTemporalClassification)
-from theano.tensor.nnet.ctc import (ctc, ctc_available, ConnectionistTemporalClassification)
-from theano.tensor.nnet.tests.test_ctc import (setup_torch_case, setup_ctc_case, setup_grad_case)
-from .config import (mode_with_gpu, mode_without_gpu)
+from theano.gpuarray.ctc import gpu_ctc, GpuConnectionistTemporalClassification
+from theano.tensor.nnet.ctc import (
+    ctc,
+    ctc_available,
+    ConnectionistTemporalClassification,
+)
+from theano.tensor.nnet.tests.test_ctc import (
+    setup_torch_case,
+    setup_ctc_case,
+    setup_grad_case,
+)
+from .config import mode_with_gpu, mode_without_gpu
 
 
-class TestCTC():
+class TestCTC:
     def setup_method(self):
         if not ctc_available():
-            pytest.skip('Optional library warp-ctc not available')
+            pytest.skip("Optional library warp-ctc not available")
 
-    def check_ctc(self, activations, labels, input_length, expected_costs, expected_grads):
+    def check_ctc(
+        self, activations, labels, input_length, expected_costs, expected_grads
+    ):
         # Create symbolic variables
         t_activations = theano.shared(activations, name="activations")
         t_activation_times = theano.shared(input_length, name="activation_times")
@@ -27,13 +37,22 @@ class TestCTC():
         inputs = [t_activations, t_labels, t_activation_times]
 
         # Execute several tests for each test case
-        self.check_expected_values(t_activations, t_labels, t_activation_times, expected_costs, expected_grads)
+        self.check_expected_values(
+            t_activations, t_labels, t_activation_times, expected_costs, expected_grads
+        )
         self.compare_gpu_and_cpu_values(*inputs)
         self.check_grads_disabled(*inputs)
         self.run_gpu_optimization_with_grad(*inputs)
         self.run_gpu_optimization_no_grad(*inputs)
 
-    def setup_cpu_op(self, activations, labels, input_length, compute_grad=True, mode=mode_without_gpu):
+    def setup_cpu_op(
+        self,
+        activations,
+        labels,
+        input_length,
+        compute_grad=True,
+        mode=mode_without_gpu,
+    ):
         cpu_ctc_cost = ctc(activations, labels, input_length)
         outputs = [cpu_ctc_cost]
         if compute_grad:
@@ -51,7 +70,9 @@ class TestCTC():
             outputs += [gpu_ctc_grad]
         return theano.function([], outputs, mode=mode_with_gpu)
 
-    def check_expected_values(self, activations, labels, input_length, expected_costs, expected_grads):
+    def check_expected_values(
+        self, activations, labels, input_length, expected_costs, expected_grads
+    ):
         gpu_train = self.setup_gpu_op(activations, labels, input_length)
         gpu_cost, gpu_grad = gpu_train()
         # Transfer costs from GPU memory to host
@@ -84,19 +105,25 @@ class TestCTC():
         gpu_ctc_function = theano.function([], [gpu_ctc_cost])
         for node in gpu_ctc_function.maker.fgraph.apply_nodes:
             if isinstance(node.op, GpuConnectionistTemporalClassification):
-                assert (node.op.compute_grad is False)
+                assert node.op.compute_grad is False
 
     def run_gpu_optimization_with_grad(self, activations, labels, input_length):
         # Compile CPU function with optimization
-        cpu_lifted_train = self.setup_cpu_op(activations, labels, input_length, mode=mode_with_gpu)
+        cpu_lifted_train = self.setup_cpu_op(
+            activations, labels, input_length, mode=mode_with_gpu
+        )
         # Check whether Op is lifted to the GPU
         assert self.has_only_gpu_op(cpu_lifted_train)
 
     def run_gpu_optimization_no_grad(self, activations, labels, input_length):
-        cpu_train = self.setup_cpu_op(activations, labels, input_length, compute_grad=False)
+        cpu_train = self.setup_cpu_op(
+            activations, labels, input_length, compute_grad=False
+        )
         cpu_cost = cpu_train()
         # Compile CPU function with optimization
-        cpu_lifted_test = self.setup_cpu_op(activations, labels, input_length, compute_grad=False, mode=mode_with_gpu)
+        cpu_lifted_test = self.setup_cpu_op(
+            activations, labels, input_length, compute_grad=False, mode=mode_with_gpu
+        )
         # Check whether Op is lifted to the GPU
         assert self.has_only_gpu_op(cpu_lifted_test)
         gpu_cost = cpu_lifted_test()
@@ -119,12 +146,28 @@ class TestCTC():
     # Test obtained from Torch tutorial at:
     # https://github.com/baidu-research/warp-ctc/blob/master/torch_binding/TUTORIAL.md
     def test_torch_case(self):
-        activations, labels, activation_times, expected_costs, expected_grads = setup_torch_case()
-        self.check_ctc(activations, labels, activation_times, expected_costs, expected_grads)
+        (
+            activations,
+            labels,
+            activation_times,
+            expected_costs,
+            expected_grads,
+        ) = setup_torch_case()
+        self.check_ctc(
+            activations, labels, activation_times, expected_costs, expected_grads
+        )
 
     def test_ctc(self):
-        activations, labels, input_length, expected_costs, expected_grads = setup_ctc_case()
-        self.check_ctc(activations, labels, input_length, expected_costs, expected_grads)
+        (
+            activations,
+            labels,
+            input_length,
+            expected_costs,
+            expected_grads,
+        ) = setup_ctc_case()
+        self.check_ctc(
+            activations, labels, input_length, expected_costs, expected_grads
+        )
 
     def test_verify_grad(self):
         def ctc_op_functor(labels, in_lengths):
@@ -133,6 +176,7 @@ class TestCTC():
                 t_activation_times = theano.shared(in_lengths, name="activation_times")
                 t_labels = theano.shared(labels, name="labels")
                 return gpu_ctc(acts, t_labels, t_activation_times)
+
             return wrapper
 
         activations, labels, activation_times = setup_grad_case()

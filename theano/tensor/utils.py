@@ -25,10 +25,12 @@ def hash_from_ndarray(data):
     if not data.flags["C_CONTIGUOUS"]:
         # hash_from_code needs a C-contiguous array.
         data = np.ascontiguousarray(data)
-    return hash_from_code(hash_from_code(data) +
-                          hash_from_code(str(data.shape)) +
-                          hash_from_code(str(data.strides)) +
-                          hash_from_code(str(data.dtype)))
+    return hash_from_code(
+        hash_from_code(data)
+        + hash_from_code(str(data.shape))
+        + hash_from_code(str(data.strides))
+        + hash_from_code(str(data.dtype))
+    )
 
 
 def shape_of_variables(fgraph, input_shapes):
@@ -62,14 +64,20 @@ def shape_of_variables(fgraph, input_shapes):
     (array(1024), array(1024))
     """
 
-    if not hasattr(fgraph, 'shape_feature'):
+    if not hasattr(fgraph, "shape_feature"):
         fgraph.attach_feature(theano.tensor.opt.ShapeFeature())
 
-    input_dims = [dimension for inp in fgraph.inputs
-                  for dimension in fgraph.shape_feature.shape_of[inp]]
+    input_dims = [
+        dimension
+        for inp in fgraph.inputs
+        for dimension in fgraph.shape_feature.shape_of[inp]
+    ]
 
-    output_dims = [dimension for shape in fgraph.shape_feature.shape_of.values()
-                   for dimension in shape]
+    output_dims = [
+        dimension
+        for shape in fgraph.shape_feature.shape_of.values()
+        for dimension in shape
+    ]
 
     compute_shapes = theano.function(input_dims, output_dims)
 
@@ -77,16 +85,17 @@ def shape_of_variables(fgraph, input_shapes):
         raise ValueError(
             "input_shapes keys aren't in the fgraph.inputs. FunctionGraph()"
             " interface changed. Now by default, it clones the graph it receives."
-            " To have the old behavior, give it this new parameter `clone=False`.")
+            " To have the old behavior, give it this new parameter `clone=False`."
+        )
 
-    numeric_input_dims = [dim for inp in fgraph.inputs
-                          for dim in input_shapes[inp]]
+    numeric_input_dims = [dim for inp in fgraph.inputs for dim in input_shapes[inp]]
     numeric_output_dims = compute_shapes(*numeric_input_dims)
 
     sym_to_num_dict = dict(izip(output_dims, numeric_output_dims))
 
     l = {}
     for var in fgraph.shape_feature.shape_of:
-        l[var] = tuple(sym_to_num_dict[sym]
-                       for sym in fgraph.shape_feature.shape_of[var])
+        l[var] = tuple(
+            sym_to_num_dict[sym] for sym in fgraph.shape_feature.shape_of[var]
+        )
     return l

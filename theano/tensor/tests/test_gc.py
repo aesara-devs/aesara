@@ -13,13 +13,13 @@ def test_no_reuse():
     f = theano.function([x, y], x + y)
 
     # provide both inputs in the first call
-    f(np.ones(10, dtype='int64'), np.ones(10, dtype='int64'))
+    f(np.ones(10, dtype="int64"), np.ones(10, dtype="int64"))
 
     try:
         f(np.ones(10))
     except TypeError:
         return
-    assert not 'should not get here'
+    assert not "should not get here"
 
 
 def test_gc_never_pickles_temporaries():
@@ -27,27 +27,28 @@ def test_gc_never_pickles_temporaries():
 
     for i in xrange(2):  # TODO: 30 causes like LONG compilation due to MERGE
         if i:
-            r = r + r/10
+            r = r + r / 10
         else:
             r = x
 
     optimizer = None
-    optimizer = 'fast_run'
+    optimizer = "fast_run"
 
     for f_linker, g_linker in [
-            (theano.PerformLinker(allow_gc=True),
-             theano.PerformLinker(allow_gc=False)),
-            (theano.OpWiseCLinker(allow_gc=True),
-             theano.OpWiseCLinker(allow_gc=False))]:
+        (theano.PerformLinker(allow_gc=True), theano.PerformLinker(allow_gc=False)),
+        (theano.OpWiseCLinker(allow_gc=True), theano.OpWiseCLinker(allow_gc=False)),
+    ]:
 
         # f_linker has garbage collection
 
         # g_linker has no garbage collection
 
-        f = theano.function([x], r, mode=theano.Mode(optimizer=optimizer,
-                                                     linker=f_linker))
-        g = theano.function([x], r, mode=theano.Mode(optimizer=optimizer,
-                                                     linker=g_linker))
+        f = theano.function(
+            [x], r, mode=theano.Mode(optimizer=optimizer, linker=f_linker)
+        )
+        g = theano.function(
+            [x], r, mode=theano.Mode(optimizer=optimizer, linker=g_linker)
+        )
 
         pre_f = pickle.dumps(f)
         pre_g = pickle.dumps(g)
@@ -61,25 +62,27 @@ def test_gc_never_pickles_temporaries():
 
         def a(fn):
             return len(pickle.dumps(fn.maker))
+
         assert a(f) == a(f)  # some sanity checks on the pickling mechanism
         assert a(g) == a(g)  # some sanity checks on the pickling mechanism
 
         def b(fn):
             return len(
-                pickle.dumps(
-                    theano.compile.function_module._pickle_Function(
-                        fn)))
+                pickle.dumps(theano.compile.function_module._pickle_Function(fn))
+            )
+
         assert b(f) == b(f)  # some sanity checks on the pickling mechanism
 
         def c(fn):
             return len(pickle.dumps(fn))
+
         assert c(f) == c(f)  # some sanity checks on the pickling mechanism
         assert c(g) == c(g)  # some sanity checks on the pickling mechanism
 
         # now run the function once to create temporaries within the no-gc
         # linker
-        f(np.ones(100, dtype='float64'))
-        g(np.ones(100, dtype='float64'))
+        f(np.ones(100, dtype="float64"))
+        g(np.ones(100, dtype="float64"))
 
         # serialize the functions again
         post_f = pickle.dumps(f)
@@ -95,8 +98,7 @@ def test_gc_never_pickles_temporaries():
         # that weren't collected shouldn't be pickled anyway
         # Allow for a couple of bytes of difference, since timing info,
         # for instance, can be represented as text of varying size.
-        assert abs(len_post_f - len_post_g) < 256, (
-            f_linker, len_post_f, len_post_g)
+        assert abs(len_post_f - len_post_g) < 256, (f_linker, len_post_f, len_post_g)
 
 
 def test_merge_opt_runtime():
@@ -109,11 +111,11 @@ def test_merge_opt_runtime():
     x = T.dvector()
     for i in xrange(50):
         if i:
-            r = r + r/10
+            r = r + r / 10
         else:
             r = x
     t = time.time()
-    f = theano.function([x], r, mode='FAST_COMPILE')
+    f = theano.function([x], r, mode="FAST_COMPILE")
     # FAST_RUN does in-place optimizer which requires a lot of
     # toposorting, which is actually pretty slow at the moment.  This
     # test was designed to test MergeOptimizer... so I'm leaving

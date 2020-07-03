@@ -17,8 +17,7 @@ import theano
 import theano.tensor as T
 
 
-def execute(execute=True, verbose=True, M=2000, N=2000, K=2000,
-            iters=10, order='C'):
+def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order="C"):
     """
     :param execute: If True, execute a Theano function that should call gemm.
     :param verbose: If True, will print some Theano flags and env variables.
@@ -30,50 +29,46 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000,
     """
 
     if verbose:
-        print('Some Theano flags:')
-        print('    blas.ldflags=', theano.config.blas.ldflags)
-        print('    compiledir=', theano.config.compiledir)
-        print('    floatX=', theano.config.floatX)
-        print('    device=', theano.config.device)
-        print('Some OS information:')
-        print('    sys.platform=', sys.platform)
-        print('    sys.version=', sys.version)
-        print('    sys.prefix=', sys.prefix)
-        print('Some environment variables:')
-        print('    MKL_NUM_THREADS=', os.getenv('MKL_NUM_THREADS'))
-        print('    OMP_NUM_THREADS=', os.getenv('OMP_NUM_THREADS'))
-        print('    GOTO_NUM_THREADS=', os.getenv('GOTO_NUM_THREADS'))
+        print("Some Theano flags:")
+        print("    blas.ldflags=", theano.config.blas.ldflags)
+        print("    compiledir=", theano.config.compiledir)
+        print("    floatX=", theano.config.floatX)
+        print("    device=", theano.config.device)
+        print("Some OS information:")
+        print("    sys.platform=", sys.platform)
+        print("    sys.version=", sys.version)
+        print("    sys.prefix=", sys.prefix)
+        print("Some environment variables:")
+        print("    MKL_NUM_THREADS=", os.getenv("MKL_NUM_THREADS"))
+        print("    OMP_NUM_THREADS=", os.getenv("OMP_NUM_THREADS"))
+        print("    GOTO_NUM_THREADS=", os.getenv("GOTO_NUM_THREADS"))
         print()
-        print('Numpy config: (used when the Theano flag'
-              ' "blas.ldflags" is empty)')
+        print("Numpy config: (used when the Theano flag" ' "blas.ldflags" is empty)')
         np.show_config()
-        print('Numpy dot module:', np.dot.__module__)
-        print('Numpy location:', np.__file__)
-        print('Numpy version:', np.__version__)
+        print("Numpy dot module:", np.dot.__module__)
+        print("Numpy location:", np.__file__)
+        print("Numpy version:", np.__version__)
 
-    a = theano.shared(np.ones((M, N), dtype=theano.config.floatX,
-                              order=order))
-    b = theano.shared(np.ones((N, K), dtype=theano.config.floatX,
-                              order=order))
-    c = theano.shared(np.ones((M, K), dtype=theano.config.floatX,
-                              order=order))
-    f = theano.function([], updates=[(c, 0.4 * c + .8 * T.dot(a, b))])
+    a = theano.shared(np.ones((M, N), dtype=theano.config.floatX, order=order))
+    b = theano.shared(np.ones((N, K), dtype=theano.config.floatX, order=order))
+    c = theano.shared(np.ones((M, K), dtype=theano.config.floatX, order=order))
+    f = theano.function([], updates=[(c, 0.4 * c + 0.8 * T.dot(a, b))])
 
-    if any([x.op.__class__.__name__ == 'Gemm' for x in
-            f.maker.fgraph.toposort()]):
-        c_impl = [hasattr(thunk, 'cthunk')
-                  for node, thunk in zip(f.fn.nodes, f.fn.thunks)
-                  if node.op.__class__.__name__ == "Gemm"]
+    if any([x.op.__class__.__name__ == "Gemm" for x in f.maker.fgraph.toposort()]):
+        c_impl = [
+            hasattr(thunk, "cthunk")
+            for node, thunk in zip(f.fn.nodes, f.fn.thunks)
+            if node.op.__class__.__name__ == "Gemm"
+        ]
         assert len(c_impl) == 1
         if c_impl[0]:
-            impl = 'CPU (with direct Theano binding to blas)'
+            impl = "CPU (with direct Theano binding to blas)"
         else:
-            impl = 'CPU (without direct Theano binding to blas but with numpy/scipy binding to blas)'
-    elif any([x.op.__class__.__name__ == 'GpuGemm' for x in
-              f.maker.fgraph.toposort()]):
-        impl = 'GPU'
+            impl = "CPU (without direct Theano binding to blas but with numpy/scipy binding to blas)"
+    elif any([x.op.__class__.__name__ == "GpuGemm" for x in f.maker.fgraph.toposort()]):
+        impl = "GPU"
     else:
-        impl = 'ERROR, unable to tell if Theano used the cpu or the gpu:\n'
+        impl = "ERROR, unable to tell if Theano used the cpu or the gpu:\n"
         impl += str(f.maker.fgraph.toposort())
 
     t0 = 0
@@ -81,8 +76,9 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000,
 
     f()  # Ignore first function call to get representative time.
     if execute:
-        sync = (hasattr(theano, "gpuarray") and
-                isinstance(c, theano.gpuarray.GpuArraySharedVariable))
+        sync = hasattr(theano, "gpuarray") and isinstance(
+            c, theano.gpuarray.GpuArraySharedVariable
+        )
         if sync:
             # Make sure we don't include the time from the first call
             c.get_value(borrow=True, return_internal_type=True).sync()
@@ -105,36 +101,78 @@ def test():
 
 
 parser = OptionParser(
-    usage='%prog <options>\nCompute time needed to perform BLAS gemm '
-    'computations between matrices of size (M, N) and (N, K).')
+    usage="%prog <options>\nCompute time needed to perform BLAS gemm "
+    "computations between matrices of size (M, N) and (N, K)."
+)
 
-parser.add_option('-q', '--quiet', action='store_true', dest='quiet',
-                  default=False,
-                  help="If true, do not print the comparison table and config "
-                       "options")
-parser.add_option('--print_only', action='store_true', dest='print_only',
-                  default=False,
-                  help="If true, do not perform gemm computations")
-parser.add_option('-M', '--M', action='store', dest='M',
-                  default=0, type="int",
-                  help="The M size to gemm")
-parser.add_option('-N', '--N', action='store', dest='N',
-                  default=0, type="int",
-                  help="The N size to gemm")
-parser.add_option('-K', '--K', action='store', dest='K',
-                  default=0, type="int",
-                  help="The K size to gemm")
-parser.add_option('--iter', action='store', dest='iter',
-                  default=10, type="int",
-                  help="The number of calls to gemm")
-parser.add_option('--order', action='store', dest='order',
-                  default="C",
-                  help="The numpy memory layout parameter used when creating"
-                  " the numpy.ndarray objects. It accepts 'C' for C memory"
-                  " order and 'F' for Fortran order (for all matrices).")
-parser.add_option('-B', '--B', action='store', dest='B',
-                  default=5000, type="int",
-                  help="The M, N, and K for big gemm")
+parser.add_option(
+    "-q",
+    "--quiet",
+    action="store_true",
+    dest="quiet",
+    default=False,
+    help="If true, do not print the comparison table and config " "options",
+)
+parser.add_option(
+    "--print_only",
+    action="store_true",
+    dest="print_only",
+    default=False,
+    help="If true, do not perform gemm computations",
+)
+parser.add_option(
+    "-M",
+    "--M",
+    action="store",
+    dest="M",
+    default=0,
+    type="int",
+    help="The M size to gemm",
+)
+parser.add_option(
+    "-N",
+    "--N",
+    action="store",
+    dest="N",
+    default=0,
+    type="int",
+    help="The N size to gemm",
+)
+parser.add_option(
+    "-K",
+    "--K",
+    action="store",
+    dest="K",
+    default=0,
+    type="int",
+    help="The K size to gemm",
+)
+parser.add_option(
+    "--iter",
+    action="store",
+    dest="iter",
+    default=10,
+    type="int",
+    help="The number of calls to gemm",
+)
+parser.add_option(
+    "--order",
+    action="store",
+    dest="order",
+    default="C",
+    help="The numpy memory layout parameter used when creating"
+    " the numpy.ndarray objects. It accepts 'C' for C memory"
+    " order and 'F' for Fortran order (for all matrices).",
+)
+parser.add_option(
+    "-B",
+    "--B",
+    action="store",
+    dest="B",
+    default=5000,
+    type="int",
+    help="The M, N, and K for big gemm",
+)
 
 
 if __name__ == "__main__":
@@ -145,7 +183,8 @@ if __name__ == "__main__":
         sys.exit(0)
 
     if not options.quiet:
-        print("""
+        print(
+            """
         Some results that you can compare against. They were 10 executions
         of gemm in float64 with matrices of shape 2000x2000 (M=N=K=2000).
         All memory layout was in C order.
@@ -216,7 +255,8 @@ if __name__ == "__main__":
         GTX 480                  2.87s
         TX1                             7.6s (float32 storage and computation)
         GT 610                          33.5s
-        """)
+        """
+        )
 
     if options.M == 0:
         M = options.B
@@ -231,9 +271,15 @@ if __name__ == "__main__":
     else:
         K = options.K
 
-    t, impl = execute(not options.print_only, not options.quiet,
-                      M=M, N=N, K=K, iters=options.iter,
-                      order=options.order)
+    t, impl = execute(
+        not options.print_only,
+        not options.quiet,
+        M=M,
+        N=N,
+        K=K,
+        iters=options.iter,
+        order=options.order,
+    )
 
     if options.print_only:
         pass
@@ -241,13 +287,15 @@ if __name__ == "__main__":
         print(t)
     else:
         print()
-        print("We executed", options.iter, end=' ')
-        print("calls to gemm with a and b matrices of shapes", end=' ')
+        print("We executed", options.iter, end=" ")
+        print("calls to gemm with a and b matrices of shapes", end=" ")
         print("(%d, %d) and (%d, %d)." % (M, N, N, K))
 
         print()
-        print('Total execution time: %.2fs on %s.' % (t, impl))
+        print("Total execution time: %.2fs on %s." % (t, impl))
         print()
-        print('Try to run this script a few times. Experience shows that'
-              ' the first time is not as fast as followings calls. The'
-              ' difference is not big, but consistent.')
+        print(
+            "Try to run this script a few times. Experience shows that"
+            " the first time is not as fast as followings calls. The"
+            " difference is not big, but consistent."
+        )

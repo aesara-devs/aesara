@@ -26,11 +26,14 @@ class TDouble(Type):
         return "double %(name)s; void* %(name)s_bad_thing;" % locals()
 
     def c_init(self, name, sub):
-        return """
+        return (
+            """
         %(name)s = 0;
         %(name)s_bad_thing = malloc(100000);
         //printf("Initializing %(name)s\\n");
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_literal(self, data):
         return str(data)
@@ -44,23 +47,31 @@ class TDouble(Type):
         %(name)s = PyFloat_AsDouble(py_%(name)s);
         %(name)s_bad_thing = NULL;
         //printf("Extracting %(name)s\\n");
-        """ % dict(locals(), **sub)
+        """ % dict(
+            locals(), **sub
+        )
 
     def c_sync(self, name, sub):
-        return """
+        return (
+            """
         Py_XDECREF(py_%(name)s);
         py_%(name)s = PyFloat_FromDouble(%(name)s);
         if (!py_%(name)s)
             py_%(name)s = Py_None;
         //printf("Syncing %(name)s\\n");
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_cleanup(self, name, sub):
-        return """
+        return (
+            """
         //printf("Cleaning up %(name)s\\n");
         if (%(name)s_bad_thing)
             free(%(name)s_bad_thing);
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_code_cache_version(self):
         return (1,)
@@ -70,6 +81,7 @@ class TDouble(Type):
 
     def __hash__(self):
         return hash(type(self))
+
 
 tdouble = TDouble()
 
@@ -99,7 +111,7 @@ class MyOp(Op):
         return self.name
 
     def perform(self, node, inputs, out_):
-        out, = out_
+        (out,) = out_
         out[0] = self.impl(*inputs)
 
     def c_code_cache_version(self):
@@ -119,51 +131,59 @@ class Binary(MyOp):
 class Add(Binary):
     def c_code(self, node, name, inp, out, sub):
         x, y = inp
-        z, = out
+        (z,) = out
         return "%(z)s = %(x)s + %(y)s;" % locals()
 
     def impl(self, x, y):
         return x + y
+
+
 add = Add()
 
 
 class BadSub(Binary):
     def c_code(self, node, name, inp, out, sub):
         x, y = inp
-        z, = out
+        (z,) = out
         return "%(z)s = %(x)s - %(y)s;" % locals()
 
     def impl(self, x, y):
         return -10  # erroneous (most of the time)
+
+
 bad_sub = BadSub()
 
 
 class Mul(Binary):
     def c_code(self, node, name, inp, out, sub):
         x, y = inp
-        z, = out
+        (z,) = out
         return "%(z)s = %(x)s * %(y)s;" % locals()
 
     def impl(self, x, y):
         return x * y
+
+
 mul = Mul()
 
 
 class Div(Binary):
     def c_code(self, node, name, inp, out, sub):
         x, y = inp
-        z, = out
+        (z,) = out
         return "%(z)s = %(x)s / %(y)s;" % locals()
 
     def impl(self, x, y):
         return x / y
+
+
 div = Div()
 
 
 def inputs():
-    x = double('x')
-    y = double('y')
-    z = double('z')
+    x = double("x")
+    y = double("y")
+    z = double("z")
     return x, y, z
 
 
@@ -175,6 +195,7 @@ def Env(inputs, outputs):
 ################
 # Test CLinker #
 ################
+
 
 def test_clinker_straightforward():
     if not theano.config.cxx:
@@ -206,26 +227,28 @@ def test_clinker_literal_cache():
     if not theano.config.cxx:
         pytest.skip("G++ not available, so we need to skip this test.")
 
-    mode = theano.Mode(linker='c')
+    mode = theano.Mode(linker="c")
 
     A = theano.tensor.matrix()
     input1 = theano.tensor.vector()
 
-    normal_svd = np.array([[5.936276e+01, -4.664007e-07, -2.56265e-06],
-                           [-4.664007e-07, 9.468691e-01, -3.18862e-02],
-                           [-2.562651e-06, -3.188625e-02, 1.05226e+00]],
-                          dtype=theano.config.floatX)
+    normal_svd = np.array(
+        [
+            [5.936276e01, -4.664007e-07, -2.56265e-06],
+            [-4.664007e-07, 9.468691e-01, -3.18862e-02],
+            [-2.562651e-06, -3.188625e-02, 1.05226e00],
+        ],
+        dtype=theano.config.floatX,
+    )
 
-    orientationi = np.array([59.36276866, 1.06116353, 0.93797339],
-                            dtype=theano.config.floatX)
+    orientationi = np.array(
+        [59.36276866, 1.06116353, 0.93797339], dtype=theano.config.floatX
+    )
 
-    for out1 in [A - input1[0] * np.identity(3),
-                 input1[0] * np.identity(3)]:
+    for out1 in [A - input1[0] * np.identity(3), input1[0] * np.identity(3)]:
         benchmark = theano.function(
-            inputs=[A, input1],
-            outputs=[out1],
-            on_unused_input='ignore',
-            mode=mode)
+            inputs=[A, input1], outputs=[out1], on_unused_input="ignore", mode=mode
+        )
 
         out1 = benchmark(normal_svd, orientationi)
 
@@ -293,7 +316,7 @@ def test_opwiseclinker_straightforward():
 
 def test_opwiseclinker_constant():
     x, y, z = inputs()
-    x = Constant(tdouble, 7.2, name='x')
+    x = Constant(tdouble, 7.2, name="x")
     e = add(mul(x, y), mul(y, z))
     lnk = OpWiseCLinker().accept(Env([y, z], [e]))
     fn = lnk.make_function()
@@ -307,13 +330,13 @@ class MyExc(Exception):
 
 def _my_checker(x, y):
     if x[0] != y[0]:
-        raise MyExc("Output mismatch.",
-                    {'performlinker': x[0], 'clinker': y[0]})
+        raise MyExc("Output mismatch.", {"performlinker": x[0], "clinker": y[0]})
 
 
 ###################
 # Test DualLinker #
 ###################
+
 
 def test_duallinker_straightforward():
     x, y, z = inputs()
@@ -356,17 +379,23 @@ def test_duallinker_mismatch():
 # Test that failure code works #
 ################################
 
+
 class AddFail(Binary):
     def c_code(self, node, name, inp, out, sub):
         x, y = inp
-        z, = out
-        fail = sub['fail']
-        return """%(z)s = %(x)s + %(y)s;
+        (z,) = out
+        fail = sub["fail"]
+        return (
+            """%(z)s = %(x)s + %(y)s;
             PyErr_SetString(PyExc_RuntimeError, "failing here");
-            %(fail)s;""" % locals()
+            %(fail)s;"""
+            % locals()
+        )
 
     def impl(self, x, y):
         return x + y
+
+
 add_fail = AddFail()
 
 
@@ -374,14 +403,14 @@ def test_c_fail_error():
     if not theano.config.cxx:
         pytest.skip("G++ not available, so we need to skip this test.")
     x, y, z = inputs()
-    x = Constant(tdouble, 7.2, name='x')
+    x = Constant(tdouble, 7.2, name="x")
     e = add_fail(mul(x, y), mul(y, z))
     lnk = OpWiseCLinker().accept(Env([y, z], [e]))
     fn = lnk.make_function()
     try:
         fn(1.5, 3.0)
     except RuntimeError:
-        print('Yay, TEST PASSED')
+        print("Yay, TEST PASSED")
         return  # test passed
     assert 0  # test failed
 
@@ -393,13 +422,12 @@ def test_shared_input_output():
     if not theano.config.cxx:
         pytest.skip("Need cxx for this test")
 
-    inc = theano.tensor.iscalar('inc')
+    inc = theano.tensor.iscalar("inc")
     state = theano.shared(0)
-    state.name = 'state'
+    state.name = "state"
     linker = theano.gof.CLinker()
     mode = theano.Mode(linker=linker)
-    f = theano.function([inc], state, updates=[(state, state + inc)],
-                        mode=mode)
+    f = theano.function([inc], state, updates=[(state, state + inc)], mode=mode)
     g = theano.function([inc], state, updates=[(state, state + inc)])
 
     # Initial value
@@ -421,10 +449,9 @@ def test_shared_input_output():
     g0 = g(0)
     assert f0 == g0 == 5, (f0, g0)
 
-    vstate = theano.shared(np.zeros(3, dtype='int32'))
-    vstate.name = 'vstate'
-    fv = theano.function([inc], vstate, updates=[(vstate, vstate + inc)],
-                         mode=mode)
+    vstate = theano.shared(np.zeros(3, dtype="int32"))
+    vstate.name = "vstate"
+    fv = theano.function([inc], vstate, updates=[(vstate, vstate + inc)], mode=mode)
     gv = theano.function([inc], vstate, updates=[(vstate, vstate + inc)])
 
     # Initial value

@@ -29,8 +29,7 @@ from six.moves import xrange
 from theano.gof.utils import flatten
 from theano import config
 from theano.gof.utils import hash_from_code
-from theano.misc.windows import (subprocess_Popen,
-                                 output_subprocess_Popen)
+from theano.misc.windows import subprocess_Popen, output_subprocess_Popen
 
 # we will abuse the lockfile mechanism when reading and writing the registry
 from theano.gof import compilelock
@@ -122,24 +121,23 @@ class ExtFunction(object):
         It goes into the DynamicModule's method table.
 
         """
-        return '\t{"%s", %s, %s, "%s"}' % (
-            self.name, self.name, self.method, self.doc)
+        return '\t{"%s", %s, %s, "%s"}' % (self.name, self.name, self.method, self.doc)
 
 
 class DynamicModule(object):
-
     def __init__(self, name=None):
         assert name is None, (
             "The 'name' parameter of DynamicModule"
             " cannot be specified anymore. Instead, 'code_hash'"
             " will be automatically computed and can be used as"
-            " the module's name.")
+            " the module's name."
+        )
         # While the module is not finalized, we can call add_...
         # when it is finalized, a hash is computed and used instead of
         # the placeholder, and as module name.
         self.finalized = False
         self.code_hash = None
-        self.hash_placeholder = '<<<<HASH_PLACEHOLDER>>>>'
+        self.hash_placeholder = "<<<<HASH_PLACEHOLDER>>>>"
 
         self.support_code = []
         self.functions = []
@@ -149,13 +147,14 @@ class DynamicModule(object):
     def print_methoddef(self, stream):
         print("static PyMethodDef MyMethods[] = {", file=stream)
         for f in self.functions:
-            print(f.method_decl(), ',', file=stream)
+            print(f.method_decl(), ",", file=stream)
         print("\t{NULL, NULL, 0, NULL}", file=stream)
         print("};", file=stream)
 
     def print_init(self, stream):
         if PY3:
-            print("""\
+            print(
+                """\
 static struct PyModuleDef moduledef = {{
       PyModuleDef_HEAD_INIT,
       "{name}",
@@ -163,20 +162,28 @@ static struct PyModuleDef moduledef = {{
       -1,
       MyMethods,
 }};
-""".format(name=self.hash_placeholder), file=stream)
-            print(("PyMODINIT_FUNC PyInit_%s(void) {" %
-                  self.hash_placeholder), file=stream)
+""".format(
+                    name=self.hash_placeholder
+                ),
+                file=stream,
+            )
+            print(
+                ("PyMODINIT_FUNC PyInit_%s(void) {" % self.hash_placeholder),
+                file=stream,
+            )
             for block in self.init_blocks:
-                print('  ', block, file=stream)
+                print("  ", block, file=stream)
             print("    PyObject *m = PyModule_Create(&moduledef);", file=stream)
             print("    return m;", file=stream)
         else:
-            print(("PyMODINIT_FUNC init%s(void){" %
-                  self.hash_placeholder), file=stream)
+            print(("PyMODINIT_FUNC init%s(void){" % self.hash_placeholder), file=stream)
             for block in self.init_blocks:
-                print('  ', block, file=stream)
-            print('  ', ('(void) Py_InitModule("%s", MyMethods);'
-                  % self.hash_placeholder), file=stream)
+                print("  ", block, file=stream)
+            print(
+                "  ",
+                ('(void) Py_InitModule("%s", MyMethods);' % self.hash_placeholder),
+                file=stream,
+            )
         print("}", file=stream)
 
     def add_include(self, str):
@@ -201,7 +208,7 @@ static struct PyModuleDef moduledef = {{
         for inc in self.includes:
             if not inc:
                 continue
-            if inc[0] == '<' or inc[0] == '"':
+            if inc[0] == "<" or inc[0] == '"':
                 print("#include", inc, file=sio)
             else:
                 print('#include "%s"' % inc, file=sio)
@@ -241,8 +248,8 @@ static struct PyModuleDef moduledef = {{
         Print out the code with line numbers to `ofile`.
 
         """
-        for i, line in enumerate(self.code().split('\n')):
-            print(('%4i' % (i + 1)), line, file=ofile)
+        for i, line in enumerate(self.code().split("\n")):
+            print(("%4i" % (i + 1)), line, file=ofile)
         ofile.flush()
 
     # TODO: add_type
@@ -275,31 +282,31 @@ def dlimport(fullpath, suffix=None):
 
     """
     if not os.path.isabs(fullpath):
-        raise ValueError('`fullpath` must be an absolute path', fullpath)
+        raise ValueError("`fullpath` must be an absolute path", fullpath)
     if suffix is None:
-        suffix = ''
+        suffix = ""
 
         dist_suffix = _get_ext_suffix()
-        if dist_suffix is not None and dist_suffix != '':
+        if dist_suffix is not None and dist_suffix != "":
             if fullpath.endswith(dist_suffix):
                 suffix = dist_suffix
 
-        if suffix == '':
-            if fullpath.endswith('.so'):
-                suffix = '.so'
-            elif fullpath.endswith('.pyd'):
-                suffix = '.pyd'
-            elif fullpath.endswith('.dll'):
-                suffix = '.dll'
-            elif fullpath.endswith('.py'):
-                suffix = '.py'
+        if suffix == "":
+            if fullpath.endswith(".so"):
+                suffix = ".so"
+            elif fullpath.endswith(".pyd"):
+                suffix = ".pyd"
+            elif fullpath.endswith(".dll"):
+                suffix = ".dll"
+            elif fullpath.endswith(".py"):
+                suffix = ".py"
 
     rval = None
     if fullpath.endswith(suffix):
-        module_name = '.'.join(fullpath.split(os.path.sep)[-2:])[:-len(suffix)]
+        module_name = ".".join(fullpath.split(os.path.sep)[-2:])[: -len(suffix)]
     else:
-        raise ValueError('path has wrong suffix', (fullpath, suffix))
-    workdir = fullpath[:-len(module_name) - 1 - len(suffix)]
+        raise ValueError("path has wrong suffix", (fullpath, suffix))
+    workdir = fullpath[: -len(module_name) - 1 - len(suffix)]
 
     _logger.debug("WORKDIR %s", workdir)
     _logger.debug("module_name %s", module_name)
@@ -312,13 +319,12 @@ def dlimport(fullpath, suffix=None):
                 importlib.invalidate_caches()
         t0 = time.time()
         with warnings.catch_warnings():
-            warnings.filterwarnings("ignore",
-                                    message="numpy.ndarray size changed")
+            warnings.filterwarnings("ignore", message="numpy.ndarray size changed")
             rval = __import__(module_name, {}, {}, [module_name])
         t1 = time.time()
         import_time += t1 - t0
         if not rval:
-            raise Exception('__import__ failed', fullpath)
+            raise Exception("__import__ failed", fullpath)
     finally:
         del sys.path[0]
 
@@ -357,15 +363,13 @@ def module_name_from_dir(dirname, err=True, files=None):
         except OSError as e:
             if e.errno == 2 and not err:  # No such file or directory
                 return None
-    names = [file for file in files
-             if file.endswith('.so') or file.endswith('.pyd')]
+    names = [file for file in files if file.endswith(".so") or file.endswith(".pyd")]
     if len(names) == 0 and not err:
         return None
     elif len(names) == 1:
         return os.path.join(dirname, names[0])
     else:
-        raise ValueError("More than 1 compiled module in this directory:" +
-                         dirname)
+        raise ValueError("More than 1 compiled module in this directory:" + dirname)
 
 
 def is_same_entry(entry_1, entry_2):
@@ -382,10 +386,14 @@ def is_same_entry(entry_1, entry_2):
         return True
     if os.path.realpath(entry_1) == os.path.realpath(entry_2):
         return True
-    if (os.path.basename(entry_1) == os.path.basename(entry_2) and
-            (os.path.basename(os.path.dirname(entry_1)) ==
-             os.path.basename(os.path.dirname(entry_2))) and
-            os.path.basename(os.path.dirname(entry_1)).startswith('tmp')):
+    if (
+        os.path.basename(entry_1) == os.path.basename(entry_2)
+        and (
+            os.path.basename(os.path.dirname(entry_1))
+            == os.path.basename(os.path.dirname(entry_2))
+        )
+        and os.path.basename(os.path.dirname(entry_1)).startswith("tmp")
+    ):
         return True
     return False
 
@@ -406,7 +414,7 @@ def get_module_hash(src_code, key):
     # it changes, then the module hash should be different.
     # We start with the source code itself (stripping blanks might avoid
     # recompiling after a basic indentation fix for instance).
-    to_hash = [l.strip() for l in src_code.split('\n')]
+    to_hash = [l.strip() for l in src_code.split("\n")]
     # Get the version part of the key (ignore if unversioned).
     if key[0]:
         to_hash += list(map(str, key[0]))
@@ -418,33 +426,35 @@ def get_module_hash(src_code, key):
     # changes to the key in an automatic way.
     # Note that if the key structure changes, the `get_safe_part` function
     # below may also need to be modified.
-    error_msg = ("This should not happen unless someone modified the code "
-                 "that defines the CLinker key, in which case you should "
-                 "ensure this piece of code is still valid (and this "
-                 "AssertionError may be removed or modified to accommodate "
-                 "this change)")
-    assert c_link_key[0] == 'CLinker.cmodule_key', error_msg
+    error_msg = (
+        "This should not happen unless someone modified the code "
+        "that defines the CLinker key, in which case you should "
+        "ensure this piece of code is still valid (and this "
+        "AssertionError may be removed or modified to accommodate "
+        "this change)"
+    )
+    assert c_link_key[0] == "CLinker.cmodule_key", error_msg
     for key_element in c_link_key[1:]:
         if isinstance(key_element, tuple):
             # This should be the C++ compilation command line parameters or the
             # libraries to link against.
             to_hash += list(key_element)
         elif isinstance(key_element, string_types):
-            if (key_element.startswith('md5:') or
-                    key_element.startswith('hash:')):
+            if key_element.startswith("md5:") or key_element.startswith("hash:"):
                 # This is actually a sha256 hash of the config options.
                 # Currently, we still keep md5 to don't break old Theano.
                 # We add 'hash:' so that when we change it in
                 # the futur, it won't break this version of Theano.
                 break
-            elif (key_element.startswith('NPY_ABI_VERSION=0x') or
-                  key_element.startswith('c_compiler_str=')):
+            elif key_element.startswith("NPY_ABI_VERSION=0x") or key_element.startswith(
+                "c_compiler_str="
+            ):
                 to_hash.append(key_element)
             else:
                 raise AssertionError(error_msg)
         else:
             raise AssertionError(error_msg)
-    return hash_from_code('\n'.join(to_hash))
+    return hash_from_code("\n".join(to_hash))
 
 
 def get_safe_part(key):
@@ -475,14 +485,14 @@ def get_safe_part(key):
     hash = None
     for key_element in c_link_key[1:]:
         if isinstance(key_element, string_types):
-            if key_element.startswith('md5:'):
+            if key_element.startswith("md5:"):
                 hash = key_element[4:]
                 break
-            elif key_element.startswith('hash:'):
+            elif key_element.startswith("hash:"):
                 hash = key_element[5:]
                 break
 
-    return key[0] + (hash, )
+    return key[0] + (hash,)
 
 
 class KeyData(object):
@@ -537,11 +547,10 @@ class KeyData(object):
         """
         # Note that writing in binary mode is important under Windows.
         try:
-            with open(self.key_pkl, 'wb') as f:
+            with open(self.key_pkl, "wb") as f:
                 pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
         except pickle.PicklingError:
-            _logger.warning("Cache leak due to unpickle-able key data %s",
-                            self.keys)
+            _logger.warning("Cache leak due to unpickle-able key data %s", self.keys)
             os.remove(self.key_pkl)
             raise
 
@@ -553,7 +562,7 @@ class KeyData(object):
         # TODO This method may be removed in the future (e.g. in 0.5) since
         # its only purpose is to make sure that old KeyData objects created
         # before the 'entry' field was added are properly handled.
-        if not hasattr(self, 'entry'):
+        if not hasattr(self, "entry"):
             self.entry = module_name_from_dir(os.path.dirname(self.key_pkl))
         return self.entry
 
@@ -716,16 +725,15 @@ class ModuleCache(object):
 
         """
         if name not in self.module_from_name:
-            _logger.debug('loading name %s', name)
+            _logger.debug("loading name %s", name)
             self.module_from_name[name] = dlimport(name)
             self.stats[1] += 1
         else:
-            _logger.debug('returning compiled module from cache %s', name)
+            _logger.debug("returning compiled module from cache %s", name)
             self.stats[0] += 1
         return self.module_from_name[name]
 
-    def refresh(self, age_thresh_use=None, delete_if_problem=False,
-                cleanup=True):
+    def refresh(self, age_thresh_use=None, delete_if_problem=False, cleanup=True):
         """
         Update cache data by walking the cache directory structure.
 
@@ -780,27 +788,25 @@ class ModuleCache(object):
         files, root = None, None  # To make sure the "del" below works
         for subdirs_elem in subdirs:
             # Never clean/remove lock_dir
-            if subdirs_elem == 'lock_dir':
+            if subdirs_elem == "lock_dir":
                 continue
             root = os.path.join(self.dirname, subdirs_elem)
             # Don't delete the gpuarray kernel cache
             if root == config.gpuarray.cache_path:
                 continue
-            key_pkl = os.path.join(root, 'key.pkl')
+            key_pkl = os.path.join(root, "key.pkl")
             if key_pkl in self.loaded_key_pkl:
                 continue
             if not os.path.isdir(root):
                 continue
             files = os.listdir(root)
             if not files:
-                rmtree_empty(root, ignore_nocleanup=True,
-                             msg="empty dir")
+                rmtree_empty(root, ignore_nocleanup=True, msg="empty dir")
                 continue
-            if 'delete.me' in files:
-                rmtree(root, ignore_nocleanup=True,
-                       msg="delete.me found in dir")
+            if "delete.me" in files:
+                rmtree(root, ignore_nocleanup=True, msg="delete.me found in dir")
                 continue
-            elif 'key.pkl' in files:
+            elif "key.pkl" in files:
                 try:
                     entry = module_name_from_dir(root, files=files)
                 except ValueError:  # there is a key but no dll!
@@ -808,36 +814,50 @@ class ModuleCache(object):
                         # Under /tmp, file are removed periodically by the
                         # os. So it is normal that this happens from time
                         # to time.
-                        _logger.warning("ModuleCache.refresh() Found key "
-                                        "without dll in cache, deleting it. %s",
-                                        key_pkl)
-                    rmtree(root, ignore_nocleanup=True,
-                           msg="missing module file", level=logging.INFO)
+                        _logger.warning(
+                            "ModuleCache.refresh() Found key "
+                            "without dll in cache, deleting it. %s",
+                            key_pkl,
+                        )
+                    rmtree(
+                        root,
+                        ignore_nocleanup=True,
+                        msg="missing module file",
+                        level=logging.INFO,
+                    )
                     continue
                 if (time_now - last_access_time(entry)) < age_thresh_use:
-                    _logger.debug('refresh adding %s', key_pkl)
+                    _logger.debug("refresh adding %s", key_pkl)
 
                     def unpickle_failure():
-                        _logger.info("ModuleCache.refresh() Failed to "
-                                     "unpickle cache file %s", key_pkl)
+                        _logger.info(
+                            "ModuleCache.refresh() Failed to " "unpickle cache file %s",
+                            key_pkl,
+                        )
 
                     try:
-                        with open(key_pkl, 'rb') as f:
+                        with open(key_pkl, "rb") as f:
                             key_data = pickle.load(f)
                     except EOFError:
                         # Happened once... not sure why (would be worth
                         # investigating if it ever happens again).
                         unpickle_failure()
-                        rmtree(root, ignore_nocleanup=True,
-                               msg='broken cache directory [EOF]',
-                               level=logging.WARNING)
+                        rmtree(
+                            root,
+                            ignore_nocleanup=True,
+                            msg="broken cache directory [EOF]",
+                            level=logging.WARNING,
+                        )
                         continue
                     except Exception:
                         unpickle_failure()
                         if delete_if_problem:
-                            rmtree(root, ignore_nocleanup=True,
-                                   msg='broken cache directory',
-                                   level=logging.INFO)
+                            rmtree(
+                                root,
+                                ignore_nocleanup=True,
+                                msg="broken cache directory",
+                                level=logging.INFO,
+                            )
                         else:
                             # This exception is often triggered by keys
                             # that contain references to classes that have
@@ -855,12 +875,16 @@ class ModuleCache(object):
                         # do not know the config options that were used.
                         # As a result, we delete it instead (which is also
                         # simpler to implement).
-                        rmtree(root, ignore_nocleanup=True,
-                               msg=(
-                                   'invalid cache entry format -- this '
-                                   'should not happen unless your cache '
-                                   'was really old'),
-                               level=logging.WARN)
+                        rmtree(
+                            root,
+                            ignore_nocleanup=True,
+                            msg=(
+                                "invalid cache entry format -- this "
+                                "should not happen unless your cache "
+                                "was really old"
+                            ),
+                            level=logging.WARN,
+                        )
                         continue
 
                     # Check the path to the module stored in the KeyData
@@ -878,9 +902,12 @@ class ModuleCache(object):
                             key_data.key_pkl = key_pkl
                         else:
                             # This is suspicious. Better get rid of it.
-                            rmtree(root, ignore_nocleanup=True,
-                                   msg='module file path mismatch',
-                                   level=logging.INFO)
+                            rmtree(
+                                root,
+                                ignore_nocleanup=True,
+                                msg="module file path mismatch",
+                                level=logging.INFO,
+                            )
                             continue
 
                     # Find unversioned keys from other processes.
@@ -889,17 +916,24 @@ class ModuleCache(object):
                     if to_del:
                         _logger.warning(
                             "ModuleCache.refresh() Found unversioned "
-                            "key in cache, removing it. %s", key_pkl)
+                            "key in cache, removing it. %s",
+                            key_pkl,
+                        )
                         # Since the version is in the module hash, all
                         # keys should be unversioned.
                         if len(to_del) != len(key_data.keys):
                             _logger.warning(
-                                'Found a mix of unversioned and '
-                                'versioned keys for the same '
-                                'module %s', key_pkl)
-                        rmtree(root, ignore_nocleanup=True,
-                               msg="unversioned key(s) in cache",
-                               level=logging.INFO)
+                                "Found a mix of unversioned and "
+                                "versioned keys for the same "
+                                "module %s",
+                                key_pkl,
+                            )
+                        rmtree(
+                            root,
+                            ignore_nocleanup=True,
+                            msg="unversioned key(s) in cache",
+                            level=logging.INFO,
+                        )
                         continue
 
                     mod_hash = key_data.module_hash
@@ -915,14 +949,20 @@ class ModuleCache(object):
                         if cleanup:
                             age = time.time() - last_access_time(entry)
                             if delete_if_problem or age > self.age_thresh_del:
-                                rmtree(root, ignore_nocleanup=True,
-                                       msg='duplicated module',
-                                       level=logging.DEBUG)
+                                rmtree(
+                                    root,
+                                    ignore_nocleanup=True,
+                                    msg="duplicated module",
+                                    level=logging.DEBUG,
+                                )
                             else:
-                                _logger.debug('Found duplicated module not '
-                                              'old enough yet to be deleted '
-                                              '(age: %s): %s',
-                                              age, entry)
+                                _logger.debug(
+                                    "Found duplicated module not "
+                                    "old enough yet to be deleted "
+                                    "(age: %s): %s",
+                                    age,
+                                    entry,
+                                )
                         continue
 
                     # Remember the map from a module's hash to the KeyData
@@ -938,8 +978,8 @@ class ModuleCache(object):
                             # Store safe part of versioned keys.
                             if key[0]:
                                 self.similar_keys.setdefault(
-                                    get_safe_part(key),
-                                    []).append(key)
+                                    get_safe_part(key), []
+                                ).append(key)
                         else:
                             dir1 = os.path.dirname(self.entry_from_key[key])
                             dir2 = os.path.dirname(entry)
@@ -949,7 +989,9 @@ class ModuleCache(object):
                                 "is not supposed to happen! You may "
                                 "need to manually delete your cache "
                                 "directory to fix this.",
-                                dir1, dir2)
+                                dir1,
+                                dir2,
+                            )
                     # Clean up the name space to prevent bug.
                     if key_data.keys:
                         del key
@@ -982,10 +1024,12 @@ class ModuleCache(object):
                 # considered a failure of the OTHER process, that deleted
                 # it.
                 if entry in self.module_from_name:
-                    _logger.warning("A module that was loaded by this "
-                                    "ModuleCache can no longer be read from file "
-                                    "%s... this could lead to problems.",
-                                    entry)
+                    _logger.warning(
+                        "A module that was loaded by this "
+                        "ModuleCache can no longer be read from file "
+                        "%s... this could lead to problems.",
+                        entry,
+                    )
                     del self.module_from_name[entry]
 
                 _logger.info("deleting ModuleCache entry %s", entry)
@@ -1001,10 +1045,12 @@ class ModuleCache(object):
                         # Under /tmp, file are removed periodically by the
                         # os. So it is normal that this happen from time to
                         # time.
-                        _logger.warning("Removing key file %s because the "
-                                        "corresponding module is gone from the "
-                                        "file system.",
-                                        pkl_file_to_remove)
+                        _logger.warning(
+                            "Removing key file %s because the "
+                            "corresponding module is gone from the "
+                            "file system.",
+                            pkl_file_to_remove,
+                        )
                     self.loaded_key_pkl.remove(pkl_file_to_remove)
 
         if to_delete or to_delete_empty:
@@ -1016,8 +1062,7 @@ class ModuleCache(object):
                     if not files:
                         _rmtree(*a, **kw)
 
-        _logger.debug('Time needed to refresh cache: %s',
-                      (time.time() - start_time))
+        _logger.debug("Time needed to refresh cache: %s", (time.time() - start_time))
 
         return too_old_to_use
 
@@ -1035,8 +1080,7 @@ class ModuleCache(object):
             try:
                 _version, _rest = key
             except (TypeError, ValueError):
-                raise ValueError(
-                    "Invalid key. key must have form (version, rest)", key)
+                raise ValueError("Invalid key. key must have form (version, rest)", key)
             if key in self.entry_from_key:
                 name = self.entry_from_key[key]
         else:
@@ -1060,10 +1104,11 @@ class ModuleCache(object):
                 # We need the lock while we check in case of parallel
                 # process that could be changing the file at the same
                 # time.
-                if (key[0] and not key_broken and
-                        self.check_for_broken_eq):
+                if key[0] and not key_broken and self.check_for_broken_eq:
                     self.check_key(key, key_data.key_pkl)
-            self._update_mappings(key, key_data, module.__file__, check_in_keys=not key_broken)
+            self._update_mappings(
+                key, key_data, module.__file__, check_in_keys=not key_broken
+            )
             return module
         else:
             return None
@@ -1080,8 +1125,7 @@ class ModuleCache(object):
             else:
                 self.entry_from_key[k] = name
                 if key[0]:
-                    self.similar_keys.setdefault(get_safe_part(k),
-                                                 []).append(key)
+                    self.similar_keys.setdefault(get_safe_part(k), []).append(key)
 
     def _add_to_cache(self, module, key, module_hash):
         """
@@ -1089,21 +1133,18 @@ class ModuleCache(object):
 
         """
         name = module.__file__
-        _logger.debug("Adding module to cache %s %s",
-                      key, name)
+        _logger.debug("Adding module to cache %s %s", key, name)
         # Changing the hash of the key is not allowed during
         # compilation. That is the only cause found that makes
         # the following assert fail.
         assert key not in self.entry_from_key
 
         location = os.path.dirname(name)
-        key_pkl = os.path.join(location, 'key.pkl')
+        key_pkl = os.path.join(location, "key.pkl")
         assert not os.path.exists(key_pkl)
         key_data = KeyData(
-            keys=set([key]),
-            module_hash=module_hash,
-            key_pkl=key_pkl,
-            entry=name)
+            keys=set([key]), module_hash=module_hash, key_pkl=key_pkl, entry=name
+        )
 
         key_broken = False
         if key[0]:
@@ -1119,10 +1160,12 @@ class ModuleCache(object):
         elif config.cmodule.warn_no_version:
             key_flat = flatten(key)
             ops = [k for k in key_flat if isinstance(k, theano.Op)]
-            _logger.warning("not all the"
-                            " following op(s) implement"
-                            " c_code_cache_version(). This makes them"
-                            " recompiled for each process." + str(ops))
+            _logger.warning(
+                "not all the"
+                " following op(s) implement"
+                " c_code_cache_version(). This makes them"
+                " recompiled for each process." + str(ops)
+            )
         self._update_mappings(key, key_data, module.__file__, not key_broken)
         return key_data
 
@@ -1195,14 +1238,19 @@ class ModuleCache(object):
             except OSError as e:
                 _logger.error(e)
                 if e.errno == 31:
-                    _logger.error('There are %i files in %s',
-                                  len(os.listdir(config.compiledir)),
-                                  config.compiledir)
+                    _logger.error(
+                        "There are %i files in %s",
+                        len(os.listdir(config.compiledir)),
+                        config.compiledir,
+                    )
                 raise
             finally:
                 if not nocleanup:
-                    _rmtree(location, ignore_if_missing=True,
-                            msg='exception during compilation')
+                    _rmtree(
+                        location,
+                        ignore_if_missing=True,
+                        msg="exception during compilation",
+                    )
 
             # Changing the hash of the key is not allowed during
             # compilation.
@@ -1232,7 +1280,7 @@ class ModuleCache(object):
         # other key.
         for i in range(3):
             try:
-                with open(key_pkl, 'rb') as f:
+                with open(key_pkl, "rb") as f:
                     key_data = pickle.load(f)
                 break
             except EOFError:
@@ -1241,14 +1289,14 @@ class ModuleCache(object):
                 # without taking the lock.
                 if i == 2:
                     with compilelock.lock_ctx():
-                        with open(key_pkl, 'rb') as f:
+                        with open(key_pkl, "rb") as f:
                             key_data = pickle.load(f)
                 time.sleep(2)
 
         found = sum(key == other_key for other_key in key_data.keys)
-        msg = ''
+        msg = ""
         if found == 0:
-            msg = 'Key not found in unpickled KeyData file'
+            msg = "Key not found in unpickled KeyData file"
             if key_data.keys:
                 # This is to make debugging in pdb easier, by providing
                 # the offending keys in the local context.
@@ -1256,11 +1304,12 @@ class ModuleCache(object):
                 # import pdb; pdb.set_trace()
                 pass
         elif found > 1:
-            msg = 'Multiple equal keys found in unpickled KeyData file'
+            msg = "Multiple equal keys found in unpickled KeyData file"
         if msg:
             raise AssertionError(
                 "%s. Verify the __eq__ and __hash__ functions of your "
-                "Ops. The file is: %s. The key is: %s" % (msg, key_pkl, key))
+                "Ops. The file is: %s. The key is: %s" % (msg, key_pkl, key)
+            )
         # Also verify that there exists no other loaded key that would be equal
         # to this key. In order to speed things up, we only compare to keys
         # with the same version part and config hash, since we can assume this
@@ -1270,8 +1319,9 @@ class ModuleCache(object):
                 raise AssertionError(
                     "Found two keys that are equal but have a different hash. "
                     "Verify the __eq__ and __hash__ functions of your Ops. "
-                    "The keys are:\n  %s\nand\n  %s\n(found in %s)." %
-                    (other, key, key_pkl))
+                    "The keys are:\n  %s\nand\n  %s\n(found in %s)."
+                    % (other, key, key_pkl)
+                )
 
         self.time_spent_in_check_key += time.time() - start_time
 
@@ -1307,11 +1357,13 @@ class ModuleCache(object):
         # contain all modules older than age_thresh_del.
         if age_thresh_del < self.age_thresh_use:
             if age_thresh_del > 0:
-                _logger.warning("Clearing modules that were not deemed "
-                                "too old to use: age_thresh_del=%d, "
-                                "self.age_thresh_use=%d",
-                                age_thresh_del,
-                                self.age_thresh_use)
+                _logger.warning(
+                    "Clearing modules that were not deemed "
+                    "too old to use: age_thresh_del=%d, "
+                    "self.age_thresh_use=%d",
+                    age_thresh_del,
+                    self.age_thresh_use,
+                )
             else:
                 _logger.info("Clearing all modules.")
             age_thresh_use = age_thresh_del
@@ -1322,7 +1374,8 @@ class ModuleCache(object):
             age_thresh_use=age_thresh_use,
             delete_if_problem=delete_if_problem,
             # The clean up is done at init, no need to trigger it again
-            cleanup=False)
+            cleanup=False,
+        )
         if not too_old_to_use:
             return
         with compilelock.lock_ctx():
@@ -1337,12 +1390,17 @@ class ModuleCache(object):
                 # long-running jobs, or if age_thresh_del < 0.
                 assert entry not in self.module_from_name
                 parent = os.path.dirname(entry)
-                assert parent.startswith(os.path.join(self.dirname, 'tmp'))
-                _rmtree(parent, msg='old cache directory', level=logging.INFO,
-                        ignore_nocleanup=True)
+                assert parent.startswith(os.path.join(self.dirname, "tmp"))
+                _rmtree(
+                    parent,
+                    msg="old cache directory",
+                    level=logging.INFO,
+                    ignore_nocleanup=True,
+                )
 
-    def clear(self, unversioned_min_age=None, clear_base_files=False,
-              delete_if_problem=False):
+    def clear(
+        self, unversioned_min_age=None, clear_base_files=False, delete_if_problem=False
+    ):
         """
         Clear all elements in the cache.
 
@@ -1361,9 +1419,7 @@ class ModuleCache(object):
 
         """
         with compilelock.lock_ctx():
-            self.clear_old(
-                age_thresh_del=-1.0,
-                delete_if_problem=delete_if_problem)
+            self.clear_old(age_thresh_del=-1.0, delete_if_problem=delete_if_problem)
             self.clear_unversioned(min_age=unversioned_min_age)
             if clear_base_files:
                 self.clear_base_files()
@@ -1380,22 +1436,21 @@ class ModuleCache(object):
 
         """
         with compilelock.lock_ctx():
-            for base_dir in ('cutils_ext', 'lazylinker_ext', 'scan_perform'):
-                to_delete = os.path.join(self.dirname, base_dir + '.delete.me')
+            for base_dir in ("cutils_ext", "lazylinker_ext", "scan_perform"):
+                to_delete = os.path.join(self.dirname, base_dir + ".delete.me")
                 if os.path.isdir(to_delete):
                     try:
                         shutil.rmtree(to_delete)
-                        _logger.debug('Deleted: %s', to_delete)
+                        _logger.debug("Deleted: %s", to_delete)
                     except Exception:
-                        _logger.warning('Could not delete %s', to_delete)
+                        _logger.warning("Could not delete %s", to_delete)
                         continue
                 to_rename = os.path.join(self.dirname, base_dir)
                 if os.path.isdir(to_rename):
                     try:
                         shutil.move(to_rename, to_delete)
                     except Exception:
-                        _logger.warning('Could not move %s to %s',
-                                        to_rename, to_delete)
+                        _logger.warning("Could not move %s to %s", to_rename, to_delete)
 
     def clear_unversioned(self, min_age=None):
         """Delete unversioned dynamic modules.
@@ -1437,8 +1492,7 @@ class ModuleCache(object):
             if not version:
                 # Note that unversioned keys cannot be broken, so we can
                 # set do_manual_check to False to speed things up.
-                key_data.delete_keys_from(self.entry_from_key,
-                                          do_manual_check=False)
+                key_data.delete_keys_from(self.entry_from_key, do_manual_check=False)
                 entry = key_data.get_entry()
                 # Entry is guaranteed to be in this dictionary, because
                 # an unversioned entry should never have been loaded via
@@ -1449,9 +1503,10 @@ class ModuleCache(object):
                 del self.module_hash_to_key_data[key_data.module_hash]
 
                 parent = os.path.dirname(entry)
-                assert parent.startswith(os.path.join(self.dirname, 'tmp'))
-                _rmtree(parent, msg='unversioned', level=logging.INFO,
-                        ignore_nocleanup=True)
+                assert parent.startswith(os.path.join(self.dirname, "tmp"))
+                _rmtree(
+                    parent, msg="unversioned", level=logging.INFO, ignore_nocleanup=True
+                )
 
         # Sanity check: all unversioned keys should have been removed at
         # this point.
@@ -1461,18 +1516,18 @@ class ModuleCache(object):
         to_del = []
         time_now = time.time()
         for filename in os.listdir(self.dirname):
-            if filename.startswith('tmp'):
+            if filename.startswith("tmp"):
                 try:
-                    fname = os.path.join(self.dirname, filename, 'key.pkl')
+                    fname = os.path.join(self.dirname, filename, "key.pkl")
                     open(fname).close()
                     has_key = True
                 except IOError:
                     has_key = False
                 if not has_key:
                     # Use the compiled file by default
-                    path = module_name_from_dir(os.path.join(self.dirname,
-                                                             filename),
-                                                False)
+                    path = module_name_from_dir(
+                        os.path.join(self.dirname, filename), False
+                    )
                     # If it don't exist, use any file in the directory.
                     if path is None:
                         path = os.path.join(self.dirname, filename)
@@ -1504,9 +1559,7 @@ class ModuleCache(object):
 
         # No need to take the lock as it isn't shared.
         for f in to_del:
-            _rmtree(f,
-                    msg='old unversioned', level=logging.INFO,
-                    ignore_nocleanup=True)
+            _rmtree(f, msg="old unversioned", level=logging.INFO, ignore_nocleanup=True)
 
     def _on_atexit(self):
         # Note: no need to call refresh() since it is called by clear_old().
@@ -1520,12 +1573,12 @@ class ModuleCache(object):
         # take the lock when it happen.
         self.clear_old()
         self.clear_unversioned()
-        _logger.debug('Time spent checking keys: %s',
-                      self.time_spent_in_check_key)
+        _logger.debug("Time spent checking keys: %s", self.time_spent_in_check_key)
 
 
-def _rmtree(parent, ignore_nocleanup=False, msg='', level=logging.DEBUG,
-            ignore_if_missing=False):
+def _rmtree(
+    parent, ignore_nocleanup=False, msg="", level=logging.DEBUG, ignore_if_missing=False
+):
     """
     On NFS filesystems, it is impossible to delete a directory with open
     files in it.
@@ -1549,22 +1602,25 @@ def _rmtree(parent, ignore_nocleanup=False, msg='', level=logging.DEBUG,
         return
     try:
         if ignore_nocleanup or not config.nocleanup:
-            log_msg = 'Deleting'
+            log_msg = "Deleting"
             if msg:
-                log_msg += ' (%s)' % msg
-            _logger.log(level, '%s: %s', log_msg, parent)
+                log_msg += " (%s)" % msg
+            _logger.log(level, "%s: %s", log_msg, parent)
             shutil.rmtree(parent)
     except Exception as e:
         # If parent still exists, mark it for deletion by a future refresh()
-        _logger.debug('In _rmtree, encountered exception: %s(%s)',
-                      type(e), e)
+        _logger.debug("In _rmtree, encountered exception: %s(%s)", type(e), e)
         if os.path.exists(parent):
             try:
                 _logger.info('placing "delete.me" in %s', parent)
-                open(os.path.join(parent, 'delete.me'), 'w').close()
+                open(os.path.join(parent, "delete.me"), "w").close()
             except Exception as ee:
-                _logger.warning("Failed to remove or mark cache directory %s "
-                                "for removal %s", parent, ee)
+                _logger.warning(
+                    "Failed to remove or mark cache directory %s " "for removal %s",
+                    parent,
+                    ee,
+                )
+
 
 _module_cache = None
 
@@ -1587,12 +1643,17 @@ def get_module_cache(dirname, init_args=None):
         _module_cache = ModuleCache(dirname, **init_args)
         atexit.register(_module_cache._on_atexit)
     elif init_args:
-        _logger.warning('Ignoring init arguments for module cache because it '
-                        'was created prior to this call')
+        _logger.warning(
+            "Ignoring init arguments for module cache because it "
+            "was created prior to this call"
+        )
     if _module_cache.dirname != dirname:
-        _logger.warning("Returning module cache instance with different "
-                        "dirname (%s) than you requested (%s)",
-                        _module_cache.dirname, dirname)
+        _logger.warning(
+            "Returning module cache instance with different "
+            "dirname (%s) than you requested (%s)",
+            _module_cache.dirname,
+            dirname,
+        )
     return _module_cache
 
 
@@ -1601,12 +1662,12 @@ def get_lib_extension():
     Return the platform-dependent extension for compiled modules.
 
     """
-    if sys.platform == 'win32':
-        return 'pyd'
-    elif sys.platform == 'cygwin':
-        return 'dll'
+    if sys.platform == "win32":
+        return "pyd"
+    elif sys.platform == "cygwin":
+        return "dll"
     else:
-        return 'so'
+        return "so"
 
 
 def get_gcc_shared_library_arg():
@@ -1614,19 +1675,20 @@ def get_gcc_shared_library_arg():
     Return the platform-dependent GCC argument for shared libraries.
 
     """
-    if sys.platform == 'darwin':
-        return '-dynamiclib'
+    if sys.platform == "darwin":
+        return "-dynamiclib"
     else:
-        return '-shared'
+        return "-shared"
 
 
 def std_include_dirs():
     numpy_inc_dirs = numpy.distutils.misc_util.get_numpy_include_dirs()
     py_inc = distutils.sysconfig.get_python_inc()
     py_plat_spec_inc = distutils.sysconfig.get_python_inc(plat_specific=True)
-    python_inc_dirs = ([py_inc] if py_inc == py_plat_spec_inc
-                       else [py_inc, py_plat_spec_inc])
-    gof_inc_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'c_code')
+    python_inc_dirs = (
+        [py_inc] if py_inc == py_plat_spec_inc else [py_inc, py_plat_spec_inc]
+    )
+    gof_inc_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "c_code")
     return numpy_inc_dirs + python_inc_dirs + [gof_inc_dir]
 
 
@@ -1636,15 +1698,15 @@ def std_lib_dirs_and_libs():
     if std_lib_dirs_and_libs.data is not None:
         return std_lib_dirs_and_libs.data
     python_inc = distutils.sysconfig.get_python_inc()
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         # Obtain the library name from the Python version instead of the
         # installation directory, in case the user defined a custom
         # installation directory.
         python_version = distutils.sysconfig.get_python_version()
-        libname = 'python' + python_version.replace('.', '')
+        libname = "python" + python_version.replace(".", "")
         # Also add directory containing the Python library to the library
         # directories.
-        python_lib_dirs = [os.path.join(os.path.dirname(python_inc), 'libs')]
+        python_lib_dirs = [os.path.join(os.path.dirname(python_inc), "libs")]
         if "Canopy" in python_lib_dirs[0]:
             # Canopy stores libpython27.a and libmsccr90.a in this directory.
             # For some reason, these files are needed when compiling Python
@@ -1660,37 +1722,50 @@ def std_lib_dirs_and_libs():
             # sys.prefix: C:\Users\username\AppData\Local\Enthought\Canopy\User
             # So we need to use sys.prefix as it support both cases.
             # sys.base_prefix support only one case
-            libdir = os.path.join(sys.prefix, 'libs')
+            libdir = os.path.join(sys.prefix, "libs")
 
-            for f, lib in [('libpython27.a', 'libpython 1.2')]:
+            for f, lib in [("libpython27.a", "libpython 1.2")]:
                 if not os.path.exists(os.path.join(libdir, f)):
-                    print(("Your Python version is from Canopy. " +
-                           "You need to install the package '" + lib +
-                           "' from Canopy package manager."
-                           ))
+                    print(
+                        (
+                            "Your Python version is from Canopy. "
+                            + "You need to install the package '"
+                            + lib
+                            + "' from Canopy package manager."
+                        )
+                    )
             libdirs = [
                 # Used in older Canopy
-                os.path.join(sys.prefix, 'libs'),
+                os.path.join(sys.prefix, "libs"),
                 # Used in newer Canopy
-                os.path.join(sys.prefix,
-                             r'EGG-INFO\mingw\usr\x86_64-w64-mingw32\lib')]
-            for f, lib in [('libmsvcr90.a',
-                            'mingw 4.5.2 or 4.8.1-2 (newer could work)')]:
-                if not any([os.path.exists(os.path.join(tmp_libdir, f))
-                            for tmp_libdir in libdirs]):
-                    print(("Your Python version is from Canopy. " +
-                           "You need to install the package '" + lib +
-                           "' from Canopy package manager."
-                           ))
+                os.path.join(sys.prefix, r"EGG-INFO\mingw\usr\x86_64-w64-mingw32\lib"),
+            ]
+            for f, lib in [
+                ("libmsvcr90.a", "mingw 4.5.2 or 4.8.1-2 (newer could work)")
+            ]:
+                if not any(
+                    [
+                        os.path.exists(os.path.join(tmp_libdir, f))
+                        for tmp_libdir in libdirs
+                    ]
+                ):
+                    print(
+                        (
+                            "Your Python version is from Canopy. "
+                            + "You need to install the package '"
+                            + lib
+                            + "' from Canopy package manager."
+                        )
+                    )
             python_lib_dirs.insert(0, libdir)
         std_lib_dirs_and_libs.data = [libname], python_lib_dirs
 
     # Suppress -lpython2.x on OS X since the `-undefined dynamic_lookup`
     # makes it unnecessary.
-    elif sys.platform == 'darwin':
+    elif sys.platform == "darwin":
         std_lib_dirs_and_libs.data = [], []
     else:
-        if platform.python_implementation() == 'PyPy':
+        if platform.python_implementation() == "PyPy":
             # Assume Linux (note: Ubuntu doesn't ship this .so)
             if sys.version_info < (3,):
                 libname = "pypy-c"
@@ -1724,12 +1799,13 @@ def std_lib_dirs_and_libs():
     # explicitly where it is located this returns
     # somepath/lib/python2.x
 
-    python_lib = distutils.sysconfig.get_python_lib(plat_specific=1,
-                                                    standard_lib=1)
+    python_lib = distutils.sysconfig.get_python_lib(plat_specific=1, standard_lib=1)
     python_lib = os.path.dirname(python_lib)
     if python_lib not in std_lib_dirs_and_libs.data[1]:
         std_lib_dirs_and_libs.data[1].append(python_lib)
     return std_lib_dirs_and_libs.data
+
+
 std_lib_dirs_and_libs.data = None
 
 
@@ -1754,7 +1830,7 @@ def gcc_llvm():
     """
     if gcc_llvm.is_llvm is None:
         try:
-            p_out = output_subprocess_Popen([theano.config.cxx, '--version'])
+            p_out = output_subprocess_Popen([theano.config.cxx, "--version"])
             output = p_out[0] + p_out[1]
         except OSError:
             # Typically means g++ cannot be found.
@@ -1763,9 +1839,10 @@ def gcc_llvm():
             # Normally this should not happen as we should not try to
             # compile when g++ is not available. If this happen, it
             # will crash later so supposing it is not llvm is "safe".
-            output = b('')
+            output = b("")
         gcc_llvm.is_llvm = b("llvm") in output
     return gcc_llvm.is_llvm
+
 
 gcc_llvm.is_llvm = None
 
@@ -1777,9 +1854,16 @@ class Compiler(object):
     """
 
     @classmethod
-    def _try_compile_tmp(cls, src_code, tmp_prefix='', flags=(),
-                         try_run=False, output=False, compiler=None,
-                         comp_args=True):
+    def _try_compile_tmp(
+        cls,
+        src_code,
+        tmp_prefix="",
+        flags=(),
+        try_run=False,
+        output=False,
+        compiler=None,
+        comp_args=True,
+    ):
         """
         Try to compile (and run) a test program.
 
@@ -1808,11 +1892,11 @@ class Compiler(object):
         run_ok = False
         out, err = None, None
         try:
-            fd, path = tempfile.mkstemp(suffix='.c', prefix=tmp_prefix)
+            fd, path = tempfile.mkstemp(suffix=".c", prefix=tmp_prefix)
             exe_path = path[:-2]
-            if os.name == 'nt':
-                path = "\"" + path + "\""
-                exe_path = "\"" + exe_path + "\""
+            if os.name == "nt":
+                path = '"' + path + '"'
+                exe_path = '"' + exe_path + '"'
             try:
                 # Python3 compatibility: try to cast Py3 strings as Py2 strings
                 try:
@@ -1823,12 +1907,13 @@ class Compiler(object):
                 os.close(fd)
                 fd = None
                 out, err, p_ret = output_subprocess_Popen(
-                    [compiler] + args + [path, '-o', exe_path] + flags)
+                    [compiler] + args + [path, "-o", exe_path] + flags
+                )
                 if p_ret != 0:
                     compilation_ok = False
                 elif try_run:
                     out, err, p_ret = output_subprocess_Popen([exe_path])
-                    run_ok = (p_ret == 0)
+                    run_ok = p_ret == 0
             finally:
                 try:
                     if fd is not None:
@@ -1857,9 +1942,16 @@ class Compiler(object):
             return (compilation_ok, run_ok, out, err)
 
     @classmethod
-    def _try_flags(cls, flag_list, preambule="", body="",
-                   try_run=False, output=False, compiler=None,
-                   comp_args=True):
+    def _try_flags(
+        cls,
+        flag_list,
+        preambule="",
+        body="",
+        try_run=False,
+        output=False,
+        compiler=None,
+        comp_args=True,
+    ):
         """
         Try to compile a dummy file with these flags.
 
@@ -1873,18 +1965,26 @@ class Compiler(object):
         if not compiler:
             return False
 
-        code = b("""
+        code = b(
+            """
         %(preambule)s
         int main(int argc, char** argv)
         {
             %(body)s
             return 0;
         }
-        """ % locals())
-        return cls._try_compile_tmp(code, tmp_prefix='try_flags_',
-                                    flags=flag_list, try_run=try_run,
-                                    output=output, compiler=compiler,
-                                    comp_args=comp_args)
+        """
+            % locals()
+        )
+        return cls._try_compile_tmp(
+            code,
+            tmp_prefix="try_flags_",
+            flags=flag_list,
+            try_run=try_run,
+            output=output,
+            compiler=compiler,
+            comp_args=comp_args,
+        )
 
 
 def try_march_flag(flags):
@@ -1892,7 +1992,8 @@ def try_march_flag(flags):
         Try to compile and run a simple C snippet using current flags.
         Return: compilation success (True/False), execution success (True/False)
     """
-    test_code = textwrap.dedent("""\
+    test_code = textwrap.dedent(
+        """\
             #include <cmath>
             using namespace std;
             int main(int argc, char** argv)
@@ -1906,12 +2007,13 @@ def try_march_flag(flags):
                 }
                 return 0;
             }
-            """)
+            """
+    )
 
-    cflags = flags + ['-L' + d for d in theano.gof.cmodule.std_lib_dirs()]
+    cflags = flags + ["-L" + d for d in theano.gof.cmodule.std_lib_dirs()]
     compilation_result, execution_result = GCC_compiler.try_compile_tmp(
-        test_code, tmp_prefix='try_march_',
-        flags=cflags, try_run=True)
+        test_code, tmp_prefix="try_march_", flags=cflags, try_run=True
+    )
     return compilation_result, execution_result
 
 
@@ -1927,11 +2029,12 @@ class GCC_compiler(Compiler):
 
     @staticmethod
     def compile_args(march_flags=True):
-        cxxflags = [flag for flag in config.gcc.cxxflags.split(' ') if flag]
+        cxxflags = [flag for flag in config.gcc.cxxflags.split(" ") if flag]
         if "-fopenmp" in cxxflags:
             raise ValueError(
                 "Do not use -fopenmp in Theano flag gcc.cxxflags."
-                " To enable OpenMP, use the Theano flag openmp=True")
+                " To enable OpenMP, use the Theano flag openmp=True"
+            )
         # Add the equivalent of -march=native flag.  We can't use
         # -march=native as when the compiledir is shared by multiple
         # computers (for example, if the home directory is on NFS), this
@@ -1944,15 +2047,17 @@ class GCC_compiler(Compiler):
         if detect_march:
             for f in cxxflags:
                 # If the user give an -march=X parameter, don't add one ourself
-                if ((f.startswith("--march=") or f.startswith("-march="))):
+                if f.startswith("--march=") or f.startswith("-march="):
                     detect_march = False
                     GCC_compiler.march_flags = []
                     break
 
-        if ('g++' not in theano.config.cxx and
-                'clang++' not in theano.config.cxx and
-                'clang-omp++' not in theano.config.cxx and
-                'icpc' not in theano.config.cxx):
+        if (
+            "g++" not in theano.config.cxx
+            and "clang++" not in theano.config.cxx
+            and "clang-omp++" not in theano.config.cxx
+            and "icpc" not in theano.config.cxx
+        ):
             _logger.warn(
                 "OPTIMIZATION WARNING: your Theano flag `cxx` seems not to be"
                 " the g++ compiler. So we disable the compiler optimization"
@@ -1967,16 +2072,18 @@ class GCC_compiler(Compiler):
             GCC_compiler.march_flags = []
 
             def get_lines(cmd, parse=True):
-                p = subprocess_Popen(cmd,
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE,
-                                     stdin=subprocess.PIPE,
-                                     shell=True)
+                p = subprocess_Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    stdin=subprocess.PIPE,
+                    shell=True,
+                )
                 # For mingw64 with GCC >= 4.7, passing os.devnull
                 # as stdin (which is the default) results in the process
                 # waiting forever without returning. For that reason,
                 # we use a pipe, and use the empty string as input.
-                (stdout, stderr) = p.communicate(input=b(''))
+                (stdout, stderr) = p.communicate(input=b(""))
                 if p.returncode != 0:
                     return None
 
@@ -1985,13 +2092,14 @@ class GCC_compiler(Compiler):
                 if parse:
                     selected_lines = []
                     for line in lines:
-                        if ("COLLECT_GCC_OPTIONS=" in line or
-                                "CFLAGS=" in line or
-                                "CXXFLAGS=" in line or
-                                "-march=native" in line):
+                        if (
+                            "COLLECT_GCC_OPTIONS=" in line
+                            or "CFLAGS=" in line
+                            or "CXXFLAGS=" in line
+                            or "-march=native" in line
+                        ):
                             continue
-                        for reg in ["-march=", "-mtune=",
-                                    "-target-cpu", "-mabi="]:
+                        for reg in ["-march=", "-mtune=", "-target-cpu", "-mabi="]:
                             if reg in line:
                                 selected_lines.append(line.strip())
                     lines = list(set(selected_lines))  # to remove duplicate
@@ -2002,20 +2110,21 @@ class GCC_compiler(Compiler):
             # enough information.
             native_lines = get_lines("%s -march=native -E -v -" % theano.config.cxx)
             if native_lines is None:
-                _logger.info("Call to 'g++ -march=native' failed,"
-                             "not setting -march flag")
+                _logger.info(
+                    "Call to 'g++ -march=native' failed," "not setting -march flag"
+                )
                 detect_march = False
             else:
-                _logger.info("g++ -march=native selected lines: %s",
-                             native_lines)
+                _logger.info("g++ -march=native selected lines: %s", native_lines)
 
         if detect_march:
             if len(native_lines) != 1:
                 if len(native_lines) == 0:
                     # That means we did not select the right lines, so
                     # we have to report all the lines instead
-                    reported_lines = get_lines("%s -march=native -E -v -" % theano.config.cxx,
-                                               parse=False)
+                    reported_lines = get_lines(
+                        "%s -march=native -E -v -" % theano.config.cxx, parse=False
+                    )
                 else:
                     reported_lines = native_lines
                 _logger.warn(
@@ -2025,7 +2134,8 @@ class GCC_compiler(Compiler):
                     " functions. Please submit the following lines to"
                     " Theano's mailing list so that we can fix this"
                     " problem:\n %s",
-                    reported_lines)
+                    reported_lines,
+                )
             else:
                 default_lines = get_lines("%s -E -v -" % theano.config.cxx)
                 _logger.info("g++ default lines: %s", default_lines)
@@ -2038,7 +2148,8 @@ class GCC_compiler(Compiler):
                         " functions. Please submit the following lines to"
                         " Theano's mailing list so that we can fix this"
                         " problem:\n %s",
-                        get_lines("%s -E -v -" % theano.config.cxx, parse=False))
+                        get_lines("%s -E -v -" % theano.config.cxx, parse=False),
+                    )
                 else:
                     # Some options are actually given as "-option value",
                     # we want to treat them as only one token when comparing
@@ -2049,14 +2160,15 @@ class GCC_compiler(Compiler):
                         new_part = []
                         for i in range(len(init_part)):
                             p = init_part[i]
-                            if p.startswith('-'):
+                            if p.startswith("-"):
                                 p_list = [p]
-                                while ((i + 1 < len(init_part)) and
-                                       not init_part[i + 1].startswith('-')):
+                                while (i + 1 < len(init_part)) and not init_part[
+                                    i + 1
+                                ].startswith("-"):
                                     # append that next part to p_list
                                     p_list.append(init_part[i + 1])
                                     i += 1
-                                new_part.append(' '.join(p_list))
+                                new_part.append(" ".join(p_list))
                             elif i == 0:
                                 # The first argument does not usually start
                                 # with "-", still add it
@@ -2069,26 +2181,31 @@ class GCC_compiler(Compiler):
 
                     for line in default_lines:
                         if line.startswith(part[0]):
-                            part2 = [p for p in join_options(line.split())
-                                     if ('march' not in p and
-                                         'mtune' not in p and
-                                         'target-cpu' not in p)]
-                            if sys.platform == 'darwin':
+                            part2 = [
+                                p
+                                for p in join_options(line.split())
+                                if (
+                                    "march" not in p
+                                    and "mtune" not in p
+                                    and "target-cpu" not in p
+                                )
+                            ]
+                            if sys.platform == "darwin":
                                 # We only use translated target-cpu on
                                 # mac since the other flags are not
                                 # supported as compiler flags for the
                                 # driver.
-                                new_flags = [p for p in part if 'target-cpu' in p]
+                                new_flags = [p for p in part if "target-cpu" in p]
                             else:
                                 new_flags = [p for p in part if p not in part2]
                             # Replace '-target-cpu value', which is an option
                             # of clang, with '-march=value'.
                             for i, p in enumerate(new_flags):
-                                if 'target-cpu' in p:
+                                if "target-cpu" in p:
                                     opt = p.split()
                                     if len(opt) == 2:
                                         opt_name, opt_val = opt
-                                        new_flags[i] = '-march=%s' % opt_val
+                                        new_flags[i] = "-march=%s" % opt_val
 
                             # Some versions of GCC report the native arch
                             # as "corei7-avx", but it generates illegal
@@ -2099,26 +2216,28 @@ class GCC_compiler(Compiler):
                             # - 4.8 before 4.8.1
                             # Earlier versions did not have arch "corei7-avx"
                             for i, p in enumerate(new_flags):
-                                if 'march' not in p:
+                                if "march" not in p:
                                     continue
-                                opt = p.split('=')
+                                opt = p.split("=")
                                 if len(opt) != 2:
                                     # Inexpected, but do not crash
                                     continue
                                 opt_val = opt[1]
-                                if not opt_val.endswith('-avx'):
+                                if not opt_val.endswith("-avx"):
                                     # OK
                                     continue
                                 # Check the version of GCC
-                                version = gcc_version_str.split('.')
+                                version = gcc_version_str.split(".")
                                 if len(version) != 3:
                                     # Unexpected, but should not be a problem
                                     continue
                                 mj, mn, patch = [int(vp) for vp in version]
-                                if (((mj, mn) == (4, 6) and patch < 4) or
-                                        ((mj, mn) == (4, 7) and patch <= 3) or
-                                        ((mj, mn) == (4, 8) and patch < 1)):
-                                    new_flags[i] = p.rstrip('-avx')
+                                if (
+                                    ((mj, mn) == (4, 6) and patch < 4)
+                                    or ((mj, mn) == (4, 7) and patch <= 3)
+                                    or ((mj, mn) == (4, 8) and patch < 1)
+                                ):
+                                    new_flags[i] = p.rstrip("-avx")
 
                             # Go back to split arguments, like
                             # ["-option", "value"],
@@ -2129,8 +2248,10 @@ class GCC_compiler(Compiler):
 
                             GCC_compiler.march_flags = split_flags
                             break
-                    _logger.info("g++ -march=native equivalent flags: %s",
-                                 GCC_compiler.march_flags)
+                    _logger.info(
+                        "g++ -march=native equivalent flags: %s",
+                        GCC_compiler.march_flags,
+                    )
 
             # Find working march flag:
             #   -- if current GCC_compiler.march_flags works, we're done.
@@ -2139,29 +2260,33 @@ class GCC_compiler(Compiler):
             #   -- else remove all other flags and only try with -march = default + flags_to_try.
             #   -- if none of that worked, set GCC_compiler.march_flags = [] (for x86).
 
-            default_compilation_result, default_execution_result = try_march_flag(GCC_compiler.march_flags)
+            default_compilation_result, default_execution_result = try_march_flag(
+                GCC_compiler.march_flags
+            )
             if not default_compilation_result or not default_execution_result:
                 march_success = False
                 march_ind = None
                 mtune_ind = None
                 default_detected_flag = []
-                march_flags_to_try = ['corei7-avx', 'corei7', 'core2']
+                march_flags_to_try = ["corei7-avx", "corei7", "core2"]
 
                 for m_ in xrange(len(GCC_compiler.march_flags)):
                     march_flag = GCC_compiler.march_flags[m_]
-                    if 'march' in march_flag:
+                    if "march" in march_flag:
                         march_ind = m_
                         default_detected_flag = [march_flag]
-                    elif 'mtune' in march_flag:
+                    elif "mtune" in march_flag:
                         mtune_ind = m_
 
                 for march_flag in march_flags_to_try:
                     if march_ind is not None:
-                        GCC_compiler.march_flags[march_ind] = '-march=' + march_flag
+                        GCC_compiler.march_flags[march_ind] = "-march=" + march_flag
                     if mtune_ind is not None:
-                        GCC_compiler.march_flags[mtune_ind] = '-mtune=' + march_flag
+                        GCC_compiler.march_flags[mtune_ind] = "-mtune=" + march_flag
 
-                    compilation_result, execution_result = try_march_flag(GCC_compiler.march_flags)
+                    compilation_result, execution_result = try_march_flag(
+                        GCC_compiler.march_flags
+                    )
 
                     if compilation_result and execution_result:
                         march_success = True
@@ -2171,10 +2296,12 @@ class GCC_compiler(Compiler):
                     # perhaps one of the other flags was problematic; try default flag in isolation again:
                     march_flags_to_try = default_detected_flag + march_flags_to_try
                     for march_flag in march_flags_to_try:
-                        compilation_result, execution_result = try_march_flag(['-march=' + march_flag])
+                        compilation_result, execution_result = try_march_flag(
+                            ["-march=" + march_flag]
+                        )
                         if compilation_result and execution_result:
                             march_success = True
-                            GCC_compiler.march_flags = ['-march=' + march_flag]
+                            GCC_compiler.march_flags = ["-march=" + march_flag]
                             break
 
                 if not march_success:
@@ -2198,28 +2325,29 @@ class GCC_compiler(Compiler):
         # ARM (32-bit and 64-bit) architectures in order to make
         # Theano compatible with the Raspberry Pi, Raspberry Pi 2, or
         # other systems with ARM processors.
-        if (not any(['arm' in flag for flag in cxxflags]) and
-                not any(arch in platform.machine() for arch in ['arm', 'aarch'])):
+        if not any(["arm" in flag for flag in cxxflags]) and not any(
+            arch in platform.machine() for arch in ["arm", "aarch"]
+        ):
             n_bits = local_bitwidth()
-            cxxflags.append('-m%d' % n_bits)
+            cxxflags.append("-m%d" % n_bits)
             _logger.debug("Compiling for %s bit architecture", n_bits)
 
-        if sys.platform != 'win32':
+        if sys.platform != "win32":
             # Under Windows it looks like fPIC is useless. Compiler warning:
             # '-fPIC ignored for target (all code is position independent)'
-            cxxflags.append('-fPIC')
+            cxxflags.append("-fPIC")
 
-        if sys.platform == 'win32' and local_bitwidth() == 64:
+        if sys.platform == "win32" and local_bitwidth() == 64:
             # Under 64-bit Windows installation, sys.platform is 'win32'.
             # We need to define MS_WIN64 for the preprocessor to be able to
             # link with libpython.
-            cxxflags.append('-DMS_WIN64')
+            cxxflags.append("-DMS_WIN64")
 
-        if sys.platform == 'darwin':
+        if sys.platform == "darwin":
             # Use the already-loaded python symbols.
-            cxxflags.extend(['-undefined', 'dynamic_lookup'])
+            cxxflags.extend(["-undefined", "dynamic_lookup"])
 
-        if sys.platform == 'win32':
+        if sys.platform == "win32":
             # Workaround for https://github.com/Theano/Theano/issues/4926.
             # https://github.com/python/cpython/pull/11283/ removed the "hypot"
             # redefinition for recent CPython versions (>=2.7.16 and >=3.7.3).
@@ -2229,30 +2357,55 @@ class GCC_compiler(Compiler):
                 config_h_filename = distutils.sysconfig.get_config_h_filename()
                 try:
                     with open(config_h_filename) as config_h:
-                        if any(line.startswith('#define hypot _hypot') for line in config_h):
-                            cxxflags.append('-D_hypot=hypot')
+                        if any(
+                            line.startswith("#define hypot _hypot") for line in config_h
+                        ):
+                            cxxflags.append("-D_hypot=hypot")
                 except IOError:
                     pass
 
         return cxxflags
 
     @classmethod
-    def try_compile_tmp(cls, src_code, tmp_prefix='', flags=(),
-                        try_run=False, output=False, comp_args=True):
-        return cls._try_compile_tmp(src_code, tmp_prefix, flags,
-                                    try_run, output, theano.config.cxx,
-                                    comp_args)
+    def try_compile_tmp(
+        cls,
+        src_code,
+        tmp_prefix="",
+        flags=(),
+        try_run=False,
+        output=False,
+        comp_args=True,
+    ):
+        return cls._try_compile_tmp(
+            src_code, tmp_prefix, flags, try_run, output, theano.config.cxx, comp_args
+        )
 
     @classmethod
-    def try_flags(cls, flag_list, preambule="", body="",
-                  try_run=False, output=False, comp_args=True):
-        return cls._try_flags(flag_list, preambule, body, try_run, output,
-                              theano.config.cxx, comp_args)
+    def try_flags(
+        cls,
+        flag_list,
+        preambule="",
+        body="",
+        try_run=False,
+        output=False,
+        comp_args=True,
+    ):
+        return cls._try_flags(
+            flag_list, preambule, body, try_run, output, theano.config.cxx, comp_args
+        )
 
     @staticmethod
-    def compile_str(module_name, src_code, location=None,
-                    include_dirs=None, lib_dirs=None, libs=None,
-                    preargs=None, py_module=True, hide_symbols=True):
+    def compile_str(
+        module_name,
+        src_code,
+        location=None,
+        include_dirs=None,
+        lib_dirs=None,
+        libs=None,
+        preargs=None,
+        py_module=True,
+        hide_symbols=True,
+    ):
         """
         Parameters
         ----------
@@ -2308,59 +2461,65 @@ class GCC_compiler(Compiler):
         libs = libs + std_libs()
         lib_dirs = lib_dirs + std_lib_dirs()
 
-        cppfilename = os.path.join(location, 'mod.cpp')
-        with open(cppfilename, 'w') as cppfile:
+        cppfilename = os.path.join(location, "mod.cpp")
+        with open(cppfilename, "w") as cppfile:
 
-            _logger.debug('Writing module C++ code to %s', cppfilename)
+            _logger.debug("Writing module C++ code to %s", cppfilename)
 
             cppfile.write(src_code)
             # Avoid gcc warning "no newline at end of file".
-            if not src_code.endswith('\n'):
-                cppfile.write('\n')
+            if not src_code.endswith("\n"):
+                cppfile.write("\n")
 
-        if platform.python_implementation() == 'PyPy':
-            suffix = '.' + get_lib_extension()
+        if platform.python_implementation() == "PyPy":
+            suffix = "." + get_lib_extension()
 
             dist_suffix = distutils.sysconfig.get_config_var("SO")
-            if dist_suffix is not None and dist_suffix != '':
+            if dist_suffix is not None and dist_suffix != "":
                 suffix = dist_suffix
 
-            filepath = '%s%s' % (module_name, suffix)
+            filepath = "%s%s" % (module_name, suffix)
         else:
-            filepath = '%s.%s' % (module_name, get_lib_extension())
+            filepath = "%s.%s" % (module_name, get_lib_extension())
 
         lib_filename = os.path.join(location, filepath)
 
-        _logger.debug('Generating shared lib %s', lib_filename)
-        cmd = [theano.config.cxx, get_gcc_shared_library_arg(), '-g']
+        _logger.debug("Generating shared lib %s", lib_filename)
+        cmd = [theano.config.cxx, get_gcc_shared_library_arg(), "-g"]
 
         if config.cmodule.remove_gxx_opt:
-            cmd.extend(p for p in preargs if not p.startswith('-O'))
+            cmd.extend(p for p in preargs if not p.startswith("-O"))
         else:
             cmd.extend(preargs)
         # to support path that includes spaces, we need to wrap it with double quotes on Windows
-        path_wrapper = "\"" if os.name == 'nt' else ""
-        cmd.extend(['-I%s%s%s' % (path_wrapper, idir, path_wrapper) for idir in include_dirs])
-        cmd.extend(['-L%s%s%s' % (path_wrapper, ldir, path_wrapper) for ldir in lib_dirs])
-        if hide_symbols and sys.platform != 'win32':
+        path_wrapper = '"' if os.name == "nt" else ""
+        cmd.extend(
+            ["-I%s%s%s" % (path_wrapper, idir, path_wrapper) for idir in include_dirs]
+        )
+        cmd.extend(
+            ["-L%s%s%s" % (path_wrapper, ldir, path_wrapper) for ldir in lib_dirs]
+        )
+        if hide_symbols and sys.platform != "win32":
             # This has been available since gcc 4.0 so we suppose it
             # is always available. We pass it here since it
             # significantly reduces the size of the symbol table for
             # the objects we want to share. This in turns leads to
             # improved loading times on most platforms (win32 is
             # different, as usual).
-            cmd.append('-fvisibility=hidden')
-        cmd.extend(['-o', '%s%s%s' % (path_wrapper, lib_filename, path_wrapper)])
-        cmd.append('%s%s%s' % (path_wrapper, cppfilename, path_wrapper))
-        cmd.extend(['-l%s' % l for l in libs])
+            cmd.append("-fvisibility=hidden")
+        cmd.extend(["-o", "%s%s%s" % (path_wrapper, lib_filename, path_wrapper)])
+        cmd.append("%s%s%s" % (path_wrapper, cppfilename, path_wrapper))
+        cmd.extend(["-l%s" % l for l in libs])
         # print >> sys.stderr, 'COMPILING W CMD', cmd
-        _logger.debug('Running cmd: %s', ' '.join(cmd))
+        _logger.debug("Running cmd: %s", " ".join(cmd))
 
         def print_command_line_error():
             # Print command line when a problem occurred.
-            print(("Problem occurred during compilation with the "
-                   "command line below:"), file=sys.stderr)
-            print(' '.join(cmd), file=sys.stderr)
+            print(
+                ("Problem occurred during compilation with the " "command line below:"),
+                file=sys.stderr,
+            )
+            print(" ".join(cmd), file=sys.stderr)
 
         try:
             p_out = output_subprocess_Popen(cmd)
@@ -2374,48 +2533,55 @@ class GCC_compiler(Compiler):
 
         if status:
             tf = tempfile.NamedTemporaryFile(
-                mode='w',
-                prefix='theano_compilation_error_',
-                delete=False
+                mode="w", prefix="theano_compilation_error_", delete=False
             )
             # gcc put its messages to stderr, so we add ours now
-            tf.write('===============================\n')
-            for i, l in enumerate(src_code.split('\n')):
-                tf.write('%05i\t%s\n' % (i + 1, l))
-            tf.write('===============================\n')
-            tf.write("Problem occurred during compilation with the "
-                     "command line below:\n")
-            tf.write(' '.join(cmd))
+            tf.write("===============================\n")
+            for i, l in enumerate(src_code.split("\n")):
+                tf.write("%05i\t%s\n" % (i + 1, l))
+            tf.write("===============================\n")
+            tf.write(
+                "Problem occurred during compilation with the " "command line below:\n"
+            )
+            tf.write(" ".join(cmd))
             # Print errors just below the command line.
             tf.write(compile_stderr)
             tf.close()
-            print('\nYou can find the C code in this temporary file: ' + tf.name)
+            print("\nYou can find the C code in this temporary file: " + tf.name)
             not_found_libraries = re.findall('-l["."-_a-zA-Z0-9]*', compile_stderr)
             for nf_lib in not_found_libraries:
-                print('library ' + nf_lib[2:] + ' is not found.')
+                print("library " + nf_lib[2:] + " is not found.")
                 if re.search('-lPYTHON["."0-9]*', nf_lib, re.IGNORECASE):
-                    py_string = re.search('-lpython["."0-9]*', nf_lib, re.IGNORECASE).group()[8:]
-                    if py_string != '':
+                    py_string = re.search(
+                        '-lpython["."0-9]*', nf_lib, re.IGNORECASE
+                    ).group()[8:]
+                    if py_string != "":
                         print(
-                            'Check if package python-dev ' + py_string + ' or python-devel ' + py_string + ' is installed.'
+                            "Check if package python-dev "
+                            + py_string
+                            + " or python-devel "
+                            + py_string
+                            + " is installed."
                         )
                     else:
                         print(
-                            'Check if package python-dev or python-devel is installed.'
+                            "Check if package python-dev or python-devel is installed."
                         )
 
             # We replace '\n' by '. ' in the error message because when Python
             # prints the exception, having '\n' in the text makes it more
             # difficult to read.
-            raise Exception('Compilation failed (return status=%s): %s' %
-                            (status, compile_stderr.replace('\n', '. ')))
+            raise Exception(
+                "Compilation failed (return status=%s): %s"
+                % (status, compile_stderr.replace("\n", ". "))
+            )
         elif config.cmodule.compilation_warning and compile_stderr:
             # Print errors just below the command line.
             print(compile_stderr)
 
         if py_module:
             # touch the __init__ file
-            open(os.path.join(location, "__init__.py"), 'w').close()
+            open(os.path.join(location, "__init__.py"), "w").close()
             assert os.path.isfile(lib_filename)
             return dlimport(lib_filename)
 

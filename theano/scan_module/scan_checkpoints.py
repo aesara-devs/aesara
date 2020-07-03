@@ -4,9 +4,16 @@ import theano
 from theano.tensor.basic import Join
 
 
-def scan_checkpoints(fn, sequences=[], outputs_info=None, non_sequences=[],
-                     name="checkpointscan_fn", n_steps=None, save_every_N=10,
-                     padding=True):
+def scan_checkpoints(
+    fn,
+    sequences=[],
+    outputs_info=None,
+    non_sequences=[],
+    name="checkpointscan_fn",
+    n_steps=None,
+    save_every_N=10,
+    padding=True,
+):
     """Scan function that uses less memory, but is more restrictive.
 
     In :func:`~theano.scan`, if you compute the gradient of the output
@@ -95,7 +102,7 @@ def scan_checkpoints(fn, sequences=[], outputs_info=None, non_sequences=[],
 
     # Check that outputs_info has no taps:
     for element in outputs_info:
-        if isinstance(element, dict) and 'taps' in element:
+        if isinstance(element, dict) and "taps" in element:
             raise RuntimeError("scan_checkpoints doesn't work with taps.")
 
     # Determine how many steps the original scan would run
@@ -103,14 +110,12 @@ def scan_checkpoints(fn, sequences=[], outputs_info=None, non_sequences=[],
         n_steps = sequences[0].shape[0]
 
     # Compute the number of steps of the outer scan
-    o_n_steps = theano.tensor.cast(theano.tensor.ceil(n_steps / save_every_N),
-                                   'int64')
+    o_n_steps = theano.tensor.cast(theano.tensor.ceil(n_steps / save_every_N), "int64")
 
     # Compute the number of steps of the inner scan
-    i_n_steps = save_every_N * theano.tensor.ones((o_n_steps,), 'int64')
+    i_n_steps = save_every_N * theano.tensor.ones((o_n_steps,), "int64")
     mod = n_steps % save_every_N
-    last_n_steps = theano.tensor.switch(theano.tensor.eq(mod, 0),
-                                        save_every_N, mod)
+    last_n_steps = theano.tensor.switch(theano.tensor.eq(mod, 0), save_every_N, mod)
     i_n_steps = theano.tensor.set_subtensor(i_n_steps[-1], last_n_steps)
 
     # Pad the sequences if needed
@@ -123,9 +128,14 @@ def scan_checkpoints(fn, sequences=[], outputs_info=None, non_sequences=[],
             sequences[i] = join(0, [s, z])
 
     # Establish the input variables of the outer scan
-    o_sequences = [s.reshape([s.shape[0] / save_every_N, save_every_N] +
-                             [s.shape[i] for i in range(1, s.ndim)],
-                             s.ndim + 1) for s in sequences]
+    o_sequences = [
+        s.reshape(
+            [s.shape[0] / save_every_N, save_every_N]
+            + [s.shape[i] for i in range(1, s.ndim)],
+            s.ndim + 1,
+        )
+        for s in sequences
+    ]
     o_sequences.append(i_n_steps)
     new_nitsots = [i for i in outputs_info if i is None]
     o_nonsequences = non_sequences
@@ -133,18 +143,20 @@ def scan_checkpoints(fn, sequences=[], outputs_info=None, non_sequences=[],
     def outer_step(*args):
         # Separate the received arguments into their respective (seq, outputs
         # from previous iterations, nonseqs) categories
-        i_sequences = list(args[:len(o_sequences)])
-        i_prev_outputs = list(args[len(o_sequences):-len(o_nonsequences)])
-        i_non_sequences = list(args[-len(o_nonsequences):])
-        i_outputs_infos = i_prev_outputs + [None, ] * len(new_nitsots)
+        i_sequences = list(args[: len(o_sequences)])
+        i_prev_outputs = list(args[len(o_sequences) : -len(o_nonsequences)])
+        i_non_sequences = list(args[-len(o_nonsequences) :])
+        i_outputs_infos = i_prev_outputs + [None,] * len(new_nitsots)
 
         # Call the user-provided function with the proper arguments
-        results, updates = theano.scan(fn=fn,
-                                       sequences=i_sequences[:-1],
-                                       outputs_info=i_outputs_infos,
-                                       non_sequences=i_non_sequences,
-                                       name=name + "_inner",
-                                       n_steps=i_sequences[-1])
+        results, updates = theano.scan(
+            fn=fn,
+            sequences=i_sequences[:-1],
+            outputs_info=i_outputs_infos,
+            non_sequences=i_non_sequences,
+            name=name + "_inner",
+            n_steps=i_sequences[-1],
+        )
         if not isinstance(results, list):
             results = [results]
 
@@ -154,11 +166,14 @@ def scan_checkpoints(fn, sequences=[], outputs_info=None, non_sequences=[],
         else:
             return [r[-1] for r in results], updates
 
-    results, updates = theano.scan(fn=outer_step,
-                                   sequences=o_sequences,
-                                   outputs_info=outputs_info,
-                                   non_sequences=o_nonsequences,
-                                   name=name + "_outer",
-                                   n_steps=o_n_steps, allow_gc=True)
+    results, updates = theano.scan(
+        fn=outer_step,
+        sequences=o_sequences,
+        outputs_info=outputs_info,
+        non_sequences=o_nonsequences,
+        name=name + "_outer",
+        n_steps=o_n_steps,
+        allow_gc=True,
+    )
 
     return results, updates

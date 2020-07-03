@@ -12,7 +12,7 @@ from theano.gradient import grad_undefined
 from .type import gpu_context_type
 from .basic_ops import as_gpuarray_variable, infer_context_name, gpuarray_helper_inc_dir
 
-_logger = logging.getLogger('theano.gpuarray.blocksparse')
+_logger = logging.getLogger("theano.gpuarray.blocksparse")
 
 
 class GpuSparseBlockGemv(COp):
@@ -24,7 +24,8 @@ class GpuSparseBlockGemv(COp):
     to change without notice.  Use the sandbox.blocksparse.sparse_block_dot()
     function for a stable interface.
     """
-    __props__ = ('inplace',)
+
+    __props__ = ("inplace",)
     params_type = ParamsType(inplace=bool_t, context=gpu_context_type)
     # NB: DTYPE_INPUT_* is used in C code, so I think we should not set check_input to False.
 
@@ -41,8 +42,11 @@ class GpuSparseBlockGemv(COp):
         return [gpuarray_helper_inc_dir()]
 
     def c_headers(self):
-        return ['<gpuarray/buffer_blas.h>', '<gpuarray/buffer.h>',
-                '<gpuarray_helper.h>']
+        return [
+            "<gpuarray/buffer_blas.h>",
+            "<gpuarray/buffer.h>",
+            "<gpuarray_helper.h>",
+        ]
 
     def make_node(self, o, W, h, inputIdx, outputIdx):
         ctx = infer_context_name(o, W, h)
@@ -60,8 +64,7 @@ class GpuSparseBlockGemv(COp):
         assert inputIdx.type.dtype in discrete_dtypes
         assert outputIdx.type.dtype in discrete_dtypes
 
-        return Apply(self, [o, W, h, inputIdx, outputIdx],
-                     [o.type()])
+        return Apply(self, [o, W, h, inputIdx, outputIdx], [o.type()])
 
     def infer_shape(self, node, input_shapes):
         return [input_shapes[0]]
@@ -70,17 +73,17 @@ class GpuSparseBlockGemv(COp):
         o, W, h, inputIdx, outputIdx = inputs
         go = grads[0]
 
-        Wgrad = gpu_sparse_block_outer(W.zeros_like(),
-                                       h, go, inputIdx, outputIdx)
-        hgrad = gpu_sparse_block_gemv(h.zeros_like(),
-                                      W.dimshuffle((1, 0, 3, 2)),
-                                      go,
-                                      outputIdx, inputIdx)
-        return [go, Wgrad, hgrad,
-                grad_undefined(self, 3, inputIdx,
-                               "grad of inputIdx makes no sense"),
-                grad_undefined(self, 4, outputIdx,
-                               "grad of outputIdx makes no sense")]
+        Wgrad = gpu_sparse_block_outer(W.zeros_like(), h, go, inputIdx, outputIdx)
+        hgrad = gpu_sparse_block_gemv(
+            h.zeros_like(), W.dimshuffle((1, 0, 3, 2)), go, outputIdx, inputIdx
+        )
+        return [
+            go,
+            Wgrad,
+            hgrad,
+            grad_undefined(self, 3, inputIdx, "grad of inputIdx makes no sense"),
+            grad_undefined(self, 4, outputIdx, "grad of outputIdx makes no sense"),
+        ]
 
 
 gpu_sparse_block_gemv = GpuSparseBlockGemv(False)
@@ -96,7 +99,8 @@ class GpuSparseBlockOuter(COp):
     subject to change without notice.  It is involved in the gradient
     of GpuSparseBlockGemv. The gradient is not implemented.
     """
-    __props__ = ('inplace',)
+
+    __props__ = ("inplace",)
     params_type = ParamsType(inplace=bool_t, context=gpu_context_type)
 
     def __init__(self, inplace=False):
@@ -110,7 +114,7 @@ class GpuSparseBlockOuter(COp):
 
     def make_node(self, o, x, y, xIdx, yIdx, alpha=None):
         ctx = infer_context_name(o, x, y)
-        one = tensor.constant(np.asarray(1.0, dtype='float32'))
+        one = tensor.constant(np.asarray(1.0, dtype="float32"))
         o = as_gpuarray_variable(o, ctx)
         x = as_gpuarray_variable(x, ctx)
         y = as_gpuarray_variable(y, ctx)
@@ -118,8 +122,7 @@ class GpuSparseBlockOuter(COp):
         yIdx = as_tensor_variable(yIdx)
         if alpha is None:
             alpha = one
-        return Apply(self, [o, x, y, xIdx, yIdx, alpha],
-                     [o.type()])
+        return Apply(self, [o, x, y, xIdx, yIdx, alpha], [o.type()])
 
     def infer_shape(self, node, input_shapes):
         return [input_shapes[0]]
@@ -128,8 +131,12 @@ class GpuSparseBlockOuter(COp):
         return [gpuarray_helper_inc_dir()]
 
     def c_headers(self):
-        return ['<gpuarray/buffer_blas.h>', '<gpuarray/buffer.h>',
-                '<gpuarray_helper.h>']
+        return [
+            "<gpuarray/buffer_blas.h>",
+            "<gpuarray/buffer.h>",
+            "<gpuarray_helper.h>",
+        ]
+
 
 gpu_sparse_block_outer = GpuSparseBlockOuter(False)
 gpu_sparse_block_outer_inplace = GpuSparseBlockOuter(True)

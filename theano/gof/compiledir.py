@@ -34,7 +34,7 @@ def cleanup():
         try:
             try:
                 filename = os.path.join(compiledir, directory, "key.pkl")
-                file = open(filename, 'rb')
+                file = open(filename, "rb")
                 # print file
                 try:
                     keydata = pickle.load(file)
@@ -48,13 +48,13 @@ def cleanup():
                                 have_npy_abi_version = False
                                 break
                             elif isinstance(obj, string_types):
-                                if obj.startswith('NPY_ABI_VERSION=0x'):
+                                if obj.startswith("NPY_ABI_VERSION=0x"):
                                     have_npy_abi_version = True
-                                elif obj.startswith('c_compiler_str='):
+                                elif obj.startswith("c_compiler_str="):
                                     have_c_compiler = True
-                            elif (isinstance(obj, (theano.gof.Op,
-                                                   theano.gof.Type)) and
-                                  hasattr(obj, 'c_code_cache_version')):
+                            elif isinstance(
+                                obj, (theano.gof.Op, theano.gof.Type)
+                            ) and hasattr(obj, "c_code_cache_version"):
                                 v = obj.c_code_cache_version()
                                 if v not in [(), None] and v not in key[0]:
                                     # Reuse have_npy_abi_version to
@@ -73,7 +73,8 @@ def cleanup():
                                     "Could not remove file '%s'. To complete "
                                     "the clean-up, please remove manually "
                                     "the directory containing it.",
-                                    filename)
+                                    filename,
+                                )
                     if len(keydata.keys) == 0:
                         shutil.rmtree(os.path.join(compiledir, directory))
 
@@ -82,18 +83,20 @@ def cleanup():
                         "Could not read key file '%s'. To complete "
                         "the clean-up, please remove manually "
                         "the directory containing it.",
-                        filename)
+                        filename,
+                    )
             except IOError:
                 _logger.error(
                     "Could not clean up this directory: '%s'. To complete "
                     "the clean-up, please remove it manually.",
-                    directory)
+                    directory,
+                )
         finally:
             if file is not None:
                 file.close()
 
 
-def print_title(title, overline='', underline=''):
+def print_title(title, overline="", underline=""):
     len_title = len(title)
     if overline:
         print(str(overline) * len_title)
@@ -120,11 +123,18 @@ def print_compiledir_content():
         filename = os.path.join(compiledir, dir, "key.pkl")
         if not os.path.exists(filename):
             continue
-        with open(filename, 'rb') as file:
+        with open(filename, "rb") as file:
             try:
                 keydata = pickle.load(file)
-                ops = list(set([x for x in flatten(keydata.keys)
-                                if isinstance(x, theano.gof.Op)]))
+                ops = list(
+                    set(
+                        [
+                            x
+                            for x in flatten(keydata.keys)
+                            if isinstance(x, theano.gof.Op)
+                        ]
+                    )
+                )
                 # Whatever the case, we count compilations for OP classes.
                 for op_class in set([op.__class__ for op in ops]):
                     table_op_class.setdefault(op_class, 0)
@@ -132,23 +142,34 @@ def print_compiledir_content():
                 if len(ops) == 0:
                     zeros_op += 1
                 else:
-                    types = list(set([x for x in flatten(keydata.keys)
-                                      if isinstance(x, theano.gof.Type)]))
-                    compile_start = compile_end = float('nan')
+                    types = list(
+                        set(
+                            [
+                                x
+                                for x in flatten(keydata.keys)
+                                if isinstance(x, theano.gof.Type)
+                            ]
+                        )
+                    )
+                    compile_start = compile_end = float("nan")
                     for fn in os.listdir(os.path.join(compiledir, dir)):
-                        if fn.startswith('mod.c'):
+                        if fn.startswith("mod.c"):
                             compile_start = os.path.getmtime(
-                                os.path.join(compiledir, dir, fn))
-                        elif fn.endswith('.so'):
+                                os.path.join(compiledir, dir, fn)
+                            )
+                        elif fn.endswith(".so"):
                             compile_end = os.path.getmtime(
-                                os.path.join(compiledir, dir, fn))
+                                os.path.join(compiledir, dir, fn)
+                            )
                     compile_time = compile_end - compile_start
                     if len(ops) == 1:
                         table.append((dir, ops[0], types, compile_time))
                     else:
-                        ops_to_str = '[%s]' % ', '.join(sorted(str(op) for op in ops))
-                        types_to_str = '[%s]' % ', '.join(sorted(str(t) for t in types))
-                        table_multiple_ops.append((dir, ops_to_str, types_to_str, compile_time))
+                        ops_to_str = "[%s]" % ", ".join(sorted(str(op) for op in ops))
+                        types_to_str = "[%s]" % ", ".join(sorted(str(t) for t in types))
+                        table_multiple_ops.append(
+                            (dir, ops_to_str, types_to_str, compile_time)
+                        )
 
                 size = os.path.getsize(filename)
                 total_key_sizes += size
@@ -160,29 +181,39 @@ def print_compiledir_content():
             except IOError:
                 pass
             except AttributeError:
-                    _logger.error(
-                        "Could not read key file '%s'.",
-                        filename)
+                _logger.error("Could not read key file '%s'.", filename)
 
-    print_title("Theano cache: %s" % compiledir, overline='=', underline='=')
+    print_title("Theano cache: %s" % compiledir, overline="=", underline="=")
     print()
 
-    print_title("List of %d compiled individual ops" % len(table), underline='+')
-    print_title("sub dir/compiletime/Op/set of different associated Theano types", underline='-')
+    print_title("List of %d compiled individual ops" % len(table), underline="+")
+    print_title(
+        "sub dir/compiletime/Op/set of different associated Theano types", underline="-"
+    )
     table = sorted(table, key=lambda t: str(t[1]))
     for dir, op, types, compile_time in table:
-        print(dir, '%.3fs' % compile_time, op, types)
+        print(dir, "%.3fs" % compile_time, op, types)
 
     print()
-    print_title("List of %d compiled sets of ops" % len(table_multiple_ops), underline='+')
-    print_title("sub dir/compiletime/Set of ops/set of different associated Theano types", underline='-')
+    print_title(
+        "List of %d compiled sets of ops" % len(table_multiple_ops), underline="+"
+    )
+    print_title(
+        "sub dir/compiletime/Set of ops/set of different associated Theano types",
+        underline="-",
+    )
     table_multiple_ops = sorted(table_multiple_ops, key=lambda t: (t[1], t[2]))
     for dir, ops_to_str, types_to_str, compile_time in table_multiple_ops:
-        print(dir, '%.3fs' % compile_time, ops_to_str, types_to_str)
+        print(dir, "%.3fs" % compile_time, ops_to_str, types_to_str)
 
     print()
-    print_title(("List of %d compiled Op classes and "
-                 "the number of times they got compiled" % len(table_op_class)), underline='+')
+    print_title(
+        (
+            "List of %d compiled Op classes and "
+            "the number of times they got compiled" % len(table_op_class)
+        ),
+        underline="+",
+    )
     table_op_class = sorted(iteritems(table_op_class), key=lambda t: t[1])
     for op_class, nb in table_op_class:
         print(op_class, nb)
@@ -190,24 +221,37 @@ def print_compiledir_content():
     if big_key_files:
         big_key_files = sorted(big_key_files, key=lambda t: str(t[1]))
         big_total_size = sum([sz for _, sz, _ in big_key_files])
-        print(("There are directories with key files bigger than %d bytes "
-               "(they probably contain big tensor constants)" %
-               max_key_file_size))
-        print(("They use %d bytes out of %d (total size used by all key files)"
-               "" % (big_total_size, total_key_sizes)))
+        print(
+            (
+                "There are directories with key files bigger than %d bytes "
+                "(they probably contain big tensor constants)" % max_key_file_size
+            )
+        )
+        print(
+            (
+                "They use %d bytes out of %d (total size used by all key files)"
+                "" % (big_total_size, total_key_sizes)
+            )
+        )
 
         for dir, size, ops in big_key_files:
             print(dir, size, ops)
 
     nb_keys = sorted(iteritems(nb_keys))
     print()
-    print_title("Number of keys for a compiled module", underline='+')
-    print_title("number of keys/number of modules with that number of keys", underline='-')
+    print_title("Number of keys for a compiled module", underline="+")
+    print_title(
+        "number of keys/number of modules with that number of keys", underline="-"
+    )
     for n_k, n_m in nb_keys:
         print(n_k, n_m)
     print()
-    print(("Skipped %d files that contained 0 op "
-           "(are they always theano.scalar ops?)" % zeros_op))
+    print(
+        (
+            "Skipped %d files that contained 0 op "
+            "(are they always theano.scalar ops?)" % zeros_op
+        )
+    )
 
 
 def compiledir_purge():
@@ -229,18 +273,18 @@ def basecompiledir_ls():
     subdirs = sorted(subdirs)
     others = sorted(others)
 
-    print('Base compile dir is %s' % theano.config.base_compiledir)
-    print('Sub-directories (possible compile caches):')
+    print("Base compile dir is %s" % theano.config.base_compiledir)
+    print("Sub-directories (possible compile caches):")
     for d in subdirs:
-        print('    %s' % d)
+        print("    %s" % d)
     if not subdirs:
-        print('    (None)')
+        print("    (None)")
 
     if others:
         print()
-        print('Other files in base_compiledir:')
+        print("Other files in base_compiledir:")
         for f in others:
-            print('    %s' % f)
+            print("    %s" % f)
 
 
 def basecompiledir_purge():

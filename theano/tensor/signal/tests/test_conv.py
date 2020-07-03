@@ -12,8 +12,7 @@ from theano.tensor.signal import conv
 from theano.tensor.basic import _allclose
 
 
-class TestSignalConv2D():
-
+class TestSignalConv2D:
     def setup_method(self):
         utt.seed_rng()
 
@@ -21,8 +20,8 @@ class TestSignalConv2D():
 
         image_dim = len(image_shape)
         filter_dim = len(filter_shape)
-        input = T.TensorType('float64', [False] * image_dim)()
-        filters = T.TensorType('float64', [False] * filter_dim)()
+        input = T.TensorType("float64", [False] * image_dim)()
+        filters = T.TensorType("float64", [False] * filter_dim)()
 
         bsize = image_shape[0]
         if image_dim != 3:
@@ -35,6 +34,7 @@ class TestSignalConv2D():
         # we create a symbolic function so that verify_grad can work
         def sym_conv2d(input, filters):
             return conv.conv2d(input, filters)
+
         output = sym_conv2d(input, filters)
         assert output.ndim == out_dim
         theano_conv = theano.function([input, filters], output)
@@ -52,8 +52,9 @@ class TestSignalConv2D():
         image_data3d = image_data.reshape((bsize,) + image_shape[-2:])
         filter_data3d = filter_data.reshape((nkern,) + filter_shape[-2:])
         # reshape theano output as 4D to make life easier
-        theano_output4d = theano_output.reshape((bsize, nkern,) +
-                                                theano_output.shape[-2:])
+        theano_output4d = theano_output.reshape(
+            (bsize, nkern,) + theano_output.shape[-2:]
+        )
 
         # loop over mini-batches (if required)
         for b in range(bsize):
@@ -67,10 +68,12 @@ class TestSignalConv2D():
                 for row in range(ref_output.shape[0]):
                     for col in range(ref_output.shape[1]):
                         output2d[row, col] += (
-                            image2d[row:row + filter2d.shape[0],
-                                    col:col + filter2d.shape[1]] *
-                            filter2d[::-1, ::-1]
-                            ).sum()
+                            image2d[
+                                row : row + filter2d.shape[0],
+                                col : col + filter2d.shape[1],
+                            ]
+                            * filter2d[::-1, ::-1]
+                        ).sum()
 
                 assert _allclose(theano_output4d[b, k, :, :], output2d)
 
@@ -84,8 +87,10 @@ class TestSignalConv2D():
         # signal.conv.conv2d can support inputs and filters of type
         # matrix or tensor3.
 
-        if(not theano.tensor.nnet.conv.imported_scipy_signal and
-           theano.config.cxx == ""):
+        if (
+            not theano.tensor.nnet.conv.imported_scipy_signal
+            and theano.config.cxx == ""
+        ):
             pytest.skip("conv2d tests need SciPy or a c++ compiler")
 
         self.validate((1, 4, 5), (2, 2, 3), out_dim=4, verify_grad=True)

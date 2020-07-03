@@ -146,15 +146,22 @@ class Params(dict):
 
     def __init__(self, params_type, **kwargs):
         if not isinstance(params_type, ParamsType):
-            raise TypeError('Params: 1st constructor argument should be a ParamsType.')
+            raise TypeError("Params: 1st constructor argument should be a ParamsType.")
         for field in params_type.fields:
             if field not in kwargs:
-                raise TypeError('Params: ParamsType attribute "%s" not in Params args.' % field)
+                raise TypeError(
+                    'Params: ParamsType attribute "%s" not in Params args.' % field
+                )
         super(Params, self).__init__(**kwargs)
         self.__dict__.update(__params_type__=params_type, __signatures__=None)
 
     def __repr__(self):
-        return 'Params(%s)' % ', '.join([('%s:%s:%s' % (k, type(self[k]).__name__, self[k])) for k in sorted(self.keys())])
+        return "Params(%s)" % ", ".join(
+            [
+                ("%s:%s:%s" % (k, type(self[k]).__name__, self[k]))
+                for k in sorted(self.keys())
+            ]
+        )
 
     def __getattr__(self, key):
         if key not in self:
@@ -162,32 +169,41 @@ class Params(dict):
         return self[key]
 
     def __setattr__(self, key, value):
-        raise NotImplementedError('Params is immutable')
+        raise NotImplementedError("Params is immutable")
 
     def __setitem__(self, key, value):
-        raise NotImplementedError('Params is immutable')
+        raise NotImplementedError("Params is immutable")
 
     def __delitem__(self, key):
-        raise NotImplementedError('Params is immutable')
+        raise NotImplementedError("Params is immutable")
 
     def __hash__(self):
         # As values are immutable, we can save data signatures the first time
         # to not regenerate them in future hash() calls.
         if self.__signatures__ is None:
             # NB: For writing, we must bypass setattr() which is always called by default by Python.
-            self.__dict__['__signatures__'] = tuple(
+            self.__dict__["__signatures__"] = tuple(
                 # NB: Params object should have been already filtered.
-                self.__params_type__.types[i].make_constant(self[self.__params_type__.fields[i]]).signature()
+                self.__params_type__.types[i]
+                .make_constant(self[self.__params_type__.fields[i]])
+                .signature()
                 for i in range(self.__params_type__.length)
             )
         return hash((type(self), self.__params_type__) + self.__signatures__)
 
     def __eq__(self, other):
-        return (type(self) == type(other) and self.__params_type__ == other.__params_type__ and all(
-            # NB: Params object should have been already filtered.
-            self.__params_type__.types[i].values_eq(self[self.__params_type__.fields[i]], other[self.__params_type__.fields[i]])
-            for i in range(self.__params_type__.length)
-        ))
+        return (
+            type(self) == type(other)
+            and self.__params_type__ == other.__params_type__
+            and all(
+                # NB: Params object should have been already filtered.
+                self.__params_type__.types[i].values_eq(
+                    self[self.__params_type__.fields[i]],
+                    other[self.__params_type__.fields[i]],
+                )
+                for i in range(self.__params_type__.length)
+            )
+        )
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -221,19 +237,26 @@ class ParamsType(Type):
 
     def __init__(self, **kwargs):
         if len(kwargs) == 0:
-            raise ValueError('Cannot create ParamsType from empty data.')
+            raise ValueError("Cannot create ParamsType from empty data.")
 
         for attribute_name in kwargs:
-            if re.match('^[A-Za-z_][A-Za-z0-9_]*$', attribute_name) is None:
-                raise AttributeError('ParamsType: attribute "%s" should be a valid identifier.' % attribute_name)
+            if re.match("^[A-Za-z_][A-Za-z0-9_]*$", attribute_name) is None:
+                raise AttributeError(
+                    'ParamsType: attribute "%s" should be a valid identifier.'
+                    % attribute_name
+                )
             if attribute_name in c_cpp_keywords:
-                raise SyntaxError('ParamsType: "%s" is a potential C/C++ keyword and should not be used as attribute name.'
-                                  % attribute_name)
+                raise SyntaxError(
+                    'ParamsType: "%s" is a potential C/C++ keyword and should not be used as attribute name.'
+                    % attribute_name
+                )
             type_instance = kwargs[attribute_name]
             type_name = type_instance.__class__.__name__
             if not isinstance(type_instance, Type):
-                raise TypeError('ParamsType: attribute "%s" should inherit from Theano Type, got "%s".'
-                                % (attribute_name, type_name))
+                raise TypeError(
+                    'ParamsType: attribute "%s" should inherit from Theano Type, got "%s".'
+                    % (attribute_name, type_name)
+                )
 
         self.length = len(kwargs)
         self.fields = tuple(sorted(kwargs.keys()))
@@ -245,20 +268,38 @@ class ParamsType(Type):
         enum_types = [t for t in self.types if isinstance(t, EnumType)]
         if enum_types:
             # We don't want same enum names in different enum types.
-            if sum(len(t) for t in enum_types) != len(set(k for t in enum_types for k in t)):
-                raise AttributeError('ParamsType: found different enum types with common constants names.')
+            if sum(len(t) for t in enum_types) != len(
+                set(k for t in enum_types for k in t)
+            ):
+                raise AttributeError(
+                    "ParamsType: found different enum types with common constants names."
+                )
             # We don't want same aliases in different enum types.
-            if sum(len(t.aliases) for t in enum_types) != len(set(alias for t in enum_types for alias in t.aliases)):
-                raise AttributeError('ParamsType: found different enum types with common constants aliases.')
+            if sum(len(t.aliases) for t in enum_types) != len(
+                set(alias for t in enum_types for alias in t.aliases)
+            ):
+                raise AttributeError(
+                    "ParamsType: found different enum types with common constants aliases."
+                )
             # We don't want aliases that have same names as some constants.
             all_enums = {e for t in enum_types for e in t}
             all_aliases = {a for t in enum_types for a in t.aliases}
             if [a for a in all_aliases if a in all_enums]:
-                raise AttributeError('ParamsType: found aliases that have same names as constants.')
+                raise AttributeError(
+                    "ParamsType: found aliases that have same names as constants."
+                )
             # We map each enum name to the enum type in which it is defined.
             # We will then use this dict to find enum value when looking for enum name in ParamsType object directly.
-            self.__const_to_enum = {enum_name: enum_type for enum_type in enum_types for enum_name in enum_type}
-            self.__alias_to_enum = {alias: enum_type for enum_type in enum_types for alias in enum_type.aliases}
+            self.__const_to_enum = {
+                enum_name: enum_type
+                for enum_type in enum_types
+                for enum_name in enum_type
+            }
+            self.__alias_to_enum = {
+                alias: enum_type
+                for enum_type in enum_types
+                for alias in enum_type.aliases
+            }
 
     def __setstate__(self, state):
         # NB:
@@ -280,10 +321,16 @@ class ParamsType(Type):
         return super(ParamsType, self).__getattr__(self, key)
 
     def __repr__(self):
-        return 'ParamsType<%s>' % ', '.join([('%s:%s' % (self.fields[i], self.types[i])) for i in range(self.length)])
+        return "ParamsType<%s>" % ", ".join(
+            [("%s:%s" % (self.fields[i], self.types[i])) for i in range(self.length)]
+        )
 
     def __eq__(self, other):
-        return (type(self) == type(other) and self.fields == other.fields and self.types == other.types)
+        return (
+            type(self) == type(other)
+            and self.fields == other.fields
+            and self.types == other.types
+        )
 
     def __hash__(self):
         return hash((type(self),) + self.fields + self.types)
@@ -293,11 +340,11 @@ class ParamsType(Type):
         # This name is intended to be used as struct name in C code and as constant
         # definition to check if a similar ParamsType has already been created
         # (see c_support_code() below).
-        fields_string = ','.join(self.fields).encode('utf-8')
-        types_string = ','.join(str(t) for t in self.types).encode('utf-8')
+        fields_string = ",".join(self.fields).encode("utf-8")
+        types_string = ",".join(str(t) for t in self.types).encode("utf-8")
         fields_hex = hashlib.sha256(fields_string).hexdigest()
         types_hex = hashlib.sha256(types_string).hexdigest()
-        return '_Params_%s_%s' % (fields_hex, types_hex)
+        return "_Params_%s_%s" % (fields_hex, types_hex)
 
     def has_type(self, theano_type):
         """
@@ -387,7 +434,11 @@ class ParamsType(Type):
             method to do that.
 
         """
-        return self.__alias_to_enum[alias].fromalias(alias) if alias in self.__alias_to_enum else self.__const_to_enum[alias][alias]
+        return (
+            self.__alias_to_enum[alias].fromalias(alias)
+            if alias in self.__alias_to_enum
+            else self.__const_to_enum[alias][alias]
+        )
 
     def get_params(self, *objects, **kwargs):
         """
@@ -444,8 +495,12 @@ class ParamsType(Type):
             if field in kwargs:
                 fields_values[field] = kwargs[field]
         # Then we filter the fields values and we create the Params object.
-        filtered = {self.fields[i]: self.types[i].filter(fields_values[self.fields[i]], strict=False, allow_downcast=True)
-                    for i in range(self.length)}
+        filtered = {
+            self.fields[i]: self.types[i].filter(
+                fields_values[self.fields[i]], strict=False, allow_downcast=True
+            )
+            for i in range(self.length)
+        }
         return Params(self, **filtered)
 
     def extended(self, **kwargs):
@@ -463,19 +518,35 @@ class ParamsType(Type):
     # Returns a Params object with expected attributes or (in strict mode) checks that data has expected attributes.
     def filter(self, data, strict=False, allow_downcast=None):
         if strict and not isinstance(data, Params):
-            raise TypeError('%s: strict mode: data should be an instance of Params.' % self)
+            raise TypeError(
+                "%s: strict mode: data should be an instance of Params." % self
+            )
         # Filter data attributes to check if they respect the ParamsType's contract.
-        filtered = {self.fields[i]: self.types[i].filter(getattr(data, self.fields[i]), strict, allow_downcast)
-                    for i in range(self.length)}
-        return data if (strict or isinstance(data, Params)) else Params(self, **filtered)
+        filtered = {
+            self.fields[i]: self.types[i].filter(
+                getattr(data, self.fields[i]), strict, allow_downcast
+            )
+            for i in range(self.length)
+        }
+        return (
+            data if (strict or isinstance(data, Params)) else Params(self, **filtered)
+        )
 
     def values_eq(self, a, b):
-        return all(self.types[i].values_eq(getattr(a, self.fields[i]), getattr(b, self.fields[i]))
-                   for i in range(self.length))
+        return all(
+            self.types[i].values_eq(
+                getattr(a, self.fields[i]), getattr(b, self.fields[i])
+            )
+            for i in range(self.length)
+        )
 
     def values_eq_approx(self, a, b):
-        return all(self.types[i].values_eq_approx(getattr(a, self.fields[i]), getattr(b, self.fields[i]))
-                   for i in range(self.length))
+        return all(
+            self.types[i].values_eq_approx(
+                getattr(a, self.fields[i]), getattr(b, self.fields[i])
+            )
+            for i in range(self.length)
+        )
 
     def c_compile_args(self, c_compiler):
         c_compile_args_list = []
@@ -553,7 +624,7 @@ class ParamsType(Type):
         return c_init_code_list
 
     def c_support_code(self):
-        sub = {'fail': '{this->setErrorOccurred(); return;}'}
+        sub = {"fail": "{this->setErrorOccurred(); return;}"}
         struct_name = self.name
         struct_name_defined = struct_name.upper()
         c_support_code_set = set()
@@ -578,19 +649,22 @@ class ParamsType(Type):
 
             c_cleanup_list.append(type_instance.c_cleanup(attribute_name, sub))
 
-            c_extract_list.append("""
+            c_extract_list.append(
+                """
             void extract_%(attribute_name)s(PyObject* py_%(attribute_name)s) {
                 %(extract_code)s
             }
-            """ % {
-                'attribute_name': attribute_name,
-                'extract_code': type_instance.c_extract(attribute_name, sub)
-            })
+            """
+                % {
+                    "attribute_name": attribute_name,
+                    "extract_code": type_instance.c_extract(attribute_name, sub),
+                }
+            )
 
-        struct_declare = '\n'.join(c_declare_list)
-        struct_init = '\n'.join(c_init_list)
-        struct_cleanup = '\n'.join(c_cleanup_list)
-        struct_extract = '\n\n'.join(c_extract_list)
+        struct_declare = "\n".join(c_declare_list)
+        struct_init = "\n".join(c_init_list)
+        struct_cleanup = "\n".join(c_cleanup_list)
+        struct_extract = "\n\n".join(c_extract_list)
         struct_extract_method = """
         void extract(PyObject* object, int field_pos) {
             switch(field_pos) {
@@ -603,8 +677,13 @@ class ParamsType(Type):
                     break;
             }
         }
-        """ % ('\n'.join(
-            [('case %d: extract_%s(object); break;' % (i, self.fields[i])) for i in range(self.length)])
+        """ % (
+            "\n".join(
+                [
+                    ("case %d: extract_%s(object); break;" % (i, self.fields[i]))
+                    for i in range(self.length)
+                ]
+            )
         )
         final_struct_code = """
         /** ParamsType %(struct_name)s **/
@@ -648,9 +727,15 @@ class ParamsType(Type):
         };
         #endif
         /** End ParamsType %(struct_name)s **/
-        """ % dict(struct_name_defined=struct_name_defined, struct_name=struct_name, struct_declare=struct_declare,
-                   struct_init=struct_init, struct_cleanup=struct_cleanup, struct_extract=struct_extract,
-                   struct_extract_method=struct_extract_method)
+        """ % dict(
+            struct_name_defined=struct_name_defined,
+            struct_name=struct_name,
+            struct_declare=struct_declare,
+            struct_init=struct_init,
+            struct_cleanup=struct_cleanup,
+            struct_extract=struct_extract,
+            struct_extract_method=struct_extract_method,
+        )
 
         return list(sorted(list(c_support_code_set))) + [final_struct_code]
 
@@ -664,20 +749,26 @@ class ParamsType(Type):
     def c_declare(self, name, sub, check_input=True):
         return """
         %(struct_name)s* %(name)s;
-        """ % dict(struct_name=self.name, name=name)
+        """ % dict(
+            struct_name=self.name, name=name
+        )
 
     def c_init(self, name, sub):
         # NB: It seems c_init() is not called for an op param.
         # So the real initialization is done at top of c_extract.
         return """
         %(name)s = NULL;
-        """ % dict(name=name)
+        """ % dict(
+            name=name
+        )
 
     def c_cleanup(self, name, sub):
         return """
         delete %(name)s;
         %(name)s = NULL;
-        """ % dict(name=name)
+        """ % dict(
+            name=name
+        )
 
     def c_extract(self, name, sub, check_input=True):
         return """
@@ -705,5 +796,10 @@ class ParamsType(Type):
             }
         }
         }
-        """ % dict(name=name, struct_name=self.name, length=self.length, fail=sub['fail'],
-                   fields_list='"%s"' % '", "'.join(self.fields))
+        """ % dict(
+            name=name,
+            struct_name=self.name,
+            length=self.length,
+            fail=sub["fail"],
+            fields_list='"%s"' % '", "'.join(self.fields),
+        )

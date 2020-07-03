@@ -24,7 +24,7 @@ class TestGpuCumOp(theano.tensor.tests.test_extra_ops.TestCumOp):
     def setup_method(self):
         super(TestGpuCumOp, self).setup_method()
         test_ctx = get_context(test_ctx_name)
-        if test_ctx.kind != b'cuda':
+        if test_ctx.kind != b"cuda":
             pytest.skip("Cuda specific tests")
         self.max_threads_dim0 = test_ctx.maxlsize0
         self.max_grid_size1 = test_ctx.maxgsize2
@@ -46,18 +46,14 @@ class TestGpuCumOp(theano.tensor.tests.test_extra_ops.TestCumOp):
         # GpuCumOp is only defined for float32 for now, so we skip it
         # in the unsupported cases
         op_class = partial(self.op_class, mode=mode)
-        gpucumop_supported_dtypes = ('float32',)
+        gpucumop_supported_dtypes = ("float32",)
         if theano.config.floatX not in gpucumop_supported_dtypes:
-            pytest.skip('Gpucumop not implemented for dtype %s'
-                           % theano.config.floatX)
-        x = T.tensor3('x')
+            pytest.skip("Gpucumop not implemented for dtype %s" % theano.config.floatX)
+        x = T.tensor3("x")
         a = np.random.random((3, 5, 2)).astype(theano.config.floatX)
 
         for axis in range(-len(a.shape), len(a.shape)):
-            self._compile_and_check([x],
-                                    [op_class(axis=axis)(x)],
-                                    [a],
-                                    GpuCumOp)
+            self._compile_and_check([x], [op_class(axis=axis)(x)], [a], GpuCumOp)
 
     @pytest.mark.parametrized("mode", ["mul", "add"])
     def test_grad(self, mode):
@@ -68,79 +64,94 @@ class TestGpuCumOp(theano.tensor.tests.test_extra_ops.TestCumOp):
     def test_Strides1D(self, mode):
         op_class = partial(self.op_class, mode=mode)
         np_func = dict(add=np.cumsum, mul=np.cumprod)[mode]
-        x = T.fvector('x')
+        x = T.fvector("x")
 
         for axis in [0, None, -1]:
             a = np.random.random((42,)).astype("float32")
             cumop_function = theano.function(
-                [x], op_class(axis=axis)(x), mode=self.mode)
+                [x], op_class(axis=axis)(x), mode=self.mode
+            )
 
-            slicings = [slice(None, None, None),    # Normal strides
-                        slice(None, None, 2),       # Stepped strides
-                        slice(None, None, -1),      # Negative strides
-                        ]
+            slicings = [
+                slice(None, None, None),  # Normal strides
+                slice(None, None, 2),  # Stepped strides
+                slice(None, None, -1),  # Negative strides
+            ]
 
             # Cartesian product of all slicings to test.
             for slicing in product(slicings, repeat=x.ndim):
-                f = theano.function([x], op_class(axis=axis)(x[slicing]),
-                                    mode=self.mode)
-                assert [n for n in f.maker.fgraph.toposort()
-                        if isinstance(n.op, GpuCumOp)]
+                f = theano.function(
+                    [x], op_class(axis=axis)(x[slicing]), mode=self.mode
+                )
+                assert [
+                    n for n in f.maker.fgraph.toposort() if isinstance(n.op, GpuCumOp)
+                ]
                 utt.assert_allclose(np_func(a[slicing], axis=axis), f(a))
-                utt.assert_allclose(np_func(a[slicing], axis=axis),
-                                    cumop_function(a[slicing]))
+                utt.assert_allclose(
+                    np_func(a[slicing], axis=axis), cumop_function(a[slicing])
+                )
 
     @pytest.mark.parametrized("mode", ["mul", "add"])
     def test_Strides2D(self, mode):
         np_func = dict(add=np.cumsum, mul=np.cumprod)[mode]
         op_class = partial(self.op_class, mode=mode)
-        x = T.fmatrix('x')
+        x = T.fmatrix("x")
 
         for axis in [0, 1, None, -1, -2]:
             a = np.random.random((42, 30)).astype("float32")
             cumop_function = theano.function(
-                [x], op_class(axis=axis)(x), mode=self.mode)
+                [x], op_class(axis=axis)(x), mode=self.mode
+            )
 
-            slicings = [slice(None, None, None),    # Normal strides
-                        slice(None, None, 2),       # Stepped strides
-                        slice(None, None, -1),      # Negative strides
-                        ]
+            slicings = [
+                slice(None, None, None),  # Normal strides
+                slice(None, None, 2),  # Stepped strides
+                slice(None, None, -1),  # Negative strides
+            ]
 
             # Cartesian product of all slicings to test.
             for slicing in product(slicings, repeat=x.ndim):
-                f = theano.function([x], op_class(axis=axis)(x[slicing]),
-                                    mode=self.mode)
-                assert [n for n in f.maker.fgraph.toposort()
-                        if isinstance(n.op, GpuCumOp)]
+                f = theano.function(
+                    [x], op_class(axis=axis)(x[slicing]), mode=self.mode
+                )
+                assert [
+                    n for n in f.maker.fgraph.toposort() if isinstance(n.op, GpuCumOp)
+                ]
                 utt.assert_allclose(np_func(a[slicing], axis=axis), f(a))
-                utt.assert_allclose(np_func(a[slicing], axis=axis),
-                                    cumop_function(a[slicing]))
+                utt.assert_allclose(
+                    np_func(a[slicing], axis=axis), cumop_function(a[slicing])
+                )
 
     @pytest.mark.parametrized("mode", ["mul", "add"])
     def test_Strides3D(self, mode):
         np_func = dict(add=np.cumsum, mul=np.cumprod)[mode]
         op_class = partial(self.op_class, mode=mode)
-        x = T.ftensor3('x')
+        x = T.ftensor3("x")
 
         for axis in [0, 1, 2, None, -1, -2, -3]:
             a = np.random.random((42, 30, 25)).astype("float32")
             cumop_function = theano.function(
-                [x], op_class(axis=axis)(x), mode=self.mode)
+                [x], op_class(axis=axis)(x), mode=self.mode
+            )
 
-            slicings = [slice(None, None, None),    # Normal strides
-                        slice(None, None, 2),       # Stepped strides
-                        slice(None, None, -1),      # Negative strides
-                        ]
+            slicings = [
+                slice(None, None, None),  # Normal strides
+                slice(None, None, 2),  # Stepped strides
+                slice(None, None, -1),  # Negative strides
+            ]
 
             # Cartesian product of all slicings to test.
             for slicing in product(slicings, repeat=x.ndim):
                 f = theano.function(
-                    [x], op_class(axis=axis)(x[slicing]), mode=self.mode)
-                assert [n for n in f.maker.fgraph.toposort()
-                        if isinstance(n.op, GpuCumOp)]
+                    [x], op_class(axis=axis)(x[slicing]), mode=self.mode
+                )
+                assert [
+                    n for n in f.maker.fgraph.toposort() if isinstance(n.op, GpuCumOp)
+                ]
                 utt.assert_allclose(np_func(a[slicing], axis=axis), f(a))
-                utt.assert_allclose(np_func(a[slicing], axis=axis),
-                                    cumop_function(a[slicing]))
+                utt.assert_allclose(
+                    np_func(a[slicing], axis=axis), cumop_function(a[slicing])
+                )
 
     @pytest.mark.parametrized("mode", ["mul", "add"])
     def test_GpuCumOp1D(self, mode):
@@ -148,10 +159,9 @@ class TestGpuCumOp(theano.tensor.tests.test_extra_ops.TestCumOp):
         op_class = partial(self.op_class, mode=mode)
         block_max_size = self.max_threads_dim0 * 2
 
-        x = T.fvector('x')
+        x = T.fvector("x")
         f = theano.function([x], op_class(axis=0)(x), mode=self.mode)
-        assert [n for n in f.maker.fgraph.toposort()
-                if isinstance(n.op, GpuCumOp)]
+        assert [n for n in f.maker.fgraph.toposort() if isinstance(n.op, GpuCumOp)]
 
         # Extensive testing for the first 1025 sizes
         a = np.random.random(1025).astype("float32")
@@ -159,12 +169,11 @@ class TestGpuCumOp(theano.tensor.tests.test_extra_ops.TestCumOp):
             utt.assert_allclose(np_func(a[:i]), f(a[:i]))
 
         # Use multiple GPU threadblocks
-        a = np.random.random((block_max_size + 2, )).astype("float32")
+        a = np.random.random((block_max_size + 2,)).astype("float32")
         utt.assert_allclose(np_func(a), f(a))
 
         # Use recursive cumop
-        a = np.ones((block_max_size * (block_max_size + 1) + 2,),
-                    dtype="float32")
+        a = np.ones((block_max_size * (block_max_size + 1) + 2,), dtype="float32")
         utt.assert_allclose(np_func(a), f(a))
 
     @pytest.mark.parametrized("mode", ["mul", "add"])
@@ -173,11 +182,10 @@ class TestGpuCumOp(theano.tensor.tests.test_extra_ops.TestCumOp):
         op_class = partial(self.op_class, mode=mode)
         block_max_size = self.max_threads_dim0 * 2
 
-        x = T.fmatrix('x')
+        x = T.fmatrix("x")
         for shape_axis, axis in zip([0, 1, 0, 1, 0], [0, 1, None, -1, -2]):
             f = theano.function([x], op_class(axis=axis)(x), mode=self.mode)
-            assert [n for n in f.maker.fgraph.toposort()
-                    if isinstance(n.op, GpuCumOp)]
+            assert [n for n in f.maker.fgraph.toposort() if isinstance(n.op, GpuCumOp)]
 
             # Extensive testing for the first 1025 sizes
             a_shape = [5, 5]
@@ -215,11 +223,10 @@ class TestGpuCumOp(theano.tensor.tests.test_extra_ops.TestCumOp):
         op_class = partial(self.op_class, mode=mode)
         block_max_size = self.max_threads_dim0 * 2
 
-        x = T.ftensor3('x')
+        x = T.ftensor3("x")
         for shape_axis, axis in zip([0, 1, 2, 0, 2, 1, 0], [0, 1, 2, None, -1, -2, -3]):
             f = theano.function([x], op_class(axis=axis)(x), mode=self.mode)
-            assert [n for n in f.maker.fgraph.toposort()
-                    if isinstance(n.op, GpuCumOp)]
+            assert [n for n in f.maker.fgraph.toposort() if isinstance(n.op, GpuCumOp)]
 
             # Extensive testing for the first 1025 sizes
             a_shape = [5, 5, 5]
@@ -266,7 +273,6 @@ class TestGpuCumOp(theano.tensor.tests.test_extra_ops.TestCumOp):
     def test_GpuCumOp4D(self, mode):
         op_class = partial(self.op_class, mode=mode)
         # Should not use the GPU version.
-        x = T.ftensor4('x')
+        x = T.ftensor4("x")
         f = theano.function([x], op_class(axis=1)(x), mode=self.mode)
-        assert [n for n in f.maker.fgraph.toposort()
-                if isinstance(n.op, CumOp)]
+        assert [n for n in f.maker.fgraph.toposort() if isinstance(n.op, CumOp)]

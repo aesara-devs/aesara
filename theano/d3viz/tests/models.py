@@ -7,7 +7,6 @@ import theano.tensor as T
 
 
 class Mlp(object):
-
     def __init__(self, nfeatures=100, noutputs=10, nhiddens=50, rng=None):
         if rng is None:
             rng = 0
@@ -18,9 +17,8 @@ class Mlp(object):
         self.noutputs = noutputs
         self.nhiddens = nhiddens
 
-        x = T.dmatrix('x')
-        wh = th.shared(self.rng.normal(0, 1, (nfeatures, nhiddens)),
-                       borrow=True)
+        x = T.dmatrix("x")
+        wh = th.shared(self.rng.normal(0, 1, (nfeatures, nhiddens)), borrow=True)
         bh = th.shared(np.zeros(nhiddens), borrow=True)
         h = T.nnet.sigmoid(T.dot(x, wh) + bh)
 
@@ -33,9 +31,8 @@ class Mlp(object):
 
 
 class OfgNested(object):
-
     def __init__(self):
-        x, y, z = T.scalars('xyz')
+        x, y, z = T.scalars("xyz")
         e = x * y
         op = th.OpFromGraph([x, y], [e])
         e2 = op(x, y) + z
@@ -47,10 +44,9 @@ class OfgNested(object):
 
 
 class Ofg(object):
-
     def __init__(self):
-        x, y, z = T.scalars('xyz')
-        e = T.nnet.sigmoid((x + y + z)**2)
+        x, y, z = T.scalars("xyz")
+        e = T.nnet.sigmoid((x + y + z) ** 2)
         op = th.OpFromGraph([x, y, z], [e])
         e2 = op(x, y, z) + op(z, y, x)
 
@@ -59,10 +55,9 @@ class Ofg(object):
 
 
 class OfgSimple(object):
-
     def __init__(self):
-        x, y, z = T.scalars('xyz')
-        e = T.nnet.sigmoid((x + y + z)**2)
+        x, y, z = T.scalars("xyz")
+        e = T.nnet.sigmoid((x + y + z) ** 2)
         op = th.OpFromGraph([x, y, z], [e])
         e2 = op(x, y, z)
 

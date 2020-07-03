@@ -21,16 +21,12 @@ def test_NanGuardMode():
     y = T.dot(x, w)
 
     fun = theano.function(
-        [x], y,
-        mode=NanGuardMode(nan_is_error=True, inf_is_error=True)
+        [x], y, mode=NanGuardMode(nan_is_error=True, inf_is_error=True)
     )
     a = np.random.randn(3, 5).astype(theano.config.floatX)
-    infa = np.tile(
-        (np.asarray(100.) ** 1000000).astype(theano.config.floatX), (3, 5))
-    nana = np.tile(
-        np.asarray(np.nan).astype(theano.config.floatX), (3, 5))
-    biga = np.tile(
-        np.asarray(1e20).astype(theano.config.floatX), (3, 5))
+    infa = np.tile((np.asarray(100.0) ** 1000000).astype(theano.config.floatX), (3, 5))
+    nana = np.tile(np.asarray(np.nan).astype(theano.config.floatX), (3, 5))
+    biga = np.tile(np.asarray(1e20).astype(theano.config.floatX), (3, 5))
 
     fun(a)  # normal values
 
@@ -50,18 +46,15 @@ def test_NanGuardMode():
     # slices
     a = np.random.randn(3, 4, 5).astype(theano.config.floatX)
     infa = np.tile(
-        (np.asarray(100.) ** 1000000).astype(theano.config.floatX),
-        (3, 4, 5))
-    nana = np.tile(
-        np.asarray(np.nan).astype(theano.config.floatX), (3, 4, 5))
-    biga = np.tile(
-        np.asarray(1e20).astype(theano.config.floatX), (3, 4, 5))
+        (np.asarray(100.0) ** 1000000).astype(theano.config.floatX), (3, 4, 5)
+    )
+    nana = np.tile(np.asarray(np.nan).astype(theano.config.floatX), (3, 4, 5))
+    biga = np.tile(np.asarray(1e20).astype(theano.config.floatX), (3, 4, 5))
 
     x = T.tensor3()
     y = x[:, T.arange(2), T.arange(2), None]
     fun = theano.function(
-        [x], y,
-        mode=NanGuardMode(nan_is_error=True, inf_is_error=True)
+        [x], y, mode=NanGuardMode(nan_is_error=True, inf_is_error=True)
     )
     fun(a)  # normal values
     try:

@@ -5,6 +5,7 @@ from theano.gof import Constant, Generic, Op
 from theano.gof.sched import key_to_cmp
 from theano.tensor import tensor
 import theano
+
 ##########################
 # Disk Access
 ##########################
@@ -29,30 +30,38 @@ class LoadFromDisk(Op):
     def __init__(self, dtype, broadcastable, mmap_mode=None):
         self.dtype = np.dtype(dtype)  # turn "float64" into np.float64
         self.broadcastable = broadcastable
-        if mmap_mode not in (None, 'c'):
-            raise ValueError("The only supported values for mmap_mode "
-                             "are None and 'c', got %s" % mmap_mode)
+        if mmap_mode not in (None, "c"):
+            raise ValueError(
+                "The only supported values for mmap_mode "
+                "are None and 'c', got %s" % mmap_mode
+            )
         self.mmap_mode = mmap_mode
 
     def make_node(self, path):
         if isinstance(path, str):
             path = Constant(Generic(), path)
-        return gof.Apply(self, [path], [tensor(self.dtype,
-                                        broadcastable=self.broadcastable)])
+        return gof.Apply(
+            self, [path], [tensor(self.dtype, broadcastable=self.broadcastable)]
+        )
 
     def perform(self, node, inp, out):
         path = inp[0]
-        if (path.split('.')[-1] == 'npz'):
+        if path.split(".")[-1] == "npz":
             raise ValueError("Expected a .npy file, got %s instead" % path)
         result = np.load(path, mmap_mode=self.mmap_mode)
         if result.dtype != self.dtype:
-            raise TypeError("Expected an array of type %s, got %s instead" %
-                            (self.dtype, result.dtype))
+            raise TypeError(
+                "Expected an array of type %s, got %s instead"
+                % (self.dtype, result.dtype)
+            )
         out[0][0] = result
 
     def __str__(self):
-        return ("Load{dtype: %s, broadcastable: %s, mmep: %s}" %
-                (self.dtype, self.broadcastable, self.mmap_mode))
+        return "Load{dtype: %s, broadcastable: %s, mmep: %s}" % (
+            self.dtype,
+            self.broadcastable,
+            self.mmap_mode,
+        )
 
 
 def load(path, dtype, broadcastable, mmap_mode=None):
@@ -90,6 +99,7 @@ def load(path, dtype, broadcastable, mmap_mode=None):
     """
 
     return LoadFromDisk(dtype, broadcastable, mmap_mode)(path)
+
 
 ##########################
 # MPI
@@ -129,9 +139,14 @@ class MPIRecv(Op):
         self.broadcastable = (False,) * len(shape)
 
     def make_node(self):
-        return gof.Apply(self, [], [theano.Variable(Generic()),
-                                    tensor(self.dtype,
-                                           broadcastable=self.broadcastable)])
+        return gof.Apply(
+            self,
+            [],
+            [
+                theano.Variable(Generic()),
+                tensor(self.dtype, broadcastable=self.broadcastable),
+            ],
+        )
 
     def perform(self, node, inp, out):
 
@@ -142,8 +157,12 @@ class MPIRecv(Op):
         out[1][0] = data
 
     def __str__(self):
-        return ("MPIRecv{source: %d, tag: %d, shape: %s, dtype: %s}" %
-                (self.source, self.tag, self.shape, self.dtype))
+        return "MPIRecv{source: %d, tag: %d, shape: %s, dtype: %s}" % (
+            self.source,
+            self.tag,
+            self.shape,
+            self.dtype,
+        )
 
     def infer_shape(self, node, shapes):
         return [None, self.shape]
@@ -172,9 +191,11 @@ class MPIRecvWait(Op):
         self.tag = tag
 
     def make_node(self, request, data):
-        return gof.Apply(self, [request, data],
-                               [tensor(data.dtype,
-                                       broadcastable=data.broadcastable)])
+        return gof.Apply(
+            self,
+            [request, data],
+            [tensor(data.dtype, broadcastable=data.broadcastable)],
+        )
 
     def perform(self, node, inp, out):
 
@@ -213,8 +234,8 @@ class MPISend(Op):
         self.tag = tag
 
     def make_node(self, data):
-        return gof.Apply(self, [data],
-                               [theano.Variable(Generic()), data.type()])
+        return gof.Apply(self, [data], [theano.Variable(Generic()), data.type()])
+
     view_map = {1: [0]}
 
     def perform(self, node, inp, out):
@@ -250,8 +271,7 @@ class MPISendWait(Op):
         self.tag = tag
 
     def make_node(self, request, data):
-        return gof.Apply(self, [request, data],
-                               [theano.Variable(Generic())])
+        return gof.Apply(self, [request, data], [theano.Variable(Generic())])
 
     def perform(self, node, inp, out):
         request = inp[0]
@@ -303,6 +323,7 @@ def mpi_tag_key(a):
         return a.op.tag
     else:
         return 0
+
 
 mpi_send_wait_cmp = key_to_cmp(mpi_send_wait_key)
 mpi_tag_cmp = key_to_cmp(mpi_tag_key)

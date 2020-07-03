@@ -20,17 +20,18 @@ class MyOp(theano.compile.ops.DeepCopyOp):
 
     def c_code(self, node, name, inames, onames, sub):
         MyOp.nb_called += 1
-        iname, = inames
-        oname, = onames
-        fail = sub['fail']
+        (iname,) = inames
+        (oname,) = onames
+        fail = sub["fail"]
         itype = node.inputs[0].type.__class__
         if itype in self.c_code_and_version:
             code, version = self.c_code_and_version[itype]
             rand = np.random.rand()
-            return ("printf(\"%(rand)s\\n\");" + code) % locals()
+            return ('printf("%(rand)s\\n");' + code) % locals()
         # Else, no C code
         return super(theano.compile.ops.DeepCopyOp, self).c_code(
-            node, name, inames, onames, sub)
+            node, name, inames, onames, sub
+        )
 
 
 def test_inter_process_cache():
@@ -43,19 +44,19 @@ def test_inter_process_cache():
     # This is to know if the c_code can add information specific to the
     # node.inputs[*].owner like the name of the variable.
 
-    x, y = theano.tensor.dvectors('xy')
+    x, y = theano.tensor.dvectors("xy")
     f = theano.function([x, y], [MyOp()(x), MyOp()(y)])
     f(np.arange(60), np.arange(60))
-    if theano.config.mode == 'FAST_COMPILE' or theano.config.cxx == "":
+    if theano.config.mode == "FAST_COMPILE" or theano.config.cxx == "":
         assert MyOp.nb_called == 0
     else:
         assert MyOp.nb_called == 1
 
     # What if we compile a new function with new variables?
-    x, y = theano.tensor.dvectors('xy')
+    x, y = theano.tensor.dvectors("xy")
     f = theano.function([x, y], [MyOp()(x), MyOp()(y)])
     f(np.arange(60), np.arange(60))
-    if theano.config.mode == 'FAST_COMPILE' or theano.config.cxx == "":
+    if theano.config.mode == "FAST_COMPILE" or theano.config.cxx == "":
         assert MyOp.nb_called == 0
     else:
         assert MyOp.nb_called == 1

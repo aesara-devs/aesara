@@ -10,29 +10,38 @@ def make_declare(loop_orders, dtypes, sub):
     """
     decl = ""
     for i, (loop_order, dtype) in enumerate(zip(loop_orders, dtypes)):
-        var = sub['lv%i' % i]  # input name corresponding to ith loop variable
+        var = sub["lv%i" % i]  # input name corresponding to ith loop variable
         # we declare an iteration variable
         # and an integer for the number of dimensions
-        decl += """
+        decl += (
+            """
         %(dtype)s* %(var)s_iter;
-        """ % locals()
+        """
+            % locals()
+        )
         for j, value in enumerate(loop_order):
-            if value != 'x':
+            if value != "x":
                 # If the dimension is not broadcasted, we declare
                 # the number of elements in that dimension,
                 # the stride in that dimension,
                 # and the jump from an iteration to the next
-                decl += """
+                decl += (
+                    """
                 npy_intp %(var)s_n%(value)i;
                 ssize_t %(var)s_stride%(value)i;
                 int %(var)s_jump%(value)i_%(j)i;
-                """ % locals()
+                """
+                    % locals()
+                )
             else:
                 # if the dimension is broadcasted, we only need
                 # the jump (arbitrary length and stride = 0)
-                decl += """
+                decl += (
+                    """
                 int %(var)s_jump%(value)s_%(j)i;
-                """ % locals()
+                """
+                    % locals()
+                )
 
     return decl
 
@@ -42,18 +51,21 @@ def make_checks(loop_orders, dtypes, sub):
     for i, (loop_order, dtype) in enumerate(zip(loop_orders, dtypes)):
         var = "%%(lv%i)s" % i
         # List of dimensions of var that are not broadcasted
-        nonx = [x for x in loop_order if x != 'x']
+        nonx = [x for x in loop_order if x != "x"]
         if nonx:
             # If there are dimensions that are not broadcasted
             # this is a check that the number of dimensions of the
             # tensor is as expected.
             min_nd = max(nonx) + 1
-            init += """
+            init += (
+                """
             if (PyArray_NDIM(%(var)s) < %(min_nd)s) {
                 PyErr_SetString(PyExc_ValueError, "Not enough dimensions on input.");
                 %%(fail)s
             }
-            """ % locals()
+            """
+                % locals()
+            )
 
         # In loop j, adjust represents the difference of values of the
         # data pointer between the beginning and the end of the
@@ -64,21 +76,27 @@ def make_checks(loop_orders, dtypes, sub):
 
         # We go from the inner loop to the outer loop
         for j, index in reversed(list(enumerate(loop_order))):
-            if index != 'x':
+            if index != "x":
                 # Initialize the variables associated to the jth loop
                 # jump = stride - adjust
                 jump = "(%s) - (%s)" % ("%(var)s_stride%(index)s" % locals(), adjust)
-                init += """
+                init += (
+                    """
                 %(var)s_n%(index)s = PyArray_DIMS(%(var)s)[%(index)s];
                 %(var)s_stride%(index)s = PyArray_STRIDES(%(var)s)[%(index)s] / sizeof(%(dtype)s);
                 %(var)s_jump%(index)s_%(j)s = %(jump)s;
-                """ % locals()
+                """
+                    % locals()
+                )
                 adjust = "%(var)s_n%(index)s*%(var)s_stride%(index)s" % locals()
             else:
                 jump = "-(%s)" % adjust
-                init += """
+                init += (
+                    """
                 %(var)s_jump%(index)s_%(j)s = %(jump)s;
-                """ % locals()
+                """
+                    % locals()
+                )
                 adjust = "0"
     check = ""
 
@@ -93,7 +111,8 @@ def make_checks(loop_orders, dtypes, sub):
             continue
         j0, x0 = to_compare[0]
         for (j, x) in to_compare[1:]:
-            check += """
+            check += (
+                """
             if (%%(lv%(j0)s)s_n%(x0)s != %%(lv%(j)s)s_n%(x)s)
             {
                 PyErr_Format(PyExc_ValueError, "Input dimension mis-match. (input[%%%%i].shape[%%%%i] = %%%%lld, input[%%%%i].shape[%%%%i] = %%%%lld)",
@@ -106,12 +125,14 @@ def make_checks(loop_orders, dtypes, sub):
                 );
                 %%(fail)s
             }
-            """ % locals()
+            """
+                % locals()
+            )
 
     return init % sub + check % sub
 
 
-def make_alloc(loop_orders, dtype, sub, fortran='0'):
+def make_alloc(loop_orders, dtype, sub, fortran="0"):
     """Generate C code to allocate outputs.
 
     Parameters
@@ -123,8 +144,8 @@ def make_alloc(loop_orders, dtype, sub, fortran='0'):
 
     """
     type = dtype.upper()
-    if type.startswith('THEANO_COMPLEX'):
-                type = type.replace('THEANO_COMPLEX', 'NPY_COMPLEX')
+    if type.startswith("THEANO_COMPLEX"):
+        type = type.replace("THEANO_COMPLEX", "NPY_COMPLEX")
     nd = len(loop_orders[0])
     init_dims = ""
     # For each dimension, the tensors are either all broadcasted, in
@@ -134,8 +155,8 @@ def make_alloc(loop_orders, dtype, sub, fortran='0'):
     # number of elements of any of them.
     for i, candidates in enumerate(zip(*loop_orders)):
         for j, candidate in enumerate(candidates):
-            if candidate != 'x':
-                var = sub['lv%i' % j]
+            if candidate != "x":
+                var = sub["lv%i" % j]
                 init_dims += "dims[%(i)s] = %(var)s_n%(candidate)s;\n" % locals()
                 break
         else:
@@ -173,7 +194,9 @@ def make_alloc(loop_orders, dtype, sub, fortran='0'):
             %(fail)s
         }
     }
-    """ % dict(locals(), **sub)
+    """ % dict(
+        locals(), **sub
+    )
 
 
 def make_loop(loop_orders, dtypes, loop_tasks, sub, openmp=None):
@@ -201,52 +224,74 @@ def make_loop(loop_orders, dtypes, loop_tasks, sub, openmp=None):
         The 'lvi' variable corresponds to the ith element of loop_orders.
 
     """
+
     def loop_over(preloop, code, indices, i):
-        iterv = 'ITER_%i' % i
+        iterv = "ITER_%i" % i
         update = ""
         suitable_n = "1"
         for j, index in enumerate(indices):
-            var = sub['lv%i' % j]
+            var = sub["lv%i" % j]
             dtype = dtypes[j]
-            update += "%(dtype)s &%(var)s_i = * ( %(var)s_iter + %(iterv)s * %(var)s_jump%(index)s_%(i)s );\n" % locals()
-            if index != 'x':
+            update += (
+                "%(dtype)s &%(var)s_i = * ( %(var)s_iter + %(iterv)s * %(var)s_jump%(index)s_%(i)s );\n"
+                % locals()
+            )
+            if index != "x":
                 suitable_n = "%(var)s_n%(index)s" % locals()
         if openmp:
             openmp_elemwise_minsize = theano.config.openmp_elemwise_minsize
-            forloop = """#pragma omp parallel for if( %(suitable_n)s >=%(openmp_elemwise_minsize)s)\n""" % locals()
+            forloop = (
+                """#pragma omp parallel for if( %(suitable_n)s >=%(openmp_elemwise_minsize)s)\n"""
+                % locals()
+            )
         else:
             forloop = ""
-        forloop += """for (int %(iterv)s = 0; %(iterv)s<%(suitable_n)s; %(iterv)s++)""" % locals()
-        return"""
+        forloop += (
+            """for (int %(iterv)s = 0; %(iterv)s<%(suitable_n)s; %(iterv)s++)"""
+            % locals()
+        )
+        return (
+            """
         %(preloop)s
         %(forloop)s {
             %(update)s
             %(code)s
         }
-        """ % locals()
+        """
+            % locals()
+        )
 
     preloops = {}
     for i, (loop_order, dtype) in enumerate(zip(loop_orders, dtypes)):
         for j, index in enumerate(loop_order):
-            if index != 'x':
+            if index != "x":
                 preloops.setdefault(j, "")
-                preloops[j] += ("%%(lv%(i)s)s_iter = (%(dtype)s*)(PyArray_DATA(%%(lv%(i)s)s));\n" % locals()) % sub
+                preloops[j] += (
+                    "%%(lv%(i)s)s_iter = (%(dtype)s*)(PyArray_DATA(%%(lv%(i)s)s));\n"
+                    % locals()
+                ) % sub
                 break
         else:  # all broadcastable
             preloops.setdefault(0, "")
-            preloops[0] += ("%%(lv%(i)s)s_iter = (%(dtype)s*)(PyArray_DATA(%%(lv%(i)s)s));\n" % locals()) % sub
+            preloops[0] += (
+                "%%(lv%(i)s)s_iter = (%(dtype)s*)(PyArray_DATA(%%(lv%(i)s)s));\n"
+                % locals()
+            ) % sub
 
     s = ""
 
-    for i, (pre_task, task), indices in reversed(list(zip(xrange(len(loop_tasks) - 1), loop_tasks, list(zip(*loop_orders))))):
-            s = loop_over(preloops.get(i, "") + pre_task, s + task, indices, i)
+    for i, (pre_task, task), indices in reversed(
+        list(zip(xrange(len(loop_tasks) - 1), loop_tasks, list(zip(*loop_orders))))
+    ):
+        s = loop_over(preloops.get(i, "") + pre_task, s + task, indices, i)
 
     s += loop_tasks[-1]
     return "{%s}" % s
 
 
-def make_reordered_loop(init_loop_orders, olv_index, dtypes, inner_task, sub,
-                        openmp=None):
+def make_reordered_loop(
+    init_loop_orders, olv_index, dtypes, inner_task, sub, openmp=None
+):
     """A bit like make_loop, but when only the inner-most loop executes code.
 
     All the loops will be reordered so that the loops over the output tensor
@@ -264,40 +309,55 @@ def make_reordered_loop(init_loop_orders, olv_index, dtypes, inner_task, sub,
     nnested = len(init_loop_orders[0])
 
     # This is the var from which we'll get the loop order
-    ovar = sub['lv%i' % olv_index]
+    ovar = sub["lv%i" % olv_index]
 
     # The loops are ordered by (decreasing) absolute values of ovar's strides.
     # The first element of each pair is the absolute value of the stride
     # The second element correspond to the index in the initial loop order
-    order_loops = """
+    order_loops = (
+        """
     std::vector< std::pair<int, int> > %(ovar)s_loops(%(nnested)i);
     std::vector< std::pair<int, int> >::iterator %(ovar)s_loops_it = %(ovar)s_loops.begin();
-    """ % locals()
+    """
+        % locals()
+    )
 
     # Fill the loop vector with the appropriate <stride, index> pairs
     for i, index in enumerate(init_loop_orders[olv_index]):
-        if index != 'x':
-            order_loops += """
+        if index != "x":
+            order_loops += (
+                """
             %(ovar)s_loops_it->first = abs(PyArray_STRIDES(%(ovar)s)[%(index)i]);
-            """ % locals()
+            """
+                % locals()
+            )
         else:
             # Stride is 0 when dimension is broadcastable
-            order_loops += """
+            order_loops += (
+                """
             %(ovar)s_loops_it->first = 0;
-            """ % locals()
+            """
+                % locals()
+            )
 
-        order_loops += """
+        order_loops += (
+            """
         %(ovar)s_loops_it->second = %(i)i;
         ++%(ovar)s_loops_it;
-        """ % locals()
+        """
+            % locals()
+        )
 
     # We sort in decreasing order so that the outermost loop (loop 0)
     # has the largest stride, and the innermost loop (nnested - 1) has
     # the smallest stride.
-    order_loops += """
+    order_loops += (
+        """
     // rbegin and rend are reversed iterators, so this sorts in decreasing order
     std::sort(%(ovar)s_loops.rbegin(), %(ovar)s_loops.rend());
-    """ % locals()
+    """
+        % locals()
+    )
 
     # Get the (sorted) total number of iterations of each loop
     # Get totals in the initial order
@@ -309,30 +369,37 @@ def make_reordered_loop(init_loop_orders, olv_index, dtypes, inner_task, sub,
     totals = []
     for i, candidates in enumerate(zip(*init_loop_orders)):
         for j, candidate in enumerate(candidates):
-            if candidate != 'x':
-                var = sub['lv%i' % j]
+            if candidate != "x":
+                var = sub["lv%i" % j]
                 total = "%(var)s_n%(candidate)s" % locals()
                 break
         else:
-            total = '1'
+            total = "1"
         totals.append(total)
 
     declare_totals = """
     int init_totals[%(nnested)s] = {%(totals)s};
-    """ % dict(nnested=nnested,
-               totals=', '.join(totals))
+    """ % dict(
+        nnested=nnested, totals=", ".join(totals)
+    )
 
     # Sort totals to match the new order that was computed by sorting
     # the loop vector. One integer variable per loop is declared.
-    declare_totals += """
+    declare_totals += (
+        """
     %(ovar)s_loops_it = %(ovar)s_loops.begin();
-    """ % locals()
+    """
+        % locals()
+    )
 
     for i in xrange(nnested):
-        declare_totals += """
+        declare_totals += (
+            """
         int TOTAL_%(i)i = init_totals[%(ovar)s_loops_it->second];
         ++%(ovar)s_loops_it;
-        """ % locals()
+        """
+            % locals()
+        )
 
     # Get sorted strides
     # Get strides in the initial order
@@ -347,83 +414,101 @@ def make_reordered_loop(init_loop_orders, olv_index, dtypes, inner_task, sub,
         r = []
         for index in loop_order:
             # Note: the stride variable is not declared for broadcasted variables
-            if index != 'x':
+            if index != "x":
                 r.append("%(var)s_stride%(index)s" % locals())
             else:
-                r.append('0')
+                r.append("0")
         return r
 
     # We declare the initial strides as a 2D array, nvars x nnested
     declare_strides = """
     int init_strides[%(nvars)i][%(nnested)i] = {
         %(strides)s
-    };""" % dict(nvars=nvars,
-                 nnested=nnested,
-                 strides=', \n'.join(', '.join(get_loop_strides(lo, i))
-                                     for i, lo in enumerate(init_loop_orders)
-                                     if len(lo) > 0))
+    };""" % dict(
+        nvars=nvars,
+        nnested=nnested,
+        strides=", \n".join(
+            ", ".join(get_loop_strides(lo, i))
+            for i, lo in enumerate(init_loop_orders)
+            if len(lo) > 0
+        ),
+    )
 
     # Declare (sorted) stride and for each variable
     # we iterate from innermost loop to outermost loop
-    declare_strides += """
+    declare_strides += (
+        """
     std::vector< std::pair<int, int> >::reverse_iterator %(ovar)s_loops_rit;
-    """ % locals()
+    """
+        % locals()
+    )
 
     for i in xrange(nvars):
         var = sub["lv%i" % i]
-        declare_strides += """
-        %(ovar)s_loops_rit = %(ovar)s_loops.rbegin();""" % locals()
+        declare_strides += (
+            """
+        %(ovar)s_loops_rit = %(ovar)s_loops.rbegin();"""
+            % locals()
+        )
         for j in reversed(xrange(nnested)):
-            declare_strides += """
+            declare_strides += (
+                """
             int %(var)s_stride_l%(j)i = init_strides[%(i)i][%(ovar)s_loops_rit->second];
             ++%(ovar)s_loops_rit;
-            """ % locals()
+            """
+                % locals()
+            )
 
     declare_iter = ""
     for i, dtype in enumerate(dtypes):
         var = sub["lv%i" % i]
-        declare_iter += "%(var)s_iter = (%(dtype)s*)(PyArray_DATA(%(var)s));\n" % locals()
+        declare_iter += (
+            "%(var)s_iter = (%(dtype)s*)(PyArray_DATA(%(var)s));\n" % locals()
+        )
 
-    pointer_update = ''
+    pointer_update = ""
     for j, dtype in enumerate(dtypes):
         var = sub["lv%i" % j]
         pointer_update += "%(dtype)s &%(var)s_i = * ( %(var)s_iter" % locals()
-        tot_jump = ''
+        tot_jump = ""
         for i in reversed(range(nnested)):
-            iterv = 'ITER_%i' % i
+            iterv = "ITER_%i" % i
             pointer_update += "+%(var)s_stride_l%(i)i*%(iterv)s" % locals()
         pointer_update += ");\n"
 
     loop = inner_task
     for i in reversed(range(nnested)):
-        iterv = 'ITER_%i' % i
-        total = 'TOTAL_%i' % i
-        update = ''
-        forloop = ''
+        iterv = "ITER_%i" % i
+        total = "TOTAL_%i" % i
+        update = ""
+        forloop = ""
         # The pointers are defined only in the most inner loop
         if i == nnested - 1:
             update = pointer_update
         if i == 0:
             if openmp:
                 openmp_elemwise_minsize = theano.config.openmp_elemwise_minsize
-                forloop += """#pragma omp parallel for if( %(total)s >=%(openmp_elemwise_minsize)s)\n""" % locals()
+                forloop += (
+                    """#pragma omp parallel for if( %(total)s >=%(openmp_elemwise_minsize)s)\n"""
+                    % locals()
+                )
         forloop += "for(int %(iterv)s = 0; %(iterv)s<%(total)s; %(iterv)s++)" % locals()
 
-        loop = """
+        loop = (
+            """
         %(forloop)s
         { // begin loop %(i)i
             %(update)s
             %(loop)s
         } // end loop %(i)i
-        """ % locals()
+        """
+            % locals()
+        )
 
-    return '\n'.join(['{',
-                      order_loops,
-                      declare_totals,
-                      declare_strides,
-                      declare_iter,
-                      loop,
-                      '}\n'])
+    return "\n".join(
+        ["{", order_loops, declare_totals, declare_strides, declare_iter, loop, "}\n"]
+    )
+
 
 # print make_declare(((0, 1, 2, 3), ('x', 1, 0, 3), ('x', 'x', 'x', 0)),
 #                    ('double', 'int', 'float'),
@@ -489,38 +574,49 @@ def make_loop_careduce(loop_orders, dtypes, loop_tasks, sub):
     """
 
     def loop_over(preloop, code, indices, i):
-        iterv = 'ITER_%i' % i
+        iterv = "ITER_%i" % i
         update = ""
         suitable_n = "1"
         for j, index in enumerate(indices):
-            var = sub['lv%i' % j]
+            var = sub["lv%i" % j]
             update += "%(var)s_iter += %(var)s_jump%(index)s_%(i)s;\n" % locals()
-            if index != 'x':
+            if index != "x":
                 suitable_n = "%(var)s_n%(index)s" % locals()
-        return """
+        return (
+            """
         %(preloop)s
         for (int %(iterv)s = %(suitable_n)s; %(iterv)s; %(iterv)s--) {
             %(code)s
             %(update)s
         }
-        """ % locals()
+        """
+            % locals()
+        )
 
     preloops = {}
     for i, (loop_order, dtype) in enumerate(zip(loop_orders, dtypes)):
         for j, index in enumerate(loop_order):
-            if index != 'x':
+            if index != "x":
                 preloops.setdefault(j, "")
-                preloops[j] += ("%%(lv%(i)s)s_iter = (%(dtype)s*)(PyArray_DATA(%%(lv%(i)s)s));\n" % locals()) % sub
+                preloops[j] += (
+                    "%%(lv%(i)s)s_iter = (%(dtype)s*)(PyArray_DATA(%%(lv%(i)s)s));\n"
+                    % locals()
+                ) % sub
                 break
         else:  # all broadcastable
             preloops.setdefault(0, "")
-            preloops[0] += ("%%(lv%(i)s)s_iter = (%(dtype)s*)(PyArray_DATA(%%(lv%(i)s)s));\n" % locals()) % sub
+            preloops[0] += (
+                "%%(lv%(i)s)s_iter = (%(dtype)s*)(PyArray_DATA(%%(lv%(i)s)s));\n"
+                % locals()
+            ) % sub
 
     if len(loop_tasks) == 1:
         s = preloops.get(0, "")
     else:
         s = ""
-        for i, (pre_task, task), indices in reversed(list(zip(xrange(len(loop_tasks) - 1), loop_tasks, list(zip(*loop_orders))))):
+        for i, (pre_task, task), indices in reversed(
+            list(zip(xrange(len(loop_tasks) - 1), loop_tasks, list(zip(*loop_orders))))
+        ):
             s = loop_over(preloops.get(i, "") + pre_task, s + task, indices, i)
 
     s += loop_tasks[-1]

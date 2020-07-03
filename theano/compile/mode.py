@@ -14,27 +14,28 @@ from six import string_types
 from theano.compile.function_module import Supervisor
 
 
-_logger = logging.getLogger('theano.compile.mode')
+_logger = logging.getLogger("theano.compile.mode")
 
 
 # If a string is passed as the linker argument in the constructor for
 # Mode, it will be used as the key to retrieve the real linker in this
 # dictionary
 predefined_linkers = {
-    'py': gof.PerformLinker(),  # Use allow_gc Theano flag
-    'c': gof.CLinker(),  # Don't support gc. so don't check allow_gc
-    'c|py': gof.OpWiseCLinker(),  # Use allow_gc Theano flag
-    'c|py_nogc': gof.OpWiseCLinker(allow_gc=False),
-    'vm': gof.vm.VM_Linker(use_cloop=False),  # Use allow_gc Theano flag
-    'cvm': gof.vm.VM_Linker(use_cloop=True),  # Use allow_gc Theano flag
-    'vm_nogc': gof.vm.VM_Linker(allow_gc=False, use_cloop=False),
-    'cvm_nogc': gof.vm.VM_Linker(allow_gc=False, use_cloop=True)}
+    "py": gof.PerformLinker(),  # Use allow_gc Theano flag
+    "c": gof.CLinker(),  # Don't support gc. so don't check allow_gc
+    "c|py": gof.OpWiseCLinker(),  # Use allow_gc Theano flag
+    "c|py_nogc": gof.OpWiseCLinker(allow_gc=False),
+    "vm": gof.vm.VM_Linker(use_cloop=False),  # Use allow_gc Theano flag
+    "cvm": gof.vm.VM_Linker(use_cloop=True),  # Use allow_gc Theano flag
+    "vm_nogc": gof.vm.VM_Linker(allow_gc=False, use_cloop=False),
+    "cvm_nogc": gof.vm.VM_Linker(allow_gc=False, use_cloop=True),
+}
 
 
 def register_linker(name, linker):
     """Add a `Linker` which can be referred to by `name` in `Mode`."""
     if name in predefined_linkers:
-        raise ValueError('Linker name already taken: %s' % name)
+        raise ValueError("Linker name already taken: %s" % name)
     predefined_linkers[name] = linker
 
 
@@ -43,56 +44,58 @@ def register_linker(name, linker):
 # in this dictionary
 exclude = []
 if not theano.config.cxx:
-    exclude = ['cxx_only']
+    exclude = ["cxx_only"]
 OPT_NONE = gof.Query(include=[], exclude=exclude)
 # Even if multiple merge optimizer call will be there, this shouldn't
 # impact performance.
-OPT_MERGE = gof.Query(include=['merge'], exclude=exclude)
-OPT_FAST_RUN = gof.Query(include=['fast_run'], exclude=exclude)
-OPT_FAST_RUN_STABLE = OPT_FAST_RUN.requiring('stable')
+OPT_MERGE = gof.Query(include=["merge"], exclude=exclude)
+OPT_FAST_RUN = gof.Query(include=["fast_run"], exclude=exclude)
+OPT_FAST_RUN_STABLE = OPT_FAST_RUN.requiring("stable")
 # We need fast_compile_gpu here.  As on the GPU, we don't have all
 # operation that exist in fast_compile, but have some that get
 # introduced in fast_run, we want those optimization to also run in
 # fast_compile+gpu. We can't tag them just as 'gpu', as this would
 # exclude them if we exclude 'gpu'.
-OPT_FAST_COMPILE = gof.Query(include=['fast_compile', 'fast_compile_gpu'],
-                             exclude=exclude)
-OPT_STABILIZE = gof.Query(include=['fast_run'], exclude=exclude)
+OPT_FAST_COMPILE = gof.Query(
+    include=["fast_compile", "fast_compile_gpu"], exclude=exclude
+)
+OPT_STABILIZE = gof.Query(include=["fast_run"], exclude=exclude)
 OPT_STABILIZE.position_cutoff = 1.5000001
-OPT_NONE.name = 'OPT_NONE'
-OPT_MERGE.name = 'OPT_MERGE'
-OPT_FAST_RUN.name = 'OPT_FAST_RUN'
-OPT_FAST_RUN_STABLE.name = 'OPT_FAST_RUN_STABLE'
-OPT_FAST_COMPILE.name = 'OPT_FAST_COMPILE'
-OPT_STABILIZE.name = 'OPT_STABILIZE'
+OPT_NONE.name = "OPT_NONE"
+OPT_MERGE.name = "OPT_MERGE"
+OPT_FAST_RUN.name = "OPT_FAST_RUN"
+OPT_FAST_RUN_STABLE.name = "OPT_FAST_RUN_STABLE"
+OPT_FAST_COMPILE.name = "OPT_FAST_COMPILE"
+OPT_STABILIZE.name = "OPT_STABILIZE"
 
-OPT_O2 = OPT_FAST_COMPILE.including('fusion')
-OPT_O3 = OPT_FAST_RUN.excluding('inplace')
-OPT_UNSAFE = OPT_O3.including('unsafe')
+OPT_O2 = OPT_FAST_COMPILE.including("fusion")
+OPT_O3 = OPT_FAST_RUN.excluding("inplace")
+OPT_UNSAFE = OPT_O3.including("unsafe")
 
-OPT_O2.name = 'OPT_O2'
-OPT_O3.name = 'OPT_O3'
-OPT_UNSAFE.name = 'OPT_UNSAFE'
+OPT_O2.name = "OPT_O2"
+OPT_O3.name = "OPT_O3"
+OPT_UNSAFE.name = "OPT_UNSAFE"
 
 predefined_optimizers = {
     None: OPT_NONE,
-    'None': OPT_NONE,
-    'merge': OPT_MERGE,
-    'o4': OPT_FAST_RUN,
-    'o3': OPT_O3,
-    'o2': OPT_O2,
-    'o1': OPT_FAST_COMPILE,
-    'unsafe': OPT_UNSAFE,
-    'fast_compile': OPT_FAST_COMPILE,
-    'fast_run': OPT_FAST_RUN,
-    'fast_run_stable': OPT_FAST_RUN_STABLE,
-    'stabilize': OPT_STABILIZE}
+    "None": OPT_NONE,
+    "merge": OPT_MERGE,
+    "o4": OPT_FAST_RUN,
+    "o3": OPT_O3,
+    "o2": OPT_O2,
+    "o1": OPT_FAST_COMPILE,
+    "unsafe": OPT_UNSAFE,
+    "fast_compile": OPT_FAST_COMPILE,
+    "fast_run": OPT_FAST_RUN,
+    "fast_run_stable": OPT_FAST_RUN_STABLE,
+    "stabilize": OPT_STABILIZE,
+}
 
 
 def register_optimizer(name, opt):
     """Add a `Optimizer` which can be referred to by `name` in `Mode`."""
     if name in predefined_optimizers:
-        raise ValueError('Optimizer name already taken: %s' % name)
+        raise ValueError("Optimizer name already taken: %s" % name)
     predefined_optimizers[name] = opt
 
 
@@ -111,6 +114,7 @@ class AddDestroyHandler(gof.Optimizer):
     there is a bug in theano. It should not be possible to destroy outputs.
 
     """
+
     def apply(self, fgraph):
         supervisor_added = False
         for feature in fgraph._features:
@@ -118,10 +122,12 @@ class AddDestroyHandler(gof.Optimizer):
                 supervisor_added = True
                 break
         if not supervisor_added:
-            warnings.warn("WARNING: Supervisor is not added. Please build a FunctionGraph"
-                          "via theano.compile.function_module.std_graph()"
-                          "or add the Supervisor class manually.",
-                          stacklevel=3)
+            warnings.warn(
+                "WARNING: Supervisor is not added. Please build a FunctionGraph"
+                "via theano.compile.function_module.std_graph()"
+                "or add the Supervisor class manually.",
+                stacklevel=3,
+            )
 
     def add_requirements(self, fgraph):
         super(AddDestroyHandler, self).add_requirements(fgraph)
@@ -149,18 +155,19 @@ class PrintCurrentFunctionGraph(gof.Optimizer):
     given point.
 
     """
+
     def __init__(self, header):
         self.header = header
 
     def apply(self, fgraph):
         import theano.printing
+
         print("PrintCurrentFunctionGraph:", self.header)
         theano.printing.debugprint(fgraph.outputs)
 
 
 optdb = gof.SequenceDB()
-optdb.register('merge1', gof.MergeOptimizer(),
-               0, 'fast_run', 'fast_compile', 'merge')
+optdb.register("merge1", gof.MergeOptimizer(), 0, "fast_run", "fast_compile", "merge")
 
 # After scan1 opt at 0.5 and before ShapeOpt at 1
 # This should only remove nodes.
@@ -169,17 +176,28 @@ optdb.register('merge1', gof.MergeOptimizer(),
 # also don't have infer_shape
 local_useless = gof.optdb.LocalGroupDB(apply_all_opts=True, profile=True)
 optdb.register(
-    'useless',
-    gof.optdb.TopoDB(local_useless,
-                     failure_callback=gof.opt.NavigatorOptimizer.warn_inplace),
-    0.6, 'fast_run', 'fast_compile')
+    "useless",
+    gof.optdb.TopoDB(
+        local_useless, failure_callback=gof.opt.NavigatorOptimizer.warn_inplace
+    ),
+    0.6,
+    "fast_run",
+    "fast_compile",
+)
 
-optdb.register('merge1.1', gof.MergeOptimizer(),
-               0.65, 'fast_run', 'fast_compile', 'merge')
+optdb.register(
+    "merge1.1", gof.MergeOptimizer(), 0.65, "fast_run", "fast_compile", "merge"
+)
 
 # rearranges elemwise expressions
-optdb.register('canonicalize', gof.EquilibriumDB(ignore_newtrees=False),
-               1, 'fast_run', 'fast_compile', 'canonicalize_db')
+optdb.register(
+    "canonicalize",
+    gof.EquilibriumDB(ignore_newtrees=False),
+    1,
+    "fast_run",
+    "fast_compile",
+    "canonicalize_db",
+)
 # Register in the canonizer Equilibrium as a clean up opt the merge opt.
 # Without this, as the equilibrium have ignore_newtrees=False, we
 # won't merge all nodes if it is set as a global optimizer with
@@ -187,53 +205,51 @@ optdb.register('canonicalize', gof.EquilibriumDB(ignore_newtrees=False),
 
 # We need a new instance of MergeOptimizer to don't have its name
 # changed by other usage of it.
-optdb['canonicalize'].register("merge", gof.opt.MergeOptimizer(), 'fast_run',
-                               "fast_compile", cleanup=True)
+optdb["canonicalize"].register(
+    "merge", gof.opt.MergeOptimizer(), "fast_run", "fast_compile", cleanup=True
+)
 
-optdb.register('merge1.2', gof.MergeOptimizer(),
-               1.2, 'fast_run', 'fast_compile', 'merge')
+optdb.register(
+    "merge1.2", gof.MergeOptimizer(), 1.2, "fast_run", "fast_compile", "merge"
+)
 
-optdb.register('Print1.21', PrintCurrentFunctionGraph('Post-canonicalize'),
-               1.21,)  # 'fast_run', 'fast_compile')
+optdb.register(
+    "Print1.21", PrintCurrentFunctionGraph("Post-canonicalize"), 1.21,
+)  # 'fast_run', 'fast_compile')
 
 # replace unstable subgraphs
-optdb.register('stabilize', gof.EquilibriumDB(),
-               1.5, 'fast_run')
+optdb.register("stabilize", gof.EquilibriumDB(), 1.5, "fast_run")
 
-optdb.register('Print1.51', PrintCurrentFunctionGraph('Post-stabilize'),
-               1.51,)  # 'fast_run', 'fast_compile')
+optdb.register(
+    "Print1.51", PrintCurrentFunctionGraph("Post-stabilize"), 1.51,
+)  # 'fast_run', 'fast_compile')
 
 # misc special cases for speed
-optdb.register('specialize', gof.EquilibriumDB(),
-               2, 'fast_run', 'fast_compile_gpu')
+optdb.register("specialize", gof.EquilibriumDB(), 2, "fast_run", "fast_compile_gpu")
 
 # misc special cases for speed that break canonicalization
-optdb.register('uncanonicalize', gof.EquilibriumDB(),
-               3, 'fast_run')
+optdb.register("uncanonicalize", gof.EquilibriumDB(), 3, "fast_run")
 
 # misc special cases for speed that are dependent on the device.
-optdb.register('specialize_device', gof.EquilibriumDB(),
-               48.6, 'fast_compile', 'fast_run')  # must be after gpu stuff at 48.5
+optdb.register(
+    "specialize_device", gof.EquilibriumDB(), 48.6, "fast_compile", "fast_run"
+)  # must be after gpu stuff at 48.5
 
 # especially constant merge
-optdb.register('merge2', gof.MergeOptimizer(),
-               49, 'fast_run', 'merge')
+optdb.register("merge2", gof.MergeOptimizer(), 49, "fast_run", "merge")
 
-optdb.register('add_destroy_handler', AddDestroyHandler(),
-               49.5, 'fast_run', 'inplace')
+optdb.register("add_destroy_handler", AddDestroyHandler(), 49.5, "fast_run", "inplace")
 
 # final pass just to make sure
-optdb.register('merge3', gof.MergeOptimizer(),
-               100, 'fast_run', 'merge')
+optdb.register("merge3", gof.MergeOptimizer(), 100, "fast_run", "merge")
 
-if theano.config.check_stack_trace in ['raise', 'warn', 'log']:
-    _tags = ('fast_run', 'fast_compile')
+if theano.config.check_stack_trace in ["raise", "warn", "log"]:
+    _tags = ("fast_run", "fast_compile")
 
-if theano.config.check_stack_trace == 'off':
+if theano.config.check_stack_trace == "off":
     _tags = ()
 
-optdb.register('CheckStackTrace',
-               gof.CheckStackTraceOptimization(), -1, *_tags)
+optdb.register("CheckStackTrace", gof.CheckStackTraceOptimization(), -1, *_tags)
 del _tags
 
 
@@ -258,10 +274,10 @@ class Mode(object):
 
     """
 
-    def __init__(self, linker=None, optimizer='default'):
+    def __init__(self, linker=None, optimizer="default"):
         if linker is None:
             linker = config.linker
-        if type(optimizer) == str and optimizer == 'default':
+        if type(optimizer) == str and optimizer == "default":
             optimizer = config.optimizer
         Mode.__setstate__(self, (linker, optimizer))
 
@@ -293,9 +309,11 @@ class Mode(object):
         self.fn_time = 0
 
     def __str__(self):
-        return "%s(linker = %s, optimizer = %s)" % (self.__class__.__name__,
-                                                    self.provided_linker,
-                                                    self.provided_optimizer)
+        return "%s(linker = %s, optimizer = %s)" % (
+            self.__class__.__name__,
+            self.provided_linker,
+            self.provided_optimizer,
+        )
 
     def __get_optimizer(self):
         if isinstance(self._optimizer, gof.Query):
@@ -313,8 +331,9 @@ class Mode(object):
         return (linker, optimizer)
 
     def including(self, *tags):
-        link, opt = self.get_linker_optimizer(self.provided_linker,
-                                              self.provided_optimizer)
+        link, opt = self.get_linker_optimizer(
+            self.provided_linker, self.provided_optimizer
+        )
         # N.B. opt might be a Query instance, not sure what else it might be...
         #     string? Optimizer? OptDB? who knows???
         return self.clone(optimizer=opt.including(*tags), linker=link)
@@ -340,18 +359,21 @@ class Mode(object):
             optimizations.
         """
 
-        link, opt = self.get_linker_optimizer(self.provided_linker,
-                                              self.provided_optimizer)
+        link, opt = self.get_linker_optimizer(
+            self.provided_linker, self.provided_optimizer
+        )
         return self.clone(optimizer=opt.register(*optimizations))
 
     def excluding(self, *tags):
-        link, opt = self.get_linker_optimizer(self.provided_linker,
-                                              self.provided_optimizer)
+        link, opt = self.get_linker_optimizer(
+            self.provided_linker, self.provided_optimizer
+        )
         return self.clone(optimizer=opt.excluding(*tags), linker=link)
 
     def requiring(self, *tags):
-        link, opt = self.get_linker_optimizer(self.provided_linker,
-                                              self.provided_optimizer)
+        link, opt = self.get_linker_optimizer(
+            self.provided_linker, self.provided_optimizer
+        )
         return self.clone(optimizer=opt.requiring(*tags), linker=link)
 
     def clone(self, link_kwargs=None, optimizer="", **kwargs):
@@ -369,8 +391,7 @@ class Mode(object):
 
         if optimizer == "":
             optimizer = self.provided_optimizer
-        new_mode = type(self)(linker=new_linker,
-                              optimizer=optimizer)
+        new_mode = type(self)(linker=new_linker, optimizer=optimizer)
         return new_mode
 
 
@@ -378,16 +399,18 @@ class Mode(object):
 # FunctionMaker, the Mode will be taken from this dictionary using the
 # string as the key
 # Use VM_linker to allow lazy evaluation by default.
-FAST_COMPILE = Mode(theano.gof.vm.VM_Linker(use_cloop=False, c_thunks=False),
-                    'fast_compile')
+FAST_COMPILE = Mode(
+    theano.gof.vm.VM_Linker(use_cloop=False, c_thunks=False), "fast_compile"
+)
 if theano.config.cxx:
-    FAST_RUN = Mode('cvm', 'fast_run')
+    FAST_RUN = Mode("cvm", "fast_run")
 else:
-    FAST_RUN = Mode('vm', 'fast_run')
+    FAST_RUN = Mode("vm", "fast_run")
 
-predefined_modes = {'FAST_COMPILE': FAST_COMPILE,
-                    'FAST_RUN': FAST_RUN,
-                    }
+predefined_modes = {
+    "FAST_COMPILE": FAST_COMPILE,
+    "FAST_RUN": FAST_RUN,
+}
 
 instantiated_default_mode = None
 
@@ -408,25 +431,25 @@ def get_mode(orig_string):
             default_mode_class = predefined_modes[string].__class__.__name__
         else:
             default_mode_class = string
-        if (instantiated_default_mode.__class__.__name__ ==
-                default_mode_class):
+        if instantiated_default_mode.__class__.__name__ == default_mode_class:
             return instantiated_default_mode
 
-    if string in ['Mode', 'DebugMode', 'NanGuardMode']:
-        if string == 'DebugMode':
+    if string in ["Mode", "DebugMode", "NanGuardMode"]:
+        if string == "DebugMode":
             # need to import later to break circular dependency.
             from .debugmode import DebugMode
+
             # DebugMode use its own linker.
             ret = DebugMode(optimizer=config.optimizer)
-        elif string == 'NanGuardMode':
+        elif string == "NanGuardMode":
             # need to import later to break circular dependency.
             from .nanguardmode import NanGuardMode
+
             # NanGuardMode use its own linker.
             ret = NanGuardMode(True, True, True, optimizer=config.optimizer)
         else:
             # TODO: Can't we look up the name and invoke it rather than using eval here?
-            ret = eval(string +
-                       '(linker=config.linker, optimizer=config.optimizer)')
+            ret = eval(string + "(linker=config.linker, optimizer=config.optimizer)")
     elif string in predefined_modes:
         ret = predefined_modes[string]
     else:
@@ -435,11 +458,11 @@ def get_mode(orig_string):
     if orig_string is None:
         # Build and cache the default mode
         if theano.config.optimizer_excluding:
-            ret = ret.excluding(*theano.config.optimizer_excluding.split(':'))
+            ret = ret.excluding(*theano.config.optimizer_excluding.split(":"))
         if theano.config.optimizer_including:
-            ret = ret.including(*theano.config.optimizer_including.split(':'))
+            ret = ret.including(*theano.config.optimizer_including.split(":"))
         if theano.config.optimizer_requiring:
-            ret = ret.requiring(*theano.config.optimizer_requiring.split(':'))
+            ret = ret.requiring(*theano.config.optimizer_requiring.split(":"))
         instantiated_default_mode = ret
 
     return ret
@@ -455,5 +478,5 @@ def register_mode(name, mode):
 
     """
     if name in predefined_modes:
-        raise ValueError('Mode name already taken: %s' % name)
+        raise ValueError("Mode name already taken: %s" % name)
     predefined_modes[name] = mode

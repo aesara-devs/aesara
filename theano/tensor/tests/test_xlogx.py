@@ -9,7 +9,7 @@ import numpy.random
 from theano.tests import unittest_tools as utt
 
 
-class Test_XlogX():
+class Test_XlogX:
     def setup_method(self):
         utt.seed_rng()
 
@@ -17,7 +17,7 @@ class Test_XlogX():
         x = as_tensor_variable([1, 0])
         y = xlogx(x)
         f = theano.function([], [y])
-        assert numpy.all(f() == numpy.asarray([0, 0.]))
+        assert numpy.all(f() == numpy.asarray([0, 0.0]))
 
     def test1(self):
         # class Dummy(object):
@@ -26,7 +26,7 @@ class Test_XlogX():
         utt.verify_grad(xlogx, [numpy.random.rand(3, 4)])
 
 
-class Test_XlogY0():
+class Test_XlogY0:
     def setup_method(self):
         utt.seed_rng()
 
@@ -38,5 +38,4 @@ class Test_XlogY0():
         y = as_tensor_variable([1, 0])
         z = xlogy0(x, y)
         f = theano.function([], z)
-        assert numpy.all(f() == numpy.asarray([0, 0.]))
-
+        assert numpy.all(f() == numpy.asarray([0, 0.0]))

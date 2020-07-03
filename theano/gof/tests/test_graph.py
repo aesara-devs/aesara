@@ -5,13 +5,17 @@ import pickle
 import pytest
 import numpy as np
 
-from theano import (
-    sparse,
-    shared, tensor)
+from theano import sparse, shared, tensor
 from theano.gof.graph import (
     Apply,
-    as_string, clone, general_toposort, inputs, io_toposort,
-    is_same_graph, Variable)
+    as_string,
+    clone,
+    general_toposort,
+    inputs,
+    io_toposort,
+    is_same_graph,
+    Variable,
+)
 from theano.gof.op import Op
 from theano.gof.type import Type
 
@@ -22,7 +26,6 @@ def as_variable(x):
 
 
 class MyType(Type):
-
     def __init__(self, thingy):
         self.thingy = thingy
 
@@ -30,10 +33,10 @@ class MyType(Type):
         return isinstance(other, MyType) and other.thingy == self.thingy
 
     def __str__(self):
-        return 'R%s' % str(self.thingy)
+        return "R%s" % str(self.thingy)
 
     def __repr__(self):
-        return 'R%s' % str(self.thingy)
+        return "R%s" % str(self.thingy)
 
 
 def MyVariable(thingy):
@@ -53,6 +56,7 @@ class MyOp(Op):
         outputs = [MyVariable(sum([input.type.thingy for input in inputs]))]
         return Apply(self, inputs, outputs)
 
+
 MyOp = MyOp()
 
 ##########
@@ -61,7 +65,6 @@ MyOp = MyOp()
 
 
 class TestInputs:
-
     def test_inputs(self):
         r1, r2 = MyVariable(1), MyVariable(2)
         node = MyOp.make_node(r1, r2)
@@ -81,7 +84,6 @@ class TestInputs:
 
 
 class X:
-
     def leaf_formatter(self, leaf):
         return str(leaf.type)
 
@@ -89,13 +91,15 @@ class X:
         return "%s(%s)" % (node.op, ", ".join(argstrings))
 
     def str(self, inputs, outputs):
-        return as_string(inputs, outputs,
-                         leaf_formatter=self.leaf_formatter,
-                         node_formatter=self.node_formatter)
+        return as_string(
+            inputs,
+            outputs,
+            leaf_formatter=self.leaf_formatter,
+            node_formatter=self.node_formatter,
+        )
 
 
 class TestStr(X):
-
     def test_as_string(self):
         r1, r2 = MyVariable(1), MyVariable(2)
         node = MyOp.make_node(r1, r2)
@@ -127,8 +131,8 @@ class TestStr(X):
 # clone #
 #########
 
-class TestClone(X):
 
+class TestClone(X):
     def test_accurate(self):
         r1, r2 = MyVariable(1), MyVariable(2)
         node = MyOp.make_node(r1, r2)
@@ -140,10 +144,15 @@ class TestClone(X):
         node = MyOp.make_node(r1, r2)
         node2 = MyOp.make_node(node.outputs[0], r5)
         _, new = clone([r1, r2, r5], node2.outputs, False)
-        assert node2.outputs[0].type == new[0].type and node2.outputs[0] is not new[0]  # the new output is like the old one but not the same object
+        assert (
+            node2.outputs[0].type == new[0].type and node2.outputs[0] is not new[0]
+        )  # the new output is like the old one but not the same object
         assert node2 is not new[0].owner  # the new output has a new owner
         assert new[0].owner.inputs[1] is r5  # the inputs are not copied
-        assert new[0].owner.inputs[0].type == node.outputs[0].type and new[0].owner.inputs[0] is not node.outputs[0]  # check that we copied deeper too
+        assert (
+            new[0].owner.inputs[0].type == node.outputs[0].type
+            and new[0].owner.inputs[0] is not node.outputs[0]
+        )  # check that we copied deeper too
 
     def test_not_destructive(self):
         # Checks that manipulating a cloned graph leaves the original unchanged.
@@ -153,7 +162,9 @@ class TestClone(X):
         new_node = new[0].owner
         new_node.inputs = MyVariable(7), MyVariable(8)
         assert self.str(inputs(new_node.outputs), new_node.outputs) == ["MyOp(R7, R8)"]
-        assert self.str(inputs(node.outputs), node.outputs) == ["MyOp(MyOp(R1, R2), R5)"]
+        assert self.str(inputs(node.outputs), node.outputs) == [
+            "MyOp(MyOp(R1, R2), R5)"
+        ]
 
     def test_constant(self):
         r1, r2, r5 = MyVariable(1), MyVariable(2), MyVariable(5)
@@ -180,6 +191,7 @@ class TestClone(X):
 # toposort #
 ############
 
+
 def prenode(obj):
     if isinstance(obj, Variable):
         if obj.owner:
@@ -189,7 +201,6 @@ def prenode(obj):
 
 
 class TestToposort:
-
     def test_0(self):
         # Test a simple graph
         r1, r2, r5 = MyVariable(1), MyVariable(2), MyVariable(5)
@@ -252,8 +263,8 @@ class TestToposort:
 # is_same_graph #
 #################
 
-class TestIsSameGraph():
 
+class TestIsSameGraph:
     def check(self, expected, debug=True):
         """
         Core function to perform comparison.
@@ -280,69 +291,78 @@ class TestIsSameGraph():
     def test_single_var(self):
         # Test `is_same_graph` with some trivial graphs (one Variable).
 
-        x, y, z = tensor.vectors('x', 'y', 'z')
-        self.check([
-                   (x, x, (({}, True), )),
-                   (x, y, (({}, False), ({y: x}, True), )),
-                   (x, tensor.neg(x), (({}, False), )),
-                   (x, tensor.neg(y), (({}, False), )),
-                   ])
+        x, y, z = tensor.vectors("x", "y", "z")
+        self.check(
+            [
+                (x, x, (({}, True),)),
+                (x, y, (({}, False), ({y: x}, True),)),
+                (x, tensor.neg(x), (({}, False),)),
+                (x, tensor.neg(y), (({}, False),)),
+            ]
+        )
 
     def test_full_graph(self):
         # Test `is_same_graph` with more complex graphs.
 
-        x, y, z = tensor.vectors('x', 'y', 'z')
+        x, y, z = tensor.vectors("x", "y", "z")
         t = x * y
-        self.check([
-                   (x * 2, x * 2, (({}, True), )),
-                   (x * 2, y * 2, (({}, False), ({y: x}, True), )),
-                   (x * 2, y * 2, (({}, False), ({x: y}, True), )),
-                   (x * 2, y * 3, (({}, False), ({y: x}, False), )),
-                   (t * 2, z * 2, (({}, False), ({t: z}, True), )),
-                   (t * 2, z * 2, (({}, False), ({z: t}, True), )),
-                   (x * (y * z), (x * y) * z, (({}, False), )),
-                   ])
+        self.check(
+            [
+                (x * 2, x * 2, (({}, True),)),
+                (x * 2, y * 2, (({}, False), ({y: x}, True),)),
+                (x * 2, y * 2, (({}, False), ({x: y}, True),)),
+                (x * 2, y * 3, (({}, False), ({y: x}, False),)),
+                (t * 2, z * 2, (({}, False), ({t: z}, True),)),
+                (t * 2, z * 2, (({}, False), ({z: t}, True),)),
+                (x * (y * z), (x * y) * z, (({}, False),)),
+            ]
+        )
 
     def test_merge_only(self):
         # Test `is_same_graph` when `equal_computations` cannot be used.
 
-        x, y, z = tensor.vectors('x', 'y', 'z')
+        x, y, z = tensor.vectors("x", "y", "z")
         t = x * y
-        self.check([
-                   (x, t, (({}, False), ({t: x}, True))),
-                   (t * 2, x * 2, (({}, False), ({t: x}, True), )),
-                   (x * x, x * y, (({}, False), ({y: x}, True), )),
-                   (x * x, x * y, (({}, False), ({y: x}, True), )),
-                   (x * x + z, x * y + t, (({}, False),
-                                           ({y: x}, False),
-                                           ({y: x, t: z}, True))),
-                   ],
-                   debug=False)
+        self.check(
+            [
+                (x, t, (({}, False), ({t: x}, True))),
+                (t * 2, x * 2, (({}, False), ({t: x}, True),)),
+                (x * x, x * y, (({}, False), ({y: x}, True),)),
+                (x * x, x * y, (({}, False), ({y: x}, True),)),
+                (
+                    x * x + z,
+                    x * y + t,
+                    (({}, False), ({y: x}, False), ({y: x, t: z}, True)),
+                ),
+            ],
+            debug=False,
+        )
 
 
 ################
 # eval         #
 ################
 
-class TestEval():
 
+class TestEval:
     def setup_method(self):
-        self.x, self.y = tensor.scalars('x', 'y')
+        self.x, self.y = tensor.scalars("x", "y")
         self.z = self.x + self.y
         self.w = 2 * self.z
 
     def test_eval(self):
-        assert self.w.eval({self.x: 1., self.y: 2.}) == 6.
-        assert self.w.eval({self.z: 3}) == 6.
+        assert self.w.eval({self.x: 1.0, self.y: 2.0}) == 6.0
+        assert self.w.eval({self.z: 3}) == 6.0
         assert hasattr(self.w, "_fn_cache"), "variable must have cache after eval"
-        assert not hasattr(pickle.loads(pickle.dumps(self.w)), '_fn_cache'), "temporary functions must not be serialized"
+        assert not hasattr(
+            pickle.loads(pickle.dumps(self.w)), "_fn_cache"
+        ), "temporary functions must not be serialized"
 
 
 ################
 # autoname     #
 ################
 class TestAutoName:
-
     def test_auto_name(self):
         # Get counter value
         autoname_id = next(Variable.__count__)
@@ -364,10 +384,14 @@ class TestAutoName:
         r1 = tensor.constant(1.5)
         r2 = tensor.constant(1.5)
         assert r1.auto_name == "auto_" + str(autoname_id), (
-            r1.auto_name, "auto_" + str(autoname_id))
+            r1.auto_name,
+            "auto_" + str(autoname_id),
+        )
         # We reuse the same variable
         assert r2.auto_name == "auto_" + str(autoname_id), (
-            r2.auto_name, "auto_" + str(autoname_id))
+            r2.auto_name,
+            "auto_" + str(autoname_id),
+        )
         assert r1 is r2
 
         r3 = tensor.constant(1.6)
@@ -377,9 +401,8 @@ class TestAutoName:
         # Get counter value
         autoname_id = next(Variable.__count__)
         Variable.__count__ = count(autoname_id)
-        r1 = tensor.TensorType(dtype='int32', broadcastable=())('myvar')
-        r2 = tensor.TensorVariable(tensor.TensorType(dtype='int32',
-                                                     broadcastable=()))
+        r1 = tensor.TensorType(dtype="int32", broadcastable=())("myvar")
+        r2 = tensor.TensorVariable(tensor.TensorType(dtype="int32", broadcastable=()))
         r3 = shared(np.random.randn(3, 4))
         assert r1.auto_name == "auto_" + str(autoname_id)
         assert r2.auto_name == "auto_" + str(autoname_id + 1)
@@ -388,10 +411,10 @@ class TestAutoName:
     def test_sparsevariable(self):
         # Get counter value
         if not sparse.enable_sparse:
-            pytest.skip('Optional package SciPy not installed')
+            pytest.skip("Optional package SciPy not installed")
         autoname_id = next(Variable.__count__)
         Variable.__count__ = count(autoname_id)
-        r1 = sparse.csc_matrix(name='x', dtype='float32')
+        r1 = sparse.csc_matrix(name="x", dtype="float32")
         r2 = sparse.dense_from_sparse(r1)
         r3 = sparse.csc_from_dense(r2)
         assert r1.auto_name == "auto_" + str(autoname_id)
@@ -402,15 +425,13 @@ class TestAutoName:
         # Get counter value
         autoname_id = next(Variable.__count__)
         Variable.__count__ = count(autoname_id)
-        mytype = tensor.TensorType(dtype='int32', broadcastable=())
-        r1 = tensor.shared_randomstreams.RandomStateSharedVariable(name='x',
-                                                                   type=mytype,
-                                                                   value=1,
-                                                                   strict=False)
-        r2 = tensor.shared_randomstreams.RandomStateSharedVariable(name='x',
-                                                                   type=mytype,
-                                                                   value=1,
-                                                                   strict=False)
+        mytype = tensor.TensorType(dtype="int32", broadcastable=())
+        r1 = tensor.shared_randomstreams.RandomStateSharedVariable(
+            name="x", type=mytype, value=1, strict=False
+        )
+        r2 = tensor.shared_randomstreams.RandomStateSharedVariable(
+            name="x", type=mytype, value=1, strict=False
+        )
         assert r1.auto_name == "auto_" + str(autoname_id)
         assert r2.auto_name == "auto_" + str(autoname_id + 1)
 

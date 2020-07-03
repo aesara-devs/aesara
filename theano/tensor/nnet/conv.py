@@ -18,17 +18,22 @@ import warnings
 
 import theano
 from theano import OpenMPOp
-from theano.tensor import (as_tensor_variable, blas, get_scalar_constant_value,
-                           patternbroadcast, NotScalarConstantError)
+from theano.tensor import (
+    as_tensor_variable,
+    blas,
+    get_scalar_constant_value,
+    patternbroadcast,
+    NotScalarConstantError,
+)
 from theano.gof import Apply
-from theano.tensor.nnet.abstract_conv import (get_conv_output_shape,
-                                              get_conv_shape_1axis)
+from theano.tensor.nnet.abstract_conv import get_conv_output_shape, get_conv_shape_1axis
 
 try:
     # TODO: move these back out to global scope when they no longer
     # cause an atexit error
     from scipy.signal.signaltools import _valfrommode, _bvalfromboundary
     from scipy.signal.sigtools import _convolve2d
+
     imported_scipy_signal = True
 except ImportError:
     imported_scipy_signal = False
@@ -37,8 +42,15 @@ __docformat__ = "restructuredtext en"
 _logger = logging.getLogger("theano.tensor.nnet.conv")
 
 
-def conv2d(input, filters, image_shape=None, filter_shape=None,
-           border_mode='valid', subsample=(1, 1), **kargs):
+def conv2d(
+    input,
+    filters,
+    image_shape=None,
+    filter_shape=None,
+    border_mode="valid",
+    subsample=(1, 1),
+    **kargs
+):
     """
     Deprecated, old conv2d interface.
     This function will build the symbolic graph for convolving a stack of
@@ -95,8 +107,10 @@ def conv2d(input, filters, image_shape=None, filter_shape=None,
 
     """
 
-    warnings.warn("theano.tensor.nnet.conv.conv2d is deprecated."
-                  " Use theano.tensor.nnet.conv2d instead.")
+    warnings.warn(
+        "theano.tensor.nnet.conv.conv2d is deprecated."
+        " Use theano.tensor.nnet.conv2d instead."
+    )
 
     # accept Constant value for image_shape and filter_shape.
     if image_shape is not None:
@@ -105,13 +119,14 @@ def conv2d(input, filters, image_shape=None, filter_shape=None,
             if image_shape[i] is not None:
                 try:
                     image_shape[i] = get_scalar_constant_value(
-                        as_tensor_variable(image_shape[i]))
+                        as_tensor_variable(image_shape[i])
+                    )
                 except NotScalarConstantError:
                     raise NotScalarConstantError(
                         "The convolution need that the shape"
                         " information are constant values. We got"
-                        " %s for the image_shape parameter" %
-                        image_shape[i])
+                        " %s for the image_shape parameter" % image_shape[i]
+                    )
                 assert image_shape[i].dtype in theano.tensor.discrete_dtypes
                 image_shape[i] = int(image_shape[i])
     if filter_shape is not None:
@@ -120,13 +135,15 @@ def conv2d(input, filters, image_shape=None, filter_shape=None,
             if filter_shape[i] is not None:
                 try:
                     filter_shape[i] = get_scalar_constant_value(
-                        as_tensor_variable(filter_shape[i]))
+                        as_tensor_variable(filter_shape[i])
+                    )
                 except NotScalarConstantError:
                     raise NotScalarConstantError(
                         "The convolution need that the shape"
                         " information are constant values. We got"
                         " %s for the filter_shape "
-                        "parameter" % filter_shape[i])
+                        "parameter" % filter_shape[i]
+                    )
                 assert filter_shape[i].dtype in theano.tensor.discrete_dtypes
                 filter_shape[i] = int(filter_shape[i])
 
@@ -135,7 +152,7 @@ def conv2d(input, filters, image_shape=None, filter_shape=None,
             if image_shape[1] is not None and filter_shape[1] is not None:
                 assert image_shape[1] == filter_shape[1]
         except Exception:
-            print('image ', image_shape, ' filters ', filter_shape)
+            print("image ", image_shape, " filters ", filter_shape)
             raise
 
     if filter_shape is not None:
@@ -150,8 +167,16 @@ def conv2d(input, filters, image_shape=None, filter_shape=None,
     else:
         bsize, imshp = None, None
 
-    op = ConvOp(output_mode=border_mode, dx=subsample[0], dy=subsample[1],
-                imshp=imshp, kshp=kshp, nkern=nkern, bsize=bsize, **kargs)
+    op = ConvOp(
+        output_mode=border_mode,
+        dx=subsample[0],
+        dy=subsample[1],
+        imshp=imshp,
+        kshp=kshp,
+        nkern=nkern,
+        bsize=bsize,
+        **kargs
+    )
 
     return op(input, filters)
 
@@ -269,71 +294,85 @@ class ConvOp(OpenMPOp):
 
     """
 
-    __attrnames = ['imshp', 'kshp', 'nkern', 'bsize', 'dx', 'dy', 'out_mode',
-                   'unroll_batch', 'unroll_kern', 'unroll_patch',
-                   'imshp_logical', 'kshp_logical', 'kshp_logical_top_aligned']
+    __attrnames = [
+        "imshp",
+        "kshp",
+        "nkern",
+        "bsize",
+        "dx",
+        "dy",
+        "out_mode",
+        "unroll_batch",
+        "unroll_kern",
+        "unroll_patch",
+        "imshp_logical",
+        "kshp_logical",
+        "kshp_logical_top_aligned",
+    ]
     """These attributes uniquely identify the behaviour of this op for
     given inputs. Do not set openmp here.
     """
 
-# the value of speed_unroll_batch_kern,speed_unroll_patch_noshape,speed_unroll_patch_shape
-# have bean calculated on maggie36 when their is only 1 session logged on and only this was running.
-# It is an Intel(R) Xeon(R) CPU E5430 @ 2.66GHz. It is computer with theano/tensor/nnet/tests/speed_test_conv.py
-# and took 5 minutes to run.
-# TODO: we should compute this table for each computer/os as this can change.
-#      I saw on one computer that the speed with the shape can be slower than without!
-#      using the real shape and the same dtype could also help.
+    # the value of speed_unroll_batch_kern,speed_unroll_patch_noshape,speed_unroll_patch_shape
+    # have bean calculated on maggie36 when their is only 1 session logged on and only this was running.
+    # It is an Intel(R) Xeon(R) CPU E5430 @ 2.66GHz. It is computer with theano/tensor/nnet/tests/speed_test_conv.py
+    # and took 5 minutes to run.
+    # TODO: we should compute this table for each computer/os as this can change.
+    #      I saw on one computer that the speed with the shape can be slower than without!
+    #      using the real shape and the same dtype could also help.
 
-# unroll_batch, unroll_kern, valid time, full time
-    speed_unroll_batch_kern = [(1, 1, 2.4661250114440918, 6.5472931861877441),
-                               (1, 2, 1.5869178771972656, 5.1499760150909424),
-                               (1, 3, 1.4270510673522949, 3.6593470573425293),
-                               (1, 4, 1.3373479843139648, 3.3451821804046631),
-                               (1, 5, 1.2818830013275146, 3.1444568634033203),
-                               (1, 6, 1.2521560192108154, 3.0256359577178955),
-                               (1, 10, 1.2134110927581787, 2.9174180030822754),
-                               (2, 1, 1.657214879989624, 4.5261678695678711),
-                               (2, 2, 1.2123160362243652, 2.9747390747070312),
-                               (2, 3, 1.0758891105651855, 2.5690360069274902),
-                               (2, 4, 1.0683329105377197, 2.4233770370483398),
-                               (2, 5, 1.0955719947814941, 2.3999948501586914),
-                               (2, 6, 1.5935721397399902, 2.6878271102905273),
-                               (2, 10, 1.8511250019073486, 3.2417428493499756),
-                               (3, 1, 1.5948119163513184, 3.631148099899292),
-                               (3, 2, 1.0761330127716064, 2.6011371612548828),
-                               (3, 3, 1.0551531314849854, 2.4200370311737061),
-                               (3, 4, 1.3930759429931641, 2.5211219787597656),
-                               (3, 5, 1.4330689907073975, 2.5704989433288574),
-                               (3, 6, 1.362138032913208, 2.5964410305023193),
-                               (3, 10, 1.6582000255584717, 2.9907989501953125),
-                               (4, 1, 1.4793620109558105, 3.3473429679870605),
-                               (4, 2, 1.0671560764312744, 2.4171769618988037),
-                               (4, 3, 1.2569692134857178, 2.2807950973510742),
-                               (4, 4, 1.3456289768218994, 2.6219108104705811),
-                               (4, 5, 1.4055080413818359, 2.4606490135192871),
-                               (4, 6, 1.372107982635498, 2.551663875579834),
-                               (4, 10, 1.599470853805542, 2.9172940254211426),
-                               (5, 1, 1.4115700721740723, 3.2077109813690186),
-                               (5, 2, 1.0635769367218018, 2.2648060321807861),
-                               (5, 3, 1.3842809200286865, 2.6135518550872803),
-                               (5, 4, 1.3470511436462402, 2.3852400779724121),
-                               (5, 5, 1.3539440631866455, 2.5245928764343262),
-                               (5, 6, 1.4037849903106689, 2.5985310077667236),
-                               (5, 10, 1.6120610237121582, 2.8127608299255371),
-                               (6, 1, 1.3623628616333008, 3.021122932434082),
-                               (6, 2, 1.1697649955749512, 2.6285450458526611),
-                               (6, 3, 1.2980999946594238, 2.4746189117431641),
-                               (6, 4, 1.3739941120147705, 2.5579929351806641),
-                               (6, 5, 1.3967819213867188, 2.5522029399871826),
-                               (6, 6, 1.4279270172119141, 2.6127138137817383),
-                               (6, 10, 1.605496883392334, 2.864037036895752),
-                               (10, 1, 1.6401121616363525, 2.970099925994873),
-                               (10, 2, 1.46710205078125, 2.7231831550598145),
-                               (10, 3, 1.4193780422210693, 2.6087639331817627),
-                               (10, 4, 1.4657118320465088, 2.6246678829193115),
-                               (10, 5, 1.5052611827850342, 2.6542458534240723),
-                               (10, 6, 1.5214400291442871, 2.7243161201477051),
-                               (10, 10, 1.6116268634796143, 2.956165075302124)]
+    # unroll_batch, unroll_kern, valid time, full time
+    speed_unroll_batch_kern = [
+        (1, 1, 2.4661250114440918, 6.5472931861877441),
+        (1, 2, 1.5869178771972656, 5.1499760150909424),
+        (1, 3, 1.4270510673522949, 3.6593470573425293),
+        (1, 4, 1.3373479843139648, 3.3451821804046631),
+        (1, 5, 1.2818830013275146, 3.1444568634033203),
+        (1, 6, 1.2521560192108154, 3.0256359577178955),
+        (1, 10, 1.2134110927581787, 2.9174180030822754),
+        (2, 1, 1.657214879989624, 4.5261678695678711),
+        (2, 2, 1.2123160362243652, 2.9747390747070312),
+        (2, 3, 1.0758891105651855, 2.5690360069274902),
+        (2, 4, 1.0683329105377197, 2.4233770370483398),
+        (2, 5, 1.0955719947814941, 2.3999948501586914),
+        (2, 6, 1.5935721397399902, 2.6878271102905273),
+        (2, 10, 1.8511250019073486, 3.2417428493499756),
+        (3, 1, 1.5948119163513184, 3.631148099899292),
+        (3, 2, 1.0761330127716064, 2.6011371612548828),
+        (3, 3, 1.0551531314849854, 2.4200370311737061),
+        (3, 4, 1.3930759429931641, 2.5211219787597656),
+        (3, 5, 1.4330689907073975, 2.5704989433288574),
+        (3, 6, 1.362138032913208, 2.5964410305023193),
+        (3, 10, 1.6582000255584717, 2.9907989501953125),
+        (4, 1, 1.4793620109558105, 3.3473429679870605),
+        (4, 2, 1.0671560764312744, 2.4171769618988037),
+        (4, 3, 1.2569692134857178, 2.2807950973510742),
+        (4, 4, 1.3456289768218994, 2.6219108104705811),
+        (4, 5, 1.4055080413818359, 2.4606490135192871),
+        (4, 6, 1.372107982635498, 2.551663875579834),
+        (4, 10, 1.599470853805542, 2.9172940254211426),
+        (5, 1, 1.4115700721740723, 3.2077109813690186),
+        (5, 2, 1.0635769367218018, 2.2648060321807861),
+        (5, 3, 1.3842809200286865, 2.6135518550872803),
+        (5, 4, 1.3470511436462402, 2.3852400779724121),
+        (5, 5, 1.3539440631866455, 2.5245928764343262),
+        (5, 6, 1.4037849903106689, 2.5985310077667236),
+        (5, 10, 1.6120610237121582, 2.8127608299255371),
+        (6, 1, 1.3623628616333008, 3.021122932434082),
+        (6, 2, 1.1697649955749512, 2.6285450458526611),
+        (6, 3, 1.2980999946594238, 2.4746189117431641),
+        (6, 4, 1.3739941120147705, 2.5579929351806641),
+        (6, 5, 1.3967819213867188, 2.5522029399871826),
+        (6, 6, 1.4279270172119141, 2.6127138137817383),
+        (6, 10, 1.605496883392334, 2.864037036895752),
+        (10, 1, 1.6401121616363525, 2.970099925994873),
+        (10, 2, 1.46710205078125, 2.7231831550598145),
+        (10, 3, 1.4193780422210693, 2.6087639331817627),
+        (10, 4, 1.4657118320465088, 2.6246678829193115),
+        (10, 5, 1.5052611827850342, 2.6542458534240723),
+        (10, 6, 1.5214400291442871, 2.7243161201477051),
+        (10, 10, 1.6116268634796143, 2.956165075302124),
+    ]
 
     # valid time, full time
     speed_unroll_patch_noshape = [2.0109100341796875, 5.8175678253173828]
@@ -342,12 +381,15 @@ class ConvOp(OpenMPOp):
 
     @staticmethod
     def has_all_shape(imshp, kshp, nkern=1, bsize=1):
-        return (nkern is not None and bsize is not None and
-                all(shp is not None for shp in imshp) and
-                all(shp is not None for shp in kshp))
+        return (
+            nkern is not None
+            and bsize is not None
+            and all(shp is not None for shp in imshp)
+            and all(shp is not None for shp in kshp)
+        )
 
     @staticmethod
-    def getOutputShape(inshp, kshp, stride=(1, 1), mode='valid'):
+    def getOutputShape(inshp, kshp, stride=(1, 1), mode="valid"):
         """
         Computes the output dimensions of convolving an image of shape "inshp"
         with kernels of shape "kshp". Accepts symbolic or integer shapes.
@@ -371,25 +413,35 @@ class ConvOp(OpenMPOp):
         # The formula would be ceil((i + s * k - s * 1) / float(d)),
         # with s=1 for mode=='full' and s=-1 for mode=='valid'.
         # To support symbolic shapes, we express this with integer arithmetics.
-        warnings.warn("The method `getOutputShape` is deprecated use"
-                      "`get_conv_output_shape` instead.", stacklevel=2)
-        return tuple(get_conv_shape_1axis(i, k, mode, d)
-                     for i, k, d in zip(inshp, kshp, stride))
+        warnings.warn(
+            "The method `getOutputShape` is deprecated use"
+            "`get_conv_output_shape` instead.",
+            stacklevel=2,
+        )
+        return tuple(
+            get_conv_shape_1axis(i, k, mode, d) for i, k, d in zip(inshp, kshp, stride)
+        )
 
-    def __init__(self, imshp=None, kshp=None, nkern=None, bsize=None,
-                 dx=1, dy=1,
-                 output_mode='valid',
-
-                 unroll_batch=None,
-                 unroll_kern=None,
-                 unroll_patch=None,
-                 imshp_logical=None,
-                 kshp_logical=None,
-                 kshp_logical_top_aligned=True,
-                 verbose=0,
-                 version=-1,
-                 direction_hint='forward',
-                 openmp=None):
+    def __init__(
+        self,
+        imshp=None,
+        kshp=None,
+        nkern=None,
+        bsize=None,
+        dx=1,
+        dy=1,
+        output_mode="valid",
+        unroll_batch=None,
+        unroll_kern=None,
+        unroll_patch=None,
+        imshp_logical=None,
+        kshp_logical=None,
+        kshp_logical_top_aligned=True,
+        verbose=0,
+        version=-1,
+        direction_hint="forward",
+        openmp=None,
+    ):
         # Deactivate fft_optimization at the op level if specified
         if version == "no_fft":
             self.fft_opt = False
@@ -422,17 +474,19 @@ class ConvOp(OpenMPOp):
             dy = 1
 
         if int(dx) != dx:
-            raise TypeError('ConvOp.__init__ param dx must be an int', dx)
+            raise TypeError("ConvOp.__init__ param dx must be an int", dx)
         dx = int(dx)
 
         if int(dy) != dy:
-            raise TypeError('ConvOp.__init__ param dy must be an int', dy)
+            raise TypeError("ConvOp.__init__ param dy must be an int", dy)
         dy = int(dy)
 
         all_shape = self.has_all_shape(imshp, kshp, nkern, bsize)
         if (unroll_batch or unroll_kern) and not all_shape:
-            raise Exception("In ConvOp, when using unroll_batch and"
-                            " unroll_nkern, all shape are needed")
+            raise Exception(
+                "In ConvOp, when using unroll_batch and"
+                " unroll_nkern, all shape are needed"
+            )
 
         # Init the openmp attribute
         super(ConvOp, self).__init__(openmp=openmp)
@@ -456,7 +510,9 @@ class ConvOp(OpenMPOp):
         else:
             imshp_logical = tuple(imshp_logical)
             if len(imshp_logical) != 3:
-                raise ValueError("len(imshp_logical) must be 3, got %d" % len(imshp_logical))
+                raise ValueError(
+                    "len(imshp_logical) must be 3, got %d" % len(imshp_logical)
+                )
             self.imshp_logical = imshp_logical
 
         # a pair
@@ -465,7 +521,9 @@ class ConvOp(OpenMPOp):
         else:
             kshp_logical = tuple(kshp_logical)
             if len(kshp_logical) != 2:
-                raise ValueError("len(kshp_logical) must be 2, got %d" % len(kshp_logical))
+                raise ValueError(
+                    "len(kshp_logical) must be 2, got %d" % len(kshp_logical)
+                )
             self.kshp_logical = kshp_logical
 
         # a bool
@@ -481,41 +539,53 @@ class ConvOp(OpenMPOp):
             self.unroll_batch = 1
 
         # downcast unroll_batch if not a divisor of batch size
-        if self.unroll_batch is not None and self.unroll_batch > 0 and self.bsize % self.unroll_batch != 0:
+        if (
+            self.unroll_batch is not None
+            and self.unroll_batch > 0
+            and self.bsize % self.unroll_batch != 0
+        ):
 
             if self.bsize <= self.unroll_batch:
                 self.unroll_batch = self.bsize
             else:
                 # find the maximum value under unroll_batch that would work
                 new = self.unroll_batch
-                assert(new >= 1)
+                assert new >= 1
                 while self.bsize % new != 0:
                     new -= 1
 
-                warnstr = ("OPTIMISATION WARNING: in ConvOp.__init__() "
-                           "unroll_batch(%i) must be 0 or a divisor of"
-                           " bsize(%i). We revert it to %i. This"
-                           " won't change the result, but may make it slower.")
+                warnstr = (
+                    "OPTIMISATION WARNING: in ConvOp.__init__() "
+                    "unroll_batch(%i) must be 0 or a divisor of"
+                    " bsize(%i). We revert it to %i. This"
+                    " won't change the result, but may make it slower."
+                )
                 _logger.warn(warnstr, self.unroll_batch, self.bsize, new)
 
                 self.unroll_batch = new
 
         # downcast unroll_kern if not a divisor of nb of kernel
-        if self.unroll_kern is not None and self.unroll_kern > 0 and self.nkern % self.unroll_kern != 0:
+        if (
+            self.unroll_kern is not None
+            and self.unroll_kern > 0
+            and self.nkern % self.unroll_kern != 0
+        ):
 
             if self.nkern <= self.unroll_kern:
                 self.unroll_kern = self.nkern
             else:
                 # find the maximum value under unroll_kern that would work
                 new = self.unroll_kern
-                assert(new >= 1)
+                assert new >= 1
                 while self.nkern % new != 0:
                     new -= 1
 
-                warnstr = ("OPTIMISATION WARNING: in ConvOp.__init__()"
-                           " unroll_kern(%i) should be 0 or a divisor of"
-                           " nkern(%i). We revert it to %i. This"
-                           " won't change the result, but may make it slower.")
+                warnstr = (
+                    "OPTIMISATION WARNING: in ConvOp.__init__()"
+                    " unroll_kern(%i) should be 0 or a divisor of"
+                    " nkern(%i). We revert it to %i. This"
+                    " won't change the result, but may make it slower."
+                )
                 _logger.warn(warnstr, self.unroll_kern, self.nkern, new)
                 self.unroll_kern = new
 
@@ -523,12 +593,14 @@ class ConvOp(OpenMPOp):
             (None,) + self.imshp_logical,
             (None, None,) + self.kshp_logical,
             output_mode,
-            (dx, dy))[2:]
+            (dx, dy),
+        )[2:]
         self.fulloutshp = get_conv_output_shape(
             (None,) + self.imshp_logical,
             (None, None,) + self.kshp_logical,
             output_mode,
-            (1, 1))[2:]
+            (1, 1),
+        )[2:]
 
         self.out_mode = output_mode
 
@@ -536,15 +608,18 @@ class ConvOp(OpenMPOp):
             raise Exception("Mode %s not implemented" % str(self.out_mode))
 
         if any((shp is not None) and (shp <= 0) for shp in self.outshp):
-            raise Exception("Bad size for the output shape. Verify that [post-"
-                            "supersampling] input shape (%s) and kern"
-                            " shape(%s) are ok. (Hint: kerns must fit inside"
-                            " image in valid mode)" %
-                            (self.imshp_logical, self.kshp_logical))
+            raise Exception(
+                "Bad size for the output shape. Verify that [post-"
+                "supersampling] input shape (%s) and kern"
+                " shape(%s) are ok. (Hint: kerns must fit inside"
+                " image in valid mode)" % (self.imshp_logical, self.kshp_logical)
+            )
 
-        if (self.unroll_kern is None and
-                self.unroll_batch is None and
-                self.unroll_patch is None):
+        if (
+            self.unroll_kern is None
+            and self.unroll_batch is None
+            and self.unroll_patch is None
+        ):
             # no version specified. Find the faster we have
             if self.bsize is None and self.nkern is None:
                 self.unroll_patch = True
@@ -557,30 +632,42 @@ class ConvOp(OpenMPOp):
                 if self.has_all_shape(self.imshp, self.kshp):
                     time_unroll_patch = self.speed_unroll_patch_shape[mode_idx]
                 else:
-                    time_unroll_patch = self.speed_unroll_patch_noshape[
-                        mode_idx]
+                    time_unroll_patch = self.speed_unroll_patch_noshape[mode_idx]
                 time_unroll_batch_kern = 9999999
                 for i in xrange(len(self.speed_unroll_batch_kern)):
-                    if (bsize % self.speed_unroll_batch_kern[i][0] == 0 and
-                            nkern % self.speed_unroll_batch_kern[i][1] == 0):
-                        if self.speed_unroll_batch_kern[i][2 + mode_idx] < time_unroll_batch_kern:
-                            time_unroll_batch_kern = self.speed_unroll_batch_kern[i][2 + mode_idx]
+                    if (
+                        bsize % self.speed_unroll_batch_kern[i][0] == 0
+                        and nkern % self.speed_unroll_batch_kern[i][1] == 0
+                    ):
+                        if (
+                            self.speed_unroll_batch_kern[i][2 + mode_idx]
+                            < time_unroll_batch_kern
+                        ):
+                            time_unroll_batch_kern = self.speed_unroll_batch_kern[i][
+                                2 + mode_idx
+                            ]
                             time_unroll_batch_kern_idx = i
                 if time_unroll_patch < time_unroll_batch_kern:
                     self.unroll_patch = True
                 else:
                     self.unroll_batch = self.speed_unroll_batch_kern[
-                        time_unroll_batch_kern_idx][0]
+                        time_unroll_batch_kern_idx
+                    ][0]
                     self.unroll_kern = self.speed_unroll_batch_kern[
-                        time_unroll_batch_kern_idx][1]
+                        time_unroll_batch_kern_idx
+                    ][1]
                     self.unroll_patch = False
 
-            _logger.debug("AUTO FIND VERSION OF C_CODE OF CONV OP "
-                          "%s %s %s %s %s %s %s",
-                          self.unroll_batch, self.unroll_kern,
-                          self.unroll_patch,
-                          self.bsize, self.nkern, time_unroll_patch,
-                          time_unroll_batch_kern)
+            _logger.debug(
+                "AUTO FIND VERSION OF C_CODE OF CONV OP " "%s %s %s %s %s %s %s",
+                self.unroll_batch,
+                self.unroll_kern,
+                self.unroll_patch,
+                self.bsize,
+                self.nkern,
+                time_unroll_patch,
+                time_unroll_batch_kern,
+            )
 
         self._rehash()
 
@@ -607,8 +694,11 @@ class ConvOp(OpenMPOp):
         return self.__hashval
 
     def __str__(self):
-        return "ConvOp{" + ",".join(str((a, getattr(self, a)))
-                                    for a in self.__attrnames) + "}"
+        return (
+            "ConvOp{"
+            + ",".join(str((a, getattr(self, a))) for a in self.__attrnames)
+            + "}"
+        )
 
     def flops(self, inputs, outputs):
         """
@@ -616,7 +706,7 @@ class ConvOp(OpenMPOp):
 
         """
         images, kerns = inputs
-        out, = outputs
+        (out,) = outputs
         assert images[1] == kerns[1]
         flops = 0
         if self.out_mode == "valid":
@@ -627,9 +717,16 @@ class ConvOp(OpenMPOp):
             # nb patch multiplied
             flops *= images[1] * kerns[0] * images[0]
         else:
-            flops = (images[0] * kerns[0] * images[1] *
-                     kerns[2] * kerns[3] *
-                     images[2] * images[3] * 2)
+            flops = (
+                images[0]
+                * kerns[0]
+                * images[1]
+                * kerns[2]
+                * kerns[3]
+                * images[2]
+                * images[3]
+                * 2
+            )
         return flops
 
     def make_node(self, inputs, kerns):
@@ -647,26 +744,29 @@ class ConvOp(OpenMPOp):
         _kerns = as_tensor_variable(kerns)
         # TODO: lift this restriction by upcasting either inputs or kerns
         if _inputs.ndim != 4:
-            raise TypeError('ConvOp (make_node) requires input be a 4D tensor;'
-                            ' received "%s" (%i dims)' %
-                            (inputs, _inputs.ndim))
+            raise TypeError(
+                "ConvOp (make_node) requires input be a 4D tensor;"
+                ' received "%s" (%i dims)' % (inputs, _inputs.ndim)
+            )
         if _kerns.ndim != 4:
-            raise TypeError('make_node requires 4D tensor of kernels')
+            raise TypeError("make_node requires 4D tensor of kernels")
         if _inputs.type.dtype != _kerns.type.dtype:
             raise NotImplementedError(
                 "The image and the kernel must have the same type."
-                "inputs(%s), kerns(%s)" % (_inputs.dtype, _kerns.dtype))
+                "inputs(%s), kerns(%s)" % (_inputs.dtype, _kerns.dtype)
+            )
         bcastable23 = [self.outshp[0] == 1, self.outshp[1] == 1]
-        output = theano.tensor.tensor(dtype=_inputs.type.dtype,
-                                      broadcastable=[_inputs.broadcastable[0],
-                                                     _kerns.broadcastable[0]] +
-                                      bcastable23)
+        output = theano.tensor.tensor(
+            dtype=_inputs.type.dtype,
+            broadcastable=[_inputs.broadcastable[0], _kerns.broadcastable[0]]
+            + bcastable23,
+        )
 
         return Apply(self, [_inputs, _kerns], [output])
 
     def infer_shape(self, node, input_shapes):
         imshp = input_shapes[0]  # 4D image shape
-        kshp = input_shapes[1]   # 4D filter shape
+        kshp = input_shapes[1]  # 4D filter shape
         bsize, imshp = imshp[0], list(imshp[1:])
         nkern, kshp = kshp[0], list(kshp[2:])
         # replace symbolic shapes with known shapes
@@ -685,7 +785,8 @@ class ConvOp(OpenMPOp):
             (bsize,) + tuple(imshp),
             (nkern, None,) + tuple(kshp),
             self.out_mode,
-            (self.dx, self.dy))
+            (self.dx, self.dy),
+        )
         return [res]
 
     def perform(self, node, inp, out):
@@ -694,13 +795,16 @@ class ConvOp(OpenMPOp):
 
         """
         img2d, filtersflipped = inp
-        z, = out
+        (z,) = out
         if not imported_scipy_signal:
             raise theano.gof.utils.MethodNotDefined(
-                "c_headers", type(self), self.__class__.__name__,
+                "c_headers",
+                type(self),
+                self.__class__.__name__,
                 "Need the python package for scipy.signal to be installed "
                 "for the python implementation. You can use the C"
-                " implementation instead.")
+                " implementation instead.",
+            )
 
         # TODO: move these back out to global scope when they no longer
         #       cause an atexit error
@@ -708,30 +812,42 @@ class ConvOp(OpenMPOp):
         if any(x is None for x in imshp):
             imshp = tuple(img2d.shape[1:])
         if imshp != img2d.shape[1:]:
-            raise ValueError("The image shape provided at build time "
-                             "is different from the one passed at run time",
-                             imshp, img2d.shape[1:])
+            raise ValueError(
+                "The image shape provided at build time "
+                "is different from the one passed at run time",
+                imshp,
+                img2d.shape[1:],
+            )
         kshp = self.kshp
         if any(x is None for x in kshp):
             kshp = tuple(filtersflipped.shape[2:])
         if kshp != filtersflipped.shape[2:]:
-            raise ValueError("The filter shape provided at build time "
-                             "is different from the one passed at run time",
-                             kshp, filtersflipped.shape[2:])
+            raise ValueError(
+                "The filter shape provided at build time "
+                "is different from the one passed at run time",
+                kshp,
+                filtersflipped.shape[2:],
+            )
         bsize = self.bsize
         if bsize is None:
             bsize = img2d.shape[0]
         elif bsize != img2d.shape[0]:
-            raise ValueError("The batch size provided at build time "
-                             "is different from the one passed at run time",
-                             bsize, img2d.shape[0])
+            raise ValueError(
+                "The batch size provided at build time "
+                "is different from the one passed at run time",
+                bsize,
+                img2d.shape[0],
+            )
         nkern = self.nkern
         if nkern is None:
             nkern = filtersflipped.shape[0]
         elif nkern != filtersflipped.shape[0]:
-            raise ValueError("The number of filters provided at build time "
-                             "is different from the one passed at run time",
-                             nkern, filtersflipped.shape[0])
+            raise ValueError(
+                "The number of filters provided at build time "
+                "is different from the one passed at run time",
+                nkern,
+                filtersflipped.shape[0],
+            )
 
         imshp_logical = self.imshp_logical
         if imshp_logical[0] is None:
@@ -756,11 +872,11 @@ class ConvOp(OpenMPOp):
                 (None,) + imshp_logical,
                 (None, None,) + kshp_logical,
                 self.out_mode,
-                (1, 1))[2:]
+                (1, 1),
+            )[2:]
 
         if z[0] is None or z[0].shape != (bsize, nkern,) + fulloutshp:
-            z[0] = np.zeros((bsize, nkern,) + fulloutshp,
-                            dtype=img2d.dtype)
+            z[0] = np.zeros((bsize, nkern,) + fulloutshp, dtype=img2d.dtype)
         zz = z[0]
 
         stacklen = imshp[0]
@@ -780,15 +896,18 @@ class ConvOp(OpenMPOp):
         if kshp != kshp_logical:
             rstride = int(np.ceil(kshp_logical[0] / float(kshp[0])))
             cstride = int(np.ceil(kshp_logical[1] / float(kshp[1])))
-            buf = np.zeros((nkern, stacklen) +
-                           self.kshp_logical, dtype=filtersflipped.dtype)
+            buf = np.zeros(
+                (nkern, stacklen) + self.kshp_logical, dtype=filtersflipped.dtype
+            )
             if self.kshp_logical_top_aligned:
                 roffset = coffset = 0
             else:
-                roffset = (kshp_logical[0] - (kshp[0] *
-                                              rstride) - 1 + rstride) % rstride
-                coffset = (kshp_logical[1] - (kshp[1] *
-                                              cstride) - 1 + cstride) % cstride
+                roffset = (
+                    kshp_logical[0] - (kshp[0] * rstride) - 1 + rstride
+                ) % rstride
+                coffset = (
+                    kshp_logical[1] - (kshp[1] * cstride) - 1 + cstride
+                ) % cstride
                 assert roffset >= 0
                 assert coffset >= 0
             buf[:, :, roffset::rstride, coffset::cstride] = filtersflipped
@@ -796,26 +915,40 @@ class ConvOp(OpenMPOp):
             del buf, rstride, cstride
 
         val = _valfrommode(self.out_mode)
-        bval = _bvalfromboundary('fill')
+        bval = _bvalfromboundary("fill")
 
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore', np.ComplexWarning)
+            warnings.simplefilter("ignore", np.ComplexWarning)
             for b in xrange(bsize):
                 for n in xrange(nkern):
                     zz[b, n, ...].fill(0)
                     for im0 in xrange(stacklen):
                         # some cast generates a warning here
-                        zz[b, n, ...] += _convolve2d(img2d[b, im0, ...],
-                                                     filtersflipped[n, im0, ...],
-                                                     1, val, bval, 0)
+                        zz[b, n, ...] += _convolve2d(
+                            img2d[b, im0, ...],
+                            filtersflipped[n, im0, ...],
+                            1,
+                            val,
+                            bval,
+                            0,
+                        )
 
         if False:
             if False and self.out_mode == "full":
-                img2d2 = np.zeros((bsize, stacklen,
-                                   imshp[1] + 2 * kshp[0] - 2,
-                                   imshp[2] + 2 * kshp[1] - 2))
-                img2d2[:, :, kshp[0] - 1:kshp[0] - 1 + imshp[1],
-                       kshp[1] - 1:kshp[1] - 1 + imshp[2]] = img2d
+                img2d2 = np.zeros(
+                    (
+                        bsize,
+                        stacklen,
+                        imshp[1] + 2 * kshp[0] - 2,
+                        imshp[2] + 2 * kshp[1] - 2,
+                    )
+                )
+                img2d2[
+                    :,
+                    :,
+                    kshp[0] - 1 : kshp[0] - 1 + imshp[1],
+                    kshp[1] - 1 : kshp[1] - 1 + imshp[2],
+                ] = img2d
                 img2d = img2d2
             # N_image_shape = image_data.shape
 
@@ -826,16 +959,18 @@ class ConvOp(OpenMPOp):
                         for row in xrange(0, zz.shape[2], self.dx):
                             for col in xrange(0, zz.shape[3], self.dy):
                                 zz[b, n, row, col] += (
-                                    img2d[b, im0, row:row + kshp[0],
-                                          col:col + kshp[1]] *
-                                    filtersflipped[n, im0, ::-1, ::-1]).sum()
+                                    img2d[
+                                        b, im0, row : row + kshp[0], col : col + kshp[1]
+                                    ]
+                                    * filtersflipped[n, im0, ::-1, ::-1]
+                                ).sum()
 
         # We copy it to remove the Stride mismatch warning from DEBUG_MODE.
         # The copy make that we return an object with the same stride as the c version.
         # The copy don't affect the performance during our experience as in that case we
         # execute the c version which is much faster.
         if self.dx > 1 or self.dy > 1:
-            zz = zz[:, :, 0::self.dx, 0::self.dy].copy()
+            zz = zz[:, :, 0 :: self.dx, 0 :: self.dy].copy()
         z[0] = zz
 
     def R_op(self, inputs, eval_points):
@@ -851,28 +986,31 @@ class ConvOp(OpenMPOp):
 
     def grad(self, inp, grads):
         inputs, kerns = inp
-        gz, = grads
+        (gz,) = grads
 
         if self.imshp != self.imshp_logical or self.kshp != self.kshp_logical:
-            raise NotImplementedError('todo')
+            raise NotImplementedError("todo")
 
-        if self.out_mode == 'valid' and (self.dx, self.dy) != (1, 1):
+        if self.out_mode == "valid" and (self.dx, self.dy) != (1, 1):
             raise NotImplementedError(
                 "ERROR: ConvOp.grad is now disabled for 'valid' convolutions with"
-                " stride != (1, 1); call theano.tensor.nnet.conv2d() instead.")
+                " stride != (1, 1); call theano.tensor.nnet.conv2d() instead."
+            )
 
         if self.dx not in (1, 2) or self.dy not in (1, 2):
             raise NotImplementedError(
                 "ERROR: We disable ConvOp.grad now when output_mode is not"
                 " 'valid' and dx or dy are greater than 2, as there is a bug"
-                " in it. See `abstract_conv2d <>`_ for a version that support this.")
+                " in it. See `abstract_conv2d <>`_ for a version that support this."
+            )
 
-        all_shape = self.has_all_shape(self.imshp, self.kshp,
-                                       self.nkern, self.bsize)
+        all_shape = self.has_all_shape(self.imshp, self.kshp, self.nkern, self.bsize)
 
         if not all_shape and (self.dx != 1 or self.dy != 1):
-            raise Exception("ConvOp.grad when dx!=1 or dy!=1 we must have all "
-                            "the optional shape information")
+            raise Exception(
+                "ConvOp.grad when dx!=1 or dy!=1 we must have all "
+                "the optional shape information"
+            )
 
         # Determine gradient on kernels ########
         assert inputs.ndim == 4 and kerns.ndim == 4
@@ -880,7 +1018,7 @@ class ConvOp(OpenMPOp):
         newin = inputs.dimshuffle((1, 0, 2, 3))
         newgz = gz.dimshuffle((1, 0, 2, 3))
 
-        if self.out_mode == 'valid':
+        if self.out_mode == "valid":
             (img, filters) = (newin, newgz)
             kshp_logical = self.fulloutshp
             kshp_logical_top_aligned = False
@@ -888,67 +1026,84 @@ class ConvOp(OpenMPOp):
             (bsize, nkern) = (self.imshp[0], self.nkern)
             imshp = (self.bsize, self.imshp[1], self.imshp[2])
             kshp = self.outshp
-        elif self.out_mode == 'full':
+        elif self.out_mode == "full":
             (img, filters) = (newgz, newin)
             kshp_logical = None
             kshp_logical_top_aligned = True
-            imshp_logical = (self.bsize,
-                             self.fulloutshp[0],
-                             self.fulloutshp[1])
+            imshp_logical = (self.bsize, self.fulloutshp[0], self.fulloutshp[1])
             (bsize, nkern) = (self.nkern, self.imshp[0])
             imshp = (self.bsize, self.outshp[0], self.outshp[1])
             kshp = self.imshp[1:]
         else:
             raise NotImplementedError(
-                'Only [full,valid] modes are currently supported.')
+                "Only [full,valid] modes are currently supported."
+            )
 
         filters = filters[:, :, ::-1, ::-1]  # flip them
 
-        dw = ConvOp(imshp, kshp, nkern, bsize, 1, 1, output_mode='valid',
-                    unroll_batch=None, unroll_kern=None, unroll_patch=None,
-                    imshp_logical=imshp_logical,
-                    kshp_logical=kshp_logical,
-                    kshp_logical_top_aligned=kshp_logical_top_aligned,
-                    version=self.version,
-                    direction_hint='bprop weights',
-                    verbose=self.verbose)
+        dw = ConvOp(
+            imshp,
+            kshp,
+            nkern,
+            bsize,
+            1,
+            1,
+            output_mode="valid",
+            unroll_batch=None,
+            unroll_kern=None,
+            unroll_patch=None,
+            imshp_logical=imshp_logical,
+            kshp_logical=kshp_logical,
+            kshp_logical_top_aligned=kshp_logical_top_aligned,
+            version=self.version,
+            direction_hint="bprop weights",
+            verbose=self.verbose,
+        )
 
         dw = dw(img, filters)
 
         if all_shape:
             assert all(o == k for o, k in zip(dw.owner.op.outshp, self.kshp))
-        if self.out_mode == 'valid':
+        if self.out_mode == "valid":
             # before DimShuffle, dw is of shape visdim x nkern x kshp[0] x kshp[1]
             dw = dw.dimshuffle((1, 0, 2, 3))
             dw = dw[:, :, ::-1, ::-1]
 
         # Determine gradient on inputs ########
-        mode = 'valid'
-        if not self.out_mode == 'full':
-            mode = 'full'
+        mode = "valid"
+        if not self.out_mode == "full":
+            mode = "full"
 
         filters = kerns.dimshuffle((1, 0, 2, 3))
         filters = filters[:, :, ::-1, ::-1]
 
         nkern = self.imshp[0]
         imshp = (self.nkern, self.outshp[0], self.outshp[1])
-        imshp_logical = (self.nkern, self.fulloutshp[0],
-                         self.fulloutshp[1])
+        imshp_logical = (self.nkern, self.fulloutshp[0], self.fulloutshp[1])
 
-        din = ConvOp(imshp, self.kshp, nkern, self.bsize,
-                     1, 1, output_mode=mode,
-                     unroll_batch=None, unroll_kern=None,
-                     unroll_patch=None,
-                     imshp_logical=imshp_logical,
-                     kshp_logical=None,
-                     version=-1,  # we we change the mode, we don't forward the version.
-                     direction_hint='bprop inputs',
-                     verbose=self.verbose)
+        din = ConvOp(
+            imshp,
+            self.kshp,
+            nkern,
+            self.bsize,
+            1,
+            1,
+            output_mode=mode,
+            unroll_batch=None,
+            unroll_kern=None,
+            unroll_patch=None,
+            imshp_logical=imshp_logical,
+            kshp_logical=None,
+            version=-1,  # we we change the mode, we don't forward the version.
+            direction_hint="bprop inputs",
+            verbose=self.verbose,
+        )
 
         din = din(gz, filters)
 
-        assert all(o is None or o == i
-                   for o, i in zip(din.owner.op.outshp, self.imshp[1:]))
+        assert all(
+            o is None or o == i for o, i in zip(din.owner.op.outshp, self.imshp[1:])
+        )
 
         # din and dw should have the same broadcasting pattern as the
         # parameters they are the gradient of (resp. inputs and kerns).
@@ -957,32 +1112,37 @@ class ConvOp(OpenMPOp):
         return [din, dw]
 
     def c_headers(self):
-        return ['<numpy/noprefix.h>', '<iostream>', '<sstream>']
+        return ["<numpy/noprefix.h>", "<iostream>", "<sstream>"]
 
     def c_code_cache_version(self):
         return (15, self.openmp, blas.blas_header_version())
 
     def c_support_code(self):
-        return """
+        return (
+            """
 #define STRIDES(arr) (PyArray_STRIDES(arr))
 #define FULL  2
 #define SAME  1
 #define VALID 0
 #define MOD %
 using namespace std;
-""" + blas.blas_header_text()
+"""
+            + blas.blas_header_text()
+        )
 
     def use_blas(self):
         """ Return True if we will generate code that use gemm.
         """
         # the gemm version only support that case
-        if self.out_mode == 'valid' and self.dx == 0 and self.dy == 0:
+        if self.out_mode == "valid" and self.dx == 0 and self.dy == 0:
             # We use a faster version in those case.
-            if (self.imshp != self.imshp_logical or
-                    self.kshp != self.kshp_logical or
-                    self.unroll_patch or
-                    self.unroll_batch > 0 or
-                    self.unroll_kern > 0):
+            if (
+                self.imshp != self.imshp_logical
+                or self.kshp != self.kshp_logical
+                or self.unroll_patch
+                or self.unroll_batch > 0
+                or self.unroll_kern > 0
+            ):
                 return False
             return True
         return False
@@ -995,9 +1155,8 @@ using namespace std;
     def c_no_compile_args(self):
         # when the ksph==(1,1) gcc 4.3.0 segfault during the
         # compilation with -O3.  This don't happen at -O2
-        if (theano.gof.cmodule.gcc_version() in ['4.3.0'] and
-                self.kshp == (1, 1)):
-            return ['-O3']
+        if theano.gof.cmodule.gcc_version() in ["4.3.0"] and self.kshp == (1, 1):
+            return ["-O3"]
         else:
             return []
 
@@ -1006,9 +1165,8 @@ using namespace std;
 
         if self.use_blas():
             ret = blas.ldflags(libs=False, flags=True)
-        if (theano.gof.cmodule.gcc_version() in ['4.3.0'] and
-                self.kshp == (1, 1)):
-            ret += ['-O2']
+        if theano.gof.cmodule.gcc_version() in ["4.3.0"] and self.kshp == (1, 1):
+            ret += ["-O2"]
         # Add the -fopenmp flags
         ret += super(ConvOp, self).c_compile_args()
 
@@ -1026,16 +1184,16 @@ using namespace std;
 
     def c_code(self, node, name, inp, out, sub):
         img2d, filtersflipped = inp
-        z, = out
+        (z,) = out
         if node.inputs[0].type.dtype != node.inputs[1].type.dtype:
             raise NotImplementedError()
         assert node.inputs[0].type.dtype == node.inputs[1].type.dtype
         d = locals()
         d.update(sub)
 
-        all_shape = (self.has_all_shape(self.imshp, self.kshp,
-                                        self.nkern, self.bsize) and
-                     self.has_all_shape(self.imshp_logical, self.kshp_logical))
+        all_shape = self.has_all_shape(
+            self.imshp, self.kshp, self.nkern, self.bsize
+        ) and self.has_all_shape(self.imshp_logical, self.kshp_logical)
 
         d["self_out_mode"] = self.out_mode
         d["self_dx"] = self.dx
@@ -1059,7 +1217,9 @@ using namespace std;
         if self.kshp[0] is not None:
             expected = d["self_kshp0"]
             value = self.kshp[0]
-            d["assert_size"] += """
+            d[
+                "assert_size"
+            ] += """
 if(%(value)s != %(expected)s){
     PyErr_Format(PyExc_ValueError,
             "The hardcoded shape for the number of rows in the filter "
@@ -1067,12 +1227,16 @@ if(%(value)s != %(expected)s){
             (long)%(value)s, (long)%(expected)s);
     %(fail)s;
 }
-            """ % dict(expected=expected, value=value, **sub)
+            """ % dict(
+                expected=expected, value=value, **sub
+            )
             d["self_kshp0"] = self.kshp[0]
         if self.kshp[1] is not None:
             expected = d["self_kshp1"]
             value = self.kshp[1]
-            d["assert_size"] += """
+            d[
+                "assert_size"
+            ] += """
 if(%(value)s != %(expected)s){
     PyErr_Format(PyExc_ValueError,
             "The hardcoded shape for the number of columns in the filter "
@@ -1080,12 +1244,16 @@ if(%(value)s != %(expected)s){
             (long)%(value)s, (long)%(expected)s);
     %(fail)s;
 }
-            """ % dict(expected=expected, value=value, **sub)
+            """ % dict(
+                expected=expected, value=value, **sub
+            )
             d["self_kshp1"] = self.kshp[1]
         if self.outshp[0] is not None:
             expected = "dim_zz[0]"
             value = self.outshp[0]
-            d["assert_size"] += """
+            d[
+                "assert_size"
+            ] += """
 if(%(value)s != %(expected)s){
     PyErr_Format(PyExc_ValueError,
             "The hardcoded shape for the number of rows in the output "
@@ -1093,12 +1261,16 @@ if(%(value)s != %(expected)s){
             (long)%(value)s, (long)%(expected)s);
     %(fail)s;
 }
-            """ % dict(expected=expected, value=value, **sub)
+            """ % dict(
+                expected=expected, value=value, **sub
+            )
             d["self_outshp0"] = self.outshp[0]
         if self.outshp[1] is not None:
             expected = "dim_zz[1]"
             value = self.outshp[1]
-            d["assert_size"] += """
+            d[
+                "assert_size"
+            ] += """
 if(%(value)s != %(expected)s){
     PyErr_Format(PyExc_ValueError,
             "The hardcoded shape for the number of columns in the output "
@@ -1106,12 +1278,16 @@ if(%(value)s != %(expected)s){
             (long)%(value)s, (long)%(expected)s);
     %(fail)s;
 }
-            """ % dict(expected=expected, value=value, **sub)
+            """ % dict(
+                expected=expected, value=value, **sub
+            )
             d["self_outshp1"] = self.outshp[1]
         if self.imshp[0] is not None:
             expected = d["self_imshp0"]
             value = self.imshp[0]
-            d["assert_size"] += """
+            d[
+                "assert_size"
+            ] += """
 if(%(value)s != %(expected)s){
     PyErr_Format(PyExc_ValueError,
             "The hardcoded shape for the image stack size (%%ld) "
@@ -1119,10 +1295,14 @@ if(%(value)s != %(expected)s){
             (long)%(value)s, (long)%(expected)s);
     %(fail)s;
 }
-            """ % dict(expected=expected, value=value, **sub)
+            """ % dict(
+                expected=expected, value=value, **sub
+            )
             expected = "kerns_dim[1]"
             value = self.imshp[0]
-            d["assert_size"] += """
+            d[
+                "assert_size"
+            ] += """
 if(%(value)s != %(expected)s){
     PyErr_Format(PyExc_ValueError,
             "The hardcoded shape for the kernel stack size (%%ld) "
@@ -1130,12 +1310,16 @@ if(%(value)s != %(expected)s){
             (long)%(value)s, (long)%(expected)s);
     %(fail)s;
 }
-            """ % dict(expected=expected, value=value, **sub)
+            """ % dict(
+                expected=expected, value=value, **sub
+            )
             d["self_imshp0"] = self.imshp[0]
         if self.imshp[1] is not None:
             expected = d["self_imshp1"]
             value = self.imshp[1]
-            d["assert_size"] += """
+            d[
+                "assert_size"
+            ] += """
 if(%(value)s != %(expected)s){
     PyErr_Format(PyExc_ValueError,
             "The hardcoded shape for the number of rows in the image "
@@ -1143,12 +1327,16 @@ if(%(value)s != %(expected)s){
             (long)%(value)s, (long)%(expected)s);
     %(fail)s;
 }
-            """ % dict(expected=expected, value=value, **sub)
+            """ % dict(
+                expected=expected, value=value, **sub
+            )
             d["self_imshp1"] = self.imshp[1]
         if self.imshp[2] is not None:
             expected = d["self_imshp2"]
             value = self.imshp[2]
-            d["assert_size"] += """
+            d[
+                "assert_size"
+            ] += """
 if(%(value)s != %(expected)s){
     PyErr_Format(PyExc_ValueError,
             "The hardcoded shape for the number of columns in the image "
@@ -1156,12 +1344,16 @@ if(%(value)s != %(expected)s){
             (long)%(value)s, (long)%(expected)s);
     %(fail)s;
 }
-            """ % dict(expected=expected, value=value, **sub)
+            """ % dict(
+                expected=expected, value=value, **sub
+            )
             d["self_imshp2"] = self.imshp[2]
         if self.bsize is not None:
             expected = d["self_bsize"]
             value = self.bsize
-            d["assert_size"] += """
+            d[
+                "assert_size"
+            ] += """
 if(%(value)s != %(expected)s){
     PyErr_Format(PyExc_ValueError,
             "The hardcoded shape for the batch size (%%ld) "
@@ -1169,12 +1361,16 @@ if(%(value)s != %(expected)s){
             (long)%(value)s, (long)%(expected)s);
     %(fail)s;
 }
-            """ % dict(expected=expected, value=value, **sub)
+            """ % dict(
+                expected=expected, value=value, **sub
+            )
             d["self_bsize"] = self.bsize
         if self.nkern is not None:
             expected = d["self_nkern"]
             value = self.nkern
-            d["assert_size"] += """
+            d[
+                "assert_size"
+            ] += """
 if(%(value)s != %(expected)s){
     PyErr_Format(PyExc_ValueError,
             "The hardcoded shape for the number of kernels in the filter "
@@ -1182,25 +1378,31 @@ if(%(value)s != %(expected)s){
             (long)%(value)s, (long)%(expected)s);
     %(fail)s;
 }
-            """ % dict(expected=expected, value=value, **sub)
+            """ % dict(
+                expected=expected, value=value, **sub
+            )
             d["self_nkern"] = self.nkern
 
         # Other hard coded stuff only if we have all shapes
         if all_shape:
             d["self_kshp_logical_r"] = self.kshp_logical[0]
             d["self_kshp_logical_c"] = self.kshp_logical[1]
-            d["self_kshp_logical_stride_r"] = int(np.ceil(
-                self.kshp_logical[0] / float(self.kshp[0])))
-            d["self_kshp_logical_stride_c"] = int(np.ceil(
-                self.kshp_logical[1] / float(self.kshp[1])))
+            d["self_kshp_logical_stride_r"] = int(
+                np.ceil(self.kshp_logical[0] / float(self.kshp[0]))
+            )
+            d["self_kshp_logical_stride_c"] = int(
+                np.ceil(self.kshp_logical[1] / float(self.kshp[1]))
+            )
             d["self_imshp_logical_r"] = self.imshp_logical[1]
             # numpy.B. 1  not 0
             d["self_imshp_logical_c"] = self.imshp_logical[2]
             # numpy.B. 2  not 1
-            d["self_imshp_logical_stride_r"] = int(np.ceil(
-                self.imshp_logical[1] / float(self.imshp[1])))
-            d["self_imshp_logical_stride_c"] = int(np.ceil(
-                self.imshp_logical[2] / float(self.imshp[2])))
+            d["self_imshp_logical_stride_r"] = int(
+                np.ceil(self.imshp_logical[1] / float(self.imshp[1]))
+            )
+            d["self_imshp_logical_stride_c"] = int(
+                np.ceil(self.imshp_logical[2] / float(self.imshp[2]))
+            )
             if not self.imshp[0] == 1:
                 d["affectation"] = "+="
             d["all_shape"] = "1"
@@ -1210,7 +1412,8 @@ if(%(value)s != %(expected)s){
             d["affectation"] = "+="
             d["all_shape"] = "0"
             d["dim_zz_const"] = ""
-            d["dim_zz_affect"] = """
+            d["dim_zz_affect"] = (
+                """
   if (mode == FULL) {
     dim_zz[0] = (int)ceil((dim_im[0]+dim_ker0-1)/float(%(self_dx)s));
     dim_zz[1] = (int)ceil((dim_im[1]+dim_ker1-1)/float(%(self_dy)s));
@@ -1218,8 +1421,11 @@ if(%(value)s != %(expected)s){
     dim_zz[0] = (int)ceil((dim_im[0]-dim_ker0+1)/float(%(self_dx)s));
     dim_zz[1] = (int)ceil((dim_im[1]-dim_ker1+1)/float(%(self_dy)s));
   }
-""" % d
-            d["assert_size"] += """
+"""
+                % d
+            )
+            d["assert_size"] += (
+                """
 // Check the stack size of the filter and images are equals
 if(kerns_dim[1] != img2d_dim[1]){
     PyErr_Format(PyExc_ValueError,
@@ -1227,7 +1433,9 @@ if(kerns_dim[1] != img2d_dim[1]){
             (long)kerns_dim[1], (long)img2d_dim[1]);
     %(fail)s;
 }
-            """ % sub
+            """
+                % sub
+            )
 
         if self.kshp_logical_top_aligned:
             d["self_kshp_logical_offset_r"] = 0
@@ -1235,12 +1443,12 @@ if(kerns_dim[1] != img2d_dim[1]){
         elif all_shape:
             rstride = d["self_kshp_logical_stride_r"]
             cstride = d["self_kshp_logical_stride_c"]
-            d["self_kshp_logical_offset_r"] = (self.kshp_logical[0] -
-                                               (self.kshp[0] * rstride) -
-                                               1 + rstride) % rstride
-            d["self_kshp_logical_offset_c"] = (self.kshp_logical[1] -
-                                               (self.kshp[1] * cstride) -
-                                               1 + cstride) % cstride
+            d["self_kshp_logical_offset_r"] = (
+                self.kshp_logical[0] - (self.kshp[0] * rstride) - 1 + rstride
+            ) % rstride
+            d["self_kshp_logical_offset_c"] = (
+                self.kshp_logical[1] - (self.kshp[1] * cstride) - 1 + cstride
+            ) % cstride
             del rstride, cstride
 
         if node.inputs[0].type.dtype == "float32":
@@ -1248,35 +1456,40 @@ if(kerns_dim[1] != img2d_dim[1]){
         elif node.inputs[0].type.dtype == "float64":
             d["type"] = "double"
         else:
-            raise Exception("Type %s not implemented" %
-                            node.inputs[0].type.dtype)
-        d["gemm"] = 'dgemm_'
+            raise Exception("Type %s not implemented" % node.inputs[0].type.dtype)
+        d["gemm"] = "dgemm_"
         if not d["type"] == "double":
-            d["gemm"] = 'sgemm_'
+            d["gemm"] = "sgemm_"
 
         if self.imshp != self.imshp_logical or self.kshp != self.kshp_logical:
             if self.verbose:
-                _logger.debug("return imshp!=imshp_logical or"
-                              " self.kshp != self.kshp_logical shape version")
+                _logger.debug(
+                    "return imshp!=imshp_logical or"
+                    " self.kshp != self.kshp_logical shape version"
+                )
             return _conv_op_code_a % d
 
         if self.unroll_patch:
             if self.verbose:
-                _logger.debug("return unroll patch version. all_shape=%s",
-                              all_shape)
+                _logger.debug("return unroll patch version. all_shape=%s", all_shape)
             return _conv_op_code_unroll_patch % d
-        if ((self.unroll_batch is not None and self.unroll_batch > 0) or
-                (self.unroll_kern is not None and self.unroll_kern > 0)):
+        if (self.unroll_batch is not None and self.unroll_batch > 0) or (
+            self.unroll_kern is not None and self.unroll_kern > 0
+        ):
             assert self.unroll_batch > 0
             assert self.unroll_kern > 0
             if self.verbose:
-                _logger.debug("return unrolled batch (%s) and kern code (%s)",
-                              str(self.unroll_batch), str(self.unroll_kern))
-            return gen_conv_code_unroll_batch_kern(d, self.unroll_batch,
-                                                   self.unroll_kern)
+                _logger.debug(
+                    "return unrolled batch (%s) and kern code (%s)",
+                    str(self.unroll_batch),
+                    str(self.unroll_kern),
+                )
+            return gen_conv_code_unroll_batch_kern(
+                d, self.unroll_batch, self.unroll_kern
+            )
 
         # TODO: should we choose the unroll size automatically with the bigger divisor under 5?
-        if self.out_mode == 'valid' and self.dx == 0 and self.dy == 0:
+        if self.out_mode == "valid" and self.dx == 0 and self.dy == 0:
             if self.verbose:
                 _logger.debug("return gemm version")
             return _conv_op_code_valid_gemm % d
@@ -1792,8 +2005,16 @@ def gen_conv_code_unroll_batch_kern(d, unroll_bsize=1, unroll_ksize=1):
 
     """
     assert unroll_bsize > 0 and unroll_ksize > 0
-    if "unroll_bsize" in d or "unroll_ksize" in d or "unroll_iter" in d or "unroll_biter" in d or "unroll_kiter" in d:
-        raise Exception("We can't use this dictionary as we will overwrite some of its containt")
+    if (
+        "unroll_bsize" in d
+        or "unroll_ksize" in d
+        or "unroll_iter" in d
+        or "unroll_biter" in d
+        or "unroll_kiter" in d
+    ):
+        raise Exception(
+            "We can't use this dictionary as we will overwrite some of its containt"
+        )
     d = d.copy()
 
     d["unroll_bsize"] = unroll_bsize
@@ -1817,7 +2038,9 @@ def gen_conv_code_unroll_batch_kern(d, unroll_bsize=1, unroll_ksize=1):
                 iter += 1
                 s += st % d
         return s + "\n"
-    ret = """
+
+    ret = (
+        """
 const int mode=%(mode)s;
 int typenum=0, typenum_f=0;
 PyArrayObject *ain1=NULL, *ain2=NULL, *filtersflipped_arr=NULL, *img2d_arr=NULL, *z_arr=NULL;;
@@ -1961,15 +2184,32 @@ if (!PyArray_ISCONTIGUOUS(%(z)s))
 for(int b=0;b< %(self_bsize)s ;b+=%(unroll_bsize)s){
   for(int n_kern=0;n_kern<%(self_nkern)s;n_kern+=%(unroll_ksize)s){
 
-""" % d
-    ret += my_dup2("%(type)s * __restrict__ out%(unroll_iter)s=(%(type)s *)(PyArray_GETPTR2(z_arr,b+%(unroll_biter)s,n_kern+%(unroll_kiter)s));")
-    ret += my_dup("for (int i = 0; i < dim_zz[0]*dim_zz[1]; ++i) out%(unroll_iter)s[i] = 0;", unroll_bsize * unroll_ksize)
-    ret += """
+"""
+        % d
+    )
+    ret += my_dup2(
+        "%(type)s * __restrict__ out%(unroll_iter)s=(%(type)s *)(PyArray_GETPTR2(z_arr,b+%(unroll_biter)s,n_kern+%(unroll_kiter)s));"
+    )
+    ret += my_dup(
+        "for (int i = 0; i < dim_zz[0]*dim_zz[1]; ++i) out%(unroll_iter)s[i] = 0;",
+        unroll_bsize * unroll_ksize,
+    )
+    ret += (
+        """
     for(int stack_size=0;stack_size<%(self_imshp0)s;stack_size++){
-""" % d
-    ret += my_dup("const %(type)s * __restrict__ in%(unroll_iter)d=(%(type)s *)(PyArray_GETPTR2(img2d_arr,b+%(unroll_iter)s,stack_size));", unroll_bsize)
-    ret += my_dup("const %(type)s * __restrict__ hvals%(unroll_iter)s=(%(type)s *)(PyArray_GETPTR2(filtersflipped_arr,n_kern+%(unroll_iter)s,stack_size));", unroll_ksize)
-    ret += """
+"""
+        % d
+    )
+    ret += my_dup(
+        "const %(type)s * __restrict__ in%(unroll_iter)d=(%(type)s *)(PyArray_GETPTR2(img2d_arr,b+%(unroll_iter)s,stack_size));",
+        unroll_bsize,
+    )
+    ret += my_dup(
+        "const %(type)s * __restrict__ hvals%(unroll_iter)s=(%(type)s *)(PyArray_GETPTR2(filtersflipped_arr,n_kern+%(unroll_iter)s,stack_size));",
+        unroll_ksize,
+    )
+    ret += (
+        """
 
       int new_m;
 
@@ -1981,10 +2221,12 @@ for(int b=0;b< %(self_bsize)s ;b+=%(unroll_bsize)s){
 
         for (int iter_n=0; iter_n < Os[1]; iter_n++) {  // loop over columns
           int pos_n=iter_n*%(self_dy)s;
-        """ % d
-    ret += my_dup(
-        "%(type)s sum%(unroll_iter)s=0;", unroll_bsize * unroll_ksize)
-    ret += """
+        """
+        % d
+    )
+    ret += my_dup("%(type)s sum%(unroll_iter)s=0;", unroll_bsize * unroll_ksize)
+    ret += (
+        """
 
           // Sum over kernel, if index into image is out of bounds
           // fill with the value
@@ -1992,15 +2234,24 @@ for(int b=0;b< %(self_bsize)s ;b+=%(unroll_bsize)s){
             int ind0 = (new_m-j);
 
             if(mode==FULL){
-""" % d
-    ret += my_dup("const %(type)s * idx_hvals%(unroll_iter)s=&hvals%(unroll_iter)s[j*dim_ker1];", unroll_ksize)
-    ret += """
+"""
+        % d
+    )
+    ret += my_dup(
+        "const %(type)s * idx_hvals%(unroll_iter)s=&hvals%(unroll_iter)s[j*dim_ker1];",
+        unroll_ksize,
+    )
+    ret += (
+        """
               if(ind0 < 0 || ind0 >= dim_im[0]){
                 if(fill_value!=0)
                   for (int k=0; k < dim_ker1; k++) {
-""" % d
+"""
+        % d
+    )
     ret += my_dup2("sum%(unroll_iter)s += idx_hvals%(unroll_kiter)s[k] * fill_value;")
-    ret += """
+    ret += (
+        """
                   }
               }else{
                 //do the part where kernel is to the right of the img
@@ -2009,48 +2260,84 @@ for(int b=0;b< %(self_bsize)s ;b+=%(unroll_bsize)s){
                 if(fill_value!=0){
 
                   for(k=0;k<max_k;k++){
-""" % d
+"""
+        % d
+    )
     ret += my_dup2("sum%(unroll_iter)s += idx_hvals%(unroll_kiter)s[k] * fill_value;")
-    ret += """
+    ret += (
+        """
                   }
                 }else {k=max_k;}
 
                 //do the part where the kernel is on the img
                 max_k=min(pos_n+1,(int)dim_ker1);
-""" % d
-    ret += my_dup("const %(type)s * idx_in%(unroll_iter)s=&in%(unroll_iter)s[ind0*dim_im[1]];", unroll_bsize)
-    ret += """
+"""
+        % d
+    )
+    ret += my_dup(
+        "const %(type)s * idx_in%(unroll_iter)s=&in%(unroll_iter)s[ind0*dim_im[1]];",
+        unroll_bsize,
+    )
+    ret += (
+        """
                 for (int ind1=pos_n-k; k<max_k; k++,ind1--) {
 
-""" % d
-    ret += my_dup2("sum%(unroll_iter)s+= idx_hvals%(unroll_kiter)s[k] * idx_in%(unroll_biter)s[ind1];")
-    ret += """
+"""
+        % d
+    )
+    ret += my_dup2(
+        "sum%(unroll_iter)s+= idx_hvals%(unroll_kiter)s[k] * idx_in%(unroll_biter)s[ind1];"
+    )
+    ret += (
+        """
                 }
                 //do the part to the left of the img
                 if(fill_value!=0)
                   for(;k<dim_ker1;k++){
-""" % d
+"""
+        % d
+    )
     ret += my_dup2("sum%(unroll_iter)s += idx_hvals%(unroll_kiter)s[k] * fill_value;")
-    ret += """
+    ret += (
+        """
                   }
               }
             }else{//valid mode
-""" % d
-    ret += my_dup("const %(type)s* idx_in%(unroll_iter)s=&in%(unroll_iter)s[ind0*dim_im[1]];", unroll_bsize)
-    ret += my_dup("const %(type)s* idx_hvals%(unroll_iter)s=&hvals%(unroll_iter)s[j*dim_ker1];", unroll_ksize)
-    ret += """
+"""
+        % d
+    )
+    ret += my_dup(
+        "const %(type)s* idx_in%(unroll_iter)s=&in%(unroll_iter)s[ind0*dim_im[1]];",
+        unroll_bsize,
+    )
+    ret += my_dup(
+        "const %(type)s* idx_hvals%(unroll_iter)s=&hvals%(unroll_iter)s[j*dim_ker1];",
+        unroll_ksize,
+    )
+    ret += (
+        """
               int new_n = (pos_n+dim_ker1-1);
 
               for (int k=0,last=new_n; k < dim_ker1; k++,last--) {
-""" % d
-    ret += my_dup2("sum%(unroll_iter)s+=idx_hvals%(unroll_kiter)s[k]*idx_in%(unroll_biter)s[last];")
-    ret += """
+"""
+        % d
+    )
+    ret += my_dup2(
+        "sum%(unroll_iter)s+=idx_hvals%(unroll_kiter)s[k]*idx_in%(unroll_biter)s[last];"
+    )
+    ret += (
+        """
               }
             }
 
           }//for j
-""" % d
-    ret += my_dup("out%(unroll_iter)s[iter_m*dim_zz[1]+iter_n] %(affectation)s sum%(unroll_iter)s;", unroll_bsize * unroll_ksize)
+"""
+        % d
+    )
+    ret += my_dup(
+        "out%(unroll_iter)s[iter_m*dim_zz[1]+iter_n] %(affectation)s sum%(unroll_iter)s;",
+        unroll_bsize * unroll_ksize,
+    )
     ret += """
         }//for n
       }//for m
@@ -2061,6 +2348,7 @@ Py_XDECREF(img2d);
 Py_XDECREF(filtersflipped);
 """
     return ret
+
 
 _conv_op_code_unroll_patch = """
 const int mode=%(mode)s;

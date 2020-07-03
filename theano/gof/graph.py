@@ -109,7 +109,10 @@ class Apply(Node):
             if isinstance(input, Variable):
                 self.inputs.append(input)
             else:
-                raise TypeError("The 'inputs' argument to Apply must contain Variable instances, not %s" % input)
+                raise TypeError(
+                    "The 'inputs' argument to Apply must contain Variable instances, not %s"
+                    % input
+                )
         self.outputs = []
         # filter outputs to make sure each element is a Variable
         for i, output in enumerate(outputs):
@@ -118,10 +121,15 @@ class Apply(Node):
                     output.owner = self
                     output.index = i
                 elif output.owner is not self or output.index != i:
-                    raise ValueError("All output variables passed to Apply must belong to it.")
+                    raise ValueError(
+                        "All output variables passed to Apply must belong to it."
+                    )
                 self.outputs.append(output)
             else:
-                raise TypeError("The 'outputs' argument to Apply must contain Variable instances with no owner, not %s" % output)
+                raise TypeError(
+                    "The 'outputs' argument to Apply must contain Variable instances with no owner, not %s"
+                    % output
+                )
 
     def run_params(self):
         """
@@ -136,7 +144,7 @@ class Apply(Node):
     def __getstate__(self):
         d = self.__dict__
         # ufunc don't pickle/unpickle well
-        if hasattr(self.tag, 'ufunc'):
+        if hasattr(self.tag, "ufunc"):
             d = copy(self.__dict__)
             t = d["tag"]
             del t.ufunc
@@ -158,23 +166,21 @@ class Apply(Node):
         there are multiple outputs and self.op.default_output does not exist.
 
         """
-        do = getattr(self.op, 'default_output', None)
+        do = getattr(self.op, "default_output", None)
         if do is None:
             if len(self.outputs) == 1:
                 return self.outputs[0]
             else:
                 raise AttributeError(
-                    "%s.default_output should be an output index." % self.op)
+                    "%s.default_output should be an output index." % self.op
+                )
         elif not isinstance(do, integer_types):
-            raise AttributeError("%s.default_output should be an int or long" %
-                                 self.op)
+            raise AttributeError("%s.default_output should be an int or long" % self.op)
         elif do < 0 or do >= len(self.outputs):
-            raise AttributeError("%s.default_output is out of range." %
-                                 self.op)
+            raise AttributeError("%s.default_output is out of range." % self.op)
         return self.outputs[do]
 
-    out = property(default_output,
-                   doc="alias for self.default_output()")
+    out = property(default_output, doc="alias for self.default_output()")
     """
     Alias for self.default_output().
 
@@ -203,8 +209,9 @@ class Apply(Node):
         Tags are copied from self to the returned instance.
 
         """
-        cp = self.__class__(self.op, self.inputs,
-                            [output.clone() for output in self.outputs])
+        cp = self.__class__(
+            self.op, self.inputs, [output.clone() for output in self.outputs]
+        )
         cp.tag = copy(self.tag)
         return cp
 
@@ -254,17 +261,19 @@ class Apply(Node):
         return list(self.inputs)
 
     # convenience properties
-    nin = property(lambda self: len(self.inputs), doc='same as len(self.inputs)')
+    nin = property(lambda self: len(self.inputs), doc="same as len(self.inputs)")
     """
     Property: Number of inputs.
 
     """
-    nout = property(lambda self: len(self.outputs), doc='same as len(self.outputs)')
+    nout = property(lambda self: len(self.outputs), doc="same as len(self.outputs)")
     """
     Property: Number of outputs.
 
     """
-    params_type = property(lambda self: self.op.params_type, doc='type to use for the params')
+    params_type = property(
+        lambda self: self.op.params_type, doc="type to use for the params"
+    )
 
 
 class Variable(Node):
@@ -389,7 +398,7 @@ class Variable(Node):
         if name is not None and not isinstance(name, string_types):
             raise TypeError("name must be a string", name)
         self.name = name
-        self.auto_name = 'auto_' + str(next(self.__count__))
+        self.auto_name = "auto_" + str(next(self.__count__))
 
         Variable.notify_construction_observers(self)
 
@@ -430,7 +439,7 @@ class Variable(Node):
                 to_print.append(self.__repr_test_value__())
             except AttributeError:
                 pass
-        return '\n'.join(to_print)
+        return "\n".join(to_print)
 
     def clone(self):
         """
@@ -455,20 +464,24 @@ class Variable(Node):
         return cp
 
     def __lt__(self, other):
-        raise NotImplementedError('Subclasses of Variable must provide __lt__',
-                                  self.__class__.__name__)
+        raise NotImplementedError(
+            "Subclasses of Variable must provide __lt__", self.__class__.__name__
+        )
 
     def __le__(self, other):
-        raise NotImplementedError('Subclasses of Variable must provide __le__',
-                                  self.__class__.__name__)
+        raise NotImplementedError(
+            "Subclasses of Variable must provide __le__", self.__class__.__name__
+        )
 
     def __gt__(self, other):
-        raise NotImplementedError('Subclasses of Variable must provide __gt__',
-                                  self.__class__.__name__)
+        raise NotImplementedError(
+            "Subclasses of Variable must provide __gt__", self.__class__.__name__
+        )
 
     def __ge__(self, other):
-        raise NotImplementedError('Subclasses of Variable must provide __ge__',
-                                  self.__class__.__name__)
+        raise NotImplementedError(
+            "Subclasses of Variable must provide __ge__", self.__class__.__name__
+        )
 
     def get_parents(self):
         if self.owner is not None:
@@ -514,7 +527,7 @@ class Variable(Node):
         if inputs_to_values is None:
             inputs_to_values = {}
 
-        if not hasattr(self, '_fn_cache'):
+        if not hasattr(self, "_fn_cache"):
             self._fn_cache = dict()
 
         inputs = tuple(sorted(inputs_to_values.keys(), key=id))
@@ -529,11 +542,13 @@ class Variable(Node):
     def __getstate__(self):
         d = self.__dict__.copy()
         d.pop("_fn_cache", None)
-        if (not config.pickle_test_value) \
-                and (hasattr(self.tag, 'test_value')):
+        if (not config.pickle_test_value) and (hasattr(self.tag, "test_value")):
             if not type(config).pickle_test_value.is_default:
-                warnings.warn("pickle_test_value is not defaut value (True).\n"
-                              "Test value of variable %s(%s) will not be dumped." % (d['auto_name'], d['name']))
+                warnings.warn(
+                    "pickle_test_value is not defaut value (True).\n"
+                    "Test value of variable %s(%s) will not be dumped."
+                    % (d["auto_name"], d["name"])
+                )
             t = copy(d["tag"])
             del t.test_value
             d["tag"] = t
@@ -595,8 +610,8 @@ class Constant(Variable):
         else:
             name = str(self.data)
             if len(name) > 20:
-                name = name[:10] + '...' + name[-10:]
-            return 'Constant{%s}' % name
+                name = name[:10] + "..." + name[-10:]
+            return "Constant{%s}" % name
 
     def clone(self):
         """
@@ -622,12 +637,12 @@ class Constant(Variable):
             raise ValueError("Constant instances cannot have an owner.")
 
     owner = property(lambda self: None, __set_owner)
-    value = property(lambda self: self.data, doc='read-only data access method')
+    value = property(lambda self: self.data, doc="read-only data access method")
 
     # index is not defined, because the `owner` attribute must necessarily be None
 
 
-def stack_search(start, expand, mode='bfs', build_inv=False):
+def stack_search(start, expand, mode="bfs", build_inv=False):
     """
     Search through a graph, either breadth- or depth-first.
 
@@ -656,11 +671,11 @@ def stack_search(start, expand, mode='bfs', build_inv=False):
 
     """
 
-    if mode not in ('bfs', 'dfs'):
-        raise ValueError('mode should be bfs or dfs', mode)
+    if mode not in ("bfs", "dfs"):
+        raise ValueError("mode should be bfs or dfs", mode)
     rval_set = set()
     rval_list = list()
-    if mode == 'bfs':
+    if mode == "bfs":
         start_pop = start.popleft
     else:
         start_pop = start.pop
@@ -699,10 +714,12 @@ def ancestors(variable_list, blockers=None):
         search started at the nodes in `variable_list`.
 
     """
+
     def expand(r):
         if r.owner and (not blockers or r not in blockers):
             return reversed(r.owner.inputs)
-    dfs_variables = stack_search(deque(variable_list), expand, 'dfs')
+
+    dfs_variables = stack_search(deque(variable_list), expand, "dfs")
     return dfs_variables
 
 
@@ -741,12 +758,14 @@ def variables_and_orphans(i, o):
          Output variables.
 
     """
+
     def expand(r):
         if r.owner and r not in i:
             l = list(r.owner.inputs) + list(r.owner.outputs)
             l.reverse()
             return l
-    variables = stack_search(deque(o), expand, 'dfs')
+
+    variables = stack_search(deque(o), expand, "dfs")
     orphans = [r for r in variables if r.owner is None and r not in i]
     return variables, orphans
 
@@ -863,8 +882,7 @@ def clone(i, o, copy_inputs=True, copy_orphans=None):
     return [equiv[input] for input in i], [equiv[output] for output in o]
 
 
-def clone_get_equiv(inputs, outputs, copy_inputs=True, copy_orphans=True,
-                    memo=None):
+def clone_get_equiv(inputs, outputs, copy_inputs=True, copy_orphans=True, memo=None):
     """
     Return a dictionary that maps from Variable and Apply nodes in the
     original graph to a new node (a clone) in a new graph.
@@ -926,9 +944,14 @@ def clone_get_equiv(inputs, outputs, copy_inputs=True, copy_orphans=True,
     return memo
 
 
-def general_toposort(outputs, deps, debug_print=False,
-                     compute_deps_cache=None, deps_cache=None,
-                     clients=None):
+def general_toposort(
+    outputs,
+    deps,
+    debug_print=False,
+    compute_deps_cache=None,
+    deps_cache=None,
+    clients=None,
+):
     """
     WRITEME
 
@@ -971,19 +994,20 @@ def general_toposort(outputs, deps, debug_print=False,
                     if not isinstance(d, (list, OrderedSet)):
                         raise TypeError(
                             "Non-deterministic collections here make"
-                            " toposort non-deterministic.")
+                            " toposort non-deterministic."
+                        )
                     deps_cache[io] = list(d)
                 else:
                     deps_cache[io] = d
                 return d
             else:
                 return deps_cache[io]
+
     assert deps_cache is not None
 
     assert isinstance(outputs, (tuple, list, deque))
 
-    reachable, _clients = stack_search(deque(outputs), compute_deps_cache,
-                                       'dfs', True)
+    reachable, _clients = stack_search(deque(outputs), compute_deps_cache, "dfs", True)
     if clients is not None:
         clients.update(_clients)
     sources = deque([r for r in reachable if not deps_cache.get(r, None)])
@@ -1003,10 +1027,10 @@ def general_toposort(outputs, deps, debug_print=False,
 
     if len(rlist) != len(reachable):
         if debug_print:
-            print('')
+            print("")
             print(reachable)
             print(rlist)
-        raise ValueError('graph contains cycles')
+        raise ValueError("graph contains cycles")
 
     return rlist
 
@@ -1073,13 +1097,15 @@ def io_toposort(inputs, outputs, orderings=None, clients=None):
                     if not isinstance(rval, (list, OrderedSet)):
                         raise TypeError(
                             "Non-deterministic collections here make"
-                            " toposort non-deterministic.")
+                            " toposort non-deterministic."
+                        )
                     deps_cache[obj] = list(rval)
                 else:
                     deps_cache[obj] = rval
             else:
                 deps_cache[obj] = rval
             return rval
+
     else:
 
         # the inputs are used only here in the function that decides what
@@ -1097,9 +1123,13 @@ def io_toposort(inputs, outputs, orderings=None, clients=None):
                 assert not orderings.get(obj, None)
             return rval
 
-    topo = general_toposort(outputs, deps=compute_deps,
-                            compute_deps_cache=compute_deps_cache,
-                            deps_cache=deps_cache, clients=clients)
+    topo = general_toposort(
+        outputs,
+        deps=compute_deps,
+        compute_deps_cache=compute_deps_cache,
+        deps_cache=deps_cache,
+        clients=clients,
+    )
     return [o for o in topo if isinstance(o, Apply)]
 
 
@@ -1139,8 +1169,7 @@ def io_connection_pattern(inputs, outputs):
         try:
             op_connection_pattern = n.op.connection_pattern(n)
         except AttributeError:
-            op_connection_pattern = ([[True] * len(n.outputs)] *
-                                     len(n.inputs))
+            op_connection_pattern = [[True] * len(n.outputs)] * len(n.inputs)
 
         # For every output of the inner node, figure out which inputs it
         # is connected to by combining the connection pattern of the inner
@@ -1159,9 +1188,10 @@ def io_connection_pattern(inputs, outputs):
                     # means it is connected to every inner input that the
                     # node inputs is connected to
                     if op_connection_pattern[inp_idx][out_idx]:
-                        out_connection_pattern = [out_connection_pattern[i] or
-                                                  inp_connection_pattern[i]
-                                                  for i in range(nb_inputs)]
+                        out_connection_pattern = [
+                            out_connection_pattern[i] or inp_connection_pattern[i]
+                            for i in range(nb_inputs)
+                        ]
 
             # Store the connection pattern of the node output
             connect_pattern_by_var[out] = out_connection_pattern
@@ -1251,9 +1281,10 @@ def is_same_graph(var1, var2, givens=None, debug=False):
         in_ys = []
         # Compute the sets of all variables found in each computational graph.
         inputs_var = list(map(inputs, ([var1], [var2])))
-        all_vars = [set(variables(v_i, v_o))
-                    for v_i, v_o in ((inputs_var[0], [var1]),
-                                     (inputs_var[1], [var2]))]
+        all_vars = [
+            set(variables(v_i, v_o))
+            for v_i, v_o in ((inputs_var[0], [var1]), (inputs_var[1], [var2]))
+        ]
 
         def in_var(x, k):
             # Return True iff `x` is in computation graph of variable `vark`.
@@ -1262,15 +1293,24 @@ def is_same_graph(var1, var2, givens=None, debug=False):
         for to_replace, replace_by in iteritems(givens):
             # Map a substitution variable to the computational graphs it
             # belongs to.
-            inside = dict((v, [in_var(v, k) for k in (1, 2)])
-                          for v in (to_replace, replace_by))
-            if (inside[to_replace][0] and not inside[to_replace][1] and
-                    inside[replace_by][1] and not inside[replace_by][0]):
+            inside = dict(
+                (v, [in_var(v, k) for k in (1, 2)]) for v in (to_replace, replace_by)
+            )
+            if (
+                inside[to_replace][0]
+                and not inside[to_replace][1]
+                and inside[replace_by][1]
+                and not inside[replace_by][0]
+            ):
                 # Substitute variable in `var1` by one from `var2`.
                 in_xs.append(to_replace)
                 in_ys.append(replace_by)
-            elif (inside[to_replace][1] and not inside[to_replace][0] and
-                  inside[replace_by][0] and not inside[replace_by][1]):
+            elif (
+                inside[to_replace][1]
+                and not inside[to_replace][0]
+                and inside[replace_by][0]
+                and not inside[replace_by][1]
+            ):
                 # Substitute variable in `var2` by one from `var1`.
                 in_xs.append(replace_by)
                 in_ys.append(to_replace)
@@ -1281,22 +1321,22 @@ def is_same_graph(var1, var2, givens=None, debug=False):
             # We cannot directly use `equal_computations`.
             if debug:
                 raise AssertionError(
-                    'When `debug` is True we want to make sure we are also '
-                    'using the `equal_computations` implementation')
+                    "When `debug` is True we want to make sure we are also "
+                    "using the `equal_computations` implementation"
+                )
             use_equal_computations = False
     else:
         in_xs = None
         in_ys = None
     if use_equal_computations:
-        rval2 = equal_computations(xs=[var1], ys=[var2],
-                                   in_xs=in_xs, in_ys=in_ys)
+        rval2 = equal_computations(xs=[var1], ys=[var2], in_xs=in_xs, in_ys=in_ys)
         assert rval2 == rval1
     return rval1
 
 
-def op_as_string(i, op,
-                 leaf_formatter=default_leaf_formatter,
-                 node_formatter=default_node_formatter):
+def op_as_string(
+    i, op, leaf_formatter=default_leaf_formatter, node_formatter=default_node_formatter
+):
     """
     Op to return a string representation of the subgraph
     between i and o
@@ -1305,9 +1345,9 @@ def op_as_string(i, op,
     return node_formatter(op, strs)
 
 
-def as_string(i, o,
-              leaf_formatter=default_leaf_formatter,
-              node_formatter=default_node_formatter):
+def as_string(
+    i, o, leaf_formatter=default_leaf_formatter, node_formatter=default_node_formatter
+):
     """
     Returns a string representation of the subgraph between i and o
 
@@ -1396,8 +1436,7 @@ def view_roots(r):
     if owner is not None:
         try:
             view_map = owner.op.view_map
-            view_map = dict((owner.outputs[o], i)
-                            for o, i in iteritems(view_map))
+            view_map = dict((owner.outputs[o], i) for o, i in iteritems(view_map))
         except AttributeError:
             return [r]
         if r in view_map:
@@ -1418,9 +1457,12 @@ def list_of_nodes(inputs, outputs):
     """
     return stack_search(
         deque([o.owner for o in outputs]),
-        lambda o: [inp.owner for inp in o.inputs
-                   if inp.owner and
-                   not any(i in inp.owner.outputs for i in inputs)])
+        lambda o: [
+            inp.owner
+            for inp in o.inputs
+            if inp.owner and not any(i in inp.owner.outputs for i in inputs)
+        ],
+    )
 
 
 def is_in_ancestors(l_node, f_node):
@@ -1477,6 +1519,7 @@ def nodes_constructed():
 
     def observer(node):
         new_nodes.append(node)
+
     Variable.append_construction_observer(observer)
     yield new_nodes
     Variable.remove_construction_observer(observer)

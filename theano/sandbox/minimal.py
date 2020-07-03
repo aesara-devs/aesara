@@ -30,7 +30,7 @@ class Minimal(gof.Op):
         return gof.Apply(op=self, inputs=args, outputs=[tensor.lscalar()])
 
     def perform(self, node, inputs, out_):
-        output, = out_
+        (output,) = out_
         # HERE `inputs` are PYTHON OBJECTS
 
         # do what you want here,
@@ -41,7 +41,8 @@ class Minimal(gof.Op):
 
         # return some computed value.
         # do not return something that is aliased to one of the inputs.
-        output[0] = np.asarray(0, dtype='int64')
+        output[0] = np.asarray(0, dtype="int64")
+
 
 minimal = Minimal()
 
@@ -51,7 +52,7 @@ minimal = Minimal()
 # TODO: test that each valid type for A and b works correctly
 
 
-class Test_minimal():
+class Test_minimal:
     def setup_method(self):
         self.rng = np.random.RandomState(utt.fetch_seed(666))
 
@@ -59,11 +60,11 @@ class Test_minimal():
         A = tensor.matrix()
         b = tensor.vector()
 
-        print('building function')
+        print("building function")
         f = function([A, b], minimal(A, A, b, b, A))
-        print('built')
+        print("built")
 
         Aval = self.rng.randn(5, 5)
         bval = np.arange(5, dtype=float)
         f(Aval, bval)
-        print('done')
+        print("done")

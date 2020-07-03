@@ -1,4 +1,5 @@
 from __future__ import absolute_import, print_function, division
+
 # Note: this code was initially copied from the 'pyutools' package by its
 # original author, and re-licensed under Theano's license.
 import numpy as np
@@ -38,18 +39,20 @@ class MonitorMode(Mode):
 
     """
 
-    def __init__(self, pre_func=None, post_func=None,
-                 optimizer='default', linker=None):
+    def __init__(self, pre_func=None, post_func=None, optimizer="default", linker=None):
         self.pre_func = pre_func
         self.post_func = post_func
-        wrap_linker = theano.gof.WrapLinkerMany([theano.gof.OpWiseCLinker()],
-                                                [self.eval])
-        if optimizer == 'default':
+        wrap_linker = theano.gof.WrapLinkerMany(
+            [theano.gof.OpWiseCLinker()], [self.eval]
+        )
+        if optimizer == "default":
             optimizer = theano.config.optimizer
-        if (linker is not None and
-                not isinstance(linker.mode, MonitorMode)):
-            raise Exception("MonitorMode can only use its own linker! You "
-                            "should not provide one.", linker)
+        if linker is not None and not isinstance(linker.mode, MonitorMode):
+            raise Exception(
+                "MonitorMode can only use its own linker! You "
+                "should not provide one.",
+                linker,
+            )
 
         super(MonitorMode, self).__init__(wrap_linker, optimizer=optimizer)
 
@@ -84,19 +87,23 @@ class MonitorMode(Mode):
         """
         if optimizer == "":
             optimizer = self.provided_optimizer
-        new_mode = type(self)(pre_func=self.pre_func,
-                              post_func=self.post_func,
-                              linker=None,
-                              optimizer=optimizer)
+        new_mode = type(self)(
+            pre_func=self.pre_func,
+            post_func=self.post_func,
+            linker=None,
+            optimizer=optimizer,
+        )
         return new_mode
 
 
 def detect_nan(i, node, fn):
     for output in fn.outputs:
-        if (not isinstance(output[0], np.random.RandomState) and
-                np.isnan(output[0]).any()):
-            print('*** NaN detected ***')
+        if (
+            not isinstance(output[0], np.random.RandomState)
+            and np.isnan(output[0]).any()
+        ):
+            print("*** NaN detected ***")
             theano.printing.debugprint(node)
-            print('Inputs : %s' % [input[0] for input in fn.inputs])
-            print('Outputs: %s' % [output[0] for output in fn.outputs])
+            print("Inputs : %s" % [input[0] for input in fn.inputs])
+            print("Outputs: %s" % [output[0] for output in fn.outputs])
             break

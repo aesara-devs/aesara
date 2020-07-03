@@ -6,37 +6,37 @@ import numpy.random
 import theano
 from theano.tests import unittest_tools as utt
 
-'''
+"""
   Different tests that are not connected to any particular Op, or
   functionality of Theano. Here will go for example code that we will
   publish in papers, that we should ensure that it will remain
   operational
 
-'''
+"""
 
 
-class Test_scipy():
+class Test_scipy:
     def setup_method(self):
         utt.seed_rng()
         self.orig_floatX = theano.config.floatX
 
-    def teardown_method((self):
+    def teardown_method(self):
         theano.config.floatX = self.orig_floatX
 
     def test_scipy_paper_example1(self):
-        a = theano.tensor.vector('a')  # declare variable
-        b = a + a**10                  # build expression
-        f = theano.function([a], b)    # compile function
+        a = theano.tensor.vector("a")  # declare variable
+        b = a + a ** 10  # build expression
+        f = theano.function([a], b)  # compile function
         assert np.all(f([0, 1, 2]) == np.array([0, 2, 1026]))
 
     def test_scipy_paper_example2(self):
-        ''' This just sees if things compile well and if they run '''
+        """ This just sees if things compile well and if they run """
         # PREAMPBLE
         T = theano.tensor
         shared = theano.shared
         function = theano.function
         rng = numpy.random
-        theano.config.floatX = 'float64'
+        theano.config.floatX = "float64"
 
         #
         # ACTUAL SCRIPT FROM PAPER
@@ -57,7 +57,8 @@ class Test_scipy():
         train = function(
             inputs=[x, y],
             outputs=[prediction, xent],
-            updates=[(w, w - 0.1 * gw), (b, b - 0.1 * gb)])
+            updates=[(w, w - 0.1 * gw), (b, b - 0.1 * gb)],
+        )
         function(inputs=[x], outputs=prediction)
 
         N = 4
@@ -66,4 +67,3 @@ class Test_scipy():
         training_steps = 10
         for i in range(training_steps):
             pred, err = train(D[0], D[1])
-

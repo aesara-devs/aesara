@@ -24,7 +24,7 @@ def nvcc_kernel(name, params, body):
         These will be separated by ';' characters.
 
     """
-    paramstr = ', '.join(params)
+    paramstr = ", ".join(params)
 
     def flatbody():
         for b in body:
@@ -33,14 +33,18 @@ def nvcc_kernel(name, params, body):
                     yield bb
             else:
                 yield b
-    bodystr = ';\n'.join(flatbody())
-    return """#include "cluda.h"
+
+    bodystr = ";\n".join(flatbody())
+    return (
+        """#include "cluda.h"
 
     KERNEL void %(name)s (%(paramstr)s)
     {
         %(bodystr)s;
     }
-    """ % locals()
+    """
+        % locals()
+    )
 
 
 def code_version(version):
@@ -49,12 +53,14 @@ def code_version(version):
 
     """
     if not isinstance(version, tuple):
-        raise TypeError('version must be tuple', version)
+        raise TypeError("version must be tuple", version)
 
     def deco(f):
         f.code_version = version
         return f
+
     return deco
+
 
 UNVERSIONED = ()
 
@@ -93,7 +99,8 @@ def inline_reduce(N, buf, pos, count, manner_fn):
     loop_line = manner_fn("%s[%s]" % (buf, pos), "%s[i]" % (buf))
     r_n = manner_fn("%s[%s]" % (buf, pos), "%s[%s+_n]" % (buf, pos))
 
-    return """
+    return (
+        """
     {
         // This function trashes buf[1..warpSize],
         // leaving the reduction result in buf[0].
@@ -112,35 +119,32 @@ def inline_reduce(N, buf, pos, count, manner_fn):
           __syncthreads();
         }
     }
-    """ % locals()
+    """
+        % locals()
+    )
 
 
 @code_version(inline_reduce.code_version)
 def inline_reduce_max(N, buf, pos, count):
-    return inline_reduce(N, buf, pos, count,
-                         lambda a, b: "max(%s, %s)" % (a, b))
+    return inline_reduce(N, buf, pos, count, lambda a, b: "max(%s, %s)" % (a, b))
 
 
 @code_version(inline_reduce.code_version)
 def inline_reduce_sum(N, buf, pos, count):
-    return inline_reduce(N, buf, pos, count,
-                         lambda a, b: "%s + %s" % (a, b))
+    return inline_reduce(N, buf, pos, count, lambda a, b: "%s + %s" % (a, b))
 
 
 @code_version(inline_reduce.code_version)
 def inline_reduce_min(N, buf, pos, count):
-    return inline_reduce(N, buf, pos, count,
-                         lambda a, b: "min(%s, %s)" % (a, b))
+    return inline_reduce(N, buf, pos, count, lambda a, b: "min(%s, %s)" % (a, b))
 
 
 @code_version(inline_reduce.code_version)
 def inline_reduce_prod(N, buf, pos, count):
-    return inline_reduce(N, buf, pos, count,
-                         lambda a, b: "%s * %s" % (a, b))
+    return inline_reduce(N, buf, pos, count, lambda a, b: "%s * %s" % (a, b))
 
 
-@code_version((2,) + inline_reduce_max.code_version +
-              inline_reduce_sum.code_version)
+@code_version((2,) + inline_reduce_max.code_version + inline_reduce_sum.code_version)
 def inline_softmax(N, buf, buf2, threadPos, threadCount, dtype="float32"):
     """
     Generate code for a softmax.
@@ -172,33 +176,44 @@ def inline_softmax(N, buf, buf2, threadPos, threadCount, dtype="float32"):
     """
     ctype = gpuarray.dtype_to_ctype(dtype)
     # get max of buf (trashing all but buf[0])
-    return [inline_reduce_max(N, buf, threadPos, threadCount),
-            '__syncthreads()',
-            ('%s row_max = ' + buf + '[0]') % ctype,
-            '__syncthreads()',
-            'for(int __i=' + threadPos + '; __i<' + N +
-            '; __i+=' + threadCount + '){',
-            buf + '[__i] = exp(' + buf2 + '[__i] - row_max)',
-            buf2 + '[__i] = ' + buf + '[__i]',
-            '}',
-            '__syncthreads()',
-            inline_reduce_sum(N, buf, threadPos, threadCount),
-            '__syncthreads()',
-            ('%s row_sum = ' + buf + '[0]') % ctype,
-            '__syncthreads()',
-            # divide each exp() result by the sum to complete the job.
-            'for(int __i=' + threadPos + '; __i<' + N +
-            '; __i+=' + threadCount + '){',
-            buf + '[__i] = ' + buf2 + '[__i] / row_sum',
-            '}',
-            '__syncthreads()',
-            ]
+    return [
+        inline_reduce_max(N, buf, threadPos, threadCount),
+        "__syncthreads()",
+        ("%s row_max = " + buf + "[0]") % ctype,
+        "__syncthreads()",
+        "for(int __i=" + threadPos + "; __i<" + N + "; __i+=" + threadCount + "){",
+        buf + "[__i] = exp(" + buf2 + "[__i] - row_max)",
+        buf2 + "[__i] = " + buf + "[__i]",
+        "}",
+        "__syncthreads()",
+        inline_reduce_sum(N, buf, threadPos, threadCount),
+        "__syncthreads()",
+        ("%s row_sum = " + buf + "[0]") % ctype,
+        "__syncthreads()",
+        # divide each exp() result by the sum to complete the job.
+        "for(int __i=" + threadPos + "; __i<" + N + "; __i+=" + threadCount + "){",
+        buf + "[__i] = " + buf2 + "[__i] / row_sum",
+        "}",
+        "__syncthreads()",
+    ]
 
 
 @code_version((3,))
-def inline_reduce_fixed_shared(N, buf, x, stride_x, load_x, pos, count,
-                               manner_fn, manner_init,
-                               b='', stride_b='', load_b='', dtype='float32'):
+def inline_reduce_fixed_shared(
+    N,
+    buf,
+    x,
+    stride_x,
+    load_x,
+    pos,
+    count,
+    manner_fn,
+    manner_init,
+    b="",
+    stride_b="",
+    load_b="",
+    dtype="float32",
+):
     """
     Return C++ code for a function that reduces a contiguous buffer.
 
@@ -246,22 +261,28 @@ def inline_reduce_fixed_shared(N, buf, x, stride_x, load_x, pos, count,
 
     """
     if b:
-        init = manner_init("%(load_x)s(%(x)s[%(pos)s * %(stride_x)s]) +"
-                           " %(load_b)s(%(b)s[%(pos)s * %(stride_b)s])" % locals())
-        loop_line = manner_fn("red",
-                              manner_init("%(load_x)s(%(x)s[i * %(stride_x)s]) + "
-                                          "%(load_b)s(%(b)s[i * %(stride_b)s])" %
-                                          locals()))
+        init = manner_init(
+            "%(load_x)s(%(x)s[%(pos)s * %(stride_x)s]) +"
+            " %(load_b)s(%(b)s[%(pos)s * %(stride_b)s])" % locals()
+        )
+        loop_line = manner_fn(
+            "red",
+            manner_init(
+                "%(load_x)s(%(x)s[i * %(stride_x)s]) + "
+                "%(load_b)s(%(b)s[i * %(stride_b)s])" % locals()
+            ),
+        )
     else:
         init = manner_init("%(load_x)s(%(x)s[%(pos)s * %(stride_x)s])" % locals())
-        loop_line = manner_fn("red", manner_init("%(load_x)s(%(x)s[i * %(stride_x)s])" %
-                                                 locals()))
-    loop_line2 = manner_fn("%s[%s]" % (buf, pos),
-                           "%s[i]" % buf)
+        loop_line = manner_fn(
+            "red", manner_init("%(load_x)s(%(x)s[i * %(stride_x)s])" % locals())
+        )
+    loop_line2 = manner_fn("%s[%s]" % (buf, pos), "%s[i]" % buf)
     r_n = manner_fn("%s[%s]" % (buf, pos), "%s[%s+_n]" % (buf, pos))
 
     ctype = gpuarray.dtype_to_ctype(dtype)
-    return """
+    return (
+        """
     {
         // This function trashes buf[1..n_threads],
         // leaving the reduction result in buf[0].
@@ -285,26 +306,59 @@ def inline_reduce_fixed_shared(N, buf, x, stride_x, load_x, pos, count,
           __syncthreads();
         }
     }
-    """ % locals()
+    """
+        % locals()
+    )
 
 
 @code_version(inline_reduce_fixed_shared.code_version)
-def inline_reduce_fixed_shared_max(N, buf, x, stride_x, load_x, pos, count,
-                                   b='', stride_b='', load_b='',
-                                   dtype='float32'):
-    return inline_reduce_fixed_shared(N, buf, x, stride_x, load_x, pos, count,
-                                      lambda a, b: "max(%s, %s)" % (a, b),
-                                      lambda a: a,
-                                      b, stride_b, load_b, dtype)
+def inline_reduce_fixed_shared_max(
+    N,
+    buf,
+    x,
+    stride_x,
+    load_x,
+    pos,
+    count,
+    b="",
+    stride_b="",
+    load_b="",
+    dtype="float32",
+):
+    return inline_reduce_fixed_shared(
+        N,
+        buf,
+        x,
+        stride_x,
+        load_x,
+        pos,
+        count,
+        lambda a, b: "max(%s, %s)" % (a, b),
+        lambda a: a,
+        b,
+        stride_b,
+        load_b,
+        dtype,
+    )
 
 
-@code_version((2,) + inline_reduce_max.code_version +
-              inline_reduce_sum.code_version)
-def inline_softmax_fixed_shared(N, buf, x, stride_x, load_x,
-                                sm, sm_stride, write_sm,
-                                threadPos, threadCount,
-                                b='', stride_b='', load_b='',
-                                dtype="float32"):
+@code_version((2,) + inline_reduce_max.code_version + inline_reduce_sum.code_version)
+def inline_softmax_fixed_shared(
+    N,
+    buf,
+    x,
+    stride_x,
+    load_x,
+    sm,
+    sm_stride,
+    write_sm,
+    threadPos,
+    threadCount,
+    b="",
+    stride_b="",
+    load_b="",
+    dtype="float32",
+):
     """
     Generate code to perform softmax with a fixed amount of shared
     memory.
@@ -355,37 +409,58 @@ def inline_softmax_fixed_shared(N, buf, x, stride_x, load_x,
     ctype = gpuarray.dtype_to_ctype(dtype)
     ret = [
         # get max of buf (trashing all but buf[0])
-        inline_reduce_fixed_shared_max(N, buf, x, stride_x, load_x,
-                                       threadPos, threadCount,
-                                       b, stride_b, load_b,
-                                       dtype),
-        '__syncthreads()',
-        ('%s row_max = ' + buf + '[0]') % ctype,
-        '__syncthreads()',
-        inline_reduce_fixed_shared(N, buf, x, stride_x, load_x,
-                                   threadPos, threadCount,
-                                   lambda a, b: "%s + %s" % (a, b),
-                                   lambda a: "exp(%s - row_max)" % a,
-                                   b, stride_b, load_b, dtype),
-        '__syncthreads()',
-        ('%s row_sum = ' + buf + '[0]') % ctype,
-        '__syncthreads()',
+        inline_reduce_fixed_shared_max(
+            N,
+            buf,
+            x,
+            stride_x,
+            load_x,
+            threadPos,
+            threadCount,
+            b,
+            stride_b,
+            load_b,
+            dtype,
+        ),
+        "__syncthreads()",
+        ("%s row_max = " + buf + "[0]") % ctype,
+        "__syncthreads()",
+        inline_reduce_fixed_shared(
+            N,
+            buf,
+            x,
+            stride_x,
+            load_x,
+            threadPos,
+            threadCount,
+            lambda a, b: "%s + %s" % (a, b),
+            lambda a: "exp(%s - row_max)" % a,
+            b,
+            stride_b,
+            load_b,
+            dtype,
+        ),
+        "__syncthreads()",
+        ("%s row_sum = " + buf + "[0]") % ctype,
+        "__syncthreads()",
         "for (int tx = threadIdx.x; tx< N; tx += blockDim.x){",
-        ]
+    ]
     # This set all value correctly
     if b:
         ret += [
             "%(sm)s[tx * %(sm_stride)s] = "
             "  %(write_sm)s(exp(%(load_x)s(%(x)s[tx * %(stride_x)s]) +"
             "            %(load_b)s(%(b)s[tx * %(stride_b)s]) - row_max)"
-            " / row_sum)" % locals()]
+            " / row_sum)" % locals()
+        ]
     else:
         ret += [
             "%(sm)s[tx * %(sm_stride)s] = "
             "%(write_sm)s(exp(%(load_x)s(%(x)s[tx * %(stride_x)s]) - row_max)"
-            " / row_sum)" % locals()]
+            " / row_sum)" % locals()
+        ]
     ret += [
         "}",
-        '__syncthreads()',
+        "__syncthreads()",
     ]
     return ret

@@ -16,7 +16,7 @@
 .noseids
 *.DS_Store
 *.bak
-Theano.egg-info
+*.egg-info/
 \#*\#
 build
 compiled/*.cpp

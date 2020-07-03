@@ -1,11 +1,10 @@
 from __future__ import absolute_import, print_function, division
 import theano
-from theano.gof.utils import (
-    give_variables_names, remove, unique)
+from theano.gof.utils import give_variables_names, remove, unique
 
 
 def test_give_variables_names():
-    x = theano.tensor.matrix('x')
+    x = theano.tensor.matrix("x")
     y = x + 1
     z = theano.tensor.dot(x, y)
     variables = (x, y, z)
@@ -15,7 +14,7 @@ def test_give_variables_names():
 
 
 def test_give_variables_names_idempotence():
-    x = theano.tensor.matrix('x')
+    x = theano.tensor.matrix("x")
     y = x + 1
     z = theano.tensor.dot(x, y)
     variables = (x, y, z)
@@ -29,7 +28,7 @@ def test_give_variables_names_idempotence():
 
 
 def test_give_variables_names_small():
-    x = theano.tensor.matrix('x')
+    x = theano.tensor.matrix("x")
     y = theano.tensor.dot(x, x)
     fgraph = theano.FunctionGraph((x,), (y,))
     give_variables_names(fgraph.variables)
@@ -43,6 +42,7 @@ def test_remove():
 
     def odd(x):
         return x % 2 == 1
+
     # The list are needed as with python 3, remove and filter return generators
     # and we can't compare generators.
     assert list(remove(even, range(5))) == list(filter(odd, range(5)))

@@ -10,9 +10,10 @@ from .sharedvalue import SharedVariable
 from six import string_types
 
 import logging
+
 _logger = logging.getLogger("theano.compile.io")
 
-__docformat__ = 'restructuredtext en'
+__docformat__ = "restructuredtext en"
 
 
 class SymbolicInput(object):
@@ -58,12 +59,20 @@ class SymbolicInput(object):
 
     """
 
-    def __init__(self, variable, name=None, update=None, mutable=None,
-                 strict=False, allow_downcast=None, autoname=True,
-                 implicit=False):
+    def __init__(
+        self,
+        variable,
+        name=None,
+        update=None,
+        mutable=None,
+        strict=False,
+        allow_downcast=None,
+        autoname=True,
+        implicit=False,
+    ):
         assert implicit is not None  # Safety check.
         self.variable = variable
-        if (autoname and name is None):
+        if autoname and name is None:
             self.name = variable.name
         else:
             self.name = name
@@ -73,15 +82,17 @@ class SymbolicInput(object):
         self.update = update
         if update is not None:
             if not variable.type == update.type:
-                raise TypeError("Variable '%s' has type %s but an update of "
-                                "type %s. The type of the update should be "
-                                "the same as the type of the variable" %
-                                (variable, variable.type, update.type))
+                raise TypeError(
+                    "Variable '%s' has type %s but an update of "
+                    "type %s. The type of the update should be "
+                    "the same as the type of the variable"
+                    % (variable, variable.type, update.type)
+                )
 
-        if (mutable is not None):
+        if mutable is not None:
             self.mutable = mutable
         else:
-            self.mutable = (update is not None)
+            self.mutable = update is not None
 
         self.strict = strict
         self.allow_downcast = allow_downcast
@@ -158,11 +169,23 @@ class In(SymbolicInput):
         content without being aware of it).
 
     """
+
     # Note: the documentation above is duplicated in doc/topics/function.txt,
     # try to keep it synchronized.
-    def __init__(self, variable, name=None, value=None, update=None,
-                 mutable=None, strict=False, allow_downcast=None,
-                 autoname=True, implicit=None, borrow=None, shared=False):
+    def __init__(
+        self,
+        variable,
+        name=None,
+        value=None,
+        update=None,
+        mutable=None,
+        strict=False,
+        allow_downcast=None,
+        autoname=True,
+        implicit=None,
+        borrow=None,
+        shared=False,
+    ):
         # if shared, an input's value comes from its persistent
         # storage, not from a default stored in the function or from
         # the caller
@@ -183,11 +206,14 @@ class In(SymbolicInput):
                 "incompatible since mutable=True implies that the "
                 "input variable may be both aliased (borrow=True) and "
                 "overwritten.",
-                variable, name)
+                variable,
+                name,
+            )
 
         if implicit is None:
-            implicit = (isinstance(value, gof.Container) or
-                        isinstance(value, SharedVariable))
+            implicit = isinstance(value, gof.Container) or isinstance(
+                value, SharedVariable
+            )
         super(In, self).__init__(
             variable=variable,
             name=name,
@@ -196,10 +222,11 @@ class In(SymbolicInput):
             strict=strict,
             allow_downcast=allow_downcast,
             autoname=autoname,
-            implicit=implicit)
+            implicit=implicit,
+        )
         self.value = value
         if self.implicit and value is None:
-            raise TypeError('An implicit input must be given a default value')
+            raise TypeError("An implicit input must be given a default value")
 
 
 class SymbolicOutput(object):
@@ -225,5 +252,6 @@ class SymbolicOutput(object):
 
     def __repr__(self):
         return "Out(%s,%s)" % (self.variable, self.borrow)
+
 
 Out = SymbolicOutput

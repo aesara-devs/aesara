@@ -10,8 +10,13 @@ try:
 except ImportError:
     pass
 
-from .basic_ops import (as_gpuarray_variable, GpuKernelBase, Kernel, gpuarray_helper_inc_dir,
-                        infer_context_name)
+from .basic_ops import (
+    as_gpuarray_variable,
+    GpuKernelBase,
+    Kernel,
+    gpuarray_helper_inc_dir,
+    infer_context_name,
+)
 from .type import GpuArrayType
 from .fp16_help import work_dtype, load_w, write_w
 
@@ -21,6 +26,7 @@ class GpuCrossentropySoftmaxArgmax1HotWithBias(GpuKernelBase, Op):
     Implement CrossentropySoftmaxArgmax1HotWithBias on the gpu.
 
     """
+
     nin = 3
     nout = 3
     __props__ = ()
@@ -31,15 +37,15 @@ class GpuCrossentropySoftmaxArgmax1HotWithBias(GpuKernelBase, Op):
         x = as_gpuarray_variable(x, ctx_name)
         b = as_gpuarray_variable(b, ctx_name)
         y_idx = as_gpuarray_variable(y_idx, ctx_name)
-        nll = GpuArrayType(x.type.dtype,
-                           y_idx.type.broadcastable,
-                           context_name=ctx_name)()
+        nll = GpuArrayType(
+            x.type.dtype, y_idx.type.broadcastable, context_name=ctx_name
+        )()
         sm = x.type()
         am = y_idx.type()
         return Apply(self, [x, b, y_idx], [nll, sm, am])
 
     def c_headers(self):
-        return ['<numpy_compat.h>', '<gpuarray/types.h>', 'gpuarray_helper.h']
+        return ["<numpy_compat.h>", "<gpuarray/types.h>", "gpuarray_helper.h"]
 
     def c_header_dirs(self):
         return [gpuarray_helper_inc_dir()]
@@ -61,21 +67,37 @@ class GpuCrossentropySoftmaxArgmax1HotWithBias(GpuKernelBase, Op):
         type_y_idx = gpuarray.dtype_to_ctype(dtype_y_idx)
         kname = "k_xent_sm_1hot_bias"
         k_var = "k_xent_sm_1hot_bias_" + nodename
-        if node.inputs[0].type.context.kind != b'cuda':
-            f = ''
+        if node.inputs[0].type.context.kind != b"cuda":
+            f = ""
         else:
-            f = '' if dtype_x == 'float64' else 'f'
+            f = "" if dtype_x == "float64" else "f"
         params = [
-            gpuarray.SIZE, gpuarray.SIZE,
-            gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SSIZE, gpuarray.SSIZE,
-            gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SSIZE,
-            gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SSIZE,
-            gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SSIZE,
-            gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SSIZE, gpuarray.SSIZE,
-            gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SSIZE
+            gpuarray.SIZE,
+            gpuarray.SIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
         ]
         sio = StringIO()
-        print("""#include "cluda.h"
+        print(
+            """#include "cluda.h"
 
         KERNEL void %(kname)s(const ga_size M, const ga_size N,
             GLOBAL_MEM const %(type_x)s* x_data, const ga_size offset_x, const ga_ssize xs0, const ga_ssize xs1,
@@ -161,10 +183,20 @@ class GpuCrossentropySoftmaxArgmax1HotWithBias(GpuKernelBase, Op):
             }
           }
         }
-        """ % locals(), file=sio)
+        """
+            % locals(),
+            file=sio,
+        )
 
-        return [Kernel(code=sio.getvalue(), name=kname, params=params,
-                       flags=flags, objvar=k_var)]
+        return [
+            Kernel(
+                code=sio.getvalue(),
+                name=kname,
+                params=params,
+                flags=flags,
+                objvar=k_var,
+            )
+        ]
 
     def c_code(self, node, nodename, inp, out, sub):
         itemsize_x = np.dtype(node.inputs[0].dtype).itemsize
@@ -176,19 +208,23 @@ class GpuCrossentropySoftmaxArgmax1HotWithBias(GpuKernelBase, Op):
         itemsize_am = np.dtype(node.outputs[2].dtype).itemsize
         x, b, y_idx = inp
         nll, sm, am = out
-        fail = sub['fail']
-        ctx = sub['params']
+        fail = sub["fail"]
+        ctx = sub["params"]
         k_var = "k_xent_sm_1hot_bias_%(nodename)s" % locals()
-        err_check = """
+        err_check = (
+            """
             if (err != GA_NO_ERROR) {
                 PyErr_Format(PyExc_RuntimeError,
                              "gpuarray error: %(k_var)s: %%s.",
                              GpuKernel_error(&%(k_var)s, err));
                 %(fail)s;
             }
-        """ % locals()
+        """
+            % locals()
+        )
         sio = StringIO()
-        print("""
+        print(
+            """
         if (PyGpuArray_DIMS(%(x)s)[0] !=
             PyGpuArray_DIMS(%(y_idx)s)[0])
         {
@@ -230,14 +266,19 @@ class GpuCrossentropySoftmaxArgmax1HotWithBias(GpuKernelBase, Op):
                 PyGpuArray_STRIDE(%(am)s, 0) / %(itemsize_am)s);
             %(err_check)s
         }
-        """ % locals(), file=sio)
+        """
+            % locals(),
+            file=sio,
+        )
         return sio.getvalue()
 
     def c_code_cache_version(self):
         return (14,)
 
 
-gpu_crossentropy_softmax_argmax_1hot_with_bias = GpuCrossentropySoftmaxArgmax1HotWithBias()
+gpu_crossentropy_softmax_argmax_1hot_with_bias = (
+    GpuCrossentropySoftmaxArgmax1HotWithBias()
+)
 
 
 class GpuCrossentropySoftmax1HotWithBiasDx(GpuKernelBase, Op):
@@ -247,6 +288,7 @@ class GpuCrossentropySoftmax1HotWithBiasDx(GpuKernelBase, Op):
     Gradient wrt x of the CrossentropySoftmax1Hot Op.
 
     """
+
     nin = 3
     nout = 1
     __props__ = ()
@@ -263,7 +305,7 @@ class GpuCrossentropySoftmax1HotWithBiasDx(GpuKernelBase, Op):
         return (14,)
 
     def c_headers(self):
-        return ['<numpy_compat.h>', '<gpuarray/types.h>']
+        return ["<numpy_compat.h>", "<gpuarray/types.h>"]
 
     def c_code(self, node, nodename, inp, out, sub):
         typecode_dx = pygpu.gpuarray.dtype_to_typecode(node.outputs[0].dtype)
@@ -277,19 +319,23 @@ class GpuCrossentropySoftmax1HotWithBiasDx(GpuKernelBase, Op):
         dtype_dx = node.outputs[0].dtype
         type_intp = gpuarray.dtype_to_ctype(np.intp)
         dnll, sm, y_idx = inp
-        dx, = out
-        fail = sub['fail']
-        ctx = sub['params']
+        (dx,) = out
+        fail = sub["fail"]
+        ctx = sub["params"]
         k_var = "kCrossEntropySoftmax1HotWithBiasDx_" + nodename
-        err_check = """
+        err_check = (
+            """
             if (err != GA_NO_ERROR) {
                 PyErr_Format(PyExc_RuntimeError,
                              "gpuarray error: %(k_var)s: %%s.",
                              GpuKernel_error(&%(k_var)s, err));
                 %(fail)s;
             }
-        """ % locals()
-        return """
+        """
+            % locals()
+        )
+        return (
+            """
         // Get `dnll.shape[0]` or set it to zero if `dnll` is a scalar.
         const ssize_t %(dnll)s_dims0 = (PyGpuArray_NDIM(%(dnll)s) > 0 ?
                                         PyGpuArray_DIMS(%(dnll)s)[0] :
@@ -367,7 +413,9 @@ class GpuCrossentropySoftmax1HotWithBiasDx(GpuKernelBase, Op):
             %(err_check)s
         }
         assert(%(dx)s);
-        """ % locals()
+        """
+            % locals()
+        )
 
     def gpu_kernels(self, node, nodename):
         dtype_dnll = node.inputs[0].dtype
@@ -387,14 +435,26 @@ class GpuCrossentropySoftmax1HotWithBiasDx(GpuKernelBase, Op):
         kname = "kCrossEntropySoftmax1HotWithBiasDx"
         k_var = "kCrossEntropySoftmax1HotWithBiasDx_" + nodename
         params = [
-            gpuarray.SIZE, gpuarray.SIZE,
-            gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SSIZE,
-            gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SSIZE, gpuarray.SSIZE,
-            gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SSIZE,
-            gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SSIZE, gpuarray.SSIZE,
+            gpuarray.SIZE,
+            gpuarray.SIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
         ]
         sio = StringIO()
-        print("""#include "cluda.h"
+        print(
+            """#include "cluda.h"
 
         KERNEL void %(kname)s(
            const ga_size N, const ga_size K,
@@ -428,9 +488,19 @@ class GpuCrossentropySoftmax1HotWithBiasDx(GpuKernelBase, Op):
                 }
             }
         }
-        """ % locals(), file=sio)
-        return [Kernel(code=sio.getvalue(), name=kname, params=params,
-                       flags=flags, objvar=k_var)]
+        """
+            % locals(),
+            file=sio,
+        )
+        return [
+            Kernel(
+                code=sio.getvalue(),
+                name=kname,
+                params=params,
+                flags=flags,
+                objvar=k_var,
+            )
+        ]
 
 
 gpu_crossentropy_softmax_1hot_with_bias_dx = GpuCrossentropySoftmax1HotWithBiasDx()
@@ -441,6 +511,7 @@ class GpuSoftmax(GpuKernelBase, Op):
     Implement Softmax on the gpu.
 
     """
+
     __props__ = ()
     _f16_ok = True
 
@@ -455,7 +526,7 @@ class GpuSoftmax(GpuKernelBase, Op):
         return (17,)
 
     def c_headers(self):
-        return ['<numpy_compat.h>', '<gpuarray/types.h>']
+        return ["<numpy_compat.h>", "<gpuarray/types.h>"]
 
     def c_code(self, node, nodename, inp, out, sub):
         dtype_x = node.inputs[0].dtype
@@ -464,17 +535,21 @@ class GpuSoftmax(GpuKernelBase, Op):
         itemsize_x = np.dtype(dtype_x).itemsize
         itemsize_z = np.dtype(dtype_z).itemsize
         typecode = pygpu.gpuarray.dtype_to_typecode(node.outputs[0].dtype)
-        x, = inp
-        z, = out
-        fail = sub['fail']
-        ctx = sub['params']
-        err_check = """
+        (x,) = inp
+        (z,) = out
+        fail = sub["fail"]
+        ctx = sub["params"]
+        err_check = (
+            """
             if (err != GA_NO_ERROR) {
                 PyErr_Format(PyExc_RuntimeError, fmt_str, msg);
                 %(fail)s;
             }
-        """ % locals()
-        return """
+        """
+            % locals()
+        )
+        return (
+            """
         if (PyGpuArray_NDIM(%(x)s) != 2)
         {
             PyErr_SetString(PyExc_ValueError, "rank error");
@@ -536,7 +611,9 @@ class GpuSoftmax(GpuKernelBase, Op):
             }
         }
         assert(%(z)s);
-        """ % locals()
+        """
+            % locals()
+        )
 
     def gpu_kernels(self, node, nodename):
         dtype_x = node.inputs[0].dtype
@@ -552,14 +629,22 @@ class GpuSoftmax(GpuKernelBase, Op):
         ctype = gpuarray.dtype_to_ctype(work_sm)
 
         params = [
-            gpuarray.SIZE, gpuarray.SIZE,
-            gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SSIZE, gpuarray.SSIZE,
-            gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SSIZE, gpuarray.SSIZE
+            gpuarray.SIZE,
+            gpuarray.SIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
         ]
         kernels = []
         kname = "kSoftmax"
         k_var = "kSoftmax_" + nodename
-        code = """#include "cluda.h"
+        code = (
+            """#include "cluda.h"
 
         KERNEL void %(kname)s (const ga_size M, const ga_size N,
                                GLOBAL_MEM const %(type_x)s * x, const ga_size offset_x, const ga_ssize sx0, const ga_ssize sx1,
@@ -628,12 +713,16 @@ class GpuSoftmax(GpuKernelBase, Op):
                 local_barrier();
             }
         }
-        """ % locals()
-        kernels.append(Kernel(code=code, name=kname, params=params,
-                              flags=flags, objvar=k_var))
+        """
+            % locals()
+        )
+        kernels.append(
+            Kernel(code=code, name=kname, params=params, flags=flags, objvar=k_var)
+        )
         kname = "kSoftmax_fixed_shared"
         k_var = "kSoftmax_fixed_shared" + nodename
-        code = """#include "cluda.h"
+        code = (
+            """#include "cluda.h"
 
         KERNEL void %(kname)s (const ga_size M, const ga_size N,
                                GLOBAL_MEM const %(type_x)s * x, const ga_size offset_x, const ga_ssize sx0, const ga_ssize sx1,
@@ -701,9 +790,12 @@ class GpuSoftmax(GpuKernelBase, Op):
                 local_barrier();
             }
         }
-        """ % locals()
-        kernels.append(Kernel(code=code, name=kname, params=params,
-                              flags=flags, objvar=k_var))
+        """
+            % locals()
+        )
+        kernels.append(
+            Kernel(code=code, name=kname, params=params, flags=flags, objvar=k_var)
+        )
         return kernels
 
 
@@ -715,6 +807,7 @@ class GpuSoftmaxWithBias(GpuKernelBase, Op):
     Implement SoftmaxWithBias on the gpu.
 
     """
+
     nin = 2
     nout = 1
     __props__ = ()
@@ -733,7 +826,7 @@ class GpuSoftmaxWithBias(GpuKernelBase, Op):
         return (16,)
 
     def c_headers(self):
-        return ['<numpy_compat.h>', '<gpuarray/types.h>']
+        return ["<numpy_compat.h>", "<gpuarray/types.h>"]
 
     def c_code(self, node, nodename, inp, out, sub):
         dtype_x = node.inputs[0].dtype
@@ -745,16 +838,20 @@ class GpuSoftmaxWithBias(GpuKernelBase, Op):
         itemsize_z = np.dtype(dtype_z).itemsize
         typecode = pygpu.gpuarray.dtype_to_typecode(node.outputs[0].dtype)
         x, b = inp
-        z, = out
-        fail = sub['fail']
-        ctx = sub['params']
-        err_check = """
+        (z,) = out
+        fail = sub["fail"]
+        ctx = sub["params"]
+        err_check = (
+            """
             if (err != GA_NO_ERROR) {
                 PyErr_Format(PyExc_RuntimeError, fmt_str, msg);
                 %(fail)s;
             }
-        """ % locals()
-        return """
+        """
+            % locals()
+        )
+        return (
+            """
         if (PyGpuArray_NDIM(%(x)s) != 2)
         {
             PyErr_SetString(PyExc_ValueError, "rank error input");
@@ -831,7 +928,9 @@ class GpuSoftmaxWithBias(GpuKernelBase, Op):
             }
         }
         assert(%(z)s);
-        """ % locals()
+        """
+            % locals()
+        )
 
     def gpu_kernels(self, node, nodename):
         dtype_x = node.inputs[0].dtype
@@ -850,15 +949,25 @@ class GpuSoftmaxWithBias(GpuKernelBase, Op):
         ctype = gpuarray.dtype_to_ctype(work_sm)
 
         params = [
-            gpuarray.SIZE, gpuarray.SIZE,
-            gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SSIZE, gpuarray.SSIZE,
-            gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SSIZE,
-            gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SSIZE, gpuarray.SSIZE,
+            gpuarray.SIZE,
+            gpuarray.SIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
         ]
         kernels = []
         kname = "kSoftmaxWithBias"
         k_var = "kSoftmaxWithBias_" + nodename
-        code = """#include "cluda.h"
+        code = (
+            """#include "cluda.h"
 
         KERNEL void %(kname)s (const ga_size M, const ga_size N,
                        GLOBAL_MEM const %(type_x)s * x, const ga_size offset_x, const ga_ssize sx0, const ga_ssize sx1,
@@ -930,12 +1039,16 @@ class GpuSoftmaxWithBias(GpuKernelBase, Op):
                 local_barrier();
             }
         }
-        """ % locals()
-        kernels.append(Kernel(code=code, name=kname, params=params,
-                              flags=flags, objvar=k_var))
+        """
+            % locals()
+        )
+        kernels.append(
+            Kernel(code=code, name=kname, params=params, flags=flags, objvar=k_var)
+        )
         kname = "kSoftmaxWithBias_fixed_shared"
         k_var = "kSoftmaxWithBias_fixed_shared" + nodename
-        code = """#include "cluda.h"
+        code = (
+            """#include "cluda.h"
 
         KERNEL void %(kname)s (const ga_size M, const ga_size N,
                        GLOBAL_MEM const %(type_x)s * x, const ga_size offset_x, const ga_ssize sx0, const ga_ssize sx1,
@@ -1005,9 +1118,12 @@ class GpuSoftmaxWithBias(GpuKernelBase, Op):
                 local_barrier();
             }
         }
-        """ % locals()
-        kernels.append(Kernel(code=code, name=kname, params=params,
-                              flags=flags, objvar=k_var))
+        """
+            % locals()
+        )
+        kernels.append(
+            Kernel(code=code, name=kname, params=params, flags=flags, objvar=k_var)
+        )
         return kernels
 
 

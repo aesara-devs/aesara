@@ -40,21 +40,25 @@ class Images2Neibs(Op):
     """
 
     __props__ = ("mode",)
-    BORDER_MODE = EnumList(('MODE_VALID', 'valid'),
-                           ('MODE_HALF', 'half'),
-                           ('MODE_FULL', 'full'),
-                           ('MODE_WRAP_CENTERED', 'wrap_centered'),
-                           ('MODE_IGNORE_BORDERS', 'ignore_borders'))
+    BORDER_MODE = EnumList(
+        ("MODE_VALID", "valid"),
+        ("MODE_HALF", "half"),
+        ("MODE_FULL", "full"),
+        ("MODE_WRAP_CENTERED", "wrap_centered"),
+        ("MODE_IGNORE_BORDERS", "ignore_borders"),
+    )
     params_type = BORDER_MODE
 
     def get_params(self, node):
         return self.mode
 
-    def __init__(self, mode='valid'):
+    def __init__(self, mode="valid"):
         implemented_modes = self.BORDER_MODE.get_aliases()
         if mode not in implemented_modes:
-            raise NotImplementedError("Only modes %s have been implemented for %s"
-                                      % (', '.join(implemented_modes), type(self).__name__))
+            raise NotImplementedError(
+                "Only modes %s have been implemented for %s"
+                % (", ".join(implemented_modes), type(self).__name__)
+            )
         self.mode = mode
 
     def __str__(self):
@@ -63,7 +67,7 @@ class Images2Neibs(Op):
     def __setstate__(self, d):
         self.__dict__.update(d)
         if not hasattr(self, "mode"):
-            self.mode = 'valid'
+            self.mode = "valid"
 
     def make_node(self, ten4, neib_shape, neib_step=None):
         """
@@ -109,28 +113,33 @@ class Images2Neibs(Op):
         assert neib_shape.ndim == 1
         assert neib_step.ndim == 1
 
-        return Apply(self, [ten4, neib_shape, neib_step],
-                     [T.matrix(dtype=ten4.type.dtype)])
+        return Apply(
+            self, [ten4, neib_shape, neib_step], [T.matrix(dtype=ten4.type.dtype)]
+        )
 
     def grad(self, inp, grads):
         x, neib_shape, neib_step = inp
-        gz, = grads
+        (gz,) = grads
 
-        if self.mode in ['valid', 'ignore_borders']:
-            if (neib_shape is neib_step or
-                neib_shape == neib_step or
+        if self.mode in ["valid", "ignore_borders"]:
+            if (
+                neib_shape is neib_step
+                or neib_shape == neib_step
+                or
                 # Theano Constant == do not compare the data
                 # the equals function do that.
-                (hasattr(neib_shape, "equals") and
-                 neib_shape.equals(neib_step))):
-                return [neibs2images(gz, neib_shape, x.shape, mode=self.mode),
-                        grad_undefined(self, 1, neib_shape),
-                        grad_undefined(self, 2, neib_step)]
+                (hasattr(neib_shape, "equals") and neib_shape.equals(neib_step))
+            ):
+                return [
+                    neibs2images(gz, neib_shape, x.shape, mode=self.mode),
+                    grad_undefined(self, 1, neib_shape),
+                    grad_undefined(self, 2, neib_step),
+                ]
 
-        if self.mode in ['valid']:
+        if self.mode in ["valid"]:
             # Iterate over neighborhood positions, summing contributions.
             def pos2map(pidx, pgz, prior_result, neib_shape, neib_step):
-                '''
+                """
                 Helper function that adds gradient contribution from a single
                 neighborhood position i,j.
                 pidx = Index of position within neighborhood.
@@ -138,41 +147,53 @@ class Images2Neibs(Op):
                 prior_result  = Shape (batch_size, num_channnels, rows, cols)
                 neib_shape = Number of rows, cols in a neighborhood.
                 neib_step  = Step sizes from image2neibs.
-                '''
+                """
                 nrows, ncols = neib_shape
                 rstep, cstep = neib_step
                 batch_size, num_channels, rows, cols = prior_result.shape
                 i = pidx // ncols
                 j = pidx - (i * ncols)
                 # This position does not touch some img pixels in valid mode.
-                result_indices = prior_result[:, :,
-                                              i:(rows - nrows + i + 1):rstep,
-                                              j:(cols - ncols + j + 1):cstep]
-                newshape = (batch_size, num_channels) + \
-                           ((rows - nrows) // rstep + 1,) + \
-                           ((cols - ncols) // cstep + 1,)
+                result_indices = prior_result[
+                    :,
+                    :,
+                    i : (rows - nrows + i + 1) : rstep,
+                    j : (cols - ncols + j + 1) : cstep,
+                ]
+                newshape = (
+                    (batch_size, num_channels)
+                    + ((rows - nrows) // rstep + 1,)
+                    + ((cols - ncols) // cstep + 1,)
+                )
                 return T.inc_subtensor(result_indices, pgz.reshape(newshape))
+
             indices = T.arange(neib_shape[0] * neib_shape[1])
             pgzs = gz.dimshuffle((1, 0))
-            result, _ = theano.scan(fn=pos2map,
-                                    sequences=[indices, pgzs],
-                                    outputs_info=T.zeros(x.shape),
-                                    non_sequences=[neib_shape, neib_step])
+            result, _ = theano.scan(
+                fn=pos2map,
+                sequences=[indices, pgzs],
+                outputs_info=T.zeros(x.shape),
+                non_sequences=[neib_shape, neib_step],
+            )
             grad_input = result[-1]
-            return [grad_input,
-                    grad_undefined(self, 1, neib_shape),
-                    grad_undefined(self, 2, neib_step)]
-
-        return [grad_not_implemented(self, 0, x),
+            return [
+                grad_input,
                 grad_undefined(self, 1, neib_shape),
-                grad_undefined(self, 2, neib_step)]
+                grad_undefined(self, 2, neib_step),
+            ]
+
+        return [
+            grad_not_implemented(self, 0, x),
+            grad_undefined(self, 1, neib_shape),
+            grad_undefined(self, 2, neib_step),
+        ]
 
     def c_code_cache_version(self):
         return (10,)
 
     def perform(self, node, inp, out_, params):
         ten4, neib_shape, neib_step = inp
-        z, = out_
+        (z,) = out_
         # GpuImages2Neibs should not run this perform in DebugMode
         if type(self) != Images2Neibs:
             raise theano.gof.utils.MethodNotDefined()
@@ -195,36 +216,37 @@ class Images2Neibs(Op):
         mode = self.mode
         if step_x <= 0 or step_y <= 0:
             raise ValueError(
-                "neib_step wrong step ; values <= 0. Got " + str(neib_step))
+                "neib_step wrong step ; values <= 0. Got " + str(neib_step)
+            )
         if c <= 0 or d <= 0:
-            raise ValueError(
-                "neib_shape values <=0. Got " + str(neib_shape))
+            raise ValueError("neib_shape values <=0. Got " + str(neib_shape))
 
         if mode == "wrap_centered":
             if (c % 2 != 1) or (d % 2 != 1):
                 raise TypeError(
-                    "Images2Neibs:"
-                    " in mode wrap_centered need patch with odd shapes")
+                    "Images2Neibs:" " in mode wrap_centered need patch with odd shapes"
+                )
 
             if (ten4.shape[2] < c) or (ten4.shape[3] < d):
                 raise TypeError(
                     "Images2Neibs: in wrap_centered mode, don't support"
                     " image shapes smaller then the patch shapes:"
-                    " neib_shape=(%d,%d), ten4[2:]=[%d,%d]" %
-                    (c, d, ten4.shape[2], ten4.shape[3]))
+                    " neib_shape=(%d,%d), ten4[2:]=[%d,%d]"
+                    % (c, d, ten4.shape[2], ten4.shape[3])
+                )
             grid_c = CEIL_INTDIV(ten4.shape[2], step_x)
             grid_d = CEIL_INTDIV(ten4.shape[3], step_y)
         elif mode == "valid":
             if (ten4.shape[2] < c) or (((ten4.shape[2] - c) % step_x) != 0):
                 raise TypeError(
                     "neib_shape[0]=%d, neib_step[0]=%d and"
-                    " ten4.shape[2]=%d not consistent" %
-                    (c, step_x, ten4.shape[2]))
+                    " ten4.shape[2]=%d not consistent" % (c, step_x, ten4.shape[2])
+                )
             if (ten4.shape[3] < d) or (((ten4.shape[3] - d) % step_y) != 0):
                 raise TypeError(
                     "neib_shape[1]=%d, neib_step[1]=%d and"
-                    " ten4.shape[3]=%d not consistent" %
-                    (d, step_y, ten4.shape[3]))
+                    " ten4.shape[3]=%d not consistent" % (d, step_y, ten4.shape[3])
+                )
             # number of patch in height
             grid_c = 1 + ((ten4.shape[2] - c) // step_x)
             # number of patch in width
@@ -243,13 +265,13 @@ class Images2Neibs(Op):
             if (ten4.shape[2] < c) or (((ten4.shape[2] - (c % 2)) % step_x) != 0):
                 raise TypeError(
                     "neib_shape[0]=%d, neib_step[0]=%d and"
-                    " ten4.shape[2]=%d not consistent" %
-                    (c, step_x, ten4.shape[2]))
+                    " ten4.shape[2]=%d not consistent" % (c, step_x, ten4.shape[2])
+                )
             if (ten4.shape[3] < d) or (((ten4.shape[3] - (d % 2)) % step_y) != 0):
                 raise TypeError(
                     "neib_shape[1]=%d, neib_step[1]=%d and"
-                    " ten4.shape[3]=%d not consistent" %
-                    (d, step_y, ten4.shape[3]))
+                    " ten4.shape[3]=%d not consistent" % (d, step_y, ten4.shape[3])
+                )
             # number of patch in height
             grid_c = 1 + ((ten4.shape[2] - (c % 2)) // step_x)
             # number of patch in width
@@ -263,13 +285,13 @@ class Images2Neibs(Op):
             if (ten4.shape[2] < c) or (((ten4.shape[2] + c - 2) % step_x) != 0):
                 raise TypeError(
                     "neib_shape[0]=%d, neib_step[0]=%d and"
-                    " ten4.shape[2]=%d not consistent" %
-                    (c, step_x, ten4.shape[2]))
+                    " ten4.shape[2]=%d not consistent" % (c, step_x, ten4.shape[2])
+                )
             if (ten4.shape[3] < d) or (((ten4.shape[3] + d - 2) % step_y) != 0):
                 raise TypeError(
                     "neib_shape[1]=%d, neib_step[1]=%d and"
-                    " ten4.shape[3]=%d not consistent" %
-                    (d, step_y, ten4.shape[3]))
+                    " ten4.shape[3]=%d not consistent" % (d, step_y, ten4.shape[3])
+                )
             # number of patch in height
             grid_c = 1 + ((ten4.shape[2] + c - 2) // step_x)
             # number of patch in width
@@ -307,7 +329,7 @@ class Images2Neibs(Op):
                             elif mode == "full":
                                 ten4_2 -= c - 1
                             if ten4_2 < 0 or ten4_2 >= height:
-                                z[0][z_row, d * i: d * i + d] = 0
+                                z[0][z_row, d * i : d * i + d] = 0
                             else:
                                 for j in range(d):
                                     ten4_3 = j + b * step_y
@@ -331,19 +353,19 @@ class Images2Neibs(Op):
         in_shape = input_shape[0]
         c, d = node.inputs[1]
         step_x, step_y = node.inputs[2]
-        if self.mode == 'wrap_centered':
+        if self.mode == "wrap_centered":
             grid_c = T.ceil_intdiv(in_shape[2], step_x)
             grid_d = T.ceil_intdiv(in_shape[3], step_y)
-        elif self.mode == 'valid':
+        elif self.mode == "valid":
             grid_c = 1 + ((in_shape[2] - c) // step_x)
             grid_d = 1 + ((in_shape[3] - d) // step_y)
-        elif self.mode == 'ignore_borders':
+        elif self.mode == "ignore_borders":
             grid_c = 1 + ((in_shape[2] - c) // step_x)
             grid_d = 1 + ((in_shape[3] - d) // step_y)
-        elif self.mode == 'half':
+        elif self.mode == "half":
             grid_c = 1 + ((in_shape[2] - (c % 2)) // step_x)
             grid_d = 1 + ((in_shape[3] - (d % 2)) // step_y)
-        elif self.mode == 'full':
+        elif self.mode == "full":
             grid_c = 1 + ((in_shape[2] + c - 2) // step_x)
             grid_d = 1 + ((in_shape[3] + d - 2) // step_y)
         else:
@@ -613,11 +635,17 @@ class Images2Neibs(Op):
                         }
                     }
         } // END NESTED SCOPE
-        """ % dict(ten4=inp[0], neib_shape=inp[1], neib_step=inp[2], z=out[0],
-                   fail=sub['fail'], mode=sub['params'])
+        """ % dict(
+            ten4=inp[0],
+            neib_shape=inp[1],
+            neib_step=inp[2],
+            z=out[0],
+            fail=sub["fail"],
+            mode=sub["params"],
+        )
 
 
-def images2neibs(ten4, neib_shape, neib_step=None, mode='valid'):
+def images2neibs(ten4, neib_shape, neib_step=None, mode="valid"):
     """
     Function :func:`images2neibs <theano.tensor.nnet.neighbours.images2neibs>`
     allows to apply a sliding window operation to a tensor containing
@@ -714,7 +742,7 @@ def images2neibs(ten4, neib_shape, neib_step=None, mode='valid'):
     return Images2Neibs(mode)(ten4, neib_shape, neib_step)
 
 
-def neibs2images(neibs, neib_shape, original_shape, mode='valid'):
+def neibs2images(neibs, neib_shape, original_shape, mode="valid"):
     """
     Function :func:`neibs2images <theano.sandbox.neighbours.neibs2images>`
     performs the inverse operation of
@@ -771,29 +799,29 @@ def neibs2images(neibs, neib_shape, original_shape, mode='valid'):
     neib_shape = T.as_tensor_variable(neib_shape)
     original_shape = T.as_tensor_variable(original_shape)
 
-    new_neib_shape = T.stack([original_shape[-1] // neib_shape[1],
-                              neib_shape[1]])
-    output_2d = images2neibs(neibs.dimshuffle('x', 'x', 0, 1),
-                             new_neib_shape, mode=mode)
+    new_neib_shape = T.stack([original_shape[-1] // neib_shape[1], neib_shape[1]])
+    output_2d = images2neibs(
+        neibs.dimshuffle("x", "x", 0, 1), new_neib_shape, mode=mode
+    )
 
-    if mode == 'ignore_borders':
+    if mode == "ignore_borders":
         # We use set_subtensor to accept original_shape we can't infer
         # the shape and still raise error when it don't have the right
         # shape.
         valid_shape = original_shape
         valid_shape = T.set_subtensor(
-            valid_shape[2],
-            (valid_shape[2] // neib_shape[0]) * neib_shape[0])
+            valid_shape[2], (valid_shape[2] // neib_shape[0]) * neib_shape[0]
+        )
         valid_shape = T.set_subtensor(
-            valid_shape[3],
-            (valid_shape[3] // neib_shape[1]) * neib_shape[1])
+            valid_shape[3], (valid_shape[3] // neib_shape[1]) * neib_shape[1]
+        )
         output_4d = output_2d.reshape(valid_shape, ndim=4)
         # padding the borders with zeros
         for d in [2, 3]:
             pad_shape = list(output_4d.shape)
             pad_shape[d] = original_shape[d] - valid_shape[d]
             output_4d = T.concatenate([output_4d, T.zeros(pad_shape)], axis=d)
-    elif mode == 'valid':
+    elif mode == "valid":
         # TODO: we do not implement all mode with this code.
         # Add a check for the good cases.
         output_4d = output_2d.reshape(original_shape, ndim=4)

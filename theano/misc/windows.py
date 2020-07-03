@@ -10,7 +10,7 @@ def subprocess_Popen(command, **params):
     :see: call_subprocess_Popen and output_subprocess_Popen
     """
     startupinfo = None
-    if os.name == 'nt':
+    if os.name == "nt":
         startupinfo = subprocess.STARTUPINFO()
         try:
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
@@ -23,13 +23,13 @@ def subprocess_Popen(command, **params):
         # Unless "shell=True", "g++.bat" is not executed when trying to
         # execute "g++" without extensions.
         # (Executing "g++.bat" explicitly would also work.)
-        params['shell'] = True
+        params["shell"] = True
         # "If shell is True, it is recommended to pass args as a string rather than as a sequence." (cite taken from https://docs.python.org/2/library/subprocess.html#frequently-used-arguments)
         # In case when command arguments have spaces, passing a command as a list will result in incorrect arguments break down, and consequently
         # in "The filename, directory name, or volume label syntax is incorrect" error message.
         # Passing the command as a single string solves this problem.
         if isinstance(command, list):
-            command = ' '.join(command)
+            command = " ".join(command)
 
     # Using the dummy file descriptors below is a workaround for a
     # crash experienced in an unusual Python 2.4.4 Windows environment
@@ -37,7 +37,7 @@ def subprocess_Popen(command, **params):
     stdin = None
     if "stdin" not in params:
         stdin = open(os.devnull)
-        params['stdin'] = stdin.fileno()
+        params["stdin"] = stdin.fileno()
 
     try:
         proc = subprocess.Popen(command, startupinfo=startupinfo, **params)
@@ -52,14 +52,14 @@ def call_subprocess_Popen(command, **params):
     Calls subprocess_Popen and discards the output, returning only the
     exit code.
     """
-    if 'stdout' in params or 'stderr' in params:
+    if "stdout" in params or "stderr" in params:
         raise TypeError("don't use stderr or stdout with call_subprocess_Popen")
-    with open(os.devnull, 'wb') as null:
+    with open(os.devnull, "wb") as null:
         # stdin to devnull is a workaround for a crash in a weird Windows
         # environment where sys.stdin was None
-        params.setdefault('stdin', null)
-        params['stdout'] = null
-        params['stderr'] = null
+        params.setdefault("stdin", null)
+        params["stdout"] = null
+        params["stderr"] = null
         p = subprocess_Popen(command, **params)
         returncode = p.wait()
     return returncode
@@ -70,10 +70,10 @@ def output_subprocess_Popen(command, **params):
     Calls subprocess_Popen, returning the output, error and exit code
     in a tuple.
     """
-    if 'stdout' in params or 'stderr' in params:
+    if "stdout" in params or "stderr" in params:
         raise TypeError("don't use stderr or stdout with output_subprocess_Popen")
-    params['stdout'] = subprocess.PIPE
-    params['stderr'] = subprocess.PIPE
+    params["stdout"] = subprocess.PIPE
+    params["stderr"] = subprocess.PIPE
     p = subprocess_Popen(command, **params)
     # we need to use communicate to make sure we don't deadlock around
     # the stdout/stderr pipe.

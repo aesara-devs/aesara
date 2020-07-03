@@ -66,8 +66,15 @@ nosetests.
 """
 
 
-def main(stdout=None, stderr=None, argv=None, theano_nose=None,
-         batch_size=None, time_profile=False, display_batch_output=False):
+def main(
+    stdout=None,
+    stderr=None,
+    argv=None,
+    theano_nose=None,
+    batch_size=None,
+    time_profile=False,
+    display_batch_output=False,
+):
     """
     Run tests with optional output redirection.
 
@@ -98,8 +105,8 @@ def main(stdout=None, stderr=None, argv=None, theano_nose=None,
         for i in range(1, 5):
             path = theano.__path__[0]
             for _ in range(i):
-                path = os.path.join(path, '..')
-            path = os.path.join(path, 'bin', 'theano-nose')
+                path = os.path.join(path, "..")
+            path = os.path.join(path, "bin", "theano-nose")
             if os.path.exists(path):
                 theano_nose = path
                 break
@@ -112,15 +119,23 @@ def main(stdout=None, stderr=None, argv=None, theano_nose=None,
     try:
         sys.stdout = stdout
         sys.stderr = stderr
-        run(stdout, stderr, argv, theano_nose, batch_size, time_profile,
-            display_batch_output)
+        run(
+            stdout,
+            stderr,
+            argv,
+            theano_nose,
+            batch_size,
+            time_profile,
+            display_batch_output,
+        )
     finally:
         sys.stdout = stdout_backup
         sys.stderr = stderr_backup
 
 
-def run(stdout, stderr, argv, theano_nose, batch_size, time_profile,
-        display_batch_output):
+def run(
+    stdout, stderr, argv, theano_nose, batch_size, time_profile, display_batch_output
+):
 
     # Setting aside current working directory for later saving
     sav_dir = os.getcwd()
@@ -128,14 +143,16 @@ def run(stdout, stderr, argv, theano_nose, batch_size, time_profile,
     argv = argv[1:]
 
     # It seems safer to fully regenerate the list of tests on each call.
-    if os.path.isfile('.noseids'):
-        os.remove('.noseids')
+    if os.path.isfile(".noseids"):
+        os.remove(".noseids")
 
     # Collect test IDs.
-    print("""\
+    print(
+        """\
 ####################
 # COLLECTING TESTS #
-####################""")
+####################"""
+    )
     stdout.flush()
     stderr.flush()
     dummy_in = open(os.devnull)
@@ -144,19 +161,20 @@ def run(stdout, stderr, argv, theano_nose, batch_size, time_profile,
     # Using sys.executable, so that the same Python version is used.
     python = sys.executable
     rval = subprocess.call(
-        ([python, theano_nose, '--collect-only', '--with-id'] + argv),
+        ([python, theano_nose, "--collect-only", "--with-id"] + argv),
         stdin=dummy_in.fileno(),
         stdout=stdout.fileno(),
-        stderr=stderr.fileno())
+        stderr=stderr.fileno(),
+    )
     stdout.flush()
     stderr.flush()
     assert rval == 0
-    noseids_file = '.noseids'
+    noseids_file = ".noseids"
 
-    with open(noseids_file, 'rb') as f:
+    with open(noseids_file, "rb") as f:
         data = pickle.load(f)
 
-    ids = data['ids']
+    ids = data["ids"]
     n_tests = len(ids)
     if n_tests == 0:
         raise Exception("0 test selected")
@@ -165,30 +183,30 @@ def run(stdout, stderr, argv, theano_nose, batch_size, time_profile,
     # Standard batch testing is called for
     if not time_profile:
         failed = set()
-        print("""\
+        print(
+            """\
 ###################################
 # RUNNING TESTS IN BATCHES OF %s #
-###################################""" % batch_size)
+###################################"""
+            % batch_size
+        )
         # When `display_batch_output` is False, we suppress all output because
         # we want the user to focus only on the failed tests, which are re-run
         # (with output) below.
-        dummy_out = open(os.devnull, 'w')
+        dummy_out = open(os.devnull, "w")
         for test_id in xrange(1, n_tests + 1, batch_size):
             stdout.flush()
             stderr.flush()
-            test_range = list(range(test_id,
-                                    min(test_id + batch_size, n_tests + 1)))
-            cmd = ([python, theano_nose, '--with-id'] +
-                   list(map(str, test_range)) +
-                   argv)
+            test_range = list(range(test_id, min(test_id + batch_size, n_tests + 1)))
+            cmd = [python, theano_nose, "--with-id"] + list(map(str, test_range)) + argv
             subprocess_extra_args = dict(stdin=dummy_in.fileno())
             if not display_batch_output:
                 # Use quiet mode in nosetests.
-                cmd.append('-q')
+                cmd.append("-q")
                 # Suppress all output.
-                subprocess_extra_args.update(dict(
-                    stdout=dummy_out.fileno(),
-                    stderr=dummy_out.fileno()))
+                subprocess_extra_args.update(
+                    dict(stdout=dummy_out.fileno(), stderr=dummy_out.fileno())
+                )
             t0 = time.time()
             subprocess.call(cmd, **subprocess_extra_args)
             t1 = time.time()
@@ -197,41 +215,50 @@ def run(stdout, stderr, argv, theano_nose, batch_size, time_profile,
             # otherwise this field may get erased. We use a set because it
             # seems like it is not systematically erased though, and we want
             # to avoid duplicates.
-            with open(noseids_file, 'rb') as f:
-                failed = failed.union(pickle.load(f)['failed'])
+            with open(noseids_file, "rb") as f:
+                failed = failed.union(pickle.load(f)["failed"])
 
-            print('%s%% done in %.3fs (failed: %s)' % (
-                (test_range[-1] * 100) // n_tests, t1 - t0, len(failed)))
+            print(
+                "%s%% done in %.3fs (failed: %s)"
+                % ((test_range[-1] * 100) // n_tests, t1 - t0, len(failed))
+            )
         # Sort for cosmetic purpose only.
         failed = sorted(failed)
         if failed:
             # Re-run only failed tests
-            print("""\
+            print(
+                """\
 ################################
 # RE-RUNNING FAILED TESTS ONLY #
-################################""")
+################################"""
+            )
             stdout.flush()
             stderr.flush()
             subprocess.call(
-                ([python, theano_nose, '-v', '--with-id'] + failed + argv),
+                ([python, theano_nose, "-v", "--with-id"] + failed + argv),
                 stdin=dummy_in.fileno(),
                 stdout=stdout.fileno(),
-                stderr=stderr.fileno())
+                stderr=stderr.fileno(),
+            )
             stdout.flush()
             stderr.flush()
             return 0
         else:
-            print("""\
+            print(
+                """\
 ####################
 # ALL TESTS PASSED #
-####################""")
+####################"""
+            )
 
     # Time-profiling is called for
     else:
-        print("""\
+        print(
+            """\
 ########################################
 # RUNNING TESTS IN TIME-PROFILING MODE #
-########################################""")
+########################################"""
+        )
 
         # finds first word of list l containing string s
         def getIndexOfFirst(l, s):
@@ -243,42 +270,52 @@ def run(stdout, stderr, argv, theano_nose, batch_size, time_profile,
         def getIndexOfLast(l, s):
             for pos, word in enumerate(reversed(l)):
                 if s in word:
-                    return (len(l) - pos - 1)
+                    return len(l) - pos - 1
 
         # iterating through tests
         # initializing master profiling list and raw log
         prof_master_nosort = []
-        dummy_out = open(os.devnull, 'w')
-        path_rawlog = os.path.join(sav_dir, 'timeprof_rawlog')
-        stamp = str(datetime.datetime.now()) + '\n\n'
-        f_rawlog = open(path_rawlog, 'w')
-        f_rawlog.write('TIME-PROFILING OF THEANO\'S NOSETESTS'
-                       ' (raw log)\n\n' + stamp)
+        dummy_out = open(os.devnull, "w")
+        path_rawlog = os.path.join(sav_dir, "timeprof_rawlog")
+        stamp = str(datetime.datetime.now()) + "\n\n"
+        f_rawlog = open(path_rawlog, "w")
+        f_rawlog.write("TIME-PROFILING OF THEANO'S NOSETESTS" " (raw log)\n\n" + stamp)
         f_rawlog.flush()
 
-        stamp = str(datetime.datetime.now()) + '\n\n'
-        fields = ('Fields: computation time; nosetests sequential id;'
-                  ' test name; parent class (if any); outcome\n\n')
-        path_nosort = os.path.join(sav_dir, 'timeprof_nosort')
+        stamp = str(datetime.datetime.now()) + "\n\n"
+        fields = (
+            "Fields: computation time; nosetests sequential id;"
+            " test name; parent class (if any); outcome\n\n"
+        )
+        path_nosort = os.path.join(sav_dir, "timeprof_nosort")
         # probably this part can be extracted for function with many args
-        with open(path_nosort, 'w') as f_nosort:
+        with open(path_nosort, "w") as f_nosort:
             # begin of saving nosort
-            f_nosort.write('TIME-PROFILING OF THEANO\'S NOSETESTS'
-                           ' (by sequential id)\n\n' + stamp + fields)
+            f_nosort.write(
+                "TIME-PROFILING OF THEANO'S NOSETESTS"
+                " (by sequential id)\n\n" + stamp + fields
+            )
             f_nosort.flush()
             for test_floor in xrange(1, n_tests + 1, batch_size):
-                for test_id in xrange(test_floor, min(test_floor + batch_size,
-                                                      n_tests + 1)):
+                for test_id in xrange(
+                    test_floor, min(test_floor + batch_size, n_tests + 1)
+                ):
                     # Print the test we will start in the raw log to help
                     # debug tests that are too long.
-                    f_rawlog.write("\n%s Will run test #%d %s\n" % (
-                        time.ctime(), test_id, data["ids"][test_id]))
+                    f_rawlog.write(
+                        "\n%s Will run test #%d %s\n"
+                        % (time.ctime(), test_id, data["ids"][test_id])
+                    )
                     f_rawlog.flush()
 
-                    p_out = output_subprocess_Popen(([python, theano_nose, '-v', '--with-id'] +
-                                                     [str(test_id)] +
-                                                     argv +
-                                                     ['--disabdocstring']))
+                    p_out = output_subprocess_Popen(
+                        (
+                            [python, theano_nose, "-v", "--with-id"]
+                            + [str(test_id)]
+                            + argv
+                            + ["--disabdocstring"]
+                        )
+                    )
                     # the previous option calls a custom Nosetests plugin
                     # precluding automatic sustitution of doc. string for
                     # test name in display
@@ -293,69 +330,81 @@ def run(stdout, stderr, argv, theano_nose, batch_size, time_profile,
                     # parsing the output
                     l_err = err.split()
                     try:
-                        pos_id = getIndexOfFirst(l_err, '#')
+                        pos_id = getIndexOfFirst(l_err, "#")
                         prof_id = l_err[pos_id]
-                        pos_dot = getIndexOfFirst(l_err, '...')
-                        prof_test = ''
-                        for s in l_err[pos_id + 1: pos_dot]:
-                            prof_test += s + ' '
-                        if 'OK' in err:
-                            pos_ok = getIndexOfLast(l_err, 'OK')
+                        pos_dot = getIndexOfFirst(l_err, "...")
+                        prof_test = ""
+                        for s in l_err[pos_id + 1 : pos_dot]:
+                            prof_test += s + " "
+                        if "OK" in err:
+                            pos_ok = getIndexOfLast(l_err, "OK")
                             if len(l_err) == pos_ok + 1:
                                 prof_time = float(l_err[pos_ok - 1][0:-1])
-                                prof_pass = 'OK'
-                            elif 'SKIP' in l_err[pos_ok + 1]:
-                                prof_time = 0.
-                                prof_pass = 'SKIPPED TEST'
-                            elif 'KNOWNFAIL' in l_err[pos_ok + 1]:
+                                prof_pass = "OK"
+                            elif "SKIP" in l_err[pos_ok + 1]:
+                                prof_time = 0.0
+                                prof_pass = "SKIPPED TEST"
+                            elif "KNOWNFAIL" in l_err[pos_ok + 1]:
                                 prof_time = float(l_err[pos_ok - 1][0:-1])
-                                prof_pass = 'OK'
+                                prof_pass = "OK"
                             else:
-                                prof_time = 0.
-                                prof_pass = 'FAILED TEST'
+                                prof_time = 0.0
+                                prof_pass = "FAILED TEST"
                         else:
-                            prof_time = 0.
-                            prof_pass = 'FAILED TEST'
+                            prof_time = 0.0
+                            prof_pass = "FAILED TEST"
                     except Exception:
                         prof_time = 0
-                        prof_id = '#' + str(test_id)
-                        prof_test = ('FAILED PARSING, see raw log for details'
-                                     ' on test')
-                        prof_pass = ''
+                        prof_id = "#" + str(test_id)
+                        prof_test = "FAILED PARSING, see raw log for details" " on test"
+                        prof_pass = ""
                     prof_tuple = (prof_time, prof_id, prof_test, prof_pass)
 
                     # appending tuple to master list
                     prof_master_nosort.append(prof_tuple)
 
                     # write the no sort file
-                    s_nosort = ((str(prof_tuple[0]) + 's').ljust(10) +
-                                " " + prof_tuple[1].ljust(7) + " " +
-                                prof_tuple[2] + prof_tuple[3] +
-                                "\n")
+                    s_nosort = (
+                        (str(prof_tuple[0]) + "s").ljust(10)
+                        + " "
+                        + prof_tuple[1].ljust(7)
+                        + " "
+                        + prof_tuple[2]
+                        + prof_tuple[3]
+                        + "\n"
+                    )
                     f_nosort.write(s_nosort)
                     f_nosort.flush()
 
-                print('%s%% time-profiled' % ((test_id * 100) // n_tests))
+                print("%s%% time-profiled" % ((test_id * 100) // n_tests))
             f_rawlog.close()
 
             # sorting tests according to running-time
-            prof_master_sort = sorted(prof_master_nosort,
-                                      key=lambda test: test[0], reverse=True)
+            prof_master_sort = sorted(
+                prof_master_nosort, key=lambda test: test[0], reverse=True
+            )
 
             # saving results to readable files
-            path_sort = os.path.join(sav_dir, 'timeprof_sort')
-            with open(path_sort, 'w') as f_sort:
-                f_sort.write('TIME-PROFILING OF THEANO\'S NOSETESTS'
-                             ' (sorted by computation time)\n\n' + stamp + fields)
+            path_sort = os.path.join(sav_dir, "timeprof_sort")
+            with open(path_sort, "w") as f_sort:
+                f_sort.write(
+                    "TIME-PROFILING OF THEANO'S NOSETESTS"
+                    " (sorted by computation time)\n\n" + stamp + fields
+                )
                 for i in xrange(len(prof_master_nosort)):
-                    s_sort = ((str(prof_master_sort[i][0]) + 's').ljust(10) +
-                              " " + prof_master_sort[i][1].ljust(7) + " " +
-                              prof_master_sort[i][2] + prof_master_sort[i][3] +
-                              "\n")
+                    s_sort = (
+                        (str(prof_master_sort[i][0]) + "s").ljust(10)
+                        + " "
+                        + prof_master_sort[i][1].ljust(7)
+                        + " "
+                        + prof_master_sort[i][2]
+                        + prof_master_sort[i][3]
+                        + "\n"
+                    )
                     f_sort.write(s_sort)
 
             # end of saving nosort
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

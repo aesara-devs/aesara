@@ -20,13 +20,15 @@ def check_deterministic(iterable):
     # So I must use an assert here. In the long term we should fix the rest of
     # theano to use exceptions correctly, so that this can be a TypeError.
     if iterable is not None:
-        if not isinstance(iterable, (
-                list, tuple, OrderedSet,
-                types.GeneratorType, string_types)):
+        if not isinstance(
+            iterable, (list, tuple, OrderedSet, types.GeneratorType, string_types)
+        ):
             if len(iterable) > 1:
                 # We need to accept length 1 size to allow unpickle in tests.
                 raise AssertionError(
-                    "Get an not ordered iterable when one was expected")
+                    "Get an not ordered iterable when one was expected"
+                )
+
 
 # Copyright (C) 2009 Raymond Hettinger
 # Permission is hereby granted, free of charge, to any person obtaining a
@@ -53,7 +55,7 @@ def check_deterministic(iterable):
 class Link(object):
     # This make that we need to use a different pickle protocol
     # then the default.  Othewise, there is pickling errors
-    __slots__ = 'prev', 'next', 'key', '__weakref__'
+    __slots__ = "prev", "next", "key", "__weakref__"
 
     def __getstate__(self):
         # weakref.proxy don't pickle well, so we use weakref.ref
@@ -74,7 +76,7 @@ class Link(object):
 
 
 class OrderedSet(MutableSet):
-    'Set the remembers the order elements were added'
+    "Set the remembers the order elements were added"
     # Big-O running times for all methods are the same as for regular sets.
     # The internal self.__map dictionary maps keys to links in a doubly linked list.
     # The circular doubly linked list starts and ends with a sentinel element.
@@ -92,9 +94,9 @@ class OrderedSet(MutableSet):
     def __init__(self, iterable=None):
         # Checks added by IG
         check_deterministic(iterable)
-        self.__root = root = Link()         # sentinel node for doubly linked list
+        self.__root = root = Link()  # sentinel node for doubly linked list
         root.prev = root.next = weakref.ref(root)
-        self.__map = {}                     # key --> link
+        self.__map = {}  # key --> link
         if iterable is not None:
             self |= iterable
 
@@ -168,7 +170,7 @@ class OrderedSet(MutableSet):
 
     def pop(self, last=True):
         if not self:
-            raise KeyError('set is empty')
+            raise KeyError("set is empty")
         if last:
             key = next(reversed(self))
         else:
@@ -178,8 +180,8 @@ class OrderedSet(MutableSet):
 
     def __repr__(self):
         if not self:
-            return '%s()' % (self.__class__.__name__,)
-        return '%s(%r)' % (self.__class__.__name__, list(self))
+            return "%s()" % (self.__class__.__name__,)
+        return "%s(%r)" % (self.__class__.__name__, list(self))
 
     def __eq__(self, other):
         # Note that we implement only the comparison to another
@@ -191,17 +193,19 @@ class OrderedSet(MutableSet):
         elif isinstance(other, set):
             # Raise exception to avoid confusion.
             raise TypeError(
-                'Cannot compare an `OrderedSet` to a `set` because '
-                'this comparison cannot be made symmetric: please '
-                'manually cast your `OrderedSet` into `set` before '
-                'performing this comparison.')
+                "Cannot compare an `OrderedSet` to a `set` because "
+                "this comparison cannot be made symmetric: please "
+                "manually cast your `OrderedSet` into `set` before "
+                "performing this comparison."
+            )
         else:
             return NotImplemented
 
+
 # end of http://code.activestate.com/recipes/576696/ }}}
 
-if __name__ == '__main__':
-    print(list(OrderedSet('abracadaba')))
-    print(list(OrderedSet('simsalabim')))
-    print(OrderedSet('boom') == OrderedSet('moob'))
-    print(OrderedSet('boom') == 'moob')
+if __name__ == "__main__":
+    print(list(OrderedSet("abracadaba")))
+    print(list(OrderedSet("simsalabim")))
+    print(OrderedSet("boom") == OrderedSet("moob"))
+    print(OrderedSet("boom") == "moob")

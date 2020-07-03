@@ -54,8 +54,9 @@ _persistent_module_cache = None
 def get_persistent_module_cache():
     global _persistent_module_cache
     if _persistent_module_cache is None:
-        _persistent_module_cache = CallCache(os.path.join(config.compiledir,
-                                                          'persistent_cache'))
+        _persistent_module_cache = CallCache(
+            os.path.join(config.compiledir, "persistent_cache")
+        )
     return _persistent_module_cache
 
 
@@ -90,8 +91,9 @@ class CodeBlock:
         # for that...)
         # we need the label even if cleanup is empty because the
         # behavior block jumps there on failure
-        self.cleanup = ("__label_%(id)i:\n" % sub + cleanup +
-                        "\ndouble __DUMMY_%(id)i;\n" % sub)  # % sub
+        self.cleanup = (
+            "__label_%(id)i:\n" % sub + cleanup + "\ndouble __DUMMY_%(id)i;\n" % sub
+        )  # % sub
 
 
 def failure_code(sub, use_goto=True):
@@ -113,17 +115,19 @@ def failure_code(sub, use_goto=True):
 
     """
     if use_goto:
-        goto_statement = 'goto __label_%(id)i;' % sub
+        goto_statement = "goto __label_%(id)i;" % sub
     else:
-        goto_statement = ''
-    return '''{
+        goto_statement = ""
+    return """{
         %(failure_var)s = %(id)i;
         if (!PyErr_Occurred()) {
             PyErr_SetString(PyExc_RuntimeError,
                 "Unexpected error in an Op's C code. "
                 "No Python exception was set.");
         }
-        %(goto_statement)s}''' % dict(sub, goto_statement=goto_statement)
+        %(goto_statement)s}""" % dict(
+        sub, goto_statement=goto_statement
+    )
 
 
 def failure_code_init(sub):
@@ -137,14 +141,17 @@ def failure_code_init(sub):
       * failure_var -> must contain a variable name to use for
       the failure code.
     """
-    return '''{
+    return (
+        """{
         if (!PyErr_Occurred()) {
             PyErr_SetString(PyExc_RuntimeError,
                 "Unexpected error in an Op's C code. "
                 "No Python exception was set.");
             }
         return %(id)d;
-}''' % sub
+}"""
+        % sub
+    )
 
 
 def code_gen(blocks):
@@ -250,7 +257,8 @@ def struct_gen(args, struct_builders, blocks, sub):
     # that holds the type, the value and the traceback. After storing
     # the error, we return the failure code so we know which code
     # block failed.
-    do_return = """
+    do_return = (
+        """
         if (%(failure_var)s) {
             // When there is a failure, this code puts the exception
             // in __ERROR.
@@ -273,7 +281,9 @@ def struct_gen(args, struct_builders, blocks, sub):
         }
         // The failure code is returned to index what code block failed.
         return %(failure_var)s;
-        """ % sub
+        """
+        % sub
+    )
 
     sub = dict(sub)
     sub.update(locals())
@@ -281,7 +291,8 @@ def struct_gen(args, struct_builders, blocks, sub):
     # TODO: add some error checking to make sure storage_<x> are
     # 1-element lists and __ERROR is a 3-elements list.
 
-    struct_code = """
+    struct_code = (
+        """
     namespace {
     struct %(name)s {
         PyObject* __ERROR;
@@ -325,13 +336,16 @@ def struct_gen(args, struct_builders, blocks, sub):
         }
     };
     }
-    """ % sub
+    """
+        % sub
+    )
 
     return struct_code
 
 
 # The get_<x> functions complete the return value of r.get_<x>()
 # with handling of the py_<name> variable.
+
 
 def get_nothing(r, name, sub):
     """
@@ -351,17 +365,22 @@ def get_c_declare(r, name, sub):
     # If some of these have `check_input=True` in their `.op`,
     # it means they need `r`'s dtype to be declared, so
     # we have to pass `check_input=True` to `c_declare`.
-    if ((any([getattr(c.op, 'check_input', config.check_input)
-              for (c, _) in r.clients
-              if not isinstance(c, string_types)]) or
-         (r.owner and
-          getattr(r.owner.op, 'check_input', config.check_input)))):
+    if any(
+        [
+            getattr(c.op, "check_input", config.check_input)
+            for (c, _) in r.clients
+            if not isinstance(c, string_types)
+        ]
+    ) or (r.owner and getattr(r.owner.op, "check_input", config.check_input)):
         c_declare = r.type.c_declare(name, sub, True)
     else:
         c_declare = r.type.c_declare(name, sub, False)
-    pre = """
+    pre = (
+        """
     PyObject* py_%(name)s;
-    """ % locals()
+    """
+        % locals()
+    )
     return pre + c_declare
 
 
@@ -370,10 +389,14 @@ def get_c_init(r, name, sub):
     Wrapper around c_init that initializes py_name to Py_None.
 
     """
-    pre = "" """
+    pre = (
+        ""
+        """
     py_%(name)s = Py_None;
     {Py_XINCREF(py_%(name)s);}
-    """ % locals()
+    """
+        % locals()
+    )
     return pre + r.type.c_init(name, sub)
 
 
@@ -388,30 +411,39 @@ def get_c_extract(r, name, sub):
     # checks on the variable.
     # However that code is not used by C code of the apply node creating
     # this variable, so there is no need to check `r.owner.op.check_input`.
-    if any([getattr(c.op, 'check_input', config.check_input)
+    if any(
+        [
+            getattr(c.op, "check_input", config.check_input)
             for (c, _) in r.clients
-            if not isinstance(c, string_types)]):
+            if not isinstance(c, string_types)
+        ]
+    ):
         # check_broadcast is just an hack to easily remove just the
         # broadcast check on the old GPU back-end. This check isn't
         # done in the new GPU back-end or on the CPU.
-        if any([getattr(c.op, 'check_broadcast', True)
+        if any(
+            [
+                getattr(c.op, "check_broadcast", True)
                 for (c, _) in r.clients
-                if not isinstance(c, string_types)]):
+                if not isinstance(c, string_types)
+            ]
+        ):
             c_extract = r.type.c_extract(name, sub, True)
         else:
             try:
-                c_extract = r.type.c_extract(
-                    name, sub, True,
-                    check_broadcast=False)
+                c_extract = r.type.c_extract(name, sub, True, check_broadcast=False)
             except TypeError as e:
                 c_extract = r.type.c_extract(name, sub, True)
     else:
         c_extract = r.type.c_extract(name, sub, False)
 
-    pre = """
+    pre = (
+        """
     py_%(name)s = PyList_GET_ITEM(storage_%(name)s, 0);
     {Py_XINCREF(py_%(name)s);}
-    """ % locals()
+    """
+        % locals()
+    )
     return pre + c_extract
 
 
@@ -428,23 +460,27 @@ def get_c_extract_out(r, name, sub):
     # so we need to pass `check_input=True` to `c_extract_out`.
     # However, that code is not used by potential clients of `r`,
     # so we do not need to check them.
-    check_input = getattr(r.owner.op, 'check_input', config.check_input)
+    check_input = getattr(r.owner.op, "check_input", config.check_input)
     # check_broadcast is just an hack to easily remove just the
     # broadcast check on the old GPU back-end. This check isn't
     # done in the new GPU back-end or on the CPU.
-    if getattr(r.owner.op, 'check_broadcast', True):
+    if getattr(r.owner.op, "check_broadcast", True):
         c_extract = r.type.c_extract_out(name, sub, check_input)
     else:
         try:
-            c_extract = r.type.c_extract_out(name, sub, check_input,
-                                             check_broadcast=False)
+            c_extract = r.type.c_extract_out(
+                name, sub, check_input, check_broadcast=False
+            )
         except TypeError as e:
             c_extract = r.type.c_extract_out(name, sub, check_input)
 
-    pre = """
+    pre = (
+        """
     py_%(name)s = PyList_GET_ITEM(storage_%(name)s, 0);
     {Py_XINCREF(py_%(name)s);}
-    """ % locals()
+    """
+        % locals()
+    )
     return pre + c_extract
 
 
@@ -453,9 +489,12 @@ def get_c_cleanup(r, name, sub):
     Wrapper around c_cleanup that decrefs py_name.
 
     """
-    post = """
+    post = (
+        """
     {Py_XDECREF(py_%(name)s);}
-    """ % locals()
+    """
+        % locals()
+    )
     return r.type.c_cleanup(name, sub) + post
 
 
@@ -472,7 +511,9 @@ def get_c_sync(r, name, sub):
       PyList_SET_ITEM(storage_%(name)s, 0, py_%(name)s);
       {Py_XDECREF(old);}
     }
-    """ % dict(sync=r.type.c_sync(name, sub), name=name, **sub)
+    """ % dict(
+        sync=r.type.c_sync(name, sub), name=name, **sub
+    )
 
 
 def apply_policy(policy, r, name, sub):
@@ -528,21 +569,23 @@ def struct_variable_codeblocks(variable, policies, id, symbol_table, sub):
     if variable not in symbol_table:
         symbol_table[variable] = name
     sub = dict(sub)
-#    sub['name'] = name
-    sub['id'] = id
-    sub['fail'] = failure_code_init(sub)
-    sub['py_ptr'] = "py_%s" % name
-    sub['stor_ptr'] = "storage_%s" % name
+    #    sub['name'] = name
+    sub["id"] = id
+    sub["fail"] = failure_code_init(sub)
+    sub["py_ptr"] = "py_%s" % name
+    sub["stor_ptr"] = "storage_%s" % name
     # struct_declare, struct_behavior, struct_cleanup, sub)
-    struct_builder = CodeBlock(*[apply_policy(policy, variable, name, sub)
-                                 for policy in policies[0]] + [sub])
-    sub['id'] = id + 1
-    sub['fail'] = failure_code(sub)
-    sub['py_ptr'] = "py_%s" % name
-    sub['stor_ptr'] = "storage_%s" % name
+    struct_builder = CodeBlock(
+        *[apply_policy(policy, variable, name, sub) for policy in policies[0]] + [sub]
+    )
+    sub["id"] = id + 1
+    sub["fail"] = failure_code(sub)
+    sub["py_ptr"] = "py_%s" % name
+    sub["stor_ptr"] = "storage_%s" % name
     # run_declare, run_behavior, run_cleanup, sub)
-    block = CodeBlock(*[apply_policy(policy, variable, name, sub)
-                        for policy in policies[1]] + [sub])
+    block = CodeBlock(
+        *[apply_policy(policy, variable, name, sub) for policy in policies[1]] + [sub]
+    )
 
     return struct_builder, block
 
@@ -573,8 +616,7 @@ class CLinker(link.Linker):
             no_recycling = []
         if self.fgraph is not None and self.fgraph is not fgraph:
             # A linker can be tied to only one FunctionGraph.
-            return type(self)(self.schedule).accept(
-                fgraph, no_recycling, profile)
+            return type(self)(self.schedule).accept(fgraph, no_recycling, profile)
         self.fgraph = fgraph
         self.fetch_variables()
         self.no_recycling = no_recycling
@@ -609,18 +651,20 @@ class CLinker(link.Linker):
                 if params in self.node_params:
                     var = self.node_params[params]
                     assert var.type == node.params_type
-                    var.clients.append((node, 'params'))
+                    var.clients.append((node, "params"))
                 else:
                     var = graph.Constant(node.params_type, params)
-                    var.clients = [(node, 'params')]
+                    var.clients = [(node, "params")]
                     self.node_params[params] = var
                     self.variables.append(var)
 
         # The orphans field is listified to ensure a consistent order.
         # list(fgraph.orphans.difference(self.outputs))
-        self.orphans = list(r for r in self.variables
-                            if isinstance(r, graph.Constant) and
-                            r not in self.inputs)
+        self.orphans = list(
+            r
+            for r in self.variables
+            if isinstance(r, graph.Constant) and r not in self.inputs
+        )
         # C type constants (theano.scalar.Scalar). They don't request an object
         self.consts = []
         # Move c type from orphans (theano.scalar.Scalar) to self.consts
@@ -633,8 +677,12 @@ class CLinker(link.Linker):
                 except (utils.MethodNotDefined, NotImplementedError):
                     pass
 
-        self.temps = list(set(self.variables).difference(
-            self.inputs).difference(self.outputs).difference(self.orphans))
+        self.temps = list(
+            set(self.variables)
+            .difference(self.inputs)
+            .difference(self.outputs)
+            .difference(self.orphans)
+        )
 
     def code_gen(self):
         """
@@ -651,7 +699,7 @@ class CLinker(link.Linker):
 
         """
 
-        if getattr(self, 'struct_code', False):
+        if getattr(self, "struct_code", False):
             return self.struct_code
 
         no_recycling = self.no_recycling
@@ -685,44 +733,54 @@ class CLinker(link.Linker):
             #            what to do at the beginning of each run,
             #            what to do at the end of each run]]
             if variable in self.consts:
-                symbol[variable] = ("(" + variable.type.c_literal(
-                    variable.data) + ")")
+                symbol[variable] = "(" + variable.type.c_literal(variable.data) + ")"
                 continue
             elif variable in self.inputs:
                 # We need to extract the new inputs at each run
                 # they do not need to be relayed to Python, so we don't sync.
                 # If the variable is both an input and an output, there is
                 # no need to synchronize either, it is already up-to-date.
-                policy = [[get_nothing, get_nothing, get_nothing],
-                          [get_c_declare, get_c_extract, get_c_cleanup]]
+                policy = [
+                    [get_nothing, get_nothing, get_nothing],
+                    [get_c_declare, get_c_extract, get_c_cleanup],
+                ]
             elif variable in self.orphans:
                 if not isinstance(variable, graph.Constant):
-                    raise TypeError("All orphans to CLinker must be Constant"
-                                    " instances.", variable)
+                    raise TypeError(
+                        "All orphans to CLinker must be Constant" " instances.",
+                        variable,
+                    )
                 # orphans are not inputs so we'll just get fetch them
                 # when we initialize the struct and assume they stay
                 # the same
-                policy = [[get_c_declare, get_c_extract, get_c_cleanup],
-                          [get_nothing, get_nothing, get_nothing]]
+                policy = [
+                    [get_c_declare, get_c_extract, get_c_cleanup],
+                    [get_nothing, get_nothing, get_nothing],
+                ]
             elif variable in self.temps:
                 # temps don't need to be extracted from Python, so we
                 # call c_init rather than c_extract they do not need
                 # to be relayed to Python, so we don't sync
                 if variable.type.c_is_simple() or variable in no_recycling:
-                    policy = [[get_nothing, get_nothing, get_nothing],
-                              [get_c_declare, get_c_init, get_c_cleanup]]
+                    policy = [
+                        [get_nothing, get_nothing, get_nothing],
+                        [get_c_declare, get_c_init, get_c_cleanup],
+                    ]
                 else:
                     # it is useful for complex temps to reuse storage
                     # at each run, so we only clean up in the
                     # destructor
-                    policy = [[get_c_declare, get_c_init, get_c_cleanup],
-                              [get_nothing, get_nothing, get_nothing]]
+                    policy = [
+                        [get_c_declare, get_c_init, get_c_cleanup],
+                        [get_nothing, get_nothing, get_nothing],
+                    ]
             elif variable in self.outputs:
                 if variable.type.c_is_simple() or variable in no_recycling:
                     # Do not extract output from Python
-                    policy = [[get_nothing, get_nothing, get_nothing],
-                              [get_c_declare, get_c_init,
-                                  (get_c_sync, get_c_cleanup)]]
+                    policy = [
+                        [get_nothing, get_nothing, get_nothing],
+                        [get_c_declare, get_c_init, (get_c_sync, get_c_cleanup)],
+                    ]
                 else:
                     # We try to use the output that is pre-allocated.
                     # The linker will usually just reuse the storage
@@ -730,14 +788,18 @@ class CLinker(link.Linker):
                     # it will be None.
                     # We clean-up at each run to enable garbage collection
                     # in the Linker.
-                    policy = [[get_nothing, get_nothing, get_nothing],
-                              [get_c_declare, get_c_extract_out,
-                                  (get_c_sync, get_c_cleanup)]]
+                    policy = [
+                        [get_nothing, get_nothing, get_nothing],
+                        [get_c_declare, get_c_extract_out, (get_c_sync, get_c_cleanup)],
+                    ]
             else:
-                raise Exception("this shouldn't be possible, please report this exception")
+                raise Exception(
+                    "this shouldn't be possible, please report this exception"
+                )
 
-            builder, block = struct_variable_codeblocks(variable, policy,
-                                                        id, symbol, sub)
+            builder, block = struct_variable_codeblocks(
+                variable, policy, id, symbol, sub
+            )
 
             # each Variable generates two CodeBlocks, one to
             # declare/initialize/destroy struct variables and the
@@ -746,10 +808,10 @@ class CLinker(link.Linker):
             # Typically, only one of the two actually does anything
             # (see all the possible combinations above)
 
-            init_tasks.append((variable, 'init', id))
+            init_tasks.append((variable, "init", id))
             init_blocks.append(builder)
 
-            tasks.append((variable, 'get', id + 1))
+            tasks.append((variable, "get", id + 1))
             blocks.append(block)
 
             id += 2
@@ -772,18 +834,18 @@ class CLinker(link.Linker):
             osyms = [symbol[r] for r in node.outputs]
 
             # Make the CodeBlock for c_code
-            sub['id'] = id
-            sub['fail'] = failure_code(sub)
+            sub["id"] = id
+            sub["fail"] = failure_code(sub)
             if params is not graph.NoParams:
-                sub['params'] = params_var
+                sub["params"] = params_var
 
             sub_struct = dict()
-            sub_struct['id'] = id + 1
-            sub_struct['fail'] = failure_code_init(sub)
+            sub_struct["id"] = id + 1
+            sub_struct["fail"] = failure_code_init(sub)
             if params is not graph.NoParams:
                 # Since params inputs are always constants they are
                 # guaranteed to be available in the struct init code.
-                sub_struct['params'] = params_var
+                sub_struct["params"] = params_var
 
             struct_support = ""
             struct_init = ""
@@ -792,15 +854,14 @@ class CLinker(link.Linker):
             op = node.op
             # type-specific support code
             try:
-                c_support_code_apply.append(op.c_support_code_apply(node,
-                                                                    name))
+                c_support_code_apply.append(op.c_support_code_apply(node, name))
             except utils.MethodNotDefined:
                 pass
             else:
                 # The following will be executed if the "try" block succeeds
                 assert isinstance(c_support_code_apply[-1], string_types), (
-                    str(node.op) +
-                    " didn't return a string for c_support_code_apply")
+                    str(node.op) + " didn't return a string for c_support_code_apply"
+                )
 
             try:
                 c_init_code_apply.append(op.c_init_code_apply(node, name))
@@ -808,30 +869,30 @@ class CLinker(link.Linker):
                 pass
             else:
                 assert isinstance(c_init_code_apply[-1], string_types), (
-                    str(node.op) +
-                    " didn't return a string for c_init_code_apply")
+                    str(node.op) + " didn't return a string for c_init_code_apply"
+                )
 
             try:
                 struct_init = op.c_init_code_struct(node, name, sub_struct)
                 assert isinstance(struct_init, string_types), (
-                    str(node.op) +
-                    " didn't return a string for c_init_code_struct")
+                    str(node.op) + " didn't return a string for c_init_code_struct"
+                )
             except utils.MethodNotDefined:
                 pass
 
             try:
                 struct_support = op.c_support_code_struct(node, name)
                 assert isinstance(struct_support, string_types), (
-                    str(node.op) +
-                    " didn't return a string for c_support_code_struct")
+                    str(node.op) + " didn't return a string for c_support_code_struct"
+                )
             except utils.MethodNotDefined:
                 pass
 
             try:
                 struct_cleanup = op.c_cleanup_code_struct(node, name)
                 assert isinstance(struct_cleanup, string_types), (
-                    str(node.op) +
-                    " didn't return a string for c_cleanup_code_struct")
+                    str(node.op) + " didn't return a string for c_cleanup_code_struct"
+                )
             except utils.MethodNotDefined:
                 pass
 
@@ -841,27 +902,28 @@ class CLinker(link.Linker):
             except utils.MethodNotDefined:
                 raise NotImplementedError("%s cannot produce C code" % op)
             assert isinstance(behavior, string_types), (
-                str(node.op) + " didn't return a string for c_code")
+                str(node.op) + " didn't return a string for c_code"
+            )
             # To help understand what is following. It help read the c code.
             # This prevent different op that generate the same c code
             # to be merged, I suppose this won't happen...
-            behavior = ("// Op class " + node.op.__class__.__name__ + "\n" +
-                        behavior)
+            behavior = "// Op class " + node.op.__class__.__name__ + "\n" + behavior
 
             try:
                 cleanup = op.c_code_cleanup(node, name, isyms, osyms, sub)
             except utils.MethodNotDefined:
                 cleanup = ""
 
-            _logger.info('compiling un-versioned Apply %s', str(node))
+            _logger.info("compiling un-versioned Apply %s", str(node))
 
             blocks.append(CodeBlock("", behavior, cleanup, sub))
-            tasks.append((node, 'code', id))
+            tasks.append((node, "code", id))
             id += 1
 
-            init_blocks.append(CodeBlock(struct_support, struct_init,
-                                         struct_cleanup, {'id': id}))
-            init_tasks.append((node, 'init', id))
+            init_blocks.append(
+                CodeBlock(struct_support, struct_init, struct_cleanup, {"id": id})
+            )
+            init_tasks.append((node, "init", id))
             id += 1
 
         # List of arg names for use in struct_gen. Note the call to
@@ -870,15 +932,17 @@ class CLinker(link.Linker):
         # is b), rather than (a==b) since Constant instances can
         # compare equal to equivalent Constant instances.
         args = []
-        args += ["storage_%s" % symbol[variable] for variable
-                 in utils.uniq(self.inputs + self.outputs + self.orphans)]
+        args += [
+            "storage_%s" % symbol[variable]
+            for variable in utils.uniq(self.inputs + self.outputs + self.orphans)
+        ]
 
         # <<<<HASH_PLACEHOLDER>>>> will be replaced by a hash of the whole
         # code in the file, including support code, in DynamicModule.code.
-        struct_name = '__struct_compiled_op_%s' % '<<<<HASH_PLACEHOLDER>>>>'
-        struct_code = struct_gen(args, init_blocks, blocks,
-                                 dict(failure_var=failure_var,
-                                      name=struct_name))
+        struct_name = "__struct_compiled_op_%s" % "<<<<HASH_PLACEHOLDER>>>>"
+        struct_code = struct_gen(
+            args, init_blocks, blocks, dict(failure_var=failure_var, name=struct_name)
+        )
 
         self.struct_code = struct_code
         self.struct_name = struct_name
@@ -901,8 +965,11 @@ class CLinker(link.Linker):
 
         # List of indices that should be ignored when passing the arguments
         # (basically, everything that the previous call to uniq eliminated)
-        self.dupidx = [i for i, x in enumerate(all_info)
-                       if all_info.count(x) > 1 and all_info.index(x) != i]
+        self.dupidx = [
+            i
+            for i, x in enumerate(all_info)
+            if all_info.count(x) > 1 and all_info.index(x) != i
+        ]
         return self.struct_code
 
     def support_code(self):
@@ -913,14 +980,15 @@ class CLinker(link.Linker):
         """
         ret = []
         if config.cmodule.debug:
-            ret.append("""
+            ret.append(
+                """
             #ifndef DEBUG
             #define DEBUG
             #endif
-            """)
+            """
+            )
         # generic support code
-        for x in [y.type for y in self.variables] + [
-                y.op for y in self.node_order]:
+        for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
             try:
                 support_code = x.c_support_code()
                 if isinstance(support_code, list):
@@ -940,27 +1008,26 @@ class CLinker(link.Linker):
 
         """
         ret = ["-O3"]
-# this is the param the -ffast-math activate. I put the explicitly as
-# FillMissing must disable some of them. Putting -ffast-math would
-# make it disable all other parameter at the same time.
-        ret += ["-fno-math-errno",
-                # "-funsafe-math-optimizations",
-                # "-fno-signaling-nans",
-                # "-fcx-limited-range",
-                # "-fno-rounding-math",
-                # "-ffinite-math-only",
-
-                # the current code generate label event if they are not used.
-                # Could use gcc attribute for those label only
-                "-Wno-unused-label",
-                "-Wno-unused-variable",  # idem as the precedent
-                "-Wno-write-strings",  # generated by our code generator...
-                ]
+        # this is the param the -ffast-math activate. I put the explicitly as
+        # FillMissing must disable some of them. Putting -ffast-math would
+        # make it disable all other parameter at the same time.
+        ret += [
+            "-fno-math-errno",
+            # "-funsafe-math-optimizations",
+            # "-fno-signaling-nans",
+            # "-fcx-limited-range",
+            # "-fno-rounding-math",
+            # "-ffinite-math-only",
+            # the current code generate label event if they are not used.
+            # Could use gcc attribute for those label only
+            "-Wno-unused-label",
+            "-Wno-unused-variable",  # idem as the precedent
+            "-Wno-write-strings",  # generated by our code generator...
+        ]
 
         c_compiler = self.c_compiler()
 
-        for x in [y.type for y in self.variables] + [
-                y.op for y in self.node_order]:
+        for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
             try:
                 try:
                     ret += x.c_compile_args(c_compiler)
@@ -973,8 +1040,7 @@ class CLinker(link.Linker):
         # The args set by the compiler include the user flags. We do not want
         # to reorder them
         ret += c_compiler.compile_args()
-        for x in [y.type for y in self.variables] + [
-                y.op for y in self.node_order]:
+        for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
             try:
                 try:
                     no_comp = x.c_no_compile_args(c_compiler)
@@ -999,8 +1065,7 @@ class CLinker(link.Linker):
         """
         ret = []
         c_compiler = self.c_compiler()
-        for x in [y.type for y in self.variables] + [
-                y.op for y in self.node_order]:
+        for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
             try:
                 try:
                     ret += x.c_headers(c_compiler)
@@ -1019,8 +1084,7 @@ class CLinker(link.Linker):
 
         """
         ret = []
-        for x in [y.type for y in self.variables] + [
-                y.op for y in self.node_order]:
+        for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
             try:
                 ret += x.c_init_code()
             except utils.MethodNotDefined:
@@ -1029,9 +1093,8 @@ class CLinker(link.Linker):
 
     def c_compiler(self):
         c_compiler = None
-        for x in [y.type for y in self.variables] + [
-                y.op for y in self.node_order]:
-            if hasattr(x, 'c_compiler'):
+        for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
+            if hasattr(x, "c_compiler"):
                 x_compiler = x.c_compiler()
             else:
                 continue
@@ -1040,10 +1103,11 @@ class CLinker(link.Linker):
                 c_compiler = x_compiler
             else:
                 if x_compiler and (x_compiler != c_compiler):
-                    raise Exception('Nodes have requested specific'
-                                    ' different compilers',
-                                    (c_compiler, x_compiler))
-        if (c_compiler is None):
+                    raise Exception(
+                        "Nodes have requested specific" " different compilers",
+                        (c_compiler, x_compiler),
+                    )
+        if c_compiler is None:
             return cmodule.GCC_compiler
         else:
             return c_compiler
@@ -1058,8 +1122,7 @@ class CLinker(link.Linker):
         """
         ret = []
         c_compiler = self.c_compiler()
-        for x in [y.type for y in self.variables] + [
-                y.op for y in self.node_order]:
+        for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
             try:
                 try:
                     ret += x.c_header_dirs(c_compiler)
@@ -1080,8 +1143,7 @@ class CLinker(link.Linker):
         """
         ret = []
         c_compiler = self.c_compiler()
-        for x in [y.type for y in self.variables] + [
-                y.op for y in self.node_order]:
+        for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
             try:
                 try:
                     ret += x.c_libraries(c_compiler)
@@ -1101,8 +1163,7 @@ class CLinker(link.Linker):
         """
         ret = []
         c_compiler = self.c_compiler()
-        for x in [y.type for y in self.variables] + [
-                y.op for y in self.node_order]:
+        for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
             try:
                 try:
                     ret += x.c_lib_dirs(c_compiler)
@@ -1113,8 +1174,9 @@ class CLinker(link.Linker):
         # filter out empty strings/None
         return [r for r in utils.uniq(ret) if r]
 
-    def __compile__(self, input_storage=None, output_storage=None,
-                    storage_map=None, keep_lock=False):
+    def __compile__(
+        self, input_storage=None, output_storage=None, storage_map=None, keep_lock=False
+    ):
         """
         Compiles this linker's fgraph.
 
@@ -1150,18 +1212,26 @@ class CLinker(link.Linker):
                 output_storage.append(map[variable])
         input_storage = tuple(input_storage)
         output_storage = tuple(output_storage)
-        thunk, module = self.cthunk_factory(error_storage,
-                                            input_storage,
-                                            output_storage,
-                                            storage_map,
-                                            keep_lock=keep_lock)
-        return (thunk,
-                module,
-                [link.Container(input, storage) for input, storage in
-                 izip(self.fgraph.inputs, input_storage)],
-                [link.Container(output, storage, True) for output, storage in
-                 izip(self.fgraph.outputs, output_storage)],
-                error_storage)
+        thunk, module = self.cthunk_factory(
+            error_storage,
+            input_storage,
+            output_storage,
+            storage_map,
+            keep_lock=keep_lock,
+        )
+        return (
+            thunk,
+            module,
+            [
+                link.Container(input, storage)
+                for input, storage in izip(self.fgraph.inputs, input_storage)
+            ],
+            [
+                link.Container(output, storage, True)
+                for output, storage in izip(self.fgraph.outputs, output_storage)
+            ],
+            error_storage,
+        )
 
     def get_init_tasks(self):
         init_tasks = []
@@ -1170,17 +1240,18 @@ class CLinker(link.Linker):
         for v in self.variables:
             if v in self.consts:
                 continue
-            init_tasks.append((v, 'init', id))
-            tasks.append((v, 'get', id + 1))
+            init_tasks.append((v, "init", id))
+            tasks.append((v, "get", id + 1))
             id += 2
         for node in self.node_order:
-            tasks.append((node, 'code', id))
-            init_tasks.append((node, 'init', id + 1))
+            tasks.append((node, "code", id))
+            init_tasks.append((node, "init", id + 1))
             id += 2
         return init_tasks, tasks
 
-    def make_thunk(self, input_storage=None, output_storage=None,
-                   storage_map=None, keep_lock=False):
+    def make_thunk(
+        self, input_storage=None, output_storage=None, storage_map=None, keep_lock=False
+    ):
         """
         Compiles this linker's fgraph and returns a function to perform the
         computations, as well as lists of storage cells for both the inputs
@@ -1213,8 +1284,8 @@ class CLinker(link.Linker):
         """
         init_tasks, tasks = self.get_init_tasks()
         cthunk, module, in_storage, out_storage, error_storage = self.__compile__(
-            input_storage, output_storage, storage_map,
-            keep_lock=keep_lock)
+            input_storage, output_storage, storage_map, keep_lock=keep_lock
+        )
 
         res = _CThunk(cthunk, init_tasks, tasks, error_storage, module)
         res.nodes = self.node_order
@@ -1293,23 +1364,32 @@ class CLinker(link.Linker):
         no_recycle list.
 
         """
-        return self.cmodule_key_(self.fgraph, self.no_recycling,
-                                 compile_args=self.compile_args(),
-                                 libraries=self.libraries(),
-                                 header_dirs=self.header_dirs(),
-                                 c_compiler=self.c_compiler(),
-                                 )
+        return self.cmodule_key_(
+            self.fgraph,
+            self.no_recycling,
+            compile_args=self.compile_args(),
+            libraries=self.libraries(),
+            header_dirs=self.header_dirs(),
+            c_compiler=self.c_compiler(),
+        )
 
-    def cmodule_key_variables(self, inputs, outputs, no_recycling,
-                              compile_args=None, libraries=None,
-                              header_dirs=None, insert_config_hash=True,
-                              c_compiler=None):
+    def cmodule_key_variables(
+        self,
+        inputs,
+        outputs,
+        no_recycling,
+        compile_args=None,
+        libraries=None,
+        header_dirs=None,
+        insert_config_hash=True,
+        c_compiler=None,
+    ):
 
         # Assemble a dummy fgraph using the provided inputs and outputs. It is
         # only used to compute the cmodule key so it only need to expose an
         # `inputs` and an `outputs` attribute as well as a toposort() method
         # which returns a deterministic result.
-        class FakeFunctionGraph():
+        class FakeFunctionGraph:
             def __init__(self, inputs, outputs):
                 self.inputs = inputs
                 self.outputs = outputs
@@ -1324,13 +1404,26 @@ class CLinker(link.Linker):
                 return graph.io_toposort(self.inputs, self.outputs)
 
         fgraph = FakeFunctionGraph(inputs, outputs)
-        return self.cmodule_key_(fgraph, no_recycling, compile_args,
-                                 libraries, header_dirs, insert_config_hash,
-                                 c_compiler)
+        return self.cmodule_key_(
+            fgraph,
+            no_recycling,
+            compile_args,
+            libraries,
+            header_dirs,
+            insert_config_hash,
+            c_compiler,
+        )
 
-    def cmodule_key_(self, fgraph, no_recycling, compile_args=None,
-                     libraries=None, header_dirs=None, insert_config_hash=True,
-                     c_compiler=None):
+    def cmodule_key_(
+        self,
+        fgraph,
+        no_recycling,
+        compile_args=None,
+        libraries=None,
+        header_dirs=None,
+        insert_config_hash=True,
+        c_compiler=None,
+    ):
         """
         Do the actual computation of cmodule_key in a static method
         to allow it to be reused in scalar.Composite.__eq__.
@@ -1346,14 +1439,13 @@ class CLinker(link.Linker):
         # set of variables that have been computed by nodes we have
         # seen 'so far' in the loop below
         fgraph_computed_set = set()
-        fgraph_inputs_dict = dict((i, (-1, pos)) for pos, i in
-                                  enumerate(fgraph.inputs))
+        fgraph_inputs_dict = dict((i, (-1, pos)) for pos, i in enumerate(fgraph.inputs))
         constant_ids = dict()
         op_pos = {}  # Apply -> topological position
 
         # First we put the header, compile_args, library names and config hash
         # into the signature.
-        sig = ['CLinker.cmodule_key']  # will be cast to tuple on return
+        sig = ["CLinker.cmodule_key"]  # will be cast to tuple on return
         if compile_args is not None:
             # We must sort it as the order from a set is not guaranteed.
             # In  particular, 2 sets with the same content can give different
@@ -1375,14 +1467,13 @@ class CLinker(link.Linker):
 
         # We must always add the numpy ABI version here as
         # DynamicModule always add the include <numpy/arrayobject.h>
-        if np.lib.NumpyVersion(np.__version__) < '1.16.0a':
+        if np.lib.NumpyVersion(np.__version__) < "1.16.0a":
             ndarray_c_version = np.core.multiarray._get_ndarray_c_version()
         else:
             ndarray_c_version = np.core._multiarray_umath._get_ndarray_c_version()
-        sig.append('NPY_ABI_VERSION=0x%X' %
-                   ndarray_c_version)
+        sig.append("NPY_ABI_VERSION=0x%X" % ndarray_c_version)
         if c_compiler:
-            sig.append('c_compiler_str=' + c_compiler.version_str())
+            sig.append("c_compiler_str=" + c_compiler.version_str())
 
         # IMPORTANT: The 'md5' prefix is used to isolate the compilation
         # parameters from the rest of the key. If you want to add more key
@@ -1392,9 +1483,9 @@ class CLinker(link.Linker):
         # NOTE: config md5 is not using md5 hash, but sha256 instead. Function
         # string instances of md5 will be updated at a later release.
         if insert_config_hash:
-            sig.append('md5:' + theano.configparser.get_config_hash())
+            sig.append("md5:" + theano.configparser.get_config_hash())
         else:
-            sig.append('md5: <omitted>')
+            sig.append("md5: <omitted>")
 
         error_on_play = [False]
 
@@ -1432,25 +1523,25 @@ class CLinker(link.Linker):
                 isig = fgraph_inputs_dict[i]
             else:
                 if i.owner is None:
-                    assert all(all(out is not None for out in o.outputs)
-                               for o in order)
+                    assert all(all(out is not None for out in o.outputs) for o in order)
                     assert all(input.owner is None for input in fgraph.inputs)
-                    raise Exception('what is this?', (i, type(i), i.clients,
-                                                      fgraph))
+                    raise Exception("what is this?", (i, type(i), i.clients, fgraph))
 
                 if i in fgraph.outputs:
-                    isig = (op_pos[i.owner],  # outputs
-                            i.owner.outputs.index(i),
-                            fgraph.outputs.index(i))
+                    isig = (
+                        op_pos[i.owner],  # outputs
+                        i.owner.outputs.index(i),
+                        fgraph.outputs.index(i),
+                    )
                 else:
                     isig = (op_pos[i.owner], i.owner.outputs.index(i))  # temps
             return (isig, i in no_recycling)
 
         version = []
         for node_pos, node in enumerate(order):
-            if hasattr(node.op, 'c_code_cache_version_apply'):
+            if hasattr(node.op, "c_code_cache_version_apply"):
                 version.append(node.op.c_code_cache_version_apply(node))
-            if hasattr(node.op, '__props__'):
+            if hasattr(node.op, "__props__"):
                 version.append(node.op.__props__)
             for i in node.inputs:
                 version.append(i.type.c_code_cache_version())
@@ -1458,12 +1549,19 @@ class CLinker(link.Linker):
                 version.append(o.type.c_code_cache_version())
 
             # add the signature for this node
-            sig.append((
-                node.op,
-                tuple((i.type, in_sig(i, node_pos, ipos))
-                      for ipos, i in enumerate(node.inputs)),
-                (1,  # Increment if cmodule change its handling of outputs
-                    tuple(o in no_recycling for o in node.outputs))))
+            sig.append(
+                (
+                    node.op,
+                    tuple(
+                        (i.type, in_sig(i, node_pos, ipos))
+                        for ipos, i in enumerate(node.inputs)
+                    ),
+                    (
+                        1,  # Increment if cmodule change its handling of outputs
+                        tuple(o in no_recycling for o in node.outputs),
+                    ),
+                )
+            )
 
             if error_on_play[0]:
                 # if one of the signatures is not hashable
@@ -1482,8 +1580,11 @@ class CLinker(link.Linker):
         # graph's information used to compute the key. If we mistakenly
         # pretend that inputs with clients don't have any, were are only using
         # those inputs more than once to compute the key.
-        for ipos, var in [(i, var) for i, var in enumerate(fgraph.inputs)
-                          if not len(getattr(var, 'clients', []))]:
+        for ipos, var in [
+            (i, var)
+            for i, var in enumerate(fgraph.inputs)
+            if not len(getattr(var, "clients", []))
+        ]:
             sig.append((var.type, in_sig(var, -1, ipos)))
 
         # crystalize the signature and version
@@ -1524,7 +1625,8 @@ class CLinker(link.Linker):
                 include_dirs=self.header_dirs(),
                 lib_dirs=self.lib_dirs(),
                 libs=libs,
-                preargs=preargs)
+                preargs=preargs,
+            )
         except Exception as e:
             e.args += (str(self.fgraph),)
             raise
@@ -1540,7 +1642,7 @@ class CLinker(link.Linker):
         multiple times without penalty.
 
         """
-        if not hasattr(self, '_mod'):
+        if not hasattr(self, "_mod"):
             self.code_gen()
 
             mod = cmodule.DynamicModule()
@@ -1548,8 +1650,9 @@ class CLinker(link.Linker):
             # The code of instantiate
             # the 1 is for error_storage
             code = self.instantiate_code(1 + len(self.args))
-            instantiate = cmodule.ExtFunction('instantiate', code,
-                                              method=cmodule.METH_VARARGS)
+            instantiate = cmodule.ExtFunction(
+                "instantiate", code, method=cmodule.METH_VARARGS
+            )
             # ['error_storage'] + argnames,
             # local_dict = d,
             # global_dict = {})
@@ -1566,7 +1669,9 @@ class CLinker(link.Linker):
             {struct_name} *self = ({struct_name} *)PyCapsule_GetContext(capsule);
             delete self;
         }}
-        """.format(struct_name=self.struct_name)
+        """.format(
+                    struct_name=self.struct_name
+                )
             else:
                 static = """
         static int %(struct_name)s_executor(%(struct_name)s* self) {
@@ -1576,9 +1681,11 @@ class CLinker(link.Linker):
         static void %(struct_name)s_destructor(void* executor, void* self) {
             delete ((%(struct_name)s*)self);
         }
-        """ % dict(struct_name=self.struct_name)
+        """ % dict(
+                    struct_name=self.struct_name
+                )
 
-        # We add all the support code, compile args, headers and libs we need.
+            # We add all the support code, compile args, headers and libs we need.
             for support_code in self.support_code() + self.c_support_code_apply:
                 mod.add_support_code(support_code)
             mod.add_support_code(self.struct_code)
@@ -1591,8 +1698,9 @@ class CLinker(link.Linker):
             self._mod = mod
         return self._mod
 
-    def cthunk_factory(self, error_storage, in_storage, out_storage,
-                       storage_map=None, keep_lock=False):
+    def cthunk_factory(
+        self, error_storage, in_storage, out_storage, storage_map=None, keep_lock=False
+    ):
         """
         Returns a thunk that points to an instance of a C struct that
         can carry on the computation of this linker's fgraph
@@ -1619,53 +1727,79 @@ class CLinker(link.Linker):
         else:
             # Set compute_map as None as clinker do not support lazy evaluation
             for node in self.node_order:
-                node.op.prepare_node(node, storage_map, None, 'c')
+                node.op.prepare_node(node, storage_map, None, "c")
             module = get_module_cache().module_from_key(
-                key=key, lnk=self, keep_lock=keep_lock)
+                key=key, lnk=self, keep_lock=keep_lock
+            )
 
         vars = self.inputs + self.outputs + self.orphans
         # List of indices that should be ignored when passing the arguments
         # (basically, everything that the previous call to uniq eliminated)
-        dupidx = [i for i, x in enumerate(vars)
-                  if vars.count(x) > 1 and vars.index(x) != i]
+        dupidx = [
+            i for i, x in enumerate(vars) if vars.count(x) > 1 and vars.index(x) != i
+        ]
 
-        out_storage = [x for i, x in enumerate(out_storage)
-                       if (i + len(in_storage)) not in dupidx]
+        out_storage = [
+            x for i, x in enumerate(out_storage) if (i + len(in_storage)) not in dupidx
+        ]
         in_storage = [x for i, x in enumerate(in_storage) if i not in dupidx]
         if storage_map is None:
             orphd = [[orphan.data] for orphan in self.orphans]
         else:
             orphd = [storage_map[orphan] for orphan in self.orphans]
 
-        ret = module.instantiate(error_storage,
-                                 *(in_storage + out_storage + orphd))
+        ret = module.instantiate(error_storage, *(in_storage + out_storage + orphd))
         return ret, module
 
     def instantiate_code(self, n_args):
         code = StringIO()
         struct_name = self.struct_name
-        print("static PyObject * instantiate(PyObject * self, PyObject *argtuple) {", file=code)
-        print('  assert(PyTuple_Check(argtuple));', file=code)
-        print('  if (%(n_args)i != PyTuple_Size(argtuple)){ ' % locals(), file=code)
-        print('     PyErr_Format(PyExc_TypeError, "Wrong number of arguments, expected %(n_args)i, got %%i", (int)PyTuple_Size(argtuple));' % locals(), file=code)
-        print('     return NULL;', file=code)
-        print('  }', file=code)
-        print('  %(struct_name)s* struct_ptr = new %(struct_name)s();' % locals(), file=code)
-        print('  if (struct_ptr->init(', ','.join('PyTuple_GET_ITEM(argtuple, %i)' % n for n in xrange(n_args)), ') != 0) {', file=code)
-        print('    delete struct_ptr;', file=code)
-        print('    return NULL;', file=code)
-        print('  }', file=code)
+        print(
+            "static PyObject * instantiate(PyObject * self, PyObject *argtuple) {",
+            file=code,
+        )
+        print("  assert(PyTuple_Check(argtuple));", file=code)
+        print("  if (%(n_args)i != PyTuple_Size(argtuple)){ " % locals(), file=code)
+        print(
+            '     PyErr_Format(PyExc_TypeError, "Wrong number of arguments, expected %(n_args)i, got %%i", (int)PyTuple_Size(argtuple));'
+            % locals(),
+            file=code,
+        )
+        print("     return NULL;", file=code)
+        print("  }", file=code)
+        print(
+            "  %(struct_name)s* struct_ptr = new %(struct_name)s();" % locals(),
+            file=code,
+        )
+        print(
+            "  if (struct_ptr->init(",
+            ",".join("PyTuple_GET_ITEM(argtuple, %i)" % n for n in xrange(n_args)),
+            ") != 0) {",
+            file=code,
+        )
+        print("    delete struct_ptr;", file=code)
+        print("    return NULL;", file=code)
+        print("  }", file=code)
         if PY3:
-            print("""\
+            print(
+                """\
     PyObject* thunk = PyCapsule_New((void*)(&{struct_name}_executor), NULL, {struct_name}_destructor);
     if (thunk != NULL && PyCapsule_SetContext(thunk, struct_ptr) != 0) {{
         PyErr_Clear();
         Py_DECREF(thunk);
         thunk = NULL;
     }}
-""".format(**locals()), file=code)
+""".format(
+                    **locals()
+                ),
+                file=code,
+            )
         else:
-            print('  PyObject* thunk = PyCObject_FromVoidPtrAndDesc((void*)(&%(struct_name)s_executor), struct_ptr, %(struct_name)s_destructor);' % locals(), file=code)
+            print(
+                "  PyObject* thunk = PyCObject_FromVoidPtrAndDesc((void*)(&%(struct_name)s_executor), struct_ptr, %(struct_name)s_destructor);"
+                % locals(),
+                file=code,
+            )
         print("  return thunk; }", file=code)
         return code.getvalue()
 
@@ -1710,8 +1844,7 @@ class _CThunk(object):
         n = len(self.init_tasks)
         # note that the failure code is distributed in two lists
         if failure_code < 2 * n:
-            return [self.init_tasks, self.tasks][
-                failure_code % 2][failure_code // 2]
+            return [self.init_tasks, self.tasks][failure_code % 2][failure_code // 2]
         else:
             return self.tasks[failure_code - n]
 
@@ -1731,9 +1864,14 @@ class _CThunk(object):
                 exc_value = exc_type(_exc_value)
                 exc_value.__thunk_trace__ = trace
             except Exception:
-                print(('ERROR retrieving error_storage.'
-                       'Was the error set in the c code?'),
-                      end=' ', file=sys.stderr)
+                print(
+                    (
+                        "ERROR retrieving error_storage."
+                        "Was the error set in the c code?"
+                    ),
+                    end=" ",
+                    file=sys.stderr,
+                )
                 print(self.error_storage, file=sys.stderr)
                 raise
             reraise(exc_type, exc_value, exc_trace)
@@ -1765,11 +1903,9 @@ class OpWiseCLinker(link.LocalLinker):
 
     __cache__ = {}
 
-    def __init__(self,
-                 fallback_on_perform=True,
-                 allow_gc=None,
-                 nice_errors=True,
-                 schedule=None):
+    def __init__(
+        self, fallback_on_perform=True, allow_gc=None, nice_errors=True, schedule=None
+    ):
         if allow_gc is None:
             allow_gc = config.allow_gc
         self.fgraph = None
@@ -1797,8 +1933,9 @@ class OpWiseCLinker(link.LocalLinker):
         self.no_recycling = no_recycling
         return self
 
-    def make_all(self, profiler=None, input_storage=None, output_storage=None,
-                 storage_map=None):
+    def make_all(
+        self, profiler=None, input_storage=None, output_storage=None, storage_map=None
+    ):
 
         # The lock will be acquired when we compile the first
         # C code. We will keep the lock until all the function
@@ -1812,7 +1949,8 @@ class OpWiseCLinker(link.LocalLinker):
             no_recycling = self.no_recycling
 
             input_storage, output_storage, storage_map = link.map_storage(
-                fgraph, order, input_storage, output_storage, storage_map)
+                fgraph, order, input_storage, output_storage, storage_map
+            )
             if self.allow_gc:
                 computed, last_user = link.gc_helper(order)
                 post_thunk_old_storage = []
@@ -1827,32 +1965,42 @@ class OpWiseCLinker(link.LocalLinker):
             for node in order:
                 # make_thunk will try by default C code, otherwise
                 # it fall back to python.
-                thunks += [node.op.make_thunk(node,
-                                              storage_map,
-                                              compute_map,
-                                              no_recycling)]
+                thunks += [
+                    node.op.make_thunk(node, storage_map, compute_map, no_recycling)
+                ]
                 thunks[-1].inputs = [storage_map[v] for v in node.inputs]
                 thunks[-1].outputs = [storage_map[v] for v in node.outputs]
 
             for node in order:
                 if self.allow_gc:
                     post_thunk_old_storage.append(
-                        [storage_map[input] for input in node.inputs
-                         if ((input in computed) and
-                             (input not in fgraph.outputs) and
-                             node == last_user[input])])
+                        [
+                            storage_map[input]
+                            for input in node.inputs
+                            if (
+                                (input in computed)
+                                and (input not in fgraph.outputs)
+                                and node == last_user[input]
+                            )
+                        ]
+                    )
 
             if no_recycling is True:
                 no_recycling = list(storage_map.values())
                 no_recycling = utils.difference(no_recycling, input_storage)
             else:
-                no_recycling = [storage_map[r]
-                                for r in no_recycling if r not in fgraph.inputs]
+                no_recycling = [
+                    storage_map[r] for r in no_recycling if r not in fgraph.inputs
+                ]
 
-            f = link.streamline(fgraph, thunks, order,
-                                post_thunk_old_storage,
-                                no_recycling=no_recycling,
-                                nice_errors=self.nice_errors)
+            f = link.streamline(
+                fgraph,
+                thunks,
+                order,
+                post_thunk_old_storage,
+                no_recycling=no_recycling,
+                nice_errors=self.nice_errors,
+            )
 
             f.allow_gc = self.allow_gc
 
@@ -1862,13 +2010,19 @@ class OpWiseCLinker(link.LocalLinker):
                 release_lock()
                 assert get_lock.n_lock == orig_n_lock
 
-        return (f,
-                [link.Container(input, storage)
-                 for input, storage in izip(fgraph.inputs, input_storage)],
-                [link.Container(output, storage, True)
-                 for output, storage in izip(fgraph.outputs, output_storage)],
-                thunks,
-                order)
+        return (
+            f,
+            [
+                link.Container(input, storage)
+                for input, storage in izip(fgraph.inputs, input_storage)
+            ],
+            [
+                link.Container(output, storage, True)
+                for output, storage in izip(fgraph.outputs, output_storage)
+            ],
+            thunks,
+            order,
+        )
 
 
 def _default_checker(x, y):
@@ -1883,8 +2037,7 @@ def _default_checker(x, y):
         the variables to compare data
     """
     if x[0] != y[0]:
-        raise Exception("Output mismatch.",
-                        {'performlinker': x[0], 'clinker': y[0]})
+        raise Exception("Output mismatch.", {"performlinker": x[0], "clinker": y[0]})
 
 
 class DualLinker(link.Linker):
@@ -1937,7 +2090,8 @@ class DualLinker(link.Linker):
             no_recycling = []
         if self.fgraph is not None and self.fgraph is not fgraph:
             return type(self)(self.checker, self.schedule).accept(
-                fgraph, no_recycling, profile)
+                fgraph, no_recycling, profile
+            )
         self.fgraph = fgraph
         self.no_recycling = no_recycling
         return self
@@ -1951,12 +2105,16 @@ class DualLinker(link.Linker):
         no_recycling = self.no_recycling
 
         _f, i1, o1, thunks1, order1 = (
-            link.PerformLinker(schedule=self.schedule).accept(
-                fgraph, no_recycling=no_recycling).make_all(**kwargs))
-        kwargs.pop('input_storage', None)
+            link.PerformLinker(schedule=self.schedule)
+            .accept(fgraph, no_recycling=no_recycling)
+            .make_all(**kwargs)
+        )
+        kwargs.pop("input_storage", None)
         _f, i2, o2, thunks2, order2 = (
-            OpWiseCLinker(schedule=self.schedule).accept(
-                fgraph, no_recycling=no_recycling).make_all(**kwargs))
+            OpWiseCLinker(schedule=self.schedule)
+            .accept(fgraph, no_recycling=no_recycling)
+            .make_all(**kwargs)
+        )
 
         def f():
             for input1, input2 in izip(i1, i2):
@@ -1964,8 +2122,7 @@ class DualLinker(link.Linker):
                 # The copy is necessary in order for inplace ops not to
                 # interfere.
                 input2.storage[0] = copy(input1.storage[0])
-            for thunk1, thunk2, node1, node2 in izip(thunks1, thunks2,
-                                                     order1, order2):
+            for thunk1, thunk2, node1, node2 in izip(thunks1, thunks2, order1, order2):
                 for output, storage in izip(node1.outputs, thunk1.outputs):
                     if output in no_recycling:
                         storage[0] = None
@@ -1975,8 +2132,7 @@ class DualLinker(link.Linker):
                 try:
                     thunk1()
                     thunk2()
-                    for output1, output2 in izip(thunk1.outputs,
-                                                 thunk2.outputs):
+                    for output1, output2 in izip(thunk1.outputs, thunk2.outputs):
                         self.checker(output1, output2)
                 except Exception:
                     link.raise_with_op(node1)

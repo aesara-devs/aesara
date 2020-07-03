@@ -24,8 +24,14 @@ from theano import Op, Apply, shared, config, Variable
 from theano import gradient, function
 from theano.gradient import undefined_grad
 from theano import tensor
-from theano.tensor import (TensorType, as_tensor_variable, get_vector_length,
-                           cast, opt, scal)
+from theano.tensor import (
+    TensorType,
+    as_tensor_variable,
+    get_vector_length,
+    cast,
+    opt,
+    scal,
+)
 from theano.compile import optdb
 from theano.gof import local_optimizer, ParamsType
 from theano.scalar import bool as bool_t, int32 as int_t
@@ -34,7 +40,7 @@ from . import multinomial
 
 def matVecModM(A, s, m):
     # TODO : need description for method, parameter and return
-    assert A.dtype == 'int64'
+    assert A.dtype == "int64"
     return np.int32(np.sum((A * s) % m, 1) % m)
 
 
@@ -51,15 +57,16 @@ def multMatVect(v, A, m1, B, m2):
 
     """
     if multMatVect.dot_modulo is None:
-        A_sym = tensor.lmatrix('A')
-        s_sym = tensor.ivector('s')
-        m_sym = tensor.iscalar('m')
-        A2_sym = tensor.lmatrix('A2')
-        s2_sym = tensor.ivector('s2')
-        m2_sym = tensor.iscalar('m2')
+        A_sym = tensor.lmatrix("A")
+        s_sym = tensor.ivector("s")
+        m_sym = tensor.iscalar("m")
+        A2_sym = tensor.lmatrix("A2")
+        s2_sym = tensor.ivector("s2")
+        m2_sym = tensor.iscalar("m2")
         o = DotModulo()(A_sym, s_sym, m_sym, A2_sym, s2_sym, m2_sym)
         multMatVect.dot_modulo = function(
-            [A_sym, s_sym, m_sym, A2_sym, s2_sym, m2_sym], o, profile=False)
+            [A_sym, s_sym, m_sym, A2_sym, s2_sym, m2_sym], o, profile=False
+        )
 
     # This way of calling the Theano fct is done to bypass Theano overhead.
     f = multMatVect.dot_modulo
@@ -73,6 +80,8 @@ def multMatVect(v, A, m1, B, m2):
     r = f.output_storage[0].storage[0]
 
     return r
+
+
 multMatVect.dot_modulo = None
 
 
@@ -84,6 +93,7 @@ class DotModulo(Op):
     We do this 2 times on 2 triple inputs and concatenating the output.
 
     """
+
     __props__ = ()
 
     def make_node(self, A, s, m, A2, s2, m2):
@@ -190,16 +200,18 @@ class DotModulo(Op):
 
         }
 
-        """ % dict(locals(), **sub)
+        """ % dict(
+            locals(), **sub
+        )
 
 
 # MRG31k3p
 # generator constants :
-M1 = np.asarray(np.int32(2147483647))       # 2^31 - 1
-M2 = np.asarray(np.int32(2147462579))       # 2^31 - 21069
-MASK12 = np.int32(511)                      # 2^9 - 1
-MASK13 = np.int32(16777215)                 # 2^24 - 1
-MASK2 = np.int32(65535)                     # 2^16 - 1
+M1 = np.asarray(np.int32(2147483647))  # 2^31 - 1
+M2 = np.asarray(np.int32(2147462579))  # 2^31 - 21069
+MASK12 = np.int32(511)  # 2^9 - 1
+MASK13 = np.int32(16777215)  # 2^24 - 1
+MASK2 = np.int32(65535)  # 2^16 - 1
 MULT2 = np.int32(21069)
 NORM = 4.656612873077392578125e-10  # 1./2^31
 
@@ -208,25 +220,39 @@ NORM = 4.656612873077392578125e-10  # 1./2^31
 # A2p0 = np.asarray([[32768, 0, 32769], [1, 0, 0], [0, 1, 0]],
 #                      dtype='int64')
 
-A1p72 = np.asarray([[1516919229, 758510237, 499121365],
-                    [1884998244, 1516919229, 335398200],
-                    [601897748, 1884998244, 358115744]],
-                   dtype='int64')
-A2p72 = np.asarray([[1228857673, 1496414766, 954677935],
-                    [1133297478, 1407477216, 1496414766],
-                    [2002613992, 1639496704, 1407477216]],
-                   dtype='int64')
+A1p72 = np.asarray(
+    [
+        [1516919229, 758510237, 499121365],
+        [1884998244, 1516919229, 335398200],
+        [601897748, 1884998244, 358115744],
+    ],
+    dtype="int64",
+)
+A2p72 = np.asarray(
+    [
+        [1228857673, 1496414766, 954677935],
+        [1133297478, 1407477216, 1496414766],
+        [2002613992, 1639496704, 1407477216],
+    ],
+    dtype="int64",
+)
 
 A1p134 = np.asarray(
-    [[1702500920, 1849582496, 1656874625],
-     [828554832, 1702500920, 1512419905],
-     [1143731069, 828554832, 102237247]],
-    dtype='int64')
+    [
+        [1702500920, 1849582496, 1656874625],
+        [828554832, 1702500920, 1512419905],
+        [1143731069, 828554832, 102237247],
+    ],
+    dtype="int64",
+)
 A2p134 = np.asarray(
-    [[796789021, 1464208080, 607337906],
-     [1241679051, 1431130166, 1464208080],
-     [1401213391, 1178684362, 1431130166]],
-    dtype='int64')
+    [
+        [796789021, 1464208080, 607337906],
+        [1241679051, 1431130166, 1464208080],
+        [1401213391, 1178684362, 1431130166],
+    ],
+    dtype="int64",
+)
 np_int32_vals = [np.int32(i) for i in (0, 7, 9, 15, 16, 22, 24)]
 
 
@@ -247,14 +273,13 @@ def mrg_next_value(rstate, new_rstate, NORM, mask, offset):
 
     i0, i7, i9, i15, i16, i22, i24 = np_int32_vals
     # first component
-    y1 = (((x12 & MASK12) << i22) + (x12 >> i9) +
-          ((x13 & MASK13) << i7) + (x13 >> i24))
+    y1 = ((x12 & MASK12) << i22) + (x12 >> i9) + ((x13 & MASK13) << i7) + (x13 >> i24)
 
     assert type(y1) == np.int32
-    if (y1 < 0 or y1 >= M1):  # must also check overflow
+    if y1 < 0 or y1 >= M1:  # must also check overflow
         y1 -= M1
     y1 += x13
-    if (y1 < 0 or y1 >= M1):
+    if y1 < 0 or y1 >= M1:
         y1 -= M1
 
     x13 = x12
@@ -264,17 +289,17 @@ def mrg_next_value(rstate, new_rstate, NORM, mask, offset):
     # second component
     y1 = ((x21 & MASK2) << i15) + (MULT2 * (x21 >> i16))
     assert type(y1) == np.int32
-    if (y1 < 0 or y1 >= M2):
+    if y1 < 0 or y1 >= M2:
         y1 -= M2
     y2 = ((x23 & MASK2) << i15) + (MULT2 * (x23 >> i16))
     assert type(y2) == np.int32
-    if (y2 < 0 or y2 >= M2):
+    if y2 < 0 or y2 >= M2:
         y2 -= M2
     y2 += x23
-    if (y2 < 0 or y2 >= M2):
+    if y2 < 0 or y2 >= M2:
         y2 -= M2
     y2 += y1
-    if (y2 < 0 or y2 >= M2):
+    if y2 < 0 or y2 >= M2:
         y2 -= M2
 
     x23 = x22
@@ -284,7 +309,7 @@ def mrg_next_value(rstate, new_rstate, NORM, mask, offset):
     # Must never return either 0 or M1+1
     new_rstate[...] = [x11, x12, x13, x21, x22, x23]
     assert new_rstate.dtype == np.int32
-    if (x11 <= x21):
+    if x11 <= x21:
         return (((x11 - x21 + M1) & mask) + offset) * NORM
     else:
         return (((x11 - x21) & mask) + offset) * NORM
@@ -293,14 +318,16 @@ def mrg_next_value(rstate, new_rstate, NORM, mask, offset):
 class mrg_uniform_base(Op):
     # TODO : need description for class, parameter
     __props__ = ("output_type", "inplace")
-    params_type = ParamsType(inplace=bool_t,
-                             # following params will come from self.output_type.
-                             # NB: As output object may not be allocated in C code,
-                             # we can not be sure to get these properties from output.
-                             # So, we should better get them as params from self.output_type.
-                             ndim=int_t,
-                             otypenum=int_t,
-                             otype_is_float32=bool_t)
+    params_type = ParamsType(
+        inplace=bool_t,
+        # following params will come from self.output_type.
+        # NB: As output object may not be allocated in C code,
+        # we can not be sure to get these properties from output.
+        # So, we should better get them as params from self.output_type.
+        ndim=int_t,
+        otypenum=int_t,
+        otype_is_float32=bool_t,
+    )
 
     def __init__(self, output_type, inplace=False):
         Op.__init__(self)
@@ -315,7 +342,7 @@ class mrg_uniform_base(Op):
     # when testing old interface or when using FAST_COMPILE mode.
     ndim = property(lambda self: self.output_type.ndim)
     otypenum = property(lambda self: np.dtype(self.output_type.dtype).num)
-    otype_is_float32 = property(lambda self: self.output_type.dtype == 'float32')
+    otype_is_float32 = property(lambda self: self.output_type.dtype == "float32")
 
     def __str__(self):
         if self.inplace:
@@ -325,10 +352,12 @@ class mrg_uniform_base(Op):
         return self.__class__.__name__ + "{%s,%s}" % (self.output_type, s)
 
     def grad(self, inputs, ograd):
-        return [gradient.grad_undefined(self, k, inp,
-                                        'No gradient defined through '
-                                        'random sampling op')
-                for k, inp in enumerate(inputs)]
+        return [
+            gradient.grad_undefined(
+                self, k, inp, "No gradient defined through " "random sampling op"
+            )
+            for k, inp in enumerate(inputs)
+        ]
 
     def R_op(self, inputs, eval_points):
         return [None for i in eval_points]
@@ -345,13 +374,11 @@ class mrg_uniform(mrg_uniform_base):
         # call through MRG_RandomStreams instead.
         broad = []
         for i in range(self.output_type.ndim):
-                broad.append(tensor.extract_constant(size[i]) == 1)
+            broad.append(tensor.extract_constant(size[i]) == 1)
         output_type = self.output_type.clone(broadcastable=broad)()
         rstate = as_tensor_variable(rstate)
         size = as_tensor_variable(size)
-        return Apply(self,
-                     [rstate, size],
-                     [rstate.type(), output_type])
+        return Apply(self, [rstate, size], [rstate.type(), output_type])
 
     @classmethod
     def new(cls, rstate, ndim, dtype, size):
@@ -381,25 +408,29 @@ class mrg_uniform(mrg_uniform_base):
         n_streams, _ = rstate.shape
 
         rval = np.zeros(n_elements, dtype=self.output_type.dtype)
-        if rval.dtype == 'float16':
-            mask = 0x7fff
+        if rval.dtype == "float16":
+            mask = 0x7FFF
             offset = 1
             NORM = np.float16(3.0458e-05)
-        elif rval.dtype == 'float32':
-            mask = 0xffffffff
+        elif rval.dtype == "float32":
+            mask = 0xFFFFFFFF
             offset = 0
             NORM = np.float32(4.6566126e-10)
-        elif rval.dtype == 'float64':
-            mask = 0xffffffff
+        elif rval.dtype == "float64":
+            mask = 0xFFFFFFFF
             offset = 0
             NORM = 4.656612873077392578125e-10  # 1./2^31
 
-        err_orig = np.seterr(over='ignore')
+        err_orig = np.seterr(over="ignore")
         try:
             for i in xrange(n_elements):
-                sample = mrg_next_value(rstate[i % n_streams],
-                                        rstate[i % n_streams],
-                                        NORM=NORM, mask=mask, offset=offset)
+                sample = mrg_next_value(
+                    rstate[i % n_streams],
+                    rstate[i % n_streams],
+                    NORM=NORM,
+                    mask=mask,
+                    offset=offset,
+                )
                 rval[i] = sample
         finally:
             np.seterr(**err_orig)
@@ -409,7 +440,8 @@ class mrg_uniform(mrg_uniform_base):
         o_sample[0] = node.outputs[1].type.filter(rval.reshape(size))
 
     def c_support_code(self):
-        return "\n".join("""
+        return "\n".join(
+            """
         void cpu_rng_mrg_uniform_%(dtype)s(PyArrayObject* o_sample, PyArrayObject* o_rstate,
                                            npy_int64 n_elements, int n_streams) {
             const npy_int32 i0 = 0;
@@ -486,17 +518,20 @@ class mrg_uniform(mrg_uniform_base):
                 state_data_i[5]= x23;
             }
         }
-        """ % dict(dtype=dtype, NORM=NORM) for dtype, NORM in (
-            ('npy_float32', '4.6566126e-10f'),
-            ('npy_float64', '4.656612873077392578125e-10')
-        ))
+        """
+            % dict(dtype=dtype, NORM=NORM)
+            for dtype, NORM in (
+                ("npy_float32", "4.6566126e-10f"),
+                ("npy_float64", "4.656612873077392578125e-10"),
+            )
+        )
 
     def c_code(self, node, name, inp, out, sub):
         # If we try to use the C code here with something else than a
         # TensorType, something is wrong (likely one of the GPU ops
         # not defining C code correctly).
         assert isinstance(node.inputs[0].type, TensorType)
-        if self.output_type.dtype == 'float16':
+        if self.output_type.dtype == "float16":
             # C code is not tested, fall back to Python
             super(mrg_uniform, self).c_code(node, name, inp, out, sub)
         return """
@@ -603,16 +638,21 @@ class mrg_uniform(mrg_uniform_base):
 
         free(odims);
         //////// </ code generated by mrg_uniform>
-        """ % dict(rstate=inp[0], size=inp[1],
-                   o_rstate=out[0], o_sample=out[1],
-                   params=sub['params'],
-                   just_fail=sub['fail'],
-                   fail="""
+        """ % dict(
+            rstate=inp[0],
+            size=inp[1],
+            o_rstate=out[0],
+            o_sample=out[1],
+            params=sub["params"],
+            just_fail=sub["fail"],
+            fail="""
                    {
                        free(odims);
                        %(fail)s
                    }
-                   """ % dict(fail=sub['fail']))
+                   """
+            % dict(fail=sub["fail"]),
+        )
 
     def c_code_cache_version(self):
         return (10,)
@@ -633,8 +673,9 @@ def guess_n_streams(size, warn=False):
     # TODO: a smart way of choosing the number of streams, see #612.
     # Note that this code was moved out of `MRG_RandomStreams` so that it can
     # be easily accessed from tests, where we want to disable the warning.
-    if (isinstance(size, (tuple, list)) and
-            all([isinstance(i, integer_types) for i in size])):
+    if isinstance(size, (tuple, list)) and all(
+        [isinstance(i, integer_types) for i in size]
+    ):
         # We can make a guess.
         r = 1
         for s in size:
@@ -654,9 +695,13 @@ def guess_n_streams(size, warn=False):
     else:
         if warn:
             warnings.warn(
-                ("MRG_RandomStreams Can't determine #streams "
-                 "from size (%s), guessing 60*256") % str(size),
-                stacklevel=3)
+                (
+                    "MRG_RandomStreams Can't determine #streams "
+                    "from size (%s), guessing 60*256"
+                )
+                % str(size),
+                stacklevel=3,
+            )
         return 60 * 256
 
 
@@ -697,26 +742,24 @@ class MRG_RandomStreams(object):
         # TODO : need description for method, parameter
         if isinstance(seed, integer_types):
             if seed == 0:
-                raise ValueError('seed should not be 0', seed)
+                raise ValueError("seed should not be 0", seed)
             elif seed >= M2:
-                raise ValueError('seed should be less than %i' % M2, seed)
-            self.rstate = np.asarray([seed] * 6, dtype='int32')
+                raise ValueError("seed should be less than %i" % M2, seed)
+            self.rstate = np.asarray([seed] * 6, dtype="int32")
         elif len(seed) == 6:
             if seed[0] == 0 and seed[1] == 0 and seed[2] == 0:
-                raise ValueError(
-                    'The first 3 values of seed should not be all 0', seed)
+                raise ValueError("The first 3 values of seed should not be all 0", seed)
             if seed[3] == 0 and seed[4] == 0 and seed[5] == 0:
-                raise ValueError(
-                    'The last 3 values of seed should not be all 0', seed)
+                raise ValueError("The last 3 values of seed should not be all 0", seed)
             if seed[0] >= M1 or seed[1] >= M1 or seed[2] >= M1:
                 raise ValueError(
-                    'The first 3 values of seed should be less than %i' % M1,
-                    seed)
+                    "The first 3 values of seed should be less than %i" % M1, seed
+                )
             if seed[3] >= M2 or seed[4] >= M2 or seed[5] >= M2:
                 raise ValueError(
-                    'The last 3 values of seed should be less than %i' % M2,
-                    seed)
-            self.rstate = np.asarray(seed, dtype='int32')
+                    "The last 3 values of seed should be less than %i" % M2, seed
+                )
+            self.rstate = np.asarray(seed, dtype="int32")
         else:
             raise TypeError("seed should be 1 integer or 6 integers")
 
@@ -742,11 +785,11 @@ class MRG_RandomStreams(object):
         for old_r, new_r, size, nstreams in self.state_updates:
             if nstreams is None:
                 nstreams = self.n_streams(size)
-            rstates = self.get_substream_rstates(nstreams,
-                                                 new_r.owner.outputs[1].dtype)
-            assert (old_r.get_value(borrow=True,
-                                    return_internal_type=True).shape ==
-                    rstates.shape)
+            rstates = self.get_substream_rstates(nstreams, new_r.owner.outputs[1].dtype)
+            assert (
+                old_r.get_value(borrow=True, return_internal_type=True).shape
+                == rstates.shape
+            )
             assert rstates.dtype == old_r.dtype
             old_r.set_value(rstates, borrow=True)
 
@@ -760,7 +803,7 @@ class MRG_RandomStreams(object):
         self.rstate = multMatVect(self.rstate, A1p134, M1, A2p134, M2)
         assert self.rstate.dtype == np.int32
 
-    @theano.change_flags(compute_test_value='off')
+    @theano.change_flags(compute_test_value="off")
     def get_substream_rstates(self, n_streams, dtype, inc_rstate=True):
         # TODO : need description for parameter and return
         """
@@ -769,9 +812,9 @@ class MRG_RandomStreams(object):
 
         """
         assert isinstance(dtype, string_types)
-        assert n_streams < 2**72
+        assert n_streams < 2 ** 72
         assert n_streams > 0
-        rval = np.zeros((n_streams, 6), dtype='int32')
+        rval = np.zeros((n_streams, 6), dtype="int32")
         rval[0] = self.rstate
 
         # If multMatVect.dot_modulo isn't compiled, compile it.
@@ -810,8 +853,9 @@ class MRG_RandomStreams(object):
         node_rstate.default_update = new_rstate
         return sample
 
-    def uniform(self, size, low=0.0, high=1.0, ndim=None, dtype=None,
-                nstreams=None, **kwargs):
+    def uniform(
+        self, size, low=0.0, high=1.0, ndim=None, dtype=None, nstreams=None, **kwargs
+    ):
         # TODO : need description for parameter 'size', 'ndim', 'nstreams'
         """
         Sample a tensor of given size whose element from a uniform
@@ -853,48 +897,60 @@ class MRG_RandomStreams(object):
 
         if isinstance(size, tuple):
             msg = "size must be a tuple of int or a Theano variable"
-            assert all([isinstance(i, (np.integer, integer_types, Variable))
-                        for i in size]), msg
-            if any([isinstance(i, (np.integer, integer_types)) and i <= 0
-                    for i in size]):
+            assert all(
+                [isinstance(i, (np.integer, integer_types, Variable)) for i in size]
+            ), msg
+            if any(
+                [isinstance(i, (np.integer, integer_types)) and i <= 0 for i in size]
+            ):
                 raise ValueError(
-                    "The specified size contains a dimension with value <= 0",
-                    size)
+                    "The specified size contains a dimension with value <= 0", size
+                )
 
         else:
             if not (isinstance(size, Variable) and size.ndim == 1):
-                raise TypeError("size must be a tuple of int or a Theano "
-                                "Variable with 1 dimension, got " + str(size) +
-                                " of type " + str(type(size)))
+                raise TypeError(
+                    "size must be a tuple of int or a Theano "
+                    "Variable with 1 dimension, got "
+                    + str(size)
+                    + " of type "
+                    + str(type(size))
+                )
         orig_nstreams = nstreams
         if nstreams is None:
             nstreams = self.n_streams(size)
         rstates = self.get_substream_rstates(nstreams, dtype)
 
         d = {}
-        if 'target' in kwargs:
-            d = dict(target=kwargs.pop('target'))
+        if "target" in kwargs:
+            d = dict(target=kwargs.pop("target"))
         if len(kwargs) > 0:
-            raise TypeError("uniform() got unexpected keyword arguments %s" % (str(kwargs.keys())))
+            raise TypeError(
+                "uniform() got unexpected keyword arguments %s" % (str(kwargs.keys()))
+            )
         node_rstate = shared(rstates, **d)
-        u = self.pretty_return(node_rstate,
-                               *mrg_uniform.new(node_rstate,
-                                                ndim, dtype, size),
-                               size=size, nstreams=orig_nstreams)
+        u = self.pretty_return(
+            node_rstate,
+            *mrg_uniform.new(node_rstate, ndim, dtype, size),
+            size=size,
+            nstreams=orig_nstreams
+        )
         # Add a reference to distinguish from other shared variables
         node_rstate.tag.is_rng = True
         r = u * (high - low) + low
 
         if u.type.broadcastable != r.type.broadcastable:
             raise NotImplementedError(
-                'Increase the size to match the broadcasting pattern of '
-                '`low` and `high` arguments')
+                "Increase the size to match the broadcasting pattern of "
+                "`low` and `high` arguments"
+            )
 
         assert r.dtype == dtype
         return r
 
-    def binomial(self, size=None, n=1, p=0.5, ndim=None, dtype='int64',
-                 nstreams=None, **kwargs):
+    def binomial(
+        self, size=None, n=1, p=0.5, ndim=None, dtype="int64", nstreams=None, **kwargs
+    ):
         # TODO : need description for method, parameter and return
         if n == 1:
             p = undefined_grad(as_tensor_variable(p))
@@ -903,8 +959,16 @@ class MRG_RandomStreams(object):
         else:
             raise NotImplementedError("MRG_RandomStreams.binomial with n > 1")
 
-    def multinomial(self, size=None, n=1, pvals=None, ndim=None, dtype='int64',
-                    nstreams=None, **kwargs):
+    def multinomial(
+        self,
+        size=None,
+        n=1,
+        pvals=None,
+        ndim=None,
+        dtype="int64",
+        nstreams=None,
+        **kwargs
+    ):
         # TODO : need description for parameter and return
         """
         Sample `n` (`n` needs to be >= 1, default 1) times from a multinomial
@@ -933,17 +997,19 @@ class MRG_RandomStreams(object):
         if size is not None:
             if any([isinstance(i, integer_types) and i <= 0 for i in size]):
                 raise ValueError(
-                    "The specified size contains a dimension with value <= 0",
-                    size)
+                    "The specified size contains a dimension with value <= 0", size
+                )
 
         if size is not None:
             raise ValueError(
                 "Provided a size argument to MRG_RandomStreams.multinomial, "
-                "which does not use the size argument.")
+                "which does not use the size argument."
+            )
         if ndim is not None:
             raise ValueError(
                 "Provided an ndim argument to MRG_RandomStreams.multinomial, "
-                "which does not use the ndim argument.")
+                "which does not use the ndim argument."
+            )
         if pvals.ndim == 2:
             size = pvals[:, 0].shape * n
             unis = self.uniform(size=size, ndim=1, nstreams=nstreams, **kwargs)
@@ -951,11 +1017,21 @@ class MRG_RandomStreams(object):
             n_samples = as_tensor_variable(n)
             return op(pvals, unis, n_samples)
         else:
-            raise NotImplementedError(("MRG_RandomStreams.multinomial only"
-                                       " implemented for pvals.ndim = 2"))
+            raise NotImplementedError(
+                ("MRG_RandomStreams.multinomial only" " implemented for pvals.ndim = 2")
+            )
 
-    def choice(self, size=1, a=None, replace=True, p=None, ndim=None,
-               dtype='int64', nstreams=None, **kwargs):
+    def choice(
+        self,
+        size=1,
+        a=None,
+        replace=True,
+        p=None,
+        ndim=None,
+        dtype="int64",
+        nstreams=None,
+        **kwargs
+    ):
         """
         Sample `size` times from a multinomial distribution defined by
         probabilities `p`, and returns the indices of the sampled elements.
@@ -998,45 +1074,76 @@ class MRG_RandomStreams(object):
         """
         if replace:
             raise NotImplementedError(
-                "MRG_RandomStreams.choice only works without replacement "
-                "for now.")
+                "MRG_RandomStreams.choice only works without replacement " "for now."
+            )
 
         if a is not None:
-            raise TypeError("For now, a has to be None in "
-                            "MRG_RandomStreams.choice. Sampled values are "
-                            "between 0 and p.shape[1]-1")
+            raise TypeError(
+                "For now, a has to be None in "
+                "MRG_RandomStreams.choice. Sampled values are "
+                "between 0 and p.shape[1]-1"
+            )
 
         if p is None:
-            raise TypeError("For now, p has to be specified in "
-                            "MRG_RandomStreams.choice.")
+            raise TypeError(
+                "For now, p has to be specified in " "MRG_RandomStreams.choice."
+            )
         p = as_tensor_variable(p)
         p = undefined_grad(p)
 
         if ndim is not None:
-            raise ValueError("ndim argument to "
-                             "MRG_RandomStreams.choice "
-                             "is not used.")
+            raise ValueError(
+                "ndim argument to " "MRG_RandomStreams.choice " "is not used."
+            )
 
         if p.ndim != 2:
             raise NotImplementedError(
-                "MRG_RandomStreams.choice is only implemented for p.ndim = 2")
+                "MRG_RandomStreams.choice is only implemented for p.ndim = 2"
+            )
 
         shape = p[:, 0].shape * size
         unis = self.uniform(size=shape, ndim=1, nstreams=nstreams, **kwargs)
         op = multinomial.ChoiceFromUniform(odtype=dtype)
         return op(p, unis, as_tensor_variable(size))
 
-    def multinomial_wo_replacement(self, size=None, n=1, pvals=None,
-                                   ndim=None, dtype='int64', nstreams=None, **kwargs):
-        warnings.warn('MRG_RandomStreams.multinomial_wo_replacement() is '
-                      'deprecated and will be removed in the next release of '
-                      'Theano. Please use MRG_RandomStreams.choice() instead.')
+    def multinomial_wo_replacement(
+        self,
+        size=None,
+        n=1,
+        pvals=None,
+        ndim=None,
+        dtype="int64",
+        nstreams=None,
+        **kwargs
+    ):
+        warnings.warn(
+            "MRG_RandomStreams.multinomial_wo_replacement() is "
+            "deprecated and will be removed in the next release of "
+            "Theano. Please use MRG_RandomStreams.choice() instead."
+        )
         assert size is None
-        return self.choice(size=n, a=None, replace=False, p=pvals,
-                           dtype=dtype, nstreams=nstreams, ndim=ndim, **kwargs)
+        return self.choice(
+            size=n,
+            a=None,
+            replace=False,
+            p=pvals,
+            dtype=dtype,
+            nstreams=nstreams,
+            ndim=ndim,
+            **kwargs
+        )
 
-    def normal(self, size, avg=0.0, std=1.0, ndim=None, dtype=None,
-               nstreams=None, truncate=False, **kwargs):
+    def normal(
+        self,
+        size,
+        avg=0.0,
+        std=1.0,
+        ndim=None,
+        dtype=None,
+        nstreams=None,
+        truncate=False,
+        **kwargs
+    ):
         """
         Sample a tensor of values from a normal distribution.
 
@@ -1079,16 +1186,23 @@ class MRG_RandomStreams(object):
         # generate even number of uniform samples
         # Do manual constant folding to lower optiimizer work.
         if isinstance(size, theano.Constant):
-            n_odd_samples = size.prod(dtype='int64')
+            n_odd_samples = size.prod(dtype="int64")
         else:
-            n_odd_samples = tensor.prod(size, dtype='int64')
+            n_odd_samples = tensor.prod(size, dtype="int64")
         n_even_samples = n_odd_samples + n_odd_samples % 2
-        uniform = self.uniform((n_even_samples, ), low=0., high=1.,
-                               ndim=1, dtype=dtype, nstreams=nstreams, **kwargs)
+        uniform = self.uniform(
+            (n_even_samples,),
+            low=0.0,
+            high=1.0,
+            ndim=1,
+            dtype=dtype,
+            nstreams=nstreams,
+            **kwargs
+        )
 
         # box-muller transform
-        u1 = uniform[:n_even_samples // 2]
-        u2 = uniform[n_even_samples // 2:]
+        u1 = uniform[: n_even_samples // 2]
+        u2 = uniform[n_even_samples // 2 :]
         r = tensor.sqrt(-2.0 * tensor.log(u1))
         theta = np.array(2.0 * np.pi, dtype=dtype) * u2
         cos_theta, sin_theta = tensor.cos(theta), tensor.sin(theta)
@@ -1097,8 +1211,8 @@ class MRG_RandomStreams(object):
 
         if truncate:
             # use valid samples
-            to_fix0 = (z0 < -2.) | (z0 > 2.)
-            to_fix1 = (z1 < -2.) | (z1 > 2.)
+            to_fix0 = (z0 < -2.0) | (z0 > 2.0)
+            to_fix1 = (z1 < -2.0) | (z1 > 2.0)
             z0_valid = z0[tensor.nonzero(~to_fix0)]
             z1_valid = z1[tensor.nonzero(~to_fix1)]
 
@@ -1106,12 +1220,19 @@ class MRG_RandomStreams(object):
             to_fix0 = tensor.nonzero(to_fix0)[0]
             to_fix1 = tensor.nonzero(to_fix1)[0]
             n_fix_samples = to_fix0.size + to_fix1.size
-            lower = tensor.constant(1. / np.e**2, dtype=dtype)
-            u_fix = self.uniform((n_fix_samples, ), low=lower, high=1.,
-                                 ndim=1, dtype=dtype, nstreams=nstreams, **kwargs)
-            r_fix = tensor.sqrt(-2. * tensor.log(u_fix))
-            z0_fixed = r_fix[:to_fix0.size] * cos_theta[to_fix0]
-            z1_fixed = r_fix[to_fix0.size:] * sin_theta[to_fix1]
+            lower = tensor.constant(1.0 / np.e ** 2, dtype=dtype)
+            u_fix = self.uniform(
+                (n_fix_samples,),
+                low=lower,
+                high=1.0,
+                ndim=1,
+                dtype=dtype,
+                nstreams=nstreams,
+                **kwargs
+            )
+            r_fix = tensor.sqrt(-2.0 * tensor.log(u_fix))
+            z0_fixed = r_fix[: to_fix0.size] * cos_theta[to_fix0]
+            z1_fixed = r_fix[to_fix0.size :] * sin_theta[to_fix1]
 
             # pack everything together to a useful result
             norm_samples = tensor.join(0, z0_valid, z0_fixed, z1_valid, z1_fixed)
@@ -1129,8 +1250,9 @@ class MRG_RandomStreams(object):
 
         return samples
 
-    def truncated_normal(self, size, avg=0.0, std=1.0,
-                         ndim=None, dtype=None, nstreams=None, **kwargs):
+    def truncated_normal(
+        self, size, avg=0.0, std=1.0, ndim=None, dtype=None, nstreams=None, **kwargs
+    ):
         """
         Sample a tensor of values from a symmetrically truncated normal distribution.
 
@@ -1161,9 +1283,17 @@ class MRG_RandomStreams(object):
         normal
         """
         # constant taken from scipy.stats.truncnorm.std(a=-2, b=2, loc=0., scale=1.)
-        std = std / tensor.constant(.87962566103423978)
-        return self.normal(size=size, avg=avg, std=std, truncate=True,
-                           ndim=ndim, dtype=dtype, nstreams=nstreams, **kwargs)
+        std = std / tensor.constant(0.87962566103423978)
+        return self.normal(
+            size=size,
+            avg=avg,
+            std=std,
+            truncate=True,
+            ndim=ndim,
+            dtype=dtype,
+            nstreams=nstreams,
+            **kwargs
+        )
 
 
 def _check_size(size):
@@ -1194,7 +1324,9 @@ def _check_size(size):
         elif size.ndim == 0:
             return tensor.stack([size], ndim=1)
         else:
-            raise ValueError("Theano variable must have 1 dimension to be a valid size.", size)
+            raise ValueError(
+                "Theano variable must have 1 dimension to be a valid size.", size
+            )
     elif isinstance(size, (np.integer, integer_types)):
         return tensor.constant([size], ndim=1)
     elif not isinstance(size, (tuple, list)):
@@ -1207,9 +1339,15 @@ def _check_size(size):
                 raise ValueError("Non-scalar Theano variable in size", size, i)
         elif isinstance(i, (np.integer, integer_types)):
             if i <= 0:
-                raise ValueError("Non-positive dimensions not allowed in size.", size, i)
+                raise ValueError(
+                    "Non-positive dimensions not allowed in size.", size, i
+                )
         else:
-            raise ValueError("Only Theano variables and integers are allowed in a size-tuple.", size, i)
+            raise ValueError(
+                "Only Theano variables and integers are allowed in a size-tuple.",
+                size,
+                i,
+            )
 
     return tensor.as_tensor_variable(size, ndim=1)
 
@@ -1224,6 +1362,11 @@ def mrg_random_make_inplace(node):
         return new_op.make_node(*node.inputs).outputs
     return False
 
-optdb.register('random_make_inplace_mrg',
-               opt.in2out(mrg_random_make_inplace, ignore_newtrees=True),
-               99, 'fast_run', 'inplace')
+
+optdb.register(
+    "random_make_inplace_mrg",
+    opt.in2out(mrg_random_make_inplace, ignore_newtrees=True),
+    99,
+    "fast_run",
+    "inplace",
+)

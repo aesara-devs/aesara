@@ -183,7 +183,7 @@ def _contains_cycle(fgraph, orderings):
 
 
 def _build_droot_impact(destroy_handler):
-    droot = {}   # destroyed view + nonview variables -> foundation
+    droot = {}  # destroyed view + nonview variables -> foundation
     impact = {}  # destroyed nonview variable -> it + all views of it
     root_destroyer = {}  # root -> destroyer apply
 
@@ -203,8 +203,7 @@ def _build_droot_impact(destroy_handler):
             input_root = r
 
             if input_root in droot:
-                raise InconsistencyError(
-                    "Multiple destroyers of %s" % input_root)
+                raise InconsistencyError("Multiple destroyers of %s" % input_root)
             droot[input_root] = input_root
             root_destroyer[input_root] = app
 
@@ -243,15 +242,19 @@ def fast_inplace_check(inputs):
     """
     fgraph = inputs[0].fgraph
     Supervisor = theano.compile.function_module.Supervisor
-    protected_inputs = [f.protected for f in fgraph._features
-                        if isinstance(f, Supervisor)]
+    protected_inputs = [
+        f.protected for f in fgraph._features if isinstance(f, Supervisor)
+    ]
     protected_inputs = sum(protected_inputs, [])  # flatten the list
     protected_inputs.extend(fgraph.outputs)
 
-    inputs = [i for i in inputs if
-              not isinstance(i, graph.Constant) and
-              not fgraph.has_destroyers([i]) and
-              i not in protected_inputs]
+    inputs = [
+        i
+        for i in inputs
+        if not isinstance(i, graph.Constant)
+        and not fgraph.has_destroyers([i])
+        and i not in protected_inputs
+    ]
     return inputs
 
 
@@ -297,6 +300,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
         <unknown>
 
     """
+
     pickle_rm_attr = ["destroyers", "has_destroyers"]
 
     def __init__(self, do_imports_on_attach=True, algo=None):
@@ -358,8 +362,9 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
         if self.fgraph is not None:
             raise Exception(
                 "A DestroyHandler instance can only serve one"
-                " FunctionGraph. (Matthew 6:24)")
-        for attr in ('destroyers', 'destroy_handler'):
+                " FunctionGraph. (Matthew 6:24)"
+            )
+        for attr in ("destroyers", "destroy_handler"):
             if hasattr(fgraph, attr):
                 already_there = True
 
@@ -367,16 +372,21 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
             # FunctionGraph.attach_feature catches AlreadyThere and cancels the attachment
             raise toolbox.AlreadyThere(
                 "DestroyHandler feature is already present"
-                " or in conflict with another plugin.")
+                " or in conflict with another plugin."
+            )
 
         # Annotate the FunctionGraph #
         self.unpickle(fgraph)
         fgraph.destroy_handler = self
 
         self.fgraph = fgraph
-        self.destroyers = OrderedSet()  # set of Apply instances with non-null destroy_map
+        self.destroyers = (
+            OrderedSet()
+        )  # set of Apply instances with non-null destroy_map
         self.view_i = {}  # variable -> variable used in calculation
-        self.view_o = {}  # variable -> set of variables that use this one as a direct input
+        self.view_o = (
+            {}
+        )  # variable -> set of variables that use this one as a direct input
         # clients: how many times does an apply use a given variable
         self.clients = OrderedDict()  # variable -> apply -> ninputs
         self.stale_droot = True
@@ -392,10 +402,11 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
                 return [root_destroyer[droot[r]]]
             except Exception:
                 return []
+
         fgraph.destroyers = get_destroyers_of
 
         def has_destroyers(protected_list):
-            if self.algo != 'fast':
+            if self.algo != "fast":
                 droot, _, root_destroyer = self.refresh_droot_impact()
                 for protected_var in protected_list:
                     try:
@@ -408,13 +419,13 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
             def recursive_destroys_finder(protected_var):
                 # protected_var is the idx'th input of app.
                 for (app, idx) in protected_var.clients:
-                    if app == 'output':
+                    if app == "output":
                         continue
-                    destroy_maps = getattr(app.op, 'destroy_map', {}).values()
+                    destroy_maps = getattr(app.op, "destroy_map", {}).values()
                     # If True means that the apply node, destroys the protected_var.
                     if idx in [dmap for sublist in destroy_maps for dmap in sublist]:
                         return True
-                    for var_idx in getattr(app.op, 'view_map', {}).keys():
+                    for var_idx in getattr(app.op, "view_map", {}).keys():
                         if idx in app.op.view_map[var_idx]:
                             # We need to recursivly check the destroy_map of all the
                             # outputs that we have a view_map on.
@@ -436,8 +447,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
 
         """
         if self.stale_droot:
-            self.droot, self.impact, self.root_destroyer =\
-                _build_droot_impact(self)
+            self.droot, self.impact, self.root_destroyer = _build_droot_impact(self)
             self.stale_droot = False
         return self.droot, self.impact, self.root_destroyer
 
@@ -450,9 +460,9 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
         del self.clients
         del self.stale_droot
         assert self.fgraph.destroyer_handler is self
-        delattr(self.fgraph, 'destroyers')
-        delattr(self.fgraph, 'has_destroyers')
-        delattr(self.fgraph, 'destroy_handler')
+        delattr(self.fgraph, "destroyers")
+        delattr(self.fgraph, "has_destroyers")
+        delattr(self.fgraph, "destroy_handler")
         self.fgraph = None
 
     def fast_destroy(self, app, reason):
@@ -465,34 +475,41 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
         - Allow sequence of view.
         - But don't allow to destroy view
         """
-        dm = getattr(app.op, 'destroy_map', None)
+        dm = getattr(app.op, "destroy_map", None)
         if not dm:
             return
-        inputs = set(itertools.chain.from_iterable(dm.values()))   # list of app's destroyed inputs
+        inputs = set(
+            itertools.chain.from_iterable(dm.values())
+        )  # list of app's destroyed inputs
         for inp_idx in inputs:
             inp = app.inputs[inp_idx]
-            if getattr(inp.tag, 'indestructible', False) or isinstance(inp, graph.Constant):
+            if getattr(inp.tag, "indestructible", False) or isinstance(
+                inp, graph.Constant
+            ):
                 self.fail_validate[app] = InconsistencyError(
-                    "Attempting to destroy indestructible variables: %s" %
-                    inp)
+                    "Attempting to destroy indestructible variables: %s" % inp
+                )
             elif len(inp.clients) > 1:
                 self.fail_validate[app] = theano.gof.InconsistencyError(
-                    "Destroyed variable has more than one client. " + str(reason))
+                    "Destroyed variable has more than one client. " + str(reason)
+                )
             elif inp.owner:
                 app2 = inp.owner
                 inp_idx2 = app2.outputs.index(inp)
-                v = getattr(app2.op, 'view_map', {})
-                d = getattr(app2.op, 'destroy_map', {})
+                v = getattr(app2.op, "view_map", {})
+                d = getattr(app2.op, "destroy_map", {})
                 if v:
                     v = v.get(inp_idx2, [])
                     if len(v) > 0:
                         self.fail_validate[app] = theano.gof.InconsistencyError(
-                            "Destroyed variable has view_map. " + str(reason))
+                            "Destroyed variable has view_map. " + str(reason)
+                        )
                 elif d:
                     d = d.get(inp_idx2, [])
                     if len(d) > 0:
                         self.fail_validate[app] = theano.gof.InconsistencyError(
-                            "Destroyed variable has destroy_map. " + str(reason))
+                            "Destroyed variable has destroy_map. " + str(reason)
+                        )
 
                 # These 2 assertions are commented since this function is called so many times
                 # but they should be true.
@@ -510,19 +527,19 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
         # print 'DH IMPORT', app, id(app), id(self), len(self.debug_all_apps)
 
         # If it's a destructive op, add it to our watch list
-        dmap = getattr(app.op, 'destroy_map', None)
-        vmap = getattr(app.op, 'view_map', {})
+        dmap = getattr(app.op, "destroy_map", None)
+        vmap = getattr(app.op, "view_map", {})
         if dmap:
             self.destroyers.add(app)
-            if self.algo == 'fast':
+            if self.algo == "fast":
                 self.fast_destroy(app, reason)
 
         # add this symbol to the forward and backward maps
         for o_idx, i_idx_list in iteritems(vmap):
             if len(i_idx_list) > 1:
                 raise NotImplementedError(
-                    'destroying this output invalidates multiple inputs',
-                    (app. op))
+                    "destroying this output invalidates multiple inputs", (app.op)
+                )
             o = app.outputs[o_idx]
             i = app.inputs[i_idx_list[0]]
             self.view_i[o] = i
@@ -551,7 +568,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
         for input in set(app.inputs):
             del self.clients[input][app]
 
-        if getattr(app.op, 'destroy_map', OrderedDict()):
+        if getattr(app.op, "destroy_map", OrderedDict()):
             self.destroyers.remove(app)
 
         # Note: leaving empty client dictionaries in the struct.
@@ -559,8 +576,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
         # deleted on_detach().
 
         # UPDATE self.view_i, self.view_o
-        for o_idx, i_idx_list in iteritems(getattr(app.op, 'view_map',
-                                                   OrderedDict())):
+        for o_idx, i_idx_list in iteritems(getattr(app.op, "view_map", OrderedDict())):
             if len(i_idx_list) > 1:
                 # destroying this output invalidates multiple inputs
                 raise NotImplementedError()
@@ -582,7 +598,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
         app.inputs[i] changed from old_r to new_r.
 
         """
-        if app == 'output':
+        if app == "output":
             # app == 'output' is special key that means FunctionGraph is redefining which nodes are being
             # considered 'outputs' of the graph.
             pass
@@ -599,8 +615,9 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
             self.clients[new_r][app] += 1
 
             # UPDATE self.view_i, self.view_o
-            for o_idx, i_idx_list in iteritems(getattr(app.op, 'view_map',
-                                                       OrderedDict())):
+            for o_idx, i_idx_list in iteritems(
+                getattr(app.op, "view_map", OrderedDict())
+            ):
                 if len(i_idx_list) > 1:
                     # destroying this output invalidates multiple inputs
                     raise NotImplementedError()
@@ -618,7 +635,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
 
                     self.view_o.setdefault(new_r, OrderedSet()).add(output)
 
-            if self.algo == 'fast':
+            if self.algo == "fast":
                 if app in self.fail_validate:
                     del self.fail_validate[app]
                 self.fast_destroy(app, reason)
@@ -634,7 +651,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
 
         """
         if self.destroyers:
-            if self.algo == 'fast':
+            if self.algo == "fast":
                 if self.fail_validate:
                     app_err_pairs = self.fail_validate
                     self.fail_validate = OrderedDict()
@@ -647,7 +664,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
                     # double check here.
                     for app in app_err_pairs:
                         if app in fgraph.apply_nodes:
-                            self.fast_destroy(app, 'validate')
+                            self.fast_destroy(app, "validate")
                     if self.fail_validate:
                         self.fail_validate = app_err_pairs
                         raise app_err_pairs[app]
@@ -693,13 +710,17 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
             droot, impact, __ignore = self.refresh_droot_impact()
 
             # check for destruction of constants
-            illegal_destroy = [r for r in droot if
-                               getattr(r.tag, 'indestructible', False) or
-                               isinstance(r, graph.Constant)]
+            illegal_destroy = [
+                r
+                for r in droot
+                if getattr(r.tag, "indestructible", False)
+                or isinstance(r, graph.Constant)
+            ]
             if illegal_destroy:
                 raise InconsistencyError(
-                    "Attempting to destroy indestructible variables: %s" %
-                    illegal_destroy)
+                    "Attempting to destroy indestructible variables: %s"
+                    % illegal_destroy
+                )
 
             # add destroyed variable clients as computational dependencies
             for app in self.destroyers:
@@ -746,31 +767,36 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
 
                     # CHECK FOR INPUT ALIASING
                     # OPT: pre-compute this on import
-                    tolerate_same = getattr(app.op,
-                                            'destroyhandler_tolerate_same', [])
+                    tolerate_same = getattr(app.op, "destroyhandler_tolerate_same", [])
                     assert isinstance(tolerate_same, list)
-                    tolerated = set(idx1 for idx0, idx1 in tolerate_same
-                                    if idx0 == destroyed_idx)
+                    tolerated = set(
+                        idx1 for idx0, idx1 in tolerate_same if idx0 == destroyed_idx
+                    )
                     tolerated.add(destroyed_idx)
                     tolerate_aliased = getattr(
-                        app.op, 'destroyhandler_tolerate_aliased', [])
+                        app.op, "destroyhandler_tolerate_aliased", []
+                    )
                     assert isinstance(tolerate_aliased, list)
-                    ignored = set(idx1 for idx0, idx1 in tolerate_aliased
-                                  if idx0 == destroyed_idx)
+                    ignored = set(
+                        idx1 for idx0, idx1 in tolerate_aliased if idx0 == destroyed_idx
+                    )
                     for i, input in enumerate(app.inputs):
                         if i in ignored:
                             continue
-                        if input in root_impact \
-                                and (i not in tolerated or
-                                     input is not destroyed_variable):
-                            raise InconsistencyError("Input aliasing: %s (%i, %i)"
-                                                     % (app, destroyed_idx, i))
+                        if input in root_impact and (
+                            i not in tolerated or input is not destroyed_variable
+                        ):
+                            raise InconsistencyError(
+                                "Input aliasing: %s (%i, %i)" % (app, destroyed_idx, i)
+                            )
 
                     # add the rule: app must be preceded by all other Apply instances that
                     # depend on destroyed_input
                     for r in root_impact:
                         assert not [a for a, c in self.clients[r].items() if not c]
-                        root_clients.update([a for a, c in self.clients[r].items() if c])
+                        root_clients.update(
+                            [a for a, c in self.clients[r].items() if c]
+                        )
 
                 # app itself is a client of the destroyed inputs,
                 # but should not run before itself

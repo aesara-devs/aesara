@@ -32,8 +32,10 @@ class BaseBLAS(object):
 # GER
 # ##### ####### #######
 
+
 def ger_c_code(A, a, x, y, Z, fail, params):
-    return """
+    return (
+        """
 
     int elemsize ;
 
@@ -309,7 +311,9 @@ def ger_c_code(A, a, x, y, Z, fail, params):
         }
     }
 
-    """ % locals()
+    """
+        % locals()
+    )
 
 
 class CGer(BaseBLAS, Ger):
@@ -317,14 +321,14 @@ class CGer(BaseBLAS, Ger):
 
     def c_code(self, node, name, inp, out, sub):
         A, a, x, y = inp
-        Z, = out
-        code = ger_c_code(A, a, x, y, Z,
-                          fail=sub['fail'],
-                          params=sub['params'])
+        (Z,) = out
+        code = ger_c_code(A, a, x, y, Z, fail=sub["fail"], params=sub["params"])
         return code
 
     def c_code_cache_version(self):
         return (11, blas_header_version())
+
+
 cger_inplace = CGer(True)
 cger_no_inplace = CGer(False)
 
@@ -334,11 +338,9 @@ def use_c_ger(node):
     if not config.blas.ldflags:
         return
     # Only float32 and float64 are supported for now.
-    if (node.op == ger and
-            node.outputs[0].dtype in ['float32', 'float64']):
+    if node.op == ger and node.outputs[0].dtype in ["float32", "float64"]:
         return [CGer(False)(*node.inputs)]
-    if (node.op == ger_destructive and
-            node.outputs[0].dtype in ['float32', 'float64']):
+    if node.op == ger_destructive and node.outputs[0].dtype in ["float32", "float64"]:
         return [CGer(True)(*node.inputs)]
 
 
@@ -353,8 +355,7 @@ def make_c_ger_destructive(node):
 # ##### ####### #######
 
 
-def gemv_c_code(y, A, x, z, alpha, beta, fail,
-                force_init_beta=False, params=None):
+def gemv_c_code(y, A, x, z, alpha, beta, fail, force_init_beta=False, params=None):
     """
     z <- beta * y + alpha * dot(A, x)
 
@@ -604,17 +605,23 @@ class CGemv(BaseBLAS, Gemv):
 
     def c_code(self, node, name, inp, out, sub):
         y, alpha, A, x, beta = inp
-        z, = out
+        (z,) = out
         code = gemv_c_code(
-            y, A, x, z, alpha, beta,
-            fail=sub['fail'],
+            y,
+            A,
+            x,
+            z,
+            alpha,
+            beta,
+            fail=sub["fail"],
             force_init_beta=check_force_gemv_init(),
-            params=sub['params'],
+            params=sub["params"],
         )
         return code
 
     def c_code_cache_version(self):
         return (14, blas_header_version(), check_force_gemv_init())
+
 
 cgemv_inplace = CGemv(inplace=True)
 cgemv_no_inplace = CGemv(inplace=False)
@@ -623,6 +630,7 @@ cgemv_no_inplace = CGemv(inplace=False)
 def check_force_gemv_init():
     if check_force_gemv_init._force_init_beta is None:
         from theano.gof.cmodule import GCC_compiler
+
         """
         Test issue 1569.
         Namely when evaluating
@@ -658,10 +666,12 @@ int main() {
   return (isnan(y[0]) || isnan(y[1]) ? 1 : 0;
 }
 """
-        res = GCC_compiler.try_compile_tmp(test_code, tmp_prefix='check_beta_',
-                                           flags=ldflags(libs=True, flags=True,
-                                                         libs_dir=True),
-                                           try_run=True)
+        res = GCC_compiler.try_compile_tmp(
+            test_code,
+            tmp_prefix="check_beta_",
+            flags=ldflags(libs=True, flags=True, libs_dir=True),
+            try_run=True,
+        )
         if res:
             if res[0]:
                 check_force_gemv_init._force_init_beta = res[1]
@@ -672,6 +682,7 @@ int main() {
 
     return check_force_gemv_init._force_init_beta
 
+
 check_force_gemv_init._force_init_beta = None
 
 
@@ -680,11 +691,9 @@ def use_c_gemv(node):
     if not config.blas.ldflags:
         return
     # Only float32 and float64 are supported for now.
-    if (node.op == gemv_no_inplace and
-            node.outputs[0].dtype in ['float32', 'float64']):
+    if node.op == gemv_no_inplace and node.outputs[0].dtype in ["float32", "float64"]:
         return [cgemv_no_inplace(*node.inputs)]
-    if (node.op == gemv_inplace and
-            node.outputs[0].dtype in ['float32', 'float64']):
+    if node.op == gemv_inplace and node.outputs[0].dtype in ["float32", "float64"]:
         return [cgemv_inplace(*node.inputs)]
 
 
@@ -693,9 +702,11 @@ def make_c_gemv_destructive(node):
     if isinstance(node.op, CGemv) and not node.op.inplace:
         inputs = list(node.inputs)
         dest = inputs[0]
-        if (dest.owner and
-                isinstance(dest.owner.op, T.AllocEmpty) and
-                len(dest.clients) > 1):
+        if (
+            dest.owner
+            and isinstance(dest.owner.op, T.AllocEmpty)
+            and len(dest.clients) > 1
+        ):
             inputs[0] = T.AllocEmpty(dest.dtype)(*dest.owner.inputs)
 
         return [cgemv_inplace(*inputs)]
@@ -705,13 +716,16 @@ def make_c_gemv_destructive(node):
 # Optimizers
 # ##### ####### #######
 
-blas_optdb.register('use_c_blas',
-                    in2out(use_c_ger, use_c_gemv),
-                    20, 'fast_run', 'c_blas')
+blas_optdb.register(
+    "use_c_blas", in2out(use_c_ger, use_c_gemv), 20, "fast_run", "c_blas"
+)
 
 # this matches the InplaceBlasOpt defined in blas.py
-optdb.register('c_blas_destructive',
-               in2out(make_c_ger_destructive,
-                      make_c_gemv_destructive,
-                      name="c_blas_destructive"),
-               70.0, 'fast_run', 'inplace', 'c_blas')
+optdb.register(
+    "c_blas_destructive",
+    in2out(make_c_ger_destructive, make_c_gemv_destructive, name="c_blas_destructive"),
+    70.0,
+    "fast_run",
+    "inplace",
+    "c_blas",
+)

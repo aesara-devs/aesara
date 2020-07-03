@@ -15,19 +15,21 @@ from theano.compile.profiling import ProfileStats
 from theano.gof import Variable, Constant
 
 import logging
+
 _logger = logging.getLogger("theano.compile.pfunc")
 
-__docformat__ = 'restructuredtext en'
+__docformat__ = "restructuredtext en"
 
 
-def rebuild_collect_shared(outputs,
-                           inputs=None,
-                           replace=None,
-                           updates=None,
-                           rebuild_strict=True,
-                           copy_inputs_over=True,
-                           no_default_updates=False,
-                           ):
+def rebuild_collect_shared(
+    outputs,
+    inputs=None,
+    replace=None,
+    updates=None,
+    rebuild_strict=True,
+    copy_inputs_over=True,
+    no_default_updates=False,
+):
     """
     Function that allows replacing subgraphs of a computational graph.
 
@@ -93,7 +95,8 @@ def rebuild_collect_shared(outputs,
                     clone_v_get_shared_updates(i, copy_inputs_over)
 
                 clone_d[owner] = owner.clone_with_new_inputs(
-                    [clone_d[i] for i in owner.inputs], strict=rebuild_strict)
+                    [clone_d[i] for i in owner.inputs], strict=rebuild_strict
+                )
                 for old_o, new_o in zip(owner.outputs, clone_d[owner].outputs):
                     clone_d.setdefault(old_o, new_o)
 
@@ -101,26 +104,27 @@ def rebuild_collect_shared(outputs,
         elif isinstance(v, SharedVariable):
             if v not in shared_inputs:
                 shared_inputs.append(v)
-            if hasattr(v, 'default_update'):
+            if hasattr(v, "default_update"):
                 # Check that v should not be excluded from the default
                 # updates list
-                if (no_default_updates is False or
-                    (isinstance(no_default_updates, list) and
-                     v not in no_default_updates)):
+                if no_default_updates is False or (
+                    isinstance(no_default_updates, list) and v not in no_default_updates
+                ):
                     # Do not use default_update if a "real" update was
                     # provided
                     if v not in update_d:
-                        v_update = v.type.filter_variable(v.default_update,
-                                                          allow_convert=False)
+                        v_update = v.type.filter_variable(
+                            v.default_update, allow_convert=False
+                        )
                         if v_update.type != v.type:
                             raise TypeError(
-                                'an update must have the same type as '
-                                'the original shared variable',
-                                (v, v.type, v_update, v_update.type))
+                                "an update must have the same type as "
+                                "the original shared variable",
+                                (v, v.type, v_update, v_update.type),
+                            )
                         update_d[v] = v_update
                         update_expr.append((v, v_update))
-        if not copy_inputs_over or (isinstance(v, Constant) and
-                                    hasattr(v, 'fgraph')):
+        if not copy_inputs_over or (isinstance(v, Constant) and hasattr(v, "fgraph")):
             # Cloning shared variables implies copying their underlying
             # memory buffer ?? No.
             return clone_d.setdefault(v, v.clone())
@@ -137,7 +141,7 @@ def rebuild_collect_shared(outputs,
 
     for v_orig, v_repl in replace_pairs:
         if not isinstance(v_orig, Variable):
-            raise TypeError('given keys must be Variable', v_orig)
+            raise TypeError("given keys must be Variable", v_orig)
         if not isinstance(v_repl, Variable):
             v_repl = shared(v_repl)
 
@@ -148,10 +152,10 @@ def rebuild_collect_shared(outputs,
                 "new_v variable depend on an old_v one. For instance, "
                 "givens = {a:b, b:(a+1)} is not allowed. Here, the old_v "
                 "%s is used to compute other new_v's, but it is scheduled "
-                "to be replaced by %s." % (v_orig, v_repl))
+                "to be replaced by %s." % (v_orig, v_repl)
+            )
 
-        clone_d[v_orig] = clone_v_get_shared_updates(v_repl,
-                                                     copy_inputs_over)
+        clone_d[v_orig] = clone_v_get_shared_updates(v_repl, copy_inputs_over)
 
     if inputs is None:
         inputs = []
@@ -171,39 +175,51 @@ def rebuild_collect_shared(outputs,
     # does that function default also change?).
     for v in input_variables:
         if isinstance(v, SharedVariable):
-            raise TypeError(('Cannot use a shared variable (%s) as explicit '
-                             'input. Consider substituting a non-shared'
-                             ' variable via the `givens` parameter') % v)
+            raise TypeError(
+                (
+                    "Cannot use a shared variable (%s) as explicit "
+                    "input. Consider substituting a non-shared"
+                    " variable via the `givens` parameter"
+                )
+                % v
+            )
 
     # Fill update_d and update_expr with provided updates
     if updates is None:
         updates = []
     for (store_into, update_val) in iter_over_pairs(updates):
         if not isinstance(store_into, SharedVariable):
-            raise TypeError('update target must be a SharedVariable',
-                            store_into)
+            raise TypeError("update target must be a SharedVariable", store_into)
         if store_into in update_d:
-            raise ValueError('this shared variable already has an update '
-                             'expression',
-                             (store_into, update_d[store_into]))
+            raise ValueError(
+                "this shared variable already has an update " "expression",
+                (store_into, update_d[store_into]),
+            )
 
         # filter_variable ensure smooth conversion of cpu/gpu Types
         try:
-            update_val = store_into.type.filter_variable(update_val,
-                                                         allow_convert=False)
+            update_val = store_into.type.filter_variable(
+                update_val, allow_convert=False
+            )
         except TypeError:
-            err_msg = ('An update must have the same type as the'
-                       ' original shared variable (shared_var=%s,'
-                       ' shared_var.type=%s,'
-                       ' update_val=%s, update_val.type=%s).' % (
-                           store_into,
-                           store_into.type,
-                           update_val,
-                           getattr(update_val, 'type', None)))
-            err_sug = ('If the difference is related to the broadcast pattern,'
-                       ' you can call the'
-                       ' tensor.unbroadcast(var, axis_to_unbroadcast[, ...])'
-                       ' function to remove broadcastable dimensions.')
+            err_msg = (
+                "An update must have the same type as the"
+                " original shared variable (shared_var=%s,"
+                " shared_var.type=%s,"
+                " update_val=%s, update_val.type=%s)."
+                % (
+                    store_into,
+                    store_into.type,
+                    update_val,
+                    getattr(update_val, "type", None),
+                )
+            )
+            err_sug = (
+                "If the difference is related to the broadcast pattern,"
+                " you can call the"
+                " tensor.unbroadcast(var, axis_to_unbroadcast[, ...])"
+                " function to remove broadcastable dimensions."
+            )
 
             raise TypeError(err_msg, err_sug)
         assert update_val.type == store_into.type
@@ -219,13 +235,13 @@ def rebuild_collect_shared(outputs,
                 cloned_v = clone_v_get_shared_updates(v, copy_inputs_over)
                 cloned_outputs.append(cloned_v)
             elif isinstance(v, Out):
-                cloned_v = clone_v_get_shared_updates(v.variable,
-                                                      copy_inputs_over)
+                cloned_v = clone_v_get_shared_updates(v.variable, copy_inputs_over)
                 cloned_outputs.append(Out(cloned_v, borrow=v.borrow))
             else:
-                raise TypeError('Outputs must be theano Variable or '
-                                'Out instances. Received ' + str(v) +
-                                ' of type ' + str(type(v)))
+                raise TypeError(
+                    "Outputs must be theano Variable or "
+                    "Out instances. Received " + str(v) + " of type " + str(type(v))
+                )
             # computed_list.append(cloned_v)
     else:
         if isinstance(outputs, Variable):
@@ -233,16 +249,16 @@ def rebuild_collect_shared(outputs,
             cloned_outputs = cloned_v
             # computed_list.append(cloned_v)
         elif isinstance(outputs, Out):
-            cloned_v = clone_v_get_shared_updates(outputs.variable,
-                                                  copy_inputs_over)
+            cloned_v = clone_v_get_shared_updates(outputs.variable, copy_inputs_over)
             cloned_outputs = Out(cloned_v, borrow=outputs.borrow)
             # computed_list.append(cloned_v)
         elif outputs is None:
             cloned_outputs = []  # TODO: get Function.__call__ to return None
         else:
-            raise TypeError('output must be a theano Variable or Out '
-                            'instance (or list of them)',
-                            outputs)
+            raise TypeError(
+                "output must be a theano Variable or Out " "instance (or list of them)",
+                outputs,
+            )
 
     # Iterate over update_expr, cloning its elements, and updating
     # shared_inputs, update_d and update_expr from the SharedVariables
@@ -254,36 +270,65 @@ def rebuild_collect_shared(outputs,
     i = 0
     while i < len(update_expr):
         v, v_update = update_expr[i]
-        cloned_v_update = clone_v_get_shared_updates(v_update,
-                                                     copy_inputs_over)
+        cloned_v_update = clone_v_get_shared_updates(v_update, copy_inputs_over)
         update_d[v] = cloned_v_update
         if isinstance(v, SharedVariable) and v not in shared_inputs:
             shared_inputs.append(v)
         i += 1
 
-    return (input_variables, cloned_outputs,
-            [clone_d, update_d, update_expr, shared_inputs])
+    return (
+        input_variables,
+        cloned_outputs,
+        [clone_d, update_d, update_expr, shared_inputs],
+    )
 
 
 class Param(In):
     """Deprecated. Use In instead."""
-    def __init__(self, variable, default=None, name=None, mutable=False,
-                 strict=False, allow_downcast=None, implicit=None,
-                 borrow=None):
+
+    def __init__(
+        self,
+        variable,
+        default=None,
+        name=None,
+        mutable=False,
+        strict=False,
+        allow_downcast=None,
+        implicit=None,
+        borrow=None,
+    ):
         warnings.warn(
             "The Param class is deprecated. Replace Param(default=N)"
             " by theano.In(value=N)",
-            stacklevel=2)
+            stacklevel=2,
+        )
         super(Param, self).__init__(
-            variable, name=name, value=default, mutable=mutable,
-            strict=strict, allow_downcast=allow_downcast,
-            implicit=implicit, borrow=borrow)
+            variable,
+            name=name,
+            value=default,
+            mutable=mutable,
+            strict=strict,
+            allow_downcast=allow_downcast,
+            implicit=implicit,
+            borrow=borrow,
+        )
 
 
-def pfunc(params, outputs=None, mode=None, updates=None, givens=None,
-          no_default_updates=False, accept_inplace=False, name=None,
-          rebuild_strict=True, allow_input_downcast=None,
-          profile=None, on_unused_input=None, output_keys=None):
+def pfunc(
+    params,
+    outputs=None,
+    mode=None,
+    updates=None,
+    givens=None,
+    no_default_updates=False,
+    accept_inplace=False,
+    name=None,
+    rebuild_strict=True,
+    allow_input_downcast=None,
+    profile=None,
+    on_unused_input=None,
+    output_keys=None,
+):
     """
     Function-constructor for graphs with shared variables.
 
@@ -378,34 +423,39 @@ def pfunc(params, outputs=None, mode=None, updates=None, givens=None,
     # useful.
 
     if not isinstance(params, (list, tuple)):
-        raise Exception("in pfunc() the first argument must be a list or "
-                        "a tuple")
+        raise Exception("in pfunc() the first argument must be a list or " "a tuple")
 
-    if not isinstance(no_default_updates, bool)\
-            and not isinstance(no_default_updates, list):
-        raise TypeError("no_default_update should be either a boolean or "
-                        "a list")
+    if not isinstance(no_default_updates, bool) and not isinstance(
+        no_default_updates, list
+    ):
+        raise TypeError("no_default_update should be either a boolean or " "a list")
 
-    if len(updates) > 0 and any(isinstance(v, Variable)
-                                for v in iter_over_pairs(updates)):
+    if len(updates) > 0 and any(
+        isinstance(v, Variable) for v in iter_over_pairs(updates)
+    ):
         raise ValueError(
             "The updates parameter must be an OrderedDict/dict or a list of "
-            "lists/tuples with 2 elements")
+            "lists/tuples with 2 elements"
+        )
 
     # transform params into theano.compile.In objects.
-    inputs = [_pfunc_param_to_in(p, allow_downcast=allow_input_downcast)
-              for p in params]
+    inputs = [
+        _pfunc_param_to_in(p, allow_downcast=allow_input_downcast) for p in params
+    ]
 
     # Check if some variable is present more than once in inputs
     in_variables = [input.variable for input in inputs]
     for i, v in enumerate(in_variables):
-        if v in in_variables[(i + 1):]:
+        if v in in_variables[(i + 1) :]:
             dup_v_i = in_variables.index(v, (i + 1))
             raise UnusedInputError(
-                ("Variable %s is used twice in inputs to theano.function, "
-                 "at indices %i and %i.  This would result in values "
-                 "provided for it being ignored. Please do not duplicate "
-                 "variables in the inputs list." % (v, i, dup_v_i)))
+                (
+                    "Variable %s is used twice in inputs to theano.function, "
+                    "at indices %i and %i.  This would result in values "
+                    "provided for it being ignored. Please do not duplicate "
+                    "variables in the inputs list." % (v, i, dup_v_i)
+                )
+            )
 
     # Check that we are not using `givens` to replace input variables, because
     # this typically does nothing, contrary to what one may expect.
@@ -417,16 +467,16 @@ def pfunc(params, outputs=None, mode=None, updates=None, givens=None,
     for x, y in givens_pairs:
         if x in in_var_set:
             raise RuntimeError(
-                'You are trying to replace variable \'%s\' through the '
-                '`givens` parameter, but this variable is an input to your '
-                'function. Replacing inputs is currently forbidden because it '
-                'has no effect. One way to modify an input `x` to a function '
-                'evaluating f(x) is to define a new input `y` and use '
-                '`theano.function([y], f(x), givens={x: g(y)})`. Another '
-                'solution consists in using `theano.clone`, e.g. like this: '
-                '`theano.function([x], '
-                'theano.clone(f(x), replace={x: g(x)}))`.'
-                % x)
+                "You are trying to replace variable '%s' through the "
+                "`givens` parameter, but this variable is an input to your "
+                "function. Replacing inputs is currently forbidden because it "
+                "has no effect. One way to modify an input `x` to a function "
+                "evaluating f(x) is to define a new input `y` and use "
+                "`theano.function([y], f(x), givens={x: g(y)})`. Another "
+                "solution consists in using `theano.clone`, e.g. like this: "
+                "`theano.function([x], "
+                "theano.clone(f(x), replace={x: g(x)}))`." % x
+            )
 
     # Extend the outputs with the updates on input variables so they are also
     # cloned
@@ -440,13 +490,15 @@ def pfunc(params, outputs=None, mode=None, updates=None, givens=None,
             out_list = [outputs]
     extended_outputs = out_list + additional_outputs
 
-    output_vars = rebuild_collect_shared(extended_outputs,
-                                         in_variables,
-                                         replace=givens,
-                                         updates=updates,
-                                         rebuild_strict=rebuild_strict,
-                                         copy_inputs_over=True,
-                                         no_default_updates=no_default_updates)
+    output_vars = rebuild_collect_shared(
+        extended_outputs,
+        in_variables,
+        replace=givens,
+        updates=updates,
+        rebuild_strict=rebuild_strict,
+        copy_inputs_over=True,
+        no_default_updates=no_default_updates,
+    )
     # extracting the arguments
     input_variables, cloned_extended_outputs, other_stuff = output_vars
     clone_d, update_d, update_expr, shared_inputs = other_stuff
@@ -456,7 +508,7 @@ def pfunc(params, outputs=None, mode=None, updates=None, givens=None,
         cloned_outputs = []
     else:
         if isinstance(outputs, (list, tuple)):
-            cloned_outputs = cloned_extended_outputs[:len(outputs)]
+            cloned_outputs = cloned_extended_outputs[: len(outputs)]
         else:
             cloned_outputs = cloned_extended_outputs[0]
 
@@ -473,27 +525,40 @@ def pfunc(params, outputs=None, mode=None, updates=None, givens=None,
         # list but since the value of shared variables never needs to
         # be refed, it is not needed
         if sv in update_d:
-            si = In(variable=sv, value=sv.container, mutable=True,
-                    borrow=True, update=update_d[sv], shared=True)
+            si = In(
+                variable=sv,
+                value=sv.container,
+                mutable=True,
+                borrow=True,
+                update=update_d[sv],
+                shared=True,
+            )
         else:
-            si = In(variable=sv, value=sv.container,
-                    mutable=False, borrow=True, shared=True)
+            si = In(
+                variable=sv, value=sv.container, mutable=False, borrow=True, shared=True
+            )
         inputs.append(si)
 
-    return orig_function(inputs, cloned_outputs, mode,
-                         accept_inplace=accept_inplace, name=name,
-                         profile=profile, on_unused_input=on_unused_input,
-                         output_keys=output_keys)
+    return orig_function(
+        inputs,
+        cloned_outputs,
+        mode,
+        accept_inplace=accept_inplace,
+        name=name,
+        profile=profile,
+        on_unused_input=on_unused_input,
+        output_keys=output_keys,
+    )
 
 
 def _pfunc_param_to_in(param, strict=False, allow_downcast=None):
     if isinstance(param, Constant):
-        raise TypeError('Constants not allowed in param list', param)
+        raise TypeError("Constants not allowed in param list", param)
     if isinstance(param, Variable):  # N.B. includes SharedVariable
         return In(variable=param, strict=strict, allow_downcast=allow_downcast)
     elif isinstance(param, In):
         return param
-    raise TypeError('Unknown parameter type: %s' % type(param))
+    raise TypeError("Unknown parameter type: %s" % type(param))
 
 
 def iter_over_pairs(pairs):

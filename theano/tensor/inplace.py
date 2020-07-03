@@ -8,25 +8,25 @@ from theano.printing import pprint
 def _scal_inplace(symbol):
     """Replace a symbol definition with an elementwise version of the corresponding scalar Op"""
     symbolname = symbol.__name__
-    inplace = symbolname.endswith('_inplace')
+    inplace = symbolname.endswith("_inplace")
 
     if inplace:
-        scalar_op = getattr(scal, symbolname[:-len('_inplace')])
+        scalar_op = getattr(scal, symbolname[: -len("_inplace")])
         inplace_scalar_op = scalar_op.__class__(scal.transfer_type(0))
         rval = elemwise.Elemwise(inplace_scalar_op, {0: 0}, name=symbolname)
     else:
         scalar_op = getattr(scal, symbolname)
         rval = elemwise.Elemwise(scalar_op, name=symbolname)
 
-    if getattr(symbol, '__doc__', False):
-        rval.__doc__ = symbol.__doc__ + '\n' + rval.__doc__
+    if getattr(symbol, "__doc__", False):
+        rval.__doc__ = symbol.__doc__ + "\n" + rval.__doc__
 
     # for the meaning of this see the ./epydoc script
     # it makes epydoc display rval as if it were a function, not an object
     rval.__epydoc_asRoutine = symbol
-    rval.__module__ = 'theano.tensor.inplace'
+    rval.__module__ = "theano.tensor.inplace"
 
-    pprint.assign(rval, printing.FunctionPrinter(symbolname.replace('_inplace', '=')))
+    pprint.assign(rval, printing.FunctionPrinter(symbolname.replace("_inplace", "=")))
     return rval
 
 
@@ -319,8 +319,9 @@ def iv_inplace(v, x):
 def second_inplace(a):
     """Fill `a` with `b`"""
 
+
 fill_inplace = second_inplace
-pprint.assign(fill_inplace, printing.FunctionPrinter('fill='))
+pprint.assign(fill_inplace, printing.FunctionPrinter("fill="))
 
 
 @_scal_inplace
@@ -372,13 +373,14 @@ def pow_inplace(a, b):
 def conj_inplace(a):
     """elementwise conjugate (inplace on `a`)"""
 
-pprint.assign(add_inplace, printing.OperatorPrinter('+=', -2, 'either'))
-pprint.assign(mul_inplace, printing.OperatorPrinter('*=', -1, 'either'))
-pprint.assign(sub_inplace, printing.OperatorPrinter('-=', -2, 'left'))
-pprint.assign(neg_inplace, printing.OperatorPrinter('-=', 0, 'either'))
-pprint.assign(true_div_inplace, printing.OperatorPrinter('/=', -1, 'left'))
-pprint.assign(int_div_inplace, printing.OperatorPrinter('//=', -1, 'left'))
-pprint.assign(pow_inplace, printing.OperatorPrinter('**=', 1, 'right'))
+
+pprint.assign(add_inplace, printing.OperatorPrinter("+=", -2, "either"))
+pprint.assign(mul_inplace, printing.OperatorPrinter("*=", -1, "either"))
+pprint.assign(sub_inplace, printing.OperatorPrinter("-=", -2, "left"))
+pprint.assign(neg_inplace, printing.OperatorPrinter("-=", 0, "either"))
+pprint.assign(true_div_inplace, printing.OperatorPrinter("/=", -1, "left"))
+pprint.assign(int_div_inplace, printing.OperatorPrinter("//=", -1, "left"))
+pprint.assign(pow_inplace, printing.OperatorPrinter("**=", 1, "right"))
 
 
 def transpose_inplace(x, **kwargs):

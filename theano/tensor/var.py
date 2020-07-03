@@ -1,4 +1,5 @@
 from __future__ import absolute_import, print_function, division
+
 try:
     from collections.abc import Iterable
 except (ImportError, AttributeError):
@@ -22,9 +23,7 @@ from theano import config
 
 
 def equal_slices(s1, s2):
-    return (s1.start == s2.start and
-            s1.stop == s2.stop and
-            s1.step == s2.step)
+    return s1.start == s2.start and s1.stop == s2.stop and s1.step == s2.step
 
 
 class AsTensorError(TypeError):
@@ -32,6 +31,7 @@ class AsTensorError(TypeError):
     Raised when as_tensor_variable isn't able to create a TensorVariable.
 
     """
+
     pass
 
 
@@ -90,9 +90,7 @@ class _tensor_py_operators(object):
         if self._is_nonzero:
             return True
         else:
-            raise TypeError(
-                "Variables do not support boolean operations."
-            )
+            raise TypeError("Variables do not support boolean operations.")
 
     # BITWISE
     def __invert__(self):
@@ -170,6 +168,7 @@ class _tensor_py_operators(object):
             raise
         except (NotImplementedError, AsTensorError):
             return NotImplemented
+
     if PY3:
         __truediv__ = __div__
 
@@ -286,8 +285,11 @@ class _tensor_py_operators(object):
 
     shape = property(lambda self: theano.tensor.basic.shape(self))
 
-    size = property(lambda self: self.shape[0] if self.ndim == 1 else
-                    theano.tensor.basic.prod(self.shape))
+    size = property(
+        lambda self: self.shape[0]
+        if self.ndim == 1
+        else theano.tensor.basic.prod(self.shape)
+    )
 
     # We can't implement __len__ to provide a better error message.
     def any(self, axis=None, keepdims=False):
@@ -327,8 +329,9 @@ class _tensor_py_operators(object):
 
         if ndim is not None:
             if not isinstance(ndim, integer_types):
-                raise ValueError("Expected ndim to be an integer, is " +
-                                 str(type(ndim)))
+                raise ValueError(
+                    "Expected ndim to be an integer, is " + str(type(ndim))
+                )
 
         return theano.tensor.basic.reshape(self, shape, ndim=ndim)
 
@@ -363,8 +366,7 @@ class _tensor_py_operators(object):
         """
         if (len(pattern) == 1) and (isinstance(pattern[0], (list, tuple))):
             pattern = pattern[0]
-        op = theano.tensor.basic.DimShuffle(list(self.type.broadcastable),
-                                            pattern)
+        op = theano.tensor.basic.DimShuffle(list(self.type.broadcastable), pattern)
         return op(self)
 
     def flatten(self, ndim=1):
@@ -471,23 +473,23 @@ class _tensor_py_operators(object):
 
     # SLICING/INDEXING
     def __getitem__(self, args):
-
         def includes_bool(args_el):
-            if (isinstance(args_el, (np.bool_, bool)) or
-                    (hasattr(args_el, 'dtype') and args_el.dtype == 'bool')):
+            if isinstance(args_el, (np.bool_, bool)) or (
+                hasattr(args_el, "dtype") and args_el.dtype == "bool"
+            ):
                 return True
-            if (not isinstance(args_el, theano.tensor.Variable) and
-                    isinstance(args_el, Iterable)):
+            if not isinstance(args_el, theano.tensor.Variable) and isinstance(
+                args_el, Iterable
+            ):
                 for el in args_el:
                     if includes_bool(el):
                         return True
             return False
 
-        if (isinstance(args, list) and
-                any([isinstance(a, slice) for a in args])):
+        if isinstance(args, list) and any([isinstance(a, slice) for a in args]):
             pass
         elif not isinstance(args, tuple):
-            args = args,
+            args = (args,)
 
         # Count the dimensions, check for bools and find ellipses.
         ellipses = []
@@ -499,8 +501,11 @@ class _tensor_py_operators(object):
             elif arg is Ellipsis:
                 # no increase in index_dim_count
                 ellipses.append(i)
-            elif (isinstance(arg, (np.ndarray, theano.tensor.Variable)) and
-                    hasattr(arg, 'dtype') and arg.dtype == 'bool'):
+            elif (
+                isinstance(arg, (np.ndarray, theano.tensor.Variable))
+                and hasattr(arg, "dtype")
+                and arg.dtype == "bool"
+            ):
                 index_dim_count += arg.ndim
             else:
                 # Python arrays can contain a mixture of bools and integers,
@@ -510,36 +515,43 @@ class _tensor_py_operators(object):
                 # indexing, it is safe to throw an error if we encounter
                 # any of these difficult cases.
                 if includes_bool(arg):
-                    raise TypeError('TensorType does not support Python bools '
-                                    'for indexing, such as tensor[[True, False]]. '
-                                    'To use a boolean mask, convert the mask to '
-                                    'a NumPy array first, e.g., '
-                                    'tensor[numpy.array([True, False])].')
+                    raise TypeError(
+                        "TensorType does not support Python bools "
+                        "for indexing, such as tensor[[True, False]]. "
+                        "To use a boolean mask, convert the mask to "
+                        "a NumPy array first, e.g., "
+                        "tensor[numpy.array([True, False])]."
+                    )
                 index_dim_count += 1
 
         # Check if the number of dimensions isn't too large.
         if self.ndim < index_dim_count:
-            raise IndexError('too many indices for array')
+            raise IndexError("too many indices for array")
 
         # Convert an Ellipsis if provided into an appropriate number of
         # slice(None).
         if len(ellipses) > 1:
-            raise IndexError(
-                "an index can only have a single Ellipsis (`...`)")
+            raise IndexError("an index can only have a single Ellipsis (`...`)")
         elif len(ellipses) == 1:
             ellipsis_at = ellipses[0]
             args = list(args)
-            args[ellipsis_at: ellipsis_at + 1] = (
-                [slice(None)] * (self.ndim - index_dim_count))
+            args[ellipsis_at : ellipsis_at + 1] = [slice(None)] * (
+                self.ndim - index_dim_count
+            )
 
         def is_empty_array(val):
-            return ((isinstance(val, (tuple, list)) and len(val) == 0) or
-                    (isinstance(val, np.ndarray) and val.size == 0))
+            return (isinstance(val, (tuple, list)) and len(val) == 0) or (
+                isinstance(val, np.ndarray) and val.size == 0
+            )
 
         # Force input to be int64 datatype if input is an empty list or tuple
         # Else leave it as is if it is a real number
-        args = tuple([np.array(inp, dtype=np.int64)
-                      if(is_empty_array(inp)) else inp for inp in args])
+        args = tuple(
+            [
+                np.array(inp, dtype=np.int64) if (is_empty_array(inp)) else inp
+                for inp in args
+            ]
+        )
         # Convert python literals to theano constants
         args = theano.tensor.subtensor.make_constant(args)
         # Determine if advanced indexing is needed or not
@@ -569,16 +581,28 @@ class _tensor_py_operators(object):
         if advanced_boolean:
             return theano.tensor.subtensor.advanced_boolean_subtensor(self, *args)
         elif advanced:
-            if (axis is not None and
-                all(isinstance(a, slice) and
-                    equal_slices(a, slice(None)) for a in args[:axis]) and
-                all(isinstance(a, slice) and
-                    equal_slices(a, slice(None)) for a in args[axis + 1:]) and
-                (not hasattr(args[axis], 'dtype') or args[axis].dtype != 'bool') and
-                isinstance(args[axis],
-                           (np.ndarray, list,
-                            TensorVariable, TensorConstant,
-                            theano.tensor.sharedvar.TensorSharedVariable))):
+            if (
+                axis is not None
+                and all(
+                    isinstance(a, slice) and equal_slices(a, slice(None))
+                    for a in args[:axis]
+                )
+                and all(
+                    isinstance(a, slice) and equal_slices(a, slice(None))
+                    for a in args[axis + 1 :]
+                )
+                and (not hasattr(args[axis], "dtype") or args[axis].dtype != "bool")
+                and isinstance(
+                    args[axis],
+                    (
+                        np.ndarray,
+                        list,
+                        TensorVariable,
+                        TensorConstant,
+                        theano.tensor.sharedvar.TensorSharedVariable,
+                    ),
+                )
+            ):
                 return self.take(args[axis], axis)
             else:
                 return theano.tensor.subtensor.advanced_subtensor(self, *args)
@@ -595,7 +619,7 @@ class _tensor_py_operators(object):
                 new_args = []
                 for arg in args:
                     if arg == np.newaxis:
-                        pattern.append('x')
+                        pattern.append("x")
                         new_args.append(slice(None, None, None))
                     else:
                         pattern.append(counter)
@@ -607,10 +631,12 @@ class _tensor_py_operators(object):
                     # We can't do arg == slice(None, None, None) as in
                     # Python 2.7, this call __lt__ if we have a slice
                     # with some symbolic variable.
-                    if not (isinstance(arg, slice) and
-                            arg.start is None and
-                            arg.stop is None and
-                            arg.step is None):
+                    if not (
+                        isinstance(arg, slice)
+                        and arg.start is None
+                        and arg.stop is None
+                        and arg.step is None
+                    ):
                         full_slices = False
                 if full_slices:
                     return view
@@ -618,11 +644,13 @@ class _tensor_py_operators(object):
                     return view.__getitem__(tuple(new_args))
             else:
                 return theano.tensor.subtensor.Subtensor(args)(
-                    self, *theano.tensor.subtensor.Subtensor.collapse(
-                        args,
-                        lambda entry: isinstance(entry, Variable)))
+                    self,
+                    *theano.tensor.subtensor.Subtensor.collapse(
+                        args, lambda entry: isinstance(entry, Variable)
+                    )
+                )
 
-    def take(self, indices, axis=None, mode='raise'):
+    def take(self, indices, axis=None, mode="raise"):
         return theano.tensor.subtensor.take(self, indices, axis, mode)
 
     # COPYING
@@ -641,9 +669,13 @@ class _tensor_py_operators(object):
                 yield self[i]
         except TypeError:
             # This prevents accidental iteration via builtin.sum(self)
-            raise TypeError(('TensorType does not support iteration. '
-                             'Maybe you are using builtin.sum instead of '
-                             'theano.tensor.sum? (Maybe .max?)'))
+            raise TypeError(
+                (
+                    "TensorType does not support iteration. "
+                    "Maybe you are using builtin.sum instead of "
+                    "theano.tensor.sum? (Maybe .max?)"
+                )
+            )
 
     # CONVENIENT ACCESS TO TYPE PROPERTIES
     ndim = property(lambda self: self.type.ndim)
@@ -673,15 +705,15 @@ class _tensor_py_operators(object):
 
     def sum(self, axis=None, dtype=None, keepdims=False, acc_dtype=None):
         """See `theano.tensor.sum`."""
-        return theano.tensor.basic.sum(self, axis=axis,
-                                       dtype=dtype, keepdims=keepdims,
-                                       acc_dtype=acc_dtype)
+        return theano.tensor.basic.sum(
+            self, axis=axis, dtype=dtype, keepdims=keepdims, acc_dtype=acc_dtype
+        )
 
     def prod(self, axis=None, dtype=None, keepdims=False, acc_dtype=None):
         """See `theano.tensor.prod`."""
-        return theano.tensor.basic.prod(self, axis=axis,
-                                        dtype=dtype, keepdims=keepdims,
-                                        acc_dtype=acc_dtype)
+        return theano.tensor.basic.prod(
+            self, axis=axis, dtype=dtype, keepdims=keepdims, acc_dtype=acc_dtype
+        )
 
     def norm(self, L, axis=None, keepdims=False):
         if L == 0:
@@ -690,8 +722,9 @@ class _tensor_py_operators(object):
             raise NotImplementedError()
         # optimizations will/should catch cases like L=1, L=2
         y = theano.tensor.basic.pow(
-            theano.tensor.basic.pow(
-                theano.tensor.basic.abs_(self), L).sum(axis=axis), 1.0 / L)
+            theano.tensor.basic.pow(theano.tensor.basic.abs_(self), L).sum(axis=axis),
+            1.0 / L,
+        )
         if keepdims:
             return theano.tensor.basic.makeKeepDims(self, y, axis)
         else:
@@ -699,19 +732,21 @@ class _tensor_py_operators(object):
 
     def mean(self, axis=None, dtype=None, keepdims=False, acc_dtype=None):
         """See `theano.tensor.mean`."""
-        return theano.tensor.basic.mean(self, axis=axis,
-                                        dtype=dtype, keepdims=keepdims,
-                                        acc_dtype=acc_dtype)
+        return theano.tensor.basic.mean(
+            self, axis=axis, dtype=dtype, keepdims=keepdims, acc_dtype=acc_dtype
+        )
 
     def var(self, axis=None, ddof=0, keepdims=False, corrected=False):
         """See `theano.tensor.var`."""
-        return theano.tensor.basic.var(self, axis=axis, ddof=ddof,
-                                       keepdims=keepdims, corrected=corrected)
+        return theano.tensor.basic.var(
+            self, axis=axis, ddof=ddof, keepdims=keepdims, corrected=corrected
+        )
 
     def std(self, axis=None, ddof=0, keepdims=False, corrected=False):
         """See `theano.tensor.std`."""
-        return theano.tensor.basic.std(self, axis=axis, ddof=ddof,
-                                       keepdims=keepdims, corrected=corrected)
+        return theano.tensor.basic.std(
+            self, axis=axis, ddof=ddof, keepdims=keepdims, corrected=corrected
+        )
 
     def min(self, axis=None, keepdims=False):
         """See `theano.tensor.min`."""
@@ -737,11 +772,11 @@ class _tensor_py_operators(object):
         """See `theano.tensor.nonzero_values`."""
         return theano.tensor.basic.nonzero_values(self)
 
-    def sort(self, axis=-1, kind='quicksort', order=None):
+    def sort(self, axis=-1, kind="quicksort", order=None):
         """See `theano.tensor.sort`."""
         return theano.tensor.sort(self, axis, kind, order)
 
-    def argsort(self, axis=-1, kind='quicksort', order=None):
+    def argsort(self, axis=-1, kind="quicksort", order=None):
         """See `theano.tensor.argsort`."""
         return theano.tensor.argsort(self, axis, kind, order)
 
@@ -784,7 +819,7 @@ class _tensor_py_operators(object):
     def cumprod(self, axis=None):
         return theano.tensor.extra_ops.cumprod(self, axis)
 
-    def searchsorted(self, v, side='left', sorter=None):
+    def searchsorted(self, v, side="left", sorter=None):
         return theano.tensor.extra_ops.searchsorted(self, v, side, sorter)
 
     def ptp(self, axis=None):
@@ -806,13 +841,13 @@ class _tensor_py_operators(object):
         """Fill inputted tensor with the assigned value."""
         return theano.tensor.basic.fill(self, value)
 
-    def choose(self, choices, out=None, mode='raise'):
+    def choose(self, choices, out=None, mode="raise"):
         """
         Construct an array from an index array and a set of arrays to choose
         from.
 
         """
-        return theano.tensor.basic.choose(self, choices, out=None, mode='raise')
+        return theano.tensor.basic.choose(self, choices, out=None, mode="raise")
 
     def squeeze(self):
         """
@@ -836,12 +871,13 @@ class TensorVariable(_tensor_py_operators, Variable):
     """
 
     def __init__(self, type, owner=None, index=None, name=None):
-        super(TensorVariable, self).__init__(type, owner=owner,
-                                             index=index, name=name)
-        if (config.warn_float64 != 'ignore' and type.dtype == 'float64'):
-            msg = ('You are creating a TensorVariable '
-                   'with float64 dtype. You requested an action via '
-                   'the Theano flag warn_float64={ignore,warn,raise,pdb}.')
+        super(TensorVariable, self).__init__(type, owner=owner, index=index, name=name)
+        if config.warn_float64 != "ignore" and type.dtype == "float64":
+            msg = (
+                "You are creating a TensorVariable "
+                "with float64 dtype. You requested an action via "
+                "the Theano flag warn_float64={ignore,warn,raise,pdb}."
+            )
             if config.warn_float64 == "warn":
                 # Get the user stack. We don't want function inside the
                 # tensor and gof directory to be shown to the user.
@@ -850,8 +886,12 @@ class TensorVariable(_tensor_py_operators, Variable):
                 while x:
                     file_path = x[-1][0]
                     rm = False
-                    for p in ["theano/tensor/", "theano\\tensor\\",
-                              "theano/gof/", "theano\\tensor\\"]:
+                    for p in [
+                        "theano/tensor/",
+                        "theano\\tensor\\",
+                        "theano/gof/",
+                        "theano\\tensor\\",
+                    ]:
                         if p in file_path:
                             x = x[:-1]
                             nb_rm += 1
@@ -862,9 +902,12 @@ class TensorVariable(_tensor_py_operators, Variable):
                 warnings.warn(msg, stacklevel=1 + nb_rm)
             elif config.warn_float64 == "raise":
                 raise Exception(msg)
-            elif config.warn_float64 == 'pdb':
+            elif config.warn_float64 == "pdb":
                 import pdb
+
                 pdb.set_trace()
+
+
 TensorType.Variable = TensorVariable
 
 
@@ -875,6 +918,7 @@ class TensorConstantSignature(tuple):
     An instance is a pair: (Type instance, ndarray).
 
     """
+
     def __eq__(self, other):
         if type(self) != type(other):
             return False
@@ -892,14 +936,16 @@ class TensorConstantSignature(tuple):
         # come last because they are the most expensive checks.
         if self.has_nan:
             other.no_nan  # Ensure has_nan is computed.
-            return (other.has_nan and
-                    self.sum == other.sum and
-                    (self.no_nan.mask == other.no_nan.mask).all() and
-                    # Note that the second test below (==) may crash e.g. for
-                    # a single scalar NaN value, so we do not run it when all
-                    # values are missing.
-                    (self.no_nan.mask.all() or
-                     (self.no_nan == other.no_nan).all()))
+            return (
+                other.has_nan
+                and self.sum == other.sum
+                and (self.no_nan.mask == other.no_nan.mask).all()
+                and
+                # Note that the second test below (==) may crash e.g. for
+                # a single scalar NaN value, so we do not run it when all
+                # values are missing.
+                (self.no_nan.mask.all() or (self.no_nan == other.no_nan).all())
+            )
         else:
             # Simple case where we do not need to worry about NaN values.
             # (note that if there are NaN values in d1, this will return
@@ -946,6 +992,7 @@ class TensorConstantSignature(tuple):
                 # At this point there should be no more NaN.
                 assert not np.isnan(self._sum)
         return self._sum
+
     sum = property(_get_sum)
 
     def _get_no_nan(self):
@@ -960,6 +1007,7 @@ class TensorConstantSignature(tuple):
                 self._no_nan = self[1]
                 self.has_nan = False
         return self._no_nan
+
     no_nan = property(_get_no_nan)
 
 
@@ -969,6 +1017,7 @@ class TensorConstant(_tensor_py_operators, Constant):
     To create a TensorConstant, use the `constant` function in this module.
 
     """
+
     def __init__(self, type, data, name=None):
         Constant.__init__(self, type, data, name)
         self.tag.unique_value = None
@@ -980,8 +1029,7 @@ class TensorConstant(_tensor_py_operators, Constant):
 
     def __str__(self):
         if self.tag.unique_value is not None:
-            name = "%s of %s" % (str(self.data.shape),
-                                 str(self.tag.unique_value))
+            name = "%s of %s" % (str(self.data.shape), str(self.tag.unique_value))
         else:
             name = "%s" % self.data
         if len(name) > 20:
@@ -998,8 +1046,9 @@ class TensorConstant(_tensor_py_operators, Constant):
         if isinstance(other, (np.ndarray, int, float)):
             # Make a TensorConstant to be able to compare
             other = theano.tensor.basic.constant(other)
-        return (isinstance(other, TensorConstant) and
-                self.signature() == other.signature())
+        return (
+            isinstance(other, TensorConstant) and self.signature() == other.signature()
+        )
 
     def __copy__(self):
         # We need to do this to remove the cached attribute
@@ -1007,8 +1056,11 @@ class TensorConstant(_tensor_py_operators, Constant):
 
     def __deepcopy__(self, memo):
         # We need to do this to remove the cached attribute
-        return type(self)(copy.deepcopy(self.type, memo),
-                          copy.deepcopy(self.data, memo),
-                          copy.deepcopy(self.name, memo))
+        return type(self)(
+            copy.deepcopy(self.type, memo),
+            copy.deepcopy(self.data, memo),
+            copy.deepcopy(self.name, memo),
+        )
+
 
 TensorType.Constant = TensorConstant

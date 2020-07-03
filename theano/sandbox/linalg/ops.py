@@ -9,23 +9,23 @@ from theano.tensor import DimShuffle, Dot
 from theano.tensor.blas import Dot22
 from theano import tensor
 import theano.tensor
-from theano.tensor.opt import (register_stabilize,
-                               register_specialize,
-                               register_canonicalize)
+from theano.tensor.opt import (
+    register_stabilize,
+    register_specialize,
+    register_canonicalize,
+)
 from theano.gof import local_optimizer
 from theano.gof.opt import Optimizer
 
-from theano.tensor.nlinalg import (MatrixInverse,
-                                   matrix_inverse,
-                                   extract_diag,
-                                   trace,
-                                   det)
+from theano.tensor.nlinalg import (
+    MatrixInverse,
+    matrix_inverse,
+    extract_diag,
+    trace,
+    det,
+)
 
-from theano.tensor.slinalg import (Cholesky,
-                                   cholesky,
-                                   Solve,
-                                   solve,
-                                   imported_scipy)
+from theano.tensor.slinalg import Cholesky, cholesky, Solve, solve, imported_scipy
 
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ class Hint(Op):
 
     """
 
-    __props__ = ('hints',)
+    __props__ = ("hints",)
 
     def __init__(self, **kwargs):
         self.hints = tuple(kwargs.items())
@@ -64,7 +64,7 @@ def is_hint_node(node):
 
 
 def hints(variable):
-    if hasattr(variable, 'fgraph'):
+    if hasattr(variable, "fgraph"):
         try:
             return variable.fgraph.hints_feature.hints[variable]
         except AttributeError:
@@ -123,8 +123,9 @@ class HintsFeature(object):
     #      PSD-ness of a variable?
 
     """
+
     def add_hint(self, r, k, v):
-        logger.debug('adding hint; %s, %s, %s' % (r, k, v))
+        logger.debug("adding hint; %s, %s, %s" % (r, k, v))
         self.hints[r][k] = v
 
     def ensure_init_r(self, r):
@@ -137,7 +138,7 @@ class HintsFeature(object):
     #
     #
     def on_attach(self, fgraph):
-        assert not hasattr(fgraph, 'hints_feature')
+        assert not hasattr(fgraph, "hints_feature")
         fgraph.hints_feature = self
         # Variable -> tuple(scalars) or None  (All tensor vars map to tuple)
         self.hints = {}
@@ -190,12 +191,12 @@ class HintsOptimizer(Optimizer):
 
     def apply(self, fgraph):
         pass
+
+
 # -1 should make it run right before the first merge
-theano.compile.mode.optdb.register('HintsOpt',
-                                   HintsOptimizer(),
-                                   -1,
-                                   'fast_run',
-                                   'fast_compile')
+theano.compile.mode.optdb.register(
+    "HintsOpt", HintsOptimizer(), -1, "fast_run", "fast_compile"
+)
 
 
 def psd(v):
@@ -208,19 +209,19 @@ def psd(v):
 
 
 def is_psd(v):
-    return hints(v).get('psd', False)
+    return hints(v).get("psd", False)
 
 
 def is_symmetric(v):
-    return hints(v).get('symmetric', False)
+    return hints(v).get("symmetric", False)
 
 
 def is_positive(v):
-    if hints(v).get('positive', False):
+    if hints(v).get("positive", False):
         return True
     # TODO: how to handle this - a registry?
     #      infer_hints on Ops?
-    logger.debug('is_positive: %s' % str(v))
+    logger.debug("is_positive: %s" % str(v))
     if v.owner and v.owner.op == tensor.pow:
         try:
             exponent = tensor.get_scalar_constant_value(v.owner.inputs[1])
@@ -236,10 +237,10 @@ def is_positive(v):
 def transinv_to_invtrans(node):
     if isinstance(node.op, DimShuffle):
         if node.op.new_order == (1, 0):
-            A, = node.inputs
+            (A,) = node.inputs
             if A.owner:
                 if isinstance(A.owner.op, MatrixInverse):
-                    X, = A.owner.inputs
+                    (X,) = A.owner.inputs
                     return [A.owner.op(node.op(X))]
 
 
@@ -269,21 +270,24 @@ def tag_solve_triangular(node):
 
     """
     if node.op == solve:
-        if node.op.A_structure == 'general':
+        if node.op.A_structure == "general":
             A, b = node.inputs  # result is solution Ax=b
             if A.owner and isinstance(A.owner.op, type(cholesky)):
                 if A.owner.op.lower:
-                    return [Solve('lower_triangular')(A, b)]
+                    return [Solve("lower_triangular")(A, b)]
                 else:
-                    return [Solve('upper_triangular')(A, b)]
-            if (A.owner and isinstance(A.owner.op, DimShuffle) and
-                    A.owner.op.new_order == (1, 0)):
-                A_T, = A.owner.inputs
+                    return [Solve("upper_triangular")(A, b)]
+            if (
+                A.owner
+                and isinstance(A.owner.op, DimShuffle)
+                and A.owner.op.new_order == (1, 0)
+            ):
+                (A_T,) = A.owner.inputs
                 if A_T.owner and isinstance(A_T.owner.op, type(cholesky)):
                     if A_T.owner.op.lower:
-                        return [Solve('upper_triangular')(A, b)]
+                        return [Solve("upper_triangular")(A, b)]
                     else:
-                        return [Solve('lower_triangular')(A, b)]
+                        return [Solve("lower_triangular")(A, b)]
 
 
 @register_canonicalize
@@ -309,8 +313,8 @@ def psd_solve_with_chol(node):
             # N.B. this can be further reduced to a yet-unwritten cho_solve Op
             #     __if__ no other Op makes use of the the L matrix during the
             #     stabilization
-            Li_b = Solve('lower_triangular')(L, b)
-            x = Solve('upper_triangular')(L.T, Li_b)
+            Li_b = Solve("lower_triangular")(L, b)
+            x = Solve("upper_triangular")(L.T, Li_b)
             return [x]
 
 
@@ -324,7 +328,7 @@ def local_det_chol(node):
 
     """
     if node.op == det:
-        x, = node.inputs
+        (x,) = node.inputs
         for (cl, xpos) in x.clients:
             if isinstance(cl.op, Cholesky):
                 L = cl.outputs[0]
@@ -337,7 +341,7 @@ def local_det_chol(node):
 @local_optimizer([tensor.log])
 def local_log_prod_sqr(node):
     if node.op == tensor.log:
-        x, = node.inputs
+        (x,) = node.inputs
         if x.owner and isinstance(x.owner.op, tensor.elemwise.Prod):
             # we cannot always make this substitution because
             # the prod might include negative terms
@@ -357,7 +361,7 @@ def local_log_prod_sqr(node):
 @local_optimizer([tensor.log])
 def local_log_pow(node):
     if node.op == tensor.log:
-        x, = node.inputs
+        (x,) = node.inputs
         if x.owner and x.owner.op == tensor.pow:
             base, exponent = x.owner.inputs
             # TODO: reason to be careful with dtypes?
@@ -378,16 +382,18 @@ def spectral_radius_bound(X, log2_exponent):
 
     """
     if X.type.ndim != 2:
-        raise TypeError('spectral_radius_bound requires a matrix argument', X)
+        raise TypeError("spectral_radius_bound requires a matrix argument", X)
     if not isinstance(log2_exponent, integer_types):
-        raise TypeError('spectral_radius_bound requires an integer exponent',
-                        log2_exponent)
+        raise TypeError(
+            "spectral_radius_bound requires an integer exponent", log2_exponent
+        )
     if log2_exponent <= 0:
-        raise ValueError('spectral_radius_bound requires a strictly positive '
-                         'exponent', log2_exponent)
+        raise ValueError(
+            "spectral_radius_bound requires a strictly positive " "exponent",
+            log2_exponent,
+        )
 
     XX = X
     for i in xrange(log2_exponent):
         XX = tensor.dot(XX, XX)
-    return tensor.pow(trace(XX),
-                      2 ** (-log2_exponent))
+    return tensor.pow(trace(XX), 2 ** (-log2_exponent))

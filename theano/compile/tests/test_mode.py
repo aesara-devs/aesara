@@ -18,7 +18,7 @@ def test_no_output_from_implace():
     # using a mode that does not include the optimization
     fct_no_opt = theano.function([x, y], b, mode="FAST_RUN")
     op = fct_no_opt.maker.fgraph.outputs[0].owner.op
-    assert (hasattr(op, 'destroy_map') and 0 in op.destroy_map)
+    assert hasattr(op, "destroy_map") and 0 in op.destroy_map
 
     if not theano.config.cxx:
         pytest.skip("Need cxx for this test")
@@ -29,9 +29,9 @@ def test_no_output_from_implace():
 
     fct_opt = theano.function([x, y], b, mode=mode_opt)
     op = fct_opt.maker.fgraph.outputs[0].owner.op
-    assert (not hasattr(op, 'destroy_map') or 0 not in op.destroy_map)
+    assert not hasattr(op, "destroy_map") or 0 not in op.destroy_map
 
 
 def test_including():
-    mode = theano.Mode(optimizer='merge')
-    mode.including('fast_compile')
+    mode = theano.Mode(optimizer="merge")
+    mode.including("fast_compile")

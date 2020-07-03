@@ -10,7 +10,7 @@ from theano.gof import CachedConstantError, FunctionGraph
 from theano import tensor as tt
 
 
-class TFunctionGraph():
+class TFunctionGraph:
     def test_constant_cache_error(self):
         v = theano.tensor.constant(1)
         assert v.cached
@@ -37,10 +37,11 @@ class TFunctionGraph():
             pytest.skip("Need cxx for this test")
 
         # This test run the pickle that reproduce this case.
-        with open(os.path.join(os.path.dirname(__file__),
-                               'test_fg_old_crash.pkl'),
-                  'rb') as f:
+        with open(
+            os.path.join(os.path.dirname(__file__), "test_fg_old_crash.pkl"), "rb"
+        ) as f:
             from theano.misc.pkl_utils import CompatUnpickler
+
             if PY3:
                 u = CompatUnpickler(f, encoding="latin1")
             else:

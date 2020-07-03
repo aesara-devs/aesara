@@ -28,20 +28,18 @@ def test_consistency_GPUA_serial():
     n_substreams = 7
 
     samples = []
-    curr_rstate = np.array([seed] * 6, dtype='int32')
+    curr_rstate = np.array([seed] * 6, dtype="int32")
 
     for i in range(n_streams):
         stream_rstate = curr_rstate.copy()
         for j in range(n_substreams):
-            substream_rstate = np.array([stream_rstate.copy()],
-                                        dtype='int32')
+            substream_rstate = np.array([stream_rstate.copy()], dtype="int32")
             # Transfer to device
             rstate = gpuarray_shared_constructor(substream_rstate)
 
-            new_rstate, sample = GPUA_mrg_uniform.new(rstate,
-                                                      ndim=None,
-                                                      dtype='float32',
-                                                      size=(1,))
+            new_rstate, sample = GPUA_mrg_uniform.new(
+                rstate, ndim=None, dtype="float32", size=(1,)
+            )
             rstate.default_update = new_rstate
 
             # Not really necessary, just mimicking
@@ -63,7 +61,7 @@ def test_consistency_GPUA_serial():
         curr_rstate = rng_mrg.ff_2p134(curr_rstate)
 
     samples = np.array(samples).flatten()
-    assert(np.allclose(samples, java_samples))
+    assert np.allclose(samples, java_samples)
 
 
 def test_consistency_GPUA_parallel():
@@ -76,7 +74,7 @@ def test_consistency_GPUA_parallel():
     n_substreams = 7  # 7 samples will be drawn in parallel
 
     samples = []
-    curr_rstate = np.array([seed] * 6, dtype='int32')
+    curr_rstate = np.array([seed] * 6, dtype="int32")
 
     for i in range(n_streams):
         stream_samples = []
@@ -86,9 +84,9 @@ def test_consistency_GPUA_parallel():
         rstate = np.asarray(rstate)
         rstate = gpuarray_shared_constructor(rstate)
 
-        new_rstate, sample = GPUA_mrg_uniform.new(rstate, ndim=None,
-                                                  dtype='float32',
-                                                  size=(n_substreams,))
+        new_rstate, sample = GPUA_mrg_uniform.new(
+            rstate, ndim=None, dtype="float32", size=(n_substreams,)
+        )
         rstate.default_update = new_rstate
 
         # Not really necessary, just mimicking
@@ -110,7 +108,7 @@ def test_consistency_GPUA_parallel():
         curr_rstate = rng_mrg.ff_2p134(curr_rstate)
 
     samples = np.array(samples).flatten()
-    assert(np.allclose(samples, java_samples))
+    assert np.allclose(samples, java_samples)
 
 
 def test_GPUA_full_fill():
@@ -125,9 +123,9 @@ def test_GPUA_full_fill():
     f_cpu = theano.function([], uni)
 
     rstate_gpu = gpuarray_shared_constructor(R.state_updates[-1][0].get_value())
-    new_rstate, sample = GPUA_mrg_uniform.new(rstate_gpu, ndim=None,
-                                              dtype='float32',
-                                              size=size)
+    new_rstate, sample = GPUA_mrg_uniform.new(
+        rstate_gpu, ndim=None, dtype="float32", size=size
+    )
     rstate_gpu.default_update = new_rstate
     f_gpu = theano.function([], sample, mode=mode)
 
@@ -137,23 +135,21 @@ def test_GPUA_full_fill():
 def test_overflow_gpu_new_backend():
     seed = 12345
     n_substreams = 7
-    curr_rstate = np.array([seed] * 6, dtype='int32')
+    curr_rstate = np.array([seed] * 6, dtype="int32")
     rstate = [curr_rstate.copy()]
     for j in range(1, n_substreams):
         rstate.append(rng_mrg.ff_2p72(rstate[-1]))
     rstate = np.asarray(rstate)
     rstate = gpuarray_shared_constructor(rstate)
-    fct = functools.partial(GPUA_mrg_uniform.new, rstate,
-                            ndim=None, dtype='float32')
+    fct = functools.partial(GPUA_mrg_uniform.new, rstate, ndim=None, dtype="float32")
     # should raise error as the size overflows
-    sizes = [(2**31, ), (2**32, ), (2**15, 2**16,), (2, 2**15, 2**15)]
+    sizes = [(2 ** 31,), (2 ** 32,), (2 ** 15, 2 ** 16,), (2, 2 ** 15, 2 ** 15)]
     rng_mrg_overflow(sizes, fct, mode, should_raise_error=True)
     # should not raise error
-    sizes = [(2**5, ), (2**5, 2**5), (2**5, 2**5, 2**5)]
+    sizes = [(2 ** 5,), (2 ** 5, 2 ** 5), (2 ** 5, 2 ** 5, 2 ** 5)]
     rng_mrg_overflow(sizes, fct, mode, should_raise_error=False)
     # should support int32 sizes
-    sizes = [(np.int32(2**10), ),
-             (np.int32(2), np.int32(2**10), np.int32(2**10))]
+    sizes = [(np.int32(2 ** 10),), (np.int32(2), np.int32(2 ** 10), np.int32(2 ** 10))]
     rng_mrg_overflow(sizes, fct, mode, should_raise_error=False)
 
 
@@ -170,26 +166,24 @@ def test_f16_nonzero():
         theano.compile.shared_constructor(gpuarray_shared_constructor)
         cpu_f16_nonzero(mode=mode, op_to_check=GPUA_mrg_uniform)
     finally:
-        theano.compile.shared_constructor(gpuarray_shared_constructor,
-                                          remove=True)
+        theano.compile.shared_constructor(gpuarray_shared_constructor, remove=True)
 
 
 def test_cpu_target_with_shared_variable():
     srng = MRG_RandomStreams()
-    s = np.random.rand(2, 3).astype('float32')
-    x = gpuarray_shared_constructor(s, name='x')
+    s = np.random.rand(2, 3).astype("float32")
+    x = gpuarray_shared_constructor(s, name="x")
     try:
         # To have theano.shared(x) try to move on the GPU
         theano.compile.shared_constructor(gpuarray_shared_constructor)
-        y = srng.uniform(x.shape, target='cpu')
-        y.name = 'y'
+        y = srng.uniform(x.shape, target="cpu")
+        y.name = "y"
         z = (x * y).sum()
-        z.name = 'z'
+        z.name = "z"
 
         fz = theano.function([], z, mode=mode)
 
         nodes = fz.maker.fgraph.toposort()
         assert not any([isinstance(node.op, GPUA_mrg_uniform) for node in nodes])
     finally:
-        theano.compile.shared_constructor(gpuarray_shared_constructor,
-                                          remove=True)
+        theano.compile.shared_constructor(gpuarray_shared_constructor, remove=True)

@@ -22,23 +22,23 @@ class MultinomialFromUniform(Op):
         self.odtype = odtype
 
     def __str__(self):
-        return '%s{%s}' % (self.__class__.__name__, self.odtype)
+        return "%s{%s}" % (self.__class__.__name__, self.odtype)
 
     def __setstate__(self, dct):
         self.__dict__.update(dct)
         try:
             self.odtype
         except AttributeError:
-            self.odtype = 'auto'
+            self.odtype = "auto"
 
     def make_node(self, pvals, unis, n=1):
         pvals = T.as_tensor_variable(pvals)
         unis = T.as_tensor_variable(unis)
         if pvals.ndim != 2:
-            raise NotImplementedError('pvals ndim should be 2', pvals.ndim)
+            raise NotImplementedError("pvals ndim should be 2", pvals.ndim)
         if unis.ndim != 1:
-            raise NotImplementedError('unis ndim should be 1', unis.ndim)
-        if self.odtype == 'auto':
+            raise NotImplementedError("unis ndim should be 1", unis.ndim)
+        if self.odtype == "auto":
             odtype = pvals.dtype
         else:
             odtype = self.odtype
@@ -48,8 +48,12 @@ class MultinomialFromUniform(Op):
     def grad(self, ins, outgrads):
         pvals, unis, n = ins
         (gz,) = outgrads
-        return [T.zeros_like(x, dtype=theano.config.floatX) if x.dtype in
-                T.discrete_dtypes else T.zeros_like(x) for x in ins]
+        return [
+            T.zeros_like(x, dtype=theano.config.floatX)
+            if x.dtype in T.discrete_dtypes
+            else T.zeros_like(x)
+            for x in ins
+        ]
 
     def c_code_cache_version(self):
         return (8,)
@@ -62,16 +66,17 @@ class MultinomialFromUniform(Op):
         else:
             (pvals, unis, n) = ins
         (z,) = outs
-        if self.odtype == 'auto':
+        if self.odtype == "auto":
             t = "PyArray_TYPE(%(pvals)s)" % locals()
         else:
             t = theano.scalar.Scalar(self.odtype).dtype_specs()[1]
-            if t.startswith('theano_complex'):
-                t = t.replace('theano_complex', 'NPY_COMPLEX')
+            if t.startswith("theano_complex"):
+                t = t.replace("theano_complex", "NPY_COMPLEX")
             else:
                 t = t.upper()
-        fail = sub['fail']
-        return """
+        fail = sub["fail"]
+        return (
+            """
         if (PyArray_NDIM(%(pvals)s) != 2)
         {
             PyErr_Format(PyExc_TypeError, "pvals ndim should be 2");
@@ -150,7 +155,9 @@ class MultinomialFromUniform(Op):
             }
         }
         } // END NESTED SCOPE
-        """ % locals()
+        """
+            % locals()
+        )
 
     def perform(self, node, ins, outs):
         # support old pickled graphs
@@ -162,8 +169,12 @@ class MultinomialFromUniform(Op):
         (z,) = outs
 
         if unis.shape[0] != pvals.shape[0] * n_samples:
-            raise ValueError("unis.shape[0] != pvals.shape[0] * n_samples",
-                             unis.shape[0], pvals.shape[0], n_samples)
+            raise ValueError(
+                "unis.shape[0] != pvals.shape[0] * n_samples",
+                unis.shape[0],
+                pvals.shape[0],
+                n_samples,
+            )
         if z[0] is None or z[0].shape != pvals.shape:
             z[0] = np.zeros(pvals.shape, dtype=node.outputs[0].dtype)
         else:
@@ -201,7 +212,7 @@ class MultinomialFromUniform(Op):
                 # The dtype='float64' is important. Otherwise we don't
                 # have the same answer as the c code as in the c code
                 # the cumul is in double precission.
-                cumsum = pvals[n].cumsum(dtype='float64')
+                cumsum = pvals[n].cumsum(dtype="float64")
                 z[0][n, np.searchsorted(cumsum, unis_n)] += 1
 
 
@@ -212,7 +223,10 @@ class ChoiceFromUniform(MultinomialFromUniform):
 
     """
 
-    __props__ = ("odtype", "replace",)
+    __props__ = (
+        "odtype",
+        "replace",
+    )
 
     def __init__(self, odtype, replace=False, *args, **kwargs):
         self.replace = replace
@@ -227,11 +241,11 @@ class ChoiceFromUniform(MultinomialFromUniform):
         pvals = T.as_tensor_variable(pvals)
         unis = T.as_tensor_variable(unis)
         if pvals.ndim != 2:
-            raise NotImplementedError('pvals ndim should be 2', pvals.ndim)
+            raise NotImplementedError("pvals ndim should be 2", pvals.ndim)
         if unis.ndim != 1:
-            raise NotImplementedError('unis ndim should be 1', unis.ndim)
-        if self.odtype == 'auto':
-            odtype = 'int64'
+            raise NotImplementedError("unis ndim should be 1", unis.ndim)
+        if self.odtype == "auto":
+            odtype = "int64"
         else:
             odtype = self.odtype
         out = T.tensor(dtype=odtype, broadcastable=pvals.type.broadcastable)
@@ -244,16 +258,17 @@ class ChoiceFromUniform(MultinomialFromUniform):
         (pvals, unis, n) = ins
         (z,) = outs
         replace = int(self.replace)
-        if self.odtype == 'auto':
+        if self.odtype == "auto":
             t = "NPY_INT64"
         else:
             t = theano.scalar.Scalar(self.odtype).dtype_specs()[1]
-            if t.startswith('theano_complex'):
-                t = t.replace('theano_complex', 'NPY_COMPLEX')
+            if t.startswith("theano_complex"):
+                t = t.replace("theano_complex", "NPY_COMPLEX")
             else:
                 t = t.upper()
-        fail = sub['fail']
-        return """
+        fail = sub["fail"]
+        return (
+            """
         // create a copy of pvals matrix
         PyArrayObject* pvals_copy = NULL;
 
@@ -367,7 +382,9 @@ class ChoiceFromUniform(MultinomialFromUniform):
             Py_XDECREF(pvals_copy);
         }
         } // END NESTED SCOPE
-        """ % locals()
+        """
+            % locals()
+        )
 
     def perform(self, node, ins, outs):
         (pvals, unis, n_samples) = ins
@@ -376,19 +393,24 @@ class ChoiceFromUniform(MultinomialFromUniform):
         (z,) = outs
 
         if n_samples > pvals.shape[1]:
-            raise ValueError("Cannot sample without replacement n samples "
-                             "bigger than the size of the distribution.")
+            raise ValueError(
+                "Cannot sample without replacement n samples "
+                "bigger than the size of the distribution."
+            )
 
         if unis.shape[0] != pvals.shape[0] * n_samples:
-            raise ValueError("unis.shape[0] != pvals.shape[0] * n_samples",
-                             unis.shape[0], pvals.shape[0], n_samples)
+            raise ValueError(
+                "unis.shape[0] != pvals.shape[0] * n_samples",
+                unis.shape[0],
+                pvals.shape[0],
+                n_samples,
+            )
 
-        if self.odtype == 'auto':
-            odtype = 'int64'
+        if self.odtype == "auto":
+            odtype = "int64"
         else:
             odtype = self.odtype
-        if (z[0] is None or
-                not np.all(z[0].shape == [pvals.shape[0], n_samples])):
+        if z[0] is None or not np.all(z[0].shape == [pvals.shape[0], n_samples]):
             z[0] = -1 * np.ones((pvals.shape[0], n_samples), dtype=odtype)
 
         nb_multi = pvals.shape[0]
@@ -402,20 +424,22 @@ class ChoiceFromUniform(MultinomialFromUniform):
                 unis_n = unis[c * nb_multi + n]
                 for m in range(nb_outcomes):
                     cummul += pvals[n, m]
-                    if (cummul > unis_n):
+                    if cummul > unis_n:
                         z[0][n, c] = m
                         # set to zero and re-normalize so that it's not
                         # selected again
                         if not self.replace:
-                            pvals[n, m] = 0.
+                            pvals[n, m] = 0.0
                             pvals[n] /= pvals[n].sum()
                         break
 
 
 class MultinomialWOReplacementFromUniform(ChoiceFromUniform):
     def __init__(self, *args, **kwargs):
-        warnings.warn("MultinomialWOReplacementFromUniform is deprecated, "
-                      "use ChoiceFromUniform instead.",
-                      DeprecationWarning,
-                      stacklevel=2)
+        warnings.warn(
+            "MultinomialWOReplacementFromUniform is deprecated, "
+            "use ChoiceFromUniform instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         super(MultinomialWOReplacementFromUniform, self).__init__(*args, **kwargs)

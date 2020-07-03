@@ -33,6 +33,7 @@ __docformat__ = "restructuredtext en"
 class ScalarSharedVariable(_scalar_py_operators, SharedVariable):
     pass
 
+
 # this is not installed in the default shared variable registry so that
 # scalars are typically 0-d tensors.
 # still, in case you need a shared variable scalar, you can get one
@@ -63,5 +64,6 @@ def shared(value, name=None, strict=False, allow_downcast=None):
         value=value,
         name=name,
         strict=strict,
-        allow_downcast=allow_downcast)
+        allow_downcast=allow_downcast,
+    )
     return rval

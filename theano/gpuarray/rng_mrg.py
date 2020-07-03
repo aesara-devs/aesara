@@ -13,8 +13,14 @@ from theano.sandbox.rng_mrg import mrg_uniform_base, mrg_uniform
 from theano.tensor import as_tensor_variable, get_vector_length
 from theano.scalar import int32 as int_t
 
-from .basic_ops import (GpuKernelBase, Kernel, infer_context_name,
-                        GpuFromHost, host_from_gpu, as_gpuarray_variable)
+from .basic_ops import (
+    GpuKernelBase,
+    Kernel,
+    infer_context_name,
+    GpuFromHost,
+    host_from_gpu,
+    as_gpuarray_variable,
+)
 from .type import GpuArrayType, gpu_context_type
 from .fp16_help import write_w
 from .opt import register_opt, register_opt2
@@ -23,7 +29,9 @@ from .opt import register_opt, register_opt2
 class GPUA_mrg_uniform(GpuKernelBase, mrg_uniform_base):
     # GpuArray version
     _f16_ok = True
-    params_type = mrg_uniform_base.params_type.extended(otypecode=int_t, context=gpu_context_type)
+    params_type = mrg_uniform_base.params_type.extended(
+        otypecode=int_t, context=gpu_context_type
+    )
 
     otypecode = property(lambda self: self.output_type.typecode)
 
@@ -34,12 +42,10 @@ class GPUA_mrg_uniform(GpuKernelBase, mrg_uniform_base):
         # call through MRG_RandomStreams instead.
         broad = []
         for i in range(self.output_type.ndim):
-                broad.append(tensor.extract_constant(size[i]) == 1)
+            broad.append(tensor.extract_constant(size[i]) == 1)
         output_type = self.output_type.clone(broadcastable=broad)()
         rstate = as_gpuarray_variable(rstate, infer_context_name(rstate))
-        return Apply(self,
-                     [rstate, size],
-                     [rstate.type(), output_type])
+        return Apply(self, [rstate, size], [rstate.type(), output_type])
 
     def get_params(self, node):
         return self.params_type.get_params(self, context=node.inputs[0].type.context)
@@ -53,34 +59,34 @@ class GPUA_mrg_uniform(GpuKernelBase, mrg_uniform_base):
         return op(rstate, v_size)
 
     def c_headers(self):
-        return super(GPUA_mrg_uniform, self).c_headers() + ['numpy_compat.h']
+        return super(GPUA_mrg_uniform, self).c_headers() + ["numpy_compat.h"]
 
     def gpu_kernels(self, node, name):
         write = write_w(self.output_type.dtype)
-        if self.output_type.dtype == 'float16':
-            otype = 'ga_half'
+        if self.output_type.dtype == "float16":
+            otype = "ga_half"
             # limit the values of the state that we use.
-            mask = '& 0x7fff'
-            offset = '+ 1'
-            NORM = '3.0458e-05f'  # numpy.float16(1.0/(2**15+33))
+            mask = "& 0x7fff"
+            offset = "+ 1"
+            NORM = "3.0458e-05f"  # numpy.float16(1.0/(2**15+33))
             # this was determined by finding the biggest number such that
             # numpy.float16(number * ((M1 & 0x7fff) + 1)) < 1.0
-        elif self.output_type.dtype == 'float32':
-            otype = 'float'
-            mask = ''
-            offset = ''
-            NORM = '4.6566126e-10f'  # numpy.float32(1.0/(2**31+65))
+        elif self.output_type.dtype == "float32":
+            otype = "float"
+            mask = ""
+            offset = ""
+            NORM = "4.6566126e-10f"  # numpy.float32(1.0/(2**31+65))
             # this was determined by finding the biggest number such that
             # numpy.float32(number * M1) < 1.0
-        elif self.output_type.dtype == 'float64':
-            otype = 'double'
-            mask = ''
-            offset = ''
-            NORM = '4.656612873077392578125e-10'
+        elif self.output_type.dtype == "float64":
+            otype = "double"
+            mask = ""
+            offset = ""
+            NORM = "4.656612873077392578125e-10"
         else:
-            raise ValueError('Unsupported data type for output',
-                             self.output_type.dtype)
-        code = """#include "cluda.h"
+            raise ValueError("Unsupported data type for output", self.output_type.dtype)
+        code = (
+            """#include "cluda.h"
 
         KERNEL void mrg_uniform(
                 GLOBAL_MEM %(otype)s *sample_data,
@@ -164,17 +170,28 @@ class GPUA_mrg_uniform(GpuKernelBase, mrg_uniform_base):
             }
         }
 
-        """ % locals()
+        """
+            % locals()
+        )
 
         # we shouldn't get to this line if it's about to fail
         from pygpu import gpuarray
 
-        return [Kernel(code=code, name="mrg_uniform",
-                       params=[gpuarray.GpuArray, gpuarray.SIZE,
-                               gpuarray.GpuArray, gpuarray.SIZE,
-                               'uint32', 'uint32'],
-                       flags=Kernel.get_flags(self.output_type.dtype, 'int32'))
-                ]
+        return [
+            Kernel(
+                code=code,
+                name="mrg_uniform",
+                params=[
+                    gpuarray.GpuArray,
+                    gpuarray.SIZE,
+                    gpuarray.GpuArray,
+                    gpuarray.SIZE,
+                    "uint32",
+                    "uint32",
+                ],
+                flags=Kernel.get_flags(self.output_type.dtype, "int32"),
+            )
+        ]
 
     def c_code(self, node, nodename, inp, out, sub):
         return """
@@ -290,37 +307,41 @@ class GPUA_mrg_uniform(GpuKernelBase, mrg_uniform_base):
         }
 
         free(odims);
-        """ % dict(rstate=inp[0], size=inp[1],
-                   o_rstate=out[0], o_sample=out[1],
-                   kname=self.gpu_kernels(node, nodename)[0].objvar,
-                   params=sub['params'],
-                   just_fail=sub['fail'],
-                   fail="""
+        """ % dict(
+            rstate=inp[0],
+            size=inp[1],
+            o_rstate=out[0],
+            o_sample=out[1],
+            kname=self.gpu_kernels(node, nodename)[0].objvar,
+            params=sub["params"],
+            just_fail=sub["fail"],
+            fail="""
                    {
                      free(odims);
                      %(fail)s
                    }
-                   """ % dict(fail=sub['fail']))
+                   """
+            % dict(fail=sub["fail"]),
+        )
 
     def c_code_cache_version(self):
         return (17,)
 
 
-@register_opt2([mrg_uniform], 'fast_compile')
+@register_opt2([mrg_uniform], "fast_compile")
 def local_gpua_mrg_graph(op, context_name, inputs, outputs):
-    if (type(op) == mrg_uniform and
-            isinstance(inputs[0].type, GpuArrayType) and
-            (inputs[0].owner is None or
-             not isinstance(inputs[0].owner.op,
-                            GpuFromHost))):
-        outs = GPUA_mrg_uniform.new(inputs[0],
-                                    op.output_type.ndim,
-                                    op.output_type.dtype,
-                                    inputs[1])
+    if (
+        type(op) == mrg_uniform
+        and isinstance(inputs[0].type, GpuArrayType)
+        and (inputs[0].owner is None or not isinstance(inputs[0].owner.op, GpuFromHost))
+    ):
+        outs = GPUA_mrg_uniform.new(
+            inputs[0], op.output_type.ndim, op.output_type.dtype, inputs[1]
+        )
         return [outs[0], host_from_gpu(outs[1])]
 
 
-@register_opt('fast_compile')
+@register_opt("fast_compile")
 @local_optimizer([mrg_uniform])
 def local_gpua_mrg(node):
     context_name = infer_context_name(*node.inputs)

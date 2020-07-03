@@ -2,7 +2,7 @@ from __future__ import print_function, absolute_import, division
 from theano.gof import Op, Apply
 from theano.gof.type import Generic
 
-from .basic_ops import (infer_context_name, as_gpuarray_variable, gpuarray_helper_inc_dir)
+from .basic_ops import infer_context_name, as_gpuarray_variable, gpuarray_helper_inc_dir
 from .type import GpuArrayType
 
 try:
@@ -16,8 +16,9 @@ class GpuMaxAndArgmax(Op):
     GPU version of MaxAndArgmax
 
     """
+
     params_type = Generic()
-    __props__ = ('axis',)
+    __props__ = ("axis",)
     argmax_dtype = "int64"
 
     def __init__(self, axis):
@@ -32,15 +33,18 @@ class GpuMaxAndArgmax(Op):
         # We keep the original broadcastable flags for dimensions on which
         # we do not perform the max / argmax.
         all_axes = set(self.axis)
-        broadcastable = [b for i, b in enumerate(X.type.broadcastable)
-                         if i not in all_axes]
+        broadcastable = [
+            b for i, b in enumerate(X.type.broadcastable) if i not in all_axes
+        ]
         inputs = [as_gpuarray_variable(X, context_name)]
-        outputs = [GpuArrayType(X.type.dtype, broadcastable, context_name=context_name)(),
-                   GpuArrayType(self.argmax_dtype, broadcastable, context_name=context_name)()]
+        outputs = [
+            GpuArrayType(X.type.dtype, broadcastable, context_name=context_name)(),
+            GpuArrayType(self.argmax_dtype, broadcastable, context_name=context_name)(),
+        ]
         return Apply(self, inputs, outputs)
 
     def c_headers(self):
-        return ['<numpy_compat.h>', '<gpuarray_helper.h>']
+        return ["<numpy_compat.h>", "<gpuarray_helper.h>"]
 
     def c_header_dirs(self):
         return [pygpu.get_include(), gpuarray_helper_inc_dir()]
@@ -123,15 +127,25 @@ class GpuMaxAndArgmax(Op):
             %(fail)s
         }
         """
-        return ret % {'X': input_names[0], 'axes': sub['params'], 'max': output_names[0], 'argmax': output_names[1],
-                      'max_typecode': max_typecode, 'argmax_typecode': argmax_typecode,
-                      'name': name, 'fail': sub['fail']}
+        return ret % {
+            "X": input_names[0],
+            "axes": sub["params"],
+            "max": output_names[0],
+            "argmax": output_names[1],
+            "max_typecode": max_typecode,
+            "argmax_typecode": argmax_typecode,
+            "name": name,
+            "fail": sub["fail"],
+        }
 
     def c_code_cleanup(self, node, name, inputs, outputs, sub):
         return """
         free(%(name)s_output_dims);
         free(%(name)s_axes_to_reduce);
-        """ % {'name': name, 'X': inputs[0]}
+        """ % {
+            "name": name,
+            "X": inputs[0],
+        }
 
     def c_code_cache_version(self):
         return (2,)

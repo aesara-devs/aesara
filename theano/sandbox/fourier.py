@@ -15,9 +15,11 @@ from theano.gof import Op, Apply, generic
 # This module will soon be deprecated.
 import warnings
 
-message = ("The module theano.sandbox.fourier will soon be deprecated."
-           " Please use theano.tensor.fft, which supports gradients and "
-           "automatic optimization transfers to the GPU ops.")
+message = (
+    "The module theano.sandbox.fourier will soon be deprecated."
+    " Please use theano.tensor.fft, which supports gradients and "
+    "automatic optimization transfers to the GPU ops."
+)
 warnings.warn(message)
 
 
@@ -29,7 +31,9 @@ class GradTodo(Op):
         return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, outputs):
-        raise NotImplementedError('TODO')
+        raise NotImplementedError("TODO")
+
+
 grad_todo = GradTodo()
 
 
@@ -71,8 +75,8 @@ class FFT(Op):
         _frames = tensor.as_tensor(frames, ndim=2)
         _n = tensor.as_tensor(n, ndim=0)
         _axis = tensor.as_tensor(axis, ndim=0)
-        if self.half and _frames.type.dtype.startswith('complex'):
-            raise TypeError('Argument to HalfFFT must not be complex', frames)
+        if self.half and _frames.type.dtype.startswith("complex"):
+            raise TypeError("Argument to HalfFFT must not be complex", frames)
         spectrogram = tensor.zmatrix()
         buf = generic()
         # The `buf` output is present for future work
@@ -93,15 +97,13 @@ class FFT(Op):
         if self.half:
             M, N = fft.shape
             if axis == 0:
-                if (M % 2):
-                    raise ValueError(
-                        'halfFFT on odd-length vectors is undefined')
-                spectrogram[0] = fft[0:M / 2, :]
+                if M % 2:
+                    raise ValueError("halfFFT on odd-length vectors is undefined")
+                spectrogram[0] = fft[0 : M / 2, :]
             elif axis == 1:
-                if (N % 2):
-                    raise ValueError(
-                        'halfFFT on odd-length vectors is undefined')
-                spectrogram[0] = fft[:, 0:N / 2]
+                if N % 2:
+                    raise ValueError("halfFFT on odd-length vectors is undefined")
+                spectrogram[0] = fft[:, 0 : N / 2]
             else:
                 raise NotImplementedError()
         else:
@@ -111,6 +113,7 @@ class FFT(Op):
         frames, n, axis = inp
         g_spectrogram, g_buf = out
         return [grad_todo(frames), None, None]
+
 
 fft = FFT(half=False, inverse=False)
 half_fft = FFT(half=True, inverse=False)
@@ -130,8 +133,7 @@ def dct_matrix(rows, cols, unitary=True):
     col_range = np.arange(cols)
     scale = np.sqrt(2.0 / cols)
     for i in xrange(rows):
-        rval[i] = np.cos(
-            i * (col_range * 2 + 1) / (2.0 * cols) * np.pi) * scale
+        rval[i] = np.cos(i * (col_range * 2 + 1) / (2.0 * cols) * np.pi) * scale
 
     if unitary:
         rval[0] *= np.sqrt(0.5)

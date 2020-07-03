@@ -17,11 +17,34 @@ from theano.tests import unittest_tools as utt
 from theano import config
 
 from theano.tensor.nlinalg import (
-    MatrixInverse, matrix_inverse, MatrixPinv, pinv,
-    AllocDiag, alloc_diag, ExtractDiag, extract_diag, diag,
-    trace, Det, det, Eig, eig, Eigh, EighGrad, eigh,
-    matrix_dot, _zero_disconnected, qr, matrix_power,
-    norm, svd, SVD, TensorInv, tensorinv, tensorsolve)
+    MatrixInverse,
+    matrix_inverse,
+    MatrixPinv,
+    pinv,
+    AllocDiag,
+    alloc_diag,
+    ExtractDiag,
+    extract_diag,
+    diag,
+    trace,
+    Det,
+    det,
+    Eig,
+    eig,
+    Eigh,
+    EighGrad,
+    eigh,
+    matrix_dot,
+    _zero_disconnected,
+    qr,
+    matrix_power,
+    norm,
+    svd,
+    SVD,
+    TensorInv,
+    tensorinv,
+    tensorsolve,
+)
 
 
 def test_pseudoinverse_correctness():
@@ -82,8 +105,7 @@ class test_MatrixInverse(utt.InferShapeTester):
         x = tensor.matrix()
         xi = self.op(x)
 
-        self._compile_and_check([x], [xi], [r],
-                                self.op_class, warn=False)
+        self._compile_and_check([x], [xi], [r], self.op_class, warn=False)
 
 
 def test_matrix_dot():
@@ -136,7 +158,7 @@ def test_qr_modes():
 
 class test_SVD(utt.InferShapeTester):
     op_class = SVD
-    dtype = 'float32'
+    dtype = "float32"
 
     def setup_method(self):
         super(test_SVD, self).setup_method()
@@ -194,28 +216,28 @@ def test_tensorsolve():
     assert _allclose(n_x, t_x)
 
     # check the type upcast now
-    C = tensor.tensor4("C", dtype='float32')
-    D = tensor.matrix("D", dtype='float64')
+    C = tensor.tensor4("C", dtype="float32")
+    D = tensor.matrix("D", dtype="float64")
     Y = tensorsolve(C, D)
     fn = function([C, D], [Y])
 
-    c = np.eye(2 * 3 * 4, dtype='float32')
+    c = np.eye(2 * 3 * 4, dtype="float32")
     c.shape = (2 * 3, 4, 2, 3 * 4)
-    d = rng.rand(2 * 3, 4).astype('float64')
+    d = rng.rand(2 * 3, 4).astype("float64")
     n_y = np.linalg.tensorsolve(c, d)
     t_y = fn(c, d)
     assert _allclose(n_y, t_y)
     assert n_y.dtype == Y.dtype
 
     # check the type upcast now
-    E = tensor.tensor4("E", dtype='int32')
-    F = tensor.matrix("F", dtype='float64')
+    E = tensor.tensor4("E", dtype="int32")
+    F = tensor.matrix("F", dtype="float64")
     Z = tensorsolve(E, F)
     fn = function([E, F], [Z])
 
-    e = np.eye(2 * 3 * 4, dtype='int32')
+    e = np.eye(2 * 3 * 4, dtype="int32")
     e.shape = (2 * 3, 4, 2, 3 * 4)
-    f = rng.rand(2 * 3, 4).astype('float64')
+    f = rng.rand(2 * 3, 4).astype("float64")
     n_z = np.linalg.tensorsolve(e, f)
     t_z = fn(e, f)
     assert _allclose(n_z, t_z)
@@ -223,8 +245,7 @@ def test_tensorsolve():
 
 
 def test_inverse_singular():
-    singular = np.array([[1, 0, 0]] + [[0, 1, 0]] * 2,
-                           dtype=theano.config.floatX)
+    singular = np.array([[1, 0, 0]] + [[0, 1, 0]] * 2, dtype=theano.config.floatX)
     a = tensor.matrix()
     f = function([a], matrix_inverse(a))
     try:
@@ -271,7 +292,7 @@ def test_det_shape():
     assert np.all(f(r).shape == f_shape(r))
 
 
-class test_diag():
+class test_diag:
     """
     Test that linalg.diag has the same behavior as numpy.diag.
     numpy.diag has two behaviors:
@@ -286,8 +307,15 @@ class test_diag():
     test_diag test makes sure that linalg.diag instantiates
     the right op based on the dimension of the input.
     """
-    def __init__(self, name, mode=None, shared=tensor._shared,
-                 floatX=None, type=tensor.TensorType):
+
+    def __init__(
+        self,
+        name,
+        mode=None,
+        shared=tensor._shared,
+        floatX=None,
+        type=tensor.TensorType,
+    ):
         self.mode = mode
         self.shared = shared
         if floatX is None:
@@ -322,7 +350,7 @@ class test_diag():
         # Test infer_shape
         f = theano.function([x], g.shape)
         topo = f.maker.fgraph.toposort()
-        if config.mode != 'FAST_COMPILE':
+        if config.mode != "FAST_COMPILE":
             assert sum([node.op.__class__ == AllocDiag for node in topo]) == 0
         for shp in [5, 0, 1]:
             m = rng.rand(shp).astype(self.floatX)
@@ -352,9 +380,11 @@ class test_diag():
         x = self.shared(m)
         g = extract_diag(x)
         f = theano.function([], g)
-        assert [isinstance(node.inputs[0].type, self.type)
-                for node in f.maker.fgraph.toposort()
-                if isinstance(node.op, ExtractDiag)] == [True]
+        assert [
+            isinstance(node.inputs[0].type, self.type)
+            for node in f.maker.fgraph.toposort()
+            if isinstance(node.op, ExtractDiag)
+        ] == [True]
 
         for shp in [(2, 3), (3, 2), (3, 3), (1, 1), (0, 0)]:
             m = rng.rand(*shp).astype(self.floatX)
@@ -378,9 +408,8 @@ class test_diag():
         # Test infer_shape
         f = theano.function([], g.shape)
         topo = f.maker.fgraph.toposort()
-        if config.mode != 'FAST_COMPILE':
-            assert sum([node.op.__class__ == ExtractDiag
-                        for node in topo]) == 0
+        if config.mode != "FAST_COMPILE":
+            assert sum([node.op.__class__ == ExtractDiag for node in topo]) == 0
         for shp in [(2, 3), (3, 2), (3, 3)]:
             m = rng.rand(*shp).astype(self.floatX)
             x.set_value(m)
@@ -396,9 +425,11 @@ class test_diag():
         c = self.shared(np.array([[], []], self.floatX))
         f = theano.function([], extract_diag(c), mode=self.mode)
 
-        assert [isinstance(node.inputs[0].type, self.type)
-                for node in f.maker.fgraph.toposort()
-                if isinstance(node.op, ExtractDiag)] == [True]
+        assert [
+            isinstance(node.inputs[0].type, self.type)
+            for node in f.maker.fgraph.toposort()
+            if isinstance(node.op, ExtractDiag)
+        ] == [True]
 
 
 def test_trace():
@@ -427,7 +458,7 @@ def test_trace():
 class test_Eig(utt.InferShapeTester):
     op_class = Eig
     op = eig
-    dtype = 'float64'
+    dtype = "float64"
 
     def setup_method(self):
         super(test_Eig, self).setup_method()
@@ -439,12 +470,14 @@ class test_Eig(utt.InferShapeTester):
     def test_infer_shape(self):
         A = self.A
         S = self.S
-        self._compile_and_check([A],  # theano.function inputs
-                                self.op(A),  # theano.function outputs
-                                # S must be square
-                                [S],
-                                self.op_class,
-                                warn=False)
+        self._compile_and_check(
+            [A],  # theano.function inputs
+            self.op(A),  # theano.function outputs
+            # S must be square
+            [S],
+            self.op_class,
+            warn=False,
+        )
 
     def test_eval(self):
         A = theano.tensor.matrix(dtype=self.dtype)
@@ -460,11 +493,10 @@ class test_Eigh(test_Eig):
     def test_uplo(self):
         S = self.S
         a = theano.tensor.matrix(dtype=self.dtype)
-        wu, vu = [out.eval({a: S}) for out in self.op(a, 'U')]
-        wl, vl = [out.eval({a: S}) for out in self.op(a, 'L')]
+        wu, vu = [out.eval({a: S}) for out in self.op(a, "U")]
+        wl, vl = [out.eval({a: S}) for out in self.op(a, "L")]
         assert_array_almost_equal(wu, wl)
-        assert_array_almost_equal(vu * np.sign(vu[0, :]),
-                                  vl * np.sign(vl[0, :]))
+        assert_array_almost_equal(vu * np.sign(vu[0, :]), vl * np.sign(vl[0, :]))
 
     def test_grad(self):
         X = self.X
@@ -472,12 +504,12 @@ class test_Eigh(test_Eig):
         # matrix that is hermitian
         utt.verify_grad(lambda x: self.op(x.dot(x.T))[0], [X], rng=self.rng)
         utt.verify_grad(lambda x: self.op(x.dot(x.T))[1], [X], rng=self.rng)
-        utt.verify_grad(lambda x: self.op(x.dot(x.T), 'U')[0], [X], rng=self.rng)
-        utt.verify_grad(lambda x: self.op(x.dot(x.T), 'U')[1], [X], rng=self.rng)
+        utt.verify_grad(lambda x: self.op(x.dot(x.T), "U")[0], [X], rng=self.rng)
+        utt.verify_grad(lambda x: self.op(x.dot(x.T), "U")[1], [X], rng=self.rng)
 
 
 class test_Eigh_float32(test_Eigh):
-    dtype = 'float32'
+    dtype = "float32"
 
     def test_uplo(self):
         super(test_Eigh_float32, self).test_uplo()
@@ -486,8 +518,7 @@ class test_Eigh_float32(test_Eigh):
         super(test_Eigh_float32, self).test_grad()
 
 
-class Test_lstsq():
-
+class Test_lstsq:
     def test_correct_solution(self):
         x = tensor.lmatrix()
         y = tensor.lmatrix()
@@ -520,8 +551,7 @@ class Test_lstsq():
             f([2, 1], [2, 1], [2, 1])
 
 
-class TestMatrix_power():
-
+class TestMatrix_power:
     def test_numpy_compare(self):
         rng = np.random.RandomState(utt.fetch_seed())
         A = tensor.matrix("A", dtype=theano.config.floatX)
@@ -543,11 +573,10 @@ class TestMatrix_power():
             f(a)
 
 
-class Test_NormTests():
-
+class Test_NormTests:
     def test_wrong_type_of_ord_for_vector(self):
         with pytest.raises(ValueError):
-            norm([2, 1], 'fro')
+            norm([2, 1], "fro")
 
     def test_wrong_type_of_ord_for_matrix(self):
         with pytest.raises(ValueError):
@@ -570,10 +599,12 @@ class Test_NormTests():
         a = rng.rand(4, 4).astype(theano.config.floatX)
         b = rng.rand(4).astype(theano.config.floatX)
 
-        A = (   [None, 'fro', 'inf', '-inf', 1, -1, None, 'inf', '-inf', 0, 1, -1, 2, -2],
-                [M, M, M, M, M, M, V, V, V, V, V, V, V, V],
-                [a, a, a, a, a, a, b, b, b, b, b, b, b, b],
-                [None, 'fro', inf, -inf, 1, -1, None, inf, -inf, 0, 1, -1, 2, -2])
+        A = (
+            [None, "fro", "inf", "-inf", 1, -1, None, "inf", "-inf", 0, 1, -1, 2, -2],
+            [M, M, M, M, M, M, V, V, V, V, V, V, V, V],
+            [a, a, a, a, a, a, b, b, b, b, b, b, b, b],
+            [None, "fro", inf, -inf, 1, -1, None, inf, -inf, 0, 1, -1, 2, -2],
+        )
 
         for i in range(0, 14):
             f = function([A[1][i]], norm(A[1][i], A[0][i]))
@@ -589,15 +620,19 @@ class test_TensorInv(utt.InferShapeTester):
         self.B = tensor.tensor3("B", dtype=theano.config.floatX)
         self.a = np.random.rand(4, 6, 8, 3).astype(theano.config.floatX)
         self.b = np.random.rand(2, 15, 30).astype(theano.config.floatX)
-        self.b1 = np.random.rand(30, 2, 15).astype(theano.config.floatX)  # for ind=1 since we need prod(b1.shape[:ind]) == prod(b1.shape[ind:])
+        self.b1 = np.random.rand(30, 2, 15).astype(
+            theano.config.floatX
+        )  # for ind=1 since we need prod(b1.shape[:ind]) == prod(b1.shape[ind:])
 
     def test_infer_shape(self):
         A = self.A
         Ai = tensorinv(A)
-        self._compile_and_check([A],  # theano.function inputs
-                                [Ai],  # theano.function outputs
-                                [self.a],  # value to substitute
-                                TensorInv)
+        self._compile_and_check(
+            [A],  # theano.function inputs
+            [Ai],  # theano.function outputs
+            [self.a],  # value to substitute
+            TensorInv,
+        )
 
     def test_eval(self):
         A = self.A

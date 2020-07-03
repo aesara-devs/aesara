@@ -1,4 +1,5 @@
 from __future__ import absolute_import, print_function, division
+
 """
 This script tests the pickle and unpickle of theano functions.
 When a compiled theano has shared vars, their values are also being pickled.
@@ -19,15 +20,15 @@ import six.moves.cPickle as pickle
 import theano
 import theano.tensor as T
 
-floatX = 'float32'
+floatX = "float32"
 
 
 def test_pickle_unpickle_with_reoptimization():
     mode = theano.config.mode
     if mode in ["DEBUG_MODE", "DebugMode"]:
         mode = "FAST_RUN"
-    x1 = T.fmatrix('x1')
-    x2 = T.fmatrix('x2')
+    x1 = T.fmatrix("x1")
+    x2 = T.fmatrix("x2")
     x3 = theano.shared(np.ones((10, 10), dtype=floatX))
     x4 = theano.shared(np.ones((10, 10), dtype=floatX))
     y = T.sum(T.sum(T.sum(x1 ** 2 + x2) + x3) + x4)
@@ -58,11 +59,11 @@ def test_pickle_unpickle_without_reoptimization():
     mode = theano.config.mode
     if mode in ["DEBUG_MODE", "DebugMode"]:
         mode = "FAST_RUN"
-    x1 = T.fmatrix('x1')
-    x2 = T.fmatrix('x2')
+    x1 = T.fmatrix("x1")
+    x2 = T.fmatrix("x2")
     x3 = theano.shared(np.ones((10, 10), dtype=floatX))
     x4 = theano.shared(np.ones((10, 10), dtype=floatX))
-    y = T.sum(T.sum(T.sum(x1**2 + x2) + x3) + x4)
+    y = T.sum(T.sum(T.sum(x1 ** 2 + x2) + x3) + x4)
 
     updates = OrderedDict()
     updates[x3] = x3 + 1
@@ -87,6 +88,6 @@ def test_pickle_unpickle_without_reoptimization():
         theano.config.reoptimize_unpickled_function = default
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_pickle_unpickle_with_reoptimization()
     test_pickle_unpickle_without_reoptimization()

@@ -43,41 +43,63 @@ class BaseCorr3dMM(gof.OpenMPOp):
     num_groups
         Perform grouped convolutions (default: 1)
     """
+
     check_broadcast = False
-    __props__ = ('border_mode', 'subsample', 'filter_dilation', 'num_groups')
+    __props__ = ("border_mode", "subsample", "filter_dilation", "num_groups")
 
     _direction = None
 
-    params_type = ParamsType(direction=EnumList(('DIRECTION_FORWARD', 'forward'),  # 0
-                                                ('DIRECTION_BACKPROP_WEIGHTS', 'backprop weights'),  # 1
-                                                ('DIRECTION_BACKPROP_INPUTS', 'backprop inputs')),  # 2
-                             dH=int64, dW=int64, dD=int64,
-                             dilH=int64, dilW=int64, dilD=int64,
-                             padH=int64, padW=int64, padD=int64,
-                             num_groups=int64)
+    params_type = ParamsType(
+        direction=EnumList(
+            ("DIRECTION_FORWARD", "forward"),  # 0
+            ("DIRECTION_BACKPROP_WEIGHTS", "backprop weights"),  # 1
+            ("DIRECTION_BACKPROP_INPUTS", "backprop inputs"),
+        ),  # 2
+        dH=int64,
+        dW=int64,
+        dD=int64,
+        dilH=int64,
+        dilW=int64,
+        dilD=int64,
+        padH=int64,
+        padW=int64,
+        padD=int64,
+        num_groups=int64,
+    )
 
-    def __init__(self, border_mode="valid", subsample=(1, 1, 1),
-                 filter_dilation=(1, 1, 1), openmp=None, num_groups=1):
+    def __init__(
+        self,
+        border_mode="valid",
+        subsample=(1, 1, 1),
+        filter_dilation=(1, 1, 1),
+        openmp=None,
+        num_groups=1,
+    ):
         super(BaseCorr3dMM, self).__init__(openmp=openmp)
         if isinstance(border_mode, integer_types):
             if border_mode < 0:
                 raise ValueError(
-                    'invalid border_mode {}, which must be a '
-                    'non-negative integer'.format(border_mode))
+                    "invalid border_mode {}, which must be a "
+                    "non-negative integer".format(border_mode)
+                )
             border_mode = (border_mode, border_mode, border_mode)
         if isinstance(border_mode, tuple):
             if len(border_mode) != 3 or min(border_mode) < 0:
                 raise ValueError(
-                    'invalid border_mode {}, which must be a tuple of '
-                    'three non-negative integers'.format(border_mode))
+                    "invalid border_mode {}, which must be a tuple of "
+                    "three non-negative integers".format(border_mode)
+                )
             pad_h, pad_w, pad_d = map(int, border_mode)
             border_mode = (pad_h, pad_w, pad_d)
-        if not ((isinstance(border_mode, tuple) and min(border_mode) >= 0) or
-                border_mode in ('valid', 'full', 'half')):
+        if not (
+            (isinstance(border_mode, tuple) and min(border_mode) >= 0)
+            or border_mode in ("valid", "full", "half")
+        ):
             raise ValueError(
-                'invalid border_mode {}, which must be either '
+                "invalid border_mode {}, which must be either "
                 '"valid", "full", "half", an integer or a tuple of three'
-                ' integers'.format(border_mode))
+                " integers".format(border_mode)
+            )
         self.border_mode = border_mode
         if len(subsample) != 3:
             raise ValueError("subsample must have three elements")
@@ -91,18 +113,20 @@ class BaseCorr3dMM(gof.OpenMPOp):
 
         if not theano.config.blas.ldflags:
             # Theano will use a NumPy C implementation of [sd]gemm_ instead.
-            self.blas_type = ''
+            self.blas_type = ""
         else:
-            if 'openblas' in theano.config.blas.ldflags:
-                self.blas_type = 'openblas'
-            elif 'mkl' in theano.config.blas.ldflags:
-                self.blas_type = 'mkl'
+            if "openblas" in theano.config.blas.ldflags:
+                self.blas_type = "openblas"
+            elif "mkl" in theano.config.blas.ldflags:
+                self.blas_type = "mkl"
             else:
-                self.blas_type = ''
+                self.blas_type = ""
 
         if self._direction not in ["forward", "backprop weights", "backprop inputs"]:
-            raise ValueError("_direction must be one of 'forward', "
-                             "'backprop weights', 'backprop inputs'")
+            raise ValueError(
+                "_direction must be one of 'forward', "
+                "'backprop weights', 'backprop inputs'"
+            )
 
     @property
     def pad(self):
@@ -133,12 +157,13 @@ class BaseCorr3dMM(gof.OpenMPOp):
     padD = property(lambda self: self.pad[2])
 
     def __str__(self):
-        return '%s{%s, %s, %s, %s}' % (
+        return "%s{%s, %s, %s, %s}" % (
             self.__class__.__name__,
             self.border_mode,
             str(self.subsample),
             str(self.filter_dilation),
-            str(self.num_groups))
+            str(self.num_groups),
+        )
 
     @staticmethod
     def as_common_dtype(in1, in2):
@@ -150,14 +175,14 @@ class BaseCorr3dMM(gof.OpenMPOp):
 
     def __setstate__(self, d):
         self.__dict__.update(d)
-        if not hasattr(self, 'num_groups'):
+        if not hasattr(self, "num_groups"):
             self.num_groups = 1
 
     def c_support_code(self):
         ccodes = blas_headers.blas_header_text()
-        if self.blas_type == 'openblas':
+        if self.blas_type == "openblas":
             ccodes += blas_headers.openblas_threads_text()
-        elif self.blas_type == 'mkl':
+        elif self.blas_type == "mkl":
             ccodes += blas_headers.mkl_threads_text()
         return ccodes
 
@@ -176,7 +201,7 @@ class BaseCorr3dMM(gof.OpenMPOp):
         return ldflags(libs=False, include_dir=True)
 
     def c_headers(self):
-        headers = ['<stdio.h>']
+        headers = ["<stdio.h>"]
         headers += super(BaseCorr3dMM, self).c_headers()
         return headers
 
@@ -188,52 +213,54 @@ class BaseCorr3dMM(gof.OpenMPOp):
         # REMEMBER TO RAISE c_code_cache_version when changing any of
         # these files
         sub = {}
-        dtype = str(node.__dict__['inputs'][0].dtype)
-        assert dtype in ('float32', 'float64')
-        if dtype == 'float32':
-            sub['gemm'] = 'sgemm_'
-            sub['float_type'] = 'npy_float'
-            sub['float_typenum'] = 'NPY_FLOAT'
-            sub['n_bytes'] = 4
-            sub['c_float_type'] = 'float'
+        dtype = str(node.__dict__["inputs"][0].dtype)
+        assert dtype in ("float32", "float64")
+        if dtype == "float32":
+            sub["gemm"] = "sgemm_"
+            sub["float_type"] = "npy_float"
+            sub["float_typenum"] = "NPY_FLOAT"
+            sub["n_bytes"] = 4
+            sub["c_float_type"] = "float"
         else:
-            sub['gemm'] = 'dgemm_'
-            sub['float_type'] = 'npy_double'
-            sub['float_typenum'] = 'NPY_DOUBLE'
-            sub['n_bytes'] = 8
-            sub['c_float_type'] = 'double'
+            sub["gemm"] = "dgemm_"
+            sub["float_type"] = "npy_double"
+            sub["float_typenum"] = "NPY_DOUBLE"
+            sub["n_bytes"] = 8
+            sub["c_float_type"] = "double"
 
         if self.openmp:
-            sub['omp_flags'] = '#pragma omp parallel for schedule(static)'
-            sub['omp_get_max_threads'] = 'omp_get_max_threads()'
-            sub['omp_get_thread_num'] = 'omp_get_thread_num()'
+            sub["omp_flags"] = "#pragma omp parallel for schedule(static)"
+            sub["omp_get_max_threads"] = "omp_get_max_threads()"
+            sub["omp_get_thread_num"] = "omp_get_thread_num()"
 
-            if self.blas_type == 'openblas':
-                sub['blas_set_num_threads'] = 'openblas_set_num_threads'
-                sub['blas_get_num_threads'] = 'openblas_get_num_threads()'
-            elif self.blas_type == 'mkl':
-                sub['blas_set_num_threads'] = 'mkl_set_num_threads'
-                sub['blas_get_num_threads'] = 'mkl_get_max_threads()'
+            if self.blas_type == "openblas":
+                sub["blas_set_num_threads"] = "openblas_set_num_threads"
+                sub["blas_get_num_threads"] = "openblas_get_num_threads()"
+            elif self.blas_type == "mkl":
+                sub["blas_set_num_threads"] = "mkl_set_num_threads"
+                sub["blas_get_num_threads"] = "mkl_get_max_threads()"
             else:
-                sub['blas_set_num_threads'] = ''
-                sub['blas_get_num_threads'] = '0'
+                sub["blas_set_num_threads"] = ""
+                sub["blas_get_num_threads"] = "0"
         else:
-            sub['omp_flags'] = ''
-            sub['omp_get_max_threads'] = '1'
-            sub['omp_get_thread_num'] = '0'
-            sub['blas_set_num_threads'] = ''
-            sub['blas_get_num_threads'] = '0'
+            sub["omp_flags"] = ""
+            sub["omp_get_max_threads"] = "1"
+            sub["omp_get_thread_num"] = "0"
+            sub["blas_set_num_threads"] = ""
+            sub["blas_get_num_threads"] = "0"
 
-        files = [os.path.join('c_code', 'corr3d_gemm.c')]
-        codes = [open(os.path.join(os.path.split(__file__)[0], f)).read()
-                 for f in files]
-        final_code = ''
+        files = [os.path.join("c_code", "corr3d_gemm.c")]
+        codes = [
+            open(os.path.join(os.path.split(__file__)[0], f)).read() for f in files
+        ]
+        final_code = ""
         for code in codes:
             final_code += code
         return final_code % sub
 
-    def c_code_helper(self, bottom, weights, top, sub,
-                      height=None, width=None, depth=None):
+    def c_code_helper(
+        self, bottom, weights, top, sub, height=None, width=None, depth=None
+    ):
         """
         This generates the C code for Corr3dMM (direction="forward"),
         Corr3dMM_gradWeights (direction="backprop weights"), and
@@ -273,23 +300,35 @@ class BaseCorr3dMM(gof.OpenMPOp):
         # of bottom and weights from top, so we require them to be given.
         # Similarly, when border_mode="half", we cannot infer the weight size.
         if height:
-            height = '(*(npy_int64 *)(PyArray_DATA(%s)))' % height
+            height = "(*(npy_int64 *)(PyArray_DATA(%s)))" % height
         else:
-            if ((self.direction != 0) and (self.dH != 1)) or ((self.direction == 1) and (self.padH == -1)):
-                raise ValueError("height must be given for backprop with vertical sampling or border_mode='half'")
-            height = '-1'
+            if ((self.direction != 0) and (self.dH != 1)) or (
+                (self.direction == 1) and (self.padH == -1)
+            ):
+                raise ValueError(
+                    "height must be given for backprop with vertical sampling or border_mode='half'"
+                )
+            height = "-1"
         if width:
-            width = '(*(npy_int64 *)(PyArray_DATA(%s)))' % width
+            width = "(*(npy_int64 *)(PyArray_DATA(%s)))" % width
         else:
-            if ((self.direction != 0) and (self.dW != 1)) or ((self.direction == 1) and (self.padW == -1)):
-                raise ValueError("width must be given for backprop with horizontal sampling or border_mode='half'")
-            width = '-1'
+            if ((self.direction != 0) and (self.dW != 1)) or (
+                (self.direction == 1) and (self.padW == -1)
+            ):
+                raise ValueError(
+                    "width must be given for backprop with horizontal sampling or border_mode='half'"
+                )
+            width = "-1"
         if depth:
-            depth = '(*(npy_int64 *)(PyArray_DATA(%s)))' % depth
+            depth = "(*(npy_int64 *)(PyArray_DATA(%s)))" % depth
         else:
-            if ((self.direction != 0) and (self.dD != 1)) or ((self.direction == 1) and (self.padD == -1)):
-                raise ValueError("depth must be given for backprop with depth sampling or border_mode='half'")
-            depth = '-1'
+            if ((self.direction != 0) and (self.dD != 1)) or (
+                (self.direction == 1) and (self.padD == -1)
+            ):
+                raise ValueError(
+                    "depth must be given for backprop with depth sampling or border_mode='half'"
+                )
+            depth = "-1"
 
         return """
     // Mandatory args
@@ -536,9 +575,16 @@ class BaseCorr3dMM(gof.OpenMPOp):
     }
     assert (out2 == *out);
 
-""" % dict(bottom=bottom, weights=weights, top=top,
-           height=height, width=width, depth=depth,
-           fail=sub['fail'], params=sub['params'])
+""" % dict(
+            bottom=bottom,
+            weights=weights,
+            top=top,
+            height=height,
+            width=width,
+            depth=depth,
+            fail=sub["fail"],
+            params=sub["params"],
+        )
 
 
 class Corr3dMM(BaseCorr3dMM):
@@ -577,12 +623,17 @@ class Corr3dMM(BaseCorr3dMM):
         kern = as_tensor_variable(kern)
         img, kern = self.as_common_dtype(img, kern)
         if img.type.ndim != 5:
-            raise TypeError('img must be 5D tensor')
+            raise TypeError("img must be 5D tensor")
         if kern.type.ndim != 5:
-            raise TypeError('kern must be 5D tensor')
+            raise TypeError("kern must be 5D tensor")
 
-        broadcastable = [img.type.broadcastable[0], kern.type.broadcastable[0],
-                         False, False, False]
+        broadcastable = [
+            img.type.broadcastable[0],
+            kern.type.broadcastable[0],
+            False,
+            False,
+            False,
+        ]
         dtype = img.type.dtype
         return Apply(self, [img, kern], [TensorType(dtype, broadcastable)()])
 
@@ -590,31 +641,30 @@ class Corr3dMM(BaseCorr3dMM):
         imshp = input_shape[0]
         kshp = input_shape[1]
         res = get_conv_output_shape(
-            imshp,
-            kshp,
-            self.border_mode,
-            self.subsample,
-            self.filter_dilation)
+            imshp, kshp, self.border_mode, self.subsample, self.filter_dilation
+        )
         return [res]
 
     def c_code(self, node, nodename, inp, out_, sub):
         bottom, weights = inp
-        top, = out_
+        (top,) = out_
         return super(Corr3dMM, self).c_code_helper(bottom, weights, top, sub)
 
     def grad(self, inp, grads):
         bottom, weights = inp
-        top, = grads
-        d_bottom = Corr3dMM_gradInputs(self.border_mode,
-                                       self.subsample,
-                                       self.filter_dilation,
-                                       num_groups=self.num_groups)(weights, top,
-                                                                   bottom.shape[-3:])
-        d_weights = Corr3dMM_gradWeights(self.border_mode,
-                                         self.subsample,
-                                         self.filter_dilation,
-                                         num_groups=self.num_groups)(bottom, top,
-                                                                     weights.shape[-3:])
+        (top,) = grads
+        d_bottom = Corr3dMM_gradInputs(
+            self.border_mode,
+            self.subsample,
+            self.filter_dilation,
+            num_groups=self.num_groups,
+        )(weights, top, bottom.shape[-3:])
+        d_weights = Corr3dMM_gradWeights(
+            self.border_mode,
+            self.subsample,
+            self.filter_dilation,
+            num_groups=self.num_groups,
+        )(bottom, top, weights.shape[-3:])
         return d_bottom, d_weights
 
 
@@ -637,24 +687,36 @@ class Corr3dMM_gradWeights(BaseCorr3dMM):
         topgrad = as_tensor_variable(topgrad)
         img, topgrad = self.as_common_dtype(img, topgrad)
         if img.type.ndim != 5:
-            raise TypeError('img must be 5D tensor')
+            raise TypeError("img must be 5D tensor")
         if topgrad.type.ndim != 5:
-            raise TypeError('topgrad must be 5D tensor')
+            raise TypeError("topgrad must be 5D tensor")
         if shape is None:
             if self.subsample != (1, 1, 1) or self.border_mode == "half":
-                raise ValueError('shape must be given if subsample != (1, 1, 1)'
-                                 ' or border_mode == "half"')
+                raise ValueError(
+                    "shape must be given if subsample != (1, 1, 1)"
+                    ' or border_mode == "half"'
+                )
             height_width_depth = []
         else:
-            height_width_depth = [as_tensor_variable(shape[0]).astype('int64'),
-                                  as_tensor_variable(shape[1]).astype('int64'),
-                                  as_tensor_variable(shape[2]).astype('int64')]
+            height_width_depth = [
+                as_tensor_variable(shape[0]).astype("int64"),
+                as_tensor_variable(shape[1]).astype("int64"),
+                as_tensor_variable(shape[2]).astype("int64"),
+            ]
 
-        broadcastable = [topgrad.type.broadcastable[1], img.type.broadcastable[1],
-                         False, False, False]
+        broadcastable = [
+            topgrad.type.broadcastable[1],
+            img.type.broadcastable[1],
+            False,
+            False,
+            False,
+        ]
         dtype = img.type.dtype
-        return Apply(self, [img, topgrad] + height_width_depth,
-                     [TensorType(dtype, broadcastable)()])
+        return Apply(
+            self,
+            [img, topgrad] + height_width_depth,
+            [TensorType(dtype, broadcastable)()],
+        )
 
     def infer_shape(self, node, input_shape):
         if self.border_mode == "half":
@@ -673,7 +735,7 @@ class Corr3dMM_gradWeights(BaseCorr3dMM):
         ssize = ssize // self.num_groups
         nkern, topshp = topshp[1], list(topshp[2:])
         height_width_depth = node.inputs[-3:]
-        if ((dH != 1) or (padH == -1)):
+        if (dH != 1) or (padH == -1):
             # vertical subsampling or half padding, kernel height is specified
             kH = height_width_depth[0]
         elif padH == -2:
@@ -682,15 +744,15 @@ class Corr3dMM_gradWeights(BaseCorr3dMM):
         else:
             # explicit padding, we can infer the kernel height
             kH = imshp[0] + 2 * padH - (topshp[0] - 1) * dH
-        if ((dW != 1) or (padW == -1)):
+        if (dW != 1) or (padW == -1):
             kW = height_width_depth[1]
-        elif (padW == -2):
+        elif padW == -2:
             kW = 2 - imshp[1] + (topshp[1] - 1) * dW
         else:
             kW = imshp[1] + 2 * padW - (topshp[1] - 1) * dW
-        if ((dD != 1) or (padD == -1)):
+        if (dD != 1) or (padD == -1):
             kD = height_width_depth[2]
-        elif (padD == -2):
+        elif padD == -2:
             kD = 2 - imshp[2] + (topshp[2] - 1) * dD
         else:
             kD = imshp[2] + 2 * padD - (topshp[2] - 1) * dD
@@ -699,25 +761,29 @@ class Corr3dMM_gradWeights(BaseCorr3dMM):
     def c_code(self, node, nodename, inp, out_, sub):
         bottom, top = inp[:2]
         height, width, depth = inp[2:] or (None, None, None)
-        weights, = out_
-        return super(Corr3dMM_gradWeights,
-                     self).c_code_helper(bottom, weights, top,
-                                         sub, height, width, depth)
+        (weights,) = out_
+        return super(Corr3dMM_gradWeights, self).c_code_helper(
+            bottom, weights, top, sub, height, width, depth
+        )
 
     def grad(self, inp, grads):
         bottom, top = inp[:2]
-        weights, = grads
-        d_bottom = Corr3dMM_gradInputs(self.border_mode,
-                                       self.subsample,
-                                       self.filter_dilation,
-                                       num_groups=self.num_groups)(weights, top,
-                                                                   bottom.shape[-3:])
-        d_top = Corr3dMM(self.border_mode,
-                         self.subsample,
-                         self.filter_dilation,
-                         num_groups=self.num_groups)(bottom, weights)
-        d_height_width_depth = ((theano.gradient.DisconnectedType()(),) * 3
-                                if len(inp) == 5 else ())
+        (weights,) = grads
+        d_bottom = Corr3dMM_gradInputs(
+            self.border_mode,
+            self.subsample,
+            self.filter_dilation,
+            num_groups=self.num_groups,
+        )(weights, top, bottom.shape[-3:])
+        d_top = Corr3dMM(
+            self.border_mode,
+            self.subsample,
+            self.filter_dilation,
+            num_groups=self.num_groups,
+        )(bottom, weights)
+        d_height_width_depth = (
+            (theano.gradient.DisconnectedType()(),) * 3 if len(inp) == 5 else ()
+        )
         return (d_bottom, d_top) + d_height_width_depth
 
     def connection_pattern(self, node):
@@ -746,27 +812,36 @@ class Corr3dMM_gradInputs(BaseCorr3dMM):
         topgrad = as_tensor_variable(topgrad)
         kern, topgrad = self.as_common_dtype(kern, topgrad)
         if kern.type.ndim != 5:
-            raise TypeError('kern must be 5D tensor')
+            raise TypeError("kern must be 5D tensor")
         if topgrad.type.ndim != 5:
-            raise TypeError('topgrad must be 5D tensor')
+            raise TypeError("topgrad must be 5D tensor")
         if shape is None:
             if self.subsample != (1, 1, 1):
-                raise ValueError('shape must be given if subsample != (1, 1, 1)')
+                raise ValueError("shape must be given if subsample != (1, 1, 1)")
             height_width_depth = []
         else:
-            height_width_depth = [as_tensor_variable(shape[0]).astype('int64'),
-                                  as_tensor_variable(shape[1]).astype('int64'),
-                                  as_tensor_variable(shape[2]).astype('int64')]
+            height_width_depth = [
+                as_tensor_variable(shape[0]).astype("int64"),
+                as_tensor_variable(shape[1]).astype("int64"),
+                as_tensor_variable(shape[2]).astype("int64"),
+            ]
 
         if self.num_groups > 1:
-            broadcastable = [topgrad.type.broadcastable[0], False,
-                             False, False, False]
+            broadcastable = [topgrad.type.broadcastable[0], False, False, False, False]
         else:
-            broadcastable = [topgrad.type.broadcastable[0], kern.type.broadcastable[1],
-                             False, False, False]
+            broadcastable = [
+                topgrad.type.broadcastable[0],
+                kern.type.broadcastable[1],
+                False,
+                False,
+                False,
+            ]
         dtype = kern.type.dtype
-        return Apply(self, [kern, topgrad] + height_width_depth,
-                     [TensorType(dtype, broadcastable)()])
+        return Apply(
+            self,
+            [kern, topgrad] + height_width_depth,
+            [TensorType(dtype, broadcastable)()],
+        )
 
     def infer_shape(self, node, input_shape):
         if self.border_mode == "half":
@@ -790,19 +865,19 @@ class Corr3dMM_gradInputs(BaseCorr3dMM):
         elif padH == -2:
             padH = kshp[0] - 1
         elif padH < -2:
-            raise ValueError('Corr3dMM_gradInputs: border_mode must be >= 0.')
+            raise ValueError("Corr3dMM_gradInputs: border_mode must be >= 0.")
         if padW == -1:
             padW = kshp[1] // 2
         elif padW == -2:
             padW = kshp[1] - 1
         elif padW < -2:
-            raise ValueError('Corr3dMM_gradInputs: border_mode must be >= 0.')
+            raise ValueError("Corr3dMM_gradInputs: border_mode must be >= 0.")
         if padD == -1:
             padD = kshp[2] // 2
         elif padD == -2:
             padD = kshp[2] - 1
         elif padD < -2:
-            raise ValueError('Corr3dMM_gradInputs: border_mode must be >= 0.')
+            raise ValueError("Corr3dMM_gradInputs: border_mode must be >= 0.")
 
         if dH != 1:
             out_shp0 = height_width_depth[0]
@@ -822,26 +897,29 @@ class Corr3dMM_gradInputs(BaseCorr3dMM):
     def c_code(self, node, nodename, inp, out_, sub):
         weights, top = inp[:2]
         height, width, depth = inp[2:] or (None, None, None)
-        bottom, = out_
-        return super(Corr3dMM_gradInputs,
-                     self).c_code_helper(bottom, weights, top, sub,
-                                         height, width, depth)
+        (bottom,) = out_
+        return super(Corr3dMM_gradInputs, self).c_code_helper(
+            bottom, weights, top, sub, height, width, depth
+        )
 
     def grad(self, inp, grads):
         weights, top = inp[:2]
-        bottom, = grads
-        d_weights = Corr3dMM_gradWeights(self.border_mode,
-                                         self.subsample,
-                                         self.filter_dilation,
-                                         num_groups=self.num_groups)(bottom,
-                                                                     top,
-                                                                     weights.shape[-3:])
-        d_top = Corr3dMM(self.border_mode,
-                         self.subsample,
-                         self.filter_dilation,
-                         num_groups=self.num_groups)(bottom, weights)
-        d_height_width_depth = ((theano.gradient.DisconnectedType()(),) * 3
-                                if len(inp) == 5 else ())
+        (bottom,) = grads
+        d_weights = Corr3dMM_gradWeights(
+            self.border_mode,
+            self.subsample,
+            self.filter_dilation,
+            num_groups=self.num_groups,
+        )(bottom, top, weights.shape[-3:])
+        d_top = Corr3dMM(
+            self.border_mode,
+            self.subsample,
+            self.filter_dilation,
+            num_groups=self.num_groups,
+        )(bottom, weights)
+        d_height_width_depth = (
+            (theano.gradient.DisconnectedType()(),) * 3 if len(inp) == 5 else ()
+        )
         return (d_weights, d_top) + d_height_width_depth
 
     def connection_pattern(self, node):

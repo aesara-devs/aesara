@@ -4,5 +4,6 @@ import sys
 
 print(
     "DEPRECATION WARNING: softsign was moved from theano.sandbox.softsign to "
-    "theano.tensor.nnet.nnet ", file=sys.stderr
-    )
+    "theano.tensor.nnet.nnet ",
+    file=sys.stderr,
+)
