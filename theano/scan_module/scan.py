@@ -44,7 +44,6 @@ __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 import logging
 import numpy as np
-import warnings
 from collections import OrderedDict
 
 from theano.compat import ifilter, izip
@@ -620,7 +619,6 @@ def scan(
     mit_mot_inner_inputs = []
     mit_mot_inner_outputs = []
     mit_mot_out_slices = []
-    mit_mot_rightOrder = []
 
     # SIT_SOT -- provided by the user
     n_mit_sot = 0
@@ -704,7 +702,6 @@ def scan(
             # go through the taps
             mintap = abs(np.min(init_out["taps"]))
             mit_sot_tap_array.append(init_out["taps"])
-            idx_offset = abs(np.min(init_out["taps"]))
             # Sequence
             mit_sot_scan_inputs.append(
                 scan_utils.expand_empty(init_out["initial"][:mintap], actual_n_steps)
@@ -977,7 +974,7 @@ def scan(
     nit_sot_return_steps = OrderedDict()
     nit_sot_rightOrder = []
     for i, out in enumerate(outs_info):
-        if not "taps" in out:
+        if "taps" not in out:
             nit_sot_inner_outputs.append(outputs[i])
             if i in return_steps:
                 nit_sot_return_steps[n_nit_sot] = return_steps[i]

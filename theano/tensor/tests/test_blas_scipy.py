@@ -1,16 +1,15 @@
 from __future__ import absolute_import, print_function, division
-import sys
 import numpy as np
 import pytest
 import theano
 import theano.tensor as tensor
+
 from theano.tensor.blas_scipy import ScipyGer
-
 from .test_blas import gemm_no_inplace, TestBlasStrides
-from theano.tests.unittest_tools import TestOptimizationMixin
+from theano.tests.unittest_tools import OptimizationTestMixin
 
 
-class TestScipyGer(TestOptimizationMixin):
+class TestScipyGer(OptimizationTestMixin):
     def setup_method(self):
         self.mode = theano.compile.get_default_mode()
         self.mode = self.mode.including("fast_run")

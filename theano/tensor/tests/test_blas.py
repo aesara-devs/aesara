@@ -24,7 +24,7 @@ from six.moves import xrange
 import theano
 import theano.tensor as T
 from theano import tensor, In, shared, config
-from theano.compat import exc_message
+from theano.compat import exc_message  # noqa: E401
 from theano.printing import pp
 from theano.tensor.blas import (
     _dot22,
@@ -67,7 +67,7 @@ def sharedX(x, name):
     return theano.shared(np.asarray(x, config.floatX), name=name)
 
 
-class test_gemm:
+class TestGemm:
     """
     This test suite is supposed to establish that gemm works as it is supposed to.
     """
@@ -126,7 +126,7 @@ class test_gemm:
                 # a NumPy C implementation of [sd]gemm_.
                 cmp_linker(copy(z), a, x, y, b, "c")
 
-    def test0a(self):
+    def test_basic(self):
         Gemm.debug = True
         try:
             gemm_no_inplace([1.0], 1.0, [1.0], [1.0], 1.0)
@@ -135,7 +135,7 @@ class test_gemm:
                 return
         self.fail()
 
-    def test0(self):
+    def test_basic_1(self):
         try:
             self.cmp(1.0, 0.0, 1.0, 1.0, 1.0)
         except TypeError as e:
@@ -143,7 +143,7 @@ class test_gemm:
                 return
         self.fail()
 
-    def test2(self):
+    def test_basic_2(self):
         try:
             self.cmp(2.0, 1.0, [3, 2, 1.0], [[1], [2], [3.0]], 1.0)
         except TypeError as e:
@@ -151,31 +151,31 @@ class test_gemm:
             return
         self.fail()
 
-    def test4(self):
+    def test_basic_4(self):
         self.cmp(self.rand(3, 4), 1.0, self.rand(3, 5), self.rand(5, 4), 0.0)
 
-    def test5(self):
+    def test_basic_5(self):
         self.cmp(self.rand(3, 4), 1.0, self.rand(3, 5), self.rand(5, 4), 1.0)
 
-    def test6(self):
+    def test_basic_6(self):
         self.cmp(self.rand(3, 4), 1.0, self.rand(3, 5), self.rand(5, 4), -1.0)
 
-    def test7(self):
+    def test_basic_7(self):
         self.cmp(self.rand(3, 4), 0.0, self.rand(3, 5), self.rand(5, 4), 0.0)
 
-    def test8(self):
+    def test_basic_8(self):
         self.cmp(self.rand(3, 4), 0.0, self.rand(3, 5), self.rand(5, 4), 0.6)
 
-    def test9(self):
+    def test_basic_9(self):
         self.cmp(self.rand(3, 4), 0.0, self.rand(3, 5), self.rand(5, 4), -1.0)
 
-    def test10(self):
+    def test_basic_10(self):
         self.cmp(self.rand(3, 4), -1.0, self.rand(3, 5), self.rand(5, 4), 0.0)
 
-    def test11(self):
+    def test_basic_11(self):
         self.cmp(self.rand(3, 4), -1.0, self.rand(3, 5), self.rand(5, 4), 1.0)
 
-    def test12(self):
+    def test_basic_12(self):
         self.cmp(self.rand(3, 4), -1.0, self.rand(3, 5), self.rand(5, 4), -1.0)
 
     def test_shape_0(self):
@@ -548,7 +548,7 @@ class TestGemmNoFlags(object):
         # dtype, alpha, beta, transA, transB, transC, sliceA, sliceB, sliceC
         iterables = [dtypes] + ([scalars] * 2) + ([booleans] * 6)
         for dtype, alpha, beta, tA, tB, tC, sA, sB, sC in product(*iterables):
-            yield (self.run_gemm, dtype, alpha, beta, tA, tB, tC, sA, sB, sC)
+            self.run_gemm(dtype, alpha, beta, tA, tB, tC, sA, sB, sC)
 
 
 def test_res_is_a():
@@ -561,8 +561,8 @@ def test_res_is_a():
     # leave the maxclients  stuff untested because it requires being in an fgraph.
 
 
-class test_as_scalar:
-    def test0(self):
+class TestAsScalar:
+    def test_basic(self):
         # Test that it works on scalar constants
         a = T.constant(2.5)
         b = T.constant(np.asarray([[[0.5]]]))
@@ -578,13 +578,13 @@ class test_as_scalar:
         assert _as_scalar(d_b) != d_b
         assert _as_scalar(d_a2) != d_a2
 
-    def test1(self):
+    def test_basic_1(self):
         # Test that it fails on nonscalar constants
         a = T.constant(np.ones(5))
         assert _as_scalar(a) is None
         assert _as_scalar(T.DimShuffle([False], [0, "x"])(a)) is None
 
-    def test2(self):
+    def test_basic_2(self):
         # Test that it works on scalar variables
         a = T.dscalar()
         d_a = T.DimShuffle([], [])(a)
@@ -594,15 +594,15 @@ class test_as_scalar:
         assert _as_scalar(d_a) is a
         assert _as_scalar(d_a2) is a
 
-    def test3(self):
+    def test_basic_3(self):
         # Test that it fails on nonscalar variables
         a = T.matrix()
         assert _as_scalar(a) is None
         assert _as_scalar(T.DimShuffle([False, False], [0, "x", 1])(1)) is None
 
 
-class Test_real_matrix:
-    def test0(self):
+class TestRealMatrix:
+    def test_basic(self):
         assert _is_real_matrix(T.DimShuffle([False, False], [1, 0])(T.matrix()))
         assert not _is_real_matrix(T.DimShuffle([False], ["x", 0])(T.dvector()))
 
@@ -1306,7 +1306,7 @@ def test_dot_w_self():
 ###############################################################################
 
 
-class TestGemv(unittest_tools.TestOptimizationMixin):
+class TestGemv(unittest_tools.OptimizationTestMixin):
     def test_dot_vv(self):
         # Currently we generate a gemv for that case
         rng = np.random.RandomState(unittest_tools.fetch_seed())
@@ -1731,13 +1731,13 @@ class BaseGemv(object):
         f(alpha_v)
 
 
-class TestSgemv(BaseGemv, unittest_tools.TestOptimizationMixin):
+class TestSgemv(BaseGemv, unittest_tools.OptimizationTestMixin):
     dtype = float32
     gemv = theano.tensor.blas.gemv_no_inplace
     gemv_inplace = theano.tensor.blas.gemv_inplace
 
 
-class TestDgemv(BaseGemv, unittest_tools.TestOptimizationMixin):
+class TestDgemv(BaseGemv, unittest_tools.OptimizationTestMixin):
     dtype = float64
     gemv = theano.tensor.blas.gemv_no_inplace
     gemv_inplace = theano.tensor.blas.gemv_inplace
@@ -1756,7 +1756,7 @@ class TestDgemv(BaseGemv, unittest_tools.TestOptimizationMixin):
 ###############################################################################
 
 
-class TestGer_make_node:
+class TestGerMakeNode:
     def setup_method(self):
         self.iv = T.tensor(dtype="int32", broadcastable=(False,))
         self.fv = T.tensor(dtype="float32", broadcastable=(False,))
@@ -1830,7 +1830,7 @@ class TestGer_make_node:
             ger(self.cm, self.fa, self.fv, self.zv_2)
 
 
-class TestGer_OpContract(unittest_tools.Test_OpContractMixin):
+class TestGerOpContract(unittest_tools.OpContractTestMixin):
     def setup_method(self):
         self.ops = [ger, ger_destructive]
 
@@ -1838,7 +1838,7 @@ class TestGer_OpContract(unittest_tools.Test_OpContractMixin):
         return Ger(op.destructive)
 
 
-class TestGer(unittest_tools.TestOptimizationMixin):
+class TestGer(unittest_tools.OptimizationTestMixin):
     shared = staticmethod(theano.shared)
 
     def setup_method(self):
@@ -2436,7 +2436,7 @@ class TestBlasStrides:
         unittest_tools.assert_allclose(c.get_value(), ref_output)
 
 
-class test_infer_shape(unittest_tools.InferShapeTester):
+class TestInferShape(unittest_tools.InferShapeTester):
     def test_dot22(self):
         x, y = T.matrices("xy")
         self._compile_and_check(

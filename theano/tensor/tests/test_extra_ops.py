@@ -1,11 +1,9 @@
 from __future__ import absolute_import, print_function, division
-
 import numpy as np
 import pytest
-
 import theano
-from theano.tests import unittest_tools as utt
 
+from theano.tests import unittest_tools as utt
 from theano.tensor.extra_ops import (
     SearchsortedOp,
     searchsorted,
@@ -55,7 +53,7 @@ def test_cpu_contiguous():
 
 class TestSearchsortedOp(utt.InferShapeTester):
     def setup_method(self):
-        super(TestSearchsortedOp, self).setup_method()
+        super().setup_method()
         self.op_class = SearchsortedOp
         self.op = SearchsortedOp()
 
@@ -162,7 +160,7 @@ class TestSearchsortedOp(utt.InferShapeTester):
 
 class TestCumOp(utt.InferShapeTester):
     def setup_method(self):
-        super(TestCumOp, self).setup_method()
+        super().setup_method()
         self.op_class = CumOp
         self.op = CumOp()
 
@@ -266,7 +264,7 @@ class TestDiffOp(utt.InferShapeTester):
     nb = 10  # Number of time iterating for n
 
     def setup_method(self):
-        super(TestDiffOp, self).setup_method()
+        super().setup_method()
         self.op_class = DiffOp
         self.op = DiffOp()
 
@@ -306,7 +304,7 @@ class TestDiffOp(utt.InferShapeTester):
             utt.verify_grad(DiffOp(n=k), [a], eps=7e-3)
 
 
-class SqueezeTester(utt.InferShapeTester):
+class TestSqueeze(utt.InferShapeTester):
     shape_list = [(1, 3), (1, 2, 3), (1, 5, 1, 1, 6)]
     broadcast_list = [
         [True, False],
@@ -315,7 +313,7 @@ class SqueezeTester(utt.InferShapeTester):
     ]
 
     def setup_method(self):
-        super(SqueezeTester, self).setup_method()
+        super().setup_method()
         self.op = squeeze
 
     def test_op(self):
@@ -361,7 +359,7 @@ class SqueezeTester(utt.InferShapeTester):
             assert np.allclose(tested, expected)
 
 
-class CompressTester(utt.InferShapeTester):
+class TestCompress(utt.InferShapeTester):
     axis_list = [None, -1, 0, 0, 0, 1]
     cond_list = [
         [1, 0, 1, 0, 0, 1],
@@ -374,7 +372,7 @@ class CompressTester(utt.InferShapeTester):
     shape_list = [(2, 3), (4, 3), (4, 3), (4, 3), (4, 3), (3, 5)]
 
     def setup_method(self):
-        super(CompressTester, self).setup_method()
+        super().setup_method()
         self.op = compress
 
     def test_op(self):
@@ -399,7 +397,7 @@ class TestRepeatOp(utt.InferShapeTester):
         return [None] + list(range(ndim)) + [-i for i in range(ndim)]
 
     def setup_method(self):
-        super(TestRepeatOp, self).setup_method()
+        super().setup_method()
         self.op_class = RepeatOp
         self.op = RepeatOp()
         # uint64 always fails
@@ -525,7 +523,7 @@ class TestRepeatOp(utt.InferShapeTester):
 
 class TestBartlett(utt.InferShapeTester):
     def setup_method(self):
-        super(TestBartlett, self).setup_method()
+        super().setup_method()
         self.op_class = Bartlett
         self.op = bartlett
 
@@ -553,7 +551,7 @@ class TestFillDiagonal(utt.InferShapeTester):
     rng = np.random.RandomState(43)
 
     def setup_method(self):
-        super(TestFillDiagonal, self).setup_method()
+        super().setup_method()
         self.op_class = FillDiagonal
         self.op = fill_diagonal
 
@@ -622,7 +620,7 @@ class TestFillDiagonalOffset(utt.InferShapeTester):
     rng = np.random.RandomState(43)
 
     def setup_method(self):
-        super(TestFillDiagonalOffset, self).setup_method()
+        super().setup_method()
         self.op_class = FillDiagonalOffset
         self.op = fill_diagonal_offset
 
@@ -726,9 +724,9 @@ def test_to_one_hot():
     )
 
 
-class test_Unique(utt.InferShapeTester):
+class TestUnique(utt.InferShapeTester):
     def setup_method(self):
-        super(test_Unique, self).setup_method()
+        super().setup_method()
         self.op_class = Unique
         self.ops = [
             Unique(),
@@ -826,9 +824,9 @@ class test_Unique(utt.InferShapeTester):
             )
 
 
-class test_Unique_axis(utt.InferShapeTester):
+class TestUniqueAxis(utt.InferShapeTester):
     def setup_method(self):
-        super(test_Unique_axis, self).setup_method()
+        super().setup_method()
         numpy_ver = tuple([int(n) for n in np.__version__.split(".")])
         if numpy_ver >= (1, 13):
             self.expect_success = True
@@ -959,7 +957,7 @@ class test_Unique_axis(utt.InferShapeTester):
             )
 
 
-class test_unravel_index(utt.InferShapeTester):
+class TestUnravelIndex(utt.InferShapeTester):
     def test_unravel_index(self):
         def check(shape, index_ndim, order):
             indices = np.arange(np.product(shape))
@@ -1034,7 +1032,7 @@ class test_unravel_index(utt.InferShapeTester):
             unravel_index((3, 4), ((3, 4),))
 
 
-class test_ravel_multi_index(utt.InferShapeTester):
+class TestRavelMultiIndex(utt.InferShapeTester):
     def test_ravel_multi_index(self):
         def check(shape, index_ndim, mode, order):
             multi_index = np.unravel_index(

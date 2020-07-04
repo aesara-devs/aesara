@@ -1,17 +1,15 @@
 from __future__ import absolute_import, print_function, division
-from copy import copy, deepcopy
-from functools import wraps
-import logging
 import sys
-
+import logging
 import pytest
-from six import integer_types
-from six.moves import StringIO
-
 import numpy as np
-
 import theano
 import theano.tensor as T
+
+from functools import wraps
+from copy import copy, deepcopy
+from six import integer_types
+from six.moves import StringIO
 from theano import config
 
 _logger = logging.getLogger("theano.tests.unittest_tools")
@@ -111,7 +109,7 @@ class MockRandomState:
             return out + maxval - 1
 
 
-class TestOptimizationMixin(object):
+class OptimizationTestMixin(object):
     def assertFunctionContains(self, f, op, min=1, max=sys.maxsize):
         toposort = f.maker.fgraph.toposort()
         matches = [node for node in toposort if node.op == op]
@@ -149,9 +147,7 @@ class TestOptimizationMixin(object):
         return self.assertFunctionContainsClass(f, op, min=N, max=N)
 
 
-# This object name should not start with Test.
-# Otherwise nosetests will execute it!
-class Test_OpContractMixin(object):
+class OpContractTestMixin(object):
     # self.ops should be a list of instantiations of an Op class to test.
     # self.other_op should be an op which is different from every op
     other_op = T.add

@@ -11,26 +11,26 @@ the docstring of the functions: check_mat_rop_lop, check_rop_lop,
 check_nondiff_rop,
 """
 from __future__ import absolute_import, print_function, division
-from theano.tests import unittest_tools as utt
-from theano import function
-import theano
-from theano import tensor
+
 import itertools
-import numpy as np
-from theano.gof import Op, Apply
-from theano.gradient import grad_undefined
 import pytest
+import numpy as np
+import theano
+
+from theano import function
+from theano import tensor
+from theano.gof import Op, Apply
+from theano.tests import unittest_tools as utt
+from theano.gradient import grad_undefined
 from theano.tensor.signal.pool import Pool
 from theano.tensor.nnet import conv, conv2d
-
-"""
-Special Op created to test what happens when you have one op that is not
-differentiable in the computational graph
-"""
 
 
 class BreakRop(Op):
     """
+    Special Op created to test what happens when you have one op that is not
+    differentiable in the computational graph
+
     @note: Non-differentiable.
     """
 
@@ -54,7 +54,7 @@ class BreakRop(Op):
 break_op = BreakRop()
 
 
-class RopLop_checker:
+class RopLopChecker:
     """
     Don't peform any test, but provide the function to test the
     Rop to class that inherit from it.
@@ -195,7 +195,7 @@ class RopLop_checker:
             )
 
 
-class test_RopLop(RopLop_checker):
+class TestRopLop(RopLopChecker):
     def test_shape(self):
         self.check_nondiff_rop(self.x.shape[0])
 

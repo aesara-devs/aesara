@@ -14,7 +14,7 @@ from theano.sparse import enable_sparse
 from theano.tests import unittest_tools as utt
 
 if not enable_sparse:
-    pytest.skip("Optional package sparse disabled")
+    pytest.skip("Optional package sparse disabled", allow_module_level=True)
 
 from theano.sparse.tests.test_basic import random_lil
 

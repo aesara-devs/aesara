@@ -323,14 +323,14 @@ if run_memory_usage_tests:
             inp = np.random.rand(1000000)
             for i in xrange(100):
                 f_a(inp)
-            if 0:  # this doesn't seem to work, prints 0 for everything
-                import resource
-
-                pre = resource.getrusage(resource.RUSAGE_SELF)
-                post = resource.getrusage(resource.RUSAGE_SELF)
-                print(pre.ru_ixrss, post.ru_ixrss)
-                print(pre.ru_idrss, post.ru_idrss)
-                print(pre.ru_maxrss, post.ru_maxrss)
+                # this doesn't seem to work, prints 0 for everything
+                # import resource
+                #
+                # pre = resource.getrusage(resource.RUSAGE_SELF)
+                # post = resource.getrusage(resource.RUSAGE_SELF)
+                # print(pre.ru_ixrss, post.ru_ixrss)
+                # print(pre.ru_idrss, post.ru_idrss)
+                # print(pre.ru_maxrss, post.ru_maxrss)
 
         print(1)
         time_linker("vmLinker_C", lambda: vm.VM_Linker(allow_gc=False, use_cloop=True))
@@ -404,11 +404,11 @@ def test_reallocation():
     y = tensor.scalar("y")
     z = tensor.tanh(3 * x + y) + tensor.cosh(x + 5 * y)
     # The functinality is currently implement for non lazy and non c VM only.
-    for l in [
+    for linker in [
         vm.VM_Linker(allow_gc=False, lazy=False, use_cloop=False),
         vm.VM_Linker(allow_gc=True, lazy=False, use_cloop=False),
     ]:
-        m = theano.compile.get_mode(theano.Mode(linker=l))
+        m = theano.compile.get_mode(theano.Mode(linker=linker))
         m = m.excluding("fusion", "inplace")
 
         f = theano.function([x, y], z, name="test_reduce_memory", mode=m)

@@ -200,7 +200,7 @@ theano.compile.mode.optdb.register(
 
 
 def psd(v):
-    """
+    r"""
     Apply a hint that the variable `v` is positive semi-definite, i.e.
     it is a symmetric matrix and :math:`x^T A x \ge 0` for any vector x.
 

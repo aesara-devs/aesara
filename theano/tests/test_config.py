@@ -5,7 +5,7 @@ from __future__ import absolute_import, print_function, division
 from theano.configparser import AddConfigVar, ConfigParam, THEANO_FLAGS_DICT
 
 
-class Test_config:
+class TestConfig:
     def test_invalid_default(self):
         # Ensure an invalid default value found in the Theano code only causes
         # a crash if it is not overridden by the user.

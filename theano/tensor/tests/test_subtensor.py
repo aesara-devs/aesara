@@ -3,18 +3,16 @@ from __future__ import absolute_import, division, print_function
 import logging
 import sys
 import pytest
-
 import numpy as np
-from numpy.testing import assert_array_equal
-from six import StringIO
-from six.moves import xrange
-
 import theano
 import theano.scalar as scal
 import theano.tensor as tensor
-from theano import config, gof
-from theano.compat import PY3, izip
+
+from numpy.testing import assert_array_equal
+from six import StringIO
+from theano import config
 from theano.compile import DeepCopyOp
+from theano.gof.graph import is_same_graph
 from theano.tensor import (
     _shared,
     cscalar,
@@ -49,64 +47,42 @@ from theano.tensor.subtensor import (
     inc_subtensor,
     set_subtensor,
 )
-
 from theano.tensor.tests.test_basic import inplace_func, rand, randint_ranged
 from theano.tests import unittest_tools as utt
 from theano import change_flags
 
-if PY3:
 
-    def L(i):
-        return i
-
-
-else:
-
-    def L(i):
-        return long(i)  # noqa for Python 3
-
-
-class Test_subtensor(utt.TestOptimizationMixin):
+class TestSubtensor(utt.OptimizationTestMixin):
     """
     This is build in a way that allow to reuse it to test the equivalent gpu op.
     """
 
-    def __init__(
-        self,
-        name,
-        shared=tensor._shared,
-        sub=tensor.Subtensor,
-        inc_sub=tensor.IncSubtensor,
-        adv_sub1=tensor.AdvancedSubtensor1,
-        adv_incsub1=tensor.AdvancedIncSubtensor1,
-        adv_sub=tensor.AdvancedSubtensor,
-        adv_bool_sub=tensor.AdvancedBooleanSubtensor,
-        adv_bool_inc_sub=tensor.AdvancedBooleanIncSubtensor,
-        mode=None,
-        dtype=theano.config.floatX,
-        type=tensor.TensorType,
-        ignore_topo=DeepCopyOp,
-        dimshuffle=DimShuffle,
-    ):
-        self.shared = shared
-        self.sub = sub
-        self.inc_sub = inc_sub
-        self.adv_sub1 = adv_sub1
-        self.adv_incsub1 = adv_incsub1
-        self.adv_sub = adv_sub
-        self.adv_bool_sub = adv_bool_sub
-        self.adv_bool_inc_sub = adv_bool_inc_sub
-        self.dimshuffle = dimshuffle
-        if mode is None:
-            mode = theano.compile.mode.get_default_mode()
-            mode = mode.including("local_useless_subtensor")
-        self.mode = mode
-        self.dtype = dtype
-        self.type = type
-        self.ignore_topo = ignore_topo
+    def setup_method(self):
+        self.shared = tensor._shared
+        self.dtype = theano.config.floatX
+        self.type = tensor.TensorType
+        self.ignore_topo = DeepCopyOp
+        self.dimshuffle = DimShuffle
+        mode = theano.compile.mode.get_default_mode()
+        self.mode = mode.including("local_useless_subtensor")
         self.fast_compile = theano.config.mode == "FAST_COMPILE"
-        self.ops = (sub, inc_sub, adv_sub1, adv_incsub1, adv_bool_sub, adv_bool_inc_sub)
-        return super(Test_subtensor, self).__init__(name)
+        self.sub = tensor.Subtensor
+        self.inc_sub = tensor.IncSubtensor
+        self.adv_sub1 = tensor.AdvancedSubtensor1
+        self.adv_incsub1 = tensor.AdvancedIncSubtensor1
+        self.adv_sub = tensor.AdvancedSubtensor
+        self.adv_bool_sub = tensor.AdvancedBooleanSubtensor
+        self.adv_bool_inc_sub = tensor.AdvancedBooleanIncSubtensor
+        self.ops = (
+            self.sub,
+            self.inc_sub,
+            self.adv_sub1,
+            self.adv_incsub1,
+            self.adv_bool_sub,
+            self.adv_bool_inc_sub,
+        )
+        Subtensor.debug = False
+        utt.seed_rng()
 
     def function(
         self,
@@ -136,10 +112,6 @@ class Test_subtensor(utt.TestOptimizationMixin):
         self.assertFunctionContainsClassN(f, op, N)
         return f
 
-    def setup_method(self):
-        Subtensor.debug = False
-        utt.seed_rng()
-
     def eval_output_and_check(self, t, op_type=None, mode=None, length=1):
         if op_type is None:
             op_type = self.sub
@@ -154,14 +126,14 @@ class Test_subtensor(utt.TestOptimizationMixin):
         tval = f()
         return tval
 
-    def test0_err_invalid(self):
+    def test_err_invalid(self):
         # it is impossible to retrieve a view of a 0-d tensor
         n = self.shared(np.ones((), dtype=self.dtype))
         with pytest.raises(IndexError):
             n.__getitem__(0)
 
     @change_flags(compute_test_value="off")
-    def test1_err_bounds(self):
+    def test_err_bounds(self):
         n = self.shared(np.ones(3, dtype=self.dtype))
         t = n[7]
         assert isinstance(t.owner.op, Subtensor)
@@ -178,7 +150,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
         finally:
             _logger.setLevel(oldlevel)
 
-    def test1_err_subslice(self):
+    def test_err_subslice(self):
         n = self.shared(np.ones(3, dtype=self.dtype))
         try:
             n[slice(0, slice(1, 2, None), None)]
@@ -190,7 +162,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
             return
         self.fail()
 
-    def test1_ok_range_finite(self):
+    def test_ok_range_finite(self):
         n = self.shared(np.arange(3, dtype=self.dtype))
         t = n[0:2]
         assert isinstance(t.owner.op, Subtensor)
@@ -198,7 +170,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
         assert tval.shape == (2,)
         assert (tval == [0, 1]).all()
 
-    def test2_ok_range_finite(self):
+    def test_ok_range_finite_2(self):
         n = self.shared(np.arange(12, dtype=self.dtype).reshape((3, 4)))
         # Also check negative index
         for idx in [(slice(0, 2), 3), ((slice(0, 2), -1)), (slice(0, 2), -4)]:
@@ -208,7 +180,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
             assert tval.shape == (2,)
             assert np.allclose(tval, n.get_value()[idx])
 
-    def test1_0_dims(self):
+    def test_0_dims(self):
         n = self.shared(np.ones((), dtype=self.dtype))
         t = self.sub([])(n)
         assert isinstance(t.owner.op, Subtensor)
@@ -216,12 +188,12 @@ class Test_subtensor(utt.TestOptimizationMixin):
             t, mode=self.mode.excluding("local_useless_subtensor")
         )
 
-    def test1_err_invalid(self):
+    def test_err_invalid_2(self):
         n = self.shared(np.ones(1, dtype=self.dtype))
         with pytest.raises(IndexError):
             n.__getitem__((0, 0))
 
-    def test1_ok_elem(self):
+    def test_ok_elem(self):
         n = self.shared(np.ones(1, dtype=self.dtype) * 5)
         t = n[0]
         assert isinstance(t.owner.op, Subtensor)
@@ -229,7 +201,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
         assert tval.shape == ()
         assert tval == 5.0
 
-    def test1_ok_range_infinite(self):
+    def test_ok_range_infinite(self):
         n = self.shared(np.arange(3, dtype=self.dtype))
         t = n[1:]
         assert isinstance(t.owner.op, Subtensor)
@@ -237,7 +209,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
         assert tval.shape == (2,)
         assert (tval == [1.0, 2.0]).all()
 
-    def test1_ok_strided(self):
+    def test_ok_strided(self):
         n = self.shared(np.arange(5, dtype=self.dtype))
         t = n[1::2]
         assert isinstance(t.owner.op, Subtensor)
@@ -251,7 +223,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
         assert (tval == [0.0, 2.0]).all()
 
     @change_flags(compute_test_value="off")
-    def test2_err_bounds0(self):
+    def test_err_bounds0(self):
         n = self.shared(np.ones((2, 3), dtype=self.dtype) * 5)
         for idx in [(0, 4), (0, -4)]:
             t = n[idx]
@@ -267,7 +239,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
                 _logger.setLevel(oldlevel)
 
     @change_flags(compute_test_value="off")
-    def test2_err_bounds1(self):
+    def test_err_bounds1(self):
         n = self.shared((np.ones((2, 3), dtype=self.dtype) * 5))
         t = n[4:5, 3]
         assert isinstance(t.owner.op, Subtensor)
@@ -279,7 +251,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
         finally:
             sys.stderr = old_stderr
 
-    def test2_ok_elem(self):
+    def test_ok_elem_2(self):
         n = self.shared(np.arange(6, dtype=self.dtype).reshape((2, 3)))
         t = n[0, 2]
         assert isinstance(t.owner.op, Subtensor)
@@ -287,7 +259,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
         assert tval.shape == ()
         assert np.all(tval == 2)
 
-    def test2_ok_row(self):
+    def test_ok_row(self):
         n = self.shared(np.arange(6, dtype=self.dtype).reshape((2, 3)))
         t = n[1]
         assert not any(n.type.broadcastable)
@@ -296,7 +268,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
         assert tval.shape == (3,)
         assert np.all(tval == [3, 4, 5])
 
-    def test2_ok_col(self):
+    def test_ok_col(self):
         n = self.shared(np.arange(6, dtype=self.dtype).reshape((2, 3)))
         t = n[:, 0]
         assert isinstance(t.owner.op, Subtensor)
@@ -305,7 +277,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
         assert tval.shape == (2,)
         assert np.all(tval == [0, 3])
 
-    def test2_ok_rows_finite(self):
+    def test_ok_rows_finite(self):
         n = self.shared(np.arange(12, dtype=self.dtype).reshape((4, 3)))
         t = n[1:3, 0]
         assert isinstance(t.owner.op, Subtensor)
@@ -313,7 +285,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
         assert tval.shape == (2,)
         assert np.all(tval == [3, 6])
 
-    def test2_ok_cols_infinite(self):
+    def test_ok_cols_infinite(self):
         n = self.shared(np.arange(12, dtype=self.dtype).reshape((4, 3)))
         t = n[1, 2:]
         assert isinstance(t.owner.op, Subtensor)
@@ -321,7 +293,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
         assert tval.shape == (1,)
         assert np.all(tval == 5)
 
-    def test2_ok_strided(self):
+    def test_ok_strided_2(self):
         n = self.shared(np.arange(20, dtype=self.dtype).reshape((4, 5)))
         t = n[1:4:2, 1:5:2]
         assert isinstance(t.owner.op, Subtensor)
@@ -329,7 +301,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
         assert tval.shape == (2, 2)
         assert np.all(tval == [[6, 8], [16, 18]])
 
-    def test3_ok_mat(self):
+    def test_ok_mat(self):
         n = self.shared(np.arange(24, dtype=self.dtype).reshape((2, 3, 4)))
         t = n[0, 0, 0]
         assert isinstance(t.owner.op, Subtensor)
@@ -339,7 +311,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
 
     def test_long(self):
         n = self.shared(np.arange(12, dtype=self.dtype).reshape((4, 3)))
-        t = n[L(1) : L(4) : L(2), L(1)]
+        t = n[1:4:2, 1]
         assert isinstance(t.owner.op, Subtensor)
         tval = self.eval_output_and_check(t)
         assert tval.shape == (2,)
@@ -350,7 +322,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
         # This test checks that using a long that does not fit raises an error.
         n = self.shared(np.arange(12, dtype=self.dtype).reshape((4, 3)))
         with pytest.raises(Exception):
-            (lambda: n[: L(2 ** 63)])()
+            (lambda: n[: (2 ** 63)])()
 
     def test_list_slice(self):
         x = theano.tensor.arange(100).reshape((5, 5, 4))
@@ -1236,9 +1208,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
                     # Corresponding numeric variable.
                     data_num_init = np.arange(data_size, dtype=self.dtype)
                     data_num_init = data_num_init.reshape(data_shape)
-                    inc_shapes = [
-                        data_shape[i:] for i in xrange(0, len(data_shape) + 1)
-                    ]
+                    inc_shapes = [data_shape[i:] for i in range(0, len(data_shape) + 1)]
                     # Test broadcasting of y.
                     inc_shapes += [(1,) + inc_shapes[-1][1:]]
                     for inc_shape in inc_shapes:
@@ -1362,7 +1332,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
 
         f_outs = f(*all_inputs_num)
         assert len(f_outs) == len(all_outputs_num)
-        for params, f_out, output_num in izip(all_params, f_outs, all_outputs_num):
+        for params, f_out, output_num in zip(all_params, f_outs, all_outputs_num):
             # NB: if this assert fails, it will probably be easier to debug if
             # you enable the debug code above.
             assert np.allclose(f_out, output_num), (params, f_out, output_num)
@@ -1378,7 +1348,7 @@ class Test_subtensor(utt.TestOptimizationMixin):
         s1 = m[gv, i]
         s2 = m[g, i]
 
-        assert gof.graph.is_same_graph(s1, s2)
+        assert is_same_graph(s1, s2)
 
     def test_adv1_inc_sub_notlastdim(self):
         # Test that taking 1-dimensional advanced indexing
@@ -1598,29 +1568,16 @@ class TestIncSubtensor1:
 
 
 class TestAdvancedSubtensor:
-    # test inc_subtensor
-    # also tests set_subtensor
-    def __init__(
-        self,
-        name,
-        shared=tensor._shared,
-        sub=tensor.AdvancedSubtensor,
-        inc_sub=tensor.AdvancedIncSubtensor,
-        mode=None,
-        dtype=theano.config.floatX,
-        ignore_topo=DeepCopyOp,
-    ):
-        self.shared = shared
-        self.sub = sub
-        self.inc_sub = inc_sub
-        if mode is None:
-            mode = theano.compile.mode.get_default_mode()
-        self.mode = mode
-        self.dtype = dtype
-        self.ignore_topo = ignore_topo
-        super(TestAdvancedSubtensor, self).__init__(name)
+    """Test inc_subtensor and set_subtensor."""
 
     def setup_method(self):
+        self.shared = tensor._shared
+        self.sub = tensor.AdvancedSubtensor
+        self.inc_sub = tensor.AdvancedIncSubtensor
+        self.dtype = theano.config.floatX
+        self.ignore_topo = DeepCopyOp
+        self.mode = theano.compile.mode.get_default_mode()
+
         self.s = iscalar()
         self.v = fvector()
         self.m = dmatrix()

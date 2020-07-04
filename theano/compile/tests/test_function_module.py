@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 import time
 
+import theano
 
 from theano import config, gof
 from six import iteritems
@@ -16,7 +17,6 @@ from theano.compat import exc_message
 
 from theano import tensor
 from theano import tensor as T
-import theano
 
 
 def PatternOptimizer(p1, p2, ign=True):
@@ -37,7 +37,7 @@ def checkfor(testcase, fn, E):
     testcase.fail()
 
 
-class Test_function:
+class TestFunction:
     def test_none(self):
         fn = function([], None)  # ok
         rval = fn()
@@ -731,7 +731,7 @@ class Test_function:
             assert f._check_for_aliased_inputs, d
 
 
-class Test_picklefunction:
+class TestPicklefunction:
     def test_deepcopy(self):
         a = T.scalar()  # the a is for 'anonymous' (un-named).
         x, s = T.scalars("xs")

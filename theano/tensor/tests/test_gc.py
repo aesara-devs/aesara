@@ -25,11 +25,9 @@ def test_no_reuse():
 def test_gc_never_pickles_temporaries():
     x = T.dvector()
 
+    r = x
     for i in xrange(2):  # TODO: 30 causes like LONG compilation due to MERGE
-        if i:
-            r = r + r / 10
-        else:
-            r = x
+        r = r + r / 10
 
     optimizer = None
     optimizer = "fast_run"
@@ -51,9 +49,9 @@ def test_gc_never_pickles_temporaries():
         )
 
         pre_f = pickle.dumps(f)
-        pre_g = pickle.dumps(g)
+        # pre_g = pickle.dumps(g)
         len_pre_f = len(pre_f)
-        len_pre_g = len(pre_g)
+        # len_pre_g = len(pre_g)
 
         # We can't compare the content or the length of the string
         # between f and g. 2 reason, we store some timming information
@@ -109,13 +107,12 @@ def test_merge_opt_runtime():
     # Ironically, there is actually no merging to do in this graph.
 
     x = T.dvector()
+    r = x
     for i in xrange(50):
-        if i:
-            r = r + r / 10
-        else:
-            r = x
+        r = r + r / 10
+
     t = time.time()
-    f = theano.function([x], r, mode="FAST_COMPILE")
+    theano.function([x], r, mode="FAST_COMPILE")
     # FAST_RUN does in-place optimizer which requires a lot of
     # toposorting, which is actually pretty slow at the moment.  This
     # test was designed to test MergeOptimizer... so I'm leaving

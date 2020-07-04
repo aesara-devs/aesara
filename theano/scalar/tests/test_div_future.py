@@ -4,7 +4,7 @@ import theano
 import theano.tensor as T
 
 
-class test_FutureDiv:
+class TestFutureDiv:
     def test_divide_floats(self):
         a = T.dscalar("a")
         b = T.dscalar("b")

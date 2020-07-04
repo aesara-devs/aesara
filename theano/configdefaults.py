@@ -2251,7 +2251,7 @@ AddConfigVar(
 
 def default_compiledirname():
     formatted = theano.config.compiledir_format % compiledir_format_dict
-    safe = re.sub("[\(\)\s,]+", "_", formatted)
+    safe = re.sub(r"[\(\)\s,]+", "_", formatted)
     return safe
 
 

@@ -4,7 +4,8 @@ import numpy as np
 import theano
 from theano import tensor
 from theano.compile import DeepCopyOp
-from theano.tensor.tests import test_subtensor, test_basic
+from theano.tensor.tests.test_subtensor import TestSubtensor, TestAdvancedSubtensor
+from theano.tensor.tests.test_basic import TestAllocDiag
 from theano.tests import unittest_tools as utt
 
 from ..basic_ops import HostFromGpu, GpuFromHost, GpuContiguous
@@ -26,62 +27,50 @@ from ..type import gpuarray_shared_constructor
 from .config import mode_with_gpu, test_ctx_name
 
 
-class G_subtensor(test_subtensor.T_subtensor):
-    def shortDescription(self):
-        return None
-
-    def __init__(self, name):
+class TestGPUSubtensor(TestSubtensor):
+    def setup_method(self):
         def shared(x, **kwargs):
             return gpuarray_shared_constructor(x, target=test_ctx_name, **kwargs)
 
-        test_subtensor.T_subtensor.__init__(
-            self,
-            name,
-            shared=shared,
-            sub=GpuSubtensor,
-            inc_sub=GpuIncSubtensor,
-            adv_sub1=GpuAdvancedSubtensor1,
-            adv_incsub1=GpuAdvancedIncSubtensor1,
-            adv_sub=GpuAdvancedSubtensor,
-            adv_bool_sub=GpuAdvancedBooleanSubtensor,
-            dimshuffle=GpuDimShuffle,
-            mode=mode_with_gpu,
-            # avoid errors with limited devices
-            dtype="float32",
-            ignore_topo=(HostFromGpu, GpuFromHost, DeepCopyOp, GpuContiguous),
-        )
+        self.shared = shared
+        self.sub = GpuSubtensor
+        self.inc_sub = GpuIncSubtensor
+        self.adv_sub1 = GpuAdvancedSubtensor1
+        self.adv_incsub1 = GpuAdvancedIncSubtensor1
+        self.adv_sub = GpuAdvancedSubtensor
+        self.adv_bool_sub = GpuAdvancedBooleanSubtensor
+        self.dimshuffle = GpuDimShuffle
+        self.mode = mode_with_gpu
+        # avoid errors with limited devices
+        self.dtype = "float32"
+        self.ignore_topo = (HostFromGpu, GpuFromHost, DeepCopyOp, GpuContiguous)
         # GPU opt can't run in fast_compile only.
         self.fast_compile = False
         assert self.sub == GpuSubtensor
+        super().setup_method()
 
 
-class G_subtensorF16(test_subtensor.T_subtensor):
-    def shortDescription(self):
-        return None
-
-    def __init__(self, name):
+class TestGPUSubtensorF16(TestSubtensor):
+    def setup_method(self):
         def shared(x, **kwargs):
             return gpuarray_shared_constructor(x, target=test_ctx_name, **kwargs)
 
-        test_subtensor.T_subtensor.__init__(
-            self,
-            name,
-            shared=shared,
-            sub=GpuSubtensor,
-            inc_sub=GpuIncSubtensor,
-            adv_sub1=GpuAdvancedSubtensor1,
-            adv_incsub1=GpuAdvancedIncSubtensor1,
-            adv_sub=GpuAdvancedSubtensor,
-            adv_bool_sub=GpuAdvancedBooleanSubtensor,
-            dimshuffle=GpuDimShuffle,
-            mode=mode_with_gpu,
-            # avoid errors with limited devices
-            dtype="float16",  # use floatX?
-            ignore_topo=(HostFromGpu, GpuFromHost, DeepCopyOp, GpuContiguous),
-        )
+        self.shared = shared
+        self.sub = GpuSubtensor
+        self.inc_sub = GpuIncSubtensor
+        self.adv_sub1 = GpuAdvancedSubtensor1
+        self.adv_incsub1 = GpuAdvancedIncSubtensor1
+        self.adv_sub = GpuAdvancedSubtensor
+        self.adv_bool_sub = GpuAdvancedBooleanSubtensor
+        self.dimshuffle = GpuDimShuffle
+        self.mode = mode_with_gpu
+        # avoid errors with limited devices
+        self.dtype = "float16"  # use floatX?
+        self.ignore_topo = (HostFromGpu, GpuFromHost, DeepCopyOp, GpuContiguous)
         # GPU opt can't run in fast_compile only.
         self.fast_compile = False
         assert self.sub == GpuSubtensor
+        super().setup_method()
 
 
 def test_advinc_subtensor1():
@@ -268,45 +257,33 @@ def test_incsub_offset():
     utt.assert_allclose(f([1, 2]), np.array([0, 0, 1, 2], dtype=theano.config.floatX))
 
 
-class G_advancedsubtensor(test_subtensor.TestAdvancedSubtensor):
-    def shortDescription(self):
-        return None
-
-    def __init__(self, name):
-        test_subtensor.TestAdvancedSubtensor.__init__(
-            self,
-            name,
-            shared=gpuarray_shared_constructor,
-            sub=GpuAdvancedSubtensor,
-            inc_sub=GpuAdvancedIncSubtensor,
-            mode=mode_with_gpu,
-            # avoid errors with limited devices
-            dtype="float32",  # floatX?
-            ignore_topo=(HostFromGpu, GpuFromHost, DeepCopyOp),
-        )
+class TestGPUAdvancedSubtensor(TestAdvancedSubtensor):
+    def setup_method(self):
+        self.shared = gpuarray_shared_constructor
+        self.sub = GpuAdvancedSubtensor
+        self.inc_sub = GpuAdvancedIncSubtensor
+        self.mode = mode_with_gpu
+        # avoid errors with limited devices
+        self.dtype = "float32"  # floatX?
+        self.ignore_topo = (HostFromGpu, GpuFromHost, DeepCopyOp)
         # GPU opt can't run in fast_compile only.
         self.fast_compile = False
         assert self.sub == GpuAdvancedSubtensor
+        super().setup_method()
 
 
-class G_advancedsubtensorF16(test_subtensor.TestAdvancedSubtensor):
-    def shortDescription(self):
-        return None
-
-    def __init__(self, name):
-        test_subtensor.TestAdvancedSubtensor.__init__(
-            self,
-            name,
-            shared=gpuarray_shared_constructor,
-            sub=GpuAdvancedSubtensor,
-            mode=mode_with_gpu,
-            # avoid errors with limited devices
-            dtype="float16",  # floatX?
-            ignore_topo=(HostFromGpu, GpuFromHost, DeepCopyOp),
-        )
+class TestGPUAdvancedSubtensorF16(TestAdvancedSubtensor):
+    def setup_method(self):
+        self.shared = gpuarray_shared_constructor
+        self.sub = GpuAdvancedSubtensor
+        self.mode = mode_with_gpu
+        # avoid errors with limited devices
+        self.dtype = "float16"  # floatX?
+        self.ignore_topo = (HostFromGpu, GpuFromHost, DeepCopyOp)
         # GPU opt can't run in fast_compile only.
         self.fast_compile = False
         assert self.sub == GpuAdvancedSubtensor
+        super().setup_method()
 
 
 def test_adv_subtensor():
@@ -335,7 +312,7 @@ def test_adv_subtensor():
     assert np.allclose(rval, rep)
 
 
-class test_gpuextractdiag:
+class TestGpuExtractDiag:
     def test_extractdiag_opt(self):
         x = tensor.matrix()
         fn = theano.function([x], tensor.ExtractDiag()(x), mode=mode_with_gpu)
@@ -398,14 +375,12 @@ class test_gpuextractdiag:
             )
 
 
-class TestGpuAllocDiag(test_basic.TestAllocDiag):
-    def __init__(self, name):
-        return test_basic.TestAllocDiag.__init__(
-            self, name, alloc_diag=GpuAllocDiag, mode=mode_with_gpu
-        )
+class TestGpuAllocDiag(TestAllocDiag):
+    def setup_method(self):
+        self.alloc_diag = GpuAllocDiag
+        self.mode = mode_with_gpu
+        super().setup_method()
 
-
-class test_gpuallocdiag:
     def test_allocdiag_opt(self):
         x = tensor.vector()
         fn = theano.function([x], tensor.AllocDiag()(x), mode=mode_with_gpu)

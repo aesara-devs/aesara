@@ -997,13 +997,13 @@ class WrapLinker(Linker):
 
         """
         other = self.__class__(
-            linkers=[copy(l) for l in self.linkers], wrapper=self.wrapper
+            linkers=[copy(x) for x in self.linkers], wrapper=self.wrapper
         )
         return other
 
     def clone(self, allow_gc=undef):
         return self.__class__(
-            linkers=[l.clone(allow_gc=allow_gc) for l in self.linkers],
+            linkers=[x.clone(allow_gc=allow_gc) for x in self.linkers],
             wrapper=self.wrapper,
         )
 
@@ -1038,7 +1038,7 @@ class WrapLinker(Linker):
 
         make_all = [self.linkers[0].make_all(**kwargs)]
         kwargs.pop("input_storage", None)
-        make_all += [l.make_all(**kwargs) for l in self.linkers[1:]]
+        make_all += [x.make_all(**kwargs) for x in self.linkers[1:]]
 
         fns, input_lists, output_lists, thunk_lists, order_lists = zip(*make_all)
 

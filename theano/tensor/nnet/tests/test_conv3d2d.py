@@ -1,17 +1,14 @@
 from __future__ import absolute_import, print_function, division
 import time
-
 import pytest
 import numpy as np
+import theano
 
 try:
     from scipy import ndimage
 except ImportError:
     ndimage = None
-import pytest
-from six.moves import xrange
 
-import theano
 from theano.gof.opt import check_stack_trace
 from theano.tensor.nnet.conv3d2d import (
     conv3d,
@@ -91,9 +88,9 @@ def pyconv3d(signals, filters, border_mode="valid"):
     Wf2 = Wf // 2
 
     rval = np.zeros((Ns, Ts - Tf + 1, Nf, Hs - Hf + 1, Ws - Wf + 1))
-    for ns in xrange(Ns):
-        for nf in xrange(Nf):
-            for c in xrange(C):
+    for ns in range(Ns):
+        for nf in range(Nf):
+            for c in range(C):
                 s_i = signals[ns, :, c, :, :]
                 f_i = filters[nf, :, c, :, :]
                 r_i = rval[ns, :, nf, :, :]

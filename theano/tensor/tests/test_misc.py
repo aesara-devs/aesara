@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function, division
 import copy
-import sys
 import numpy as np
 import theano
 from theano import tensor

@@ -62,7 +62,7 @@ Here is some code that allows the Op to be optional:
             ...
 
     from nose.plugins.skip import SkipTest
-    class test_SomeOp(utt.InferShapeTester):
+    class TestSomeOp(utt.InferShapeTester):
         ...
         def test_infer_shape(self):
             if not imported_scipy:

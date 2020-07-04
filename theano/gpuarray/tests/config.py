@@ -17,9 +17,9 @@ if not theano.gpuarray.pygpu_activated and not theano.config.force_device:
 
 if not theano.gpuarray.pygpu_activated:
     if init_error:
-        pytest.skip(init_error)
+        pytest.skip(str(init_error), allow_module_level=True)
     else:
-        pytest.skip("pygpu disabled")
+        pytest.skip("pygpu disabled", allow_module_level=True)
 
 test_ctx_name = None
 

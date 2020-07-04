@@ -18,7 +18,7 @@ from theano.misc.pkl_utils import dump, load
 from theano.tensor.tests import test_opt
 
 
-class test_fusion(test_opt.test_fusion):
+class TestFusion(test_opt.TestFusion):
     mode = mode_with_gpu.excluding("local_dnn_reduction")
     _shared = staticmethod(gpuarray_shared_constructor)
     topo_exclude = (GpuFromHost, HostFromGpu)

@@ -299,7 +299,7 @@ cuirfft_op = CuIRFFTOp()
 
 
 def curfft(inp, norm=None):
-    """
+    r"""
     Performs the fast Fourier transform of a real-valued input on the GPU.
 
     The input must be a real-valued float32 variable of dimensions (m, ..., n).
@@ -333,7 +333,7 @@ def curfft(inp, norm=None):
 
 
 def cuirfft(inp, norm=None, is_odd=False):
-    """
+    r"""
     Performs the inverse fast Fourier Transform with real-valued output on the GPU.
 
     The input is a variable of dimensions (m, ..., n//2+1, 2) with

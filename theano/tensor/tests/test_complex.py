@@ -3,12 +3,24 @@ from six.moves import xrange
 import pytest
 import theano
 import numpy as np
-from theano.tensor import *
+from theano.tensor import (
+    real,
+    imag,
+    zvector,
+    dvector,
+    cast,
+    fmatrix,
+    fvector,
+    cvector,
+    imatrix,
+    complex,
+    complex_from_polar,
+)
 from theano.tests import unittest_tools as utt
 
 
 class TestRealImag:
-    def test0(self):
+    def test_basic(self):
         x = zvector()
         rng = np.random.RandomState(23)
         xval = np.asarray(

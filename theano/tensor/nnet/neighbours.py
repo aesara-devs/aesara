@@ -646,7 +646,7 @@ class Images2Neibs(Op):
 
 
 def images2neibs(ten4, neib_shape, neib_step=None, mode="valid"):
-    """
+    r"""
     Function :func:`images2neibs <theano.tensor.nnet.neighbours.images2neibs>`
     allows to apply a sliding window operation to a tensor containing
     images or other two-dimensional objects.

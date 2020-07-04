@@ -4,7 +4,12 @@ import pytest
 
 import numpy as np
 
-from theano.tensor.nnet.tests import test_abstract_conv
+from theano.tensor.nnet.tests.test_abstract_conv import (
+    BaseTestConv2d,
+    BaseTestConv3d,
+    TestConvTypes,
+    TestConv2dTranspose,
+)
 from ..type import GpuArrayType, gpuarray_shared_constructor, get_context
 from ..dnn import dnn_available, GpuDnnConv, GpuDnnConvGradW, GpuDnnConvGradI
 from ..blas import (
@@ -22,15 +27,15 @@ from pygpu import gpuarray
 gpu_ftensor4 = GpuArrayType(dtype="float32", broadcastable=(False,) * 4)
 
 
-class TestDnnConv2d(test_abstract_conv.BaseTestConv2d):
+class TestDnnConv2d(BaseTestConv2d):
     @classmethod
     def setup_class(cls):
-        test_abstract_conv.BaseTestConv2d.setup_class()
+        super().setup_class()
         cls.shared = staticmethod(gpuarray_shared_constructor)
         # provide_shape is not used by the cuDNN impementation
         cls.provide_shape = [False]
 
-    def tcase(self, i, f, s, b, flip, provide_shape, fd=(1, 1)):
+    def run_test_case(self, i, f, s, b, flip, provide_shape, fd=(1, 1)):
         if not dnn_available(test_ctx_name):
             pytest.skip(dnn_available.msg)
         mode = mode_with_gpu
@@ -75,7 +80,7 @@ class TestDnnConv2d(test_abstract_conv.BaseTestConv2d):
             target_op=GpuDnnConvGradI,
         )
 
-    def tcase_gi(
+    def run_test_case_gi(
         self, i, f, o, s, b, flip, provide_shape, fd=(1, 1), expect_error=False
     ):
         if not dnn_available(test_ctx_name):
@@ -116,15 +121,15 @@ class TestDnnConv2d(test_abstract_conv.BaseTestConv2d):
                 )
 
 
-class TestDnnConv3d(test_abstract_conv.BaseTestConv3d):
+class TestDnnConv3d(BaseTestConv3d):
     @classmethod
     def setup_class(cls):
-        test_abstract_conv.BaseTestConv3d.setup_class()
+        super().setup_class()
         cls.shared = staticmethod(gpuarray_shared_constructor)
         # provide_shape is not used by the cuDNN impementation
         cls.provide_shape = [False]
 
-    def tcase(self, i, f, s, b, flip, provide_shape, fd=(1, 1, 1)):
+    def run_test_case(self, i, f, s, b, flip, provide_shape, fd=(1, 1, 1)):
         if not dnn_available(test_ctx_name):
             pytest.skip(dnn_available.msg)
         mode = mode_with_gpu
@@ -169,7 +174,7 @@ class TestDnnConv3d(test_abstract_conv.BaseTestConv3d):
             target_op=GpuDnnConvGradI,
         )
 
-    def tcase_gi(
+    def run_test_case_gi(
         self, i, f, o, s, b, flip, provide_shape, fd=(1, 1, 1), expect_error=False
     ):
         if not dnn_available(test_ctx_name):
@@ -210,14 +215,14 @@ class TestDnnConv3d(test_abstract_conv.BaseTestConv3d):
                 )
 
 
-class TestCorrMMConv2d(test_abstract_conv.BaseTestConv2d):
+class TestCorrMMConv2d(BaseTestConv2d):
     @classmethod
     def setup_class(cls):
-        test_abstract_conv.BaseTestConv2d.setup_class()
+        super().setup_class()
         cls.shared = staticmethod(gpuarray_shared_constructor)
         cls.mode = mode_with_gpu.excluding("cudnn")
 
-    def tcase(self, i, f, s, b, flip, provide_shape, fd=(1, 1)):
+    def run_test_case(self, i, f, s, b, flip, provide_shape, fd=(1, 1)):
         mode = self.mode
         o = self.get_output_shape(i, f, s, b, fd)
         self.run_fwd(
@@ -259,7 +264,7 @@ class TestCorrMMConv2d(test_abstract_conv.BaseTestConv2d):
             filter_dilation=fd,
         )
 
-    def tcase_gi(
+    def run_test_case_gi(
         self, i, f, o, s, b, flip, provide_shape, fd=(1, 1), expect_error=False
     ):
         mode = self.mode
@@ -295,14 +300,14 @@ class TestCorrMMConv2d(test_abstract_conv.BaseTestConv2d):
                 )
 
 
-class TestCorrMMConv3d(test_abstract_conv.BaseTestConv3d):
+class TestCorrMMConv3d(BaseTestConv3d):
     @classmethod
     def setup_class(cls):
-        test_abstract_conv.BaseTestConv3d.setup_class()
+        super().setup_class()
         cls.shared = staticmethod(gpuarray_shared_constructor)
         cls.mode = mode_with_gpu.excluding("cudnn")
 
-    def tcase(self, i, f, s, b, flip, provide_shape, fd=(1, 1, 1)):
+    def run_test_case(self, i, f, s, b, flip, provide_shape, fd=(1, 1, 1)):
         mode = self.mode
         o = self.get_output_shape(i, f, s, b, fd)
         self.run_fwd(
@@ -344,7 +349,7 @@ class TestCorrMMConv3d(test_abstract_conv.BaseTestConv3d):
             filter_dilation=fd,
         )
 
-    def tcase_gi(
+    def run_test_case_gi(
         self, i, f, o, s, b, flip, provide_shape, fd=(1, 1, 1), expect_error=False
     ):
         mode = self.mode
@@ -380,7 +385,7 @@ class TestCorrMMConv3d(test_abstract_conv.BaseTestConv3d):
                 )
 
 
-class TestDnnConvTypes(test_abstract_conv.TestConvTypes):
+class TestDnnConvTypes(TestConvTypes):
     def setup_method(self):
         self.input = gpu_ftensor4()
         self.filters = gpu_ftensor4()
@@ -388,7 +393,8 @@ class TestDnnConvTypes(test_abstract_conv.TestConvTypes):
         self.constant_tensor = gpuarray.array(
             np.zeros((3, 5, 7, 11), dtype="float32"), context=get_context(test_ctx_name)
         )
+        super().setup_method()
 
 
-class TestConv2dTranspose(test_abstract_conv.TestConv2dTranspose):
+class TestConv2dTranspose(TestConv2dTranspose):
     mode = mode_with_gpu

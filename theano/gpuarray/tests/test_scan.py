@@ -12,7 +12,7 @@ from ..elemwise import GpuElemwise
 from .config import mode_with_gpu, test_ctx_name
 
 
-class Test_Scan:
+class TestScan:
     def setup_method(self):
         utt.seed_rng()
 

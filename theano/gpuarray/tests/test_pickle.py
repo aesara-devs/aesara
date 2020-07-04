@@ -22,14 +22,14 @@ try:
     from . import config as _  # noqa
 
     have_pygpu = True
-except:
+except ImportError:
     have_pygpu = False
 
 
 def test_unpickle_gpuarray_as_numpy_ndarray_flag1():
     # Only test when pygpu isn't
-    # available. test_unpickle_gpuarray_as_numpy_ndarray_flag0 in
-    # test_type.py test it when pygpu is there.
+    # available. test_unpickle_gpuarray_as_numpy_ndarray_flag0 in test_type.py
+    # test it when pygpu is there.
     if have_pygpu:
         pytest.skip("pygpu active")
     oldflag = config.experimental.unpickle_gpu_on_cpu

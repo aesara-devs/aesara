@@ -20,7 +20,7 @@ from theano.tensor.elemwise import CAReduce, Elemwise, DimShuffle
 from theano.tests import unittest_tools as utt
 
 
-class Test_max_and_argmax:
+class TestMaxAndArgmax:
     def test_optimization(self):
         # If we use only the max output, we should replace this op with
         # a faster one.
@@ -29,7 +29,6 @@ class Test_max_and_argmax:
         )
 
         for axis in [0, 1, -1]:
-            data = np.asarray(np.random.rand(2, 3), dtype=config.floatX)
             n = tensor.matrix()
 
             f = function([n], tensor.max_and_argmax(n, axis)[0], mode=mode)
@@ -43,7 +42,7 @@ class Test_max_and_argmax:
             assert isinstance(topo[0].op, tensor.MaxAndArgmax)
 
 
-class Test_min_max:
+class TestMinMax:
     def setup_method(self):
         utt.seed_rng()
         self.mode = theano.compile.mode.get_default_mode().including(

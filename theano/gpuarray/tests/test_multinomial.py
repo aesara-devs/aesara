@@ -1,17 +1,15 @@
 from __future__ import absolute_import, print_function, division
-
 import os
+import pytest
 import numpy as np
-
 import theano
+import theano.tests.unittest_tools as utt
+
 from theano import config, function, tensor
 from theano.compat import PY3
 from theano.misc.pkl_utils import CompatUnpickler
 from theano.sandbox import multinomial
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
-
-import theano.tests.unittest_tools as utt
-
 from .config import mode_with_gpu
 from ..multinomial import GPUAMultinomialFromUniform, GPUAChoiceFromUniform
 
@@ -189,7 +187,7 @@ def test_gpu_opt():
     f(pval, uval)
 
 
-class test_OP_wor:
+class TestOPWor:
     def test_select_distinct(self):
         # Tests that ChoiceFromUniform always selects distinct elements
 
@@ -261,7 +259,7 @@ class test_OP_wor:
         assert avg_diff < mean_rtol, avg_diff
 
 
-class test_function_wor:
+class TestFunctionWor:
     def test_select_distinct(self):
         # Tests that multinomial_wo_replacement always selects distinct elements
 

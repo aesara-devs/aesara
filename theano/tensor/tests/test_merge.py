@@ -1,11 +1,10 @@
 from __future__ import absolute_import, print_function, division
 import numpy as np
 from theano.gof.type import Type
-from theano.gof.graph import Variable, Apply, Constant
+from theano.gof.graph import Variable, Apply
 from theano.gof.op import Op
-from theano.gof.opt import *
+from theano.gof.opt import MergeOptimizer
 from theano.gof.fg import FunctionGraph as Env
-from theano.gof.toolbox import *
 import theano.tensor.basic as T
 
 

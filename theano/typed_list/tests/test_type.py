@@ -1,14 +1,15 @@
 from __future__ import absolute_import, print_function, division
+import pytest
 import numpy as np
-
 import theano
 import theano.typed_list
+
 from theano import tensor as T
 from theano.typed_list.type import TypedListType
 from theano.tests import unittest_tools as utt
 
 
-# took from tensors/tests/test_basic.py
+# Taken from tensors/tests/test_basic.py
 def rand_ranged_matrix(minimum, maximum, shape):
     return np.asarray(
         np.random.rand(*shape) * (maximum - minimum) + minimum,
@@ -16,7 +17,7 @@ def rand_ranged_matrix(minimum, maximum, shape):
     )
 
 
-class test_typed_list_type:
+class TestTypedListType:
     def setup_method(self):
         utt.seed_rng()
 
@@ -85,20 +86,16 @@ class test_typed_list_type:
 
         assert np.array_equal(myType.filter([x]), [x])
 
-    # Will fail for unknown reasons
-    # under search
-    """
+    @pytest.mark.skip(reason="This fails for unknown reasons?")
     def test_load(self):
-        myType = TypedListType(T.TensorType(theano.config.floatX,
-                                            (False, False)))
+        myType = TypedListType(T.TensorType(theano.config.floatX, (False, False)))
 
         x = rand_ranged_matrix(-1000, 1000, [100, 100])
         testList = []
         for i in range(10000):
             testList.append(x)
 
-        assert numpy.array_equal(myType.filter(testList), testList)
-    """
+        assert np.array_equal(myType.filter(testList), testList)
 
     def test_basic_nested_list(self):
         # Testing nested list with one level of depth

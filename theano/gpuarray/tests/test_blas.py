@@ -27,7 +27,7 @@ from ..blas import (
 )
 
 
-GpuGemvTester = makeTester(
+TestGpuGemv = makeTester(
     "GpuGemvTester",
     op=gemv_inplace,
     gpu_op=gpugemv_inplace,
@@ -105,7 +105,7 @@ def test_float16():
     utt.assert_allclose(np.asarray(out), np.dot(x, y))
 
 
-class TestGpuSgemv(BaseGemv, utt.TestOptimizationMixin):
+class TestGpuSgemv(BaseGemv, utt.OptimizationTestMixin):
     mode = mode_with_gpu
     dtype = "float32"
 
@@ -120,7 +120,7 @@ class TestGpuSgemv(BaseGemv, utt.TestOptimizationMixin):
             return theano.shared(val)
 
 
-GpuGemmTester = makeTester(
+TestGpuGemm = makeTester(
     "GpuGemmTester",
     op=gemm_inplace,
     gpu_op=gpugemm_inplace,
@@ -187,7 +187,7 @@ gemm_batched_tests["float64"] = [
 ]
 
 
-GpuGemmBatchTester = makeTester(
+TestGpuGemmBatch = makeTester(
     "GpuGemmBatchTester",
     op=lambda z, alpha, x, y, beta: alpha * batched_dot(x, y) + beta * z,
     gpu_op=gpugemmbatch_inplace,
@@ -196,7 +196,7 @@ GpuGemmBatchTester = makeTester(
 
 
 class TestGpuGemmBatchStrided:
-    def test0(self):
+    def test_basic(self):
         # Reported in https://github.com/Theano/Theano/issues/5730
         x = tensor.tensor3()
         y = tensor.tensor3()
@@ -221,6 +221,7 @@ class TestGpuSger(TestGer):
         # data on the gpu make the op always inplace
         self.ger = gpuger_inplace
         self.gemm = gpugemm_inplace
+        super().setup_method()
 
     def test_f32_0_0(self):
         pytest.skip("0-sized objects not supported")
@@ -236,7 +237,7 @@ class TestGpuSgerNoTransfer(TestGpuSger):
     shared = staticmethod(gpuarray_shared_constructor)
 
 
-class TestGpuGer_OpContract(utt.Test_OpContractMixin):
+class TestGpuGer_OpContract(utt.OpContractTestMixin):
     def setup_method(self):
         self.ops = [gpuger_no_inplace, gpuger_inplace]
 
@@ -244,7 +245,7 @@ class TestGpuGer_OpContract(utt.Test_OpContractMixin):
         return GpuGer(inplace=op.inplace)
 
 
-GpuDot22Tester = makeTester(
+TestGpuDot22 = makeTester(
     "GpuDot22Tester",
     op=_dot22,
     gpu_op=gpu_dot22,

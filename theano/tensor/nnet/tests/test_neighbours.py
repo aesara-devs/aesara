@@ -1,19 +1,18 @@
 from __future__ import absolute_import, print_function, division
-import numpy as np
 import pytest
-
+import numpy as np
 import theano
-from theano import shared, function
 import theano.tensor as T
-from theano.tensor.nnet.neighbours import images2neibs, neibs2images, Images2Neibs
 
-from theano.tests import unittest_tools
 from theano import change_flags
+from theano import shared, function
+from theano.tensor.nnet.neighbours import images2neibs, neibs2images, Images2Neibs
+from theano.tests import unittest_tools
 
 mode_without_gpu = theano.compile.mode.get_default_mode().excluding("gpu")
 
 
-class Test_Images2Neibs(unittest_tools.InferShapeTester):
+class TestImages2Neibs(unittest_tools.InferShapeTester):
     mode = mode_without_gpu
     op = Images2Neibs
     dtypes = ["int64", "float32", "float64"]

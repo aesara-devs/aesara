@@ -483,52 +483,52 @@ class _metadict:
     # uses an associative list
     # for internal use only
     def __init__(self):
-        self.d = {}
-        self.l = []
+        self._dict = {}
+        self._list = []
 
     def __getitem__(self, item):
         return self.get(item, None)
 
     def __setitem__(self, item, value):
         try:
-            self.d[item] = value
+            self._dict[item] = value
         except Exception:
-            for i, (key, val) in enumerate(self.l):
+            for i, (key, val) in enumerate(self._list):
                 if key == item:
-                    self.l[i] = (item, value)
+                    self._list[i] = (item, value)
                     return
-            self.l.append((item, value))
+            self._list.append((item, value))
 
     def __delitem__(self, item):
         try:
-            if item in self.d:
-                del self.d[item]
+            if item in self._dict:
+                del self._dict[item]
                 return
         except TypeError as e:
             assert "unhashable type" in str(e)
-        for i, (key, val) in enumerate(self.l):
+        for i, (key, val) in enumerate(self._list):
             if key == item:
-                del self.l[i]
+                del self._list[i]
                 return
             raise KeyError(item)
 
     def discard(self, item):
         try:
-            if item in self.d:
-                del self.d[item]
+            if item in self._dict:
+                del self._dict[item]
                 return
         except TypeError as e:
             assert "unhashable type" in str(e)
-        for i, (key, val) in enumerate(self.l):
+        for i, (key, val) in enumerate(self._list):
             if key == item:
-                del self.l[i]
+                del self._list[i]
                 return
 
     def get(self, item, default):
         try:
-            return self.d[item]
+            return self._dict[item]
         except Exception:
-            for item2, value in self.l:
+            for item2, value in self._list:
                 try:
                     if item == item2:
                         return value
@@ -540,11 +540,11 @@ class _metadict:
             return default
 
     def clear(self):
-        self.d = {}
-        self.l = []
+        self._dict = {}
+        self._list = []
 
     def __str__(self):
-        return "(%s, %s)" % (self.d, self.l)
+        return "(%s, %s)" % (self._dict, self._list)
 
 
 class MergeFeature(object):

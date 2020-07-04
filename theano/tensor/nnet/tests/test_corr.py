@@ -2,14 +2,14 @@ from __future__ import absolute_import, print_function, division
 
 import pytest
 import numpy as np
-from six import integer_types
-
 import theano
 import theano.tensor as T
+
+from six import integer_types
 from theano.tests import unittest_tools as utt
 from theano.tensor.nnet import corr, conv
 from theano.tensor.nnet.tests.test_abstract_conv import (
-    Grouped_conv_noOptim,
+    TestGroupedConvNoOptim,
     TestUnsharedConv,
 )
 from theano.tensor.nnet.tests.test_abstract_conv import (
@@ -26,14 +26,14 @@ class TestCorr2D(utt.InferShapeTester):
     dtype = theano.config.floatX
 
     def setup_method(self):
-        super(TestCorr2D, self).setup_method()
+        if not conv.imported_scipy_signal and theano.config.cxx == "":
+            pytest.skip("CorrMM tests need SciPy or a c++ compiler")
         self.input = T.tensor4("input", dtype=self.dtype)
         self.input.name = "default_V"
         self.filters = T.tensor4("filters", dtype=self.dtype)
         self.filters.name = "default_filters"
-        if not conv.imported_scipy_signal and theano.config.cxx == "":
-            pytest.skip("CorrMM tests need SciPy or a c++ compiler")
         # This tests can run even when theano.config.blas.ldflags is empty.
+        super().setup_method()
 
     def validate(
         self,
@@ -501,7 +501,7 @@ class TestCorr2D(utt.InferShapeTester):
         self.validate((3, 2, 7, 5), (5, 2, 2, 3), 2, non_contiguous=True)
 
 
-class TestGroupCorr2d(Grouped_conv_noOptim):
+class TestGroupCorr2d(TestGroupedConvNoOptim):
     mode = theano.compile.get_mode("FAST_RUN").excluding("gpuarray")
     conv_op = corr.CorrMM
     conv_gradw_op = corr.CorrMM_gradWeights
@@ -567,10 +567,3 @@ class TestCausalCorr(TestCausalConv):
         mode = theano.compile.get_mode("FAST_RUN").excluding("gpuarray")
     else:
         mode = None
-
-
-if __name__ == "__main__":
-
-    t = TestCorr2D("setUp")
-    t.setup_method()
-    t.test_infer_shape()

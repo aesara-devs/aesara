@@ -1,25 +1,19 @@
 from __future__ import absolute_import, print_function, division
-
-import itertools
+import pytest
 import numpy as np
 import numpy.linalg
-from numpy.testing import assert_array_almost_equal
-from numpy.testing import dec, assert_array_equal, assert_allclose
-from numpy import inf
-import pytest
-from six.moves import xrange
-
 import theano
+
+from six.moves import xrange
+from numpy import inf
+from numpy.testing import assert_array_almost_equal
 from theano import tensor, function
 from theano.tensor.basic import _allclose
-from theano.tests.test_rop import break_op
 from theano.tests import unittest_tools as utt
 from theano import config
-
 from theano.tensor.nlinalg import (
     MatrixInverse,
     matrix_inverse,
-    MatrixPinv,
     pinv,
     AllocDiag,
     alloc_diag,
@@ -27,15 +21,11 @@ from theano.tensor.nlinalg import (
     extract_diag,
     diag,
     trace,
-    Det,
     det,
     Eig,
     eig,
-    Eigh,
-    EighGrad,
     eigh,
     matrix_dot,
-    _zero_disconnected,
     qr,
     matrix_power,
     norm,
@@ -74,9 +64,9 @@ def test_pseudoinverse_grad():
     utt.verify_grad(pinv, [r])
 
 
-class test_MatrixInverse(utt.InferShapeTester):
+class TestMatrixInverse(utt.InferShapeTester):
     def setup_method(self):
-        super(test_MatrixInverse, self).setup_method()
+        super().setup_method()
         self.op_class = MatrixInverse
         self.op = matrix_inverse
         self.rng = np.random.RandomState(utt.fetch_seed())
@@ -156,12 +146,12 @@ def test_qr_modes():
         assert "name 'complete' is not defined" in str(e)
 
 
-class test_SVD(utt.InferShapeTester):
+class TestSvd(utt.InferShapeTester):
     op_class = SVD
     dtype = "float32"
 
     def setup_method(self):
-        super(test_SVD, self).setup_method()
+        super().setup_method()
         self.rng = np.random.RandomState(utt.fetch_seed())
         self.A = theano.tensor.matrix(dtype=self.dtype)
         self.op = svd
@@ -292,7 +282,7 @@ def test_det_shape():
     assert np.all(f(r).shape == f_shape(r))
 
 
-class test_diag:
+class TestDiag:
     """
     Test that linalg.diag has the same behavior as numpy.diag.
     numpy.diag has two behaviors:
@@ -308,21 +298,11 @@ class test_diag:
     the right op based on the dimension of the input.
     """
 
-    def __init__(
-        self,
-        name,
-        mode=None,
-        shared=tensor._shared,
-        floatX=None,
-        type=tensor.TensorType,
-    ):
-        self.mode = mode
-        self.shared = shared
-        if floatX is None:
-            floatX = config.floatX
-        self.floatX = floatX
-        self.type = type
-        super(test_diag, self).__init__(name)
+    def setup_method(self):
+        self.mode = None
+        self.shared = tensor._shared
+        self.floatX = config.floatX
+        self.type = tensor.TensorType
 
     def test_alloc_diag(self):
         rng = np.random.RandomState(utt.fetch_seed())
@@ -455,13 +435,13 @@ def test_trace():
     assert ok
 
 
-class test_Eig(utt.InferShapeTester):
+class TestEig(utt.InferShapeTester):
     op_class = Eig
     op = eig
     dtype = "float64"
 
     def setup_method(self):
-        super(test_Eig, self).setup_method()
+        super().setup_method()
         self.rng = np.random.RandomState(utt.fetch_seed())
         self.A = theano.tensor.matrix(dtype=self.dtype)
         self.X = np.asarray(self.rng.rand(5, 5), dtype=self.dtype)
@@ -487,7 +467,7 @@ class test_Eig(utt.InferShapeTester):
         assert_array_almost_equal(np.dot(x, v), w * v)
 
 
-class test_Eigh(test_Eig):
+class TestEigh(TestEig):
     op = staticmethod(eigh)
 
     def test_uplo(self):
@@ -508,17 +488,17 @@ class test_Eigh(test_Eig):
         utt.verify_grad(lambda x: self.op(x.dot(x.T), "U")[1], [X], rng=self.rng)
 
 
-class test_Eigh_float32(test_Eigh):
+class TestEighFloat32(TestEigh):
     dtype = "float32"
 
     def test_uplo(self):
-        super(test_Eigh_float32, self).test_uplo()
+        super().test_uplo()
 
     def test_grad(self):
-        super(test_Eigh_float32, self).test_grad()
+        super().test_grad()
 
 
-class Test_lstsq:
+class TestLstsq:
     def test_correct_solution(self):
         x = tensor.lmatrix()
         y = tensor.lmatrix()
@@ -573,7 +553,7 @@ class TestMatrix_power:
             f(a)
 
 
-class Test_NormTests:
+class TestNormTests:
     def test_wrong_type_of_ord_for_vector(self):
         with pytest.raises(ValueError):
             norm([2, 1], "fro")
@@ -613,9 +593,9 @@ class Test_NormTests:
             assert _allclose(n_n, t_n)
 
 
-class test_TensorInv(utt.InferShapeTester):
+class TestTensorInv(utt.InferShapeTester):
     def setup_method(self):
-        super(test_TensorInv, self).setup_method()
+        super().setup_method()
         self.A = tensor.tensor4("A", dtype=theano.config.floatX)
         self.B = tensor.tensor3("B", dtype=theano.config.floatX)
         self.a = np.random.rand(4, 6, 8, 3).astype(theano.config.floatX)

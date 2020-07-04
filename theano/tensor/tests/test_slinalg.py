@@ -1,17 +1,12 @@
 from __future__ import absolute_import, print_function, division
 
+import itertools
+import pytest
 import numpy as np
 import numpy.linalg
-from numpy.testing import assert_array_almost_equal
-from numpy.testing import assert_array_equal, assert_allclose
-from numpy import inf
-
-import itertools
-
 import theano
+
 from theano import tensor, function, grad
-from theano.tensor.basic import _allclose
-from theano.tests.test_rop import break_op
 from theano.tests import unittest_tools as utt
 from theano import config
 from theano.tensor.slinalg import (
@@ -20,14 +15,10 @@ from theano.tensor.slinalg import (
     CholeskyGrad,
     Solve,
     solve,
-    Eigvalsh,
-    EigvalshGrad,
     eigvalsh,
     expm,
     kron,
 )
-
-import pytest
 
 try:
     import scipy.linalg
@@ -65,18 +56,18 @@ def test_cholesky():
     chol = cholesky(x)
     # Check the default.
     ch_f = function([x], chol)
-    yield check_lower_triangular, pd, ch_f
+    check_lower_triangular(pd, ch_f)
     # Explicit lower-triangular.
     chol = Cholesky(lower=True)(x)
     ch_f = function([x], chol)
-    yield check_lower_triangular, pd, ch_f
+    check_lower_triangular(pd, ch_f)
     # Explicit upper-triangular.
     chol = Cholesky(lower=False)(x)
     ch_f = function([x], chol)
-    yield check_upper_triangular, pd, ch_f
+    check_upper_triangular(pd, ch_f)
     chol = Cholesky(lower=False, on_error="nan")(x)
     ch_f = function([x], chol)
-    yield check_upper_triangular, pd, ch_f
+    check_upper_triangular(pd, ch_f)
 
 
 def test_cholesky_indef():
@@ -102,17 +93,12 @@ def test_cholesky_grad():
     # The dots are inside the graph since Cholesky needs separable matrices
 
     # Check the default.
-    yield (lambda: utt.verify_grad(lambda r: cholesky(r.dot(r.T)), [r], 3, rng))
+    utt.verify_grad(lambda r: cholesky(r.dot(r.T)), [r], 3, rng)
     # Explicit lower-triangular.
-    yield (
-        lambda: utt.verify_grad(lambda r: Cholesky(lower=True)(r.dot(r.T)), [r], 3, rng)
-    )
+    utt.verify_grad(lambda r: Cholesky(lower=True)(r.dot(r.T)), [r], 3, rng)
+
     # Explicit upper-triangular.
-    yield (
-        lambda: utt.verify_grad(
-            lambda r: Cholesky(lower=False)(r.dot(r.T)), [r], 3, rng
-        )
-    )
+    utt.verify_grad(lambda r: Cholesky(lower=False)(r.dot(r.T)), [r], 3, rng)
 
 
 def test_cholesky_grad_indef():
@@ -149,8 +135,8 @@ def test_cholesky_and_cholesky_grad_shape():
             )
         for shp in [2, 3, 5]:
             m = np.cov(rng.randn(shp, shp + 10)).astype(config.floatX)
-            yield np.testing.assert_equal, f_chol(m), (shp, shp)
-            yield np.testing.assert_equal, f_cholgrad(m), (shp, shp)
+            np.testing.assert_equal(f_chol(m), (shp, shp))
+            np.testing.assert_equal(f_cholgrad(m), (shp, shp))
 
 
 def test_eigvalsh():
@@ -183,7 +169,6 @@ def test_eigvalsh():
 def test_eigvalsh_grad():
     if not imported_scipy:
         pytest.skip("Scipy needed for the geigvalsh op.")
-    import scipy.linalg
 
     rng = np.random.RandomState(utt.fetch_seed())
     a = rng.randn(5, 5)
@@ -194,11 +179,11 @@ def test_eigvalsh_grad():
     )
 
 
-class test_Solve(utt.InferShapeTester):
+class TestSolve(utt.InferShapeTester):
     def setup_method(self):
-        super(test_Solve, self).setup_method()
         self.op_class = Solve
         self.op = Solve()
+        super().setup_method()
 
     def test_infer_shape(self):
         if not imported_scipy:
@@ -397,8 +382,8 @@ class TestKron(utt.InferShapeTester):
     rng = np.random.RandomState(43)
 
     def setup_method(self):
-        super(TestKron, self).setup_method()
         self.op = kron
+        super().setup_method()
 
     def test_perform(self):
         if not imported_scipy:

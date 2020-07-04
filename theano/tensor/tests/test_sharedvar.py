@@ -136,9 +136,9 @@ def makeSharedTester(
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x = self.cast_value(x)
 
-            x_ref = self.ref_fct(x)
+            self.ref_fct(x)
             x_shared = self.shared_constructor(x, borrow=False)
-            total = self.theano_fct(x_shared)
+            self.theano_fct(x_shared)
 
             f = theano.function([], x_shared.shape)
             topo = f.maker.fgraph.toposort()
@@ -159,9 +159,9 @@ def makeSharedTester(
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x = self.cast_value(x)
 
-            x_ref = self.ref_fct(x)
+            self.ref_fct(x)
             x_shared = self.shared_constructor(x, borrow=False)
-            total = self.theano_fct(x_shared)
+            self.theano_fct(x_shared)
 
             f = theano.function([], x_shared.shape[1])
             topo = f.maker.fgraph.toposort()
@@ -180,7 +180,7 @@ def makeSharedTester(
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x = self.cast_value(x)
 
-            x_ref = self.ref_fct(x)
+            self.ref_fct(x)
             x_shared = self.shared_constructor(x, borrow=False)
             total = self.theano_fct(x_shared)
 
@@ -230,8 +230,7 @@ def makeSharedTester(
             x = self.cast_value(x)
 
             x_orig = x
-            x_orig_copy = x.copy()
-            x_ref = self.ref_fct(x)
+            self.ref_fct(x)
             x_shared = self.shared_constructor(x, borrow=False)
             total = self.theano_fct(x_shared)
 
@@ -701,7 +700,7 @@ def makeSharedTester(
     ref_fct_=lambda a: np.asarray((a * 2)),
     cast_value_=np.asarray,
 )
-class test_shared_options(object):
+class TestSharedOptions(object):
     pass
 
 

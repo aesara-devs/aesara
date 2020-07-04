@@ -647,7 +647,7 @@ class PureOp(object):
                         pdb.post_mortem(sys.exc_info()[2])
                     else:
                         raise ValueError(
-                            "%s is invalid for option config.compute_Test_value"
+                            "%s is invalid for option config.compute_test_value"
                             % config.compute_test_value
                         )
 

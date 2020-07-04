@@ -1,10 +1,10 @@
 from __future__ import absolute_import, print_function, division
+import numpy as np
 import theano
 import theano.tensor as T
-from theano.tests import unittest_tools as utt
-import numpy as np
-from collections import OrderedDict
 
+from collections import OrderedDict
+from theano.tests import unittest_tools as utt
 from theano.tensor.nnet import bn
 
 

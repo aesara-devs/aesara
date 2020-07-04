@@ -6,7 +6,6 @@ import subprocess
 import pytest
 import theano
 from theano import change_flags
-from theano.compat import PY3
 from theano.gof.sched import sort_schedule_fn
 from theano.tensor.io import (
     send,
@@ -15,7 +14,6 @@ from theano.tensor.io import (
     MPISend,
     MPISendWait,
     mpi_send_wait_cmp,
-    mpi_tag_cmp,
     mpi_enabled,
 )
 
@@ -101,9 +99,6 @@ def test_mpi_schedule():
     x = theano.tensor.matrix("x")
     y = send(x, 1, 11)
     z = x + x
-    waitnode = y.owner
-    sendnode = y.owner.inputs[0].owner
-    addnode = z.owner
 
     f = theano.function([x], [y, z], mode=mpi_mode)
     nodes = f.maker.linker.make_all()[-1]

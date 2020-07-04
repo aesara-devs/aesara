@@ -1,6 +1,5 @@
 from __future__ import absolute_import, print_function, division
 import numpy as np
-import imp
 
 import theano
 from theano.gof import Op, Apply
@@ -119,18 +118,19 @@ class PdbBreakpoint(Op):
             print("resumes, the updated values will be used.")
             print("-------------------------------------------------")
 
-            if imp.find_module("pudb"):
+            try:
                 import pudb
 
                 pudb.set_trace()
-            elif imp.find_module("ipdb"):
-                import ipdb
+            except ImportError:
+                try:
+                    import ipdb
 
-                ipdb.set_trace()
-            else:
-                import pdb
+                    ipdb.set_trace()
+                except ImportError:
+                    import pdb
 
-                pdb.set_trace()
+                    pdb.set_trace()
 
             # Take the new values in monitored, cast them back to their
             # original type and store them in the output_storage

@@ -11,7 +11,7 @@ import numpy as np
 utt.seed_rng()
 
 
-def test001_jacobian_vector():
+def test_jacobian_vector():
     x = tensor.vector()
     y = x * 2
     rng = np.random.RandomState(seed=utt.fetch_seed())
@@ -52,7 +52,7 @@ def test001_jacobian_vector():
     assert np.allclose(vJs[1], evx)
 
 
-def test002_jacobian_matrix():
+def test_jacobian_matrix():
     x = tensor.matrix()
     y = 2 * x.sum(axis=0)
     rng = np.random.RandomState(seed=utt.fetch_seed())
@@ -97,7 +97,7 @@ def test002_jacobian_matrix():
     assert np.allclose(vJs[1], evx)
 
 
-def test003_jacobian_scalar():
+def test_jacobian_scalar():
     x = tensor.scalar()
     y = x * 2
     rng = np.random.RandomState(seed=utt.fetch_seed())
@@ -135,7 +135,7 @@ def test003_jacobian_scalar():
     assert np.allclose(vJx[1], vx)
 
 
-def test004_hessian():
+def test_hessian():
     x = tensor.vector()
     y = tensor.sum(x ** 2)
     Hx = tensor.hessian(y, x)

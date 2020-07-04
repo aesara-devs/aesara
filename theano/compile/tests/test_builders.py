@@ -18,7 +18,7 @@ from theano.compile.builders import OpFromGraph
 from theano.tests import unittest_tools
 
 
-class Test_OpFromGraph(unittest_tools.InferShapeTester):
+class TestOpFromGraph(unittest_tools.InferShapeTester):
     @pytest.mark.parametrize(
         "cls_ofg", [OpFromGraph, partial(OpFromGraph, inline=True)]
     )

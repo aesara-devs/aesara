@@ -22,7 +22,7 @@ from .type import GpuArrayType
 try:
     import pygpu
     import pygpu.gpuarray as ga
-except ImportError as e:
+except ImportError:
     # To make sure theano is importable
     pass
 

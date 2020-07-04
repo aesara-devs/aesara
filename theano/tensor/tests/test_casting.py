@@ -1,5 +1,9 @@
 from __future__ import absolute_import, print_function, division
 
+import numpy as np
+import theano
+import theano.tensor.basic as basic
+
 from theano import function
 from theano.tensor.basic import (
     _convert_to_int32,
@@ -9,10 +13,20 @@ from theano.tensor.basic import (
     _convert_to_float32,
     _convert_to_float64,
 )
-from theano.tensor import *
+from theano.tensor import (
+    bvector,
+    ivector,
+    fvector,
+    dvector,
+    zmatrix,
+    cast,
+    TensorType,
+    dmatrix,
+)
+from theano.compile import In
 
 
-class test_casting:
+class TestCasting:
     def test_0(self):
         for op_fn in [_convert_to_int32, _convert_to_float32, _convert_to_float64]:
             for type_fn in bvector, ivector, fvector, dvector:
@@ -60,7 +74,7 @@ class test_casting:
                 ],
             ):
                 y = converter(x)
-                f = function([compile.In(x, strict=True)], y)
+                f = function([In(x, strict=True)], y)
                 a = np.arange(10, dtype=type1)
                 b = f(a)
                 assert np.all(b == np.arange(10, dtype=type2))

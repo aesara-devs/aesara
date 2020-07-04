@@ -14,7 +14,7 @@ from theano import tensor
 from theano import sparse
 
 if not theano.sparse.enable_sparse:
-    pytest.skip("Optional package sparse disabled")
+    pytest.skip("Optional package sparse disabled", allow_module_level=True)
 
 from theano.sparse.sandbox.sp2 import (
     Poisson,
@@ -43,7 +43,7 @@ class PoissonTester(utt.InferShapeTester):
         a[format] = as_sparse_format(rand, format)
 
     def setup_method(self):
-        super(PoissonTester, self).setup_method()
+        super().setup_method()
         self.op_class = Poisson
 
     def test_op(self):
@@ -79,7 +79,7 @@ class BinomialTester(utt.InferShapeTester):
     _inputs = [_n, _p, _shape]
 
     def setup_method(self):
-        super(BinomialTester, self).setup_method()
+        super().setup_method()
         self.op_class = Binomial
 
     def test_op(self):
@@ -122,7 +122,7 @@ class MultinomialTester(utt.InferShapeTester):
     )
 
     def setup_method(self):
-        super(MultinomialTester, self).setup_method()
+        super().setup_method()
         self.op_class = Multinomial
 
     def test_op(self):

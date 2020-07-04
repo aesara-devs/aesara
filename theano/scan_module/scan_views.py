@@ -20,7 +20,9 @@ from theano.scan_module import scan
 _logger = logging.getLogger("theano.scan_module.scan_views")
 
 
-################ Declaration of Views for Scan #######################
+#
+# Declaration of views for scan
+#
 
 
 # The ``map`` view of Scan Op.
@@ -44,7 +46,7 @@ def map(
         The function that ``map`` applies at each iteration step
         (see ``scan`` for more info).
     sequences
-        List of sequences over which ``map`` iterates 
+        List of sequences over which ``map`` iterates
         (see ``scan`` for more info).
     non_sequences
         List of arguments passed to ``fn``. ``map`` will not iterate over
@@ -100,7 +102,7 @@ def reduce(
         List of arguments passed to ``fn``. ``reduce`` will
                           not iterate over these arguments (see ``scan`` for
                           more info).
-    go_backwards : bool 
+    go_backwards : bool
         Decides the direction of iteration. True means that sequences are parsed
         from the end towards the beginning, while False is the other way around.
     mode

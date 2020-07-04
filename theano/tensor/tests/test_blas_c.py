@@ -11,12 +11,11 @@ from theano.tensor.blas_scipy import ScipyGer
 from theano.tensor.blas import Ger
 
 from theano.tensor.blas_c import CGemv
-from theano.tensor.blas import Gemv
 
 from theano.tensor.blas_c import check_force_gemv_init
 
 from theano.tests import unittest_tools
-from theano.tests.unittest_tools import TestOptimizationMixin
+from theano.tests.unittest_tools import OptimizationTestMixin
 
 from theano.tensor.tests.test_blas import BaseGemv, TestBlasStrides
 
@@ -37,7 +36,7 @@ def skip_if_blas_ldflags_empty(*functions_detected):
         )
 
 
-class TestCGer(TestOptimizationMixin):
+class TestCGer(OptimizationTestMixin):
     def setup_method(self):
         self.manual_setup_method()
 
@@ -123,7 +122,7 @@ class TestCGer(TestOptimizationMixin):
         self.run_f(f)  # DebugMode tests correctness
 
 
-class TestCGemv(TestOptimizationMixin):
+class TestCGemv(OptimizationTestMixin):
     """
     Tests of CGemv specifically.
 
@@ -308,7 +307,7 @@ class TestCGemv(TestOptimizationMixin):
         )
 
 
-class TestCGemvFloat32(BaseGemv, TestOptimizationMixin):
+class TestCGemvFloat32(BaseGemv, OptimizationTestMixin):
     mode = mode_blas_opt
     dtype = "float32"
     gemv = CGemv(inplace=False)
@@ -318,7 +317,7 @@ class TestCGemvFloat32(BaseGemv, TestOptimizationMixin):
         skip_if_blas_ldflags_empty()
 
 
-class TestCGemvFloat64(BaseGemv, TestOptimizationMixin):
+class TestCGemvFloat64(BaseGemv, OptimizationTestMixin):
     mode = mode_blas_opt
     dtype = "float64"
     gemv = CGemv(inplace=False)
@@ -416,13 +415,8 @@ class TestCGemvNoFlags(object):
                 for beta in (0, 1, -2):
                     for transpose_A in (False, True):
                         for slice_tensors in (False, True):
-                            yield (
-                                self.run_cgemv,
-                                dtype,
-                                alpha,
-                                beta,
-                                transpose_A,
-                                slice_tensors,
+                            self.run_cgemv(
+                                dtype, alpha, beta, transpose_A, slice_tensors,
                             )
 
 

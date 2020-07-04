@@ -741,6 +741,9 @@ class BaseTestConv:
                 abstract_conv_gradinputs, [filters_val, output_val], mode=mode, eps=1
             )
 
+    def run_test_case(self, *args, **kargs):
+        raise NotImplementedError()
+
     def test_all(self):
         if type(self) is BaseTestConv:
             pytest.skip("base class")
@@ -750,14 +753,14 @@ class BaseTestConv:
         dprovide_shape = self.default_provide_shape
         for (i, f) in zip(self.inputs_shapes, self.filters_shapes):
             for provide_shape in self.provide_shape:
-                yield (self.tcase, i, f, ds, db, dflip, provide_shape)
+                self.run_test_case(i, f, ds, db, dflip, provide_shape)
             if min(i) > 0 and min(f) > 0:
                 for fd in self.filters_dilations:
                     for s in self.subsamples:
                         for b in self.border_modes:
-                            yield (self.tcase, i, f, s, b, dflip, dprovide_shape, fd)
+                            self.run_test_case(i, f, s, b, dflip, dprovide_shape, fd)
                 for flip in self.filter_flip:
-                    yield (self.tcase, i, f, ds, db, flip, dprovide_shape)
+                    self.run_test_case(i, f, ds, db, flip, dprovide_shape)
 
 
 class BaseTestConv2d(BaseTestConv):
@@ -798,6 +801,9 @@ class BaseTestConv2d(BaseTestConv):
         cls.default_provide_shape = True
         cls.shared = staticmethod(theano.compile.shared)
 
+    def run_test_case_gi(self, *args, **kwargs):
+        raise NotImplementedError()
+
     def test_gradinput_arbitrary_output_shapes(self):
         # this computes the grad wrt inputs for an output shape
         # that the forward convolution would not produce
@@ -814,8 +820,7 @@ class BaseTestConv2d(BaseTestConv):
                 )
                 # is this a valid combination?
                 if tuple(computed_shape) == output_shape:
-                    yield (
-                        self.tcase_gi,
+                    self.run_test_case_gi(
                         input_shape,
                         filter_shape,
                         output_shape,
@@ -828,8 +833,7 @@ class BaseTestConv2d(BaseTestConv):
                     )
                 else:
                     # expect an error
-                    yield (
-                        self.tcase_gi,
+                    self.run_test_case_gi(
                         input_shape,
                         filter_shape,
                         output_shape,
@@ -847,7 +851,7 @@ class BaseTestConv2d(BaseTestConv):
             for o in (-3, -1, 1, 2):
                 output_shape = (1, 1, computed_shape[2] + o, computed_shape[3] + o)
                 # expect an error
-                self.tcase_gi(
+                self.run_test_case_gi(
                     image_shape,
                     kernel_shape,
                     output_shape,
@@ -870,13 +874,8 @@ class BaseTestConv2d(BaseTestConv):
                         image_shape, kernel_shape, border_mode, (s, s), (d, d)
                     )
 
-                    yield (
-                        run_for_output_offsets,
-                        image_shape,
-                        kernel_shape,
-                        s,
-                        border_mode,
-                        d,
+                    run_for_output_offsets(
+                        image_shape, kernel_shape, s, border_mode, d,
                     )
 
     def run_fwd(
@@ -888,7 +887,7 @@ class BaseTestConv2d(BaseTestConv):
         ref=conv2d_corr,
         **kwargs
     ):
-        super(BaseTestConv2d, self).run_fwd(
+        super().run_fwd(
             inputs_shape=inputs_shape,
             filters_shape=filters_shape,
             conv_fn=conv_fn,
@@ -906,7 +905,7 @@ class BaseTestConv2d(BaseTestConv):
         ref=conv2d_corr_gw,
         **kwargs
     ):
-        super(BaseTestConv2d, self).run_gradweight(
+        super().run_gradweight(
             inputs_shape=inputs_shape,
             filters_shape=filters_shape,
             output_shape=output_shape,
@@ -924,7 +923,7 @@ class BaseTestConv2d(BaseTestConv):
         ref=conv2d_corr_gi,
         **kwargs
     ):
-        super(BaseTestConv2d, self).run_gradinput(
+        super().run_gradinput(
             inputs_shape=inputs_shape,
             filters_shape=filters_shape,
             output_shape=output_shape,
@@ -938,9 +937,9 @@ class TestCorrConv2d(BaseTestConv2d):
     @classmethod
     def setup_class(cls):
         # This tests can run even when theano.config.blas.ldflags is empty.
-        BaseTestConv2d.setup_class()
+        super().setup_class()
 
-    def tcase(self, i, f, s, b, flip, provide_shape, fd=(1, 1)):
+    def run_test_case(self, i, f, s, b, flip, provide_shape, fd=(1, 1)):
         o = self.get_output_shape(i, f, s, b, fd)
         # This tests can run even when theano.config.blas.ldflags is empty.
         if not theano.config.cxx or theano.config.mode == "FAST_COMPILE":
@@ -984,7 +983,7 @@ class TestCorrConv2d(BaseTestConv2d):
             filter_dilation=fd,
         )
 
-    def tcase_gi(
+    def run_test_case_gi(
         self, i, f, o, s, b, flip, provide_shape, fd=(1, 1), expect_error=False
     ):
         # This tests can run even when theano.config.blas.ldflags is empty.
@@ -1026,7 +1025,7 @@ class TestAbstractConvNoOptim(BaseTestConv2d):
     @classmethod
     def setup_class(cls):
         # This tests can run even when theano.config.blas.ldflags is empty.
-        BaseTestConv2d.setup_class()
+        super().setup_class()
         cls.inputs_shapes = [(8, 1, 6, 6)]
         cls.filters_shapes = [(5, 1, 2, 2)]
         cls.subsamples = [(1, 1), (2, 2)]
@@ -1037,7 +1036,7 @@ class TestAbstractConvNoOptim(BaseTestConv2d):
         if not theano.tensor.nnet.abstract_conv.imported_scipy_signal:
             pytest.skip("SciPy needed")
 
-    def tcase(self, i, f, s, b, flip, provide_shape, fd=(1, 1)):
+    def run_test_case(self, i, f, s, b, flip, provide_shape, fd=(1, 1)):
         o = self.get_output_shape(i, f, s, b, fd)
         mode = theano.Mode(optimizer=None)
 
@@ -1086,7 +1085,7 @@ class TestAbstractConvNoOptim(BaseTestConv2d):
             mode=mode,
         )
 
-    def tcase_gi(
+    def run_test_case_gi(
         self, i, f, o, s, b, flip, provide_shape, fd=(1, 1), expect_error=False
     ):
 
@@ -1175,8 +1174,7 @@ class BaseTestConv3d(BaseTestConv):
                 )
                 # is this a valid combination?
                 if tuple(computed_shape) == output_shape:
-                    yield (
-                        self.tcase_gi,
+                    self.run_test_case_gi(
                         input_shape,
                         filter_shape,
                         output_shape,
@@ -1189,8 +1187,7 @@ class BaseTestConv3d(BaseTestConv):
                     )
                 else:
                     # expect an error
-                    yield (
-                        self.tcase_gi,
+                    self.run_test_case_gi(
                         input_shape,
                         filter_shape,
                         output_shape,
@@ -1214,7 +1211,7 @@ class BaseTestConv3d(BaseTestConv):
                     computed_shape[4] + o,
                 )
                 # expect an error
-                self.tcase_gi(
+                self.run_test_case_gi(
                     image_shape,
                     kernel_shape,
                     output_shape,
@@ -1237,13 +1234,8 @@ class BaseTestConv3d(BaseTestConv):
                         image_shape, kernel_shape, border_mode, (s, s, s), (d, d, d)
                     )
 
-                    yield (
-                        run_for_output_offsets,
-                        image_shape,
-                        kernel_shape,
-                        s,
-                        border_mode,
-                        d,
+                    run_for_output_offsets(
+                        image_shape, kernel_shape, s, border_mode, d,
                     )
 
     def run_fwd(
@@ -1255,7 +1247,7 @@ class BaseTestConv3d(BaseTestConv):
         ref=conv3d_corr,
         **kwargs
     ):
-        super(BaseTestConv3d, self).run_fwd(
+        super().run_fwd(
             inputs_shape=inputs_shape,
             filters_shape=filters_shape,
             conv_fn=conv_fn,
@@ -1273,7 +1265,7 @@ class BaseTestConv3d(BaseTestConv):
         ref=conv3d_corr_gw,
         **kwargs
     ):
-        super(BaseTestConv3d, self).run_gradweight(
+        super().run_gradweight(
             inputs_shape=inputs_shape,
             filters_shape=filters_shape,
             output_shape=output_shape,
@@ -1291,7 +1283,7 @@ class BaseTestConv3d(BaseTestConv):
         ref=conv3d_corr_gi,
         **kwargs
     ):
-        super(BaseTestConv3d, self).run_gradinput(
+        super().run_gradinput(
             inputs_shape=inputs_shape,
             filters_shape=filters_shape,
             output_shape=output_shape,
@@ -1305,9 +1297,9 @@ class TestCorrConv3d(BaseTestConv3d):
     @classmethod
     def setup_class(cls):
         # This tests can run even when theano.config.blas.ldflags is empty.
-        BaseTestConv3d.setup_class()
+        super().setup_class()
 
-    def tcase(self, i, f, s, b, flip, provide_shape, fd=(1, 1, 1)):
+    def run_test_case(self, i, f, s, b, flip, provide_shape, fd=(1, 1, 1)):
         o = self.get_output_shape(i, f, s, b, fd)
         # This test can run even when theano.config.blas.ldflags is empty.
         if not theano.config.cxx or theano.config.mode == "FAST_COMPILE":
@@ -1351,7 +1343,7 @@ class TestCorrConv3d(BaseTestConv3d):
             filter_dilation=fd,
         )
 
-    def tcase_gi(
+    def run_test_case_gi(
         self, i, f, o, s, b, flip, provide_shape, fd=(1, 1, 1), expect_error=False
     ):
         # This test can run even when theano.config.blas.ldflags is empty.
@@ -2045,7 +2037,7 @@ class TestConv2dGrads:
                         )
 
 
-class Grouped_conv_noOptim:
+class TestGroupedConvNoOptim:
     conv = theano.tensor.nnet.abstract_conv.AbstractConv2d
     conv_gradw = theano.tensor.nnet.abstract_conv.AbstractConv2d_gradWeights
     conv_gradi = theano.tensor.nnet.abstract_conv.AbstractConv2d_gradInputs
@@ -2256,7 +2248,7 @@ class Grouped_conv_noOptim:
             utt.verify_grad(conv_gradinputs, [kern, top], mode=self.mode, eps=1)
 
 
-class Grouped_conv3d_noOptim(Grouped_conv_noOptim):
+class TestGroupedConv3dNoOptim(TestGroupedConvNoOptim):
     conv = theano.tensor.nnet.abstract_conv.AbstractConv3d
     conv_gradw = theano.tensor.nnet.abstract_conv.AbstractConv3d_gradWeights
     conv_gradi = theano.tensor.nnet.abstract_conv.AbstractConv3d_gradInputs
@@ -2300,7 +2292,7 @@ class Grouped_conv3d_noOptim(Grouped_conv_noOptim):
             pytest.skip("CorrMM needs cxx")
 
 
-class Separable_conv:
+class TestSeparableConv:
     def setup_method(self):
         self.x = np.array(
             [

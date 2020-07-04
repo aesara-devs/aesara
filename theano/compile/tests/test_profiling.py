@@ -4,12 +4,13 @@ from __future__ import absolute_import, print_function, division
 import numpy as np
 
 import theano
-from six.moves import StringIO
 import theano.tensor as T
+
+from six.moves import StringIO
 from theano.ifelse import ifelse
 
 
-class Test_profiling:
+class TestProfiling:
     # Test of Theano profiling with min_peak_memory=True
 
     def test_profiling(self):

@@ -54,7 +54,7 @@ from theano.tensor.tests.test_basic import (
 )
 
 
-class Test_sigmoid:
+class TestSigmoid:
     def setup_method(self):
         utt.seed_rng()
 
@@ -62,7 +62,7 @@ class Test_sigmoid:
         utt.verify_grad(sigmoid, [np.random.rand(3, 4)])
 
 
-class Test_softplus:
+class TestSoftplus:
     def setup_method(self):
         utt.seed_rng()
 
@@ -70,26 +70,23 @@ class Test_softplus:
         utt.verify_grad(softplus, [np.random.rand(3, 4)])
 
 
-class Test_Softmax(utt.InferShapeTester):
-    def test0(self):
+class TestSoftmax(utt.InferShapeTester):
+    def test_basic(self):
         def f(a):
             return softmax_op(a)[:, 0]
 
         utt.verify_grad(f, [np.random.rand(3, 4)])
 
-    def test1(self):
         def f(a):
             return softmax_op(a)[:, 1]
 
         utt.verify_grad(f, [np.random.rand(3, 4)])
 
-    def test2(self):
         def f(a):
             return softmax_op(a)[:, 2]
 
         utt.verify_grad(f, [np.random.rand(3, 4)])
 
-    def test3(self):
         def f(a):
             return softmax_op(a)[:, 3]
 
@@ -114,26 +111,23 @@ class Test_Softmax(utt.InferShapeTester):
         utt.verify_grad(f, [np.random.rand(4)])
 
 
-class Test_SoftmaxWithBias(utt.InferShapeTester):
-    def test0(self):
+class TestSoftmaxWithBias(utt.InferShapeTester):
+    def test_basic(self):
         def f(a, b):
             return softmax_with_bias(a, b)[:, 0]
 
         utt.verify_grad(f, [np.random.rand(3, 4), np.random.rand(4)])
 
-    def test1(self):
         def f(a, b):
             return softmax_with_bias(a, b)[:, 1]
 
         utt.verify_grad(f, [np.random.rand(3, 4), np.random.rand(4)])
 
-    def test2(self):
         def f(a, b):
             return softmax_with_bias(a, b)[:, 2]
 
         utt.verify_grad(f, [np.random.rand(3, 4), np.random.rand(4)])
 
-    def test3(self):
         def f(a, b):
             return softmax_with_bias(a, b)[:, 3]
 
@@ -178,26 +172,23 @@ class Test_SoftmaxWithBias(utt.InferShapeTester):
         )
 
 
-class Test_LogSoftmax(utt.InferShapeTester):
-    def test0(self):
+class TestLogSoftmax(utt.InferShapeTester):
+    def test_basic(self):
         def f(a):
             return logsoftmax_op(a)[:, 0]
 
         utt.verify_grad(f, [np.random.rand(3, 4)])
 
-    def test1(self):
         def f(a):
             return logsoftmax_op(a)[:, 1]
 
         utt.verify_grad(f, [np.random.rand(3, 4)])
 
-    def test2(self):
         def f(a):
             return logsoftmax_op(a)[:, 2]
 
         utt.verify_grad(f, [np.random.rand(3, 4)])
 
-    def test3(self):
         def f(a):
             return logsoftmax_op(a)[:, 3]
 
@@ -332,7 +323,7 @@ class Test_LogSoftmax(utt.InferShapeTester):
         assert softmax_grad in [n.op for n in fgraph.toposort()]
 
 
-class Test_SoftmaxGrad(utt.InferShapeTester):
+class TestSoftmaxGrad(utt.InferShapeTester):
     def test_infer_shape(self):
         admat = matrix()
         bdmat = matrix()
@@ -346,11 +337,11 @@ class Test_SoftmaxGrad(utt.InferShapeTester):
         )
 
 
-class Test_CrossentropySoftmax1Hot:
+class TestCrossentropySoftmax1Hot:
     def setup_method(self):
         utt.seed_rng()
 
-    def test0(self):
+    def test_basic(self):
         y_idx = [0, 1, 3]
 
         def f(a, b):
@@ -358,7 +349,6 @@ class Test_CrossentropySoftmax1Hot:
 
         utt.verify_grad(f, [np.random.rand(3, 4), np.random.rand(4)])
 
-    def test1(self):
         y_idx = [0, 1, 3]
 
         def f(a):
@@ -383,8 +373,8 @@ class Test_CrossentropySoftmax1Hot:
         utt.verify_grad(f, [np.random.rand(4), np.random.rand(4)])
 
 
-class Test_CrossentropySoftmax1HotWithBiasDx(utt.InferShapeTester):
-    def test0(self):
+class TestCrossentropySoftmax1HotWithBiasDx(utt.InferShapeTester):
+    def test_basic(self):
         def ff(class_dtype):
             def f(sm):
                 # Class indices
@@ -401,7 +391,7 @@ class Test_CrossentropySoftmax1HotWithBiasDx(utt.InferShapeTester):
         for dtype in ["uint8", "int8", "uint64", "int64"]:
             utt.verify_grad(ff(dtype), [softmax_output])
 
-    def test1(self):
+    def test_basic_2(self):
         rng = np.random.RandomState(utt.fetch_seed())
         softmax_output = rng.rand(10, 5)
         softmax_output /= softmax_output.sum(axis=1).reshape(10, 1)
@@ -445,12 +435,12 @@ class Test_CrossentropySoftmax1HotWithBiasDx(utt.InferShapeTester):
             f(advec_val, admat_val, alvec_val)
 
 
-class Test_CrossentropySoftmaxArgmax1HotWithBias(utt.InferShapeTester):
+class TestCrossentropySoftmaxArgmax1HotWithBias(utt.InferShapeTester):
     def setup_method(self):
-        super(Test_CrossentropySoftmaxArgmax1HotWithBias, self).setup_method()
         self.op = theano.tensor.nnet.crossentropy_softmax_argmax_1hot_with_bias
+        super().setup_method()
 
-    def test0(self):
+    def test_grads(self):
         n_classes = 5
         n_samples = 3
 
@@ -511,8 +501,8 @@ class Test_CrossentropySoftmaxArgmax1HotWithBias(utt.InferShapeTester):
             f(admat_val, advec_val, alvec_val)
 
 
-class Test_prepend(utt.InferShapeTester):
-    def test0(self):
+class TestPrepend(utt.InferShapeTester):
+    def test_prepend_constant(self):
         x = tensor.matrix("x")
         y = Prepend_scalar_constant_to_each_row(4.0)(x)
         f = theano.function([x], y)
@@ -521,8 +511,8 @@ class Test_prepend(utt.InferShapeTester):
         assert my.shape == (3, 6)
         assert np.all(my[:, 0] == 4.0)
 
-    def test1(self):
-        "basic functionality"
+    def test_prepend_basic(self):
+        """Test basic functionality."""
         x = tensor.matrix("x")
         y = Prepend_scalar_to_each_row()(5.0, x)
         f = theano.function([x], y)
@@ -552,7 +542,7 @@ class Test_prepend(utt.InferShapeTester):
         )
 
 
-class Test_CrossentropyCategorical1HotGrad(utt.InferShapeTester):
+class TestCrossentropyCategorical1HotGrad(utt.InferShapeTester):
     def test_infer_shape(self):
         advec = vector()
         admat = matrix()
@@ -569,7 +559,7 @@ class Test_CrossentropyCategorical1HotGrad(utt.InferShapeTester):
         )
 
 
-class Test_CrossentropyCategorical1Hot(utt.InferShapeTester):
+class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
     def test_grad(self):
         x = tensor.matrix("x")
         one_of_n = tensor.lvector("one_of_n")
@@ -1471,7 +1461,7 @@ def test_asymptotic_32():
         assert gxval[0, 1] == 0.25
 
 
-class Test_softmax_opt:
+class TestSoftmaxOpt:
     # Test that expressions of softmax in terms of exponentiated things
     # divided by row sums are replaced by softmax expressions.
     #
@@ -1804,7 +1794,7 @@ def test_binary_crossentropy_reshape():
         )
 
 
-SoftsignTester = makeBroadcastTester(
+TestSoftsign = makeBroadcastTester(
     op=softsign,
     expected=upcast_int8_nfunc(
         lambda inputs: check_floatX(inputs, inputs / (1.0 + np.fabs(inputs)))
@@ -1814,7 +1804,7 @@ SoftsignTester = makeBroadcastTester(
 )
 
 
-class Test_sigmoid_binary_crossentropy:
+class TestSigmoidBinaryCrossentropy:
     def setup_method(self):
         utt.seed_rng()
 

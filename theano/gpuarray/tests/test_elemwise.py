@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function, division
 from copy import copy
 
+import pytest
 import numpy as np
 
 import theano
@@ -36,7 +37,7 @@ except ImportError:
 
 
 # This is actually a test for GpuElemwise
-class test_gpu_Broadcast(test_elemwise.test_Broadcast):
+class TestGpuBroadcast(test_elemwise.TestBroadcast):
     cop = GpuElemwise
     ctype = GpuArrayType
     # The order is important
@@ -202,7 +203,7 @@ class TestMathErrorFunctions:
             assert_allclose(self.expected_erfcinv_outputs[dtype], out_gpu)
 
 
-class test_float16:
+class TestFloat16:
     def test_composite_elemwise_float16(self):
         w = theano.tensor.bvector()
         x = theano.tensor.vector(dtype="float16")
@@ -265,11 +266,11 @@ class test_float16:
             assert_allclose(d.astype(dtype), res[i])
 
 
-class test_GpuDimShuffle(test_elemwise.test_DimShuffle):
+class TestGpuDimShuffle(test_elemwise.TestDimShuffle):
     op = GpuDimShuffle
 
 
-class test_GpuCAReduceCPY(test_elemwise.test_CAReduce):
+class TestGpuCAReduceCPY(test_elemwise.TestCAReduce):
     dtypes = ["float32"]
     bin_dtypes = ["uint8", "int8"]
     op = GpuCAReduceCPY
@@ -325,10 +326,10 @@ class test_GpuCAReduceCPY(test_elemwise.test_CAReduce):
 
     def test_infer_shape(self):
         for dtype in self.dtypes:
-            super(test_GpuCAReduceCPY, self).test_infer_shape(dtype)
+            super().test_infer_shape(dtype)
 
 
-class test_GpuCAReduceCuda(test_GpuCAReduceCPY):
+class TestGpuCAReduceCuda(TestGpuCAReduceCPY):
     dtypes = ["float32", "int64"]
     bin_dtypes = ["uint8", "int8"]
 
@@ -477,12 +478,12 @@ class test_GpuCAReduceCuda(test_GpuCAReduceCPY):
         return
 
     def setup_method(self):
-        super(test_GpuCAReduceCuda, self).setup_method()
+        super().setup_method()
         if get_context(test_ctx_name).kind != b"cuda":
             pytest.skip("Cuda specific tests")
 
 
-class Test_gpureduce_dtype(test_elemwise.T_reduce_dtype):
+class TestGpuReduceDtype(test_elemwise.TestReduceDtype):
     mode = mode_with_gpu.excluding("local_cut_useless_reduce")
 
     # GpuDnnReduction doesn't cover all cases, but should cover some

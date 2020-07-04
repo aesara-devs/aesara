@@ -1,9 +1,7 @@
 from __future__ import absolute_import, print_function, division
-
 import numpy as np
 
-from theano import gof, tensor, function
-from theano.tests import unittest_tools as utt
+from theano import gof, tensor
 
 
 class Minimal(gof.Op):
@@ -45,26 +43,3 @@ class Minimal(gof.Op):
 
 
 minimal = Minimal()
-
-
-# TODO: test dtype conversion
-# TODO: test that invalid types are rejected by make_node
-# TODO: test that each valid type for A and b works correctly
-
-
-class Test_minimal:
-    def setup_method(self):
-        self.rng = np.random.RandomState(utt.fetch_seed(666))
-
-    def test0(self):
-        A = tensor.matrix()
-        b = tensor.vector()
-
-        print("building function")
-        f = function([A, b], minimal(A, A, b, b, A))
-        print("built")
-
-        Aval = self.rng.randn(5, 5)
-        bval = np.arange(5, dtype=float)
-        f(Aval, bval)
-        print("done")

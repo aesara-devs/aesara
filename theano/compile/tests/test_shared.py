@@ -9,7 +9,7 @@ from theano.compile.sharedvalue import SharedVariable
 from theano.compile.sharedvalue import generic
 
 
-class Test_SharedVariable:
+class TestSharedVariable:
     def test_ctors(self):
 
         if theano.configdefaults.python_int_bitwidth() == 32:

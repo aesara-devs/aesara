@@ -371,7 +371,7 @@ def test_duallinker_mismatch():
         # are the same.
         fn(1.0, 2.0, 3.0)
         raise Exception("An exception should have been raised here!")
-    except MyExc as e:
+    except MyExc:
         pass
 
 

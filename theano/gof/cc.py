@@ -432,7 +432,7 @@ def get_c_extract(r, name, sub):
         else:
             try:
                 c_extract = r.type.c_extract(name, sub, True, check_broadcast=False)
-            except TypeError as e:
+            except TypeError:
                 c_extract = r.type.c_extract(name, sub, True)
     else:
         c_extract = r.type.c_extract(name, sub, False)
@@ -471,7 +471,7 @@ def get_c_extract_out(r, name, sub):
             c_extract = r.type.c_extract_out(
                 name, sub, check_input, check_broadcast=False
             )
-        except TypeError as e:
+        except TypeError:
             c_extract = r.type.c_extract_out(name, sub, check_input)
 
     pre = (

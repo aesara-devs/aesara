@@ -272,7 +272,7 @@ def function(
 
     if name is None:
         # Determine possible file names
-        source_file = re.sub("\.pyc?", ".py", __file__)
+        source_file = re.sub(r"\.pyc?", ".py", __file__)
         compiled_file = source_file + "c"
 
         stack = tb.extract_stack()

@@ -4,7 +4,7 @@
 Creating a new Op: Python implementation
 ========================================
 
-So suppose you have looked through the library documentation and you don't see 
+So suppose you have looked through the library documentation and you don't see
 a function that does what you want.
 
 If you can implement something in terms of existing Ops, you should do that.
@@ -13,25 +13,25 @@ has no bugs, and potentially profits from optimizations that have already been
 implemented.
 
 However, if you cannot implement an Op in terms of existing Ops, you have to
-write a new one. Don't worry, Theano was designed to make it easy to add new 
+write a new one. Don't worry, Theano was designed to make it easy to add new
 Ops, Types, and Optimizations.
 
 .. These first few pages will walk you through the definition of a new :ref:`type`,
-.. ``double``, and a basic arithmetic :ref:`operations <op>` on that Type. 
+.. ``double``, and a basic arithmetic :ref:`operations <op>` on that Type.
 
-As an illustration, this tutorial shows how to write a simple Python-based 
-:ref:`operations <op>` which performs operations on 
-:ref:`type`, ``double<Double>``. 
-.. It also shows how to implement tests that 
+As an illustration, this tutorial shows how to write a simple Python-based
+:ref:`operations <op>` which performs operations on
+:ref:`type`, ``double<Double>``.
+.. It also shows how to implement tests that
 .. ensure the proper working of an op.
 
 .. note::
 
     This is an introductury tutorial and as such it does not cover how to make
-    an op that returns a view or modifies the values in its inputs. Thus, all 
-    ops created with the instructions described here MUST return newly 
+    an op that returns a view or modifies the values in its inputs. Thus, all
+    ops created with the instructions described here MUST return newly
     allocated memory or reuse the memory provided in the parameter
-    ``output_storage`` of the :func:`perform` function. See 
+    ``output_storage`` of the :func:`perform` function. See
     :ref:`views_and_inplace` for an explanation on how to do this.
 
     If your op returns a view or changes the value of its inputs
@@ -49,24 +49,24 @@ Theano Graphs refresher
 .. image:: ../hpcs2011_tutorial/pics/apply_node.png
     :width: 500 px
 
-Theano represents symbolic mathematical computations as graphs. Those graphs 
-are bi-partite graphs (graphs with 2 types of nodes), they are composed of 
+Theano represents symbolic mathematical computations as graphs. Those graphs
+are bi-partite graphs (graphs with 2 types of nodes), they are composed of
 interconnected :ref:`apply` and :ref:`variable` nodes.
-:ref:`variable` nodes represent data in the graph, either inputs, outputs or 
-intermediary values. As such, Inputs and Outputs of a graph are lists of Theano 
-:ref:`variable` nodes. :ref:`apply` nodes perform computation on these 
-variables to produce new variables. Each :ref:`apply` node has a link to an 
-instance of :ref:`Op` which describes the computation to perform. This tutorial 
-details how to write such an Op instance. Please refers to 
-:ref:`graphstructures` for a more detailed explanation about the graph 
-structure.  
+:ref:`variable` nodes represent data in the graph, either inputs, outputs or
+intermediary values. As such, Inputs and Outputs of a graph are lists of Theano
+:ref:`variable` nodes. :ref:`apply` nodes perform computation on these
+variables to produce new variables. Each :ref:`apply` node has a link to an
+instance of :ref:`Op` which describes the computation to perform. This tutorial
+details how to write such an Op instance. Please refers to
+:ref:`graphstructures` for a more detailed explanation about the graph
+structure.
 
 
-Op's basic methods 
+Op's basic methods
 ------------------
 
 An op is any Python object which inherits from :class:`gof.Op`.
-This section provides an overview of the basic methods you typically have to 
+This section provides an overview of the basic methods you typically have to
 implement to make a new op.  It does not provide extensive coverage of all the
 possibilities you may encounter or need.  For that refer to
 :ref:`op_contract`.
@@ -118,9 +118,9 @@ possibilities you may encounter or need.  For that refer to
             pass
 
 An op has to implement some methods defined in the the interface of
-:class:`gof.Op`. More specifically, it is mandatory for an op to define either 
-the method :func:`make_node` or :attr:`itypes`, :attr:`otypes` and one of the 
-implementation methods, either :func:`perform`, :meth:`Op.c_code` 
+:class:`gof.Op`. More specifically, it is mandatory for an op to define either
+the method :func:`make_node` or :attr:`itypes`, :attr:`otypes` and one of the
+implementation methods, either :func:`perform`, :meth:`Op.c_code`
 or :func:`make_thunk`.
 
   :func:`make_node` method creates an Apply node representing the application
@@ -134,7 +134,7 @@ or :func:`make_thunk`.
       the symbolic output Variables. It creates output Variables of a suitable
       symbolic Type to serve as the outputs of this op's
       application.
-    - it creates an Apply instance with the input and output Variable, and 
+    - it creates an Apply instance with the input and output Variable, and
       return the Apply instance.
 
 
@@ -168,7 +168,7 @@ or :func:`make_thunk`.
   For instance, it is possible to define :meth:`Op.c_code` to provide a
   C-implementation to the op. Please refers to tutorial
   :ref:`extending_theano_c` for a description of :meth:`Op.c_code` and other
-  related c_methods. Note that an op can provide both Python and C 
+  related c_methods. Note that an op can provide both Python and C
   implementation.
 
   :func:`make_thunk` method is another alternative to :func:`perform`.
@@ -200,11 +200,11 @@ or :func:`make_thunk`.
   to obtain the op's implementation.
   :func:`perform` and :meth:`Op.c_code` will be ignored.
 
-  If :func:`make_node` is not defined, the :attr:`itypes` and :attr:`otypes` 
+  If :func:`make_node` is not defined, the :attr:`itypes` and :attr:`otypes`
   are used by the Op's :func:`make_node` method to implement the functionality
   of :func:`make_node` method mentioned above.
 
-Op's auxiliary methods 
+Op's auxiliary methods
 ----------------------
 
 There are other methods that can be optionally defined by the op:
@@ -242,13 +242,13 @@ There are other methods that can be optionally defined by the op:
   It takes as input ``node``, a reference to the op Apply node,
   and a list of Theano symbolic Varables (``i0_shape``, ``i1_shape``, ...)
   which are the shape of the op input Variables.
-  :func:`infer_shape` returns a list where each element is a tuple representing 
+  :func:`infer_shape` returns a list where each element is a tuple representing
   the shape of one output.
   This could be helpful if one only
   needs the shape of the output instead of the actual outputs, which
   can be useful, for instance, for optimization procedures.
 
-  The :func:`grad` method is required if you want to differentiate some cost 
+  The :func:`grad` method is required if you want to differentiate some cost
   whose expression includes your op. The gradient may be
   specified symbolically in this method. It takes two arguments ``inputs`` and
   ``output_gradients`` which are both lists of symbolic Theano Variables and
@@ -293,7 +293,7 @@ Example: Op definition
 
         def make_node(self, x):
             x = theano.tensor.as_tensor_variable(x)
-            # Note: using x_.type() is dangerous, as it copies x's broadcasting 
+            # Note: using x_.type() is dangerous, as it copies x's broadcasting
             # behaviour
             return theano.Apply(self, [x], [x.type()])
 
@@ -318,7 +318,7 @@ Example: Op definition
             return self.grad(inputs, eval_points)
 
     doubleOp1 = DoubleOp1()
-    
+
     #Using itypes and otypes
 
 
@@ -350,13 +350,13 @@ Example: Op definition
 
     doubleOp2 = DoubleOp2()
 
-At a high level, the code fragment declares a class (e.g., ``DoubleOp1``) and then 
+At a high level, the code fragment declares a class (e.g., ``DoubleOp1``) and then
 creates one instance of it (e.g., ``doubleOp1``).
 
 We often gloss over this distinction, but will be precise here:
-``doubleOp1`` (the instance) is an Op, not ``DoubleOp1`` (the class which is a 
-subclass of ``theano.Op``). You can call ``doubleOp1(tensor.vector())`` on a 
-Variable to build an expression, and in the expression there will be 
+``doubleOp1`` (the instance) is an Op, not ``DoubleOp1`` (the class which is a
+subclass of ``theano.Op``). You can call ``doubleOp1(tensor.vector())`` on a
+Variable to build an expression, and in the expression there will be
 a ``.op`` attribute that refers to ``doubleOp1``.
 
 .. The first two methods in the Op are relatively boilerplate: ``__eq__``
@@ -370,7 +370,7 @@ a ``.op`` attribute that refers to ``doubleOp1``.
 .. equal, then they must compute the same result when presented with the same
 .. inputs.  Here, if we allocated another instance of ``Fibby`` by typing ``fibby2
 .. = Fibby()`` then we would have two Ops that behave identically.
-.. 
+..
 .. When should the implementation of ``__eq__`` be more complicated?
 .. If ``Fibby.__init__`` had parameters, then we could
 .. have configured ``fibby2`` differently from ``fibby`` by passing different
@@ -383,29 +383,29 @@ a ``.op`` attribute that refers to ``doubleOp1``.
 .. see wrong calculation.
 
 The ``make_node`` method creates a node to be included in the expression graph.
-It runs when we apply our Op (``doubleOp1``) to the Variable (``x``), as 
+It runs when we apply our Op (``doubleOp1``) to the Variable (``x``), as
 in ``doubleOp1(tensor.vector())``.
 When an Op has multiple inputs, their order in the inputs argument to ``Apply``
 is important:  Theano will call ``make_node(*inputs)`` to copy the graph,
-so it is important not to change the semantics of the expression by changing 
+so it is important not to change the semantics of the expression by changing
 the argument order.
 
 All the ``inputs`` and ``outputs`` arguments to ``Apply`` must be Variables.
 A common and easy way to ensure inputs are variables is to run them through
-``as_tensor_variable``. This function leaves TensorType variables alone, raises 
-an error for non-TensorType variables, and copies any ``numpy.ndarray`` into 
-the storage for a TensorType Constant. The ``make_node`` method dictates the 
+``as_tensor_variable``. This function leaves TensorType variables alone, raises
+an error for non-TensorType variables, and copies any ``numpy.ndarray`` into
+the storage for a TensorType Constant. The ``make_node`` method dictates the
 appropriate Type for all output variables.
 
 The ``perform`` method implements the Op's mathematical logic in Python.
-The inputs (here ``x``) are passed by value, but a single output is returned 
-indirectly as the first element of single-element lists.  If ``doubleOp1`` had 
+The inputs (here ``x``) are passed by value, but a single output is returned
+indirectly as the first element of single-element lists.  If ``doubleOp1`` had
 a second output, it would be stored in ``output_storage[1][0]``.
 
 .. jpt: DOn't understand the following
 
-In some execution modes, the output storage might contain the return value of 
-a previous call.  That old value can be reused to avoid memory re-allocation, 
+In some execution modes, the output storage might contain the return value of
+a previous call.  That old value can be reused to avoid memory re-allocation,
 but it must not influence the semantics of the Op output.
 
 You can try the new Op as follows:
@@ -425,7 +425,7 @@ You can try the new Op as follows:
 .. testoutput:: example
    :hide:
    :options: +ELLIPSIS, +SKIP
-   
+
     <BLANKLINE>
 
 .. code-block:: none
@@ -516,8 +516,8 @@ and ``b`` are equal.
 
 
 The use of :attr:`__props__` saves
-the user the trouble of implementing :func:`__eq__` and :func:`__hash__` 
-manually. It also generates a default :func:`__str__` method that prints the 
+the user the trouble of implementing :func:`__eq__` and :func:`__hash__`
+manually. It also generates a default :func:`__str__` method that prints the
 attribute names and their values.
 
 We can test this by running the following segment:
@@ -563,9 +563,9 @@ returns the right answer. If you detect an error, you must raise an
 
     from theano.tests import unittest_tools as utt
     from theano import config
-    class test_Double(utt.InferShapeTester):
-        def setUp(self):
-            super(test_Double, self).setUp()
+    class TestDouble(utt.InferShapeTester):
+        def setup_method(self):
+            super().setup_method()
             self.op_class = DoubleOp
             self.op = DoubleOp()
 
@@ -619,7 +619,7 @@ your op works only with such matrices, you can disable the warning with the
 
     from theano.tests import unittest_tools as utt
     from theano import config
-    class test_Double(utt.InferShapeTester):
+    class TestDouble(utt.InferShapeTester):
         # [...] as previous tests.
         def test_infer_shape(self):
             x = theano.tensor.matrix()
@@ -667,9 +667,9 @@ For instance, to verify the Rop method of the DoubleOp, you can use this:
    import numpy
    import theano.tests
    from theano.tests.test_rop import RopLop_checker
-   class test_DoubleRop(RopLop_checker):
+   class TestDoubleRop(RopLop_checker):
        def setUp(self):
-           super(test_DoubleRop, self).setUp()
+           super(TestDoubleRop, self).setUp()
        def test_double_rop(self):
            self.check_rop_lop(DoubleRop()(self.x), self.in_shape)
 
@@ -698,11 +698,11 @@ purposes:
 The following are particularly useful for development purposes since
 they call for particular classes or even for particular tests:
 
-* ``theano-nose test_file.py:test_DoubleRop``: Run every test found inside the 
-  class *test_DoubleRop*.
+* ``theano-nose test_file.py:TestDoubleRop``: Run every test found inside the
+  class *TestDoubleRop*.
 
-* ``theano-nose test_file.py:test_DoubleRop.test_double_op``: Run only the test 
-  *test_double_op* in the class *test_DoubleRop*.
+* ``theano-nose test_file.py:TestDoubleRop.test_double_op``: Run only the test
+  *test_double_op* in the class *TestDoubleRop*.
 
 Help with the use and functionalities of ``theano-nose`` may be
 obtained by running it with the command line parameter ``--help
@@ -726,13 +726,13 @@ In-file
 
 One may also add a block of code similar to the following at the end
 of the file containing a specific test of interest and run the
-file. In this example, the test *test_DoubleRop* in the class
+file. In this example, the test *TestDoubleRop* in the class
 *test_double_op* would be performed.
 
 .. testcode:: tests
 
     if __name__ == '__main__':
-       t = test_DoubleRop("test_double_rop")
+       t = TestDoubleRop("test_double_rop")
        t.setUp()
        t.test_double_rop()
 
@@ -818,7 +818,7 @@ signature:
     inputs Theano variables that were declared.
 
 .. note::
-    The python function wrapped by the `as_op` decorator needs to return a new 
+    The python function wrapped by the `as_op` decorator needs to return a new
     data allocation, no views or in place modification of the input.
 
 as_op Example
@@ -866,7 +866,7 @@ Modify and execute the example to return two outputs: x + y
 
 Documentation and Coding Style
 ------------------------------
-Please always respect the :ref:`quality_contributions` or your contribution 
+Please always respect the :ref:`quality_contributions` or your contribution
 will not be accepted.
 
 NanGuardMode and AllocEmpty

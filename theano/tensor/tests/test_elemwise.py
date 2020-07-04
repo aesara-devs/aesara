@@ -30,7 +30,7 @@ def FunctionGraph(i, o):
     return e
 
 
-class test_DimShuffle(unittest_tools.InferShapeTester):
+class TestDimShuffle(unittest_tools.InferShapeTester):
     op = DimShuffle
     type = TensorType
     dtype = theano.config.floatX
@@ -118,7 +118,7 @@ class test_DimShuffle(unittest_tools.InferShapeTester):
             y.eval({x: 0})
 
 
-class test_reduce_axes:
+class TestReduceAxes:
     def test_sum_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
@@ -156,7 +156,7 @@ class test_reduce_axes:
             x.var(a)
 
 
-class test_Broadcast:
+class TestBroadcast:
     # this is to allow other types to reuse this class to test their ops
     type = TensorType
     op = Elemwise
@@ -357,7 +357,7 @@ def reduce_bitwise_and(x, axis=-1, dtype="int8"):
     return np.apply_along_axis(custom_reduce, axis, x)
 
 
-class test_CAReduce(unittest_tools.InferShapeTester):
+class TestCAReduce(unittest_tools.InferShapeTester):
     op = CAReduce
     cases = [
         ((5, 6), None),
@@ -631,7 +631,7 @@ class test_CAReduce(unittest_tools.InferShapeTester):
             )
 
 
-class test_Prod:
+class TestProd:
     def setup_method(self):
         unittest_tools.seed_rng()
 
@@ -818,7 +818,7 @@ class test_Prod:
         pickle.dumps(o)
 
 
-class test_IsInf_IsNan:
+class TestIsInfIsNan:
     def setup_method(self):
         self.test_vals = [
             np.array(x, dtype=config.floatX)
@@ -862,7 +862,7 @@ class test_IsInf_IsNan:
         return self.run_isfunc("isnan")
 
 
-class Test_reduce_dtype:
+class TestReduceDtype:
     mode = theano.compile.get_default_mode().excluding("local_cut_useless_reduce")
     op = CAReduce
     axes = [None, 0, 1, [], [0], [1], [0, 1]]
@@ -1019,7 +1019,7 @@ class Test_reduce_dtype:
             assert np.allclose(s_val, ret), (s_val, ret)
 
 
-class Test_mean_dtype:
+class TestMeanDtype:
     def test_mean_default_dtype(self):
         # Test the default dtype of a mean().
 
@@ -1093,7 +1093,7 @@ class Test_mean_dtype:
         assert np.allclose(m_val, 1.0 / 3)
 
 
-class Test_prod_without_zeros_dtype:
+class TestProdWithoutZerosDtype:
     def test_prod_without_zeros_default_dtype(self):
         # Test the default dtype of a ProdWithoutZeros().
 

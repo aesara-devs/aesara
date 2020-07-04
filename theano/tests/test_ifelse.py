@@ -1,7 +1,3 @@
-"""
- Tests fof the lazy conditiona
-"""
-
 from __future__ import absolute_import, print_function, division
 import numpy as np
 import pytest
@@ -20,7 +16,7 @@ __copyright__ = "(c) 2010, Universite de Montreal"
 __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 
-class test_ifelse(utt.TestOptimizationMixin):
+class TestIfelse(utt.OptimizationTestMixin):
     mode = None
     dtype = theano.config.floatX
     cast_output = staticmethod(tensor.as_tensor_variable)
@@ -508,7 +504,3 @@ class test_ifelse(utt.TestOptimizationMixin):
 
         loss = ifelse(correct, 0, 1)
         [(param, param - 0.5 * tensor.grad(cost=loss, wrt=param)) for param in params]
-
-
-if __name__ == "__main__":
-    print(" Use nosetests to run these tests ")

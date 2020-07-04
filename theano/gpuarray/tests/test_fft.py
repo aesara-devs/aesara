@@ -1,19 +1,16 @@
 from __future__ import absolute_import, print_function, division
 import numpy as np
 import pytest
-
 import theano
 import theano.tensor as T
-from theano.tests import unittest_tools as utt
-
 import theano.gpuarray.fft
 
+from theano.tests import unittest_tools as utt
 from .config import mode_with_gpu
 
-# Skip tests if pygpu is not available.
-import pytest
 from theano.gpuarray.fft import pygpu_available, skcuda_available, pycuda_available
 
+# Skip tests if pygpu is not available.
 if not pygpu_available:  # noqa
     pytest.skip("Optional package pygpu not available", allow_module_level=True)
 if not skcuda_available:  # noqa

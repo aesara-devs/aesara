@@ -1,9 +1,9 @@
 from __future__ import absolute_import, print_function, division
 
 import numpy as np
-
 import theano
 import theano.typed_list
+
 from theano import tensor as T
 from theano.typed_list.type import TypedListType
 from theano.typed_list.basic import Insert, Append, Extend, Remove, Reverse
@@ -18,7 +18,7 @@ def rand_ranged_matrix(minimum, maximum, shape):
     )
 
 
-class test_inplace:
+class TestInplace:
     def test_reverse_inplace(self):
         mySymbolicMatricesList = TypedListType(
             T.TensorType(theano.config.floatX, (False, False))

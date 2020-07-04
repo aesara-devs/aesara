@@ -302,7 +302,7 @@ class TensorType(Type):
 
     def convert_variable(self, var):
         if (
-            type(self) == type(var.type)
+            isinstance(self, type(var.type))
             and self.dtype == var.type.dtype  # noqa
             and self.ndim == var.type.ndim
             and all(

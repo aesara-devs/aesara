@@ -1,15 +1,14 @@
 from __future__ import absolute_import, print_function, division
 
 import pytest
-
 import numpy as np
-from six import integer_types
-
 import theano
 import theano.tensor as T
+
+from six import integer_types
 from theano.tests import unittest_tools as utt
 from theano.tensor.nnet import corr3d, conv
-from theano.tensor.nnet.tests.test_abstract_conv import Grouped_conv3d_noOptim
+from theano.tensor.nnet.tests.test_abstract_conv import TestGroupedConv3dNoOptim
 
 
 class TestCorr3D(utt.InferShapeTester):
@@ -20,7 +19,6 @@ class TestCorr3D(utt.InferShapeTester):
     dtype = theano.config.floatX
 
     def setup_method(self):
-        super(TestCorr3D, self).setup_method()
         self.input = T.tensor5("input", dtype=self.dtype)
         self.input.name = "default_V"
         self.filters = T.tensor5("filters", dtype=self.dtype)
@@ -28,6 +26,7 @@ class TestCorr3D(utt.InferShapeTester):
         if not conv.imported_scipy_signal and theano.config.cxx == "":
             pytest.skip("Corr3dMM tests need SciPy or a c++ compiler")
         # This tests can run even when theano.config.blas.ldflags is empty.
+        super().setup_method()
 
     def validate(
         self,
@@ -545,17 +544,10 @@ class TestCorr3D(utt.InferShapeTester):
         self.validate((3, 1, 7, 5, 5), (2, 1, 2, 3, 3), (2, 1, 1), non_contiguous=True)
 
 
-class TestGroupCorr3d(Grouped_conv3d_noOptim):
+class TestGroupCorr3d(TestGroupedConv3dNoOptim):
     mode = theano.compile.get_mode("FAST_RUN")
     conv_op = corr3d.Corr3dMM
     conv_gradw_op = corr3d.Corr3dMM_gradWeights
     conv_gradi_op = corr3d.Corr3dMM_gradInputs
     flip_filter = True
     is_dnn = False
-
-
-if __name__ == "__main__":
-
-    t = TestCorr3D("setUp")
-    t.setup_method()
-    t.test_infer_shape()

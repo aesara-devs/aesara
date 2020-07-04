@@ -1,14 +1,11 @@
 from __future__ import absolute_import, print_function, division
 from collections import OrderedDict
 
-#
-# UNIT TEST
-#
 import numpy as np
 import pytest
 from six.moves import xrange
-
 import theano
+
 from theano import gof, change_flags
 from theano.compat import izip
 from theano.tests import unittest_tools as utt
@@ -41,7 +38,7 @@ def grad_sources_inputs(sources, inputs):
     )
 
 
-class TestGrad_sources_inputs:
+class TestGradSourcesInputs:
     def test_retNone1(self):
         # Test that it is not ok to return None from op.grad()
         class retNone(gof.op.Op):
@@ -167,7 +164,7 @@ class TestGrad_sources_inputs:
         assert g[a1.inputs[1]] is gval1
 
 
-class test_grad:
+class TestGrad:
     def test_unimplemented_grad_func(self):
         # tests that function compilation catches unimplemented grads
         # in the graph

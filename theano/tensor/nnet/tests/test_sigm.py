@@ -1,8 +1,8 @@
 from __future__ import absolute_import, print_function, division
 import numpy as np
+import theano.tensor.inplace
 
 from theano.compat import imap
-import theano.tensor.inplace
 from theano.tensor import basic as tensor
 from theano import tensor as T
 from theano import config
@@ -32,7 +32,7 @@ from theano.tensor.tests.test_basic import (
 )
 
 
-class Test_sigmoid:
+class TestSigmoid:
     def setup_method(self):
         utt.seed_rng()
 
@@ -40,7 +40,7 @@ class Test_sigmoid:
         utt.verify_grad(sigmoid, [np.random.rand(3, 4)])
 
 
-SigmoidTester = makeBroadcastTester(
+TestSigmoidBroadcast = makeBroadcastTester(
     op=sigmoid,
     expected=upcast_int8_nfunc(
         lambda inputs: check_floatX(inputs, 1 / (1 + np.exp(-inputs)))
@@ -54,7 +54,7 @@ SigmoidTester = makeBroadcastTester(
     name="SigmoidTester",
 )
 
-UltraFastSigmoidTester = makeBroadcastTester(
+TestUltraFastSigmoidBroadcast = makeBroadcastTester(
     op=ultra_fast_sigmoid,
     expected=upcast_int8_nfunc(
         lambda inputs: check_floatX(inputs, 1 / (1 + np.exp(-inputs)))
@@ -68,7 +68,7 @@ UltraFastSigmoidTester = makeBroadcastTester(
     eps=5e-2,
 )
 
-HardSigmoidTester = makeBroadcastTester(
+TestHardSigmoidBroadcast = makeBroadcastTester(
     op=hard_sigmoid,
     expected=upcast_int8_nfunc(
         lambda inputs: check_floatX(inputs, 1 / (1 + np.exp(-inputs)))
@@ -83,7 +83,7 @@ HardSigmoidTester = makeBroadcastTester(
 )
 
 
-SoftplusTester = makeBroadcastTester(
+TestSoftplusBroadcast = makeBroadcastTester(
     op=softplus,
     expected=upcast_int8_nfunc(
         lambda inputs: check_floatX(inputs, np.log1p(np.exp(inputs)))
@@ -91,7 +91,7 @@ SoftplusTester = makeBroadcastTester(
     good=dict(
         copymod(
             _good_broadcast_unary_normal_no_complex, without=["uint8", "uint16"]
-        ),  # numpy fucnting overflows with uint16.
+        ),  # numpy function overflows with uint16.
         uint8=[
             np.arange(0, 89, dtype="uint8")
         ],  # the range is different in new added uint8.
@@ -102,7 +102,7 @@ SoftplusTester = makeBroadcastTester(
 )
 
 
-class Test_softplus:
+class TestSoftplus:
     def setup_method(self):
         utt.seed_rng()
 
@@ -110,7 +110,7 @@ class Test_softplus:
         utt.verify_grad(softplus, [np.random.rand(3, 4)])
 
 
-class Test_sigmoid_opts:
+class TestSigmoidOpts:
     def get_mode(self, excluding=None):
         """
         Return appropriate mode for the tests.
@@ -444,7 +444,7 @@ class Test_sigmoid_opts:
         assert check_stack_trace(f2, ops_to_check=theano.tensor.clip)
 
 
-class Test_softplus_opts:
+class TestSoftplusOpts:
     def setup_method(self):
         if theano.config.mode == "FAST_COMPILE":
             m = theano.compile.mode.get_mode("FAST_RUN").excluding(
@@ -531,7 +531,7 @@ class Test_softplus_opts:
         f(np.random.rand(54).astype(config.floatX))
 
 
-class Test_sigmoid_utils:
+class TestSigmoidUtils:
     """
     Test utility functions found in 'sigm.py'.
     """

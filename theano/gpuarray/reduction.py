@@ -7,7 +7,7 @@ from .type import GpuArrayType
 
 try:
     import pygpu
-except ImportError as e:
+except ImportError:
     pass
 
 
@@ -144,7 +144,6 @@ class GpuMaxAndArgmax(Op):
         free(%(name)s_axes_to_reduce);
         """ % {
             "name": name,
-            "X": inputs[0],
         }
 
     def c_code_cache_version(self):

@@ -279,7 +279,6 @@ class TestPushOutSumOfDot:
         # Parameters from an actual machine tranlation run
         batch_size = 80
         seq_len = 50
-        n_words = 80 * 50
         dim = 5
 
         # Weight matrices

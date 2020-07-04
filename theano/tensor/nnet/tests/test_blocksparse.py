@@ -4,12 +4,11 @@
 from __future__ import absolute_import, print_function, division
 
 import numpy as np
-from numpy.random import randn
-
 import theano
-from theano import tensor
 import theano.tests.unittest_tools as utt
 
+from numpy.random import randn
+from theano import tensor
 from theano.tensor.nnet.blocksparse import (
     sparse_block_dot,
     sparse_block_gemv,
@@ -19,7 +18,7 @@ from theano.tensor.nnet.blocksparse import (
 )
 
 
-class BlockSparse_Gemv_and_Outer(utt.InferShapeTester):
+class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
     def setup_method(self):
         utt.seed_rng()
         mode = None
@@ -30,6 +29,7 @@ class BlockSparse_Gemv_and_Outer(utt.InferShapeTester):
         self.outer_op = sparse_block_outer
         self.gemv_class = SparseBlockGemv
         self.outer_class = SparseBlockOuter
+        super().setup_method()
 
     @staticmethod
     def gemv_data():
@@ -141,11 +141,11 @@ class BlockSparse_Gemv_and_Outer(utt.InferShapeTester):
 
         f = theano.function([W, h, iIdx, b, oIdx], o, mode=self.mode)
 
-        W_val, h_val, iIdx_val, b_val, oIdx_val = BlockSparse_Gemv_and_Outer.gemv_data()
+        W_val, h_val, iIdx_val, b_val, oIdx_val = self.gemv_data()
 
         th_out = f(W_val, h_val, iIdx_val, b_val, oIdx_val)
 
-        ref_out = BlockSparse_Gemv_and_Outer.gemv_numpy(
+        ref_out = self.gemv_numpy(
             b_val.take(oIdx_val, axis=0), W_val, h_val, iIdx_val, oIdx_val
         )
 
@@ -164,10 +164,10 @@ class BlockSparse_Gemv_and_Outer(utt.InferShapeTester):
 
         f = theano.function([W, h, iIdx, b, oIdx], o, mode=self.mode)
 
-        W_val, h_val, iIdx_val, b_val, oIdx_val = BlockSparse_Gemv_and_Outer.gemv_data()
+        W_val, h_val, iIdx_val, b_val, oIdx_val = self.gemv_data()
 
         th_out = f(W_val, h_val, iIdx_val, b_val, oIdx_val)
-        ref_out = BlockSparse_Gemv_and_Outer.gemv_numpy(
+        ref_out = self.gemv_numpy(
             b_val.take(oIdx_val, axis=0), W_val, h_val, iIdx_val, oIdx_val
         )
 
@@ -195,10 +195,10 @@ class BlockSparse_Gemv_and_Outer(utt.InferShapeTester):
 
         f = theano.function([W, h, iIdx, b, oIdx], o, mode=self.mode)
 
-        W_val, h_val, iIdx_val, b_val, oIdx_val = BlockSparse_Gemv_and_Outer.gemv_data()
+        W_val, h_val, iIdx_val, b_val, oIdx_val = self.gemv_data()
 
         th_out = f(np.swapaxes(W_val, 2, 3), h_val, iIdx_val, b_val, oIdx_val)
-        ref_out = BlockSparse_Gemv_and_Outer.gemv_numpy(
+        ref_out = self.gemv_numpy(
             b_val.take(oIdx_val, axis=0), W_val, h_val, iIdx_val, oIdx_val
         )
 
@@ -206,7 +206,7 @@ class BlockSparse_Gemv_and_Outer(utt.InferShapeTester):
 
     def test_sparseblockgemv_grad(self):
 
-        W_val, h_val, iIdx_val, b_val, oIdx_val = BlockSparse_Gemv_and_Outer.gemv_data()
+        W_val, h_val, iIdx_val, b_val, oIdx_val = self.gemv_data()
 
         iIdx = theano.tensor.constant(iIdx_val)
         oIdx = theano.tensor.constant(oIdx_val)
@@ -253,7 +253,7 @@ class BlockSparse_Gemv_and_Outer(utt.InferShapeTester):
 
         f = theano.function([W, h, iIdx, b, oIdx], go, mode=self.mode)
 
-        W_val, h_val, iIdx_val, b_val, oIdx_val = BlockSparse_Gemv_and_Outer.gemv_data()
+        W_val, h_val, iIdx_val, b_val, oIdx_val = self.gemv_data()
 
         # just make sure that it runs correcly and all the shapes are ok.
         b_g, W_g, h_g = f(W_val, h_val, iIdx_val, b_val, oIdx_val)
@@ -275,18 +275,10 @@ class BlockSparse_Gemv_and_Outer(utt.InferShapeTester):
             [o, x, y, xIdx, yIdx], out, on_unused_input="warn", mode=self.mode
         )
 
-        (
-            o_val,
-            x_val,
-            y_val,
-            xIdx_val,
-            yIdx_val,
-        ) = BlockSparse_Gemv_and_Outer.outer_data()
+        (o_val, x_val, y_val, xIdx_val, yIdx_val,) = self.outer_data()
 
         th_out = f(o_val, x_val, y_val, xIdx_val, yIdx_val)
-        ref_out = BlockSparse_Gemv_and_Outer.outer_numpy(
-            o_val, x_val, y_val, xIdx_val, yIdx_val
-        )
+        ref_out = self.outer_numpy(o_val, x_val, y_val, xIdx_val, yIdx_val)
 
         utt.assert_allclose(ref_out, th_out)
 

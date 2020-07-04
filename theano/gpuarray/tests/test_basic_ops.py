@@ -11,8 +11,14 @@ from theano.tensor import TensorType
 from theano.tensor.basic import alloc
 
 # Don't import test classes otherwise they get tested as part of the file
-from theano.tensor.tests import test_basic
-from theano.tensor.tests.test_basic import rand, safe_make_node
+from theano.tensor.tests.test_basic import (
+    rand,
+    safe_make_node,
+    TestAlloc,
+    TestComparison,
+    TestReshape,
+    TestJoinAndSplit,
+)
 from theano.tests import unittest_tools as utt
 
 from ..type import GpuArrayType, get_context, gpuarray_shared_constructor
@@ -105,7 +111,7 @@ def makeTester(
     _skip = skip
     _checks = checks
 
-    class Checker(utt.TestOptimizationMixin):
+    class Checker(utt.OptimizationTestMixin):
         op = staticmethod(_op)
         gpu_op = staticmethod(_gpu_op)
         cases = _cases
@@ -282,7 +288,7 @@ def gpu_alloc_expected(x, *shp):
     return g
 
 
-GpuAllocTester = makeTester(
+TestGpuAlloc = makeTester(
     name="GpuAllocTester",
     # The +1 is there to allow the lift to the GPU.
     op=lambda *args: alloc(*args) + 1,
@@ -300,7 +306,7 @@ GpuAllocTester = makeTester(
 )
 
 
-class TestAlloc(test_basic.TestAlloc):
+class TestGPUAlloc(TestAlloc):
     dtype = "float32"
     mode = mode_with_gpu
     shared = staticmethod(gpuarray_shared_constructor)
@@ -376,31 +382,24 @@ def test_gpu_contiguous():
     assert f(a_val, 2).flags.c_contiguous
 
 
-class G_reshape(test_basic.T_reshape):
-    def shortDescription(self):
-        return None
-
-    def __init__(self, name):
-        test_basic.T_reshape.__init__(
-            self,
-            name,
-            shared=gpuarray_shared_constructor,
-            op=GpuReshape,
-            mode=mode_with_gpu,
-            ignore_topo=(
-                HostFromGpu,
-                GpuFromHost,
-                theano.compile.DeepCopyOp,
-                GpuDimShuffle,
-                GpuElemwise,
-                theano.tensor.opt.Shape_i,
-                theano.tensor.opt.MakeVector,
-            ),
+class TestGPUReshape(TestReshape):
+    def setup_method(self):
+        self.shared = gpuarray_shared_constructor
+        self.op = GpuReshape
+        self.mode = mode_with_gpu
+        self.ignore_topo = (
+            HostFromGpu,
+            GpuFromHost,
+            theano.compile.DeepCopyOp,
+            GpuDimShuffle,
+            GpuElemwise,
+            theano.tensor.opt.Shape_i,
+            theano.tensor.opt.MakeVector,
         )
         assert self.op == GpuReshape
 
 
-class G_comparison(test_basic.test_comparison):
+class TestGPUComparison(TestComparison):
     def setup_method(self):
         utt.seed_rng()
         self.mode = mode_with_gpu
@@ -408,7 +407,7 @@ class G_comparison(test_basic.test_comparison):
         self.dtypes = ["float64", "float32"]
 
 
-class G_Join_and_Split(test_basic.T_Join_and_Split):
+class TestGPUJoinAndSplit(TestJoinAndSplit):
     def setup_method(self):
         self.mode = mode_with_gpu.excluding("constant_folding")
         self.join_op = GpuJoin()
@@ -494,26 +493,26 @@ def test_gpueye():
         assert any([isinstance(node.op, GpuEye) for node in f.maker.fgraph.toposort()])
 
     for dtype in ["float32", "int32", "float16"]:
-        yield check, dtype, 3
+        check(dtype, 3)
         # M != N, k = 0
-        yield check, dtype, 3, 5
-        yield check, dtype, 5, 3
+        check(dtype, 3, 5)
+        check(dtype, 5, 3)
         # N == M, k != 0
-        yield check, dtype, 3, 3, 1
-        yield check, dtype, 3, 3, -1
+        check(dtype, 3, 3, 1)
+        check(dtype, 3, 3, -1)
         # N < M, k != 0
-        yield check, dtype, 3, 5, 1
-        yield check, dtype, 3, 5, -1
+        check(dtype, 3, 5, 1)
+        check(dtype, 3, 5, -1)
         # N > M, k != 0
-        yield check, dtype, 5, 3, 1
-        yield check, dtype, 5, 3, -1
+        check(dtype, 5, 3, 1)
+        check(dtype, 5, 3, -1)
         # k > M, -k > N, k > M, k > N
-        yield check, dtype, 5, 3, 3
-        yield check, dtype, 3, 5, 3
-        yield check, dtype, 5, 3, -3
-        yield check, dtype, 3, 5, -3
-        yield check, dtype, 5, 3, 6
-        yield check, dtype, 3, 5, -6
+        check(dtype, 5, 3, 3)
+        check(dtype, 3, 5, 3)
+        check(dtype, 5, 3, -3)
+        check(dtype, 3, 5, -3)
+        check(dtype, 5, 3, 6)
+        check(dtype, 3, 5, -6)
 
 
 def test_hostfromgpu_shape_i():
@@ -599,31 +598,31 @@ def test_gpu_tril_triu():
     for dtype in ["float64", "float32", "float16"]:
         # try a big one
         m = np.asarray(test_rng.rand(5000, 5000) * 2 - 1, dtype=dtype)
-        yield check_l, m, 0
-        yield check_l, m, 1
-        yield check_l, m, -1
+        check_l(m, 0)
+        check_l(m, 1)
+        check_l(m, -1)
 
-        yield check_u, m, 0
-        yield check_u, m, 1
-        yield check_u, m, -1
+        check_u(m, 0)
+        check_u(m, 1)
+        check_u(m, -1)
 
         m = np.asarray(test_rng.rand(10, 10) * 2 - 1, dtype=dtype)
-        yield check_l, m, 0
-        yield check_l, m, 1
-        yield check_l, m, -1
+        check_l(m, 0)
+        check_l(m, 1)
+        check_l(m, -1)
 
-        yield check_u, m, 0
-        yield check_u, m, 1
-        yield check_u, m, -1
+        check_u(m, 0)
+        check_u(m, 1)
+        check_u(m, -1)
 
         m = np.asarray(test_rng.rand(10, 5) * 2 - 1, dtype=dtype)
-        yield check_l, m, 0
-        yield check_l, m, 1
-        yield check_l, m, -1
+        check_l(m, 0)
+        check_l(m, 1)
+        check_l(m, -1)
 
-        yield check_u, m, 0
-        yield check_u, m, 1
-        yield check_u, m, -1
+        check_u(m, 0)
+        check_u(m, 1)
+        check_u(m, -1)
 
 
 def test_gputri():
@@ -647,27 +646,27 @@ def test_gputri():
 
     for dtype in ["float64", "float32", "int32", "float16"]:
         # try a big one
-        yield check, dtype, 1000, 1000, 0
-        yield check, dtype, 1000, 1000, -400
-        yield check, dtype, 1000, 1000, 400
+        check(dtype, 1000, 1000, 0)
+        check(dtype, 1000, 1000, -400)
+        check(dtype, 1000, 1000, 400)
 
-        yield check, dtype, 5
+        check(dtype, 5)
         # M != N, k = 0
-        yield check, dtype, 3, 5
-        yield check, dtype, 5, 3
+        check(dtype, 3, 5)
+        check(dtype, 5, 3)
         # N == M, k != 0
-        yield check, dtype, 3, 3, 1
-        yield check, dtype, 3, 3, -1
+        check(dtype, 3, 3, 1)
+        check(dtype, 3, 3, -1)
         # N < M, k != 0
-        yield check, dtype, 3, 5, 1
-        yield check, dtype, 3, 5, -1
+        check(dtype, 3, 5, 1)
+        check(dtype, 3, 5, -1)
         # N > M, k != 0
-        yield check, dtype, 5, 3, 1
-        yield check, dtype, 5, 3, -1
+        check(dtype, 5, 3, 1)
+        check(dtype, 5, 3, -1)
         # k > M, -k > N, k > M, k > N
-        yield check, dtype, 5, 3, 3
-        yield check, dtype, 3, 5, 3
-        yield check, dtype, 5, 3, -3
-        yield check, dtype, 3, 5, -3
-        yield check, dtype, 5, 3, 6
-        yield check, dtype, 3, 5, -6
+        check(dtype, 5, 3, 3)
+        check(dtype, 3, 5, 3)
+        check(dtype, 5, 3, -3)
+        check(dtype, 3, 5, -3)
+        check(dtype, 5, 3, 6)
+        check(dtype, 3, 5, -6)

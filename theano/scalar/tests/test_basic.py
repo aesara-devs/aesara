@@ -77,7 +77,7 @@ def inputs():
     return floats("xyz")
 
 
-class test_ScalarOps:
+class TestScalarOps:
     def test_straightforward(self):
         x, y, z = inputs()
         e = mul(add(x, y), div_proxy(x, y))
@@ -123,7 +123,7 @@ def has_f16(comp):
     return False
 
 
-class test_composite:
+class TestComposite:
     def test_composite_clone_float32(self):
         w = int8()
         x = float16()
@@ -245,7 +245,7 @@ class test_composite:
         sop.make_node(si0 * si3, si1, si2)
 
 
-class test_logical:
+class TestLogical:
     def test_gt(self):
         x, y, z = inputs()
         fn = gof.DualLinker().accept(FunctionGraph([x, y], [x > y])).make_function()
@@ -319,7 +319,7 @@ class test_logical:
             assert fn(a, b) == ~a, (a,)
 
 
-class test_upgrade_to_float:
+class TestUpgradeToFloat:
     # Test for Ops whose output has to be floating point, even when all
     # inputs are ints.
     # In particular, when the inputs are int8, the output should be
@@ -420,27 +420,15 @@ class test_upgrade_to_float:
     def test_unary(self):
         # Automatically define all individual unary tests
         for unary_op, x_range in self.unary_ops_vals:
-            test_name = "test_%s" % unary_op.name
-
-            def test():
-                self._test_unary(unary_op, x_range)
-
-            test.description = test_name
-            yield test
+            self._test_unary(unary_op, x_range)
 
     def test_binary(self):
         # Automatically define all individual binary tests
         for binary_op, x_range, y_range in self.binary_ops_vals:
-            test_name = "test_%s" % binary_op.name
-
-            def test():
-                self._test_binary(binary_op, x_range, y_range)
-
-            test.description = test_name
-            yield test
+            self._test_binary(binary_op, x_range, y_range)
 
 
-class test_complex_mod:
+class TestComplexMod:
     # Make sure % fails on complex numbers.
 
     def test_fail(self):
@@ -453,7 +441,7 @@ class test_complex_mod:
             pass
 
 
-class test_div:
+class TestDiv:
     def test_0(self):
         a = int8()
         b = int32()
@@ -472,7 +460,7 @@ class test_div:
         assert isinstance((a / c).owner.op, TrueDiv)
 
 
-def test_grad_gt():
+def TestGradGt():
     x = float32(name="x")
     y = float32(name="y")
     z = x > y
@@ -480,7 +468,7 @@ def test_grad_gt():
     assert g.eval({y: 1.0}) == 0.0
 
 
-def test_grad_switch():
+def TestGradSwitch():
 
     # This is a code snippet from the mailing list
     # It caused an assert to be raised due to the
@@ -496,7 +484,7 @@ def test_grad_switch():
     theano.gradient.grad(l, x)
 
 
-def test_grad_identity():
+def TestGradIdentity():
     # Check that the grad method of Identity correctly handles int dytpes
     x = theano.tensor.imatrix("x")
     # tensor_copy is Elemwise{Identity}
@@ -505,7 +493,7 @@ def test_grad_identity():
     theano.gradient.grad(l, x)
 
 
-def test_grad_inrange():
+def TestGradInrange():
     for bound_definition in [(True, True), (False, False)]:
         # Instantiate op, and then take the gradient
         op = InRange(*bound_definition)
@@ -531,7 +519,7 @@ def test_grad_inrange():
         utt.assert_allclose(f(7, 1, 5), [0, 0, 0])
 
 
-def test_grad_abs():
+def TestGradAbs():
     a = theano.tensor.fscalar("a")
     b = theano.tensor.nnet.relu(a)
     c = theano.grad(b, a)
@@ -546,7 +534,7 @@ def test_grad_abs():
 # in test_fusion, TestCompositeCodegen
 
 
-def test_constant():
+def TestConstant():
     c = constant(2, name="a")
     assert c.name == "a"
     assert c.dtype == "int8"

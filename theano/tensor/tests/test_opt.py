@@ -3,14 +3,16 @@ from __future__ import absolute_import, print_function, division
 import copy
 import logging
 import time
+import pytest
 
 import numpy as np
-from six.moves import xrange
-import pytest
 
 import theano
 import theano.scalar as scal
+import theano.tensor.opt as opt
+
 from six import StringIO
+from six.moves import xrange
 from theano import compile
 from theano.compile import deep_copy_op, DeepCopyOp
 from theano.compile import get_mode
@@ -20,7 +22,6 @@ from theano import gof
 from theano import pprint
 from theano import shared
 from theano.gof import FunctionGraph
-import theano.tensor.opt as opt
 from theano.tensor.opt import (
     local_add_specialize,
     local_dimshuffle_lift,
@@ -105,7 +106,7 @@ def inputs(xbc=(0, 0), ybc=(0, 0), zbc=(0, 0)):
     return x, y, z
 
 
-class test_dimshuffle_lift:
+class TestDimshuffleLift:
     def test_double_transpose(self):
         x, y, z = inputs()
         e = ds(ds(x, (1, 0)), (1, 0))
@@ -293,7 +294,7 @@ def test_add_canonizer_problem0():
     theano.function([], c0 + c1)
 
 
-class test_greedy_distribute:
+class TestGreedyDistribute:
     def test_main(self):
         a, b, c, d, x, y, z = matrices("abcdxyz")
 
@@ -343,7 +344,7 @@ class test_greedy_distribute:
         assert np.all(r0 == r2)
 
 
-class test_canonize:
+class TestCanonize:
     def test_muldiv(self):
         x, y, z = matrices("xyz")
         a, b, c, d = matrices("abcd")
@@ -1207,7 +1208,7 @@ def test_cast_in_mul_canonizer():
     f([1], [1])
 
 
-class test_fusion:
+class TestFusion:
     mode = copy.copy(compile.mode.get_default_mode())
     _shared = staticmethod(shared)
     topo_exclude = ()
@@ -2095,10 +2096,10 @@ class TimesN(theano.scalar.basic.UnaryScalarOp):
     """
 
     def __eq__(self, other):
-        return super(TimesN, self).__eq__(other) and self.n == other.n
+        return super().__eq__(other) and self.n == other.n
 
     def __hash__(self):
-        return super(TimesN, self).__hash__() ^ hash(self.n)
+        return super().__hash__() ^ hash(self.n)
 
     def __init__(self, n, *args, **kwargs):
         self.n = n
@@ -2576,7 +2577,7 @@ def test_local_subtensor_remove_broadcastable_index():
     f2(xn)
 
 
-class Test_subtensor_inc_subtensor:
+class TestSubtensorIncSubtensor:
     @classmethod
     def setup_class(cls):
         cls.mode = theano.compile.mode.get_default_mode().including(
@@ -2696,7 +2697,7 @@ class Test_subtensor_inc_subtensor:
         assert np.array_equal(f(x_, i_, v_), v_.astype("int8"))
 
 
-class test_local_subtensor_make_vector:
+class TestLocalSubtensorMakeVector:
     def test_scalar_idx(self):
         x, y, z = tensor.lscalars("xyz")
         v = make_vector(x, y, z)
@@ -2760,8 +2761,8 @@ class test_local_subtensor_make_vector:
             assert check_stack_trace(f, ops_to_check="all")
 
 
-class test_local_subtensor_lift:
-    def test0(self):
+class TestLocalSubtensorLift:
+    def test_basic(self):
         # basic test that the Op works
         x = tensor.matrix("x")
         f = function([x], tensor.exp(x)[0], mode=mode_opt)
@@ -2775,7 +2776,7 @@ class test_local_subtensor_lift:
         assert len(prog) == 2
         f([[0, 1], [2, 3]])  # let debugmode test something
 
-    def test0b(self):
+    def test_basic_1(self):
         # as test0, but we reuse the output of the elemwise
         # So we should not lift the subtensor
         x = tensor.matrix("x")
@@ -2791,7 +2792,7 @@ class test_local_subtensor_lift:
         assert len(prog) == 3
         f([[0, 1], [2, 3]])  # let debugmode test something
 
-    def test1(self):
+    def test_basic_2(self):
         # basic test that the optimization work with scalar broadcasted
         x = tensor.matrix("x")
         y = tensor.scalar("y")
@@ -2812,7 +2813,7 @@ class test_local_subtensor_lift:
         # let debugmode test something
         f([[0, 1], [2, 3]], 4, [[4, 5], [6, 7]])
 
-    def test2(self):
+    def test_basic_3(self):
         # as 1, but take a slice
         x = tensor.matrix("x")
         y = tensor.scalar("y")
@@ -2833,7 +2834,7 @@ class test_local_subtensor_lift:
         # let debugmode test something
         f([[0, 1], [2, 3]], 4, [[4, 5], [6, 7]])
 
-    def test3(self):
+    def test_basic_4(self):
         # basic test that the optimization does work with broadcasting
         # for unary elemwise.
         y = tensor.vector("y")
@@ -2850,7 +2851,7 @@ class test_local_subtensor_lift:
         f([4, 5])  # let debugmode test something
 
     @utt.assertFailure_fast
-    def test4(self):
+    def test_basic_5(self):
         # basic test that the optimization doesn't work with broadcasting
         # ... It *could* be extended to,
         # ... but right now it doesn't, so it shouldn't try.
@@ -2869,7 +2870,7 @@ class test_local_subtensor_lift:
         assert len(prog) == 4
         f([[0, 1], [2, 3]], [4, 5])  # let debugmode test something
 
-    def test5(self):
+    def test_basic_6(self):
         # test that we don't lift when we reuse the output of the
         # elemwise for other computation.
         x = tensor.matrix("x")
@@ -2894,7 +2895,7 @@ class test_local_subtensor_lift:
         assert len(prog) == 4
         f([[0, 1], [2, 3]], [4, 5])  # let debugmode test something
 
-    def test6(self):
+    def test_basic_7(self):
         # basic test that the optimization works with a scalar as input,
         # and a scalar as output (no broadcasting of the scalar needed).
         # The optimization used to fail and display an ERROR message.
@@ -2913,7 +2914,7 @@ class test_local_subtensor_lift:
         assert len(prog) == 2
         f([1, 2, 3], 4)  # let debugmode test something
 
-    def test7(self):
+    def test_basic_8(self):
         # Test that Subtensor(Rebroadcast(x)) gets optimized into
         # Rebroadcast(Subtensor(x)).
 
@@ -2972,7 +2973,7 @@ class test_local_subtensor_lift:
         assert (f4(zval) == zval[:, 3, 0]).all()
 
 
-class test_local_subtensor_merge:
+class TestLocalSubtensorMerge:
     def setup_method(self):
         utt.seed_rng()
         self.x_shapes = [(2, 2), (5, 3), (4, 1), (1, 2), (0, 2), (2, 0), (1, 0), (0, 0)]
@@ -3507,14 +3508,14 @@ class test_local_subtensor_merge:
                         f(x_val, *i_val)
 
 
-class test_local_adv_sub1_adv_inc_sub1:
+class TestLocalAdvSub1AdvIncSub1:
     def setup_method(self):
         utt.seed_rng()
         mode = theano.compile.mode.get_default_mode()
         self.mode = mode.including("local_adv_sub1_adv_inc_sub1").excluding("fusion")
         self.mode_no_assert = self.mode.including("local_remove_all_assert")
 
-    def test0(self):
+    def test_basic(self):
         for dtype1, dtype2 in [
             ("float32", "float32"),
             ("float32", "float64"),
@@ -3603,7 +3604,7 @@ class test_local_adv_sub1_adv_inc_sub1:
             assert check_stack_trace(f, ops_to_check=(Assert, scal.Cast))
 
 
-class Test_alloc_zero:
+class TestAllocZero:
     def setup_method(self):
         mode = theano.compile.mode.get_default_mode()
         self.mode = mode.including(
@@ -3984,7 +3985,7 @@ def test_local_subtensor_of_dot():
     assert check_stack_trace(f, ops_to_check="last")
 
 
-class Test_local_elemwise_alloc:
+class TestLocalElemwiseAlloc:
     dtype = config.floatX
 
     def setup_method(self):
@@ -4352,7 +4353,7 @@ def test_local_elemwise_sub_zeros():
     assert check_stack_trace(f, ops_to_check="all")
 
 
-class Test_local_useless_elemwise_comparison:
+class TestLocalUselessElemwiseComparison:
     def setup_method(self):
         self.rng = np.random.RandomState(utt.fetch_seed())
 
@@ -4637,12 +4638,12 @@ class Test_local_useless_elemwise_comparison:
         assert check_stack_trace(f, ops_to_check="last")
 
 
-class Test_local_canonicalize_alloc:
+class TestLocalCanonicalizeAlloc:
     def setup_method(self):
         self.rng = np.random.RandomState(utt.fetch_seed())
 
     @change_flags(compute_test_value="off")
-    def test0(self):
+    def test_basic(self):
         x = shared(self.rng.randn(3, 7))
         a = tensor.alloc(x, 6, 7)
 
@@ -4662,7 +4663,7 @@ class Test_local_canonicalize_alloc:
         # No need to check_stack_trace as the optimization
         # local_canonicalize_alloc only removes nodes.
 
-    def test1(self):
+    def test_basic_1(self):
         # Test that alloc never gets instantiated during optimization
         mode = mode_opt.excluding("local_canonicalize_alloc")
 
@@ -4678,7 +4679,7 @@ class Test_local_canonicalize_alloc:
         # No need to check_stack_trace as the optimization
         # local_canonicalize_alloc only removes nodes.
 
-    def test2(self):
+    def test_basic_2(self):
         # Test that alloc never gets instantiated during optimization
         mode = mode_opt.excluding("local_canonicalize_alloc")
 
@@ -4747,7 +4748,7 @@ class Test_local_canonicalize_alloc:
         assert check_stack_trace(g, ops_to_check="all")
 
 
-class Test_local_useless_inc_subtensor_alloc:
+class TestLocalUselessIncSubtensorAlloc:
     opt_name = "local_useless_inc_subtensor_alloc"
 
     def setup_method(self):
@@ -4897,11 +4898,11 @@ class Test_local_useless_inc_subtensor_alloc:
         assert check_stack_trace(f2, ops_to_check="last")
 
 
-class test_shapeoptimizer:
+class TestShapeoptimizer:
     def setup_method(self):
         utt.seed_rng()
 
-    def test0(self):
+    def test_basic(self):
         mode = theano.config.mode
         if mode == "FAST_COMPILE":
             mode = "FAST_RUN"
@@ -5085,11 +5086,11 @@ class test_shapeoptimizer:
         print(f([[1, 2], [2, 3]]))
 
 
-class test_assert(utt.InferShapeTester):
+class TestAssert(utt.InferShapeTester):
     def setup_method(self):
-        super(test_assert, self).setup_method()
+        super().setup_method()
 
-    def test0(self):
+    def test_basic(self):
         x = T.scalar()
         y = T.scalar()
         f = theano.function([x, y], theano.tensor.opt.assert_op(x, T.eq(x, y)))
@@ -5412,7 +5413,7 @@ class TestRebroadcast:
         assert rebroadcast_nodes[0].op.axis == {0: True}
 
 
-class Testuseless_elemwise:
+class TestUselessElemwise:
     def setup_method(self):
         self.mode = theano.compile.get_default_mode().including(
             "canonicalize", "local_fill_to_alloc"
@@ -5499,7 +5500,7 @@ class Testuseless_elemwise:
         assert topo[0].op == deep_copy_op
 
 
-class Testcast_cast:
+class TestCastCast:
     def setup_method(self):
         mode = theano.compile.get_default_mode()
         self.mode = mode.including("local_cast_cast")
@@ -5557,7 +5558,7 @@ class Testcast_cast:
         ) or (len(topo) > 1)
 
 
-class Testfunc_inverse:
+class TestFuncInverse:
     def setup_method(self):
         mode = theano.compile.get_default_mode()
         self.mode = mode.including("local_func_inv")
@@ -5674,7 +5675,7 @@ def test_constant_get_stabilized():
         )
 
 
-class Testlocal_switch_sink:
+class TestLocalSwitchSink:
     def setup_method(self):
         # condition values
         self.condm = np.asarray([[0.1, 0, 1, -1], [0.0, 0.0, 0.0, 0.0], [1, 1, 1, 1]])
@@ -5800,7 +5801,7 @@ class Testlocal_switch_sink:
                 idx += 1
 
 
-class Testlocal_erf:
+class TestLocalErf:
     def setup_method(self):
         self.mode = (
             theano.compile.mode.get_default_mode()
@@ -5899,7 +5900,7 @@ class Testlocal_erf:
         print(f(val))
 
 
-class Testlocal_erfc:
+class TestLocalErfc:
     def setup_method(self):
         self.mode_fusion = (
             theano.compile.mode.get_default_mode()
@@ -6146,7 +6147,7 @@ class Testlocal_erfc:
         print(t1 - t0, t2 - t1)
 
 
-class test_local_useless_switch:
+class TestLocalUselessSwitch:
     def setup_method(self):
         self.mode = mode_opt.excluding("constant_folding")
 
@@ -6349,7 +6350,7 @@ class test_local_useless_switch:
         )
 
 
-class test_local_merge_switch_same_cond:
+class TestLocalMergeSwitchSameCond:
     def test_elemwise(self):
         # float Ops
         mats = theano.tensor.matrices("cabxy")
@@ -6391,7 +6392,7 @@ class test_local_merge_switch_same_cond:
             assert str(g).count("Switch") == 1
 
 
-class Testlocal_sum_prod:
+class TestLocalSumProd:
     """
     Test sum/prod opts in opt.py
     """
@@ -6793,7 +6794,7 @@ class Testlocal_sum_prod:
         assert check_stack_trace(f, ops_to_check=[T.Sum])
 
 
-class Testlocal_opt_alloc:
+class TestLocalOptAlloc:
     dtype = "float32"
 
     def test_sum_upcast(self):
@@ -6833,11 +6834,11 @@ class Testlocal_opt_alloc:
         print(self.dtype)
 
 
-class Testlocal_opt_alloc_f16(Testlocal_opt_alloc):
+class TestLocalOptAllocF16(TestLocalOptAlloc):
     dtype = "float16"
 
 
-class Testlocal_reduce:
+class TestLocalReduce:
     def setup_method(self):
         self.mode = theano.compile.get_default_mode().including(
             "canonicalize", "specialize", "uncanonicalize", "local_max_and_argmax"
@@ -6986,7 +6987,7 @@ class Testlocal_reduce:
             theano.config.warn.reduce_join = old
 
 
-class Testlocal_sum_prod_dimshuffle:
+class TestLocalSumProdDimshuffle:
     def setup_method(self):
         self.mode = theano.compile.get_default_mode().including("canonicalize")
 
@@ -7163,7 +7164,7 @@ class Testlocal_sum_prod_dimshuffle:
 
 class TestMakeVector(utt.InferShapeTester):
     def setup_method(self):
-        super(TestMakeVector, self).setup_method()
+        super().setup_method()
 
     def test_make_vector(self):
         b = T.bscalar()
@@ -7565,7 +7566,7 @@ def test_local_flatten_lift():
         assert isinstance(topo[-1].op, tensor.Elemwise)
 
 
-class Test_Reshape:
+class TestReshape:
     def setup_method(self):
         self.mode = mode_opt
         self.op = tensor.Reshape
@@ -7582,7 +7583,7 @@ class Test_Reshape:
         assert check_stack_trace(f, ops_to_check=[self.op])
 
 
-class Test_local_useless_reshape:
+class TestLocalUselessReshape:
     def setup_method(self):
         self.rng = np.random.RandomState(utt.fetch_seed())
 
@@ -7645,7 +7646,7 @@ class Test_local_useless_reshape:
         assert not any(isinstance(n.op, tensor.basic.Reshape) for n in topo)
 
 
-class Test_local_reshape_to_dimshuffle:
+class TestLocalReshapeToDimshuffle:
     def setup_method(self):
         self.rng = np.random.RandomState(utt.fetch_seed())
 
@@ -7696,7 +7697,7 @@ def test_local_reshape_lift():
     assert check_stack_trace(f, ops_to_check="last")
 
 
-class Test_lift_transpose_through_dot:
+class TestLiftTransposeThroughDot:
     def simple_optimize(self, g):
         out2in(opt.local_useless_elemwise).optimize(g)
         out2in(opt.local_lift_transpose_through_dot).optimize(g)
@@ -7752,9 +7753,9 @@ def test_local_upcast_elemwise_constant_inputs():
         theano.config.floatX = old
 
 
-class TestShape_i(utt.InferShapeTester):
+class TestShapeI(utt.InferShapeTester):
     def setup_method(self):
-        super(TestShape_i, self).setup_method()
+        super().setup_method()
 
     def test_perform(self):
 

@@ -35,8 +35,6 @@ from theano import tensor, scalar
 from theano.tensor.basic import get_scalar_constant_value
 
 
-################ Utility Functions and Classes #######################
-
 # Logging function for sending warning or info
 _logger = logging.getLogger("theano.scan_utils")
 
@@ -812,7 +810,7 @@ def infer_shape(outs, inputs, input_shapes):
         else:
             # Recurse over inputs
             for inp in out.owner.inputs:
-                if not inp in shape_feature.shape_of:
+                if inp not in shape_feature.shape_of:
                     local_traverse(inp)
 
             # shape_feature.on_import does not actually use an fgraph

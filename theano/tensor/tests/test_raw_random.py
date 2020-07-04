@@ -2,20 +2,34 @@ from __future__ import absolute_import, print_function, division
 import numpy as np
 import pytest
 import pickle
+import theano
 
 from theano.tests import unittest_tools as utt
 
-from theano.tensor.raw_random import *
-from theano.tensor import raw_random, ivector, dvector, iscalar, dcol, dtensor3
+from theano.tensor.raw_random import (
+    RandomFunction,
+    random_state_type,
+    uniform,
+    poisson,
+    normal,
+    binomial,
+    choice,
+    random_integers,
+    multinomial,
+    permutation,
+    permutation_helper,
+)
+from theano.tensor import raw_random, ivector, dvector, dcol
 from theano import tensor
 
-from theano import compile, config, gof
+from theano import compile, config
 
 __docformat__ = "restructuredtext en"
 
 
-class Test_random_function(utt.InferShapeTester):
+class TestRandomFunction(utt.InferShapeTester):
     def setup_method(self):
+        super().setup_method()
         utt.seed_rng()
 
     def test_basic_usage(self):
@@ -1087,7 +1101,6 @@ class Test_random_function(utt.InferShapeTester):
         f = compile.function([rng_R, pvals], [post_r, out], accept_inplace=True)
 
         rng = np.random.RandomState(utt.fetch_seed())
-        numpy_rng = np.random.RandomState(utt.fetch_seed())
 
         pvals_val = np.asarray([[[0.1, 0.9], [0.2, 0.8], [0.3, 0.7]]])
         assert pvals_val.shape == (1, 3, 2)
@@ -1109,7 +1122,6 @@ class Test_random_function(utt.InferShapeTester):
         f = compile.function([rng_R, pvals], [post_r, out], accept_inplace=True)
 
         rng = np.random.RandomState(utt.fetch_seed())
-        numpy_rng = np.random.RandomState(utt.fetch_seed())
 
         pvals_val = np.asarray([[[0.1, 0.9], [0.2, 0.8], [0.3, 0.7]]])
         assert pvals_val.shape == (1, 3, 2)
@@ -1152,9 +1164,6 @@ class Test_random_function(utt.InferShapeTester):
             ].dtype
             == "float32"
         )
-
-    def setup_method(self):
-        super(Test_random_function, self).setup_method()
 
     def test_infer_shape(self):
         rng_R = random_state_type()
@@ -1348,15 +1357,9 @@ class Test_random_function(utt.InferShapeTester):
             mode = "FAST_COMPILE"
         post_bin_r, bin_sample = binomial(rng_r, (3, 5), 1, 0.3)
         f = theano.function([rng_r], [post_bin_r, bin_sample], mode=mode)
-        pkl_f = pickle.dumps(f)
+        pickle.dumps(f)
 
         post_int_r, int_sample = random_integers(rng_r, (3, 5), -1, 8)
         g = theano.function([rng_r], [post_int_r, int_sample], mode=mode)
         pkl_g = pickle.dumps(g)
         pickle.loads(pkl_g)
-
-
-if __name__ == "__main__":
-    from theano.tests import main
-
-    main("test_raw_random")

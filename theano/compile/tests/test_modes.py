@@ -9,8 +9,8 @@ import theano.tensor as T
 from theano.compile import Mode
 
 
-class Test_bunch_of_modes:
-    def test1(self):
+class TestBunchOfModes:
+    def test_modes(self):
         # this is a quick test after the LazyLinker branch merge
         # to check that all the current modes can still be used.
         linker_classes_involved = []
@@ -42,8 +42,8 @@ class Test_bunch_of_modes:
         assert 4 == len(set(linker_classes_involved))
 
 
-class Test_old_problem:
-    def test_1(self):
+class TestOldModesProblem:
+    def test_modes(self):
         # Then, build a mode with the same linker, and a modified optimizer
         default_mode = theano.compile.mode.get_default_mode()
         modified_mode = default_mode.including("specialize")

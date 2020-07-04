@@ -148,5 +148,5 @@ except ImportError:
 # To fix it completly, we would need to modify Cython to use the new API.
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message="numpy.ndarray size changed")
-    from scan_perform.scan_perform import *
+    from scan_perform.scan_perform import perform, get_version  # noqa: F401
 assert version == get_version()

@@ -23,7 +23,7 @@ from .opt_util import inplace_allocempty
 try:
     import pygpu
     from pygpu import blas
-except ImportError as e:
+except ImportError:
     # To make sure theano is importable
     pass
 

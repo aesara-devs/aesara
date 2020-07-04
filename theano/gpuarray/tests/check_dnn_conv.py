@@ -913,7 +913,7 @@ class BaseTestDnnConv(object):
                 for parameters in cudnn_conv_case_generator.fwd(
                     algo, self.ndim, dtype, precision
                 ).get_cases():
-                    yield (self.run_conv_fwd, algo, dtype, precision, parameters)
+                    self.run_conv_fwd(algo, dtype, precision, parameters)
             if algos:
                 # Some algorithms support current data type configuration for current ndim.
                 # So, an algorithm could be chosen at runtime.
@@ -921,13 +921,13 @@ class BaseTestDnnConv(object):
                     for parameters in cudnn_conv_case_generator.fwd(
                         algo, self.ndim, dtype, precision
                     ).get_cases():
-                        yield (self.run_conv_fwd, algo, dtype, precision, parameters)
+                        self.run_conv_fwd(algo, dtype, precision, parameters)
         for dnn_case in self.special_cases:
             if dnn_case.is_fwd():
                 if dnn_case.should_fail:
-                    yield (self.should_fail_fwd,) + dnn_case.get_case()
+                    self.should_fail_fwd(dnn_case.get_case())
                 else:
-                    yield (self.run_conv_fwd,) + dnn_case.get_case()
+                    self.run_conv_fwd(dnn_case.get_case())
 
     def test_gradinput(self):
         for dtype, precision in self.dtype_configs:
@@ -942,7 +942,7 @@ class BaseTestDnnConv(object):
                 for parameters in cudnn_conv_case_generator.gi(
                     algo, self.ndim, dtype, precision
                 ).get_cases():
-                    yield (self.run_conv_gradinput, algo, dtype, precision, parameters)
+                    self.run_conv_gradinput(algo, dtype, precision, parameters)
             if algos:
                 # Some algorithms support current data type configuration for current ndim.
                 # So, an algorithm could be chosen at runtime.
@@ -950,19 +950,13 @@ class BaseTestDnnConv(object):
                     for parameters in cudnn_conv_case_generator.gi(
                         algo, self.ndim, dtype, precision
                     ).get_cases():
-                        yield (
-                            self.run_conv_gradinput,
-                            algo,
-                            dtype,
-                            precision,
-                            parameters,
-                        )
+                        self.run_conv_gradinput(algo, dtype, precision, parameters)
         for dnn_case in self.special_cases:
             if dnn_case.is_bwd_data():
                 if dnn_case.should_fail:
-                    yield (self.should_fail_gradinput,) + dnn_case.get_case()
+                    self.should_fail_gradinput(dnn_case.get_case())
                 else:
-                    yield (self.run_conv_gradinput,) + dnn_case.get_case()
+                    self.run_conv_gradinput(dnn_case.get_case())
 
     def test_gradweight(self):
         for dtype, precision in self.dtype_configs:
@@ -977,7 +971,7 @@ class BaseTestDnnConv(object):
                 for parameters in cudnn_conv_case_generator.gw(
                     algo, self.ndim, dtype, precision
                 ).get_cases():
-                    yield (self.run_conv_gradweight, algo, dtype, precision, parameters)
+                    self.run_conv_gradweight(algo, dtype, precision, parameters)
             if algos:
                 # Some algorithms support current data type configuration for current ndim.
                 # So, an algorithm could be chosen at runtime.
@@ -985,19 +979,13 @@ class BaseTestDnnConv(object):
                     for parameters in cudnn_conv_case_generator.gw(
                         algo, self.ndim, dtype, precision
                     ).get_cases():
-                        yield (
-                            self.run_conv_gradweight,
-                            algo,
-                            dtype,
-                            precision,
-                            parameters,
-                        )
+                        self.run_conv_gradweight(algo, dtype, precision, parameters)
         for dnn_case in self.special_cases:
             if dnn_case.is_bwd_filter():
                 if dnn_case.should_fail:
-                    yield (self.should_fail_gradweight,) + dnn_case.get_case()
+                    self.should_fail_gradweight(dnn_case.get_case())
                 else:
-                    yield (self.run_conv_gradweight,) + dnn_case.get_case()
+                    self.run_conv_gradweight(dnn_case.get_case())
 
     # The 3 following tests are intended to be run with theano flag `cmodule.debug=True`.
     # The output message should then be analyzed to check if runtime algorithms are
@@ -1049,7 +1037,7 @@ class BaseTestDnnConv(object):
                     utt.assert_allclose(cpu_res, gpu_res)
 
         for algo in SUPPORTED_DNN_CONV_ALGO_RUNTIME:
-            yield (run_fwd_runtime_algorithm, algo)
+            run_fwd_runtime_algorithm(algo)
 
     def test_gradinput_runtime_algorithms(self):
         dtype = "float32"
@@ -1107,7 +1095,7 @@ class BaseTestDnnConv(object):
                     utt.assert_allclose(cpu_res, np.asarray(gpu_res))
 
         for algo in SUPPORTED_DNN_CONV_ALGO_RUNTIME:
-            yield (run_gradinput_runtime_algorithm, algo)
+            run_gradinput_runtime_algorithm(algo)
 
     def test_gradweight_runtime_algorithms(self):
         dtype = "float32"
@@ -1165,7 +1153,7 @@ class BaseTestDnnConv(object):
                     utt.assert_allclose(cpu_res, np.asarray(gpu_res))
 
         for algo in SUPPORTED_DNN_CONV_ALGO_RUNTIME:
-            yield (run_gradweight_runtime_algorithm, algo)
+            run_gradweight_runtime_algorithm(algo)
 
 
 class TestDnnConv2D(BaseTestDnnConv):

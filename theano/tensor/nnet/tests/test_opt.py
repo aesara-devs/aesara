@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function, division
 import theano
+
 from theano import tensor
 from theano.tests.unittest_tools import assertFailure_fast
 from theano.gof.opt import check_stack_trace

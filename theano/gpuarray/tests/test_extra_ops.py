@@ -22,7 +22,7 @@ class TestGpuCumOp(theano.tensor.tests.test_extra_ops.TestCumOp):
     mode = mode_with_gpu
 
     def setup_method(self):
-        super(TestGpuCumOp, self).setup_method()
+        super().setup_method()
         test_ctx = get_context(test_ctx_name)
         if test_ctx.kind != b"cuda":
             pytest.skip("Cuda specific tests")
@@ -37,7 +37,7 @@ class TestGpuCumOp(theano.tensor.tests.test_extra_ops.TestCumOp):
         theano.tensor.basic.float32_rtol *= 2
 
     def teardown_method(self):
-        super(TestGpuCumOp, self).teardown_method()
+        super().teardown_method()
         # Restore rtol
         theano.tensor.basic.float32_rtol = self.old_rtol
 
@@ -54,11 +54,6 @@ class TestGpuCumOp(theano.tensor.tests.test_extra_ops.TestCumOp):
 
         for axis in range(-len(a.shape), len(a.shape)):
             self._compile_and_check([x], [op_class(axis=axis)(x)], [a], GpuCumOp)
-
-    @pytest.mark.parametrized("mode", ["mul", "add"])
-    def test_grad(self, mode):
-        # no grad for GpuCumOp
-        pass
 
     @pytest.mark.parametrized("mode", ["mul", "add"])
     def test_Strides1D(self, mode):

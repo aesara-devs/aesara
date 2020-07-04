@@ -2,21 +2,19 @@ from __future__ import absolute_import, print_function, division
 
 __docformat__ = "restructuredtext en"
 
-import sys
-import numpy as np
 import pytest
+import numpy as np
 
-from theano.tensor import raw_random
 from theano.tensor.shared_randomstreams import RandomStreams
 from theano import function, shared
 
 from theano import tensor
-from theano import compile, config, gof
+from theano import config
 
 from theano.tests import unittest_tools as utt
 
 
-class Test_SharedRandomStreams:
+class TestSharedRandomStreams:
     def setup_method(self):
         utt.seed_rng()
 
@@ -31,32 +29,24 @@ class Test_SharedRandomStreams:
         assert np.all(f() != f())
         assert np.all(g() == g())
         assert np.all(abs(nearly_zeros()) < 1e-5)
-
         assert isinstance(rv_u.rng.get_value(borrow=True), np.random.RandomState)
 
     def test_basics(self):
         random = RandomStreams(utt.fetch_seed())
         fn = function([], random.uniform((2, 2)), updates=random.updates())
-        gn = function([], random.normal((2, 2)), updates=random.updates())
+        # gn = function([], random.normal((2, 2)), updates=random.updates())
 
         fn_val0 = fn()
         fn_val1 = fn()
-
-        gn_val0 = gn()
+        # gn_val0 = gn()
 
         rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2 ** 30)
         rng = np.random.RandomState(int(rng_seed))  # int() is for 32bit
 
-        # print fn_val0
         numpy_val0 = rng.uniform(size=(2, 2))
         numpy_val1 = rng.uniform(size=(2, 2))
-        # print numpy_val0
 
         assert np.allclose(fn_val0, numpy_val0)
-        print(fn_val0)
-        print(numpy_val0)
-        print(fn_val1)
-        print(numpy_val1)
         assert np.allclose(fn_val1, numpy_val1)
 
     def test_seed_fn(self):
@@ -71,10 +61,8 @@ class Test_SharedRandomStreams:
         rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2 ** 30)
         rng = np.random.RandomState(int(rng_seed))  # int() is for 32bit
 
-        # print fn_val0
         numpy_val0 = rng.uniform(size=(2, 2))
         numpy_val1 = rng.uniform(size=(2, 2))
-        # print numpy_val0
 
         assert np.allclose(fn_val0, numpy_val0)
         assert np.allclose(fn_val1, numpy_val1)
@@ -278,9 +266,6 @@ class Test_SharedRandomStreams:
         in_mval = val_rng.uniform(-2, 2, size=(20, 5))
         fn_mval0 = f(in_mval)
         fn_mval1 = f(in_mval)
-        print(in_mval[0])
-        print(fn_mval0[0])
-        print(fn_mval1[0])
         assert not np.all(in_mval == fn_mval0)
         assert not np.all(in_mval == fn_mval1)
         assert not np.all(fn_mval0 == fn_mval1)
@@ -308,9 +293,6 @@ class Test_SharedRandomStreams:
         numpy_vval = in_vval.copy()
         vrng = np.random.RandomState(int(rng_seed))
         vrng.shuffle(numpy_vval)
-        print(in_vval)
-        print(fn_vval)
-        print(numpy_vval)
         assert np.all(numpy_vval == fn_vval)
 
         # Trying to shuffle a vector with function that should shuffle
@@ -528,15 +510,11 @@ class Test_SharedRandomStreams:
         # Arguments of size (3,)
         val0 = f(low_val, high_val)
         numpy_val0 = numpy_rng.uniform(low=low_val, high=high_val)
-        print("THEANO", val0)
-        print("NUMPY", numpy_val0)
         assert np.all(val0 == numpy_val0)
 
         # arguments of size (2,)
         val1 = f(low_val[:-1], high_val[:-1])
         numpy_val1 = numpy_rng.uniform(low=low_val[:-1], high=high_val[:-1])
-        print("THEANO", val1)
-        print("NUMPY", numpy_val1)
         assert np.all(val1 == numpy_val1)
 
         # Specifying the size explicitly
@@ -851,9 +829,3 @@ class Test_SharedRandomStreams:
             su2[0].set_value(su1[0].get_value())
 
         np.testing.assert_array_almost_equal(f1(), f2(), decimal=6)
-
-
-if __name__ == "__main__":
-    from theano.tests import main
-
-    main("test_shared_randomstreams")

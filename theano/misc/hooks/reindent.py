@@ -44,7 +44,8 @@ from __future__ import absolute_import, print_function, division
 __version__ = "1"
 
 import tokenize
-import os, shutil
+import os
+import shutil
 import sys
 from six.moves import xrange
 

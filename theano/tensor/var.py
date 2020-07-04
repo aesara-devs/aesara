@@ -9,10 +9,11 @@ import traceback as tb
 import warnings
 
 import numpy as np
+import theano
+
 from six import integer_types
 from six.moves import xrange
 
-import theano
 from theano.compat import PY3
 from theano.scalar import ComplexError, IntegerDivisionError
 from theano.gof import Constant, Variable

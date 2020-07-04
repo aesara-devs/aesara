@@ -1,15 +1,12 @@
 from __future__ import absolute_import, print_function, division
 import os
 import sys
-from six import reraise
-import pytest
-
 import numpy as np
-
 import theano
+import theano.tests.unittest_tools as utt
+
 from theano import config, function, tensor
 from theano.sandbox import multinomial
-import theano.tests.unittest_tools as utt
 from theano.compat import PY3
 from theano.misc.pkl_utils import CompatUnpickler
 

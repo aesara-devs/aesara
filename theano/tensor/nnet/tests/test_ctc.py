@@ -1,10 +1,10 @@
 from __future__ import division, absolute_import, print_function
 
-import numpy as np
 import pytest
-
+import numpy as np
 import theano
 import theano.tensor as T
+
 from theano.tests import unittest_tools as utt
 from theano.tensor.nnet.ctc import (
     ctc_available,

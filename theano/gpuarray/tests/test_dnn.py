@@ -235,8 +235,8 @@ def run_dnn_conv_invalid_precision(ndim):
 
 
 def test_dnn_conv_invalid_precision():
-    yield (run_dnn_conv_invalid_precision, 2)
-    yield (run_dnn_conv_invalid_precision, 3)
+    run_dnn_conv_invalid_precision(2)
+    run_dnn_conv_invalid_precision(3)
 
 
 def test_dnn_conv_mixed_dtype():
@@ -433,7 +433,7 @@ def run_pooling_with_tensor_vars(mode):
 def test_pooling_with_tensor_vars():
     # Let's test for mode 'max' and also for 'max_deterministic' if available.
     for mode in [m for m in get_dnn_pool_modes() if m in ("max", "max_deterministic")]:
-        yield (run_pooling_with_tensor_vars, mode)
+        run_pooling_with_tensor_vars(mode)
 
 
 def test_pooling3d():
@@ -746,6 +746,7 @@ class TestDnnInferShapes(utt.InferShapeTester):
         if not dnn.dnn_available(test_ctx_name):
             pytest.skip(dnn.dnn_available.msg)
         self.mode = mode_with_gpu
+        super().setup_method()
 
     def test_softmax(self):
         if not dnn.dnn_available(test_ctx_name):
@@ -1295,18 +1296,18 @@ def test_batched_conv_small():
     if not dnn.dnn_available(test_ctx_name):
         pytest.skip(dnn.dnn_available.msg)
 
-    yield (run_conv_small_batched_vs_multicall, (65536, 2, 2, 2), (1, 2, 2, 2), 5)
+    run_conv_small_batched_vs_multicall((65536, 2, 2, 2), (1, 2, 2, 2), 5)
     # Should fail with cuDNN < V6020, but there's currently a workaround in `dnn_fwd.c` for that case.
-    yield (run_conv_small_batched_vs_multicall, (65537, 2, 2, 2), (1, 2, 2, 2), 5)
+    run_conv_small_batched_vs_multicall((65537, 2, 2, 2), (1, 2, 2, 2), 5)
 
 
 def test_batched_conv3d_small():
     if not dnn.dnn_available(test_ctx_name):
         pytest.skip(dnn.dnn_available.msg)
 
-    yield (run_conv_small_batched_vs_multicall, (65536, 2, 2, 2, 2), (1, 2, 2, 2, 2), 5)
+    run_conv_small_batched_vs_multicall((65536, 2, 2, 2, 2), (1, 2, 2, 2, 2), 5)
     # Should fail with cuDNN < V6020, but there's currently a workaround in `dnn_fwd.c` for that case.
-    yield (run_conv_small_batched_vs_multicall, (65537, 2, 2, 2, 2), (1, 2, 2, 2, 2), 5)
+    run_conv_small_batched_vs_multicall((65537, 2, 2, 2, 2), (1, 2, 2, 2, 2), 5)
 
 
 def test_conv3d_fwd():
@@ -1366,14 +1367,8 @@ def test_conv3d_fwd():
 
     test_cases = get_conv3d_test_cases()
     for (i_shape, f_shape, subsample, dilation), border_mode, conv_mode in test_cases:
-        yield (
-            run_conv3d_fwd,
-            i_shape,
-            f_shape,
-            subsample,
-            dilation,
-            border_mode,
-            conv_mode,
+        run_conv3d_fwd(
+            i_shape, f_shape, subsample, dilation, border_mode, conv_mode,
         )
 
 
@@ -1437,15 +1432,7 @@ def test_conv3d_bwd():
 
     test_cases = get_conv3d_test_cases()
     for (i_shape, f_shape, subsample, dilation), border_mode, conv_mode in test_cases:
-        yield (
-            run_conv3d_bwd,
-            i_shape,
-            f_shape,
-            subsample,
-            dilation,
-            border_mode,
-            conv_mode,
-        )
+        run_conv3d_bwd(i_shape, f_shape, subsample, dilation, border_mode, conv_mode)
 
 
 def test_version():
@@ -1454,7 +1441,7 @@ def test_version():
     assert isinstance(dnn.version(), int)
 
 
-class test_SoftMax(test_nnet.test_SoftMax):
+class TestSoftMax(test_nnet.TestSoftMax):
     gpu_op = dnn.GpuDnnSoftmax
     gpu_grad_op = dnn.GpuDnnSoftmaxGrad
     mode = mode_with_gpu
@@ -1683,14 +1670,14 @@ def test_dnn_reduction_opt():
         pytest.skip(dnn.dnn_available.msg)
 
     for nd in range(1, 9):
-        yield dnn_reduction, nd, "float32", "float32", "float32"
+        dnn_reduction(nd, "float32", "float32", "float32")
 
     for idtype, adtype, odtype in (
         ("float64", "float64", "float64"),
         ("float16", "float32", "float16"),
         ("float16", "float32", "float32"),
     ):
-        yield dnn_reduction, 2, idtype, adtype, odtype
+        dnn_reduction(2, idtype, adtype, odtype)
 
 
 def test_dnn_reduction_sum_squares():
@@ -1830,8 +1817,8 @@ def dnn_reduction_strides(shp, shuffle, slice):
 def test_dnn_reduction_strides():
     if not dnn.dnn_available(test_ctx_name):
         pytest.skip(dnn.dnn_available.msg)
-    yield dnn_reduction_strides, (2, 3, 2), (1, 0, 2), slice(None, None, None)
-    yield dnn_reduction_strides, (2, 3, 2), (0, 1, 2), slice(None, None, -1)
+    dnn_reduction_strides((2, 3, 2), (1, 0, 2), slice(None, None, None))
+    dnn_reduction_strides((2, 3, 2), (0, 1, 2), slice(None, None, -1))
 
 
 def test_dnn_reduction_error():
@@ -1868,19 +1855,19 @@ def test_dnn_maxandargmax_opt():
         pytest.skip(dnn.dnn_available.msg)
 
     for nd in range(1, 9):
-        yield dnn_maxargmax, nd, "float32", None
+        dnn_maxargmax(nd, "float32", None)
 
     for idtype in ("float64", "float16"):
-        yield dnn_maxargmax, 2, idtype, None
+        dnn_maxargmax(2, idtype, None)
 
-    yield dnn_maxargmax, 3, "float32", (0, 1)
-    yield dnn_maxargmax, 3, "float32", (0, 2)
-    yield dnn_maxargmax, 3, "float32", (1, 2)
-    yield dnn_maxargmax, 3, "float32", (0, 1, 2)
-    yield dnn_maxargmax, 3, "float32", (0,)
-    yield dnn_maxargmax, 3, "float32", (1,)
-    yield dnn_maxargmax, 3, "float32", (2,)
-    yield dnn_maxargmax, 3, "float32", ()
+    dnn_maxargmax(3, "float32", (0, 1))
+    dnn_maxargmax(3, "float32", (0, 2))
+    dnn_maxargmax(3, "float32", (1, 2))
+    dnn_maxargmax(3, "float32", (0, 1, 2))
+    dnn_maxargmax(3, "float32", (0,))
+    dnn_maxargmax(3, "float32", (1,))
+    dnn_maxargmax(3, "float32", (2,))
+    dnn_maxargmax(3, "float32", ())
 
 
 def test_dnn_batchnorm_train():
@@ -3222,7 +3209,7 @@ class TestDnnConv2DRuntimeAlgorithms(object):
                     utt.assert_allclose(cpu_res, np.asarray(gpu_res), rtol=2e-5)
 
         for algo in self.runtime_algorithms:
-            yield (run_fwd_runtime_algorithm, algo)
+            run_fwd_runtime_algorithm(algo)
 
     def test_gradinput_runtime_algorithms(self):
         dtype = "float32"
@@ -3280,7 +3267,7 @@ class TestDnnConv2DRuntimeAlgorithms(object):
                     utt.assert_allclose(cpu_res, np.asarray(gpu_res))
 
         for algo in self.runtime_algorithms:
-            yield (run_gradinput_runtime_algorithm, algo)
+            run_gradinput_runtime_algorithm(algo)
 
     def test_gradweight_runtime_algorithms(self):
         dtype = "float32"
@@ -3338,7 +3325,7 @@ class TestDnnConv2DRuntimeAlgorithms(object):
                     utt.assert_allclose(cpu_res, np.asarray(gpu_res))
 
         for algo in self.runtime_algorithms:
-            yield (run_gradweight_runtime_algorithm, algo)
+            run_gradweight_runtime_algorithm(algo)
 
 
 class TestDnnConv3DRuntimeAlgorithms(TestDnnConv2DRuntimeAlgorithms):

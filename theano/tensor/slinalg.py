@@ -266,7 +266,7 @@ class Solve(Op):
             return [(rows, cols)]
 
     def L_op(self, inputs, outputs, output_gradients):
-        """
+        r"""
         Reverse-mode gradient updates for matrix solve operation c = A \\\ b.
 
         Symbolic expression for updates taken from [#]_.

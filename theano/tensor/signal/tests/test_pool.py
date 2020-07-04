@@ -1,17 +1,14 @@
 from __future__ import absolute_import, print_function, division
-
-from itertools import product
 import os
-from six import reraise
-from six.moves import cPickle
-import six.moves.builtins as builtins
 import sys
-
-import numpy as np
 import pytest
-
+import six.moves.builtins as builtins
+import numpy as np
 import theano
 import theano.tensor as tensor
+
+from itertools import product
+from six.moves import cPickle
 from theano.tests import unittest_tools as utt
 from theano.tensor.signal.pool import (
     Pool,
@@ -22,7 +19,6 @@ from theano.tensor.signal.pool import (
     max_pool_2d_same_size,
     DownsampleFactorMaxGradGrad,
 )
-
 from theano import function
 
 

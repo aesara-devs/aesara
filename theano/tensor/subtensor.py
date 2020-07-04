@@ -2047,8 +2047,7 @@ class AdvancedIncSubtensor1(Op):
             else:
                 opname = "increment"
             raise TypeError(
-                "cannot %s x subtensor with ndim=%s"
-                " by y with ndim=%s to x subtensor with ndim=%s "
+                "cannot %s x subtensor with ndim=%s by y with ndim=%s."
                 % (opname, x_.type.ndim, y_.type.ndim)
             )
 

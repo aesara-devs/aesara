@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 import theano
 import theano.tensor as T
+
 from theano.tests import unittest_tools as utt
 from theano.tensor.nnet import conv
 from theano.tensor.basic import _allclose, NotScalarConstantError
@@ -21,13 +22,13 @@ class TestConv2D(utt.InferShapeTester):
     conv2d = staticmethod(conv.conv2d)
 
     def setup_method(self):
-        super(TestConv2D, self).setup_method()
         self.input = T.tensor4("input", dtype=self.dtype)
         self.input.name = "default_V"
         self.filters = T.tensor4("filters", dtype=self.dtype)
         self.filters.name = "default_filters"
         if not conv.imported_scipy_signal and theano.config.cxx == "":
             pytest.skip(reason="conv2d tests need SciPy or a c++ compiler")
+        super().setup_method()
 
     def validate(
         self,
@@ -730,8 +731,6 @@ class TestConv2D(utt.InferShapeTester):
 # Test that broadcasting of gradients works correctly when using the
 # nnet.conv2d() interface. This was reported in #3763, and uses the example
 # code from that ticket.
-
-
 def test_broadcast_grad():
     # rng = numpy.random.RandomState(utt.fetch_seed())
     x1 = T.tensor4("x")
@@ -751,10 +750,3 @@ def test_broadcast_grad():
         x1, filter_W, border_mode="full", filter_shape=[1, 1, None, None]
     )
     theano.grad(y.sum(), sigma)
-
-
-if __name__ == "__main__":
-
-    t = TestConv2D("setUp")
-    t.setup_method()
-    t.test_infer_shape()

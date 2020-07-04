@@ -655,19 +655,11 @@ def test_cholesky_grad():
     # The dots are inside the graph since Cholesky needs separable matrices
 
     # Check the default.
-    yield (lambda: utt.verify_grad(lambda r: gpu_cholesky(r.dot(r.T)), [r], 3, rng))
+    utt.verify_grad(lambda r: gpu_cholesky(r.dot(r.T)), [r], 3, rng)
     # Explicit lower-triangular.
-    yield (
-        lambda: utt.verify_grad(
-            lambda r: GpuCholesky(lower=True)(r.dot(r.T)), [r], 3, rng
-        )
-    )
+    utt.verify_grad(lambda r: GpuCholesky(lower=True)(r.dot(r.T)), [r], 3, rng)
     # Explicit upper-triangular.
-    yield (
-        lambda: utt.verify_grad(
-            lambda r: GpuCholesky(lower=False)(r.dot(r.T)), [r], 3, rng
-        )
-    )
+    utt.verify_grad(lambda r: GpuCholesky(lower=False)(r.dot(r.T)), [r], 3, rng)
 
 
 def test_cholesky_grad_indef():
@@ -708,4 +700,4 @@ def test_lower_triangular_and_cholesky_grad():
         LB = gpu_cholesky(B)
         return theano.tensor.sum(theano.tensor.log(theano.tensor.diag(LB)))
 
-    yield (lambda: utt.verify_grad(f, [r, y], 3, rng))
+    utt.verify_grad(f, [r, y], 3, rng)

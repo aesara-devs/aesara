@@ -4,7 +4,7 @@ from theano.compat import exc_message
 from theano.gof.optdb import opt, DB
 
 
-class Test_DB:
+class TestDB:
     def test_0(self):
         class Opt(opt.Optimizer):  # inheritance buys __hash__
             name = "blah"

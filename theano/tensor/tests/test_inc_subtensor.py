@@ -6,7 +6,7 @@ import theano
 import theano.tensor as tt
 
 
-class Test_inc_subtensor:
+class TestIncSubtensor:
     """
     Partial testing.
 

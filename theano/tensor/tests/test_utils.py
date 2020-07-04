@@ -1,8 +1,8 @@
 from __future__ import absolute_import, print_function, division
-
+import pytest
 import numpy as np
-
 import theano
+
 from theano.tensor.utils import hash_from_ndarray, shape_of_variables
 
 
@@ -48,7 +48,7 @@ def test_hash_from_ndarray():
     assert hash_from_ndarray(rng[::-1]) == hash_from_ndarray(rng[::-1].copy())
 
 
-class Tshape_of_variables:
+class TestShapeOfVariables:
     def test_simple(self):
         x = theano.tensor.matrix("x")
         y = x + x

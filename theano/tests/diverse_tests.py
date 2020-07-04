@@ -1,11 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
-import numpy as np
-import numpy.random
-
-import theano
-from theano.tests import unittest_tools as utt
-
 """
   Different tests that are not connected to any particular Op, or
   functionality of Theano. Here will go for example code that we will
@@ -13,9 +5,16 @@ from theano.tests import unittest_tools as utt
   operational
 
 """
+from __future__ import absolute_import, print_function, division
+
+import numpy as np
+import numpy.random
+import theano
+
+from theano.tests import unittest_tools as utt
 
 
-class Test_scipy:
+class TestScipy:
     def setup_method(self):
         utt.seed_rng()
         self.orig_floatX = theano.config.floatX

@@ -320,7 +320,7 @@ class TestSpecifyShape(test_basic.TestSpecifyShape):
     input_type = GpuArrayType
 
 
-class test_gpu_ifelse(test_ifelse.test_ifelse):
+class TestGpuIfelse(test_ifelse.TestIfelse):
     mode = mode_with_gpu
 
     @staticmethod

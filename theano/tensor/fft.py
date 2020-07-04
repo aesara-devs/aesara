@@ -130,7 +130,7 @@ irfft_op = IRFFTOp()
 
 
 def rfft(inp, norm=None):
-    """
+    r"""
     Performs the fast Fourier transform of a real-valued input.
 
     The input must be a real-valued variable of dimensions (m, ..., n).
@@ -164,7 +164,7 @@ def rfft(inp, norm=None):
 
 
 def irfft(inp, norm=None, is_odd=False):
-    """
+    r"""
     Performs the inverse fast Fourier Transform with real-valued output.
 
     The input is a variable of dimensions (m, ..., n//2+1, 2)

@@ -241,7 +241,7 @@ def softmax_unittest_template(dtypeInput):
     cmp(128, 64 * 1024)
 
 
-class test_SoftMax:
+class TestSoftMax:
     gpu_op = GpuSoftmax
     mode = mode_wo_cudnn
 

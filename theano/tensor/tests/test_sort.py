@@ -22,7 +22,7 @@ def gen_unique_vector(size, dtype):
     return (retval[np.random.permutation(size)] - size * 1.5).astype(dtype)
 
 
-class Test_sort:
+class TestSort:
     def setup_method(self):
         self.rng = np.random.RandomState(seed=utt.fetch_seed())
         self.m_val = self.rng.rand(3, 2)
@@ -232,7 +232,7 @@ def test_argsort_grad():
     utt.verify_grad(lambda x: argsort(x, axis=2), [data])
 
 
-class Test_TopK:
+class TestTopK:
     mode = None
     op_class = TopKOp
 

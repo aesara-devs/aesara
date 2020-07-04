@@ -18,7 +18,7 @@ def data_of(s):
     return s.container.storage[0]
 
 
-class Test_pfunc:
+class TestPfunc:
     def test_doc(self):
         # Ensure the code given in pfunc.txt works as expected
 
@@ -692,7 +692,7 @@ class Test_pfunc:
         assert b.get_value(borrow=True).shape == (2, 3), b.get_value()
 
 
-class Test_aliasing_rules:
+class TestAliasingRules:
     # 1. Theano manages its own memory space, which typically does not overlap
     # with the memory of normal python variables that the user uses.
     #
@@ -1039,8 +1039,8 @@ class Test_aliasing_rules:
             # objects forming a chain to the underlying data.
 
 
-class Test_rebuild_strict:
-    def test1(self):
+class TestRebuildStrict:
+    def test_rebuild_strict(self):
         # Test fix for error reported at
         # https://groups.google.com/d/topic/theano-users/BRK0UEB72XA/discussion
         w = tensor.imatrix()
@@ -1050,8 +1050,3 @@ class Test_rebuild_strict:
         z_val = f(np.ones((3, 5), dtype="int32"), np.arange(5, dtype="int32"))
         assert z_val.ndim == 2
         assert np.all(z_val == np.ones((3, 5)) * np.arange(5))
-
-
-if __name__ == "__main__":
-    theano.config.mode = "FAST_COMPILE"
-    Test_pfunc().test_default_scalar_container()

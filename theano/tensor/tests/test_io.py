@@ -6,13 +6,13 @@ import numpy as np
 import os
 
 
-class Test_load_tensor:
+class TestLoadTensor:
     def setup_method(self):
         self.data = np.arange(5, dtype=np.int32)
         self.filename = os.path.join(theano.config.compiledir, "_test.npy")
         np.save(self.filename, self.data)
 
-    def test0(self):
+    def test_basic(self):
         path = Variable(Generic())
         # Not specifying mmap_mode defaults to None, and the data is
         # copied into main memory

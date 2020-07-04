@@ -1,13 +1,12 @@
 from __future__ import absolute_import, print_function, division
+import pytest
 import numpy as np
-
 import theano
-from theano import tensor
 import theano.tests.unittest_tools as utt
-from theano.tensor.nnet.tests import test_blocksparse
 
+from theano import tensor
+from theano.tensor.nnet.tests.test_blocksparse import TestBlockSparseGemvAndOuter
 from .config import mode_with_gpu, test_ctx_name
-
 from ..type import gpuarray_shared_constructor
 from ..blocksparse import (
     GpuSparseBlockGemv,
@@ -17,7 +16,7 @@ from ..blocksparse import (
 )
 
 
-class BlockSparse_Gemv_and_Outer(test_blocksparse.BlockSparse_Gemv_and_Outer):
+class TestBlockSparseGemvAndOuterGPUarray(TestBlockSparseGemvAndOuter):
     def setup_method(self):
         utt.seed_rng()
         self.mode = mode_with_gpu.excluding("constant_folding")
@@ -25,11 +24,16 @@ class BlockSparse_Gemv_and_Outer(test_blocksparse.BlockSparse_Gemv_and_Outer):
         self.outer_op = gpu_sparse_block_outer
         self.gemv_class = GpuSparseBlockGemv
         self.outer_class = GpuSparseBlockOuter
+        super().setup_method()
 
-    # This test is temporarily disabled since we disabled the output_merge
-    # and alpha_merge optimizations for blocksparse due to brokeness.
-    # Re-enable when those are re-added.
-    def Xtest_blocksparse_grad_merge(self):
+    @pytest.mark.skip(
+        reason="""
+        This test is temporarily disabled since we disabled the output_merge
+        and alpha_merge optimizations for blocksparse due to brokeness.
+        Re-enable when those are re-added.
+        """
+    )
+    def test_blocksparse_grad_merge(self):
         b = tensor.fmatrix()
         h = tensor.ftensor3()
         iIdx = tensor.lmatrix()

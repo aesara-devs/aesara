@@ -11,7 +11,7 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano.misc.pkl_utils import dump, load, StripPickler
 
 
-class Test_dump_load:
+class TestDumpLoad:
     def setup_method(self):
         # Work in a temporary directory to avoid cluttering the repository
         self.origdir = os.getcwd()
@@ -63,7 +63,7 @@ class TestStripPickler:
         if self.tmpdir is not None:
             shutil.rmtree(self.tmpdir)
 
-    def test0(self):
+    def test_basic(self):
         with open("test.pkl", "wb") as f:
             m = theano.tensor.matrix()
             dest_pkl = "my_test.pkl"

@@ -14,7 +14,7 @@ import theano.tensor
 from theano.tests import unittest_tools as utt
 
 
-def test0():
+def test_debugmode_basic():
     x = theano.tensor.dvector()
     f = theano.function([x], ((2.0 * x) + 7) / 2.0, mode=debugmode.DebugMode())
     f([1, 2])
@@ -311,7 +311,7 @@ def test_badoptimization_opt_err():
             exc_type, exc_value, exc_trace = sys.exc_info()
             exc_value = new_e
             reraise(e.__class__, exc_value, exc_trace)
-        except theano.gof.toolbox.BadOptimization as e:
+        except theano.gof.toolbox.BadOptimization:
             pass
         else:
             assert False
@@ -398,7 +398,7 @@ def test_baddestroymap_c():
         pass
 
 
-class Test_ViewMap:
+class TestViewMap:
     class BadAddRef(gof.Op):
         def make_node(self, a, b):
             c = b.type()
@@ -578,7 +578,7 @@ class Test_ViewMap:
         # f([1,2,3,4],[5,6,7,8])
 
 
-class Test_check_isfinite:
+class TestCheckIsfinite:
     def setup_method(self):
         self.old_ts = theano.tensor.TensorType.filter_checks_isfinite
         self.old_dm = theano.compile.mode.predefined_modes["DEBUG_MODE"].check_isfinite
@@ -758,7 +758,7 @@ class VecAsRowAndCol(gof.Op):
             c[0][i, 0] = v[i]
 
 
-class Test_preallocated_output:
+class TestPreallocatedOutput:
     def setup_method(self):
         self.rng = np.random.RandomState(seed=utt.fetch_seed())
 

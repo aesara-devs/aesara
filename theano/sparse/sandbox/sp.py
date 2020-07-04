@@ -9,31 +9,12 @@ U{http://www-users.cs.umn.edu/~saad/software/SPARSKIT/paper.ps}.
 # COPIED FROM hpu/icml09/sp.py
 from __future__ import absolute_import, print_function, division
 import numpy as np
-import scipy
 from scipy import sparse as scipy_sparse
 from six.moves import xrange
 
 import theano
 import theano.sparse
-from theano import sparse, gof, Op, tensor
-from theano.sparse.basic import Remove0, remove0
-
-# To maintain compatibility
-from theano.sparse import (
-    SpSum,
-    sp_sum,
-    ColScaleCSC,
-    RowScaleCSC,
-    col_scale,
-    row_scale,
-    Diag,
-    diag,
-    SquareDiagonal,
-    square_diagonal,
-    EnsureSortedIndices,
-    ensure_sorted_indices,
-    clean,
-)
+from theano import sparse, Op, tensor
 
 
 def register_specialize(lopt, *tags, **kwargs):
@@ -101,7 +82,7 @@ class ConvolutionIndices(Op):
         kshp = np.array(kshp)
         ksize = np.prod(kshp)
 
-        kern = ksize - 1 - np.arange(ksize)
+        # kern = ksize - 1 - np.arange(ksize)
 
         # size of output image if doing proper convolution
         # (mode='full',dx=dy=0) outshp is the actual output shape
@@ -149,7 +130,7 @@ class ConvolutionIndices(Op):
         spmat = scipy_sparse.lil_matrix(spmatshp)
 
         # loop over output image pixels
-        z, zz = 0, 0
+        # z, zz = 0, 0
 
         # incremented every time we write something to the sparse
         # matrix this is used to track the ordering of filter tap
@@ -174,7 +155,7 @@ class ConvolutionIndices(Op):
 
                         # kern[l] is filter value to apply at (oj,oi)
                         # for (iy,ix)
-                        l = 0
+                        l = 0  # noqa: E741
 
                         # ... ITERATE OVER INPUT UNITS IN RECEPTIVE FIELD
                         for ky in oy + np.arange(kshp[0]):

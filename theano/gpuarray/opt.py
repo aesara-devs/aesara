@@ -3126,10 +3126,10 @@ register_opt("fast_compile")(abstractconv_groupopt)
 
 # We import these opts here instead of at the top of this file
 # to avoid a circular dependency problem with dnn
-from .dnn import (
+from .dnn import (  # noqa: E402
     local_abstractconv_cudnn,
     local_abstractconv_gw_cudnn,
-    local_abstractconv_gi_cudnn,  # noqa: 402
+    local_abstractconv_gi_cudnn,
     local_abstractconv_cudnn_alt,
     local_abstractconv3d_cudnn_alt,
 )
@@ -3262,11 +3262,11 @@ abstractconv_groupopt.register("conv_metaopt", conv_metaopt, "conv_meta", positi
 
 # We import these opts here instead of at the top of this file
 # to avoid a circular dependency problem with dnn
-from .dnn import (
+from .dnn import (  # noqa: E402
     local_abstract_batch_norm_train_cudnn,
     local_abstract_batch_norm_train_grad_cudnn,
     local_abstract_batch_norm_inference_cudnn,
-)  # noqa: 402
+)
 
 abstract_batch_norm_groupopt = theano.gof.optdb.LocalGroupDB()
 abstract_batch_norm_groupopt.__name__ = "gpuarray_batchnorm_opts"

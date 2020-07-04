@@ -1,5 +1,4 @@
 from __future__ import absolute_import, print_function, division
-import sys
 import time
 import pytest
 
@@ -8,19 +7,15 @@ import theano.sparse
 if not theano.sparse.enable_sparse:
     pytest.skip("Optional package sparse disabled", allow_module_level=True)
 
-import scipy.sparse
-from scipy.signal import convolve2d
-import scipy.sparse as sparse
 import numpy as np
-from six.moves import xrange
+import theano
+
+from scipy.signal import convolve2d
 
 from theano import function, tensor
-import theano
 from theano.compat import next
 from theano.sparse.sandbox import sp
-from theano.sparse.tests.test_basic import random_lil
 from theano.tests import unittest_tools as utt
-from theano.sparse.tests.test_basic import sparse_random_inputs
 
 
 class TestSP:
@@ -142,7 +137,7 @@ class TestSP:
         # symbolic stuff
         kerns = [tensor.dmatrix(), tensor.dmatrix()]
         input = tensor.dmatrix()
-        rng = np.random.RandomState(3423489)
+        # rng = np.random.RandomState(3423489)
 
         # build actual input images
         img2d = np.arange(bsize * np.prod(imshp)).reshape((bsize,) + imshp)
@@ -188,7 +183,7 @@ class TestSP:
                     # for debugging, we bring things back to integers
                     l1hidval = np.arange(np.size(l1hidval)).reshape(l1hidval.shape)
 
-                    l2hidval = l2propup(l2kernvals, l1hidval)
+                    l2propup(l2kernvals, l1hidval)
 
     def test_maxpool(self):
         # generate flatted images

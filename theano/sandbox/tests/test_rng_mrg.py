@@ -177,7 +177,7 @@ def test_consistency_cpu_parallel():
     assert np.allclose(samples, java_samples)
 
 
-def basictest(
+def check_basics(
     f,
     steps,
     sample_size,
@@ -298,14 +298,16 @@ def test_uniform():
             steps_ = steps * 100
         else:
             steps_ = steps
-        basictest(f, steps_, const_size, prefix="mrg cpu", inputs=input)
+        check_basics(f, steps_, const_size, prefix="mrg cpu", inputs=input)
 
         RR = theano.tensor.shared_randomstreams.RandomStreams(234)
 
         uu = RR.uniform(size=size)
         ff = theano.function(var_input, uu)
         # It's not our problem if numpy generates 0 or 1
-        basictest(ff, steps_, const_size, prefix="numpy", allow_01=True, inputs=input)
+        check_basics(
+            ff, steps_, const_size, prefix="numpy", allow_01=True, inputs=input
+        )
 
 
 def test_broadcastable():
@@ -346,6 +348,45 @@ def test_broadcastable():
             assert uu.broadcastable == (False, True)
 
 
+def check_binomial(mean, size, const_size, var_input, input, steps, rtol):
+    R = MRG_RandomStreams(234)
+    u = R.binomial(size=size, p=mean)
+    f = theano.function(var_input, u)
+    f(*input)
+
+    # Increase the number of steps if sizes implies only a few samples
+    if np.prod(const_size) < 10:
+        steps_ = steps * 100
+    else:
+        steps_ = steps
+    check_basics(
+        f,
+        steps_,
+        const_size,
+        prefix="mrg  cpu",
+        inputs=input,
+        allow_01=True,
+        target_avg=mean,
+        mean_rtol=rtol,
+    )
+
+    RR = theano.tensor.shared_randomstreams.RandomStreams(234)
+
+    uu = RR.binomial(size=size, p=mean)
+    ff = theano.function(var_input, uu)
+    # It's not our problem if numpy generates 0 or 1
+    check_basics(
+        ff,
+        steps_,
+        const_size,
+        prefix="numpy",
+        allow_01=True,
+        inputs=input,
+        target_avg=mean,
+        mean_rtol=rtol,
+    )
+
+
 @pytest.mark.slow
 def test_binomial():
     # TODO: test size=None, ndim=X
@@ -377,46 +418,7 @@ def test_binomial():
             # test empty size (scalar)
             ((), (), [], []),
         ]:
-            yield (t_binomial, mean, size, const_size, var_input, input, steps, rtol)
-
-
-def t_binomial(mean, size, const_size, var_input, input, steps, rtol):
-    R = MRG_RandomStreams(234)
-    u = R.binomial(size=size, p=mean)
-    f = theano.function(var_input, u)
-    f(*input)
-
-    # Increase the number of steps if sizes implies only a few samples
-    if np.prod(const_size) < 10:
-        steps_ = steps * 100
-    else:
-        steps_ = steps
-    basictest(
-        f,
-        steps_,
-        const_size,
-        prefix="mrg  cpu",
-        inputs=input,
-        allow_01=True,
-        target_avg=mean,
-        mean_rtol=rtol,
-    )
-
-    RR = theano.tensor.shared_randomstreams.RandomStreams(234)
-
-    uu = RR.binomial(size=size, p=mean)
-    ff = theano.function(var_input, uu)
-    # It's not our problem if numpy generates 0 or 1
-    basictest(
-        ff,
-        steps_,
-        const_size,
-        prefix="numpy",
-        allow_01=True,
-        inputs=input,
-        target_avg=mean,
-        mean_rtol=rtol,
-    )
+            check_binomial(mean, size, const_size, var_input, input, steps, rtol)
 
 
 @pytest.mark.slow
@@ -490,7 +492,7 @@ def test_normal0():
             steps_ = steps * 50
         else:
             steps_ = steps
-        basictest(
+        check_basics(
             f,
             steps_,
             const_size,
@@ -510,7 +512,7 @@ def test_normal0():
         nn = RR.normal(size=size, avg=avg, std=std)
         ff = theano.function(var_input, nn)
 
-        basictest(
+        check_basics(
             ff,
             steps_,
             const_size,
@@ -610,7 +612,7 @@ def test_normal_truncation():
             steps_ = steps * 50
         else:
             steps_ = steps
-        basictest(
+        check_basics(
             f,
             steps_,
             const_size,
@@ -698,7 +700,7 @@ def test_truncated_normal():
             steps_ = steps * 60
         else:
             steps_ = steps
-        basictest(
+        check_basics(
             f,
             steps_,
             const_size,
@@ -786,7 +788,7 @@ def test_multinomial_n_samples():
         sys.stdout.flush()
 
 
-class Test_MRG:
+class TestMRG:
     def test_bad_size(self):
 
         R = MRG_RandomStreams(234)

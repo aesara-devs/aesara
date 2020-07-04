@@ -18,7 +18,7 @@ from .basic_ops import (
 
 try:
     import pygpu
-except ImportError as e:
+except ImportError:
     # To make sure theano is importable
     pass
 

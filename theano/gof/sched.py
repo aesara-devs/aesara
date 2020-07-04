@@ -156,17 +156,17 @@ def _toposort(edges):
     return L
 
 
-def posort(l, *cmps):
+def posort(nodes, *cmps):
     """
     Partially ordered sort with multiple comparators.
 
-    Given a list of comparators, orders the elements in l so that the
+    Given a list of comparators, orders the elements in `nodes` so that the
     comparators are satisfied as much as possible giving precedence to
     earlier comparators.
 
     Parameters
     ----------
-    l
+    nodes
         An iterable of nodes in a graph.
     cmps
         A sequence of comparator functions that describe which nodes should
@@ -189,8 +189,8 @@ def posort(l, *cmps):
     [0, 8, 2, 4, 6, 1, 3, 5, 7, 9, 16, 18, 10, 12, 14, 17, 19, 11, 13, 15]
 
     """
-    comes_before = dict((a, set()) for a in l)
-    comes_after = dict((a, set()) for a in l)
+    comes_before = dict((a, set()) for a in nodes)
+    comes_after = dict((a, set()) for a in nodes)
 
     def add_links(a, b):  # b depends on a
         comes_after[a].add(b)
@@ -207,13 +207,13 @@ def posort(l, *cmps):
         Tests for cycles in manufactured edges.
 
         """
-        for a in l:
-            for b in l:
+        for a in nodes:
+            for b in nodes:
                 assert not (b in comes_after[a] and a in comes_after[b])
 
     for cmp_fn in cmps:
-        for a in l:
-            for b in l:
+        for a in nodes:
+            for b in nodes:
                 if cmp_fn(a, b) < 0:  # a wants to come before b
                     # if this wouldn't cause a cycle and isn't already known
                     if b not in comes_before[a] and b not in comes_after[a]:

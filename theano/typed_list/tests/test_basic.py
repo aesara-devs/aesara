@@ -2,10 +2,10 @@ from __future__ import absolute_import, print_function, division
 
 import numpy as np
 import pytest
-
 import theano
 import theano.typed_list
-from theano import tensor as T
+
+from theano import tensor as T, sparse
 from theano.tensor.type_other import SliceType
 from theano.typed_list.type import TypedListType
 from theano.typed_list.basic import (
@@ -20,7 +20,6 @@ from theano.typed_list.basic import (
     Length,
     make_list,
 )
-from theano import sparse
 from theano.tests import unittest_tools as utt
 
 # TODO, handle the case where scipy isn't installed.
@@ -57,7 +56,7 @@ def random_lil(shape, dtype, nnz):
     return rval
 
 
-class test_get_item:
+class TestGetItem:
     def setup_method(self):
         utt.seed_rng()
 
@@ -144,7 +143,7 @@ class test_get_item:
         assert np.array_equal(f([x]), [x])
 
 
-class test_append:
+class TestAppend:
     def test_inplace(self):
         mySymbolicMatricesList = TypedListType(
             T.TensorType(theano.config.floatX, (False, False))
@@ -194,7 +193,7 @@ class test_append:
         assert np.array_equal(f([x], y), [x, y])
 
 
-class test_extend:
+class TestExtend:
     def test_inplace(self):
         mySymbolicMatricesList1 = TypedListType(
             T.TensorType(theano.config.floatX, (False, False))
@@ -252,7 +251,7 @@ class test_extend:
         assert np.array_equal(f([x], [y]), [x, y])
 
 
-class test_insert:
+class TestInsert:
     def test_inplace(self):
         mySymbolicMatricesList = TypedListType(
             T.TensorType(theano.config.floatX, (False, False))
@@ -307,7 +306,7 @@ class test_insert:
         assert np.array_equal(f([x], np.asarray(1, dtype="int64"), y), [x, y])
 
 
-class test_remove:
+class TestRemove:
     def test_inplace(self):
         mySymbolicMatricesList = TypedListType(
             T.TensorType(theano.config.floatX, (False, False))
@@ -357,7 +356,7 @@ class test_remove:
         assert np.array_equal(f([x, y], y), [x])
 
 
-class test_reverse:
+class TestReverse:
     def test_inplace(self):
         mySymbolicMatricesList = TypedListType(
             T.TensorType(theano.config.floatX, (False, False))
@@ -404,7 +403,7 @@ class test_reverse:
         assert np.array_equal(f([x, y]), [y, x])
 
 
-class test_index:
+class TestIndex:
     def test_sanity_check(self):
         mySymbolicMatricesList = TypedListType(
             T.TensorType(theano.config.floatX, (False, False))
@@ -473,7 +472,7 @@ class test_index:
         assert f([x, y], y) == 1
 
 
-class test_count:
+class TestCount:
     def test_sanity_check(self):
         mySymbolicMatricesList = TypedListType(
             T.TensorType(theano.config.floatX, (False, False))
@@ -542,7 +541,7 @@ class test_count:
         assert f([x, y, y], y) == 2
 
 
-class test_length:
+class TestLength:
     def test_sanity_check(self):
         mySymbolicMatricesList = TypedListType(
             T.TensorType(theano.config.floatX, (False, False))
