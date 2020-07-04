@@ -16,8 +16,8 @@ python:
   - "3.6"
 
 stages:
-  - black
-  - doc
+  - lint
+  # - doc
   - test
 
 env:
@@ -46,13 +46,14 @@ install:
 
 jobs:
   include:
-    - stage: black
+    - stage: lint
       script:
         - pip install black
         - black --check theano/ setup.py
-    - &doctest
-      stage: doc
-      env: DOC=1 PART="theano/tests/test_flake8.py"
+        - flake8 theano/ setup.py
+    # - &doctest
+    #   stage: doc
+    #   env: DOC=1
     - &normaltest
       stage: test
       env: FAST_COMPILE=1 FLOAT32=1 PART="theano --ignore=theano/tensor/nnet --ignore=theano/tensor/signal"
