@@ -23,7 +23,6 @@ env:
   global:
     - NUMPY_VERSION=1.18.1
   jobs:
-    # - DOC=1 PART="theano/tests/test_flake8.py"
     - PART="theano/compat theano/compile theano/d3viz theano/gof theano/misc theano/sandbox theano/scalar theano/scan_module theano/tests -e test_flake8.py theano/typed_list"
     - PART="theano/sparse theano/tensor --exclude-test=theano.tensor.tests.test_basic --exclude-test=theano.tensor.tests.test_elemwise --exclude-test=theano.tensor.tests.test_opt --exclude-dir=theano/tensor/nnet"
     - PART="theano/tensor/tests/test_basic.py"
@@ -46,9 +45,6 @@ install:
 
 jobs:
   include:
-    - &doctest
-      stage: doc
-      env: DOC=1 PART="theano/tests/test_flake8.py"
     - &normaltest
       stage: test
       env: FAST_COMPILE=1 FLOAT32=1 PART="theano -e test_flake8.py --exclude-dir=theano/tensor/nnet --exclude-dir=theano/tensor/signal"
