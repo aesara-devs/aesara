@@ -84,7 +84,7 @@ script:
   - python -c 'import theano; print(theano.config.__str__(print_doc=False))'
   - python -c 'import theano; assert(theano.config.blas.ldflags != "")'
   # Run tests for the given part
-  - theano-nose -v --with-timer --timer-top-n 10 $PART
+  - pytest -v $PART
 
 after_failure:
   - cat $HOME/.pip/pip.log
