@@ -23,11 +23,11 @@ env:
   global:
     - NUMPY_VERSION=1.18.1
   jobs:
-    - PART="theano/compat theano/compile theano/d3viz theano/gof theano/misc theano/sandbox theano/scalar theano/scan_module theano/tests -e test_flake8.py theano/typed_list"
-    - PART="theano/sparse theano/tensor --exclude-test=theano.tensor.tests.test_basic --exclude-test=theano.tensor.tests.test_elemwise --exclude-test=theano.tensor.tests.test_opt --exclude-dir=theano/tensor/nnet"
+    - PART="theano/compat theano/compile theano/d3viz theano/gof theano/misc theano/sandbox theano/scalar theano/scan_module theano/tests theano/typed_list"
+    - PART="theano/sparse theano/tensor --ignore=theano.tensor.tests.test_basic.py --ignore=theano.tensor.tests.test_elemwise.py --ignore=theano.tensor.tests.test_opt.py --ignore=theano/tensor/nnet"
     - PART="theano/tensor/tests/test_basic.py"
     - PART="theano/tensor/tests/test_elemwise.py theano/tensor/tests/test_opt.py"
-    - PART="theano/tensor/nnet -e test_abstract_conv.py"
+    - PART="theano/tensor/nnet --ignore test_abstract_conv.py"
     - PART="theano/tensor/nnet/tests/test_abstract_conv.py"
 
 addons:
@@ -47,9 +47,9 @@ jobs:
   include:
     - &normaltest
       stage: test
-      env: FAST_COMPILE=1 FLOAT32=1 PART="theano -e test_flake8.py --exclude-dir=theano/tensor/nnet --exclude-dir=theano/tensor/signal"
+      env: FAST_COMPILE=1 FLOAT32=1 PART="theano --ignore=theano/tensor/nnet --ignore=theano/tensor/signal"
     - <<: *normaltest
-      env: FAST_COMPILE=1 PART="theano -e test_flake8.py --exclude-dir=theano/tensor/nnet --exclude-dir=theano/tensor/signal"
+      env: FAST_COMPILE=1 PART="theano --ignore=theano/tensor/nnet --ignore=theano/tensor/signal"
     - <<: *normaltest
       env: FAST_COMPILE=1 FLOAT32=1 PART="theano/tensor/nnet"
     - <<: *normaltest
