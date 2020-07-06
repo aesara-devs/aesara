@@ -88,8 +88,7 @@ script:
   - python -c 'import theano; print(theano.__version__)'
   - python -c 'import theano; print(theano.config.__str__(print_doc=False))'
   - python -c 'import theano; assert(theano.config.blas.ldflags != "")'
-  # Run tests for the given part
-  - pytest -v $PART
+  - pytest -r A --verbose --runslow $PART
 
 after_failure:
   - cat $HOME/.pip/pip.log
