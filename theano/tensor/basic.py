@@ -2979,7 +2979,9 @@ def triu(m, k=0):
     tril : Lower triangle of an array.
 
     """
-    return m * (1 - tri(m.shape[0], m.shape[1], k=k - 1, dtype=m.dtype))
+    return m * (
+        constant(1, dtype=m.dtype) - tri(m.shape[0], m.shape[1], k=k - 1, dtype=m.dtype)
+    )
 
 
 class Eye(gof.Op):
