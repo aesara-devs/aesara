@@ -8,7 +8,6 @@ from six import reraise
 from theano import config
 from theano import gof
 import theano
-from theano.compat import exc_message
 from theano.compile import debugmode
 import theano.tensor
 from theano.tests import unittest_tools as utt
@@ -214,14 +213,10 @@ def test_badthunkoutput():
     if not theano.config.cxx:
         pytest.skip("G++ not available, so we need to skip this test.")
 
-    try:
+    with pytest.raises(debugmode.BadThunkOutput) as einfo:
         f_inconsistent([1.0, 2.0, 3.0], [2, 3, 4])
-    except debugmode.BadThunkOutput as e:
-        # print repr(e)
-        assert e.r.owner.op is inconsistent
-        return  # TEST PASS
 
-    assert False  # an error should have been detected
+    assert einfo.value.r.owner.op is inconsistent
 
 
 def test_badoptimization():
@@ -240,15 +235,11 @@ def test_badoptimization():
 
     f = theano.function([a, b], a + b, mode=debugmode.DebugMode(optimizer=opt))
 
-    try:
+    with pytest.raises(debugmode.BadOptimization) as einfo:
         f(
             [1.0, 2.0, 3.0], [2, 3, 4],
         )
-    except debugmode.BadOptimization as e:
-        assert str(e.reason) == "insert_broken_add"
-        return  # TEST PASS
-
-    assert False
+    assert str(einfo.value.reason) == "insert_broken_add"
 
 
 def test_badoptimization_opt_err():
@@ -283,17 +274,15 @@ def test_badoptimization_opt_err():
     b = theano.tensor.dvector()
 
     f = theano.function([a, b], a + b, mode=debugmode.DebugMode(optimizer=opt))
-    try:
+    with pytest.raises(ValueError, match=r"insert_bigger_b_add"):
         f(
             [1.0, 2.0, 3.0], [2, 3, 4],
         )
-    except ValueError as e:
-        assert "insert_bigger_b_add" in exc_message(e)
-    else:
-        assert False
 
     # Test that opt that do an illegal change still get the error from gof.
-    try:
+    with pytest.raises(
+        theano.gof.toolbox.BadOptimization, match=r"insert_bad_dtype"
+    ) as einfo:
         with theano.change_flags(on_opt_error="raise"):
             f2 = theano.function(
                 [a, b],
@@ -303,20 +292,14 @@ def test_badoptimization_opt_err():
         f2(
             [1.0, 2.0, 3.0], [2, 3, 4],
         )
-    except theano.gof.toolbox.BadOptimization as e:
-        assert "insert_bad_dtype" in str(e)
-        # Test that we can reraise the error with an extended message
-        try:
-            new_e = e.__class__("TTT" + str(e))
-            exc_type, exc_value, exc_trace = sys.exc_info()
-            exc_value = new_e
-            reraise(e.__class__, exc_value, exc_trace)
-        except theano.gof.toolbox.BadOptimization:
-            pass
-        else:
-            assert False
-    else:
-        assert False
+
+    # Test that we can reraise the error with an extended message
+    with pytest.raises(theano.gof.toolbox.BadOptimization):
+        e = einfo.value
+        new_e = e.__class__("TTT" + str(e))
+        exc_type, exc_value, exc_trace = sys.exc_info()
+        exc_value = new_e
+        reraise(e.__class__, exc_value, exc_trace)
 
 
 def test_stochasticoptimization():
@@ -340,7 +323,7 @@ def test_stochasticoptimization():
     a = theano.tensor.dvector()
     b = theano.tensor.dvector()
 
-    try:
+    with pytest.raises(debugmode.StochasticOrder):
         theano.function(
             [a, b],
             theano.tensor.add(a, b),
@@ -350,9 +333,6 @@ def test_stochasticoptimization():
                 stability_patience=max(2, config.DebugMode.patience),
             ),
         )
-    except debugmode.StochasticOrder:
-        return  # TEST PASS
-    assert False
 
 
 def test_just_c_code():
@@ -379,11 +359,8 @@ def test_baddestroymap():
     y = theano.tensor.dvector()
     f = theano.function([x, y], BadAdd()(x, y), mode="DEBUG_MODE")
 
-    try:
+    with pytest.raises(debugmode.BadDestroyMap):
         f([1, 2], [3, 4])
-        assert False  # failed to raise error
-    except debugmode.BadDestroyMap:
-        pass
 
 
 def test_baddestroymap_c():
@@ -391,11 +368,8 @@ def test_baddestroymap_c():
         pytest.skip("G++ not available, so we need to skip this test.")
     x = theano.tensor.dvector()
     f = theano.function([x], wb2i(x), mode=debugmode.DebugMode(check_py_code=False))
-    try:
+    with pytest.raises(debugmode.BadDestroyMap):
         assert np.all(f([1, 2]) == [2, 4])
-        assert False  # failed to raise error
-    except debugmode.BadDestroyMap:
-        pass
 
 
 class TestViewMap:
@@ -423,21 +397,15 @@ class TestViewMap:
         x = theano.tensor.dvector()
         y = theano.tensor.dvector()
         f = theano.function([x, y], self.BadAddRef()(x, y), mode="DEBUG_MODE")
-        try:
+        with pytest.raises(debugmode.BadViewMap):
             f([1, 2], [3, 4])
-            assert False  # failed to raise error
-        except debugmode.BadViewMap:
-            return
 
     def test_badviewmap_slice(self):
         x = theano.tensor.dvector()
         y = theano.tensor.dvector()
         f = theano.function([x, y], self.BadAddSlice()(x, y), mode="DEBUG_MODE")
-        try:
+        with pytest.raises(debugmode.BadViewMap):
             f([1, 2], [3, 4])
-            assert False  # failed to raise error
-        except debugmode.BadViewMap:
-            return
 
     def test_goodviewmap(self):
         goodop = self.BadAddRef()
@@ -445,22 +413,16 @@ class TestViewMap:
         x = theano.tensor.dvector()
         y = theano.tensor.dvector()
         f = theano.function([x, y], goodop(x, y), mode="DEBUG_MODE")
-        try:
-            f([1, 5, 1], [3, 4, 2, 1, 4])
-            return
-        except debugmode.BadViewMap:
-            assert False  # failed to raise error
+        # Shouldn't raise an error
+        f([1, 5, 1], [3, 4, 2, 1, 4])
 
     def test_badviewmap_c(self):
         if not theano.config.cxx:
-            pytest.skip("G++ not available, so we need to skip this test.")
+            pytest.skip("C++ not available, so we need to skip this test.")
         x = theano.tensor.dvector()
         f = theano.function([x], wb1i(x), mode=debugmode.DebugMode(check_py_code=False))
-        try:
+        with pytest.raises(debugmode.BadViewMap):
             f([1, 2])
-            assert False  # failed to raise error
-        except debugmode.BadViewMap:
-            pass
 
     def test_aliased_outputs_ok(self):
         # here aliased outputs is ok because they are both aliased to an input
@@ -563,12 +525,8 @@ class TestViewMap:
         out = bad_xy0 * 2 + bad_xy1 * 2
         f = theano.function([x, y], out, mode="DEBUG_MODE")
 
-        try:
+        with pytest.raises(debugmode.BadViewMap):
             f([1, 2, 3, 4], [5, 6, 7, 8])
-            assert False  # DebugMode should have caught the error
-        except debugmode.BadViewMap:
-            # print e
-            pass
 
         # the situation can be rescued by picking one of the inputs and
         # pretending that it is aliased to both the outputs.

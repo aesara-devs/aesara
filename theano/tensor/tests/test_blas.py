@@ -24,8 +24,6 @@ from six.moves import xrange
 import theano
 import theano.tensor as T
 from theano import tensor, In, shared, config
-from theano.compat import exc_message  # noqa: E401
-from theano.printing import pp
 from theano.tensor.blas import (
     _dot22,
     _dot22scalar,
@@ -128,28 +126,16 @@ class TestGemm:
 
     def test_basic(self):
         Gemm.debug = True
-        try:
+        with pytest.raises(TypeError, match=Gemm.E_rank):
             gemm_no_inplace([1.0], 1.0, [1.0], [1.0], 1.0)
-        except TypeError as e:
-            if exc_message(e) is Gemm.E_rank:
-                return
-        self.fail()
 
     def test_basic_1(self):
-        try:
+        with pytest.raises(TypeError, match=Gemm.E_rank):
             self.cmp(1.0, 0.0, 1.0, 1.0, 1.0)
-        except TypeError as e:
-            if exc_message(e) is Gemm.E_rank:
-                return
-        self.fail()
 
     def test_basic_2(self):
-        try:
+        with pytest.raises(TypeError, match=Gemm.E_rank):
             self.cmp(2.0, 1.0, [3, 2, 1.0], [[1], [2], [3.0]], 1.0)
-        except TypeError as e:
-            assert exc_message(e) == Gemm.E_rank
-            return
-        self.fail()
 
     def test_basic_4(self):
         self.cmp(self.rand(3, 4), 1.0, self.rand(3, 5), self.rand(5, 4), 0.0)
@@ -233,45 +219,29 @@ class TestGemm:
     def test_destroy_map0(self):
         # test that only first input can be overwritten.
         Z = as_tensor_variable(self.rand(2, 2))
-        try:
+        with pytest.raises(InconsistencyError, match=Gemm.E_z_uniq):
             gemm_inplace(Z, 1.0, Z, Z, 1.0)
-        except InconsistencyError as e:
-            if exc_message(e) == Gemm.E_z_uniq:
-                return
-        self.fail()
 
     def test_destroy_map1(self):
         # test that only first input can be overwritten.
         Z = as_tensor_variable(self.rand(2, 2))
         A = as_tensor_variable(self.rand(2, 2))
-        try:
+        with pytest.raises(InconsistencyError, match=Gemm.E_z_uniq):
             gemm_inplace(Z, 1.0, A, inplace.transpose_inplace(Z), 1.0)
-        except InconsistencyError as e:
-            if exc_message(e) == Gemm.E_z_uniq:
-                return
-        self.fail()
 
     def test_destroy_map2(self):
         # test that only first input can be overwritten.
         Z = as_tensor_variable(self.rand(2, 2))
         A = as_tensor_variable(self.rand(2, 2))
-        try:
+        with pytest.raises(InconsistencyError, match=Gemm.E_z_uniq):
             gemm_inplace(Z, 1.0, inplace.transpose_inplace(Z), A, 1.0)
-        except InconsistencyError as e:
-            if exc_message(e) == Gemm.E_z_uniq:
-                return
-        self.fail()
 
     def test_destroy_map3(self):
         # test that only first input can be overwritten
         Z = as_tensor_variable(self.rand(2, 2))
         A = as_tensor_variable(self.rand(2, 2))
-        try:
+        with pytest.raises(InconsistencyError, match=Gemm.E_z_uniq):
             gemm_inplace(Z, 1.0, Z, A, 1.0)
-        except InconsistencyError as e:
-            if exc_message(e) == Gemm.E_z_uniq:
-                return
-        self.fail()
 
     def test_destroy_map4(self):
         # test that dot args can be aliased
@@ -337,12 +307,8 @@ class TestGemm:
         t(C, A[:2, :].T, B[:, :2].T)
         t(C.T, A[:2, :].T, B[:, :2].T)
 
-        try:
+        with pytest.raises(ValueError, match=r".*aligned.*"):
             t(C.T, A[:2, :], B[:, :2].T)
-        except ValueError as e:
-            if exc_message(e).find("aligned") >= 0:
-                return
-        self.fail()
 
     def test_non_contiguous(self):
         # Like test_transposes but with matrices without any
@@ -598,7 +564,7 @@ class TestAsScalar:
         # Test that it fails on nonscalar variables
         a = T.matrix()
         assert _as_scalar(a) is None
-        assert _as_scalar(T.DimShuffle([False, False], [0, "x", 1])(1)) is None
+        assert _as_scalar(T.DimShuffle([False, False], [0, "x", 1])(a)) is None
 
 
 class TestRealMatrix:
@@ -622,61 +588,49 @@ def XYZab():
     return T.matrix(), T.matrix(), T.matrix(), T.scalar(), T.scalar()
 
 
-class Failure(Exception):
-    pass
-
-
 def just_gemm(
     i, o, ishapes=[(4, 3), (3, 5), (4, 5), (), ()], max_graphlen=0, expected_nb_gemm=1
 ):
-    try:
-        f = inplace_func(
-            [In(ii, mutable=True, allow_downcast=True) for ii in i],
-            o,
-            mode="FAST_RUN",
-            on_unused_input="ignore",
-        )
-        nb_gemm = 0
-        for node in f.maker.fgraph.apply_nodes:
-            if isinstance(node.op, T.Dot):
-                raise Failure("dot not changed to gemm_inplace in graph")
-            if node.op == _dot22:
-                raise Failure("_dot22 not changed to gemm_inplace in graph")
-            if node.op == gemm_inplace:
-                nb_gemm += 1
-        assert nb_gemm == expected_nb_gemm, (nb_gemm, expected_nb_gemm)
-        g = inplace_func(
-            i,
-            o,
-            mode=compile.Mode(linker="py", optimizer=None),
-            allow_input_downcast=True,
-            on_unused_input="ignore",
-        )
-        for node in g.maker.fgraph.apply_nodes:
-            if node.op == gemm_inplace:
-                raise Exception("gemm_inplace in original graph")
+    f = inplace_func(
+        [In(ii, mutable=True, allow_downcast=True) for ii in i],
+        o,
+        mode="FAST_RUN",
+        on_unused_input="ignore",
+    )
+    nb_gemm = 0
+    for node in f.maker.fgraph.apply_nodes:
+        assert not isinstance(
+            node.op, T.Dot
+        ), "_dot22 not changed to gemm_inplace in graph"
+        assert node.op != _dot22
+        if node.op == gemm_inplace:
+            nb_gemm += 1
+    assert nb_gemm == expected_nb_gemm, (nb_gemm, expected_nb_gemm)
+    g = inplace_func(
+        i,
+        o,
+        mode=compile.Mode(linker="py", optimizer=None),
+        allow_input_downcast=True,
+        on_unused_input="ignore",
+    )
+    for node in g.maker.fgraph.apply_nodes:
+        assert node.op != gemm_inplace, "gemm_inplace in original graph"
 
-        graphlen = len(f.maker.fgraph.toposort())
-        if max_graphlen and (graphlen <= max_graphlen):
-            # theano.printing.debugprint(f)
-            assert False, "graphlen=%i>%i" % (graphlen, max_graphlen)
+    graphlen = len(f.maker.fgraph.toposort())
+    assert not (max_graphlen and (graphlen <= max_graphlen)), "graphlen=%i>%i" % (
+        graphlen,
+        max_graphlen,
+    )
 
-        rng = np.random.RandomState(unittest_tools.fetch_seed(234))
-        r0 = f(*[np.asarray(rng.randn(*sh), config.floatX) for sh in ishapes])
-        rng = np.random.RandomState(unittest_tools.fetch_seed(234))
-        r1 = g(*[np.asarray(rng.randn(*sh), config.floatX) for sh in ishapes])
-        max_abs_err = np.max(np.abs(r0[0] - r1[0]))
-        eps = 1.0e-8
-        if config.floatX == "float32":
-            eps = 1.0e-6
-        if max_abs_err > eps:
-            raise Failure(
-                "GEMM is computing the wrong output. max_rel_err =", max_abs_err
-            )
-    except Failure:
-        for node in f.maker.fgraph.toposort():
-            print("GRAPH", node)
-        raise
+    rng = np.random.RandomState(unittest_tools.fetch_seed(234))
+    r0 = f(*[np.asarray(rng.randn(*sh), config.floatX) for sh in ishapes])
+    rng = np.random.RandomState(unittest_tools.fetch_seed(234))
+    r1 = g(*[np.asarray(rng.randn(*sh), config.floatX) for sh in ishapes])
+    max_abs_err = np.max(np.abs(r0[0] - r1[0]))
+    eps = 1.0e-8
+    if config.floatX == "float32":
+        eps = 1.0e-6
+    assert max_abs_err <= eps, "GEMM is computing the wrong output. max_rel_err ="
 
 
 @unittest_tools.assertFailure_fast
@@ -732,43 +686,28 @@ def test_gemm_opt_double_gemm():
             + gemm_inplace(Z, b, S.T, R.T, T.constant(1.0).astype(config.floatX))
         )
     ]
-    try:
-        f = inplace_func(
-            [In(ii, mutable=True) for ii in i],
-            o,
-            mode="FAST_RUN",
-            on_unused_input="ignore",
-        )
-        for node in f.maker.fgraph.apply_nodes:
-            if isinstance(node.op, T.Dot):
-                raise Failure("dot in graph")
-            if node.op == _dot22:
-                raise Failure("_dot22 in graph")
-        g = inplace_func(
-            i,
-            o,
-            mode=compile.Mode(linker="py", optimizer=None),
-            on_unused_input="ignore",
-        )
-        # for node in g.maker.fgraph.apply_nodes:
-        #    if node.op == gemm_inplace: raise Failure('gemm_inplace in graph')
+    f = inplace_func(
+        [In(ii, mutable=True) for ii in i],
+        o,
+        mode="FAST_RUN",
+        on_unused_input="ignore",
+    )
+    for node in f.maker.fgraph.apply_nodes:
+        assert not isinstance(node.op, T.Dot)
+        assert node.op != _dot22
+    g = inplace_func(
+        i, o, mode=compile.Mode(linker="py", optimizer=None), on_unused_input="ignore",
+    )
 
-        rng = np.random.RandomState(unittest_tools.fetch_seed(234))
-        r0 = f(*[np.asarray(rng.randn(*sh), config.floatX) for sh in ishapes])
-        rng = np.random.RandomState(unittest_tools.fetch_seed(234))
-        r1 = g(*[np.asarray(rng.randn(*sh), config.floatX) for sh in ishapes])
-        max_abs_err = np.max(np.abs(r0[0] - r1[0]))
-        eps = 1.0e-8
-        if config.floatX == "float32":
-            eps = 1.0e-6
-        if max_abs_err > eps:
-            raise Failure(
-                "GEMM is computing the wrong output. max_rel_err =", max_abs_err
-            )
-    except Failure:
-        for node in f.maker.fgraph.toposort():
-            print("GRAPH", node)
-        raise
+    rng = np.random.RandomState(unittest_tools.fetch_seed(234))
+    r0 = f(*[np.asarray(rng.randn(*sh), config.floatX) for sh in ishapes])
+    rng = np.random.RandomState(unittest_tools.fetch_seed(234))
+    r1 = g(*[np.asarray(rng.randn(*sh), config.floatX) for sh in ishapes])
+    max_abs_err = np.max(np.abs(r0[0] - r1[0]))
+    eps = 1.0e-8
+    if config.floatX == "float32":
+        eps = 1.0e-6
+    assert max_abs_err <= eps, "GEMM is computing the wrong output. max_rel_err ="
 
 
 def test_gemm_canonicalize():
@@ -954,12 +893,10 @@ def test_gemm_opt_vector_stuff():
     u, v = T.vector(), T.vector()
 
     f = inplace_func([a, u, v], a + T.dot(u, v), mode="FAST_RUN")
-    if gemm_inplace in [n.op for n in f.maker.fgraph.apply_nodes]:
-        raise Failure("gemm_inplace in graph")
+    assert gemm_inplace not in [n.op for n in f.maker.fgraph.apply_nodes]
 
     f = inplace_func([a, u, X, Y], a * u + T.dot(X, Y), mode="FAST_RUN")
-    if gemm_inplace in [n.op for n in f.maker.fgraph.apply_nodes]:
-        raise Failure("gemm_inplace in graph")
+    assert gemm_inplace not in [n.op for n in f.maker.fgraph.apply_nodes]
 
 
 def test_gemm_unrolled():
@@ -1029,9 +966,7 @@ def test_inplace0():
     R, S, c = T.matrix("R"), T.matrix("S"), T.scalar("c")
 
     f = inplace_func([Z, b, R, S], [Z * (Z + b * T.dot(R, S).T)], mode="FAST_RUN")
-    if gemm_inplace in [n.op for n in f.maker.fgraph.apply_nodes]:
-        print(pp(f.maker.fgraph.outputs[0]))
-        raise Failure("gemm_inplace in graph")
+    assert gemm_inplace not in [n.op for n in f.maker.fgraph.apply_nodes]
     assert gemm_no_inplace in [n.op for n in f.maker.fgraph.apply_nodes]
 
     # gemm_inplace should be inserted here, to work in-place on Z*c
@@ -1040,9 +975,7 @@ def test_inplace0():
         [Z * (c * Z + a * T.dot(X, Y) + b * T.dot(R, S).T)],
         mode="FAST_RUN",
     )
-    if gemm_inplace not in [n.op for n in f.maker.fgraph.apply_nodes]:
-        theano.printing.debugprint(f)
-        raise Failure("no gemm_inplace in graph")
+    assert gemm_inplace in [n.op for n in f.maker.fgraph.apply_nodes]
 
 
 def test_inplace1():

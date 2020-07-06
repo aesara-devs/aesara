@@ -529,42 +529,35 @@ def makeTester(
                     expecteds = (expecteds,)
 
                 for i, (variable, expected) in enumerate(izip(variables, expecteds)):
-                    if (
+                    condition = (
                         variable.dtype != expected.dtype
                         or variable.shape != expected.shape
                         or not np.allclose(variable, expected, atol=eps, rtol=eps)
-                    ):
-                        self.fail(
-                            (
-                                "Test %s::%s: Output %s gave the wrong"
-                                " value. With inputs %s, expected %s (dtype %s),"
-                                " got %s (dtype %s). eps=%f"
-                                " np.allclose returns %s %s"
-                            )
-                            % (
-                                self.op,
-                                testname,
-                                i,
-                                inputs,
-                                expected,
-                                expected.dtype,
-                                variable,
-                                variable.dtype,
-                                eps,
-                                np.allclose(variable, expected, atol=eps, rtol=eps),
-                                np.allclose(variable, expected),
-                            )
-                        )
+                    )
+                    assert not condition, (
+                        "Test %s::%s: Output %s gave the wrong"
+                        " value. With inputs %s, expected %s (dtype %s),"
+                        " got %s (dtype %s). eps=%f"
+                        " np.allclose returns %s %s"
+                    ) % (
+                        self.op,
+                        testname,
+                        i,
+                        inputs,
+                        expected,
+                        expected.dtype,
+                        variable,
+                        variable.dtype,
+                        eps,
+                        np.allclose(variable, expected, atol=eps, rtol=eps),
+                        np.allclose(variable, expected),
+                    )
 
                 for description, check in iteritems(self.checks):
-                    if not check(inputs, variables):
-                        self.fail(
-                            (
-                                "Test %s::%s: Failed check: %s (inputs"
-                                " were %s, outputs were %s)"
-                            )
-                            % (self.op, testname, description, inputs, variables)
-                        )
+                    assert check(inputs, variables), (
+                        "Test %s::%s: Failed check: %s (inputs"
+                        " were %s, outputs were %s)"
+                    ) % (self.op, testname, description, inputs, variables)
 
         def test_bad_build(self):
             if skip:
@@ -4080,10 +4073,12 @@ class TestMinMax:
         n = as_tensor_variable(data)
         assert min(n).dtype == "bool"
         i = eval_outputs(min(n))
-        assert i is False
+        assert i.ndim == 0
+        assert not np.any(i)
         assert max(n).dtype == "bool"
         i = eval_outputs(max(n))
-        assert i is True
+        assert i.ndim == 0
+        assert np.all(i)
 
 
 def test_basic_allclose():
@@ -5353,10 +5348,8 @@ class TestDivimpl:
 
 class TestMean:
     def test_regression_mean_of_ndarray_failure(self):
-        try:
-            tensor.mean(np.zeros(1))
-        except AttributeError:
-            self.fail()
+        # This shouldn't throw an `AttributeError` (or any other, for that matter)
+        tensor.mean(np.zeros(1))
 
     def test_mean_f16(self):
         x = tensor.vector(dtype="float16")

@@ -77,18 +77,8 @@ class RopLopChecker:
         If your op is not differentiable(so you can't define Rop)
         test that an error is raised.
         """
-        raised = False
-        try:
+        with pytest.raises(ValueError):
             tensor.Rop(y, self.x, self.v)
-        except ValueError:
-            raised = True
-        if not raised:
-            self.fail(
-                (
-                    "Op did not raise an error even though the function"
-                    " is not differentiable"
-                )
-            )
 
     def check_mat_rop_lop(self, y, out_shape):
         """
@@ -162,10 +152,13 @@ class RopLopChecker:
         v1 = rop_f(vx, vv)
         v2 = scan_f(vx, vv)
         assert np.allclose(v1, v2), "ROP mismatch: %s %s" % (v1, v2)
+
         known_fail = False
         try:
-            self.check_nondiff_rop(theano.clone(y, replace={self.x: break_op(self.x)}))
-        except AssertionError:
+            tensor.Rop(
+                theano.clone(y, replace={self.x: break_op(self.x)}), self.x, self.v
+            )
+        except ValueError:
             known_fail = True
 
         # TEST LOP

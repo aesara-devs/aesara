@@ -142,25 +142,15 @@ class TestSubtensor(utt.OptimizationTestMixin):
         oldlevel = _logger.level
         _logger.setLevel(logging.CRITICAL)
         try:
-            try:
+            with pytest.raises(IndexError):
                 self.eval_output_and_check(t)
-            except IndexError:
-                return
-            self.fail()
         finally:
             _logger.setLevel(oldlevel)
 
     def test_err_subslice(self):
         n = self.shared(np.ones(3, dtype=self.dtype))
-        try:
+        with pytest.raises(Exception):
             n[slice(0, slice(1, 2, None), None)]
-        except Exception:
-            # Relax constraint on the type of Exception,
-            # since this might be handled by AvancedSubtensor
-            # if e[0] != Subtensor.e_indextype:
-            #    raise
-            return
-        self.fail()
 
     def test_ok_range_finite(self):
         n = self.shared(np.arange(3, dtype=self.dtype))
@@ -1095,24 +1085,12 @@ class TestSubtensor(utt.OptimizationTestMixin):
         a = fscalar()
         b = fscalar()
         c = vector()
-        try:
+        with pytest.raises(TypeError):
             c[a:b]
-        except NotImplementedError:
-            self.fail()
-        except TypeError:
-            pass
-        try:
+        with pytest.raises(TypeError):
             c[a:]
-        except NotImplementedError:
-            self.fail()
-        except TypeError:
-            pass
-        try:
+        with pytest.raises(TypeError):
             c[:b]
-        except NotImplementedError:
-            self.fail()
-        except TypeError:
-            pass
 
     @pytest.mark.slow
     def test_grad_list(self):

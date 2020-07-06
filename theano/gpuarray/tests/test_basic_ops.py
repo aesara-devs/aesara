@@ -187,38 +187,31 @@ def makeTester(
                         raise
 
             for i, (variable, expected) in enumerate(izip(variables, expecteds)):
-                if (
+                condition = (
                     variable.dtype != expected.dtype
                     or variable.shape != expected.shape
                     or not TensorType.values_eq_approx(variable, expected)
-                ):
-                    self.fail(
-                        (
-                            "Test %s::%s: Output %s gave the wrong "
-                            "value. With inputs %s, expected %s "
-                            "(dtype %s), got %s (dtype %s)."
-                            % (
-                                self.op,
-                                testname,
-                                i,
-                                inputs,
-                                expected,
-                                expected.dtype,
-                                variable,
-                                variable.dtype,
-                            )
-                        )
+                )
+                assert not condition, (
+                    "Test %s::%s: Output %s gave the wrong "
+                    "value. With inputs %s, expected %s "
+                    "(dtype %s), got %s (dtype %s)."
+                    % (
+                        self.op,
+                        testname,
+                        i,
+                        inputs,
+                        expected,
+                        expected.dtype,
+                        variable,
+                        variable.dtype,
                     )
+                )
 
             for description, check in iteritems(self.checks):
-                if not check(inputs, variables):
-                    self.fail(
-                        (
-                            "Test %s::%s: Failed check: %s "
-                            "(inputs were %s, ouputs were %s)"
-                        )
-                        % (self.op, testname, description, inputs, variables)
-                    )
+                assert check(inputs, variables), (
+                    "Test %s::%s: Failed check: %s " "(inputs were %s, ouputs were %s)"
+                ) % (self.op, testname, description, inputs, variables)
 
     Checker.__name__ = name
     if hasattr(Checker, "__qualname__"):

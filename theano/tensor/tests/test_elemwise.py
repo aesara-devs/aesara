@@ -482,13 +482,8 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                     % str(scalar_op)
                 )
             if scalar_op in [scalar.maximum, scalar.minimum] and numpy_raised:
-                try:
-                    out = f(xv)
-                    assert out.dtype == dtype
-                except ValueError:
-                    pass
-                else:
-                    self.fail()
+                with pytest.raises(ValueError):
+                    f(xv)
             else:
                 if test_nan:
                     try:

@@ -365,14 +365,11 @@ def test_duallinker_mismatch():
     # (purposely) wrong
     assert PerformLinker().accept(g).make_function()(1.0, 2.0, 3.0) == -10.0
 
-    try:
+    with pytest.raises(MyExc):
         # this runs OpWiseCLinker and PerformLinker in parallel and feeds
         # variables of matching operations to _my_checker to verify that they
         # are the same.
         fn(1.0, 2.0, 3.0)
-        raise Exception("An exception should have been raised here!")
-    except MyExc:
-        pass
 
 
 ################################
@@ -407,12 +404,8 @@ def test_c_fail_error():
     e = add_fail(mul(x, y), mul(y, z))
     lnk = OpWiseCLinker().accept(Env([y, z], [e]))
     fn = lnk.make_function()
-    try:
+    with pytest.raises(RuntimeError):
         fn(1.5, 3.0)
-    except RuntimeError:
-        print("Yay, TEST PASSED")
-        return  # test passed
-    assert 0  # test failed
 
 
 def test_shared_input_output():

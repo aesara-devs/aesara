@@ -1,4 +1,5 @@
 from __future__ import absolute_import, print_function, division
+import pytest
 
 from six.moves import xrange
 from theano.gof.type import Type
@@ -137,26 +138,6 @@ class FailureWatch:
         self.failures += 1
 
 
-def consistent(g):
-    # print "Testing consistent:", g
-    try:
-        assert g.consistent()
-    except AssertionError:
-        print("Test failed! The graph was marked as NOT consistent.")
-        raise
-    # print "Test OK"
-
-
-def inconsistent(g):
-    # print "Testing NOT consistent:", g
-    try:
-        assert not g.consistent()
-    except AssertionError:
-        print("Test failed! The graph was marked as consistent.")
-        raise
-    # print "Test OK"
-
-
 #################
 # Test protocol #
 #################
@@ -166,7 +147,7 @@ def test_misc():
     x, y, z = inputs()
     e = transpose_view(transpose_view(transpose_view(transpose_view(x))))
     g = Env([x, y, z], [e])
-    consistent(g)
+    assert g.consistent()
     PatternOptimizer((transpose_view, (transpose_view, "x")), "x").optimize(g)
     assert str(g) == "[x]"
     new_e = add(x, y)
@@ -174,7 +155,7 @@ def test_misc():
     assert str(g) == "[Add(x, y)]"
     g.replace(new_e, dot(add_in_place(x, y), transpose_view(x)))
     assert str(g) == "[Dot(AddInPlace(x, y), TransposeView(x))]"
-    inconsistent(g)
+    assert not g.consistent()
 
 
 ######################
@@ -190,15 +171,15 @@ def test_aliased_inputs_replacement():
     sx = sigmoid(x)
     e = add_in_place(x, tv)
     g = Env([x, y], [e], False)
-    inconsistent(g)
+    assert not g.consistent()
     g.replace(tv, sx)
-    consistent(g)
+    assert g.consistent()
     g.replace(sx, tv)
-    inconsistent(g)
+    assert not g.consistent()
     g.replace(tv, tvv)
-    inconsistent(g)
+    assert not g.consistent()
     g.replace(tv, sx)
-    consistent(g)
+    assert g.consistent()
 
 
 def test_indestructible():
@@ -209,9 +190,9 @@ def test_indestructible():
     assert x.tag.indestructible
     e = add_in_place(x, y)
     g = Env([x, y, z], [e], False)
-    inconsistent(g)
+    assert not g.consistent()
     g.replace_validate(e, add(x, y))
-    consistent(g)
+    assert g.consistent()
 
 
 @assertFailure_fast
@@ -220,9 +201,9 @@ def test_usage_loop_through_views_2():
     e0 = transpose_view(transpose_view(sigmoid(x)))
     e = dot(add_in_place(x, y), transpose_view(e0))
     g = Env([x, y, z], [e])
-    consistent(g)  # because sigmoid can do the copy
+    assert g.consistent()  # because sigmoid can do the copy
     g.replace(e0, x)
-    inconsistent(g)  # we cut off the path to the sigmoid
+    assert not g.consistent()  # we cut off the path to the sigmoid
 
 
 @assertFailure_fast
@@ -232,29 +213,23 @@ def test_destroyers_loop():
     e1 = add(x, y)
     e2 = add(y, x)
     g = Env([x, y, z], [e1, e2])
-    consistent(g)
+    assert g.consistent()
     g.replace_validate(e1, add_in_place(x, y))
-    consistent(g)
-    try:
+    assert g.consistent()
+    with pytest.raises(InconsistencyError):
         g.replace_validate(e2, add_in_place(y, x))
-        raise Exception("Shouldn't have reached this point.")
-    except InconsistencyError:
-        pass
-    consistent(g)
+    assert g.consistent()
 
     x, y, z = inputs()
     e1 = add(x, y)
     e2 = add(y, x)
     g = Env([x, y, z], [e1, e2])
-    consistent(g)
+    assert g.consistent()
     g.replace_validate(e2, add_in_place(y, x))
-    consistent(g)
-    try:
+    assert g.consistent()
+    with pytest.raises(InconsistencyError):
         g.replace_validate(e1, add_in_place(x, y))
-        raise Exception("Shouldn't have reached this point.")
-    except InconsistencyError:
-        pass
-    consistent(g)
+    assert g.consistent()
 
 
 ########
@@ -266,14 +241,14 @@ def test_aliased_inputs():
     x, y, z = inputs()
     e = add_in_place(x, x)
     g = Env([x], [e], False)
-    inconsistent(g)
+    assert not g.consistent()
 
 
 def test_aliased_inputs2():
     x, y, z = inputs()
     e = add_in_place(x, transpose_view(x))
     g = Env([x], [e], False)
-    inconsistent(g)
+    assert not g.consistent()
 
 
 @assertFailure_fast
@@ -281,14 +256,14 @@ def test_aliased_inputs_tolerate():
     x, y, z = inputs()
     e = add_in_place_2(x, x)
     g = Env([x], [e], False)
-    consistent(g)
+    assert g.consistent()
 
 
 def test_aliased_inputs_tolerate2():
     x, y, z = inputs()
     e = add_in_place_2(x, transpose_view(x))
     g = Env([x], [e], False)
-    inconsistent(g)
+    assert not g.consistent()
 
 
 @assertFailure_fast
@@ -296,7 +271,7 @@ def test_same_aliased_inputs_ignored():
     x, y, z = inputs()
     e = add_in_place_3(x, x)
     g = Env([x], [e], False)
-    consistent(g)
+    assert g.consistent()
 
 
 @assertFailure_fast
@@ -304,7 +279,7 @@ def test_different_aliased_inputs_ignored():
     x, y, z = inputs()
     e = add_in_place_3(x, transpose_view(x))
     g = Env([x], [e], False)
-    consistent(g)
+    assert g.consistent()
     # warning - don't run this because it would produce the wrong answer
     # add_in_place_3 is actually not correct when aliasing of inputs
     # is ignored.
@@ -316,9 +291,9 @@ def test_indestructible_through_views():
     tv = transpose_view(x)
     e = add_in_place(tv, y)
     g = Env([x, y, z], [e], False)
-    inconsistent(g)
+    assert not g.consistent()
     g.replace_validate(tv, sigmoid(x))
-    consistent(g)
+    assert g.consistent()
 
 
 def test_indirect():
@@ -326,12 +301,12 @@ def test_indirect():
     e0 = add_in_place(x, y)
     e = dot(sigmoid(e0), transpose_view(x))
     g = Env([x, y, z], [e], False)
-    inconsistent(g)
+    assert not g.consistent()
     new_e0 = add(x, y)
     g.replace(e0, new_e0)
-    consistent(g)
+    assert g.consistent()
     g.replace(new_e0, add_in_place(x, y))
-    inconsistent(g)
+    assert not g.consistent()
 
 
 @assertFailure_fast
@@ -340,10 +315,10 @@ def test_indirect_2():
     e0 = transpose_view(x)
     e = dot(sigmoid(add_in_place(x, y)), e0)
     g = Env([x, y, z], [e], False)
-    inconsistent(g)
+    assert not g.consistent()
     new_e0 = add(e0, y)
     g.replace(e0, new_e0)
-    consistent(g)
+    assert g.consistent()
 
 
 @assertFailure_fast
@@ -351,17 +326,14 @@ def test_long_destroyers_loop():
     x, y, z = inputs()
     e = dot(dot(add_in_place(x, y), add_in_place(y, z)), add(z, x))
     g = Env([x, y, z], [e])
-    consistent(g)
+    assert g.consistent()
     OpSubOptimizer(add, add_in_place).optimize(g)
-    consistent(g)
+    assert g.consistent()
     # we don't want to see that!
     assert str(g) != "[Dot(Dot(AddInPlace(x, y), AddInPlace(y, z)), AddInPlace(z, x))]"
     e2 = dot(dot(add_in_place(x, y), add_in_place(y, z)), add_in_place(z, x))
-    try:
+    with pytest.raises(InconsistencyError):
         Env(*graph.clone([x, y, z], [e2]))
-        raise Exception("Shouldn't have reached this point.")
-    except InconsistencyError:
-        pass
 
 
 def test_misc_2():
@@ -369,19 +341,16 @@ def test_misc_2():
     tv = transpose_view(x)
     e = add_in_place(x, tv)
     g = Env([x, y], [e], False)
-    inconsistent(g)
+    assert not g.consistent()
     g.replace(tv, x)
-    inconsistent(g)
+    assert not g.consistent()
 
 
 def test_multi_destroyers():
     x, y, z = inputs()
     e = add(add_in_place(x, y), add_in_place(x, y))
-    try:
+    with pytest.raises(InconsistencyError):
         Env([x, y, z], [e])
-        raise Exception("Shouldn't have reached this point.")
-    except InconsistencyError:
-        pass
 
 
 @assertFailure_fast
@@ -389,10 +358,10 @@ def test_multi_destroyers_through_views():
     x, y, z = inputs()
     e = dot(add(transpose_view(z), y), add(z, x))
     g = Env([x, y, z], [e])
-    consistent(g)
+    assert g.consistent()
     fail = FailureWatch()
     OpSubOptimizer(add, add_in_place, fail).optimize(g)
-    consistent(g)
+    assert g.consistent()
     assert fail.failures == 1  # should have succeeded once and failed once
 
 
@@ -403,18 +372,18 @@ def test_repair_destroy_path():
     e3 = add_in_place(e2, y)
     e4 = add_in_place(e1, z)
     g = Env([x, y, z], [e3, e4], False)
-    inconsistent(g)
+    assert not g.consistent()
     g.replace(e2, transpose_view(x))
-    inconsistent(g)
+    assert not g.consistent()
 
 
 def test_usage_loop():
     x, y, z = inputs()
     g = Env([x, y, z], [dot(add_in_place(x, z), x)], False)
-    inconsistent(g)
+    assert not g.consistent()
     # replace add_in_place with add
     OpSubOptimizer(add_in_place, add).optimize(g)
-    consistent(g)
+    assert g.consistent()
 
 
 def test_usage_loop_through_views():
@@ -422,9 +391,9 @@ def test_usage_loop_through_views():
     aip = add_in_place(x, y)
     e = dot(aip, transpose_view(x))
     g = Env([x, y, z], [e], False)
-    inconsistent(g)
+    assert not g.consistent()
     g.replace_validate(aip, add(x, z))
-    consistent(g)
+    assert g.consistent()
 
 
 @assertFailure_fast
@@ -432,10 +401,10 @@ def test_usage_loop_insert_views():
     x, y, z = inputs()
     e = dot(add_in_place(x, add(y, z)), sigmoid(sigmoid(sigmoid(sigmoid(sigmoid(x))))))
     g = Env([x, y, z], [e])
-    consistent(g)
+    assert g.consistent()
     fail = FailureWatch()
     OpSubOptimizer(sigmoid, transpose_view, fail).optimize(g)
-    consistent(g)
+    assert g.consistent()
     # it must keep one sigmoid in the long sigmoid chain
     assert fail.failures == 1
 
@@ -445,9 +414,9 @@ def test_value_repl():
     sy = sigmoid(y)
     e = add_in_place(x, sy)
     g = Env([x, y], [e], False)
-    consistent(g)
+    assert g.consistent()
     g.replace(sy, MyConstant("abc"))
-    consistent(g)
+    assert g.consistent()
 
 
 @change_flags(compute_test_value="off")
@@ -456,9 +425,9 @@ def test_value_repl_2():
     sy = sigmoid(y)
     e = add_in_place(x, sy)
     g = Env([x, y], [e], False)
-    consistent(g)
+    assert g.consistent()
     g.replace(sy, transpose_view(MyConstant("abc")))
-    consistent(g)
+    assert g.consistent()
 
 
 @assertFailure_fast
@@ -475,28 +444,28 @@ def test_multiple_inplace():
     # before multiple and then multiple can still run in-place on y
     e_2 = dot(y, y)
     g = Env([x, y], [e_1, e_2], False)
-    consistent(g)
+    assert g.consistent()
 
     # try to work in-place on x/0 and y/1 (this should fail)
     fail = FailureWatch()
     OpSubOptimizer(multiple, multiple_in_place_0_1, fail).optimize(g)
-    consistent(g)
+    assert g.consistent()
     assert fail.failures == 1
 
     # try to work in-place on x/0 (this should fail)
     fail = FailureWatch()
     OpSubOptimizer(multiple, multiple_in_place_0, fail).optimize(g)
-    consistent(g)
+    assert g.consistent()
     assert fail.failures == 1
 
     # try to work in-place on y/1 (this should succeed)
     fail = FailureWatch()
     OpSubOptimizer(multiple, multiple_in_place_1, fail).optimize(g)
-    consistent(g)
+    assert g.consistent()
     assert fail.failures == 0
 
     # try to work in-place on x/0 and y/1 (this should still fail)
     fail = FailureWatch()
     OpSubOptimizer(multiple_in_place_1, multiple_in_place_0_1, fail).optimize(g)
-    consistent(g)
+    assert g.consistent()
     assert fail.failures == 1
