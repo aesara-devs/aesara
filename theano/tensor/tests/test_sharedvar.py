@@ -52,7 +52,7 @@ def makeSharedTester(
     :param ref_fct_: A reference function that should return the same value as the theano_fct_
     :param cast_value_: A callable that cast an ndarray into the internal shared variable representation
     :param name: This string is used to set the returned class' __name__
-                 attribute. This is needed for nosetests to properly tag the
+                 attribute. This is needed for tests to properly tag the
                  test with its correct name, rather than use the generic
                  SharedTester name. This parameter is mandatory (keeping the
                  default None value will raise an error), and must be set to

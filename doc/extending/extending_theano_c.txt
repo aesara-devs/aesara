@@ -557,8 +557,8 @@ storage with the right shape and number of dimensions.
 
 
 The ``c_code`` method accepts variable names as arguments (``name``, ``inp``,
-``out``, ``sub``) and returns a C code fragment that computes the expression 
-output. In case of error, the ``%(fail)s`` statement cleans up and returns 
+``out``, ``sub``) and returns a C code fragment that computes the expression
+output. In case of error, the ``%(fail)s`` statement cleans up and returns
 properly.
 
 More complex C Op example
@@ -1038,12 +1038,12 @@ For the GPU, you must add in this second flag `nvcc.flags=-g` (it slow
 down computation on the GPU, but it is enabled by default on the CPU).
 
 Then you must start Python inside GDB and in it start your Python
-process (e.g. theano-nose):
+process:
 
 .. code-block:: sh
 
     $gdb python
-    (gdb)r bin/theano-nose theano/
+    (gdb)r pytest theano/
 
 `Quick guide to GDB <https://www.cs.cmu.edu/~gilpin/tutorial/>`_.
 

@@ -38,14 +38,14 @@ To get up to speed, you'll need to
   trickier files (like tensor.py).
 - Go through the `NumPy documentation`_.
 - Learn to write reStructuredText_ for Sphinx_.
-- Learn about how unittest_ and nose_ work
+- Learn about how unittest_ and pytest_ work
 
 .. _Sphinx: http://sphinx.pocoo.org/
 .. _reStructuredText: http://docutils.sourceforge.net/rst.html
 .. _Allowed docstring sections in Napoleon: https://sphinxcontrib-napoleon.readthedocs.org/en/latest/#docstring-sections
 .. _NumPy documentation: http://docs.scipy.org/numpy/
 .. _unittest: http://docs.python.org/library/unittest.html
-.. _nose: http://nose.readthedocs.org/en/latest/
+.. _pytest: http://docs.pytest.org/en/latest/
 
 
 .. _quality_contributions:
@@ -53,16 +53,16 @@ To get up to speed, you'll need to
 Requirements for Quality Contributions
 ======================================
 
-* All the code should be properly tested. 
+* All the code should be properly tested.
 
 * The code should be compatible with Python 2.7 and above, as well as
   Python 3.4 and above (using `six` if needed).
 
-* All the code should respect the 
+* All the code should respect the
   `PEP8 Code Style Guide <http://www.python.org/dev/peps/pep-0008>`_.
 
 * The docstrings of all the classes and functions should respect the
-  `PEP257 <https://www.python.org/dev/peps/pep-0257/>`_ rules and follow the 
+  `PEP257 <https://www.python.org/dev/peps/pep-0257/>`_ rules and follow the
   `Numpy docstring standard
   <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_.
 
@@ -85,7 +85,7 @@ make sure there are no global impacts.
 Also, if you are changing GPU code, Travis doesn't test that, because
 there are no GPUs on the test nodes.
 
-To run the test suite with the default options, see 
+To run the test suite with the default options, see
 :ref:`test_theano`.
 
 Each night we execute all the unit tests automatically, with several
@@ -101,8 +101,8 @@ this script:
 
    theano/misc/do_nightly_build
 
-This script accepts arguments that it forwards to nosetests. You can
-run only some tests or enable pdb by giving the equivalent nosetests
+This script accepts arguments that it forwards to ``pytest``. You can
+run only some tests or enable pdb by giving the equivalent ``pytest``
 parameters.
 
 Setting up your Editor for PEP8
@@ -130,7 +130,7 @@ To setup VIM:
 
    .. warning:: Starting version 3.0.0, flake8 changed its dependencies and
       moved its Python API to a legacy module, breaking Theano's flake8 tests.
-      We recommend using a version prior to 3.  
+      We recommend using a version prior to 3.
 
    .. note:: You can use ``easy_install`` instead of ``pip``, and ``pep8``
       instead of ``flake8`` if you prefer. The important thing is that the
@@ -167,9 +167,9 @@ To setup VIM:
         let g:syntastic_auto_jump = 0  "do not jump to errors when detected
 
 #. Open a new vim and run ``:PluginInstall`` to automatically install the
-   plugins. When the installation is done, close the installation "window" 
-   with ``:q``. 
-   From now on Vim will check for PEP8 errors and highlight them whenever a 
+   plugins. When the installation is done, close the installation "window"
+   with ``:q``.
+   From now on Vim will check for PEP8 errors and highlight them whenever a
    file is saved.
 
 A few useful commands
@@ -237,7 +237,6 @@ Then in your ``~/.emacs`` file, add this:
    (require 'epy-completion) ;; If you want the autocompletion settings [optional]
    (require 'epy-editing) ;; For configurations related to editing [optional]
    ;; [newer version of emacs-for-python]
-   (require 'epy-nose) ;; For shortcut to call nosetests [optional]
 
    ;; Define f10 to previous error
    ;; Define f11 to next error
@@ -270,20 +269,20 @@ Documentation and docstrings
 
 * The documentation should be written in `reStructuredText`_ and the
   docstrings of all the classes and functions should respect the
-  `PEP257 <https://www.python.org/dev/peps/pep-0257/>`_ rules and follow the 
+  `PEP257 <https://www.python.org/dev/peps/pep-0257/>`_ rules and follow the
   `Numpy docstring standard
   <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_.
 
 * Split the docstrings in sections, according to the `Allowed docstring
   sections in Napoleon`_
 
-* To cross-reference other objects (e.g. reference other classes or methods) in 
+* To cross-reference other objects (e.g. reference other classes or methods) in
   the docstrings, use the
-  `cross-referencing objects <http://www.sphinx-doc.org/en/stable/domains.html#cross-referencing-python-objects>`_ 
-  syntax. ``:py`` can be omitted, see e.g. this 
+  `cross-referencing objects <http://www.sphinx-doc.org/en/stable/domains.html#cross-referencing-python-objects>`_
+  syntax. ``:py`` can be omitted, see e.g. this
   `stackoverflow answer <http://stackoverflow.com/a/7754189>`_.
 
-* See :ref:`metadocumentation`, for some information on how to generate the 
+* See :ref:`metadocumentation`, for some information on how to generate the
   documentation.
 
 
@@ -449,7 +448,7 @@ Once your code is ready for others to review, you need to commit all the changes
 branch to your github fork first:
 
 .. code-block:: bash
-    
+
     git commit -a -m "your message here"
 
 .. code-block:: bash

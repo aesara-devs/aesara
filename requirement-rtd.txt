@@ -1,11 +1,9 @@
 sphinx>=1.3.0
 pygments
-nose>=1.3.0
+pytest
 numpy
 gnumpy
 pydot
 pydot2
 Cython
 scipy==0.13
-
-

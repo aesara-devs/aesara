@@ -546,7 +546,7 @@ How To Test it
 
 Theano has some functionalities to simplify testing. These help test the
 ``infer_shape``, ``grad`` and ``R_op`` methods. Put the following code
-in a file and execute it with the ``theano-nose`` program.
+in a file and execute it with the ``pytest`` program.
 
 Basic Tests
 ^^^^^^^^^^^
@@ -676,50 +676,7 @@ For instance, to verify the Rop method of the DoubleOp, you can use this:
 Running Your Tests
 ^^^^^^^^^^^^^^^^^^
 
-To perform your tests, you may select either one of the three
-following methods:
-
-theano-nose
-"""""""""""
-
-The method of choice to conduct tests is to run the file
-``theano-nose``. In a regular Theano installation, the latter will be
-on the operating system's path and directly accessible from any
-folder. Otherwise, it can be accessed in the ``Theano/bin``
-folder. The following command lines may be used for the corresponding
-purposes:
-
-* ``theano-nose --theano``: Run every test found in Theano's path.
-
-* ``theano-nose folder_name``: Run every test found in the folder *folder_name*.
-
-* ``theano-nose test_file.py``: Run every test found in the file *test_file.py*.
-
-The following are particularly useful for development purposes since
-they call for particular classes or even for particular tests:
-
-* ``theano-nose test_file.py:TestDoubleRop``: Run every test found inside the
-  class *TestDoubleRop*.
-
-* ``theano-nose test_file.py:TestDoubleRop.test_double_op``: Run only the test
-  *test_double_op* in the class *TestDoubleRop*.
-
-Help with the use and functionalities of ``theano-nose`` may be
-obtained by running it with the command line parameter ``--help
-(-h)``.
-
-nosetests
-"""""""""
-
-The command ``nosetests`` can also be used.  Although it lacks the
-useful functionalities that ``theano-nose`` provides, ``nosetests``
-can be called similarly to ``theano-nose`` from any folder in Python's
-path like so:
-
-``nosetests [suffix similar to the above]``.
-
-More documentation on ``nosetests`` is available here:
-`nosetests <http://readthedocs.org/docs/nose/en/latest/>`_.
+To perform your tests, simply run ``pytest``.
 
 In-file
 """""""

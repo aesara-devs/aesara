@@ -169,16 +169,6 @@ from theano.gradient import Rop, Lop, grad, subgraph_grad
 # needed during that phase.
 import theano.tests
 
-if hasattr(theano.tests, "TheanoNoseTester"):
-    test = theano.tests.TheanoNoseTester().test
-else:
-
-    def test():
-        raise ImportError(
-            "The nose module is not installed." " It is needed for Theano tests."
-        )
-
-
 if (
     config.device.startswith("cuda")
     or config.device.startswith("opencl")

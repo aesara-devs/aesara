@@ -225,9 +225,9 @@ type this:
 
 .. code-block:: bash
 
-    THEANO_FLAGS='mode=FAST_COMPILE' theano-nose
-    THEANO_FLAGS='mode=FAST_RUN' theano-nose
-    THEANO_FLAGS='mode=DebugMode' theano-nose
+    THEANO_FLAGS='mode=FAST_COMPILE' pytest
+    THEANO_FLAGS='mode=FAST_RUN' pytest
+    THEANO_FLAGS='mode=DebugMode' pytest
 
 .. _random_value_in_tests:
 
@@ -267,7 +267,7 @@ The behaviour of ``seed_rng`` is as follows:
 The main advantage of using ``unittest_tools.seed_rng`` is that it allows
 us to change the seed used in the unitests, without having to manually
 edit all the files. For example, this allows the nightly build to run
-``theano-nose`` repeatedly, changing the seed on every run (hence achieving
+``pytest`` repeatedly, changing the seed on every run (hence achieving
 a higher confidence that the variables are correct), while still
 making sure unittests are deterministic.
 
@@ -285,7 +285,7 @@ Similarly, to provide a seed to ``numpy.random.RandomState``, simply use:
     # OR providing an explicit seed
     rng = numpy.random.RandomState(unittest_tools.fetch_seed(1231))  # again not recommended
 
-Note that the ability to change the seed from one nosetest to another,
+Note that the ability to change the seed from one test to another,
 is incompatible with the method of hard-coding the baseline variables
 (against which we compare the theano outputs). These must then be
 determined "algorithmically". Although this represents more work, the

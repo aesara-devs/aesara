@@ -32,7 +32,7 @@ For Ubuntu 16.04 with cuda 7.5
 
 .. code-block:: bash
 
-    sudo apt-get install python-numpy python-scipy python-dev python-pip python-nose g++ libopenblas-dev git graphviz
+    sudo apt-get install python-numpy python-scipy python-dev python-pip python-pytest g++ libopenblas-dev git graphviz
     sudo pip install Theano
 
     # cuda 7.5 don't support the default g++ version. Install an supported version and make it the default.
@@ -54,20 +54,20 @@ For Ubuntu 11.10 through 14.04:
 
 .. code-block:: bash
 
-    sudo apt-get install python-numpy python-scipy python-dev python-pip python-nose g++ libopenblas-dev git
+    sudo apt-get install python-numpy python-scipy python-dev python-pip python-pytest g++ libopenblas-dev git
 
 On 14.04, this will install Python 2 by default. If you want to use Python 3:
 
 .. code-block:: bash
 
-    sudo apt-get install python3-numpy python3-scipy python3-dev python3-pip python3-nose g++ libopenblas-dev git
+    sudo apt-get install python3-numpy python3-scipy python3-dev python3-pip python3-pytest g++ libopenblas-dev git
     sudo pip3 install Theano
 
 For Ubuntu 11.04:
 
 .. code-block:: bash
 
-    sudo apt-get install python-numpy python-scipy python-dev python-pip python-nose g++ git libatlas3gf-base libatlas-dev
+    sudo apt-get install python-numpy python-scipy python-dev python-pip python-pytest g++ git libatlas3gf-base libatlas-dev
 
 Manual Openblas installation (deprecated)
 -----------------------------------------

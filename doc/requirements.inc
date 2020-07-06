@@ -35,9 +35,6 @@ Requirements
     |PlatformCompiler|
         **Highly recommended.** Theano can fall back on a NumPy-based Python execution model, but a C compiler allows for vastly faster execution.
 
-    `nose <http://nose.readthedocs.io/en/latest/>`_ >= 1.3.0
-        Recommended, to run Theano's test-suite.
-
     `Sphinx <http://sphinx.pocoo.org/>`_ >= 0.5.1, `pygments <http://pygments.org/>`_
         For building the documentation. LaTeX_ and dvipng_ are also necessary for math to show up as images.
 
@@ -83,7 +80,7 @@ Install requirements and optional packages
 
 .. code-block:: bash
 
-    conda install numpy scipy mkl <nose> <sphinx> <pydot-ng>
+    conda install numpy scipy mkl pytest <sphinx> <pydot-ng>
 
 * Arguments between <...> are optional.
 

@@ -78,7 +78,7 @@ def thunk_hook(type, value, trace):
 
     Notes
     -----
-    This hook replaced by nosetests, so it does not run in nose tests.
+    This hook replaced in testing, so it does not run.
 
     """
     log_thunk_trace(value)

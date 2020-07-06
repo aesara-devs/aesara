@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Without args, this script executes all its tests like `nosetests -vs`
+# Without args, this script executes all its tests like `pytest -vs`
 # python check_dnn_conv.py
 
 # If there is only one arg `infos`, this script prints some infos about
@@ -10,8 +10,8 @@
 # If there is only one arg `list`, this script prints all test cases without running them.
 # python check_dnn_conv.py list
 
-# Else, any arg will be directly passed to nosetests.
-# python check_dnn_conv.py -xvs  # nosetests: verbose mode, capture output, exit at first error.
+# Else, any arg will be directly passed to pytest.
+# python check_dnn_conv.py -xvs  # verbose mode, capture output, exit at first error.
 
 from __future__ import absolute_import, print_function, division
 
@@ -885,10 +885,7 @@ class BaseTestDnnConv(object):
         self.should_fail(self.run_conv_gradweight, *args)
 
     def get_expected_tcount(self):
-        """
-        Utility function to get expected test count
-        without actually run nosetests.
-        """
+        """Utility function to get expected test count without actually running pytest."""
         return (
             sum(1 for t in self.test_fwd())
             + sum(1 for t in self.test_gradweight())
