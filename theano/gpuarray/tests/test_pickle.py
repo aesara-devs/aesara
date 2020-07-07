@@ -19,19 +19,15 @@ from theano.misc.pkl_utils import CompatUnpickler
 from ..type import ContextNotDefined
 
 try:
-    from . import config as _  # noqa
+    import pygpu  # noqa: F401
 
     have_pygpu = True
 except ImportError:
     have_pygpu = False
 
 
+@pytest.mark.skipif(have_pygpu, reason="pygpu active")
 def test_unpickle_gpuarray_as_numpy_ndarray_flag1():
-    # Only test when pygpu isn't
-    # available. test_unpickle_gpuarray_as_numpy_ndarray_flag0 in test_type.py
-    # test it when pygpu is there.
-    if have_pygpu:
-        pytest.skip("pygpu active")
     oldflag = config.experimental.unpickle_gpu_on_cpu
     config.experimental.unpickle_gpu_on_cpu = False
 

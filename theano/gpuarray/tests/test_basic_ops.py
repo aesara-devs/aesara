@@ -1,12 +1,14 @@
 from __future__ import absolute_import, print_function, division
-from theano.compat import izip
 import pytest
 
-from six import iteritems
-
+pygpu = pytest.importorskip("pygpu")
+gpuarray = pygpu.gpuarray
 import numpy as np
 import theano
 import theano.tensor as T
+
+from six import iteritems
+from theano.compat import izip
 from theano.tensor import TensorType
 from theano.tensor.basic import alloc
 
@@ -20,7 +22,6 @@ from theano.tensor.tests.test_basic import (
     TestJoinAndSplit,
 )
 from theano.tests import unittest_tools as utt
-
 from ..type import GpuArrayType, get_context, gpuarray_shared_constructor
 from ..basic_ops import (
     host_from_gpu,
@@ -40,10 +41,7 @@ from ..basic_ops import (
 )
 from ..elemwise import GpuDimShuffle, GpuElemwise
 from ..subtensor import GpuSubtensor
-
 from .config import mode_with_gpu, mode_without_gpu, test_ctx_name
-
-from pygpu import gpuarray
 
 utt.seed_rng()
 rng = np.random.RandomState(seed=utt.fetch_seed())

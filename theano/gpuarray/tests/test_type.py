@@ -3,7 +3,8 @@ import os
 import pytest
 import numpy as np
 import theano
-import pygpu
+
+pygpu = pytest.importorskip("pygpu")
 
 from theano.compat import PY3
 from theano import config

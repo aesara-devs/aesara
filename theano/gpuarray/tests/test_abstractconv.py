@@ -1,8 +1,10 @@
 from __future__ import absolute_import, print_function, division
 
 import pytest
-
 import numpy as np
+
+pygpu = pytest.importorskip("pygpu")
+gpuarray = pygpu.gpuarray
 
 from theano.tensor.nnet.tests.test_abstract_conv import (
     BaseTestConv2d,
@@ -22,7 +24,7 @@ from ..blas import (
 )
 
 from .config import mode_with_gpu, test_ctx_name
-from pygpu import gpuarray
+
 
 gpu_ftensor4 = GpuArrayType(dtype="float32", broadcastable=(False,) * 4)
 

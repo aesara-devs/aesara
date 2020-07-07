@@ -1,6 +1,13 @@
 from __future__ import absolute_import, print_function, division
-from .config import test_ctx_name, mode_with_gpu
+import pytest
+import numpy as np
 
+pygpu = pytest.importorskip("pygpu")
+
+from theano.misc.tests.test_may_share_memory import may_share_memory_core
+from theano.misc.pkl_utils import dump, load
+from theano.tensor.tests import test_opt
+from .config import test_ctx_name, mode_with_gpu
 from ..basic_ops import HostFromGpu, GpuFromHost
 from ..type import (
     get_context,
@@ -8,14 +15,6 @@ from ..type import (
     GpuArraySharedVariable,
     gpuarray_shared_constructor,
 )
-
-import pygpu
-import numpy as np
-
-from theano.misc.tests.test_may_share_memory import may_share_memory_core
-from theano.misc.pkl_utils import dump, load
-
-from theano.tensor.tests import test_opt
 
 
 class TestFusion(test_opt.TestFusion):

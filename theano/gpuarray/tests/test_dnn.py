@@ -1,15 +1,16 @@
 from __future__ import absolute_import, print_function, division
 import logging
-from collections import OrderedDict
-
-import numpy as np
 import pytest
-from itertools import product, chain
+import numpy as np
 
+pygpu = pytest.importorskip("pygpu")
 import theano
-from six import StringIO
 import theano.tensor as T
 import theano.tests.unittest_tools as utt
+
+from six import StringIO
+from itertools import product, chain
+from collections import OrderedDict
 from theano.tensor.signal.pool import pool_2d, pool_3d
 from theano.tensor.signal.pool import Pool, MaxPoolGrad, AveragePoolGrad
 from theano.tensor.nnet.abstract_conv import (
@@ -17,6 +18,9 @@ from theano.tensor.nnet.abstract_conv import (
     get_conv_gradinputs_shape,
 )
 from theano.tensor.nnet import bn
+from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_FWD
+from theano.tensor.nnet.tests.test_abstract_conv import Grouped_conv_noOptim
+from theano.tensor.nnet.tests.test_abstract_conv import Grouped_conv3d_noOptim
 
 from .. import dnn
 from ..basic_ops import GpuAllocEmpty
@@ -25,15 +29,6 @@ from ..type import gpuarray_shared_constructor, GpuArrayType
 from .config import mode_with_gpu, mode_without_gpu, test_ctx_name, ref_cast
 from . import test_nnet
 from .rnn_support import Model, GRU, LSTM, WrapperLayer
-
-from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_FWD
-from theano.tensor.nnet.tests.test_abstract_conv import Grouped_conv_noOptim
-from theano.tensor.nnet.tests.test_abstract_conv import Grouped_conv3d_noOptim
-
-try:
-    import pygpu
-except ImportError:
-    pass
 
 mode_with_gpu = mode_with_gpu.including()
 # Globally disabled for mode_without_gpu

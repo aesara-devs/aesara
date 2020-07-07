@@ -1,10 +1,12 @@
 from __future__ import absolute_import, print_function, division
-from copy import copy
-
 import pytest
 import numpy as np
-
 import theano
+
+pygpu = pytest.importorskip("pygpu")
+gpuarray = pygpu.ndgpuarray
+
+from copy import copy
 from theano import scalar, gof, tensor
 from theano.compile import DebugMode, Mode
 from theano.tests.unittest_tools import assert_allclose
@@ -23,17 +25,6 @@ from ..elemwise import (
 )
 from ..dnn import GpuDnnReduction
 from ..type import GpuArrayType, get_context, gpuarray_shared_constructor
-
-
-from pygpu import ndgpuarray as gpuarray
-
-imported_scipy_special = False
-try:
-    import scipy.special
-
-    imported_scipy_special = True
-except ImportError:
-    pass
 
 
 # This is actually a test for GpuElemwise
@@ -96,8 +87,8 @@ class TestMathErrorFunctions:
 
     @classmethod
     def setup_class(cls):
-        if not imported_scipy_special:
-            pytest.skip("scipy.special needed")
+        scipy_special = pytest.importorskip("scipy.special")
+
         # NB: erfinv is defined in ]-1;1[, and erfcinv is defined in ]0;2[,
         # so we just take some values in an interval that covers both domains
         # (this will also allow to test some values outside the domains).
@@ -107,8 +98,8 @@ class TestMathErrorFunctions:
         for dtype in cls.dtypes:
             numpy_array = np.asarray(default_array, dtype=dtype)
             cls.default_arrays[dtype] = numpy_array
-            cls.expected_erfinv_outputs[dtype] = scipy.special.erfinv(numpy_array)
-            cls.expected_erfcinv_outputs[dtype] = scipy.special.erfcinv(numpy_array)
+            cls.expected_erfinv_outputs[dtype] = scipy_special.erfinv(numpy_array)
+            cls.expected_erfcinv_outputs[dtype] = scipy_special.erfcinv(numpy_array)
 
         # Since there are infinite values, we need to disable that check
         # in DebugMode if needed

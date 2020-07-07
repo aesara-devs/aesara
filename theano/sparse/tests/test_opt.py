@@ -3,7 +3,7 @@ import numpy as np
 
 try:
     import scipy.sparse as sp
-    import scipy.sparse
+    import scipy.sparse  # noqa: F401
 except ImportError:
     pass  # The variable enable_sparse will be used to disable the test file.
 import pytest

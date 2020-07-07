@@ -1,8 +1,10 @@
 from __future__ import division, absolute_import, print_function
+import pytest
 import numpy as np
+import theano
+
 from six.moves import xrange
 
-import theano
 from theano import tensor, config, Apply, Op
 from theano.scalar import int32 as int_t
 from theano.gof import ParamsType
@@ -33,10 +35,10 @@ class GpuEye(CGpuKernelBase, Op):
         )
 
     def get_params(self, node):
-        from pygpu.gpuarray import dtype_to_typecode
+        pygpu_gpuarray = pytest.importorskip("pygpu.gpuarray")
 
         return self.params_type.get_params(
-            typecode=dtype_to_typecode(self.dtype),
+            typecode=pygpu_gpuarray.dtype_to_typecode(self.dtype),
             context=get_context(self.context_name),
         )
 
