@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 import theano
 from theano.gof.utils import give_variables_names, remove, unique
 

@@ -1,5 +1,5 @@
 """Driver for gradient calculations."""
-from __future__ import absolute_import, print_function, division
+
 from collections import OrderedDict
 import six.moves.builtins as builtins
 import logging

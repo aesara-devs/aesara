@@ -5,7 +5,7 @@ To update the scan Cython code in Theano you must
 
 """
 
-from __future__ import absolute_import, print_function, division
+
 import errno
 import logging
 import os

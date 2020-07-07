@@ -2,7 +2,7 @@
 TODO: implement Images2Neibs.infer_shape() methods
 
 """
-from __future__ import absolute_import, print_function, division
+
 
 import numpy as np
 

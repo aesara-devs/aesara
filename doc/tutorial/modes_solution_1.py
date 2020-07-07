@@ -2,7 +2,7 @@
 # Theano tutorial
 # Solution to Exercise in section 'Configuration Settings and Compiling Modes'
 
-from __future__ import absolute_import, print_function, division
+
 import numpy as np
 import theano
 import theano.tensor as tt

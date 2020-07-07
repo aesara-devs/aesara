@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from theano.tensor.nnet.tests import test_neighbours
 
 from .config import mode_with_gpu

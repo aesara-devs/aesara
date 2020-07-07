@@ -4,7 +4,7 @@ Utility classes and methods to pickle parts of symbolic graph.
 These pickled graphs can be used, for instance, as cases for
 unit tests or regression tests.
 """
-from __future__ import absolute_import, print_function, division
+
 import numpy as np
 import os
 import pickle

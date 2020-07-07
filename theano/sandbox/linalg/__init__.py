@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from theano.tensor.slinalg import cholesky, solve, eigvalsh
 from theano.tensor.nlinalg import (
     matrix_inverse,

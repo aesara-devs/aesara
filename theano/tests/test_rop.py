@@ -10,7 +10,7 @@ For function to automatically test your Rop implementation, look at
 the docstring of the functions: check_mat_rop_lop, check_rop_lop,
 check_nondiff_rop,
 """
-from __future__ import absolute_import, print_function, division
+
 
 import itertools
 import pytest

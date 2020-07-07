@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 # Run using
 # mpiexec -np 2 python _test_mpi_roundtrip.py
 

@@ -2,7 +2,7 @@
 
 Author: Christof Angermueller <cangermueller@gmail.com>
 """
-from __future__ import absolute_import, print_function, division
+
 
 import os
 import json

@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from theano.gof.utils import hash_from_code
 
 

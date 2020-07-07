@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from theano.tensor.nnet.nnet import softsign  # noqa
 import sys
 

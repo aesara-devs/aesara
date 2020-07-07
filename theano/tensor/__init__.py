@@ -1,5 +1,5 @@
 """Define the tensor toplevel"""
-from __future__ import absolute_import, print_function, division
+
 
 __docformat__ = "restructuredtext en"
 

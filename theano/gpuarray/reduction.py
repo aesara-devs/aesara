@@ -1,4 +1,3 @@
-from __future__ import print_function, absolute_import, division
 from theano.gof import Op, Apply
 from theano.gof.type import Generic
 

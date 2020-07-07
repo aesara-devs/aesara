@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 from theano import config
 from theano.gof.params_type import ParamsType
 from theano.scalar import bool as bool_t

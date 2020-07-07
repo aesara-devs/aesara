@@ -1,6 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
-
 def work_dtype(dtype):
     """
     Return the data type for working memory.

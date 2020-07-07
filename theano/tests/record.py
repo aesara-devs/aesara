@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from theano.compile import Mode
 import theano
 from theano.printing import hex_digest

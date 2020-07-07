@@ -4,7 +4,7 @@ building class (:class:`FromFunctionOp`) and decorator (:func:`as_op`) that
 help make new Ops more rapidly.
 
 """
-from __future__ import absolute_import, print_function, division
+
 from collections import OrderedDict
 
 import copy

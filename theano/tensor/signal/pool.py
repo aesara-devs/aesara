@@ -3,7 +3,7 @@ Ops for downsampling images.
 Planned:
 Pool, DownsampleAvg, DownsampleSoftmax.
 """
-from __future__ import absolute_import, print_function, division
+
 
 # This file should move along with conv.py
 import warnings

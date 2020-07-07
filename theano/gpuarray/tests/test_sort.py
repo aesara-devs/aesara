@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 import theano
 import theano.tensor.tests.test_sort
 from .config import mode_with_gpu

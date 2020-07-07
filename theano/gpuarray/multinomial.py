@@ -1,5 +1,5 @@
 # TODO test dtype != float32
-from __future__ import absolute_import, print_function, division
+
 import warnings
 
 try:

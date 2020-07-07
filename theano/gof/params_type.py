@@ -112,7 +112,7 @@ for more info about enumeration aliases).
 
 """
 
-from __future__ import absolute_import, print_function, division
+
 import re
 import hashlib
 from theano.gof.utils import MethodNotDefined, c_cpp_keywords

@@ -7,7 +7,7 @@ ProfileStats object for runtime and memory profiling.
 # TODO: ensure field width for string fields makes columns line up
 # TODO: what to do about 'diff summary'? (ask Fred?)
 #
-from __future__ import absolute_import, print_function, division
+
 
 import atexit
 import copy

@@ -12,7 +12,7 @@ The conception of the multi-stream from MRG31k3p was published in:
 
 P. L'Ecuyer and R. Simard and E. Jack Chen and W. David Kelton, An Object-Oriented Random-Number Package with Many Long Streams and Substreams, Operations Research, volume 50, number 6, 2002, 1073-1075.
 """
-from __future__ import absolute_import, print_function, division
+
 import warnings
 
 import numpy as np

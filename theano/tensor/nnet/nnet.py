@@ -12,7 +12,7 @@ fast_compile, we register them as needed for the GPU. This can be
 revisited later when all the intermediate part are on the GPU.
 
 """
-from __future__ import absolute_import, print_function, division
+
 import logging
 import warnings
 import numpy as np

@@ -3,7 +3,7 @@ Provide a simple user friendly API to Theano-managed memory.
 
 """
 # Standard imports
-from __future__ import absolute_import, print_function, division
+
 
 import copy
 import logging

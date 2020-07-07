@@ -1,5 +1,5 @@
 """Define new Ops from existing Ops"""
-from __future__ import absolute_import, division, print_function
+
 from functools import reduce, partial
 from collections import OrderedDict
 

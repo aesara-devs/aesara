@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 import theano
 import numpy as np
 import scipy.sparse as sp

@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from theano import Apply, Op
 from theano.tensor.extra_ops import CumOp
 

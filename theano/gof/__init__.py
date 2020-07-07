@@ -35,7 +35,7 @@ For more details and discussion, see the theano-dev
 e-mail thread "What is gof?".
 
 """
-from __future__ import absolute_import, print_function, division
+
 
 from theano.gof.cc import CLinker, OpWiseCLinker, DualLinker, HideC
 

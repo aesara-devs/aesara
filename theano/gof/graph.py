@@ -1,7 +1,7 @@
 """
 Node classes (`Apply`, `Variable`) and expression graph algorithms.
 """
-from __future__ import absolute_import, print_function, division
+
 
 from collections import deque
 import contextlib

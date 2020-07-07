@@ -5,7 +5,7 @@ A VM is not actually different from a Linker, we just decided
 VM was a better name at some point.
 
 """
-from __future__ import absolute_import, print_function, division
+
 
 from . import link
 from collections import defaultdict

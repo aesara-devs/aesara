@@ -39,7 +39,6 @@ user/group and permissions could leave the backup file more readable that
 you'd prefer. You can always use the --nobackup option to prevent this.
 """
 
-from __future__ import absolute_import, print_function, division
 
 __version__ = "1"
 

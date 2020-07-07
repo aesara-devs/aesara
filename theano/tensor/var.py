@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 try:
     from collections.abc import Iterable
 except (ImportError, AttributeError):

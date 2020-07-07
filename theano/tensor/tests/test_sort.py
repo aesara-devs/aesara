@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from itertools import product, chain
 from functools import reduce
 from theano.tests import unittest_tools as utt

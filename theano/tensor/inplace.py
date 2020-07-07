@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from theano import scalar as scal
 from . import elemwise
 from theano import printing

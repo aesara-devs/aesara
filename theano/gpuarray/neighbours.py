@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 from theano import Op, Apply
 from theano.gof import ParamsType
 from theano.tensor.nnet.neighbours import Images2Neibs

@@ -3,7 +3,6 @@
 # python run_dnn_conv.py --help         # Print help.
 # python run_dnn_conv.py {fwd|bwd-filter|bwd-data} {2d|3d} -a <algo> -i <inputShape> -f <filterShape> ...
 
-from __future__ import absolute_import, print_function, division
 
 import argparse
 import sys

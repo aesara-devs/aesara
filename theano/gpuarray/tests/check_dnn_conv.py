@@ -13,7 +13,6 @@
 # Else, any arg will be directly passed to pytest.
 # python check_dnn_conv.py -xvs  # verbose mode, capture output, exit at first error.
 
-from __future__ import absolute_import, print_function, division
 
 import math
 import sys

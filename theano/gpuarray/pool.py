@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 import theano
 from theano import Apply
 from theano.gof import ParamsType

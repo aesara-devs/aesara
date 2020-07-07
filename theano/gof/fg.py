@@ -4,7 +4,7 @@ Contains the FunctionGraph class and exception
 types that it can raise.
 
 """
-from __future__ import absolute_import, print_function, division
+
 from collections import OrderedDict
 import time
 

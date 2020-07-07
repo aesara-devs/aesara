@@ -4,7 +4,7 @@
 #   * Figure out how to compile and install documentation automatically
 #   * Add download_url
 
-from __future__ import absolute_import, print_function, division
+
 import os
 import codecs
 from fnmatch import fnmatchcase
@@ -105,7 +105,6 @@ def do_setup():
         packages=find_packages(),
         cmdclass=versioneer.get_cmdclass(),
         install_requires=["numpy>=1.9.1", "scipy>=0.14", "six>=1.9.0"],
-        # pygments is a dependency for Sphinx code highlight
         extras_require={
             "test": ["pytest", "flake8", "black"],
             "doc": ["Sphinx>=0.5.1", "pygments"],

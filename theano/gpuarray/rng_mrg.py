@@ -5,7 +5,7 @@ Generator code in SSJ package (L'Ecuyer & Simard).
 http://www.iro.umontreal.ca/~simardr/ssj/indexe.html
 
 """
-from __future__ import absolute_import, print_function, division
+
 
 from theano import Apply, tensor
 from theano.gof import local_optimizer

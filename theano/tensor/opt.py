@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 """ Tensor optimizations addressing the ops in basic.py.
 """
 # TODO: intelligent merge for mul/add
