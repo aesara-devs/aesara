@@ -24,7 +24,7 @@ def makeSharedTester(
     set_cast_value_inplace_,
     shared_constructor_accept_ndarray_,
     internal_type_,
-    test_internal_type_,
+    check_internal_type_,
     theano_fct_,
     ref_fct_,
     cast_value_=np.asarray,
@@ -46,7 +46,7 @@ def makeSharedTester(
                                type as the internal type.
     :param shared_constructor_accept_ndarray_: Do the shared_constructor accept an ndarray as input?
     :param internal_type_: The internal type used.
-    :param test_internal_type_: A function that tell if its input is of the same
+    :param check_internal_type_: A function that tell if its input is of the same
                                 type as this shared variable internal type.
     :param theano_fct_: A theano op that will be used to do some computation on the shared variable
     :param ref_fct_: A reference function that should return the same value as the theano_fct_
@@ -73,7 +73,7 @@ def makeSharedTester(
         get_value_borrow_true_alias = get_value_borrow_true_alias_
         shared_borrow_true_alias = shared_borrow_true_alias_
         internal_type = internal_type_
-        test_internal_type = staticmethod(test_internal_type_)
+        check_internal_type = staticmethod(check_internal_type_)
         theano_fct = staticmethod(theano_fct_)
         ref_fct = staticmethod(ref_fct_)
         set_value_borrow_true_alias = set_value_borrow_true_alias_
@@ -180,7 +180,6 @@ def makeSharedTester(
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x = self.cast_value(x)
 
-            self.ref_fct(x)
             x_shared = self.shared_constructor(x, borrow=False)
             total = self.theano_fct(x_shared)
 
@@ -188,7 +187,7 @@ def makeSharedTester(
 
             # in this case we can alias with the internal value
             x = x_shared.get_value(borrow=True, return_internal_type=True)
-            assert self.test_internal_type(x)
+            assert self.check_internal_type(x)
 
             x /= 0.5
 
@@ -197,7 +196,7 @@ def makeSharedTester(
             assert np.allclose(self.ref_fct(x), total_func())
 
             x = x_shared.get_value(borrow=False, return_internal_type=True)
-            assert self.test_internal_type(x)
+            assert self.check_internal_type(x)
             assert x is not x_shared.container.value
             x /= 0.5
 
@@ -230,7 +229,6 @@ def makeSharedTester(
             x = self.cast_value(x)
 
             x_orig = x
-            self.ref_fct(x)
             x_shared = self.shared_constructor(x, borrow=False)
             total = self.theano_fct(x_shared)
 
@@ -252,13 +250,13 @@ def makeSharedTester(
             # test optimized get set value on the gpu(don't pass data to the cpu)
             get_x = x_shared.get_value(borrow=True, return_internal_type=True)
             assert get_x is not x_orig  # borrow=False to shared_constructor
-            assert self.test_internal_type(get_x)
+            assert self.check_internal_type(get_x)
 
             get_x /= 0.5
-            assert self.test_internal_type(get_x)
+            assert self.check_internal_type(get_x)
             x_shared.set_value(get_x, borrow=True)
             x = x_shared.get_value(borrow=True, return_internal_type=True)
-            assert self.test_internal_type(x)
+            assert self.check_internal_type(x)
             assert x is get_x
 
             # TODO test Out.
@@ -644,9 +642,7 @@ def makeSharedTester(
             and expect_fail_fast_shape_inplace
             and theano.config.mode != "FAST_COMPILE"
         ):
-            test_specify_shape_inplace = unittest.expectedFailure(
-                test_specify_shape_inplace
-            )
+            test_specify_shape_inplace = pytest.mark.xfail(test_specify_shape_inplace)
 
         def test_values_eq(self):
             # Test the type.values_eq[_approx] function
@@ -695,7 +691,7 @@ def makeSharedTester(
     set_cast_value_inplace_=False,
     shared_constructor_accept_ndarray_=True,
     internal_type_=np.ndarray,
-    test_internal_type_=lambda a: isinstance(a, np.ndarray),
+    check_internal_type_=lambda a: isinstance(a, np.ndarray),
     theano_fct_=lambda a: a * 2,
     ref_fct_=lambda a: np.asarray((a * 2)),
     cast_value_=np.asarray,

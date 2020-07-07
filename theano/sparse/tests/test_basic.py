@@ -3324,7 +3324,7 @@ class TestSamplingDot(utt.InferShapeTester):
     set_cast_value_inplace_=False,
     shared_constructor_accept_ndarray_=False,
     internal_type_=scipy.sparse.csc_matrix,
-    test_internal_type_=scipy.sparse.issparse,
+    check_internal_type_=scipy.sparse.issparse,
     theano_fct_=lambda a: dense_from_sparse(a * 2.0),
     ref_fct_=lambda a: np.asarray((a * 2).todense()),
     cast_value_=scipy.sparse.csr_matrix,
