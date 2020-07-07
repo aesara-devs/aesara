@@ -26,7 +26,7 @@ def test_NanGuardMode():
     a = np.random.randn(3, 5).astype(theano.config.floatX)
     infa = np.tile((np.asarray(100.0) ** 1000000).astype(theano.config.floatX), (3, 5))
     nana = np.tile(np.asarray(np.nan).astype(theano.config.floatX), (3, 5))
-    # biga = np.tile(np.asarray(1e20).astype(theano.config.floatX), (3, 5))
+    biga = np.tile(np.asarray(1e20).astype(theano.config.floatX), (3, 5))
 
     fun(a)  # normal values
 
@@ -39,7 +39,7 @@ def test_NanGuardMode():
         with pytest.raises(AssertionError):
             fun(nana)  # NANs
         with pytest.raises(AssertionError):
-            fun(infa)  # big values
+            fun(biga)  # big values
     finally:
         _logger.propagate = True
 
@@ -49,7 +49,7 @@ def test_NanGuardMode():
         (np.asarray(100.0) ** 1000000).astype(theano.config.floatX), (3, 4, 5)
     )
     nana = np.tile(np.asarray(np.nan).astype(theano.config.floatX), (3, 4, 5))
-    # biga = np.tile(np.asarray(1e20).astype(theano.config.floatX), (3, 4, 5))
+    biga = np.tile(np.asarray(1e20).astype(theano.config.floatX), (3, 4, 5))
 
     x = T.tensor3()
     y = x[:, T.arange(2), T.arange(2), None]
@@ -64,6 +64,6 @@ def test_NanGuardMode():
         with pytest.raises(AssertionError):
             fun(nana)  # NANs
         with pytest.raises(AssertionError):
-            fun(infa)  # big values
+            fun(biga)  # big values
     finally:
         _logger.propagate = True
