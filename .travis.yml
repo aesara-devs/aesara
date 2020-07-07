@@ -25,10 +25,10 @@ env:
     - NUMPY_VERSION=1.18.1
   jobs:
     - PART="theano/compat theano/compile theano/d3viz theano/gof theano/misc theano/sandbox theano/scalar theano/scan_module theano/tests theano/typed_list"
-    - PART="theano/sparse theano/tensor --ignore=theano.tensor.tests.test_basic.py --ignore=theano.tensor.tests.test_elemwise.py --ignore=theano.tensor.tests.test_opt.py --ignore=theano/tensor/nnet"
+    - PART="theano/sparse theano/tensor --ignore=theano/tensor/tests/test_basic.py --ignore=theano/tensor/tests/test_elemwise.py --ignore=theano/tensor/tests/test_opt.py --ignore=theano/tensor/nnet"
     - PART="theano/tensor/tests/test_basic.py"
     - PART="theano/tensor/tests/test_elemwise.py theano/tensor/tests/test_opt.py"
-    - PART="theano/tensor/nnet --ignore test_abstract_conv.py"
+    - PART="theano/tensor/nnet --ignore-glob='*/test_abstract_conv.py'"
     - PART="theano/tensor/nnet/tests/test_abstract_conv.py"
 
 addons:
