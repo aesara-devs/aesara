@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 import traceback
 
 import numpy as np
@@ -25,8 +24,15 @@ class TensorSharedVariable(_tensor_py_operators, SharedVariable):
 
 
 @shared_constructor
-def tensor_constructor(value, name=None, strict=False, allow_downcast=None,
-                       borrow=False, broadcastable=None, target='cpu'):
+def tensor_constructor(
+    value,
+    name=None,
+    strict=False,
+    allow_downcast=None,
+    borrow=False,
+    broadcastable=None,
+    target="cpu",
+):
     """
     SharedVariable Constructor for TensorType.
 
@@ -38,8 +44,8 @@ def tensor_constructor(value, name=None, strict=False, allow_downcast=None,
     The optional `broadcastable` argument will override this default.
 
     """
-    if target != 'cpu':
-        raise TypeError('not for cpu')
+    if target != "cpu":
+        raise TypeError("not for cpu")
 
     if not isinstance(value, np.ndarray):
         raise TypeError()
@@ -50,11 +56,13 @@ def tensor_constructor(value, name=None, strict=False, allow_downcast=None,
     if broadcastable is None:
         broadcastable = (False,) * len(value.shape)
     type = TensorType(value.dtype, broadcastable=broadcastable)
-    return TensorSharedVariable(type=type,
-                                value=np.array(value, copy=(not borrow)),
-                                name=name,
-                                strict=strict,
-                                allow_downcast=allow_downcast)
+    return TensorSharedVariable(
+        type=type,
+        value=np.array(value, copy=(not borrow)),
+        name=name,
+        strict=strict,
+        allow_downcast=allow_downcast,
+    )
 
 
 # TensorSharedVariable brings in the tensor operators, is not ideal, but works
@@ -69,8 +77,9 @@ class ScalarSharedVariable(_tensor_py_operators, SharedVariable):
 
 
 @shared_constructor
-def scalar_constructor(value, name=None, strict=False, allow_downcast=None,
-                       borrow=False, target='cpu'):
+def scalar_constructor(
+    value, name=None, strict=False, allow_downcast=None, borrow=False, target="cpu"
+):
     """
     SharedVariable constructor for scalar values. Default: int64 or float64.
 
@@ -83,8 +92,8 @@ def scalar_constructor(value, name=None, strict=False, allow_downcast=None,
     borrow, as it is a hint to Theano that we can reuse it.
 
     """
-    if target != 'cpu':
-        raise TypeError('not for cpu')
+    if target != "cpu":
+        raise TypeError("not for cpu")
 
     if not isinstance(value, (np.number, float, integer_types, complex)):
         raise TypeError()
@@ -100,11 +109,13 @@ def scalar_constructor(value, name=None, strict=False, allow_downcast=None,
     try:
         # Do not pass the dtype to asarray because we want this to fail if
         # strict is True and the types do not match.
-        rval = ScalarSharedVariable(type=tensor_type,
-                                    value=np.array(value, copy=True),
-                                    name=name,
-                                    strict=strict,
-                                    allow_downcast=allow_downcast)
+        rval = ScalarSharedVariable(
+            type=tensor_type,
+            value=np.array(value, copy=True),
+            name=name,
+            strict=strict,
+            allow_downcast=allow_downcast,
+        )
         return rval
     except Exception:
         traceback.print_exc()

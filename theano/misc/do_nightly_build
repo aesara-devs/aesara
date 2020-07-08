@@ -33,15 +33,13 @@ if [ "$1" == "--buildbot" ]; then
     git rev-parse HEAD
     #Run tests from inside the Theano directory to prevent import problem.
 #    PROFILING="--with-coverage --cover-package=theano"
-    NOSETESTS=${ROOT_CWD}/Theano/bin/theano-nose
     export PYTHONPATH=${ROOT_CWD}:$PYTHONPATH
 else
     ROOT_CWD=.
     COMPILEDIR=`python -c "from __future__ import print_function; import theano; print(theano.config.compiledir)"|tail -1`
-    NOSETESTS=`python -c "from __future__ import print_function; import theano; print(theano.__path__[0])"|tail -1`/../bin/theano-nose
 fi
 
-# nosetests xunit for test profiling
+# tests xunit for test profiling
 XUNIT="--with-xunit --xunit-file="
 
 echo "Number of elements in the compiledir:"
@@ -65,23 +63,23 @@ FLAGS=${FLAGS},device=cpu,floatX=float64
 if [ "$RELEASE" ]; then
     echo "Executing tests with default mode and compute_test_value"
     date
-    THEANO_FLAGS=${FLAGS},compute_test_value=ignore ${NOSETESTS} ${ARGS}
+    THEANO_FLAGS=${FLAGS},compute_test_value=ignore pytest ${ARGS}
     echo "Number of elements in the compiledir:"
     ls ${COMPILEDIR}|wc -l
     echo
 
     echo "Executing tests with linker=vm,floatX=float32"
-    echo "THEANO_FLAGS=${FLAGS},linker=vm,floatX=float32 ${NOSETESTS} ${ARGS}"
+    echo "THEANO_FLAGS=${FLAGS},linker=vm,floatX=float32 pytest ${ARGS}"
     date
-    THEANO_FLAGS=${FLAGS},linker=vm,floatX=float32 ${NOSETESTS} ${ARGS}
+    THEANO_FLAGS=${FLAGS},linker=vm,floatX=float32 pytest ${ARGS}
     echo "Number of elements in the compiledir:"
     ls ${COMPILEDIR}|wc -l
     echo
 
     echo "Executing tests with cxx="
-    echo "THEANO_FLAGS=${FLAGS},cxx= ${NOSETESTS} ${ARGS}"
+    echo "THEANO_FLAGS=${FLAGS},cxx= pytest ${ARGS}"
     date
-    THEANO_FLAGS=${FLAGS},cxx= ${NOSETESTS} ${ARGS}
+    THEANO_FLAGS=${FLAGS},cxx= pytest ${ARGS}
     echo "Number of elements in the compiledir:"
     ls ${COMPILEDIR}|wc -l
     echo
@@ -90,27 +88,27 @@ fi
 
 echo "Executing tests with mode=FAST_RUN"
 FILE=${ROOT_CWD}/theano_fastrun_tests.xml
-echo "THEANO_FLAGS=cmodule.warn_no_version=True,${FLAGS},mode=FAST_RUN ${NOSETESTS} ${PROFILING} ${ARGS} ${XUNIT}${FILE}"
+echo "THEANO_FLAGS=cmodule.warn_no_version=True,${FLAGS},mode=FAST_RUN pytest ${PROFILING} ${ARGS} ${XUNIT}${FILE}"
 date
-THEANO_FLAGS=cmodule.warn_no_version=True,${FLAGS},mode=FAST_RUN ${NOSETESTS} ${PROFILING} ${ARGS} ${XUNIT}${FILE}
+THEANO_FLAGS=cmodule.warn_no_version=True,${FLAGS},mode=FAST_RUN pytest ${PROFILING} ${ARGS} ${XUNIT}${FILE}
 echo "Number of elements in the compiledir:"
 ls ${COMPILEDIR}|wc -l
 echo
 
 echo "Executing tests with mode=FAST_RUN,floatX=float32"
 FILE=${ROOT_CWD}/theano_fastrun_float32_tests.xml
-echo "THEANO_FLAGS=${FLAGS},mode=FAST_RUN,floatX=float32 ${NOSETESTS} ${ARGS} ${XUNIT}${FILE}"
+echo "THEANO_FLAGS=${FLAGS},mode=FAST_RUN,floatX=float32 pytest ${ARGS} ${XUNIT}${FILE}"
 date
-THEANO_FLAGS=${FLAGS},mode=FAST_RUN,floatX=float32 ${NOSETESTS} ${ARGS} ${XUNIT}${FILE}
+THEANO_FLAGS=${FLAGS},mode=FAST_RUN,floatX=float32 pytest ${ARGS} ${XUNIT}${FILE}
 echo "Number of elements in the compiledir:"
 ls ${COMPILEDIR}|wc -l
 echo
 
 echo "Executing tests with linker=vm,vm.lazy=True,floatX=float32"
 FILE=${ROOT_CWD}/theano_fastrun_float32_lazyvm_tests.xml
-echo "THEANO_FLAGS=${FLAGS},linker=vm,vm.lazy=True,floatX=float32 ${NOSETESTS} ${ARGS} ${XUNIT}${FILE}"
+echo "THEANO_FLAGS=${FLAGS},linker=vm,vm.lazy=True,floatX=float32 pytest ${ARGS} ${XUNIT}${FILE}"
 date
-THEANO_FLAGS=${FLAGS},linker=vm,vm.lazy=True,floatX=float32 ${NOSETESTS} ${ARGS} ${XUNIT}${FILE}
+THEANO_FLAGS=${FLAGS},linker=vm,vm.lazy=True,floatX=float32 pytest ${ARGS} ${XUNIT}${FILE}
 echo "Number of elements in the compiledir:"
 ls ${COMPILEDIR}|wc -l
 echo
@@ -119,9 +117,9 @@ echo
 seed=$RANDOM
 echo "Executing tests with mode=DEBUG_MODE with seed of the day $seed"
 FILE=${ROOT_CWD}/theano_debug_tests.xml
-echo "THEANO_FLAGS=${FLAGS},unittests.rseed=$seed,mode=DEBUG_MODE,DebugMode.check_strides=0,DebugMode.patience=3,DebugMode.check_preallocated_output= ${NOSETESTS} ${ARGS} ${XUNIT}${FILE}"
+echo "THEANO_FLAGS=${FLAGS},unittests.rseed=$seed,mode=DEBUG_MODE,DebugMode.check_strides=0,DebugMode.patience=3,DebugMode.check_preallocated_output= pytest ${ARGS} ${XUNIT}${FILE}"
 date
-THEANO_FLAGS=${FLAGS},unittests.rseed=$seed,mode=DEBUG_MODE,DebugMode.check_strides=0,DebugMode.patience=3,DebugMode.check_preallocated_output= ${NOSETESTS} ${ARGS} ${XUNIT}${FILE}
+THEANO_FLAGS=${FLAGS},unittests.rseed=$seed,mode=DEBUG_MODE,DebugMode.check_strides=0,DebugMode.patience=3,DebugMode.check_preallocated_output= pytest ${ARGS} ${XUNIT}${FILE}
 
 echo "Number of elements in the compiledir:"
 ls ${COMPILEDIR}|wc -l
@@ -132,9 +130,9 @@ echo
 # with --batch=1000" # The buildbot freeze sometimes when collecting the tests to run
 echo "Executing tests with mode=FAST_COMPILE"
 FILE=${ROOT_CWD}/theano_fastcompile_tests.xml
-echo "THEANO_FLAGS=${FLAGS},mode=FAST_COMPILE ${NOSETESTS} ${ARGS} ${XUNIT}${FILE}"
+echo "THEANO_FLAGS=${FLAGS},mode=FAST_COMPILE pytest ${ARGS} ${XUNIT}${FILE}"
 date
-THEANO_FLAGS=${FLAGS},mode=FAST_COMPILE ${NOSETESTS} ${ARGS} ${XUNIT}${FILE}
+THEANO_FLAGS=${FLAGS},mode=FAST_COMPILE pytest ${ARGS} ${XUNIT}${FILE}
 
 echo "Number of elements in the compiledir:"
 ls ${COMPILEDIR}|wc -l

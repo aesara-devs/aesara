@@ -4,7 +4,7 @@ building class (:class:`FromFunctionOp`) and decorator (:func:`as_op`) that
 help make new Ops more rapidly.
 
 """
-from __future__ import absolute_import, print_function, division
+
 from collections import OrderedDict
 
 import copy
@@ -56,17 +56,17 @@ class ViewOp(gof.Op):
         return gof.Apply(self, [x], [x.type()])
 
     def perform(self, node, inp, out):
-        x, = inp
-        z, = out
+        (x,) = inp
+        (z,) = out
         z[0] = x
 
     def __str__(self):
-        return '%s' % self.__class__.__name__
+        return "%s" % self.__class__.__name__
 
     def c_code(self, node, nodename, inp, out, sub):
-        iname, = inp
-        oname, = out
-        fail = sub['fail']
+        (iname,) = inp
+        (oname,) = out
+        fail = sub["fail"]
 
         itype = node.inputs[0].type.__class__
         if itype in self.c_code_and_version:
@@ -80,13 +80,16 @@ class ViewOp(gof.Op):
         version = []
         # If any of the c code is unversionned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
-        for t, (c, v) in sorted(iteritems(self.c_code_and_version),
-                                key=lambda pair: str(pair[0])):
+        for t, (c, v) in sorted(
+            iteritems(self.c_code_and_version), key=lambda pair: str(pair[0])
+        ):
             if not v:
-                warnings.warn("Type %s has C code for ViewOp, but it has no "
-                              "version. You should add a 'version' keyword "
-                              "arg when calling register_view_op_c_code." % t,
-                              stacklevel=2)
+                warnings.warn(
+                    "Type %s has C code for ViewOp, but it has no "
+                    "version. You should add a 'version' keyword "
+                    "arg when calling register_view_op_c_code." % t,
+                    stacklevel=2,
+                )
                 return ()
             version.append((str(t), v))
 
@@ -97,6 +100,7 @@ class ViewOp(gof.Op):
 
     def grad(self, args, g_outs):
         return g_outs
+
 
 view_op = ViewOp()
 
@@ -119,9 +123,11 @@ class OutputGuard(ViewOp):
     TODO: find a current full explanation.
 
     """
+
     destroy_map = {0: [0]}
 
     check_input = False
+
 
 _output_guard = OutputGuard()
 
@@ -161,7 +167,7 @@ class DeepCopyOp(gof.Op):
         return gof.Apply(self, [x], [x.type()])
 
     def perform(self, node, args, outs):
-        if hasattr(args[0], 'copy'):
+        if hasattr(args[0], "copy"):
             # when args[0] is a an ndarray of 0 dimensions,
             # this return a numpy.dtype and not an ndarray
             # So when the args have a copy attribute we use it
@@ -174,14 +180,17 @@ class DeepCopyOp(gof.Op):
         version = []
         # If any of the c code is unversionned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
-        for t, (c, v) in sorted(iteritems(self.c_code_and_version),
-                                key=lambda pair: str(pair[0])):
+        for t, (c, v) in sorted(
+            iteritems(self.c_code_and_version), key=lambda pair: str(pair[0])
+        ):
             if not v:
-                warnings.warn("Type %s has C code for DeepCopyOp, but it has "
-                              "no version. You should add a 'version' keyword"
-                              " arg when calling "
-                              "register_deep_copy_op_c_code." % t,
-                              stacklevel=2)
+                warnings.warn(
+                    "Type %s has C code for DeepCopyOp, but it has "
+                    "no version. You should add a 'version' keyword"
+                    " arg when calling "
+                    "register_deep_copy_op_c_code." % t,
+                    stacklevel=2,
+                )
                 return ()
             version.append((str(t), v))
 
@@ -190,9 +199,9 @@ class DeepCopyOp(gof.Op):
         return tuple(version)
 
     def c_code(self, node, name, inames, onames, sub):
-        iname, = inames
-        oname, = onames
-        fail = sub['fail']
+        (iname,) = inames
+        (oname,) = onames
+        fail = sub["fail"]
 
         itype = node.inputs[0].type.__class__
         if itype in self.c_code_and_version:
@@ -253,9 +262,9 @@ class Shape(gof.Op):
         return gof.Apply(self, [x], [theano.tensor.lvector()])
 
     def perform(self, node, inp, out_):
-        x, = inp
-        out, = out_
-        out[0] = theano._asarray(x.shape, dtype='int64')
+        (x,) = inp
+        (out,) = out_
+        out[0] = theano._asarray(x.shape, dtype="int64")
 
     def infer_shape(self, node, in_shapes):
         return [[len(in_shapes[0])]]
@@ -280,9 +289,9 @@ class Shape(gof.Op):
         return [None]
 
     def c_code(self, node, name, inames, onames, sub):
-        iname, = inames
-        oname, = onames
-        fail = sub['fail']
+        (iname,) = inames
+        (oname,) = onames
+        fail = sub["fail"]
 
         itype = node.inputs[0].type.__class__
         if itype in self.c_code_and_version:
@@ -296,13 +305,16 @@ class Shape(gof.Op):
         version = []
         # If any of the c code is unversionned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
-        for t, (c, v) in sorted(iteritems(self.c_code_and_version),
-                                key=lambda pair: str(pair[0])):
+        for t, (c, v) in sorted(
+            iteritems(self.c_code_and_version), key=lambda pair: str(pair[0])
+        ):
             if not v:
-                warnings.warn("Type %s has C code for Shape, but it has no "
-                              "version. You should add a 'version' keyword "
-                              "arg when calling register_shape_c_code." % t,
-                              stacklevel=2)
+                warnings.warn(
+                    "Type %s has C code for Shape, but it has no "
+                    "version. You should add a 'version' keyword "
+                    "arg when calling register_shape_c_code." % t,
+                    stacklevel=2,
+                )
                 return ()
             version.append((str(t), v))
 
@@ -359,24 +371,23 @@ class Shape_i(gof.Op):
         return gof.ParamsType(i=theano.scalar.basic.int64)
 
     def __str__(self):
-        return '%s{%i}' % (self.__class__.__name__, self.i)
+        return "%s{%i}" % (self.__class__.__name__, self.i)
 
     def make_node(self, x):
         # x could be one of a number of types
         # the only thing we require is that the variable have a .ndim,
         # and that the value have a .shape
         if not isinstance(x, theano.Variable):
-            raise TypeError('x must be Variable with ndim attribute', x)
+            raise TypeError("x must be Variable with ndim attribute", x)
         if x.ndim <= self.i:
-            raise TypeError('x has too few dimensions for Shape_i',
-                            (x, self.i))
+            raise TypeError("x has too few dimensions for Shape_i", (x, self.i))
         return theano.Apply(self, [x], [theano.tensor.lscalar()])
 
     def perform(self, node, inp, out_, params):
-        x, = inp
-        out, = out_
+        (x,) = inp
+        (out,) = out_
         if out[0] is None:
-            out[0] = theano._asarray(x.shape[self.i], dtype='int64')
+            out[0] = theano._asarray(x.shape[self.i], dtype="int64")
         else:
             out[0][...] = x.shape[self.i]
 
@@ -384,13 +395,16 @@ class Shape_i(gof.Op):
         version = []
         # If any of the c code is unversionned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
-        for t, (c, ci, v) in sorted(iteritems(self.c_code_and_version),
-                                    key=lambda pair: str(pair[0])):
+        for t, (c, ci, v) in sorted(
+            iteritems(self.c_code_and_version), key=lambda pair: str(pair[0])
+        ):
             if not v:
-                warnings.warn("Type %s has C code for Shape_i, but it has "
-                              "no version. You should add a 'version' keyword "
-                              "arg when calling register_shape_i_c_code." % t,
-                              stacklevel=2)
+                warnings.warn(
+                    "Type %s has C code for Shape_i, but it has "
+                    "no version. You should add a 'version' keyword "
+                    "arg when calling register_shape_i_c_code." % t,
+                    stacklevel=2,
+                )
                 return ()
             version.append((str(t), v))
 
@@ -400,11 +414,11 @@ class Shape_i(gof.Op):
         return tuple(version)
 
     def c_code(self, node, name, inames, onames, sub):
-        iname, = inames
-        oname, = onames
-        fail = sub['fail']
+        (iname,) = inames
+        (oname,) = onames
+        fail = sub["fail"]
         # i is then 'params->i', not just 'params'.
-        i = sub['params'] + '->i'
+        i = sub["params"] + "->i"
 
         itype = node.inputs[0].type.__class__
         if itype in self.c_code_and_version:
@@ -426,10 +440,14 @@ class Shape_i(gof.Op):
         return [[False]]
 
     def grad(self, inp, grads):
-        return [theano.gradient.grad_not_implemented(
-                op=self, x_pos=0, x=inp[0],
-                comment=("No gradient for the shape of a matrix "
-                         "is implemented."))]
+        return [
+            theano.gradient.grad_not_implemented(
+                op=self,
+                x_pos=0,
+                x=inp[0],
+                comment=("No gradient for the shape of a matrix " "is implemented."),
+            )
+        ]
 
 
 def shape_i(var, i, fgraph=None):
@@ -453,9 +471,9 @@ def shape_i(var, i, fgraph=None):
         introduce var in to get the optimized shape.
 
     """
-    if fgraph is None and hasattr(var, 'fgraph'):
+    if fgraph is None and hasattr(var, "fgraph"):
         fgraph = var.fgraph
-    if fgraph and hasattr(fgraph, 'shape_feature'):
+    if fgraph and hasattr(fgraph, "shape_feature"):
         shape_feature = fgraph.shape_feature
         shape_of = shape_feature.shape_of
 
@@ -466,8 +484,8 @@ def shape_i(var, i, fgraph=None):
                         recur(inp.owner)
                 # If the output var isn't marked as being in the graph,
                 # we need to add it in the ShapeFeature.
-                shape_feature.on_import(fgraph, node,
-                                        'gof.ops.shape_i')
+                shape_feature.on_import(fgraph, node, "gof.ops.shape_i")
+
         if var not in shape_of:
             recur(var.owner)
         return shape_of[var][i]
@@ -483,6 +501,8 @@ def shape_i_op(i):
     if key not in shape_i_op.cache:
         shape_i_op.cache[key] = Shape_i(i)
     return shape_i_op.cache[key]
+
+
 shape_i_op.cache = {}
 
 
@@ -513,6 +533,7 @@ expandable_types = ()
 def load_back(mod, name):
     __import__(mod)
     import sys
+
     module = sys.modules[mod]
     obj = getattr(module, name)
     return obj
@@ -542,14 +563,13 @@ class FromFunctionOp(gof.Op):
             self.infer_shape = self._infer_shape
 
     def __eq__(self, other):
-        return (type(self) == type(other) and
-                self.__fn == other.__fn)
+        return type(self) == type(other) and self.__fn == other.__fn
 
     def __hash__(self):
         return hash(type(self)) ^ hash(self.__fn)
 
     def __str__(self):
-        return 'FromFunctionOp{%s}' % self.__fn.__name__
+        return "FromFunctionOp{%s}" % self.__fn.__name__
 
     def perform(self, node, inputs, outputs):
         outs = self.__fn(*inputs)
@@ -566,13 +586,13 @@ class FromFunctionOp(gof.Op):
             obj = load_back(mod, name)
         except (ImportError, KeyError, AttributeError):
             raise pickle.PicklingError(
-                "Can't pickle as_op(), not found as %s.%s" %
-                (mod, name))
+                "Can't pickle as_op(), not found as %s.%s" % (mod, name)
+            )
         else:
             if obj is not self:
                 raise pickle.PicklingError(
-                    "Can't pickle as_op(), not the object "
-                    "at %s.%s" % (mod, name))
+                    "Can't pickle as_op(), not the object " "at %s.%s" % (mod, name)
+                )
         return load_back, (mod, name)
 
     def _infer_shape(self, node, input_shapes):
@@ -623,6 +643,7 @@ def as_op(itypes, otypes, infer_shape=None):
 
     def make_op(fn):
         return FromFunctionOp(fn, itypes, otypes, infer_shape)
+
     return make_op
 
 
@@ -682,12 +703,15 @@ class Rebroadcast(gof.Op):
         self.axis = OrderedDict(items)
         for axis, broad in iteritems(self.axis):
             if not isinstance(axis, (np.integer, integer_types)):
-                raise TypeError("Rebroadcast needs integer axes. "
-                                "Got {}".format(axis))
+                raise TypeError(
+                    "Rebroadcast needs integer axes. " "Got {}".format(axis)
+                )
 
             if not isinstance(broad, (np.bool_, bool)):
-                raise TypeError("Rebroadcast needs bool for new broadcast "
-                                "pattern. Got {}".format(broad))
+                raise TypeError(
+                    "Rebroadcast needs bool for new broadcast "
+                    "pattern. Got {}".format(broad)
+                )
 
     def __hash__(self):
         # Need special __hash__ as dict aren't hashable.
@@ -699,37 +723,44 @@ class Rebroadcast(gof.Op):
         if len(self.axis) == 0:
             broadcast_pattern = []
         else:
-            broadcast_pattern = ['?' for i
-                                 in xrange(1 + max(self.axis.keys()))]
+            broadcast_pattern = ["?" for i in xrange(1 + max(self.axis.keys()))]
         for k, v in iteritems(self.axis):
             broadcast_pattern[k] = str(int(v))
-        return '%s{%s}' % (self.__class__.__name__,
-                           ','.join(broadcast_pattern))
+        return "%s{%s}" % (self.__class__.__name__, ",".join(broadcast_pattern))
 
     def make_node(self, x):
         if self.axis.keys() and (x.ndim <= max(self.axis.keys())):
-            raise ValueError('Trying to rebroadcast non-existent dimension')
+            raise ValueError("Trying to rebroadcast non-existent dimension")
         t = x.type.clone(
-            broadcastable=[self.axis.get(i, b)
-                           for i, b in enumerate(x.type.broadcastable)])
+            broadcastable=[
+                self.axis.get(i, b) for i, b in enumerate(x.type.broadcastable)
+            ]
+        )
         return gof.Apply(self, [x], [t()])
 
     def perform(self, node, inp, out_):
-        x, = inp
-        out, = out_
+        (x,) = inp
+        (out,) = out_
         for axis, value in iteritems(self.axis):
             if value and x.shape[axis] != 1:
-                raise ValueError('Dimension %s in Rebroadcast\'s input was'
-                                 ' supposed to be 1 (got %s instead)' %
-                                 (axis, x.shape[axis]))
+                raise ValueError(
+                    "Dimension %s in Rebroadcast's input was"
+                    " supposed to be 1 (got %s instead)" % (axis, x.shape[axis])
+                )
         out[0] = x
 
     def grad(self, inp, grads):
-        x, = inp
-        gz, = grads
+        (x,) = inp
+        (gz,) = grads
         # restore the broadcasting pattern of the input
-        return Rebroadcast(*[(axis, x.type.broadcastable[axis])
-                             for axis, value in iteritems(self.axis)])(gz),
+        return (
+            Rebroadcast(
+                *[
+                    (axis, x.type.broadcastable[axis])
+                    for axis, value in iteritems(self.axis)
+                ]
+            )(gz),
+        )
 
     def infer_shape(self, node, ishapes):
         assert len(ishapes) == 1
@@ -749,9 +780,9 @@ class Rebroadcast(gof.Op):
         return self(*eval_points, **dict(return_list=True))
 
     def c_code(self, node, nodename, inp, out, sub):
-        iname, = inp
-        oname, = out
-        fail = sub['fail']
+        (iname,) = inp
+        (oname,) = out
+        fail = sub["fail"]
 
         itype = node.inputs[0].type.__class__
         if itype in self.c_code_and_version:
@@ -760,25 +791,32 @@ class Rebroadcast(gof.Op):
             for axis, value in iteritems(self.axis):
                 if value:
                     final_code += code % locals()
-            return final_code + """
+            return (
+                final_code
+                + """
             Py_XDECREF(%(oname)s);
             %(oname)s = %(iname)s;
             Py_XINCREF(%(oname)s);
-            """ % locals()
+            """
+                % locals()
+            )
         return super(Rebroadcast, self).c_code(node, nodename, inp, out, sub)
 
     def c_code_cache_version(self):
         version = []
         # If any of the c code is unversionned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
-        for t, (c, v) in sorted(iteritems(self.c_code_and_version),
-                                key=lambda pair: str(pair[0])):
+        for t, (c, v) in sorted(
+            iteritems(self.c_code_and_version), key=lambda pair: str(pair[0])
+        ):
             if not v:
-                warnings.warn("Type %s has C code for Rebroadcast, but it "
-                              "has no version. You should add a 'version' "
-                              "keyword arg when calling "
-                              "register_rebroadcast_c_code." % t,
-                              stacklevel=2)
+                warnings.warn(
+                    "Type %s has C code for Rebroadcast, but it "
+                    "has no version. You should add a 'version' "
+                    "keyword arg when calling "
+                    "register_rebroadcast_c_code." % t,
+                    stacklevel=2,
+                )
                 return ()
             version.append((str(t), v))
 
@@ -787,8 +825,7 @@ class Rebroadcast(gof.Op):
         return tuple(version)
 
 
-def register_specify_shape_c_code(typ, code, version=(),
-                                  c_support_code_apply=None):
+def register_specify_shape_c_code(typ, code, version=(), c_support_code_apply=None):
     """
     Tell SpecifyShape how to generate C code for a Theano Type.
 
@@ -807,8 +844,7 @@ def register_specify_shape_c_code(typ, code, version=(),
         Extra code.
 
     """
-    SpecifyShape.c_code_and_version[typ] = (code, version,
-                                            c_support_code_apply)
+    SpecifyShape.c_code_and_version[typ] = (code, version, c_support_code_apply)
 
 
 class SpecifyShape(gof.Op):
@@ -850,10 +886,9 @@ class SpecifyShape(gof.Op):
 
     def perform(self, node, inp, out_):
         x, shape = inp
-        out, = out_
+        (out,) = out_
         assert x.ndim == shape.size
-        assert np.all(x.shape == shape), ("got shape", x.shape,
-                                          "expected", shape)
+        assert np.all(x.shape == shape), ("got shape", x.shape, "expected", shape)
         out[0] = x
 
     def infer_shape(self, node, shapes):
@@ -861,8 +896,7 @@ class SpecifyShape(gof.Op):
         new_shape = []
         for dim in xrange(node.inputs[0].ndim):
             try:
-                s = theano.tensor.get_scalar_constant_value(
-                    node.inputs[1][dim])
+                s = theano.tensor.get_scalar_constant_value(node.inputs[1][dim])
                 s = theano.tensor.as_tensor_variable(s)
                 new_shape.append(s)
             except theano.tensor.NotScalarConstantError:
@@ -876,7 +910,7 @@ class SpecifyShape(gof.Op):
 
     def grad(self, inp, grads):
         x, s = inp
-        gz, = grads
+        (gz,) = grads
         # Should I set an SpecifyShape on gz? I think so
         # But I don't do it now as we need to make an optimization
         # to remove that op from the graph to don't block other optimization
@@ -902,29 +936,31 @@ class SpecifyShape(gof.Op):
 
     def c_code(self, node, name, inames, onames, sub):
         iname, shape = inames
-        oname, = onames
-        fail = sub['fail']
+        (oname,) = onames
+        fail = sub["fail"]
 
         itype = node.inputs[0].type.__class__
         if itype in self.c_code_and_version:
             code, version, _ = self.c_code_and_version[itype]
             return code % locals()
 
-        return super(SpecifyShape, self).c_code(node, node, inames,
-                                                onames, sub)
+        return super(SpecifyShape, self).c_code(node, node, inames, onames, sub)
 
     def c_code_cache_version(self):
         version = []
         # If any of the c code is unversionned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
-        for t, (c, v, _) in sorted(iteritems(self.c_code_and_version),
-                                   key=lambda pair: str(pair[0])):
+        for t, (c, v, _) in sorted(
+            iteritems(self.c_code_and_version), key=lambda pair: str(pair[0])
+        ):
             if not v:
-                warnings.warn("Type %s has C code for SpecifyShape, but it "
-                              "has no version. You should add a 'version' "
-                              "keyword arg when calling "
-                              "register_specify_shape_c_code." % t,
-                              stacklevel=2)
+                warnings.warn(
+                    "Type %s has C code for SpecifyShape, but it "
+                    "has no version. You should add a 'version' "
+                    "keyword arg when calling "
+                    "register_specify_shape_c_code." % t,
+                    stacklevel=2,
+                )
                 return ()
             version.append((str(t), v))
 

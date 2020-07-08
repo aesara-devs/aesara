@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Theano tutorial
 # Solution to Exercise in section 'Loop'
-from __future__ import absolute_import, print_function, division
+
 import numpy as np
 
 import theano

@@ -1,5 +1,5 @@
 # TODO test dtype != float32
-from __future__ import absolute_import, print_function, division
+
 import warnings
 
 try:
@@ -13,7 +13,13 @@ from theano import Apply
 from theano.gof import Op
 
 from theano.tensor import NotScalarConstantError, get_scalar_constant_value
-from .basic_ops import as_gpuarray_variable, infer_context_name, GpuKernelBase, Kernel, gpuarray_helper_inc_dir
+from .basic_ops import (
+    as_gpuarray_variable,
+    infer_context_name,
+    GpuKernelBase,
+    Kernel,
+    gpuarray_helper_inc_dir,
+)
 from .opt import register_opt, op_lifter, register_opt2
 from .type import GpuArrayType
 from .elemwise import GpuDimShuffle
@@ -33,7 +39,7 @@ class GPUAMultinomialFromUniform(GpuKernelBase, Op):
         return node.outputs[0].type.context
 
     def c_headers(self):
-        return ['<numpy_compat.h>', 'gpuarray_helper.h']
+        return ["<numpy_compat.h>", "gpuarray_helper.h"]
 
     def c_header_dirs(self):
         return [gpuarray_helper_inc_dir()]
@@ -42,21 +48,19 @@ class GPUAMultinomialFromUniform(GpuKernelBase, Op):
         ctx_name = infer_context_name(pvals, unis)
         pvals = as_gpuarray_variable(pvals, ctx_name)
         unis = as_gpuarray_variable(unis, ctx_name)
-        assert pvals.dtype in ['float32', 'float16', 'float64']
-        assert unis.dtype in ['float32', 'float16', 'float64']
+        assert pvals.dtype in ["float32", "float16", "float64"]
+        assert unis.dtype in ["float32", "float16", "float64"]
 
         if pvals.ndim != 2:
-            raise NotImplementedError('pvals ndim should be 2', pvals.ndim)
+            raise NotImplementedError("pvals ndim should be 2", pvals.ndim)
         if unis.ndim != 1:
-            raise NotImplementedError('unis ndim should be 1', unis.ndim)
-        if self.odtype == 'auto':
+            raise NotImplementedError("unis ndim should be 1", unis.ndim)
+        if self.odtype == "auto":
             odtype = pvals.dtype
         else:
             odtype = self.odtype
         br = (pvals.broadcastable[1], pvals.broadcastable[0])
-        out = GpuArrayType(broadcastable=br,
-                           dtype=odtype,
-                           context_name=ctx_name)()
+        out = GpuArrayType(broadcastable=br, dtype=odtype, context_name=ctx_name)()
 
         return Apply(self, [pvals, unis], [out])
 
@@ -113,12 +117,20 @@ KERNEL void k_multi_warp_multinomial(
         }
     }
 }
-""" % dict(out_ctype=out_ctype, write_out_ctype=write_out_ctype,
-           work_ctype=work_ctype, pvals_ctype=pvals_ctype,
-           unis_ctype=unis_ctype, load_in_ctype=load_in_ctype)
-        return [Kernel(
-            code=code, name="k_multi_warp_multinomial",
-            params=[pygpu.gpuarray.SIZE,
+""" % dict(
+            out_ctype=out_ctype,
+            write_out_ctype=write_out_ctype,
+            work_ctype=work_ctype,
+            pvals_ctype=pvals_ctype,
+            unis_ctype=unis_ctype,
+            load_in_ctype=load_in_ctype,
+        )
+        return [
+            Kernel(
+                code=code,
+                name="k_multi_warp_multinomial",
+                params=[
+                    pygpu.gpuarray.SIZE,
                     pygpu.gpuarray.SIZE,
                     pygpu.gpuarray.GpuArray,
                     pygpu.gpuarray.SIZE,
@@ -130,20 +142,24 @@ KERNEL void k_multi_warp_multinomial(
                     pygpu.gpuarray.GpuArray,
                     pygpu.gpuarray.SIZE,
                     pygpu.gpuarray.SSIZE,
-                    pygpu.gpuarray.SSIZE],
-            flags=Kernel.get_flags(node.outputs[0].dtype),
-            objvar='k_multi_warp_multinomial_' + name)]
+                    pygpu.gpuarray.SSIZE,
+                ],
+                flags=Kernel.get_flags(node.outputs[0].dtype),
+                objvar="k_multi_warp_multinomial_" + name,
+            )
+        ]
 
     def c_code(self, node, name, inp, outputs, sub):
         pvals, unis = inp
-        out, = outputs
-        fail = sub['fail']
-        ctx = sub['params']
+        (out,) = outputs
+        fail = sub["fail"]
+        ctx = sub["params"]
         kname = self.gpu_kernels(node, name)[0].objvar
         out_typecode = pygpu.gpuarray.dtype_to_typecode(node.outputs[0].dtype)
         pvals_typecode = pygpu.gpuarray.dtype_to_typecode(node.inputs[0].dtype)
         unis_typecode = pygpu.gpuarray.dtype_to_typecode(node.inputs[1].dtype)
-        s = """
+        s = (
+            """
         PyGpuArrayObject * pvals = %(pvals)s;
         PyGpuArrayObject * unis = %(unis)s;
         PyGpuArrayObject * out = %(out)s;
@@ -224,7 +240,9 @@ KERNEL void k_multi_warp_multinomial(
         }
 
     } // END NESTED SCOPE
-        """ % locals()
+        """
+            % locals()
+        )
 
         return s
 
@@ -257,32 +275,30 @@ class GPUAChoiceFromUniform(GpuKernelBase, Op):
         return node.outputs[0].type.context
 
     def c_headers(self):
-        return ['<numpy_compat.h>', 'gpuarray_helper.h']
+        return ["<numpy_compat.h>", "gpuarray_helper.h"]
 
     def c_header_dirs(self):
         return [gpuarray_helper_inc_dir()]
 
     def make_node(self, pvals, unis, n):
-        assert pvals.dtype == 'float32'
-        assert unis.dtype == 'float32'
+        assert pvals.dtype == "float32"
+        assert unis.dtype == "float32"
         ctx_name = infer_context_name(pvals, unis)
 
         pvals = as_gpuarray_variable(pvals, ctx_name)
         unis = as_gpuarray_variable(unis, ctx_name)
 
         if pvals.ndim != 2:
-            raise NotImplementedError('pvals ndim should be 2', pvals.ndim)
+            raise NotImplementedError("pvals ndim should be 2", pvals.ndim)
         if unis.ndim != 1:
-            raise NotImplementedError('unis ndim should be 1', unis.ndim)
-        if self.odtype == 'auto':
-            odtype = 'int64'
+            raise NotImplementedError("unis ndim should be 1", unis.ndim)
+        if self.odtype == "auto":
+            odtype = "int64"
         else:
             odtype = self.odtype
-        assert odtype == 'int64', odtype
+        assert odtype == "int64", odtype
         br = (pvals.broadcastable[1], pvals.broadcastable[0])
-        out = GpuArrayType(broadcastable=br,
-                           dtype=odtype,
-                           context_name=ctx_name)()
+        out = GpuArrayType(broadcastable=br, dtype=odtype, context_name=ctx_name)()
 
         return Apply(self, [pvals, unis, as_scalar(n)], [out])
 
@@ -343,10 +359,15 @@ KERNEL void k_multi_warp_multinomial_wor(
         }
     }
 }
-""" % {"replace": replace}
-        return [Kernel(
-            code=code, name="k_multi_warp_multinomial_wor",
-            params=[pygpu.gpuarray.SIZE,
+""" % {
+            "replace": replace
+        }
+        return [
+            Kernel(
+                code=code,
+                name="k_multi_warp_multinomial_wor",
+                params=[
+                    pygpu.gpuarray.SIZE,
                     pygpu.gpuarray.SIZE,
                     pygpu.gpuarray.SIZE,
                     pygpu.gpuarray.GpuArray,
@@ -359,19 +380,22 @@ KERNEL void k_multi_warp_multinomial_wor(
                     pygpu.gpuarray.GpuArray,
                     pygpu.gpuarray.SIZE,
                     pygpu.gpuarray.SSIZE,
-                    pygpu.gpuarray.SSIZE
-                    ],
-            flags=Kernel.get_flags(node.outputs[0].dtype),
-            objvar='k_multi_warp_multinomial_wor_' + name)]
+                    pygpu.gpuarray.SSIZE,
+                ],
+                flags=Kernel.get_flags(node.outputs[0].dtype),
+                objvar="k_multi_warp_multinomial_wor_" + name,
+            )
+        ]
 
     def c_code(self, node, name, inp, outputs, sub):
         pvals, unis, n = inp
-        out, = outputs
+        (out,) = outputs
         replace = int(self.replace)
-        fail = sub['fail']
-        ctx = sub['params']
+        fail = sub["fail"]
+        ctx = sub["params"]
         kname = self.gpu_kernels(node, name)[0].objvar
-        s = """
+        s = (
+            """
     PyGpuArrayObject * pvals = %(pvals)s;
     PyGpuArrayObject * unis = %(unis)s;
     const size_t n_samples = %(n)s;
@@ -459,16 +483,18 @@ KERNEL void k_multi_warp_multinomial_wor(
 
         Py_DECREF(pvals_copy);
     } // END NESTED SCOPE
-        """ % locals()
+        """
+            % locals()
+        )
         return s
 
     def c_code_cache_version(self):
         return (10,)
 
 
-@register_opt('fast_compile')
+@register_opt("fast_compile")
 @op_lifter([theano.sandbox.multinomial.MultinomialFromUniform])
-@register_opt2([theano.sandbox.multinomial.MultinomialFromUniform], 'fast_compile')
+@register_opt2([theano.sandbox.multinomial.MultinomialFromUniform], "fast_compile")
 def local_gpua_multinomial(op, context_name, inputs, outputs):
     # TODO : need description for function
 
@@ -482,29 +508,29 @@ def local_gpua_multinomial(op, context_name, inputs, outputs):
             return None
     except NotScalarConstantError:
         return None
-    m, = outputs
+    (m,) = outputs
     gpu_op = GPUAMultinomialFromUniform(op.odtype)
-    return GpuDimShuffle([False, False], [1, 0])(
-        gpu_op(p, u))
+    return GpuDimShuffle([False, False], [1, 0])(gpu_op(p, u))
 
 
-@register_opt('fast_compile')
+@register_opt("fast_compile")
 @op_lifter([theano.sandbox.multinomial.ChoiceFromUniform])
-@register_opt2([theano.sandbox.multinomial.ChoiceFromUniform], 'fast_compile')
+@register_opt2([theano.sandbox.multinomial.ChoiceFromUniform], "fast_compile")
 def local_gpua_multinomial_wor(op, context_name, inputs, outputs):
     # TODO : need description for function
     p, u, n = inputs
-    m, = outputs
-    if ((p.dtype == u.dtype == 'float32') and (m.dtype == 'int64')):
+    (m,) = outputs
+    if (p.dtype == u.dtype == "float32") and (m.dtype == "int64"):
         gpu_op = GPUAChoiceFromUniform(**op._props_dict())
-        return GpuDimShuffle([False, False], [1, 0])(
-            gpu_op(p, u, n))
+        return GpuDimShuffle([False, False], [1, 0])(gpu_op(p, u, n))
 
 
 class GPUAMultinomialWOReplacementFromUniform(GPUAChoiceFromUniform):
     def __init__(self, *args, **kwargs):
-        warnings.warn("GPUAMultinomialWOReplacementFromUniform is deprecated, "
-                      "use GPUAChoiceFromUniform instead.",
-                      DeprecationWarning,
-                      stacklevel=2)
+        warnings.warn(
+            "GPUAMultinomialWOReplacementFromUniform is deprecated, "
+            "use GPUAChoiceFromUniform instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         super(GPUAMultinomialWOReplacementFromUniform, self).__init__(*args, **kwargs)

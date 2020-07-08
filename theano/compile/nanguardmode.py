@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 import logging
 
 from six.moves import StringIO
@@ -14,6 +13,7 @@ from .mode import get_mode
 try:
     from theano.gpuarray.type import GpuArrayType, _name_for_ctx
     from pygpu.gpuarray import GpuArray
+
     pygpu_available = True
 except ImportError:
     pygpu_available = False
@@ -42,7 +42,7 @@ def _is_numeric_value(arr, var):
         return False
     elif isinstance(arr, np.random.mtrand.RandomState):
         return False
-    elif var and getattr(var.tag, 'is_rng', False):
+    elif var and getattr(var.tag, "is_rng", False):
         return False
     elif isinstance(arr, slice):
         return False
@@ -106,7 +106,7 @@ def contains_nan(arr, node=None, var=None):
     """
     if not _is_numeric_value(arr, var):
         return False
-    elif getattr(arr, 'dtype', '') in T.discrete_dtypes:
+    elif getattr(arr, "dtype", "") in T.discrete_dtypes:
         return False
     elif pygpu_available and isinstance(arr, GpuArray):
         return np.isnan(f_gpua_min(arr.reshape(arr.size)))
@@ -141,11 +141,12 @@ def contains_inf(arr, node=None, var=None):
     """
     if not _is_numeric_value(arr, var):
         return False
-    elif getattr(arr, 'dtype', '') in T.discrete_dtypes:
+    elif getattr(arr, "dtype", "") in T.discrete_dtypes:
         return False
     elif pygpu_available and isinstance(arr, GpuArray):
-        return (np.isinf(f_gpua_min(arr.reshape(arr.size))) or
-                np.isinf(f_gpua_max(arr.reshape(arr.size))))
+        return np.isinf(f_gpua_min(arr.reshape(arr.size))) or np.isinf(
+            f_gpua_max(arr.reshape(arr.size))
+        )
 
     return np.isinf(np.nanmax(arr)) or np.isinf(np.nanmin(arr))
 
@@ -158,13 +159,14 @@ def f_compute(op):
         f = result.cache.get(key, None)
         if f is None:
             guard_in = GpuArrayType(str(dtype), (False,), context_name=ctx_name)()
-            mode = get_mode('FAST_RUN').including('gpuarray')
-            f = theano.function([guard_in], op(guard_in),
-                                mode=mode, profile=False)
+            mode = get_mode("FAST_RUN").including("gpuarray")
+            f = theano.function([guard_in], op(guard_in), mode=mode, profile=False)
             result.cache[key] = f
         return f(inp)
+
     result.cache = dict()
     return result
+
 
 f_gpua_min = f_compute(T.min)
 f_gpua_max = f_compute(T.max)
@@ -191,10 +193,17 @@ class NanGuardMode(Mode):
     ----
         We ignore the linker parameter
     """
+
     # We currently loose the 3 first params frequently, when calling
     # mode.including() and variant.
-    def __init__(self, nan_is_error=None, inf_is_error=None, big_is_error=None,
-                 optimizer='default', linker=None):
+    def __init__(
+        self,
+        nan_is_error=None,
+        inf_is_error=None,
+        big_is_error=None,
+        optimizer="default",
+        linker=None,
+    ):
         self.provided_optimizer = optimizer
         if nan_is_error is None:
             nan_is_error = config.NanGuardMode.nan_is_error
@@ -226,57 +235,65 @@ class NanGuardMode(Mode):
             sio = StringIO()
             if nan_is_error:
                 if contains_nan(value, nd, var):
-                    print('NaN detected', file=sio)
+                    print("NaN detected", file=sio)
                     error = True
             if inf_is_error:
                 if contains_inf(value, nd, var):
-                    print('Inf detected', file=sio)
+                    print("Inf detected", file=sio)
                     error = True
             if big_is_error:
                 err = False
                 if not _is_numeric_value(value, var):
                     err = False
                 elif pygpu_available and isinstance(value, GpuArray):
-                    err = (f_gpua_absmax(value.reshape(value.size)) > 1e10)
+                    err = f_gpua_absmax(value.reshape(value.size)) > 1e10
                 else:
-                    err = (np.abs(value).max() > 1e10)
+                    err = np.abs(value).max() > 1e10
                 if err:
-                    print('Big value detected', file=sio)
+                    print("Big value detected", file=sio)
                     error = True
             if error:
                 if nd:
-                    print("NanGuardMode found an error in the "
-                          "output of a node in this variable:", file=sio)
-                    print(theano.printing.debugprint(nd, file='str'), file=sio)
+                    print(
+                        "NanGuardMode found an error in the "
+                        "output of a node in this variable:",
+                        file=sio,
+                    )
+                    print(theano.printing.debugprint(nd, file="str"), file=sio)
                 else:
-                    print("NanGuardMode found an error in an input of the "
-                          "graph.", file=sio)
+                    print(
+                        "NanGuardMode found an error in an input of the " "graph.",
+                        file=sio,
+                    )
                 # Add the stack trace
                 if nd:
                     var = nd.outputs[0]
-                print(theano.gof.utils.get_variable_trace_string(var),
-                      file=sio)
+                print(theano.gof.utils.get_variable_trace_string(var), file=sio)
                 msg = sio.getvalue()
-                if config.NanGuardMode.action == 'raise':
+                if config.NanGuardMode.action == "raise":
                     raise AssertionError(msg)
-                elif config.NanGuardMode.action == 'pdb':
+                elif config.NanGuardMode.action == "pdb":
                     print(msg)
                     import pdb
+
                     pdb.set_trace()
-                elif config.NanGuardMode.action == 'warn':
+                elif config.NanGuardMode.action == "warn":
                     logger.error(msg)
 
         def nan_check(node, thunk, storage_map, compute_map):
             for var in node.outputs:
-                if (compute_map[var][0] and
-                        getattr(var.tag, 'nan_guard_mode_check', True)):
+                if compute_map[var][0] and getattr(
+                    var.tag, "nan_guard_mode_check", True
+                ):
                     do_check_on(storage_map[var][0], node)
 
         def nan_check_input(var, value):
-            if getattr(var.tag, 'nan_guard_mode_check', True):
+            if getattr(var.tag, "nan_guard_mode_check", True):
                 do_check_on(value, None, var=var)
 
-        wrap_linker = theano.gof.vm.VM_Linker(callback=nan_check,
-                                              callback_input=nan_check_input)
-        super(NanGuardMode, self).__init__(wrap_linker,
-                                           optimizer=self.provided_optimizer)
+        wrap_linker = theano.gof.vm.VM_Linker(
+            callback=nan_check, callback_input=nan_check_input
+        )
+        super(NanGuardMode, self).__init__(
+            wrap_linker, optimizer=self.provided_optimizer
+        )

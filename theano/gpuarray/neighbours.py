@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 from theano import Op, Apply
 from theano.gof import ParamsType
 from theano.tensor.nnet.neighbours import Images2Neibs
@@ -10,8 +8,7 @@ try:
 except ImportError:
     pass
 
-from .basic_ops import (as_gpuarray_variable, GpuKernelBase, Kernel,
-                        infer_context_name)
+from .basic_ops import as_gpuarray_variable, GpuKernelBase, Kernel, infer_context_name
 from .type import GpuArrayType, gpu_context_type
 
 
@@ -20,6 +17,7 @@ class GpuImages2Neibs(GpuKernelBase, Images2Neibs, Op):
     Images2Neibs for the GPU.
 
     """
+
     params_type = ParamsType(mode=Images2Neibs.BORDER_MODE, context=gpu_context_type)
 
     def get_params(self, node):
@@ -39,16 +37,23 @@ class GpuImages2Neibs(GpuKernelBase, Images2Neibs, Op):
         assert neib_shape.dtype in T.integer_dtypes
         assert neib_step.dtype in T.integer_dtypes
 
-        return Apply(self, [ten4, neib_shape, neib_step],
-                     [GpuArrayType(broadcastable=(False, False),
-                                   dtype=ten4.type.dtype,
-                                   context_name=ten4.type.context_name)()])
+        return Apply(
+            self,
+            [ten4, neib_shape, neib_step],
+            [
+                GpuArrayType(
+                    broadcastable=(False, False),
+                    dtype=ten4.type.dtype,
+                    context_name=ten4.type.context_name,
+                )()
+            ],
+        )
 
     def c_code_cache_version(self):
         return (14,)
 
     def c_headers(self):
-        return ['<numpy_compat.h>', '<gpuarray/types.h>']
+        return ["<numpy_compat.h>", "<gpuarray/types.h>"]
 
     def gpu_kernels(self, node, nodename):
         dtype_ten4 = node.inputs[0].dtype
@@ -149,18 +154,38 @@ class GpuImages2Neibs(GpuKernelBase, Images2Neibs, Op):
                                 }
                             }
             }
-        }""" % dict(kname=kname, type_ten4=type_ten4, type_z=type_z, mode_constants=mode_constants)
+        }""" % dict(
+            kname=kname,
+            type_ten4=type_ten4,
+            type_z=type_z,
+            mode_constants=mode_constants,
+        )
         params = [
-            'intc',
-            'intc', 'intc', 'intc', 'intc', 'intc', 'intc',
-            'intc', 'intc', 'intc', 'intc',
-            'uintp', 'uintp', 'uintp', 'uintp',
-            gpuarray.GpuArray, 'uintp',
-            'uintp', 'uintp',
-            gpuarray.GpuArray, 'uintp',
-            ]
-        kernels.append(Kernel(code=code, name=kname, params=params,
-                              flags=flags, objvar=k_var))
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+            "uintp",
+            "uintp",
+            "uintp",
+            "uintp",
+            gpuarray.GpuArray,
+            "uintp",
+            "uintp",
+            "uintp",
+            gpuarray.GpuArray,
+            "uintp",
+        ]
+        kernels.append(
+            Kernel(code=code, name=kname, params=params, flags=flags, objvar=k_var)
+        )
 
         kname = "k_multi_warp"
         k_var = "k_multi_warp_" + nodename
@@ -254,18 +279,38 @@ class GpuImages2Neibs(GpuKernelBase, Images2Neibs, Op):
                             }
             }
         }
-        """ % dict(kname=kname, type_ten4=type_ten4, type_z=type_z, mode_constants=mode_constants)
+        """ % dict(
+            kname=kname,
+            type_ten4=type_ten4,
+            type_z=type_z,
+            mode_constants=mode_constants,
+        )
         params = [
-            'intc',
-            'intc', 'intc', 'intc', 'intc', 'intc', 'intc',
-            'intc', 'intc', 'intc', 'intc',
-            'uintp', 'uintp', 'uintp', 'uintp',
-            gpuarray.GpuArray, 'uintp',
-            'uintp', 'uintp',
-            gpuarray.GpuArray, 'uintp',
-            ]
-        kernels.append(Kernel(code=code, name=kname, params=params,
-                              flags=flags, objvar=k_var))
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+            "uintp",
+            "uintp",
+            "uintp",
+            "uintp",
+            gpuarray.GpuArray,
+            "uintp",
+            "uintp",
+            "uintp",
+            gpuarray.GpuArray,
+            "uintp",
+        ]
+        kernels.append(
+            Kernel(code=code, name=kname, params=params, flags=flags, objvar=k_var)
+        )
         return kernels
 
     def c_support_code(self):
@@ -285,7 +330,9 @@ class GpuImages2Neibs(GpuKernelBase, Images2Neibs, Op):
                              GpuKernel_error(fptr, err));
                 %(fail)s;
             }
-        """ % dict(fail=sub['fail'])
+        """ % dict(
+            fail=sub["fail"]
+        )
 
         # NB: To reduce C code variability:
         # For itemsize_ten4, I use GpuArray_ITEMSIZE(&ten4->ga) instead of np.dtype(node.inputs[0].dtype).itemsize
@@ -561,13 +608,18 @@ class GpuImages2Neibs(GpuKernelBase, Images2Neibs, Op):
             err = GpuKernel_call(fptr, 3, n_blocks, threads_per_block, 0, kernel_params);
             %(err_check)s
         } // END NESTED SCOPE
-        """ % dict(ten4=inp[0], neib_shape=inp[1], neib_step=inp[2], z=out[0],
-                   dtype_neib_shape=node.inputs[1].dtype,
-                   dtype_neib_step=node.inputs[2].dtype,
-                   err_check=err_check,
-                   name=name,
-                   params=sub['params'],
-                   fail=sub['fail'])
+        """ % dict(
+            ten4=inp[0],
+            neib_shape=inp[1],
+            neib_step=inp[2],
+            z=out[0],
+            dtype_neib_shape=node.inputs[1].dtype,
+            dtype_neib_step=node.inputs[2].dtype,
+            err_check=err_check,
+            name=name,
+            params=sub["params"],
+            fail=sub["fail"],
+        )
 
     def perform(self, node, inp, out, params):
         # Disable the perform method from the CPU version

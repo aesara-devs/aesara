@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 import linecache
 import sys
 import traceback
@@ -33,7 +32,7 @@ def simple_extract_stack(f=None, limit=None, skips=[]):
         except ZeroDivisionError:
             f = sys.exc_info()[2].tb_frame.f_back
     if limit is None:
-        if hasattr(sys, 'tracebacklimit'):
+        if hasattr(sys, "tracebacklimit"):
             limit = sys.tracebacklimit
     trace = []
     n = 0
@@ -42,7 +41,7 @@ def simple_extract_stack(f=None, limit=None, skips=[]):
         co = f.f_code
         filename = co.co_filename
         name = co.co_name
-#        linecache.checkcache(filename)
+        #        linecache.checkcache(filename)
         line = linecache.getline(filename, lineno, f.f_globals)
         if line:
             line = line.strip()
@@ -58,7 +57,7 @@ def simple_extract_stack(f=None, limit=None, skips=[]):
                 # Arnaud.  Otherwise, we'd lose the stack trace during
                 # in our test cases (e.g. in test_opt.py). We're not
                 # sure this is the right way to do it though.
-                if p in filename and 'tests' not in filename:
+                if p in filename and "tests" not in filename:
                     rm = True
                     break
             if rm:
@@ -93,14 +92,24 @@ def add_tag_trace(thing, user_line=None):
 
     if user_line == -1:
         user_line = None
-    skips = ["theano/tensor/", "theano\\tensor\\",
-             "theano/compile/", "theano\\compile\\",
-             "theano/gof/", "theano\\gof\\",
-             "theano/scalar/basic.py", "theano\\scalar\\basic.py",
-             "theano/sandbox/", "theano\\sandbox\\",
-             "theano/scan_module/", "theano\\scan_module\\",
-             "theano/sparse/", "theano\\sparse\\",
-             "theano/typed_list/", "theano\\typed_list\\"]
+    skips = [
+        "theano/tensor/",
+        "theano\\tensor\\",
+        "theano/compile/",
+        "theano\\compile\\",
+        "theano/gof/",
+        "theano\\gof\\",
+        "theano/scalar/basic.py",
+        "theano\\scalar\\basic.py",
+        "theano/sandbox/",
+        "theano\\sandbox\\",
+        "theano/scan_module/",
+        "theano\\scan_module\\",
+        "theano/sparse/",
+        "theano\\sparse\\",
+        "theano/typed_list/",
+        "theano\\typed_list\\",
+    ]
 
     if config.traceback.compile_limit > 0:
         skips = []
@@ -120,7 +129,7 @@ def add_tag_trace(thing, user_line=None):
 def get_variable_trace_string(v):
     sio = StringIO()
     # For backward compatibility with old trace
-    tr = getattr(v.tag, 'trace', [])
+    tr = getattr(v.tag, "trace", [])
     if isinstance(tr, list) and len(tr) > 0:
         print(" \nBacktrace when that variable is created:\n", file=sio)
         # The isinstance is needed to handle old pickled trace
@@ -154,12 +163,13 @@ class MethodNotDefined(Exception):
     function has been left out of an implementation class.
 
     """
+
     pass
 
 
 class MetaObject(type):
     def __new__(cls, name, bases, dct):
-        props = dct.get('__props__', None)
+        props = dct.get("__props__", None)
         if props is not None:
             if not isinstance(props, tuple):
                 raise TypeError("__props__ has to be a tuple")
@@ -171,7 +181,8 @@ class MetaObject(type):
                 Tuple of properties of all attributes
                 """
                 return tuple(getattr(self, a) for a in props)
-            dct['_props'] = _props
+
+            dct["_props"] = _props
 
             def _props_dict(self):
                 """This return a dict of all ``__props__`` key-> value.
@@ -181,34 +192,41 @@ class MetaObject(type):
                 least all the original props.
 
                 """
-                return dict([(a, getattr(self, a))
-                             for a in props])
-            dct['_props_dict'] = _props_dict
+                return dict([(a, getattr(self, a)) for a in props])
 
-            if '__hash__' not in dct:
+            dct["_props_dict"] = _props_dict
+
+            if "__hash__" not in dct:
+
                 def __hash__(self):
-                    return hash((type(self),
-                                 tuple(getattr(self, a) for a in props)))
-                dct['__hash__'] = __hash__
+                    return hash((type(self), tuple(getattr(self, a) for a in props)))
 
-            if '__eq__' not in dct:
+                dct["__hash__"] = __hash__
+
+            if "__eq__" not in dct:
+
                 def __eq__(self, other):
-                    return (type(self) == type(other) and
-                            tuple(getattr(self, a) for a in props) ==
-                            tuple(getattr(other, a) for a in props))
-                dct['__eq__'] = __eq__
+                    return type(self) == type(other) and tuple(
+                        getattr(self, a) for a in props
+                    ) == tuple(getattr(other, a) for a in props)
 
-            if '__str__' not in dct:
+                dct["__eq__"] = __eq__
+
+            if "__str__" not in dct:
                 if len(props) == 0:
+
                     def __str__(self):
                         return "%s" % (self.__class__.__name__,)
+
                 else:
+
                     def __str__(self):
                         return "%s{%s}" % (
                             self.__class__.__name__,
-                            ", ".join("%s=%r" % (p, getattr(self, p))
-                                      for p in props))
-                dct['__str__'] = __str__
+                            ", ".join("%s=%r" % (p, getattr(self, p)) for p in props),
+                        )
+
+                dct["__str__"] = __str__
 
         return type.__new__(cls, name, bases, dct)
 
@@ -265,7 +283,7 @@ def memoize(f):
     return rval
 
 
-def deprecated(filename, msg=''):
+def deprecated(filename, msg=""):
     """
     Decorator which will print a warning message on the first call.
 
@@ -280,15 +298,16 @@ def deprecated(filename, msg=''):
       WARNING myfile.fn_name deprecated. do something different...
 
     """
+
     def _deprecated(f):
         printme = [True]
 
         def g(*args, **kwargs):
             if printme[0]:
-                print('WARNING: %s.%s deprecated. %s' %
-                      (filename, f.__name__, msg))
+                print("WARNING: %s.%s deprecated. %s" % (filename, f.__name__, msg))
                 printme[0] = False
             return f(*args, **kwargs)
+
         return g
 
     return _deprecated
@@ -307,14 +326,14 @@ def uniq(seq):
 
 
 def difference(seq1, seq2):
-    """
+    r"""
     Returns all elements in seq1 which are not in seq2: i.e ``seq1\seq2``.
 
     """
     try:
         # try to use O(const * len(seq1)) algo
         if len(seq2) < 4:  # I'm guessing this threshold -JB
-            raise Exception('not worth it')
+            raise Exception("not worth it")
         set2 = set(seq2)
         return [x for x in seq1 if x not in set2]
     except Exception:
@@ -347,11 +366,11 @@ def toposort(prereqs_d):
 
     """
 
-#     all1 = set(prereqs_d.keys())
-#     all2 = set()
-#     for x, y in iteritems(prereqs_d):
-#         all2.update(y)
-#     print all1.difference(all2)
+    #     all1 = set(prereqs_d.keys())
+    #     all2 = set()
+    #     for x, y in iteritems(prereqs_d):
+    #         all2.update(y)
+    #     print all1.difference(all2)
 
     seq = []
     done = set()
@@ -371,14 +390,15 @@ def toposort(prereqs_d):
                 if not prereqs_d[postreq].difference(done):
                     next.add(postreq)
     if len(prereqs_d) != len(seq):
-        raise Exception("Cannot sort topologically: there might be cycles, "
-                        "prereqs_d does not have a key for each element or "
-                        "some orderings contain invalid elements.")
+        raise Exception(
+            "Cannot sort topologically: there might be cycles, "
+            "prereqs_d does not have a key for each element or "
+            "some orderings contain invalid elements."
+        )
     return seq
 
 
 class Keyword:
-
     def __init__(self, name, nonzero=True):
         self.name = name
         self.nonzero = nonzero
@@ -397,6 +417,7 @@ class Keyword:
     def __repr__(self):
         return "<%s>" % self.name
 
+
 ABORT = Keyword("ABORT", False)
 RETRY = Keyword("RETRY", False)
 FAILURE = Keyword("FAILURE", False)
@@ -414,11 +435,13 @@ def comm_guard(type1, type2):
         old_f = f.__globals__[f.__name__]
 
         def new_f(arg1, arg2, *rest):
-            if ((type1 is ANY_TYPE or isinstance(arg1, type1)) and
-                    (type2 is ANY_TYPE or isinstance(arg2, type2))):
+            if (type1 is ANY_TYPE or isinstance(arg1, type1)) and (
+                type2 is ANY_TYPE or isinstance(arg2, type2)
+            ):
                 pass
-            elif ((type1 is ANY_TYPE or isinstance(arg2, type1)) and
-                  (type2 is ANY_TYPE or isinstance(arg1, type2))):
+            elif (type1 is ANY_TYPE or isinstance(arg2, type1)) and (
+                type2 is ANY_TYPE or isinstance(arg1, type2)
+            ):
                 arg1, arg2 = arg2, arg1
             else:
                 return old_f(arg1, arg2, *rest)
@@ -439,10 +462,13 @@ def comm_guard(type1, type2):
             else:
                 return type.__name__
 
-        new_f.__doc__ = (str(old_f.__doc__) + "\n" +
-                         ", ".join([typename(type)
-                                    for type in (type1, type2)]) +
-                         "\n" + str(f.__doc__ or ""))
+        new_f.__doc__ = (
+            str(old_f.__doc__)
+            + "\n"
+            + ", ".join([typename(type) for type in (type1, type2)])
+            + "\n"
+            + str(f.__doc__ or "")
+        )
         return new_f
 
     return wrap
@@ -453,7 +479,7 @@ def type_guard(type1):
         old_f = f.__globals__[f.__name__]
 
         def new_f(arg1, *rest):
-            if (type1 is ANY_TYPE or isinstance(arg1, type1)):
+            if type1 is ANY_TYPE or isinstance(arg1, type1):
                 variable = f(arg1, *rest)
                 if variable is FALL_THROUGH:
                     return old_f(arg1, *rest)
@@ -472,9 +498,13 @@ def type_guard(type1):
             else:
                 return type.__name__
 
-        new_f.__doc__ = (str(old_f.__doc__) + "\n" +
-                         ", ".join([typename(type) for type in (type1,)]) +
-                         "\n" + str(f.__doc__ or ""))
+        new_f.__doc__ = (
+            str(old_f.__doc__)
+            + "\n"
+            + ", ".join([typename(type) for type in (type1,)])
+            + "\n"
+            + str(f.__doc__ or "")
+        )
         return new_f
 
     return wrap
@@ -505,8 +535,7 @@ def hist(coll):
     return counts
 
 
-@deprecated("theano.gof.utils",
-            msg="Use a_theano_variable.auto_name instead")
+@deprecated("theano.gof.utils", msg="Use a_theano_variable.auto_name instead")
 def give_variables_names(variables):
     """
     Gives unique names to an iterable of variables. Modifies input.
@@ -524,8 +553,10 @@ def give_variables_names(variables):
         var.name = (var.name or "") + "_%d" % i
 
     if not unique([str(v) for v in variables]):
-        raise ValueError("Not all variables have unique names. Maybe you've "
-                         "named some of the variables identically")
+        raise ValueError(
+            "Not all variables have unique names. Maybe you've "
+            "named some of the variables identically"
+        )
     return variables
 
 
@@ -554,7 +585,8 @@ if PY3:
             msg = msg.encode()
         # Python 3 does not like module names that start with
         # a digit.
-        return 'm' + hashlib.sha256(msg).hexdigest()
+        return "m" + hashlib.sha256(msg).hexdigest()
+
 
 else:
     import hashlib
@@ -572,7 +604,7 @@ def hash_from_file(file_path):
     Return the SHA256 hash of a file.
 
     """
-    with open(file_path, 'rb') as f:
+    with open(file_path, "rb") as f:
         file_content = f.read()
     return hash_from_code(file_content)
 
@@ -581,14 +613,102 @@ def hash_from_file(file_path):
 # - http://fr.cppreference.com/w/c/keyword
 # - http://fr.cppreference.com/w/cpp/keyword
 # Added `NULL` and `_Pragma` keywords.
-c_cpp_keywords = {'_Alignas', '_Alignof', '_Atomic', '_Bool', '_Complex', '_Generic', '_Imaginary', '_Noreturn',
-                  '_Pragma', '_Static_assert', '_Thread_local', 'alignas', 'alignof', 'and', 'and_eq', 'asm', 'auto',
-                  'bitand', 'bitor', 'bool', 'break', 'case', 'catch', 'char', 'char16_t', 'char32_t', 'class', 'compl',
-                  'const', 'const_cast', 'constexpr', 'continue', 'decltype', 'default', 'delete', 'do', 'double',
-                  'dynamic_cast', 'else', 'enum', 'explicit', 'export', 'extern', 'false', 'float', 'for', 'friend',
-                  'goto', 'if', 'inline', 'int', 'long', 'mutable', 'namespace', 'new', 'noexcept', 'not', 'not_eq',
-                  'NULL', 'nullptr', 'operator', 'or', 'or_eq', 'private', 'protected', 'public', 'register',
-                  'reinterpret_cast', 'restrict', 'return', 'short', 'signed', 'sizeof', 'static', 'static_assert',
-                  'static_cast', 'struct', 'switch', 'template', 'this', 'thread_local', 'throw', 'true', 'try',
-                  'typedef', 'typeid', 'typename', 'union', 'unsigned', 'using', 'virtual', 'void', 'volatile',
-                  'wchar_t', 'while', 'xor', 'xor_eq'}
+c_cpp_keywords = {
+    "_Alignas",
+    "_Alignof",
+    "_Atomic",
+    "_Bool",
+    "_Complex",
+    "_Generic",
+    "_Imaginary",
+    "_Noreturn",
+    "_Pragma",
+    "_Static_assert",
+    "_Thread_local",
+    "alignas",
+    "alignof",
+    "and",
+    "and_eq",
+    "asm",
+    "auto",
+    "bitand",
+    "bitor",
+    "bool",
+    "break",
+    "case",
+    "catch",
+    "char",
+    "char16_t",
+    "char32_t",
+    "class",
+    "compl",
+    "const",
+    "const_cast",
+    "constexpr",
+    "continue",
+    "decltype",
+    "default",
+    "delete",
+    "do",
+    "double",
+    "dynamic_cast",
+    "else",
+    "enum",
+    "explicit",
+    "export",
+    "extern",
+    "false",
+    "float",
+    "for",
+    "friend",
+    "goto",
+    "if",
+    "inline",
+    "int",
+    "long",
+    "mutable",
+    "namespace",
+    "new",
+    "noexcept",
+    "not",
+    "not_eq",
+    "NULL",
+    "nullptr",
+    "operator",
+    "or",
+    "or_eq",
+    "private",
+    "protected",
+    "public",
+    "register",
+    "reinterpret_cast",
+    "restrict",
+    "return",
+    "short",
+    "signed",
+    "sizeof",
+    "static",
+    "static_assert",
+    "static_cast",
+    "struct",
+    "switch",
+    "template",
+    "this",
+    "thread_local",
+    "throw",
+    "true",
+    "try",
+    "typedef",
+    "typeid",
+    "typename",
+    "union",
+    "unsigned",
+    "using",
+    "virtual",
+    "void",
+    "volatile",
+    "wchar_t",
+    "while",
+    "xor",
+    "xor_eq",
+}

@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from theano.gof.type import Type
 
 
@@ -18,7 +17,7 @@ class NullType(Type):
 
     """
 
-    def __init__(self, why_null='(no explanation given)'):
+    def __init__(self, why_null="(no explanation given)"):
         self.why_null = why_null
 
     def filter(self, data, strict=False, allow_downcast=None):
@@ -40,5 +39,7 @@ class NullType(Type):
         return hash(type(self))
 
     def __str__(self):
-        return 'NullType'
+        return "NullType"
+
+
 null_type = NullType()

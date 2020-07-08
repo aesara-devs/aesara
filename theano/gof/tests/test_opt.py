@@ -1,12 +1,19 @@
-from __future__ import absolute_import, print_function, division
-
 from theano.gof.type import Type
 from theano.gof.graph import Variable, Apply, Constant
 from theano.gof.op import Op
-from theano.gof.opt import (OpKeyOptimizer, PatternSub, TopoOptimizer, OpSub,
-                            MergeOptimizer, config, theano,
-                            EquilibriumOptimizer, logging, pre_constant_merge,
-                            pre_greedy_local_optimizer)
+from theano.gof.opt import (
+    OpKeyOptimizer,
+    PatternSub,
+    TopoOptimizer,
+    OpSub,
+    MergeOptimizer,
+    config,
+    theano,
+    EquilibriumOptimizer,
+    logging,
+    pre_constant_merge,
+    pre_greedy_local_optimizer,
+)
 from theano.gof.fg import FunctionGraph
 
 from theano import tensor as T
@@ -19,7 +26,6 @@ def as_variable(x):
 
 
 class MyType(Type):
-
     def filter(self, data):
         return data
 
@@ -35,7 +41,6 @@ def MyVariable(name):
 
 
 class MyOp(Op):
-
     def __init__(self, name, dmap=None, x=None):
         self.name = name
         if dmap is None:
@@ -59,7 +64,9 @@ class MyOp(Op):
 
     def __eq__(self, other):
         # rval = (self is other) or (isinstance(other, MyOp) and self.x is not None and self.x == other.x and self.name == other.name)
-        rval = (self is other) or (isinstance(other, MyOp) and self.x is not None and self.x == other.x)
+        rval = (self is other) or (
+            isinstance(other, MyOp) and self.x is not None and self.x == other.x
+        )
         return rval
 
     def __hash__(self):
@@ -70,22 +77,22 @@ class MyOp(Op):
             return id(self)
 
 
-op1 = MyOp('Op1')
-op2 = MyOp('Op2')
-op3 = MyOp('Op3')
-op4 = MyOp('Op4')
-op5 = MyOp('Op5')
-op6 = MyOp('Op6')
-op_d = MyOp('OpD', {0: [0]})
+op1 = MyOp("Op1")
+op2 = MyOp("Op2")
+op3 = MyOp("Op3")
+op4 = MyOp("Op4")
+op5 = MyOp("Op5")
+op6 = MyOp("Op6")
+op_d = MyOp("OpD", {0: [0]})
 
-op_y = MyOp('OpY', x=1)
-op_z = MyOp('OpZ', x=1)
+op_y = MyOp("OpY", x=1)
+op_z = MyOp("OpZ", x=1)
 
 
 def inputs():
-    x = MyVariable('x')
-    y = MyVariable('y')
-    z = MyVariable('z')
+    x = MyVariable("x")
+    y = MyVariable("y")
+    z = MyVariable("z")
     return x, y, z
 
 
@@ -98,30 +105,31 @@ def TopoPatternOptimizer(p1, p2, ign=True):
 
 
 class TestPatternOptimizer:
-
     def test_replace_output(self):
         # replacing the whole graph
         x, y, z = inputs()
         e = op1(op2(x, y), z)
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op1, (op2, '1', '2'), '3'),
-                         (op4, '3', '2')).optimize(g)
+        PatternOptimizer((op1, (op2, "1", "2"), "3"), (op4, "3", "2")).optimize(g)
         assert str(g) == "[Op4(z, y)]"
 
     def test_nested_out_pattern(self):
         x, y, z = inputs()
         e = op1(x, y)
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op1, '1', '2'),
-                         (op4, (op1, '1'), (op2, '2'), (op3, '1', '2'))).optimize(g)
+        PatternOptimizer(
+            (op1, "1", "2"), (op4, (op1, "1"), (op2, "2"), (op3, "1", "2"))
+        ).optimize(g)
         assert str(g) == "[Op4(Op1(x), Op2(y), Op3(x, y))]"
 
     def test_unification_1(self):
         x, y, z = inputs()
         e = op1(op2(x, x), z)  # the arguments to op2 are the same
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op1, (op2, '1', '1'), '2'),  # they are the same in the pattern
-                         (op4, '2', '1')).optimize(g)
+        PatternOptimizer(
+            (op1, (op2, "1", "1"), "2"),  # they are the same in the pattern
+            (op4, "2", "1"),
+        ).optimize(g)
         # So the replacement should occur
         assert str(g) == "[Op4(z, x)]"
 
@@ -129,8 +137,10 @@ class TestPatternOptimizer:
         x, y, z = inputs()
         e = op1(op2(x, y), z)  # the arguments to op2 are different
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op1, (op2, '1', '1'), '2'),  # they are the same in the pattern
-                         (op4, '2', '1')).optimize(g)
+        PatternOptimizer(
+            (op1, (op2, "1", "1"), "2"),  # they are the same in the pattern
+            (op4, "2", "1"),
+        ).optimize(g)
         # The replacement should NOT occur
         assert str(g) == "[Op1(Op2(x, y), z)]"
 
@@ -139,8 +149,7 @@ class TestPatternOptimizer:
         x, y, z = inputs()
         e = op1(op2(x, y), z)
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op2, '1', '2'),
-                         (op1, '2', '1')).optimize(g)
+        PatternOptimizer((op2, "1", "2"), (op1, "2", "1")).optimize(g)
         assert str(g) == "[Op1(Op1(y, x), z)]"
 
     def test_no_recurse(self):
@@ -150,8 +159,7 @@ class TestPatternOptimizer:
         x, y, z = inputs()
         e = op1(op2(x, y), z)
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op2, '1', '2'),
-                         (op2, '2', '1'), ign=True).optimize(g)
+        PatternOptimizer((op2, "1", "2"), (op2, "2", "1"), ign=True).optimize(g)
         assert str(g) == "[Op1(Op2(y, x), z)]"
 
     def test_multiple(self):
@@ -159,8 +167,7 @@ class TestPatternOptimizer:
         x, y, z = inputs()
         e = op1(op2(x, y), op2(x, y), op2(y, z))
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op2, '1', '2'),
-                         (op4, '1')).optimize(g)
+        PatternOptimizer((op2, "1", "2"), (op4, "1")).optimize(g)
         assert str(g) == "[Op1(Op4(x), Op4(x), Op4(y))]"
 
     def test_nested_even(self):
@@ -169,24 +176,21 @@ class TestPatternOptimizer:
         x, y, z = inputs()
         e = op1(op1(op1(op1(x))))
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op1, (op1, '1')),
-                         '1').optimize(g)
+        PatternOptimizer((op1, (op1, "1")), "1").optimize(g)
         assert str(g) == "[x]"
 
     def test_nested_odd(self):
         x, y, z = inputs()
         e = op1(op1(op1(op1(op1(x)))))
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op1, (op1, '1')),
-                         '1').optimize(g)
+        PatternOptimizer((op1, (op1, "1")), "1").optimize(g)
         assert str(g) == "[Op1(x)]"
 
     def test_expand(self):
         x, y, z = inputs()
         e = op1(op1(op1(x)))
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op1, '1'),
-                         (op2, (op1, '1')), ign=True).optimize(g)
+        PatternOptimizer((op1, "1"), (op2, (op1, "1")), ign=True).optimize(g)
         assert str(g) == "[Op2(Op1(Op2(Op1(Op2(Op1(x))))))]"
 
     def test_ambiguous(self):
@@ -196,18 +200,16 @@ class TestPatternOptimizer:
         x, y, z = inputs()
         e = op1(op1(op1(op1(op1(x)))))
         g = FunctionGraph([x, y, z], [e])
-        TopoPatternOptimizer((op1, (op1, '1')),
-                             (op1, '1'), ign=False).optimize(g)
+        TopoPatternOptimizer((op1, (op1, "1")), (op1, "1"), ign=False).optimize(g)
         assert str(g) == "[Op1(x)]"
 
     def test_constant_unification(self):
-        x = Constant(MyType(), 2, name='x')
-        y = MyVariable('y')
-        z = Constant(MyType(), 2, name='z')
+        x = Constant(MyType(), 2, name="x")
+        y = MyVariable("y")
+        z = Constant(MyType(), 2, name="z")
         e = op1(op1(x, y), y)
         g = FunctionGraph([y], [e])
-        PatternOptimizer((op1, z, '1'),
-                         (op2, '1', z)).optimize(g)
+        PatternOptimizer((op1, z, "1"), (op2, "1", z)).optimize(g)
         assert str(g) == "[Op1(Op2(y, z), y)]"
 
     def test_constraints(self):
@@ -218,17 +220,17 @@ class TestPatternOptimizer:
         def constraint(r):
             # Only replacing if the input is an instance of Op2
             return r.owner.op == op2
-        PatternOptimizer((op1, {'pattern': '1',
-                                'constraint': constraint}),
-                         (op3, '1')).optimize(g)
+
+        PatternOptimizer(
+            (op1, {"pattern": "1", "constraint": constraint}), (op3, "1")
+        ).optimize(g)
         assert str(g) == "[Op4(Op3(Op2(x, y)), Op1(Op1(x, y)))]"
 
     def test_match_same(self):
         x, y, z = inputs()
         e = op1(x, x)
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op1, 'x', 'y'),
-                         (op3, 'x', 'y')).optimize(g)
+        PatternOptimizer((op1, "x", "y"), (op3, "x", "y")).optimize(g)
         assert str(g) == "[Op3(x, x)]"
 
     def test_match_same_illegal(self):
@@ -239,9 +241,10 @@ class TestPatternOptimizer:
         def constraint(r):
             # Only replacing if the input is an instance of Op2
             return r.owner.inputs[0] is not r.owner.inputs[1]
-        PatternOptimizer({'pattern': (op1, 'x', 'y'),
-                          'constraint': constraint},
-                         (op3, 'x', 'y')).optimize(g)
+
+        PatternOptimizer(
+            {"pattern": (op1, "x", "y"), "constraint": constraint}, (op3, "x", "y")
+        ).optimize(g)
         assert str(g) == "[Op2(Op1(x, x), Op3(x, y))]"
 
     def test_multi(self):
@@ -249,8 +252,7 @@ class TestPatternOptimizer:
         e0 = op1(x, y)
         e = op3(op4(e0), e0)
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op4, (op1, 'x', 'y')),
-                         (op3, 'x', 'y')).optimize(g)
+        PatternOptimizer((op4, (op1, "x", "y")), (op3, "x", "y")).optimize(g)
         assert str(g) == "[Op3(Op4(*1 -> Op1(x, y)), *1)]"
 
     def test_eq(self):
@@ -258,10 +260,10 @@ class TestPatternOptimizer:
         x, y, z = inputs()
         e = op1(op_y(x, y), z)
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op1, (op_z, '1', '2'), '3'),
-                         (op4, '3', '2')).optimize(g)
+        PatternOptimizer((op1, (op_z, "1", "2"), "3"), (op4, "3", "2")).optimize(g)
         str_g = str(g)
         assert str_g == "[Op4(z, y)]"
+
 
 #     def test_multi_ingraph(self):
 #         # known to fail
@@ -279,7 +281,6 @@ def OpSubOptimizer(op1, op2):
 
 
 class TestOpSubOptimizer:
-
     def test_straightforward(self):
         x, y, z = inputs()
         e = op1(op1(op1(op1(op1(x)))))
@@ -296,7 +297,7 @@ class TestOpSubOptimizer:
 
 
 class NoInputOp(Op):
-    __props__ = ('param',)
+    __props__ = ("param",)
 
     def __init__(self, param):
         self.param = param
@@ -309,7 +310,6 @@ class NoInputOp(Op):
 
 
 class TestMergeOptimizer:
-
     def test_straightforward(self):
         x, y, z = inputs()
         e = op1(op2(x, y), op2(x, y), op2(x, z))
@@ -318,15 +318,17 @@ class TestMergeOptimizer:
         assert str(g) == "[Op1(*1 -> Op2(x, y), *1, Op2(x, z))]"
 
     def test_constant_merging(self):
-        x = MyVariable('x')
-        y = Constant(MyType(), 2, name='y')
-        z = Constant(MyType(), 2, name='z')
+        x = MyVariable("x")
+        y = Constant(MyType(), 2, name="y")
+        z = Constant(MyType(), 2, name="z")
         e = op1(op2(x, y), op2(x, y), op2(x, z))
         g = FunctionGraph([x, y, z], [e])
         MergeOptimizer().optimize(g)
         strg = str(g)
-        assert strg == "[Op1(*1 -> Op2(x, y), *1, *1)]" \
+        assert (
+            strg == "[Op1(*1 -> Op2(x, y), *1, *1)]"
             or strg == "[Op1(*1 -> Op2(x, z), *1, *1)]"
+        )
 
     def test_deep_merge(self):
         x, y, z = inputs()
@@ -360,15 +362,18 @@ class TestMergeOptimizer:
         strg = str(g)
         # note: graph.as_string can only produce the following two possibilities, but if
         # the implementation was to change there are 6 other acceptable answers.
-        assert strg == "[Op1(*1 -> Op1(x, y), Op4(*2 -> Op2(Op3(x), y, z), *1), Op1(*2))]" \
-            or strg == "[Op1(*2 -> Op1(x, y), Op4(*1 -> Op2(Op3(x), y, z), *2), Op1(*1))]"
+        assert (
+            strg == "[Op1(*1 -> Op1(x, y), Op4(*2 -> Op2(Op3(x), y, z), *1), Op1(*2))]"
+            or strg
+            == "[Op1(*2 -> Op1(x, y), Op4(*1 -> Op2(Op3(x), y, z), *2), Op1(*1))]"
+        )
 
     def test_identical_constant_args(self):
-        x = MyVariable('x')
-        y = Constant(MyType(), 2, name='y')
-        z = Constant(MyType(), 2, name='z')
+        x = MyVariable("x")
+        y = Constant(MyType(), 2, name="y")
+        z = Constant(MyType(), 2, name="z")
         ctv_backup = config.compute_test_value
-        config.compute_test_value = 'off'
+        config.compute_test_value = "off"
         try:
             e1 = op1(y, z)
         finally:
@@ -376,17 +381,17 @@ class TestMergeOptimizer:
         g = FunctionGraph([x, y, z], [e1])
         MergeOptimizer().optimize(g)
         strg = str(g)
-        assert strg == '[Op1(y, y)]' or strg == '[Op1(z, z)]'
+        assert strg == "[Op1(y, y)]" or strg == "[Op1(z, z)]"
 
     def est_one_assert_merge(self):
         # Merge two nodes, one has assert, the other not.
-        x1 = T.matrix('x1')
-        x2 = T.matrix('x2')
+        x1 = T.matrix("x1")
+        x2 = T.matrix("x2")
         e = T.dot(x1, x2) + T.dot(T.opt.assert_op(x1, (x1 > x2).all()), x2)
         g = FunctionGraph([x1, x2], [e])
         MergeOptimizer().optimize(g)
-        strg = theano.printing.debugprint(g, file='str')
-        strref = '''Elemwise{add,no_inplace} [id A] ''   4
+        strg = theano.printing.debugprint(g, file="str")
+        strref = """Elemwise{add,no_inplace} [id A] ''   4
  |dot [id B] ''   3
  | |Assert{msg='Theano Assert failed!'} [id C] ''   2
  | | |x1 [id D]
@@ -396,20 +401,21 @@ class TestMergeOptimizer:
  | |     |x2 [id G]
  | |x2 [id G]
  |dot [id B] ''   3
-'''
+"""
         assert strg == strref, (strg, strref)
 
     def test_both_assert_merge_identical(self):
         # Merge two nodes, both have assert on the same node
         # with the same conditions.
-        x1 = T.matrix('x1')
-        x2 = T.matrix('x2')
-        e = T.dot(T.opt.assert_op(x1, (x1 > x2).all()), x2) +\
-            T.dot(T.opt.assert_op(x1, (x1 > x2).all()), x2)
+        x1 = T.matrix("x1")
+        x2 = T.matrix("x2")
+        e = T.dot(T.opt.assert_op(x1, (x1 > x2).all()), x2) + T.dot(
+            T.opt.assert_op(x1, (x1 > x2).all()), x2
+        )
         g = FunctionGraph([x1, x2], [e])
         MergeOptimizer().optimize(g)
-        strg = theano.printing.debugprint(g, file='str')
-        strref = '''Elemwise{add,no_inplace} [id A] ''   4
+        strg = theano.printing.debugprint(g, file="str")
+        strref = """Elemwise{add,no_inplace} [id A] ''   4
  |dot [id B] ''   3
  | |Assert{msg='Theano Assert failed!'} [id C] ''   2
  | | |x1 [id D]
@@ -419,22 +425,23 @@ class TestMergeOptimizer:
  | |     |x2 [id G]
  | |x2 [id G]
  |dot [id B] ''   3
-'''
+"""
         # print(strg)
         assert strg == strref, (strg, strref)
 
     def est_both_assert_merge_1(self):
         # Merge two nodes, both have assert on the same node
         # with different conditions.
-        x1 = T.matrix('x1')
-        x2 = T.matrix('x2')
-        x3 = T.matrix('x3')
-        e = T.dot(T.opt.assert_op(x1, (x1 > x3).all()), x2) +\
-            T.dot(T.opt.assert_op(x1, (x1 > x2).all()), x2)
+        x1 = T.matrix("x1")
+        x2 = T.matrix("x2")
+        x3 = T.matrix("x3")
+        e = T.dot(T.opt.assert_op(x1, (x1 > x3).all()), x2) + T.dot(
+            T.opt.assert_op(x1, (x1 > x2).all()), x2
+        )
         g = FunctionGraph([x1, x2, x3], [e])
         MergeOptimizer().optimize(g)
-        strg = theano.printing.debugprint(g, file='str')
-        strref1 = '''Elemwise{add,no_inplace} [id A] ''   6
+        strg = theano.printing.debugprint(g, file="str")
+        strref1 = """Elemwise{add,no_inplace} [id A] ''   6
  |dot [id B] ''   5
  | |Assert{msg='Theano Assert failed!'} [id C] ''   4
  | | |x1 [id D]
@@ -448,8 +455,8 @@ class TestMergeOptimizer:
  | |     |x2 [id J]
  | |x2 [id J]
  |dot [id B] ''   5
-'''
-        strref2 = '''Elemwise{add,no_inplace} [id A] ''   6
+"""
+        strref2 = """Elemwise{add,no_inplace} [id A] ''   6
  |dot [id B] ''   5
  | |Assert{msg='Theano Assert failed!'} [id C] ''   4
  | | |x1 [id D]
@@ -463,21 +470,22 @@ class TestMergeOptimizer:
  | |     |x3 [id J]
  | |x2 [id G]
  |dot [id B] ''   5
-'''
+"""
         # print(strg)
         assert strg == strref1 or strg == strref2, (strg, strref1, strref2)
 
     def est_both_assert_merge_2(self):
         # Merge two nodes, both have assert on different node
-        x1 = T.matrix('x1')
-        x2 = T.matrix('x2')
-        x3 = T.matrix('x3')
-        e = T.dot(T.opt.assert_op(x1, (x1 > x3).all()), x2) +\
-            T.dot(x1, T.opt.assert_op(x2, (x2 > x3).all()))
+        x1 = T.matrix("x1")
+        x2 = T.matrix("x2")
+        x3 = T.matrix("x3")
+        e = T.dot(T.opt.assert_op(x1, (x1 > x3).all()), x2) + T.dot(
+            x1, T.opt.assert_op(x2, (x2 > x3).all())
+        )
         g = FunctionGraph([x1, x2, x3], [e])
         MergeOptimizer().optimize(g)
-        strg = theano.printing.debugprint(g, file='str')
-        strref = '''Elemwise{add,no_inplace} [id A] ''   7
+        strg = theano.printing.debugprint(g, file="str")
+        strref = """Elemwise{add,no_inplace} [id A] ''   7
  |dot [id B] ''   6
  | |Assert{msg='Theano Assert failed!'} [id C] ''   5
  | | |x1 [id D]
@@ -492,21 +500,22 @@ class TestMergeOptimizer:
  |       |x2 [id I]
  |       |x3 [id G]
  |dot [id B] ''   6
-'''
+"""
         # print(strg)
         assert strg == strref, (strg, strref)
 
     def est_both_assert_merge_2_reverse(self):
         # Test case "test_both_assert_merge_2" but in reverse order
-        x1 = T.matrix('x1')
-        x2 = T.matrix('x2')
-        x3 = T.matrix('x3')
-        e = T.dot(x1, T.opt.assert_op(x2, (x2 > x3).all())) +\
-            T.dot(T.opt.assert_op(x1, (x1 > x3).all()), x2)
+        x1 = T.matrix("x1")
+        x2 = T.matrix("x2")
+        x3 = T.matrix("x3")
+        e = T.dot(x1, T.opt.assert_op(x2, (x2 > x3).all())) + T.dot(
+            T.opt.assert_op(x1, (x1 > x3).all()), x2
+        )
         g = FunctionGraph([x1, x2, x3], [e])
         MergeOptimizer().optimize(g)
-        strg = theano.printing.debugprint(g, file='str')
-        strref = '''Elemwise{add,no_inplace} [id A] ''   7
+        strg = theano.printing.debugprint(g, file="str")
+        strref = """Elemwise{add,no_inplace} [id A] ''   7
  |dot [id B] ''   6
  | |Assert{msg='Theano Assert failed!'} [id C] ''   5
  | | |x1 [id D]
@@ -521,7 +530,7 @@ class TestMergeOptimizer:
  |       |x2 [id I]
  |       |x3 [id G]
  |dot [id B] ''   6
-'''
+"""
         print(strg)
         assert strg == strref, (strg, strref)
 
@@ -533,77 +542,82 @@ class TestMergeOptimizer:
 
         fg = FunctionGraph([], [x, y, z])
         MergeOptimizer().optimize(fg)
-        no_input_ops = [n for n in fg.apply_nodes
-                        if isinstance(n.op, NoInputOp)]
+        no_input_ops = [n for n in fg.apply_nodes if isinstance(n.op, NoInputOp)]
         assert len(no_input_ops) == 2, fg.apply_nodes
 
 
 class TestEquilibrium(object):
-
     def test_1(self):
-        x, y, z = map(MyVariable, 'xyz')
+        x, y, z = map(MyVariable, "xyz")
         e = op3(op4(x, y))
         g = FunctionGraph([x, y, z], [e])
         # print g
         opt = EquilibriumOptimizer(
-            [PatternSub((op1, 'x', 'y'), (op2, 'x', 'y')),
-             PatternSub((op4, 'x', 'y'), (op1, 'x', 'y')),
-             PatternSub((op3, (op2, 'x', 'y')), (op4, 'x', 'y'))
-             ],
-            max_use_ratio=10)
+            [
+                PatternSub((op1, "x", "y"), (op2, "x", "y")),
+                PatternSub((op4, "x", "y"), (op1, "x", "y")),
+                PatternSub((op3, (op2, "x", "y")), (op4, "x", "y")),
+            ],
+            max_use_ratio=10,
+        )
         opt.optimize(g)
         # print g
-        assert str(g) == '[Op2(x, y)]'
+        assert str(g) == "[Op2(x, y)]"
 
     def test_2(self):
-        x, y, z = map(MyVariable, 'xyz')
+        x, y, z = map(MyVariable, "xyz")
         e = op1(op1(op3(x, y)))
         g = FunctionGraph([x, y, z], [e])
         # print g
         opt = EquilibriumOptimizer(
-            [PatternSub((op1, (op2, 'x', 'y')), (op4, 'x', 'y')),
-             PatternSub((op3, 'x', 'y'), (op4, 'x', 'y')),
-             PatternSub((op4, 'x', 'y'), (op5, 'x', 'y')),
-             PatternSub((op5, 'x', 'y'), (op6, 'x', 'y')),
-             PatternSub((op6, 'x', 'y'), (op2, 'x', 'y'))
-             ],
-            max_use_ratio=10)
+            [
+                PatternSub((op1, (op2, "x", "y")), (op4, "x", "y")),
+                PatternSub((op3, "x", "y"), (op4, "x", "y")),
+                PatternSub((op4, "x", "y"), (op5, "x", "y")),
+                PatternSub((op5, "x", "y"), (op6, "x", "y")),
+                PatternSub((op6, "x", "y"), (op2, "x", "y")),
+            ],
+            max_use_ratio=10,
+        )
         opt.optimize(g)
-        assert str(g) == '[Op2(x, y)]'
+        assert str(g) == "[Op2(x, y)]"
 
-    @theano.change_flags(on_opt_error='ignore')
+    @theano.change_flags(on_opt_error="ignore")
     def test_low_use_ratio(self):
-        x, y, z = map(MyVariable, 'xyz')
+        x, y, z = map(MyVariable, "xyz")
         e = op3(op4(x, y))
         g = FunctionGraph([x, y, z], [e])
         # print 'before', g
         # display pesky warnings along with stdout
         # also silence logger for 'theano.gof.opt'
-        _logger = logging.getLogger('theano.gof.opt')
+        _logger = logging.getLogger("theano.gof.opt")
         oldlevel = _logger.level
         _logger.setLevel(logging.CRITICAL)
         try:
             opt = EquilibriumOptimizer(
-                [PatternSub((op1, 'x', 'y'), (op2, 'x', 'y')),
-                 PatternSub((op4, 'x', 'y'), (op1, 'x', 'y')),
-                 PatternSub((op3, (op2, 'x', 'y')), (op4, 'x', 'y'))
-                 ],
-                max_use_ratio=1. / len(g.apply_nodes))  # each opt can only be applied once
+                [
+                    PatternSub((op1, "x", "y"), (op2, "x", "y")),
+                    PatternSub((op4, "x", "y"), (op1, "x", "y")),
+                    PatternSub((op3, (op2, "x", "y")), (op4, "x", "y")),
+                ],
+                max_use_ratio=1.0 / len(g.apply_nodes),
+            )  # each opt can only be applied once
             opt.optimize(g)
         finally:
             _logger.setLevel(oldlevel)
         # print 'after', g
-        assert str(g) == '[Op1(x, y)]'
+        assert str(g) == "[Op1(x, y)]"
 
 
 def test_pre_constant_merge_slice():
     ms = theano.tensor.type_other.MakeSlice()(1)
     pre_constant_merge([ms])
     const_slice = theano.tensor.type_other.SliceConstant(
-        type=theano.tensor.type_other.slicetype,
-        data=slice(1, None, 2))
-    adv = theano.tensor.subtensor.AdvancedSubtensor()(theano.tensor.matrix(),
-                                                      [2, 3], const_slice)
+        type=theano.tensor.type_other.slicetype, data=slice(1, None, 2)
+    )
+    adv = theano.tensor.subtensor.AdvancedSubtensor()(
+        theano.tensor.matrix(), [2, 3], const_slice
+    )
     pre_constant_merge(adv)
 
     cst = pre_greedy_local_optimizer([theano.tensor.opt.constant_folding], ms)

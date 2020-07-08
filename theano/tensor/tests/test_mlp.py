@@ -2,9 +2,9 @@
 This is a minimized version of the mlp.py in the tutorial. We removed stuff that make this mlp don't work.
 But this test a bug that we saw. This bug made the Shape_i object not being lifted, that caused the CrossentropySoftmax... op not being inserted.
 """
-from __future__ import absolute_import, print_function, division
 
-__docformat__ = 'restructedtext en'
+
+__docformat__ = "restructedtext en"
 
 
 from collections import OrderedDict
@@ -17,12 +17,19 @@ import theano.tensor as T
 def gen_data():
 
     # generate the dataset
-    train_set = (np.asarray(np.random.rand(10000, 784), dtype='float32'),
-               np.asarray(np.random.rand(10000)*10, dtype='int64'))
-    valid_set = (np.asarray(np.random.rand(10000, 784), dtype='float32'),
-               np.asarray(np.random.rand(10000)*10, dtype='int64'))
-    test_set = (np.asarray(np.random.rand(10000, 784), dtype='float32'),
-               np.asarray(np.random.rand(10000)*10, dtype='int64'))
+    train_set = (
+        np.asarray(np.random.rand(10000, 784), dtype="float32"),
+        np.asarray(np.random.rand(10000) * 10, dtype="int64"),
+    )
+    valid_set = (
+        np.asarray(np.random.rand(10000, 784), dtype="float32"),
+        np.asarray(np.random.rand(10000) * 10, dtype="int64"),
+    )
+    test_set = (
+        np.asarray(np.random.rand(10000, 784), dtype="float32"),
+        np.asarray(np.random.rand(10000) * 10, dtype="int64"),
+    )
+
     def shared_dataset(data_xy):
         """ Function that loads the dataset into shared variables
 
@@ -42,13 +49,17 @@ def gen_data():
         # floats it doesn't make sense) therefore instead of returning
         # ``shared_y`` we will have to cast it to int. This little hack
         # lets ous get around this issue
-        return shared_x, T.cast(shared_y, 'int32')
+        return shared_x, T.cast(shared_y, "int32")
 
-    test_set_x,  test_set_y  = shared_dataset(test_set)
+    test_set_x, test_set_y = shared_dataset(test_set)
     valid_set_x, valid_set_y = shared_dataset(valid_set)
     train_set_x, train_set_y = shared_dataset(train_set)
 
-    rval = [(train_set_x, train_set_y), (valid_set_x, valid_set_y), (test_set_x, test_set_y)]
+    rval = [
+        (train_set_x, train_set_y),
+        (valid_set_x, valid_set_y),
+        (test_set_x, test_set_y),
+    ]
     return rval
 
 
@@ -61,7 +72,7 @@ class LogisticRegression(object):
     determine a class membership probability.
     """
 
-    def __init__(self, input, n_in, n_out, name_prefix=''):
+    def __init__(self, input, n_in, n_out, name_prefix=""):
         """ Initialize the parameters of the logistic regression
 
         :type input: theano.tensor.TensorType
@@ -79,8 +90,10 @@ class LogisticRegression(object):
         """
 
         # initialize with 0 the weights W as a matrix of shape (n_in, n_out)
-        self.W = theano.shared(value=np.zeros((n_in, n_out), dtype=theano.config.floatX),
-                                name=name_prefix+'W')
+        self.W = theano.shared(
+            value=np.zeros((n_in, n_out), dtype=theano.config.floatX),
+            name=name_prefix + "W",
+        )
 
         # compute vector of class-membership probabilities in symbolic form
         self.p_y_given_x = T.nnet.softmax(T.dot(input, self.W))
@@ -93,7 +106,7 @@ class LogisticRegression(object):
         self.params = [self.W]
 
     def negative_log_likelihood(self, y):
-        """Return the mean of the negative log-likelihood of the prediction
+        r"""Return the mean of the negative log-likelihood of the prediction
         of this model under a given target distribution.
 
         .. math::
@@ -119,7 +132,7 @@ class LogisticRegression(object):
 
 
 class HiddenLayer(object):
-    def __init__(self, rng, input, n_in, n_out, activation=T.tanh, name_prefix=''):
+    def __init__(self, rng, input, n_in, n_out, activation=T.tanh, name_prefix=""):
         """
         Typical hidden layer of a MLP: units are fully-connected and have
         sigmoidal activation function. Weight matrix W is of shape (n_in,n_out)
@@ -151,11 +164,15 @@ class HiddenLayer(object):
         # from -6./sqrt(n_in+n_hidden) and 6./sqrt(n_in+n_hidden)
         # the output of uniform if converted using asarray to dtype
         # theano.config.floatX so that the code is runable on GPU
-        W_values = np.asarray( rng.uniform( \
-              low=-np.sqrt(6./(n_in+n_out)), \
-              high=np.sqrt(6./(n_in+n_out)), \
-              size=(n_in, n_out)), dtype=theano.config.floatX)
-        self.W = theano.shared(value=W_values, name=name_prefix+'W')
+        W_values = np.asarray(
+            rng.uniform(
+                low=-np.sqrt(6.0 / (n_in + n_out)),
+                high=np.sqrt(6.0 / (n_in + n_out)),
+                size=(n_in, n_out),
+            ),
+            dtype=theano.config.floatX,
+        )
+        self.W = theano.shared(value=W_values, name=name_prefix + "W")
 
         self.output = T.dot(input, self.W)
         # parameters of the model
@@ -200,16 +217,23 @@ class MLP(object):
         # translate into a TanhLayer connected to the LogisticRegression
         # layer; this can be replaced by a SigmoidalLayer, or a layer
         # implementing any other nonlinearity
-        self.hiddenLayer = HiddenLayer(rng=rng, input=input,
-                                 n_in=n_in, n_out=n_hidden,
-                                 activation=T.tanh, name_prefix='hid_')
+        self.hiddenLayer = HiddenLayer(
+            rng=rng,
+            input=input,
+            n_in=n_in,
+            n_out=n_hidden,
+            activation=T.tanh,
+            name_prefix="hid_",
+        )
 
         # The logistic regression layer gets as input the hidden units
         # of the hidden layer
         self.logRegressionLayer = LogisticRegression(
-                                    input=self.hiddenLayer.output,
-                                    n_in=n_hidden,
-                                    n_out=n_out, name_prefix='log_')
+            input=self.hiddenLayer.output,
+            n_in=n_hidden,
+            n_out=n_out,
+            name_prefix="log_",
+        )
 
         # negative log likelihood of the MLP is given by the negative
         # log likelihood of the output of the model, computed in the
@@ -245,14 +269,14 @@ def test_mlp():
 
     train_set_x, train_set_y = datasets[0]
     valid_set_x, valid_set_y = datasets[1]
-    test_set_x , test_set_y  = datasets[2]
+    test_set_x, test_set_y = datasets[2]
 
-    batch_size = 100    # size of the minibatch
+    batch_size = 100  # size of the minibatch
 
     # compute number of minibatches for training, validation and testing
-    n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
-    n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
-    n_test_batches  = test_set_x.get_value(borrow=True).shape[0]  / batch_size
+    # n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
+    # n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
+    # n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
 
     ######################
     # BUILD ACTUAL MODEL #
@@ -260,15 +284,15 @@ def test_mlp():
     # print '... building the model'
 
     # allocate symbolic variables for the data
-    index = T.lscalar()    # index to a [mini]batch
-    x     = T.matrix('x')  # the data is presented as rasterized images
-    y     = T.ivector('y')  # the labels are presented as 1D vector of
-                           # [int] labels
+    index = T.lscalar()  # index to a [mini]batch
+    x = T.matrix("x")  # the data is presented as rasterized images
+    y = T.ivector("y")  # the labels are presented as 1D vector of
+    # [int] labels
 
     rng = np.random.RandomState(1234)
 
     # construct the MLP class
-    classifier = MLP( rng=rng, input=x, n_in=28*28, n_hidden=500, n_out=10)
+    classifier = MLP(rng=rng, input=x, n_in=28 * 28, n_hidden=500, n_out=10)
 
     # the cost we minimize during training is the negative log likelihood of
     # the model.
@@ -279,37 +303,56 @@ def test_mlp():
     # the resulting gradients will be stored in a list gparams
     gparams = []
     for param in classifier.params:
-        gparam  = T.grad(cost, param)
+        gparam = T.grad(cost, param)
         gparams.append(gparam)
 
     # Some optimizations needed are tagged with 'fast_run'
     # TODO: refine that and include only those
-    mode = theano.compile.get_default_mode().including('fast_run')
+    mode = theano.compile.get_default_mode().including("fast_run")
 
     updates2 = OrderedDict()
 
-    updates2[classifier.hiddenLayer.params[0]] = T.grad(cost, classifier.hiddenLayer.params[0])
-    train_model = theano.function( inputs=[index],
-            updates=updates2,
-            givens={
-                x: train_set_x[index*batch_size:(index+1)*batch_size],
-                y: train_set_y[index*batch_size:(index+1)*batch_size]},
-            mode=mode)
+    updates2[classifier.hiddenLayer.params[0]] = T.grad(
+        cost, classifier.hiddenLayer.params[0]
+    )
+    train_model = theano.function(
+        inputs=[index],
+        updates=updates2,
+        givens={
+            x: train_set_x[index * batch_size : (index + 1) * batch_size],
+            y: train_set_y[index * batch_size : (index + 1) * batch_size],
+        },
+        mode=mode,
+    )
     # print 'MODEL 1'
-    #theano.printing.debugprint(train_model, print_type=True)
-    assert any([isinstance(i.op, T.nnet.CrossentropySoftmax1HotWithBiasDx) for i in train_model.maker.fgraph.toposort()])
+    # theano.printing.debugprint(train_model, print_type=True)
+    assert any(
+        [
+            isinstance(i.op, T.nnet.CrossentropySoftmax1HotWithBiasDx)
+            for i in train_model.maker.fgraph.toposort()
+        ]
+    )
 
     # Even without FeatureShape
-    train_model = theano.function( inputs=[index],
-            updates=updates2,
-            mode=mode.excluding('ShapeOpt'),
-            givens={
-                x: train_set_x[index*batch_size:(index+1)*batch_size],
-                y: train_set_y[index*batch_size:(index+1)*batch_size]})
+    train_model = theano.function(
+        inputs=[index],
+        updates=updates2,
+        mode=mode.excluding("ShapeOpt"),
+        givens={
+            x: train_set_x[index * batch_size : (index + 1) * batch_size],
+            y: train_set_y[index * batch_size : (index + 1) * batch_size],
+        },
+    )
     # print
     # print 'MODEL 2'
-    #theano.printing.debugprint(train_model, print_type=True)
-    assert any([isinstance(i.op, T.nnet.CrossentropySoftmax1HotWithBiasDx) for i in train_model.maker.fgraph.toposort()])
+    # theano.printing.debugprint(train_model, print_type=True)
+    assert any(
+        [
+            isinstance(i.op, T.nnet.CrossentropySoftmax1HotWithBiasDx)
+            for i in train_model.maker.fgraph.toposort()
+        ]
+    )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     test_mlp()

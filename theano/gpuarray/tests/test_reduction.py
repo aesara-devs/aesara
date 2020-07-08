@@ -1,4 +1,3 @@
-from __future__ import print_function, absolute_import, division
 import numpy as np
 import pytest
 
@@ -43,11 +42,11 @@ def numpy_maxandargmax(X, axis=None):
     ref_max = np.max(X, axis=axis)
     # Following code is copied from MaxAndArgmax.perform():
     # Numpy does not support multiple axes for argmax. Work around.
-    keep_axes = np.array([i for i in range(X.ndim) if i not in axis], dtype='int64')
+    keep_axes = np.array([i for i in range(X.ndim) if i not in axis], dtype="int64")
     # Not-reduced axes in front
     transposed_x = np.transpose(X, np.concatenate((keep_axes, axis)))
-    kept_shape = transposed_x.shape[:len(keep_axes)]
-    reduced_shape = transposed_x.shape[len(keep_axes):]
+    kept_shape = transposed_x.shape[: len(keep_axes)]
+    reduced_shape = transposed_x.shape[len(keep_axes) :]
     new_shape = kept_shape + (np.prod(reduced_shape),)
     new_shape = tuple(int(i) for i in new_shape)
     reshaped_x = transposed_x.reshape(new_shape)
@@ -55,13 +54,17 @@ def numpy_maxandargmax(X, axis=None):
 
 
 def check_if_gpu_reduce_in_graph(theano_function):
-    assert any(isinstance(node.op, (GpuMaxAndArgmax, GpuDnnReduction))
-               for node in theano_function.maker.fgraph.apply_nodes)
+    assert any(
+        isinstance(node.op, (GpuMaxAndArgmax, GpuDnnReduction))
+        for node in theano_function.maker.fgraph.apply_nodes
+    )
 
 
 def check_if_gpu_reduce_not_in_graph(theano_function):
-    assert all(not isinstance(node.op, (GpuMaxAndArgmax, GpuDnnReduction))
-               for node in theano_function.maker.fgraph.apply_nodes)
+    assert all(
+        not isinstance(node.op, (GpuMaxAndArgmax, GpuDnnReduction))
+        for node in theano_function.maker.fgraph.apply_nodes
+    )
 
 
 class BaseTest:
@@ -74,13 +77,17 @@ class BaseTest:
     def get_shape(self):
         if self.tensor_size == 0:
             return []
-        return [int(math.ceil(math.pow(test_size, 1 / self.tensor_size)))] * self.tensor_size
+        return [
+            int(math.ceil(math.pow(test_size, 1 / self.tensor_size)))
+        ] * self.tensor_size
 
     def setup_method(self):
         if not isinstance(self.tensor_size, int):
             pytest.skip("No tensor ndim defined.")
         if self.tensor_size < 0 or self.tensor_size > 5:
-            pytest.skip("We allow from 0 (included) to 5 (inclued) dimensons for these tests.")
+            pytest.skip(
+                "We allow from 0 (included) to 5 (inclued) dimensons for these tests."
+            )
         if self.shape is None:
             self.shape = self.get_shape()
 
@@ -104,8 +111,12 @@ class BaseTest:
 
     def compute_host(self, test_tensor, axis):
         M = self.get_host_tensor()
-        f = theano.function([M], [T.max(M, axis=axis), T.argmax(M, axis=axis)],
-                            name='shape:' + str(test_tensor.shape) + '/axis:' + str(axis) + '/HOST', mode=mode_without_gpu)
+        f = theano.function(
+            [M],
+            [T.max(M, axis=axis), T.argmax(M, axis=axis)],
+            name="shape:" + str(test_tensor.shape) + "/axis:" + str(axis) + "/HOST",
+            mode=mode_without_gpu,
+        )
         check_if_gpu_reduce_not_in_graph(f)
         f(test_tensor)
         theano_max, theano_argmax = f(test_tensor)
@@ -115,8 +126,12 @@ class BaseTest:
 
     def compute_gpu(self, test_gpu_tensor, test_host_tensor, axis):
         M = self.get_gpu_tensor()
-        f = theano.function([M], [T.max(M, axis=axis), T.argmax(M, axis=axis)],
-                            name='shape:' + str(test_gpu_tensor.shape) + '/axis:' + str(axis) + '/GPU', mode=mode_with_gpu)
+        f = theano.function(
+            [M],
+            [T.max(M, axis=axis), T.argmax(M, axis=axis)],
+            name="shape:" + str(test_gpu_tensor.shape) + "/axis:" + str(axis) + "/GPU",
+            mode=mode_with_gpu,
+        )
         check_if_gpu_reduce_in_graph(f)
         f(test_gpu_tensor)
         theano_max, theano_argmax = f(test_gpu_tensor)

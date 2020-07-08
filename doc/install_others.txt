@@ -13,7 +13,7 @@ NVIDIA Jetson TX1 embedded platform
 
 .. code-block:: bash
 
-    sudo apt-get install python-numpy python-scipy python-dev python-pip python-nose g++ libblas-dev git
+    sudo apt-get install python-numpy python-scipy python-dev python-pip python-pytest g++ libblas-dev git
     pip install --upgrade --no-deps git+git://github.com/Theano/Theano.git --user  # Need Theano 0.8 or more recent
 
 Gentoo

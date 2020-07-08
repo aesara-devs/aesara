@@ -2,7 +2,7 @@
 WRITEME
 
 """
-from __future__ import absolute_import, print_function, division
+
 from copy import copy, deepcopy
 from sys import getsizeof
 import sys
@@ -33,21 +33,27 @@ def log_thunk_trace(value, f=sys.stderr):
     def write(msg):
         print("log_thunk_trace: %s" % msg.strip(), file=f)
 
-    if hasattr(value, '__thunk_trace__'):
+    if hasattr(value, "__thunk_trace__"):
         trace2 = value.__thunk_trace__
         write("There was a problem executing an Op.")
         if trace2 is None:
             write("Could not find where this Op was defined.")
-            write(" * You might have instantiated this Op "
-                  "directly instead of using a constructor.")
-            write(" * The Op you constructed might have been"
-                  " optimized. Try turning off optimizations.")
+            write(
+                " * You might have instantiated this Op "
+                "directly instead of using a constructor."
+            )
+            write(
+                " * The Op you constructed might have been"
+                " optimized. Try turning off optimizations."
+            )
         elif trace2:
             write("Definition in: ")
             for line in traceback.format_list(trace2):
                 write(line)
-            write("For the full definition stack trace set"
-                  " the Theano flags traceback.limit to -1")
+            write(
+                "For the full definition stack trace set"
+                " the Theano flags traceback.limit to -1"
+            )
 
 
 def thunk_hook(type, value, trace):
@@ -72,11 +78,13 @@ def thunk_hook(type, value, trace):
 
     Notes
     -----
-    This hook replaced by nosetests, so it does not run in nose tests.
+    This hook replaced in testing, so it does not run.
 
     """
     log_thunk_trace(value)
     __excepthook(type, value, trace)
+
+
 sys.excepthook = thunk_hook
 
 
@@ -142,15 +150,13 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
     if exc_value.__applynode_index__ is not None:
         detailed_err_msg += "\nToposort index: %d" % node_index
 
-    types = [getattr(ipt, 'type', 'No type') for ipt in node.inputs]
+    types = [getattr(ipt, "type", "No type") for ipt in node.inputs]
     detailed_err_msg += "\nInputs types: %s\n" % types
 
     if thunk is not None:
-        if hasattr(thunk, 'inputs'):
-            shapes = [getattr(ipt[0], 'shape', 'No shapes')
-                      for ipt in thunk.inputs]
-            strides = [getattr(ipt[0], 'strides', 'No strides')
-                       for ipt in thunk.inputs]
+        if hasattr(thunk, "inputs"):
+            shapes = [getattr(ipt[0], "shape", "No shapes") for ipt in thunk.inputs]
+            strides = [getattr(ipt[0], "strides", "No strides") for ipt in thunk.inputs]
             scalar_values = []
             for ipt in thunk.inputs:
                 if getattr(ipt[0], "size", -1) <= 5:
@@ -162,23 +168,27 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
             strides = "So we can't access the strides of inputs values"
             scalar_values = "And can't print its inputs scalar value"
         clients = [[c[0] for c in var.clients] for var in node.outputs]
-        detailed_err_msg += ("Inputs shapes: %s" % shapes +
-                             "\nInputs strides: %s" % strides +
-                             "\nInputs values: %s" % scalar_values)
-        if theano.config.exception_verbosity == 'high':
+        detailed_err_msg += (
+            "Inputs shapes: %s" % shapes
+            + "\nInputs strides: %s" % strides
+            + "\nInputs values: %s" % scalar_values
+        )
+        if theano.config.exception_verbosity == "high":
             detailed_err_msg += "\nInputs type_num: %s" % str(
-                [getattr(getattr(i[0], 'dtype', ''), 'num', '') for i in thunk.inputs])
-        if hasattr(node.op, '__input_name__'):
+                [getattr(getattr(i[0], "dtype", ""), "num", "") for i in thunk.inputs]
+            )
+        if hasattr(node.op, "__input_name__"):
             detailed_err_msg += "\nInputs name: %s\n" % str(node.op.__input_name__)
 
         detailed_err_msg += "\nOutputs clients: %s\n" % clients
     else:
         hints.append(
             "HINT: Use another linker then the c linker to"
-            " have the inputs shapes and strides printed.")
+            " have the inputs shapes and strides printed."
+        )
 
     # Print node backtraces
-    tr = getattr(node.outputs[0].tag, 'trace', [])
+    tr = getattr(node.outputs[0].tag, "trace", [])
     if isinstance(tr, list) and len(tr) > 0:
         detailed_err_msg += "\nBacktrace when the node is created(use Theano flag traceback.limit=N to make it longer):\n"
 
@@ -193,25 +203,29 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
             " give you a back-trace of when this node was created. This can"
             " be done with by setting the Theano flag"
             " 'optimizer=fast_compile'. If that does not work,"
-            " Theano optimizations can be disabled with 'optimizer=None'.")
+            " Theano optimizations can be disabled with 'optimizer=None'."
+        )
 
-    if theano.config.exception_verbosity == 'high':
+    if theano.config.exception_verbosity == "high":
 
         f = StringIO()
-        theano.printing.debugprint(node, file=f, stop_on_name=True,
-                                   print_type=True)
+        theano.printing.debugprint(node, file=f, stop_on_name=True, print_type=True)
         detailed_err_msg += "\nDebugprint of the apply node: \n"
         detailed_err_msg += f.getvalue()
 
     # Prints output_map
-    if theano.config.exception_verbosity == 'high' and storage_map is not None:
+    if theano.config.exception_verbosity == "high" and storage_map is not None:
         detailed_err_msg += "\nStorage map footprint:\n"
         shared_input_list = [
-            item for item in node.fgraph.inputs
-            if isinstance(item, theano.compile.SharedVariable)]
+            item
+            for item in node.fgraph.inputs
+            if isinstance(item, theano.compile.SharedVariable)
+        ]
         nonshared_input_list = [
-            item for item in node.fgraph.inputs
-            if not isinstance(item, theano.compile.SharedVariable)]
+            item
+            for item in node.fgraph.inputs
+            if not isinstance(item, theano.compile.SharedVariable)
+        ]
         storage_map_list = []
         total_size = 0
         total_size_inputs = 0
@@ -223,7 +237,7 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
 
             # storage_map_item[1]: the shape
             shapeinfo = None
-            if hasattr(storage_map[k][0], 'shape'):
+            if hasattr(storage_map[k][0], "shape"):
                 shapeinfo = storage_map[k][0].shape
                 if len(shapeinfo) != 0:
                     storage_map_item.append(shapeinfo)
@@ -234,7 +248,7 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
 
             # storage_map_item[2]: itemsize
             # storage_map_item[3]: bytes
-            if hasattr(storage_map[k][0], 'dtype'):
+            if hasattr(storage_map[k][0], "dtype"):
                 dtype = storage_map[k][0].dtype
                 storage_map_item.append(np.dtype(dtype).itemsize)
                 if shapeinfo is None:
@@ -247,28 +261,30 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
                         total_size_inputs += sz
                     else:
                         # If it is a view, don't count it twice.
-                        if getattr(k.owner.op, 'view_map', None):
+                        if getattr(k.owner.op, "view_map", None):
                             vmap = k.owner.op.view_map
                             out_idx = k.owner.outputs.index(k)
                             data = storage_map[k][0]
                             if out_idx in vmap:
                                 assert len(vmap[out_idx]) == 1
                                 input_data = storage_map[
-                                    k.owner.inputs[vmap[out_idx][0]]][0]
+                                    k.owner.inputs[vmap[out_idx][0]]
+                                ][0]
                                 if k.type.may_share_memory(data, input_data):
                                     total_size -= sz
                         # If it is a destroyed input, the input
                         # shouldn't be in the storage_map anymore
                         # except if there is a special flag used. So
                         # we still must check it.
-                        if getattr(k.owner.op, 'destroy_map', None):
+                        if getattr(k.owner.op, "destroy_map", None):
                             vmap = k.owner.op.destroy_map
                             out_idx = k.owner.outputs.index(k)
                             data = storage_map[k][0]
                             if out_idx in vmap:
                                 assert len(vmap[out_idx]) == 1
                                 input_data = storage_map[
-                                    k.owner.inputs[vmap[out_idx][0]]][0]
+                                    k.owner.inputs[vmap[out_idx][0]]
+                                ][0]
                                 if k.type.may_share_memory(data, input_data):
                                     total_size -= sz
             else:
@@ -287,6 +303,7 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
             storage_map_list.append(storage_map_item)
 
         from operator import itemgetter
+
         storage_map_list.sort(key=itemgetter(3), reverse=True)
         for item in storage_map_list:
             if item[3] == -1:
@@ -304,21 +321,29 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
             else:
                 detailed_err_msg += "\n"
         detailed_err_msg += " TotalSize: %s Byte(s) %.3f GB\n" % (
-            total_size, total_size / 1024. / 1024 / 1024)
+            total_size,
+            total_size / 1024.0 / 1024 / 1024,
+        )
         detailed_err_msg += " TotalSize inputs: %s Byte(s) %.3f GB\n" % (
-            total_size_inputs, total_size_inputs / 1024. / 1024 / 1024)
+            total_size_inputs,
+            total_size_inputs / 1024.0 / 1024 / 1024,
+        )
 
     else:
         hints.append(
             "HINT: Use the Theano flag 'exception_verbosity=high'"
-            " for a debugprint and storage map footprint of this apply node.")
+            " for a debugprint and storage map footprint of this apply node."
+        )
 
     try:
-        exc_value = exc_type(str(exc_value) + detailed_err_msg +
-                             '\n' + '\n'.join(hints))
+        exc_value = exc_type(
+            str(exc_value) + detailed_err_msg + "\n" + "\n".join(hints)
+        )
     except TypeError:
-        print("WARNING: %s error does not allow us to add extra error message" %
-              str(exc_type))
+        print(
+            "WARNING: %s error does not allow us to add extra error message"
+            % str(exc_type)
+        )
         # Some exception need extra parameter in inputs. So forget the
         # extra long error message in that case.
         pass
@@ -359,8 +384,7 @@ class Linker(object):
         print e.data # 3.0 iff inplace == True (else unknown)
 
         """
-        raise utils.MethodNotDefined("make_thunk", type(self),
-                                     self.__class__.__name__)
+        raise utils.MethodNotDefined("make_thunk", type(self), self.__class__.__name__)
 
     # DELETEME #
     def make_function(self, unpack_single=True, **kwargs):
@@ -388,18 +412,22 @@ class Linker(object):
 
         def execute(*args):
             def e_arity(takes, got):
-                return 'Function call takes exactly %i %s (%i given)' % (
-                    takes, ['argument', 'arguments'][takes > 1], got)
-            if (len(args) != len(inputs)):
+                return "Function call takes exactly %i %s (%i given)" % (
+                    takes,
+                    ["argument", "arguments"][takes > 1],
+                    got,
+                )
+
+            if len(args) != len(inputs):
                 raise TypeError(e_arity(len(inputs), len(args)))
             for arg, variable in izip(args, inputs):
                 variable.data = arg
             thunk()
             if unpack_single:
-                return utils.to_return_values([variable.data
-                                               for variable in outputs])
+                return utils.to_return_values([variable.data for variable in outputs])
             else:
                 return [variable.data for variable in outputs]
+
         execute.thunk = thunk
         execute.inputs = inputs
         execute.outputs = outputs
@@ -435,8 +463,9 @@ class Container(object):
 
     """
 
-    def __init__(self, r, storage, readonly=False, strict=False,
-                 allow_downcast=None, name=None):
+    def __init__(
+        self, r, storage, readonly=False, strict=False, allow_downcast=None, name=None
+    ):
         if not isinstance(storage, list) or not len(storage) >= 1:
             raise TypeError("storage must be a list of length at least one")
         # self.r = r
@@ -446,7 +475,7 @@ class Container(object):
             self.type = r.type
         if name is None:
             # Some Type do not have a name field.
-            self.name = getattr(r, 'name', None)
+            self.name = getattr(r, "name", None)
         else:
             self.name = name
 
@@ -468,19 +497,20 @@ class Container(object):
 
             kwargs = {}
             if self.strict:
-                kwargs['strict'] = True
+                kwargs["strict"] = True
             if self.allow_downcast is not None:
-                kwargs['allow_downcast'] = self.allow_downcast
-            if hasattr(self.type, 'filter_inplace'):
-                self.storage[0] = self.type.filter_inplace(value,
-                                                           self.storage[0],
-                                                           **kwargs)
+                kwargs["allow_downcast"] = self.allow_downcast
+            if hasattr(self.type, "filter_inplace"):
+                self.storage[0] = self.type.filter_inplace(
+                    value, self.storage[0], **kwargs
+                )
             else:
                 self.storage[0] = self.type.filter(value, **kwargs)
 
         except Exception as e:
             e.args = e.args + (('Container name "%s"' % self.name),)
             raise
+
     data = property(__get__, __set__)
     value = property(__get__, __set__)
 
@@ -502,14 +532,13 @@ class Container(object):
         )
         # Work around NumPy deepcopy of ndarray with 0 dimension that
         # don't return an ndarray.
-        if (r.storage[0] is not None and
-                not self.type.is_valid_value(r.storage[0])):
+        if r.storage[0] is not None and not self.type.is_valid_value(r.storage[0]):
             assert not data_was_in_memo
             assert self.type.is_valid_value(self.storage[0])
             # This should also work for read only container.
-            r.storage[0] = self.type.filter(r.storage[0],
-                                            strict=False,
-                                            allow_downcast=False)
+            r.storage[0] = self.type.filter(
+                r.storage[0], strict=False, allow_downcast=False
+            )
             memo[id(self.storage[0])] = r.storage[0]
         return r
 
@@ -569,29 +598,35 @@ def map_storage(fgraph, order, input_storage, output_storage, storage_map=None):
     # add input storage into storage_map
     for r, storage in zip(fgraph.inputs, input_storage):
         if r in storage_map:
-            assert storage_map[r] is storage, ("Given input_storage conflicts "
-                                               "with storage in given storage_"
-                                               "map. Given input_storage: ",
-                                               storage, "Storage in storage_ma"
-                                               "p: ", storage_map[r])
+            assert storage_map[r] is storage, (
+                "Given input_storage conflicts "
+                "with storage in given storage_"
+                "map. Given input_storage: ",
+                storage,
+                "Storage in storage_ma" "p: ",
+                storage_map[r],
+            )
         else:
             storage_map[r] = storage
-#     for orphan in fgraph.orphans:
-#         if not isinstance(orphan, Constant):
-#             raise TypeError("Cannot link a graph with non-constant orphans.", orphan)
-#         storage_map[orphan] = [orphan.data]
+    #     for orphan in fgraph.orphans:
+    #         if not isinstance(orphan, Constant):
+    #             raise TypeError("Cannot link a graph with non-constant orphans.", orphan)
+    #         storage_map[orphan] = [orphan.data]
 
     # allocate output storage
     if output_storage is not None:
         assert len(fgraph.outputs) == len(output_storage)
         for r, storage in zip(fgraph.outputs, output_storage):
             if r in storage_map:
-                assert storage_map[r] is storage, ("Given output_storage confl"
-                                                   "icts with storage in given"
-                                                   " storage_map. Given output"
-                                                   "_storage: ", storage, "Sto"
-                                                   "rage in storage_map: ",
-                                                   storage_map[r])
+                assert storage_map[r] is storage, (
+                    "Given output_storage confl"
+                    "icts with storage in given"
+                    " storage_map. Given output"
+                    "_storage: ",
+                    storage,
+                    "Sto" "rage in storage_map: ",
+                    storage_map[r],
+                )
             else:
                 storage_map[r] = storage
 
@@ -614,8 +649,14 @@ def map_storage(fgraph, order, input_storage, output_storage, storage_map=None):
     return input_storage, output_storage, storage_map
 
 
-def streamline(fgraph, thunks, order, post_thunk_old_storage=None,
-               no_recycling=None, nice_errors=True):
+def streamline(
+    fgraph,
+    thunks,
+    order,
+    post_thunk_old_storage=None,
+    no_recycling=None,
+    nice_errors=True,
+):
     """
     WRITEME
 
@@ -643,28 +684,33 @@ def streamline(fgraph, thunks, order, post_thunk_old_storage=None,
         no_recycling = []
 
     if len(thunks) != len(order):
-        raise ValueError('Length of thunks and order must match',
-                         (len(thunks), len(order)))
+        raise ValueError(
+            "Length of thunks and order must match", (len(thunks), len(order))
+        )
 
     if post_thunk_old_storage:
         if len(thunks) != len(post_thunk_old_storage):
             raise ValueError(
-                'Length of thunks and post_thunk_old_storage must match',
-                (len(thunks), len(post_thunk_old_storage)))
+                "Length of thunks and post_thunk_old_storage must match",
+                (len(thunks), len(post_thunk_old_storage)),
+            )
 
         def streamline_default_f():
             for x in no_recycling:
                 x[0] = None
             try:
-                for thunk, node, old_storage in izip(thunks, order,
-                                                     post_thunk_old_storage):
+                for thunk, node, old_storage in izip(
+                    thunks, order, post_thunk_old_storage
+                ):
                     thunk()
                     for old_s in old_storage:
                         old_s[0] = None
             except Exception:
                 raise_with_op(node, thunk)
+
         f = streamline_default_f
     elif nice_errors:
+
         def streamline_nice_errors_f():
             for x in no_recycling:
                 x[0] = None
@@ -673,6 +719,7 @@ def streamline(fgraph, thunks, order, post_thunk_old_storage=None,
                     thunk()
             except Exception:
                 raise_with_op(node, thunk)
+
         f = streamline_nice_errors_f
     else:
         # don't worry about raise_with_op, just go a little faster.
@@ -682,6 +729,7 @@ def streamline(fgraph, thunks, order, post_thunk_old_storage=None,
                 x[0] = None
             for thunk in thunks:
                 thunk()
+
         f = streamline_fast_f
     return f
 
@@ -694,9 +742,11 @@ class LocalLinker(Linker):
     """
 
     def make_thunk(self, input_storage=None, output_storage=None, storage_map=None):
-        return self.make_all(input_storage=input_storage,
-                             output_storage=output_storage,
-                             storage_map=storage_map)[:3]
+        return self.make_all(
+            input_storage=input_storage,
+            output_storage=output_storage,
+            storage_map=storage_map,
+        )[:3]
 
     def make_all(self, input_storage, output_storage):
         # By convention, subclasses of LocalLinker should implement this function!
@@ -707,8 +757,7 @@ class LocalLinker(Linker):
         # 3. output storage
         # 4. thunks: list of nodes' functions in the order they will be run by the function in (1)
         # 5. order: list of nodes, in the order they will be run by the function in (1)
-        raise utils.MethodNotDefined("make_all", type(self),
-                                     self.__class__.__name__)
+        raise utils.MethodNotDefined("make_all", type(self), self.__class__.__name__)
 
 
 def gc_helper(node_list):
@@ -782,7 +831,8 @@ class PerformLinker(LocalLinker):
             no_recycling = []
         if self.fgraph is not None and self.fgraph is not fgraph:
             return type(self)(allow_gc=self.allow_gc).accept(
-                fgraph, no_recycling, profile)
+                fgraph, no_recycling, profile
+            )
             # raise Exception("Cannot accept from a Linker that is already tied to another FunctionGraph.")
         self.fgraph = fgraph
         self.no_recycling = no_recycling
@@ -811,7 +861,9 @@ class PerformLinker(LocalLinker):
         order = self.schedule(fgraph)
         no_recycling = self.no_recycling
 
-        input_storage, output_storage, storage_map = map_storage(fgraph, order, input_storage, output_storage, storage_map)
+        input_storage, output_storage, storage_map = map_storage(
+            fgraph, order, input_storage, output_storage, storage_map
+        )
 
         compute_map = {}
         for k in storage_map:
@@ -823,11 +875,9 @@ class PerformLinker(LocalLinker):
             # the python version
             # Note : ops that implement their own make thunk don't usually
             # have this attribute defiend !!
-            thunks += [node.op.make_thunk(node,
-                                          storage_map,
-                                          compute_map,
-                                          no_recycling,
-                                          'py')]
+            thunks += [
+                node.op.make_thunk(node, storage_map, compute_map, no_recycling, "py")
+            ]
             thunks[-1].inputs = [storage_map[v] for v in node.inputs]
             thunks[-1].outputs = [storage_map[v] for v in node.outputs]
 
@@ -840,11 +890,14 @@ class PerformLinker(LocalLinker):
         for node in order:
             if self.allow_gc:
                 post_thunk_old_storage.append(
-                    [storage_map[input]
-                     for input in node.inputs
-                     if (input in computed) and (
-                        input not in fgraph.outputs) and (
-                        node == last_user[input])])
+                    [
+                        storage_map[input]
+                        for input in node.inputs
+                        if (input in computed)
+                        and (input not in fgraph.outputs)
+                        and (node == last_user[input])
+                    ]
+                )
 
         if no_recycling is True:
             # True seems like some special code for *everything*?? -JB
@@ -852,29 +905,41 @@ class PerformLinker(LocalLinker):
             no_recycling = list(storage_map.values())
             no_recycling = utils.difference(no_recycling, input_storage)
         else:
-            no_recycling = [storage_map[r] for r in no_recycling if r not in fgraph.inputs]
+            no_recycling = [
+                storage_map[r] for r in no_recycling if r not in fgraph.inputs
+            ]
 
         # The function that actually runs your program is one of the f's in streamline.
-        f = streamline(fgraph, thunks, order, post_thunk_old_storage,
-                       no_recycling=no_recycling)
+        f = streamline(
+            fgraph, thunks, order, post_thunk_old_storage, no_recycling=no_recycling
+        )
 
-        f.allow_gc = self.allow_gc  # HACK: this is a way of passing an arg to Function.__call__
+        f.allow_gc = (
+            self.allow_gc
+        )  # HACK: this is a way of passing an arg to Function.__call__
         add_clear_storage(f, computed, storage_map)
         f.storage_map = storage_map
 
-        return (f,
-                [Container(input, storage)
-                 for input, storage in izip(fgraph.inputs, input_storage)],
-                [Container(output, storage, True)
-                 for output, storage in izip(fgraph.outputs, output_storage)],
-                thunks,
-                order)
+        return (
+            f,
+            [
+                Container(input, storage)
+                for input, storage in izip(fgraph.inputs, input_storage)
+            ],
+            [
+                Container(output, storage, True)
+                for output, storage in izip(fgraph.outputs, output_storage)
+            ],
+            thunks,
+            order,
+        )
 
 
 def add_clear_storage(f, computed, storage_map):
     def clear_storage():
         for c in computed:
             storage_map[c][0] = None
+
     f.clear_storage = clear_storage
 
 
@@ -932,14 +997,15 @@ class WrapLinker(Linker):
 
         """
         other = self.__class__(
-            linkers=[copy(l) for l in self.linkers],
-            wrapper=self.wrapper)
+            linkers=[copy(x) for x in self.linkers], wrapper=self.wrapper
+        )
         return other
 
     def clone(self, allow_gc=undef):
         return self.__class__(
-            linkers=[l.clone(allow_gc=allow_gc) for l in self.linkers],
-            wrapper=self.wrapper)
+            linkers=[x.clone(allow_gc=allow_gc) for x in self.linkers],
+            wrapper=self.wrapper,
+        )
 
     def accept(self, fgraph, no_recycling=None, profile=None):
         """
@@ -957,13 +1023,11 @@ class WrapLinker(Linker):
         if no_recycling is None:
             no_recycling = []
         if self.fgraph is not None and self.fgraph is not fgraph:
-            return type(self)(self.linkers, self.wrapper).accept(fgraph,
-                                                                 no_recycling)
+            return type(self)(self.linkers, self.wrapper).accept(fgraph, no_recycling)
 
         self.fgraph = fgraph
         self.no_recycling = no_recycling
-        self.linkers = [linker.accept(fgraph, no_recycling)
-                        for linker in self.linkers]
+        self.linkers = [linker.accept(fgraph, no_recycling) for linker in self.linkers]
         return self
 
     def pre(self, f, inputs, order, thunk_groups):
@@ -973,17 +1037,17 @@ class WrapLinker(Linker):
         no_recycling = self.no_recycling
 
         make_all = [self.linkers[0].make_all(**kwargs)]
-        kwargs.pop('input_storage', None)
-        make_all += [l.make_all(**kwargs) for l in self.linkers[1:]]
+        kwargs.pop("input_storage", None)
+        make_all += [x.make_all(**kwargs) for x in self.linkers[1:]]
 
-        fns, input_lists, output_lists, thunk_lists, order_lists \
-            = zip(*make_all)
+        fns, input_lists, output_lists, thunk_lists, order_lists = zip(*make_all)
 
         order_list0 = order_lists[0]
         for order_list in order_lists[1:]:
             if not order_list0 == order_list:
                 raise Exception(
-                    "All linkers to WrapLinker should execute operations in the same order.")
+                    "All linkers to WrapLinker should execute operations in the same order."
+                )
 
         inputs0 = input_lists[0]
         outputs0 = output_lists[0]
@@ -1007,13 +1071,13 @@ class WrapLinker(Linker):
                     input2.storage[0] = copy(input1.storage[0])
             for x in to_reset:
                 x[0] = None
-            pre(self, [input.data for input in input_lists[0]],
-                order, thunk_groups)
+            pre(self, [input.data for input in input_lists[0]], order, thunk_groups)
             for i, (thunks, node) in enumerate(izip(thunk_groups, order)):
                 try:
                     wrapper(i, node, *thunks)
                 except Exception:
                     raise_with_op(node, *thunks)
+
         f.thunk_groups = thunk_groups
 
         return f, inputs0, outputs0
@@ -1025,7 +1089,9 @@ def WrapLinkerMany(linkers, wrappers):
     just one.
 
     """
+
     def wrapper(*args):
         for f in wrappers:
             f(*args)
+
     return WrapLinker(linkers, wrapper)

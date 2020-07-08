@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 import theano
 import numpy as np
 import scipy.sparse as sp
@@ -9,8 +7,13 @@ from theano import gof, tensor, compile
 
 from theano.sparse.tests.test_basic import eval_outputs
 from theano.sparse.basic import (
-    _is_sparse_variable, _is_dense_variable,
-    as_sparse_variable, _is_sparse, _mtypes, _mtype_to_str)
+    _is_sparse_variable,
+    _is_dense_variable,
+    as_sparse_variable,
+    _is_sparse,
+    _mtypes,
+    _mtype_to_str,
+)
 from theano.sparse import SparseType, dense_from_sparse, transpose
 
 from theano.sparse.tests.test_basic import sparse_random_inputs

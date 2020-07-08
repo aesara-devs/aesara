@@ -1,7 +1,7 @@
 """
 Implementations of BLAS Ops based on scipy's BLAS bindings.
 """
-from __future__ import absolute_import, print_function, division
+
 import numpy as np
 
 from theano.tensor.blas import Ger, ger, ger_destructive, have_fblas
@@ -12,24 +12,23 @@ from theano.tensor.opt import in2out
 
 if have_fblas:
     from theano.tensor.blas import fblas
+
     _blas_ger_fns = {
-        np.dtype('float32'): fblas.sger,
-        np.dtype('float64'): fblas.dger,
-        np.dtype('complex64'): fblas.cgeru,
-        np.dtype('complex128'): fblas.zgeru,
+        np.dtype("float32"): fblas.sger,
+        np.dtype("float64"): fblas.dger,
+        np.dtype("complex64"): fblas.cgeru,
+        np.dtype("complex128"): fblas.zgeru,
     }
 
 
 class ScipyGer(Ger):
-
     def prepare_node(self, node, storage_map, compute_map, impl):
-        if impl == 'py':
-            node.tag.local_ger = _blas_ger_fns[np.dtype(
-                node.inputs[0].type.dtype)]
+        if impl == "py":
+            node.tag.local_ger = _blas_ger_fns[np.dtype(node.inputs[0].type.dtype)]
 
     def perform(self, node, inputs, output_storage):
         cA, calpha, cx, cy = inputs
-        cZ, = output_storage
+        (cZ,) = output_storage
         # N.B. some versions of scipy (e.g. mine) don't actually work
         # in-place on a, even when I tell it to.
         A = cA
@@ -42,12 +41,10 @@ class ScipyGer(Ger):
                 # Sometimes numpy thinks empty matrices can share memory,
                 # so here to stop DebugMode from complaining.
                 A = A.copy()
-        elif A.flags['C_CONTIGUOUS']:
-            A = local_ger(calpha, cy, cx, a=A.T,
-                          overwrite_a=int(self.destructive)).T
+        elif A.flags["C_CONTIGUOUS"]:
+            A = local_ger(calpha, cy, cx, a=A.T, overwrite_a=int(self.destructive)).T
         else:
-            A = local_ger(calpha, cx, cy, a=A,
-                          overwrite_a=int(self.destructive))
+            A = local_ger(calpha, cx, cy, a=A, overwrite_a=int(self.destructive))
         cZ[0] = A
 
 
@@ -66,6 +63,7 @@ def make_ger_destructive(node):
     if node.op == scipy_ger_no_inplace:
         return [scipy_ger_inplace(*node.inputs)]
 
+
 use_scipy_blas = in2out(use_scipy_ger)
 make_scipy_blas_destructive = in2out(make_ger_destructive)
 
@@ -75,11 +73,13 @@ if have_fblas:
     # C implementations should be scheduled earlier than this, so that they take
     # precedence. Once the original Ger is replaced, then these optimizations
     # have no effect.
-    blas_optdb.register('scipy_blas',
-                        use_scipy_blas,
-                        100, 'fast_run')
+    blas_optdb.register("scipy_blas", use_scipy_blas, 100, "fast_run")
 
     # this matches the InplaceBlasOpt defined in blas.py
-    optdb.register('make_scipy_blas_destructive',
-                   make_scipy_blas_destructive,
-                   70.0, 'fast_run', 'inplace')
+    optdb.register(
+        "make_scipy_blas_destructive",
+        make_scipy_blas_destructive,
+        70.0,
+        "fast_run",
+        "inplace",
+    )

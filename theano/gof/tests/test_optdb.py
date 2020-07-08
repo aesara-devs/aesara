@@ -1,56 +1,29 @@
-from __future__ import absolute_import, print_function, division
+import pytest
 
-from theano.compat import exc_message
 from theano.gof.optdb import opt, DB
 
 
-class Test_DB():
-
-    def test_0(self):
-
+class TestDB:
+    def test_name_clashes(self):
         class Opt(opt.Optimizer):  # inheritance buys __hash__
-            name = 'blah'
+            name = "blah"
 
         db = DB()
-        db.register('a', Opt())
+        db.register("a", Opt())
 
-        db.register('b', Opt())
+        db.register("b", Opt())
 
-        db.register('c', Opt(), 'z', 'asdf')
+        db.register("c", Opt(), "z", "asdf")
 
-        assert 'a' in db
-        assert 'b' in db
-        assert 'c' in db
+        assert "a" in db
+        assert "b" in db
+        assert "c" in db
 
-        try:
-            db.register('c', Opt())  # name taken
-            self.fail()
-        except ValueError as e:
-            if exc_message(e).startswith("The name"):
-                pass
-            else:
-                raise
-        except Exception:
-            self.fail()
+        with pytest.raises(ValueError, match=r"The name.*"):
+            db.register("c", Opt())  # name taken
 
-        try:
-            db.register('z', Opt())  # name collides with tag
-            self.fail()
-        except ValueError as e:
-            if exc_message(e).startswith("The name"):
-                pass
-            else:
-                raise
-        except Exception:
-            self.fail()
+        with pytest.raises(ValueError, match=r"The name.*"):
+            db.register("z", Opt())  # name collides with tag
 
-        try:
-            db.register('u', Opt(), 'b')  # name new but tag collides with name
-            self.fail()
-        except ValueError as e:
-            if exc_message(e).startswith("The tag"):
-                pass
-            else:
-                raise
-        except Exception:
-            self.fail()
+        with pytest.raises(ValueError, match=r"The tag.*"):
+            db.register("u", Opt(), "b")  # name new but tag collides with name

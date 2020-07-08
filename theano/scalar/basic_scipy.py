@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 # Definitions of theano.scalar ops that have their python implementation taken
 # from SciPy. As SciPy is not always available, we treat them separately.
 
@@ -7,18 +6,26 @@ import os
 
 import theano
 from theano.gradient import grad_not_implemented
-from theano.scalar.basic import (UnaryScalarOp, BinaryScalarOp,
-                                 exp, upgrade_to_float,
-                                 upgrade_to_float64,
-                                 float_types)
-from theano.scalar.basic import (upgrade_to_float_no_complex,
-                                 complex_types, discrete_types,
-                                 upcast)
+from theano.scalar.basic import (
+    UnaryScalarOp,
+    BinaryScalarOp,
+    exp,
+    upgrade_to_float,
+    upgrade_to_float64,
+    float_types,
+)
+from theano.scalar.basic import (
+    upgrade_to_float_no_complex,
+    complex_types,
+    discrete_types,
+    upcast,
+)
 
 imported_scipy_special = False
 try:
     import scipy.special
     import scipy.stats
+
     imported_scipy_special = True
 # Importing scipy.special may raise ValueError.
 # See http://projects.scipy.org/scipy/ticket/1739
@@ -27,7 +34,7 @@ except (ImportError, ValueError):
 
 
 class Erf(UnaryScalarOp):
-    nfunc_spec = ('scipy.special.erf', 1, 1)
+    nfunc_spec = ("scipy.special.erf", 1, 1)
 
     def impl(self, x):
         if imported_scipy_special:
@@ -36,8 +43,8 @@ class Erf(UnaryScalarOp):
             super(Erf, self).impl(x)
 
     def L_op(self, inputs, outputs, grads):
-        x, = inputs
-        gz, = grads
+        (x,) = inputs
+        (gz,) = grads
         if x.type in complex_types:
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
@@ -46,22 +53,25 @@ class Erf(UnaryScalarOp):
             else:
                 return [x.zeros_like()]
 
-        cst = np.asarray(2. / np.sqrt(np.pi),
-                         dtype=upcast(x.type.dtype, gz.type.dtype))
-        return gz * cst * exp(-x * x),
+        cst = np.asarray(
+            2.0 / np.sqrt(np.pi), dtype=upcast(x.type.dtype, gz.type.dtype)
+        )
+        return (gz * cst * exp(-x * x),)
 
     def c_code(self, node, name, inp, out, sub):
-        x, = inp
-        z, = out
+        (x,) = inp
+        (z,) = out
         if node.inputs[0].type in complex_types:
-            raise NotImplementedError('type not supported', type)
+            raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
         return "%(z)s = erf((%(cast)s)%(x)s);" % locals()
-erf = Erf(upgrade_to_float, name='erf')
+
+
+erf = Erf(upgrade_to_float, name="erf")
 
 
 class Erfc(UnaryScalarOp):
-    nfunc_spec = ('scipy.special.erfc', 1, 1)
+    nfunc_spec = ("scipy.special.erfc", 1, 1)
 
     def impl(self, x):
         if imported_scipy_special:
@@ -70,8 +80,8 @@ class Erfc(UnaryScalarOp):
             super(Erfc, self).impl(x)
 
     def L_op(self, inputs, outputs, grads):
-        x, = inputs
-        gz, = grads
+        (x,) = inputs
+        (gz,) = grads
         if x.type in complex_types:
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
@@ -80,20 +90,22 @@ class Erfc(UnaryScalarOp):
             else:
                 return [x.zeros_like()]
 
-        cst = np.asarray(2. / np.sqrt(np.pi),
-                         dtype=upcast(x.type.dtype, gz.type.dtype))
-        return - gz * cst * exp(-x * x),
+        cst = np.asarray(
+            2.0 / np.sqrt(np.pi), dtype=upcast(x.type.dtype, gz.type.dtype)
+        )
+        return (-gz * cst * exp(-x * x),)
 
     def c_code(self, node, name, inp, out, sub):
-        x, = inp
-        z, = out
+        (x,) = inp
+        (z,) = out
         if node.inputs[0].type in complex_types:
-            raise NotImplementedError('type not supported', type)
+            raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
         return "%(z)s = erfc((%(cast)s)%(x)s);" % locals()
 
+
 # scipy.special.erfc don't support complex. Why?
-erfc = Erfc(upgrade_to_float_no_complex, name='erfc')
+erfc = Erfc(upgrade_to_float_no_complex, name="erfc")
 
 
 class Erfcx(UnaryScalarOp):
@@ -110,7 +122,8 @@ class Erfcx(UnaryScalarOp):
     running on GPU an optimization will replace it with a gpu version.
 
     """
-    nfunc_spec = ('scipy.special.erfcx', 1, 1)
+
+    nfunc_spec = ("scipy.special.erfcx", 1, 1)
 
     def impl(self, x):
         if imported_scipy_special:
@@ -119,8 +132,8 @@ class Erfcx(UnaryScalarOp):
             super(Erfcx, self).impl(x)
 
     def L_op(self, inputs, outputs, grads):
-        x, = inputs
-        gz, = grads
+        (x,) = inputs
+        (gz,) = grads
         if x.type in complex_types:
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
@@ -129,11 +142,13 @@ class Erfcx(UnaryScalarOp):
             else:
                 return [x.zeros_like()]
 
-        cst = np.asarray(2. / np.sqrt(np.pi),
-                         dtype=upcast(x.type.dtype, gz.type.dtype))
-        return gz * (-cst + (2. * x) * erfcx(x)),
+        cst = np.asarray(
+            2.0 / np.sqrt(np.pi), dtype=upcast(x.type.dtype, gz.type.dtype)
+        )
+        return (gz * (-cst + (2.0 * x) * erfcx(x)),)
 
-erfcx = Erfcx(upgrade_to_float_no_complex, name='erfcx')
+
+erfcx = Erfcx(upgrade_to_float_no_complex, name="erfcx")
 
 
 class Erfinv(UnaryScalarOp):
@@ -147,7 +162,8 @@ class Erfinv(UnaryScalarOp):
 
     (TODO) Find a C implementation of erfinv for CPU.
     """
-    nfunc_spec = ('scipy.special.erfinv', 1, 1)
+
+    nfunc_spec = ("scipy.special.erfinv", 1, 1)
 
     def impl(self, x):
         if imported_scipy_special:
@@ -156,8 +172,8 @@ class Erfinv(UnaryScalarOp):
             super(Erfinv, self).impl(x)
 
     def L_op(self, inputs, outputs, grads):
-        x, = inputs
-        gz, = grads
+        (x,) = inputs
+        (gz,) = grads
         if x.type in complex_types:
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
@@ -166,9 +182,10 @@ class Erfinv(UnaryScalarOp):
             else:
                 return [x.zeros_like()]
 
-        cst = np.asarray(np.sqrt(np.pi) / 2.,
-                         dtype=upcast(x.type.dtype, gz.type.dtype))
-        return gz * cst * exp(erfinv(x) ** 2),
+        cst = np.asarray(
+            np.sqrt(np.pi) / 2.0, dtype=upcast(x.type.dtype, gz.type.dtype)
+        )
+        return (gz * cst * exp(erfinv(x) ** 2),)
 
     # TODO: erfinv() is not provided by the C standard library
     # def c_code(self, node, name, inp, out, sub):
@@ -178,11 +195,12 @@ class Erfinv(UnaryScalarOp):
     #        raise NotImplementedError('type not supported', type)
     #    return "%(z)s = erfinv(%(x)s);" % locals()
 
-erfinv = Erfinv(upgrade_to_float_no_complex, name='erfinv')
+
+erfinv = Erfinv(upgrade_to_float_no_complex, name="erfinv")
 
 
 class Erfcinv(UnaryScalarOp):
-    nfunc_spec = ('scipy.special.erfcinv', 1, 1)
+    nfunc_spec = ("scipy.special.erfcinv", 1, 1)
 
     def impl(self, x):
         if imported_scipy_special:
@@ -191,8 +209,8 @@ class Erfcinv(UnaryScalarOp):
             super(Erfcinv, self).impl(x)
 
     def L_op(self, inputs, outputs, grads):
-        x, = inputs
-        gz, = grads
+        (x,) = inputs
+        (gz,) = grads
         if x.type in complex_types:
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
@@ -201,9 +219,10 @@ class Erfcinv(UnaryScalarOp):
             else:
                 return [x.zeros_like()]
 
-        cst = np.asarray(np.sqrt(np.pi) / 2.,
-                         dtype=upcast(x.type.dtype, gz.type.dtype))
-        return - gz * cst * exp(erfcinv(x) ** 2),
+        cst = np.asarray(
+            np.sqrt(np.pi) / 2.0, dtype=upcast(x.type.dtype, gz.type.dtype)
+        )
+        return (-gz * cst * exp(erfcinv(x) ** 2),)
 
     # TODO: erfcinv() is not provided by the C standard library
     # def c_code(self, node, name, inp, out, sub):
@@ -213,11 +232,12 @@ class Erfcinv(UnaryScalarOp):
     #        raise NotImplementedError('type not supported', type)
     #    return "%(z)s = erfcinv(%(x)s);" % locals()
 
-erfcinv = Erfcinv(upgrade_to_float_no_complex, name='erfcinv')
+
+erfcinv = Erfcinv(upgrade_to_float_no_complex, name="erfcinv")
 
 
 class Gamma(UnaryScalarOp):
-    nfunc_spec = ('scipy.special.gamma', 1, 1)
+    nfunc_spec = ("scipy.special.gamma", 1, 1)
 
     @staticmethod
     def st_impl(x):
@@ -240,15 +260,17 @@ class Gamma(UnaryScalarOp):
             else:
                 return [x.zeros_like()]
 
-        return gz * gamma(x) * psi(x),
+        return (gz * gamma(x) * psi(x),)
 
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
         (z,) = outputs
         if node.inputs[0].type in float_types:
             return """%(z)s = tgamma(%(x)s);""" % locals()
-        raise NotImplementedError('only floating point is implemented')
-gamma = Gamma(upgrade_to_float, name='gamma')
+        raise NotImplementedError("only floating point is implemented")
+
+
+gamma = Gamma(upgrade_to_float, name="gamma")
 
 
 class GammaLn(UnaryScalarOp):
@@ -256,7 +278,8 @@ class GammaLn(UnaryScalarOp):
     Log gamma function.
 
     """
-    nfunc_spec = ('scipy.special.gammaln', 1, 1)
+
+    nfunc_spec = ("scipy.special.gammaln", 1, 1)
 
     @staticmethod
     def st_impl(x):
@@ -269,8 +292,8 @@ class GammaLn(UnaryScalarOp):
             super(GammaLn, self).impl(x)
 
     def L_op(self, inputs, outputs, grads):
-        x, = inputs
-        gz, = grads
+        (x,) = inputs
+        (gz,) = grads
         if x.type in complex_types:
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
@@ -282,19 +305,20 @@ class GammaLn(UnaryScalarOp):
         return [gz * psi(x)]
 
     def c_code(self, node, name, inp, out, sub):
-        x, = inp
-        z, = out
+        (x,) = inp
+        (z,) = out
         # no c code for complex
         # [u]int* will be casted to float64 before computation
         if node.inputs[0].type in complex_types:
-            raise NotImplementedError(
-                'gammaln complex c code is not implemented')
+            raise NotImplementedError("gammaln complex c code is not implemented")
         # For some reason, on the GPU, uint64 inputs don't get casted
         # automatically to float64. This make the compilation crash
         dtype = ""
         cast = node.outputs[0].type.dtype_specs()[1]
         return """%(z)s = lgamma((%(cast)s)%(x)s);""" % locals()
-gammaln = GammaLn(upgrade_to_float, name='gammaln')
+
+
+gammaln = GammaLn(upgrade_to_float, name="gammaln")
 
 
 class Psi(UnaryScalarOp):
@@ -302,7 +326,8 @@ class Psi(UnaryScalarOp):
     Derivative of log gamma function.
 
     """
-    nfunc_spec = ('scipy.special.psi', 1, 1)
+
+    nfunc_spec = ("scipy.special.psi", 1, 1)
 
     @staticmethod
     def st_impl(x):
@@ -315,8 +340,8 @@ class Psi(UnaryScalarOp):
             super(Psi, self).impl(x)
 
     def L_op(self, inputs, outputs, grads):
-        x, = inputs
-        gz, = grads
+        (x,) = inputs
+        (gz,) = grads
         if x.type in complex_types:
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
@@ -328,8 +353,7 @@ class Psi(UnaryScalarOp):
         return [gz * tri_gamma(x)]
 
     def c_support_code(self):
-        return (
-            """
+        return """
             // For GPU support
             #ifdef WITHIN_KERNEL
             #define DEVICE WITHIN_KERNEL
@@ -379,16 +403,21 @@ class Psi(UnaryScalarOp):
             return psi_;
             }
             #endif
-            """)
+            """
 
     def c_code(self, node, name, inp, out, sub):
-        x, = inp
-        z, = out
+        (x,) = inp
+        (z,) = out
         if node.inputs[0].type in float_types:
-            return """%(z)s =
-                _psi(%(x)s);""" % locals()
-        raise NotImplementedError('only floating point is implemented')
-psi = Psi(upgrade_to_float, name='psi')
+            return (
+                """%(z)s =
+                _psi(%(x)s);"""
+                % locals()
+            )
+        raise NotImplementedError("only floating point is implemented")
+
+
+psi = Psi(upgrade_to_float, name="psi")
 
 
 class TriGamma(UnaryScalarOp):
@@ -413,8 +442,7 @@ class TriGamma(UnaryScalarOp):
     def c_support_code(self):
         # The implementation has been copied from
         # http://people.sc.fsu.edu/~jburkardt/cpp_src/asa121/asa121.html
-        return (
-            """
+        return """
             // For GPU support
             #ifdef WITHIN_KERNEL
             #define DEVICE WITHIN_KERNEL
@@ -465,18 +493,21 @@ class TriGamma(UnaryScalarOp):
                 return value;
             }
             #endif
-            """)
+            """
 
     def c_code(self, node, name, inp, out, sub):
-        x, = inp
-        z, = out
+        (x,) = inp
+        (z,) = out
         if node.inputs[0].type in float_types:
-            return """%(z)s =
-                _tri_gamma(%(x)s);""" % locals()
-        raise NotImplementedError('only floating point is implemented')
+            return (
+                """%(z)s =
+                _tri_gamma(%(x)s);"""
+                % locals()
+            )
+        raise NotImplementedError("only floating point is implemented")
 
 
-tri_gamma = TriGamma(upgrade_to_float, name='tri_gamma')
+tri_gamma = TriGamma(upgrade_to_float, name="tri_gamma")
 
 
 class Chi2SF(BinaryScalarOp):
@@ -484,7 +515,8 @@ class Chi2SF(BinaryScalarOp):
     Compute (1 - chi2_cdf(x))
         ie. chi2 pvalue (chi2 'survival function')
     """
-    nfunc_spec = ('scipy.stats.chi2.sf', 2, 1)
+
+    nfunc_spec = ("scipy.stats.chi2.sf", 2, 1)
 
     @staticmethod
     def st_impl(x, k):
@@ -497,21 +529,21 @@ class Chi2SF(BinaryScalarOp):
             super(Chi2SF, self).impl(x, k)
 
     def c_support_code(self):
-        with open(os.path.join(
-                os.path.dirname(__file__),
-                'c_code',
-                'gamma.c')) as f:
+        with open(os.path.join(os.path.dirname(__file__), "c_code", "gamma.c")) as f:
             raw = f.read()
             return raw
 
     def c_code(self, node, name, inp, out, sub):
         x, k = inp
-        z, = out
+        (z,) = out
         if node.inputs[0].type in float_types:
-            dtype = 'npy_' + node.outputs[0].dtype
-            return """%(z)s =
-                (%(dtype)s) 1 - GammaP(%(k)s/2., %(x)s/2.);""" % locals()
-        raise NotImplementedError('only floatingpoint is implemented')
+            dtype = "npy_" + node.outputs[0].dtype
+            return (
+                """%(z)s =
+                (%(dtype)s) 1 - GammaP(%(k)s/2., %(x)s/2.);"""
+                % locals()
+            )
+        raise NotImplementedError("only floatingpoint is implemented")
 
     def __eq__(self, other):
         return type(self) == type(other)
@@ -520,14 +552,15 @@ class Chi2SF(BinaryScalarOp):
         return hash(type(self))
 
 
-chi2sf = Chi2SF(upgrade_to_float64, name='chi2sf')
+chi2sf = Chi2SF(upgrade_to_float64, name="chi2sf")
 
 
 class GammaInc(BinaryScalarOp):
     """
     Compute the regularized lower gamma function (P).
     """
-    nfunc_spec = ('scipy.special.gammainc', 2, 1)
+
+    nfunc_spec = ("scipy.special.gammainc", 2, 1)
 
     @staticmethod
     def st_impl(k, x):
@@ -540,21 +573,21 @@ class GammaInc(BinaryScalarOp):
             super(GammaInc, self).impl(k, x)
 
     def c_support_code(self):
-        with open(os.path.join(
-                os.path.dirname(__file__),
-                'c_code',
-                'gamma.c')) as f:
+        with open(os.path.join(os.path.dirname(__file__), "c_code", "gamma.c")) as f:
             raw = f.read()
             return raw
 
     def c_code(self, node, name, inp, out, sub):
         k, x = inp
-        z, = out
+        (z,) = out
         if node.inputs[0].type in float_types:
-            dtype = 'npy_' + node.outputs[0].dtype
-            return """%(z)s =
-                (%(dtype)s) GammaP(%(k)s, %(x)s);""" % locals()
-        raise NotImplementedError('only floatingpoint is implemented')
+            dtype = "npy_" + node.outputs[0].dtype
+            return (
+                """%(z)s =
+                (%(dtype)s) GammaP(%(k)s, %(x)s);"""
+                % locals()
+            )
+        raise NotImplementedError("only floatingpoint is implemented")
 
     def __eq__(self, other):
         return type(self) == type(other)
@@ -563,14 +596,15 @@ class GammaInc(BinaryScalarOp):
         return hash(type(self))
 
 
-gammainc = GammaInc(upgrade_to_float, name='gammainc')
+gammainc = GammaInc(upgrade_to_float, name="gammainc")
 
 
 class GammaIncC(BinaryScalarOp):
     """
     Compute the regularized upper gamma function (Q).
     """
-    nfunc_spec = ('scipy.special.gammaincc', 2, 1)
+
+    nfunc_spec = ("scipy.special.gammaincc", 2, 1)
 
     @staticmethod
     def st_impl(k, x):
@@ -583,21 +617,21 @@ class GammaIncC(BinaryScalarOp):
             super(GammaIncC, self).impl(k, x)
 
     def c_support_code(self):
-        with open(os.path.join(
-                os.path.dirname(__file__),
-                'c_code',
-                'gamma.c')) as f:
+        with open(os.path.join(os.path.dirname(__file__), "c_code", "gamma.c")) as f:
             raw = f.read()
             return raw
 
     def c_code(self, node, name, inp, out, sub):
         k, x = inp
-        z, = out
+        (z,) = out
         if node.inputs[0].type in float_types:
-            dtype = 'npy_' + node.outputs[0].dtype
-            return """%(z)s =
-                (%(dtype)s) GammaQ(%(k)s, %(x)s);""" % locals()
-        raise NotImplementedError('only floatingpoint is implemented')
+            dtype = "npy_" + node.outputs[0].dtype
+            return (
+                """%(z)s =
+                (%(dtype)s) GammaQ(%(k)s, %(x)s);"""
+                % locals()
+            )
+        raise NotImplementedError("only floatingpoint is implemented")
 
     def __eq__(self, other):
         return type(self) == type(other)
@@ -606,13 +640,14 @@ class GammaIncC(BinaryScalarOp):
         return hash(type(self))
 
 
-gammaincc = GammaIncC(upgrade_to_float, name='gammaincc')
+gammaincc = GammaIncC(upgrade_to_float, name="gammaincc")
 
 
 class GammaU(BinaryScalarOp):
     """
     compute the upper incomplete gamma function.
     """
+
     # Note there is no basic SciPy version so no nfunc_spec.
 
     @staticmethod
@@ -626,21 +661,21 @@ class GammaU(BinaryScalarOp):
             super(GammaU, self).impl(k, x)
 
     def c_support_code(self):
-        with open(os.path.join(
-                os.path.dirname(__file__),
-                'c_code',
-                'gamma.c')) as f:
+        with open(os.path.join(os.path.dirname(__file__), "c_code", "gamma.c")) as f:
             raw = f.read()
             return raw
 
     def c_code(self, node, name, inp, out, sub):
         k, x = inp
-        z, = out
+        (z,) = out
         if node.inputs[0].type in float_types:
-            dtype = 'npy_' + node.outputs[0].dtype
-            return """%(z)s =
-                (%(dtype)s) upperGamma(%(k)s, %(x)s);""" % locals()
-        raise NotImplementedError('only floatingpoint is implemented')
+            dtype = "npy_" + node.outputs[0].dtype
+            return (
+                """%(z)s =
+                (%(dtype)s) upperGamma(%(k)s, %(x)s);"""
+                % locals()
+            )
+        raise NotImplementedError("only floatingpoint is implemented")
 
     def __eq__(self, other):
         return type(self) == type(other)
@@ -649,13 +684,14 @@ class GammaU(BinaryScalarOp):
         return hash(type(self))
 
 
-gammau = GammaU(upgrade_to_float, name='gammau')
+gammau = GammaU(upgrade_to_float, name="gammau")
 
 
 class GammaL(BinaryScalarOp):
     """
     Compute the lower incomplete gamma function.
     """
+
     # Note there is no basic SciPy version so no nfunc_spec.
 
     @staticmethod
@@ -669,21 +705,21 @@ class GammaL(BinaryScalarOp):
             super(GammaL, self).impl(k, x)
 
     def c_support_code(self):
-        with open(os.path.join(
-                os.path.dirname(__file__),
-                'c_code',
-                'gamma.c')) as f:
+        with open(os.path.join(os.path.dirname(__file__), "c_code", "gamma.c")) as f:
             raw = f.read()
             return raw
 
     def c_code(self, node, name, inp, out, sub):
         k, x = inp
-        z, = out
+        (z,) = out
         if node.inputs[0].type in float_types:
-            dtype = 'npy_' + node.outputs[0].dtype
-            return """%(z)s =
-                (%(dtype)s) lowerGamma(%(k)s, %(x)s);""" % locals()
-        raise NotImplementedError('only floatingpoint is implemented')
+            dtype = "npy_" + node.outputs[0].dtype
+            return (
+                """%(z)s =
+                (%(dtype)s) lowerGamma(%(k)s, %(x)s);"""
+                % locals()
+            )
+        raise NotImplementedError("only floatingpoint is implemented")
 
     def __eq__(self, other):
         return type(self) == type(other)
@@ -692,14 +728,15 @@ class GammaL(BinaryScalarOp):
         return hash(type(self))
 
 
-gammal = GammaL(upgrade_to_float, name='gammal')
+gammal = GammaL(upgrade_to_float, name="gammal")
 
 
 class Jv(BinaryScalarOp):
     """
     Bessel function of the first kind of order v (real).
     """
-    nfunc_spec = ('scipy.special.jv', 2, 1)
+
+    nfunc_spec = ("scipy.special.jv", 2, 1)
 
     @staticmethod
     def st_impl(v, x):
@@ -713,18 +750,22 @@ class Jv(BinaryScalarOp):
 
     def grad(self, inputs, grads):
         v, x = inputs
-        gz, = grads
-        return [grad_not_implemented(self, 0, v),
-                gz * (jv(v - 1, x) - jv(v + 1, x)) / 2.]
+        (gz,) = grads
+        return [
+            grad_not_implemented(self, 0, v),
+            gz * (jv(v - 1, x) - jv(v + 1, x)) / 2.0,
+        ]
 
-jv = Jv(upgrade_to_float, name='jv')
+
+jv = Jv(upgrade_to_float, name="jv")
 
 
 class J1(UnaryScalarOp):
     """
     Bessel function of the first kind of order 1.
     """
-    nfunc_spec = ('scipy.special.j1', 1, 1)
+
+    nfunc_spec = ("scipy.special.j1", 1, 1)
 
     @staticmethod
     def st_impl(x):
@@ -737,26 +778,31 @@ class J1(UnaryScalarOp):
             super(J1, self).impl(x)
 
     def grad(self, inputs, grads):
-        x, = inputs
-        gz, = grads
-        return [gz * (j0(x) - jv(2, x)) / 2.]
+        (x,) = inputs
+        (gz,) = grads
+        return [gz * (j0(x) - jv(2, x)) / 2.0]
 
     def c_code(self, node, name, inp, out, sub):
-        x, = inp
-        z, = out
+        (x,) = inp
+        (z,) = out
         if node.inputs[0].type in float_types:
-            return """%(z)s =
-                j1(%(x)s);""" % locals()
-        raise NotImplementedError('only floating point is implemented')
+            return (
+                """%(z)s =
+                j1(%(x)s);"""
+                % locals()
+            )
+        raise NotImplementedError("only floating point is implemented")
 
-j1 = J1(upgrade_to_float, name='j1')
+
+j1 = J1(upgrade_to_float, name="j1")
 
 
 class J0(UnaryScalarOp):
     """
     Bessel function of the first kind of order 0.
     """
-    nfunc_spec = ('scipy.special.j0', 1, 1)
+
+    nfunc_spec = ("scipy.special.j0", 1, 1)
 
     @staticmethod
     def st_impl(x):
@@ -769,26 +815,31 @@ class J0(UnaryScalarOp):
             super(J0, self).impl(x)
 
     def grad(self, inp, grads):
-        x, = inp
-        gz, = grads
+        (x,) = inp
+        (gz,) = grads
         return [gz * -1 * j1(x)]
 
     def c_code(self, node, name, inp, out, sub):
-        x, = inp
-        z, = out
+        (x,) = inp
+        (z,) = out
         if node.inputs[0].type in float_types:
-            return """%(z)s =
-                j0(%(x)s);""" % locals()
-        raise NotImplementedError('only floating point is implemented')
+            return (
+                """%(z)s =
+                j0(%(x)s);"""
+                % locals()
+            )
+        raise NotImplementedError("only floating point is implemented")
 
-j0 = J0(upgrade_to_float, name='j0')
+
+j0 = J0(upgrade_to_float, name="j0")
 
 
 class Iv(BinaryScalarOp):
     """
     Modified Bessel function of the first kind of order v (real).
     """
-    nfunc_spec = ('scipy.special.iv', 2, 1)
+
+    nfunc_spec = ("scipy.special.iv", 2, 1)
 
     @staticmethod
     def st_impl(v, x):
@@ -802,18 +853,22 @@ class Iv(BinaryScalarOp):
 
     def grad(self, inputs, grads):
         v, x = inputs
-        gz, = grads
-        return [grad_not_implemented(self, 0, v),
-                gz * (iv(v - 1, x) + iv(v + 1, x)) / 2.]
+        (gz,) = grads
+        return [
+            grad_not_implemented(self, 0, v),
+            gz * (iv(v - 1, x) + iv(v + 1, x)) / 2.0,
+        ]
 
-iv = Iv(upgrade_to_float, name='iv')
+
+iv = Iv(upgrade_to_float, name="iv")
 
 
 class I1(UnaryScalarOp):
     """
     Modified Bessel function of the first kind of order 1.
     """
-    nfunc_spec = ('scipy.special.i1', 1, 1)
+
+    nfunc_spec = ("scipy.special.i1", 1, 1)
 
     @staticmethod
     def st_impl(x):
@@ -826,18 +881,20 @@ class I1(UnaryScalarOp):
             super(I1, self).impl(x)
 
     def grad(self, inputs, grads):
-        x, = inputs
-        gz, = grads
-        return [gz * (i0(x) + iv(2, x)) / 2.]
+        (x,) = inputs
+        (gz,) = grads
+        return [gz * (i0(x) + iv(2, x)) / 2.0]
 
-i1 = I1(upgrade_to_float, name='i1')
+
+i1 = I1(upgrade_to_float, name="i1")
 
 
 class I0(UnaryScalarOp):
     """
     Modified Bessel function of the first kind of order 0.
     """
-    nfunc_spec = ('scipy.special.i0', 1, 1)
+
+    nfunc_spec = ("scipy.special.i0", 1, 1)
 
     @staticmethod
     def st_impl(x):
@@ -850,8 +907,9 @@ class I0(UnaryScalarOp):
             super(I0, self).impl(x)
 
     def grad(self, inp, grads):
-        x, = inp
-        gz, = grads
+        (x,) = inp
+        (gz,) = grads
         return [gz * i1(x)]
 
-i0 = I0(upgrade_to_float, name='i0')
+
+i0 = I0(upgrade_to_float, name="i0")

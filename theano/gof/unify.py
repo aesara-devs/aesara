@@ -9,7 +9,7 @@ yielding [5, 5, 9].
 that satisfies the constraints. That's useful for pattern matching.
 
 """
-from __future__ import absolute_import, print_function, division
+
 from copy import copy
 
 from functools import partial
@@ -37,13 +37,19 @@ class Variable(object):
     want is probably theano.gof.graph.Variable.
 
     """
+
     def __init__(self, name="?"):
         self.name = name
 
     def __str__(self):
-        return (self.__class__.__name__ + "(" +
-                ", ".join("%s=%s" % (key, value)
-                          for key, value in iteritems(self.__dict__)) + ")")
+        return (
+            self.__class__.__name__
+            + "("
+            + ", ".join(
+                "%s=%s" % (key, value) for key, value in iteritems(self.__dict__)
+            )
+            + ")"
+        )
 
     def __repr__(self):
         return str(self)
@@ -120,6 +126,7 @@ def var_lookup(vartype, name, *args, **kwargs):
         v = vartype(name, *args)
         _all[sig] = v
         return v
+
 
 Var = partial(var_lookup, FreeVariable)
 V = Var
@@ -322,7 +329,7 @@ def unify_walk(a, b, U):
 
 @comm_guard(OrVariable, NotVariable)  # noqa
 def unify_walk(o, n, U):
-    """
+    r"""
     OrV(list1) == NV(list2) == OrV(list1 \ list2)
 
     """
@@ -383,9 +390,11 @@ def unify_walk(a, b, U):
     the objects.
 
     """
-    if (not isinstance(a, Variable) and
-            not isinstance(b, Variable) and
-            hasattr(a, "__unify_walk__")):
+    if (
+        not isinstance(a, Variable)
+        and not isinstance(b, Variable)
+        and hasattr(a, "__unify_walk__")
+    ):
         return a.__unify_walk__(b, U)
     else:
         return FALL_THROUGH
@@ -401,7 +410,9 @@ def unify_walk(v, o, U):
     """
     best_v = U[v]
     if v is not best_v:
-        return unify_walk(o, best_v, U)  # reverse argument order so if o is a Variable this block of code is run again
+        return unify_walk(
+            o, best_v, U
+        )  # reverse argument order so if o is a Variable this block of code is run again
     else:
         return FALL_THROUGH  # call the next version of unify_walk that matches the type signature
 
@@ -410,7 +421,6 @@ def unify_walk(v, o, U):
 
 
 class FVar:
-
     def __init__(self, fn, *args):
         self.fn = fn
         self.args = args
@@ -467,9 +477,11 @@ def unify_merge(vs, o, U):
 
 @comm_guard(ANY_TYPE, ANY_TYPE)  # noqa
 def unify_merge(a, b, U):
-    if (not isinstance(a, Variable) and
-            not isinstance(b, Variable) and
-            hasattr(a, "__unify_merge__")):
+    if (
+        not isinstance(a, Variable)
+        and not isinstance(b, Variable)
+        and hasattr(a, "__unify_merge__")
+    ):
         return a.__unify_merge__(b, U)
     else:
         return FALL_THROUGH
@@ -485,7 +497,9 @@ def unify_merge(v, o, U):
     """
     best_v = U[v]
     if v is not best_v:
-        return unify_merge(o, best_v, U)  # reverse argument order so if o is a Variable this block of code is run again
+        return unify_merge(
+            o, best_v, U
+        )  # reverse argument order so if o is a Variable this block of code is run again
     else:
         return FALL_THROUGH  # call the next version of unify_walk that matches the type signature
 
@@ -522,11 +536,11 @@ if __name__ == "__main__":
     pattern1 = dict(hey=vx, ulala=va, a=1)
     pattern2 = dict(hey=vy, ulala=10, b=2)
 
-#    pattern1 = ["hello", "big", "bones"]
-#    pattern2 = vl
+    #    pattern1 = ["hello", "big", "bones"]
+    #    pattern2 = vl
 
-#    pattern1 = [vx]#, "big", "bones"]
-#    pattern2 = [vy]#, vy, vz]
+    #    pattern1 = [vx]#, "big", "bones"]
+    #    pattern2 = [vy]#, vy, vz]
 
     U = unify_walk(pattern1, pattern2, Unification())
 

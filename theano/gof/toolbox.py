@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from functools import partial
 from collections import OrderedDict
 
@@ -94,8 +93,16 @@ class BadOptimization(Exception):
 
     """
 
-    def __init__(self, old_r, new_r=None, old_r_val=None, new_r_val=None, reason=None,
-                 old_graph=None, new_graph=None):
+    def __init__(
+        self,
+        old_r,
+        new_r=None,
+        old_r_val=None,
+        new_r_val=None,
+        reason=None,
+        old_graph=None,
+        new_graph=None,
+    ):
         super(BadOptimization, self).__init__()
         self.old_r = old_r
         self.new_r = new_r
@@ -108,8 +115,14 @@ class BadOptimization(Exception):
         # To allow extending the error message of an existing error.
         self.full_err = None
         if isinstance(old_r, str):
-            assert (new_r is None and old_r_val is None and new_r_val is None and
-                    reason is None and old_graph is None and new_graph is None)
+            assert (
+                new_r is None
+                and old_r_val is None
+                and new_r_val is None
+                and reason is None
+                and old_graph is None
+                and new_graph is None
+            )
             self.full_err = old_r
 
     def __str__(self):
@@ -122,20 +135,19 @@ class BadOptimization(Exception):
 
         """
         # We have a pre-made message
-        if getattr(self, 'full_err', None) is not None:
+        if getattr(self, "full_err", None) is not None:
             return self.full_err
         sio = StringIO()
         val_str_len_limit = 800
-        print("BadOptimization Error", super(BadOptimization,
-                                             self).__str__(), file=sio)
+        print("BadOptimization Error", super(BadOptimization, self).__str__(), file=sio)
         print("  Variable: id", id(self.new_r), self.new_r, file=sio)
         print("  Op", self.new_r.owner, file=sio)
         print("  Value Type:", type(self.new_r_val), file=sio)
         try:
             ssio = StringIO()
-            print("  Old Value shape, dtype, strides:", end=' ', file=ssio)
-            print(self.old_r_val.shape, end=' ', file=ssio)
-            print(self.old_r_val.dtype, end=' ', file=ssio)
+            print("  Old Value shape, dtype, strides:", end=" ", file=ssio)
+            print(self.old_r_val.shape, end=" ", file=ssio)
+            print(self.old_r_val.dtype, end=" ", file=ssio)
             print(self.old_r_val.strides, file=ssio)
             # only if all succeeds to we add anything to sio
             print(ssio.getvalue(), file=sio)
@@ -144,16 +156,20 @@ class BadOptimization(Exception):
 
         str_old_r_val = str(self.old_r_val)
         if len(str_old_r_val) > val_str_len_limit:
-            print("  Old Value: ", str(self.old_r_val)[
-                :val_str_len_limit], '...', file=sio)
+            print(
+                "  Old Value: ",
+                str(self.old_r_val)[:val_str_len_limit],
+                "...",
+                file=sio,
+            )
         else:
             print("  Old Value: ", str(self.old_r_val), file=sio)
 
         try:
             ssio = StringIO()
-            print("  New Value shape, dtype, strides:", end=' ', file=ssio)
-            print(self.new_r_val.shape, end=' ', file=ssio)
-            print(self.new_r_val.dtype, end=' ', file=ssio)
+            print("  New Value shape, dtype, strides:", end=" ", file=ssio)
+            print(self.new_r_val.shape, end=" ", file=ssio)
+            print(self.new_r_val.dtype, end=" ", file=ssio)
             print(self.new_r_val.strides, file=ssio)
             # only if all succeeds to we add anything to sio
             print(ssio.getvalue(), file=sio)
@@ -161,8 +177,12 @@ class BadOptimization(Exception):
             pass
         str_new_r_val = str(self.new_r_val)
         if len(str_new_r_val) > val_str_len_limit:
-            print("  New Value: ", str(self.new_r_val)[
-                :val_str_len_limit], '...', file=sio)
+            print(
+                "  New Value: ",
+                str(self.new_r_val)[:val_str_len_limit],
+                "...",
+                file=sio,
+            )
         else:
             print("  New Value: ", str(self.new_r_val), file=sio)
 
@@ -176,22 +196,18 @@ class BadOptimization(Exception):
             print("  Median Abs Diff: ", np.median(abs_diff), file=ssio)
             print("  Std Abs Diff: ", np.std(abs_diff), file=ssio)
             arg_max_val = np.argmax(abs_diff)
-            values_at_max = (nv.flatten()[arg_max_val],
-                             ov.flatten()[arg_max_val])
+            values_at_max = (nv.flatten()[arg_max_val], ov.flatten()[arg_max_val])
             print("  Value at Max Diff: ", values_at_max, file=ssio)
 
             # N.B. the maximum(..., 1e-8) protects against div by 0 when
             #      nv == ov == 0
-            reldiff = (abs_diff /
-                       np.maximum(np.absolute(nv) + np.absolute(ov),
-                                  1e-8))
+            reldiff = abs_diff / np.maximum(np.absolute(nv) + np.absolute(ov), 1e-8)
             print("  Max Rel Diff: ", np.max(reldiff), file=ssio)
             print("  Mean Rel Diff: ", np.mean(reldiff), file=ssio)
             print("  Median Rel Diff: ", np.median(reldiff), file=ssio)
             print("  Std Rel Diff: ", np.std(reldiff), file=ssio)
             arg_max_val = np.argmax(reldiff)
-            values_at_max = (nv.flatten()[arg_max_val],
-                             ov.flatten()[arg_max_val])
+            values_at_max = (nv.flatten()[arg_max_val], ov.flatten()[arg_max_val])
             print("  Value at Max Diff: ", values_at_max, file=ssio)
             # only if all succeeds to we add anything to sio
             print(ssio.getvalue(), file=sio)
@@ -204,10 +220,8 @@ class BadOptimization(Exception):
         print("  New Graph:", file=sio)
         print(self.new_graph, file=sio)
         print("", file=sio)
-        print("Hint: relax the tolerance by setting tensor.cmp_sloppy=1",
-              file=sio)
-        print("  or even tensor.cmp_sloppy=2 for less-strict comparison",
-              file=sio)
+        print("Hint: relax the tolerance by setting tensor.cmp_sloppy=1", file=sio)
+        print("  or even tensor.cmp_sloppy=2 for less-strict comparison", file=sio)
         return sio.getvalue()
 
 
@@ -291,7 +305,6 @@ class Feature(object):
 
 
 class Bookkeeper(Feature):
-
     def on_attach(self, fgraph):
         """
         Called by FunctionGraph.attach_feature, the method that attaches
@@ -308,11 +321,10 @@ class Bookkeeper(Feature):
         that it installed into the function_graph
         """
         for node in graph.io_toposort(fgraph.inputs, fgraph.outputs):
-            self.on_prune(fgraph, node, 'Bookkeeper.detach')
+            self.on_prune(fgraph, node, "Bookkeeper.detach")
 
 
 class GetCheckpoint:
-
     def __init__(self, history, fgraph):
         self.h = history
         self.fgraph = fgraph
@@ -325,7 +337,6 @@ class GetCheckpoint:
 
 
 class LambdExtract:
-
     def __init__(self, fgraph, node, i, r, reason=None):
         self.fgraph = fgraph
         self.node = node
@@ -334,8 +345,9 @@ class LambdExtract:
         self.reason = reason
 
     def __call__(self):
-        return self.fgraph.change_input(self.node, self.i, self.r,
-                                        reason=("Revert", self.reason))
+        return self.fgraph.change_input(
+            self.node, self.i, self.r, reason=("Revert", self.reason)
+        )
 
 
 class History(Feature):
@@ -346,15 +358,18 @@ class History(Feature):
     the memory usage.
 
     """
+
     pickle_rm_attr = ["checkpoint", "revert"]
 
     def __init__(self):
         self.history = {}
 
     def on_attach(self, fgraph):
-        if hasattr(fgraph, 'checkpoint') or hasattr(fgraph, 'revert'):
-            raise AlreadyThere("History feature is already present or in"
-                               " conflict with another plugin.")
+        if hasattr(fgraph, "checkpoint") or hasattr(fgraph, "revert"):
+            raise AlreadyThere(
+                "History feature is already present or in"
+                " conflict with another plugin."
+            )
         self.history[fgraph] = []
         # Don't call unpickle here, as ReplaceValidate.on_attach()
         # call to History.on_attach() will call the
@@ -401,10 +416,12 @@ class Validator(Feature):
     pickle_rm_attr = ["validate", "consistent"]
 
     def on_attach(self, fgraph):
-        for attr in ('validate', 'validate_time'):
+        for attr in ("validate", "validate_time"):
             if hasattr(fgraph, attr):
-                raise AlreadyThere("Validator feature is already present or in"
-                                   " conflict with another plugin.")
+                raise AlreadyThere(
+                    "Validator feature is already present or in"
+                    " conflict with another plugin."
+                )
         # Don't call unpickle here, as ReplaceValidate.on_attach()
         # call to History.on_attach() will call the
         # ReplaceValidate.unpickle and not History.unpickle
@@ -431,7 +448,7 @@ class Validator(Feature):
         """
         t0 = time.time()
         try:
-            ret = fgraph.execute_callbacks('validate')
+            ret = fgraph.execute_callbacks("validate")
         except Exception as e:
             cf = inspect.currentframe()
             uf = cf.f_back
@@ -441,15 +458,16 @@ class Validator(Feature):
             # exception. replace_all_validate will print out the
             # verbose output.
             # Or it has to be done here before raise.
-            if uf_info.function == 'replace_all_validate':
+            if uf_info.function == "replace_all_validate":
                 raise
             else:
-                verbose = uf.f_locals.get('verbose', False)
+                verbose = uf.f_locals.get("verbose", False)
                 if verbose:
-                    r = uf.f_locals.get('r', "")
+                    r = uf.f_locals.get("r", "")
                     reason = uf_info.function
-                    print("validate failed on node %s.\n Reason: %s, %s" %
-                          (r, reason, e))
+                    print(
+                        "validate failed on node %s.\n Reason: %s, %s" % (r, reason, e)
+                    )
                 raise
         t1 = time.time()
         if fgraph.profile:
@@ -465,16 +483,23 @@ class Validator(Feature):
 
 
 class ReplaceValidate(History, Validator):
-    pickle_rm_attr = (["replace_validate", "replace_all_validate",
-                       "replace_all_validate_remove"] +
-                      History.pickle_rm_attr + Validator.pickle_rm_attr)
+    pickle_rm_attr = (
+        ["replace_validate", "replace_all_validate", "replace_all_validate_remove"]
+        + History.pickle_rm_attr
+        + Validator.pickle_rm_attr
+    )
 
     def on_attach(self, fgraph):
-        for attr in ('replace_validate', 'replace_all_validate',
-                     'replace_all_validate_remove'):
+        for attr in (
+            "replace_validate",
+            "replace_all_validate",
+            "replace_all_validate_remove",
+        ):
             if hasattr(fgraph, attr):
-                raise AlreadyThere("ReplaceValidate feature is already present"
-                                   " or in conflict with another plugin.")
+                raise AlreadyThere(
+                    "ReplaceValidate feature is already present"
+                    " or in conflict with another plugin."
+                )
         self._nodes_removed = set()
         self.fail_validate = False
         History.on_attach(self, fgraph)
@@ -485,10 +510,10 @@ class ReplaceValidate(History, Validator):
         History.unpickle(self, fgraph)
         Validator.unpickle(self, fgraph)
         fgraph.replace_validate = partial(self.replace_validate, fgraph)
-        fgraph.replace_all_validate = partial(self.replace_all_validate,
-                                              fgraph)
+        fgraph.replace_all_validate = partial(self.replace_all_validate, fgraph)
         fgraph.replace_all_validate_remove = partial(
-            self.replace_all_validate_remove, fgraph)
+            self.replace_all_validate_remove, fgraph
+        )
 
     def on_detach(self, fgraph):
         """
@@ -505,22 +530,25 @@ class ReplaceValidate(History, Validator):
     def replace_validate(self, fgraph, r, new_r, reason=None):
         self.replace_all_validate(fgraph, [(r, new_r)], reason=reason)
 
-    def replace_all_validate(self, fgraph, replacements,
-                             reason=None, verbose=None):
+    def replace_all_validate(self, fgraph, replacements, reason=None, verbose=None):
         chk = fgraph.checkpoint()
         if verbose is None:
             verbose = config.optimizer_verbose
         if config.scan.debug:
-            scans = [n for n in fgraph.apply_nodes if isinstance(n.op, theano.scan_module.scan_op.Scan)]
+            scans = [
+                n
+                for n in fgraph.apply_nodes
+                if isinstance(n.op, theano.scan_module.scan_op.Scan)
+            ]
 
         for r, new_r in replacements:
             try:
                 fgraph.replace(r, new_r, reason=reason, verbose=False)
             except Exception as e:
                 msg = str(e)
-                s1 = 'The type of the replacement must be the same'
-                s2 = 'does not belong to this FunctionGraph'
-                s3 = 'maximum recursion depth exceeded'
+                s1 = "The type of the replacement must be the same"
+                s2 = "does not belong to this FunctionGraph"
+                s3 = "maximum recursion depth exceeded"
                 if s3 in msg:
                     # There is nothing safe we can do to recover from this.
                     # So don't revert as this raise a different error
@@ -529,12 +557,18 @@ class ReplaceValidate(History, Validator):
                         "Please, report this to theano-dev mailing list."
                         " As a temporary work around, you can raise Python"
                         " stack limit with:"
-                        " import sys; sys.setrecursionlimit(10000)",)
+                        " import sys; sys.setrecursionlimit(10000)",
+                    )
                     raise
-                elif (s1 not in msg and s2 not in msg):
+                elif s1 not in msg and s2 not in msg:
                     out = sys.stderr
-                    print("<<!! BUG IN FGRAPH.REPLACE OR A LISTENER !!>>",
-                          type(e), e, reason, file=out)
+                    print(
+                        "<<!! BUG IN FGRAPH.REPLACE OR A LISTENER !!>>",
+                        type(e),
+                        e,
+                        reason,
+                        file=out,
+                    )
                 # this might fail if the error is in a listener:
                 # (fgraph.replace kinda needs better internal error handling)
                 fgraph.revert(chk)
@@ -547,20 +581,34 @@ class ReplaceValidate(History, Validator):
                 print("validate failed on node %s.\n Reason: %s, %s" % (r, reason, e))
             raise
         if config.scan.debug:
-            scans2 = [n for n in fgraph.apply_nodes if isinstance(n.op, theano.scan_module.scan_op.Scan)]
+            scans2 = [
+                n
+                for n in fgraph.apply_nodes
+                if isinstance(n.op, theano.scan_module.scan_op.Scan)
+            ]
             nb = len(scans)
             nb2 = len(scans2)
             if nb2 > nb:
-                print("Extra scan introduced", nb, nb2, getattr(reason, 'name', reason), r, new_r)
+                print(
+                    "Extra scan introduced",
+                    nb,
+                    nb2,
+                    getattr(reason, "name", reason),
+                    r,
+                    new_r,
+                )
             elif nb2 < nb:
-                print("Scan removed", nb, nb2, getattr(reason, 'name', reason), r, new_r)
+                print(
+                    "Scan removed", nb, nb2, getattr(reason, "name", reason), r, new_r
+                )
         if verbose:
             print(reason, r, new_r)
         # The return is needed by replace_all_validate_remove
         return chk
 
-    def replace_all_validate_remove(self, fgraph, replacements,
-                                    remove, reason=None, warn=True):
+    def replace_all_validate_remove(
+        self, fgraph, replacements, remove, reason=None, warn=True
+    ):
         """
         As replace_all_validate, revert the replacement if the ops
         in the list remove are still in the graph. Also print a warning.
@@ -580,7 +628,8 @@ class ReplaceValidate(History, Validator):
                         " Your function runs correctly, but it would be"
                         " appreciated if you submit this problem to the"
                         " mailing list theano-users so that we can fix it.",
-                        file=out)
+                        file=out,
+                    )
                     print(reason, replacements, file=out)
                 raise ReplacementDidntRemovedError()
 
@@ -601,18 +650,19 @@ class ReplaceValidate(History, Validator):
 
 
 class NodeFinder(Bookkeeper):
-
     def __init__(self):
         self.fgraph = None
         self.d = {}
 
     def on_attach(self, fgraph):
         if self.fgraph is not None:
-            raise Exception("A NodeFinder instance can only serve one "
-                            "FunctionGraph.")
-        if hasattr(fgraph, 'get_nodes'):
-            raise AlreadyThere("NodeFinder is already present or in conflict"
-                               " with another plugin.")
+            raise Exception(
+                "A NodeFinder instance can only serve one " "FunctionGraph."
+            )
+        if hasattr(fgraph, "get_nodes"):
+            raise AlreadyThere(
+                "NodeFinder is already present or in conflict" " with another plugin."
+            )
         self.fgraph = fgraph
         fgraph.get_nodes = partial(self.query, fgraph)
         Bookkeeper.on_attach(self, fgraph)
@@ -623,8 +673,9 @@ class NodeFinder(Bookkeeper):
         that it installed into the function_graph
         """
         if self.fgraph is not fgraph:
-            raise Exception("This NodeFinder instance was not attached to the"
-                            " provided fgraph.")
+            raise Exception(
+                "This NodeFinder instance was not attached to the" " provided fgraph."
+            )
         self.fgraph = None
         del fgraph.get_nodes
         Bookkeeper.on_detach(self, fgraph)
@@ -635,11 +686,11 @@ class NodeFinder(Bookkeeper):
         except TypeError:  # node.op is unhashable
             return
         except Exception as e:
-            print('OFFENDING node', type(node), type(node.op), file=sys.stderr)
+            print("OFFENDING node", type(node), type(node.op), file=sys.stderr)
             try:
-                print('OFFENDING node hash', hash(node.op), file=sys.stderr)
+                print("OFFENDING node hash", hash(node.op), file=sys.stderr)
             except Exception:
-                print('OFFENDING node not hashable', file=sys.stderr)
+                print("OFFENDING node not hashable", file=sys.stderr)
             raise e
 
     def on_prune(self, fgraph, node, reason):
@@ -655,14 +706,14 @@ class NodeFinder(Bookkeeper):
         try:
             all = self.d.get(op, [])
         except TypeError:
-            raise TypeError("%s in unhashable and cannot be queried by the"
-                            " optimizer" % op)
+            raise TypeError(
+                "%s in unhashable and cannot be queried by the" " optimizer" % op
+            )
         all = list(all)
         return all
 
 
 class PrintListener(Feature):
-
     def __init__(self, active=True):
         self.active = active
 
@@ -688,8 +739,7 @@ class PrintListener(Feature):
 
     def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
         if self.active:
-            print("-- changing (%s.inputs[%s]) from %s to %s" % (
-                node, i, r, new_r))
+            print("-- changing (%s.inputs[%s]) from %s to %s" % (node, i, r, new_r))
 
 
 class PreserveNames(Feature):
@@ -712,23 +762,23 @@ class PreserveVariableAttributes(Feature):
     def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
         if r.name is not None and new_r.name is None:
             new_r.name = r.name
-        if getattr(r.tag, 'nan_guard_mode_check', False) and getattr(
-                new_r.tag, 'nan_guard_mode_check', False) is False:
+        if (
+            getattr(r.tag, "nan_guard_mode_check", False)
+            and getattr(new_r.tag, "nan_guard_mode_check", False) is False
+        ):
             new_r.tag.nan_guard_mode_check = r.tag.nan_guard_mode_check
 
 
 class NoOutputFromInplace(Feature):
-
     def __init__(self, first_output_idx=0, last_output_idx=None):
         self.first_idx = first_output_idx
         self.last_idx = last_output_idx
 
     def validate(self, fgraph):
-        if not hasattr(fgraph, 'destroyers'):
+        if not hasattr(fgraph, "destroyers"):
             return True
 
-        outputs_to_validate = list(fgraph.outputs)[self.first_idx:
-                                                   self.last_idx]
+        outputs_to_validate = list(fgraph.outputs)[self.first_idx : self.last_idx]
 
         for out in outputs_to_validate:
 
@@ -740,11 +790,14 @@ class NoOutputFromInplace(Feature):
             node = out.owner
             op = node.op
             out_idx = node.outputs.index(out)
-            if hasattr(op, 'destroy_map') and out_idx in op.destroy_map:
+            if hasattr(op, "destroy_map") and out_idx in op.destroy_map:
                 raise theano.gof.InconsistencyError(
                     "A function graph Feature has requested (probably for ",
                     "efficiency reasons for scan) that outputs of the graph",
                     "be prevented from being the result of inplace ",
-                    "operations. This has prevented output ", out, " from ",
+                    "operations. This has prevented output ",
+                    out,
+                    " from ",
                     "being computed by modifying another variable ",
-                    "inplace.")
+                    "inplace.",
+                )

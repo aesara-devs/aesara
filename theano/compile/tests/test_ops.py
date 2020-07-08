@@ -1,7 +1,7 @@
 """
  Tests for the Op decorator
 """
-from __future__ import absolute_import, print_function, division
+
 
 import numpy as np
 
@@ -21,9 +21,8 @@ def mul(a, b):
 
 
 class TestOpDecorator(utt.InferShapeTester):
-
     def test_1arg(self):
-        x = dmatrix('x')
+        x = dmatrix("x")
 
         @as_op(dmatrix, dvector)
         def cumprod(x):
@@ -31,14 +30,14 @@ class TestOpDecorator(utt.InferShapeTester):
 
         fn = function([x], cumprod(x))
         r = fn([[1.5, 5], [2, 2]])
-        r0 = np.array([1.5, 7.5, 15., 30.])
+        r0 = np.array([1.5, 7.5, 15.0, 30.0])
 
         assert np.allclose(r, r0), (r, r0)
 
     def test_2arg(self):
-        x = dmatrix('x')
+        x = dmatrix("x")
         x.tag.test_value = np.zeros((2, 2))
-        y = dvector('y')
+        y = dvector("y")
         y.tag.test_value = [0, 0, 0, 0]
 
         @as_op([dmatrix, dvector], dvector)
@@ -47,14 +46,14 @@ class TestOpDecorator(utt.InferShapeTester):
 
         fn = function([x, y], cumprod_plus(x, y))
         r = fn([[1.5, 5], [2, 2]], [1, 100, 2, 200])
-        r0 = np.array([2.5, 107.5, 17., 230.])
+        r0 = np.array([2.5, 107.5, 17.0, 230.0])
 
         assert np.allclose(r, r0), (r, r0)
 
     def test_infer_shape(self):
-        x = dmatrix('x')
+        x = dmatrix("x")
         x.tag.test_value = np.zeros((2, 2))
-        y = dvector('y')
+        y = dvector("y")
         y.tag.test_value = [0, 0, 0, 0]
 
         def infer_shape(node, shapes):
@@ -65,13 +64,17 @@ class TestOpDecorator(utt.InferShapeTester):
         def cumprod_plus(x, y):
             return np.cumprod(x) + y
 
-        self._compile_and_check([x, y], [cumprod_plus(x, y)],
-                                [[[1.5, 5], [2, 2]], [1, 100, 2, 200]],
-                                cumprod_plus.__class__, warn=False)
+        self._compile_and_check(
+            [x, y],
+            [cumprod_plus(x, y)],
+            [[[1.5, 5], [2, 2]], [1, 100, 2, 200]],
+            cumprod_plus.__class__,
+            warn=False,
+        )
 
     def test_pickle(self):
-        x = dmatrix('x')
-        y = dmatrix('y')
+        x = dmatrix("x")
+        y = dmatrix("y")
 
         m = mul(x, y)
 

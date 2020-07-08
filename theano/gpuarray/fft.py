@@ -1,13 +1,10 @@
-from __future__ import absolute_import, print_function, division
-
 import numpy as np
 import theano
 from theano import Op
 import theano.tensor as T
 from theano.gradient import DisconnectedType
 
-from .basic_ops import (gpu_contiguous, as_gpuarray_variable,
-                        infer_context_name)
+from .basic_ops import gpu_contiguous, as_gpuarray_variable, infer_context_name
 from .type import GpuArrayType
 
 import theano.tensor.fft
@@ -15,12 +12,14 @@ from .opt import register_opt, op_lifter, register_opt2
 
 try:
     import pygpu
+
     pygpu_available = True
 except ImportError:
     pygpu_available = False
 
 try:
     import pycuda.driver
+
     pycuda_available = True
 except ImportError:
     pycuda_available = False
@@ -28,6 +27,7 @@ except ImportError:
 try:
     import skcuda
     from skcuda import fft
+
     skcuda_available = True
 except (ImportError, Exception):
     skcuda_available = False
@@ -39,9 +39,11 @@ class CuRFFTOp(Op):
 
     def output_type(self, inp):
         # add one extra dim for real/imag
-        return GpuArrayType(inp.dtype,
-                            broadcastable=[False] * (inp.type.ndim + 1),
-                            context_name=inp.type.context_name)
+        return GpuArrayType(
+            inp.dtype,
+            broadcastable=[False] * (inp.type.ndim + 1),
+            context_name=inp.type.context_name,
+        )
 
     def make_node(self, inp, s=None):
         # A shape parameter s can be provided as an input. For now this is used to
@@ -60,8 +62,7 @@ class CuRFFTOp(Op):
         if not pycuda_available:
             raise RuntimeError("pycuda is needed for CuFFTOp")
 
-        inp = gpu_contiguous(as_gpuarray_variable(inp,
-                                                  infer_context_name(inp)))
+        inp = gpu_contiguous(as_gpuarray_variable(inp, infer_context_name(inp)))
 
         # If no shape is provided as input, default to input data shape.
         if s is None:
@@ -107,8 +108,9 @@ class CuRFFTOp(Op):
             # only allocate if there is no previous allocation of the
             # right size.
             if z[0] is None or z[0].shape != output_shape:
-                z[0] = pygpu.zeros(output_shape, context=inputs[0][0].context,
-                                   dtype='float32')
+                z[0] = pygpu.zeros(
+                    output_shape, context=inputs[0][0].context, dtype="float32"
+                )
 
             input_pycuda = inputs[0][0]
             # I thought we'd need to change the type on output_pycuda
@@ -121,8 +123,9 @@ class CuRFFTOp(Op):
                 # only initialise plan if necessary
                 if plan[0] is None or plan_input_shape[0] != input_shape:
                     plan_input_shape[0] = input_shape
-                    plan[0] = fft.Plan(s, np.float32, np.complex64,
-                                       batch=input_shape[0])
+                    plan[0] = fft.Plan(
+                        s, np.float32, np.complex64, batch=input_shape[0]
+                    )
 
                 # Sync GPU variables before computation
                 input_pycuda.sync()
@@ -140,19 +143,23 @@ class CuRFFTOp(Op):
         return thunk
 
     def grad(self, inputs, output_grads):
-        gout, = output_grads
+        (gout,) = output_grads
         s = inputs[1]
         # Divide the last dimension of the output gradients by 2, they are
         # double-counted by the real-IFFT due to symmetry, except the first
         # and last elements (for even transforms) which are unique.
-        idx = [slice(None)] * (gout.ndim - 2) \
-            + [slice(1, (s[-1] // 2) + (s[-1] % 2))] + [slice(None)]
+        idx = (
+            [slice(None)] * (gout.ndim - 2)
+            + [slice(1, (s[-1] // 2) + (s[-1] % 2))]
+            + [slice(None)]
+        )
         gout = T.set_subtensor(gout[idx], gout[idx] * 0.5)
         return [cuirfft_op(gout, s), DisconnectedType()()]
 
     def connection_pattern(self, node):
         # Specificy that shape input parameter has no connection to graph and gradients.
         return [[True], [False]]
+
 
 curfft_op = CuRFFTOp()
 
@@ -163,9 +170,11 @@ class CuIRFFTOp(Op):
 
     def output_type(self, inp):
         # remove extra dim for real/imag
-        return GpuArrayType(inp.dtype,
-                            broadcastable=[False] * (inp.type.ndim - 1),
-                            context_name=inp.type.context_name)
+        return GpuArrayType(
+            inp.dtype,
+            broadcastable=[False] * (inp.type.ndim - 1),
+            context_name=inp.type.context_name,
+        )
 
     def make_node(self, inp, s=None):
         # A shape parameter is expected as an input. For now this is used to
@@ -184,8 +193,7 @@ class CuIRFFTOp(Op):
         if not pycuda_available:
             raise RuntimeError("pycuda is needed for CuIFFTOp")
 
-        inp = gpu_contiguous(as_gpuarray_variable(inp,
-                                                  infer_context_name(inp)))
+        inp = gpu_contiguous(as_gpuarray_variable(inp, infer_context_name(inp)))
 
         # If no shape is provided as input, calculate shape assuming even real transform.
         if s is None:
@@ -229,8 +237,9 @@ class CuIRFFTOp(Op):
             # only allocate if there is no previous allocation of the
             # right size.
             if z[0] is None or z[0].shape != output_shape:
-                z[0] = pygpu.zeros(output_shape, context=inputs[0][0].context,
-                                   dtype='float32')
+                z[0] = pygpu.zeros(
+                    output_shape, context=inputs[0][0].context, dtype="float32"
+                )
 
             input_pycuda = inputs[0][0]
             # input_pycuda is a float32 array with an extra dimension,
@@ -242,8 +251,9 @@ class CuIRFFTOp(Op):
                 # only initialise plan if necessary
                 if plan[0] is None or plan_input_shape[0] != input_shape:
                     plan_input_shape[0] = input_shape
-                    plan[0] = fft.Plan(s, np.complex64, np.float32,
-                                       batch=output_shape[0])
+                    plan[0] = fft.Plan(
+                        s, np.complex64, np.float32, batch=output_shape[0]
+                    )
 
                 # Sync GPU variables before computation
                 input_pycuda.sync()
@@ -264,14 +274,17 @@ class CuIRFFTOp(Op):
         return thunk
 
     def grad(self, inputs, output_grads):
-        gout, = output_grads
+        (gout,) = output_grads
         s = inputs[1]
         gf = curfft_op(gout, s)
         # Multiply the last dimension of the gradient by 2, they represent
         # both positive and negative frequencies, except the first
         # and last elements (for even transforms) which are unique.
-        idx = [slice(None)] * (gf.ndim - 2) \
-            + [slice(1, (s[-1] // 2) + (s[-1] % 2))] + [slice(None)]
+        idx = (
+            [slice(None)] * (gf.ndim - 2)
+            + [slice(1, (s[-1] // 2) + (s[-1] % 2))]
+            + [slice(None)]
+        )
         gf = T.set_subtensor(gf[idx], gf[idx] * 2)
         return [gf, DisconnectedType()()]
 
@@ -279,11 +292,12 @@ class CuIRFFTOp(Op):
         # Specificy that shape input parameter has no connection to graph and gradients.
         return [[True], [False]]
 
+
 cuirfft_op = CuIRFFTOp()
 
 
 def curfft(inp, norm=None):
-    """
+    r"""
     Performs the fast Fourier transform of a real-valued input on the GPU.
 
     The input must be a real-valued float32 variable of dimensions (m, ..., n).
@@ -311,13 +325,13 @@ def curfft(inp, norm=None):
     cond_norm = _unitary(norm)
     scaling = 1
     if cond_norm == "ortho":
-        scaling = T.sqrt(s.prod().astype('float32'))
+        scaling = T.sqrt(s.prod().astype("float32"))
 
     return curfft_op(inp, s) / scaling
 
 
 def cuirfft(inp, norm=None, is_odd=False):
-    """
+    r"""
     Performs the inverse fast Fourier Transform with real-valued output on the GPU.
 
     The input is a variable of dimensions (m, ..., n//2+1, 2) with
@@ -357,28 +371,31 @@ def cuirfft(inp, norm=None, is_odd=False):
     cond_norm = _unitary(norm)
     scaling = 1
     if cond_norm is None:
-        scaling = s.prod().astype('float32')
+        scaling = s.prod().astype("float32")
     elif cond_norm == "ortho":
-        scaling = T.sqrt(s.prod().astype('float32'))
+        scaling = T.sqrt(s.prod().astype("float32"))
 
     return cuirfft_op(inp, s) / scaling
 
 
 def _unitary(norm):
     if norm not in (None, "ortho", "no_norm"):
-        raise ValueError("Invalid value %s for norm, must be None, 'ortho' or "
-                         "'no norm'" % norm)
+        raise ValueError(
+            "Invalid value %s for norm, must be None, 'ortho' or " "'no norm'" % norm
+        )
     return norm
 
+
 if skcuda_available:
-    @register_opt('fast_compile')
+
+    @register_opt("fast_compile")
     @op_lifter([theano.tensor.fft.RFFTOp])
-    @register_opt2([theano.tensor.fft.RFFTOp], 'fast_compile')
+    @register_opt2([theano.tensor.fft.RFFTOp], "fast_compile")
     def local_gpua_curfft_op(op, ctx_name, inputs, outputs):
         return curfft_op
 
-    @register_opt('fast_compile')
+    @register_opt("fast_compile")
     @op_lifter([theano.tensor.fft.IRFFTOp])
-    @register_opt2([theano.tensor.fft.IRFFTOp], 'fast_compile')
+    @register_opt2([theano.tensor.fft.IRFFTOp], "fast_compile")
     def local_gpua_cuirfft_op(op, ctx_name, inputs, outputs):
         return cuirfft_op

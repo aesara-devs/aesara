@@ -3,7 +3,7 @@ Provide a simple user friendly API to Theano-managed memory.
 
 """
 # Standard imports
-from __future__ import absolute_import, print_function, division
+
 
 import copy
 import logging
@@ -14,8 +14,8 @@ import numpy as np
 # Theano imports
 from theano.gof import Container, Variable, generic, utils
 
-_logger = logging.getLogger('theano.compile.sharedvalue')
-__docformat__ = 'restructuredtext en'
+_logger = logging.getLogger("theano.compile.sharedvalue")
+__docformat__ = "restructuredtext en"
 
 
 class SharedVariable(Variable):
@@ -65,24 +65,27 @@ class SharedVariable(Variable):
     # this Variable, unless another update value has been passed to "function",
     # or the "no_default_updates" list passed to "function" contains it.
 
-    def __init__(self, name, type, value, strict,
-                 allow_downcast=None, container=None):
-        super(SharedVariable, self).__init__(type=type, name=name,
-                                             owner=None, index=None)
+    def __init__(self, name, type, value, strict, allow_downcast=None, container=None):
+        super(SharedVariable, self).__init__(
+            type=type, name=name, owner=None, index=None
+        )
 
         if container is not None:
             self.container = container
             if (value is not None) or (strict is not None):
-                raise TypeError('value and strict are ignored if you pass '
-                                'a container here')
+                raise TypeError(
+                    "value and strict are ignored if you pass " "a container here"
+                )
         else:
             self.container = Container(
                 self,
-                storage=[type.filter(value, strict=strict,
-                                     allow_downcast=allow_downcast)],
+                storage=[
+                    type.filter(value, strict=strict, allow_downcast=allow_downcast)
+                ],
                 readonly=False,
                 strict=strict,
-                allow_downcast=allow_downcast)
+                allow_downcast=allow_downcast,
+            )
 
     def get_value(self, borrow=False, return_internal_type=False):
         """
@@ -173,7 +176,8 @@ class SharedVariable(Variable):
             type=self.type,
             value=None,
             strict=None,
-            container=self.container)
+            container=self.container,
+        )
         cp.tag = copy.copy(self.tag)
         return cp
 
@@ -185,28 +189,36 @@ class SharedVariable(Variable):
         value = self.get_value(borrow=True)
         if isinstance(value, np.ndarray):
             # Array probably had an unknown dtype.
-            msg = ("a Numpy array with dtype: '%s'. This data type is not "
-                   "currently recognized by Theano tensors: please cast "
-                   "your data into a supported numeric type if you need "
-                   "Theano tensor functionalities." % value.dtype)
+            msg = (
+                "a Numpy array with dtype: '%s'. This data type is not "
+                "currently recognized by Theano tensors: please cast "
+                "your data into a supported numeric type if you need "
+                "Theano tensor functionalities." % value.dtype
+            )
         else:
-            msg = ('an object of type: %s. Did you forget to cast it into '
-                   'a Numpy array before calling theano.shared()?' %
-                   type(value))
+            msg = (
+                "an object of type: %s. Did you forget to cast it into "
+                "a Numpy array before calling theano.shared()?" % type(value)
+            )
 
         raise TypeError(
             "The generic 'SharedVariable' object is not subscriptable. "
-            "This shared variable contains %s" % msg)
+            "This shared variable contains %s" % msg
+        )
 
     def _value_get(self):
-        raise Exception("sharedvar.value does not exist anymore. Use "
-                        "sharedvar.get_value() or sharedvar.set_value()"
-                        " instead.")
+        raise Exception(
+            "sharedvar.value does not exist anymore. Use "
+            "sharedvar.get_value() or sharedvar.set_value()"
+            " instead."
+        )
 
     def _value_set(self, new_value):
-        raise Exception("sharedvar.value does not exist anymore. Use "
-                        "sharedvar.get_value() or sharedvar.set_value()"
-                        " instead.")
+        raise Exception(
+            "sharedvar.value does not exist anymore. Use "
+            "sharedvar.get_value() or sharedvar.set_value()"
+            " instead."
+        )
 
     # We keep this just to raise an error
     value = property(_value_get, _value_set)
@@ -259,13 +271,20 @@ def shared(value, name=None, strict=False, allow_downcast=None, **kwargs):
 
     try:
         if isinstance(value, Variable):
-            raise TypeError("Shared variable constructor needs numeric "
-                            "values and not symbolic variables.")
+            raise TypeError(
+                "Shared variable constructor needs numeric "
+                "values and not symbolic variables."
+            )
 
         for ctor in reversed(shared.constructors):
             try:
-                var = ctor(value, name=name, strict=strict,
-                           allow_downcast=allow_downcast, **kwargs)
+                var = ctor(
+                    value,
+                    name=name,
+                    strict=strict,
+                    allow_downcast=allow_downcast,
+                    **kwargs,
+                )
                 utils.add_tag_trace(var)
                 return var
             except TypeError:
@@ -277,15 +296,18 @@ def shared(value, name=None, strict=False, allow_downcast=None, **kwargs):
             # were supplied, the user didn't want them to be ignored.
 
     except MemoryError as e:
-        e.args = e.args + ('you might consider'
-                           ' using \'theano.shared(..., borrow=True)\'',)
+        e.args = e.args + (
+            "you might consider" " using 'theano.shared(..., borrow=True)'",
+        )
         raise
 
-    raise TypeError('No suitable SharedVariable constructor could be found.'
-                    ' Are you sure all kwargs are supported?'
-                    ' We do not support the parameter dtype or type.'
-                    ' value="%s". parameters="%s"' %
-                    (value, kwargs))
+    raise TypeError(
+        "No suitable SharedVariable constructor could be found."
+        " Are you sure all kwargs are supported?"
+        " We do not support the parameter dtype or type."
+        ' value="%s". parameters="%s"' % (value, kwargs)
+    )
+
 
 shared.constructors = []
 
@@ -296,5 +318,10 @@ def generic_constructor(value, name=None, strict=False, allow_downcast=None):
     SharedVariable Constructor.
 
     """
-    return SharedVariable(type=generic, value=value, name=name, strict=strict,
-                          allow_downcast=allow_downcast)
+    return SharedVariable(
+        type=generic,
+        value=value,
+        name=name,
+        strict=strict,
+        allow_downcast=allow_downcast,
+    )

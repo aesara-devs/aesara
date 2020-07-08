@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 import pytest
 import numpy as np
 
@@ -18,8 +16,7 @@ def data_of(s):
     return s.container.storage[0]
 
 
-class Test_pfunc():
-
+class TestPfunc:
     def test_doc(self):
         # Ensure the code given in pfunc.txt works as expected
 
@@ -49,7 +46,7 @@ class Test_pfunc():
     def test_shared(self):
 
         # CHECK: two functions (f1 and f2) can share w
-        w = shared(np.random.rand(2, 2), 'w')
+        w = shared(np.random.rand(2, 2), "w")
         wval = w.get_value(borrow=False)
 
         x = dmatrix()
@@ -75,12 +72,12 @@ class Test_pfunc():
     def test_no_shared_as_input(self):
         # Test that shared variables cannot be used as function inputs.
         w_init = np.random.rand(2, 2)
-        w = shared(w_init.copy(), 'w')
+        w = shared(w_init.copy(), "w")
         try:
             pfunc([w], theano.tensor.sum(w * w))
             assert False
         except TypeError as e:
-            msg = 'Cannot use a shared variable (w) as explicit input'
+            msg = "Cannot use a shared variable (w) as explicit input"
             if str(e).find(msg) < 0:
                 raise
 
@@ -90,7 +87,7 @@ class Test_pfunc():
 
         rng = np.random.RandomState(1827)
         w_init = rng.rand(5)
-        w = shared(w_init.copy(), 'w')
+        w = shared(w_init.copy(), "w")
         reg = theano.tensor.sum(w * w)
         f = pfunc([], reg)
 
@@ -102,7 +99,7 @@ class Test_pfunc():
     def test_default_scalar_container(self):
         # Similar in spirit to test_default_container, but updating a scalar
         # variable. This is a sanity check for non mutable types.
-        x = shared(0.0, 'x')
+        x = shared(0.0, "x")
         f = pfunc([], x)
         assert f() == 0
         x.set_value(x.get_value(borrow=True) + 1, borrow=True)
@@ -118,12 +115,12 @@ class Test_pfunc():
         # works, rand generates float64 by default
         f(np.random.rand(8))
         # works, casting is allowed
-        f(np.array([1, 2, 3, 4], dtype='int32'))
+        f(np.array([1, 2, 3, 4], dtype="int32"))
 
         f = pfunc([In(a, strict=True)], [out])
         try:
             # fails, f expects float64
-            f(np.array([1, 2, 3, 4], dtype='int32'))
+            f(np.array([1, 2, 3, 4], dtype="int32"))
         except TypeError:
             pass
 
@@ -132,14 +129,14 @@ class Test_pfunc():
         a_out = a * 2  # assuming the op which makes this "in place" triggers
 
         # using mutable=True will let fip change the value in aval
-        fip = pfunc([In(a, mutable=True)], [a_out], mode='FAST_RUN')
+        fip = pfunc([In(a, mutable=True)], [a_out], mode="FAST_RUN")
         aval = np.random.rand(10)
         aval2 = aval.copy()
         assert np.all(fip(aval) == (aval2 * 2))
         assert not np.all(aval == aval2)
 
         # using mutable=False should leave the input untouched
-        f = pfunc([In(a, mutable=False)], [a_out], mode='FAST_RUN')
+        f = pfunc([In(a, mutable=False)], [a_out], mode="FAST_RUN")
         aval = np.random.rand(10)
         aval2 = aval.copy()
         assert np.all(f(aval) == (aval2 * 2))
@@ -156,12 +153,12 @@ class Test_pfunc():
         bval = data_of(b)
 
         # by default, shared are not mutable unless doing an explicit update
-        f = pfunc([], [b_out], mode='FAST_RUN')
+        f = pfunc([], [b_out], mode="FAST_RUN")
         assert (f() == np.arange(5) * 2).all()
         assert np.all(b.get_value(borrow=True) == np.arange(5))
 
         # using updates, b is now a mutable parameter
-        f = pfunc([], [b_out], updates=[(b, b_out)], mode='FAST_RUN')
+        f = pfunc([], [b_out], updates=[(b, b_out)], mode="FAST_RUN")
         assert (f() == (np.arange(5) * 2)).all()
         # because of the update
         assert (b.get_value(borrow=True) == (np.arange(5) * 2)).all()
@@ -171,7 +168,7 @@ class Test_pfunc():
         bval = np.arange(5)
         b.set_value(bval, borrow=True)
         bval = data_of(b)
-        f = pfunc([], [b_out], updates=[(b, (b_out + 3))], mode='FAST_RUN')
+        f = pfunc([], [b_out], updates=[(b, (b_out + 3))], mode="FAST_RUN")
         assert (f() == (np.arange(5) * 2)).all()
         # because of the update
         assert (b.get_value(borrow=True) == ((np.arange(5) * 2) + 3)).all()
@@ -181,13 +178,17 @@ class Test_pfunc():
         assert not (bval == b.get_value(borrow=True)).all()
 
     def test_param_allow_downcast_int(self):
-        a = tensor.wvector('a')  # int16
-        b = tensor.bvector('b')  # int8
-        c = tensor.bscalar('c')  # int8
-        f = pfunc([In(a, allow_downcast=True),
-                   In(b, allow_downcast=False),
-                   In(c, allow_downcast=None)],
-                  (a + b + c))
+        a = tensor.wvector("a")  # int16
+        b = tensor.bvector("b")  # int8
+        c = tensor.bscalar("c")  # int8
+        f = pfunc(
+            [
+                In(a, allow_downcast=True),
+                In(b, allow_downcast=False),
+                In(c, allow_downcast=None),
+            ],
+            (a + b + c),
+        )
 
         # Both values are in range. Since they're not ndarrays (but lists),
         # they will be converted, and their value checked.
@@ -197,10 +198,10 @@ class Test_pfunc():
         # For performance reasons, no check of the data is explicitly performed
         # (It might be OK to change this in the future.)
         with pytest.raises(TypeError):
-            f([3], np.array([6], dtype='int16'), 1)
+            f([3], np.array([6], dtype="int16"), 1)
 
         # Value too big for a, silently ignored
-        assert np.all(f([2 ** 20], np.ones(1, dtype='int8'), 1) == 2)
+        assert np.all(f([2 ** 20], np.ones(1, dtype="int8"), 1) == 2)
 
         # Value too big for b, raises TypeError
         with pytest.raises(TypeError):
@@ -211,14 +212,18 @@ class Test_pfunc():
             f([3], [6], 806)
 
     def test_param_allow_downcast_floatX(self):
-        a = tensor.fscalar('a')
-        b = tensor.fscalar('b')
-        c = tensor.fscalar('c')
+        a = tensor.fscalar("a")
+        b = tensor.fscalar("b")
+        c = tensor.fscalar("c")
 
-        f = pfunc([In(a, allow_downcast=True),
-                   In(b, allow_downcast=False),
-                   In(c, allow_downcast=None)],
-                  (a + b + c))
+        f = pfunc(
+            [
+                In(a, allow_downcast=True),
+                In(b, allow_downcast=False),
+                In(c, allow_downcast=None),
+            ],
+            (a + b + c),
+        )
 
         # If the values can be accurately represented, everything is OK
         assert np.all(f(0, 0, 0) == 0)
@@ -231,21 +236,25 @@ class Test_pfunc():
             f(0, 0.1, 0)
 
         # If allow_downcast is None, it should work iff floatX=float32
-        if config.floatX == 'float32':
+        if config.floatX == "float32":
             assert np.allclose(f(0, 0, 0.1), 0.1)
         else:
             with pytest.raises(TypeError):
                 f(0, 0, 0.1)
 
     def test_param_allow_downcast_vector_floatX(self):
-        a = tensor.fvector('a')
-        b = tensor.fvector('b')
-        c = tensor.fvector('c')
+        a = tensor.fvector("a")
+        b = tensor.fvector("b")
+        c = tensor.fvector("c")
 
-        f = pfunc([In(a, allow_downcast=True),
-                   In(b, allow_downcast=False),
-                   In(c, allow_downcast=None)],
-                  (a + b + c))
+        f = pfunc(
+            [
+                In(a, allow_downcast=True),
+                In(b, allow_downcast=False),
+                In(c, allow_downcast=None),
+            ],
+            (a + b + c),
+        )
 
         # If the values can be accurately represented, everything is OK
         z = [0]
@@ -263,9 +272,9 @@ class Test_pfunc():
             f(z, z, [0.1])
 
     def test_allow_input_downcast_int(self):
-        a = tensor.wvector('a')  # int16
-        b = tensor.bvector('b')  # int8
-        c = tensor.bscalar('c')  # int8
+        a = tensor.wvector("a")  # int16
+        b = tensor.bvector("b")  # int8
+        c = tensor.bscalar("c")  # int8
 
         f = pfunc([a, b, c], (a + b + c), allow_input_downcast=True)
         # Value too big for a, b, or c, silently ignored
@@ -282,7 +291,7 @@ class Test_pfunc():
         # For performance reasons, no check of the data is explicitly performed
         # (It might be OK to change this in the future.)
         with pytest.raises(TypeError):
-            g([3], np.array([6], dtype='int16'), 0)
+            g([3], np.array([6], dtype="int16"), 0)
 
         # Value too big for b, raises TypeError
         with pytest.raises(TypeError):
@@ -292,13 +301,13 @@ class Test_pfunc():
         # Everything here should behave like with False
         assert np.all(h([3], [6], 0) == 9)
         with pytest.raises(TypeError):
-            h([3], np.array([6], dtype='int16'), 0)
+            h([3], np.array([6], dtype="int16"), 0)
         with pytest.raises(TypeError):
             h([3], [312], 0)
 
     def test_allow_downcast_floatX(self):
-        a = tensor.fscalar('a')
-        b = tensor.fvector('b')
+        a = tensor.fscalar("a")
+        b = tensor.fvector("b")
 
         f = pfunc([a, b], (a + b), allow_input_downcast=True)
         g = pfunc([a, b], (a + b), allow_input_downcast=False)
@@ -321,7 +330,7 @@ class Test_pfunc():
         assert np.allclose(f(0.1, [0]), 0.1)
         with pytest.raises(TypeError):
             g(0.1, [0])
-        if config.floatX == 'float32':
+        if config.floatX == "float32":
             assert np.allclose(h(0.1, [0]), 0.1)
         else:
             with pytest.raises(TypeError):
@@ -351,16 +360,20 @@ class Test_pfunc():
 
     def test_update_err_broadcast(self):
         # Test that broadcastable dimensions raise error
-        data = np.random.rand(10, 10).astype('float32')
+        data = np.random.rand(10, 10).astype("float32")
         output_var = shared(name="output", value=data)
 
         # the update_var has type matrix, and the update expression
         # is a broadcasted scalar, and that should be allowed.
         with pytest.raises(TypeError):
-            theano.function(inputs=[], outputs=[], updates={output_var: output_var.sum().dimshuffle('x', 'x')})
+            theano.function(
+                inputs=[],
+                outputs=[],
+                updates={output_var: output_var.sum().dimshuffle("x", "x")},
+            )
 
     def test_duplicate_updates(self):
-        x, y = dmatrices('x', 'y')
+        x, y = dmatrices("x", "y")
         z = shared(np.ones((2, 3)))
         with pytest.raises(ValueError):
             theano.function([x, y], [z], updates=[(z, (z + x + y)), (z, (z - x))])
@@ -378,8 +391,7 @@ class Test_pfunc():
 
         z = tensor.ivector()
         c = z * y
-        f = pfunc([y], (c + 7),
-                  givens={z: theano._asarray([4, 4, 4], dtype='int32')})
+        f = pfunc([y], (c + 7), givens={z: theano._asarray([4, 4, 4], dtype="int32")})
         assert np.all(f([1, 1, 1]) == [11, 11, 11])
         assert x.get_value() == 0
 
@@ -387,10 +399,9 @@ class Test_pfunc():
         x = shared(np.asarray([4, 4, 4]))
         y = shared(np.asarray([4, 4, 4]))
         z = shared(np.asarray([2, 2, 2]))
-        up = pfunc([], [], updates={
-            x: (x * 5),
-            y: ((x * 5) + y),
-            z: (((x * 5) + y) ** z)})
+        up = pfunc(
+            [], [], updates={x: (x * 5), y: ((x * 5) + y), z: (((x * 5) + y) ** z)}
+        )
 
         up()
         assert np.all(x.get_value() == 20)
@@ -448,7 +459,7 @@ class Test_pfunc():
         with pytest.raises(TypeError):
             pfunc([], [x], no_default_updates=x)
         with pytest.raises(TypeError):
-            pfunc([], [x], no_default_updates='canard')
+            pfunc([], [x], no_default_updates="canard")
 
         # Mix explicit updates and no_default_updates
         g1 = pfunc([], [x], updates=[(x, (x - 1))], no_default_updates=True)
@@ -478,7 +489,7 @@ class Test_pfunc():
     def test_default_updates_expressions(self):
         x = shared(0)
         y = shared(1)
-        a = lscalar('a')
+        a = lscalar("a")
 
         z = a * x
         x.default_update = x + y
@@ -565,9 +576,9 @@ class Test_pfunc():
         x = shared(0)
         y = shared(1)
         if theano.configdefaults.python_int_bitwidth() == 32:
-            a = iscalar('a')
+            a = iscalar("a")
         else:
-            a = lscalar('a')
+            a = lscalar("a")
 
         x.default_update = y
         y.default_update = y + a
@@ -612,9 +623,9 @@ class Test_pfunc():
         assert a.get_value() == 0
 
     def test_givens_replaces_shared_variable(self):
-        a = shared(1., 'a')
-        a.default_update = a + 3.
-        b = tensor.dscalar('b')
+        a = shared(1.0, "a")
+        a.default_update = a + 3.0
+        b = tensor.dscalar("b")
         c = a + 10
         f = pfunc([b], c, givens={a: b})
 
@@ -622,7 +633,7 @@ class Test_pfunc():
         assert len(f.maker.fgraph.outputs) == 1
 
     def test_givens_replaces_shared_variable2(self):
-        a = shared(1., 'a')
+        a = shared(1.0, "a")
         a.default_update = a + 3
         c = a + 10
         f = pfunc([], c, givens={a: (a + 10)})
@@ -631,15 +642,15 @@ class Test_pfunc():
         assert f() == 34
 
     def test_duplicate_inputs(self):
-        x = theano.tensor.lscalar('x')
+        x = theano.tensor.lscalar("x")
         with pytest.raises(theano.compile.UnusedInputError):
             theano.function([x, x, x], x)
 
     def test_update_same(self):
         # There was a bug in CVM, triggered when a shared variable
         # was its own update expression.
-        a = shared(1., 'a')
-        b = shared(np.ones((2, 3)), 'b')
+        a = shared(1.0, "a")
+        b = shared(np.ones((2, 3)), "b")
 
         # The order of the variables is not determined, so we try
         # both shared variables.
@@ -663,8 +674,8 @@ class Test_pfunc():
     def test_update_equiv(self):
         # Like test_update_same, but the update expression is simplified until
         # it is found to be equal to the original variable
-        a = shared(1., 'a')
-        b = shared(np.ones((2, 3)), 'b')
+        a = shared(1.0, "a")
+        b = shared(np.ones((2, 3)), "b")
 
         # See comment in test_update_same about why we try both
         # shared variables.
@@ -679,7 +690,7 @@ class Test_pfunc():
         assert b.get_value(borrow=True).shape == (2, 3), b.get_value()
 
 
-class Test_aliasing_rules():
+class TestAliasingRules:
     # 1. Theano manages its own memory space, which typically does not overlap
     # with the memory of normal python variables that the user uses.
     #
@@ -712,8 +723,7 @@ class Test_aliasing_rules():
         assert not np.may_share_memory(orig_a, data_of(A))
 
         # rule #2 reading back from theano-managed memory
-        assert not np.may_share_memory(A.get_value(borrow=False),
-                                       data_of(A))
+        assert not np.may_share_memory(A.get_value(borrow=False), data_of(A))
 
     def test_sparse_input_aliasing_affecting_inplace_operations(self):
         ##
@@ -726,8 +736,9 @@ class Test_aliasing_rules():
             pass
 
         from theano.sparse import enable_sparse
+
         if not enable_sparse:
-            pytest.skip('Optional package sparse disabled')
+            pytest.skip("Optional package sparse disabled")
 
         from theano import sparse
 
@@ -736,30 +747,42 @@ class Test_aliasing_rules():
         #        operations are used) and to break the elemwise composition
         #        with some non-elemwise op (here dot)
 
-        x = sparse.SparseType('csc', dtype='float64')()
-        y = sparse.SparseType('csc', dtype='float64')()
-        f = theano.function([theano.In(x, mutable=True),
-                             theano.In(y, mutable=True)],
-                            (x + y) + (x + y))
+        x = sparse.SparseType("csc", dtype="float64")()
+        y = sparse.SparseType("csc", dtype="float64")()
+        f = theano.function(
+            [theano.In(x, mutable=True), theano.In(y, mutable=True)], (x + y) + (x + y)
+        )
         # Test 1. If the same variable is given twice
 
         # Compute bogus values
-        m = sp.csc_matrix(np.asarray(
-            [[1, 0, 0, 0, 0],
-             [0, 1, 0, 0, 0],
-             [0, 0, 1, 0, 0],
-             [0, 0, 0, 1, 0],
-             [0, 0, 0, 0, 1]], dtype='float64'))
+        m = sp.csc_matrix(
+            np.asarray(
+                [
+                    [1, 0, 0, 0, 0],
+                    [0, 1, 0, 0, 0],
+                    [0, 0, 1, 0, 0],
+                    [0, 0, 0, 1, 0],
+                    [0, 0, 0, 0, 1],
+                ],
+                dtype="float64",
+            )
+        )
         bogus_vals = f(m, m)
         # Since we used inplace operation v and m may be corrupted
         # so we need to recreate them
 
-        m = sp.csc_matrix(np.asarray(
-            [[1, 0, 0, 0, 0],
-             [0, 1, 0, 0, 0],
-             [0, 0, 1, 0, 0],
-             [0, 0, 0, 1, 0],
-             [0, 0, 0, 0, 1]], dtype='float64'))
+        m = sp.csc_matrix(
+            np.asarray(
+                [
+                    [1, 0, 0, 0, 0],
+                    [0, 1, 0, 0, 0],
+                    [0, 0, 1, 0, 0],
+                    [0, 0, 0, 1, 0],
+                    [0, 0, 0, 0, 1],
+                ],
+                dtype="float64",
+            )
+        )
         m_copy = m.copy()
         vals = f(m, m_copy)
 
@@ -775,30 +798,44 @@ class Test_aliasing_rules():
         y = theano.tensor.dvector()
         m1 = theano.tensor.dmatrix()
         m2 = theano.tensor.dmatrix()
-        f = theano.function([theano.In(x, mutable=True),
-                             theano.In(y, mutable=True),
-                             theano.In(m1, mutable=True),
-                             theano.In(m2, mutable=True)],
-                            theano.dot((x * 2), m1) + theano.dot((y * 3), m2))
+        f = theano.function(
+            [
+                theano.In(x, mutable=True),
+                theano.In(y, mutable=True),
+                theano.In(m1, mutable=True),
+                theano.In(m2, mutable=True),
+            ],
+            theano.dot((x * 2), m1) + theano.dot((y * 3), m2),
+        )
         # Test 1. If the same variable is given twice
 
         # Compute bogus values
-        v = np.asarray([1, 2, 3, 4, 5], dtype='float64')
-        m = np.asarray([[1, 0, 0, 0, 0],
-                        [0, 1, 0, 0, 0],
-                        [0, 0, 1, 0, 0],
-                        [0, 0, 0, 1, 0],
-                        [0, 0, 0, 0, 1]], dtype='float64')
+        v = np.asarray([1, 2, 3, 4, 5], dtype="float64")
+        m = np.asarray(
+            [
+                [1, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0],
+                [0, 0, 1, 0, 0],
+                [0, 0, 0, 1, 0],
+                [0, 0, 0, 0, 1],
+            ],
+            dtype="float64",
+        )
         bogus_vals = f(v, v, m, m)
         # Since we used inplace operation v and m may be corrupted
         # so we need to recreate them
 
-        v = np.asarray([1, 2, 3, 4, 5], dtype='float64')
-        m = np.asarray([[1, 0, 0, 0, 0],
-                        [0, 1, 0, 0, 0],
-                        [0, 0, 1, 0, 0],
-                        [0, 0, 0, 1, 0],
-                        [0, 0, 0, 0, 1]], dtype='float64')
+        v = np.asarray([1, 2, 3, 4, 5], dtype="float64")
+        m = np.asarray(
+            [
+                [1, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0],
+                [0, 0, 1, 0, 0],
+                [0, 0, 0, 1, 0],
+                [0, 0, 0, 0, 1],
+            ],
+            dtype="float64",
+        )
         m_copy = m.copy()
         v_copy = v.copy()
         vals = f(v, v_copy, m, m_copy)
@@ -824,26 +861,30 @@ class Test_aliasing_rules():
         #   c does not share memory with a
 
         f = theano.function(
-            [theano.In(x, mutable=True),
-             theano.In(y, mutable=True),
-             theano.In(z, mutable=True),
-             theano.In(m1, mutable=True),
-             theano.In(m2, mutable=True),
-             theano.In(m3, mutable=True)],
-            (theano.dot((x * 2), m1) + theano.dot((y * 3), m2) +
-             theano.dot((z * 4), m3)))
+            [
+                theano.In(x, mutable=True),
+                theano.In(y, mutable=True),
+                theano.In(z, mutable=True),
+                theano.In(m1, mutable=True),
+                theano.In(m2, mutable=True),
+                theano.In(m3, mutable=True),
+            ],
+            (
+                theano.dot((x * 2), m1)
+                + theano.dot((y * 3), m2)
+                + theano.dot((z * 4), m3)
+            ),
+        )
 
         # Compute bogus values
-        v = np.asarray([1, 2, 3, 4, 5], dtype='float64')
-        m = np.asarray([[1, 0],
-                        [0, 1]], dtype='float64')
+        v = np.asarray([1, 2, 3, 4, 5], dtype="float64")
+        m = np.asarray([[1, 0], [0, 1]], dtype="float64")
         bogus_vals = f(v[:2], v[1:3], v[2:4], m, m, m)
         # Since we used inplace operation v and m may be corrupted
         # so we need to recreate them
 
-        v = np.asarray([1, 2, 3, 4, 5], dtype='float64')
-        m = np.asarray([[1, 0],
-                        [0, 1]], dtype='float64')
+        v = np.asarray([1, 2, 3, 4, 5], dtype="float64")
+        m = np.asarray([[1, 0], [0, 1]], dtype="float64")
         m_copy1 = m.copy()
         v_copy1 = v.copy()
         m_copy2 = m.copy()
@@ -887,15 +928,13 @@ class Test_aliasing_rules():
         assert not np.may_share_memory(R, data_of(B))
         assert not np.may_share_memory(R, data_of(A))
 
-        f = pfunc([D], (DD * 4),
-                  updates=[(A, (DD[:1] * 3)), (B, (DD[:1] * 2))])
+        f = pfunc([D], (DD * 4), updates=[(A, (DD[:1] * 3)), (B, (DD[:1] * 2))])
         R = f(C)
         assert not np.may_share_memory(data_of(A), data_of(B))
         assert not np.may_share_memory(R, data_of(B))
         assert not np.may_share_memory(R, data_of(A))
 
-        f = pfunc([D], (DD * 4),
-                  updates=[(A, (DD[:1] * 3)), (B, (DD[:1] * 3))])
+        f = pfunc([D], (DD * 4), updates=[(A, (DD[:1] * 3)), (B, (DD[:1] * 3))])
         R = f(C)
         assert not np.may_share_memory(data_of(A), data_of(B))
         assert not np.may_share_memory(R, data_of(B))
@@ -904,8 +943,8 @@ class Test_aliasing_rules():
     def test_no_aliasing_0(self):
         # B is a shared variable, A is updated with B's contents
         # we need A to be copied to avoid aliasing
-        A = self.shared(np.zeros((2, 2)) + .5)
-        B = self.shared(np.zeros((2, 2)) - .5)
+        A = self.shared(np.zeros((2, 2)) + 0.5)
+        B = self.shared(np.zeros((2, 2)) - 0.5)
         f = pfunc([], [], updates=[(A, B)])
         f()
         assert not np.may_share_memory(data_of(A), data_of(B))
@@ -914,8 +953,8 @@ class Test_aliasing_rules():
         # B is a shared variable, A is updated with B's contents
         # since B is being updated as well, we don't need to copy anything
         # to avoid aliasing shared variables.
-        A = self.shared(np.zeros((2, 2)) + .5)
-        B = self.shared(np.zeros((2, 2)) - .5)
+        A = self.shared(np.zeros((2, 2)) + 0.5)
+        B = self.shared(np.zeros((2, 2)) - 0.5)
         C = tensor.dmatrix()
         f = pfunc([C], [], updates=[(A, B), (B, C)])
         z = np.zeros((2, 2))
@@ -928,8 +967,8 @@ class Test_aliasing_rules():
     def test_no_aliasing_2(self):
         # B and A take one another's values
         # no copying is necessary since each one is updated.
-        orig_a = np.zeros((2, 2)) + .5
-        orig_b = np.zeros((2, 2)) - .5
+        orig_a = np.zeros((2, 2)) + 0.5
+        orig_b = np.zeros((2, 2)) - 0.5
         A = self.shared(orig_a)
         B = self.shared(orig_b)
 
@@ -939,8 +978,8 @@ class Test_aliasing_rules():
         f = pfunc([], [], updates=[(A, B), (B, A)])
         f()
         # correctness
-        assert np.all(data_of(A) == -.5)
-        assert np.all(data_of(B) == +.5)
+        assert np.all(data_of(A) == -0.5)
+        assert np.all(data_of(B) == +0.5)
 
         # shared vars may not be aliased
         assert not np.may_share_memory(data_of(A), data_of(B))
@@ -955,8 +994,8 @@ class Test_aliasing_rules():
         # The twist one `test_no_aliasing_2` is that each shared var is updated
         # with a view of the other one.
 
-        orig_a = np.zeros((2, 2)) + .5
-        orig_b = np.zeros((2, 2)) - .5
+        orig_a = np.zeros((2, 2)) + 0.5
+        orig_b = np.zeros((2, 2)) - 0.5
         A = self.shared(orig_a)
         B = self.shared(orig_b)
 
@@ -967,15 +1006,14 @@ class Test_aliasing_rules():
         # theano.printing.debugprint(f)
         f()
         # correctness (doesn't actually test the view...)
-        assert np.all(data_of(A) == -.5)
-        assert np.all(data_of(B) == +.5)
+        assert np.all(data_of(A) == -0.5)
+        assert np.all(data_of(B) == +0.5)
 
         # shared vars may not be aliased
         assert not np.may_share_memory(data_of(A), data_of(B))
 
         # theano should have been smart enough to not make copies
-        if theano.config.mode not in [
-                'DebugMode', 'DEBUG_MODE', 'FAST_COMPILE']:
+        if theano.config.mode not in ["DebugMode", "DEBUG_MODE", "FAST_COMPILE"]:
             # We don't ask DebugMode and FAST_COMPILE not to make copy.
             # We have the right to do so.
             assert np.all(data_of(A) < 5)
@@ -999,19 +1037,14 @@ class Test_aliasing_rules():
             # objects forming a chain to the underlying data.
 
 
-class Test_rebuild_strict():
-    def test1(self):
+class TestRebuildStrict:
+    def test_rebuild_strict(self):
         # Test fix for error reported at
         # https://groups.google.com/d/topic/theano-users/BRK0UEB72XA/discussion
         w = tensor.imatrix()
-        x, y = tensor.ivectors('x', 'y')
+        x, y = tensor.ivectors("x", "y")
         z = x * y
         f = theano.function([w, y], z, givens=[(x, w)], rebuild_strict=False)
-        z_val = f(np.ones((3, 5), dtype='int32'), np.arange(5, dtype='int32'))
+        z_val = f(np.ones((3, 5), dtype="int32"), np.arange(5, dtype="int32"))
         assert z_val.ndim == 2
         assert np.all(z_val == np.ones((3, 5)) * np.arange(5))
-
-
-if __name__ == '__main__':
-    theano.config.mode = 'FAST_COMPILE'
-    Test_pfunc().test_default_scalar_container()

@@ -1,21 +1,18 @@
-from __future__ import absolute_import, print_function, division
 __docformat__ = "restructuredtext en"
 
-import sys
-import numpy as np
 import pytest
+import numpy as np
 
-from theano.tensor import raw_random
 from theano.tensor.shared_randomstreams import RandomStreams
 from theano import function, shared
 
 from theano import tensor
-from theano import compile, config, gof
+from theano import config
 
 from theano.tests import unittest_tools as utt
 
 
-class Test_SharedRandomStreams():
+class TestSharedRandomStreams:
     def setup_method(self):
         utt.seed_rng()
 
@@ -24,39 +21,30 @@ class Test_SharedRandomStreams():
         rv_u = srng.uniform((2, 2))
         rv_n = srng.normal((2, 2))
         f = function([], rv_u)
-        g = function([], rv_n, no_default_updates=True)    #Not updating rv_n.rng
+        g = function([], rv_n, no_default_updates=True)  # Not updating rv_n.rng
         nearly_zeros = function([], rv_u + rv_u - 2 * rv_u)
 
         assert np.all(f() != f())
         assert np.all(g() == g())
         assert np.all(abs(nearly_zeros()) < 1e-5)
-
-        assert isinstance(rv_u.rng.get_value(borrow=True),
-                np.random.RandomState)
+        assert isinstance(rv_u.rng.get_value(borrow=True), np.random.RandomState)
 
     def test_basics(self):
         random = RandomStreams(utt.fetch_seed())
         fn = function([], random.uniform((2, 2)), updates=random.updates())
-        gn = function([], random.normal((2, 2)), updates=random.updates())
+        # gn = function([], random.normal((2, 2)), updates=random.updates())
 
         fn_val0 = fn()
         fn_val1 = fn()
+        # gn_val0 = gn()
 
-        gn_val0 = gn()
-
-        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2**30)
+        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2 ** 30)
         rng = np.random.RandomState(int(rng_seed))  # int() is for 32bit
 
-        # print fn_val0
         numpy_val0 = rng.uniform(size=(2, 2))
         numpy_val1 = rng.uniform(size=(2, 2))
-        # print numpy_val0
 
         assert np.allclose(fn_val0, numpy_val0)
-        print(fn_val0)
-        print(numpy_val0)
-        print(fn_val1)
-        print(numpy_val1)
         assert np.allclose(fn_val1, numpy_val1)
 
     def test_seed_fn(self):
@@ -68,13 +56,11 @@ class Test_SharedRandomStreams():
         fn_val0 = fn()
         fn_val1 = fn()
 
-        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2**30)
-        rng = np.random.RandomState(int(rng_seed))  #int() is for 32bit
+        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2 ** 30)
+        rng = np.random.RandomState(int(rng_seed))  # int() is for 32bit
 
-        # print fn_val0
         numpy_val0 = rng.uniform(size=(2, 2))
         numpy_val1 = rng.uniform(size=(2, 2))
-        # print numpy_val0
 
         assert np.allclose(fn_val0, numpy_val0)
         assert np.allclose(fn_val1, numpy_val1)
@@ -145,7 +131,7 @@ class Test_SharedRandomStreams():
         fn_val0 = fn()
         fn_val1 = fn()
 
-        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2**30)
+        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2 ** 30)
         rng = np.random.RandomState(int(rng_seed))  # int() is for 32bit
         numpy_val0 = rng.uniform(-1, 1, size=(2, 2))
         numpy_val1 = rng.uniform(-1, 1, size=(2, 2))
@@ -162,7 +148,7 @@ class Test_SharedRandomStreams():
         fn_val0 = fn()
         fn_val1 = fn()
 
-        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2**30)
+        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2 ** 30)
         rng = np.random.RandomState(int(rng_seed))  # int() is for 32bit
         numpy_val0 = rng.normal(-1, 2, size=(2, 2))
         numpy_val1 = rng.normal(-1, 2, size=(2, 2))
@@ -181,7 +167,7 @@ class Test_SharedRandomStreams():
         fn_val0 = fn()
         fn_val1 = fn()
 
-        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2**30)
+        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2 ** 30)
         rng = np.random.RandomState(int(rng_seed))  # int() is for 32bit
         numpy_val0 = rng.randint(-5, 6, size=(20, 20))
         numpy_val1 = rng.randint(-5, 6, size=(20, 20))
@@ -197,7 +183,7 @@ class Test_SharedRandomStreams():
         fn_val0 = fn()
         fn_val1 = fn()
 
-        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2**30)
+        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2 ** 30)
         rng = np.random.RandomState(int(rng_seed))  # int() is for 32bit
         numpy_val0 = rng.choice(10, (11, 8), True, None)
         numpy_val1 = rng.choice(10, (11, 8), True, None)
@@ -214,7 +200,7 @@ class Test_SharedRandomStreams():
         fn_val0 = fn()
         fn_val1 = fn()
 
-        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2**30)
+        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2 ** 30)
         rng = np.random.RandomState(int(rng_seed))  # int() is for 32bit
         numpy_val0 = rng.poisson(lam=5, size=(11, 8))
         numpy_val1 = rng.poisson(lam=5, size=(11, 8))
@@ -231,7 +217,7 @@ class Test_SharedRandomStreams():
         fn_val0 = fn()
         fn_val1 = fn()
 
-        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2**30)
+        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2 ** 30)
         rng = np.random.RandomState(int(rng_seed))  # int() is for 32bit
 
         # rng.permutation outputs one vector at a time, so we iterate.
@@ -245,15 +231,17 @@ class Test_SharedRandomStreams():
         # Test that RandomStreams.multinomial generates the same results as numpy
         # Check over two calls to see if the random state is correctly updated.
         random = RandomStreams(utt.fetch_seed())
-        fn = function([], random.multinomial((4, 4), 1, [0.1]*10), updates=random.updates())
+        fn = function(
+            [], random.multinomial((4, 4), 1, [0.1] * 10), updates=random.updates()
+        )
 
         fn_val0 = fn()
         fn_val1 = fn()
 
-        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2**30)
+        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2 ** 30)
         rng = np.random.RandomState(int(rng_seed))  # int() is for 32bit
-        numpy_val0 = rng.multinomial(1, [0.1]*10, size=(4, 4))
-        numpy_val1 = rng.multinomial(1, [0.1]*10, size=(4, 4))
+        numpy_val0 = rng.multinomial(1, [0.1] * 10, size=(4, 4))
+        numpy_val1 = rng.multinomial(1, [0.1] * 10, size=(4, 4))
 
         assert np.all(fn_val0 == numpy_val0)
         assert np.all(fn_val1 == numpy_val1)
@@ -267,21 +255,20 @@ class Test_SharedRandomStreams():
         # of the matrix are shuffled.
         random = RandomStreams(utt.fetch_seed())
         m_input = tensor.dmatrix()
-        f = function([m_input], random.shuffle_row_elements(m_input), updates=random.updates())
+        f = function(
+            [m_input], random.shuffle_row_elements(m_input), updates=random.updates()
+        )
 
         # Generate the elements to be shuffled
-        val_rng = np.random.RandomState(utt.fetch_seed()+42)
+        val_rng = np.random.RandomState(utt.fetch_seed() + 42)
         in_mval = val_rng.uniform(-2, 2, size=(20, 5))
         fn_mval0 = f(in_mval)
         fn_mval1 = f(in_mval)
-        print(in_mval[0])
-        print(fn_mval0[0])
-        print(fn_mval1[0])
         assert not np.all(in_mval == fn_mval0)
         assert not np.all(in_mval == fn_mval1)
         assert not np.all(fn_mval0 == fn_mval1)
 
-        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2**30)
+        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2 ** 30)
         rng = np.random.RandomState(int(rng_seed))
         numpy_mval0 = in_mval.copy()
         numpy_mval1 = in_mval.copy()
@@ -304,9 +291,6 @@ class Test_SharedRandomStreams():
         numpy_vval = in_vval.copy()
         vrng = np.random.RandomState(int(rng_seed))
         vrng.shuffle(numpy_vval)
-        print(in_vval)
-        print(fn_vval)
-        print(numpy_vval)
         assert np.all(numpy_vval == fn_vval)
 
         # Trying to shuffle a vector with function that should shuffle
@@ -413,8 +397,8 @@ class Test_SharedRandomStreams():
 
         # seed_rng is generator for generating *seeds* for RandomStates
         seed_rng = np.random.RandomState(utt.fetch_seed())
-        uniform_rng = np.random.RandomState(int(seed_rng.randint(2**30)))
-        multinomial_rng = np.random.RandomState(int(seed_rng.randint(2**30)))
+        uniform_rng = np.random.RandomState(int(seed_rng.randint(2 ** 30)))
+        multinomial_rng = np.random.RandomState(int(seed_rng.randint(2 ** 30)))
 
         val0 = f()
         val1 = f()
@@ -423,9 +407,11 @@ class Test_SharedRandomStreams():
         assert np.allclose(val0, numpy_val0)
         assert np.allclose(val1, numpy_val1)
 
-        for i in range(10):  # every test has 50% chance of passing even with non-matching random states
+        for i in range(
+            10
+        ):  # every test has 50% chance of passing even with non-matching random states
             val2 = g()
-            numpy_val2 = multinomial_rng.multinomial(n=1, pvals=[.5, .5])
+            numpy_val2 = multinomial_rng.multinomial(n=1, pvals=[0.5, 0.5])
             assert np.all(val2 == numpy_val2)
 
     def test_vector_arguments(self):
@@ -436,11 +422,11 @@ class Test_SharedRandomStreams():
         f = function([low], out)
 
         seed_gen = np.random.RandomState(utt.fetch_seed())
-        numpy_rng = np.random.RandomState(int(seed_gen.randint(2**30)))
-        val0 = f([-5, .5, 0, 1])
-        val1 = f([.9])
-        numpy_val0 = numpy_rng.uniform(low=[-5, .5, 0, 1], high=1)
-        numpy_val1 = numpy_rng.uniform(low=[.9], high=1)
+        numpy_rng = np.random.RandomState(int(seed_gen.randint(2 ** 30)))
+        val0 = f([-5, 0.5, 0, 1])
+        val1 = f([0.9])
+        numpy_val0 = numpy_rng.uniform(low=[-5, 0.5, 0, 1], high=1)
+        numpy_val1 = numpy_rng.uniform(low=[0.9], high=1)
         assert np.all(val0 == numpy_val0)
         assert np.all(val1 == numpy_val1)
 
@@ -449,15 +435,15 @@ class Test_SharedRandomStreams():
         assert outb.ndim == 1
         fb = function([low, high], outb)
 
-        numpy_rng = np.random.RandomState(int(seed_gen.randint(2**30)))
-        val0b = fb([-4., -2], [-1, 0])
-        val1b = fb([-4.], [-1])
-        numpy_val0b = numpy_rng.uniform(low=[-4., -2], high=[-1, 0])
-        numpy_val1b = numpy_rng.uniform(low=[-4.], high=[-1])
+        numpy_rng = np.random.RandomState(int(seed_gen.randint(2 ** 30)))
+        val0b = fb([-4.0, -2], [-1, 0])
+        val1b = fb([-4.0], [-1])
+        numpy_val0b = numpy_rng.uniform(low=[-4.0, -2], high=[-1, 0])
+        numpy_val1b = numpy_rng.uniform(low=[-4.0], high=[-1])
         assert np.all(val0b == numpy_val0b)
         assert np.all(val1b == numpy_val1b)
         with pytest.raises(ValueError):
-            fb([-4., -2], [-1, 0, 1])
+            fb([-4.0, -2], [-1, 0, 1])
         # TODO: do we want that?
         # with pytest.raises(ValueError):
         #    fb([-4., -2], [-1])
@@ -466,20 +452,20 @@ class Test_SharedRandomStreams():
         outc = random.uniform(low=low, high=high, size=size, ndim=1)
         fc = function([low, high, size], outc)
 
-        numpy_rng = np.random.RandomState(int(seed_gen.randint(2**30)))
-        val0c = fc([-4., -2], [-1, 0], [2])
-        val1c = fc([-4.], [-1], [1])
-        numpy_val0c = numpy_rng.uniform(low=[-4., -2], high=[-1, 0])
-        numpy_val1c = numpy_rng.uniform(low=[-4.], high=[-1])
+        numpy_rng = np.random.RandomState(int(seed_gen.randint(2 ** 30)))
+        val0c = fc([-4.0, -2], [-1, 0], [2])
+        val1c = fc([-4.0], [-1], [1])
+        numpy_val0c = numpy_rng.uniform(low=[-4.0, -2], high=[-1, 0])
+        numpy_val1c = numpy_rng.uniform(low=[-4.0], high=[-1])
         assert np.all(val0c == numpy_val0c)
         assert np.all(val1c == numpy_val1c)
         with pytest.raises(ValueError):
-            fc([-4., -2], [-1, 0], [1, 2])
+            fc([-4.0, -2], [-1, 0], [1, 2])
         with pytest.raises(ValueError):
-            fc([-4., -2], [-1, 0], [2, 1])
+            fc([-4.0, -2], [-1, 0], [2, 1])
         # TODO: These two used to fail with ValueError before November 2019 refactor:
-        fc([-4., -2], [-1, 0], [1])
-        fc([-4., -2], [-1], [1])
+        fc([-4.0, -2], [-1, 0], [1])
+        fc([-4.0, -2], [-1], [1])
         # TODO: do we want that?
         # with pytest.raises(ValueError):
         #     fc([-4., -2], [-1], [2])
@@ -492,15 +478,15 @@ class Test_SharedRandomStreams():
         assert out.ndim == 2
         f = function([low, high], out)
 
-        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2**30)
+        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2 ** 30)
         numpy_rng = np.random.RandomState(int(rng_seed))
-        val0 = f([-5, .5, 0, 1], [[1.]])
-        val1 = f([.9], [[1.], [1.1], [1.5]])
-        val2 = f([-5, .5, 0, 1], [[1.], [1.1], [1.5]])
+        val0 = f([-5, 0.5, 0, 1], [[1.0]])
+        val1 = f([0.9], [[1.0], [1.1], [1.5]])
+        val2 = f([-5, 0.5, 0, 1], [[1.0], [1.1], [1.5]])
 
-        numpy_val0 = numpy_rng.uniform(low=[-5, .5, 0, 1], high=[1.])
-        numpy_val1 = numpy_rng.uniform(low=[.9], high=[[1.], [1.1], [1.5]])
-        numpy_val2 = numpy_rng.uniform(low=[-5, .5, 0, 1], high=[[1.], [1.1], [1.5]])
+        numpy_val0 = numpy_rng.uniform(low=[-5, 0.5, 0, 1], high=[1.0])
+        numpy_val1 = numpy_rng.uniform(low=[0.9], high=[[1.0], [1.1], [1.5]])
+        numpy_val2 = numpy_rng.uniform(low=[-5, 0.5, 0, 1], high=[[1.0], [1.1], [1.5]])
 
         assert np.all(val0 == numpy_val0)
         assert np.all(val1 == numpy_val1)
@@ -514,29 +500,25 @@ class Test_SharedRandomStreams():
         assert out.ndim == 1
         f = function([low, high], out)
 
-        low_val = [.1, .2, .3]
+        low_val = [0.1, 0.2, 0.3]
         high_val = [1.1, 2.2, 3.3]
         seed_gen = np.random.RandomState(utt.fetch_seed())
-        numpy_rng = np.random.RandomState(int(seed_gen.randint(2**30)))
+        numpy_rng = np.random.RandomState(int(seed_gen.randint(2 ** 30)))
 
         # Arguments of size (3,)
         val0 = f(low_val, high_val)
         numpy_val0 = numpy_rng.uniform(low=low_val, high=high_val)
-        print('THEANO', val0)
-        print('NUMPY', numpy_val0)
         assert np.all(val0 == numpy_val0)
 
         # arguments of size (2,)
         val1 = f(low_val[:-1], high_val[:-1])
         numpy_val1 = numpy_rng.uniform(low=low_val[:-1], high=high_val[:-1])
-        print('THEANO', val1)
-        print('NUMPY', numpy_val1)
         assert np.all(val1 == numpy_val1)
 
         # Specifying the size explicitly
         g = function([low, high], random.uniform(low=low, high=high, size=(3,)))
         val2 = g(low_val, high_val)
-        numpy_rng = np.random.RandomState(int(seed_gen.randint(2**30)))
+        numpy_rng = np.random.RandomState(int(seed_gen.randint(2 ** 30)))
         numpy_val2 = numpy_rng.uniform(low=low_val, high=high_val, size=(3,))
         assert np.all(val2 == numpy_val2)
         with pytest.raises(ValueError):
@@ -551,9 +533,9 @@ class Test_SharedRandomStreams():
         f = function([n, prob], out)
 
         n_val = [1, 2, 3]
-        prob_val = np.asarray([.1, .2, .3], dtype=config.floatX)
+        prob_val = np.asarray([0.1, 0.2, 0.3], dtype=config.floatX)
         seed_gen = np.random.RandomState(utt.fetch_seed())
-        numpy_rng = np.random.RandomState(int(seed_gen.randint(2**30)))
+        numpy_rng = np.random.RandomState(int(seed_gen.randint(2 ** 30)))
 
         # Arguments of size (3,)
         val0 = f(n_val, prob_val)
@@ -568,7 +550,7 @@ class Test_SharedRandomStreams():
         # Specifying the size explicitly
         g = function([n, prob], random.binomial(n=n, p=prob, size=(3,)))
         val2 = g(n_val, prob_val)
-        numpy_rng = np.random.RandomState(int(seed_gen.randint(2**30)))
+        numpy_rng = np.random.RandomState(int(seed_gen.randint(2 ** 30)))
         numpy_val2 = numpy_rng.binomial(n=n_val, p=prob_val, size=(3,))
         assert np.all(val2 == numpy_val2)
         with pytest.raises(ValueError):
@@ -583,9 +565,9 @@ class Test_SharedRandomStreams():
         f = function([avg, std], out)
 
         avg_val = [1, 2, 3]
-        std_val = [.1, .2, .3]
+        std_val = [0.1, 0.2, 0.3]
         seed_gen = np.random.RandomState(utt.fetch_seed())
-        numpy_rng = np.random.RandomState(int(seed_gen.randint(2**30)))
+        numpy_rng = np.random.RandomState(int(seed_gen.randint(2 ** 30)))
 
         # Arguments of size (3,)
         val0 = f(avg_val, std_val)
@@ -600,7 +582,7 @@ class Test_SharedRandomStreams():
         # Specifying the size explicitly
         g = function([avg, std], random.normal(avg=avg, std=std, size=(3,)))
         val2 = g(avg_val, std_val)
-        numpy_rng = np.random.RandomState(int(seed_gen.randint(2**30)))
+        numpy_rng = np.random.RandomState(int(seed_gen.randint(2 ** 30)))
         numpy_val2 = numpy_rng.normal(loc=avg_val, scale=std_val, size=(3,))
         assert np.allclose(val2, numpy_val2)
         with pytest.raises(ValueError):
@@ -617,26 +599,38 @@ class Test_SharedRandomStreams():
         low_val = [100, 200, 300]
         high_val = [110, 220, 330]
         seed_gen = np.random.RandomState(utt.fetch_seed())
-        numpy_rng = np.random.RandomState(int(seed_gen.randint(2**30)))
+        numpy_rng = np.random.RandomState(int(seed_gen.randint(2 ** 30)))
 
         # Arguments of size (3,)
         val0 = f(low_val, high_val)
-        numpy_val0 = np.asarray([numpy_rng.randint(low=lv, high=hv+1)
-            for lv, hv in zip(low_val, high_val)])
+        numpy_val0 = np.asarray(
+            [
+                numpy_rng.randint(low=lv, high=hv + 1)
+                for lv, hv in zip(low_val, high_val)
+            ]
+        )
         assert np.all(val0 == numpy_val0)
 
         # arguments of size (2,)
         val1 = f(low_val[:-1], high_val[:-1])
-        numpy_val1 = np.asarray([numpy_rng.randint(low=lv, high=hv+1)
-            for lv, hv in zip(low_val[:-1], high_val[:-1])])
+        numpy_val1 = np.asarray(
+            [
+                numpy_rng.randint(low=lv, high=hv + 1)
+                for lv, hv in zip(low_val[:-1], high_val[:-1])
+            ]
+        )
         assert np.all(val1 == numpy_val1)
 
         # Specifying the size explicitly
         g = function([low, high], random.random_integers(low=low, high=high, size=(3,)))
         val2 = g(low_val, high_val)
-        numpy_rng = np.random.RandomState(int(seed_gen.randint(2**30)))
-        numpy_val2 = np.asarray([numpy_rng.randint(low=lv, high=hv+1)
-            for lv, hv in zip(low_val, high_val)])
+        numpy_rng = np.random.RandomState(int(seed_gen.randint(2 ** 30)))
+        numpy_val2 = np.asarray(
+            [
+                numpy_rng.randint(low=lv, high=hv + 1)
+                for lv, hv in zip(low_val, high_val)
+            ]
+        )
         assert np.all(val2 == numpy_val2)
         with pytest.raises(ValueError):
             g(low_val[:-1], high_val[:-1])
@@ -653,29 +647,35 @@ class Test_SharedRandomStreams():
         f = function([n, pvals], out)
 
         n_val = [1, 2, 3]
-        pvals_val = [[.1, .9], [.2, .8], [.3, .7]]
+        pvals_val = [[0.1, 0.9], [0.2, 0.8], [0.3, 0.7]]
         pvals_val = np.asarray(pvals_val, dtype=config.floatX)
         seed_gen = np.random.RandomState(utt.fetch_seed())
-        numpy_rng = np.random.RandomState(int(seed_gen.randint(2**30)))
+        numpy_rng = np.random.RandomState(int(seed_gen.randint(2 ** 30)))
 
         # Arguments of size (3,)
         val0 = f(n_val, pvals_val)
-        numpy_val0 = np.asarray([numpy_rng.multinomial(n=nv, pvals=pv)
-            for nv, pv in zip(n_val, pvals_val)])
+        numpy_val0 = np.asarray(
+            [numpy_rng.multinomial(n=nv, pvals=pv) for nv, pv in zip(n_val, pvals_val)]
+        )
         assert np.all(val0 == numpy_val0)
 
         # arguments of size (2,)
         val1 = f(n_val[:-1], pvals_val[:-1])
-        numpy_val1 = np.asarray([numpy_rng.multinomial(n=nv, pvals=pv)
-            for nv, pv in zip(n_val[:-1], pvals_val[:-1])])
+        numpy_val1 = np.asarray(
+            [
+                numpy_rng.multinomial(n=nv, pvals=pv)
+                for nv, pv in zip(n_val[:-1], pvals_val[:-1])
+            ]
+        )
         assert np.all(val1 == numpy_val1)
 
         # Specifying the size explicitly
         g = function([n, pvals], random.multinomial(n=n, pvals=pvals, size=(3,)))
         val2 = g(n_val, pvals_val)
-        numpy_rng = np.random.RandomState(int(seed_gen.randint(2**30)))
-        numpy_val2 = np.asarray([numpy_rng.multinomial(n=nv, pvals=pv)
-            for nv, pv in zip(n_val, pvals_val)])
+        numpy_rng = np.random.RandomState(int(seed_gen.randint(2 ** 30)))
+        numpy_val2 = np.asarray(
+            [numpy_rng.multinomial(n=nv, pvals=pv) for nv, pv in zip(n_val, pvals_val)]
+        )
         assert np.all(val2 == numpy_val2)
         with pytest.raises(ValueError):
             g(n_val[:-1], pvals_val[:-1])
@@ -684,15 +684,15 @@ class Test_SharedRandomStreams():
         random = RandomStreams(utt.fetch_seed())
         low = tensor.lscalar()
         high = tensor.lscalar()
-        out = random.random_integers(low=low, high=high, size=(20,), dtype='int8')
-        assert out.dtype == 'int8'
+        out = random.random_integers(low=low, high=high, size=(20,), dtype="int8")
+        assert out.dtype == "int8"
         f = function([low, high], out)
 
         val0 = f(0, 9)
-        assert val0.dtype == 'int8'
+        assert val0.dtype == "int8"
 
         val1 = f(255, 257)
-        assert val1.dtype == 'int8'
+        assert val1.dtype == "int8"
         assert np.all(abs(val1) <= 1)
 
     def test_default_dtype(self):
@@ -702,17 +702,17 @@ class Test_SharedRandomStreams():
 
         # Should not silently downcast from low and high
         out0 = random.uniform(low=low, high=high, size=(42,))
-        assert out0.dtype == 'float64'
+        assert out0.dtype == "float64"
         f0 = function([low, high], out0)
         val0 = f0(-2.1, 3.1)
-        assert val0.dtype == 'float64'
+        assert val0.dtype == "float64"
 
         # Should downcast, since asked explicitly
-        out1 = random.uniform(low=low, high=high, size=(42,), dtype='float32')
-        assert out1.dtype == 'float32'
+        out1 = random.uniform(low=low, high=high, size=(42,), dtype="float32")
+        assert out1.dtype == "float32"
         f1 = function([low, high], out1)
         val1 = f1(-1.1, 1.1)
-        assert val1.dtype == 'float32'
+        assert val1.dtype == "float32"
 
         # Should use floatX
         lowf = tensor.fscalar()
@@ -817,6 +817,7 @@ class Test_SharedRandomStreams():
             def __init__(self, seed=123):
                 self.rng = RandomStreams(seed)
                 self.y = self.rng.uniform(size=(1,))
+
         g1 = Graph(seed=123)
         f1 = function([], g1.y)
         g2 = Graph(seed=987)
@@ -826,8 +827,3 @@ class Test_SharedRandomStreams():
             su2[0].set_value(su1[0].get_value())
 
         np.testing.assert_array_almost_equal(f1(), f2(), decimal=6)
-
-
-if __name__ == '__main__':
-    from theano.tests import main
-    main("test_shared_randomstreams")

@@ -28,13 +28,16 @@ functions: ``scan()``, ``map()``, ``reduce()``, ``foldl()``,
 ``foldr()``.
 
 """
-from __future__ import absolute_import, print_function, division
-__docformat__ = 'restructedtext en'
-__authors__ = ("Razvan Pascanu "
-               "Frederic Bastien "
-               "James Bergstra "
-               "Pascal Lamblin "
-               "Arnaud Bergeron ")
+
+
+__docformat__ = "restructedtext en"
+__authors__ = (
+    "Razvan Pascanu "
+    "Frederic Bastien "
+    "James Bergstra "
+    "Pascal Lamblin "
+    "Arnaud Bergeron "
+)
 __copyright__ = "(c) 2010, Universite de Montreal"
 __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 

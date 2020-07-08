@@ -5,7 +5,7 @@ These functions implement special cases of exp and log to improve numerical
 stability.
 
 """
-from __future__ import absolute_import, print_function, division
+
 
 import warnings
 
@@ -31,6 +31,7 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
     This is just speed opt. Not for stability.
 
     """
+
     @staticmethod
     def st_impl(x):
         if x < -30.0:
@@ -39,27 +40,27 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
             return 1.0
         # If x is an int8 or uint8, numpy.exp will compute the result in
         # half-precision (float16), where we want float32.
-        x_dtype = str(getattr(x, 'dtype', ''))
-        if x_dtype in ('int8', 'uint8'):
-            return 1.0 / (1.0 + np.exp(-x, sig='f'))
+        x_dtype = str(getattr(x, "dtype", ""))
+        if x_dtype in ("int8", "uint8"):
+            return 1.0 / (1.0 + np.exp(-x, sig="f"))
         return 1.0 / (1.0 + np.exp(-x))
 
     def impl(self, x):
         return ScalarSigmoid.st_impl(x)
 
     def grad(self, inp, grads):
-        x, = inp
-        gz, = grads
+        (x,) = inp
+        (gz,) = grads
         y = scalar_sigmoid(x)
         rval = gz * y * (1.0 - y)
 
-        assert rval.type.dtype.find('float') != -1
+        assert rval.type.dtype.find("float") != -1
 
         return [rval]
 
     def c_code(self, node, name, inp, out, sub):
-        x, = inp
-        z, = out
+        (x,) = inp
+        (z,) = out
         # We add boundary checks prevent exp from generating inf or
         # 0. The reset of the logic always generate 0 or 1 in those
         # cases. This is a speed optimization.
@@ -76,13 +77,21 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
         # float16 limits: -11.0, 7.0f
         # We use the float32 limits for float16 for now as the
         # computation will happen in float32 anyway.
-        if (node.inputs[0].type == scalar.float32 or
-                node.inputs[0].type == scalar.float16):
-            return """%(z)s = %(x)s < -88.0f ? 0.0 : %(x)s > 15.0f ? 1.0f : 1.0f /(1.0f + exp(-%(x)s));""" % locals()
+        if (
+            node.inputs[0].type == scalar.float32
+            or node.inputs[0].type == scalar.float16
+        ):
+            return (
+                """%(z)s = %(x)s < -88.0f ? 0.0 : %(x)s > 15.0f ? 1.0f : 1.0f /(1.0f + exp(-%(x)s));"""
+                % locals()
+            )
         elif node.inputs[0].type == scalar.float64:
-            return """%(z)s = %(x)s < -709.0 ? 0.0 : %(x)s > 19.0 ? 1.0 : 1.0 /(1.0+exp(-%(x)s));""" % locals()
+            return (
+                """%(z)s = %(x)s < -709.0 ? 0.0 : %(x)s > 19.0 ? 1.0 : 1.0 /(1.0+exp(-%(x)s));"""
+                % locals()
+            )
         else:
-            raise NotImplementedError('only floatingpoint is implemented')
+            raise NotImplementedError("only floatingpoint is implemented")
 
     def c_code_cache_version(self):
         v = super(ScalarSigmoid, self).c_code_cache_version()
@@ -93,21 +102,24 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
 
     # This fct is disabled as it is slower then the normal code!
     def c_code_contiguous_disabled(self, node, name, inp, out, sub):
-        x, = inp
-        z, = out
-        if (not theano.config.lib.amdlibm or
-                node.inputs[0].dtype != node.outputs[0].dtype):
+        (x,) = inp
+        (z,) = out
+        if (
+            not theano.config.lib.amdlibm
+            or node.inputs[0].dtype != node.outputs[0].dtype
+        ):
             raise theano.gof.utils.MethodNotDefined()
         dtype = node.inputs[0].dtype
-        if dtype == 'float32' and self.amd_float32 is not None:
-            dtype = 'float'
+        if dtype == "float32" and self.amd_float32 is not None:
+            dtype = "float"
             fct = "amd_vrsa_expf"
-        elif dtype == 'float64' and self.amd_float64 is not None:
-            dtype = 'double'
+        elif dtype == "float64" and self.amd_float64 is not None:
+            dtype = "double"
             fct = "amd_vrda_exp"
         else:
             raise theano.gof.utils.MethodNotDefined()
-        return """
+        return (
+            """
         npy_intp n = PyArray_SIZE(%(z)s);
         %(dtype)s * x = (%(dtype)s*) PyArray_DATA(%(x)s);
         %(dtype)s * z = (%(dtype)s*) PyArray_DATA(%(z)s);
@@ -125,7 +137,9 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
                 z[i+j] = 1.0 /(1.0+z[i+j]);
             }
         }
-        """ % locals()
+        """
+            % locals()
+        )
         raise theano.gof.utils.MethodNotDefined()
 
     @staticmethod
@@ -134,7 +148,7 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
         This method was used to generate the graph: sigmoid_prec.png in the doc.
 
         """
-        data = np.arange(-15, 15, .1)
+        data = np.arange(-15, 15, 0.1)
         val = 1 / (1 + np.exp(-data))
 
         def hard_sigmoid(x):
@@ -148,6 +162,7 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
 
         import matplotlib.pyplot as plt
         import os
+
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.plot(data, val)  # , 'o-')
@@ -155,25 +170,31 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
         ax.plot(data, val_hard)  # , '-')
         ax.grid(True)
         ax.legend(("sigmoid", "ultra_fast", "hard"), "upper left")
-        fname = os.path.join(os.path.dirname(theano.__file__), '..',
-                             'doc', 'library', 'tensor', 'nnet',
-                             'sigmoid_prec.png')
+        fname = os.path.join(
+            os.path.dirname(theano.__file__),
+            "..",
+            "doc",
+            "library",
+            "tensor",
+            "nnet",
+            "sigmoid_prec.png",
+        )
         plt.savefig(fname)
         print("New picture saved at", fname)
         print(val_ultra.max())
         print(val_ultra.min())
 
 
-scalar_sigmoid = ScalarSigmoid(scalar.upgrade_to_float, name='scalar_sigmoid')
-sigmoid = elemwise.Elemwise(scalar_sigmoid, name='sigmoid')
+scalar_sigmoid = ScalarSigmoid(scalar.upgrade_to_float, name="scalar_sigmoid")
+sigmoid = elemwise.Elemwise(scalar_sigmoid, name="sigmoid")
 
 sigmoid_inplace = elemwise.Elemwise(
     ScalarSigmoid(scalar.transfer_type(0)),
     inplace_pattern={0: 0},
-    name='sigmoid_inplace',
+    name="sigmoid_inplace",
 )
 
-pprint.assign(sigmoid, printing.FunctionPrinter('sigmoid'))
+pprint.assign(sigmoid, printing.FunctionPrinter("sigmoid"))
 
 
 class UltraFastScalarSigmoid(scalar.UnaryScalarOp):
@@ -181,38 +202,40 @@ class UltraFastScalarSigmoid(scalar.UnaryScalarOp):
     This is just speed opt. Not for stability.
 
     """
+
     @staticmethod
     def st_impl(x):
         x = 0.5 * x
         # The if is a tanh approximate.
         if x >= 0:
             if x < 1.7:
-                z = (1.5 * x / (1 + x))
+                z = 1.5 * x / (1 + x)
             elif x < 3:
-                z = (0.935409070603099 + 0.0458812946797165 * (x - 1.7))
+                z = 0.935409070603099 + 0.0458812946797165 * (x - 1.7)
             else:
                 z = 0.99505475368673
         else:
             xx = -x
             if xx < 1.7:
-                z = (1.5 * xx / (1 + xx))
+                z = 1.5 * xx / (1 + xx)
             elif xx < 3:
-                z = (0.935409070603099 + 0.0458812946797165 * (xx - 1.7))
+                z = 0.935409070603099 + 0.0458812946797165 * (xx - 1.7)
             else:
                 z = 0.99505475368673
             z = -z
 
-        return 0.5 * (z + 1.)
+        return 0.5 * (z + 1.0)
 
     def impl(self, x):
         return UltraFastScalarSigmoid.st_impl(x)
 
     def c_code(self, node, name, inp, out, sub):
-        x, = inp
-        z, = out
+        (x,) = inp
+        (z,) = out
         dtype = node.outputs[0].type.dtype_specs()[1]
 
-        return """
+        return (
+            """
         %(dtype)s x = 0.5 * %(x)s;
    // The if is a tanh approximate.
    if(x>=0) {
@@ -228,21 +251,25 @@ class UltraFastScalarSigmoid(scalar.UnaryScalarOp):
 
         //%(z)s = 0.5*(ultrafasttanh(0.5*x)+1.);
         %(z)s = 0.5*(%(z)s+1.);
-        """ % locals()
+        """
+            % locals()
+        )
+
 
 ultra_fast_scalar_sigmoid = UltraFastScalarSigmoid(
-    scalar.upgrade_to_float, name='ultra_fast_scalar_sigmoid')
-ultra_fast_sigmoid = elemwise.Elemwise(ultra_fast_scalar_sigmoid,
-                                       name='ultra_fast_sigmoid')
+    scalar.upgrade_to_float, name="ultra_fast_scalar_sigmoid"
+)
+ultra_fast_sigmoid = elemwise.Elemwise(
+    ultra_fast_scalar_sigmoid, name="ultra_fast_sigmoid"
+)
 
 ultra_fast_sigmoid_inplace = elemwise.Elemwise(
     UltraFastScalarSigmoid(scalar.transfer_type(0)),
     inplace_pattern={0: 0},
-    name='ultra_fast_sigmoid_inplace',
+    name="ultra_fast_sigmoid_inplace",
 )
 
-pprint.assign(ultra_fast_sigmoid,
-              printing.FunctionPrinter('ultra_fast_sigmoid'))
+pprint.assign(ultra_fast_sigmoid, printing.FunctionPrinter("ultra_fast_sigmoid"))
 
 
 # @opt.register_uncanonicalize
@@ -260,8 +287,7 @@ def local_ultra_fast_sigmoid(node):
     to avoid interacting with them.
 
     """
-    if (isinstance(node.op, tensor.Elemwise) and
-            node.op.scalar_op == scalar_sigmoid):
+    if isinstance(node.op, tensor.Elemwise) and node.op.scalar_op == scalar_sigmoid:
         out = ultra_fast_sigmoid(node.inputs[0])
         copy_stack_trace(node.outputs[0], out)
 
@@ -269,11 +295,15 @@ def local_ultra_fast_sigmoid(node):
             # atol is found by trial/error.
             # Other test could fail without good reason.
             return tensor.TensorType.values_eq_approx(a, b, atol=0.02)
+
         # Let DebugMode know that there this opt approx the values.
         out.tag.values_eq_approx = values_eq_approx_remove_low_prec
         return [out]
-theano.compile.optdb['uncanonicalize'].register("local_ultra_fast_sigmoid",
-                                                local_ultra_fast_sigmoid)
+
+
+theano.compile.optdb["uncanonicalize"].register(
+    "local_ultra_fast_sigmoid", local_ultra_fast_sigmoid
+)
 
 
 def hard_sigmoid(x):
@@ -300,8 +330,7 @@ def hard_sigmoid(x):
 # @opt.register_uncanonicalize
 @gof.local_optimizer([sigmoid])
 def local_hard_sigmoid(node):
-    if (isinstance(node.op, tensor.Elemwise) and
-            node.op.scalar_op == scalar_sigmoid):
+    if isinstance(node.op, tensor.Elemwise) and node.op.scalar_op == scalar_sigmoid:
         out = hard_sigmoid(node.inputs[0])
         copy_stack_trace(node.outputs[0], out)
 
@@ -309,17 +338,22 @@ def local_hard_sigmoid(node):
             # atol is found by trial/error.
             # Other test could fail without good reason.
             return tensor.TensorType.values_eq_approx(a, b, atol=0.1)
+
         # Let DebugMode know that there this opt approx the values.
         out.tag.values_eq_approx = values_eq_approx_remove_low_prec
         return [out]
-theano.compile.optdb['uncanonicalize'].register("local_hard_sigmoid",
-                                                local_hard_sigmoid)
+
+
+theano.compile.optdb["uncanonicalize"].register(
+    "local_hard_sigmoid", local_hard_sigmoid
+)
 
 
 class ScalarSoftplus(scalar.UnaryScalarOp):
     """
     This helps numerical stability.
     """
+
     @staticmethod
     def static_impl(x):
         if x < -30.0:
@@ -328,22 +362,22 @@ class ScalarSoftplus(scalar.UnaryScalarOp):
             return x
         # If x is an int8 or uint8, numpy.exp will compute the result in
         # half-precision (float16), where we want float32.
-        x_dtype = str(getattr(x, 'dtype', ''))
-        if x_dtype in ('int8', 'uint8'):
-            return np.log1p(np.exp(x, sig='f'))
+        x_dtype = str(getattr(x, "dtype", ""))
+        if x_dtype in ("int8", "uint8"):
+            return np.log1p(np.exp(x, sig="f"))
         return np.log1p(np.exp(x))
 
     def impl(self, x):
         return ScalarSoftplus.static_impl(x)
 
     def grad(self, inp, grads):
-        x, = inp
-        gz, = grads
+        (x,) = inp
+        (gz,) = grads
         return [gz * scalar_sigmoid(x)]
 
     def c_code(self, node, name, inp, out, sub):
-        x, = inp
-        z, = out
+        (x,) = inp
+        (z,) = out
         # These constants were obtained by looking at the output of
         # python commands like:
         #  for i in xrange(750):
@@ -353,13 +387,21 @@ class ScalarSoftplus(scalar.UnaryScalarOp):
         # float16 limits: -17.0, 6.0
         # We use the float32 limits for float16 for now as the
         # computation will happen in float32 anyway.
-        if (node.inputs[0].type == scalar.float32 or
-                node.inputs[0].type == scalar.float16):
-            return """%(z)s = %(x)s < -103.0f ? 0.0 : %(x)s > 14.0f ? %(x)s : log1p(exp(%(x)s));""" % locals()
+        if (
+            node.inputs[0].type == scalar.float32
+            or node.inputs[0].type == scalar.float16
+        ):
+            return (
+                """%(z)s = %(x)s < -103.0f ? 0.0 : %(x)s > 14.0f ? %(x)s : log1p(exp(%(x)s));"""
+                % locals()
+            )
         elif node.inputs[0].type == scalar.float64:
-            return """%(z)s = %(x)s < -745.0 ? 0.0 : %(x)s > 16.0 ? %(x)s : log1p(exp(%(x)s));""" % locals()
+            return (
+                """%(z)s = %(x)s < -745.0 ? 0.0 : %(x)s > 16.0 ? %(x)s : log1p(exp(%(x)s));"""
+                % locals()
+            )
         else:
-            raise NotImplementedError('only floatingpoint is implemented')
+            raise NotImplementedError("only floatingpoint is implemented")
 
     def c_code_cache_version(self):
         v = super(ScalarSoftplus, self).c_code_cache_version()
@@ -367,11 +409,12 @@ class ScalarSoftplus(scalar.UnaryScalarOp):
             return (2,) + v
         else:
             return v
-scalar_softplus = ScalarSoftplus(scalar.upgrade_to_float,
-                                 name='scalar_softplus')
-softplus = elemwise.Elemwise(scalar_softplus, name='softplus')
 
-pprint.assign(softplus, printing.FunctionPrinter('softplus'))
+
+scalar_softplus = ScalarSoftplus(scalar.upgrade_to_float, name="scalar_softplus")
+softplus = elemwise.Elemwise(scalar_softplus, name="softplus")
+
+pprint.assign(softplus, printing.FunctionPrinter("softplus"))
 
 
 def _skip_mul_1(r):
@@ -380,12 +423,14 @@ def _skip_mul_1(r):
         if len(not_is_1) == 1:
             return not_is_1[0]
 
+
 logsigm_to_softplus = gof.PatternSub(
-    (tensor.log, (sigmoid, 'x')),
-    (tensor.neg, (softplus, (tensor.neg, 'x'))),
+    (tensor.log, (sigmoid, "x")),
+    (tensor.neg, (softplus, (tensor.neg, "x"))),
     allow_multiple_clients=True,
     values_eq_approx=values_eq_approx_remove_inf,
-    skip_identities_fn=_skip_mul_1)
+    skip_identities_fn=_skip_mul_1,
+)
 
 
 def _is_1(expr):
@@ -403,35 +448,34 @@ def _is_1(expr):
     except tensor.NotScalarConstantError:
         return False
 
+
 log1msigm_to_softplus = gof.PatternSub(
-    (tensor.log,
-        (tensor.sub,
-            dict(pattern='y', constraint=_is_1),
-            (sigmoid, 'x'))),
-    (tensor.neg, (softplus, 'x')),
+    (tensor.log, (tensor.sub, dict(pattern="y", constraint=_is_1), (sigmoid, "x"))),
+    (tensor.neg, (softplus, "x")),
     allow_multiple_clients=True,
     values_eq_approx=values_eq_approx_remove_inf,
-    skip_identities_fn=_skip_mul_1)
+    skip_identities_fn=_skip_mul_1,
+)
 
 
 log1pexp_to_softplus = gof.PatternSub(
-    (tensor.log1p,
-     (tensor.exp, 'x')),
-    (softplus, 'x'),
+    (tensor.log1p, (tensor.exp, "x")),
+    (softplus, "x"),
     values_eq_approx=values_eq_approx_remove_inf,
-    allow_multiple_clients=True)
+    allow_multiple_clients=True,
+)
 
 log1p_neg_sigmoid = gof.PatternSub(
-    (tensor.log1p,
-     (tensor.neg, (sigmoid, 'x'))),
-    (tensor.neg, (softplus, 'x')),
+    (tensor.log1p, (tensor.neg, (sigmoid, "x"))),
+    (tensor.neg, (softplus, "x")),
     values_eq_approx=values_eq_approx_remove_inf,
-    allow_multiple_clients=True)
+    allow_multiple_clients=True,
+)
 
-opt.register_stabilize(logsigm_to_softplus, name='logsigm_to_softplus')
-opt.register_stabilize(log1msigm_to_softplus, name='log1msigm_to_softplus')
-opt.register_stabilize(log1pexp_to_softplus, name='log1pexp_to_softplus')
-opt.register_stabilize(log1p_neg_sigmoid, name='log1p_neg_sigmoid,')
+opt.register_stabilize(logsigm_to_softplus, name="logsigm_to_softplus")
+opt.register_stabilize(log1msigm_to_softplus, name="log1msigm_to_softplus")
+opt.register_stabilize(log1pexp_to_softplus, name="log1pexp_to_softplus")
+opt.register_stabilize(log1p_neg_sigmoid, name="log1p_neg_sigmoid,")
 
 
 def is_1pexp(t, only_process_constants=True):
@@ -445,9 +489,9 @@ def is_1pexp(t, only_process_constants=True):
 
     """
     if t.owner and t.owner.op == tensor.add:
-        scalars, scalar_inputs, nonconsts = \
-            opt.scalarconsts_rest(t.owner.inputs,
-                                  only_process_constants=only_process_constants)
+        scalars, scalar_inputs, nonconsts = opt.scalarconsts_rest(
+            t.owner.inputs, only_process_constants=only_process_constants
+        )
         # scalar_inputs are potentially dimshuffled and filled with scalars
         if len(nonconsts) == 1:
             maybe_exp = nonconsts[0]
@@ -464,13 +508,14 @@ def is_1pexp(t, only_process_constants=True):
                 # function would incorrectly identify it as (1 + exp(x)).
                 if config.warn.identify_1pexp_bug:
                     warnings.warn(
-                        'Although your current code is fine, please note that '
-                        'Theano versions prior to 0.5 (more specifically, '
-                        'prior to commit 7987b51 on 2011-12-18) may have '
-                        'yielded an incorrect result. To remove this warning, '
-                        'either set the `warn.identify_1pexp_bug` config '
-                        'option to False, or `warn.ignore_bug_before` to at '
-                        'least \'0.4.1\'.')
+                        "Although your current code is fine, please note that "
+                        "Theano versions prior to 0.5 (more specifically, "
+                        "prior to commit 7987b51 on 2011-12-18) may have "
+                        "yielded an incorrect result. To remove this warning, "
+                        "either set the `warn.identify_1pexp_bug` config "
+                        "option to False, or `warn.ignore_bug_before` to at "
+                        "least '0.4.1'."
+                    )
     return None
 
 
@@ -579,8 +624,7 @@ def is_neg(var):
                     return apply.inputs[1 - idx]
                 else:
                     # Return the multiplication of all other inputs.
-                    return tensor.mul(*(apply.inputs[0:idx] +
-                                        apply.inputs[idx + 1:]))
+                    return tensor.mul(*(apply.inputs[0:idx] + apply.inputs[idx + 1 :]))
     # No match.
     return None
 
@@ -600,8 +644,7 @@ def local_exp_over_1_plus_exp(node):
         # find all the exp() terms in the numerator
         num, denom = node.inputs
         num_exp_x, num_rest, num_neg = partition_num_or_denom(num, is_exp)
-        denom_1pexp, denom_rest, \
-            denom_neg = partition_num_or_denom(denom, is_1pexp)
+        denom_1pexp, denom_rest, denom_neg = partition_num_or_denom(denom, is_1pexp)
 
         sigmoids = []
         for t in denom_1pexp:
@@ -790,8 +833,9 @@ def compute_mul(tree):
     neg, inputs = tree
     if inputs is None:
         raise AssertionError(
-            'Function `compute_mul` found a missing leaf, did you forget to '
-            'call `simplify_mul` on the tree first?')
+            "Function `compute_mul` found a missing leaf, did you forget to "
+            "call `simplify_mul` on the tree first?"
+        )
     elif isinstance(inputs, list):
         # Recurse through inputs.
         rval = tensor.mul(*list(map(compute_mul, inputs)))
@@ -802,9 +846,16 @@ def compute_mul(tree):
     return rval
 
 
-def perform_sigm_times_exp(tree, exp_x=None, exp_minus_x=None, sigm_x=None,
-                           sigm_minus_x=None, parent=None, child_idx=None,
-                           full_tree=None):
+def perform_sigm_times_exp(
+    tree,
+    exp_x=None,
+    exp_minus_x=None,
+    sigm_x=None,
+    sigm_minus_x=None,
+    parent=None,
+    child_idx=None,
+    full_tree=None,
+):
     """
     Core processing of the `local_sigm_times_exp` optimization.
 
@@ -856,22 +907,28 @@ def perform_sigm_times_exp(tree, exp_x=None, exp_minus_x=None, sigm_x=None,
     if full_tree is None:
         full_tree = tree
     if False:  # Debug code.
-        print('<perform_sigm_times_exp>')
-        print('  full_tree   = %s' % full_tree)
-        print('  tree        = %s' % tree)
-        print('  exp_x       = %s' % exp_x)
-        print('  exp_minus_x = %s' % exp_minus_x)
-        print('  sigm_x      = %s' % sigm_x)
-        print('  sigm_minus_x= %s' % sigm_minus_x)
+        print("<perform_sigm_times_exp>")
+        print("  full_tree   = %s" % full_tree)
+        print("  tree        = %s" % tree)
+        print("  exp_x       = %s" % exp_x)
+        print("  exp_minus_x = %s" % exp_minus_x)
+        print("  sigm_x      = %s" % sigm_x)
+        print("  sigm_minus_x= %s" % sigm_minus_x)
     neg, inputs = tree
     if isinstance(inputs, list):
         # Recurse through inputs of the multiplication.
         rval = False
         for sub_idx, sub_tree in enumerate(inputs):
             rval |= perform_sigm_times_exp(
-                tree=sub_tree, parent=tree, child_idx=sub_idx,
-                exp_x=exp_x, exp_minus_x=exp_minus_x, sigm_x=sigm_x,
-                sigm_minus_x=sigm_minus_x, full_tree=full_tree)
+                tree=sub_tree,
+                parent=tree,
+                child_idx=sub_idx,
+                exp_x=exp_x,
+                exp_minus_x=exp_minus_x,
+                sigm_x=sigm_x,
+                sigm_minus_x=sigm_minus_x,
+                full_tree=full_tree,
+            )
         return rval
     else:
         # Reached a leaf: if it is an exponential or a sigmoid, then we
@@ -890,21 +947,22 @@ def perform_sigm_times_exp(tree, exp_x=None, exp_minus_x=None, sigm_x=None,
             neg ^= exp_neg
             neg_arg = is_neg(exp_arg)
             if neg_arg is None:
-                if not replace_leaf(exp_arg, sigm_minus_x, sigm_x,
-                                    sigmoid, neg):
+                if not replace_leaf(exp_arg, sigm_minus_x, sigm_x, sigmoid, neg):
                     exp_x.append((exp_arg, tree))
                     keep_it = True
             else:
-                if not replace_leaf(neg_arg, sigm_x, sigm_minus_x,
-                                    lambda x: sigmoid(-x), neg):
+                if not replace_leaf(
+                    neg_arg, sigm_x, sigm_minus_x, lambda x: sigmoid(-x), neg
+                ):
                     exp_minus_x.append((neg_arg, tree))
                     keep_it = True
         elif var.owner and var.owner.op == sigmoid:
             sigm_arg = var.owner.inputs[0]
             neg_arg = is_neg(sigm_arg)
             if neg_arg is None:
-                if not replace_leaf(sigm_arg, exp_minus_x, sigm_minus_x,
-                                    lambda x: sigmoid(-x), neg):
+                if not replace_leaf(
+                    sigm_arg, exp_minus_x, sigm_minus_x, lambda x: sigmoid(-x), neg
+                ):
                     sigm_x.append((sigm_arg, tree))
                     keep_it = True
             else:
@@ -963,23 +1021,24 @@ def local_inv_1_plus_exp(node):
     if node.op == tensor.inv:
         inv_arg = node.inputs[0]
         if inv_arg.owner and inv_arg.owner.op == tensor.add:
-            scalars, scalar_inputs, nonconsts = \
-                opt.scalarconsts_rest(inv_arg.owner.inputs, only_process_constants=True)
+            scalars, scalar_inputs, nonconsts = opt.scalarconsts_rest(
+                inv_arg.owner.inputs, only_process_constants=True
+            )
             # scalar_inputs are potentially dimshuffled and fill'd scalars
             if len(nonconsts) == 1:
                 if nonconsts[0].owner and nonconsts[0].owner.op == tensor.exp:
                     if scalars and np.allclose(np.sum(scalars), 1):
                         out = opt._fill_chain(
-                            sigmoid(
-                                tensor.neg(nonconsts[0].owner.inputs[0])),
-                            scalar_inputs)
+                            sigmoid(tensor.neg(nonconsts[0].owner.inputs[0])),
+                            scalar_inputs,
+                        )
                         # keep combined stack traces of
                         #     exp(x):           nonconsts[0],
                         #     1 + exp(x):       inv_arg,
                         #     1 / (1 + exp(x)): node.outputs[0]
-                        copy_stack_trace(
-                            [nonconsts[0], inv_arg, node.outputs[0]], out)
+                        copy_stack_trace([nonconsts[0], inv_arg, node.outputs[0]], out)
                         return out
+
 
 # Registration is below, and conditional.
 
@@ -1003,6 +1062,7 @@ def local_1msigmoid(node):
                 out = sigmoid(-sub_r.owner.inputs[0])
                 copy_stack_trace([sub_r, node.outputs[0]], out)
                 return [out]
+
 
 register_local_1msigmoid = False
 # This is False because the Stabilize pattern above

@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 import numpy as np
 
 import theano
@@ -23,7 +22,8 @@ class SparseBlockGemv(Op):
         :scale: 50 %
 
     """
-    __props__ = ('inplace',)
+
+    __props__ = ("inplace",)
 
     registered_opts = []
 
@@ -79,15 +79,15 @@ class SparseBlockGemv(Op):
         outputIdx = theano.tensor.as_tensor_variable(outputIdx)
 
         if o.ndim != 3:
-            raise TypeError('The output o must be a 2D tensor')
+            raise TypeError("The output o must be a 2D tensor")
         if W.ndim != 4:
-            raise TypeError('The weight matrix W must be a 4D tensor')
+            raise TypeError("The weight matrix W must be a 4D tensor")
         if h.ndim != 3:
-            raise TypeError('The input h must be a 3D tensor')
+            raise TypeError("The input h must be a 3D tensor")
         if inputIdx.ndim != 2:
-            raise TypeError('The input indices inputIdx must be a 2D tensor')
+            raise TypeError("The input indices inputIdx must be a 2D tensor")
         if outputIdx.ndim != 2:
-            raise TypeError('The output indices outputIdx must be a 2D tensor')
+            raise TypeError("The output indices outputIdx must be a 2D tensor")
 
         assert inputIdx.type.dtype in discrete_dtypes
         assert outputIdx.type.dtype in discrete_dtypes
@@ -120,13 +120,16 @@ class SparseBlockGemv(Op):
         gemv_fun = SparseBlockGemv(self.inplace)
 
         Wgrad = outer_fun(W.zeros_like(), h, go, inputIdx, outputIdx)
-        hgrad = gemv_fun(h.zeros_like(), W.dimshuffle((1, 0, 3, 2)),
-                         go, outputIdx, inputIdx)
-        return [go, Wgrad, hgrad,
-                grad_undefined(self, 3, inputIdx,
-                               "grad of inputIdx makes no sense"),
-                grad_undefined(self, 4, outputIdx,
-                               "grad of outputIdx makes no sense")]
+        hgrad = gemv_fun(
+            h.zeros_like(), W.dimshuffle((1, 0, 3, 2)), go, outputIdx, inputIdx
+        )
+        return [
+            go,
+            Wgrad,
+            hgrad,
+            grad_undefined(self, 3, inputIdx, "grad of inputIdx makes no sense"),
+            grad_undefined(self, 4, outputIdx, "grad of outputIdx makes no sense"),
+        ]
 
 
 class SparseBlockOuter(Op):
@@ -140,7 +143,8 @@ class SparseBlockOuter(Op):
     This op is involved in the gradient of SparseBlockGemv.
 
     """
-    __props__ = ('inplace',)
+
+    __props__ = ("inplace",)
 
     registered_opts = []
 
@@ -185,7 +189,7 @@ class SparseBlockOuter(Op):
           Which blocks will be computed is specified in `yIdx`.
 
         """
-        one = theano.tensor.constant(np.asarray(1.0, dtype='float32'))
+        one = theano.tensor.constant(np.asarray(1.0, dtype="float32"))
         o = theano.tensor.as_tensor_variable(o)
         x = theano.tensor.as_tensor_variable(x)
         y = theano.tensor.as_tensor_variable(y)
@@ -193,8 +197,7 @@ class SparseBlockOuter(Op):
         if alpha is None:
             alpha = one
 
-        return Apply(self, [o, x, y, xIdx, yIdx, alpha],
-                     [o.type()])
+        return Apply(self, [o, x, y, xIdx, yIdx, alpha], [o.type()])
 
     def infer_shape(self, node, input_shapes):
         return [input_shapes[0]]
@@ -208,8 +211,7 @@ class SparseBlockOuter(Op):
         for b in range(x.shape[0]):
             for i in range(xIdx.shape[1]):
                 for j in range(yIdx.shape[1]):
-                    o[xIdx[b, i], yIdx[b, j]] += np.outer(x[b, i],
-                                                          y[b, j, :])
+                    o[xIdx[b, i], yIdx[b, j]] += np.outer(x[b, i], y[b, j, :])
         out_[0][0] = o
 
 
@@ -261,8 +263,7 @@ def sparse_block_dot(W, h, inputIdx, b, outputIdx):
     assert inputIdx.ndim == h.ndim - 1
     assert outputIdx.ndim == inputIdx.ndim
     if h.ndim == 2:
-        h = h.dimshuffle('x', 0, 1)
-        inputIdx = inputIdx.dimshuffle('x', 0)
-        outputIdx = outputIdx.dimshuffle('x', 0)
-    return SparseBlockGemv()(b.take(outputIdx, axis=0), W, h,
-                             inputIdx, outputIdx)
+        h = h.dimshuffle("x", 0, 1)
+        inputIdx = inputIdx.dimshuffle("x", 0)
+        outputIdx = outputIdx.dimshuffle("x", 0)
+    return SparseBlockGemv()(b.take(outputIdx, axis=0), W, h, inputIdx, outputIdx)

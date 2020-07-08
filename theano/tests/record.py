@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from theano.compile import Mode
 import theano
 from theano.printing import hex_digest
@@ -67,9 +66,9 @@ class Record(object):
         assert file_object is not None or file_path is not None
 
         if replay and file_object is None:
-            self.f = open(file_path, 'r')
+            self.f = open(file_path, "r")
         elif (not replay) and file_object is None:
-            self.f = open(file_path, 'w')
+            self.f = open(file_path, "w")
         else:
             self.f = file_object
 
@@ -88,20 +87,20 @@ class Record(object):
             The string to record.
         """
 
-        assert line.endswith('\n')
-        assert line[:-2].find('\n') == -1
+        assert line.endswith("\n")
+        assert line[:-2].find("\n") == -1
         if self.replay:
             old_line = self.f.readline()
             if old_line != line:
-                msg = 'Replay detected mismatch.\n'
-                msg += ' I wanted to write:\n'
+                msg = "Replay detected mismatch.\n"
+                msg += " I wanted to write:\n"
                 if len(line) > 100:
-                    msg += line[0:100] + '...'
+                    msg += line[0:100] + "..."
                 else:
                     msg += line
-                msg += '\nwhen previous job wrote:\n'
+                msg += "\nwhen previous job wrote:\n"
                 if len(old_line) > 100:
-                    msg += old_line[0:100] + '...'
+                    msg += old_line[0:100] + "..."
                 else:
                     msg += old_line
                 raise MismatchError(msg)
@@ -196,19 +195,19 @@ class RecordMode(Mode):
             try:
                 self.record.handle_line(line)
             except MismatchError as e:
-                print('Got this MismatchError:')
+                print("Got this MismatchError:")
                 print(e)
-                print('while processing node i=' + str(i) + ':')
-                print('str(node):', str(node))
-                print('Symbolic inputs: ')
+                print("while processing node i=" + str(i) + ":")
+                print("str(node):", str(node))
+                print("Symbolic inputs: ")
                 for elem in node.inputs:
                     print(theano.printing.min_informative_str(elem))
-                print('str(output) of outputs: ')
+                print("str(output) of outputs: ")
                 for elem in fn.outputs:
                     assert isinstance(elem, list)
-                    elem, = elem
+                    (elem,) = elem
                     print(str(elem))
-                print('function name: ' + node.fgraph.name)
+                print("function name: " + node.fgraph.name)
                 raise MismatchError("Non-determinism detected by WrapLinker")
 
         def callback(i, node, fn):
@@ -219,38 +218,47 @@ class RecordMode(Mode):
             fgraph = node.fgraph
 
             if fgraph.name is None:
-                raise ValueError("Un-named functions are not allowed with RecordMode, "
-                                 "because they make it impossible to tell if the same function is "
-                                 "running during the playback.")
+                raise ValueError(
+                    "Un-named functions are not allowed with RecordMode, "
+                    "because they make it impossible to tell if the same function is "
+                    "running during the playback."
+                )
 
             if fgraph not in self.known_fgraphs:
-                assert not any([elem.name == fgraph.name
-                                for elem in self.known_fgraphs])
+                assert not any(
+                    [elem.name == fgraph.name for elem in self.known_fgraphs]
+                )
                 self.known_fgraphs.add(fgraph)
                 num_app = len(fgraph.apply_nodes)
-                line = 'Function ' + fgraph.name + ' has ' + str(num_app) \
-                       + ' apply nodes.\n'
+                line = (
+                    "Function "
+                    + fgraph.name
+                    + " has "
+                    + str(num_app)
+                    + " apply nodes.\n"
+                )
                 handle_line(line, i, node, fn)
 
-            line = 'Function name: ' + fgraph.name + '\n'
+            line = "Function name: " + fgraph.name + "\n"
             handle_line(line, i, node, fn)
-            line = 'Node ' + str(i) + ':' + str(node) + '\n'
+            line = "Node " + str(i) + ":" + str(node) + "\n"
             handle_line(line, i, node, fn)
             assert all([isinstance(x, list) and len(x) == 1 for x in fn.inputs])
 
             def digest(x):
                 x = x[0]
                 return hex_digest(x)
-            inputs_digest = ' '.join([digest(x) for x in fn.inputs])
-            line = 'Inputs: ' + inputs_digest + '\n'
+
+            inputs_digest = " ".join([digest(x) for x in fn.inputs])
+            line = "Inputs: " + inputs_digest + "\n"
             handle_line(line, i, node, fn)
             fn()
-            outputs_digest = ' '.join([digest(x) for x in fn.outputs])
-            line = 'Outputs: ' + outputs_digest + '\n'
+            outputs_digest = " ".join([digest(x) for x in fn.outputs])
+            line = "Outputs: " + outputs_digest + "\n"
             handle_line(line, i, node, fn)
 
         # linker = theano.gof.OpWiseCLinker()
         linker = theano.gof.vm.VM_Linker(use_cloop=bool(theano.config.cxx))
 
         wrap_linker = theano.gof.WrapLinkerMany([linker], [callback])
-        super(RecordMode, self).__init__(wrap_linker, optimizer='fast_run')
+        super(RecordMode, self).__init__(wrap_linker, optimizer="fast_run")

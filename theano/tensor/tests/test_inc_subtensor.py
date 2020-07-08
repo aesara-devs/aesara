@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 import numpy as np
 import pytest
 from theano.tests import unittest_tools as utt
@@ -6,7 +5,7 @@ import theano
 import theano.tensor as tt
 
 
-class Test_inc_subtensor():
+class TestIncSubtensor:
     """
     Partial testing.
 
@@ -21,6 +20,7 @@ class Test_inc_subtensor():
     the new (read: not deprecated) inc_subtensor, set_subtensor
     functions.
     """
+
     def setup_method(self):
         utt.seed_rng()
 
@@ -143,34 +143,35 @@ class Test_inc_subtensor():
         def inc_slice(*s):
             def just_numeric_args(a, b):
                 return tt.inc_subtensor(a[s], b)
+
             return just_numeric_args
 
         def set_slice(*s):
             def just_numeric_args(a, b):
                 return tt.set_subtensor(a[s], b)
+
             return just_numeric_args
 
         for f_slice in [inc_slice, set_slice]:
             # vector
             utt.verify_grad(
                 f_slice(slice(2, 4, None)),
-                (np.asarray([0, 1, 2, 3, 4, 5.]),
-                 np.asarray([9, 9.]), ))
+                (np.asarray([0, 1, 2, 3, 4, 5.0]), np.asarray([9, 9.0]),),
+            )
 
             # matrix
             utt.verify_grad(
                 f_slice(slice(1, 2, None), slice(None, None, None)),
-                (np.asarray([[0, 1], [2, 3], [4, 5.]]),
-                 np.asarray([[9, 9.]]), ))
+                (np.asarray([[0, 1], [2, 3], [4, 5.0]]), np.asarray([[9, 9.0]]),),
+            )
 
             # single element
             utt.verify_grad(
                 f_slice(2, 1),
-                (np.asarray([[0, 1], [2, 3], [4, 5.]]),
-                 np.asarray(9.),))
+                (np.asarray([[0, 1], [2, 3], [4, 5.0]]), np.asarray(9.0),),
+            )
 
             # broadcast
             utt.verify_grad(
-                f_slice(2),
-                (np.asarray([[0, 1], [2, 3], [4, 5.]]),
-                 np.asarray(9.),))
+                f_slice(2), (np.asarray([[0, 1], [2, 3], [4, 5.0]]), np.asarray(9.0),)
+            )

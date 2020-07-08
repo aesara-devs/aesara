@@ -12,9 +12,9 @@ Mac OS Installation Instructions
     page <http://deeplearning.net/software/theano_versions/dev/install_macos.html>`_.
 
 There are various ways to install Theano dependencies on a Mac. Here
-we describe the process in detail with Anaconda, Homebrew or MacPorts 
-but if you did it differently and it worked, please let us know the 
-details on the `theano-users`_ mailing-list, so that we can add 
+we describe the process in detail with Anaconda, Homebrew or MacPorts
+but if you did it differently and it worked, please let us know the
+details on the `theano-users`_ mailing-list, so that we can add
 alternative instructions here.
 
 .. _theano-users: http://groups.google.com/group/theano-users?pli=1
@@ -147,10 +147,9 @@ Theano dependencies is easy, but be aware that it will take a long time
   ``/opt/local/sbin`` before any other paths (to ensure that the Python and
   gcc binaries that you installed with MacPorts are visible first).
 
-- MacPorts does not create automatically ``nosetests`` and ``pip`` symlinks
-  pointing to the MacPorts version, so you can add them yourself with
+- MacPorts does not automatically create ``pip`` symlinks pointing to the
+  MacPorts version; you can add them yourself with
 
     .. code-block:: bash
 
-        $ sudo ln -s /opt/local/bin/nosetests-2.7 /opt/local/bin/nosetests
         $ sudo ln -s /opt/local/bin/pip-2.7 /opt/local/bin/pip

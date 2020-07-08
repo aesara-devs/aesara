@@ -1,7 +1,7 @@
 """
 Helper function to safely convert an array to a new data type.
 """
-from __future__ import absolute_import, print_function, division
+
 
 import numpy as np
 
@@ -28,7 +28,7 @@ def _asarray(a, dtype, order=None):
     used internally. It is imported so as to be available directly through
         theano._asarray
     """
-    if str(dtype) == 'floatX':
+    if str(dtype) == "floatX":
         dtype = theano.config.floatX
     dtype = np.dtype(dtype)  # Convert into dtype object.
     rval = np.asarray(a, dtype=dtype, order=order)
@@ -41,18 +41,18 @@ def _asarray(a, dtype, order=None):
         # returned by numpy.asarray.
         # If both types have the same string description (byte order, basic
         # type, and number of bytes), then it is safe to return a view.
-        if (dtype.str == rval.dtype.str):
+        if dtype.str == rval.dtype.str:
             # Silent fix.
             return rval.view(dtype=dtype)
         else:
             # Unexpected mismatch: better know what is going on!
             raise TypeError(
-                'numpy.array did not return the data type we '
-                'asked for (%s %s #%s), instead it returned type '
-                '%s %s #%s: function '
-                'theano._asarray may need to be modified to handle this '
-                'data type.' %
-                (dtype, dtype.str, dtype.num, rval.dtype, rval.str,
-                 rval.dtype.num))
+                "numpy.array did not return the data type we "
+                "asked for (%s %s #%s), instead it returned type "
+                "%s %s #%s: function "
+                "theano._asarray may need to be modified to handle this "
+                "data type."
+                % (dtype, dtype.str, dtype.num, rval.dtype, rval.str, rval.dtype.num)
+            )
     else:
         return rval

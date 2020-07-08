@@ -89,7 +89,7 @@ Example:
 .. code-block:: python
 
     import unittest
-    
+
     class TestTensorDot(unittest.TestCase):
         def test_validity(self):
             # do stuff
@@ -108,7 +108,7 @@ generators -- more on this later)
 .. testcode:: writeUnitest
 
     import unittest
-    
+
     class TestTensorDot(unittest.TestCase):
         def setUp(self):
             # data which will be used in various test methods
@@ -182,7 +182,7 @@ Example:
 .. code-block:: python
 
     import unittest
-    
+
     class TestTensorDot(unittest.TestCase):
         ...
         def test_3D_dot_fail(self):
@@ -209,7 +209,7 @@ Example:
 .. code-block:: python
 
     from theano import function
-    
+
     f = function([a,b],[c],mode='FAST_RUN')
 
 Whenever possible, unit tests should omit this parameter. Leaving
@@ -225,9 +225,9 @@ type this:
 
 .. code-block:: bash
 
-    THEANO_FLAGS='mode=FAST_COMPILE' theano-nose
-    THEANO_FLAGS='mode=FAST_RUN' theano-nose
-    THEANO_FLAGS='mode=DebugMode' theano-nose
+    THEANO_FLAGS='mode=FAST_COMPILE' pytest
+    THEANO_FLAGS='mode=FAST_RUN' pytest
+    THEANO_FLAGS='mode=DebugMode' pytest
 
 .. _random_value_in_tests:
 
@@ -267,7 +267,7 @@ The behaviour of ``seed_rng`` is as follows:
 The main advantage of using ``unittest_tools.seed_rng`` is that it allows
 us to change the seed used in the unitests, without having to manually
 edit all the files. For example, this allows the nightly build to run
-``theano-nose`` repeatedly, changing the seed on every run (hence achieving
+``pytest`` repeatedly, changing the seed on every run (hence achieving
 a higher confidence that the variables are correct), while still
 making sure unittests are deterministic.
 
@@ -285,7 +285,7 @@ Similarly, to provide a seed to ``numpy.random.RandomState``, simply use:
     # OR providing an explicit seed
     rng = numpy.random.RandomState(unittest_tools.fetch_seed(1231))  # again not recommended
 
-Note that the ability to change the seed from one nosetest to another,
+Note that the ability to change the seed from one test to another,
 is incompatible with the method of hard-coding the baseline variables
 (against which we compare the theano outputs). These must then be
 determined "algorithmically". Although this represents more work, the
@@ -414,7 +414,7 @@ which would cause ``verify_grad`` to crash.
 
     Although ``verify_grad`` is defined in ``theano.tensor.basic``, unittests
     should use the version of ``verify_grad`` defined in ``theano.tests.unittest_tools``.
-    This is simply a wrapper function which takes care of seeding the random 
+    This is simply a wrapper function which takes care of seeding the random
     number generator appropriately before calling ``theano.tensor.basic.verify_grad``
 
 makeTester and makeBroadcastTester
@@ -436,18 +436,18 @@ product op:
     from numpy.random import rand
 
     from theano.tensor.tests.test_basic import makeTester
-    
-    DotTester = makeTester(name = 'DotTester',
-                           op = dot,
-                           expected = lambda x, y: numpy.dot(x, y),
-                           checks = {},
-                           good = dict(correct1 = (rand(5, 7), rand(7, 5)),
-                                       correct2 = (rand(5, 7), rand(7, 9)),
-                                       correct3 = (rand(5, 7), rand(7))),
-                           bad_build = dict(),
-                           bad_runtime = dict(bad1 = (rand(5, 7), rand(5, 7)),
-                                              bad2 = (rand(5, 7), rand(8,3))),
-                           grad = dict())
+
+    TestDot = makeTester(name = 'DotTester',
+                         op = dot,
+                         expected = lambda x, y: numpy.dot(x, y),
+                         checks = {},
+                         good = dict(correct1 = (rand(5, 7), rand(7, 5)),
+                                     correct2 = (rand(5, 7), rand(7, 9)),
+                                     correct3 = (rand(5, 7), rand(7))),
+                         bad_build = dict(),
+                         bad_runtime = dict(bad1 = (rand(5, 7), rand(5, 7)),
+                                           bad2 = (rand(5, 7), rand(8,3))),
+                         grad = dict())
 
 In the above example, we provide a name and a reference to the op we
 want to test. We then provide in the ``expected`` field, a function

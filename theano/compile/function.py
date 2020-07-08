@@ -2,7 +2,7 @@
 Define the `function` function.
 
 """
-from __future__ import absolute_import, print_function, division
+
 
 import logging
 
@@ -16,15 +16,25 @@ import warnings
 from theano import compat
 
 __docformat__ = "restructuredtext en"
-_logger = logging.getLogger('theano.compile.function')
+_logger = logging.getLogger("theano.compile.function")
 
 
-def function_dump(filename, inputs, outputs=None, mode=None, updates=None,
-                  givens=None,
-                  no_default_updates=False, accept_inplace=False, name=None,
-                  rebuild_strict=True, allow_input_downcast=None, profile=None,
-                  on_unused_input=None,
-                  extra_tag_to_remove=None):
+def function_dump(
+    filename,
+    inputs,
+    outputs=None,
+    mode=None,
+    updates=None,
+    givens=None,
+    no_default_updates=False,
+    accept_inplace=False,
+    name=None,
+    rebuild_strict=True,
+    allow_input_downcast=None,
+    profile=None,
+    on_unused_input=None,
+    extra_tag_to_remove=None,
+):
     """
     This is helpful to make a reproducible case for problems during Theano
     compilation.
@@ -57,24 +67,43 @@ def function_dump(filename, inputs, outputs=None, mode=None, updates=None,
 
     """
     assert isinstance(filename, string_types)
-    d = dict(inputs=inputs, outputs=outputs, mode=mode, updates=updates,
-             givens=givens, no_default_updates=no_default_updates,
-             accept_inplace=accept_inplace, name=name,
-             rebuild_strict=rebuild_strict,
-             allow_input_downcast=allow_input_downcast, profile=profile,
-             on_unused_input=on_unused_input)
-    with open(filename, 'wb') as f:
+    d = dict(
+        inputs=inputs,
+        outputs=outputs,
+        mode=mode,
+        updates=updates,
+        givens=givens,
+        no_default_updates=no_default_updates,
+        accept_inplace=accept_inplace,
+        name=name,
+        rebuild_strict=rebuild_strict,
+        allow_input_downcast=allow_input_downcast,
+        profile=profile,
+        on_unused_input=on_unused_input,
+    )
+    with open(filename, "wb") as f:
         import theano.misc.pkl_utils
+
         pickler = theano.misc.pkl_utils.StripPickler(
-            f, protocol=-1,
-            extra_tag_to_remove=extra_tag_to_remove)
+            f, protocol=-1, extra_tag_to_remove=extra_tag_to_remove
+        )
         pickler.dump(d)
 
 
-def function(inputs, outputs=None, mode=None, updates=None, givens=None,
-             no_default_updates=False, accept_inplace=False, name=None,
-             rebuild_strict=True, allow_input_downcast=None, profile=None,
-             on_unused_input=None):
+def function(
+    inputs,
+    outputs=None,
+    mode=None,
+    updates=None,
+    givens=None,
+    no_default_updates=False,
+    accept_inplace=False,
+    name=None,
+    rebuild_strict=True,
+    allow_input_downcast=None,
+    profile=None,
+    on_unused_input=None,
+):
     """
     Return a :class:`callable object <theano.compile.function_module.Function>`
     that will calculate `outputs` from `inputs`.
@@ -243,27 +272,29 @@ def function(inputs, outputs=None, mode=None, updates=None, givens=None,
 
     if name is None:
         # Determine possible file names
-        source_file = re.sub('\.pyc?', '.py', __file__)
-        compiled_file = source_file + 'c'
+        source_file = re.sub(r"\.pyc?", ".py", __file__)
+        compiled_file = source_file + "c"
 
         stack = tb.extract_stack()
         idx = len(stack) - 1
 
         last_frame = stack[idx]
-        if (last_frame[0] == source_file or last_frame[0] == compiled_file):
+        if last_frame[0] == source_file or last_frame[0] == compiled_file:
             func_frame = stack[idx - 1]
             while "theano/gof" in func_frame[0] and idx > 0:
                 idx -= 1
                 # This can happen if we call var.eval()
                 func_frame = stack[idx - 1]
-            name = func_frame[0] + ':' + str(func_frame[1])
+            name = func_frame[0] + ":" + str(func_frame[1])
 
     if updates is None:
         updates = []
 
-    if (isinstance(updates, dict) and
-            not isinstance(updates, compat.OrderedDict) and
-            len(updates) > 1):
+    if (
+        isinstance(updates, dict)
+        and not isinstance(updates, compat.OrderedDict)
+        and len(updates) > 1
+    ):
         warnings.warn(
             "The parameter 'updates' of theano.function()"
             " expects an OrderedDict,"
@@ -274,14 +305,17 @@ def function(inputs, outputs=None, mode=None, updates=None, givens=None,
             " for older python), or use a list of (shared, update)"
             " pairs. Do not just convert your dictionary to this type before"
             " the call as the conversion will still be non-deterministic.",
-            stacklevel=2)
+            stacklevel=2,
+        )
 
     if givens is None:
         givens = []
     if not isinstance(inputs, (list, tuple)):
-        raise Exception("Input variables of a Theano function should be "
-                        "contained in a list, even when there is a single "
-                        "input.")
+        raise Exception(
+            "Input variables of a Theano function should be "
+            "contained in a list, even when there is a single "
+            "input."
+        )
 
     # compute some features of the arguments:
     uses_tuple = any([isinstance(i, (list, tuple)) for i in inputs])
@@ -291,28 +325,33 @@ def function(inputs, outputs=None, mode=None, updates=None, givens=None,
     if uses_tuple:
         # we must use old semantics in this case.
         if profile:
-            raise NotImplementedError("profiling not supported in old-style "
-                                      "function")
+            raise NotImplementedError(
+                "profiling not supported in old-style " "function"
+            )
         if uses_updates or uses_givens:
             raise NotImplementedError(
                 "In() instances and tuple inputs trigger the old "
-                "semantics, which disallow using updates and givens")
-        fn = orig_function(inputs, outputs,
-                           mode=mode,
-                           accept_inplace=accept_inplace, name=name)
+                "semantics, which disallow using updates and givens"
+            )
+        fn = orig_function(
+            inputs, outputs, mode=mode, accept_inplace=accept_inplace, name=name
+        )
     else:
         # note: pfunc will also call orig_function -- orig_function is
         #      a choke point that all compilation must pass through
-        fn = pfunc(params=inputs,
-                   outputs=outputs,
-                   mode=mode,
-                   updates=updates,
-                   givens=givens,
-                   no_default_updates=no_default_updates,
-                   accept_inplace=accept_inplace, name=name,
-                   rebuild_strict=rebuild_strict,
-                   allow_input_downcast=allow_input_downcast,
-                   on_unused_input=on_unused_input,
-                   profile=profile,
-                   output_keys=output_keys)
+        fn = pfunc(
+            params=inputs,
+            outputs=outputs,
+            mode=mode,
+            updates=updates,
+            givens=givens,
+            no_default_updates=no_default_updates,
+            accept_inplace=accept_inplace,
+            name=name,
+            rebuild_strict=rebuild_strict,
+            allow_input_downcast=allow_input_downcast,
+            on_unused_input=on_unused_input,
+            profile=profile,
+            output_keys=output_keys,
+        )
     return fn

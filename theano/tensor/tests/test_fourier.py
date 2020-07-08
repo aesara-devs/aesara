@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 import numpy as np
 import pytest
 
@@ -25,20 +24,22 @@ class TestFourier(utt.InferShapeTester):
 
     def test_infer_shape(self):
         a = tensor.dvector()
-        self._compile_and_check([a], [self.op(a, 16, 0)],
-                                [np.random.rand(12)],
-                               self.op_class)
+        self._compile_and_check(
+            [a], [self.op(a, 16, 0)], [np.random.rand(12)], self.op_class
+        )
         a = tensor.dmatrix()
-        for var in [self.op(a, 16, 1), self.op(a, None, 1),
-                     self.op(a, 16, None), self.op(a, None, None)]:
-            self._compile_and_check([a], [var],
-                                    [np.random.rand(12, 4)],
-                                    self.op_class)
+        for var in [
+            self.op(a, 16, 1),
+            self.op(a, None, 1),
+            self.op(a, 16, None),
+            self.op(a, None, None),
+        ]:
+            self._compile_and_check([a], [var], [np.random.rand(12, 4)], self.op_class)
         b = tensor.iscalar()
         for var in [self.op(a, 16, b), self.op(a, None, b)]:
-            self._compile_and_check([a, b], [var],
-                                    [np.random.rand(12, 4), 0],
-                                    self.op_class)
+            self._compile_and_check(
+                [a, b], [var], [np.random.rand(12, 4), 0], self.op_class
+            )
 
     @pytest.mark.skipif(True, reason="Complex grads not enabled, see #178")
     def test_gradient(self):
@@ -54,19 +55,21 @@ class TestFourier(utt.InferShapeTester):
         def fft_test4(a):
             return self.op(a, 4, 0)
 
-        pts = [np.random.rand(5, 2, 4, 3),
-               np.random.rand(2, 3, 4),
-               np.random.rand(2, 5),
-               np.random.rand(5)]
+        pts = [
+            np.random.rand(5, 2, 4, 3),
+            np.random.rand(2, 3, 4),
+            np.random.rand(2, 5),
+            np.random.rand(5),
+        ]
         for fft_test in [fft_test1, fft_test2, fft_test3, fft_test4]:
             for pt in pts:
-                theano.gradient.verify_grad(fft_test, [pt],
-                                            n_tests=1, rng=TestFourier.rng,
-                                            out_type='complex64')
+                theano.gradient.verify_grad(
+                    fft_test, [pt], n_tests=1, rng=TestFourier.rng, out_type="complex64"
+                )
 
 
 if __name__ == "__main__":
-    t = TestFourier('setUp')
+    t = TestFourier("setUp")
     t.setup_method()
     t.test_perform()
     t.test_infer_shape()

@@ -7,29 +7,20 @@ U{http://www-users.cs.umn.edu/~saad/software/SPARSKIT/paper.ps}.
 @todo: Automatic methods for determining best sparse format?
 """
 # COPIED FROM hpu/icml09/sp.py
-from __future__ import absolute_import, print_function, division
+
 import numpy as np
-import scipy
 from scipy import sparse as scipy_sparse
 from six.moves import xrange
 
 import theano
 import theano.sparse
-from theano import sparse, gof, Op, tensor
-from theano.sparse.basic import Remove0, remove0
-
-# To maintain compatibility
-from theano.sparse import (
-    SpSum, sp_sum,
-    ColScaleCSC, RowScaleCSC, col_scale, row_scale,
-    Diag, diag, SquareDiagonal, square_diagonal,
-    EnsureSortedIndices, ensure_sorted_indices, clean)
+from theano import sparse, Op, tensor
 
 
 def register_specialize(lopt, *tags, **kwargs):
-    theano.compile.optdb['specialize'].register(
-        (kwargs and kwargs.pop('name')) or lopt.__name__, lopt, 'fast_run',
-        *tags)
+    theano.compile.optdb["specialize"].register(
+        (kwargs and kwargs.pop("name")) or lopt.__name__, lopt, "fast_run", *tags
+    )
 
 
 class ConvolutionIndices(Op):
@@ -41,17 +32,17 @@ class ConvolutionIndices(Op):
        patch. Convolution is then simply the dot product of (img x M)
        and the kernels.
     """
+
     __props__ = ()
 
     @staticmethod
-    def conv_eval(inshp, kshp, strides=(1, 1), mode='valid'):
+    def conv_eval(inshp, kshp, strides=(1, 1), mode="valid"):
         (dx, dy) = strides
-        return convolution_indices.evaluate(inshp, kshp, (dx, dy),
-                                            mode=mode, ws=True)
+        return convolution_indices.evaluate(inshp, kshp, (dx, dy), mode=mode, ws=True)
 
     # img_shape and ker_shape are (height,width)
     @staticmethod
-    def evaluate(inshp, kshp, strides=(1, 1), nkern=1, mode='valid', ws=True):
+    def evaluate(inshp, kshp, strides=(1, 1), nkern=1, mode="valid", ws=True):
         """Build a sparse matrix which can be used for performing...
         * convolution: in this case, the dot product of this matrix
         with the input images will generate a stack of images
@@ -91,28 +82,35 @@ class ConvolutionIndices(Op):
         kshp = np.array(kshp)
         ksize = np.prod(kshp)
 
-        kern = ksize - 1 - np.arange(ksize)
+        # kern = ksize - 1 - np.arange(ksize)
 
         # size of output image if doing proper convolution
         # (mode='full',dx=dy=0) outshp is the actual output shape
         # given the parameters
         fulloutshp = inshp[1:] + kshp - 1
-        if mode == 'valid':
+        if mode == "valid":
             s = -1
         else:
             s = 1
-        outshp = np.int64(np.ceil((inshp[1:] + s * kshp - s * 1) \
-                 / np.array([dy, dx], dtype='float')))
+        outshp = np.int64(
+            np.ceil((inshp[1:] + s * kshp - s * 1) / np.array([dy, dx], dtype="float"))
+        )
         if any(outshp <= 0):
-            err = 'Invalid kernel', kshp, 'and/or step size', (dx, dy),\
-                  'for given input shape', inshp
+            err = (
+                "Invalid kernel",
+                kshp,
+                "and/or step size",
+                (dx, dy),
+                "for given input shape",
+                inshp,
+            )
             raise ValueError(err)
 
         outsize = np.prod(outshp)
         insize = np.prod(inshp)
 
         # range of output units over which to iterate
-        if mode == 'valid':
+        if mode == "valid":
             lbound = np.array([kshp[0] - 1, kshp[1] - 1])
             ubound = lbound + (inshp[1:] - kshp + 1)
         else:
@@ -132,7 +130,7 @@ class ConvolutionIndices(Op):
         spmat = scipy_sparse.lil_matrix(spmatshp)
 
         # loop over output image pixels
-        z, zz = 0, 0
+        # z, zz = 0, 0
 
         # incremented every time we write something to the sparse
         # matrix this is used to track the ordering of filter tap
@@ -152,12 +150,12 @@ class ConvolutionIndices(Op):
                 # FOR EACH OUTPUT PIXEL...
                 # loop over output image height
                 for oy in np.arange(lbound[0], ubound[0], dy):
-                     # loop over output image width
+                    # loop over output image width
                     for ox in np.arange(lbound[1], ubound[1], dx):
 
-                       # kern[l] is filter value to apply at (oj,oi)
-                       # for (iy,ix)
-                        l = 0
+                        # kern[l] is filter value to apply at (oj,oi)
+                        # for (iy,ix)
+                        l = 0  # noqa: E741
 
                         # ... ITERATE OVER INPUT UNITS IN RECEPTIVE FIELD
                         for ky in oy + np.arange(kshp[0]):
@@ -166,8 +164,9 @@ class ConvolutionIndices(Op):
                                 # verify if we are still within image
                                 # boundaries. Equivalent to
                                 # zero-padding of the input image
-                                if (all((ky, kx) >= topleft) and
-                                    all((ky, kx) < botright)):
+                                if all((ky, kx) >= topleft) and all(
+                                    (ky, kx) < botright
+                                ):
 
                                     # convert to "valid" input space
                                     # coords used to determine column
@@ -177,12 +176,13 @@ class ConvolutionIndices(Op):
 
                                     # taking into account multiple
                                     # input features
-                                    col = iy * inshp[2] + ix + \
-                                          fmapi * np.prod(inshp[1:])
+                                    col = (
+                                        iy * inshp[2] + ix + fmapi * np.prod(inshp[1:])
+                                    )
 
                                     # convert oy,ox values to output
                                     # space coordinates
-                                    if mode == 'full':
+                                    if mode == "full":
                                         (y, x) = (oy, ox)
                                     else:
                                         (y, x) = (oy, ox) - topleft
@@ -191,9 +191,11 @@ class ConvolutionIndices(Op):
 
                                     # convert to row index of sparse matrix
                                     if ws:
-                                        row = ((y * outshp[1] + x) *
-                                               inshp[0] * ksize + l + fmapi *
-                                               ksize)
+                                        row = (
+                                            (y * outshp[1] + x) * inshp[0] * ksize
+                                            + l
+                                            + fmapi * ksize
+                                        )
                                     else:
                                         row = y * outshp[1] + x
 
@@ -216,7 +218,7 @@ class ConvolutionIndices(Op):
                                 # move on to next filter tap l=(l+1)%ksize
                                 l += 1
 
-        if spmat.format != 'csc':
+        if spmat.format != "csc":
             spmat = spmat.tocsc().sorted_indices()
         else:
             # BUG ALERT: scipy0.6 has bug where data and indices are written in
@@ -227,7 +229,7 @@ class ConvolutionIndices(Op):
         if ws:
             kmap = None
         else:
-            kmap = np.zeros(ntaps, dtype='int')
+            kmap = np.zeros(ntaps, dtype="int")
             k = 0
             # print 'TEMPORARY BUGFIX: REMOVE !!!'
             for j in xrange(spmat.shape[1]):
@@ -239,14 +241,13 @@ class ConvolutionIndices(Op):
 
         # when in valid mode, it is more efficient to store in sparse row
         # TODO: need to implement structured dot for csr matrix
-        assert spmat.format == 'csc'
-        sptype = 'csc'
-        #sptype = 'csr' if mode=='valid' else 'csc'
-        if 0 and mode == 'valid':
+        assert spmat.format == "csc"
+        sptype = "csc"
+        # sptype = 'csr' if mode=='valid' else 'csc'
+        if 0 and mode == "valid":
             spmat = spmat.tocsr()
 
-        rval = (spmat.indices[:spmat.size],
-                spmat.indptr, spmatshp, sptype, outshp)
+        rval = (spmat.indices[: spmat.size], spmat.indptr, spmatshp, sptype, outshp)
         if kmap is not None:
             rval += (kmap,)
 
@@ -260,11 +261,21 @@ class ConvolutionIndices(Op):
         out_indptr[0] = indptr
         spmat_shape[0] = np.asarray(spmatshp)
 
+
 convolution_indices = ConvolutionIndices()
 
 
-def convolve(kerns, kshp, nkern, images, imgshp, step=(1, 1), bias=None,
-             mode='valid', flatten=True):
+def convolve(
+    kerns,
+    kshp,
+    nkern,
+    images,
+    imgshp,
+    step=(1, 1),
+    bias=None,
+    mode="valid",
+    flatten=True,
+):
     """Convolution implementation by sparse matrix multiplication.
 
     :note: For best speed, put the matrix which you expect to be
@@ -328,17 +339,21 @@ def convolve(kerns, kshp, nkern, images, imgshp, step=(1, 1), bias=None,
     # construct indices and index pointers for sparse matrix, which,
     # when multiplied with input images will generate a stack of image
     # patches
-    indices, indptr, spmat_shape, sptype, outshp = \
-            convolution_indices.conv_eval(imgshp, kshp, step, mode)
+    indices, indptr, spmat_shape, sptype, outshp = convolution_indices.conv_eval(
+        imgshp, kshp, step, mode
+    )
 
     # build sparse matrix, then generate stack of image patches
-    csc = theano.sparse.CSM(sptype)(np.ones(indices.size), indices,
-                                    indptr, spmat_shape)
+    csc = theano.sparse.CSM(sptype)(np.ones(indices.size), indices, indptr, spmat_shape)
     patches = (sparse.structured_dot(csc, images.T)).T
 
     # compute output of linear classifier
-    pshape = tensor.stack([images.shape[0] * tensor.as_tensor(np.prod(outshp)),\
-                           tensor.as_tensor(imgshp[0] * kern_size)])
+    pshape = tensor.stack(
+        [
+            images.shape[0] * tensor.as_tensor(np.prod(outshp)),
+            tensor.as_tensor(imgshp[0] * kern_size),
+        ]
+    )
     patch_stack = tensor.reshape(patches, pshape, ndim=2)
 
     # kern is of shape: nkern x ksize*number_of_input_features
@@ -351,9 +366,9 @@ def convolve(kerns, kshp, nkern, images, imgshp, step=(1, 1), bias=None,
 
     # now to have feature maps in raster order ...
     # go from bsize*outshp x nkern to bsize x nkern*outshp
-    newshp = tensor.stack([images.shape[0],\
-                           tensor.as_tensor(np.prod(outshp)),\
-                           tensor.as_tensor(nkern)])
+    newshp = tensor.stack(
+        [images.shape[0], tensor.as_tensor(np.prod(outshp)), tensor.as_tensor(nkern)]
+    )
     tensout = tensor.reshape(output, newshp, ndim=3)
     output = tensor.DimShuffle((False,) * tensout.ndim, (0, 2, 1))(tensout)
     if flatten:
@@ -388,31 +403,37 @@ def max_pool(images, imgshp, maxpoolshp):
     # construct indices and index pointers for sparse matrix, which,
     # when multiplied with input images will generate a stack of image
     # patches
-    indices, indptr, spmat_shape, sptype, outshp = \
-            convolution_indices.conv_eval(imgshp, maxpoolshp,
-                                          maxpoolshp, mode='valid')
+    indices, indptr, spmat_shape, sptype, outshp = convolution_indices.conv_eval(
+        imgshp, maxpoolshp, maxpoolshp, mode="valid"
+    )
 
-#    print 'XXXXXXXXXXXXXXXX MAX POOLING LAYER XXXXXXXXXXXXXXXXXXXX'
-#    print 'imgshp = ', imgshp
-#    print 'maxpoolshp = ', maxpoolshp
-#    print 'outshp = ', outshp
+    #    print 'XXXXXXXXXXXXXXXX MAX POOLING LAYER XXXXXXXXXXXXXXXXXXXX'
+    #    print 'imgshp = ', imgshp
+    #    print 'maxpoolshp = ', maxpoolshp
+    #    print 'outshp = ', outshp
 
     # build sparse matrix, then generate stack of image patches
-    csc = theano.sparse.CSM(sptype)(np.ones(indices.size), indices,
-                                    indptr, spmat_shape)
+    csc = theano.sparse.CSM(sptype)(np.ones(indices.size), indices, indptr, spmat_shape)
     patches = sparse.structured_dot(csc, images.T).T
 
-    pshape = tensor.stack([images.shape[0] *\
-                               tensor.as_tensor(np.prod(outshp)),
-                           tensor.as_tensor(imgshp[0]),
-                           tensor.as_tensor(poolsize)])
+    pshape = tensor.stack(
+        [
+            images.shape[0] * tensor.as_tensor(np.prod(outshp)),
+            tensor.as_tensor(imgshp[0]),
+            tensor.as_tensor(poolsize),
+        ]
+    )
     patch_stack = tensor.reshape(patches, pshape, ndim=3)
 
     out1 = tensor.max(patch_stack, axis=2)
 
-    pshape = tensor.stack([images.shape[0],
-                           tensor.as_tensor(np.prod(outshp)),
-                           tensor.as_tensor(imgshp[0])])
+    pshape = tensor.stack(
+        [
+            images.shape[0],
+            tensor.as_tensor(np.prod(outshp)),
+            tensor.as_tensor(imgshp[0]),
+        ]
+    )
     out2 = tensor.reshape(out1, pshape, ndim=3)
 
     out3 = tensor.DimShuffle(out2.broadcastable, (0, 2, 1))(out2)

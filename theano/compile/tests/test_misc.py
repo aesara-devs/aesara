@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 import numpy as np
 
 from theano.compile.pfunc import pfunc
@@ -9,40 +7,46 @@ from theano.tensor.nnet import sigmoid
 
 
 class NNet(object):
-
-    def __init__(self,
-                 input=tensor.dvector('input'),
-                 target=tensor.dvector('target'),
-                 n_input=1, n_hidden=1, n_output=1, lr=1e-3, **kw):
+    def __init__(
+        self,
+        input=tensor.dvector("input"),
+        target=tensor.dvector("target"),
+        n_input=1,
+        n_hidden=1,
+        n_output=1,
+        lr=1e-3,
+        **kw,
+    ):
         super(NNet, self).__init__(**kw)
 
         self.input = input
         self.target = target
-        self.lr = shared(lr, 'learning_rate')
-        self.w1 = shared(np.zeros((n_hidden, n_input)), 'w1')
-        self.w2 = shared(np.zeros((n_output, n_hidden)), 'w2')
+        self.lr = shared(lr, "learning_rate")
+        self.w1 = shared(np.zeros((n_hidden, n_input)), "w1")
+        self.w2 = shared(np.zeros((n_output, n_hidden)), "w2")
         # print self.lr.type
 
         self.hidden = sigmoid(tensor.dot(self.w1, self.input))
         self.output = tensor.dot(self.w2, self.hidden)
-        self.cost = tensor.sum((self.output - self.target)**2)
+        self.cost = tensor.sum((self.output - self.target) ** 2)
 
         self.sgd_updates = {
             self.w1: self.w1 - self.lr * tensor.grad(self.cost, self.w1),
-            self.w2: self.w2 - self.lr * tensor.grad(self.cost, self.w2)}
+            self.w2: self.w2 - self.lr * tensor.grad(self.cost, self.w2),
+        }
 
         self.sgd_step = pfunc(
             params=[self.input, self.target],
             outputs=[self.output, self.cost],
-            updates=self.sgd_updates)
+            updates=self.sgd_updates,
+        )
 
         self.compute_output = pfunc([self.input], self.output)
 
         self.output_from_hidden = pfunc([self.hidden], self.output)
 
 
-class TestNnet():
-
+class TestNnet:
     def test_nnet(self):
         rng = np.random.RandomState(1827)
         data = rng.rand(10, 4)

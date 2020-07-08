@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from collections import defaultdict
 from six import iteritems
 from theano.gof.graph import list_of_nodes
@@ -31,11 +30,14 @@ def memodict(f):
     Memoization decorator for a function taking a single argument.
 
     """
+
     class memodict(defaultdict):
         def __missing__(self, key):
             ret = self[key] = f(key)
             return ret
+
     return memodict().__getitem__
+
 
 # end of http://code.activestate.com/recipes/578231/ }}}
 
@@ -48,9 +50,10 @@ def make_depends():
 
         """
         a, b = pair
-        return (any(bout in a.inputs for bout in b.outputs) or
-                any(depends((ainp.owner, b)) for ainp in a.inputs
-                    if ainp.owner))
+        return any(bout in a.inputs for bout in b.outputs) or any(
+            depends((ainp.owner, b)) for ainp in a.inputs if ainp.owner
+        )
+
     return depends
 
 
@@ -102,7 +105,7 @@ def reverse_dict(d):
     result = {}
     for key in d:
         for val in d[key]:
-            result[val] = result.get(val, tuple()) + (key, )
+            result[val] = result.get(val, tuple()) + (key,)
     return result
 
 
@@ -135,8 +138,7 @@ def _toposort(edges):
 
     """
     incoming_edges = reverse_dict(edges)
-    incoming_edges = dict((k, set(val))
-                          for k, val in iteritems(incoming_edges))
+    incoming_edges = dict((k, set(val)) for k, val in iteritems(incoming_edges))
     S = set((v for v in edges if v not in incoming_edges))
     L = []
 
@@ -153,17 +155,17 @@ def _toposort(edges):
     return L
 
 
-def posort(l, *cmps):
+def posort(nodes, *cmps):
     """
     Partially ordered sort with multiple comparators.
 
-    Given a list of comparators, orders the elements in l so that the
+    Given a list of comparators, orders the elements in `nodes` so that the
     comparators are satisfied as much as possible giving precedence to
     earlier comparators.
 
     Parameters
     ----------
-    l
+    nodes
         An iterable of nodes in a graph.
     cmps
         A sequence of comparator functions that describe which nodes should
@@ -186,8 +188,8 @@ def posort(l, *cmps):
     [0, 8, 2, 4, 6, 1, 3, 5, 7, 9, 16, 18, 10, 12, 14, 17, 19, 11, 13, 15]
 
     """
-    comes_before = dict((a, set()) for a in l)
-    comes_after = dict((a, set()) for a in l)
+    comes_before = dict((a, set()) for a in nodes)
+    comes_after = dict((a, set()) for a in nodes)
 
     def add_links(a, b):  # b depends on a
         comes_after[a].add(b)
@@ -204,13 +206,13 @@ def posort(l, *cmps):
         Tests for cycles in manufactured edges.
 
         """
-        for a in l:
-            for b in l:
-                assert not(b in comes_after[a] and a in comes_after[b])
+        for a in nodes:
+            for b in nodes:
+                assert not (b in comes_after[a] and a in comes_after[b])
 
     for cmp_fn in cmps:
-        for a in l:
-            for b in l:
+        for a in nodes:
+            for b in nodes:
                 if cmp_fn(a, b) < 0:  # a wants to come before b
                     # if this wouldn't cause a cycle and isn't already known
                     if b not in comes_before[a] and b not in comes_after[a]:
@@ -264,6 +266,7 @@ def sort_schedule_fn(*cmps):
 
         """
         return sort_apply_nodes(fgraph.inputs, fgraph.outputs, cmps)
+
     return schedule
 
 
@@ -271,6 +274,8 @@ def key_to_cmp(key):
     """
     comparator function based on "key" function
     """
+
     def key_cmp(a, b):
         return cmp(key(a), key(b))
+
     return key_cmp

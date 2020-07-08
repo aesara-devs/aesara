@@ -1,7 +1,7 @@
 """
 Tests of printing functionality
 """
-from __future__ import absolute_import, print_function, division
+
 import logging
 
 import pytest
@@ -21,7 +21,7 @@ def test_pydotprint_cond_highlight():
 
     # Skip test if pydot is not available.
     if not theano.printing.pydot_imported:
-        pytest.skip('pydot not available')
+        pytest.skip("pydot not available")
 
     x = tensor.dvector()
     f = theano.function([x], x * 2)
@@ -35,20 +35,21 @@ def test_pydotprint_cond_highlight():
     theano.theano_logger.removeHandler(orig_handler)
     theano.theano_logger.addHandler(new_handler)
     try:
-        theano.printing.pydotprint(f, cond_highlight=True,
-                                   print_output_file=False)
+        theano.printing.pydotprint(f, cond_highlight=True, print_output_file=False)
     finally:
         theano.theano_logger.addHandler(orig_handler)
         theano.theano_logger.removeHandler(new_handler)
 
-    assert (s.getvalue() == 'pydotprint: cond_highlight is set but there'
-            ' is no IfElse node in the graph\n')
+    assert (
+        s.getvalue() == "pydotprint: cond_highlight is set but there"
+        " is no IfElse node in the graph\n"
+    )
 
 
 def test_pydotprint_return_image():
     # Skip test if pydot is not available.
     if not theano.printing.pydot_imported:
-        pytest.skip('pydot not available')
+        pytest.skip("pydot not available")
 
     x = tensor.dvector()
     ret = theano.printing.pydotprint(x * 2, return_image=True)
@@ -63,18 +64,17 @@ def test_pydotprint_long_name():
 
     # Skip test if pydot is not available.
     if not theano.printing.pydot_imported:
-        pytest.skip('pydot not available')
+        pytest.skip("pydot not available")
 
     x = tensor.dvector()
     mode = theano.compile.mode.get_default_mode().excluding("fusion")
     f = theano.function([x], [x * 2, x + x], mode=mode)
     f([1, 2, 3, 4])
 
-    theano.printing.pydotprint(f, max_label_size=5,
-                               print_output_file=False)
-    theano.printing.pydotprint([x * 2, x + x],
-                               max_label_size=5,
-                               print_output_file=False)
+    theano.printing.pydotprint(f, max_label_size=5, print_output_file=False)
+    theano.printing.pydotprint(
+        [x * 2, x + x], max_label_size=5, print_output_file=False
+    )
 
 
 def test_pydotprint_profile():
@@ -82,7 +82,7 @@ def test_pydotprint_profile():
 
     # Skip test if pydot is not available.
     if not theano.printing.pydot_imported:
-        pytest.skip('pydot not available')
+        pytest.skip("pydot not available")
 
     if theano.config.mode in ("DebugMode", "DEBUG_MODE"):
         pytest.skip("Can't profile in DebugMode")
@@ -99,12 +99,12 @@ def test_min_informative_str():
     # evaluates a reference output to make sure the
     # min_informative_str function works as intended
 
-    A = tensor.matrix(name='A')
-    B = tensor.matrix(name='B')
+    A = tensor.matrix(name="A")
+    B = tensor.matrix(name="B")
     C = A + B
-    C.name = 'C'
-    D = tensor.matrix(name='D')
-    E = tensor.matrix(name='E')
+    C.name = "C"
+    D = tensor.matrix(name="D")
+    E = tensor.matrix(name="E")
 
     F = D + E
     G = C + F
@@ -118,23 +118,23 @@ def test_min_informative_str():
   E. E"""
 
     if mis != reference:
-        print('--' + mis + '--')
-        print('--' + reference + '--')
+        print("--" + mis + "--")
+        print("--" + reference + "--")
 
     assert mis == reference
 
 
 def test_debugprint():
-    A = tensor.matrix(name='A')
-    B = tensor.matrix(name='B')
+    A = tensor.matrix(name="A")
+    B = tensor.matrix(name="B")
     C = A + B
-    C.name = 'C'
-    D = tensor.matrix(name='D')
-    E = tensor.matrix(name='E')
+    C.name = "C"
+    D = tensor.matrix(name="D")
+    E = tensor.matrix(name="E")
 
     F = D + E
     G = C + F
-    mode = theano.compile.get_default_mode().including('fusion')
+    mode = theano.compile.get_default_mode().including("fusion")
     g = theano.function([A, B, D, E], G, mode=mode)
 
     # just test that it work
@@ -143,122 +143,151 @@ def test_debugprint():
 
     # test ids=int
     s = StringIO()
-    debugprint(G, file=s, ids='int')
+    debugprint(G, file=s, ids="int")
     s = s.getvalue()
     # The additional white space are needed!
-    reference = '\n'.join([
-        "Elemwise{add,no_inplace} [id 0] ''   ",
-        " |Elemwise{add,no_inplace} [id 1] 'C'   ",
-        " | |A [id 2]",
-        " | |B [id 3]",
-        " |Elemwise{add,no_inplace} [id 4] ''   ",
-        "   |D [id 5]",
-        "   |E [id 6]",
-    ]) + '\n'
+    reference = (
+        "\n".join(
+            [
+                "Elemwise{add,no_inplace} [id 0] ''   ",
+                " |Elemwise{add,no_inplace} [id 1] 'C'   ",
+                " | |A [id 2]",
+                " | |B [id 3]",
+                " |Elemwise{add,no_inplace} [id 4] ''   ",
+                "   |D [id 5]",
+                "   |E [id 6]",
+            ]
+        )
+        + "\n"
+    )
 
     if s != reference:
-        print('--' + s + '--')
-        print('--' + reference + '--')
+        print("--" + s + "--")
+        print("--" + reference + "--")
 
     assert s == reference
 
     # test ids=CHAR
     s = StringIO()
-    debugprint(G, file=s, ids='CHAR')
+    debugprint(G, file=s, ids="CHAR")
     s = s.getvalue()
     # The additional white space are needed!
-    reference = "\n".join([
-        "Elemwise{add,no_inplace} [id A] ''   ",
-        " |Elemwise{add,no_inplace} [id B] 'C'   ",
-        " | |A [id C]",
-        " | |B [id D]",
-        " |Elemwise{add,no_inplace} [id E] ''   ",
-        "   |D [id F]",
-        "   |E [id G]",
-    ]) + '\n'
+    reference = (
+        "\n".join(
+            [
+                "Elemwise{add,no_inplace} [id A] ''   ",
+                " |Elemwise{add,no_inplace} [id B] 'C'   ",
+                " | |A [id C]",
+                " | |B [id D]",
+                " |Elemwise{add,no_inplace} [id E] ''   ",
+                "   |D [id F]",
+                "   |E [id G]",
+            ]
+        )
+        + "\n"
+    )
 
     if s != reference:
-        print('--' + s + '--')
-        print('--' + reference + '--')
+        print("--" + s + "--")
+        print("--" + reference + "--")
 
     assert s == reference
 
     # test ids=CHAR, stop_on_name=True
     s = StringIO()
-    debugprint(G, file=s, ids='CHAR', stop_on_name=True)
+    debugprint(G, file=s, ids="CHAR", stop_on_name=True)
     s = s.getvalue()
     # The additional white space are needed!
-    reference = '\n'.join([
-        "Elemwise{add,no_inplace} [id A] ''   ",
-        " |Elemwise{add,no_inplace} [id B] 'C'   ",
-        " |Elemwise{add,no_inplace} [id C] ''   ",
-        "   |D [id D]",
-        "   |E [id E]",
-    ]) + '\n'
+    reference = (
+        "\n".join(
+            [
+                "Elemwise{add,no_inplace} [id A] ''   ",
+                " |Elemwise{add,no_inplace} [id B] 'C'   ",
+                " |Elemwise{add,no_inplace} [id C] ''   ",
+                "   |D [id D]",
+                "   |E [id E]",
+            ]
+        )
+        + "\n"
+    )
 
     if s != reference:
-        print('--' + s + '--')
-        print('--' + reference + '--')
+        print("--" + s + "--")
+        print("--" + reference + "--")
 
     assert s == reference
 
     # test ids=
     s = StringIO()
-    debugprint(G, file=s, ids='')
+    debugprint(G, file=s, ids="")
     s = s.getvalue()
     # The additional white space are needed!
-    reference = '\n'.join([
-        "Elemwise{add,no_inplace}  ''   ",
-        " |Elemwise{add,no_inplace}  'C'   ",
-        " | |A ",
-        " | |B ",
-        " |Elemwise{add,no_inplace}  ''   ",
-        "   |D ",
-        "   |E ",
-    ]) + '\n'
+    reference = (
+        "\n".join(
+            [
+                "Elemwise{add,no_inplace}  ''   ",
+                " |Elemwise{add,no_inplace}  'C'   ",
+                " | |A ",
+                " | |B ",
+                " |Elemwise{add,no_inplace}  ''   ",
+                "   |D ",
+                "   |E ",
+            ]
+        )
+        + "\n"
+    )
     if s != reference:
-        print('--' + s + '--')
-        print('--' + reference + '--')
+        print("--" + s + "--")
+        print("--" + reference + "--")
 
     assert s == reference
 
     # test print_storage=True
     s = StringIO()
-    debugprint(g, file=s, ids='', print_storage=True)
+    debugprint(g, file=s, ids="", print_storage=True)
     s = s.getvalue()
     # The additional white space are needed!
-    reference = '\n'.join([
-        "Elemwise{add,no_inplace}  ''   0 [None]",
-        " |A  [None]",
-        " |B  [None]",
-        " |D  [None]",
-        " |E  [None]",
-    ]) + '\n'
+    reference = (
+        "\n".join(
+            [
+                "Elemwise{add,no_inplace}  ''   0 [None]",
+                " |A  [None]",
+                " |B  [None]",
+                " |D  [None]",
+                " |E  [None]",
+            ]
+        )
+        + "\n"
+    )
     if s != reference:
-        print('--' + s + '--')
-        print('--' + reference + '--')
+        print("--" + s + "--")
+        print("--" + reference + "--")
 
     assert s == reference
 
     # test clients
     s = StringIO()
     # We must force the mode as otherwise it can change the clients order
-    f = theano.function([A, B, D], [A + B, A + B - D],
-                        mode='FAST_COMPILE')
+    f = theano.function([A, B, D], [A + B, A + B - D], mode="FAST_COMPILE")
     debugprint(f, file=s, print_clients=True)
     s = s.getvalue()
     # The additional white space are needed!
-    reference = '\n'.join([
-        "Elemwise{add,no_inplace} [id A] ''   0 clients:[('output', ''), ('[id C]', 1)]",
-        " |A [id D]",
-        " |B [id E]",
-        "Elemwise{sub,no_inplace} [id C] ''   1",
-        " |Elemwise{add,no_inplace} [id A] ''   0 clients:[('output', ''), ('[id C]', 1)]",
-        " |D [id F]",
-    ]) + '\n'
+    reference = (
+        "\n".join(
+            [
+                "Elemwise{add,no_inplace} [id A] ''   0 clients:[('output', ''), ('[id C]', 1)]",
+                " |A [id D]",
+                " |B [id E]",
+                "Elemwise{sub,no_inplace} [id C] ''   1",
+                " |Elemwise{add,no_inplace} [id A] ''   0 clients:[('output', ''), ('[id C]', 1)]",
+                " |D [id F]",
+            ]
+        )
+        + "\n"
+    )
     if s != reference:
-        print('--' + s + '--')
-        print('--' + reference + '--')
+        print("--" + s + "--")
+        print("--" + reference + "--")
 
     assert s == reference
 
@@ -268,14 +297,16 @@ def test_scan_debugprint1():
     A = tensor.dvector("A")
 
     # Symbolic description of the result
-    result, updates = theano.scan(fn=lambda prior_result, A: prior_result * A,
-                                  outputs_info=tensor.ones_like(A),
-                                  non_sequences=A,
-                                  n_steps=k)
+    result, updates = theano.scan(
+        fn=lambda prior_result, A: prior_result * A,
+        outputs_info=tensor.ones_like(A),
+        non_sequences=A,
+        n_steps=k,
+    )
 
     final_result = result[-1]
-    output_str = theano.printing.debugprint(final_result, file='str')
-    lines = output_str.split('\n')
+    output_str = theano.printing.debugprint(final_result, file="str")
+    lines = output_str.split("\n")
 
     expected_output = """Subtensor{int64} [id A] ''
      |Subtensor{int64::} [id B] ''
@@ -323,20 +354,18 @@ def test_scan_debugprint2():
     max_coefficients_supported = 10000
 
     # Generate the components of the polynomial
-    components, updates = theano.scan(fn=lambda coefficient, power,
-                                      free_variable:
-                                      coefficient * (free_variable ** power),
-                                      outputs_info=None,
-                                      sequences=[
-                                          coefficients,
-                                          theano.tensor.arange(
-                                              max_coefficients_supported)],
-                                      non_sequences=x)
+    components, updates = theano.scan(
+        fn=lambda coefficient, power, free_variable: coefficient
+        * (free_variable ** power),
+        outputs_info=None,
+        sequences=[coefficients, theano.tensor.arange(max_coefficients_supported)],
+        non_sequences=x,
+    )
     # Sum them up
     polynomial = components.sum()
 
-    output_str = theano.printing.debugprint(polynomial, file='str')
-    lines = output_str.split('\n')
+    output_str = theano.printing.debugprint(polynomial, file="str")
+    lines = output_str.split("\n")
 
     expected_output = """Sum{acc_dtype=float64} [id A] ''
      |for{cpu,scan_fn} [id B] ''
@@ -390,34 +419,32 @@ def test_scan_debugprint3():
     # compute A**k
     def compute_A_k(A, k):
         # Symbolic description of the result
-        result, updates = theano.scan(fn=lambda prior_result,
-                                      A: prior_result * A,
-                                      outputs_info=tensor.ones_like(A),
-                                      non_sequences=A,
-                                      n_steps=k)
+        result, updates = theano.scan(
+            fn=lambda prior_result, A: prior_result * A,
+            outputs_info=tensor.ones_like(A),
+            non_sequences=A,
+            n_steps=k,
+        )
 
         A_k = result[-1]
 
         return A_k
 
     # Generate the components of the polynomial
-    components, updates = theano.scan(fn=lambda coefficient,
-                                      power, some_A, some_k:
-                                      coefficient *
-                                      (compute_A_k(some_A, some_k) ** power),
-                                      outputs_info=None,
-                                      sequences=[
-                                          coefficients,
-                                          theano.tensor.arange(
-                                              max_coefficients_supported)],
-                                      non_sequences=[A, k])
+    components, updates = theano.scan(
+        fn=lambda coefficient, power, some_A, some_k: coefficient
+        * (compute_A_k(some_A, some_k) ** power),
+        outputs_info=None,
+        sequences=[coefficients, theano.tensor.arange(max_coefficients_supported)],
+        non_sequences=[A, k],
+    )
     # Sum them up
     polynomial = components.sum()
 
     final_result = polynomial
 
-    output_str = theano.printing.debugprint(final_result, file='str')
-    lines = output_str.split('\n')
+    output_str = theano.printing.debugprint(final_result, file="str")
+    lines = output_str.split("\n")
 
     expected_output = """Sum{acc_dtype=float64} [id A] ''
      |for{cpu,scan_fn} [id B] ''
@@ -496,21 +523,24 @@ def test_scan_debugprint3():
 
 
 def test_scan_debugprint4():
-
     def fn(a_m2, a_m1, b_m2, b_m1):
         return a_m1 + a_m2, b_m1 + b_m2
 
-    a0 = theano.shared(np.arange(2, dtype='int64'))
-    b0 = theano.shared(np.arange(2, dtype='int64'))
+    a0 = theano.shared(np.arange(2, dtype="int64"))
+    b0 = theano.shared(np.arange(2, dtype="int64"))
 
     (a, b), _ = theano.scan(
-        fn, outputs_info=[{'initial': a0, 'taps': [-2, -1]},
-                          {'initial': b0, 'taps': [-2, -1]}],
-        n_steps=5)
+        fn,
+        outputs_info=[
+            {"initial": a0, "taps": [-2, -1]},
+            {"initial": b0, "taps": [-2, -1]},
+        ],
+        n_steps=5,
+    )
 
     final_result = a + b
-    output_str = theano.printing.debugprint(final_result, file='str')
-    lines = output_str.split('\n')
+    output_str = theano.printing.debugprint(final_result, file="str")
+    lines = output_str.split("\n")
 
     expected_output = """Elemwise{add,no_inplace} [id A] ''
      |Subtensor{int64::} [id B] ''
@@ -571,15 +601,17 @@ def test_scan_debugprint5():
     A = tensor.dvector("A")
 
     # Symbolic description of the result
-    result, updates = theano.scan(fn=lambda prior_result, A: prior_result * A,
-                                  outputs_info=tensor.ones_like(A),
-                                  non_sequences=A,
-                                  n_steps=k)
+    result, updates = theano.scan(
+        fn=lambda prior_result, A: prior_result * A,
+        outputs_info=tensor.ones_like(A),
+        non_sequences=A,
+        n_steps=k,
+    )
 
     final_result = tensor.grad(result[-1].sum(), A)
 
-    output_str = theano.printing.debugprint(final_result, file='str')
-    lines = output_str.split('\n')
+    output_str = theano.printing.debugprint(final_result, file="str")
+    lines = output_str.split("\n")
 
     expected_output = """Subtensor{int64} [id A] ''
     |for{cpu,grad_of_scan_fn}.1 [id B] ''
@@ -702,24 +734,19 @@ def test_scan_debugprint5():
 def test_printing_scan():
     # Skip test if pydot is not available.
     if not theano.printing.pydot_imported:
-        pytest.skip('pydot not available')
+        pytest.skip("pydot not available")
 
     def f_pow2(x_tm1):
         return 2 * x_tm1
 
-    state = theano.tensor.scalar('state')
-    n_steps = theano.tensor.iscalar('nsteps')
-    output, updates = theano.scan(f_pow2,
-                                  [],
-                                  state,
-                                  [],
-                                  n_steps=n_steps,
-                                  truncate_gradient=-1,
-                                  go_backwards=False)
-    f = theano.function([state, n_steps],
-                        output,
-                        updates=updates,
-                        allow_input_downcast=True)
+    state = theano.tensor.scalar("state")
+    n_steps = theano.tensor.iscalar("nsteps")
+    output, updates = theano.scan(
+        f_pow2, [], state, [], n_steps=n_steps, truncate_gradient=-1, go_backwards=False
+    )
+    f = theano.function(
+        [state, n_steps], output, updates=updates, allow_input_downcast=True
+    )
     theano.printing.pydotprint(output, scan_graphs=True)
     theano.printing.pydotprint(f, scan_graphs=True)
 

@@ -47,6 +47,7 @@ Here is some code that allows the Op to be optional:
 
 .. code-block:: python
 
+
     try:
         import scipy.linalg
         imported_scipy = True
@@ -61,12 +62,10 @@ Here is some code that allows the Op to be optional:
             "SciPy not available. SciPy is needed for the SomeOp op.")
             ...
 
-    from nose.plugins.skip import SkipTest
-    class test_SomeOp(utt.InferShapeTester):
+    class TestSomeOp(utt.InferShapeTester):
         ...
+        @pytest.mark.skipif(not imported_scipy, reason="SciPy needed for the SomeOp op.")
         def test_infer_shape(self):
-            if not imported_scipy:
-                raise SkipTest("SciPy needed for the SomeOp op.")
             ...
 
 .. _sparse_ops:

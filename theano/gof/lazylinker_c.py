@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 import errno
 import logging
 import os
@@ -12,7 +11,7 @@ from theano import config
 from theano.gof.compilelock import get_lock, release_lock
 from theano.gof import cmodule
 
-_logger = logging.getLogger('theano.gof.lazylinker_c')
+_logger = logging.getLogger("theano.gof.lazylinker_c")
 
 force_compile = False
 version = 0.211  # must match constant returned in function get_version()
@@ -23,6 +22,7 @@ def try_import():
     global lazylinker_ext
     sys.path[0:0] = [config.compiledir]
     import lazylinker_ext  # noqa
+
     del sys.path[0]
 
 
@@ -30,6 +30,7 @@ def try_reload():
     sys.path[0:0] = [config.compiledir]
     reload(lazylinker_ext)
     del sys.path[0]
+
 
 try:
     # See gh issue #728 for why these lines are here. Summary: compiledir must
@@ -39,7 +40,7 @@ try:
     # Note that these lines may seem redundant (they are repeated in
     # compile_str()) but if another lazylinker_ext does exist then it will be
     # imported and compile_str won't get called at all.
-    location = os.path.join(config.compiledir, 'lazylinker_ext')
+    location = os.path.join(config.compiledir, "lazylinker_ext")
     if not os.path.exists(location):
         try:
             # Try to make the location
@@ -53,16 +54,15 @@ try:
             assert e.errno == errno.EEXIST
             assert os.path.isdir(location)
 
-    init_file = os.path.join(location, '__init__.py')
+    init_file = os.path.join(location, "__init__.py")
     if not os.path.exists(init_file):
         try:
-            open(init_file, 'w').close()
+            open(init_file, "w").close()
         except IOError as e:
             if os.path.exists(init_file):
                 pass  # has already been created
             else:
-                e.args += ('%s exist? %s' % (location,
-                                             os.path.exists(location)),)
+                e.args += ("%s exist? %s" % (location, os.path.exists(location)),)
                 raise
 
     _need_reload = False
@@ -71,14 +71,14 @@ try:
     else:
         try_import()
         _need_reload = True
-        actual_version = getattr(lazylinker_ext, '_version', None)
+        actual_version = getattr(lazylinker_ext, "_version", None)
         if version != actual_version:
             raise ImportError(
                 "Version check of the existing lazylinker compiled file."
                 " Looking for version %s, but found %s. "
-                "Extra debug information: force_compile=%s, _need_reload=%s" % (
-                    version,
-                    actual_version, force_compile, _need_reload))
+                "Extra debug information: force_compile=%s, _need_reload=%s"
+                % (version, actual_version, force_compile, _need_reload)
+            )
 except ImportError:
     get_lock()
     try:
@@ -94,15 +94,15 @@ except ImportError:
             else:
                 try_import()
                 _need_reload = True
-            actual_version = getattr(lazylinker_ext, '_version', None)
+            actual_version = getattr(lazylinker_ext, "_version", None)
             if version != actual_version:
                 raise ImportError(
                     "Version check of the existing lazylinker compiled file."
                     " Looking for version %s, but found %s. "
                     "Extra debug information: force_compile=%s,"
-                    " _need_reload=%s" % (
-                        version,
-                        actual_version, force_compile, _need_reload))
+                    " _need_reload=%s"
+                    % (version, actual_version, force_compile, _need_reload)
+                )
         except ImportError:
             # It is useless to try to compile if there isn't any
             # compiler!  But we still want to try to load it, in case
@@ -110,8 +110,8 @@ except ImportError:
             if not theano.config.cxx:
                 raise
             _logger.info("Compiling new CVM")
-            dirname = 'lazylinker_ext'
-            cfile = os.path.join(theano.__path__[0], 'gof', 'c_code', 'lazylinker_c.c')
+            dirname = "lazylinker_ext"
+            cfile = os.path.join(theano.__path__[0], "gof", "c_code", "lazylinker_c.c")
             if not os.path.exists(cfile):
                 # This can happen in not normal case. We just
                 # disable the c clinker. If we are here the user
@@ -136,27 +136,27 @@ except ImportError:
                     assert os.path.exists(loc)
 
             args = cmodule.GCC_compiler.compile_args()
-            cmodule.GCC_compiler.compile_str(dirname, code, location=loc,
-                                             preargs=args)
+            cmodule.GCC_compiler.compile_str(dirname, code, location=loc, preargs=args)
             # Save version into the __init__.py file.
-            init_py = os.path.join(loc, '__init__.py')
-            with open(init_py, 'w') as f:
-                f.write('_version = %s\n' % version)
+            init_py = os.path.join(loc, "__init__.py")
+            with open(init_py, "w") as f:
+                f.write("_version = %s\n" % version)
             # If we just compiled the module for the first time, then it was
             # imported at the same time: we need to make sure we do not
             # reload the now outdated __init__.pyc below.
-            init_pyc = os.path.join(loc, '__init__.pyc')
+            init_pyc = os.path.join(loc, "__init__.pyc")
             if os.path.isfile(init_pyc):
                 os.remove(init_pyc)
             try_import()
             try_reload()
             from lazylinker_ext import lazylinker_ext as lazy_c
-            assert (lazylinker_ext._version ==
-                    lazy_c.get_version())
+
+            assert lazylinker_ext._version == lazy_c.get_version()
             _logger.info("New version %s", lazylinker_ext._version)
     finally:
         # Release lock on compilation directory.
         release_lock()
 
 from lazylinker_ext.lazylinker_ext import *  # noqa
+
 assert force_compile or (version == get_version())  # noqa

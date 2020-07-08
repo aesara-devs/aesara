@@ -15,7 +15,7 @@ default when calling theano.shared(value) then users must really go out of their
 way (as scan does) to create a shared variable of this kind.
 
 """
-from __future__ import absolute_import, print_function, division
+
 import numpy as np
 from six import integer_types
 
@@ -32,6 +32,7 @@ __docformat__ = "restructuredtext en"
 
 class ScalarSharedVariable(_scalar_py_operators, SharedVariable):
     pass
+
 
 # this is not installed in the default shared variable registry so that
 # scalars are typically 0-d tensors.
@@ -63,5 +64,6 @@ def shared(value, name=None, strict=False, allow_downcast=None):
         value=value,
         name=name,
         strict=strict,
-        allow_downcast=allow_downcast)
+        allow_downcast=allow_downcast,
+    )
     return rval

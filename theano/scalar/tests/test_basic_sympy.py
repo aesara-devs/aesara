@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 import pytest
 
 import theano
@@ -8,12 +6,13 @@ from theano.scalar.basic import floats
 
 try:
     import sympy
-    xs = sympy.Symbol('x')
-    ys = sympy.Symbol('y')
-except ImportError:
-    pytest.skip('optional package sympy disabled', allow_module_level=True)
 
-xt, yt = floats('xy')
+    xs = sympy.Symbol("x")
+    ys = sympy.Symbol("y")
+except ImportError:
+    pytest.skip("optional package sympy disabled", allow_module_level=True)
+
+xt, yt = floats("xy")
 
 
 def test_SymPyCCode():
@@ -28,7 +27,7 @@ def test_SymPyCCode():
 
 
 def test_grad():
-    op = SymPyCCode([xs], xs**2)
+    op = SymPyCCode([xs], xs ** 2)
     zt = op(xt)
     ztprime = theano.grad(zt, xt)
     assert ztprime.owner.op.expr == 2 * xs

@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from functools import wraps
 
 import numpy as np
@@ -6,8 +5,7 @@ import numpy as np
 from theano import tensor, scalar as scal, Constant
 from theano.gof import local_optimizer
 from theano.gof.opt import inherit_stack_trace
-from theano.tensor import (DimShuffle, get_scalar_constant_value,
-                           NotScalarConstantError)
+from theano.tensor import DimShuffle, get_scalar_constant_value, NotScalarConstantError
 
 from .basic_ops import GpuFromHost, HostFromGpu, GpuAllocEmpty, GpuReshape
 from .elemwise import GpuDimShuffle, GpuElemwise
@@ -31,16 +29,17 @@ def grab_cpu_scalar(v, nd):
     """
     if v.owner is not None:
         n = v.owner
-        if (isinstance(n.op, (GpuDimShuffle, DimShuffle)) and
-                n.op.new_order == ('x',) * nd):
+        if (
+            isinstance(n.op, (GpuDimShuffle, DimShuffle))
+            and n.op.new_order == ("x",) * nd
+        ):
             return grab_cpu_scalar(n.inputs[0], n.inputs[0].ndim)
         elif isinstance(n.op, (GpuFromHost, HostFromGpu)):
             return grab_cpu_scalar(n.inputs[0], nd)
         else:
             return None
     else:
-        if (isinstance(v, Constant) and
-                v.broadcastable == (True,) * nd):
+        if isinstance(v, Constant) and v.broadcastable == (True,) * nd:
             return v.dimshuffle(())
 
 
@@ -66,10 +65,12 @@ def find_node(v, cls, ignore_clients=False):
     if v.owner is not None and (ignore_clients or len(v.clients) == 1):
         if isinstance(v.owner.op, cls):
             return v.owner
-        elif (isinstance(v.owner.op, GpuFromHost) and
-              v.owner.inputs[0].owner is not None and
-              (ignore_clients or len(v.owner.inputs[0].clients) == 1) and
-              isinstance(v.owner.inputs[0].owner.op, HostFromGpu)):
+        elif (
+            isinstance(v.owner.op, GpuFromHost)
+            and v.owner.inputs[0].owner is not None
+            and (ignore_clients or len(v.owner.inputs[0].clients) == 1)
+            and isinstance(v.owner.inputs[0].owner.op, HostFromGpu)
+        ):
             return find_node(v.owner.inputs[0].owner.inputs[0], cls)
         else:
             return None
@@ -149,23 +150,24 @@ def alpha_merge(cls, alpha_in, beta_in):
     alpha and beta scaling factors is not trivial.
 
     """
+
     def wrapper(maker):
         @local_optimizer([GpuElemwise])
         @wraps(maker)
         def opt(node):
-            if (isinstance(node.op, GpuElemwise) and
-                    node.op.scalar_op == scal.mul and
-                    node.nin == 2):
+            if (
+                isinstance(node.op, GpuElemwise)
+                and node.op.scalar_op == scal.mul
+                and node.nin == 2
+            ):
                 targ = find_node(node.inputs[0], cls)
                 if targ is None:
                     targ = find_node(node.inputs[1], cls)
                     if targ is None:
                         return
-                    lr = grab_cpu_scalar(node.inputs[0],
-                                         nd=targ.outputs[0].ndim)
+                    lr = grab_cpu_scalar(node.inputs[0], nd=targ.outputs[0].ndim)
                 else:
-                    lr = grab_cpu_scalar(node.inputs[1],
-                                         nd=targ.outputs[0].ndim)
+                    lr = grab_cpu_scalar(node.inputs[1], nd=targ.outputs[0].ndim)
                 if lr is None or lr.dtype != targ.outputs[0].dtype:
                     return None
                 inputs = list(targ.inputs)
@@ -185,7 +187,9 @@ def alpha_merge(cls, alpha_in, beta_in):
                     inputs[beta_in] = lr * targ.inputs[beta_in]
                 with inherit_stack_trace(node.outputs):
                     return maker(targ, *inputs)
+
         return opt
+
     return wrapper
 
 
@@ -246,13 +250,16 @@ def output_merge(cls, alpha_in, beta_in, out_in):
     broadcasted (by not performing the replacement).
 
     """
+
     def wrapper(maker):
         @local_optimizer([GpuElemwise])
         @wraps(maker)
         def opt(node):
-            if (isinstance(node.op, GpuElemwise) and
-                    node.op.scalar_op == scal.add and
-                    node.nin == 2):
+            if (
+                isinstance(node.op, GpuElemwise)
+                and node.op.scalar_op == scal.add
+                and node.nin == 2
+            ):
                 targ = find_node(node.inputs[0], cls)
                 W = node.inputs[1]
                 if targ is None:
@@ -276,7 +283,9 @@ def output_merge(cls, alpha_in, beta_in, out_in):
                 inputs[beta_in] = one
                 with inherit_stack_trace(node.outputs):
                     return maker(targ, *inputs)
+
         return opt
+
     return wrapper
 
 
@@ -316,6 +325,7 @@ def inplace_allocempty(op, idx):
         as the decorated function.
 
     """
+
     def wrapper(maker):
         @local_optimizer([op], inplace=True)
         @wraps(maker)
@@ -324,14 +334,20 @@ def inplace_allocempty(op, idx):
                 return
             inputs = list(node.inputs)
             alloc = inputs[idx]
-            if (alloc.owner and
-                    isinstance(alloc.owner.op, GpuAllocEmpty) and
-                    len(alloc.clients) > 1):
-                alloc_op = GpuAllocEmpty(alloc.owner.op.dtype, alloc.owner.op.context_name)
+            if (
+                alloc.owner
+                and isinstance(alloc.owner.op, GpuAllocEmpty)
+                and len(alloc.clients) > 1
+            ):
+                alloc_op = GpuAllocEmpty(
+                    alloc.owner.op.dtype, alloc.owner.op.context_name
+                )
                 inputs[idx] = alloc_op(*alloc.owner.inputs)
             with inherit_stack_trace(node.outputs):
                 return maker(node, inputs)
+
         return opt
+
     return wrapper
 
 
@@ -376,21 +392,19 @@ def pad_dims(input, leftdims, rightdims):
     if non_pool_ndim < leftdims:
         # too few dimensions, pad on the left
         dummy_dims = tensor.as_tensor([1] * (leftdims - non_pool_ndim))
-        new_shape = tensor.join(0, dummy_dims,
-                                input.shape[:non_pool_ndim],
-                                img_shape)
+        new_shape = tensor.join(0, dummy_dims, input.shape[:non_pool_ndim], img_shape)
     else:
         # too many dimensions, combine the leading dimensions
         batched_ndim = non_pool_ndim - leftdims + 1
         batch_size = tensor.prod(input.shape[:batched_ndim])
         # convert to a vector for tensor.join
         batch_size = tensor.shape_padright(batch_size, 1)
-        new_shape = tensor.join(0, batch_size,
-                                input.shape[batched_ndim:non_pool_ndim],
-                                img_shape)
+        new_shape = tensor.join(
+            0, batch_size, input.shape[batched_ndim:non_pool_ndim], img_shape
+        )
 
     # store in the required shape
-    new_shape = tensor.cast(new_shape, 'int64')
+    new_shape = tensor.cast(new_shape, "int64")
     input_ND = GpuReshape(leftdims + rightdims)(input, new_shape)
     return input_ND
 

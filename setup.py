@@ -4,11 +4,12 @@
 #   * Figure out how to compile and install documentation automatically
 #   * Add download_url
 
-from __future__ import absolute_import, print_function, division
+
 import os
 import codecs
 from fnmatch import fnmatchcase
 from distutils.util import convert_path
+
 try:
     from setuptools import setup
 except ImportError:
@@ -34,41 +35,48 @@ Programming Language :: Python :: 3
 Programming Language :: Python :: 3.5
 Programming Language :: Python :: 3.6
 """
-NAME                = 'Theano-PyMC'
-MAINTAINER          = "PyMC developers"
-MAINTAINER_EMAIL    = "pymc-devs@gmail.com"
-DESCRIPTION         = ('Optimizing compiler for evaluating mathematical ' +
-                       'expressions on CPUs and GPUs.')
-LONG_DESCRIPTION    = (codecs.open("DESCRIPTION.txt", encoding='utf-8').read() +
-                       "\n\n" + codecs.open("NEWS.txt", encoding='utf-8').read())
-URL                 = "http://deeplearning.net/software/theano/"
-DOWNLOAD_URL        = ""
-LICENSE             = 'BSD'
-CLASSIFIERS         = [_f for _f in CLASSIFIERS.split('\n') if _f]
-AUTHOR              = "LISA laboratory, University of Montreal"
-AUTHOR_EMAIL        = "pymc-devs@gmail.com"
-PLATFORMS           = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"]
+NAME = "Theano-PyMC"
+MAINTAINER = "PyMC developers"
+MAINTAINER_EMAIL = "pymc-devs@gmail.com"
+DESCRIPTION = (
+    "Optimizing compiler for evaluating mathematical " + "expressions on CPUs and GPUs."
+)
+LONG_DESCRIPTION = (
+    codecs.open("DESCRIPTION.txt", encoding="utf-8").read()
+    + "\n\n"
+    + codecs.open("NEWS.txt", encoding="utf-8").read()
+)
+URL = "http://deeplearning.net/software/theano/"
+DOWNLOAD_URL = ""
+LICENSE = "BSD"
+CLASSIFIERS = [_f for _f in CLASSIFIERS.split("\n") if _f]
+AUTHOR = "LISA laboratory, University of Montreal"
+AUTHOR_EMAIL = "pymc-devs@gmail.com"
+PLATFORMS = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"]
 
 
-def find_packages(where='.', exclude=()):
+def find_packages(where=".", exclude=()):
     out = []
-    stack = [(convert_path(where), '')]
+    stack = [(convert_path(where), "")]
     while stack:
         where, prefix = stack.pop(0)
         for name in os.listdir(where):
             fn = os.path.join(where, name)
-            if ('.' not in name and os.path.isdir(fn) and
-                    os.path.isfile(os.path.join(fn, '__init__.py'))):
+            if (
+                "." not in name
+                and os.path.isdir(fn)
+                and os.path.isfile(os.path.join(fn, "__init__.py"))
+            ):
                 out.append(prefix + name)
-                stack.append((fn, prefix + name + '.'))
-    for pat in list(exclude) + ['ez_setup', 'distribute_setup']:
+                stack.append((fn, prefix + name + "."))
+    for pat in list(exclude) + ["ez_setup", "distribute_setup"]:
         out = [item for item in out if not fnmatchcase(item, pat)]
     return out
 
 
 version_data = versioneer.get_versions()
 
-if version_data['error'] is not None:
+if version_data["error"] is not None:
     # Get the fallback version
     # We can't import theano.version as it isn't yet installed, so parse it.
     fname = os.path.join(os.path.split(__file__)[0], "theano", "version.py")
@@ -79,42 +87,59 @@ if version_data['error'] is not None:
 
     FALLBACK_VERSION = lines[0].split("=")[1].strip().strip('""')
 
-    version_data['version'] = FALLBACK_VERSION
+    version_data["version"] = FALLBACK_VERSION
 
 
 def do_setup():
-    setup(name=NAME,
-          version=version_data['version'],
-          description=DESCRIPTION,
-          long_description=LONG_DESCRIPTION,
-          classifiers=CLASSIFIERS,
-          author=AUTHOR,
-          author_email=AUTHOR_EMAIL,
-          url=URL,
-          license=LICENSE,
-          platforms=PLATFORMS,
-          packages=find_packages(),
-          cmdclass=versioneer.get_cmdclass(),
-          install_requires=['numpy>=1.9.1', 'scipy>=0.14', 'six>=1.9.0'],
-          # pygments is a dependency for Sphinx code highlight
-          extras_require={
-              'test': ['nose>=1.3.0', 'flake8'],
-              'doc': ['Sphinx>=0.5.1', 'pygments']
-          },
-          package_data={
-              '': ['*.txt', '*.rst', '*.cu', '*.cuh', '*.c', '*.sh', '*.pkl',
-                   '*.h', '*.cpp', 'ChangeLog', 'c_code/*'],
-              'theano.misc': ['*.sh'],
-              'theano.d3viz': ['html/*', 'css/*', 'js/*']
-          },
-          entry_points={
-              'console_scripts': ['theano-cache = bin.theano_cache:main',
-                                  'theano-nose = bin.theano_nose:main']
-          },
-          keywords=' '.join([
-              'theano', 'math', 'numerical', 'symbolic', 'blas',
-              'numpy', 'gpu', 'autodiff', 'differentiation'
-          ]),
+    setup(
+        name=NAME,
+        version=version_data["version"],
+        description=DESCRIPTION,
+        long_description=LONG_DESCRIPTION,
+        classifiers=CLASSIFIERS,
+        author=AUTHOR,
+        author_email=AUTHOR_EMAIL,
+        url=URL,
+        license=LICENSE,
+        platforms=PLATFORMS,
+        packages=find_packages(),
+        cmdclass=versioneer.get_cmdclass(),
+        install_requires=["numpy>=1.9.1", "scipy>=0.14", "six>=1.9.0"],
+        extras_require={
+            "test": ["pytest", "flake8", "black"],
+            "doc": ["Sphinx>=0.5.1", "pygments"],
+        },
+        package_data={
+            "": [
+                "*.txt",
+                "*.rst",
+                "*.cu",
+                "*.cuh",
+                "*.c",
+                "*.sh",
+                "*.pkl",
+                "*.h",
+                "*.cpp",
+                "ChangeLog",
+                "c_code/*",
+            ],
+            "theano.misc": ["*.sh"],
+            "theano.d3viz": ["html/*", "css/*", "js/*"],
+        },
+        entry_points={"console_scripts": ["theano-cache = bin.theano_cache:main",]},
+        keywords=" ".join(
+            [
+                "theano",
+                "math",
+                "numerical",
+                "symbolic",
+                "blas",
+                "numpy",
+                "gpu",
+                "autodiff",
+                "differentiation",
+            ]
+        ),
     )
 
 

@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from theano.tests.record import Record, MismatchError, RecordMode
 from theano import function
 from six.moves import xrange, StringIO
@@ -19,12 +18,12 @@ def test_record_good():
     num_lines = 10
 
     for i in xrange(num_lines):
-        recorder.handle_line(str(i) + '\n')
+        recorder.handle_line(str(i) + "\n")
 
     # Make sure they were recorded correctly
     output_value = output.getvalue()
 
-    assert output_value == ''.join(str(i) + '\n' for i in xrange(num_lines))
+    assert output_value == "".join(str(i) + "\n" for i in xrange(num_lines))
 
     # Make sure that the playback functionality doesn't raise any errors
     # when we repeat them
@@ -33,7 +32,7 @@ def test_record_good():
     playback_checker = Record(file_object=output, replay=True)
 
     for i in xrange(num_lines):
-        playback_checker.handle_line(str(i) + '\n')
+        playback_checker.handle_line(str(i) + "\n")
 
 
 def test_record_bad():
@@ -48,7 +47,7 @@ def test_record_bad():
     num_lines = 10
 
     for i in xrange(num_lines):
-        recorder.handle_line(str(i) + '\n')
+        recorder.handle_line(str(i) + "\n")
 
     # Make sure that the playback functionality doesn't raise any errors
     # when we repeat some of them
@@ -58,15 +57,16 @@ def test_record_bad():
     playback_checker = Record(file_object=output, replay=True)
 
     for i in xrange(num_lines // 2):
-        playback_checker.handle_line(str(i) + '\n')
+        playback_checker.handle_line(str(i) + "\n")
 
     # Make sure it raises an error when we deviate from the recorded sequence
     try:
-        playback_checker.handle_line('0\n')
+        playback_checker.handle_line("0\n")
     except MismatchError:
         return
-    raise AssertionError("Failed to detect mismatch between recorded sequence "
-                         " and repetition of it.")
+    raise AssertionError(
+        "Failed to detect mismatch between recorded sequence " " and repetition of it."
+    )
 
 
 def test_record_mode_good():
@@ -82,12 +82,12 @@ def test_record_mode_good():
     record_mode = RecordMode(recorder)
 
     i = iscalar()
-    f = function([i], i, mode=record_mode, name='f')
+    f = function([i], i, mode=record_mode, name="f")
 
     num_lines = 10
 
     for i in xrange(num_lines):
-        recorder.handle_line(str(i) + '\n')
+        recorder.handle_line(str(i) + "\n")
         f(i)
 
     # Make sure that the playback functionality doesn't raise any errors
@@ -100,10 +100,10 @@ def test_record_mode_good():
     playback_mode = RecordMode(playback_checker)
 
     i = iscalar()
-    f = function([i], i, mode=playback_mode, name='f')
+    f = function([i], i, mode=playback_mode, name="f")
 
     for i in xrange(num_lines):
-        playback_checker.handle_line(str(i) + '\n')
+        playback_checker.handle_line(str(i) + "\n")
         f(i)
 
 
@@ -120,12 +120,12 @@ def test_record_mode_bad():
     record_mode = RecordMode(recorder)
 
     i = iscalar()
-    f = function([i], i, mode=record_mode, name='f')
+    f = function([i], i, mode=record_mode, name="f")
 
     num_lines = 10
 
     for i in xrange(num_lines):
-        recorder.handle_line(str(i) + '\n')
+        recorder.handle_line(str(i) + "\n")
         f(i)
 
     # Make sure that the playback functionality doesn't raise any errors
@@ -138,10 +138,10 @@ def test_record_mode_bad():
     playback_mode = RecordMode(playback_checker)
 
     i = iscalar()
-    f = function([i], i, mode=playback_mode, name='f')
+    f = function([i], i, mode=playback_mode, name="f")
 
     for i in xrange(num_lines // 2):
-        playback_checker.handle_line(str(i) + '\n')
+        playback_checker.handle_line(str(i) + "\n")
         f(i)
 
     # Make sure a wrong event causes a MismatchError

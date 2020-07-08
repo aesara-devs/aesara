@@ -1,10 +1,10 @@
-
 """
 Ops for downsampling images.
 Planned:
 Pool, DownsampleAvg, DownsampleSoftmax.
 """
-from __future__ import absolute_import, print_function, division
+
+
 # This file should move along with conv.py
 import warnings
 import itertools
@@ -40,8 +40,17 @@ def max_pool_2d_same_size(input, patch_size):
     return outs
 
 
-def pool_2d(input, ws=None, ignore_border=None, stride=None, pad=(0, 0),
-            mode='max', ds=None, st=None, padding=None):
+def pool_2d(
+    input,
+    ws=None,
+    ignore_border=None,
+    stride=None,
+    pad=(0, 0),
+    mode="max",
+    ds=None,
+    st=None,
+    padding=None,
+):
     """Downscale the input by a specified factor
 
     Takes as input a N-D tensor, where N >= 2. It downscales the input image by
@@ -91,13 +100,11 @@ def pool_2d(input, ws=None, ignore_border=None, stride=None, pad=(0, 0),
                 "DEPRECATION: the 'ds' parameter is not going to exist"
                 " anymore as it is going to be replaced by the parameter"
                 " 'ws'.",
-                stacklevel=2
+                stacklevel=2,
             )
             ws = ds
     elif ds is None and ws is None:
-        raise ValueError(
-            "You must provide a tuple value for the window size."
-        )
+        raise ValueError("You must provide a tuple value for the window size.")
 
     if st is not None:
         if stride is not None:
@@ -110,7 +117,7 @@ def pool_2d(input, ws=None, ignore_border=None, stride=None, pad=(0, 0),
                 "DEPRECATION: the 'st' parameter is not going to exist"
                 " anymore as it is going to be replaced by the parameter"
                 " 'stride'.",
-                stacklevel=2
+                stacklevel=2,
             )
             stride = st
 
@@ -125,12 +132,12 @@ def pool_2d(input, ws=None, ignore_border=None, stride=None, pad=(0, 0),
                 "DEPRECATION: the 'padding' parameter is not going to exist"
                 " anymore as it is going to be replaced by the parameter"
                 " 'pad'.",
-                stacklevel=2
+                stacklevel=2,
             )
             pad = padding
 
     if input.ndim < 2:
-        raise NotImplementedError('pool_2d requires a dimension >= 2')
+        raise NotImplementedError("pool_2d requires a dimension >= 2")
     if ignore_border is None:
         warnings.warn(
             "pool_2d() will have the parameter ignore_border"
@@ -142,15 +149,25 @@ def pool_2d(input, ws=None, ignore_border=None, stride=None, pad=(0, 0),
             " GPU combination supported is when"
             " `ws == stride and pad == (0, 0) and mode == 'max'`."
             " Otherwise, the convolution will be executed on CPU.",
-            stacklevel=2)
+            stacklevel=2,
+        )
         ignore_border = False
     op = Pool(ignore_border, ndim=2, mode=mode)
     output = op(input, ws, stride, pad)
     return output
 
 
-def pool_3d(input, ws=None, ignore_border=None, stride=None, pad=(0, 0, 0),
-            mode='max', ds=None, st=None, padding=None):
+def pool_3d(
+    input,
+    ws=None,
+    ignore_border=None,
+    stride=None,
+    pad=(0, 0, 0),
+    mode="max",
+    ds=None,
+    st=None,
+    padding=None,
+):
     """Downscale the input by a specified factor
 
     Takes as input a N-D tensor, where N >= 3. It downscales the input image by
@@ -200,13 +217,11 @@ def pool_3d(input, ws=None, ignore_border=None, stride=None, pad=(0, 0, 0),
                 "DEPRECATION: the 'ds' parameter is not going to exist"
                 " anymore as it is going to be replaced by the parameter"
                 " 'ws'.",
-                stacklevel=2
+                stacklevel=2,
             )
             ws = ds
     elif ds is None and ws is None:
-        raise ValueError(
-            "You must provide a tuple value for the window size."
-        )
+        raise ValueError("You must provide a tuple value for the window size.")
 
     if st is not None:
         if stride is not None:
@@ -219,7 +234,7 @@ def pool_3d(input, ws=None, ignore_border=None, stride=None, pad=(0, 0, 0),
                 "DEPRECATION: the 'st' parameter is not going to exist"
                 " anymore as it is going to be replaced by the parameter"
                 " 'stride'.",
-                stacklevel=2
+                stacklevel=2,
             )
             stride = st
 
@@ -234,12 +249,12 @@ def pool_3d(input, ws=None, ignore_border=None, stride=None, pad=(0, 0, 0),
                 "DEPRECATION: the 'padding' parameter is not going to exist"
                 " anymore as it is going to be replaced by the parameter"
                 " 'pad'.",
-                stacklevel=2
+                stacklevel=2,
             )
             pad = padding
 
     if input.ndim < 3:
-        raise NotImplementedError('pool_3d requires a dimension >= 3')
+        raise NotImplementedError("pool_3d requires a dimension >= 3")
     if ignore_border is None:
         warnings.warn(
             "pool_3d() will have the parameter ignore_border"
@@ -251,7 +266,8 @@ def pool_3d(input, ws=None, ignore_border=None, stride=None, pad=(0, 0, 0),
             " GPU combination supported is when"
             " `ws == stride and pad == (0, 0, 0) and mode == 'max'`."
             " Otherwise, the convolution will be executed on CPU.",
-            stacklevel=2)
+            stacklevel=2,
+        )
         ignore_border = False
     op = Pool(ignore_border, ndim=3, mode=mode)
     output = op(input, ws, stride, pad)
@@ -262,10 +278,12 @@ def pool_3d(input, ws=None, ignore_border=None, stride=None, pad=(0, 0, 0),
 # It may be used later as op param in this current file.
 # Enum name and constants names are inspired from cuDNN type `cudnnPoolingMode_t`
 # (cf. `theano/gpuarray/cudnn_defs.py`).
-PoolingMode_t = EnumList(('POOLING_MAX', 'max'),
-                         ('POOLING_SUM', 'sum'),
-                         ('POOLING_AVERAGE_COUNT_INCLUDE_PADDING', 'average_inc_pad'),
-                         ('POOLING_AVERAGE_COUNT_EXCLUDE_PADDING', 'average_exc_pad'))
+PoolingMode_t = EnumList(
+    ("POOLING_MAX", "max"),
+    ("POOLING_SUM", "sum"),
+    ("POOLING_AVERAGE_COUNT_INCLUDE_PADDING", "average_inc_pad"),
+    ("POOLING_AVERAGE_COUNT_EXCLUDE_PADDING", "average_exc_pad"),
+)
 
 
 class Pool(OpenMPOp):
@@ -305,12 +323,21 @@ class Pool(OpenMPOp):
 
     """
 
-    __props__ = ('ignore_border', 'mode', 'ndim')
+    __props__ = ("ignore_border", "mode", "ndim")
     params_type = ParamsType(ignore_border=bool_t,)
 
     @staticmethod
-    def out_shape(imgshape, ws=None, ignore_border=False, stride=None, pad=None,
-                  ndim=2, ds=None, st=None, padding=None):
+    def out_shape(
+        imgshape,
+        ws=None,
+        ignore_border=False,
+        stride=None,
+        pad=None,
+        ndim=2,
+        ds=None,
+        st=None,
+        padding=None,
+    ):
         """
         Return the shape of the output from this op, for input of given
         shape and flags.
@@ -365,13 +392,11 @@ class Pool(OpenMPOp):
                     "DEPRECATION: the 'ds' parameter is not going to exist"
                     " anymore as it is going to be replaced by the parameter"
                     " 'ws'.",
-                    stacklevel=2
+                    stacklevel=2,
                 )
                 ws = ds
         elif ds is None and ws is None:
-            raise ValueError(
-                "You must provide a tuple value for the window size."
-            )
+            raise ValueError("You must provide a tuple value for the window size.")
 
         if st is not None:
             if stride is not None:
@@ -384,7 +409,7 @@ class Pool(OpenMPOp):
                     "DEPRECATION: the 'st' parameter is not going to exist"
                     " anymore as it is going to be replaced by the parameter"
                     " 'stride'.",
-                    stacklevel=2
+                    stacklevel=2,
                 )
                 stride = st
 
@@ -400,7 +425,7 @@ class Pool(OpenMPOp):
                     "DEPRECATION: the 'padding' parameter is not going to"
                     " exist anymore as it is going to be replaced by the"
                     " parameter 'pad'.",
-                    stacklevel=2
+                    stacklevel=2,
                 )
                 pad = padding
 
@@ -408,14 +433,16 @@ class Pool(OpenMPOp):
             ndim = 2
         assert ndim > 0
         if len(imgshape) < ndim:
-            raise TypeError('imgshape must have at least {} dimensions'.format(ndim))
+            raise TypeError("imgshape must have at least {} dimensions".format(ndim))
 
         if stride is None:
             stride = ws
         if pad is None:
             pad = (0,) * ndim
-        patch_shape = tuple(tensor.extract_constant(imgshape[-ndim + i]) + pad[i] * 2
-                            for i in xrange(ndim))
+        patch_shape = tuple(
+            tensor.extract_constant(imgshape[-ndim + i]) + pad[i] * 2
+            for i in xrange(ndim)
+        )
 
         def compute_out(v, downsample, stride):
             if ignore_border:
@@ -429,31 +456,35 @@ class Pool(OpenMPOp):
                         return np.maximum(out, 0)
             else:
                 if isinstance(v, theano.Variable):
-                    return tensor.switch(tensor.ge(stride, downsample),
-                                         (v - 1) // stride + 1,
-                                         tensor.maximum(0, (v - 1 - downsample) //
-                                                        stride + 1) + 1)
+                    return tensor.switch(
+                        tensor.ge(stride, downsample),
+                        (v - 1) // stride + 1,
+                        tensor.maximum(0, (v - 1 - downsample) // stride + 1) + 1,
+                    )
                 elif stride >= downsample:
                     return (v - 1) // stride + 1
                 else:
                     return max(0, (v - 1 - downsample + stride) // stride) + 1
 
-        out_shape = [compute_out(patch_shape[i], ws[i], stride[i]) for i in xrange(ndim)]
+        out_shape = [
+            compute_out(patch_shape[i], ws[i], stride[i]) for i in xrange(ndim)
+        ]
 
         rval = list(imgshape[:-ndim]) + out_shape
         return rval
 
-    def __init__(self, ignore_border=False, mode='max', ndim=2, openmp=None):
+    def __init__(self, ignore_border=False, mode="max", ndim=2, openmp=None):
         super(Pool, self).__init__(openmp=openmp)
         self.ndim = ndim
         self.ignore_border = ignore_border
-        if mode == 'max_deterministic':
+        if mode == "max_deterministic":
             # It seems max pool algo is already deterministic in CPU.
-            mode = 'max'
-        if mode not in ['max', 'average_inc_pad', 'average_exc_pad', 'sum']:
+            mode = "max"
+        if mode not in ["max", "average_inc_pad", "average_exc_pad", "sum"]:
             raise ValueError(
                 "Pool mode parameter only support 'max', 'sum',"
-                " 'average_inc_pad' and 'average_exc_pad'. Got %s" % mode)
+                " 'average_inc_pad' and 'average_exc_pad'. Got %s" % mode
+            )
         self.mode = mode
 
     def prepare_node(self, node, storage_map, compute_map, impl):
@@ -496,12 +527,10 @@ class Pool(OpenMPOp):
             pad = (0,) * nd
         elif isinstance(pad, (tuple, list)):
             if max(pad) != 0 and not self.ignore_border:
-                raise NotImplementedError(
-                    'padding works only with ignore_border=True')
+                raise NotImplementedError("padding works only with ignore_border=True")
             if isinstance(ws, (tuple, list)):
                 if any(pad[i] >= ws[i] for i in range(nd)):
-                    raise NotImplementedError(
-                        'padding must be smaller than strides')
+                    raise NotImplementedError("padding must be smaller than strides")
         ws = tensor.as_tensor_variable(ws)
         stride = tensor.as_tensor_variable(stride)
         pad = tensor.as_tensor_variable(pad)
@@ -511,11 +540,11 @@ class Pool(OpenMPOp):
         if x.type.ndim < nd:
             raise TypeError()
         if ws.dtype not in tensor.int_dtypes:
-            raise TypeError('Pool downsample parameters must be ints.')
+            raise TypeError("Pool downsample parameters must be ints.")
         if stride.dtype not in tensor.int_dtypes:
-            raise TypeError('Stride parameters must be ints.')
+            raise TypeError("Stride parameters must be ints.")
         if pad.dtype not in tensor.int_dtypes:
-            raise TypeError('Padding parameters must be ints.')
+            raise TypeError("Padding parameters must be ints.")
         # If the input shape are broadcastable we can have 0 in the output shape
         broad = x.broadcastable[:-nd] + (False,) * nd
         out = tensor.TensorType(x.dtype, broad)
@@ -523,12 +552,13 @@ class Pool(OpenMPOp):
 
     def perform(self, node, inp, out, params):
         x, ws, stride, pad = inp
-        z, = out
+        (z,) = out
         nd = self.ndim
         assert ws.shape == stride.shape == pad.shape == (nd,)
         if len(x.shape) < nd:
             raise NotImplementedError(
-                'Pool requires input with {} or more dimensions'.format(nd))
+                "Pool requires input with {} or more dimensions".format(nd)
+            )
         z_shape = self.out_shape(x.shape, ws, params.ignore_border, stride, pad, nd)
         if not params.ignore_border:
             assert all(z > 0 for z in z_shape[-nd:])
@@ -538,19 +568,21 @@ class Pool(OpenMPOp):
         # size of pooling output
         pool_out_shp = zz.shape[-nd:]
         img_shp = tuple(x.shape[-nd + i] + 2 * pad[i] for i in xrange(nd))
-        inc_pad = self.mode == 'average_inc_pad'
+        inc_pad = self.mode == "average_inc_pad"
 
         # pad the image
         if max(pad) != 0:
             y = np.zeros(x.shape[:-nd] + img_shp, dtype=x.dtype)
-            y[(slice(None),) * (len(x.shape) - nd) +
-              tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))] = x
+            y[
+                (slice(None),) * (len(x.shape) - nd)
+                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))
+            ] = x
         else:
             y = x
         func = np.max
-        if self.mode == 'sum':
+        if self.mode == "sum":
             func = np.sum
-        elif self.mode != 'max':
+        elif self.mode != "max":
             func = np.average
 
         # precompute the region boundaries for each dimension
@@ -570,34 +602,37 @@ class Pool(OpenMPOp):
             yk = y[k]
             # iterate over pooling regions
             for r in np.ndindex(*pool_out_shp):
-                zzk[r] = func(
-                    yk[[region_slices[i][r[i]] for i in xrange(nd)]])
+                zzk[r] = func(yk[[region_slices[i][r[i]] for i in xrange(nd)]])
 
     def infer_shape(self, node, in_shapes):
         ws, stride, pad = [node.inputs[1], node.inputs[2], node.inputs[3]]
-        shp = self.out_shape(in_shapes[0], ws, self.ignore_border, stride,
-                             pad, self.ndim)
+        shp = self.out_shape(
+            in_shapes[0], ws, self.ignore_border, stride, pad, self.ndim
+        )
         return [shp]
 
     def L_op(self, inputs, outputs, grads):
         x, ws, stride, pad = inputs
-        gz, = grads
+        (gz,) = grads
         disc = [DisconnectedType()() for i in inputs[1:]]
-        if self.mode == 'max':
-            return [MaxPoolGrad(ndim=self.ndim,
-                                ignore_border=self.ignore_border)(
-                x, outputs[0], gz, ws=ws, stride=stride, pad=pad)] + disc
+        if self.mode == "max":
+            return [
+                MaxPoolGrad(ndim=self.ndim, ignore_border=self.ignore_border)(
+                    x, outputs[0], gz, ws=ws, stride=stride, pad=pad
+                )
+            ] + disc
         else:
-            return [AveragePoolGrad(ndim=self.ndim,
-                                    ignore_border=self.ignore_border,
-                                    mode=self.mode)(
-                x, gz, ws=ws, stride=stride, pad=pad)] + disc
+            return [
+                AveragePoolGrad(
+                    ndim=self.ndim, ignore_border=self.ignore_border, mode=self.mode
+                )(x, gz, ws=ws, stride=stride, pad=pad)
+            ] + disc
 
     def connection_pattern(self, node):
         return [[1], [0], [0], [0]]
 
     def R_op(self, inputs, eval_points):
-        if self.mode != 'max':
+        if self.mode != "max":
             # Rop for average or sum is simply pooling evaluated at eval point
             eval_inputs = [eval_points[0]] + inputs[1:]
             return [self(*eval_inputs)]
@@ -611,31 +646,31 @@ class Pool(OpenMPOp):
         z = self(*inputs)
         x, ws, stride, pad = inputs
         return [
-            DownsampleFactorMaxGradGrad(self.ignore_border, self.mode,
-                                        self.ndim)(x, z, eval_points[0], ws,
-                                                   stride, pad)
+            DownsampleFactorMaxGradGrad(self.ignore_border, self.mode, self.ndim)(
+                x, z, eval_points[0], ws, stride, pad
+            )
         ]
 
     def c_headers(self):
-        headers = ['<algorithm>']
+        headers = ["<algorithm>"]
         headers += super(Pool, self).c_headers()
         return headers
 
     def c_code(self, node, name, inp, out, sub):
-        if self.mode not in ('max', 'sum', 'average_exc_pad', 'average_inc_pad'):
+        if self.mode not in ("max", "sum", "average_exc_pad", "average_inc_pad"):
             raise theano.gof.utils.MethodNotDefined()
         x, ws, stride, pad = inp
-        z, = out
+        (z,) = out
         nd = self.ndim
         total_ndim = node.inputs[0].ndim
         non_pool_ndim = total_ndim - nd
-        fail = sub['fail']
-        params = sub['params']
+        fail = sub["fail"]
+        params = sub["params"]
         if self.openmp:
             # run in parallel over each pooling block
-            omp_parallel = '#pragma omp parallel for private(r_st, r_end, r_idx, i_idx, o_idx, collector) schedule(static)'
+            omp_parallel = "#pragma omp parallel for private(r_st, r_end, r_idx, i_idx, o_idx, collector) schedule(static)"
         else:
-            omp_parallel = ''
+            omp_parallel = ""
         ccode = """
         int typenum = PyArray_ObjectType((PyObject*)%(x)s, 0);
         if(PyArray_NDIM(%(x)s)!=%(total_ndim)s)
@@ -820,7 +855,9 @@ class Pool(OpenMPOp):
                   }
                   // use the index to find the correct position in the output
                   o_idx[%(non_pool_ndim)s + %(i)s] = r_idx[%(i)s];
-            """ % dict(i=i, non_pool_ndim=non_pool_ndim, params=sub['params'])
+            """ % dict(
+                i=i, non_pool_ndim=non_pool_ndim, params=sub["params"]
+            )
 
         ccode += """
                   // get a pointer to the correct position in the output
@@ -831,12 +868,14 @@ class Pool(OpenMPOp):
                     z = ((dtype_%(z)s*)(PyArray_GetPtr(%(z)s, o_idx)));
         """
 
-        if self.mode == 'max':
+        if self.mode == "max":
             for i in xrange(nd):
                 ccode += """
                   // set the first index of dimension %(i)s
                   i_idx[%(non_pool_ndim)s + %(i)s] = r_st[%(i)s];
-                """ % dict(i=i, non_pool_ndim=non_pool_ndim)
+                """ % dict(
+                    i=i, non_pool_ndim=non_pool_ndim
+                )
             ccode += """
                   // use the first element as the initial value of collector
                   if (%(total_ndim)s == 4)
@@ -850,7 +889,9 @@ class Pool(OpenMPOp):
                   for(npy_intp m%(i)s=r_st[%(i)s]; m%(i)s<r_end[%(i)s]; m%(i)s++)
                   {
                     i_idx[%(non_pool_ndim)s + %(i)s] = m%(i)s;
-                """ % dict(i=i, non_pool_ndim=non_pool_ndim)
+                """ % dict(
+                    i=i, non_pool_ndim=non_pool_ndim
+                )
             ccode += """
                     // update maximum
                     dtype_%(x)s a;
@@ -867,7 +908,7 @@ class Pool(OpenMPOp):
             ccode += """
                   z[0] = collector;
             """
-        elif self.mode in ('sum', 'average_exc_pad', 'average_inc_pad'):
+        elif self.mode in ("sum", "average_exc_pad", "average_inc_pad"):
             ccode += """
                   // initialize the sum at zero
                   collector = ((dtype_%(x)s)(0));
@@ -878,7 +919,9 @@ class Pool(OpenMPOp):
                   for(npy_intp m%(i)s=r_st[%(i)s]; m%(i)s<r_end[%(i)s]; m%(i)s++)
                   {
                     i_idx[%(non_pool_ndim)s + %(i)s] = m%(i)s;
-                """ % dict(i=i, non_pool_ndim=non_pool_ndim)
+                """ % dict(
+                    i=i, non_pool_ndim=non_pool_ndim
+                )
             ccode += """
                     // update sum
                     dtype_%(x)s a;
@@ -896,18 +939,24 @@ class Pool(OpenMPOp):
                 ccode += """
                   z[0] = collector;
                 """
-            elif self.mode == 'average_inc_pad' and self.ignore_border:
+            elif self.mode == "average_inc_pad" and self.ignore_border:
                 # region size = product over all pooling dimensions
-                region_size = ' * '.join('ws[%d]' % i for i in xrange(nd))
+                region_size = " * ".join("ws[%d]" % i for i in xrange(nd))
                 ccode += """
                   z[0] = collector / (%(region_size)s);
-                """ % dict(region_size=region_size)
+                """ % dict(
+                    region_size=region_size
+                )
             else:
                 # region size = number elements of in this region
-                region_size = ' * '.join('(r_end[%d]-r_st[%d])' % (i, i) for i in xrange(nd))
+                region_size = " * ".join(
+                    "(r_end[%d]-r_st[%d])" % (i, i) for i in xrange(nd)
+                )
                 ccode += """
                   z[0] = collector / (%(region_size)s);
-                """ % dict(region_size=region_size)
+                """ % dict(
+                    region_size=region_size
+                )
         for i in xrange(nd):
             ccode += """
             } // loop over pooling dimension
@@ -924,11 +973,20 @@ class Pool(OpenMPOp):
 
 
 class PoolGrad(OpenMPOp):
-    __props__ = ('ignore_border', 'mode', 'ndim')
+    __props__ = ("ignore_border", "mode", "ndim")
 
     @staticmethod
-    def out_shape(imgshape, ws=None, ignore_border=False, stride=None, pad=None, ndim=2,
-                  ds=None, st=None, padding=None):
+    def out_shape(
+        imgshape,
+        ws=None,
+        ignore_border=False,
+        stride=None,
+        pad=None,
+        ndim=2,
+        ds=None,
+        st=None,
+        padding=None,
+    ):
         """Return the shape of the output from this op, for input of given
         shape and flags.
 
@@ -983,13 +1041,11 @@ class PoolGrad(OpenMPOp):
                     "DEPRECATION: the 'ds' parameter in PoolGrad is not going"
                     " to exist anymore as it is going to be replaced by the"
                     " parameter 'ws'.",
-                    stacklevel=2
+                    stacklevel=2,
                 )
                 ws = ds
         elif ds is None and ws is None:
-            raise ValueError(
-                "You must provide a tuple value for the window size."
-            )
+            raise ValueError("You must provide a tuple value for the window size.")
 
         if st is not None:
             if stride is not None:
@@ -1002,7 +1058,7 @@ class PoolGrad(OpenMPOp):
                     "DEPRECATION: the 'st' parameter in PoolGrad is not going"
                     " to exist anymore as it is going to be replaced by the"
                     " parameter 'stride'.",
-                    stacklevel=2
+                    stacklevel=2,
                 )
                 stride = st
 
@@ -1017,19 +1073,21 @@ class PoolGrad(OpenMPOp):
                     "DEPRECATION: the 'padding' parameter in PoolGrad is not"
                     " going to exist anymore as it is going to be replaced"
                     " by the parameter 'pad'.",
-                    stacklevel=2
+                    stacklevel=2,
                 )
                 pad = padding
 
         if len(imgshape) < ndim:
-            raise TypeError('imgshape must have at least {} dimensions'.format(ndim))
+            raise TypeError("imgshape must have at least {} dimensions".format(ndim))
 
         if stride is None:
             stride = ws
         if pad is None:
             pad = (0,) * ndim
-        patch_shape = tuple(tensor.extract_constant(imgshape[-ndim + i]) + pad[i] * 2
-                            for i in xrange(ndim))
+        patch_shape = tuple(
+            tensor.extract_constant(imgshape[-ndim + i]) + pad[i] * 2
+            for i in xrange(ndim)
+        )
 
         def compute_out(v, downsample, stride):
             if ignore_border:
@@ -1040,30 +1098,34 @@ class PoolGrad(OpenMPOp):
                     return np.maximum(out, 0)
             else:
                 if isinstance(v, theano.Variable):
-                    return tensor.switch(tensor.ge(stride, downsample),
-                                         (v - 1) // stride + 1,
-                                         tensor.maximum(0, (v - 1 - downsample) //
-                                                        stride + 1) + 1)
+                    return tensor.switch(
+                        tensor.ge(stride, downsample),
+                        (v - 1) // stride + 1,
+                        tensor.maximum(0, (v - 1 - downsample) // stride + 1) + 1,
+                    )
                 elif stride >= downsample:
                     return (v - 1) // stride + 1
                 else:
                     return max(0, (v - 1 - downsample) // stride + 1) + 1
 
-        out_shape = [compute_out(patch_shape[i], ws[i], stride[i]) for i in xrange(ndim)]
+        out_shape = [
+            compute_out(patch_shape[i], ws[i], stride[i]) for i in xrange(ndim)
+        ]
 
         rval = list(imgshape[:-ndim]) + out_shape
         return rval
 
-    def __init__(self, ignore_border, mode='max', ndim=2, openmp=None):
+    def __init__(self, ignore_border, mode="max", ndim=2, openmp=None):
         self.ndim = ndim
         self.ignore_border = ignore_border
-        if mode == 'max_deterministic':
+        if mode == "max_deterministic":
             # It seems max pool grad algo is already deterministic in CPU.
-            mode = 'max'
-        if mode not in ['max', 'sum', 'average_inc_pad', 'average_exc_pad']:
+            mode = "max"
+        if mode not in ["max", "sum", "average_inc_pad", "average_exc_pad"]:
             raise ValueError(
                 "Pool mode parameter only support 'max', 'sum',"
-                " 'average_inc_pad' and 'average_exc_pad'. Got %s" % mode)
+                " 'average_inc_pad' and 'average_exc_pad'. Got %s" % mode
+            )
         self.mode = mode
         super(PoolGrad, self).__init__(openmp=openmp)
 
@@ -1105,7 +1167,7 @@ class MaxPoolGrad(PoolGrad):
     # params_type ignore_border don't change c code
 
     def __init__(self, ignore_border, ndim=2, openmp=None):
-        PoolGrad.__init__(self, ignore_border, mode='max', ndim=ndim, openmp=openmp)
+        PoolGrad.__init__(self, ignore_border, mode="max", ndim=ndim, openmp=openmp)
 
     def make_node(self, x, maxout, gz, ws, stride=None, pad=None):
         # make_node should only be called by the grad function of
@@ -1129,30 +1191,33 @@ class MaxPoolGrad(PoolGrad):
         assert isinstance(pad, Variable) and pad.ndim == 1
         assert x.ndim == maxout.ndim == gz.ndim >= nd
         if ws.dtype not in tensor.int_dtypes:
-            raise TypeError('Pool downsample parameters must be ints.')
+            raise TypeError("Pool downsample parameters must be ints.")
         if stride.dtype not in tensor.int_dtypes:
-            raise TypeError('Stride parameters must be ints.')
+            raise TypeError("Stride parameters must be ints.")
         if pad.dtype not in tensor.int_dtypes:
-            raise TypeError('Padding parameters must be ints.')
+            raise TypeError("Padding parameters must be ints.")
         return Apply(self, [x, maxout, gz, ws, stride, pad], [x.type()])
 
     def perform(self, node, inp, out):
-        assert self.mode == 'max'
+        assert self.mode == "max"
         x, maxout, gz, ws, stride, pad = inp
-        gx_stg, = out
+        (gx_stg,) = out
         nd = self.ndim
         assert ws.shape == stride.shape == pad.shape == (nd,)
         if len(x.shape) < nd:
             raise NotImplementedError(
-                'MaxPoolGrad requires input with {} or more dimensions'.format(nd))
+                "MaxPoolGrad requires input with {} or more dimensions".format(nd)
+            )
         pool_out_shp = maxout.shape[-nd:]
         img_shp = tuple(x.shape[-nd + i] + 2 * pad[i] for i in xrange(nd))
 
         # pad the image
         if max(pad) != 0:
             y = np.zeros(x.shape[:-nd] + img_shp, dtype=x.dtype)
-            y[(slice(None),) * (len(x.shape) - nd) +
-              tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))] = x
+            y[
+                (slice(None),) * (len(x.shape) - nd)
+                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))
+            ] = x
         else:
             y = x
         gx = np.zeros_like(y)
@@ -1175,43 +1240,47 @@ class MaxPoolGrad(PoolGrad):
             for r in np.ndindex(*pool_out_shp):
                 maxout_value = maxoutk[r]
                 # iterate inside region
-                for c in itertools.product(*[region_ranges[i][r[i]]
-                                             for i in xrange(nd)]):
+                for c in itertools.product(
+                    *[region_ranges[i][r[i]] for i in xrange(nd)]
+                ):
                     if maxout_value == yk[c]:
                         gxk[c] += gzk[r]
 
         # unpad the image
-        gx = gx[(slice(None),) * (len(x.shape) - nd) +
-                tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))]
+        gx = gx[
+            (slice(None),) * (len(x.shape) - nd)
+            + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))
+        ]
         gx_stg[0] = gx
 
     def grad(self, inp, grads):
         x, maxout, gz, ws, stride, pad = inp
-        ggx, = grads
-        return ([theano.tensor.zeros_like(x),
-                 theano.tensor.zeros_like(maxout),
-                 DownsampleFactorMaxGradGrad(ndim=self.ndim,
-                                             ignore_border=self.ignore_border)(
-                x, maxout, ggx, ws, stride, pad)] +
-                [DisconnectedType()() for i in inp[3:]])
+        (ggx,) = grads
+        return [
+            theano.tensor.zeros_like(x),
+            theano.tensor.zeros_like(maxout),
+            DownsampleFactorMaxGradGrad(
+                ndim=self.ndim, ignore_border=self.ignore_border
+            )(x, maxout, ggx, ws, stride, pad),
+        ] + [DisconnectedType()() for i in inp[3:]]
 
     def connection_pattern(self, node):
         return [[1], [1], [1], [0], [0], [0]]
 
     def c_code(self, node, name, inp, out, sub):
-        assert self.mode == 'max'
+        assert self.mode == "max"
         x, z, gz, ws, stride, pad = inp
-        gx, = out
+        (gx,) = out
         nd = self.ndim
         total_ndim = node.inputs[0].ndim
         non_pool_ndim = total_ndim - nd
-        fail = sub['fail']
+        fail = sub["fail"]
 
         if self.openmp:
             # run in parallel over each pooling block
-            omp_parallel = '#pragma omp parallel for private(r_st, r_end, r_idx, i_idx, o_idx, maximum) schedule(static)'
+            omp_parallel = "#pragma omp parallel for private(r_st, r_end, r_idx, i_idx, o_idx, maximum) schedule(static)"
         else:
-            omp_parallel = ''
+            omp_parallel = ""
 
         ccode = """
         // sanity checks
@@ -1356,7 +1425,9 @@ class MaxPoolGrad(PoolGrad):
                   r_end[%(i)s] -= pd[%(i)s];
                   // use the index to find the correct position in the output
                   o_idx[%(non_pool_ndim)s + %(i)s] = r_idx[%(i)s];
-            """ % dict(i=i, non_pool_ndim=non_pool_ndim)
+            """ % dict(
+                i=i, non_pool_ndim=non_pool_ndim
+            )
 
         ccode += """
                   dtype_%(gz)s * gz;
@@ -1381,7 +1452,9 @@ class MaxPoolGrad(PoolGrad):
                   for(npy_intp m%(i)s=r_st[%(i)s]; m%(i)s<r_end[%(i)s]; m%(i)s++)
                   {
                     i_idx[%(non_pool_ndim)s + %(i)s] = m%(i)s;
-                """ % dict(i=i, non_pool_ndim=non_pool_ndim)
+                """ % dict(
+                i=i, non_pool_ndim=non_pool_ndim
+            )
         ccode += """
                     dtype_%(x)s a;
                     dtype_%(gx)s * gx;
@@ -1421,8 +1494,8 @@ class MaxPoolGrad(PoolGrad):
 class AveragePoolGrad(PoolGrad):
     # ignore_border is used for perform, but not c code. No need in params_type
 
-    def __init__(self, ignore_border, mode='average_inc_pad', ndim=2):
-        assert mode in ['sum', 'average_inc_pad', 'average_exc_pad']
+    def __init__(self, ignore_border, mode="average_inc_pad", ndim=2):
+        assert mode in ["sum", "average_inc_pad", "average_exc_pad"]
         PoolGrad.__init__(self, ignore_border, mode, ndim)
 
     # There is an extra dummy parameter to match the parameter count
@@ -1449,22 +1522,23 @@ class AveragePoolGrad(PoolGrad):
         assert x.ndim == gz.ndim >= nd
         assert isinstance(pad, Variable) and pad.ndim == 1
         if ws.dtype not in tensor.int_dtypes:
-            raise TypeError('Pool downsample parameters must be ints.')
+            raise TypeError("Pool downsample parameters must be ints.")
         if stride.dtype not in tensor.int_dtypes:
-            raise TypeError('Stride parameters must be ints.')
+            raise TypeError("Stride parameters must be ints.")
         if pad.dtype not in tensor.int_dtypes:
-            raise TypeError('Padding parameters must be ints.')
+            raise TypeError("Padding parameters must be ints.")
         return Apply(self, [x, gz, ws, stride, pad], [x.type()])
 
     def perform(self, node, inp, out):
         x, gz, ws, stride, pad = inp
-        gx_stg, = out
+        (gx_stg,) = out
         nd = self.ndim
         assert ws.shape == stride.shape == pad.shape == (nd,)
         if len(x.shape) < nd:
             raise NotImplementedError(
-                'AveragePoolGrad requires input with {} or more dimensions'.format(nd))
-        if self.mode == 'average_exc_pad' and max(pad) != 0:
+                "AveragePoolGrad requires input with {} or more dimensions".format(nd)
+            )
+        if self.mode == "average_exc_pad" and max(pad) != 0:
             raise NotImplementedError()
         z_shape = self.out_shape(x.shape, ws, self.ignore_border, stride, pad, nd)
         if (gx_stg[0] is None) or (gx_stg[0].shape != z_shape):
@@ -1473,8 +1547,8 @@ class AveragePoolGrad(PoolGrad):
         # size of pooling output
         pool_out_shp = zz.shape[-nd:]
         img_shp = tuple(x.shape[-nd + i] + 2 * pad[i] for i in xrange(nd))
-        inc_pad = self.mode == 'average_inc_pad'
-        sum_mode = self.mode == 'sum'
+        inc_pad = self.mode == "average_inc_pad"
+        sum_mode = self.mode == "sum"
 
         # initialize the padded output
         gx = np.zeros((x.shape[:-nd] + img_shp), dtype=x.dtype)
@@ -1511,35 +1585,39 @@ class AveragePoolGrad(PoolGrad):
                 gxk[region_slice] += val
 
         # unpad the image
-        gx = gx[(slice(None),) * (len(x.shape) - nd) +
-                tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))]
+        gx = gx[
+            (slice(None),) * (len(x.shape) - nd)
+            + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))
+        ]
         gx_stg[0] = gx
 
     def grad(self, inp, grads):
         x, gz, ws, stride, pad = inp
-        ggx, = grads
-        return ([theano.tensor.zeros_like(x),
-                 Pool(ignore_border=self.ignore_border,
-                      ndim=self.ndim, mode=self.mode)(ggx,
-                ws, stride, pad)] + [DisconnectedType()() for i in inp[2:]])
+        (ggx,) = grads
+        return [
+            theano.tensor.zeros_like(x),
+            Pool(ignore_border=self.ignore_border, ndim=self.ndim, mode=self.mode)(
+                ggx, ws, stride, pad
+            ),
+        ] + [DisconnectedType()() for i in inp[2:]]
 
     def connection_pattern(self, node):
         return [[1], [1], [0], [0], [0]]
 
     def c_code(self, node, name, inp, out, sub):
         x, gz, ws, stride, pad = inp
-        gx, = out
+        (gx,) = out
         nd = self.ndim
         total_ndim = node.inputs[0].ndim
         non_pool_ndim = total_ndim - nd
-        fail = sub['fail']
-        inc_pad = int(self.mode == 'average_inc_pad')
-        sum_mode = int(self.mode == 'sum')
+        fail = sub["fail"]
+        inc_pad = int(self.mode == "average_inc_pad")
+        sum_mode = int(self.mode == "sum")
         if self.openmp:
             # run in parallel over each pooling block
-            omp_parallel = '#pragma omp parallel for private(r_st, r_end, r_pad_width, r_idx, i_idx, o_idx) schedule(static)'
+            omp_parallel = "#pragma omp parallel for private(r_st, r_end, r_pad_width, r_idx, i_idx, o_idx) schedule(static)"
         else:
-            omp_parallel = ''
+            omp_parallel = ""
 
         ccode = """
         // sanity checks
@@ -1689,7 +1767,9 @@ class AveragePoolGrad(PoolGrad):
 
                   // use the index to find the correct position in the output
                   o_idx[%(non_pool_ndim)s + %(i)s] = r_idx[%(i)s];
-            """ % dict(i=i, sum_mode=sum_mode, inc_pad=inc_pad, non_pool_ndim=non_pool_ndim)
+            """ % dict(
+                i=i, sum_mode=sum_mode, inc_pad=inc_pad, non_pool_ndim=non_pool_ndim
+            )
 
         ccode += """
                   dtype_%(gz)s * gz;
@@ -1714,14 +1794,16 @@ class AveragePoolGrad(PoolGrad):
                     val = gz[0] / (%(region_size)s);
                   }
         """
-        region_size = ' * '.join('r_pad_width[%d]' % i for i in xrange(nd))
+        region_size = " * ".join("r_pad_width[%d]" % i for i in xrange(nd))
         for i in xrange(nd):
             ccode += """
                   // go through the pooled region in the unpadded input
                   for(npy_intp m%(i)s=r_st[%(i)s]; m%(i)s<r_end[%(i)s]; m%(i)s++)
                   {
                     i_idx[%(non_pool_ndim)s + %(i)s] = m%(i)s;
-                """ % dict(i=i, non_pool_ndim=non_pool_ndim)
+                """ % dict(
+                i=i, non_pool_ndim=non_pool_ndim
+            )
         ccode += """
                     dtype_%(gx)s * gx;
                     if (%(total_ndim)s == 4)
@@ -1754,14 +1836,14 @@ class AveragePoolGrad(PoolGrad):
 
 
 class DownsampleFactorMaxGradGrad(OpenMPOp):
-    __props__ = ('ignore_border', 'mode', 'ndim')
+    __props__ = ("ignore_border", "mode", "ndim")
 
-    def __init__(self, ignore_border, mode='max', ndim=2, openmp=None):
+    def __init__(self, ignore_border, mode="max", ndim=2, openmp=None):
         self.ndim = ndim
         self.ignore_border = ignore_border
         self.mode = mode
         super(DownsampleFactorMaxGradGrad, self).__init__(openmp=openmp)
-        assert self.mode == 'max'
+        assert self.mode == "max"
 
     def make_node(self, x, maxout, gz, ws, stride=None, pad=None):
         # make_node should only be called by the grad function of
@@ -1776,12 +1858,10 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
             pad = (0,) * nd
         elif isinstance(pad, (tuple, list)):
             if max(pad) != 0 and not self.ignore_border:
-                raise NotImplementedError(
-                    'padding works only with ignore_border=True')
+                raise NotImplementedError("padding works only with ignore_border=True")
             if isinstance(ws, (tuple, list)):
                 if any(pad[i] >= ws[i] for i in range(nd)):
-                    raise NotImplementedError(
-                        'padding must be smaller than strides')
+                    raise NotImplementedError("padding must be smaller than strides")
         ws = tensor.as_tensor_variable(ws)
         stride = tensor.as_tensor_variable(stride)
         pad = tensor.as_tensor_variable(pad)
@@ -1790,22 +1870,23 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
         assert pad.ndim == 1
         assert x.ndim == maxout.ndim == gz.ndim >= nd
         if ws.dtype not in tensor.int_dtypes:
-            raise TypeError('Pool downsample parameters must be ints.')
+            raise TypeError("Pool downsample parameters must be ints.")
         if stride.dtype not in tensor.int_dtypes:
-            raise TypeError('Stride parameters must be ints.')
+            raise TypeError("Stride parameters must be ints.")
         if pad.dtype not in tensor.int_dtypes:
-            raise TypeError('Padding parameters must be ints.')
+            raise TypeError("Padding parameters must be ints.")
         return Apply(self, [x, maxout, gz, ws, stride, pad], [x.type()])
 
     def perform(self, node, inp, out):
         x, maxout, ggx, ws, stride, pad = inp
-        z, = out
+        (z,) = out
         nd = self.ndim
         assert ws.shape == stride.shape == pad.shape == (nd,)
         if len(x.shape) < nd:
             raise NotImplementedError(
-                'DownsampleFactorMaxGradGrad requires input '
-                'with {} or more dimensions'.format(nd))
+                "DownsampleFactorMaxGradGrad requires input "
+                "with {} or more dimensions".format(nd)
+            )
         if (z[0] is None) or (z[0].shape != maxout.shape):
             z[0] = np.zeros(maxout.shape, dtype=x.dtype)
         ggz = z[0]  # grad wrt maxout_grad has the same shape as maxout
@@ -1816,11 +1897,15 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
         # pad the image and its gradients
         if max(pad) > 0:
             y_padded = np.zeros(x.shape[:-nd] + img_shp, dtype=x.dtype)
-            y_padded[(slice(None),) * (len(x.shape) - nd) +
-                     tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))] = x
+            y_padded[
+                (slice(None),) * (len(x.shape) - nd)
+                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))
+            ] = x
             ggx_padded = np.zeros(x.shape[:-nd] + img_shp, dtype=x.dtype)
-            ggx_padded[(slice(None),) * (len(x.shape) - nd) +
-                       tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))] = ggx
+            ggx_padded[
+                (slice(None),) * (len(x.shape) - nd)
+                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))
+            ] = ggx
 
         else:
             y_padded = x
@@ -1844,8 +1929,9 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
             for r in np.ndindex(*pool_out_shp):
                 # iterate inside region
                 maxout_value = maxoutk[r]
-                for c in itertools.product(*[region_ranges[i][r[i]]
-                                             for i in xrange(nd)]):
+                for c in itertools.product(
+                    *[region_ranges[i][r[i]] for i in xrange(nd)]
+                ):
                     if maxout_value == yk[c]:
                         ggzk[r] += ggxk[c]
 
@@ -1854,34 +1940,36 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
 
     def grad(self, inp, grads):
         x, maxout, ggx, ws, stride, pad = inp
-        gz, = grads
-        return [theano.tensor.zeros_like(x),
-                theano.tensor.zeros_like(maxout),
-                MaxPoolGrad(ignore_border=self.ignore_border,
-                            ndim=self.ndim)(x, maxout, gz,
-                                            ws, stride, pad),
-                DisconnectedType()(),
-                DisconnectedType()(),
-                DisconnectedType()()]
+        (gz,) = grads
+        return [
+            theano.tensor.zeros_like(x),
+            theano.tensor.zeros_like(maxout),
+            MaxPoolGrad(ignore_border=self.ignore_border, ndim=self.ndim)(
+                x, maxout, gz, ws, stride, pad
+            ),
+            DisconnectedType()(),
+            DisconnectedType()(),
+            DisconnectedType()(),
+        ]
 
     def connection_pattern(self, node):
         return [[1], [1], [1], [0], [0], [0]]
 
     def c_code(self, node, name, inp, out, sub):
-        if self.mode != 'max':
+        if self.mode != "max":
             raise theano.gof.utils.MethodNotDefined()
         x, maxout, ggx, ws, stride, pad = inp
-        z, = out  # the grad of grad
+        (z,) = out  # the grad of grad
         nd = self.ndim
         total_ndim = node.inputs[0].ndim
         non_pool_ndim = total_ndim - nd
-        fail = sub['fail']
+        fail = sub["fail"]
 
         if self.openmp:
             # run in parallel over each pooling block
-            omp_parallel = '#pragma omp parallel for private(r_st, r_end, r_idx, i_idx, o_idx, maximum) schedule(static)'
+            omp_parallel = "#pragma omp parallel for private(r_st, r_end, r_idx, i_idx, o_idx, maximum) schedule(static)"
         else:
-            omp_parallel = ''
+            omp_parallel = ""
         ccode = """
         int z_typenum = PyArray_ObjectType((PyObject*)%(maxout)s, 0);
         npy_intp z[%(nd)s]; // shape of the output
@@ -1990,7 +2078,9 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
                   r_end[%(i)s] -= pd[%(i)s];
                   // use the index to find the correct position in the output
                   o_idx[%(non_pool_ndim)s + %(i)s] = r_idx[%(i)s];
-            """ % dict(i=i, non_pool_ndim=non_pool_ndim)
+            """ % dict(
+                i=i, non_pool_ndim=non_pool_ndim
+            )
 
         ccode += """
                   dtype_%(z)s * z;
@@ -2015,7 +2105,9 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
                   for(npy_intp m%(i)s=r_st[%(i)s]; m%(i)s<r_end[%(i)s]; m%(i)s++)
                   {
                     i_idx[%(non_pool_ndim)s + %(i)s] = m%(i)s;
-                """ % dict(i=i, non_pool_ndim=non_pool_ndim)
+                """ % dict(
+                i=i, non_pool_ndim=non_pool_ndim
+            )
         ccode += """
                     dtype_%(x)s a;
                     dtype_%(ggx)s * ggx;
@@ -2080,15 +2172,15 @@ class MaxPoolRop(OpenMPOp):
         The default is 2.
     """
 
-    __props__ = ('ignore_border', 'mode', 'ndim')
+    __props__ = ("ignore_border", "mode", "ndim")
     params_type = ParamsType(ignore_border=bool_t,)
 
-    def __init__(self, ignore_border=False, mode='max', ndim=2, openmp=None):
+    def __init__(self, ignore_border=False, mode="max", ndim=2, openmp=None):
         super(MaxPoolRop, self).__init__(openmp=openmp)
         self.ndim = ndim
         self.ignore_border = ignore_border
         self.mode = mode
-        assert mode == 'max'
+        assert mode == "max"
 
     def make_node(self, x, eval_point, ws, stride=None, pad=None):
         # TODO: consider restricting the dtype?
@@ -2101,12 +2193,10 @@ class MaxPoolRop(OpenMPOp):
             pad = (0,) * nd
         elif isinstance(pad, (tuple, list)):
             if max(pad) != 0 and not self.ignore_border:
-                raise NotImplementedError(
-                    'padding works only with ignore_border=True')
+                raise NotImplementedError("padding works only with ignore_border=True")
             if isinstance(ws, (tuple, list)):
                 if any(pad[i] >= ws[i] for i in range(nd)):
-                    raise NotImplementedError(
-                        'padding must be smaller than strides')
+                    raise NotImplementedError("padding must be smaller than strides")
         ws = tensor.as_tensor_variable(ws)
         stride = tensor.as_tensor_variable(stride)
         pad = tensor.as_tensor_variable(pad)
@@ -2115,12 +2205,12 @@ class MaxPoolRop(OpenMPOp):
         assert pad.ndim == 1
         if x.type.ndim < nd:
             raise TypeError()
-        if not ws.dtype.startswith('int'):
-            raise TypeError('Pool downsample parameters must be ints.')
-        if not stride.dtype.startswith('int'):
-            raise TypeError('Stride parameters must be ints.')
-        if not pad.dtype.startswith('int'):
-            raise TypeError('Padding parameters must be ints.')
+        if not ws.dtype.startswith("int"):
+            raise TypeError("Pool downsample parameters must be ints.")
+        if not stride.dtype.startswith("int"):
+            raise TypeError("Stride parameters must be ints.")
+        if not pad.dtype.startswith("int"):
+            raise TypeError("Padding parameters must be ints.")
         # If the input shape are broadcastable we can have 0 in the output shape
         broad = x.broadcastable[:-nd] + (False,) * nd
         out = tensor.TensorType(eval_point.dtype, broad)
@@ -2128,12 +2218,13 @@ class MaxPoolRop(OpenMPOp):
 
     def perform(self, node, inp, out, params):
         x, ex, ws, stride, pad = inp
-        z, = out
+        (z,) = out
         nd = self.ndim
         assert ws.shape == stride.shape == pad.shape == (nd,)
         if len(x.shape) < nd:
             raise NotImplementedError(
-                'Pool requires input with {} or more dimensions'.format(nd))
+                "Pool requires input with {} or more dimensions".format(nd)
+            )
         z_shape = Pool.out_shape(x.shape, ws, params.ignore_border, stride, pad, nd)
         if not self.ignore_border:
             assert all(z > 0 for z in z_shape[-nd:])
@@ -2143,16 +2234,20 @@ class MaxPoolRop(OpenMPOp):
         # size of pooling output
         pool_out_shp = zz.shape[-nd:]
         img_shp = tuple(x.shape[-nd + i] + 2 * pad[i] for i in xrange(nd))
-        inc_pad = self.mode == 'average_inc_pad'
+        inc_pad = self.mode == "average_inc_pad"
 
         # pad the image and the eval point
         if max(pad) != 0:
             y = np.zeros(x.shape[:-nd] + img_shp, dtype=x.dtype)
-            y[(slice(None),) * (len(x.shape) - nd) +
-              tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))] = x
+            y[
+                (slice(None),) * (len(x.shape) - nd)
+                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))
+            ] = x
             ey = np.zeros(ex.shape[:-nd] + img_shp, dtype=ex.dtype)
-            ey[(slice(None),) * (len(ex.shape) - nd) +
-               tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))] = ex
+            ey[
+                (slice(None),) * (len(ex.shape) - nd)
+                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))
+            ] = ex
         else:
             y = x
             ey = ex
@@ -2184,26 +2279,26 @@ class MaxPoolRop(OpenMPOp):
                 zzk[r] = eykslice[idx]
 
     def c_headers(self):
-        headers = ['<algorithm>']
+        headers = ["<algorithm>"]
         headers += super(MaxPoolRop, self).c_headers()
         return headers
 
     def c_code(self, node, name, inp, out, sub):
-        if self.mode != 'max':
+        if self.mode != "max":
             raise theano.gof.utils.MethodNotDefined()
         x, ex, ws, stride, pad = inp
-        z, = out
+        (z,) = out
         nd = self.ndim
         total_ndim = node.inputs[0].ndim
         non_pool_ndim = total_ndim - nd
-        fail = sub['fail']
-        params = sub['params']
+        fail = sub["fail"]
+        params = sub["params"]
 
         if self.openmp:
             # run in parallel over each pooling block
-            omp_parallel = '#pragma omp parallel for private(r_st, r_end, r_idx, i_idx, o_idx, collector, eval_collector) schedule(static)'
+            omp_parallel = "#pragma omp parallel for private(r_st, r_end, r_idx, i_idx, o_idx, collector, eval_collector) schedule(static)"
         else:
-            omp_parallel = ''
+            omp_parallel = ""
         ccode = """
         int typenum = PyArray_ObjectType((PyObject*)%(x)s, 0);
         if(PyArray_NDIM(%(x)s)!=%(total_ndim)s)
@@ -2394,7 +2489,9 @@ class MaxPoolRop(OpenMPOp):
                   }
                   // use the index to find the correct position in the output
                   o_idx[%(non_pool_ndim)s + %(i)s] = r_idx[%(i)s];
-            """ % dict(i=i, params=sub['params'], non_pool_ndim=non_pool_ndim)
+            """ % dict(
+                i=i, params=sub["params"], non_pool_ndim=non_pool_ndim
+            )
 
         ccode += """
                   // get a pointer to the correct position in the output
@@ -2409,7 +2506,9 @@ class MaxPoolRop(OpenMPOp):
             ccode += """
               // set the first index of dimension %(i)s
               i_idx[%(non_pool_ndim)s + %(i)s] = r_st[%(i)s];
-            """ % dict(i=i, non_pool_ndim=non_pool_ndim)
+            """ % dict(
+                i=i, non_pool_ndim=non_pool_ndim
+            )
         ccode += """
               // use the first element as the initial value of collector
               if (%(total_ndim)s == 4) {
@@ -2426,7 +2525,9 @@ class MaxPoolRop(OpenMPOp):
               for(npy_intp m%(i)s=r_st[%(i)s]; m%(i)s<r_end[%(i)s]; m%(i)s++)
               {
                 i_idx[%(non_pool_ndim)s + %(i)s] = m%(i)s;
-            """ % dict(i=i, non_pool_ndim=non_pool_ndim)
+            """ % dict(
+                i=i, non_pool_ndim=non_pool_ndim
+            )
         ccode += """
                 // update maximum
                 dtype_%(x)s a;

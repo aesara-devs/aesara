@@ -2,7 +2,7 @@
 
 Author: Christof Angermueller <cangermueller@gmail.com>
 """
-from __future__ import absolute_import, print_function, division
+
 
 import os
 import json
@@ -39,7 +39,7 @@ def safe_json(obj):
     obj : object
         object to serialize
     """
-    return json.dumps(obj).replace('<', '\\u003c')
+    return json.dumps(obj).replace("<", "\\u003c")
 
 
 def d3viz(fct, outfile, copy_deps=True, *args, **kwargs):
@@ -80,23 +80,23 @@ def d3viz(fct, outfile, copy_deps=True, *args, **kwargs):
     graph = formatter(fct)
     dot_graph = graph.create_dot()
     if not six.PY2:
-        dot_graph = dot_graph.decode('utf8')
+        dot_graph = dot_graph.decode("utf8")
 
     # Create output directory if not existing
     outdir = os.path.dirname(outfile)
-    if not outdir == '' and not os.path.exists(outdir):
+    if not outdir == "" and not os.path.exists(outdir):
         os.makedirs(outdir)
 
     # Read template HTML file
-    template_file = os.path.join(__path__, 'html', 'template.html')
+    template_file = os.path.join(__path__, "html", "template.html")
     with open(template_file) as f:
         template = f.read()
 
     # Copy dependencies to output directory
     src_deps = __path__
     if copy_deps:
-        dst_deps = 'd3viz'
-        for d in ['js', 'css']:
+        dst_deps = "d3viz"
+        for d in ["js", "css"]:
             dep = os.path.join(outdir, dst_deps, d)
             if not os.path.exists(dep):
                 shutil.copytree(os.path.join(src_deps, d), dep)
@@ -105,14 +105,14 @@ def d3viz(fct, outfile, copy_deps=True, *args, **kwargs):
 
     # Replace patterns in template
     replace = {
-        '%% JS_DIR %%': os.path.join(dst_deps, 'js'),
-        '%% CSS_DIR %%': os.path.join(dst_deps, 'css'),
-        '%% DOT_GRAPH %%': safe_json(dot_graph),
+        "%% JS_DIR %%": os.path.join(dst_deps, "js"),
+        "%% CSS_DIR %%": os.path.join(dst_deps, "css"),
+        "%% DOT_GRAPH %%": safe_json(dot_graph),
     }
     html = replace_patterns(template, replace)
 
     # Write HTML file
-    with open(outfile, 'w') as f:
+    with open(outfile, "w") as f:
         f.write(html)
 
 

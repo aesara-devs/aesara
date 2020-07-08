@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 import numpy as np
 import pytest
 from six import integer_types
@@ -10,8 +8,7 @@ from theano import tensor, function
 
 # this tests other ops to ensure they keep the dimensions of their
 # inputs correctly
-class TestKeepDims():
-
+class TestKeepDims:
     def makeKeepDims_local(self, x, y, axis):
         if axis is None:
             newaxis = list(range(x.ndim))
@@ -30,7 +27,7 @@ class TestKeepDims():
         new_dims = []
         for j, _ in enumerate(x.shape):
             if j in newaxis:
-                new_dims.append('x')
+                new_dims.append("x")
             else:
                 new_dims.append(i)
                 i += 1
@@ -48,58 +45,127 @@ class TestKeepDims():
 
         # 'max_and_argmax' has two outputs and can be specified with either
         # a single or every axis:
-        for axis in [0, 1, 2, [0], [1], [2], None, [0, 1, 2],
-                     [-1], [-2], [-3], [-1, -2, -3], [0, -1, -2],
-                     [-2, -3, 2]]:
+        for axis in [
+            0,
+            1,
+            2,
+            [0],
+            [1],
+            [2],
+            None,
+            [0, 1, 2],
+            [-1],
+            [-2],
+            [-3],
+            [-1, -2, -3],
+            [0, -1, -2],
+            [-2, -3, 2],
+        ]:
 
             op = tensor.max_and_argmax
-            f = function([x], [op(x, axis=axis, keepdims=True)[0],
-                               self.makeKeepDims_local(
-                                   x, op(x, axis=axis, keepdims=False)[0],
-                                   axis)],
-                         mode=mode)
+            f = function(
+                [x],
+                [
+                    op(x, axis=axis, keepdims=True)[0],
+                    self.makeKeepDims_local(
+                        x, op(x, axis=axis, keepdims=False)[0], axis
+                    ),
+                ],
+                mode=mode,
+            )
             ans1, ans2 = f(a)
             assert np.allclose(ans1, ans2)
             assert ans1.shape == ans2.shape
 
-            f = function([x], [op(x, axis=axis, keepdims=True)[1],
-                               self.makeKeepDims_local(
-                                   x, op(x, axis=axis, keepdims=False)[1],
-                                   axis)],
-                         mode=mode)
+            f = function(
+                [x],
+                [
+                    op(x, axis=axis, keepdims=True)[1],
+                    self.makeKeepDims_local(
+                        x, op(x, axis=axis, keepdims=False)[1], axis
+                    ),
+                ],
+                mode=mode,
+            )
             ans1, ans2 = f(a)
             assert np.allclose(ans1, ans2)
             assert ans1.shape == ans2.shape
 
         # the following ops can be specified with either a single axis or every
         # axis:
-        for op in ([tensor.argmax, tensor.argmin]):
-            for axis in [0, 1, 2, [0], [1], [2], None, [0, 1, 2],
-                         [-1], [-2], [-3], [-1, -2, -3], [0, -2, 2]]:
+        for op in [tensor.argmax, tensor.argmin]:
+            for axis in [
+                0,
+                1,
+                2,
+                [0],
+                [1],
+                [2],
+                None,
+                [0, 1, 2],
+                [-1],
+                [-2],
+                [-3],
+                [-1, -2, -3],
+                [0, -2, 2],
+            ]:
 
-                f = function([x], [op(x, axis=axis, keepdims=True),
-                                   self.makeKeepDims_local(
-                                       x, op(x, axis=axis, keepdims=False),
-                                       axis)],
-                             mode=mode)
+                f = function(
+                    [x],
+                    [
+                        op(x, axis=axis, keepdims=True),
+                        self.makeKeepDims_local(
+                            x, op(x, axis=axis, keepdims=False), axis
+                        ),
+                    ],
+                    mode=mode,
+                )
                 ans1, ans2 = f(a)
                 assert np.allclose(ans1, ans2)
                 assert ans1.shape == ans2.shape
 
         # the following ops can be specified with a freely specified axis
         # parameter
-        for op in ([tensor.sum, tensor.prod, tensor.mean, tensor.var,
-                    tensor.std, tensor.all, tensor.any,
-                    tensor.max, tensor.min]):
-            for axis in [0, 1, 2, [0], [1], [2], None,
-                         [0, 1], [1, 2], [0, 1, 2],
-                         [-1], [-2], [-3], [-1, -2], [-1, -2, -3], [0, -2, 2]]:
+        for op in [
+            tensor.sum,
+            tensor.prod,
+            tensor.mean,
+            tensor.var,
+            tensor.std,
+            tensor.all,
+            tensor.any,
+            tensor.max,
+            tensor.min,
+        ]:
+            for axis in [
+                0,
+                1,
+                2,
+                [0],
+                [1],
+                [2],
+                None,
+                [0, 1],
+                [1, 2],
+                [0, 1, 2],
+                [-1],
+                [-2],
+                [-3],
+                [-1, -2],
+                [-1, -2, -3],
+                [0, -2, 2],
+            ]:
 
-                f = function([x], [op(x, axis=axis, keepdims=True),
-                                   self.makeKeepDims_local(
-                                       x, op(x, axis=axis, keepdims=False),
-                                       axis)],
-                             mode=mode)
+                f = function(
+                    [x],
+                    [
+                        op(x, axis=axis, keepdims=True),
+                        self.makeKeepDims_local(
+                            x, op(x, axis=axis, keepdims=False), axis
+                        ),
+                    ],
+                    mode=mode,
+                )
 
                 ans1, ans2 = f(a)
                 assert np.allclose(ans1, ans2)
@@ -111,21 +177,50 @@ class TestKeepDims():
         a = np.random.rand(3, 2, 4).astype(theano.config.floatX)
         mode = theano.compile.Mode(optimizer="fast_compile", linker="py")
 
-        for axis in [0, 1, 2, [0], [1], [2], None,
-                     [0, 1], [1, 2], [0, 1, 2],
-                     [-1], [-2], [-3], [-1, -2], [-1, -2, -3], [0, -2, 2]]:
+        for axis in [
+            0,
+            1,
+            2,
+            [0],
+            [1],
+            [2],
+            None,
+            [0, 1],
+            [1, 2],
+            [0, 1, 2],
+            [-1],
+            [-2],
+            [-3],
+            [-1, -2],
+            [-1, -2, -3],
+            [0, -2, 2],
+        ]:
 
-            f = function([x], [x.norm(L=1, axis=axis, keepdims=True),
-                               self.makeKeepDims_local(x, x.norm(L=1, axis=axis, keepdims=False), axis)
-                               ], mode=mode)
+            f = function(
+                [x],
+                [
+                    x.norm(L=1, axis=axis, keepdims=True),
+                    self.makeKeepDims_local(
+                        x, x.norm(L=1, axis=axis, keepdims=False), axis
+                    ),
+                ],
+                mode=mode,
+            )
 
             ans1, ans2 = f(a)
             assert np.allclose(ans1, ans2)
             assert ans1.shape == ans2.shape
 
-            g = function([x], [x.norm(L=2, axis=axis, keepdims=True),
-                               self.makeKeepDims_local(x, x.norm(L=2, axis=axis, keepdims=False), axis)
-                               ], mode=mode)
+            g = function(
+                [x],
+                [
+                    x.norm(L=2, axis=axis, keepdims=True),
+                    self.makeKeepDims_local(
+                        x, x.norm(L=2, axis=axis, keepdims=False), axis
+                    ),
+                ],
+                mode=mode,
+            )
 
             ans1, ans2 = g(a)
             assert np.allclose(ans1, ans2)

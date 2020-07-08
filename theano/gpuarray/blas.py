@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from six import integer_types
 
 import theano
@@ -10,27 +9,33 @@ from theano.scalar import bool as bool_t
 from theano.tensor.basic import as_tensor_variable
 from theano.tensor.opt import in2out
 
-from .basic_ops import (GpuArrayType, CGpuKernelBase,
-                        as_gpuarray_variable, gpu_contiguous, infer_context_name, gpuarray_helper_inc_dir)
+from .basic_ops import (
+    GpuArrayType,
+    CGpuKernelBase,
+    as_gpuarray_variable,
+    gpu_contiguous,
+    infer_context_name,
+    gpuarray_helper_inc_dir,
+)
 from .opt_util import inplace_allocempty
 
 try:
     import pygpu
     from pygpu import blas
-except ImportError as e:
+except ImportError:
     # To make sure theano is importable
     pass
 
 
 class BlasOp(Op):
     def c_headers(self):
-        return ['<blas_api.h>', '<numpy_compat.h>', '<gpuarray_helper.h>']
+        return ["<blas_api.h>", "<numpy_compat.h>", "<gpuarray_helper.h>"]
 
     def c_header_dirs(self):
         return [pygpu.get_include(), gpuarray_helper_inc_dir()]
 
     def c_init_code(self):
-        return ['import_pygpu__blas();']
+        return ["import_pygpu__blas();"]
 
 
 class GpuGemv(BlasOp):
@@ -38,8 +43,9 @@ class GpuGemv(BlasOp):
     Gemv on the GPU.
 
     """
+
     params_type = ParamsType(inplace=bool_t)
-    __props__ = ('inplace',)
+    __props__ = ("inplace",)
 
     def __init__(self, inplace=False):
         self.inplace = inplace
@@ -63,8 +69,7 @@ class GpuGemv(BlasOp):
 
         # float16 not supported
         expected = A.dtype
-        assert theano.scalar.upcast(alpha.dtype,
-                                    beta.dtype, expected) == expected
+        assert theano.scalar.upcast(alpha.dtype, beta.dtype, expected) == expected
         alpha = alpha.astype(expected)
         beta = beta.astype(expected)
         return Apply(self, [y, alpha, A, x, beta], [y.type()])
@@ -75,17 +80,24 @@ class GpuGemv(BlasOp):
         if inplace and y.strides[0] < 0:
             inplace = False
         if A.shape[1] == 0:
-            out_storage[0][0] = pygpu.zeros(y.shape, dtype=y.dtype,
-                                            context=y.context)
+            out_storage[0][0] = pygpu.zeros(y.shape, dtype=y.dtype, context=y.context)
         else:
-            out_storage[0][0] = blas.gemv(alpha, A, x, beta, y,
-                                          overwrite_y=inplace)
+            out_storage[0][0] = blas.gemv(alpha, A, x, beta, y, overwrite_y=inplace)
 
     def c_code(self, node, name, inp, out, sub):
-        vars = dict(out=out[0], y=inp[0], alpha=inp[1], A=inp[2], x=inp[3],
-                    beta=inp[4], fail=sub['fail'], name=name,
-                    params=sub['params'])
-        code = """
+        vars = dict(
+            out=out[0],
+            y=inp[0],
+            alpha=inp[1],
+            A=inp[2],
+            x=inp[3],
+            beta=inp[4],
+            fail=sub["fail"],
+            name=name,
+            params=sub["params"],
+        )
+        code = (
+            """
                if (!%(params)s->inplace || %(y)s->ga.strides[0] <= 0) {
                  %(out)s = theano_try_copy(%(out)s, %(y)s);
                  if (%(out)s == NULL) {
@@ -96,10 +108,13 @@ class GpuGemv(BlasOp):
                  %(out)s = %(y)s;
                  Py_INCREF(%(out)s);
                }
-               """ % vars
+               """
+            % vars
+        )
         # in case of possible speed up using blas dot,
         # temporary hack A to 1D for vector-vector dot
-        code += """
+        code += (
+            """
         if (PyGpuArray_DIM(%(A)s, 1) == 0) {
           int code;
           code = GpuArray_memset(&%(out)s->ga, 0);
@@ -131,12 +146,15 @@ class GpuGemv(BlasOp):
             %(out)s, 0) == -1) {
             %(fail)s
         }
-        """ % vars
+        """
+            % vars
+        )
 
         return code
 
     def c_code_cache_version(self):
         return (10,)
+
 
 gpugemv_no_inplace = GpuGemv(inplace=False)
 gpugemv_inplace = GpuGemv(inplace=True)
@@ -147,8 +165,9 @@ class GpuGemm(BlasOp):
     Gemm on the GPU.
 
     """
+
     params_type = ParamsType(inplace=bool_t)
-    __props__ = ('inplace',)
+    __props__ = ("inplace",)
     _f16_ok = True
 
     def __init__(self, inplace=False):
@@ -165,18 +184,18 @@ class GpuGemm(BlasOp):
         beta = as_tensor_variable(beta)
 
         if not (A.dtype == B.dtype == C.dtype):
-            raise TypeError(theano.tensor.blas.Gemm.E_mixed,
-                            (A.dtype, B.dtype, C.dtype,
-                             alpha.dtype, beta.dtype))
-        if not A.dtype.startswith('float'):
+            raise TypeError(
+                theano.tensor.blas.Gemm.E_mixed,
+                (A.dtype, B.dtype, C.dtype, alpha.dtype, beta.dtype),
+            )
+        if not A.dtype.startswith("float"):
             raise TypeError(theano.tensor.blas.Gemm.E_float, (A.dtype))
 
-        if A.dtype == 'float16':
-            expected = 'float32'
+        if A.dtype == "float16":
+            expected = "float32"
         else:
             expected = A.dtype
-        assert theano.scalar.upcast(alpha.dtype,
-                                    beta.dtype, expected) == expected
+        assert theano.scalar.upcast(alpha.dtype, beta.dtype, expected) == expected
         alpha = alpha.astype(expected)
         beta = beta.astype(expected)
 
@@ -192,14 +211,22 @@ class GpuGemm(BlasOp):
         inplace = params.inplace
         if inplace and not C.flags.forc:
             inplace = False
-        outputs[0][0] = blas.gemm(alpha, A, B, beta, C,
-                                  overwrite_c=inplace)
+        outputs[0][0] = blas.gemm(alpha, A, B, beta, C, overwrite_c=inplace)
 
     def c_code(self, node, name, inp, out, sub):
-        vars = dict(out=out[0], C=inp[0], alpha=inp[1], A=inp[2], B=inp[3],
-                    beta=inp[4], fail=sub['fail'], name=name,
-                    params=sub['params'])
-        code = """
+        vars = dict(
+            out=out[0],
+            C=inp[0],
+            alpha=inp[1],
+            A=inp[2],
+            B=inp[3],
+            beta=inp[4],
+            fail=sub["fail"],
+            name=name,
+            params=sub["params"],
+        )
+        code = (
+            """
                if (!%(params)s->inplace || !GpuArray_ISONESEGMENT(&%(C)s->ga)) {
                  %(out)s = theano_try_copy(%(out)s, %(C)s);
                  if (%(out)s == NULL) {
@@ -217,12 +244,15 @@ class GpuGemm(BlasOp):
                                     %(out)s, 0) == -1) {
                  %(fail)s
                }
-        """ % vars
+        """
+            % vars
+        )
 
         return code
 
     def c_code_cache_version(self):
         return (7,)
+
 
 gpugemm_no_inplace = GpuGemm(inplace=False)
 gpugemm_inplace = GpuGemm(inplace=True)
@@ -233,8 +263,9 @@ class GpuGer(BlasOp):
     Ger on the GPU.
 
     """
+
     params_type = ParamsType(inplace=bool_t)
-    __props__ = ('inplace',)
+    __props__ = ("inplace",)
 
     def __init__(self, inplace=False):
         self.inplace = inplace
@@ -247,9 +278,10 @@ class GpuGer(BlasOp):
         x = as_gpuarray_variable(x, ctx_name)
         y = as_gpuarray_variable(y, ctx_name)
         alpha = as_tensor_variable(alpha)
-        if not(A.dtype == x.dtype == y.dtype):
-            raise TypeError('ger requires matching dtypes',
-                            (A.dtype, alpha.dtype, x.dtype, y.dtype))
+        if not (A.dtype == x.dtype == y.dtype):
+            raise TypeError(
+                "ger requires matching dtypes", (A.dtype, alpha.dtype, x.dtype, y.dtype)
+            )
 
         assert theano.scalar.upcast(alpha.dtype, A.dtype) == A.dtype
         alpha = alpha.astype(A.dtype)
@@ -264,13 +296,21 @@ class GpuGer(BlasOp):
         inplace = params.inplace
         if inplace and not A.flags.forc:
             inplace = False
-        out[0][0] = blas.ger(alpha, x, y, A,
-                             overwrite_a=inplace)
+        out[0][0] = blas.ger(alpha, x, y, A, overwrite_a=inplace)
 
     def c_code(self, node, name, inp, out, sub):
-        vars = dict(out=out[0], A=inp[0], alpha=inp[1], x=inp[2], y=inp[3],
-                    fail=sub['fail'], name=name, params=sub['params'])
-        code = """
+        vars = dict(
+            out=out[0],
+            A=inp[0],
+            alpha=inp[1],
+            x=inp[2],
+            y=inp[3],
+            fail=sub["fail"],
+            name=name,
+            params=sub["params"],
+        )
+        code = (
+            """
                if (!%(params)s->inplace || !GpuArray_ISONESEGMENT(&%(A)s->ga)) {
                  %(out)s = theano_try_copy(%(out)s, %(A)s);
                  if (%(out)s == NULL) {
@@ -285,7 +325,9 @@ class GpuGer(BlasOp):
                                 %(x)s, %(y)s, %(out)s, 0) == -1) {
                  %(fail)s
                }
-               """ % vars
+               """
+            % vars
+        )
 
         return code
 
@@ -302,6 +344,7 @@ class GpuDot22(BlasOp):
     Dot22 on the GPU.
 
     """
+
     _f16_ok = True
     __props__ = ()
 
@@ -313,24 +356,30 @@ class GpuDot22(BlasOp):
         assert y.ndim == 2
         assert x.dtype == y.dtype
         otype = x.type.clone(
-            broadcastable=(x.type.broadcastable[0], y.type.broadcastable[1]))
+            broadcastable=(x.type.broadcastable[0], y.type.broadcastable[1])
+        )
         return Apply(self, [x, y], [otype()])
 
     def perform(self, node, inputs, outputs):
         x, y = inputs
 
-        out = pygpu.empty((x.shape[0], y.shape[1]), dtype=x.dtype,
-                          context=x.context)
-        outputs[0][0] = blas.gemm(1., x, y, 0., out,
-                                  overwrite_c=True)
+        out = pygpu.empty((x.shape[0], y.shape[1]), dtype=x.dtype, context=x.context)
+        outputs[0][0] = blas.gemm(1.0, x, y, 0.0, out, overwrite_c=True)
 
     def c_code(self, node, name, inputs, outputs, sub):
         dtype = node.inputs[0].dtype
         typecode = pygpu.gpuarray.dtype_to_typecode(dtype)
-        vars = dict(A=inputs[0], B=inputs[1], dtype=dtype, out=outputs[0],
-                    typecode=typecode,
-                    fail=sub['fail'], name=name)
-        code = """
+        vars = dict(
+            A=inputs[0],
+            B=inputs[1],
+            dtype=dtype,
+            out=outputs[0],
+            typecode=typecode,
+            fail=sub["fail"],
+            name=name,
+        )
+        code = (
+            """
         double one = 1.;
         double zero = 0.;
 
@@ -350,19 +399,22 @@ class GpuDot22(BlasOp):
                              %(out)s, 0) == -1) {
             %(fail)s
         }
-        """ % vars
+        """
+            % vars
+        )
 
         return code
 
     def c_code_cache_version(self):
         return (5,)
 
+
 gpu_dot22 = GpuDot22()
 
 
 class GpuGemmBatch(BlasOp):
     params_type = ParamsType(inplace=bool_t)
-    __props__ = ('inplace',)
+    __props__ = ("inplace",)
     _f16_ok = True
 
     def __init__(self, inplace=False):
@@ -376,31 +428,40 @@ class GpuGemmBatch(BlasOp):
         B = as_gpuarray_variable(B, ctx_name)
         C = as_gpuarray_variable(C, ctx_name)
         alpha = as_tensor_variable(alpha)
-        if alpha.dtype == 'float16':
-            alpha = alpha.astype('float32')
+        if alpha.dtype == "float16":
+            alpha = alpha.astype("float32")
         beta = as_tensor_variable(beta)
-        if beta.dtype == 'float16':
-            beta = beta.astype('float32')
+        if beta.dtype == "float16":
+            beta = beta.astype("float32")
         assert alpha.ndim == 0
         assert beta.ndim == 0
         assert A.ndim == 3
         assert B.ndim == 3
         assert C.ndim == 3
         assert A.dtype == B.dtype == C.dtype
-        if A.dtype in ('float32', 'float64'):
+        if A.dtype in ("float32", "float64"):
             assert A.dtype == alpha.dtype == beta.dtype
         else:
-            assert 'float32' == alpha.dtype == beta.dtype
+            assert "float32" == alpha.dtype == beta.dtype
         return Apply(self, [C, alpha, A, B, beta], [C.type()])
 
     def c_headers(self):
-        return super(GpuGemmBatch, self).c_headers() + ['<gpuarray/blas.h>']
+        return super(GpuGemmBatch, self).c_headers() + ["<gpuarray/blas.h>"]
 
     def c_code(self, node, name, inp, out, sub):
-        vars = dict(out=out[0], C=inp[0], alpha=inp[1], A=inp[2], B=inp[3],
-                    beta=inp[4], params=sub['params'],
-                    fail=sub['fail'], name=name)
-        code = """
+        vars = dict(
+            out=out[0],
+            C=inp[0],
+            alpha=inp[1],
+            A=inp[2],
+            B=inp[3],
+            beta=inp[4],
+            params=sub["params"],
+            fail=sub["fail"],
+            name=name,
+        )
+        code = (
+            """
         int err;
         if (%(params)s->inplace){
                    if (!GpuArray_ISONESEGMENT(&%(C)s->ga)) {
@@ -430,12 +491,15 @@ class GpuGemmBatch(BlasOp):
                          "%%s", GpuArray_error(&%(A)s->ga, err));
             %(fail)s;
         }
-        """ % vars
+        """
+            % vars
+        )
 
         return code
 
     def c_code_cache_version(self):
         return (4,)
+
 
 gpugemmbatch_no_inplace = GpuGemmBatch(inplace=False)
 gpugemmbatch_inplace = GpuGemmBatch(inplace=True)
@@ -461,40 +525,56 @@ class BaseGpuCorrMM(CGpuKernelBase):
     unshared
         Perform unshared correlation (default: False)
     """
+
     check_broadcast = False
-    __props__ = ('border_mode', 'subsample', 'filter_dilation', 'num_groups', 'unshared')
+    __props__ = (
+        "border_mode",
+        "subsample",
+        "filter_dilation",
+        "num_groups",
+        "unshared",
+    )
     _f16_ok = True
 
-    def __init__(self, border_mode="valid", subsample=(1, 1),
-                 filter_dilation=(1, 1), num_groups=1, unshared=False):
+    def __init__(
+        self,
+        border_mode="valid",
+        subsample=(1, 1),
+        filter_dilation=(1, 1),
+        num_groups=1,
+        unshared=False,
+    ):
         if isinstance(border_mode, integer_types):
             if border_mode < 0:
                 raise ValueError(
-                    'invalid border_mode {}, which must be a '
-                    'non-negative integer'.format(border_mode))
+                    "invalid border_mode {}, which must be a "
+                    "non-negative integer".format(border_mode)
+                )
             border_mode = ((border_mode, border_mode),) * 2
         elif isinstance(border_mode, tuple):
             if len(border_mode) != 2:
                 raise ValueError(
-                    'invalid border_mode {} which must be a '
-                    'tuple of length 2'.format(border_mode))
+                    "invalid border_mode {} which must be a "
+                    "tuple of length 2".format(border_mode)
+                )
             border = ()
             for mode in border_mode:
-                if isinstance(mode, tuple) and len(mode) == 2 and \
-                        min(mode) >= 0:
+                if isinstance(mode, tuple) and len(mode) == 2 and min(mode) >= 0:
                     border += ((int(mode[0]), int(mode[1])),)
                 elif mode >= 0:
                     border += ((int(mode), int(mode)),)
                 else:
                     raise ValueError(
-                        'invalid border mode {}. The tuple can only contain '
-                        'integers or tuples of length 2'.format(border_mode))
+                        "invalid border mode {}. The tuple can only contain "
+                        "integers or tuples of length 2".format(border_mode)
+                    )
             border_mode = border
-        elif border_mode not in ('valid', 'full', 'half'):
+        elif border_mode not in ("valid", "full", "half"):
             raise ValueError(
-                'invalid border_mode {}, which must be either '
+                "invalid border_mode {}, which must be either "
                 '"valid", "full", "half", an integer or a tuple '
-                'of length 2'.format(border_mode))
+                "of length 2".format(border_mode)
+            )
         self.border_mode = border_mode
         if len(subsample) != 2:
             raise ValueError("subsample must have two elements")
@@ -505,27 +585,28 @@ class BaseGpuCorrMM(CGpuKernelBase):
         if num_groups < 1:
             raise ValueError("Number of groups should be greater than 0")
         self.num_groups = num_groups
-        CGpuKernelBase.__init__(self, ['c_code/corr_gemm.c'])
+        CGpuKernelBase.__init__(self, ["c_code/corr_gemm.c"])
         self.unshared = unshared
 
     @property
     def pad(self):
-        if self.border_mode != 'valid':
+        if self.border_mode != "valid":
             return self.border_mode
         return ((0, 0),) * 2
 
     def __str__(self):
-        return '%s{%s, %s, %s, %s, %s}' % (
+        return "%s{%s, %s, %s, %s, %s}" % (
             self.__class__.__name__,
             self.border_mode,
             str(self.subsample),
             str(self.filter_dilation),
             str(self.num_groups),
-            str(self.unshared))
+            str(self.unshared),
+        )
 
     def __setstate__(self, d):
         self.__dict__.update(d)
-        if not hasattr(self, 'num_groups'):
+        if not hasattr(self, "num_groups"):
             self.num_groups = 1
 
     def flops(self, inp, outp):
@@ -536,7 +617,7 @@ class BaseGpuCorrMM(CGpuKernelBase):
         # if the output shape is correct, then this gives the correct
         # flops for any direction, sampling, padding, and border mode
         inputs, filters = inp
-        outputs, = outp
+        (outputs,) = outp
         assert inputs[1] == (filters[1] * self.num_groups)
         # nb mul and add by output pixel
         flops = filters[2] * filters[3] * 2
@@ -556,7 +637,9 @@ class BaseGpuCorrMM(CGpuKernelBase):
         # Raise this whenever modifying the C code (including the file).
         return (12,)
 
-    def c_code_helper(self, bottom, weights, top, direction, sub, height=None, width=None):
+    def c_code_helper(
+        self, bottom, weights, top, direction, sub, height=None, width=None
+    ):
         """
         This generates the C code for GpuCorrMM (direction="forward"),
         GpuCorrMM_gradWeights (direction="backprop weights"), and
@@ -622,28 +705,39 @@ class BaseGpuCorrMM(CGpuKernelBase):
             direction = 2
             out = bottom
         else:
-            raise ValueError("direction must be one of 'forward', "
-                             "'backprop weights', 'backprop inputs'")
+            raise ValueError(
+                "direction must be one of 'forward', "
+                "'backprop weights', 'backprop inputs'"
+            )
         # When subsampling, we cannot unambiguously infer the height and width
         # of bottom and weights from top, so we require them to be given.
         # Similarly, when pad="half", we cannot infer the weight size.
         if height:
-            height = '(*(npy_int*)(PyArray_DATA(%s)))' % height
+            height = "(*(npy_int*)(PyArray_DATA(%s)))" % height
         else:
-            if ((direction != 0) and (dH != 1)) or ((direction == 1) and (padH_l == -1 or padH_r == -1)):
-                raise ValueError("height must be given for backprop with vertical sampling or pad='half'")
-            height = '-1'
+            if ((direction != 0) and (dH != 1)) or (
+                (direction == 1) and (padH_l == -1 or padH_r == -1)
+            ):
+                raise ValueError(
+                    "height must be given for backprop with vertical sampling or pad='half'"
+                )
+            height = "-1"
         if width:
-            width = '(*(npy_int*)(PyArray_DATA(%s)))' % width
+            width = "(*(npy_int*)(PyArray_DATA(%s)))" % width
         else:
-            if ((direction != 0) and (dW != 1)) or ((direction == 1) and (padW_l == -1 or padW_r == -1)):
-                raise ValueError("width must be given for backprop with horizontal sampling or pad='half'")
-            width = '-1'
+            if ((direction != 0) and (dW != 1)) or (
+                (direction == 1) and (padW_l == -1 or padW_r == -1)
+            ):
+                raise ValueError(
+                    "width must be given for backprop with horizontal sampling or pad='half'"
+                )
+            width = "-1"
 
         sub = sub.copy()
         sub.update(locals())
 
-        return """
+        return (
+            """
     // Mandatory args
     int direction = %(direction)s;  // forward, bprop weights, bprop inputs
 
@@ -910,7 +1004,9 @@ class BaseGpuCorrMM(CGpuKernelBase):
     }
     assert (out2 == %(out)s);
 
-""" % sub
+"""
+            % sub
+        )
 
 
 class GpuCorrMM(BaseGpuCorrMM):
@@ -966,53 +1062,74 @@ class GpuCorrMM(BaseGpuCorrMM):
     compute a convolution, flip the filters as `filters[:,:,::-1,::-1]`.
 
     """
-    def __init__(self, border_mode="valid",
-                 subsample=(1, 1),
-                 filter_dilation=(1, 1), num_groups=1, unshared=False):
-        super(GpuCorrMM, self).__init__(border_mode, subsample,
-                                        filter_dilation, num_groups, unshared)
+
+    def __init__(
+        self,
+        border_mode="valid",
+        subsample=(1, 1),
+        filter_dilation=(1, 1),
+        num_groups=1,
+        unshared=False,
+    ):
+        super(GpuCorrMM, self).__init__(
+            border_mode, subsample, filter_dilation, num_groups, unshared
+        )
 
     def make_node(self, img, kern):
         ctx_name = infer_context_name(img, kern)
         img = as_gpuarray_variable(img, ctx_name)
         kern = as_gpuarray_variable(kern, ctx_name)
         if img.type.ndim != 4:
-            raise TypeError('img must be 4D tensor')
+            raise TypeError("img must be 4D tensor")
         if self.unshared:
             if kern.type.ndim != 6:
-                raise TypeError('kern must be 6D tensor')
+                raise TypeError("kern must be 6D tensor")
         else:
             if kern.type.ndim != 4:
-                raise TypeError('kern must be 4D tensor')
+                raise TypeError("kern must be 4D tensor")
 
-        broadcastable = [img.type.broadcastable[0], kern.type.broadcastable[0],
-                         False, False]
-        return Apply(self, [img, kern], [GpuArrayType(dtype=img.dtype,
-                                                      context_name=ctx_name,
-                                                      broadcastable=broadcastable)()])
+        broadcastable = [
+            img.type.broadcastable[0],
+            kern.type.broadcastable[0],
+            False,
+            False,
+        ]
+        return Apply(
+            self,
+            [img, kern],
+            [
+                GpuArrayType(
+                    dtype=img.dtype, context_name=ctx_name, broadcastable=broadcastable
+                )()
+            ],
+        )
 
     def c_code(self, node, nodename, inp, out_, sub):
         bottom, weights = inp
-        top, = out_
+        (top,) = out_
         direction = "forward"
-        return super(GpuCorrMM, self).c_code_helper(bottom, weights, top, direction, sub)
+        return super(GpuCorrMM, self).c_code_helper(
+            bottom, weights, top, direction, sub
+        )
 
     def grad(self, inp, grads):
         bottom, weights = inp
-        top, = grads
+        (top,) = grads
         top = gpu_contiguous(top)
-        d_bottom = GpuCorrMM_gradInputs(self.border_mode,
-                                        self.subsample,
-                                        self.filter_dilation,
-                                        self.num_groups,
-                                        self.unshared)(
-            weights, top, bottom.shape[-2:])
-        d_weights = GpuCorrMM_gradWeights(self.border_mode,
-                                          self.subsample,
-                                          self.filter_dilation,
-                                          self.num_groups,
-                                          self.unshared)(
-            bottom, top, weights.shape[-2:])
+        d_bottom = GpuCorrMM_gradInputs(
+            self.border_mode,
+            self.subsample,
+            self.filter_dilation,
+            self.num_groups,
+            self.unshared,
+        )(weights, top, bottom.shape[-2:])
+        d_weights = GpuCorrMM_gradWeights(
+            self.border_mode,
+            self.subsample,
+            self.filter_dilation,
+            self.num_groups,
+            self.unshared,
+        )(bottom, top, weights.shape[-2:])
         return d_bottom, d_weights
 
 
@@ -1027,28 +1144,32 @@ class GpuCorrMM_gradWeights(BaseGpuCorrMM):
 
     """
 
-    def __init__(self, border_mode="valid",
-                 subsample=(1, 1),
-                 filter_dilation=(1, 1),
-                 num_groups=1,
-                 unshared=False):
-        super(GpuCorrMM_gradWeights, self).__init__(border_mode,
-                                                    subsample,
-                                                    filter_dilation, num_groups,
-                                                    unshared)
+    def __init__(
+        self,
+        border_mode="valid",
+        subsample=(1, 1),
+        filter_dilation=(1, 1),
+        num_groups=1,
+        unshared=False,
+    ):
+        super(GpuCorrMM_gradWeights, self).__init__(
+            border_mode, subsample, filter_dilation, num_groups, unshared
+        )
 
     def make_node(self, img, topgrad, shape=None):
         ctx_name = infer_context_name(img, topgrad)
         img = as_gpuarray_variable(img, ctx_name)
         topgrad = as_gpuarray_variable(topgrad, ctx_name)
         if img.type.ndim != 4:
-            raise TypeError('img must be 4D tensor')
+            raise TypeError("img must be 4D tensor")
         if topgrad.type.ndim != 4:
-            raise TypeError('topgrad must be 4D tensor')
+            raise TypeError("topgrad must be 4D tensor")
         if shape is None:
             if self.subsample != (1, 1) or self.border_mode == "half":
-                raise ValueError('shape must be given if subsample != (1, 1)'
-                                 ' or border_mode == "half"')
+                raise ValueError(
+                    "shape must be given if subsample != (1, 1)"
+                    ' or border_mode == "half"'
+                )
             height_width = []
         else:
             height_width = [shape[0], shape[1]]
@@ -1056,38 +1177,61 @@ class GpuCorrMM_gradWeights(BaseGpuCorrMM):
             assert shape[1].ndim == 0
 
         if self.unshared:
-            broadcastable = [topgrad.type.broadcastable[1], False, False,
-                             img.type.broadcastable[1], False, False]
+            broadcastable = [
+                topgrad.type.broadcastable[1],
+                False,
+                False,
+                img.type.broadcastable[1],
+                False,
+                False,
+            ]
         else:
-            broadcastable = [topgrad.type.broadcastable[1], img.type.broadcastable[1],
-                             False, False]
-        return Apply(self, [img, topgrad] + height_width, [GpuArrayType(dtype=img.dtype,
-                                                                        context_name=ctx_name,
-                                                                        broadcastable=broadcastable)()])
+            broadcastable = [
+                topgrad.type.broadcastable[1],
+                img.type.broadcastable[1],
+                False,
+                False,
+            ]
+        return Apply(
+            self,
+            [img, topgrad] + height_width,
+            [
+                GpuArrayType(
+                    dtype=img.dtype, context_name=ctx_name, broadcastable=broadcastable
+                )()
+            ],
+        )
 
     def c_code(self, node, nodename, inp, out_, sub):
         bottom, top = inp[:2]
         height, width = inp[2:] or (None, None)
-        weights, = out_
+        (weights,) = out_
         direction = "backprop weights"
-        return super(GpuCorrMM_gradWeights, self).c_code_helper(bottom, weights, top, direction, sub, height, width)
+        return super(GpuCorrMM_gradWeights, self).c_code_helper(
+            bottom, weights, top, direction, sub, height, width
+        )
 
     def grad(self, inp, grads):
         bottom, top = inp[:2]
-        weights, = grads
+        (weights,) = grads
         weights = gpu_contiguous(weights)
-        d_bottom = GpuCorrMM_gradInputs(self.border_mode,
-                                        self.subsample,
-                                        self.filter_dilation,
-                                        self.num_groups,
-                                        self.unshared)(weights,
-                                                       top,
-                                                       bottom.shape[-2:])
+        d_bottom = GpuCorrMM_gradInputs(
+            self.border_mode,
+            self.subsample,
+            self.filter_dilation,
+            self.num_groups,
+            self.unshared,
+        )(weights, top, bottom.shape[-2:])
         d_top = GpuCorrMM(
-            self.border_mode, self.subsample, self.filter_dilation, self.num_groups, self.unshared)(bottom, weights)
+            self.border_mode,
+            self.subsample,
+            self.filter_dilation,
+            self.num_groups,
+            self.unshared,
+        )(bottom, weights)
         d_height_width = (
-            theano.gradient.DisconnectedType()(),
-            ) * 2 if len(inp) == 4 else ()
+            (theano.gradient.DisconnectedType()(),) * 2 if len(inp) == 4 else ()
+        )
         return (d_bottom, d_top) + d_height_width
 
     def connection_pattern(self, node):
@@ -1108,14 +1252,17 @@ class GpuCorrMM_gradInputs(BaseGpuCorrMM):
 
     """
 
-    def __init__(self, border_mode="valid",
-                 subsample=(1, 1),
-                 filter_dilation=(1, 1),
-                 num_groups=1,
-                 unshared=False):
-        super(GpuCorrMM_gradInputs, self).__init__(border_mode, subsample,
-                                                   filter_dilation, num_groups,
-                                                   unshared)
+    def __init__(
+        self,
+        border_mode="valid",
+        subsample=(1, 1),
+        filter_dilation=(1, 1),
+        num_groups=1,
+        unshared=False,
+    ):
+        super(GpuCorrMM_gradInputs, self).__init__(
+            border_mode, subsample, filter_dilation, num_groups, unshared
+        )
 
     def make_node(self, kern, topgrad, shape=None):
         ctx_name = infer_context_name(kern, topgrad)
@@ -1123,15 +1270,15 @@ class GpuCorrMM_gradInputs(BaseGpuCorrMM):
         topgrad = as_gpuarray_variable(topgrad, ctx_name)
         if self.unshared:
             if kern.type.ndim != 6:
-                raise TypeError('kern must be 6D tensor')
+                raise TypeError("kern must be 6D tensor")
         else:
             if kern.type.ndim != 4:
-                raise TypeError('kern must be 4D tensor')
+                raise TypeError("kern must be 4D tensor")
         if topgrad.type.ndim != 4:
-            raise TypeError('topgrad must be 4D tensor')
+            raise TypeError("topgrad must be 4D tensor")
         if shape is None:
             if self.subsample != (1, 1):
-                raise ValueError('shape must be given if subsample != (1, 1)')
+                raise ValueError("shape must be given if subsample != (1, 1)")
             height_width = []
         else:
             height_width = [shape[0], shape[1]]
@@ -1139,41 +1286,56 @@ class GpuCorrMM_gradInputs(BaseGpuCorrMM):
             assert shape[1].ndim == 0
 
         if self.num_groups > 1:
-            broadcastable = [topgrad.type.broadcastable[0], False,
-                             False, False]
+            broadcastable = [topgrad.type.broadcastable[0], False, False, False]
         else:
-            broadcastable = [topgrad.type.broadcastable[0], kern.type.broadcastable[-3],
-                             False, False]
-        return Apply(self, [kern, topgrad] + height_width, [GpuArrayType(dtype=topgrad.dtype,
-                                                                         context_name=ctx_name,
-                                                                         broadcastable=broadcastable)()])
+            broadcastable = [
+                topgrad.type.broadcastable[0],
+                kern.type.broadcastable[-3],
+                False,
+                False,
+            ]
+        return Apply(
+            self,
+            [kern, topgrad] + height_width,
+            [
+                GpuArrayType(
+                    dtype=topgrad.dtype,
+                    context_name=ctx_name,
+                    broadcastable=broadcastable,
+                )()
+            ],
+        )
 
     def c_code(self, node, nodename, inp, out_, sub):
         weights, top = inp[:2]
         height, width = inp[2:] or (None, None)
-        bottom, = out_
+        (bottom,) = out_
         direction = "backprop inputs"
-        return super(GpuCorrMM_gradInputs, self).c_code_helper(bottom, weights, top, direction, sub, height, width)
+        return super(GpuCorrMM_gradInputs, self).c_code_helper(
+            bottom, weights, top, direction, sub, height, width
+        )
 
     def grad(self, inp, grads):
         weights, top = inp[:2]
-        bottom, = grads
+        (bottom,) = grads
         bottom = gpu_contiguous(bottom)
-        d_weights = GpuCorrMM_gradWeights(self.border_mode,
-                                          self.subsample,
-                                          self.filter_dilation,
-                                          self.num_groups,
-                                          self.unshared)(bottom,
-                                                         top,
-                                                         weights.shape[-2:])
-        d_top = GpuCorrMM(self.border_mode,
-                          self.subsample,
-                          self.filter_dilation,
-                          self.num_groups,
-                          self.unshared)(bottom, weights)
+        d_weights = GpuCorrMM_gradWeights(
+            self.border_mode,
+            self.subsample,
+            self.filter_dilation,
+            self.num_groups,
+            self.unshared,
+        )(bottom, top, weights.shape[-2:])
+        d_top = GpuCorrMM(
+            self.border_mode,
+            self.subsample,
+            self.filter_dilation,
+            self.num_groups,
+            self.unshared,
+        )(bottom, weights)
         d_height_width = (
-            theano.gradient.DisconnectedType()(),
-            ) * 2 if len(inp) == 4 else ()
+            (theano.gradient.DisconnectedType()(),) * 2 if len(inp) == 4 else ()
+        )
         return (d_weights, d_top) + d_height_width
 
     def connection_pattern(self, node):
@@ -1202,23 +1364,32 @@ class BaseGpuCorr3dMM(CGpuKernelBase):
         separate groups. Each which carry out convolutions separately (default : 1).
 
     """
+
     check_broadcast = False
-    __props__ = ('border_mode', 'subsample', 'filter_dilation', 'num_groups')
+    __props__ = ("border_mode", "subsample", "filter_dilation", "num_groups")
     _f16_ok = True
 
-    def __init__(self, border_mode="valid", subsample=(1, 1, 1),
-                 filter_dilation=(1, 1, 1), num_groups=1):
+    def __init__(
+        self,
+        border_mode="valid",
+        subsample=(1, 1, 1),
+        filter_dilation=(1, 1, 1),
+        num_groups=1,
+    ):
         if isinstance(border_mode, integer_types):
             border_mode = (border_mode, border_mode, border_mode)
         if isinstance(border_mode, tuple):
             pad_h, pad_w, pad_d = map(int, border_mode)
             border_mode = (pad_h, pad_w, pad_d)
-        if not ((isinstance(border_mode, tuple) and min(border_mode) >= 0) or
-                border_mode in ('valid', 'full', 'half')):
+        if not (
+            (isinstance(border_mode, tuple) and min(border_mode) >= 0)
+            or border_mode in ("valid", "full", "half")
+        ):
             raise ValueError(
-                'invalid border_mode {}, which must be either '
+                "invalid border_mode {}, which must be either "
                 '"valid", "full", "half", an integer or a tuple of'
-                ' three integers'.format(border_mode))
+                " three integers".format(border_mode)
+            )
         self.border_mode = border_mode
         if len(subsample) != 3:
             raise ValueError("subsample must have three elements")
@@ -1229,25 +1400,26 @@ class BaseGpuCorr3dMM(CGpuKernelBase):
         if num_groups < 1:
             raise ValueError("Number of groups should be greater than 0")
         self.num_groups = num_groups
-        CGpuKernelBase.__init__(self, ['c_code/corr3d_gemm.c'])
+        CGpuKernelBase.__init__(self, ["c_code/corr3d_gemm.c"])
 
     @property
     def pad(self):
-        if self.border_mode != 'valid':
+        if self.border_mode != "valid":
             return self.border_mode
         return (0, 0, 0)
 
     def __str__(self):
-        return '%s{%s, %s, %s, %s}' % (
+        return "%s{%s, %s, %s, %s}" % (
             self.__class__.__name__,
             self.border_mode,
             str(self.subsample),
             str(self.filter_dilation),
-            str(self.num_groups))
+            str(self.num_groups),
+        )
 
     def __setstate__(self, d):
         self.__dict__.update(d)
-        if not hasattr(self, 'num_groups'):
+        if not hasattr(self, "num_groups"):
             self.num_groups = 1
 
     def flops(self, inp, outp):
@@ -1258,7 +1430,7 @@ class BaseGpuCorr3dMM(CGpuKernelBase):
         # if the output shape is correct, then this gives the correct
         # flops for any direction, sampling, padding, and border mode
         inputs, filters = inp
-        outputs, = outp
+        (outputs,) = outp
         assert inputs[1] == (filters[1] * self.num_groups)
         # nb mul and add by output pixel
         flops = filters[2] * filters[3] * filters[4] * 2
@@ -1278,8 +1450,9 @@ class BaseGpuCorr3dMM(CGpuKernelBase):
         # raise this whenever modifying the code below.
         return (8,)
 
-    def c_code_helper(self, bottom, weights, top, direction, sub,
-                      height=None, width=None, depth=None):
+    def c_code_helper(
+        self, bottom, weights, top, direction, sub, height=None, width=None, depth=None
+    ):
         """
         This generates the C code for GpuCorr3dMM (direction="forward"),
         GpuCorr3dMM_gradWeights (direction="backprop weights"), and
@@ -1351,34 +1524,43 @@ class BaseGpuCorr3dMM(CGpuKernelBase):
             direction = 2
             out = bottom
         else:
-            raise ValueError("direction must be one of 'forward', "
-                             "'backprop weights', 'backprop inputs'")
+            raise ValueError(
+                "direction must be one of 'forward', "
+                "'backprop weights', 'backprop inputs'"
+            )
         # When subsampling, we cannot unambiguously infer the height and width
         # of bottom and weights from top, so we require them to be given.
         # Similarly, when pad="half", we cannot infer the weight size.
         if height:
-            height = '(*(npy_int*)(PyArray_DATA(%s)))' % height
+            height = "(*(npy_int*)(PyArray_DATA(%s)))" % height
         else:
             if ((direction != 0) and (dH != 1)) or ((direction == 1) and (padH == -1)):
-                raise ValueError("height must be given for backprop with vertical sampling or pad='half'")
-            height = '-1'
+                raise ValueError(
+                    "height must be given for backprop with vertical sampling or pad='half'"
+                )
+            height = "-1"
         if width:
-            width = '(*(npy_int*)(PyArray_DATA(%s)))' % width
+            width = "(*(npy_int*)(PyArray_DATA(%s)))" % width
         else:
             if ((direction != 0) and (dW != 1)) or ((direction == 1) and (padW == -1)):
-                raise ValueError("width must be given for backprop with horizontal sampling or pad='half'")
-            width = '-1'
+                raise ValueError(
+                    "width must be given for backprop with horizontal sampling or pad='half'"
+                )
+            width = "-1"
         if depth:
-            depth = '(*(npy_int*)(PyArray_DATA(%s)))' % depth
+            depth = "(*(npy_int*)(PyArray_DATA(%s)))" % depth
         else:
             if ((direction != 0) and (dD != 1)) or ((direction == 1) and (padD == -1)):
-                raise ValueError("depth must be given for backprop with horizontal sampling or pad='half'")
-            depth = '-1'
+                raise ValueError(
+                    "depth must be given for backprop with horizontal sampling or pad='half'"
+                )
+            depth = "-1"
 
         sub = sub.copy()
         sub.update(locals())
 
-        return """
+        return (
+            """
     // Mandatory args
     int direction = %(direction)s;  // forward, bprop weights, bprop inputs
 
@@ -1598,7 +1780,9 @@ class BaseGpuCorr3dMM(CGpuKernelBase):
     }
     assert (out2 == %(out)s);
 
-""" % sub
+"""
+            % sub
+        )
 
 
 class GpuCorr3dMM(BaseGpuCorr3dMM):
@@ -1650,48 +1834,62 @@ class GpuCorr3dMM(BaseGpuCorr3dMM):
     compute a convolution, flip the filters as `filters[:,:,::-1,::-1,::-1]`.
 
     """
-    def __init__(self, border_mode="valid",
-                 subsample=(1, 1, 1),
-                 filter_dilation=(1, 1, 1),
-                 num_groups=1):
-        super(GpuCorr3dMM, self).__init__(border_mode, subsample,
-                                          filter_dilation, num_groups)
+
+    def __init__(
+        self,
+        border_mode="valid",
+        subsample=(1, 1, 1),
+        filter_dilation=(1, 1, 1),
+        num_groups=1,
+    ):
+        super(GpuCorr3dMM, self).__init__(
+            border_mode, subsample, filter_dilation, num_groups
+        )
 
     def make_node(self, img, kern):
         ctx_name = infer_context_name(img, kern)
         img = as_gpuarray_variable(img, ctx_name)
         kern = as_gpuarray_variable(kern, ctx_name)
         if img.type.ndim != 5:
-            raise TypeError('img must be 5D tensor')
+            raise TypeError("img must be 5D tensor")
         if kern.type.ndim != 5:
-            raise TypeError('kern must be 5D tensor')
+            raise TypeError("kern must be 5D tensor")
 
-        broadcastable = [img.type.broadcastable[0], kern.type.broadcastable[0],
-                         False, False, False]
-        return Apply(self, [img, kern], [GpuArrayType(dtype=img.dtype,
-                                                      context_name=ctx_name,
-                                                      broadcastable=broadcastable)()])
+        broadcastable = [
+            img.type.broadcastable[0],
+            kern.type.broadcastable[0],
+            False,
+            False,
+            False,
+        ]
+        return Apply(
+            self,
+            [img, kern],
+            [
+                GpuArrayType(
+                    dtype=img.dtype, context_name=ctx_name, broadcastable=broadcastable
+                )()
+            ],
+        )
 
     def c_code(self, node, nodename, inp, out_, sub):
         bottom, weights = inp
-        top, = out_
+        (top,) = out_
         direction = "forward"
-        return super(GpuCorr3dMM, self).c_code_helper(bottom, weights, top, direction, sub)
+        return super(GpuCorr3dMM, self).c_code_helper(
+            bottom, weights, top, direction, sub
+        )
 
     def grad(self, inp, grads):
         bottom, weights = inp
-        top, = grads
+        (top,) = grads
         top = gpu_contiguous(top)
-        d_bottom = GpuCorr3dMM_gradInputs(self.border_mode,
-                                          self.subsample,
-                                          self.filter_dilation,
-                                          self.num_groups)(
-            weights, top, bottom.shape[-3:])
-        d_weights = GpuCorr3dMM_gradWeights(self.border_mode,
-                                            self.subsample,
-                                            self.filter_dilation,
-                                            self.num_groups)(
-            bottom, top, weights.shape[-3:])
+        d_bottom = GpuCorr3dMM_gradInputs(
+            self.border_mode, self.subsample, self.filter_dilation, self.num_groups
+        )(weights, top, bottom.shape[-3:])
+        d_weights = GpuCorr3dMM_gradWeights(
+            self.border_mode, self.subsample, self.filter_dilation, self.num_groups
+        )(bottom, top, weights.shape[-3:])
         return d_bottom, d_weights
 
 
@@ -1706,27 +1904,31 @@ class GpuCorr3dMM_gradWeights(BaseGpuCorr3dMM):
 
     """
 
-    def __init__(self, border_mode="valid",
-                 subsample=(1, 1, 1),
-                 filter_dilation=(1, 1, 1),
-                 num_groups=1):
-        super(GpuCorr3dMM_gradWeights, self).__init__(border_mode,
-                                                      subsample,
-                                                      filter_dilation,
-                                                      num_groups)
+    def __init__(
+        self,
+        border_mode="valid",
+        subsample=(1, 1, 1),
+        filter_dilation=(1, 1, 1),
+        num_groups=1,
+    ):
+        super(GpuCorr3dMM_gradWeights, self).__init__(
+            border_mode, subsample, filter_dilation, num_groups
+        )
 
     def make_node(self, img, topgrad, shape=None):
         ctx_name = infer_context_name(img, topgrad)
         img = as_gpuarray_variable(img, ctx_name)
         topgrad = as_gpuarray_variable(topgrad, ctx_name)
         if img.type.ndim != 5:
-            raise TypeError('img must be 5D tensor')
+            raise TypeError("img must be 5D tensor")
         if topgrad.type.ndim != 5:
-            raise TypeError('topgrad must be 5D tensor')
+            raise TypeError("topgrad must be 5D tensor")
         if shape is None:
             if self.subsample != (1, 1, 1) or self.border_mode == "half":
-                raise ValueError('shape must be given if subsample != (1, 1, 1)'
-                                 ' or border_mode == "half"')
+                raise ValueError(
+                    "shape must be given if subsample != (1, 1, 1)"
+                    ' or border_mode == "half"'
+                )
             height_width_depth = []
         else:
             height_width_depth = [shape[0], shape[1], shape[2]]
@@ -1734,35 +1936,45 @@ class GpuCorr3dMM_gradWeights(BaseGpuCorr3dMM):
             assert shape[1].ndim == 0
             assert shape[2].ndim == 0
 
-        broadcastable = [topgrad.type.broadcastable[1], img.type.broadcastable[1],
-                         False, False, False]
-        return Apply(self, [img, topgrad] + height_width_depth,
-                     [GpuArrayType(dtype=img.dtype,
-                                   context_name=ctx_name,
-                                   broadcastable=broadcastable)()])
+        broadcastable = [
+            topgrad.type.broadcastable[1],
+            img.type.broadcastable[1],
+            False,
+            False,
+            False,
+        ]
+        return Apply(
+            self,
+            [img, topgrad] + height_width_depth,
+            [
+                GpuArrayType(
+                    dtype=img.dtype, context_name=ctx_name, broadcastable=broadcastable
+                )()
+            ],
+        )
 
     def c_code(self, node, nodename, inp, out_, sub):
         bottom, top = inp[:2]
         height, width, depth = inp[2:] or (None, None, None)
-        weights, = out_
+        (weights,) = out_
         direction = "backprop weights"
-        return super(GpuCorr3dMM_gradWeights, self).c_code_helper(bottom, weights, top, direction, sub, height, width, depth)
+        return super(GpuCorr3dMM_gradWeights, self).c_code_helper(
+            bottom, weights, top, direction, sub, height, width, depth
+        )
 
     def grad(self, inp, grads):
         bottom, top = inp[:2]
-        weights, = grads
+        (weights,) = grads
         weights = gpu_contiguous(weights)
-        d_bottom = GpuCorr3dMM_gradInputs(self.border_mode,
-                                          self.subsample,
-                                          self.filter_dilation,
-                                          self.num_groups)(weights,
-                                                           top,
-                                                           bottom.shape[-3:])
+        d_bottom = GpuCorr3dMM_gradInputs(
+            self.border_mode, self.subsample, self.filter_dilation, self.num_groups
+        )(weights, top, bottom.shape[-3:])
         d_top = GpuCorr3dMM(
-            self.border_mode, self.subsample, self.filter_dilation,
-            self.num_groups)(bottom, weights)
-        d_height_width_depth = (theano.gradient.DisconnectedType()(),)\
-            * 3 if len(inp) == 5 else ()
+            self.border_mode, self.subsample, self.filter_dilation, self.num_groups
+        )(bottom, weights)
+        d_height_width_depth = (
+            (theano.gradient.DisconnectedType()(),) * 3 if len(inp) == 5 else ()
+        )
         return (d_bottom, d_top) + d_height_width_depth
 
     def connection_pattern(self, node):
@@ -1783,24 +1995,28 @@ class GpuCorr3dMM_gradInputs(BaseGpuCorr3dMM):
 
     """
 
-    def __init__(self, border_mode="valid",
-                 subsample=(1, 1, 1),
-                 filter_dilation=(1, 1, 1),
-                 num_groups=1):
-        super(GpuCorr3dMM_gradInputs, self).__init__(border_mode, subsample,
-                                                     filter_dilation, num_groups)
+    def __init__(
+        self,
+        border_mode="valid",
+        subsample=(1, 1, 1),
+        filter_dilation=(1, 1, 1),
+        num_groups=1,
+    ):
+        super(GpuCorr3dMM_gradInputs, self).__init__(
+            border_mode, subsample, filter_dilation, num_groups
+        )
 
     def make_node(self, kern, topgrad, shape=None):
         ctx_name = infer_context_name(kern, topgrad)
         kern = as_gpuarray_variable(kern, ctx_name)
         topgrad = as_gpuarray_variable(topgrad, ctx_name)
         if kern.type.ndim != 5:
-            raise TypeError('kern must be 5D tensor')
+            raise TypeError("kern must be 5D tensor")
         if topgrad.type.ndim != 5:
-            raise TypeError('topgrad must be 5D tensor')
+            raise TypeError("topgrad must be 5D tensor")
         if shape is None:
             if self.subsample != (1, 1, 1):
-                raise ValueError('shape must be given if subsample != (1, 1, 1)')
+                raise ValueError("shape must be given if subsample != (1, 1, 1)")
             height_width_depth = []
         else:
             height_width_depth = [shape[0], shape[1], shape[2]]
@@ -1809,39 +2025,49 @@ class GpuCorr3dMM_gradInputs(BaseGpuCorr3dMM):
             assert shape[2].ndim == 0
 
         if self.num_groups > 1:
-            broadcastable = [topgrad.type.broadcastable[0], False,
-                             False, False, False]
+            broadcastable = [topgrad.type.broadcastable[0], False, False, False, False]
         else:
-            broadcastable = [topgrad.type.broadcastable[0], kern.type.broadcastable[-4],
-                             False, False, False]
-        return Apply(self, [kern, topgrad] + height_width_depth,
-                     [GpuArrayType(dtype=topgrad.dtype,
-                                   context_name=ctx_name,
-                                   broadcastable=broadcastable)()])
+            broadcastable = [
+                topgrad.type.broadcastable[0],
+                kern.type.broadcastable[-4],
+                False,
+                False,
+                False,
+            ]
+        return Apply(
+            self,
+            [kern, topgrad] + height_width_depth,
+            [
+                GpuArrayType(
+                    dtype=topgrad.dtype,
+                    context_name=ctx_name,
+                    broadcastable=broadcastable,
+                )()
+            ],
+        )
 
     def c_code(self, node, nodename, inp, out_, sub):
         weights, top = inp[:2]
         height, width, depth = inp[2:] or (None, None, None)
-        bottom, = out_
+        (bottom,) = out_
         direction = "backprop inputs"
-        return super(GpuCorr3dMM_gradInputs, self).c_code_helper(bottom, weights, top, direction, sub, height, width, depth)
+        return super(GpuCorr3dMM_gradInputs, self).c_code_helper(
+            bottom, weights, top, direction, sub, height, width, depth
+        )
 
     def grad(self, inp, grads):
         weights, top = inp[:2]
-        bottom, = grads
+        (bottom,) = grads
         bottom = gpu_contiguous(bottom)
-        d_weights = GpuCorr3dMM_gradWeights(self.border_mode,
-                                            self.subsample,
-                                            self.filter_dilation,
-                                            self.num_groups)(bottom,
-                                                             top,
-                                                             weights.shape[-3:])
-        d_top = GpuCorr3dMM(self.border_mode,
-                            self.subsample,
-                            self.filter_dilation,
-                            self.num_groups)(bottom, weights)
-        d_height_width_depth = (theano.gradient.DisconnectedType()(),)\
-            * 3 if len(inp) == 5 else ()
+        d_weights = GpuCorr3dMM_gradWeights(
+            self.border_mode, self.subsample, self.filter_dilation, self.num_groups
+        )(bottom, top, weights.shape[-3:])
+        d_top = GpuCorr3dMM(
+            self.border_mode, self.subsample, self.filter_dilation, self.num_groups
+        )(bottom, weights)
+        d_height_width_depth = (
+            (theano.gradient.DisconnectedType()(),) * 3 if len(inp) == 5 else ()
+        )
         return (d_weights, d_top) + d_height_width_depth
 
     def connection_pattern(self, node):
@@ -1870,12 +2096,17 @@ def local_inplace_gpuager(node, inputs):
 def local_inplace_gpuagemmbatch(node, inputs):
     return [gpugemmbatch_inplace(*inputs)]
 
-gpuablas_opt_inplace = in2out(LocalOptGroup(local_inplace_gpuagemv,
-                                            local_inplace_gpuagemm,
-                                            local_inplace_gpuager,
-                                            local_inplace_gpuagemmbatch),
-                              name='gpuablas_opt_inplace')
 
-optdb.register('InplaceGpuaBlasOpt',
-               gpuablas_opt_inplace,
-               70.0, 'fast_run', 'inplace', 'gpuarray')
+gpuablas_opt_inplace = in2out(
+    LocalOptGroup(
+        local_inplace_gpuagemv,
+        local_inplace_gpuagemm,
+        local_inplace_gpuager,
+        local_inplace_gpuagemmbatch,
+    ),
+    name="gpuablas_opt_inplace",
+)
+
+optdb.register(
+    "InplaceGpuaBlasOpt", gpuablas_opt_inplace, 70.0, "fast_run", "inplace", "gpuarray"
+)

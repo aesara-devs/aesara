@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from theano import Apply, Op
 from theano.tensor.extra_ops import CumOp
 
@@ -7,7 +6,14 @@ try:
 except ImportError:
     pass
 
-from .basic_ops import (as_gpuarray_variable, GpuKernelBase, Kernel, GpuReshape, infer_context_name, gpuarray_helper_inc_dir)
+from .basic_ops import (
+    as_gpuarray_variable,
+    GpuKernelBase,
+    Kernel,
+    GpuReshape,
+    infer_context_name,
+    gpuarray_helper_inc_dir,
+)
 from .opt import register_opt, op_lifter, register_opt2
 from .type import gpu_context_type
 from theano.gof import ParamsType
@@ -21,12 +27,12 @@ class GpuCumOp(GpuKernelBase, Op):
     axis
         Can not be None. If you want the array flattened, do it before.
     """
-    SUPPORTED_NDIMS = 3
-    __props__ = ('axis', 'mode')
-    params_type = ParamsType(axis=scalar.int32,
-                             context=gpu_context_type)
 
-    def __init__(self, axis, mode='add'):
+    SUPPORTED_NDIMS = 3
+    __props__ = ("axis", "mode")
+    params_type = ParamsType(axis=scalar.int32, context=gpu_context_type)
+
+    def __init__(self, axis, mode="add"):
         assert axis is not None
         self.axis = int(axis)
         self.mode = mode
@@ -43,7 +49,7 @@ class GpuCumOp(GpuKernelBase, Op):
         return (7,)
 
     def c_headers(self):
-        return ['<numpy_compat.h>', '<gpuarray/types.h>', '<gpuarray_helper.h>']
+        return ["<numpy_compat.h>", "<gpuarray/types.h>", "<gpuarray_helper.h>"]
 
     def c_header_dirs(self):
         return [gpuarray_helper_inc_dir()]
@@ -52,29 +58,32 @@ class GpuCumOp(GpuKernelBase, Op):
         return self.params_type.get_params(self, context=node.inputs[0].type.context)
 
     def make_node(self, x):
-        assert x.type.dtype == 'float32', "Only float32 supported for GpuCumOp"
+        assert x.type.dtype == "float32", "Only float32 supported for GpuCumOp"
 
         context_name = infer_context_name(x)
 
         x = as_gpuarray_variable(x, context_name)
 
         if x.ndim > GpuCumOp.SUPPORTED_NDIMS:
-            raise NotImplementedError('Only cum op on 1D, 2D and\
-                                       3D arrays are supported right now!')
+            raise NotImplementedError(
+                "Only cum op on 1D, 2D and\
+                                       3D arrays are supported right now!"
+            )
 
         if self.axis >= x.ndim or self.axis < -x.ndim:
-            raise ValueError('axis(={0}) out of bounds'.format(self.axis))
+            raise ValueError("axis(={0}) out of bounds".format(self.axis))
         return Apply(self, [x], [x.type()])
 
     def gpu_kernels(self, node, nodename):
         kernels = []
         # cumadd
         kname = "k_cumadd"
-        op = {'mul': '*', 'add': '+'}[self.mode]
+        op = {"mul": "*", "add": "+"}[self.mode]
         k_var = "k_cumadd_" + nodename
         dtype_x = node.inputs[0].dtype
         flags = Kernel.get_flags(dtype_x)
-        code = """#include "cluda.h"
+        code = (
+            """#include "cluda.h"
 
         KERNEL void %(kname)s(float* input, ga_size input_offset,
                               float* output, ga_size output_offset,
@@ -94,26 +103,50 @@ class GpuCumOp(GpuKernelBase, Op):
             int idx_beforelast = beforeLastElementIdx*outputStrides_x + dataOffsetY_output;
             output[idx_last_output] = input[idx_last_input] %(op)s output[idx_beforelast];
             }
-        """ % locals()
-        params = [gpuarray.GpuArray, gpuarray.SIZE,
-                  gpuarray.GpuArray, gpuarray.SIZE,
-                  gpuarray.SSIZE, gpuarray.SSIZE,
-                  gpuarray.SSIZE, gpuarray.SSIZE,
-                  gpuarray.SSIZE, gpuarray.SSIZE,
-                  'intc', 'intc',
-                  'intc', 'intc',
-                  ]
-        kernels.append(Kernel(code=code, name=kname, params=params,
-                              flags=flags, objvar=k_var))
+        """
+            % locals()
+        )
+        params = [
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            "intc",
+            "intc",
+            "intc",
+            "intc",
+        ]
+        kernels.append(
+            Kernel(code=code, name=kname, params=params, flags=flags, objvar=k_var)
+        )
         # blockCumOp
         kname = "k_blockCumOp"
         k_var = "k_blockCumOp_" + nodename
-        params = [gpuarray.GpuArray, gpuarray.SIZE,
-                  gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SIZE,
-                  gpuarray.SSIZE, gpuarray.SSIZE, gpuarray.SSIZE,
-                  gpuarray.SSIZE, gpuarray.SSIZE, gpuarray.SSIZE,
-                  'int32', 'int32', gpuarray.GpuArray, gpuarray.SIZE]
-        code = """#include "cluda.h"
+        params = [
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            "int32",
+            "int32",
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+        ]
+        code = (
+            """#include "cluda.h"
 
         // helper functions
         WITHIN_KERNEL
@@ -209,13 +242,17 @@ class GpuCumOp(GpuKernelBase, Op):
                 }
             }
         }
-        """ % locals()
-        kernels.append(Kernel(code=code, name=kname, params=params,
-                              flags=flags, objvar=k_var))
+        """
+            % locals()
+        )
+        kernels.append(
+            Kernel(code=code, name=kname, params=params, flags=flags, objvar=k_var)
+        )
         # k_finalCumOp
         kname = "k_finalCumOp"
         k_var = "k_finalCumOp_" + nodename
-        code = """#include "cluda.h"
+        code = (
+            """#include "cluda.h"
 
         KERNEL void k_finalCumOp(float* output, ga_size output_offset,
                                  float* blockSum, ga_size blockSum_offset,
@@ -243,17 +280,28 @@ class GpuCumOp(GpuKernelBase, Op):
             output[idx_even] %(op)s= currentBlockSum;
             output[idx_odd] %(op)s= currentBlockSum;
         }
-        """ % locals()
-        params = [gpuarray.GpuArray, gpuarray.SIZE,
-                  gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SIZE,
-                  gpuarray.SSIZE, gpuarray.SSIZE, gpuarray.SSIZE,
-                  'int32', 'int32', ]
-        kernels.append(Kernel(code=code, name=kname, params=params,
-                              flags=flags, objvar=k_var))
+        """
+            % locals()
+        )
+        params = [
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.GpuArray,
+            gpuarray.SIZE,
+            gpuarray.SIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            gpuarray.SSIZE,
+            "int32",
+            "int32",
+        ]
+        kernels.append(
+            Kernel(code=code, name=kname, params=params, flags=flags, objvar=k_var)
+        )
         return kernels
 
     def c_code(self, node, nodename, inp, out, sub):
-        if node.inputs[0].type.context.kind != b'cuda':
+        if node.inputs[0].type.context.kind != b"cuda":
             raise NotImplementedError("cuda only")
         return """
             const size_t* shape = PyGpuArray_DIMS(%(x)s);
@@ -294,10 +342,17 @@ class GpuCumOp(GpuKernelBase, Op):
                     %(fail)s;
                 }
             }
-        """ % dict(x=inp[0], z=out[0], nodename=nodename, fail=sub['fail'], params=sub['params'])
+        """ % dict(
+            x=inp[0],
+            z=out[0],
+            nodename=nodename,
+            fail=sub["fail"],
+            params=sub["params"],
+        )
 
     def c_support_code_struct(self, node, nodename):
-        code = """
+        code = (
+            """
 
         int cumOp_%(nodename)s(PyGpuArrayObject* input, PyGpuArrayObject* output, int axis, size_t maxThreads, size_t maxGridY, size_t maxGridZ) {
             size_t shape[3] = { 1, 1, 1 };
@@ -440,7 +495,9 @@ class GpuCumOp(GpuKernelBase, Op):
             Py_XDECREF(deviceBlockSum);
             return 0;
         }
-        """ % locals()
+        """
+            % locals()
+        )
         return super(GpuCumOp, self).c_support_code_struct(node, nodename) + code
 
 
@@ -452,15 +509,15 @@ class GpuCumsumOp(GpuKernelBase, Op):
 
     def __new__(typ, *args, **kwargs):
         obj = object.__new__(GpuCumOp, *args, **kwargs)
-        obj.mode = 'add'
+        obj.mode = "add"
         return obj
 
 
-@register_opt('fast_compile')
+@register_opt("fast_compile")
 @op_lifter([CumOp])
-@register_opt2([CumOp], 'fast_compile')
+@register_opt2([CumOp], "fast_compile")
 def local_gpua_cumop(op, ctx_name, inputs, outputs):
-    if inputs[0].dtype != 'float32':
+    if inputs[0].dtype != "float32":
         return False
     axis = op.axis
     x = inputs[0]

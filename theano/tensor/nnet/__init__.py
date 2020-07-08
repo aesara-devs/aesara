@@ -1,13 +1,20 @@
-from __future__ import absolute_import, print_function, division
 from .nnet import (
-    CrossentropyCategorical1Hot, CrossentropyCategorical1HotGrad,
-    CrossentropySoftmax1HotWithBiasDx, CrossentropySoftmaxArgmax1HotWithBias,
-    LogSoftmax, Prepend_scalar_constant_to_each_row,
-    Prepend_scalar_to_each_row, Softmax,
-    SoftmaxGrad, SoftmaxWithBias,
-    binary_crossentropy, sigmoid_binary_crossentropy,
-    categorical_crossentropy, crossentropy_categorical_1hot,
-    crossentropy_categorical_1hot_grad, crossentropy_softmax_1hot,
+    CrossentropyCategorical1Hot,
+    CrossentropyCategorical1HotGrad,
+    CrossentropySoftmax1HotWithBiasDx,
+    CrossentropySoftmaxArgmax1HotWithBias,
+    LogSoftmax,
+    Prepend_scalar_constant_to_each_row,
+    Prepend_scalar_to_each_row,
+    Softmax,
+    SoftmaxGrad,
+    SoftmaxWithBias,
+    binary_crossentropy,
+    sigmoid_binary_crossentropy,
+    categorical_crossentropy,
+    crossentropy_categorical_1hot,
+    crossentropy_categorical_1hot_grad,
+    crossentropy_softmax_1hot,
     crossentropy_softmax_1hot_with_bias,
     crossentropy_softmax_1hot_with_bias_dx,
     crossentropy_softmax_argmax_1hot_with_bias,
@@ -15,16 +22,35 @@ from .nnet import (
     crossentropy_softmax_max_and_argmax_1hot_with_bias,
     crossentropy_to_crossentropy_with_softmax,
     crossentropy_to_crossentropy_with_softmax_with_bias,
-    graph_merge_softmax_with_crossentropy_softmax, h_softmax,
-    logsoftmax, logsoftmax_op, prepend_0_to_each_row, prepend_1_to_each_row,
-    prepend_scalar_to_each_row, relu, softmax, softmax_grad, softmax_graph,
-    softmax_op, softmax_simplifier, softmax_with_bias, elu, selu,
-    confusion_matrix, softsign)
+    graph_merge_softmax_with_crossentropy_softmax,
+    h_softmax,
+    logsoftmax,
+    logsoftmax_op,
+    prepend_0_to_each_row,
+    prepend_1_to_each_row,
+    prepend_scalar_to_each_row,
+    relu,
+    softmax,
+    softmax_grad,
+    softmax_graph,
+    softmax_op,
+    softmax_simplifier,
+    softmax_with_bias,
+    elu,
+    selu,
+    confusion_matrix,
+    softsign,
+)
 from . import opt
 from .conv import ConvOp
-from .sigm import (softplus, sigmoid, sigmoid_inplace,
-                   scalar_sigmoid, ultra_fast_sigmoid,
-                   hard_sigmoid)
+from .sigm import (
+    softplus,
+    sigmoid,
+    sigmoid_inplace,
+    scalar_sigmoid,
+    ultra_fast_sigmoid,
+    hard_sigmoid,
+)
 from .bn import batch_normalization
 
 
@@ -35,9 +61,20 @@ from .abstract_conv import conv3d
 from .abstract_conv import separable_conv2d
 
 
-def conv2d(input, filters, input_shape=None, filter_shape=None,
-           border_mode='valid', subsample=(1, 1), filter_flip=True,
-           image_shape=None, filter_dilation=(1, 1), num_groups=1, unshared=False, **kwargs):
+def conv2d(
+    input,
+    filters,
+    input_shape=None,
+    filter_shape=None,
+    border_mode="valid",
+    subsample=(1, 1),
+    filter_flip=True,
+    image_shape=None,
+    filter_dilation=(1, 1),
+    num_groups=1,
+    unshared=False,
+    **kwargs,
+):
     """
     This function will build the symbolic graph for convolving a mini-batch of a
     stack of 2D inputs with a set of 2D filters. The implementation is modelled
@@ -140,38 +177,62 @@ def conv2d(input, filters, input_shape=None, filter_shape=None,
 
     """
 
-    if 'imshp_logical' in kwargs or 'kshp_logical' in kwargs:
+    if "imshp_logical" in kwargs or "kshp_logical" in kwargs:
         raise ValueError(
             "Keyword arguments 'imshp_logical' and 'kshp_logical' for conv2d "
             "are not supported anymore (and have not been a reliable way to "
             "perform upsampling). That feature is still available by calling "
-            "theano.tensor.nnet.conv.conv2d() for the time being.")
+            "theano.tensor.nnet.conv.conv2d() for the time being."
+        )
     if len(kwargs.keys()) > 0:
-        warnings.warn(str(kwargs.keys()) +
-                      " are now deprecated in "
-                      "`tensor.nnet.abstract_conv.conv2d` interface"
-                      " and will be ignored.",
-                      stacklevel=2)
+        warnings.warn(
+            str(kwargs.keys()) + " are now deprecated in "
+            "`tensor.nnet.abstract_conv.conv2d` interface"
+            " and will be ignored.",
+            stacklevel=2,
+        )
 
     if image_shape is not None:
-        warnings.warn("The `image_shape` keyword argument to "
-                      "`tensor.nnet.conv2d` is deprecated, it has been "
-                      "renamed to `input_shape`.",
-                      stacklevel=2)
+        warnings.warn(
+            "The `image_shape` keyword argument to "
+            "`tensor.nnet.conv2d` is deprecated, it has been "
+            "renamed to `input_shape`.",
+            stacklevel=2,
+        )
         if input_shape is None:
             input_shape = image_shape
         else:
-            raise ValueError("input_shape and image_shape should not"
-                             " be provided at the same time.")
+            raise ValueError(
+                "input_shape and image_shape should not"
+                " be provided at the same time."
+            )
 
-    return abstract_conv2d(input, filters, input_shape, filter_shape,
-                           border_mode, subsample, filter_flip,
-                           filter_dilation, num_groups, unshared)
+    return abstract_conv2d(
+        input,
+        filters,
+        input_shape,
+        filter_shape,
+        border_mode,
+        subsample,
+        filter_flip,
+        filter_dilation,
+        num_groups,
+        unshared,
+    )
 
 
-def conv2d_transpose(input, filters, output_shape, filter_shape=None,
-                     border_mode='valid', input_dilation=(1, 1),
-                     filter_flip=True, filter_dilation=(1, 1), num_groups=1, unshared=False):
+def conv2d_transpose(
+    input,
+    filters,
+    output_shape,
+    filter_shape=None,
+    border_mode="valid",
+    input_dilation=(1, 1),
+    filter_flip=True,
+    filter_dilation=(1, 1),
+    num_groups=1,
+    unshared=False,
+):
     """
     This function will build the symbolic graph for applying a transposed
     convolution over a mini-batch of a stack of 2D inputs with a set of 2D
@@ -252,13 +313,15 @@ def conv2d_transpose(input, filters, output_shape, filter_shape=None,
 
     """
 
-    return conv2d_grad_wrt_inputs(output_grad=input,
-                                  filters=filters,
-                                  input_shape=output_shape,
-                                  filter_shape=filter_shape,
-                                  border_mode=border_mode,
-                                  subsample=input_dilation,
-                                  filter_flip=filter_flip,
-                                  filter_dilation=filter_dilation,
-                                  num_groups=num_groups,
-                                  unshared=unshared)
+    return conv2d_grad_wrt_inputs(
+        output_grad=input,
+        filters=filters,
+        input_shape=output_shape,
+        filter_shape=filter_shape,
+        border_mode=border_mode,
+        subsample=input_dilation,
+        filter_flip=filter_flip,
+        filter_dilation=filter_dilation,
+        num_groups=num_groups,
+        unshared=unshared,
+    )

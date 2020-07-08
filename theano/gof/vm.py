@@ -5,7 +5,7 @@ A VM is not actually different from a Linker, we just decided
 VM was a better name at some point.
 
 """
-from __future__ import absolute_import, print_function, division
+
 
 from . import link
 from collections import defaultdict
@@ -15,7 +15,7 @@ import time
 import warnings
 import platform
 
-from theano.configparser import (config, _config_var_list)
+from theano.configparser import config, _config_var_list
 
 import theano.gof.cmodule
 
@@ -25,8 +25,7 @@ from six.moves import xrange
 logger = logging.getLogger(__name__)
 
 
-def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re,
-                              dependencies):
+def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, dependencies):
     """
     WRITEME : explain the parameters
     """
@@ -40,8 +39,8 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re,
 
     for idx in range(len(order)):
         node = order[idx]
-        dmap = getattr(node.op, 'destroy_map', None)
-        vmap = getattr(node.op, 'view_map', None)
+        dmap = getattr(node.op, "destroy_map", None)
+        vmap = getattr(node.op, "view_map", None)
 
         idx_o = 0
         for out in node.outputs:
@@ -50,14 +49,16 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re,
             ins = None
             if dmap and idx_o in dmap:
                 idx_v = dmap[idx_o]
-                assert len(idx_v) == 1, ("Here we only support the possibility"
-                                         " to destroy one input")
+                assert len(idx_v) == 1, (
+                    "Here we only support the possibility" " to destroy one input"
+                )
                 ins = node.inputs[idx_v[0]]
             if vmap and idx_o in vmap:
                 assert ins is None
                 idx_v = vmap[idx_o]
-                assert len(idx_v) == 1, ("Here we only support the possibility"
-                                         " to view one input")
+                assert len(idx_v) == 1, (
+                    "Here we only support the possibility" " to view one input"
+                )
                 ins = node.inputs[idx_v[0]]
             if ins is not None:
                 assert isinstance(ins, theano.Variable)
@@ -68,11 +69,14 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re,
 
         for ins in node.inputs:
             assert not (ins in view_of and viewed_by[ins])
-            if (getattr(ins, 'ndim', None) == 0 and not storage_map[ins][0] and
-                    ins not in fgraph.outputs and ins.owner and
-                    all([compute_map_re[v][0]
-                         for v in dependencies.get(ins, [])]) and
-                    ins not in allocated):
+            if (
+                getattr(ins, "ndim", None) == 0
+                and not storage_map[ins][0]
+                and ins not in fgraph.outputs
+                and ins.owner
+                and all([compute_map_re[v][0] for v in dependencies.get(ins, [])])
+                and ins not in allocated
+            ):
                 # Constant Memory cannot be changed
                 # Constant and shared variables' storage_map value is not empty
                 reuse_out = None
@@ -82,9 +86,11 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re,
                         if reuse_out is not None:
                             break
                         for out in order[i].outputs:
-                            if (getattr(out, 'ndim', None) == 0 and
-                                    out not in pre_allocated and
-                                    ins.type == out.type):
+                            if (
+                                getattr(out, "ndim", None) == 0
+                                and out not in pre_allocated
+                                and ins.type == out.type
+                            ):
                                 reuse_out = out
                                 pre_allocated.add(out)
                                 allocated.add(ins)
@@ -93,17 +99,21 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re,
                     origin = view_of[ins]
                     if ins in viewed_by[origin]:
                         viewed_by[origin].remove(ins)
-                    if (not viewed_by[origin] and
-                            origin not in fgraph.inputs and
-                            not isinstance(origin, theano.Constant)):
+                    if (
+                        not viewed_by[origin]
+                        and origin not in fgraph.inputs
+                        and not isinstance(origin, theano.Constant)
+                    ):
                         # where gc
                         for i in range(idx + 1, len(order)):
                             if reuse_out is not None:
                                 break
                             for out in order[i].outputs:
-                                if (getattr(out, 'ndim', None) == 0 and
-                                        out not in pre_allocated and
-                                        ins.type == out.type):
+                                if (
+                                    getattr(out, "ndim", None) == 0
+                                    and out not in pre_allocated
+                                    and ins.type == out.type
+                                ):
                                     reuse_out = out
                                     pre_allocated.add(out)
                                     allocated.add(ins)
@@ -178,7 +188,7 @@ class VM(object):
         what exactly this means and how it is done.
 
         """
-        raise NotImplementedError('override me')
+        raise NotImplementedError("override me")
 
     def clear_storage(self):
         """
@@ -189,34 +199,35 @@ class VM(object):
         calls.
 
         """
-        raise NotImplementedError('override me')
+        raise NotImplementedError("override me")
 
     def update_profile(self, profile):
         """
         Accumulate into the profile object
         """
-        for node, thunk, t, c in zip(self.nodes, self.thunks,
-                                     self.call_times, self.call_counts):
+        for node, thunk, t, c in zip(
+            self.nodes, self.thunks, self.call_times, self.call_counts
+        ):
             profile.apply_time.setdefault(node, 0.0)
             profile.apply_time[node] += t
 
             profile.apply_callcount.setdefault(node, 0)
             profile.apply_callcount[node] += c
 
-            profile.apply_cimpl[node] = hasattr(thunk, 'cthunk')
+            profile.apply_cimpl[node] = hasattr(thunk, "cthunk")
 
-        if hasattr(self, 'variable_shape'):
+        if hasattr(self, "variable_shape"):
             profile.variable_shape = self.variable_shape.copy()
             profile.variable_strides = self.variable_strides.copy()
             profile.variable_offset = self.variable_offset.copy()
 
-        if hasattr(self, 'node_executed_order'):
+        if hasattr(self, "node_executed_order"):
             profile.node_executed_order = self.node_executed_order[:]
 
-        if hasattr(self, 'node_cleared_order'):
+        if hasattr(self, "node_cleared_order"):
             profile.node_cleared_order = self.node_cleared_order[:]
 
-        if hasattr(self, 'dependencies'):
+        if hasattr(self, "dependencies"):
             profile.dependencies = self.dependencies
 
         # clear the timer info out of the buffers
@@ -231,6 +242,7 @@ class Loop(VM):
     No garbage collection is allowed on intermediate results.
 
     """
+
     # Some other part of Theano query that information
     allow_gc = False
 
@@ -239,8 +251,7 @@ class Loop(VM):
             for cont in self.pre_call_clear:
                 cont[0] = None
             try:
-                for i, (thunk, node) in enumerate(zip(self.thunks,
-                                                      self.nodes)):
+                for i, (thunk, node) in enumerate(zip(self.thunks, self.nodes)):
                     t0 = time.time()
                     thunk()
                     t1 = time.time()
@@ -279,9 +290,9 @@ class LoopGC(VM):
                 cont[0] = None
             try:
                 i = 0
-                for thunk, node, old_storage in zip(self.thunks,
-                                                    self.nodes,
-                                                    self.post_thunk_clear):
+                for thunk, node, old_storage in zip(
+                    self.thunks, self.nodes, self.post_thunk_clear
+                ):
                     t0 = time.time()
                     thunk()
                     t1 = time.time()
@@ -296,8 +307,9 @@ class LoopGC(VM):
             for cont in self.pre_call_clear:
                 cont[0] = None
             try:
-                for thunk, node, old_storage in zip(self.thunks, self.nodes,
-                                                    self.post_thunk_clear):
+                for thunk, node, old_storage in zip(
+                    self.thunks, self.nodes, self.post_thunk_clear
+                ):
                     thunk()
                     for old_s in old_storage:
                         old_s[0] = None
@@ -331,10 +343,20 @@ class Stack(VM):
 
     """
 
-    def __init__(self, nodes, thunks, pre_call_clear,
-                 storage_map, compute_map, fgraph, allow_gc,
-                 n_updates, dependencies=None, callback=None,
-                 callback_input=None):
+    def __init__(
+        self,
+        nodes,
+        thunks,
+        pre_call_clear,
+        storage_map,
+        compute_map,
+        fgraph,
+        allow_gc,
+        n_updates,
+        dependencies=None,
+        callback=None,
+        callback_input=None,
+    ):
         super(Stack, self).__init__(nodes, thunks, pre_call_clear)
 
         self.allow_gc = allow_gc
@@ -418,18 +440,19 @@ class Stack(VM):
             cont[0] = None
 
         for k in self.storage_map:
-            compute_map[k][0] = (k.owner is None)
+            compute_map[k][0] = k.owner is None
             if self.callback_input and compute_map[k][0]:
                 self.callback_input(k, self.storage_map[k][0])
 
         # apply_stack contains nodes
         if output_subset is not None:
             first_updated = len(self.outputs) - self.n_updates
-            output_subset = output_subset + list(range(first_updated,
-                                                       len(self.outputs)))
-            apply_stack =\
-                [self.outputs[i].owner for i in output_subset
-                    if self.outputs[i].owner]
+            output_subset = output_subset + list(
+                range(first_updated, len(self.outputs))
+            )
+            apply_stack = [
+                self.outputs[i].owner for i in output_subset if self.outputs[i].owner
+            ]
         else:
             apply_stack = list(self.base_apply_stack)
 
@@ -439,19 +462,18 @@ class Stack(VM):
         for var, data in iteritems(self.storage_map):
             if data[0] is None:
                 continue
-            if hasattr(var.type, 'get_shape_info'):
+            if hasattr(var.type, "get_shape_info"):
                 sh = var.type.get_shape_info(data[0])
             else:
-                sh = 'no shape'
+                sh = "no shape"
             self.variable_shape[var] = sh
-            st = getattr(data[0], 'strides', 'no strides')
-            if getattr(data[0], 'flags', False) and data[0].flags.c_contiguous:
-                st = 'c'
-            elif (hasattr(data[0], 'is_c_contiguous') and
-                  data[0].is_c_contiguous()):
+            st = getattr(data[0], "strides", "no strides")
+            if getattr(data[0], "flags", False) and data[0].flags.c_contiguous:
+                st = "c"
+            elif hasattr(data[0], "is_c_contiguous") and data[0].is_c_contiguous():
                 st = "c"
             self.variable_strides[var] = st
-            off = getattr(data[0], 'offset', '')
+            off = getattr(data[0], "offset", "")
             self.variable_offset[var] = off
 
         while apply_stack:
@@ -497,30 +519,34 @@ class Stack(VM):
                             # ?? What about inplace .. if the op is inplace
                             # you don't actually ask for more memory!
                             for (idx, o) in enumerate(
-                                    thunks[self.node_idx[
-                                        current_apply]].outputs):
+                                thunks[self.node_idx[current_apply]].outputs
+                            ):
                                 var = self.nodes[current_idx].outputs[idx]
-                                if hasattr(var.type, 'get_shape_info'):
+                                if hasattr(var.type, "get_shape_info"):
                                     sh = var.type.get_shape_info(o[0])
                                 else:
-                                    sh = 'no shape'
+                                    sh = "no shape"
                                 self.variable_shape[var] = sh
-                                st = getattr(o[0], 'strides',
-                                             'no strides')
-                                if (getattr(o[0], 'flags', False) and
-                                        o[0].flags.c_contiguous):
-                                    st = 'c'
-                                elif (hasattr(o[0], 'is_c_contiguous') and
-                                      o[0].is_c_contiguous()):
+                                st = getattr(o[0], "strides", "no strides")
+                                if (
+                                    getattr(o[0], "flags", False)
+                                    and o[0].flags.c_contiguous
+                                ):
+                                    st = "c"
+                                elif (
+                                    hasattr(o[0], "is_c_contiguous")
+                                    and o[0].is_c_contiguous()
+                                ):
                                     st = "c"
                                 self.variable_strides[var] = st
-                                off = getattr(o[0], 'offset', '')
+                                off = getattr(o[0], "offset", "")
                                 self.variable_offset[var] = off
                     except Exception:
                         link.raise_with_op(
                             current_apply,
                             self.thunks[self.node_idx[current_apply]],
-                            storage_map=storage_map)
+                            storage_map=storage_map,
+                        )
                     for o in current_apply.outputs:
                         compute_map[o][0] = 1
 
@@ -531,14 +557,10 @@ class Stack(VM):
                         for i in current_apply.inputs:
                             # Garbage Collection -> check if anybody else uses
                             # this input
-                            if (dependencies[i] and
-                                    i.owner and
-                                    i not in self.outputs):
-                                if all(compute_map[v][0]
-                                        for v in dependencies[i]):
+                            if dependencies[i] and i.owner and i not in self.outputs:
+                                if all(compute_map[v][0] for v in dependencies[i]):
                                     storage_map[i][0] = None
-                                    input_index.append(
-                                        current_apply.inputs.index(i))
+                                    input_index.append(current_apply.inputs.index(i))
 
                                     # DO NOT set compute_map to 0
 
@@ -548,11 +570,13 @@ class Stack(VM):
                                     # recomputed! This can cause wrong value
                                     # with some combination of inplace op.
                                     compute_map[i][0] = 2
-                                    if (config.warn.vm_gc_bug and
-                                        current_apply in apply_stack and
-                                        getattr(current_apply.op,
-                                                'destroy_map',
-                                                False)):
+                                    if (
+                                        config.warn.vm_gc_bug
+                                        and current_apply in apply_stack
+                                        and getattr(
+                                            current_apply.op, "destroy_map", False
+                                        )
+                                    ):
                                         warnings.warn(
                                             "There was a bug that existed in "
                                             "the default Theano configuration,"
@@ -563,16 +587,14 @@ class Stack(VM):
                                             "affecting this script.",
                                             # The stack level is not good when
                                             # inside a Scan.
-                                            stacklevel=3
+                                            stacklevel=3,
                                         )
                     self.node_cleared_order.append(input_index)
 
                 elif not computed_ins:
                     # -- Non-lazy case, need inputs
                     apply_stack.append(current_apply)
-                    apply_stack.extend(inp.owner
-                                       for inp in current_deps
-                                       if inp.owner)
+                    apply_stack.extend(inp.owner for inp in current_deps if inp.owner)
 
             elif not computed_outs:
                 #
@@ -594,7 +616,8 @@ class Stack(VM):
                     link.raise_with_op(
                         current_apply,
                         self.thunks[self.node_idx[current_apply]],
-                        storage_map=storage_map)
+                        storage_map=storage_map,
+                    )
 
                 if requires:
                     for r in requires:
@@ -606,33 +629,36 @@ class Stack(VM):
                             apply_stack.append(current_apply.inputs[r].owner)
                 else:
                     if config.profile or config.print_global_stats:
-                        for (idx, o) in enumerate(thunks[
-                                self.node_idx[current_apply]].outputs):
-                            var = self.nodes[
-                                self.node_idx[current_apply]].outputs[idx]
+                        for (idx, o) in enumerate(
+                            thunks[self.node_idx[current_apply]].outputs
+                        ):
+                            var = self.nodes[self.node_idx[current_apply]].outputs[idx]
 
-                            if hasattr(var.type, 'get_shape_info'):
+                            if hasattr(var.type, "get_shape_info"):
                                 sh = var.type.get_shape_info(o[0])
                             else:
-                                sh = 'no shape'
+                                sh = "no shape"
                             self.variable_shape[var] = sh
-                            st = getattr(o[0], 'strides', 'no strides')
-                            if (getattr(o[0], 'flags', False) and
-                                    o[0].flags.c_contiguous):
-                                st = 'c'
-                            elif (hasattr(o[0], 'is_c_contiguous') and
-                                  o[0].is_c_contiguous()):
+                            st = getattr(o[0], "strides", "no strides")
+                            if (
+                                getattr(o[0], "flags", False)
+                                and o[0].flags.c_contiguous
+                            ):
+                                st = "c"
+                            elif (
+                                hasattr(o[0], "is_c_contiguous")
+                                and o[0].is_c_contiguous()
+                            ):
                                 st = "c"
                             self.variable_strides[var] = st
-                            off = getattr(o[0], 'offset', '')
+                            off = getattr(o[0], "offset", "")
                             self.variable_offset[var] = off
 
                     input_index = []
 
                     if self.allow_gc:
                         for i in current_apply.inputs:
-                            if (dependencies[i] and i.owner and
-                                    i not in self.outputs):
+                            if dependencies[i] and i.owner and i not in self.outputs:
                                 empty_storage_map = True
                                 for x in dependencies[i]:
                                     if not compute_map[x][0]:
@@ -640,8 +666,7 @@ class Stack(VM):
                                         break
                                 if empty_storage_map:
                                     storage_map[i][0] = None
-                                    input_index.append(
-                                        current_apply.inputs.index(i))
+                                    input_index.append(current_apply.inputs.index(i))
                                     # See the not lazy gc code for explanations
                                     # of compute_map change
                                     compute_map[i][0] = 2
@@ -670,14 +695,17 @@ try:
     # If cxx is explicitely set to an empty string, we do not want to import neither lazylinker C code
     # nor lazylinker compiled C code from cache.
     if not theano.config.cxx:
-        raise theano.gof.cmodule.MissingGXX('lazylinker will not be imported if theano.config.cxx is not set.')
+        raise theano.gof.cmodule.MissingGXX(
+            "lazylinker will not be imported if theano.config.cxx is not set."
+        )
     from . import lazylinker_c
 
     class CVM(lazylinker_c.CLazyLinker, VM):
-
         def __init__(self, *args, **kwargs):
             lazylinker_c.CLazyLinker.__init__(self, *args, **kwargs)
             # skip VM.__init__
+
+
 except ImportError:
     pass
 except (OSError, theano.gof.cmodule.MissingGXX) as e:
@@ -685,8 +713,9 @@ except (OSError, theano.gof.cmodule.MissingGXX) as e:
     # already changed the default linker to something else then CVM.
     # Currently this is the py linker.
     # Here we assert that the default linker is not cvm.
-    assert not [x for x in _config_var_list
-                if x.fullname == 'linker'][0].default.startswith('cvm'), e
+    assert not [x for x in _config_var_list if x.fullname == "linker"][
+        0
+    ].default.startswith("cvm"), e
     pass
 
 
@@ -727,9 +756,17 @@ class VM_Linker(link.LocalLinker):
 
     """
 
-    def __init__(self, allow_gc=None, use_cloop=False, callback=None,
-                 callback_input=None, lazy=None, schedule=None,
-                 c_thunks=None, allow_partial_eval=None):
+    def __init__(
+        self,
+        allow_gc=None,
+        use_cloop=False,
+        callback=None,
+        callback_input=None,
+        lazy=None,
+        schedule=None,
+        c_thunks=None,
+        allow_partial_eval=None,
+    ):
         # Note: if more parameters are added to __init__, make sure to forward
         # them in the "type(self)(...)" call in the "accept" method below.
         if allow_gc is None:
@@ -806,7 +843,7 @@ class VM_Linker(link.LocalLinker):
                 lazy=self.lazy,
                 schedule=self.schedule,
                 c_thunks=self.c_thunks,
-                allow_partial_eval=self.allow_partial_eval
+                allow_partial_eval=self.allow_partial_eval,
             ).accept(fgraph, no_recycling, profile)
         self.fgraph = fgraph
         self.no_recycling = no_recycling
@@ -860,45 +897,58 @@ class VM_Linker(link.LocalLinker):
             if k.owner and k.clients:
                 ls = []
                 for cl in k.clients:
-                    if cl[0] != 'output':
+                    if cl[0] != "output":
                         ls += cl[0].outputs
                 dependencies[k] += ls
         return dependencies
 
-    def make_vm(self, nodes, thunks,
-                input_storage, output_storage, storage_map,
-                post_thunk_clear,
-                computed,
-                compute_map,
-                updated_vars,
-                ):
+    def make_vm(
+        self,
+        nodes,
+        thunks,
+        input_storage,
+        output_storage,
+        storage_map,
+        post_thunk_clear,
+        computed,
+        compute_map,
+        updated_vars,
+    ):
 
         pre_call_clear = [storage_map[v] for v in self.no_recycling]
 
-        if (self.callback is not None or self.callback_input is not None or
-                ((config.profile or config.print_global_stats) and config.profile_memory) or
-                (self.allow_partial_eval and not self.use_cloop)):
+        if (
+            self.callback is not None
+            or self.callback_input is not None
+            or ((config.profile or config.print_global_stats) and config.profile_memory)
+            or (self.allow_partial_eval and not self.use_cloop)
+        ):
 
-            if self.use_cloop and (self.callback is not None or
-                                   self.callback_input is not None):
-                logger.warn('CVM does not support callback, using Stack VM.')
+            if self.use_cloop and (
+                self.callback is not None or self.callback_input is not None
+            ):
+                logger.warn("CVM does not support callback, using Stack VM.")
             if self.use_cloop and config.profile_memory:
-                warnings.warn(
-                    'CVM does not support memory profile, using Stack VM.')
+                warnings.warn("CVM does not support memory profile, using Stack VM.")
             if not self.use_cloop and self.allow_partial_eval:
                 warnings.warn(
-                    'LoopGC does not support partial evaluation, '
-                    'using Stack VM.')
+                    "LoopGC does not support partial evaluation, " "using Stack VM."
+                )
             # Needed for allow_gc=True, profiling and storage_map reuse
             deps = self.compute_gc_dependencies(storage_map)
             vm = Stack(
-                nodes, thunks, pre_call_clear,
-                storage_map, compute_map,
-                self.fgraph, self.allow_gc,
+                nodes,
+                thunks,
+                pre_call_clear,
+                storage_map,
+                compute_map,
+                self.fgraph,
+                self.allow_gc,
                 len(updated_vars),
                 dependencies=deps,
                 callback=self.callback,
-                callback_input=self.callback_input)
+                callback_input=self.callback_input,
+            )
         elif self.use_cloop:
             # create a map from nodes to ints and vars to ints
             nodes_idx = {}
@@ -918,10 +968,12 @@ class VM_Linker(link.LocalLinker):
                 vars_idx_inv[i] = var
 
             # put storage_map and compute_map into a int-based scheme
-            storage_map_list = [storage_map[vars_idx_inv[i]]
-                                for i in xrange(len(vars_idx_inv))]
-            compute_map_list = [compute_map[vars_idx_inv[i]]
-                                for i in xrange(len(vars_idx_inv))]
+            storage_map_list = [
+                storage_map[vars_idx_inv[i]] for i in xrange(len(vars_idx_inv))
+            ]
+            compute_map_list = [
+                compute_map[vars_idx_inv[i]] for i in xrange(len(vars_idx_inv))
+            ]
             if nodes:
                 assert type(storage_map_list[0]) is list
                 assert type(compute_map_list[0]) is list
@@ -930,7 +982,8 @@ class VM_Linker(link.LocalLinker):
             dependency_map = self.compute_gc_dependencies(storage_map)
             dependency_map_list = [
                 [vars_idx[d] for d in dependency_map[vars_idx_inv[i]]]
-                for i in xrange(len(vars_idx_inv))]
+                for i in xrange(len(vars_idx_inv))
+            ]
 
             # build the pointers to node inputs and offsets
             base_input_output_list = []
@@ -965,8 +1018,7 @@ class VM_Linker(link.LocalLinker):
                 node_output_size.append(0)
                 prereq_var_idxs = []
                 for prereq_node in ords.get(node, []):
-                    prereq_var_idxs.extend(
-                        [vars_idx[v] for v in prereq_node.outputs])
+                    prereq_var_idxs.extend([vars_idx[v] for v in prereq_node.outputs])
                 prereq_var_idxs = list(set(prereq_var_idxs))
                 prereq_var_idxs.sort()  # TODO: why sort?
                 node_prereqs.append(prereq_var_idxs)
@@ -986,7 +1038,7 @@ class VM_Linker(link.LocalLinker):
 
             # PyPy has no sys.getrefcount, so ignore this check if not running
             # under CPython.
-            if platform.python_implementation() == 'CPython':
+            if platform.python_implementation() == "CPython":
                 c0 = sys.getrefcount(node_n_inputs)
 
             vm = CVM(
@@ -1012,7 +1064,7 @@ class VM_Linker(link.LocalLinker):
                 dependencies=dependency_map_list,
             )
 
-            if platform.python_implementation() == 'CPython':
+            if platform.python_implementation() == "CPython":
                 assert c0 == sys.getrefcount(node_n_inputs)
         else:
             lazy = self.lazy
@@ -1023,38 +1075,34 @@ class VM_Linker(link.LocalLinker):
             if not lazy:
                 # there is no conditional in the graph
                 if self.allow_gc:
-                    vm = LoopGC(
-                        nodes,
-                        thunks,
-                        pre_call_clear,
-                        post_thunk_clear,
-                    )
+                    vm = LoopGC(nodes, thunks, pre_call_clear, post_thunk_clear,)
                 else:
-                    vm = Loop(
-                        nodes,
-                        thunks,
-                        pre_call_clear,
-                    )
+                    vm = Loop(nodes, thunks, pre_call_clear,)
             else:
                 # Needed when allow_gc=True and profiling
                 deps = self.compute_gc_dependencies(storage_map)
                 vm = Stack(
-                    nodes, thunks, pre_call_clear,
-                    storage_map, compute_map,
-                    self.fgraph, self.allow_gc,
+                    nodes,
+                    thunks,
+                    pre_call_clear,
+                    storage_map,
+                    compute_map,
+                    self.fgraph,
+                    self.allow_gc,
                     len(updated_vars),
                     dependencies=deps,
                 )
         return vm
 
-    def make_all(self, profiler=None, input_storage=None,
-                 output_storage=None, storage_map=None,
-                 ):
+    def make_all(
+        self, profiler=None, input_storage=None, output_storage=None, storage_map=None,
+    ):
         fgraph = self.fgraph
         order = self.schedule(fgraph)
 
         input_storage, output_storage, storage_map = link.map_storage(
-            fgraph, order, input_storage, output_storage, storage_map)
+            fgraph, order, input_storage, output_storage, storage_map
+        )
         compute_map = {}
         for k in storage_map:
             compute_map[k] = [k.owner is None]
@@ -1066,38 +1114,40 @@ class VM_Linker(link.LocalLinker):
         for var in fgraph.inputs:
             compute_map_re[var][0] = 1
 
-        if getattr(fgraph.profile, 'dependencies', None):
-            dependencies = getattr(fgraph.profile, 'dependencies')
+        if getattr(fgraph.profile, "dependencies", None):
+            dependencies = getattr(fgraph.profile, "dependencies")
         else:
             dependencies = self.compute_gc_dependencies(storage_map)
 
         reallocated_info = calculate_reallocate_info(
-            order, fgraph, storage_map, compute_map_re, dependencies)
+            order, fgraph, storage_map, compute_map_re, dependencies
+        )
         t0 = time.time()
         linker_make_thunk_time = {}
         impl = None
         if self.c_thunks is False:
-            impl = 'py'
+            impl = "py"
         for node in order:
             try:
                 thunk_start = time.time()
                 # no-recycling is done at each VM.__call__ So there is
                 # no need to cause duplicate c code by passing
                 # no_recycling here.
-                thunks.append(node.op.make_thunk(node,
-                                                 storage_map,
-                                                 compute_map,
-                                                 [],
-                                                 impl=impl))
+                thunks.append(
+                    node.op.make_thunk(node, storage_map, compute_map, [], impl=impl)
+                )
                 linker_make_thunk_time[node] = time.time() - thunk_start
-                if not hasattr(thunks[-1], 'lazy'):
+                if not hasattr(thunks[-1], "lazy"):
                     # We don't want all ops maker to think about lazy Ops.
                     # So if they didn't specify that its lazy or not, it isn't.
                     # If this member isn't present, it will crash later.
                     thunks[-1].lazy = False
             except Exception as e:
-                e.args = ("The following error happened while"
-                          " compiling the node", node, "\n") + e.args
+                e.args = (
+                    "The following error happened while" " compiling the node",
+                    node,
+                    "\n",
+                ) + e.args
                 raise
         t1 = time.time()
 
@@ -1114,8 +1164,13 @@ class VM_Linker(link.LocalLinker):
             lazy = config.vm.lazy
         if lazy is None:
             lazy = not all([(not th.lazy) for th in thunks])
-        if not (lazy or ((config.profile or config.print_global_stats) and config.profile_memory) or
-                self.use_cloop or self.callback or self.callback_input):
+        if not (
+            lazy
+            or ((config.profile or config.print_global_stats) and config.profile_memory)
+            or self.use_cloop
+            or self.callback
+            or self.callback_input
+        ):
             for pair in itervalues(reallocated_info):
                 storage_map[pair[1]] = storage_map[pair[0]]
 
@@ -1125,39 +1180,51 @@ class VM_Linker(link.LocalLinker):
             for node in order:
                 clear_after_this_thunk = []
                 for input in node.inputs:
-                    if (input in computed and
-                            input not in fgraph.outputs and
-                            node == last_user[input] and
-                            input not in reallocated_info):
+                    if (
+                        input in computed
+                        and input not in fgraph.outputs
+                        and node == last_user[input]
+                        and input not in reallocated_info
+                    ):
                         clear_after_this_thunk.append(storage_map[input])
                 post_thunk_clear.append(clear_after_this_thunk)
         else:
             post_thunk_clear = None
 
-        vm = self.make_vm(order, thunks,
-                          input_storage, output_storage, storage_map,
-                          post_thunk_clear,
-                          computed,
-                          compute_map,
-                          self.updated_vars,
-                          )
+        vm = self.make_vm(
+            order,
+            thunks,
+            input_storage,
+            output_storage,
+            storage_map,
+            post_thunk_clear,
+            computed,
+            compute_map,
+            self.updated_vars,
+        )
 
         vm.storage_map = storage_map
         vm.compute_map = compute_map
 
-        return (vm,
-                [link.Container(input, storage)
-                 for input, storage in zip(fgraph.inputs, input_storage)],
-                [link.Container(output, storage, True)
-                 for output, storage in zip(fgraph.outputs, output_storage)],
-                thunks,
-                order)
+        return (
+            vm,
+            [
+                link.Container(input, storage)
+                for input, storage in zip(fgraph.inputs, input_storage)
+            ],
+            [
+                link.Container(output, storage, True)
+                for output, storage in zip(fgraph.outputs, output_storage)
+            ],
+            thunks,
+            order,
+        )
 
     def __setstate__(self, d):
         self.__dict__.update(d)
-        if not hasattr(self, 'c_thunks'):
+        if not hasattr(self, "c_thunks"):
             self.c_thunks = True
-        if not hasattr(self, 'allow_partial_eval'):
+        if not hasattr(self, "allow_partial_eval"):
             self.allow_partial_eval = None
-        if not hasattr(self, 'callback_input'):
+        if not hasattr(self, "callback_input"):
             self.callback_input = None

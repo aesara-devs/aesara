@@ -1,6 +1,6 @@
 # Locking mechanism to ensure no two compilations occur simultaneously
 # in the same compilation directory (which can cause crashes).
-from __future__ import absolute_import, print_function, division
+
 
 import atexit
 import os
@@ -62,11 +62,11 @@ def _get_lock(lock_dir=None, **kw):
 
     """
     if lock_dir is None:
-        lock_dir = os.path.join(config.compiledir, 'lock_dir')
-    if not hasattr(get_lock, 'n_lock'):
+        lock_dir = os.path.join(config.compiledir, "lock_dir")
+    if not hasattr(get_lock, "n_lock"):
         # Initialization.
         get_lock.n_lock = 0
-        if not hasattr(get_lock, 'lock_is_enabled'):
+        if not hasattr(get_lock, "lock_is_enabled"):
             # Enable lock by default.
             get_lock.lock_is_enabled = True
         get_lock.lock_dir = lock_dir
@@ -97,12 +97,14 @@ def _get_lock(lock_dir=None, **kw):
                 # the lock state and raise an error.
                 while get_lock.n_lock > 0:
                     release_lock()
-                raise Exception("For some unknow reason, the lock was already "
-                                "taken, but no start time was registered.")
+                raise Exception(
+                    "For some unknow reason, the lock was already "
+                    "taken, but no start time was registered."
+                )
             now = time.time()
             if now - get_lock.start_time > config.compile.timeout / 2:
-                lockpath = os.path.join(get_lock.lock_dir, 'lock')
-                _logger.info('Refreshing lock %s', str(lockpath))
+                lockpath = os.path.join(get_lock.lock_dir, "lock")
+                _logger.info("Refreshing lock %s", str(lockpath))
                 refresh_lock(lockpath)
                 get_lock.start_time = now
     get_lock.n_lock += 1
@@ -137,6 +139,7 @@ def set_lock_status(use_lock):
 
     """
     get_lock.lock_is_enabled = use_lock
+
 
 # This is because None is a valid input for timeout
 notset = object()
@@ -198,9 +201,9 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
     assert os.path.isdir(base_lock)
 
     # Variable initialization.
-    lock_file = os.path.join(tmp_dir, 'lock')
+    lock_file = os.path.join(tmp_dir, "lock")
     my_pid = os.getpid()
-    no_display = (verbosity == 0)
+    no_display = verbosity == 0
 
     nb_error = 0
     # The number of time we sleep when their is no errors.
@@ -210,7 +213,7 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
     # Acquire lock.
     while True:
         try:
-            last_owner = 'no_owner'
+            last_owner = "no_owner"
             time_start = time.time()
             other_dead = False
             while os.path.isdir(tmp_dir):
@@ -221,52 +224,60 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
                     # The try is transition code for old locks.
                     # It may be removed when people have upgraded.
                     try:
-                        other_host = read_owner.split('_')[2]
+                        other_host = read_owner.split("_")[2]
                     except IndexError:
                         other_host = ()  # make sure it isn't equal to any host
                     if other_host == hostname:
                         try:
                             # Just check if the other process still exist.
-                            os.kill(int(read_owner.split('_')[0]), 0)
+                            os.kill(int(read_owner.split("_")[0]), 0)
                         except OSError:
                             other_dead = True
                         except AttributeError:
                             pass  # os.kill does not exist on windows
                 except Exception:
-                    read_owner = 'failure'
+                    read_owner = "failure"
                 if other_dead:
                     if not no_display:
-                        msg = "process '%s'" % read_owner.split('_')[0]
-                        _logger.warning("Overriding existing lock by dead %s "
-                                        "(I am process '%s')", msg, my_pid)
+                        msg = "process '%s'" % read_owner.split("_")[0]
+                        _logger.warning(
+                            "Overriding existing lock by dead %s "
+                            "(I am process '%s')",
+                            msg,
+                            my_pid,
+                        )
                     get_lock.unlocker.unlock(force=True)
                     continue
                 if last_owner == read_owner:
-                    if (timeout is not None and
-                            time.time() - time_start >= timeout):
+                    if timeout is not None and time.time() - time_start >= timeout:
                         # Timeout exceeded or locking process dead.
                         if not no_display:
-                            if read_owner == 'failure':
-                                msg = 'unknown process'
+                            if read_owner == "failure":
+                                msg = "unknown process"
                             else:
-                                msg = "process '%s'" % read_owner.split('_')[0]
-                            _logger.warning("Overriding existing lock by %s "
-                                            "(I am process '%s')", msg, my_pid)
+                                msg = "process '%s'" % read_owner.split("_")[0]
+                            _logger.warning(
+                                "Overriding existing lock by %s " "(I am process '%s')",
+                                msg,
+                                my_pid,
+                            )
                         get_lock.unlocker.unlock(force=True)
                         continue
                 else:
                     last_owner = read_owner
                     time_start = time.time()
-                    no_display = (verbosity == 0)
+                    no_display = verbosity == 0
                 if not no_display and nb_wait > 0:
-                    if read_owner == 'failure':
-                        msg = 'unknown process'
+                    if read_owner == "failure":
+                        msg = "unknown process"
                     else:
-                        msg = "process '%s'" % read_owner.split('_')[0]
-                    _logger.info("Waiting for existing lock by %s (I am "
-                                 "process '%s')", msg, my_pid)
-                    _logger.info("To manually release the lock, delete %s",
-                                 tmp_dir)
+                        msg = "process '%s'" % read_owner.split("_")[0]
+                    _logger.info(
+                        "Waiting for existing lock by %s (I am " "process '%s')",
+                        msg,
+                        my_pid,
+                    )
+                    _logger.info("To manually release the lock, delete %s", tmp_dir)
                     if verbosity <= 1:
                         no_display = True
                 nb_wait += 1
@@ -321,13 +332,14 @@ def refresh_lock(lock_file):
     unique id, using a new (randomly generated) id, which is also returned.
 
     """
-    unique_id = '%s_%s_%s' % (
+    unique_id = "%s_%s_%s" % (
         os.getpid(),
-        ''.join([str(random.randint(0, 9)) for i in range(10)]),
-        hostname)
+        "".join([str(random.randint(0, 9)) for i in range(10)]),
+        hostname,
+    )
     try:
-        with open(lock_file, 'w') as lock_write:
-            lock_write.write(unique_id + '\n')
+        with open(lock_file, "w") as lock_write:
+            lock_write.write(unique_id + "\n")
     except Exception:
         # In some strange case, this happen.  To prevent all tests
         # from failing, we release the lock, but as there is a
@@ -335,8 +347,10 @@ def refresh_lock(lock_file):
         # This way, only 1 test would fail.
         while get_lock.n_lock > 0:
             release_lock()
-        _logger.warn('Refreshing lock failed, we release the'
-                     ' lock before raising again the exception')
+        _logger.warn(
+            "Refreshing lock failed, we release the"
+            " lock before raising again the exception"
+        )
         raise
     return unique_id
 
@@ -371,12 +385,12 @@ class Unlocker(object):
         # not exist), we still want to try and remove the directory.
 
         # Check if someone else didn't took our lock.
-        lock_file = os.path.join(self.tmp_dir, 'lock')
+        lock_file = os.path.join(self.tmp_dir, "lock")
         if not force:
             try:
                 with open(lock_file) as f:
                     owner = f.readlines()[0].strip()
-                    pid, _, hname = owner.split('_')
+                    pid, _, hname = owner.split("_")
                     if pid != str(os.getpid()) or hname != hostname:
                         return
             except Exception:

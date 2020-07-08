@@ -3,14 +3,13 @@ Define RandomStreams, providing random number variables for Theano
 graphs.
 
 """
-from __future__ import absolute_import, print_function, division
+
 
 import copy
 
 import numpy as np
 
-from theano.compile.sharedvalue import (SharedVariable, shared_constructor,
-                                        shared)
+from theano.compile.sharedvalue import SharedVariable, shared_constructor, shared
 from theano.tensor import raw_random
 
 __docformat__ = "restructuredtext en"
@@ -21,8 +20,9 @@ class RandomStateSharedVariable(SharedVariable):
 
 
 @shared_constructor
-def randomstate_constructor(value, name=None, strict=False,
-                            allow_downcast=None, borrow=False):
+def randomstate_constructor(
+    value, name=None, strict=False, allow_downcast=None, borrow=False
+):
     """
     SharedVariable Constructor for RandomState.
 
@@ -36,7 +36,8 @@ def randomstate_constructor(value, name=None, strict=False,
         value=value,
         name=name,
         strict=strict,
-        allow_downcast=allow_downcast)
+        allow_downcast=allow_downcast,
+    )
 
 
 class RandomStreams(raw_random.RandomStreamsBase):
@@ -88,8 +89,7 @@ class RandomStreams(raw_random.RandomStreamsBase):
         seedgen = np.random.RandomState(seed)
         for old_r, new_r in self.state_updates:
             old_r_seed = seedgen.randint(2 ** 30)
-            old_r.set_value(np.random.RandomState(int(old_r_seed)),
-                            borrow=True)
+            old_r.set_value(np.random.RandomState(int(old_r_seed)), borrow=True)
 
     def __getitem__(self, item):
         """

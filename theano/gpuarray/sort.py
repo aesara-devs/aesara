@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 import os
 from string import Template
 
@@ -9,59 +8,70 @@ from theano import Apply
 from theano.tensor import as_tensor_variable
 from theano.tensor.sort import TopKOp
 
-from .basic_ops import (GpuKernelBase, Kernel, infer_context_name,
-                        as_gpuarray_variable, gpuarray_helper_inc_dir)
+from .basic_ops import (
+    GpuKernelBase,
+    Kernel,
+    infer_context_name,
+    as_gpuarray_variable,
+    gpuarray_helper_inc_dir,
+)
 from .opt import register_opt, op_lifter, register_opt2
 from .type import GpuArrayType
 
 try:
     import pygpu
     import pygpu.gpuarray as ga
-except ImportError as e:
+except ImportError:
     # To make sure theano is importable
     pass
 
 
 # TODO GPU sort / argsort
 class GpuTopKOp(GpuKernelBase, TopKOp):
-    '''Implements TopKOp on gpu
+    """Implements TopKOp on gpu
 
     Currently the output seem sorted, but we do not test it. So as on
     the CPU, we only support sorted=False for now.
 
-    '''
+    """
+
     __props__ = TopKOp.__props__
     _f16_ok = True
 
     def __init__(
-        self, axis=-1,
+        self,
+        axis=-1,
         sorted=True,
-        idx_dtype='int64',
+        idx_dtype="int64",
         return_values=True,
-        return_indices=True
+        return_indices=True,
     ):
         if sorted:
             raise NotImplementedError(
-                "GpuTopK currently is not sure to give sorted output even if they look sorted..")
+                "GpuTopK currently is not sure to give sorted output even if they look sorted.."
+            )
         GpuKernelBase.__init__(self)
         TopKOp.__init__(
-            self, axis=axis,
+            self,
+            axis=axis,
             sorted=sorted,
             idx_dtype=idx_dtype,
             return_values=return_values,
-            return_indices=return_indices)
+            return_indices=return_indices,
+        )
 
     def perform(self, node, inputs, output_storage, params):
         raise NotImplementedError()
 
     def c_headers(self):
-        return ['gpuarray_api.h', 'gpuarray_helper.h', 'numpy_compat.h']
+        return ["gpuarray_api.h", "gpuarray_helper.h", "numpy_compat.h"]
 
     def c_header_dirs(self):
         return [
             os.path.dirname(__file__),
             gpuarray_helper_inc_dir(),
-            pygpu.get_include()]
+            pygpu.get_include(),
+        ]
 
     def c_code_cache_version(self):
         return (4,)
@@ -69,25 +79,35 @@ class GpuTopKOp(GpuKernelBase, TopKOp):
     def gpu_kernels(self, node, nodename):
         # load kernel source
         device_type = node.inputs[0].type.context.kind
-        kernel_ext = {b'cuda': '.cu', b'opencl': '.cl'}[device_type]
-        common_ext = {b'cuda': '.cuh', b'opencl': '.h'}[device_type]
+        kernel_ext = {b"cuda": ".cu", b"opencl": ".cl"}[device_type]
+        common_ext = {b"cuda": ".cuh", b"opencl": ".h"}[device_type]
 
         # prepare "$" macros
-        if device_type == b'cuda':
+        if device_type == b"cuda":
             ndim = node.inputs[0].ndim
-            dstv_strides_code = ''.join('ssize_t dstv_strides_%d, ' % i for i in range(ndim))
-            dsti_strides_code = ''.join('ssize_t dsti_strides_%d, ' % i for i in range(ndim))
-            src_strides_code = ''.join('ssize_t src_strides_%d, ' % i for i in range(ndim))
-            set_slice_code = '''
+            dstv_strides_code = "".join(
+                "ssize_t dstv_strides_%d, " % i for i in range(ndim)
+            )
+            dsti_strides_code = "".join(
+                "ssize_t dsti_strides_%d, " % i for i in range(ndim)
+            )
+            src_strides_code = "".join(
+                "ssize_t src_strides_%d, " % i for i in range(ndim)
+            )
+            set_slice_code = """
         gidx = gid %% dims_%(i)d;
         gid /= dims_%(i)d;
         {dstv};
         {dsti};
-        src = ptr_add(src, gidx*src_strides_%(i)d);\n'''.format(
-                dstv='dstv = ptr_add(dstv, gidx*dstv_strides_%(i)d)' if self.return_values else '',
-                dsti='dsti = ptr_add(dsti, gidx*dsti_strides_%(i)d)' if self.return_indices else '')
-            set_slice_code = ''.join(
-                set_slice_code % dict(i=j) for j in range(1, ndim))
+        src = ptr_add(src, gidx*src_strides_%(i)d);\n""".format(
+                dstv="dstv = ptr_add(dstv, gidx*dstv_strides_%(i)d)"
+                if self.return_values
+                else "",
+                dsti="dsti = ptr_add(dsti, gidx*dsti_strides_%(i)d)"
+                if self.return_indices
+                else "",
+            )
+            set_slice_code = "".join(set_slice_code % dict(i=j) for j in range(1, ndim))
             if self.return_values:
                 set_slice_code += """
                 dstv = ptr_add(dstv, dstv_offset);
@@ -103,20 +123,20 @@ class GpuTopKOp(GpuKernelBase, TopKOp):
             subs = dict(
                 inp_t=ga.dtype_to_ctype(node.inputs[0].dtype),
                 out_t=ga.dtype_to_ctype(self.idx_dtype),
-                dims=''.join('size_t dims_%d, ' % i for i in range(1, ndim)),
-                dstv='INPUT_TYPE *dstv,' if self.return_values else '',
-                dstv_offset='size_t dstv_offset,' if self.return_values else '',
-                dsti='INDEX_TYPE *dsti,' if self.return_indices else '',
-                dsti_offset='size_t dsti_offset,' if self.return_indices else '',
-                dstv_strides=dstv_strides_code if self.return_values else '',
-                dsti_strides=dsti_strides_code if self.return_indices else '',
+                dims="".join("size_t dims_%d, " % i for i in range(1, ndim)),
+                dstv="INPUT_TYPE *dstv," if self.return_values else "",
+                dstv_offset="size_t dstv_offset," if self.return_values else "",
+                dsti="INDEX_TYPE *dsti," if self.return_indices else "",
+                dsti_offset="size_t dsti_offset," if self.return_indices else "",
+                dstv_strides=dstv_strides_code if self.return_values else "",
+                dsti_strides=dsti_strides_code if self.return_indices else "",
                 src_strides=src_strides_code,
                 set_slice=set_slice_code,
                 write_value=int(self.return_values),
                 write_index=int(self.return_indices),
-                ndim=str(ndim)
-                )
-        elif device_type == b'opencl':
+                ndim=str(ndim),
+            )
+        elif device_type == b"opencl":
             raise NotImplementedError()
 
         # setup parameters
@@ -132,57 +152,62 @@ class GpuTopKOp(GpuKernelBase, TopKOp):
         param_types.append(ga.SIZE)  # size
 
         # load and compile kernels
-        with open(os.path.join(
-            os.path.dirname(__file__), 'c_code', 'topk_common' + common_ext
-        )) as f:
+        with open(
+            os.path.join(
+                os.path.dirname(__file__), "c_code", "topk_common" + common_ext
+            )
+        ) as f:
             common_src = f.read()
 
         kernels = []
 
         def build_kernel(fname, kname, subs):
-            with open(os.path.join(
-                os.path.dirname(__file__), 'c_code', fname)
-            ) as f:
+            with open(os.path.join(os.path.dirname(__file__), "c_code", fname)) as f:
                 kernel_src = f.read()
             ker = Kernel(
-                code=("#include <cluda.h>\n" +
-                      Template(common_src + kernel_src).substitute(**subs)),
+                code=(
+                    "#include <cluda.h>\n"
+                    + Template(common_src + kernel_src).substitute(**subs)
+                ),
                 name=kname,
                 params=param_types,
                 flags=flags,
-                objvar=kname + nodename)
+                objvar=kname + nodename,
+            )
             return ker
 
-        subs['count_t'] = 'int'
+        subs["count_t"] = "int"
+        kernels.append(build_kernel("topk_dense" + kernel_ext, "k_topk_dense", subs))
+        subs["kname"] = "k_topk_dense_large"
         kernels.append(
-            build_kernel('topk_dense' + kernel_ext, 'k_topk_dense', subs))
-        subs['kname'] = 'k_topk_dense_large'
+            build_kernel("topk_dense_large" + kernel_ext, "k_topk_dense_large", subs)
+        )
+        subs["count_t"] = "long long"
+        subs["kname"] = "k_topk_dense_xlarge"
         kernels.append(
-            build_kernel('topk_dense_large' + kernel_ext, 'k_topk_dense_large', subs))
-        subs['count_t'] = 'long long'
-        subs['kname'] = 'k_topk_dense_xlarge'
-        kernels.append(
-            build_kernel('topk_dense_large' + kernel_ext, 'k_topk_dense_xlarge', subs))
+            build_kernel("topk_dense_large" + kernel_ext, "k_topk_dense_xlarge", subs)
+        )
         return kernels
 
     def c_code(self, node, nodename, inps, outs, sub):
         context = node.inputs[0].type.context
-        if context.kind != b'cuda':
+        if context.kind != b"cuda":
             raise NotImplementedError(
-                '%s: We only have CUDA '
-                'implementation so far.' % self.__class__.__name__)
+                "%s: We only have CUDA "
+                "implementation so far." % self.__class__.__name__
+            )
         x, k = inps
         inp_dtc = ga.dtype_to_typecode(node.inputs[0].dtype)
         if not self.return_indices:
-            yv, = outs
+            (yv,) = outs
         elif self.return_values:
             yv, yi = outs
         else:
-            yi, = outs
+            (yi,) = outs
         out_dtype_s = self.idx_dtype
         out_dtc = ga.dtype_to_typecode(out_dtype_s)
-        fail = sub['fail']
-        ctx = sub['params']
+        fail = sub["fail"]
+        ctx = sub["params"]
         k_dtype = node.inputs[1].type.dtype_specs()[1]
         # max threads per block
         MAX_TPB = context.maxlsize0
@@ -193,37 +218,43 @@ class GpuTopKOp(GpuKernelBase, TopKOp):
         ndim = node.inputs[0].ndim
         reordered_axes = list(range(ndim))
         axis = self.axis % ndim
-        del(reordered_axes[axis])
+        del reordered_axes[axis]
         reordered_axes = [axis] + reordered_axes
-        dims = ''.join('dims[%d], ' % i for i in reordered_axes[1:])
-        prep_output = ''
+        dims = "".join("dims[%d], " % i for i in reordered_axes[1:])
+        prep_output = ""
         if self.return_values:
-            def_dvstrides = 'const ssize_t *dvstrides = PyGpuArray_STRIDES(%s)' % yv
-            params_dv = '%s->ga.data, %s->ga.offset,\n' % (yv, yv)
-            params_dv += ''.join('dvstrides[%d], ' % i for i in reordered_axes)
-            prep_output += '''
+            def_dvstrides = "const ssize_t *dvstrides = PyGpuArray_STRIDES(%s)" % yv
+            params_dv = "%s->ga.data, %s->ga.offset,\n" % (yv, yv)
+            params_dv += "".join("dvstrides[%d], " % i for i in reordered_axes)
+            prep_output += (
+                """
     if (0 != theano_prep_output(
         &%(yv)s, %(ndim)d, odims,
         %(inp_dtc)s, GA_C_ORDER, %(ctx)s)) {
         %(fail)s;
-    }\n''' % locals()
+    }\n"""
+                % locals()
+            )
         else:
-            def_dvstrides = params_dv = ''
+            def_dvstrides = params_dv = ""
 
         if self.return_indices:
-            def_distrides = 'const ssize_t *distrides = PyGpuArray_STRIDES(%s)' % yi
-            params_di = '%s->ga.data, %s->ga.offset,\n' % (yi, yi)
-            params_di += ''.join('distrides[%d], ' % i for i in reordered_axes)
-            prep_output += '''
+            def_distrides = "const ssize_t *distrides = PyGpuArray_STRIDES(%s)" % yi
+            params_di = "%s->ga.data, %s->ga.offset,\n" % (yi, yi)
+            params_di += "".join("distrides[%d], " % i for i in reordered_axes)
+            prep_output += (
+                """
     if (0 != theano_prep_output(
         &%(yi)s, %(ndim)d, odims,
         %(out_dtc)s, GA_C_ORDER, %(ctx)s)) {
         %(fail)s;
-    }\n''' % locals()
+    }\n"""
+                % locals()
+            )
         else:
-            def_distrides = params_di = ''
-        sstrides = ', '.join('sstrides[%d]' % i for i in reordered_axes)
-        code = '''
+            def_distrides = params_di = ""
+        sstrides = ", ".join("sstrides[%d]" % i for i in reordered_axes)
+        code = """
 {
     const ssize_t k_ = ((%(k_dtype)s*)(PyArray_DATA(%(k)s)))[0];
     const size_t *dims = PyGpuArray_DIMS(%(x)s);
@@ -314,7 +345,7 @@ class GpuTopKOp(GpuKernelBase, TopKOp):
         %(fail)s;
     }
 }
-        '''
+        """
         return code % locals()
 
     def make_node(self, inp, kth):
@@ -326,17 +357,18 @@ class GpuTopKOp(GpuKernelBase, TopKOp):
         if self.return_values:
             outs.append(inp.type())
         if self.return_indices:
-            outs.append(GpuArrayType(
-                dtype=self.idx_dtype,
-                broadcastable=bcast,
-                context_name=ctx_name)())
+            outs.append(
+                GpuArrayType(
+                    dtype=self.idx_dtype, broadcastable=bcast, context_name=ctx_name
+                )()
+            )
         return Apply(self, [inp, kth], outs)
 
     def get_params(self, node):
         return node.inputs[0].type.context
 
 
-class ValuesEqApproxNoOrder():
+class ValuesEqApproxNoOrder:
     """
     We ignore the order of elements on a given axis during the comparison.
     """
@@ -351,9 +383,9 @@ class ValuesEqApproxNoOrder():
         return ret
 
 
-@register_opt('fast_compile')
+@register_opt("fast_compile")
 @op_lifter([TopKOp], cuda_only=True)
-@register_opt2([TopKOp], 'fast_compile')
+@register_opt2([TopKOp], "fast_compile")
 def local_gpua_topkop(op, ctx_name, inputs, outputs):
     axis = op.axis
     rv = op.return_values
@@ -367,7 +399,8 @@ def local_gpua_topkop(op, ctx_name, inputs, outputs):
         sorted=op.sorted,
         idx_dtype=op.idx_dtype,
         return_values=rv,
-        return_indices=ri)
+        return_indices=ri,
+    )
     rets = gpu_op(x, k, return_list=True)
     c = ValuesEqApproxNoOrder(axis)
     for r in rets:

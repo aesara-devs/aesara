@@ -1,7 +1,7 @@
 """Defines Updates object for storing a (SharedVariable, new_value) mapping.
 
 """
-from __future__ import absolute_import, print_function, division
+
 from collections import OrderedDict
 
 from six import iteritems
@@ -17,7 +17,7 @@ __contact__ = "theano-dev <theano-dev@googlegroups.com>"
 
 __docformat__ = "restructuredtext en"
 
-logger = logging.getLogger('theano.updates')
+logger = logging.getLogger("theano.updates")
 
 
 # Must be an OrderedDict or updates will be applied in a non-deterministic
@@ -28,23 +28,28 @@ class OrderedUpdates(OrderedDict):
 
     This mapping supports the use of the "+" operator for the union of updates.
     """
+
     def __init__(self, *key, **kwargs):
-        if (len(key) >= 1 and
-                isinstance(key[0], dict) and
-                len(key[0]) > 1 and
-                not isinstance(key[0], OrderedDict)):
+        if (
+            len(key) >= 1
+            and isinstance(key[0], dict)
+            and len(key[0]) > 1
+            and not isinstance(key[0], OrderedDict)
+        ):
             # Warn when using as input a non-ordered dictionary.
-            warnings.warn('Initializing an `OrderedUpdates` from a '
-                          'non-ordered dictionary with 2+ elements could '
-                          'make your code non-deterministic. You can use '
-                          'an OrderedDict that is available at '
-                          'theano.compat.OrderedDict for python 2.6+.')
+            warnings.warn(
+                "Initializing an `OrderedUpdates` from a "
+                "non-ordered dictionary with 2+ elements could "
+                "make your code non-deterministic. You can use "
+                "an OrderedDict that is available at "
+                "theano.compat.OrderedDict for python 2.6+."
+            )
         super(OrderedUpdates, self).__init__(*key, **kwargs)
         for key in self:
             if not isinstance(key, SharedVariable):
                 raise TypeError(
-                    'OrderedUpdates keys must inherit from SharedVariable',
-                    key)
+                    "OrderedUpdates keys must inherit from SharedVariable", key
+                )
 
     def __setitem__(self, key, value):
         if isinstance(key, SharedVariable):
@@ -58,25 +63,30 @@ class OrderedUpdates(OrderedDict):
 
             return super(OrderedUpdates, self).__setitem__(key, value)
         else:
-            raise TypeError('OrderedUpdates keys must inherit from '
-                            'SharedVariable', key)
+            raise TypeError(
+                "OrderedUpdates keys must inherit from " "SharedVariable", key
+            )
 
     def update(self, other=None):
         if other is None:
             return
-        if (isinstance(other, dict) and
-                len(other) > 1 and
-                not isinstance(other, OrderedDict)):
+        if (
+            isinstance(other, dict)
+            and len(other) > 1
+            and not isinstance(other, OrderedDict)
+        ):
             # Warn about non-determinism.
-            warnings.warn('Updating an `OrderedUpdates` with a '
-                          'non-ordered dictionary with 2+ elements could '
-                          'make your code non-deterministic',
-                          stacklevel=2)
+            warnings.warn(
+                "Updating an `OrderedUpdates` with a "
+                "non-ordered dictionary with 2+ elements could "
+                "make your code non-deterministic",
+                stacklevel=2,
+            )
         for key, val in iteritems(OrderedDict(other)):
             if key in self:
                 if self[key] == val:
                     continue
-                raise KeyError('Collision', key)
+                raise KeyError("Collision", key)
             self[key] = val  # __setitem__ does type-checking
 
     def __add__(self, other):

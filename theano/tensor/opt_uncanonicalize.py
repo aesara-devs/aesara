@@ -30,7 +30,7 @@ canonization of the graph in the optimizations phases where the graph is
 supposed to be canonical.
 
 """
-from __future__ import absolute_import, print_function, division
+
 
 # TODO: intelligent merge for mul/add
 # TODO: 0*x -> 0
@@ -45,7 +45,7 @@ from theano.tensor.opt import register_uncanonicalize
 from theano import scalar as scal
 from theano.gof.opt import copy_stack_trace
 
-_logger = logging.getLogger('theano.tensor.opt')
+_logger = logging.getLogger("theano.tensor.opt")
 
 
 @register_uncanonicalize
@@ -83,9 +83,11 @@ def local_max_to_min(node):
     """
     if node.op == T.neg and node.inputs[0].owner:
         max = node.inputs[0]
-        if (max.owner and
-                isinstance(max.owner.op, CAReduce) and
-                max.owner.op.scalar_op == scal.maximum):
+        if (
+            max.owner
+            and isinstance(max.owner.op, CAReduce)
+            and max.owner.op.scalar_op == scal.maximum
+        ):
             neg = max.owner.inputs[0]
             if neg.owner and neg.owner.op == T.neg:
                 new = CAReduce(scal.minimum, max.owner.op.axis)(neg.owner.inputs[0])
@@ -108,8 +110,9 @@ def local_alloc_dimshuffle(node):
         if input_.owner and isinstance(input_.owner.op, DimShuffle):
             # check if it only adds dimension to the left
             new_order = input_.owner.op.new_order
-            expected_new_order = ('x',) * (input_.ndim - input_.owner.inputs[0].ndim) + \
-                tuple(range(input_.owner.inputs[0].ndim))
+            expected_new_order = ("x",) * (
+                input_.ndim - input_.owner.inputs[0].ndim
+            ) + tuple(range(input_.owner.inputs[0].ndim))
             if new_order != expected_new_order:
                 return False
             return [T.alloc(input_.owner.inputs[0], *node.inputs[1:])]
@@ -131,14 +134,17 @@ def local_reshape_dimshuffle(node):
             new_order = input_.owner.op.new_order
             offset = 0
             for dim in new_order:
-                if dim == 'x':
+                if dim == "x":
                     continue
                 elif dim != offset:
                     return False
                 else:
                     offset += 1
-            return [T.reshape(input_.owner.inputs[0], node.inputs[1],
-                              ndim=node.outputs[0].ndim)]
+            return [
+                T.reshape(
+                    input_.owner.inputs[0], node.inputs[1], ndim=node.outputs[0].ndim
+                )
+            ]
     return False
 
 
@@ -156,8 +162,9 @@ def local_dimshuffle_alloc(node):
         if isinstance(input_.owner.op, T.Alloc):
             # check if it only adds dimension to the left
             new_order = node.op.new_order
-            expected_new_order = ('x',) * (len(new_order) - input_.ndim) + \
-                tuple(range(input_.ndim))
+            expected_new_order = ("x",) * (len(new_order) - input_.ndim) + tuple(
+                range(input_.ndim)
+            )
             if new_order != expected_new_order:
                 return False
 
@@ -182,7 +189,7 @@ def local_dimshuffle_subtensor(node):
     """
     if isinstance(node.op, DimShuffle) and node.inputs[0].owner:
         # the dimshuffle can only drop dimensions (cannot reshape nor add 'x')
-        if 'x' in node.op.new_order:
+        if "x" in node.op.new_order:
             return False
         new_order = node.op.new_order
         # new order could be empty
@@ -217,7 +224,7 @@ def local_dimshuffle_subtensor(node):
             new_idx_list = list(input_.owner.op.idx_list)
             new_inputs = [input_.owner.inputs[0]]
             zero = T.constant(0)
-            slice_attr_list = ['start', 'stop', 'step']
+            slice_attr_list = ["start", "stop", "step"]
             j = 0
             slice_i = -1
             subtensor_removed_dims = 0
@@ -240,8 +247,7 @@ def local_dimshuffle_subtensor(node):
                     j += 1
                     subtensor_removed_dims += 1
             # Verify the trailing dimensions the subtensor didn't look at.
-            for idx in range(len(input_.owner.op.idx_list),
-                             new_inputs[0].ndim):
+            for idx in range(len(input_.owner.op.idx_list), new_inputs[0].ndim):
                 if (idx - subtensor_removed_dims) in missing_dims:
                     while len(new_idx_list) < idx:
                         new_idx_list.append(slice(None))

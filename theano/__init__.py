@@ -21,7 +21,7 @@ which may be rendered with Sphinx. A rendered version is
 maintained at http://www.deeplearning.net/software/theano/library/
 
 """
-from __future__ import absolute_import, print_function, division
+
 
 __docformat__ = "restructuredtext en"
 
@@ -47,10 +47,12 @@ def has_handlers(logger):
             _logger = _logger.parent
     return _has_handler
 
+
 theano_logger = logging.getLogger("theano")
 logging_default_handler = logging.StreamHandler()
 logging_default_formatter = logging.Formatter(
-    fmt='%(levelname)s (%(name)s): %(message)s')
+    fmt="%(levelname)s (%(name)s): %(message)s"
+)
 logging_default_handler.setFormatter(logging_default_formatter)
 theano_logger.setLevel(logging.WARNING)
 
@@ -64,12 +66,14 @@ def disable_log_handler(logger=theano_logger, handler=logging_default_handler):
     if has_handlers(logger):
         logger.removeHandler(handler)
 
+
 # Version information.
 from theano.version import version as __version__
 
 # Raise a meaning full warning/error if the theano directory is in the
 # Python path.
 from six import PY3
+
 rpath = os.path.realpath(__path__[0])
 for p in sys.path:
     if os.path.realpath(p) != rpath:
@@ -77,11 +81,13 @@ for p in sys.path:
     if PY3:
         raise RuntimeError(
             "You have the theano directory in your Python path."
-            " This do not work in Python 3.")
+            " This do not work in Python 3."
+        )
     else:
         warnings.warn(
             "You have the theano directory in your Python path."
-            " This is will not work in Python 3.")
+            " This is will not work in Python 3."
+        )
     break
 
 
@@ -97,32 +103,53 @@ from theano.configparser import change_flags
 __api_version__ = 1
 
 from theano.gof import (
-    CLinker, OpWiseCLinker, DualLinker, Linker, LocalLinker, PerformLinker,
+    CLinker,
+    OpWiseCLinker,
+    DualLinker,
+    Linker,
+    LocalLinker,
+    PerformLinker,
     Container,
-    InconsistencyError, FunctionGraph,
-    Apply, Variable, Constant,
-    Op, OpenMPOp,
+    InconsistencyError,
+    FunctionGraph,
+    Apply,
+    Variable,
+    Constant,
+    Op,
+    OpenMPOp,
     opt,
     toolbox,
-    Type, Generic, generic,
-    object2, utils)
+    Type,
+    Generic,
+    generic,
+    object2,
+    utils,
+)
 
 from theano.compile import (
-    SymbolicInput, In,
-    SymbolicOutput, Out,
+    SymbolicInput,
+    In,
+    SymbolicOutput,
+    Out,
     Mode,
-    predefined_modes, predefined_linkers, predefined_optimizers,
-    FunctionMaker, function, function_dump,
+    predefined_modes,
+    predefined_linkers,
+    predefined_optimizers,
+    FunctionMaker,
+    function,
+    function_dump,
     OpFromGraph,
     ProfileStats,
-    Param, shared, as_op)
+    Param,
+    shared,
+    as_op,
+)
 
 from theano.misc.safe_asarray import _asarray
 
 from theano.printing import pprint, pp
 
-from theano.scan_module import (scan, map, reduce, foldl, foldr, clone,
-                                scan_checkpoints)
+from theano.scan_module import scan, map, reduce, foldl, foldr, clone, scan_checkpoints
 
 from theano.updates import OrderedUpdates
 
@@ -141,49 +168,40 @@ from theano.gradient import Rop, Lop, grad, subgraph_grad
 # This need to be before the init of GPU, as it add config variable
 # needed during that phase.
 import theano.tests
-if hasattr(theano.tests, "TheanoNoseTester"):
-    test = theano.tests.TheanoNoseTester().test
-else:
-    def test():
-        raise ImportError("The nose module is not installed."
-                          " It is needed for Theano tests.")
 
-if (config.device.startswith('cuda') or
-        config.device.startswith('opencl') or
-        config.init_gpu_device.startswith('cuda') or
-        config.init_gpu_device.startswith('opencl') or
-        config.contexts != ''):
+if (
+    config.device.startswith("cuda")
+    or config.device.startswith("opencl")
+    or config.init_gpu_device.startswith("cuda")
+    or config.init_gpu_device.startswith("opencl")
+    or config.contexts != ""
+):
     import theano.gpuarray
 
 # Use config.numpy to call numpy.seterr
 import numpy as np
 
-if config.numpy.seterr_all == 'None':
+if config.numpy.seterr_all == "None":
     _all = None
 else:
     _all = config.numpy.seterr_all
-if config.numpy.seterr_divide == 'None':
+if config.numpy.seterr_divide == "None":
     _divide = None
 else:
     _divide = config.numpy.seterr_divide
-if config.numpy.seterr_over == 'None':
+if config.numpy.seterr_over == "None":
     _over = None
 else:
     _over = config.numpy.seterr_over
-if config.numpy.seterr_under == 'None':
+if config.numpy.seterr_under == "None":
     _under = None
 else:
     _under = config.numpy.seterr_under
-if config.numpy.seterr_invalid == 'None':
+if config.numpy.seterr_invalid == "None":
     _invalid = None
 else:
     _invalid = config.numpy.seterr_invalid
-np.seterr(
-    all=_all,
-    divide=_divide,
-    over=_over,
-    under=_under,
-    invalid=_invalid)
+np.seterr(all=_all, divide=_divide, over=_over, under=_under, invalid=_invalid)
 del _all, _divide, _over, _under, _invalid
 
 # This is defined here because it is designed to work across symbolic
@@ -195,19 +213,18 @@ def dot(l, r):
     rval = NotImplemented
     e0, e1 = None, None
 
-    if rval == NotImplemented and hasattr(l, '__dot__'):
+    if rval == NotImplemented and hasattr(l, "__dot__"):
         try:
             rval = l.__dot__(r)
         except Exception as e0:
             rval = NotImplemented
-    if rval == NotImplemented and hasattr(r, '__rdot__'):
+    if rval == NotImplemented and hasattr(r, "__rdot__"):
         try:
             rval = r.__rdot__(l)
         except Exception as e1:
             rval = NotImplemented
     if rval == NotImplemented:
-        raise NotImplementedError("Dot failed for the following reasons:",
-                                  (e0, e1))
+        raise NotImplementedError("Dot failed for the following reasons:", (e0, e1))
     return rval
 
 
@@ -223,7 +240,7 @@ def get_scalar_constant_value(v):
     tensor.basic.NotScalarConstantError.
     """
     # Is it necessary to test for presence of theano.sparse at runtime?
-    if 'sparse' in globals() and isinstance(v.type, sparse.SparseType):
+    if "sparse" in globals() and isinstance(v.type, sparse.SparseType):
         if v.owner is not None and isinstance(v.owner.op, sparse.CSM):
             data = v.owner.inputs[0]
             return tensor.get_scalar_constant_value(data)
@@ -244,4 +261,4 @@ def sparse_grad(var):
     return ret
 
 
-__import__('theano.tensor.shared_randomstreams')
+__import__("theano.tensor.shared_randomstreams")

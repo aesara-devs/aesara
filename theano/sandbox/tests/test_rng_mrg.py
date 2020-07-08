@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 import os
 import sys
 import time
@@ -25,9 +24,11 @@ utt.seed_rng()
 # 12 streams
 # 7 substreams for each stream
 # 5 samples drawn from each substream
-java_samples = np.loadtxt(os.path.join(os.path.split(theano.__file__)[0],
-                                       'sandbox',
-                                       'samples_MRG31k3p_12_7_5.txt'))
+java_samples = np.loadtxt(
+    os.path.join(
+        os.path.split(theano.__file__)[0], "sandbox", "samples_MRG31k3p_12_7_5.txt"
+    )
+)
 
 
 def test_deterministic():
@@ -73,16 +74,16 @@ def test_consistency_randomstreams():
         samples.append(stream_samples)
 
     samples = np.array(samples).flatten()
-    assert(np.allclose(samples, java_samples))
+    assert np.allclose(samples, java_samples)
 
 
 def test_get_substream_rstates():
     try:
         orig = theano.config.compute_test_value
-        theano.config.compute_test_value = 'raise'
+        theano.config.compute_test_value = "raise"
         n_streams = 100
 
-        dtype = 'float32'
+        dtype = "float32"
         rng = MRG_RandomStreams(np.random.randint(2147462579))
 
         rng.get_substream_rstates(n_streams, dtype)
@@ -101,16 +102,15 @@ def test_consistency_cpu_serial():
     n_substreams = 7
 
     samples = []
-    curr_rstate = np.array([seed] * 6, dtype='int32')
+    curr_rstate = np.array([seed] * 6, dtype="int32")
 
     for i in range(n_streams):
         stream_rstate = curr_rstate.copy()
         for j in range(n_substreams):
-            rstate = theano.shared(np.array([stream_rstate.copy()],
-                                            dtype='int32'))
-            new_rstate, sample = rng_mrg.mrg_uniform.new(rstate, ndim=None,
-                                                         dtype=config.floatX,
-                                                         size=(1,))
+            rstate = theano.shared(np.array([stream_rstate.copy()], dtype="int32"))
+            new_rstate, sample = rng_mrg.mrg_uniform.new(
+                rstate, ndim=None, dtype=config.floatX, size=(1,)
+            )
             # Not really necessary, just mimicking
             # rng_mrg.MRG_RandomStreams' behavior
             sample.rstate = rstate
@@ -129,7 +129,7 @@ def test_consistency_cpu_serial():
         curr_rstate = rng_mrg.ff_2p134(curr_rstate)
 
     samples = np.array(samples).flatten()
-    assert(np.allclose(samples, java_samples))
+    assert np.allclose(samples, java_samples)
 
 
 def test_consistency_cpu_parallel():
@@ -142,7 +142,7 @@ def test_consistency_cpu_parallel():
     n_substreams = 7  # 7 samples will be drawn in parallel
 
     samples = []
-    curr_rstate = np.array([seed] * 6, dtype='int32')
+    curr_rstate = np.array([seed] * 6, dtype="int32")
 
     for i in range(n_streams):
         stream_samples = []
@@ -152,9 +152,9 @@ def test_consistency_cpu_parallel():
         rstate = np.asarray(rstate)
         rstate = theano.shared(rstate)
 
-        new_rstate, sample = rng_mrg.mrg_uniform.new(rstate, ndim=None,
-                                                     dtype=config.floatX,
-                                                     size=(n_substreams,))
+        new_rstate, sample = rng_mrg.mrg_uniform.new(
+            rstate, ndim=None, dtype=config.floatX, size=(n_substreams,)
+        )
         # Not really necessary, just mimicking
         # rng_mrg.MRG_RandomStreams' behavior
         sample.rstate = rstate
@@ -173,11 +173,21 @@ def test_consistency_cpu_parallel():
         curr_rstate = rng_mrg.ff_2p134(curr_rstate)
 
     samples = np.array(samples).flatten()
-    assert(np.allclose(samples, java_samples))
+    assert np.allclose(samples, java_samples)
 
 
-def basictest(f, steps, sample_size, prefix="", allow_01=False, inputs=None,
-              target_avg=0.5, target_std=None, mean_rtol=0.01, std_tol=0.01):
+def check_basics(
+    f,
+    steps,
+    sample_size,
+    prefix="",
+    allow_01=False,
+    inputs=None,
+    target_avg=0.5,
+    target_std=None,
+    mean_rtol=0.01,
+    std_tol=0.01,
+):
     if inputs is None:
         inputs = []
     dt = 0.0
@@ -197,33 +207,36 @@ def basictest(f, steps, sample_size, prefix="", allow_01=False, inputs=None,
         else:
             alpha = 1.0 / (1 + i)
             mean = alpha * ival + (1 - alpha) * mean
-            avg_var = (alpha * np.mean((ival - target_avg) ** 2) +
-                       (1 - alpha) * avg_var)
+            avg_var = alpha * np.mean((ival - target_avg) ** 2) + (1 - alpha) * avg_var
             min_ = min(min_, ival.min())
             max_ = max(max_, ival.max())
         if not allow_01:
             assert min_ > 0
             assert max_ < 1
 
-    if hasattr(target_avg, 'shape'):  # looks if target_avg is an array
+    if hasattr(target_avg, "shape"):  # looks if target_avg is an array
         diff = np.mean(abs(mean - target_avg))
         # print prefix, 'mean diff with mean', diff
-        assert np.all(diff < mean_rtol * (1 + abs(target_avg))), (
-            'bad mean? %s %s' % (mean, target_avg))
+        assert np.all(diff < mean_rtol * (1 + abs(target_avg))), "bad mean? %s %s" % (
+            mean,
+            target_avg,
+        )
     else:
         # if target_avg is a scalar, then we can do the mean of
         # `mean` to get something more precise
         mean = np.mean(mean)
         # print prefix, 'mean', mean
-        assert abs(mean - target_avg) < mean_rtol * (1 + abs(target_avg)), (
-            'bad mean? %f %f' % (mean, target_avg))
+        assert abs(mean - target_avg) < mean_rtol * (
+            1 + abs(target_avg)
+        ), "bad mean? %f %f" % (mean, target_avg)
 
     std = np.sqrt(avg_var)
     # print prefix, 'var', avg_var
     # print prefix, 'std', std
     if target_std is not None:
-        assert abs(std - target_std) < std_tol * (1 + abs(target_std)), (
-            'bad std? %f %f %f' % (std, target_std, std_tol))
+        assert abs(std - target_std) < std_tol * (
+            1 + abs(target_std)
+        ), "bad std? %f %f %f" % (std, target_std, std_tol)
     # print prefix, 'time', dt
     # print prefix, 'elements', steps * sample_size[0] * sample_size[1]
     # print prefix, 'samples/sec', steps * sample_size[0] * sample_size[1] / dt
@@ -236,8 +249,11 @@ def test_uniform():
     # TODO: test ndim!=size.ndim
     # TODO: test bad seed
     # TODO: test size=Var, with shape that change from call to call
-    if (config.mode in ['DEBUG_MODE', 'DebugMode', 'FAST_COMPILE'] or
-            config.mode == 'Mode' and config.linker in ['py']):
+    if (
+        config.mode in ["DEBUG_MODE", "DebugMode", "FAST_COMPILE"]
+        or config.mode == "Mode"
+        and config.linker in ["py"]
+    ):
         sample_size = (10, 100)
         steps = 50
     else:
@@ -246,14 +262,17 @@ def test_uniform():
 
     x = tensor.matrix()
     for size, const_size, var_input, input in [
-            (sample_size, sample_size, [], []),
-            (x.shape, sample_size, [x],
-             [np.zeros(sample_size, dtype=config.floatX)]),
-            ((x.shape[0], sample_size[1]), sample_size, [x],
-             [np.zeros(sample_size, dtype=config.floatX)]),
-            # test empty size (scalar)
-            ((), (), [], []),
-            ]:
+        (sample_size, sample_size, [], []),
+        (x.shape, sample_size, [x], [np.zeros(sample_size, dtype=config.floatX)]),
+        (
+            (x.shape[0], sample_size[1]),
+            sample_size,
+            [x],
+            [np.zeros(sample_size, dtype=config.floatX)],
+        ),
+        # test empty size (scalar)
+        ((), (), [], []),
+    ]:
 
         # TEST CPU IMPLEMENTATION
         # The python and C implementation are tested with DebugMode
@@ -263,11 +282,14 @@ def test_uniform():
         # TODO Look for all occurrences of `guess_n_streams` and `30 * 256`
         # for such situations: it would be better to instead filter the
         # warning using the warning module.
-        u = R.uniform(size=size,
-                      nstreams=rng_mrg.guess_n_streams(size, warn=False))
+        u = R.uniform(size=size, nstreams=rng_mrg.guess_n_streams(size, warn=False))
         f = theano.function(var_input, u)
-        assert any([isinstance(node.op, theano.sandbox.rng_mrg.mrg_uniform)
-                    for node in f.maker.fgraph.toposort()])
+        assert any(
+            [
+                isinstance(node.op, theano.sandbox.rng_mrg.mrg_uniform)
+                for node in f.maker.fgraph.toposort()
+            ]
+        )
         f(*input)
 
         # Increase the number of steps if sizes implies only a few samples
@@ -275,15 +297,16 @@ def test_uniform():
             steps_ = steps * 100
         else:
             steps_ = steps
-        basictest(f, steps_, const_size, prefix='mrg cpu', inputs=input)
+        check_basics(f, steps_, const_size, prefix="mrg cpu", inputs=input)
 
         RR = theano.tensor.shared_randomstreams.RandomStreams(234)
 
         uu = RR.uniform(size=size)
         ff = theano.function(var_input, uu)
         # It's not our problem if numpy generates 0 or 1
-        basictest(ff, steps_, const_size, prefix='numpy',
-                  allow_01=True, inputs=input)
+        check_basics(
+            ff, steps_, const_size, prefix="numpy", allow_01=True, inputs=input
+        )
 
 
 def test_broadcastable():
@@ -296,8 +319,14 @@ def test_broadcastable():
     pvals_2 = R.uniform(size=size2)
     pvals_2 = pvals_2 / tensor.sum(pvals_2)
 
-    for distribution in [R.uniform, R.normal, R.truncated_normal,
-                         R.binomial, R.multinomial, R.multinomial_wo_replacement]:
+    for distribution in [
+        R.uniform,
+        R.normal,
+        R.truncated_normal,
+        R.binomial,
+        R.multinomial,
+        R.multinomial_wo_replacement,
+    ]:
         # multinomial or multinomial_wo_replacement does not support "size" argument,
         # the sizes of them are implicitly defined with "pvals" argument.
         if distribution in [R.multinomial, R.multinomial_wo_replacement]:
@@ -318,6 +347,45 @@ def test_broadcastable():
             assert uu.broadcastable == (False, True)
 
 
+def check_binomial(mean, size, const_size, var_input, input, steps, rtol):
+    R = MRG_RandomStreams(234)
+    u = R.binomial(size=size, p=mean)
+    f = theano.function(var_input, u)
+    f(*input)
+
+    # Increase the number of steps if sizes implies only a few samples
+    if np.prod(const_size) < 10:
+        steps_ = steps * 100
+    else:
+        steps_ = steps
+    check_basics(
+        f,
+        steps_,
+        const_size,
+        prefix="mrg  cpu",
+        inputs=input,
+        allow_01=True,
+        target_avg=mean,
+        mean_rtol=rtol,
+    )
+
+    RR = theano.tensor.shared_randomstreams.RandomStreams(234)
+
+    uu = RR.binomial(size=size, p=mean)
+    ff = theano.function(var_input, uu)
+    # It's not our problem if numpy generates 0 or 1
+    check_basics(
+        ff,
+        steps_,
+        const_size,
+        prefix="numpy",
+        allow_01=True,
+        inputs=input,
+        target_avg=mean,
+        mean_rtol=rtol,
+    )
+
+
 @pytest.mark.slow
 def test_binomial():
     # TODO: test size=None, ndim=X
@@ -328,8 +396,11 @@ def test_binomial():
     # we test size in a tuple of int and a tensor.shape.
     # we test the param p with int.
 
-    if (config.mode in ['DEBUG_MODE', 'DebugMode', 'FAST_COMPILE'] or
-            config.mode == 'Mode' and config.linker in ['py']):
+    if (
+        config.mode in ["DEBUG_MODE", "DebugMode", "FAST_COMPILE"]
+        or config.mode == "Mode"
+        and config.linker in ["py"]
+    ):
         sample_size = (10, 50)
         steps = 50
         rtol = 0.02
@@ -341,79 +412,77 @@ def test_binomial():
     x = tensor.matrix()
     for mean in [0.1, 0.5]:
         for size, const_size, var_input, input in [
-                (sample_size, sample_size, [], []),
-                (x.shape, sample_size, [x],
-                 [np.zeros(sample_size, dtype=config.floatX)]),
-                # test empty size (scalar)
-                ((), (), [], []),
-                ]:
-            yield (t_binomial, mean, size, const_size, var_input, input,
-                   steps, rtol)
-
-
-def t_binomial(mean, size, const_size, var_input, input, steps, rtol):
-    R = MRG_RandomStreams(234)
-    u = R.binomial(size=size, p=mean)
-    f = theano.function(var_input, u)
-    f(*input)
-
-    # Increase the number of steps if sizes implies only a few samples
-    if np.prod(const_size) < 10:
-        steps_ = steps * 100
-    else:
-        steps_ = steps
-    basictest(f, steps_, const_size, prefix='mrg  cpu',
-              inputs=input, allow_01=True,
-              target_avg=mean, mean_rtol=rtol)
-
-    RR = theano.tensor.shared_randomstreams.RandomStreams(234)
-
-    uu = RR.binomial(size=size, p=mean)
-    ff = theano.function(var_input, uu)
-    # It's not our problem if numpy generates 0 or 1
-    basictest(ff, steps_, const_size, prefix='numpy', allow_01=True,
-              inputs=input, target_avg=mean, mean_rtol=rtol)
+            (sample_size, sample_size, [], []),
+            (x.shape, sample_size, [x], [np.zeros(sample_size, dtype=config.floatX)]),
+            # test empty size (scalar)
+            ((), (), [], []),
+        ]:
+            check_binomial(mean, size, const_size, var_input, input, steps, rtol)
 
 
 @pytest.mark.slow
 def test_normal0():
     steps = 50
-    std = 2.
-    if (config.mode in ['DEBUG_MODE', 'DebugMode', 'FAST_COMPILE'] or
-            config.mode == 'Mode' and config.linker in ['py']):
+    std = 2.0
+    if (
+        config.mode in ["DEBUG_MODE", "DebugMode", "FAST_COMPILE"]
+        or config.mode == "Mode"
+        and config.linker in ["py"]
+    ):
         sample_size = (25, 30)
-        default_rtol = .02
+        default_rtol = 0.02
     else:
         sample_size = (999, 50)
-        default_rtol = .01
+        default_rtol = 0.01
     sample_size_odd = (sample_size[0], sample_size[1] - 1)
     x = tensor.matrix()
 
     test_cases = [
-        (sample_size, sample_size, [], [], -5., default_rtol, default_rtol),
-        (x.shape, sample_size, [x],
-         [np.zeros(sample_size, dtype=config.floatX)],
-         -5., default_rtol, default_rtol),
+        (sample_size, sample_size, [], [], -5.0, default_rtol, default_rtol),
+        (
+            x.shape,
+            sample_size,
+            [x],
+            [np.zeros(sample_size, dtype=config.floatX)],
+            -5.0,
+            default_rtol,
+            default_rtol,
+        ),
         # test odd value
-        (x.shape, sample_size_odd, [x],
-         [np.zeros(sample_size_odd, dtype=config.floatX)],
-         -5., default_rtol, default_rtol),
-        (sample_size, sample_size, [], [],
-         np.arange(np.prod(sample_size),
-                   dtype='float32').reshape(sample_size),
-         10. * std / np.sqrt(steps), default_rtol),
+        (
+            x.shape,
+            sample_size_odd,
+            [x],
+            [np.zeros(sample_size_odd, dtype=config.floatX)],
+            -5.0,
+            default_rtol,
+            default_rtol,
+        ),
+        (
+            sample_size,
+            sample_size,
+            [],
+            [],
+            np.arange(np.prod(sample_size), dtype="float32").reshape(sample_size),
+            10.0 * std / np.sqrt(steps),
+            default_rtol,
+        ),
         # test empty size (scalar)
-        ((), (), [], [], -5., default_rtol, 0.02),
+        ((), (), [], [], -5.0, default_rtol, 0.02),
         # test with few samples at the same time
-        ((1,), (1,), [], [], -5., default_rtol, 0.02),
-        ((3,), (3,), [], [], -5., default_rtol, 0.02),
+        ((1,), (1,), [], [], -5.0, default_rtol, 0.02),
+        ((3,), (3,), [], [], -5.0, default_rtol, 0.02),
     ]
 
     for size, const_size, var_input, input, avg, rtol, std_tol in test_cases:
         R = MRG_RandomStreams(234)
         # Note: we specify `nstreams` to avoid a warning.
-        n = R.normal(size=size, avg=avg, std=std,
-                     nstreams=rng_mrg.guess_n_streams(size, warn=False))
+        n = R.normal(
+            size=size,
+            avg=avg,
+            std=std,
+            nstreams=rng_mrg.guess_n_streams(size, warn=False),
+        )
         f = theano.function(var_input, n)
         f(*input)
 
@@ -422,9 +491,18 @@ def test_normal0():
             steps_ = steps * 50
         else:
             steps_ = steps
-        basictest(f, steps_, const_size, target_avg=avg, target_std=std,
-                  prefix='mrg ', allow_01=True, inputs=input,
-                  mean_rtol=rtol, std_tol=std_tol)
+        check_basics(
+            f,
+            steps_,
+            const_size,
+            target_avg=avg,
+            target_std=std,
+            prefix="mrg ",
+            allow_01=True,
+            inputs=input,
+            mean_rtol=rtol,
+            std_tol=std_tol,
+        )
 
         sys.stdout.flush()
 
@@ -433,71 +511,118 @@ def test_normal0():
         nn = RR.normal(size=size, avg=avg, std=std)
         ff = theano.function(var_input, nn)
 
-        basictest(ff, steps_, const_size, target_avg=avg, target_std=std,
-                  prefix='numpy ', allow_01=True, inputs=input, mean_rtol=rtol)
+        check_basics(
+            ff,
+            steps_,
+            const_size,
+            target_avg=avg,
+            target_std=std,
+            prefix="numpy ",
+            allow_01=True,
+            inputs=input,
+            mean_rtol=rtol,
+        )
 
 
 @pytest.mark.slow
 def test_normal_truncation():
     # just a copy of test_normal0 with extra bound check
     steps = 50
-    std = 2.
+    std = 2.0
     # standard deviation is slightly less than for a regular Gaussian
     # constant taken from scipy.stats.truncnorm.std(a=-2, b=2, loc=0., scale=1.)
-    target_std = .87962566103423978 * std
+    target_std = 0.87962566103423978 * std
 
-    if (config.mode in ['DEBUG_MODE', 'DebugMode', 'FAST_COMPILE'] or
-            config.mode == 'Mode' and config.linker in ['py']):
+    if (
+        config.mode in ["DEBUG_MODE", "DebugMode", "FAST_COMPILE"]
+        or config.mode == "Mode"
+        and config.linker in ["py"]
+    ):
         sample_size = (25, 30)
-        default_rtol = .02
+        default_rtol = 0.02
     else:
         sample_size = (999, 50)
-        default_rtol = .01
+        default_rtol = 0.01
     sample_size_odd = (sample_size[0], sample_size[1] - 1)
     x = tensor.matrix()
 
     test_cases = [
-        (sample_size, sample_size, [], [], -5., default_rtol, default_rtol),
-        (x.shape, sample_size, [x],
-         [np.zeros(sample_size, dtype=config.floatX)],
-         -5., default_rtol, default_rtol),
+        (sample_size, sample_size, [], [], -5.0, default_rtol, default_rtol),
+        (
+            x.shape,
+            sample_size,
+            [x],
+            [np.zeros(sample_size, dtype=config.floatX)],
+            -5.0,
+            default_rtol,
+            default_rtol,
+        ),
         # test odd value
-        (x.shape, sample_size_odd, [x],
-         [np.zeros(sample_size_odd, dtype=config.floatX)],
-         -5., default_rtol, default_rtol),
-        (sample_size, sample_size, [], [],
-         np.arange(np.prod(sample_size),
-                   dtype='float32').reshape(sample_size),
-         10. * std / np.sqrt(steps), default_rtol),
+        (
+            x.shape,
+            sample_size_odd,
+            [x],
+            [np.zeros(sample_size_odd, dtype=config.floatX)],
+            -5.0,
+            default_rtol,
+            default_rtol,
+        ),
+        (
+            sample_size,
+            sample_size,
+            [],
+            [],
+            np.arange(np.prod(sample_size), dtype="float32").reshape(sample_size),
+            10.0 * std / np.sqrt(steps),
+            default_rtol,
+        ),
         # test empty size (scalar)
-        ((), (), [], [], -5., default_rtol, 0.02),
+        ((), (), [], [], -5.0, default_rtol, 0.02),
         # test with few samples at the same time
-        ((1,), (1,), [], [], -5., default_rtol, 0.02),
-        ((3,), (3,), [], [], -5., default_rtol, 0.02),
+        ((1,), (1,), [], [], -5.0, default_rtol, 0.02),
+        ((3,), (3,), [], [], -5.0, default_rtol, 0.02),
     ]
 
     for size, const_size, var_input, input, avg, rtol, std_tol in test_cases:
         R = MRG_RandomStreams(234)
         # Note: we specify `nstreams` to avoid a warning.
-        n = R.normal(size=size, avg=avg, std=std, truncate=True,
-                     nstreams=rng_mrg.guess_n_streams(size, warn=False))
+        n = R.normal(
+            size=size,
+            avg=avg,
+            std=std,
+            truncate=True,
+            nstreams=rng_mrg.guess_n_streams(size, warn=False),
+        )
         f = theano.function(var_input, n)
 
         # check if truncated at 2*std
         samples = f(*input)
-        assert np.all(avg + 2 * std - samples >= 0), \
-            ("bad upper bound? %s %s" % (samples, avg + 2 * std))
-        assert np.all(samples - (avg - 2 * std) >= 0), \
-            ("bad lower bound? %s %s" % (samples, avg - 2 * std))
+        assert np.all(avg + 2 * std - samples >= 0), "bad upper bound? %s %s" % (
+            samples,
+            avg + 2 * std,
+        )
+        assert np.all(samples - (avg - 2 * std) >= 0), "bad lower bound? %s %s" % (
+            samples,
+            avg - 2 * std,
+        )
 
         # Increase the number of steps if size implies only a few samples
         if np.prod(const_size) < 10:
             steps_ = steps * 50
         else:
             steps_ = steps
-        basictest(f, steps_, const_size, target_avg=avg, target_std=target_std,
-                  prefix='mrg ', allow_01=True, inputs=input,
-                  mean_rtol=rtol, std_tol=std_tol)
+        check_basics(
+            f,
+            steps_,
+            const_size,
+            target_avg=avg,
+            target_std=target_std,
+            prefix="mrg ",
+            allow_01=True,
+            inputs=input,
+            mean_rtol=rtol,
+            std_tol=std_tol,
+        )
 
         sys.stdout.flush()
 
@@ -506,43 +631,67 @@ def test_normal_truncation():
 def test_truncated_normal():
     # just a copy of test_normal0 for truncated normal
     steps = 50
-    std = 2.
+    std = 2.0
 
-    if (config.mode in ['DEBUG_MODE', 'DebugMode', 'FAST_COMPILE'] or
-            config.mode == 'Mode' and config.linker in ['py']):
+    if (
+        config.mode in ["DEBUG_MODE", "DebugMode", "FAST_COMPILE"]
+        or config.mode == "Mode"
+        and config.linker in ["py"]
+    ):
         sample_size = (25, 30)
-        default_rtol = .02
+        default_rtol = 0.02
     else:
         sample_size = (999, 50)
-        default_rtol = .01
+        default_rtol = 0.01
     sample_size_odd = (sample_size[0], sample_size[1] - 1)
     x = tensor.matrix()
 
     test_cases = [
-        (sample_size, sample_size, [], [], -5., default_rtol, default_rtol),
-        (x.shape, sample_size, [x],
-         [np.zeros(sample_size, dtype=config.floatX)],
-         -5., default_rtol, default_rtol),
+        (sample_size, sample_size, [], [], -5.0, default_rtol, default_rtol),
+        (
+            x.shape,
+            sample_size,
+            [x],
+            [np.zeros(sample_size, dtype=config.floatX)],
+            -5.0,
+            default_rtol,
+            default_rtol,
+        ),
         # test odd value
-        (x.shape, sample_size_odd, [x],
-         [np.zeros(sample_size_odd, dtype=config.floatX)],
-         -5., default_rtol, default_rtol),
-        (sample_size, sample_size, [], [],
-         np.arange(np.prod(sample_size),
-                   dtype='float32').reshape(sample_size),
-         10. * std / np.sqrt(steps), default_rtol),
+        (
+            x.shape,
+            sample_size_odd,
+            [x],
+            [np.zeros(sample_size_odd, dtype=config.floatX)],
+            -5.0,
+            default_rtol,
+            default_rtol,
+        ),
+        (
+            sample_size,
+            sample_size,
+            [],
+            [],
+            np.arange(np.prod(sample_size), dtype="float32").reshape(sample_size),
+            10.0 * std / np.sqrt(steps),
+            default_rtol,
+        ),
         # test empty size (scalar)
-        ((), (), [], [], -5., default_rtol, 0.02),
+        ((), (), [], [], -5.0, default_rtol, 0.02),
         # test with few samples at the same time
-        ((1,), (1,), [], [], -5., default_rtol, 0.02),
-        ((3,), (3,), [], [], -5., default_rtol, 0.02),
+        ((1,), (1,), [], [], -5.0, default_rtol, 0.02),
+        ((3,), (3,), [], [], -5.0, default_rtol, 0.02),
     ]
 
     for size, const_size, var_input, input, avg, rtol, std_tol in test_cases:
         R = MRG_RandomStreams(234)
         # Note: we specify `nstreams` to avoid a warning.
-        n = R.truncated_normal(size=size, avg=avg, std=std,
-                               nstreams=rng_mrg.guess_n_streams(size, warn=False))
+        n = R.truncated_normal(
+            size=size,
+            avg=avg,
+            std=std,
+            nstreams=rng_mrg.guess_n_streams(size, warn=False),
+        )
         f = theano.function(var_input, n)
 
         # Increase the number of steps if size implies only a few samples
@@ -550,15 +699,25 @@ def test_truncated_normal():
             steps_ = steps * 60
         else:
             steps_ = steps
-        basictest(f, steps_, const_size, target_avg=avg, target_std=std,
-                  prefix='mrg ', allow_01=True, inputs=input,
-                  mean_rtol=rtol, std_tol=std_tol)
+        check_basics(
+            f,
+            steps_,
+            const_size,
+            target_avg=avg,
+            target_std=std,
+            prefix="mrg ",
+            allow_01=True,
+            inputs=input,
+            mean_rtol=rtol,
+            std_tol=std_tol,
+        )
 
         sys.stdout.flush()
 
 
-def basic_multinomialtest(f, steps, sample_size, target_pvals, n_samples,
-                          prefix="", mean_rtol=0.04):
+def basic_multinomialtest(
+    f, steps, sample_size, target_pvals, n_samples, prefix="", mean_rtol=0.04
+):
 
     dt = 0.0
     avg_pvals = np.zeros(target_pvals.shape, dtype=config.floatX)
@@ -570,24 +729,27 @@ def basic_multinomialtest(f, steps, sample_size, target_pvals, n_samples,
         assert np.all(np.sum(ival, axis=1) == n_samples)
         dt += time.time() - t0
         avg_pvals += ival
-    avg_pvals /= (steps * n_samples)
+    avg_pvals /= steps * n_samples
 
     assert np.mean(abs(avg_pvals - target_pvals)) < mean_rtol
 
-    print('random?[:10]\n', np.asarray(f()[:10]))
-    print(prefix, 'mean', avg_pvals)
+    print("random?[:10]\n", np.asarray(f()[:10]))
+    print(prefix, "mean", avg_pvals)
     # < mean_rtol, 'bad mean? %s %s' % (str(avg_pvals), str(target_pvals))
     print(np.mean(abs(avg_pvals - target_pvals)))
-    print(prefix, 'time', dt)
-    print(prefix, 'elements', steps * np.prod(target_pvals.shape))
-    print(prefix, 'samples/sec', steps * np.prod(target_pvals.shape) / dt)
+    print(prefix, "time", dt)
+    print(prefix, "elements", steps * np.prod(target_pvals.shape))
+    print(prefix, "samples/sec", steps * np.prod(target_pvals.shape) / dt)
 
 
 def test_multinomial():
     steps = 100
 
-    if (config.mode in ['DEBUG_MODE', 'DebugMode', 'FAST_COMPILE'] or
-            config.mode == 'Mode' and config.linker in ['py']):
+    if (
+        config.mode in ["DEBUG_MODE", "DebugMode", "FAST_COMPILE"]
+        or config.mode == "Mode"
+        and config.linker in ["py"]
+    ):
         sample_size = (49, 5)
     else:
         sample_size = (450, 6)
@@ -599,13 +761,15 @@ def test_multinomial():
     m = R.multinomial(pvals=pvals, dtype=config.floatX, nstreams=30 * 256)
     f = theano.function([], m)
     f()
-    basic_multinomialtest(f, steps, sample_size, pvals, n_samples=1,
-                          prefix='mrg ')
+    basic_multinomialtest(f, steps, sample_size, pvals, n_samples=1, prefix="mrg ")
 
 
 def test_multinomial_n_samples():
-    if (config.mode in ['DEBUG_MODE', 'DebugMode', 'FAST_COMPILE'] or
-            config.mode == 'Mode' and config.linker in ['py']):
+    if (
+        config.mode in ["DEBUG_MODE", "DebugMode", "FAST_COMPILE"]
+        or config.mode == "Mode"
+        and config.linker in ["py"]
+    ):
         sample_size = (49, 5)
     else:
         sample_size = (450, 6)
@@ -615,24 +779,24 @@ def test_multinomial_n_samples():
     R = MRG_RandomStreams(234)
 
     for n_samples, steps in zip([5, 10, 100, 1000], [20, 10, 1, 1]):
-        m = R.multinomial(pvals=pvals, n=n_samples,
-                          dtype=config.floatX, nstreams=30 * 256)
+        m = R.multinomial(
+            pvals=pvals, n=n_samples, dtype=config.floatX, nstreams=30 * 256
+        )
         f = theano.function([], m)
-        basic_multinomialtest(f, steps, sample_size, pvals,
-                              n_samples, prefix='mrg ')
+        basic_multinomialtest(f, steps, sample_size, pvals, n_samples, prefix="mrg ")
         sys.stdout.flush()
 
 
-class Test_MRG():
+class TestMRG:
     def test_bad_size(self):
 
         R = MRG_RandomStreams(234)
 
         for size in [
-                (0, 100),
-                (-1, 100),
-                (1, 0),
-                ]:
+            (0, 100),
+            (-1, 100),
+            (1, 0),
+        ]:
 
             with pytest.raises(ValueError):
                 R.uniform(size)
@@ -665,6 +829,7 @@ def test_random_state_transfer():
         def __init__(self, seed=123):
             self.rng = MRG_RandomStreams(seed)
             self.y = self.rng.uniform(size=(1,))
+
     g1 = Graph(seed=123)
     f1 = theano.function([], g1.y)
     g2 = Graph(seed=987)
@@ -681,36 +846,36 @@ def test_gradient_scan():
     # Test for a crash when using MRG inside scan and taking the gradient
     # See https://groups.google.com/d/msg/theano-dev/UbcYyU5m-M8/UO9UgXqnQP0J
     theano_rng = MRG_RandomStreams(10)
-    w = theano.shared(np.ones(1, dtype='float32'))
+    w = theano.shared(np.ones(1, dtype="float32"))
 
     def one_step(x):
-        return x + theano_rng.uniform((1,), dtype='float32') * w
+        return x + theano_rng.uniform((1,), dtype="float32") * w
 
-    x = tensor.vector(dtype='float32')
+    x = tensor.vector(dtype="float32")
     values, updates = theano.scan(one_step, outputs_info=x, n_steps=10)
     gw = theano.grad(tensor.sum(values[-1]), w)
     f = theano.function([x], gw)
-    f(np.arange(1, dtype='float32'))
+    f(np.arange(1, dtype="float32"))
 
 
 def test_multMatVect():
-    A1 = tensor.lmatrix('A1')
-    s1 = tensor.ivector('s1')
-    m1 = tensor.iscalar('m1')
-    A2 = tensor.lmatrix('A2')
-    s2 = tensor.ivector('s2')
-    m2 = tensor.iscalar('m2')
+    A1 = tensor.lmatrix("A1")
+    s1 = tensor.ivector("s1")
+    m1 = tensor.iscalar("m1")
+    A2 = tensor.lmatrix("A2")
+    s2 = tensor.ivector("s2")
+    m2 = tensor.iscalar("m2")
 
     g0 = rng_mrg.DotModulo()(A1, s1, m1, A2, s2, m2)
     f0 = theano.function([A1, s1, m1, A2, s2, m2], g0)
 
     i32max = np.iinfo(np.int32).max
 
-    A1 = np.random.randint(0, i32max, (3, 3)).astype('int64')
-    s1 = np.random.randint(0, i32max, 3).astype('int32')
+    A1 = np.random.randint(0, i32max, (3, 3)).astype("int64")
+    s1 = np.random.randint(0, i32max, 3).astype("int32")
     m1 = np.asarray(np.random.randint(i32max), dtype="int32")
-    A2 = np.random.randint(0, i32max, (3, 3)).astype('int64')
-    s2 = np.random.randint(0, i32max, 3).astype('int32')
+    A2 = np.random.randint(0, i32max, (3, 3)).astype("int64")
+    s2 = np.random.randint(0, i32max, 3).astype("int32")
     m2 = np.asarray(np.random.randint(i32max), dtype="int32")
 
     f0.input_storage[0].storage[0] = A1
@@ -734,12 +899,11 @@ def test_seed_fn():
 
     for new_seed, same in [(234, True), (None, True), (23, False)]:
         random = MRG_RandomStreams(234)
-        fn1 = theano.function([], random.uniform((2, 2), dtype='float32'))
-        fn2 = theano.function([], random.uniform((3, 3), nstreams=2,
-                                                 dtype='float32'))
-        fn3 = theano.function([idx],
-                              random.uniform(idx, nstreams=3, ndim=1,
-                                             dtype='float32'))
+        fn1 = theano.function([], random.uniform((2, 2), dtype="float32"))
+        fn2 = theano.function([], random.uniform((3, 3), nstreams=2, dtype="float32"))
+        fn3 = theano.function(
+            [idx], random.uniform(idx, nstreams=3, ndim=1, dtype="float32")
+        )
 
         fn1_val0 = fn1()
         fn1_val1 = fn1()
@@ -784,16 +948,15 @@ def test_overflow_cpu():
     # run with THEANO_FLAGS=mode=FAST_RUN,device=cpu,floatX=float32
     rng = MRG_RandomStreams(np.random.randint(1234))
     fct = rng.uniform
-    with change_flags(compute_test_value='off'):
+    with change_flags(compute_test_value="off"):
         # should raise error as the size overflows
-        sizes = [(2**31, ), (2**32, ), (2**15, 2**16,), (2, 2**15, 2**15)]
+        sizes = [(2 ** 31,), (2 ** 32,), (2 ** 15, 2 ** 16,), (2, 2 ** 15, 2 ** 15)]
         rng_mrg_overflow(sizes, fct, config.mode, should_raise_error=True)
     # should not raise error
-    sizes = [(2**5, ), (2**5, 2**5), (2**5, 2**5, 2**5)]
+    sizes = [(2 ** 5,), (2 ** 5, 2 ** 5), (2 ** 5, 2 ** 5, 2 ** 5)]
     rng_mrg_overflow(sizes, fct, config.mode, should_raise_error=False)
     # should support int32 sizes
-    sizes = [(np.int32(2**10), ),
-             (np.int32(2), np.int32(2**10), np.int32(2**10))]
+    sizes = [(np.int32(2 ** 10),), (np.int32(2), np.int32(2 ** 10), np.int32(2 ** 10))]
     rng_mrg_overflow(sizes, fct, config.mode, should_raise_error=False)
 
 
@@ -883,30 +1046,35 @@ def test_undefined_grad():
 
 def test_f16_nonzero(mode=None, op_to_check=rng_mrg.mrg_uniform):
     srng = MRG_RandomStreams(seed=utt.fetch_seed())
-    m = srng.uniform(size=(1000, 1000), dtype='float16')
-    assert m.dtype == 'float16', m.type
+    m = srng.uniform(size=(1000, 1000), dtype="float16")
+    assert m.dtype == "float16", m.type
     f = theano.function([], m, mode=mode)
-    assert any(isinstance(n.op, op_to_check)
-               for n in f.maker.fgraph.apply_nodes)
+    assert any(isinstance(n.op, op_to_check) for n in f.maker.fgraph.apply_nodes)
     m_val = f()
     assert np.all((0 < m_val) & (m_val < 1))
 
 
 def test_target_parameter():
     srng = MRG_RandomStreams()
-    pvals = np.array([[.98, .01, .01], [.01, .49, .50]])
+    pvals = np.array([[0.98, 0.01, 0.01], [0.01, 0.49, 0.50]])
 
     def basic_target_parameter_test(x):
         f = theano.function([], x)
         assert isinstance(f(), np.ndarray)
 
-    basic_target_parameter_test(srng.uniform((3, 2), target='cpu'))
-    basic_target_parameter_test(srng.normal((3, 2), target='cpu'))
-    basic_target_parameter_test(srng.truncated_normal((3, 2), target='cpu'))
-    basic_target_parameter_test(srng.binomial((3, 2), target='cpu'))
-    basic_target_parameter_test(srng.multinomial(pvals=pvals.astype('float32'), target='cpu'))
-    basic_target_parameter_test(srng.choice(p=pvals.astype('float32'), replace=False, target='cpu'))
-    basic_target_parameter_test(srng.multinomial_wo_replacement(pvals=pvals.astype('float32'), target='cpu'))
+    basic_target_parameter_test(srng.uniform((3, 2), target="cpu"))
+    basic_target_parameter_test(srng.normal((3, 2), target="cpu"))
+    basic_target_parameter_test(srng.truncated_normal((3, 2), target="cpu"))
+    basic_target_parameter_test(srng.binomial((3, 2), target="cpu"))
+    basic_target_parameter_test(
+        srng.multinomial(pvals=pvals.astype("float32"), target="cpu")
+    )
+    basic_target_parameter_test(
+        srng.choice(p=pvals.astype("float32"), replace=False, target="cpu")
+    )
+    basic_target_parameter_test(
+        srng.multinomial_wo_replacement(pvals=pvals.astype("float32"), target="cpu")
+    )
 
 
 if __name__ == "__main__":

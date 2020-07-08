@@ -1,26 +1,38 @@
 """Code supporting compatibility across versions of Python.
 """
-from __future__ import absolute_import, print_function, division
+
 
 # Python 3.x compatibility
 from six import PY3, b, BytesIO, next
 from six.moves import configparser
 from six.moves import reload_module as reload
 from collections import OrderedDict
+
 try:
-    from collections.abc import (Callable, Iterable, Mapping, ValuesView,
-                                 MutableMapping as DictMixin)
+    from collections.abc import (
+        Callable,
+        Iterable,
+        Mapping,
+        ValuesView,
+        MutableMapping as DictMixin,
+    )
 except ImportError:
     # this raises an DeprecationWarning on py37 and will become
     # and Exception in py39. Importing from collections.abc
     # won't work on py27
-    from collections import (Callable, Iterable, Mapping, ValuesView,
-                             MutableMapping as DictMixin)
+    from collections import (
+        Callable,
+        Iterable,
+        Mapping,
+        ValuesView,
+        MutableMapping as DictMixin,
+    )
 
-__all__ = ['PY3', 'b', 'BytesIO', 'next', 'configparser', 'reload']
+__all__ = ["PY3", "b", "BytesIO", "next", "configparser", "reload"]
 
 if PY3:
     from operator import truediv as operator_div
+
     izip = zip
     imap = map
     ifilter = filter
@@ -42,7 +54,7 @@ if PY3:
         # Op.make_thunk isn't bound, so don't have a __func__ attr.
         # But bound method, have a __func__ method that point to the
         # not bound method. That is what we want.
-        if hasattr(unbound, '__func__'):
+        if hasattr(unbound, "__func__"):
             return unbound.__func__
         return unbound
 
@@ -55,6 +67,8 @@ if PY3:
 
     def decode_with(x, encoding):
         return x.decode(encoding)
+
+
 else:
     from six import get_unbound_function
     from operator import div as operator_div
@@ -74,17 +88,28 @@ else:
     def decode_with(x, encoding):
         return x
 
-__all__ += ['cmp', 'operator_div',
-            'DictMixin', 'Iterable', 'Mapping', 'OrderedDict', 'ValuesView',
-            'decode', 'decode_iter', 'get_unbound_function',
-            'imap', 'izip', 'ifilter']
+
+__all__ += [
+    "cmp",
+    "operator_div",
+    "DictMixin",
+    "Iterable",
+    "Mapping",
+    "OrderedDict",
+    "ValuesView",
+    "decode",
+    "decode_iter",
+    "get_unbound_function",
+    "imap",
+    "izip",
+    "ifilter",
+]
 
 
 class DefaultOrderedDict(OrderedDict):
     def __init__(self, default_factory=None, *a, **kw):
-        if (default_factory is not None and
-                not isinstance(default_factory, Callable)):
-            raise TypeError('first argument must be callable')
+        if default_factory is not None and not isinstance(default_factory, Callable):
+            raise TypeError("first argument must be callable")
         OrderedDict.__init__(self, *a, **kw)
         self.default_factory = default_factory
 
@@ -104,7 +129,7 @@ class DefaultOrderedDict(OrderedDict):
         if self.default_factory is None:
             args = tuple()
         else:
-            args = self.default_factory,
+            args = (self.default_factory,)
         return type(self), args, None, None, list(self.items())
 
     def copy(self):
@@ -113,11 +138,12 @@ class DefaultOrderedDict(OrderedDict):
     def __copy__(self):
         return type(self)(self.default_factory, self)
 
-__all__ += ['DefaultOrderedDict']
+
+__all__ += ["DefaultOrderedDict"]
 
 
 def maybe_add_to_os_environ_pathlist(var, newpath):
-    '''Unfortunately, Conda offers to make itself the default Python
+    """Unfortunately, Conda offers to make itself the default Python
        and those who use it that way will probably not activate envs
        correctly meaning e.g. mingw-w64 g++ may not be on their PATH.
 
@@ -128,9 +154,10 @@ def maybe_add_to_os_environ_pathlist(var, newpath):
        The reason we check first is because Windows environment vars
        are limited to 8191 characters and it is easy to hit that.
 
-       `var` will typically be 'PATH'. '''
+       `var` will typically be 'PATH'. """
 
     import os
+
     if os.path.isabs(newpath):
         try:
             oldpaths = os.environ[var].split(os.pathsep)
@@ -140,4 +167,5 @@ def maybe_add_to_os_environ_pathlist(var, newpath):
         except Exception:
             pass
 
-__all__ += ['maybe_add_to_os_environ_pathlist']
+
+__all__ += ["maybe_add_to_os_environ_pathlist"]

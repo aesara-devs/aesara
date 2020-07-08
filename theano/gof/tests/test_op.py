@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 import numpy as np
 import pytest
 
@@ -23,7 +21,6 @@ def as_variable(x):
 
 
 class MyType(Type):
-
     def __init__(self, thingy):
         self.thingy = thingy
 
@@ -66,18 +63,20 @@ class MyOp(Op):
             outputs = [MyType(sum([input.type.thingy for input in inputs]))()]
             return Apply(self, inputs, outputs)
 
+
 MyOp = MyOp()
 
 
 class NoInputOp(Op):
     """An Op to test the corner-case of an Op with no input."""
+
     __props__ = ()
 
     def make_node(self):
-        return Apply(self, [], [MyType('test')()])
+        return Apply(self, [], [MyType("test")()])
 
     def perform(self, node, inputs, output_storage):
-        output_storage[0][0] = 'test Op no input'
+        output_storage[0][0] = "test Op no input"
 
 
 class StructOp(Op):
@@ -101,7 +100,9 @@ class StructOp(Op):
         return """
 %(out)s = counter%(name)s;
 counter%(name)s++;
-""" % dict(out=outputs_names[0], name=name)
+""" % dict(
+            out=outputs_names[0], name=name
+        )
 
     def c_code_cache_version(self):
         return (1,)
@@ -132,7 +133,7 @@ class TestOp:
         x = NoInputOp()()
         f = theano.function([], x)
         rval = f()
-        assert rval == 'test Op no input'
+        assert rval == "test Op no input"
 
     def test_op_struct(self):
         if not theano.config.cxx:
@@ -140,8 +141,8 @@ class TestOp:
         sop = StructOp()
         c = sop(theano.tensor.constant(0))
         mode = None
-        if theano.config.mode == 'FAST_COMPILE':
-            mode = 'FAST_RUN'
+        if theano.config.mode == "FAST_COMPILE":
+            mode = "FAST_RUN"
         f = theano.function([], c, mode=mode)
         rval = f()
         assert rval == 0
@@ -154,11 +155,11 @@ class TestOp:
         assert rval == [0, 0]
 
 
-class TestMakeThunk():
-
+class TestMakeThunk:
     def test_no_c_code(self):
         class IncOnePython(Op):
             """An Op with only a Python (perform) implementation"""
+
             __props__ = ()
 
             def make_node(self, input):
@@ -167,24 +168,23 @@ class TestMakeThunk():
                 return Apply(self, [input], [output])
 
             def perform(self, node, inputs, outputs):
-                input, = inputs
-                output, = outputs
+                (input,) = inputs
+                (output,) = outputs
                 output[0] = input + 1
 
-        i = scalar.int32('i')
+        i = scalar.int32("i")
         o = IncOnePython()(i)
 
         # Check that the c_code function is not implemented
         with pytest.raises((NotImplementedError, utils.MethodNotDefined)):
-            o.owner.op.c_code(o.owner, 'o', ['x'], 'z', {'fail': ''})
+            o.owner.op.c_code(o.owner, "o", ["x"], "z", {"fail": ""})
 
-        storage_map = {i: [np.int32(3)],
-                       o: [None]}
-        compute_map = {i: [True],
-                       o: [False]}
+        storage_map = {i: [np.int32(3)], o: [None]}
+        compute_map = {i: [True], o: [False]}
 
-        thunk = o.owner.op.make_thunk(o.owner, storage_map, compute_map,
-                                      no_recycling=[])
+        thunk = o.owner.op.make_thunk(
+            o.owner, storage_map, compute_map, no_recycling=[]
+        )
 
         required = thunk()
         # Check everything went OK
@@ -195,6 +195,7 @@ class TestMakeThunk():
     def test_no_perform(self):
         class IncOneC(Op):
             """An Op with only a C (c_code) implementation"""
+
             __props__ = ()
 
             def make_node(self, input):
@@ -203,24 +204,23 @@ class TestMakeThunk():
                 return Apply(self, [input], [output])
 
             def c_code(self, node, name, inputs, outputs, sub):
-                x, = inputs
-                z, = outputs
+                (x,) = inputs
+                (z,) = outputs
                 return "%(z)s = %(x)s + 1;" % locals()
 
-        i = scalar.int32('i')
+        i = scalar.int32("i")
         o = IncOneC()(i)
 
         # Check that the perform function is not implemented
         with pytest.raises((NotImplementedError, utils.MethodNotDefined)):
             o.owner.op.perform(o.owner, 0, [None])
 
-        storage_map = {i: [np.int32(3)],
-                       o: [None]}
-        compute_map = {i: [True],
-                       o: [False]}
+        storage_map = {i: [np.int32(3)], o: [None]}
+        compute_map = {i: [True], o: [False]}
 
-        thunk = o.owner.op.make_thunk(o.owner, storage_map, compute_map,
-                                      no_recycling=[])
+        thunk = o.owner.op.make_thunk(
+            o.owner, storage_map, compute_map, no_recycling=[]
+        )
         if theano.config.cxx:
             required = thunk()
             # Check everything went OK
@@ -234,6 +234,7 @@ class TestMakeThunk():
     def test_no_make_node(self):
         class DoubleOp(Op):
             """An Op without make_node"""
+
             __props__ = ()
 
             itypes = [T.dmatrix]
@@ -244,7 +245,7 @@ class TestMakeThunk():
                 output = outputs[0]
                 output[0] = inp * 2
 
-        x_input = T.dmatrix('x_input')
+        x_input = T.dmatrix("x_input")
         f = theano.function([x_input], DoubleOp()(x_input))
         inp = np.random.rand(5, 4)
         out = f(inp)
@@ -279,7 +280,7 @@ def test_test_value_shared():
 def test_test_value_op():
     try:
         prev_value = config.compute_test_value
-        config.compute_test_value = 'raise'
+        config.compute_test_value = "raise"
         x = T.log(np.ones((5, 5)))
         v = op.get_test_value(x)
 
@@ -289,11 +290,11 @@ def test_test_value_op():
 
 
 def test_get_debug_values_no_debugger():
-    'get_debug_values should return [] when debugger is off'
+    "get_debug_values should return [] when debugger is off"
 
     prev_value = config.compute_test_value
     try:
-        config.compute_test_value = 'off'
+        config.compute_test_value = "off"
 
         x = T.vector()
 
@@ -310,7 +311,7 @@ def test_get_det_debug_values_ignore():
 
     prev_value = config.compute_test_value
     try:
-        config.compute_test_value = 'ignore'
+        config.compute_test_value = "ignore"
 
         x = T.vector()
 
@@ -326,7 +327,7 @@ def test_get_debug_values_success():
     # (and the debugger is on)
 
     prev_value = config.compute_test_value
-    for mode in ['ignore', 'warn', 'raise']:
+    for mode in ["ignore", "warn", "raise"]:
 
         try:
             config.compute_test_value = mode
@@ -356,7 +357,7 @@ def test_get_debug_values_exc():
 
     prev_value = config.compute_test_value
     try:
-        config.compute_test_value = 'raise'
+        config.compute_test_value = "raise"
 
         x = T.vector()
 
@@ -384,13 +385,13 @@ def test_debug_error_message():
 
     prev_value = config.compute_test_value
 
-    for mode in ['ignore', 'raise']:
+    for mode in ["ignore", "raise"]:
 
         try:
             config.compute_test_value = mode
 
             try:
-                op.debug_error_message('msg')
+                op.debug_error_message("msg")
                 raised = False
             except ValueError:
                 raised = True

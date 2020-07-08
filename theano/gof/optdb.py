@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 import copy
 import sys
 
@@ -11,7 +10,7 @@ from theano import config
 
 class DB(object):
     def __hash__(self):
-        if not hasattr(self, '_optimizer_idx'):
+        if not hasattr(self, "_optimizer_idx"):
             self._optimizer_idx = opt._optimizer_idx[0]
             opt._optimizer_idx[0] += 1
         return self._optimizer_idx
@@ -47,11 +46,14 @@ class DB(object):
         # It is an instance of a DB.In the tests for example,
         # this is not always the case.
         if not isinstance(obj, (DB, opt.Optimizer, opt.LocalOptimizer)):
-            raise TypeError('Object cannot be registered in OptDB', obj)
+            raise TypeError("Object cannot be registered in OptDB", obj)
         if name in self.__db__:
-            raise ValueError('The name of the object cannot be an existing'
-                             ' tag or the name of another existing object.',
-                             obj, name)
+            raise ValueError(
+                "The name of the object cannot be an existing"
+                " tag or the name of another existing object.",
+                obj,
+                name,
+            )
         if kwargs:
             assert "use_db_name_as_tag" in kwargs
             assert kwargs["use_db_name_as_tag"] is False
@@ -62,9 +64,12 @@ class DB(object):
         # This restriction is there because in many place we suppose that
         # something in the DB is there only once.
         if obj.name in self.__db__:
-            raise ValueError('''You can\'t register the same optimization
+            raise ValueError(
+                """You can\'t register the same optimization
 multiple time in a DB. Tryed to register "%s" again under the new name "%s".
- Use theano.gof.ProxyDB to work around that''' % (obj.name, name))
+ Use theano.gof.ProxyDB to work around that"""
+                % (obj.name, name)
+            )
         self.__db__[name] = OrderedSet([obj])
         self._names.add(name)
         self.__db__[obj.__class__.__name__].add(obj)
@@ -76,8 +81,9 @@ multiple time in a DB. Tryed to register "%s" again under the new name "%s".
         obj = obj.copy().pop()
         for tag in tags:
             if tag in self._names:
-                raise ValueError('The tag of the object collides with a name.',
-                                 obj, tag)
+                raise ValueError(
+                    "The tag of the object collides with a name.", obj, tag
+                )
             self.__db__[tag].add(obj)
 
     def remove_tags(self, name, *tags):
@@ -86,13 +92,14 @@ multiple time in a DB. Tryed to register "%s" again under the new name "%s".
         obj = obj.copy().pop()
         for tag in tags:
             if tag in self._names:
-                raise ValueError('The tag of the object collides with a name.',
-                                 obj, tag)
+                raise ValueError(
+                    "The tag of the object collides with a name.", obj, tag
+                )
             self.__db__[tag].remove(obj)
 
     def __query__(self, q):
         if not isinstance(q, Query):
-            raise TypeError('Expected a Query.', q)
+            raise TypeError("Expected a Query.", q)
         # The ordered set is needed for deterministic optimization.
         variables = OrderedSet()
         for tag in q.include:
@@ -122,28 +129,32 @@ multiple time in a DB. Tryed to register "%s" again under the new name "%s".
     def query(self, *tags, **kwtags):
         if len(tags) >= 1 and isinstance(tags[0], Query):
             if len(tags) > 1 or kwtags:
-                raise TypeError('If the first argument to query is a Query,'
-                                ' there should be no other arguments.',
-                                tags, kwtags)
+                raise TypeError(
+                    "If the first argument to query is a Query,"
+                    " there should be no other arguments.",
+                    tags,
+                    kwtags,
+                )
             return self.__query__(tags[0])
-        include = [tag[1:] for tag in tags if tag.startswith('+')]
-        require = [tag[1:] for tag in tags if tag.startswith('&')]
-        exclude = [tag[1:] for tag in tags if tag.startswith('-')]
+        include = [tag[1:] for tag in tags if tag.startswith("+")]
+        require = [tag[1:] for tag in tags if tag.startswith("&")]
+        exclude = [tag[1:] for tag in tags if tag.startswith("-")]
         if len(include) + len(require) + len(exclude) < len(tags):
-            raise ValueError("All tags must start with one of the following"
-                             " characters: '+', '&' or '-'", tags)
-        return self.__query__(Query(include=include,
-                                    require=require,
-                                    exclude=exclude,
-                                    subquery=kwtags))
+            raise ValueError(
+                "All tags must start with one of the following"
+                " characters: '+', '&' or '-'",
+                tags,
+            )
+        return self.__query__(
+            Query(include=include, require=require, exclude=exclude, subquery=kwtags)
+        )
 
     def __getitem__(self, name):
         variables = self.__db__[name]
         if not variables:
             raise KeyError("Nothing registered for '%s'" % name)
         elif len(variables) > 1:
-            raise ValueError('More than one match for %s (please use query)' %
-                             name)
+            raise ValueError("More than one match for %s (please use query)" % name)
         for variable in variables:
             return variable
 
@@ -167,9 +178,15 @@ class Query(object):
 
     """
 
-    def __init__(self, include, require=None, exclude=None,
-                 subquery=None, position_cutoff=float('inf'),
-                 extra_optimizations=None):
+    def __init__(
+        self,
+        include,
+        require=None,
+        exclude=None,
+        subquery=None,
+        position_cutoff=float("inf"),
+        extra_optimizations=None,
+    ):
         self.include = OrderedSet(include)
         self.require = require or OrderedSet()
         self.exclude = exclude or OrderedSet()
@@ -184,50 +201,66 @@ class Query(object):
             self.exclude = OrderedSet(self.exclude)
 
     def __str__(self):
-        return ("Query{inc=%s,ex=%s,require=%s,subquery=%s,"
-                "position_cutoff=%f,extra_opts=%s}" %
-                (self.include, self.exclude, self.require, self.subquery,
-                 self.position_cutoff, self.extra_optimizations))
+        return (
+            "Query{inc=%s,ex=%s,require=%s,subquery=%s,"
+            "position_cutoff=%f,extra_opts=%s}"
+            % (
+                self.include,
+                self.exclude,
+                self.require,
+                self.subquery,
+                self.position_cutoff,
+                self.extra_optimizations,
+            )
+        )
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        if not hasattr(self, 'extra_optimizations'):
+        if not hasattr(self, "extra_optimizations"):
             self.extra_optimizations = []
 
     # add all opt with this tag
     def including(self, *tags):
-        return Query(self.include.union(tags),
-                     self.require,
-                     self.exclude,
-                     self.subquery,
-                     self.position_cutoff,
-                     self.extra_optimizations)
+        return Query(
+            self.include.union(tags),
+            self.require,
+            self.exclude,
+            self.subquery,
+            self.position_cutoff,
+            self.extra_optimizations,
+        )
 
     # remove all opt with this tag
     def excluding(self, *tags):
-        return Query(self.include,
-                     self.require,
-                     self.exclude.union(tags),
-                     self.subquery,
-                     self.position_cutoff,
-                     self.extra_optimizations)
+        return Query(
+            self.include,
+            self.require,
+            self.exclude.union(tags),
+            self.subquery,
+            self.position_cutoff,
+            self.extra_optimizations,
+        )
 
     # keep only opt with this tag.
     def requiring(self, *tags):
-        return Query(self.include,
-                     self.require.union(tags),
-                     self.exclude,
-                     self.subquery,
-                     self.position_cutoff,
-                     self.extra_optimizations)
+        return Query(
+            self.include,
+            self.require.union(tags),
+            self.exclude,
+            self.subquery,
+            self.position_cutoff,
+            self.extra_optimizations,
+        )
 
     def register(self, *optimizations):
-        return Query(self.include,
-                     self.require,
-                     self.exclude,
-                     self.subquery,
-                     self.position_cutoff,
-                     self.extra_optimizations + list(optimizations))
+        return Query(
+            self.include,
+            self.require,
+            self.exclude,
+            self.subquery,
+            self.position_cutoff,
+            self.extra_optimizations + list(optimizations),
+        )
 
 
 class EquilibriumDB(DB):
@@ -268,8 +301,8 @@ class EquilibriumDB(DB):
         self.__cleanup__ = {}
 
     def register(self, name, obj, *tags, **kwtags):
-        final_opt = kwtags.pop('final_opt', False)
-        cleanup = kwtags.pop('cleanup', False)
+        final_opt = kwtags.pop("final_opt", False)
+        cleanup = kwtags.pop("cleanup", False)
         # An opt should not be final and clean up
         assert not (final_opt and cleanup)
         super(EquilibriumDB, self).register(name, obj, *tags, **kwtags)
@@ -279,10 +312,8 @@ class EquilibriumDB(DB):
     def query(self, *tags, **kwtags):
         _opts = super(EquilibriumDB, self).query(*tags, **kwtags)
         final_opts = [o for o in _opts if self.__final__.get(o.name, False)]
-        cleanup_opts = [o for o in _opts if self.__cleanup__.get(o.name,
-                                                                 False)]
-        opts = [o for o in _opts
-                if o not in final_opts and o not in cleanup_opts]
+        cleanup_opts = [o for o in _opts if self.__cleanup__.get(o.name, False)]
+        opts = [o for o in _opts if o not in final_opts and o not in cleanup_opts]
         if len(final_opts) == 0:
             final_opts = None
         if len(cleanup_opts) == 0:
@@ -294,7 +325,8 @@ class EquilibriumDB(DB):
             tracks_on_change_inputs=self.tracks_on_change_inputs,
             failure_callback=opt.NavigatorOptimizer.warn_inplace,
             final_optimizers=final_opts,
-            cleanup_optimizers=cleanup_opts)
+            cleanup_optimizers=cleanup_opts,
+        )
 
 
 class SequenceDB(DB):
@@ -321,7 +353,7 @@ class SequenceDB(DB):
 
     def register(self, name, obj, position, *tags):
         super(SequenceDB, self).register(name, obj, *tags)
-        if position == 'last':
+        if position == "last":
             if len(self.__position__) == 0:
                 self.__position__[name] = 0
             else:
@@ -341,14 +373,13 @@ class SequenceDB(DB):
         """
         opts = super(SequenceDB, self).query(*tags, **kwtags)
 
-        position_cutoff = kwtags.pop('position_cutoff',
-                                     config.optdb.position_cutoff)
+        position_cutoff = kwtags.pop("position_cutoff", config.optdb.position_cutoff)
         position_dict = self.__position__
 
         if len(tags) >= 1 and isinstance(tags[0], Query):
             # the call to super should have raise an error with a good message
             assert len(tags) == 1
-            if getattr(tags[0], 'position_cutoff', None):
+            if getattr(tags[0], "position_cutoff", None):
                 position_cutoff = tags[0].position_cutoff
 
             # The Query instance might contain extra optimizations which need
@@ -374,7 +405,7 @@ class SequenceDB(DB):
         if self.failure_callback:
             kwargs["failure_callback"] = self.failure_callback
         ret = self.seq_opt(opts, **kwargs)
-        if hasattr(tags[0], 'name'):
+        if hasattr(tags[0], "name"):
             ret.name = tags[0].name
         return ret
 
@@ -383,7 +414,8 @@ class SequenceDB(DB):
         positions = list(self.__position__.items())
 
         def c(a, b):
-            return ((a[1] > b[1]) - (a[1] < b[1]))
+            return (a[1] > b[1]) - (a[1] < b[1])
+
         positions.sort(c)
 
         print("  position", positions, file=stream)
@@ -405,8 +437,9 @@ class LocalGroupDB(DB):
 
     """
 
-    def __init__(self, apply_all_opts=False, profile=False,
-                 local_opt=opt.LocalOptGroup):
+    def __init__(
+        self, apply_all_opts=False, profile=False, local_opt=opt.LocalOptGroup
+    ):
         super(LocalGroupDB, self).__init__()
         self.failure_callback = None
         self.apply_all_opts = apply_all_opts
@@ -416,8 +449,8 @@ class LocalGroupDB(DB):
 
     def register(self, name, obj, *tags, **kwargs):
         super(LocalGroupDB, self).register(name, obj, *tags)
-        position = kwargs.pop('position', 'last')
-        if position == 'last':
+        position = kwargs.pop("position", "last")
+        if position == "last":
             if len(self.__position__) == 0:
                 self.__position__[name] = 0
             else:
@@ -431,9 +464,9 @@ class LocalGroupDB(DB):
         opts = list(super(LocalGroupDB, self).query(*tags, **kwtags))
         opts.sort(key=lambda obj: (self.__position__[obj.name], obj.name))
 
-        ret = self.local_opt(*opts,
-                             apply_all_opts=self.apply_all_opts,
-                             profile=self.profile)
+        ret = self.local_opt(
+            *opts, apply_all_opts=self.apply_all_opts, profile=self.profile
+        )
         return ret
 
 
@@ -444,8 +477,9 @@ class TopoDB(DB):
 
     """
 
-    def __init__(self, db, order='in_to_out', ignore_newtrees=False,
-                 failure_callback=None):
+    def __init__(
+        self, db, order="in_to_out", ignore_newtrees=False, failure_callback=None
+    ):
         super(TopoDB, self).__init__()
         self.db = db
         self.order = order
@@ -453,10 +487,12 @@ class TopoDB(DB):
         self.failure_callback = failure_callback
 
     def query(self, *tags, **kwtags):
-        return opt.TopoOptimizer(self.db.query(*tags, **kwtags),
-                                 self.order,
-                                 self.ignore_newtrees,
-                                 self.failure_callback)
+        return opt.TopoOptimizer(
+            self.db.query(*tags, **kwtags),
+            self.order,
+            self.ignore_newtrees,
+            self.failure_callback,
+        )
 
 
 class ProxyDB(DB):

@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 # Run using
 # mpiexec -np 2 python _test_mpi_roundtrip.py
 
@@ -16,21 +15,22 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 
 if size != 2:
-    stderr.write("mpiexec failed to create a world with two nodes.\n"
-                 "Closing with success message.")
+    stderr.write(
+        "mpiexec failed to create a world with two nodes.\n"
+        "Closing with success message."
+    )
     stdout.write("True")
     exit(0)
 
 shape = (2, 2)
-dtype = 'float32'
+dtype = "float32"
 
 scheduler = sort_schedule_fn(*mpi_cmps)
-mode = theano.Mode(optimizer=None,
-                   linker=theano.OpWiseCLinker(schedule=scheduler))
+mode = theano.Mode(optimizer=None, linker=theano.OpWiseCLinker(schedule=scheduler))
 
-with change_flags(compute_test_value='off'):
+with change_flags(compute_test_value="off"):
     if rank == 0:
-        x = theano.tensor.matrix('x', dtype=dtype)
+        x = theano.tensor.matrix("x", dtype=dtype)
         y = x + 1
         send_request = send(y, 1, 11)
 
@@ -43,7 +43,7 @@ with change_flags(compute_test_value='off'):
 
         _, zz = f(xx)
 
-        same = np.linalg.norm(zz - expected) < .001
+        same = np.linalg.norm(zz - expected) < 0.001
         # The parent test will look for "True" in the output
         stdout.write(str(same))
 

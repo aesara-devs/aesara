@@ -1,7 +1,7 @@
 .. include:: css.inc
 
 .. _install_centos6:
- 
+
 
 CentOS 6 Installation Instructions
 ##################################
@@ -25,5 +25,5 @@ Requirements through System Packages (not recommended)
 
 .. code-block:: bash
 
-    sudo yum install python-devel python-nose python-setuptools gcc gcc-gfortran gcc-c++ blas-devel lapack-devel atlas-devel
+    sudo yum install python-devel python-pytest python-setuptools gcc gcc-gfortran gcc-c++ blas-devel lapack-devel atlas-devel
     sudo easy_install pip

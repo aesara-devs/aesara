@@ -1,58 +1,88 @@
-from __future__ import absolute_import, print_function, division
+import numpy as np
+import theano
+import theano.tensor.basic as basic
 
 from theano import function
-from theano.tensor.basic import (_convert_to_int32, _convert_to_int8,
-                                 _convert_to_int16, _convert_to_int64,
-                                 _convert_to_float32, _convert_to_float64)
-from theano.tensor import *
+from theano.tensor.basic import (
+    _convert_to_int32,
+    _convert_to_int8,
+    _convert_to_int16,
+    _convert_to_int64,
+    _convert_to_float32,
+    _convert_to_float64,
+)
+from theano.tensor import (
+    bvector,
+    ivector,
+    fvector,
+    dvector,
+    zmatrix,
+    cast,
+    TensorType,
+    dmatrix,
+)
+from theano.compile import In
 
 
-class test_casting():
+class TestCasting:
     def test_0(self):
-        for op_fn in [_convert_to_int32, _convert_to_float32,
-                      _convert_to_float64]:
+        for op_fn in [_convert_to_int32, _convert_to_float32, _convert_to_float64]:
             for type_fn in bvector, ivector, fvector, dvector:
                 x = type_fn()
                 f = function([x], op_fn(x))
 
-                xval = theano._asarray(np.random.rand(10) * 10,
-                                       dtype=type_fn.dtype)
+                xval = theano._asarray(np.random.rand(10) * 10, dtype=type_fn.dtype)
                 yval = f(xval)
-                assert (str(yval.dtype) ==
-                        op_fn.scalar_op.output_types_preference.spec[0].dtype)
+                assert (
+                    str(yval.dtype)
+                    == op_fn.scalar_op.output_types_preference.spec[0].dtype
+                )
 
     def test_illegal(self):
         try:
             x = zmatrix()
-            function([x], cast(x, 'float64'))(np.ones((2, 3),
-                                                         dtype='complex128'))
+            function([x], cast(x, "float64"))(np.ones((2, 3), dtype="complex128"))
         except TypeError:
             return
         assert 0
 
     def test_basic(self):
-        for type1 in ['uint8', 'uint16', 'uint32', 'uint64',
-                      'int8', 'int16', 'int32', 'int64', 'float32', 'float64']:
-            x = TensorType(dtype=type1,
-                           broadcastable=(False, ))()
-            for type2, converter in zip(['int8', 'int16', 'int32', 'int64',
-                                         'float32', 'float64'],
-                                        [_convert_to_int8, _convert_to_int16,
-                                         _convert_to_int32, _convert_to_int64,
-                                         _convert_to_float32,
-                                         _convert_to_float64]):
+        for type1 in [
+            "uint8",
+            "uint16",
+            "uint32",
+            "uint64",
+            "int8",
+            "int16",
+            "int32",
+            "int64",
+            "float32",
+            "float64",
+        ]:
+            x = TensorType(dtype=type1, broadcastable=(False,))()
+            for type2, converter in zip(
+                ["int8", "int16", "int32", "int64", "float32", "float64"],
+                [
+                    _convert_to_int8,
+                    _convert_to_int16,
+                    _convert_to_int32,
+                    _convert_to_int64,
+                    _convert_to_float32,
+                    _convert_to_float64,
+                ],
+            ):
                 y = converter(x)
-                f = function([compile.In(x, strict=True)], y)
+                f = function([In(x, strict=True)], y)
                 a = np.arange(10, dtype=type1)
                 b = f(a)
                 assert np.all(b == np.arange(10, dtype=type2))
 
     def test_convert_to_complex(self):
-        val64 = np.ones(3, dtype='complex64') + 0.5j
-        val128 = np.ones(3, dtype='complex128') + 0.5j
+        val64 = np.ones(3, dtype="complex64") + 0.5j
+        val128 = np.ones(3, dtype="complex128") + 0.5j
 
-        vec64 = TensorType('complex64', (False, ))()
-        vec128 = TensorType('complex128', (False, ))()
+        vec64 = TensorType("complex64", (False,))()
+        vec128 = TensorType("complex128", (False,))()
 
         f = function([vec64], basic._convert_to_complex128(vec64))
         # we need to compare with the same type.
@@ -68,23 +98,23 @@ class test_casting():
         assert vec128.type.values_eq_approx(val64, f(val128))
 
         # upcasting to complex128
-        for t in ['int8', 'int16', 'int32', 'int64', 'float32', 'float64']:
+        for t in ["int8", "int16", "int32", "int64", "float32", "float64"]:
             a = theano.shared(np.ones(3, dtype=t))
-            b = theano.shared(np.ones(3, dtype='complex128'))
+            b = theano.shared(np.ones(3, dtype="complex128"))
             f = function([], basic._convert_to_complex128(a))
             assert a.type.values_eq_approx(b.get_value(), f())
 
         # upcasting to complex64
-        for t in ['int8', 'int16', 'int32', 'int64', 'float32']:
+        for t in ["int8", "int16", "int32", "int64", "float32"]:
             a = theano.shared(np.ones(3, dtype=t))
-            b = theano.shared(np.ones(3, dtype='complex64'))
+            b = theano.shared(np.ones(3, dtype="complex64"))
             f = function([], basic._convert_to_complex64(a))
             assert a.type.values_eq_approx(b.get_value(), f())
 
         # downcast to complex64
-        for t in ['float64']:
+        for t in ["float64"]:
             a = theano.shared(np.ones(3, dtype=t))
-            b = theano.shared(np.ones(3, dtype='complex64'))
+            b = theano.shared(np.ones(3, dtype="complex64"))
             f = function([], basic._convert_to_complex64(a))
             assert a.type.values_eq_approx(b.get_value(), f())
 

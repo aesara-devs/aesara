@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 from theano import gof
 
 
@@ -18,10 +17,9 @@ class TypedListType(gof.Type):
     def __init__(self, ttype, depth=0):
 
         if depth < 0:
-            raise ValueError('Please specify a depth superior or'
-                             'equal to 0')
+            raise ValueError("Please specify a depth superior or" "equal to 0")
         if not isinstance(ttype, gof.Type):
-            raise TypeError('Expected a Theano Type')
+            raise TypeError("Expected a Theano Type")
 
         if depth == 0:
             self.ttype = ttype
@@ -43,7 +41,7 @@ class TypedListType(gof.Type):
         """
         if strict:
             if not isinstance(x, list):
-                raise TypeError('Expected a python list')
+                raise TypeError("Expected a python list")
         else:
             x = [self.ttype.filter(y) for y in x]
 
@@ -51,8 +49,7 @@ class TypedListType(gof.Type):
                 return x
 
             else:
-                raise TypeError('Expected all elements to'
-                                ' be %s' % str(self.ttype))
+                raise TypeError("Expected all elements to" " be %s" % str(self.ttype))
 
     def __eq__(self, other):
         """
@@ -65,7 +62,7 @@ class TypedListType(gof.Type):
         return gof.hashtype(self) ^ hash(self.ttype)
 
     def __str__(self):
-        return 'TypedList <' + str(self.ttype) + '>'
+        return "TypedList <" + str(self.ttype) + ">"
 
     def get_depth(self):
         """
@@ -105,12 +102,16 @@ class TypedListType(gof.Type):
     def c_declare(self, name, sub, check_input=True):
         return """
         PyListObject* %(name)s;
-        """ % dict(name=name)
+        """ % dict(
+            name=name
+        )
 
     def c_init(self, name, sub):
         return """
         %(name)s = NULL;
-        """ % dict(name=name)
+        """ % dict(
+            name=name
+        )
 
     def c_extract(self, name, sub, check_input=True):
         if check_input:
@@ -118,12 +119,18 @@ class TypedListType(gof.Type):
             if (!PyList_Check(py_%(name)s)) {
                 PyErr_SetString(PyExc_TypeError, "expected a list");
                 %(fail)s
-            }""" % dict(name=name, fail=sub['fail'])
+            }""" % dict(
+                name=name, fail=sub["fail"]
+            )
         else:
             pre = ""
-        return pre + """
+        return (
+            pre
+            + """
         %(name)s = (PyListObject*) (py_%(name)s);
-        """ % dict(name=name, fail=sub['fail'])
+        """
+            % dict(name=name, fail=sub["fail"])
+        )
 
     def c_sync(self, name, sub):
 
@@ -131,7 +138,9 @@ class TypedListType(gof.Type):
         Py_XDECREF(py_%(name)s);
         py_%(name)s = (PyObject*)(%(name)s);
         Py_INCREF(py_%(name)s);
-        """ % dict(name=name)
+        """ % dict(
+            name=name
+        )
 
     def c_cleanup(self, name, sub):
         return ""

@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 import numpy as np
 from six.moves import xrange
 
@@ -10,6 +9,7 @@ from theano.gof import Generic, ParamsType, EnumList
 from theano import gradient
 from theano.gradient import DisconnectedType, disconnected_type
 from theano.scalar import int32 as int_t
+
 tensor = basic
 
 
@@ -28,22 +28,23 @@ class CpuContiguous(theano.Op):
         return theano.Apply(self, [x_], [x_.type()])
 
     def perform(self, node, inputs, output_storage):
-        x, = inputs
+        (x,) = inputs
         y = output_storage[0]
         # if the ouput is contiguous do nothing, else copy
         # the input
-        if not x.flags['C_CONTIGUOUS']:
+        if not x.flags["C_CONTIGUOUS"]:
             x = x.copy()
-        assert x.flags['C_CONTIGUOUS']
+        assert x.flags["C_CONTIGUOUS"]
         y[0] = x
 
     def grad(self, inputs, dout):
         return [theano.tensor.as_tensor_variable(dout[0])]
 
     def c_code(self, node, name, inames, onames, sub):
-        x, = inames
-        y, = onames
-        code = """
+        (x,) = inames
+        (y,) = onames
+        code = (
+            """
             if (!PyArray_CHKFLAGS(%(x)s, NPY_ARRAY_C_CONTIGUOUS)){
                 // check to see if output is contiguous first
                 if (%(y)s != NULL &&
@@ -61,11 +62,14 @@ class CpuContiguous(theano.Op):
                 Py_XDECREF(%(y)s);
                 %(y)s = %(x)s;
             }
-            """ % locals()
+            """
+            % locals()
+        )
         return code
 
     def c_code_cache_version(self):
         return (1,)
+
 
 cpu_contiguous = CpuContiguous()
 
@@ -82,15 +86,16 @@ class SearchsortedOp(theano.Op):
     """
 
     params_type = Generic()
-    __props__ = ("side", )
+    __props__ = ("side",)
     check_input = False
 
-    def __init__(self, side='left'):
-        if side == 'left' or side == 'right':
+    def __init__(self, side="left"):
+        if side == "left" or side == "right":
             self.side = side
         else:
-            raise ValueError('\'%(side)s\' is an invalid value for keyword \'side\''
-                             % locals())
+            raise ValueError(
+                "'%(side)s' is an invalid value for keyword 'side'" % locals()
+            )
 
     def get_params(self, node):
         return self.side
@@ -98,19 +103,21 @@ class SearchsortedOp(theano.Op):
     def make_node(self, x, v, sorter=None):
         x = basic.as_tensor(x, ndim=1)
         v = basic.as_tensor(v)
-        out_type = v.type.clone(dtype='int64')
+        out_type = v.type.clone(dtype="int64")
         if sorter is None:
             return theano.Apply(self, [x, v], [out_type()])
         else:
             sorter = basic.as_tensor(sorter, ndim=1)
-            if (theano.configdefaults.python_int_bitwidth() == 32 and
-                    sorter.dtype == 'int64'):
+            if (
+                theano.configdefaults.python_int_bitwidth() == 32
+                and sorter.dtype == "int64"
+            ):
                 raise TypeError(
                     "numpy.searchsorted with Python 32bit do not support a"
-                    " sorter of int64.")
+                    " sorter of int64."
+                )
             if sorter.type not in basic.int_vector_types:
-                raise TypeError('sorter must be an integer vector',
-                                sorter.type)
+                raise TypeError("sorter must be an integer vector", sorter.type)
             return theano.Apply(self, [x, v, sorter], [out_type()])
 
     def infer_shape(self, node, shapes):
@@ -126,23 +133,30 @@ class SearchsortedOp(theano.Op):
         z = output_storage[0]
 
         z[0] = np.searchsorted(x, v, side=params, sorter=sorter).astype(
-            node.outputs[0].dtype)
+            node.outputs[0].dtype
+        )
 
     def c_support_code_struct(self, node, name):
-        return """
+        return (
+            """
             int right_%(name)s;
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_init_code_struct(self, node, name, sub):
-        side = sub['params']
-        fail = sub['fail']
-        return """
+        side = sub["params"]
+        fail = sub["fail"]
+        return (
+            """
             PyObject* tmp_%(name)s = PyUnicode_FromString("right");
             if (tmp_%(name)s == NULL)
                 %(fail)s;
             right_%(name)s = PyUnicode_Compare(%(side)s, tmp_%(name)s);
             Py_DECREF(tmp_%(name)s);
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_code(self, node, name, inames, onames, sub):
         sorter = None
@@ -152,10 +166,11 @@ class SearchsortedOp(theano.Op):
             x, v = inames
         if not sorter:
             sorter = "NULL"
-        z, = onames
-        fail = sub['fail']
+        (z,) = onames
+        fail = sub["fail"]
 
-        return """
+        return (
+            """
             Py_XDECREF(%(z)s);
             %(z)s = (PyArrayObject*) PyArray_SearchSorted(%(x)s, (PyObject*) %(v)s,
                                                           right_%(name)s ? NPY_SEARCHLEFT : NPY_SEARCHRIGHT, (PyObject*) %(sorter)s);
@@ -166,7 +181,9 @@ class SearchsortedOp(theano.Op):
                 Py_XDECREF(%(z)s);
                 %(z)s = (PyArrayObject*) tmp;
             }
-        """ % locals()
+        """
+            % locals()
+        )
 
     def c_code_cache_version(self):
         return (2,)
@@ -186,7 +203,7 @@ class SearchsortedOp(theano.Op):
             return [x_grad, v_grad]
 
 
-def searchsorted(x, v, side='left', sorter=None):
+def searchsorted(x, v, side="left", sorter=None):
     """Find indices where elements should be inserted to maintain order.
 
     Wrapping of numpy.searchsorted. Find the indices into a sorted array
@@ -249,12 +266,12 @@ class CumOp(theano.Op):
 
     __props__ = ("axis", "mode")
     check_input = False
-    params_type = ParamsType(c_axis=int_t,
-                             mode=EnumList(('MODE_ADD', 'add'),
-                                           ('MODE_MUL', 'mul')))
+    params_type = ParamsType(
+        c_axis=int_t, mode=EnumList(("MODE_ADD", "add"), ("MODE_MUL", "mul"))
+    )
 
-    def __init__(self, axis=None, mode='add'):
-        if mode not in ('add', 'mul'):
+    def __init__(self, axis=None, mode="add"):
+        if mode not in ("add", "mul"):
             raise ValueError('%s: Unknown mode "%s"' % (type(self).__name__, mode))
         self.axis = axis
         self.mode = mode
@@ -268,46 +285,45 @@ class CumOp(theano.Op):
         if self.axis is None:
             out_type = theano.tensor.vector(dtype=x.dtype)  # Flatten
         elif self.axis >= x.ndim or self.axis < -x.ndim:
-            raise ValueError('axis(={0}) out of bounds'.format(self.axis))
+            raise ValueError("axis(={0}) out of bounds".format(self.axis))
 
         return theano.Apply(self, [x], [out_type])
 
     def perform(self, node, inputs, output_storage, params):
         x = inputs[0]
         z = output_storage[0]
-        z[0] = {'add': np.cumsum, 'mul': np.cumprod}[self.mode](x, axis=self.axis)
+        z[0] = {"add": np.cumsum, "mul": np.cumprod}[self.mode](x, axis=self.axis)
 
     def grad(self, inputs, output_gradients):
-        x, = inputs
-        gi, = output_gradients
+        (x,) = inputs
+        (gi,) = output_gradients
 
         if self.axis is None:
-            if self.mode == 'add':
+            if self.mode == "add":
                 return [cumsum(gi[::-1])[::-1].reshape(x.shape)]
-            elif self.mode == 'mul':
+            elif self.mode == "mul":
                 fx = cumprod(x, axis=self.axis)
-                return [cumsum(
-                    (fx * gi)[::-1])[::-1].reshape(x.shape) / x]
+                return [cumsum((fx * gi)[::-1])[::-1].reshape(x.shape) / x]
             else:
                 raise NotImplementedError(
-                    '%s: unknown gradient for mode "%s"' %
-                    (type(self).__name__, self.mode))
+                    '%s: unknown gradient for mode "%s"'
+                    % (type(self).__name__, self.mode)
+                )
 
         reverse_slicing = [slice(None, None, None)] * gi.ndim
         reverse_slicing[self.axis] = slice(None, None, -1)
         reverse_slicing = tuple(reverse_slicing)
         # We need to reverse the gradients along ``self.axis``,
         #  compute cumsum, then reverse again
-        if self.mode == 'add':
+        if self.mode == "add":
             return [cumsum(gi[reverse_slicing], self.axis)[reverse_slicing]]
-        elif self.mode == 'mul':
+        elif self.mode == "mul":
             fx = cumprod(x, axis=self.axis)
-            return [cumsum(
-                (fx * gi)[reverse_slicing], self.axis)[reverse_slicing] / x]
+            return [cumsum((fx * gi)[reverse_slicing], self.axis)[reverse_slicing] / x]
         else:
             raise NotImplementedError(
-                '%s: unknown gradient for mode "%s"' %
-                (type(self).__name__, self.mode))
+                '%s: unknown gradient for mode "%s"' % (type(self).__name__, self.mode)
+            )
 
     def infer_shape(self, node, shapes):
         if self.axis is None:
@@ -316,13 +332,14 @@ class CumOp(theano.Op):
         return shapes
 
     def c_code(self, node, name, inames, onames, sub):
-        x, = inames
-        z, = onames
+        (x,) = inames
+        (z,) = onames
         axis = self.axis
-        fail = sub['fail']
-        params = sub['params']
+        fail = sub["fail"]
+        params = sub["params"]
 
-        code = """
+        code = (
+            """
                 int axis = %(params)s->c_axis;
                 if (axis == 0 && PyArray_NDIM(%(x)s) == 1)
                     axis = NPY_MAXDIMS;
@@ -359,7 +376,9 @@ class CumOp(theano.Op):
                     // Because PyArray_CumSum/CumProd returns a newly created reference on t.
                     Py_XDECREF(t);
                 }
-            """ % locals()
+            """
+            % locals()
+        )
 
         return code
 
@@ -387,7 +406,7 @@ def cumsum(x, axis=None):
     .. versionadded:: 0.7
 
     """
-    return CumOp(axis=axis, mode='add')(x)
+    return CumOp(axis=axis, mode="add")(x)
 
 
 def cumprod(x, axis=None):
@@ -408,7 +427,7 @@ def cumprod(x, axis=None):
     .. versionadded:: 0.7
 
     """
-    return CumOp(axis=axis, mode='mul')(x)
+    return CumOp(axis=axis, mode="mul")(x)
 
 
 # CumsumOp and CumprodOp are for compatibility with old version,
@@ -418,7 +437,7 @@ class CumsumOp(theano.Op):
 
     def __new__(typ, *args, **kwargs):
         obj = object.__new__(CumOp, *args, **kwargs)
-        obj.mode = 'add'
+        obj.mode = "add"
         return obj
 
 
@@ -427,7 +446,7 @@ class CumprodOp(theano.Op):
 
     def __new__(typ, *args, **kwargs):
         obj = object.__new__(CumOp, *args, **kwargs)
-        obj.mode = 'mul'
+        obj.mode = "mul"
         return obj
 
 
@@ -457,14 +476,16 @@ class DiffOp(theano.Op):
         inputs = inputs[0]
 
         if inputs.ndim != 1:
-            raise NotImplementedError("Grad is not implemented for inputs with"
-                                      "number of dimension other than 1.")
+            raise NotImplementedError(
+                "Grad is not implemented for inputs with"
+                "number of dimension other than 1."
+            )
 
         z = outputs_gradients[0]
 
         def _grad_helper(z):
-            pre = basic.concatenate([[0.], z])
-            app = basic.concatenate([z, [0.]])
+            pre = basic.concatenate([[0.0], z])
+            app = basic.concatenate([z, [0.0]])
             return pre - app
 
         for k in range(self.n):
@@ -534,10 +555,11 @@ def bincount(x, weights=None, minlength=None, assert_nonneg=False):
 
     if assert_nonneg:
         from theano.tensor.opt import Assert
-        assert_op = Assert('Input to bincount has negative values!')
+
+        assert_op = Assert("Input to bincount has negative values!")
         x = assert_op(x, theano.tensor.all(x >= 0))
 
-    max_value = theano.tensor.cast(x.max() + 1, 'int64')
+    max_value = theano.tensor.cast(x.max() + 1, "int64")
 
     if minlength is not None:
         max_value = theano.tensor.maximum(max_value, minlength)
@@ -574,8 +596,7 @@ def squeeze(x):
         `x` without its broadcastable dimensions.
 
     """
-    view = x.dimshuffle([i for i in range(x.ndim)
-                         if not x.broadcastable[i]])
+    view = x.dimshuffle([i for i in range(x.ndim) if not x.broadcastable[i]])
     return view
 
 
@@ -627,15 +648,18 @@ class RepeatOp(theano.Op):
         # time, not wait for execution.
         ptr_bitwidth = theano.configdefaults.local_bitwidth()
         if ptr_bitwidth == 64:
-            numpy_unsupported_dtypes = ('uint64',)
+            numpy_unsupported_dtypes = ("uint64",)
         if ptr_bitwidth == 32:
-            numpy_unsupported_dtypes = ('uint32', 'int64', 'uint64')
+            numpy_unsupported_dtypes = ("uint32", "int64", "uint64")
 
         if repeats.dtype in numpy_unsupported_dtypes:
             raise TypeError(
-                ("dtypes %s are not supported by numpy.repeat "
-                 "for the 'repeats' parameter, "
-                 % str(numpy_unsupported_dtypes)), repeats.dtype)
+                (
+                    "dtypes %s are not supported by numpy.repeat "
+                    "for the 'repeats' parameter, " % str(numpy_unsupported_dtypes)
+                ),
+                repeats.dtype,
+            )
 
         if self.axis is None:
             broadcastable = [False]
@@ -679,8 +703,7 @@ class RepeatOp(theano.Op):
             shape = [x.shape[k] for k in range(x.ndim)]
             shape.insert(axis, repeats)
 
-            return [gz.reshape(shape, x.ndim + 1).sum(axis=axis),
-                    DisconnectedType()()]
+            return [gz.reshape(shape, x.ndim + 1).sum(axis=axis), DisconnectedType()()]
         elif repeats.ndim == 1:
             # For this implementation, we would need to specify the length
             # of repeats in order to split gz in the right way to sum
@@ -696,8 +719,8 @@ class RepeatOp(theano.Op):
 
         # uint64 shape are not supported.
         dtype = None
-        if repeats.dtype in ['uint8', 'uint16', 'uint32']:
-            dtype = 'int64'
+        if repeats.dtype in ["uint8", "uint16", "uint32"]:
+            dtype = "int64"
         if self.axis is None:
             if repeats.ndim == 0:
                 if len(i0_shapes) == 0:
@@ -706,7 +729,7 @@ class RepeatOp(theano.Op):
                     res = 1
                     for d in i0_shapes:
                         res = res * d
-                    out_shape = (res * repeats, )
+                    out_shape = (res * repeats,)
             else:
                 out_shape = [theano.tensor.sum(repeats, dtype=dtype)]
         else:
@@ -746,15 +769,15 @@ def repeat(x, repeats, axis=None):
     repeats = tensor.as_tensor_variable(repeats)
 
     if repeats.ndim > 1:
-        raise ValueError('The dimension of repeats should not exceed 1.')
+        raise ValueError("The dimension of repeats should not exceed 1.")
 
     if repeats.ndim == 1 and not repeats.broadcastable[0]:
-            return RepeatOp(axis=axis)(x, repeats)
+        return RepeatOp(axis=axis)(x, repeats)
     else:
         if repeats.ndim == 1:
             repeats = repeats[0]
 
-        if x.dtype == 'uint64':
+        if x.dtype == "uint64":
             raise TypeError("theano.tensor.repeat don't support dtype uint64")
 
         if axis is None:
@@ -762,7 +785,7 @@ def repeat(x, repeats, axis=None):
             x = x.flatten()
         else:
             if axis >= x.ndim:
-                raise ValueError('Axis should not exceed x.ndim-1.')
+                raise ValueError("Axis should not exceed x.ndim-1.")
             if axis < 0:
                 axis = x.ndim + axis
 
@@ -781,7 +804,7 @@ def repeat(x, repeats, axis=None):
 
         # dims_ is the dimension of that intermediate tensor.
         dims_ = list(np.arange(x.ndim))
-        dims_.insert(axis + 1, 'x')
+        dims_.insert(axis + 1, "x")
 
         # After the original tensor is duplicated along the additional
         # dimension, we reshape it to the expected output shape, and
@@ -797,28 +820,26 @@ class Bartlett(gof.Op):
     def make_node(self, M):
         M = tensor.as_tensor_variable(M)
         if M.ndim != 0:
-            raise TypeError('%s only works on scalar input'
-                            % self.__class__.__name__)
+            raise TypeError("%s only works on scalar input" % self.__class__.__name__)
         elif M.dtype not in theano.tensor.integer_dtypes:
             # dtype is a theano attribute here
-            raise TypeError('%s only works on integer input'
-                            % self.__class__.__name__)
+            raise TypeError("%s only works on integer input" % self.__class__.__name__)
         return gof.Apply(self, [M], [tensor.dvector()])
 
     def perform(self, node, inputs, out_):
         M = inputs[0]
-        out, = out_
+        (out,) = out_
         out[0] = np.bartlett(M)
 
     def infer_shape(self, node, in_shapes):
         temp = node.inputs[0]
-        M = tensor.switch(tensor.lt(temp, 0),
-                          tensor.cast(0, temp.dtype),
-                          temp)
+        M = tensor.switch(tensor.lt(temp, 0), tensor.cast(0, temp.dtype), temp)
         return [[M]]
 
     def grad(self, inputs, output_grads):
         return [None for i in inputs]
+
+
 bartlett_ = Bartlett()
 
 
@@ -861,15 +882,20 @@ class FillDiagonal(gof.Op):
         a = tensor.as_tensor_variable(a)
         val = tensor.as_tensor_variable(val)
         if a.ndim < 2:
-            raise TypeError('%s: first parameter must have at least'
-                            ' two dimensions' % self.__class__.__name__)
+            raise TypeError(
+                "%s: first parameter must have at least"
+                " two dimensions" % self.__class__.__name__
+            )
         elif val.ndim != 0:
-            raise TypeError('%s: second parameter must be a scalar'
-                            % self.__class__.__name__)
+            raise TypeError(
+                "%s: second parameter must be a scalar" % self.__class__.__name__
+            )
         val = tensor.cast(val, dtype=scalar.upcast(a.dtype, val.dtype))
         if val.dtype != a.dtype:
-            raise TypeError('%s: type of second parameter must be the same as'
-                            ' the first\'s' % self.__class__.__name__)
+            raise TypeError(
+                "%s: type of second parameter must be the same as"
+                " the first's" % self.__class__.__name__
+            )
         return gof.Apply(self, [a, val], [a.type()])
 
     def perform(self, node, inputs, output_storage):
@@ -897,16 +923,19 @@ class FillDiagonal(gof.Op):
         """
         a, val = inp
         grad = cost_grad[0]
-        if (a.dtype.startswith('complex')):
+        if a.dtype.startswith("complex"):
             return [None, None]
         elif a.ndim > 2:
-            raise NotImplementedError('%s: gradient is currently implemented'
-                                      ' for matrices only' %
-                                      self.__class__.__name__)
+            raise NotImplementedError(
+                "%s: gradient is currently implemented"
+                " for matrices only" % self.__class__.__name__
+            )
         wr_a = fill_diagonal(grad, 0)  # valid for any number of dimensions
         # diag is only valid for matrices
         wr_val = theano.tensor.nlinalg.diag(grad).sum()
         return [wr_a, wr_val]
+
+
 fill_diagonal_ = FillDiagonal()
 
 
@@ -956,22 +985,30 @@ class FillDiagonalOffset(gof.Op):
         val = tensor.as_tensor_variable(val)
         offset = tensor.as_tensor_variable(offset)
         if a.ndim != 2:
-            raise TypeError('%s: first parameter must have exactly'
-                            ' two dimensions' % self.__class__.__name__)
+            raise TypeError(
+                "%s: first parameter must have exactly"
+                " two dimensions" % self.__class__.__name__
+            )
         elif val.ndim != 0:
-            raise TypeError('%s: second parameter must be a scalar'
-                            % self.__class__.__name__)
+            raise TypeError(
+                "%s: second parameter must be a scalar" % self.__class__.__name__
+            )
         elif offset.ndim != 0:
-            raise TypeError('%s: third parameter must be a scalar'
-                            % self.__class__.__name__)
+            raise TypeError(
+                "%s: third parameter must be a scalar" % self.__class__.__name__
+            )
         val = tensor.cast(val, dtype=scalar.upcast(a.dtype, val.dtype))
         if val.dtype != a.dtype:
-            raise TypeError('%s: type of second parameter must be the same'
-                            ' as the first\'s' % self.__class__.__name__)
+            raise TypeError(
+                "%s: type of second parameter must be the same"
+                " as the first's" % self.__class__.__name__
+            )
         elif offset.dtype not in theano.tensor.integer_dtypes:
-            raise TypeError('%s: type of third parameter must be as integer'
-                            ' use theano.tensor.cast( input, \'int32/int64\')'
-                            % self.__class__.__name__)
+            raise TypeError(
+                "%s: type of third parameter must be as integer"
+                " use theano.tensor.cast( input, 'int32/int64')"
+                % self.__class__.__name__
+            )
 
         return gof.Apply(self, [a, val, offset], [a.type()])
 
@@ -997,7 +1034,7 @@ class FillDiagonalOffset(gof.Op):
             start = offset
             num_of_step = min(min(width, height), width - offset)
         else:
-            start = - offset * a.shape[1]
+            start = -offset * a.shape[1]
             num_of_step = min(min(width, height), height + offset)
         step = a.shape[1] + 1
         end = start + step * num_of_step
@@ -1016,7 +1053,7 @@ class FillDiagonalOffset(gof.Op):
         grad = cost_grad[0]
         height, width = grad.shape
 
-        if (a.dtype.startswith('complex')):
+        if a.dtype.startswith("complex"):
             return [None, None]
 
         # only valid for matrices
@@ -1028,25 +1065,30 @@ class FillDiagonalOffset(gof.Op):
         min_wh = basic.minimum(width, height)
 
         start = offset * pos_offset_flag + offset_abs * width * neg_offset_flag
-        num_of_step = basic.minimum(min_wh, width * pos_offset_flag +
-                                    height * neg_offset_flag - offset_abs)
+        num_of_step = basic.minimum(
+            min_wh, width * pos_offset_flag + height * neg_offset_flag - offset_abs
+        )
 
         step = a.shape[1] + 1
         end = start + step * num_of_step
 
         # input of slice should be integer
-        start = basic.cast(start, 'int32')
-        step = basic.cast(step, 'int32')
-        end = basic.cast(end, 'int32')
+        start = basic.cast(start, "int32")
+        step = basic.cast(step, "int32")
+        end = basic.cast(end, "int32")
 
         wr_val = grad.flatten()[start:end:step].sum()
 
         wr_offset = theano.gradient.grad_undefined(
-            self, 2, offset,
+            self,
+            2,
+            offset,
             "offset is not defined for non-integer offset so"
-            " fill_diagonal_offset(a,val,offset+eps) is undefined")
+            " fill_diagonal_offset(a,val,offset+eps) is undefined",
+        )
 
         return [wr_a, wr_val, wr_offset]
+
 
 fill_diagonal_offset_ = FillDiagonalOffset()
 
@@ -1099,10 +1141,8 @@ def to_one_hot(y, nb_class, dtype=None):
         the one hot encoding of the corresponding ``y[i]`` value.
 
     """
-    ret = theano.tensor.zeros((y.shape[0], nb_class),
-                              dtype=dtype)
-    ret = theano.tensor.set_subtensor(ret[theano.tensor.arange(y.shape[0]), y],
-                                      1)
+    ret = theano.tensor.zeros((y.shape[0], nb_class), dtype=dtype)
+    ret = theano.tensor.set_subtensor(ret[theano.tensor.arange(y.shape[0]), y], 1)
     return ret
 
 
@@ -1127,21 +1167,23 @@ class Unique(theano.Op):
 
     """
 
-    __props__ = ("return_index", "return_inverse", "return_counts",
-                 "axis")
+    __props__ = ("return_index", "return_inverse", "return_counts", "axis")
 
-    def __init__(self, return_index=False, return_inverse=False,
-                 return_counts=False, axis=None):
+    def __init__(
+        self, return_index=False, return_inverse=False, return_counts=False, axis=None
+    ):
         self.return_index = return_index
         self.return_inverse = return_inverse
         self.return_counts = return_counts
         self.axis = axis
-        numpy_ver = [int(n) for n in np.__version__.split('.')[:2]]
+        numpy_ver = [int(n) for n in np.__version__.split(".")[:2]]
         if self.axis is not None and bool(numpy_ver < [1, 13]):
             raise RuntimeError(
-                "Numpy version = " + np.__version__ +
-                ". Option 'axis={}' works starting"
-                " from version 1.13.0.".format(axis))
+                "Numpy version = "
+                + np.__version__
+                + ". Option 'axis={}' works starting"
+                " from version 1.13.0.".format(axis)
+            )
 
     def make_node(self, x):
         x = basic.as_tensor_variable(x)
@@ -1155,12 +1197,13 @@ class Unique(theano.Op):
                 raise RuntimeError(
                     "Unique axis `{}` is outside of input ndim = "
                     "{}.".format(self.axis, len(x.broadcastable))
-                    )
-            broadcastable = [b if axis != self_axis else False
-                             for axis, b in enumerate(x.broadcastable)]
-        outputs = [basic.TensorType(broadcastable=broadcastable,
-                                    dtype=x.dtype)()]
-        typ = basic.TensorType(broadcastable=[False], dtype='int64')
+                )
+            broadcastable = [
+                b if axis != self_axis else False
+                for axis, b in enumerate(x.broadcastable)
+            ]
+        outputs = [basic.TensorType(broadcastable=broadcastable, dtype=x.dtype)()]
+        typ = basic.TensorType(broadcastable=[False], dtype="int64")
         if self.return_index:
             outputs.append(typ())
         if self.return_inverse:
@@ -1174,17 +1217,19 @@ class Unique(theano.Op):
         z = output_storage
         param = {}
         if self.return_index:
-            param['return_index'] = True
+            param["return_index"] = True
         if self.return_inverse:
-            param['return_inverse'] = True
+            param["return_inverse"] = True
         if self.return_counts:
-            param['return_counts'] = True
+            param["return_counts"] = True
         if self.axis is not None:
-            param['axis'] = self.axis
+            param["axis"] = self.axis
         outs = np.unique(x, **param)
-        if ((not self.return_inverse) and
-                (not self.return_index) and
-                (not self.return_counts)):
+        if (
+            (not self.return_inverse)
+            and (not self.return_index)
+            and (not self.return_counts)
+        ):
             z[0][0] = outs
         else:
             for i in range(len(outs)):
@@ -1201,15 +1246,18 @@ class Unique(theano.Op):
                 raise RuntimeError(
                     "Unique axis `{}` is outside of input ndim = "
                     "{}.".format(self.axis, ndim)
-                    )
-            ret[0] = tuple([node.fgraph.shape_feature.shape_ir(i,
-                                                               node.outputs[0])
-                            for i in xrange(ndim)])
+                )
+            ret[0] = tuple(
+                [
+                    node.fgraph.shape_feature.shape_ir(i, node.outputs[0])
+                    for i in xrange(ndim)
+                ]
+            )
         if self.return_inverse:
             if self.axis is None:
-                shape = (basic.prod(i0_shapes[0]), )
+                shape = (basic.prod(i0_shapes[0]),)
             else:
-                shape = (i0_shapes[0][self_axis], )
+                shape = (i0_shapes[0][self_axis],)
             if self.return_index:
                 ret[2] = shape
                 return ret
@@ -1221,17 +1269,17 @@ class Unique(theano.Op):
         self.__dict__.update(state)
         # For backwards compatibility with pickled instances of Unique that
         # did not have the axis parameter specified
-        if 'axis' not in state:
+        if "axis" not in state:
             self.axis = None
 
 
 class UnravelIndex(gof.Op):
-    __props__ = ('ndim', 'order')
+    __props__ = ("ndim", "order")
 
-    def __init__(self, ndim, order='C'):
-        assert order in ('C', 'F')
+    def __init__(self, ndim, order="C"):
+        assert order in ("C", "F")
         if not isinstance(ndim, int) or ndim < 1:
-            raise ValueError('ndim must be an integer greater than 0')
+            raise ValueError("ndim must be an integer greater than 0")
         self.ndim = int(ndim)
         self.order = order
 
@@ -1240,16 +1288,24 @@ class UnravelIndex(gof.Op):
         dims = basic.as_tensor_variable(dims)
 
         if indices.dtype not in basic.int_dtypes:
-            raise TypeError("'%s' object cannot be interpreted as an index" % str(indices.dtype))
+            raise TypeError(
+                "'%s' object cannot be interpreted as an index" % str(indices.dtype)
+            )
         if dims.dtype not in basic.int_dtypes:
-            raise TypeError("'%s' object cannot be interpreted as an index" % str(dims.dtype))
+            raise TypeError(
+                "'%s' object cannot be interpreted as an index" % str(dims.dtype)
+            )
         if dims.ndim != 1:
             raise TypeError("dims must be a 1D array")
 
         return gof.Apply(
-            self, [indices, dims],
-            [basic.TensorType(dtype='int64', broadcastable=(False,) * indices.ndim)()
-             for i in xrange(self.ndim)])
+            self,
+            [indices, dims],
+            [
+                basic.TensorType(dtype="int64", broadcastable=(False,) * indices.ndim)()
+                for i in xrange(self.ndim)
+            ],
+        )
 
     def infer_shape(self, node, input_shapes):
         return [input_shapes[0]] * len(node.outputs)
@@ -1267,7 +1323,7 @@ class UnravelIndex(gof.Op):
             out[i][0] = ret
 
 
-def unravel_index(indices, dims, order='C', ndim=None):
+def unravel_index(indices, dims, order="C", ndim=None):
     """
     Converts a flat index or array of flat indices into a tuple
     of coordinate arrays.
@@ -1311,7 +1367,8 @@ def unravel_index(indices, dims, order='C', ndim=None):
                 "be automatically determined, so Theano is not able "
                 "to know what the number of dimensions of the unraveled "
                 "index will be. You can provide the 'ndim' keyword "
-                "argument to 'unravel_index' to avoid this problem." % str(dims))
+                "argument to 'unravel_index' to avoid this problem." % str(dims)
+            )
 
     res = UnravelIndex(ndim=ndim, order=order)(indices, dims)
     if ndim == 1:
@@ -1321,11 +1378,11 @@ def unravel_index(indices, dims, order='C', ndim=None):
 
 
 class RavelMultiIndex(gof.Op):
-    __props__ = ('mode', 'order')
+    __props__ = ("mode", "order")
 
-    def __init__(self, mode='raise', order='C'):
-        assert mode in ('raise', 'wrap', 'clip')
-        assert order in ('C', 'F')
+    def __init__(self, mode="raise", order="C"):
+        assert mode in ("raise", "wrap", "clip")
+        assert order in ("C", "F")
         self.mode = mode
         self.order = order
 
@@ -1335,27 +1392,36 @@ class RavelMultiIndex(gof.Op):
 
         for i in multi_index:
             if i.dtype not in basic.int_dtypes:
-                raise TypeError("'%s' object cannot be interpreted as an index" % str(i.dtype))
+                raise TypeError(
+                    "'%s' object cannot be interpreted as an index" % str(i.dtype)
+                )
         if dims.dtype not in basic.int_dtypes:
-            raise TypeError("'%s' object cannot be interpreted as an index" % str(dims.dtype))
+            raise TypeError(
+                "'%s' object cannot be interpreted as an index" % str(dims.dtype)
+            )
         if dims.ndim != 1:
             raise TypeError("dims must be a 1D array")
 
         return gof.Apply(
-            self, multi_index + [dims],
-            [basic.TensorType(dtype='int64', broadcastable=(False,) * multi_index[0].ndim)()])
+            self,
+            multi_index + [dims],
+            [
+                basic.TensorType(
+                    dtype="int64", broadcastable=(False,) * multi_index[0].ndim
+                )()
+            ],
+        )
 
     def infer_shape(self, node, input_shapes):
         return [input_shapes[0]]
 
     def perform(self, node, inp, out):
         multi_index, dims = inp[:-1], inp[-1]
-        res = np.ravel_multi_index(multi_index, dims,
-                                   mode=self.mode, order=self.order)
+        res = np.ravel_multi_index(multi_index, dims, mode=self.mode, order=self.order)
         out[0][0] = theano._asarray(res, node.outputs[0].dtype)
 
 
-def ravel_multi_index(multi_index, dims, mode='raise', order='C'):
+def ravel_multi_index(multi_index, dims, mode="raise", order="C"):
     """
     Converts a tuple of index arrays into an array of flat
     indices, applying boundary modes to the multi-index.
@@ -1391,6 +1457,6 @@ def ravel_multi_index(multi_index, dims, mode='raise', order='C'):
 
     """
     if not isinstance(multi_index, (tuple, list)):
-        raise TypeError('multi_index must be a tuple or a list.')
+        raise TypeError("multi_index must be a tuple or a list.")
     args = tuple(multi_index) + (dims,)
     return RavelMultiIndex(mode=mode, order=order)(*args)

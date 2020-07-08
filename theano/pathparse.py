@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 import os
 import sys
 
@@ -25,21 +24,22 @@ class PathParser(object):
         # PATH is updated after each call to ``add()``.
 
     """
+
     paths = set()
 
     def _add(self, path):
         path = path.strip()
         if path:
-            if sys.platform == 'win32':
+            if sys.platform == "win32":
                 # Windows is case-insensitive.
                 path = path.lower()
             self.paths.add(os.path.abspath(path))
 
     def _update(self):
-        os.environ['PATH'] = os.pathsep.join(sorted(self.paths))
+        os.environ["PATH"] = os.pathsep.join(sorted(self.paths))
 
     def _parse(self):
-        for path in os.environ['PATH'].split(os.pathsep):
+        for path in os.environ["PATH"].split(os.pathsep):
             self._add(path)
 
     def __init__(self, *paths):

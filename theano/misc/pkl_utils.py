@@ -4,7 +4,7 @@ Utility classes and methods to pickle parts of symbolic graph.
 These pickled graphs can be used, for instance, as cases for
 unit tests or regression tests.
 """
-from __future__ import absolute_import, print_function, division
+
 import numpy as np
 import os
 import pickle
@@ -16,6 +16,7 @@ from collections import defaultdict
 from contextlib import closing
 from pickle import HIGHEST_PROTOCOL
 from six import BytesIO
+
 try:
     from pickle import DEFAULT_PROTOCOL
 except ImportError:
@@ -57,10 +58,11 @@ class StripPickler(Pickler):
         strip_pickler.dump(fn_args)
         f.close()
     """
+
     def __init__(self, file, protocol=0, extra_tag_to_remove=None):
         # Can't use super as Pickler isn't a new style class
         Pickler.__init__(self, file, protocol)
-        self.tag_to_remove = ['trace', 'test_value']
+        self.tag_to_remove = ["trace", "test_value"]
         if extra_tag_to_remove:
             self.tag_to_remove.extend(extra_tag_to_remove)
 
@@ -71,9 +73,9 @@ class StripPickler(Pickler):
                 if hasattr(obj, tag):
                     del obj.__dict__[tag]
         # Remove manually-added docstring of Elemwise ops
-        elif (isinstance(obj, theano.tensor.Elemwise)):
-            if '__doc__' in obj.__dict__:
-                del obj.__dict__['__doc__']
+        elif isinstance(obj, theano.tensor.Elemwise):
+            if "__doc__" in obj.__dict__:
+                del obj.__dict__["__doc__"]
 
         return Pickler.save(self, obj)
 
@@ -105,9 +107,9 @@ def load_reduce(self):
             except Exception:
                 pass
 
-#        if self.is_verbose:
-#            print(sys.exc_info())
-#            print(func, args)
+        #        if self.is_verbose:
+        #            print(sys.exc_info())
+        #            print(func, args)
 
         raise
 
@@ -115,6 +117,7 @@ def load_reduce(self):
 
 
 if PY3:
+
     class CompatUnpickler(pickle._Unpickler):
         """
         Allow to reload in python 3 some pickled numpy ndarray.
@@ -134,11 +137,13 @@ if PY3:
                 mat = u.load()
 
         """
+
         pass
 
     # Register `load_reduce` defined above in CompatUnpickler
     CompatUnpickler.dispatch[pickle.REDUCE[0]] = load_reduce
 else:
+
     class CompatUnpickler(pickle.Unpickler):
         """
         Allow to reload in python 3 some pickled numpy ndarray.
@@ -158,6 +163,7 @@ else:
                 mat = u.load()
 
         """
+
         pass
 
 
@@ -175,6 +181,7 @@ class PersistentNdarrayID(object):
         object, while `name` is human-readable and as descriptive as possible.
 
     """
+
     def __init__(self, zip_file):
         self.zip_file = zip_file
         self.count = 0
@@ -182,38 +189,42 @@ class PersistentNdarrayID(object):
 
     def _resolve_name(self, obj):
         """Determine the name the object should be saved under."""
-        name = 'array_{0}'.format(self.count)
+        name = "array_{0}".format(self.count)
         self.count += 1
         return name
 
     def __call__(self, obj):
         if type(obj) is np.ndarray:
             if id(obj) not in self.seen:
+
                 def write_array(f):
                     np.lib.format.write_array(f, obj)
+
                 name = self._resolve_name(obj)
                 zipadd(write_array, self.zip_file, name)
-                self.seen[id(obj)] = 'ndarray.{0}'.format(name)
+                self.seen[id(obj)] = "ndarray.{0}".format(name)
             return self.seen[id(obj)]
 
 
 class PersistentGpuArrayID(PersistentNdarrayID):
     def __call__(self, obj):
         from theano.gpuarray.type import _name_for_ctx
+
         try:
             import pygpu
         except ImportError:
             pygpu = None
 
-        if (pygpu and
-                isinstance(obj, pygpu.gpuarray.GpuArray)):
+        if pygpu and isinstance(obj, pygpu.gpuarray.GpuArray):
             if id(obj) not in self.seen:
+
                 def write_array(f):
                     pickle.dump(_name_for_ctx(obj.context), f, 2)
                     np.lib.format.write_array(f, np.asarray(obj))
+
                 name = self._resolve_name(obj)
                 zipadd(write_array, self.zip_file, name)
-                self.seen[id(obj)] = 'gpuarray.{0}'.format(name)
+                self.seen[id(obj)] = "gpuarray.{0}".format(name)
             return self.seen[id(obj)]
         return super(PersistentGpuArrayID, self).__call__(obj)
 
@@ -241,6 +252,7 @@ class PersistentSharedVariableID(PersistentGpuArrayID):
         `allow_duplicates` is ``False``.
 
     """
+
     def __init__(self, zip_file, allow_unnamed=True, allow_duplicates=True):
         super(PersistentSharedVariableID, self).__init__(zip_file)
         self.name_counter = defaultdict(int)
@@ -255,16 +267,18 @@ class PersistentSharedVariableID(PersistentGpuArrayID):
             self.name_counter[name] += 1
             if count:
                 if not self.allow_duplicates:
-                    raise ValueError("multiple shared variables with the name "
-                                     "`{0}` found".format(name))
-                name = '{0}_{1}'.format(name, count + 1)
+                    raise ValueError(
+                        "multiple shared variables with the name "
+                        "`{0}` found".format(name)
+                    )
+                name = "{0}_{1}".format(name, count + 1)
             return name
         return super(PersistentSharedVariableID, self)._resolve_name(obj)
 
     def __call__(self, obj):
         if isinstance(obj, SharedVariable):
             if obj.name:
-                if obj.name == 'pkl':
+                if obj.name == "pkl":
                     ValueError("can't pickle shared variable with name `pkl`")
                 self.ndarray_names[id(obj.container.storage[0])] = obj.name
             elif not self.allow_unnamed:
@@ -279,6 +293,7 @@ class PersistentNdarrayLoad(object):
     :type zip_file: :class:`zipfile.ZipFile`
 
     """
+
     def __init__(self, zip_file):
         self.zip_file = zip_file
         self.cache = {}
@@ -286,19 +301,22 @@ class PersistentNdarrayLoad(object):
     def __call__(self, persid):
         from theano.gpuarray.type import get_context
         from theano.gpuarray import pygpu
-        array_type, name = persid.split('.')
+
+        array_type, name = persid.split(".")
 
         if name in self.cache:
             return self.cache[name]
         ret = None
-        if array_type == 'gpuarray':
+        if array_type == "gpuarray":
             with self.zip_file.open(name) as f:
                 ctx_name = pickle.load(f)
                 array = np.lib.format.read_array(f)
             if config.experimental.unpickle_gpu_on_cpu:
                 # directly return numpy array
-                warnings.warn("config.experimental.unpickle_gpu_on_cpu is set "
-                              "to True. Unpickling GpuArray as numpy.ndarray")
+                warnings.warn(
+                    "config.experimental.unpickle_gpu_on_cpu is set "
+                    "to True. Unpickling GpuArray as numpy.ndarray"
+                )
                 ret = array
             elif pygpu:
                 ret = pygpu.array(array, context=get_context(ctx_name))
@@ -311,8 +329,12 @@ class PersistentNdarrayLoad(object):
         return ret
 
 
-def dump(obj, file_handler, protocol=DEFAULT_PROTOCOL,
-         persistent_id=PersistentSharedVariableID):
+def dump(
+    obj,
+    file_handler,
+    protocol=DEFAULT_PROTOCOL,
+    persistent_id=PersistentSharedVariableID,
+):
     """Pickles an object to a zip file using external persistence.
 
     :param obj: The object to pickle.
@@ -355,13 +377,16 @@ def dump(obj, file_handler, protocol=DEFAULT_PROTOCOL,
     array(2)
 
     """
-    with closing(zipfile.ZipFile(file_handler, 'w', zipfile.ZIP_DEFLATED,
-                                 allowZip64=True)) as zip_file:
+    with closing(
+        zipfile.ZipFile(file_handler, "w", zipfile.ZIP_DEFLATED, allowZip64=True)
+    ) as zip_file:
+
         def func(f):
             p = pickle.Pickler(f, protocol=protocol)
             p.persistent_id = persistent_id(zip_file)
             p.dump(obj)
-        zipadd(func, zip_file, 'pkl')
+
+        zipadd(func, zip_file, "pkl")
 
 
 def load(f, persistent_load=PersistentNdarrayLoad):
@@ -377,8 +402,8 @@ def load(f, persistent_load=PersistentNdarrayLoad):
 
     .. versionadded:: 0.8
     """
-    with closing(zipfile.ZipFile(f, 'r')) as zip_file:
-        p = pickle.Unpickler(BytesIO(zip_file.open('pkl').read()))
+    with closing(zipfile.ZipFile(f, "r")) as zip_file:
+        p = pickle.Unpickler(BytesIO(zip_file.open("pkl").read()))
         p.persistent_load = persistent_load(zip_file)
         return p.load()
 
@@ -397,7 +422,7 @@ def zipadd(func, zip_file, name):
     :type name: str
 
     """
-    with tempfile.NamedTemporaryFile('wb', delete=False) as temp_file:
+    with tempfile.NamedTemporaryFile("wb", delete=False) as temp_file:
         func(temp_file)
         temp_file.close()
         zip_file.write(temp_file.name, arcname=name)

@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 import numpy as np
 import theano
 from theano import Apply, Op
@@ -12,9 +11,9 @@ from theano.scalar import add, sub, true_div, mul
 
 
 class BNComposite(Composite):
-    init_param = ('dtype',)
+    init_param = ("dtype",)
 
-    @theano.change_flags(compute_test_value='off')
+    @theano.change_flags(compute_test_value="off")
     def __init__(self, dtype):
         self.dtype = dtype
         x = theano.scalar.Scalar(dtype=dtype).make_variable()
@@ -29,7 +28,7 @@ class BNComposite(Composite):
 
     def grad(self, inps, grads):
         x, mean, std, gamma, beta = inps
-        top, = grads
+        (top,) = grads
         top_gamma = top * gamma
         x_mean = x - mean
         dx = top_gamma / std
@@ -39,8 +38,7 @@ class BNComposite(Composite):
         return [dx, dmean, dstd, dgamma, top]
 
 
-def batch_normalization(inputs, gamma, beta, mean, std,
-                        mode='low_mem'):
+def batch_normalization(inputs, gamma, beta, mean, std, mode="low_mem"):
     """
     This function will build the symbolic graph for applying batch normalization
     to a set of activations.
@@ -73,38 +71,48 @@ def batch_normalization(inputs, gamma, beta, mean, std,
         time difference compare the batch_normalization operation only, time difference
         between implementation is likely to be less important on the full model fprop/bprop.
     """
-    if mode == 'low_mem':
-        elm_bn = theano.tensor.elemwise.Elemwise(scalar_op=BNComposite(dtype=inputs.dtype))
+    if mode == "low_mem":
+        elm_bn = theano.tensor.elemwise.Elemwise(
+            scalar_op=BNComposite(dtype=inputs.dtype)
+        )
         rval = elm_bn(inputs, mean, std, gamma, beta)
-    elif mode == 'high_mem':
+    elif mode == "high_mem":
         rval = (inputs - mean) * (gamma / std) + beta
     else:
-        raise ValueError(
-            'mode must be either "low_mem", "high_mem"')
+        raise ValueError('mode must be either "low_mem", "high_mem"')
     return rval
 
 
 def _prepare_batch_normalization_axes(axes, ndim):
-    if axes == 'per-activation':
+    if axes == "per-activation":
         axes = (0,)
-    elif axes == 'spatial':
+    elif axes == "spatial":
         axes = (0,) + tuple(range(2, ndim))
     elif isinstance(axes, (tuple, list, np.ndarray)):
         axes = tuple(int(a) for a in axes)
     else:
-        raise ValueError('invalid axes: %s', str(axes))
+        raise ValueError("invalid axes: %s", str(axes))
     axes = tuple(sorted(axes))
     if len(axes) == 0:
-        raise ValueError('there should be at least one normalization axis')
+        raise ValueError("there should be at least one normalization axis")
     if min(axes) < 0 or max(axes) >= ndim:
-        raise ValueError('axes should be less than ndim (<%d), but %s given' % (ndim, str(axes)))
+        raise ValueError(
+            "axes should be less than ndim (<%d), but %s given" % (ndim, str(axes))
+        )
     non_bc_axes = tuple(i for i in range(ndim) if i not in axes)
     return axes, non_bc_axes
 
 
-def batch_normalization_train(inputs, gamma, beta, axes='per-activation',
-                              epsilon=1e-4, running_average_factor=0.1,
-                              running_mean=None, running_var=None):
+def batch_normalization_train(
+    inputs,
+    gamma,
+    beta,
+    axes="per-activation",
+    epsilon=1e-4,
+    running_average_factor=0.1,
+    running_mean=None,
+    running_var=None,
+):
     """
     Performs batch normalization of the given inputs, using the mean and
     variance of the inputs.
@@ -191,27 +199,31 @@ def batch_normalization_train(inputs, gamma, beta, axes='per-activation',
         params_ndim = ndim
     else:
         params_ndim = len(non_bc_axes)
-        params_dimshuffle_pattern = ['x'] * ndim
+        params_dimshuffle_pattern = ["x"] * ndim
         for i, axis in enumerate(non_bc_axes):
             params_dimshuffle_pattern[axis] = i
 
     if gamma.ndim != params_ndim or beta.ndim != params_ndim:
-        raise ValueError("gamma and beta dimensionality must match the "
-                         "number of non-normalized axes, or have the "
-                         "same number of dimensions as the inputs; "
-                         "got %d and %d instead of %d" %
-                         (gamma.ndim, beta.ndim, params_ndim))
+        raise ValueError(
+            "gamma and beta dimensionality must match the "
+            "number of non-normalized axes, or have the "
+            "same number of dimensions as the inputs; "
+            "got %d and %d instead of %d" % (gamma.ndim, beta.ndim, params_ndim)
+        )
     if (running_mean is None) != (running_var is None):
-        raise ValueError("running_mean and running_var must either both be "
-                         "given or both be None")
+        raise ValueError(
+            "running_mean and running_var must either both be " "given or both be None"
+        )
     if running_mean is not None and running_mean.ndim != params_ndim:
-        raise ValueError("running_mean must be of the same dimensionality "
-                         "as gamma and beta; got %d instead of %d" %
-                         (running_mean.ndim, params_ndim))
+        raise ValueError(
+            "running_mean must be of the same dimensionality "
+            "as gamma and beta; got %d instead of %d" % (running_mean.ndim, params_ndim)
+        )
     if running_var is not None and running_var.ndim != params_ndim:
-        raise ValueError("running_var must be of the same dimensionality "
-                         "as gamma and beta; got %d instead of %d" %
-                         (running_var.ndim, params_ndim))
+        raise ValueError(
+            "running_var must be of the same dimensionality "
+            "as gamma and beta; got %d instead of %d" % (running_var.ndim, params_ndim)
+        )
 
     # epsilon will be converted to floatX later. we need to check
     # for rounding errors now, since numpy.float32(1e-5) < 1e-5.
@@ -242,26 +254,35 @@ def batch_normalization_train(inputs, gamma, beta, axes='per-activation',
             running_mean = T.addbroadcast(running_mean, *axes)
             running_var = T.addbroadcast(running_var, *axes)
         out, mean, invstd, new_running_mean, new_running_var = batchnorm_op(
-            inputs, gamma, beta, epsilon=epsilon,
+            inputs,
+            gamma,
+            beta,
+            epsilon=epsilon,
             running_average_factor=running_average_factor,
-            running_mean=running_mean, running_var=running_var)
+            running_mean=running_mean,
+            running_var=running_var,
+        )
         if new_running_mean.broadcastable != running_mean.broadcastable:
-            new_running_mean = T.patternbroadcast(new_running_mean, running_mean.broadcastable)
+            new_running_mean = T.patternbroadcast(
+                new_running_mean, running_mean.broadcastable
+            )
         if new_running_var.broadcastable != running_var.broadcastable:
-            new_running_var = T.patternbroadcast(new_running_var, running_var.broadcastable)
+            new_running_var = T.patternbroadcast(
+                new_running_var, running_var.broadcastable
+            )
         results = (out, mean, invstd, new_running_mean, new_running_var)
     else:
         results = batchnorm_op(inputs, gamma, beta, epsilon=epsilon)
 
     if params_ndim != ndim:
         # remove the broadcasted dimensions (except from the output)
-        results = ([results[0]] +
-                   [r.dimshuffle(non_bc_axes) for r in results[1:]])
+        results = [results[0]] + [r.dimshuffle(non_bc_axes) for r in results[1:]]
     return tuple(results)
 
 
-def batch_normalization_test(inputs, gamma, beta, mean, var,
-                             axes='per-activation', epsilon=1e-4):
+def batch_normalization_test(
+    inputs, gamma, beta, mean, var, axes="per-activation", epsilon=1e-4
+):
     """
     Performs batch normalization of the given inputs, using the given mean and
     variance.
@@ -320,20 +341,23 @@ def batch_normalization_test(inputs, gamma, beta, mean, var,
         params_ndim = ndim
     else:
         params_ndim = len(non_bc_axes)
-        params_dimshuffle_pattern = ['x'] * ndim
+        params_dimshuffle_pattern = ["x"] * ndim
         for i, axis in enumerate(non_bc_axes):
             params_dimshuffle_pattern[axis] = i
 
     if gamma.ndim != params_ndim or beta.ndim != params_ndim:
-        raise ValueError("gamma and beta dimensionality must match the "
-                         "number of non-normalized axes, or have the "
-                         "same number of dimensions as the inputs; "
-                         "got %d and %d instead of %d" %
-                         (gamma.ndim, beta.ndim, params_ndim))
+        raise ValueError(
+            "gamma and beta dimensionality must match the "
+            "number of non-normalized axes, or have the "
+            "same number of dimensions as the inputs; "
+            "got %d and %d instead of %d" % (gamma.ndim, beta.ndim, params_ndim)
+        )
     if mean.ndim != params_ndim or var.ndim != params_ndim:
-        raise ValueError("mean and var must be of the same dimensionality "
-                         "as gamma and beta; got %d and %d instead of %d" %
-                         (mean.ndim, var.ndim, params_ndim))
+        raise ValueError(
+            "mean and var must be of the same dimensionality "
+            "as gamma and beta; got %d and %d instead of %d"
+            % (mean.ndim, var.ndim, params_ndim)
+        )
 
     # epsilon will be converted to floatX later. we need to check
     # for rounding errors now, since numpy.float32(1e-5) < 1e-5.
@@ -399,7 +423,7 @@ class AbstractBatchNormTrain(Op):
         both be None.
     """
 
-    __props__ = ('axes',)
+    __props__ = ("axes",)
 
     def __init__(self, axes=(0,)):
         assert isinstance(axes, (tuple, list))
@@ -410,9 +434,16 @@ class AbstractBatchNormTrain(Op):
     def infer_shape(self, node, shape):
         return [shape[0]] + [shape[1]] * (len(node.outputs) - 1)
 
-    def make_node(self, x, scale, bias, epsilon=1e-4,
-                  running_average_factor=0.1,
-                  running_mean=None, running_var=None):
+    def make_node(
+        self,
+        x,
+        scale,
+        bias,
+        epsilon=1e-4,
+        running_average_factor=0.1,
+        running_mean=None,
+        running_var=None,
+    ):
         x = as_tensor_variable(x)
         scale = as_tensor_variable(scale)
         bias = as_tensor_variable(bias)
@@ -423,15 +454,17 @@ class AbstractBatchNormTrain(Op):
         if running_var is not None:
             running_var = as_tensor_variable(running_var)
         assert x.ndim == scale.ndim == bias.ndim
-        assert ((running_mean is None and running_var is None) or
-                (running_mean is not None and running_var is not None))
-        assert (running_mean is None or running_mean.ndim == x.ndim)
-        assert (running_var is None or running_var.ndim == x.ndim)
+        assert (running_mean is None and running_var is None) or (
+            running_mean is not None and running_var is not None
+        )
+        assert running_mean is None or running_mean.ndim == x.ndim
+        assert running_var is None or running_var.ndim == x.ndim
         # Upcast to common dtype on the non-scalar
         # Keep as is dtype of scalar (epsilon and running_average_factor)
         if running_mean:
             x, scale, bias, running_mean, running_var = as_common_dtype(
-                x, scale, bias, running_mean, running_var)
+                x, scale, bias, running_mean, running_var
+            )
         else:
             x, scale, bias = as_common_dtype(x, scale, bias)
         inputs = [x, scale, bias, epsilon, running_average_factor]
@@ -449,20 +482,27 @@ class AbstractBatchNormTrain(Op):
         _, x_mean, x_invstd = outputs[:3]
         disconnected_outputs = [
             theano.gradient.DisconnectedType()(),  # epsilon
-            theano.gradient.DisconnectedType()()]  # running_average_factor
+            theano.gradient.DisconnectedType()(),
+        ]  # running_average_factor
         # Optional running_mean and running_var.
         for i in range(5, len(inputs)):
             disconnected_outputs.append(theano.gradient.DisconnectedType()())
-        return AbstractBatchNormTrainGrad(self.axes)(
-            x, dy, scale, x_mean, x_invstd, epsilon) + disconnected_outputs
+        return (
+            AbstractBatchNormTrainGrad(self.axes)(
+                x, dy, scale, x_mean, x_invstd, epsilon
+            )
+            + disconnected_outputs
+        )
 
     def connection_pattern(self, node):
         # Specificy that epsilon and running_average_factor are not connected to outputs.
-        patterns = [[True, True, True],     # x
-                    [True, True, True],     # scale
-                    [True, True, True],     # bias
-                    [False, False, False],  # epsilon
-                    [False, False, False]]  # running_average_factor
+        patterns = [
+            [True, True, True],  # x
+            [True, True, True],  # scale
+            [True, True, True],  # bias
+            [False, False, False],  # epsilon
+            [False, False, False],
+        ]  # running_average_factor
         # Optional running_mean and running_var are only
         # connected to their new values.
         for i in range(5, len(node.inputs)):
@@ -476,7 +516,10 @@ class AbstractBatchNormTrain(Op):
         x, scale, bias, epsilon, running_average_factor = inputs[:5]
         axes = self.axes
         if min(axes) < 0 or max(axes) >= x.ndim:
-            raise ValueError('axes should be less than ndim (<%d), but %s given' % (x.ndim, str(axes)))
+            raise ValueError(
+                "axes should be less than ndim (<%d), but %s given"
+                % (x.ndim, str(axes))
+            )
 
         mean = x.mean(axes, keepdims=True)
         var = x.var(axes, keepdims=True)
@@ -489,14 +532,18 @@ class AbstractBatchNormTrain(Op):
 
         if len(inputs) > 5:
             running_mean = inputs[5]
-            running_mean = running_mean * (1.0 - running_average_factor) + \
-                mean * running_average_factor
+            running_mean = (
+                running_mean * (1.0 - running_average_factor)
+                + mean * running_average_factor
+            )
             output_storage[3][0] = running_mean
         if len(inputs) > 6:
             m = float(np.prod(x.shape) / np.prod(scale.shape))
             running_var = inputs[6]
-            running_var = running_var * (1.0 - running_average_factor) + \
-                (m / (m - 1)) * var * running_average_factor
+            running_var = (
+                running_var * (1.0 - running_average_factor)
+                + (m / (m - 1)) * var * running_average_factor
+            )
             output_storage[4][0] = running_var
 
 
@@ -513,7 +560,7 @@ class AbstractBatchNormInference(Op):
         value is 1e-5 (imposed by cuDNN).
     """
 
-    __props__ = ('axes',)
+    __props__ = ("axes",)
 
     def __init__(self, axes=(0,)):
         assert isinstance(axes, (tuple, list))
@@ -524,7 +571,9 @@ class AbstractBatchNormInference(Op):
     def infer_shape(self, node, shape):
         return [shape[0]]
 
-    def make_node(self, x, scale, bias, estimated_mean, estimated_variance, epsilon=1e-4):
+    def make_node(
+        self, x, scale, bias, estimated_mean, estimated_variance, epsilon=1e-4
+    ):
         x = as_tensor_variable(x)
         scale = as_tensor_variable(scale)
         bias = as_tensor_variable(bias)
@@ -534,32 +583,50 @@ class AbstractBatchNormInference(Op):
         # Upcast to common dtype on the non-scalar
         # Keep as is dtype of scalar (epsilon)
         x, scale, bias, estimated_mean, estimated_variance = as_common_dtype(
-            x, scale, bias, estimated_mean, estimated_variance)
-        assert x.ndim == scale.ndim == bias.ndim == estimated_mean.ndim == estimated_variance.ndim
+            x, scale, bias, estimated_mean, estimated_variance
+        )
+        assert (
+            x.ndim
+            == scale.ndim
+            == bias.ndim
+            == estimated_mean.ndim
+            == estimated_variance.ndim
+        )
 
-        return Apply(self, [x, scale, bias, estimated_mean, estimated_variance, epsilon], [x.type()])
+        return Apply(
+            self,
+            [x, scale, bias, estimated_mean, estimated_variance, epsilon],
+            [x.type()],
+        )
 
     def grad(self, inputs, grads):
         x, scale, bias, est_mean, est_var, epsilon = inputs
         dy = grads[0]
         axes = self.axes
         if min(axes) < 0 or max(axes) >= x.ndim:
-            raise ValueError('axes should be less than ndim (<%d), but %s given' % (x.ndim, str(axes)))
+            raise ValueError(
+                "axes should be less than ndim (<%d), but %s given"
+                % (x.ndim, str(axes))
+            )
 
-        scale, bias, est_mean, est_var = (theano.tensor.addbroadcast(t, *axes)
-                                          for t in (scale, bias, est_mean, est_var))
+        scale, bias, est_mean, est_var = (
+            theano.tensor.addbroadcast(t, *axes)
+            for t in (scale, bias, est_mean, est_var)
+        )
 
         # define helper expressions
         est_var_eps = est_var + epsilon
         est_std = theano.tensor.sqrt(est_var_eps)
-        two = theano.tensor.constant(2.)
+        two = theano.tensor.constant(2.0)
 
         # define and return gradients
         dx = dy * (scale / est_std)
         dscale = (dy * (x - est_mean)).sum(axes, keepdims=True) / est_std
         dbias = dy.sum(axes, keepdims=True)
         dmean = -dy.sum(axes, keepdims=True) * (scale / est_std)
-        dvar = -(dy * (x - est_mean)).sum(axes, keepdims=True) * (scale / (two * est_var_eps * est_std))
+        dvar = -(dy * (x - est_mean)).sum(axes, keepdims=True) * (
+            scale / (two * est_var_eps * est_std)
+        )
         return [dx, dscale, dbias, dmean, dvar, theano.gradient.DisconnectedType()()]
 
     def connection_pattern(self, node):
@@ -568,12 +635,14 @@ class AbstractBatchNormInference(Op):
 
     def perform(self, node, inputs, output_storage):
         x, scale, bias, estimated_mean, estimated_variance, epsilon = inputs
-        out = (x - estimated_mean) * (scale / np.sqrt(estimated_variance + epsilon)) + bias
+        out = (x - estimated_mean) * (
+            scale / np.sqrt(estimated_variance + epsilon)
+        ) + bias
         output_storage[0][0] = out
 
 
 class AbstractBatchNormTrainGrad(Op):
-    __props__ = ('axes',)
+    __props__ = ("axes",)
 
     def __init__(self, axes=(0,)):
         assert isinstance(axes, (tuple, list))
@@ -591,11 +660,13 @@ class AbstractBatchNormTrainGrad(Op):
 
         # Upcast to common dtype on the non-scalar
         # Keep as is dtype of scalar (epsilon)
-        x, dy, scale, x_mean, x_invstd = as_common_dtype(
-            x, dy, scale, x_mean, x_invstd)
+        x, dy, scale, x_mean, x_invstd = as_common_dtype(x, dy, scale, x_mean, x_invstd)
         assert x.ndim == dy.ndim == scale.ndim == x_mean.ndim == x_invstd.ndim
-        return Apply(self, [x, dy, scale, x_mean, x_invstd, epsilon],
-                     [x.type(), scale.type(), scale.type()])
+        return Apply(
+            self,
+            [x, dy, scale, x_mean, x_invstd, epsilon],
+            [x.type(), scale.type(), scale.type()],
+        )
 
     def grad(self, inp, grads):
         x, dy, scale, x_mean, x_invstd, epsilon = inp
@@ -613,45 +684,72 @@ class AbstractBatchNormTrainGrad(Op):
 
         if not isinstance(ddinputs.type, theano.gradient.DisconnectedType):
             ccc = scale * (ddinputs - T.mean(ddinputs, axis=self.axes, keepdims=True))
-            ddd = (x_invstd ** 3) * (ccc * T.mean(dy * x_diff, axis=self.axes, keepdims=True) +
-                                     dy * T.mean(ccc * x_diff, axis=self.axes, keepdims=True))
+            ddd = (x_invstd ** 3) * (
+                ccc * T.mean(dy * x_diff, axis=self.axes, keepdims=True)
+                + dy * T.mean(ccc * x_diff, axis=self.axes, keepdims=True)
+            )
 
             g_wrt_x = g_wrt_x - ddd
-            g_wrt_dy = g_wrt_dy + ((ccc * x_invstd) -
-                                   ((x_invstd ** 3) * x_diff *
-                                    T.mean(ccc * x_diff, axis=self.axes, keepdims=True)))
+            g_wrt_dy = g_wrt_dy + (
+                (ccc * x_invstd)
+                - (
+                    (x_invstd ** 3)
+                    * x_diff
+                    * T.mean(ccc * x_diff, axis=self.axes, keepdims=True)
+                )
+            )
 
             eee = (dy * x_invstd) - ((x_invstd ** 3) * x_diff * mean_dy_x_diff)
-            g_wrt_scale = g_wrt_scale + T.sum(ddinputs * (eee - T.mean(eee, axis=self.axes, keepdims=True)),
-                                              axis=self.axes, keepdims=True)
+            g_wrt_scale = g_wrt_scale + T.sum(
+                ddinputs * (eee - T.mean(eee, axis=self.axes, keepdims=True)),
+                axis=self.axes,
+                keepdims=True,
+            )
 
             g_wrt_x_mean = g_wrt_x_mean + T.sum(ddd, axis=self.axes, keepdims=True)
-            g_wrt_x_invstd = g_wrt_x_invstd + T.sum(ccc * (dy - 3 * (x_invstd ** 2) * x_diff * mean_dy_x_diff),
-                                                    axis=self.axes, keepdims=True)
+            g_wrt_x_invstd = g_wrt_x_invstd + T.sum(
+                ccc * (dy - 3 * (x_invstd ** 2) * x_diff * mean_dy_x_diff),
+                axis=self.axes,
+                keepdims=True,
+            )
 
         if not isinstance(ddscale.type, theano.gradient.DisconnectedType):
             g_wrt_x = g_wrt_x + (x_invstd * ddscale * dy)
             g_wrt_dy = g_wrt_dy + (x_invstd * ddscale * x_diff)
-            g_wrt_x_mean = g_wrt_x_mean - (x_invstd * ddscale * T.sum(dy, axis=self.axes, keepdims=True))
-            g_wrt_x_invstd = g_wrt_x_invstd + (ddscale * T.sum(dy * x_diff, axis=self.axes, keepdims=True))
+            g_wrt_x_mean = g_wrt_x_mean - (
+                x_invstd * ddscale * T.sum(dy, axis=self.axes, keepdims=True)
+            )
+            g_wrt_x_invstd = g_wrt_x_invstd + (
+                ddscale * T.sum(dy * x_diff, axis=self.axes, keepdims=True)
+            )
 
         if not isinstance(ddbias.type, theano.gradient.DisconnectedType):
             g_wrt_dy = g_wrt_dy + T.fill(dy, ddbias)
 
         # depending on which output gradients are given,
         # some inputs should be disconnected
-        results = [g_wrt_x, g_wrt_dy, g_wrt_scale, g_wrt_x_mean, g_wrt_x_invstd,
-                   theano.gradient.DisconnectedType()()]
-        return [theano.gradient.DisconnectedType()() if (type(r) == int and r == 0) else r
-                for r in results]
+        results = [
+            g_wrt_x,
+            g_wrt_dy,
+            g_wrt_scale,
+            g_wrt_x_mean,
+            g_wrt_x_invstd,
+            theano.gradient.DisconnectedType()(),
+        ]
+        return [
+            theano.gradient.DisconnectedType()() if (type(r) == int and r == 0) else r
+            for r in results
+        ]
 
     def connection_pattern(self, node):
-        return [[True, True, False],    # x
-                [True, True, True],     # dy
-                [True, False, False],   # scale
-                [True, True, False],    # x_mean
-                [True, True, False],    # x_invstd
-                [False, False, False]]  # epsilon
+        return [
+            [True, True, False],  # x
+            [True, True, True],  # dy
+            [True, False, False],  # scale
+            [True, True, False],  # x_mean
+            [True, True, False],  # x_invstd
+            [False, False, False],
+        ]  # epsilon
 
     def infer_shape(self, node, shape):
         return [shape[0], shape[2], shape[2]]
@@ -660,7 +758,10 @@ class AbstractBatchNormTrainGrad(Op):
         x, dy, scale, x_mean, x_invstd, epsilon = inputs
         axes = self.axes
         if min(axes) < 0 or max(axes) >= x.ndim:
-            raise ValueError('axes should be less than ndim (<%d), but %s given' % (x.ndim, str(axes)))
+            raise ValueError(
+                "axes should be less than ndim (<%d), but %s given"
+                % (x.ndim, str(axes))
+            )
 
         x_diff = x - x_mean
         mean_dy_x_diff = np.mean(dy * x_diff, axis=axes, keepdims=True)
@@ -684,11 +785,13 @@ def local_abstract_batch_norm_train(node):
     axes = node.op.axes
     if min(axes) < 0 or max(axes) > x.ndim:
         return None
-    if not isinstance(x.type, TensorType) or \
-       not isinstance(scale.type, TensorType) or \
-       not isinstance(bias.type, TensorType) or \
-       not isinstance(epsilon.type, TensorType) or \
-       not isinstance(running_average_factor.type, TensorType):
+    if (
+        not isinstance(x.type, TensorType)
+        or not isinstance(scale.type, TensorType)
+        or not isinstance(bias.type, TensorType)
+        or not isinstance(epsilon.type, TensorType)
+        or not isinstance(running_average_factor.type, TensorType)
+    ):
         return None
     # optional running_mean and running_var
     if len(node.inputs) > 5 and not isinstance(node.inputs[5].type, TensorType):
@@ -699,26 +802,32 @@ def local_abstract_batch_norm_train(node):
     mean = x.mean(axes, keepdims=True)
     var = x.var(axes, keepdims=True)
     # The epsilon should not upcast the dtype.
-    if var.dtype == 'float32' and epsilon.dtype == 'float64':
-        epsilon = epsilon.astype('float32')
+    if var.dtype == "float32" and epsilon.dtype == "float64":
+        epsilon = epsilon.astype("float32")
     invstd = T.inv(T.sqrt(var + epsilon))
     out = (x - mean) * (scale * invstd) + bias
     results = [out, mean, invstd]
 
     if len(node.inputs) > 5:
         running_mean = node.inputs[5]
-        running_mean = running_mean * (1.0 - running_average_factor) + \
-            mean * running_average_factor
+        running_mean = (
+            running_mean * (1.0 - running_average_factor)
+            + mean * running_average_factor
+        )
         results.append(running_mean)
     if len(node.inputs) > 6:
         m = T.cast(T.prod(x.shape) / T.prod(scale.shape), theano.config.floatX)
         running_var = node.inputs[6]
-        running_var = running_var * (1.0 - running_average_factor) + \
-            (m / (m - 1)) * var * running_average_factor
+        running_var = (
+            running_var * (1.0 - running_average_factor)
+            + (m / (m - 1)) * var * running_average_factor
+        )
         results.append(running_var)
 
-    results = [T.patternbroadcast(r, r_orig.broadcastable)
-               for (r, r_orig) in zip(results, node.outputs)]
+    results = [
+        T.patternbroadcast(r, r_orig.broadcastable)
+        for (r, r_orig) in zip(results, node.outputs)
+    ]
 
     for var in theano.gof.graph.variables(node.inputs, results):
         if var not in node.inputs:
@@ -735,12 +844,14 @@ def local_abstract_batch_norm_train_grad(node):
     axes = node.op.axes
     if min(axes) < 0 or max(axes) > x.ndim:
         return None
-    if not isinstance(x.type, TensorType) or \
-       not isinstance(dy.type, TensorType) or \
-       not isinstance(scale.type, TensorType) or \
-       not isinstance(x_mean.type, TensorType) or \
-       not isinstance(x_invstd.type, TensorType) or \
-       not isinstance(epsilon.type, TensorType):
+    if (
+        not isinstance(x.type, TensorType)
+        or not isinstance(dy.type, TensorType)
+        or not isinstance(scale.type, TensorType)
+        or not isinstance(x_mean.type, TensorType)
+        or not isinstance(x_invstd.type, TensorType)
+        or not isinstance(epsilon.type, TensorType)
+    ):
         return None
 
     x_diff = x - x_mean
@@ -752,8 +863,10 @@ def local_abstract_batch_norm_train_grad(node):
     g_wrt_bias = T.sum(dy, axis=axes, keepdims=True)
     results = [g_wrt_inputs, g_wrt_scale, g_wrt_bias]
 
-    results = [T.patternbroadcast(r, r_orig.broadcastable)
-               for (r, r_orig) in zip(results, node.outputs)]
+    results = [
+        T.patternbroadcast(r, r_orig.broadcastable)
+        for (r, r_orig) in zip(results, node.outputs)
+    ]
 
     for var in theano.gof.graph.variables(node.inputs, results):
         if var not in node.inputs:
@@ -768,19 +881,23 @@ def local_abstract_batch_norm_inference(node):
 
     x, scale, bias, estimated_mean, estimated_variance, epsilon = node.inputs
 
-    if not isinstance(x.type, TensorType) or \
-       not isinstance(scale.type, TensorType) or \
-       not isinstance(bias.type, TensorType) or \
-       not isinstance(estimated_mean.type, TensorType) or \
-       not isinstance(estimated_variance.type, TensorType) or \
-       not isinstance(epsilon.type, TensorType):
+    if (
+        not isinstance(x.type, TensorType)
+        or not isinstance(scale.type, TensorType)
+        or not isinstance(bias.type, TensorType)
+        or not isinstance(estimated_mean.type, TensorType)
+        or not isinstance(estimated_variance.type, TensorType)
+        or not isinstance(epsilon.type, TensorType)
+    ):
         return None
 
     # The epsilon should not upcast the dtype.
-    if estimated_variance.dtype == 'float32' and epsilon.dtype == 'float64':
-        epsilon = epsilon.astype('float32')
+    if estimated_variance.dtype == "float32" and epsilon.dtype == "float64":
+        epsilon = epsilon.astype("float32")
 
-    result = (x - estimated_mean) * (scale / T.sqrt(estimated_variance + epsilon)) + bias
+    result = (x - estimated_mean) * (
+        scale / T.sqrt(estimated_variance + epsilon)
+    ) + bias
     result = T.patternbroadcast(result, node.outputs[0].broadcastable)
 
     for var in theano.gof.graph.variables(node.inputs, [result]):
@@ -791,15 +908,27 @@ def local_abstract_batch_norm_inference(node):
 
 # Register Cpu Optmization
 bn_groupopt = theano.gof.optdb.LocalGroupDB()
-bn_groupopt.__name__ = 'batchnorm_opts'
-register_specialize_device(bn_groupopt, 'fast_compile', 'fast_run')
+bn_groupopt.__name__ = "batchnorm_opts"
+register_specialize_device(bn_groupopt, "fast_compile", "fast_run")
 
-bn_groupopt.register('local_abstract_batch_norm_train',
-                     local_abstract_batch_norm_train, 30,
-                     'fast_compile', 'fast_run')
-bn_groupopt.register('local_abstract_batch_norm_train_grad',
-                     local_abstract_batch_norm_train_grad, 30,
-                     'fast_compile', 'fast_run')
-bn_groupopt.register('local_abstract_batch_norm_inference',
-                     local_abstract_batch_norm_inference, 30,
-                     'fast_compile', 'fast_run')
+bn_groupopt.register(
+    "local_abstract_batch_norm_train",
+    local_abstract_batch_norm_train,
+    30,
+    "fast_compile",
+    "fast_run",
+)
+bn_groupopt.register(
+    "local_abstract_batch_norm_train_grad",
+    local_abstract_batch_norm_train_grad,
+    30,
+    "fast_compile",
+    "fast_run",
+)
+bn_groupopt.register(
+    "local_abstract_batch_norm_inference",
+    local_abstract_batch_norm_inference,
+    30,
+    "fast_compile",
+    "fast_run",
+)

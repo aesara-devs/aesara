@@ -5,7 +5,7 @@ The `Op` class is the base interface for all operations
 compatible with `gof`'s :doc:`graph` routines.
 
 """
-from __future__ import absolute_import, print_function, division
+
 
 import inspect
 import logging
@@ -32,7 +32,7 @@ __contact__ = "theano-dev <theano-dev@googlegroups.com>"
 
 __docformat__ = "restructuredtext en"
 
-_logger = logging.getLogger('theano.gof.op.Op')
+_logger = logging.getLogger("theano.gof.op.Op")
 
 
 # Open file in "universal newline mode".
@@ -42,8 +42,9 @@ _logger = logging.getLogger('theano.gof.op.Op')
 if PY3:
     _open_u = open
 else:
+
     def _open_u(file):
-        return open(file, 'U')
+        return open(file, "U")
 
 
 class CLinkerObject(object):
@@ -73,8 +74,7 @@ class CLinkerObject(object):
             Subclass does not implement this method.
 
         """
-        raise utils.MethodNotDefined(
-            "c_headers", type(self), self.__class__.__name__)
+        raise utils.MethodNotDefined("c_headers", type(self), self.__class__.__name__)
 
     def c_header_dirs(self):
         """
@@ -98,9 +98,8 @@ class CLinkerObject(object):
 
         """
         raise utils.MethodNotDefined(
-            "c_header_dirs",
-            type(self),
-            self.__class__.__name__)
+            "c_header_dirs", type(self), self.__class__.__name__
+        )
 
     def c_libraries(self):
         """
@@ -123,8 +122,7 @@ class CLinkerObject(object):
             Subclass does not implement this method.
 
         """
-        raise utils.MethodNotDefined(
-            "c_libraries", type(self), self.__class__.__name__)
+        raise utils.MethodNotDefined("c_libraries", type(self), self.__class__.__name__)
 
     def c_lib_dirs(self):
         """
@@ -147,8 +145,7 @@ class CLinkerObject(object):
             Subclass does not implement this method.
 
         """
-        raise utils.MethodNotDefined(
-            "c_lib_dirs", type(self), self.__class__.__name__)
+        raise utils.MethodNotDefined("c_lib_dirs", type(self), self.__class__.__name__)
 
     def c_support_code(self):
         """
@@ -165,9 +162,8 @@ class CLinkerObject(object):
 
         """
         raise utils.MethodNotDefined(
-            "c_support_code",
-            type(self),
-            self.__class__.__name__)
+            "c_support_code", type(self), self.__class__.__name__
+        )
 
     def c_code_cache_version(self):
         """
@@ -206,9 +202,8 @@ class CLinkerObject(object):
 
         """
         raise utils.MethodNotDefined(
-            "c_compile_args",
-            type(self),
-            self.__class__.__name__)
+            "c_compile_args", type(self), self.__class__.__name__
+        )
 
     def c_no_compile_args(self):
         """
@@ -230,9 +225,8 @@ class CLinkerObject(object):
 
         """
         raise utils.MethodNotDefined(
-            "c_no_compile_args",
-            type(self),
-            self.__class__.__name__)
+            "c_no_compile_args", type(self), self.__class__.__name__
+        )
 
     def c_init_code(self):
         """
@@ -245,8 +239,7 @@ class CLinkerObject(object):
             The subclass does not override this method.
 
         """
-        raise utils.MethodNotDefined("c_init_code", type(self),
-                                     self.__class__.__name__)
+        raise utils.MethodNotDefined("c_init_code", type(self), self.__class__.__name__)
 
 
 class CLinkerOp(CLinkerObject):
@@ -300,7 +293,7 @@ class CLinkerOp(CLinkerObject):
             The subclass does not override this method.
 
         """
-        raise utils.MethodNotDefined('%s.c_code' % self.__class__.__name__)
+        raise utils.MethodNotDefined("%s.c_code" % self.__class__.__name__)
 
     def c_code_cache_version_apply(self, node):
         """
@@ -361,8 +354,7 @@ class CLinkerOp(CLinkerObject):
             The subclass does not override this method.
 
         """
-        raise utils.MethodNotDefined('%s.c_code_cleanup' %
-                                     self.__class__.__name__)
+        raise utils.MethodNotDefined("%s.c_code_cleanup" % self.__class__.__name__)
 
     def c_support_code_apply(self, node, name):
         """
@@ -390,8 +382,9 @@ class CLinkerOp(CLinkerObject):
             Subclass does not implement this method.
 
         """
-        raise utils.MethodNotDefined("c_support_code_apply",
-                                     type(self), self.__class__.__name__)
+        raise utils.MethodNotDefined(
+            "c_support_code_apply", type(self), self.__class__.__name__
+        )
 
     def c_init_code_apply(self, node, name):
         """
@@ -418,8 +411,9 @@ class CLinkerOp(CLinkerObject):
             The subclass does not override this method.
 
         """
-        raise utils.MethodNotDefined("c_init_code_apply", type(self),
-                                     self.__class__.__name__)
+        raise utils.MethodNotDefined(
+            "c_init_code_apply", type(self), self.__class__.__name__
+        )
 
     def c_init_code_struct(self, node, name, sub):
         """
@@ -442,8 +436,9 @@ class CLinkerOp(CLinkerObject):
             The subclass does not override this method.
 
         """
-        raise utils.MethodNotDefined("c_init_code_struct", type(self),
-                                     self.__class__.__name__)
+        raise utils.MethodNotDefined(
+            "c_init_code_struct", type(self), self.__class__.__name__
+        )
 
     def c_support_code_struct(self, node, name):
         """
@@ -464,8 +459,9 @@ class CLinkerOp(CLinkerObject):
             Subclass does not implement this method.
 
         """
-        raise utils.MethodNotDefined("c_support_code_struct",
-                                     type(self), self.__class__.__name__)
+        raise utils.MethodNotDefined(
+            "c_support_code_struct", type(self), self.__class__.__name__
+        )
 
     def c_cleanup_code_struct(self, node, name):
         """
@@ -484,8 +480,9 @@ class CLinkerOp(CLinkerObject):
             The subclass does not override this method.
 
         """
-        raise utils.MethodNotDefined("c_cleanup_code_struct", type(self),
-                                     self.__class__.__name__)
+        raise utils.MethodNotDefined(
+            "c_cleanup_code_struct", type(self), self.__class__.__name__
+        )
 
 
 class PureOp(object):
@@ -535,8 +532,7 @@ class PureOp(object):
         application of this Op to the provided inputs.
 
         """
-        raise utils.MethodNotDefined(
-            "make_node", type(self), self.__class__.__name__)
+        raise utils.MethodNotDefined("make_node", type(self), self.__class__.__name__)
 
     @classmethod
     def _get_test_value(cls, v):
@@ -556,7 +552,7 @@ class PureOp(object):
             return v.value
         elif isinstance(v, SharedVariable):
             return v.get_value(borrow=True, return_internal_type=True)
-        elif isinstance(v, graph.Variable) and hasattr(v.tag, 'test_value'):
+        elif isinstance(v, graph.Variable) and hasattr(v.tag, "test_value"):
             # ensure that the test value is correct
             try:
                 ret = v.type.filter(v.tag.test_value)
@@ -564,12 +560,14 @@ class PureOp(object):
                 # Better error message.
                 detailed_err_msg = (
                     "For compute_test_value, one input test value does not"
-                    " have the requested type.\n")
+                    " have the requested type.\n"
+                )
                 detailed_err_msg += utils.get_variable_trace_string(v)
 
                 detailed_err_msg += (
                     "\nThe error when converting the test value to that"
-                    " variable type:")
+                    " variable type:"
+                )
                 # We need to only have 1 args and it should be of type
                 # string.  Otherwise, it print the tuple and so the
                 # new line do not get printed.
@@ -578,7 +576,7 @@ class PureOp(object):
                 raise
             return ret
         detailed_err_msg = utils.get_variable_trace_string(v)
-        raise AttributeError('%s has no test value %s' % (v, detailed_err_msg))
+        raise AttributeError("%s has no test value %s" % (v, detailed_err_msg))
 
     def __call__(self, *inputs, **kwargs):
         """
@@ -611,10 +609,10 @@ class PureOp(object):
             output (unchanged) when it contains multiple elements.
 
         """
-        return_list = kwargs.pop('return_list', False)
+        return_list = kwargs.pop("return_list", False)
         node = self.make_node(*inputs, **kwargs)
 
-        if config.compute_test_value != 'off':
+        if config.compute_test_value != "off":
             run_perform = True
 
             # build test input-values
@@ -626,34 +624,39 @@ class PureOp(object):
                     compute_map[ins] = [True]
                 except AttributeError:
                     # no test-value was specified, act accordingly
-                    if config.compute_test_value == 'warn':
+                    if config.compute_test_value == "warn":
                         warnings.warn(
-                            'Warning, Cannot compute test value: input %i (%s) of Op %s missing default value' %
-                            (i, ins, node), stacklevel=2)
+                            "Warning, Cannot compute test value: input %i (%s) of Op %s missing default value"
+                            % (i, ins, node),
+                            stacklevel=2,
+                        )
                         run_perform = False
-                    elif config.compute_test_value == 'raise':
+                    elif config.compute_test_value == "raise":
                         detailed_err_msg = utils.get_variable_trace_string(ins)
 
                         raise ValueError(
-                            'Cannot compute test value: input %i (%s) of Op %s missing default value. %s' %
-                            (i, ins, node, detailed_err_msg))
-                    elif config.compute_test_value == 'ignore':
+                            "Cannot compute test value: input %i (%s) of Op %s missing default value. %s"
+                            % (i, ins, node, detailed_err_msg)
+                        )
+                    elif config.compute_test_value == "ignore":
                         # silently skip test
                         run_perform = False
-                    elif config.compute_test_value == 'pdb':
+                    elif config.compute_test_value == "pdb":
                         import pdb
+
                         pdb.post_mortem(sys.exc_info()[2])
                     else:
                         raise ValueError(
-                            '%s is invalid for option config.compute_Test_value' %
-                            config.compute_test_value)
+                            "%s is invalid for option config.compute_test_value"
+                            % config.compute_test_value
+                        )
 
             # if all inputs have test-values, run the actual op
             if run_perform:
                 # Original values should not be destroyed:
                 # copy the values of the inputs in destroy_map
                 destroyed_inputs_idx = set()
-                if getattr(node.op, 'destroy_map', None):
+                if getattr(node.op, "destroy_map", None):
                     for i_pos_list in itervalues(node.op.destroy_map):
                         destroyed_inputs_idx.update(i_pos_list)
                 for inp_idx in destroyed_inputs_idx:
@@ -666,8 +669,9 @@ class PureOp(object):
                     compute_map[o] = [False]
 
                 # compute output value once with test inputs to validate graph
-                thunk = node.op.make_thunk(node, storage_map, compute_map,
-                                           no_recycling=[])
+                thunk = node.op.make_thunk(
+                    node, storage_map, compute_map, no_recycling=[]
+                )
                 thunk.inputs = [storage_map[v] for v in node.inputs]
                 thunk.outputs = [storage_map[v] for v in node.outputs]
 
@@ -676,8 +680,7 @@ class PureOp(object):
 
                 for output in node.outputs:
                     # Check that the output has been computed
-                    assert compute_map[output][
-                        0], (output, storage_map[output][0])
+                    assert compute_map[output][0], (output, storage_map[output][0])
 
                     # add 'test_value' to output tag, so that downstream ops can use these
                     # numerical values as inputs to their perform method.
@@ -738,8 +741,8 @@ class PureOp(object):
             "%s of class %s does not "
             "implement R_op. If this is a theano op, write to the "
             "theano-dev mailing list for assistance. If it is your "
-            "own op, implement the R_op method." %
-            (self, self.__class__.__name__))
+            "own op, implement the R_op method." % (self, self.__class__.__name__)
+        )
 
     def perform(self, node, inputs, output_storage, params=None):
         """
@@ -774,9 +777,12 @@ class PureOp(object):
 
         """
         raise utils.MethodNotDefined(
-            "perform", type(self), self.__class__.__name__,
+            "perform",
+            type(self),
+            self.__class__.__name__,
             "Did you used Theano flags mode=FAST_COMPILE?"
-            " You can use optimizer=fast_compile instead.")
+            " You can use optimizer=fast_compile instead.",
+        )
 
     def do_constant_folding(self, node):
         """
@@ -799,15 +805,22 @@ class Op(utils.object2, PureOp, CLinkerOp):
     # We add a default get_params() implementation which will try to detect params from the op
     # if params_type is set to a ParamsType. If not, we raise a MethodNotDefined exception.
     def get_params(self, node):
-        if hasattr(self, 'params_type') and isinstance(self.params_type, theano.gof.ParamsType):
+        if hasattr(self, "params_type") and isinstance(
+            self.params_type, theano.gof.ParamsType
+        ):
             wrapper = self.params_type
             if not all(hasattr(self, field) for field in wrapper.fields):
                 # Let's print missing attributes for debugging.
-                not_found = tuple(field for field in wrapper.fields if not hasattr(self, field))
-                raise AttributeError('%s: missing attributes %s for ParamsType.' % (type(self).__name__, not_found))
+                not_found = tuple(
+                    field for field in wrapper.fields if not hasattr(self, field)
+                )
+                raise AttributeError(
+                    "%s: missing attributes %s for ParamsType."
+                    % (type(self).__name__, not_found)
+                )
             # ParamsType.get_params() will apply filtering to attributes.
             return self.params_type.get_params(self)
-        raise theano.gof.utils.MethodNotDefined('get_params')
+        raise theano.gof.utils.MethodNotDefined("get_params")
 
     def prepare_node(self, node, storage_map, compute_map, impl):
         """
@@ -831,31 +844,34 @@ class Op(utils.object2, PureOp, CLinkerOp):
         node_output_storage = [storage_map[r] for r in node.outputs]
 
         e = FunctionGraph(node.inputs, node.outputs)
-        e_no_recycling = [new_o
-                          for (new_o, old_o) in zip(e.outputs, node.outputs)
-                          if old_o in no_recycling]
-        cl = theano.gof.cc.CLinker().accept(e,
-                                            no_recycling=e_no_recycling)
+        e_no_recycling = [
+            new_o
+            for (new_o, old_o) in zip(e.outputs, node.outputs)
+            if old_o in no_recycling
+        ]
+        cl = theano.gof.cc.CLinker().accept(e, no_recycling=e_no_recycling)
         # float16 gets special treatment since running
         # unprepared C code will get bad results.
-        if not getattr(self, '_f16_ok', False):
-            def is_f16(t):
-                return getattr(t, 'dtype', '') == 'float16'
+        if not getattr(self, "_f16_ok", False):
 
-            if (any(is_f16(i.type) for i in node.inputs) or
-                    any(is_f16(o.type) for o in node.outputs)):
+            def is_f16(t):
+                return getattr(t, "dtype", "") == "float16"
+
+            if any(is_f16(i.type) for i in node.inputs) or any(
+                is_f16(o.type) for o in node.outputs
+            ):
                 # get_dynamic_module is a subset of make_thunk that is reused.
                 # This just try to build the c code
                 # It will raise an error for ops
                 # that don't implement c code. In those cases, we
                 # don't want to print a warning.
                 cl.get_dynamic_module()
-                print("Disabling C code for %s due to unsupported "
-                      "float16" % (self,))
+                print("Disabling C code for %s due to unsupported " "float16" % (self,))
                 raise NotImplementedError("float16")
-        _logger.debug('Trying CLinker.make_thunk')
-        outputs = cl.make_thunk(input_storage=node_input_storage,
-                                output_storage=node_output_storage)
+        _logger.debug("Trying CLinker.make_thunk")
+        outputs = cl.make_thunk(
+            input_storage=node_input_storage, output_storage=node_output_storage
+        )
         thunk, node_input_filters, node_output_filters = outputs
 
         def rval():
@@ -870,8 +886,7 @@ class Op(utils.object2, PureOp, CLinkerOp):
         rval.lazy = False
         return rval
 
-    def make_py_thunk(self, node, storage_map, compute_map, no_recycling,
-                      debug=False):
+    def make_py_thunk(self, node, storage_map, compute_map, no_recycling, debug=False):
         """
         Like make_thunk() but only makes python thunks.
 
@@ -893,11 +908,17 @@ class Op(utils.object2, PureOp, CLinkerOp):
                 for o in node.outputs:
                     compute_map[o][0] = True
                 return r
+
         else:
             params_val = node.params_type.filter(params)
 
-            def rval(p=p, i=node_input_storage, o=node_output_storage, n=node,
-                     params=params_val):
+            def rval(
+                p=p,
+                i=node_input_storage,
+                o=node_output_storage,
+                n=node,
+                params=params_val,
+            ):
                 r = p(n, [x[0] for x in i], o, params)
                 for o in node.outputs:
                     compute_map[o][0] = True
@@ -909,8 +930,7 @@ class Op(utils.object2, PureOp, CLinkerOp):
         rval.lazy = False
         return rval
 
-    def make_thunk(self, node, storage_map, compute_map, no_recycling,
-                   impl=None):
+    def make_thunk(self, node, storage_map, compute_map, no_recycling, impl=None):
         """
         This function must return a thunk, that is a zero-arguments
         function that encapsulates the computation to be performed
@@ -947,43 +967,50 @@ class Op(utils.object2, PureOp, CLinkerOp):
         fail and we try again 'py', prepare_node will be called twice.
         """
 
-        if (impl is None and theano.config.cxx) or impl == 'c':
-            self.prepare_node(node, storage_map=storage_map,
-                              compute_map=compute_map, impl='c')
+        if (impl is None and theano.config.cxx) or impl == "c":
+            self.prepare_node(
+                node, storage_map=storage_map, compute_map=compute_map, impl="c"
+            )
             try:
-                return self.make_c_thunk(node, storage_map, compute_map,
-                                         no_recycling)
+                return self.make_c_thunk(node, storage_map, compute_map, no_recycling)
             except (NotImplementedError, utils.MethodNotDefined):
                 # We requested the c code, so don't catch the error.
-                if impl == 'c':
+                if impl == "c":
                     raise
-                _logger.debug('Falling back on perform')
+                _logger.debug("Falling back on perform")
 
         # condition: either there was no c_code, or it failed or
         # python code was requested.
-        self.prepare_node(node, storage_map=storage_map,
-                          compute_map=compute_map, impl='py')
+        self.prepare_node(
+            node, storage_map=storage_map, compute_map=compute_map, impl="py"
+        )
         return self.make_py_thunk(node, storage_map, compute_map, no_recycling)
 
     def make_node(self, *inputs):
         """
         Create a "apply" nodes for the inputs in that order.
         """
-        if not hasattr(self, 'itypes'):
-            raise NotImplementedError("You can either define itypes and otypes,\
-             or implement make_node")
+        if not hasattr(self, "itypes"):
+            raise NotImplementedError(
+                "You can either define itypes and otypes,\
+             or implement make_node"
+            )
 
-        if not hasattr(self, 'otypes'):
-            raise NotImplementedError("You can either define itypes and otypes,\
-             or implement make_node")
+        if not hasattr(self, "otypes"):
+            raise NotImplementedError(
+                "You can either define itypes and otypes,\
+             or implement make_node"
+            )
 
         if len(inputs) != len(self.itypes):
-            raise ValueError("We expected %d inputs but got %d." %
-                             (len(self.itypes), len(inputs)))
+            raise ValueError(
+                "We expected %d inputs but got %d." % (len(self.itypes), len(inputs))
+            )
         if not all(inp.type == it for inp, it in zip(inputs, self.itypes)):
             raise TypeError(
-                "We expected inputs of types '%s' but got types '%s' " %
-                (str(self.itypes), str([inp.type for inp in inputs])))
+                "We expected inputs of types '%s' but got types '%s' "
+                % (str(self.itypes), str([inp.type for inp in inputs]))
+            )
         return theano.Apply(self, inputs, [o() for o in self.otypes])
 
 
@@ -1024,12 +1051,12 @@ def missing_test_message(msg):
 
     """
     action = config.compute_test_value
-    if action == 'raise':
+    if action == "raise":
         raise AttributeError(msg)
-    elif action == 'warn':
+    elif action == "warn":
         warnings.warn(msg, stacklevel=2)
     else:
-        assert action in ['ignore', 'off']
+        assert action in ["ignore", "off"]
 
 
 def debug_error_message(msg):
@@ -1042,12 +1069,12 @@ def debug_error_message(msg):
     action = config.compute_test_value
 
     # this message should never be called when the debugger is off
-    assert action != 'off'
+    assert action != "off"
 
-    if action in ['raise', 'ignore']:
+    if action in ["raise", "ignore"]:
         raise ValueError(msg)
     else:
-        assert action == 'warn'
+        assert action == "warn"
         warnings.warn(msg, stacklevel=2)
 
 
@@ -1057,13 +1084,13 @@ def debug_assert(condition, msg=None):
     with just a warning
     """
     if msg is None:
-        msg = 'debug_assert failed'
+        msg = "debug_assert failed"
     if not condition:
         action = config.compute_test_value
-        if action in ['raise', 'ignore']:
+        if action in ["raise", "ignore"]:
             raise AssertionError(msg)
         else:
-            assert action == 'warn'
+            assert action == "warn"
             warnings.warn(msg, stacklevel=2)
 
 
@@ -1092,7 +1119,7 @@ def get_debug_values(*args):
 
     """
 
-    if config.compute_test_value == 'off':
+    if config.compute_test_value == "off":
         return []
 
     rval = []
@@ -1101,12 +1128,12 @@ def get_debug_values(*args):
         try:
             rval.append(get_test_value(arg))
         except AttributeError:
-            if hasattr(arg, 'name') and arg.name is not None:
-                missing_test_message("Argument " + str(i) + "('" + arg.name +
-                                     "') has no test value")
+            if hasattr(arg, "name") and arg.name is not None:
+                missing_test_message(
+                    "Argument " + str(i) + "('" + arg.name + "') has no test value"
+                )
             else:
-                missing_test_message("Argument " + str(i) +
-                                     " has no test value")
+                missing_test_message("Argument " + str(i) + " has no test value")
             return []
 
     if len(rval) == 1:
@@ -1168,7 +1195,7 @@ class OpenMPOp(Op):
         """
         self.update_self_openmp()
         if self.openmp:
-            return ['-fopenmp']
+            return ["-fopenmp"]
         return []
 
     def c_headers(self):
@@ -1197,10 +1224,8 @@ int main( int argc, const char* argv[] )
 }
         """
         default_openmp = GCC_compiler.try_compile_tmp(
-            src_code=code,
-            tmp_prefix='test_omp_',
-            flags=['-fopenmp'],
-            try_run=False)
+            src_code=code, tmp_prefix="test_omp_", flags=["-fopenmp"], try_run=False
+        )
         return default_openmp
 
     def update_self_openmp(self):
@@ -1220,13 +1245,14 @@ int main( int argc, const char* argv[] )
                         " We disable openmp everywhere in Theano."
                         " To remove this warning set the theano flags `openmp`"
                         " to False.",
-                        stacklevel=3)
+                        stacklevel=3,
+                    )
             if OpenMPOp.gxx_support_openmp is False:
                 self.openmp = False
                 theano.config.openmp = False
 
     def prepare_node(self, node, storage_map, compute_map, impl):
-        if impl == 'c':
+        if impl == "c":
             self.update_self_openmp()
 
 
@@ -1235,9 +1261,9 @@ def simple_meth(tag):
         if tag in self.code_sections:
             return self.code_sections[tag]
         else:
-            raise utils.MethodNotDefined(
-                'c_' + tag, type(self), type(self).__name__)
-    f.__name__ = 'c_' + tag
+            raise utils.MethodNotDefined("c_" + tag, type(self), type(self).__name__)
+
+    f.__name__ = "c_" + tag
     return f
 
 
@@ -1247,12 +1273,11 @@ def apply_meth(tag):
             code = self.code_sections[tag]
 
             define_macros, undef_macros = self.get_c_macros(node, name)
-            return '\n'.join(['', define_macros, code,
-                              undef_macros])
+            return "\n".join(["", define_macros, code, undef_macros])
         else:
-            raise utils.MethodNotDefined(
-                'c_' + tag, type(self), type(self).__name__)
-    f.__name__ = 'c_' + tag
+            raise utils.MethodNotDefined("c_" + tag, type(self), type(self).__name__)
+
+    f.__name__ = "c_" + tag
     return f
 
 
@@ -1267,16 +1292,22 @@ class COp(Op):
 
     """
 
-    section_re = re.compile(r'^#section ([a-zA-Z0-9_]+)$', re.MULTILINE)
-    backward_re = re.compile(
-        r'^THEANO_(APPLY|SUPPORT)_CODE_SECTION$',
-        re.MULTILINE)
+    section_re = re.compile(r"^#section ([a-zA-Z0-9_]+)$", re.MULTILINE)
+    backward_re = re.compile(r"^THEANO_(APPLY|SUPPORT)_CODE_SECTION$", re.MULTILINE)
     # This is the set of allowed markers
-    SECTIONS = set([
-        'init_code', 'init_code_apply', 'init_code_struct',
-        'support_code', 'support_code_apply', 'support_code_struct',
-        'cleanup_code_struct',
-        'code', 'code_cleanup'])
+    SECTIONS = set(
+        [
+            "init_code",
+            "init_code_apply",
+            "init_code_struct",
+            "support_code",
+            "support_code_apply",
+            "support_code_struct",
+            "cleanup_code_struct",
+            "code",
+            "code_cleanup",
+        ]
+    )
 
     @classmethod
     def get_path(cls, f):
@@ -1311,14 +1342,17 @@ class COp(Op):
             raise ValueError("No sections where defined in C files")
 
         if self.func_name is not None:
-            if 'op_code' in self.code_sections:
+            if "op_code" in self.code_sections:
                 # maybe a warning instead (and clearing the key)
-                raise ValueError('Cannot have an "op_code" section and '
-                                 'specify the func_name')
-            if 'op_code_cleanup' in self.code_sections:
+                raise ValueError(
+                    'Cannot have an "op_code" section and ' "specify the func_name"
+                )
+            if "op_code_cleanup" in self.code_sections:
                 # maybe a warning instead (and clearing the key)
-                raise ValueError('Cannot have an "op_code_cleanup" section '
-                                 'and specify the func_name')
+                raise ValueError(
+                    'Cannot have an "op_code_cleanup" section '
+                    "and specify the func_name"
+                )
 
     def load_c_code(self, func_files):
         """
@@ -1342,10 +1376,12 @@ class COp(Op):
                 new_markers_present = True
 
         if old_markers_present and new_markers_present:
-            raise ValueError('Both the new and the old syntax for '
-                             'identifying code sections are present in the '
-                             'provided C code. These two syntaxes should not '
-                             'be used at the same time.')
+            raise ValueError(
+                "Both the new and the old syntax for "
+                "identifying code sections are present in the "
+                "provided C code. These two syntaxes should not "
+                "be used at the same time."
+            )
 
         self.code_sections = dict()
         for i, code in enumerate(self.func_codes):
@@ -1356,10 +1392,10 @@ class COp(Op):
                 split = self.backward_re.split(code)
                 n = 1
                 while n < len(split):
-                    if split[n] == 'APPLY':
-                        self.code_sections['support_code_apply'] = split[n + 1]
-                    elif split[n] == 'SUPPORT':
-                        self.code_sections['support_code'] = split[n + 1]
+                    if split[n] == "APPLY":
+                        self.code_sections["support_code_apply"] = split[n + 1]
+                    elif split[n] == "SUPPORT":
+                        self.code_sections["support_code"] = split[n + 1]
                     n += 2
                 continue
 
@@ -1367,26 +1403,29 @@ class COp(Op):
 
                 # Check for code outside of the supported sections
                 split = self.section_re.split(code)
-                if split[0].strip() != '':
-                    raise ValueError('Stray code before first #section '
-                                     'statement (in file %s): %s' %
-                                     (func_files[i], split[0]))
+                if split[0].strip() != "":
+                    raise ValueError(
+                        "Stray code before first #section "
+                        "statement (in file %s): %s" % (func_files[i], split[0])
+                    )
 
                 # Separate the code into the proper sections
                 n = 1
                 while n < len(split):
                     if split[n] not in self.SECTIONS:
                         raise ValueError(
-                            "Unknown section type (in file %s): %s" %
-                            (func_files[i], split[n]))
+                            "Unknown section type (in file %s): %s"
+                            % (func_files[i], split[n])
+                        )
                     if split[n] not in self.code_sections:
                         self.code_sections[split[n]] = ""
                     self.code_sections[split[n]] += split[n + 1]
                     n += 2
 
             else:
-                raise ValueError("No valid section marker was found in file "
-                                 "%s" % func_files[i])
+                raise ValueError(
+                    "No valid section marker was found in file " "%s" % func_files[i]
+                )
 
     def __get_op_params(self):
         """
@@ -1406,55 +1445,61 @@ class COp(Op):
            associated to ``key``.
 
         """
-        if hasattr(self, 'params_type') and isinstance(self.params_type, theano.gof.ParamsType):
+        if hasattr(self, "params_type") and isinstance(
+            self.params_type, theano.gof.ParamsType
+        ):
             wrapper = self.params_type
-            params = [('PARAMS_TYPE', wrapper.name)]
+            params = [("PARAMS_TYPE", wrapper.name)]
             for i in range(wrapper.length):
                 try:
                     # NB (reminder): These macros are currently used only in ParamsType example test
                     # (`theano/gof/tests/test_quadratic_function.c`), to demonstrate how we can
                     # access params dtypes when dtypes may change (e.g. if based on theano.config.floatX).
                     # But in practice, params types generally have fixed types per op.
-                    params.append(('DTYPE_PARAM_' + wrapper.fields[i], wrapper.types[i].c_element_type()))
+                    params.append(
+                        (
+                            "DTYPE_PARAM_" + wrapper.fields[i],
+                            wrapper.types[i].c_element_type(),
+                        )
+                    )
                 except utils.MethodNotDefined:
                     pass
             return params
         return []
 
     def c_code_cache_version(self):
-        version = (hash(tuple(self.func_codes)), )
-        if hasattr(self, 'params_type'):
-            version += (self.params_type.c_code_cache_version(), )
+        version = (hash(tuple(self.func_codes)),)
+        if hasattr(self, "params_type"):
+            version += (self.params_type.c_code_cache_version(),)
         return version
 
     def c_init_code(self):
         """
         Get the code section for init_code
         """
-        if 'init_code' in self.code_sections:
-            return [self.code_sections['init_code']]
+        if "init_code" in self.code_sections:
+            return [self.code_sections["init_code"]]
         else:
-            raise utils.MethodNotDefined(
-                'c_init_code', type(self), type(self).__name__)
+            raise utils.MethodNotDefined("c_init_code", type(self), type(self).__name__)
 
-    c_init_code_apply = apply_meth('init_code_apply')
-    c_support_code = simple_meth('support_code')
-    c_support_code_apply = apply_meth('support_code_apply')
-    c_support_code_struct = apply_meth('support_code_struct')
-    c_cleanup_code_struct = apply_meth('cleanup_code_struct')
+    c_init_code_apply = apply_meth("init_code_apply")
+    c_support_code = simple_meth("support_code")
+    c_support_code_apply = apply_meth("support_code_apply")
+    c_support_code_struct = apply_meth("support_code_struct")
+    c_cleanup_code_struct = apply_meth("cleanup_code_struct")
 
     def format_c_function_args(self, inp, out):
         # Generate an string containing the arguments sent to the external C
         # function. The argstring will be of format :
         # "input0, input1, input2, &output0, &output1"
         inp = list(inp)
-        numi = getattr(self, '_cop_num_inputs', len(inp))
+        numi = getattr(self, "_cop_num_inputs", len(inp))
         while len(inp) < numi:
-            inp.append('NULL')
+            inp.append("NULL")
         out = ["&%s" % o for o in out]
-        numo = getattr(self, '_cop_num_outputs', len(out))
+        numo = getattr(self, "_cop_num_outputs", len(out))
         while len(out) < numo:
-            out.append('NULL')
+            out.append("NULL")
         return ", ".join(inp + out)
 
     def get_c_macros(self, node, name, check_input=None):
@@ -1464,26 +1509,25 @@ class COp(Op):
         undef_macros = []
 
         if check_input is None:
-            check_input = getattr(self, 'check_input', True)
+            check_input = getattr(self, "check_input", True)
 
         if check_input:
             # Extract the various properties of the input and output variables
             variables = node.inputs + node.outputs
-            variable_names = (["INPUT_%i" % i for i in range(len(node.inputs))] +
-                              ["OUTPUT_%i" % i for i in range(len(node.outputs))])
+            variable_names = ["INPUT_%i" % i for i in range(len(node.inputs))] + [
+                "OUTPUT_%i" % i for i in range(len(node.outputs))
+            ]
 
             # Generate dtype macros
             for i, v in enumerate(variables):
-                if not hasattr(v, 'dtype'):
+                if not hasattr(v, "dtype"):
                     continue
                 vname = variable_names[i]
 
                 macro_name = "DTYPE_" + vname
                 macro_value = "npy_" + v.dtype
 
-                define_macros.append(
-                    define_template %
-                    (macro_name, macro_value))
+                define_macros.append(define_template % (macro_name, macro_value))
                 undef_macros.append(undef_template % macro_name)
 
                 d = np.dtype(v.dtype)
@@ -1491,49 +1535,45 @@ class COp(Op):
                 macro_name = "TYPENUM_" + vname
                 macro_value = d.num
 
-                define_macros.append(
-                    define_template %
-                    (macro_name, macro_value))
+                define_macros.append(define_template % (macro_name, macro_value))
                 undef_macros.append(undef_template % macro_name)
 
                 macro_name = "ITEMSIZE_" + vname
                 macro_value = d.itemsize
 
-                define_macros.append(
-                    define_template %
-                    (macro_name, macro_value))
+                define_macros.append(define_template % (macro_name, macro_value))
                 undef_macros.append(undef_template % macro_name)
 
         # Generate a macro to mark code as being apply-specific
-        define_macros.append(define_template % ("APPLY_SPECIFIC(str)",
-                                                "str##_%s" % name))
+        define_macros.append(
+            define_template % ("APPLY_SPECIFIC(str)", "str##_%s" % name)
+        )
         undef_macros.append(undef_template % "APPLY_SPECIFIC")
 
         for n, v in self.__get_op_params():
             define_macros.append(define_template % (n, v))
             undef_macros.append(undef_template % (n,))
 
-        return '\n'.join(define_macros), '\n'.join(undef_macros)
+        return "\n".join(define_macros), "\n".join(undef_macros)
 
     def _lquote_macro(self, txt):
         res = []
-        spl = txt.split('\n')
+        spl = txt.split("\n")
         for l in spl[:-1]:
-            res.append(l + ' \\')
+            res.append(l + " \\")
         res.append(spl[-1])
-        return '\n'.join(res)
+        return "\n".join(res)
 
     def get_sub_macros(self, sub):
         define_macros = []
         undef_macros = []
-        define_macros.append("#define FAIL %s" % (
-                             self._lquote_macro(sub['fail']),))
+        define_macros.append("#define FAIL %s" % (self._lquote_macro(sub["fail"]),))
         undef_macros.append("#undef FAIL")
-        if 'params' in sub:
-            define_macros.append("#define PARAMS %s" % (sub['params'],))
+        if "params" in sub:
+            define_macros.append("#define PARAMS %s" % (sub["params"],))
             undef_macros.append("#undef PARAMS")
 
-        return '\n'.join(define_macros), '\n'.join(undef_macros)
+        return "\n".join(define_macros), "\n".join(undef_macros)
 
     def get_io_macros(self, inputs, outputs):
         define_macros = []
@@ -1552,29 +1592,31 @@ class COp(Op):
         Stitches all the macros and "init_code" together
 
         """
-        if 'init_code_struct' in self.code_sections:
-            op_code = self.code_sections['init_code_struct']
+        if "init_code_struct" in self.code_sections:
+            op_code = self.code_sections["init_code_struct"]
 
             def_macros, undef_macros = self.get_c_macros(node, name)
             def_sub, undef_sub = self.get_sub_macros(sub)
 
-            return '\n'.join(['', def_macros, def_sub,
-                              op_code,
-                              undef_sub, undef_macros])
+            return "\n".join(
+                ["", def_macros, def_sub, op_code, undef_sub, undef_macros]
+            )
         else:
             raise utils.MethodNotDefined(
-                'c_init_code_struct', type(self), type(self).__name__)
+                "c_init_code_struct", type(self), type(self).__name__
+            )
 
     def c_code(self, node, name, inp, out, sub):
         if self.func_name is not None:
-            assert 'code' not in self.code_sections
+            assert "code" not in self.code_sections
 
-            define_macros, undef_macros = self.get_c_macros(node, name,
-                                                            check_input=False)
+            define_macros, undef_macros = self.get_c_macros(
+                node, name, check_input=False
+            )
 
             params = ""
-            if 'params' in sub:
-                params = ", %s" % (sub['params'],)
+            if "params" in sub:
+                params = ", %s" % (sub["params"],)
 
             # Generate the C code
             return """
@@ -1585,40 +1627,59 @@ class COp(Op):
                   }
                 }
                 %(undef_macros)s
-                """ % dict(func_name=self.func_name,
-                           fail=sub['fail'], params=params,
-                           func_args=self.format_c_function_args(inp, out),
-                           define_macros=define_macros,
-                           undef_macros=undef_macros)
+                """ % dict(
+                func_name=self.func_name,
+                fail=sub["fail"],
+                params=params,
+                func_args=self.format_c_function_args(inp, out),
+                define_macros=define_macros,
+                undef_macros=undef_macros,
+            )
         else:
-            if 'code' in self.code_sections:
-                op_code = self.code_sections['code']
+            if "code" in self.code_sections:
+                op_code = self.code_sections["code"]
 
                 def_macros, undef_macros = self.get_c_macros(node, name)
                 def_sub, undef_sub = self.get_sub_macros(sub)
                 def_io, undef_io = self.get_io_macros(inp, out)
 
-                return '\n'.join([def_macros, def_sub, def_io,
-                                  op_code,
-                                  undef_io, undef_sub, undef_macros])
+                return "\n".join(
+                    [
+                        def_macros,
+                        def_sub,
+                        def_io,
+                        op_code,
+                        undef_io,
+                        undef_sub,
+                        undef_macros,
+                    ]
+                )
             else:
-                raise utils.MethodNotDefined(
-                    'c_code', type(self), type(self).__name__)
+                raise utils.MethodNotDefined("c_code", type(self), type(self).__name__)
 
     def c_code_cleanup(self, node, name, inputs, outputs, sub):
         """
         Stitches all the macros and "code_cleanup" together
         """
-        if 'code_cleanup' in self.code_sections:
-            op_code = self.code_sections['code_cleanup']
+        if "code_cleanup" in self.code_sections:
+            op_code = self.code_sections["code_cleanup"]
 
             def_macros, undef_macros = self.get_c_macros(node, name)
             def_sub, undef_sub = self.get_sub_macros(sub)
             def_io, undef_io = self.get_io_macros(inputs, outputs)
 
-            return '\n'.join([def_macros, def_sub, def_io,
-                              op_code,
-                              undef_io, undef_sub, undef_macros])
+            return "\n".join(
+                [
+                    def_macros,
+                    def_sub,
+                    def_io,
+                    op_code,
+                    undef_io,
+                    undef_sub,
+                    undef_macros,
+                ]
+            )
         else:
             raise utils.MethodNotDefined(
-                'c_code_cleanup', type(self), type(self).__name__)
+                "c_code_cleanup", type(self), type(self).__name__
+            )

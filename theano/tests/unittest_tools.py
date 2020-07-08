@@ -1,19 +1,18 @@
-from __future__ import absolute_import, print_function, division
-from copy import copy, deepcopy
-from functools import wraps
-import logging
 import sys
-
+import logging
 import pytest
-from six import integer_types
-from six.moves import StringIO
-
 import numpy as np
-
 import theano
 import theano.tensor as T
+
+from functools import wraps
+from copy import copy, deepcopy
+from six import integer_types
+from six.moves import StringIO
 from theano import config
+
 _logger = logging.getLogger("theano.tests.unittest_tools")
+
 
 def fetch_seed(pseed=None):
     """
@@ -28,7 +27,7 @@ def fetch_seed(pseed=None):
     """
 
     seed = pseed or config.unittests.rseed
-    if seed == 'random':
+    if seed == "random":
         seed = None
 
     try:
@@ -37,7 +36,13 @@ def fetch_seed(pseed=None):
         else:
             seed = None
     except ValueError:
-        print(('Error: config.unittests.rseed contains ' 'invalid seed, using None instead'), file=sys.stderr)
+        print(
+            (
+                "Error: config.unittests.rseed contains "
+                "invalid seed, using None instead"
+            ),
+            file=sys.stderr,
+        )
         seed = None
 
     return seed
@@ -51,7 +56,11 @@ def seed_rng(pseed=None):
 
     seed = fetch_seed(pseed)
     if pseed and pseed != seed:
-        print('Warning: using seed given by config.unittests.rseed=%i' 'instead of seed %i given as parameter' % (seed, pseed), file=sys.stderr)
+        print(
+            "Warning: using seed given by config.unittests.rseed=%i"
+            "instead of seed %i given as parameter" % (seed, pseed),
+            file=sys.stderr,
+        )
     np.random.seed(seed)
     return seed
 
@@ -65,6 +74,7 @@ def verify_grad(op, pt, n_tests=2, rng=None, *args, **kwargs):
         seed_rng()
         rng = np.random
     T.verify_grad(op, pt, n_tests, rng, *args, **kwargs)
+
 
 #
 # This supports the following syntax:
@@ -86,25 +96,30 @@ class MockRandomState:
         self.val = val
 
     def rand(self, *shape):
-        return np.zeros(shape, dtype='float64') + self.val
+        return np.zeros(shape, dtype="float64") + self.val
 
     def randint(self, minval, maxval=None, size=1):
         if maxval is None:
             minval, maxval = 0, minval
-        out = np.zeros(size, dtype='int64')
+        out = np.zeros(size, dtype="int64")
         if self.val == 0:
             return out + minval
         else:
             return out + maxval - 1
 
 
-class TestOptimizationMixin(object):
-
+class OptimizationTestMixin(object):
     def assertFunctionContains(self, f, op, min=1, max=sys.maxsize):
         toposort = f.maker.fgraph.toposort()
         matches = [node for node in toposort if node.op == op]
-        assert (min <= len(matches) <= max), (toposort, matches,
-                                              str(op), len(matches), min, max)
+        assert min <= len(matches) <= max, (
+            toposort,
+            matches,
+            str(op),
+            len(matches),
+            min,
+            max,
+        )
 
     def assertFunctionContains0(self, f, op):
         return self.assertFunctionContains(f, op, min=0, max=0)
@@ -118,16 +133,20 @@ class TestOptimizationMixin(object):
     def assertFunctionContainsClass(self, f, op, min=1, max=sys.maxsize):
         toposort = f.maker.fgraph.toposort()
         matches = [node for node in toposort if isinstance(node.op, op)]
-        assert (min <= len(matches) <= max), (toposort, matches,
-                                              str(op), len(matches), min, max)
+        assert min <= len(matches) <= max, (
+            toposort,
+            matches,
+            str(op),
+            len(matches),
+            min,
+            max,
+        )
 
     def assertFunctionContainsClassN(self, f, op, N):
         return self.assertFunctionContainsClass(f, op, min=N, max=N)
 
 
-# This object name should not start with Test.
-# Otherwise nosetests will execute it!
-class Test_OpContractMixin(object):
+class OpContractTestMixin(object):
     # self.ops should be a list of instantiations of an Op class to test.
     # self.other_op should be an op which is different from every op
     other_op = T.add
@@ -139,7 +158,7 @@ class Test_OpContractMixin(object):
         return deepcopy(x)
 
     def clone(self, op):
-        raise NotImplementedError('return new instance like `op`')
+        raise NotImplementedError("return new instance like `op`")
 
     def test_eq(self):
         for i, op_i in enumerate(self.ops):
@@ -168,25 +187,32 @@ class Test_OpContractMixin(object):
 
     def test_name(self):
         for op in self.ops:
-            s = str(op)    # show that str works
-            assert s       # names should not be empty
+            s = str(op)  # show that str works
+            assert s  # names should not be empty
 
 
-class InferShapeTester():
-
+class InferShapeTester:
     def setup_method(self):
         seed_rng()
         # Take into account any mode that may be defined in a child class
         # and it can be None
-        mode = getattr(self, 'mode', None)
+        mode = getattr(self, "mode", None)
         if mode is None:
             mode = theano.compile.get_default_mode()
         # This mode seems to be the minimal one including the shape_i
         # optimizations, if we don't want to enumerate them explicitly.
         self.mode = mode.including("canonicalize")
 
-    def _compile_and_check(self, inputs, outputs, numeric_inputs, cls,
-                           excluding=None, warn=True, check_topo=True):
+    def _compile_and_check(
+        self,
+        inputs,
+        outputs,
+        numeric_inputs,
+        cls,
+        excluding=None,
+        warn=True,
+        check_topo=True,
+    ):
         """This tests the infer_shape method only
 
         When testing with input values with shapes that take the same
@@ -215,8 +241,11 @@ class InferShapeTester():
                 # remove broadcasted dims as it is sure they can't be
                 # changed to prevent the same dim problem.
                 if hasattr(var.type, "broadcastable"):
-                    shp = [inp.shape[i] for i in range(inp.ndim)
-                           if not var.type.broadcastable[i]]
+                    shp = [
+                        inp.shape[i]
+                        for i in range(inp.ndim)
+                        if not var.type.broadcastable[i]
+                    ]
                 else:
                     shp = inp.shape
                 if len(set(shp)) != len(shp):
@@ -226,12 +255,13 @@ class InferShapeTester():
                         ", like a square matrix. This makes it impossible to"
                         " check if the values for these dimensions have been"
                         " correctly used, or if they have been mixed up.",
-                        cls, inp.shape)
+                        cls,
+                        inp.shape,
+                    )
                     break
 
         outputs_function = theano.function(inputs, outputs, mode=mode)
-        shapes_function = theano.function(inputs, [o.shape for o in outputs],
-                                          mode=mode)
+        shapes_function = theano.function(inputs, [o.shape for o in outputs], mode=mode)
         # theano.printing.debugprint(shapes_function)
         # Check that the Op is removed from the compiled function.
         if check_topo:
@@ -254,28 +284,28 @@ def str_diagnostic(expected, value, rtol, atol):
     try:
         ssio = StringIO()
         print("           : shape, dtype, strides, min, max, n_inf, n_nan:", file=ssio)
-        print("  Expected :", end=' ', file=ssio)
-        print(expected.shape, end=' ', file=ssio)
-        print(expected.dtype, end=' ', file=ssio)
-        print(expected.strides, end=' ', file=ssio)
-        print(expected.min(), end=' ', file=ssio)
-        print(expected.max(), end=' ', file=ssio)
-        print(np.isinf(expected).sum(), end=' ', file=ssio)
-        print(np.isnan(expected).sum(), end=' ', file=ssio)
+        print("  Expected :", end=" ", file=ssio)
+        print(expected.shape, end=" ", file=ssio)
+        print(expected.dtype, end=" ", file=ssio)
+        print(expected.strides, end=" ", file=ssio)
+        print(expected.min(), end=" ", file=ssio)
+        print(expected.max(), end=" ", file=ssio)
+        print(np.isinf(expected).sum(), end=" ", file=ssio)
+        print(np.isnan(expected).sum(), end=" ", file=ssio)
         # only if all succeeds to we add anything to sio
         print(ssio.getvalue(), file=sio)
     except Exception:
         pass
     try:
         ssio = StringIO()
-        print("  Value    :", end=' ', file=ssio)
-        print(value.shape, end=' ', file=ssio)
-        print(value.dtype, end=' ', file=ssio)
-        print(value.strides, end=' ', file=ssio)
-        print(value.min(), end=' ', file=ssio)
-        print(value.max(), end=' ', file=ssio)
-        print(np.isinf(value).sum(), end=' ', file=ssio)
-        print(np.isnan(value).sum(), end=' ', file=ssio)
+        print("  Value    :", end=" ", file=ssio)
+        print(value.shape, end=" ", file=ssio)
+        print(value.dtype, end=" ", file=ssio)
+        print(value.strides, end=" ", file=ssio)
+        print(value.min(), end=" ", file=ssio)
+        print(value.max(), end=" ", file=ssio)
+        print(np.isinf(value).sum(), end=" ", file=ssio)
+        print(np.isnan(value).sum(), end=" ", file=ssio)
         # only if all succeeds to we add anything to sio
         print(ssio.getvalue(), file=sio)
     except Exception:
@@ -312,7 +342,6 @@ def str_diagnostic(expected, value, rtol, atol):
 
 
 class WrongValue(Exception):
-
     def __init__(self, expected_val, val, rtol, atol):
         Exception.__init__(self)  # to be compatible with python2.4
         self.val1 = expected_val
@@ -373,7 +402,7 @@ class AttemptManyTimes:
             # need to be called before any attempts to execute the test in
             # case it relies on data randomly generated in the class' setup()
             # method.
-            if (len(args) == 1 and hasattr(args[0], "_testMethodName")):
+            if len(args) == 1 and hasattr(args[0], "_testMethodName"):
                 test_in_class = True
                 class_instance = args[0]
             else:
@@ -424,10 +453,12 @@ def assertFailure_fast(f):
     """A Decorator to handle the test cases that are failing when
     THEANO_FLAGS =cycle_detection='fast'.
     """
-    if theano.config.cycle_detection == 'fast':
+    if theano.config.cycle_detection == "fast":
+
         def test_with_assert(*args, **kwargs):
             with pytest.raises(Exception):
                 f(*args, **kwargs)
+
         return test_with_assert
     else:
         return f

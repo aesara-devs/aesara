@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 from theano.gof.graph import Variable, Apply
 from theano.gof.type import Type
 from theano.gof.op import Op
@@ -14,7 +12,6 @@ def as_variable(x):
 
 
 class MyType(Type):
-
     def __init__(self, name):
         self.name = name
 
@@ -52,20 +49,20 @@ class MyOp(Op):
     def __str__(self):
         return self.name
 
-sigmoid = MyOp(1, 'Sigmoid')
-add = MyOp(2, 'Add')
-dot = MyOp(2, 'Dot')
+
+sigmoid = MyOp(1, "Sigmoid")
+add = MyOp(2, "Add")
+dot = MyOp(2, "Dot")
 
 
 def inputs():
-    x = MyVariable('x')
-    y = MyVariable('y')
-    z = MyVariable('z')
+    x = MyVariable("x")
+    y = MyVariable("y")
+    z = MyVariable("z")
     return x, y, z
 
 
 class TestNodeFinder:
-
     def test_straightforward(self):
         x, y, z = inputs()
         e0 = dot(y, z)
@@ -73,7 +70,7 @@ class TestNodeFinder:
         g = FunctionGraph([x, y, z], [e], clone=False)
         g.attach_feature(NodeFinder())
 
-        assert hasattr(g, 'get_nodes')
+        assert hasattr(g, "get_nodes")
         for type, num in ((add, 3), (sigmoid, 3), (dot, 2)):
             if not len([t for t in g.get_nodes(type)]) == num:
                 raise Exception("Expected: %i times %s" % (num, type))

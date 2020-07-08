@@ -1,17 +1,16 @@
-from __future__ import absolute_import, print_function, division
 import pytest
 import theano
-from theano.updates import OrderedUpdates
 import theano.tensor as T
 
+from theano.updates import OrderedUpdates
 
-class test_ifelse():
 
+class TestIfelse:
     def test_updates_init(self):
         with pytest.raises(TypeError):
             OrderedUpdates(dict(d=3))
 
-        sv = theano.shared('asdf')
+        sv = theano.shared("asdf")
         OrderedUpdates({sv: 3})
 
     def test_updates_setitem(self):
@@ -31,8 +30,8 @@ class test_ifelse():
         up1 = OrderedUpdates()
         up2 = OrderedUpdates()
 
-        a = theano.shared('a')
-        b = theano.shared('b')
+        a = theano.shared("a")
+        b = theano.shared("b")
 
         assert not up1 + up2
 

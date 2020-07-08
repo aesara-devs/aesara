@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function, division
 import theano
 from theano.gradient import DisconnectedType
 from theano.gof import Op, Apply, TopoOptimizer
@@ -20,7 +19,7 @@ def get_diagonal_subtensor_view(x, i0, i1):
     i0 = int(i0)
     i1 = int(i1)
     if x.shape[i0] < x.shape[i1]:
-        raise NotImplementedError('is this allowed?')
+        raise NotImplementedError("is this allowed?")
     idx = [slice(None)] * x.ndim
     idx[i0] = slice(x.shape[i1] - 1, None, None)
     xview = x.__getitem__(tuple(idx))
@@ -123,6 +122,7 @@ class DiagonalSubtensor(Op):
         rval = [[True], [False], [False]]
         return rval
 
+
 diagonal_subtensor = DiagonalSubtensor(False)
 
 
@@ -160,18 +160,24 @@ class IncDiagonalSubtensor(Op):
     def grad(self, inputs, g_outputs):
         x, i0, i1, amt = inputs
         gy = g_outputs[0]
-        return [gy, DisconnectedType()(), DisconnectedType()(),
-                diagonal_subtensor(gy, i0, i1)]
+        return [
+            gy,
+            DisconnectedType()(),
+            DisconnectedType()(),
+            diagonal_subtensor(gy, i0, i1),
+        ]
 
     def connection_pattern(self, node):
         rval = [[True], [False], [False], [True]]
         return rval
+
+
 inc_diagonal_subtensor = IncDiagonalSubtensor(False)
 
 
-def conv3d(signals, filters,
-           signals_shape=None, filters_shape=None,
-           border_mode='valid'):
+def conv3d(
+    signals, filters, signals_shape=None, filters_shape=None, border_mode="valid"
+):
     """
     Convolve spatio-temporal filters with a movie.
 
@@ -227,7 +233,7 @@ def conv3d(signals, filters,
     _filters_shape_4d = (Nf * Tf, C, Hf, Wf)
 
     if border_mode[1] != border_mode[2]:
-        raise NotImplementedError('height and width bordermodes must match')
+        raise NotImplementedError("height and width bordermodes must match")
     conv2d_signal_shape = _signals_shape_4d
     conv2d_filter_shape = _filters_shape_4d
     if signals_shape is None:
@@ -240,22 +246,23 @@ def conv3d(signals, filters,
         filters.reshape(_filters_shape_4d),
         input_shape=conv2d_signal_shape,
         filter_shape=conv2d_filter_shape,
-        border_mode=border_mode[1])  # ignoring border_mode[2]
+        border_mode=border_mode[1],
+    )  # ignoring border_mode[2]
 
     # compute the intended output size
-    if border_mode[1] == 'valid':
+    if border_mode[1] == "valid":
         Hout = Hs - Hf + 1
         Wout = Ws - Wf + 1
-    elif border_mode[1] == 'full':
+    elif border_mode[1] == "full":
         Hout = Hs + Hf - 1
         Wout = Ws + Wf - 1
-    elif border_mode[1] == 'half':
+    elif border_mode[1] == "half":
         Hout = Hs - (Hf % 2) + 1
         Wout = Ws - (Wf % 2) + 1
-    elif border_mode[1] == 'same':
+    elif border_mode[1] == "same":
         raise NotImplementedError()
     else:
-        raise ValueError('invalid border mode', border_mode[1])
+        raise ValueError("invalid border mode", border_mode[1])
 
     # reshape the temporary output to restore its original size
     out_tmp = out_4d.reshape((Ns, Ts, Nf, Tf, Hout, Wout))
@@ -267,27 +274,27 @@ def conv3d(signals, filters,
         out_5d = out_tmp.reshape((Ns, Ts, Nf, Hout, Wout))
     else:
         # for some types of convolution, pad out_tmp with zeros
-        if border_mode[0] == 'valid':
+        if border_mode[0] == "valid":
             Tpad = 0
-        elif border_mode[0] == 'full':
+        elif border_mode[0] == "full":
             Tpad = Tf - 1
-        elif border_mode[0] == 'half':
+        elif border_mode[0] == "half":
             Tpad = Tf // 2
-        elif border_mode[0] == 'same':
+        elif border_mode[0] == "same":
             raise NotImplementedError()
         else:
-            raise ValueError('invalid border mode', border_mode[0])
+            raise ValueError("invalid border mode", border_mode[0])
 
         if Tpad == 0:
             out_5d = diagonal_subtensor(out_tmp, 1, 3).sum(axis=3)
         else:
             # pad out_tmp with zeros before summing over the diagonal
-            out_tmp_padded = tensor.zeros(dtype=out_tmp.dtype, shape=(
-                Ns, Ts + 2 * Tpad, Nf, Tf, Hout, Wout
-            ))
+            out_tmp_padded = tensor.zeros(
+                dtype=out_tmp.dtype, shape=(Ns, Ts + 2 * Tpad, Nf, Tf, Hout, Wout)
+            )
             out_tmp_padded = tensor.set_subtensor(
-                out_tmp_padded[:, Tpad:(Ts + Tpad), :, :, :, :],
-                out_tmp)
+                out_tmp_padded[:, Tpad : (Ts + Tpad), :, :, :, :], out_tmp
+            )
             out_5d = diagonal_subtensor(out_tmp_padded, 1, 3).sum(axis=3)
 
     return out_5d
@@ -296,16 +303,23 @@ def conv3d(signals, filters,
 @theano.gof.local_optimizer([DiagonalSubtensor, IncDiagonalSubtensor])
 def local_inplace_DiagonalSubtensor(node):
     """Also work for IncDiagonalSubtensor."""
-    if (isinstance(node.op, (DiagonalSubtensor, IncDiagonalSubtensor)) and
-            not node.op.inplace):
+    if (
+        isinstance(node.op, (DiagonalSubtensor, IncDiagonalSubtensor))
+        and not node.op.inplace
+    ):
         new_op = node.op.__class__(inplace=True)
         new_node = new_op(*node.inputs)
         copy_stack_trace(node.outputs[0], new_node)
         return [new_node]
     return False
+
+
 theano.compile.optdb.register(
-    'local_inplace_DiagonalSubtensor',
+    "local_inplace_DiagonalSubtensor",
     TopoOptimizer(
-        local_inplace_DiagonalSubtensor,
-        failure_callback=TopoOptimizer.warn_inplace),
-    60, 'fast_run', 'inplace')
+        local_inplace_DiagonalSubtensor, failure_callback=TopoOptimizer.warn_inplace
+    ),
+    60,
+    "fast_run",
+    "inplace",
+)

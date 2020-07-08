@@ -9,7 +9,7 @@ export MKL_THREADING_LAYER=GNU
 
 # Test flake8
 echo "===== Testing flake8"
-bin/theano-nose theano/tests/test_flake8.py --with-xunit --xunit-file=theano_pre_tests.xml || exit 1
+flake8 theano/ setup.py || exit 1
 
 # Test documentation
 echo "===== Testing documentation build"

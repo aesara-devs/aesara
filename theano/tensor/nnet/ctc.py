@@ -1,4 +1,3 @@
-from __future__ import (division, absolute_import, print_function)
 import os
 import sys
 import theano.tensor as T
@@ -15,7 +14,7 @@ def _ctc_find_lib():
     """
     Find the directory that contains libwarpctc.so
     """
-    if config.ctc.root != '':
+    if config.ctc.root != "":
         for lib_dir in ["build", "lib", "lib64"]:
             lib_path = os.path.join(config.ctc.root, lib_dir)
             if os.path.isdir(lib_path) and os.path.exists(lib_path):
@@ -38,19 +37,23 @@ options.loc = CTC_CPU;
 options.num_threads = 1;
 """
 
-    params = ['-I%s' % (os.path.dirname(__file__))]
+    params = ["-I%s" % (os.path.dirname(__file__))]
     if ctc_lib_path is not None:
         params.extend(["-I%s" % (os.path.join(config.ctc.root, "include"))])
         params.extend(["-L%s" % (ctc_lib_path)])
     params.extend(["-l", "warpctc"])
     compiler_res = GCC_compiler.try_flags(
-        params, preambule=preambule, body=body,
-        try_run=False, output=True)
+        params, preambule=preambule, body=body, try_run=False, output=True
+    )
 
-    avail, out, err = compiler_res if isinstance(compiler_res, tuple) else (compiler_res, None, None)
+    avail, out, err = (
+        compiler_res if isinstance(compiler_res, tuple) else (compiler_res, None, None)
+    )
     if not avail:
-        return False, ("cannot compile with warp-ctc. "
-                       "We got this error:\n" + str(err))
+        return (
+            False,
+            ("cannot compile with warp-ctc. " "We got this error:\n" + str(err)),
+        )
     return True, None
 
 
@@ -69,9 +72,9 @@ ctc_present.path = None
 
 
 def ctc_available():
-    if os.name == 'nt':
-        ctc_available.msg = 'Windows platforms are currently not supported ',
-        'by underlying CTC library (warp-ctc).'
+    if os.name == "nt":
+        ctc_available.msg = ("Windows platforms are currently not supported ",)
+        "by underlying CTC library (warp-ctc)."
         return False
     elif not ctc_present():
         ctc_available.msg = ctc_present.msg
@@ -100,19 +103,22 @@ class ConnectionistTemporalClassification(gof.COp, gof.OpenMPOp):
     compute_grad
         If set to True, enables the computation of gradients of the CTC loss function.
     """
-    __props__ = ('compute_grad',)
+
+    __props__ = ("compute_grad",)
 
     _cop_num_inputs = 3
     _cop_num_outputs = 2
 
-    func_file = os.path.join('c_code', 'ctc_wrapper.c')
+    func_file = os.path.join("c_code", "ctc_wrapper.c")
     func_name = "APPLY_SPECIFIC(ctc_cost_cpu)"
 
     def __init__(self, compute_grad=True, openmp=None):
         if not ctc_available():
-            raise RuntimeError('Baidu CTC is not available and '
-                               'ConnectionistTemporalClassification Op '
-                               'can not be constructed.')
+            raise RuntimeError(
+                "Baidu CTC is not available and "
+                "ConnectionistTemporalClassification Op "
+                "can not be constructed."
+            )
 
         gof.COp.__init__(self, self.func_file, self.func_name)
         gof.OpenMPOp.__init__(self, openmp=openmp)
@@ -129,10 +135,10 @@ class ConnectionistTemporalClassification(gof.COp, gof.OpenMPOp):
 
     def c_compile_args(self):
         if ctc_available.path is not None:
-            if sys.platform != 'darwin' and ' ' in ctc_available.path:
+            if sys.platform != "darwin" and " " in ctc_available.path:
                 return ['-Wl,-rpath,"' + ctc_available.path + '"']
             else:
-                return ['-Wl,-rpath,' + ctc_available.path]
+                return ["-Wl,-rpath," + ctc_available.path]
         return []
 
     def c_libraries(self):
@@ -140,7 +146,7 @@ class ConnectionistTemporalClassification(gof.COp, gof.OpenMPOp):
 
     def c_header_dirs(self):
         header_dirs = []
-        if config.ctc.root != '':
+        if config.ctc.root != "":
             # We assume here that the header is available at the include directory
             # of the CTC root directory.
             header_dirs += [os.path.join(config.ctc.root, "include")]
@@ -157,23 +163,23 @@ class ConnectionistTemporalClassification(gof.COp, gof.OpenMPOp):
         t_labels = T.as_tensor_variable(labels)
         t_input_lengths = T.as_tensor_variable(input_lengths)
 
-        if t_activations.type.dtype != 'float32':
-            raise TypeError('activations must use the float32 type!')
+        if t_activations.type.dtype != "float32":
+            raise TypeError("activations must use the float32 type!")
 
         if t_activations.ndim != 3:
-            raise ValueError('activations must have 3 dimensions.')
+            raise ValueError("activations must have 3 dimensions.")
 
-        if t_labels.type.dtype != 'int32':
-            raise TypeError('labels must use the int32 type!')
+        if t_labels.type.dtype != "int32":
+            raise TypeError("labels must use the int32 type!")
 
         if t_labels.ndim != 2:
-            raise ValueError('labels must have 2 dimensions.')
+            raise ValueError("labels must have 2 dimensions.")
 
-        if t_input_lengths.type.dtype != 'int32':
-            raise TypeError('input_lengths must use the int32 type!')
+        if t_input_lengths.type.dtype != "int32":
+            raise TypeError("input_lengths must use the int32 type!")
 
         if t_input_lengths.ndim != 1:
-            raise ValueError('input_lengths must have 1 dimension.')
+            raise ValueError("input_lengths must have 1 dimension.")
 
         costs = T.fvector(name="ctc_cost")
         outputs = [costs]
@@ -181,8 +187,9 @@ class ConnectionistTemporalClassification(gof.COp, gof.OpenMPOp):
             gradients = T.ftensor3(name="ctc_grad")
             outputs += [gradients]
 
-        return gof.Apply(self, inputs=[t_activations, t_labels, t_input_lengths],
-                         outputs=outputs)
+        return gof.Apply(
+            self, inputs=[t_activations, t_labels, t_input_lengths], outputs=outputs
+        )
 
     def L_op(self, inputs, outputs, output_grads):
         assert self.compute_grad and len(outputs) == 2
@@ -190,10 +197,14 @@ class ConnectionistTemporalClassification(gof.COp, gof.OpenMPOp):
         assert gradients is not None
 
         grad_op = output_grads[0]
-        total_grad = T.basic.batched_dot(grad_op, gradients.dimshuffle(1, 0, 2)).dimshuffle(1, 0, 2)
-        return [total_grad,
-                grad_undefined(self, 1, inputs[1]),
-                grad_undefined(self, 2, inputs[2])]
+        total_grad = T.basic.batched_dot(
+            grad_op, gradients.dimshuffle(1, 0, 2)
+        ).dimshuffle(1, 0, 2)
+        return [
+            total_grad,
+            grad_undefined(self, 1, inputs[1]),
+            grad_undefined(self, 2, inputs[2]),
+        ]
 
 
 def ctc(activations, labels, input_lengths):
@@ -233,11 +244,16 @@ def ctc(activations, labels, input_lengths):
 
 
 # Disable gradient computation if not needed
-@register_canonicalize('fast_compile')
+@register_canonicalize("fast_compile")
 @local_optimizer([ConnectionistTemporalClassification])
 def local_ctc_no_grad(node):
     if isinstance(node.op, ConnectionistTemporalClassification):
         if len(node.outputs) > 1:
-            if len(node.outputs[1].clients) == 0:   # gradient is not used
-                return [ConnectionistTemporalClassification(compute_grad=False)(*node.inputs), None]
+            if len(node.outputs[1].clients) == 0:  # gradient is not used
+                return [
+                    ConnectionistTemporalClassification(compute_grad=False)(
+                        *node.inputs
+                    ),
+                    None,
+                ]
     return False

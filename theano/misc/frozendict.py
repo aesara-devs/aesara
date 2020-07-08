@@ -1,6 +1,6 @@
 # License : https://github.com/slezica/python-frozendict/blob/master/LICENSE.txt
 
-from __future__ import absolute_import, print_function, division
+
 import collections
 import operator
 import functools
@@ -36,7 +36,7 @@ class frozendict(Mapping):
         return len(self._dict)
 
     def __repr__(self):
-        return '<%s %r>' % (self.__class__.__name__, self._dict)
+        return "<%s %r>" % (self.__class__.__name__, self._dict)
 
     def __hash__(self):
         if self._hash is None:

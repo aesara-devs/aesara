@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function, division
-
 import numpy as np
 import os.path as pt
 import tempfile
@@ -11,19 +9,19 @@ from theano.d3viz.tests import models
 
 import pytest
 from theano.d3viz.formatting import pydot_imported, pydot_imported_msg
+
 if not pydot_imported:
-    pytest.skip('pydot not available: ' + pydot_imported_msg, allow_module_level=True)
+    pytest.skip("pydot not available: " + pydot_imported_msg, allow_module_level=True)
 
 
-class TestD3Viz():
-
+class TestD3Viz:
     def setup_method(self):
         self.rng = np.random.RandomState(0)
-        self.data_dir = pt.join('data', 'test_d3viz')
+        self.data_dir = pt.join("data", "test_d3viz")
 
     def check(self, f, reference=None, verbose=False):
         tmp_dir = tempfile.mkdtemp()
-        html_file = pt.join(tmp_dir, 'index.html')
+        html_file = pt.join(tmp_dir, "index.html")
         if verbose:
             print(html_file)
         d3v.d3viz(f, html_file)

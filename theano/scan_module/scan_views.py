@@ -4,12 +4,10 @@ This module provides syntax shortcut for the Scan Op.
 See scan.py for details on scan.
 
 """
-from __future__ import absolute_import, print_function, division
-__docformat__ = 'restructedtext en'
-__authors__ = ("Razvan Pascanu "
-               "Frederic Bastien "
-               "James Bergstra "
-               "Pascal Lamblin ")
+
+
+__docformat__ = "restructedtext en"
+__authors__ = "Razvan Pascanu " "Frederic Bastien " "James Bergstra " "Pascal Lamblin "
 __copyright__ = "(c) 2010, Universite de Montreal"
 __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
@@ -19,22 +17,26 @@ import logging
 from theano.scan_module import scan
 
 # Logging function for sending warning or info
-_logger = logging.getLogger('theano.scan_module.scan_views')
+_logger = logging.getLogger("theano.scan_module.scan_views")
 
 
-################ Declaration of Views for Scan #######################
+#
+# Declaration of views for scan
+#
 
 
 # The ``map`` view of Scan Op.
 
 
-def map(fn,
-        sequences,
-        non_sequences=None,
-        truncate_gradient=-1,
-        go_backwards=False,
-        mode=None,
-        name=None):
+def map(
+    fn,
+    sequences,
+    non_sequences=None,
+    truncate_gradient=-1,
+    go_backwards=False,
+    mode=None,
+    name=None,
+):
     """
     Similar behaviour as python's map.
 
@@ -44,7 +46,7 @@ def map(fn,
         The function that ``map`` applies at each iteration step
         (see ``scan`` for more info).
     sequences
-        List of sequences over which ``map`` iterates 
+        List of sequences over which ``map`` iterates
         (see ``scan`` for more info).
     non_sequences
         List of arguments passed to ``fn``. ``map`` will not iterate over
@@ -60,24 +62,28 @@ def map(fn,
         See ``scan``.
 
     """
-    return scan(fn=fn,
-                     sequences=sequences,
-                     outputs_info=[],
-                     non_sequences=non_sequences,
-                     truncate_gradient=truncate_gradient,
-                     go_backwards=go_backwards,
-                     mode=mode,
-                     name=name)
+    return scan(
+        fn=fn,
+        sequences=sequences,
+        outputs_info=[],
+        non_sequences=non_sequences,
+        truncate_gradient=truncate_gradient,
+        go_backwards=go_backwards,
+        mode=mode,
+        name=name,
+    )
 
 
 # The ``reduce`` view of Scan Op.
-def reduce(fn,
-           sequences,
-           outputs_info,
-           non_sequences=None,
-           go_backwards=False,
-           mode=None,
-           name=None):
+def reduce(
+    fn,
+    sequences,
+    outputs_info,
+    non_sequences=None,
+    go_backwards=False,
+    mode=None,
+    name=None,
+):
     """
     Similar behaviour as python's reduce.
 
@@ -96,7 +102,7 @@ def reduce(fn,
         List of arguments passed to ``fn``. ``reduce`` will
                           not iterate over these arguments (see ``scan`` for
                           more info).
-    go_backwards : bool 
+    go_backwards : bool
         Decides the direction of iteration. True means that sequences are parsed
         from the end towards the beginning, while False is the other way around.
     mode
@@ -105,14 +111,16 @@ def reduce(fn,
         See ``scan``.
 
     """
-    rval = scan(fn=fn,
-                     sequences=sequences,
-                     outputs_info=outputs_info,
-                     non_sequences=non_sequences,
-                     go_backwards=go_backwards,
-                     truncate_gradient=-1,
-                     mode=mode,
-                     name=name)
+    rval = scan(
+        fn=fn,
+        sequences=sequences,
+        outputs_info=outputs_info,
+        non_sequences=non_sequences,
+        go_backwards=go_backwards,
+        truncate_gradient=-1,
+        mode=mode,
+        name=name,
+    )
     if isinstance(rval[0], (list, tuple)):
         return [x[-1] for x in rval[0]], rval[1]
     else:
@@ -120,12 +128,7 @@ def reduce(fn,
 
 
 # The ``foldl`` view of Scan Op.
-def foldl(fn,
-          sequences,
-          outputs_info,
-          non_sequences=None,
-          mode=None,
-          name=None):
+def foldl(fn, sequences, outputs_info, non_sequences=None, mode=None, name=None):
     """
     Similar behaviour as haskell's foldl.
 
@@ -149,22 +152,19 @@ def foldl(fn,
         See ``scan``.
 
     """
-    return reduce(fn=fn,
-                  sequences=sequences,
-                  outputs_info=outputs_info,
-                  non_sequences=non_sequences,
-                  go_backwards=False,
-                  mode=mode,
-                  name=name)
+    return reduce(
+        fn=fn,
+        sequences=sequences,
+        outputs_info=outputs_info,
+        non_sequences=non_sequences,
+        go_backwards=False,
+        mode=mode,
+        name=name,
+    )
 
 
 # The ``foldl`` view of Scan Op.
-def foldr(fn,
-          sequences,
-          outputs_info,
-          non_sequences=None,
-          mode=None,
-          name=None):
+def foldr(fn, sequences, outputs_info, non_sequences=None, mode=None, name=None):
     """
     Similar behaviour as haskell' foldr.
 
@@ -188,10 +188,12 @@ def foldr(fn,
         See ``scan``.
 
     """
-    return reduce(fn=fn,
-                  sequences=sequences,
-                  outputs_info=outputs_info,
-                  non_sequences=non_sequences,
-                  go_backwards=True,
-                  mode=mode,
-                  name=name)
+    return reduce(
+        fn=fn,
+        sequences=sequences,
+        outputs_info=outputs_info,
+        non_sequences=non_sequences,
+        go_backwards=True,
+        mode=mode,
+        name=name,
+    )
