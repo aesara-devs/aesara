@@ -933,7 +933,7 @@ class MRG_RandomStreams(object):
             node_rstate,
             *mrg_uniform.new(node_rstate, ndim, dtype, size),
             size=size,
-            nstreams=orig_nstreams
+            nstreams=orig_nstreams,
         )
         # Add a reference to distinguish from other shared variables
         node_rstate.tag.is_rng = True
@@ -967,7 +967,7 @@ class MRG_RandomStreams(object):
         ndim=None,
         dtype="int64",
         nstreams=None,
-        **kwargs
+        **kwargs,
     ):
         # TODO : need description for parameter and return
         """
@@ -1030,7 +1030,7 @@ class MRG_RandomStreams(object):
         ndim=None,
         dtype="int64",
         nstreams=None,
-        **kwargs
+        **kwargs,
     ):
         """
         Sample `size` times from a multinomial distribution defined by
@@ -1114,7 +1114,7 @@ class MRG_RandomStreams(object):
         ndim=None,
         dtype="int64",
         nstreams=None,
-        **kwargs
+        **kwargs,
     ):
         warnings.warn(
             "MRG_RandomStreams.multinomial_wo_replacement() is "
@@ -1130,7 +1130,7 @@ class MRG_RandomStreams(object):
             dtype=dtype,
             nstreams=nstreams,
             ndim=ndim,
-            **kwargs
+            **kwargs,
         )
 
     def normal(
@@ -1142,7 +1142,7 @@ class MRG_RandomStreams(object):
         dtype=None,
         nstreams=None,
         truncate=False,
-        **kwargs
+        **kwargs,
     ):
         """
         Sample a tensor of values from a normal distribution.
@@ -1197,7 +1197,7 @@ class MRG_RandomStreams(object):
             ndim=1,
             dtype=dtype,
             nstreams=nstreams,
-            **kwargs
+            **kwargs,
         )
 
         # box-muller transform
@@ -1228,7 +1228,7 @@ class MRG_RandomStreams(object):
                 ndim=1,
                 dtype=dtype,
                 nstreams=nstreams,
-                **kwargs
+                **kwargs,
             )
             r_fix = tensor.sqrt(-2.0 * tensor.log(u_fix))
             z0_fixed = r_fix[: to_fix0.size] * cos_theta[to_fix0]
@@ -1292,7 +1292,7 @@ class MRG_RandomStreams(object):
             ndim=ndim,
             dtype=dtype,
             nstreams=nstreams,
-            **kwargs
+            **kwargs,
         )
 
 

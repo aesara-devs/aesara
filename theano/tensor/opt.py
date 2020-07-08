@@ -152,7 +152,7 @@ def broadcast_like(value, template, fgraph, dtype=None):
                 i
                 for i in xrange(rval.ndim)
                 if rval.broadcastable[i] and not template.broadcastable[i]
-            ]
+            ],
         )
     assert rval.type.dtype == dtype
 
@@ -2760,7 +2760,7 @@ def local_upcast_elemwise_constant_inputs(node):
                             new_inputs.append(
                                 T.alloc(
                                     T.cast(cval_i, output_dtype),
-                                    *[shape_i(d)(i) for d in xrange(i.ndim)]
+                                    *[shape_i(d)(i) for d in xrange(i.ndim)],
                                 )
                             )
                             # print >> sys.stderr, "AAA",
@@ -6223,7 +6223,7 @@ def local_opt_alloc(node):
                             shapes[i]
                             for i in xrange(len(shapes))
                             if i not in node.op.axis
-                        ]
+                        ],
                     )
                 ]
             except NotScalarConstantError:

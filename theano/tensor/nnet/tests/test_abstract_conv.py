@@ -884,7 +884,7 @@ class BaseTestConv2d(BaseTestConv):
         conv_fn=conv.conv2d,
         conv_op=conv.AbstractConv2d,
         ref=conv2d_corr,
-        **kwargs
+        **kwargs,
     ):
         super().run_fwd(
             inputs_shape=inputs_shape,
@@ -892,7 +892,7 @@ class BaseTestConv2d(BaseTestConv):
             conv_fn=conv_fn,
             conv_op=conv_op,
             ref=ref,
-            **kwargs
+            **kwargs,
         )
 
     def run_gradweight(
@@ -902,7 +902,7 @@ class BaseTestConv2d(BaseTestConv):
         output_shape,
         gradWeights_fn=conv.AbstractConv2d_gradWeights,
         ref=conv2d_corr_gw,
-        **kwargs
+        **kwargs,
     ):
         super().run_gradweight(
             inputs_shape=inputs_shape,
@@ -910,7 +910,7 @@ class BaseTestConv2d(BaseTestConv):
             output_shape=output_shape,
             gradWeights_fn=gradWeights_fn,
             ref=ref,
-            **kwargs
+            **kwargs,
         )
 
     def run_gradinput(
@@ -920,7 +920,7 @@ class BaseTestConv2d(BaseTestConv):
         output_shape,
         gradInputs_fn=conv.AbstractConv2d_gradInputs,
         ref=conv2d_corr_gi,
-        **kwargs
+        **kwargs,
     ):
         super().run_gradinput(
             inputs_shape=inputs_shape,
@@ -928,7 +928,7 @@ class BaseTestConv2d(BaseTestConv):
             output_shape=output_shape,
             gradInputs_fn=gradInputs_fn,
             ref=ref,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -1244,7 +1244,7 @@ class BaseTestConv3d(BaseTestConv):
         conv_fn=conv.conv3d,
         conv_op=conv.AbstractConv3d,
         ref=conv3d_corr,
-        **kwargs
+        **kwargs,
     ):
         super().run_fwd(
             inputs_shape=inputs_shape,
@@ -1252,7 +1252,7 @@ class BaseTestConv3d(BaseTestConv):
             conv_fn=conv_fn,
             conv_op=conv_op,
             ref=ref,
-            **kwargs
+            **kwargs,
         )
 
     def run_gradweight(
@@ -1262,7 +1262,7 @@ class BaseTestConv3d(BaseTestConv):
         output_shape,
         gradWeights_fn=conv.AbstractConv3d_gradWeights,
         ref=conv3d_corr_gw,
-        **kwargs
+        **kwargs,
     ):
         super().run_gradweight(
             inputs_shape=inputs_shape,
@@ -1270,7 +1270,7 @@ class BaseTestConv3d(BaseTestConv):
             output_shape=output_shape,
             gradWeights_fn=gradWeights_fn,
             ref=ref,
-            **kwargs
+            **kwargs,
         )
 
     def run_gradinput(
@@ -1280,7 +1280,7 @@ class BaseTestConv3d(BaseTestConv):
         output_shape,
         gradInputs_fn=conv.AbstractConv3d_gradInputs,
         ref=conv3d_corr_gi,
-        **kwargs
+        **kwargs,
     ):
         super().run_gradinput(
             inputs_shape=inputs_shape,
@@ -1288,7 +1288,7 @@ class BaseTestConv3d(BaseTestConv):
             output_shape=output_shape,
             gradInputs_fn=gradInputs_fn,
             ref=ref,
-            **kwargs
+            **kwargs,
         )
 
 

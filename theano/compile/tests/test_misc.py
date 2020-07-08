@@ -15,7 +15,7 @@ class NNet(object):
         n_hidden=1,
         n_output=1,
         lr=1e-3,
-        **kw
+        **kw,
     ):
         super(NNet, self).__init__(**kw)
 

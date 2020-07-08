@@ -262,7 +262,7 @@ class OpFromGraph(gof.Op):
         rop_overrides="default",
         connection_pattern=None,
         name=None,
-        **kwargs
+        **kwargs,
     ):
         if not isinstance(outputs, list):
             raise TypeError("outputs must be list, got %s" % type(outputs))

@@ -25,7 +25,7 @@ def conv2d(
     filter_shape=None,
     border_mode="valid",
     subsample=(1, 1),
-    **kargs
+    **kargs,
 ):
     """
     signal.conv.conv2d performs a basic 2D convolution of the input with the
@@ -105,7 +105,7 @@ def conv2d(
         kshp=kshp,
         nkern=nkern,
         bsize=bsize,
-        **kargs
+        **kargs,
     )
 
     output = op(input4D, filters4D)

@@ -257,7 +257,7 @@ def register_inplace(*tags, **kwargs):
             "fast_run",
             "inplace",
             "gpuarray",
-            *tags
+            *tags,
         )
         return local_opt
 
@@ -1667,7 +1667,7 @@ def local_gpu_crossentropycategorical1hotgrad(op, context_name, inputs, outputs)
     idx0 = theano.tensor.arange(shape_i(coding, 0))
     z = GpuAlloc(context_name, memset_0=True)(
         as_gpuarray_variable(np.zeros((), dtype=coding.dtype), context_name),
-        *[shape_i(coding, i) for i in xrange(coding.ndim)]
+        *[shape_i(coding, i) for i in xrange(coding.ndim)],
     )
     gcoding = tensor.set_subtensor(
         z[idx0, one_of_n], gpu_neg(gpu_true_div(gy, coding[idx0, one_of_n]))

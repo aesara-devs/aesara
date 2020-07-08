@@ -73,7 +73,7 @@ def conv2d(
     filter_dilation=(1, 1),
     num_groups=1,
     unshared=False,
-    **kwargs
+    **kwargs,
 ):
     """
     This function will build the symbolic graph for convolving a mini-batch of a

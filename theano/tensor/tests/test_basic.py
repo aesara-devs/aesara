@@ -872,7 +872,7 @@ TestAddBroadcast = makeBroadcastTester(
             randuint32(2, 3),
         ),
         four_inputs_broadcast=(rand(2, 3), rand(1, 3), rand(2, 1), rand(1, 1)),
-        **_good_broadcast_binary_normal
+        **_good_broadcast_binary_normal,
     ),
     bad_build=_bad_build_broadcast_binary_normal,
     bad_runtime=_bad_runtime_broadcast_binary_normal,
@@ -986,14 +986,14 @@ TestMulBroadcast = makeBroadcastTester(
     good=dict(
         three_inputs_same_shapes=(rand(2, 3), rand(2, 3), rand(2, 3)),
         four_inputs_broadcast=(rand(2, 3), rand(1, 3), rand(2, 1), rand(1, 1)),
-        **_good_broadcast_binary_normal
+        **_good_broadcast_binary_normal,
     ),
     bad_build=_bad_build_broadcast_binary_normal,
     bad_runtime=_bad_runtime_broadcast_binary_normal,
     grad=dict(
         three_inputs_same_shapes=(rand(2, 3), rand(2, 3), rand(2, 3)),
         four_inputs_broadcast=(rand(2, 3), rand(1, 3), rand(2, 1), rand(1, 1)),
-        **_grad_broadcast_binary_normal
+        **_grad_broadcast_binary_normal,
     ),
 )
 

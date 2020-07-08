@@ -145,7 +145,7 @@ class IfElse(Op):
             new_outs = new_ifelse(
                 node.inputs[0],
                 *(new_ts_inputs + new_fs_inputs),
-                **dict(return_list=True)
+                **dict(return_list=True),
             )
         else:
             new_outs = []

@@ -4371,7 +4371,7 @@ class Composite(ScalarOp):
                 izip(("i%i" % i for i in xrange(len(inames))), inames),
                 izip(("o%i" % i for i in xrange(len(onames))), onames),
             ),
-            **sub
+            **sub,
         )
         d["nodename"] = nodename
         if "id" not in sub:

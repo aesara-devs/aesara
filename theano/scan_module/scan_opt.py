@@ -651,7 +651,7 @@ class PushOutSeqScan(gof.Optimizer):
             # Do not call make_node for test_value
             nw_node = nwScan(
                 *(node.inputs[:1] + nw_outer + node.inputs[1:]),
-                **dict(return_list=True)
+                **dict(return_list=True),
             )[0].owner
 
             fgraph.replace_all_validate_remove(

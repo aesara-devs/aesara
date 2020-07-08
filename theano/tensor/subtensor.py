@@ -1524,7 +1524,7 @@ class IncSubtensor(Op):
             sub=sub,
             idx_list=self.idx_list,
             view_ndim=view_ndim,
-            **helper_args
+            **helper_args,
         )
 
         # Make a view on the output, as we will write into it.

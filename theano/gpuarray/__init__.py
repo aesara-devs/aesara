@@ -112,7 +112,7 @@ def init_dev(dev, name=None, preallocate=None):
             dev,
             sched=config.gpuarray.sched,
             single_stream=config.gpuarray.single_stream,
-            **args
+            **args,
         )
         os.environ["THEANO_GPU_IS_ALREADY_ACTIVE"] = "Yes"
         theano_gpu_is_already_active = True

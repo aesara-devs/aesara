@@ -1335,7 +1335,7 @@ class scan_args(object):
             n_shared_outs=len(self.outer_in_shared),
             n_mit_mot_outs=sum(len(s) for s in self.mit_mot_out_slices),
             mit_mot_out_slices=self.mit_mot_out_slices,
-            **self.other_info
+            **self.other_info,
         )
     )
 

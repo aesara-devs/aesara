@@ -646,7 +646,7 @@ class _tensor_py_operators(object):
                     self,
                     *theano.tensor.subtensor.Subtensor.collapse(
                         args, lambda entry: isinstance(entry, Variable)
-                    )
+                    ),
                 )
 
     def take(self, indices, axis=None, mode="raise"):

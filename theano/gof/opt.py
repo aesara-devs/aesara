@@ -2382,7 +2382,7 @@ def out2in(*local_opts, **kwargs):
         local_opts,
         order="out_to_in",
         failure_callback=TopoOptimizer.warn_inplace,
-        **kwargs
+        **kwargs,
     )
     if name:
         ret.__name__ = name
@@ -2405,7 +2405,7 @@ def in2out(*local_opts, **kwargs):
         local_opts,
         order="in_to_out",
         failure_callback=TopoOptimizer.warn_inplace,
-        **kwargs
+        **kwargs,
     )
     if name:
         ret.__name__ = name

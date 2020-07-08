@@ -683,14 +683,10 @@ if use_ascii:
     )
 else:
 
-    special = dict(middle_dot=u"\u00B7", big_sigma=u"\u03A3")
+    special = dict(middle_dot="\u00B7", big_sigma="\u03A3")
 
     greek = dict(
-        alpha=u"\u03B1",
-        beta=u"\u03B2",
-        gamma=u"\u03B3",
-        delta=u"\u03B4",
-        epsilon=u"\u03B5",
+        alpha="\u03B1", beta="\u03B2", gamma="\u03B3", delta="\u03B4", epsilon="\u03B5",
     )
 
 

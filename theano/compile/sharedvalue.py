@@ -283,7 +283,7 @@ def shared(value, name=None, strict=False, allow_downcast=None, **kwargs):
                     name=name,
                     strict=strict,
                     allow_downcast=allow_downcast,
-                    **kwargs
+                    **kwargs,
                 )
                 utils.add_tag_trace(var)
                 return var

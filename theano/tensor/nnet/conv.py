@@ -48,7 +48,7 @@ def conv2d(
     filter_shape=None,
     border_mode="valid",
     subsample=(1, 1),
-    **kargs
+    **kargs,
 ):
     """
     Deprecated, old conv2d interface.
@@ -174,7 +174,7 @@ def conv2d(
         kshp=kshp,
         nkern=nkern,
         bsize=bsize,
-        **kargs
+        **kargs,
     )
 
     return op(input, filters)
