@@ -1,6 +1,6 @@
 from theano._version import get_versions
 
-FALLBACK_VERSION = "1.0.4+unknown"
+FALLBACK_VERSION = "1.0.5+unknown"
 
 info = get_versions()
 if info["error"] is not None:
