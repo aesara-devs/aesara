@@ -1,5 +1,3 @@
-# After changing this file, check it on:
-# http://lint.travis-ci.org/
 os: linux
 dist: xenial
 cache:
@@ -38,10 +36,32 @@ addons:
     - dvipng
 
 before_install:
-  - source .travis/travis_before_install.sh
+  - |
+    if test -e $HOME/miniconda/bin ; then
+        echo "miniconda already installed."
+    else
+        echo "Installing miniconda."
+        rm -rf $HOME/miniconda
+        mkdir -p $HOME/download
+        if [[ -d $HOME/download/miniconda.sh ]] ; then rm -rf $HOME/download/miniconda.sh ; fi
+        wget -c https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O $HOME/download/miniconda.sh
+        mkdir $HOME/.conda
+        bash $HOME/download/miniconda.sh -b -p $HOME/miniconda
+    fi
+    $HOME/miniconda/bin/conda init bash
+    source ~/.bash_profile
+    conda activate base
+    hash -r
+    conda config --set always_yes yes --set changeps1 no
+    conda update -q conda
+    conda info -a
 
 install:
-  - source .travis/travis_install.sh
+  - conda create --yes -q -n pyenv python=$TRAVIS_PYTHON_VERSION
+  - conda activate pyenv
+  - conda install --yes -q mkl numpy scipy pip flake8 six pep8 pyflakes sphinx mkl-service graphviz cython
+  - python -m pip install -q pydot-ng sphinx_rtd_theme pytest pytest-cov>=2.6.1 coveralls sympy
+  - python -m pip install --no-deps --upgrade -e .
 
 jobs:
   include:
@@ -84,7 +104,10 @@ script:
   - python -c 'import theano; print(theano.__version__)'
   - python -c 'import theano; print(theano.config.__str__(print_doc=False))'
   - python -c 'import theano; assert(theano.config.blas.ldflags != "")'
-  - pytest -r A --verbose --runslow $PART
+  - pytest -r A --verbose --runslow --cov=theano/ --cov-append --no-cov-on-fail $PART
+
+after_success:
+  - coveralls
 
 after_failure:
   - cat $HOME/.pip/pip.log
