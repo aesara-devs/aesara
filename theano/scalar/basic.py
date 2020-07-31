@@ -2988,6 +2988,8 @@ class Inv(UnaryScalarOp):
 
     """
 
+    nfunc_spec = ("reciprocal", 1, 1)
+
     def impl(self, x):
         return np.float32(1.0) / x
 
