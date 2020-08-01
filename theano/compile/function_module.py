@@ -1392,7 +1392,7 @@ class FunctionMaker(object):
             try:
                 with open(graph_db_file, "rb") as f:
                     # Temporary hack to allow
-                    # theano.scan_module.tests.test_scan.T_Scan to
+                    # tests.scan_module.test_scan.T_Scan to
                     # finish. Should be changed in definitive version.
                     tmp = theano.config.unpickle_function
                     theano.config.unpickle_function = False

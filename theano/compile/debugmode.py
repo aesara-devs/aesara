@@ -156,7 +156,7 @@ class BadThunkOutput(DebugModeError):
         print("  thunk2  :", self.thunk2, file=sio)
 
         # Don't import it at the top of the file to prevent circular import.
-        import theano.tests.unittest_tools as utt
+        import tests.unittest_tools as utt
 
         print(utt.str_diagnostic(self.val1, self.val2, None, None), file=sio)
         ret = sio.getvalue()

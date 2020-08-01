@@ -51,7 +51,7 @@ Theano's features, but it illustrates concretely what Theano is.
 
 
 .. If you modify this code, also change :
-.. theano/tests/test_tutorial.py:T_introduction.test_introduction_1
+.. tests/test_tutorial.py:T_introduction.test_introduction_1
 
 .. code-block:: python
 
@@ -236,5 +236,3 @@ theano-dev_ mailing list.
 
 .. _theano-users: http://groups.google.com/forum/#!forum/theano-users
 .. _theano-dev: http://groups.google.com/forum/#!forum/theano-dev
-
-

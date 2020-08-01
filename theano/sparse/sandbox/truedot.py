@@ -5,7 +5,6 @@ import scipy.sparse as sp
 from theano import sparse
 from theano import gof, tensor, compile
 
-from theano.sparse.tests.test_basic import eval_outputs
 from theano.sparse.basic import (
     _is_sparse_variable,
     _is_dense_variable,
@@ -16,8 +15,9 @@ from theano.sparse.basic import (
 )
 from theano.sparse import SparseType, dense_from_sparse, transpose
 
-from theano.sparse.tests.test_basic import sparse_random_inputs
-from theano.tests import unittest_tools as utt
+from tests import unittest_tools as utt
+from tests.sparse.test_basic import eval_outputs
+from tests.theano.sparse.test_basic import sparse_random_inputs
 
 # To maintain compatibility
 from theano.sparse.basic import TrueDot, true_dot

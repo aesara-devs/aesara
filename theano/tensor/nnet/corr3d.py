@@ -652,13 +652,13 @@ class Corr3dMM(BaseCorr3dMM):
     def grad(self, inp, grads):
         bottom, weights = inp
         (top,) = grads
-        d_bottom = Corr3dMM_gradInputs(
+        d_bottom = Corr3dMMGradInputs(
             self.border_mode,
             self.subsample,
             self.filter_dilation,
             num_groups=self.num_groups,
         )(weights, top, bottom.shape[-3:])
-        d_weights = Corr3dMM_gradWeights(
+        d_weights = Corr3dMMGradWeights(
             self.border_mode,
             self.subsample,
             self.filter_dilation,
@@ -667,7 +667,7 @@ class Corr3dMM(BaseCorr3dMM):
         return d_bottom, d_weights
 
 
-class Corr3dMM_gradWeights(BaseCorr3dMM):
+class Corr3dMMGradWeights(BaseCorr3dMM):
     """
     Gradient wrt. filters for `Corr3dMM`.
 
@@ -761,14 +761,14 @@ class Corr3dMM_gradWeights(BaseCorr3dMM):
         bottom, top = inp[:2]
         height, width, depth = inp[2:] or (None, None, None)
         (weights,) = out_
-        return super(Corr3dMM_gradWeights, self).c_code_helper(
+        return super(Corr3dMMGradWeights, self).c_code_helper(
             bottom, weights, top, sub, height, width, depth
         )
 
     def grad(self, inp, grads):
         bottom, top = inp[:2]
         (weights,) = grads
-        d_bottom = Corr3dMM_gradInputs(
+        d_bottom = Corr3dMMGradInputs(
             self.border_mode,
             self.subsample,
             self.filter_dilation,
@@ -792,7 +792,7 @@ class Corr3dMM_gradWeights(BaseCorr3dMM):
             return [[1], [1], [0], [0], [0]]  # no connection to height, width, depth
 
 
-class Corr3dMM_gradInputs(BaseCorr3dMM):
+class Corr3dMMGradInputs(BaseCorr3dMM):
     """
     Gradient wrt. inputs for `Corr3dMM`.
 
@@ -897,14 +897,14 @@ class Corr3dMM_gradInputs(BaseCorr3dMM):
         weights, top = inp[:2]
         height, width, depth = inp[2:] or (None, None, None)
         (bottom,) = out_
-        return super(Corr3dMM_gradInputs, self).c_code_helper(
+        return super(Corr3dMMGradInputs, self).c_code_helper(
             bottom, weights, top, sub, height, width, depth
         )
 
     def grad(self, inp, grads):
         weights, top = inp[:2]
         (bottom,) = grads
-        d_weights = Corr3dMM_gradWeights(
+        d_weights = Corr3dMMGradWeights(
             self.border_mode,
             self.subsample,
             self.filter_dilation,

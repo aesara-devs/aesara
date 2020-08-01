@@ -1,0 +1,1213 @@
+import copy
+import six.moves.cPickle as pickle
+import numpy as np
+import pytest
+import time
+
+import theano
+import theano.gpuarray
+
+from six import iteritems
+
+from theano import tensor
+from theano import tensor as T
+from theano import config, gof
+from theano.compile.io import In, Out
+from theano.compile import function
+from theano.compile import UnusedInputError
+from theano.gof import MissingInputError
+from theano.compat import exc_message
+
+
+def PatternOptimizer(p1, p2, ign=True):
+    return gof.OpKeyOptimizer(gof.PatternSub(p1, p2), ignore_newtrees=ign)
+
+
+def checkfor(testcase, fn, E):
+    try:
+        fn()
+    except Exception as e:
+        if isinstance(e, E):
+            # we got the exception we wanted
+            return
+        else:
+            # we did not get the exception we wanted
+            raise
+    # fn worked, but it shouldn't have
+    testcase.fail()
+
+
+class TestFunction:
+    @pytest.mark.xfail()
+    def test_none(self):
+        fn = function([], None)  # ok
+        rval = fn()
+        assert rval != [], (
+            "See #254: Using None as function output leads " "to [] return value"
+        )
+        assert rval is None
+
+    def test_empty(self):
+        fn = function([], [])  # ok
+        assert fn() == []
+
+    def test_extra_inputs(self):
+        x, s = T.scalars("xs")
+        fn = function([x], [x])
+        with pytest.raises(TypeError):
+            fn(1, 2)
+
+    def test_missing_inputs(self):
+        def fn():
+            x, s = T.scalars("xs")
+            function([], [x])
+
+        checkfor(self, fn, MissingInputError)
+
+        def fn():
+            x, s = T.scalars("xs")
+            # Ignore unused input s, as it hides the other error
+            function([s], [x], on_unused_input="ignore")
+
+        checkfor(self, fn, MissingInputError)
+
+        def fn():
+            x, s = T.scalars("xs")
+            function([s], [x])
+
+        checkfor(self, fn, UnusedInputError)
+
+        def fn():
+            x, s = T.scalars("xs")
+            # Ignore unused input s, as it hides the other error
+            function([s], x, on_unused_input="ignore")
+
+        checkfor(self, fn, MissingInputError)
+
+        def fn():
+            x, s = T.scalars("xs")
+            function([s], x)
+
+        checkfor(self, fn, UnusedInputError)
+
+        def fn():
+            x, s = T.scalars("xs")
+            # Ignore unused input s, as it hides the other error
+            function([s], Out(x), on_unused_input="ignore")
+
+        checkfor(self, fn, MissingInputError)
+
+        def fn():
+            x, s = T.scalars("xs")
+            function([s], Out(x))
+
+        checkfor(self, fn, UnusedInputError)
+
+        def fn():
+            x, s = T.scalars("xs")
+            function([In(x, update=s + x)], x)
+
+        checkfor(self, fn, MissingInputError)
+
+        def fn():
+            x, s = T.scalars("xs")
+            function([In(x, update=((s * s) + x))], x)
+
+        checkfor(self, fn, MissingInputError)
+
+    def test_input_anon_singleton(self):
+        x, s = T.scalars("xs")
+        fn = function([s, x], [x + s])
+        assert fn(2, 3) == [5]
+        # no state
+        assert fn(2, 3) == [5]
+
+    def test_input_anon_unpack(self):
+        x, s = T.scalars("xs")
+        fn = function([s, x], x + s)
+        assert fn(2, 3) == 5
+
+    def test_naming_rule0(self):
+        x, s = T.scalars("xs")
+        f = function([x, s], x / s)
+        assert f(1, 2) == 0.5
+        assert f(2, 1) == 2.0
+        assert f(s=2, x=1) == 0.5
+        assert f(x=2, s=1) == 2.0
+        assert f(2, s=1) == 2.0
+        checkfor(
+            self, lambda: f(2, x=2.0), TypeError
+        )  # got multiple values for keyword argument 'x'
+        checkfor(
+            self, lambda: f(x=1), TypeError
+        )  # takes exactly 2 non-keyword arguments (1 given)
+        checkfor(
+            self, lambda: f(s=1), TypeError
+        )  # takes exactly 2 non-keyword arguments (0 given)
+
+    def test_naming_rule1(self):
+        a = T.scalar()  # the a is for 'anonymous' (un-named).
+        x, s = T.scalars("xs")
+        f = function([a, s], a / s)
+        assert f(1, 2) == 0.5
+        assert f(2, 1) == 2.0
+        assert f(2, s=1) == 2.0
+        checkfor(
+            self, lambda: f(q=2, s=1), TypeError
+        )  # got unexpected keyword argument 'q'
+        checkfor(
+            self, lambda: f(a=2, s=1), TypeError
+        )  # got unexpected keyword argument 'a'
+
+    def test_naming_rule2(self):
+        a = T.scalar()  # the a is for 'anonymous' (un-named).
+        x, s = T.scalars("xs")
+
+        # x's name is ignored because it is followed by anonymous parameter a.
+        # Ignore unused input x, as it hides the other error
+        f = function([x, a, s], a / s, on_unused_input="ignore")
+        assert f(9, 1, 2) == 0.5
+        assert f(9, 2, 1) == 2.0
+        assert f(9, 2, s=1) == 2.0
+        checkfor(
+            self, lambda: f(x=9, a=2, s=1), TypeError
+        )  # got unexpected keyword argument 'x'
+        checkfor(
+            self, lambda: f(5.0, x=9), TypeError
+        )  # got unexpected keyword argument 'x'
+
+    def test_naming_rule3(self):
+        a = T.scalar()  # the a is for 'anonymous' (un-named).
+        x, s = T.scalars("xs")
+
+        # x's name is not ignored (as in test_naming_rule2) because a has a default value.
+        f = function([x, In(a, value=1.0), s], a / s + x)
+        assert f(9, 2, 4) == 9.5  # can specify all args in order
+        assert f(9, 2, s=4) == 9.5  # can give s as kwarg
+        assert f(9, s=4) == 9.25  # can give s as kwarg, get default a
+        assert f(x=9, s=4) == 9.25  # can give s as kwarg, omit a, x as kw
+        checkfor(
+            self, lambda: f(x=9, a=2, s=4), TypeError
+        )  # got unexpected keyword argument 'a'
+        checkfor(
+            self, lambda: f(), TypeError
+        )  # takes exactly 3 non-keyword arguments (0 given)
+        checkfor(
+            self, lambda: f(x=9), TypeError
+        )  # takes exactly 3 non-keyword arguments (1 given)
+
+    def test_naming_rule4(self):
+        a = T.scalar()  # the a is for 'anonymous' (un-named).
+        x, s = T.scalars("xs")
+
+        f = function([x, In(a, value=1.0, name="a"), s], a / s + x)
+
+        assert f(9, 2, 4) == 9.5  # can specify all args in order
+        assert f(9, 2, s=4) == 9.5  # can give s as kwarg
+        assert f(9, s=4) == 9.25  # can give s as kwarg, get default a
+        assert f(9, a=2, s=4) == 9.5  # can give s as kwarg, a as kwarg
+        assert f(x=9, a=2, s=4) == 9.5  # can give all kwargs
+        assert f(x=9, s=4) == 9.25  # can give all kwargs
+        checkfor(
+            self, lambda: f(), TypeError
+        )  # takes exactly 3 non-keyword arguments (0 given)
+        checkfor(
+            self, lambda: f(5.0, x=9), TypeError
+        )  # got multiple values for keyword argument 'x'
+
+    def test_state_access(self):
+        a = T.scalar()  # the a is for 'anonymous' (un-named).
+        x, s = T.scalars("xs")
+
+        f = function(
+            [x, In(a, value=1.0, name="a"), In(s, value=0.0, update=s + a * x)],
+            s + a * x,
+        )
+
+        assert f[a] == 1.0
+        assert f[s] == 0.0
+
+        assert f(3.0) == 3.0
+        assert f(3.0, a=2.0) == 9.0  # 3.0 + 2*3.0
+
+        assert (
+            f[a] == 1.0
+        )  # state hasn't changed permanently, we just overrode it last line
+        assert f[s] == 9.0
+
+        f[a] = 5.0
+        assert f[a] == 5.0
+        assert f(3.0) == 24.0  # 9 + 3*5
+        assert f[s] == 24.0
+
+    def test_same_names(self):
+        a, x, s = T.scalars("xxx")
+        # implicit names would cause error.  What do we do?
+        f = function([a, x, s], a + x + s)
+        assert f(1, 2, 3) == 6
+        checkfor(self, lambda: f(1, 2, x=3), TypeError)
+
+    def test_weird_names(self):
+        a, x, s = T.scalars("xxx")
+
+        checkfor(self, lambda: function([In(a, name=[])], []), TypeError)
+
+        def t():
+            f = function(
+                [
+                    In(a, name=set(["adsf", ()]), value=1.0),
+                    In(x, name=(), value=2.0),
+                    In(s, name=T.scalar(), value=3.0),
+                ],
+                a + x + s,
+            )
+            return f
+
+        checkfor(self, t, TypeError)
+
+    def test_copy(self):
+        a = T.scalar()  # the a is for 'anonymous' (un-named).
+        x, s = T.scalars("xs")
+
+        f = function(
+            [
+                x,
+                In(a, value=1.0, name="a"),
+                In(s, value=0.0, update=s + a * x, mutable=True),
+            ],
+            s + a * x,
+        )
+
+        g = copy.copy(f)
+        # if they both return, assume  that they return equivalent things.
+
+        assert g.container[x].storage is not f.container[x].storage
+        assert g.container[a].storage is not f.container[a].storage
+        assert g.container[s].storage is not f.container[s].storage
+
+        assert g.value[a] is f.value[a]  # should not have been copied
+        assert (
+            g.value[s] is not f.value[s]
+        )  # should have been copied because it is mutable.
+        assert not (g.value[s] != f.value[s]).any()  # its contents should be identical
+
+        assert f(2, 1) == g(
+            2
+        )  # they should be in sync, default value should be copied.
+        assert f(2, 1) == g(
+            2
+        )  # they should be in sync, default value should be copied.
+        f(1, 2)  # put them out of sync
+        assert f(1, 2) != g(1, 2)  # they should not be equal anymore.
+
+    def test_copy_share_memory(self):
+        x = T.fscalar("x")
+        # SharedVariable for tests, one of them has update
+        y = theano.shared(value=1)
+        z = theano.shared(value=2)
+        out = T.tanh((x + y + 2) / (x + z - 0.2) ** 2)
+
+        # Test for different linkers
+        for mode in ["FAST_RUN", "FAST_COMPILE"]:
+            ori = theano.function([x], [out], mode=mode, updates={z: z + 1})
+            cpy = ori.copy(share_memory=True)
+
+            # Test if memories shared
+            storage_map_ori = ori.fn.storage_map
+            storage_map_cpy = cpy.fn.storage_map
+            fgraph_cpy = cpy.maker.fgraph
+
+            # Assert intermediate and Constants storages are shared.
+            # and output stoarges are not shared
+            i_o_variables = fgraph_cpy.inputs + fgraph_cpy.outputs
+            ori_storages = storage_map_ori.values()
+            l = [
+                val
+                for key, val in storage_map_cpy.items()
+                if key not in i_o_variables or isinstance(key, theano.tensor.Constant)
+            ]
+            for storage in l:
+                assert any([storage is s for s in ori_storages])
+
+            # Assert storages of SharedVariable without updates are shared
+            for (input, _1, _2), here, there in zip(
+                ori.indices, ori.input_storage, cpy.input_storage
+            ):
+                assert here.data is there.data
+
+    def test_swap_SharedVariable(self):
+        i = T.iscalar()
+        x_list = theano.shared(value=np.random.rand(10).astype(config.floatX))
+
+        x = T.scalar("x")
+        # SharedVariable for tests, one of them has update
+        y = theano.shared(value=1, name="y")
+        z = theano.shared(value=2, name="z")
+        m = theano.shared(value=0, name="m")
+
+        # SharedVariable to replace
+        y_rpl = theano.shared(value=3, name="y_rpl")
+        z_rpl = theano.shared(value=4, name="z_rpl")
+        swap = {y: y_rpl, z: z_rpl}
+        map_SV = {"y_rpl": y_rpl, "z_rpl": z_rpl}
+
+        out = x + y + z + m
+
+        # Test for different linkers
+        # for mode in ["FAST_RUN","FAST_COMPILE"]:
+        second_time = False
+        for mode in ["FAST_RUN", "FAST_COMPILE"]:
+            ori = theano.function(
+                [i],
+                [out],
+                mode=mode,
+                updates=[(z, z + 1), (m, m + 2)],
+                givens={x: x_list[i]},
+            )
+            cpy = ori.copy(swap=swap)
+
+            # run fuction several time
+            ori(1), cpy(1), cpy(2)
+
+            # assert same SharedVariable are update in different function
+            if not second_time:
+                # m should be updated 3 times
+                assert m.get_value() == 6
+                # z should be updated once
+                assert z.get_value() == 3
+                # z_rpl should be updated twice
+                assert z_rpl.get_value() == 6
+                # y and y_rpl should not be updated
+                assert y_rpl.get_value() == 3
+                assert y.get_value() == 1
+            elif second_time:
+                # doule update for sharedvariable
+                assert m.get_value() == 12
+                assert z.get_value() == 4
+                assert z_rpl.get_value() == 8
+                assert y_rpl.get_value() == 3
+
+            # test cpy function:
+            # 2. SharedVariable is updatable -> values did update(z == 5)
+            # 1. sharedvariable is swap ->  Rpl sharedvariables share storage
+            names = map_SV.keys()
+            for key in cpy.fn.storage_map:
+                if key.name in names:
+                    assert (
+                        map_SV[key.name].container.storage[0]
+                        == cpy.fn.storage_map[key][0]
+                    )
+
+            second_time = True
+
+    def test_swap_SharedVariable_with_given(self):
+        # A special testcase for logistic_sgd.py in Deep Learning Tutorial
+        # This test assert that SharedVariable in different function have same storage
+
+        train_x = theano.shared(value=np.random.rand(10, 10).astype(config.floatX))
+        test_x = theano.shared(value=np.random.rand(10, 10).astype(config.floatX))
+
+        train_y = theano.shared(value=np.random.rand(10, 1).astype(config.floatX))
+        test_y = theano.shared(value=np.random.rand(10, 1).astype(config.floatX))
+
+        i = T.iscalar("index")
+        x = T.vector("x")
+        y = T.vector("y")
+        # this formular has no sense but for a test
+        out = (T.sum(x) - y) ** 2
+        train = theano.function(
+            [i],
+            out,
+            givens={x: train_x[i], y: train_y[i]},
+            updates={train_x: train_x + 0.1},
+        )
+
+        test_def = theano.function([i], out, givens={x: test_x[i], y: test_y[i]})
+        test_cpy = train.copy(
+            swap={train_x: test_x, train_y: test_y}, delete_updates=True
+        )
+
+        for in1, in2 in zip(test_def.maker.inputs, test_cpy.maker.inputs):
+            assert in1.value is in2.value
+
+    def test_copy_delete_updates(self):
+        w = T.iscalar("w")
+        x = T.fscalar("x")
+        # SharedVariable for tests, one of them has update
+        y = theano.shared(value=1, name="y")
+        z = theano.shared(value=2, name="z")
+        out = x + y + z
+
+        # Test for different linkers
+        # for mode in ["FAST_RUN","FAST_COMPILE"]:
+        # second_time = False
+        for mode in ["FAST_RUN", "FAST_COMPILE"]:
+            ori = theano.function([x], out, mode=mode, updates={z: z * 2})
+            cpy = ori.copy(delete_updates=True)
+
+            assert cpy(1)[0] == 4
+            assert cpy(1)[0] == 4
+            assert cpy(1)[0] == 4
+
+        # Test if unused implicit and explicit inputs from delete_updates
+        # are ignored as intended.
+        for mode in ["FAST_RUN", "FAST_COMPILE"]:
+            ori = theano.function([x], x, mode=mode, updates={z: z * 2})
+            cpy = ori.copy(delete_updates=True)
+
+            ori = theano.function([x, w], x, mode=mode, updates={z: z + w})
+            cpy = ori.copy(delete_updates=True)
+
+    def test_shared_state0(self):
+        a = T.scalar()  # the a is for 'anonymous' (un-named).
+        x, s = T.scalars("xs")
+
+        f = function(
+            [
+                x,
+                In(a, value=1.0, name="a"),
+                In(s, value=0.0, update=s + a * x, mutable=True),
+            ],
+            s + a * x,
+        )
+        g = function(
+            [
+                x,
+                In(a, value=1.0, name="a"),
+                In(s, value=f.container[s], update=s - a * x, mutable=True),
+            ],
+            s + a * x,
+        )
+
+        f(1, 2)
+        assert f[s] == 2
+        assert g[s] == 2
+        g(1, 2)
+        assert f[s] == 0
+        assert g[s] == 0
+
+    def test_shared_state1(self):
+        a = T.scalar()  # the a is for 'anonymous' (un-named).
+        x, s = T.scalars("xs")
+
+        f = function(
+            [
+                x,
+                In(a, value=1.0, name="a"),
+                In(s, value=0.0, update=s + a * x, mutable=True),
+            ],
+            s + a * x,
+        )
+        g = function(
+            [x, In(a, value=1.0, name="a"), In(s, value=f.container[s])], s + a * x
+        )
+
+        f(1, 2)
+        assert f[s] == 2
+        assert g[s] == 2
+        f(1, 2)
+        g(1, 2)
+        assert f[s] == 4
+        assert g[s] == 4
+
+    def test_shared_state2(self):
+        a = T.scalar()  # the a is for 'anonymous' (un-named).
+        x, s = T.scalars("xs")
+
+        f = function(
+            [
+                x,
+                In(a, value=1.0, name="a"),
+                In(s, value=0.0, update=s + a * x, mutable=False),
+            ],
+            s + a * x,
+        )
+        g = function(
+            [x, In(a, value=1.0, name="a"), In(s, value=f.container[s])], s + a * x
+        )
+
+        f(1, 2)
+        assert f[s] == 2
+        assert g[s] == 2
+        f(1, 2)
+        assert f[s] == 4
+        assert g[s] == 4
+        g(1, 2)  # has no effect on state
+        assert f[s] == 4
+        assert g[s] == 4
+
+    def test_shared_state_not_implicit(self):
+        # This test is taken from the documentation in
+        # doc/topics/function.txt. If it does not pass anymore and yet the
+        # behavior is still intended the doc and the test should both be
+        # updated accordingly.
+        x, s = T.scalars("xs")
+        inc = function([x, In(s, update=(s + x), value=10.0)], [])
+        dec = function(
+            [x, In(s, update=(s - x), value=inc.container[s], implicit=False)], []
+        )
+        assert dec[s] is inc[s]
+        inc[s] = 2
+        assert dec[s] == 2
+        dec(1)
+        assert inc[s] == 1
+        dec(1, 0)
+        assert inc[s] == -1
+        assert dec[s] == -1
+
+    def test_constant_output(self):
+        # Test that if the output is a constant, we respect the theano memory interface
+        f = theano.function([], theano.tensor.constant([4]))
+        # print f.maker.fgraph.toposort()
+        out = f()
+        assert (out == 4).all()
+        out[0] = 3
+        out2 = f()
+        # If the following 2 asserts fail it mean Theano broke it's memory contract.
+        assert out2 is not out
+        assert (out2 == 4).all()
+
+        # Test that if the output is a constant and borrow, we respect the theano memory interface
+        f = theano.function([], Out(theano.tensor.constant([4]), borrow=True))
+        # print f.maker.fgraph.toposort()
+        out = f()
+        assert (out == 4).all()
+        out[0] = 3
+        out2 = f()
+
+        if isinstance(theano.compile.mode.get_default_mode(), theano.compile.DebugMode):
+            # In DebugMode, we don't implement optimization based on borrow on the output.
+            assert (out2 == 4).all()
+        else:
+            assert out2 is out
+            assert (out2 == 3).all()
+
+    def test_borrow_input(self):
+        # Tests that the contract for io.In is respected. When borrow=False, it should be
+        # impossible for outputs to be aliased to the input variables provided by the user,
+        # either through a view-map or a destroy map. New tests should be added in the future
+        # when borrow=True is implemented.
+
+        a = T.dmatrix()
+        aval = np.random.rand(3, 3)
+
+        # when borrow=False, test that a destroy map cannot alias output to input
+        f = theano.function([In(a, borrow=False)], Out(a + 1, borrow=True))
+        assert np.all(f(aval) == aval + 1)
+        assert not np.may_share_memory(aval, f(aval))
+
+        # when borrow=False, test that a viewmap cannot alias output to input
+        f = theano.function([In(a, borrow=False)], Out(a[0, :], borrow=True))
+        assert np.all(f(aval) == aval[0, :])
+        assert not np.may_share_memory(aval, f(aval))
+
+    def test_borrow_output(self):
+        a = T.dmatrix()
+        f = function([a], Out(a, borrow=False))
+        o = np.ones((3, 3))
+        assert o is not f(o)  # function no longer permits aliasing outputs to inputs
+
+        f = function([a], Out(a * 4, borrow=False))
+        o = np.ones((3, 3))
+        four = f(o)
+        assert np.all(four == 4)
+        f(o + 0.1)  # should not clobber the memory used to store four
+        assert np.all(four == 4)
+
+        f = function(
+            [a], Out(a * 4, borrow=True), mode=theano.Mode("c|py_nogc", "fast_run")
+        )
+        o = np.ones((3, 3))
+        four = f(o)
+        assert np.all(four == 4)
+        f(o + 0.1)  # should clobber the memory used to store four
+        if theano.config.cxx:
+            assert not np.all(four == 4)
+        else:
+            # The Elemwise.perform method don't reuse memory
+            # as some numpy version don't support that correctly.
+            assert np.all(four == 4)
+
+    def test_disconnected_input(self):
+        a = T.scalar("a")
+        v = T.vector("v")
+        with pytest.raises(UnusedInputError):
+            function([a, v], v * 2)
+
+        function([a, v], v * 2, on_unused_input="ignore")
+
+    def test_masked_input(self):
+        m = T.matrix("m")
+        mt = m.T
+        mt.name = "m.T"
+        with pytest.raises(UnusedInputError):
+            function([m, mt], mt * 2)
+        function([m, mt], mt * 2, on_unused_input="ignore")
+
+    def test_givens_input_var(self):
+        # Ensure error is raised when trying to replace an input variable.
+
+        x = T.scalar("x")
+        y = x * 2
+        with pytest.raises(RuntimeError):
+            function([x], y, givens={x: x + 1})
+
+    def test_free(self):
+        # Make test on free() function
+
+        x = T.vector("x")
+        func = function([x], x + 1)
+        func.fn.allow_gc = False
+        func([1])
+
+        check_list = []
+        for key, val in iteritems(func.fn.storage_map):
+            if not isinstance(key, theano.gof.Constant):
+                check_list.append(val)
+        assert any([val[0] for val in check_list])
+
+        func.free()
+
+        for key, val in iteritems(func.fn.storage_map):
+            if not isinstance(key, theano.gof.Constant):
+                assert val[0] is None
+
+    def test_default_values(self):
+        # Check that default values are restored
+        # when an exception occurs in interactive mode.
+
+        a, b = T.dscalars("a", "b")
+        c = a + b
+        func = theano.function(
+            [theano.In(a, name="first"), theano.In(b, value=1, name="second")], c
+        )
+        x = func(first=1)
+        try:
+            func(second=2)
+        except TypeError:
+            assert func(first=1) == x
+
+    def test_check_for_aliased_inputs(self):
+        b = np.random.rand(5, 4)
+        s1 = theano.shared(b)
+        s2 = theano.shared(b)
+        x1 = theano.tensor.vector()
+
+        # Assert cases we should not check for aliased inputs
+        for d in [
+            dict(outputs=[s1 + 1]),
+            dict(outputs=[s1 + 1, s2 + 3]),
+            dict(outputs=[s1 + 1], updates=[(s2, s2 + 3)]),
+            dict(inputs=[x1], outputs=[x1 + 1], updates=[(s2, s2 + 3)]),
+        ]:
+            if "inputs" not in d:
+                d["inputs"] = []
+            f = theano.function(**d)
+            assert not f._check_for_aliased_inputs, d
+
+        # Assert cases we should check for aliased inputs
+        for d in [
+            dict(
+                inputs=[theano.In(x1, borrow=True)],
+                outputs=[x1 + 1],
+                updates=[(s2, s2 + 3)],
+            ),
+            dict(
+                inputs=[theano.In(x1, borrow=True, mutable=True)],
+                outputs=[x1 + 1],
+                updates=[(s2, s2 + 3)],
+            ),
+            dict(
+                inputs=[theano.In(x1, mutable=True)],
+                outputs=[x1 + 1],
+                updates=[(s2, s2 + 3)],
+            ),
+        ]:
+            if "inputs" not in d:
+                d["inputs"] = []
+            f = theano.function(**d)
+
+            assert f._check_for_aliased_inputs, d
+
+
+class TestPicklefunction:
+    def test_deepcopy(self):
+        a = T.scalar()  # the a is for 'anonymous' (un-named).
+        x, s = T.scalars("xs")
+
+        f = function(
+            [
+                x,
+                In(a, value=1.0, name="a"),
+                In(s, value=0.0, update=s + a * x, mutable=True),
+            ],
+            s + a * x,
+        )
+        try:
+            g = copy.deepcopy(f)
+        except NotImplementedError as e:
+            if e[0].startswith("DebugMode is not picklable"):
+                return
+            else:
+                raise
+        # if they both return, assume  that they return equivalent things.
+        # print [(k,id(k)) for k in f.finder.keys()]
+        # print [(k,id(k)) for k in g.finder.keys()]
+
+        assert g.container[0].storage is not f.container[0].storage
+        assert g.container[1].storage is not f.container[1].storage
+        assert g.container[2].storage is not f.container[2].storage
+        assert x not in g.container
+        assert x not in g.value
+        assert len(f.defaults) == len(g.defaults)
+        assert f._check_for_aliased_inputs is g._check_for_aliased_inputs
+        assert f.name == g.name
+        assert f.maker.fgraph.name == g.maker.fgraph.name
+        # print 'f.defaults = %s' % (f.defaults, )
+        # print 'g.defaults = %s' % (g.defaults, )
+        for ((f_req, f_feed, f_val), (g_req, g_feed, g_val)) in zip(
+            f.defaults, g.defaults
+        ):
+            assert f_req == g_req and f_feed == g_feed and f_val == g_val
+
+        assert g.value[1] is not f.value[1]  # should not have been copied
+        assert (
+            g.value[2] is not f.value[2]
+        )  # should have been copied because it is mutable.
+        assert not (g.value[2] != f.value[2]).any()  # its contents should be identical
+
+        assert f(2, 1) == g(
+            2
+        )  # they should be in sync, default value should be copied.
+        assert f(2, 1) == g(
+            2
+        )  # they should be in sync, default value should be copied.
+        f(1, 2)  # put them out of sync
+        assert f(1, 2) != g(1, 2)  # they should not be equal anymore.
+        g(1, 2)  # put them back in sync
+        assert f(3) == g(3)  # They should be in sync again.
+
+    def test_deepcopy_trust_input(self):
+        a = T.dscalar()  # the a is for 'anonymous' (un-named).
+        x, s = T.dscalars("xs")
+
+        f = function(
+            [
+                x,
+                In(a, value=1.0, name="a"),
+                In(s, value=0.0, update=s + a * x, mutable=True),
+            ],
+            s + a * x,
+        )
+        f.trust_input = True
+        try:
+            g = copy.deepcopy(f)
+        except NotImplementedError as e:
+            if e[0].startswith("DebugMode is not picklable"):
+                return
+            else:
+                raise
+        assert f.trust_input is g.trust_input
+        f(np.asarray(2.0))
+        with pytest.raises(
+            (ValueError, AttributeError, theano.compile.debugmode.InvalidValueError)
+        ):
+            f(2.0)
+        g(np.asarray(2.0))
+        with pytest.raises(
+            (ValueError, AttributeError, theano.compile.debugmode.InvalidValueError)
+        ):
+            g(2.0)
+
+    def test_output_keys(self):
+        x = T.vector()
+        f = theano.function([x], {"vec": x ** 2})
+        o = f([2, 3, 4])
+        assert isinstance(o, dict)
+        assert np.allclose(o["vec"], [4, 9, 16])
+        g = copy.deepcopy(f)
+        o = g([2, 3, 4])
+        assert isinstance(o, dict)
+        assert np.allclose(o["vec"], [4, 9, 16])
+
+    def test_deepcopy_shared_container(self):
+        # Ensure that shared containers remain shared after a deep copy.
+        a, x = T.scalars("ax")
+
+        h = function([In(a, value=0.0)], a)
+        f = function([x, In(a, value=h.container[a], implicit=True)], x + a)
+
+        try:
+            memo = {}
+            ac = copy.deepcopy(a)
+            memo.update({id(a): ac})
+            hc = copy.deepcopy(h, memo=memo)
+            memo.update({id(h): hc})
+            fc = copy.deepcopy(f, memo=memo)
+        except NotImplementedError as e:
+            if e[0].startswith("DebugMode is not picklable"):
+                return
+            else:
+                raise
+        h[a] = 1
+        hc[ac] = 2
+        assert f[a] == 1
+        assert fc[ac] == 2
+
+    def test_pickle(self):
+        a = T.scalar()  # the a is for 'anonymous' (un-named).
+        x, s = T.scalars("xs")
+
+        f = function(
+            [
+                x,
+                In(a, value=1.0, name="a"),
+                In(s, value=0.0, update=s + a * x, mutable=True),
+            ],
+            s + a * x,
+        )
+
+        try:
+            # Note that here we also test protocol 0 on purpose, since it
+            # should work (even though one should not use it).
+            g = pickle.loads(pickle.dumps(f, protocol=0))
+            g = pickle.loads(pickle.dumps(f, protocol=-1))
+        except NotImplementedError as e:
+            if e[0].startswith("DebugMode is not picklable"):
+                return
+            else:
+                raise
+        # if they both return, assume  that they return equivalent things.
+        # print [(k,id(k)) for k in f.finder.keys()]
+        # print [(k,id(k)) for k in g.finder.keys()]
+
+        assert g.container[0].storage is not f.container[0].storage
+        assert g.container[1].storage is not f.container[1].storage
+        assert g.container[2].storage is not f.container[2].storage
+        assert x not in g.container
+        assert x not in g.value
+
+        assert g.value[1] is not f.value[1]  # should not have been copied
+        assert (
+            g.value[2] is not f.value[2]
+        )  # should have been copied because it is mutable.
+        assert not (g.value[2] != f.value[2]).any()  # its contents should be identical
+
+        assert f(2, 1) == g(
+            2
+        )  # they should be in sync, default value should be copied.
+        assert f(2, 1) == g(
+            2
+        )  # they should be in sync, default value should be copied.
+        f(1, 2)  # put them out of sync
+        assert f(1, 2) != g(1, 2)  # they should not be equal anymore.
+
+    def test_optimizations_preserved(self):
+        a = T.dvector()  # the a is for 'anonymous' (un-named).
+        x = T.dvector("x")
+        s = T.dvector("s")
+        xm = T.dmatrix("x")
+        sm = T.dmatrix("s")
+
+        f = function(
+            [a, x, s, xm, sm],
+            ((a.T.T) * (tensor.dot(xm, (sm.T.T.T)) + x).T * (x / x) + s),
+        )
+        old_default_mode = config.mode
+        old_default_opt = config.optimizer
+        old_default_link = config.linker
+        try:
+            try:
+                str_f = pickle.dumps(f, protocol=-1)
+                config.mode = "Mode"
+                config.linker = "py"
+                config.optimizer = "None"
+                g = pickle.loads(str_f)
+                # print g.maker.mode
+                # print compile.mode.default_mode
+            except NotImplementedError as e:
+                if e[0].startswith("DebugMode is not pickl"):
+                    g = "ok"
+        finally:
+            config.mode = old_default_mode
+            config.optimizer = old_default_opt
+            config.linker = old_default_link
+
+        if g == "ok":
+            return
+
+        assert f.maker is not g.maker
+        assert f.maker.fgraph is not g.maker.fgraph
+        tf = f.maker.fgraph.toposort()
+        tg = f.maker.fgraph.toposort()
+        assert len(tf) == len(tg)
+        for nf, ng in zip(tf, tg):
+            assert nf.op == ng.op
+            assert len(nf.inputs) == len(ng.inputs)
+            assert len(nf.outputs) == len(ng.outputs)
+            assert [i.type for i in nf.inputs] == [i.type for i in ng.inputs]
+            assert [i.type for i in nf.outputs] == [i.type for i in ng.outputs]
+
+    def test_multiple_functions(self):
+        a = T.scalar()  # the a is for 'anonymous' (un-named).
+        x, s = T.scalars("xs")
+        v = T.vector("v")
+
+        # put in some inputs
+        list_of_things = [s, x, v]
+
+        # some derived thing, whose inputs aren't all in the list
+        list_of_things.append(a * x + s)
+
+        f1 = function(
+            [
+                x,
+                In(a, value=1.0, name="a"),
+                In(s, value=0.0, update=s + a * x, mutable=True),
+            ],
+            s + a * x,
+        )
+        list_of_things.append(f1)
+
+        # now put in a function sharing container with the previous one
+        f2 = function(
+            [
+                x,
+                In(a, value=1.0, name="a"),
+                In(s, value=f1.container[s], update=s + a * x, mutable=True),
+            ],
+            s + a * x,
+        )
+        list_of_things.append(f2)
+
+        assert isinstance(f2.container[s].storage, list)
+        assert f2.container[s].storage is f1.container[s].storage
+
+        # now put in a function with non-scalar
+        v_value = np.asarray([2, 3, 4.0], dtype=config.floatX)
+        f3 = function([x, In(v, value=v_value)], x + v)
+        list_of_things.append(f3)
+
+        # try to pickle the entire things
+        try:
+            saved_format = pickle.dumps(list_of_things, protocol=-1)
+            new_list_of_things = pickle.loads(saved_format)
+        except NotImplementedError as e:
+            if e[0].startswith("DebugMode is not picklable"):
+                return
+            else:
+                raise
+
+        # now test our recovered new_list_of_things
+        # it should be totally unrelated to the original
+        # it should be interdependent in the same way as the original
+
+        ol = list_of_things
+        nl = new_list_of_things
+
+        for i in range(4):
+            assert nl[i] != ol[i]
+            assert nl[i].type == ol[i].type
+            assert nl[i].type is not ol[i].type
+
+        # see if the implicit input got stored
+        assert ol[3].owner.inputs[1] is s
+        assert nl[3].owner.inputs[1] is not s
+        assert nl[3].owner.inputs[1].type == s.type
+
+        # moving on to the functions...
+        for i in range(4, 7):
+            assert nl[i] != ol[i]
+
+        # looking at function number 1, input 's'
+        assert nl[4][nl[0]] is not ol[4][ol[0]]
+        assert nl[4][nl[0]] == ol[4][ol[0]]
+        assert nl[4](3) == ol[4](3)
+
+        # looking at function number 2, input 's'
+        # make sure it's shared with the first function
+        assert ol[4].container[ol[0]].storage is ol[5].container[ol[0]].storage
+        assert nl[4].container[nl[0]].storage is nl[5].container[nl[0]].storage
+        assert nl[5](3) == ol[5](3)
+        assert nl[4].value[nl[0]] == 6
+
+        assert np.all(nl[6][nl[2]] == np.asarray([2, 3.0, 4]))
+
+    def test_broken_pickle_with_shared(self):
+        saves = []
+
+        def pers_save(obj):
+            if isinstance(obj, np.ndarray):
+                saves.append(obj)
+                return len(saves) - 1
+            else:
+                return None
+
+        def pers_load(id):
+            return saves[id]
+
+        b = np.random.rand(5, 4)
+
+        x = theano.tensor.matrix()
+        y = theano.shared(b)
+
+        f = theano.function([x], theano.tensor.dot(x, y))
+
+        from theano.compat import BytesIO
+
+        fp = BytesIO()
+        p = pickle.Pickler(fp, 2)
+        p.persistent_id = pers_save
+        try:
+            p.dump(f)
+        except NotImplementedError as e:
+            if exc_message(e).startswith("DebugMode is not picklable"):
+                return
+            else:
+                raise
+        fp2 = BytesIO(fp.getvalue())
+        fp.close()
+        p = pickle.Unpickler(fp2)
+        p.persistent_load = pers_load
+        p.load()
+        fp2.close()
+
+    def test_pickle_class_with_functions(self):
+
+        blah = SomethingToPickle()
+        assert blah.f2.container[blah.s].storage is blah.f1.container[blah.s].storage
+
+        try:
+            blah2 = copy.deepcopy(blah)
+        except NotImplementedError as e:
+            if e[0].startswith("DebugMode is not picklable"):
+                return
+            else:
+                raise
+
+        assert (
+            blah2.f2.container[blah2.s].storage is blah2.f1.container[blah2.s].storage
+        )
+
+        assert blah.f1[blah.s] == blah2.f1[blah2.s]
+
+        blah.f2(5)
+        assert blah.f1[blah.s] != blah2.f1[blah2.s]
+
+
+class SomethingToPickle(object):
+    def __init__(self):
+        a = T.scalar()  # the a is for 'anonymous' (un-named).
+        x, s = T.scalars("xs")
+        v = T.vector("v")
+
+        self.s = s
+        self.x = x
+        self.v = v
+
+        self.e = a * x + s
+
+        self.f1 = function(
+            [
+                x,
+                In(a, value=1.0, name="a"),
+                In(s, value=0.0, update=s + a * x, mutable=True),
+            ],
+            s + a * x,
+        )
+
+        self.f2 = function(
+            [
+                x,
+                In(a, value=1.0, name="a"),
+                In(s, value=self.f1.container[s], update=s + a * x, mutable=True),
+            ],
+            s + a * x,
+        )
+
+
+def test_empty_givens_updates():
+    # Regression test for bug fixed in 8625e03.
+
+    # Empty givens / updates dictionaries were not properly detected before,
+    # triggering useless crashes at compile time.
+    x = T.scalar()
+    y = x * 2
+    function([theano.In(x)], y, givens={})
+    function([theano.In(x)], y, updates={})
+
+
+@pytest.mark.skipif(
+    not theano.gpuarray.pygpu_activated or theano.config.mode == "DEBUG_MODE",
+    reason="DEBUG_MODE forces synchronous behaviour which breaks this test",
+)
+def test_sync_update():
+    # This test if sync_update work. This can only be tested when
+    # there is a GPU.  To test if we really sync, we compare a case we
+    # can run in parallel GPU and CPU computation. Then we sync to
+    # disable that parallel computation. Then we assert the time is
+    # higher.
+
+    # this import needs to go first because it generates the
+    # local 'theano' variable.  You get an UnboundLocalError otherwise.
+    import tests.gpuarray.config
+
+    sizes = [100, 500, 1000, 2000, 5000, 10000, 20000, 40000]
+    size = sizes[0]
+    w = theano.gpuarray.gpuarray_shared_constructor(
+        np.random.rand(size, size).astype("float32"),
+        "w",
+        target=tests.gpuarray.config.test_ctx_name,
+    )
+    x = theano.gpuarray.gpuarray_shared_constructor(
+        np.random.rand(size, size).astype("float32"),
+        "x",
+        target=tests.gpuarray.config.test_ctx_name,
+    )
+
+    updates = [(w, w + np.asarray(0.001, "float32") * T.dot(x, x))]
+
+    f = theano.function([], updates=updates, mode=tests.gpuarray.config.mode_with_gpu)
+    assert len(f.maker.fgraph.apply_nodes) == 1
+    assert any(
+        isinstance(n.op, theano.gpuarray.blas.GpuGemm)
+        for n in f.maker.fgraph.apply_nodes
+    )
+    # Make sure libgpuarray have compile all kernels
+    f()
+    f.sync_shared()
+
+    # Find a good size that will take about .5s.
+    # This is to make the test more stable across different GPUs.
+    size = sizes[-1]
+    for i in sizes:
+        data = np.random.rand(i, i).astype("float32")
+        w.set_value(data)
+        x.set_value(data)
+        t0 = time.time()
+        f()
+        f.sync_shared()
+        t1 = time.time()
+        if (t1 - t0) < 0.5:
+            continue
+        size = i
+        break
+    # sync to make sure all computation are done
+    f.sync_shared()
+
+    t_0 = time.time()
+    for i in range(3):
+        f()
+        # Sync after each call to see the slowdown from sync.
+        f.sync_shared()
+        time.sleep(0.5)
+    t_1 = time.time()
+    for i in range(3):
+        f()
+        time.sleep(0.5)
+    f.sync_shared()
+    # Sync to make sure all computation are finished.
+    t_2 = time.time()
+    d1 = t_1 - t_0
+    d2 = t_2 - t_1
+    assert d1 > d2, (d1, d2)

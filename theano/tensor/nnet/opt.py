@@ -11,8 +11,8 @@ from theano.gof.opt import copy_stack_trace
 from theano.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
 from theano.tensor.nnet.corr3d import (
     Corr3dMM,
-    Corr3dMM_gradInputs,
-    Corr3dMM_gradWeights,
+    Corr3dMMGradInputs,
+    Corr3dMMGradWeights,
 )
 from theano.tensor.nnet.blocksparse import (
     SparseBlockGemv,
@@ -184,7 +184,7 @@ def local_abstractconv3d_gradweight_gemm(node):
     if not isinstance(img.type, TensorType) or not isinstance(topgrad.type, TensorType):
         return None
 
-    rval = Corr3dMM_gradWeights(
+    rval = Corr3dMMGradWeights(
         border_mode=node.op.border_mode,
         subsample=node.op.subsample,
         filter_dilation=node.op.filter_dilation,
@@ -248,7 +248,7 @@ def local_abstractconv3d_gradinputs_gemm(node):
     # need to flip the kernel if necessary
     if node.op.filter_flip:
         kern = kern[:, :, ::-1, ::-1, ::-1]
-    rval = Corr3dMM_gradInputs(
+    rval = Corr3dMMGradInputs(
         border_mode=node.op.border_mode,
         subsample=node.op.subsample,
         filter_dilation=node.op.filter_dilation,

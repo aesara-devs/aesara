@@ -153,7 +153,7 @@ Sparse Tests
 
 You can reuse the test system for tensor variables. To generate the
 needed sparse variable and data, you can use
-:func:`theano.sparse.tests.test_basic.sparse_random_inputs`. It takes
+:func:`tests.sparse.test_basic.sparse_random_inputs`. It takes
 many parameters, including parameters for the format (csr or csc), the shape, the
 dtype, whether to have explicit 0 and whether to have unsorted indices.
 

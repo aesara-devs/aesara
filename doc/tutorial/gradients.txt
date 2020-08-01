@@ -21,12 +21,12 @@ gradient of :math:`x^2` with respect to :math:`x`. Note that:
 Here is the code to compute this gradient:
 
 .. If you modify this code, also change :
-.. theano/tests/test_tutorial.py:T_examples.test_examples_4
+.. tests/test_tutorial.py:T_examples.test_examples_4
 
 >>> import numpy
 >>> import theano
 >>> import theano.tensor as T
->>> from theano import pp 
+>>> from theano import pp
 >>> x = T.dscalar('x')
 >>> y = x ** 2
 >>> gy = T.grad(y, x)
@@ -66,7 +66,7 @@ logistic is: :math:`ds(x)/dx = s(x) \cdot (1 - s(x))`.
 
 
 .. If you modify this code, also change :
-.. theano/tests/test_tutorial.py:T_examples.test_examples_5
+.. tests/test_tutorial.py:T_examples.test_examples_5
 
 >>> x = T.dmatrix('x')
 >>> s = T.sum(1 / (1 + T.exp(-x)))
@@ -77,7 +77,7 @@ array([[ 0.25      ,  0.19661193],
        [ 0.19661193,  0.10499359]])
 
 In general, for any **scalar** expression *s*, ``T.grad(s, w)`` provides
-the Theano expression for computing :math:`\frac{\partial s}{\partial w}`. In 
+the Theano expression for computing :math:`\frac{\partial s}{\partial w}`. In
 this way Theano can be used for doing **efficient** symbolic differentiation
 (as the expression returned by ``T.grad`` will be optimized during compilation), even for
 function with many inputs. (see `automatic differentiation <http://en.wikipedia.org/wiki/Automatic_differentiation>`_ for a description
@@ -102,7 +102,7 @@ Computing the Jacobian
 
 In Theano's parlance, the term *Jacobian* designates the tensor comprising the
 first partial derivatives of the output of a function with respect to its inputs.
-(This is a generalization of to the so-called Jacobian matrix in Mathematics.) 
+(This is a generalization of to the so-called Jacobian matrix in Mathematics.)
 Theano implements the :func:`theano.gradient.jacobian` macro that does all
 that is needed to compute the Jacobian. The following text explains how
 to do it manually.
@@ -113,11 +113,11 @@ do is to loop over the entries in *y* and compute the gradient of
 *y[i]* with respect to *x*.
 
 .. note::
-    
+
     ``scan`` is a generic op in Theano that allows writing in a symbolic
     manner all kinds of recurrent equations. While creating
     symbolic loops (and optimizing them for performance) is a hard task,
-    effort is being done for improving the performance of ``scan``. We 
+    effort is being done for improving the performance of ``scan``. We
     shall return to :ref:`scan<tutloop>` later in this tutorial.
 
 >>> import theano
@@ -129,7 +129,7 @@ do is to loop over the entries in *y* and compute the gradient of
 >>> f([4, 4])
 array([[ 8.,  0.],
        [ 0.,  8.]])
-    
+
 What we do in this code is to generate a sequence of *ints* from *0* to
 ``y.shape[0]`` using ``T.arange``. Then we loop through this sequence, and
 at each step, we compute the gradient of element *y[i]* with respect to
@@ -142,13 +142,13 @@ matrix which corresponds to the Jacobian.
     ``theano.scan(lambda y_i,x: T.grad(y_i,x), sequences=y,
     non_sequences=x)``, even though from the documentation of scan this
     seems possible. The reason is that *y_i* will not be a function of
-    *x* anymore, while *y[i]* still is. 
+    *x* anymore, while *y[i]* still is.
 
 
 Computing the Hessian
 =====================
 
-In Theano, the term *Hessian* has the usual mathematical meaning: It is the 
+In Theano, the term *Hessian* has the usual mathematical meaning: It is the
 matrix comprising the second order partial derivative of a function with scalar
 output and vector input. Theano implements :func:`theano.gradient.hessian` macro that does all
 that is needed to compute the Hessian. The following text explains how
@@ -157,7 +157,7 @@ to do it manually.
 You can compute the Hessian manually similarly to the Jacobian. The only
 difference is that now, instead of computing the Jacobian of some expression
 *y*, we compute the Jacobian of ``T.grad(cost,x)``, where *cost* is some
-scalar. 
+scalar.
 
 >>> x = T.dvector('x')
 >>> y = x ** 2
@@ -176,14 +176,14 @@ Jacobian times a Vector
 Sometimes we can express the algorithm in terms of Jacobians times vectors,
 or vectors times Jacobians. Compared to evaluating the Jacobian and then
 doing the product, there are methods that compute the desired results while
-avoiding actual evaluation of the Jacobian. This can bring about significant 
-performance gains. A description of one such algorithm can be found here: 
+avoiding actual evaluation of the Jacobian. This can bring about significant
+performance gains. A description of one such algorithm can be found here:
 
 * Barak A. Pearlmutter, "Fast Exact Multiplication by the Hessian", *Neural
   Computation, 1994*
 
 While in principle we would want Theano to identify these patterns automatically for us,
-in practice, implementing such optimizations in a generic manner is extremely 
+in practice, implementing such optimizations in a generic manner is extremely
 difficult. Therefore, we provide special functions dedicated to these tasks.
 
 
@@ -216,7 +216,7 @@ L-operator
 
 In similitude to the *R-operator*, the *L-operator* would compute a *row* vector times
 the Jacobian. The mathematical formula would be :math:`v \frac{\partial
-f(x)}{\partial x}`. The *L-operator* is also supported for generic tensors 
+f(x)}{\partial x}`. The *L-operator* is also supported for generic tensors
 (not only for vectors). Similarly, it can be implemented as follows:
 
 >>> W = T.dmatrix('W')
@@ -230,7 +230,7 @@ array([[ 0.,  0.],
        [ 2.,  2.]])
 
 .. note::
-    
+
     `v`, the *point of evaluation*, differs between the *L-operator* and the *R-operator*.
     For the *L-operator*, the point of evaluation needs to have the same shape
     as the output, whereas for the *R-operator* this point should
@@ -246,9 +246,9 @@ Hessian times a Vector
 
 If you need to compute the *Hessian times a vector*, you can make use of the
 above-defined operators to do it more efficiently than actually computing
-the exact Hessian and then performing the product. Due to the symmetry of the 
+the exact Hessian and then performing the product. Due to the symmetry of the
 Hessian matrix, you have two options that will
-give you the same result, though these options might exhibit differing performances. 
+give you the same result, though these options might exhibit differing performances.
 Hence, we suggest profiling the methods before using either one of the two:
 
 >>> x = T.dvector('x')
@@ -287,4 +287,3 @@ Final Pointers
 
 * Work is in progress on the optimizations required to compute efficiently the full
   Jacobian and the Hessian matrix as well as the *Jacobian times vector*.
-

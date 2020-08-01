@@ -1824,7 +1824,7 @@ def verify_grad(
             (
                 "rng should be a valid instance of "
                 "numpy.random.RandomState. You may "
-                "want to use theano.tests.unittest"
+                "want to use tests.unittest"
                 "_tools.verify_grad instead of "
                 "theano.gradient.verify_grad."
             )

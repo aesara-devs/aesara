@@ -561,7 +561,7 @@ returns the right answer. If you detect an error, you must raise an
     import numpy
     import theano
 
-    from theano.tests import unittest_tools as utt
+    from tests import unittest_tools as utt
     from theano import config
     class TestDouble(utt.InferShapeTester):
         def setup_method(self):
@@ -617,7 +617,7 @@ your op works only with such matrices, you can disable the warning with the
 
 .. testcode:: tests
 
-    from theano.tests import unittest_tools as utt
+    from tests import unittest_tools as utt
     from theano import config
     class TestDouble(utt.InferShapeTester):
         # [...] as previous tests.
@@ -647,8 +647,8 @@ the multiplication by 2).
 .. testcode:: tests
 
         def test_grad(self):
-            theano.tests.unittest_tools.verify_grad(self.op,
-                                                    [numpy.random.rand(5, 7, 2)])
+            tests.unittest_tools.verify_grad(self.op,
+                                             [numpy.random.rand(5, 7, 2)])
 
 Testing the Rop
 ^^^^^^^^^^^^^^^
@@ -665,8 +665,8 @@ For instance, to verify the Rop method of the DoubleOp, you can use this:
 .. testcode:: tests
 
    import numpy
-   import theano.tests
-   from theano.tests.test_rop import RopLop_checker
+   import tests
+   from tests.test_rop import RopLop_checker
    class TestDoubleRop(RopLop_checker):
        def setUp(self):
            super(TestDoubleRop, self).setUp()
