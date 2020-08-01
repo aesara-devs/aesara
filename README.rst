@@ -1,3 +1,5 @@
+|Build Status| |Coverage|
+
 ===================================================================================================
 Fork of the Theano library which will continue to be maintained for the purpose of supporting PyMC3
 ===================================================================================================
@@ -31,7 +33,7 @@ DIRECTORY LAYOUT
 
 * ``Theano/theano`` contains the package
 * ``Theano/theano`` has several submodules:
- 
+
   * ``gof`` + ``compile`` are the core
   * ``scalar`` depends upon core
   * ``tensor`` depends upon ``scalar``
@@ -47,3 +49,8 @@ DIRECTORY LAYOUT
   the appropriate submodules
 * ``Theano/doc`` contains files and scripts used to generate the documentation
 * ``Theano/html`` is where the documentation will be generated
+
+.. |Build Status| image:: https://travis-ci.org/pymc-devs/Theano-PyMC.svg?branch=master
+  :target: https://travis-ci.org/pymc-devs/Theano-PyMC
+.. |Coverage| image:: https://coveralls.io/repos/github/pymc-devs/Theano-PyMC/badge.svg?branch=master
+  :target: https://coveralls.io/github/pymc-devs/Theano-PyMC?branch=master
