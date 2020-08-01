@@ -11,7 +11,7 @@ import sys
 import gc
 import logging
 from itertools import chain, product as itertools_product
-from theano.compat import izip
+
 
 import numpy as np
 
@@ -2526,7 +2526,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
 
         no_borrow = [
             output
-            for output, spec in izip(fgraph.outputs, outputs + additional_outputs)
+            for output, spec in zip(fgraph.outputs, outputs + additional_outputs)
             if not spec.borrow
         ]
         if no_borrow:

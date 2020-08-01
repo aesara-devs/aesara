@@ -26,7 +26,7 @@ from collections import OrderedDict
 import numpy as np
 
 import theano
-from theano.compat import izip
+
 from six import string_types, iteritems
 from six.moves import xrange
 from theano.compile.pfunc import rebuild_collect_shared
@@ -657,7 +657,7 @@ def equal_computations(xs, ys, in_xs=None, in_ys=None):
     if in_ys is None:
         in_ys = []
 
-    for x, y in izip(xs, ys):
+    for x, y in zip(xs, ys):
         if x.owner and not y.owner:
             return False
         if y.owner and not x.owner:
@@ -669,13 +669,13 @@ def equal_computations(xs, ys, in_xs=None, in_ys=None):
             return False
     if len(in_xs) != len(in_ys):
         return False
-    for _x, _y in izip(in_xs, in_ys):
+    for _x, _y in zip(in_xs, in_ys):
         if _x.type != _y.type:
             return False
 
     common = set(zip(in_xs, in_ys))
     different = set()
-    for dx, dy in izip(xs, ys):
+    for dx, dy in zip(xs, ys):
         # We checked above that both dx and dy have an owner or not
         if not dx.owner:
             if isinstance(dx, tensor.Constant) and isinstance(dy, tensor.Constant):
@@ -708,7 +708,7 @@ def equal_computations(xs, ys, in_xs=None, in_ys=None):
             return False
         else:
             all_in_common = True
-            for dx, dy in izip(nd_x.outputs, nd_y.outputs):
+            for dx, dy in zip(nd_x.outputs, nd_y.outputs):
                 if (dx, dy) in different:
                     return False
                 if (dx, dy) not in common:
@@ -718,7 +718,7 @@ def equal_computations(xs, ys, in_xs=None, in_ys=None):
                 return True
 
             # Compare the individual inputs for equality
-            for dx, dy in izip(nd_x.inputs, nd_y.inputs):
+            for dx, dy in zip(nd_x.inputs, nd_y.inputs):
                 if (dx, dy) not in common:
 
                     # Equality between the variables is unknown, compare
@@ -755,7 +755,7 @@ def equal_computations(xs, ys, in_xs=None, in_ys=None):
             # If the code reaches this statement then the inputs are pair-wise
             # equivalent so the outputs of the current nodes are also
             # pair-wise equivalents
-            for dx, dy in izip(nd_x.outputs, nd_y.outputs):
+            for dx, dy in zip(nd_x.outputs, nd_y.outputs):
                 common.add((dx, dy))
 
             return True
@@ -785,7 +785,7 @@ def infer_shape(outs, inputs, input_shapes):
     # inside.  We don't use the full ShapeFeature interface, but we
     # let it initialize itself with an empty fgraph, otherwise we will
     # need to do it manually
-    for inp, inp_shp in izip(inputs, input_shapes):
+    for inp, inp_shp in zip(inputs, input_shapes):
         if inp_shp is not None and len(inp_shp) != inp.ndim:
             assert len(inp_shp) == inp.ndim
 
@@ -793,7 +793,7 @@ def infer_shape(outs, inputs, input_shapes):
     shape_feature.on_attach(theano.gof.FunctionGraph([], []))
 
     # Initialize shape_of with the input shapes
-    for inp, inp_shp in izip(inputs, input_shapes):
+    for inp, inp_shp in zip(inputs, input_shapes):
         shape_feature.set_shape(inp, inp_shp)
 
     def local_traverse(out):
@@ -1134,7 +1134,7 @@ def reconstruct_graph(inputs, outputs, tag=None):
         tag = ""
     nw_inputs = [safe_new(x, tag) for x in inputs]
     givens = OrderedDict()
-    for nw_x, x in izip(nw_inputs, inputs):
+    for nw_x, x in zip(nw_inputs, inputs):
         givens[x] = nw_x
     allinputs = theano.gof.graph.inputs(outputs)
     for inp in allinputs:

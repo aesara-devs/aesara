@@ -9,7 +9,7 @@ from collections import OrderedDict
 from six.moves import xrange
 
 from theano import gof, change_flags, gradient, config
-from theano.compat import izip
+
 
 from theano.gof.null_type import NullType
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
@@ -28,7 +28,7 @@ def grad_sources_inputs(sources, inputs):
     if inputs is None:
         inputs = theano.gof.graph.inputs([source[0] for source in sources])
     return dict(
-        izip(
+        zip(
             inputs,
             theano.gradient.grad(
                 cost=None,
@@ -490,7 +490,7 @@ def test_known_grads():
 
     for layer in layers:
         first = theano.tensor.grad(cost, layer, disconnected_inputs="ignore")
-        known = OrderedDict(izip(layer, first))
+        known = OrderedDict(zip(layer, first))
         full = theano.tensor.grad(
             cost=None, known_grads=known, wrt=inputs, disconnected_inputs="ignore"
         )
@@ -619,7 +619,7 @@ def test_subgraph_grad():
         param_grad, next_grad = theano.subgraph_grad(
             wrt=params[i], end=grad_ends[i], start=next_grad, cost=costs[i]
         )
-        next_grad = OrderedDict(izip(grad_ends[i], next_grad))
+        next_grad = OrderedDict(zip(grad_ends[i], next_grad))
         param_grads.extend(param_grad)
 
     pgrads = theano.function(inputs, param_grads)

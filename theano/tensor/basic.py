@@ -11,7 +11,7 @@ from six.moves import xrange
 import numbers
 
 import theano
-from theano.compat import izip
+
 from theano import config
 from theano import gof
 from theano.gof import Apply, Constant, Op, Variable, ParamsType
@@ -86,7 +86,7 @@ def check_equal_numpy(x, y):
         return x.dtype == y.dtype and x.shape == y.shape and np.all(abs(x - y) < 1e-10)
     elif isinstance(x, np.random.RandomState) and isinstance(y, np.random.RandomState):
         return python_all(
-            np.all(a == b) for a, b in izip(x.__getstate__(), y.__getstate__())
+            np.all(a == b) for a, b in zip(x.__getstate__(), y.__getstate__())
         )
     else:
         return x == y
@@ -6025,7 +6025,7 @@ class PermuteRowElements(Op):
 
         # Compute the broadcastable pattern of the output
         out_broadcastable = [
-            xb and yb for xb, yb in izip(x.type.broadcastable, y.type.broadcastable)
+            xb and yb for xb, yb in zip(x.type.broadcastable, y.type.broadcastable)
         ]
         out_type = tensor(dtype=x.type.dtype, broadcastable=out_broadcastable)
 
@@ -6090,7 +6090,7 @@ class PermuteRowElements(Op):
 
         # Make sure the output is big enough
         out_s = []
-        for xdim, ydim in izip(x_s, y_s):
+        for xdim, ydim in zip(x_s, y_s):
             if xdim == ydim:
                 outdim = xdim
             elif xdim == 1:

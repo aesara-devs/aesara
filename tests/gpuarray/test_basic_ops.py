@@ -7,7 +7,7 @@ import theano
 import theano.tensor as T
 
 from six import iteritems
-from theano.compat import izip
+
 from theano.tensor import TensorType
 from theano.tensor.basic import alloc
 
@@ -185,7 +185,7 @@ def makeTester(
                         exc.args += (err_msg,)
                         raise
 
-            for i, (variable, expected) in enumerate(izip(variables, expecteds)):
+            for i, (variable, expected) in enumerate(zip(variables, expecteds)):
                 condition = (
                     variable.dtype != expected.dtype
                     or variable.shape != expected.shape

@@ -16,7 +16,7 @@ import numpy as np
 
 import theano
 from theano import config, gof
-from theano.compat import izip
+
 from theano.gof import graph
 import theano.compile.profiling
 from theano.compile.io import In, SymbolicInput, SymbolicOutput
@@ -912,7 +912,7 @@ class Function(object):
                     is_aliased = False
                     for j in xrange(len(args_share_memory)):
 
-                        group_j = izip(
+                        group_j = zip(
                             [
                                 self.maker.inputs[k].variable
                                 for k in args_share_memory[j]
@@ -1065,7 +1065,7 @@ class Function(object):
                 assert len(self.output_keys) == len(outputs)
 
                 if output_subset is None:
-                    return dict(izip(self.output_keys, outputs))
+                    return dict(zip(self.output_keys, outputs))
                 else:
                     return dict(
                         (self.output_keys[index], outputs[index])
@@ -1488,12 +1488,10 @@ class FunctionMaker(object):
                         t2 = removeAllFgraph(t2)
 
                         givens = dict(
-                            izip(gof.graph.inputs([t1]), gof.graph.inputs([t2]))
+                            zip(gof.graph.inputs([t1]), gof.graph.inputs([t2]))
                         )
 
-                        temp = dict(
-                            izip(gof.graph.inputs([t1]), gof.graph.inputs([t2]))
-                        )
+                        temp = dict(zip(gof.graph.inputs([t1]), gof.graph.inputs([t2])))
 
                         # hack to remove inconstent entry in givens
                         # seems to work that but source of inconsistency

@@ -12,7 +12,7 @@ is a global operation with a scalar condition.
 """
 
 from copy import deepcopy
-from theano.compat import izip
+
 import logging
 
 import numpy as np
@@ -182,7 +182,7 @@ class IfElse(Op):
         ts = args[: self.n_outs]
         fs = args[self.n_outs :]
 
-        for t, f in izip(ts, fs):
+        for t, f in zip(ts, fs):
             if t.type != f.type:
                 raise TypeError(
                     ("IfElse requires same types for true and " "false return values"),
@@ -273,7 +273,7 @@ class IfElse(Op):
                     if len(ls) > 0:
                         return ls
                     else:
-                        for out, t in izip(outputs, ts):
+                        for out, t in zip(outputs, ts):
                             compute_map[out][0] = 1
                             val = storage_map[t][0]
                             if self.as_view:
@@ -293,7 +293,7 @@ class IfElse(Op):
                     if len(ls) > 0:
                         return ls
                     else:
-                        for out, f in izip(outputs, fs):
+                        for out, f in zip(outputs, fs):
                             compute_map[out][0] = 1
                             # can't view both outputs unless destroyhandler
                             # improves
@@ -364,7 +364,7 @@ def ifelse(condition, then_branch, else_branch, name=None):
     # we will store them in these new_... lists.
     new_then_branch = []
     new_else_branch = []
-    for then_branch_elem, else_branch_elem in izip(then_branch, else_branch):
+    for then_branch_elem, else_branch_elem in zip(then_branch, else_branch):
         if not isinstance(then_branch_elem, theano.Variable):
             then_branch_elem = theano.tensor.as_tensor_variable(then_branch_elem)
         if not isinstance(else_branch_elem, theano.Variable):

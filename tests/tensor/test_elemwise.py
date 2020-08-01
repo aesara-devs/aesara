@@ -13,7 +13,6 @@ import tests.unittest_tools as utt
 from copy import copy
 from six.moves import xrange
 
-from theano.compat import imap
 from theano import gof, scalar, config
 
 from theano import tensor
@@ -875,7 +874,7 @@ class TestReduceDtype:
     op = CAReduce
     axes = [None, 0, 1, [], [0], [1], [0, 1]]
     methods = ["sum", "prod"]
-    dtypes = list(imap(str, theano.scalar.all_types))
+    dtypes = list(map(str, theano.scalar.all_types))
 
     # Test the default dtype of a method().
     def test_reduce_default_dtype(self):
@@ -1033,7 +1032,7 @@ class TestMeanDtype:
 
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
-        for idx, dtype in enumerate(imap(str, theano.scalar.all_types)):
+        for idx, dtype in enumerate(map(str, theano.scalar.all_types)):
             axis = axes[idx % len(axes)]
             x = tensor.matrix(dtype=dtype)
             m = x.mean(axis=axis)
@@ -1053,9 +1052,9 @@ class TestMeanDtype:
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         idx = 0
-        for input_dtype in imap(str, theano.scalar.all_types):
+        for input_dtype in map(str, theano.scalar.all_types):
             x = tensor.matrix(dtype=input_dtype)
-            for sum_dtype in imap(str, theano.scalar.all_types):
+            for sum_dtype in map(str, theano.scalar.all_types):
                 axis = axes[idx % len(axes)]
                 # If the inner sum cannot be created, it will raise a
                 # TypeError.
@@ -1107,7 +1106,7 @@ class TestProdWithoutZerosDtype:
 
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
-        for idx, dtype in enumerate(imap(str, theano.scalar.all_types)):
+        for idx, dtype in enumerate(map(str, theano.scalar.all_types)):
             axis = axes[idx % len(axes)]
             x = ProdWithoutZeros(axis=axis)(tensor.matrix(dtype=dtype))
             assert x.dtype == dict(
@@ -1125,7 +1124,7 @@ class TestProdWithoutZerosDtype:
 
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
-        for idx, dtype in enumerate(imap(str, theano.scalar.all_types)):
+        for idx, dtype in enumerate(map(str, theano.scalar.all_types)):
             axis = axes[idx % len(axes)]
             x = tensor.matrix(dtype=dtype)
             p = ProdWithoutZeros(axis=axis)(x)
@@ -1156,9 +1155,9 @@ class TestProdWithoutZerosDtype:
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         idx = 0
-        for input_dtype in imap(str, theano.scalar.all_types):
+        for input_dtype in map(str, theano.scalar.all_types):
             x = tensor.matrix(dtype=input_dtype)
-            for output_dtype in imap(str, theano.scalar.all_types):
+            for output_dtype in map(str, theano.scalar.all_types):
                 axis = axes[idx % len(axes)]
                 prod_woz_var = ProdWithoutZeros(axis=axis, dtype=output_dtype)(x)
                 assert prod_woz_var.dtype == output_dtype
@@ -1177,9 +1176,9 @@ class TestProdWithoutZerosDtype:
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         idx = 0
-        for input_dtype in imap(str, theano.scalar.all_types):
+        for input_dtype in map(str, theano.scalar.all_types):
             x = tensor.matrix(dtype=input_dtype)
-            for acc_dtype in imap(str, theano.scalar.all_types):
+            for acc_dtype in map(str, theano.scalar.all_types):
                 axis = axes[idx % len(axes)]
                 # If acc_dtype would force a downcast, we expect a TypeError
                 # We always allow int/uint inputs with float/complex outputs.

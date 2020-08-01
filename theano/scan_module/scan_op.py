@@ -65,7 +65,7 @@ from theano import compile, config, gradient, gof, tensor
 from theano.gof import PureOp, Apply
 from theano.gof.graph import io_connection_pattern
 from theano.gof.toolbox import NoOutputFromInplace
-from theano.compat import izip
+
 from theano.tensor import as_tensor_variable, TensorType
 from theano.tensor.opt import Shape_i
 from theano.gradient import grad_undefined, DisconnectedType, NullType
@@ -761,7 +761,7 @@ class Scan(PureOp):
         # If everything went OK up to here, there is still one thing to
         # check. Namely, do the internal graph represent same
         # computations
-        for self_in, other_in in izip(self.inputs, other.inputs):
+        for self_in, other_in in zip(self.inputs, other.inputs):
             if self_in.type != other_in.type:
                 return False
 
@@ -1640,7 +1640,7 @@ class Scan(PureOp):
                 jout = j + offset_out
                 outs[j][0] = output_storage[jout].storage[0]
 
-            pos = [(idx + 1) % store for idx, store in izip(pos, store_steps)]
+            pos = [(idx + 1) % store for idx, store in zip(pos, store_steps)]
             i = i + 1
 
         # 6. Check if you need to re-order output buffers
@@ -1723,7 +1723,7 @@ class Scan(PureOp):
     # Infer Shape
     def infer_shape(self, node, input_shapes):
         # input_shapes correspond to the shapes of node.inputs
-        for inp, inp_shp in izip(node.inputs, input_shapes):
+        for inp, inp_shp in zip(node.inputs, input_shapes):
             assert inp_shp is None or len(inp_shp) == inp.type.ndim
 
         # Here we build 2 variables;
@@ -1755,7 +1755,7 @@ class Scan(PureOp):
         if extra_infer_shape:
             inner_seqs = self.inputs[: self.n_seqs]
             outer_seqs = node.inputs[1 : 1 + self.n_seqs]
-            for in_s, out_s in izip(inner_seqs, outer_seqs):
+            for in_s, out_s in zip(inner_seqs, outer_seqs):
                 out_equivalent[in_s] = out_s[0]
 
             # mit_mot, mit_sot, sit_sot
@@ -1788,7 +1788,7 @@ class Scan(PureOp):
         # Non-sequences have a direct equivalent from self.inputs in
         # node.inputs
         inner_non_sequences = self.inputs[len(seqs_shape) + len(outs_shape) :]
-        for in_ns, out_ns in izip(inner_non_sequences, node.inputs[offset:]):
+        for in_ns, out_ns in zip(inner_non_sequences, node.inputs[offset:]):
             out_equivalent[in_ns] = out_ns
 
         if self.as_while:
@@ -1821,7 +1821,7 @@ class Scan(PureOp):
                 r = node.outputs[n_outs + x]
                 assert r.ndim == 1 + len(out_shape_x)
                 shp = [node.inputs[offset + self.n_shared_outs + x]]
-                for i, shp_i in izip(xrange(1, r.ndim), out_shape_x):
+                for i, shp_i in zip(xrange(1, r.ndim), out_shape_x):
                     # Validate shp_i. v_shape_i is either None (if invalid),
                     # or a (variable, Boolean) tuple. The Boolean indicates
                     # whether variable is shp_i (if True), or an valid
@@ -1843,7 +1843,7 @@ class Scan(PureOp):
         if self.as_while:
             scan_outs_init = scan_outs
             scan_outs = []
-            for o, x in izip(node.outputs, scan_outs_init):
+            for o, x in zip(node.outputs, scan_outs_init):
                 if x is None:
                     scan_outs.append(None)
                 else:
@@ -2041,7 +2041,7 @@ class Scan(PureOp):
             "outer_out_from_inner_out": {},
         }
 
-        for (oinp, iinp, iout, oout) in izip(
+        for (oinp, iinp, iout, oout) in zip(
             outer_input_indices,
             inner_input_indices,
             inner_output_indices,

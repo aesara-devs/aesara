@@ -26,7 +26,6 @@ import tests.unittest_tools as utt
 
 from itertools import product, chain
 
-from theano.compat import ifilter
 from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
 from theano.gpuarray import cudnn_defs
 from theano.gpuarray.dnn import (
@@ -305,7 +304,7 @@ class ConvCaseGenerator:
 
         else:
             local_filter = ConvCaseGenerator.get_if_valid_conv_output_shape
-        return ifilter(
+        return filter(
             local_filter,
             product(
                 all_input_shapes,

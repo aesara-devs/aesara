@@ -22,7 +22,7 @@ import six
 from six.moves import xrange
 
 import theano
-from theano.compat import imap, izip, Callable
+from theano.compat import Callable
 from theano import gof, printing
 from theano.gof import Op, utils, Variable, Constant, Type, Apply, FunctionGraph
 from functools import partial
@@ -2137,7 +2137,7 @@ class IntDiv(BinaryScalarOp):
         fail = sub["fail"]
 
         t = node.inputs[0].type.upcast(*[i.type for i in node.inputs[1:]])
-        if t in imap(str, discrete_types):
+        if t in map(str, discrete_types):
             x_div_y_pp = "(%(x)s / %(y)s)" % locals()
             x_div_y_mp = "((-%(x)s) / %(y)s)" % locals()
             x_mod_y_mp = "THEANO_MACRO_MOD((-%(x)s), %(y)s)" % locals()
@@ -2161,7 +2161,7 @@ class IntDiv(BinaryScalarOp):
                 )
                 % locals()
             )
-        elif t in imap(str, float_types):
+        elif t in map(str, float_types):
             # We need to call different functions of math.h
             # depending on the type
             if t == "float32":
@@ -2261,7 +2261,7 @@ class Mod(BinaryScalarOp):
         fail = sub["fail"]
         t = node.inputs[0].type.upcast(*[i.type for i in node.inputs[1:]])
         if (
-            str(t) in imap(str, discrete_types)
+            str(t) in map(str, discrete_types)
             or t in ["uint8", "int8", "uint16", "int16"]
             or t in ["uint32", "int32", "uint64", "int64"]
             or t in discrete_types
@@ -2269,7 +2269,7 @@ class Mod(BinaryScalarOp):
             # The above or's should not be needed anymore. However, for now we
             # keep them out of safety, and verify they are useless with an
             # assert.
-            assert str(t) in imap(str, discrete_types)
+            assert str(t) in map(str, discrete_types)
             x_mod_y = "THEANO_MACRO_MOD(%(x)s, %(y)s)" % locals()
             x_mod_ymm = "THEANO_MACRO_MOD(-%(x)s, -%(y)s)" % locals()
             x_mod_ypm = "THEANO_MACRO_MOD(%(x)s, -%(y)s)" % locals()
@@ -2292,20 +2292,20 @@ class Mod(BinaryScalarOp):
                 % locals()
             )
         elif (
-            str(t) in imap(str, float_types)
+            str(t) in map(str, float_types)
             or t in ["float32", "float64"]
             or t in float_types
         ):
             # The above or's should not be needed anymore. However, for now we
             # keep them out of safety, and verify they are useless with an
             # assert.
-            assert str(t) in imap(str, float_types)
+            assert str(t) in map(str, float_types)
             x_mod_y = "fmod(%(x)s, %(y)s)" % locals()
             x_mod_ymm = "fmod(-%(x)s, -%(y)s)" % locals()
             x_mod_ypm = "fmod(%(x)s, -%(y)s)" % locals()
             x_mod_ymp = "fmod(-%(x)s, %(y)s)" % locals()
             mod_zero = "%(z)s = %(x_mod_y)s;" % locals()
-        elif str(t) in imap(str, complex_types):
+        elif str(t) in map(str, complex_types):
             raise self.complex_error
         else:
             raise NotImplementedError("type not supported", t)
@@ -4286,7 +4286,7 @@ class Composite(ScalarOp):
             res2 = theano.compile.rebuild_collect_shared(
                 inputs=outputs[0].owner.op.inputs,
                 outputs=outputs[0].owner.op.outputs,
-                replace=dict(izip(outputs[0].owner.op.inputs, res[1])),
+                replace=dict(zip(outputs[0].owner.op.inputs, res[1])),
             )
             assert len(res2[1]) == len(outputs)
             assert len(res[0]) == len(inputs)
@@ -4337,7 +4337,7 @@ class Composite(ScalarOp):
             assert len(inputs) == self.nin
             res = theano.compile.rebuild_collect_shared(
                 self.outputs,
-                replace=dict(izip(self.inputs, inputs)),
+                replace=dict(zip(self.inputs, inputs)),
                 rebuild_strict=False,
             )
             # After rebuild_collect_shared, the Variable in inputs
@@ -4368,8 +4368,8 @@ class Composite(ScalarOp):
 
         d = dict(
             chain(
-                izip(("i%i" % i for i in xrange(len(inames))), inames),
-                izip(("o%i" % i for i in xrange(len(onames))), onames),
+                zip(("i%i" % i for i in xrange(len(inames))), inames),
+                zip(("o%i" % i for i in xrange(len(onames))), onames),
             ),
             **sub,
         )

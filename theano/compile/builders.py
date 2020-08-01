@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 import theano
 from theano import gof
-from theano.compat import izip
+
 from theano.compile.function_module import orig_function
 from theano.compile import SharedVariable, rebuild_collect_shared, optdb
 from theano.gof import Variable, ops_with_inner_function
@@ -282,7 +282,7 @@ class OpFromGraph(gof.Op):
         new = rebuild_collect_shared(
             outputs,
             inputs=inputs + shared_vars,
-            replace=dict(izip(self.shared_inputs, shared_vars)),
+            replace=dict(zip(self.shared_inputs, shared_vars)),
             copy_inputs_over=False,
         )
         (
@@ -383,7 +383,7 @@ class OpFromGraph(gof.Op):
             disconnected_inputs="ignore",
             return_disconnected="Disconnected",
             null_gradients="return",
-            known_grads=OrderedDict(izip(local_outputs, output_grads)),
+            known_grads=OrderedDict(zip(local_outputs, output_grads)),
         )
 
         assert self._lop_type in ["lop", "grad"], self.LOP_TYPE_ERR_MSG % self._lop_type
@@ -395,10 +395,10 @@ class OpFromGraph(gof.Op):
         # we need to convert _lop_op into an OfG instance
         if lop_op == "default":
             gdefaults_l = fn_grad(wrt=local_inputs)
-            all_grads_l, all_grads_ov_l = izip(
+            all_grads_l, all_grads_ov_l = zip(
                 *[
                     OpFromGraph._filter_grad_var(grad, inp)
-                    for grad, inp in izip(gdefaults_l, local_inputs)
+                    for grad, inp in zip(gdefaults_l, local_inputs)
                 ]
             )
             all_grads_l = list(all_grads_l)
@@ -420,13 +420,13 @@ class OpFromGraph(gof.Op):
             # compute non-overriding downsteam grads from upstreams grads
             # it's normal some input may be disconnected, thus the 'ignore'
             wrt_l = [
-                lin for lin, gov in izip(local_inputs, goverrides_l) if gov == "default"
+                lin for lin, gov in zip(local_inputs, goverrides_l) if gov == "default"
             ]
             gdefaults = iter(fn_grad(wrt=wrt_l) if wrt_l else [])
             # combine overriding gradients
             all_grads_l = []
             all_grads_ov_l = []
-            for inp, fn_gov in izip(local_inputs, goverrides_l):
+            for inp, fn_gov in zip(local_inputs, goverrides_l):
                 if fn_gov == "default":
                     gnext, gnext_ov = OpFromGraph._filter_grad_var(next(gdefaults), inp)
                     all_grads_l.append(gnext)
@@ -455,10 +455,10 @@ class OpFromGraph(gof.Op):
                     "Gradient/L_op overriding function should return a list, "
                     'got "%s"' % type(goverrides_l)
                 )
-            all_grads_l, all_grads_ov_l = izip(
+            all_grads_l, all_grads_ov_l = zip(
                 *[
                     OpFromGraph._filter_grad_var(grad, inp)
-                    for grad, inp in izip(goverrides_l, local_inputs)
+                    for grad, inp in zip(goverrides_l, local_inputs)
                 ]
             )
             if len(all_grads_l) != len(local_inputs):
@@ -508,10 +508,10 @@ class OpFromGraph(gof.Op):
         )
         if rop_op == "default":
             rdefaults_l = fn_rop(f=local_outputs)
-            all_rops_l, all_rops_ov_l = izip(
+            all_rops_l, all_rops_ov_l = zip(
                 *[
                     OpFromGraph._filter_rop_var(rop, out)
-                    for rop, out in izip(rdefaults_l, local_outputs)
+                    for rop, out in zip(rdefaults_l, local_outputs)
                 ]
             )
             all_rops_l = list(all_rops_l)
@@ -534,14 +534,14 @@ class OpFromGraph(gof.Op):
                 )
             # get outputs that does not have Rop override
             odefaults_l = [
-                lo for lo, rov in izip(local_outputs, roverrides_l) if rov == "default"
+                lo for lo, rov in zip(local_outputs, roverrides_l) if rov == "default"
             ]
             rdefaults_l = fn_rop(f=odefaults_l)
             rdefaults = iter(rdefaults_l if odefaults_l else [])
             # combine overriding Rops
             all_rops_l = []
             all_rops_ov_l = []
-            for out, fn_rov in izip(local_outputs, roverrides_l):
+            for out, fn_rov in zip(local_outputs, roverrides_l):
                 if fn_rov == "default":
                     rnext, rnext_ov = OpFromGraph._filter_rop_var(next(rdefaults), out)
                     all_rops_l.append(rnext)
@@ -572,10 +572,10 @@ class OpFromGraph(gof.Op):
                     "Rop overriding function should return a list, "
                     'got "%s"' % type(roverrides_l)
                 )
-            all_rops_l, all_rops_ov_l = izip(
+            all_rops_l, all_rops_ov_l = zip(
                 *[
                     OpFromGraph._filter_rop_var(rop, out)
-                    for rop, out in izip(roverrides_l, local_outputs)
+                    for rop, out in zip(roverrides_l, local_outputs)
                 ]
             )
             if len(all_rops_l) != out_len:
@@ -651,7 +651,7 @@ class OpFromGraph(gof.Op):
         ret_ofg_l = self._lop_op(*inps, return_list=True)
         ret_l = [
             ret_ofg if ov is None else ov
-            for ret_ofg, ov in izip(ret_ofg_l, self._lop_op_stypes_l)
+            for ret_ofg, ov in zip(ret_ofg_l, self._lop_op_stypes_l)
         ]
         return ret_l
 
@@ -661,7 +661,7 @@ class OpFromGraph(gof.Op):
         ret_ofg_l = self._rop_op(*(list(inputs) + list(eval_points)), return_list=True)
         ret_l = [
             ret_ofg if ov is None else ov
-            for ret_ofg, ov in izip(ret_ofg_l, self._rop_op_stypes_l)
+            for ret_ofg, ov in zip(ret_ofg_l, self._rop_op_stypes_l)
         ]
         return ret_l
 
@@ -672,7 +672,7 @@ class OpFromGraph(gof.Op):
                 "Expected %d inputs, got %d" % (num_expected_inps, len(inputs))
             )
         inputs = [
-            inp_t.filter_variable(inp) for inp, inp_t in izip(inputs, self.input_types)
+            inp_t.filter_variable(inp) for inp, inp_t in zip(inputs, self.input_types)
         ]
         apply_node = gof.Apply(
             self,
@@ -749,7 +749,7 @@ class OpFromGraph(gof.Op):
     def perform(self, node, inputs, outputs):
         variables = self.fn(*inputs)
         assert len(variables) == len(outputs)
-        for output, variable in izip(outputs, variables):
+        for output, variable in zip(outputs, variables):
             # TODO: when function's output-borrowing semantics are correct,
             # we wont need this copy anymore
             output[0] = variable.copy()
@@ -768,7 +768,7 @@ def inline_ofg_expansion(node):
     if not op.is_inline:
         return False
     return theano.clone(
-        op.local_outputs, {u: v for u, v in izip(node.op.local_inputs, node.inputs)}
+        op.local_outputs, {u: v for u, v in zip(node.op.local_inputs, node.inputs)}
     )
 
 

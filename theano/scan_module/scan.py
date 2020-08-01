@@ -46,7 +46,6 @@ import logging
 import numpy as np
 from collections import OrderedDict
 
-from theano.compat import ifilter, izip
 from six import iteritems, integer_types
 from six.moves import xrange
 from theano.compile import SharedVariable, function
@@ -855,9 +854,9 @@ def scan(
         outputs.append(condition)
     fake_nonseqs = [x.type() for x in non_seqs]
     fake_outputs = scan_utils.clone(
-        outputs, replace=OrderedDict(izip(non_seqs, fake_nonseqs))
+        outputs, replace=OrderedDict(zip(non_seqs, fake_nonseqs))
     )
-    all_inputs = ifilter(
+    all_inputs = filter(
         lambda x: (
             isinstance(x, gof.Variable)
             and not isinstance(x, SharedVariable)
@@ -1002,7 +1001,7 @@ def scan(
         )
     ]
 
-    givens.update(OrderedDict(izip(other_scan_args, other_inner_args)))
+    givens.update(OrderedDict(zip(other_scan_args, other_inner_args)))
 
     if strict:
         non_seqs_set = set(non_sequences if non_sequences is not None else [])
@@ -1036,7 +1035,7 @@ def scan(
             for arg in dummy_f.maker.expanded_inputs
             if (isinstance(arg.variable, SharedVariable) and not arg.update)
         ]
-    givens.update(OrderedDict(izip(other_shared_scan_args, other_shared_inner_args)))
+    givens.update(OrderedDict(zip(other_shared_scan_args, other_shared_inner_args)))
 
     ##
     # Step 6. Re-order the outputs and clone them replacing things

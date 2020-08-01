@@ -20,7 +20,7 @@ import numpy as np
 
 import theano
 from theano import config
-from theano.compat import izip
+
 from six import string_types, iteritems, itervalues, integer_types
 from six.moves import reduce
 from theano.gof import graph, op, utils, unify, toolbox
@@ -1841,7 +1841,7 @@ class PatternSub(LocalOptimizer):
                     assert len(real_node.outputs) == len(ret)
                     if self.values_eq_approx:
                         ret.tag.values_eq_approx = self.values_eq_approx
-                    return dict(izip(real_node.outputs, ret))
+                    return dict(zip(real_node.outputs, ret))
 
         if node.op != self.op:
             return False

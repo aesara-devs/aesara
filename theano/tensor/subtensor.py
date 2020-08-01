@@ -8,7 +8,7 @@ from six import integer_types
 from six.moves import xrange
 
 import theano
-from theano.compat import izip
+
 from theano.gradient import DisconnectedType
 from theano import gof
 from theano.gof import Apply, hashtype, Op, Type, MethodNotDefined, ParamsType
@@ -527,7 +527,7 @@ class Subtensor(Op):
             raise IndexError(
                 "Not enough inputs to fill in the Subtensor template.", inputs, idx_list
             )
-        for input, expected_type in izip(inputs, input_types):
+        for input, expected_type in zip(inputs, input_types):
             if input.type != expected_type:
                 raise TypeError(
                     "Wrong type for Subtensor template. Expected %s, got %s."
@@ -539,7 +539,7 @@ class Subtensor(Op):
             slice(None, None, None)
         ] * (x.type.ndim - len(idx_list))
         broadcastable = []
-        for i, (p, bc) in enumerate(izip(padded, x.type.broadcastable)):
+        for i, (p, bc) in enumerate(zip(padded, x.type.broadcastable)):
             if isinstance(p, slice):
                 if bc:
                     start = p.start
@@ -585,7 +585,7 @@ class Subtensor(Op):
             len(xshp) - len(self.idx_list)
         )
         i = 0
-        for idx, xl in izip(padded, xshp):
+        for idx, xl in zip(padded, xshp):
             if isinstance(idx, slice):
                 # If it is the default (None, None, None) slice, or a variant,
                 # the shape will be xl
@@ -1398,7 +1398,7 @@ class IncSubtensor(Op):
             raise IndexError(
                 "Not enough inputs to fill in the Subtensor template.", inputs, idx_list
             )
-        for input, expected_type in izip(inputs, input_types):
+        for input, expected_type in zip(inputs, input_types):
             if input.type != expected_type:
                 raise TypeError(
                     "Wrong type for Subtensor template. Expected %s, got %s."

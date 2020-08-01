@@ -18,7 +18,7 @@ from six.moves import reduce, xrange
 
 import theano
 from theano import gof
-from theano.compat import izip
+
 from theano.gof import opt, InconsistencyError, TopoOptimizer, graph
 from theano.gof import Variable, Constant
 from theano.gof.opt import copy_stack_trace, in2out
@@ -1506,7 +1506,7 @@ class ShapeFeature(object):
                 new_shape += sh[len(new_shape) :]
                 o_shapes[sh_idx] = tuple(new_shape)
 
-        for r, s in izip(node.outputs, o_shapes):
+        for r, s in zip(node.outputs, o_shapes):
             self.set_shape(r, s)
 
     def on_change_input(self, fgraph, node, i, r, new_r, reason):

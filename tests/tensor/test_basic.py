@@ -25,7 +25,7 @@ from six.moves.builtins import min as builtin_min
 from numpy.testing import assert_array_equal, assert_allclose, assert_almost_equal
 
 from theano import change_flags
-from theano.compat import izip
+
 from theano.compat import exc_message, operator_div
 from theano import compile, config, function, gof, tensor, shared
 from theano.compile import DeepCopyOp
@@ -529,7 +529,7 @@ def makeTester(
                 if not isinstance(expecteds, (list, tuple)):
                     expecteds = (expecteds,)
 
-                for i, (variable, expected) in enumerate(izip(variables, expecteds)):
+                for i, (variable, expected) in enumerate(zip(variables, expecteds)):
                     condition = (
                         variable.dtype != expected.dtype
                         or variable.shape != expected.shape

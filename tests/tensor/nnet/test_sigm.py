@@ -2,7 +2,6 @@ import numpy as np
 import theano.tensor.inplace
 
 from theano import tensor as T, config
-from theano.compat import imap
 from theano.tensor import basic as tensor
 from theano.gof.opt import check_stack_trace
 from theano.tensor.nnet import (
@@ -561,7 +560,7 @@ class TestSigmoidUtils:
             exp = tensor.exp
             assert is_1pexp(1 + exp(x), False) == (False, x)
             assert is_1pexp(exp(x) + 1, False) == (False, x)
-            for neg, exp_arg in imap(
+            for neg, exp_arg in map(
                 lambda x: is_1pexp(x, only_process_constants=False),
                 [(1 + exp(-x)), (exp(-x) + 1)],
             ):

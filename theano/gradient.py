@@ -13,7 +13,7 @@ import theano
 
 from theano import gof
 from theano.gof import utils, Variable
-from theano.compat import izip
+
 from six.moves import xrange, reduce
 from theano.gof.null_type import NullType, null_type
 from theano.gof.op import get_debug_values
@@ -420,7 +420,7 @@ def Lop(f, wrt, eval_points, consider_constant=None, disconnected_inputs="raise"
         wrt = [wrt]
 
     assert len(f) == len(grads)
-    known = OrderedDict(izip(f, grads))
+    known = OrderedDict(zip(f, grads))
 
     ret = grad(
         cost=None,
@@ -809,7 +809,7 @@ def subgraph_grad(wrt, end, start=None, cost=None, details=False):
             for i in range(len(grads)):
                 grads[i] += cost_grads[i]
 
-    pgrads = OrderedDict(izip(params, grads))
+    pgrads = OrderedDict(zip(params, grads))
     # separate wrt from end grads:
     wrt_grads = list(pgrads[k] for k in wrt)
     end_grads = list(pgrads[k] for k in end)
@@ -1214,7 +1214,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                 # by the user, not computed by Op.grad, and some gradients are
                 # only computed and returned, but never passed as another
                 # node's output grads.
-                for idx, packed in enumerate(izip(node.outputs, new_output_grads)):
+                for idx, packed in enumerate(zip(node.outputs, new_output_grads)):
                     orig_output, new_output_grad = packed
                     if not hasattr(orig_output, "shape"):
                         continue

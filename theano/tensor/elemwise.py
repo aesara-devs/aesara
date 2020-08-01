@@ -6,7 +6,7 @@ from six.moves import xrange
 
 import theano
 from theano import gof
-from theano.compat import izip
+
 from theano import change_flags
 from theano.gof import Apply, Op, COp, OpenMPOp, ParamsType
 from theano import scalar
@@ -481,7 +481,7 @@ second dimension
         out_broadcastables = [
             [
                 all(bcast)
-                for bcast in izip(*[input.type.broadcastable for input in inputs])
+                for bcast in zip(*[input.type.broadcastable for input in inputs])
             ]
         ] * shadow.nout
 
@@ -489,7 +489,7 @@ second dimension
         inplace_pattern = self.inplace_pattern
         if inplace_pattern:
             for overwriter, overwritten in iteritems(inplace_pattern):
-                for ob, ib in izip(
+                for ob, ib in zip(
                     out_broadcastables[overwriter],
                     inputs[overwritten].type.broadcastable,
                 ):
@@ -524,7 +524,7 @@ second dimension
         )
         outputs = [
             TensorType(dtype=dtype, broadcastable=broadcastable)()
-            for dtype, broadcastable in izip(out_dtypes, out_broadcastables)
+            for dtype, broadcastable in zip(out_dtypes, out_broadcastables)
         ]
         return Apply(self, inputs, outputs)
 
@@ -552,7 +552,7 @@ second dimension
             bgrads = self._bgrad(inputs, outs, ograds)
             rop_out = None
 
-            for jdx, (inp, eval_point) in enumerate(izip(inputs, eval_points)):
+            for jdx, (inp, eval_point) in enumerate(zip(inputs, eval_points)):
                 # if None, then we can just ignore this branch ..
                 # what we do is to assume that for any non-differentiable
                 # branch, the gradient is actually 0, which I think is not
@@ -599,7 +599,7 @@ second dimension
             # can tell this op did
             # the right thing.
             new_rval = []
-            for elem, ipt in izip(rval, inputs):
+            for elem, ipt in zip(rval, inputs):
                 if isinstance(elem.type, (NullType, DisconnectedType)):
                     new_rval.append(elem)
                 else:
@@ -683,7 +683,7 @@ second dimension
             return new_r
 
         ret = []
-        for scalar_igrad, ipt in izip(scalar_igrads, inputs):
+        for scalar_igrad, ipt in zip(scalar_igrads, inputs):
             if scalar_igrad is None:
                 # undefined gradient
                 ret.append(None)
@@ -773,7 +773,7 @@ second dimension
             # should be disabled.
             super(Elemwise, self).perform(node, inputs, output_storage)
 
-        for dims in izip(
+        for dims in zip(
             *[
                 list(zip(input.shape, sinput.type.broadcastable))
                 for input, sinput in zip(inputs, node.inputs)
@@ -800,7 +800,7 @@ second dimension
 
         # Determine the shape of outputs
         out_shape = []
-        for values in izip(*[input.shape for input in inputs]):
+        for values in zip(*[input.shape for input in inputs]):
             if any(v == 0 for v in values):
                 # All non-broadcasted dimensions should be zero
                 assert max(values) <= 1
@@ -851,7 +851,7 @@ second dimension
         if nout == 1:
             variables = [variables]
         i = 0
-        for variable, storage, nout in izip(variables, output_storage, node.outputs):
+        for variable, storage, nout in zip(variables, output_storage, node.outputs):
             if getattr(variable, "dtype", "") == "object":
                 # Since numpy 1.6, function created with numpy.frompyfunc
                 # always return an ndarray with dtype object
@@ -893,7 +893,7 @@ second dimension
                 else:
                     # there must be some input that is not broadcastable in
                     # dimension 'dim'
-                    for ishp, i in izip(i_shapes, node.inputs):
+                    for ishp, i in zip(i_shapes, node.inputs):
                         if isinstance(i.type, theano.scalar.Scalar):
                             continue  # we skip scalar
                         if not i.type.broadcastable[dim]:
@@ -954,7 +954,7 @@ second dimension
             zip(
                 *[
                     (r, s, r.type.dtype_specs()[1])
-                    for r, s in izip(node.outputs, onames)
+                    for r, s in zip(node.outputs, onames)
                     if r not in dmap
                 ]
             )
@@ -968,7 +968,7 @@ second dimension
         # (output, name), transposed (c type name not needed since we don't
         # need to allocate.
         aliased = list(
-            zip(*[(r, s) for (r, s) in izip(node.outputs, onames) if r in dmap])
+            zip(*[(r, s) for (r, s) in zip(node.outputs, onames) if r in dmap])
         )
         if aliased:
             aliased_outputs, aliased_onames = aliased
@@ -986,7 +986,7 @@ second dimension
         # dimensionality)
         nnested = len(orders[0])
         sub = dict(sub)
-        for i, (input, iname) in enumerate(izip(inputs, inames)):
+        for i, (input, iname) in enumerate(zip(inputs, inames)):
             # the c generators will substitute the input names for
             # references to loop variables lv0, lv1, ...
             sub["lv%i" % i] = iname
@@ -1013,7 +1013,7 @@ second dimension
         # We loop over the "real" outputs, i.e., those that are not
         # inplace (must be allocated) and we declare/allocate/check
         # them
-        for output, oname, odtype in izip(real_outputs, real_onames, real_odtypes):
+        for output, oname, odtype in zip(real_outputs, real_onames, real_odtypes):
             i += 1  # before this loop, i = number of inputs
             sub["lv%i" % i] = oname
             sub["olv"] = oname
@@ -1030,7 +1030,7 @@ second dimension
         # inplace (overwrite the contents of one of the inputs) and
         # make the output pointers point to their corresponding input
         # pointers.
-        for output, oname in izip(aliased_outputs, aliased_onames):
+        for output, oname in zip(aliased_outputs, aliased_onames):
             olv_index = inputs.index(dmap[output][0])
             iname = inames[olv_index]
             # We make the output point to the corresponding input and
@@ -1097,7 +1097,7 @@ second dimension
                 task_decl = "".join(
                     [
                         "%s& %s_i = *%s_iter;\n" % (dtype, name, name)
-                        for name, dtype in izip(
+                        for name, dtype in zip(
                             inames + list(real_onames), idtypes + list(real_odtypes)
                         )
                     ]
@@ -1563,7 +1563,7 @@ class CAReduce(Op):
         nnested = len(order1)
 
         sub = dict(sub)
-        for i, (input, iname) in enumerate(izip(node.inputs, inames)):
+        for i, (input, iname) in enumerate(zip(node.inputs, inames)):
             sub["lv%i" % i] = iname
 
         decl = ""

@@ -15,7 +15,6 @@ import numpy as np
 import theano
 from theano import config
 from theano.compat import PY3
-from theano.compat import izip
 from six import string_types, reraise
 from six.moves import StringIO, xrange
 
@@ -1223,11 +1222,11 @@ class CLinker(link.Linker):
             module,
             [
                 link.Container(input, storage)
-                for input, storage in izip(self.fgraph.inputs, input_storage)
+                for input, storage in zip(self.fgraph.inputs, input_storage)
             ],
             [
                 link.Container(output, storage, True)
-                for output, storage in izip(self.fgraph.outputs, output_storage)
+                for output, storage in zip(self.fgraph.outputs, output_storage)
             ],
             error_storage,
         )
@@ -2013,11 +2012,11 @@ class OpWiseCLinker(link.LocalLinker):
             f,
             [
                 link.Container(input, storage)
-                for input, storage in izip(fgraph.inputs, input_storage)
+                for input, storage in zip(fgraph.inputs, input_storage)
             ],
             [
                 link.Container(output, storage, True)
-                for output, storage in izip(fgraph.outputs, output_storage)
+                for output, storage in zip(fgraph.outputs, output_storage)
             ],
             thunks,
             order,
@@ -2116,22 +2115,22 @@ class DualLinker(link.Linker):
         )
 
         def f():
-            for input1, input2 in izip(i1, i2):
+            for input1, input2 in zip(i1, i2):
                 # Set the inputs to be the same in both branches.
                 # The copy is necessary in order for inplace ops not to
                 # interfere.
                 input2.storage[0] = copy(input1.storage[0])
-            for thunk1, thunk2, node1, node2 in izip(thunks1, thunks2, order1, order2):
-                for output, storage in izip(node1.outputs, thunk1.outputs):
+            for thunk1, thunk2, node1, node2 in zip(thunks1, thunks2, order1, order2):
+                for output, storage in zip(node1.outputs, thunk1.outputs):
                     if output in no_recycling:
                         storage[0] = None
-                for output, storage in izip(node2.outputs, thunk2.outputs):
+                for output, storage in zip(node2.outputs, thunk2.outputs):
                     if output in no_recycling:
                         storage[0] = None
                 try:
                     thunk1()
                     thunk2()
-                    for output1, output2 in izip(thunk1.outputs, thunk2.outputs):
+                    for output1, output2 in zip(thunk1.outputs, thunk2.outputs):
                         self.checker(output1, output2)
                 except Exception:
                     link.raise_with_op(node1)

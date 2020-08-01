@@ -13,7 +13,6 @@ import numpy as np
 
 import theano
 from theano import config, gof, printing, scalar
-from theano.compat import imap
 from theano.printing import pprint
 from theano.tensor import basic as tensor
 from theano.tensor import elemwise, opt, NotScalarConstantError
@@ -791,7 +790,7 @@ def simplify_mul(tree):
     if isinstance(inputs, list):
         # Recurse through inputs.
         s_inputs = []
-        for s_i in imap(simplify_mul, inputs):
+        for s_i in map(simplify_mul, inputs):
             if s_i[1] is None:
                 # Multiplication by +/-1.
                 neg ^= s_i[0]
