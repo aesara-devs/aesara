@@ -4,6 +4,7 @@ import operator
 import os
 import sys
 import warnings
+import builtins
 
 import pytest
 
@@ -13,14 +14,9 @@ import theano
 
 from tempfile import mkstemp
 from copy import copy, deepcopy
-from functools import partial
+from functools import partial, reduce
 
-from six import iteritems
-from six.moves import StringIO, reduce
-from six.moves import xrange
-
-# Import builtin min to be able to use it after importing the tensor version.
-from six.moves.builtins import min as builtin_min
+from six.moves import StringIO
 
 from numpy.testing import assert_array_equal, assert_allclose, assert_almost_equal
 
@@ -473,7 +469,7 @@ def makeTester(
         def test_good(self):
             good = self.add_memmap_values(self.good)
 
-            for testname, inputs in iteritems(good):
+            for testname, inputs in good.items():
                 inputs = [copy(input) for input in inputs]
                 inputrs = [
                     TensorType(
@@ -554,7 +550,7 @@ def makeTester(
                         np.allclose(variable, expected),
                     )
 
-                for description, check in iteritems(self.checks):
+                for description, check in self.checks.items():
                     assert check(inputs, variables), (
                         "Test %s::%s: Failed check: %s (inputs"
                         " were %s, outputs were %s)"
@@ -562,7 +558,7 @@ def makeTester(
 
         @pytest.mark.skipif(skip, reason="Skipped")
         def test_bad_build(self):
-            for testname, inputs in iteritems(self.bad_build):
+            for testname, inputs in self.bad_build.items():
                 inputs = [copy(input) for input in inputs]
                 inputrs = [shared(input) for input in inputs]
                 with pytest.raises(Exception):
@@ -574,7 +570,7 @@ def makeTester(
         @change_flags(compute_test_value="off")
         @pytest.mark.skipif(skip, reason="Skipped")
         def test_bad_runtime(self):
-            for testname, inputs in iteritems(self.bad_runtime):
+            for testname, inputs in self.bad_runtime.items():
                 inputrs = [shared(input) for input in inputs]
                 try:
                     node = safe_make_node(self.op, *inputrs)
@@ -610,7 +606,7 @@ def makeTester(
             backup = config.warn.sum_div_dimshuffle_bug
             config.warn.sum_div_dimshuffle_bug = False
             try:
-                for testname, inputs in iteritems(self.grad):
+                for testname, inputs in self.grad.items():
                     inputs = [copy(input) for input in inputs]
                     try:
                         utt.verify_grad(
@@ -641,7 +637,7 @@ def makeTester(
                 # This is not actually an Op
                 return
 
-            for testname, inputs in iteritems(self.good):
+            for testname, inputs in self.good.items():
                 inputs = [copy(input) for input in inputs]
                 inputrs = [
                     TensorType(
@@ -1014,7 +1010,7 @@ def copymod(dct, without=None, **kwargs):
     for a in without:
         if a in rval:
             del rval[a]
-    for kw, val in iteritems(kwargs):
+    for kw, val in kwargs.items():
         rval[kw] = val
     return rval
 
@@ -3373,8 +3369,8 @@ def test_nan_inf_constant_signature():
     n = len(test_constants)
     # We verify that signatures of two rows i, j in the matrix above are
     # equal if and only if i == j.
-    for i in xrange(n):
-        for j in xrange(n):
+    for i in range(n):
+        for j in range(n):
             x = constant(test_constants[i])
             y = constant(test_constants[j])
             assert (x.signature() == y.signature()) == (i == j)
@@ -3583,10 +3579,10 @@ class TestMaxAndArgmax:
             # Compute pairwise absolute differences.
             diff = np.abs(data_vector.reshape((-1, 1)) - data_vector)
             # Alter the diagonal to avoid a zero minimum.
-            for i in xrange(len(diff)):
+            for i in range(len(diff)):
                 diff[i, i] = 1
             # Find an appropriate epsilon.
-            eps = builtin_min(numeric_grad.type_eps[config.floatX], diff.min() / 2)
+            eps = builtins.min(numeric_grad.type_eps[config.floatX], diff.min() / 2)
             # Run gradient verification.
             utt.verify_grad(func, data, eps=eps)
 
@@ -3607,7 +3603,7 @@ class TestMaxAndArgmax:
             assert np.all(max_grad_data == z)
 
         for axis in (-1, 0, 1, None):
-            for j in xrange(2):
+            for j in range(2):
                 safe_verify_grad(lambda v: max_and_argmax(v, axis=axis)[j], [data])
                 if axis != 1:
                     safe_verify_grad(
@@ -5391,7 +5387,7 @@ class TestMatinv:
         x = np.asarray(x, dtype=config.floatX)
         w = np.asarray(w, dtype=config.floatX)
 
-        for i in xrange(100):
+        for i in range(100):
             ssd, gw = fn(x, w)
             # print ssd, x*w, x, w
             if i == 0:
@@ -5414,7 +5410,7 @@ class TestMatinv:
 
         myssd0 = np.sum((x * w - ones) ** 2.0)
         # we want at least a test that is not too fast. So we make one here.
-        for i in xrange(100):
+        for i in range(100):
             gw = 2 * (x * w - ones) * x  # derivative of dMSE/dw
             myssd = np.sum((x * w - ones) ** 2)
             w -= 0.4 * gw
@@ -7350,7 +7346,7 @@ def _test_autocast_numpy():
         assert tensor.constant(z).dtype == np.asarray(z).dtype
 
     for x in (
-        [2 ** i for i in xrange(63)] + [0, 0, 1, 2 ** 63 - 1] + [0.0, 1.0, 1.1, 1.5]
+        [2 ** i for i in range(63)] + [0, 0, 1, 2 ** 63 - 1] + [0.0, 1.0, 1.1, 1.5]
     ):
         n_x = np.asarray(x)
         # Make sure the data type is the same as the one found by numpy.
@@ -7382,7 +7378,7 @@ def _test_autocast_numpy_floatX():
             # into int64, as that is the maximal integer type that Theano
             # supports, and that is the maximal type in Python indexing.
             for x in (
-                [2 ** i - 1 for i in xrange(64)]
+                [2 ** i - 1 for i in range(64)]
                 + [0, 0, 1, 2 ** 63 - 1]
                 + [0.0, 1.0, 1.1, 1.5]
             ):
@@ -7578,7 +7574,7 @@ class TestArithmeticCast:
 class TestLongTensor:
     def test_fit_int64(self):
         bitwidth = theano.configdefaults.python_int_bitwidth()
-        for exponent in xrange(bitwidth):
+        for exponent in range(bitwidth):
             val = 2 ** exponent - 1
             scalar_ct = constant(val)
 
@@ -8099,7 +8095,7 @@ class TestAllocDiag:
         dims = 4
         shape = (5,) * dims
         xv = np.random.randn(*shape).astype(config.floatX)
-        for d in xrange(1, dims + 1):
+        for d in range(1, dims + 1):
             # Create a TensorType of the same dimensions as
             # as the data we want to test.
             x = TensorType(dtype=config.floatX, broadcastable=(False,) * d)("x")

@@ -5,7 +5,7 @@ import theano
 from collections import OrderedDict
 
 from six import StringIO
-from six.moves import xrange
+
 
 from theano import config, shared
 from theano.printing import var_descriptor
@@ -78,7 +78,7 @@ def test_determinism_1():
     log = run(0)
     # Do several trials, since failure doesn't always occur
     # (Sometimes you sample the same outcome twice in a row)
-    for i in xrange(10):
+    for i in range(10):
         run(1, log)
 
 

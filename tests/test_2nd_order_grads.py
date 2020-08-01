@@ -4,7 +4,6 @@ Test for jacobian/hessian functions in Theano
 import numpy as np
 import theano
 
-from six.moves import xrange
 
 from theano import tensor
 
@@ -60,7 +59,7 @@ def test_jacobian_matrix():
     y = 2 * x.sum(axis=0)
     rng = np.random.RandomState(seed=utt.fetch_seed())
     ev = np.zeros((10, 10, 10))
-    for dx in xrange(10):
+    for dx in range(10):
         ev[dx, :, dx] = 2.0
 
     # test when the jacobian is called with a tensor as wrt
@@ -93,7 +92,7 @@ def test_jacobian_matrix():
     vJs = f(vx, vz)
     evx = np.zeros((10, 10, 10))
     evz = np.zeros((10, 10, 10))
-    for dx in xrange(10):
+    for dx in range(10):
         evx[dx, dx, :] = vx[dx, :]
         evz[dx, dx, :] = vz[dx, :]
     assert np.allclose(vJs[0], evz)

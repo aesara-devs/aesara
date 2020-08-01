@@ -1,11 +1,7 @@
-try:
-    from collections.abc import MutableSet
-except ImportError:
-    # this raises an DeprecationWarning on py37 and will become
-    # an Exception in py38
-    from collections import MutableSet
 import types
 import weakref
+
+from collections.abc import MutableSet
 
 from six import string_types
 
@@ -201,9 +197,3 @@ class OrderedSet(MutableSet):
 
 
 # end of http://code.activestate.com/recipes/576696/ }}}
-
-if __name__ == "__main__":
-    print(list(OrderedSet("abracadaba")))
-    print(list(OrderedSet("simsalabim")))
-    print(OrderedSet("boom") == OrderedSet("moob"))
-    print(OrderedSet("boom") == "moob")

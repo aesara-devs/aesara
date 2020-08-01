@@ -2,8 +2,6 @@
 Generate and compile C modules for Python.
 
 """
-
-
 import atexit
 import textwrap
 import six.moves.cPickle as pickle
@@ -23,11 +21,13 @@ import warnings
 import numpy.distutils
 
 import theano
-from theano.compat import PY3, decode, decode_iter
-from six import b, BytesIO, StringIO, string_types, iteritems
-from six.moves import xrange
-from theano.gof.utils import flatten
+
+from six import b, BytesIO, StringIO, string_types
+
+
 from theano import config
+from theano.compat import PY3, decode, decode_iter
+from theano.gof.utils import flatten
 from theano.gof.utils import hash_from_code
 from theano.misc.windows import subprocess_Popen, output_subprocess_Popen
 
@@ -585,7 +585,7 @@ class KeyData(object):
                 pass
         if do_manual_check:
             to_del = []
-            for key, key_entry in iteritems(entry_from_key):
+            for key, key_entry in entry_from_key.items():
                 if key_entry == entry:
                     to_del.append(key)
             for key in to_del:
@@ -2270,7 +2270,7 @@ class GCC_compiler(Compiler):
                 default_detected_flag = []
                 march_flags_to_try = ["corei7-avx", "corei7", "core2"]
 
-                for m_ in xrange(len(GCC_compiler.march_flags)):
+                for m_ in range(len(GCC_compiler.march_flags)):
                     march_flag = GCC_compiler.march_flags[m_]
                     if "march" in march_flag:
                         march_ind = m_

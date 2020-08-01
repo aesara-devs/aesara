@@ -12,7 +12,6 @@ import theano.sparse
 from scipy.signal import convolve2d
 
 from theano import function, tensor
-from theano.compat import next
 from theano.sparse.sandbox import sp
 
 from tests import unittest_tools as utt

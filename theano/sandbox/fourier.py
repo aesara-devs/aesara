@@ -7,8 +7,6 @@ Provides Ops for FFT and DCT.
 import numpy as np
 import numpy.fft
 
-from six.moves import xrange
-
 from theano import tensor
 from theano.gof import Op, Apply, generic
 
@@ -132,7 +130,7 @@ def dct_matrix(rows, cols, unitary=True):
     rval = np.zeros((rows, cols))
     col_range = np.arange(cols)
     scale = np.sqrt(2.0 / cols)
-    for i in xrange(rows):
+    for i in range(rows):
         rval[i] = np.cos(i * (col_range * 2 + 1) / (2.0 * cols) * np.pi) * scale
 
     if unitary:

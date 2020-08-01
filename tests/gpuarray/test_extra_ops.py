@@ -7,7 +7,6 @@ import theano
 from functools import partial
 from itertools import product
 
-from six.moves import xrange
 
 from theano import tensor as T
 from theano.tensor.extra_ops import CumOp
@@ -160,7 +159,7 @@ class TestGpuCumOp(TestCumOp):
 
         # Extensive testing for the first 1025 sizes
         a = np.random.random(1025).astype("float32")
-        for i in xrange(a.shape[0]):
+        for i in range(a.shape[0]):
             utt.assert_allclose(np_func(a[:i]), f(a[:i]))
 
         # Use multiple GPU threadblocks
@@ -187,7 +186,7 @@ class TestGpuCumOp(TestCumOp):
             a_shape[shape_axis] = 1025
             a = np.random.random(a_shape).astype("float32")
             slices = [slice(None), slice(None)]
-            for i in xrange(a.shape[shape_axis]):
+            for i in range(a.shape[shape_axis]):
                 slices[shape_axis] = slice(i)
                 fa = f(a[slices])
                 npa = np_func(a[slices], axis=axis)
@@ -228,7 +227,7 @@ class TestGpuCumOp(TestCumOp):
             a_shape[shape_axis] = 1025
             a = np.random.rand(*a_shape).astype("float32")
             slices = [slice(None), slice(None), slice(None)]
-            for i in xrange(a.shape[shape_axis]):
+            for i in range(a.shape[shape_axis]):
                 slices[shape_axis] = slice(i)
                 fa = f(a[slices])
                 npa = np_func(a[slices], axis=axis)

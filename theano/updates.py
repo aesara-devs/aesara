@@ -1,13 +1,12 @@
 """Defines Updates object for storing a (SharedVariable, new_value) mapping.
 
 """
+import logging
+import warnings
 
 from collections import OrderedDict
 
-from six import iteritems
 from theano.compile.sharedvalue import SharedVariable
-import logging
-import warnings
 
 
 __authors__ = "theano-dev"
@@ -82,7 +81,7 @@ class OrderedUpdates(OrderedDict):
                 "make your code non-deterministic",
                 stacklevel=2,
             )
-        for key, val in iteritems(OrderedDict(other)):
+        for key, val in OrderedDict(other).items():
             if key in self:
                 if self[key] == val:
                     continue

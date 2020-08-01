@@ -1,4 +1,4 @@
-from six.moves import xrange, StringIO
+from six.moves import StringIO
 
 from theano import function
 from theano.tensor import iscalar
@@ -19,13 +19,13 @@ def test_record_good():
 
     num_lines = 10
 
-    for i in xrange(num_lines):
+    for i in range(num_lines):
         recorder.handle_line(str(i) + "\n")
 
     # Make sure they were recorded correctly
     output_value = output.getvalue()
 
-    assert output_value == "".join(str(i) + "\n" for i in xrange(num_lines))
+    assert output_value == "".join(str(i) + "\n" for i in range(num_lines))
 
     # Make sure that the playback functionality doesn't raise any errors
     # when we repeat them
@@ -33,7 +33,7 @@ def test_record_good():
 
     playback_checker = Record(file_object=output, replay=True)
 
-    for i in xrange(num_lines):
+    for i in range(num_lines):
         playback_checker.handle_line(str(i) + "\n")
 
 
@@ -48,7 +48,7 @@ def test_record_bad():
 
     num_lines = 10
 
-    for i in xrange(num_lines):
+    for i in range(num_lines):
         recorder.handle_line(str(i) + "\n")
 
     # Make sure that the playback functionality doesn't raise any errors
@@ -58,7 +58,7 @@ def test_record_bad():
 
     playback_checker = Record(file_object=output, replay=True)
 
-    for i in xrange(num_lines // 2):
+    for i in range(num_lines // 2):
         playback_checker.handle_line(str(i) + "\n")
 
     # Make sure it raises an error when we deviate from the recorded sequence
@@ -88,7 +88,7 @@ def test_record_mode_good():
 
     num_lines = 10
 
-    for i in xrange(num_lines):
+    for i in range(num_lines):
         recorder.handle_line(str(i) + "\n")
         f(i)
 
@@ -104,7 +104,7 @@ def test_record_mode_good():
     i = iscalar()
     f = function([i], i, mode=playback_mode, name="f")
 
-    for i in xrange(num_lines):
+    for i in range(num_lines):
         playback_checker.handle_line(str(i) + "\n")
         f(i)
 
@@ -126,7 +126,7 @@ def test_record_mode_bad():
 
     num_lines = 10
 
-    for i in xrange(num_lines):
+    for i in range(num_lines):
         recorder.handle_line(str(i) + "\n")
         f(i)
 
@@ -142,7 +142,7 @@ def test_record_mode_bad():
     i = iscalar()
     f = function([i], i, mode=playback_mode, name="f")
 
-    for i in xrange(num_lines // 2):
+    for i in range(num_lines // 2):
         playback_checker.handle_line(str(i) + "\n")
         f(i)
 

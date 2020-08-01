@@ -5,19 +5,20 @@ help make new Ops more rapidly.
 
 """
 
-from collections import OrderedDict
-
 import copy
-import six.moves.cPickle as pickle
 import warnings
 
-import theano
-from theano import gof
-from six import iteritems, integer_types
-from six.moves import xrange
-
+import six.moves.cPickle as pickle
 
 import numpy as np
+
+import theano
+
+from collections import OrderedDict
+
+from six import integer_types
+
+from theano import gof
 
 
 def register_view_op_c_code(type, code, version=()):
@@ -81,7 +82,7 @@ class ViewOp(gof.Op):
         # If any of the c code is unversionned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
         for t, (c, v) in sorted(
-            iteritems(self.c_code_and_version), key=lambda pair: str(pair[0])
+            self.c_code_and_version.items(), key=lambda pair: str(pair[0])
         ):
             if not v:
                 warnings.warn(
@@ -181,7 +182,7 @@ class DeepCopyOp(gof.Op):
         # If any of the c code is unversionned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
         for t, (c, v) in sorted(
-            iteritems(self.c_code_and_version), key=lambda pair: str(pair[0])
+            self.c_code_and_version.items(), key=lambda pair: str(pair[0])
         ):
             if not v:
                 warnings.warn(
@@ -306,7 +307,7 @@ class Shape(gof.Op):
         # If any of the c code is unversionned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
         for t, (c, v) in sorted(
-            iteritems(self.c_code_and_version), key=lambda pair: str(pair[0])
+            self.c_code_and_version.items(), key=lambda pair: str(pair[0])
         ):
             if not v:
                 warnings.warn(
@@ -396,7 +397,7 @@ class Shape_i(gof.Op):
         # If any of the c code is unversionned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
         for t, (c, ci, v) in sorted(
-            iteritems(self.c_code_and_version), key=lambda pair: str(pair[0])
+            self.c_code_and_version.items(), key=lambda pair: str(pair[0])
         ):
             if not v:
                 warnings.warn(
@@ -701,7 +702,7 @@ class Rebroadcast(gof.Op):
         # Sort them to make sure we merge all possible case.
         items = sorted(axis)
         self.axis = OrderedDict(items)
-        for axis, broad in iteritems(self.axis):
+        for axis, broad in self.axis.items():
             if not isinstance(axis, (np.integer, integer_types)):
                 raise TypeError(
                     "Rebroadcast needs integer axes. " "Got {}".format(axis)
@@ -716,15 +717,15 @@ class Rebroadcast(gof.Op):
     def __hash__(self):
         # Need special __hash__ as dict aren't hashable.
         # no ambiguity because each item key is unique
-        items = sorted(iteritems(self.axis))
+        items = sorted(self.axis.items())
         return hash((type(self), tuple(items)))
 
     def __str__(self):
         if len(self.axis) == 0:
             broadcast_pattern = []
         else:
-            broadcast_pattern = ["?" for i in xrange(1 + max(self.axis.keys()))]
-        for k, v in iteritems(self.axis):
+            broadcast_pattern = ["?" for i in range(1 + max(self.axis.keys()))]
+        for k, v in self.axis.items():
             broadcast_pattern[k] = str(int(v))
         return "%s{%s}" % (self.__class__.__name__, ",".join(broadcast_pattern))
 
@@ -741,7 +742,7 @@ class Rebroadcast(gof.Op):
     def perform(self, node, inp, out_):
         (x,) = inp
         (out,) = out_
-        for axis, value in iteritems(self.axis):
+        for axis, value in self.axis.items():
             if value and x.shape[axis] != 1:
                 raise ValueError(
                     "Dimension %s in Rebroadcast's input was"
@@ -757,7 +758,7 @@ class Rebroadcast(gof.Op):
             Rebroadcast(
                 *[
                     (axis, x.type.broadcastable[axis])
-                    for axis, value in iteritems(self.axis)
+                    for axis, value in self.axis.items()
                 ]
             )(gz),
         )
@@ -766,7 +767,7 @@ class Rebroadcast(gof.Op):
         assert len(ishapes) == 1
         l = []
         one = theano.tensor.basic.constant(1)
-        for ax in xrange(len(ishapes[0])):
+        for ax in range(len(ishapes[0])):
             if self.axis.get(ax, False):
                 l.append(one)
             else:
@@ -788,7 +789,7 @@ class Rebroadcast(gof.Op):
         if itype in self.c_code_and_version:
             code, version = self.c_code_and_version[itype]
             final_code = ""
-            for axis, value in iteritems(self.axis):
+            for axis, value in self.axis.items():
                 if value:
                     final_code += code % locals()
             return (
@@ -807,7 +808,7 @@ class Rebroadcast(gof.Op):
         # If any of the c code is unversionned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
         for t, (c, v) in sorted(
-            iteritems(self.c_code_and_version), key=lambda pair: str(pair[0])
+            self.c_code_and_version.items(), key=lambda pair: str(pair[0])
         ):
             if not v:
                 warnings.warn(
@@ -894,7 +895,7 @@ class SpecifyShape(gof.Op):
     def infer_shape(self, node, shapes):
         xshape, sshape = shapes
         new_shape = []
-        for dim in xrange(node.inputs[0].ndim):
+        for dim in range(node.inputs[0].ndim):
             try:
                 s = theano.tensor.get_scalar_constant_value(node.inputs[1][dim])
                 s = theano.tensor.as_tensor_variable(s)
@@ -951,7 +952,7 @@ class SpecifyShape(gof.Op):
         # If any of the c code is unversionned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
         for t, (c, v, _) in sorted(
-            iteritems(self.c_code_and_version), key=lambda pair: str(pair[0])
+            self.c_code_and_version.items(), key=lambda pair: str(pair[0])
         ):
             if not v:
                 warnings.warn(

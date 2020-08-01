@@ -7,9 +7,6 @@ import time
 import theano
 import theano.gpuarray
 
-from six import iteritems
-
-from theano import tensor
 from theano import tensor as T
 from theano import config, gof
 from theano.compile.io import In, Out
@@ -324,7 +321,7 @@ class TestFunction:
             l = [
                 val
                 for key, val in storage_map_cpy.items()
-                if key not in i_o_variables or isinstance(key, theano.tensor.Constant)
+                if key not in i_o_variables or isinstance(key, T.Constant)
             ]
             for storage in l:
                 assert any([storage is s for s in ori_storages])
@@ -557,7 +554,7 @@ class TestFunction:
 
     def test_constant_output(self):
         # Test that if the output is a constant, we respect the theano memory interface
-        f = theano.function([], theano.tensor.constant([4]))
+        f = theano.function([], T.constant([4]))
         # print f.maker.fgraph.toposort()
         out = f()
         assert (out == 4).all()
@@ -568,7 +565,7 @@ class TestFunction:
         assert (out2 == 4).all()
 
         # Test that if the output is a constant and borrow, we respect the theano memory interface
-        f = theano.function([], Out(theano.tensor.constant([4]), borrow=True))
+        f = theano.function([], Out(T.constant([4]), borrow=True))
         # print f.maker.fgraph.toposort()
         out = f()
         assert (out == 4).all()
@@ -661,14 +658,14 @@ class TestFunction:
         func([1])
 
         check_list = []
-        for key, val in iteritems(func.fn.storage_map):
+        for key, val in func.fn.storage_map.items():
             if not isinstance(key, theano.gof.Constant):
                 check_list.append(val)
         assert any([val[0] for val in check_list])
 
         func.free()
 
-        for key, val in iteritems(func.fn.storage_map):
+        for key, val in func.fn.storage_map.items():
             if not isinstance(key, theano.gof.Constant):
                 assert val[0] is None
 
@@ -691,7 +688,7 @@ class TestFunction:
         b = np.random.rand(5, 4)
         s1 = theano.shared(b)
         s2 = theano.shared(b)
-        x1 = theano.tensor.vector()
+        x1 = T.vector()
 
         # Assert cases we should not check for aliased inputs
         for d in [
@@ -910,8 +907,7 @@ class TestPicklefunction:
         sm = T.dmatrix("s")
 
         f = function(
-            [a, x, s, xm, sm],
-            ((a.T.T) * (tensor.dot(xm, (sm.T.T.T)) + x).T * (x / x) + s),
+            [a, x, s, xm, sm], ((a.T.T) * (T.dot(xm, (sm.T.T.T)) + x).T * (x / x) + s),
         )
         old_default_mode = config.mode
         old_default_opt = config.optimizer
@@ -1048,10 +1044,10 @@ class TestPicklefunction:
 
         b = np.random.rand(5, 4)
 
-        x = theano.tensor.matrix()
+        x = T.matrix()
         y = theano.shared(b)
 
-        f = theano.function([x], theano.tensor.dot(x, y))
+        f = theano.function([x], T.dot(x, y))
 
         from theano.compat import BytesIO
 

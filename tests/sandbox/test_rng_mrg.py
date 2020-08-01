@@ -7,7 +7,6 @@ import pytest
 
 import theano
 
-from six.moves import xrange
 
 from theano import change_flags, config, tensor
 from theano.sandbox import rng_mrg
@@ -196,7 +195,7 @@ def check_basics(
     dt = 0.0
     avg_var = 0.0
 
-    for i in xrange(steps):
+    for i in range(steps):
         t0 = time.time()
         ival = f(*inputs)
         assert ival.shape == sample_size
@@ -726,7 +725,7 @@ def basic_multinomialtest(
     dt = 0.0
     avg_pvals = np.zeros(target_pvals.shape, dtype=config.floatX)
 
-    for i in xrange(steps):
+    for i in range(steps):
         t0 = time.time()
         ival = f()
         assert ival.shape == sample_size

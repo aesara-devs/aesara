@@ -3,8 +3,6 @@ Defines the base class for optimizations as well as a certain
 amount of useful generic optimization tools.
 
 """
-
-
 from collections import deque, defaultdict, OrderedDict
 import contextlib
 import copy
@@ -19,10 +17,13 @@ import traceback
 import numpy as np
 
 import theano
+
+from functools import reduce
+
+from six import string_types, integer_types
+
 from theano import config
 
-from six import string_types, iteritems, itervalues, integer_types
-from six.moves import reduce
 from theano.gof import graph, op, utils, unify, toolbox
 from theano.gof.fg import InconsistencyError
 from theano.misc.ordered_set import OrderedSet
@@ -278,7 +279,7 @@ class SeqOptimizer(Optimizer, list):
             if fgraph.profile:
                 validate_time = fgraph.profile.validate_time - validate_before
                 callbacks_time = {}
-                for k, v in iteritems(fgraph.execute_callbacks_times):
+                for k, v in fgraph.execute_callbacks_times.items():
                     if k in callbacks_before:
                         t = v - callbacks_before[k]
                         if t > 0:
@@ -354,7 +355,7 @@ class SeqOptimizer(Optimizer, list):
         print(blanc, "      %.3fs for fgraph.validate()" % (validate_time), file=stream)
         if callback_time > 1:
             print(blanc, "  callbacks_time", file=stream)
-            for i in sorted(iteritems(callbacks_time), key=lambda a: -a[1]):
+            for i in sorted(callbacks_time.items(), key=lambda a: -a[1]):
                 if i[1] > 0:
                     # We want to have the __str__ called, so we can't
                     # just print i.
@@ -972,7 +973,7 @@ class MergeOptimizer(Optimizer):
             validate_time = fgraph.profile.validate_time - validate_before
             callback_time = fgraph.execute_callbacks_time - callback_before
             callbacks_time = {}
-            for k, v in iteritems(fgraph.execute_callbacks_times):
+            for k, v in fgraph.execute_callbacks_times.items():
                 if k in callbacks_before:
                     t = v - callbacks_before[k]
                     if t > 0:
@@ -1026,7 +1027,7 @@ class MergeOptimizer(Optimizer):
         )
         if callback_time > 1:
             print(blanc, "  callbacks_time", file=stream)
-            for i in sorted(iteritems(callbacks_time), key=lambda a: a[1]):
+            for i in sorted(callbacks_time.items(), key=lambda a: a[1]):
                 if i[1] > 0:
                     # We want to have the __str__ called, so we can't
                     # just print i.
@@ -1078,7 +1079,7 @@ def is_same_graph_with_merge(var1, var2, givens=None):
     # break the mapping in givens.
     fgraph = theano.gof.fg.FunctionGraph(inputs, vars, clone=False)
     # Perform Variable substitution.
-    for to_replace, replace_by in iteritems(givens):
+    for to_replace, replace_by in givens.items():
         fgraph.replace(to_replace, replace_by)
     # Perform merge optimization.
     MergeOptimizer().optimize(fgraph)
@@ -1526,7 +1527,7 @@ class LocalOptGroup(LocalOptimizer):
         count_opt = []
         not_used = []
         not_used_time = 0
-        for o, count in iteritems(process_count):
+        for o, count in process_count.items():
             if count > 0:
                 count_opt.append(
                     (time_opts[o], applied_true[o], count, o, node_created[o])
@@ -2488,7 +2489,7 @@ def merge_dict(d1, d2):
     merge 2 dicts by adding the values.
     """
     d = d1.copy()
-    for k, v in iteritems(d2):
+    for k, v in d2.items():
         if k in d:
             d[k] += v
         else:
@@ -2561,7 +2562,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
             yield opt
         # if repeat is not a problem we can drop the set
         s = set()
-        for lopt in itervalues(self.local_optimizers_map):
+        for lopt in self.local_optimizers_map.values():
             for opt in lopt:
                 if opt not in s:
                     yield opt
@@ -2754,7 +2755,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
             changed |= apply_cleanup(iter_cleanup_sub_profs)
             # merge clean up profiles during that iteration.
             c_sub_profs = []
-            for copt, sub_profs in iteritems(iter_cleanup_sub_profs):
+            for copt, sub_profs in iter_cleanup_sub_profs.items():
                 sub_prof = sub_profs[0]
                 for s_p in sub_profs[1:]:
                     sub_prof = copt.merge_profile(sub_prof, s_p)
@@ -2854,9 +2855,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
             lopt = ""
             if loop_process_count[i]:
                 d = list(
-                    reversed(
-                        sorted(iteritems(loop_process_count[i]), key=lambda a: a[1])
-                    )
+                    reversed(sorted(loop_process_count[i].items(), key=lambda a: a[1]))
                 )
                 lopt = " ".join([str((str(k), v)) for k, v in d[:5]])
                 if len(d) > 5:
@@ -2891,9 +2890,9 @@ class EquilibriumOptimizer(NavigatorOptimizer):
         ):
             process_count.setdefault(o, 0)
         for count in loop_process_count:
-            for o, v in iteritems(count):
+            for o, v in count.items():
                 process_count[o] += v
-        for o, count in iteritems(process_count):
+        for o, count in process_count.items():
             if count > 0:
                 count_opt.append((time_opts[o], count, node_created[o], o))
             else:
@@ -2994,7 +2993,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
 
         for i in range(min(len(loop_process_count), len(prof2[2]))):
             process_count = loop_process_count[i]
-            for process, count in iteritems(prof2[2][i]):
+            for process, count in prof2[2][i].items():
                 if process in process_count:
                     process_count[process] += count
                 else:

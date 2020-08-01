@@ -4,7 +4,6 @@ import numpy as np
 
 import theano
 
-from six.moves import xrange
 
 from theano import config
 from theano import tensor as T
@@ -1442,7 +1441,7 @@ def test_asymptotic_32():
 
         xval = np.zeros((5, 5), dtype=dtype).astype(dtype)
         x2val = np.zeros(5, dtype=xval.dtype).astype(dtype)
-        for i in xrange(100):
+        for i in range(100):
             cval, gxval = f(xval, np.arange(5), x2val)
             xval -= 100.3 * gxval
             # print cval, gxval
@@ -1452,7 +1451,7 @@ def test_asymptotic_32():
 
         xval = np.zeros((5, 5), dtype=dtype)
         x2val = np.zeros(5, dtype=xval.dtype)
-        for i in xrange(100):
+        for i in range(100):
 
             cval, gxval = f(xval, np.arange(5), x2val)
             xval += 100000.3 * gxval

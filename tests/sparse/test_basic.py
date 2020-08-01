@@ -12,7 +12,6 @@ from itertools import product
 
 from packaging import version
 
-from six.moves import xrange
 
 from theano import tensor, sparse, compile, config, gof
 
@@ -1364,7 +1363,7 @@ class TestStructuredDot:
             mat = np.asarray(np.random.randn(N, K), dense_dtype)
             theano_times = []
             scipy_times = []
-            for i in xrange(5):
+            for i in range(5):
                 t0 = time.time()
                 theano_result = f(spmat, mat)
                 t1 = time.time()

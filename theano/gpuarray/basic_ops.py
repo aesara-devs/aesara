@@ -1,9 +1,15 @@
 import os
 import copy
 import re
+
 import numpy as np
 
 import theano
+
+from collections import deque
+
+from six import string_types
+
 from theano import Op, Apply, Type, Variable
 from theano import tensor, config
 from theano.gradient import grad_undefined
@@ -13,12 +19,6 @@ from theano.tensor.basic import Alloc, AllocEmpty, alloc_validate_shape, Join, S
 from theano.gof import HideC, COp, ParamsType
 from theano.gof.utils import MethodNotDefined
 from theano.gof.opt import copy_stack_trace
-
-from collections import deque
-
-from six import string_types
-from six.moves import xrange
-from six import iteritems
 
 try:
     import pygpu
@@ -1513,7 +1513,7 @@ class GpuSplit(HideC, Split):
         super(GpuSplit, self).__init__(len_splits)
         # The GPU version of Split returns splits as views of the input.
         self.view_map = {}
-        for i in xrange(self.len_splits):
+        for i in range(self.len_splits):
             self.view_map[i] = [0]
 
     def make_node(self, x, axis, splits):
@@ -1685,7 +1685,7 @@ def profile_printer(
         cpu = 0
         gpu = 0
         trans = 0
-        for node, t in iteritems(apply_time):
+        for node, t in apply_time.items():
             if isinstance(node.op, (HostFromGpu, GpuFromHost)):
                 trans += t
             elif node.op.__class__.__name__.lower().startswith("gpu"):
@@ -1786,7 +1786,7 @@ class GpuEye(GpuKernelBase, Op):
         return [out_shape]
 
     def grad(self, inp, grads):
-        return [grad_undefined(self, i, inp[i]) for i in xrange(3)]
+        return [grad_undefined(self, i, inp[i]) for i in range(3)]
 
     def gpu_kernels(self, node, name):
         code = """#include "cluda.h"
@@ -1920,7 +1920,7 @@ class GpuTri(GpuKernelBase, Op):
         return [out_shape]
 
     def grad(self, inp, grads):
-        return [grad_undefined(self, i, inp[i]) for i in xrange(3)]
+        return [grad_undefined(self, i, inp[i]) for i in range(3)]
 
     def gpu_kernels(self, node, name):
         code = """#include "cluda.h"

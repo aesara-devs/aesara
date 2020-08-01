@@ -15,7 +15,7 @@ import sys
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
 from six import integer_types
-from six.moves import xrange
+
 import scipy.sparse
 
 import theano
@@ -1584,7 +1584,7 @@ class ColScaleCSC(gof.op.Op):
 
         y = x.copy()
 
-        for j in xrange(0, N):
+        for j in range(0, N):
             y.data[y.indptr[j] : y.indptr[j + 1]] *= s[j]
 
         z[0] = y
@@ -1632,8 +1632,8 @@ class RowScaleCSC(gof.op.Op):
 
         y_data = x.data.copy()
 
-        for j in xrange(0, N):
-            for i_idx in xrange(indptr[j], indptr[j + 1]):
+        for j in range(0, N):
+            for i_idx in range(indptr[j], indptr[j + 1]):
                 y_data[i_idx] *= s[indices[i_idx]]
 
         z[0] = scipy.sparse.csc_matrix((y_data, indices, indptr), (M, N))
@@ -2381,8 +2381,8 @@ class MulSD(gof.op.Op):
                     z = x.astype(out_dtype)
                 z_data = z.data
 
-                for j in xrange(0, N):
-                    for i_idx in xrange(indptr[j], indptr[j + 1]):
+                for j in range(0, N):
+                    for i_idx in range(indptr[j], indptr[j + 1]):
                         i = indices[i_idx]
                         z_data[i_idx] *= y[i, j]
                 out[0] = z
@@ -2395,8 +2395,8 @@ class MulSD(gof.op.Op):
                     z = x.astype(out_dtype)
                 z_data = z.data
 
-                for i in xrange(0, M):
-                    for j_idx in xrange(indptr[i], indptr[i + 1]):
+                for i in range(0, M):
+                    for j_idx in range(indptr[i], indptr[i + 1]):
                         j = indices[j_idx]
                         z_data[j_idx] *= y[i, j]
                 out[0] = z
@@ -3735,10 +3735,10 @@ class StructuredDotGradCSC(gof.Op):
         (a_indices, a_indptr, b, g_ab) = inputs
         (out,) = outputs
         g_a_data = np.zeros(a_indices.shape, dtype=g_ab.dtype)
-        for j in xrange(len(a_indptr) - 1):
+        for j in range(len(a_indptr) - 1):
             ind0 = a_indptr[j]
             ind1 = a_indptr[j + 1]
-            for i_idx in xrange(ind0, ind1):
+            for i_idx in range(ind0, ind1):
                 i = a_indices[i_idx]
                 # Depending on the type of g_ab and b (sparse or dense),
                 # the following dot product can result in a scalar or
@@ -3869,11 +3869,11 @@ class StructuredDotGradCSR(gof.Op):
         (a_indices, a_indptr, b, g_ab) = inputs
         (out,) = outputs
         g_a_data = np.zeros(a_indices.shape, dtype=g_ab.dtype)
-        for i in xrange(len(a_indptr) - 1):  # loop over rows
+        for i in range(len(a_indptr) - 1):  # loop over rows
             ind0 = a_indptr[i]
             ind1 = a_indptr[i + 1]
             # loop over values in that row (columns)
-            for j_idx in xrange(ind0, ind1):
+            for j_idx in range(ind0, ind1):
                 j = a_indices[j_idx]
                 # grad is dot product of i-th row of gradient with j-th row of b
                 # Depending on the type of g_ab and b (sparse or dense),

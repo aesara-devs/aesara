@@ -138,8 +138,10 @@ try:
 except ImportError:
     pass
 
-from six import iteritems
-from six.moves import reduce, xrange
+import theano.scalar
+
+from functools import reduce
+
 from theano import config
 from theano.gof import (
     utils,
@@ -158,7 +160,6 @@ from theano.gof.params_type import ParamsType
 from theano.gof.opt import inherit_stack_trace
 from theano.printing import pprint, FunctionPrinter, debugprint
 from theano.compile.mode import optdb
-import theano.scalar
 from theano.scalar import bool as bool_t
 from theano.tensor import basic as T
 from theano.tensor.blas_headers import blas_header_text
@@ -1387,10 +1388,10 @@ def _gemm_from_factored_list(lst):
         return s * M
 
     # Try every pair in the sM_list, trying to turn it into a gemm operation
-    for i in xrange(len(lst) - 1):
+    for i in range(len(lst) - 1):
         s_i, M_i = lst[i]
 
-        for j in xrange(i + 1, len(lst)):
+        for j in range(i + 1, len(lst)):
             s_j, M_j = lst[j]
 
             if M_i.type != M_j.type:
@@ -1545,7 +1546,7 @@ class GemmOptimizer(Optimizer):
             validate_time = fgraph.profile.validate_time - validate_before
             callback_time = fgraph.execute_callbacks_time - callback_before
             callbacks_time = {}
-            for k, v in iteritems(fgraph.execute_callbacks_times):
+            for k, v in fgraph.execute_callbacks_times.items():
                 if k in callbacks_before:
                     callbacks_time[k] = v - callbacks_before[k]
                 else:
@@ -1588,7 +1589,7 @@ class GemmOptimizer(Optimizer):
         print(blanc, " callback_time", prof[11], file=stream)
         if prof[11] > 1:
             print(blanc, " callbacks_time", file=stream)
-            for i in sorted(iteritems(prof[12]), key=lambda a: a[1]):
+            for i in sorted(prof[12].items(), key=lambda a: a[1]):
                 if i[1] > 0:
                     print(i)
 
@@ -2135,7 +2136,7 @@ class BatchedDot(Op):
         shape = self.infer_shape(node, [i.shape for i in inp])[0]
         dtype = node.outputs[0].dtype
         z0 = z[0] = np.empty(shape, dtype=dtype)
-        for i in xrange(z0.shape[0]):
+        for i in range(z0.shape[0]):
             z0[i] = np.dot(x[i], y[i])
 
     def c_support_code(self):
@@ -2531,7 +2532,7 @@ class BatchedDot(Op):
             input_values = [iv0, iv1]
             eval_point_values = [ev0, ev1]
 
-            for i in xrange(2):
+            for i in range(2):
                 if (
                     eval_point_values[i] is not None
                     and input_values[i].shape != eval_point_values[i].shape

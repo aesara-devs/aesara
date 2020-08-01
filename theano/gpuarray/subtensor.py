@@ -1,11 +1,12 @@
 import numpy as np
+import theano.tensor as T
+
 from six import integer_types
-from six.moves import StringIO, xrange
+from six.moves import StringIO
 
 from theano import tensor, gof, Op
 from theano.gof import ParamsType
 from theano.gradient import grad_not_implemented
-import theano.tensor as T
 from theano.tensor.subtensor import IncSubtensor, Subtensor, get_idx_list
 from theano.tensor import AllocDiag
 from theano.scalar import bool as bool_t, int32 as int_t, uint32 as size_t
@@ -549,7 +550,7 @@ def check_and_convert_boolean_masks(input, idx_list):
             # skip, does not count as an input dimension
             out_idx_list.append(index)
         elif isinstance(index, np.ndarray) and index.dtype == "bool":
-            for i in xrange(index.ndim):
+            for i in range(index.ndim):
                 if index.shape[i] != input.shape[dim_seen + i]:
                     raise IndexError(
                         "boolean index did not match indexed array "

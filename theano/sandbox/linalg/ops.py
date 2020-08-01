@@ -1,13 +1,14 @@
 import logging
-from six import iteritems, integer_types
-from six.moves import xrange
+
+import theano.tensor
+
+from six import integer_types
 
 from theano.gof import Op, Apply
 
+from theano import tensor
 from theano.tensor import DimShuffle, Dot
 from theano.tensor.blas import Dot22
-from theano import tensor
-import theano.tensor
 from theano.tensor.opt import (
     register_stabilize,
     register_specialize,
@@ -158,7 +159,7 @@ class HintsFeature(object):
     def update_second_from_first(self, r0, r1):
         old_hints = self.hints[r0]
         new_hints = self.hints[r1]
-        for k, v in iteritems(old_hints):
+        for k, v in old_hints.items():
             if k in new_hints and new_hints[k] is not v:
                 raise NotImplementedError()
             if k not in new_hints:
@@ -393,6 +394,6 @@ def spectral_radius_bound(X, log2_exponent):
         )
 
     XX = X
-    for i in xrange(log2_exponent):
+    for i in range(log2_exponent):
         XX = tensor.dot(XX, XX)
     return tensor.pow(trace(XX), 2 ** (-log2_exponent))

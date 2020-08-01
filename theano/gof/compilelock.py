@@ -1,17 +1,19 @@
-# Locking mechanism to ensure no two compilations occur simultaneously
-# in the same compilation directory (which can cause crashes).
-
-
+"""
+Locking mechanism to ensure no two compilations occur simultaneously
+in the same compilation directory (which can cause crashes).
+"""
 import atexit
 import os
 import socket  # only used for gethostname()
 import time
 import logging
+
+import numpy as np
+
+
 from six import PY3
 
 from contextlib import contextmanager
-
-import numpy as np
 
 from theano import config
 

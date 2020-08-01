@@ -5,7 +5,7 @@ import numpy as np
 
 import theano
 from theano import tensor as tt
-from six.moves import xrange
+
 from theano.ifelse import ifelse
 
 a, b = tt.scalars('a', 'b')
@@ -25,11 +25,11 @@ big_mat2 = np.ones((10000, 1000))
 n_times = 10
 
 tic = time.clock()
-for i in xrange(n_times):
+for i in range(n_times):
     f_switch(val1, val2, big_mat1, big_mat2)
 print('time spent evaluating both values %f sec' % (time.clock() - tic))
 
 tic = time.clock()
-for i in xrange(n_times):
+for i in range(n_times):
     f_lazyifelse(val1, val2, big_mat1, big_mat2)
 print('time spent evaluating one value %f sec' % (time.clock() - tic))

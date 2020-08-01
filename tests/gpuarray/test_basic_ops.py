@@ -6,8 +6,6 @@ import numpy as np
 import theano
 import theano.tensor as T
 
-from six import iteritems
-
 from theano.tensor import TensorType
 from theano.tensor.basic import alloc
 
@@ -124,7 +122,7 @@ def makeTester(
             if skip:
                 pytest.skip(skip)
 
-            for testname, inputs in iteritems(cases):
+            for testname, inputs in cases.items():
                 for _ in range(len(inputs)):
                     if type(inputs[_]) is float:
                         inputs[_] = np.asarray(inputs[_], dtype=theano.config.floatX)
@@ -207,7 +205,7 @@ def makeTester(
                     )
                 )
 
-            for description, check in iteritems(self.checks):
+            for description, check in self.checks.items():
                 assert check(inputs, variables), (
                     "Test %s::%s: Failed check: %s " "(inputs were %s, ouputs were %s)"
                 ) % (self.op, testname, description, inputs, variables)

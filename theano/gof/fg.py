@@ -4,18 +4,16 @@ Contains the FunctionGraph class and exception
 types that it can raise.
 
 """
-
-from collections import OrderedDict
 import time
 
 import theano
-from theano.gof import graph
-from theano.gof import utils
-from theano.gof import toolbox
-from theano import config
 
-from six import iteritems, itervalues
+from collections import OrderedDict
+
 from six.moves import StringIO
+
+from theano import config
+from theano.gof import graph, utils, toolbox
 from theano.gof.utils import get_variable_trace_string
 from theano.misc.ordered_set import OrderedSet
 
@@ -208,7 +206,7 @@ class FunctionGraph(utils.object2):
         if hasattr(node, "fgraph") and node.fgraph is not self:
             raise Exception("%s is already owned by another fgraph" % node)
         if hasattr(node.op, "view_map") and not all(
-            isinstance(view, (list, tuple)) for view in itervalues(node.op.view_map)
+            isinstance(view, (list, tuple)) for view in node.op.view_map.values()
         ):
             raise Exception(
                 "Op '%s' have a bad view map '%s',"
@@ -217,7 +215,7 @@ class FunctionGraph(utils.object2):
             )
         if hasattr(node.op, "destroy_map") and not all(
             isinstance(destroy, (list, tuple))
-            for destroy in itervalues(node.op.destroy_map)
+            for destroy in node.op.destroy_map.values()
         ):
             raise Exception(
                 "Op '%s' have a bad destroy map '%s',"
@@ -708,7 +706,7 @@ class FunctionGraph(utils.object2):
                     )
                 if len(orderings) > 0:
                     all_orderings.append(orderings)
-                    for node, prereqs in iteritems(orderings):
+                    for node, prereqs in orderings.items():
                         if not isinstance(prereqs, (list, OrderedSet)):
                             raise TypeError(
                                 "prereqs must be a type with a "
@@ -722,7 +720,7 @@ class FunctionGraph(utils.object2):
             # If there is more than 1 ordering, combine them.
             ords = OrderedDict()
             for orderings in all_orderings:
-                for node, prereqs in iteritems(orderings):
+                for node, prereqs in orderings.items():
                     ords.setdefault(node, []).extend(prereqs)
             return ords
 

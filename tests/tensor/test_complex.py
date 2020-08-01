@@ -4,7 +4,6 @@ import numpy as np
 
 import theano
 
-from six.moves import xrange
 
 from theano.tensor import (
     real,
@@ -27,9 +26,7 @@ class TestRealImag:
     def test_basic(self):
         x = zvector()
         rng = np.random.RandomState(23)
-        xval = np.asarray(
-            list(np.complex(rng.randn(), rng.randn()) for i in xrange(10))
-        )
+        xval = np.asarray(list(np.complex(rng.randn(), rng.randn()) for i in range(10)))
         assert np.all(xval.real == theano.function([x], real(x))(xval))
         assert np.all(xval.imag == theano.function([x], imag(x))(xval))
 

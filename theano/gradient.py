@@ -1,20 +1,19 @@
 """Driver for gradient calculations."""
 
-from collections import OrderedDict
-import six.moves.builtins as builtins
 import logging
 import time
 import warnings
 
 import numpy as np  # for numeric_grad
-from six import itervalues
 
 import theano
+
+from functools import reduce
+from collections import OrderedDict
 
 from theano import gof
 from theano.gof import utils, Variable
 
-from six.moves import xrange, reduce
 from theano.gof.null_type import NullType, null_type
 from theano.gof.op import get_debug_values
 from theano.compile import ViewOp, FAST_RUN, DebugMode, get_mode
@@ -649,7 +648,7 @@ def grad(
 
     rval = _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name)
 
-    for i in xrange(len(rval)):
+    for i in range(len(rval)):
         if isinstance(rval[i].type, NullType):
             if null_gradients == "raise":
                 raise NullTypeGradError(
@@ -718,7 +717,7 @@ def subgraph_grad(wrt, end, start=None, cost=None, details=False):
 
         next_grad = None
         param_grads = []
-        for i in xrange(2):
+        for i in range(2):
             param_grad, next_grad = theano.subgraph_grad(
                 wrt=params[i], end=grad_ends[i],
                 start=next_grad, cost=costs[i]
@@ -853,7 +852,7 @@ def _node_to_pattern(node):
         connection_pattern = [[True for output in node.outputs] for ipt in node.inputs]
     assert isinstance(connection_pattern, list)
     assert len(connection_pattern) == len(node.inputs)
-    for ii in xrange(len(node.inputs)):
+    for ii in range(len(node.inputs)):
         assert isinstance(connection_pattern[ii], list)
         assert len(connection_pattern[ii]) == len(node.outputs)
     return connection_pattern
@@ -1147,9 +1146,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                 # dependency cycle. We avoid this cycle by passing (symbolic)
                 # copies of each destroyed input.
                 try:
-                    dinputs = [
-                        node.inputs[x[0]] for x in itervalues(node.op.destroy_map)
-                    ]
+                    dinputs = [node.inputs[x[0]] for x in node.op.destroy_map.values()]
                 except AttributeError:
                     dinputs = []
 
@@ -1578,9 +1575,9 @@ class numeric_grad(object):
         # if not dtypes == [dtypes[0]] * len(apt):
         #      raise TypeError('All function arguments must have same dtype')
 
-        total_size = builtins.sum(prod(sh) for sh in shapes)
+        total_size = sum(prod(sh) for sh in shapes)
 
-        working_dtype = builtins.min((self.type_eps[dt], dt) for dt in dtypes)[1]
+        working_dtype = min((self.type_eps[dt], dt) for dt in dtypes)[1]
 
         # create un-initialized memory
         x = np.ndarray((total_size,), dtype=working_dtype)
@@ -1591,7 +1588,7 @@ class numeric_grad(object):
             gx = np.ndarray((total_size,), dtype=working_dtype)
 
         if eps is None:
-            eps = builtins.max(self.type_eps[dt] for dt in dtypes)
+            eps = max(self.type_eps[dt] for dt in dtypes)
 
         # set up aliases so that apt[i] is backed by memory in x
         # and self.gf is backed by memory in gx
@@ -1610,7 +1607,7 @@ class numeric_grad(object):
 
         # now iterate over the elements of x, and call f on apt.
         x_copy = x.copy()
-        for i in xrange(total_size):
+        for i in range(total_size):
             x[:] = x_copy
 
             x[i] += eps
@@ -1815,9 +1812,9 @@ def verify_grad(
     )
 
     if abs_tol is None:
-        abs_tol = builtins.max(_type_tol[str(p.dtype)] for p in pt)
+        abs_tol = max(_type_tol[str(p.dtype)] for p in pt)
     if rel_tol is None:
-        rel_tol = builtins.max(_type_tol[str(p.dtype)] for p in pt)
+        rel_tol = max(_type_tol[str(p.dtype)] for p in pt)
 
     if rng is None:
         raise TypeError(
@@ -1898,7 +1895,7 @@ def verify_grad(
 
     grad_fn = function(tensor_pt, symbolic_grad, name="gradient.py symbolic grad")
 
-    for test_num in xrange(n_tests):
+    for test_num in range(n_tests):
         try:
             num_grad = numeric_grad(cost_fn, [p.copy() for p in pt], eps, out_type)
 

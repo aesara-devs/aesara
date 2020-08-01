@@ -10,16 +10,18 @@ import copy
 import sys
 import gc
 import logging
-from itertools import chain, product as itertools_product
-
 
 import numpy as np
 
 import theano
+
+from itertools import chain, product as itertools_product
+
+from six.moves import StringIO
+
 from theano import gof, config
 from theano.compat import get_unbound_function
-from six import iteritems, itervalues
-from six.moves import StringIO, xrange
+
 from theano.gof import graph, utils, link, ops_with_inner_function
 from theano.gof.link import raise_with_op
 from theano.compile.function_module import (
@@ -737,13 +739,13 @@ def _check_inputs(
     """
     destroyed_idx_list = []
     destroy_map = getattr(node.op, "destroy_map", {})
-    for o_pos, i_pos_list in iteritems(destroy_map):
+    for o_pos, i_pos_list in destroy_map.items():
         destroyed_idx_list.extend(i_pos_list)
     destroyed_res_list = [node.inputs[i] for i in destroyed_idx_list]
 
     actually_inplace_outputs = []
     dmap = getattr(node.op, "destroy_map", {})
-    for oo, ii in iteritems(dmap):
+    for oo, ii in dmap.items():
         var = node.outputs[oo]
         out_var = storage_map[var][0]
         in_var = storage_map[node.inputs[ii[0]]][0]
@@ -766,7 +768,7 @@ def _check_inputs(
                 )
 
     vmap = getattr(node.op, "view_map", {})
-    for oo, ii in iteritems(vmap):
+    for oo, ii in vmap.items():
         var = node.outputs[oo]
         out_var = storage_map[var][0]
         in_var = storage_map[node.inputs[ii[0]]][0]
@@ -864,7 +866,7 @@ def _check_viewmap(node, storage_map):
         # TODO: make sure this is correct
         # According to OB, duplicate inputs are rejected on build graph time
         # if they cause problems. So if they are here it should be ok.
-        for key, val in iteritems(good_alias):
+        for key, val in good_alias.items():
             bad_alias.pop(key, None)
         if bad_alias:
             raise BadViewMap(node, oi, outstorage, list(bad_alias.values()))
@@ -1022,7 +1024,7 @@ def _find_bad_optimizations1(order, reasons, r_vals):
     # identify equivalence sets that are broken
     equivalence_sets_broken = {}  # id(set) -> Bool
     there_is_a_problem = False
-    for r, r_equiv in iteritems(equivalence_sets):
+    for r, r_equiv in equivalence_sets.items():
         if id(r_equiv) not in equivalence_sets_broken:
             equivalence_sets_broken[id(r_equiv)] = False
             # loop over the variables in the set comparing them to be
@@ -1395,7 +1397,7 @@ def _check_preallocated_output(
         dmap = getattr(node.op, "destroy_map", {})
         vmap = getattr(node.op, "view_map", {})
         for i, r in enumerate(node.inputs):
-            if any(i in v for v in chain(itervalues(dmap), itervalues(vmap))):
+            if any(i in v for v in chain(dmap.values(), vmap.values())):
                 aliased_inputs.add(r)
 
         _logger.debug("starting preallocated output checking")
@@ -1957,7 +1959,7 @@ class _Linker(gof.link.LocalLinker):
                 #  Precondition: the storage map is empty, transferred
                 #  completely to r_vals
                 #####
-                for r, s in iteritems(storage_map):
+                for r, s in storage_map.items():
                     if s[0] is not None:
                         print(r, s)
                     assert s[0] is None
@@ -2249,7 +2251,7 @@ class _Linker(gof.link.LocalLinker):
 
                 # Nothing should be in storage map after evaluating
                 # each the thunk (specifically the last one)
-                for r, s in iteritems(storage_map):
+                for r, s in storage_map.items():
                     assert type(s) is list
                     assert s[0] is None
 
@@ -2428,7 +2430,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
         indices = [[input] + self.expand_in(input, _inputs) for input in inputs]
 
         # make the fgraph
-        for i in xrange(mode.stability_patience):
+        for i in range(mode.stability_patience):
             fgraph, additional_outputs, equivalence_tracker = _optcheck_fgraph(
                 inputs, outputs, accept_inplace
             )
@@ -2461,7 +2463,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
                         "-------------------------------------------------" "----",
                         file=infolog,
                     )
-                    for j in xrange(max(len(li), len(l0))):
+                    for j in range(max(len(li), len(l0))):
                         if j >= len(li):
                             print("trailing event in optimization 0 :", j, file=infolog)
                             print("   ", str(l0[j]), file=infolog)

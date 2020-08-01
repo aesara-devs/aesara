@@ -2,7 +2,6 @@ import pytest
 import numpy as np
 import theano
 
-from six.moves import xrange
 
 from theano import tensor, config, Apply, Op
 from theano.scalar import int32 as int_t
@@ -62,7 +61,7 @@ class GpuEye(CGpuKernelBase, Op):
         return [out_shape]
 
     def grad(self, inp, grads):
-        return [grad_undefined(self, i, inp[i]) for i in xrange(2)]
+        return [grad_undefined(self, i, inp[i]) for i in range(2)]
 
 
 def test_cgpukernelbase():

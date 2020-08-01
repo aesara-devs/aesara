@@ -21,17 +21,17 @@ __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 import copy
 import logging
 import warnings
-from collections import OrderedDict
 
 import numpy as np
 
 import theano
 
-from six import string_types, iteritems
-from six.moves import xrange
+from collections import OrderedDict
+
+from six import string_types
+
+from theano import gof, compat, tensor, scalar
 from theano.compile.pfunc import rebuild_collect_shared
-from theano import gof, compat
-from theano import tensor, scalar
 from theano.tensor.basic import get_scalar_constant_value
 
 
@@ -173,7 +173,7 @@ def traverse(out, x, x_copy, d, visited=None):
 def hash_listsDictsTuples(x):
     hash_value = 0
     if isinstance(x, dict):
-        for k, v in iteritems(x):
+        for k, v in x.items():
             hash_value ^= hash_listsDictsTuples(k)
             hash_value ^= hash_listsDictsTuples(v)
     elif isinstance(x, (list, tuple)):
@@ -525,7 +525,7 @@ def get_updates_and_outputs(ls):
         if isinstance(x, list) or isinstance(x, tuple):
             iter_on = x
         elif isinstance(x, dict):
-            iter_on = iteritems(x)
+            iter_on = x.items()
         if iter_on is not None:
             return all(_filter(y) for y in iter_on)
         else:
@@ -626,7 +626,7 @@ def expand_empty(tensor_var, size):
 
     if size == 0:
         return tensor_var
-    shapes = [tensor_var.shape[x] for x in xrange(tensor_var.ndim)]
+    shapes = [tensor_var.shape[x] for x in range(tensor_var.ndim)]
     new_shape = [size + shapes[0]] + shapes[1:]
     empty = tensor.AllocEmpty(tensor_var.dtype)(*new_shape)
 
@@ -959,8 +959,8 @@ def scan_can_remove_outs(op, out_idxs):
         n_ins = len(op.info["tap_array"][idx])
         out_ins += [op.inputs[offset : offset + n_ins]]
         offset += n_ins
-    out_ins += [[] for k in xrange(op.n_nit_sot)]
-    out_ins += [[op.inputs[offset + k]] for k in xrange(op.n_shared_outs)]
+    out_ins += [[] for k in range(op.n_nit_sot)]
+    out_ins += [[op.inputs[offset + k]] for k in range(op.n_shared_outs)]
 
     added = True
     out_idxs_mask = [1 for idx in out_idxs]
@@ -1017,7 +1017,7 @@ def compress_outs(op, not_required, inputs):
     i_offset = op.n_seqs
     o_offset = 0
     curr_pos = 0
-    for idx in xrange(op.info["n_mit_mot"]):
+    for idx in range(op.info["n_mit_mot"]):
         if offset + idx not in not_required:
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1
@@ -1041,7 +1041,7 @@ def compress_outs(op, not_required, inputs):
     offset += op.n_mit_mot
     ni_offset += op.n_mit_mot
 
-    for idx in xrange(op.info["n_mit_sot"]):
+    for idx in range(op.info["n_mit_sot"]):
         if offset + idx not in not_required:
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1
@@ -1062,7 +1062,7 @@ def compress_outs(op, not_required, inputs):
 
     offset += op.n_mit_sot
     ni_offset += op.n_mit_sot
-    for idx in xrange(op.info["n_sit_sot"]):
+    for idx in range(op.info["n_sit_sot"]):
         if offset + idx not in not_required:
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1
@@ -1083,7 +1083,7 @@ def compress_outs(op, not_required, inputs):
     offset += op.n_sit_sot
     ni_offset += op.n_sit_sot
     nit_sot_ins = []
-    for idx in xrange(op.info["n_nit_sot"]):
+    for idx in range(op.info["n_nit_sot"]):
         if offset + idx not in not_required:
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1
@@ -1096,7 +1096,7 @@ def compress_outs(op, not_required, inputs):
 
     offset += op.n_nit_sot
     shared_ins = []
-    for idx in xrange(op.info["n_shared_outs"]):
+    for idx in range(op.info["n_shared_outs"]):
         if offset + idx not in not_required:
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1

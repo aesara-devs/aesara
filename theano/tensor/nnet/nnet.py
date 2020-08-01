@@ -16,7 +16,7 @@ revisited later when all the intermediate part are on the GPU.
 import logging
 import warnings
 import numpy as np
-from six.moves import xrange
+
 
 import theano
 from theano import gof
@@ -74,7 +74,7 @@ class SoftmaxWithBias(gof.Op):
             raise ValueError("b must have same number of columns as x")
 
         # sm = numpy.zeros_like(x)
-        # for i in xrange(sm.shape[0]):
+        # for i in range(sm.shape[0]):
         # row = x[i] + b
         # sm[i] = numpy.exp(row - numpy.max(row))
         # sm[i] *= 1.0 / numpy.sum(sm[i])
@@ -320,7 +320,7 @@ class SoftmaxGrad(gof.Op):
         dy, sm = input_storage
         dx = np.zeros_like(sm)
         # dx[i,j] = - (\sum_k dy[i,k] sm[i,k]) sm[i,j] + dy[i,j] sm[i,j]
-        for i in xrange(sm.shape[0]):
+        for i in range(sm.shape[0]):
             dy_times_sm_i = dy[i] * sm[i]
             dx[i] = dy_times_sm_i - sum(dy_times_sm_i) * sm[i]
         output_storage[0][0] = dx
@@ -1043,7 +1043,7 @@ class CrossentropySoftmaxArgmax1HotWithBias(gof.Op):
             x.shape[0], dtype=node.outputs[0].type.dtype
         )  # nll(y | softmax(x))
         am = np.zeros_like(y_idx)
-        for i in xrange(sm.shape[0]):
+        for i in range(sm.shape[0]):
             # add the bias vector to the i'th row of x
             row = x[i] + b
 
@@ -1245,7 +1245,7 @@ class CrossentropySoftmax1HotWithBiasDx(gof.Op):
         if dy.ndim == 0:
             dy = dy[None]
         incr = int(dy.shape[0] > 1)
-        for i in xrange(sm.shape[0]):
+        for i in range(sm.shape[0]):
             dy_i = dy[i * incr]
             dx[i] = dy_i * sm[i]  # vector scale
             dx[i, y_idx[i]] -= dy_i  # scalar decrement
@@ -1435,7 +1435,7 @@ class CrossentropyCategorical1HotGrad(gof.Op):
         g_y, coding_dist, true_one_of_n = inp
         (g_coding_strg,) = out
         g_coding = np.zeros_like(coding_dist)
-        for i in xrange(len(g_y)):
+        for i in range(len(g_y)):
             g_coding[i, true_one_of_n[i]] = -g_y[i] / coding_dist[i, true_one_of_n[i]]
         g_coding_strg[0] = g_coding
 
@@ -1497,7 +1497,7 @@ class CrossentropyCategorical1Hot(gof.Op):
         coding, one_of_n = inp
         (y_out,) = out
         y = np.zeros_like(coding[:, 0])
-        for i in xrange(len(y)):
+        for i in range(len(y)):
             y[i] = -np.log(coding[i, one_of_n[i]])
         y_out[0] = y
 

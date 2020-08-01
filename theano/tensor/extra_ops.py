@@ -1,5 +1,5 @@
 import numpy as np
-from six.moves import xrange
+
 
 import theano
 from theano.tensor import basic
@@ -789,7 +789,7 @@ def repeat(x, repeats, axis=None):
             if axis < 0:
                 axis = x.ndim + axis
 
-        shape = [x.shape[i] for i in xrange(x.ndim)]
+        shape = [x.shape[i] for i in range(x.ndim)]
 
         # shape_ is the shape of the intermediate tensor which has
         # an additional dimension comparing to x. We use alloc to
@@ -1250,7 +1250,7 @@ class Unique(theano.Op):
             ret[0] = tuple(
                 [
                     node.fgraph.shape_feature.shape_ir(i, node.outputs[0])
-                    for i in xrange(ndim)
+                    for i in range(ndim)
                 ]
             )
         if self.return_inverse:
@@ -1303,7 +1303,7 @@ class UnravelIndex(gof.Op):
             [indices, dims],
             [
                 basic.TensorType(dtype="int64", broadcastable=(False,) * indices.ndim)()
-                for i in xrange(self.ndim)
+                for i in range(self.ndim)
             ],
         )
 
@@ -1314,7 +1314,7 @@ class UnravelIndex(gof.Op):
         indices, dims = inp
         res = np.unravel_index(indices, dims)
         assert len(res) == len(out)
-        for i in xrange(len(out)):
+        for i in range(len(out)):
             ret = theano._asarray(res[i], node.outputs[0].dtype)
             if ret.base is not None:
                 # NumPy will return a view when it can.

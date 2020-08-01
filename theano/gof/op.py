@@ -5,21 +5,21 @@ The `Op` class is the base interface for all operations
 compatible with `gof`'s :doc:`graph` routines.
 
 """
-
-
-import inspect
-import logging
-import numpy as np
 import os
 import re
 import sys
+import inspect
+import logging
 import warnings
 
-import theano
-from theano import config
+import numpy as np
 
+import theano
 import theano.gof.cc
-from six import itervalues, PY3
+
+from six import PY3
+
+from theano import config
 from theano.gof import graph
 from theano.gof import utils
 from theano.gof.cmodule import GCC_compiler
@@ -657,7 +657,7 @@ class PureOp(object):
                 # copy the values of the inputs in destroy_map
                 destroyed_inputs_idx = set()
                 if getattr(node.op, "destroy_map", None):
-                    for i_pos_list in itervalues(node.op.destroy_map):
+                    for i_pos_list in node.op.destroy_map.values():
                         destroyed_inputs_idx.update(i_pos_list)
                 for inp_idx in destroyed_inputs_idx:
                     inp = node.inputs[inp_idx]

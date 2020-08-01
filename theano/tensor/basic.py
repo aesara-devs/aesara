@@ -1,23 +1,25 @@
 """A `Type` and `Op` classes to work with numpy.ndarrays symbolically."""
 
-
-from six.moves import builtins
 import sys
 import warnings
+import numbers
+import logging
+import builtins
 
 import numpy as np
-from six import integer_types
-from six.moves import xrange
-import numbers
 
 import theano
+import theano.scalar.sharedvar
 
-from theano import config
-from theano import gof
+from functools import partial
+
+from six import integer_types
+
+from theano import config, gof, scalar as scal, compile, printing
 from theano.gof import Apply, Constant, Op, Variable, ParamsType
 from theano.gof.type import Generic
 
-from theano.scalar import int32 as int32_t
+from theano.scalar import int32
 from theano.tensor import elemwise
 from theano.tensor.var import (
     AsTensorError,
@@ -28,26 +30,19 @@ from theano.tensor.var import (
 )
 from theano.tensor.type import TensorType, values_eq_approx_always_true
 from theano.tensor.type_other import NoneConst
-from theano import scalar as scal
-from functools import partial
-from theano import compile, printing
 from theano.printing import pprint, min_informative_str
 
 # For history
 from theano.compile import Rebroadcast, Shape, shape
-from theano.scalar import int32
 
 
 # We use these exceptions as well.
-import theano.scalar.sharedvar
 from theano.gradient import grad_undefined
 from theano.gradient import grad_not_implemented
 from theano.gradient import DisconnectedType
 
 # set up the external interface
 from theano.tensor.elemwise import Elemwise, DimShuffle, CAReduce, Sum
-
-import logging
 
 _logger = logging.getLogger("theano.tensor.basic")
 
@@ -171,7 +166,7 @@ def as_tensor_variable(x, name=None, ndim=None):
             if x.type.ndim > ndim:
                 # strip off leading broadcastable dimensions
                 first_non_broadcastable = [
-                    idx for idx in xrange(x.ndim) if not x.broadcastable[idx]
+                    idx for idx in range(x.ndim) if not x.broadcastable[idx]
                 ][0]
                 x = x.dimshuffle(list(range(x.ndim))[first_non_broadcastable:])
                 if x.ndim > ndim:
@@ -708,7 +703,7 @@ def _multi(*fns):
             if names == 1:
                 return f()
             else:
-                return [f() for i in xrange(names[0])]
+                return [f() for i in range(names[0])]
         if isinstance(names, tuple):
             if len(names) == 1:
                 names = names[0]
@@ -1572,7 +1567,7 @@ class MaxAndArgmax(Op):
         if NoneConst.equals(axis):
             # We are taking the max/argmax over all dimensions.
             axis = None
-        for i in xrange(x.ndim):
+        for i in range(x.ndim):
             if axis is None or i in axis.data:
                 pattern.append("x")
             else:
@@ -2801,7 +2796,7 @@ def nonzero(a, return_matrix=False):
         return matrix_result
     else:
         if a.ndim > 0:
-            tuple_result = tuple([matrix_result[i] for i in xrange(a.ndim)])
+            tuple_result = tuple([matrix_result[i] for i in range(a.ndim)])
         else:
             tuple_result = tuple([matrix_result[0]])
         return tuple_result
@@ -2902,7 +2897,7 @@ class Tri(gof.Op):
         return [out_shape]
 
     def grad(self, inp, grads):
-        return [grad_undefined(self, i, inp[i]) for i in xrange(3)]
+        return [grad_undefined(self, i, inp[i]) for i in range(3)]
 
 
 def tri(N, M=None, k=0, dtype=None):
@@ -3016,7 +3011,7 @@ class Eye(gof.Op):
         return [out_shape]
 
     def grad(self, inp, grads):
-        return [grad_undefined(self, i, inp[i]) for i in xrange(3)]
+        return [grad_undefined(self, i, inp[i]) for i in range(3)]
 
 
 def eye(n, m=None, k=0, dtype=None):
@@ -4029,7 +4024,7 @@ class Split(Op):
         #             x = unbroadcast(x, *range(x.type.ndim))
 
         inputs = [x, axis, splits]
-        outputs = [x.type() for i in xrange(self.len_splits)]
+        outputs = [x.type() for i in range(self.len_splits)]
 
         return Apply(self, inputs, outputs)
 
@@ -4069,7 +4064,7 @@ class Split(Op):
 
         general_key = [slice(None, None, None) for s in x.shape]
         lower_idx = 0
-        for i in xrange(self.len_splits):
+        for i in range(self.len_splits):
             upper_idx = lower_idx + splits[i]
             general_key[axis] = slice(lower_idx, upper_idx, None)
             outputs[i][0] = x.__getitem__(tuple(general_key)).copy()
@@ -4080,10 +4075,10 @@ class Split(Op):
         splits = node.inputs[2]
         shp_x, shp_axis, shp_splits = in_shapes
         out_shapes = []
-        for i in xrange(self.len_splits):
+        for i in range(self.len_splits):
             temp = as_tensor_variable(shp_x)
             temp = theano.tensor.subtensor.set_subtensor(temp[axis], splits[i])
-            temp = [temp[i] for i in xrange(len(shp_x))]
+            temp = [temp[i] for i in range(len(shp_x))]
             out_shapes.append(temp)
         return out_shapes
 
@@ -4347,7 +4342,7 @@ def patternbroadcast(x, broadcastable):
         A theano tensor, which is unbroadcastable along the specified dimensions.
 
     """
-    rval = Rebroadcast(*[(i, broadcastable[i]) for i in xrange(len(broadcastable))])(x)
+    rval = Rebroadcast(*[(i, broadcastable[i]) for i in range(len(broadcastable))])(x)
     return theano.tensor.opt.apply_rebroadcast_opt(rval)
 
 
@@ -4654,7 +4649,7 @@ class Join(Op):
         # but it may disrupt optimizations.
         join_dim = switch(ge(node.inputs[0], 0), node.inputs[0], node.inputs[0] + n_dim)
         out_shapes = []
-        for dim in xrange(n_dim):
+        for dim in range(n_dim):
             # we have to deal with 2 possible cases in here :
             #   a) we are dealing with the dimension for which we join
             #     (called t_side from true side of the if, where the if
@@ -4772,7 +4767,7 @@ def shape_padleft(t, n_ones=1):
     """
     _t = as_tensor_variable(t)
 
-    pattern = ["x"] * n_ones + [i for i in xrange(_t.type.ndim)]
+    pattern = ["x"] * n_ones + [i for i in range(_t.type.ndim)]
     return DimShuffle(_t.broadcastable, pattern)(_t)
 
 
@@ -4789,7 +4784,7 @@ def shape_padright(t, n_ones=1):
     """
     _t = as_tensor_variable(t)
 
-    pattern = [i for i in xrange(_t.type.ndim)] + ["x"] * n_ones
+    pattern = [i for i in range(_t.type.ndim)] + ["x"] * n_ones
     return DimShuffle(_t.broadcastable, pattern)(_t)
 
 
@@ -4825,7 +4820,7 @@ def shape_padaxis(t, axis):
     if axis < 0:
         axis += ndim
 
-    pattern = [i for i in xrange(_t.type.ndim)]
+    pattern = [i for i in range(_t.type.ndim)]
     pattern.insert(axis, "x")
     return DimShuffle(_t.broadcastable, pattern)(_t)
 
@@ -5131,7 +5126,7 @@ class Reshape(Op):
             shp_list = shp_orig
             if hasattr(shp_orig, "ndim") and shp_orig.ndim == 0:
                 shp_list = [shp_orig]
-            for index in xrange(self.ndim):
+            for index in range(self.ndim):
                 y = shp_list[index]
                 y = as_tensor_variable(y)
                 # Try to see if we can infer that y has a constant value of 1.
@@ -5190,7 +5185,7 @@ class Reshape(Op):
         # return [tuple([switch(eq(node.inputs[1][i], -1),
         #                      theano.tensor.opt.Shape_i(i)(node.outputs[0]),
         #                      node.inputs[1][i])
-        #                    for i in xrange(self.ndim)]
+        #                    for i in range(self.ndim)]
         #    )]
 
         # Here, we only simplify if the shape (node.inputs[1]) is a constant,
@@ -5227,7 +5222,7 @@ class Reshape(Op):
                 )
             return [requ]
         else:
-            requ = [requ[i] for i in xrange(self.ndim)]
+            requ = [requ[i] for i in range(self.ndim)]
             # since new_dims can have negative value (-1), the
             # multiplication of all values should be negated
             # to give a positive value.
@@ -5245,7 +5240,7 @@ class Reshape(Op):
                 tuple(
                     [
                         switch(eq(requ[i], -1), rest_size, requ[i])
-                        for i in xrange(self.ndim)
+                        for i in range(self.ndim)
                     ]
                 )
             ]
@@ -5637,7 +5632,7 @@ class Tile(Op):
         shp = in_shapes[0]
         tiled_shp = shp * reps
         out_shape = []
-        for i in xrange(self.ndim):
+        for i in range(self.ndim):
             out_shape.append(tiled_shp[i])
         return [out_shape]
 
@@ -5722,7 +5717,7 @@ def tile(x, reps, ndim=None):
     if len(reps) < ndim:
         reps = [1] * (ndim - len(reps)) + reps
 
-    shape = [1] * (ndim - x.ndim) + [x.shape[i] for i in xrange(x.ndim)]
+    shape = [1] * (ndim - x.ndim) + [x.shape[i] for i in range(x.ndim)]
     alloc_shape = reps + shape
     y = alloc(x, *alloc_shape)
     shuffle_ind = np.arange(ndim * 2).reshape(2, ndim)
@@ -6068,15 +6063,15 @@ class PermuteRowElements(Op):
             xs0 = x.shape[0]
             ys0 = y.shape[0]
             if xs0 == ys0:
-                for i in xrange(xs0):
+                for i in range(xs0):
                     self._rec_perform(node, x[i], y[i], inverse, out[i], curdim + 1)
             elif ys0 == 1 and node.inputs[1].type.broadcastable[curdim]:
                 # Broadcast y
-                for i in xrange(xs0):
+                for i in range(xs0):
                     self._rec_perform(node, x[i], y[0], inverse, out[i], curdim + 1)
             elif xs0 == 1 and node.inputs[0].type.broadcastable[curdim]:
                 # Broadcast x
-                for i in xrange(ys0):
+                for i in range(ys0):
                     self._rec_perform(node, x[0], y[i], inverse, out[i], curdim + 1)
             else:
                 raise ValueError("Dimension mismatch: %s, %s" % (xs0, ys0))
@@ -6111,7 +6106,7 @@ class PermuteRowElements(Op):
         shp_y = in_shapes[1]
         assert len(shp_x) == len(shp_y)
         out_shape = []
-        for i in xrange(len(shp_x)):
+        for i in range(len(shp_x)):
             out_shape.append(maximum(shp_x[i], shp_y[i]))
         return [out_shape]
 
@@ -6128,7 +6123,7 @@ class PermuteRowElements(Op):
         # broadcastable)
         broadcasted_dims = [
             dim
-            for dim in xrange(gz.type.ndim)
+            for dim in range(gz.type.ndim)
             if x.type.broadcastable[dim] and not gz.type.broadcastable[dim]
         ]
         gx = Sum(axis=broadcasted_dims)(gx)
@@ -6137,7 +6132,7 @@ class PermuteRowElements(Op):
         # so we need to put them back.
         newdims = []
         i = 0
-        for dim in xrange(gz.type.ndim):
+        for dim in range(gz.type.ndim):
             if dim in broadcasted_dims:
                 newdims.append("x")
             else:
@@ -6457,13 +6452,13 @@ def _tensordot_as_dot(a, b, axes, dot, batched):
         b_shape = [1] * 2
 
         # compute total size of summed axes
-        for i in xrange(0, axes):
+        for i in range(0, axes):
             a_shape[1] *= a.shape[-(i + 1)]
             b_shape[0] *= b.shape[batch_axes + i]
         # compute total size of other axes
-        for i in xrange(0, a.ndim - axes - batch_axes):
+        for i in range(0, a.ndim - axes - batch_axes):
             a_shape[0] *= a.shape[batch_axes + i]
-        for i in xrange(0, b.ndim - axes - batch_axes):
+        for i in range(0, b.ndim - axes - batch_axes):
             b_shape[1] *= b.shape[-(i + 1)]
 
         if batched:
@@ -6514,11 +6509,7 @@ def _tensordot_as_dot(a, b, axes, dot, batched):
 
         batch_axes = [0] if batched else []
         other_axes = [
-            [
-                x
-                for x in xrange(operand.ndim)
-                if x not in axes[i] and x not in batch_axes
-            ]
+            [x for x in range(operand.ndim) if x not in axes[i] and x not in batch_axes]
             for i, operand in enumerate((a, b))
         ]
 
@@ -7163,7 +7154,7 @@ class Choose(Op):
             assert isinstance(node.inputs[1], theano.typed_list.TypedListVariable)
             raise ShapeError("Case not implemented")
             shape = shapes[0]
-            for i in xrange(len(shapes[0]) - 1):
+            for i in range(len(shapes[0]) - 1):
                 shape[i] = shapes[1][i]
             return [(shape)]
 
@@ -7226,7 +7217,7 @@ class AllocEmpty(gof.Op):
     """Implement Alloc on the cpu, but without initializing memory."""
 
     __props__ = ("dtype",)
-    params_type = ParamsType(typecode=int32_t)
+    params_type = ParamsType(typecode=int32)
 
     # specify the type of the data
     def __init__(self, dtype):

@@ -1,6 +1,3 @@
-from six.moves import xrange
-
-
 def render_string(string, sub):
     """
     string: a string, containing formatting instructions
@@ -37,7 +34,7 @@ def pretty_format(string):
     lines = [strip_leading_white_space(line) for line in lines]
 
     indent = 0
-    for i in xrange(len(lines)):
+    for i in range(len(lines)):
         indent -= lines[i].count("}")
         if indent < 0:
             indent = 0

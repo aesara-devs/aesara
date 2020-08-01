@@ -1,17 +1,16 @@
-"""
-WRITEME
-
-"""
-
-from copy import copy, deepcopy
-from sys import getsizeof
 import sys
 import traceback
+
 import numpy as np
 
 import theano
+
+from sys import getsizeof
+from copy import copy, deepcopy
+
 from six import reraise
 from six.moves import StringIO
+
 from theano.gof import utils
 from theano.gof import graph
 from theano.gof.type import Type

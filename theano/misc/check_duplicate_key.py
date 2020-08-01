@@ -3,7 +3,7 @@ import os
 import sys
 
 import theano
-from six import iteritems, itervalues
+
 
 DISPLAY_DUPLICATE_KEYS = False
 DISPLAY_MOST_FREQUENT_DUPLICATE_CCODE = False
@@ -45,19 +45,19 @@ for dir in dirs:
         pass
 
 if DISPLAY_DUPLICATE_KEYS:
-    for k, v in iteritems(keys):
+    for k, v in keys.items():
         if v > 1:
             print("Duplicate key (%i copies): %s" % (v, pickle.loads(k)))
 
 nbs_keys = {}  # nb seen -> now many key
-for val in itervalues(keys):
+for val in keys.values():
     nbs_keys.setdefault(val, 0)
     nbs_keys[val] += 1
 
 nbs_mod = {}  # nb seen -> how many key
 nbs_mod_to_key = {}  # nb seen -> keys
 more_than_one = 0
-for mod, kk in iteritems(mods):
+for mod, kk in mods.items():
     val = len(kk)
     nbs_mod.setdefault(val, 0)
     nbs_mod[val] += 1

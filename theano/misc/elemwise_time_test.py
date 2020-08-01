@@ -6,7 +6,7 @@ import numpy as np
 
 import theano
 import theano.tensor as T
-from six.moves import xrange
+
 
 parser = OptionParser(
     usage="%prog <options>\n Compute time for" " fast and slow elemwise operations"
@@ -31,7 +31,7 @@ parser.add_option(
 
 def evalTime(f, v, script=False, loops=1000):
     min = 1e10
-    for i in xrange(0, loops):
+    for i in range(0, loops):
         t0 = time.time()
         f(v)
         dt = time.time() - t0

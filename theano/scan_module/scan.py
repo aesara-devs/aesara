@@ -43,23 +43,19 @@ __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 
 import logging
+
 import numpy as np
+
 from collections import OrderedDict
 
-from six import iteritems, integer_types
-from six.moves import xrange
-from theano.compile import SharedVariable, function
-from theano import compile
-from theano import gof
+from six import integer_types
+
+from theano import compile, gof, tensor, config
+from theano.compile import SharedVariable, function, ops
 from theano.tensor import opt
-from theano import tensor
-from theano import config
 from theano.updates import OrderedUpdates
-from theano.compile import ops
 
-
-from theano.scan_module import scan_op
-from theano.scan_module import scan_utils
+from theano.scan_module import scan_op, scan_utils
 from theano.scan_module.scan_utils import safe_new, traverse
 
 # Logging function for sending warning or info
@@ -407,7 +403,7 @@ def scan(
 
     return_steps = OrderedDict()
     # wrap sequences in a dictionary if they are not already dictionaries
-    for i in xrange(n_seqs):
+    for i in range(n_seqs):
         if not isinstance(seqs[i], dict):
             seqs[i] = OrderedDict([("input", seqs[i]), ("taps", [0])])
         elif seqs[i].get("taps", None) is not None:
@@ -417,7 +413,7 @@ def scan(
             seqs[i]["taps"] = [0]
 
     # wrap outputs info in a dictionary if they are not already in one
-    for i in xrange(n_outs):
+    for i in range(n_outs):
         if outs_info[i] is not None:
             if isinstance(outs_info[i], dict):
                 # DEPRECATED :
@@ -754,9 +750,9 @@ def scan(
     max_mit_sot = np.max([-1] + mit_sot_rightOrder) + 1
     max_sit_sot = np.max([-1] + sit_sot_rightOrder) + 1
     n_elems = np.max([max_mit_sot, max_sit_sot])
-    _ordered_args = [[] for x in xrange(n_elems)]
+    _ordered_args = [[] for x in range(n_elems)]
     offset = 0
-    for idx in xrange(n_mit_sot):
+    for idx in range(n_mit_sot):
         n_inputs = len(mit_sot_tap_array[idx])
         if n_fixed_steps in [1, -1]:
             _ordered_args[mit_sot_rightOrder[idx]] = mit_sot_inner_slices[
@@ -768,7 +764,7 @@ def scan(
             ]
         offset += n_inputs
 
-    for idx in xrange(n_sit_sot):
+    for idx in range(n_sit_sot):
         if n_fixed_steps in [1, -1]:
             _ordered_args[sit_sot_rightOrder[idx]] = [sit_sot_inner_slices[idx]]
         else:
@@ -914,7 +910,7 @@ def scan(
         n_outs = len(dummy_f.maker.outputs)
         if as_while:
             n_outs = n_outs - 1
-        outs_info = [OrderedDict() for x in xrange(n_outs)]
+        outs_info = [OrderedDict() for x in range(n_outs)]
 
     # Step 5.1 Outputs with taps different then -1
 
@@ -1073,7 +1069,7 @@ def scan(
         # variables are put on GPU right away >:| ,
         new_givens = OrderedDict()
 
-        for w, w_copy in iteritems(givens):
+        for w, w_copy in givens.items():
             if isinstance(w.type, gpuarray.GpuArrayType) and isinstance(
                 w_copy.type, tensor.TensorType
             ):
@@ -1090,7 +1086,7 @@ def scan(
     # Step 7. Create the Scan Op
     ##
 
-    tap_array = mit_sot_tap_array + [[-1] for x in xrange(n_sit_sot)]
+    tap_array = mit_sot_tap_array + [[-1] for x in range(n_sit_sot)]
     if allow_gc is None:
         allow_gc = config.scan.allow_gc
     info = OrderedDict()
@@ -1125,7 +1121,7 @@ def scan(
         + mit_sot_scan_inputs
         + sit_sot_scan_inputs
         + shared_scan_inputs
-        + [actual_n_steps for x in xrange(n_nit_sot)]
+        + [actual_n_steps for x in range(n_nit_sot)]
         + other_shared_scan_args
         + other_scan_args
     )
@@ -1171,7 +1167,7 @@ def scan(
     )
 
     offset += n_mit_sot
-    offsets = [1 for x in xrange(n_sit_sot)]
+    offsets = [1 for x in range(n_sit_sot)]
     sit_sot_outs = remove_dimensions(
         scan_outs[offset : offset + n_sit_sot], sit_sot_return_steps, offsets
     )

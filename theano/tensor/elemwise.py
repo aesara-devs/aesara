@@ -1,10 +1,11 @@
 from copy import copy
 
 import numpy as np
-from six import iteritems, integer_types
-from six.moves import xrange
 
 import theano
+
+from six import integer_types
+
 from theano import gof
 
 from theano import change_flags
@@ -488,7 +489,7 @@ second dimension
         # inplace_pattern maps output idx -> input idx
         inplace_pattern = self.inplace_pattern
         if inplace_pattern:
-            for overwriter, overwritten in iteritems(inplace_pattern):
+            for overwriter, overwritten in inplace_pattern.items():
                 for ob, ib in zip(
                     out_broadcastables[overwriter],
                     inputs[overwritten].type.broadcastable,
@@ -941,7 +942,7 @@ second dimension
         dmap = dict(
             [
                 (node.outputs[o], [node.inputs[i]])
-                for o, i in iteritems(self.inplace_pattern)
+                for o, i in self.inplace_pattern.items()
             ]
         )
 
@@ -1557,7 +1558,7 @@ class CAReduce(Op):
             assert var.dtype == node.outputs[0].dtype
             return var.owner.op._c_all(var.owner, name, inames, onames, sub)
 
-        order1 = [i for i in xrange(input.type.ndim) if i not in axis]
+        order1 = [i for i in range(input.type.ndim) if i not in axis]
         order = order1 + list(axis)
 
         nnested = len(order1)

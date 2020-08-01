@@ -3,18 +3,15 @@ import sys
 import time
 
 import pytest
+
 import numpy as np
-from six import itervalues
 
-from theano import function
-from theano.gof import vm
-from theano.gof import OpWiseCLinker
-from six.moves import xrange
-from theano.compile import Mode
-
-from theano import tensor
-from theano.ifelse import ifelse
 import theano
+
+from theano import function, tensor
+from theano.gof import vm, OpWiseCLinker
+from theano.compile import Mode
+from theano.ifelse import ifelse
 
 
 class TestCallbacks:
@@ -85,7 +82,7 @@ def test_speed():
 
     def numpy_version(x, depth):
         z = x
-        for d in xrange(depth):
+        for d in range(depth):
             z = z + z
         return z
 
@@ -285,7 +282,7 @@ if run_memory_usage_tests:
 
         # This isn't really a unit test, you have to run it and look at top to
         # see if there's a leak
-        for i in xrange(10000):
+        for i in range(10000):
             x = tensor.vector()
             z = x
             for d in range(10):
@@ -322,7 +319,7 @@ if run_memory_usage_tests:
 
             f_a = function([x], a, mode=Mode(optimizer=None, linker=linker()))
             inp = np.random.rand(1000000)
-            for i in xrange(100):
+            for i in range(100):
                 f_a(inp)
                 # this doesn't seem to work, prints 0 for everything
                 # import resource
@@ -357,7 +354,7 @@ if run_memory_usage_tests:
 
             f_a = function([x], a, mode=Mode(optimizer=None, linker=linker()))
             inp = np.random.rand(1000000)
-            for i in xrange(500):
+            for i in range(500):
                 f_a(inp)
 
         print(1)
@@ -430,7 +427,7 @@ def test_reallocation():
             return [False, None]
 
         assert check_storage(storage_map)[0]
-        assert len(set(id(v) for v in itervalues(storage_map))) < len(storage_map)
+        assert len(set(id(v) for v in storage_map.values())) < len(storage_map)
 
 
 @pytest.mark.skipif(

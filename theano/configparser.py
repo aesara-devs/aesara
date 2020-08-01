@@ -8,13 +8,13 @@ import os
 import shlex
 import sys
 import warnings
+import theano
+
 from functools import wraps
 
-from six import StringIO, PY3, iteritems
+from six import StringIO, PY3, string_types
 
-import theano
 from theano.compat import configparser as ConfigParser
-from six import string_types
 
 _logger = logging.getLogger("theano.configparser")
 
@@ -124,17 +124,17 @@ class change_flags(object):
 
     def __enter__(self):
         self.old_vals = {}
-        for k, v in iteritems(self.confs):
+        for k, v in self.confs.items():
             self.old_vals[k] = v.__get__(True, None)
         try:
-            for k, v in iteritems(self.confs):
+            for k, v in self.confs.items():
                 v.__set__(None, self.new_vals[k])
         except Exception:
             self.__exit__()
             raise
 
     def __exit__(self, *args):
-        for k, v in iteritems(self.confs):
+        for k, v in self.confs.items():
             v.__set__(None, self.old_vals[k])
 
 

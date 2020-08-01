@@ -1,6 +1,6 @@
 import numpy as np
 import six.moves.cPickle as pickle
-from six.moves import xrange
+
 import theano
 from theano import tensor as T
 import time
@@ -25,7 +25,7 @@ def test_gc_never_pickles_temporaries():
     x = T.dvector()
 
     r = x
-    for i in xrange(2):  # TODO: 30 causes like LONG compilation due to MERGE
+    for i in range(2):  # TODO: 30 causes like LONG compilation due to MERGE
         r = r + r / 10
 
     optimizer = None
@@ -107,7 +107,7 @@ def test_merge_opt_runtime():
 
     x = T.dvector()
     r = x
-    for i in xrange(50):
+    for i in range(50):
         r = r + r / 10
 
     t = time.time()

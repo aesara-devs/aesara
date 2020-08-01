@@ -2,10 +2,6 @@
 Defines Linkers that deal with C implementations.
 
 """
-
-
-# Python imports
-from copy import copy
 import os
 import sys
 import logging
@@ -13,16 +9,16 @@ import logging
 import numpy as np
 
 import theano
+
+from copy import copy
+
+from six import string_types, reraise
+from six.moves import StringIO
+
 from theano import config
 from theano.compat import PY3
-from six import string_types, reraise
-from six.moves import StringIO, xrange
 
-# gof imports
-from theano.gof import graph
-from theano.gof import link
-from theano.gof import utils
-from theano.gof import cmodule
+from theano.gof import graph, link, utils, cmodule
 from theano.gof.compilelock import get_lock, release_lock
 from theano.gof.callcache import CallCache
 
@@ -1771,7 +1767,7 @@ class CLinker(link.Linker):
         )
         print(
             "  if (struct_ptr->init(",
-            ",".join("PyTuple_GET_ITEM(argtuple, %i)" % n for n in xrange(n_args)),
+            ",".join("PyTuple_GET_ITEM(argtuple, %i)" % n for n in range(n_args)),
             ") != 0) {",
             file=code,
         )

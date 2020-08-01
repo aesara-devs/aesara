@@ -11,7 +11,7 @@ import theano
 import tests.unittest_tools as utt
 
 from copy import copy
-from six.moves import xrange
+
 
 from theano import gof, scalar, config
 
@@ -1272,7 +1272,7 @@ class TestElemwise(unittest_tools.InferShapeTester):
         g = theano.function(
             [a, b, c, d, e, f], s, mode=theano.compile.Mode(linker="py")
         )
-        g(*[np.zeros(2 ** 11, config.floatX) for i in xrange(6)])
+        g(*[np.zeros(2 ** 11, config.floatX) for i in range(6)])
 
 
 def test_gt_grad():

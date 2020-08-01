@@ -1,7 +1,7 @@
 
 import theano
 import theano.tensor as tt
-from six.moves import xrange
+
 
 k = tt.iscalar("k")
 A = tt.vector("A")

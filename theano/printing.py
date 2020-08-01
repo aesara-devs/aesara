@@ -4,17 +4,22 @@ They all allow different way to print a graph or the result of an Op
 in a graph(Print Op)
 """
 
-from copy import copy
 import logging
 import os
 import sys
 import hashlib
 
 import numpy as np
-from six import string_types, integer_types, iteritems
-from six.moves import StringIO, reduce
 
 import theano
+
+from functools import reduce
+
+from copy import copy
+
+from six import string_types, integer_types
+from six.moves import StringIO
+
 from theano import gof
 from theano import config
 from theano.gof import Op, Apply
@@ -623,7 +628,7 @@ class PPrinter:
         pprinter = self.clone_assign(
             lambda pstate, r: r.name is not None and r is not current, leaf_printer
         )
-        inv_updates = dict((b, a) for (a, b) in iteritems(updates))
+        inv_updates = dict((b, a) for (a, b) in updates.items())
         i = 1
         for node in gof.graph.io_toposort(
             list(inputs) + updates.keys(), list(outputs) + updates.values()
@@ -972,7 +977,7 @@ def pydotprint(
         astr, aid = apply_name(node)
 
         use_color = None
-        for opName, color in iteritems(colorCodes):
+        for opName, color in colorCodes.items():
             if opName in node.op.__class__.__name__:
                 use_color = color
 

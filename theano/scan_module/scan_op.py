@@ -52,13 +52,15 @@ import copy
 import itertools
 import logging
 import time
-from collections import OrderedDict
 
 import numpy as np
-from six import iteritems, integer_types, raise_from
-from six.moves import xrange
 
 import theano
+
+from collections import OrderedDict
+
+from six import integer_types, raise_from, string_types
+
 from theano.compile import function, In, Out
 from theano.compile.mode import AddFeatureOptimizer
 from theano import compile, config, gradient, gof, tensor
@@ -69,7 +71,6 @@ from theano.gof.toolbox import NoOutputFromInplace
 from theano.tensor import as_tensor_variable, TensorType
 from theano.tensor.opt import Shape_i
 from theano.gradient import grad_undefined, DisconnectedType, NullType
-from six import string_types
 from theano.compile.profiling import ScanProfileStats
 
 from theano.scan_module import scan_utils
@@ -189,7 +190,7 @@ class Scan(PureOp):
 
         # Pre-computing some values to speed up perform
         self.mintaps = [np.min(x) for x in self.tap_array]
-        self.mintaps += [0 for x in xrange(self.n_nit_sot)]
+        self.mintaps += [0 for x in range(self.n_nit_sot)]
         self.seqs_arg_offset = 1 + self.n_seqs
         self.shared_arg_offset = (
             self.seqs_arg_offset + self.n_mit_mot + self.n_mit_sot + self.n_sit_sot
@@ -227,7 +228,7 @@ class Scan(PureOp):
         # inputs and output and ensure that they have the same dtype
         nb_recurr_outputs = self.n_mit_mot + self.n_mit_sot + self.n_sit_sot
 
-        for outer_oidx in xrange(nb_recurr_outputs):
+        for outer_oidx in range(nb_recurr_outputs):
 
             inner_iidxs = self.var_mappings["inner_inp_from_outer_out"][outer_oidx]
             inner_oidxs = self.var_mappings["inner_out_from_outer_out"][outer_oidx]
@@ -470,7 +471,7 @@ class Scan(PureOp):
         ):
             outer_mitmot = format(_outer_mitmot, as_var=inner_mitmot[ipos])
             new_inputs.append(outer_mitmot)
-            for k in xrange(len(itaps)):
+            for k in range(len(itaps)):
                 if (
                     inner_mitmot[ipos + k].type.dtype != outer_mitmot.type.dtype
                     or inner_mitmot[ipos + k].ndim != outer_mitmot.ndim - 1
@@ -489,7 +490,7 @@ class Scan(PureOp):
                         )
                     )
             ipos += len(itaps)
-            for k in xrange(len(otaps)):
+            for k in range(len(otaps)):
                 if inner_mitmot_outs[opos + k].type.dtype != outer_mitmot.type.dtype:
                     raise ValueError(
                         err_msg2
@@ -525,7 +526,7 @@ class Scan(PureOp):
             outer_mitsot = format(_outer_mitsot, as_var=inner_mitsots[ipos])
             new_inputs.append(outer_mitsot)
 
-            for k in xrange(len(itaps)):
+            for k in range(len(itaps)):
                 if (
                     inner_mitsots[ipos + k].type.dtype != outer_mitsot.type.dtype
                     or inner_mitsots[ipos + k].ndim != outer_mitsot.ndim - 1
@@ -988,8 +989,8 @@ class Scan(PureOp):
                 d1 = np.max(cython_tap_array_len)
             d0 = len(self.tap_array)
             cython_tap_array = np.zeros((d0, d1), dtype="int32")
-            for _d0 in xrange(d0):
-                for _d1 in xrange(cython_tap_array_len[_d0]):
+            for _d0 in range(d0):
+                for _d1 in range(cython_tap_array_len[_d0]):
                     cython_tap_array[_d0, _d1] = self.tap_array[_d0][_d1]
             cython_mit_mot_out_nslices = np.asarray(
                 [len(x) for x in self.mit_mot_out_slices], dtype="int32"
@@ -1000,8 +1001,8 @@ class Scan(PureOp):
                 d1 = np.max(cython_mit_mot_out_nslices)
             d0 = len(self.mit_mot_out_slices)
             cython_mit_mot_out_slices = np.zeros((d0, d1), dtype="int32")
-            for _d0 in xrange(d0):
-                for _d1 in xrange(cython_mit_mot_out_nslices[_d0]):
+            for _d0 in range(d0):
+                for _d1 in range(cython_mit_mot_out_nslices[_d0]):
                     cython_mit_mot_out_slices[_d0, _d1] = self.mit_mot_out_slices[_d0][
                         _d1
                     ]
@@ -1017,10 +1018,10 @@ class Scan(PureOp):
 
             if hasattr(self, "destroy_map"):
                 cython_destroy_map = [
-                    x in self.destroy_map for x in xrange(len(node.outputs))
+                    x in self.destroy_map for x in range(len(node.outputs))
                 ]
             else:
-                cython_destroy_map = [0 for x in xrange(len(node.outputs))]
+                cython_destroy_map = [0 for x in range(len(node.outputs))]
             cython_destroy_map = np.asarray(cython_destroy_map, dtype="int32")
             from . import scan_perform_ext
 
@@ -1304,12 +1305,12 @@ class Scan(PureOp):
 
         pos = [
             (-self.mintaps[idx]) % store_steps[idx]
-            for idx in xrange(self.n_outs + self.n_nit_sot)
+            for idx in range(self.n_outs + self.n_nit_sot)
         ]
         if not getattr(self, "destroy_map", None):
             self.destroy_map = OrderedDict()
         # 2.1 Create storage space for outputs
-        for idx in xrange(self.n_outs):
+        for idx in range(self.n_outs):
             if idx in self.destroy_map:
                 # ^ Case 1. Outputs should be computed inplace of their
                 # initial state
@@ -1344,24 +1345,24 @@ class Scan(PureOp):
             + sum(map(len, self.tap_array[: self.n_outs]))
             + self.n_shared_outs
         )
-        for idx in xrange(len(other_args)):
+        for idx in range(len(other_args)):
             input_storage[idx + offset].storage[0] = other_args[idx]
 
         i = 0
         cond = True
         # ############# THE MAIN LOOP ##############
-        # for i in xrange(n_steps):
+        # for i in range(n_steps):
         while (i < n_steps) and cond:
             # sequences over which scan iterates
             # 3. collect input slices
-            for idx in xrange(self.n_seqs):
+            for idx in range(self.n_seqs):
                 if self.vector_seqs[idx]:
                     input_storage[idx].storage[0] = seqs[idx][i : i + 1].reshape(())
                 else:
                     input_storage[idx].storage[0] = seqs[idx][i]
 
             offset = self.n_seqs
-            for idx in xrange(self.n_outs):
+            for idx in range(self.n_outs):
                 if self.vector_outs[idx]:
                     for tap in self.tap_array[idx]:
                         _idx = (pos[idx] + tap) % store_steps[idx]
@@ -1378,11 +1379,11 @@ class Scan(PureOp):
             a_offset = self.shared_arg_offset
             o_offset = self.n_outs + self.n_nit_sot
             if i == 0:
-                for j in xrange(self.n_shared_outs):
+                for j in range(self.n_shared_outs):
                     input_storage[offset].storage[0] = args[a_offset + j]
                     offset += 1
             else:
-                for j in xrange(self.n_shared_outs):
+                for j in range(self.n_shared_outs):
                     input_storage[offset].storage[0] = outs[o_offset + j][0]
                     offset += 1
 
@@ -1390,14 +1391,14 @@ class Scan(PureOp):
 
             # 4.1. Collect slices for mitmots
             offset = 0
-            for idx in xrange(self.n_mit_mot_outs):
+            for idx in range(self.n_mit_mot_outs):
                 if not self.mitmots_preallocated[idx]:
                     output_storage[offset].storage[0] = None
                     offset += 1
 
             # 4.2. Collect slices for mitsots, sitsots and nitsots
             if i != 0:
-                for idx in xrange(self.n_outs + self.n_nit_sot - self.n_mit_mot):
+                for idx in range(self.n_outs + self.n_nit_sot - self.n_mit_mot):
                     if (
                         store_steps[idx + self.n_mit_mot] == 1
                         or self.vector_outs[idx + self.n_mit_mot]
@@ -1409,12 +1410,12 @@ class Scan(PureOp):
                             pos[_pos0]
                         ]
             else:
-                for idx in xrange(self.n_outs + self.n_nit_sot - self.n_mit_mot):
+                for idx in range(self.n_outs + self.n_nit_sot - self.n_mit_mot):
                     output_storage[idx + offset].storage[0] = None
 
             # 4.3. Collect slices for shared outputs
             offset += self.n_outs + self.n_nit_sot - self.n_mit_mot
-            for idx in xrange(self.n_shared_outs):
+            for idx in range(self.n_shared_outs):
                 output_storage[idx + offset].storage[0] = None
 
             # 4.4. If there is a condition add it to the mix
@@ -1428,7 +1429,7 @@ class Scan(PureOp):
             # execution. Also keep pointers to their data to be able to detect
             # cases where outputs reused the allocated object but alter the
             # memory region they refer to.
-            for idx in xrange(len(output_storage)):
+            for idx in range(len(output_storage)):
 
                 var = output_storage[idx].storage[0]
                 old_output_storage[idx] = var
@@ -1447,7 +1448,7 @@ class Scan(PureOp):
             # pointers to their data to be able to detect cases where outputs
             # reused the allocated object but alter the memory region they
             # refer to.
-            for idx in xrange(nb_mitmot_in):
+            for idx in range(nb_mitmot_in):
                 var = input_storage[idx + self.n_seqs].storage[0]
                 old_mitmot_input_storage[idx] = var
 
@@ -1508,7 +1509,7 @@ class Scan(PureOp):
             # 5.3 Copy over the values for mit_mot outputs
             mitmot_inp_offset = 0
             mitmot_out_idx = 0
-            for j in xrange(self.n_mit_mot):
+            for j in range(self.n_mit_mot):
                 for k in self.mit_mot_out_slices[j]:
                     if self.mitmots_preallocated[mitmot_out_idx]:
                         # This output tap has been preallocated.
@@ -1551,7 +1552,7 @@ class Scan(PureOp):
             end = self.n_outs
             offset_out -= self.n_mit_mot
 
-            for j in xrange(begin, end):
+            for j in range(begin, end):
 
                 # Copy the output value to `outs`, if necessary
                 if store_steps[j] == 1 or self.vector_outs[j]:
@@ -1595,7 +1596,7 @@ class Scan(PureOp):
             # 5.5 Copy over the values for nit_sot outputs
             begin = end
             end += self.n_nit_sot
-            for j in xrange(begin, end):
+            for j in range(begin, end):
 
                 if i == 0:
                     jout = j + offset_out
@@ -1636,7 +1637,7 @@ class Scan(PureOp):
             # variables
             begin = end
             end += self.n_shared_outs
-            for j in xrange(begin, end):
+            for j in range(begin, end):
                 jout = j + offset_out
                 outs[j][0] = output_storage[jout].storage[0]
 
@@ -1646,7 +1647,7 @@ class Scan(PureOp):
         # 6. Check if you need to re-order output buffers
         begin = self.n_mit_mot
         end = self.n_outs + self.n_nit_sot
-        for idx in xrange(begin, end):
+        for idx in range(begin, end):
             if store_steps[idx] < i - self.mintaps[idx] and pos[idx] < store_steps[idx]:
 
                 pdx = pos[idx]
@@ -1765,7 +1766,7 @@ class Scan(PureOp):
             outer_inp_idx = 0
         n_outs = self.n_mit_mot + self.n_mit_sot + self.n_sit_sot
         outs_shape = []
-        for idx in xrange(n_outs):
+        for idx in range(n_outs):
             mintap = abs(min(self.tap_array[idx]))
             for k in self.tap_array[idx]:
                 outs_shape += [input_shapes[idx + self.n_seqs + 1][1:]]
@@ -1777,7 +1778,7 @@ class Scan(PureOp):
 
         # shared_outs
         offset = 1 + self.n_seqs + n_outs
-        for idx in xrange(self.n_shared_outs):
+        for idx in range(self.n_shared_outs):
             outs_shape += [input_shapes[idx + offset]]
 
         # non_sequences
@@ -1809,7 +1810,7 @@ class Scan(PureOp):
         scan_outs = [x for x in input_shapes[offset : offset + n_outs]]
         offset += n_outs
         outs_shape_n = self.n_mit_mot_outs + self.n_mit_sot + self.n_sit_sot
-        for x in xrange(self.n_nit_sot):
+        for x in range(self.n_nit_sot):
             out_shape_x = outs_shape[outs_shape_n + x]
             if out_shape_x is None:
                 # This output is not a tensor, and has no shape
@@ -1821,7 +1822,7 @@ class Scan(PureOp):
                 r = node.outputs[n_outs + x]
                 assert r.ndim == 1 + len(out_shape_x)
                 shp = [node.inputs[offset + self.n_shared_outs + x]]
-                for i, shp_i in zip(xrange(1, r.ndim), out_shape_x):
+                for i, shp_i in zip(range(1, r.ndim), out_shape_x):
                     # Validate shp_i. v_shape_i is either None (if invalid),
                     # or a (variable, Boolean) tuple. The Boolean indicates
                     # whether variable is shp_i (if True), or an valid
@@ -1869,10 +1870,10 @@ class Scan(PureOp):
         # over every possible pairing of their corresponding inner inputs
         # and inner outputs and, if one such pair of inner variables is
         # connected than the pair of outer variables is connected.
-        for outer_oidx in xrange(len(node.outputs)):
+        for outer_oidx in range(len(node.outputs)):
             inner_oidxs = self.var_mappings["inner_out_from_outer_out"][outer_oidx]
 
-            for outer_iidx in xrange(len(node.inputs)):
+            for outer_iidx in range(len(node.inputs)):
                 inner_iidxs = self.var_mappings["inner_inp_from_outer_inp"][outer_iidx]
 
                 for inner_oidx in inner_oidxs:
@@ -1891,9 +1892,9 @@ class Scan(PureOp):
 
         n_outs = len(node.outputs)
 
-        for steps in xrange(n_outs):
-            for iidx in xrange(n_outs):
-                for jidx in xrange(n_outs):
+        for steps in range(n_outs):
+            for iidx in range(n_outs):
+                for jidx in range(n_outs):
 
                     # Get the idx of the outer input corresponding to that
                     # outer output
@@ -1901,7 +1902,7 @@ class Scan(PureOp):
 
                     if j_inp_idx != -1:
                         if connection_pattern[j_inp_idx][iidx] is True:
-                            for k in xrange(len(connection_pattern)):
+                            for k in range(len(connection_pattern)):
                                 if connection_pattern[k][jidx]:
                                     connection_pattern[k][iidx] = True
 
@@ -1939,7 +1940,7 @@ class Scan(PureOp):
         outer_oidx = 0
 
         # Handle sequences inputs
-        for i in xrange(self.info["n_seqs"]):
+        for i in range(self.info["n_seqs"]):
             outer_input_indices.append(outer_iidx)
             inner_input_indices.append([inner_iidx])
             inner_output_indices.append([])
@@ -1951,7 +1952,7 @@ class Scan(PureOp):
             outer_oidx += 0
 
         # Handle mitmots, mitsots and sitsots variables
-        for i in xrange(len(self.info["tap_array"])):
+        for i in range(len(self.info["tap_array"])):
             nb_input_taps = len(self.info["tap_array"][i])
 
             if i < self.n_mit_mot:
@@ -1978,7 +1979,7 @@ class Scan(PureOp):
         outer_iidx += self.info["n_shared_outs"]
 
         # Handle nitsots variables
-        for i in xrange(self.n_nit_sot):
+        for i in range(self.n_nit_sot):
             outer_input_indices.append(outer_iidx)
             inner_input_indices.append([])
             inner_output_indices.append([inner_oidx])
@@ -1994,7 +1995,7 @@ class Scan(PureOp):
         outer_iidx -= self.info["n_shared_outs"] + self.n_nit_sot
 
         # Handle shared states
-        for i in xrange(self.info["n_shared_outs"]):
+        for i in range(self.info["n_shared_outs"]):
             outer_input_indices.append(outer_iidx)
             inner_input_indices.append([inner_iidx])
             inner_output_indices.append([inner_oidx])
@@ -2013,7 +2014,7 @@ class Scan(PureOp):
         # Note : the number of non-sequence inputs is not stored in self.info
         # so it has to be inferred from the number of inner inputs that remain
         # to be handled
-        for i in xrange(len(self.inputs) - inner_iidx):
+        for i in range(len(self.inputs) - inner_iidx):
             outer_input_indices.append(outer_iidx)
             inner_input_indices.append([inner_iidx])
             inner_output_indices.append([])
@@ -2277,7 +2278,7 @@ class Scan(PureOp):
         dC_dinps_t = compute_all_gradients(known_grads)
 
         # mask inputs that get no gradients
-        for dx in xrange(len(dC_dinps_t)):
+        for dx in range(len(dC_dinps_t)):
             if not dC_dinps_t[dx]:
                 dC_dinps_t[dx] = tensor.zeros_like(diff_inputs[dx])
             else:
@@ -2323,7 +2324,7 @@ class Scan(PureOp):
             outer_inp_seqs = [x[n_steps - 1 :: -1] for x in inputs[1 : 1 + self.n_seqs]]
         else:
             outer_inp_seqs = [x[::-1] for x in inputs[1 : 1 + self.n_seqs]]
-        for idx in xrange(self.n_mit_mot + self.n_mit_sot):
+        for idx in range(self.n_mit_mot + self.n_mit_sot):
             mintap = np.min(self.tap_array[idx])
             if idx < self.n_mit_mot:
                 outmaxtap = np.max(self.mitmot_out_taps()[idx])
@@ -2397,7 +2398,7 @@ class Scan(PureOp):
         n_mitmot_outs = 0
         n_mitmot_inps = 0
 
-        for idx in xrange(self.n_mit_mot):
+        for idx in range(self.n_mit_mot):
             if isinstance(dC_douts[idx].type, DisconnectedType):
                 out = outs[idx]
                 outer_inp_mitmot.append(tensor.zeros_like(out))
@@ -2409,13 +2410,13 @@ class Scan(PureOp):
             through_shared = False
             disconnected = True
 
-            for jdx in xrange(len(self.mit_mot_out_slices[idx])):
+            for jdx in range(len(self.mit_mot_out_slices[idx])):
                 inner_inp_mitmot.append(dC_dXts[out_pos])
                 mitmot_inp_taps[idx].append(-self.mit_mot_out_slices[idx][jdx])
                 n_mitmot_inps += 1
                 out_pos += 1
 
-            for jdx in xrange(len(self.tap_array[idx])):
+            for jdx in range(len(self.tap_array[idx])):
                 tap = -self.tap_array[idx][jdx]
 
                 # Only create a new inner input if there is not already one
@@ -2478,7 +2479,7 @@ class Scan(PureOp):
                 type_outs.append("connected")
 
         offset = self.n_mit_mot
-        for idx in xrange(self.n_mit_sot):
+        for idx in range(self.n_mit_sot):
             if isinstance(dC_douts[idx + offset].type, DisconnectedType):
                 outer_inp_mitmot.append(outs[idx + offset].zeros_like())
             else:
@@ -2493,7 +2494,7 @@ class Scan(PureOp):
             through_shared = False
             disconnected = True
             mitmot_inp_taps[idx + offset].append(0)
-            for jdx in xrange(len(self.tap_array[idx_tap])):
+            for jdx in range(len(self.tap_array[idx_tap])):
                 inner_inp_mitmot.append(dC_dXtm1s[ins_pos - self.n_seqs])
 
                 if isinstance(dC_dinps_t[ins_pos].type, NullType):
@@ -2530,7 +2531,7 @@ class Scan(PureOp):
                 type_outs.append("connected")
 
         offset += self.n_mit_sot
-        for idx in xrange(self.n_sit_sot):
+        for idx in range(self.n_sit_sot):
             mitmot_inp_taps.append([0, 1])
             mitmot_out_taps.append([1])
             through_shared = False
@@ -2631,7 +2632,7 @@ class Scan(PureOp):
                 # Cannot use dC_dXtm1s.dtype, so we use floatX instead.
                 outer_inp_sitsot.append(
                     tensor.zeros(
-                        [grad_steps + 1] + [x.shape[i] for i in xrange(x.ndim)],
+                        [grad_steps + 1] + [x.shape[i] for i in range(x.ndim)],
                         dtype=theano.config.floatX,
                     )
                 )
@@ -2643,13 +2644,13 @@ class Scan(PureOp):
             else:
                 outer_inp_sitsot.append(
                     tensor.zeros(
-                        [grad_steps + 1] + [x.shape[i] for i in xrange(x.ndim)],
+                        [grad_steps + 1] + [x.shape[i] for i in range(x.ndim)],
                         dtype=y.dtype,
                     )
                 )
 
         n_sitsot_outs = len(outer_inp_sitsot)
-        new_tap_array = mitmot_inp_taps + [[-1] for k in xrange(n_sitsot_outs)]
+        new_tap_array = mitmot_inp_taps + [[-1] for k in range(n_sitsot_outs)]
 
         info = OrderedDict()
         info["n_seqs"] = len(outer_inp_seqs)
@@ -2678,7 +2679,7 @@ class Scan(PureOp):
             + outer_inp_seqs
             + outer_inp_mitmot
             + outer_inp_sitsot
-            + [n_steps if self.as_while else inputs[0] for _ in xrange(n_nit_sot)]
+            + [n_steps if self.as_while else inputs[0] for _ in range(n_nit_sot)]
             + self.outer_shared(inputs)
             + self.outer_non_seqs(inputs)
         )
@@ -2765,7 +2766,7 @@ class Scan(PureOp):
 
         start = len(gradients)
         node = outs[0].owner
-        for idx in xrange(self.n_shared_outs):
+        for idx in range(self.n_shared_outs):
             disconnected = True
             connected_flags = self.connection_pattern(node)[idx + start]
             for dC_dout, connected in zip(dC_douts, connected_flags):
@@ -2781,7 +2782,7 @@ class Scan(PureOp):
                 )
 
         start = len(gradients)
-        gradients += [DisconnectedType()() for _ in xrange(self.n_nit_sot)]
+        gradients += [DisconnectedType()() for _ in range(self.n_nit_sot)]
         begin = end
 
         end = begin + n_sitsot_outs
@@ -2809,9 +2810,9 @@ class Scan(PureOp):
         # from a computational point of view
         # The gradients of scan are computed replacing Disconnected with 0,
         # because through the recurrence they can become nonzero
-        for idx in xrange(len(gradients)):
+        for idx in range(len(gradients)):
             disconnected = True
-            for kdx in xrange(len(node.outputs)):
+            for kdx in range(len(node.outputs)):
                 if connection_pattern[idx][kdx] and not isinstance(
                     dC_douts[kdx].type, DisconnectedType
                 ):
@@ -3070,7 +3071,7 @@ def profile_printer(
         total_super_scan_time = 0
         total_scan_fct_time = 0
         total_scan_op_time = 0
-        for node, v in iteritems(apply_time):
+        for node, v in apply_time.items():
             if isinstance(node.op, Scan) and not node.op.fn.profile:
                 print(
                     "  One scan node do not have its inner profile enabled. "

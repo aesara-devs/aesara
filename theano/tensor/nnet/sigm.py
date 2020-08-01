@@ -68,7 +68,7 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
         #
         # import numpy, theano
         # dt='float32'  # or float64
-        # for i in xrange(750):
+        # for i in range(750):
         #     print i, repr(theano._asarray(1.0, dtype=dt) /
         #                   (theano._asarray(1.0, dtype=dt) +
         #                    numpy.exp(-theano._asarray([i,-i], dtype=dt))))
@@ -379,7 +379,7 @@ class ScalarSoftplus(scalar.UnaryScalarOp):
         (z,) = out
         # These constants were obtained by looking at the output of
         # python commands like:
-        #  for i in xrange(750):
+        #  for i in range(750):
         #      print i, repr(numpy.log1p(numpy.exp(theano._asarray([i,-i], dtype=dt))))
         # the boundary checks prevent us from generating inf
 

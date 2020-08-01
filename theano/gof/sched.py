@@ -1,7 +1,7 @@
 from collections import defaultdict
-from six import iteritems
-from theano.gof.graph import list_of_nodes
+
 from theano.compat import cmp
+from theano.gof.graph import list_of_nodes
 
 # {{{ http://code.activestate.com/recipes/578231/ (r1)
 # Copyright (c) Oren Tirosh 2012
@@ -138,7 +138,7 @@ def _toposort(edges):
 
     """
     incoming_edges = reverse_dict(edges)
-    incoming_edges = dict((k, set(val)) for k, val in iteritems(incoming_edges))
+    incoming_edges = dict((k, set(val)) for k, val in incoming_edges.items())
     S = set((v for v in edges if v not in incoming_edges))
     L = []
 

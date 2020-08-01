@@ -3,7 +3,6 @@ import numpy as np
 import numpy.linalg
 import theano
 
-from six.moves import xrange
 
 from numpy import inf
 from numpy.testing import assert_array_almost_equal
@@ -105,7 +104,7 @@ def test_matrix_dot():
     n = rng.randint(4) + 2
     rs = []
     xs = []
-    for k in xrange(n):
+    for k in range(n):
         rs += [rng.randn(4, 4).astype(theano.config.floatX)]
         xs += [tensor.matrix()]
     sol = matrix_dot(*xs)

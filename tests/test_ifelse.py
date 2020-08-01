@@ -5,7 +5,7 @@ import numpy as np
 import theano
 import theano.ifelse
 
-from six.moves import reduce
+from functools import reduce
 
 from theano import tensor
 from theano.ifelse import IfElse, ifelse

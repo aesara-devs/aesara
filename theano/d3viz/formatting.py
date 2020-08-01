@@ -2,14 +2,14 @@
 
 Author: Christof Angermueller <cangermueller@gmail.com>
 """
-
+import os
 
 import numpy as np
-import os
-from functools import reduce
-from six import iteritems, itervalues
 
 import theano
+
+from functools import reduce
+
 from theano import gof
 from theano.compile import Function
 from theano.compile import builders
@@ -154,7 +154,7 @@ class PyDotFormatter(object):
             nparams["shape"] = self.shapes["apply"]
 
             use_color = None
-            for opName, color in iteritems(self.apply_colors):
+            for opName, color in self.apply_colors.items():
                 if opName in node.op.__class__.__name__:
                     use_color = color
             if use_color:
@@ -188,11 +188,11 @@ class PyDotFormatter(object):
 
                 edge_params = {}
                 if hasattr(node.op, "view_map") and id in reduce(
-                    list.__add__, itervalues(node.op.view_map), []
+                    list.__add__, node.op.view_map.values(), []
                 ):
                     edge_params["color"] = self.node_colors["output"]
                 elif hasattr(node.op, "destroy_map") and id in reduce(
-                    list.__add__, itervalues(node.op.destroy_map), []
+                    list.__add__, node.op.destroy_map.values(), []
                 ):
                     edge_params["color"] = "red"
 
@@ -358,7 +358,7 @@ def type_to_str(t):
 def dict_to_pdnode(d):
     """Create pydot node from dict."""
     e = dict()
-    for k, v in iteritems(d):
+    for k, v in d.items():
         if v is not None:
             if isinstance(v, list):
                 v = "\t".join([str(x) for x in v])

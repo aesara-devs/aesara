@@ -38,14 +38,14 @@ BUT, YOU GOTTA RUN THIS CODE AND MAKE SURE IT STILL WORKS NICELY, HEY?
 
         update_fn = theano.function(
             inputs = [x, y, stepsize,
-                In(w, 
-                    name='w', 
+                In(w,
+                    name='w',
                     value=numpy.zeros((n_in, n_out)),
                     update=w - stepsize * grad_w,
                     mutable=True,
                     strict=True)
-                In(b, 
-                    name='b', 
+                In(b,
+                    name='b',
                     value=numpy.zeros(n_out),
                     update=b - lr * grad_b,
                     mutable=True,
@@ -70,7 +70,7 @@ BUT, YOU GOTTA RUN THIS CODE AND MAKE SURE IT STILL WORKS NICELY, HEY?
     y_data = theano._asarray(y_data == numpy.max(y_data, axis=1), dtype='int64')
 
     print "Model Training ..."
-    for iteration in xrange(1000):
+    for iteration in range(1000):
         print "  iter", iteration, "cost", update_fn(x_data, y_data, stepsize=0.0001)
 
     print "Model Predictions"

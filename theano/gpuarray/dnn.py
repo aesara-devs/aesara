@@ -4,10 +4,14 @@ import sys
 import warnings
 
 import numpy as np
-from six import integer_types
-from six.moves import reduce
 
 import theano
+import theano.pathparse
+
+from functools import reduce
+
+from six import integer_types
+
 from theano import Op, Apply, tensor, config, Variable
 from theano.scalar import (
     as_scalar,
@@ -40,6 +44,8 @@ from theano.tensor.nnet.abstract_conv import (
     assert_conv_shape,
 )
 from theano.tensor.signal.pool import Pool, MaxPoolGrad, AveragePoolGrad
+from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
+
 from . import pygpu, cudnn_defs
 from .type import get_context, gpu_context_type, list_contexts, GpuArraySharedVariable
 from .basic_ops import (
@@ -75,9 +81,6 @@ from .opt_util import (
     pad_dims,
     unpad_dims,
 )
-
-from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
-import theano.pathparse
 
 DNN_CONV_ALGO_CHOOSE_ONCE = ["guess_once", "time_once"]
 DNN_CONV_ALGO_CHOOSE_TIME = ["time_once", "time_on_shape_change"]

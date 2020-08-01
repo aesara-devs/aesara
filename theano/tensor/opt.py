@@ -3,7 +3,6 @@
 # TODO: intelligent merge for mul/add
 # TODO: 0*x -> 0
 
-from collections import defaultdict
 import logging
 import itertools
 import operator
@@ -13,10 +12,14 @@ import traceback
 import warnings
 
 import numpy as np
-from six import integer_types, iteritems
-from six.moves import reduce, xrange
 
 import theano
+
+from functools import reduce
+from collections import defaultdict
+
+from six import integer_types
+
 from theano import gof
 
 from theano.gof import opt, InconsistencyError, TopoOptimizer, graph
@@ -150,7 +153,7 @@ def broadcast_like(value, template, fgraph, dtype=None):
             rval,
             *[
                 i
-                for i in xrange(rval.ndim)
+                for i in range(rval.ndim)
                 if rval.broadcastable[i] and not template.broadcastable[i]
             ],
         )
@@ -288,7 +291,7 @@ class InplaceElemwiseOptimizer(Optimizer):
 
                 baseline = op.inplace_pattern
                 candidate_outputs = [
-                    i for i in xrange(len(node.outputs)) if i not in baseline
+                    i for i in range(len(node.outputs)) if i not in baseline
                 ]
                 # node inputs that are Constant, already destroyed,
                 # or fgraph protected inputs and fgraph outputs can't be used as
@@ -296,7 +299,7 @@ class InplaceElemwiseOptimizer(Optimizer):
                 # Remove here as faster.
                 candidate_inputs = [
                     i
-                    for i in xrange(len(node.inputs))
+                    for i in range(len(node.inputs))
                     if i not in baseline.values()
                     and not isinstance(node.inputs[i], Constant)
                     and
@@ -313,7 +316,7 @@ class InplaceElemwiseOptimizer(Optimizer):
                 # Remove here as faster.
                 candidate_inputs = [
                     i
-                    for i in xrange(len(node.inputs))
+                    for i in range(len(node.inputs))
                     if not isinstance(node.inputs[i], Constant)
                     and not fgraph.has_destroyers([node.inputs[i]])
                     and node.inputs[i] not in protected_inputs
@@ -411,7 +414,7 @@ class InplaceElemwiseOptimizer(Optimizer):
                                 scalar.transfer_type(
                                     *[
                                         inplace_pattern.get(i, None)
-                                        for i in xrange(len(node.outputs))
+                                        for i in range(len(node.outputs))
                                     ]
                                 )
                             )
@@ -737,7 +740,7 @@ def local_useless_dimshuffle_in_reshape(node):
             new_order_of_nonbroadcast.append(i)
     no_change_in_order = all(
         new_order_of_nonbroadcast[i] <= new_order_of_nonbroadcast[i + 1]
-        for i in xrange(len(new_order_of_nonbroadcast) - 1)
+        for i in range(len(new_order_of_nonbroadcast) - 1)
     )
     if no_change_in_order:
         shape = node.inputs[1]
@@ -1142,7 +1145,7 @@ class ShapeFeature(object):
         if not hasattr(r, "ndim"):
             # This happen for NoneConst.
             return None
-        return tuple([self.shape_ir(i, r) for i in xrange(r.ndim)])
+        return tuple([self.shape_ir(i, r) for i in range(r.ndim)])
 
     def default_infer_shape(self, node, i_shapes):
         """Return a list of shape tuple or None for the outputs of node.
@@ -1268,7 +1271,7 @@ class ShapeFeature(object):
                 )
 
             shape_vars = []
-            for i in xrange(r.ndim):
+            for i in range(r.ndim):
                 if hasattr(r.type, "broadcastable") and r.type.broadcastable[i]:
                     shape_vars.append(self.lscalar_one)
                 else:
@@ -1282,7 +1285,7 @@ class ShapeFeature(object):
                     # But we never timed this speed optimization!
                     self.lscalar_one.equals(shape_vars[i])
                     or self.lscalar_one.equals(T.extract_constant(shape_vars[i]))
-                    for i in xrange(r.ndim)
+                    for i in range(r.ndim)
                 ]
             )
             self.shape_of[r] = tuple(shape_vars)
@@ -1374,7 +1377,7 @@ class ShapeFeature(object):
                 or self.lscalar_one.equals(
                     T.extract_constant(merged_shape[i], only_process_constants=True)
                 )
-                for i in xrange(r.ndim)
+                for i in range(r.ndim)
             ]
         )
         self.shape_of[r] = tuple(merged_shape)
@@ -1400,7 +1403,7 @@ class ShapeFeature(object):
                 # But we never timed this speed optimization!
                 self.lscalar_one.equals(new_shape[idx])
                 or self.lscalar_one.equals(T.extract_constant(new_shape[idx]))
-                for idx in xrange(r.ndim)
+                for idx in range(r.ndim)
             ]
         )
         self.shape_of[r] = tuple(new_shape)
@@ -1776,7 +1779,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
                 if theano.config.experimental.local_alloc_elemwise_assert:
                     get_shape = node.fgraph.shape_feature.get_shape
                     cond = []
-                    for idx in xrange(i.type.ndim):
+                    for idx in range(i.type.ndim):
                         if not i.type.broadcastable[idx] and not same_shape(
                             i, cmp_op, idx, idx
                         ):
@@ -1793,7 +1796,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
                 if theano.config.experimental.local_alloc_elemwise_assert:
                     assert_cond = [
                         T.eq(i.shape[idx], cmp_op.shape[idx])
-                        for idx in xrange(i.type.ndim)
+                        for idx in range(i.type.ndim)
                         if not i.type.broadcastable[idx]
                         and not same_shape(i, cmp_op, idx, idx)
                     ]
@@ -2049,7 +2052,7 @@ def local_canonicalize_alloc(node):
         else:
             inner = op(*([input] + new_output_shape))
         dimshuffle_new_order = ["x"] * num_dims_with_size_1_added_to_left + list(
-            xrange(len(new_output_shape))
+            range(len(new_output_shape))
         )
         return [DimShuffle(inner.type.broadcastable, dimshuffle_new_order)(inner)]
 
@@ -2607,7 +2610,7 @@ class Assert(T.Op):
         check = []
         fail = sub["fail"]
         msg = self.msg.replace('"', '\\"').replace("\n", "\\n")
-        for idx in xrange(len(inames) - 1):
+        for idx in range(len(inames) - 1):
             i = inames[idx + 1]
             dtype = node.inputs[idx + 1].dtype
             check.append(
@@ -2760,11 +2763,11 @@ def local_upcast_elemwise_constant_inputs(node):
                             new_inputs.append(
                                 T.alloc(
                                     T.cast(cval_i, output_dtype),
-                                    *[shape_i(d)(i) for d in xrange(i.ndim)],
+                                    *[shape_i(d)(i) for d in range(i.ndim)],
                                 )
                             )
                             # print >> sys.stderr, "AAA",
-                            # *[Shape_i(d)(i) for d in xrange(i.ndim)]
+                            # *[Shape_i(d)(i) for d in range(i.ndim)]
                     except NotScalarConstantError:
                         # for the case of a non-scalar
                         if isinstance(i, T.TensorConstant):
@@ -3155,7 +3158,7 @@ def local_subtensor_lift(node):
                     j += 1
             # now keep the broadcastable pattern of all
             # items not appearing in subtensor list
-            for i in xrange(len(node.op.idx_list), len(u.broadcastable)):
+            for i in range(len(node.op.idx_list), len(u.broadcastable)):
                 new_axis += [(j, u.broadcastable[i])]
                 j += 1
 
@@ -3931,7 +3934,7 @@ def local_useless_inc_subtensor_alloc(node):
                 # broadcastable dimension by the subtensor op.
                 T.or_(T.eq(y.shape[k], 1), T.eq(y.shape[k], xi.shape[k]))
                 # Loop over all dimensions.
-                for k in xrange(xi.ndim)
+                for k in range(xi.ndim)
                 # We need to check the above shapes, if
                 # * the pre-alloc increment `z` is broadcastable in
                 # dimension `k` (if it isn't, then the shapes of `z` and
@@ -4138,7 +4141,7 @@ def local_join_empty(node):
         )
     except NotScalarConstantError:
         return
-    for idx in xrange(1, len(node.inputs)):
+    for idx in range(1, len(node.inputs)):
         inp = node.inputs[idx]
         # We can not use size == 0,, as this can change shape from 3,0
         # to 2,0.  This trigger DebugMode error. This happen with
@@ -4189,7 +4192,7 @@ def local_join_make_vector(node):
     if not isinstance(node.op, T.Join) or node.outputs[0].ndim != 1:
         return
     new_inputs = [node.inputs[1]]
-    for idx in xrange(2, len(node.inputs)):
+    for idx in range(2, len(node.inputs)):
         inp = node.inputs[idx]
         if (
             inp.owner
@@ -4624,7 +4627,7 @@ def local_useless_tile(node):
                         # implement the opt and test it.
                         return
                         x_nd = node.inputs[0].ndim
-                        broad = ["x"] * (l - x_nd) + xrange(x_nd)
+                        broad = ["x"] * (l - x_nd) + range(x_nd)
                         ret = node.inputs[0].dimshuffle(broad)
                         # Copy over stacktrace from previous output node,
                         # and from node before tiling operation.
@@ -4792,7 +4795,7 @@ def local_useless_reshape(node):
 
         nb_m1 = 0
         shape_match = [False] * input.ndim
-        for dim in xrange(input.ndim):
+        for dim in range(input.ndim):
             outshp_i = output_shape_is[dim]
             # Match Shape_i{dim}(input)
             if (
@@ -4873,7 +4876,7 @@ def local_reshape_to_dimshuffle(node):
     dimshuffle_new_order = []
     new_output_shape = []
     index = 0  # index over the output of the new reshape
-    for i in xrange(output.ndim):
+    for i in range(output.ndim):
         # Since output_shape is a symbolic vector, we trust extract_constant
         # to go through however it is formed to see if its i-th element is 1.
         # We need only_process_constants=False for that.
@@ -5990,7 +5993,7 @@ def local_op_of_op(node):
                 alldims = [d for i, d in enumerate(alldims) if i in node.op.axis]
                 newaxis_old = [
                     i
-                    for i in xrange(node_inps.owner.inputs[0].type.ndim)
+                    for i in range(node_inps.owner.inputs[0].type.ndim)
                     if i not in alldims
                 ]
 
@@ -6080,7 +6083,7 @@ def local_reduce_join(node):
 
         reduce_axis = node.op.axis
         if reduce_axis is None:
-            reduce_axis = tuple(xrange(node.inputs[0].ndim))
+            reduce_axis = tuple(range(node.inputs[0].ndim))
 
         # I put this warning late to don't add extra warning.
         if len(reduce_axis) != 1 or 0 not in reduce_axis:
@@ -6147,7 +6150,7 @@ def local_reduce_broadcastable(node):
                 new_axis = []
                 pattern = []
                 ii = 0
-                for p in xrange(reduced.ndim):
+                for p in range(reduced.ndim):
                     if p not in cuttable:
                         if p in axis:
                             new_axis.append(ii)
@@ -6207,7 +6210,7 @@ def local_opt_alloc(node):
                     # dtype.
                     val = val.astype(node.outputs[0].dtype)
                     return [val]
-                to_prod = [shapes[i] for i in xrange(len(shapes)) if i in node.op.axis]
+                to_prod = [shapes[i] for i in range(len(shapes)) if i in node.op.axis]
                 if to_prod:
                     size = T.mul(*to_prod)
                     if isinstance(node.op, T.Sum):
@@ -6221,7 +6224,7 @@ def local_opt_alloc(node):
                         val,
                         *[
                             shapes[i]
-                            for i in xrange(len(shapes))
+                            for i in range(len(shapes))
                             if i not in node.op.axis
                         ],
                     )
@@ -6454,7 +6457,7 @@ def local_pow_specialize_device(node):
                 pow2 = [xsym]
                 pow2_scal = [theano.scalar.get_scalar_type(xsym.dtype)()]
                 y_to_do = abs(y)
-                for i in xrange(int(np.log2(y_to_do))):
+                for i in range(int(np.log2(y_to_do))):
                     pow2.append(T.sqr(pow2[i]))
                     pow2_scal.append(theano.scalar.sqr(pow2_scal[i]))
                 rval1 = None
@@ -7327,7 +7330,7 @@ def local_grad_log_erfc_neg(node):
         mul_inputs = check_input(mul_neg.owner.inputs)
 
         # Put the constant first.
-        for i in xrange(len(mul_inputs)):
+        for i in range(len(mul_inputs)):
             if isinstance(i, Constant):
                 if i == 0:
                     break
@@ -7439,7 +7442,7 @@ enumerate(zip(r,p64,p32,a64,a32)):print
 a,b,c,d,e,c-b,e-b,numpy.absolute(c-b)<numpy.absolute(e-b)
 
 #, show that the value don't look stable at some point before inf.
-for i in xrange(1,len(p32)): print r[i], p32[i]-p32[i-1]
+for i in range(1,len(p32)): print r[i], p32[i]-p32[i-1]
 
 #float64 threshold is 26.63 the approx seam more precise at that
 point.  r = numpy.arange(26.2,26.7,.001)
@@ -7580,7 +7583,7 @@ a64=[x*((1-1/(2*x**2)+3/(4*x**4)-15/(8*x**6)+63/(7*x**8))**(-1))
      *numpy.sqrt(numpy.pi)
      for x in r] for a,b,c,d in zip(r,p128,p64,a64):print a,b,c,d,c-b,d-b
 
-for i in xrange(1,len(p64)): print i, 64[i]-p64[i-1]
+for i in range(1,len(p64)): print i, 64[i]-p64[i-1]
    """
 
 
@@ -7913,7 +7916,7 @@ class FusionOptimizer(Optimizer):
             validate_time = fgraph.profile.validate_time - validate_before
             callback_time = fgraph.execute_callbacks_time - callback_before
             callbacks_time = {}
-            for k, v in iteritems(fgraph.execute_callbacks_times):
+            for k, v in fgraph.execute_callbacks_times.items():
                 if k in callbacks_before:
                     callbacks_time[k] = v - callbacks_before[k]
                 else:
@@ -7944,7 +7947,7 @@ class FusionOptimizer(Optimizer):
         print(blanc, " callback_time", prof[5], file=stream)
         if prof[5] > 1:
             print(blanc, " callbacks_time", file=stream)
-            for i in sorted(iteritems(prof[6]), key=lambda a: a[1])[::-1]:
+            for i in sorted(prof[6].items(), key=lambda a: a[1])[::-1]:
                 if i[1] > 0:
                     print(blanc, "     ", i)
         print(blanc, " time_toposort", prof[7], file=stream)

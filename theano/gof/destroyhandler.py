@@ -3,19 +3,17 @@ Classes and functions for validating graphs that contain view
 and inplace operations.
 
 """
-
-
-from collections import deque, OrderedDict
-
-from six import iteritems
 import itertools
 
 import theano
+
+from collections import deque, OrderedDict
+
 from theano import config
-from . import toolbox
-from . import graph
 from theano.misc.ordered_set import OrderedSet
 
+from . import toolbox
+from . import graph
 from .fg import InconsistencyError
 
 
@@ -535,7 +533,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
                 self.fast_destroy(app, reason)
 
         # add this symbol to the forward and backward maps
-        for o_idx, i_idx_list in iteritems(vmap):
+        for o_idx, i_idx_list in vmap.items():
             if len(i_idx_list) > 1:
                 raise NotImplementedError(
                     "destroying this output invalidates multiple inputs", (app.op)
@@ -576,7 +574,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
         # deleted on_detach().
 
         # UPDATE self.view_i, self.view_o
-        for o_idx, i_idx_list in iteritems(getattr(app.op, "view_map", OrderedDict())):
+        for o_idx, i_idx_list in getattr(app.op, "view_map", OrderedDict()).items():
             if len(i_idx_list) > 1:
                 # destroying this output invalidates multiple inputs
                 raise NotImplementedError()
@@ -615,9 +613,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
             self.clients[new_r][app] += 1
 
             # UPDATE self.view_i, self.view_o
-            for o_idx, i_idx_list in iteritems(
-                getattr(app.op, "view_map", OrderedDict())
-            ):
+            for o_idx, i_idx_list in getattr(app.op, "view_map", OrderedDict()).items():
                 if len(i_idx_list) > 1:
                     # destroying this output invalidates multiple inputs
                     raise NotImplementedError()
@@ -727,7 +723,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
                 # keep track of clients that should run before the current Apply
                 root_clients = set_type()
                 # for each destroyed input...
-                for output_idx, input_idx_list in iteritems(app.op.destroy_map):
+                for output_idx, input_idx_list in app.op.destroy_map.items():
                     destroyed_idx = input_idx_list[0]
                     destroyed_variable = app.inputs[destroyed_idx]
                     root = droot[destroyed_variable]

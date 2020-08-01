@@ -1,7 +1,7 @@
 
 import theano
 import theano.tensor as T
-from six.moves import xrange
+
 
 k = T.iscalar("k"); A = T.vector("A")
 

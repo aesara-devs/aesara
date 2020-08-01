@@ -1,7 +1,7 @@
 set terminal svg font "Bitstream Vera Sans,10" size 300,200
 set output "logistic.svg"
 
-set xrange [-6:6]
+set range [-6:6]
 set xzeroaxis linetype -1
 set yzeroaxis linetype -1
 set xtics axis nomirror

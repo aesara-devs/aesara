@@ -19,7 +19,7 @@ from textwrap import dedent
 
 import numpy as np
 import six
-from six.moves import xrange
+
 
 import theano
 from theano.compat import Callable
@@ -4353,7 +4353,7 @@ class Composite(ScalarOp):
             storage[0] = impl(inputs)
 
     def impl(self, *inputs):
-        output_storage = [[None] for i in xrange(self.nout)]
+        output_storage = [[None] for i in range(self.nout)]
         self.perform(None, inputs, output_storage)
         ret = utils.to_return_values([storage[0] for storage in output_storage])
         if self.nout > 1:
@@ -4368,8 +4368,8 @@ class Composite(ScalarOp):
 
         d = dict(
             chain(
-                zip(("i%i" % i for i in xrange(len(inames))), inames),
-                zip(("o%i" % i for i in xrange(len(onames))), onames),
+                zip(("i%i" % i for i in range(len(inames))), inames),
+                zip(("o%i" % i for i in range(len(onames))), onames),
             ),
             **sub,
         )

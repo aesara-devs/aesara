@@ -6,7 +6,6 @@ import theano
 
 from collections import OrderedDict
 
-from six.moves import xrange
 
 from theano import gof, change_flags, gradient, config
 
@@ -615,7 +614,7 @@ def test_subgraph_grad():
     true_grads = true_grads(*values)
     next_grad = None
     param_grads = []
-    for i in xrange(2):
+    for i in range(2):
         param_grad, next_grad = theano.subgraph_grad(
             wrt=params[i], end=grad_ends[i], start=next_grad, cost=costs[i]
         )
