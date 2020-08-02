@@ -1,7 +1,7 @@
 import logging
 import warnings
 import numpy as np
-from six.moves import xrange
+
 from functools import partial
 
 import theano
@@ -414,11 +414,11 @@ class EighGrad(Op):
         def G(n):
             return sum(
                 v[:, m] * V.T[n].dot(v[:, m]) / (w[n] - w[m])
-                for m in xrange(N)
+                for m in range(N)
                 if m != n
             )
 
-        g = sum(outer(v[:, n], v[:, n] * W[n] + G(n)) for n in xrange(N))
+        g = sum(outer(v[:, n], v[:, n] * W[n] + G(n)) for n in range(N))
 
         # Numpy's eigh(a, 'L') (eigh(a, 'U')) is a function of tril(a)
         # (triu(a)) only.  This means that partial derivative of
@@ -672,7 +672,7 @@ def matrix_power(M, n):
     n : Python int
     """
     result = 1
-    for i in xrange(n):
+    for i in range(n):
         result = theano.dot(result, M)
     return result
 

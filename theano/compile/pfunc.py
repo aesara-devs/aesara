@@ -4,17 +4,15 @@ Provide a simple user friendly API.
 """
 
 import warnings
+import logging
 
 from theano import config
-from six import iteritems
 
 from theano.compile import orig_function, In, Out
 from theano.compile import UnusedInputError
 from theano.compile.sharedvalue import SharedVariable, shared
 from theano.compile.profiling import ProfileStats
 from theano.gof import Variable, Constant
-
-import logging
 
 _logger = logging.getLogger("theano.compile.pfunc")
 
@@ -579,6 +577,6 @@ def iter_over_pairs(pairs):
 
     """
     if isinstance(pairs, dict):
-        return iteritems(pairs)
+        return pairs.items()
     else:
         return pairs

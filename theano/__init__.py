@@ -167,7 +167,7 @@ from theano.gradient import Rop, Lop, grad, subgraph_grad
 
 # This need to be before the init of GPU, as it add config variable
 # needed during that phase.
-import theano.tests
+import tests
 
 if (
     config.device.startswith("cuda")

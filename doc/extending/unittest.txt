@@ -246,7 +246,7 @@ do the following:
 
 .. testcode::
 
-    from theano.tests import unittest_tools
+    from tests import unittest_tools
 
     class TestTensorDot(unittest.TestCase):
         def setUp(self):
@@ -413,7 +413,7 @@ which would cause ``verify_grad`` to crash.
 .. note::
 
     Although ``verify_grad`` is defined in ``theano.tensor.basic``, unittests
-    should use the version of ``verify_grad`` defined in ``theano.tests.unittest_tools``.
+    should use the version of ``verify_grad`` defined in ``tests.unittest_tools``.
     This is simply a wrapper function which takes care of seeding the random
     number generator appropriately before calling ``theano.tensor.basic.verify_grad``
 
@@ -425,7 +425,7 @@ verify that the op generates the proper output, that the gradient is
 valid, that the Op fails in known/expected ways. Because so much of
 this is common, two helper functions exists to make your lives easier:
 ``makeTester`` and ``makeBroadcastTester`` (defined in module
-``theano.tensor.tests.test_basic``).
+``tests.tensor.test_basic``).
 
 Here is an example of ``makeTester`` generating testcases for the Dot
 product op:
@@ -435,7 +435,7 @@ product op:
     from numpy import dot
     from numpy.random import rand
 
-    from theano.tensor.tests.test_basic import makeTester
+    from tests.tensor.test_basic import makeTester
 
     TestDot = makeTester(name = 'DotTester',
                          op = dot,

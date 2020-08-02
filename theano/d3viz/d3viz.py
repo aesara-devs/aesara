@@ -8,7 +8,6 @@ import os
 import json
 import shutil
 import six
-from six import iteritems
 
 from theano.d3viz.formatting import PyDotFormatter
 
@@ -26,7 +25,7 @@ def replace_patterns(x, replace):
         `key`, `value` pairs where key is a regular expression and `value` a
         string by which `key` is replaced
     """
-    for from_, to in iteritems(replace):
+    for from_, to in replace.items():
         x = x.replace(str(from_), str(to))
     return x
 

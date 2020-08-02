@@ -101,7 +101,7 @@ for the old output.
 TODO: talk about OPTIMIZATION STAGES
 
 .. If you modify this code, also change :
-.. theano/tests/test_tutorial.py:T_fibby.test_fibby_1
+.. tests/test_tutorial.py:T_fibby.test_fibby_1
 
 .. testcode::
 

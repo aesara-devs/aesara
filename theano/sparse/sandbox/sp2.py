@@ -1,5 +1,5 @@
 import numpy as np
-from six.moves import xrange
+
 import theano
 import scipy.sparse
 
@@ -249,7 +249,7 @@ class Multinomial(gof.op.Op):
         out[0] = p.copy()
 
         if n.ndim == 0:
-            for i in xrange(p.shape[0]):
+            for i in range(p.shape[0]):
                 k, l = p.indptr[i], p.indptr[i + 1]
                 out[0].data[k:l] = np.random.multinomial(n, p.data[k:l])
         elif n.ndim == 1:
@@ -258,7 +258,7 @@ class Multinomial(gof.op.Op):
                     "The number of element of n must be "
                     "the same as the number of row of p."
                 )
-            for i in xrange(p.shape[0]):
+            for i in range(p.shape[0]):
                 k, l = p.indptr[i], p.indptr[i + 1]
                 out[0].data[k:l] = np.random.multinomial(n[i], p.data[k:l])
 

@@ -1,7 +1,7 @@
 import numpy as np
 
 import theano
-from theano.compat import izip
+
 from theano.gof.utils import hash_from_code
 
 
@@ -90,7 +90,7 @@ def shape_of_variables(fgraph, input_shapes):
     numeric_input_dims = [dim for inp in fgraph.inputs for dim in input_shapes[inp]]
     numeric_output_dims = compute_shapes(*numeric_input_dims)
 
-    sym_to_num_dict = dict(izip(output_dims, numeric_output_dims))
+    sym_to_num_dict = dict(zip(output_dims, numeric_output_dims))
 
     l = {}
     for var in fgraph.shape_feature.shape_of:

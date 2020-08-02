@@ -3,28 +3,29 @@ Driver of graph construction, optimization, and linking.
 
 """
 
-
 import copy
-from six import string_types, iteritems, iterkeys
-from six.moves import xrange
+import time
+import logging
+import warnings
+
 import six.moves.copyreg as copyreg
 import six.moves.cPickle as pickle
-from itertools import chain
-import time
-import warnings
+
 import numpy as np
 
 import theano
-from theano import config, gof
-from theano.compat import izip
-from theano.gof import graph
 import theano.compile.profiling
+
+from itertools import chain
+
+from six import string_types
+
+from theano import config, gof
+from theano.gof import graph
 from theano.compile.io import In, SymbolicInput, SymbolicOutput
 from theano.compile.ops import deep_copy_op, view_op
 from theano.gof.graph import is_same_graph
 from theano.gof.op import ops_with_inner_function
-
-import logging
 
 _logger = logging.getLogger("theano.compile.function_module")
 
@@ -75,7 +76,7 @@ def view_tree_set(v, treeset):
             continue
         vmap = getattr(cl.op, "view_map", {})
         dmap = getattr(cl.op, "destroy_map", {})
-        for opos, iposlist in chain(iteritems(vmap), iteritems(dmap)):
+        for opos, iposlist in chain(vmap.items(), dmap.items()):
             if v_input_pos_to_cl in iposlist:
                 if cl.outputs[opos] not in treeset:
                     view_tree_set(cl.outputs[opos], treeset)
@@ -667,7 +668,7 @@ class Function(object):
             exist_svs = [i.variable for i in maker.inputs]
 
             # Check if given ShareVariables exist
-            for sv in iterkeys(swap):
+            for sv in swap.keys():
                 if sv not in exist_svs:
                     raise ValueError("SharedVariable: %s not found" % (sv.name))
 
@@ -893,8 +894,8 @@ class Function(object):
                 i += 1
 
         # Set keyword arguments
-        if kwargs:  # for speed, skip the iteritems for empty kwargs
-            for k, arg in iteritems(kwargs):
+        if kwargs:  # for speed, skip the items for empty kwargs
+            for k, arg in kwargs.items():
                 self[k] = arg
 
         if (
@@ -905,14 +906,14 @@ class Function(object):
         ):
             # Collect aliased inputs among the storage space
             args_share_memory = []
-            for i in xrange(len(self.input_storage)):
+            for i in range(len(self.input_storage)):
                 i_var = self.maker.inputs[i].variable
                 i_val = self.input_storage[i].storage[0]
                 if hasattr(i_var.type, "may_share_memory"):
                     is_aliased = False
-                    for j in xrange(len(args_share_memory)):
+                    for j in range(len(args_share_memory)):
 
-                        group_j = izip(
+                        group_j = zip(
                             [
                                 self.maker.inputs[k].variable
                                 for k in args_share_memory[j]
@@ -1065,7 +1066,7 @@ class Function(object):
                 assert len(self.output_keys) == len(outputs)
 
                 if output_subset is None:
-                    return dict(izip(self.output_keys, outputs))
+                    return dict(zip(self.output_keys, outputs))
                 else:
                     return dict(
                         (self.output_keys[index], outputs[index])
@@ -1215,12 +1216,12 @@ def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
     all_graph_inputs = gof.graph.inputs(fgraph.outputs)
     has_destroyers_attr = hasattr(fgraph, "has_destroyers")
 
-    for i in xrange(len(fgraph.outputs)):
+    for i in range(len(fgraph.outputs)):
         views_of_output_i = set()
         view_tree_set(alias_root(fgraph.outputs[i]), views_of_output_i)
         copied = False
         # do not allow outputs to be aliased
-        for j in xrange(i + 1, len(fgraph.outputs)):
+        for j in range(i + 1, len(fgraph.outputs)):
             # We could don't put deep copy if both outputs have borrow==True
             # and not(wrapped_outputs[i].borrow and wrapped_outputs[j].borrow):
             if fgraph.outputs[j] in views_of_output_i:
@@ -1392,7 +1393,7 @@ class FunctionMaker(object):
             try:
                 with open(graph_db_file, "rb") as f:
                     # Temporary hack to allow
-                    # theano.scan_module.tests.test_scan.T_Scan to
+                    # tests.scan_module.test_scan.T_Scan to
                     # finish. Should be changed in definitive version.
                     tmp = theano.config.unpickle_function
                     theano.config.unpickle_function = False
@@ -1415,7 +1416,7 @@ class FunctionMaker(object):
             # The sole purpose of this loop is to set 'need_optimize' by
             # going through graph_db, looking for graph that has the same
             # computation performed.
-            for graph_old, graph_optimized in iteritems(graph_db):
+            for graph_old, graph_optimized in graph_db.items():
                 inputs_old = graph_old.inputs
                 outputs_old = graph_old.outputs
                 size_old = len(graph_old.apply_nodes)
@@ -1488,17 +1489,15 @@ class FunctionMaker(object):
                         t2 = removeAllFgraph(t2)
 
                         givens = dict(
-                            izip(gof.graph.inputs([t1]), gof.graph.inputs([t2]))
+                            zip(gof.graph.inputs([t1]), gof.graph.inputs([t2]))
                         )
 
-                        temp = dict(
-                            izip(gof.graph.inputs([t1]), gof.graph.inputs([t2]))
-                        )
+                        temp = dict(zip(gof.graph.inputs([t1]), gof.graph.inputs([t2])))
 
                         # hack to remove inconstent entry in givens
                         # seems to work that but source of inconsistency
                         # could be worth investigating.
-                        for key, value in iteritems(temp):
+                        for key, value in temp.items():
                             if key.type != value.type:
                                 del givens[key]
 

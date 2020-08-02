@@ -1252,7 +1252,7 @@ class EnumList(EnumType):
 
         enum = EnumList(('A', 'alpha'), ('B', 'beta'), 'C', 'D', 'E', 'F', ('G', 'gamma'))
 
-    See test class :class:`theano.gof.tests.test_types.TestOpEnumList` for a working example.
+    See test class :class:`tests.gof.test_types.TestOpEnumList` for a working example.
 
     """
 
@@ -1322,7 +1322,7 @@ class CEnumType(EnumList):
 
     Like :class:`EnumList`, you can also add an alias to a constant, with same syntax as in :class:`EnumList`.
 
-    See test :func:`theano.gof.tests.test_types.TestEnumTypes.test_op_with_cenumtype` for a working example.
+    See test :func:`tests.gof.test_types.TestEnumTypes.test_op_with_cenumtype` for a working example.
 
     .. note::
 

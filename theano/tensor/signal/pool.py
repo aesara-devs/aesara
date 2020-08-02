@@ -3,16 +3,13 @@ Ops for downsampling images.
 Planned:
 Pool, DownsampleAvg, DownsampleSoftmax.
 """
-
-
-# This file should move along with conv.py
 import warnings
 import itertools
 
 import numpy as np
-from six.moves import xrange
-import six.moves.builtins as builtins
+
 import theano
+
 from theano import gof, OpenMPOp, tensor, Variable, Apply
 from theano.gof import ParamsType, EnumList
 from theano.gradient import DisconnectedType
@@ -441,7 +438,7 @@ class Pool(OpenMPOp):
             pad = (0,) * ndim
         patch_shape = tuple(
             tensor.extract_constant(imgshape[-ndim + i]) + pad[i] * 2
-            for i in xrange(ndim)
+            for i in range(ndim)
         )
 
         def compute_out(v, downsample, stride):
@@ -466,9 +463,7 @@ class Pool(OpenMPOp):
                 else:
                     return max(0, (v - 1 - downsample + stride) // stride) + 1
 
-        out_shape = [
-            compute_out(patch_shape[i], ws[i], stride[i]) for i in xrange(ndim)
-        ]
+        out_shape = [compute_out(patch_shape[i], ws[i], stride[i]) for i in range(ndim)]
 
         rval = list(imgshape[:-ndim]) + out_shape
         return rval
@@ -567,7 +562,7 @@ class Pool(OpenMPOp):
         zz = z[0]
         # size of pooling output
         pool_out_shp = zz.shape[-nd:]
-        img_shp = tuple(x.shape[-nd + i] + 2 * pad[i] for i in xrange(nd))
+        img_shp = tuple(x.shape[-nd + i] + 2 * pad[i] for i in range(nd))
         inc_pad = self.mode == "average_inc_pad"
 
         # pad the image
@@ -575,7 +570,7 @@ class Pool(OpenMPOp):
             y = np.zeros(x.shape[:-nd] + img_shp, dtype=x.dtype)
             y[
                 (slice(None),) * (len(x.shape) - nd)
-                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))
+                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in range(nd))
             ] = x
         else:
             y = x
@@ -586,14 +581,14 @@ class Pool(OpenMPOp):
             func = np.average
 
         # precompute the region boundaries for each dimension
-        region_slices = [[] for i in xrange(nd)]
-        for i in xrange(nd):
-            for j in xrange(pool_out_shp[i]):
+        region_slices = [[] for i in range(nd)]
+        for i in range(nd):
+            for j in range(pool_out_shp[i]):
                 start = j * stride[i]
-                end = builtins.min(start + ws[i], img_shp[i])
+                end = min(start + ws[i], img_shp[i])
                 if not inc_pad:
-                    start = builtins.max(start, pad[i])
-                    end = builtins.min(end, img_shp[i] - pad[i])
+                    start = max(start, pad[i])
+                    end = min(end, img_shp[i] - pad[i])
                 region_slices[i].append(slice(start, end))
 
         # iterate over non-pooling dimensions
@@ -602,7 +597,7 @@ class Pool(OpenMPOp):
             yk = y[k]
             # iterate over pooling regions
             for r in np.ndindex(*pool_out_shp):
-                zzk[r] = func(yk[[region_slices[i][r[i]] for i in xrange(nd)]])
+                zzk[r] = func(yk[[region_slices[i][r[i]] for i in range(nd)]])
 
     def infer_shape(self, node, in_shapes):
         ws, stride, pad = [node.inputs[1], node.inputs[2], node.inputs[3]]
@@ -837,7 +832,7 @@ class Pool(OpenMPOp):
                 // then loop over each region in each pooling dimension
         """
 
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
                 for (r_idx[%(i)s]=0; r_idx[%(i)s] < z[%(i)s]; r_idx[%(i)s]++) {
                   r_st[%(i)s] = r_idx[%(i)s] * st[%(i)s];
@@ -869,7 +864,7 @@ class Pool(OpenMPOp):
         """
 
         if self.mode == "max":
-            for i in xrange(nd):
+            for i in range(nd):
                 ccode += """
                   // set the first index of dimension %(i)s
                   i_idx[%(non_pool_ndim)s + %(i)s] = r_st[%(i)s];
@@ -883,7 +878,7 @@ class Pool(OpenMPOp):
                   else
                     collector = ((dtype_%(x)s*)(PyArray_GetPtr(%(x)s,i_idx)))[0];
             """
-            for i in xrange(nd):
+            for i in range(nd):
                 ccode += """
                   // go through the pooled region in the unpadded input
                   for(npy_intp m%(i)s=r_st[%(i)s]; m%(i)s<r_end[%(i)s]; m%(i)s++)
@@ -901,7 +896,7 @@ class Pool(OpenMPOp):
                       a = ((dtype_%(x)s*)(PyArray_GetPtr(%(x)s,i_idx)))[0];
                     collector = (a > collector) ? a : collector;
             """
-            for i in xrange(nd):
+            for i in range(nd):
                 ccode += """
                   } // for loop over region
                 """
@@ -913,7 +908,7 @@ class Pool(OpenMPOp):
                   // initialize the sum at zero
                   collector = ((dtype_%(x)s)(0));
             """
-            for i in xrange(nd):
+            for i in range(nd):
                 ccode += """
                   // go through the pooled region in the unpadded input
                   for(npy_intp m%(i)s=r_st[%(i)s]; m%(i)s<r_end[%(i)s]; m%(i)s++)
@@ -931,7 +926,7 @@ class Pool(OpenMPOp):
                       a = ((dtype_%(x)s*)(PyArray_GetPtr(%(x)s,i_idx)))[0];
                     collector += a;
             """
-            for i in xrange(nd):
+            for i in range(nd):
                 ccode += """
                   } // for loop over region
                 """
@@ -941,7 +936,7 @@ class Pool(OpenMPOp):
                 """
             elif self.mode == "average_inc_pad" and self.ignore_border:
                 # region size = product over all pooling dimensions
-                region_size = " * ".join("ws[%d]" % i for i in xrange(nd))
+                region_size = " * ".join("ws[%d]" % i for i in range(nd))
                 ccode += """
                   z[0] = collector / (%(region_size)s);
                 """ % dict(
@@ -950,14 +945,14 @@ class Pool(OpenMPOp):
             else:
                 # region size = number elements of in this region
                 region_size = " * ".join(
-                    "(r_end[%d]-r_st[%d])" % (i, i) for i in xrange(nd)
+                    "(r_end[%d]-r_st[%d])" % (i, i) for i in range(nd)
                 )
                 ccode += """
                   z[0] = collector / (%(region_size)s);
                 """ % dict(
                     region_size=region_size
                 )
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
             } // loop over pooling dimension
             """
@@ -1086,7 +1081,7 @@ class PoolGrad(OpenMPOp):
             pad = (0,) * ndim
         patch_shape = tuple(
             tensor.extract_constant(imgshape[-ndim + i]) + pad[i] * 2
-            for i in xrange(ndim)
+            for i in range(ndim)
         )
 
         def compute_out(v, downsample, stride):
@@ -1108,9 +1103,7 @@ class PoolGrad(OpenMPOp):
                 else:
                     return max(0, (v - 1 - downsample) // stride + 1) + 1
 
-        out_shape = [
-            compute_out(patch_shape[i], ws[i], stride[i]) for i in xrange(ndim)
-        ]
+        out_shape = [compute_out(patch_shape[i], ws[i], stride[i]) for i in range(ndim)]
 
         rval = list(imgshape[:-ndim]) + out_shape
         return rval
@@ -1209,26 +1202,26 @@ class MaxPoolGrad(PoolGrad):
                 "MaxPoolGrad requires input with {} or more dimensions".format(nd)
             )
         pool_out_shp = maxout.shape[-nd:]
-        img_shp = tuple(x.shape[-nd + i] + 2 * pad[i] for i in xrange(nd))
+        img_shp = tuple(x.shape[-nd + i] + 2 * pad[i] for i in range(nd))
 
         # pad the image
         if max(pad) != 0:
             y = np.zeros(x.shape[:-nd] + img_shp, dtype=x.dtype)
             y[
                 (slice(None),) * (len(x.shape) - nd)
-                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))
+                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in range(nd))
             ] = x
         else:
             y = x
         gx = np.zeros_like(y)
 
         # precompute the region boundaries for each dimension
-        region_ranges = [[] for i in xrange(nd)]
-        for i in xrange(nd):
-            for j in xrange(pool_out_shp[i]):
-                start = builtins.max(j * stride[i], pad[i])
-                end = builtins.min(start + ws[i], img_shp[i])
-                region_ranges[i].append(xrange(start, end))
+        region_ranges = [[] for i in range(nd)]
+        for i in range(nd):
+            for j in range(pool_out_shp[i]):
+                start = max(j * stride[i], pad[i])
+                end = min(start + ws[i], img_shp[i])
+                region_ranges[i].append(range(start, end))
 
         # iterate over non-pooling dimensions
         for k in np.ndindex(*x.shape[:-nd]):
@@ -1241,7 +1234,7 @@ class MaxPoolGrad(PoolGrad):
                 maxout_value = maxoutk[r]
                 # iterate inside region
                 for c in itertools.product(
-                    *[region_ranges[i][r[i]] for i in xrange(nd)]
+                    *[region_ranges[i][r[i]] for i in range(nd)]
                 ):
                     if maxout_value == yk[c]:
                         gxk[c] += gzk[r]
@@ -1249,7 +1242,7 @@ class MaxPoolGrad(PoolGrad):
         # unpad the image
         gx = gx[
             (slice(None),) * (len(x.shape) - nd)
-            + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))
+            + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in range(nd))
         ]
         gx_stg[0] = gx
 
@@ -1412,7 +1405,7 @@ class MaxPoolGrad(PoolGrad):
                 // then loop over each region in each pooling dimension
         """
 
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
                 for (r_idx[%(i)s]=0; r_idx[%(i)s] < z[%(i)s]; r_idx[%(i)s]++) {
                   r_st[%(i)s] = r_idx[%(i)s] * st[%(i)s];
@@ -1446,7 +1439,7 @@ class MaxPoolGrad(PoolGrad):
                     gz = ((dtype_%(gz)s*)(PyArray_GetPtr(%(gz)s, o_idx)));
                   }
         """
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
                   // go through the pooled region in the unpadded input
                   for(npy_intp m%(i)s=r_st[%(i)s]; m%(i)s<r_end[%(i)s]; m%(i)s++)
@@ -1472,11 +1465,11 @@ class MaxPoolGrad(PoolGrad):
                       gx[0] = gx[0] + gz[0];
                     }
         """
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
                   } // for loop over region
                 """
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
                 } // loop over pooling dimension
             """
@@ -1546,7 +1539,7 @@ class AveragePoolGrad(PoolGrad):
         zz = gx_stg[0]
         # size of pooling output
         pool_out_shp = zz.shape[-nd:]
-        img_shp = tuple(x.shape[-nd + i] + 2 * pad[i] for i in xrange(nd))
+        img_shp = tuple(x.shape[-nd + i] + 2 * pad[i] for i in range(nd))
         inc_pad = self.mode == "average_inc_pad"
         sum_mode = self.mode == "sum"
 
@@ -1554,15 +1547,15 @@ class AveragePoolGrad(PoolGrad):
         gx = np.zeros((x.shape[:-nd] + img_shp), dtype=x.dtype)
 
         # precompute the region boundaries and sizes for each dimension
-        region_slices = [[] for i in xrange(nd)]
-        region_sizes = [[] for i in xrange(nd)]
-        for i in xrange(nd):
-            for j in xrange(pool_out_shp[i]):
+        region_slices = [[] for i in range(nd)]
+        region_sizes = [[] for i in range(nd)]
+        for i in range(nd):
+            for j in range(pool_out_shp[i]):
                 if sum_mode or inc_pad:
                     start = j * stride[i]
                 else:
-                    start = builtins.max(j * stride[i], pad[i])
-                end = builtins.min(start + ws[i], img_shp[i])
+                    start = max(j * stride[i], pad[i])
+                end = min(start + ws[i], img_shp[i])
                 region_slices[i].append(slice(start, end))
                 region_sizes[i].append(end - start)
 
@@ -1574,7 +1567,7 @@ class AveragePoolGrad(PoolGrad):
             # iterate over pooling regions
             for r in np.ndindex(*pool_out_shp):
                 region_size = 1
-                for i in xrange(nd):
+                for i in range(nd):
                     region_slice[i] = region_slices[i][r[i]]
                     region_size *= region_sizes[i][r[i]]
                 if sum_mode:
@@ -1587,7 +1580,7 @@ class AveragePoolGrad(PoolGrad):
         # unpad the image
         gx = gx[
             (slice(None),) * (len(x.shape) - nd)
-            + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))
+            + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in range(nd))
         ]
         gx_stg[0] = gx
 
@@ -1750,7 +1743,7 @@ class AveragePoolGrad(PoolGrad):
                 // then loop over each region in each pooling dimension
         """
 
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
                 for (r_idx[%(i)s]=0; r_idx[%(i)s] < z[%(i)s]; r_idx[%(i)s]++) {
                   r_st[%(i)s] = r_idx[%(i)s] * st[%(i)s];
@@ -1794,8 +1787,8 @@ class AveragePoolGrad(PoolGrad):
                     val = gz[0] / (%(region_size)s);
                   }
         """
-        region_size = " * ".join("r_pad_width[%d]" % i for i in xrange(nd))
-        for i in xrange(nd):
+        region_size = " * ".join("r_pad_width[%d]" % i for i in range(nd))
+        for i in range(nd):
             ccode += """
                   // go through the pooled region in the unpadded input
                   for(npy_intp m%(i)s=r_st[%(i)s]; m%(i)s<r_end[%(i)s]; m%(i)s++)
@@ -1816,11 +1809,11 @@ class AveragePoolGrad(PoolGrad):
                     }
                     gx[0] = gx[0] + val;
         """
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
                   } // for loop over region
                 """
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
                 } // loop over pooling dimension
             """
@@ -1892,19 +1885,19 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
         ggz = z[0]  # grad wrt maxout_grad has the same shape as maxout
         # size of pooling output
         pool_out_shp = ggz.shape[-nd:]
-        img_shp = tuple(x.shape[-nd + i] + 2 * pad[i] for i in xrange(nd))
+        img_shp = tuple(x.shape[-nd + i] + 2 * pad[i] for i in range(nd))
 
         # pad the image and its gradients
         if max(pad) > 0:
             y_padded = np.zeros(x.shape[:-nd] + img_shp, dtype=x.dtype)
             y_padded[
                 (slice(None),) * (len(x.shape) - nd)
-                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))
+                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in range(nd))
             ] = x
             ggx_padded = np.zeros(x.shape[:-nd] + img_shp, dtype=x.dtype)
             ggx_padded[
                 (slice(None),) * (len(x.shape) - nd)
-                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))
+                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in range(nd))
             ] = ggx
 
         else:
@@ -1912,12 +1905,12 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
             ggx_padded = ggx
 
         # precompute the region boundaries for each dimension
-        region_ranges = [[] for i in xrange(nd)]
-        for i in xrange(nd):
-            for j in xrange(pool_out_shp[i]):
+        region_ranges = [[] for i in range(nd)]
+        for i in range(nd):
+            for j in range(pool_out_shp[i]):
                 start = j * stride[i]
-                end = builtins.min(start + ws[i], img_shp[i])
-                region_ranges[i].append(xrange(start, end))
+                end = min(start + ws[i], img_shp[i])
+                region_ranges[i].append(range(start, end))
 
         # iterate over non-pooling dimensions
         for k in np.ndindex(*x.shape[:-nd]):
@@ -1930,7 +1923,7 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
                 # iterate inside region
                 maxout_value = maxoutk[r]
                 for c in itertools.product(
-                    *[region_ranges[i][r[i]] for i in xrange(nd)]
+                    *[region_ranges[i][r[i]] for i in range(nd)]
                 ):
                     if maxout_value == yk[c]:
                         ggzk[r] += ggxk[c]
@@ -2065,7 +2058,7 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
             // then loop over each region in each pooling dimension
         """
 
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
                 for (r_idx[%(i)s]=0; r_idx[%(i)s] < z[%(i)s]; r_idx[%(i)s]++) {
                   r_st[%(i)s] = r_idx[%(i)s] * st[%(i)s];
@@ -2099,7 +2092,7 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
                     z = ((dtype_%(z)s*)(PyArray_GetPtr(%(z)s,o_idx)));
                   }
         """
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
                   // go through the pooled region in the unpadded input
                   for(npy_intp m%(i)s=r_st[%(i)s]; m%(i)s<r_end[%(i)s]; m%(i)s++)
@@ -2125,11 +2118,11 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
                       z[0] += ggx[0];
                     }
         """
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
                   } // for loop over region
                 """
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
               } // loop over pooling dimension
             """
@@ -2233,7 +2226,7 @@ class MaxPoolRop(OpenMPOp):
         zz = z[0]
         # size of pooling output
         pool_out_shp = zz.shape[-nd:]
-        img_shp = tuple(x.shape[-nd + i] + 2 * pad[i] for i in xrange(nd))
+        img_shp = tuple(x.shape[-nd + i] + 2 * pad[i] for i in range(nd))
         inc_pad = self.mode == "average_inc_pad"
 
         # pad the image and the eval point
@@ -2241,26 +2234,26 @@ class MaxPoolRop(OpenMPOp):
             y = np.zeros(x.shape[:-nd] + img_shp, dtype=x.dtype)
             y[
                 (slice(None),) * (len(x.shape) - nd)
-                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))
+                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in range(nd))
             ] = x
             ey = np.zeros(ex.shape[:-nd] + img_shp, dtype=ex.dtype)
             ey[
                 (slice(None),) * (len(ex.shape) - nd)
-                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in xrange(nd))
+                + tuple(slice(pad[i], img_shp[i] - pad[i]) for i in range(nd))
             ] = ex
         else:
             y = x
             ey = ex
 
         # precompute the region boundaries for each dimension
-        region_slices = [[] for i in xrange(nd)]
-        for i in xrange(nd):
-            for j in xrange(pool_out_shp[i]):
+        region_slices = [[] for i in range(nd)]
+        for i in range(nd):
+            for j in range(pool_out_shp[i]):
                 start = j * stride[i]
-                end = builtins.min(start + ws[i], img_shp[i])
+                end = min(start + ws[i], img_shp[i])
                 if not inc_pad:
-                    start = builtins.max(start, pad[i])
-                    end = builtins.min(end, img_shp[i] - pad[i])
+                    start = max(start, pad[i])
+                    end = min(end, img_shp[i] - pad[i])
                 region_slices[i].append(slice(start, end))
 
         # iterate over non-pooling dimensions
@@ -2271,9 +2264,9 @@ class MaxPoolRop(OpenMPOp):
             # iterate over pooling regions
             for r in np.ndindex(*pool_out_shp):
                 # current slice in padded input
-                ykslice = yk[[region_slices[i][r[i]] for i in xrange(nd)]]
+                ykslice = yk[[region_slices[i][r[i]] for i in range(nd)]]
                 # current slice in eval points
-                eykslice = eyk[[region_slices[i][r[i]] for i in xrange(nd)]]
+                eykslice = eyk[[region_slices[i][r[i]] for i in range(nd)]]
                 # indices of maximum
                 idx = np.unravel_index(np.argmax(ykslice), ykslice.shape)
                 zzk[r] = eykslice[idx]
@@ -2471,7 +2464,7 @@ class MaxPoolRop(OpenMPOp):
                 // then loop over each region in each pooling dimension
         """
 
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
                 for (r_idx[%(i)s]=0; r_idx[%(i)s] < z[%(i)s]; r_idx[%(i)s]++) {
                   r_st[%(i)s] = r_idx[%(i)s] * st[%(i)s];
@@ -2502,7 +2495,7 @@ class MaxPoolRop(OpenMPOp):
                     z = ((dtype_%(z)s*)(PyArray_GetPtr(%(z)s, o_idx)));
         """
 
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
               // set the first index of dimension %(i)s
               i_idx[%(non_pool_ndim)s + %(i)s] = r_st[%(i)s];
@@ -2519,7 +2512,7 @@ class MaxPoolRop(OpenMPOp):
                 eval_collector = ((dtype_%(ex)s*)(PyArray_GetPtr(%(ex)s,i_idx)))[0];
               }
         """
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
               // go through the pooled region in the unpadded input
               for(npy_intp m%(i)s=r_st[%(i)s]; m%(i)s<r_end[%(i)s]; m%(i)s++)
@@ -2545,14 +2538,14 @@ class MaxPoolRop(OpenMPOp):
                   eval_collector = ea;
                 }
         """
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
               } // for loop over region
             """
         ccode += """
               z[0] = eval_collector;
         """
-        for i in xrange(nd):
+        for i in range(nd):
             ccode += """
             } // loop over pooling dimension
             """

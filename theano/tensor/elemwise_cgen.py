@@ -1,4 +1,3 @@
-from six.moves import xrange
 import theano
 
 
@@ -280,7 +279,7 @@ def make_loop(loop_orders, dtypes, loop_tasks, sub, openmp=None):
     s = ""
 
     for i, (pre_task, task), indices in reversed(
-        list(zip(xrange(len(loop_tasks) - 1), loop_tasks, list(zip(*loop_orders))))
+        list(zip(range(len(loop_tasks) - 1), loop_tasks, list(zip(*loop_orders))))
     ):
         s = loop_over(preloops.get(i, "") + pre_task, s + task, indices, i)
 
@@ -391,7 +390,7 @@ def make_reordered_loop(
         % locals()
     )
 
-    for i in xrange(nnested):
+    for i in range(nnested):
         declare_totals += (
             """
         int TOTAL_%(i)i = init_totals[%(ovar)s_loops_it->second];
@@ -442,14 +441,14 @@ def make_reordered_loop(
         % locals()
     )
 
-    for i in xrange(nvars):
+    for i in range(nvars):
         var = sub["lv%i" % i]
         declare_strides += (
             """
         %(ovar)s_loops_rit = %(ovar)s_loops.rbegin();"""
             % locals()
         )
-        for j in reversed(xrange(nnested)):
+        for j in reversed(range(nnested)):
             declare_strides += (
                 """
             int %(var)s_stride_l%(j)i = init_strides[%(i)i][%(ovar)s_loops_rit->second];
@@ -614,7 +613,7 @@ def make_loop_careduce(loop_orders, dtypes, loop_tasks, sub):
     else:
         s = ""
         for i, (pre_task, task), indices in reversed(
-            list(zip(xrange(len(loop_tasks) - 1), loop_tasks, list(zip(*loop_orders))))
+            list(zip(range(len(loop_tasks) - 1), loop_tasks, list(zip(*loop_orders))))
         ):
             s = loop_over(preloops.get(i, "") + pre_task, s + task, indices, i)
 

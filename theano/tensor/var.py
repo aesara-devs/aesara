@@ -10,7 +10,7 @@ import numpy as np
 import theano
 
 from six import integer_types
-from six.moves import xrange
+
 
 from theano.compat import PY3
 from theano.scalar import ComplexError, IntegerDivisionError
@@ -664,14 +664,14 @@ class _tensor_py_operators(object):
 
     def __iter__(self):
         try:
-            for i in xrange(theano.tensor.basic.get_vector_length(self)):
+            for i in range(theano.tensor.basic.get_vector_length(self)):
                 yield self[i]
         except TypeError:
-            # This prevents accidental iteration via builtin.sum(self)
+            # This prevents accidental iteration via sum(self)
             raise TypeError(
                 (
                     "TensorType does not support iteration. "
-                    "Maybe you are using builtin.sum instead of "
+                    "Maybe you are using builtins.sum instead of "
                     "theano.tensor.sum? (Maybe .max?)"
                 )
             )

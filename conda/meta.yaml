@@ -31,24 +31,15 @@ test:
     - theano
     - theano.compile
     - theano.compile.sandbox
-    - theano.compile.tests
     - theano.gof
-    - theano.gof.tests
     - theano.gpuarray
-    - theano.gpuarray.tests
     - theano.misc
     - theano.sandbox
     - theano.scalar
-    - theano.scalar.tests
     - theano.sparse
-    - theano.sparse.tests
     - theano.tensor
     - theano.tensor.nnet
-    - theano.tensor.nnet.tests
     - theano.tensor.signal
-    - theano.tensor.signal.tests
-    - theano.tensor.tests
-    - theano.tests
 
 about:
   home: http://deeplearning.net/software/theano/

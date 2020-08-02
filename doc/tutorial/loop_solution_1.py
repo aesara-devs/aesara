@@ -6,7 +6,7 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
-from six.moves import xrange
+
 
 # 1. First example
 

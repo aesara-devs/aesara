@@ -10,7 +10,7 @@ U{http://www-users.cs.umn.edu/~saad/software/SPARSKIT/paper.ps}.
 
 import numpy as np
 from scipy import sparse as scipy_sparse
-from six.moves import xrange
+
 
 import theano
 import theano.sparse
@@ -143,9 +143,9 @@ class ConvolutionIndices(Op):
         # values (order in which you write the values determines how
         # the vectorized data will get used later one)
 
-        for fmapi in xrange(inshp[0]):  # loop over input features
+        for fmapi in range(inshp[0]):  # loop over input features
             # loop over number of kernels (nkern=1 for weight sharing)
-            for n in xrange(nkern):
+            for n in range(nkern):
 
                 # FOR EACH OUTPUT PIXEL...
                 # loop over output image height
@@ -232,8 +232,8 @@ class ConvolutionIndices(Op):
             kmap = np.zeros(ntaps, dtype="int")
             k = 0
             # print 'TEMPORARY BUGFIX: REMOVE !!!'
-            for j in xrange(spmat.shape[1]):
-                for i_idx in xrange(spmat.indptr[j], spmat.indptr[j + 1]):
+            for j in range(spmat.shape[1]):
+                for i_idx in range(spmat.indptr[j], spmat.indptr[j + 1]):
                     if spmat.data[i_idx] != 0:
                         # this is == spmat[i,j] - 1
                         kmap[k] = spmat.data[i_idx] - 1

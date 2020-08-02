@@ -38,7 +38,7 @@ matrix.
 Well, what you do is this:
 
 .. If you modify this code, also change :
-.. theano/tests/test_tutorial.py:T_examples.test_examples_1
+.. tests/test_tutorial.py:T_examples.test_examples_1
 
 >>> import theano
 >>> import theano.tensor as T
@@ -62,7 +62,7 @@ It is also the case that:
 We can verify that this alternate form produces the same values:
 
 .. If you modify this code, also change :
-.. theano/tests/test_tutorial.py:T_examples.test_examples_2
+.. tests/test_tutorial.py:T_examples.test_examples_2
 
 >>> s2 = (1 + T.tanh(x / 2)) / 2
 >>> logistic2 = theano.function([x], s2)
@@ -79,7 +79,7 @@ compute the :ref:`elementwise <libdoc_tensor_elementwise>` difference, absolute 
 squared difference between two matrices *a* and *b* at the same time:
 
 .. If you modify this code, also change :
-.. theano/tests/test_tutorial.py:T_examples.test_examples_3
+.. tests/test_tutorial.py:T_examples.test_examples_3
 
 >>> a, b = T.dmatrices('a', 'b')
 >>> diff = a - b
@@ -110,7 +110,7 @@ that if you only provide one number, the other input is assumed to be
 one. You can do it like this:
 
 .. If you modify this code, also change :
-.. theano/tests/test_tutorial.py:T_examples.test_examples_6
+.. tests/test_tutorial.py:T_examples.test_examples_6
 
 >>> from theano import In
 >>> from theano import function
@@ -133,7 +133,7 @@ be set positionally or by name, as in standard Python:
 
 
 .. If you modify this code, also change :
-.. theano/tests/test_tutorial.py:T_examples.test_examples_7
+.. tests/test_tutorial.py:T_examples.test_examples_7
 
 >>> x, y, w = T.dscalars('x', 'y', 'w')
 >>> z = (x + y) * w
@@ -176,7 +176,7 @@ First let's define the *accumulator* function. It adds its argument to the
 internal state, and returns the old state value.
 
 .. If you modify this code, also change :
-.. theano/tests/test_tutorial.py:T_examples.test_examples_8
+.. tests/test_tutorial.py:T_examples.test_examples_8
 
 >>> from theano import shared
 >>> state = shared(0)
@@ -204,7 +204,7 @@ of the state and the increment amount.
 Let's try it out!
 
 .. If you modify this code, also change :
-.. theano/tests/test_tutorial.py:T_examples.test_examples_8
+.. tests/test_tutorial.py:T_examples.test_examples_8
 
 >>> print(state.get_value())
 0
@@ -229,7 +229,7 @@ As we mentioned above, you can define more than one function to use the same
 shared variable.  These functions can all update the value.
 
 .. If you modify this code, also change :
-.. theano/tests/test_tutorial.py:T_examples.test_examples_8
+.. tests/test_tutorial.py:T_examples.test_examples_8
 
 >>> decrementor = function([inc], state, updates=[(state, state-inc)])
 >>> decrementor(2)
@@ -252,7 +252,7 @@ you do *not* want to use its value. In this case, you can use the
 for the purpose of one particular function.
 
 .. If you modify this code, also change :
-.. theano/tests/test_tutorial.py:T_examples.test_examples_8
+.. tests/test_tutorial.py:T_examples.test_examples_8
 
 >>> fn_of_state = state * 2 + inc
 >>> # The type of foo must match the shared variable we are replacing
@@ -357,7 +357,7 @@ Brief Example
 Here's a brief example.  The setup code is:
 
 .. If you modify this code, also change :
-.. theano/tests/test_tutorial.py:T_examples.test_examples_9
+.. tests/test_tutorial.py:T_examples.test_examples_9
 
 .. testcode::
 

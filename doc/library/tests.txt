@@ -4,5 +4,5 @@
 :mod:`tests` -- Tests
 =====================
 
-.. automodule:: theano.tests.breakpoint
+.. automodule:: tests.breakpoint
     :members:

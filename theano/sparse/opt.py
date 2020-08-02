@@ -3,7 +3,7 @@ import scipy
 
 import theano
 from theano import gof, scalar, tensor
-from theano.compat import izip
+
 from theano.tensor import blas
 from theano.tensor.opt import register_specialize, register_canonicalize
 from theano.sparse import (
@@ -38,7 +38,7 @@ def local_csm_properties_csm(node):
             # to adjust the broadcasting flag here.
             ret_var = [
                 theano.tensor.patternbroadcast(i, o.broadcastable)
-                for i, o in izip(csm.owner.inputs, node.outputs)
+                for i, o in zip(csm.owner.inputs, node.outputs)
             ]
             return ret_var
 

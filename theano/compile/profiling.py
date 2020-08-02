@@ -8,7 +8,6 @@ ProfileStats object for runtime and memory profiling.
 # TODO: what to do about 'diff summary'? (ask Fred?)
 #
 
-
 import atexit
 import copy
 import logging
@@ -16,14 +15,16 @@ import operator
 import os
 import sys
 import time
-from collections import defaultdict
-from six import iteritems
 import warnings
 
 import numpy as np
 
 import theano
+
+from collections import defaultdict
+
 from theano.gof import graph
+
 
 __authors__ = "James Bergstra"
 __reviewer__ = "Razvan Pascanu"
@@ -112,7 +113,7 @@ def _atexit_print_fn():
                     "linker_make_thunk_time",
                 ]:
                     cum_attr = getattr(cum, attr)
-                    for key, val in iteritems(getattr(ps, attr)):
+                    for key, val in getattr(ps, attr.items()):
                         assert key not in cum_attr, (key, cum_attr)
                         cum_attr[key] = val
 
@@ -354,7 +355,7 @@ class ProfileStats(object):
         """
         # timing is stored by node, we compute timing by class on demand
         rval = {}
-        for node, t in iteritems(self.apply_time):
+        for node, t in self.apply_time.items():
             typ = type(node.op)
             rval.setdefault(typ, 0)
             rval[typ] += t
@@ -367,7 +368,7 @@ class ProfileStats(object):
         """
         # timing is stored by node, we compute timing by class on demand
         rval = {}
-        for node, count in iteritems(self.apply_callcount):
+        for node, count in self.apply_callcount.items():
             typ = type(node.op)
             rval.setdefault(typ, 0)
             rval[typ] += count
@@ -380,7 +381,7 @@ class ProfileStats(object):
         """
         # timing is stored by node, we compute timing by class on demand
         rval = {}
-        for node, count in iteritems(self.apply_callcount):
+        for node, count in self.apply_callcount.items():
             typ = type(node.op)
             rval.setdefault(typ, 0)
             rval[typ] += 1
@@ -411,7 +412,7 @@ class ProfileStats(object):
         """
         # timing is stored by node, we compute timing by Op on demand
         rval = {}
-        for node, t in iteritems(self.apply_time):
+        for node, t in self.apply_time.items():
             rval.setdefault(node.op, 0)
             rval[node.op] += t
         return rval
@@ -448,7 +449,7 @@ class ProfileStats(object):
         """
         # timing is stored by node, we compute timing by Op on demand
         rval = {}
-        for node, count in iteritems(self.apply_callcount):
+        for node, count in self.apply_callcount.items():
             rval.setdefault(node.op, 0)
             rval[node.op] += count
         return rval
@@ -460,7 +461,7 @@ class ProfileStats(object):
         """
         # timing is stored by node, we compute timing by Op on demand
         rval = {}
-        for node, count in iteritems(self.apply_callcount):
+        for node, count in self.apply_callcount.items():
             rval.setdefault(node.op, 0)
             rval[node.op] += 1
         return rval
@@ -508,7 +509,7 @@ class ProfileStats(object):
                 class_call.get(clas, 0),
                 class_apply.get(clas, 0),
             )
-            for clas, t in iteritems(class_time)
+            for clas, t in class_time.items()
         ]
         otimes.sort(key=lambda t: (t[1], t[4], t[5]), reverse=True)
         tot = 0
@@ -605,7 +606,7 @@ class ProfileStats(object):
                 op_call.get(op, 0),
                 op_apply.get(op, 0),
             )
-            for op, t in iteritems(op_time)
+            for op, t in op_time.items()
         ]
         otimes.sort(key=lambda t: (t[1], t[4], t[5]), reverse=True)
         tot = 0
@@ -727,7 +728,7 @@ class ProfileStats(object):
 
         topos = {}  # Only do the topo once per fct.
         atimes = []
-        for a, t in iteritems(self.apply_time):
+        for a, t in self.apply_time.items():
             if a.fgraph not in topos:
                 topo = a.fgraph.toposort()
                 topos[a.fgraph] = topo
@@ -1234,11 +1235,11 @@ class ProfileStats(object):
                     for var in node.outputs:
                         compute_map[var][0] = 0
 
-                    for k_remove, v_remove in iteritems(viewedby_remove):
+                    for k_remove, v_remove in viewedby_remove.items():
                         for i in v_remove:
                             viewed_by[k_remove].append(i)
 
-                    for k_add, v_add in iteritems(viewedby_add):
+                    for k_add, v_add in viewedby_add.items():
                         for i in v_add:
                             viewed_by[k_add].remove(i)
 
@@ -1260,11 +1261,11 @@ class ProfileStats(object):
 
             return mem_bound
 
-        for fgraph, nodes_mem in iteritems(fct_memory):
+        for fgraph, nodes_mem in fct_memory.items():
             # Sum of the size of all variables in bytes
             sum_size = sum(
                 sum(v for v in val if not isinstance(v, str))
-                for key, val in iteritems(nodes_mem)
+                for key, val in nodes_mem.items()
             )
 
             order = fgraph.toposort()
@@ -1438,9 +1439,9 @@ class ProfileStats(object):
         items.sort(key=lambda a: a[1], reverse=True)
         for idx, (node, node_outputs_size) in enumerate(items[:N]):
             code = ["c"] * len(node.outputs)
-            for out, inp in iteritems(getattr(node.op, "destroy_map", {})):
+            for out, inp in getattr(node.op, "destroy_map", {}).items():
                 code[out] = "i"
-            for out, inp in iteritems(getattr(node.op, "view_map", {})):
+            for out, inp in getattr(node.op, "view_map", {}).items():
                 code[out] = "v"
             shapes = str(fct_shapes[node.fgraph][node])
 

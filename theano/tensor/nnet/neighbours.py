@@ -89,8 +89,8 @@ class Images2Neibs(Op):
             A 2D matrix, written using the following pattern::
 
                 idx = 0
-                for i in xrange(list 1 dim)
-                    for j in xrange(list 2 dim)
+                for i in range(list 1 dim)
+                    for j in range(list 2 dim)
                         for k in <image column coordinates>
                             for l in <image row coordinates>
                                 output[idx,:]
@@ -698,8 +698,8 @@ def images2neibs(ten4, neib_shape, neib_step=None, mode="valid"):
           .. code-block:: python
 
              idx = 0
-             for i in xrange(list 1 dim):
-                 for j in xrange(list 2 dim):
+             for i in range(list 1 dim):
+                 for j in range(list 2 dim):
                      for k in <image column coordinates>:
                          for l in <image row coordinates>:
                              output[idx,:]

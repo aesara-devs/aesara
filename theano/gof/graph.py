@@ -1,19 +1,19 @@
 """
 Node classes (`Apply`, `Variable`) and expression graph algorithms.
 """
-
-
-from collections import deque
 import contextlib
-from copy import copy
-from itertools import count
-
 import warnings
 
 import theano
+
+from collections import deque
+from copy import copy
+from itertools import count
+
+from six import string_types, integer_types
+
 from theano import config
 from theano.gof import utils
-from six import string_types, integer_types, iteritems
 from theano.misc.ordered_set import OrderedSet
 
 __docformat__ = "restructuredtext en"
@@ -1290,7 +1290,7 @@ def is_same_graph(var1, var2, givens=None, debug=False):
             # Return True iff `x` is in computation graph of variable `vark`.
             return x in all_vars[k - 1]
 
-        for to_replace, replace_by in iteritems(givens):
+        for to_replace, replace_by in givens.items():
             # Map a substitution variable to the computational graphs it
             # belongs to.
             inside = dict(
@@ -1436,7 +1436,7 @@ def view_roots(r):
     if owner is not None:
         try:
             view_map = owner.op.view_map
-            view_map = dict((owner.outputs[o], i) for o, i in iteritems(view_map))
+            view_map = dict((owner.outputs[o], i) for o, i in view_map.items())
         except AttributeError:
             return [r]
         if r in view_map:

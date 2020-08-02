@@ -52,11 +52,11 @@ Python in one slide
 -------------------
 
 * General-purpose high-level OO interpreted language
- 
+
 * Emphasizes code readability
- 
+
 * Comprehensive standard library
- 
+
 * Dynamic type and memory management
 
 * Built-in types: int, float, str, list, dict, tuple, object
@@ -107,7 +107,7 @@ Python in one slide
 
     f = Foo()                 # Creating a class instance
     print f.hello()           # Calling methods of objects
-    # -> 5 
+    # -> 5
 
     class Bar(Foo):           # Defining a subclass
         def __init__(self, a):
@@ -191,7 +191,7 @@ Training an MNIST-ready classification neural network in pure NumPy might look l
     c = np.zeros((10,))
 
     batchsize = 100
-    for i in xrange(1000):
+    for i in range(1000):
         x_i = x[i * batchsize: (i + 1) * batchsize]
         y_i = y[i * batchsize: (i + 1) * batchsize]
 
@@ -268,12 +268,12 @@ you have GPU (I'm skipping some dtype-details which we'll come back to).
 
     # now do the computations
     batchsize = 100
-    for i in xrange(1000):
+    for i in range(1000):
         x_i = x[i * batchsize: (i + 1) * batchsize]
         y_i = y[i * batchsize: (i + 1) * batchsize]
         err_i = train(x_i, y_i)
 
-    
+
 Theano in one slide
 -------------------
 
@@ -324,7 +324,7 @@ Project status
 
 * Downloads (January 2011 -  June 8 2011):
 
- * Pypi (16 July 2013): 60k total, 159 last day, 823 last week 
+ * Pypi (16 July 2013): 60k total, 159 last day, 823 last week
 
  * Github (`bleeding edge` repository): unknown
 

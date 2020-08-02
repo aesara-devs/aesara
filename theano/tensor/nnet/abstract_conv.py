@@ -19,7 +19,6 @@ from theano.tensor import get_scalar_constant_value, NotScalarConstantError
 from theano.tensor.opt import Assert
 from theano.gof import Apply, Op
 
-from six.moves import xrange
 
 import warnings
 import numpy as np
@@ -2427,10 +2426,10 @@ class BaseAbstractConv(Op):
 
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", np.ComplexWarning)
-                for b in xrange(img.shape[0]):
-                    for g in xrange(self.num_groups):
-                        for n in xrange(output_channel_offset):
-                            for im0 in xrange(input_channel_offset):
+                for b in range(img.shape[0]):
+                    for g in range(self.num_groups):
+                        for n in range(output_channel_offset):
+                            for im0 in range(input_channel_offset):
                                 if unshared:
                                     out[
                                         b, g * output_channel_offset + n, ...
@@ -2460,10 +2459,10 @@ class BaseAbstractConv(Op):
         elif self.convdim == 3:
             if unshared:
                 raise NotImplementedError("Unshared 3D convolution is not implemented")
-            for b in xrange(img.shape[0]):
-                for g in xrange(self.num_groups):
-                    for n in xrange(output_channel_offset):
-                        for im0 in xrange(input_channel_offset):
+            for b in range(img.shape[0]):
+                for g in range(self.num_groups):
+                    for n in range(output_channel_offset):
+                        for im0 in range(input_channel_offset):
                             out[b, g * output_channel_offset + n, ...] += convolve(
                                 img[b, g * input_channel_offset + im0, ...],
                                 dilated_kern[g * output_channel_offset + n, im0, ...],
@@ -2484,8 +2483,8 @@ class BaseAbstractConv(Op):
         out = np.zeros(out_shape, dtype=inp.dtype)
 
         if direction == "forward":
-            for row in xrange(out_shape[0]):
-                for col in xrange(out_shape[1]):
+            for row in range(out_shape[0]):
+                for col in range(out_shape[1]):
                     out[row, col] = np.sum(
                         np.multiply(
                             inp[row : row + kern.shape[2], col : col + kern.shape[3]],
@@ -2493,15 +2492,15 @@ class BaseAbstractConv(Op):
                         )
                     )
         elif direction == "backprop weights":
-            for row in xrange(out_shape[0]):
-                for col in xrange(out_shape[1]):
+            for row in range(out_shape[0]):
+                for col in range(out_shape[1]):
                     out[row, col, ...] = (
                         kern[row, col]
                         * inp[row : row + out_shape[2], col : col + out_shape[3]]
                     )
         elif direction == "backprop inputs":
-            for row in xrange(kern.shape[0]):
-                for col in xrange(kern.shape[1]):
+            for row in range(kern.shape[0]):
+                for col in range(kern.shape[1]):
                     out[row : row + kern.shape[2], col : col + kern.shape[3]] += (
                         inp[row, col] * kern[row, col, ::-1, ::-1]
                     )

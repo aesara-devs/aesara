@@ -88,7 +88,7 @@ class SumDiffOp(theano.Op):
 import numpy as np
 from theano.gof import Op, Apply
 from theano import tensor, function, printing
-from theano.tests import unittest_tools as utt
+from tests import unittest_tools as utt
 
 
 class TestProdOp(utt.InferShapeTester):

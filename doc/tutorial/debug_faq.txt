@@ -227,7 +227,7 @@ It is also possible to override variables ``__repr__`` method to have them retur
    import theano
    import theano.tensor as T
 
-               
+
 .. testcode:: printtestvalue
 
    x = T.scalar('x')
@@ -607,7 +607,7 @@ Breakpoint during Theano function execution
 -------------------------------------------
 
 You can set a breakpoint during the execution of a Theano function with
-:class:`PdbBreakpoint <theano.tests.breakpoint.PdbBreakpoint>`.
-:class:`PdbBreakpoint <theano.tests.breakpoint.PdbBreakpoint>` automatically
+:class:`PdbBreakpoint <tests.breakpoint.PdbBreakpoint>`.
+:class:`PdbBreakpoint <tests.breakpoint.PdbBreakpoint>` automatically
 detects available debuggers and uses the first available in the following order:
 `pudb`, `ipdb`, or `pdb`.

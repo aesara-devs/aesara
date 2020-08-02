@@ -1,13 +1,13 @@
 import copy
-import numpy as np
 import logging
 import pdb
 import time
-from six import iteritems
-from six.moves import xrange
 import sys
 
+import numpy as np
+
 import theano
+
 from theano import tensor, scalar, gof, config
 from theano.compile import optdb
 from theano.compile.ops import shape_i
@@ -51,7 +51,7 @@ import theano.tensor.signal.pool as pool
 import theano.tensor.slinalg as slinalg
 from collections import Counter
 
-from theano.tests.breakpoint import PdbBreakpoint
+from tests.breakpoint import PdbBreakpoint
 
 from .type import (
     GpuArrayType,
@@ -624,7 +624,7 @@ class GraphToGPU(Optimizer):
         not_used = []
         not_used_time = 0
 
-        for o, count in iteritems(process_count):
+        for o, count in process_count.items():
             if count > 0:
                 count_opt.append((time_opts[o], count, node_created[o], o))
             else:
@@ -665,7 +665,7 @@ class GraphToGPU(Optimizer):
             merge 2 dicts by adding the values.
             """
             d = d1.copy()
-            for k, v in iteritems(d2):
+            for k, v in d2.items():
                 if k in d:
                     d[k] += v
                 else:
@@ -1440,7 +1440,7 @@ def local_gpua_careduce(op, context_name, inputs, outputs):
 
             new_in_shp = [shape_i(x, 0)]
             new_mask = [reduce_mask[0]]
-            for i in xrange(1, x.type.ndim):
+            for i in range(1, x.type.ndim):
                 if reduce_mask[i] == reduce_mask[i - 1]:
                     new_in_shp[-1] *= shape_i(x, i)
                 else:
@@ -1667,7 +1667,7 @@ def local_gpu_crossentropycategorical1hotgrad(op, context_name, inputs, outputs)
     idx0 = theano.tensor.arange(shape_i(coding, 0))
     z = GpuAlloc(context_name, memset_0=True)(
         as_gpuarray_variable(np.zeros((), dtype=coding.dtype), context_name),
-        *[shape_i(coding, i) for i in xrange(coding.ndim)],
+        *[shape_i(coding, i) for i in range(coding.ndim)],
     )
     gcoding = tensor.set_subtensor(
         z[idx0, one_of_n], gpu_neg(gpu_true_div(gy, coding[idx0, one_of_n]))

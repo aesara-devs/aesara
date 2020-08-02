@@ -1,11 +1,13 @@
 import sys
 import os
-import numpy as np
-import six.moves.copyreg as copyreg
-from six import iteritems
 import warnings
 
+import six.moves.copyreg as copyreg
+
+import numpy as np
+
 import theano
+
 from theano.tensor.type import TensorType
 from theano.tensor.var import _tensor_py_operators
 from theano import Type, Variable, Constant, tensor, config, scalar
@@ -114,7 +116,7 @@ def list_contexts():
 
 # Private method
 def _name_for_ctx(ctx):
-    for k, v in iteritems(_context_reg):
+    for k, v in _context_reg.items():
         if v == ctx:
             return k
     raise ContextNotDefined("context is not registered")

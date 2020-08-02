@@ -5,10 +5,10 @@ import logging
 
 import numpy as np
 from six import integer_types
-from six.moves import xrange
+
 
 import theano
-from theano.compat import izip
+
 from theano.gradient import DisconnectedType
 from theano import gof
 from theano.gof import Apply, hashtype, Op, Type, MethodNotDefined, ParamsType
@@ -527,7 +527,7 @@ class Subtensor(Op):
             raise IndexError(
                 "Not enough inputs to fill in the Subtensor template.", inputs, idx_list
             )
-        for input, expected_type in izip(inputs, input_types):
+        for input, expected_type in zip(inputs, input_types):
             if input.type != expected_type:
                 raise TypeError(
                     "Wrong type for Subtensor template. Expected %s, got %s."
@@ -539,7 +539,7 @@ class Subtensor(Op):
             slice(None, None, None)
         ] * (x.type.ndim - len(idx_list))
         broadcastable = []
-        for i, (p, bc) in enumerate(izip(padded, x.type.broadcastable)):
+        for i, (p, bc) in enumerate(zip(padded, x.type.broadcastable)):
             if isinstance(p, slice):
                 if bc:
                     start = p.start
@@ -585,7 +585,7 @@ class Subtensor(Op):
             len(xshp) - len(self.idx_list)
         )
         i = 0
-        for idx, xl in izip(padded, xshp):
+        for idx, xl in zip(padded, xshp):
             if isinstance(idx, slice):
                 # If it is the default (None, None, None) slice, or a variant,
                 # the shape will be xl
@@ -1147,7 +1147,7 @@ def inc_subtensor(
         )
 
     dim_offset = x.ndim - y.ndim
-    for dim in xrange(y.ndim):
+    for dim in range(y.ndim):
         if x.broadcastable[dim + dim_offset] and not y.broadcastable[dim]:
             # It is acceptable to try to increment a subtensor with a
             # broadcastable dim with a tensor that is not broadcastable
@@ -1259,7 +1259,7 @@ def inc_subtensor(
         if y.ndim > 0:
             # This if is needed to prevent some useless warning about
             # old code bug.
-            expanded_y = alloc(y, *[x.shape[i] for i in xrange(x.ndim)])
+            expanded_y = alloc(y, *[x.shape[i] for i in range(x.ndim)])
             flattened_y = expanded_y.reshape(inner_x.shape)
         else:
             flattened_y = y
@@ -1398,7 +1398,7 @@ class IncSubtensor(Op):
             raise IndexError(
                 "Not enough inputs to fill in the Subtensor template.", inputs, idx_list
             )
-        for input, expected_type in izip(inputs, input_types):
+        for input, expected_type in zip(inputs, input_types):
             if input.type != expected_type:
                 raise TypeError(
                     "Wrong type for Subtensor template. Expected %s, got %s."
@@ -1763,7 +1763,7 @@ def _sum_grad_over_bcasted_dims(x, gx):
         x_broad = (True,) * x_dim_added + x.broadcastable
         assert sum(gx.broadcastable) < sum(x_broad)
         axis_to_sum = []
-        for i in xrange(gx.ndim):
+        for i in range(gx.ndim):
             if gx.broadcastable[i] is False and x_broad[i] is True:
                 axis_to_sum.append(i)
             elif gx.broadcastable[i] is True and x_broad[i] is False:
@@ -1776,7 +1776,7 @@ def _sum_grad_over_bcasted_dims(x, gx):
         gx = gx.sum(axis=axis_to_sum, keepdims=True)
         if gx.ndim != x.ndim:
             assert gx.ndim > x.ndim
-            for i in xrange(x_dim_added):
+            for i in range(x_dim_added):
                 assert gx.broadcastable[i]
             gx = gx.dimshuffle(*list(range(x_dim_added, gx.ndim)))
         assert gx.broadcastable == x.broadcastable
@@ -2256,7 +2256,7 @@ def check_advanced_indexing_dimensions(input, idx_list):
             # skip, does not count as an input dimension
             pass
         elif isinstance(index, np.ndarray) and index.dtype == "bool":
-            for i in xrange(index.ndim):
+            for i in range(index.ndim):
                 if index.shape[i] != input.shape[dim_seen + i]:
                     raise IndexError(
                         "boolean index did not match indexed array "

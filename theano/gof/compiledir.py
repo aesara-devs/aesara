@@ -1,12 +1,15 @@
-import six.moves.cPickle as pickle
-import logging
 import os
 import shutil
+import logging
+
+import six.moves.cPickle as pickle
 
 import numpy as np
 
 import theano
-from six import string_types, iteritems
+
+from six import string_types
+
 from theano import config
 from theano.gof.utils import flatten
 
@@ -213,7 +216,7 @@ def print_compiledir_content():
         ),
         underline="+",
     )
-    table_op_class = sorted(iteritems(table_op_class), key=lambda t: t[1])
+    table_op_class = sorted(table_op_class.items(), key=lambda t: t[1])
     for op_class, nb in table_op_class:
         print(op_class, nb)
 
@@ -236,7 +239,7 @@ def print_compiledir_content():
         for dir, size, ops in big_key_files:
             print(dir, size, ops)
 
-    nb_keys = sorted(iteritems(nb_keys))
+    nb_keys = sorted(nb_keys.items())
     print()
     print_title("Number of keys for a compiled module", underline="+")
     print_title(

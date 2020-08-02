@@ -1,18 +1,16 @@
-"""
-WRITEME
-
-"""
-
-from copy import copy, deepcopy
-from sys import getsizeof
 import sys
 import traceback
+
 import numpy as np
 
 import theano
-from theano.compat import izip
+
+from sys import getsizeof
+from copy import copy, deepcopy
+
 from six import reraise
 from six.moves import StringIO
+
 from theano.gof import utils
 from theano.gof import graph
 from theano.gof.type import Type
@@ -420,7 +418,7 @@ class Linker(object):
 
             if len(args) != len(inputs):
                 raise TypeError(e_arity(len(inputs), len(args)))
-            for arg, variable in izip(args, inputs):
+            for arg, variable in zip(args, inputs):
                 variable.data = arg
             thunk()
             if unpack_single:
@@ -699,7 +697,7 @@ def streamline(
             for x in no_recycling:
                 x[0] = None
             try:
-                for thunk, node, old_storage in izip(
+                for thunk, node, old_storage in zip(
                     thunks, order, post_thunk_old_storage
                 ):
                     thunk()
@@ -715,7 +713,7 @@ def streamline(
             for x in no_recycling:
                 x[0] = None
             try:
-                for thunk, node in izip(thunks, order):
+                for thunk, node in zip(thunks, order):
                     thunk()
             except Exception:
                 raise_with_op(node, thunk)
@@ -924,11 +922,11 @@ class PerformLinker(LocalLinker):
             f,
             [
                 Container(input, storage)
-                for input, storage in izip(fgraph.inputs, input_storage)
+                for input, storage in zip(fgraph.inputs, input_storage)
             ],
             [
                 Container(output, storage, True)
-                for output, storage in izip(fgraph.outputs, output_storage)
+                for output, storage in zip(fgraph.outputs, output_storage)
             ],
             thunks,
             order,
@@ -1056,7 +1054,7 @@ class WrapLinker(Linker):
         order = [x[0] for x in zip(*order_lists)]
 
         to_reset = []
-        for thunks, node in izip(thunk_groups, order):
+        for thunks, node in zip(thunk_groups, order):
             for j, output in enumerate(node.outputs):
                 if output in no_recycling:
                     for thunk in thunks:
@@ -1067,12 +1065,12 @@ class WrapLinker(Linker):
 
         def f():
             for inputs in input_lists[1:]:
-                for input1, input2 in izip(inputs0, inputs):
+                for input1, input2 in zip(inputs0, inputs):
                     input2.storage[0] = copy(input1.storage[0])
             for x in to_reset:
                 x[0] = None
             pre(self, [input.data for input in input_lists[0]], order, thunk_groups)
-            for i, (thunks, node) in enumerate(izip(thunk_groups, order)):
+            for i, (thunks, node) in enumerate(zip(thunk_groups, order)):
                 try:
                     wrapper(i, node, *thunks)
                 except Exception:

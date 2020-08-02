@@ -52,16 +52,20 @@ scan_eqopt2 -> They are all global optimizer. (in2out convert local to global).
 
 import logging
 import copy
-from sys import maxsize
-from collections import OrderedDict
+
 import numpy as np
 
 import theano
+
+from sys import maxsize
+from collections import OrderedDict
+
+from six import integer_types
+
 from theano import tensor, scalar
 from theano.tensor import opt, get_scalar_constant_value, Alloc, AllocEmpty
 from theano import gof
-from six import integer_types, iteritems
-from six.moves import xrange
+
 from theano.compile import optdb
 from theano.compile.function_module import deep_copy_op
 from theano.gof import toolbox, DestroyHandler, InconsistencyError
@@ -153,7 +157,7 @@ def remove_constants_and_unused_inputs_scan(node):
     nw_outer = [node.inputs[0]]
 
     all_ins = gof.graph.inputs(op_outs)
-    for idx in xrange(op.n_seqs):
+    for idx in range(op.n_seqs):
         node_inp = node.inputs[idx + 1]
         if (
             isinstance(node_inp, tensor.TensorConstant)
@@ -1020,7 +1024,7 @@ class ScanInplaceOptimizer(Optimizer):
                 ls[i] = inp.owner.op(*inp.owner.inputs)
 
         n_outs = len(ls)
-        for idx in xrange(n_outs):
+        for idx in range(n_outs):
             if ls[idx] in ls[:idx]:
                 ls[idx] = deep_copy_op(ls[idx])
 
@@ -1067,7 +1071,7 @@ class ScanInplaceOptimizer(Optimizer):
             for x in nodes
             if (isinstance(x.op, scan_op.Scan) and x.op.info["gpua"] == self.gpua_flag)
         ]
-        for scan_idx in xrange(len(scan_nodes)):
+        for scan_idx in range(len(scan_nodes)):
 
             # First attempt to make the Scan compute inplace every recurrent
             # output that seems like it could be computed inplace. If that
@@ -1179,9 +1183,9 @@ class ScanSaveMem(gof.Optimizer):
         op = node.op
         c_outs = op.n_mit_mot + op.n_mit_sot + op.n_sit_sot + op.n_nit_sot
 
-        init_l = [0 for x in xrange(op.n_mit_mot)]
+        init_l = [0 for x in range(op.n_mit_mot)]
         init_l += [abs(min(v)) for v in op.tap_array[op.n_mit_mot :]]
-        init_l += [0 for x in xrange(op.n_nit_sot)]
+        init_l += [0 for x in range(op.n_nit_sot)]
         # 2. Check the clients of each output and see for how many steps
         # does scan need to run
 
@@ -1222,7 +1226,7 @@ class ScanSaveMem(gof.Optimizer):
         # Note that for mit_mot outputs and shared outputs we can not change
         # the number of intermediate steps stored without affecting the
         # result of the op
-        store_steps = [0 for o in xrange(op.n_mit_mot)]
+        store_steps = [0 for o in range(op.n_mit_mot)]
         store_steps += [-1 for o in node.outputs[op.n_mit_mot : c_outs]]
         # Flag that says if an input has changed and we need to do something
         # or not
@@ -1559,7 +1563,7 @@ class ScanSaveMem(gof.Optimizer):
                 op, not_required, nw_inputs
             )
             inv_compress_map = OrderedDict()
-            for k, v in iteritems(compress_map):
+            for k, v in compress_map.items():
                 inv_compress_map[v] = k
 
             node_ins = [pre_greedy_local_optimizer(list_opt_slice, x) for x in node_ins]
@@ -1762,7 +1766,7 @@ class ScanMerge(gof.Optimizer):
         for idx, nd in enumerate(nodes):
             # SitSot
             inner_ins[idx].append(rename(nd.op.inner_sitsot(nd.op.inputs), idx))
-            info["tap_array"] += [[-1] for x in xrange(nd.op.n_sit_sot)]
+            info["tap_array"] += [[-1] for x in range(nd.op.n_sit_sot)]
             inner_outs[idx].append(nd.op.inner_sitsot_outs(nd.op.outputs))
             outer_ins += rename(nd.op.outer_sitsot(nd.inputs), idx)
             outer_outs += nd.op.outer_sitsot_outs(nd.outputs)

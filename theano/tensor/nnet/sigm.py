@@ -13,7 +13,6 @@ import numpy as np
 
 import theano
 from theano import config, gof, printing, scalar
-from theano.compat import imap
 from theano.printing import pprint
 from theano.tensor import basic as tensor
 from theano.tensor import elemwise, opt, NotScalarConstantError
@@ -69,7 +68,7 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
         #
         # import numpy, theano
         # dt='float32'  # or float64
-        # for i in xrange(750):
+        # for i in range(750):
         #     print i, repr(theano._asarray(1.0, dtype=dt) /
         #                   (theano._asarray(1.0, dtype=dt) +
         #                    numpy.exp(-theano._asarray([i,-i], dtype=dt))))
@@ -380,7 +379,7 @@ class ScalarSoftplus(scalar.UnaryScalarOp):
         (z,) = out
         # These constants were obtained by looking at the output of
         # python commands like:
-        #  for i in xrange(750):
+        #  for i in range(750):
         #      print i, repr(numpy.log1p(numpy.exp(theano._asarray([i,-i], dtype=dt))))
         # the boundary checks prevent us from generating inf
 
@@ -791,7 +790,7 @@ def simplify_mul(tree):
     if isinstance(inputs, list):
         # Recurse through inputs.
         s_inputs = []
-        for s_i in imap(simplify_mul, inputs):
+        for s_i in map(simplify_mul, inputs):
             if s_i[1] is None:
                 # Multiplication by +/-1.
                 neg ^= s_i[0]
