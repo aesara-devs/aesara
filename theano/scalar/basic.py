@@ -1767,6 +1767,7 @@ class Maximum(BinaryScalarOp):
     commutative = True
     associative = True
     nfunc_spec = ("maximum", 2, 1)
+    nfunc_variadic = "maximum"
 
     def impl(self, *inputs):
         # The built-in max function don't support complex type
@@ -1811,6 +1812,7 @@ class Minimum(BinaryScalarOp):
     commutative = True
     associative = True
     nfunc_spec = ("minimum", 2, 1)
+    nfunc_variadic = "minimum"
 
     def impl(self, *inputs):
         # The built-in min function don't support complex type
@@ -1855,6 +1857,7 @@ class Add(ScalarOp):
     commutative = True
     associative = True
     nfunc_spec = ("add", 2, 1)
+    nfunc_variadic = "sum"
 
     def impl(self, *inputs):
         return sum(inputs)
@@ -1896,6 +1899,7 @@ class Mul(ScalarOp):
     commutative = True
     associative = True
     nfunc_spec = ("multiply", 2, 1)
+    nfunc_variadic = "product"
 
     def impl(self, *inputs):
         return np.product(inputs)
