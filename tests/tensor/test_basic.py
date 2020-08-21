@@ -6729,10 +6729,12 @@ class TestNdGrid:
 
     def test_mgrid_numpy_equiv(self):
         nmgrid = (
+            [np.mgrid[0:1:0.1]],
             np.mgrid[0:1:0.1, 1:10:1.0, 10:100:10.0],
             np.mgrid[0:2:1, 1:10:1, 10:100:10],
         )
         tmgrid = (
+            [mgrid[0:1:0.1]],
             mgrid[0:1:0.1, 1:10:1.0, 10:100:10.0],
             mgrid[0:2:1, 1:10:1, 10:100:10],
         )
@@ -6742,10 +6744,12 @@ class TestNdGrid:
 
     def test_ogrid_numpy_equiv(self):
         nogrid = (
+            [np.ogrid[0:1:0.1]],
             np.ogrid[0:1:0.1, 1:10:1.0, 10:100:10.0],
             np.ogrid[0:2:1, 1:10:1, 10:100:10],
         )
         togrid = (
+            [ogrid[0:1:0.1]],
             ogrid[0:1:0.1, 1:10:1.0, 10:100:10.0],
             ogrid[0:2:1, 1:10:1, 10:100:10],
         )
