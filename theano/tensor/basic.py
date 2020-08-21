@@ -5937,6 +5937,10 @@ class _nd_grid(object):
 
     def __getitem__(self, *args):
 
+        if isinstance(args[0], slice):
+            sl = args[0]
+            return arange(sl.start or 0, sl.stop, sl.step or 1)
+
         ndim = len(args[0])
         for sl in args[0]:
             if isinstance(sl.step, python_complex):
