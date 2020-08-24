@@ -2877,7 +2877,7 @@ class TestAlloc:
             assert not isinstance(topo[0].op, DeepCopyOp)
 
     def test_ones(self):
-        for shp in [[], 1, [1], [1, 2], [1, 2, 3]]:
+        for shp in [[], 1, [1], [1, 2], [1, 2, 3], np.r_[1, 2, 3]]:
             ones = theano.function([], [tensor.ones(shp)], mode=self.mode)
             assert np.allclose(ones(), np.ones(shp))
 
@@ -2894,7 +2894,7 @@ class TestAlloc:
             assert np.allclose(ones_tensor(inp), np.ones(shp))
 
     def test_zeros(self):
-        for shp in [[], 1, [1], [1, 2], [1, 2, 3]]:
+        for shp in [[], 1, [1], [1, 2], [1, 2, 3], np.r_[1, 2, 3]]:
             zeros = theano.function([], [tensor.zeros(shp)], mode=self.mode)
             assert np.allclose(zeros(), np.zeros(shp))
 
