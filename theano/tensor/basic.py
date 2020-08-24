@@ -12,6 +12,7 @@ import theano
 import theano.scalar.sharedvar
 
 from functools import partial
+from collections.abc import Sequence
 
 from six import integer_types
 
@@ -2683,7 +2684,7 @@ def zeros(shape, dtype=None):
     """
     Create a Tensor filled with zeros, closer to Numpy's syntax than ``alloc``.
     """
-    if not isinstance(shape, (list, tuple, TensorVariable)):
+    if not isinstance(shape, (np.ndarray, Sequence, TensorVariable)):
         shape = [shape]
     if dtype is None:
         dtype = config.floatX
@@ -2694,7 +2695,7 @@ def ones(shape, dtype=None):
     """
     Create a Tensor filled with ones, closer to Numpy's syntax than ``alloc``.
     """
-    if not isinstance(shape, (list, tuple, TensorVariable)):
+    if not isinstance(shape, (np.ndarray, Sequence, TensorVariable)):
         shape = [shape]
     if dtype is None:
         dtype = config.floatX
