@@ -1393,8 +1393,8 @@ def forced_replace(out, x, y):
     x := sigmoid(wu)
     forced_replace(out, x, y) := y*(1-y)
 
-    Note
-    ----
+    Notes
+    -----
     When it find a match, it don't continue on the corresponding inputs.
     """
     if out is None:

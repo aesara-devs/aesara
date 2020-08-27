@@ -189,8 +189,8 @@ class NanGuardMode(Mode):
     big_is_error : bool
         If True, raise an error when a value greater than 1e10 is encountered.
 
-    Note
-    ----
+    Notes
+    -----
         We ignore the linker parameter
     """
 

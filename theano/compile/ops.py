@@ -680,8 +680,8 @@ class Rebroadcast(gof.Op):
     -----
     Works inplace and works for CudaNdarrayType.
 
-    Example
-    -------
+    Examples
+    --------
     `Rebroadcast((0, True), (1, False))(x)` would make `x` broadcastable in
     axis 0 and not broadcastable in axis 1.
 
