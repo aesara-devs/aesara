@@ -124,7 +124,11 @@ def do_setup():
             "theano.misc": ["*.sh"],
             "theano.d3viz": ["html/*", "css/*", "js/*"],
         },
-        entry_points={"console_scripts": ["theano-cache = bin.theano_cache:main",]},
+        entry_points={
+            "console_scripts": [
+                "theano-cache = bin.theano_cache:main",
+            ]
+        },
         keywords=" ".join(
             [
                 "theano",

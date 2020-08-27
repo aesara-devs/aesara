@@ -486,7 +486,10 @@ class TestSparseInferShape(utt.InferShapeTester):
         self._compile_and_check(
             [x, y],
             [x * y],
-            [sp.sparse.csr_matrix(random_lil((10, 40), config.floatX, 3)),] * 2,
+            [
+                sp.sparse.csr_matrix(random_lil((10, 40), config.floatX, 3)),
+            ]
+            * 2,
             MulSS,
         )
 

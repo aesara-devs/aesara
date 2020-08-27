@@ -241,7 +241,8 @@ def test_badoptimization():
 
     with pytest.raises(debugmode.BadOptimization) as einfo:
         f(
-            [1.0, 2.0, 3.0], [2, 3, 4],
+            [1.0, 2.0, 3.0],
+            [2, 3, 4],
         )
     assert str(einfo.value.reason) == "insert_broken_add"
 
@@ -280,7 +281,8 @@ def test_badoptimization_opt_err():
     f = theano.function([a, b], a + b, mode=debugmode.DebugMode(optimizer=opt))
     with pytest.raises(ValueError, match=r"insert_bigger_b_add"):
         f(
-            [1.0, 2.0, 3.0], [2, 3, 4],
+            [1.0, 2.0, 3.0],
+            [2, 3, 4],
         )
 
     # Test that opt that do an illegal change still get the error from gof.
@@ -294,7 +296,8 @@ def test_badoptimization_opt_err():
                 mode=debugmode.DebugMode(optimizer=opt2, stability_patience=1),
             )
         f2(
-            [1.0, 2.0, 3.0], [2, 3, 4],
+            [1.0, 2.0, 3.0],
+            [2, 3, 4],
         )
 
     # Test that we can reraise the error with an extended message

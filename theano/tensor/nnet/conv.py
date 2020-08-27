@@ -590,13 +590,21 @@ class ConvOp(OpenMPOp):
 
         self.outshp = get_conv_output_shape(
             (None,) + self.imshp_logical,
-            (None, None,) + self.kshp_logical,
+            (
+                None,
+                None,
+            )
+            + self.kshp_logical,
             output_mode,
             (dx, dy),
         )[2:]
         self.fulloutshp = get_conv_output_shape(
             (None,) + self.imshp_logical,
-            (None, None,) + self.kshp_logical,
+            (
+                None,
+                None,
+            )
+            + self.kshp_logical,
             output_mode,
             (1, 1),
         )[2:]
@@ -782,7 +790,11 @@ class ConvOp(OpenMPOp):
         # infer output shape from what we have
         res = get_conv_output_shape(
             (bsize,) + tuple(imshp),
-            (nkern, None,) + tuple(kshp),
+            (
+                nkern,
+                None,
+            )
+            + tuple(kshp),
             self.out_mode,
             (self.dx, self.dy),
         )
@@ -869,13 +881,32 @@ class ConvOp(OpenMPOp):
         else:
             fulloutshp = get_conv_output_shape(
                 (None,) + imshp_logical,
-                (None, None,) + kshp_logical,
+                (
+                    None,
+                    None,
+                )
+                + kshp_logical,
                 self.out_mode,
                 (1, 1),
             )[2:]
 
-        if z[0] is None or z[0].shape != (bsize, nkern,) + fulloutshp:
-            z[0] = np.zeros((bsize, nkern,) + fulloutshp, dtype=img2d.dtype)
+        if (
+            z[0] is None
+            or z[0].shape
+            != (
+                bsize,
+                nkern,
+            )
+            + fulloutshp
+        ):
+            z[0] = np.zeros(
+                (
+                    bsize,
+                    nkern,
+                )
+                + fulloutshp,
+                dtype=img2d.dtype,
+            )
         zz = z[0]
 
         stacklen = imshp[0]
@@ -1130,8 +1161,7 @@ using namespace std;
         )
 
     def use_blas(self):
-        """ Return True if we will generate code that use gemm.
-        """
+        """Return True if we will generate code that use gemm."""
         # the gemm version only support that case
         if self.out_mode == "valid" and self.dx == 0 and self.dy == 0:
             # We use a faster version in those case.

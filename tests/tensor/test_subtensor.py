@@ -1115,7 +1115,16 @@ class TestSubtensor(utt.OptimizationTestMixin):
             (rand(4), [1, 0]),
             (rand(4, 2), [2, 3]),
             (rand(4, 2, 3), [0, 3]),
-            (rand(4, 2, 3), [3, 3, 1, 2, 2,]),
+            (
+                rand(4, 2, 3),
+                [
+                    3,
+                    3,
+                    1,
+                    2,
+                    2,
+                ],
+            ),
         ]:
             data = np.asarray(data, dtype=self.dtype)
             n = self.shared(data)
@@ -1138,21 +1147,30 @@ class TestSubtensor(utt.OptimizationTestMixin):
         # vector
         utt.verify_grad(
             inc_slice(slice(2, 4, None)),
-            (np.asarray([0, 1, 2, 3, 4, 5.0]), np.asarray([9, 9.0]),),
+            (
+                np.asarray([0, 1, 2, 3, 4, 5.0]),
+                np.asarray([9, 9.0]),
+            ),
             mode=self.mode,
         )
 
         # matrix
         utt.verify_grad(
             inc_slice(slice(1, 2, None), slice(None, None, None)),
-            (np.asarray([[0, 1], [2, 3], [4, 5.0]]), np.asarray([[9, 9.0]]),),
+            (
+                np.asarray([[0, 1], [2, 3], [4, 5.0]]),
+                np.asarray([[9, 9.0]]),
+            ),
             mode=self.mode,
         )
 
         # single element
         utt.verify_grad(
             inc_slice(2, 1),
-            (np.asarray([[0, 1], [2, 3], [4, 5.0]]), np.asarray(9.0),),
+            (
+                np.asarray([[0, 1], [2, 3], [4, 5.0]]),
+                np.asarray(9.0),
+            ),
             mode=self.mode,
         )
 

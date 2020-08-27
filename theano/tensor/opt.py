@@ -1083,7 +1083,7 @@ class ShapeFeature(object):
         return o_shapes
 
     def get_shape(self, var, idx):
-        """ Optimization can call this to get the current shape_i
+        """Optimization can call this to get the current shape_i
 
         It is better to call this then use directly shape_of[var][idx]
         as this method should update shape_of if needed.
@@ -3581,7 +3581,12 @@ def local_IncSubtensor_serialize(node):
         return (
             i.owner
             and isinstance(
-                i.owner.op, (IncSubtensor, AdvancedIncSubtensor1, AdvancedIncSubtensor,)
+                i.owner.op,
+                (
+                    IncSubtensor,
+                    AdvancedIncSubtensor1,
+                    AdvancedIncSubtensor,
+                ),
             )
             and i.type == o_type
             and len(i.clients) == 1
@@ -4647,7 +4652,7 @@ def local_useless_tile(node):
 @register_specialize
 @gof.local_optimizer([T.Split])
 def local_useless_split(node):
-    """ Split{n_splits=1}(x, y) -> x
+    """Split{n_splits=1}(x, y) -> x
 
     Remove Split with only 1 split.
 
@@ -6357,8 +6362,7 @@ def local_mul_to_sqr(node):
 @register_canonicalize
 @gof.local_optimizer([T.int_div])
 def local_intdiv_by_one(node):
-    """x // 1 -> x
-    """
+    """x // 1 -> x"""
     if node.op in [T.int_div]:
         if isinstance(node.inputs[1], T.TensorConstant) and np.all(
             node.inputs[1].value == 1
@@ -6370,8 +6374,7 @@ def local_intdiv_by_one(node):
 @register_specialize
 @gof.local_optimizer([T.int_div, T.true_div])
 def local_zero_div(node):
-    """0 / x -> 0
-    """
+    """0 / x -> 0"""
     if isinstance(node.op, T.Elemwise) and isinstance(
         node.op.scalar_op, (theano.scalar.IntDiv, theano.scalar.TrueDiv)
     ):
@@ -6971,7 +6974,10 @@ def local_greedy_distributor(node):
             continue
         num.remove(candidate)
         _change, candidate, num, denum = attempt_distribution(
-            candidate, num, denum, out_type,
+            candidate,
+            num,
+            denum,
+            out_type,
         )
 
         change |= _change

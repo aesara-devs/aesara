@@ -2363,7 +2363,7 @@ def h_softmax(
     b2,
     target=None,
 ):
-    """ Two-level hierarchical softmax.
+    """Two-level hierarchical softmax.
 
     This function implements a two-layer hierarchical softmax. It is commonly
     used as an alternative of the softmax when the number of outputs is

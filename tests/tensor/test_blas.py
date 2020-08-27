@@ -698,7 +698,10 @@ def test_gemm_opt_double_gemm():
         assert not isinstance(node.op, T.Dot)
         assert node.op != _dot22
     g = inplace_func(
-        i, o, mode=compile.Mode(linker="py", optimizer=None), on_unused_input="ignore",
+        i,
+        o,
+        mode=compile.Mode(linker="py", optimizer=None),
+        on_unused_input="ignore",
     )
 
     rng = np.random.RandomState(unittest_tools.fetch_seed(234))

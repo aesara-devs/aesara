@@ -50,7 +50,13 @@ def test_determinism_1():
         v_range = v_max - v_min
 
         updates = []
-        for i, val in enumerate([v_max.max(), v_max.min(), v_range.max(),]):
+        for i, val in enumerate(
+            [
+                v_max.max(),
+                v_max.min(),
+                v_range.max(),
+            ]
+        ):
             disturb_mem.disturb_mem()
             s = sharedX(0.0, name="s_" + str(i))
             updates.append((s, val))

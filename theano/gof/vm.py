@@ -1072,9 +1072,18 @@ class VM_Linker(link.LocalLinker):
             if not lazy:
                 # there is no conditional in the graph
                 if self.allow_gc:
-                    vm = LoopGC(nodes, thunks, pre_call_clear, post_thunk_clear,)
+                    vm = LoopGC(
+                        nodes,
+                        thunks,
+                        pre_call_clear,
+                        post_thunk_clear,
+                    )
                 else:
-                    vm = Loop(nodes, thunks, pre_call_clear,)
+                    vm = Loop(
+                        nodes,
+                        thunks,
+                        pre_call_clear,
+                    )
             else:
                 # Needed when allow_gc=True and profiling
                 deps = self.compute_gc_dependencies(storage_map)
@@ -1092,7 +1101,11 @@ class VM_Linker(link.LocalLinker):
         return vm
 
     def make_all(
-        self, profiler=None, input_storage=None, output_storage=None, storage_map=None,
+        self,
+        profiler=None,
+        input_storage=None,
+        output_storage=None,
+        storage_map=None,
     ):
         fgraph = self.fgraph
         order = self.schedule(fgraph)

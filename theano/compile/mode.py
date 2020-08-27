@@ -214,14 +214,18 @@ optdb.register(
 )
 
 optdb.register(
-    "Print1.21", PrintCurrentFunctionGraph("Post-canonicalize"), 1.21,
+    "Print1.21",
+    PrintCurrentFunctionGraph("Post-canonicalize"),
+    1.21,
 )  # 'fast_run', 'fast_compile')
 
 # replace unstable subgraphs
 optdb.register("stabilize", gof.EquilibriumDB(), 1.5, "fast_run")
 
 optdb.register(
-    "Print1.51", PrintCurrentFunctionGraph("Post-stabilize"), 1.51,
+    "Print1.51",
+    PrintCurrentFunctionGraph("Post-stabilize"),
+    1.51,
 )  # 'fast_run', 'fast_compile')
 
 # misc special cases for speed

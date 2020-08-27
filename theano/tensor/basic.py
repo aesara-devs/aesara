@@ -377,7 +377,7 @@ class EmptyConstantError(NotScalarConstantError):
 
 
 def numpy_scalar(data):
-    """ Return a scalar stored in a numpy ndarray.
+    """Return a scalar stored in a numpy ndarray.
 
     Raises
     ------
@@ -4601,7 +4601,7 @@ class Join(Op):
         return self.make_node(inputs[0], *eval_points[1:]).outputs
 
     def grad(self, axis_and_tensors, grads):
-        """ The gradient wrt a join op is a `Split`, used to partition
+        """The gradient wrt a join op is a `Split`, used to partition
         the gradient along the `axis` which was used for joining.
         """
         (gz,) = grads
