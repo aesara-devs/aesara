@@ -107,10 +107,6 @@ def do_setup():
         packages=find_packages(),
         cmdclass=versioneer.get_cmdclass(),
         install_requires=["numpy>=1.9.1", "scipy>=0.14", "six>=1.9.0"],
-        extras_require={
-            "test": ["pytest", "flake8", "black"],
-            "doc": ["Sphinx>=0.5.1", "pygments"],
-        },
         package_data={
             "": [
                 "*.txt",

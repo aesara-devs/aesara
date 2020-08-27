@@ -44,9 +44,9 @@ Install the latest stable version of Theano with:
 
 - Use :blue:`user` for a user installation without admin rights. It will install Theano in your local site-packages.
 
-- [test] will install the requirements for testing.
+- Use `pip install -r requirements.txt` to install the requirements for testing.
 
-- [doc] will install the requirements in order to generate the documentation.
+- Use `pip install -r requirements-rtd.txt` install the requirements for generating the documentation.
 
 If you encountered any trouble, head to the :ref:`troubleshooting` page.
 
