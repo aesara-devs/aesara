@@ -866,8 +866,8 @@ def clone(i, o, copy_inputs=True, copy_orphans=None):
     object
         The inputs and outputs of that copy.
 
-    Note
-    ----
+    Notes
+    -----
 
     A constant, if in the ``i`` list is not an orpha. So it will be
     copied depending of the ``copy_inputs`` parameter. Otherwise it

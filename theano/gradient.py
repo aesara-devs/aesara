@@ -1782,8 +1782,8 @@ def verify_grad(
     no_debug_ref : bool
         Don't use DebugMode for the numerical gradient function.
 
-    Note
-    ----
+    Notes
+    -----
     This function does not support multiple outputs. In
     tests/test_scan.py there is an experimental verify_grad that
     covers that case as well by using random projections.
@@ -2380,8 +2380,8 @@ def grad_clip(x, lower_bound, upper_bound):
     >>> print(f(2.0))
     [array(1.0), array(4.0)]
 
-    Note
-    ----
+    Notes
+    -----
     We register an opt in tensor/opt.py that remove the GradClip.
     So it have 0 cost in the forward and only do work in the grad.
 

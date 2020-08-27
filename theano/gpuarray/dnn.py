@@ -1748,8 +1748,8 @@ class GpuDnnPoolDesc(Op):
     pad : tuple
         (padX, padY) or (padX, padY, padZ)
 
-    Note
-    ----
+    Notes
+    -----
     Not used anymore. Only needed to reload old pickled files.
     """
 

@@ -65,8 +65,8 @@ def debug_counter(name, every=1):
 
     This is a utility function one may use when debugging.
 
-    Example
-    -------
+    Examples
+    --------
     debug_counter('I want to know how often I run this line')
 
     """
