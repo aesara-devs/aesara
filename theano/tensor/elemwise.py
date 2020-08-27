@@ -80,8 +80,8 @@ class DimShuffle(COp):
     inplace : bool, optional
         If True (default), the output will be a view of the input.
 
-    Note
-    ----
+    Notes
+    -----
     If `j = new_order[i]` is an index, the output's ith dimension
     will be the input's jth dimension.
     If `new_order[i]` is `x`, the output's ith dimension will
@@ -91,8 +91,6 @@ class DimShuffle(COp):
     If `input.broadcastable[i] == False` then `i` must be found in new_order.
     Broadcastable dimensions, on the other hand, can be discarded.
 
-    Note
-    ----
     .. code-block:: python
 
         DimShuffle((False, False, False), ['x', 2, 'x', 0, 1])
@@ -115,8 +113,8 @@ class DimShuffle(COp):
     If the tensor has shape (1, 20), the resulting tensor will have shape
     (20, ).
 
-    Example
-    -------
+    Examples
+    --------
     .. code-block:: python
 
         DimShuffle((), ['x'])  # make a 0d (scalar) into a 1d vector
@@ -399,8 +397,8 @@ class Elemwise(OpenMPOp):
         variable number of inputs), whereas the numpy function may
         not have varargs.
 
-    Note
-    ----
+    Notes
+    -----
     | Elemwise(add) represents + on tensors (x + y)
     | Elemwise(add, {0 : 0}) represents the += operation (x += y)
     | Elemwise(add, {0 : 1}) represents += on the second argument (y += x)
@@ -1330,8 +1328,8 @@ class CAReduce(Op):
         - List of dimensions that we want to reduce
         - If None, all dimensions are reduced
 
-    Note
-    ----
+    Notes
+    -----
     .. code-block:: python
 
         CAReduce(add)      # sum (ie, acts like the numpy sum operation)

@@ -303,8 +303,6 @@ solve = Solve()
 Solves the equation ``a x = b`` for x, where ``a`` is a matrix and
 ``b`` can be either a vector or a matrix.
 
-Note
-
 Parameters
 ----------
 a : `(M, M) symbolix matrix`

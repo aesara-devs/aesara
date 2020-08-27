@@ -393,8 +393,8 @@ class Linker(object):
         operate in the same storage the fgraph uses, else independent storage
         will be allocated for the function.
 
-        Example
-        -------
+        Examples
+        --------
         e = x + y
         fgraph = FunctionGraph([x, y], [e])
         fn = MyLinker(fgraph).make_function(inplace)

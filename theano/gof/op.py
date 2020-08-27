@@ -187,8 +187,8 @@ class CLinkerObject(object):
         Optional: Return a list of compile args recommended to compile the
         code returned by other methods in this class.
 
-        Example
-        -------
+        Examples
+        --------
         return ['-ffast-math']
 
         Compiler arguments related to headers, libraries and search paths should

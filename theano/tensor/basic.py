@@ -225,8 +225,8 @@ def constant(x, name=None, ndim=None, dtype=None):
     ValueError
         `x` could not be expanded to have ndim dimensions.
 
-    Note
-    ----
+    Notes
+    -----
     We create a small cache of frequently used constant.
     This speed up the Merge optimization for big graph.
     We want to cache all scalar to don't merge as frequently constants.
@@ -4792,8 +4792,8 @@ def shape_padright(t, n_ones=1):
 def shape_padaxis(t, axis):
     """Reshape `t` by inserting 1 at the dimension `axis`.
 
-    Example
-    -------
+    Examples
+    --------
     >>> tensor = theano.tensor.tensor3()
     >>> theano.tensor.shape_padaxis(tensor, axis=0)
     DimShuffle{x,0,1,2}.0
