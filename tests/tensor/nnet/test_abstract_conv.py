@@ -872,7 +872,11 @@ class BaseTestConv2d(BaseTestConv):
                     )
 
                     run_for_output_offsets(
-                        image_shape, kernel_shape, s, border_mode, d,
+                        image_shape,
+                        kernel_shape,
+                        s,
+                        border_mode,
+                        d,
                     )
 
     def run_fwd(
@@ -1229,7 +1233,11 @@ class BaseTestConv3d(BaseTestConv):
                     )
 
                     run_for_output_offsets(
-                        image_shape, kernel_shape, s, border_mode, d,
+                        image_shape,
+                        kernel_shape,
+                        s,
+                        border_mode,
+                        d,
                     )
 
     def run_fwd(
@@ -1922,11 +1930,13 @@ class TestConv2dGrads:
                         filter_val = self.random_stream.random_sample(
                             fltr_shape
                         ).astype(theano.config.floatX)
-                        out_grad_shape = theano.tensor.nnet.abstract_conv.get_conv_output_shape(
-                            image_shape=in_shape,
-                            kernel_shape=fltr_shape,
-                            border_mode=bm,
-                            subsample=ss,
+                        out_grad_shape = (
+                            theano.tensor.nnet.abstract_conv.get_conv_output_shape(
+                                image_shape=in_shape,
+                                kernel_shape=fltr_shape,
+                                border_mode=bm,
+                                subsample=ss,
+                            )
                         )
                         out_grad_val = self.random_stream.random_sample(
                             out_grad_shape
@@ -1949,14 +1959,16 @@ class TestConv2dGrads:
                             [self.x, self.w, self.output_grad], conv_grad
                         )
 
-                        conv_wrt_i_out = theano.tensor.nnet.abstract_conv.conv2d_grad_wrt_inputs(
-                            output_grad=self.output_grad_wrt,
-                            filters=self.w,
-                            border_mode=bm,
-                            subsample=ss,
-                            input_shape=in_shape,
-                            filter_shape=fltr_shape,
-                            filter_flip=ff,
+                        conv_wrt_i_out = (
+                            theano.tensor.nnet.abstract_conv.conv2d_grad_wrt_inputs(
+                                output_grad=self.output_grad_wrt,
+                                filters=self.w,
+                                border_mode=bm,
+                                subsample=ss,
+                                input_shape=in_shape,
+                                filter_shape=fltr_shape,
+                                filter_flip=ff,
+                            )
                         )
                         f_new = theano.function(
                             [self.w, self.output_grad_wrt], conv_wrt_i_out
@@ -1984,11 +1996,13 @@ class TestConv2dGrads:
                         filter_val = self.random_stream.random_sample(
                             fltr_shape
                         ).astype(theano.config.floatX)
-                        out_grad_shape = theano.tensor.nnet.abstract_conv.get_conv_output_shape(
-                            image_shape=in_shape,
-                            kernel_shape=fltr_shape,
-                            border_mode=bm,
-                            subsample=ss,
+                        out_grad_shape = (
+                            theano.tensor.nnet.abstract_conv.get_conv_output_shape(
+                                image_shape=in_shape,
+                                kernel_shape=fltr_shape,
+                                border_mode=bm,
+                                subsample=ss,
+                            )
                         )
                         out_grad_val = self.random_stream.random_sample(
                             out_grad_shape
@@ -2011,14 +2025,16 @@ class TestConv2dGrads:
                             [self.x, self.w, self.output_grad], conv_grad
                         )
 
-                        conv_wrt_w_out = theano.tensor.nnet.abstract_conv.conv2d_grad_wrt_weights(
-                            self.x,
-                            output_grad=self.output_grad_wrt,
-                            border_mode=bm,
-                            subsample=ss,
-                            input_shape=in_shape,
-                            filter_shape=fltr_shape,
-                            filter_flip=ff,
+                        conv_wrt_w_out = (
+                            theano.tensor.nnet.abstract_conv.conv2d_grad_wrt_weights(
+                                self.x,
+                                output_grad=self.output_grad_wrt,
+                                border_mode=bm,
+                                subsample=ss,
+                                input_shape=in_shape,
+                                filter_shape=fltr_shape,
+                                filter_flip=ff,
+                            )
                         )
                         f_new = theano.function(
                             [self.x, self.output_grad_wrt], conv_wrt_w_out

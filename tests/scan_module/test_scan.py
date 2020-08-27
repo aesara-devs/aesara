@@ -1239,7 +1239,14 @@ class TestScan:
     def test_gibbs_chain(self):
         rng = np.random.RandomState(utt.fetch_seed())
         v_W = np.array(rng.rand(20, 30) - 0.5, dtype="float32")
-        v_vsample = np.array(rng.binomial(1, 0.5, size=(3, 20),), dtype="float32")
+        v_vsample = np.array(
+            rng.binomial(
+                1,
+                0.5,
+                size=(3, 20),
+            ),
+            dtype="float32",
+        )
         v_bvis = np.array(rng.rand(20) - 0.5, dtype="float32")
         v_bhid = np.array(rng.rand(30) - 0.5, dtype="float32")
         W = theano.shared(v_W, "vW")
@@ -4559,7 +4566,11 @@ for{cpu,scan_fn}.2 [id H] ''
         w = theano.shared(np.array(0, dtype="float32"), name="w")
         init = tensor.fscalar("init")
 
-        out, _ = theano.scan(fn=lambda prev: w, outputs_info=init, n_steps=2,)
+        out, _ = theano.scan(
+            fn=lambda prev: w,
+            outputs_info=init,
+            n_steps=2,
+        )
         tensor.grad(out[-1], w)
 
     def test_scan_merge_nodes(self):
@@ -5105,7 +5116,14 @@ class ScanGpuTests:
 
     def test_gibbs_chain(self):
         rng = np.random.RandomState(utt.fetch_seed())
-        v_vsample = np.array(rng.binomial(1, 0.5, size=(3, 20),), dtype="float32")
+        v_vsample = np.array(
+            rng.binomial(
+                1,
+                0.5,
+                size=(3, 20),
+            ),
+            dtype="float32",
+        )
         vsample = theano.shared(v_vsample)
         trng = theano.sandbox.rng_mrg.MRG_RandomStreams(utt.fetch_seed())
 

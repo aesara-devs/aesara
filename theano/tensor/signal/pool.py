@@ -321,7 +321,9 @@ class Pool(OpenMPOp):
     """
 
     __props__ = ("ignore_border", "mode", "ndim")
-    params_type = ParamsType(ignore_border=bool_t,)
+    params_type = ParamsType(
+        ignore_border=bool_t,
+    )
 
     @staticmethod
     def out_shape(
@@ -2166,7 +2168,9 @@ class MaxPoolRop(OpenMPOp):
     """
 
     __props__ = ("ignore_border", "mode", "ndim")
-    params_type = ParamsType(ignore_border=bool_t,)
+    params_type = ParamsType(
+        ignore_border=bool_t,
+    )
 
     def __init__(self, ignore_border=False, mode="max", ndim=2, openmp=None):
         super(MaxPoolRop, self).__init__(openmp=openmp)

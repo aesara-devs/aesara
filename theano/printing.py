@@ -312,7 +312,7 @@ def _print_fn(op, xin):
 
 
 class Print(Op):
-    """ This identity-like Op print as a side effect.
+    """This identity-like Op print as a side effect.
 
     This identity-like Op has the side effect of printing a message
     followed by its inputs when it runs. Default behaviour is to print
@@ -691,7 +691,11 @@ else:
     special = dict(middle_dot="\u00B7", big_sigma="\u03A3")
 
     greek = dict(
-        alpha="\u03B1", beta="\u03B2", gamma="\u03B3", delta="\u03B4", epsilon="\u03B5",
+        alpha="\u03B1",
+        beta="\u03B2",
+        gamma="\u03B3",
+        delta="\u03B4",
+        epsilon="\u03B5",
     )
 
 
@@ -1179,9 +1183,9 @@ def pydotprint(
 
 
 class _TagGenerator:
-    """ Class for giving abbreviated tags like to objects.
-        Only really intended for internal use in order to
-        implement min_informative_st """
+    """Class for giving abbreviated tags like to objects.
+    Only really intended for internal use in order to
+    implement min_informative_st"""
 
     def __init__(self):
         self.cur_tag_number = 0

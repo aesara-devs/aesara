@@ -212,8 +212,8 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         input, ws, ignore_border=False, stride=None, mode="max"
     ):
         """Helper function, implementing pool_2d in pure numpy
-           this function provides stride input to indicate the stide size
-           for the pooling regions. if not indicated, stride == ws."""
+        this function provides stride input to indicate the stide size
+        for the pooling regions. if not indicated, stride == ws."""
         if len(input.shape) < 2:
             raise NotImplementedError(
                 "input should have at least 2 dim," " shape is %s" % str(input.shape)
@@ -276,8 +276,8 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         input, ws, ignore_border=False, stride=None, mode="max"
     ):
         """Helper function, implementing pooling in pure numpy
-           this function provides stride input to indicate the stide size
-           for the pooling regions. if not indicated, stride == ws."""
+        this function provides stride input to indicate the stide size
+        for the pooling regions. if not indicated, stride == ws."""
         nd = len(ws)
         if stride is None:
             stride = ws
@@ -321,8 +321,21 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         # maxpool, input size
         examples = (
             ((2,), (16,)),
-            ((2,), (4, 16,)),
-            ((2,), (4, 2, 16,)),
+            (
+                (2,),
+                (
+                    4,
+                    16,
+                ),
+            ),
+            (
+                (2,),
+                (
+                    4,
+                    2,
+                    16,
+                ),
+            ),
             ((1, 1), (4, 2, 16, 16)),
             ((2, 2), (4, 2, 16, 16)),
             ((3, 3), (4, 2, 16, 16)),
@@ -348,12 +361,22 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
             # The pool_2d or pool_3d helper methods
             if len(maxpoolshp) == 2:
                 output = pool_2d(images, maxpoolshp, ignore_border, mode=mode)
-                f = function([], [output,])
+                f = function(
+                    [],
+                    [
+                        output,
+                    ],
+                )
                 output_val = f()
                 utt.assert_allclose(output_val, numpy_output_val)
             elif len(maxpoolshp) == 3:
                 output = pool_3d(images, maxpoolshp, ignore_border, mode=mode)
-                f = function([], [output,])
+                f = function(
+                    [],
+                    [
+                        output,
+                    ],
+                )
                 output_val = f()
                 utt.assert_allclose(output_val, numpy_output_val)
 
@@ -398,8 +421,34 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
             ((16, 16), (1, 1), False, (4, 10, 16, 16), (4, 10, 1, 1)),
             ((16, 16), (5, 7), False, (4, 10, 16, 16), (4, 10, 1, 1)),
             ((3,), (5,), True, (16,), (3,)),
-            ((3,), (5,), True, (2, 16,), (2, 3,)),
-            ((5,), (3,), True, (2, 3, 16,), (2, 3, 4,)),
+            (
+                (3,),
+                (5,),
+                True,
+                (
+                    2,
+                    16,
+                ),
+                (
+                    2,
+                    3,
+                ),
+            ),
+            (
+                (5,),
+                (3,),
+                True,
+                (
+                    2,
+                    3,
+                    16,
+                ),
+                (
+                    2,
+                    3,
+                    4,
+                ),
+            ),
             ((5, 1, 3), (3, 3, 3), True, (2, 16, 16, 16), (2, 4, 6, 5)),
             ((5, 1, 3), (3, 3, 3), True, (4, 2, 16, 16, 16), (4, 2, 4, 6, 5)),
         )
@@ -415,9 +464,11 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
             numpy_output_val = self.numpy_max_pool_nd_stride(
                 imval, maxpoolshp, ignore_border, stride, mode
             )
-            assert numpy_output_val.shape == outputshp, (
-                "outshape is %s, calculated shape is %s"
-                % (outputshp, numpy_output_val.shape)
+            assert (
+                numpy_output_val.shape == outputshp
+            ), "outshape is %s, calculated shape is %s" % (
+                outputshp,
+                numpy_output_val.shape,
             )
             maxpool_op = Pool(
                 ndim=len(maxpoolshp), ignore_border=ignore_border, mode=mode
@@ -464,9 +515,11 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
                 numpy_output_val = self.numpy_max_pool_2d_stride(
                     imval, maxpoolshp, ignore_border, stride, mode
                 )
-                assert numpy_output_val.shape == outputshp, (
-                    "outshape is %s, calculated shape is %s"
-                    % (outputshp, numpy_output_val.shape)
+                assert (
+                    numpy_output_val.shape == outputshp
+                ), "outshape is %s, calculated shape is %s" % (
+                    outputshp,
+                    numpy_output_val.shape,
                 )
                 maxpool_op = Pool(
                     ignore_border=ignore_border, ndim=len(maxpoolshp), mode=mode
@@ -528,9 +581,11 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
                 imval = rng.rand(*inputsize) * 10.0
 
                 def mp(input):
-                    return Pool(ndim=len(maxpoolshp), ignore_border=True, mode=mode,)(
-                        input, maxpoolshp, stridesize, padsize
-                    )
+                    return Pool(
+                        ndim=len(maxpoolshp),
+                        ignore_border=True,
+                        mode=mode,
+                    )(input, maxpoolshp, stridesize, padsize)
 
                 utt.verify_grad(mp, [imval], rng=rng)
 
@@ -766,8 +821,25 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         # maxpool, stride, pad, input sizes
         examples = (
             ((3,), (2,), (2,), (10,)),
-            ((3,), (2,), (2,), (2, 10,)),
-            ((3,), (2,), (2,), (2, 1, 10,)),
+            (
+                (3,),
+                (2,),
+                (2,),
+                (
+                    2,
+                    10,
+                ),
+            ),
+            (
+                (3,),
+                (2,),
+                (2,),
+                (
+                    2,
+                    1,
+                    10,
+                ),
+            ),
             ((5, 3), (3, 2), (2, 2), (1, 1, 10, 10)),
             ((3, 5), (2, 3), (2, 1), (1, 1, 10, 5)),
             ((5, 3, 3), (3, 2, 2), (2, 2, 2), (1, 1, 10, 5, 5)),
@@ -788,9 +860,10 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
             grad_val = rng.rand(*grad_shape) * 10.0
 
             def mp(input, grad):
-                out = Pool(ndim=len(maxpoolshp), ignore_border=True,)(
-                    input, maxpoolshp, stridesize, padsize
-                )
+                out = Pool(
+                    ndim=len(maxpoolshp),
+                    ignore_border=True,
+                )(input, maxpoolshp, stridesize, padsize)
                 grad_op = MaxPoolGrad(ndim=len(maxpoolshp), ignore_border=True)
                 return grad_op(input, out, grad, maxpoolshp, stridesize, padsize)
 
@@ -801,8 +874,25 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         # avgpool, stride, pad, input sizes
         examples = (
             ((3,), (2,), (2,), (10,)),
-            ((3,), (2,), (2,), (2, 10,)),
-            ((3,), (2,), (2,), (2, 1, 10,)),
+            (
+                (3,),
+                (2,),
+                (2,),
+                (
+                    2,
+                    10,
+                ),
+            ),
+            (
+                (3,),
+                (2,),
+                (2,),
+                (
+                    2,
+                    1,
+                    10,
+                ),
+            ),
             ((5, 3), (3, 2), (2, 2), (1, 1, 10, 10)),
             ((3, 5), (2, 3), (2, 1), (1, 1, 10, 5)),
             ((5, 3, 2), (3, 2, 1), (2, 2, 2), (1, 1, 10, 5, 5)),
@@ -852,8 +942,25 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         # maxpool, stride, pad, input sizes
         examples = (
             ((3,), (2,), (2,), (10,)),
-            ((3,), (2,), (2,), (2, 10,)),
-            ((3,), (2,), (2,), (2, 1, 10,)),
+            (
+                (3,),
+                (2,),
+                (2,),
+                (
+                    2,
+                    10,
+                ),
+            ),
+            (
+                (3,),
+                (2,),
+                (2,),
+                (
+                    2,
+                    1,
+                    10,
+                ),
+            ),
             ((5, 3), (3, 2), (2, 2), (1, 1, 10, 10)),
             ((3, 5), (2, 3), (2, 1), (1, 1, 10, 5)),
             ((3, 3), (3, 3), (2, 2), (1, 1, 5, 5)),

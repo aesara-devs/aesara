@@ -11,8 +11,7 @@ __docformat__ = "restructuredtext en"
 
 
 class Raise(gof.Op):
-    """Op whose perform() raises an exception.
-    """
+    """Op whose perform() raises an exception."""
 
     __props__ = ("msg", "exc")
 

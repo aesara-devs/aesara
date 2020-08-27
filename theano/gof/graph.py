@@ -403,9 +403,7 @@ class Variable(Node):
         Variable.notify_construction_observers(self)
 
     def __str__(self):
-        """Return a str representation of the Variable.
-
-        """
+        """Return a str representation of the Variable."""
         if self.name is not None:
             return self.name
         if self.owner is not None:

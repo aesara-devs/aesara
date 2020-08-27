@@ -837,9 +837,7 @@ class Op(utils.object2, PureOp, CLinkerOp):
         pass
 
     def make_c_thunk(self, node, storage_map, compute_map, no_recycling):
-        """Like make_thunk, but will only try to make a C thunk.
-
-        """
+        """Like make_thunk, but will only try to make a C thunk."""
         node_input_storage = [storage_map[r] for r in node.inputs]
         node_output_storage = [storage_map[r] for r in node.outputs]
 

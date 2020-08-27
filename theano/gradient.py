@@ -120,12 +120,12 @@ def grad_undefined(op, x_pos, x, comment=""):
 
 class DisconnectedType(theano.gof.type.Type):
 
-    """ A type indicating that a variable is a result
-        of taking the gradient of c with respect to x
-        when c is not a function of x.
-        A symbolic placeholder for 0, but to convey
-        the extra information that this gradient is 0
-        because it is disconnected.
+    """A type indicating that a variable is a result
+    of taking the gradient of c with respect to x
+    when c is not a function of x.
+    A symbolic placeholder for 0, but to convey
+    the extra information that this gradient is 0
+    because it is disconnected.
     """
 
     def filter(self, data, strict=False, allow_downcast=None):
@@ -820,10 +820,10 @@ def subgraph_grad(wrt, end, start=None, cost=None, details=False):
 
 
 def _node_to_pattern(node):
-    """ given an apply node, obtain its connection pattern
-     this is just a wrapper around Op.connection_pattern
-     that does type checking and supplies the default value
-     if the method is not implemented
+    """given an apply node, obtain its connection pattern
+    this is just a wrapper around Op.connection_pattern
+    that does type checking and supplies the default value
+    if the method is not implemented
     """
 
     if hasattr(node.op, "connection_pattern"):
@@ -1472,8 +1472,8 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
 
 
 def _float_zeros_like(x):
-    """ Like zeros_like, but forces the object to have a
-    a floating point dtype """
+    """Like zeros_like, but forces the object to have a
+    a floating point dtype"""
 
     rval = x.zeros_like()
 
@@ -1484,8 +1484,8 @@ def _float_zeros_like(x):
 
 
 def _float_ones_like(x):
-    """ Like ones_like, but forces the object to have a
-    floating point dtype """
+    """Like ones_like, but forces the object to have a
+    floating point dtype"""
 
     dtype = x.type.dtype
     if dtype not in tensor.float_dtypes:

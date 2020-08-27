@@ -161,9 +161,11 @@ class IfElse(Op):
         return out_shapes
 
     def make_node(self, c, *args):
-        assert len(args) == 2 * self.n_outs, (
-            "Wrong number of arguments to make_node: "
-            "expected %d, got %d" % (2 * self.n_outs, len(args))
+        assert (
+            len(args) == 2 * self.n_outs
+        ), "Wrong number of arguments to make_node: " "expected %d, got %d" % (
+            2 * self.n_outs,
+            len(args),
         )
         c = theano.tensor.as_tensor_variable(c)
         if not self.gpu:

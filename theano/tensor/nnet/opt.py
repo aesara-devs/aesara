@@ -42,7 +42,7 @@ from theano.tensor.nnet.conv import conv2d, ConvOp
 @gof.local_optimizer([SparseBlockGemv], inplace=True)
 def local_inplace_sparse_block_gemv(node):
     """
-        SparseBlockGemv(inplace=False) -> SparseBlockGemv(inplace=True)
+    SparseBlockGemv(inplace=False) -> SparseBlockGemv(inplace=True)
     """
     if isinstance(node.op, SparseBlockGemv) and not node.op.inplace:
         new_node = sparse_block_gemv_inplace(*node.inputs)
@@ -65,7 +65,7 @@ compile.optdb.register(
 @gof.local_optimizer([SparseBlockOuter], inplace=True)
 def local_inplace_sparse_block_outer(node):
     """
-        SparseBlockOuter(inplace=False) -> SparseBlockOuter(inplace=True)
+    SparseBlockOuter(inplace=False) -> SparseBlockOuter(inplace=True)
     """
     if isinstance(node.op, SparseBlockOuter) and not node.op.inplace:
         new_node = sparse_block_outer_inplace(*node.inputs)

@@ -1432,7 +1432,9 @@ class GpuExtractDiag(Op):
             # in the smaller triangle
             numstride = small_axis - np.abs(self.offset)
 
-        slicer = [np.s_[:],] * x.ndim
+        slicer = [
+            np.s_[:],
+        ] * x.ndim
         slicer[stride_axis] = np.s_[:numstride]
         slicer[slice_axis] = np.abs(self.offset)
         slicer = tuple(slicer)
@@ -1446,7 +1448,9 @@ class GpuExtractDiag(Op):
         new_dim_order = tuple(
             new_dim_order[:stride_axis]
             + new_dim_order[stride_axis + 1 :]
-            + [stride_axis,]
+            + [
+                stride_axis,
+            ]
         )
         rval = x[slicer].transpose(new_dim_order)
 

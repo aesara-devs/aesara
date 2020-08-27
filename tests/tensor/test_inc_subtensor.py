@@ -159,22 +159,35 @@ class TestIncSubtensor:
             # vector
             utt.verify_grad(
                 f_slice(slice(2, 4, None)),
-                (np.asarray([0, 1, 2, 3, 4, 5.0]), np.asarray([9, 9.0]),),
+                (
+                    np.asarray([0, 1, 2, 3, 4, 5.0]),
+                    np.asarray([9, 9.0]),
+                ),
             )
 
             # matrix
             utt.verify_grad(
                 f_slice(slice(1, 2, None), slice(None, None, None)),
-                (np.asarray([[0, 1], [2, 3], [4, 5.0]]), np.asarray([[9, 9.0]]),),
+                (
+                    np.asarray([[0, 1], [2, 3], [4, 5.0]]),
+                    np.asarray([[9, 9.0]]),
+                ),
             )
 
             # single element
             utt.verify_grad(
                 f_slice(2, 1),
-                (np.asarray([[0, 1], [2, 3], [4, 5.0]]), np.asarray(9.0),),
+                (
+                    np.asarray([[0, 1], [2, 3], [4, 5.0]]),
+                    np.asarray(9.0),
+                ),
             )
 
             # broadcast
             utt.verify_grad(
-                f_slice(2), (np.asarray([[0, 1], [2, 3], [4, 5.0]]), np.asarray(9.0),)
+                f_slice(2),
+                (
+                    np.asarray([[0, 1], [2, 3], [4, 5.0]]),
+                    np.asarray(9.0),
+                ),
             )

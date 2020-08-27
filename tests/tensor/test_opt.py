@@ -2404,13 +2404,40 @@ def test_local_useless_subtensor():
         [
             ((slice(0, x.shape[0]),), True),
             ((slice(0, x.shape[1]),), False),
-            ((slice(0, x.shape[0]), slice(0, x.shape[1]),), True),
-            ((slice(0, x.shape[0]), slice(0, x.shape[0]),), False),
-            ((slice(0, x.shape[1]), slice(0, x.shape[0]),), False),
-            ((slice(0, x.shape[1]), slice(0, x.shape[1]),), False),
+            (
+                (
+                    slice(0, x.shape[0]),
+                    slice(0, x.shape[1]),
+                ),
+                True,
+            ),
+            (
+                (
+                    slice(0, x.shape[0]),
+                    slice(0, x.shape[0]),
+                ),
+                False,
+            ),
+            (
+                (
+                    slice(0, x.shape[1]),
+                    slice(0, x.shape[0]),
+                ),
+                False,
+            ),
+            (
+                (
+                    slice(0, x.shape[1]),
+                    slice(0, x.shape[1]),
+                ),
+                False,
+            ),
             ((slice(0, x.shape[1]), 2), False),
             (
-                (slice(0, x.shape[1]), slice(x.shape[0] - x.shape[0], x.shape[1]),),
+                (
+                    slice(0, x.shape[1]),
+                    slice(x.shape[0] - x.shape[0], x.shape[1]),
+                ),
                 False,
             ),
             ((slice(0, T.scalar_from_tensor(x.shape[0])),), True),
@@ -2445,7 +2472,11 @@ def test_local_useless_subtensor():
 
     # Test scalar variable
     s = scal.int32("s")
-    for idx, (dims, res) in enumerate([((slice(0, s),), False),]):
+    for idx, (dims, res) in enumerate(
+        [
+            ((slice(0, s),), False),
+        ]
+    ):
         f = function([x, s], tensor.exp(x).__getitem__(dims), mode=mode_opt)
         # theano.printing.debugprint(f)
         prog = f.maker.fgraph.toposort()
@@ -2590,7 +2621,11 @@ class TestSubtensorIncSubtensor:
         assert isinstance(prog[0].op, DeepCopyOp)
         # basic test, numerical check
         x_ = np.random.uniform(size=[3, 4]).astype(config.floatX)
-        v_ = np.random.uniform(size=[4,]).astype(config.floatX)
+        v_ = np.random.uniform(
+            size=[
+                4,
+            ]
+        ).astype(config.floatX)
         i_ = 1
         assert np.array_equal(f(x_, i_, v_), v_)
 
@@ -2649,7 +2684,11 @@ class TestSubtensorIncSubtensor:
         assert any(isinstance(x.op, tensor.Alloc) for x in prog)
         # case when v is broadcastable, numerical check
         x_ = np.random.uniform(size=[3, 4]).astype(config.floatX)
-        v_ = np.random.uniform(size=[2,]).astype(config.floatX)
+        v_ = np.random.uniform(
+            size=[
+                2,
+            ]
+        ).astype(config.floatX)
         i1_, i2_ = 2, 2
         x_[:i1_, :i2_] = v_
         assert np.array_equal(f(x_, i1_, i2_, v_), x_[:i1_, :i2_])
@@ -2685,7 +2724,12 @@ class TestSubtensorIncSubtensor:
         assert prog[0].op == tensor.basic._convert_to_int8
         # basic test, numerical check
         x_ = np.random.randint(12, size=[3, 4]).astype("int8")
-        v_ = np.random.uniform(12, size=[4,]).astype(config.floatX)
+        v_ = np.random.uniform(
+            12,
+            size=[
+                4,
+            ],
+        ).astype(config.floatX)
         i_ = 1
         assert np.array_equal(f(x_, i_, v_), v_.astype("int8"))
 
@@ -4242,9 +4286,18 @@ def test_local_fill_useless():
     z = lvector()
     m = dmatrix()
 
-    x_ = np.random.rand(5,)
-    y_ = np.random.rand(5,)
-    z_ = (np.random.rand(5,) * 5).astype("int64")
+    x_ = np.random.rand(
+        5,
+    )
+    y_ = np.random.rand(
+        5,
+    )
+    z_ = (
+        np.random.rand(
+            5,
+        )
+        * 5
+    ).astype("int64")
     m_ = np.random.rand(5, 5)
 
     # basic case
@@ -4695,7 +4748,11 @@ class TestLocalCanonicalizeAlloc:
 
     def test_useless_alloc_with_shape_one(self):
         alloc_lift = out2in(local_canonicalize_alloc)
-        x = shared(self.rng.randn(2,))
+        x = shared(
+            self.rng.randn(
+                2,
+            )
+        )
         y = shared(self.rng.randn())
         z = shared(self.rng.randn(1, 1))
         w = shared(self.rng.randn(1, 1))
@@ -6000,7 +6057,11 @@ class TestLocalErfc:
         # TODO: fix this problem
         assert not (
             theano.config.floatX == "float32"
-            and theano.config.mode in ["DebugMode", "DEBUG_MODE",]
+            and theano.config.mode
+            in [
+                "DebugMode",
+                "DEBUG_MODE",
+            ]
         ), (
             "The python code upcast somewhere internally "
             "some value of float32 to python float for "
@@ -7644,7 +7705,11 @@ class TestLocalReshapeToDimshuffle:
     def test_1(self):
         reshape_lift = out2in(local_reshape_to_dimshuffle)
         useless_reshape = out2in(local_useless_reshape)
-        x = shared(self.rng.randn(4,))
+        x = shared(
+            self.rng.randn(
+                4,
+            )
+        )
         y = shared(self.rng.randn(5, 6))
         reshape_x = tensor.reshape(x, (1, 4))
         reshape_y = tensor.reshape(y, (1, 5, 1, 6, 1, 1))

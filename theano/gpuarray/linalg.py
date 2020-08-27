@@ -843,8 +843,7 @@ def gpu_svd(a, full_matrices=1, compute_uv=1):
 
 
 class GpuMagmaMatrixInverse(GpuMagmaBase):
-    """Computes the inverse of a matrix :math:`A` using magma library.
-    """
+    """Computes the inverse of a matrix :math:`A` using magma library."""
 
     __props__ = ("inplace",)
     check_input = False

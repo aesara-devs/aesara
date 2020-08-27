@@ -414,7 +414,11 @@ class TestCGemvNoFlags(object):
                     for transpose_A in (False, True):
                         for slice_tensors in (False, True):
                             self.run_cgemv(
-                                dtype, alpha, beta, transpose_A, slice_tensors,
+                                dtype,
+                                alpha,
+                                beta,
+                                transpose_A,
+                                slice_tensors,
                             )
 
 

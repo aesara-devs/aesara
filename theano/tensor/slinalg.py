@@ -140,8 +140,7 @@ cholesky = Cholesky()
 
 
 class CholeskyGrad(Op):
-    """
-    """
+    """"""
 
     __props__ = ("lower", "destructive")
 
@@ -447,7 +446,7 @@ def eigvalsh(a, b, lower=True):
 
 
 def kron(a, b):
-    """ Kronecker product.
+    """Kronecker product.
 
     Same as scipy.linalg.kron(a, b).
 
@@ -502,7 +501,15 @@ class Expm(Op):
         A = as_tensor_variable(A)
         assert A.ndim == 2
         expm = theano.tensor.matrix(dtype=A.dtype)
-        return Apply(self, [A,], [expm,])
+        return Apply(
+            self,
+            [
+                A,
+            ],
+            [
+                expm,
+            ],
+        )
 
     def perform(self, node, inputs, outputs):
         (A,) = inputs
@@ -531,7 +538,13 @@ class ExpmGrad(Op):
         A = as_tensor_variable(A)
         assert A.ndim == 2
         out = theano.tensor.matrix(dtype=A.dtype)
-        return Apply(self, [A, gw], [out,])
+        return Apply(
+            self,
+            [A, gw],
+            [
+                out,
+            ],
+        )
 
     def infer_shape(self, node, shapes):
         return [shapes[0]]

@@ -1989,8 +1989,8 @@ class Compiler(object):
 
 def try_march_flag(flags):
     """
-        Try to compile and run a simple C snippet using current flags.
-        Return: compilation success (True/False), execution success (True/False)
+    Try to compile and run a simple C snippet using current flags.
+    Return: compilation success (True/False), execution success (True/False)
     """
     test_code = textwrap.dedent(
         """\

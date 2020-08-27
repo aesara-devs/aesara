@@ -315,7 +315,9 @@ def ger_c_code(A, a, x, y, Z, fail, params):
 
 
 class CGer(BaseBLAS, Ger):
-    params_type = ParamsType(destructive=bool_t,)
+    params_type = ParamsType(
+        destructive=bool_t,
+    )
 
     def c_code(self, node, name, inp, out, sub):
         A, a, x, y = inp
@@ -596,7 +598,9 @@ def gemv_c_code(y, A, x, z, alpha, beta, fail, force_init_beta=False, params=Non
 
 
 class CGemv(BaseBLAS, Gemv):
-    params_type = ParamsType(inplace=bool_t,)
+    params_type = ParamsType(
+        inplace=bool_t,
+    )
 
     def __init__(self, inplace):
         super(CGemv, self).__init__(inplace)

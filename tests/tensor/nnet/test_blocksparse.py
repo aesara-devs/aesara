@@ -273,7 +273,13 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
             [o, x, y, xIdx, yIdx], out, on_unused_input="warn", mode=self.mode
         )
 
-        (o_val, x_val, y_val, xIdx_val, yIdx_val,) = self.outer_data()
+        (
+            o_val,
+            x_val,
+            y_val,
+            xIdx_val,
+            yIdx_val,
+        ) = self.outer_data()
 
         th_out = f(o_val, x_val, y_val, xIdx_val, yIdx_val)
         ref_out = self.outer_numpy(o_val, x_val, y_val, xIdx_val, yIdx_val)
