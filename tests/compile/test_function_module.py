@@ -907,7 +907,8 @@ class TestPicklefunction:
         sm = T.dmatrix("s")
 
         f = function(
-            [a, x, s, xm, sm], ((a.T.T) * (T.dot(xm, (sm.T.T.T)) + x).T * (x / x) + s),
+            [a, x, s, xm, sm],
+            ((a.T.T) * (T.dot(xm, (sm.T.T.T)) + x).T * (x / x) + s),
         )
         old_default_mode = config.mode
         old_default_opt = config.optimizer

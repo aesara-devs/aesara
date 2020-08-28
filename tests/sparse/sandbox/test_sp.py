@@ -194,7 +194,14 @@ class TestSP:
 
             # symbolic stuff
             output, outshp = sp.max_pool(images, imval.shape[1:], maxpoolshp)
-            f = function([images,], [output,])
+            f = function(
+                [
+                    images,
+                ],
+                [
+                    output,
+                ],
+            )
             output_val = f(imval.reshape(imval.shape[0], -1))
 
             # numeric verification

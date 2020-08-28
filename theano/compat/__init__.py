@@ -136,17 +136,17 @@ __all__ += ["DefaultOrderedDict"]
 
 def maybe_add_to_os_environ_pathlist(var, newpath):
     """Unfortunately, Conda offers to make itself the default Python
-       and those who use it that way will probably not activate envs
-       correctly meaning e.g. mingw-w64 g++ may not be on their PATH.
+    and those who use it that way will probably not activate envs
+    correctly meaning e.g. mingw-w64 g++ may not be on their PATH.
 
-       This function ensures that, if `newpath` is an absolute path,
-       and it is not already in os.environ[var] it gets added to the
-       front.
+    This function ensures that, if `newpath` is an absolute path,
+    and it is not already in os.environ[var] it gets added to the
+    front.
 
-       The reason we check first is because Windows environment vars
-       are limited to 8191 characters and it is easy to hit that.
+    The reason we check first is because Windows environment vars
+    are limited to 8191 characters and it is easy to hit that.
 
-       `var` will typically be 'PATH'. """
+    `var` will typically be 'PATH'."""
 
     import os
 

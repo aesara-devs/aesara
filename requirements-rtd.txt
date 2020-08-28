@@ -1,9 +1,12 @@
+-e ./
 sphinx>=1.3.0
+sphinx_rtd_theme
 pygments
 pytest
 numpy
 gnumpy
 pydot
 pydot2
+pydot-ng
 Cython
 scipy==0.13

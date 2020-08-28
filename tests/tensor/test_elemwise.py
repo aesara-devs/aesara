@@ -884,15 +884,18 @@ class TestReduceDtype:
                 axis = self.axes[idx % len(self.axes)]
                 x = tensor.matrix(dtype=dtype)
                 s = getattr(x, method)(axis=axis)
-                assert s.dtype == dict(
-                    bool="int64",
-                    int8="int64",
-                    int16="int64",
-                    int32="int64",
-                    uint8="uint64",
-                    uint16="uint64",
-                    uint32="uint64",
-                ).get(dtype, dtype)
+                assert (
+                    s.dtype
+                    == dict(
+                        bool="int64",
+                        int8="int64",
+                        int16="int64",
+                        int32="int64",
+                        uint8="uint64",
+                        uint16="uint64",
+                        uint32="uint64",
+                    ).get(dtype, dtype)
+                )
                 f = theano.function([x], s, mode=self.mode)
                 topo = f.maker.fgraph.toposort()
                 assert [n for n in topo if isinstance(n.op, self.op)], (topo, dtype)
@@ -909,18 +912,21 @@ class TestReduceDtype:
                 axis = self.axes[idx % len(self.axes)]
                 x = tensor.matrix(dtype=dtype)
                 s = getattr(x, method)(axis=axis)
-                assert s.owner.op.acc_dtype == dict(
-                    bool="int64",
-                    int8="int64",
-                    int16="int64",
-                    int32="int64",
-                    uint8="uint64",
-                    uint16="uint64",
-                    uint32="uint64",
-                    float16="float32",
-                    float32="float64",
-                    complex64="complex128",
-                ).get(dtype, dtype)
+                assert (
+                    s.owner.op.acc_dtype
+                    == dict(
+                        bool="int64",
+                        int8="int64",
+                        int16="int64",
+                        int32="int64",
+                        uint8="uint64",
+                        uint16="uint64",
+                        uint32="uint64",
+                        float16="float32",
+                        float32="float64",
+                        complex64="complex128",
+                    ).get(dtype, dtype)
+                )
                 f = theano.function([x], s, mode=self.mode)
                 topo = f.maker.fgraph.toposort()
                 assert [n for n in topo if isinstance(n.op, self.op)], (topo, dtype)
@@ -1109,15 +1115,18 @@ class TestProdWithoutZerosDtype:
         for idx, dtype in enumerate(map(str, theano.scalar.all_types)):
             axis = axes[idx % len(axes)]
             x = ProdWithoutZeros(axis=axis)(tensor.matrix(dtype=dtype))
-            assert x.dtype == dict(
-                bool="int64",
-                int8="int64",
-                int16="int64",
-                int32="int64",
-                uint8="uint64",
-                uint16="uint64",
-                uint32="uint64",
-            ).get(dtype, dtype)
+            assert (
+                x.dtype
+                == dict(
+                    bool="int64",
+                    int8="int64",
+                    int16="int64",
+                    int32="int64",
+                    uint8="uint64",
+                    uint16="uint64",
+                    uint32="uint64",
+                ).get(dtype, dtype)
+            )
 
     def test_prod_without_zeros_default_acc_dtype(self):
         # Test the default dtype of a ProdWithoutZeros().
@@ -1128,18 +1137,21 @@ class TestProdWithoutZerosDtype:
             axis = axes[idx % len(axes)]
             x = tensor.matrix(dtype=dtype)
             p = ProdWithoutZeros(axis=axis)(x)
-            assert p.owner.op.acc_dtype == dict(
-                bool="int64",
-                int8="int64",
-                int16="int64",
-                int32="int64",
-                uint8="uint64",
-                uint16="uint64",
-                uint32="uint64",
-                float16="float32",
-                float32="float64",
-                complex64="complex128",
-            ).get(dtype, dtype)
+            assert (
+                p.owner.op.acc_dtype
+                == dict(
+                    bool="int64",
+                    int8="int64",
+                    int16="int64",
+                    int32="int64",
+                    uint8="uint64",
+                    uint16="uint64",
+                    uint32="uint64",
+                    float16="float32",
+                    float32="float64",
+                    complex64="complex128",
+                ).get(dtype, dtype)
+            )
 
             if "complex" in dtype:
                 continue

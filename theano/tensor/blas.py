@@ -865,7 +865,9 @@ class Gemm(GemmRelated):
     E_float = "gemm requires floating-point dtypes"
 
     __props__ = ("inplace",)
-    params_type = ParamsType(inplace=bool_t,)
+    params_type = ParamsType(
+        inplace=bool_t,
+    )
     check_input = False
 
     def __init__(self, inplace):

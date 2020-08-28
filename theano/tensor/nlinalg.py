@@ -152,7 +152,7 @@ matrix_inverse = MatrixInverse()
 
 
 def matrix_dot(*args):
-    r""" Shorthand for product between several dots.
+    r"""Shorthand for product between several dots.
 
     Given :math:`N` matrices :math:`A_0, A_1, .., A_N`, ``matrix_dot`` will
     generate the matrix product between all in the given order, namely
@@ -795,7 +795,10 @@ class TensorSolve(Op):
         return Apply(self, [a, b], [x])
 
     def perform(self, node, inputs, outputs):
-        (a, b,) = inputs
+        (
+            a,
+            b,
+        ) = inputs
         (x,) = outputs
         x[0] = self._numop(a, b, self.axes)
 

@@ -3323,7 +3323,7 @@ def rint(x):
     """
     Elemwise round half to even of `x`.
 
-   """
+    """
     # see decorator for function body
 
 

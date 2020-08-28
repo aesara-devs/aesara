@@ -51,7 +51,11 @@ class TestSignalConv2D:
         filter_data3d = filter_data.reshape((nkern,) + filter_shape[-2:])
         # reshape theano output as 4D to make life easier
         theano_output4d = theano_output.reshape(
-            (bsize, nkern,) + theano_output.shape[-2:]
+            (
+                bsize,
+                nkern,
+            )
+            + theano_output.shape[-2:]
         )
 
         # loop over mini-batches (if required)

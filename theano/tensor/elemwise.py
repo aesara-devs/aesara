@@ -1757,7 +1757,7 @@ class CAReduce(Op):
 
 
 class All(CAReduce):
-    """ Applies `logical and` to all the values of a tensor along the
+    """Applies `logical and` to all the values of a tensor along the
     specified axis(es).
 
     """
@@ -1789,7 +1789,7 @@ class All(CAReduce):
 
 
 class Any(CAReduce):
-    """ Applies `bitwise or` to all the values of a tensor along the
+    """Applies `bitwise or` to all the values of a tensor along the
     specified axis(es).
 
     """

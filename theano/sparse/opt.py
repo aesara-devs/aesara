@@ -1183,7 +1183,12 @@ class MulSDCSC(gof.Op):
 
     def c_code(self, node, name, inputs, outputs, sub):
 
-        (_data, _indices, _indptr, _b,) = inputs
+        (
+            _data,
+            _indices,
+            _indptr,
+            _b,
+        ) = inputs
         (_zout,) = outputs
         if node.inputs[0].type.dtype in ("complex64", "complex128"):
             raise NotImplementedError("Complex types are not supported for a")
@@ -1315,7 +1320,12 @@ class MulSDCSR(gof.Op):
 
     def c_code(self, node, name, inputs, outputs, sub):
 
-        (_data, _indices, _indptr, _b,) = inputs
+        (
+            _data,
+            _indices,
+            _indptr,
+            _b,
+        ) = inputs
         (_zout,) = outputs
         if node.inputs[0].type.dtype in ("complex64", "complex128"):
             raise NotImplementedError("Complex types are not supported for a")
@@ -1494,7 +1504,12 @@ class MulSVCSR(gof.Op):
         return (2,)
 
     def c_code(self, node, name, inputs, outputs, sub):
-        _data, _indices, _indptr, _b, = inputs
+        (
+            _data,
+            _indices,
+            _indptr,
+            _b,
+        ) = inputs
         (_zout,) = outputs
         if node.inputs[0].type.dtype in ("complex64", "complex128"):
             raise NotImplementedError("Complex types are not supported for a")
@@ -1659,7 +1674,12 @@ class StructuredAddSVCSR(gof.Op):
         return (3,)
 
     def c_code(self, node, name, inputs, outputs, sub):
-        _data, _indices, _indptr, _b, = inputs
+        (
+            _data,
+            _indices,
+            _indptr,
+            _b,
+        ) = inputs
         (_zout,) = outputs
         if node.inputs[0].type.dtype in ("complex64", "complex128"):
             raise NotImplementedError("Complex types are not supported for a")

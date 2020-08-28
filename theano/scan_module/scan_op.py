@@ -118,7 +118,11 @@ class Scan(PureOp):
     """
 
     def __init__(
-        self, inputs, outputs, info, typeConstructor=None,
+        self,
+        inputs,
+        outputs,
+        info,
+        typeConstructor=None,
     ):
         # adding properties into self
         self.inputs = inputs
@@ -393,7 +397,7 @@ class Scan(PureOp):
         )
 
         def check_broadcast(v1, v2):
-            """ Checks that the broadcast pattern of v1 and v2.
+            """Checks that the broadcast pattern of v1 and v2.
 
             Controls that the broadcast pattern of the variable provided as
             input to `scan` matches the broadcast pattern provided in

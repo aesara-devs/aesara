@@ -881,7 +881,12 @@ class TestDnnInferShapes(utt.InferShapeTester):
                     conv_mode=conv_mode,
                     precision=set_precision(theano.config.floatX),
                 )(kerns_shape_shared)
-                conv_grad_w = dnn.GpuDnnConvGradW()(img, topgrad, kerns, desc,)
+                conv_grad_w = dnn.GpuDnnConvGradW()(
+                    img,
+                    topgrad,
+                    kerns,
+                    desc,
+                )
                 self._compile_and_check(
                     [img, topgrad, kerns],
                     [conv_grad_w],
@@ -929,7 +934,12 @@ class TestDnnInferShapes(utt.InferShapeTester):
                 conv_mode=conv_mode,
                 precision=set_precision(theano.config.floatX),
             )(kerns.shape)
-            conv_grad_i = dnn.GpuDnnConvGradI()(kerns, out, img, desc,)
+            conv_grad_i = dnn.GpuDnnConvGradI()(
+                kerns,
+                out,
+                img,
+                desc,
+            )
             self._compile_and_check(
                 [kerns, img, out],
                 [conv_grad_i],
@@ -1304,7 +1314,9 @@ def test_conv3d_fwd():
 
         # Compile a theano function for the reference implementation
         conv_ref = theano.tensor.nnet.corr3d.Corr3dMM(
-            border_mode=border_mode, subsample=subsample, filter_dilation=dilation,
+            border_mode=border_mode,
+            subsample=subsample,
+            filter_dilation=dilation,
         )(ref_cast(inputs), flipped_filters)
         f_ref = theano.function([], conv_ref, mode="FAST_RUN")
 
@@ -1321,7 +1333,12 @@ def test_conv3d_fwd():
     test_cases = get_conv3d_test_cases()
     for (i_shape, f_shape, subsample, dilation), border_mode, conv_mode in test_cases:
         run_conv3d_fwd(
-            i_shape, f_shape, subsample, dilation, border_mode, conv_mode,
+            i_shape,
+            f_shape,
+            subsample,
+            dilation,
+            border_mode,
+            conv_mode,
         )
 
 
@@ -1361,7 +1378,9 @@ def test_conv3d_bwd():
 
         # Compile a theano function for the reference implementation
         conv_ref = theano.tensor.nnet.corr3d.Corr3dMM(
-            border_mode=border_mode, subsample=subsample, filter_dilation=dilation,
+            border_mode=border_mode,
+            subsample=subsample,
+            filter_dilation=dilation,
         )(ref_cast(inputs), flipped_filters)
         (grad_i_ref, grad_w_ref) = theano.tensor.grad(conv_ref.sum(), [inputs, filters])
         f_ref = theano.function([], [grad_i_ref, grad_w_ref], mode="FAST_RUN")

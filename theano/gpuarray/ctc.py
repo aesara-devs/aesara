@@ -133,7 +133,11 @@ class GpuConnectionistTemporalClassification(gof.COp):
         if self.compute_grad:
             gradients = GpuArrayType(
                 dtype="float32",
-                broadcastable=(False, False, False,),
+                broadcastable=(
+                    False,
+                    False,
+                    False,
+                ),
                 context_name=context_name,
             )()
             outputs += [gradients]
@@ -151,11 +155,21 @@ class GpuConnectionistTemporalClassification(gof.COp):
         # Gradients of original function, to compose chain rule
         grad_op = output_grads[0]
         grad_shuffle = GpuDimShuffle(
-            input_broadcastable=(False, False, False,), new_order=(1, 0, 2)
+            input_broadcastable=(
+                False,
+                False,
+                False,
+            ),
+            new_order=(1, 0, 2),
         )(gradients)
         grad_bdot = T.basic.batched_dot(grad_op, grad_shuffle)
         grad_shuffle_reverse = GpuDimShuffle(
-            input_broadcastable=(False, False, False,), new_order=(1, 0, 2)
+            input_broadcastable=(
+                False,
+                False,
+                False,
+            ),
+            new_order=(1, 0, 2),
         )(grad_bdot)
         return [
             grad_shuffle_reverse,

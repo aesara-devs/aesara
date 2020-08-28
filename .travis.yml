@@ -59,15 +59,16 @@ before_install:
 install:
   - conda create --yes -q -n pyenv python=$TRAVIS_PYTHON_VERSION
   - conda activate pyenv
-  - conda install --yes -q mkl numpy scipy pip flake8 six pep8 pyflakes sphinx mkl-service graphviz cython
-  - python -m pip install -q pydot-ng sphinx_rtd_theme pytest pytest-cov>=2.6.1 coveralls sympy
-  - python -m pip install --no-deps --upgrade -e .
+  - conda install --yes -q mkl numpy scipy pip mkl-service graphviz cython libgpuarray pygpu
+  - pip install -q -r requirements.txt
+  - conda list && pip freeze
+  - python -c 'import theano; print(theano.config.__str__(print_doc=False))'
+  - python -c 'import theano; assert(theano.config.blas.ldflags != "")'
 
 jobs:
   include:
     - stage: lint
       script:
-        - pip install black
         - black -t py36 --check theano/ tests/ setup.py
         - flake8
     - &normaltest
@@ -92,19 +93,8 @@ script:
   - export MKL_THREADING_LAYER=GNU
   - export MKL_NUM_THREADS=1
   - export OMP_NUM_THREADS=1
-  - which python
-  - python --version
-  - uname -a
-  - free -m
-  - df -h
-  - ulimit -a
   - echo "$PART"
-  # Print information to help debug problems
-  - python -c 'import numpy; print(numpy.__version__)'
-  - python -c 'import theano; print(theano.__version__)'
-  - python -c 'import theano; print(theano.config.__str__(print_doc=False))'
-  - python -c 'import theano; assert(theano.config.blas.ldflags != "")'
-  - pytest -x -r A --verbose --runslow --cov=theano/ --cov-append --no-cov-on-fail $PART || travis_terminate 1
+  - pytest -x -r A --verbose --runslow --cov=theano/ --cov-append --no-cov-on-fail $PART
 
 after_success:
   - coveralls

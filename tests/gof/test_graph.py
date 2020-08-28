@@ -294,7 +294,14 @@ class TestIsSameGraph:
         self.check(
             [
                 (x, x, (({}, True),)),
-                (x, y, (({}, False), ({y: x}, True),)),
+                (
+                    x,
+                    y,
+                    (
+                        ({}, False),
+                        ({y: x}, True),
+                    ),
+                ),
                 (x, tensor.neg(x), (({}, False),)),
                 (x, tensor.neg(y), (({}, False),)),
             ]
@@ -308,11 +315,46 @@ class TestIsSameGraph:
         self.check(
             [
                 (x * 2, x * 2, (({}, True),)),
-                (x * 2, y * 2, (({}, False), ({y: x}, True),)),
-                (x * 2, y * 2, (({}, False), ({x: y}, True),)),
-                (x * 2, y * 3, (({}, False), ({y: x}, False),)),
-                (t * 2, z * 2, (({}, False), ({t: z}, True),)),
-                (t * 2, z * 2, (({}, False), ({z: t}, True),)),
+                (
+                    x * 2,
+                    y * 2,
+                    (
+                        ({}, False),
+                        ({y: x}, True),
+                    ),
+                ),
+                (
+                    x * 2,
+                    y * 2,
+                    (
+                        ({}, False),
+                        ({x: y}, True),
+                    ),
+                ),
+                (
+                    x * 2,
+                    y * 3,
+                    (
+                        ({}, False),
+                        ({y: x}, False),
+                    ),
+                ),
+                (
+                    t * 2,
+                    z * 2,
+                    (
+                        ({}, False),
+                        ({t: z}, True),
+                    ),
+                ),
+                (
+                    t * 2,
+                    z * 2,
+                    (
+                        ({}, False),
+                        ({z: t}, True),
+                    ),
+                ),
                 (x * (y * z), (x * y) * z, (({}, False),)),
             ]
         )
@@ -325,9 +367,30 @@ class TestIsSameGraph:
         self.check(
             [
                 (x, t, (({}, False), ({t: x}, True))),
-                (t * 2, x * 2, (({}, False), ({t: x}, True),)),
-                (x * x, x * y, (({}, False), ({y: x}, True),)),
-                (x * x, x * y, (({}, False), ({y: x}, True),)),
+                (
+                    t * 2,
+                    x * 2,
+                    (
+                        ({}, False),
+                        ({t: x}, True),
+                    ),
+                ),
+                (
+                    x * x,
+                    x * y,
+                    (
+                        ({}, False),
+                        ({y: x}, True),
+                    ),
+                ),
+                (
+                    x * x,
+                    x * y,
+                    (
+                        ({}, False),
+                        ({y: x}, True),
+                    ),
+                ),
                 (
                     x * x + z,
                     x * y + t,

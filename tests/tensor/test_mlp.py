@@ -31,7 +31,7 @@ def gen_data():
     )
 
     def shared_dataset(data_xy):
-        """ Function that loads the dataset into shared variables
+        """Function that loads the dataset into shared variables
 
         The reason we store our dataset in shared variables is to allow
         Theano to copy it into the GPU memory (when code is run on GPU).
@@ -73,7 +73,7 @@ class LogisticRegression(object):
     """
 
     def __init__(self, input, n_in, n_out, name_prefix=""):
-        """ Initialize the parameters of the logistic regression
+        """Initialize the parameters of the logistic regression
 
         :type input: theano.tensor.TensorType
         :param input: symbolic variable that describes the input of the
@@ -264,7 +264,7 @@ def test_mlp():
                          http://www.iro.umontreal.ca/~lisa/deep/data/mnist/mnist.pkl.gz
 
 
-   """
+    """
     datasets = gen_data()
 
     train_set_x, train_set_y = datasets[0]

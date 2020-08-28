@@ -835,20 +835,100 @@ class TestUniqueAxis(utt.InferShapeTester):
         self.ops_pars = [
             (tuple(), {"axis": 0}),
             ((True,), {"axis": 0}),
-            ((False, True,), {"axis": 0}),
-            ((True, True,), {"axis": 0}),
-            ((False, False, True,), {"axis": 0}),
-            ((True, False, True,), {"axis": 0}),
-            ((False, True, True,), {"axis": 0}),
-            ((True, True, True,), {"axis": 0}),
+            (
+                (
+                    False,
+                    True,
+                ),
+                {"axis": 0},
+            ),
+            (
+                (
+                    True,
+                    True,
+                ),
+                {"axis": 0},
+            ),
+            (
+                (
+                    False,
+                    False,
+                    True,
+                ),
+                {"axis": 0},
+            ),
+            (
+                (
+                    True,
+                    False,
+                    True,
+                ),
+                {"axis": 0},
+            ),
+            (
+                (
+                    False,
+                    True,
+                    True,
+                ),
+                {"axis": 0},
+            ),
+            (
+                (
+                    True,
+                    True,
+                    True,
+                ),
+                {"axis": 0},
+            ),
             (tuple(), {"axis": -1}),
             ((True,), {"axis": -1}),
-            ((False, True,), {"axis": -1}),
-            ((True, True,), {"axis": -1}),
-            ((False, False, True,), {"axis": -1}),
-            ((True, False, True,), {"axis": -1}),
-            ((False, True, True,), {"axis": -1}),
-            ((True, True, True,), {"axis": -1}),
+            (
+                (
+                    False,
+                    True,
+                ),
+                {"axis": -1},
+            ),
+            (
+                (
+                    True,
+                    True,
+                ),
+                {"axis": -1},
+            ),
+            (
+                (
+                    False,
+                    False,
+                    True,
+                ),
+                {"axis": -1},
+            ),
+            (
+                (
+                    True,
+                    False,
+                    True,
+                ),
+                {"axis": -1},
+            ),
+            (
+                (
+                    False,
+                    True,
+                    True,
+                ),
+                {"axis": -1},
+            ),
+            (
+                (
+                    True,
+                    True,
+                    True,
+                ),
+                {"axis": -1},
+            ),
         ]
         self.op_class = Unique
 

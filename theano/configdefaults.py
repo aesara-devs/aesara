@@ -50,7 +50,12 @@ AddConfigVar(
     "Default floating-point precision for python casts.\n"
     "\n"
     "Note: float16 support is experimental, use at your own risk.",
-    EnumStr("float64", "float32", "float16", convert=floatX_convert,),
+    EnumStr(
+        "float64",
+        "float32",
+        "float16",
+        convert=floatX_convert,
+    ),
     # TODO: see gh-4466 for how to remove it.
     in_c_key=True,
 )

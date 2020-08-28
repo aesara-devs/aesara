@@ -147,7 +147,14 @@ class Fourier(gof.Op):
         res = res.dimshuffle(flip_shape)
         res = tensor.switch(
             tensor.lt(n, tensor.shape(a)[axis]),
-            tensor.set_subtensor(res[n::,], 0, False, False),
+            tensor.set_subtensor(
+                res[
+                    n::,
+                ],
+                0,
+                False,
+                False,
+            ),
             res,
         )
         res = res.dimshuffle(flip_shape)
