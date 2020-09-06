@@ -1,7 +1,9 @@
 import numpy as np
 
-
 import theano
+
+from collections.abc import Collection
+
 from theano.tensor import basic
 from theano.tensor import nlinalg  # noqa
 from theano import gof, scalar
@@ -575,7 +577,7 @@ def bincount(x, weights=None, minlength=None, assert_nonneg=False):
     return out
 
 
-def squeeze(x):
+def squeeze(x, axis=None):
     """
     Remove broadcastable dimensions from the shape of an array.
 
@@ -590,13 +592,26 @@ def squeeze(x):
     x
         Input data, tensor variable.
 
+    axis : None or int or tuple of ints, optional
+
+        Selects a subset of the single-dimensional entries in the
+        shape. If an axis is selected with shape entry greater than
+        one, an error is raised.
+
     Returns
     -------
     object
         `x` without its broadcastable dimensions.
 
     """
-    view = x.dimshuffle([i for i in range(x.ndim) if not x.broadcastable[i]])
+    if axis is None:
+        axis = range(x.ndim)
+    elif not isinstance(axis, Collection):
+        axis = (axis,)
+
+    view = x.dimshuffle(
+        [i for i in range(x.ndim) if not x.broadcastable[i] or i not in axis]
+    )
     return view
 
 

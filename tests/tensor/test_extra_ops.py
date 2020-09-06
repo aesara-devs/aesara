@@ -358,6 +358,22 @@ class TestSqueeze(utt.InferShapeTester):
             assert tested.shape == expected.shape
             assert np.allclose(tested, expected)
 
+    def test_axis(self):
+        variable = tensor.TensorType(theano.config.floatX, [False, True, False])()
+        res = squeeze(variable, axis=1)
+
+        assert res.broadcastable == (False, False)
+
+        variable = tensor.TensorType(theano.config.floatX, [False, True, False])()
+        res = squeeze(variable, axis=(1,))
+
+        assert res.broadcastable == (False, False)
+
+        variable = tensor.TensorType(theano.config.floatX, [False, True, False, True])()
+        res = squeeze(variable, axis=(1, 3))
+
+        assert res.broadcastable == (False, False)
+
 
 class TestCompress(utt.InferShapeTester):
     axis_list = [None, -1, 0, 0, 0, 1]
