@@ -1633,7 +1633,7 @@ class ShapeFeature(object):
             # To be sure to cover all case, call equal_computation.
             # Can't use theano.gof.graph.is_same_graph(dx, dy)
             # As it currently expect that dx and dy aren't in a FunctionGraph
-            from theano.scan_module.scan_utils import equal_computations
+            from theano.gof.graph import equal_computations
 
             if not equal_computations([dx], [dy]):
                 return False

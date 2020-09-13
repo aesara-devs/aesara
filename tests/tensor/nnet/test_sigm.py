@@ -4,6 +4,7 @@ import theano.tensor.inplace
 from theano import tensor as T, config
 from theano.tensor import basic as tensor
 from theano.gof.opt import check_stack_trace
+from theano.gof.toolbox import is_same_graph
 from theano.tensor.nnet import (
     sigmoid,
     sigmoid_inplace,
@@ -351,9 +352,7 @@ class TestSigmoidOpts:
             trees = [parse_mul_tree(e) for e in (expr1, expr2)]
             perform_sigm_times_exp(trees[0])
             trees[0] = simplify_mul(trees[0])
-            good = theano.gof.graph.is_same_graph(
-                compute_mul(trees[0]), compute_mul(trees[1])
-            )
+            good = is_same_graph(compute_mul(trees[0]), compute_mul(trees[1]))
             if not good:
                 print(trees[0])
                 print(trees[1])
@@ -541,7 +540,7 @@ class TestSigmoidUtils:
         tree = (x * y) * -z
         mul_tree = parse_mul_tree(tree)
         assert parse_mul_tree(compute_mul(mul_tree)) == mul_tree
-        assert theano.gof.graph.is_same_graph(compute_mul(parse_mul_tree(tree)), tree)
+        assert is_same_graph(compute_mul(parse_mul_tree(tree)), tree)
 
     def test_parse_mul_tree(self):
         x, y, z = tensor.vectors("x", "y", "z")
@@ -566,7 +565,7 @@ class TestSigmoidUtils:
                 lambda x: is_1pexp(x, only_process_constants=False),
                 [(1 + exp(-x)), (exp(-x) + 1)],
             ):
-                assert not neg and theano.gof.graph.is_same_graph(exp_arg, -x)
+                assert not neg and is_same_graph(exp_arg, -x)
             assert is_1pexp(1 - exp(x), False) is None
             assert is_1pexp(2 + exp(x), False) is None
             assert is_1pexp(exp(x) + 2, False) is None

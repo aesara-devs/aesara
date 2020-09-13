@@ -69,9 +69,10 @@ from theano.compile import optdb
 from theano.compile.function_module import deep_copy_op
 from theano.gof import toolbox, DestroyHandler, InconsistencyError
 from theano.gof.opt import Optimizer, pre_constant_merge, pre_greedy_local_optimizer
+from theano.gof.graph import equal_computations
 
-from theano.scan_module.scan_utils import equal_computations, scan_args
 from theano.scan_module import scan_op, scan_utils
+from theano.scan_module.scan_utils import scan_args
 
 __docformat__ = "restructedtext en"
 __authors__ = (
@@ -169,7 +170,7 @@ def remove_constants_and_unused_inputs_scan(node):
         elif op_ins[idx] in all_ins:
             # Check for identical other sequence
             identical_seqs = [
-                x for x in nw_outer if scan_utils.equal_computations([x], [node_inp])
+                x for x in nw_outer if equal_computations([x], [node_inp])
             ]
             if identical_seqs:
                 index = node.inputs.index(identical_seqs[0]) - 1
@@ -195,7 +196,7 @@ def remove_constants_and_unused_inputs_scan(node):
             identical_nonseq_idx = [
                 i
                 for (i, x) in enumerate(nw_outer_nonseq)
-                if scan_utils.equal_computations([x], [nw_out])
+                if equal_computations([x], [nw_out])
             ]
             if identical_nonseq_idx:
                 givens[nw_in] = nw_inner_nonseq[identical_nonseq_idx[0]]
@@ -1904,9 +1905,7 @@ class ScanMerge(gof.Optimizer):
             return True
         cond = node.op.outputs[-1]
         rep_cond = rep.op.outputs[-1]
-        return scan_utils.equal_computations(
-            [cond], [rep_cond], node.op.inputs, rep.op.inputs
-        )
+        return equal_computations([cond], [rep_cond], node.op.inputs, rep.op.inputs)
 
     def apply(self, fgraph):
         # Collect all scan nodes ordered according to toposort

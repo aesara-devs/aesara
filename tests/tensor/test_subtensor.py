@@ -10,7 +10,7 @@ from six import StringIO
 from numpy.testing import assert_array_equal
 from theano import config
 from theano.compile import DeepCopyOp
-from theano.gof.graph import is_same_graph
+from theano.gof.toolbox import is_same_graph
 from theano.tensor import (
     _shared,
     cscalar,

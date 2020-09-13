@@ -24,7 +24,7 @@ from theano import config, gof
 from theano.gof import graph
 from theano.compile.io import In, SymbolicInput, SymbolicOutput
 from theano.compile.ops import deep_copy_op, view_op
-from theano.gof.graph import is_same_graph
+from theano.gof.toolbox import is_same_graph
 from theano.gof.op import ops_with_inner_function
 
 _logger = logging.getLogger("theano.compile.function_module")

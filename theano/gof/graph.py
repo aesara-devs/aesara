@@ -18,10 +18,6 @@ from theano.misc.ordered_set import OrderedSet
 
 __docformat__ = "restructuredtext en"
 
-# Lazy imports to avoid circular dependencies.
-is_same_graph_with_merge = None
-equal_computations = None
-
 NoParams = object()
 
 
@@ -1208,130 +1204,6 @@ def io_connection_pattern(inputs, outputs):
     return global_connection_pattern
 
 
-def is_same_graph(var1, var2, givens=None, debug=False):
-    """
-    Return True iff Variables `var1` and `var2` perform the same computation.
-
-    By 'performing the same computation', we mean that they must share the same
-    graph, so that for instance this function will return False when comparing
-    (x * (y * z)) with ((x * y) * z).
-
-    The current implementation is not efficient since, when possible, it
-    verifies equality by calling two different functions that are expected to
-    return the same output. The goal is to verify this assumption, to
-    eventually get rid of one of them in the future.
-
-    Parameters
-    ----------
-    var1
-        The first Variable to compare.
-    var2
-        The second Variable to compare.
-    givens
-        Similar to the `givens` argument of `theano.function`, it can be used
-        to perform substitutions in the computational graph of `var1` and
-        `var2`. This argument is associated to neither `var1` nor `var2`:
-        substitutions may affect both graphs if the substituted variable
-        is present in both.
-    debug : bool
-        If True, then an exception is raised when we are in a situation where
-        the `equal_computations` implementation cannot be called.
-        This parameter is intended to be used in tests only, to make sure we
-        properly test both implementations.
-
-    Examples
-    --------
-
-        ======  ======  ======  ======
-        var1    var2    givens  output
-        ======  ======  ======  ======
-        x + 1   x + 1   {}      True
-        x + 1   y + 1   {}      False
-        x + 1   y + 1   {x: y}  True
-        ======  ======  ======  ======
-
-    """
-    # Lazy import.
-    if givens is None:
-        givens = {}
-    global equal_computations, is_same_graph_with_merge
-    if equal_computations is None:
-        from theano.gof.opt import is_same_graph_with_merge
-        from theano.scan_module.scan_utils import equal_computations
-    # Convert `givens` to dictionary.
-    if not isinstance(givens, dict):
-        givens = dict(givens)
-    # Get result from the merge-based function.
-    rval1 = is_same_graph_with_merge(var1=var1, var2=var2, givens=givens)
-    # Get result from the function `equal_computations` from scan_utils.
-
-    use_equal_computations = True
-    if givens:
-        # We need to build the `in_xs` and `in_ys` lists. To do this, we need
-        # to be able to tell whether a variable belongs to the computational
-        # graph of `var1` or `var2`.
-        # The typical case we want to handle is when `to_replace` belongs to
-        # one of these graphs, and `replace_by` belongs to the other one. In
-        # other situations, the current implementation of `equal_computations`
-        # is probably not appropriate, so we do not call it.
-        ok = True
-        in_xs = []
-        in_ys = []
-        # Compute the sets of all variables found in each computational graph.
-        inputs_var = list(map(inputs, ([var1], [var2])))
-        all_vars = [
-            set(variables(v_i, v_o))
-            for v_i, v_o in ((inputs_var[0], [var1]), (inputs_var[1], [var2]))
-        ]
-
-        def in_var(x, k):
-            # Return True iff `x` is in computation graph of variable `vark`.
-            return x in all_vars[k - 1]
-
-        for to_replace, replace_by in givens.items():
-            # Map a substitution variable to the computational graphs it
-            # belongs to.
-            inside = dict(
-                (v, [in_var(v, k) for k in (1, 2)]) for v in (to_replace, replace_by)
-            )
-            if (
-                inside[to_replace][0]
-                and not inside[to_replace][1]
-                and inside[replace_by][1]
-                and not inside[replace_by][0]
-            ):
-                # Substitute variable in `var1` by one from `var2`.
-                in_xs.append(to_replace)
-                in_ys.append(replace_by)
-            elif (
-                inside[to_replace][1]
-                and not inside[to_replace][0]
-                and inside[replace_by][0]
-                and not inside[replace_by][1]
-            ):
-                # Substitute variable in `var2` by one from `var1`.
-                in_xs.append(replace_by)
-                in_ys.append(to_replace)
-            else:
-                ok = False
-                break
-        if not ok:
-            # We cannot directly use `equal_computations`.
-            if debug:
-                raise AssertionError(
-                    "When `debug` is True we want to make sure we are also "
-                    "using the `equal_computations` implementation"
-                )
-            use_equal_computations = False
-    else:
-        in_xs = None
-        in_ys = None
-    if use_equal_computations:
-        rval2 = equal_computations(xs=[var1], ys=[var2], in_xs=in_xs, in_ys=in_ys)
-        assert rval2 == rval1
-    return rval1
-
-
 def op_as_string(
     i, op, leaf_formatter=default_leaf_formatter, node_formatter=default_node_formatter
 ):
@@ -1521,3 +1393,138 @@ def nodes_constructed():
     Variable.append_construction_observer(observer)
     yield new_nodes
     Variable.remove_construction_observer(observer)
+
+
+def equal_computations(xs, ys, in_xs=None, in_ys=None):
+    """Checks if Theano graphs represent the same computations.
+
+    The two lists `xs`, `ys` should have the same number of entries. The
+    function checks if for any corresponding pair `(x,y)` from `zip(xs,ys)`
+    `x` and `y` represent the same computations on the same variables
+    (unless equivalences are provided using `in_xs`, `in_ys`).
+
+    If `in_xs` and `in_ys` are provided, then when comparing a node `x` with
+    a node `y` they are automatically considered as equal if there is some
+    index `i` such that `x == in_xs[i]` and `y == in_ys[i]`(and they both
+    have the same type). Note that `x` and `y` can be in the list `xs` and
+    `ys`, but also represent subgraphs of a computational graph in `xs`
+    or `ys`.
+
+    """
+    assert len(xs) == len(ys)
+    if in_xs is None:
+        in_xs = []
+    if in_ys is None:
+        in_ys = []
+
+    for x, y in zip(xs, ys):
+        if x.owner and not y.owner:
+            return False
+        if y.owner and not x.owner:
+            return False
+        if x.owner:  # Check above tell that y.owner eval to True too.
+            if x.owner.outputs.index(x) != y.owner.outputs.index(y):
+                return False
+        if x not in in_xs and x.type != y.type:
+            return False
+    if len(in_xs) != len(in_ys):
+        return False
+    for _x, _y in zip(in_xs, in_ys):
+        if _x.type != _y.type:
+            return False
+
+    common = set(zip(in_xs, in_ys))
+    different = set()
+    for dx, dy in zip(xs, ys):
+        # We checked above that both dx and dy have an owner or not
+        if not dx.owner:
+            if isinstance(dx, Constant) and isinstance(dy, Constant):
+                if not dx.equals(dy):
+                    return False
+                else:
+                    pass
+            elif (dx, dy) not in common and dx != dy:
+                return False
+
+    # Explore the two graphs, in parallel, depth first, comparing the nodes
+    # along the way for equality.
+    def compare_nodes(nd_x, nd_y, common, different):
+        """
+        Compare two nodes to determine if they perform equal computation.
+        This is done by comparing the ops, the number of inputs, outputs and
+        by ensuring that the inputs themselves are the result of equal
+        computation.
+
+        NOTE : This function relies on the variable common to cache
+        results to be more efficient.
+
+        """
+
+        if nd_x.op != nd_y.op:
+            return False
+        elif len(nd_x.inputs) != len(nd_y.inputs):
+            return False
+        elif len(nd_x.outputs) != len(nd_y.outputs):
+            return False
+        else:
+            all_in_common = True
+            for dx, dy in zip(nd_x.outputs, nd_y.outputs):
+                if (dx, dy) in different:
+                    return False
+                if (dx, dy) not in common:
+                    all_in_common = False
+
+            if all_in_common:
+                return True
+
+            # Compare the individual inputs for equality
+            for dx, dy in zip(nd_x.inputs, nd_y.inputs):
+                if (dx, dy) not in common:
+
+                    # Equality between the variables is unknown, compare
+                    # their respective owners, if they have some
+                    if (
+                        dx.owner
+                        and dy.owner
+                        and dx.owner.outputs.index(dx) == dy.owner.outputs.index(dy)
+                    ):
+
+                        nodes_equal = compare_nodes(
+                            dx.owner, dy.owner, common, different
+                        )
+                        if not nodes_equal:
+                            different.add((dx, dy))
+                            return False
+
+                    # If both variables don't have an owner, then they are
+                    # inputs and can be directly compared
+                    elif dx.owner is None and dy.owner is None:
+
+                        if dx != dy:
+                            if isinstance(dx, Constant) and isinstance(dy, Constant):
+                                if not dx.equals(dy):
+                                    return False
+                            else:
+                                return False
+
+                    else:
+                        return False
+
+            # If the code reaches this statement then the inputs are pair-wise
+            # equivalent so the outputs of the current nodes are also
+            # pair-wise equivalents
+            for dx, dy in zip(nd_x.outputs, nd_y.outputs):
+                common.add((dx, dy))
+
+            return True
+
+    # Validate that each xs[i], ys[i] pair represents the same computation
+    for i in range(len(xs)):
+        if xs[i].owner:
+            # The case where pairs of x[i]s and y[i]s don't both have an owner
+            # have already been addressed.
+            is_equal = compare_nodes(xs[i].owner, ys[i].owner, common, different)
+            if not is_equal:
+                return False
+
+    return True
