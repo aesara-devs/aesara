@@ -1,8 +1,10 @@
-from itertools import count
 import pickle
 
 import pytest
+
 import numpy as np
+
+from itertools import count
 
 from theano import sparse, shared, tensor
 from theano.gof.graph import (
@@ -58,10 +60,6 @@ class MyOp(Op):
 
 MyOp = MyOp()
 
-##########
-# inputs #
-##########
-
 
 class TestInputs:
     def test_inputs(self):
@@ -75,11 +73,6 @@ class TestInputs:
         node2 = MyOp.make_node(node.outputs[0], r5)
         i = inputs(node2.outputs)
         assert i == [r1, r2, r5], i
-
-
-#############
-# as_string #
-#############
 
 
 class X:
@@ -124,11 +117,6 @@ class TestStr(X):
         node2 = MyOp.make_node(node.outputs[0], node.outputs[0])
         assert self.str(node.outputs, node2.outputs) == ["MyOp(R3, R3)"]
         assert self.str(node2.inputs, node2.outputs) == ["MyOp(R3, R3)"]
-
-
-#########
-# clone #
-#########
 
 
 class TestClone(X):
@@ -184,11 +172,6 @@ class TestClone(X):
 
         i, o = clone([c1], [c1], False, True)
         assert i[0] is c1 and o[0] is c1
-
-
-############
-# toposort #
-############
 
 
 def prenode(obj):
@@ -256,11 +239,6 @@ class TestToposort:
         MyOp.make_node(o0.outputs[0], r4)
         all = io_toposort([], o0.outputs)
         assert all == [o0]
-
-
-#################
-# is_same_graph #
-#################
 
 
 class TestIsSameGraph:
@@ -401,11 +379,6 @@ class TestIsSameGraph:
         )
 
 
-################
-# eval         #
-################
-
-
 class TestEval:
     def setup_method(self):
         self.x, self.y = tensor.scalars("x", "y")
@@ -421,9 +394,6 @@ class TestEval:
         ), "temporary functions must not be serialized"
 
 
-################
-# autoname     #
-################
 class TestAutoName:
     def test_auto_name(self):
         # Get counter value

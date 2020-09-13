@@ -197,7 +197,7 @@ def dot(l, r):
 
 
 def get_scalar_constant_value(v):
-    """return the constant scalar(0-D) value underlying variable `v`
+    """Return the constant scalar (i.e. 0-D) value underlying variable `v`.
 
     If v is the output of dimshuffles, fills, allocs, rebroadcasts, cast
     this function digs through them.
@@ -208,7 +208,8 @@ def get_scalar_constant_value(v):
     tensor.basic.NotScalarConstantError.
     """
     # Is it necessary to test for presence of theano.sparse at runtime?
-    if "sparse" in globals() and isinstance(v.type, sparse.SparseType):
+    sparse = globals().get("sparse")
+    if sparse and isinstance(v.type, sparse.SparseType):
         if v.owner is not None and isinstance(v.owner.op, sparse.CSM):
             data = v.owner.inputs[0]
             return tensor.get_scalar_constant_value(data)

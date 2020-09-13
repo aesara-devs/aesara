@@ -1,7 +1,11 @@
 import itertools
-import numpy as np
+
 import pytest
+
+import numpy as np
+
 import theano
+
 from theano import tensor
 from theano.scan_module.scan_utils import equal_computations, map_variables
 from theano.tensor.type_other import NoneConst
@@ -17,9 +21,6 @@ def test_equal_compuations():
     assert equal_computations(max_argmax1, max_argmax2)
 
 
-#################
-# map_variables #
-#################
 
 
 class TestMapVariables:

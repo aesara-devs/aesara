@@ -62,19 +62,16 @@ from collections import OrderedDict
 
 from six import integer_types
 
-from theano import tensor, scalar
+from theano import gof, tensor, scalar
 from theano.tensor import opt, get_scalar_constant_value, Alloc, AllocEmpty
-from theano import gof
 
 from theano.compile import optdb
 from theano.compile.function_module import deep_copy_op
 from theano.gof import toolbox, DestroyHandler, InconsistencyError
-from theano.gof.opt import Optimizer
-from theano.gof.opt import pre_constant_merge, pre_greedy_local_optimizer
+from theano.gof.opt import Optimizer, pre_constant_merge, pre_greedy_local_optimizer
 
-from theano.scan_module import scan_op
-from theano.scan_module import scan_utils
 from theano.scan_module.scan_utils import equal_computations, scan_args
+from theano.scan_module import scan_op, scan_utils
 
 __docformat__ = "restructedtext en"
 __authors__ = (

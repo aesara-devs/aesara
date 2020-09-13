@@ -1,16 +1,20 @@
-from functools import partial
-from collections import OrderedDict
-
 import sys
+import copy
 import time
 import inspect
 
 import numpy as np
+import theano
+
+from functools import partial
+from collections import OrderedDict
+
 from six.moves import StringIO
 
-import theano
 from theano import config
-from theano.gof import graph
+from theano.gof.graph import (
+    io_toposort,
+)
 
 
 class AlreadyThere(Exception):
@@ -312,7 +316,7 @@ class Bookkeeper(Feature):
         FunctionGraph is initially populated, this is where you should
         run checks on the initial contents of the FunctionGraph.
         """
-        for node in graph.io_toposort(fgraph.inputs, fgraph.outputs):
+        for node in io_toposort(fgraph.inputs, fgraph.outputs):
             self.on_import(fgraph, node, "on_attach")
 
     def on_detach(self, fgraph):
@@ -320,7 +324,7 @@ class Bookkeeper(Feature):
         Should remove any dynamically added functionality
         that it installed into the function_graph
         """
-        for node in graph.io_toposort(fgraph.inputs, fgraph.outputs):
+        for node in io_toposort(fgraph.inputs, fgraph.outputs):
             self.on_prune(fgraph, node, "Bookkeeper.detach")
 
 

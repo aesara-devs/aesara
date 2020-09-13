@@ -53,7 +53,7 @@ from tests.tensor.test_basic import inplace_func, rand, randint_ranged
 
 class TestSubtensor(utt.OptimizationTestMixin):
     """
-    This is build in a way that allow to reuse it to test the equivalent gpu op.
+    This is designed to be sub-classed (e.g. by the GPU tests).
     """
 
     def setup_method(self):

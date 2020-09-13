@@ -4,15 +4,15 @@ import theano
 
 from collections.abc import Collection
 
-from theano.tensor import basic
-from theano.tensor import nlinalg  # noqa
-from theano import gof, scalar
-from theano.gof import Generic, ParamsType, EnumList
-from theano import gradient
-from theano.gradient import DisconnectedType, disconnected_type
-from theano.scalar import int32 as int_t
-
-tensor = basic
+from theano.gof import Op, Apply, Generic, ParamsType, EnumList
+from theano.tensor import basic, nlinalg
+from theano.scalar import int32 as int_t, upcast
+from theano.gradient import (
+    DisconnectedType,
+    disconnected_type,
+    _float_zeros_like,
+    grad_undefined,
+)
 
 
 class CpuContiguous(theano.Op):
@@ -197,8 +197,8 @@ class SearchsortedOp(theano.Op):
         else:
             x, v = inputs
 
-        x_grad = gradient._float_zeros_like(x)
-        v_grad = gradient._float_zeros_like(v)
+        x_grad = _float_zeros_like(x)
+        v_grad = _float_zeros_like(v)
         if num_ins == 3:
             return [x_grad, v_grad, disconnected_type()]
         else:
@@ -332,7 +332,7 @@ class CumOp(theano.Op):
 
     def infer_shape(self, node, shapes):
         if self.axis is None:
-            return [(tensor.prod(shapes[0]),)]  # Flatten
+            return [(basic.prod(shapes[0]),)]  # Flatten
 
         return shapes
 
@@ -658,7 +658,7 @@ class RepeatOp(theano.Op):
         x = basic.as_tensor_variable(x)
         repeats = basic.as_tensor_variable(repeats)
 
-        if repeats.dtype not in tensor.integer_dtypes:
+        if repeats.dtype not in basic.integer_dtypes:
             raise TypeError("repeats.dtype must be an integer.")
 
         # Some dtypes are not supported by numpy's implementation of repeat.
@@ -784,7 +784,7 @@ def repeat(x, repeats, axis=None):
     .. versionadded:: 0.6
 
     """
-    repeats = tensor.as_tensor_variable(repeats)
+    repeats = basic.as_tensor_variable(repeats)
 
     if repeats.ndim > 1:
         raise ValueError("The dimension of repeats should not exceed 1.")
@@ -827,22 +827,22 @@ def repeat(x, repeats, axis=None):
         # After the original tensor is duplicated along the additional
         # dimension, we reshape it to the expected output shape, and
         # return the output z.
-        z = tensor.alloc(x.dimshuffle(*dims_), *shape_).reshape(shape)
+        z = basic.alloc(x.dimshuffle(*dims_), *shape_).reshape(shape)
         return z
 
 
-class Bartlett(gof.Op):
+class Bartlett(Op):
     # See function bartlett for docstring
     __props__ = ()
 
     def make_node(self, M):
-        M = tensor.as_tensor_variable(M)
+        M = basic.as_tensor_variable(M)
         if M.ndim != 0:
             raise TypeError("%s only works on scalar input" % self.__class__.__name__)
         elif M.dtype not in theano.tensor.integer_dtypes:
             # dtype is a theano attribute here
             raise TypeError("%s only works on integer input" % self.__class__.__name__)
-        return gof.Apply(self, [M], [tensor.dvector()])
+        return Apply(self, [M], [basic.dvector()])
 
     def perform(self, node, inputs, out_):
         M = inputs[0]
@@ -851,7 +851,7 @@ class Bartlett(gof.Op):
 
     def infer_shape(self, node, in_shapes):
         temp = node.inputs[0]
-        M = tensor.switch(tensor.lt(temp, 0), tensor.cast(0, temp.dtype), temp)
+        M = basic.switch(basic.lt(temp, 0), basic.cast(0, temp.dtype), temp)
         return [[M]]
 
     def grad(self, inputs, output_grads):
@@ -889,7 +889,7 @@ def bartlett(M):
     return bartlett_(M)
 
 
-class FillDiagonal(gof.Op):
+class FillDiagonal(Op):
     # See function fill_diagonal for docstring
     __props__ = ()
 
@@ -897,8 +897,8 @@ class FillDiagonal(gof.Op):
         return [in_shapes[0]]
 
     def make_node(self, a, val):
-        a = tensor.as_tensor_variable(a)
-        val = tensor.as_tensor_variable(val)
+        a = basic.as_tensor_variable(a)
+        val = basic.as_tensor_variable(val)
         if a.ndim < 2:
             raise TypeError(
                 "%s: first parameter must have at least"
@@ -908,13 +908,13 @@ class FillDiagonal(gof.Op):
             raise TypeError(
                 "%s: second parameter must be a scalar" % self.__class__.__name__
             )
-        val = tensor.cast(val, dtype=scalar.upcast(a.dtype, val.dtype))
+        val = basic.cast(val, dtype=upcast(a.dtype, val.dtype))
         if val.dtype != a.dtype:
             raise TypeError(
                 "%s: type of second parameter must be the same as"
                 " the first's" % self.__class__.__name__
             )
-        return gof.Apply(self, [a, val], [a.type()])
+        return Apply(self, [a, val], [a.type()])
 
     def perform(self, node, inputs, output_storage):
         a = inputs[0].copy()
@@ -950,7 +950,7 @@ class FillDiagonal(gof.Op):
             )
         wr_a = fill_diagonal(grad, 0)  # valid for any number of dimensions
         # diag is only valid for matrices
-        wr_val = theano.tensor.nlinalg.diag(grad).sum()
+        wr_val = nlinalg.diag(grad).sum()
         return [wr_a, wr_val]
 
 
@@ -991,7 +991,7 @@ def fill_diagonal(a, val):
     return fill_diagonal_(a, val)
 
 
-class FillDiagonalOffset(gof.Op):
+class FillDiagonalOffset(Op):
     # See function fill_diagonal_offset for docstring
     __props__ = ()
 
@@ -999,9 +999,9 @@ class FillDiagonalOffset(gof.Op):
         return [in_shapes[0]]
 
     def make_node(self, a, val, offset):
-        a = tensor.as_tensor_variable(a)
-        val = tensor.as_tensor_variable(val)
-        offset = tensor.as_tensor_variable(offset)
+        a = basic.as_tensor_variable(a)
+        val = basic.as_tensor_variable(val)
+        offset = basic.as_tensor_variable(offset)
         if a.ndim != 2:
             raise TypeError(
                 "%s: first parameter must have exactly"
@@ -1015,7 +1015,7 @@ class FillDiagonalOffset(gof.Op):
             raise TypeError(
                 "%s: third parameter must be a scalar" % self.__class__.__name__
             )
-        val = tensor.cast(val, dtype=scalar.upcast(a.dtype, val.dtype))
+        val = basic.cast(val, dtype=upcast(a.dtype, val.dtype))
         if val.dtype != a.dtype:
             raise TypeError(
                 "%s: type of second parameter must be the same"
@@ -1028,7 +1028,7 @@ class FillDiagonalOffset(gof.Op):
                 % self.__class__.__name__
             )
 
-        return gof.Apply(self, [a, val, offset], [a.type()])
+        return Apply(self, [a, val, offset], [a.type()])
 
     def perform(self, node, inputs, output_storage):
         a = inputs[0].copy()
@@ -1097,7 +1097,7 @@ class FillDiagonalOffset(gof.Op):
 
         wr_val = grad.flatten()[start:end:step].sum()
 
-        wr_offset = theano.gradient.grad_undefined(
+        wr_offset = grad_undefined(
             self,
             2,
             offset,
@@ -1291,7 +1291,7 @@ class Unique(theano.Op):
             self.axis = None
 
 
-class UnravelIndex(gof.Op):
+class UnravelIndex(Op):
     __props__ = ("order",)
 
     def __init__(self, order="C"):
@@ -1313,7 +1313,7 @@ class UnravelIndex(gof.Op):
         if dims.ndim != 1:
             raise TypeError("dims must be a 1D array")
 
-        return gof.Apply(
+        return Apply(
             self,
             [indices, dims],
             [
@@ -1372,7 +1372,7 @@ def unravel_index(indices, dims, order="C"):
         return tuple(res)
 
 
-class RavelMultiIndex(gof.Op):
+class RavelMultiIndex(Op):
     __props__ = ("mode", "order")
 
     def __init__(self, mode="raise", order="C"):
@@ -1397,7 +1397,7 @@ class RavelMultiIndex(gof.Op):
         if dims.ndim != 1:
             raise TypeError("dims must be a 1D array")
 
-        return gof.Apply(
+        return Apply(
             self,
             multi_index + [dims],
             [
