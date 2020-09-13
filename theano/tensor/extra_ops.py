@@ -1455,3 +1455,80 @@ def ravel_multi_index(multi_index, dims, mode="raise", order="C"):
         raise TypeError("multi_index must be a tuple or a list.")
     args = tuple(multi_index) + (dims,)
     return RavelMultiIndex(mode=mode, order=order)(*args)
+
+
+def broadcast_shape(*arrays, **kwargs):
+    """Compute the shape resulting from broadcasting arrays.
+
+    Parameters
+    ----------
+    *arrays: Tuple[TensorVariable] or Tuple[Tuple[Variable]]
+        A tuple of tensors, or a tuple of shapes (as tuples),
+        for which the broadcast shape is computed.
+    arrays_are_shapes: bool (Optional)
+        Indicates whether or not the `arrays` contains shape tuples.
+        If you use this approach, make sure that the broadcastable dimensions
+        are (scalar) constants with the value `1` or `1` exactly.
+
+    """
+    one = theano.scalar.ScalarConstant(theano.scalar.int64, 1)
+
+    arrays_are_shapes = kwargs.pop("arrays_are_shapes", False)
+    if arrays_are_shapes:
+        max_dims = max(len(a) for a in arrays)
+
+        array_shapes = [
+            (one,) * (max_dims - len(a))
+            + tuple(one if getattr(sh, "value", sh) == 1 else sh for sh in a)
+            for a in arrays
+        ]
+    else:
+        max_dims = max(a.ndim for a in arrays)
+
+        array_shapes = [
+            (one,) * (max_dims - a.ndim)
+            + tuple(one if bcast else sh for sh, bcast in zip(a.shape, a.broadcastable))
+            for a in arrays
+        ]
+
+    result_dims = []
+
+    for dim_shapes in zip(*array_shapes):
+        non_bcast_shapes = [shape for shape in dim_shapes if shape != one]
+
+        if len(non_bcast_shapes) > 0:
+            # Either there's only one non-broadcastable dimensions--and that's
+            # what determines the dimension size, or there are multiple
+            # non-broadcastable dimensions that must be equal
+            i_dim = non_bcast_shapes.pop()
+
+            potentially_unequal_dims = [
+                dim
+                for dim in non_bcast_shapes
+                # TODO FIXME: This is a largely deficient means of comparing graphs
+                # (and especially shapes)
+                if not theano.gof.graph.equal_computations([i_dim], [dim])
+            ]
+
+            if potentially_unequal_dims:
+                from theano.tensor.opt import Assert
+
+                # In this case, we can't tell whether or not the dimensions are
+                # equal, so we'll need to assert their equality and move the error
+                # handling to evaluation time.
+                assert_dim = Assert("Could not broadcast dimensions")
+                eq_condition = basic.all(
+                    [
+                        basic.or_(basic.eq(dim, one), basic.eq(i_dim, dim))
+                        for dim in potentially_unequal_dims
+                    ]
+                )
+                eq_condition = basic.or_(basic.eq(i_dim, one), eq_condition)
+                result_dims.append(assert_dim(i_dim, eq_condition))
+            else:
+                result_dims.append(i_dim)
+        else:
+            # Every array was broadcastable in this dimension
+            result_dims.append(one)
+
+    return tuple(result_dims)

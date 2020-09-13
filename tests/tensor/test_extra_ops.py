@@ -31,6 +31,7 @@ from theano.tensor.extra_ops import (
     UnravelIndex,
     ravel_multi_index,
     RavelMultiIndex,
+    broadcast_shape,
 )
 from theano import tensor as tt
 from theano import config, function
@@ -1189,3 +1190,121 @@ class TestRavelMultiIndex(utt.InferShapeTester):
         # dims must be a 1D sequence
         with pytest.raises(TypeError):
             ravel_multi_index(((3, 4),), ((3, 4),))
+
+
+def test_broadcast_shape():
+    def shape_tuple(x, use_bcast=True):
+        if use_bcast:
+            return tuple(
+                s if not bcast else 1
+                for s, bcast in zip(tuple(x.shape), x.broadcastable)
+            )
+        else:
+            return tuple(s for s in tuple(x.shape))
+
+    x = np.array([[1], [2], [3]])
+    y = np.array([4, 5, 6])
+    b = np.broadcast(x, y)
+    x_tt = tt.as_tensor_variable(x)
+    y_tt = tt.as_tensor_variable(y)
+    b_tt = broadcast_shape(x_tt, y_tt)
+    assert np.array_equal([z.eval() for z in b_tt], b.shape)
+    # Now, we try again using shapes as the inputs
+    #
+    # This case also confirms that a broadcast dimension will
+    # broadcast against a non-broadcast dimension when they're
+    # both symbolic (i.e. we couldn't obtain constant values).
+    b_tt = broadcast_shape(
+        shape_tuple(x_tt, use_bcast=False),
+        shape_tuple(y_tt, use_bcast=False),
+        arrays_are_shapes=True,
+    )
+    assert any(
+        isinstance(node.op, tt.opt.Assert)
+        for node in tt.gof.graph.ops([x_tt, y_tt], b_tt)
+    )
+    assert np.array_equal([z.eval() for z in b_tt], b.shape)
+    b_tt = broadcast_shape(shape_tuple(x_tt), shape_tuple(y_tt), arrays_are_shapes=True)
+    assert np.array_equal([z.eval() for z in b_tt], b.shape)
+    # These are all constants, so there shouldn't be any asserts in the
+    # resulting graph.
+    assert not any(
+        isinstance(node.op, tt.opt.Assert)
+        for node in tt.gof.graph.ops([x_tt, y_tt], b_tt)
+    )
+
+    x = np.array([1, 2, 3])
+    y = np.array([4, 5, 6])
+    b = np.broadcast(x, y)
+    x_tt = tt.as_tensor_variable(x)
+    y_tt = tt.as_tensor_variable(y)
+    b_tt = broadcast_shape(x_tt, y_tt)
+    assert np.array_equal([z.eval() for z in b_tt], b.shape)
+    b_tt = broadcast_shape(shape_tuple(x_tt), shape_tuple(y_tt), arrays_are_shapes=True)
+    assert np.array_equal([z.eval() for z in b_tt], b.shape)
+    # TODO: This will work when/if we use a more sophisticated `is_same_graph`
+    # implementation.
+    # assert not any(
+    #     isinstance(node.op, tt.opt.Assert)
+    #     for node in tt.gof.graph.ops([x_tt, y_tt], b_tt)
+    # )
+
+    x = np.empty((1, 2, 3))
+    y = np.array(1)
+    b = np.broadcast(x, y)
+    x_tt = tt.as_tensor_variable(x)
+    y_tt = tt.as_tensor_variable(y)
+    b_tt = broadcast_shape(x_tt, y_tt)
+    assert b_tt[0].value == 1
+    assert np.array_equal([z.eval() for z in b_tt], b.shape)
+    assert not any(
+        isinstance(node.op, tt.opt.Assert)
+        for node in tt.gof.graph.ops([x_tt, y_tt], b_tt)
+    )
+    b_tt = broadcast_shape(shape_tuple(x_tt), shape_tuple(y_tt), arrays_are_shapes=True)
+    assert np.array_equal([z.eval() for z in b_tt], b.shape)
+
+    x = np.empty((2, 1, 3))
+    y = np.empty((2, 1, 1))
+    b = np.broadcast(x, y)
+    x_tt = tt.as_tensor_variable(x)
+    y_tt = tt.as_tensor_variable(y)
+    b_tt = broadcast_shape(x_tt, y_tt)
+    assert b_tt[1].value == 1
+    assert np.array_equal([z.eval() for z in b_tt], b.shape)
+    # TODO: This will work when/if we use a more sophisticated `is_same_graph`
+    # implementation.
+    # assert not any(
+    #     isinstance(node.op, tt.opt.Assert)
+    #     for node in tt.gof.graph.ops([x_tt, y_tt], b_tt)
+    # )
+    b_tt = broadcast_shape(shape_tuple(x_tt), shape_tuple(y_tt), arrays_are_shapes=True)
+    assert np.array_equal([z.eval() for z in b_tt], b.shape)
+
+    x1_shp_tt = tt.iscalar("x1")
+    x2_shp_tt = tt.iscalar("x2")
+    y1_shp_tt = tt.iscalar("y1")
+    x_shapes = (1, x1_shp_tt, x2_shp_tt)
+    x_tt = tt.ones(x_shapes)
+    y_shapes = (y1_shp_tt, 1, x2_shp_tt)
+    y_tt = tt.ones(y_shapes)
+    b_tt = broadcast_shape(x_tt, y_tt)
+    # TODO: This will work when/if we use a more sophisticated `is_same_graph`
+    # implementation.
+    # assert not any(
+    #     isinstance(node.op, tt.opt.Assert)
+    #     for node in tt.gof.graph.ops([x_tt, y_tt], b_tt)
+    # )
+    res = tt.as_tensor(b_tt).eval(
+        {
+            x1_shp_tt: 10,
+            x2_shp_tt: 4,
+            y1_shp_tt: 2,
+        }
+    )
+    assert np.array_equal(res, (2, 10, 4))
+
+    y_shapes = (y1_shp_tt, 1, y1_shp_tt)
+    y_tt = tt.ones(y_shapes)
+    b_tt = broadcast_shape(x_tt, y_tt)
+    assert isinstance(b_tt[-1].owner.op, tt.opt.Assert)
