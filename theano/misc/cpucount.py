@@ -32,12 +32,18 @@
 
 import os
 import sys
+import multiprocessing
 
 
 def cpuCount():
     """
     Returns the number of CPUs in the system
     """
+    try:
+        return multiprocessing.cpu_count()
+    except NotImplementedError:
+        pass
+
     if sys.platform == "win32":
         try:
             num = int(os.environ["NUMBER_OF_PROCESSORS"])
