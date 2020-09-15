@@ -1290,6 +1290,7 @@ _good_broadcast_unary_normal_no_complex = dict(
     uint16=[np.arange(0, 89, dtype="uint16")],
     corner_case=[corner_case],
     empty=[np.asarray([], dtype=config.floatX)],
+    big_scalar=[np.arange(17.0, 29.0, 0.5, dtype=floatX)],
 )
 
 _grad_broadcast_unary_normal_no_complex = dict(
@@ -1551,9 +1552,7 @@ _good_broadcast_unary_positive_float = copymod(
     _good_broadcast_unary_positive, without=["integers", "uint8"]
 )
 
-_grad_broadcast_unary_positive = dict(
-    normal=(rand_ranged(_eps, 5, (2, 3)),),
-)
+_grad_broadcast_unary_positive = dict(normal=(rand_ranged(_eps, 5, (2, 3)),),)
 
 TestLogBroadcast = makeBroadcastTester(
     op=tensor.log,
@@ -1632,9 +1631,7 @@ _good_broadcast_unary_wide = dict(
 _good_broadcast_unary_wide_float = copymod(
     _good_broadcast_unary_wide, without=["integers", "int8", "uint8", "uint16"]
 )
-_grad_broadcast_unary_wide = dict(
-    normal=(rand_ranged(-1000, 1000, (2, 3)),),
-)
+_grad_broadcast_unary_wide = dict(normal=(rand_ranged(-1000, 1000, (2, 3)),),)
 
 if theano.config.floatX == "float32":
     angle_eps = 1e-4
@@ -1700,9 +1697,7 @@ _good_broadcast_unary_arcsin_float = copymod(
 
 # The actual range is [-1, 1] but the numerical gradient is too
 # unstable near those values
-_grad_broadcast_unary_arcsin = dict(
-    normal=(rand_ranged(-0.9, 0.9, (2, 3)),),
-)
+_grad_broadcast_unary_arcsin = dict(normal=(rand_ranged(-0.9, 0.9, (2, 3)),),)
 
 TestArcsinBroadcast = makeBroadcastTester(
     op=tensor.arcsin,
@@ -1868,9 +1863,7 @@ _good_broadcast_unary_arccosh = dict(
     complex=(randc128_ranged(1, 1000, (2, 3)),),
     empty=(np.asarray([], dtype=config.floatX),),
 )
-_grad_broadcast_unary_arccosh = dict(
-    normal=(rand_ranged(1 + _eps, 1000, (2, 3)),),
-)
+_grad_broadcast_unary_arccosh = dict(normal=(rand_ranged(1 + _eps, 1000, (2, 3)),),)
 
 TestArccoshBroadcast = makeBroadcastTester(
     op=tensor.arccosh,
@@ -2225,9 +2218,7 @@ _good_broadcast_unary_bessel = dict(
     uint16=(randint_ranged(0, 10, (2, 3)).astype("uint16"),),
 )
 
-_grad_broadcast_unary_bessel = dict(
-    normal=(rand_ranged(-10.0, 10.0, (2, 3)),),
-)
+_grad_broadcast_unary_bessel = dict(normal=(rand_ranged(-10.0, 10.0, (2, 3)),),)
 
 _good_broadcast_binary_bessel = dict(
     normal=(rand_ranged(-5, 5, (2, 3)), rand_ranged(0, 10, (2, 3))),
@@ -2609,8 +2600,7 @@ TestSecondSameRank = makeTester(
     # and SHOULD raise an error, but currently don't.
     bad_runtime=dict(
         itertools.chain(
-            multi_dtype_checks((4, 5), (5, 4)),
-            multi_dtype_checks((1, 5), (5, 4)),
+            multi_dtype_checks((4, 5), (5, 4)), multi_dtype_checks((1, 5), (5, 4)),
         )
     ),
     mode=get_default_mode().excluding("local_fill_to_alloc", "local_useless_fill"),
@@ -2633,9 +2623,7 @@ TestAllocBroadcast = makeBroadcastTester(
         correctb3=(rand(7, 1), np.int32(7), np.int32(4)),
         correctb4=(rand(7, 1), np.int32(2), np.int32(7), np.int32(4)),
     ),
-    bad_runtime=dict(
-        bad_shape12=(rand(7), np.int32(7), np.int32(5)),
-    ),
+    bad_runtime=dict(bad_shape12=(rand(7), np.int32(7), np.int32(5)),),
     bad_build=dict(
         vec=(rand(1), [np.int32(2)]),
         too_big32=(rand(6, 2, 4), np.int32(6), np.int32(2)),
@@ -2654,11 +2642,7 @@ TestAlloc01GradBroadcast = makeBroadcastTester(
     name="Alloc01GradTester",
     op=(lambda x: alloc(x, s1)),
     expected=(lambda x: np.zeros((s1,), dtype=x.dtype) + x),
-    grad=dict(
-        x1=(rand(),),
-        x2=(rand(),),
-        x3=(rand(),),
-    ),
+    grad=dict(x1=(rand(),), x2=(rand(),), x3=(rand(),),),
 )
 
 # alloc a vector into a tensor3
@@ -2666,11 +2650,7 @@ TestAlloc13GradBroadcast = makeBroadcastTester(
     name="Alloc13GradTester",
     op=(lambda x: alloc(x, s1, s2, s3)),
     expected=(lambda x: np.zeros((s1, s2, s3), dtype=x.dtype) + x),
-    grad=dict(
-        x1=(rand(s3),),
-        x2=(rand(s3),),
-        x3=(rand(s3),),
-    ),
+    grad=dict(x1=(rand(s3),), x2=(rand(s3),), x3=(rand(s3),),),
 )
 
 # unbroadcast a row to a matrix
@@ -2678,11 +2658,7 @@ TestAllocb1GradBroadcast = makeBroadcastTester(
     name="Allocb1GradTester",
     op=lambda x: alloc(x, s1, s2),
     expected=(lambda x: np.zeros((s1, s2), dtype=x.dtype) + x),
-    grad=dict(
-        x1=(rand(1, s2),),
-        x2=(rand(1, s2),),
-        x3=(rand(1, s2),),
-    ),
+    grad=dict(x1=(rand(1, s2),), x2=(rand(1, s2),), x3=(rand(1, s2),),),
 )
 
 # unbroadcast a row to a tensor3
@@ -2690,11 +2666,7 @@ TestAllocb2GradBroadcast = makeBroadcastTester(
     name="Allocb2GradTester",
     op=lambda x: alloc(x, s1, s2, s3),
     expected=(lambda x: np.zeros((s1, s2, s3), dtype=x.dtype) + x),
-    grad=dict(
-        x1=(rand(1, s3),),
-        x2=(rand(1, s3),),
-        x3=(rand(1, s3),),
-    ),
+    grad=dict(x1=(rand(1, s3),), x2=(rand(1, s3),), x3=(rand(1, s3),),),
 )
 
 # unbroadcast a col to a matrix
@@ -2702,11 +2674,7 @@ TestAllocb3GradBroadcast = makeBroadcastTester(
     name="Allocb3GradTester",
     op=lambda x: alloc(x, s1, s2),
     expected=(lambda x: np.zeros((s1, s2), dtype=x.dtype) + x),
-    grad=dict(
-        x1=(rand(s1, 1),),
-        x2=(rand(s1, 1),),
-        x3=(rand(s1, 1),),
-    ),
+    grad=dict(x1=(rand(s1, 1),), x2=(rand(s1, 1),), x3=(rand(s1, 1),),),
 )
 
 # unbroadcast a col to a tensor3
@@ -2714,11 +2682,7 @@ TestAllocb4GradBroadcast = makeBroadcastTester(
     name="Allocb4GradTester",
     op=lambda x: alloc(x, s1, s2, s3),
     expected=(lambda x: np.zeros((s1, s2, s3), dtype=x.dtype) + x),
-    grad=dict(
-        x1=(rand(s2, 1),),
-        x2=(rand(s2, 1),),
-        x3=(rand(s2, 1),),
-    ),
+    grad=dict(x1=(rand(s2, 1),), x2=(rand(s2, 1),), x3=(rand(s2, 1),),),
 )
 
 
@@ -2727,21 +2691,13 @@ TestAllocDimshuffleGradBroadcast = makeBroadcastTester(
     name="Allocb4GradTester",
     op=lambda x: alloc(x.dimshuffle("x", "x", 0), 1, s2, s3),
     expected=(lambda x: np.zeros((1, s2, s3), dtype=x.dtype) + x),
-    grad=dict(
-        x1=(rand(s3),),
-        x2=(rand(s3),),
-        x3=(rand(s3),),
-    ),
+    grad=dict(x1=(rand(s3),), x2=(rand(s3),), x3=(rand(s3),),),
 )
 TestAllocDimshuffleGrad2Broadcast = makeBroadcastTester(
     name="Allocb4GradTester",
     op=lambda x: alloc(x.dimshuffle("x", 0), 1, s2, s3),
     expected=(lambda x: np.zeros((1, s2, s3), dtype=x.dtype) + x),
-    grad=dict(
-        x1=(rand(s3),),
-        x2=(rand(s3),),
-        x3=(rand(s3),),
-    ),
+    grad=dict(x1=(rand(s3),), x2=(rand(s3),), x3=(rand(s3),),),
 )
 
 

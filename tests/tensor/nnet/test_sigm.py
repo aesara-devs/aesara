@@ -88,7 +88,8 @@ TestSoftplusBroadcast = makeBroadcastTester(
     ),
     good=dict(
         copymod(
-            _good_broadcast_unary_normal_no_complex, without=["uint8", "uint16"]
+            _good_broadcast_unary_normal_no_complex,
+            without=["uint8", "uint16", "big_scalar"],
         ),  # numpy function overflows with uint16.
         uint8=[
             np.arange(0, 89, dtype="uint8")
