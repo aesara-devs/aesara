@@ -1,21 +1,24 @@
 import sys
-from textwrap import dedent
 import warnings
 import logging
 
 import numpy as np
-from six import integer_types
-
 
 import theano
 
-from theano.gradient import DisconnectedType
-from theano import gof
+from textwrap import dedent
+
+from itertools import groupby, chain
+from collections.abc import Iterable
+
+from six import integer_types
+
+from theano import gof, scalar as scal, config
 from theano.gof import Apply, hashtype, Op, Type, MethodNotDefined, ParamsType
+from theano.gradient import DisconnectedType
 from theano.printing import pprint
-from theano import scalar as scal
-from theano.tensor.basic import alloc
 from theano.tensor.basic import (
+    alloc,
     addbroadcast,
     clip,
     get_scalar_constant_value,
@@ -23,16 +26,11 @@ from theano.tensor.basic import (
     NotScalarConstantError,
 )
 from theano.tensor.elemwise import DimShuffle
+from theano.tensor.inc_code import inc_code
+from theano.tensor.extra_ops import broadcast_shape
 from theano.tensor.type_other import NoneConst, SliceType, NoneTypeT, make_slice
-from theano import config
-from theano.compat import Iterable
-
-from .inc_code import inc_code
 
 _logger = logging.getLogger("theano.tensor.subtensor")
-
-# Do a lazy import of the sparse module
-sparse_module_ref = None
 
 
 class AdvancedIndexingError(TypeError):
@@ -53,16 +51,8 @@ class AdvancedBooleanIndexingError(TypeError):
     pass
 
 
-##########
-# Helpful functions to deal with Subtensor and IncSubtensor
-##########
-
-
 def make_constant(args):
-    """
-    Convert python litterals to theano constants in subtensor arguments.
-
-    """
+    """Convert Python literals to Theano constants in Subtensor arguments."""
 
     def conv(a):
         if a is None:
@@ -72,6 +62,7 @@ def make_constant(args):
         elif isinstance(a, (integer_types, np.integer)):
             return scal.ScalarConstant(scal.int64, a)
         else:
+            # Use `tensor.scalar_from_tensor`?
             return a
 
     return tuple(map(conv, args))
@@ -112,7 +103,8 @@ def get_idx_list(inputs, idx_list, get_count=False):
 
 
 def get_canonical_form_slice(theslice, length):
-    """
+    """Convert slices to canonical form.
+
     Given a slice [start:stop:step] transform it into a canonical form
     that respects the conventions imposed by python and numpy.
 
@@ -275,6 +267,162 @@ def get_canonical_form_slice(theslice, length):
         value = switch(lt(value, 0), (value + length), value)
 
         return value, 1
+
+
+def range_len(slc):
+    """Length of a `range` object.
+
+    Adapted from CPython.
+
+    """
+    from theano.tensor import switch, and_, lt, gt
+
+    start, stop, step = make_constant([slc.start, slc.stop, slc.step])
+    return switch(
+        and_(gt(step, 0), lt(start, stop)),
+        1 + (stop - 1 - start) // step,
+        switch(
+            and_(lt(step, 0), gt(start, stop)),
+            1 + (start - 1 - stop) // (-step),
+            scal.ScalarConstant(scal.int64, 0),
+        ),
+    )
+
+
+def slice_len(slc, n):
+    """Compute the length of a slice for an array of a given length.
+
+    We're essentially computing `len(range(*slc.indices(n)))`.
+
+    """
+    # TODO: Do we need to do this or should we expect `slc` to
+    # already be canonicalized?
+    canon_slc, _ = get_canonical_form_slice(slc, n)
+    return range_len(canon_slc)
+
+
+def is_basic_idx(idx):
+    """Determine if an index is of the NumPy basic type.
+
+    XXX: This only checks a single index, so an integers is *not* considered a
+    basic index, because--depending on the other indices its used with--an
+    integer can indicate advanced indexing.
+
+    """
+    return isinstance(idx, (slice, type(None))) or isinstance(
+        getattr(idx, "type", None), (SliceType, NoneTypeT)
+    )
+
+
+def basic_shape(shape, indices):
+    """Computes the shape resulting from basic NumPy indexing.
+
+    Basic indices are either `slice`s or `None`s.
+    `Ellipsis` are not supported here; convert them to `slice`s first.
+
+    Parameters
+    ----------
+    shape: Tuple[int]
+        The shape of the array being indexed
+    indices: Sequence[Or[slice, NoneType]]
+        A sequence of basic indices used to index an array.
+
+    """
+    res_shape = ()
+    for idx, n in zip(indices, shape):
+        if isinstance(idx, slice):
+            res_shape += (slice_len(idx, n),)
+        elif isinstance(getattr(idx, "type", None), SliceType):
+            if idx.owner:
+                idx_inputs = idx.owner.inputs
+            else:
+                idx_inputs = (None,)
+            res_shape += (slice_len(slice(*idx_inputs), n),)
+        elif idx is None:
+            res_shape += (scal.ScalarConstant(scal.int64, 1),)
+        elif isinstance(getattr(idx, "type", None), NoneTypeT):
+            res_shape += (scal.ScalarConstant(scal.int64, 1),)
+        else:
+            raise ValueError("Invalid index type: {}".format(idx))
+    return res_shape
+
+
+def group_indices(indices):
+    """Group indices sequentially by whether or not they're basic or advanced.
+
+    Returns
+    -------
+    Tuple[Boolean, List[Tuple[Integer, Any]]]
+        The boolean indicates whether or not the group is a set of basic
+        indices.  The list contains the contiguous set of indices paired with their
+        corresponding dimension number in the array being indexed.
+    """
+    idx_groups = []
+    dim_num = -1
+    for basic, grp_indices in groupby(indices, key=is_basic_idx):
+        enum_grp_indices = []
+        for idx in grp_indices:
+            # We "zip" the dimension number to each index, which means we can't
+            # count indices that add new axes
+            if (idx is not None) and not isinstance(
+                getattr(idx, "type", None), NoneTypeT
+            ):
+                dim_num += 1
+
+            enum_grp_indices.append((dim_num, idx))
+
+        idx_groups.append((basic, enum_grp_indices))
+
+    return idx_groups
+
+
+def indexed_result_shape(array_shape, indices, indices_are_shapes=False):
+    """Compute the symbolic shape resulting from `a[indices]` for `a.shape == array_shape`.
+
+    This function uses NumPy's basic and advanced indexing logic.  It can also
+    handle combinations of advanced and basic indices.
+
+    Parameters
+    ----------
+    array_shape: Tuple[Variable]
+        Shape of the array being indexed.
+    indices: Sequence[Union[TensorVariable, Tuple[Union[None, slice, Variable]]]]
+        Either the indices themselves or the shapes of each index--depending
+        on the value of `indices_are_shapes`.
+    indices_are_shapes: bool (Optional)
+        Indicates whether or not the `indices` contains shape tuples instead of
+        the actual index arrays.  If you use this approach, make sure that the
+        broadcastable dimensions are (scalar) constants with the value `1`, or `1`
+        exactly.
+    """
+    res_shape = ()
+
+    remaining_dims = range(theano.tensor.basic.get_vector_length(array_shape))
+    idx_groups = group_indices(indices)
+
+    if len(idx_groups) > 2 or len(idx_groups) > 1 and not idx_groups[0][0]:
+        # Bring adv. index groups to the front and merge each group
+        idx_groups = sorted(idx_groups, key=lambda x: x[0])
+        idx_groups = groupby(
+            chain.from_iterable(d_idx for _, d_idx in idx_groups),
+            key=lambda x: is_basic_idx(x[1]),
+        )
+
+    for basic, grp_dim_indices in idx_groups:
+        dim_nums, grp_indices = zip(*grp_dim_indices)
+        remaining_dims = tuple(dim for dim in remaining_dims if dim not in dim_nums)
+
+        if basic:
+            grp_shapes = tuple(array_shape[dim] for dim in dim_nums)
+            res_shape += basic_shape(grp_shapes, grp_indices)
+        else:
+            res_shape += broadcast_shape(
+                *grp_indices, arrays_are_shapes=indices_are_shapes
+            )
+
+    res_shape += tuple(array_shape[dim] for dim in remaining_dims)
+
+    return res_shape
 
 
 class Subtensor(Op):
@@ -1783,14 +1931,6 @@ def _sum_grad_over_bcasted_dims(x, gx):
     return gx
 
 
-#########################
-# Advanced indexing
-#########################
-#
-# Should reproduce numpy's behaviour, see url:
-# docs.scipy.org/doc/numpy/reference/arrays.indexing.html#advanced-indexing
-
-
 class AdvancedSubtensor1(Op):
     """
     Implement x[ilist] where ilist is a vector of integers.
@@ -1858,7 +1998,6 @@ class AdvancedSubtensor1(Op):
         return rval
 
     def grad(self, inputs, grads):
-        global sparse_module_ref
         x, ilist = inputs
         (gz,) = grads
         assert len(inputs) == 2
@@ -1868,10 +2007,8 @@ class AdvancedSubtensor1(Op):
                     "AdvancedSubtensor1: you can't take the sparse grad"
                     " from a tensor with ndim != 2. ndim is " + str(x.type.ndim)
                 )
-            if sparse_module_ref is None:
-                import theano.sparse as sparse_module_ref
 
-            rval1 = [sparse_module_ref.construct_sparse_from_list(x, gz, ilist)]
+            rval1 = [theano.sparse.construct_sparse_from_list(x, gz, ilist)]
         else:
             if x.dtype in theano.tensor.discrete_dtypes:
                 # The output dtype is the same as x
@@ -2203,45 +2340,6 @@ def as_index_variable(idx):
     return idx
 
 
-def adv_index_broadcastable_pattern(a, idx):
-    """
-    This function is only used to determine the broadcast pattern for
-    AdvancedSubtensor output variable.
-
-    For this, we make a fake ndarray and a fake idx and call use ask numpy
-    the output. From this, we find the output broadcast pattern.
-
-    """
-
-    def replace_slice(v):
-        if isinstance(v, gof.Apply):
-            if len(v.outputs) != 1:
-                raise ValueError(
-                    "It is ambiguous which output of a multi-output Op has"
-                    " to be fetched.",
-                    v,
-                )
-            else:
-                v = v.outputs[0]
-
-        if NoneConst.equals(v):
-            return None
-        if isinstance(v.type, SliceType):
-            return slice(None, None)
-
-        if v.dtype == "bool":
-            return np.ones((2,) * v.ndim, v.dtype)
-        else:
-            return np.zeros((2,) * v.ndim, int)
-
-    newidx = tuple(map(replace_slice, idx))
-
-    # 2 - True = 1; 2 - False = 2
-    fakeshape = [2 - bc for bc in a.broadcastable]
-    retshape = np.empty(fakeshape)[newidx].shape
-    return tuple([dim == 1 for dim in retshape])
-
-
 def check_advanced_indexing_dimensions(input, idx_list):
     """
     This function checks if the index list in idx_list is correct.
@@ -2288,23 +2386,33 @@ def check_and_reject_bool(args_el):
 
 
 class BaseAdvancedSubtensor(Op):
-    """
-    Abstract base class for AdvancedSubtensor and AdvancedBooleanSubtensor.
+    """Abstract base class for AdvancedSubtensor and AdvancedBooleanSubtensor.
+
     Implements advanced indexing with boolean masks.
 
+    Should be used by __getitem__ and __getslice__, as follows:
+        - AdvancedSubtensor()(self, *args) or
+        - AdvancedBooleanSubtensor()(self, *args), if args contain advanced indices
+
     """
 
-    # Should be used by __getitem__ and __getslice__, as follows:
-    # AdvancedSubtensor()(self, *args) or
-    # AdvancedBooleanSubtensor()(self, *args),
-    # if args contains and advanced indexing pattern
     __props__ = ()
 
     def make_node(self, x, *index):
         x = theano.tensor.as_tensor_variable(x)
-
         index = tuple(map(as_index_variable, index))
-        bcast = adv_index_broadcastable_pattern(x, index)
+
+        # We only want the broadcast information, and we don't need recursive
+        # `Subtensor` calls, so we create a fake symbolic shape tuple and
+        # identify the broadcast dimensions from the shape result of this
+        # entire subtensor operation.
+        fake_shape = tuple(
+            theano.tensor.tensor(dtype="int64", broadcastable=()) if not bcast else 1
+            for bcast in x.broadcastable
+        )
+        bcast = [
+            getattr(i, "value", i) == 1 for i in indexed_result_shape(fake_shape, index)
+        ]
         return gof.Apply(
             self,
             (x,) + index,
@@ -2317,8 +2425,26 @@ class BaseAdvancedSubtensor(Op):
         return self.make_node(eval_points[0], *inputs[1:]).outputs
 
     def infer_shape(self, node, ishapes):
-        # Default case, we don't know
-        raise theano.tensor.basic.ShapeError("case not implemented")
+        indices = node.inputs[1:]
+        index_shapes = list(ishapes[1:])
+        for i, idx in enumerate(indices):
+            if (
+                isinstance(idx, (np.bool_, bool))
+                or getattr(idx, "dtype", None) == "bool"
+            ):
+                raise theano.tensor.basic.ShapeError(
+                    "Shape inference for boolean indices is not implemented"
+                )
+            # The `ishapes` entries for `SliceType`s will be None, and
+            # we need to give `indexed_result_shape` the actual slices.
+            if isinstance(getattr(idx, "type", None), SliceType):
+                index_shapes[i] = idx
+
+        res_shape = indexed_result_shape(
+            ishapes[0], index_shapes, indices_are_shapes=True
+        )
+        assert node.outputs[0].ndim == len(res_shape)
+        return [[s for s in res_shape]]
 
     def perform(self, node, inputs, out_):
         (out,) = out_
@@ -2348,33 +2474,9 @@ class AdvancedSubtensor(BaseAdvancedSubtensor):
 
     """
 
-    # Should be used by __getitem__ and __getslice__, as follows:
-    # AdvancedSubtensor()(self, *args),
-    # if args contains and advanced indexing pattern
-
     def make_node(self, x, *index):
         check_and_reject_bool(index)
         return super(AdvancedSubtensor, self).make_node(x, *index)
-
-    def infer_shape(self, node, ishapes):
-        # Really special case
-        if len(ishapes) == 3:
-            xshp, ind1shp, ind2shp = ishapes
-            if (
-                len(xshp) == 2
-                and ind1shp is not None
-                and len(ind1shp) == 1
-                and ind2shp is not None
-                and len(ind2shp) == 1
-            ):
-                # if the graph is correct, we can assume ind1shp[0] and
-                # ind2shp[0] will have the same value.
-                # Try to return the one closest to the graph input.
-                if node.inputs[2].owner is None:
-                    return [ind2shp]
-                else:
-                    return [ind1shp]
-        return super(AdvancedSubtensor, self).infer_shape(node, ishapes)
 
     def grad(self, inputs, grads):
         (gz,) = grads
@@ -2400,10 +2502,6 @@ class AdvancedBooleanSubtensor(BaseAdvancedSubtensor):
     Return a subtensor copy, using advanced indexing with boolean masks.
 
     """
-
-    # Should be used by __getitem__ and __getslice__, as follows:
-    # AdvancedBooleanSubtensor()(self, *args),
-    # if args contains and advanced indexing pattern with boolean masks
 
     def grad(self, inputs, grads):
         (gz,) = grads
