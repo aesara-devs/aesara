@@ -1068,7 +1068,7 @@ class ShapeFeature(object):
                 "indicate that a shape cannot be computed is no longer "
                 "supported, and one should now use tensor.ShapeError "
                 "instead. The original exception message is: %s" % e
-            )
+            ).with_traceback(e.__traceback__)
         except Exception as e:
             msg = (
                 "Failed to infer_shape from Op %s.\nInput shapes: "
@@ -1082,7 +1082,7 @@ class ShapeFeature(object):
                 traceback.format_exc(),
             )
             if config.on_shape_error == "raise":
-                raise Exception(msg)
+                raise Exception(msg).with_traceback(e.__traceback__)
             else:
                 _logger.warning(msg)
             o_shapes = self.default_infer_shape(
