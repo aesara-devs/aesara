@@ -1290,6 +1290,7 @@ _good_broadcast_unary_normal_no_complex = dict(
     uint16=[np.arange(0, 89, dtype="uint16")],
     corner_case=[corner_case],
     empty=[np.asarray([], dtype=config.floatX)],
+    big_scalar=[np.arange(17.0, 29.0, 0.5, dtype=floatX)],
 )
 
 _grad_broadcast_unary_normal_no_complex = dict(
