@@ -42,7 +42,7 @@ docstyle:
 
 format:
 	@printf "Checking code format with black...\n"
-	black -t py36 --check ${PROJECT_DIR} tests/ setup.py
+	black -t py36 --check ${PROJECT_DIR} tests/ setup.py conftest.py
 	@printf "\033[1;34mBlack passes!\033[0m\n\n"
 
 style:
@@ -51,7 +51,7 @@ style:
 	@printf "\033[1;34mPylint passes!\033[0m\n\n"
 
 black:  # Format code in-place using black.
-	black ${PROJECT_DIR} tests/ setup.py
+	black ${PROJECT_DIR} tests/ setup.py conftest.py
 
 test:  # Test code using pytest.
 	pytest -v tests/ ${PROJECT_DIR} --cov=${PROJECT_DIR} --cov-report=xml --html=testing-report.html --self-contained-html
