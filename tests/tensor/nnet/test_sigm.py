@@ -50,6 +50,7 @@ TestSigmoidBroadcast = makeBroadcastTester(
     # in an assertion error.
     # grad=_grad_broadcast_unary_normal,
     name="SigmoidTester",
+    eps=1e-8,
 )
 
 TestUltraFastSigmoidBroadcast = makeBroadcastTester(
