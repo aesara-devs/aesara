@@ -2723,22 +2723,15 @@ class Nonzero(gof.Op):
     """
     Return the indices of the elements that are non-zero.
 
-    Returns a matrix of shape (ndim, number of nonzero elements) such that
-    element (i,j) is the index in the ith dimension of the jth non-zero
-    element.
-
-    Note this is different than NumPy, which returns a tuple of arrays, one for
-    each dimension of the input array.
-
     Parameters
     ----------
-    a : array_like
+    a: array_like
         Input array.
 
     Returns
     -------
-    matrix
-        Matrix containing the indices of the non-zero elements of a.
+    indices: list
+        A list containing the indices of the non-zero elements of `a`.
 
     See Also
     --------
@@ -2754,20 +2747,17 @@ class Nonzero(gof.Op):
         a = as_tensor_variable(a)
         if a.ndim == 0:
             raise ValueError("Nonzero only supports non-scalar arrays.")
-        output = [TensorType(dtype="int64", broadcastable=(False, False))()]
+        output = [
+            TensorType(dtype="int64", broadcastable=(False,))() for i in range(a.ndim)
+        ]
         return gof.Apply(self, [a], output)
 
     def perform(self, node, inp, out_):
         a = inp[0]
-        (out,) = out_
 
         result_tuple = np.nonzero(a)
-        if len(result_tuple[0]) > 0:
-            result = np.vstack(result_tuple)
-        else:
-            result = np.zeros((len(result_tuple), 0))
-
-        out[0] = result.astype("int64")
+        for i, res in enumerate(result_tuple):
+            out_[i][0] = res.astype("int64")
 
     def grad(self, inp, grads):
         return [grad_undefined(self, 0, inp[0])]
@@ -2809,22 +2799,23 @@ def nonzero(a, return_matrix=False):
         flattened input array.
 
     """
-    matrix_result = _nonzero(a)
-    if return_matrix:
-        return matrix_result
+    res = _nonzero(a)
+    if isinstance(res, list):
+        res = tuple(res)
     else:
-        if a.ndim > 0:
-            tuple_result = tuple([matrix_result[i] for i in range(a.ndim)])
-        else:
-            tuple_result = tuple([matrix_result[0]])
-        return tuple_result
+        res = (res,)
+
+    if return_matrix:
+        if len(res) > 1:
+            return stack(res, 0)
+        elif len(res) == 1:
+            return shape_padleft(res[0])
+    else:
+        return res
 
 
 def flatnonzero(a):
-    """
-    Return a vector of indices that are non-zero in the flattened version of a.
-
-    This is equivalent to nonzero(a.flatten(), return_matrix=True)[0]
+    """Return a vector of indices that are non-zero in the flattened version of `a`.
 
     Parameters
     ----------
@@ -2845,26 +2836,11 @@ def flatnonzero(a):
     """
     if a.ndim == 0:
         raise ValueError("Nonzero only supports non-scalar arrays.")
-    return nonzero(a.flatten(), return_matrix=True)[0]
+    return nonzero(a.flatten(), return_matrix=False)[0]
 
 
 def nonzero_values(a):
-    """
-    Return a vector of non-zero elements contained in the input array.
-
-    The following behavior works to extract non-zero elements from an array
-    in NumPy but is *NOT* supported by Theano:
-
-        a[numpy.nonzero(a)]
-
-    Instead, the nonzero_values function or method should be used:
-
-        tensor.nonzero_values(a)
-        a.nonzero_values()
-
-    This is equivalent to the following:
-
-        a.flatten()[tensor.flatnonzero(a)]
+    """Return a vector of non-zero elements contained in the input array.
 
     Parameters
     ----------

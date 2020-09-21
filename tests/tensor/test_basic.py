@@ -3019,96 +3019,86 @@ class TestTriangle:
 
 
 class TestNonzero:
+    @change_flags(compute_test_value="raise")
     def test_nonzero(self):
         def check(m):
             m_symb = theano.tensor.tensor(
                 dtype=m.dtype, broadcastable=(False,) * m.ndim
             )
+            m_symb.tag.test_value = m
 
-            f_tuple = function([m_symb], nonzero(m_symb, return_matrix=False))
-            f_matrix = function([m_symb], nonzero(m_symb, return_matrix=True))
+            res_tuple_tt = nonzero(m_symb, return_matrix=False)
+            res_matrix_tt = nonzero(m_symb, return_matrix=True)
 
-            assert np.allclose(f_matrix(m), np.vstack(np.nonzero(m)))
-            for i, j in zip(f_tuple(m), np.nonzero(m)):
+            res_tuple = tuple(r.tag.test_value for r in res_tuple_tt)
+            res_matrix = res_matrix_tt.tag.test_value
+
+            assert np.allclose(res_matrix, np.vstack(np.nonzero(m)))
+
+            for i, j in zip(res_tuple, np.nonzero(m)):
                 assert np.allclose(i, j)
 
-        rand0d = np.array(rand())
+        rand0d = np.empty(())
         with pytest.raises(ValueError):
             check(rand0d)
 
-        rand1d = rand(8)
+        rand1d = np.empty((8,))
         rand1d[:4] = 0
         check(rand1d)
 
-        rand2d = rand(8, 9)
+        rand2d = np.empty((8, 9))
         rand2d[:4] = 0
         check(rand2d)
 
-        rand3d = rand(8, 9, 10)
-        rand3d[:4] = 0
-        check(rand3d)
-
-        rand4d = rand(8, 9, 10, 11)
-        rand4d[:4] = 0
-        check(rand4d)
-
+    @change_flags(compute_test_value="raise")
     def test_flatnonzero(self):
         def check(m):
             m_symb = theano.tensor.tensor(
                 dtype=m.dtype, broadcastable=(False,) * m.ndim
             )
-            f = function([m_symb], flatnonzero(m_symb))
-            result = f(m)
+            m_symb.tag.test_value = m
+
+            res_tt = flatnonzero(m_symb)
+
+            result = res_tt.tag.test_value
             assert np.allclose(result, np.flatnonzero(m))
 
-        rand0d = np.array(rand())
+        rand0d = np.empty(())
         with pytest.raises(ValueError):
             check(rand0d)
 
-        rand1d = rand(8)
+        rand1d = np.empty((8,))
         rand1d[:4] = 0
         check(rand1d)
 
-        rand2d = rand(8, 9)
+        rand2d = np.empty((8, 9))
         rand2d[:4] = 0
         check(rand2d)
 
-        rand3d = rand(8, 9, 10)
-        rand3d[:4] = 0
-        check(rand3d)
-
-        rand4d = rand(8, 9, 10, 11)
-        rand4d[:4] = 0
-        check(rand4d)
-
+    @change_flags(compute_test_value="raise")
     def test_nonzero_values(self):
         def check(m):
             m_symb = theano.tensor.tensor(
                 dtype=m.dtype, broadcastable=(False,) * m.ndim
             )
-            f = function([m_symb], nonzero_values(m_symb))
-            result = f(m)
+            m_symb.tag.test_value = m
+
+            res_tt = nonzero_values(m_symb)
+
+            result = res_tt.tag.test_value
             assert np.allclose(result, m[np.nonzero(m)])
 
-        rand0d = rand()
+        rand0d = np.empty(())
         with pytest.raises(ValueError):
             check(rand0d)
 
-        rand1d = rand(8)
+        rand1d = np.empty((8,))
         rand1d[:4] = 0
         check(rand1d)
 
-        rand2d = rand(8, 9)
+        rand2d = np.empty((8, 9))
         rand2d[:4] = 0
         check(rand2d)
-
-        rand3d = rand(8, 9, 10)
-        rand3d[:4] = 0
-        check(rand3d)
-
-        rand4d = rand(8, 9, 10, 11)
-        rand4d[:4] = 0
-        check(rand4d)
 
 
 def test_identity():
