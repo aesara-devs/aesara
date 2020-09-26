@@ -10,5 +10,5 @@ coveralls
 cython
 sympy
 versioneer
-jax<0.2.0; python_version > '3.6'
+jax; python_version > '3.6'
 jaxlib; python_version > '3.6'

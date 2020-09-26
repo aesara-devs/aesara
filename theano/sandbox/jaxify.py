@@ -51,6 +51,10 @@ from theano.compile.ops import (
 from theano.tensor.opt import MakeVector
 
 
+# XXX: Enabling this will break some shape-based functionality, and severely
+# limit the types of graphs that can be converted.
+# See https://github.com/google/jax/blob/4d556837cc9003492f674c012689efc3d68fdf5f/design_notes/omnistaging.md
+jax.config.disable_omnistaging()
 jax.config.update("jax_enable_x64", True)
 
 subtensor_ops = (Subtensor, AdvancedSubtensor1, BaseAdvancedSubtensor)
