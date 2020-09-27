@@ -518,9 +518,15 @@ def test_tensor_basics():
     # optimizations are turned on; however, when using JAX mode, it should
     # leave the expression alone.
     out = y.dot(alpha * A).dot(x) + beta * y
-
     fgraph = theano.gof.FunctionGraph([y, x, A, alpha, beta], [out])
+    _ = compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
+    out = tt.maximum(y, x)
+    fgraph = theano.gof.FunctionGraph([y, x], [out])
+    _ = compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+    out = tt.max(y)
+    fgraph = theano.gof.FunctionGraph([y], [out])
     _ = compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
 
