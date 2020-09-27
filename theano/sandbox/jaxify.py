@@ -26,6 +26,8 @@ from theano.tensor.subtensor import (
 from theano.scan_module.scan_op import Scan
 from theano.scan_module.scan_utils import scan_args as ScanArgs
 from theano.tensor.basic import (
+    Dot,
+    ARange,
     TensorFromScalar,
     ScalarFromTensor,
     AllocEmpty,
@@ -196,6 +198,23 @@ def jax_funcify_Alloc(op):
         return res
 
     return alloc
+
+
+@jax_funcify.register(Dot)
+def jax_funcify_Dot(op):
+    def dot(x, y):
+        return jnp.dot(x, y)
+
+    return dot
+
+
+@jax_funcify.register(ARange)
+def jax_funcify_ARange(op):
+    # XXX: This currently requires concrete arguments.
+    def arange(start, stop, step):
+        return jnp.arange(start, stop, step, dtype=op.dtype)
+
+    return arange
 
 
 def jnp_safe_copy(x):

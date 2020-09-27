@@ -500,3 +500,35 @@ def test_nnet():
     out = tt.nnet.softplus(x)
     fgraph = theano.gof.FunctionGraph([x], [out])
     _ = compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+
+def test_tensor_basics():
+    y = tt.vector("y")
+    y.tag.test_value = np.r_[1.0, 2.0].astype(theano.config.floatX)
+    x = tt.vector("x")
+    x.tag.test_value = np.r_[3.0, 4.0].astype(theano.config.floatX)
+    A = tt.matrix("A")
+    A.tag.test_value = np.empty((2, 2), dtype=theano.config.floatX)
+    alpha = tt.scalar("alpha")
+    alpha.tag.test_value = np.array(3.0, dtype=theano.config.floatX)
+    beta = tt.scalar("beta")
+    beta.tag.test_value = np.array(5.0, dtype=theano.config.floatX)
+
+    # This should be converted into a `Gemv` `Op` when the non-JAX compatible
+    # optimizations are turned on; however, when using JAX mode, it should
+    # leave the expression alone.
+    out = y.dot(alpha * A).dot(x) + beta * y
+
+    fgraph = theano.gof.FunctionGraph([y, x, A, alpha, beta], [out])
+
+    _ = compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+
+@pytest.mark.xfail(reason="jax.numpy.arange requires concrete inputs")
+def test_arange():
+    a = tt.scalar("a")
+    a.tag.test_value = 10
+
+    out = tt.arange(a)
+    fgraph = theano.gof.FunctionGraph([a], [out])
+    _ = compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
