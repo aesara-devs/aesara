@@ -150,6 +150,10 @@ def test_jax_basic():
     assert jax_res[0, 0] == -10.0
     assert jax_res[0, 1] == -8.0
 
+    out = tt.clip(x, y, 5)
+    out_fg = theano.gof.FunctionGraph([x, y], [out])
+    (jax_res,) = compare_jax_and_py(out_fg, test_input_vals)
+
 
 @pytest.mark.skip(reason="Not fully implemented, yet.")
 def test_jax_scan():
@@ -478,3 +482,22 @@ def test_jax_multioutput():
     fgraph = theano.gof.FunctionGraph([x, y], [w, v])
 
     _ = compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+
+def test_nnet():
+    x = tt.vector("x")
+    x.tag.test_value = np.r_[1.0, 2.0].astype(tt.config.floatX)
+
+    out = tt.nnet.sigmoid(x)
+    fgraph = theano.gof.FunctionGraph([x], [out])
+    _ = compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+    out = tt.nnet.ultra_fast_sigmoid(x)
+    fgraph = theano.gof.FunctionGraph([x], [out])
+    _ = compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+    out = tt.nnet.softplus(x)
+    fgraph = theano.gof.FunctionGraph([x], [out])
+    _ = compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+

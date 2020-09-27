@@ -31,6 +31,8 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
 
     """
 
+    nfunc_spec = ("scipy.special.expit", 1, 1)
+
     @staticmethod
     def st_impl(x):
         if x < -30.0:
@@ -195,6 +197,8 @@ class UltraFastScalarSigmoid(scalar.UnaryScalarOp):
     This is just speed opt. Not for stability.
 
     """
+
+    nfunc_spec = ("scipy.special.expit", 1, 1)
 
     @staticmethod
     def st_impl(x):

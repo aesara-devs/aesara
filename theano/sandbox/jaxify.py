@@ -50,6 +50,8 @@ from theano.compile.ops import (
 )
 from theano.tensor.opt import MakeVector
 
+from theano.tensor.nnet.sigm import ScalarSoftplus
+
 
 # XXX: Enabling this will break some shape-based functionality, and severely
 # limit the types of graphs that can be converted.
@@ -165,7 +167,18 @@ def jax_funcify_ScalarOp(op):
 
 @jax_funcify.register(Clip)
 def jax_funcify_Clip(op):
-    return partial(op.impl, None)
+    def clip(x, min, max):
+        return jnp.where(x < min, min, jnp.where(x > max, max, x))
+
+    return clip
+
+
+@jax_funcify.register(ScalarSoftplus)
+def jax_funcify_ScalarSoftplus(op):
+    def scalarsoftplus(x):
+        return jnp.where(x < -30.0, 0.0, jnp.where(x > 30.0, x, jnp.log1p(jnp.exp(x))))
+
+    return scalarsoftplus
 
 
 @jax_funcify.register(AllocEmpty)
