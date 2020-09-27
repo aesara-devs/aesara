@@ -1761,6 +1761,7 @@ class All(CAReduce):
     """
 
     __props__ = ("axis",)
+    nfunc_spec = ("all", 1, 1)
 
     def __init__(self, axis=None):
         CAReduce.__init__(self, scalar.and_, axis)
@@ -1793,6 +1794,7 @@ class Any(CAReduce):
     """
 
     __props__ = ("axis",)
+    nfunc_spec = ("any", 1, 1)
 
     def __init__(self, axis=None):
         CAReduce.__init__(self, scalar.or_, axis)
@@ -2027,6 +2029,7 @@ class Sum(CAReduceDtype):
     """
 
     __props__ = ("axis", "dtype", "acc_dtype")
+    nfunc_spec = ("sum", 1, 1)
 
     def __init__(self, axis=None, dtype=None, acc_dtype=None):
         CAReduceDtype.__init__(
@@ -2085,6 +2088,7 @@ class Prod(CAReduceDtype):
     """
 
     __props__ = ("axis", "dtype", "acc_dtype")
+    nfunc_spec = ("sum", 1, 1)
 
     def __init__(self, axis=None, dtype=None, acc_dtype=None, no_zeros_in_input=False):
         CAReduceDtype.__init__(

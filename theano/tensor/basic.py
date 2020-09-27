@@ -1787,6 +1787,20 @@ def max_and_argmax(a, axis=None, keepdims=False):
     return [out, argout]
 
 
+class Max(CAReduce):
+    nfunc_spec = ("max", 1, 1)
+
+    def __init__(self, axis):
+        super().__init__(scal.maximum, axis)
+
+
+class Min(CAReduce):
+    nfunc_spec = ("min", 1, 1)
+
+    def __init__(self, axis):
+        super().__init__(scal.minimum, axis)
+
+
 @constructor
 def max(x, axis=None, keepdims=False):
     """
@@ -1823,7 +1837,7 @@ def max(x, axis=None, keepdims=False):
     try:
         out = max_and_argmax(x, axis)[0]
     except Exception:
-        out = CAReduce(scal.maximum, axis)(x)
+        out = Max(axis)(x)
 
     if keepdims:
         out = makeKeepDims(x, out, axis)
@@ -3416,7 +3430,7 @@ def prod(
 
 class Mean(elemwise.CAReduce):
     def __init__(self, axis=None):
-        elemwise.CAReduce.__init__(self, scal.add, axis)
+        super().__init__(scal.add, axis)
         assert self.axis is None or len(self.axis) == 1
 
     def __str__(self):
@@ -3443,7 +3457,7 @@ class Mean(elemwise.CAReduce):
     def c_code(self, node, name, inames, onames, sub):
         if self.axis is not None:
             return super(Op, self).c_code(node, name, inames, onames, sub)
-        ret = elemwise.CAReduce.c_code(self, node, name, inames, onames, sub)
+        ret = super().c_code(self, node, name, inames, onames, sub)
         # TODO: c_code perform support only axis is None
         return (
             ret
