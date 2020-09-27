@@ -1347,8 +1347,10 @@ class LocalMetaOptimizer(LocalOptimizer):
 
 
 class FromFunctionLocalOptimizer(LocalOptimizer):
-    """
-    WRITEME
+    """A `LocalOptimizer` defined by an external function that serves as its `self.transform`.
+
+    This is primarily used as a means of constructing optimizers using function
+    decorators.
 
     """
 
