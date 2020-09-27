@@ -6091,6 +6091,7 @@ ALL_REDUCE = set(
         Prod,
         ProdWithoutZeros,
     ]
+    + CAReduce.__subclasses__()
 )
 
 
