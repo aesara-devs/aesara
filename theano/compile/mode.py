@@ -7,12 +7,13 @@ import logging
 import warnings
 
 import theano
-from theano import gof
 import theano.gof.vm
-from theano import config
-from six import string_types
-from theano.compile.function_module import Supervisor
 
+from six import string_types
+
+from theano import config, gof
+from theano.compile.function_module import Supervisor
+from theano.sandbox.jax_linker import JAXLinker
 
 _logger = logging.getLogger("theano.compile.mode")
 
@@ -29,6 +30,7 @@ predefined_linkers = {
     "cvm": gof.vm.VM_Linker(use_cloop=True),  # Use allow_gc Theano flag
     "vm_nogc": gof.vm.VM_Linker(allow_gc=False, use_cloop=False),
     "cvm_nogc": gof.vm.VM_Linker(allow_gc=False, use_cloop=True),
+    "jax": JAXLinker(),
 }
 
 
@@ -411,9 +413,15 @@ if theano.config.cxx:
 else:
     FAST_RUN = Mode("vm", "fast_run")
 
+JAX = Mode(
+    JAXLinker(), gof.Query(include=["fast_run"], exclude=["cxx_only", "BlasOpt"])
+)
+
+
 predefined_modes = {
     "FAST_COMPILE": FAST_COMPILE,
     "FAST_RUN": FAST_RUN,
+    "JAX": JAX,
 }
 
 instantiated_default_mode = None

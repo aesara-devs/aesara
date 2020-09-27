@@ -60,6 +60,7 @@ install:
   - conda create --yes -q -n pyenv python=$TRAVIS_PYTHON_VERSION
   - conda activate pyenv
   - conda install --yes -q mkl numpy scipy pip mkl-service graphviz cython libgpuarray pygpu
+  - if [[ "$TRAVIS_PYTHON_VERSION" != "3.6" ]]; then conda install --yes -q -c conda-forge jax jaxlib; fi
   - pip install -q -r requirements.txt
   - conda list && pip freeze
   - python -c 'import theano; print(theano.config.__str__(print_doc=False))'
