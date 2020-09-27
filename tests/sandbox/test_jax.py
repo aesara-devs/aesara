@@ -17,7 +17,8 @@ def set_theano_flags():
 
 
 def compare_jax_and_py(fgraph, inputs, cmp_fn=np.allclose):
-    jax_mode = theano.compile.Mode(linker="jax")
+    # jax_mode = theano.compile.Mode(linker="jax")
+    jax_mode = "JAX"
     theano_jax_fn = theano.function(fgraph.inputs, fgraph.outputs, mode=jax_mode)
     jax_res = theano_jax_fn(*inputs)
 
@@ -499,5 +500,3 @@ def test_nnet():
     out = tt.nnet.softplus(x)
     fgraph = theano.gof.FunctionGraph([x], [out])
     _ = compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
-
-

@@ -413,9 +413,15 @@ if theano.config.cxx:
 else:
     FAST_RUN = Mode("vm", "fast_run")
 
+JAX = Mode(
+    JAXLinker(), gof.Query(include=["fast_run"], exclude=["cxx_only", "BlasOpt"])
+)
+
+
 predefined_modes = {
     "FAST_COMPILE": FAST_COMPILE,
     "FAST_RUN": FAST_RUN,
+    "JAX": JAX,
 }
 
 instantiated_default_mode = None
