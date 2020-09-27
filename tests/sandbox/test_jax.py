@@ -155,6 +155,12 @@ def test_jax_basic():
     out_fg = theano.gof.FunctionGraph([x, y], [out])
     (jax_res,) = compare_jax_and_py(out_fg, test_input_vals)
 
+    out = tt.diagonal(x, 0)
+    out_fg = theano.gof.FunctionGraph([x], [out])
+    (jax_res,) = compare_jax_and_py(
+        out_fg, [np.arange(10 * 10).reshape((10, 10)).astype(tt.config.floatX)]
+    )
+
 
 @pytest.mark.skip(reason="Not fully implemented, yet.")
 def test_jax_scan():
