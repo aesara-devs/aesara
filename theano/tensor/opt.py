@@ -6198,7 +6198,12 @@ def local_useless_reduce(node):
 @register_specialize
 @local_optimizer(ALL_REDUCE)
 def local_reduce_broadcastable(node):
-    """Remove reduction over broadcastable dimensions."""
+    """Remove reduction over broadcastable dimensions.
+
+    This works by moving the non-broadcastable reduction dimensions to the
+    front and applying the reduction only over those.
+
+    """
     if isinstance(node.op, CAReduce):
         (reduced,) = node.inputs
         odtype = node.outputs[0].dtype
