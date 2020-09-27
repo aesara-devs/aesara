@@ -345,7 +345,7 @@ class InplaceElemwiseOptimizer(Optimizer):
         for node in list(io_toposort(fgraph.inputs, fgraph.outputs)):
             op = node.op
             # gpuarray GpuElemwise inherit from Elemwise
-            if not type(op) == self.op:
+            if not isinstance(op, self.op):
                 continue
             # If big graph and the outputs are scalar, do not make it
             # inplace.
@@ -564,7 +564,7 @@ optdb.register(
 
 
 def register_useless(lopt, *tags, **kwargs):
-    if type(lopt) == str:
+    if isinstance(lopt, str):
 
         def register(inner_lopt):
             return register_useless(inner_lopt, lopt, *tags, **kwargs)
@@ -578,7 +578,7 @@ def register_useless(lopt, *tags, **kwargs):
 
 
 def register_canonicalize(lopt, *tags, **kwargs):
-    if type(lopt) == str:
+    if isinstance(lopt, str):
 
         def register(inner_lopt):
             return register_canonicalize(inner_lopt, lopt, *tags, **kwargs)
@@ -591,7 +591,7 @@ def register_canonicalize(lopt, *tags, **kwargs):
 
 
 def register_stabilize(lopt, *tags, **kwargs):
-    if type(lopt) == str:
+    if isinstance(lopt, str):
 
         def register(inner_lopt):
             return register_stabilize(inner_lopt, lopt, *tags, **kwargs)
@@ -604,7 +604,7 @@ def register_stabilize(lopt, *tags, **kwargs):
 
 
 def register_specialize(lopt, *tags, **kwargs):
-    if type(lopt) == str:
+    if isinstance(lopt, str):
 
         def register(inner_lopt):
             return register_specialize(inner_lopt, lopt, *tags, **kwargs)
@@ -617,7 +617,7 @@ def register_specialize(lopt, *tags, **kwargs):
 
 
 def register_uncanonicalize(lopt, *tags, **kwargs):
-    if type(lopt) == str:
+    if isinstance(lopt, str):
 
         def register(inner_lopt):
             return register_uncanonicalize(inner_lopt, lopt, *tags, **kwargs)
@@ -630,7 +630,7 @@ def register_uncanonicalize(lopt, *tags, **kwargs):
 
 
 def register_specialize_device(lopt, *tags, **kwargs):
-    if type(lopt) == str:
+    if isinstance(lopt, str):
 
         def register(inner_lopt):
             return register_specialize_device(inner_lopt, lopt, *tags, **kwargs)
@@ -1247,10 +1247,10 @@ class ShapeFeature(object):
             # don't make the optimizer merge a zillion ones together
             # by always returning the same object to represent 1
             return self.lscalar_one
-        if type(s_i) is float and int(s_i) == s_i:
+        if isinstance(s_i, float) and int(s_i) == s_i:
             s_i = int(s_i)
         if (
-            type(s_i) in integer_types
+            isinstance(s_i, integer_types)
             or isinstance(s_i, np.integer)
             or (isinstance(s_i, np.ndarray) and s_i.ndim == 0)
         ):
@@ -1266,7 +1266,7 @@ class ShapeFeature(object):
                 # message.
                 raise AssertionError(msg)
             return constant(s_i, dtype="int64")
-        if type(s_i) in (tuple, list):
+        if isinstance(s_i, (tuple, list)):
             # this dimension is the same as many of the inputs
             # which tells us that if one of the inputs is known,
             # the others all become known.
@@ -2232,7 +2232,7 @@ def local_subtensor_remove_broadcastable_index(node):
             # The idx is a Scalar, ie a Type. This means the actual index
             # is contained in node.inputs[1]
             dim_index = node.inputs[node_inputs_idx]
-            if type(dim_index) == ScalarConstant:
+            if isinstance(dim_index, ScalarConstant):
                 dim_index = dim_index.value
             if dim_index in [0, -1] and node.inputs[0].broadcastable[dim]:
                 remove_dim.append(dim)
@@ -3255,7 +3255,7 @@ def merge_two_slices(slice1, len1, slice2, len2):
         constant_folding,
     ]
 
-    if type(slice1) is not slice:
+    if not isinstance(slice1, slice):
         raise ValueError(
             (
                 "First provided slice should actually be of type"
@@ -3266,7 +3266,7 @@ def merge_two_slices(slice1, len1, slice2, len2):
     sl1, reverse1 = get_canonical_form_slice(slice1, len1)
     sl2, reverse2 = get_canonical_form_slice(slice2, len2)
 
-    if type(sl2) is not slice:
+    if not isinstance(sl2, slice):
         if reverse1 is None:
             # The first slice is not in reverse, which makes things a lot
             # more clear.
@@ -3419,7 +3419,7 @@ def local_subtensor_merge(node):
             pos_1 = 0
             while (pos_1 < len(slices1)) and (pos_2 < len(slices2)):
                 slice1 = slices1[pos_1]
-                if type(slice1) is slice:
+                if isinstance(slice1, slice):
                     merged_slices.append(
                         merge_two_slices(
                             slice1, xshape[pos_1], slices2[pos_2], ushape[pos_2]
@@ -3507,10 +3507,7 @@ def local_subtensor_of_alloc(node):
                 val_slices.append(sl)
 
         csl, _ = get_canonical_form_slice(sl, dim)
-        if type(csl) is not slice:
-            # That dimension is removed.
-            pass
-        else:
+        if isinstance(csl, slice):
             nw_dim = csl.stop - csl.start
 
             if csl.step != 1:
@@ -3525,7 +3522,7 @@ def local_subtensor_of_alloc(node):
     if nw_val.ndim > len(nw_dims):
         return False
     rval = alloc(nw_val, *nw_dims)
-    if type(rval) not in (list, tuple):
+    if not isinstance(rval, (list, tuple)):
         rval = [rval]
     if rval[0].type != node.outputs[0].type:
         # It happen that the make_node() isn't able to infer the same pattern.
@@ -4381,7 +4378,7 @@ def local_useless_switch(node):
     """
     if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, scalar.Switch):
         cond = extract_constant(node.inputs[0], only_process_constants=True)
-        if (type(cond) is np.ndarray and cond.ndim == 0) or isinstance(
+        if (isinstance(cond, np.ndarray) and cond.ndim == 0) or isinstance(
             cond, np.number
         ):
             if cond == 0:
@@ -6226,10 +6223,9 @@ def local_reduce_broadcastable(node):
                 new_reduced = reduced.dimshuffle(*pattern)
                 if new_axis:
                     if type(node.op) == theano.tensor.elemwise.CAReduce:
-                        # This happen for tensor.max(), tensor.min()
-                        new_op = node.op.__class__(node.op.scalar_op, axis=new_axis)
+                        new_op = type(node.op)(node.op.scalar_op, axis=new_axis)
                     else:
-                        new_op = node.op.__class__(axis=new_axis)
+                        new_op = type(node.op)(axis=new_axis)
                     return [new_op(new_reduced)]
                 else:
                     # -- in this case we can remove the reduction completely
