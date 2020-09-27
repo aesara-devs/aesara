@@ -4,7 +4,7 @@ import jax
 import jax.numpy as jnp
 
 from warnings import warn
-from functools import partial, update_wrapper, reduce
+from functools import update_wrapper, reduce
 from collections.abc import Sequence
 
 from functools import singledispatch as dispatch
