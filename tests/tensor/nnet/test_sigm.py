@@ -354,13 +354,6 @@ class TestSigmoidOpts:
             good = theano.gof.graph.is_same_graph(
                 compute_mul(trees[0]), compute_mul(trees[1])
             )
-            if not good:
-                print(trees[0])
-                print(trees[1])
-                print("***")
-                theano.printing.debugprint(compute_mul(trees[0]))
-                print("***")
-                theano.printing.debugprint(compute_mul(trees[1]))
             assert good
 
         ok(sigmoid(x) * exp(-x), sigmoid(-x))

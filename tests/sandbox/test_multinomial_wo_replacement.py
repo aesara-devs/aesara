@@ -223,5 +223,4 @@ class TestFunction:
             with open(os.path.join(testfile_dir, fname), "r") as fp:
                 u = CompatUnpickler(fp)
                 m = u.load()
-                print(m)
                 assert isinstance(m, multinomial.ChoiceFromUniform)

@@ -442,7 +442,6 @@ def makeSharedTester(
             else:
                 shape_grad = tensor.grad(x1_specify_shape.sum(), x1_shared)
                 shape_constant_fct_grad = theano.function([], shape_grad)
-                # theano.printing.debugprint(shape_constant_fct_grad)
                 shape_constant_fct_grad()
 
             # Test that we can replace with values of the different shape
@@ -495,7 +494,6 @@ def makeSharedTester(
             # Test that we forward the input
             specify_shape_fct = theano.function([], x1_specify_shape)
             specify_shape_fct()
-            # theano.printing.debugprint(specify_shape_fct)
             assert np.all(self.ref_fct(specify_shape_fct()) == self.ref_fct(x1_2))
             topo_specify = specify_shape_fct.maker.fgraph.toposort()
             if theano.config.mode != "FAST_COMPILE":
@@ -503,7 +501,6 @@ def makeSharedTester(
 
             # Test that we put the shape info into the graph
             shape_constant_fct = theano.function([], x1_specify_shape.shape)
-            # theano.printing.debugprint(shape_constant_fct)
             assert np.all(shape_constant_fct() == shape_op_fct())
             topo_cst = shape_constant_fct.maker.fgraph.toposort()
             if theano.config.mode != "FAST_COMPILE":

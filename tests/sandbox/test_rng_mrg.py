@@ -736,14 +736,6 @@ def basic_multinomialtest(
 
     assert np.mean(abs(avg_pvals - target_pvals)) < mean_rtol
 
-    # print("random?[:10]\n", np.asarray(f()[:10]))
-    # print(prefix, "mean", avg_pvals)
-    # # < mean_rtol, 'bad mean? %s %s' % (str(avg_pvals), str(target_pvals))
-    # print(np.mean(abs(avg_pvals - target_pvals)))
-    # print(prefix, "time", dt)
-    # print(prefix, "elements", steps * np.prod(target_pvals.shape))
-    # print(prefix, "samples/sec", steps * np.prod(target_pvals.shape) / dt)
-
 
 def test_multinomial():
     steps = 100

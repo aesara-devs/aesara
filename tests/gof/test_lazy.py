@@ -1,13 +1,15 @@
 from copy import deepcopy
 
 import numpy as np
+import pytest
 
 import theano
-from theano.gof.op import PureOp
-from theano.gof import Apply, generic
-from theano import function, Mode
-from theano.ifelse import ifelse
 import theano.tensor as T
+
+from theano import Mode, function
+from theano.gof import Apply, generic
+from theano.gof.op import PureOp
+from theano.ifelse import ifelse
 
 
 class IfElseIfElseIf(PureOp):
@@ -125,18 +127,10 @@ def test_ifelse():
                 mode=Mode(linker=linker, optimizer="fast_run"),
             )
 
-            try:
-                # print "case 1"
+            with pytest.raises(NotImplementedOp.E):
                 f(1, "a", "b")
-                assert False
-            except NotImplementedOp.E:
-                pass
-            # print "... passed"
 
-            # print "case 2"
-            # print f(0, 'a', 'b')
             assert f(0, "a", "b") == "b"
-            # print "... passed"
 
 
 def more_complex_test():
@@ -158,16 +152,7 @@ def more_complex_test():
 
     f = function([c1, c2, x1, x2], t4, mode=Mode(linker="vm", optimizer="fast_run"))
     if theano.config.vm.lazy is False:
-        try:
+        with pytest.raises(NotImplementedOp.E):
             f(1, 0, np.array(10, dtype=x1.dtype), 0)
-            assert False
-        except NotImplementedOp.E:
-            pass
     else:
-        print(f(1, 0, np.array(10, dtype=x1.dtype), 0))
         assert f(1, 0, np.array(10, dtype=x1.dtype), 0) == 20.5
-    print("... passed")
-
-
-if __name__ == "__main__":
-    more_complex_test()

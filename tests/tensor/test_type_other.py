@@ -13,7 +13,6 @@ def test_make_slice_merge():
     f = theano.function([i], [s1, s2])
     nodes = f.maker.fgraph.apply_nodes
     assert len([n for n in nodes if isinstance(n.op, MakeSlice)]) == 1
-    theano.printing.debugprint(f)
 
 
 def test_none_Constant():

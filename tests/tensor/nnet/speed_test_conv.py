@@ -1,8 +1,10 @@
+import pytest
+
 import time
 
-import numpy as N
+import numpy as np
 
-import theano.tensor as T
+import theano.tensor as tt
 
 from theano import function, Mode
 from theano.tensor.nnet.conv import ConvOp
@@ -10,7 +12,7 @@ from theano.tensor.nnet.conv import ConvOp
 
 def flip(kern, kshp):
     "flip the kernel as scipy.convolv2d do it flipped."
-    flip = N.zeros(kern.shape)
+    flip = np.zeros(kern.shape)
     if len(kern.shape) == 2:
         kern = kern.reshape(-1)
         it = reversed(kern)
@@ -37,9 +39,9 @@ def flip(kern, kshp):
     return flip
 
 
-global_rng = N.random.RandomState(3423489)
+global_rng = np.random.RandomState(3423489)
 
-dmatrix4 = T.TensorType("float64", (False, False, False, False))
+dmatrix4 = tt.TensorType("float64", (False, False, False, False))
 
 
 def exec_multilayer_conv_nnet_old(
@@ -51,10 +53,10 @@ def exec_multilayer_conv_nnet_old(
     nkerns,
     unroll_batch=0,
     unroll_kern=0,
-    img=T.dmatrix(),
+    img=tt.dmatrix(),
     validate=True,
     conv_op_py=False,
-    do_print=True,
+    do_print=False,
     repeat=1,
     unroll_patch=False,
     unroll_patch_size=False,
@@ -64,7 +66,7 @@ def exec_multilayer_conv_nnet_old(
     # build actual input images
     imgval = global_rng.rand(bsize, imshp[0], imshp[1], imshp[2])
 
-    a = T.dmatrix()
+    a = tt.dmatrix()
     kerns = [a for i in nkerns]
     inputs4 = dmatrix4()
     kerns4 = dmatrix4()
@@ -80,25 +82,25 @@ def exec_multilayer_conv_nnet_old(
             print(conv_mode, ss, n_layer, kshp, nkern)
 
         # actual values
-        w = global_rng.random_sample(N.r_[nkern, imshp[0], kshp])
+        w = global_rng.random_sample(np.r_[nkern, imshp[0], kshp])
         w_flip = flip(w, kshp).reshape(w.shape)
 
         # manual implementation
         # check first stage
         padimg = imgval
         if conv_mode == "full":
-            padimg_shp = N.array(imshp[1:]) + 2 * (N.array(kshp) - N.array([1, 1]))
-            padimg = N.zeros(N.r_[bsize, imshp[0], padimg_shp])
+            padimg_shp = np.array(imshp[1:]) + 2 * (np.array(kshp) - np.array([1, 1]))
+            padimg = np.zeros(np.r_[bsize, imshp[0], padimg_shp])
             padimg[
                 :, :, kshp[0] - 1 : -kshp[0] + 1, kshp[1] - 1 : -kshp[1] + 1
             ] = imgval
 
-        outshp = N.hstack(
+        outshp = np.hstack(
             (nkern, ConvOp.getOutputShape(imshp[1:], kshp, ss, conv_mode))
         )
 
         time1 = time.time()
-        outval = N.zeros(N.r_[bsize, outshp])
+        outval = np.zeros(np.r_[bsize, outshp])
         if validate:
             # causes an atexit problem
             from scipy.signal.sigtools import _convolve2d
@@ -154,15 +156,15 @@ def exec_multilayer_conv_nnet_old(
                 hidval3_ = propup3(imgval, w_flip)
             hidval3 = hidval3_  # [:,:,0::ss[0],0::ss[1]]
             tpytot += time.time() - time1
-            assert (N.abs(hidval2 - hidval3) < 1e-5).all()
+            assert (np.abs(hidval2 - hidval3) < 1e-5).all()
         else:
             tpytot += 0
 
         if validate:
-            temp = N.abs(outval - hidval2)
+            temp = np.abs(outval - hidval2)
             assert (temp < 1e-5).all()
         if validate and conv_op_py:
-            temp = N.abs(outval - hidval3)
+            temp = np.abs(outval - hidval3)
             assert (temp < 1e-5).all()
 
         imshp = tuple(outshp)
@@ -180,8 +182,8 @@ def exec_multilayer_conv_nnet(
     nkerns,
     unroll_batch=0,
     unroll_kern=0,
-    img=T.dmatrix(),
-    do_print=True,
+    img=tt.dmatrix(),
+    do_print=False,
     repeat=1,
     unroll_patch=False,
     unroll_patch_size=False,
@@ -191,7 +193,7 @@ def exec_multilayer_conv_nnet(
     # build actual input images
     imgval = global_rng.rand(bsize, imshp[0], imshp[1], imshp[2])
 
-    a = T.dmatrix()
+    a = tt.dmatrix()
     kerns = [a for i in nkerns]
     inputs4 = dmatrix4()
     kerns4 = dmatrix4()
@@ -207,10 +209,10 @@ def exec_multilayer_conv_nnet(
             print(conv_mode, ss, n_layer, kshp, nkern)
 
         # actual values
-        w = global_rng.random_sample(N.r_[nkern, imshp[0], kshp])
+        w = global_rng.random_sample(np.r_[nkern, imshp[0], kshp])
         w_flip = flip(w, kshp).reshape(w.shape)
 
-        outshp = N.hstack(
+        outshp = np.hstack(
             (nkern, ConvOp.getOutputShape(imshp[1:], kshp, ss, conv_mode))
         )
 
@@ -255,7 +257,9 @@ def exec_multilayer_conv_nnet(
     return tctot, tpytot, ntot
 
 
-def speed_multilayer_conv():
+@pytest.mark.skip(reason="Not sure if this is a worthwhile test given the cost.")
+@pytest.mark.slow
+def test_speed_multilayer_conv():
     # calculate the speed up of different combination of unroll
     # put the parameter to the same you will try.
     # validate = False  # we don't validate the result to have it much faster!
@@ -277,11 +281,11 @@ def speed_multilayer_conv():
     ]  # (1,1)]#(2,2) bugged
     convmodes = ["valid", "full"]
     # do_convolve2 = False
-    a = T.dmatrix()
+    a = tt.dmatrix()
     kerns = [a for i in nkerns]
 
     assert len(kshps) == len(nkerns) == len(kerns)
-    timing = N.zeros(
+    timing = np.zeros(
         (len(unroll_batch), len(unroll_kern), 3, len(convmodes) * len(ssizes))
     )
     t_b_k = []
@@ -330,7 +334,7 @@ def speed_multilayer_conv():
         t = timing[:, :, 0, :]  # We select only the c timing.
     else:
         t = t_
-    t = N.asarray(t)
+    t = np.asarray(t)
     # calculate the old timing
     print("time old version")
     tctot, tpytot, ntot = [], [], []
@@ -356,10 +360,10 @@ def speed_multilayer_conv():
                 tpytot += [tpytot_]
                 ntot += [ntot_]
     else:
-        tctot = N.asarray(tctot_)
+        tctot = np.asarray(tctot_)
     print("old code timing %.3fs" % sum(tctot), tctot)
-    best = N.asarray(best)
-    worst = N.asarray(worst)
+    best = np.asarray(best)
+    worst = np.asarray(worst)
     print("timing for unrolled version")
     print("unroll_batch/unroll_kern valid_mode full_mode")
     for n_b in range(len(unroll_batch)):
@@ -438,7 +442,3 @@ def speed_multilayer_conv():
     )
     print(best / tctot_patch_size, worst / tctot_patch_size)
     return
-
-
-if __name__ == "__main__":
-    speed_multilayer_conv()

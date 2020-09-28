@@ -44,7 +44,6 @@ class TestFFT:
         utt.assert_allclose(rfft_ref, res_rfft_comp)
 
         m = rfft.type()
-        print(m.ndim)
         irfft = fft.irfft(m)
         f_irfft = theano.function([m], irfft)
         res_irfft = f_irfft(res_rfft)

@@ -991,7 +991,6 @@ class TestAliasingRules:
         data_of_b = data_of(B)
 
         f = pfunc([], [], updates=[(A, B[:, ::-1]), (B, A.T)])
-        # theano.printing.debugprint(f)
         f()
         # correctness (doesn't actually test the view...)
         assert np.all(data_of(A) == -0.5)

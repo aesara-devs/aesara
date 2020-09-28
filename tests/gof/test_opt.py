@@ -426,7 +426,6 @@ class TestMergeOptimizer:
  | |x2 [id G]
  |dot [id B] ''   3
 """
-        # print(strg)
         assert strg == strref, (strg, strref)
 
     def est_both_assert_merge_1(self):
@@ -471,7 +470,6 @@ class TestMergeOptimizer:
  | |x2 [id G]
  |dot [id B] ''   5
 """
-        # print(strg)
         assert strg == strref1 or strg == strref2, (strg, strref1, strref2)
 
     def est_both_assert_merge_2(self):
@@ -501,7 +499,6 @@ class TestMergeOptimizer:
  |       |x3 [id G]
  |dot [id B] ''   6
 """
-        # print(strg)
         assert strg == strref, (strg, strref)
 
     def est_both_assert_merge_2_reverse(self):
@@ -531,7 +528,6 @@ class TestMergeOptimizer:
  |       |x3 [id G]
  |dot [id B] ''   6
 """
-        print(strg)
         assert strg == strref, (strg, strref)
 
     def test_merge_noinput(self):

@@ -330,9 +330,7 @@ if run_memory_usage_tests:
                 # print(pre.ru_idrss, post.ru_idrss)
                 # print(pre.ru_maxrss, post.ru_maxrss)
 
-        print(1)
         time_linker("vmLinker_C", lambda: vm.VM_Linker(allow_gc=False, use_cloop=True))
-        print(2)
         time_linker("vmLinker", lambda: vm.VM_Linker(allow_gc=False, use_cloop=False))
 
     def test_no_leak_many_call_nonlazy():
@@ -357,9 +355,7 @@ if run_memory_usage_tests:
             for i in range(500):
                 f_a(inp)
 
-        print(1)
         time_linker("vmLinker_C", lambda: vm.VM_Linker(allow_gc=False, use_cloop=True))
-        print(2)
         time_linker("vmLinker", lambda: vm.VM_Linker(allow_gc=False, use_cloop=False))
 
 

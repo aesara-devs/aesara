@@ -124,7 +124,6 @@ def test_pool2d():
                     continue
                 if mode == "average_exc_pad" and (pad[0] > 0 or pad[1] > 0):
                     continue
-                # print('test_pool2d', shp, ws, st, pad, mode, ignore_border)
                 ds_op = Pool(ndim=len(ws), mode=mode, ignore_border=ignore_border)
 
                 a = theano.shared(rand(*shp), "a")
@@ -250,7 +249,6 @@ def test_pool3d():
                     pad[0] > 0 or pad[1] > 0 or pad[2] > 0
                 ):
                     continue
-                # print('test_pool3d', shp, ws, st, pad, mode, ignore_border)
                 ds_op = Pool(ndim=len(ws), mode=mode, ignore_border=ignore_border)
 
                 a = theano.shared(rand(*shp), "a")

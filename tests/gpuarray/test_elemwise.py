@@ -120,7 +120,6 @@ class TestMathErrorFunctions:
                 node.op.scalar_op, scalar_optype
             ):
                 return True
-        theano.printing.debugprint(theano_function)
         return False
 
     def test_elemwise_erfinv(self):

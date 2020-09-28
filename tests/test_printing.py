@@ -102,10 +102,6 @@ def test_min_informative_str():
   D. D
   E. E"""
 
-    if mis != reference:
-        print("--" + mis + "--")
-        print("--" + reference + "--")
-
     assert mis == reference
 
 
@@ -146,10 +142,6 @@ def test_debugprint():
         + "\n"
     )
 
-    if s != reference:
-        print("--" + s + "--")
-        print("--" + reference + "--")
-
     assert s == reference
 
     # test ids=CHAR
@@ -172,10 +164,6 @@ def test_debugprint():
         + "\n"
     )
 
-    if s != reference:
-        print("--" + s + "--")
-        print("--" + reference + "--")
-
     assert s == reference
 
     # test ids=CHAR, stop_on_name=True
@@ -195,10 +183,6 @@ def test_debugprint():
         )
         + "\n"
     )
-
-    if s != reference:
-        print("--" + s + "--")
-        print("--" + reference + "--")
 
     assert s == reference
 
@@ -221,10 +205,6 @@ def test_debugprint():
         )
         + "\n"
     )
-    if s != reference:
-        print("--" + s + "--")
-        print("--" + reference + "--")
-
     assert s == reference
 
     # test print_storage=True
@@ -244,10 +224,6 @@ def test_debugprint():
         )
         + "\n"
     )
-    if s != reference:
-        print("--" + s + "--")
-        print("--" + reference + "--")
-
     assert s == reference
 
     # test clients
@@ -270,10 +246,6 @@ def test_debugprint():
         )
         + "\n"
     )
-    if s != reference:
-        print("--" + s + "--")
-        print("--" + reference + "--")
-
     assert s == reference
 
 

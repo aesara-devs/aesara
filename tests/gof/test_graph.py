@@ -50,7 +50,6 @@ class MyOp(Op):
         inputs = list(map(as_variable, inputs))
         for input in inputs:
             if not isinstance(input.type, MyType):
-                print(input, input.type, type(input), type(input.type))
                 raise Exception("Error 1")
         outputs = [MyVariable(sum([input.type.thingy for input in inputs]))]
         return Apply(self, inputs, outputs)

@@ -295,7 +295,6 @@ def test_local_useless_dimshuffle_in_reshape():
         ],
     )
 
-    print(str(g))
     assert str(g) == (
         "[Reshape{1}(InplaceDimShuffle{x,0}(vector), Shape(vector)), "
         "Reshape{2}(InplaceDimShuffle{x,0,x,1}(mat), Shape(mat)), "
@@ -345,23 +344,19 @@ class TestGreedyDistribute:
         # 1. ((a/x + b/y) * x * y) --> a*y + b*x
         e = (a / z + b / x) * x * z
         g = FunctionGraph([a, b, c, d, x, y, z], [e])
-        # print pprint(g.outputs[0])
         mul_canonizer.optimize(g)
         TopoOptimizer(
             LocalOptGroup(local_greedy_distributor), order="out_to_in"
         ).optimize(g)
-        # print pprint(g.outputs[0])
         assert str(pprint(g.outputs[0])) == "((a * x) + (b * z))"
 
         # 2. ((a/x + b) * x) --> a + b*x
         e = (a / x + b) * x
         g = FunctionGraph([a, b, x], [e])
-        # print pprint(g.outputs[0])
         mul_canonizer.optimize(g)
         TopoOptimizer(
             LocalOptGroup(local_greedy_distributor), order="out_to_in"
         ).optimize(g)
-        # print pprint(g.outputs[0])
         assert str(pprint(g.outputs[0])) == "(a + (b * x))"
 
     def test_kording_bug(self):
@@ -404,9 +399,7 @@ class TestCanonize:
         # e = (x / x) * (y / y)
         e = (-1 * x) / y / (-2 * z)
         g = FunctionGraph([x, y, z, a, b, c, d], [e])
-        print(pprint(g.outputs[0]))
         mul_canonizer.optimize(g)
-        print(pprint(g.outputs[0]))
 
     def test_elemwise_multiple_inputs_optimisation(self):
         # verify that the Canonizer merge sequential Elemwise({mul,add}) part 1
@@ -1027,8 +1020,6 @@ class TestCanonize:
             mode = get_default_mode().excluding("local_elemwise_fusion")
 
         f = function([x], [(4 * x) / abs(2 * x)], mode=mode)
-        print(f.maker.fgraph.toposort())
-        print()
         f(0.1)
         f(-1)
         # some stabilization optimization make the output be finite instead of nan
@@ -1040,8 +1031,6 @@ class TestCanonize:
         assert f.maker.fgraph.toposort()[0].op == tt.sgn
 
         f = function([x], [(4 * x) / abs(x / 2)], mode=mode)
-        print(f.maker.fgraph.toposort())
-        print()
         f(0.1)
         f(-1)
         # some stabilization optimization make the output be finite instead of nan
@@ -1910,10 +1899,6 @@ class TestFusion:
                 atol = 1e-6
             if not np.allclose(out, answer * nb_repeat, atol=atol):
                 fail1.append(id)
-                print("cases", id)
-                print(val_inputs)
-                print(out)
-                print(answer * nb_repeat)
             topo = f.maker.fgraph.toposort()
             topo_ = [n for n in topo if not isinstance(n.op, self.topo_exclude)]
             if assert_len_topo:
@@ -1934,11 +1919,7 @@ class TestFusion:
                 fail4.append((id, out_dtype, out.dtype))
 
         failed = len(fail1 + fail2 + fail3 + fail4)
-        if failed > 0:
-            print("Executed", len(cases), "cases", "failed", failed)
-            raise Exception("Failed %d cases" % failed, fail1, fail2, fail3, fail4)
-
-        return times
+        assert failed <= 0
 
     def test_elemwise_fusion(self):
         shp = (5, 5)
@@ -2025,8 +2006,7 @@ class TestFusion:
         # Follow up. Clinker do the same... second cause?
         mode2 = copy.copy(self.mode)
         mode2._optimizer = mode2._optimizer.excluding("local_elemwise_fusion")
-        print("test with linker", str(mode1.linker))
-        times1 = self.do(
+        self.do(
             mode1,
             self._shared,
             shp,
@@ -2034,33 +2014,13 @@ class TestFusion:
             assert_len_topo=False,
             slice=s,
         )
-        times2 = self.do(
+        self.do(
             mode2,
             self._shared,
             shp,
             nb_repeat=nb_repeat,
             assert_len_topo=False,
             slice=s,
-        )
-        print("times1 with local_elemwise_fusion")
-        print(times1, times1.min(), times1.max(), times1.sum())
-        print("times2 without local_elemwise_fusion")
-        print(times2, times2.min(), times2.max(), times2.sum())
-        d = times2 / times1
-
-        print("times2/times1")
-        print(d)
-        print(
-            "min",
-            d.min(),
-            "argmin",
-            d.argmin(),
-            "max",
-            d.max(),
-            "mean",
-            d.mean(),
-            "std",
-            d.std(),
         )
 
     def test_fusion_inplace(self):
@@ -3049,9 +3009,7 @@ class TestLocalSubtensorMerge:
         assert check_stack_trace(f, ops_to_check=Subtensor)
 
         topo = f.maker.fgraph.toposort()
-        # print [t for t in topo if isinstance(t.op, Subtensor)]
         assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-        # print topo[-1].op
         assert isinstance(topo[-1].op, DeepCopyOp)
 
         for x_s in self.x_shapes:
@@ -3110,9 +3068,7 @@ class TestLocalSubtensorMerge:
         assert check_stack_trace(f, ops_to_check=Subtensor)
 
         topo = f.maker.fgraph.toposort()
-        # print [t for t in topo if isinstance(t.op, Subtensor)]
         assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-        # print topo[-1].op
         assert isinstance(topo[-1].op, DeepCopyOp)
 
         for x_s in self.x_shapes:
@@ -3136,9 +3092,7 @@ class TestLocalSubtensorMerge:
             assert check_stack_trace(f, ops_to_check=Subtensor)
 
             topo = f.maker.fgraph.toposort()
-            # print [t for t in topo if isinstance(t.op, Subtensor)]
             assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-            # print topo[-1].op
             assert isinstance(topo[-1].op, DeepCopyOp)
 
             for x_s in self.x_shapes:
@@ -3155,9 +3109,7 @@ class TestLocalSubtensorMerge:
         assert check_stack_trace(f, ops_to_check=Subtensor)
 
         topo = f.maker.fgraph.toposort()
-        # print [t for t in topo if isinstance(t.op, Subtensor)]
         assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-        # print topo[-1].op
         assert isinstance(topo[-1].op, DeepCopyOp)
 
         for x_s in self.x_shapes:
@@ -3176,9 +3128,7 @@ class TestLocalSubtensorMerge:
                 assert check_stack_trace(f, ops_to_check=Subtensor)
 
                 topo = f.maker.fgraph.toposort()
-                # print [t for t in topo if isinstance(t.op, Subtensor)]
                 assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-                # print topo[-1].op
                 assert isinstance(topo[-1].op, DeepCopyOp)
 
                 for x_s in self.x_shapes:
@@ -3196,9 +3146,7 @@ class TestLocalSubtensorMerge:
         assert check_stack_trace(f, ops_to_check=Subtensor)
 
         topo = f.maker.fgraph.toposort()
-        # print [t for t in topo if isinstance(t.op, Subtensor)]
         assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-        # print topo[-1].op
         assert isinstance(topo[-1].op, DeepCopyOp)
 
         for x_s in self.x_shapes:
@@ -3365,9 +3313,6 @@ class TestLocalSubtensorMerge:
                                 n_ok += 1
                                 f(x_val, b_v, e_v, s_v, i_v)
 
-            # print 'shape: %s' % (x_s,)
-            # print '%% OK: %f' % (float(n_ok) * 100 / (n_ok + n_index_err))
-
     @pytest.mark.slow
     def test_none_slice(self):
         # Test case of two slices, var[b1:e1:s1][b2:e2:s2]
@@ -3424,7 +3369,6 @@ class TestLocalSubtensorMerge:
             assert check_stack_trace(f, ops_to_check=Subtensor, bug_print="ignore")
 
             topo = f.maker.fgraph.toposort()
-            # print [t for t in topo if isinstance(t.op, Subtensor)]
             assert len([t for t in topo if isinstance(t.op, Subtensor)]) <= 1
             assert isinstance(topo[-1].op, DeepCopyOp)
 
@@ -3483,7 +3427,6 @@ class TestLocalSubtensorMerge:
             assert check_stack_trace(f, ops_to_check=Subtensor)
 
             topo = f.maker.fgraph.toposort()
-            # print [t for t in topo if isinstance(t.op, Subtensor)]
             assert len([t for t in topo if isinstance(t.op, Subtensor)]) <= 1
             assert isinstance(topo[-1].op, DeepCopyOp)
 
@@ -4667,7 +4610,6 @@ class TestLocalCanonicalizeAlloc:
 
         f = function([x], [y], mode=mode)
         op_classes = [node.op.__class__ for node in f.maker.fgraph.toposort()]
-        print(op_classes)
 
         # We are supposed to test if tensr.Alloc is not in op_classes,
         # but since the proper proper optimization is not currently
@@ -5024,7 +4966,7 @@ class TestShapeoptimizer:
 
         mode = get_default_mode().excluding("ShapeOpt")
         f = function([X], expr, mode=mode)
-        print(f([[1, 2], [2, 3]]))
+        f([[1, 2], [2, 3]])
 
 
 class TestAssert(utt.InferShapeTester):
@@ -5785,19 +5727,19 @@ class TestLocalErf:
         assert [n.op for n in f.maker.fgraph.toposort()] == [
             tt.erfc
         ], f.maker.fgraph.toposort()
-        print(f(val))
+        f(val)
 
         f = function([x], 1 + (-tt.erf(x)), mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [
             tt.erfc
         ], f.maker.fgraph.toposort()
-        print(f(val))
+        f(val)
 
         f = function([x], (-tt.erf(x)) + 1, mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [
             tt.erfc
         ], f.maker.fgraph.toposort()
-        print(f(val))
+        f(val)
 
         f = function([x], 2 - tt.erf(x), mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -5807,7 +5749,7 @@ class TestLocalErf:
         assert isinstance(topo[1].op.scalar_op, scal.Add) or isinstance(
             topo[1].op.scalar_op, scal.Sub
         ), f.maker.fgraph.toposort()
-        print(f(val))
+        f(val)
 
     def test_local_erf_minus_one(self):
         val = np.asarray([-30, -3, -2, -1, 0, 1, 2, 3, 30], dtype=config.floatX)
@@ -5815,15 +5757,15 @@ class TestLocalErf:
 
         f = function([x], tt.erf(x) - 1, mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [tt.erfc, tt.mul]
-        print(f(val))
+        f(val)
 
         f = function([x], tt.erf(x) + (-1), mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [tt.erfc, tt.mul]
-        print(f(val))
+        f(val)
 
         f = function([x], -1 + tt.erf(x), mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [tt.erfc, tt.mul]
-        print(f(val))
+        f(val)
 
         f = function([x], tt.erf(x) - 2, mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -5833,7 +5775,7 @@ class TestLocalErf:
         assert isinstance(topo[1].op.scalar_op, scal.Add) or isinstance(
             topo[1].op.scalar_op, scal.Sub
         )
-        print(f(val))
+        f(val)
 
 
 @pytest.mark.skipif(
@@ -5861,13 +5803,13 @@ class TestLocalErfc:
         assert [n.op for n in f.maker.fgraph.toposort()] == [
             tt.erf
         ], f.maker.fgraph.toposort()
-        print(f(val))
+        f(val)
 
         f = function([x], (-tt.erfc(x)) + 1, mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [
             tt.erf
         ], f.maker.fgraph.toposort()
-        print(f(val))
+        f(val)
 
         f = function([x], 2 - tt.erfc(x), mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -5875,7 +5817,7 @@ class TestLocalErfc:
         assert topo[0].op == tt.erfc, f.maker.fgraph.toposort()
         assert isinstance(topo[1].op, Elemwise), f.maker.fgraph.toposort()
         assert isinstance(topo[1].op.scalar_op, scal.Sub), f.maker.fgraph.toposort()
-        print(f(val))
+        f(val)
 
     def test_local_erf_neg_minus_one(self):
         # test opt: (-1)+erfc(-x)=>erf(x)
@@ -5887,19 +5829,19 @@ class TestLocalErfc:
         assert [n.op for n in f.maker.fgraph.toposort()] == [
             tt.erf
         ], f.maker.fgraph.toposort()
-        print(f(val))
+        f(val)
 
         f = function([x], tt.erfc(-x) - 1, mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [
             tt.erf
         ], f.maker.fgraph.toposort()
-        print(f(val))
+        f(val)
 
         f = function([x], tt.erfc(-x) + (-1), mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [
             tt.erf
         ], f.maker.fgraph.toposort()
-        print(f(val))
+        f(val)
 
     @pytest.mark.xfail()
     def test_local_log_erfc(self):
@@ -6074,8 +6016,6 @@ class TestLocalErfc:
         mode = get_mode("FAST_RUN")
         f1 = function([x], tt.log(tt.erfc(x)), mode=mode.excluding("local_log_erfc"))
         f2 = function([x], tt.log(tt.erfc(x)), mode=mode)
-        print(f1.maker.fgraph.toposort())
-        print(f2.maker.fgraph.toposort())
         t0 = time.time()
         f1(val)
         t1 = time.time()
@@ -6769,7 +6709,6 @@ class TestLocalOptAlloc:
         # test only 1 axis summed
         f = function([s], a.sum(axis=0, dtype=self.dtype))
         f(5)
-        print(self.dtype)
 
 
 class TestLocalOptAllocF16(TestLocalOptAlloc):
@@ -6975,7 +6914,6 @@ class TestLocalSumProdDimshuffle:
         config.warn.sum_div_dimshuffle_bug = False
         try:
             for i, s in enumerate(sums):
-                print(i)
                 f = function([a, b, c, d], s, mode=self.mode, on_unused_input="ignore")
                 g = f.maker.fgraph.toposort()
                 assert isinstance(g[-1].op.scalar_op, scal.TrueDiv)
@@ -7122,13 +7060,9 @@ class TestMakeVector(utt.InferShapeTester):
             gb = grad(s, b, disconnected_inputs="ignore")
             gi = grad(s, i, disconnected_inputs="ignore")
             gd = grad(s, d, disconnected_inputs="ignore")
-            # print 'gb =', gb
-            # print 'gi =', gi
-            # print 'gd =', gd
 
             g = function([b, i, d], [gb, gi, gd])
             g_val = g(val[b], val[i], val[d])
-            # print 'g_val =', g_val
 
             if dtype in tt.int_dtypes:
                 # The gradient should be 0

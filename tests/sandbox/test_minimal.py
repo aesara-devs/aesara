@@ -22,11 +22,8 @@ class TestMinimal:
         A = tensor.matrix()
         b = tensor.vector()
 
-        print("building function")
         f = function([A, b], minimal(A, A, b, b, A))
-        print("built")
 
         Aval = self.rng.randn(5, 5)
         bval = np.arange(5, dtype=float)
         f(Aval, bval)
-        print("done")

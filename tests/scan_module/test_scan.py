@@ -1,7 +1,5 @@
 import os
 import shutil
-import sys
-import time
 
 import pytest
 
@@ -1565,7 +1563,6 @@ class TestScan:
             )
             params = [u1, u2, x0, y0, W_in1]
             gparams = theano.tensor.grad(cost, params)
-            print(".", file=sys.stderr)
             # Test the output including names
             output_str = theano.printing.debugprint(cost, file="str")
             lines = output_str.split("\n")
@@ -1756,7 +1753,6 @@ for{cpu,scan_fn}.2 [id H] ''
                 no_default_updates=True,
                 allow_input_downcast=True,
             )
-            print(".", file=sys.stderr)
             grad_fn = theano.function(
                 [u1, u2, x0, y0, W_in1],
                 gparams,
@@ -1764,7 +1760,6 @@ for{cpu,scan_fn}.2 [id H] ''
                 no_default_updates=True,
                 allow_input_downcast=True,
             )
-            print(".", file=sys.stderr)
         finally:
             theano.config.compute_test_value = old1
             theano.config.compute_test_value_opt = old2
@@ -4551,7 +4546,6 @@ for{cpu,scan_fn}.2 [id H] ''
             else:
                 d = 0.1
             out = theano.clone(y, replace={x: x + d})
-            # theano.printing.debugprint(out)
             return theano.function([], out)()
 
         x = theano.shared(np.asarray(0.0, dtype=theano.config.floatX))
@@ -4762,7 +4756,6 @@ for{cpu,scan_fn}.2 [id H] ''
 
         cost = result_outer[0][-1]
         H = theano.gradient.hessian(cost, W)
-        print(".", file=sys.stderr)
         f = theano.function([W, n_steps], H)
         f(np.ones((8,), dtype="float32"), 1)
 
@@ -5320,14 +5313,13 @@ def test_speed():
     # We need the CVM for this speed test
     r = np.arange(10000).astype(theano.config.floatX).reshape(1000, 10)
 
-    t0 = time.time()
+    # t0 = time.time()
     for i in range(1, 1000):
         r[i] += r[i - 1]
-    t1 = time.time()
-    print("python", t1 - t0)
+    # t1 = time.time()
 
     r = np.arange(10000).astype(theano.config.floatX).reshape(1000, 10)
-    t0 = time.time()
+    # t0 = time.time()
     r_i = iter(r[1:])
     r_ii = iter(r[:-1])
     while True:
@@ -5336,8 +5328,7 @@ def test_speed():
             tmp += next(r_ii)
         except StopIteration:
             break
-    t1 = time.time()
-    print("python with builtin iterator", t1 - t0)
+    # t1 = time.time()
 
     r = np.arange(10000).astype(theano.config.floatX).reshape(1000, 10)
     s_r = tensor.matrix()
@@ -5350,10 +5341,9 @@ def test_speed():
     assert not updates
     f = theano.function([s_r], s_y)
 
-    t2 = time.time()
+    # t2 = time.time()
     f(r)
-    t3 = time.time()
-    print("theano (scan, cvm)", t3 - t2)
+    # t3 = time.time()
 
     r = np.arange(10000).astype(theano.config.floatX).reshape(-1, 10)
     shared_r = theano.shared(r)
@@ -5361,7 +5351,6 @@ def test_speed():
     s_rinc = tensor.inc_subtensor(
         shared_r[s_i], shared_r[s_i - 1], tolerate_inplace_aliasing=True
     )
-    # theano.printing.debugprint(s_rinc)
     f = theano.function(
         [],
         [],
@@ -5369,13 +5358,10 @@ def test_speed():
         mode=theano.Mode(linker="cvm"),
     )
     f._check_for_aliased_inputs = False
-    t2 = time.time()
     f_fn = f.fn
     for i in range(998):
         f_fn()
     f()  # 999 to update the profiling timers
-    t3 = time.time()
-    print("theano (updates, cvm)", t3 - t2)
 
 
 @pytest.mark.skipif(
@@ -5401,11 +5387,8 @@ def test_speed_rnn():
     r = np.arange(L * N).astype(theano.config.floatX).reshape(L, N)
     w = np.random.randn(N, N).astype(theano.config.floatX)
 
-    t0 = time.time()
     for i in range(1, L):
         r[i] = np.tanh(np.dot(r[i - 1], w))
-    t1 = time.time()
-    print("python", t1 - t0)
 
     r = np.arange(L * N).astype(theano.config.floatX).reshape(L, N)
     s_r = tensor.matrix()
@@ -5418,10 +5401,7 @@ def test_speed_rnn():
     assert not updates
     f = theano.function([s_r], s_y, mode=theano.Mode(linker="cvm"))
 
-    t2 = time.time()
     f(r)
-    t3 = time.time()
-    print("theano (cvm)", t1 - t0)
 
     r = np.arange(L * N).astype(theano.config.floatX).reshape(L, N)
     shared_r = theano.shared(r)
@@ -5439,11 +5419,8 @@ def test_speed_rnn():
     )
 
     f_fn = f.fn
-    t2 = time.time()
     f_fn(n_calls=L - 2)
     f()  # 999 to update the profiling timers
-    t3 = time.time()
-    print("theano (updates, cvm)", t3 - t2)
 
 
 @pytest.mark.skipif(
@@ -5473,11 +5450,8 @@ def test_speed_batchrnn():
     r = np.arange(B * L * N).astype(theano.config.floatX).reshape(L, B, N)
     w = np.random.randn(N, N).astype(theano.config.floatX)
 
-    t0 = time.time()
     for i in range(1, L):
         r[i] = np.tanh(np.dot(r[i - 1], w))
-    t1 = time.time()
-    print("python", t1 - t0)
 
     r = np.arange(B * L * N).astype(theano.config.floatX).reshape(L, B, N)
     shared_r = theano.shared(r)
@@ -5493,14 +5467,9 @@ def test_speed_batchrnn():
         updates=[(s_i, s_i + 1), (shared_r, s_rinc)],
         mode=theano.Mode(linker="cvm"),
     )
-    # theano.printing.debugprint(f)
     f_fn = f.fn
-    # print f_fn
-    t2 = time.time()
     f_fn(n_calls=L - 2)
     f()  # 999 to update the profiling timers
-    t3 = time.time()
-    print("theano (updates, cvm)", t3 - t2)
 
 
 def test_compute_test_value():
@@ -5518,7 +5487,6 @@ def test_compute_test_value():
         # The gradient computation used to crash before 6af465e.
         tensor.grad(z.sum(), x)
         # f = theano.function([x], g)
-        # print f(xv)
     finally:
         theano.config.compute_test_value = backup
 
@@ -5542,7 +5510,6 @@ def test_compute_test_value_nonseq():
         # The gradient computation used to crash before 6af465e.
         tensor.grad(z.sum(), x)
         # f = theano.function([x], g)
-        # print f(xv)
     finally:
         theano.config.compute_test_value = backup
 
@@ -5823,5 +5790,4 @@ def test_mintap_onestep():
     f = theano.function(inputs=[seq], outputs=rs)
     _seq = np.arange(20).astype("int32")
     _sum = f(_seq)
-    print("sum %f" % _sum)
     assert _sum == 2

@@ -108,8 +108,6 @@ def test_GpuCrossentropySoftmax1HotWithBiasDx():
 
     cpu_f = theano.function([softmax_output], op, mode=mode_without_gpu)
     gpu_f = theano.function([softmax_output], op, mode=mode_with_gpu)
-    # theano.printing.debugprint(cpu_f)
-    # theano.printing.debugprint(gpu_f)
 
     assert any(
         [

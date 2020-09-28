@@ -4978,7 +4978,6 @@ def test_join_inplace():
     f = theano.function([theano.In(x, borrow=True), s], theano.Out(c, borrow=True))
 
     data = np.array([3, 4, 5], dtype=theano.config.floatX)
-    print(f(data, 0))
 
     if theano.config.mode not in ["DebugMode", "DEBUG_MODE"]:
         assert f(data, 0) is data
@@ -6085,7 +6084,6 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
     def test_reshape_long_in_shape(self):
         v = dvector("v")
         r = v.reshape((v.shape[0], 1))
-        print(r.eval({v: np.arange(5.0)}))
         assert np.allclose(r.eval({v: np.arange(5.0)}).T, np.arange(5.0))
 
     def test_bad_shape(self):
@@ -8184,7 +8182,6 @@ class TestAllocDiag:
                 # Test infer_shape
                 f_shape = theano.function([x], adiag_op(x).shape, mode="FAST_RUN")
 
-                theano.printing.debugprint(f_shape.maker.fgraph.outputs[0])
                 output_shape = f_shape(test_val)
                 assert not any(
                     isinstance(node.op, self.alloc_diag)

@@ -80,12 +80,7 @@ class TestRealImag:
 
         rng = np.random.RandomState(9333)
         aval = np.asarray(rng.randn(2, 5))
-        try:
-            utt.verify_grad(f, [aval])
-        except utt.verify_grad.E_grad as e:
-            print(e.num_grad.gf)
-            print(e.analytic_grad)
-            raise
+        utt.verify_grad(f, [aval])
 
     @pytest.mark.skip(reason="Complex grads not enabled, see #178")
     def test_mul_mixed1(self):
@@ -95,12 +90,7 @@ class TestRealImag:
 
         rng = np.random.RandomState(9333)
         aval = np.asarray(rng.randn(2, 5))
-        try:
-            utt.verify_grad(f, [aval])
-        except utt.verify_grad.E_grad as e:
-            print(e.num_grad.gf)
-            print(e.analytic_grad)
-            raise
+        utt.verify_grad(f, [aval])
 
     @pytest.mark.skip(reason="Complex grads not enabled, see #178")
     def test_mul_mixed(self):
@@ -111,12 +101,7 @@ class TestRealImag:
         rng = np.random.RandomState(9333)
         aval = np.asarray(rng.randn(2, 5))
         bval = rng.randn(5)
-        try:
-            utt.verify_grad(f, [aval, bval])
-        except utt.verify_grad.E_grad as e:
-            print(e.num_grad.gf)
-            print(e.analytic_grad)
-            raise
+        utt.verify_grad(f, [aval, bval])
 
     @pytest.mark.skip(reason="Complex grads not enabled, see #178")
     def test_polar_grads(self):

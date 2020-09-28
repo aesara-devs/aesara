@@ -575,11 +575,6 @@ class TestRealMatrix:
         assert not _is_real_matrix(T.DimShuffle([False], ["x", 0])(T.dvector()))
 
 
-def fail(msg):
-    print("FAIL", msg)
-    assert False
-
-
 """
 This test suite ensures that Gemm is inserted where it belongs, and
 that the resulting functions compute the same things as the originals.
@@ -793,7 +788,6 @@ def test_upcasting_scalar_nogemm():
     f = theano.function([w, v, t, alpha], rval)
     t = f.maker.fgraph.toposort()
     assert np.sum([isinstance(n.op, Gemm) for n in t]) == 0
-    # theano.printing.debugprint(f, print_type=True)
 
     v = T.fmatrix("v")
     w = T.fmatrix("w")
@@ -810,7 +804,6 @@ def test_upcasting_scalar_nogemm():
 
     t = f.maker.fgraph.toposort()
     assert np.sum([isinstance(n.op, Gemm) for n in t]) == 0
-    # theano.printing.debugprint(f, print_type=True)
 
 
 def test_gemm_nested():
@@ -987,7 +980,6 @@ def test_inplace1():
     X, Y, Z, a, b = XYZab()
     # with > 2 terms in the overall addition
     f = inplace_func([X, Y, Z], [Z + Z + T.dot(X, Y)], mode="FAST_RUN")
-    # theano.printing.debugprint(f)
     # it doesn't work inplace because we didn't mark Z as mutable input
     assert [n.op for n in f.maker.fgraph.apply_nodes] == [gemm_no_inplace]
 
@@ -1659,7 +1651,6 @@ class BaseGemv(object):
         # done inplace on a temporarily allocated-buffer, which is
         # then scaled by alpha and to t with a fused elemwise.
         n_gemvs = 0
-        # theano.printing.debugprint(f, print_type=True)
         for node in f.maker.fgraph.toposort():
             if node.op == self.gemv_inplace:
                 n_gemvs += 1
@@ -1996,8 +1987,6 @@ class TestBlasStrides:
         ct_dev = c_t.get_value(borrow=False, return_internal_type=True)
 
         f_nn = theano.function([], [], updates=[(a, tensor.dot(b, c))], mode=self.mode)
-        # print 'class name:', self.__class__.__name__
-        # theano.printing.debugprint(f_nn)
         f_nt = theano.function(
             [], [], updates=[(a, tensor.dot(b, c_t.T))], mode=self.mode
         )
