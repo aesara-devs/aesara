@@ -149,15 +149,12 @@ from theano.misc.safe_asarray import _asarray
 
 from theano.printing import pprint, pp
 
+from theano import tensor
+from theano import scalar
+
 from theano.scan_module import scan, map, reduce, foldl, foldr, clone, scan_checkpoints
 
 from theano.updates import OrderedUpdates
-
-# scan_module import above initializes tensor and scalar making these imports
-# redundant
-
-# import tensor
-# import scalar
 
 # we don't import by default as we don't want to force having scipy installed.
 
