@@ -127,6 +127,12 @@ _optimizer_fast_run = Query(include=["fast_run"])
 _optimizer_fast_run = optdb.query(_optimizer_fast_run)
 
 
+@pytest.fixture(scope="module", autouse=True)
+def set_theano_flags():
+    with theano.change_flags(on_opt_error="raise"):
+        yield
+
+
 def ds(x, y):
     return DimShuffle(x.type.broadcastable, y)(x)
 
