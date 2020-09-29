@@ -35,13 +35,7 @@ from theano.tensor.basic import (
     Reshape,
     Join,
 )
-from theano.scalar.basic import (
-    ScalarOp,
-    Composite,
-    Cast,
-    Clip,
-    Identity
-)
+from theano.scalar.basic import ScalarOp, Composite, Cast, Clip, Identity
 from theano.tensor.elemwise import Elemwise, CAReduce, DimShuffle
 from theano.compile.ops import (
     DeepCopyOp,
