@@ -76,7 +76,7 @@ class JAXLinker(PerformLinker):
 
             # JIT-compile the functions
             if len(node.outputs) > 1:
-                assert len(jax_funcs) == len(node.ouptputs)
+                assert len(jax_funcs) == len(node.outputs)
                 jax_impl_jits = [
                     jax.jit(jax_func, static_argnums) for jax_func in jax_funcs
                 ]
