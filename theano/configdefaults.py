@@ -596,16 +596,15 @@ AddConfigVar(
 # Also, please be careful not to modify the first item in the enum when adding
 # new modes, since it is the default mode.
 def filter_mode(val):
-    if (
-        val
-        in [
-            "Mode",
-            "DebugMode",
-            "NanGuardMode",
-            "DEBUG_MODE",
-        ]
-        or val in theano.compile.mode.predefined_modes
-    ):
+    if val in [
+        "Mode",
+        "DebugMode",
+        "FAST_RUN",
+        "NanGuardMode",
+        "FAST_COMPILE",
+        "DEBUG_MODE",
+        "JAX",
+    ]:
         return val
     # This can be executed before Theano is completly imported, so
     # theano.Mode is not always available.
