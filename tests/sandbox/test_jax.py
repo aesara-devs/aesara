@@ -538,3 +538,12 @@ def test_arange():
     out = tt.arange(a)
     fgraph = theano.gof.FunctionGraph([a], [out])
     _ = compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+
+def test_identity():
+    a = tt.scalar("a")
+    a.tag.test_value = 10
+
+    out = theano.scalar.basic.identity(a)
+    fgraph = theano.gof.FunctionGraph([a], [out])
+    _ = compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
