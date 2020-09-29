@@ -40,6 +40,7 @@ from theano.scalar.basic import (
     Composite,
     Cast,
     Clip,
+    Identity
 )
 from theano.tensor.elemwise import Elemwise, CAReduce, DimShuffle
 from theano.compile.ops import (
@@ -173,6 +174,14 @@ def jax_funcify_Clip(op):
         return jnp.where(x < min, min, jnp.where(x > max, max, x))
 
     return clip
+
+
+@jax_funcify.register(Identity)
+def jax_funcify_Identity(op):
+    def identity(x):
+        return x
+
+    return identity
 
 
 @jax_funcify.register(ScalarSoftplus)
