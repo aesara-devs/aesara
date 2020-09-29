@@ -6032,7 +6032,7 @@ ALL_REDUCE = [
     T.elemwise.Sum,
     T.elemwise.Prod,
     T.elemwise.ProdWithoutZeros,
-]
+] + T.elemwise.CAReduce.__subclasses__()
 
 
 @register_canonicalize
