@@ -74,15 +74,12 @@ class JAXLinker(PerformLinker):
 
             thunk_outputs = [storage_map[n] for n in node.outputs]
 
-            # JIT-compile the functions
-            if len(node.outputs) > 1:
-                assert len(jax_funcs) == len(node.ouptputs)
-                jax_impl_jits = [
-                    jax.jit(jax_func, static_argnums) for jax_func in jax_funcs
-                ]
-            else:
-                assert not isinstance(jax_funcs, Sequence)
-                jax_impl_jits = [jax.jit(jax_funcs, static_argnums)]
+            if not isinstance(jax_funcs, Sequence):
+                jax_funcs = [jax_funcs]
+
+            jax_impl_jits = [
+                jax.jit(jax_func, static_argnums) for jax_func in jax_funcs
+            ]
 
             def thunk(
                 node=node, jax_impl_jits=jax_impl_jits, thunk_outputs=thunk_outputs
@@ -91,6 +88,14 @@ class JAXLinker(PerformLinker):
                     jax_impl_jit(*[x[0] for x in thunk_inputs])
                     for jax_impl_jit in jax_impl_jits
                 ]
+
+                if len(jax_impl_jits) < len(node.outputs):
+                    # In this case, the JAX function will output a single
+                    # output that contains the other outputs.
+                    # This happens for multi-output `Op`s that directly
+                    # correspond to multi-output JAX functions (e.g. `SVD` and
+                    # `jax.numpy.linalg.svd`).
+                    outputs = outputs[0]
 
                 for o_node, o_storage, o_val in zip(
                     node.outputs, thunk_outputs, outputs
