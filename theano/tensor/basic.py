@@ -3457,7 +3457,7 @@ class Mean(elemwise.CAReduce):
     def c_code(self, node, name, inames, onames, sub):
         if self.axis is not None:
             return super(Op, self).c_code(node, name, inames, onames, sub)
-        ret = super().c_code(self, node, name, inames, onames, sub)
+        ret = super().c_code(node, name, inames, onames, sub)
         # TODO: c_code perform support only axis is None
         return (
             ret
