@@ -623,3 +623,28 @@ def test_identity():
     out = theano.scalar.basic.identity(a)
     fgraph = theano.gof.FunctionGraph([a], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+
+def test_shared():
+    a = theano.shared(np.array([1, 2, 3], dtype=theano.config.floatX))
+
+    theano_jax_fn = theano.function([], a, mode="JAX")
+    jax_res = theano_jax_fn()
+
+    assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
+    np.testing.assert_allclose(jax_res, a.get_value())
+
+    theano_jax_fn = theano.function([], a * 2, mode="JAX")
+    jax_res = theano_jax_fn()
+
+    assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
+    np.testing.assert_allclose(jax_res, a.get_value() * 2)
+
+    # Changed the shared value and make sure that the JAX-compiled
+    # function also changes.
+    new_a_value = np.array([3, 4, 5], dtype=theano.config.floatX)
+    a.set_value(new_a_value)
+
+    jax_res = theano_jax_fn()
+    assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
+    np.testing.assert_allclose(jax_res, new_a_value * 2)
