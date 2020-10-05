@@ -1292,13 +1292,10 @@ class Unique(theano.Op):
 
 
 class UnravelIndex(gof.Op):
-    __props__ = ("ndim", "order")
+    __props__ = ("order",)
 
-    def __init__(self, ndim, order="C"):
+    def __init__(self, order="C"):
         assert order in ("C", "F")
-        if not isinstance(ndim, int) or ndim < 1:
-            raise ValueError("ndim must be an integer greater than 0")
-        self.ndim = int(ndim)
         self.order = order
 
     def make_node(self, indices, dims):
@@ -1321,7 +1318,7 @@ class UnravelIndex(gof.Op):
             [indices, dims],
             [
                 basic.TensorType(dtype="int64", broadcastable=(False,) * indices.ndim)()
-                for i in range(self.ndim)
+                for i in range(basic.get_vector_length(dims))
             ],
         )
 
@@ -1330,7 +1327,7 @@ class UnravelIndex(gof.Op):
 
     def perform(self, node, inp, out):
         indices, dims = inp
-        res = np.unravel_index(indices, dims)
+        res = np.unravel_index(indices, dims, order=self.order)
         assert len(res) == len(out)
         for i in range(len(out)):
             ret = theano._asarray(res[i], node.outputs[0].dtype)
@@ -1341,14 +1338,10 @@ class UnravelIndex(gof.Op):
             out[i][0] = ret
 
 
-def unravel_index(indices, dims, order="C", ndim=None):
+def unravel_index(indices, dims, order="C"):
     """
     Converts a flat index or array of flat indices into a tuple
     of coordinate arrays.
-
-    This method is similar to the NumPy version, except for the
-    additional ``ndim`` parameter. This parameter is required if
-    the length of ``dims`` cannot be determined automatically.
 
     Parameters
     ----------
@@ -1360,10 +1353,6 @@ def unravel_index(indices, dims, order="C", ndim=None):
     order : {'C', 'F'}, optional
         Determines whether the indices should be viewed as indexing in
         row-major (C-style) or column-major (Fortran-style) order.
-    ndim : int, optional
-        Specifies the number of dimensions, i.e., the length of
-        ``dims``. This is required if the dimensions cannot be determined
-        automatically from ``dims`` itself.
 
     Returns
     -------
@@ -1376,20 +1365,8 @@ def unravel_index(indices, dims, order="C", ndim=None):
     ravel_multi_index
 
     """
-    if ndim is None:
-        try:
-            ndim = basic.get_vector_length(dims)
-        except ValueError:
-            raise ValueError(
-                "The length of the provided dimension list (%s) cannot "
-                "be automatically determined, so Theano is not able "
-                "to know what the number of dimensions of the unraveled "
-                "index will be. You can provide the 'ndim' keyword "
-                "argument to 'unravel_index' to avoid this problem." % str(dims)
-            )
-
-    res = UnravelIndex(ndim=ndim, order=order)(indices, dims)
-    if ndim == 1:
+    res = UnravelIndex(order=order)(indices, dims)
+    if not isinstance(res, (list, tuple)):
         return (res,)
     else:
         return tuple(res)
