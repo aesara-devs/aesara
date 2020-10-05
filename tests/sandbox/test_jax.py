@@ -354,7 +354,7 @@ def test_jax_Subtensors():
 
 
 def test_jax_IncSubtensor():
-    x_np = np.empty((3, 4, 5), dtype=tt.config.floatX)
+    x_np = np.random.uniform(-1, 1, size=(3, 4, 5)).astype(tt.config.floatX)
     x_tt = tt.arange(3 * 4 * 5).reshape((3, 4, 5)).astype(tt.config.floatX)
 
     # "Set" basic indices
