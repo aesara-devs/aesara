@@ -4025,9 +4025,6 @@ class Split(Op):
     def perform(self, node, inputs, outputs):
         """WRITEME"""
         x, axis, splits = inputs
-        # in python 2.4, x.shape[numpy.asarray(1)] don't work.
-        if sys.version_info[0:2] == (2, 4) and axis.size == 1:
-            axis = int(axis)
 
         try:
             len_along_axis = x.shape[axis]

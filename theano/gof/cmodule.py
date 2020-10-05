@@ -1767,10 +1767,7 @@ def std_lib_dirs_and_libs():
     else:
         if platform.python_implementation() == "PyPy":
             # Assume Linux (note: Ubuntu doesn't ship this .so)
-            if sys.version_info < (3,):
-                libname = "pypy-c"
-            else:
-                libname = "pypy3-c"
+            libname = "pypy3-c"
             # Unfortunately the only convention of this .so is that it appears
             # next to the location of the interpreter binary.
             libdir = os.path.dirname(os.path.realpath(sys.executable))
@@ -2353,7 +2350,7 @@ class GCC_compiler(Compiler):
             # redefinition for recent CPython versions (>=2.7.16 and >=3.7.3).
             # The following nullifies that redefinition, if it is found.
             python_version = sys.version_info[:3]
-            if python_version < (2, 7, 16) or (3,) <= python_version < (3, 7, 3):
+            if (3,) <= python_version < (3, 7, 3):
                 config_h_filename = distutils.sysconfig.get_config_h_filename()
                 try:
                     with open(config_h_filename) as config_h:
