@@ -102,12 +102,12 @@ def test_jax_compile_ops():
     x = theano.compile.ops.Shape()(tt.as_tensor_variable(x_np))
     x_fg = theano.gof.FunctionGraph([], [x])
 
-    compare_jax_and_py(x_fg, [])
+    compare_jax_and_py(x_fg, [], must_be_device_array=False)
 
     x = theano.compile.ops.Shape_i(1)(tt.as_tensor_variable(x_np))
     x_fg = theano.gof.FunctionGraph([], [x])
 
-    compare_jax_and_py(x_fg, [])
+    compare_jax_and_py(x_fg, [], must_be_device_array=False)
 
     x = theano.compile.ops.SpecifyShape()(tt.as_tensor_variable(x_np), (20, 3))
     x_fg = theano.gof.FunctionGraph([], [x])
