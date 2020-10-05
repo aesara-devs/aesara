@@ -294,7 +294,10 @@ class CumOp(theano.Op):
     def perform(self, node, inputs, output_storage, params):
         x = inputs[0]
         z = output_storage[0]
-        z[0] = {"add": np.cumsum, "mul": np.cumprod}[self.mode](x, axis=self.axis)
+        if self.mode == "add":
+            z[0] = np.cumsum(x, axis=self.axis)
+        else:
+            z[0] = np.cumprod(x, axis=self.axis)
 
     def grad(self, inputs, output_gradients):
         (x,) = inputs
