@@ -51,21 +51,25 @@ class AdvancedBooleanIndexingError(TypeError):
     pass
 
 
-def make_constant(args):
-    """Convert Python literals to Theano constants in Subtensor arguments."""
+def as_index_constant(a):
+    """Convert Python literals to Theano constants--when possible--in Subtensor arguments.
 
-    def conv(a):
-        if a is None:
-            return a
-        elif isinstance(a, slice):
-            return slice(conv(a.start), conv(a.stop), conv(a.step))
-        elif isinstance(a, (integer_types, np.integer)):
-            return scal.ScalarConstant(scal.int64, a)
-        else:
-            # Use `tensor.scalar_from_tensor`?
-            return a
-
-    return tuple(map(conv, args))
+    This will leave `Variable`s untouched.
+    """
+    if a is None:
+        return a
+    elif isinstance(a, slice):
+        return slice(
+            as_index_constant(a.start),
+            as_index_constant(a.stop),
+            as_index_constant(a.step),
+        )
+    elif isinstance(a, (integer_types, np.integer)):
+        return scal.ScalarConstant(scal.int64, a)
+    elif not isinstance(a, theano.tensor.Variable):
+        return theano.tensor.as_tensor(a)
+    else:
+        return a
 
 
 def get_idx_list(inputs, idx_list, get_count=False):
@@ -277,7 +281,9 @@ def range_len(slc):
     """
     from theano.tensor import switch, and_, lt, gt
 
-    start, stop, step = make_constant([slc.start, slc.stop, slc.step])
+    start, stop, step = tuple(
+        as_index_constant(a) for a in [slc.start, slc.stop, slc.step]
+    )
     return switch(
         and_(gt(step, 0), lt(start, stop)),
         1 + (stop - 1 - start) // step,

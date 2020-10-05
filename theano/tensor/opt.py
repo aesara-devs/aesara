@@ -50,7 +50,7 @@ from theano.tensor.subtensor import (
     get_canonical_form_slice,
     Subtensor,
     IncSubtensor,
-    make_constant,
+    as_index_constant,
     AdvancedIncSubtensor1,
     AdvancedIncSubtensor,
     AdvancedSubtensor1,
@@ -3388,7 +3388,7 @@ def local_subtensor_merge(node):
             else:
                 merged_slices += slices1[pos_1:]
 
-            merged_slices = make_constant(merged_slices)
+            merged_slices = tuple(as_index_constant(s) for s in merged_slices)
             subtens = Subtensor(merged_slices)
 
             sl_ins = Subtensor.collapse(
