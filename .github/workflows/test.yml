@@ -111,17 +111,13 @@ jobs:
       - name: Coverage
         shell: bash -l {0}
         run: |
-          export COVERALLS_FLAG_NAME=$PYTHON_VERSION-`echo $PART | md5sum`-$FAST_COMPILE-$FLOAT32
           echo $COVERALLS_FLAG_NAME
           python -m pip install coveralls
           coveralls
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.github_token }}
           COVERALLS_PARALLEL: true
-          PYTHON_VERSION: ${{ matrix.python-version }}
-          PART: ${{ matrix.part }}
-          FAST_COMPILE: ${{ matrix.fast-compile }}
-          FLOAT32: ${{ matrix.float32 }}
+          COVERALLS_FLAG_NAME: "py${{ matrix.python-version }} (${{ matrix.fast-compile }}-${{ matrix.float32 }}): ${{ matrix.part }}"
 
   coverage:
     name: "Upload coverage"
