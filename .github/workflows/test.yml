@@ -110,21 +110,32 @@ jobs:
           FLOAT32: ${{ matrix.float32 }}
 
       - name: Coverage
-        uses: coverallsapp/github-action@master
-        continue-on-error: true
-        with:
-          github-token: ${{ secrets.github_token }}
-          flag-name: run-${{ job.container.id }}
-          parallel: true
+        shell: bash -l {0}
+        run: |
+          export COVERALLS_FLAG_NAME=$PYTHON_VERSION-`echo $PART | md5sum`-$FAST_COMPILE-$FLOAT32
+          echo $COVERALLS_FLAG_NAME
+          python -m pip install coveralls
+          coveralls
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_PARALLEL: true
+          PYTHON_VERSION: ${{ matrix.python-version }}
+          PART: ${{ matrix.part }}
+          FAST_COMPILE: ${{ matrix.fast-compile }}
+          FLOAT32: ${{ matrix.float32 }}
 
   coverage:
     name: "Upload coverage"
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - name: Coveralls Finished
-        uses: coverallsapp/github-action@master
-        continue-on-error: true
+      - name: Set up Python
+        uses: actions/setup-python@v1
         with:
-          github-token: ${{ secrets.github_token }}
-          parallel-finished: true
+          python-version: 3.7
+      - name: Coveralls Finished
+        run: |
+          python -m pip install coveralls
+          coveralls --finish
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_token }}
