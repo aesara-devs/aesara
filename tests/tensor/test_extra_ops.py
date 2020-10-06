@@ -1065,13 +1065,10 @@ class TestUnravelIndex(utt.InferShapeTester):
             indices_symb = theano.shared(indices)
 
             # reference result
-            ref = np.unravel_index(indices, shape)
+            ref = np.unravel_index(indices, shape, order=order)
 
-            def fn(i, d, nd=None):
-                if nd is None:
-                    return function([], unravel_index(i, d, order=order))
-                else:
-                    return function([], unravel_index(i, d, order=order, ndim=nd))
+            def fn(i, d):
+                return function([], unravel_index(i, d, order=order))
 
             # shape given as a tuple
             f_array_tuple = fn(indices, shape)
@@ -1086,7 +1083,7 @@ class TestUnravelIndex(utt.InferShapeTester):
 
             # shape given as a theano variable
             shape_symb = theano.shared(shape_array)
-            f_array_symb = fn(indices, shape_symb, len(shape))
+            f_array_symb = fn(indices, shape_symb)
             np.testing.assert_equal(ref, f_array_symb())
 
             # shape given as a Shape op (unravel_index will use get_vector_length
@@ -1098,7 +1095,7 @@ class TestUnravelIndex(utt.InferShapeTester):
             # shape testing
             self._compile_and_check(
                 [],
-                unravel_index(indices, shape_symb, order=order, ndim=len(shape)),
+                unravel_index(indices, shape_symb, order=order),
                 [],
                 UnravelIndex,
             )
@@ -1118,8 +1115,6 @@ class TestUnravelIndex(utt.InferShapeTester):
             unravel_index(theano.tensor.fvector(), (3, 4))
         with pytest.raises(TypeError):
             unravel_index((3, 4), (3.4, 3.2))
-        with pytest.raises(ValueError):
-            unravel_index((3, 4), (3, 3), ndim=5.4)
 
         # dims must be a 1D sequence
         with pytest.raises(TypeError):

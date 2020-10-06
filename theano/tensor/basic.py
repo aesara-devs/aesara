@@ -5002,6 +5002,8 @@ def get_vector_length(v):
         raise TypeError("argument must be symbolic vector, got '%s'" % v)
     if v.type.broadcastable[0]:
         return 1
+    if isinstance(v, theano.tensor.sharedvar.TensorSharedVariable) and v.type.ndim == 1:
+        return len(v.get_value())
     if isinstance(v, gof.Constant) and v.type.ndim == 1:
         return len(v.data)
     if v.owner and isinstance(v.owner.op, theano.tensor.opt.MakeVector):

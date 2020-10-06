@@ -19,17 +19,31 @@ def set_theano_flags():
 
 
 def compare_jax_and_py(
-    fgraph, inputs, assert_fn=partial(np.testing.assert_allclose, rtol=1e-4)
+    fgraph,
+    inputs,
+    assert_fn=partial(np.testing.assert_allclose, rtol=1e-4),
+    simplify=False,
+    must_be_device_array=True,
 ):
-    theano_jax_fn = theano.function(fgraph.inputs, fgraph.outputs, mode="JAX")
+    if not simplify:
+        opts = theano.gof.Query(include=[None], exclude=["cxx_only", "BlasOpt"])
+        jax_mode = theano.compile.mode.Mode(theano.sandbox.jax_linker.JAXLinker(), opts)
+        py_mode = theano.compile.Mode("py", opts)
+    else:
+        py_mode = theano.compile.Mode(linker="py")
+        jax_mode = "JAX"
+
+    theano_jax_fn = theano.function(fgraph.inputs, fgraph.outputs, mode=jax_mode)
     jax_res = theano_jax_fn(*inputs)
 
-    if isinstance(jax_res, list):
-        assert all(isinstance(res, jax.interpreters.xla.DeviceArray) for res in jax_res)
-    else:
-        assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
+    if must_be_device_array:
+        if isinstance(jax_res, list):
+            assert all(
+                isinstance(res, jax.interpreters.xla.DeviceArray) for res in jax_res
+            )
+        else:
+            assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
 
-    py_mode = theano.compile.Mode(linker="py")
     theano_py_fn = theano.function(fgraph.inputs, fgraph.outputs, mode=py_mode)
     py_res = theano_py_fn(*inputs)
 
@@ -88,12 +102,12 @@ def test_jax_compile_ops():
     x = theano.compile.ops.Shape()(tt.as_tensor_variable(x_np))
     x_fg = theano.gof.FunctionGraph([], [x])
 
-    compare_jax_and_py(x_fg, [])
+    compare_jax_and_py(x_fg, [], must_be_device_array=False)
 
     x = theano.compile.ops.Shape_i(1)(tt.as_tensor_variable(x_np))
     x_fg = theano.gof.FunctionGraph([], [x])
 
-    compare_jax_and_py(x_fg, [])
+    compare_jax_and_py(x_fg, [], must_be_device_array=False)
 
     x = theano.compile.ops.SpecifyShape()(tt.as_tensor_variable(x_np), (20, 3))
     x_fg = theano.gof.FunctionGraph([], [x])
@@ -340,7 +354,7 @@ def test_jax_Subtensors():
 
 
 def test_jax_IncSubtensor():
-    x_np = np.empty((3, 4, 5), dtype=tt.config.floatX)
+    x_np = np.random.uniform(-1, 1, size=(3, 4, 5)).astype(tt.config.floatX)
     x_tt = tt.arange(3 * 4 * 5).reshape((3, 4, 5)).astype(tt.config.floatX)
 
     # "Set" basic indices
@@ -409,6 +423,8 @@ def test_jax_IncSubtensor():
 
 
 def test_jax_ifelse():
+
+    import theano.ifelse
 
     true_vals = np.r_[1, 2, 3]
     false_vals = np.r_[-1, -2, -3]
@@ -648,3 +664,59 @@ def test_shared():
     jax_res = theano_jax_fn()
     assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
     np.testing.assert_allclose(jax_res, new_a_value * 2)
+
+
+def test_extra_ops():
+    a = tt.matrix("a")
+    a.tag.test_value = np.arange(6, dtype=theano.config.floatX).reshape((3, 2))
+
+    out = tt.extra_ops.cumsum(a, axis=0)
+    fgraph = theano.gof.FunctionGraph([a], [out])
+    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+    out = tt.extra_ops.cumprod(a, axis=1)
+    fgraph = theano.gof.FunctionGraph([a], [out])
+    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+    out = tt.extra_ops.diff(a, n=2, axis=1)
+    fgraph = theano.gof.FunctionGraph([a], [out])
+    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+    out = tt.extra_ops.repeat(a, (3, 3), axis=1)
+    fgraph = theano.gof.FunctionGraph([a], [out])
+    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+    # This function also cannot take symbolic input.
+    c = tt.as_tensor(5)
+    out = tt.extra_ops.bartlett(c)
+    fgraph = theano.gof.FunctionGraph([], [out])
+    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+    with pytest.raises(NotImplementedError):
+        out = tt.extra_ops.fill_diagonal(a, c)
+        fgraph = theano.gof.FunctionGraph([a], [out])
+        compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+    with pytest.raises(NotImplementedError):
+        out = tt.extra_ops.fill_diagonal_offset(a, c, c)
+        fgraph = theano.gof.FunctionGraph([a], [out])
+        compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+    with pytest.raises(NotImplementedError):
+        out = tt.extra_ops.Unique(axis=1)(a)
+        fgraph = theano.gof.FunctionGraph([a], [out])
+        compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+    indices = np.arange(np.product((3, 4)))
+    out = tt.extra_ops.unravel_index(indices, (3, 4), order="C")
+    fgraph = theano.gof.FunctionGraph([], out)
+    compare_jax_and_py(
+        fgraph, [get_test_value(i) for i in fgraph.inputs], must_be_device_array=False
+    )
+
+    multi_index = np.unravel_index(np.arange(np.product((3, 4))), (3, 4))
+    out = tt.extra_ops.ravel_multi_index(multi_index, (3, 4))
+    fgraph = theano.gof.FunctionGraph([], [out])
+    compare_jax_and_py(
+        fgraph, [get_test_value(i) for i in fgraph.inputs], must_be_device_array=False
+    )
