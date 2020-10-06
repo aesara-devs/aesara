@@ -4,9 +4,22 @@ on:
   push:
     branches:
       - master
+      - gh-actions
+    paths:
+      - 'setup.cfg'
+      - 'requirements.txt'
+      - '.coveragerc'
+      - '**.py'
+      - '!docs/**'
   pull_request:
     branches:
       - master
+    paths:
+      - 'setup.cfg'
+      - 'requirements.txt'
+      - '.coveragerc'
+      - '**.py'
+      - '!docs/**'
 
 jobs:
   style:
