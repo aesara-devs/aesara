@@ -38,7 +38,7 @@ jobs:
         python-version: ["3.6", "3.7"]
         fast-compile: [0]
         float32: [0]
-        part: 
+        part:
           - "tests --ignore=tests/tensor --ignore=tests/sparse --ignore=tests/tensor/nnet"
           - "tests/tensor tests/sparse --ignore=tests/tensor/test_basic.py --ignore=tests/tensor/test_elemwise.py --ignore=tests/tensor/test_opt.py --ignore=tests/tensor/nnet"
           - "tests/tensor/test_basic.py"
@@ -76,7 +76,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set up Python ${{ matrix.python-version }}
-        uses:  conda-incubator/setup-miniconda@v1
+        uses: conda-incubator/setup-miniconda@v1
         with:
           python-version: ${{ matrix.python-version }}
           auto-update-conda: true
@@ -110,9 +110,11 @@ jobs:
           FLOAT32: ${{ matrix.float32 }}
 
       - name: Coverage
-        uses: exoplanet-dev/coveralls-python-action@develop
+        uses: coverallsapp/github-action@master
         continue-on-error: true
         with:
+          github-token: ${{ secrets.github_token }}
+          flag-name: run-${{ job.container.id }}
           parallel: true
 
   coverage:
@@ -120,7 +122,9 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-    - name: Coveralls Finished
-      uses: exoplanet-dev/coveralls-python-action@develop
-      with:
-        parallel-finished: true
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@master
+        continue-on-error: true
+        with:
+          github-token: ${{ secrets.github_token }}
+          parallel-finished: true
