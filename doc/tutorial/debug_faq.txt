@@ -607,7 +607,7 @@ Breakpoint during Theano function execution
 -------------------------------------------
 
 You can set a breakpoint during the execution of a Theano function with
-:class:`PdbBreakpoint <tests.breakpoint.PdbBreakpoint>`.
-:class:`PdbBreakpoint <tests.breakpoint.PdbBreakpoint>` automatically
+:class:`PdbBreakpoint <theano.breakpoint.PdbBreakpoint>`.
+:class:`PdbBreakpoint <theano.breakpoint.PdbBreakpoint>` automatically
 detects available debuggers and uses the first available in the following order:
 `pudb`, `ipdb`, or `pdb`.

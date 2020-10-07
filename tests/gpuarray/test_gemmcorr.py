@@ -9,11 +9,11 @@ from theano.gpuarray.blas import GpuCorrMM, GpuCorrMM_gradWeights, GpuCorrMM_gra
 
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, ref_cast
-from tests.theano.tensor.nnet.test_abstract_conv import (
+from tests.tensor.nnet.test_abstract_conv import (
     TestGroupedConvNoOptim,
     TestUnsharedConv,
 )
-from tests.tensor.nnet.theano.test_abstract_conv import (
+from tests.tensor.nnet.test_abstract_conv import (
     TestAsymmetricPadding,
     TestCausalConv,
 )

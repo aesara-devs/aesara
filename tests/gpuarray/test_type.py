@@ -15,7 +15,7 @@ from tests.gpuarray.config import test_ctx_name
 from tests.gpuarray.test_basic_ops import rand_gpuarray
 
 # Disabled for now
-# from tests.theano.tensor.test_sharedvar import makeSharedTester
+# from tests.tensor.test_sharedvar import makeSharedTester
 
 
 def test_deep_copy():

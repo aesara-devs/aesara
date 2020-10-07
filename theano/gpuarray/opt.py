@@ -51,7 +51,7 @@ import theano.tensor.signal.pool as pool
 import theano.tensor.slinalg as slinalg
 from collections import Counter
 
-from tests.breakpoint import PdbBreakpoint
+from theano.breakpoint import PdbBreakpoint
 
 from .type import (
     GpuArrayType,
