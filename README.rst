@@ -1,56 +1,69 @@
-|Build Status| |Coverage|
+|Tests Status| |Coverage|
 
-===================================================================================================
-Fork of the Theano library which will continue to be maintained for the purpose of supporting PyMC3
-===================================================================================================
+|Project Name| is a Python library that allows you to define, optimize, and
+efficiently evaluate mathematical expressions involving multi-dimensional
+arrays.  It can use GPUs and perform efficient symbolic differentiation.
 
-To install the package, see this page:
-   http://deeplearning.net/software/theano/install.html
+This is a fork of the `original Theano library <https://github.com/Theano/Theano>`__ that is being
+maintained by the `PyMC team <https://github.com/pymc-devs>`__.
 
-For the documentation, see the project website:
-   http://deeplearning.net/software/theano/
+.. warning::
+   The name of this repository/project may change in the near future.
 
-Related Projects:
-   https://github.com/Theano/Theano/wiki/Related-projects
 
-It is recommended that you look at the documentation on the website, as it will be more current than the documentation included with the package.
+Features
+========
 
-In order to build the documentation yourself, you will need sphinx. Issue the following command:
+- A hackable, pure-Python codebase
+- Extensible graph framework suitable for rapid development of custom symbolic optimizations
+- Implements an extensible graph transpilation framework that currently provides
+  compilation to C and JAX JITed Python functions
+- Built on top of one of the most widely-used Python tensor libraries: Theano
+
+Getting started
+===============
+
+The legacy documentation is located `here <http://deeplearning.net/software/theano/>`__.
+
+.. warning::
+    As development progresses, the legacy documentation may become less applicable.
+
+
+Installation
+============
+
+The latest release of |Project Name| can be installed from PyPI using ``pip``:
 
 ::
 
-   python ./doc/scripts/docgen.py
+    pip install Theano-PyMC
 
-Documentation is built into ``html/``
 
-The PDF of the documentation can be found at ``html/theano.pdf``
+Or via conda-forge:
 
-================
-DIRECTORY LAYOUT
-================
+::
 
-``Theano`` (current directory) is the distribution directory.
+    conda install -c conda-forge theano-pymc
 
-* ``Theano/theano`` contains the package
-* ``Theano/theano`` has several submodules:
 
-  * ``gof`` + ``compile`` are the core
-  * ``scalar`` depends upon core
-  * ``tensor`` depends upon ``scalar``
-  * ``sparse`` depends upon ``tensor``
-  * ``sandbox`` can depend on everything else
+The current development branch of |Project Name| can be installed from GitHub, also using ``pip``:
 
-* ``Theano/examples`` are copies of the example found on the wiki
-* ``Theano/benchmark`` and ``Theano/examples`` are in the distribution, but not in
-  the Python package
-* ``Theano/bin`` contains executable scripts that are copied to the bin folder
-  when the Python package is installed
-* Tests are distributed and are part of the package, i.e. fall in
-  the appropriate submodules
-* ``Theano/doc`` contains files and scripts used to generate the documentation
-* ``Theano/html`` is where the documentation will be generated
+::
 
-.. |Build Status| image:: https://travis-ci.org/pymc-devs/Theano-PyMC.svg?branch=master
-  :target: https://travis-ci.org/pymc-devs/Theano-PyMC
+    pip install git+https://github.com/pymc-devs/Theano-PyMC
+
+
+For platform-specific installation information see the legacy documentation `here <http://deeplearning.net/software/theano/install.html>`__.
+
+
+Support
+=======
+
+The PyMC group operates under the NumFOCUS umbrella. If you want to support us financially, you can donate `here <https://numfocus.salsalabs.org/donate-to-pymc3/index.html>`__.
+
+
+.. |Project Name| replace:: Theano-PyMC
+.. |Tests Status| image:: https://github.com/pymc-devs/Theano-PyMC/workflows/Tests/badge.svg
+  :target: https://github.com/pymc-devs/Theano/actions?query=workflow%3ATests
 .. |Coverage| image:: https://coveralls.io/repos/github/pymc-devs/Theano-PyMC/badge.svg?branch=master
   :target: https://coveralls.io/github/pymc-devs/Theano-PyMC?branch=master
