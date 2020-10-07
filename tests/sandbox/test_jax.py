@@ -484,21 +484,27 @@ def test_jax_MakeVector():
 
 
 def test_jax_Reshape():
-    a_tt = tt.vector("a")
-    x = tt.basic.reshape(a_tt, (2, 2))
-    x_fg = theano.gof.FunctionGraph([a_tt], [x])
+    a = tt.vector("a")
+    x = tt.basic.reshape(a, (2, 2))
+    x_fg = theano.gof.FunctionGraph([a], [x])
+    compare_jax_and_py(x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(theano.config.floatX)])
 
+    # Test breaking "omnistaging" changes in JAX.
+    # See https://github.com/tensorflow/probability/commit/782d0c64eb774b9aac54a1c8488e4f1f96fbbc68
+    x = tt.basic.reshape(a, (a.shape[0] // 2, a.shape[0] // 2))
+    x_fg = theano.gof.FunctionGraph([a], [x])
     compare_jax_and_py(x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(theano.config.floatX)])
 
 
-def test_jax_Reshape_omnistaging():
-    # Test breaking "omnistaging" changes in JAX.
-    # See https://github.com/tensorflow/probability/commit/782d0c64eb774b9aac54a1c8488e4f1f96fbbc68
-    a_tt = tt.vector("a")
-    x = tt.basic.reshape(a_tt, (a_tt.shape[0] // 2, a_tt.shape[0] // 3))
-    x_fg = theano.gof.FunctionGraph([a_tt], [x])
-
-    compare_jax_and_py(x_fg, [np.empty((6,)).astype(theano.config.floatX)])
+@pytest.mark.xfail(reason="jax.numpy.arange requires concrete inputs")
+def test_jax_Reshape_nonconcrete():
+    a = tt.vector("a")
+    b = tt.iscalar("b")
+    x = tt.basic.reshape(a, (b, b))
+    x_fg = theano.gof.FunctionGraph([a, b], [x])
+    compare_jax_and_py(
+        x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(theano.config.floatX), 2]
+    )
 
 
 def test_jax_Dimshuffle():
@@ -623,11 +629,22 @@ def test_tensor_basics():
 
 
 @pytest.mark.xfail(reason="jax.numpy.arange requires concrete inputs")
-def test_arange():
+def test_arange_nonconcrete():
+
     a = tt.scalar("a")
     a.tag.test_value = 10
 
     out = tt.arange(a)
+    fgraph = theano.gof.FunctionGraph([a], [out])
+    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+
+@pytest.mark.xfail(reason="jax.numpy.arange requires concrete inputs")
+def test_unique_nonconcrete():
+    a = tt.matrix("a")
+    a.tag.test_value = np.arange(6, dtype=theano.config.floatX).reshape((3, 2))
+
+    out = tt.extra_ops.Unique()(a)
     fgraph = theano.gof.FunctionGraph([a], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
@@ -720,3 +737,10 @@ def test_extra_ops():
     compare_jax_and_py(
         fgraph, [get_test_value(i) for i in fgraph.inputs], must_be_device_array=False
     )
+
+    # The inputs are "concrete", yet it still has problems?
+    out = tt.extra_ops.Unique()(
+        tt.as_tensor(np.arange(6, dtype=theano.config.floatX).reshape((3, 2)))
+    )
+    fgraph = theano.gof.FunctionGraph([], [out])
+    compare_jax_and_py(fgraph, [])

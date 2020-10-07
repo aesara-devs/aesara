@@ -947,10 +947,16 @@ def jax_funcify_FillDiagonalOffset(op):
 
 @jax_funcify.register(Unique)
 def jax_funcify_Unique(op):
+    axis = op.axis
+
+    if axis is not None:
+        raise NotImplementedError(
+            "jax.numpy.unique is not implemented for the axis argument"
+        )
+
     return_index = op.return_index
     return_inverse = op.return_inverse
     return_counts = op.return_counts
-    axis = op.axis
 
     def unique(
         x,
@@ -959,17 +965,11 @@ def jax_funcify_Unique(op):
         return_counts=return_counts,
         axis=axis,
     ):
-        param = {}
-        if return_index:
-            param["return_index"] = True
-        if return_inverse:
-            param["return_inverse"] = True
-        if return_counts:
-            param["return_counts"] = True
-        if axis is not None:
-            param["axis"] = axis
-
-        return jnp.unique(x, **param)
+        ret = jnp.lax_numpy._unique1d(x, return_index, return_inverse, return_counts)
+        if len(ret) == 1:
+            return ret[0]
+        else:
+            return ret
 
     return unique
 
