@@ -12,9 +12,9 @@ from functools import wraps
 from copy import copy, deepcopy
 
 from six import integer_types
-from six.moves import StringIO
 
 from theano import config
+from theano.compile.debugmode import str_diagnostic
 
 
 _logger = logging.getLogger("tests.unittest_tools")
@@ -280,71 +280,6 @@ class InferShapeTester:
         numeric_shapes = shapes_function(*numeric_inputs)
         for out, shape in zip(numeric_outputs, numeric_shapes):
             assert np.all(out.shape == shape), (out.shape, shape)
-
-
-def str_diagnostic(expected, value, rtol, atol):
-    """Return a pretty multiline string representating the cause
-    of the exception"""
-    sio = StringIO()
-
-    try:
-        ssio = StringIO()
-        print("           : shape, dtype, strides, min, max, n_inf, n_nan:", file=ssio)
-        print("  Expected :", end=" ", file=ssio)
-        print(expected.shape, end=" ", file=ssio)
-        print(expected.dtype, end=" ", file=ssio)
-        print(expected.strides, end=" ", file=ssio)
-        print(expected.min(), end=" ", file=ssio)
-        print(expected.max(), end=" ", file=ssio)
-        print(np.isinf(expected).sum(), end=" ", file=ssio)
-        print(np.isnan(expected).sum(), end=" ", file=ssio)
-        # only if all succeeds to we add anything to sio
-        print(ssio.getvalue(), file=sio)
-    except Exception:
-        pass
-    try:
-        ssio = StringIO()
-        print("  Value    :", end=" ", file=ssio)
-        print(value.shape, end=" ", file=ssio)
-        print(value.dtype, end=" ", file=ssio)
-        print(value.strides, end=" ", file=ssio)
-        print(value.min(), end=" ", file=ssio)
-        print(value.max(), end=" ", file=ssio)
-        print(np.isinf(value).sum(), end=" ", file=ssio)
-        print(np.isnan(value).sum(), end=" ", file=ssio)
-        # only if all succeeds to we add anything to sio
-        print(ssio.getvalue(), file=sio)
-    except Exception:
-        pass
-
-    print("  expected    :", expected, file=sio)
-    print("  value    :", value, file=sio)
-
-    try:
-        ov = np.asarray(expected)
-        nv = np.asarray(value)
-        ssio = StringIO()
-        absdiff = np.absolute(nv - ov)
-        print("  Max Abs Diff: ", np.max(absdiff), file=ssio)
-        print("  Mean Abs Diff: ", np.mean(absdiff), file=ssio)
-        print("  Median Abs Diff: ", np.median(absdiff), file=ssio)
-        print("  Std Abs Diff: ", np.std(absdiff), file=ssio)
-        reldiff = np.absolute(nv - ov) / np.absolute(ov)
-        print("  Max Rel Diff: ", np.max(reldiff), file=ssio)
-        print("  Mean Rel Diff: ", np.mean(reldiff), file=ssio)
-        print("  Median Rel Diff: ", np.median(reldiff), file=ssio)
-        print("  Std Rel Diff: ", np.std(reldiff), file=ssio)
-        # only if all succeeds to we add anything to sio
-        print(ssio.getvalue(), file=sio)
-    except Exception:
-        pass
-    atol_, rtol_ = T.basic._get_atol_rtol(expected, value)
-    if rtol is not None:
-        rtol_ = rtol
-    if atol is not None:
-        atol_ = atol
-    print("  rtol, atol:", rtol_, atol_, file=sio)
-    return sio.getvalue()
 
 
 class WrongValue(Exception):
