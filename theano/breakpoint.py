@@ -36,7 +36,7 @@ class PdbBreakpoint(Op):
 
         import theano
         import theano.tensor as T
-        from tests.breakpoint import PdbBreakpoint
+        from theano.breakpoint import PdbBreakpoint
 
         input = T.fvector()
         target = T.fvector()

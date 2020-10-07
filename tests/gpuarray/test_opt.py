@@ -9,6 +9,7 @@ import theano.tensor.slinalg as slinalg
 from theano import tensor
 from theano.gof.opt import check_stack_trace
 from theano.tensor.nnet import abstract_conv
+from theano.breakpoint import PdbBreakpoint
 from theano.gpuarray import basic_ops
 from theano.gpuarray.type import GpuArrayType, gpuarray_shared_constructor, get_context
 from theano.gpuarray.basic_ops import (
@@ -34,7 +35,6 @@ from theano.gpuarray.linalg import GpuCusolverSolve, cusolver_available, GpuChol
 
 from tests import unittest_tools as utt, test_ifelse
 from tests.tensor import test_basic
-from tests.breakpoint import PdbBreakpoint
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
 
 
