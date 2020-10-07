@@ -32,7 +32,7 @@ from theano.gpuarray.subtensor import GpuSubtensor
 
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
-from tests.theano.tensor.test_basic import (
+from tests.tensor.test_basic import (
     rand,
     safe_make_node,
     TestAlloc,
