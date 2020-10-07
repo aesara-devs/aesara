@@ -4,27 +4,41 @@ on:
   push:
     branches:
       - master
-      - gh-actions
-    paths:
-      - 'setup.cfg'
-      - 'requirements.txt'
-      - '.coveragerc'
-      - '**.py'
-      - '!docs/**'
+      - checks
   pull_request:
     branches:
       - master
-    paths:
-      - 'setup.cfg'
-      - 'requirements.txt'
-      - '.coveragerc'
-      - '**.py'
-      - '!docs/**'
 
 jobs:
-  style:
-    name: "Check code style"
+  changes:
+    name: "Check for changes"
     runs-on: ubuntu-latest
+    outputs:
+      changes: ${{ steps.changes.outputs.src }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            python: &python
+            - 'theano/**/*.py'
+            - 'tests/**/*.py'
+            - '*.py'
+            src:
+            - *python
+            - '.github/**/*.yml'
+            - 'setup.cfg'
+            - 'requirements.txt'
+            - '.coveragerc'
+
+  style:
+    name: Check code style
+    needs: changes
+    runs-on: ubuntu-latest
+    if: ${{ needs.changes.outputs.changes == 'true' }}
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python
@@ -42,8 +56,11 @@ jobs:
 
   test:
     name: "Test py${{ matrix.python-version }}: ${{ matrix.part }}"
-    needs: style
+    needs:
+      - changes
+      - style
     runs-on: ubuntu-latest
+    if: ${{ needs.changes.outputs.changes == 'true' && needs.style.result == 'success' }}
     strategy:
       fail-fast: false
       matrix:
@@ -136,7 +153,11 @@ jobs:
     name: "Upload coverage"
     needs: test
     runs-on: ubuntu-latest
+    if: ${{ needs.test.result == 'success' }}
     steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v1
         with:
@@ -147,3 +168,13 @@ jobs:
           coveralls --finish
         env:
           GITHUB_TOKEN: ${{ secrets.github_token }}
+
+  combine:
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    name: "All tests"
+    needs: [changes, style, test]
+    steps:
+      - name: Check build matrix status
+        if: ${{ needs.changes.outputs.changes == 'true' && (needs.style.result != 'success' || needs.test.result != 'success') }}
+        run: exit 1
