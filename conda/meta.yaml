@@ -22,35 +22,17 @@ requirements:
     - numpy >=1.9.1
     - scipy >=0.14.0
     - {{ pin_compatible('pygpu', '0.7', max_pin='0.8') }}   # [not osx]
+    - jax  # [py>=37 and not win]
 
 test:
-  requires:
-    - pytest
-
   imports:
     - theano
-    - theano.compile
-    - theano.compile.sandbox
-    - theano.gof
-    - theano.gpuarray
-    - theano.misc
-    - theano.sandbox
-    - theano.scalar
-    - theano.sparse
-    - theano.tensor
-    - theano.tensor.nnet
-    - theano.tensor.signal
 
 about:
   home: http://deeplearning.net/software/theano/
   license: BSD 3-Clause
   license_family: BSD
   summary: Optimizing compiler for evaluating mathematical expressions on CPUs and GPUs.
-  description: |
-    Theano is a Python library that allows you to define, optimize, and
-    evaluate mathematical expressions involving multi-dimensional arrays
-    efficiently, featuring tight integration with NumPy, transparent use
-    of a GPU, efficient symbolic differentiation, speed and stability
-    optimizations and dynamic C code generation.
-  dev_url: https://github.com/Theano/Theano
+  summary: Fork of Theano for PyMC3. An optimizing compiler for evaluating mathematical expressions on CPUs and GPUs.
+  dev_url: https://github.com/pymc-devs/Theano-PyMC/
   doc_url: http://deeplearning.net/software/theano/
