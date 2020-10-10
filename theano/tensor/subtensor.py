@@ -2635,6 +2635,27 @@ advanced_boolean_set_subtensor = AdvancedBooleanIncSubtensor(set_instead_of_inc=
 
 
 def take(a, indices, axis=None, mode="raise"):
+    """Take elements from an array along an axis.
+
+    When axis is not None, this function does the same thing as "fancy"
+    indexing (indexing arrays using arrays); however, it can be easier to use
+    if you need elements along a given axis. A call such as
+    ``np.take(arr, indices, axis=3)`` is equivalent to
+    ``arr[:,:,:,indices,...]``.
+
+    See `np.take`
+
+    Parameters
+    ----------
+    a : Tensor
+        The source array.
+    indices : Tensor, ndarray, list, tuple
+        The indices of the values to extract.
+    axis : int, optional
+        The axis over which to select values. By default, the flattened
+        input array is used.
+
+    """
     a = theano.tensor.as_tensor_variable(a)
     indices = theano.tensor.as_tensor_variable(indices)
     # Reuse advanced_subtensor1 if indices is a vector
