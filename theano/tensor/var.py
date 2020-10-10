@@ -565,7 +565,11 @@ class _tensor_py_operators(object):
                 and all(
                     isinstance(a, slice) and a == slice(None) for a in args[axis + 1 :]
                 )
-                and (not hasattr(args[axis], "dtype") or args[axis].dtype != "bool")
+                # I.e. if the first advanced index is a tensor or NumPy array,
+                # then it can't be boolean (in order to meet this condition).
+                # How could this possibly occur; we filter for booleans above,
+                # right?
+                # and (not hasattr(args[axis], "dtype") or args[axis].dtype != "bool")
                 and isinstance(
                     args[axis],
                     (
@@ -577,16 +581,22 @@ class _tensor_py_operators(object):
                     ),
                 )
             ):
+                # If we're here, it means that an advanced index was found
+                # (e.g. an array of indices) and it was surrounded by full
+                # slices--or no slices (e.g. `x[:, :, idx, ...]`).  The
+                # `take` function/`Op` serves exactly this type of indexing,
+                # so we simply return its result.
                 return self.take(args[axis], axis)
             else:
                 return theano.tensor.subtensor.advanced_subtensor(self, *args)
         else:
             if np.newaxis in args:
-                # None (aka np.newaxis) in numpy indexing means to add a
-                # broadcastable dimension, which theano traditionally did with
-                # the dimshuffle op.  The following code converts numpy-style
-                # indexing on self to traditional [read: implemented] theano
-                # indexing on a dimshuffled view of self.
+                # `np.newaxis` (i.e. `None`) in NumPy indexing mean "add a new
+                # broadcastable dimension at this location".  Since Theano adds
+                # new broadcastable dimensions via the `DimShuffle` `Op`, the
+                # following code uses said `Op` to add one of the new axes and
+                # then uses recursion to apply any other indices and add any
+                # remaining new axes.
 
                 counter = 0
                 pattern = []
