@@ -1,6 +1,5 @@
 """A `Type` and `Op` classes to work with numpy.ndarrays symbolically."""
 
-import sys
 import warnings
 import numbers
 import logging
@@ -113,10 +112,10 @@ def __oplist_tag(thing, tag):
 
 
 def as_tensor_variable(x, name=None, ndim=None):
-    """Return `x`, transformed into a `TensorType`.
+    """Convert `x` into the appropriate `TensorType`.
 
-    This function is often used by `make_node` methods of `Op` subclasses
-    to turn ndarrays, numbers, `Scalar` instances, `Apply` instances and
+    This function is often used by `make_node` methods of `Op` subclasses to
+    turn ndarrays, numbers, `Scalar` instances, `Apply` instances and
     `TensorType` instances into valid input list elements.
 
     Parameters
@@ -140,6 +139,13 @@ def as_tensor_variable(x, name=None, ndim=None):
         If `x` cannot be converted to a TensorType Variable.
 
     """
+    if (
+        isinstance(getattr(x, "type", None), TensorType)
+        and (name is None or x.name == name)
+        and (ndim is None or x.ndim == ndim)
+    ):
+        return x
+
     if hasattr(x, "_as_TensorVariable"):
         return x._as_TensorVariable()  # TODO: pass name and ndim arguments
 
@@ -147,18 +153,24 @@ def as_tensor_variable(x, name=None, ndim=None):
         # use Apply's default output mechanism
         if (x.op.default_output is None) and (len(x.outputs) != 1):
             raise ValueError(
-                "It is ambiguous which output of a multi-output Op has"
-                " to be fetched.",
-                x,
+                "Multi-output Op encountered. "
+                "Retry using only one of the outputs directly."
             )
 
         x = x.default_output()
+
     if isinstance(x, Variable):
+
+        if isinstance(x, Constant):
+            return as_tensor_variable(x.data, name=name, ndim=ndim)
+
         if isinstance(x.type, scal.Scalar):
             x = tensor_from_scalar(x)
 
         if not isinstance(x.type, TensorType):
-            raise AsTensorError("Variable type field must be a TensorType.", x, x.type)
+            raise AsTensorError(
+                "Tensor type field must be a TensorType; found {}.".format(type(x.type))
+            )
 
         if ndim is None:
             return x
@@ -171,23 +183,36 @@ def as_tensor_variable(x, name=None, ndim=None):
                 x = x.dimshuffle(list(range(x.ndim))[first_non_broadcastable:])
                 if x.ndim > ndim:
                     raise ValueError(
-                        "TensorType could not be cast to have %i dimensions" % ndim,
-                        x.type,
+                        "Tensor of type {} could not be cast to have {} dimensions".format(
+                            x.type, ndim
+                        )
                     )
                 return x
             elif x.type.ndim < ndim:
                 return shape_padleft(x, n_ones=(ndim - x.type.ndim))
             else:
                 return x
-    if isinstance(x, (tuple, list)) and python_any(
-        isinstance(xi, Variable) for xi in x
-    ):
-        try:
-            return stack(x)
-        except (TypeError, ValueError):
-            pass
 
-    if isinstance(x, bool):
+    elif isinstance(x, Sequence):
+
+        def extract_constants(i):
+            if isinstance(i, Variable):
+                if isinstance(i, Constant):
+                    return i.data
+                else:
+                    raise TypeError
+            else:
+                return i
+
+        try:
+            x = [extract_constants(i) for i in x]
+        except TypeError:
+            try:
+                return stack(x)
+            except (TypeError, ValueError):
+                pass
+
+    elif isinstance(x, bool):
         raise AsTensorError(
             "Cannot cast True or False as a tensor variable. Please use "
             "np.array(True) or np.array(False) if you need these constants. "
@@ -199,11 +224,9 @@ def as_tensor_variable(x, name=None, ndim=None):
     try:
         return constant(x, name=name, ndim=ndim)
     except TypeError:
-        try:
-            str_x = str(x)
-        except Exception:
-            str_x = repr(x)
-        raise AsTensorError("Cannot convert %s to TensorType" % str_x, type(x))
+        raise AsTensorError(
+            "Cannot convert {} of type {} to TensorType".format(x, type(x))
+        )
 
 
 # this has a different name, because _as_tensor_variable is the
@@ -226,21 +249,34 @@ def constant(x, name=None, ndim=None, dtype=None):
         `x` could not be expanded to have ndim dimensions.
 
     """
+    if isinstance(x, TensorConstant):
+        if (
+            (name is None or x.name == name)
+            and (ndim is None or x.ndim == ndim)
+            and (dtype is None or x.dtype == dtype)
+        ):
+            return x
+        else:
+            x = x.data
+
     x_ = scal.convert(x, dtype=dtype)
 
-    bcastable = [d == 1 for d in x_.shape]
     if ndim is not None:
-        if len(bcastable) < ndim:
-            bcastable = [True] * (ndim - len(bcastable)) + bcastable
-        elif len(bcastable) > ndim:
-            # TODO: strip off dimensions of size 1
-            raise ValueError(
-                "ndarray could not be cast to constant with %i dimensions" % ndim
-            )
-        assert len(bcastable) == ndim
+        if x_.ndim < ndim:
+            x_ = np.expand_dims(x_, axis=tuple(range(ndim - x_.ndim)))
+        elif x_.ndim > ndim:
+            try:
+                x_ = np.squeeze(x_, axis=tuple(range(x_.ndim - ndim)))
+            except np.AxisError:
+                raise ValueError(
+                    "ndarray could not be cast to constant with %i dimensions" % ndim
+                )
+
+        assert x_.ndim == ndim
+
+    ttype = TensorType(dtype=x_.dtype, broadcastable=[s == 1 for s in x_.shape])
 
     try:
-        ttype = TensorType(dtype=x_.dtype, broadcastable=bcastable)
         return TensorConstant(ttype, x_, name=name)
     except Exception:
         raise TypeError("Could not convert %s to TensorType" % x, type(x))

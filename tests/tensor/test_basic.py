@@ -2755,9 +2755,38 @@ class ApplyDefaultTestOp(theano.Op):
         return theano.Apply(self, [x], [x.type()])
 
 
+def test_constant():
+    int8_type = tensor.TensorType(dtype="int8", broadcastable=(False,))
+
+    # Make sure we return a `TensorConstant` unchanged
+    x = tensor.TensorConstant(int8_type, [1, 2])
+    y = constant(x)
+    assert y is x
+
+    # Make sure we can add and remove broadcastable dimensions
+    int8_type = tensor.TensorType(dtype="int8", broadcastable=())
+    x_data = np.array(2, dtype="int8")
+
+    x = tensor.TensorConstant(int8_type, x_data)
+    y = constant(x, ndim=1)
+    assert y.ndim == 1
+    assert np.array_equal(y.data, np.expand_dims(x_data, 0))
+
+    y = constant(x, ndim=2)
+    assert y.ndim == 2
+    assert np.array_equal(y.data, np.expand_dims(x_data, (0, 1)))
+
+    z = constant(y, ndim=0)
+    assert y.ndim == 2 and z.ndim == 0
+    assert np.array_equal(z.data, x_data)
+
+
 class TestAsTensorVariable:
-    # Unit test for ensuring that as_tensor_variable handles Apply objects
-    # correctly and removes leading broadcastable dimensions when possible.
+    """
+    Unit test for ensuring that as_tensor_variable handles Apply objects
+    correctly and removes leading broadcastable dimensions when possible.
+    """
+
     def setup_method(self):
         self.x = tensor.scalar("x")
 
@@ -2793,35 +2822,65 @@ class TestAsTensorVariable:
         with pytest.raises(ValueError):
             as_tensor_variable(x, ndim=1)
 
-    # We test that ticket #649 stay fixed.
-    # We should not allow as_tensor_variable to accept True or False
-    # But it should upcast an ndarray of bool to uint8
     def test_bool(self):
+        # We should not allow `as_tensor_variable` to accept `True` or `False`,
+        # but it should up-cast an `ndarray` of `bool` to uint8
         with pytest.raises(TypeError):
             as_tensor_variable(True)
-        with pytest.raises(TypeError):
-            as_tensor_variable(False)
 
-    def test_ndarray_bool(self):
         ten = as_tensor_variable(np.array([True, False, False, True, True]))
         assert ten.type.dtype == "bool"
 
     def test_memmap(self):
         inp = np.random.rand(4, 3)
-        f, fname = mkstemp()
+        _, fname = mkstemp()
         new_inp = np.memmap(fname, dtype=inp.dtype, mode="w+", shape=inp.shape)
         new_inp[...] = inp
-        as_tensor_variable(new_inp)
+        res = as_tensor_variable(new_inp)
+        assert isinstance(res, tensor.TensorConstant)
+        assert res.data is new_inp
 
-    def test_empty_dtype(self):
-        old = theano.config.floatX
-        for dtype in ["float16", "float32", "float64"]:
-            try:
-                theano.config.floatX = dtype
-                assert theano.tensor.as_tensor_variable(()).dtype == dtype
-                assert theano.tensor.as_tensor_variable([]).dtype == dtype
-            finally:
-                theano.config.floatX = old
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "float16",
+            "float32",
+            "float64",
+        ],
+    )
+    def test_empty_dtype(self, dtype):
+        with theano.change_flags(floatX=dtype):
+            assert as_tensor_variable(()).dtype == dtype
+            assert as_tensor_variable([]).dtype == dtype
+
+    @pytest.mark.parametrize(
+        ("x", "y"),
+        [
+            ([1, 2], [1, 2]),
+            ([tensor.as_tensor(1), tensor.as_tensor(2)], [1, 2]),
+            ([theano.scalar.constant(1), theano.scalar.constant(2)], [1, 2]),
+        ],
+    )
+    def test_constant_consistency(self, x, y):
+        a = as_tensor_variable(x)
+        assert isinstance(a, tensor.TensorConstant)
+        assert np.array_equal(a.data, y)
+
+    def test_constant_identity(self):
+        # Values that are already `TensorType`s shouldn't be recreated by
+        # `as_tensor_variable`
+        x_scalar = tensor.TensorConstant(
+            tensor.TensorType(dtype="int8", broadcastable=()), 2
+        )
+        a_scalar = as_tensor_variable(x_scalar)
+        assert x_scalar is a_scalar
+
+        x_vector = tensor.TensorConstant(
+            tensor.TensorType(dtype="int8", broadcastable=(False,)),
+            np.array([1, 2], dtype="int8"),
+        )
+        a_vector = as_tensor_variable(x_vector)
+        assert x_vector is a_vector
 
 
 class TestAlloc:
