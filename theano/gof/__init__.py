@@ -40,7 +40,6 @@ e-mail thread "What is gof?".
 from theano.gof.cc import CLinker, OpWiseCLinker, DualLinker, HideC
 
 from theano.gof.fg import (
-    CachedConstantError,
     InconsistencyError,
     MissingInputError,
     FunctionGraph,

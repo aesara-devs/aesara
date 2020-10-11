@@ -26,7 +26,6 @@ from theano.tensor.var import (
     AsTensorError,
     TensorVariable,
     TensorConstant,
-    TensorConstantSignature,
     _tensor_py_operators,
 )
 from theano.tensor.type import TensorType, values_eq_approx_always_true
@@ -217,7 +216,7 @@ as_tensor = as_tensor_variable
 
 
 def constant(x, name=None, ndim=None, dtype=None):
-    """Return a symbolic `Constant` with value `x`.
+    """Return a `TensorConstant` with value `x`.
 
     Raises
     ------
@@ -225,16 +224,6 @@ def constant(x, name=None, ndim=None, dtype=None):
         `x` could not be converted to a numpy.ndarray.
     ValueError
         `x` could not be expanded to have ndim dimensions.
-
-    Notes
-    -----
-    We create a small cache of frequently used constant.
-    This speed up the Merge optimization for big graph.
-    We want to cache all scalar to don't merge as frequently constants.
-    But we don't want to cache too much stuff.
-    So we cache integer with dtype [u]int and float where the value is
-    between -10 and 10.
-    We cache all broadcast pattern for scalar.
 
     """
     x_ = scal.convert(x, dtype=dtype)
@@ -252,38 +241,9 @@ def constant(x, name=None, ndim=None, dtype=None):
 
     try:
         ttype = TensorType(dtype=x_.dtype, broadcastable=bcastable)
-        if not constant.enable:
-            return TensorConstant(ttype, x_, name=name)
-
-        sig = TensorConstantSignature((ttype, x_))
-        if sig in constant_cache:
-            return constant_cache[sig]
-
-        ret = TensorConstant(ttype, x_, name=name)
-        if (
-            x_.size == 1
-            and (-10) <= x_ <= 10
-            and (
-                x_.dtype in int_dtypes
-                or x_.dtype in uint_dtypes
-                or (
-                    x_.dtype in float_dtypes
-                    and
-                    # Limit the size of the cache.
-                    len(constant_cache) < 10000
-                )
-            )
-        ):
-            constant_cache[sig] = ret
-            # This is needed to raise a good error to the user.
-            ret.cached = True
-        return ret
+        return TensorConstant(ttype, x_, name=name)
     except Exception:
         raise TypeError("Could not convert %s to TensorType" % x, type(x))
-
-
-constant.enable = True
-constant_cache = {}
 
 
 def _obj_is_wrappable_as_tensor(x):

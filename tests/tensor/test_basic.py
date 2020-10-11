@@ -2761,6 +2761,10 @@ class TestAsTensorVariable:
     def setup_method(self):
         self.x = tensor.scalar("x")
 
+    def test_tensor_from_scalar(self):
+        y = as_tensor_variable(scal.int8())
+        assert isinstance(y.owner.op, TensorFromScalar)
+
     def test_one_output(self):
         good_apply_var = ApplyDefaultTestOp(0).make_node(self.x)
         as_tensor_variable(good_apply_var)
@@ -5747,81 +5751,50 @@ class TestDot:
                             assert g.broadcastable == y.broadcastable
 
 
-class TestTensorfromscalar:
-    def test_basic(self):
-        s = scal.constant(56)
-        t = tensor_from_scalar(s)
-        assert t.owner.op is tensor_from_scalar
-        assert t.type.broadcastable == (), t.type.broadcastable
-        assert t.type.ndim == 0, t.type.ndim
-        assert t.type.dtype == s.type.dtype
+def test_TensorFromScalar():
+    s = scal.constant(56)
+    t = tensor_from_scalar(s)
+    assert t.owner.op is tensor_from_scalar
+    assert t.type.broadcastable == (), t.type.broadcastable
+    assert t.type.ndim == 0, t.type.ndim
+    assert t.type.dtype == s.type.dtype
 
-        v = eval_outputs([t])
+    v = eval_outputs([t])
 
-        assert v == 56, v
-        assert isinstance(v, np.ndarray)
-        assert v.shape == (), v.shape
+    assert v == 56, v
+    assert isinstance(v, np.ndarray)
+    assert v.shape == (), v.shape
 
-    def test_basic_1(self):
-        s = scal.constant(56)
-        t = as_tensor_variable(s)
-        assert t.owner.op is tensor_from_scalar
-        assert t.type.broadcastable == (), t.type.broadcastable
-        assert t.type.ndim == 0, t.type.ndim
-        assert t.type.dtype == s.type.dtype
-
-        v = eval_outputs([t])
-
-        assert v == 56, v
-        assert isinstance(v, np.ndarray)
-        assert v.shape == (), v.shape
-
-        g = grad(t, s)
-        assert eval_outputs([g]) == 0.0
-
-    def test_basic_2(self):
-        s = scal.constant(56.0)
-        t = as_tensor_variable(s)
-        assert t.owner.op is tensor_from_scalar
-        assert t.type.broadcastable == (), t.type.broadcastable
-        assert t.type.ndim == 0, t.type.ndim
-        assert t.type.dtype == s.type.dtype
-
-        v = eval_outputs([t])
-
-        assert v == 56.0, v
-        assert isinstance(v, np.ndarray)
-        assert v.shape == (), v.shape
-
-        g = grad(t, s)
-        assert eval_outputs([g]) == 1.0
+    g = grad(t, s)
+    assert eval_outputs([g]) == 0.0
 
 
-class TestScalarfromtensor:
-    def test_basic(self):
-        tt = constant(56)  # scal.constant(56)
-        ss = scalar_from_tensor(tt)
-        assert ss.owner.op is scalar_from_tensor
-        assert ss.type.dtype == tt.type.dtype
+def test_ScalarFromTensor():
+    tt = constant(56)  # scal.constant(56)
+    ss = scalar_from_tensor(tt)
+    assert ss.owner.op is scalar_from_tensor
+    assert ss.type.dtype == tt.type.dtype
 
-        v = eval_outputs([ss])
+    v = eval_outputs([ss])
 
-        assert v == 56
-        if config.cast_policy == "custom":
-            assert isinstance(v, np.int8)
-        elif config.cast_policy in ("numpy", "numpy+floatX"):
-            assert isinstance(v, str(np.asarray(56).dtype))
-        else:
-            raise NotImplementedError(config.cast_policy)
-        assert v.shape == ()
-        tt = lscalar()
-        ss = scalar_from_tensor(tt)
-        ss.owner.op.grad([tt], [ss])
-        fff = function([tt], ss)
-        v = fff(np.asarray(5))
-        assert v == 5
-        assert isinstance(v, np.int64)
-        assert v.shape == ()
+    assert v == 56
+    assert v.shape == ()
+
+    if config.cast_policy == "custom":
+        assert isinstance(v, np.int8)
+    elif config.cast_policy in ("numpy", "numpy+floatX"):
+        assert isinstance(v, str(np.asarray(56).dtype))
+    else:
+        raise NotImplementedError(config.cast_policy)
+
+    tt = lscalar()
+    ss = scalar_from_tensor(tt)
+    ss.owner.op.grad([tt], [ss])
+    fff = function([tt], ss)
+    v = fff(np.asarray(5))
+    assert v == 5
+    assert isinstance(v, np.int64)
+    assert v.shape == ()
 
 
 class TestGrad:
