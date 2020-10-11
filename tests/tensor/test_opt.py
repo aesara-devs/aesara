@@ -2781,6 +2781,22 @@ class TestLocalSubtensorMakeVector:
         r = f(0, 1, 2)
         assert r[0] == 0 and r[1] == 2
 
+    @pytest.mark.xfail(
+        reason="local_subtensor_make_vector doesn't handle all index cases"
+    )
+    def test_MakeVector_idx(self):
+        x, y, z, q = tensor.lscalars("xyzq")
+        v = make_vector(x, y, z)
+        q = make_vector(0, 2)
+        f = function([x, y, z], v[q], mode=mode_opt)
+
+        prog = f.maker.fgraph.toposort()
+        assert len(prog) == 1
+        assert isinstance(prog[0].op, MakeVector)
+        assert len(prog[0].inputs) == 2
+        r = f(0, 1, 2)
+        assert r[0] == 0 and r[1] == 2
+
     def test_stack_trace(self):
         x, y, z = tensor.lscalars("xyz")
         v = make_vector(x, y, z)
