@@ -93,12 +93,7 @@ class Optimizer(object):
 
         """
         self.add_requirements(fgraph)
-        try:
-            orig = theano.tensor.basic.constant.enable
-            theano.tensor.basic.constant.enable = False
-            ret = self.apply(fgraph, *args, **kwargs)
-        finally:
-            theano.tensor.basic.constant.enable = orig
+        ret = self.apply(fgraph, *args, **kwargs)
         return ret
 
     def __call__(self, fgraph):
@@ -1058,45 +1053,6 @@ class MergeOptimizer(Optimizer):
             nb_merged,
             nb_constant,
         )
-
-
-def is_same_graph_with_merge(var1, var2, givens=None):
-    """
-    Merge-based implementation of `theano.gof.graph.is_same_graph`.
-
-    See help on `theano.gof.graph.is_same_graph` for additional documentation.
-
-    """
-    if givens is None:
-        givens = {}
-    # Copy variables since the MergeOptimizer will modify them.
-    copied = copy.deepcopy([var1, var2, givens])
-    vars = copied[0:2]
-    givens = copied[2]
-    # Create FunctionGraph.
-    inputs = theano.gof.graph.inputs(vars)
-    # The clone isn't needed as we did a deepcopy and we cloning will
-    # break the mapping in givens.
-    fgraph = theano.gof.fg.FunctionGraph(inputs, vars, clone=False)
-    # Perform Variable substitution.
-    for to_replace, replace_by in givens.items():
-        fgraph.replace(to_replace, replace_by)
-    # Perform merge optimization.
-    MergeOptimizer().optimize(fgraph)
-    # When two variables perform the same computations, they will have the same
-    # owner in the optimized graph.
-    # We need to be careful with the special case where the owner is None,
-    # which happens when the graph is made of a single Variable.
-    # We also need to make sure we replace a Variable if it is present in
-    # `givens`.
-    vars_replaced = [givens.get(v, v) for v in vars]
-    o1, o2 = [v.owner for v in vars_replaced]
-    if o1 is None and o2 is None:
-        # Comparing two single-Variable graphs: they are equal if they are
-        # the same Variable.
-        return vars_replaced[0] == vars_replaced[1]
-    else:
-        return o1 is o2
 
 
 def pre_constant_merge(vars):

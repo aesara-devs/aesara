@@ -1673,72 +1673,72 @@ class TestScan:
  |       |<RandomStateType> [id DD]
  |       |Shape [id DE] ''
  |       | |Subtensor{int64::} [id DA] ''
- |       |TensorConstant{0.1} [id CW]
- |       |TensorConstant{0.9} [id CX]
- |Sum{acc_dtype=float64} [id DF] ''
-   |Elemwise{mul,no_inplace} [id DG] ''
+ |       |TensorConstant{0.1} [id DF]
+ |       |TensorConstant{0.9} [id DG]
+ |Sum{acc_dtype=float64} [id DH] ''
+   |Elemwise{mul,no_inplace} [id DI] ''
      |for{cpu,scan_fn}.2 [id H] ''
-     |RandomFunction{uniform}.1 [id DH] ''
-       |<RandomStateType> [id DI]
-       |Shape [id DJ] ''
+     |RandomFunction{uniform}.1 [id DJ] ''
+       |<RandomStateType> [id DK]
+       |Shape [id DL] ''
        | |for{cpu,scan_fn}.2 [id H] ''
-       |TensorConstant{0.1} [id CW]
-       |TensorConstant{0.9} [id CX]
+       |TensorConstant{0.1} [id DM]
+       |TensorConstant{0.9} [id DN]
 
 Inner graphs of the scan ops:
 
 for{cpu,scan_fn}.1 [id H] ''
- >Elemwise{Composite{((i0 + i1) * i2)}} [id DK] ''
- > |y0[t-1] [id DL] -> [id BR]
- > |y0[t-3] [id DM] -> [id BR]
- > |InplaceDimShuffle{} [id DN] ''
- >   |CGemv{inplace} [id DO] ''
- >     |AllocEmpty{dtype='%(float)s'} [id DP] ''
- >     | |TensorConstant{1} [id DQ]
- >     |TensorConstant{1.0} [id DR]
- >     |InplaceDimShuffle{x,0} [id DS] ''
- >     | |wout_copy [id DT] -> [id CQ]
- >     |x0[t-1] [id DU] -> [id CB]
- >     |TensorConstant{0.0} [id DV]
- >Elemwise{Composite{(i0 + ((i1 + (i2 * i3)) * i4) + i5)}} [id DW] ''
- > |CGemv{no_inplace} [id DX] ''
- > | |AllocEmpty{dtype='%(float)s'} [id DY] ''
- > | | |Shape_i{1} [id DZ] ''
- > | |   |win_copy [id EA] -> [id CR]
- > | |TensorConstant{1.0} [id DR]
- > | |InplaceDimShuffle{1,0} [id EB] 'win_copy.T'
- > | | |win_copy [id EA] -> [id CR]
- > | |u1[t] [id EC] -> [id BJ]
- > | |TensorConstant{0.0} [id DV]
- > |u2[t] [id ED] -> [id BN]
- > |u2[t-1] [id EE] -> [id BL]
- > |u2[t+1] [id EF] -> [id BP]
- > |win2_copy [id EG] -> [id CO]
- > |CGemv{inplace} [id EH] ''
- >   |AllocEmpty{dtype='%(float)s'} [id EI] ''
- >   | |Shape_i{1} [id EJ] ''
- >   |   |w_copy [id EK] -> [id CP]
- >   |TensorConstant{1.0} [id DR]
- >   |InplaceDimShuffle{1,0} [id EL] 'w_copy.T'
- >   | |w_copy [id EK] -> [id CP]
- >   |x0[t-1] [id DU] -> [id CB]
- >   |TensorConstant{0.0} [id DV]
- >CGemv{no_inplace} [id DX] ''
+ >Elemwise{Composite{((i0 + i1) * i2)}} [id DO] ''
+ > |y0[t-1] [id DP] -> [id BR]
+ > |y0[t-3] [id DQ] -> [id BR]
+ > |InplaceDimShuffle{} [id DR] ''
+ >   |CGemv{inplace} [id DS] ''
+ >     |AllocEmpty{dtype='%(float)s'} [id DT] ''
+ >     | |TensorConstant{1} [id DU]
+ >     |TensorConstant{1.0} [id DV]
+ >     |InplaceDimShuffle{x,0} [id DW] ''
+ >     | |wout_copy [id DX] -> [id CQ]
+ >     |x0[t-1] [id DY] -> [id CB]
+ >     |TensorConstant{0.0} [id DZ]
+ >Elemwise{Composite{(i0 + ((i1 + (i2 * i3)) * i4) + i5)}} [id EA] ''
+ > |CGemv{no_inplace} [id EB] ''
+ > | |AllocEmpty{dtype='%(float)s'} [id EC] ''
+ > | | |Shape_i{1} [id ED] ''
+ > | |   |win_copy [id EE] -> [id CR]
+ > | |TensorConstant{1.0} [id DV]
+ > | |InplaceDimShuffle{1,0} [id EF] 'win_copy.T'
+ > | | |win_copy [id EE] -> [id CR]
+ > | |u1[t] [id EG] -> [id BJ]
+ > | |TensorConstant{0.0} [id DZ]
+ > |u2[t] [id EH] -> [id BN]
+ > |u2[t-1] [id EI] -> [id BL]
+ > |u2[t+1] [id EJ] -> [id BP]
+ > |win2_copy [id EK] -> [id CO]
+ > |CGemv{inplace} [id EL] ''
+ >   |AllocEmpty{dtype='%(float)s'} [id EM] ''
+ >   | |Shape_i{1} [id EN] ''
+ >   |   |w_copy [id EO] -> [id CP]
+ >   |TensorConstant{1.0} [id DV]
+ >   |InplaceDimShuffle{1,0} [id EP] 'w_copy.T'
+ >   | |w_copy [id EO] -> [id CP]
+ >   |x0[t-1] [id DY] -> [id CB]
+ >   |TensorConstant{0.0} [id DZ]
+ >CGemv{no_inplace} [id EB] ''
 
 for{cpu,scan_fn}.0 [id H] ''
- >Elemwise{Composite{((i0 + i1) * i2)}} [id DK] ''
- >Elemwise{Composite{(i0 + ((i1 + (i2 * i3)) * i4) + i5)}} [id DW] ''
- >CGemv{no_inplace} [id DX] ''
+ >Elemwise{Composite{((i0 + i1) * i2)}} [id DO] ''
+ >Elemwise{Composite{(i0 + ((i1 + (i2 * i3)) * i4) + i5)}} [id EA] ''
+ >CGemv{no_inplace} [id EB] ''
 
 for{cpu,scan_fn}.2 [id H] ''
- >Elemwise{Composite{((i0 + i1) * i2)}} [id DK] ''
- >Elemwise{Composite{(i0 + ((i1 + (i2 * i3)) * i4) + i5)}} [id DW] ''
- >CGemv{no_inplace} [id DX] ''
+ >Elemwise{Composite{((i0 + i1) * i2)}} [id DO] ''
+ >Elemwise{Composite{(i0 + ((i1 + (i2 * i3)) * i4) + i5)}} [id EA] ''
+ >CGemv{no_inplace} [id EB] ''
 
 for{cpu,scan_fn}.2 [id H] ''
- >Elemwise{Composite{((i0 + i1) * i2)}} [id DK] ''
- >Elemwise{Composite{(i0 + ((i1 + (i2 * i3)) * i4) + i5)}} [id DW] ''
- >CGemv{no_inplace} [id DX] ''
+ >Elemwise{Composite{((i0 + i1) * i2)}} [id DO] ''
+ >Elemwise{Composite{(i0 + ((i1 + (i2 * i3)) * i4) + i5)}} [id EA] ''
+ >CGemv{no_inplace} [id EB] ''
 """ % {
                 "float": theano.config.floatX
             }

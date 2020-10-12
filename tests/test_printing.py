@@ -656,61 +656,61 @@ def test_scan_debugprint5():
     | | | | | | |for{cpu,scan_fn} [id F] ''
     | | | | | | |Constant{1} [id BT]
     | | | | | |InplaceDimShuffle{x,x} [id BU] ''
-    | | | | |   |TensorConstant{0.0} [id BP]
-    | | | | |Elemwise{second} [id BV] ''
-    | | | | | |Subtensor{int64} [id BW] ''
+    | | | | |   |TensorConstant{0.0} [id BV]
+    | | | | |Elemwise{second} [id BW] ''
+    | | | | | |Subtensor{int64} [id BX] ''
     | | | | | | |Subtensor{int64::} [id BS] ''
-    | | | | | | |Constant{-1} [id BX]
-    | | | | | |InplaceDimShuffle{x} [id BY] ''
-    | | | | |   |Elemwise{second,no_inplace} [id BZ] ''
-    | | | | |     |Sum{acc_dtype=float64} [id CA] ''
-    | | | | |     | |Subtensor{int64} [id BW] ''
-    | | | | |     |TensorConstant{1.0} [id R]
-    | | | | |Constant{-1} [id BX]
+    | | | | | | |Constant{-1} [id BY]
+    | | | | | |InplaceDimShuffle{x} [id BZ] ''
+    | | | | |   |Elemwise{second,no_inplace} [id CA] ''
+    | | | | |     |Sum{acc_dtype=float64} [id CB] ''
+    | | | | |     | |Subtensor{int64} [id BX] ''
+    | | | | |     |TensorConstant{1.0} [id CC]
+    | | | | |Constant{-1} [id BY]
     | | | |Constant{1} [id BT]
-    | | |Constant{-1} [id CB]
-    | |Alloc [id CC] ''
-    | | |TensorConstant{0.0} [id BP]
-    | | |Elemwise{add,no_inplace} [id CD] ''
+    | | |Constant{-1} [id CD]
+    | |Alloc [id CE] ''
+    | | |TensorConstant{0.0} [id CF]
+    | | |Elemwise{add,no_inplace} [id CG] ''
     | | | |Elemwise{sub,no_inplace} [id C] ''
-    | | | |TensorConstant{1} [id Y]
-    | | |Subtensor{int64} [id CE] ''
-    | |   |Shape [id CF] ''
+    | | | |TensorConstant{1} [id CH]
+    | | |Subtensor{int64} [id CI] ''
+    | |   |Shape [id CJ] ''
     | |   | |A [id P]
-    | |   |Constant{0} [id CG]
+    | |   |Constant{0} [id CK]
     | |A [id P]
-    |Constant{-1} [id CH]
+    |Constant{-1} [id CL]
 
     Inner graphs of the scan ops:
 
     for{cpu,grad_of_scan_fn}.1 [id B] ''
-    >Elemwise{add,no_inplace} [id CI] ''
-    > |Elemwise{mul} [id CJ] ''
-    > | |<TensorType(float64, vector)> [id CK] -> [id BL]
-    > | |A_copy [id CL] -> [id P]
-    > |<TensorType(float64, vector)> [id CM] -> [id BL]
-    >Elemwise{add,no_inplace} [id CN] ''
-    > |Elemwise{mul} [id CO] ''
-    > | |<TensorType(float64, vector)> [id CK] -> [id BL]
-    > | |<TensorType(float64, vector)> [id CP] -> [id Z]
-    > |<TensorType(float64, vector)> [id CQ] -> [id CC]
+    >Elemwise{add,no_inplace} [id CM] ''
+    > |Elemwise{mul} [id CN] ''
+    > | |<TensorType(float64, vector)> [id CO] -> [id BL]
+    > | |A_copy [id CP] -> [id P]
+    > |<TensorType(float64, vector)> [id CQ] -> [id BL]
+    >Elemwise{add,no_inplace} [id CR] ''
+    > |Elemwise{mul} [id CS] ''
+    > | |<TensorType(float64, vector)> [id CO] -> [id BL]
+    > | |<TensorType(float64, vector)> [id CT] -> [id Z]
+    > |<TensorType(float64, vector)> [id CU] -> [id CE]
 
     for{cpu,scan_fn} [id F] ''
-    >Elemwise{mul,no_inplace} [id CR] ''
-    > |<TensorType(float64, vector)> [id CP] -> [id H]
-    > |A_copy [id CL] -> [id P]
+    >Elemwise{mul,no_inplace} [id CV] ''
+    > |<TensorType(float64, vector)> [id CT] -> [id H]
+    > |A_copy [id CP] -> [id P]
 
     for{cpu,scan_fn} [id F] ''
-    >Elemwise{mul,no_inplace} [id CR] ''
+    >Elemwise{mul,no_inplace} [id CV] ''
 
     for{cpu,scan_fn} [id F] ''
-    >Elemwise{mul,no_inplace} [id CR] ''
+    >Elemwise{mul,no_inplace} [id CV] ''
 
     for{cpu,scan_fn} [id F] ''
-    >Elemwise{mul,no_inplace} [id CR] ''
+    >Elemwise{mul,no_inplace} [id CV] ''
 
     for{cpu,scan_fn} [id F] ''
-    >Elemwise{mul,no_inplace} [id CR] ''"""
+    >Elemwise{mul,no_inplace} [id CV] ''"""
 
     for truth, out in zip(expected_output.split("\n"), lines):
         assert truth.strip() == out.strip()

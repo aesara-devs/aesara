@@ -2755,11 +2755,44 @@ class ApplyDefaultTestOp(theano.Op):
         return theano.Apply(self, [x], [x.type()])
 
 
+def test_constant():
+    int8_type = tensor.TensorType(dtype="int8", broadcastable=(False,))
+
+    # Make sure we return a `TensorConstant` unchanged
+    x = tensor.TensorConstant(int8_type, [1, 2])
+    y = constant(x)
+    assert y is x
+
+    # Make sure we can add and remove broadcastable dimensions
+    int8_type = tensor.TensorType(dtype="int8", broadcastable=())
+    x_data = np.array(2, dtype="int8")
+
+    x = tensor.TensorConstant(int8_type, x_data)
+    y = constant(x, ndim=1)
+    assert y.ndim == 1
+    assert np.array_equal(y.data, np.expand_dims(x_data, 0))
+
+    y = constant(x, ndim=2)
+    assert y.ndim == 2
+    assert np.array_equal(y.data, np.expand_dims(x_data, (0, 1)))
+
+    z = constant(y, ndim=0)
+    assert y.ndim == 2 and z.ndim == 0
+    assert np.array_equal(z.data, x_data)
+
+
 class TestAsTensorVariable:
-    # Unit test for ensuring that as_tensor_variable handles Apply objects
-    # correctly and removes leading broadcastable dimensions when possible.
+    """
+    Unit test for ensuring that as_tensor_variable handles Apply objects
+    correctly and removes leading broadcastable dimensions when possible.
+    """
+
     def setup_method(self):
         self.x = tensor.scalar("x")
+
+    def test_tensor_from_scalar(self):
+        y = as_tensor_variable(scal.int8())
+        assert isinstance(y.owner.op, TensorFromScalar)
 
     def test_one_output(self):
         good_apply_var = ApplyDefaultTestOp(0).make_node(self.x)
@@ -2789,35 +2822,65 @@ class TestAsTensorVariable:
         with pytest.raises(ValueError):
             as_tensor_variable(x, ndim=1)
 
-    # We test that ticket #649 stay fixed.
-    # We should not allow as_tensor_variable to accept True or False
-    # But it should upcast an ndarray of bool to uint8
     def test_bool(self):
+        # We should not allow `as_tensor_variable` to accept `True` or `False`,
+        # but it should up-cast an `ndarray` of `bool` to uint8
         with pytest.raises(TypeError):
             as_tensor_variable(True)
-        with pytest.raises(TypeError):
-            as_tensor_variable(False)
 
-    def test_ndarray_bool(self):
         ten = as_tensor_variable(np.array([True, False, False, True, True]))
         assert ten.type.dtype == "bool"
 
     def test_memmap(self):
         inp = np.random.rand(4, 3)
-        f, fname = mkstemp()
+        _, fname = mkstemp()
         new_inp = np.memmap(fname, dtype=inp.dtype, mode="w+", shape=inp.shape)
         new_inp[...] = inp
-        as_tensor_variable(new_inp)
+        res = as_tensor_variable(new_inp)
+        assert isinstance(res, tensor.TensorConstant)
+        assert res.data is new_inp
 
-    def test_empty_dtype(self):
-        old = theano.config.floatX
-        for dtype in ["float16", "float32", "float64"]:
-            try:
-                theano.config.floatX = dtype
-                assert theano.tensor.as_tensor_variable(()).dtype == dtype
-                assert theano.tensor.as_tensor_variable([]).dtype == dtype
-            finally:
-                theano.config.floatX = old
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "float16",
+            "float32",
+            "float64",
+        ],
+    )
+    def test_empty_dtype(self, dtype):
+        with theano.change_flags(floatX=dtype):
+            assert as_tensor_variable(()).dtype == dtype
+            assert as_tensor_variable([]).dtype == dtype
+
+    @pytest.mark.parametrize(
+        ("x", "y"),
+        [
+            ([1, 2], [1, 2]),
+            ([tensor.as_tensor(1), tensor.as_tensor(2)], [1, 2]),
+            ([theano.scalar.constant(1), theano.scalar.constant(2)], [1, 2]),
+        ],
+    )
+    def test_constant_consistency(self, x, y):
+        a = as_tensor_variable(x)
+        assert isinstance(a, tensor.TensorConstant)
+        assert np.array_equal(a.data, y)
+
+    def test_constant_identity(self):
+        # Values that are already `TensorType`s shouldn't be recreated by
+        # `as_tensor_variable`
+        x_scalar = tensor.TensorConstant(
+            tensor.TensorType(dtype="int8", broadcastable=()), 2
+        )
+        a_scalar = as_tensor_variable(x_scalar)
+        assert x_scalar is a_scalar
+
+        x_vector = tensor.TensorConstant(
+            tensor.TensorType(dtype="int8", broadcastable=(False,)),
+            np.array([1, 2], dtype="int8"),
+        )
+        a_vector = as_tensor_variable(x_vector)
+        assert x_vector is a_vector
 
 
 class TestAlloc:
@@ -3019,96 +3082,86 @@ class TestTriangle:
 
 
 class TestNonzero:
+    @change_flags(compute_test_value="raise")
     def test_nonzero(self):
         def check(m):
             m_symb = theano.tensor.tensor(
                 dtype=m.dtype, broadcastable=(False,) * m.ndim
             )
+            m_symb.tag.test_value = m
 
-            f_tuple = function([m_symb], nonzero(m_symb, return_matrix=False))
-            f_matrix = function([m_symb], nonzero(m_symb, return_matrix=True))
+            res_tuple_tt = nonzero(m_symb, return_matrix=False)
+            res_matrix_tt = nonzero(m_symb, return_matrix=True)
 
-            assert np.allclose(f_matrix(m), np.vstack(np.nonzero(m)))
-            for i, j in zip(f_tuple(m), np.nonzero(m)):
+            res_tuple = tuple(r.tag.test_value for r in res_tuple_tt)
+            res_matrix = res_matrix_tt.tag.test_value
+
+            assert np.allclose(res_matrix, np.vstack(np.nonzero(m)))
+
+            for i, j in zip(res_tuple, np.nonzero(m)):
                 assert np.allclose(i, j)
 
-        rand0d = np.array(rand())
+        rand0d = np.empty(())
         with pytest.raises(ValueError):
             check(rand0d)
 
-        rand1d = rand(8)
+        rand1d = np.empty((8,))
         rand1d[:4] = 0
         check(rand1d)
 
-        rand2d = rand(8, 9)
+        rand2d = np.empty((8, 9))
         rand2d[:4] = 0
         check(rand2d)
 
-        rand3d = rand(8, 9, 10)
-        rand3d[:4] = 0
-        check(rand3d)
-
-        rand4d = rand(8, 9, 10, 11)
-        rand4d[:4] = 0
-        check(rand4d)
-
+    @change_flags(compute_test_value="raise")
     def test_flatnonzero(self):
         def check(m):
             m_symb = theano.tensor.tensor(
                 dtype=m.dtype, broadcastable=(False,) * m.ndim
             )
-            f = function([m_symb], flatnonzero(m_symb))
-            result = f(m)
+            m_symb.tag.test_value = m
+
+            res_tt = flatnonzero(m_symb)
+
+            result = res_tt.tag.test_value
             assert np.allclose(result, np.flatnonzero(m))
 
-        rand0d = np.array(rand())
+        rand0d = np.empty(())
         with pytest.raises(ValueError):
             check(rand0d)
 
-        rand1d = rand(8)
+        rand1d = np.empty((8,))
         rand1d[:4] = 0
         check(rand1d)
 
-        rand2d = rand(8, 9)
+        rand2d = np.empty((8, 9))
         rand2d[:4] = 0
         check(rand2d)
 
-        rand3d = rand(8, 9, 10)
-        rand3d[:4] = 0
-        check(rand3d)
-
-        rand4d = rand(8, 9, 10, 11)
-        rand4d[:4] = 0
-        check(rand4d)
-
+    @change_flags(compute_test_value="raise")
     def test_nonzero_values(self):
         def check(m):
             m_symb = theano.tensor.tensor(
                 dtype=m.dtype, broadcastable=(False,) * m.ndim
             )
-            f = function([m_symb], nonzero_values(m_symb))
-            result = f(m)
+            m_symb.tag.test_value = m
+
+            res_tt = nonzero_values(m_symb)
+
+            result = res_tt.tag.test_value
             assert np.allclose(result, m[np.nonzero(m)])
 
-        rand0d = rand()
+        rand0d = np.empty(())
         with pytest.raises(ValueError):
             check(rand0d)
 
-        rand1d = rand(8)
+        rand1d = np.empty((8,))
         rand1d[:4] = 0
         check(rand1d)
 
-        rand2d = rand(8, 9)
+        rand2d = np.empty((8, 9))
         rand2d[:4] = 0
         check(rand2d)
-
-        rand3d = rand(8, 9, 10)
-        rand3d[:4] = 0
-        check(rand3d)
-
-        rand4d = rand(8, 9, 10, 11)
-        rand4d[:4] = 0
-        check(rand4d)
 
 
 def test_identity():
@@ -5757,81 +5810,50 @@ class TestDot:
                             assert g.broadcastable == y.broadcastable
 
 
-class TestTensorfromscalar:
-    def test_basic(self):
-        s = scal.constant(56)
-        t = tensor_from_scalar(s)
-        assert t.owner.op is tensor_from_scalar
-        assert t.type.broadcastable == (), t.type.broadcastable
-        assert t.type.ndim == 0, t.type.ndim
-        assert t.type.dtype == s.type.dtype
+def test_TensorFromScalar():
+    s = scal.constant(56)
+    t = tensor_from_scalar(s)
+    assert t.owner.op is tensor_from_scalar
+    assert t.type.broadcastable == (), t.type.broadcastable
+    assert t.type.ndim == 0, t.type.ndim
+    assert t.type.dtype == s.type.dtype
 
-        v = eval_outputs([t])
+    v = eval_outputs([t])
 
-        assert v == 56, v
-        assert isinstance(v, np.ndarray)
-        assert v.shape == (), v.shape
+    assert v == 56, v
+    assert isinstance(v, np.ndarray)
+    assert v.shape == (), v.shape
 
-    def test_basic_1(self):
-        s = scal.constant(56)
-        t = as_tensor_variable(s)
-        assert t.owner.op is tensor_from_scalar
-        assert t.type.broadcastable == (), t.type.broadcastable
-        assert t.type.ndim == 0, t.type.ndim
-        assert t.type.dtype == s.type.dtype
-
-        v = eval_outputs([t])
-
-        assert v == 56, v
-        assert isinstance(v, np.ndarray)
-        assert v.shape == (), v.shape
-
-        g = grad(t, s)
-        assert eval_outputs([g]) == 0.0
-
-    def test_basic_2(self):
-        s = scal.constant(56.0)
-        t = as_tensor_variable(s)
-        assert t.owner.op is tensor_from_scalar
-        assert t.type.broadcastable == (), t.type.broadcastable
-        assert t.type.ndim == 0, t.type.ndim
-        assert t.type.dtype == s.type.dtype
-
-        v = eval_outputs([t])
-
-        assert v == 56.0, v
-        assert isinstance(v, np.ndarray)
-        assert v.shape == (), v.shape
-
-        g = grad(t, s)
-        assert eval_outputs([g]) == 1.0
+    g = grad(t, s)
+    assert eval_outputs([g]) == 0.0
 
 
-class TestScalarfromtensor:
-    def test_basic(self):
-        tt = constant(56)  # scal.constant(56)
-        ss = scalar_from_tensor(tt)
-        assert ss.owner.op is scalar_from_tensor
-        assert ss.type.dtype == tt.type.dtype
+def test_ScalarFromTensor():
+    tt = constant(56)  # scal.constant(56)
+    ss = scalar_from_tensor(tt)
+    assert ss.owner.op is scalar_from_tensor
+    assert ss.type.dtype == tt.type.dtype
 
-        v = eval_outputs([ss])
+    v = eval_outputs([ss])
 
-        assert v == 56
-        if config.cast_policy == "custom":
-            assert isinstance(v, np.int8)
-        elif config.cast_policy in ("numpy", "numpy+floatX"):
-            assert isinstance(v, str(np.asarray(56).dtype))
-        else:
-            raise NotImplementedError(config.cast_policy)
-        assert v.shape == ()
-        tt = lscalar()
-        ss = scalar_from_tensor(tt)
-        ss.owner.op.grad([tt], [ss])
-        fff = function([tt], ss)
-        v = fff(np.asarray(5))
-        assert v == 5
-        assert isinstance(v, np.int64)
-        assert v.shape == ()
+    assert v == 56
+    assert v.shape == ()
+
+    if config.cast_policy == "custom":
+        assert isinstance(v, np.int8)
+    elif config.cast_policy in ("numpy", "numpy+floatX"):
+        assert isinstance(v, str(np.asarray(56).dtype))
+    else:
+        raise NotImplementedError(config.cast_policy)
+
+    tt = lscalar()
+    ss = scalar_from_tensor(tt)
+    ss.owner.op.grad([tt], [ss])
+    fff = function([tt], ss)
+    v = fff(np.asarray(5))
+    assert v == 5
+    assert isinstance(v, np.int64)
+    assert v.shape == ()
 
 
 class TestGrad:

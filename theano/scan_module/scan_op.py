@@ -65,7 +65,7 @@ from theano.compile import function, In, Out
 from theano.compile.mode import AddFeatureOptimizer
 from theano import compile, config, gradient, gof, tensor
 from theano.gof import PureOp, Apply
-from theano.gof.graph import io_connection_pattern
+from theano.gof.graph import io_connection_pattern, equal_computations
 from theano.gof.toolbox import NoOutputFromInplace
 
 from theano.tensor import as_tensor_variable, TensorType
@@ -770,7 +770,7 @@ class Scan(PureOp):
             if self_in.type != other_in.type:
                 return False
 
-        return scan_utils.equal_computations(
+        return equal_computations(
             self.outputs, other.outputs, self.inputs, other.inputs
         )
 

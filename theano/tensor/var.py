@@ -1,7 +1,3 @@
-try:
-    from collections.abc import Iterable
-except (ImportError, AttributeError):
-    from collections import Iterable
 import copy
 import traceback as tb
 import warnings
@@ -10,19 +6,14 @@ import numpy as np
 import theano
 
 from six import integer_types
+from collections.abc import Iterable
 
-
-from theano.compat import PY3
 from theano.scalar import ComplexError, IntegerDivisionError
 from theano.gof import Constant, Variable
 from theano.gof.utils import hashtype
 from theano.tensor.utils import hash_from_ndarray
 from theano.tensor.type import TensorType
 from theano import config
-
-
-def equal_slices(s1, s2):
-    return s1.start == s2.start and s1.stop == s2.stop and s1.step == s2.step
 
 
 class AsTensorError(TypeError):
@@ -35,21 +26,17 @@ class AsTensorError(TypeError):
 
 
 class _tensor_py_operators(object):
-    # UNARY
     def __abs__(self):
         return theano.tensor.basic.abs_(self)
 
     def __neg__(self):
         return theano.tensor.basic.neg(self)
 
-    # CASTS
-    # REMOVED THESE BECAUSE PYTHON appears to require __int__ to return
-    # an int. -JB 20081112
+    # These won't work because Python requires an int return value
     # def __int__(self): return convert_to_int32(self)
     # def __float__(self): return convert_to_float64(self)
     # def __complex__(self): return convert_to_complex128(self)
 
-    # COMPARISONS
     _is_nonzero = True
 
     def __lt__(self, other):
@@ -91,7 +78,6 @@ class _tensor_py_operators(object):
         else:
             raise TypeError("Variables do not support boolean operations.")
 
-    # BITWISE
     def __invert__(self):
         return theano.tensor.basic.invert(self)
 
@@ -122,7 +108,6 @@ class _tensor_py_operators(object):
     # def __ixor__(self, other):
     #    return _xor_inplace(self, other)
 
-    # ARITHMETIC - NORMAL
     def __add__(self, other):
         try:
             return theano.tensor.basic.add(self, other)
@@ -168,8 +153,7 @@ class _tensor_py_operators(object):
         except (NotImplementedError, AsTensorError):
             return NotImplemented
 
-    if PY3:
-        __truediv__ = __div__
+    __truediv__ = __div__
 
     def __pow__(self, other):
         # See explanation in __add__ for the error catched
@@ -206,9 +190,8 @@ class _tensor_py_operators(object):
     def __rfloordiv__(self, other):
         return theano.tensor.basic.floor_div(other, self)
 
-    # DO NOT USE THESE BECAUSE INPLACE OPS SHOULD BE INSERTED
-    # BY OPTIMIZATIONS ONLY
-    # ARITHMETIC - INPLACE
+    # Do not use these; in-place `Op`s should be inserted by optimizations
+    # only!
     # def __iadd__(self, other):
     #    return _add_inplace(self, other)
     # def __isub__(self, other):
@@ -223,7 +206,6 @@ class _tensor_py_operators(object):
     # def __ipow__(self, other):
     #    return _pow_inplace(self, other)
 
-    # ARITHMETIC - RIGHT-OPERAND
     def __radd__(self, other):
         return theano.tensor.basic.add(other, self)
 
@@ -254,11 +236,11 @@ class _tensor_py_operators(object):
     def __trunc__(self):
         return theano.tensor.trunc(self)
 
-    # TRANSPOSE
+    # NumPy-like transpose property
     T = property(lambda self: theano.tensor.basic.transpose(self))
 
     def transpose(self, *axes):
-        """
+        """Transpose this array.
 
         Returns
         -------
@@ -290,19 +272,17 @@ class _tensor_py_operators(object):
         else theano.tensor.basic.prod(self.shape)
     )
 
-    # We can't implement __len__ to provide a better error message.
     def any(self, axis=None, keepdims=False):
         return theano.tensor.basic.any(self, axis=axis, keepdims=keepdims)
 
     def all(self, axis=None, keepdims=False):
         return theano.tensor.basic.all(self, axis=axis, keepdims=keepdims)
 
-    # Otherwise TensorVariable[:-1] does not work as Python 2.5.1 calls
-    # __len__ before calling __getitem__. It also does not catch the raised
-    # Exception!
+    # Old note: "We can't implement this because Python requests that this
+    # function returns an integer."
+    # TODO: We could use `get_vector_length` and let it raise an exception just like
+    # `__iter__` does
     # def __len__(self):
-    #     # We can't implement __len__ as Python requests that this
-    #     # function returns an integer >=0
     #     raise Exception("Theano Variables can't work with len(Theano "
     #                     "Variable) due to Python restriction. You can use "
     #                     "TheanoVariable.shape[0] instead.")
@@ -377,9 +357,9 @@ class _tensor_py_operators(object):
     def diagonal(self, offset=0, axis1=0, axis2=1):
         return theano.tensor.basic.diagonal(self, offset, axis1, axis2)
 
-    # Transfer the data to another device
     def transfer(self, target):
-        """
+        """Transfer this this array's data to another device.
+
         If `target` is `'cpu'` this will transfer to a TensorType (if
         not already one).  Other types may define additional targets.
 
@@ -390,7 +370,6 @@ class _tensor_py_operators(object):
         """
         return theano.tensor.transfer(self, target)
 
-    # Elemwise
     def arccos(self):
         return theano.tensor.arccos(self)
 
@@ -466,11 +445,9 @@ class _tensor_py_operators(object):
     def trunc(self):
         return theano.tensor.trunc(self)
 
-    # CASTING
     def astype(self, dtype):
         return theano.tensor.cast(self, dtype)
 
-    # SLICING/INDEXING
     def __getitem__(self, args):
         def includes_bool(args_el):
             if isinstance(args_el, (np.bool_, bool)) or (
@@ -545,14 +522,16 @@ class _tensor_py_operators(object):
 
         # Force input to be int64 datatype if input is an empty list or tuple
         # Else leave it as is if it is a real number
+        # Convert python literals to theano constants
         args = tuple(
             [
-                np.array(inp, dtype=np.int64) if (is_empty_array(inp)) else inp
+                theano.tensor.subtensor.as_index_constant(
+                    np.array(inp, dtype=np.int64) if is_empty_array(inp) else inp
+                )
                 for inp in args
             ]
         )
-        # Convert python literals to theano constants
-        args = theano.tensor.subtensor.make_constant(args)
+
         # Determine if advanced indexing is needed or not
         # The logic is already in Subtensor.convert: if it succeeds,
         # standard indexing is used; if it fails with
@@ -582,15 +561,15 @@ class _tensor_py_operators(object):
         elif advanced:
             if (
                 axis is not None
+                and all(isinstance(a, slice) and a == slice(None) for a in args[:axis])
                 and all(
-                    isinstance(a, slice) and equal_slices(a, slice(None))
-                    for a in args[:axis]
+                    isinstance(a, slice) and a == slice(None) for a in args[axis + 1 :]
                 )
-                and all(
-                    isinstance(a, slice) and equal_slices(a, slice(None))
-                    for a in args[axis + 1 :]
-                )
-                and (not hasattr(args[axis], "dtype") or args[axis].dtype != "bool")
+                # I.e. if the first advanced index is a tensor or NumPy array,
+                # then it can't be boolean (in order to meet this condition).
+                # How could this possibly occur; we filter for booleans above,
+                # right?
+                # and (not hasattr(args[axis], "dtype") or args[axis].dtype != "bool")
                 and isinstance(
                     args[axis],
                     (
@@ -602,16 +581,22 @@ class _tensor_py_operators(object):
                     ),
                 )
             ):
+                # If we're here, it means that an advanced index was found
+                # (e.g. an array of indices) and it was surrounded by full
+                # slices--or no slices (e.g. `x[:, :, idx, ...]`).  The
+                # `take` function/`Op` serves exactly this type of indexing,
+                # so we simply return its result.
                 return self.take(args[axis], axis)
             else:
                 return theano.tensor.subtensor.advanced_subtensor(self, *args)
         else:
             if np.newaxis in args:
-                # None (aka np.newaxis) in numpy indexing means to add a
-                # broadcastable dimension, which theano traditionally did with
-                # the dimshuffle op.  The following code converts numpy-style
-                # indexing on self to traditional [read: implemented] theano
-                # indexing on a dimshuffled view of self.
+                # `np.newaxis` (i.e. `None`) in NumPy indexing mean "add a new
+                # broadcastable dimension at this location".  Since Theano adds
+                # new broadcastable dimensions via the `DimShuffle` `Op`, the
+                # following code uses said `Op` to add one of the new axes and
+                # then uses recursion to apply any other indices and add any
+                # remaining new axes.
 
                 counter = 0
                 pattern = []
@@ -652,7 +637,6 @@ class _tensor_py_operators(object):
     def take(self, indices, axis=None, mode="raise"):
         return theano.tensor.subtensor.take(self, indices, axis, mode)
 
-    # COPYING
     def copy(self, name=None):
         """Return a symbolic copy and optionally assign a name.
 
@@ -676,7 +660,6 @@ class _tensor_py_operators(object):
                 )
             )
 
-    # CONVENIENT ACCESS TO TYPE PROPERTIES
     ndim = property(lambda self: self.type.ndim)
     """The rank of this tensor."""
 
@@ -693,7 +676,6 @@ class _tensor_py_operators(object):
     dtype = property(lambda self: self.type.dtype)
     """The dtype of this tensor."""
 
-    # extra pseudo-operator symbols
     def __dot__(left, right):
         return theano.tensor.basic.dot(left, right)
 
@@ -800,7 +782,7 @@ class _tensor_py_operators(object):
     def trace(self):
         return theano.tensor.nlinalg.trace(self)
 
-    # TO TRUMP NUMPY OPERATORS
+    # This value is set so that Theano arrays will trump NumPy operators.
     __array_priority__ = 1000
 
     def get_scalar_constant_value(self):

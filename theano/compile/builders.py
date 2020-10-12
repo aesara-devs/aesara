@@ -122,7 +122,7 @@ class OpFromGraph(gof.Op):
     .. TODO:
         - examples for a multi-layer mlp. where?
         - __hash__, __eq__ otherwise won't merge, try
-          gof.opt.is_same_graph_with_merge(op1.local_outputs, op2,
+          is_same_graph_with_merge(op1.local_outputs, op2,
           local_outputs)
         - c_code() to remove the double overhead?
         - grad() make it support DisconnectedType and the new interface

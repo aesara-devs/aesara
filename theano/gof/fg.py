@@ -20,17 +20,6 @@ from theano.misc.ordered_set import OrderedSet
 NullType = None
 
 
-class CachedConstantError(Exception):
-    """
-    An exception thrown when we put in a FunctionGraph a Constant
-    that is cached. This should not happen as the user can reuse this
-    cached constant in other FunctionGraph.
-
-    """
-
-    pass
-
-
 class InconsistencyError(Exception):
     """
     This exception should be thrown by listeners to FunctionGraph when the
@@ -186,15 +175,7 @@ class FunctionGraph(utils.object2):
             self.__setup_r__(input)
             self.variables.add(input)
 
-    # Setup a Variable #
     def __setup_r__(self, r):
-        # sets up r so it belongs to this fgraph
-        if getattr(r, "cached", False):
-            raise CachedConstantError(
-                "You manually constructed a FunctionGraph, but you passed it a"
-                " graph that has a cached constant. This should not happen."
-                " Clone the graph before building the FunctionGraph."
-            )
         if hasattr(r, "fgraph") and r.fgraph is not None and r.fgraph is not self:
             raise Exception("%s is already owned by another fgraph" % r)
         r.fgraph = self

@@ -33,21 +33,6 @@ import sys
 import warnings
 
 
-def has_handlers(logger):
-    # copied from Logger.hasHandlers() (introduced in Python 3.2)
-    _logger = logger
-    _has_handler = False
-    while _logger:
-        if _logger.handlers:
-            _has_handler = True
-            break
-        if not _logger.propagate:
-            break
-        else:
-            _logger = _logger.parent
-    return _has_handler
-
-
 theano_logger = logging.getLogger("theano")
 logging_default_handler = logging.StreamHandler()
 logging_default_formatter = logging.Formatter(
@@ -56,40 +41,27 @@ logging_default_formatter = logging.Formatter(
 logging_default_handler.setFormatter(logging_default_formatter)
 theano_logger.setLevel(logging.WARNING)
 
-if has_handlers(theano_logger) is False:
+if not theano_logger.hasHandlers():
     theano_logger.addHandler(logging_default_handler)
 
 
 # Disable default log handler added to theano_logger when the module
 # is imported.
 def disable_log_handler(logger=theano_logger, handler=logging_default_handler):
-    if has_handlers(logger):
+    if logger.hasHandlers():
         logger.removeHandler(handler)
 
 
 # Version information.
 from theano.version import version as __version__
 
-# Raise a meaning full warning/error if the theano directory is in the
-# Python path.
-from six import PY3
-
+# Raise a meaningful warning/error if the theano directory is in the Python
+# path.
 rpath = os.path.realpath(__path__[0])
 for p in sys.path:
     if os.path.realpath(p) != rpath:
         continue
-    if PY3:
-        raise RuntimeError(
-            "You have the theano directory in your Python path."
-            " This do not work in Python 3."
-        )
-    else:
-        warnings.warn(
-            "You have the theano directory in your Python path."
-            " This is will not work in Python 3."
-        )
-    break
-
+    raise RuntimeError("You have the theano directory in your Python path.")
 
 from theano.configdefaults import config
 from theano.configparser import change_flags
@@ -225,7 +197,7 @@ def dot(l, r):
 
 
 def get_scalar_constant_value(v):
-    """return the constant scalar(0-D) value underlying variable `v`
+    """Return the constant scalar (i.e. 0-D) value underlying variable `v`.
 
     If v is the output of dimshuffles, fills, allocs, rebroadcasts, cast
     this function digs through them.
@@ -236,7 +208,8 @@ def get_scalar_constant_value(v):
     tensor.basic.NotScalarConstantError.
     """
     # Is it necessary to test for presence of theano.sparse at runtime?
-    if "sparse" in globals() and isinstance(v.type, sparse.SparseType):
+    sparse = globals().get("sparse")
+    if sparse and isinstance(v.type, sparse.SparseType):
         if v.owner is not None and isinstance(v.owner.op, sparse.CSM):
             data = v.owner.inputs[0]
             return tensor.get_scalar_constant_value(data)

@@ -18,7 +18,7 @@ from collections import OrderedDict
 
 from six import integer_types
 
-from theano import gof
+from theano.gof import Op, Apply, ParamsType, Variable
 
 
 def register_view_op_c_code(type, code, version=()):
@@ -39,7 +39,7 @@ def register_view_op_c_code(type, code, version=()):
     ViewOp.c_code_and_version[type] = (code, version)
 
 
-class ViewOp(gof.Op):
+class ViewOp(Op):
     """
     Returns an inplace view of the input. Used internally by Theano.
 
@@ -54,7 +54,7 @@ class ViewOp(gof.Op):
     _f16_ok = True
 
     def make_node(self, x):
-        return gof.Apply(self, [x], [x.type()])
+        return Apply(self, [x], [x.type()])
 
     def perform(self, node, inp, out):
         (x,) = inp
@@ -151,7 +151,7 @@ def register_deep_copy_op_c_code(typ, code, version=()):
     DeepCopyOp.c_code_and_version[typ] = (code, version)
 
 
-class DeepCopyOp(gof.Op):
+class DeepCopyOp(Op):
     # Mapping from Type to C code (and version) to use.
     # In the C code, the name of the input variable is %(iname)s,
     # the output variable is %(oname)s.
@@ -165,7 +165,7 @@ class DeepCopyOp(gof.Op):
         pass
 
     def make_node(self, x):
-        return gof.Apply(self, [x], [x.type()])
+        return Apply(self, [x], [x.type()])
 
     def perform(self, node, args, outs):
         if hasattr(args[0], "copy"):
@@ -235,7 +235,7 @@ def register_shape_c_code(type, code, version=()):
     Shape.c_code_and_version[type] = (code, version)
 
 
-class Shape(gof.Op):
+class Shape(Op):
     """
     L{Op} to return the shape of a matrix.
 
@@ -260,7 +260,7 @@ class Shape(gof.Op):
         # This will fail at execution time.
         if not isinstance(x, theano.Variable):
             x = theano.tensor.as_tensor_variable(x)
-        return gof.Apply(self, [x], [theano.tensor.lvector()])
+        return Apply(self, [x], [theano.tensor.lvector()])
 
     def perform(self, node, inp, out_):
         (x,) = inp
@@ -329,7 +329,7 @@ shape = Shape()
 _shape = shape  # was used in the past, now use shape directly.
 
 
-class Shape_i(gof.Op):
+class Shape_i(Op):
     """
     L{Op} to return the shape of a matrix.
 
@@ -369,7 +369,7 @@ class Shape_i(gof.Op):
     #    using params.
     @property
     def params_type(self):
-        return gof.ParamsType(i=theano.scalar.basic.int64)
+        return ParamsType(i=theano.scalar.basic.int64)
 
     def __str__(self):
         return "%s{%i}" % (self.__class__.__name__, self.i)
@@ -540,7 +540,7 @@ def load_back(mod, name):
     return obj
 
 
-class FromFunctionOp(gof.Op):
+class FromFunctionOp(Op):
     """
     Build a basic Theano Op around a function.
 
@@ -666,7 +666,7 @@ def register_rebroadcast_c_code(typ, code, version=()):
     Rebroadcast.c_code_and_version[typ] = (code, version)
 
 
-class Rebroadcast(gof.Op):
+class Rebroadcast(Op):
     """
     Change the input's broadcastable fields in some predetermined way.
 
@@ -737,7 +737,7 @@ class Rebroadcast(gof.Op):
                 self.axis.get(i, b) for i, b in enumerate(x.type.broadcastable)
             ]
         )
-        return gof.Apply(self, [x], [t()])
+        return Apply(self, [x], [t()])
 
     def perform(self, node, inp, out_):
         (x,) = inp
@@ -848,7 +848,7 @@ def register_specify_shape_c_code(typ, code, version=(), c_support_code_apply=No
     SpecifyShape.c_code_and_version[typ] = (code, version, c_support_code_apply)
 
 
-class SpecifyShape(gof.Op):
+class SpecifyShape(Op):
     """
     L{Op} that puts into the graph the user-provided shape.
 
@@ -876,14 +876,14 @@ class SpecifyShape(gof.Op):
     _f16_ok = True
 
     def make_node(self, x, shape):
-        if not isinstance(x, gof.Variable):
+        if not isinstance(x, Variable):
             x = theano.tensor.as_tensor_variable(x)
         shape = theano.tensor.as_tensor_variable(shape)
         assert shape.ndim == 1
         assert shape.dtype in theano.tensor.integer_dtypes
         if isinstance(shape, theano.tensor.TensorConstant):
             assert shape.data.size == x.ndim
-        return gof.Apply(self, [x, shape], [x.type()])
+        return Apply(self, [x, shape], [x.type()])
 
     def perform(self, node, inp, out_):
         x, shape = inp

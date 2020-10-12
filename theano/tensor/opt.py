@@ -18,23 +18,39 @@ import theano
 from functools import reduce
 from collections import defaultdict
 
-from six import integer_types
+from six import integer_types, StringIO
 
-from theano import gof
-
-from theano.gof import opt, InconsistencyError, TopoOptimizer, graph
-from theano.gof import Variable, Constant
-from theano.gof.opt import copy_stack_trace, in2out
+from theano import (
+    gof,
+    config,
+    scalar,
+    compile,
+)  # to register the optimizer built by this file
+from theano.gof import (
+    opt,
+    InconsistencyError,
+    TopoOptimizer,
+    graph,
+    Variable,
+    Constant,
+    toolbox,
+)
+from theano.gof.opt import (
+    copy_stack_trace,
+    in2out,
+    Optimizer,
+    pre_constant_merge,
+    pre_greedy_local_optimizer,
+)
 from theano.gof.utils import MethodNotDefined
 from theano.gradient import DisconnectedType
-from theano import config
 from theano.tensor.elemwise import Elemwise, DimShuffle
 from theano.tensor.subtensor import (
     get_idx_list,
     get_canonical_form_slice,
     Subtensor,
     IncSubtensor,
-    make_constant,
+    as_index_constant,
     AdvancedIncSubtensor1,
     AdvancedIncSubtensor,
     AdvancedSubtensor1,
@@ -43,10 +59,8 @@ from theano.tensor.subtensor import (
     advanced_inc_subtensor1,
 )
 from theano.tensor.sort import TopKOp
-from theano import scalar
 from theano.scalar import basic
 from theano.tensor import basic as T
-from theano import compile  # to register the optimizer built by this file
 from theano.compile.ops import Shape, Shape_i
 from theano.tensor.type import (
     values_eq_approx_remove_inf,
@@ -54,8 +68,6 @@ from theano.tensor.type import (
     values_eq_approx_remove_inf_nan,
 )
 
-from theano.gof.opt import Optimizer, pre_constant_merge, pre_greedy_local_optimizer
-from theano.gof import toolbox
 from theano.tensor.basic import (
     Alloc,
     get_scalar_constant_value,
@@ -64,11 +76,8 @@ from theano.tensor.basic import (
     NotScalarConstantError,
     Reshape,
 )
-from six import StringIO
 
 _logger = logging.getLogger("theano.tensor.opt")
-
-# Utilities
 
 
 def _fill_chain(new_out, orig_inputs):
@@ -1059,7 +1068,7 @@ class ShapeFeature(object):
                 "indicate that a shape cannot be computed is no longer "
                 "supported, and one should now use tensor.ShapeError "
                 "instead. The original exception message is: %s" % e
-            )
+            ).with_traceback(e.__traceback__)
         except Exception as e:
             msg = (
                 "Failed to infer_shape from Op %s.\nInput shapes: "
@@ -1073,7 +1082,7 @@ class ShapeFeature(object):
                 traceback.format_exc(),
             )
             if config.on_shape_error == "raise":
-                raise Exception(msg)
+                raise Exception(msg).with_traceback(e.__traceback__)
             else:
                 _logger.warning(msg)
             o_shapes = self.default_infer_shape(
@@ -1624,7 +1633,7 @@ class ShapeFeature(object):
             # To be sure to cover all case, call equal_computation.
             # Can't use theano.gof.graph.is_same_graph(dx, dy)
             # As it currently expect that dx and dy aren't in a FunctionGraph
-            from theano.scan_module.scan_utils import equal_computations
+            from theano.gof.graph import equal_computations
 
             if not equal_computations([dx], [dy]):
                 return False
@@ -3379,7 +3388,7 @@ def local_subtensor_merge(node):
             else:
                 merged_slices += slices1[pos_1:]
 
-            merged_slices = make_constant(merged_slices)
+            merged_slices = tuple(as_index_constant(s) for s in merged_slices)
             subtens = Subtensor(merged_slices)
 
             sl_ins = Subtensor.collapse(

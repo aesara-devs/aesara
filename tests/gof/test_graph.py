@@ -1,8 +1,10 @@
-from itertools import count
 import pickle
 
 import pytest
+
 import numpy as np
+
+from itertools import count
 
 from theano import sparse, shared, tensor
 from theano.gof.graph import (
@@ -12,8 +14,8 @@ from theano.gof.graph import (
     general_toposort,
     inputs,
     io_toposort,
-    is_same_graph,
     Variable,
+    equal_computations,
 )
 from theano.gof.op import Op
 from theano.gof.type import Type
@@ -58,10 +60,6 @@ class MyOp(Op):
 
 MyOp = MyOp()
 
-##########
-# inputs #
-##########
-
 
 class TestInputs:
     def test_inputs(self):
@@ -75,11 +73,6 @@ class TestInputs:
         node2 = MyOp.make_node(node.outputs[0], r5)
         i = inputs(node2.outputs)
         assert i == [r1, r2, r5], i
-
-
-#############
-# as_string #
-#############
 
 
 class X:
@@ -124,11 +117,6 @@ class TestStr(X):
         node2 = MyOp.make_node(node.outputs[0], node.outputs[0])
         assert self.str(node.outputs, node2.outputs) == ["MyOp(R3, R3)"]
         assert self.str(node2.inputs, node2.outputs) == ["MyOp(R3, R3)"]
-
-
-#########
-# clone #
-#########
 
 
 class TestClone(X):
@@ -184,11 +172,6 @@ class TestClone(X):
 
         i, o = clone([c1], [c1], False, True)
         assert i[0] is c1 and o[0] is c1
-
-
-############
-# toposort #
-############
 
 
 def prenode(obj):
@@ -258,154 +241,6 @@ class TestToposort:
         assert all == [o0]
 
 
-#################
-# is_same_graph #
-#################
-
-
-class TestIsSameGraph:
-    def check(self, expected, debug=True):
-        """
-        Core function to perform comparison.
-
-        :param expected: A list of tuples (v1, v2, ((g1, o1), ..., (gN, oN)))
-        with:
-            - `v1` and `v2` two Variables (the graphs to be compared)
-            - `gj` a `givens` dictionary to give as input to `is_same_graph`
-            - `oj` the expected output of `is_same_graph(v1, v2, givens=gj)`
-
-        :param debug: If True, then we make sure we are testing both
-        implementations of `is_same_graph`.
-
-        This function also tries to call `is_same_graph` by inverting `v1` and
-        `v2`, and ensures the output remains the same.
-        """
-        for v1, v2, go in expected:
-            for gj, oj in go:
-                r1 = is_same_graph(v1, v2, givens=gj, debug=debug)
-                assert r1 == oj
-                r2 = is_same_graph(v2, v1, givens=gj, debug=debug)
-                assert r2 == oj
-
-    def test_single_var(self):
-        # Test `is_same_graph` with some trivial graphs (one Variable).
-
-        x, y, z = tensor.vectors("x", "y", "z")
-        self.check(
-            [
-                (x, x, (({}, True),)),
-                (
-                    x,
-                    y,
-                    (
-                        ({}, False),
-                        ({y: x}, True),
-                    ),
-                ),
-                (x, tensor.neg(x), (({}, False),)),
-                (x, tensor.neg(y), (({}, False),)),
-            ]
-        )
-
-    def test_full_graph(self):
-        # Test `is_same_graph` with more complex graphs.
-
-        x, y, z = tensor.vectors("x", "y", "z")
-        t = x * y
-        self.check(
-            [
-                (x * 2, x * 2, (({}, True),)),
-                (
-                    x * 2,
-                    y * 2,
-                    (
-                        ({}, False),
-                        ({y: x}, True),
-                    ),
-                ),
-                (
-                    x * 2,
-                    y * 2,
-                    (
-                        ({}, False),
-                        ({x: y}, True),
-                    ),
-                ),
-                (
-                    x * 2,
-                    y * 3,
-                    (
-                        ({}, False),
-                        ({y: x}, False),
-                    ),
-                ),
-                (
-                    t * 2,
-                    z * 2,
-                    (
-                        ({}, False),
-                        ({t: z}, True),
-                    ),
-                ),
-                (
-                    t * 2,
-                    z * 2,
-                    (
-                        ({}, False),
-                        ({z: t}, True),
-                    ),
-                ),
-                (x * (y * z), (x * y) * z, (({}, False),)),
-            ]
-        )
-
-    def test_merge_only(self):
-        # Test `is_same_graph` when `equal_computations` cannot be used.
-
-        x, y, z = tensor.vectors("x", "y", "z")
-        t = x * y
-        self.check(
-            [
-                (x, t, (({}, False), ({t: x}, True))),
-                (
-                    t * 2,
-                    x * 2,
-                    (
-                        ({}, False),
-                        ({t: x}, True),
-                    ),
-                ),
-                (
-                    x * x,
-                    x * y,
-                    (
-                        ({}, False),
-                        ({y: x}, True),
-                    ),
-                ),
-                (
-                    x * x,
-                    x * y,
-                    (
-                        ({}, False),
-                        ({y: x}, True),
-                    ),
-                ),
-                (
-                    x * x + z,
-                    x * y + t,
-                    (({}, False), ({y: x}, False), ({y: x, t: z}, True)),
-                ),
-            ],
-            debug=False,
-        )
-
-
-################
-# eval         #
-################
-
-
 class TestEval:
     def setup_method(self):
         self.x, self.y = tensor.scalars("x", "y")
@@ -421,9 +256,6 @@ class TestEval:
         ), "temporary functions must not be serialized"
 
 
-################
-# autoname     #
-################
 class TestAutoName:
     def test_auto_name(self):
         # Get counter value
@@ -434,27 +266,14 @@ class TestAutoName:
         assert r2.auto_name == "auto_" + str(autoname_id + 1)
 
     def test_constant(self):
-        # Make sure the value we will use for the test aren't yet in the cache.
-        r1 = tensor.constant(1.5)
-        del tensor.constant_cache[r1.signature()]
-        r1 = tensor.constant(1.6)
-        del tensor.constant_cache[r1.signature()]
-
         # Get counter value
         autoname_id = next(Variable.__count__)
         Variable.__count__ = count(autoname_id)
         r1 = tensor.constant(1.5)
-        r2 = tensor.constant(1.5)
         assert r1.auto_name == "auto_" + str(autoname_id), (
             r1.auto_name,
             "auto_" + str(autoname_id),
         )
-        # We reuse the same variable
-        assert r2.auto_name == "auto_" + str(autoname_id), (
-            r2.auto_name,
-            "auto_" + str(autoname_id),
-        )
-        assert r1 is r2
 
         r3 = tensor.constant(1.6)
         assert r3.auto_name == "auto_" + str(autoname_id + 1)
@@ -506,3 +325,13 @@ class TestAutoName:
         r2 = r1.clone()
         assert r1.auto_name == "auto_" + str(autoname_id)
         assert r2.auto_name == "auto_" + str(autoname_id + 1)
+
+
+def test_equal_computations():
+    # This was a bug report by a Theano user.
+    c = tensor.type_other.NoneConst
+    assert equal_computations([c], [c])
+    m = tensor.matrix()
+    max_argmax1 = tensor.max_and_argmax(m)
+    max_argmax2 = tensor.max_and_argmax(m)
+    assert equal_computations(max_argmax1, max_argmax2)
