@@ -9,7 +9,6 @@ from theano.tensor.basic import *
 from theano.tensor.subtensor import *
 from theano.tensor.type_other import *
 from theano.tensor.var import (
-    AsTensorError,
     _tensor_py_operators,
     TensorVariable,
     TensorConstantSignature,

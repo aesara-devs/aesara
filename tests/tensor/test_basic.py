@@ -2756,18 +2756,18 @@ class ApplyDefaultTestOp(theano.Op):
 
 
 def test_constant():
-    int8_type = tensor.TensorType(dtype="int8", broadcastable=(False,))
+    int8_vector_type = tensor.TensorType(dtype="int8", broadcastable=(False,))
 
     # Make sure we return a `TensorConstant` unchanged
-    x = tensor.TensorConstant(int8_type, [1, 2])
+    x = tensor.TensorConstant(int8_vector_type, [1, 2])
     y = constant(x)
     assert y is x
 
     # Make sure we can add and remove broadcastable dimensions
-    int8_type = tensor.TensorType(dtype="int8", broadcastable=())
+    int8_scalar_type = tensor.TensorType(dtype="int8", broadcastable=())
     x_data = np.array(2, dtype="int8")
 
-    x = tensor.TensorConstant(int8_type, x_data)
+    x = tensor.TensorConstant(int8_scalar_type, x_data)
     y = constant(x, ndim=1)
     assert y.ndim == 1
     assert np.array_equal(y.data, np.expand_dims(x_data, 0))
@@ -2794,21 +2794,27 @@ class TestAsTensorVariable:
         y = as_tensor_variable(scal.int8())
         assert isinstance(y.owner.op, TensorFromScalar)
 
-    def test_one_output(self):
+    def test_multi_outputs(self):
         good_apply_var = ApplyDefaultTestOp(0).make_node(self.x)
         as_tensor_variable(good_apply_var)
 
-    def test_below_zero_output(self):
         bad_apply_var = ApplyDefaultTestOp(-1).make_node(self.x)
         with pytest.raises(AttributeError):
-            as_tensor_variable(bad_apply_var)
+            _ = as_tensor_variable(bad_apply_var)
 
-    def test_above_output_len(self):
         bad_apply_var = ApplyDefaultTestOp(2).make_node(self.x)
         with pytest.raises(AttributeError):
-            as_tensor_variable(bad_apply_var)
+            _ = as_tensor_variable(bad_apply_var)
 
     def test_list(self):
+        # Make sure our exception handling during `Sequence` processing doesn't
+        # mask exceptions caused by unrelated logic (e.g.  computing test
+        # values)
+        with change_flags(compute_test_value="raise"), pytest.raises(ValueError):
+            a = tensor.lscalar("a")
+            y = (a, a, 1)
+            _ = as_tensor_variable(y)
+
         bad_apply_var = ApplyDefaultTestOp([0, 1]).make_node(self.x)
         with pytest.raises(AttributeError):
             as_tensor_variable(bad_apply_var)
