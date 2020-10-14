@@ -2360,7 +2360,7 @@ class BaseAdvancedSubtensor(Op):
 
     __props__ = ()
 
-    def make_node(self, x, *index):
+    def make_node(self, x, *index, is_boolean=False):
         x = theano.tensor.as_tensor_variable(x)
         index = tuple(map(as_index_variable, index))
 
@@ -2372,9 +2372,23 @@ class BaseAdvancedSubtensor(Op):
             theano.tensor.tensor(dtype="int64", broadcastable=()) if not bcast else 1
             for bcast in x.broadcastable
         )
+
+        bcast_index = index
+        if is_boolean:
+            bcast_index = tuple(
+                chain.from_iterable(
+                    theano.tensor.basic.nonzero(idx)
+                    if getattr(idx, "ndim", 0) > 0
+                    else (idx,)
+                    for idx in bcast_index
+                )
+            )
+
         bcast = [
-            getattr(i, "value", i) == 1 for i in indexed_result_shape(fake_shape, index)
+            getattr(i, "value", i) == 1
+            for i in indexed_result_shape(fake_shape, bcast_index)
         ]
+
         return gof.Apply(
             self,
             (x,) + index,
@@ -2464,6 +2478,9 @@ class AdvancedBooleanSubtensor(BaseAdvancedSubtensor):
     Return a subtensor copy, using advanced indexing with boolean masks.
 
     """
+
+    def make_node(self, x, *index):
+        return super().make_node(x, *index, is_boolean=True)
 
     def grad(self, inputs, grads):
         (gz,) = grads
