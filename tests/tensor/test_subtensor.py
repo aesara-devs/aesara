@@ -2236,6 +2236,9 @@ class TestInferShape(utt.InferShapeTester):
             check_topo=False,
         )
 
+        abs_res = n[~tensor.isinf(n)]
+        assert abs_res.broadcastable == (False,)
+
 
 @change_flags(compute_test_value="raise")
 def test_basic_shape():
