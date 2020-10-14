@@ -10,27 +10,20 @@ If you want to use a scalar variable in a Theano graph,
 you probably want to use theano.tensor.[c,z,f,d,b,w,i,l,]scalar!
 """
 
-
-from itertools import chain
 import math
 import warnings
 from copy import copy
+from functools import partial
+from itertools import chain
 from textwrap import dedent
 
 import numpy as np
 import six
-
-
 import theano
+from theano import config, gof, printing
 from theano.compat import Callable
-from theano import gof, printing
-from theano.gof import Op, utils, Variable, Constant, Type, Apply, FunctionGraph
-from functools import partial
-from theano import config
-
-from theano.gradient import DisconnectedType
-from theano.gradient import grad_undefined
-
+from theano.gof import Apply, Constant, FunctionGraph, Op, Type, Variable, utils
+from theano.gradient import DisconnectedType, grad_undefined
 from theano.printing import pprint
 
 builtin_bool = bool
@@ -267,9 +260,14 @@ class autocast_float_as(object):
 
 
 def convert(x, dtype=None):
-    """
-    Convert the input to a properly typed numpy value according to the
-    current casting policy.  Work with scalars and tensors.
+    """Convert the input to a properly typed NumPy value according to the current casting policy.
+
+    Parameters
+    ----------
+    x : Number, numpy.ndarray, or Sequence[Number]
+        The value(s) to be converted
+    dtype : str or numpy.dtype (optional)
+        The dtype to use for the conversion of `x`.
 
     """
     if dtype is not None:

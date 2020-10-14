@@ -22,7 +22,6 @@ from theano.gof.type import Generic
 from theano.scalar import int32
 from theano.tensor import elemwise
 from theano.tensor.var import (
-    AsTensorError,
     TensorVariable,
     TensorConstant,
     _tensor_py_operators,
@@ -132,10 +131,7 @@ def as_tensor_variable(x, name=None, ndim=None):
 
     Raises
     ------
-    ValueError
-        If an `Apply` with more than one output is fetched or
-        if `x` cannot be made into a Variable with `ndim` dimensions.
-    AsTensorError
+    TypeError
         If `x` cannot be converted to a TensorType Variable.
 
     """
@@ -152,7 +148,7 @@ def as_tensor_variable(x, name=None, ndim=None):
     if isinstance(x, gof.Apply):
         # use Apply's default output mechanism
         if (x.op.default_output is None) and (len(x.outputs) != 1):
-            raise ValueError(
+            raise TypeError(
                 "Multi-output Op encountered. "
                 "Retry using only one of the outputs directly."
             )
@@ -168,7 +164,7 @@ def as_tensor_variable(x, name=None, ndim=None):
             x = tensor_from_scalar(x)
 
         if not isinstance(x.type, TensorType):
-            raise AsTensorError(
+            raise TypeError(
                 "Tensor type field must be a TensorType; found {}.".format(type(x.type))
             )
 
@@ -207,13 +203,10 @@ def as_tensor_variable(x, name=None, ndim=None):
         try:
             x = [extract_constants(i) for i in x]
         except TypeError:
-            try:
-                return stack(x)
-            except (TypeError, ValueError):
-                pass
+            return stack(x)
 
     elif isinstance(x, bool):
-        raise AsTensorError(
+        raise TypeError(
             "Cannot cast True or False as a tensor variable. Please use "
             "np.array(True) or np.array(False) if you need these constants. "
             "This error might be caused by using the == operator on "
@@ -221,12 +214,7 @@ def as_tensor_variable(x, name=None, ndim=None):
             "use theano.tensor.eq(v, w) instead."
         )
 
-    try:
-        return constant(x, name=name, ndim=ndim)
-    except TypeError:
-        raise AsTensorError(
-            "Cannot convert {} of type {} to TensorType".format(x, type(x))
-        )
+    return constant(x, name=name, ndim=ndim)
 
 
 # this has a different name, because _as_tensor_variable is the

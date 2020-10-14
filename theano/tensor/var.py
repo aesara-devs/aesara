@@ -16,15 +16,6 @@ from theano.tensor.type import TensorType
 from theano import config
 
 
-class AsTensorError(TypeError):
-    """
-    Raised when as_tensor_variable isn't able to create a TensorVariable.
-
-    """
-
-    pass
-
-
 class _tensor_py_operators(object):
     def __abs__(self):
         return theano.tensor.basic.abs_(self)
@@ -117,7 +108,7 @@ class _tensor_py_operators(object):
         # Evidently, we need to catch NotImplementedError
         # TypeError from as_tensor_variable are caught in Elemwise.make_node
         # Oterwise TensorVariable * SparseVariable won't work!
-        except (NotImplementedError, AsTensorError):
+        except (NotImplementedError, TypeError):
             # We must return NotImplemented and not an
             # NotImplementedError or raise an NotImplementedError.
             # That way python will give a good error message like this
@@ -130,7 +121,7 @@ class _tensor_py_operators(object):
         # and the return value in that case
         try:
             return theano.tensor.basic.sub(self, other)
-        except (NotImplementedError, AsTensorError):
+        except (NotImplementedError, TypeError):
             return NotImplemented
 
     def __mul__(self, other):
@@ -138,7 +129,7 @@ class _tensor_py_operators(object):
         # and the return value in that case
         try:
             return theano.tensor.mul(self, other)
-        except (NotImplementedError, AsTensorError):
+        except (NotImplementedError, TypeError):
             return NotImplemented
 
     def __div__(self, other):
@@ -150,7 +141,7 @@ class _tensor_py_operators(object):
             # This is to raise the exception that occurs when trying to divide
             # two integer arrays (currently forbidden).
             raise
-        except (NotImplementedError, AsTensorError):
+        except (NotImplementedError, TypeError):
             return NotImplemented
 
     __truediv__ = __div__
@@ -160,7 +151,7 @@ class _tensor_py_operators(object):
         # and the return value in that case
         try:
             return theano.tensor.basic.pow(self, other)
-        except (NotImplementedError, AsTensorError):
+        except (NotImplementedError, TypeError):
             return NotImplemented
 
     def __mod__(self, other):
@@ -172,7 +163,7 @@ class _tensor_py_operators(object):
             # This is to raise the exception that occurs when trying to compute
             # x % y with either x or y a complex number.
             raise
-        except (NotImplementedError, AsTensorError):
+        except (NotImplementedError, TypeError):
             return NotImplemented
 
     def __divmod__(self, other):
