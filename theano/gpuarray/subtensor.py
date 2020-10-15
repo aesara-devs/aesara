@@ -683,29 +683,7 @@ class GpuAdvancedSubtensor(HideC, BaseGpuAdvancedSubtensor, tensor.AdvancedSubte
 
     def make_node(self, x, *inputs):
         ctx_name = infer_context_name(x)
-        # This method relies on AdvancedSubtensor.make_node to
-        # call tensor.subtensor.check_and_reject_bool(inputs),
-        # which raises an IndexError if there are any boolean indices.
         rval = tensor.AdvancedSubtensor.make_node(self, x, *inputs)
-        otype = GpuArrayType(
-            dtype=rval.outputs[0].type.dtype,
-            broadcastable=rval.outputs[0].type.broadcastable,
-            context_name=ctx_name,
-        )
-        x = as_gpuarray_variable(x, ctx_name)
-        return gof.Apply(self, [x] + rval.inputs[1:], [otype()])
-
-
-class GpuAdvancedBooleanSubtensor(
-    HideC, BaseGpuAdvancedSubtensor, tensor.AdvancedBooleanSubtensor
-):
-    """
-    AdvancedBooleanSubtensor on the GPU.
-    """
-
-    def make_node(self, x, *inputs):
-        ctx_name = infer_context_name(x)
-        rval = tensor.AdvancedBooleanSubtensor.make_node(self, x, *inputs)
         otype = GpuArrayType(
             dtype=rval.outputs[0].type.dtype,
             broadcastable=rval.outputs[0].type.broadcastable,
@@ -842,27 +820,6 @@ class GpuAdvancedIncSubtensor(
     def make_node(self, x, y, *inputs):
         ctx_name = infer_context_name(x, y)
         rval = tensor.AdvancedIncSubtensor.make_node(self, x, y, *inputs)
-        otype = GpuArrayType(
-            dtype=rval.outputs[0].type.dtype,
-            broadcastable=rval.outputs[0].type.broadcastable,
-            context_name=ctx_name,
-        )
-        x = as_gpuarray_variable(x, ctx_name)
-        y = as_gpuarray_variable(y, ctx_name)
-        return gof.Apply(self, [x, y] + rval.inputs[2:], [otype()])
-
-
-class GpuAdvancedBooleanIncSubtensor(
-    HideC, BaseGpuAdvancedIncSubtensor, tensor.AdvancedBooleanIncSubtensor
-):
-    """
-    Implement AdvancedBooleanIncSubtensor on the gpu.
-
-    """
-
-    def make_node(self, x, y, *inputs):
-        ctx_name = infer_context_name(x, y)
-        rval = tensor.AdvancedBooleanIncSubtensor.make_node(self, x, y, *inputs)
         otype = GpuArrayType(
             dtype=rval.outputs[0].type.dtype,
             broadcastable=rval.outputs[0].type.broadcastable,

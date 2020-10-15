@@ -11,7 +11,6 @@ from theano.tensor.var import TensorConstant
 from theano.tensor.subtensor import (
     Subtensor,
     AdvancedSubtensor,
-    AdvancedBooleanSubtensor,
     AdvancedSubtensor1,
 )
 from theano.tensor.elemwise import DimShuffle
@@ -124,31 +123,30 @@ def test__getitem__Subtensor():
     assert op_types[-1] == Subtensor
 
 
-def test__getitem__AdvancedBooleanSubtensor():
-    # Make sure we get `AdvancedBooleanSubtensor`s for basic indexing operations
+def test__getitem__AdvancedSubtensor_bool():
     x = tt.matrix("x")
     i = tt.type.TensorType("bool", (False, False))("i")
 
     z = x[i]
     op_types = [type(node.op) for node in theano.gof.graph.io_toposort([x, i], [z])]
-    assert op_types[-1] == AdvancedBooleanSubtensor
+    assert op_types[-1] == AdvancedSubtensor
 
     i = tt.type.TensorType("bool", (False,))("i")
     z = x[:, i]
     op_types = [type(node.op) for node in theano.gof.graph.io_toposort([x, i], [z])]
-    assert op_types[-1] == AdvancedBooleanSubtensor
+    assert op_types[-1] == AdvancedSubtensor
 
     i = tt.type.TensorType("bool", (False,))("i")
     z = x[..., i]
     op_types = [type(node.op) for node in theano.gof.graph.io_toposort([x, i], [z])]
-    assert op_types[-1] == AdvancedBooleanSubtensor
+    assert op_types[-1] == AdvancedSubtensor
 
     with pytest.raises(TypeError):
         z = x[[True, False], i]
 
     z = x[tt.ivector("b"), i]
     op_types = [type(node.op) for node in theano.gof.graph.io_toposort([x, i], [z])]
-    assert op_types[-1] == AdvancedBooleanSubtensor
+    assert op_types[-1] == AdvancedSubtensor
 
 
 def test__getitem__AdvancedSubtensor():

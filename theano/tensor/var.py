@@ -523,33 +523,30 @@ class _tensor_py_operators(object):
             ]
         )
 
-        # Determine if advanced indexing is needed or not
-        # The logic is already in Subtensor.convert: if it succeeds,
-        # standard indexing is used; if it fails with
-        # AdvancedIndexingError, advanced indexing, or
-        # AdvancedBooleanIndexingError, advanced indexing with boolean masks
+        # Determine if advanced indexing is needed or not.  The logic is
+        # already in `Subtensor.convert`: if it succeeds, standard indexing is
+        # used; if it fails with AdvancedIndexingError, advanced indexing is
+        # used
         advanced = False
-        advanced_boolean = False
         axis = None
         for i, arg in enumerate(args):
-            try:
-                if arg is not np.newaxis:
-                    theano.tensor.subtensor.Subtensor.convert(arg)
-            except theano.tensor.subtensor.AdvancedIndexingError:
-                if advanced:
-                    axis = None
-                    break
-                else:
-                    advanced = True
-                    axis = i
-            except theano.tensor.subtensor.AdvancedBooleanIndexingError:
-                advanced = False
-                advanced_boolean = True
+            if includes_bool(arg):
+                advanced = True
+                axis = None
                 break
 
-        if advanced_boolean:
-            return theano.tensor.subtensor.advanced_boolean_subtensor(self, *args)
-        elif advanced:
+            if arg is not np.newaxis:
+                try:
+                    theano.tensor.subtensor.Subtensor.convert(arg)
+                except theano.tensor.subtensor.AdvancedIndexingError:
+                    if advanced:
+                        axis = None
+                        break
+                    else:
+                        advanced = True
+                        axis = i
+
+        if advanced:
             if (
                 axis is not None
                 and all(isinstance(a, slice) and a == slice(None) for a in args[:axis])
