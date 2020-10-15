@@ -2183,6 +2183,19 @@ class TestInferShape(utt.InferShapeTester):
             AdvancedSubtensor,
         )
 
+        admat.tag.test_value = admat_val
+        aivec.tag.test_value = aivec_val
+        bivec.tag.test_value = bivec_val
+
+        # Make sure it doesn't complain about test values
+        with theano.change_flags(compute_test_value="raise"):
+            self._compile_and_check(
+                [admat, aivec],
+                [admat[1:3, aivec]],
+                [admat_val, aivec_val],
+                AdvancedSubtensor,
+            )
+
     def test_AdvancedSubtensor_bool(self):
         n = dmatrix()
         n_val = np.arange(6).reshape((2, 3))
