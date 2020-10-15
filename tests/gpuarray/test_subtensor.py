@@ -11,7 +11,6 @@ from theano.gpuarray.subtensor import (
     GpuSubtensor,
     GpuAdvancedSubtensor1,
     GpuAdvancedSubtensor,
-    GpuAdvancedBooleanSubtensor,
     GpuAdvancedIncSubtensor,
     GpuAdvancedIncSubtensor1,
     GpuAdvancedIncSubtensor1_dev20,
@@ -37,7 +36,6 @@ class TestGPUSubtensor(TestSubtensor):
         self.adv_sub1 = GpuAdvancedSubtensor1
         self.adv_incsub1 = GpuAdvancedIncSubtensor1
         self.adv_sub = GpuAdvancedSubtensor
-        self.adv_bool_sub = GpuAdvancedBooleanSubtensor
         self.dimshuffle = GpuDimShuffle
         self.mode = mode_with_gpu
         # avoid errors with limited devices
@@ -60,7 +58,6 @@ class TestGPUSubtensorF16(TestSubtensor):
         self.adv_sub1 = GpuAdvancedSubtensor1
         self.adv_incsub1 = GpuAdvancedIncSubtensor1
         self.adv_sub = GpuAdvancedSubtensor
-        self.adv_bool_sub = GpuAdvancedBooleanSubtensor
         self.dimshuffle = GpuDimShuffle
         self.mode = mode_with_gpu
         # avoid errors with limited devices

@@ -21,8 +21,8 @@ from theano.tensor.subtensor import (
     AdvancedSubtensor1,
     AdvancedIncSubtensor1,
     # Boolean mask indexing and setting
-    BaseAdvancedSubtensor,
-    BaseAdvancedIncSubtensor,
+    AdvancedSubtensor,
+    AdvancedIncSubtensor,
 )
 from theano.scan_module.scan_op import Scan
 from theano.scan_module.scan_utils import scan_args as ScanArgs
@@ -97,7 +97,7 @@ try:
 except AttributeError:
     pass
 
-subtensor_ops = (Subtensor, AdvancedSubtensor1, BaseAdvancedSubtensor)
+subtensor_ops = (Subtensor, AdvancedSubtensor1, AdvancedSubtensor)
 incsubtensor_ops = (IncSubtensor, AdvancedIncSubtensor1)
 
 
@@ -588,18 +588,18 @@ def jax_funcify_IncSubtensor(op):
 _ = [jax_funcify.register(op, jax_funcify_IncSubtensor) for op in incsubtensor_ops]
 
 
-@jax_funcify.register(BaseAdvancedIncSubtensor)
-def jax_funcify_BaseAdvancedIncSubtensor(op):
+@jax_funcify.register(AdvancedIncSubtensor)
+def jax_funcify_AdvancedIncSubtensor(op):
 
     if getattr(op, "set_instead_of_inc", False):
         jax_fn = jax.ops.index_update
     else:
         jax_fn = jax.ops.index_add
 
-    def baseadvancedincsubtensor(x, y, *ilist, jax_fn=jax_fn):
+    def advancedincsubtensor(x, y, *ilist, jax_fn=jax_fn):
         return jax_fn(x, ilist, y)
 
-    return baseadvancedincsubtensor
+    return advancedincsubtensor
 
 
 @jax_funcify.register(FunctionGraph)

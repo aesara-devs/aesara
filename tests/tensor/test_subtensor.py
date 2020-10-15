@@ -46,8 +46,6 @@ from theano.tensor.subtensor import (
     AdvancedIncSubtensor1,
     AdvancedSubtensor,
     AdvancedSubtensor1,
-    AdvancedBooleanSubtensor,
-    AdvancedBooleanIncSubtensor,
     advanced_inc_subtensor,
     advanced_inc_subtensor1,
     advanced_set_subtensor,
@@ -67,8 +65,6 @@ subtensor_ops = (
     IncSubtensor,
     AdvancedSubtensor1,
     AdvancedIncSubtensor1,
-    AdvancedBooleanSubtensor,
-    AdvancedBooleanIncSubtensor,
 )
 
 
@@ -368,12 +364,10 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
         # indexing with a mask for some dimensions
         mask = np.array([True, False])
-        val = self.eval_output_and_check(
-            test_array[mask], op_type=AdvancedBooleanSubtensor
-        )
+        val = self.eval_output_and_check(test_array[mask], op_type=AdvancedSubtensor)
         assert_array_equal(test_array_np[mask], val)
         val = self.eval_output_and_check(
-            inc_subtensor(test_array[mask], 1), op_type=AdvancedBooleanIncSubtensor
+            inc_subtensor(test_array[mask], 1), op_type=AdvancedIncSubtensor
         )
         assert_array_equal(numpy_inc_subtensor(test_array_np, mask, 1), val)
         assert_array_equal(
@@ -580,8 +574,8 @@ class TestSubtensor(utt.OptimizationTestMixin):
         topo_ = [node for node in topo if not isinstance(node.op, DeepCopyOp)]
         if not self.fast_compile:
             assert len(topo_) == 6
-        assert np.sum([isinstance(node.op, IncSubtensor) for node in topo_]) == 1
-        assert np.sum([isinstance(node.op, Subtensor) for node in topo_]) == 1
+        assert any(isinstance(node.op, IncSubtensor) for node in topo_)
+        assert any(isinstance(node.op, Subtensor) for node in topo_)
         gval = f()
 
         good = np.zeros_like(data)
@@ -1161,47 +1155,6 @@ class TestSubtensor(utt.OptimizationTestMixin):
             val = f()
             assert np.allclose(val, data[idx].shape)
 
-    def test_grad_advanced_inc_subtensor(self):
-        def inc_slice(*s):
-            def just_numeric_args(a, b):
-                cost = (a[s] + b).sum()
-                cost_wrt_a = tensor.grad(cost, a)
-                cost_wrt_b = tensor.grad(cost, b)
-                grads = cost_wrt_a.sum() + cost_wrt_b.sum()
-                return grads
-
-            return just_numeric_args
-
-        # vector
-        utt.verify_grad(
-            inc_slice(slice(2, 4, None)),
-            (
-                np.asarray([0, 1, 2, 3, 4, 5.0]),
-                np.asarray([9, 9.0]),
-            ),
-            mode=self.mode,
-        )
-
-        # matrix
-        utt.verify_grad(
-            inc_slice(slice(1, 2, None), slice(None, None, None)),
-            (
-                np.asarray([[0, 1], [2, 3], [4, 5.0]]),
-                np.asarray([[9, 9.0]]),
-            ),
-            mode=self.mode,
-        )
-
-        # single element
-        utt.verify_grad(
-            inc_slice(2, 1),
-            (
-                np.asarray([[0, 1], [2, 3], [4, 5.0]]),
-                np.asarray(9.0),
-            ),
-            mode=self.mode,
-        )
-
     def test_inc_and_set_subtensor(self):
         # Test increment and set with broadcast
 
@@ -1323,21 +1276,6 @@ class TestSubtensor(utt.OptimizationTestMixin):
                         all_params.append(
                             (set_instead_of_inc, inplace, data_shape, inc_shape)
                         )
-                        if False:  # Enable for debugging purpose.
-                            f = self.function(
-                                [data_var, idx_var, inc_var],
-                                output,
-                                accept_inplace=inplace,
-                                op=AdvancedIncSubtensor1,
-                            )
-                            if inplace:
-                                # Ensure calling `f` will not alter `data_num`.
-                                data_num = data_num.copy()
-                            f_out = f(data_num.copy(), idx_num, inc_num)
-                            assert np.allclose(f_out, data_copy)
-                            if not inplace:
-                                # Sanity check: `data_num` should be intact.
-                                assert (data_num == data_num_init).all()
 
         # Actual test (we compile a single Theano function to make it faster).
         orig_warn = theano.config.warn.gpu_set_subtensor1
@@ -1647,18 +1585,18 @@ class TestAdvancedSubtensor:
             rep[idx] += y_val
             check(idx, y_val, x_val, rep)
 
-    def eval_output_and_check(self, t):
+    def eval_output_and_check(self, t, op):
         f = inplace_func([], t, mode=self.mode)
         topo = f.maker.fgraph.toposort()
         topo_ = [node for node in topo if not isinstance(node.op, DeepCopyOp)]
         assert len(topo_) == 1
-        assert isinstance(topo_[0].op, AdvancedSubtensor)
+        assert isinstance(topo_[0].op, op)
         tval = f()
         return tval
 
     def test_cant_adv_idx_into_scalar(self):
         with pytest.raises(IndexError):
-            (lambda: self.s[self.ix1])()
+            self.s[self.ix1]
 
     def test_index_into_vec_w_vec(self):
         a = self.v[self.ix1]
@@ -1698,7 +1636,7 @@ class TestAdvancedSubtensor:
 
             assert isinstance(t.owner.op, AdvancedSubtensor)
 
-            val = self.eval_output_and_check(t)
+            val = self.eval_output_and_check(t, AdvancedSubtensor)
             if isinstance(idx, list):
                 good = data[0, idx]
             else:
@@ -1937,6 +1875,35 @@ class TestAdvancedSubtensor:
             fun,
             [
                 np.random.rand(5, 5).astype(self.dtype),
+                np.random.rand(2).astype(self.dtype),
+            ],
+            mode=self.mode,
+        )
+
+        # Test boolean gradients
+        def fun(x, y):
+            return advanced_inc_subtensor(
+                x, y, tensor.as_tensor(np.array([[True, False], [False, True]]))
+            )
+
+        utt.verify_grad(
+            fun,
+            [
+                np.random.rand(2, 2).astype(self.dtype),
+                np.random.rand(2).astype(self.dtype),
+            ],
+            mode=self.mode,
+        )
+
+        def fun(x, y):
+            return advanced_set_subtensor(
+                x, y, tensor.as_tensor(np.array([[True, False], [False, True]]))
+            )
+
+        utt.verify_grad(
+            fun,
+            [
+                np.random.rand(2, 2).astype(self.dtype),
                 np.random.rand(2).astype(self.dtype),
             ],
             mode=self.mode,
@@ -2216,7 +2183,7 @@ class TestInferShape(utt.InferShapeTester):
             AdvancedSubtensor,
         )
 
-    def test_AdvancedBooleanSubtensor(self):
+    def test_AdvancedSubtensor_bool(self):
         n = dmatrix()
         n_val = np.arange(6).reshape((2, 3))
 
@@ -2225,14 +2192,14 @@ class TestInferShape(utt.InferShapeTester):
             [n],
             [n[n[:, 0] > 2, n[0, :] > 2]],
             [n_val],
-            AdvancedBooleanSubtensor,
+            AdvancedSubtensor,
             check_topo=False,
         )
         self._compile_and_check(
             [n],
             [n[n[:, 0] > 2]],
             [n_val],
-            AdvancedBooleanSubtensor,
+            AdvancedSubtensor,
             check_topo=False,
         )
 
