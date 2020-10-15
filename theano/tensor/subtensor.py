@@ -2321,24 +2321,28 @@ class AdvancedSubtensor(Op):
         # `Subtensor` calls, so we create a fake symbolic shape tuple and
         # identify the broadcast dimensions from the shape result of this
         # entire subtensor operation.
-        fake_shape = tuple(
-            theano.tensor.tensor(dtype="int64", broadcastable=()) if not bcast else 1
-            for bcast in x.broadcastable
-        )
-
-        bcast_index = tuple(
-            chain.from_iterable(
-                theano.tensor.basic.nonzero(idx)
-                if getattr(idx, "ndim", 0) > 0 and getattr(idx, "dtype", None) == "bool"
-                else (idx,)
-                for idx in index
+        with theano.change_flags(compute_test_value="off"):
+            fake_shape = tuple(
+                theano.tensor.tensor(dtype="int64", broadcastable=())
+                if not bcast
+                else 1
+                for bcast in x.broadcastable
             )
-        )
 
-        bcast = [
-            getattr(i, "value", i) == 1
-            for i in indexed_result_shape(fake_shape, bcast_index)
-        ]
+            bcast_index = tuple(
+                chain.from_iterable(
+                    theano.tensor.basic.nonzero(idx)
+                    if getattr(idx, "ndim", 0) > 0
+                    and getattr(idx, "dtype", None) == "bool"
+                    else (idx,)
+                    for idx in index
+                )
+            )
+
+            bcast = [
+                getattr(i, "value", i) == 1
+                for i in indexed_result_shape(fake_shape, bcast_index)
+            ]
 
         return gof.Apply(
             self,
