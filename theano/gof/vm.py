@@ -924,7 +924,7 @@ class VM_Linker(link.LocalLinker):
             if self.use_cloop and (
                 self.callback is not None or self.callback_input is not None
             ):
-                logger.warn("CVM does not support callback, using Stack VM.")
+                logger.warning("CVM does not support callback, using Stack VM.")
             if self.use_cloop and config.profile_memory:
                 warnings.warn("CVM does not support memory profile, using Stack VM.")
             if not self.use_cloop and self.allow_partial_eval:

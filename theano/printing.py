@@ -862,7 +862,7 @@ def pydotprint(
             ):
                 cond = node
         if cond is None:
-            _logger.warn(
+            _logger.warning(
                 "pydotprint: cond_highlight is set but there is no"
                 " IfElse node in the graph"
             )

@@ -3251,7 +3251,7 @@ def merge_two_slices(slice1, len1, slice2, len2):
             # sl.stop backwards
             n_val = sl1.stop - 1 - sl2 * sl1.step
             if config.warn.subtensor_merge_bug:
-                warnings.warn(
+                warnings.warning(
                     (
                         "Your current code is fine, but Theano versions "
                         "prior to 0.5rc2 might have given an incorrect result. "
@@ -3843,7 +3843,7 @@ def local_adv_sub1_adv_inc_sub1(node):
 
     if not inp.owner.op.set_instead_of_inc:
         if config.warn.inc_subtensor1_opt:
-            warnings.warn(
+            warnings.warning(
                 "Your current code is fine, but Theano versions "
                 "between 0.7rc1 and 0.10 (or development versions "
                 "between Nov. 2014 and May 2017) "
@@ -5851,7 +5851,7 @@ def local_sum_prod_div_dimshuffle(node):
                         break
 
                 if compatible_dims:
-                    _logger.warn(
+                    _logger.warning(
                         "WARNING: Your current code is fine, but"
                         " Theano versions between "
                         "rev. 3bd9b789f5e8 (2010-06-16) and"
@@ -5906,7 +5906,7 @@ def local_sum_prod_div_dimshuffle(node):
                         if config.warn.sum_div_dimshuffle_bug and isinstance(
                             node.op, T.Sum
                         ):
-                            _logger.warn(
+                            _logger.warning(
                                 "WARNING: Your current code is fine,"
                                 " but Theano versions between "
                                 "rev. 3bd9b789f5e8 (2010-06-16) and"
@@ -6016,7 +6016,7 @@ def local_op_of_op(node):
                     and newaxis != newaxis_old
                     and len(newaxis) == len(newaxis_old)
                 ):
-                    _logger.warn(
+                    _logger.warning(
                         "WARNING (YOUR CURRENT CODE IS FINE): Theano "
                         "versions between version 9923a40c7b7a and August "
                         "2nd, 2010 generated bugged code in this case. "
@@ -6102,7 +6102,7 @@ def local_reduce_join(node):
         # I put this warning late to don't add extra warning.
         if len(reduce_axis) != 1 or 0 not in reduce_axis:
             if theano.config.warn.reduce_join:
-                warnings.warn(
+                warnings.warning(
                     (
                         "Your current code is fine, but Theano versions "
                         "prior to 0.7 (or this development version Sept 2014) "
@@ -7691,7 +7691,6 @@ def local_elemwise_fusion_op(OP, max_input_fct=lambda node: 32, maker=None):
 
         for i in node.inputs:
             do_fusion = False
-            catch = False
             # Will store inputs of the fused node that are not currently inputs
             # of the node we want to create (to avoid duplicating inputs).
             tmp_input = []
@@ -7712,7 +7711,6 @@ def local_elemwise_fusion_op(OP, max_input_fct=lambda node: 32, maker=None):
                 # computation due to broadcast.
                 i.owner.outputs[0].broadcastable == node.outputs[0].broadcastable
             ):
-                do_fusion = True
                 try:
                     tmp_s_input = []
                     # we should not put duplicate input into s_inputs and inputs
@@ -7746,12 +7744,11 @@ def local_elemwise_fusion_op(OP, max_input_fct=lambda node: 32, maker=None):
                         ["z" for z in i.owner.outputs],
                         {"fail": "%(fail)s"},
                     )
-                except MethodNotDefined:
-                    catch = True
-                except NotImplementedError:
-                    catch = True
-                if catch:
-                    _logger.info(
+
+                    do_fusion = True
+
+                except (NotImplementedError, MethodNotDefined):
+                    _logger.warning(
                         (
                             "%s does not implement the c_code function."
                             " As well as being potentially slow, this"
@@ -7819,8 +7816,8 @@ your code will run correctly, but may be slower."""
                 ["z" for x in s_new_out],
                 {"fail": "%(fail)s"},
             )
-        except MethodNotDefined:
-            _logger.info(
+        except (NotImplementedError, MethodNotDefined):
+            _logger.warning(
                 (
                     "%s does not implement the c_code function."
                     " As well as being potentially slow, this disables "
@@ -7828,17 +7825,6 @@ your code will run correctly, but may be slower."""
                 )
                 % str(s_new_out[0].owner.op)
             )
-            return False
-        except NotImplementedError:
-            _logger.info(
-                (
-                    "%s does not implement the c_code function. As well"
-                    " as being potentially slow, this disables loop"
-                    " fusion of this op."
-                )
-                % str(s_new_out[0].owner.op)
-            )
-            return False
 
         # create the composite op.
         C = scalar.Composite(s_inputs, s_new_out)
@@ -7850,7 +7836,7 @@ your code will run correctly, but may be slower."""
         assert node.outputs[0].dtype == n.outputs[0].dtype
 
         if len(n.inputs) > max_nb_input:
-            _logger.info(
+            _logger.warning(
                 "loop fusion failed because Op would exceed" " kernel argument limit."
             )
             return False

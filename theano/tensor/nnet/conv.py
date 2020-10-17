@@ -559,7 +559,7 @@ class ConvOp(OpenMPOp):
                     " bsize(%i). We revert it to %i. This"
                     " won't change the result, but may make it slower."
                 )
-                _logger.warn(warnstr, self.unroll_batch, self.bsize, new)
+                _logger.warning(warnstr, self.unroll_batch, self.bsize, new)
 
                 self.unroll_batch = new
 
@@ -585,7 +585,7 @@ class ConvOp(OpenMPOp):
                     " nkern(%i). We revert it to %i. This"
                     " won't change the result, but may make it slower."
                 )
-                _logger.warn(warnstr, self.unroll_kern, self.nkern, new)
+                _logger.warning(warnstr, self.unroll_kern, self.nkern, new)
                 self.unroll_kern = new
 
         self.outshp = get_conv_output_shape(

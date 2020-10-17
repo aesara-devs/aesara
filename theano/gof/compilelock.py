@@ -349,7 +349,7 @@ def refresh_lock(lock_file):
         # This way, only 1 test would fail.
         while get_lock.n_lock > 0:
             release_lock()
-        _logger.warn(
+        _logger.warning(
             "Refreshing lock failed, we release the"
             " lock before raising again the exception"
         )
