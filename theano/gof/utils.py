@@ -239,7 +239,7 @@ class object2(with_metaclass(MetaObject, object)):
         return not self == other
 
 
-class scratchpad(object):
+class Scratchpad(object):
     def clear(self):
         self.__dict__.clear()
 
