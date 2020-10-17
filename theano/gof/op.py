@@ -553,29 +553,10 @@ class PureOp(object):
         elif isinstance(v, SharedVariable):
             return v.get_value(borrow=True, return_internal_type=True)
         elif isinstance(v, graph.Variable) and hasattr(v.tag, "test_value"):
-            # ensure that the test value is correct
-            try:
-                ret = v.type.filter(v.tag.test_value)
-            except Exception as e:
-                # Better error message.
-                detailed_err_msg = (
-                    "For compute_test_value, one input test value does not"
-                    " have the requested type.\n"
-                )
-                detailed_err_msg += utils.get_variable_trace_string(v)
+            return v.tag.test_value
 
-                detailed_err_msg += (
-                    "\nThe error when converting the test value to that"
-                    " variable type:"
-                )
-                # We need to only have 1 args and it should be of type
-                # string.  Otherwise, it print the tuple and so the
-                # new line do not get printed.
-                args = (detailed_err_msg,) + tuple(str(arg) for arg in e.args)
-                e.args = ("\n".join(args),)
-                raise
-            return ret
         detailed_err_msg = utils.get_variable_trace_string(v)
+
         raise AttributeError("%s has no test value %s" % (v, detailed_err_msg))
 
     def __call__(self, *inputs, **kwargs):
