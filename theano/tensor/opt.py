@@ -7743,7 +7743,10 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
                                 if tv.size > 0:
                                     tmp.tag.test_value = tv.flatten()[0]
                                 else:
-                                    tmp.tag.test_value = tv
+                                    _logger.warning(
+                                        "Cannot construct a scalar test value"
+                                        " from a test value with no size: {}".format(ii)
+                                    )
                             except AttributeError:
                                 pass
 

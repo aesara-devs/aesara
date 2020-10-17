@@ -383,7 +383,7 @@ class Variable(Node):
     def __init__(self, type, owner=None, index=None, name=None):
         super(Variable, self).__init__()
 
-        self.tag = utils.Scratchpad()
+        self.tag = utils.ValidatingScratchpad("test_value", type.filter)
 
         self.type = type
         if owner is not None and not isinstance(owner, Apply):

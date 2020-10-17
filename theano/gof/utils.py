@@ -259,6 +259,23 @@ class Scratchpad(object):
             print("  %s: %s" % (k, v))
 
 
+class ValidatingScratchpad(Scratchpad):
+    """This `Scratchpad` validates attribute values."""
+
+    def __init__(self, attr, attr_filter):
+        super().__init__()
+
+        object.__setattr__(self, "attr", attr)
+        object.__setattr__(self, "attr_filter", attr_filter)
+
+    def __setattr__(self, attr, obj):
+
+        if getattr(self, "attr", None) == attr:
+            obj = self.attr_filter(obj)
+
+        return object.__setattr__(self, attr, obj)
+
+
 class D:
     def __init__(self, **d):
         self.__dict__.update(d)
