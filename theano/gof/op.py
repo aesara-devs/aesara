@@ -1057,48 +1057,13 @@ def missing_test_message(msg):
         assert action in ["ignore", "off"]
 
 
-def debug_error_message(msg):
-    """
-    Displays a message saying that an error was found in some
-    test_values. Becomes a warning or a ValueError depending on
-    config.compute_test_value.
-
-    """
-    action = config.compute_test_value
-
-    # this message should never be called when the debugger is off
-    assert action != "off"
-
-    if action in ["raise", "ignore"]:
-        raise ValueError(msg)
-    else:
-        assert action == "warn"
-        warnings.warn(msg, stacklevel=2)
-
-
-def debug_assert(condition, msg=None):
-    """
-    Customized assert with options to ignore the assert
-    with just a warning
-    """
-    if msg is None:
-        msg = "debug_assert failed"
-    if not condition:
-        action = config.compute_test_value
-        if action in ["raise", "ignore"]:
-            raise AssertionError(msg)
-        else:
-            assert action == "warn"
-            warnings.warn(msg, stacklevel=2)
-
-
 def get_debug_values(*args):
     """
     Intended use:
 
         for val_1, ..., val_n in get_debug_values(var_1, ..., var_n):
             if some condition on val_1, ..., val_n is not met:
-                debug_error_message("condition was not met")
+                missing_test_message("condition was not met")
 
     Given a list of variables, get_debug_values does one of three things:
 

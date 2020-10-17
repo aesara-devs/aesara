@@ -378,24 +378,3 @@ def test_get_debug_values_exc():
 
     finally:
         config.compute_test_value = prev_value
-
-
-def test_debug_error_message():
-    # tests that debug_error_message raises an
-    # exception when it should.
-
-    prev_value = config.compute_test_value
-
-    for mode in ["ignore", "raise"]:
-
-        try:
-            config.compute_test_value = mode
-
-            try:
-                op.debug_error_message("msg")
-                raised = False
-            except ValueError:
-                raised = True
-            assert raised
-        finally:
-            config.compute_test_value = prev_value
