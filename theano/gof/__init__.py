@@ -58,7 +58,14 @@ from theano.gof.link import (
     WrapLinkerMany,
 )
 
-from theano.gof.op import Op, OpenMPOp, PureOp, COp, ops_with_inner_function
+from theano.gof.op import (
+    Op,
+    OpenMPOp,
+    PureOp,
+    COp,
+    ops_with_inner_function,
+    get_test_value,
+)
 
 from theano.gof.type import EnumType, EnumList, CEnumType
 

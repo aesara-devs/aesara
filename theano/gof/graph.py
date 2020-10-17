@@ -383,18 +383,38 @@ class Variable(Node):
         self.tag = utils.ValidatingScratchpad("test_value", type.filter)
 
         self.type = type
+
         if owner is not None and not isinstance(owner, Apply):
             raise TypeError("owner must be an Apply instance", owner)
         self.owner = owner
+
         if index is not None and not isinstance(index, integer_types):
             raise TypeError("index must be an int", index)
         self.index = index
+
         if name is not None and not isinstance(name, string_types):
             raise TypeError("name must be a string", name)
         self.name = name
+
         self.auto_name = "auto_" + str(next(self.__count__))
 
         Variable.notify_construction_observers(self)
+
+    def get_test_value(self):
+        """Get the test value.
+
+        Raises
+        ------
+        AttributeError
+
+        """
+        if not hasattr(self.tag, "test_value"):
+            detailed_err_msg = utils.get_variable_trace_string(self)
+            raise AttributeError(
+                "{} has no test value {}".format(self, detailed_err_msg)
+            )
+
+        return self.tag.test_value
 
     def __str__(self):
         """Return a str representation of the Variable."""
@@ -582,6 +602,9 @@ class Constant(Variable):
         super().__init__(type, None, None, name)
         self.data = type.filter(data)
         utils.add_tag_trace(self)
+
+    def get_test_value(self):
+        return self.data
 
     def equals(self, other):
         # this does what __eq__ should do, but Variable and Apply should always be hashable by id

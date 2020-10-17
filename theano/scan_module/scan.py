@@ -523,7 +523,7 @@ def scan(
                 # Try to transfer test_value to the new variable
                 if config.compute_test_value != "off":
                     try:
-                        nw_slice.tag.test_value = gof.Op._get_test_value(_seq_val_slice)
+                        nw_slice.tag.test_value = gof.get_test_value(_seq_val_slice)
                     except AttributeError as e:
                         if config.compute_test_value != "ignore":
                             # No need to print a warning or raise an error now,
@@ -655,7 +655,7 @@ def scan(
             # Try to transfer test_value to the new variable
             if config.compute_test_value != "off":
                 try:
-                    arg.tag.test_value = gof.Op._get_test_value(actual_arg)
+                    arg.tag.test_value = gof.get_test_value(actual_arg)
                 except AttributeError as e:
                     if config.compute_test_value != "ignore":
                         # No need to print a warning or raise an error now,
@@ -716,7 +716,7 @@ def scan(
                 # Try to transfer test_value to the new variable
                 if config.compute_test_value != "off":
                     try:
-                        nw_slice.tag.test_value = gof.Op._get_test_value(
+                        nw_slice.tag.test_value = gof.get_test_value(
                             _init_out_var_slice
                         )
                     except AttributeError as e:
