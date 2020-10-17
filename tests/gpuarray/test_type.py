@@ -5,10 +5,10 @@ import theano
 
 pygpu = pytest.importorskip("pygpu")
 
-from theano.compat import PY3
+from pickle import Unpickler
+
 from theano import config
 from theano.compile import DeepCopyOp, Rebroadcast, ViewOp
-from theano.misc.pkl_utils import CompatUnpickler
 from theano.gpuarray.type import GpuArrayType, gpuarray_shared_constructor
 
 from tests.gpuarray.config import test_ctx_name
@@ -122,10 +122,7 @@ def test_unpickle_gpuarray_as_numpy_ndarray_flag0():
         fname = "GpuArray.pkl"
 
         with open(os.path.join(testfile_dir, fname), "rb") as fp:
-            if PY3:
-                u = CompatUnpickler(fp, encoding="latin1")
-            else:
-                u = CompatUnpickler(fp)
+            u = Unpickler(fp, encoding="latin1")
             mat = u.load()
             assert isinstance(mat, pygpu.gpuarray.GpuArray)
             assert np.asarray(mat)[0] == -42.0
