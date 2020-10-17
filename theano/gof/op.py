@@ -1093,10 +1093,10 @@ def get_debug_values(*args):
         except AttributeError:
             if hasattr(arg, "name") and arg.name is not None:
                 missing_test_message(
-                    "Argument " + str(i) + "('" + arg.name + "') has no test value"
+                    "Argument {} ('{}') has no test value".format(i, arg.name)
                 )
             else:
-                missing_test_message("Argument " + str(i) + " has no test value")
+                missing_test_message("Argument {} has no test value".format(i))
             return []
 
     if len(rval) == 1:
