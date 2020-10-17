@@ -7229,19 +7229,21 @@ register_stabilize(local_erf_neg_minus_one2)
 register_specialize(local_erf_neg_minus_one2)
 
 
-# Stability optimization
-# log(erfc(x)) => when x>threashold,
-#              -x**2-log(x)-.5*log(pi)+log(1-1/(2*x**2)+3/(4*x**4)-15/(8*x**6))
-# for float64: threshold=26.641747557 was choosed with:
-#  [(i,numpy.log(scipy.special.erfc(numpy.asarray([i],dtype='float64'))))
-#   for i in numpy.arange(26.641747557,26.6417475571,.00000000001)]
-# for float32: threshold=10.0541949, [(i,numpy.log(scipy.special.erfc(
-#        numpy.asarray([i],dtype='float32')))) for i in numpy.arange(
-#        10.0541948,10.0541951,.0000001)]
 @register_stabilize
 @register_specialize
 @gof.local_optimizer([T.log])
 def local_log_erfc(node):
+    """Stability optimization for `log(erfc(x))`.
+
+    log(erfc(x)) => when x>threshold,
+                -x**2-log(x)-.5*log(pi)+log(1-1/(2*x**2)+3/(4*x**4)-15/(8*x**6))
+    for float64: threshold=26.641747557 was choosed with:
+    [(i,numpy.log(scipy.special.erfc(numpy.asarray([i],dtype='float64'))))
+    for i in numpy.arange(26.641747557,26.6417475571,.00000000001)]
+    for float32: threshold=10.0541949, [(i,numpy.log(scipy.special.erfc(
+        numpy.asarray([i],dtype='float32')))) for i in numpy.arange(
+        10.0541948,10.0541951,.0000001)]
+    """
     if node.op != T.log:
         return False
     if not node.inputs[0].owner or node.inputs[0].owner.op != T.erfc:
@@ -7270,21 +7272,26 @@ def local_log_erfc(node):
     return [ret]
 
 
-# Stability optimization of the grad of log(erfc(x))
-# ([y*]exp(-(x**2)))/erfc(x) # The y* is optional
-# ([y*]exp(x**2))/erfc(-x) => [y*](when x>threashold,
-#                            sqrt(pi)*-x/(1-1/(2*x**2)+3/(4*x**4)-15/(8*x**6)))
-# for float64: threshold=26.63 see at the end of the fct for the explanation
-# for float32: threshold=9.3 see at the end of the fct for the explanation
-# TODO: remove the contraint that there are only 2 inputs to exp(x**2)
-#      is the second.
-# TODO: at the test point 10 in float32, there is instability in the original
-#      value. The original gives -30.0, the stab -20.1 and in float64 -18.1.
-#      Make it so that the test does not generate an error in that case!
 @register_stabilize
 @register_specialize
 @gof.local_optimizer([T.true_div])
 def local_grad_log_erfc_neg(node):
+    """Stability optimization for the grad of `log(erfc(x))`.
+
+    ([y*]exp(-(x**2)))/erfc(x) # The y* is optional
+    ([y*]exp(x**2))/erfc(-x) => [y*](when x>threashold,
+                            sqrt(pi)*-x/(1-1/(2*x**2)+3/(4*x**4)-15/(8*x**6)))
+
+    for float64: threshold=26.63 see at the end of the fct for the explanation
+    for float32: threshold=9.3 see at the end of the fct for the explanation
+
+    TODO: remove the contraint that there are only 2 inputs to exp(x**2)
+        is the second.
+    TODO: at the test point 10 in float32, there is instability in the original
+        value. The original gives -30.0, the stab -20.1 and in float64 -18.1.
+        Make it so that the test does not generate an error in that case!
+
+    """
     if node.op != T.true_div:
         return False
     if not node.inputs[1].owner or node.inputs[1].owner.op != T.erfc:
