@@ -5,14 +5,12 @@ import theano.gof.op as op
 import theano.tensor as tt
 
 from six import string_types
-from theano import scalar, shared
+from theano import scalar, shared, config
+from theano.gof import utils
 from theano.configparser import change_flags
 from theano.gof.graph import Apply, Variable
 from theano.gof.type import Generic, Type
-
-config = theano.config
-Op = op.Op
-utils = op.utils
+from theano.gof.op import Op
 
 
 def as_variable(x):
