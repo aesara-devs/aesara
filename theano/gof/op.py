@@ -486,50 +486,45 @@ class CLinkerOp(CLinkerObject):
 
 
 class PureOp(object):
-    """
-    An :term:`Op` is a type of operation.
+    """A class that models and constructs operations in a graph.
 
-    `Op` is an abstract class that documents the interface for theano's data
-    transformations. It has many subclasses, such as
-    `sparse dot <http://pylearn.org/epydoc/theano.sparse.Dot-class.html>`__,
-    and `Shape <http://pylearn.org/epydoc/theano.tensor.Shape-class.html>`__.
+    A `PureOp` instance has several responsibilities:
 
-    These subclasses are meant to be instantiated.
-    An instance has several responsabilities:
+    - construct `Apply` nodes via `PureOp.make_node` method,
 
-    - making `Apply` instances, which mean "apply this type of operation to some
-      particular inputs" (via `make_node`),
+    - perform the numeric calculation of the modeled operation via
+    the `PureOp.perform` method,
 
-    - performing the calculation of outputs from given inputs
-      (via the `perform`),
+    - and (optionally) build the gradient-calculating sub-graphs via the
+    `PureOp.grad` method.
 
-    - [optionally] building gradient-calculating graphs (via `grad`).
+    To see how `PureOp`, `Type`, `Variable`, and `Apply` fit together see the
+    page on :doc:`graph`.
 
-    To see how `Op`, `Type`, `Variable`, and `Apply` fit together see the page
-    on :doc:`graph`.
-
-    For more specifications on how these methods should behave: see the
-    `Op Contract` in the sphinx docs (advanced tutorial on Op-making).
+    For more details regarding how these methods should behave: see the `Op
+    Contract` in the sphinx docs (advanced tutorial on `Op`-making).
 
     """
 
     default_output = None
     """
-    Configuration variable for `__call__`.
+    An `int` that specifies which output `PureOp.__call__` should return.  If
+    `None`, then all outputs are returned.
 
-    A subclass should not change this class variable, but instead over-ride it with a subclass
-    variable or an instance variable.
+    A subclass should not change this class variable, but instead override it
+    with a subclass variable or an instance variable.
 
     """
 
-    #############
-    # make_node #
-    #############
-
     def make_node(self, *inputs):
-        """
-        Required: return an Apply instance representing the
-        application of this Op to the provided inputs.
+        """Construct an `Apply` node that represent the application of this operation to the given inputs.
+
+        This must be implemented by sub-classes.
+
+        Returns
+        -------
+        node: Apply
+            The constructed `Apply` node.
 
         """
         raise utils.MethodNotDefined("make_node", type(self), self.__class__.__name__)
@@ -560,8 +555,9 @@ class PureOp(object):
         raise AttributeError("%s has no test value %s" % (v, detailed_err_msg))
 
     def __call__(self, *inputs, **kwargs):
-        """
-        Optional: return some or all output[s] of `make_node`.
+        """Construct an `Apply` node using `self.make_node` and return its outputs.
+
+        This method is just a wrapper around `PureOp.make_node`.
 
         It is called by code such as:
 
@@ -579,8 +575,8 @@ class PureOp(object):
 
         Parameters
         ----------
-        inputs
-            The Op's inputs, forwarded to the call to `make_node()`.
+        inputs : tuple of Variable
+            The `PureOp`'s inputs.
         kwargs
             Additional keyword arguments to be forwarded to
             `make_node()` *except* for optional argument `return_list` (which
@@ -687,15 +683,54 @@ class PureOp(object):
     # just to self.add_tag_trace
     add_tag_trace = staticmethod(utils.add_tag_trace)
 
-    #########################
-    # Python implementation #
-    #########################
+    def grad(self, inputs, output_grads):
+        """Construct a graph for the gradient with respect to each input variable.
+
+        Each returned `Variable` represents the gradient with respect to that
+        input computed based on the symbolic gradients with respect to each
+        output. If the output is not differentiable with respect to an input,
+        then this method should return an instance of type `NullType` for that
+        input.
+
+        Parameters
+        ----------
+        inputs : list of Variable
+            The input variables.
+        output_grads : list of Variable
+            The gradients of the output variables.
+
+        Returns
+        -------
+        grads : list of Variable
+            The gradients with respect to each `Variable` in `inputs`.
+
+        """
+        raise NotImplementedError()
 
     def L_op(self, inputs, outputs, output_grads):
+        r"""Construct a graph for the L-operator.
+
+        This method is primarily used by `tensor.Lop` and dispatches to
+        `PureOp.grad` by default.
+
+        The *L-operator* computes a *row* vector times the Jacobian. The
+        mathematical relationship is
+        :math:`v \frac{\partial f(x)}{\partial x}`.
+        The *L-operator* is also supported for generic tensors (not only for
+        vectors).
+
+        Parameters
+        ----------
+        inputs : list of Variable
+        outputs : list of Variable
+        output_grads : list of Variable
+
+        """
         return self.grad(inputs, output_grads)
 
     def R_op(self, inputs, eval_points):
-        """
+        """Construct a graph for the R-operator.
+
         This method is primarily used by tensor.Rop
 
         Suppose the op outputs
@@ -718,12 +753,7 @@ class PureOp(object):
                                   eval_points=eval_points)
 
         """
-        raise NotImplementedError(
-            "%s of class %s does not "
-            "implement R_op. If this is a theano op, write to the "
-            "theano-dev mailing list for assistance. If it is your "
-            "own op, implement the R_op method." % (self, self.__class__.__name__)
-        )
+        raise NotImplementedError()
 
     def perform(self, node, inputs, output_storage, params=None):
         """
@@ -732,24 +762,31 @@ class PureOp(object):
 
         Parameters
         ----------
-        node : Apply instance
-            Contains the symbolic inputs and outputs.
-        inputs : list
-            Sequence of inputs (immutable).
-        output_storage : list
-             List of mutable 1-element lists (do not change the length of
-             these lists)
+        node : Apply
+            The symbolic `Apply` node that represents this computation.
+        inputs : Sequence
+            Immutable sequence of non-symbolic/numeric inputs.  These
+            are the values of each `Variable` in `node.inputs`.
+        output_storage : list of list
+            List of mutable single-element lists (do not change the length of
+            these lists).  Each sub-list corresponds to value of each
+            `Variable` in `node.outputs`.  The primary purpose of this method
+            is to set the values of these sub-lists.
+        params : tuple
+            A tuple containing the values of each entry in `__props__`.
 
         Notes
         -----
         The `output_storage` list might contain data. If an element of
-        output_storage is not None, it has to be of the right type,
-        for instance, for a TensorVariable, it has to be a Numpy ndarray,
-        with the right number of dimensions, and the correct dtype.
-        Its shape and stride pattern, can be arbitrary. It not is
-        guaranteed that it was produced by a previous call to impl. It
-        could be allocated by another Op impl is free to reuse it as it
-        sees fit, or to discard it and allocate new memory.
+        output_storage is not `None`, it has to be of the right type, for
+        instance, for a `TensorVariable`, it has to be a NumPy `ndarray`
+        with the right number of dimensions and the correct dtype.
+        Its shape and stride pattern can be arbitrary. It is not
+        guaranteed that such pre-set values were produced by a previous call to
+        this `PureOp.perform`; they could've been allocated by another
+        `PureOp`'s `perform` method.
+        A `PureOp` is free to reuse `output_storage` as it sees fit, or to
+        discard it and allocate new memory.
 
         Raises
         ------
@@ -766,12 +803,22 @@ class PureOp(object):
         )
 
     def do_constant_folding(self, node):
-        """
-        This allows each op to determine if it wants to be constant
-        folded when all its inputs are constant. This allows it to
-        choose where it puts its memory/speed trade-off. Also, it
-        could make things faster as constants can't be used for inplace
-        operations (see *IncSubtensor).
+        """Determine whether or not constant folding should be performed for the given node.
+
+        This allows each `PureOp` to determine if it wants to be constant
+        folded when all its inputs are constant. This allows it to choose where
+        it puts its memory/speed trade-off. Also, it could make things faster
+        as constants can't be used for in-place operations (see
+        `*IncSubtensor`).
+
+        Parameters
+        ----------
+        node : Apply
+            The node for which the constant folding determination is made.
+
+        Returns
+        -------
+        res : bool
 
         """
         return True
@@ -994,16 +1041,14 @@ class Op(utils.object2, PureOp, CLinkerOp):
 
 
 def get_test_value(v):
-    """
-    Extract test value from `v`. Raises AttributeError if there is none.
+    """Get the test value for `v`.
 
     If input `v` is not already a variable, it is turned into one by calling
-    `as_tensor_variable(v)`, so that this function can be applied e.g.
-    on numpy arrays or Python lists and scalars, considering them as constants.
+    `as_tensor_variable(v)`.
 
-    For a Constant, the test value is v.value.
-    For a Shared variable, it is the internal value.
-    For another Variable, it is the content of v.tag.test_value.
+    Raises
+    ------
+    AttributeError if no test value is set.
 
     """
     if not isinstance(v, graph.Variable):
