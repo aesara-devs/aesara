@@ -1,7 +1,7 @@
 import numpy as np
 
-import theano as th
-import theano.tensor as T
+import theano
+import theano.tensor as tt
 
 from six import integer_types
 
@@ -17,14 +17,14 @@ class Mlp(object):
         self.noutputs = noutputs
         self.nhiddens = nhiddens
 
-        x = T.dmatrix("x")
-        wh = th.shared(self.rng.normal(0, 1, (nfeatures, nhiddens)), borrow=True)
-        bh = th.shared(np.zeros(nhiddens), borrow=True)
-        h = T.nnet.sigmoid(T.dot(x, wh) + bh)
+        x = tt.dmatrix("x")
+        wh = theano.shared(self.rng.normal(0, 1, (nfeatures, nhiddens)), borrow=True)
+        bh = theano.shared(np.zeros(nhiddens), borrow=True)
+        h = tt.nnet.sigmoid(tt.dot(x, wh) + bh)
 
-        wy = th.shared(self.rng.normal(0, 1, (nhiddens, noutputs)))
-        by = th.shared(np.zeros(noutputs), borrow=True)
-        y = T.nnet.softmax(T.dot(h, wy) + by)
+        wy = theano.shared(self.rng.normal(0, 1, (nhiddens, noutputs)))
+        by = theano.shared(np.zeros(noutputs), borrow=True)
+        y = tt.nnet.softmax(tt.dot(h, wy) + by)
 
         self.inputs = [x]
         self.outputs = [y]
@@ -32,11 +32,11 @@ class Mlp(object):
 
 class OfgNested(object):
     def __init__(self):
-        x, y, z = T.scalars("xyz")
+        x, y, z = tt.scalars("xyz")
         e = x * y
-        op = th.OpFromGraph([x, y], [e])
+        op = theano.OpFromGraph([x, y], [e])
         e2 = op(x, y) + z
-        op2 = th.OpFromGraph([x, y, z], [e2])
+        op2 = theano.OpFromGraph([x, y, z], [e2])
         e3 = op2(x, y, z) + z
 
         self.inputs = [x, y, z]
@@ -45,9 +45,9 @@ class OfgNested(object):
 
 class Ofg(object):
     def __init__(self):
-        x, y, z = T.scalars("xyz")
-        e = T.nnet.sigmoid((x + y + z) ** 2)
-        op = th.OpFromGraph([x, y, z], [e])
+        x, y, z = tt.scalars("xyz")
+        e = tt.nnet.sigmoid((x + y + z) ** 2)
+        op = theano.OpFromGraph([x, y, z], [e])
         e2 = op(x, y, z) + op(z, y, x)
 
         self.inputs = [x, y, z]
@@ -56,9 +56,9 @@ class Ofg(object):
 
 class OfgSimple(object):
     def __init__(self):
-        x, y, z = T.scalars("xyz")
-        e = T.nnet.sigmoid((x + y + z) ** 2)
-        op = th.OpFromGraph([x, y, z], [e])
+        x, y, z = tt.scalars("xyz")
+        e = tt.nnet.sigmoid((x + y + z) ** 2)
+        op = theano.OpFromGraph([x, y, z], [e])
         e2 = op(x, y, z)
 
         self.inputs = [x, y, z]
