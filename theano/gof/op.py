@@ -19,8 +19,13 @@ import theano.gof.cc
 
 from theano import config
 from theano.gof import graph
-from theano.gof import utils
-from theano.gof.utils import TestValueError
+from theano.gof.utils import (
+    object2,
+    TestValueError,
+    get_variable_trace_string,
+    MethodNotDefined,
+    add_tag_trace,
+)
 from theano.gof.cmodule import GCC_compiler
 from theano.gof.fg import FunctionGraph
 
@@ -65,7 +70,7 @@ def compute_test_value(node):
                 )
                 return
             elif config.compute_test_value == "raise":
-                detailed_err_msg = utils.get_variable_trace_string(ins)
+                detailed_err_msg = get_variable_trace_string(ins)
 
                 raise ValueError(
                     "Cannot compute test value: input %i (%s) of Op %s missing default value. %s"
@@ -144,7 +149,7 @@ class CLinkerObject(object):
             Subclass does not implement this method.
 
         """
-        raise utils.MethodNotDefined("c_headers", type(self), self.__class__.__name__)
+        raise MethodNotDefined("c_headers", type(self), self.__class__.__name__)
 
     def c_header_dirs(self):
         """
@@ -167,9 +172,7 @@ class CLinkerObject(object):
             Subclass does not implement this method.
 
         """
-        raise utils.MethodNotDefined(
-            "c_header_dirs", type(self), self.__class__.__name__
-        )
+        raise MethodNotDefined("c_header_dirs", type(self), self.__class__.__name__)
 
     def c_libraries(self):
         """
@@ -192,7 +195,7 @@ class CLinkerObject(object):
             Subclass does not implement this method.
 
         """
-        raise utils.MethodNotDefined("c_libraries", type(self), self.__class__.__name__)
+        raise MethodNotDefined("c_libraries", type(self), self.__class__.__name__)
 
     def c_lib_dirs(self):
         """
@@ -215,7 +218,7 @@ class CLinkerObject(object):
             Subclass does not implement this method.
 
         """
-        raise utils.MethodNotDefined("c_lib_dirs", type(self), self.__class__.__name__)
+        raise MethodNotDefined("c_lib_dirs", type(self), self.__class__.__name__)
 
     def c_support_code(self):
         """
@@ -231,9 +234,7 @@ class CLinkerObject(object):
             Subclass does not implement this method.
 
         """
-        raise utils.MethodNotDefined(
-            "c_support_code", type(self), self.__class__.__name__
-        )
+        raise MethodNotDefined("c_support_code", type(self), self.__class__.__name__)
 
     def c_code_cache_version(self):
         """
@@ -271,9 +272,7 @@ class CLinkerObject(object):
             Subclass does not implement this method.
 
         """
-        raise utils.MethodNotDefined(
-            "c_compile_args", type(self), self.__class__.__name__
-        )
+        raise MethodNotDefined("c_compile_args", type(self), self.__class__.__name__)
 
     def c_no_compile_args(self):
         """
@@ -294,9 +293,7 @@ class CLinkerObject(object):
             The subclass does not override this method.
 
         """
-        raise utils.MethodNotDefined(
-            "c_no_compile_args", type(self), self.__class__.__name__
-        )
+        raise MethodNotDefined("c_no_compile_args", type(self), self.__class__.__name__)
 
     def c_init_code(self):
         """
@@ -309,7 +306,7 @@ class CLinkerObject(object):
             The subclass does not override this method.
 
         """
-        raise utils.MethodNotDefined("c_init_code", type(self), self.__class__.__name__)
+        raise MethodNotDefined("c_init_code", type(self), self.__class__.__name__)
 
 
 class CLinkerOp(CLinkerObject):
@@ -363,7 +360,7 @@ class CLinkerOp(CLinkerObject):
             The subclass does not override this method.
 
         """
-        raise utils.MethodNotDefined("%s.c_code" % self.__class__.__name__)
+        raise MethodNotDefined("%s.c_code" % self.__class__.__name__)
 
     def c_code_cache_version_apply(self, node):
         """
@@ -424,7 +421,7 @@ class CLinkerOp(CLinkerObject):
             The subclass does not override this method.
 
         """
-        raise utils.MethodNotDefined("%s.c_code_cleanup" % self.__class__.__name__)
+        raise MethodNotDefined("%s.c_code_cleanup" % self.__class__.__name__)
 
     def c_support_code_apply(self, node, name):
         """
@@ -452,7 +449,7 @@ class CLinkerOp(CLinkerObject):
             Subclass does not implement this method.
 
         """
-        raise utils.MethodNotDefined(
+        raise MethodNotDefined(
             "c_support_code_apply", type(self), self.__class__.__name__
         )
 
@@ -481,9 +478,7 @@ class CLinkerOp(CLinkerObject):
             The subclass does not override this method.
 
         """
-        raise utils.MethodNotDefined(
-            "c_init_code_apply", type(self), self.__class__.__name__
-        )
+        raise MethodNotDefined("c_init_code_apply", type(self), self.__class__.__name__)
 
     def c_init_code_struct(self, node, name, sub):
         """
@@ -506,7 +501,7 @@ class CLinkerOp(CLinkerObject):
             The subclass does not override this method.
 
         """
-        raise utils.MethodNotDefined(
+        raise MethodNotDefined(
             "c_init_code_struct", type(self), self.__class__.__name__
         )
 
@@ -529,7 +524,7 @@ class CLinkerOp(CLinkerObject):
             Subclass does not implement this method.
 
         """
-        raise utils.MethodNotDefined(
+        raise MethodNotDefined(
             "c_support_code_struct", type(self), self.__class__.__name__
         )
 
@@ -550,7 +545,7 @@ class CLinkerOp(CLinkerObject):
             The subclass does not override this method.
 
         """
-        raise utils.MethodNotDefined(
+        raise MethodNotDefined(
             "c_cleanup_code_struct", type(self), self.__class__.__name__
         )
 
@@ -597,7 +592,7 @@ class PureOp(object):
             The constructed `Apply` node.
 
         """
-        raise utils.MethodNotDefined("make_node", type(self), self.__class__.__name__)
+        raise MethodNotDefined("make_node", type(self), self.__class__.__name__)
 
     def __call__(self, *inputs, **kwargs):
         """Construct an `Apply` node using `self.make_node` and return its outputs.
@@ -666,7 +661,7 @@ class PureOp(object):
 
     # Convenience so that subclass implementers don't have to import utils
     # just to self.add_tag_trace
-    add_tag_trace = staticmethod(utils.add_tag_trace)
+    add_tag_trace = staticmethod(add_tag_trace)
 
     def grad(self, inputs, output_grads):
         """Construct a graph for the gradient with respect to each input variable.
@@ -779,7 +774,7 @@ class PureOp(object):
             The subclass does not override this method.
 
         """
-        raise utils.MethodNotDefined(
+        raise MethodNotDefined(
             "perform",
             type(self),
             self.__class__.__name__,
@@ -809,7 +804,7 @@ class PureOp(object):
         return True
 
 
-class Op(utils.object2, PureOp, CLinkerOp):
+class Op(object2, PureOp, CLinkerOp):
     """
     Convenience class to bundle `PureOp` and `CLinkerOp`.
 
@@ -833,7 +828,7 @@ class Op(utils.object2, PureOp, CLinkerOp):
                 )
             # ParamsType.get_params() will apply filtering to attributes.
             return self.params_type.get_params(self)
-        raise theano.gof.utils.MethodNotDefined("get_params")
+        raise MethodNotDefined("get_params")
 
     def prepare_node(self, node, storage_map, compute_map, impl):
         """
@@ -984,7 +979,7 @@ class Op(utils.object2, PureOp, CLinkerOp):
             )
             try:
                 return self.make_c_thunk(node, storage_map, compute_map, no_recycling)
-            except (NotImplementedError, utils.MethodNotDefined):
+            except (NotImplementedError, MethodNotDefined):
                 # We requested the c code, so don't catch the error.
                 if impl == "c":
                     raise
@@ -1234,7 +1229,7 @@ def simple_meth(tag):
         if tag in self.code_sections:
             return self.code_sections[tag]
         else:
-            raise utils.MethodNotDefined("c_" + tag, type(self), type(self).__name__)
+            raise MethodNotDefined("c_" + tag, type(self), type(self).__name__)
 
     f.__name__ = "c_" + tag
     return f
@@ -1248,7 +1243,7 @@ def apply_meth(tag):
             define_macros, undef_macros = self.get_c_macros(node, name)
             return "\n".join(["", define_macros, code, undef_macros])
         else:
-            raise utils.MethodNotDefined("c_" + tag, type(self), type(self).__name__)
+            raise MethodNotDefined("c_" + tag, type(self), type(self).__name__)
 
     f.__name__ = "c_" + tag
     return f
@@ -1435,7 +1430,7 @@ class COp(Op):
                             wrapper.types[i].c_element_type(),
                         )
                     )
-                except utils.MethodNotDefined:
+                except MethodNotDefined:
                     pass
             return params
         return []
@@ -1453,7 +1448,7 @@ class COp(Op):
         if "init_code" in self.code_sections:
             return [self.code_sections["init_code"]]
         else:
-            raise utils.MethodNotDefined("c_init_code", type(self), type(self).__name__)
+            raise MethodNotDefined("c_init_code", type(self), type(self).__name__)
 
     c_init_code_apply = apply_meth("init_code_apply")
     c_support_code = simple_meth("support_code")
@@ -1575,7 +1570,7 @@ class COp(Op):
                 ["", def_macros, def_sub, op_code, undef_sub, undef_macros]
             )
         else:
-            raise utils.MethodNotDefined(
+            raise MethodNotDefined(
                 "c_init_code_struct", type(self), type(self).__name__
             )
 
@@ -1628,7 +1623,7 @@ class COp(Op):
                     ]
                 )
             else:
-                raise utils.MethodNotDefined("c_code", type(self), type(self).__name__)
+                raise MethodNotDefined("c_code", type(self), type(self).__name__)
 
     def c_code_cleanup(self, node, name, inputs, outputs, sub):
         """
@@ -1653,6 +1648,4 @@ class COp(Op):
                 ]
             )
         else:
-            raise utils.MethodNotDefined(
-                "c_code_cleanup", type(self), type(self).__name__
-            )
+            raise MethodNotDefined("c_code_cleanup", type(self), type(self).__name__)
