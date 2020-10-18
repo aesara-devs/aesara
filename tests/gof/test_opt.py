@@ -22,7 +22,7 @@ from theano.tensor.subtensor import AdvancedSubtensor
 from theano.tensor.opt import constant_folding
 
 
-def as_variable(x):
+def is_variable(x):
     if not isinstance(x, Variable):
         raise TypeError("not a Variable", x)
     return x
@@ -52,7 +52,7 @@ class MyOp(Op):
         self.x = x
 
     def make_node(self, *inputs):
-        inputs = list(map(as_variable, inputs))
+        inputs = list(map(is_variable, inputs))
         for input in inputs:
             if not isinstance(input.type, MyType):
                 raise Exception("Error 1")
