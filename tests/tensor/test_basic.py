@@ -5441,9 +5441,9 @@ class TestDivimpl:
 
 
 class TestMean:
-    def test_regression_mean_of_ndarray_failure(self):
-        # This shouldn't throw an `AttributeError` (or any other, for that matter)
-        tensor.mean(np.zeros(1))
+    def test_mean_single_element(self):
+        res = tensor.mean(np.zeros(1))
+        assert res.eval() == 0.0
 
     def test_mean_f16(self):
         x = tensor.vector(dtype="float16")
@@ -5452,7 +5452,6 @@ class TestMean:
         utt.assert_allclose(f(np.ones((100000,), dtype="float16")), 1.0)
 
     def test_basic(self):
-        # Simple test...
         x = tensor.vector()
         f = theano.function([x], tensor.mean(x))
         data = rand(50)
@@ -5460,7 +5459,7 @@ class TestMean:
 
     def test_list(self):
         ll = [theano.shared(0.0), theano.shared(2.0)]
-        tensor.mean(ll).eval() == 1
+        assert tensor.mean(ll).eval() == 1
 
 
 class TestMatinv:
