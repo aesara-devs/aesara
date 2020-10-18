@@ -1644,13 +1644,21 @@ sure you have the right version you *will* get wrong results.
 
 
 def default_blas_ldflags():
-    global numpy
+    """Read local NumPy and MKL build settings and construct `ld` flags from them.
+
+    Returns
+    -------
+    str
+
+    """
+    import numpy.distutils  # noqa
+
     warn_record = []
     try:
-        if hasattr(np.distutils, "__config__") and np.distutils.__config__:
+        if hasattr(numpy.distutils, "__config__") and numpy.distutils.__config__:
             # If the old private interface is available use it as it
             # don't print information to the user.
-            blas_info = np.distutils.__config__.blas_opt_info
+            blas_info = numpy.distutils.__config__.blas_opt_info
         else:
             # We do this import only here, as in some setup, if we
             # just import theano and exit, with the import at global
