@@ -17,8 +17,6 @@ import numpy as np
 import theano
 import theano.gof.cc
 
-from six import PY3
-
 from theano import config
 from theano.gof import graph
 from theano.gof import utils
@@ -34,18 +32,6 @@ __contact__ = "theano-dev <theano-dev@googlegroups.com>"
 __docformat__ = "restructuredtext en"
 
 _logger = logging.getLogger("theano.gof.op.Op")
-
-
-# Open file in "universal newline mode".
-# In Python 2, this is done by calling open(..., 'U'), but this is
-# deprected in Python 3 (where we would need to pass "newline=None",
-# which is the default).
-if PY3:
-    _open_u = open
-else:
-
-    def _open_u(file):
-        return open(file, "U")
 
 
 def compute_test_value(node):
@@ -1349,7 +1335,7 @@ class COp(Op):
         self.func_codes = []
         for func_file in func_files:
             # U (universal) will convert all new lines format to \n.
-            with _open_u(func_file) as f:
+            with open(func_file) as f:
                 self.func_codes.append(f.read())
 
         # If both the old section markers and the new section markers are
