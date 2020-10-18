@@ -525,17 +525,16 @@ def scan(
                 if config.compute_test_value != "off":
                     try:
                         nw_slice.tag.test_value = gof.get_test_value(_seq_val_slice)
-                    except TestValueError as e:
+                    except TestValueError:
                         if config.compute_test_value != "ignore":
                             # No need to print a warning or raise an error now,
                             # it will be done when fn will be called.
-                            _logger.info(
+                            _logger.warning(
                                 (
                                     "Cannot compute test value for "
                                     "the inner function of scan, input value "
-                                    "missing %s"
-                                ),
-                                e,
+                                    "missing {}"
+                                ).format(_seq_val_slice)
                             )
 
                 # Add names to slices for debugging and pretty printing ..
@@ -657,16 +656,13 @@ def scan(
             if config.compute_test_value != "off":
                 try:
                     arg.tag.test_value = gof.get_test_value(actual_arg)
-                except TestValueError as e:
+                except TestValueError:
                     if config.compute_test_value != "ignore":
-                        # No need to print a warning or raise an error now,
-                        # it will be done when fn will be called.
-                        _logger.info(
+                        _logger.warning(
                             (
                                 "Cannot compute test value for the "
-                                "inner function of scan, input value missing %s"
-                            ),
-                            e,
+                                "inner function of scan, test value missing: {}"
+                            ).format(actual_arg)
                         )
 
             if getattr(init_out["initial"], "name", None) is not None:
@@ -720,17 +716,14 @@ def scan(
                         nw_slice.tag.test_value = gof.get_test_value(
                             _init_out_var_slice
                         )
-                    except TestValueError as e:
+                    except TestValueError:
                         if config.compute_test_value != "ignore":
-                            # No need to print a warning or raise an error now,
-                            # it will be done when fn will be called.
-                            _logger.info(
+                            _logger.warning(
                                 (
                                     "Cannot compute test value for "
-                                    "the inner function of scan, input value "
-                                    "missing. %s"
-                                ),
-                                e,
+                                    "the inner function of scan, test value "
+                                    "missing: {}"
+                                ).format(_init_out_var_slice)
                             )
 
                 # give it a name or debugging and pretty printing
@@ -809,10 +802,8 @@ def scan(
             _logger.warning(
                 (
                     "When the number of steps is fixed and equal "
-                    "to 1, the provided stopping condition, ",
-                    str(condition),
-                    " is ignored",
-                )
+                    "to 1, the provided stopping condition, {} is ignored",
+                ).format(condition)
             )
 
         for pos, inner_out in enumerate(outputs):
