@@ -474,8 +474,9 @@ storage with the right shape and number of dimensions.
 
     import numpy
     import theano
+
     from theano import gof
-    import theano.tensor as T
+
 
     class VectorTimesScalar(gof.Op):
         __props__ = ()

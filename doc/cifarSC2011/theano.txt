@@ -99,7 +99,7 @@ Real example
 
   import numpy
   import theano
-  import theano.tensor as T
+  import theano.tensor as tt
   rng = numpy.random
 
   N = 400
@@ -108,19 +108,19 @@ Real example
   training_steps = 10000
 
   # Declare Theano symbolic variables
-  x = T.matrix("x")
-  y = T.vector("y")
+  x = tt.matrix("x")
+  y = tt.vector("y")
   w = theano.shared(rng.randn(feats), name="w")
   b = theano.shared(0., name="b")
   print "Initial model:"
   print w.get_value(), b.get_value()
 
   # Construct Theano expression graph
-  p_1 = 1 / (1 + T.exp(-T.dot(x, w)-b))     # Probability that target = 1
+  p_1 = 1 / (1 + tt.exp(-tt.dot(x, w)-b))     # Probability that target = 1
   prediction = p_1 > 0.5                    # The prediction thresholded
-  xent = -y*T.log(p_1) - (1-y)*T.log(1-p_1) # Cross-entropy loss function
+  xent = -y*tt.log(p_1) - (1-y)*tt.log(1-p_1) # Cross-entropy loss function
   cost = xent.mean() + 0.01*(w**2).sum()    # The cost to minimize
-  gw,gb = T.grad(cost, [w,b])
+  gw,gb = tt.grad(cost, [w,b])
 
   # Compile
   train = theano.function(
@@ -145,7 +145,7 @@ Where are those optimization applied?
 
 * ``log(1+exp(x))``
 
-* ``1 / (1 + T.exp(var))`` (sigmoid)
+* ``1 / (1 + tt.exp(var))`` (sigmoid)
 
 * ``log(1-sigmoid(var))`` (softplus, stabilisation)
 
@@ -156,13 +156,13 @@ Where are those optimization applied?
 
 .. code-block:: python
 
-  p_1 = 1 / (1 + T.exp(-T.dot(x, w)-b))
-  # 1 / (1 + T.exp(var)) -> sigmoid(var)
-  xent = -y*T.log(p_1) - (1-y)*T.log(1-p_1)
+  p_1 = 1 / (1 + tt.exp(-tt.dot(x, w)-b))
+  # 1 / (1 + tt.exp(var)) -> sigmoid(var)
+  xent = -y*tt.log(p_1) - (1-y)*tt.log(1-p_1)
   # Log(1-sigmoid(var)) -> -sigmoid(var)
   prediction = p_1 > 0.5
   cost = xent.mean() + 0.01*(w**2).sum()
-  gw,gb = T.grad(cost, [w,b])
+  gw,gb = tt.grad(cost, [w,b])
 
   train = theano.function(
             inputs=[x,y],
@@ -188,7 +188,7 @@ Exercise 2
 
     import numpy
     import theano
-    import theano.tensor as T
+    import theano.tensor as tt
     rng = numpy.random
 
     N = 400
@@ -198,8 +198,8 @@ Exercise 2
     training_steps = 10000
 
     # Declare Theano symbolic variables
-    x = T.matrix("x")
-    y = T.vector("y")
+    x = tt.matrix("x")
+    y = tt.vector("y")
     w = theano.shared(rng.randn(feats).astype(theano.config.floatX), name="w")
     b = theano.shared(numpy.asarray(0., dtype=theano.config.floatX), name="b")
     x.tag.test_value = D[0]
@@ -209,11 +209,11 @@ Exercise 2
 
 
     # Construct Theano expression graph
-    p_1 = 1 / (1 + T.exp(-T.dot(x, w)-b)) # Probability of having a one
+    p_1 = 1 / (1 + tt.exp(-tt.dot(x, w)-b)) # Probability of having a one
     prediction = p_1 > 0.5 # The prediction that is done: 0 or 1
-    xent = -y*T.log(p_1) - (1-y)*T.log(1-p_1) # Cross-entropy
+    xent = -y*tt.log(p_1) - (1-y)*tt.log(1-p_1) # Cross-entropy
     cost = xent.mean() + 0.01*(w**2).sum() # The cost to optimize
-    gw,gb = T.grad(cost, [w,b])
+    gw,gb = tt.grad(cost, [w,b])
 
     # Compile expressions to functions
     train = theano.function(
@@ -296,19 +296,19 @@ Symbolic variables
 
 * # Dimensions
 
- * T.scalar, T.vector, T.matrix, T.tensor3, T.tensor4
+ * tt.scalar, tt.vector, tt.matrix, tt.tensor3, tt.tensor4
 
 * Dtype
 
- * T.[fdczbwil]vector (float32, float64, complex64, complex128, int8, int16, int32, int64)
+ * tt.[fdczbwil]vector (float32, float64, complex64, complex128, int8, int16, int32, int64)
 
- * T.vector to floatX dtype
+ * tt.vector to floatX dtype
 
  * floatX: configurable dtype that can be float32 or float64.
 
 * Custom variable
 
- * All are shortcuts to: ``T.tensor(dtype, broadcastable=[False]*nd)``
+ * All are shortcuts to: ``tt.tensor(dtype, broadcastable=[False]*nd)``
 
  * Other dtype: uint[8,16,32,64], floatX
 
@@ -325,21 +325,21 @@ Details regarding symbolic broadcasting...
 
 * Broadcastability must be specified when creating the variable
 
-* The only shorcut with broadcastable dimensions are: **T.row** and **T.col**
+* The only shorcut with broadcastable dimensions are: **tt.row** and **tt.col**
 
-* For all others: ``T.tensor(dtype, broadcastable=([False or True])*nd)``
+* For all others: ``tt.tensor(dtype, broadcastable=([False or True])*nd)``
 
 
 Differentiation details
 -----------------------
 
->>> gw,gb = T.grad(cost, [w,b])  # doctest: +SKIP
+>>> gw,gb = tt.grad(cost, [w,b])  # doctest: +SKIP
 
-* T.grad works symbolically: takes and returns a Theano variable
+* tt.grad works symbolically: takes and returns a Theano variable
 
-* T.grad can be compared to a macro: it can be applied multiple times
+* tt.grad can be compared to a macro: it can be applied multiple times
 
-* T.grad takes scalar costs only
+* tt.grad takes scalar costs only
 
 * Simple recipe allows to compute efficiently vector x Jacobian and vector x Hessian
 

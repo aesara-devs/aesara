@@ -9,7 +9,7 @@ Basic Tensor Functionality
 .. testsetup::
 
    import theano
-   import theano.tensor as T
+   import theano.tensor as tt
    from theano.tensor import scalar, iscalar, TensorType, dmatrix, ivector
    from theano.tensor import set_subtensor, inc_subtensor, batched_dot
    from theano import shared
@@ -19,12 +19,12 @@ Basic Tensor Functionality
 Theano supports any kind of Python object, but its focus is support for
 symbolic matrix expressions.  When you type,
 
->>> x = T.fmatrix()
+>>> x = tt.fmatrix()
 
 the ``x`` is a :class:`TensorVariable` instance.
-The ``T.fmatrix`` object itself is an instance of :class:`TensorType`.
+The ``tt.fmatrix`` object itself is an instance of :class:`TensorType`.
 Theano knows what type of variable ``x`` is because ``x.type``
-points back to ``T.fmatrix``.
+points back to ``tt.fmatrix``.
 
 This chapter explains the various ways of creating tensor variables,
 the attributes and methods of :class:`TensorVariable` and :class:`TensorType`,
@@ -531,7 +531,7 @@ TensorVariable
 
         Transpose of this tensor.
 
-        >>> x = T.zmatrix()
+        >>> x = tt.zmatrix()
         >>> y = 3+.2j * x.T
 
         .. note::
@@ -707,17 +707,17 @@ Creating Tensor
                   By default, it will be x.dtype.
 
     Returns a tensor the shape of x filled with zeros of the type of dtype.
-    
+
 
 .. function:: ones_like(x)
 
-  
+
     :param x: tensor that has the same shape as output
     :param dtype: data-type, optional
                   By default, it will be x.dtype.
 
     Returns a tensor the shape of x filled with ones of the type of dtype.
-      
+
 
 .. function:: zeros(shape, dtype=None)
 
@@ -766,7 +766,7 @@ Creating Tensor
 
 .. function:: stack(tensors, axis=0)
 
-    Stack tensors in sequence on given axis (default is 0). 
+    Stack tensors in sequence on given axis (default is 0).
 
     Take a sequence of tensors and stack them on given axis to make a single
     tensor. The size in dimension `axis` of the result will be equal to the number
@@ -824,10 +824,10 @@ Creating Tensor
     :param tensors: one or more tensors of the same rank
     :returns: A tensor such that rval[0] == tensors[0], rval[1] == tensors[1], etc.
 
-    >>> x0 = T.scalar()
-    >>> x1 = T.scalar()
-    >>> x2 = T.scalar()
-    >>> x = T.stack(x0, x1, x2)
+    >>> x0 = tt.scalar()
+    >>> x1 = tt.scalar()
+    >>> x2 = tt.scalar()
+    >>> x = tt.stack(x0, x1, x2)
     >>> x.ndim # x is a vector of length 3.
     1
 
@@ -840,10 +840,10 @@ Creating Tensor
     :param axis: Tensors will be joined along this axis, so they may have different
         ``shape[axis]``
 
-    >>> x0 = T.fmatrix()
-    >>> x1 = T.ftensor3()
-    >>> x2 = T.fvector()
-    >>> x = T.concatenate([x0, x1[0], T.shape_padright(x2)], axis=1)
+    >>> x0 = tt.fmatrix()
+    >>> x1 = tt.ftensor3()
+    >>> x2 = tt.fvector()
+    >>> x = tt.concatenate([x0, x1[0], tt.shape_padright(x2)], axis=1)
     >>> x.ndim
     2
 
@@ -1131,7 +1131,7 @@ Indexing
 
 Like NumPy, Theano distinguishes between *basic* and *advanced* indexing.
 Theano fully supports basic indexing
-(see `NumPy's indexing  <http://docs.scipy.org/doc/numpy/reference/arrays.indexing.html>`_) 
+(see `NumPy's indexing  <http://docs.scipy.org/doc/numpy/reference/arrays.indexing.html>`_)
 and `integer advanced indexing
 <http://docs.scipy.org/doc/numpy/reference/arrays.indexing.html#integer>`_.
 Since version 0.10.0 Theano also supports boolean indexing with boolean
@@ -1151,7 +1151,7 @@ Operator Support
 
 Many Python operators are supported.
 
->>> a, b = T.itensor3(), T.itensor3() # example inputs
+>>> a, b = tt.itensor3(), tt.itensor3() # example inputs
 
 Arithmetic
 --------------
@@ -1159,13 +1159,13 @@ Arithmetic
 .. doctest::
    :options: +SKIP
 
-   >>> a + 3      # T.add(a, 3) -> itensor3
-   >>> 3 - a      # T.sub(3, a)
-   >>> a * 3.5    # T.mul(a, 3.5) -> ftensor3 or dtensor3 (depending on casting)
-   >>> 2.2 / a    # T.truediv(2.2, a)
-   >>> 2.2 // a   # T.intdiv(2.2, a)
-   >>> 2.2**a     # T.pow(2.2, a)
-   >>> b % a      # T.mod(b, a)
+   >>> a + 3      # tt.add(a, 3) -> itensor3
+   >>> 3 - a      # tt.sub(3, a)
+   >>> a * 3.5    # tt.mul(a, 3.5) -> ftensor3 or dtensor3 (depending on casting)
+   >>> 2.2 / a    # tt.truediv(2.2, a)
+   >>> 2.2 // a   # tt.intdiv(2.2, a)
+   >>> 2.2**a     # tt.pow(2.2, a)
+   >>> b % a      # tt.mod(b, a)
 
 Bitwise
 -------------
@@ -1173,10 +1173,10 @@ Bitwise
 .. doctest::
    :options: +SKIP
 
-   >>> a & b      # T.and_(a,b)    bitwise and (alias T.bitwise_and)
-   >>> a ^ 1      # T.xor(a,1)     bitwise xor (alias T.bitwise_xor)
-   >>> a | b      # T.or_(a,b)     bitwise or (alias T.bitwise_or)
-   >>> ~a         # T.invert(a)    bitwise invert (alias T.bitwise_not)
+   >>> a & b      # tt.and_(a,b)    bitwise and (alias tt.bitwise_and)
+   >>> a ^ 1      # tt.xor(a,1)     bitwise xor (alias tt.bitwise_xor)
+   >>> a | b      # tt.or_(a,b)     bitwise or (alias tt.bitwise_or)
+   >>> ~a         # tt.invert(a)    bitwise invert (alias tt.bitwise_not)
 
 Inplace
 -------------
@@ -1205,9 +1205,9 @@ Casting
 
     .. testcode:: cast
 
-        import theano.tensor as T
-        x = T.matrix()
-        x_as_int = T.cast(x, 'int32')
+        import theano.tensor as tt
+        x = tt.matrix()
+        x_as_int = tt.cast(x, 'int32')
 
     Attempting to casting a complex value to a real value is ambiguous and
     will raise an exception.  Use `real()`, `imag()`, `abs()`, or `angle()`.
@@ -1241,9 +1241,9 @@ The six usual equality and inequality operators share the same interface.
 
   .. testcode:: oper
 
-    import theano.tensor as T
-    x,y = T.dmatrices('x','y')
-    z = T.le(x,y)
+    import theano.tensor as tt
+    x,y = tt.dmatrices('x','y')
+    z = tt.le(x,y)
 
 .. function:: lt(a, b)
 
@@ -1334,10 +1334,10 @@ Condition
 
     .. testcode:: switch
 
-      import theano.tensor as T
-      a,b = T.dmatrices('a','b')
-      x,y = T.dmatrices('x','y')
-      z = T.switch(T.lt(a,b), x, y)
+      import theano.tensor as tt
+      a,b = tt.dmatrices('a','b')
+      x,y = tt.dmatrices('x','y')
+      z = tt.switch(tt.lt(a,b), x, y)
 
 .. function:: where(cond, ift, iff)
 
@@ -1405,8 +1405,8 @@ Here is an example using the bit-wise ``and_`` via the ``&`` operator:
 
 .. testcode:: bitwise
 
-    import theano.tensor as T
-    x,y = T.imatrices('x','y')
+    import theano.tensor as tt
+    x,y = tt.imatrices('x','y')
     z = x & y
 
 
@@ -1655,8 +1655,8 @@ Linear Algebra
     Returns a tensor of size e.g. if it is 3D: (dim1, dim3, dim4)
     Example:
 
-    >>> first = T.tensor3('first')
-    >>> second = T.tensor3('second')
+    >>> first = tt.tensor3('first')
+    >>> second = tt.tensor3('second')
     >>> result = batched_dot(first, second)
 
     :note:  This is a subset of numpy.einsum, but we do not provide it for now.
@@ -1707,15 +1707,15 @@ Linear Algebra
 
 .. function:: mgrid
 
-    :returns: an instance which returns a dense (or fleshed out) mesh-grid 
-              when indexed, so that each returned argument has the same shape. 
-              The dimensions and number of the output arrays are equal to the 
-              number of indexing dimensions. If the step length is not a complex 
+    :returns: an instance which returns a dense (or fleshed out) mesh-grid
+              when indexed, so that each returned argument has the same shape.
+              The dimensions and number of the output arrays are equal to the
+              number of indexing dimensions. If the step length is not a complex
 	      number, then the stop is not inclusive.
 
     Example:
 
-    >>> a = T.mgrid[0:5, 0:3]
+    >>> a = tt.mgrid[0:5, 0:3]
     >>> a[0].eval()
     array([[0, 0, 0],
            [1, 1, 1],
@@ -1731,15 +1731,15 @@ Linear Algebra
 
 .. function:: ogrid
 
-    :returns: an instance which returns an open (i.e. not fleshed out) mesh-grid 
-              when indexed, so that only one dimension of each returned array is 
-              greater than 1. The dimension and number of the output arrays are 
-              equal to the number of indexing dimensions. If the step length is 
+    :returns: an instance which returns an open (i.e. not fleshed out) mesh-grid
+              when indexed, so that only one dimension of each returned array is
+              greater than 1. The dimension and number of the output arrays are
+              equal to the number of indexing dimensions. If the step length is
               not a complex number, then the stop is not inclusive.
 
     Example:
 
-    >>> b = T.ogrid[0:5, 0:3]
+    >>> b = tt.ogrid[0:5, 0:3]
     >>> b[0].eval()
     array([[0],
            [1],
@@ -1749,7 +1749,7 @@ Linear Algebra
     >>> b[1].eval()
     array([[0, 1, 2]])
 
-      
+
 Gradient / Differentiation
 ==========================
 

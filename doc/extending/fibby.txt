@@ -137,12 +137,12 @@ Here is some code to test that the optimization is applied only when needed.
 .. testcode::
 
    import numpy
-   import theano.tensor as T
+   import theano.tensor as tt
    from theano import function
    from theano import tensor
 
    # Test it does not apply when not needed
-   x = T.dvector()
+   x = tt.dvector()
    f = function([x], fibby(x))
 
    # We call the function to make sure it runs.
@@ -153,7 +153,7 @@ Here is some code to test that the optimization is applied only when needed.
    assert isinstance(topo[0].op, Fibby)
 
    # Test that the optimization gets applied.
-   f_zero = function([], fibby(T.zeros([5])))
+   f_zero = function([], fibby(tt.zeros([5])))
 
    # If you run in DebugMode, it will compare the output before
    # and after the optimization.
