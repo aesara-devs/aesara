@@ -2799,11 +2799,11 @@ class TestAsTensorVariable:
         as_tensor_variable(good_apply_var)
 
         bad_apply_var = ApplyDefaultTestOp(-1).make_node(self.x)
-        with pytest.raises(AttributeError):
+        with pytest.raises(ValueError):
             _ = as_tensor_variable(bad_apply_var)
 
         bad_apply_var = ApplyDefaultTestOp(2).make_node(self.x)
-        with pytest.raises(AttributeError):
+        with pytest.raises(ValueError):
             _ = as_tensor_variable(bad_apply_var)
 
     def test_list(self):
@@ -2816,7 +2816,7 @@ class TestAsTensorVariable:
             _ = as_tensor_variable(y)
 
         bad_apply_var = ApplyDefaultTestOp([0, 1]).make_node(self.x)
-        with pytest.raises(AttributeError):
+        with pytest.raises(ValueError):
             as_tensor_variable(bad_apply_var)
 
     def test_strip_leading_broadcastable(self):
