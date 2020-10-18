@@ -2493,16 +2493,16 @@ class BatchedDot(Op):
         if eval_points[0] is None and eval_points[1] is None:
             return [None]
 
-        debugger_available = config.compute_test_value != "off"
+        test_values_enabled = config.compute_test_value != "off"
 
-        if debugger_available:
+        if test_values_enabled:
             try:
                 iv0 = theano.gof.op.get_test_value(inputs[0])
             except TestValueError:
                 theano.gof.op.missing_test_message(
                     "first input passed to BatchedDot.R_op has no test value"
                 )
-                debugger_available = False
+                test_values_enabled = False
 
             try:
                 iv1 = theano.gof.op.get_test_value(inputs[1])
@@ -2510,7 +2510,7 @@ class BatchedDot(Op):
                 theano.gof.op.missing_test_message(
                     "second input passed to BatchedDot.R_op has no test value"
                 )
-                debugger_available = False
+                test_values_enabled = False
 
             if eval_points[0]:
                 try:
@@ -2520,7 +2520,7 @@ class BatchedDot(Op):
                         "first eval point passed to BatchedDot.R_op "
                         "has no test value"
                     )
-                    debugger_available = False
+                    test_values_enabled = False
             if eval_points[1]:
                 try:
                     ev1 = theano.gof.op.get_test_value(eval_points[1])
@@ -2529,9 +2529,9 @@ class BatchedDot(Op):
                         "second eval point passed to BatchedDot.R_op "
                         "has no test value"
                     )
-                    debugger_available = False
+                    test_values_enabled = False
 
-        if debugger_available:
+        if test_values_enabled:
             input_values = [iv0, iv1]
             eval_point_values = [ev0, ev1]
 
