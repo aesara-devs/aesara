@@ -1,3 +1,5 @@
+import theano.tensor as tt
+
 from theano.gof.type import Type
 from theano.gof.graph import Variable, Apply, Constant
 from theano.gof.op import Op
@@ -15,8 +17,6 @@ from theano.gof.opt import (
     pre_greedy_local_optimizer,
 )
 from theano.gof.fg import FunctionGraph
-
-from theano import tensor as T
 
 
 def as_variable(x):
@@ -385,9 +385,9 @@ class TestMergeOptimizer:
 
     def est_one_assert_merge(self):
         # Merge two nodes, one has assert, the other not.
-        x1 = T.matrix("x1")
-        x2 = T.matrix("x2")
-        e = T.dot(x1, x2) + T.dot(T.opt.assert_op(x1, (x1 > x2).all()), x2)
+        x1 = tt.matrix("x1")
+        x2 = tt.matrix("x2")
+        e = tt.dot(x1, x2) + tt.dot(tt.opt.assert_op(x1, (x1 > x2).all()), x2)
         g = FunctionGraph([x1, x2], [e])
         MergeOptimizer().optimize(g)
         strg = theano.printing.debugprint(g, file="str")
@@ -407,10 +407,10 @@ class TestMergeOptimizer:
     def test_both_assert_merge_identical(self):
         # Merge two nodes, both have assert on the same node
         # with the same conditions.
-        x1 = T.matrix("x1")
-        x2 = T.matrix("x2")
-        e = T.dot(T.opt.assert_op(x1, (x1 > x2).all()), x2) + T.dot(
-            T.opt.assert_op(x1, (x1 > x2).all()), x2
+        x1 = tt.matrix("x1")
+        x2 = tt.matrix("x2")
+        e = tt.dot(tt.opt.assert_op(x1, (x1 > x2).all()), x2) + tt.dot(
+            tt.opt.assert_op(x1, (x1 > x2).all()), x2
         )
         g = FunctionGraph([x1, x2], [e])
         MergeOptimizer().optimize(g)
@@ -432,11 +432,11 @@ class TestMergeOptimizer:
     def est_both_assert_merge_1(self):
         # Merge two nodes, both have assert on the same node
         # with different conditions.
-        x1 = T.matrix("x1")
-        x2 = T.matrix("x2")
-        x3 = T.matrix("x3")
-        e = T.dot(T.opt.assert_op(x1, (x1 > x3).all()), x2) + T.dot(
-            T.opt.assert_op(x1, (x1 > x2).all()), x2
+        x1 = tt.matrix("x1")
+        x2 = tt.matrix("x2")
+        x3 = tt.matrix("x3")
+        e = tt.dot(tt.opt.assert_op(x1, (x1 > x3).all()), x2) + tt.dot(
+            tt.opt.assert_op(x1, (x1 > x2).all()), x2
         )
         g = FunctionGraph([x1, x2, x3], [e])
         MergeOptimizer().optimize(g)
@@ -476,11 +476,11 @@ class TestMergeOptimizer:
 
     def est_both_assert_merge_2(self):
         # Merge two nodes, both have assert on different node
-        x1 = T.matrix("x1")
-        x2 = T.matrix("x2")
-        x3 = T.matrix("x3")
-        e = T.dot(T.opt.assert_op(x1, (x1 > x3).all()), x2) + T.dot(
-            x1, T.opt.assert_op(x2, (x2 > x3).all())
+        x1 = tt.matrix("x1")
+        x2 = tt.matrix("x2")
+        x3 = tt.matrix("x3")
+        e = tt.dot(tt.opt.assert_op(x1, (x1 > x3).all()), x2) + tt.dot(
+            x1, tt.opt.assert_op(x2, (x2 > x3).all())
         )
         g = FunctionGraph([x1, x2, x3], [e])
         MergeOptimizer().optimize(g)
@@ -506,11 +506,11 @@ class TestMergeOptimizer:
 
     def est_both_assert_merge_2_reverse(self):
         # Test case "test_both_assert_merge_2" but in reverse order
-        x1 = T.matrix("x1")
-        x2 = T.matrix("x2")
-        x3 = T.matrix("x3")
-        e = T.dot(x1, T.opt.assert_op(x2, (x2 > x3).all())) + T.dot(
-            T.opt.assert_op(x1, (x1 > x3).all()), x2
+        x1 = tt.matrix("x1")
+        x2 = tt.matrix("x2")
+        x3 = tt.matrix("x3")
+        e = tt.dot(x1, tt.opt.assert_op(x2, (x2 > x3).all())) + tt.dot(
+            tt.opt.assert_op(x1, (x1 > x3).all()), x2
         )
         g = FunctionGraph([x1, x2, x3], [e])
         MergeOptimizer().optimize(g)
@@ -610,18 +610,16 @@ class TestEquilibrium(object):
 
 
 def test_pre_constant_merge_slice():
-    ms = theano.tensor.type_other.MakeSlice()(1)
+    ms = tt.type_other.MakeSlice()(1)
     pre_constant_merge([ms])
-    const_slice = theano.tensor.type_other.SliceConstant(
-        type=theano.tensor.type_other.slicetype, data=slice(1, None, 2)
+    const_slice = tt.type_other.SliceConstant(
+        type=tt.type_other.slicetype, data=slice(1, None, 2)
     )
-    adv = theano.tensor.subtensor.AdvancedSubtensor()(
-        theano.tensor.matrix(), [2, 3], const_slice
-    )
+    adv = tt.subtensor.AdvancedSubtensor()(tt.matrix(), [2, 3], const_slice)
     pre_constant_merge(adv)
 
-    cst = pre_greedy_local_optimizer([theano.tensor.opt.constant_folding], ms)
-    assert isinstance(cst, theano.tensor.type_other.SliceConstant)
+    cst = pre_greedy_local_optimizer([tt.opt.constant_folding], ms)
+    assert isinstance(cst, tt.type_other.SliceConstant)
 
     # Make sure constant of slice signature is hashable.
     hash(cst.signature())

@@ -7,7 +7,7 @@ from theano.gof.op import PureOp
 from theano.gof import Apply, generic
 from theano import function, Mode
 from theano.ifelse import ifelse
-import theano.tensor as T
+import theano.tensor as tt
 
 
 class IfElseIfElseIf(PureOp):
@@ -104,7 +104,7 @@ class NotImplementedOp(PureOp):
 
 
 def test_ifelse():
-    a = T.scalar()
+    a = tt.scalar()
     b = generic()
     c = generic()
 
@@ -143,17 +143,17 @@ def more_complex_test():
     notimpl = NotImplementedOp()
     ifelseifelseif = IfElseIfElseIf()
 
-    x1 = T.scalar("x1")
-    x2 = T.scalar("x2")
-    c1 = T.scalar("c1")
-    c2 = T.scalar("c2")
+    x1 = tt.scalar("x1")
+    x2 = tt.scalar("x2")
+    c1 = tt.scalar("c1")
+    c2 = tt.scalar("c2")
     t1 = ifelse(c1, x1, notimpl(x2))
     t1.name = "t1"
     t2 = t1 * 10
     t2.name = "t2"
     t3 = ifelse(c2, t2, x1 + t1)
     t3.name = "t3"
-    t4 = ifelseifelseif(T.eq(x1, x2), x1, T.eq(x1, 5), x2, c2, t3, t3 + 0.5)
+    t4 = ifelseifelseif(tt.eq(x1, x2), x1, tt.eq(x1, 5), x2, c2, t3, t3 + 0.5)
     t4.name = "t4"
 
     f = function([c1, c2, x1, x2], t4, mode=Mode(linker="vm", optimizer="fast_run"))
