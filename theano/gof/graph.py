@@ -14,6 +14,7 @@ from six import string_types, integer_types
 
 from theano import config
 from theano.gof import utils
+from theano.gof.utils import TestValueError
 from theano.misc.ordered_set import OrderedSet
 
 __docformat__ = "restructuredtext en"
@@ -164,13 +165,13 @@ class Apply(Node):
             if len(self.outputs) == 1:
                 return self.outputs[0]
             else:
-                raise AttributeError(
+                raise ValueError(
                     "%s.default_output should be an output index." % self.op
                 )
         elif not isinstance(do, integer_types):
-            raise AttributeError("%s.default_output should be an int or long" % self.op)
+            raise ValueError("%s.default_output should be an int or long" % self.op)
         elif do < 0 or do >= len(self.outputs):
-            raise AttributeError("%s.default_output is out of range." % self.op)
+            raise ValueError("%s.default_output is out of range." % self.op)
         return self.outputs[do]
 
     out = property(default_output, doc="alias for self.default_output()")
@@ -383,18 +384,38 @@ class Variable(Node):
         self.tag = utils.ValidatingScratchpad("test_value", type.filter)
 
         self.type = type
+
         if owner is not None and not isinstance(owner, Apply):
             raise TypeError("owner must be an Apply instance", owner)
         self.owner = owner
+
         if index is not None and not isinstance(index, integer_types):
             raise TypeError("index must be an int", index)
         self.index = index
+
         if name is not None and not isinstance(name, string_types):
             raise TypeError("name must be a string", name)
         self.name = name
+
         self.auto_name = "auto_" + str(next(self.__count__))
 
         Variable.notify_construction_observers(self)
+
+    def get_test_value(self):
+        """Get the test value.
+
+        Raises
+        ------
+        TestValueError
+
+        """
+        if not hasattr(self.tag, "test_value"):
+            detailed_err_msg = utils.get_variable_trace_string(self)
+            raise TestValueError(
+                "{} has no test value {}".format(self, detailed_err_msg)
+            )
+
+        return self.tag.test_value
 
     def __str__(self):
         """Return a str representation of the Variable."""
@@ -416,7 +437,7 @@ class Variable(Node):
         overridden by classes with non printable test_value to provide a
         suitable representation of the test_value.
         """
-        return repr(theano.gof.op.get_test_value(self))
+        return repr(self.get_test_value())
 
     def __repr__(self, firstPass=True):
         """Return a repr of the Variable.
@@ -429,7 +450,7 @@ class Variable(Node):
         if config.print_test_value and firstPass:
             try:
                 to_print.append(self.__repr_test_value__())
-            except AttributeError:
+            except TestValueError:
                 pass
         return "\n".join(to_print)
 
@@ -582,6 +603,9 @@ class Constant(Variable):
         super().__init__(type, None, None, name)
         self.data = type.filter(data)
         utils.add_tag_trace(self)
+
+    def get_test_value(self):
+        return self.data
 
     def equals(self, other):
         # this does what __eq__ should do, but Variable and Apply should always be hashable by id

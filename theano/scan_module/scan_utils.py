@@ -33,6 +33,7 @@ from six import string_types
 from theano import gof, compat, tensor, scalar
 from theano.compile.pfunc import rebuild_collect_shared
 from theano.tensor.basic import get_scalar_constant_value
+from theano.gof.utils import TestValueError
 
 
 # Logging function for sending warning or info
@@ -74,8 +75,7 @@ def safe_new(x, tag="", dtype=None):
             # Copy test value, cast it if necessary
             try:
                 x_test_value = gof.op.get_test_value(x)
-            except AttributeError:
-                # There is no test value
+            except TestValueError:
                 pass
             else:
                 # This clause is executed if no exception was raised
@@ -101,8 +101,7 @@ def safe_new(x, tag="", dtype=None):
     if theano.config.compute_test_value != "off":
         try:
             nw_x.tag.test_value = copy.deepcopy(gof.op.get_test_value(x))
-        except AttributeError:
-            # This means `x` has no test value.
+        except TestValueError:
             pass
 
     return nw_x

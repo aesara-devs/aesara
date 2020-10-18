@@ -15,7 +15,7 @@ from theano import gof
 from theano.gof import utils, Variable
 
 from theano.gof.null_type import NullType, null_type
-from theano.gof.op import get_debug_values
+from theano.gof.op import get_test_values
 from theano.compile import ViewOp, FAST_RUN, DebugMode, get_mode
 
 __authors__ = "James Bergstra, Razvan Pascanu, Arnaud Bergeron, Ian Goodfellow"
@@ -1217,7 +1217,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                         continue
                     if isinstance(new_output_grad.type, DisconnectedType):
                         continue
-                    for orig_output_v, new_output_grad_v in get_debug_values(*packed):
+                    for orig_output_v, new_output_grad_v in get_test_values(*packed):
                         o_shape = orig_output_v.shape
                         g_shape = new_output_grad_v.shape
                         if o_shape != g_shape:
@@ -1310,7 +1310,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                 # has the right shape
                 if hasattr(term, "shape"):
                     orig_ipt = inputs[i]
-                    for orig_ipt_v, term_v in get_debug_values(orig_ipt, term):
+                    for orig_ipt_v, term_v in get_test_values(orig_ipt, term):
                         i_shape = orig_ipt_v.shape
                         t_shape = term_v.shape
                         if i_shape != t_shape:

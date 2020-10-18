@@ -150,6 +150,9 @@ class SharedVariable(Variable):
         else:
             self.container.value = copy.deepcopy(new_value)
 
+    def get_test_value(self):
+        return self.get_value(borrow=True, return_internal_type=True)
+
     def zero(self, borrow=False):
         """
         Set the values of a shared variable to 0.

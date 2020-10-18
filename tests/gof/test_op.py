@@ -5,14 +5,12 @@ import theano.gof.op as op
 import theano.tensor as tt
 
 from six import string_types
-from theano import scalar, shared
+from theano import scalar, shared, config
 from theano.configparser import change_flags
 from theano.gof.graph import Apply, Variable
 from theano.gof.type import Generic, Type
-
-config = theano.config
-Op = op.Op
-utils = op.utils
+from theano.gof.op import Op
+from theano.gof.utils import TestValueError, MethodNotDefined
 
 
 def as_variable(x):
@@ -177,7 +175,7 @@ class TestMakeThunk:
         o = IncOnePython()(i)
 
         # Check that the c_code function is not implemented
-        with pytest.raises((NotImplementedError, utils.MethodNotDefined)):
+        with pytest.raises((NotImplementedError, MethodNotDefined)):
             o.owner.op.c_code(o.owner, "o", ["x"], "z", {"fail": ""})
 
         storage_map = {i: [np.int32(3)], o: [None]}
@@ -213,7 +211,7 @@ class TestMakeThunk:
         o = IncOneC()(i)
 
         # Check that the perform function is not implemented
-        with pytest.raises((NotImplementedError, utils.MethodNotDefined)):
+        with pytest.raises((NotImplementedError, MethodNotDefined)):
             o.owner.op.perform(o.owner, 0, [None])
 
         storage_map = {i: [np.int32(3)], o: [None]}
@@ -229,7 +227,7 @@ class TestMakeThunk:
             assert compute_map[o][0]
             assert storage_map[o][0] == 4
         else:
-            with pytest.raises((NotImplementedError, utils.MethodNotDefined)):
+            with pytest.raises((NotImplementedError, MethodNotDefined)):
                 thunk()
 
     def test_no_make_node(self):
@@ -288,23 +286,23 @@ def test_test_value_op():
 
 
 @change_flags(compute_test_value="off")
-def test_get_debug_values_no_debugger():
-    """Tests that `get_debug_values` returns `[]` when debugger is off."""
+def test_get_test_values_no_debugger():
+    """Tests that `get_test_values` returns `[]` when debugger is off."""
 
     x = tt.vector()
-    assert op.get_debug_values(x) == []
+    assert op.get_test_values(x) == []
 
 
 @change_flags(compute_test_value="ignore")
-def test_get_det_debug_values_ignore():
-    """Tests that `get_debug_values` returns `[]` when debugger is set to "ignore" and some values are missing."""
+def test_get_test_values_ignore():
+    """Tests that `get_test_values` returns `[]` when debugger is set to "ignore" and some values are missing."""
 
     x = tt.vector()
-    assert op.get_debug_values(x) == []
+    assert op.get_test_values(x) == []
 
 
-def test_get_debug_values_success():
-    """Tests that `get_debug_value` returns values when available (and the debugger is on)."""
+def test_get_test_values_success():
+    """Tests that `get_test_values` returns values when available (and the debugger is on)."""
 
     for mode in ["ignore", "warn", "raise"]:
         with change_flags(compute_test_value=mode):
@@ -314,7 +312,7 @@ def test_get_debug_values_success():
 
             iters = 0
 
-            for x_val, y_val in op.get_debug_values(x, y):
+            for x_val, y_val in op.get_test_values(x, y):
 
                 assert x_val.shape == (4,)
                 assert y_val.shape == (5, 5)
@@ -325,9 +323,9 @@ def test_get_debug_values_success():
 
 
 @change_flags(compute_test_value="raise")
-def test_get_debug_values_exc():
-    """Tests that `get_debug_value` raises an exception when debugger is set to raise and a value is missing."""
+def test_get_test_values_exc():
+    """Tests that `get_test_values` raises an exception when debugger is set to raise and a value is missing."""
 
-    with pytest.raises(AttributeError):
+    with pytest.raises(TestValueError):
         x = tt.vector()
-        assert op.get_debug_values(x) == []
+        assert op.get_test_values(x) == []
