@@ -42,7 +42,7 @@ from theano.gof.opt import (
     pre_constant_merge,
     pre_greedy_local_optimizer,
 )
-from theano.gof.utils import MethodNotDefined
+from theano.gof.utils import MethodNotDefined, TestValueError
 from theano.gradient import DisconnectedType
 from theano.tensor.elemwise import Elemwise, DimShuffle
 from theano.tensor.subtensor import (
@@ -7747,7 +7747,7 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
                                         "Cannot construct a scalar test value"
                                         " from a test value with no size: {}".format(ii)
                                     )
-                            except AttributeError:
+                            except TestValueError:
                                 pass
 
                             tmp_s_input.append(tmp)
@@ -7812,7 +7812,7 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
                             v = gof.op.get_test_value(i)
                             if v.size > 0:
                                 s.tag.test_value = v.flatten()[0]
-                    except AttributeError:
+                    except TestValueError:
                         pass
 
                     inputs.append(i)

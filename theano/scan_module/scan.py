@@ -54,6 +54,7 @@ from theano import compile, gof, tensor, config
 from theano.compile import SharedVariable, function, ops
 from theano.tensor import opt
 from theano.updates import OrderedUpdates
+from theano.gof.utils import TestValueError
 
 from theano.scan_module import scan_op, scan_utils
 from theano.scan_module.scan_utils import safe_new, traverse
@@ -524,7 +525,7 @@ def scan(
                 if config.compute_test_value != "off":
                     try:
                         nw_slice.tag.test_value = gof.get_test_value(_seq_val_slice)
-                    except AttributeError as e:
+                    except TestValueError as e:
                         if config.compute_test_value != "ignore":
                             # No need to print a warning or raise an error now,
                             # it will be done when fn will be called.
@@ -656,7 +657,7 @@ def scan(
             if config.compute_test_value != "off":
                 try:
                     arg.tag.test_value = gof.get_test_value(actual_arg)
-                except AttributeError as e:
+                except TestValueError as e:
                     if config.compute_test_value != "ignore":
                         # No need to print a warning or raise an error now,
                         # it will be done when fn will be called.
@@ -719,7 +720,7 @@ def scan(
                         nw_slice.tag.test_value = gof.get_test_value(
                             _init_out_var_slice
                         )
-                    except AttributeError as e:
+                    except TestValueError as e:
                         if config.compute_test_value != "ignore":
                             # No need to print a warning or raise an error now,
                             # it will be done when fn will be called.

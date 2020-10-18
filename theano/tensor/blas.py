@@ -156,6 +156,7 @@ from theano.gof import (
     Apply,
     ReplacementDidntRemovedError,
 )
+from theano.gof.utils import TestValueError
 from theano.gof.params_type import ParamsType
 from theano.gof.opt import inherit_stack_trace
 from theano.printing import pprint, FunctionPrinter, debugprint
@@ -2497,7 +2498,7 @@ class BatchedDot(Op):
         if debugger_available:
             try:
                 iv0 = theano.gof.op.get_test_value(inputs[0])
-            except AttributeError:
+            except TestValueError:
                 theano.gof.op.missing_test_message(
                     "first input passed to BatchedDot.R_op has no test value"
                 )
@@ -2505,7 +2506,7 @@ class BatchedDot(Op):
 
             try:
                 iv1 = theano.gof.op.get_test_value(inputs[1])
-            except AttributeError:
+            except TestValueError:
                 theano.gof.op.missing_test_message(
                     "second input passed to BatchedDot.R_op has no test value"
                 )
@@ -2514,7 +2515,7 @@ class BatchedDot(Op):
             if eval_points[0]:
                 try:
                     ev0 = theano.gof.op.get_test_value(eval_points[0])
-                except AttributeError:
+                except TestValueError:
                     theano.gof.op.missing_test_message(
                         "first eval point passed to BatchedDot.R_op "
                         "has no test value"
@@ -2523,7 +2524,7 @@ class BatchedDot(Op):
             if eval_points[1]:
                 try:
                     ev1 = theano.gof.op.get_test_value(eval_points[1])
-                except AttributeError:
+                except TestValueError:
                     theano.gof.op.missing_test_message(
                         "second eval point passed to BatchedDot.R_op "
                         "has no test value"

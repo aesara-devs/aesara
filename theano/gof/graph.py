@@ -14,6 +14,7 @@ from six import string_types, integer_types
 
 from theano import config
 from theano.gof import utils
+from theano.gof.utils import TestValueError
 from theano.misc.ordered_set import OrderedSet
 
 __docformat__ = "restructuredtext en"
@@ -405,12 +406,12 @@ class Variable(Node):
 
         Raises
         ------
-        AttributeError
+        TestValueError
 
         """
         if not hasattr(self.tag, "test_value"):
             detailed_err_msg = utils.get_variable_trace_string(self)
-            raise AttributeError(
+            raise TestValueError(
                 "{} has no test value {}".format(self, detailed_err_msg)
             )
 
@@ -436,7 +437,7 @@ class Variable(Node):
         overridden by classes with non printable test_value to provide a
         suitable representation of the test_value.
         """
-        return repr(theano.gof.op.get_test_value(self))
+        return repr(self.get_test_value())
 
     def __repr__(self, firstPass=True):
         """Return a repr of the Variable.
@@ -449,7 +450,7 @@ class Variable(Node):
         if config.print_test_value and firstPass:
             try:
                 to_print.append(self.__repr_test_value__())
-            except AttributeError:
+            except TestValueError:
                 pass
         return "\n".join(to_print)
 

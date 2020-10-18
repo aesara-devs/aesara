@@ -6,11 +6,11 @@ import theano.tensor as tt
 
 from six import string_types
 from theano import scalar, shared, config
-from theano.gof import utils
 from theano.configparser import change_flags
 from theano.gof.graph import Apply, Variable
 from theano.gof.type import Generic, Type
 from theano.gof.op import Op
+from theano.gof.utils import TestValueError, MethodNotDefined
 
 
 def as_variable(x):
@@ -175,7 +175,7 @@ class TestMakeThunk:
         o = IncOnePython()(i)
 
         # Check that the c_code function is not implemented
-        with pytest.raises((NotImplementedError, utils.MethodNotDefined)):
+        with pytest.raises((NotImplementedError, MethodNotDefined)):
             o.owner.op.c_code(o.owner, "o", ["x"], "z", {"fail": ""})
 
         storage_map = {i: [np.int32(3)], o: [None]}
@@ -211,7 +211,7 @@ class TestMakeThunk:
         o = IncOneC()(i)
 
         # Check that the perform function is not implemented
-        with pytest.raises((NotImplementedError, utils.MethodNotDefined)):
+        with pytest.raises((NotImplementedError, MethodNotDefined)):
             o.owner.op.perform(o.owner, 0, [None])
 
         storage_map = {i: [np.int32(3)], o: [None]}
@@ -227,7 +227,7 @@ class TestMakeThunk:
             assert compute_map[o][0]
             assert storage_map[o][0] == 4
         else:
-            with pytest.raises((NotImplementedError, utils.MethodNotDefined)):
+            with pytest.raises((NotImplementedError, MethodNotDefined)):
                 thunk()
 
     def test_no_make_node(self):
@@ -326,6 +326,6 @@ def test_get_test_values_success():
 def test_get_test_values_exc():
     """Tests that `get_test_values` raises an exception when debugger is set to raise and a value is missing."""
 
-    with pytest.raises(AttributeError):
+    with pytest.raises(TestValueError):
         x = tt.vector()
         assert op.get_test_values(x) == []

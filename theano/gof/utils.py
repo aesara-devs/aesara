@@ -156,6 +156,12 @@ def hashtype(self):
 undef = object()
 
 
+class TestValueError(Exception):
+    """Base exception class for all test value errors."""
+
+    pass
+
+
 class MethodNotDefined(Exception):
     """
     To be raised by functions defined as part of an interface.

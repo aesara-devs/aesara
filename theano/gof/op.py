@@ -22,6 +22,7 @@ from six import PY3
 from theano import config
 from theano.gof import graph
 from theano.gof import utils
+from theano.gof.utils import TestValueError
 from theano.gof.cmodule import GCC_compiler
 from theano.gof.fg import FunctionGraph
 
@@ -68,7 +69,7 @@ def compute_test_value(node):
         try:
             storage_map[ins] = [ins.get_test_value()]
             compute_map[ins] = [True]
-        except AttributeError:
+        except TestValueError:
             # no test-value was specified, act accordingly
             if config.compute_test_value == "warn":
                 warnings.warn(
@@ -1073,7 +1074,7 @@ def missing_test_message(msg):
     """
     action = config.compute_test_value
     if action == "raise":
-        raise AttributeError(msg)
+        raise TestValueError(msg)
     elif action == "warn":
         warnings.warn(msg, stacklevel=2)
     else:
@@ -1113,7 +1114,7 @@ def get_test_values(*args):
     for i, arg in enumerate(args):
         try:
             rval.append(get_test_value(arg))
-        except AttributeError:
+        except TestValueError:
             if hasattr(arg, "name") and arg.name is not None:
                 missing_test_message(
                     "Argument {} ('{}') has no test value".format(i, arg.name)

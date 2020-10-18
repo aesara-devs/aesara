@@ -14,7 +14,7 @@ from six.moves import StringIO
 
 from theano import config
 from theano.gof import graph, utils, toolbox
-from theano.gof.utils import get_variable_trace_string
+from theano.gof.utils import get_variable_trace_string, TestValueError
 from theano.misc.ordered_set import OrderedSet
 
 NullType = None
@@ -511,7 +511,7 @@ class FunctionGraph(utils.object2):
             try:
                 tval = theano.gof.op.get_test_value(r)
                 new_tval = theano.gof.op.get_test_value(new_r)
-            except AttributeError:
+            except TestValueError:
                 pass
             else:
                 tval_shape = getattr(tval, "shape", None)
