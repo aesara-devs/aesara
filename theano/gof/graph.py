@@ -22,13 +22,12 @@ NoParams = object()
 
 
 class Node(utils.object2):
-    """
-    A Node in a theano graph.
+    """A `Node` in a Theano graph.
 
-    Graphs contain two kinds of Nodes -- Variable and Apply.
+    Currently, graphs contain two kinds of `Nodes`: `Variable`s and `Apply`s.
     Edges in the graph are not explicitly represented.
-    Instead each Node keeps track of its parents via
-    Variable.owner / Apply.inputs and its children
+    Instead each `Node` keeps track of its parents via
+    `Variable.owner` / `Apply.inputs` and its children
     via Variable.clients / Apply.outputs.
 
     """
@@ -44,48 +43,46 @@ class Node(utils.object2):
 
 
 class Apply(Node):
-    """
-    An :term:`Apply` instance is a node in an expression graph which represents
-    the application of an `Op` to some input `Variable` nodes, producing some
-    output `Variable` nodes.
+    """A `Node` representing the application of an operation to inputs.
 
-    This class is typically instantiated by an Op's make_node() function, which
-    is typically called by that Op's __call__() function.
-
-    An Apply instance serves as a simple structure with three important
+    An `Apply` instance serves as a simple structure with three important
     attributes:
 
     - :literal:`inputs` :  a list of `Variable` nodes that represent the
       arguments of the expression,
 
     - :literal:`outputs` : a list of `Variable` nodes that represent the
-      variable of the expression, and
+      computed outputs of the expression, and
 
     - :literal:`op` : an `Op` instance that determines the nature of the
       expression being applied.
 
-    The driver `compile.function` uses Apply's inputs attribute together with
-    Variable's owner attribute to search the expression graph and determine
-    which inputs are necessary to compute the function's outputs.
+    Basically, an `Apply` instance is an object that represents the
+    Python statement `outputs = op(*inputs)`.
 
-    A `Linker` uses the Apply instance's `op` field to compute the variables.
+    This class is typically instantiated by a `PureOp.make_node` method, which
+    is called by `PureOp.__call__`.
 
-    Comparing with the Python language, an `Apply` instance is theano's version
-    of a function call (or expression instance) whereas `Op` is theano's version
-    of a function definition.
+    The driver `theano.compile.function` uses `Apply.inputs` together with
+    `Variable.owner` to search the expression graph and determine which inputs
+    are necessary to compute the function's outputs.
+
+    A `Linker` uses the `Apply` instance's `op` field to compute numeric values
+    for the output variables.
 
     Parameters
     ----------
-    op : `Op` instance
+    op : A PureOp instance
     inputs : list of Variable instances
     outputs : list of Variable instances
 
     Notes
     -----
-    The owner field of each output in the outputs list will be set to self.
+    The `Variable.owner` field of each `Apply.outputs` element is set to `self`
+    in `Apply.make_node`.
 
-    If an output element has an owner that is neither None nor self, then a
-    ValueError exception will be raised.
+    If an output element has an owner that is neither `None` nor `self`, then a
+    `ValueError` exception will be raised.
 
     """
 
@@ -381,7 +378,7 @@ class Variable(Node):
     __count__ = count(0)
 
     def __init__(self, type, owner=None, index=None, name=None):
-        super(Variable, self).__init__()
+        super().__init__()
 
         self.tag = utils.ValidatingScratchpad("test_value", type.filter)
 
@@ -567,25 +564,22 @@ class Variable(Node):
 
 
 class Constant(Variable):
-    """
-    A :term:`Constant` is a `Variable` with a `value` field that cannot be
-    changed at runtime.
+    """A `Variable` with a fixed `value` field.
 
-    Constant nodes make eligible numerous optimizations: constant inlining in
-    C code, constant folding, etc.
+    Constant nodes make numerous optimizations possible (e.g. constant inlining
+    in C code, constant folding, etc.)
 
     Notes
     -----
     The data field is filtered by what is provided in the constructor for the
-    Constant's type field.
-
-    WRITEME
+    `Constant`'s type field.
 
     """
 
     # __slots__ = ['data']
+
     def __init__(self, type, data, name=None):
-        Variable.__init__(self, type, None, None, name)
+        super().__init__(type, None, None, name)
         self.data = type.filter(data)
         utils.add_tag_trace(self)
 
