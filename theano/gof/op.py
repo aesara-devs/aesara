@@ -1080,7 +1080,7 @@ def missing_test_message(msg):
         assert action in ["ignore", "off"]
 
 
-def get_debug_values(*args):
+def get_test_values(*args):
     """
     Intended use:
 

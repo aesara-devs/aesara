@@ -288,23 +288,23 @@ def test_test_value_op():
 
 
 @change_flags(compute_test_value="off")
-def test_get_debug_values_no_debugger():
-    """Tests that `get_debug_values` returns `[]` when debugger is off."""
+def test_get_test_values_no_debugger():
+    """Tests that `get_test_values` returns `[]` when debugger is off."""
 
     x = tt.vector()
-    assert op.get_debug_values(x) == []
+    assert op.get_test_values(x) == []
 
 
 @change_flags(compute_test_value="ignore")
-def test_get_det_debug_values_ignore():
-    """Tests that `get_debug_values` returns `[]` when debugger is set to "ignore" and some values are missing."""
+def test_get_test_values_ignore():
+    """Tests that `get_test_values` returns `[]` when debugger is set to "ignore" and some values are missing."""
 
     x = tt.vector()
-    assert op.get_debug_values(x) == []
+    assert op.get_test_values(x) == []
 
 
-def test_get_debug_values_success():
-    """Tests that `get_debug_value` returns values when available (and the debugger is on)."""
+def test_get_test_values_success():
+    """Tests that `get_test_values` returns values when available (and the debugger is on)."""
 
     for mode in ["ignore", "warn", "raise"]:
         with change_flags(compute_test_value=mode):
@@ -314,7 +314,7 @@ def test_get_debug_values_success():
 
             iters = 0
 
-            for x_val, y_val in op.get_debug_values(x, y):
+            for x_val, y_val in op.get_test_values(x, y):
 
                 assert x_val.shape == (4,)
                 assert y_val.shape == (5, 5)
@@ -325,9 +325,9 @@ def test_get_debug_values_success():
 
 
 @change_flags(compute_test_value="raise")
-def test_get_debug_values_exc():
-    """Tests that `get_debug_value` raises an exception when debugger is set to raise and a value is missing."""
+def test_get_test_values_exc():
+    """Tests that `get_test_values` raises an exception when debugger is set to raise and a value is missing."""
 
     with pytest.raises(AttributeError):
         x = tt.vector()
-        assert op.get_debug_values(x) == []
+        assert op.get_test_values(x) == []
