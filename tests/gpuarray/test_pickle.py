@@ -13,9 +13,9 @@ import pytest
 
 import numpy as np
 
+from pickle import Unpickler
+
 from theano import config
-from theano.compat import PY3
-from theano.misc.pkl_utils import CompatUnpickler
 
 from theano.gpuarray.type import ContextNotDefined
 
@@ -37,10 +37,7 @@ def test_unpickle_gpuarray_as_numpy_ndarray_flag1():
         fname = "GpuArray.pkl"
 
         with open(os.path.join(testfile_dir, fname), "rb") as fp:
-            if PY3:
-                u = CompatUnpickler(fp, encoding="latin1")
-            else:
-                u = CompatUnpickler(fp)
+            u = Unpickler(fp, encoding="latin1")
             with pytest.raises((ImportError, ContextNotDefined)):
                 u.load()
     finally:
@@ -56,10 +53,7 @@ def test_unpickle_gpuarray_as_numpy_ndarray_flag2():
         fname = "GpuArray.pkl"
 
         with open(os.path.join(testfile_dir, fname), "rb") as fp:
-            if PY3:
-                u = CompatUnpickler(fp, encoding="latin1")
-            else:
-                u = CompatUnpickler(fp)
+            u = Unpickler(fp, encoding="latin1")
             try:
                 mat = u.load()
             except ImportError:

@@ -1437,7 +1437,7 @@ def _check_preallocated_output(
             fn_attr_name = ops_with_inner_function[type(node.op)]
             fn = getattr(node.op, fn_attr_name, None)
             if not fn or not hasattr(fn, "maker") or not hasattr(fn.maker, "mode"):
-                _logger.warn(
+                _logger.warning(
                     "Expected theano function not found in %s.%s", node.op, fn_attr_name
                 )
             else:
@@ -1482,7 +1482,7 @@ def _check_preallocated_output(
 
             if not out_map:
                 # Map is empty, there is no need to execute thunk() again
-                _logger.warn("%s: out_map is empty", name)
+                _logger.warning("%s: out_map is empty", name)
                 continue
 
             # Copy the inputs over, if they were marked as destroyed or viewed
@@ -1904,7 +1904,7 @@ class _Linker(gof.link.LocalLinker):
                 thunks_py.append(None)
 
             if not self.maker.mode.check_c_code and thunks_py[-1] is None:
-                _logger.warn(
+                _logger.warning(
                     "Op %s doesn't have a perform, "
                     "forcing check of the C code" % node.op
                 )
@@ -1921,7 +1921,7 @@ class _Linker(gof.link.LocalLinker):
                 elif thunks_c[-1] is None:
                     thunks_c[-1] = thunk_other
                 else:
-                    _logger.warn(
+                    _logger.warning(
                         "We won't check the perform function "
                         "of node '%s' but we will check its "
                         "make_thunk function" % node

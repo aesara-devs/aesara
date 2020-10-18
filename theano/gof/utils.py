@@ -239,7 +239,7 @@ class object2(with_metaclass(MetaObject, object)):
         return not self == other
 
 
-class scratchpad(object):
+class Scratchpad(object):
     def clear(self):
         self.__dict__.clear()
 
@@ -257,6 +257,23 @@ class scratchpad(object):
         print("<theano.gof.utils.scratchpad instance at %i>" % id(self))
         for k, v in self.__dict__.items():
             print("  %s: %s" % (k, v))
+
+
+class ValidatingScratchpad(Scratchpad):
+    """This `Scratchpad` validates attribute values."""
+
+    def __init__(self, attr, attr_filter):
+        super().__init__()
+
+        object.__setattr__(self, "attr", attr)
+        object.__setattr__(self, "attr_filter", attr_filter)
+
+    def __setattr__(self, attr, obj):
+
+        if getattr(self, "attr", None) == attr:
+            obj = self.attr_filter(obj)
+
+        return object.__setattr__(self, attr, obj)
 
 
 class D:

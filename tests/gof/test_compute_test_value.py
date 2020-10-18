@@ -167,14 +167,16 @@ class TestComputeTestValue:
 
     @theano.change_flags(compute_test_value="raise")
     def test_incorrect_type(self):
-        x = tt.fmatrix("x")
-        # Incorrect dtype (float64) for test_value
-        x.tag.test_value = np.random.rand(3, 4)
-        y = tt.dmatrix("y")
-        y.tag.test_value = np.random.rand(4, 5)
 
+        x = tt.vector("x")
         with pytest.raises(TypeError):
-            tt.dot(x, y)
+            # Incorrect shape for test value
+            x.tag.test_value = np.empty((2, 2))
+
+        x = tt.fmatrix("x")
+        with pytest.raises(TypeError):
+            # Incorrect dtype (float64) for test value
+            x.tag.test_value = np.random.rand(3, 4)
 
     @theano.change_flags(compute_test_value="raise")
     def test_overided_function(self):

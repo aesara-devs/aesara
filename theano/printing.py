@@ -371,11 +371,11 @@ class Print(Op):
         return (1,)
 
 
-class PrinterState(gof.utils.scratchpad):
+class PrinterState(gof.utils.Scratchpad):
     def __init__(self, props=None, **more_props):
         if props is None:
             props = {}
-        elif isinstance(props, gof.utils.scratchpad):
+        elif isinstance(props, gof.utils.Scratchpad):
             self.__update__(props)
         else:
             self.__dict__.update(props)
@@ -862,7 +862,7 @@ def pydotprint(
             ):
                 cond = node
         if cond is None:
-            _logger.warn(
+            _logger.warning(
                 "pydotprint: cond_highlight is set but there is no"
                 " IfElse node in the graph"
             )

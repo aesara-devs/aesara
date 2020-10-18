@@ -15,10 +15,6 @@
 
 .. autoclass:: theano.misc.pkl_utils.StripPickler
 
-.. autoclass:: theano.misc.pkl_utils.CompatUnpickler
-
 .. seealso::
 
     :ref:`tutorial_loadsave`
-
-

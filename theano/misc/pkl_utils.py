@@ -12,6 +12,9 @@ import sys
 import tempfile
 import zipfile
 import warnings
+
+import theano
+
 from collections import defaultdict
 from contextlib import closing
 from pickle import HIGHEST_PROTOCOL
@@ -22,10 +25,7 @@ try:
 except ImportError:
     DEFAULT_PROTOCOL = HIGHEST_PROTOCOL
 
-import theano
 from theano import config
-from theano.compat import PY3
-from six import string_types
 from theano.compile.sharedvalue import SharedVariable
 
 __docformat__ = "restructuredtext en"
@@ -68,7 +68,7 @@ class StripPickler(Pickler):
 
     def save(self, obj):
         # Remove the tag.trace attribute from Variable and Apply nodes
-        if isinstance(obj, theano.gof.utils.scratchpad):
+        if isinstance(obj, theano.gof.utils.Scratchpad):
             for tag in self.tag_to_remove:
                 if hasattr(obj, tag):
                     del obj.__dict__[tag]
@@ -78,93 +78,6 @@ class StripPickler(Pickler):
                 del obj.__dict__["__doc__"]
 
         return Pickler.save(self, obj)
-
-
-# Make an unpickler that tries encoding byte streams before raising TypeError.
-# This is useful with python 3, in order to unpickle files created with
-# python 2.
-# This code is taken from Pandas, https://github.com/pydata/pandas,
-# under the same 3-clause BSD license.
-def load_reduce(self):
-    stack = self.stack
-    args = stack.pop()
-    func = stack[-1]
-    try:
-        value = func(*args)
-    except Exception:
-        # try to reencode the arguments
-        if self.encoding is not None:
-            new_args = []
-            for arg in args:
-                if isinstance(arg, string_types):
-                    new_args.append(arg.encode(self.encoding))
-                else:
-                    new_args.append(arg)
-            args = tuple(new_args)
-            try:
-                stack[-1] = func(*args)
-                return
-            except Exception:
-                pass
-
-        #        if self.is_verbose:
-        #            print(sys.exc_info())
-        #            print(func, args)
-
-        raise
-
-    stack[-1] = value
-
-
-if PY3:
-
-    class CompatUnpickler(pickle._Unpickler):
-        """
-        Allow to reload in python 3 some pickled numpy ndarray.
-
-        .. versionadded:: 0.8
-
-        Examples
-        --------
-
-        ::
-
-            with open(fname, 'rb') as fp:
-                if PY3:
-                    u = CompatUnpickler(fp, encoding="latin1")
-                else:
-                    u = CompatUnpickler(fp)
-                mat = u.load()
-
-        """
-
-        pass
-
-    # Register `load_reduce` defined above in CompatUnpickler
-    CompatUnpickler.dispatch[pickle.REDUCE[0]] = load_reduce
-else:
-
-    class CompatUnpickler(pickle.Unpickler):
-        """
-        Allow to reload in python 3 some pickled numpy ndarray.
-
-        .. versionadded:: 0.8
-
-        Examples
-        --------
-
-        ::
-
-            with open(fname, 'rb') as fp:
-                if PY3:
-                    u = CompatUnpickler(fp, encoding="latin1")
-                else:
-                    u = CompatUnpickler(fp)
-                mat = u.load()
-
-        """
-
-        pass
 
 
 class PersistentNdarrayID(object):

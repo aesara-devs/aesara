@@ -1,15 +1,9 @@
-import os
-import sys
-
 import numpy as np
 
-import theano
 import tests.unittest_tools as utt
 
 from theano import config, function, tensor
 from theano.sandbox import multinomial
-from theano.compat import PY3
-from theano.misc.pkl_utils import CompatUnpickler
 
 
 def test_n_samples_1():
@@ -49,40 +43,6 @@ def test_n_samples_2():
         pvals /= pvals.sum(1)
         res = f(pvals, uni, i)
         assert res.sum() == i
-
-
-def test_n_samples_compatibility():
-    # This test checks if the new change to MultinomialFromUniform is still compatible
-    # with old interface. Here I will load a graph created (using the old interface) as follows:
-    # RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
-    # th_rng = RandomStreams(12345)
-    # X = T.matrix('X')
-    # pvals = T.exp(X)
-    # pvals = pvals / pvals.sum(axis=1, keepdims=True)
-    # samples = th_rng.multinomial(pvals=pvals)
-    # pickle.dump([X, samples], open("multinomial_test_graph.pkl", "w"))
-
-    folder = os.path.dirname(os.path.abspath(__file__))
-    with open(os.path.join(folder, "multinomial_test_graph.pkl"), "rb") as pkl_file:
-        if PY3:
-            u = CompatUnpickler(pkl_file, encoding="latin1")
-        else:
-            u = CompatUnpickler(pkl_file)
-        try:
-            X, samples = u.load()
-        except ImportError:
-            # Windows sometimes fail with nonsensical errors like:
-            #   ImportError: No module named type
-            #   ImportError: No module named copy_reg
-            # when "type" and "copy_reg" are builtin modules.
-            if sys.platform == "win32":
-                exc_type, exc_value, exc_trace = sys.exc_info()
-                raise
-            raise
-
-        f = theano.function([X], samples)
-        res = f(np.random.randn(20, 10))
-        assert np.all(res.sum(axis=1) == 1)
 
 
 def test_multinomial_0():

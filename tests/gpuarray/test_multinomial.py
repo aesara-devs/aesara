@@ -7,9 +7,10 @@ import theano
 
 import tests.unittest_tools as utt
 
+from pickle import Unpickler
+
 from theano import config, function, tensor
 from theano.compat import PY3
-from theano.misc.pkl_utils import CompatUnpickler
 from theano.sandbox import multinomial
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from theano.gpuarray.multinomial import (
@@ -384,6 +385,6 @@ def test_unpickle_legacy_op():
 
     if not PY3:
         with open(os.path.join(testfile_dir, fname), "r") as fp:
-            u = CompatUnpickler(fp)
+            u = Unpickler(fp)
             m = u.load()
             assert isinstance(m, GPUAChoiceFromUniform)

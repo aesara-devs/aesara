@@ -1,9 +1,7 @@
 import numpy as np
 import pytest
-import os
+
 from theano import config, function, tensor
-from theano.compat import PY3
-from theano.misc.pkl_utils import CompatUnpickler
 from theano.sandbox import multinomial
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
@@ -214,14 +212,3 @@ class TestFunction:
         avg_pvals /= avg_pvals.sum()
         avg_diff = np.mean(abs(avg_pvals - pvals))
         assert avg_diff < mean_rtol
-
-    def test_unpickle_legacy_op(self):
-        testfile_dir = os.path.dirname(os.path.realpath(__file__))
-        fname = "test_sandbox_multinomial_wo_replacement.pkl"
-
-        if not PY3:
-            with open(os.path.join(testfile_dir, fname), "r") as fp:
-                u = CompatUnpickler(fp)
-                m = u.load()
-                print(m)
-                assert isinstance(m, multinomial.ChoiceFromUniform)

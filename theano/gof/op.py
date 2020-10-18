@@ -553,29 +553,10 @@ class PureOp(object):
         elif isinstance(v, SharedVariable):
             return v.get_value(borrow=True, return_internal_type=True)
         elif isinstance(v, graph.Variable) and hasattr(v.tag, "test_value"):
-            # ensure that the test value is correct
-            try:
-                ret = v.type.filter(v.tag.test_value)
-            except Exception as e:
-                # Better error message.
-                detailed_err_msg = (
-                    "For compute_test_value, one input test value does not"
-                    " have the requested type.\n"
-                )
-                detailed_err_msg += utils.get_variable_trace_string(v)
+            return v.tag.test_value
 
-                detailed_err_msg += (
-                    "\nThe error when converting the test value to that"
-                    " variable type:"
-                )
-                # We need to only have 1 args and it should be of type
-                # string.  Otherwise, it print the tuple and so the
-                # new line do not get printed.
-                args = (detailed_err_msg,) + tuple(str(arg) for arg in e.args)
-                e.args = ("\n".join(args),)
-                raise
-            return ret
         detailed_err_msg = utils.get_variable_trace_string(v)
+
         raise AttributeError("%s has no test value %s" % (v, detailed_err_msg))
 
     def __call__(self, *inputs, **kwargs):
@@ -1057,48 +1038,13 @@ def missing_test_message(msg):
         assert action in ["ignore", "off"]
 
 
-def debug_error_message(msg):
-    """
-    Displays a message saying that an error was found in some
-    test_values. Becomes a warning or a ValueError depending on
-    config.compute_test_value.
-
-    """
-    action = config.compute_test_value
-
-    # this message should never be called when the debugger is off
-    assert action != "off"
-
-    if action in ["raise", "ignore"]:
-        raise ValueError(msg)
-    else:
-        assert action == "warn"
-        warnings.warn(msg, stacklevel=2)
-
-
-def debug_assert(condition, msg=None):
-    """
-    Customized assert with options to ignore the assert
-    with just a warning
-    """
-    if msg is None:
-        msg = "debug_assert failed"
-    if not condition:
-        action = config.compute_test_value
-        if action in ["raise", "ignore"]:
-            raise AssertionError(msg)
-        else:
-            assert action == "warn"
-            warnings.warn(msg, stacklevel=2)
-
-
 def get_debug_values(*args):
     """
     Intended use:
 
         for val_1, ..., val_n in get_debug_values(var_1, ..., var_n):
             if some condition on val_1, ..., val_n is not met:
-                debug_error_message("condition was not met")
+                missing_test_message("condition was not met")
 
     Given a list of variables, get_debug_values does one of three things:
 
@@ -1128,10 +1074,10 @@ def get_debug_values(*args):
         except AttributeError:
             if hasattr(arg, "name") and arg.name is not None:
                 missing_test_message(
-                    "Argument " + str(i) + "('" + arg.name + "') has no test value"
+                    "Argument {} ('{}') has no test value".format(i, arg.name)
                 )
             else:
-                missing_test_message("Argument " + str(i) + " has no test value")
+                missing_test_message("Argument {} has no test value".format(i))
             return []
 
     if len(rval) == 1:

@@ -3251,7 +3251,7 @@ def merge_two_slices(slice1, len1, slice2, len2):
             # sl.stop backwards
             n_val = sl1.stop - 1 - sl2 * sl1.step
             if config.warn.subtensor_merge_bug:
-                warnings.warn(
+                warnings.warning(
                     (
                         "Your current code is fine, but Theano versions "
                         "prior to 0.5rc2 might have given an incorrect result. "
@@ -3843,7 +3843,7 @@ def local_adv_sub1_adv_inc_sub1(node):
 
     if not inp.owner.op.set_instead_of_inc:
         if config.warn.inc_subtensor1_opt:
-            warnings.warn(
+            warnings.warning(
                 "Your current code is fine, but Theano versions "
                 "between 0.7rc1 and 0.10 (or development versions "
                 "between Nov. 2014 and May 2017) "
@@ -5851,7 +5851,7 @@ def local_sum_prod_div_dimshuffle(node):
                         break
 
                 if compatible_dims:
-                    _logger.warn(
+                    _logger.warning(
                         "WARNING: Your current code is fine, but"
                         " Theano versions between "
                         "rev. 3bd9b789f5e8 (2010-06-16) and"
@@ -5906,7 +5906,7 @@ def local_sum_prod_div_dimshuffle(node):
                         if config.warn.sum_div_dimshuffle_bug and isinstance(
                             node.op, T.Sum
                         ):
-                            _logger.warn(
+                            _logger.warning(
                                 "WARNING: Your current code is fine,"
                                 " but Theano versions between "
                                 "rev. 3bd9b789f5e8 (2010-06-16) and"
@@ -6016,7 +6016,7 @@ def local_op_of_op(node):
                     and newaxis != newaxis_old
                     and len(newaxis) == len(newaxis_old)
                 ):
-                    _logger.warn(
+                    _logger.warning(
                         "WARNING (YOUR CURRENT CODE IS FINE): Theano "
                         "versions between version 9923a40c7b7a and August "
                         "2nd, 2010 generated bugged code in this case. "
@@ -6102,7 +6102,7 @@ def local_reduce_join(node):
         # I put this warning late to don't add extra warning.
         if len(reduce_axis) != 1 or 0 not in reduce_axis:
             if theano.config.warn.reduce_join:
-                warnings.warn(
+                warnings.warning(
                     (
                         "Your current code is fine, but Theano versions "
                         "prior to 0.7 (or this development version Sept 2014) "
@@ -7229,19 +7229,21 @@ register_stabilize(local_erf_neg_minus_one2)
 register_specialize(local_erf_neg_minus_one2)
 
 
-# Stability optimization
-# log(erfc(x)) => when x>threashold,
-#              -x**2-log(x)-.5*log(pi)+log(1-1/(2*x**2)+3/(4*x**4)-15/(8*x**6))
-# for float64: threshold=26.641747557 was choosed with:
-#  [(i,numpy.log(scipy.special.erfc(numpy.asarray([i],dtype='float64'))))
-#   for i in numpy.arange(26.641747557,26.6417475571,.00000000001)]
-# for float32: threshold=10.0541949, [(i,numpy.log(scipy.special.erfc(
-#        numpy.asarray([i],dtype='float32')))) for i in numpy.arange(
-#        10.0541948,10.0541951,.0000001)]
 @register_stabilize
 @register_specialize
 @gof.local_optimizer([T.log])
 def local_log_erfc(node):
+    """Stability optimization for `log(erfc(x))`.
+
+    log(erfc(x)) => when x>threshold,
+                -x**2-log(x)-.5*log(pi)+log(1-1/(2*x**2)+3/(4*x**4)-15/(8*x**6))
+    for float64: threshold=26.641747557 was choosed with:
+    [(i,numpy.log(scipy.special.erfc(numpy.asarray([i],dtype='float64'))))
+    for i in numpy.arange(26.641747557,26.6417475571,.00000000001)]
+    for float32: threshold=10.0541949, [(i,numpy.log(scipy.special.erfc(
+        numpy.asarray([i],dtype='float32')))) for i in numpy.arange(
+        10.0541948,10.0541951,.0000001)]
+    """
     if node.op != T.log:
         return False
     if not node.inputs[0].owner or node.inputs[0].owner.op != T.erfc:
@@ -7270,21 +7272,26 @@ def local_log_erfc(node):
     return [ret]
 
 
-# Stability optimization of the grad of log(erfc(x))
-# ([y*]exp(-(x**2)))/erfc(x) # The y* is optional
-# ([y*]exp(x**2))/erfc(-x) => [y*](when x>threashold,
-#                            sqrt(pi)*-x/(1-1/(2*x**2)+3/(4*x**4)-15/(8*x**6)))
-# for float64: threshold=26.63 see at the end of the fct for the explanation
-# for float32: threshold=9.3 see at the end of the fct for the explanation
-# TODO: remove the contraint that there are only 2 inputs to exp(x**2)
-#      is the second.
-# TODO: at the test point 10 in float32, there is instability in the original
-#      value. The original gives -30.0, the stab -20.1 and in float64 -18.1.
-#      Make it so that the test does not generate an error in that case!
 @register_stabilize
 @register_specialize
 @gof.local_optimizer([T.true_div])
 def local_grad_log_erfc_neg(node):
+    """Stability optimization for the grad of `log(erfc(x))`.
+
+    ([y*]exp(-(x**2)))/erfc(x) # The y* is optional
+    ([y*]exp(x**2))/erfc(-x) => [y*](when x>threashold,
+                            sqrt(pi)*-x/(1-1/(2*x**2)+3/(4*x**4)-15/(8*x**6)))
+
+    for float64: threshold=26.63 see at the end of the fct for the explanation
+    for float32: threshold=9.3 see at the end of the fct for the explanation
+
+    TODO: remove the contraint that there are only 2 inputs to exp(x**2)
+        is the second.
+    TODO: at the test point 10 in float32, there is instability in the original
+        value. The original gives -30.0, the stab -20.1 and in float64 -18.1.
+        Make it so that the test does not generate an error in that case!
+
+    """
     if node.op != T.true_div:
         return False
     if not node.inputs[1].owner or node.inputs[1].owner.op != T.erfc:
@@ -7602,43 +7609,52 @@ for i in range(1,len(p64)): print i, 64[i]-p64[i-1]
    """
 
 
-# ###############
-# # Loop fusion #
-# ###############
-def local_elemwise_fusion_op(OP, max_input_fct=lambda node: 32, maker=None):
-    """
-    We parametrize it to make it work for Elemwise and GpuElemwise op.
+def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None):
+    """Create a recursive function that fuses `Elemwise` `Op`s.
+
+    The basic idea is that we loop through an `Elemwise` node's inputs, find
+    other `Elemwise` nodes, determine the scalars input types for all of the
+    `Elemwise` `Op`s, construct a new scalar `Op` using the scalar input types
+    and each `Elemwise`'s scalar `Op`, and use the composite scalar `Op` in a
+    new "fused" `Elemwise`.
+
+    It's parameterized in order to work for `Elemwise` and `GpuElemwise` `Op`s.
 
     Parameters
     ----------
-    OP
-        GpuElemwise or Elemwise class (the one that we want to fuse)
-    max_input_fct
-        A function that returns the maximum number of inputs
-        that this elemwise can take (useful for GpuElemwise).
-        GPU kernel currently has a limit of 256 bytes for
-        the size of all parameters passed to it. As currently
-        we pass many information only by parameter, we must
-        limit how many ops we fuse together to avoid busting
-        that 256 limit.
+    op_class : type
+        `GpuElemwise` or `Elemwise` class (the one that we want to fuse)
+    max_input_fct : callable
+        A function that returns the maximum number of inputs that this `Elemwise`
+        can take (useful for `GpuElemwise`).  The GPU kernel currently has a
+        limit of 256 bytes for the size of all parameters passed to it. As
+        currently we pass a lot of information only by parameter, we must limit how
+        many `Op`s we fuse together to avoid busting that 256 limit.
 
-        On the CPU we limit to 32 input variables
-        since that is the maximum numpy support.
+        On the CPU we limit to 32 input variables since that is the maximum
+        NumPy support.
+
+    maker: callable
+        A function with the signature `(node, *args)` that constructs an
+        `op_class` instance (e.g. `op_class(*args)`).
 
     """
     if maker is None:
 
         def maker(node, scalar_op):
-            return OP(scalar_op)
+            return op_class(scalar_op)
 
     def local_fuse(node):
-        """
-        As part of specialization, we fuse two consecutive elemwise Ops of the
+        """Fuse `Elemwise` `Op`s in a node.
+
+
+        As part of specialization, we fuse two consecutive elemwise `Op`s of the
         same shape.
 
-        For mixed dtype, we let the Composite op do the cast. It lets the C
+        For mixed dtype, we let the `Composite` `Op` do the cast. It lets the C
         compiler do the cast.
-        The number of dimensions is validated at call time by theano itself.
+
+        The number of dimensions is validated at call time by Theano itself.
 
         """
         # META TODO:  PUT THESE THINGS IN TRAC, NOT TODO NOTES!!
@@ -7665,12 +7681,13 @@ def local_elemwise_fusion_op(OP, max_input_fct=lambda node: 32, maker=None):
         # worthwhile if the summation axis doesn't line up with a
         # contiguous dimension)
 
-        if type(node.op) is not OP:
+        if type(node.op) is not op_class:
             return False
 
         if len(node.outputs) > 1:
-            # We don't support the fusion for node with multiple outputs.
+            # We don't support fusion for nodes with multiple outputs.
             return
+
         inputs = []  # inputs of the new Elemwise op.
         s_inputs = []  # inputs of the new scalar op used by the Composite.
         # Inputs of the new scalar op that represents the current node.
@@ -7691,7 +7708,6 @@ def local_elemwise_fusion_op(OP, max_input_fct=lambda node: 32, maker=None):
 
         for i in node.inputs:
             do_fusion = False
-            catch = False
             # Will store inputs of the fused node that are not currently inputs
             # of the node we want to create (to avoid duplicating inputs).
             tmp_input = []
@@ -7704,7 +7720,7 @@ def local_elemwise_fusion_op(OP, max_input_fct=lambda node: 32, maker=None):
             # we still want to fusion. So we take the set.
             if (
                 i.owner
-                and isinstance(i.owner.op, OP)
+                and isinstance(i.owner.op, op_class)
                 and len(set([n for n, idx in i.clients])) == 1
                 and
                 # Do not merge elemwise that don't have the same
@@ -7712,7 +7728,6 @@ def local_elemwise_fusion_op(OP, max_input_fct=lambda node: 32, maker=None):
                 # computation due to broadcast.
                 i.owner.outputs[0].broadcastable == node.outputs[0].broadcastable
             ):
-                do_fusion = True
                 try:
                     tmp_s_input = []
                     # we should not put duplicate input into s_inputs and inputs
@@ -7728,12 +7743,17 @@ def local_elemwise_fusion_op(OP, max_input_fct=lambda node: 32, maker=None):
                                 if tv.size > 0:
                                     tmp.tag.test_value = tv.flatten()[0]
                                 else:
-                                    tmp.tag.test_value = tv
+                                    _logger.warning(
+                                        "Cannot construct a scalar test value"
+                                        " from a test value with no size: {}".format(ii)
+                                    )
                             except AttributeError:
                                 pass
+
                             tmp_s_input.append(tmp)
                             tmp_input.append(ii)
                             tmp_scalar.append(tmp_s_input[-1])
+
                     s_op = i.owner.op.scalar_op(*tmp_s_input, return_list=True)
 
                     # if the scalar_op don't have a c implementation,
@@ -7746,12 +7766,11 @@ def local_elemwise_fusion_op(OP, max_input_fct=lambda node: 32, maker=None):
                         ["z" for z in i.owner.outputs],
                         {"fail": "%(fail)s"},
                     )
-                except MethodNotDefined:
-                    catch = True
-                except NotImplementedError:
-                    catch = True
-                if catch:
-                    _logger.info(
+
+                    do_fusion = True
+
+                except (NotImplementedError, MethodNotDefined):
+                    _logger.warning(
                         (
                             "%s does not implement the c_code function."
                             " As well as being potentially slow, this"
@@ -7782,8 +7801,8 @@ def local_elemwise_fusion_op(OP, max_input_fct=lambda node: 32, maker=None):
                 s_inputs.extend(tmp_scalar)
                 s_g.extend(s_op)
             else:
-                # We must support the case where the same variable appear many
-                # time in the inputs
+                # We must support the case where the same variable appears many
+                # times within the inputs
                 if inputs.count(i) == node.inputs.count(i):
                     s = s_inputs[inputs.index(i)]
                 else:
@@ -7819,8 +7838,8 @@ your code will run correctly, but may be slower."""
                 ["z" for x in s_new_out],
                 {"fail": "%(fail)s"},
             )
-        except MethodNotDefined:
-            _logger.info(
+        except (NotImplementedError, MethodNotDefined):
+            _logger.warning(
                 (
                     "%s does not implement the c_code function."
                     " As well as being potentially slow, this disables "
@@ -7828,29 +7847,19 @@ your code will run correctly, but may be slower."""
                 )
                 % str(s_new_out[0].owner.op)
             )
-            return False
-        except NotImplementedError:
-            _logger.info(
-                (
-                    "%s does not implement the c_code function. As well"
-                    " as being potentially slow, this disables loop"
-                    " fusion of this op."
-                )
-                % str(s_new_out[0].owner.op)
-            )
-            return False
 
         # create the composite op.
-        C = scalar.Composite(s_inputs, s_new_out)
+        composite_op = scalar.Composite(s_inputs, s_new_out)
 
         # create the new node.
         # Do not call make_node to have test_value
-        n = maker(node, C)(*inputs).owner
-        assert len(n.outputs) == 1
-        assert node.outputs[0].dtype == n.outputs[0].dtype
+        new_node = maker(node, composite_op)(*inputs).owner
 
-        if len(n.inputs) > max_nb_input:
-            _logger.info(
+        assert len(new_node.outputs) == 1
+        assert node.outputs[0].dtype == new_node.outputs[0].dtype
+
+        if len(new_node.inputs) > max_nb_input:
+            _logger.warning(
                 "loop fusion failed because Op would exceed" " kernel argument limit."
             )
             return False
@@ -7858,16 +7867,15 @@ your code will run correctly, but may be slower."""
         # we fuse as many that we can at the same time to make debug mode faster
         # debug mode will be faster as it won't test all intermediate step.
         while True:
-            ret = local_fuse(n)
+            ret = local_fuse(new_node)
             if ret is not False and ret is not None:
-                # print n,ret
-                assert len(ret) == len(n.outputs)
+                assert len(ret) == len(new_node.outputs)
                 assert len(ret) == 1
-                n = ret[0].owner
+                new_node = ret[0].owner
             else:
                 break
 
-        return n.outputs
+        return new_node.outputs
 
     return local_fuse
 

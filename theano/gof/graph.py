@@ -92,7 +92,7 @@ class Apply(Node):
     def __init__(self, op, inputs, outputs):
         self.op = op
         self.inputs = []
-        self.tag = utils.scratchpad()
+        self.tag = utils.Scratchpad()
 
         if not isinstance(inputs, (list, tuple)):
             raise TypeError("The inputs of an Apply must be a list or tuple")
@@ -383,7 +383,8 @@ class Variable(Node):
     def __init__(self, type, owner=None, index=None, name=None):
         super(Variable, self).__init__()
 
-        self.tag = utils.scratchpad()
+        self.tag = utils.ValidatingScratchpad("test_value", type.filter)
+
         self.type = type
         if owner is not None and not isinstance(owner, Apply):
             raise TypeError("owner must be an Apply instance", owner)

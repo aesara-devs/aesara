@@ -255,7 +255,7 @@ class InferShapeTester:
                 else:
                     shp = inp.shape
                 if len(set(shp)) != len(shp):
-                    _logger.warn(
+                    _logger.warning(
                         "While testing shape inference for %r, we received an"
                         " input with a shape that has some repeated values: %r"
                         ", like a square matrix. This makes it impossible to"
