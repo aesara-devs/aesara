@@ -17,6 +17,9 @@ from theano.gof.opt import (
     pre_greedy_local_optimizer,
 )
 from theano.gof.fg import FunctionGraph
+from theano.tensor.type_other import MakeSlice, SliceConstant, slicetype
+from theano.tensor.subtensor import AdvancedSubtensor
+from theano.tensor.opt import constant_folding
 
 
 def as_variable(x):
@@ -610,16 +613,14 @@ class TestEquilibrium(object):
 
 
 def test_pre_constant_merge_slice():
-    ms = tt.type_other.MakeSlice()(1)
+    ms = MakeSlice()(1)
     pre_constant_merge([ms])
-    const_slice = tt.type_other.SliceConstant(
-        type=tt.type_other.slicetype, data=slice(1, None, 2)
-    )
-    adv = tt.subtensor.AdvancedSubtensor()(tt.matrix(), [2, 3], const_slice)
+    const_slice = SliceConstant(type=slicetype, data=slice(1, None, 2))
+    adv = AdvancedSubtensor()(tt.matrix(), [2, 3], const_slice)
     pre_constant_merge(adv)
 
-    cst = pre_greedy_local_optimizer([tt.opt.constant_folding], ms)
-    assert isinstance(cst, tt.type_other.SliceConstant)
+    cst = pre_greedy_local_optimizer([constant_folding], ms)
+    assert isinstance(cst, SliceConstant)
 
     # Make sure constant of slice signature is hashable.
     hash(cst.signature())
