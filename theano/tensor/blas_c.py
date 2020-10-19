@@ -1,8 +1,12 @@
-import theano.tensor.basic as tt
+# import theano.tensor.basic as tt
 
 from theano import config
 from theano.gof.params_type import ParamsType
 from theano.scalar import bool as bool_t
+
+# Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
+from theano.tensor import basic as tt
+
 from theano.tensor.opt import in2out
 from theano.tensor.blas import ldflags, blas_header_text, blas_header_version
 from theano.tensor.blas import blas_optdb, optdb, local_optimizer

@@ -14,7 +14,8 @@ import numpy as np
 
 import theano
 import theano.scalar.basic as ts
-import theano.tensor.basic as tt
+
+# import theano.tensor.basic as tt
 
 from functools import reduce
 from collections import defaultdict
@@ -26,6 +27,10 @@ from theano import (
     config,
     compile,
 )  # to register the optimizer built by this file
+
+# Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
+from theano.tensor import basic as tt
+
 from theano.gof import (
     opt,
     InconsistencyError,

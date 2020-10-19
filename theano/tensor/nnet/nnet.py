@@ -18,12 +18,16 @@ import warnings
 
 import numpy as np
 import theano
-import theano.tensor.basic as tt
+
+# import theano.tensor.basic as tt
 
 from theano import scalar
 from theano.compile import optdb
 from theano.gof.graph import Apply
 from theano.gof.op import Op
+
+# Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
+from theano.tensor import basic as tt
 from theano.tensor.opt import (
     register_specialize,
     register_stabilize,

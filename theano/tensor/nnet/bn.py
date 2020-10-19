@@ -1,12 +1,16 @@
 import numpy as np
 
 import theano
-import theano.tensor.basic as tt
+
+# import theano.tensor.basic as tt
 
 from theano import Apply, Op
 from theano.gof import local_optimizer
 from theano.gof.opt import copy_stack_trace
 from theano.scalar import Composite, add, as_common_dtype, mul, sub, true_div
+
+# Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
+from theano.tensor import basic as tt
 from theano.tensor import TensorType, as_tensor_variable
 from theano.tensor.elemwise import Elemwise
 from theano.tensor.opt import register_specialize_device
