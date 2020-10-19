@@ -665,9 +665,9 @@ class lstsq(Op):
 def matrix_power(M, n):
     r"""
     Raise a square matrix to the (integer) power n.
-    This implementation uses exponentiation by squaring which is 
+    This implementation uses exponentiation by squaring which is
     significantly faster than the naive implementation.
-    The time complexity for exponentiation by squaring is 
+    The time complexity for exponentiation by squaring is
     :math: `\mathcal{O}((n \log M)^k`
 
     Parameters
@@ -676,8 +676,8 @@ def matrix_power(M, n):
     n : Python int
     """
     if n < 0:
-       M = pinv(M)
-       n = abs(n)
+        M = pinv(M)
+        n = abs(n)
 
     # Shortcuts when 0 < n <= 3
     if n == 0:

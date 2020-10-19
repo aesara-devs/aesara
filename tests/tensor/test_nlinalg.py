@@ -552,7 +552,7 @@ class TestMatrix_power:
         a = rng.rand(4, 3).astype(theano.config.floatX)
         with pytest.raises(ValueError):
             f(a)
-    
+
     def test_negative_matrix(self):
         rng = np.random.RandomState(utt.fetch_seed())
         A = tensor.matrix("A", dtype=theano.config.floatX)
