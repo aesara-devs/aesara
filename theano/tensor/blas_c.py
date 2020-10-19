@@ -1,3 +1,5 @@
+import theano.tensor.basic as tt
+
 from theano import config
 from theano.gof.params_type import ParamsType
 from theano.scalar import bool as bool_t
@@ -6,7 +8,6 @@ from theano.tensor.blas import ldflags, blas_header_text, blas_header_version
 from theano.tensor.blas import blas_optdb, optdb, local_optimizer
 from theano.tensor.blas import Ger, ger, ger_destructive
 from theano.tensor.blas import Gemv, gemv_inplace, gemv_no_inplace
-from theano.tensor import basic as T
 
 
 class BaseBLAS(object):
@@ -706,10 +707,10 @@ def make_c_gemv_destructive(node):
         dest = inputs[0]
         if (
             dest.owner
-            and isinstance(dest.owner.op, T.AllocEmpty)
+            and isinstance(dest.owner.op, tt.AllocEmpty)
             and len(dest.clients) > 1
         ):
-            inputs[0] = T.AllocEmpty(dest.dtype)(*dest.owner.inputs)
+            inputs[0] = tt.AllocEmpty(dest.dtype)(*dest.owner.inputs)
 
         return [cgemv_inplace(*inputs)]
 

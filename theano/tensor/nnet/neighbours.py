@@ -2,16 +2,14 @@
 TODO: implement Images2Neibs.infer_shape() methods
 
 """
-
-
 import numpy as np
 
 import theano
-from theano import Op, Apply
+import theano.tensor as tt
+
+from theano import Apply, Op
 from theano.gof import EnumList
-import theano.tensor as T
-from theano.gradient import grad_not_implemented
-from theano.gradient import grad_undefined
+from theano.gradient import grad_not_implemented, grad_undefined
 
 
 class Images2Neibs(Op):
@@ -102,19 +100,19 @@ class Images2Neibs(Op):
                 pattern.
 
         """
-        ten4 = T.as_tensor_variable(ten4)
-        neib_shape = T.as_tensor_variable(neib_shape)
+        ten4 = tt.as_tensor_variable(ten4)
+        neib_shape = tt.as_tensor_variable(neib_shape)
         if neib_step is None:
             neib_step = neib_shape
         else:
-            neib_step = T.as_tensor_variable(neib_step)
+            neib_step = tt.as_tensor_variable(neib_step)
 
         assert ten4.ndim == 4
         assert neib_shape.ndim == 1
         assert neib_step.ndim == 1
 
         return Apply(
-            self, [ten4, neib_shape, neib_step], [T.matrix(dtype=ten4.type.dtype)]
+            self, [ten4, neib_shape, neib_step], [tt.matrix(dtype=ten4.type.dtype)]
         )
 
     def grad(self, inp, grads):
@@ -165,14 +163,14 @@ class Images2Neibs(Op):
                     + ((rows - nrows) // rstep + 1,)
                     + ((cols - ncols) // cstep + 1,)
                 )
-                return T.inc_subtensor(result_indices, pgz.reshape(newshape))
+                return tt.inc_subtensor(result_indices, pgz.reshape(newshape))
 
-            indices = T.arange(neib_shape[0] * neib_shape[1])
+            indices = tt.arange(neib_shape[0] * neib_shape[1])
             pgzs = gz.dimshuffle((1, 0))
             result, _ = theano.scan(
                 fn=pos2map,
                 sequences=[indices, pgzs],
-                outputs_info=T.zeros(x.shape),
+                outputs_info=tt.zeros(x.shape),
                 non_sequences=[neib_shape, neib_step],
             )
             grad_input = result[-1]
@@ -354,8 +352,8 @@ class Images2Neibs(Op):
         c, d = node.inputs[1]
         step_x, step_y = node.inputs[2]
         if self.mode == "wrap_centered":
-            grid_c = T.ceil_intdiv(in_shape[2], step_x)
-            grid_d = T.ceil_intdiv(in_shape[3], step_y)
+            grid_c = tt.ceil_intdiv(in_shape[2], step_x)
+            grid_d = tt.ceil_intdiv(in_shape[3], step_y)
         elif self.mode == "valid":
             grid_c = 1 + ((in_shape[2] - c) // step_x)
             grid_d = 1 + ((in_shape[3] - d) // step_y)
@@ -795,11 +793,11 @@ def neibs2images(neibs, neib_shape, original_shape, mode="valid"):
     .. note:: The code will output the initial image array.
 
     """
-    neibs = T.as_tensor_variable(neibs)
-    neib_shape = T.as_tensor_variable(neib_shape)
-    original_shape = T.as_tensor_variable(original_shape)
+    neibs = tt.as_tensor_variable(neibs)
+    neib_shape = tt.as_tensor_variable(neib_shape)
+    original_shape = tt.as_tensor_variable(original_shape)
 
-    new_neib_shape = T.stack([original_shape[-1] // neib_shape[1], neib_shape[1]])
+    new_neib_shape = tt.stack([original_shape[-1] // neib_shape[1], neib_shape[1]])
     output_2d = images2neibs(
         neibs.dimshuffle("x", "x", 0, 1), new_neib_shape, mode=mode
     )
@@ -809,10 +807,10 @@ def neibs2images(neibs, neib_shape, original_shape, mode="valid"):
         # the shape and still raise error when it don't have the right
         # shape.
         valid_shape = original_shape
-        valid_shape = T.set_subtensor(
+        valid_shape = tt.set_subtensor(
             valid_shape[2], (valid_shape[2] // neib_shape[0]) * neib_shape[0]
         )
-        valid_shape = T.set_subtensor(
+        valid_shape = tt.set_subtensor(
             valid_shape[3], (valid_shape[3] // neib_shape[1]) * neib_shape[1]
         )
         output_4d = output_2d.reshape(valid_shape, ndim=4)
@@ -820,7 +818,7 @@ def neibs2images(neibs, neib_shape, original_shape, mode="valid"):
         for d in [2, 3]:
             pad_shape = list(output_4d.shape)
             pad_shape[d] = original_shape[d] - valid_shape[d]
-            output_4d = T.concatenate([output_4d, T.zeros(pad_shape)], axis=d)
+            output_4d = tt.concatenate([output_4d, tt.zeros(pad_shape)], axis=d)
     elif mode == "valid":
         # TODO: we do not implement all mode with this code.
         # Add a check for the good cases.
