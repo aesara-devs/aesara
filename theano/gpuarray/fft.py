@@ -1,14 +1,19 @@
 import numpy as np
+
 import theano
+import theano.tensor as tt
+
 from theano import Op
-import theano.tensor as T
 from theano.gradient import DisconnectedType
+from theano.gpuarray.basic_ops import (
+    gpu_contiguous,
+    as_gpuarray_variable,
+    infer_context_name,
+)
+from theano.gpuarray.type import GpuArrayType
 
-from .basic_ops import gpu_contiguous, as_gpuarray_variable, infer_context_name
-from .type import GpuArrayType
-
-import theano.tensor.fft
-from .opt import register_opt, op_lifter, register_opt2
+from theano.tensor.fft import IRFFTOp
+from theano.gpuarray.opt import register_opt, op_lifter, register_opt2
 
 try:
     import pygpu
@@ -67,11 +72,11 @@ class CuRFFTOp(Op):
         # If no shape is provided as input, default to input data shape.
         if s is None:
             s = inp.shape[1:]
-        s = T.as_tensor_variable(s)
+        s = tt.as_tensor_variable(s)
 
         assert inp.dtype == "float32"
         assert s.ndim == 1
-        assert s.dtype in theano.tensor.integer_dtypes
+        assert s.dtype in tt.integer_dtypes
 
         return theano.Apply(self, [inp, s], [self.output_type(inp)()])
 
@@ -153,7 +158,7 @@ class CuRFFTOp(Op):
             + [slice(1, (s[-1] // 2) + (s[-1] % 2))]
             + [slice(None)]
         )
-        gout = T.set_subtensor(gout[idx], gout[idx] * 0.5)
+        gout = tt.set_subtensor(gout[idx], gout[idx] * 0.5)
         return [cuirfft_op(gout, s), DisconnectedType()()]
 
     def connection_pattern(self, node):
@@ -198,8 +203,8 @@ class CuIRFFTOp(Op):
         # If no shape is provided as input, calculate shape assuming even real transform.
         if s is None:
             s = inp.shape[1:-1]
-            s = T.set_subtensor(s[-1], (s[-1] - 1) * 2)
-        s = T.as_tensor_variable(s)
+            s = tt.set_subtensor(s[-1], (s[-1] - 1) * 2)
+        s = tt.as_tensor_variable(s)
 
         assert inp.dtype == "float32"
         assert s.ndim == 1
@@ -285,7 +290,7 @@ class CuIRFFTOp(Op):
             + [slice(1, (s[-1] // 2) + (s[-1] % 2))]
             + [slice(None)]
         )
-        gf = T.set_subtensor(gf[idx], gf[idx] * 2)
+        gf = tt.set_subtensor(gf[idx], gf[idx] * 2)
         return [gf, DisconnectedType()()]
 
     def connection_pattern(self, node):
@@ -325,7 +330,7 @@ def curfft(inp, norm=None):
     cond_norm = _unitary(norm)
     scaling = 1
     if cond_norm == "ortho":
-        scaling = T.sqrt(s.prod().astype("float32"))
+        scaling = tt.sqrt(s.prod().astype("float32"))
 
     return curfft_op(inp, s) / scaling
 
@@ -364,16 +369,16 @@ def cuirfft(inp, norm=None, is_odd=False):
 
     s = inp.shape[1:-1]
     if is_odd:
-        s = T.set_subtensor(s[-1], (s[-1] - 1) * 2 + 1)
+        s = tt.set_subtensor(s[-1], (s[-1] - 1) * 2 + 1)
     else:
-        s = T.set_subtensor(s[-1], (s[-1] - 1) * 2)
+        s = tt.set_subtensor(s[-1], (s[-1] - 1) * 2)
 
     cond_norm = _unitary(norm)
     scaling = 1
     if cond_norm is None:
         scaling = s.prod().astype("float32")
     elif cond_norm == "ortho":
-        scaling = T.sqrt(s.prod().astype("float32"))
+        scaling = tt.sqrt(s.prod().astype("float32"))
 
     return cuirfft_op(inp, s) / scaling
 
@@ -389,13 +394,13 @@ def _unitary(norm):
 if skcuda_available:
 
     @register_opt("fast_compile")
-    @op_lifter([theano.tensor.fft.RFFTOp])
-    @register_opt2([theano.tensor.fft.RFFTOp], "fast_compile")
+    @op_lifter([IRFFTOp])
+    @register_opt2([IRFFTOp], "fast_compile")
     def local_gpua_curfft_op(op, ctx_name, inputs, outputs):
         return curfft_op
 
     @register_opt("fast_compile")
-    @op_lifter([theano.tensor.fft.IRFFTOp])
-    @register_opt2([theano.tensor.fft.IRFFTOp], "fast_compile")
+    @op_lifter([IRFFTOp])
+    @register_opt2([IRFFTOp], "fast_compile")
     def local_gpua_cuirfft_op(op, ctx_name, inputs, outputs):
         return cuirfft_op
