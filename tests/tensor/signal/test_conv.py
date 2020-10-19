@@ -2,12 +2,14 @@ import pytest
 import numpy as np
 
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 
 from theano.tensor.signal import conv
 from theano.tensor.basic import _allclose
 
 from tests import unittest_tools as utt
+
+_ = pytest.importorskip("scipy.signal")
 
 
 class TestSignalConv2D:
@@ -18,8 +20,8 @@ class TestSignalConv2D:
 
         image_dim = len(image_shape)
         filter_dim = len(filter_shape)
-        input = T.TensorType("float64", [False] * image_dim)()
-        filters = T.TensorType("float64", [False] * filter_dim)()
+        input = tt.TensorType("float64", [False] * image_dim)()
+        filters = tt.TensorType("float64", [False] * filter_dim)()
 
         bsize = image_shape[0]
         if image_dim != 3:
@@ -84,8 +86,8 @@ class TestSignalConv2D:
             utt.verify_grad(sym_conv2d, [image_data, filter_data])
 
     @pytest.mark.skipif(
-        not theano.tensor.nnet.conv.imported_scipy_signal and theano.config.cxx == "",
-        reason="conv2d tests need SciPy or a c++ compiler",
+        theano.config.cxx == "",
+        reason="conv2d tests need a c++ compiler",
     )
     def test_basic(self):
         # Basic functionality of nnet.conv.ConvOp is already tested by
@@ -101,15 +103,15 @@ class TestSignalConv2D:
         # Test that conv2d fails for dimensions other than 2 or 3.
 
         with pytest.raises(Exception):
-            conv.conv2d(T.dtensor4(), T.dtensor3())
+            conv.conv2d(tt.dtensor4(), tt.dtensor3())
         with pytest.raises(Exception):
-            conv.conv2d(T.dtensor3(), T.dvector())
+            conv.conv2d(tt.dtensor3(), tt.dvector())
 
     def test_bug_josh_reported(self):
         # Test refers to a bug reported by Josh, when due to a bad merge these
         # few lines of code failed. See
         # http://groups.google.com/group/theano-dev/browse_thread/thread/8856e7ca5035eecb
 
-        m1 = theano.tensor.matrix()
-        m2 = theano.tensor.matrix()
+        m1 = tt.matrix()
+        m2 = tt.matrix()
         conv.conv2d(m1, m2)
