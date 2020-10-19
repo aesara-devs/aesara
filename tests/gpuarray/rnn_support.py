@@ -1,7 +1,7 @@
 import numpy as np
 
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 
 
 class Model(object):
@@ -125,16 +125,16 @@ class GRU(Layer):
         """step through processed input to create output"""
 
         def step(inp, s_prev):
-            i_t = T.nnet.sigmoid(
-                T.dot(inp, self.W_i) + T.dot(s_prev, self.R_i) + self.b_wi + self.b_ru
+            i_t = tt.nnet.sigmoid(
+                tt.dot(inp, self.W_i) + tt.dot(s_prev, self.R_i) + self.b_wi + self.b_ru
             )
-            r_t = T.nnet.sigmoid(
-                T.dot(inp, self.W_r) + T.dot(s_prev, self.R_r) + self.b_wr + self.b_rr
+            r_t = tt.nnet.sigmoid(
+                tt.dot(inp, self.W_r) + tt.dot(s_prev, self.R_r) + self.b_wr + self.b_rr
             )
 
-            h_hat_t = T.tanh(
-                T.dot(inp, self.W_h)
-                + (r_t * (T.dot(s_prev, self.R_h) + self.b_rh))
+            h_hat_t = tt.tanh(
+                tt.dot(inp, self.W_h)
+                + (r_t * (tt.dot(s_prev, self.R_h) + self.b_rh))
                 + self.b_wh
             )
 
@@ -229,21 +229,21 @@ class LSTM(Layer):
         """step through processed input to create output"""
 
         def step(x_t, h_tm1, c_tm1):
-            i_t = T.nnet.sigmoid(
-                T.dot(x_t, self.W_i) + T.dot(h_tm1, self.R_i) + self.b_wi + self.b_ri
+            i_t = tt.nnet.sigmoid(
+                tt.dot(x_t, self.W_i) + tt.dot(h_tm1, self.R_i) + self.b_wi + self.b_ri
             )
-            f_t = T.nnet.sigmoid(
-                T.dot(x_t, self.W_f) + T.dot(h_tm1, self.R_f) + self.b_wf + self.b_rf
+            f_t = tt.nnet.sigmoid(
+                tt.dot(x_t, self.W_f) + tt.dot(h_tm1, self.R_f) + self.b_wf + self.b_rf
             )
-            o_t = T.nnet.sigmoid(
-                T.dot(x_t, self.W_o) + T.dot(h_tm1, self.R_o) + self.b_ro + self.b_wo
+            o_t = tt.nnet.sigmoid(
+                tt.dot(x_t, self.W_o) + tt.dot(h_tm1, self.R_o) + self.b_ro + self.b_wo
             )
 
-            c_hat_t = T.tanh(
-                T.dot(x_t, self.W_c) + T.dot(h_tm1, self.R_c) + self.b_wc + self.b_rc
+            c_hat_t = tt.tanh(
+                tt.dot(x_t, self.W_c) + tt.dot(h_tm1, self.R_c) + self.b_wc + self.b_rc
             )
             c_t = f_t * c_tm1 + i_t * c_hat_t
-            h_t = o_t * T.tanh(c_t)
+            h_t = o_t * tt.tanh(c_t)
 
             return h_t, c_t
 
@@ -275,7 +275,7 @@ class FC(Layer):
         self.b = bias_weights((output_dim,), param_list=self.params, name=name + ".b")
 
     def output(self):
-        return T.dot(self.X, self.W) + self.b
+        return tt.dot(self.X, self.W) + self.b
 
 
 class WrapperLayer(Layer):
