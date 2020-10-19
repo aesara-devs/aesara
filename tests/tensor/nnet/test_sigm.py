@@ -1,8 +1,10 @@
 import numpy as np
-import theano.tensor.inplace
 
-from theano import tensor as T, config
-from theano.tensor import basic as tensor
+import theano
+import theano.tensor as tt
+
+from theano import config
+from theano.tensor.inplace import neg_inplace
 from theano.gof.opt import check_stack_trace
 from theano.gof.toolbox import is_same_graph
 from theano.tensor.nnet import (
@@ -19,6 +21,7 @@ from theano.tensor.nnet.sigm import (
     perform_sigm_times_exp,
     register_local_1msigmoid,
     simplify_mul,
+    ScalarSoftplus,
 )
 
 from tests import unittest_tools as utt
@@ -124,7 +127,7 @@ class TestSigmoidOpts:
         """
         if excluding is None:
             excluding = []
-        m = theano.config.mode
+        m = config.mode
         if m == "FAST_COMPILE":
             mode = theano.compile.mode.get_mode("FAST_RUN")
         else:
@@ -137,68 +140,68 @@ class TestSigmoidOpts:
     def test_exp_over_1_plus_exp(self):
         m = self.get_mode(excluding=["local_elemwise_fusion"])
 
-        x = T.vector()
+        x = tt.vector()
         data = np.random.rand(54).astype(config.floatX)
 
         backup = config.warn.identify_1pexp_bug
         config.warn.identify_1pexp_bug = False
         try:
             # tests exp_over_1_plus_exp
-            f = theano.function([x], T.exp(x) / (1 + T.exp(x)), mode=m)
+            f = theano.function([x], tt.exp(x) / (1 + tt.exp(x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] == [sigmoid]
             f(data)
-            f = theano.function([x], T.exp(x) / (2 + T.exp(x)), mode=m)
+            f = theano.function([x], tt.exp(x) / (2 + tt.exp(x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
             f(data)
-            f = theano.function([x], T.exp(x) / (1 - T.exp(x)), mode=m)
+            f = theano.function([x], tt.exp(x) / (1 - tt.exp(x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
             f(data)
-            f = theano.function([x], T.exp(x + 1) / (1 + T.exp(x)), mode=m)
+            f = theano.function([x], tt.exp(x + 1) / (1 + tt.exp(x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
             f(data)
 
             # tests inv_1_plus_exp
-            f = theano.function([x], T.fill(x, 1.0) / (1 + T.exp(-x)), mode=m)
+            f = theano.function([x], tt.fill(x, 1.0) / (1 + tt.exp(-x)), mode=m)
             # todo: solve issue #4589 first
             # assert check_stack_trace(f, ops_to_check=sigmoid)
             assert [node.op for node in f.maker.fgraph.toposort()] == [sigmoid]
             f(data)
-            f = theano.function([x], T.fill(x, 1.0) / (2 + T.exp(-x)), mode=m)
+            f = theano.function([x], tt.fill(x, 1.0) / (2 + tt.exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
             f(data)
-            f = theano.function([x], T.fill(x, 1.0) / (1 - T.exp(-x)), mode=m)
+            f = theano.function([x], tt.fill(x, 1.0) / (1 - tt.exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
             f(data)
-            f = theano.function([x], T.fill(x, 1.1) / (1 + T.exp(-x)), mode=m)
+            f = theano.function([x], tt.fill(x, 1.1) / (1 + tt.exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
             f(data)
 
             # tests inv_1_plus_exp with neg
-            f = theano.function([x], T.fill(x, -1.0) / (1 + T.exp(-x)), mode=m)
+            f = theano.function([x], tt.fill(x, -1.0) / (1 + tt.exp(-x)), mode=m)
             # todo: solve issue #4589 first
             # assert check_stack_trace(
-            #     f, ops_to_check=[sigmoid, theano.tensor.inplace.neg_inplace])
+            #     f, ops_to_check=[sigmoid, neg_inplace])
             assert [node.op for node in f.maker.fgraph.toposort()] == [
                 sigmoid,
-                theano.tensor.inplace.neg_inplace,
+                neg_inplace,
             ]
             f(data)
-            f = theano.function([x], T.fill(x, -1.0) / (1 - T.exp(-x)), mode=m)
+            f = theano.function([x], tt.fill(x, -1.0) / (1 - tt.exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [
                 sigmoid,
-                theano.tensor.inplace.neg_inplace,
+                neg_inplace,
             ]
             f(data)
-            f = theano.function([x], T.fill(x, -1.0) / (2 + T.exp(-x)), mode=m)
+            f = theano.function([x], tt.fill(x, -1.0) / (2 + tt.exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [
                 sigmoid,
-                theano.tensor.inplace.neg_inplace,
+                neg_inplace,
             ]
             f(data)
-            f = theano.function([x], T.fill(x, -1.1) / (1 + T.exp(-x)), mode=m)
+            f = theano.function([x], tt.fill(x, -1.1) / (1 + tt.exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [
                 sigmoid,
-                theano.tensor.inplace.neg_inplace,
+                neg_inplace,
             ]
             f(data)
 
@@ -208,66 +211,66 @@ class TestSigmoidOpts:
             # = - (sigm(x) * sigm(x))
             f = theano.function(
                 [x],
-                (T.fill(x, -1.0) * T.exp(x)) / ((1 + T.exp(x)) * (1 + T.exp(-x))),
+                (tt.fill(x, -1.0) * tt.exp(x)) / ((1 + tt.exp(x)) * (1 + tt.exp(-x))),
                 mode=m,
             )
             # todo: solve issue #4589 first
-            # assert check_stack_trace(f, ops_to_check=[sigmoid, T.mul])
-            assert [node.op for node in f.maker.fgraph.toposort()] == [sigmoid, T.mul]
+            # assert check_stack_trace(f, ops_to_check=[sigmoid, tt.mul])
+            assert [node.op for node in f.maker.fgraph.toposort()] == [sigmoid, tt.mul]
             f(data)
             f = theano.function(
                 [x],
-                (T.fill(x, -1.1) * T.exp(x)) / ((1 + T.exp(x)) * (1 + T.exp(-x))),
+                (tt.fill(x, -1.1) * tt.exp(x)) / ((1 + tt.exp(x)) * (1 + tt.exp(-x))),
                 mode=m,
             )
             assert [node.op for node in f.maker.fgraph.toposort()] != [
                 sigmoid,
-                T.mul,
-                theano.tensor.inplace.neg_inplace,
+                tt.mul,
+                neg_inplace,
             ]
             f(data)
             f = theano.function(
                 [x],
-                (T.fill(x, -1.0) * T.exp(x)) / ((2 + T.exp(x)) * (1 + T.exp(-x))),
+                (tt.fill(x, -1.0) * tt.exp(x)) / ((2 + tt.exp(x)) * (1 + tt.exp(-x))),
                 mode=m,
             )
             assert [node.op for node in f.maker.fgraph.toposort()] != [
                 sigmoid,
-                T.mul,
-                theano.tensor.inplace.neg_inplace,
+                tt.mul,
+                neg_inplace,
             ]
             f(data)
             f = theano.function(
                 [x],
-                (T.fill(x, -1.0) * T.exp(x)) / ((1 + T.exp(x)) * (2 + T.exp(-x))),
+                (tt.fill(x, -1.0) * tt.exp(x)) / ((1 + tt.exp(x)) * (2 + tt.exp(-x))),
                 mode=m,
             )
             assert [node.op for node in f.maker.fgraph.toposort()] != [
                 sigmoid,
-                T.mul,
-                theano.tensor.inplace.neg_inplace,
+                tt.mul,
+                neg_inplace,
             ]
             f(data)
             f = theano.function(
                 [x],
-                (T.fill(x, -1.0) * T.exp(x)) / ((1 + T.exp(x)) * (1 + T.exp(x))),
+                (tt.fill(x, -1.0) * tt.exp(x)) / ((1 + tt.exp(x)) * (1 + tt.exp(x))),
                 mode=m,
             )
             assert [node.op for node in f.maker.fgraph.toposort()] != [
                 sigmoid,
-                T.mul,
-                theano.tensor.inplace.neg_inplace,
+                tt.mul,
+                neg_inplace,
             ]
             f(data)
             f = theano.function(
                 [x],
-                (T.fill(x, -1.0) * T.exp(x)) / ((1 + T.exp(x)) * (2 + T.exp(-x))),
+                (tt.fill(x, -1.0) * tt.exp(x)) / ((1 + tt.exp(x)) * (2 + tt.exp(-x))),
                 mode=m,
             )
             assert [node.op for node in f.maker.fgraph.toposort()] != [
                 sigmoid,
-                T.mul,
-                theano.tensor.inplace.neg_inplace,
+                tt.mul,
+                neg_inplace,
             ]
             f(data)
 
@@ -280,21 +283,21 @@ class TestSigmoidOpts:
             return
 
         m = self.get_mode()
-        x = T.fmatrix()
+        x = tt.fmatrix()
 
         # tests exp_over_1_plus_exp
-        f = theano.function([x], 1 - T.exp(x) / (1 + T.exp(x)), mode=m)
-        assert check_stack_trace(f, ops_to_check=[tensor.neg, sigmoid_inplace])
+        f = theano.function([x], 1 - tt.exp(x) / (1 + tt.exp(x)), mode=m)
+        assert check_stack_trace(f, ops_to_check=[tt.neg, sigmoid_inplace])
         assert [node.op for node in f.maker.fgraph.toposort()] == [
-            tensor.neg,
+            tt.neg,
             sigmoid_inplace,
         ]
 
         # tests inv_1_plus_exp
-        f = theano.function([x], 1 - T.fill(x, 1.0) / (1 + T.exp(-x)), mode=m)
-        assert check_stack_trace(f, ops_to_check=[tensor.neg, sigmoid_inplace])
+        f = theano.function([x], 1 - tt.fill(x, 1.0) / (1 + tt.exp(-x)), mode=m)
+        assert check_stack_trace(f, ops_to_check=[tt.neg, sigmoid_inplace])
         assert [node.op for node in f.maker.fgraph.toposort()] == [
-            tensor.neg,
+            tt.neg,
             sigmoid_inplace,
         ]
 
@@ -308,36 +311,30 @@ class TestSigmoidOpts:
             assert [node.op for node in func.maker.fgraph.toposort()] == ops
 
         m = self.get_mode(excluding=["local_elemwise_fusion", "inplace"])
-        x, y = tensor.vectors("x", "y")
+        x, y = tt.vectors("x", "y")
 
-        f = theano.function([x], sigmoid(-x) * tensor.exp(x), mode=m)
+        f = theano.function([x], sigmoid(-x) * tt.exp(x), mode=m)
         match(f, [sigmoid])
         assert check_stack_trace(f, ops_to_check=sigmoid)
 
-        f = theano.function([x], sigmoid(x) * tensor.exp(-x), mode=m)
-        match(f, [tensor.neg, sigmoid])
+        f = theano.function([x], sigmoid(x) * tt.exp(-x), mode=m)
+        match(f, [tt.neg, sigmoid])
         assert check_stack_trace(f, ops_to_check=sigmoid)
 
-        f = theano.function([x], -(-(-(sigmoid(x)))) * tensor.exp(-x), mode=m)
-        match(f, [tensor.neg, sigmoid, tensor.neg])
+        f = theano.function([x], -(-(-(sigmoid(x)))) * tt.exp(-x), mode=m)
+        match(f, [tt.neg, sigmoid, tt.neg])
         # assert check_stack_trace(f, ops_to_check=sigmoid)
 
         f = theano.function(
             [x, y],
-            (
-                sigmoid(x)
-                * sigmoid(-y)
-                * -tensor.exp(-x)
-                * tensor.exp(x * y)
-                * tensor.exp(y)
-            ),
+            (sigmoid(x) * sigmoid(-y) * -tt.exp(-x) * tt.exp(x * y) * tt.exp(y)),
             mode=m,
         )
         topo = f.maker.fgraph.toposort()
-        for op, nb in [(sigmoid, 2), (tensor.mul, 2), (tensor.neg, 1), (tensor.exp, 1)]:
+        for op, nb in [(sigmoid, 2), (tt.mul, 2), (tt.neg, 1), (tt.exp, 1)]:
             assert sum([n.op == op for n in topo]) == nb
-        # assert check_stack_trace(f, ops_to_check=[sigmoid, tensor.mul,
-        #                                           tensor.exp])
+        # assert check_stack_trace(f, ops_to_check=[sigmoid, tt.mul,
+        #                                           tt.exp])
 
     def test_perform_sigm_times_exp(self):
         # Test the core function doing the `sigm_times_exp` optimization.
@@ -345,8 +342,8 @@ class TestSigmoidOpts:
         # It is easier to test different graph scenarios this way than by
         # compiling a theano function.
 
-        x, y, z, t = tensor.vectors("x", "y", "z", "t")
-        exp = tensor.exp
+        x, y, z, t = tt.vectors("x", "y", "z", "t")
+        exp = tt.exp
 
         def ok(expr1, expr2):
             trees = [parse_mul_tree(e) for e in (expr1, expr2)]
@@ -386,11 +383,11 @@ class TestSigmoidOpts:
         # At some point, this returned nan, because (1 - sigm(x)) was
         # on both the numerator and the denominator of a fraction,
         # but the two nodes in question had not been merged.
-        x = tensor.matrix("x")
-        lr = tensor.scalar("lr")
+        x = tt.matrix("x")
+        lr = tt.scalar("lr")
 
         s = sigmoid(x)
-        l = T.log(1 - s)
+        l = tt.log(1 - s)
         c = l.mean()
         ux = x - lr * theano.grad(c, x)
 
@@ -403,7 +400,7 @@ class TestSigmoidOpts:
             assert not np.isnan(ux_v)
 
     def test_local_ultra_fast_sigmoid(self):
-        x = tensor.matrix("x")
+        x = tt.matrix("x")
         s = sigmoid(x)
 
         mode = self.get_mode("local_ultra_fast_sigmoid")
@@ -422,7 +419,7 @@ class TestSigmoidOpts:
         f([[-50, -10, -4, -1, 0, 1, 4, 10, 50]])
 
     def test_local_hard_sigmoid(self):
-        x = tensor.matrix("x")
+        x = tt.matrix("x")
         s = sigmoid(x)
 
         mode = self.get_mode("local_hard_sigmoid")
@@ -440,7 +437,7 @@ class TestSigmoidOpts:
 
         mode2 = mode.excluding("fusion").excluding("inplace")
         f2 = theano.function([x], s, mode=mode2)
-        assert check_stack_trace(f2, ops_to_check=theano.tensor.clip)
+        assert check_stack_trace(f2, ops_to_check=tt.clip)
 
 
 class TestSoftplusOpts:
@@ -457,56 +454,56 @@ class TestSoftplusOpts:
         utt.seed_rng()
 
     def test_logsigm_to_softplus(self):
-        x = T.vector()
+        x = tt.vector()
 
-        out = T.log(sigmoid(x))
+        out = tt.log(sigmoid(x))
         f = theano.function([x], out, mode=self.m)
 
         # Fix ticket #4581 first
         # assert check_stack_trace(
         #     f, ops_to_check=(theano.scalar.Neg,
-        #                      theano.tensor.nnet.sigm.ScalarSoftplus))
+        #                      ScalarSoftplus))
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 3
         assert isinstance(topo[0].op.scalar_op, theano.scalar.Neg)
-        assert isinstance(topo[1].op.scalar_op, theano.tensor.nnet.sigm.ScalarSoftplus)
+        assert isinstance(topo[1].op.scalar_op, ScalarSoftplus)
         assert isinstance(topo[2].op.scalar_op, theano.scalar.Neg)
         f(np.random.rand(54).astype(config.floatX))
 
     def test_log1msigm_to_softplus(self):
-        x = T.matrix()
+        x = tt.matrix()
 
-        out = T.log(1 - sigmoid(x))
+        out = tt.log(1 - sigmoid(x))
         f = theano.function([x], out, mode=self.m)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 2
-        assert isinstance(topo[0].op.scalar_op, theano.tensor.nnet.sigm.ScalarSoftplus)
+        assert isinstance(topo[0].op.scalar_op, ScalarSoftplus)
         assert isinstance(topo[1].op.scalar_op, theano.scalar.Neg)
         # assert check_stack_trace(f, ops_to_check='all')
         f(np.random.rand(54, 11).astype(config.floatX))
 
         # Same test with a flatten
-        out = T.log(1 - T.flatten(sigmoid(x)))
+        out = tt.log(1 - tt.flatten(sigmoid(x)))
         f = theano.function([x], out, mode=self.m)
 
         # assert check_stack_trace(f, ops_to_check='all')
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 3
-        assert tensor.is_flat(topo[0].outputs[0])
-        assert isinstance(topo[1].op.scalar_op, theano.tensor.nnet.sigm.ScalarSoftplus)
+        assert tt.is_flat(topo[0].outputs[0])
+        assert isinstance(topo[1].op.scalar_op, ScalarSoftplus)
         assert isinstance(topo[2].op.scalar_op, theano.scalar.Neg)
         f(np.random.rand(54, 11).astype(config.floatX))
 
         # Same test with a reshape
-        out = T.log(1 - sigmoid(x).reshape([x.size]))
+        out = tt.log(1 - sigmoid(x).reshape([x.size]))
         f = theano.function([x], out, mode=self.m)
         topo = f.maker.fgraph.toposort()
         # assert len(topo) == 3
-        assert any(isinstance(node.op, T.Reshape) for node in topo)
+        assert any(isinstance(node.op, tt.Reshape) for node in topo)
         assert any(
             isinstance(
                 getattr(node.op, "scalar_op", None),
-                theano.tensor.nnet.sigm.ScalarSoftplus,
+                ScalarSoftplus,
             )
             for node in topo
         )
@@ -517,16 +514,16 @@ class TestSoftplusOpts:
         if m == "FAST_COMPILE":
             m = "FAST_RUN"
 
-        x = T.vector()
+        x = tt.vector()
 
-        out = T.log(1 + T.exp(x))
+        out = tt.log(1 + tt.exp(x))
         f = theano.function([x], out, mode=self.m)
 
         # Fix ticket #4581 first
         # assert check_stack_trace(f, ops_to_check='all')
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
-        assert isinstance(topo[0].op.scalar_op, theano.tensor.nnet.sigm.ScalarSoftplus)
+        assert isinstance(topo[0].op.scalar_op, ScalarSoftplus)
         f(np.random.rand(54).astype(config.floatX))
 
 
@@ -536,14 +533,14 @@ class TestSigmoidUtils:
     """
 
     def test_compute_mul(self):
-        x, y, z = tensor.vectors("x", "y", "z")
+        x, y, z = tt.vectors("x", "y", "z")
         tree = (x * y) * -z
         mul_tree = parse_mul_tree(tree)
         assert parse_mul_tree(compute_mul(mul_tree)) == mul_tree
         assert is_same_graph(compute_mul(parse_mul_tree(tree)), tree)
 
     def test_parse_mul_tree(self):
-        x, y, z = tensor.vectors("x", "y", "z")
+        x, y, z = tt.vectors("x", "y", "z")
         assert parse_mul_tree(x * y) == [False, [[False, x], [False, y]]]
         assert parse_mul_tree(-(x * y)) == [True, [[False, x], [False, y]]]
         assert parse_mul_tree(-x * y) == [False, [[True, x], [False, y]]]
@@ -557,8 +554,8 @@ class TestSigmoidUtils:
         backup = config.warn.identify_1pexp_bug
         config.warn.identify_1pexp_bug = False
         try:
-            x = tensor.vector("x")
-            exp = tensor.exp
+            x = tt.vector("x")
+            exp = tt.exp
             assert is_1pexp(1 + exp(x), False) == (False, x)
             assert is_1pexp(exp(x) + 1, False) == (False, x)
             for neg, exp_arg in map(

@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 
 from theano.tensor.nnet.ctc import (
     ctc_available,
@@ -128,7 +128,7 @@ class TestCTC:
 
         t_cost = ctc(t_activations, t_labels, t_activation_times)
         # Symbolic gradient of CTC cost
-        t_grad = T.grad(T.mean(t_cost), t_activations)
+        t_grad = tt.grad(tt.mean(t_cost), t_activations)
         # Compile symbolic functions
         train = theano.function([], [t_cost, t_grad])
 
