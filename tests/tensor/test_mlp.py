@@ -1,17 +1,17 @@
 """
-This is a minimized version of the mlp.py in the tutorial. We removed stuff that make this mlp don't work.
-But this test a bug that we saw. This bug made the Shape_i object not being lifted, that caused the CrossentropySoftmax... op not being inserted.
+This is a minimized version of the mlp.py in the tutorial. We removed stuff
+that make this mlp don't work.  But this test a bug that we saw. This bug made
+the Shape_i object not being lifted, that caused the CrossentropySoftmax... op
+not being inserted.
 """
-
-
 __docformat__ = "restructedtext en"
 
-
 from collections import OrderedDict
+
 import numpy as np
 
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 
 
 def gen_data():
@@ -49,7 +49,7 @@ def gen_data():
         # floats it doesn't make sense) therefore instead of returning
         # ``shared_y`` we will have to cast it to int. This little hack
         # lets ous get around this issue
-        return shared_x, T.cast(shared_y, "int32")
+        return shared_x, tt.cast(shared_y, "int32")
 
     test_set_x, test_set_y = shared_dataset(test_set)
     valid_set_x, valid_set_y = shared_dataset(valid_set)
@@ -96,11 +96,11 @@ class LogisticRegression(object):
         )
 
         # compute vector of class-membership probabilities in symbolic form
-        self.p_y_given_x = T.nnet.softmax(T.dot(input, self.W))
+        self.p_y_given_x = tt.nnet.softmax(tt.dot(input, self.W))
 
         # compute prediction as class whose probability is maximal in
         # symbolic form
-        self.y_pred = T.argmax(self.p_y_given_x, axis=1)
+        self.y_pred = tt.argmax(self.p_y_given_x, axis=1)
 
         # parameters of the model
         self.params = [self.W]
@@ -128,11 +128,11 @@ class LogisticRegression(object):
         # LP[T.arange(y.shape[0]),y] is a vector v containing [LP[0,y[0]], LP[1,y[1]], LP[2,y[2]], ..., LP[n-1,y[n-1]]]
         # and T.mean(LP[T.arange(y.shape[0]),y]) is the mean (across minibatch examples) of the elements in v,
         # i.e., the mean log-likelihood across the minibatch.
-        return T.log(self.p_y_given_x[T.arange(y.shape[0]), y])
+        return tt.log(self.p_y_given_x[tt.arange(y.shape[0]), y])
 
 
 class HiddenLayer(object):
-    def __init__(self, rng, input, n_in, n_out, activation=T.tanh, name_prefix=""):
+    def __init__(self, rng, input, n_in, n_out, activation=tt.tanh, name_prefix=""):
         """
         Typical hidden layer of a MLP: units are fully-connected and have
         sigmoidal activation function. Weight matrix W is of shape (n_in,n_out)
@@ -174,7 +174,7 @@ class HiddenLayer(object):
         )
         self.W = theano.shared(value=W_values, name=name_prefix + "W")
 
-        self.output = T.dot(input, self.W)
+        self.output = tt.dot(input, self.W)
         # parameters of the model
         self.params = [self.W]
 
@@ -222,7 +222,7 @@ class MLP(object):
             input=input,
             n_in=n_in,
             n_out=n_hidden,
-            activation=T.tanh,
+            activation=tt.tanh,
             name_prefix="hid_",
         )
 
@@ -284,9 +284,9 @@ def test_mlp():
     # print '... building the model'
 
     # allocate symbolic variables for the data
-    index = T.lscalar()  # index to a [mini]batch
-    x = T.matrix("x")  # the data is presented as rasterized images
-    y = T.ivector("y")  # the labels are presented as 1D vector of
+    index = tt.lscalar()  # index to a [mini]batch
+    x = tt.matrix("x")  # the data is presented as rasterized images
+    y = tt.ivector("y")  # the labels are presented as 1D vector of
     # [int] labels
 
     rng = np.random.RandomState(1234)
@@ -303,7 +303,7 @@ def test_mlp():
     # the resulting gradients will be stored in a list gparams
     gparams = []
     for param in classifier.params:
-        gparam = T.grad(cost, param)
+        gparam = tt.grad(cost, param)
         gparams.append(gparam)
 
     # Some optimizations needed are tagged with 'fast_run'
@@ -312,7 +312,7 @@ def test_mlp():
 
     updates2 = OrderedDict()
 
-    updates2[classifier.hiddenLayer.params[0]] = T.grad(
+    updates2[classifier.hiddenLayer.params[0]] = tt.grad(
         cost, classifier.hiddenLayer.params[0]
     )
     train_model = theano.function(
@@ -328,7 +328,7 @@ def test_mlp():
     # theano.printing.debugprint(train_model, print_type=True)
     assert any(
         [
-            isinstance(i.op, T.nnet.CrossentropySoftmax1HotWithBiasDx)
+            isinstance(i.op, tt.nnet.CrossentropySoftmax1HotWithBiasDx)
             for i in train_model.maker.fgraph.toposort()
         ]
     )
@@ -348,11 +348,7 @@ def test_mlp():
     # theano.printing.debugprint(train_model, print_type=True)
     assert any(
         [
-            isinstance(i.op, T.nnet.CrossentropySoftmax1HotWithBiasDx)
+            isinstance(i.op, tt.nnet.CrossentropySoftmax1HotWithBiasDx)
             for i in train_model.maker.fgraph.toposort()
         ]
     )
-
-
-if __name__ == "__main__":
-    test_mlp()

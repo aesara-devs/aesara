@@ -1,13 +1,14 @@
 import numpy as np
+import theano.tensor.basic as tt
+
 from theano.gof.type import Type
 from theano.gof.graph import Variable, Apply
 from theano.gof.op import Op
 from theano.gof.opt import MergeOptimizer
-from theano.gof.fg import FunctionGraph as Env
-import theano.tensor.basic as T
+from theano.gof.fg import FunctionGraph
 
 
-def as_variable(x):
+def is_variable(x):
     if not isinstance(x, Variable):
         raise TypeError("not a Variable", x)
     return x
@@ -30,7 +31,7 @@ class MyOp(Op):
         self.x = x
 
     def make_node(self, *inputs):
-        inputs = list(map(as_variable, inputs))
+        inputs = list(map(is_variable, inputs))
         for input in inputs:
             if not isinstance(input.type, MyType):
                 raise Exception("Error 1")
@@ -65,9 +66,9 @@ def test_merge_with_weird_eq():
     # numpy arrays don't compare equal like other python objects
 
     # SCALAR CASE
-    x = T.constant(np.asarray(1), name="x")
-    y = T.constant(np.asarray(1), name="y")
-    g = Env([x, y], [x + y])
+    x = tt.constant(np.asarray(1), name="x")
+    y = tt.constant(np.asarray(1), name="y")
+    g = FunctionGraph([x, y], [x + y])
     MergeOptimizer().optimize(g)
 
     assert len(g.apply_nodes) == 1
@@ -77,9 +78,9 @@ def test_merge_with_weird_eq():
 
     # NONSCALAR CASE
     # This was created to test TensorConstantSignature
-    x = T.constant(np.ones(5), name="x")
-    y = T.constant(np.ones(5), name="y")
-    g = Env([x, y], [x + y])
+    x = tt.constant(np.ones(5), name="x")
+    y = tt.constant(np.ones(5), name="y")
+    g = FunctionGraph([x, y], [x + y])
     MergeOptimizer().optimize(g)
 
     assert len(g.apply_nodes) == 1
