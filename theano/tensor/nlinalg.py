@@ -663,17 +663,43 @@ class lstsq(Op):
 
 
 def matrix_power(M, n):
-    """
+    r"""
     Raise a square matrix to the (integer) power n.
+    This implementation uses exponentiation by squaring which is 
+    significantly faster than the naive implementation.
+    The time complexity for exponentiation by squaring is 
+    :math: `\mathcal{O}((n \log M)^k`
 
     Parameters
     ----------
     M : Tensor variable
     n : Python int
     """
-    result = 1
-    for i in range(n):
-        result = theano.dot(result, M)
+    if n < 0:
+       M = pinv(M)
+       n = abs(n)
+
+    # Shortcuts when 0 < n <= 3
+    if n == 0:
+        return tensor.eye(M.shape[-2])
+
+    elif n == 1:
+        return M
+
+    elif n == 2:
+        return theano.dot(M, M)
+
+    elif n == 3:
+        return theano.dot(theano.dot(M, M), M)
+
+    result = z = None
+
+    while n > 0:
+        z = M if z is None else theano.dot(M, M)
+        n, bit = divmod(n, 2)
+        if bit:
+            result = z if result is None else theano.dot(result, z)
+
     return result
 
 
