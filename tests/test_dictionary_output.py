@@ -1,12 +1,12 @@
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 
 
-class dictionary_output_checker:
+class TestDictionaryOutput:
     def test_output_dictionary(self):
         # Tests that theano.function works when outputs is a dictionary
 
-        x = T.scalar()
+        x = tt.scalar()
         f = theano.function([x], outputs={"a": x, "c": x * 2, "b": x * 3, "1": x * 4})
 
         outputs = f(10.0)
@@ -19,8 +19,8 @@ class dictionary_output_checker:
     def test_input_named_variables(self):
         # Tests that named variables work when outputs is a dictionary
 
-        x = T.scalar("x")
-        y = T.scalar("y")
+        x = tt.scalar("x")
+        y = tt.scalar("y")
 
         f = theano.function([x, y], outputs={"a": x + y, "b": x * y})
 
@@ -31,11 +31,11 @@ class dictionary_output_checker:
     def test_output_order_sorted(self):
         # Tests that the output keys are sorted correctly.
 
-        x = T.scalar("x")
-        y = T.scalar("y")
-        z = T.scalar("z")
-        e1 = T.scalar("1")
-        e2 = T.scalar("2")
+        x = tt.scalar("x")
+        y = tt.scalar("y")
+        z = tt.scalar("z")
+        e1 = tt.scalar("1")
+        e2 = tt.scalar("2")
 
         f = theano.function(
             [x, y, z, e1, e2], outputs={"x": x, "y": y, "z": z, "1": e1, "2": e2}
@@ -51,16 +51,16 @@ class dictionary_output_checker:
         # Tests that one can compose two theano functions when the outputs are
         # provided in a dictionary.
 
-        x = T.scalar("x")
-        y = T.scalar("y")
+        x = tt.scalar("x")
+        y = tt.scalar("y")
 
         a = x + y
         b = x * y
 
         f = theano.function([x, y], outputs={"a": a, "b": b})
 
-        a = T.scalar("a")
-        b = T.scalar("b")
+        a = tt.scalar("a")
+        b = tt.scalar("b")
 
         l = a + b
         r = a * b
@@ -75,7 +75,7 @@ class dictionary_output_checker:
     def test_output_list_still_works(self):
         # Test that theano.function works if outputs is a list.
 
-        x = T.scalar("x")
+        x = tt.scalar("x")
 
         f = theano.function([x], outputs=[x * 3, x * 2, x * 4, x])
 
@@ -89,7 +89,7 @@ class dictionary_output_checker:
     def test_debug_mode_dict(self):
         # Tests that debug mode works where outputs is a dictionary.
 
-        x = T.scalar("x")
+        x = tt.scalar("x")
 
         f = theano.function(
             [x], outputs={"1": x, "2": 2 * x, "3": 3 * x}, mode="DEBUG_MODE"
@@ -104,7 +104,7 @@ class dictionary_output_checker:
     def test_debug_mode_list(self):
         # Tests that debug mode works where the outputs argument is a list.
 
-        x = T.scalar("x")
+        x = tt.scalar("x")
 
         f = theano.function([x], outputs=[x, 2 * x, 3 * x], mode="DEBUG_MODE")
 
@@ -118,7 +118,7 @@ class dictionary_output_checker:
         # Tests that an exception is thrown if a non-string key is used in
         # the outputs dictionary.
 
-        x = T.scalar("x")
+        x = tt.scalar("x")
         try:
             theano.function([x], outputs={1.0: x})
             raise Exception("Did not throw exception with 1.0 as only key")
