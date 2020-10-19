@@ -1,9 +1,9 @@
 import numpy as np
 
 import theano
+import theano.tensor as tt
 
 from theano import config
-from theano import tensor as T
 from theano.scan_module.scan_op import Scan
 
 from tests import unittest_tools as utt
@@ -40,11 +40,11 @@ class TestGaussNewton:
 
         # create symbolic inputs and targets variables
         if batch_size == 1:
-            x = T.matrix("inputs")
-            t = T.matrix("targets")
+            x = tt.matrix("inputs")
+            t = tt.matrix("targets")
         else:
-            x = T.tensor3("inputs")
-            t = T.tensor3("inputs")
+            x = tt.tensor3("inputs")
+            t = tt.tensor3("inputs")
         x.tag.test_value = inputs.get_value(borrow=True)
         t.tag.test_value = targets.get_value(borrow=True)
 
@@ -66,17 +66,17 @@ class TestGaussNewton:
 
         # recurrent function
         def step(x_t, h_tm1):
-            h = T.tanh(T.dot(h_tm1, W_hh) + T.dot(x_t, W_xh) + b_h)
+            h = tt.tanh(tt.dot(h_tm1, W_hh) + tt.dot(x_t, W_xh) + b_h)
             return h
 
         # build recurrent graph
         if batch_size == 1:
-            h_0 = T.alloc(0.0, 10).astype(config.floatX)
+            h_0 = tt.alloc(0.0, 10).astype(config.floatX)
         else:
-            h_0 = T.alloc(0.0, batch_size, 10).astype(config.floatX)
+            h_0 = tt.alloc(0.0, batch_size, 10).astype(config.floatX)
         h, updates = theano.scan(step, sequences=[x], outputs_info=[h_0])
         # network output
-        y = T.dot(h, W_hy) + b_y
+        y = tt.dot(h, W_hy) + b_y
 
         # Create Gauss-Newton-Matrix object. Not really of any use here, but I
         # need it for Hessian-Free optimization.
@@ -95,7 +95,7 @@ class TestGaussNewton:
         # Compute Gauss-Newton-Matrix times some vector `v` which is `p` in CG,
         # but for simplicity, I just take the parameters vector because it's
         # already there.
-        Gv = gn(v=params, cost=cost, parameters=params, damp=T.constant(1.0))
+        Gv = gn(v=params, cost=cost, parameters=params, damp=tt.constant(1.0))
 
         # compile Theano function
         f = theano.function([], [cost_] + Gv, givens={x: inputs, t: targets}, mode=mode)
@@ -121,9 +121,11 @@ class GaussNewtonMatrix(object):
 
     def __call__(self, v, cost, parameters, damp):
         # compute Gauss-Newton Matrix right-multiplied by `v`
-        Jv = T.Rop(self._s, parameters, v)
-        HJv = T.grad(T.sum(T.grad(cost, self._s) * Jv), self._s, consider_constant=[Jv])
-        JHJv = T.grad(T.sum(HJv * self._s), parameters, consider_constant=[HJv, Jv])
+        Jv = tt.Rop(self._s, parameters, v)
+        HJv = tt.grad(
+            tt.sum(tt.grad(cost, self._s) * Jv), self._s, consider_constant=[Jv]
+        )
+        JHJv = tt.grad(tt.sum(HJv * self._s), parameters, consider_constant=[HJv, Jv])
 
         # apply Tikhonov damping
         JHJv = [JHJvi + damp * vi for JHJvi, vi in zip(JHJv, v)]
@@ -142,17 +144,17 @@ class TestPushOutScanOutputDot(object):
         # Test the case where the vector input to the dot is not already an
         # output of the inner function.
 
-        v = T.vector()
-        m = T.matrix()
-        output = T.dot(v, m)
+        v = tt.vector()
+        m = tt.matrix()
+        output = tt.dot(v, m)
 
         # Compile the function twice, once with the optimization and once
         # without
         opt_mode = mode.including("scan")
-        f_opt = theano.function([v, m], T.jacobian(output, v), mode=opt_mode)
+        f_opt = theano.function([v, m], tt.jacobian(output, v), mode=opt_mode)
 
         no_opt_mode = mode.excluding("scanOp_pushout_output")
-        f_no_opt = theano.function([v, m], T.jacobian(output, v), mode=no_opt_mode)
+        f_no_opt = theano.function([v, m], tt.jacobian(output, v), mode=no_opt_mode)
 
         # Ensure that the optimization was performed correctly in f_opt
         # The inner function of scan should have only one output and it should
@@ -161,7 +163,7 @@ class TestPushOutScanOutputDot(object):
             node for node in f_opt.maker.fgraph.toposort() if isinstance(node.op, Scan)
         ][0]
         assert len(scan_node.op.outputs) == 1
-        assert not isinstance(scan_node.op.outputs[0], T.Dot)
+        assert not isinstance(scan_node.op.outputs[0], tt.Dot)
 
         # Ensure that the function compiled with the optimization produces
         # the same results as the function compiled without
@@ -177,12 +179,12 @@ class TestPushOutScanOutputDot(object):
         # Test the case where the vector input to the dot is already a nitsot
         # output of the inner function.
 
-        a = T.matrix()
-        b = T.matrix()
+        a = tt.matrix()
+        b = tt.matrix()
 
         def inner_fct(vect, mat):
             vect_squared = vect ** 2
-            return T.dot(vect_squared, mat), vect_squared
+            return tt.dot(vect_squared, mat), vect_squared
 
         outputs, updates = theano.scan(
             fn=inner_fct, outputs_info=[None] * 2, sequences=a, non_sequences=b
@@ -205,7 +207,7 @@ class TestPushOutScanOutputDot(object):
         # NOTE: WHEN INFER_SHAPE IS REENABLED, BELOW THE SCAN MUST
         # HAVE ONLY 1 OUTPUT.
         assert len(scan_node.op.outputs) == 2
-        assert not isinstance(scan_node.op.outputs[0], T.Dot)
+        assert not isinstance(scan_node.op.outputs[0], tt.Dot)
 
         # Ensure that the function compiled with the optimization produces
         # the same results as the function compiled without
@@ -222,12 +224,12 @@ class TestPushOutScanOutputDot(object):
         # Test the case where the vector input to the dot is not already a
         # non-nitsot (in this case a sitsot) output of the inner function.
 
-        a = T.matrix()
-        b = T.matrix()
+        a = tt.matrix()
+        b = tt.matrix()
 
         def inner_fct(seq1, previous_output1, nonseq1):
             output1 = previous_output1 + seq1
-            output2 = T.dot(output1, nonseq1)
+            output2 = tt.dot(output1, nonseq1)
             return output1, output2
 
         outputs, updates = theano.scan(
@@ -249,7 +251,7 @@ class TestPushOutScanOutputDot(object):
             node for node in f_opt.maker.fgraph.toposort() if isinstance(node.op, Scan)
         ][0]
         assert len(scan_node.op.outputs) == 2
-        assert not isinstance(scan_node.op.outputs[0], T.Dot)
+        assert not isinstance(scan_node.op.outputs[0], tt.Dot)
 
         # Ensure that the function compiled with the optimization produces
         # the same results as the function compiled without
@@ -293,18 +295,18 @@ class TestPushOutSumOfDot:
         W.name = "W"
 
         # Variables and their values
-        x = T.tensor3("x")
+        x = tt.tensor3("x")
         x_value = np.random.normal(
             size=(seq_len, batch_size, dim), scale=0.0001
         ).astype(config.floatX)
 
-        ri = T.tensor3("ri")
+        ri = tt.tensor3("ri")
         ri_value = x_value
 
-        zi = T.tensor3("zi")
+        zi = tt.tensor3("zi")
         zi_value = x_value
 
-        init = T.alloc(np.cast[config.floatX](0), batch_size, dim)
+        init = tt.alloc(np.cast[config.floatX](0), batch_size, dim)
 
         def rnn_step1(
             # sequences
@@ -316,12 +318,12 @@ class TestPushOutSumOfDot:
         ):
             pre_r = ri + h.dot(U)
             pre_z = zi + h.dot(V)
-            r = T.nnet.sigmoid(pre_r)
-            z = T.nnet.sigmoid(pre_z)
+            r = tt.nnet.sigmoid(pre_r)
+            z = tt.nnet.sigmoid(pre_z)
 
             after_r = r * h
             pre_h = x + after_r.dot(W)
-            new_h = T.tanh(pre_h)
+            new_h = tt.tanh(pre_h)
 
             res_h = z * new_h + (1 - z) * h
             return res_h
@@ -338,7 +340,7 @@ class TestPushOutSumOfDot:
             mode=opt_mode,
         )
         cost = h[-1].sum()
-        grad1 = T.grad(cost, [U, V, W])
+        grad1 = tt.grad(cost, [U, V, W])
         f_opt = theano.function(inputs=[x, ri, zi], outputs=grad1, mode=opt_mode)
 
         no_opt_mode = mode.excluding("scanOp_pushout_output")
@@ -351,7 +353,7 @@ class TestPushOutSumOfDot:
             mode=no_opt_mode,
         )
         cost = h[-1].sum()
-        grad1 = T.grad(cost, [U, V, W])
+        grad1 = tt.grad(cost, [U, V, W])
         f_no_opt = theano.function(inputs=[x, ri, zi], outputs=grad1, mode=no_opt_mode)
 
         # Validate that the optimization has been applied
@@ -361,8 +363,8 @@ class TestPushOutSumOfDot:
 
         for output in scan_node_grad.op.outputs:
             assert not (
-                isinstance(output.owner.op, T.elemwise.Elemwise)
-                and any([isinstance(i, T.Dot) for i in output.owner.inputs])
+                isinstance(output.owner.op, tt.elemwise.Elemwise)
+                and any([isinstance(i, tt.Dot) for i in output.owner.inputs])
             )
 
         # Compare the outputs of the two functions on the same input data.
@@ -373,20 +375,20 @@ class TestPushOutSumOfDot:
     def test_non_zero_init(self):
         # Test the case where the initial value for the nitsot output is non-zero
 
-        input1 = T.tensor3()
-        input2 = T.tensor3()
-        input3 = T.tensor3()
+        input1 = tt.tensor3()
+        input2 = tt.tensor3()
+        input3 = tt.tensor3()
 
         W = theano.shared(np.random.normal(size=(4, 5))).astype(config.floatX)
         U = theano.shared(np.random.normal(size=(6, 7))).astype(config.floatX)
 
         def inner_fct(seq1, seq2, seq3, previous_output):
-            temp1 = T.dot(seq1, W) + seq3
-            temp2 = T.dot(seq2, U)
-            dot_output = T.dot(temp1, temp2)
+            temp1 = tt.dot(seq1, W) + seq3
+            temp2 = tt.dot(seq2, U)
+            dot_output = tt.dot(temp1, temp2)
             return previous_output + dot_output
 
-        init = T.as_tensor_variable(np.random.normal(size=(3, 7)))
+        init = tt.as_tensor_variable(np.random.normal(size=(3, 7)))
 
         # Compile the function twice, once with the optimization and once
         # without
