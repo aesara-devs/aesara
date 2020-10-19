@@ -7,15 +7,14 @@ import pytest
 import numpy as np
 
 import theano
+import theano.tensor as tt
 
 import tests.unittest_tools as utt
 
 from copy import copy
 
-
 from theano import gof, scalar, config
 
-from theano import tensor
 from theano.tensor import TensorType, as_tensor_variable
 from theano.compile.mode import get_default_mode, Mode
 from theano.tensor.elemwise import (
@@ -24,7 +23,10 @@ from theano.tensor.elemwise import (
     DimShuffle,
     Prod,
     ProdWithoutZeros,
+    Sum,
 )
+from theano.tensor.type import values_eq_approx_remove_nan
+from theano.tensor.nnet import sigmoid
 
 from tests import unittest_tools
 
@@ -126,37 +128,37 @@ class TestReduceAxes:
     def test_sum_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
-            x = tensor.matrix()
+            x = tt.matrix()
             x.sum(a)
 
     def test_mean_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
-            x = tensor.matrix()
+            x = tt.matrix()
             x.mean(a)
 
     def test_max_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
-            x = tensor.matrix()
+            x = tt.matrix()
             x.max(a)
 
     def test_min_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
-            x = tensor.matrix()
+            x = tt.matrix()
             x.min(a)
 
     def test_argmax_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
-            x = tensor.matrix()
+            x = tt.matrix()
             x.argmax(a)
 
     def test_var_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
-            x = tensor.matrix()
+            x = tt.matrix()
             x.var(a)
 
 
@@ -302,7 +304,7 @@ class TestBroadcast:
             assert (xv == yv).all()
 
     def test_fill_var(self):
-        x = tensor.matrix()
+        x = tt.matrix()
         x.fill(3)
 
     def test_fill_grad(self):
@@ -310,7 +312,7 @@ class TestBroadcast:
         # https://groups.google.com/d/topic/theano-users/nQshB8gUA6k/discussion
         x = TensorType(config.floatX, [0, 1, 0])("x")
         y = TensorType(config.floatX, [0, 1, 0])("y")
-        e = tensor.second(x, y)
+        e = tt.second(x, y)
         theano.grad(e.sum(), y)
 
     @pytest.mark.skipif(
@@ -414,7 +416,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             f = theano.function([x], e, mode=mode)
             xv = np.asarray(np.random.rand(*xsh))
 
-            if dtype not in tensor.discrete_dtypes:
+            if dtype not in tt.discrete_dtypes:
                 xv = np.asarray(xv, dtype=dtype)
             else:
                 xv = np.asarray(xv < 0.5, dtype=dtype)
@@ -441,12 +443,12 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                         axis2.append(a)
                 assert len(axis2) == len(tosum)
                 tosum = tuple(axis2)
-            if tensor_op == tensor.all:
+            if tensor_op == tt.all:
                 for axis in reversed(sorted(tosum)):
                     zv = np.all(zv, axis)
                 if len(tosum) == 0:
                     zv = zv != 0
-            elif tensor_op == tensor.any:
+            elif tensor_op == tt.any:
                 for axis in reversed(sorted(tosum)):
                     zv = np.any(zv, axis)
                 if len(tosum) == 0:
@@ -537,11 +539,9 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             self.with_mode(Mode(linker="py"), scalar.maximum, dtype=dtype)
             self.with_mode(Mode(linker="py"), scalar.minimum, dtype=dtype)
             self.with_mode(
-                Mode(linker="py"), scalar.and_, dtype=dtype, tensor_op=tensor.all
+                Mode(linker="py"), scalar.and_, dtype=dtype, tensor_op=tt.all
             )
-            self.with_mode(
-                Mode(linker="py"), scalar.or_, dtype=dtype, tensor_op=tensor.any
-            )
+            self.with_mode(Mode(linker="py"), scalar.or_, dtype=dtype, tensor_op=tt.any)
         for dtype in ["int8", "uint8"]:
             self.with_mode(Mode(linker="py"), scalar.or_, dtype=dtype)
             self.with_mode(Mode(linker="py"), scalar.and_, dtype=dtype)
@@ -562,14 +562,14 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 scalar.or_,
                 dtype=dtype,
                 test_nan=True,
-                tensor_op=tensor.any,
+                tensor_op=tt.any,
             )
             self.with_mode(
                 Mode(linker="py"),
                 scalar.and_,
                 dtype=dtype,
                 test_nan=True,
-                tensor_op=tensor.all,
+                tensor_op=tt.all,
             )
 
     @pytest.mark.skipif(
@@ -591,12 +591,8 @@ class TestCAReduce(unittest_tools.InferShapeTester):
         for dtype in ["bool", "floatX", "int8", "uint8"]:
             self.with_mode(Mode(linker="c"), scalar.minimum, dtype=dtype)
             self.with_mode(Mode(linker="c"), scalar.maximum, dtype=dtype)
-            self.with_mode(
-                Mode(linker="c"), scalar.and_, dtype=dtype, tensor_op=tensor.all
-            )
-            self.with_mode(
-                Mode(linker="c"), scalar.or_, dtype=dtype, tensor_op=tensor.any
-            )
+            self.with_mode(Mode(linker="c"), scalar.and_, dtype=dtype, tensor_op=tt.all)
+            self.with_mode(Mode(linker="c"), scalar.or_, dtype=dtype, tensor_op=tt.any)
         for dtype in ["bool", "int8", "uint8"]:
             self.with_mode(Mode(linker="c"), scalar.or_, dtype=dtype)
             self.with_mode(Mode(linker="c"), scalar.and_, dtype=dtype)
@@ -664,7 +660,7 @@ class TestProd:
         # second time, with some added complexity
         # verify_grad takes the sum of the matrices anyway
         def fn(x2):
-            return theano.tensor.sqr(Prod(axis=1)(x2))
+            return tt.sqr(Prod(axis=1)(x2))
 
         unittest_tools.verify_grad(fn, [x_val], mode=self.mode)
 
@@ -674,20 +670,20 @@ class TestProd:
         x_val = np.asarray(
             [[1.0, 2.0, 3.0], [0.0, 5.0, 6.0], [0.0, 0.0, 9.0]], dtype="float32"
         )
-        x = theano.tensor.dmatrix()
+        x = tt.dmatrix()
 
         # sanity check
         p = Prod(axis=1)(x)
 
         # Uncomment this for debugging if needed
-        # x2 = theano.tensor.dmatrix()
+        # x2 = tt.dmatrix()
         # p2 = Prod(axis=1)(x2)
         # fn = theano.function([x, x2], [p - p2], mode=self.mode)
         # print("hand computed diff for each row")
         # x2_val = np.asarray([[1., 2., 3.003], [0.003, 5., 6], [
         #     0., 0., 9.01]])
         # print(fn(x_val, x2_val))
-        # fn2 = theano.function([x], [theano.tensor.grad(p.sum(), x)],
+        # fn2 = theano.function([x], [tt.grad(p.sum(), x)],
         #                       mode=self.mode)
         # print("real grad")
         # print(fn2(x_val))
@@ -700,10 +696,10 @@ class TestProd:
         # second time, with some added complexity
         # verify_grad takes the sum of the matrices anyway
         # def fn5(x5):
-        #    return theano.tensor.sqr(Prod(axis=1)(x5))
+        #    return tt.sqr(Prod(axis=1)(x5))
 
-        # x4 = theano.tensor.dmatrix()
-        # p4 = theano.tensor.sqr(Prod(axis=1)(x4))
+        # x4 = tt.dmatrix()
+        # p4 = tt.sqr(Prod(axis=1)(x4))
         # fn4 = theano.function([x4], p4)
         # print("with sqr")
         # print(fn4(x_val))
@@ -713,7 +709,7 @@ class TestProd:
 
     @pytest.mark.slow
     def test_prod_no_zeros_in_input(self):
-        x = theano.tensor.dmatrix()
+        x = tt.dmatrix()
         x_val = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype="float32")
         pwz = Prod(axis=1, no_zeros_in_input=True)(x)
         fn = theano.function([x], pwz, mode=self.mode)
@@ -754,7 +750,7 @@ class TestProd:
         unittest_tools.verify_grad(second_deriv, [x_val], mode=self.mode)
 
     def test_prod_without_zeros(self):
-        x = theano.tensor.dmatrix()
+        x = tt.dmatrix()
         x_val = np.array([[1, 2, 3], [0, 5, 6], [0, 0, 9]], dtype="float32")
         pwz = ProdWithoutZeros(axis=1)(x)
         fn = theano.function([x], pwz, mode=self.mode)
@@ -766,14 +762,14 @@ class TestProd:
 
     @pytest.mark.xfail(raises=theano.gradient.NullTypeGradError)
     def test_prod_without_zeros_grad(self):
-        x = theano.tensor.dmatrix()
+        x = tt.dmatrix()
         pwz_a1 = ProdWithoutZeros(axis=0)(x)
-        pwz_grad = theano.grad(theano.tensor.sum(pwz_a1), x)
+        pwz_grad = theano.grad(tt.sum(pwz_a1), x)
         theano.function([x], pwz_grad, mode=self.mode)
 
     @pytest.mark.slow
     def test_other_grad_tests(self):
-        x = theano.tensor.dmatrix()
+        x = tt.dmatrix()
         x_val1 = np.array([[1, 2, 3], [0, 5, 6], [0, 0, 9]], dtype="float32")
         x_val2 = np.array(
             [[1, 2, 0], [0, 5, 6], [7, 8, 9], [9, 10, 0]], dtype="float32"
@@ -781,7 +777,7 @@ class TestProd:
         rng = rng = np.random.RandomState(43)
 
         p = Prod(axis=1)
-        grad_p = theano.tensor.grad(p(x).sum(), x)
+        grad_p = tt.grad(p(x).sum(), x)
         grad_fn = theano.function([x], grad_p, mode=self.mode)
         assert np.allclose(
             grad_fn(x_val1), [[6.0, 3.0, 2.0], [30.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
@@ -792,7 +788,7 @@ class TestProd:
         )
 
         p_axis0 = Prod(axis=0)
-        grad_p_axis0 = theano.tensor.grad(p_axis0(x).sum(), x)
+        grad_p_axis0 = tt.grad(p_axis0(x).sum(), x)
         grad_fn_axis0 = theano.function([x], grad_p_axis0, mode=self.mode)
         assert np.allclose(
             grad_fn_axis0(x_val2),
@@ -804,12 +800,12 @@ class TestProd:
             ],
         )
 
-        tensor.verify_grad(p, [x_val1], rng=rng, mode=self.mode)
+        tt.verify_grad(p, [x_val1], rng=rng, mode=self.mode)
 
     def test_mul_without_zeros_zeros(self):
         a = np.zeros((3, 3))
 
-        x = theano.tensor.dmatrix()
+        x = tt.dmatrix()
 
         mul1 = ProdWithoutZeros(axis=0)(x)
 
@@ -838,35 +834,32 @@ class TestIsInfIsNan:
                 [np.nan, np.inf, -np.inf, 0, 1, -1],
             ]
         ]
-        self.scalar = tensor.scalar()
-        self.vector = tensor.vector()
+        self.scalar = tt.scalar()
+        self.vector = tt.vector()
         self.mode = get_default_mode()
         if isinstance(self.mode, theano.compile.debugmode.DebugMode):
             # Disable the check preventing usage of NaN / Inf values.
             self.mode = copy(self.mode)
             self.mode.check_isfinite = False
 
-    def run_isfunc(self, isfunc):
-        for input in (self.scalar, self.vector):
-            theano_isfunc = theano.function(
-                [input], getattr(tensor, isfunc)(input), mode=self.mode
-            )
-            numpy_isfunc = getattr(np, isfunc)
+    def run_isfunc(self, tt_func, np_func):
+        for args in (self.scalar, self.vector):
+            theano_isfunc = theano.function([args], tt_func(args), mode=self.mode)
             for x in self.test_vals:
-                if (x.ndim == 0 and input is not self.scalar) or (
-                    x.ndim == 1 and input is not self.vector
+                if (x.ndim == 0 and args is not self.scalar) or (
+                    x.ndim == 1 and args is not self.vector
                 ):
                     # We only test with the appropriate input type.
                     continue
                 t_out = theano_isfunc(x)
-                n_out = numpy_isfunc(x)
+                n_out = np_func(x)
                 assert (t_out == n_out).all(), (t_out, n_out)
 
     def test_isinf(self):
-        return self.run_isfunc("isinf")
+        self.run_isfunc(tt.isinf, np.isinf)
 
     def test_isnan(self):
-        return self.run_isfunc("isnan")
+        self.run_isfunc(tt.isnan, np.isnan)
 
 
 class TestReduceDtype:
@@ -882,7 +875,7 @@ class TestReduceDtype:
         for method in self.methods:
             for idx, dtype in enumerate(self.dtypes):
                 axis = self.axes[idx % len(self.axes)]
-                x = tensor.matrix(dtype=dtype)
+                x = tt.matrix(dtype=dtype)
                 s = getattr(x, method)(axis=axis)
                 assert (
                     s.dtype
@@ -910,7 +903,7 @@ class TestReduceDtype:
         for method in self.methods:
             for idx, dtype in enumerate(self.dtypes):
                 axis = self.axes[idx % len(self.axes)]
-                x = tensor.matrix(dtype=dtype)
+                x = tt.matrix(dtype=dtype)
                 s = getattr(x, method)(axis=axis)
                 assert (
                     s.owner.op.acc_dtype
@@ -942,7 +935,7 @@ class TestReduceDtype:
         idx = 0
         for method in self.methods:
             for input_dtype in self.dtypes:
-                x = tensor.matrix(dtype=input_dtype)
+                x = tt.matrix(dtype=input_dtype)
                 for output_dtype in self.dtypes:
                     # Only tests case where both input and output are complex.
                     icomplex = input_dtype.startswith("complex")
@@ -977,7 +970,7 @@ class TestReduceDtype:
                     if "complex" in input_dtype:
                         continue
                     # Check that we can take the gradient
-                    tensor.grad(var.sum(), x, disconnected_inputs="ignore")
+                    tt.grad(var.sum(), x, disconnected_inputs="ignore")
                     idx += 1
 
     def test_reduce_custom_acc_dtype(self):
@@ -987,7 +980,7 @@ class TestReduceDtype:
         idx = 0
         for method in self.methods:
             for input_dtype in self.dtypes:
-                x = tensor.matrix(dtype=input_dtype)
+                x = tt.matrix(dtype=input_dtype)
                 for acc_dtype in self.dtypes:
                     # If the accumulator is a complex, the gradient of the reduce will
                     # cast the complex to the input dtype. We can't call the normal
@@ -1002,8 +995,8 @@ class TestReduceDtype:
                     # We always allow int/uint inputs with float/complex outputs.
                     upcasted_dtype = scalar.upcast(input_dtype, acc_dtype)
                     if acc_dtype == upcasted_dtype or (
-                        input_dtype in tensor.discrete_dtypes
-                        and acc_dtype in tensor.continuous_dtypes
+                        input_dtype in tt.discrete_dtypes
+                        and acc_dtype in tt.continuous_dtypes
                     ):
                         var = getattr(x, method)(acc_dtype=acc_dtype, axis=axis)
                         assert var.owner.op.acc_dtype == acc_dtype
@@ -1011,7 +1004,7 @@ class TestReduceDtype:
                         if "complex" in input_dtype:
                             continue
                         # Check that we can take the gradient
-                        tensor.grad(var.sum(), x, disconnected_inputs="ignore")
+                        tt.grad(var.sum(), x, disconnected_inputs="ignore")
                     else:
                         with pytest.raises(TypeError):
                             getattr(x(method), acc_dtype=acc_dtype, axis=axis)
@@ -1040,9 +1033,9 @@ class TestMeanDtype:
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         for idx, dtype in enumerate(map(str, theano.scalar.all_types)):
             axis = axes[idx % len(axes)]
-            x = tensor.matrix(dtype=dtype)
+            x = tt.matrix(dtype=dtype)
             m = x.mean(axis=axis)
-            if dtype in tensor.discrete_dtypes:
+            if dtype in tt.discrete_dtypes:
                 assert m.dtype == "float64"
             else:
                 assert m.dtype == dtype, (m, m.dtype, dtype)
@@ -1059,7 +1052,7 @@ class TestMeanDtype:
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         idx = 0
         for input_dtype in map(str, theano.scalar.all_types):
-            x = tensor.matrix(dtype=input_dtype)
+            x = tt.matrix(dtype=input_dtype)
             for sum_dtype in map(str, theano.scalar.all_types):
                 axis = axes[idx % len(axes)]
                 # If the inner sum cannot be created, it will raise a
@@ -1070,7 +1063,7 @@ class TestMeanDtype:
                     pass
                 else:
                     # Executed if no TypeError was raised
-                    if sum_dtype in tensor.discrete_dtypes:
+                    if sum_dtype in tt.discrete_dtypes:
                         assert mean_var.dtype == "float64", (mean_var.dtype, sum_dtype)
                     else:
                         assert mean_var.dtype == sum_dtype, (mean_var.dtype, sum_dtype)
@@ -1086,11 +1079,11 @@ class TestMeanDtype:
                     if "complex" in mean_var.dtype:
                         continue
                     try:
-                        tensor.grad(mean_var.sum(), x, disconnected_inputs="ignore")
+                        tt.grad(mean_var.sum(), x, disconnected_inputs="ignore")
                     except NotImplementedError:
                         # TrueDiv does not seem to have a gradient when
                         # the numerator is complex.
-                        if mean_var.dtype in tensor.complex_dtypes:
+                        if mean_var.dtype in tt.complex_dtypes:
                             pass
                         else:
                             raise
@@ -1114,7 +1107,7 @@ class TestProdWithoutZerosDtype:
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         for idx, dtype in enumerate(map(str, theano.scalar.all_types)):
             axis = axes[idx % len(axes)]
-            x = ProdWithoutZeros(axis=axis)(tensor.matrix(dtype=dtype))
+            x = ProdWithoutZeros(axis=axis)(tt.matrix(dtype=dtype))
             assert (
                 x.dtype
                 == dict(
@@ -1135,7 +1128,7 @@ class TestProdWithoutZerosDtype:
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         for idx, dtype in enumerate(map(str, theano.scalar.all_types)):
             axis = axes[idx % len(axes)]
-            x = tensor.matrix(dtype=dtype)
+            x = tt.matrix(dtype=dtype)
             p = ProdWithoutZeros(axis=axis)(x)
             assert (
                 p.owner.op.acc_dtype
@@ -1168,7 +1161,7 @@ class TestProdWithoutZerosDtype:
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         idx = 0
         for input_dtype in map(str, theano.scalar.all_types):
-            x = tensor.matrix(dtype=input_dtype)
+            x = tt.matrix(dtype=input_dtype)
             for output_dtype in map(str, theano.scalar.all_types):
                 axis = axes[idx % len(axes)]
                 prod_woz_var = ProdWithoutZeros(axis=axis, dtype=output_dtype)(x)
@@ -1189,15 +1182,15 @@ class TestProdWithoutZerosDtype:
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         idx = 0
         for input_dtype in map(str, theano.scalar.all_types):
-            x = tensor.matrix(dtype=input_dtype)
+            x = tt.matrix(dtype=input_dtype)
             for acc_dtype in map(str, theano.scalar.all_types):
                 axis = axes[idx % len(axes)]
                 # If acc_dtype would force a downcast, we expect a TypeError
                 # We always allow int/uint inputs with float/complex outputs.
                 upcasted_dtype = scalar.upcast(input_dtype, acc_dtype)
                 if acc_dtype == upcasted_dtype or (
-                    input_dtype in tensor.discrete_dtypes
-                    and acc_dtype in tensor.continuous_dtypes
+                    input_dtype in tt.discrete_dtypes
+                    and acc_dtype in tt.continuous_dtypes
                 ):
                     prod_woz_var = ProdWithoutZeros(axis=axis, acc_dtype=acc_dtype)(x)
                     assert prod_woz_var.owner.op.acc_dtype == acc_dtype
@@ -1220,7 +1213,7 @@ class TestBitOpReduceGrad:
         self.rng = np.random.RandomState(unittest_tools.fetch_seed())
 
     def test_all_grad(self):
-        x = tensor.bmatrix("x")
+        x = tt.bmatrix("x")
         x_all = x.all()
         gx = theano.grad(x_all, x)
         f = theano.function([x], gx)
@@ -1231,7 +1224,7 @@ class TestBitOpReduceGrad:
             assert np.all(gx_val == 0)
 
     def test_any_grad(self):
-        x = tensor.bmatrix("x")
+        x = tt.bmatrix("x")
         x_all = x.any()
         gx = theano.grad(x_all, x)
         f = theano.function([x], gx)
@@ -1244,8 +1237,8 @@ class TestBitOpReduceGrad:
 
 class TestElemwise(unittest_tools.InferShapeTester):
     def test_elemwise_grad_bool(self):
-        x = theano.tensor.scalar(dtype="bool")
-        y = theano.tensor.bscalar()
+        x = tt.scalar(dtype="bool")
+        y = tt.bscalar()
         z = x * y
         dx, dy = theano.grad(z, [x, y])
 
@@ -1279,7 +1272,7 @@ class TestElemwise(unittest_tools.InferShapeTester):
         # Elemwise.perform used to compute the product
         # of input shapes to check if there was a zero in them,
         # it overflowed in this case.
-        a, b, c, d, e, f = tensor.vectors("abcdef")
+        a, b, c, d, e, f = tt.vectors("abcdef")
         s = a + b + c + d + e + f
         g = theano.function(
             [a, b, c, d, e, f], s, mode=theano.compile.Mode(linker="py")
@@ -1315,7 +1308,7 @@ def test_clip_grad():
 
     # test the gradient of clip
     def func(x, y, z):
-        return theano.tensor.clip(x, y, z)
+        return tt.clip(x, y, z)
 
     # use an x value less than y, an x value between y and z, and an x value
     # greater than z
@@ -1323,35 +1316,38 @@ def test_clip_grad():
 
 
 def test_grad_useless_sum():
-    # Test absence of useless sum.
-    #
-    # When an operation (such as T.mul) is done on a broadcastable vector and
-    # a matrix, the gradient in backward path is computed for the broadcasted
-    # vector. So a sum reverts the broadcasted vector to a vector. In the case
-    # of operations on two broadcastable vectors, the sum should not be generated.
-    #
-    # This test checks whether there is a useless sum in the gradient
-    # computations.
+    """
+    Test absence of useless sum.
+
+    When an operation (such as `theano.tensor.mul`) is done on a broadcastable
+    vector and a matrix, the gradient in backward path is computed for the
+    broadcasted vector. So a sum reverts the broadcasted vector to a vector. In
+    the case of operations on two broadcastable vectors, the sum should not be
+    generated.
+
+    This test checks whether there is a useless sum in the gradient
+    computations.
+    """
 
     mode = theano.compile.get_default_mode().including("canonicalize")
     mode.check_isfinite = False
     x = TensorType(theano.config.floatX, (True,))("x")
-    l = tensor.log(1.0 - tensor.nnet.sigmoid(x))[0]
-    g = tensor.grad(l, x)
+    l = tt.log(1.0 - sigmoid(x))[0]
+    g = tt.grad(l, x)
     nodes = theano.gof.graph.ops([x], [g])
 
     f = theano.function([x], g, mode=mode)
     test_values = [-100, -1, 0, 1, 100]
     outputs = []
     old_values_eq_approx = staticmethod(TensorType.values_eq_approx)
-    TensorType.values_eq_approx = staticmethod(tensor.type.values_eq_approx_remove_nan)
+    TensorType.values_eq_approx = staticmethod(values_eq_approx_remove_nan)
     try:
         for test_value in test_values:
             outputs.append(f(np.array([test_value]).astype("float32")))
     finally:
         TensorType.values_eq_approx = old_values_eq_approx
 
-    assert not any([isinstance(node.op, theano.tensor.elemwise.Sum) for node in nodes])
+    assert not any([isinstance(node.op, Sum) for node in nodes])
     assert np.allclose(
         outputs, [[-3.72007598e-44], [-0.26894142], [-0.5], [-0.73105858], [-1.0]]
     )
@@ -1360,22 +1356,21 @@ def test_grad_useless_sum():
 def test_elemwise_grad_broadcast():
     # This crashed in the past.
 
-    x = tensor.tensor(dtype="float32", broadcastable=(True, False, False, False))
-    y = tensor.tensor(dtype="float32", broadcastable=(True, True, False, False))
+    x = tt.tensor(dtype="float32", broadcastable=(True, False, False, False))
+    y = tt.tensor(dtype="float32", broadcastable=(True, True, False, False))
 
-    theano.grad(theano.tensor.tanh(x).sum(), x)
-    theano.grad(theano.tensor.tanh(x + y).sum(), y)
-    theano.grad(theano.tensor.tanh(x + y).sum(), [x, y])
+    theano.grad(tt.tanh(x).sum(), x)
+    theano.grad(tt.tanh(x + y).sum(), y)
+    theano.grad(tt.tanh(x + y).sum(), [x, y])
 
 
 def test_clip_grad_int():
-
     # test that integers don't crash clip gradient
-    x = tensor.iscalar()
-    y = tensor.iscalar()
-    z = tensor.iscalar()
-    c = tensor.clip(x, y, z)
-    tensor.grad(c, [x, y, z])
+    x = tt.iscalar()
+    y = tt.iscalar()
+    z = tt.iscalar()
+    c = tt.clip(x, y, z)
+    tt.grad(c, [x, y, z])
 
 
 def test_not_implemented_elemwise_grad():
@@ -1394,20 +1389,10 @@ def test_not_implemented_elemwise_grad():
             dy_dx = n
             return [theano.gradient.grad_not_implemented(self, 0, n), gz * dy_dx]
 
-    test_op = tensor.Elemwise(TestOp())
-    x = tensor.scalar()
-    # The call to `grad` used to crash.
-    tensor.grad(test_op(2, x), x)
+    test_op = tt.Elemwise(TestOp())
+    x = tt.scalar()
+    assert isinstance(tt.grad(test_op(2, x), x), gof.graph.Variable)
+
     # Verify that trying to use the not implemented gradient fails.
-    try:
-        tensor.grad(test_op(x, 2), x)
-        assert False
-    except theano.gradient.NullTypeGradError:
-        pass
-
-
-if __name__ == "__main__":
-
-    t = TestElemwise("setUp")
-    t.setup_method()
-    t.test_infer_shape()
+    with pytest.raises(theano.gradient.NullTypeGradError):
+        tt.grad(test_op(x, 2), x)

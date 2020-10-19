@@ -1,14 +1,22 @@
 import numpy as np
-import theano.tensor as T
+
+import theano.tensor as tt
 
 from six import integer_types
 from six.moves import StringIO
 
-from theano import tensor, gof, Op
+from theano import gof, Op
 from theano.gof import ParamsType
 from theano.gradient import grad_not_implemented
-from theano.tensor.subtensor import IncSubtensor, Subtensor, get_idx_list
 from theano.tensor import AllocDiag
+from theano.tensor.subtensor import (
+    IncSubtensor,
+    AdvancedSubtensor,
+    Subtensor,
+    AdvancedIncSubtensor,
+    AdvancedSubtensor1,
+    get_idx_list,
+)
 from theano.scalar import bool as bool_t, int32 as int_t, uint32 as size_t
 
 try:
@@ -17,8 +25,8 @@ try:
 except ImportError:
     pass
 
-from .type import GpuArrayType, gpu_context_type
-from .basic_ops import (
+from theano.gpuarray.type import GpuArrayType, gpu_context_type
+from theano.gpuarray.basic_ops import (
     as_gpuarray_variable,
     HideC,
     GpuKernelBase,
@@ -52,7 +60,7 @@ class GpuSubtensor(HideC, Subtensor):
 
     def make_node(self, x, *inputs):
         ctx_name = infer_context_name(x)
-        rval = tensor.Subtensor.make_node(self, x, *inputs)
+        rval = Subtensor.make_node(self, x, *inputs)
         otype = GpuArrayType(
             dtype=rval.outputs[0].type.dtype,
             broadcastable=rval.outputs[0].type.broadcastable,
@@ -226,7 +234,7 @@ class GpuIncSubtensor(IncSubtensor):
     -----
     The optimization to make this inplace is in tensor/opt.
     The same optimization handles IncSubtensor and GpuIncSubtensor.
-    This Op has c_code too; it inherits tensor.IncSubtensor's c_code.
+    This Op has c_code too; it inherits IncSubtensor's c_code.
     The helper methods like :meth:`do_type_checking`,
     :meth:`copy_of_x`, etc. specialize the c_code for this Op.
 
@@ -239,7 +247,7 @@ class GpuIncSubtensor(IncSubtensor):
         ctx_name = infer_context_name(x, y)
         x = as_gpuarray_variable(x, ctx_name)
         y = as_gpuarray_variable(y, ctx_name)
-        rval = tensor.IncSubtensor.make_node(self, x, y, *inputs)
+        rval = IncSubtensor.make_node(self, x, y, *inputs)
         ret = gof.Apply(self, [x, y] + rval.inputs[2:], [x.type()])
         return ret
 
@@ -450,7 +458,7 @@ int sub_setarray(GpuArray *dst, GpuArray *src) {
         return parent_version + (10,)
 
 
-class GpuAdvancedSubtensor1(HideC, tensor.AdvancedSubtensor1):
+class GpuAdvancedSubtensor1(HideC, AdvancedSubtensor1):
     """
     AdvancedSubrensor1 on the GPU.
     """
@@ -461,11 +469,11 @@ class GpuAdvancedSubtensor1(HideC, tensor.AdvancedSubtensor1):
         ctx_name = infer_context_name(x, ilist)
         x_ = as_gpuarray_variable(x, ctx_name)
 
-        ilist__ = tensor.as_tensor_variable(ilist)
-        if ilist__.type.dtype not in tensor.integer_dtypes:
+        ilist__ = tt.as_tensor_variable(ilist)
+        if ilist__.type.dtype not in tt.integer_dtypes:
             raise TypeError("index must be integers")
         if ilist__.type.dtype != "int64":
-            ilist__ = tensor.cast(ilist__, "int64")
+            ilist__ = tt.cast(ilist__, "int64")
 
         ilist_ = gpu_contiguous(as_gpuarray_variable(ilist__, ctx_name))
 
@@ -676,14 +684,14 @@ class BaseGpuAdvancedSubtensor(object):
         out[0] = o
 
 
-class GpuAdvancedSubtensor(HideC, BaseGpuAdvancedSubtensor, tensor.AdvancedSubtensor):
+class GpuAdvancedSubtensor(HideC, BaseGpuAdvancedSubtensor, AdvancedSubtensor):
     """
     AdvancedSubtensor on the GPU.
     """
 
     def make_node(self, x, *inputs):
         ctx_name = infer_context_name(x)
-        rval = tensor.AdvancedSubtensor.make_node(self, x, *inputs)
+        rval = AdvancedSubtensor.make_node(self, x, *inputs)
         otype = GpuArrayType(
             dtype=rval.outputs[0].type.dtype,
             broadcastable=rval.outputs[0].type.broadcastable,
@@ -809,9 +817,7 @@ class BaseGpuAdvancedIncSubtensor(object):
         out[0] = x_
 
 
-class GpuAdvancedIncSubtensor(
-    HideC, BaseGpuAdvancedIncSubtensor, tensor.AdvancedIncSubtensor
-):
+class GpuAdvancedIncSubtensor(HideC, BaseGpuAdvancedIncSubtensor, AdvancedIncSubtensor):
     """
     Implement AdvancedIncSubtensor on the gpu.
 
@@ -819,7 +825,7 @@ class GpuAdvancedIncSubtensor(
 
     def make_node(self, x, y, *inputs):
         ctx_name = infer_context_name(x, y)
-        rval = tensor.AdvancedIncSubtensor.make_node(self, x, y, *inputs)
+        rval = AdvancedIncSubtensor.make_node(self, x, y, *inputs)
         otype = GpuArrayType(
             dtype=rval.outputs[0].type.dtype,
             broadcastable=rval.outputs[0].type.broadcastable,
@@ -863,11 +869,11 @@ class GpuAdvancedIncSubtensor1(Op):
         ctx_name = infer_context_name(x, y)
         x_ = as_gpuarray_variable(x, ctx_name)
         y_ = as_gpuarray_variable(y, ctx_name)
-        ilist_ = tensor.as_tensor_variable(ilist)
+        ilist_ = tt.as_tensor_variable(ilist)
 
         assert x_.type.ndim >= y_.type.ndim
 
-        if ilist_.type.dtype not in tensor.integer_dtypes:
+        if ilist_.type.dtype not in tt.integer_dtypes:
             raise TypeError("index must be integers")
         if ilist_.type.ndim != 1:
             raise TypeError("index must be vector")
@@ -1106,7 +1112,7 @@ class GpuAdvancedIncSubtensor1_dev20(GpuKernelBase, HideC, GpuAdvancedIncSubtens
 
         assert x_.type.ndim >= y_.type.ndim
 
-        if ilist_.type.dtype not in tensor.integer_dtypes:
+        if ilist_.type.dtype not in tt.integer_dtypes:
             raise TypeError("index must be integers")
         if ilist_.type.ndim != 1:
             raise TypeError("index must be vector")
@@ -1437,11 +1443,11 @@ class GpuExtractDiag(Op):
         # The following logic is inspired by C code of PyArray_Diagonal().
         offset = self.offset
         if offset > 0:
-            diag_size = T.clip(dim2 - offset, 0, dim1)
+            diag_size = tt.clip(dim2 - offset, 0, dim1)
         elif offset < 0:
-            diag_size = T.clip(dim1 + offset, 0, dim2)
+            diag_size = tt.clip(dim1 + offset, 0, dim2)
         else:
-            diag_size = T.minimum(dim1, dim2)
+            diag_size = tt.minimum(dim1, dim2)
         out_shape.append(diag_size)
         return [tuple(out_shape)]
 

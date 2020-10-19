@@ -1,11 +1,12 @@
-from optparse import OptionParser
 import sys
 import time
 
 import numpy as np
 
 import theano
-import theano.tensor as T
+import theano.tensor as tt
+
+from optparse import OptionParser
 
 
 parser = OptionParser(
@@ -42,11 +43,11 @@ def evalTime(f, v, script=False, loops=1000):
 
 
 def ElemwiseOpTime(N, script=False, loops=1000):
-    x = T.vector("x")
+    x = tt.vector("x")
     np.random.seed(1235)
     v = np.random.random(N).astype(theano.config.floatX)
     f = theano.function([x], 2 * x + x * x)
-    f1 = theano.function([x], T.tanh(x))
+    f1 = theano.function([x], tt.tanh(x))
     if not script:
         if theano.config.openmp:
             print("With openmp:")

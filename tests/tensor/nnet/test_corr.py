@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 
 from six import integer_types
 from theano.tensor.nnet import corr, conv
@@ -29,9 +29,9 @@ class TestCorr2D(utt.InferShapeTester):
     dtype = theano.config.floatX
 
     def setup_method(self):
-        self.input = T.tensor4("input", dtype=self.dtype)
+        self.input = tt.tensor4("input", dtype=self.dtype)
         self.input.name = "default_V"
-        self.filters = T.tensor4("filters", dtype=self.dtype)
+        self.filters = tt.tensor4("filters", dtype=self.dtype)
         self.filters.name = "default_filters"
         # This tests can run even when theano.config.blas.ldflags is empty.
         super().setup_method()
@@ -55,10 +55,10 @@ class TestCorr2D(utt.InferShapeTester):
         if not theano.config.cxx:
             pytest.skip("Need cxx to test conv2d")
         N_image_shape = [
-            T.get_scalar_constant_value(T.as_tensor_variable(x)) for x in image_shape
+            tt.get_scalar_constant_value(tt.as_tensor_variable(x)) for x in image_shape
         ]
         N_filter_shape = [
-            T.get_scalar_constant_value(T.as_tensor_variable(x)) for x in filter_shape
+            tt.get_scalar_constant_value(tt.as_tensor_variable(x)) for x in filter_shape
         ]
 
         if input is None:
@@ -255,7 +255,7 @@ class TestCorr2D(utt.InferShapeTester):
     def test_shape_Constant_tensor(self):
         # Tests correlation where the {image,filter}_shape is a Constant tensor.
 
-        as_t = T.as_tensor_variable
+        as_t = tt.as_tensor_variable
         border_modes = ["valid", "full", "half", (1, 1), (2, 1), (1, 2), (3, 3), 1]
 
         for border_mode in border_modes:
@@ -290,11 +290,11 @@ class TestCorr2D(utt.InferShapeTester):
         # Make sure errors are raised when image and kernel are not 4D tensors
 
         with pytest.raises(Exception):
-            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", input=T.dmatrix())
+            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", input=tt.dmatrix())
         with pytest.raises(Exception):
-            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", filters=T.dvector())
+            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", filters=tt.dvector())
         with pytest.raises(Exception):
-            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", input=T.dtensor3())
+            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", input=tt.dtensor3())
 
     @pytest.mark.skipif(not theano.config.cxx, reason="Need cxx for this test")
     def test_dtype_upcast(self):
@@ -313,8 +313,8 @@ class TestCorr2D(utt.InferShapeTester):
             for a_dtype in dtypes:
                 for b_dtype in dtypes:
                     c_dtype = theano.scalar.upcast(a_dtype, b_dtype)
-                    a_tens = T.tensor4(dtype=a_dtype)
-                    b_tens = T.tensor4(dtype=b_dtype)
+                    a_tens = tt.tensor4(dtype=a_dtype)
+                    b_tens = tt.tensor4(dtype=b_dtype)
                     a_tens_val = rand(a_shape, dtype=a_dtype)
                     b_tens_val = rand(b_shape, dtype=b_dtype)
 
@@ -334,8 +334,8 @@ class TestCorr2D(utt.InferShapeTester):
 
         corrMM = corr.CorrMM
 
-        adtens = T.dtensor4()
-        bdtens = T.dtensor4()
+        adtens = tt.dtensor4()
+        bdtens = tt.dtensor4()
         aivec_vals = [
             [4, 5, 6, 3],
             [6, 2, 8, 3],
@@ -385,8 +385,8 @@ class TestCorr2D(utt.InferShapeTester):
         corrMM = corr.CorrMM
         gradW = corr.CorrMM_gradWeights
 
-        adtens = T.dtensor4()
-        bdtens = T.dtensor4()
+        adtens = tt.dtensor4()
+        bdtens = tt.dtensor4()
         aivec_vals = [
             [1, 5, 6, 3],
             [8, 2, 7, 3],
@@ -441,8 +441,8 @@ class TestCorr2D(utt.InferShapeTester):
         corrMM = corr.CorrMM
         gradI = corr.CorrMM_gradInputs
 
-        adtens = T.dtensor4()
-        bdtens = T.dtensor4()
+        adtens = tt.dtensor4()
+        bdtens = tt.dtensor4()
         aivec_vals = [
             [1, 5, 6, 3],
             [8, 2, 7, 3],
@@ -510,8 +510,8 @@ class TestGroupCorr2d(TestGroupedConvNoOptim):
         groups = 3
         bottom = np.random.rand(3, 6, 5, 5).astype(theano.config.floatX)
         kern = np.random.rand(9, 2, 3, 3).astype(theano.config.floatX)
-        bottom_sym = T.tensor4("bottom")
-        kern_sym = T.tensor4("kern")
+        bottom_sym = tt.tensor4("bottom")
+        kern_sym = tt.tensor4("kern")
 
         # grouped convolution graph
         conv_group = self.conv(num_groups=groups)(bottom_sym, kern_sym)
@@ -527,7 +527,7 @@ class TestGroupCorr2d(TestGroupedConvNoOptim):
             )
             for i in range(groups)
         ]
-        concatenated_output = T.concatenate(split_conv_output, axis=1)
+        concatenated_output = tt.concatenate(split_conv_output, axis=1)
         conv_func = theano.function(
             [bottom_sym, kern_sym], concatenated_output, mode=self.mode
         )

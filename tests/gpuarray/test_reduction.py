@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 
 from theano.gpuarray import GpuArrayType
 from theano.gpuarray.reduction import GpuMaxAndArgmax
@@ -96,7 +96,7 @@ class BaseTest:
 
     def get_host_tensor(self):
         broadcastable = (False,) * self.tensor_size
-        return T.tensor(self.dtype, broadcastable)
+        return tt.tensor(self.dtype, broadcastable)
 
     def get_gpu_tensor(self):
         broadcastable = (False,) * self.tensor_size
@@ -116,7 +116,7 @@ class BaseTest:
         M = self.get_host_tensor()
         f = theano.function(
             [M],
-            [T.max(M, axis=axis), T.argmax(M, axis=axis)],
+            [tt.max(M, axis=axis), tt.argmax(M, axis=axis)],
             name="shape:" + str(test_tensor.shape) + "/axis:" + str(axis) + "/HOST",
             mode=mode_without_gpu,
         )
@@ -131,7 +131,7 @@ class BaseTest:
         M = self.get_gpu_tensor()
         f = theano.function(
             [M],
-            [T.max(M, axis=axis), T.argmax(M, axis=axis)],
+            [tt.max(M, axis=axis), tt.argmax(M, axis=axis)],
             name="shape:" + str(test_gpu_tensor.shape) + "/axis:" + str(axis) + "/GPU",
             mode=mode_with_gpu,
         )

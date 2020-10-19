@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 import theano.gpuarray
 
 try:
@@ -15,25 +15,25 @@ except ImportError:
 
 class TestScanCheckpoint:
     def setup_method(self):
-        self.k = T.iscalar("k")
-        self.A = T.vector("A")
+        self.k = tt.iscalar("k")
+        self.A = tt.vector("A")
         result, _ = theano.scan(
             fn=lambda prior_result, A: prior_result * A,
-            outputs_info=T.ones_like(self.A),
+            outputs_info=tt.ones_like(self.A),
             non_sequences=self.A,
             n_steps=self.k,
         )
         result_check, _ = theano.scan_checkpoints(
             fn=lambda prior_result, A: prior_result * A,
-            outputs_info=T.ones_like(self.A),
+            outputs_info=tt.ones_like(self.A),
             non_sequences=self.A,
             n_steps=self.k,
             save_every_N=100,
         )
         self.result = result[-1]
         self.result_check = result_check[-1]
-        self.grad_A = T.grad(self.result.sum(), self.A)
-        self.grad_A_check = T.grad(self.result_check.sum(), self.A)
+        self.grad_A = tt.grad(self.result.sum(), self.A)
+        self.grad_A_check = tt.grad(self.result_check.sum(), self.A)
 
     def test_forward_pass(self):
         # Test forward computation of A**k.

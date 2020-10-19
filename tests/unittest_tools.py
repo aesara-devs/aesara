@@ -6,7 +6,7 @@ import pytest
 import numpy as np
 
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 
 from functools import wraps
 from copy import copy, deepcopy
@@ -79,7 +79,7 @@ def verify_grad(op, pt, n_tests=2, rng=None, *args, **kwargs):
     if rng is None:
         seed_rng()
         rng = np.random
-    T.verify_grad(op, pt, n_tests, rng, *args, **kwargs)
+    tt.verify_grad(op, pt, n_tests, rng, *args, **kwargs)
 
 
 #
@@ -92,7 +92,7 @@ def verify_grad(op, pt, n_tests=2, rng=None, *args, **kwargs):
 #     print e.analytic_grad
 #     raise
 #
-verify_grad.E_grad = T.verify_grad.E_grad
+verify_grad.E_grad = tt.verify_grad.E_grad
 
 
 # A helpful class to check random values close to the boundaries
@@ -155,7 +155,7 @@ class OptimizationTestMixin(object):
 class OpContractTestMixin(object):
     # self.ops should be a list of instantiations of an Op class to test.
     # self.other_op should be an op which is different from every op
-    other_op = T.add
+    other_op = tt.add
 
     def copy(self, x):
         return copy(x)
@@ -296,7 +296,7 @@ class WrongValue(Exception):
 
 
 def assert_allclose(expected, value, rtol=None, atol=None):
-    if not T.basic._allclose(expected, value, rtol, atol):
+    if not tt.basic._allclose(expected, value, rtol, atol):
         raise WrongValue(expected, value, rtol, atol)
 
 

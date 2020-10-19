@@ -20,15 +20,15 @@ IfElse vs Switch
 
 .. testcode::
 
-   from theano import tensor as T
+   from theano import tensor as tt
    from theano.ifelse import ifelse
    import theano, time, numpy
 
-   a,b = T.scalars('a', 'b')
-   x,y = T.matrices('x', 'y')
+   a,b = tt.scalars('a', 'b')
+   x,y = tt.matrices('x', 'y')
 
-   z_switch = T.switch(T.lt(a, b), T.mean(x), T.mean(y))
-   z_lazy = ifelse(T.lt(a, b), T.mean(x), T.mean(y))
+   z_switch = tt.switch(tt.lt(a, b), tt.mean(x), tt.mean(y))
+   z_lazy = ifelse(tt.lt(a, b), tt.mean(x), tt.mean(y))
 
    f_switch = theano.function([a, b, x, y], z_switch,
                               mode=theano.Mode(linker='vm'))

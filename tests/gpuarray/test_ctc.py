@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 import theano.gpuarray
 
 from theano.gpuarray.ctc import gpu_ctc, GpuConnectionistTemporalClassification
@@ -56,7 +56,7 @@ class TestCTC:
         outputs = [cpu_ctc_cost]
         if compute_grad:
             # Symbolic gradient of CTC cost
-            cpu_ctc_grad = T.grad(T.mean(cpu_ctc_cost), activations)
+            cpu_ctc_grad = tt.grad(tt.mean(cpu_ctc_cost), activations)
             outputs += [cpu_ctc_grad]
         return theano.function([], outputs, mode=mode)
 
@@ -65,7 +65,7 @@ class TestCTC:
         outputs = [gpu_ctc_cost]
         if compute_grad:
             # Symbolic gradient of CTC cost
-            gpu_ctc_grad = T.grad(T.mean(gpu_ctc_cost), activations)
+            gpu_ctc_grad = tt.grad(tt.mean(gpu_ctc_cost), activations)
             outputs += [gpu_ctc_grad]
         return theano.function([], outputs, mode=mode_with_gpu)
 

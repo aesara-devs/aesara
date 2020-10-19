@@ -5,7 +5,7 @@ Test compilation modes
 import copy
 
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 from theano.compile import Mode
 
 
@@ -25,8 +25,8 @@ class TestBunchOfModes:
         modes = predef_modes + [Mode(linker, "fast_run") for linker in linkers]
 
         for mode in modes:
-            x = T.matrix()
-            y = T.vector()
+            x = tt.matrix()
+            y = tt.vector()
             f = theano.function([x, y], x + y, mode=mode)
             # test that it runs something
             f([[1, 2], [3, 4]], [5, 6])

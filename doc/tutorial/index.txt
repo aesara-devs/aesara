@@ -11,9 +11,9 @@ Let us start an interactive session (e.g. with ``python`` or ``ipython``) and im
 
 Several of the symbols you will need to use are in the ``tensor`` subpackage
 of Theano. Let us import that subpackage under a handy name like
-``T`` (the tutorials will frequently use this convention).
+``tt`` (the tutorials will frequently use this convention).
 
->>> import theano.tensor as T
+>>> import theano.tensor as tt
 
 If that succeeded you are ready for the tutorial, otherwise check your
 installation (see :ref:`install`).
@@ -68,7 +68,7 @@ Further readings
 
 .. toctree::
 
-    ../extending/graphstructures 
+    ../extending/graphstructures
     loading_and_saving
     aliasing
     multi_cores

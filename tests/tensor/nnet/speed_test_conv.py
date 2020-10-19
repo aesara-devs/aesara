@@ -2,7 +2,7 @@ import time
 
 import numpy as N
 
-import theano.tensor as T
+import theano.tensor as tt
 
 from theano import function, Mode
 from theano.tensor.nnet.conv import ConvOp
@@ -39,7 +39,7 @@ def flip(kern, kshp):
 
 global_rng = N.random.RandomState(3423489)
 
-dmatrix4 = T.TensorType("float64", (False, False, False, False))
+dmatrix4 = tt.TensorType("float64", (False, False, False, False))
 
 
 def exec_multilayer_conv_nnet_old(
@@ -51,7 +51,7 @@ def exec_multilayer_conv_nnet_old(
     nkerns,
     unroll_batch=0,
     unroll_kern=0,
-    img=T.dmatrix(),
+    img=tt.dmatrix(),
     validate=True,
     conv_op_py=False,
     do_print=True,
@@ -64,7 +64,7 @@ def exec_multilayer_conv_nnet_old(
     # build actual input images
     imgval = global_rng.rand(bsize, imshp[0], imshp[1], imshp[2])
 
-    a = T.dmatrix()
+    a = tt.dmatrix()
     kerns = [a for i in nkerns]
     inputs4 = dmatrix4()
     kerns4 = dmatrix4()
@@ -180,7 +180,7 @@ def exec_multilayer_conv_nnet(
     nkerns,
     unroll_batch=0,
     unroll_kern=0,
-    img=T.dmatrix(),
+    img=tt.dmatrix(),
     do_print=True,
     repeat=1,
     unroll_patch=False,
@@ -191,7 +191,7 @@ def exec_multilayer_conv_nnet(
     # build actual input images
     imgval = global_rng.rand(bsize, imshp[0], imshp[1], imshp[2])
 
-    a = T.dmatrix()
+    a = tt.dmatrix()
     kerns = [a for i in nkerns]
     inputs4 = dmatrix4()
     kerns4 = dmatrix4()
@@ -277,7 +277,7 @@ def speed_multilayer_conv():
     ]  # (1,1)]#(2,2) bugged
     convmodes = ["valid", "full"]
     # do_convolve2 = False
-    a = T.dmatrix()
+    a = tt.dmatrix()
     kerns = [a for i in nkerns]
 
     assert len(kshps) == len(nkerns) == len(kerns)

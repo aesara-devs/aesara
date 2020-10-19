@@ -1,6 +1,8 @@
 import numpy as np
+
+import theano.tensor as tt
+
 from theano import gof
-import theano.tensor as T
 from theano.gradient import DisconnectedType
 
 
@@ -10,10 +12,10 @@ class RFFTOp(gof.Op):
 
     def output_type(self, inp):
         # add extra dim for real/imag
-        return T.TensorType(inp.dtype, broadcastable=[False] * (inp.type.ndim + 1))
+        return tt.TensorType(inp.dtype, broadcastable=[False] * (inp.type.ndim + 1))
 
     def make_node(self, a, s=None):
-        a = T.as_tensor_variable(a)
+        a = tt.as_tensor_variable(a)
         if a.ndim < 2:
             raise TypeError(
                 "%s: input must have dimension > 2, with first dimension batches"
@@ -22,10 +24,10 @@ class RFFTOp(gof.Op):
 
         if s is None:
             s = a.shape[1:]
-            s = T.as_tensor_variable(s)
+            s = tt.as_tensor_variable(s)
         else:
-            s = T.as_tensor_variable(s)
-            if s.dtype not in T.integer_dtypes:
+            s = tt.as_tensor_variable(s)
+            if s.dtype not in tt.integer_dtypes:
                 raise TypeError(
                     "%s: length of the transformed axis must be"
                     " of type integer" % self.__class__.__name__
@@ -54,7 +56,7 @@ class RFFTOp(gof.Op):
             + [slice(1, (s[-1] // 2) + (s[-1] % 2))]
             + [slice(None)]
         )
-        gout = T.set_subtensor(gout[idx], gout[idx] * 0.5)
+        gout = tt.set_subtensor(gout[idx], gout[idx] * 0.5)
         return [irfft_op(gout, s), DisconnectedType()()]
 
     def connection_pattern(self, node):
@@ -71,10 +73,10 @@ class IRFFTOp(gof.Op):
 
     def output_type(self, inp):
         # remove extra dim for real/imag
-        return T.TensorType(inp.dtype, broadcastable=[False] * (inp.type.ndim - 1))
+        return tt.TensorType(inp.dtype, broadcastable=[False] * (inp.type.ndim - 1))
 
     def make_node(self, a, s=None):
-        a = T.as_tensor_variable(a)
+        a = tt.as_tensor_variable(a)
         if a.ndim < 3:
             raise TypeError(
                 "%s: input must have dimension >= 3,  with " % self.__class__.__name__
@@ -83,11 +85,11 @@ class IRFFTOp(gof.Op):
 
         if s is None:
             s = a.shape[1:-1]
-            s = T.set_subtensor(s[-1], (s[-1] - 1) * 2)
-            s = T.as_tensor_variable(s)
+            s = tt.set_subtensor(s[-1], (s[-1] - 1) * 2)
+            s = tt.as_tensor_variable(s)
         else:
-            s = T.as_tensor_variable(s)
-            if s.dtype not in T.integer_dtypes:
+            s = tt.as_tensor_variable(s)
+            if s.dtype not in tt.integer_dtypes:
                 raise TypeError(
                     "%s: length of the transformed axis must be"
                     " of type integer" % self.__class__.__name__
@@ -117,7 +119,7 @@ class IRFFTOp(gof.Op):
             + [slice(1, (s[-1] // 2) + (s[-1] % 2))]
             + [slice(None)]
         )
-        gf = T.set_subtensor(gf[idx], gf[idx] * 2)
+        gf = tt.set_subtensor(gf[idx], gf[idx] * 2)
         return [gf, DisconnectedType()()]
 
     def connection_pattern(self, node):
@@ -157,7 +159,7 @@ def rfft(inp, norm=None):
     cond_norm = _unitary(norm)
     scaling = 1
     if cond_norm == "ortho":
-        scaling = T.sqrt(s.prod().astype(inp.dtype))
+        scaling = tt.sqrt(s.prod().astype(inp.dtype))
 
     return rfft_op(inp, s) / scaling
 
@@ -196,9 +198,9 @@ def irfft(inp, norm=None, is_odd=False):
 
     s = inp.shape[1:-1]
     if is_odd:
-        s = T.set_subtensor(s[-1], (s[-1] - 1) * 2 + 1)
+        s = tt.set_subtensor(s[-1], (s[-1] - 1) * 2 + 1)
     else:
-        s = T.set_subtensor(s[-1], (s[-1] - 1) * 2)
+        s = tt.set_subtensor(s[-1], (s[-1] - 1) * 2)
 
     cond_norm = _unitary(norm)
     scaling = 1
@@ -206,7 +208,7 @@ def irfft(inp, norm=None, is_odd=False):
     if cond_norm is None:
         scaling = s.prod().astype(inp.dtype)
     elif cond_norm == "ortho":
-        scaling = T.sqrt(s.prod().astype(inp.dtype))
+        scaling = tt.sqrt(s.prod().astype(inp.dtype))
 
     return irfft_op(inp, s) / scaling
 

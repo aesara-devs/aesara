@@ -1,7 +1,7 @@
 import numpy as np
 
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 
 from theano.breakpoint import PdbBreakpoint
 
@@ -14,15 +14,15 @@ class TestPdbBreakpoint(utt.InferShapeTester):
 
         # Sample computation that involves tensors with different numbers
         # of dimensions
-        self.input1 = T.fmatrix()
-        self.input2 = T.fscalar()
-        self.output = T.dot(
+        self.input1 = tt.fmatrix()
+        self.input2 = tt.fscalar()
+        self.output = tt.dot(
             (self.input1 - self.input2), (self.input1 - self.input2).transpose()
         )
 
         # Declare the conditional breakpoint
         self.breakpointOp = PdbBreakpoint("Sum of output too high")
-        self.condition = T.gt(self.output.sum(), 1000)
+        self.condition = tt.gt(self.output.sum(), 1000)
         (
             self.monitored_input1,
             self.monitored_input2,
@@ -47,8 +47,8 @@ class TestPdbBreakpoint(utt.InferShapeTester):
         input2_value = 10.0
 
         grads = [
-            T.grad(self.monitored_input1.sum(), self.input1),
-            T.grad(self.monitored_input2.sum(), self.input2),
+            tt.grad(self.monitored_input1.sum(), self.input1),
+            tt.grad(self.monitored_input2.sum(), self.input2),
         ]
 
         # Add self.monitored_input1 as an output to the Theano function to

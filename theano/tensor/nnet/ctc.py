@@ -1,13 +1,14 @@
 import os
 import sys
-import theano.tensor as T
-from theano import config
-from theano import gof
+
+import theano.tensor as tt
+
+from theano import config, gof
 from theano.gof import local_optimizer
 from theano.gof.cmodule import GCC_compiler
-from theano.tensor.opt import register_canonicalize
-from theano.tensor.extra_ops import cpu_contiguous
 from theano.gradient import grad_undefined
+from theano.tensor.extra_ops import cpu_contiguous
+from theano.tensor.opt import register_canonicalize
 
 
 def _ctc_find_lib():
@@ -156,12 +157,12 @@ class ConnectionistTemporalClassification(gof.COp, gof.OpenMPOp):
         return ["ctc.h"] + gof.OpenMPOp.c_headers(self)
 
     def make_node(self, activations, labels, input_lengths):
-        t_activations = T.as_tensor_variable(activations)
+        t_activations = tt.as_tensor_variable(activations)
         # Ensure activations array is C-contiguous
         t_activations = cpu_contiguous(t_activations)
 
-        t_labels = T.as_tensor_variable(labels)
-        t_input_lengths = T.as_tensor_variable(input_lengths)
+        t_labels = tt.as_tensor_variable(labels)
+        t_input_lengths = tt.as_tensor_variable(input_lengths)
 
         if t_activations.type.dtype != "float32":
             raise TypeError("activations must use the float32 type!")
@@ -181,10 +182,10 @@ class ConnectionistTemporalClassification(gof.COp, gof.OpenMPOp):
         if t_input_lengths.ndim != 1:
             raise ValueError("input_lengths must have 1 dimension.")
 
-        costs = T.fvector(name="ctc_cost")
+        costs = tt.fvector(name="ctc_cost")
         outputs = [costs]
         if self.compute_grad:
-            gradients = T.ftensor3(name="ctc_grad")
+            gradients = tt.ftensor3(name="ctc_grad")
             outputs += [gradients]
 
         return gof.Apply(
@@ -197,9 +198,9 @@ class ConnectionistTemporalClassification(gof.COp, gof.OpenMPOp):
         assert gradients is not None
 
         grad_op = output_grads[0]
-        total_grad = T.basic.batched_dot(
-            grad_op, gradients.dimshuffle(1, 0, 2)
-        ).dimshuffle(1, 0, 2)
+        total_grad = tt.batched_dot(grad_op, gradients.dimshuffle(1, 0, 2)).dimshuffle(
+            1, 0, 2
+        )
         return [
             total_grad,
             grad_undefined(self, 1, inputs[1]),

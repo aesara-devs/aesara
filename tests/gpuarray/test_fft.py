@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 import theano.gpuarray.fft
 
 from theano.gpuarray.fft import pygpu_available, skcuda_available, pycuda_available
@@ -27,7 +27,7 @@ class TestFFT:
     def test_1Dfft(self):
         inputs_val = np.random.random((1, N)).astype("float32")
 
-        x = T.matrix("x", dtype="float32")
+        x = tt.matrix("x", dtype="float32")
         rfft = theano.gpuarray.fft.curfft(x)
         f_rfft = theano.function([x], rfft, mode=mode_with_gpu)
         res_rfft = f_rfft(inputs_val)

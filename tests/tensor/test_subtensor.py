@@ -7,7 +7,7 @@ import numpy as np
 
 import theano
 import theano.scalar as scal
-import theano.tensor as tensor
+import theano.tensor as tt
 
 from numpy.testing import assert_array_equal
 
@@ -74,7 +74,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
     """
 
     def setup_method(self):
-        self.shared = tensor._shared
+        self.shared = _shared
         self.dtype = theano.config.floatX
         mode = theano.compile.mode.get_default_mode()
         self.mode = mode.including("local_useless_subtensor")
@@ -312,7 +312,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             (lambda: n[: (2 ** 63)])()
 
     def test_list_slice(self):
-        x = tensor.arange(100).reshape((5, 5, 4))
+        x = tt.arange(100).reshape((5, 5, 4))
         res = x[[slice(1, -1)] * x.ndim].eval()
         x = np.arange(100).reshape((5, 5, 4))
         np.allclose(res, x[[slice(1, -1)] * x.ndim])
@@ -567,7 +567,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         n = self.shared(data)
         z = scal.constant(subi).astype("int32")
         t = n[z:, z]
-        gn = tensor.grad(tensor.sum(tensor.exp(t)), n)
+        gn = tt.grad(tt.sum(tt.exp(t)), n)
 
         f = inplace_func([], gn, mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -598,7 +598,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 mv = np.asarray(rand(*m_shape), dtype=self.dtype)
 
                 t = op(n[:z, :z], m)
-                gn, gm = tensor.grad(tensor.sum(t), [n, m])
+                gn, gm = tt.grad(tt.sum(t), [n, m])
                 utt.verify_grad(lambda m: op(n[:z, :z], m), [mv], mode=self.mode)
                 utt.verify_grad(lambda nn: op(nn[:z, :z], mv), [data], mode=self.mode)
 
@@ -606,7 +606,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         data = np.asarray(rand(2, 3), dtype=self.dtype)
         n = self.shared(data)
         t = n[1, 0]
-        gn = tensor.grad(tensor.sum(tensor.exp(t)), n)
+        gn = tt.grad(tt.sum(tt.exp(t)), n)
         f = self.function([], gn)
         topo = f.maker.fgraph.toposort()
         topo_ = [node for node in topo if not isinstance(node.op, DeepCopyOp)]
@@ -632,7 +632,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             # optimized for that case.
             (rand(4, 4, 2, 3), [3, 3, 1, 1, 2, 2, 0, 0, -1, -2, -3, -4]),
             # Test with TensorConstant index.
-            (rand(4, 2, 3), tensor.constant([3, 3, 1, 1, 2, 2, 0, 0])),
+            (rand(4, 2, 3), tt.constant([3, 3, 1, 1, 2, 2, 0, 0])),
         ]:
             data = np.asarray(data, dtype=self.dtype)
             n = self.shared(data)
@@ -717,7 +717,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
     def test_adv_sub1_broadcast(self):
         v = np.arange(3, dtype=self.dtype).reshape((1, 3))
         n = self.shared(v * 5, broadcastable=(True, False))
-        idx = tensor.lvector()
+        idx = lvector()
         t = n[idx]
         assert isinstance(t.owner.op, AdvancedSubtensor1)
 
@@ -779,13 +779,13 @@ class TestSubtensor(utt.OptimizationTestMixin):
         # test set_subtensor broadcast
         self.dtype = "float32"
 
-        x = tensor.tensor4("x", dtype=self.dtype)
+        x = tt.tensor4("x", dtype=self.dtype)
         indexes = theano.shared(np.int32([1, 2, 3, 4]))
         W = self.shared(np.random.random((10, 10, 3, 3)).astype(self.dtype))
 
         h = x + W
-        h = tensor.set_subtensor(h[indexes], h[indexes])
-        g = tensor.grad(h.sum(), W)
+        h = tt.set_subtensor(h[indexes], h[indexes])
+        g = tt.grad(h.sum(), W)
         N = 2
         if (
             theano.config.mode == "FAST_COMPILE"
@@ -800,7 +800,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         # The idx can be a broadcastable vector.
         ones = np.ones((4, 3), dtype=self.dtype)
         n = self.shared(ones * 5)
-        idx = tensor.TensorType(dtype="int64", broadcastable=(True,))()
+        idx = tt.TensorType(dtype="int64", broadcastable=(True,))()
         assert idx.type.broadcastable == (True,)
         t = n[idx]
         assert isinstance(t.owner.op, AdvancedSubtensor1)
@@ -849,9 +849,9 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
         v_data = np.array(np.arange(5), dtype=self.dtype)
         t_data = self.shared(v_data)
-        start = tensor.iscalar("b")
-        stop = tensor.iscalar("e")
-        step = tensor.iscalar("s")
+        start = iscalar("b")
+        stop = iscalar("e")
+        step = iscalar("s")
         f = self.function(
             [start, stop, step],
             t_data[start:stop:step].shape,
@@ -866,18 +866,18 @@ class TestSubtensor(utt.OptimizationTestMixin):
                     assert np.all(f(start, stop, step) == v_data[start:stop:step].shape)
 
     def test_slice_canonical_form_0(self):
-        start = tensor.iscalar("b")
-        stop = tensor.iscalar("e")
-        step = tensor.iscalar("s")
-        length = tensor.iscalar("l")
+        start = iscalar("b")
+        stop = iscalar("e")
+        step = iscalar("s")
+        length = iscalar("l")
         cnf = get_canonical_form_slice(slice(start, stop, step), length)
         f = self.function(
             [start, stop, step, length],
             [
-                tensor.as_tensor_variable(cnf[0].start),
-                tensor.as_tensor_variable(cnf[0].stop),
-                tensor.as_tensor_variable(cnf[0].step),
-                tensor.as_tensor_variable(cnf[1]),
+                tt.as_tensor_variable(cnf[0].start),
+                tt.as_tensor_variable(cnf[0].stop),
+                tt.as_tensor_variable(cnf[0].step),
+                tt.as_tensor_variable(cnf[1]),
             ],
             N=0,
             op=subtensor_ops,
@@ -895,17 +895,17 @@ class TestSubtensor(utt.OptimizationTestMixin):
                     assert np.all(t_out.shape == v_out.shape)
 
     def test_slice_canonical_form_1(self):
-        stop = tensor.iscalar("e")
-        step = tensor.iscalar("s")
-        length = tensor.iscalar("l")
+        stop = iscalar("e")
+        step = iscalar("s")
+        length = iscalar("l")
         cnf = get_canonical_form_slice(slice(None, stop, step), length)
         f = self.function(
             [stop, step, length],
             [
-                tensor.as_tensor_variable(cnf[0].start),
-                tensor.as_tensor_variable(cnf[0].stop),
-                tensor.as_tensor_variable(cnf[0].step),
-                tensor.as_tensor_variable(cnf[1]),
+                tt.as_tensor_variable(cnf[0].start),
+                tt.as_tensor_variable(cnf[0].stop),
+                tt.as_tensor_variable(cnf[0].step),
+                tt.as_tensor_variable(cnf[1]),
             ],
             N=0,
             op=subtensor_ops,
@@ -922,17 +922,17 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 assert np.all(t_out.shape == v_out.shape)
 
     def test_slice_canonical_form_2(self):
-        start = tensor.iscalar("b")
-        step = tensor.iscalar("s")
-        length = tensor.iscalar("l")
+        start = iscalar("b")
+        step = iscalar("s")
+        length = iscalar("l")
         cnf = get_canonical_form_slice(slice(start, None, step), length)
         f = self.function(
             [start, step, length],
             [
-                tensor.as_tensor_variable(cnf[0].start),
-                tensor.as_tensor_variable(cnf[0].stop),
-                tensor.as_tensor_variable(cnf[0].step),
-                tensor.as_tensor_variable(cnf[1]),
+                tt.as_tensor_variable(cnf[0].start),
+                tt.as_tensor_variable(cnf[0].stop),
+                tt.as_tensor_variable(cnf[0].step),
+                tt.as_tensor_variable(cnf[1]),
             ],
             N=0,
             op=subtensor_ops,
@@ -949,17 +949,17 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 assert np.all(t_out.shape == v_out.shape)
 
     def test_slice_canonical_form_3(self):
-        start = tensor.iscalar("b")
-        stop = tensor.iscalar("e")
-        length = tensor.iscalar("l")
+        start = iscalar("b")
+        stop = iscalar("e")
+        length = iscalar("l")
         cnf = get_canonical_form_slice(slice(start, stop, None), length)
         f = self.function(
             [start, stop, length],
             [
-                tensor.as_tensor_variable(cnf[0].start),
-                tensor.as_tensor_variable(cnf[0].stop),
-                tensor.as_tensor_variable(cnf[0].step),
-                tensor.as_tensor_variable(cnf[1]),
+                tt.as_tensor_variable(cnf[0].start),
+                tt.as_tensor_variable(cnf[0].stop),
+                tt.as_tensor_variable(cnf[0].step),
+                tt.as_tensor_variable(cnf[1]),
             ],
             N=0,
             op=subtensor_ops,
@@ -976,16 +976,16 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 assert np.all(t_out.shape == v_out.shape)
 
     def test_slice_canonical_form_4(self):
-        step = tensor.iscalar("s")
-        length = tensor.iscalar("l")
+        step = iscalar("s")
+        length = iscalar("l")
         cnf = get_canonical_form_slice(slice(None, None, step), length)
         f = self.function(
             [step, length],
             [
-                tensor.as_tensor_variable(cnf[0].start),
-                tensor.as_tensor_variable(cnf[0].stop),
-                tensor.as_tensor_variable(cnf[0].step),
-                tensor.as_tensor_variable(cnf[1]),
+                tt.as_tensor_variable(cnf[0].start),
+                tt.as_tensor_variable(cnf[0].stop),
+                tt.as_tensor_variable(cnf[0].step),
+                tt.as_tensor_variable(cnf[1]),
             ],
             N=0,
             op=subtensor_ops,
@@ -1001,16 +1001,16 @@ class TestSubtensor(utt.OptimizationTestMixin):
             assert np.all(t_out.shape == v_out.shape)
 
     def test_slice_canonical_form_5(self):
-        start = tensor.iscalar("b")
-        length = tensor.iscalar("l")
+        start = iscalar("b")
+        length = iscalar("l")
         cnf = get_canonical_form_slice(slice(start, None, None), length)
         f = self.function(
             [start, length],
             [
-                tensor.as_tensor_variable(cnf[0].start),
-                tensor.as_tensor_variable(cnf[0].stop),
-                tensor.as_tensor_variable(cnf[0].step),
-                tensor.as_tensor_variable(cnf[1]),
+                tt.as_tensor_variable(cnf[0].start),
+                tt.as_tensor_variable(cnf[0].stop),
+                tt.as_tensor_variable(cnf[0].step),
+                tt.as_tensor_variable(cnf[1]),
             ],
             N=0,
             op=subtensor_ops,
@@ -1026,16 +1026,16 @@ class TestSubtensor(utt.OptimizationTestMixin):
             assert np.all(t_out.shape == v_out.shape)
 
     def test_slice_canonical_form_6(self):
-        stop = tensor.iscalar("e")
-        length = tensor.iscalar("l")
+        stop = iscalar("e")
+        length = iscalar("l")
         cnf = get_canonical_form_slice(slice(None, stop, None), length)
         f = self.function(
             [stop, length],
             [
-                tensor.as_tensor_variable(cnf[0].start),
-                tensor.as_tensor_variable(cnf[0].stop),
-                tensor.as_tensor_variable(cnf[0].step),
-                tensor.as_tensor_variable(cnf[1]),
+                tt.as_tensor_variable(cnf[0].start),
+                tt.as_tensor_variable(cnf[0].stop),
+                tt.as_tensor_variable(cnf[0].step),
+                tt.as_tensor_variable(cnf[1]),
             ],
             N=0,
             op=subtensor_ops,
@@ -1057,7 +1057,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             # Should stay on the cpu.
             idx_ = _shared(np.asarray(idx))
             t = n[idx_]
-            gn = tensor.grad(tensor.sum(tensor.exp(t)), n)
+            gn = tt.grad(tt.sum(tt.exp(t)), n)
             f = self.function([], [gn, gn.shape], op=AdvancedIncSubtensor1)
             topo = f.maker.fgraph.toposort()
             if not self.fast_compile:
@@ -1083,13 +1083,13 @@ class TestSubtensor(utt.OptimizationTestMixin):
             assert np.allclose(gshape, data.shape)
 
             def fct(t):
-                return tensor.sum(t[idx_])
+                return tt.sum(t[idx_])
 
             utt.verify_grad(fct, [data], mode=self.mode)
 
             # Test the grad of the grad (e.i. AdvancedIncSubtensor1.grad)
             def fct2(t):
-                return tensor.grad(tensor.sum(t[idx_]), t)
+                return tt.grad(tt.sum(t[idx_]), t)
 
             utt.verify_grad(fct2, [data], mode=self.mode)
 
@@ -1195,11 +1195,11 @@ class TestSubtensor(utt.OptimizationTestMixin):
                         # Symbolic variable to be incremented.
                         # We create a new one every time in order not to
                         # have duplicated variables in the function's inputs
-                        data_var = tensor.TensorType(
+                        data_var = tt.TensorType(
                             broadcastable=[False] * data_n_dims, dtype=self.dtype
                         )()
                         # Symbolic variable with rows to be incremented.
-                        idx_var = tensor.vector(dtype="int64")
+                        idx_var = vector(dtype="int64")
                         n_to_inc = rng.randint(data_shape[0])
                         if (
                             n_to_inc == 1
@@ -1218,7 +1218,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                         )
                         idx_num = idx_num.astype("int64")
                         # Symbolic variable with increment value.
-                        inc_var = tensor.TensorType(
+                        inc_var = tt.TensorType(
                             broadcastable=[False] * inc_n_dims, dtype=self.dtype
                         )()
                         # Trick for the case where `inc_shape` is the same as
@@ -1302,8 +1302,8 @@ class TestSubtensor(utt.OptimizationTestMixin):
         # Test case provided (and bug detected, gh-607) by John Salvatier
         m = matrix("m")
         gv = np.array([0, 1, 3])
-        g = tensor.constant(gv)
-        i = tensor.lvector("i")
+        g = tt.constant(gv)
+        i = lvector("i")
 
         # s1 used to fail
         s1 = m[gv, i]
@@ -1437,7 +1437,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             config.warn.inc_set_subtensor1 = orig_warn
 
     def test_take(self):
-        a = tensor.matrix()
+        a = matrix()
         f = theano.function(
             [a], a.take(0, axis=-1), allow_input_downcast=True, mode=self.mode
         )
@@ -1451,12 +1451,12 @@ class TestIncSubtensor1:
     def setup_method(self):
         self.rng = np.random.RandomState(seed=utt.fetch_seed())
 
-        self.s = tensor.iscalar()
-        self.v = tensor.fvector()
-        self.m = tensor.dmatrix()
-        self.t = tensor.ctensor3()
+        self.s = iscalar()
+        self.v = tt.fvector()
+        self.m = dmatrix()
+        self.t = ctensor3()
 
-        self.adv1q = tensor.lvector()  # advanced 1d query
+        self.adv1q = lvector()  # advanced 1d query
 
     def test_cant_adv_idx_into_scalar(self):
         with pytest.raises(IndexError):
@@ -1499,7 +1499,7 @@ class TestIncSubtensor1:
             (lambda: inc_subtensor(self.v[self.adv1q](fmatrix())))()
 
     def test_matrix_idx(self):
-        idx = tensor.lmatrix()
+        idx = lmatrix()
         a = self.m[idx]
         a2 = inc_subtensor(a, a)
         f = theano.function([self.m, idx], a2)
@@ -1514,9 +1514,9 @@ class TestIncSubtensor1:
         utt.assert_allclose(a2val[3], mval[3] * 2)
 
     def test_inc_bcastableidx(self):
-        idx = tensor.constant([0])
-        c_inc = tensor.col()
-        m_inc = tensor.matrix()
+        idx = tt.constant([0])
+        c_inc = tt.col()
+        m_inc = matrix()
         out1 = inc_subtensor(self.m[:, idx], c_inc)
         out2 = inc_subtensor(self.m[:, idx], m_inc)
 
@@ -1532,7 +1532,7 @@ class TestAdvancedSubtensor:
     """Test inc_subtensor and set_subtensor."""
 
     def setup_method(self):
-        self.shared = tensor._shared
+        self.shared = _shared
         self.dtype = theano.config.floatX
         self.mode = theano.compile.mode.get_default_mode()
 
@@ -1552,10 +1552,10 @@ class TestAdvancedSubtensor:
 
         def check(idx, y_val, x_val, true):
             x = self.shared(x_val, name="x")
-            y = tensor.tensor(
+            y = tt.tensor(
                 dtype="float32", broadcastable=(False,) * len(y_val.shape), name="y"
             )
-            sym_idx = [tensor.as_tensor_variable(ix) for ix in idx]
+            sym_idx = [tt.as_tensor_variable(ix) for ix in idx]
             expr = advanced_inc_subtensor(x, y, *sym_idx)
             f = theano.function([y], expr, mode=self.mode)
             rval = f(y_val)
@@ -1628,7 +1628,7 @@ class TestAdvancedSubtensor:
             # optimized for that case.
             (rand(4, 4, 2, 3), [3, 3, 1, 1, 2, 2, 0, 0, -1, -2, -3, -4]),
             # Test with TensorConstant index.
-            (rand(2, 4, 3), tensor.constant([3, 3, 1, 1, 2, 2, 0, 0])),
+            (rand(2, 4, 3), tt.constant([3, 3, 1, 1, 2, 2, 0, 0])),
         ]:
             data = np.asarray(data, dtype=self.dtype)
             n = self.shared(data)
@@ -1704,7 +1704,7 @@ class TestAdvancedSubtensor:
         subt = self.m[self.ix1, self.ix12]
         a = inc_subtensor(subt, subt)
 
-        typ = tensor.TensorType(self.m.type.dtype, self.ix2.type.broadcastable)
+        typ = tt.TensorType(self.m.type.dtype, self.ix2.type.broadcastable)
         assert a.type == typ, (a.type, typ)
         f = theano.function(
             [self.m, self.ix1, self.ix12], a, allow_input_downcast=True, mode=self.mode
@@ -1717,7 +1717,7 @@ class TestAdvancedSubtensor:
     def test_inc_adv_subtensor_with_broadcasting(self):
         inc = dscalar()
         a = inc_subtensor(self.m[self.ix1, self.ix12], inc)
-        g_inc = tensor.grad(a.sum(), inc)
+        g_inc = tt.grad(a.sum(), inc)
 
         assert a.type == self.m.type, (a.type, self.m.type)
         f = theano.function(
@@ -1737,7 +1737,7 @@ class TestAdvancedSubtensor:
     def test_inc_adv_subtensor1_with_broadcasting(self):
         inc = dscalar()
         a = inc_subtensor(self.m[self.ix1], inc)
-        g_inc = tensor.grad(a.sum(), inc)
+        g_inc = tt.grad(a.sum(), inc)
 
         assert a.type == self.m.type, (a.type, self.m.type)
         f = theano.function(
@@ -1782,8 +1782,8 @@ class TestAdvancedSubtensor:
         rng = np.random.RandomState(utt.fetch_seed())
         a = rng.uniform(size=(3, 3))
         b = theano.shared(a)
-        i = tensor.iscalar()
-        j = tensor.iscalar()
+        i = iscalar()
+        j = iscalar()
         z = b[[i, j], :]
         f1 = theano.function([i, j], z, mode=self.mode)
         cmd = f1(0, 1) == a[[0, 1], :]
@@ -1791,7 +1791,7 @@ class TestAdvancedSubtensor:
 
         aa = rng.uniform(size=(4, 2, 3))
         bb = theano.shared(aa)
-        k = tensor.iscalar()
+        k = iscalar()
         z = bb[[i, j, k], :, i:k]
         f2 = theano.function([i, j, k], z, mode=self.mode)
         cmd = f2(0, 1, 2) == aa[[0, 1, 2], :, 0:2]
@@ -1799,7 +1799,7 @@ class TestAdvancedSubtensor:
 
     def test_adv_sub_3d(self):
         # Reported in https://github.com/Theano/Theano/issues/5674
-        X = tensor.tensor3("X")
+        X = tt.tensor3("X")
 
         xx = np.zeros((3, 2, 2), config.floatX)
         for i in range(3):
@@ -1821,7 +1821,7 @@ class TestAdvancedSubtensor:
     def test_adv_sub_slice(self):
         # Reported in https://github.com/Theano/Theano/issues/5898
         var = self.shared(np.zeros([3, 3], dtype=config.floatX))
-        slc = tensor.slicetype()
+        slc = tt.slicetype()
         f = theano.function([slc], var[slc], mode=self.mode)
         s = slice(1, 3)
         f(s)
@@ -1833,7 +1833,7 @@ class TestAdvancedSubtensor:
         var = self.shared(var_v)
         idx1_v = rng.randint(0, 61, size=(5, 4)).astype("int32")
         idx1 = self.shared(idx1_v)
-        idx2 = tensor.arange(4)
+        idx2 = tt.arange(4)
         out = var[:, idx1, idx2]
         f = theano.function([], out, mode=self.mode)
         out_v = f()
@@ -1845,8 +1845,8 @@ class TestAdvancedSubtensor:
     def test_grad(self):
         ones = np.ones((1, 3), dtype=self.dtype)
         n = self.shared(ones * 5, broadcastable=(True, False))
-        idx = tensor.lvector()
-        idx2 = tensor.lvector()
+        idx = lvector()
+        idx2 = lvector()
         t = n[idx, idx2]
         assert isinstance(t.owner.op, AdvancedSubtensor)
 
@@ -1883,7 +1883,7 @@ class TestAdvancedSubtensor:
         # Test boolean gradients
         def fun(x, y):
             return advanced_inc_subtensor(
-                x, y, tensor.as_tensor(np.array([[True, False], [False, True]]))
+                x, y, tt.as_tensor(np.array([[True, False], [False, True]]))
             )
 
         utt.verify_grad(
@@ -1897,7 +1897,7 @@ class TestAdvancedSubtensor:
 
         def fun(x, y):
             return advanced_set_subtensor(
-                x, y, tensor.as_tensor(np.array([[True, False], [False, True]]))
+                x, y, tt.as_tensor(np.array([[True, False], [False, True]]))
             )
 
         utt.verify_grad(
@@ -2216,7 +2216,7 @@ class TestInferShape(utt.InferShapeTester):
             check_topo=False,
         )
 
-        abs_res = n[~tensor.isinf(n)]
+        abs_res = n[~tt.isinf(n)]
         assert abs_res.broadcastable == (False,)
 
 
@@ -2239,7 +2239,7 @@ def test_indexed_result_shape():
         if isinstance(x, (slice, type(None))):
             return x
         else:
-            return tensor.as_tensor(x)
+            return tt.as_tensor(x)
 
     def bcast_shape_tuple(x):
         if not hasattr(x, "shape"):
@@ -2250,14 +2250,14 @@ def test_indexed_result_shape():
 
     def compare_index_shapes(test_array, test_idx):
         res = indexed_result_shape(
-            tensor.as_tensor(test_array).shape, [idx_as_tensor(i) for i in test_idx]
+            tt.as_tensor(test_array).shape, [idx_as_tensor(i) for i in test_idx]
         )
         exp_res = test_array[test_idx].shape
         assert np.array_equal(tuple(get_test_value(r) for r in res), exp_res)
 
         # Test shape-only version
         res = indexed_result_shape(
-            tensor.as_tensor(test_array).shape,
+            tt.as_tensor(test_array).shape,
             [bcast_shape_tuple(idx_as_tensor(i)) for i in test_idx],
             indices_are_shapes=True,
         )

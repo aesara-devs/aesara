@@ -2,7 +2,7 @@
 
    import numpy as np
    import theano
-   import theano.tensor as T
+   import theano.tensor as tt
 
 .. _tutbroadcasting:
 
@@ -39,10 +39,10 @@ information is given in the :ref:`type` of a *Variable*.
 
 The following code illustrates how rows and columns are broadcasted in order to perform an addition operation with a matrix:
 
->>> r = T.row()
+>>> r = tt.row()
 >>> r.broadcastable
 (True, False)
->>> mtr = T.matrix()
+>>> mtr = tt.matrix()
 >>> mtr.broadcastable
 (False, False)
 >>> f_row = theano.function([r, mtr], [r + mtr])
@@ -58,7 +58,7 @@ array([[0, 1, 2],
 [array([[  0.,   2.,   4.],
        [  3.,   5.,   7.],
        [  6.,   8.,  10.]])]
->>> c = T.col()
+>>> c = tt.col()
 >>> c.broadcastable
 (False, True)
 >>> f_col = theano.function([c, mtr], [c + mtr])
@@ -80,4 +80,3 @@ See also:
 * `SciPy documentation about numpy's broadcasting <http://www.scipy.org/EricsBroadcastingDoc>`_
 
 * `OnLamp article about numpy's broadcasting <http://www.onlamp.com/pub/a/python/2000/09/27/numerically.html>`_
-

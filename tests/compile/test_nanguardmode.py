@@ -2,23 +2,23 @@
 This test is for testing the NanGuardMode.
 """
 
-
 import logging
 import pytest
 
 import numpy as np
-from theano.compile.nanguardmode import NanGuardMode
 import theano
-import theano.tensor as T
+import theano.tensor as tt
+
+from theano.compile.nanguardmode import NanGuardMode
 
 
 def test_NanGuardMode():
     # Tests if NanGuardMode is working by feeding in numpy.inf and numpy.nans
     # intentionally. A working implementation should be able to capture all
     # the abnormalties.
-    x = T.matrix()
+    x = tt.matrix()
     w = theano.shared(np.random.randn(5, 7).astype(theano.config.floatX))
-    y = T.dot(x, w)
+    y = tt.dot(x, w)
 
     fun = theano.function(
         [x], y, mode=NanGuardMode(nan_is_error=True, inf_is_error=True)
@@ -51,8 +51,8 @@ def test_NanGuardMode():
     nana = np.tile(np.asarray(np.nan).astype(theano.config.floatX), (3, 4, 5))
     biga = np.tile(np.asarray(1e20).astype(theano.config.floatX), (3, 4, 5))
 
-    x = T.tensor3()
-    y = x[:, T.arange(2), T.arange(2), None]
+    x = tt.tensor3()
+    y = x[:, tt.arange(2), tt.arange(2), None]
     fun = theano.function(
         [x], y, mode=NanGuardMode(nan_is_error=True, inf_is_error=True)
     )

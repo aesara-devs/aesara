@@ -77,7 +77,7 @@ Loops
 - ``sum()`` could be computed by scanning the z + x(i) function over a list, given an initial state of ``z=0``.
 - Often a for-loop can be expressed as a ``scan()`` operation, and ``scan`` is the closest that Theano comes to looping.
 - The advantage of using ``scan`` over for loops
-  
+
   - The number of iterations to be part of the symbolic graph
   - Minimizes GPU transfers if GPU is involved
   - Compute gradients through sequential steps
@@ -96,7 +96,7 @@ Loops
 Exercise 4
 -----------
 
-- Run both examples 
+- Run both examples
 - Modify and execute the polynomial example to have the reduction done by scan
 
 
@@ -116,7 +116,7 @@ Consider the following logistic regression model:
 
 >>> import numpy
 >>> import theano
->>> import theano.tensor as T
+>>> import theano.tensor as tt
 >>> rng = numpy.random
 >>> # Training data
 >>> N = 400
@@ -124,19 +124,19 @@ Consider the following logistic regression model:
 >>> D = (rng.randn(N, feats).astype(theano.config.floatX), rng.randint(size=N,low=0, high=2).astype(theano.config.floatX))
 >>> training_steps = 10000
 >>> # Declare Theano symbolic variables
->>> x = T.matrix("x")
->>> y = T.vector("y")
+>>> x = tt.matrix("x")
+>>> y = tt.vector("y")
 >>> w = theano.shared(rng.randn(feats).astype(theano.config.floatX), name="w")
 >>> b = theano.shared(numpy.asarray(0., dtype=theano.config.floatX), name="b")
 >>> x.tag.test_value = D[0]
 >>> y.tag.test_value = D[1]
 >>> # Construct Theano expression graph
->>> p_1 = 1 / (1 + T.exp(-T.dot(x, w)-b)) # Probability of having a one
+>>> p_1 = 1 / (1 + tt.exp(-T.dot(x, w)-b)) # Probability of having a one
 >>> prediction = p_1 > 0.5 # The prediction that is done: 0 or 1
 >>> # Compute gradients
 >>> xent = -y*T.log(p_1) - (1-y)*T.log(1-p_1) # Cross-entropy
 >>> cost = xent.mean() + 0.01*(w**2).sum() # The cost to optimize
->>> gw,gb = T.grad(cost, [w,b])
+>>> gw,gb = tt.grad(cost, [w,b])
 >>> # Training and prediction function
 >>> train = theano.function(inputs=[x,y], outputs=[prediction, xent], updates=[[w, w-0.01*gw], [b, b-0.01*gb]], name = "train")
 >>> predict = theano.function(inputs=[x], outputs=prediction, name = "predict")
@@ -251,7 +251,7 @@ Debugging
   - For pure symbolic variables uses ``x.tag.test_value = numpy.random.rand(5,10)``
 
 - Run with the flag ``mode=FAST_COMPILE``
-  
+
   - Few optimizations
   - Run Python code (better error messages and can be debugged interactively in the Python debugger)
 

@@ -22,9 +22,9 @@ graphs are composed of interconnected :ref:`apply`, :ref:`variable` and
 :ref:`op` nodes. *Apply* node represents the application of an *op* to some
 *variables*. It is important to draw the difference between the
 definition of a computation represented by an *op* and its application
-to some actual data which is represented by the *apply* node.  
-Furthermore, data types are represented by :ref:`type` instances. Here is a 
-piece of code and a diagram showing the structure built by that piece of code. 
+to some actual data which is represented by the *apply* node.
+Furthermore, data types are represented by :ref:`type` instances. Here is a
+piece of code and a diagram showing the structure built by that piece of code.
 This should help you understand how these pieces fit together:
 
 
@@ -32,10 +32,10 @@ This should help you understand how these pieces fit together:
 
 .. testcode::
 
-   import theano.tensor as T
-    
-   x = T.dmatrix('x')
-   y = T.dmatrix('y')
+   import theano.tensor as tt
+
+   x = tt.dmatrix('x')
+   y = tt.dmatrix('y')
    z = x + y
 
 **Diagram**
@@ -442,13 +442,13 @@ The output file is available at ./pics/symbolic_graph_opt.png
 We used :func:`theano.printing.pydotprint` to visualize the optimized graph
 (right), which is much more compact than the unoptimized graph (left).
 
-.. |g1| image:: ./pics/symbolic_graph_unopt.png              
-        :width: 500 px                                          
+.. |g1| image:: ./pics/symbolic_graph_unopt.png
+        :width: 500 px
 .. |g2| image:: ./pics/symbolic_graph_opt.png
         :width: 500 px
 
-================================ ====================== ================================ 
+================================ ====================== ================================
         Unoptimized graph                                         Optimized graph
-================================ ====================== ================================ 
+================================ ====================== ================================
 |g1|                                                              |g2|
-================================ ====================== ================================ 
+================================ ====================== ================================
