@@ -353,10 +353,10 @@ class Variable(Node):
     .. code-block:: python
 
         import theano
-        from theano import tensor
+        import theano.tensor as tt
 
-        a = tensor.constant(1.5)        # declare a symbolic constant
-        b = tensor.fscalar()            # declare a symbolic floating-point scalar
+        a = tt.constant(1.5)            # declare a symbolic constant
+        b = tt.fscalar()                # declare a symbolic floating-point scalar
 
         c = a + b                       # create a simple expression
 
@@ -368,7 +368,7 @@ class Variable(Node):
 
         theano.function([a,b], [c])     # compilation error because a is constant, it can't be an input
 
-        d = tensor.value(1.5)           # create a value similar to the constant 'a'
+        d = tt.value(1.5)               # create a value similar to the constant 'a'
         e = d + b
         theano.function([d,b], [e])     # this works.  d's default value of 1.5 is ignored.
 
@@ -521,9 +521,9 @@ class Variable(Node):
         --------
 
         >>> import numpy as np
-        >>> import theano.tensor as T
-        >>> x = T.dscalar('x')
-        >>> y = T.dscalar('y')
+        >>> import theano.tensor as tt
+        >>> x = tt.dscalar('x')
+        >>> y = tt.dscalar('y')
         >>> z = x + y
         >>> np.allclose(z.eval({x : 16.3, y : 12.1}), 28.4)
         True
