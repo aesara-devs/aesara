@@ -4,8 +4,21 @@ repos:
     hooks:
       - id: black
         language_version: python3
-
+        exclude: |
+            (?x)^(
+                versioneer\.py|
+                theano/_version\.py|
+                doc/.*|
+                bin/.*
+            )$
   - repo: https://gitlab.com/pycqa/flake8
     rev: 3.8.4
     hooks:
       - id: flake8
+        exclude: |
+            (?x)^(
+                versioneer\.py|
+                theano/_version\.py|
+                doc/.*|
+                bin/.*
+            )$
