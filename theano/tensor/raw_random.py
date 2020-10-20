@@ -860,9 +860,7 @@ def multinomial_helper(random_state, n, pvals, size):
     return out
 
 
-def multinomial(
-    random_state, size=None, n=1, pvals=[0.5, 0.5], ndim=None, dtype="int64"
-):
+def multinomial(random_state, size=None, n=1, pvals=None, ndim=None, dtype="int64"):
     """
     Sample from one or more multinomial distributions defined by
     one-dimensional slices in pvals.
@@ -923,6 +921,8 @@ def multinomial(
         draws.
 
     """
+    if pvals is None:
+        pvals = [0.5, 0.5]
     n = tensor.as_tensor_variable(n)
     pvals = tensor.as_tensor_variable(pvals)
     # until ellipsis is implemented (argh)
@@ -1056,7 +1056,7 @@ class RandomStreamsBase(object):
         """
         return self.gen(permutation, size, n, ndim=ndim, dtype=dtype)
 
-    def multinomial(self, size=None, n=1, pvals=[0.5, 0.5], ndim=None, dtype="int64"):
+    def multinomial(self, size=None, n=1, pvals=None, ndim=None, dtype="int64"):
         """
         Sample n times from a multinomial distribution defined by
         probabilities pvals, as many times as required by size. For
@@ -1072,6 +1072,8 @@ class RandomStreamsBase(object):
         Note that the output will then be of dimension ndim+1.
 
         """
+        if pvals is None:
+            pvals = [0.5, 0.5]
         return self.gen(multinomial, size, n, pvals, ndim=ndim, dtype=dtype)
 
     def shuffle_row_elements(self, input):

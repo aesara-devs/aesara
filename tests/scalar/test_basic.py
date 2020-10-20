@@ -8,6 +8,8 @@ If you do want to rewrite these tests, bear in mind:
   * You don't need to use Composite.
   * FunctionGraph and DualLinker are old, use compile.function instead.
 """
+import pytest
+
 import numpy as np
 
 import theano
@@ -432,11 +434,8 @@ class TestComplexMod:
     def test_fail(self):
         x = complex64()
         y = int32()
-        try:
+        with pytest.raises(ComplexError):
             x % y
-            assert False
-        except ComplexError:
-            pass
 
 
 class TestDiv:

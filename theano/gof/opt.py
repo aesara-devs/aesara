@@ -3294,7 +3294,7 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
         ]
 
     # if ops_to_check is a function
-    elif hasattr(ops_to_check, "__call__"):
+    elif callable(ops_to_check):
         apply_nodes_to_check = [
             node for node in fgraph.apply_nodes if ops_to_check(node)
         ]

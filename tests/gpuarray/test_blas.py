@@ -1,6 +1,5 @@
 import itertools
 import numpy as np
-import pytest
 
 import theano
 from theano import config
@@ -222,18 +221,6 @@ class TestGpuSger(TestGer):
         self.ger = gpuger_inplace
         self.gemm = gpugemm_inplace
         super().setup_method()
-
-    @pytest.mark.skip(reason="0-sized objects not supported")
-    def test_f32_0_0(self):
-        assert False
-
-    @pytest.mark.skip(reason="0-sized objects not supported")
-    def test_f32_1_0(self):
-        assert False
-
-    @pytest.mark.skip(reason="0-sized objects not supported")
-    def test_f32_0_1(self):
-        assert False
 
 
 class TestGpuSgerNoTransfer(TestGpuSger):

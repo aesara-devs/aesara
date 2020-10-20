@@ -1,5 +1,6 @@
 import copy
 import sys
+import math
 
 from theano.compat import DefaultOrderedDict
 from theano.misc.ordered_set import OrderedSet
@@ -184,7 +185,7 @@ class Query(object):
         require=None,
         exclude=None,
         subquery=None,
-        position_cutoff=float("inf"),
+        position_cutoff=math.inf,
         extra_optimizations=None,
     ):
         self.include = OrderedSet(include)

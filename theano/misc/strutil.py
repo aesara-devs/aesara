@@ -24,7 +24,7 @@ def render_string(string, sub):
                 if str(F) == str(E):
                     raise Exception(string[0:i] + "<<<< caused exception " + str(F))
             i += 1
-        assert False
+        raise AssertionError()
     return finalCode
 
 

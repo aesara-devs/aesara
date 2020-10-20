@@ -73,13 +73,10 @@ class TestPfunc:
         # Test that shared variables cannot be used as function inputs.
         w_init = np.random.rand(2, 2)
         w = shared(w_init.copy(), "w")
-        try:
+        with pytest.raises(
+            TypeError, match=r"^Cannot use a shared variable \(w\) as explicit input"
+        ):
             pfunc([w], theano.tensor.sum(w * w))
-            assert False
-        except TypeError as e:
-            msg = "Cannot use a shared variable (w) as explicit input"
-            if str(e).find(msg) < 0:
-                raise
 
     def test_default_container(self):
         # Ensure it is possible to (implicitly) use a shared variable in a

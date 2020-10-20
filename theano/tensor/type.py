@@ -113,7 +113,7 @@ class TensorType(Type):
                     ("%s expected a ndarray object with " "dtype = %s (got %s).")
                     % (self, self.numpy_dtype, data.dtype)
                 )
-            assert False, "This point should never be reached."
+            raise AssertionError("This point should never be reached.")
         else:
             if allow_downcast:
                 # Convert to self.dtype, regardless of the type of data

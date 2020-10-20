@@ -246,7 +246,7 @@ def clone(
     return outs
 
 
-def map_variables(replacer, graphs, additional_inputs=[]):
+def map_variables(replacer, graphs, additional_inputs=None):
     """Construct new graphs based on 'graphs' with some variables replaced
     according to 'replacer'.
 
@@ -277,6 +277,8 @@ def map_variables(replacer, graphs, additional_inputs=[]):
 
         # v is now equal to a * b + c
     """
+    if additional_inputs is None:
+        additional_inputs = []
 
     # wrap replacer to avoid replacing things we just put there.
     graphs_seen = set()

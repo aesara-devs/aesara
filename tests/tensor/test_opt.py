@@ -1081,11 +1081,6 @@ class TestCanonize:
             assert len(topo[0].inputs) == 1
             assert out_dtype == out.dtype
 
-    @pytest.mark.xfail(reason="Not implemented yet")
-    def test_dont_merge_if_multiple_client(self):
-        # test those case take from the comment in Canonizer
-        assert False
-
     def test_canonicalize_nan(self):
         # Regression test for bug in canonicalization of NaN values.
         # This bug caused an infinite loop which was caught by the equilibrium
@@ -1202,10 +1197,7 @@ def test_cast_in_mul_canonizer():
         )
         == 0
     )
-    assert (
-        len([n for n in nodes if isinstance(getattr(n.op, "scalar_op"), scal.Cast)])
-        == 1
-    )
+    assert len([n for n in nodes if isinstance(n.op.scalar_op, scal.Cast)]) == 1
     f([1], [1])
 
 
@@ -2332,11 +2324,8 @@ def test_local_useless_inc_subtensor():
         assert (out == np.asarray([[3, 4]])[::, sub]).all()
 
         # Test that we don't remove shape error
-        try:
+        with pytest.raises(ValueError):
             f([[2, 3]], [[3, 4], [4, 5]])
-            assert False
-        except (ValueError, AssertionError):
-            pass
 
         # Test that we don't remove broadcastability
         out = f([[2, 3], [3, 4]], [[5, 6]])

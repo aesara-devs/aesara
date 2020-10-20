@@ -1345,7 +1345,7 @@ def var_descriptor(obj, _prev_obs=None, _tag_generator=None):
             name = position_independent_str(obj)
             if " at 0x" in name:
                 print(name)
-                assert False
+                raise AssertionError()
 
     prefix = cur_tag + "="
 

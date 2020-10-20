@@ -2733,7 +2733,7 @@ class DebugMode(Mode):
         check_isfinite=None,
         check_preallocated_output=None,
         require_matching_strides=None,
-        linker=_DummyLinker(),
+        linker=None,
     ):
         """
         If any of these arguments (except optimizer) is not None, it overrides
@@ -2741,6 +2741,8 @@ class DebugMode(Mode):
         allow Mode.requiring() and some other fct to work with DebugMode too.
 
         """
+        if linker is None:
+            linker = _DummyLinker()
 
         if not isinstance(linker, _DummyLinker):
             raise Exception(

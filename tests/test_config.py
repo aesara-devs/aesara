@@ -25,7 +25,7 @@ class TestConfig:
                 configparam=ConfigParam("invalid", filter=filter),
                 in_c_key=False,
             )
-            assert False
+            raise AssertionError()
         except ValueError:
             pass
 

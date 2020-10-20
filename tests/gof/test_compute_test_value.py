@@ -224,20 +224,19 @@ class TestComputeTestValue:
 
         # Since we have to inspect the traceback,
         # we cannot simply use self.assertRaises()
-        try:
+        with pytest.raises(ValueError):
             theano.scan(fn=fx, outputs_info=tt.ones_like(A), non_sequences=A, n_steps=k)
-            assert False
-        except ValueError:
-            # Get traceback
-            tb = sys.exc_info()[2]
-            frame_infos = traceback.extract_tb(tb)
 
-            # We should be in the "fx" function defined above
-            expected = "test_compute_test_value.py"
-            assert any(
-                (os.path.split(frame_info[0])[1] == expected and frame_info[2] == "fx")
-                for frame_info in frame_infos
-            ), frame_infos
+        # Get traceback
+        tb = sys.exc_info()[2]
+        frame_infos = traceback.extract_tb(tb)
+
+        # We should be in the "fx" function defined above
+        expected = "test_compute_test_value.py"
+        assert any(
+            (os.path.split(frame_info[0])[1] == expected and frame_info[2] == "fx")
+            for frame_info in frame_infos
+        ), frame_infos
 
     @theano.change_flags(compute_test_value="raise")
     def test_scan_err2(self):
@@ -258,13 +257,10 @@ class TestComputeTestValue:
 
         # Since we have to inspect the traceback,
         # we cannot simply use self.assertRaises()
-        try:
+        with pytest.raises(ValueError, match="^could not broadcast input"):
             theano.scan(
                 fn=fx, outputs_info=tt.ones_like(A.T), non_sequences=A, n_steps=k
             )
-            assert False
-        except ValueError as e:
-            assert str(e).startswith("could not broadcast input"), str(e)
 
     @theano.change_flags(compute_test_value="raise")
     def test_no_c_code(self):

@@ -4,9 +4,9 @@ from theano.tensor.basic import Join
 
 def scan_checkpoints(
     fn,
-    sequences=[],
+    sequences=None,
     outputs_info=None,
-    non_sequences=[],
+    non_sequences=None,
     name="checkpointscan_fn",
     n_steps=None,
     save_every_N=10,
@@ -91,11 +91,17 @@ def scan_checkpoints(
 
     """
     # Standardize the format of input arguments
-    if not isinstance(sequences, list):
+    if sequences is None:
+        sequences = []
+    elif not isinstance(sequences, list):
         sequences = [sequences]
+
     if not isinstance(outputs_info, list):
         outputs_info = [outputs_info]
-    if not isinstance(non_sequences, list):
+
+    if non_sequences is None:
+        non_sequences = []
+    elif not isinstance(non_sequences, list):
         non_sequences = [non_sequences]
 
     # Check that outputs_info has no taps:

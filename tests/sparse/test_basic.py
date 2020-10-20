@@ -717,9 +717,14 @@ class TestAddMul:
     def _testSS(
         self,
         op,
-        array1=np.array([[1.0, 0], [3, 0], [0, 6]]),
-        array2=np.asarray([[0, 2.0], [0, 4], [5, 0]]),
+        array1=None,
+        array2=None,
     ):
+        if array1 is None:
+            array1 = np.array([[1.0, 0], [3, 0], [0, 6]])
+        if array2 is None:
+            array2 = np.asarray([[0, 2.0], [0, 4], [5, 0]])
+
         for mtype1, mtype2 in product(_mtypes, _mtypes):
             for dtype1, dtype2 in [
                 ("float64", "int8"),
@@ -757,9 +762,14 @@ class TestAddMul:
     def _testSD(
         self,
         op,
-        array1=np.array([[1.0, 0], [3, 0], [0, 6]]),
-        array2=np.asarray([[0, 2.0], [0, 4], [5, 0]]),
+        array1=None,
+        array2=None,
     ):
+        if array1 is None:
+            array1 = np.array([[1.0, 0], [3, 0], [0, 6]])
+        if array2 is None:
+            array2 = np.asarray([[0, 2.0], [0, 4], [5, 0]])
+
         for mtype in _mtypes:
             for a in [
                 np.array(array1),
@@ -810,9 +820,14 @@ class TestAddMul:
     def _testDS(
         self,
         op,
-        array1=np.array([[1.0, 0], [3, 0], [0, 6]]),
-        array2=np.asarray([[0, 2.0], [0, 4], [5, 0]]),
+        array1=None,
+        array2=None,
     ):
+        if array1 is None:
+            array1 = np.array([[1.0, 0], [3, 0], [0, 6]])
+        if array2 is None:
+            array2 = np.asarray([[0, 2.0], [0, 4], [5, 0]])
+
         for mtype in _mtypes:
             for b in [
                 np.asarray(array2),

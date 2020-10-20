@@ -240,11 +240,8 @@ def test_inverse_singular():
     singular = np.array([[1, 0, 0]] + [[0, 1, 0]] * 2, dtype=theano.config.floatX)
     a = tensor.matrix()
     f = function([a], matrix_inverse(a))
-    try:
+    with pytest.raises(np.linalg.LinAlgError):
         f(singular)
-    except np.linalg.LinAlgError:
-        return
-    assert False
 
 
 def test_inverse_grad():

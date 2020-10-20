@@ -87,7 +87,7 @@ if version_data["error"] is not None:
     lines = [l for l in lines if l.startswith("FALLBACK_VERSION")]
     assert len(lines) == 1
 
-    FALLBACK_VERSION = lines[0].split("=")[1].strip().strip('""')
+    FALLBACK_VERSION = lines[0].split("=")[1].strip().strip('"')
 
     version_data["version"] = FALLBACK_VERSION
 

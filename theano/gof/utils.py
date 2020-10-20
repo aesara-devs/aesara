@@ -11,7 +11,7 @@ from theano import config
 from theano.compat import PY3
 
 
-def simple_extract_stack(f=None, limit=None, skips=[]):
+def simple_extract_stack(f=None, limit=None, skips=None):
     """This is traceback.extract_stack from python 2.7 with this change:
 
     - Comment the update of the cache.
@@ -27,6 +27,9 @@ def simple_extract_stack(f=None, limit=None, skips=[]):
         When we find one level that isn't skipped, we stop skipping.
 
     """
+    if skips is None:
+        skips = []
+
     if f is None:
         try:
             raise ZeroDivisionError

@@ -1,8 +1,6 @@
 import itertools
-import logging
 import operator
 import os
-import sys
 import warnings
 import builtins
 
@@ -17,13 +15,11 @@ from tempfile import mkstemp
 from copy import copy, deepcopy
 from functools import partial, reduce
 
-from six.moves import StringIO
-
 from numpy.testing import assert_array_equal, assert_allclose, assert_almost_equal
 
 from theano import change_flags
 
-from theano.compat import exc_message, operator_div
+from theano.compat import operator_div
 from theano import compile, config, function, gof, shared
 from theano.compile import DeepCopyOp
 from theano.compile.mode import get_default_mode
@@ -3585,31 +3581,12 @@ class TestMaxAndArgmax:
 
     def test_basic_2_invalid(self):
         n = as_tensor_variable(rand(2, 3))
-        # Silence expected error messages
-        _logger = logging.getLogger("theano.gof.opt")
-        oldlevel = _logger.level
-        _logger.setLevel(logging.CRITICAL)
-        try:
-            try:
-                eval_outputs(max_and_argmax(n, 3))
-                assert False
-            except ValueError:
-                pass
-        finally:
-            _logger.setLevel(oldlevel)
+        with pytest.raises(ValueError):
+            eval_outputs(max_and_argmax(n, 3))
 
-    def test_basic_2_invalid_neg(self):
         n = as_tensor_variable(rand(2, 3))
-        old_stderr = sys.stderr
-        sys.stderr = StringIO()
-        try:
-            try:
-                eval_outputs(max_and_argmax(n, -3))
-                assert False
-            except ValueError:
-                pass
-        finally:
-            sys.stderr = old_stderr
+        with pytest.raises(ValueError):
+            eval_outputs(max_and_argmax(n, -3))
 
     def test_basic_2_valid_neg(self):
         n = as_tensor_variable(rand(2, 3))
@@ -3831,32 +3808,10 @@ class TestArgminArgmax:
     def test2_invalid(self):
         for fct, nfct in [(argmax, np.argmax), (argmin, np.argmin)]:
             n = as_tensor_variable(rand(2, 3))
-            # Silence expected error messages
-            _logger = logging.getLogger("theano.gof.opt")
-            oldlevel = _logger.level
-            _logger.setLevel(logging.CRITICAL)
-            try:
-                try:
-                    eval_outputs(fct(n, 3))
-                    assert False
-                except ValueError:
-                    pass
-            finally:
-                _logger.setLevel(oldlevel)
-
-    def test2_invalid_neg(self):
-        for fct, nfct in [(argmax, np.argmax), (argmin, np.argmin)]:
-            n = as_tensor_variable(rand(2, 3))
-            old_stderr = sys.stderr
-            sys.stderr = StringIO()
-            try:
-                try:
-                    eval_outputs(fct(n, -3))
-                    assert False
-                except ValueError:
-                    pass
-            finally:
-                sys.stderr = old_stderr
+            with pytest.raises(ValueError):
+                eval_outputs(fct(n, 3))
+            with pytest.raises(ValueError):
+                eval_outputs(fct(n, -3))
 
     def test2_valid_neg(self):
         for fct, nfct in [(argmax, np.argmax), (argmin, np.argmin)]:
@@ -3994,32 +3949,10 @@ class TestMinMax:
     def test2_invalid(self):
         for fct in [max, min]:
             n = as_tensor_variable(rand(2, 3))
-            # Silence expected error messages
-            _logger = logging.getLogger("theano.gof.opt")
-            oldlevel = _logger.level
-            _logger.setLevel(logging.CRITICAL)
-            try:
-                try:
-                    eval_outputs(fct(n, 3))
-                    assert False
-                except ValueError:
-                    pass
-            finally:
-                _logger.setLevel(oldlevel)
-
-    def test2_invalid_neg(self):
-        for fct in [max, min]:
-            n = as_tensor_variable(rand(2, 3))
-            old_stderr = sys.stderr
-            sys.stderr = StringIO()
-            try:
-                try:
-                    eval_outputs(fct(n, -3))
-                    assert False
-                except ValueError:
-                    pass
-            finally:
-                sys.stderr = old_stderr
+            with pytest.raises(ValueError):
+                eval_outputs(fct(n, 3))
+            with pytest.raises(ValueError):
+                eval_outputs(fct(n, -3))
 
     def test2_valid_neg(self):
         for fct, nfct in [(max, np.max), (min, np.min)]:
@@ -5659,62 +5592,20 @@ class TestDot:
         self.cmp_dot(rand(4, 5, 6), rand(8, 6, 7))
 
     def not_aligned(self, x, y):
-        ctv_backup = config.compute_test_value
-        config.compute_test_value = "off"
-        try:
+        with change_flags(compute_test_value="off"):
             z = dot(x, y)
-        finally:
-            config.compute_test_value = ctv_backup
-        # constant folding will complain to _logger that things are not aligned
-        # this is normal, testers are not interested in seeing that output.
-        _logger = logging.getLogger("theano.gof.opt")
-        oldlevel = _logger.level
-        _logger.setLevel(logging.CRITICAL)
-        try:
-            try:
-                eval_outputs([z])
-                assert False  # should have raised exception
-            except ValueError as e:
-                e0 = exc_message(e)
-                assert (
-                    # Reported by numpy.
-                    e0.split()[1:4] == ["are", "not", "aligned"]
-                    or
-                    # Reported by blas or Theano.
-                    e0.split()[0:2] == ["Shape", "mismatch:"]
-                    or
-                    # Reported by Theano perform
-                    (e0.split()[0:4] == ["Incompatible", "shapes", "for", "gemv"])
-                    or e
-                )
-        finally:
-            _logger.setLevel(oldlevel)
+        with pytest.raises(ValueError):
+            eval_outputs([z])
 
-    def test_align_1_1(self):
+    def test_not_aligned(self):
         self.not_aligned(rand(5), rand(6))
-
-    def test_align_1_2(self):
         self.not_aligned(rand(5), rand(6, 4))
-
-    def test_align_1_3(self):
         self.not_aligned(rand(5), rand(6, 4, 7))
-
-    def test_align_2_1(self):
         self.not_aligned(rand(5, 4), rand(6))
-
-    def test_align_2_2(self):
         self.not_aligned(rand(5, 4), rand(6, 7))
-
-    def test_align_2_3(self):
         self.not_aligned(rand(5, 4), rand(6, 7, 8))
-
-    def test_align_3_1(self):
         self.not_aligned(rand(5, 4, 3), rand(6))
-
-    def test_align_3_2(self):
         self.not_aligned(rand(5, 4, 3), rand(6, 7))
-
-    def test_align_3_3(self):
         self.not_aligned(rand(5, 4, 3), rand(6, 7, 8))
 
     def test_grad(self):
@@ -7459,11 +7350,14 @@ def _test_autocast_numpy_floatX():
 
 
 class TestArithmeticCast:
-    # Test output types of basic arithmeric operations (* / + - //).
-    #
-    # We only test the behavior for `config.cast_policy` set to either 'numpy' or
-    # 'numpy+floatX': the 'custom' behavior is (at least partially) tested in
-    # `_test_autocast_custom`.
+    """Test output types of basic arithmeric operations (* / + - //).
+
+    We only test the behavior for `config.cast_policy` set to either 'numpy' or
+    'numpy+floatX': the 'custom' behavior is (at least partially) tested in
+    `_test_autocast_custom`.
+
+    """
+
     def test_arithmetic_cast(self):
         backup_config = config.cast_policy
         dtypes = get_numeric_types(with_complex=True)
@@ -7625,7 +7519,7 @@ class TestArithmeticCast:
                                     pytest.skip("Known issue with" "numpy see #761")
                                 # In any other situation: something wrong is
                                 # going on!
-                                assert False
+                                raise AssertionError()
         finally:
             config.cast_policy = backup_config
             if config.int_division == "int":
@@ -7861,52 +7755,32 @@ def test_unalign():
     assert not b.flags.aligned
     a[:] = rand(len(a))
     b[:] = rand(len(b))
-    out_numpy = 2 * a + 3 * b
+    # out_numpy = 2 * a + 3 * b
 
     av, bv = tt.vectors("ab")
     f = theano.function([av, bv], 2 * av + 3 * bv)
     f.maker.fgraph.toposort()
 
-    try:
-        out_theano = f(a, b)
-        assert not a.flags.aligned
-        assert not b.flags.aligned
-        assert np.allclose(out_numpy, out_theano)
-        assert False
-    except TypeError:
-        pass
+    with pytest.raises(TypeError):
+        f(a, b)
 
     a = np.empty((), dtype=dtype)["f1"]
     b = np.empty((), dtype=dtype)["f1"]
     assert not a.flags.aligned
     assert not b.flags.aligned
-    out_numpy = 2 * a + 3 * b
+    # out_numpy = 2 * a + 3 * b
 
     av, bv = tt.scalars("ab")
     f = theano.function([av, bv], 2 * av + 3 * bv)
     f.maker.fgraph.toposort()
-    try:
-        out_theano = f(a, b)
-        assert not a.flags.aligned
-        assert not b.flags.aligned
-        assert np.allclose(out_numpy, out_theano)
-        assert False
-    except TypeError:
-        pass
+    with pytest.raises(TypeError):
+        f(a, b)
 
 
 def test_dimshuffle_duplicate():
     x = tt.vector()
-
-    success = False
-
-    try:
+    with pytest.raises(ValueError, match="may not appear twice"):
         tt.DimShuffle((False,), (0, 0))(x)
-    except ValueError as e:
-        assert str(e).find("may not appear twice") != -1
-        success = True
-
-    assert success
 
 
 class TestGetScalarConstantValue:
@@ -8033,15 +7907,11 @@ class TestGetScalarConstantValue:
         assert e == 3, (c, d, e)
 
 
-class TestComplexMod:
+def test_complex_mod_failure():
     # Make sure % fails on complex numbers.
-    def test_fail(self):
-        x = vector(dtype="complex64")
-        try:
-            x % 5
-            assert False
-        except theano.scalar.ComplexError:
-            pass
+    x = vector(dtype="complex64")
+    with pytest.raises(theano.scalar.ComplexError):
+        x % 5
 
 
 class TestSize:

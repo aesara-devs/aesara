@@ -59,7 +59,7 @@ def check_dtype_config_support(dtype, precision):
     try:
         f()
     except RuntimeError as e:
-        assert "CUDNN_STATUS_ARCH_MISMATCH" in e.message
+        assert "CUDNN_STATUS_ARCH_MISMATCH" in str(e)
         return False
     return True
 

@@ -585,11 +585,6 @@ class TestRealMatrix:
         assert not _is_real_matrix(tt.DimShuffle([False], ["x", 0])(tt.dvector()))
 
 
-def fail(msg):
-    print("FAIL", msg)
-    assert False
-
-
 """
 This test suite ensures that Gemm is inserted where it belongs, and
 that the resulting functions compute the same things as the originals.
@@ -600,9 +595,10 @@ def XYZab():
     return tt.matrix(), tt.matrix(), tt.matrix(), tt.scalar(), tt.scalar()
 
 
-def just_gemm(
-    i, o, ishapes=[(4, 3), (3, 5), (4, 5), (), ()], max_graphlen=0, expected_nb_gemm=1
-):
+def just_gemm(i, o, ishapes=None, max_graphlen=0, expected_nb_gemm=1):
+    if ishapes is None:
+        ishapes = [(4, 3), (3, 5), (4, 5), (), ()]
+
     f = inplace_func(
         [In(ii, mutable=True, allow_downcast=True) for ii in i],
         o,

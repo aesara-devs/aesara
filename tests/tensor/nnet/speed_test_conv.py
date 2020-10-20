@@ -51,7 +51,7 @@ def exec_multilayer_conv_nnet_old(
     nkerns,
     unroll_batch=0,
     unroll_kern=0,
-    img=tt.dmatrix(),
+    img=None,
     validate=True,
     conv_op_py=False,
     do_print=True,
@@ -60,6 +60,8 @@ def exec_multilayer_conv_nnet_old(
     unroll_patch_size=False,
     verbose=0,
 ):
+    if img is None:
+        img = tt.dmatrix()
 
     # build actual input images
     imgval = global_rng.rand(bsize, imshp[0], imshp[1], imshp[2])
@@ -180,13 +182,15 @@ def exec_multilayer_conv_nnet(
     nkerns,
     unroll_batch=0,
     unroll_kern=0,
-    img=tt.dmatrix(),
+    img=None,
     do_print=True,
     repeat=1,
     unroll_patch=False,
     unroll_patch_size=False,
     verbose=0,
 ):
+    if img is None:
+        img = tt.dmatrix()
 
     # build actual input images
     imgval = global_rng.rand(bsize, imshp[0], imshp[1], imshp[2])

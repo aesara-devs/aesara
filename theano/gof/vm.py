@@ -1125,7 +1125,7 @@ class VM_Linker(link.LocalLinker):
             compute_map_re[var][0] = 1
 
         if getattr(fgraph.profile, "dependencies", None):
-            dependencies = getattr(fgraph.profile, "dependencies")
+            dependencies = fgraph.profile.dependencies
         else:
             dependencies = self.compute_gc_dependencies(storage_map)
 

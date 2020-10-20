@@ -34,7 +34,7 @@ try:
     from skcuda import fft
 
     skcuda_available = True
-except (ImportError, Exception):
+except Exception:
     skcuda_available = False
 
 

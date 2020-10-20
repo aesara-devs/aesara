@@ -497,15 +497,7 @@ def test_known_grads():
         full = full(*values)
         assert len(true_grads) == len(full)
         for a, b, var in zip(true_grads, full, inputs):
-            if not np.allclose(a, b):
-                print("Failure")
-                print(a)
-                print(b)
-                print(var)
-                print(layer)
-                for v in known:
-                    print(v, ":", theano.function(inputs, known[v])(*values))
-                assert False
+            assert np.allclose(a, b)
 
 
 def test_dxdx():

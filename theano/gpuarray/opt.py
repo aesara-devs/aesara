@@ -1669,12 +1669,14 @@ def local_gpua_assert_graph(op, context_name, inputs, outputs):
 @op_lifter([ConvOp])
 @register_opt2([ConvOp], "fast_compile")
 def local_gpua_error_convop(op, context_name, inputs, outputs):
-    assert False, """
+    raise AssertionError(
+        """
 ConvOp does not work with the gpuarray backend.
 
 Use the new convolution interface to have GPU convolution working:
 theano.tensor.nnet.conv2d()
 """
+    )
 
 
 @register_opt("fast_compile")
