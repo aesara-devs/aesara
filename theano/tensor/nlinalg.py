@@ -695,7 +695,7 @@ def matrix_power(M, n):
     result = z = None
 
     while n > 0:
-        z = M if z is None else theano.dot(M, M)
+        z = M if z is None else theano.dot(z, z)
         n, bit = divmod(n, 2)
         if bit:
             result = z if result is None else theano.dot(result, z)
