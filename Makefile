@@ -1,4 +1,4 @@
-.PHONY: help venv conda docker docstyle format style black test lint check coverage pypi
+.PHONY: help venv conda docker check-docstyle check-format check-style format style test lint check coverage pypi
 .DEFAULT_GOAL = help
 
 PROJECT_NAME = theano
@@ -35,22 +35,22 @@ venv:  # Set up a Python virtual environment for development.
 	)
 	@printf "\n\nVirtual environment created! \033[1;34mRun \`source ${PROJECT_NAME}-venv/bin/activate\` to activate it.\033[0m\n\n\n"
 
-docstyle:
-	@printf "Checking documentation with pydocstyle...\n"
+check-docstyle:
+	@printf "Checking documentation style...\n"
 	pydocstyle ${PROJECT_DIR}
-	@printf "\033[1;34mPydocstyle passes!\033[0m\n\n"
+	@printf "\033[1;34mDocumentation style passes!\033[0m\n\n"
 
-format:
-	@printf "Checking code format with black...\n"
+check-format:
+	@printf "Checking code format...\n"
 	black -t py36 --check ${PROJECT_DIR} tests/ setup.py conftest.py
-	@printf "\033[1;34mBlack passes!\033[0m\n\n"
+	@printf "\033[1;34mFormatting passes!\033[0m\n\n"
 
-style:
-	@printf "Checking code style with pylint...\n"
+check-style:
+	@printf "Checking code style...\n"
 	flake8
-	@printf "\033[1;34mPylint passes!\033[0m\n\n"
+	@printf "\033[1;34mCode style passes!\033[0m\n\n"
 
-black:  # Format code in-place using black.
+format:  # Format code in-place using black.
 	black ${PROJECT_DIR} tests/ setup.py conftest.py
 
 test:  # Test code using pytest.
@@ -65,6 +65,6 @@ pypi:
 	${PYTHON} setup.py sdist bdist_wheel; \
   twine upload --skip-existing dist/*;
 
-lint: docstyle format style  # Lint code using pydocstyle, black and pylint.
+lint: check-docstyle check-format check-style
 
-check: lint test coverage  # Both lint and test code. Runs `make lint` followed by `make test`.
+check: lint test coverage
