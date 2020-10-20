@@ -12,10 +12,10 @@ let's make a simple function: add two numbers together. Here is how you do
 it:
 
 >>> import numpy
->>> import theano.tensor as T
+>>> import theano.tensor as tt
 >>> from theano import function
->>> x = T.dscalar('x')
->>> y = T.dscalar('y')
+>>> x = tt.dscalar('x')
+>>> y = tt.dscalar('y')
 >>> z = x + y
 >>> f = function([x, y], z)
 
@@ -55,10 +55,10 @@ instruction. Behind the scene, *f* was being compiled into C code.
 
 **Step 1**
 
->>> x = T.dscalar('x')
->>> y = T.dscalar('y')
+>>> x = tt.dscalar('x')
+>>> y = tt.dscalar('y')
 
-In Theano, all symbols must be typed. In particular, ``T.dscalar``
+In Theano, all symbols must be typed. In particular, ``tt.dscalar``
 is the type we assign to "0-dimensional arrays (`scalar`) of doubles
 (`d`)". It is a Theano :ref:`type`.
 
@@ -72,12 +72,12 @@ field, as you can see here:
 <class 'theano.tensor.var.TensorVariable'>
 >>> x.type
 TensorType(float64, scalar)
->>> T.dscalar
+>>> tt.dscalar
 TensorType(float64, scalar)
->>> x.type is T.dscalar
+>>> x.type is tt.dscalar
 True
 
-By calling ``T.dscalar`` with a string argument, you create a
+By calling ``tt.dscalar`` with a string argument, you create a
 *Variable* representing a floating-point scalar quantity with the
 given name. If you provide no argument, the symbol will be unnamed. Names
 are not required, but they can help debugging.
@@ -124,9 +124,9 @@ then be used like a normal Python function.
     you to import :func:`function` . Here is how :func:`eval` works:
 
     >>> import numpy
-    >>> import theano.tensor as T
-    >>> x = T.dscalar('x')
-    >>> y = T.dscalar('y')
+    >>> import theano.tensor as tt
+    >>> x = tt.dscalar('x')
+    >>> y = tt.dscalar('y')
     >>> z = x + y
     >>> numpy.allclose(z.eval({x : 16.3, y : 12.1}), 28.4)
     True
@@ -149,8 +149,8 @@ You might already have guessed how to do this. Indeed, the only change
 from the previous example is that you need to instantiate *x* and
 *y* using the matrix Types:
 
->>> x = T.dmatrix('x')
->>> y = T.dmatrix('y')
+>>> x = tt.dmatrix('x')
+>>> y = tt.dmatrix('y')
 >>> z = x + y
 >>> f = function([x, y], z)
 

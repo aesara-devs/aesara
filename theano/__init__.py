@@ -30,7 +30,6 @@ __docformat__ = "restructuredtext en"
 import logging
 import os
 import sys
-import warnings
 
 
 theano_logger = logging.getLogger("theano")
@@ -121,19 +120,10 @@ from theano.misc.safe_asarray import _asarray
 
 from theano.printing import pprint, pp
 
-from theano.scan_module import scan, map, reduce, foldl, foldr, clone, scan_checkpoints
+from theano import tensor
+from theano import scalar
 
 from theano.updates import OrderedUpdates
-
-# scan_module import above initializes tensor and scalar making these imports
-# redundant
-
-# import tensor
-# import scalar
-
-# we don't import by default as we don't want to force having scipy installed.
-
-# import sparse
 
 from theano.gradient import Rop, Lop, grad, subgraph_grad
 
@@ -228,4 +218,6 @@ def sparse_grad(var):
     return ret
 
 
-__import__("theano.tensor.shared_randomstreams")
+import theano.tensor.shared_randomstreams
+
+from theano.scan_module import scan, map, reduce, foldl, foldr, clone, scan_checkpoints

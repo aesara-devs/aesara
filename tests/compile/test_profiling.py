@@ -4,7 +4,7 @@
 import numpy as np
 
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 
 from six.moves import StringIO
 from theano.ifelse import ifelse
@@ -23,10 +23,10 @@ class TestProfiling:
             theano.config.profile_memory = True
             theano.config.profiling.min_peak_memory = True
 
-            x = [T.fvector("val%i" % i) for i in range(3)]
+            x = [tt.fvector("val%i" % i) for i in range(3)]
 
             z = []
-            z += [T.outer(x[i], x[i + 1]).sum(axis=1) for i in range(len(x) - 1)]
+            z += [tt.outer(x[i], x[i + 1]).sum(axis=1) for i in range(len(x) - 1)]
             z += [x[i] + x[i + 1] for i in range(len(x) - 1)]
 
             p = theano.ProfileStats(False, gpu_checks=False)
@@ -79,10 +79,10 @@ class TestProfiling:
             theano.config.profile = True
             theano.config.profile_memory = True
 
-            a, b = T.scalars("a", "b")
-            x, y = T.scalars("x", "y")
+            a, b = tt.scalars("a", "b")
+            x, y = tt.scalars("x", "y")
 
-            z = ifelse(T.lt(a, b), x * 2, y * 2)
+            z = ifelse(tt.lt(a, b), x * 2, y * 2)
 
             p = theano.ProfileStats(False, gpu_checks=False)
 

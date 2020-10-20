@@ -10,11 +10,12 @@
 import os
 import sys
 import time
-from optparse import OptionParser
 
 import numpy as np
 import theano
-import theano.tensor as T
+import theano.tensor as tt
+
+from optparse import OptionParser
 
 
 def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order="C"):
@@ -52,7 +53,7 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order=
     a = theano.shared(np.ones((M, N), dtype=theano.config.floatX, order=order))
     b = theano.shared(np.ones((N, K), dtype=theano.config.floatX, order=order))
     c = theano.shared(np.ones((M, K), dtype=theano.config.floatX, order=order))
-    f = theano.function([], updates=[(c, 0.4 * c + 0.8 * T.dot(a, b))])
+    f = theano.function([], updates=[(c, 0.4 * c + 0.8 * tt.dot(a, b))])
 
     if any([x.op.__class__.__name__ == "Gemm" for x in f.maker.fgraph.toposort()]):
         c_impl = [

@@ -5,9 +5,9 @@ import pytest
 import numpy as np
 
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 
-from theano.tensor.nnet import conv
+from theano.tensor.nnet import conv, conv2d
 from theano.tensor.basic import _allclose, NotScalarConstantError
 
 from tests import unittest_tools as utt
@@ -28,9 +28,9 @@ class TestConv2D(utt.InferShapeTester):
     conv2d = staticmethod(conv.conv2d)
 
     def setup_method(self):
-        self.input = T.tensor4("input", dtype=self.dtype)
+        self.input = tt.tensor4("input", dtype=self.dtype)
         self.input.name = "default_V"
-        self.filters = T.tensor4("filters", dtype=self.dtype)
+        self.filters = tt.tensor4("filters", dtype=self.dtype)
         self.filters.name = "default_filters"
         super().setup_method()
 
@@ -64,12 +64,12 @@ class TestConv2D(utt.InferShapeTester):
         """
         if N_image_shape is None:
             N_image_shape = [
-                T.get_scalar_constant_value(T.as_tensor_variable(x))
+                tt.get_scalar_constant_value(tt.as_tensor_variable(x))
                 for x in image_shape
             ]
         if N_filter_shape is None:
             N_filter_shape = [
-                T.get_scalar_constant_value(T.as_tensor_variable(x))
+                tt.get_scalar_constant_value(tt.as_tensor_variable(x))
                 for x in filter_shape
             ]
 
@@ -391,7 +391,7 @@ class TestConv2D(utt.InferShapeTester):
     def test_shape_Constant_tensor(self):
         # Tests convolution where the {image,filter}_shape is a Constant tensor.
 
-        as_t = T.as_tensor_variable
+        as_t = tt.as_tensor_variable
         self.validate((as_t(3), as_t(2), as_t(7), as_t(5)), (5, 2, 2, 3), "valid")
         self.validate(as_t([3, 2, 7, 5]), (5, 2, 2, 3), "valid")
         self.validate(as_t((3, 2, 7, 5)), (5, 2, 2, 3), "valid")
@@ -563,11 +563,11 @@ class TestConv2D(utt.InferShapeTester):
         # Make sure errors are raised when image and kernel are not 4D tensors
 
         with pytest.raises(Exception):
-            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", input=T.dmatrix())
+            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", input=tt.dmatrix())
         with pytest.raises(Exception):
-            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", filters=T.dvector())
+            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", filters=tt.dvector())
         with pytest.raises(Exception):
-            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", input=T.dtensor3())
+            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", input=tt.dtensor3())
 
     def test_gcc_crash(self):
         # gcc 4.3.0 20080428 (Red Hat 4.3.0-8)
@@ -629,8 +629,8 @@ class TestConv2D(utt.InferShapeTester):
             r = np.asarray(np.random.rand(*shape), dtype="float64")
             return r * 2 - 1
 
-        adtens = T.dtensor4()
-        bdtens = T.dtensor4()
+        adtens = tt.dtensor4()
+        bdtens = tt.dtensor4()
         aivec_val = [4, 5, 6, 3]
         bivec_val = [7, 5, 3, 2]
         adtens_val = rand(*aivec_val)
@@ -737,20 +737,18 @@ class TestConv2D(utt.InferShapeTester):
 # code from that ticket.
 def test_broadcast_grad():
     # rng = numpy.random.RandomState(utt.fetch_seed())
-    x1 = T.tensor4("x")
+    x1 = tt.tensor4("x")
     # x1_data = rng.randn(1, 1, 300, 300)
-    sigma = T.scalar("sigma")
+    sigma = tt.scalar("sigma")
     # sigma_data = 20
     window_radius = 3
 
-    filter_1d = T.arange(-window_radius, window_radius + 1)
+    filter_1d = tt.arange(-window_radius, window_radius + 1)
     filter_1d = filter_1d.astype(theano.config.floatX)
-    filter_1d = T.exp(-0.5 * filter_1d ** 2 / sigma ** 2)
+    filter_1d = tt.exp(-0.5 * filter_1d ** 2 / sigma ** 2)
     filter_1d = filter_1d / filter_1d.sum()
 
     filter_W = filter_1d.dimshuffle(["x", "x", 0, "x"])
 
-    y = theano.tensor.nnet.conv2d(
-        x1, filter_W, border_mode="full", filter_shape=[1, 1, None, None]
-    )
+    y = conv2d(x1, filter_W, border_mode="full", filter_shape=[1, 1, None, None])
     theano.grad(y.sum(), sigma)

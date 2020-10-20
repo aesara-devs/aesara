@@ -23,8 +23,8 @@ Intermediate values in a computation cannot be printed in
 the normal python way with the print statement, because Theano has no *statements*.
 Instead there is the :class:`Print` Op.
 
->>> from theano import tensor as T, function, printing
->>> x = T.dvector()
+>>> from theano import tensor as tt, function, printing
+>>> x = tt.dvector()
 >>> hello_world_op = printing.Print('hello world')
 >>> printed_x = hello_world_op(x)
 >>> f = function([x], printed_x)
@@ -34,8 +34,8 @@ hello world __str__ = [ 1.  2.  3.]
 If you print more than one thing in a function like `f`, they will not
 necessarily be printed in the order that you think.  The order might even depend
 on which graph optimizations are applied. Strictly speaking, the order of
-printing is not completely defined by the interface -- 
-the only hard rule is that if the input of some print output `a` is 
+printing is not completely defined by the interface --
+the only hard rule is that if the input of some print output `a` is
 ultimately used as an input to some other print input `b` (so that `b` depends on `a`),
 then `a` will print before `b`.
 
@@ -51,29 +51,29 @@ Theano also provides :func:`theano.printing.pydotprint` that creates a png image
 
 1) The first is :func:`theano.pp`.
 
->>> from theano import pp, tensor as T
->>> x = T.dscalar('x') 
+>>> from theano import pp, tensor as tt
+>>> x = tt.dscalar('x')
 >>> y = x ** 2
->>> gy = T.grad(y, x)
+>>> gy = tt.grad(y, x)
 >>> pp(gy)  # print out the gradient prior to optimization
 '((fill((x ** TensorConstant{2}), TensorConstant{1.0}) * TensorConstant{2}) * (x ** (TensorConstant{2} - TensorConstant{1})))'
 >>> f = function([x], gy)
 >>> pp(f.maker.fgraph.outputs[0])
 '(TensorConstant{2.0} * x)'
 
-The parameter in T.dscalar('x') in the first line is the name of this variable 
+The parameter in tt.dscalar('x') in the first line is the name of this variable
 in the graph. This name is used when printing the graph to make it more readable.
 If no name is provided the variable x is printed as its type as returned by
-x.type(). In this example - <TensorType(float64, scalar)>. 
+x.type(). In this example - <TensorType(float64, scalar)>.
 
-The name parameter can be any string. There are no naming restrictions: 
-in particular, you can have many variables with the same name. 
-As a convention, we generally give variables a string name that is similar to the name of the variable in local scope, but 
+The name parameter can be any string. There are no naming restrictions:
+in particular, you can have many variables with the same name.
+As a convention, we generally give variables a string name that is similar to the name of the variable in local scope, but
 you might want to break this convention to include an object instance, or an
 iteration number or other kinds of information in the name.
 
 .. note::
-    
+
     To make graphs legible, :func:`pp` hides some Ops that are actually in the graph.  For example,
     automatic DimShuffles are not shown.
 
@@ -136,7 +136,7 @@ shown.
 
 
 In the image, Apply nodes (the applications of ops) are shown as ellipses and variables are shown as boxes.
-The number at the end of each label indicates graph position.  
+The number at the end of each label indicates graph position.
 Boxes and ovals have their own set of positions, so you can have apply #1 and also a
 variable #1.
 The numbers in the boxes (Apply nodes) are actually their position in the
@@ -148,7 +148,7 @@ variables will appear as inputs.  Future versions of the :func:`pydotprint`
 may distinguish these implicit inputs from explicit inputs.
 
 If you give updates arguments when creating your function, these are added as
-extra inputs and outputs to the graph.  
+extra inputs and outputs to the graph.
 Future versions of :func:`pydotprint` may distinguish these
 implicit inputs and outputs from explicit inputs and outputs.
 
@@ -160,9 +160,9 @@ Reference
 .. class:: Print(Op)
 
     This identity-like Op has the side effect of printing a message followed by its inputs
-    when it runs. Default behaviour is to print the __str__ representation. Optionally, one 
+    when it runs. Default behaviour is to print the __str__ representation. Optionally, one
     can pass a list of the input member functions to execute, or attributes to print.
-    
+
 
     .. method:: __init__(message="", attrs=("__str__",)
 
@@ -192,4 +192,3 @@ Reference
 .. autofunction:: theano.printing.pp(*args)
 
 .. autofunction:: theano.printing.pydotprint
-

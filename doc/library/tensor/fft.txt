@@ -24,10 +24,10 @@ oscillates due to the box function being shifted to the middle of the array.
 
     import numpy as np
     import theano
-    import theano.tensor as T
+    import theano.tensor as tt
     from theano.tensor import fft
 
-    x = T.matrix('x', dtype='float64')
+    x = tt.matrix('x', dtype='float64')
 
     rfft = fft.rfft(x, norm='ortho')
     f_rfft = theano.function([x], rfft)

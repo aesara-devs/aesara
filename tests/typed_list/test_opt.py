@@ -1,10 +1,10 @@
 import numpy as np
 
 import theano
+import theano.tensor as tt
 import theano.typed_list
 
 from theano import In
-from theano import tensor as T
 from theano.typed_list.type import TypedListType
 from theano.typed_list.basic import Insert, Append, Extend, Remove, Reverse
 
@@ -20,7 +20,7 @@ def rand_ranged_matrix(minimum, maximum, shape):
 class TestInplace:
     def test_reverse_inplace(self):
         mySymbolicMatricesList = TypedListType(
-            T.TensorType(theano.config.floatX, (False, False))
+            tt.TensorType(theano.config.floatX, (False, False))
         )()
 
         z = Reverse()(mySymbolicMatricesList)
@@ -41,9 +41,9 @@ class TestInplace:
 
     def test_append_inplace(self):
         mySymbolicMatricesList = TypedListType(
-            T.TensorType(theano.config.floatX, (False, False))
+            tt.TensorType(theano.config.floatX, (False, False))
         )()
-        mySymbolicMatrix = T.matrix()
+        mySymbolicMatrix = tt.matrix()
         z = Append()(mySymbolicMatricesList, mySymbolicMatrix)
         m = theano.compile.mode.get_default_mode().including("typed_list_inplace_opt")
         f = theano.function(
@@ -65,11 +65,11 @@ class TestInplace:
 
     def test_extend_inplace(self):
         mySymbolicMatricesList1 = TypedListType(
-            T.TensorType(theano.config.floatX, (False, False))
+            tt.TensorType(theano.config.floatX, (False, False))
         )()
 
         mySymbolicMatricesList2 = TypedListType(
-            T.TensorType(theano.config.floatX, (False, False))
+            tt.TensorType(theano.config.floatX, (False, False))
         )()
 
         z = Extend()(mySymbolicMatricesList1, mySymbolicMatricesList2)
@@ -92,10 +92,10 @@ class TestInplace:
 
     def test_insert_inplace(self):
         mySymbolicMatricesList = TypedListType(
-            T.TensorType(theano.config.floatX, (False, False))
+            tt.TensorType(theano.config.floatX, (False, False))
         )()
-        mySymbolicIndex = T.scalar(dtype="int64")
-        mySymbolicMatrix = T.matrix()
+        mySymbolicIndex = tt.scalar(dtype="int64")
+        mySymbolicMatrix = tt.matrix()
 
         z = Insert()(mySymbolicMatricesList, mySymbolicIndex, mySymbolicMatrix)
         m = theano.compile.mode.get_default_mode().including("typed_list_inplace_opt")
@@ -120,9 +120,9 @@ class TestInplace:
 
     def test_remove_inplace(self):
         mySymbolicMatricesList = TypedListType(
-            T.TensorType(theano.config.floatX, (False, False))
+            tt.TensorType(theano.config.floatX, (False, False))
         )()
-        mySymbolicMatrix = T.matrix()
+        mySymbolicMatrix = tt.matrix()
         z = Remove()(mySymbolicMatricesList, mySymbolicMatrix)
         m = theano.compile.mode.get_default_mode().including("typed_list_inplace_opt")
         f = theano.function(
@@ -144,7 +144,7 @@ class TestInplace:
 
 
 def test_constant_folding():
-    m = theano.tensor.ones((1,), dtype="int8")
+    m = tt.ones((1,), dtype="int8")
     l = theano.typed_list.make_list([m, m])
     f = theano.function([], l)
     topo = f.maker.fgraph.toposort()

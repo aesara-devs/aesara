@@ -25,12 +25,12 @@ NanGuardMode can be used as follows:
 
     import numpy
     import theano
-    import theano.tensor as T
+    import theano.tensor as tt
     from theano.compile.nanguardmode import NanGuardMode
-    
-    x = T.matrix()
+
+    x = tt.matrix()
     w = theano.shared(numpy.random.randn(5, 7).astype(theano.config.floatX))
-    y = T.dot(x, w)
+    y = tt.dot(x, w)
     fun = theano.function(
         [x], y,
         mode=NanGuardMode(nan_is_error=True, inf_is_error=True, big_is_error=True)

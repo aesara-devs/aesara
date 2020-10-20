@@ -1,14 +1,15 @@
 import logging
 
-from six.moves import StringIO
 import numpy as np
 
 import theano
+import theano.tensor as tt
+
+from six.moves import StringIO
+
 from theano import config
-import theano.tensor as T
-from theano.compile import Mode
 from theano.compat import ValuesView
-from .mode import get_mode
+from theano.compile.mode import get_mode, Mode
 
 try:
     from theano.gpuarray.type import GpuArrayType, _name_for_ctx
@@ -106,7 +107,7 @@ def contains_nan(arr, node=None, var=None):
     """
     if not _is_numeric_value(arr, var):
         return False
-    elif getattr(arr, "dtype", "") in T.discrete_dtypes:
+    elif getattr(arr, "dtype", "") in tt.discrete_dtypes:
         return False
     elif pygpu_available and isinstance(arr, GpuArray):
         return np.isnan(f_gpua_min(arr.reshape(arr.size)))
@@ -141,7 +142,7 @@ def contains_inf(arr, node=None, var=None):
     """
     if not _is_numeric_value(arr, var):
         return False
-    elif getattr(arr, "dtype", "") in T.discrete_dtypes:
+    elif getattr(arr, "dtype", "") in tt.discrete_dtypes:
         return False
     elif pygpu_available and isinstance(arr, GpuArray):
         return np.isinf(f_gpua_min(arr.reshape(arr.size))) or np.isinf(
@@ -168,9 +169,9 @@ def f_compute(op):
     return result
 
 
-f_gpua_min = f_compute(T.min)
-f_gpua_max = f_compute(T.max)
-f_gpua_absmax = f_compute(lambda x: T.max(T.abs_(x)))
+f_gpua_min = f_compute(tt.min)
+f_gpua_max = f_compute(tt.max)
+f_gpua_absmax = f_compute(lambda x: tt.max(tt.abs_(x)))
 
 
 class NanGuardMode(Mode):

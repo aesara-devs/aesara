@@ -144,25 +144,24 @@ from functools import reduce
 
 from theano import config
 from theano.gof import (
-    utils,
     Op,
     view_roots,
     local_optimizer,
     Optimizer,
     InconsistencyError,
-    toolbox,
     SequenceDB,
     EquilibriumOptimizer,
     Apply,
     ReplacementDidntRemovedError,
 )
-from theano.gof.utils import TestValueError
+from theano.gof.toolbox import ReplaceValidate
+from theano.gof.utils import TestValueError, MethodNotDefined, memoize
 from theano.gof.params_type import ParamsType
 from theano.gof.opt import inherit_stack_trace
 from theano.printing import pprint, FunctionPrinter, debugprint
 from theano.compile.mode import optdb
 from theano.scalar import bool as bool_t
-from theano.tensor import basic as T
+from theano.tensor import basic as tt
 from theano.tensor.blas_headers import blas_header_text
 from theano.tensor.blas_headers import blas_header_version
 from theano.tensor.opt import in2out, local_dimshuffle_lift
@@ -247,11 +246,11 @@ class Gemv(Op):
             return "%s{no_inplace}" % self.__class__.__name__
 
     def make_node(self, y, alpha, A, x, beta):
-        y = T.as_tensor_variable(y)
-        x = T.as_tensor_variable(x)
-        A = T.as_tensor_variable(A)
-        alpha = T.as_tensor_variable(alpha)
-        beta = T.as_tensor_variable(beta)
+        y = tt.as_tensor_variable(y)
+        x = tt.as_tensor_variable(x)
+        A = tt.as_tensor_variable(A)
+        alpha = tt.as_tensor_variable(alpha)
+        beta = tt.as_tensor_variable(beta)
         if y.dtype != A.dtype or y.dtype != x.dtype:
             raise TypeError(
                 "Gemv requires matching dtypes", (y.dtype, A.dtype, x.dtype)
@@ -341,10 +340,10 @@ class Ger(Op):
             return "%s{non-destructive}" % self.__class__.__name__
 
     def make_node(self, A, alpha, x, y):
-        A = T.as_tensor_variable(A)
-        y = T.as_tensor_variable(y)
-        x = T.as_tensor_variable(x)
-        alpha = T.as_tensor_variable(alpha)
+        A = tt.as_tensor_variable(A)
+        y = tt.as_tensor_variable(y)
+        x = tt.as_tensor_variable(x)
+        alpha = tt.as_tensor_variable(alpha)
         if not (A.dtype == x.dtype == y.dtype == alpha.dtype):
             raise TypeError(
                 "ger requires matching dtypes", (A.dtype, alpha.dtype, x.dtype, y.dtype)
@@ -417,7 +416,7 @@ def ldflags(libs=True, flags=False, libs_dir=False, include_dir=False):
     )
 
 
-@utils.memoize
+@memoize
 def _ldflags(ldflags_str, libs, flags, libs_dir, include_dir):
     """Extract list of compilation flags from a string.
 
@@ -899,7 +898,7 @@ class Gemm(GemmRelated):
         return rval
 
     def make_node(self, *inputs):
-        inputs = list(map(T.as_tensor_variable, inputs))
+        inputs = list(map(tt.as_tensor_variable, inputs))
         if len(inputs) != 5:
             raise TypeError(
                 "Wrong number of inputs for %s (expected 5, got %s)"
@@ -1084,7 +1083,7 @@ class Gemm(GemmRelated):
         _z, _a, _x, _y, _b = inp
         (_zout,) = out
         if node.inputs[0].type.dtype.startswith("complex"):
-            raise utils.MethodNotDefined("%s.c_code" % self.__class__.__name__)
+            raise MethodNotDefined("%s.c_code" % self.__class__.__name__)
         full_code = self.build_gemm_call() % dict(locals(), **sub)
         return full_code
 
@@ -1118,7 +1117,7 @@ def _as_scalar(res, dtype=None):
     if dtype is None:
         dtype = config.floatX
     if np.all(res.type.broadcastable):
-        while res.owner and isinstance(res.owner.op, T.DimShuffle):
+        while res.owner and isinstance(res.owner.op, tt.DimShuffle):
             res = res.owner.inputs[0]
         # may still have some number of True's
         if res.type.broadcastable:
@@ -1132,7 +1131,7 @@ def _as_scalar(res, dtype=None):
             # as the cast of the scalar can be done before or after the dot22
             # and this will give the same result.
             if theano.scalar.upcast(res.dtype, dtype) == dtype:
-                return T.cast(rval, dtype)
+                return tt.cast(rval, dtype)
             else:
                 return None
 
@@ -1172,7 +1171,7 @@ def _beta_L_plus_alpha_M(beta, L, alpha, M, recurse_flip=True):
     # and the dot22. local_dot_to_dot22 in particular will put in such things.
     if (
         M.owner
-        and isinstance(M.owner.op, T.DimShuffle)
+        and isinstance(M.owner.op, tt.DimShuffle)
         and M.owner.inputs[0].owner
         and isinstance(M.owner.inputs[0].owner.op, Dot22)
     ):
@@ -1263,24 +1262,24 @@ def _gemm_canonicalize(r, scale, rval, maxclients):
         rval.append((scale, r))
         return rval
 
-    if r.owner and r.owner.op == T.sub:
+    if r.owner and r.owner.op == tt.sub:
         _gemm_canonicalize(r.owner.inputs[0], scale, rval, 1)
         _gemm_canonicalize(r.owner.inputs[1], -scale, rval, 1)
 
-    elif r.owner and r.owner.op == T.add:
+    elif r.owner and r.owner.op == tt.add:
         for i in r.owner.inputs:
             _gemm_canonicalize(i, scale, rval, 1)
 
-    elif r.owner and r.owner.op == T.neg:
+    elif r.owner and r.owner.op == tt.neg:
         _gemm_canonicalize(r.owner.inputs[0], -scale, rval, 1)
 
-    elif r.owner and r.owner.op == T.mul:
+    elif r.owner and r.owner.op == tt.mul:
         scalars = []
         vectors = []
         matrices = []
         for i in r.owner.inputs:
             if np.all(i.type.broadcastable):
-                while i.owner and isinstance(i.owner.op, T.DimShuffle):
+                while i.owner and isinstance(i.owner.op, tt.DimShuffle):
                     i = i.owner.inputs[0]
                 if i.type.broadcastable:
                     scalars.append(i.dimshuffle())
@@ -1302,7 +1301,7 @@ def _gemm_canonicalize(r, scale, rval, maxclients):
             elif len(scalars) == 1:
                 _gemm_canonicalize(m, scaled(scalars[0]), rval, 1)
             else:
-                _gemm_canonicalize(m, T.mul(scaled(scalars[0]), *scalars[1:]), rval, 1)
+                _gemm_canonicalize(m, tt.mul(scaled(scalars[0]), *scalars[1:]), rval, 1)
         elif len(vectors) == 1:
             assert len(matrices) == 0
             v = vectors[0]
@@ -1311,7 +1310,7 @@ def _gemm_canonicalize(r, scale, rval, maxclients):
             elif len(scalars) == 1:
                 _gemm_canonicalize(v, scaled(scalars[0]), rval, 1)
             else:
-                _gemm_canonicalize(v, T.mul(scaled(scalars[0]), *scalars[1:]), rval, 1)
+                _gemm_canonicalize(v, tt.mul(scaled(scalars[0]), *scalars[1:]), rval, 1)
         else:  # lets not open this up
             rval.append((scale, r))
     else:
@@ -1373,9 +1372,9 @@ def _gemm_from_factored_list(lst):
         # sM can be a tuple of 2 elements or a theano variable.
         if isinstance(sM, tuple):
             sm0, sm1 = sM
-            sm0 = T.as_tensor_variable(sm0)
+            sm0 = tt.as_tensor_variable(sm0)
             if theano.scalar.upcast(sm0.dtype, sm1.dtype) == sm1.dtype:
-                lst2.append((T.cast(sm0, sm1.dtype), sM[1]))
+                lst2.append((tt.cast(sm0, sm1.dtype), sM[1]))
 
     lst = lst2
 
@@ -1412,7 +1411,7 @@ def _gemm_from_factored_list(lst):
                 ]
                 add_inputs.extend(gemm_of_sM_list)
                 if len(add_inputs) > 1:
-                    rval = [T.add(*add_inputs)]
+                    rval = [tt.add(*add_inputs)]
                 else:
                     rval = add_inputs
                 # print "RETURNING GEMM THING", rval
@@ -1463,7 +1462,7 @@ class GemmOptimizer(Optimizer):
         self.warned = False
 
     def add_requirements(self, fgraph):
-        fgraph.attach_feature(toolbox.ReplaceValidate())
+        fgraph.attach_feature(ReplaceValidate())
 
     def apply(self, fgraph):
         did_something = True
@@ -1496,7 +1495,7 @@ class GemmOptimizer(Optimizer):
             nodelist.reverse()
             for node in nodelist:
                 if not (
-                    isinstance(node.op, T.Elemwise)
+                    isinstance(node.op, tt.Elemwise)
                     and isinstance(
                         node.op.scalar_op,
                         (
@@ -1607,8 +1606,8 @@ class Dot22(GemmRelated):
     check_input = False
 
     def make_node(self, x, y):
-        x = T.as_tensor_variable(x)
-        y = T.as_tensor_variable(y)
+        x = tt.as_tensor_variable(x)
+        y = tt.as_tensor_variable(y)
         dtypes = ("float16", "float32", "float64", "complex64", "complex128")
         if x.type.ndim != 2 or x.type.dtype not in dtypes:
             raise TypeError(x)
@@ -1617,7 +1616,7 @@ class Dot22(GemmRelated):
         if y.type.dtype != x.type.dtype:
             raise TypeError("dtype mismatch to Dot22")
         bz = (x.type.broadcastable[0], y.type.broadcastable[1])
-        outputs = [T.tensor(x.type.dtype, bz)]
+        outputs = [tt.tensor(x.type.dtype, bz)]
         return Apply(self, [x, y], outputs)
 
     def perform(self, node, inp, out):
@@ -1670,7 +1669,7 @@ class Dot22(GemmRelated):
         _x, _y = inp
         (_zout,) = out
         if node.inputs[0].type.dtype.startswith("complex"):
-            raise utils.MethodNotDefined("%s.c_code" % self.__class__.__name__)
+            raise MethodNotDefined("%s.c_code" % self.__class__.__name__)
         if len(self.c_libraries()) <= 0:
             return super(Dot22, self).c_code(node, name, (_x, _y), (_zout,), sub)
         full_code = self.build_gemm_call() % dict(locals(), **sub)
@@ -1687,11 +1686,11 @@ class Dot22(GemmRelated):
 _dot22 = Dot22()
 
 
-@local_optimizer([T.Dot])
+@local_optimizer([tt.Dot])
 def local_dot_to_dot22(node):
     # This works for tensor.outer too because basic.outer is a macro that
     # produces a dot(dimshuffle,dimshuffle) of form 4 below
-    if not isinstance(node.op, T.Dot):
+    if not isinstance(node.op, tt.Dot):
         return
 
     x, y = node.inputs
@@ -1760,8 +1759,8 @@ def local_gemm_to_ger(node):
                 xv = x.dimshuffle(0)
                 yv = y.dimshuffle(1)
                 try:
-                    bval = T.get_scalar_constant_value(b)
-                except T.NotScalarConstantError:
+                    bval = tt.get_scalar_constant_value(b)
+                except tt.NotScalarConstantError:
                     # b isn't a constant, GEMM is doing useful pre-scaling
                     return
 
@@ -1769,7 +1768,7 @@ def local_gemm_to_ger(node):
                     rval = ger(z, a, xv, yv)
                     return [rval]
                 elif bval == 0:  # GER on zeros_like should be faster than GEMM
-                    zeros = T.zeros([x.shape[0], y.shape[1]], x.dtype)
+                    zeros = tt.zeros([x.shape[0], y.shape[1]], x.dtype)
                     rval = ger(zeros, a, xv, yv)
                     return [rval]
                 else:
@@ -1788,32 +1787,32 @@ def local_dot22_to_ger_or_gemv(node):
             x, y = node.inputs
             xb = x.broadcastable
             yb = y.broadcastable
-            one = T.as_tensor_variable(np.asarray(1, dtype=x.dtype))
-            zero = T.as_tensor_variable(np.asarray(0, dtype=x.dtype))
+            one = tt.as_tensor_variable(np.asarray(1, dtype=x.dtype))
+            zero = tt.as_tensor_variable(np.asarray(0, dtype=x.dtype))
             if xb[1] and yb[0]:
                 # x and y are both vectors so this might qualifies for a GER
                 xv = x.dimshuffle(0)
                 yv = y.dimshuffle(1)
-                zeros = T.zeros([x.shape[0], y.shape[1]], dtype=x.dtype)
+                zeros = tt.zeros([x.shape[0], y.shape[1]], dtype=x.dtype)
                 rval = ger(zeros, one, xv, yv)
                 return [rval]
             if xb[0] and yb[1]:
                 # x and y are both vectors so this qualifies for a sdot / ddot
                 # TODO: Theano doesn't have a sdot, but gemv is better than _dot22
                 xv = x.dimshuffle(1)
-                zeros = T.AllocEmpty(x.dtype)(1)
+                zeros = tt.AllocEmpty(x.dtype)(1)
                 rval = gemv_no_inplace(zeros, one, y.T, xv, zero)
                 return [rval.dimshuffle("x", 0)]
             if xb[0] and not yb[0] and not yb[1]:
                 # x is vector, y is matrix so try gemv
                 xv = x.dimshuffle(1)
-                zeros = T.AllocEmpty(x.dtype)(y.shape[1])
+                zeros = tt.AllocEmpty(x.dtype)(y.shape[1])
                 rval = gemv_no_inplace(zeros, one, y.T, xv, zero)
                 return [rval.dimshuffle("x", 0)]
             if not xb[0] and not xb[1] and yb[1]:
                 # x is matrix, y is vector, try gemv
                 yv = y.dimshuffle(0)
-                zeros = T.AllocEmpty(x.dtype)(x.shape[0])
+                zeros = tt.AllocEmpty(x.dtype)(x.shape[0])
                 rval = gemv_no_inplace(zeros, one, x, yv, zero)
                 return [rval.dimshuffle(0, "x")]
 
@@ -1892,7 +1891,7 @@ class Dot22Scalar(GemmRelated):
             raise TypeError("Dot22Scalar requires float or complex args", a.dtype)
 
         bz = [x.type.broadcastable[0], y.type.broadcastable[1]]
-        outputs = [T.tensor(x.type.dtype, bz)]
+        outputs = [tt.tensor(x.type.dtype, bz)]
         return Apply(self, [x, y, a], outputs)
 
     def perform(self, node, inp, out):
@@ -1940,7 +1939,7 @@ class Dot22Scalar(GemmRelated):
         _x, _y, _a = inp
         (_zout,) = out
         if node.inputs[0].type.dtype.startswith("complex"):
-            raise utils.MethodNotDefined("%s.c_code" % self.__class__.__name__)
+            raise MethodNotDefined("%s.c_code" % self.__class__.__name__)
         if len(self.c_libraries()) <= 0:
             return super(Dot22Scalar, self).c_code(node, name, (_x, _y), (_zout,), sub)
         full_code = self.build_gemm_call() % dict(locals(), **sub)
@@ -1957,7 +1956,7 @@ class Dot22Scalar(GemmRelated):
 _dot22scalar = Dot22Scalar()
 
 
-@local_optimizer([T.mul])
+@local_optimizer([tt.mul])
 def local_dot22_to_dot22scalar(node):
     """
     Notes
@@ -1982,7 +1981,7 @@ def local_dot22_to_dot22scalar(node):
     inputs)
 
     """
-    if node.op != T.mul:
+    if node.op != tt.mul:
         return False
     i_dot22 = [x.owner and x.owner.op == _dot22 for x in node.inputs]
     if not any(i_dot22):
@@ -2000,7 +1999,7 @@ def local_dot22_to_dot22scalar(node):
         # The canonizer should have merged those mul together.
         i_mul = [
             x.owner
-            and x.owner.op == T.mul
+            and x.owner.op == tt.mul
             and any([_as_scalar(x_i, dtype=d.dtype) for x_i in x.owner.inputs])
             for x in node.inputs
         ]
@@ -2030,7 +2029,7 @@ def local_dot22_to_dot22scalar(node):
                 [x.type for x in node.inputs],
             )
             return False
-        a = T.cast(_as_scalar(m.owner.inputs[scalar_idx], dtype=d.dtype), d.type.dtype)
+        a = tt.cast(_as_scalar(m.owner.inputs[scalar_idx], dtype=d.dtype), d.type.dtype)
         assert not a.type.ndim
         dot = _dot22scalar(d.owner.inputs[0], d.owner.inputs[1], a)
 
@@ -2045,7 +2044,7 @@ def local_dot22_to_dot22scalar(node):
             inpt for i, inpt in enumerate(m.owner.inputs) if i != scalar_idx
         ]
 
-        return [T.mul(dot, *(other_factors + other_m_inputs))]
+        return [tt.mul(dot, *(other_factors + other_m_inputs))]
 
     scalar_idx = -1
     for i, x in enumerate(node.inputs):
@@ -2070,12 +2069,12 @@ def local_dot22_to_dot22scalar(node):
     o.remove(d)
     o.remove(s)
 
-    a = T.cast(i_scalar[scalar_idx], d.type.dtype)
+    a = tt.cast(i_scalar[scalar_idx], d.type.dtype)
     assert not a.type.ndim
     if len(o) == 0:
         return [_dot22scalar(d.owner.inputs[0], d.owner.inputs[1], a)]
     else:
-        return [T.mul(_dot22scalar(d.owner.inputs[0], d.owner.inputs[1], a), *o)]
+        return [tt.mul(_dot22scalar(d.owner.inputs[0], d.owner.inputs[1], a), *o)]
 
 
 # must happen after gemm as the gemm optimizer don't understant
@@ -2095,7 +2094,7 @@ class BatchedDot(Op):
     __props__ = ()
 
     def make_node(self, *inputs):
-        inputs = list(map(T.as_tensor_variable, inputs))
+        inputs = list(map(tt.as_tensor_variable, inputs))
 
         if len(inputs) != 2:
             raise TypeError(
@@ -2117,13 +2116,13 @@ class BatchedDot(Op):
 
         dtype = theano.scalar.upcast(*[input.type.dtype for input in inputs])
         # upcast inputs to common dtype if needed
-        upcasted_inputs = [T.cast(input, dtype) for input in inputs]
+        upcasted_inputs = [tt.cast(input, dtype) for input in inputs]
         broadcastable = (
             (inputs[0].type.broadcastable[0] or inputs[1].type.broadcastable[0],)
             + inputs[0].type.broadcastable[1:-1]
             + inputs[1].type.broadcastable[2:]
         )
-        return Apply(self, upcasted_inputs, [T.tensor(dtype, broadcastable)])
+        return Apply(self, upcasted_inputs, [tt.tensor(dtype, broadcastable)])
 
     def perform(self, node, inp, out):
         x, y = inp
@@ -2460,27 +2459,27 @@ class BatchedDot(Op):
 
         # x is a matrix, y is a tensor3, grad is a matrix
         elif xdim == 2 and ydim == 3:
-            xgrad = T.batched_dot(gz, y.dimshuffle(0, 2, 1))
+            xgrad = tt.batched_dot(gz, y.dimshuffle(0, 2, 1))
             ygrad = x.dimshuffle(0, 1, "x") * gz.dimshuffle(0, "x", 1)
 
         # x is a tensor3, y is a matrix, grad is a matrix
         elif xdim == 3 and ydim == 2:
             xgrad = gz.dimshuffle(0, 1, "x") * y.dimshuffle(0, "x", 1)
-            ygrad = T.batched_dot(x.dimshuffle(0, 2, 1), gz)
+            ygrad = tt.batched_dot(x.dimshuffle(0, 2, 1), gz)
 
         # x is a tensor3, y is a tensor3, grad is a tensor3
         elif xdim == ydim == 3:
-            xgrad = T.batched_dot(gz, y.dimshuffle(0, 2, 1))
-            ygrad = T.batched_dot(x.dimshuffle(0, 2, 1), gz)
+            xgrad = tt.batched_dot(gz, y.dimshuffle(0, 2, 1))
+            ygrad = tt.batched_dot(x.dimshuffle(0, 2, 1), gz)
 
         # If x or y contain broadcastable dimensions but only one of
         # them know that a matching dimensions is broadcastable, the
         # above code don't always return the right broadcast pattern.
         # This cause problem down the road. See gh-1461.
         if xgrad.broadcastable != x.broadcastable:
-            xgrad = T.patternbroadcast(xgrad, x.broadcastable)
+            xgrad = tt.patternbroadcast(xgrad, x.broadcastable)
         if ygrad.broadcastable != y.broadcastable:
-            ygrad = T.patternbroadcast(ygrad, y.broadcastable)
+            ygrad = tt.patternbroadcast(ygrad, y.broadcastable)
 
         return xgrad, ygrad
 
@@ -2574,7 +2573,7 @@ batched_dot = BatchedDot()
 
 # from opt import register_specialize, register_canonicalize
 # @register_specialize
-@local_optimizer([T.sub, T.add])
+@local_optimizer([tt.sub, tt.add])
 def local_print_as_we_go_along(node):
-    if node.op in (T.sub, T.add):
+    if node.op in (tt.sub, tt.add):
         debugprint(node)

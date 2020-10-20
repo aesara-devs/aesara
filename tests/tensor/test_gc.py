@@ -1,14 +1,16 @@
-import numpy as np
+import time
+
 import six.moves.cPickle as pickle
 
+import numpy as np
+
 import theano
-from theano import tensor as T
-import time
+import theano.tensor as tt
 
 
 def test_no_reuse():
-    x = T.lvector()
-    y = T.lvector()
+    x = tt.lvector()
+    y = tt.lvector()
     f = theano.function([x, y], x + y)
 
     # provide both inputs in the first call
@@ -22,7 +24,7 @@ def test_no_reuse():
 
 
 def test_gc_never_pickles_temporaries():
-    x = T.dvector()
+    x = tt.dvector()
 
     r = x
     for i in range(2):  # TODO: 30 causes like LONG compilation due to MERGE
@@ -105,7 +107,7 @@ def test_merge_opt_runtime():
     #
     # Ironically, there is actually no merging to do in this graph.
 
-    x = T.dvector()
+    x = tt.dvector()
     r = x
     for i in range(50):
         r = r + r / 10

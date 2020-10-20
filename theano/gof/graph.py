@@ -13,8 +13,15 @@ from itertools import count
 from six import string_types, integer_types
 
 from theano import config
-from theano.gof import utils
-from theano.gof.utils import TestValueError
+from theano.gof.utils import (
+    TestValueError,
+    object2,
+    MethodNotDefined,
+    Scratchpad,
+    ValidatingScratchpad,
+    get_variable_trace_string,
+    add_tag_trace,
+)
 from theano.misc.ordered_set import OrderedSet
 
 __docformat__ = "restructuredtext en"
@@ -22,7 +29,7 @@ __docformat__ = "restructuredtext en"
 NoParams = object()
 
 
-class Node(utils.object2):
+class Node(object2):
     """A `Node` in a Theano graph.
 
     Currently, graphs contain two kinds of `Nodes`: `Variable`s and `Apply`s.
@@ -90,7 +97,7 @@ class Apply(Node):
     def __init__(self, op, inputs, outputs):
         self.op = op
         self.inputs = []
-        self.tag = utils.Scratchpad()
+        self.tag = Scratchpad()
 
         if not isinstance(inputs, (list, tuple)):
             raise TypeError("The inputs of an Apply must be a list or tuple")
@@ -132,7 +139,7 @@ class Apply(Node):
         """
         try:
             return self.op.get_params(self)
-        except theano.gof.utils.MethodNotDefined:
+        except MethodNotDefined:
             return NoParams
 
     def __getstate__(self):
@@ -346,10 +353,10 @@ class Variable(Node):
     .. code-block:: python
 
         import theano
-        from theano import tensor
+        import theano.tensor as tt
 
-        a = tensor.constant(1.5)        # declare a symbolic constant
-        b = tensor.fscalar()            # declare a symbolic floating-point scalar
+        a = tt.constant(1.5)            # declare a symbolic constant
+        b = tt.fscalar()                # declare a symbolic floating-point scalar
 
         c = a + b                       # create a simple expression
 
@@ -361,7 +368,7 @@ class Variable(Node):
 
         theano.function([a,b], [c])     # compilation error because a is constant, it can't be an input
 
-        d = tensor.value(1.5)           # create a value similar to the constant 'a'
+        d = tt.value(1.5)               # create a value similar to the constant 'a'
         e = d + b
         theano.function([d,b], [e])     # this works.  d's default value of 1.5 is ignored.
 
@@ -381,7 +388,7 @@ class Variable(Node):
     def __init__(self, type, owner=None, index=None, name=None):
         super().__init__()
 
-        self.tag = utils.ValidatingScratchpad("test_value", type.filter)
+        self.tag = ValidatingScratchpad("test_value", type.filter)
 
         self.type = type
 
@@ -410,7 +417,7 @@ class Variable(Node):
 
         """
         if not hasattr(self.tag, "test_value"):
-            detailed_err_msg = utils.get_variable_trace_string(self)
+            detailed_err_msg = get_variable_trace_string(self)
             raise TestValueError(
                 "{} has no test value {}".format(self, detailed_err_msg)
             )
@@ -514,9 +521,9 @@ class Variable(Node):
         --------
 
         >>> import numpy as np
-        >>> import theano.tensor as T
-        >>> x = T.dscalar('x')
-        >>> y = T.dscalar('y')
+        >>> import theano.tensor as tt
+        >>> x = tt.dscalar('x')
+        >>> y = tt.dscalar('y')
         >>> z = x + y
         >>> np.allclose(z.eval({x : 16.3, y : 12.1}), 28.4)
         True
@@ -602,7 +609,7 @@ class Constant(Variable):
     def __init__(self, type, data, name=None):
         super().__init__(type, None, None, name)
         self.data = type.filter(data)
-        utils.add_tag_trace(self)
+        add_tag_trace(self)
 
     def get_test_value(self):
         return self.data

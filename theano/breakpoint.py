@@ -1,6 +1,8 @@
 import numpy as np
 
 import theano
+import theano.tensor as tt
+
 from theano.gof import Op, Apply
 from theano.gradient import DisconnectedType
 
@@ -35,11 +37,11 @@ class PdbBreakpoint(Op):
     .. code-block:: python
 
         import theano
-        import theano.tensor as T
+        import theano.tensor as tt
         from theano.breakpoint import PdbBreakpoint
 
-        input = T.fvector()
-        target = T.fvector()
+        input = tt.fvector()
+        target = tt.fvector()
 
         # Mean squared error between input and target
         mse = (input - target) ** 2
@@ -48,7 +50,7 @@ class PdbBreakpoint(Op):
         # than 100. The breakpoint will monitor the inputs, targets as well
         # as the individual error values
         breakpointOp = PdbBreakpoint("MSE too high")
-        condition = T.gt(mse.sum(), 100)
+        condition = tt.gt(mse.sum(), 100)
         mse, monitored_input, monitored_target = breakpointOp(condition, mse,
                                                               input, target)
 
@@ -71,7 +73,7 @@ class PdbBreakpoint(Op):
 
         # Ensure that condition is a theano tensor
         if not isinstance(condition, theano.Variable):
-            condition = theano.tensor.as_tensor_variable(condition)
+            condition = tt.as_tensor_variable(condition)
 
         # Validate that the condition is a scalar (else it is not obvious how
         # is should be evaluated)

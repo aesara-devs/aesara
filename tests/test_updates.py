@@ -1,6 +1,6 @@
 import pytest
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 
 from theano.updates import OrderedUpdates
 
@@ -21,7 +21,7 @@ class TestIfelse:
         with pytest.raises(TypeError):
             up.__setitem__(5, 7)
         with pytest.raises(TypeError):
-            up.__setitem__(T.vector(), 7)
+            up.__setitem__(tt.vector(), 7)
 
         up[theano.shared(88)] = 7
 

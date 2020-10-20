@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
-import theano
 
-from theano import tensor as T
+import theano
+import theano.tensor as tt
+
 from theano.tensor import fft
 
 from tests import unittest_tools as utt
@@ -31,7 +32,7 @@ class TestFFT:
     def test_1Drfft(self):
         inputs_val = np.random.random((1, N)).astype(theano.config.floatX)
 
-        x = T.matrix("x")
+        x = tt.matrix("x")
         rfft = fft.rfft(x)
         f_rfft = theano.function([x], rfft)
         res_rfft = f_rfft(inputs_val)

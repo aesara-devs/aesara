@@ -1,7 +1,7 @@
 import pytest
 
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 
 from theano.compile.mode import Mode, AddFeatureOptimizer
 from theano.gof.toolbox import NoOutputFromInplace
@@ -11,10 +11,10 @@ from theano.gof.toolbox import NoOutputFromInplace
     not theano.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_no_output_from_implace():
-    x = T.matrix()
-    y = T.matrix()
-    a = T.dot(x, y)
-    b = T.tanh(a)
+    x = tt.matrix()
+    y = tt.matrix()
+    a = tt.dot(x, y)
+    b = tt.tanh(a)
 
     # Ensure that the elemwise op that produces the output is inplace when
     # using a mode that does not include the optimization

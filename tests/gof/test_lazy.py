@@ -1,13 +1,16 @@
-from copy import deepcopy
+import pytest
 
 import numpy as np
 
 import theano
-from theano.gof.op import PureOp
-from theano.gof import Apply, generic
+import theano.tensor as tt
+
+from copy import deepcopy
+
 from theano import function, Mode
+from theano.gof import Apply, generic
+from theano.gof.op import PureOp
 from theano.ifelse import ifelse
-import theano.tensor as T
 
 
 class IfElseIfElseIf(PureOp):
@@ -88,34 +91,39 @@ class IfElseIfElseIf(PureOp):
         return thunk
 
 
-class NotImplementedOp(PureOp):
-    class E(Exception):
-        pass
+class NotImplementedOpException(Exception):
+    pass
 
+
+class NotImplementedOp(PureOp):
     def make_node(self, x):
         return Apply(self, [x], [x.type()])
 
     def make_thunk(self, node, storage_map, compute_map, no_recycling, impl):
         def thunk():
-            raise self.E()
+            raise NotImplementedOpException()
 
         thunk.lazy = False
         return thunk
 
 
 def test_ifelse():
-    a = T.scalar()
+    a = tt.scalar()
     b = generic()
     c = generic()
 
     notimpl = NotImplementedOp()
+
     lazys = [True]
     # We need lazy to end up being True for this test.
     if theano.config.vm.lazy in [True, None]:
         lazys = [True, None]
+
     cloops = [True, False]
+
     if theano.config.cxx == "":
         cloops = [False]
+
     for cloop in cloops:
         for lazy in lazys:
             linker = theano.gof.vm.VM_Linker(use_cloop=cloop, lazy=lazy)
@@ -125,49 +133,34 @@ def test_ifelse():
                 mode=Mode(linker=linker, optimizer="fast_run"),
             )
 
-            try:
-                # print "case 1"
+            with pytest.raises(NotImplementedOpException):
                 f(1, "a", "b")
-                assert False
-            except NotImplementedOp.E:
-                pass
-            # print "... passed"
 
-            # print "case 2"
-            # print f(0, 'a', 'b')
             assert f(0, "a", "b") == "b"
-            # print "... passed"
 
 
-def more_complex_test():
+def test_nested():
     notimpl = NotImplementedOp()
     ifelseifelseif = IfElseIfElseIf()
 
-    x1 = T.scalar("x1")
-    x2 = T.scalar("x2")
-    c1 = T.scalar("c1")
-    c2 = T.scalar("c2")
+    x1 = tt.scalar("x1")
+    x2 = tt.scalar("x2")
+    c1 = tt.scalar("c1")
+    c2 = tt.scalar("c2")
     t1 = ifelse(c1, x1, notimpl(x2))
     t1.name = "t1"
     t2 = t1 * 10
     t2.name = "t2"
     t3 = ifelse(c2, t2, x1 + t1)
     t3.name = "t3"
-    t4 = ifelseifelseif(T.eq(x1, x2), x1, T.eq(x1, 5), x2, c2, t3, t3 + 0.5)
+    t4 = ifelseifelseif(tt.eq(x1, x2), x1, tt.eq(x1, 5), x2, c2, t3, t3 + 0.5)
     t4.name = "t4"
 
-    f = function([c1, c2, x1, x2], t4, mode=Mode(linker="vm", optimizer="fast_run"))
-    if theano.config.vm.lazy is False:
-        try:
-            f(1, 0, np.array(10, dtype=x1.dtype), 0)
-            assert False
-        except NotImplementedOp.E:
-            pass
-    else:
-        print(f(1, 0, np.array(10, dtype=x1.dtype), 0))
-        assert f(1, 0, np.array(10, dtype=x1.dtype), 0) == 20.5
-    print("... passed")
+    linker = theano.gof.vm.VM_Linker(lazy=False)
+    f = function([c1, c2, x1, x2], t4, mode=Mode(linker=linker, optimizer="fast_run"))
+    with pytest.raises(NotImplementedOpException):
+        f(1, 0, np.array(10, dtype=x1.dtype), 0)
 
-
-if __name__ == "__main__":
-    more_complex_test()
+    linker = theano.gof.vm.VM_Linker(lazy=True)
+    f = function([c1, c2, x1, x2], t4, mode=Mode(linker=linker, optimizer="fast_run"))
+    assert f(1, 0, np.array(10, dtype=x1.dtype), 0) == 20.5

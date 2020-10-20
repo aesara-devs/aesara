@@ -1,15 +1,21 @@
+import theano.tensor as tt
+
 from theano import Op, Apply
 from theano.gof import ParamsType
 from theano.tensor.nnet.neighbours import Images2Neibs
-import theano.tensor as T
 
 try:
     from pygpu import gpuarray
 except ImportError:
     pass
 
-from .basic_ops import as_gpuarray_variable, GpuKernelBase, Kernel, infer_context_name
-from .type import GpuArrayType, gpu_context_type
+from theano.gpuarray.basic_ops import (
+    as_gpuarray_variable,
+    GpuKernelBase,
+    Kernel,
+    infer_context_name,
+)
+from theano.gpuarray.type import GpuArrayType, gpu_context_type
 
 
 class GpuImages2Neibs(GpuKernelBase, Images2Neibs, Op):
@@ -25,17 +31,17 @@ class GpuImages2Neibs(GpuKernelBase, Images2Neibs, Op):
 
     def make_node(self, ten4, neib_shape, neib_step=None):
         ten4 = as_gpuarray_variable(ten4, infer_context_name(ten4))
-        neib_shape = T.as_tensor_variable(neib_shape)
+        neib_shape = tt.as_tensor_variable(neib_shape)
         if neib_step is None:
             neib_step = neib_shape
         else:
-            neib_step = T.as_tensor_variable(neib_step)
+            neib_step = tt.as_tensor_variable(neib_step)
 
         assert ten4.ndim == 4
         assert neib_shape.ndim == 1
         assert neib_step.ndim == 1
-        assert neib_shape.dtype in T.integer_dtypes
-        assert neib_step.dtype in T.integer_dtypes
+        assert neib_shape.dtype in tt.integer_dtypes
+        assert neib_step.dtype in tt.integer_dtypes
 
         return Apply(
             self,

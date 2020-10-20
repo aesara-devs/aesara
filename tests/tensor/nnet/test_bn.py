@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 
 from collections import OrderedDict
 
@@ -29,11 +29,11 @@ def test_BNComposite():
         M = 1 + np.random.random([20]).astype("float32")
         V = 1 + np.random.random([20]).astype("float32")
 
-        x = theano.tensor.matrix("x")
-        b = theano.tensor.vector("b")
-        g = theano.tensor.vector("g")
-        m = theano.tensor.vector("m")
-        v = theano.tensor.vector("v")
+        x = tt.matrix("x")
+        b = tt.vector("b")
+        g = tt.vector("g")
+        m = tt.vector("m")
+        v = tt.vector("v")
 
         x.tag.test_value = np.random.rand(2, 2).astype(theano.config.floatX)
         b.tag.test_value = np.random.rand(2).astype(theano.config.floatX)
@@ -65,11 +65,11 @@ def test_batch_normalization():
     M = 1 + np.random.random([20]).astype("float32")
     V = 1 + np.random.random([20]).astype("float32")
 
-    x = theano.tensor.matrix("x")
-    b = theano.tensor.vector("b")
-    g = theano.tensor.vector("g")
-    m = theano.tensor.vector("m")
-    v = theano.tensor.vector("v")
+    x = tt.matrix("x")
+    b = tt.vector("b")
+    g = tt.vector("g")
+    m = tt.vector("m")
+    v = tt.vector("v")
 
     bn_ref_op = bn_ref(x, g, b, m, v)
     f_ref = theano.function([x, g, b, m, v], [bn_ref_op])
@@ -123,11 +123,11 @@ def test_bn_feature_maps():
     M = 1 + np.random.random([3]).astype("float32")
     V = 1 + np.random.random([3]).astype("float32")
 
-    x = theano.tensor.tensor4("x")
-    b = theano.tensor.vector("b")
-    g = theano.tensor.vector("g")
-    m = theano.tensor.vector("m")
-    v = theano.tensor.vector("v")
+    x = tt.tensor4("x")
+    b = tt.vector("b")
+    g = tt.vector("g")
+    m = tt.vector("m")
+    v = tt.vector("v")
 
     bn_ref_op = bn_ref(
         x,
@@ -170,7 +170,7 @@ def test_batch_normalization_train():
     utt.seed_rng()
 
     for axes in ("per-activation", "spatial", (1, 2, 3, 4)):
-        for vartype in (T.tensor5, T.tensor3, T.vector):
+        for vartype in (tt.tensor5, tt.tensor3, tt.vector):
             x, scale, bias, running_mean, running_var = (
                 vartype(n)
                 for n in ("x", "scale", "bias", "running_mean", "running_var")
@@ -211,11 +211,11 @@ def test_batch_normalization_train():
                 axes2 = axes
             x_mean2 = x.mean(axis=axes2, keepdims=True)
             x_var2 = x.var(axis=axes2, keepdims=True)
-            x_invstd2 = T.inv(T.sqrt(x_var2 + eps))
-            scale2 = T.addbroadcast(scale, *axes2)
-            bias2 = T.addbroadcast(bias, *axes2)
+            x_invstd2 = tt.inv(tt.sqrt(x_var2 + eps))
+            scale2 = tt.addbroadcast(scale, *axes2)
+            bias2 = tt.addbroadcast(bias, *axes2)
             out2 = (x - x_mean2) * (scale2 * x_invstd2) + bias2
-            m = T.cast(T.prod(x.shape) / T.prod(scale.shape), theano.config.floatX)
+            m = tt.cast(tt.prod(x.shape) / tt.prod(scale.shape), theano.config.floatX)
             out_running_mean2 = (
                 running_mean * (1 - running_average_factor)
                 + x_mean2 * running_average_factor
@@ -226,14 +226,14 @@ def test_batch_normalization_train():
             )
             # backward pass
             dy = vartype("dy")
-            grads = T.grad(None, wrt=[x, scale, bias], known_grads={out: dy})
+            grads = tt.grad(None, wrt=[x, scale, bias], known_grads={out: dy})
             # reference backward pass
-            grads2 = T.grad(None, wrt=[x, scale, bias], known_grads={out2: dy})
+            grads2 = tt.grad(None, wrt=[x, scale, bias], known_grads={out2: dy})
             # second-order backward pass
             dx = vartype("dinputs")
             dscale = vartype("dscale")
             dbias = vartype("dbias")
-            grad_grads = T.grad(
+            grad_grads = tt.grad(
                 None,
                 wrt=[x, dy, scale],
                 known_grads=OrderedDict(
@@ -252,7 +252,7 @@ def test_batch_normalization_train():
                 return_disconnected="zero",
             )
             # reference second-order backward pass
-            grad_grads2 = T.grad(
+            grad_grads2 = tt.grad(
                 None,
                 wrt=[x, dy, scale],
                 known_grads=OrderedDict(
@@ -354,7 +354,7 @@ def test_batch_normalization_train_grad_grad():
     utt.seed_rng()
 
     for axes in ("per-activation", "spatial", (1, 2, 3, 4)):
-        for vartype in (T.tensor5, T.tensor4, T.tensor3, T.matrix, T.vector):
+        for vartype in (tt.tensor5, tt.tensor4, tt.tensor3, tt.matrix, tt.vector):
             # run these experiments with float64 for sufficient numerical stability
             x, dy, scale, x_mean, x_invstd = (
                 vartype(n, dtype="float64")
@@ -425,10 +425,10 @@ def test_batch_normalization_train_without_running_averages():
     utt.seed_rng()
 
     x, scale, bias, dy = (
-        T.tensor4("x"),
-        T.tensor4("scale"),
-        T.tensor4("bias"),
-        T.tensor4("dy"),
+        tt.tensor4("x"),
+        tt.tensor4("scale"),
+        tt.tensor4("bias"),
+        tt.tensor4("dy"),
     )
     data_shape = (5, 10, 30, 25)
     param_shape = (1, 10, 30, 25)
@@ -438,7 +438,7 @@ def test_batch_normalization_train_without_running_averages():
         x, scale, bias, "per-activation"
     )
     # backward pass
-    grads = T.grad(None, wrt=[x, scale, bias], known_grads={out: dy})
+    grads = tt.grad(None, wrt=[x, scale, bias], known_grads={out: dy})
     # compile
     f = theano.function([x, scale, bias, dy], [out, x_mean, x_invstd] + grads)
     # check if the abstract Ops have been replaced
@@ -465,7 +465,7 @@ def test_batch_normalization_train_without_running_averages():
 
 def test_batch_normalization_train_broadcast():
     for axes in ("per-activation", "spatial", (1, 2, 3, 4)):
-        for vartype in (T.tensor5, T.tensor4, T.tensor3, T.matrix, T.vector):
+        for vartype in (tt.tensor5, tt.tensor4, tt.tensor3, tt.matrix, tt.vector):
             x = vartype("x")
             ndim = x.ndim
             eps = 5e-3  # some non-standard value to test if it's used
@@ -492,7 +492,7 @@ def test_batch_normalization_train_broadcast():
                 params_dimshuffle[axis] = i
 
             # construct non-broadcasted parameter variables
-            param_type = T.TensorType(x.dtype, (False,) * len(non_bc_axes))
+            param_type = tt.TensorType(x.dtype, (False,) * len(non_bc_axes))
             scale, bias, running_mean, running_var = (
                 param_type(n) for n in ("scale", "bias", "running_mean", "running_var")
             )
@@ -545,7 +545,7 @@ def test_batch_normalization_train_broadcast():
 
             # compile to compute all differences
             f = theano.function(
-                [x, scale, bias, running_mean, running_var], T.sum(sum(results))
+                [x, scale, bias, running_mean, running_var], tt.sum(sum(results))
             )
 
             # the paired ops are exactly the same, so the optimizer should have
@@ -570,7 +570,7 @@ def test_batch_normalization_train_broadcast():
 @pytest.mark.slow
 def test_batch_normalization_test():
     for axes in ("per-activation", "spatial", (1, 2, 3, 4)):
-        for vartype in (T.tensor5, T.tensor3, T.vector):
+        for vartype in (tt.tensor5, tt.tensor3, tt.vector):
             x, scale, bias, mean, var = (
                 vartype(n) for n in ("x", "scale", "bias", "mean", "var")
             )
@@ -593,14 +593,16 @@ def test_batch_normalization_test():
             else:
                 axes2 = axes
             scale2, bias2, mean2, var2 = (
-                T.addbroadcast(t, *axes2) for t in (scale, bias, mean, var)
+                tt.addbroadcast(t, *axes2) for t in (scale, bias, mean, var)
             )
-            out2 = (x - mean2) * (scale2 / T.sqrt(var2 + eps)) + bias2
+            out2 = (x - mean2) * (scale2 / tt.sqrt(var2 + eps)) + bias2
             # backward pass
             dy = vartype("dy")
-            grads = T.grad(None, wrt=[x, scale, bias, mean, var], known_grads={out: dy})
+            grads = tt.grad(
+                None, wrt=[x, scale, bias, mean, var], known_grads={out: dy}
+            )
             # reference backward pass
-            grads2 = T.grad(
+            grads2 = tt.grad(
                 None, wrt=[x, scale, bias, mean, var], known_grads={out2: dy}
             )
             # compile
@@ -649,7 +651,7 @@ def test_batch_normalization_test():
 def test_batch_normalization_broadcastable():
     # check if the broadcastable pattern is preserved by the optimizations
     x, dy, scale, bias, mean, var = (
-        T.scalar(n).dimshuffle(["x"] * 5)
+        tt.scalar(n).dimshuffle(["x"] * 5)
         for n in ("x", "dy", "scale", "bias", "mean", "var")
     )
 
@@ -659,8 +661,8 @@ def test_batch_normalization_broadcastable():
     )
     out_test = bn.batch_normalization_test(x, scale, bias, mean, var, "spatial")
     # backward pass
-    grads_train = T.grad(None, wrt=[x, scale, bias], known_grads={out_train: dy})
-    grads_test = T.grad(None, wrt=[x, scale, bias], known_grads={out_test: dy})
+    grads_train = tt.grad(None, wrt=[x, scale, bias], known_grads={out_train: dy})
+    grads_test = tt.grad(None, wrt=[x, scale, bias], known_grads={out_test: dy})
     # compile
     f = theano.function(
         [x, scale, bias, mean, var, dy],

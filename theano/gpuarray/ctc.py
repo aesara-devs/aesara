@@ -1,23 +1,25 @@
+import os
+import sys
+
 import theano
+import theano.tensor as tt
+import theano.tensor.nnet.ctc
+
 from theano import config, gof
-import theano.tensor as T
-from .basic_ops import (
+from theano.gpuarray.basic_ops import (
     gpu_contiguous,
     as_gpuarray_variable,
     infer_context_name,
     gpuarray_helper_inc_dir,
 )
-import theano.tensor.nnet.ctc
-from .type import GpuArrayType, gpu_context_type
-from .elemwise import GpuDimShuffle
+from theano.gpuarray.type import GpuArrayType, gpu_context_type
+from theano.gpuarray.elemwise import GpuDimShuffle
 from theano.gradient import grad_undefined
 from theano.gof import local_optimizer
 from theano.tensor.opt import register_canonicalize
 from theano.tensor.nnet.ctc import ctc_available
 
-import os
-import sys
-from . import pygpu
+from theano.gpuarray import pygpu
 
 
 class GpuConnectionistTemporalClassification(gof.COp):
@@ -104,8 +106,8 @@ class GpuConnectionistTemporalClassification(gof.COp):
         t_activations = gpu_contiguous(t_activations)
 
         # Labels and input lengths are always on the CPU
-        t_labels = T.as_tensor_variable(labels)
-        t_input_lengths = T.as_tensor_variable(input_lengths)
+        t_labels = tt.as_tensor_variable(labels)
+        t_input_lengths = tt.as_tensor_variable(input_lengths)
 
         if t_activations.type.dtype != "float32":
             raise TypeError("activations must use the float32 type.")
@@ -162,7 +164,7 @@ class GpuConnectionistTemporalClassification(gof.COp):
             ),
             new_order=(1, 0, 2),
         )(gradients)
-        grad_bdot = T.basic.batched_dot(grad_op, grad_shuffle)
+        grad_bdot = tt.batched_dot(grad_op, grad_shuffle)
         grad_shuffle_reverse = GpuDimShuffle(
             input_broadcastable=(
                 False,

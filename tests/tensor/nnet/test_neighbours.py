@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 
 from theano import change_flags
 from theano import shared, function
@@ -30,7 +30,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
                     images = shared(
                         np.arange(np.prod(shape), dtype=dtype).reshape(shape)
                     )
-                    neib_shape = T.as_tensor_variable(pshape)
+                    neib_shape = tt.as_tensor_variable(pshape)
 
                     f = function(
                         [],
@@ -60,7 +60,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
         shape = (2, 3, 4, 4)
         for dtype in self.dtypes:
             images = shared(np.arange(np.prod(shape), dtype=dtype).reshape(shape))
-            neib_shape = T.as_tensor_variable((2, 2))
+            neib_shape = tt.as_tensor_variable((2, 2))
 
             for border in ["valid", "ignore_borders"]:
                 f = function(
@@ -114,8 +114,8 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
             images = shared(
                 np.asarray(np.arange(np.prod(shape)).reshape(shape), dtype=dtype)
             )
-            neib_shape = T.as_tensor_variable((3, 3))
-            neib_step = T.as_tensor_variable((2, 2))
+            neib_shape = tt.as_tensor_variable((3, 3))
+            neib_step = tt.as_tensor_variable((2, 2))
             for border in ["valid", "ignore_borders"]:
                 f = function(
                     [],
@@ -170,7 +170,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
             images = shared(np.arange(np.prod(shape), dtype=dtype).reshape(shape))
 
             for neib_shape in [(3, 2), (2, 3)]:
-                neib_shape = T.as_tensor_variable(neib_shape)
+                neib_shape = tt.as_tensor_variable(neib_shape)
                 f = function([], images2neibs(images, neib_shape), mode=self.mode)
                 with pytest.raises(TypeError):
                     f()
@@ -252,8 +252,8 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
                 images = shared(
                     np.asarray(np.arange(np.prod(shape)).reshape(shape), dtype=dtype)
                 )
-                neib_shape = T.as_tensor_variable(neib_shape)
-                neib_step = T.as_tensor_variable(neib_step)
+                neib_shape = tt.as_tensor_variable(neib_shape)
+                neib_step = tt.as_tensor_variable(neib_step)
                 expected = np.asarray(expected)
 
                 f = function(
@@ -304,8 +304,8 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
                         x.shape[2] + 2 * extra[0],
                         x.shape[3] + 2 * extra[1],
                     )
-                    padded_x = T.zeros(padded_shape)
-                    padded_x = T.set_subtensor(
+                    padded_x = tt.zeros(padded_shape)
+                    padded_x = tt.set_subtensor(
                         padded_x[:, :, extra[0] : -extra[0], extra[1] : -extra[1]], x
                     )
                     x_using_valid = images2neibs(
@@ -341,8 +341,8 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
                         x.shape[2] + 2 * extra[0],
                         x.shape[3] + 2 * extra[1],
                     )
-                    padded_x = T.zeros(padded_shape)
-                    padded_x = T.set_subtensor(
+                    padded_x = tt.zeros(padded_shape)
+                    padded_x = tt.set_subtensor(
                         padded_x[:, :, extra[0] : -extra[0], extra[1] : -extra[1]], x
                     )
                     x_using_valid = images2neibs(
@@ -361,7 +361,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
             images = shared(np.arange(np.prod(shape), dtype=dtype).reshape(shape))
 
             for neib_shape in [(3, 2), (2, 3)]:
-                neib_shape = T.as_tensor_variable(neib_shape)
+                neib_shape = tt.as_tensor_variable(neib_shape)
 
                 f = function(
                     [],
@@ -373,7 +373,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
 
             for shape in [(2, 3, 2, 3), (2, 3, 3, 2)]:
                 images = shared(np.arange(np.prod(shape)).reshape(shape))
-                neib_shape = T.as_tensor_variable((3, 3))
+                neib_shape = tt.as_tensor_variable((3, 3))
                 f = function(
                     [],
                     images2neibs(images, neib_shape, mode="wrap_centered"),
@@ -385,7 +385,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
             # Test a valid shapes
             shape = (2, 3, 3, 3)
             images = shared(np.arange(np.prod(shape)).reshape(shape))
-            neib_shape = T.as_tensor_variable((3, 3))
+            neib_shape = tt.as_tensor_variable((3, 3))
 
             f = function(
                 [],
@@ -467,33 +467,33 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
 
     def test_neibs_valid_with_inconsistent_borders(self):
         shape = (2, 3, 5, 5)
-        images = T.dtensor4()
+        images = tt.dtensor4()
         images_val = np.arange(np.prod(shape), dtype="float32").reshape(shape)
 
         f = theano.function(
-            [images], T.sqr(images2neibs(images, (2, 2), mode="valid")), mode=self.mode
+            [images], tt.sqr(images2neibs(images, (2, 2), mode="valid")), mode=self.mode
         )
         with pytest.raises(TypeError):
             f(images_val)
 
     def test_neibs_half_with_inconsistent_borders(self):
         shape = (2, 3, 5, 5)
-        images = T.dtensor4()
+        images = tt.dtensor4()
         images_val = np.arange(np.prod(shape), dtype="float32").reshape(shape)
 
         f = theano.function(
-            [images], T.sqr(images2neibs(images, (2, 2), mode="half")), mode=self.mode
+            [images], tt.sqr(images2neibs(images, (2, 2), mode="half")), mode=self.mode
         )
         with pytest.raises(TypeError):
             f(images_val)
 
     def test_neibs_full_with_inconsistent_borders(self):
         shape = (2, 3, 5, 5)
-        images = T.dtensor4()
+        images = tt.dtensor4()
         images_val = np.arange(np.prod(shape), dtype="float32").reshape(shape)
 
         f = theano.function(
-            [images], T.sqr(images2neibs(images, (2, 2), mode="full")), mode=self.mode
+            [images], tt.sqr(images2neibs(images, (2, 2), mode="full")), mode=self.mode
         )
         with pytest.raises(TypeError):
             f(images_val)
@@ -503,12 +503,12 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
         # or that we crash in a few other case found while
         # investigating that case
 
-        img = T.tensor4("img")
-        patches = T.nnet.neighbours.images2neibs(img, [16, 16])
+        img = tt.tensor4("img")
+        patches = tt.nnet.neighbours.images2neibs(img, [16, 16])
         extractPatches = theano.function([img], patches, mode=self.mode)
 
-        patsRecovery = T.matrix("patsRecovery")
-        original_size = T.ivector("original_size")
+        patsRecovery = tt.matrix("patsRecovery")
+        original_size = tt.ivector("original_size")
 
         for mode in ["valid", "ignore_borders"]:
             out = neibs2images(patsRecovery, (16, 16), original_size, mode=mode)
@@ -528,7 +528,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
     def speed_neibs(self):
         shape = (100, 40, 18, 18)
         images = shared(np.arange(np.prod(shape), dtype="float32").reshape(shape))
-        neib_shape = T.as_tensor_variable((3, 3))
+        neib_shape = tt.as_tensor_variable((3, 3))
 
         f = function([], images2neibs(images, neib_shape), mode=self.mode)
 
@@ -538,7 +538,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
     def speed_neibs_wrap_centered(self):
         shape = (100, 40, 18, 18)
         images = shared(np.arange(np.prod(shape), dtype="float32").reshape(shape))
-        neib_shape = T.as_tensor_variable((3, 3))
+        neib_shape = tt.as_tensor_variable((3, 3))
 
         f = function(
             [], images2neibs(images, neib_shape, mode="wrap_centered"), mode=self.mode
@@ -550,7 +550,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
     def speed_neibs_half(self):
         shape = (100, 40, 18, 18)
         images = shared(np.arange(np.prod(shape), dtype="float32").reshape(shape))
-        neib_shape = T.as_tensor_variable((3, 3))
+        neib_shape = tt.as_tensor_variable((3, 3))
 
         f = function([], images2neibs(images, neib_shape, mode="half"), mode=self.mode)
 
@@ -560,7 +560,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
     def speed_neibs_full(self):
         shape = (100, 40, 18, 18)
         images = shared(np.arange(np.prod(shape), dtype="float32").reshape(shape))
-        neib_shape = T.as_tensor_variable((3, 3))
+        neib_shape = tt.as_tensor_variable((3, 3))
 
         f = function([], images2neibs(images, neib_shape, mode="full"), mode=self.mode)
 
@@ -570,7 +570,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
     def test_infer_shape(self):
         shape = (100, 40, 6, 3)
         images = np.ones(shape).astype("float32")
-        x = T.ftensor4()
+        x = tt.ftensor4()
         self._compile_and_check(
             [x],
             [images2neibs(x, neib_shape=(2, 1), mode="valid")],
@@ -585,7 +585,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
         )
         shape = (100, 40, 5, 4)
         images = np.ones(shape).astype("float32")
-        x = T.ftensor4()
+        x = tt.ftensor4()
         self._compile_and_check(
             [x],
             [images2neibs(x, neib_shape=(2, 1), mode="ignore_borders")],
@@ -594,7 +594,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
         )
         shape = (100, 40, 5, 3)
         images = np.ones(shape).astype("float32")
-        x = T.ftensor4()
+        x = tt.ftensor4()
         self._compile_and_check(
             [x],
             [images2neibs(x, neib_shape=(2, 3), mode="ignore_borders")],
@@ -604,7 +604,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
 
         shape = (100, 40, 6, 7)
         images = np.ones(shape).astype("float32")
-        x = T.ftensor4()
+        x = tt.ftensor4()
         self._compile_and_check(
             [x],
             [images2neibs(x, neib_shape=(2, 2), mode="ignore_borders")],
@@ -613,7 +613,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
         )
         shape = (100, 40, 5, 10)
         images = np.ones(shape).astype("float32")
-        x = T.ftensor4()
+        x = tt.ftensor4()
         self._compile_and_check(
             [x],
             [images2neibs(x, neib_shape=(3, 3), mode="wrap_centered")],
@@ -622,7 +622,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
         )
         shape = (100, 40, 6, 4)
         images = np.ones(shape).astype("float32")
-        x = T.ftensor4()
+        x = tt.ftensor4()
         self._compile_and_check(
             [x],
             [images2neibs(x, neib_shape=(2, 1), mode="half")],
@@ -637,7 +637,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
         )
         shape = (100, 40, 6, 5)
         images = np.ones(shape).astype("float32")
-        x = T.ftensor4()
+        x = tt.ftensor4()
         self._compile_and_check(
             [x],
             [images2neibs(x, neib_shape=(2, 1), mode="full")],

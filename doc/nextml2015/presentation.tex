@@ -271,15 +271,15 @@ Some example of scalar operations:
         }
 \begin{lstlisting}
 import theano
-from theano import tensor as T
-x = T.scalar()
-y = T.scalar()
+from theano import tensor as tt
+x = tt.scalar()
+y = tt.scalar()
 z = x+y
 w = z*x
-a = T.sqrt(w)
-b = T.exp(a)
+a = tt.sqrt(w)
+b = tt.exp(a)
 c = a ** b
-d = T.log(c)
+d = tt.log(c)
 \end{lstlisting}
 \end{frame}
 
@@ -291,13 +291,13 @@ d = T.log(c)
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-from theano import tensor as T
-x = T.vector()
-y = T.vector()
+from theano import tensor as tt
+x = tt.vector()
+y = tt.vector()
 # Scalar math applied elementwise
 a = x * y
 # Vector dot product
-b = T.dot(x, y)
+b = tt.dot(x, y)
 # Broadcasting (as NumPy, very powerful)
 c = a + b
 \end{lstlisting}
@@ -311,14 +311,14 @@ c = a + b
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-from theano import tensor as T
-x = T.matrix()
-y = T.matrix()
-a = T.vector()
+from theano import tensor as tt
+x = tt.matrix()
+y = tt.matrix()
+a = tt.vector()
 # Matrix-matrix product
-b = T.dot(x, y)
+b = tt.dot(x, y)
 # Matrix-vector product
-c = T.dot(x, a)
+c = tt.dot(x, a)
 \end{lstlisting}
 \end{frame}
 
@@ -336,11 +336,11 @@ c = T.dot(x, a)
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-from theano import tensor as T
-tensor3 = T.TensorType(
+from theano import tensor as tt
+tensor3 = tt.TensorType(
     broadcastable=(False, False, False),
     dtype='float32')
-x = T.tensor3()
+x = tt.tensor3()
 \end{lstlisting}
 \end{frame}
 
@@ -351,8 +351,8 @@ x = T.tensor3()
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-from theano import tensor as T
-tensor3 = T.TensorType(
+from theano import tensor as tt
+tensor3 = tt.TensorType(
     broadcastable=(False, False, False),
     dtype='float32')
 x = tensor3()
@@ -370,13 +370,13 @@ mx = x.max(axis=1)
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-from theano import tensor as T
-tensor3 = T.TensorType(
+from theano import tensor as tt
+tensor3 = tt.TensorType(
     broadcastable=(False, False, False))
 x = tensor3()
 y = x.dimshuffle((2, 1, 0))
-a = T.matrix()
-b = a.T
+a = tt.matrix()
+b = a.tt
 # Same as b
 c = a.dimshuffle((0, 1))
 # Adding to larger tensor
@@ -427,9 +427,9 @@ a_tensor[an_index_tensor, ...]
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
->>> from theano import tensor as T
->>> x = T.scalar()
->>> y = T.scalar()
+>>> from theano import tensor as tt
+>>> x = tt.scalar()
+>>> y = tt.scalar()
 >>> from theano import function
 >>> # first arg is list of SYMBOLIC inputs
 >>> # second arg is SYMBOLIC output
@@ -518,8 +518,8 @@ modes regard as fine.
   \item Theano current back-end only supports 32 bit on GPU
   \item libgpuarray (new-backend) support all dtype
   \item CUDA supports 64 bit, but is slow on gamer GPUs
-  \item T.fscalar, T.fvector, T.fmatrix are all 32 bit
-  \item T.scalar, T.vector, T.matrix resolve to 32 bit or 64 bit depending on theano’s floatX flag
+  \item tt.fscalar, tt.fvector, tt.fmatrix are all 32 bit
+  \item tt.scalar, tt.vector, tt.matrix resolve to 32 bit or 64 bit depending on theano’s floatX flag
   \item floatX is float64 by default, set it to float32
   \item Set device flag to gpu (or a specific gpu, like gpu0)
   \item Flag: warn\_float64={'ignore', 'warn', 'raise', 'pdb'}
@@ -547,9 +547,9 @@ modes regard as fine.
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
->>> x = T.scalar('x')
+>>> x = tt.scalar('x')
 >>> y = 2. * x
->>> g = T.grad(y, x)
+>>> g = tt.grad(y, x)
 # Print the not optimized graph
 >>> theano.printing.pydotprint(g)
 \end{lstlisting}
@@ -559,7 +559,7 @@ modes regard as fine.
 %% \begin{frame}{Theano Variables}
 %%   \begin{itemize}
 %%   \item A Variable is a theano expression
-%%   \item Can come from T.scalar, T.matrix, etc.
+%%   \item Can come from tt.scalar, tt.matrix, etc.
 %%   \item Can come from doing operations on other Variables
 %%   \item Every Variable has a type field, identifying its Type \newline
 %%     e.g. TensorType((True, False), ‘float32’)
@@ -623,9 +623,9 @@ modes regard as fine.
 \begin{lstlisting}
 import numpy as np
 import theano
-import theano.tensor as T
-x = T.vector()
-y = T.vector()
+import theano.tensor as tt
+x = tt.vector()
+y = tt.vector()
 z = x + x
 z = z + y
 f = theano.function([x, y], z)
@@ -857,16 +857,16 @@ Elemwise{mul,no_inplace} [@A] ''
         }
 \begin{lstlisting}
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 import numpy as np
 
 # define tensor variables
-W = T.matrix("W")
-X = T.matrix("X")
-b_sym = T.vector("b_sym")
+W = tt.matrix("W")
+X = tt.matrix("X")
+b_sym = tt.vector("b_sym")
 
 # define shared random stream
-trng = T.shared_randomstreams.RandomStreams(1234)
+trng = tt.shared_randomstreams.RandomStreams(1234)
 d=trng.binomial(size=W[1].shape)
 \end{lstlisting}
 \end{frame}
@@ -881,7 +881,7 @@ d=trng.binomial(size=W[1].shape)
         }
 \begin{lstlisting}
 results, updates = theano.scan(
-    lambda v: T.tanh(T.dot(v, W) + b_sym) * d,
+    lambda v: tt.tanh(tt.dot(v, W) + b_sym) * d,
     sequences=X)
 f = theano.function(inputs=[X, W, b_sym],
                     outputs=[results],
@@ -903,11 +903,11 @@ print f(x, w, b)
         }
 \begin{lstlisting}
 import theano
-import theano.tensor as T
+import theano.tensor as tt
 theano.config.warn.subtensor_merge_bug = False
 
-k = T.iscalar("k")
-A = T.vector("A")
+k = tt.iscalar("k")
+A = tt.vector("A")
 
 def inner_fct(prior_result, B):
     return prior_result * B
@@ -949,7 +949,7 @@ print power(range(10), 2)
 result, updates = theano.scan(
     fn=inner_fct,
     sequences=[]
-    outputs_info=[T.ones_like(A)],
+    outputs_info=[tt.ones_like(A)],
     non_sequences=A,
     n_steps=k)
 \end{lstlisting}

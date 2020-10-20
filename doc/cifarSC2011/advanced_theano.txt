@@ -18,15 +18,15 @@ Conditions
 
 .. testcode::
 
-   from theano import tensor as T
+   from theano import tensor as tt
    from theano.ifelse import ifelse
    import theano, time, numpy
 
-   a,b = T.scalars('a','b')
-   x,y = T.matrices('x','y')
+   a,b = tt.scalars('a','b')
+   x,y = tt.matrices('x','y')
 
-   z_switch = T.switch(T.lt(a,b), T.mean(x), T.mean(y))
-   z_lazy = ifelse(T.lt(a,b), T.mean(x), T.mean(y))
+   z_switch = tt.switch(tt.lt(a,b), tt.mean(x), tt.mean(y))
+   z_lazy = ifelse(tt.lt(a,b), tt.mean(x), tt.mean(y))
 
    f_switch = theano.function([a,b,x,y], z_switch,
                               mode=theano.Mode(linker='vm'))
@@ -98,14 +98,14 @@ Loops
 .. code-block:: python
 
   import theano
-  import theano.tensor as T
+  import theano.tensor as tt
 
-  k = T.iscalar("k"); A = T.vector("A")
+  k = tt.iscalar("k"); A = tt.vector("A")
 
   def inner_fct(prior_result, A): return prior_result * A
   # Symbolic description of the result
   result, updates = theano.scan(fn=inner_fct,
-                              outputs_info=T.ones_like(A),
+                              outputs_info=tt.ones_like(A),
                               non_sequences=A, n_steps=k)
 
   # Scan has provided us with A**1 through A**k.  Keep only the last
@@ -125,10 +125,10 @@ Loops
 
   import numpy
   import theano
-  import theano.tensor as T
+  import theano.tensor as tt
 
   coefficients = theano.tensor.vector("coefficients")
-  x = T.scalar("x"); max_coefficients_supported = 10000
+  x = tt.scalar("x"); max_coefficients_supported = 10000
 
   # Generate the components of the polynomial
   full_range=theano.tensor.arange(max_coefficients_supported)
@@ -384,7 +384,7 @@ Consider the following logistic regression model:
 
 >>> import numpy
 >>> import theano
->>> import theano.tensor as T
+>>> import theano.tensor as tt
 >>> rng = numpy.random
 >>> # Training data
 >>> N = 400
@@ -392,19 +392,19 @@ Consider the following logistic regression model:
 >>> D = (rng.randn(N, feats).astype(theano.config.floatX), rng.randint(size=N,low=0, high=2).astype(theano.config.floatX))
 >>> training_steps = 10000
 >>> # Declare Theano symbolic variables
->>> x = T.matrix("x")
->>> y = T.vector("y")
+>>> x = tt.matrix("x")
+>>> y = tt.vector("y")
 >>> w = theano.shared(rng.randn(feats).astype(theano.config.floatX), name="w")
 >>> b = theano.shared(numpy.asarray(0., dtype=theano.config.floatX), name="b")
 >>> x.tag.test_value = D[0]
 >>> y.tag.test_value = D[1]
 >>> # Construct Theano expression graph
->>> p_1 = 1 / (1 + T.exp(-T.dot(x, w)-b)) # Probability of having a one
+>>> p_1 = 1 / (1 + tt.exp(-tt.dot(x, w)-b)) # Probability of having a one
 >>> prediction = p_1 > 0.5 # The prediction that is done: 0 or 1
 >>> # Compute gradients
->>> xent = -y*T.log(p_1) - (1-y)*T.log(1-p_1) # Cross-entropy
+>>> xent = -y*tt.log(p_1) - (1-y)*tt.log(1-p_1) # Cross-entropy
 >>> cost = xent.mean() + 0.01*(w**2).sum() # The cost to optimize
->>> gw,gb = T.grad(cost, [w,b])
+>>> gw,gb = tt.grad(cost, [w,b])
 >>> # Training and prediction function
 >>> train = theano.function(inputs=[x,y], outputs=[prediction, xent], updates=[[w, w-0.01*gw], [b, b-0.01*gb]], name = "train")
 >>> predict = theano.function(inputs=[x], outputs=prediction, name = "predict")
