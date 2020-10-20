@@ -668,7 +668,7 @@ def matrix_power(M, n):
     This implementation uses exponentiation by squaring which is
     significantly faster than the naive implementation.
     The time complexity for exponentiation by squaring is
-    :math: `\mathcal{O}((n \log M)^k`
+    :math: `\mathcal{O}((n \log M)^k)`
 
     Parameters
     ----------
