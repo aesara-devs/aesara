@@ -395,7 +395,7 @@ def test_mod_complex_fail():
         x % y
 
 
-def test_div():
+def test_div_types():
     a = int8()
     b = int32()
     c = complex64()
