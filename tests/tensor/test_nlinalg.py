@@ -38,6 +38,9 @@ from theano.tensor.nlinalg import (
 from tests import unittest_tools as utt
 
 
+theano.config.compute_test_value = "warn"
+
+
 def test_pseudoinverse_correctness():
     rng = np.random.RandomState(utt.fetch_seed())
     d1 = rng.randint(4) + 2
@@ -533,16 +536,15 @@ class TestLstsq:
 
 
 class TestMatrix_power:
-    def test_numpy_compare(self):
+    @pytest.mark.parametrize("n", [0, 1, 2, 3, 4, 5, 11])
+    def test_numpy_compare(self, n):
         rng = np.random.RandomState(utt.fetch_seed())
-        A = tensor.matrix("A", dtype=theano.config.floatX)
-        Q = matrix_power(A, 3)
-        fn = function([A], [Q])
         a = rng.rand(4, 4).astype(theano.config.floatX)
-
-        n_p = np.linalg.matrix_power(a, 3)
-        t_p = fn(a)
-        assert np.allclose(n_p, t_p)
+        A = tensor.matrix("A", dtype=theano.config.floatX)
+        A.tag.test_value = a
+        Q = matrix_power(A, n)
+        n_p = np.linalg.matrix_power(a, n)
+        assert np.allclose(n_p, Q.get_test_value())
 
     def test_non_square_matrix(self):
         rng = np.random.RandomState(utt.fetch_seed())
