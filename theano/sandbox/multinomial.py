@@ -22,7 +22,7 @@ class MultinomialFromUniform(Op):
         self.odtype = odtype
 
     def __str__(self):
-        return "%s{%s}" % (self.__class__.__name__, self.odtype)
+        return "{}{{{}}}".format(self.__class__.__name__, self.odtype)
 
     def __setstate__(self, dct):
         self.__dict__.update(dct)
@@ -230,7 +230,7 @@ class ChoiceFromUniform(MultinomialFromUniform):
 
     def __init__(self, odtype, replace=False, *args, **kwargs):
         self.replace = replace
-        super(ChoiceFromUniform, self).__init__(odtype=odtype, *args, **kwargs)
+        super().__init__(odtype=odtype, *args, **kwargs)
 
     def __setstate__(self, state):
         self.__dict__.update(state)
@@ -442,4 +442,4 @@ class MultinomialWOReplacementFromUniform(ChoiceFromUniform):
             DeprecationWarning,
             stacklevel=2,
         )
-        super(MultinomialWOReplacementFromUniform, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)

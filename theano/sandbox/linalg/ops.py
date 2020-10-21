@@ -1,7 +1,5 @@
 import logging
 
-from six import integer_types
-
 import theano.tensor
 from theano import tensor
 from theano.gof import Apply, Op, local_optimizer
@@ -84,7 +82,7 @@ def remove_hint_nodes(node):
         return node.inputs
 
 
-class HintsFeature(object):
+class HintsFeature:
     """
     FunctionGraph Feature to track matrix properties.
 
@@ -120,7 +118,7 @@ class HintsFeature(object):
     """
 
     def add_hint(self, r, k, v):
-        logger.debug("adding hint; %s, %s, %s" % (r, k, v))
+        logger.debug("adding hint; {}, {}, {}".format(r, k, v))
         self.hints[r][k] = v
 
     def ensure_init_r(self, r):
@@ -378,7 +376,7 @@ def spectral_radius_bound(X, log2_exponent):
     """
     if X.type.ndim != 2:
         raise TypeError("spectral_radius_bound requires a matrix argument", X)
-    if not isinstance(log2_exponent, integer_types):
+    if not isinstance(log2_exponent, int):
         raise TypeError(
             "spectral_radius_bound requires an integer exponent", log2_exponent
         )
