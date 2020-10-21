@@ -6,7 +6,6 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
-
 from theano import Apply, Op
 from theano.gof import EnumList
 from theano.gradient import grad_not_implemented, grad_undefined

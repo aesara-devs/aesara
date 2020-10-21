@@ -1,3 +1,10 @@
+import warnings
+
+from . import opt
+from .abstract_conv import conv2d as abstract_conv2d
+from .abstract_conv import conv2d_grad_wrt_inputs, conv3d, separable_conv2d
+from .bn import batch_normalization
+from .conv import ConvOp
 from .nnet import (
     CrossentropyCategorical1Hot,
     CrossentropyCategorical1HotGrad,
@@ -10,8 +17,8 @@ from .nnet import (
     SoftmaxGrad,
     SoftmaxWithBias,
     binary_crossentropy,
-    sigmoid_binary_crossentropy,
     categorical_crossentropy,
+    confusion_matrix,
     crossentropy_categorical_1hot,
     crossentropy_categorical_1hot_grad,
     crossentropy_softmax_1hot,
@@ -22,6 +29,7 @@ from .nnet import (
     crossentropy_softmax_max_and_argmax_1hot_with_bias,
     crossentropy_to_crossentropy_with_softmax,
     crossentropy_to_crossentropy_with_softmax_with_bias,
+    elu,
     graph_merge_softmax_with_crossentropy_softmax,
     h_softmax,
     logsoftmax,
@@ -30,35 +38,24 @@ from .nnet import (
     prepend_1_to_each_row,
     prepend_scalar_to_each_row,
     relu,
+    selu,
+    sigmoid_binary_crossentropy,
     softmax,
     softmax_grad,
     softmax_graph,
     softmax_op,
     softmax_simplifier,
     softmax_with_bias,
-    elu,
-    selu,
-    confusion_matrix,
     softsign,
 )
-from . import opt
-from .conv import ConvOp
 from .sigm import (
-    softplus,
+    hard_sigmoid,
+    scalar_sigmoid,
     sigmoid,
     sigmoid_inplace,
-    scalar_sigmoid,
+    softplus,
     ultra_fast_sigmoid,
-    hard_sigmoid,
 )
-from .bn import batch_normalization
-
-
-import warnings
-from .abstract_conv import conv2d as abstract_conv2d
-from .abstract_conv import conv2d_grad_wrt_inputs
-from .abstract_conv import conv3d
-from .abstract_conv import separable_conv2d
 
 
 def conv2d(

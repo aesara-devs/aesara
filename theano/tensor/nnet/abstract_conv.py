@@ -4,27 +4,33 @@ Abstract conv interface
 
 
 import logging
-from six import reraise, integer_types
 import sys
+
+from six import integer_types, reraise
+
 
 try:
     from math import gcd
 except ImportError:
     from fractions import gcd
 
-import theano
-
-from theano.tensor import as_tensor_variable, patternbroadcast
-from theano.tensor import get_scalar_constant_value, NotScalarConstantError
-from theano.tensor.opt import Assert
-from theano.gof import Apply, Op
-
-
 import warnings
+
 import numpy as np
 
+import theano
+from theano.gof import Apply, Op
+from theano.tensor.basic import (
+    NotScalarConstantError,
+    as_tensor_variable,
+    get_scalar_constant_value,
+    patternbroadcast,
+)
+from theano.tensor.opt import Assert
+
+
 try:
-    from scipy.signal.signaltools import _valfrommode, _bvalfromboundary, convolve
+    from scipy.signal.signaltools import _bvalfromboundary, _valfrommode, convolve
     from scipy.signal.sigtools import _convolve2d
 
     imported_scipy_signal = True

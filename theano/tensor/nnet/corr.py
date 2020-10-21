@@ -1,17 +1,20 @@
-import os
 import logging
+import os
 
 from six import integer_types
 
 import theano
-from theano import Apply
 from theano import gof
-from theano.gof import ParamsType, EnumList
-from theano.scalar import int64, int8
-from theano.tensor import as_tensor_variable, TensorType
-from theano.tensor.nnet.abstract_conv import get_conv_output_shape
+from theano.gof.graph import Apply
+from theano.gof.params_type import ParamsType
+from theano.gof.type import EnumList
+from theano.scalar import int8, int64
 from theano.tensor import blas_headers
-from theano.tensor.blas import ldflags, blas_header_version
+from theano.tensor.basic import as_tensor_variable
+from theano.tensor.blas import blas_header_version, ldflags
+from theano.tensor.nnet.abstract_conv import get_conv_output_shape
+from theano.tensor.type import TensorType
+
 
 _logger = logging.getLogger(__name__)
 

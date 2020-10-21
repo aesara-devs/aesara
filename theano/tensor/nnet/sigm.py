@@ -13,11 +13,13 @@ import numpy as np
 
 import theano
 from theano import config, gof, printing, scalar
+from theano.gof.opt import copy_stack_trace
 from theano.printing import pprint
 from theano.tensor import basic as tensor
-from theano.tensor import elemwise, opt, NotScalarConstantError
+from theano.tensor import elemwise, opt
+from theano.tensor.basic import NotScalarConstantError
 from theano.tensor.type import values_eq_approx_remove_inf
-from theano.gof.opt import copy_stack_trace
+
 
 ############
 #
@@ -155,8 +157,9 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
         val_hard = hard_sigmoid(data).eval()
         val_ultra = ultra_fast_sigmoid(data).eval()
 
-        import matplotlib.pyplot as plt
         import os
+
+        import matplotlib.pyplot as plt
 
         fig = plt.figure()
         ax = fig.add_subplot(111)

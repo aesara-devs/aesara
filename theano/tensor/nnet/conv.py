@@ -10,27 +10,27 @@ See especially conv2d().
 
 
 import logging
+import warnings
 
 import numpy as np
 
-import warnings
-
 import theano
-from theano import OpenMPOp
-from theano.tensor import (
+from theano.gof.graph import Apply
+from theano.gof.op import OpenMPOp
+from theano.tensor import blas
+from theano.tensor.basic import (
+    NotScalarConstantError,
     as_tensor_variable,
-    blas,
     get_scalar_constant_value,
     patternbroadcast,
-    NotScalarConstantError,
 )
-from theano.gof import Apply
 from theano.tensor.nnet.abstract_conv import get_conv_output_shape, get_conv_shape_1axis
+
 
 try:
     # TODO: move these back out to global scope when they no longer
     # cause an atexit error
-    from scipy.signal.signaltools import _valfrommode, _bvalfromboundary
+    from scipy.signal.signaltools import _bvalfromboundary, _valfrommode
     from scipy.signal.sigtools import _convolve2d
 
     imported_scipy_signal = True

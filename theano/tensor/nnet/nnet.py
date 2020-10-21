@@ -17,35 +17,29 @@ import logging
 import warnings
 
 import numpy as np
+
 import theano
-
-# import theano.tensor.basic as tt
-
 from theano import scalar
 from theano.compile import optdb
 from theano.gof.graph import Apply
 from theano.gof.op import Op
+from theano.gof.opt import copy_stack_trace, local_optimizer, optimizer
+from theano.gradient import DisconnectedType, grad_not_implemented
+from theano.scalar import UnaryScalarOp
 
 # Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
 from theano.tensor import basic as tt
-from theano.tensor.opt import (
-    register_specialize,
-    register_stabilize,
-    register_canonicalize,
-)
-from theano.gof.opt import (
-    optimizer,
-    copy_stack_trace,
-    local_optimizer,
-)
-from theano.gradient import DisconnectedType, grad_not_implemented
-from theano.scalar import UnaryScalarOp
-from theano.tensor import as_tensor_variable, extra_ops, opt, subtensor
+from theano.tensor import extra_ops, opt, subtensor
+from theano.tensor.basic import MaxAndArgmax, as_tensor_variable, log
 from theano.tensor.elemwise import Elemwise
-from theano.tensor.subtensor import AdvancedSubtensor
-from theano.tensor.basic import log, MaxAndArgmax
 from theano.tensor.nnet.blocksparse import sparse_block_dot
 from theano.tensor.nnet.sigm import sigmoid, softplus
+from theano.tensor.opt import (
+    register_canonicalize,
+    register_specialize,
+    register_stabilize,
+)
+from theano.tensor.subtensor import AdvancedSubtensor
 from theano.tensor.type import values_eq_approx_remove_inf, values_eq_approx_remove_nan
 
 
