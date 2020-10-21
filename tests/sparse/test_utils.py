@@ -4,7 +4,6 @@ import pytest
 
 sp = pytest.importorskip("scipy", minversion="0.7.0")
 
-import theano.sparse
 from tests.sparse.test_basic import as_sparse_format
 from theano.sparse.utils import hash_from_sparse
 

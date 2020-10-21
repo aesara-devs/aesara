@@ -288,7 +288,7 @@ def verify_grad_sparse(op, pt, structured=False, *args, **kwargs):
                 else:
                     iconv.append(csc_from_dense)
             else:
-                raise NotImplementedError("No conv for %s" % (p.format,))
+                raise NotImplementedError("No conv for {}".format(p.format))
         else:
             dpt.append(p)
             iconv.append(conv_none)
@@ -3342,5 +3342,5 @@ class TestSamplingDot(utt.InferShapeTester):
     cast_value_=sp.sparse.csr_matrix,
     expect_fail_fast_shape_inplace=False,
 )
-class TestSharedOptions(object):
+class TestSharedOptions:
     pass

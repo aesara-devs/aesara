@@ -8,8 +8,6 @@ pytest.importorskip("scipy", minversion="0.7.0")
 import numpy as np
 from scipy.signal import convolve2d
 
-import theano
-import theano.sparse
 from tests import unittest_tools as utt
 from theano import function, tensor
 from theano.sparse.sandbox import sp
