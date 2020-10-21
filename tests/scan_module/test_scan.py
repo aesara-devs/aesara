@@ -742,7 +742,7 @@ class TestScan:
 
         # Call verify_grad to ensure the correctness of the second gradients
         floatX = theano.config.floatX
-        inputs_test_values = [np.random.random((3)).astype(floatX)]
+        inputs_test_values = [np.random.random(3).astype(floatX)]
         utt.verify_grad(get_sum_of_grad, inputs_test_values)
 
     def test_verify_second_grad_mitsot1(self):
@@ -771,7 +771,7 @@ class TestScan:
         floatX = theano.config.floatX
         inputs_test_values = [
             np.random.random((2, 3)).astype(floatX),
-            np.random.random((3)).astype(floatX),
+            np.random.random(3).astype(floatX),
         ]
         utt.verify_grad(get_sum_of_grad, inputs_test_values)
 
@@ -3896,7 +3896,7 @@ for{cpu,scan_fn}.2 [id H] ''
         dtype = theano.config.floatX
         seq_value = np.random.random((10, 3)).astype(dtype)
         out_init_value = np.random.random((3, 3)).astype(dtype)
-        non_seq_value = np.random.random((3)).astype(dtype)
+        non_seq_value = np.random.random(3).astype(dtype)
 
         outputs = fct(seq_value, out_init_value, non_seq_value)
 
