@@ -5,7 +5,6 @@ import warnings
 from functools import reduce
 
 import numpy as np
-from six import integer_types
 
 import theano
 import theano.pathparse
@@ -155,19 +154,19 @@ if ((err = cudnnCreate(&_handle)) != CUDNN_STATUS_SUCCESS) {
     path_wrapper = '"' if os.name == "nt" else ""
     params = ["-l", "cudnn"]
     params.extend(
-        ["-I%s%s%s" % (path_wrapper, gpuarray_helper_inc_dir(), path_wrapper)]
+        ["-I{}{}{}".format(path_wrapper, gpuarray_helper_inc_dir(), path_wrapper)]
     )
     if config.dnn.include_path:
         params.extend(
-            ["-I%s%s%s" % (path_wrapper, config.dnn.include_path, path_wrapper)]
+            ["-I{}{}{}".format(path_wrapper, config.dnn.include_path, path_wrapper)]
         )
     if config.cuda.include_path:
         params.extend(
-            ["-I%s%s%s" % (path_wrapper, config.cuda.include_path, path_wrapper)]
+            ["-I{}{}{}".format(path_wrapper, config.cuda.include_path, path_wrapper)]
         )
     if config.dnn.library_path:
         params.extend(
-            ["-L%s%s%s" % (path_wrapper, config.dnn.library_path, path_wrapper)]
+            ["-L{}{}{}".format(path_wrapper, config.dnn.library_path, path_wrapper)]
         )
     # Do not run here the test program. It would run on the
     # default gpu, not the one selected by the user. If mixed
@@ -462,7 +461,7 @@ class DnnBase(COp):
         return []
 
     def c_code_cache_version(self):
-        return (super(DnnBase, self).c_code_cache_version(), version(), 4)
+        return (super().c_code_cache_version(), version(), 4)
 
 
 class GpuDnnConvDesc(COp):
@@ -542,7 +541,7 @@ class GpuDnnConvDesc(COp):
         if version() < 6000 and any([d != 1 for d in dilation]):
             raise RuntimeError("Dilation > 1 not supported for cuDNN version < 6.")
 
-        if isinstance(border_mode, integer_types):
+        if isinstance(border_mode, int):
             border_mode = (border_mode,) * len(subsample)
         if isinstance(border_mode, tuple):
             assert len(border_mode) == len(subsample)
@@ -621,7 +620,7 @@ class GpuDnnConvDesc(COp):
     nb_dims = property(lambda self: len(self.subsample))
 
     def c_code_cache_version(self):
-        return (super(GpuDnnConvDesc, self).c_code_cache_version(), version())
+        return (super().c_code_cache_version(), version())
 
     def __setstate__(self, d):
         self.__dict__.update(d)
@@ -646,7 +645,7 @@ def ensure_dt(val, default, name, dtype):
     if hasattr(val, "ndim") and val.ndim == 0:
         val = as_scalar(val)
     if not isinstance(val.type, theano.scalar.Scalar):
-        raise TypeError("%s: expected a scalar value" % (name,))
+        raise TypeError("{}: expected a scalar value".format(name))
     if not val.type.dtype == dtype:
         val = val.astype(dtype)
     return val
@@ -2971,7 +2970,9 @@ class GpuDnnRNNOp(DnnBase):
         elif direction_mode == "unidirectional":
             self.num_dirs = 1
         else:
-            raise ValueError("direction_mode is invalid (got %s)" % (direction_mode,))
+            raise ValueError(
+                "direction_mode is invalid (got {})".format(direction_mode)
+            )
 
     def dnn_context(self, node):
         return node.outputs[1].type.context_name
@@ -3114,7 +3115,7 @@ class GpuDnnRNNGradWeights(DnnBase):
         return Apply(self, inputs, outputs)
 
 
-class RNNBlock(object):
+class RNNBlock:
     """
     An object that allow us to use CuDNN RNN implementation.
     TODO: make an example how to use. You can check Theano tests

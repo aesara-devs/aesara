@@ -225,7 +225,7 @@ class GpuTopKOp(GpuKernelBase, TopKOp):
         prep_output = ""
         if self.return_values:
             def_dvstrides = "const ssize_t *dvstrides = PyGpuArray_STRIDES(%s)" % yv
-            params_dv = "%s->ga.data, %s->ga.offset,\n" % (yv, yv)
+            params_dv = "{}->ga.data, {}->ga.offset,\n".format(yv, yv)
             params_dv += "".join("dvstrides[%d], " % i for i in reordered_axes)
             prep_output += (
                 """
@@ -241,7 +241,7 @@ class GpuTopKOp(GpuKernelBase, TopKOp):
 
         if self.return_indices:
             def_distrides = "const ssize_t *distrides = PyGpuArray_STRIDES(%s)" % yi
-            params_di = "%s->ga.data, %s->ga.offset,\n" % (yi, yi)
+            params_di = "{}->ga.data, {}->ga.offset,\n".format(yi, yi)
             params_di += "".join("distrides[%d], " % i for i in reordered_axes)
             prep_output += (
                 """

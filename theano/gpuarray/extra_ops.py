@@ -73,7 +73,7 @@ class GpuCumOp(GpuKernelBase, Op):
             )
 
         if self.axis >= x.ndim or self.axis < -x.ndim:
-            raise ValueError("axis(={0}) out of bounds".format(self.axis))
+            raise ValueError("axis(={}) out of bounds".format(self.axis))
         return Apply(self, [x], [x.type()])
 
     def gpu_kernels(self, node, nodename):
@@ -500,7 +500,7 @@ class GpuCumOp(GpuKernelBase, Op):
         """
             % locals()
         )
-        return super(GpuCumOp, self).c_support_code_struct(node, nodename) + code
+        return super().c_support_code_struct(node, nodename) + code
 
 
 # GpuCumsumOp exists only to serve backward compatibility.

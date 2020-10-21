@@ -4,7 +4,6 @@ import re
 from collections import deque
 
 import numpy as np
-from six import string_types
 
 import theano
 from theano import Apply, Op, Type, Variable, config, tensor
@@ -129,7 +128,7 @@ def gpuarray_helper_inc_dir():
     return os.path.join(os.path.dirname(__file__), "c_code")
 
 
-class Kernel(object):
+class Kernel:
     """
     This class groups together all the attributes of a gpu kernel.
 
@@ -214,14 +213,14 @@ class Kernel(object):
     @staticmethod
     def get_flags(*types):
         def get_dtype(t):
-            if isinstance(t, string_types):
+            if isinstance(t, str):
                 return np.dtype(t)
             elif isinstance(t, Type):
                 return t.dtype
             elif isinstance(t, Variable):
                 return t.type.dtype
             else:
-                raise TypeError("can't get a dtype from %s" % (type(t),))
+                raise TypeError("can't get a dtype from {}".format(type(t)))
 
         dtypes = [get_dtype(t) for t in types]
         flags = dict()
@@ -291,7 +290,7 @@ def get_ctype(dtype):
         return "npy_" + dtype.name
 
 
-class GpuKernelBase(object):
+class GpuKernelBase:
     """
     Base class for operations that need to compile kernels.
 
@@ -334,7 +333,7 @@ class GpuKernelBase(object):
         if isinstance(self.params_type, ParamsType) and self.params_type.has_type(
             gpu_context_type
         ):
-            return "(%s->%s)" % (
+            return "({}->{})".format(
                 params_c_name,
                 self.params_type.get_field(gpu_context_type),
             )
@@ -351,14 +350,14 @@ class GpuKernelBase(object):
 
     def c_headers(self):
         try:
-            o = super(GpuKernelBase, self).c_headers()
+            o = super().c_headers()
         except MethodNotDefined:
             o = []
         return o + ["gpuarray/types.h", "numpy/npy_common.h"]
 
     def c_header_dirs(self):
         try:
-            o = super(GpuKernelBase, self).c_header_dirs()
+            o = super().c_header_dirs()
         except MethodNotDefined:
             o = []
         # We rely on the input types for the directory to gpuarray includes
@@ -577,7 +576,7 @@ class CGpuKernelBase(COp, GpuKernelBase):
                 kcode = split[n + 1]
                 splt2 = kspec.split(":")
                 if len(splt2) != 3:
-                    raise ValueError("Bad kernel spec: %s" % (kspec,))
+                    raise ValueError("Bad kernel spec: {}".format(kspec))
                 kname = splt2[0].strip()
                 ktypes = [get_dtype(s.strip()) for s in splt2[1].split(",")]
                 kflags = splt2[2].strip()
@@ -697,7 +696,7 @@ class GpuFromHost(Op):
         self.context_name = context_name
 
     def __str__(self):
-        return "GpuFromHost<%s>" % (self.context_name,)
+        return "GpuFromHost<{}>".format(self.context_name)
 
     def make_node(self, x):
         if not isinstance(x.type, tensor.TensorType):
@@ -800,7 +799,7 @@ class GpuToGpu(Op):
         self.context_name = context_name
 
     def __str__(self):
-        return "GpuToGpu<%s>" % (self.context_name,)
+        return "GpuToGpu<{}>".format(self.context_name)
 
     def make_node(self, x):
         if not isinstance(x.type, GpuArrayType):
@@ -893,7 +892,7 @@ class GpuAlloc(HideC, Alloc):
             m = "{memset_0=True}"
         else:
             m = ""
-        return "%s<%s>%s" % (self.__class__.__name__, self.context_name, m)
+        return "{}<{}>{}".format(self.__class__.__name__, self.context_name, m)
 
     def make_node(self, value, *shape):
         value = as_gpuarray_variable(value, context_name=self.context_name)
@@ -1436,7 +1435,7 @@ class GpuJoin(HideC, Join):
         view = self.view
         non_empty_tensor = tensors[view]
         for i, inp in enumerate(tensors):
-            copy_to_list.append("als[%s] = &%s->ga;" % (i, inp))
+            copy_to_list.append("als[{}] = &{}->ga;".format(i, inp))
 
         n = len(tensors)
         fail = sub["fail"]
@@ -1507,7 +1506,7 @@ class GpuSplit(HideC, Split):
     _f16_ok = True
 
     def __init__(self, len_splits):
-        super(GpuSplit, self).__init__(len_splits)
+        super().__init__(len_splits)
         # The GPU version of Split returns splits as views of the input.
         self.view_map = {}
         for i in range(self.len_splits):

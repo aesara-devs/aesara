@@ -27,8 +27,7 @@ def nvcc_kernel(name, params, body):
     def flatbody():
         for b in body:
             if isinstance(b, (list, tuple)):
-                for bb in b:
-                    yield bb
+                yield from b
             else:
                 yield b
 
@@ -94,8 +93,8 @@ def inline_reduce(N, buf, pos, count, manner_fn):
     rest of the buffer is trashed by this function.
 
     """
-    loop_line = manner_fn("%s[%s]" % (buf, pos), "%s[i]" % (buf))
-    r_n = manner_fn("%s[%s]" % (buf, pos), "%s[%s+_n]" % (buf, pos))
+    loop_line = manner_fn("{}[{}]".format(buf, pos), "%s[i]" % (buf))
+    r_n = manner_fn("{}[{}]".format(buf, pos), "{}[{}+_n]".format(buf, pos))
 
     return (
         """
@@ -124,22 +123,22 @@ def inline_reduce(N, buf, pos, count, manner_fn):
 
 @code_version(inline_reduce.code_version)
 def inline_reduce_max(N, buf, pos, count):
-    return inline_reduce(N, buf, pos, count, lambda a, b: "max(%s, %s)" % (a, b))
+    return inline_reduce(N, buf, pos, count, lambda a, b: "max({}, {})".format(a, b))
 
 
 @code_version(inline_reduce.code_version)
 def inline_reduce_sum(N, buf, pos, count):
-    return inline_reduce(N, buf, pos, count, lambda a, b: "%s + %s" % (a, b))
+    return inline_reduce(N, buf, pos, count, lambda a, b: "{} + {}".format(a, b))
 
 
 @code_version(inline_reduce.code_version)
 def inline_reduce_min(N, buf, pos, count):
-    return inline_reduce(N, buf, pos, count, lambda a, b: "min(%s, %s)" % (a, b))
+    return inline_reduce(N, buf, pos, count, lambda a, b: "min({}, {})".format(a, b))
 
 
 @code_version(inline_reduce.code_version)
 def inline_reduce_prod(N, buf, pos, count):
-    return inline_reduce(N, buf, pos, count, lambda a, b: "%s * %s" % (a, b))
+    return inline_reduce(N, buf, pos, count, lambda a, b: "{} * {}".format(a, b))
 
 
 @code_version((2,) + inline_reduce_max.code_version + inline_reduce_sum.code_version)
@@ -275,8 +274,8 @@ def inline_reduce_fixed_shared(
         loop_line = manner_fn(
             "red", manner_init("%(load_x)s(%(x)s[i * %(stride_x)s])" % locals())
         )
-    loop_line2 = manner_fn("%s[%s]" % (buf, pos), "%s[i]" % buf)
-    r_n = manner_fn("%s[%s]" % (buf, pos), "%s[%s+_n]" % (buf, pos))
+    loop_line2 = manner_fn("{}[{}]".format(buf, pos), "%s[i]" % buf)
+    r_n = manner_fn("{}[{}]".format(buf, pos), "{}[{}+_n]".format(buf, pos))
 
     ctype = gpuarray.dtype_to_ctype(dtype)
     return (
@@ -331,7 +330,7 @@ def inline_reduce_fixed_shared_max(
         load_x,
         pos,
         count,
-        lambda a, b: "max(%s, %s)" % (a, b),
+        lambda a, b: "max({}, {})".format(a, b),
         lambda a: a,
         b,
         stride_b,
@@ -431,7 +430,7 @@ def inline_softmax_fixed_shared(
             load_x,
             threadPos,
             threadCount,
-            lambda a, b: "%s + %s" % (a, b),
+            lambda a, b: "{} + {}".format(a, b),
             lambda a: "exp(%s - row_max)" % a,
             b,
             stride_b,

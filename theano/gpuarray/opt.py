@@ -484,7 +484,7 @@ class GraphToGPU(Optimizer):
             for (t, o) in not_used[::-1]:
                 if t > 0:
                     # Skip opt that have 0 times, they probably wasn't even tried.
-                    print(blanc + "  ", "  %.3fs - %s" % (t, o), file=stream)
+                    print(blanc + "  ", "  {:.3f}s - {}".format(t, o), file=stream)
             print(file=stream)
 
     @staticmethod
@@ -2182,7 +2182,7 @@ def local_abstractconv3d_gradinputs_gemm_alt(node):
 
 class ConvMetaOptimizer(LocalMetaOptimizer):
     def __init__(self):
-        super(ConvMetaOptimizer, self).__init__()
+        super().__init__()
 
     def time_call(self, fn):
         start = time.time()

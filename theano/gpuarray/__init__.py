@@ -152,7 +152,7 @@ def init_dev(dev, name=None, preallocate=None):
                         file=sys.stderr,
                     )
         if preallocate < 0:
-            print("Disabling allocation cache on %s" % (dev,))
+            print("Disabling allocation cache on {}".format(dev))
         elif preallocate > 0:
             if preallocate <= 1:
                 gmem = min(preallocate, 0.95) * context.total_gmem

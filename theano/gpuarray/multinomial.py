@@ -534,4 +534,4 @@ class GPUAMultinomialWOReplacementFromUniform(GPUAChoiceFromUniform):
             DeprecationWarning,
             stacklevel=2,
         )
-        super(GPUAMultinomialWOReplacementFromUniform, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
