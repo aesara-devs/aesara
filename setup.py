@@ -5,10 +5,11 @@
 #   * Add download_url
 
 
-import os
 import codecs
-from fnmatch import fnmatchcase
+import os
 from distutils.util import convert_path
+from fnmatch import fnmatchcase
+
 
 try:
     from setuptools import setup
@@ -16,6 +17,7 @@ except ImportError:
     from distutils.core import setup
 
 import versioneer
+
 
 CLASSIFIERS = """\
 Development Status :: 6 - Mature
