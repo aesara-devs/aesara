@@ -2,15 +2,13 @@ import gc
 import sys
 import time
 
+import numpy as np
 import pytest
 
-import numpy as np
-
 import theano
-
 from theano import function, tensor
-from theano.gof import vm, OpWiseCLinker
 from theano.compile import Mode
+from theano.gof import OpWiseCLinker, vm
 from theano.ifelse import ifelse
 
 

@@ -1,16 +1,16 @@
 import numpy as np
 import pytest
+from six import string_types
+
 import theano
 import theano.gof.op as op
 import theano.tensor as tt
-
-from six import string_types
-from theano import scalar, shared, config
+from theano import config, scalar, shared
 from theano.configparser import change_flags
 from theano.gof.graph import Apply, Variable
-from theano.gof.type import Generic, Type
 from theano.gof.op import Op
-from theano.gof.utils import TestValueError, MethodNotDefined
+from theano.gof.type import Generic, Type
+from theano.gof.utils import MethodNotDefined, TestValueError
 
 
 def as_variable(x):

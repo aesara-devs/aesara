@@ -1,15 +1,13 @@
+import numpy as np
 import pytest
 
-import numpy as np
-
 import theano
-
-from theano import tensor, Generic
+from tests import unittest_tools as utt
+from theano import Generic, tensor
+from theano.gof import Apply, COp, EnumList, Op, Params, ParamsType
 from theano.scalar import Scalar
 from theano.tensor import TensorType
-from theano.gof import ParamsType, Params, EnumList, Op, COp, Apply
 
-from tests import unittest_tools as utt
 
 tensor_type_0d = TensorType("float64", tuple())
 scalar_type = Scalar("float64")

@@ -1,14 +1,13 @@
-from theano.gof.sched import (
-    make_dependence_cmp,
-    sort_apply_nodes,
-    reverse_dict,
-    _toposort,
-    posort,
-)
-
 from theano import tensor
-from theano.gof.graph import io_toposort
 from theano.compat import cmp
+from theano.gof.graph import io_toposort
+from theano.gof.sched import (
+    _toposort,
+    make_dependence_cmp,
+    posort,
+    reverse_dict,
+    sort_apply_nodes,
+)
 
 
 def test_dependence():

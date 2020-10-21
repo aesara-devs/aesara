@@ -1,14 +1,10 @@
-import os
-import sys
-import traceback
 import warnings
 
-import pytest
 import numpy as np
+import pytest
 
 import theano
 import theano.tensor as tt
-
 from theano import config, scalar
 from theano.gof import Apply, Op, utils
 from theano.tensor.basic import _allclose
@@ -222,21 +218,12 @@ class TestComputeTestValue:
         def fx(prior_result, A):
             return tt.dot(prior_result, A)
 
-        # Since we have to inspect the traceback,
-        # we cannot simply use self.assertRaises()
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError) as e:
             theano.scan(fn=fx, outputs_info=tt.ones_like(A), non_sequences=A, n_steps=k)
 
-        # Get traceback
-        tb = sys.exc_info()[2]
-        frame_infos = traceback.extract_tb(tb)
-
+        assert str(e.traceback[0].path).endswith("test_compute_test_value.py")
         # We should be in the "fx" function defined above
-        expected = "test_compute_test_value.py"
-        assert any(
-            (os.path.split(frame_info[0])[1] == expected and frame_info[2] == "fx")
-            for frame_info in frame_infos
-        ), frame_infos
+        assert e.traceback[2].name == "fx"
 
     @theano.change_flags(compute_test_value="raise")
     def test_scan_err2(self):
@@ -255,8 +242,6 @@ class TestComputeTestValue:
                 fn=fx, outputs_info=tt.ones_like(A.T), non_sequences=A, n_steps=k
             )
 
-        # Since we have to inspect the traceback,
-        # we cannot simply use self.assertRaises()
         with pytest.raises(ValueError, match="^could not broadcast input"):
             theano.scan(
                 fn=fx, outputs_info=tt.ones_like(A.T), non_sequences=A, n_steps=k

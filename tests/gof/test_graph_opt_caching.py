@@ -1,7 +1,10 @@
 import os
+
 import numpy as np
+
 import theano
 import theano.tensor as tt
+
 
 floatX = "float32"
 

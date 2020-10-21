@@ -1,11 +1,12 @@
 import os
+
 import numpy as np
 import pytest
 
 import theano
-from theano import Op, Apply, scalar
+from theano import Apply, Op, scalar
+from theano.gof.type import CDataType, CEnumType, EnumList, EnumType
 from theano.tensor import TensorType
-from theano.gof.type import CDataType, EnumType, EnumList, CEnumType
 
 
 # todo: test generic

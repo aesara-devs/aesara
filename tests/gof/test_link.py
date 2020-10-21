@@ -3,14 +3,12 @@ from copy import deepcopy
 import numpy as np
 
 import theano
-from theano.gof import graph
-from theano.gof.graph import Variable, Apply, Constant
-from theano.gof.type import Type
-from theano.gof.op import Op
-from theano.gof import fg
-
-from theano.gof.link import PerformLinker, WrapLinker, Container
 from theano.compat import cmp
+from theano.gof import fg, graph
+from theano.gof.graph import Apply, Constant, Variable
+from theano.gof.link import Container, PerformLinker, WrapLinker
+from theano.gof.op import Op
+from theano.gof.type import Type
 
 
 def as_variable(x):
@@ -175,7 +173,7 @@ class TestWrapLinker:
 
 def test_sort_schedule_fn():
     import theano
-    from theano.gof.sched import sort_schedule_fn, make_depends
+    from theano.gof.sched import make_depends, sort_schedule_fn
 
     x = theano.tensor.matrix("x")
     y = theano.tensor.dot(x[:5] * 2, x.T + 1).T
