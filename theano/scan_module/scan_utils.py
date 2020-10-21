@@ -24,7 +24,6 @@ import warnings
 from collections import OrderedDict
 
 import numpy as np
-from six import string_types
 
 import theano
 from theano import compat, gof, scalar, tensor
@@ -104,7 +103,7 @@ def safe_new(x, tag="", dtype=None):
     return nw_x
 
 
-class until(object):
+class until:
     """
     Class used to encode the different things the inner function of scan can
     (or needs) to return.
@@ -596,7 +595,7 @@ def isNaN_or_Inf_or_None(x):
     try:
         isNaN = np.isnan(x)
         isInf = np.isinf(x)
-        isStr = isinstance(x, string_types)
+        isStr = isinstance(x, str)
     except Exception:
         isNaN = False
         isInf = False
@@ -609,7 +608,7 @@ def isNaN_or_Inf_or_None(x):
         except Exception:
             isNaN = False
             isInf = False
-    if isinstance(x, gof.Constant) and isinstance(x.data, string_types):
+    if isinstance(x, gof.Constant) and isinstance(x.data, str):
         isStr = True
     else:
         isStr = False
@@ -687,7 +686,7 @@ def infer_shape(outs, inputs, input_shapes):
     return ret
 
 
-class Validator(object):
+class Validator:
     """
     Check if variables can be expressed without using variables in invalid.
 
@@ -1007,7 +1006,7 @@ def reconstruct_graph(inputs, outputs, tag=None):
     return (nw_inputs, nw_outputs)
 
 
-class scan_args(object):
+class scan_args:
     """
     Parses the inputs and outputs of scan in an easy to manipulate format.
 

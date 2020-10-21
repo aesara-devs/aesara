@@ -55,7 +55,6 @@ import time
 from collections import OrderedDict
 
 import numpy as np
-from six import integer_types, raise_from, string_types
 
 import theano
 from theano import compile, config, gof, gradient, tensor
@@ -944,10 +943,9 @@ class Scan(PureOp):
 
         profile = None
         if theano.config.profile or (
-            isinstance(self.profile, (string_types, bool, integer_types))
-            and self.profile
+            isinstance(self.profile, (str, bool, (int,))) and self.profile
         ):
-            if isinstance(self.profile, string_types):
+            if isinstance(self.profile, str):
                 profile = ScanProfileStats(name=self.profile)
             else:
                 profile = ScanProfileStats(name=self.name)
@@ -1591,7 +1589,7 @@ class Scan(PureOp):
                                 "'optimizer_excluding=scanOp_pushout_output' "
                                 "to your Theano flags."
                             )
-                            raise_from(ne, e)
+                            raise ne from e
 
             # 5.5 Copy over the values for nit_sot outputs
             begin = end

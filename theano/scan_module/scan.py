@@ -46,7 +46,6 @@ import logging
 from collections import OrderedDict
 
 import numpy as np
-from six import integer_types
 
 import theano.tensor as tt
 from theano import compile, config, gof
@@ -382,7 +381,7 @@ def scan(
     # To do that we check here to see the nature of n_steps
     n_fixed_steps = None
 
-    if isinstance(n_steps, (float, integer_types)):
+    if isinstance(n_steps, (float, int)):
         n_fixed_steps = int(n_steps)
     else:
         try:
