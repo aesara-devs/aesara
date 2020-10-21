@@ -10,6 +10,7 @@ from numpy.testing import assert_array_almost_equal
 from theano import tensor, function
 from theano.tensor.basic import _allclose
 from theano import config
+from theano.configparser import change_flags
 from theano.tensor.nlinalg import (
     MatrixInverse,
     matrix_inverse,
@@ -36,9 +37,6 @@ from theano.tensor.nlinalg import (
 )
 
 from tests import unittest_tools as utt
-
-
-theano.config.compute_test_value = "warn"
 
 
 def test_pseudoinverse_correctness():
@@ -535,11 +533,13 @@ class TestLstsq:
             f([2, 1], [2, 1], [2, 1])
 
 
-class TestMatrix_power:
-    @pytest.mark.parametrize("n", [0, 1, 2, 3, 4, 5, 11])
+class TestMatrixPower:
+    @change_flags(compute_test_value="raise")
+    @pytest.mark.parametrize("n", [-1, 0, 1, 2, 3, 4, 5, 11])
     def test_numpy_compare(self, n):
-        rng = np.random.RandomState(utt.fetch_seed())
-        a = rng.rand(4, 4).astype(theano.config.floatX)
+        a = np.array([[0.1231101, 0.72381381], [0.28748201, 0.43036511]]).astype(
+            theano.config.floatX
+        )
         A = tensor.matrix("A", dtype=theano.config.floatX)
         A.tag.test_value = a
         Q = matrix_power(A, n)
@@ -547,22 +547,18 @@ class TestMatrix_power:
         assert np.allclose(n_p, Q.get_test_value())
 
     def test_non_square_matrix(self):
-        rng = np.random.RandomState(utt.fetch_seed())
         A = tensor.matrix("A", dtype=theano.config.floatX)
         Q = matrix_power(A, 3)
         f = function([A], [Q])
-        a = rng.rand(4, 3).astype(theano.config.floatX)
+        a = np.array(
+            [
+                [0.47497769, 0.81869379],
+                [0.74387558, 0.31780172],
+                [0.54381007, 0.28153101],
+            ]
+        ).astype(theano.config.floatX)
         with pytest.raises(ValueError):
             f(a)
-
-    def test_negative_matrix(self):
-        rng = np.random.RandomState(utt.fetch_seed())
-        a = rng.rand(5, 5).astype(theano.config.floatX)
-        A = tensor.matrix("A", dtype=theano.config.floatX)
-        A.tag.test_value = a
-        Q = matrix_power(A, -1)
-        n_p = np.linalg.matrix_power(a, -1)
-        assert np.allclose(n_p, Q.get_test_value())
 
 
 class TestNormTests:
