@@ -33,13 +33,13 @@ supposed to be canonical.
 
 import logging
 
-from theano.tensor.elemwise import CAReduce
-from theano.tensor import basic as tt
 from theano import scalar as scal
-from theano.tensor import DimShuffle, Subtensor
-
 from theano.gof.opt import copy_stack_trace, local_optimizer
+from theano.tensor import basic as tt
+from theano.tensor.elemwise import CAReduce, DimShuffle
 from theano.tensor.opt import register_uncanonicalize
+from theano.tensor.subtensor import Subtensor
+
 
 _logger = logging.getLogger("theano.tensor.opt")
 

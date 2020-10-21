@@ -4,8 +4,8 @@ import numpy as np
 from six import integer_types
 
 import theano.tensor.basic
+from theano.compile import SharedVariable, shared_constructor
 from theano.tensor.basic import TensorType, _tensor_py_operators
-from theano.compile import shared_constructor, SharedVariable
 
 
 def load_shared_variable(val):

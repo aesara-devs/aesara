@@ -1,33 +1,31 @@
+import logging
 import sys
 import warnings
-import logging
-
-import numpy as np
-
-import theano
-
+from itertools import chain, groupby
 from textwrap import dedent
 
-from itertools import groupby, chain
-
+import numpy as np
 from six import integer_types
 
-from theano import gof, scalar as scal, config
-from theano.gof import Apply, hashtype, Op, Type, MethodNotDefined, ParamsType
+import theano
+from theano import config, gof
+from theano import scalar as scal
+from theano.gof import Apply, MethodNotDefined, Op, ParamsType, Type, hashtype
 from theano.gradient import DisconnectedType
 from theano.printing import pprint
 from theano.tensor.basic import (
-    alloc,
+    NotScalarConstantError,
+    TensorType,
     addbroadcast,
+    alloc,
     clip,
     get_scalar_constant_value,
-    TensorType,
-    NotScalarConstantError,
 )
 from theano.tensor.elemwise import DimShuffle
-from theano.tensor.inc_code import inc_code
 from theano.tensor.extra_ops import broadcast_shape
-from theano.tensor.type_other import NoneConst, SliceType, NoneTypeT, make_slice
+from theano.tensor.inc_code import inc_code
+from theano.tensor.type_other import NoneConst, NoneTypeT, SliceType, make_slice
+
 
 _logger = logging.getLogger("theano.tensor.subtensor")
 
@@ -107,7 +105,7 @@ def get_canonical_form_slice(theslice, length):
     if the resulting set of numbers needs to be reversed or not.
 
     """
-    from theano.tensor import switch, lt, ge, sgn
+    from theano.tensor import ge, lt, sgn, switch
 
     if isinstance(theslice, slice):
 
@@ -269,7 +267,7 @@ def range_len(slc):
     Adapted from CPython.
 
     """
-    from theano.tensor import switch, and_, lt, gt
+    from theano.tensor import and_, gt, lt, switch
 
     start, stop, step = tuple(
         as_index_constant(a) for a in [slc.start, slc.stop, slc.step]

@@ -1,19 +1,18 @@
 import copy
 import traceback as tb
 import warnings
-
-import numpy as np
-import theano
-
-from six import integer_types
 from collections.abc import Iterable
 
-from theano.scalar import ComplexError, IntegerDivisionError
+import numpy as np
+from six import integer_types
+
+import theano
+from theano import config
 from theano.gof import Constant, Variable
 from theano.gof.utils import hashtype
-from theano.tensor.utils import hash_from_ndarray
+from theano.scalar import ComplexError, IntegerDivisionError
 from theano.tensor.type import TensorType
-from theano import config
+from theano.tensor.utils import hash_from_ndarray
 
 
 class _tensor_py_operators(object):

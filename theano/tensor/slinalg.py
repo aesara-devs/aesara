@@ -1,8 +1,8 @@
 import logging
 import warnings
 
-
 import numpy as np
+
 
 try:
     import scipy.linalg
@@ -12,10 +12,11 @@ except ImportError:
     # some ops (e.g. Cholesky, Solve, A_Xinv_b) won't work
     imported_scipy = False
 
-from theano import tensor
 import theano.tensor
+from theano import tensor
+from theano.gof import Apply, Op
 from theano.tensor import as_tensor_variable
-from theano.gof import Op, Apply
+
 
 logger = logging.getLogger(__name__)
 

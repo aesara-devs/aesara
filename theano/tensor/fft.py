@@ -1,7 +1,6 @@
 import numpy as np
 
 import theano.tensor as tt
-
 from theano import gof
 from theano.gradient import DisconnectedType
 

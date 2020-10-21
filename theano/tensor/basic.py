@@ -1,46 +1,37 @@
 """A `Type` and `Op` classes to work with numpy.ndarrays symbolically."""
 
-import warnings
-import numbers
-import logging
 import builtins
+import logging
+import numbers
+import warnings
+from collections.abc import Sequence
+from functools import partial
 
 import numpy as np
+from six import integer_types
 
 import theano
 import theano.scalar.sharedvar
-
-from functools import partial
-from collections.abc import Sequence
-
-from six import integer_types
-
-from theano import config, gof, scalar as scal, compile, printing
-from theano.gof import Apply, Constant, Op, Variable, ParamsType
-from theano.gof.type import Generic
-
-from theano.scalar import int32
-from theano.tensor import elemwise
-from theano.tensor.var import (
-    TensorVariable,
-    TensorConstant,
-    _tensor_py_operators,
-)
-from theano.tensor.type import TensorType, values_eq_approx_always_true
-from theano.tensor.type_other import NoneConst
-from theano.printing import pprint, min_informative_str
+from theano import compile, config, gof, printing
+from theano import scalar as scal
 
 # For history
 from theano.compile import Rebroadcast, Shape, shape
-
+from theano.gof import Apply, Constant, Op, ParamsType, Variable
+from theano.gof.type import Generic
 
 # We use these exceptions as well.
-from theano.gradient import grad_undefined
-from theano.gradient import grad_not_implemented
-from theano.gradient import DisconnectedType
+from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
+from theano.printing import min_informative_str, pprint
+from theano.scalar import int32
+from theano.tensor import elemwise
 
 # set up the external interface
-from theano.tensor.elemwise import Elemwise, DimShuffle, CAReduce, Sum
+from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise, Sum
+from theano.tensor.type import TensorType, values_eq_approx_always_true
+from theano.tensor.type_other import NoneConst
+from theano.tensor.var import TensorConstant, TensorVariable, _tensor_py_operators
+
 
 _logger = logging.getLogger("theano.tensor.basic")
 

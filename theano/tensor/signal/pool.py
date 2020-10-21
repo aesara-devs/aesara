@@ -3,15 +3,14 @@ Ops for downsampling images.
 Planned:
 Pool, DownsampleAvg, DownsampleSoftmax.
 """
-import warnings
 import itertools
+import warnings
 
 import numpy as np
 
 import theano
-
-from theano import gof, OpenMPOp, tensor, Variable, Apply
-from theano.gof import ParamsType, EnumList
+from theano import Apply, OpenMPOp, Variable, gof, tensor
+from theano.gof import EnumList, ParamsType
 from theano.gradient import DisconnectedType
 from theano.scalar import bool as bool_t
 

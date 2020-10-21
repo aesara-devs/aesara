@@ -6,13 +6,14 @@ ourselves into the C code.
 """
 
 import logging
-import textwrap
-import sys
 import os
+import sys
+import textwrap
 from os.path import dirname
 
 from theano import config
 from theano.gof.cmodule import GCC_compiler
+
 
 _logger = logging.getLogger("theano.tensor.blas")
 

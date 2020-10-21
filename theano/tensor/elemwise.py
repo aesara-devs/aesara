@@ -1,22 +1,18 @@
 from copy import copy
 
 import numpy as np
-
-import theano
-
 from six import integer_types
 
-from theano import gof
-
-from theano import change_flags
-from theano.gof import Apply, Op, COp, OpenMPOp, ParamsType
-from theano import scalar
-from theano.scalar import get_scalar_type
-from theano.printing import pprint
-from theano.gradient import DisconnectedType
+import theano
+from theano import change_flags, gof, scalar
+from theano.gof import Apply, COp, Op, OpenMPOp, ParamsType
 from theano.gof.null_type import NullType
-from theano.tensor import elemwise_cgen as cgen
+from theano.gradient import DisconnectedType
 from theano.misc.frozendict import frozendict
+from theano.printing import pprint
+from theano.scalar import get_scalar_type
+from theano.tensor import elemwise_cgen as cgen
+
 
 config = theano.config
 

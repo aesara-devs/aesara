@@ -2,20 +2,17 @@
 
 
 import sys
-
-import numpy as np
-
-import theano
-
 from copy import copy
 from functools import reduce
 
+import numpy as np
 from six import string_types
 
-from theano import tensor
-from theano.tensor import opt
-from theano import gof
+import theano
+from theano import gof, tensor
 from theano.compile import optdb
+from theano.tensor import opt
+
 
 __docformat__ = "restructuredtext en"
 

@@ -9,8 +9,9 @@ import copy
 
 import numpy as np
 
-from theano.compile.sharedvalue import SharedVariable, shared_constructor, shared
+from theano.compile.sharedvalue import SharedVariable, shared, shared_constructor
 from theano.tensor import raw_random
+
 
 __docformat__ = "restructuredtext en"
 

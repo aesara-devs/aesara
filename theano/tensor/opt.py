@@ -2,122 +2,115 @@
 # TODO: intelligent merge for mul/add
 # TODO: 0*x -> 0
 
-import logging
 import itertools
+import logging
 import operator
 import sys
 import time
 import traceback
 import warnings
+from collections import defaultdict
+from functools import reduce
 
 import numpy as np
+from six import StringIO, integer_types
 
 import theano
 import theano.scalar.basic as ts
-
-# import theano.tensor.basic as tt
-
-from functools import reduce
-from collections import defaultdict
-
-from six import integer_types, StringIO
-
-from theano import (
-    gof,
-    config,
-    compile,
-)  # to register the optimizer built by this file
-
-# Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
-from theano.tensor import basic as tt
-
+from theano import compile, config, gof  # to register the optimizer built by this file
+from theano.compile.ops import Shape, Shape_i
 from theano.gof import (
-    opt,
-    InconsistencyError,
-    TopoOptimizer,
-    graph,
-    Variable,
     Constant,
-    toolbox,
-    PatternSub,
-    OpRemove,
+    InconsistencyError,
     LocalOptimizer,
+    OpRemove,
+    PatternSub,
+    TopoOptimizer,
+    Variable,
+    graph,
+    opt,
+    toolbox,
 )
 from theano.gof.op import Op
 from theano.gof.opt import (
-    local_optimizer,
+    Optimizer,
     copy_stack_trace,
     in2out,
-    Optimizer,
+    local_optimizer,
     pre_constant_merge,
     pre_greedy_local_optimizer,
 )
 from theano.gof.utils import MethodNotDefined, TestValueError
 from theano.gradient import DisconnectedType
-from theano.tensor.elemwise import (
-    Elemwise,
-    DimShuffle,
-    Prod,
-    CAReduce,
-    All,
-    Any,
-    Sum,
-    ProdWithoutZeros,
-)
-from theano.tensor.subtensor import (
-    get_idx_list,
-    get_canonical_form_slice,
-    Subtensor,
-    IncSubtensor,
-    as_index_constant,
-    AdvancedIncSubtensor1,
-    AdvancedIncSubtensor,
-    AdvancedSubtensor1,
-    advanced_subtensor,
-    advanced_subtensor1,
-    advanced_inc_subtensor1,
-)
-from theano.tensor.sort import TopKOp
-from theano.compile.ops import Shape, Shape_i
-from theano.tensor.type import (
-    values_eq_approx_remove_inf,
-    values_eq_approx_remove_nan,
-    values_eq_approx_remove_inf_nan,
-)
 
+# Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
+from theano.tensor import basic as tt
 from theano.tensor.basic import (
-    Join,
-    Rebroadcast,
-    Flatten,
-    Split,
-    Tile,
     Alloc,
     AllocEmpty,
-    alloc,
-    fill,
-    get_scalar_constant_value,
-    ShapeError,
-    extract_constant,
+    Dot,
+    Flatten,
+    Join,
     NotScalarConstantError,
+    Rebroadcast,
     Reshape,
-    mul,
+    ScalarFromTensor,
+    ShapeError,
+    Split,
+    TensorFromScalar,
+    Tile,
     abs_,
-    pow,
-    true_div,
-    int_div,
     add,
+    alloc,
     erf,
     erfc,
-    log,
-    Dot,
-    log1p,
-    neg,
-    sub,
+    extract_constant,
+    fill,
+    get_scalar_constant_value,
+    int_div,
     inv,
+    log,
+    log1p,
+    mul,
+    neg,
+    pow,
+    sub,
     tensor_copy,
-    TensorFromScalar,
-    ScalarFromTensor,
+    true_div,
 )
+from theano.tensor.elemwise import (
+    All,
+    Any,
+    CAReduce,
+    DimShuffle,
+    Elemwise,
+    Prod,
+    ProdWithoutZeros,
+    Sum,
+)
+from theano.tensor.sort import TopKOp
+from theano.tensor.subtensor import (
+    AdvancedIncSubtensor,
+    AdvancedIncSubtensor1,
+    AdvancedSubtensor1,
+    IncSubtensor,
+    Subtensor,
+    advanced_inc_subtensor1,
+    advanced_subtensor,
+    advanced_subtensor1,
+    as_index_constant,
+    get_canonical_form_slice,
+    get_idx_list,
+)
+from theano.tensor.type import (
+    values_eq_approx_remove_inf,
+    values_eq_approx_remove_inf_nan,
+    values_eq_approx_remove_nan,
+)
+
+
+# import theano.tensor.basic as tt
+
 
 _logger = logging.getLogger("theano.tensor.opt")
 

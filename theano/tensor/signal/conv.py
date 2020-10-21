@@ -4,13 +4,13 @@ generic 2D convolution.
 
 """
 
+import logging
 import warnings
 
 import theano
 import theano.tensor as tensor
 from theano.tensor.nnet import conv
 
-import logging
 
 __docformat__ = "restructuredtext en"
 

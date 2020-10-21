@@ -133,39 +133,39 @@ import time
 import numpy as np
 import numpy.distutils
 
+
 try:
     import numpy.distutils.__config__  # noqa
 except ImportError:
     pass
 
-import theano.scalar
-
 from functools import reduce
 
+import theano.scalar
 from theano import config
-from theano.gof import (
-    Op,
-    view_roots,
-    local_optimizer,
-    Optimizer,
-    InconsistencyError,
-    SequenceDB,
-    EquilibriumOptimizer,
-    Apply,
-    ReplacementDidntRemovedError,
-)
-from theano.gof.toolbox import ReplaceValidate
-from theano.gof.utils import TestValueError, MethodNotDefined, memoize
-from theano.gof.params_type import ParamsType
-from theano.gof.opt import inherit_stack_trace
-from theano.printing import pprint, FunctionPrinter, debugprint
 from theano.compile.mode import optdb
+from theano.gof import (
+    Apply,
+    EquilibriumOptimizer,
+    InconsistencyError,
+    Op,
+    Optimizer,
+    ReplacementDidntRemovedError,
+    SequenceDB,
+    local_optimizer,
+    view_roots,
+)
+from theano.gof.opt import inherit_stack_trace
+from theano.gof.params_type import ParamsType
+from theano.gof.toolbox import ReplaceValidate
+from theano.gof.utils import MethodNotDefined, TestValueError, memoize
+from theano.printing import FunctionPrinter, debugprint, pprint
 from theano.scalar import bool as bool_t
 from theano.tensor import basic as tt
-from theano.tensor.blas_headers import blas_header_text
-from theano.tensor.blas_headers import blas_header_version
+from theano.tensor.blas_headers import blas_header_text, blas_header_version
 from theano.tensor.opt import in2out, local_dimshuffle_lift
 from theano.tensor.type import values_eq_approx_remove_inf_nan
+
 
 _logger = logging.getLogger("theano.tensor.blas")
 

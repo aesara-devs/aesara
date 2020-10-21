@@ -5,8 +5,9 @@ import numpy as np
 
 import theano
 from theano import config
-from theano.gof import hashtype, Type, Variable
 from theano import scalar as scal
+from theano.gof import Type, Variable, hashtype
+
 
 _logger = logging.getLogger("theano.tensor.type")
 
