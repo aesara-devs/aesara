@@ -3,8 +3,7 @@ import time
 import numpy as N
 
 import theano.tensor as tt
-
-from theano import function, Mode
+from theano import Mode, function
 from theano.tensor.nnet.conv import ConvOp
 
 
@@ -103,8 +102,8 @@ def exec_multilayer_conv_nnet_old(
         outval = N.zeros(N.r_[bsize, outshp])
         if validate:
             # causes an atexit problem
+            from scipy.signal.signaltools import _bvalfromboundary, _valfrommode
             from scipy.signal.sigtools import _convolve2d
-            from scipy.signal.signaltools import _valfrommode, _bvalfromboundary
 
             val = _valfrommode(conv_mode)
             bval = _bvalfromboundary("fill")

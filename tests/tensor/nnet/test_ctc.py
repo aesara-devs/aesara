@@ -1,15 +1,14 @@
-import pytest
 import numpy as np
+import pytest
+
 import theano
 import theano.tensor as tt
-
-from theano.tensor.nnet.ctc import (
-    ctc_available,
-    ctc,
-    ConnectionistTemporalClassification,
-)
-
 from tests import unittest_tools as utt
+from theano.tensor.nnet.ctc import (
+    ConnectionistTemporalClassification,
+    ctc,
+    ctc_available,
+)
 
 
 def setup_torch_case():

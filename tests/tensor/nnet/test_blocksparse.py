@@ -2,17 +2,17 @@
     Tests for block sparse dot
 """
 import numpy as np
-import theano
-import tests.unittest_tools as utt
-
 from numpy.random import randn
+
+import tests.unittest_tools as utt
+import theano
 from theano import tensor
 from theano.tensor.nnet.blocksparse import (
+    SparseBlockGemv,
+    SparseBlockOuter,
     sparse_block_dot,
     sparse_block_gemv,
     sparse_block_outer,
-    SparseBlockGemv,
-    SparseBlockOuter,
 )
 
 

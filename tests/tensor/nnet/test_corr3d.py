@@ -1,14 +1,12 @@
-import pytest
 import numpy as np
-import theano
-import theano.tensor as tt
-
+import pytest
 from six import integer_types
 
-from theano.tensor.nnet import corr3d, conv
-
+import theano
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.tensor.nnet.test_abstract_conv import TestGroupedConv3dNoOptim
+from theano.tensor.nnet import conv, corr3d
 
 
 @pytest.mark.skipif(

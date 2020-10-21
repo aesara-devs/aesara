@@ -1,20 +1,17 @@
-import pytest
 import numpy as np
+import pytest
+from six import integer_types
+
 import theano
 import theano.tensor as tt
-
-from six import integer_types
-from theano.tensor.nnet import corr, conv
-
 from tests import unittest_tools as utt
-from tests.tensor.nnet.test_abstract_conv import (
-    TestGroupedConvNoOptim,
-    TestUnsharedConv,
-)
 from tests.tensor.nnet.test_abstract_conv import (
     TestAsymmetricPadding,
     TestCausalConv,
+    TestGroupedConvNoOptim,
+    TestUnsharedConv,
 )
+from theano.tensor.nnet import conv, corr
 
 
 @pytest.mark.skipif(

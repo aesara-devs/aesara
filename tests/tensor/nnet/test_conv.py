@@ -1,16 +1,13 @@
 import time
 
-import pytest
-
 import numpy as np
+import pytest
 
 import theano
 import theano.tensor as tt
-
-from theano.tensor.nnet import conv, conv2d
-from theano.tensor.basic import _allclose, NotScalarConstantError
-
 from tests import unittest_tools as utt
+from theano.tensor.basic import NotScalarConstantError, _allclose
+from theano.tensor.nnet import conv, conv2d
 
 
 @pytest.mark.skipif(

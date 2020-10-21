@@ -1,22 +1,24 @@
 import time
-import pytest
+
 import numpy as np
+import pytest
+
 import theano
+
 
 try:
     from scipy import ndimage
 except ImportError:
     ndimage = None
 
+import tests.unittest_tools as utt
 from theano.gof.opt import check_stack_trace
 from theano.tensor.nnet.conv3d2d import (
-    conv3d,
-    get_diagonal_subtensor_view,
     DiagonalSubtensor,
     IncDiagonalSubtensor,
+    conv3d,
+    get_diagonal_subtensor_view,
 )
-
-import tests.unittest_tools as utt
 
 
 def test_get_diagonal_subtensor_view(wrap=lambda a: a):

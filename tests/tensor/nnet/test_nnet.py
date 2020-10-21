@@ -1,57 +1,52 @@
-import pytest
-
 import numpy as np
+import pytest
 
 import theano
 import theano.tensor as tt
-
-from theano import config
-from theano import gof
+from tests import unittest_tools as utt
+from tests.tensor.test_basic import (
+    _good_broadcast_unary_normal_float_no_complex,
+    check_floatX,
+    makeBroadcastTester,
+    upcast_int8_nfunc,
+)
+from theano import config, gof, printing
 from theano.gof.opt import check_stack_trace
-from theano import printing
+from theano.tensor import lvector, matrix, scalar, vector
 from theano.tensor.nnet import (
+    CrossentropyCategorical1Hot,
+    CrossentropyCategorical1HotGrad,
+    CrossentropySoftmax1HotWithBiasDx,
+    CrossentropySoftmaxArgmax1HotWithBias,
+    Prepend_scalar_constant_to_each_row,
+    Prepend_scalar_to_each_row,
+    Softmax,
+    SoftmaxGrad,
+    SoftmaxWithBias,
+    binary_crossentropy,
     categorical_crossentropy,
+    confusion_matrix,
     crossentropy_categorical_1hot,
     crossentropy_softmax_1hot,
     crossentropy_softmax_1hot_with_bias,
     crossentropy_softmax_1hot_with_bias_dx,
     crossentropy_softmax_argmax_1hot_with_bias,
-    CrossentropySoftmax1HotWithBiasDx,
-    CrossentropySoftmaxArgmax1HotWithBias,
-    CrossentropyCategorical1Hot,
-    CrossentropyCategorical1HotGrad,
-    sigmoid,
-    softplus,
-    Softmax,
-    softmax,
-    softmax_op,
-    softmax_graph,
-    SoftmaxWithBias,
-    softmax_with_bias,
-    logsoftmax_op,
-    softmax_grad,
-    SoftmaxGrad,
-    Prepend_scalar_constant_to_each_row,
-    Prepend_scalar_to_each_row,
-    relu,
-    h_softmax,
     elu,
-    selu,
-    binary_crossentropy,
-    sigmoid_binary_crossentropy,
-    confusion_matrix,
+    h_softmax,
     logsoftmax,
+    logsoftmax_op,
+    relu,
+    selu,
+    sigmoid,
+    sigmoid_binary_crossentropy,
+    softmax,
+    softmax_grad,
+    softmax_graph,
+    softmax_op,
+    softmax_with_bias,
+    softplus,
 )
-from theano.tensor import matrix, vector, lvector, scalar
-from theano.tensor.nnet.nnet import softsign, LogSoftmax
-
-from tests import unittest_tools as utt
-from tests.tensor.test_basic import (
-    makeBroadcastTester,
-    check_floatX,
-    _good_broadcast_unary_normal_float_no_complex,
-    upcast_int8_nfunc,
-)
+from theano.tensor.nnet.nnet import LogSoftmax, softsign
 
 
 class TestSigmoid:

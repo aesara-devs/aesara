@@ -1,15 +1,12 @@
-import pytest
+from collections import OrderedDict
 
 import numpy as np
+import pytest
 
 import theano
 import theano.tensor as tt
-
-from collections import OrderedDict
-
-from theano.tensor.nnet import bn
-
 from tests import unittest_tools as utt
+from theano.tensor.nnet import bn
 
 
 def test_BNComposite():
