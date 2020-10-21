@@ -6,13 +6,11 @@ import numpy as np
 import pytest
 
 import theano
-
-
+from tests import unittest_tools as utt
 from theano import change_flags, config, tensor
 from theano.sandbox import rng_mrg
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 
-from tests import unittest_tools as utt
 
 # TODO: test MRG_RandomStreams
 # Partly done in test_consistency_randomstreams

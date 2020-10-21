@@ -1,29 +1,25 @@
-import pytest
-
 import numpy as np
 import numpy.linalg
+import pytest
 
 import theano
-
-from theano import config, tensor, function
-from theano.tensor.basic import _allclose
-from theano.tensor.nlinalg import MatrixInverse
-from theano.tensor import DimShuffle
-
-# The one in comment are not tested...
-from theano.sandbox.linalg.ops import (
-    Cholesky,  # op class
-    matrix_inverse,
-    Solve,
-    solve,
-    # PSD_hint,
-    spectral_radius_bound,
-    imported_scipy,
-    inv_as_solve,
-)
-
 from tests import unittest_tools as utt
 from tests.test_rop import break_op
+from theano import config, function, tensor
+
+# The one in comment are not tested...
+from theano.sandbox.linalg.ops import Cholesky  # PSD_hint,; op class
+from theano.sandbox.linalg.ops import (
+    Solve,
+    imported_scipy,
+    inv_as_solve,
+    matrix_inverse,
+    solve,
+    spectral_radius_bound,
+)
+from theano.tensor import DimShuffle
+from theano.tensor.basic import _allclose
+from theano.tensor.nlinalg import MatrixInverse
 
 
 def test_rop_lop():

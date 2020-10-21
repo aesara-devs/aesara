@@ -1,9 +1,9 @@
-import pytest
-
 import numpy as np
+import pytest
 
 import theano
 import theano.tensor as tt
+
 
 jax = pytest.importorskip("jax")
 
