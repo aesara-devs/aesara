@@ -4,12 +4,14 @@ Author: Christof Angermueller <cangermueller@gmail.com>
 """
 
 
-import os
 import json
+import os
 import shutil
+
 import six
 
 from theano.d3viz.formatting import PyDotFormatter
+
 
 __path__ = os.path.dirname(os.path.realpath(__file__))
 
