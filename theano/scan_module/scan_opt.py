@@ -50,29 +50,25 @@ scan_eqopt2 -> They are all global optimizer. (in2out convert local to global).
                in2out(remove_constants_and_unused_inputs_scan3)
 """
 
-import logging
 import copy
+import logging
+from collections import OrderedDict
+from sys import maxsize
 
 import numpy as np
-
-import theano
-
-from sys import maxsize
-from collections import OrderedDict
-
 from six import integer_types
 
-from theano import gof, tensor, scalar
-from theano.tensor import opt, get_scalar_constant_value, Alloc, AllocEmpty
-
+import theano
+from theano import gof, scalar, tensor
 from theano.compile import optdb
 from theano.compile.function_module import deep_copy_op
-from theano.gof import toolbox, DestroyHandler, InconsistencyError
-from theano.gof.opt import Optimizer, pre_constant_merge, pre_greedy_local_optimizer
+from theano.gof import DestroyHandler, InconsistencyError, toolbox
 from theano.gof.graph import equal_computations
-
+from theano.gof.opt import Optimizer, pre_constant_merge, pre_greedy_local_optimizer
 from theano.scan_module import scan_op, scan_utils
 from theano.scan_module.scan_utils import scan_args
+from theano.tensor import Alloc, AllocEmpty, get_scalar_constant_value, opt
+
 
 __docformat__ = "restructedtext en"
 __authors__ = (

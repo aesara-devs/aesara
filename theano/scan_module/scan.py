@@ -43,23 +43,20 @@ __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 
 import logging
-
-import numpy as np
-
-import theano.tensor as tt
-
 from collections import OrderedDict
 
+import numpy as np
 from six import integer_types
 
-from theano import compile, gof, config
+import theano.tensor as tt
+from theano import compile, config, gof
 from theano.compile import SharedVariable, function, ops
-from theano.tensor import opt
-from theano.updates import OrderedUpdates
 from theano.gof.utils import TestValueError
-
 from theano.scan_module import scan_op, scan_utils
 from theano.scan_module.scan_utils import safe_new, traverse
+from theano.tensor import opt
+from theano.updates import OrderedUpdates
+
 
 _logger = logging.getLogger("theano.scan_module.scan")
 

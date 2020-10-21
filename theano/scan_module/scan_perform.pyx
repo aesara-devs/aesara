@@ -53,12 +53,14 @@ __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 
 import cython
-
 import numpy
+
 cimport numpy
-from theano import gof
-import time
+
 import copy
+import time
+
+from theano import gof
 
 
 def get_version():

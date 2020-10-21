@@ -21,19 +21,16 @@ __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 import copy
 import logging
 import warnings
-
-import numpy as np
-
-import theano
-
 from collections import OrderedDict
 
+import numpy as np
 from six import string_types
 
-from theano import gof, compat, tensor, scalar
+import theano
+from theano import compat, gof, scalar, tensor
 from theano.compile.pfunc import rebuild_collect_shared
-from theano.tensor.basic import get_scalar_constant_value
 from theano.gof.utils import TestValueError
+from theano.tensor.basic import get_scalar_constant_value
 
 
 # Logging function for sending warning or info
@@ -149,8 +146,8 @@ def traverse(out, x, x_copy, d, visited=None):
     if out in visited:
         return d
     visited.add(out)
-    from theano.gpuarray.basic_ops import GpuFromHost, host_from_gpu
     from theano.gpuarray import pygpu_activated
+    from theano.gpuarray.basic_ops import GpuFromHost, host_from_gpu
     from theano.gpuarray.type import GpuArrayType
 
     if out == x:
@@ -327,8 +324,8 @@ def map_variables(replacer, graphs, additional_inputs=None):
             return False
 
         # importing Scan into module scope would be circular
-        from theano.scan_module.scan_op import Scan
         from theano.compile import OpFromGraph
+        from theano.scan_module.scan_op import Scan
 
         if isinstance(node.op, (Scan, OpFromGraph)):
             # recurse on the inner graph
@@ -389,9 +386,10 @@ def _map_variables_inner(
     extra_inner_inputs = []
     extra_outer_inputs = []
 
-    from theano.scan_module import scan_utils
     from itertools import chain
+
     from theano import gof
+    from theano.scan_module import scan_utils
 
     def inner_replacer(graph):
         new_graph = replacer(graph)
