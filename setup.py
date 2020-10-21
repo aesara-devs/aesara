@@ -84,7 +84,7 @@ if version_data["error"] is not None:
     # Get the fallback version
     # We can't import theano.version as it isn't yet installed, so parse it.
     fname = os.path.join(os.path.split(__file__)[0], "theano", "version.py")
-    with open(fname, "r") as f:
+    with open(fname) as f:
         lines = f.readlines()
     lines = [l for l in lines if l.startswith("FALLBACK_VERSION")]
     assert len(lines) == 1
