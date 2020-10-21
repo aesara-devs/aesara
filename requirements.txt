@@ -14,3 +14,4 @@ jax; python_version > '3.6'
 jaxlib; python_version > '3.6'
 diff-cover
 pre-commit
+isort

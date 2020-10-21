@@ -42,7 +42,8 @@ check-docstyle:
 
 check-format:
 	@printf "Checking code format...\n"
-	black -t py36 --check ${PROJECT_DIR} tests/ setup.py conftest.py
+	black -t py36 --check ${PROJECT_DIR} tests/ setup.py conftest.py; \
+  isort --check ${PROJECT_DIR} tests/ setup.py conftest.py;
 	@printf "\033[1;34mFormatting passes!\033[0m\n\n"
 
 check-style:
@@ -51,7 +52,8 @@ check-style:
 	@printf "\033[1;34mCode style passes!\033[0m\n\n"
 
 format:  # Format code in-place using black.
-	black ${PROJECT_DIR} tests/ setup.py conftest.py
+	black ${PROJECT_DIR} tests/ setup.py conftest.py; \
+  isort ${PROJECT_DIR} tests/ setup.py conftest.py;
 
 test:  # Test code using pytest.
 	pytest -v tests/ ${PROJECT_DIR} --cov=${PROJECT_DIR} --cov-report=xml --html=testing-report.html --self-contained-html
@@ -65,6 +67,6 @@ pypi:
 	${PYTHON} setup.py sdist bdist_wheel; \
   twine upload --skip-existing dist/*;
 
-lint: check-docstyle check-format check-style
+lint: check-format check-style check-docstyle
 
 check: lint test coverage
