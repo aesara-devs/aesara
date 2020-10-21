@@ -19,7 +19,7 @@ except ImportError:
     pass
 
 
-class PyDotFormatter(object):
+class PyDotFormatter:
     """Create `pydot` graph object from Theano function.
 
     Parameters
