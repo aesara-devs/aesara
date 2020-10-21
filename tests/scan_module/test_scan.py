@@ -2,26 +2,20 @@ import os
 import shutil
 import sys
 import time
-
-import pytest
-
-import six.moves.cPickle as pickle
+from collections import OrderedDict
+from tempfile import mkdtemp
 
 import numpy as np
+import pytest
+import six.moves.cPickle as pickle
 
 import theano
 import theano.sandbox.rng_mrg
 import theano.scalar.sharedvar
-
-from tempfile import mkdtemp
-from collections import OrderedDict
-
-
+from tests import unittest_tools as utt
 from theano import tensor
 from theano.compile.pfunc import rebuild_collect_shared
 from theano.scan_module.scan_op import Scan
-
-from tests import unittest_tools as utt
 
 
 """
