@@ -1,10 +1,9 @@
 import numpy as np
-
 import pytest
 
 import theano as th
-
 from theano.d3viz.formatting import PyDotFormatter, pydot_imported, pydot_imported_msg
+
 
 if not pydot_imported:
     pytest.skip("pydot not available: " + pydot_imported_msg, allow_module_level=True)

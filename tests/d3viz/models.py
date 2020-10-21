@@ -1,9 +1,8 @@
 import numpy as np
+from six import integer_types
 
 import theano
 import theano.tensor as tt
-
-from six import integer_types
 
 
 class Mlp(object):
