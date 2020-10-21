@@ -150,7 +150,7 @@ def is_python_file(filename):
 
 
 def get_file_contents(filename, revision="tip"):
-    hg_out = run_mercurial_command("cat -r %s %s" % (revision, filename))
+    hg_out = run_mercurial_command("cat -r {} {}".format(revision, filename))
     return hg_out
 
 
@@ -169,7 +169,7 @@ def save_diffs(diffs, filename):
 def should_skip_commit():
     if not os.path.exists(SKIP_WHITESPACE_CHECK_FILENAME):
         return False
-    with open(SKIP_WHITESPACE_CHECK_FILENAME, "r") as whitespace_check_file:
+    with open(SKIP_WHITESPACE_CHECK_FILENAME) as whitespace_check_file:
         whitespace_check_changeset = whitespace_check_file.read()
     return whitespace_check_changeset == parent_commit()
 
@@ -253,7 +253,8 @@ def main(argv=None):
         parse_error = get_parse_error(code)
         if parse_error is not None:
             print(
-                "*** %s has parse error: %s" % (filename, parse_error), file=sys.stderr
+                "*** {} has parse error: {}".format(filename, parse_error),
+                file=sys.stderr,
             )
             block_commit = True
         else:

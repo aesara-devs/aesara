@@ -293,7 +293,7 @@ if __name__ == "__main__":
         print("(%d, %d) and (%d, %d)." % (M, N, N, K))
 
         print()
-        print("Total execution time: %.2fs on %s." % (t, impl))
+        print("Total execution time: {:.2f}s on {}.".format(t, impl))
         print()
         print(
             "Try to run this script a few times. Experience shows that"

@@ -120,8 +120,8 @@ def check(file):
         print("checking", file, "...", end=" ")
     try:
         f = open(file)
-    except IOError as msg:
-        errprint("%s: I/O Error: %s" % (file, str(msg)))
+    except OSError as msg:
+        errprint("{}: I/O Error: {}".format(file, str(msg)))
         return
 
     r = Reindenter(f)

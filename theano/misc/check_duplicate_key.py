@@ -27,7 +27,7 @@ for dir in dirs:
         keys.setdefault(key, 0)
         keys[key] += 1
         del f
-    except IOError:
+    except OSError:
         # print dir, "don't have a key.pkl file"
         pass
     try:
@@ -41,9 +41,8 @@ for dir in dirs:
         del mod
         del f
         del path
-    except IOError:
+    except OSError:
         print(dir, "don't have a mod.{cpp,cu} file")
-        pass
 
 if DISPLAY_DUPLICATE_KEYS:
     for k, v in keys.items():
