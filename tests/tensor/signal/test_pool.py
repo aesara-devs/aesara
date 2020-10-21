@@ -1,23 +1,22 @@
-import pytest
-import six.moves.builtins as builtins
-import numpy as np
-import theano
-import theano.tensor as tensor
-
 from itertools import product
 
+import numpy as np
+import pytest
+import six.moves.builtins as builtins
+
+import theano
+import theano.tensor as tensor
+from tests import unittest_tools as utt
+from theano import function
 from theano.tensor.signal.pool import (
+    AveragePoolGrad,
+    DownsampleFactorMaxGradGrad,
+    MaxPoolGrad,
     Pool,
+    max_pool_2d_same_size,
     pool_2d,
     pool_3d,
-    MaxPoolGrad,
-    AveragePoolGrad,
-    max_pool_2d_same_size,
-    DownsampleFactorMaxGradGrad,
 )
-from theano import function
-
-from tests import unittest_tools as utt
 
 
 class TestDownsampleFactorMax(utt.InferShapeTester):

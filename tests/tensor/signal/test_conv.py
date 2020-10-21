@@ -1,13 +1,12 @@
-import pytest
 import numpy as np
+import pytest
 
 import theano
 import theano.tensor as tt
-
-from theano.tensor.signal import conv
-from theano.tensor.basic import _allclose
-
 from tests import unittest_tools as utt
+from theano.tensor.basic import _allclose
+from theano.tensor.signal import conv
+
 
 _ = pytest.importorskip("scipy.signal")
 
