@@ -1,14 +1,10 @@
-import pytest
 import numpy as np
+import pytest
 
 import theano
-from theano.tensor import dmatrix, iscalar, lscalar, dmatrices
 from theano import tensor
-
-from theano.compile import In
-from theano.compile import pfunc
-from theano.compile import shared
-from theano.compile import config
+from theano.compile import In, config, pfunc, shared
+from theano.tensor import dmatrices, dmatrix, iscalar, lscalar
 
 
 def data_of(s):

@@ -1,19 +1,18 @@
 import copy
-import six.moves.cPickle as pickle
-import numpy as np
-import pytest
 import time
 
-import theano
-import theano.tensor as tt
-import theano.gpuarray
+import numpy as np
+import pytest
+import six.moves.cPickle as pickle
 
+import theano
+import theano.gpuarray
+import theano.tensor as tt
 from theano import config, gof
-from theano.compile.io import In, Out
-from theano.compile import function
-from theano.compile import UnusedInputError
-from theano.gof import MissingInputError
 from theano.compat import exc_message
+from theano.compile import UnusedInputError, function
+from theano.compile.io import In, Out
+from theano.gof import MissingInputError
 
 
 def PatternOptimizer(p1, p2, ign=True):

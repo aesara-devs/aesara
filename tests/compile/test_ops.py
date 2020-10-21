@@ -3,15 +3,15 @@
 """
 
 
-import numpy as np
 import pickle
+
+import numpy as np
+
 import theano
-
-from theano import function
-from theano.tensor import dmatrix, dvector
-from theano.compile import as_op
-
 from tests import unittest_tools as utt
+from theano import function
+from theano.compile import as_op
+from theano.tensor import dmatrix, dvector
 
 
 # This is for test_pickle, since the function still has to be

@@ -1,19 +1,14 @@
 import sys
 
 import numpy as np
-
 import pytest
+from six import reraise
 
 import theano
 import theano.tensor
-
-from six import reraise
-
-from theano import config
-from theano import gof
-from theano.compile import debugmode
-
 from tests import unittest_tools as utt
+from theano import config, gof
+from theano.compile import debugmode
 
 
 def test_debugmode_basic():

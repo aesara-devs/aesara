@@ -1,21 +1,17 @@
 from functools import partial
+
 import numpy as np
 import pytest
 
 import theano
 import theano.tensor as tt
-
-from theano import config, shared
-
-from theano.gradient import DisconnectedType
-from theano.gof.null_type import NullType
-from theano.compile import function
-
-from theano.tensor.shared_randomstreams import RandomStreams
-
-from theano.compile.builders import OpFromGraph
-
 from tests import unittest_tools
+from theano import config, shared
+from theano.compile import function
+from theano.compile.builders import OpFromGraph
+from theano.gof.null_type import NullType
+from theano.gradient import DisconnectedType
+from theano.tensor.shared_randomstreams import RandomStreams
 
 
 class TestOpFromGraph(unittest_tools.InferShapeTester):
