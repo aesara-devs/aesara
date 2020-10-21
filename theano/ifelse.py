@@ -12,20 +12,16 @@ is a global operation with a scalar condition.
 """
 
 import logging
+from copy import deepcopy
 
 import numpy as np
 
 import theano.tensor
-
-from copy import deepcopy
-
-from theano.tensor import TensorType
 from theano import gof
-from theano.gof import Op, Apply
-
 from theano.compile import optdb
-from theano.tensor import opt
+from theano.gof import Apply, Op
 from theano.scan_module.scan_utils import clone
+from theano.tensor import TensorType, opt
 
 
 __docformat__ = "restructedtext en"

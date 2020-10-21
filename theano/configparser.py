@@ -8,13 +8,13 @@ import os
 import shlex
 import sys
 import warnings
-import theano
-
 from functools import wraps
 
-from six import StringIO, PY3, string_types
+from six import PY3, StringIO, string_types
 
+import theano
 from theano.compat import configparser as ConfigParser
+
 
 _logger = logging.getLogger("theano.configparser")
 

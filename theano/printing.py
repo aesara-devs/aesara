@@ -4,26 +4,22 @@ They all allow different way to print a graph or the result of an Op
 in a graph(Print Op)
 """
 
+import hashlib
 import logging
 import os
 import sys
-import hashlib
-
-import numpy as np
-
-import theano
-
+from copy import copy
 from functools import reduce
 
-from copy import copy
-
-from six import string_types, integer_types
+import numpy as np
+from six import integer_types, string_types
 from six.moves import StringIO
 
-from theano import gof
-from theano import config
-from theano.gof import Op, Apply
-from theano.compile import Function, debugmode, SharedVariable
+import theano
+from theano import config, gof
+from theano.compile import Function, SharedVariable, debugmode
+from theano.gof import Apply, Op
+
 
 pydot_imported = False
 pydot_imported_msg = ""

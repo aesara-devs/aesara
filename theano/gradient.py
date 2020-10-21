@@ -3,20 +3,20 @@
 import logging
 import time
 import warnings
+from collections import OrderedDict
+from functools import reduce
 
-import numpy as np  # for numeric_grad
+import numpy as np
 
 import theano
-
-from functools import reduce
-from collections import OrderedDict
-
 from theano import gof
-from theano.gof import utils, Variable
-
+from theano.compile.debugmode import DebugMode
+from theano.compile.mode import FAST_RUN, get_mode
+from theano.compile.ops import ViewOp
+from theano.gof import Variable, utils
 from theano.gof.null_type import NullType, null_type
 from theano.gof.op import get_test_values
-from theano.compile import ViewOp, FAST_RUN, DebugMode, get_mode
+
 
 __authors__ = "James Bergstra, Razvan Pascanu, Arnaud Bergeron, Ian Goodfellow"
 __copyright__ = "(c) 2011, Universite de Montreal"
@@ -1790,9 +1790,9 @@ def verify_grad(
 
     """
     # The import is here to prevent circular import.
-    from theano import compile, shared
     import theano.tensor
-    from theano.tensor import as_tensor_variable, TensorType
+    from theano import compile, shared
+    from theano.tensor import TensorType, as_tensor_variable
 
     assert isinstance(pt, (list, tuple))
     pt = [np.array(p) for p in pt]

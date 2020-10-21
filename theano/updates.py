@@ -3,7 +3,6 @@
 """
 import logging
 import warnings
-
 from collections import OrderedDict
 
 from theano.compile.sharedvalue import SharedVariable

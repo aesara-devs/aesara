@@ -1,19 +1,21 @@
 import errno
-import os
-import sys
 import logging
-import numpy as np
+import os
 import platform
-import textwrap
 import re
 import socket
 import struct
+import sys
+import textwrap
 import warnings
 
+import numpy as np
 from six import string_types
 
 import theano
+from theano.compat import maybe_add_to_os_environ_pathlist
 from theano.configparser import (
+    THEANO_FLAGS_DICT,
     AddConfigVar,
     BoolParam,
     ConfigParam,
@@ -22,11 +24,9 @@ from theano.configparser import (
     IntParam,
     StrParam,
     TheanoConfigParser,
-    THEANO_FLAGS_DICT,
 )
 from theano.misc.cpucount import cpuCount
 from theano.misc.windows import call_subprocess_Popen, output_subprocess_Popen
-from theano.compat import maybe_add_to_os_environ_pathlist
 
 
 _logger = logging.getLogger("theano.configdefaults")
@@ -1668,6 +1668,7 @@ def default_blas_ldflags():
             # ignored"
 
             # This happen with Python 2.7.3 |EPD 7.3-1 and numpy 1.8.1
+            # isort: off
             import numpy.distutils.system_info  # noqa
 
             # We need to catch warnings as in some cases NumPy print

@@ -54,6 +54,7 @@ def disable_log_handler(logger=theano_logger, handler=logging_default_handler):
 # Version information.
 from theano.version import version as __version__
 
+
 # Raise a meaningful warning/error if the theano directory is in the Python
 # path.
 rpath = os.path.realpath(__path__[0])
@@ -65,6 +66,7 @@ for p in sys.path:
 from theano.configdefaults import config
 from theano.configparser import change_flags
 
+
 # This is the api version for ops that generate C code.  External ops
 # might need manual changes if this number goes up.  An undefined
 # __api_version__ can be understood to mean api version 0.
@@ -73,59 +75,53 @@ from theano.configparser import change_flags
 # very rarely.
 __api_version__ = 1
 
-from theano.gof import (
-    CLinker,
-    OpWiseCLinker,
-    DualLinker,
-    Linker,
-    LocalLinker,
-    PerformLinker,
-    Container,
-    InconsistencyError,
-    FunctionGraph,
-    Apply,
-    Variable,
-    Constant,
-    Op,
-    OpenMPOp,
-    opt,
-    toolbox,
-    Type,
-    Generic,
-    generic,
-    object2,
-    utils,
-)
-
+from theano import scalar, tensor
 from theano.compile import (
-    SymbolicInput,
-    In,
-    SymbolicOutput,
-    Out,
-    Mode,
-    predefined_modes,
-    predefined_linkers,
-    predefined_optimizers,
     FunctionMaker,
+    In,
+    Mode,
+    OpFromGraph,
+    Out,
+    Param,
+    ProfileStats,
+    SymbolicInput,
+    SymbolicOutput,
+    as_op,
     function,
     function_dump,
-    OpFromGraph,
-    ProfileStats,
-    Param,
+    predefined_linkers,
+    predefined_modes,
+    predefined_optimizers,
     shared,
-    as_op,
 )
-
+from theano.gof import (
+    Apply,
+    CLinker,
+    Constant,
+    Container,
+    DualLinker,
+    FunctionGraph,
+    Generic,
+    InconsistencyError,
+    Linker,
+    LocalLinker,
+    Op,
+    OpenMPOp,
+    OpWiseCLinker,
+    PerformLinker,
+    Type,
+    Variable,
+    generic,
+    object2,
+    opt,
+    toolbox,
+    utils,
+)
+from theano.gradient import Lop, Rop, grad, subgraph_grad
 from theano.misc.safe_asarray import _asarray
-
-from theano.printing import pprint, pp
-
-from theano import tensor
-from theano import scalar
-
+from theano.printing import pp, pprint
 from theano.updates import OrderedUpdates
 
-from theano.gradient import Rop, Lop, grad, subgraph_grad
 
 if (
     config.device.startswith("cuda")
@@ -138,6 +134,7 @@ if (
 
 # Use config.numpy to call numpy.seterr
 import numpy as np
+
 
 if config.numpy.seterr_all == "None":
     _all = None
@@ -219,5 +216,4 @@ def sparse_grad(var):
 
 
 import theano.tensor.shared_randomstreams
-
-from theano.scan_module import scan, map, reduce, foldl, foldr, clone, scan_checkpoints
+from theano.scan_module import clone, foldl, foldr, map, reduce, scan, scan_checkpoints

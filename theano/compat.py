@@ -2,31 +2,25 @@
 """
 
 
-# Python 3.x compatibility
-from six import PY3, b, BytesIO, next
-from six.moves import configparser
-from six.moves import reload_module as reload
 from collections import OrderedDict
 
+# Python 3.x compatibility
+from six import PY3, BytesIO, b, next
+from six.moves import configparser
+from six.moves import reload_module as reload
+
+
 try:
-    from collections.abc import (
-        Callable,
-        Iterable,
-        Mapping,
-        ValuesView,
-        MutableMapping as DictMixin,
-    )
+    from collections.abc import Callable, Iterable, Mapping
+    from collections.abc import MutableMapping as DictMixin
+    from collections.abc import ValuesView
 except ImportError:
     # this raises an DeprecationWarning on py37 and will become
     # and Exception in py39. Importing from collections.abc
     # won't work on py27
-    from collections import (
-        Callable,
-        Iterable,
-        Mapping,
-        ValuesView,
-        MutableMapping as DictMixin,
-    )
+    from collections import Callable, Iterable, Mapping
+    from collections import MutableMapping as DictMixin
+    from collections import ValuesView
 
 __all__ = ["PY3", "b", "BytesIO", "next", "configparser", "reload"]
 
@@ -66,8 +60,9 @@ if PY3:
 
 
 else:
-    from six import get_unbound_function
     from operator import div as operator_div
+
+    from six import get_unbound_function
 
     def exc_message(e):
         return e[0]

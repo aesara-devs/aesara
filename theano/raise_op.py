@@ -2,6 +2,7 @@
 
 from theano import gof
 
+
 __authors__ = "James Bergstra"
 __copyright__ = "(c) 2011, Universite de Montreal"
 __license__ = "3-clause BSD License"
