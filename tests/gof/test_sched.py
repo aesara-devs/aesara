@@ -45,11 +45,11 @@ def test_reverse_dict():
 
 def test__toposort():
     edges = {
-        1: set((4, 6, 7)),
-        2: set((4, 6, 7)),
-        3: set((5, 7)),
-        4: set((6, 7)),
-        5: set((7,)),
+        1: {4, 6, 7},
+        2: {4, 6, 7},
+        3: {5, 7},
+        4: {6, 7},
+        5: {7},
     }
     order = _toposort(edges)
     assert not any(

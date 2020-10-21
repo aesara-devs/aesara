@@ -78,7 +78,7 @@ class X:
         return str(leaf.type)
 
     def node_formatter(self, node, argstrings):
-        return "%s(%s)" % (node.op, ", ".join(argstrings))
+        return "{}({})".format(node.op, ", ".join(argstrings))
 
     def str(self, inputs, outputs):
         return as_string(

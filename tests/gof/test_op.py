@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-from six import string_types
 
 import theano
 import theano.gof.op as op
@@ -34,7 +33,7 @@ class MyType(Type):
     def filter(self, x, strict=False, allow_downcast=None):
         # Dummy filter: we want this type to represent strings that
         # start with `self.thingy`.
-        if not isinstance(x, string_types):
+        if not isinstance(x, str):
             raise TypeError("Invalid type")
         if not x.startswith(self.thingy):
             raise ValueError("Invalid value")
@@ -89,10 +88,10 @@ class StructOp(Op):
         return Apply(self, [i], [scalar.uint64()])
 
     def c_support_code_struct(self, node, name):
-        return "npy_uint64 counter%s;" % (name,)
+        return "npy_uint64 counter{};".format(name)
 
     def c_init_code_struct(self, node, name, sub):
-        return "counter%s = 0;" % (name,)
+        return "counter{} = 0;".format(name)
 
     def c_code(self, node, name, input_names, outputs_names, sub):
         return """

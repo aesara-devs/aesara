@@ -548,7 +548,7 @@ class TestMergeOptimizer:
         assert len(no_input_ops) == 2, fg.apply_nodes
 
 
-class TestEquilibrium(object):
+class TestEquilibrium:
     def test_1(self):
         x, y, z = map(MyVariable, "xyz")
         e = op3(op4(x, y))

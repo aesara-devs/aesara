@@ -102,7 +102,7 @@ class QuadraticCOpFunc(COp):
     params_type = ParamsType(a=tensor_type_0d, b=scalar_type, c=generic_type)
 
     def __init__(self, a, b, c):
-        super(QuadraticCOpFunc, self).__init__(
+        super().__init__(
             "c_code/test_quadratic_function.c", "APPLY_SPECIFIC(compute_quadratic)"
         )
         self.a = a
