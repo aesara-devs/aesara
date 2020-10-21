@@ -10,8 +10,6 @@ import ctypes
 import platform
 import re
 
-from six import string_types
-
 import theano
 from theano import change_flags
 from theano.gof import graph, utils
@@ -272,7 +270,7 @@ class CLinkerType(CLinkerObject):
         return ()
 
 
-class PureType(object):
+class PureType:
     """
     Interface specification for variable type instances.
 
@@ -707,10 +705,10 @@ class CDataType(Type):
         extra_support_code="",
         version=None,
     ):
-        assert isinstance(ctype, string_types)
+        assert isinstance(ctype, str)
         self.ctype = ctype
         if freefunc is not None:
-            assert isinstance(freefunc, string_types)
+            assert isinstance(freefunc, str)
         self.freefunc = freefunc
         self.headers = tuple(headers)
         self.header_dirs = tuple(header_dirs)
@@ -848,7 +846,7 @@ if (py_%(name)s == NULL) { %(freefunc)s(%(name)s); }
         return v
 
     def __str__(self):
-        return "%s{%s}" % (self.__class__.__name__, self.ctype)
+        return "{}{{{}}}".format(self.__class__.__name__, self.ctype)
 
     def __setstate__(self, dct):
         self.__dict__.update(dct)
@@ -1034,7 +1032,7 @@ class EnumType(Type, dict):
             raise TypeError(
                 "%s: some aliases have same names as constants." % type(self).__name__
             )
-        super(EnumType, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def fromalias(self, alias):
         """
@@ -1060,11 +1058,11 @@ class EnumType(Type, dict):
         names_to_aliases = {constant_name: "" for constant_name in self}
         for alias in self.aliases:
             names_to_aliases[self.aliases[alias]] = "(%s)" % alias
-        return "%s<%s>(%s)" % (
+        return "{}<{}>({})".format(
             type(self).__name__,
             self.ctype,
             ", ".join(
-                "%s%s:%s" % (k, names_to_aliases[k], self[k])
+                "{}{}:{}".format(k, names_to_aliases[k], self[k])
                 for k in sorted(self.keys())
             ),
         )
@@ -1298,7 +1296,7 @@ class EnumList(EnumType):
         kwargs.update(ctype=ctype)
         if cname is not None:
             kwargs.update(cname=cname)
-        super(EnumList, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 class CEnumType(EnumList):
@@ -1336,7 +1334,7 @@ class CEnumType(EnumList):
         return self.pyint_compat_code + self.c_to_string()
 
     def c_extract(self, name, sub, check_input=True):
-        swapped_dict = dict((v, k) for (k, v) in self.items())
+        swapped_dict = {v: k for (k, v) in self.items()}
         # swapped_dict's keys are integers.
 
         return """
@@ -1360,4 +1358,4 @@ class CEnumType(EnumList):
         )
 
     def c_code_cache_version(self):
-        return (1, super(CEnumType, self).c_code_cache_version())
+        return (1, super().c_code_cache_version())

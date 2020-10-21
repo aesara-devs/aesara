@@ -6,15 +6,15 @@ import six.moves.cPickle as pickle
 _logger = logging.getLogger("theano.gof.callcache")
 
 
-class CallCache(object):
+class CallCache:
     def __init__(self, filename=None):
         self.filename = filename
         try:
             if filename is None:
-                raise IOError("bad filename")  # just goes to except
-            with open(filename, "r") as f:
+                raise OSError("bad filename")  # just goes to except
+            with open(filename) as f:
                 self.cache = pickle.load(f)
-        except IOError:
+        except OSError:
             self.cache = {}
 
     def persist(self, filename=None):

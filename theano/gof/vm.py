@@ -30,8 +30,8 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
     for var in fgraph.variables:
         viewed_by[var] = []
     view_of = {}
-    pre_allocated = set([])
-    allocated = set([])
+    pre_allocated = set()
+    allocated = set()
 
     for idx in range(len(order)):
         node = order[idx]
@@ -120,7 +120,7 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
     return reallocated_info
 
 
-class VM(object):
+class VM:
     """
     A VM object's __call__ method evaluates a Theano program.
 
@@ -273,7 +273,7 @@ class LoopGC(VM):
     """
 
     def __init__(self, nodes, thunks, pre_call_clear, post_thunk_clear):
-        super(LoopGC, self).__init__(nodes, thunks, pre_call_clear)
+        super().__init__(nodes, thunks, pre_call_clear)
         self.post_thunk_clear = post_thunk_clear
         # Some other part of Theano query that information
         self.allow_gc = True
@@ -353,7 +353,7 @@ class Stack(VM):
         callback=None,
         callback_input=None,
     ):
-        super(Stack, self).__init__(nodes, thunks, pre_call_clear)
+        super().__init__(nodes, thunks, pre_call_clear)
 
         self.allow_gc = allow_gc
         self.message = ""
@@ -712,7 +712,6 @@ except (OSError, theano.gof.cmodule.MissingGXX) as e:
     assert not [x for x in _config_var_list if x.fullname == "linker"][
         0
     ].default.startswith("cvm"), e
-    pass
 
 
 class VM_Linker(link.LocalLinker):

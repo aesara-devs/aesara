@@ -2,7 +2,7 @@ import copy
 import math
 import sys
 
-from six import StringIO, integer_types
+from six import StringIO
 
 from theano import config
 from theano.compat import DefaultOrderedDict
@@ -10,7 +10,7 @@ from theano.gof import opt
 from theano.misc.ordered_set import OrderedSet
 
 
-class DB(object):
+class DB:
     def __hash__(self):
         if not hasattr(self, "_optimizer_idx"):
             self._optimizer_idx = opt._optimizer_idx[0]
@@ -169,7 +169,7 @@ multiple time in a DB. Tryed to register "%s" again under the new name "%s".
         print("  db", self.__db__, file=stream)
 
 
-class Query(object):
+class Query:
     """
 
     Parameters
@@ -296,7 +296,7 @@ class EquilibriumDB(DB):
     """
 
     def __init__(self, ignore_newtrees=True, tracks_on_change_inputs=False):
-        super(EquilibriumDB, self).__init__()
+        super().__init__()
         self.ignore_newtrees = ignore_newtrees
         self.tracks_on_change_inputs = tracks_on_change_inputs
         self.__final__ = {}
@@ -307,12 +307,12 @@ class EquilibriumDB(DB):
         cleanup = kwtags.pop("cleanup", False)
         # An opt should not be final and clean up
         assert not (final_opt and cleanup)
-        super(EquilibriumDB, self).register(name, obj, *tags, **kwtags)
+        super().register(name, obj, *tags, **kwtags)
         self.__final__[name] = final_opt
         self.__cleanup__[name] = cleanup
 
     def query(self, *tags, **kwtags):
-        _opts = super(EquilibriumDB, self).query(*tags, **kwtags)
+        _opts = super().query(*tags, **kwtags)
         final_opts = [o for o in _opts if self.__final__.get(o.name, False)]
         cleanup_opts = [o for o in _opts if self.__cleanup__.get(o.name, False)]
         opts = [o for o in _opts if o not in final_opts and o not in cleanup_opts]
@@ -349,19 +349,19 @@ class SequenceDB(DB):
     seq_opt = opt.SeqOptimizer
 
     def __init__(self, failure_callback=opt.SeqOptimizer.warn):
-        super(SequenceDB, self).__init__()
+        super().__init__()
         self.__position__ = {}
         self.failure_callback = failure_callback
 
     def register(self, name, obj, position, *tags):
-        super(SequenceDB, self).register(name, obj, *tags)
+        super().register(name, obj, *tags)
         if position == "last":
             if len(self.__position__) == 0:
                 self.__position__[name] = 0
             else:
                 self.__position__[name] = max(self.__position__.values()) + 1
         else:
-            assert isinstance(position, (integer_types, float))
+            assert isinstance(position, ((int,), float))
             self.__position__[name] = position
 
     def query(self, *tags, **kwtags):
@@ -373,7 +373,7 @@ class SequenceDB(DB):
             Only optimizations with position less than the cutoff are returned.
 
         """
-        opts = super(SequenceDB, self).query(*tags, **kwtags)
+        opts = super().query(*tags, **kwtags)
 
         position_cutoff = kwtags.pop("position_cutoff", config.optdb.position_cutoff)
         position_dict = self.__position__
@@ -442,7 +442,7 @@ class LocalGroupDB(DB):
     def __init__(
         self, apply_all_opts=False, profile=False, local_opt=opt.LocalOptGroup
     ):
-        super(LocalGroupDB, self).__init__()
+        super().__init__()
         self.failure_callback = None
         self.apply_all_opts = apply_all_opts
         self.profile = profile
@@ -450,7 +450,7 @@ class LocalGroupDB(DB):
         self.local_opt = local_opt
 
     def register(self, name, obj, *tags, **kwargs):
-        super(LocalGroupDB, self).register(name, obj, *tags)
+        super().register(name, obj, *tags)
         position = kwargs.pop("position", "last")
         if position == "last":
             if len(self.__position__) == 0:
@@ -458,12 +458,12 @@ class LocalGroupDB(DB):
             else:
                 self.__position__[name] = max(self.__position__.values()) + 1
         else:
-            assert isinstance(position, (integer_types, float))
+            assert isinstance(position, ((int,), float))
             self.__position__[name] = position
 
     def query(self, *tags, **kwtags):
         # For the new `useless` optimizer
-        opts = list(super(LocalGroupDB, self).query(*tags, **kwtags))
+        opts = list(super().query(*tags, **kwtags))
         opts.sort(key=lambda obj: (self.__position__[obj.name], obj.name))
 
         ret = self.local_opt(
@@ -482,7 +482,7 @@ class TopoDB(DB):
     def __init__(
         self, db, order="in_to_out", ignore_newtrees=False, failure_callback=None
     ):
-        super(TopoDB, self).__init__()
+        super().__init__()
         self.db = db
         self.order = order
         self.ignore_newtrees = ignore_newtrees

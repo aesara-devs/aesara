@@ -4,7 +4,6 @@ import shutil
 
 import numpy as np
 import six.moves.cPickle as pickle
-from six import string_types
 
 import theano
 from theano import config
@@ -46,7 +45,7 @@ def cleanup():
                                 # force the removing of key
                                 have_npy_abi_version = False
                                 break
-                            elif isinstance(obj, string_types):
+                            elif isinstance(obj, str):
                                 if obj.startswith("NPY_ABI_VERSION=0x"):
                                     have_npy_abi_version = True
                                 elif obj.startswith("c_compiler_str="):
@@ -67,7 +66,7 @@ def cleanup():
                                 if keydata.key_pkl != filename:
                                     keydata.key_pkl = filename
                                 keydata.remove_key(key)
-                            except IOError:
+                            except OSError:
                                 _logger.error(
                                     "Could not remove file '%s'. To complete "
                                     "the clean-up, please remove manually "
@@ -84,7 +83,7 @@ def cleanup():
                         "the directory containing it.",
                         filename,
                     )
-            except IOError:
+            except OSError:
                 _logger.error(
                     "Could not clean up this directory: '%s'. To complete "
                     "the clean-up, please remove it manually.",
@@ -126,29 +125,21 @@ def print_compiledir_content():
             try:
                 keydata = pickle.load(file)
                 ops = list(
-                    set(
-                        [
-                            x
-                            for x in flatten(keydata.keys)
-                            if isinstance(x, theano.gof.Op)
-                        ]
-                    )
+                    {x for x in flatten(keydata.keys) if isinstance(x, theano.gof.Op)}
                 )
                 # Whatever the case, we count compilations for OP classes.
-                for op_class in set([op.__class__ for op in ops]):
+                for op_class in {op.__class__ for op in ops}:
                     table_op_class.setdefault(op_class, 0)
                     table_op_class[op_class] += 1
                 if len(ops) == 0:
                     zeros_op += 1
                 else:
                     types = list(
-                        set(
-                            [
-                                x
-                                for x in flatten(keydata.keys)
-                                if isinstance(x, theano.gof.Type)
-                            ]
-                        )
+                        {
+                            x
+                            for x in flatten(keydata.keys)
+                            if isinstance(x, theano.gof.Type)
+                        }
                     )
                     compile_start = compile_end = float("nan")
                     for fn in os.listdir(os.path.join(compiledir, dir)):
@@ -177,7 +168,7 @@ def print_compiledir_content():
 
                 nb_keys.setdefault(len(keydata.keys), 0)
                 nb_keys[len(keydata.keys)] += 1
-            except IOError:
+            except OSError:
                 pass
             except AttributeError:
                 _logger.error("Could not read key file '%s'.", filename)
@@ -221,16 +212,12 @@ def print_compiledir_content():
         big_key_files = sorted(big_key_files, key=lambda t: str(t[1]))
         big_total_size = sum([sz for _, sz, _ in big_key_files])
         print(
-            (
-                "There are directories with key files bigger than %d bytes "
-                "(they probably contain big tensor constants)" % max_key_file_size
-            )
+            "There are directories with key files bigger than %d bytes "
+            "(they probably contain big tensor constants)" % max_key_file_size
         )
         print(
-            (
-                "They use %d bytes out of %d (total size used by all key files)"
-                "" % (big_total_size, total_key_sizes)
-            )
+            "They use %d bytes out of %d (total size used by all key files)"
+            "" % (big_total_size, total_key_sizes)
         )
 
         for dir, size, ops in big_key_files:
@@ -246,10 +233,8 @@ def print_compiledir_content():
         print(n_k, n_m)
     print()
     print(
-        (
-            "Skipped %d files that contained 0 op "
-            "(are they always theano.scalar ops?)" % zeros_op
-        )
+        "Skipped %d files that contained 0 op "
+        "(are they always theano.scalar ops?)" % zeros_op
     )
 
 

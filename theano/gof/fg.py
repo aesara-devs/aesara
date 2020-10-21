@@ -26,8 +26,6 @@ class InconsistencyError(Exception):
 
     """
 
-    pass
-
 
 class MissingInputError(Exception):
     """

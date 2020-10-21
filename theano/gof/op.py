@@ -122,7 +122,7 @@ def compute_test_value(node):
         output.tag.test_value = storage_map[output][0]
 
 
-class CLinkerObject(object):
+class CLinkerObject:
     """
     Standard elements of an Op or Type used with the CLinker.
 
@@ -550,7 +550,7 @@ class CLinkerOp(CLinkerObject):
         )
 
 
-class PureOp(object):
+class PureOp:
     """A class that models and constructs operations in a graph.
 
     A `PureOp` instance has several responsibilities:
@@ -842,7 +842,6 @@ class Op(object2, PureOp, CLinkerOp):
         good to do so.
 
         """
-        pass
 
     def make_c_thunk(self, node, storage_map, compute_map, no_recycling):
         """Like make_thunk, but will only try to make a C thunk."""
@@ -1263,19 +1262,17 @@ class COp(Op):
     section_re = re.compile(r"^#section ([a-zA-Z0-9_]+)$", re.MULTILINE)
     backward_re = re.compile(r"^THEANO_(APPLY|SUPPORT)_CODE_SECTION$", re.MULTILINE)
     # This is the set of allowed markers
-    SECTIONS = set(
-        [
-            "init_code",
-            "init_code_apply",
-            "init_code_struct",
-            "support_code",
-            "support_code_apply",
-            "support_code_struct",
-            "cleanup_code_struct",
-            "code",
-            "code_cleanup",
-        ]
-    )
+    SECTIONS = {
+        "init_code",
+        "init_code_apply",
+        "init_code_struct",
+        "support_code",
+        "support_code_apply",
+        "support_code_struct",
+        "cleanup_code_struct",
+        "code",
+        "code_cleanup",
+    }
 
     @classmethod
     def get_path(cls, f):
@@ -1535,10 +1532,10 @@ class COp(Op):
     def get_sub_macros(self, sub):
         define_macros = []
         undef_macros = []
-        define_macros.append("#define FAIL %s" % (self._lquote_macro(sub["fail"]),))
+        define_macros.append("#define FAIL {}".format(self._lquote_macro(sub["fail"])))
         undef_macros.append("#undef FAIL")
         if "params" in sub:
-            define_macros.append("#define PARAMS %s" % (sub["params"],))
+            define_macros.append("#define PARAMS {}".format(sub["params"]))
             undef_macros.append("#undef PARAMS")
 
         return "\n".join(define_macros), "\n".join(undef_macros)
@@ -1584,7 +1581,7 @@ class COp(Op):
 
             params = ""
             if "params" in sub:
-                params = ", %s" % (sub["params"],)
+                params = ", {}".format(sub["params"])
 
             # Generate the C code
             return """

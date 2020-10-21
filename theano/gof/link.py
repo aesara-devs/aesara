@@ -4,7 +4,6 @@ from copy import copy, deepcopy
 from sys import getsizeof
 
 import numpy as np
-from six import reraise
 from six.moves import StringIO
 
 import theano
@@ -123,7 +122,7 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
     exc_type, exc_value, exc_trace = exc_info
     if exc_type == KeyboardInterrupt:
         # print a simple traceback from KeyboardInterrupt
-        reraise(exc_type, exc_value, exc_trace)
+        raise exc_value.with_traceback(exc_trace)
     try:
         trace = node.outputs[0].tag.trace
     except AttributeError:
@@ -315,11 +314,11 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
                 detailed_err_msg += ", TotalSize: %s Byte(s)\n" % item[3]
             else:
                 detailed_err_msg += "\n"
-        detailed_err_msg += " TotalSize: %s Byte(s) %.3f GB\n" % (
+        detailed_err_msg += " TotalSize: {} Byte(s) {:.3f} GB\n".format(
             total_size,
             total_size / 1024.0 / 1024 / 1024,
         )
-        detailed_err_msg += " TotalSize inputs: %s Byte(s) %.3f GB\n" % (
+        detailed_err_msg += " TotalSize inputs: {} Byte(s) {:.3f} GB\n".format(
             total_size_inputs,
             total_size_inputs / 1024.0 / 1024 / 1024,
         )
@@ -341,11 +340,10 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
         )
         # Some exception need extra parameter in inputs. So forget the
         # extra long error message in that case.
-        pass
-    reraise(exc_type, exc_value, exc_trace)
+    raise exc_value.with_traceback(exc_trace)
 
 
-class Linker(object):
+class Linker:
     """
     WRITEME
 
@@ -434,7 +432,7 @@ class Linker(object):
 
 
 # TODO: Move this class to the compile module, where it is used (and for which it exists).
-class Container(object):
+class Container:
     """
     This class joins a variable with its computed value.
 

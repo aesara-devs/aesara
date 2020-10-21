@@ -153,13 +153,13 @@ class Params(dict):
                 raise TypeError(
                     'Params: ParamsType attribute "%s" not in Params args.' % field
                 )
-        super(Params, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.__dict__.update(__params_type__=params_type, __signatures__=None)
 
     def __repr__(self):
         return "Params(%s)" % ", ".join(
             [
-                ("%s:%s:%s" % (k, type(self[k]).__name__, self[k]))
+                ("{}:{}:{}".format(k, type(self[k]).__name__, self[k]))
                 for k in sorted(self.keys())
             ]
         )
@@ -270,14 +270,14 @@ class ParamsType(Type):
         if enum_types:
             # We don't want same enum names in different enum types.
             if sum(len(t) for t in enum_types) != len(
-                set(k for t in enum_types for k in t)
+                {k for t in enum_types for k in t}
             ):
                 raise AttributeError(
                     "ParamsType: found different enum types with common constants names."
                 )
             # We don't want same aliases in different enum types.
             if sum(len(t.aliases) for t in enum_types) != len(
-                set(alias for t in enum_types for alias in t.aliases)
+                {alias for t in enum_types for alias in t.aliases}
             ):
                 raise AttributeError(
                     "ParamsType: found different enum types with common constants aliases."
@@ -319,11 +319,14 @@ class ParamsType(Type):
         # Now we can access value of each enum defined inside enum types wrapped into the current ParamsType.
         if key in self.__const_to_enum:
             return self.__const_to_enum[key][key]
-        return super(ParamsType, self).__getattr__(self, key)
+        return super().__getattr__(self, key)
 
     def __repr__(self):
         return "ParamsType<%s>" % ", ".join(
-            [("%s:%s" % (self.fields[i], self.types[i])) for i in range(self.length)]
+            [
+                ("{}:{}".format(self.fields[i], self.types[i]))
+                for i in range(self.length)
+            ]
         )
 
     def __eq__(self, other):
@@ -345,7 +348,7 @@ class ParamsType(Type):
         types_string = ",".join(str(t) for t in self.types).encode("utf-8")
         fields_hex = hashlib.sha256(fields_string).hexdigest()
         types_hex = hashlib.sha256(types_string).hexdigest()
-        return "_Params_%s_%s" % (fields_hex, types_hex)
+        return "_Params_{}_{}".format(fields_hex, types_hex)
 
     def has_type(self, theano_type):
         """

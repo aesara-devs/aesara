@@ -59,11 +59,11 @@ try:
     if not os.path.exists(init_file):
         try:
             open(init_file, "w").close()
-        except IOError as e:
+        except OSError as e:
             if os.path.exists(init_file):
                 pass  # has already been created
             else:
-                e.args += ("%s exist? %s" % (location, os.path.exists(location)),)
+                e.args += ("{} exist? {}".format(location, os.path.exists(location)),)
                 raise
 
     _need_reload = False

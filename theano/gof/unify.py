@@ -19,7 +19,7 @@ from theano.gof.utils import ANY_TYPE, FALL_THROUGH, comm_guard
 ################################
 
 
-class Variable(object):
+class Variable:
     """
     Serves as a base class of variables for the purpose of unification.
     "Unification" here basically means matching two patterns, see the
@@ -46,7 +46,9 @@ class Variable(object):
         return (
             self.__class__.__name__
             + "("
-            + ", ".join("%s=%s" % (key, value) for key, value in self.__dict__.items())
+            + ", ".join(
+                "{}={}".format(key, value) for key, value in self.__dict__.items()
+            )
             + ")"
         )
 
@@ -60,8 +62,6 @@ class FreeVariable(Variable):
 
     """
 
-    pass
-
 
 class BoundVariable(Variable):
     """
@@ -70,7 +70,7 @@ class BoundVariable(Variable):
     """
 
     def __init__(self, name, value):
-        super(BoundVariable, self).__init__(name=name)
+        super().__init__(name=name)
         self.value = value
 
 
@@ -82,7 +82,7 @@ class OrVariable(Variable):
     """
 
     def __init__(self, name, options):
-        super(OrVariable, self).__init__(name=name)
+        super().__init__(name=name)
         self.options = options
 
 
@@ -94,7 +94,7 @@ class NotVariable(Variable):
     """
 
     def __init__(self, name, not_options):
-        super(NotVariable, self).__init__(name=name)
+        super().__init__(name=name)
         self.not_options = not_options
 
 
