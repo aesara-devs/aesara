@@ -693,10 +693,10 @@ def makeSharedTester(
     internal_type_=np.ndarray,
     check_internal_type_=lambda a: isinstance(a, np.ndarray),
     theano_fct_=lambda a: a * 2,
-    ref_fct_=lambda a: np.asarray((a * 2)),
+    ref_fct_=lambda a: np.asarray(a * 2),
     cast_value_=np.asarray,
 )
-class TestSharedOptions(object):
+class TestSharedOptions:
     pass
 
 

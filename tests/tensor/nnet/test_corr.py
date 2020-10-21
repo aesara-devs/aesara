@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-from six import integer_types
 
 import theano
 import theano.tensor as tt
@@ -75,7 +74,7 @@ class TestCorr2D(utt.InferShapeTester):
             return rval
 
         output = sym_CorrMM(input, filters)
-        output.name = "CorrMM()(%s,%s)" % (input.name, filters.name)
+        output.name = "CorrMM()({},{})".format(input.name, filters.name)
         theano_corr = theano.function([input, filters], output, mode=self.mode)
 
         # initialize input and compute result
@@ -110,7 +109,7 @@ class TestCorr2D(utt.InferShapeTester):
             padHW = np.floor(dil_fil_shape2d / 2).astype("int32")
         elif isinstance(border_mode, tuple):
             padHW = np.array(border_mode)
-        elif isinstance(border_mode, integer_types):
+        elif isinstance(border_mode, int):
             padHW = np.array([border_mode, border_mode])
         else:
             raise NotImplementedError("Unsupported border_mode {}".format(border_mode))

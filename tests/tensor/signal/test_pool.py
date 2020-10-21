@@ -465,7 +465,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
             )
             assert (
                 numpy_output_val.shape == outputshp
-            ), "outshape is %s, calculated shape is %s" % (
+            ), "outshape is {}, calculated shape is {}".format(
                 outputshp,
                 numpy_output_val.shape,
             )
@@ -516,7 +516,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
                 )
                 assert (
                     numpy_output_val.shape == outputshp
-                ), "outshape is %s, calculated shape is %s" % (
+                ), "outshape is {}, calculated shape is {}".format(
                     outputshp,
                     numpy_output_val.shape,
                 )

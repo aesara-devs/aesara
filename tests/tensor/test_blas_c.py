@@ -321,7 +321,7 @@ class TestCGemvFloat64(BaseGemv, OptimizationTestMixin):
         skip_if_blas_ldflags_empty()
 
 
-class TestCGemvNoFlags(object):
+class TestCGemvNoFlags:
     mode = mode_blas_opt
     gemv = CGemv(inplace=False)
     M = 4

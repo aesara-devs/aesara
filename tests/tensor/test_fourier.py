@@ -12,7 +12,7 @@ class TestFourier(utt.InferShapeTester):
     rng = np.random.RandomState(43)
 
     def setup_method(self):
-        super(TestFourier, self).setup_method()
+        super().setup_method()
         self.op_class = Fourier
         self.op = fft
 

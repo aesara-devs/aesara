@@ -222,7 +222,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
     @change_flags(compute_test_value="off")
     def test_err_bounds1(self):
-        n = self.shared((np.ones((2, 3), dtype=self.dtype) * 5))
+        n = self.shared(np.ones((2, 3), dtype=self.dtype) * 5)
         t = n[4:5, 3]
         assert isinstance(t.owner.op, Subtensor)
         old_stderr = sys.stderr
@@ -511,7 +511,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             with pytest.raises(TypeError):
                 test_array.__getitem__((True, False))
             with pytest.raises(TypeError):
-                test_array.__getitem__(([True, False]))
+                test_array.__getitem__([True, False])
             with pytest.raises(TypeError):
                 test_array.__getitem__(([0, 1], [0, False]))
             with pytest.raises(TypeError):

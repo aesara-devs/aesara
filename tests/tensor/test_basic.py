@@ -2546,8 +2546,8 @@ COMPLEX_DTYPES = ALL_DTYPES[-2:]
 
 def multi_dtype_checks(shape1, shape2, dtypes=ALL_DTYPES, nameprefix=""):
     for dtype1, dtype2 in itertools.combinations(dtypes, 2):
-        name1 = "%s_%s_%s" % (nameprefix, dtype1, dtype2)
-        name2 = "%s_%s_%s" % (nameprefix, dtype2, dtype1)
+        name1 = "{}_{}_{}".format(nameprefix, dtype1, dtype2)
+        name2 = "{}_{}_{}".format(nameprefix, dtype2, dtype1)
         obj1 = rand_of_dtype(shape1, dtype1)
         obj2 = rand_of_dtype(shape2, dtype2)
         yield (name1, (obj1, obj2))
@@ -2556,8 +2556,8 @@ def multi_dtype_checks(shape1, shape2, dtypes=ALL_DTYPES, nameprefix=""):
 
 def multi_dtype_cast_checks(shape, dtypes=ALL_DTYPES, nameprefix=""):
     for dtype1, dtype2 in itertools.combinations(dtypes, 2):
-        name1 = "%s_%s_%s" % (nameprefix, dtype1, dtype2)
-        name2 = "%s_%s_%s" % (nameprefix, dtype2, dtype1)
+        name1 = "{}_{}_{}".format(nameprefix, dtype1, dtype2)
+        name2 = "{}_{}_{}".format(nameprefix, dtype2, dtype1)
         obj1 = rand_of_dtype(shape, dtype1)
         obj2 = rand_of_dtype(shape, dtype2)
         yield (name1, (obj1, dtype2))
@@ -3176,7 +3176,7 @@ class TestCast:
             # Casts from foo to foo
             [
                 (
-                    "%s_%s" % (rand_of_dtype((2,), dtype), dtype),
+                    "{}_{}".format(rand_of_dtype((2,), dtype), dtype),
                     (rand_of_dtype((2,), dtype), dtype),
                 )
                 for dtype in ALL_DTYPES
@@ -3499,7 +3499,7 @@ class TestShape:
         assert (eval_outputs([s]) == [5, 3]).all()
 
     def test_basic1(self):
-        s = shape(np.ones((2)))
+        s = shape(np.ones(2))
         assert (eval_outputs([s]) == [2]).all()
 
     def test_basic2(self):
@@ -5393,7 +5393,7 @@ class TestMatinv:
         # Here, as_tensor_variable actually uses the data allocated by np.
         diff = ab - as_tensor_variable(np.ones((dim, dim), dtype=config.floatX))
         # Sum of squared errors
-        ssdiff = sum((diff ** 2.0))
+        ssdiff = sum(diff ** 2.0)
 
         g_b = grad(ssdiff, b)
 
@@ -6144,7 +6144,7 @@ def test_is_flat():
     # given outdim
 
     # Constant variable
-    assert tt.is_flat(tt.as_tensor_variable(np.zeros((10))))
+    assert tt.is_flat(tt.as_tensor_variable(np.zeros(10)))
     assert tt.is_flat(tt.as_tensor_variable(np.zeros((10, 10, 10))), ndim=3)
     assert not tt.is_flat(tt.as_tensor_variable(np.zeros((10, 10, 10))))
 

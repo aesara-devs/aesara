@@ -378,7 +378,7 @@ class TestGemm:
         )
 
 
-class TestGemmNoFlags(object):
+class TestGemmNoFlags:
     gemm = gemm_no_inplace
     M = 4
     N = 5
@@ -1467,7 +1467,7 @@ def matrixmultiply(a, b):
     return c
 
 
-class BaseGemv(object):
+class BaseGemv:
     mode = mode_blas_opt  # can be overridden with self.mode
     shared = staticmethod(theano.shared)
 

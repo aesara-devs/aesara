@@ -514,7 +514,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             f = theano.function([x], e.shape, mode=mode)
             if not (
                 scalar_op in [scalar.maximum, scalar.minimum]
-                and ((xsh == () or np.prod(xsh) == 0))
+                and (xsh == () or np.prod(xsh) == 0)
             ):
                 try:
                     assert all(f(xv) == zv.shape)

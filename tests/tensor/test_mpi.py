@@ -54,7 +54,7 @@ def test_mpi_roundtrip():
     env = os.environ.copy()
     flags = env.get("THEANO_FLAGS", "")
     keep_flags = ",".join(
-        (f for f in flags.split(",") if not f.startswith("init_gpu_device"))
+        f for f in flags.split(",") if not f.startswith("init_gpu_device")
     )
     env["THEANO_FLAGS"] = keep_flags
     p = subprocess.Popen(
