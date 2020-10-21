@@ -4,7 +4,7 @@ import theano
 import theano.tensor as tt
 
 
-class Model(object):
+class Model:
     def __init__(self, name=""):
         self.name = name
         self.layers = []
@@ -54,7 +54,7 @@ def bias_weights(length, param_list=None, name=""):
     return bias
 
 
-class Layer(object):
+class Layer:
     """Generic Layer Template which all layers should inherit"""
 
     def __init__(self, name=""):

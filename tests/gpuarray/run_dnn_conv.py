@@ -35,7 +35,7 @@ class BorderAction(TupleAction):
     # Border extractor for command line args parser.
     def __call__(self, parser, namespace, values, option_string=None):
         if values not in ("valid", "full", "half"):
-            super(BorderAction, self).__call__(parser, namespace, values, option_string)
+            super().__call__(parser, namespace, values, option_string)
         else:
             setattr(namespace, self.dest, values)
 
@@ -201,7 +201,7 @@ else:
     args.dtype, args.precision = data_type_configurations[args.dtype_config]
 if (args.dtype, args.precision) not in cudnn.get_supported_dtype_configs():
     raise ValueError(
-        "Unsupported data type configuration %s %s." % (args.dtype, args.precision)
+        "Unsupported data type configuration {} {}.".format(args.dtype, args.precision)
     )
 
 if args.algo not in SUPPORTED_DNN_CONV_ALGO_RUNTIME:

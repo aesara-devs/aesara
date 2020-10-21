@@ -2768,7 +2768,7 @@ class Cudnn_grouped_conv(TestGroupedConvNoOptim):
     conv_gradi_op = dnn.GpuDnnConvGradI
 
     def __init__(self, *args, **kwargs):
-        super(Cudnn_grouped_conv, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class Cudnn_grouped_conv3d(TestGroupedConv3dNoOptim):
@@ -2778,7 +2778,7 @@ class Cudnn_grouped_conv3d(TestGroupedConv3dNoOptim):
     conv_gradi_op = dnn.GpuDnnConvGradI
 
     def __init__(self, *args, **kwargs):
-        super(Cudnn_grouped_conv3d, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 def test_dnn_spatialtf():
@@ -3049,7 +3049,7 @@ def test_dnn_spatialtf_grad():
     )
 
 
-class TestDnnConv2DRuntimeAlgorithms(object):
+class TestDnnConv2DRuntimeAlgorithms:
     ndim = 2
     cpu_conv_class = CorrMM
     runtime_shapes = [

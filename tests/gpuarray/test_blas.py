@@ -153,13 +153,11 @@ TestGpuGemm = makeTester(
 )
 
 
-gemm_batched_tests = dict(
-    (
-        "test_b%im%ik%in%i" % (b, m, k, n),
-        [rand(b, m, n), rand(), rand(b, m, k), rand(b, k, n), rand()],
-    )
+gemm_batched_tests = {
+    "test_b%im%ik%in%i"
+    % (b, m, k, n): [rand(b, m, n), rand(), rand(b, m, k), rand(b, k, n), rand()]
     for b, m, k, n in itertools.combinations([2, 3, 5, 7, 11, 13], 4)
-)
+}
 
 gemm_batched_tests["float16"] = [
     rand(3, 4, 7).astype("float16"),

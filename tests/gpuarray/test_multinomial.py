@@ -147,7 +147,7 @@ def test_gpu_opt_dtypes():
         pval = pval / pval.sum(axis=1)[:, None]
         uval = np.ones_like(pval[:, 0]) * 0.5
         samples = f(pval, uval)
-        assert samples.dtype == dtype, "%s != %s" % (samples.dtype, dtype)
+        assert samples.dtype == dtype, "{} != {}".format(samples.dtype, dtype)
 
 
 def test_gpu_opt():
@@ -380,7 +380,7 @@ def test_unpickle_legacy_op():
     fname = "test_gpuarray_multinomial_wo_replacement.pkl"
 
     if not PY3:
-        with open(os.path.join(testfile_dir, fname), "r") as fp:
+        with open(os.path.join(testfile_dir, fname)) as fp:
             u = Unpickler(fp)
             m = u.load()
             assert isinstance(m, GPUAChoiceFromUniform)
