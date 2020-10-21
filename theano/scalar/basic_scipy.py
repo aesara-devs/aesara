@@ -1,25 +1,25 @@
 # Definitions of theano.scalar ops that have their python implementation taken
 # from SciPy. As SciPy is not always available, we treat them separately.
 
-import numpy as np
 import os
+
+import numpy as np
 
 import theano
 from theano.gradient import grad_not_implemented
 from theano.scalar.basic import (
-    UnaryScalarOp,
     BinaryScalarOp,
-    exp,
-    upgrade_to_float,
-    upgrade_to_float64,
-    float_types,
-)
-from theano.scalar.basic import (
-    upgrade_to_float_no_complex,
+    UnaryScalarOp,
     complex_types,
     discrete_types,
+    exp,
+    float_types,
     upcast,
+    upgrade_to_float,
+    upgrade_to_float64,
+    upgrade_to_float_no_complex,
 )
+
 
 imported_scipy_special = False
 try:

@@ -20,7 +20,9 @@ import numpy as np
 from six import integer_types
 
 from theano.compile import SharedVariable
+
 from .basic import Scalar, _scalar_py_operators
+
 
 __authors__ = "James Bergstra"
 __copyright__ = "(c) 2010, Universite de Montreal"
