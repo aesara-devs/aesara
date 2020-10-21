@@ -2,11 +2,10 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
-
-from theano.typed_list.type import TypedListType
+from theano.compile.debugmode import _lessbroken_deepcopy
 from theano.gof import Apply, Constant, Op, Variable
 from theano.tensor.type_other import SliceType
-from theano.compile.debugmode import _lessbroken_deepcopy
+from theano.typed_list.type import TypedListType
 
 
 class _typed_list_py_operators:
