@@ -1,6 +1,7 @@
-from theano.compile import Mode
 import theano
+from theano.compile import Mode
 from theano.printing import hex_digest
+
 
 __authors__ = "Ian Goodfellow"
 __credits__ = ["Ian Goodfellow"]

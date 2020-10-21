@@ -3,16 +3,13 @@ Tests of printing functionality
 """
 import logging
 
-import pytest
-
 import numpy as np
+import pytest
+from six.moves import StringIO
 
 import theano
 import theano.tensor as tensor
-
-from six.moves import StringIO
-
-from theano.printing import min_informative_str, debugprint
+from theano.printing import debugprint, min_informative_str
 
 
 @pytest.mark.skipif(not theano.printing.pydot_imported, reason="pydot not available")

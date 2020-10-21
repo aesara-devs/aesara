@@ -13,18 +13,17 @@ check_nondiff_rop,
 
 
 import itertools
-import pytest
+
 import numpy as np
+import pytest
+
 import theano
-
-from theano import function
-from theano import tensor
-from theano.gof import Op, Apply
-from theano.gradient import grad_undefined
-from theano.tensor.signal.pool import Pool
-from theano.tensor.nnet import conv, conv2d
-
 from tests import unittest_tools as utt
+from theano import function, tensor
+from theano.gof import Apply, Op
+from theano.gradient import grad_undefined
+from theano.tensor.nnet import conv, conv2d
+from theano.tensor.signal.pool import Pool
 
 
 class BreakRop(Op):

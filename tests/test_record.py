@@ -1,9 +1,8 @@
 from six.moves import StringIO
 
+from tests.record import MismatchError, Record, RecordMode
 from theano import function
 from theano.tensor import iscalar
-
-from tests.record import Record, MismatchError, RecordMode
 
 
 def test_record_good():

@@ -2,7 +2,7 @@
 Test config options.
 """
 
-from theano.configparser import AddConfigVar, ConfigParam, THEANO_FLAGS_DICT
+from theano.configparser import THEANO_FLAGS_DICT, AddConfigVar, ConfigParam
 
 
 class TestConfig:

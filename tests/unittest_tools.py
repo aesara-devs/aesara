@@ -1,18 +1,14 @@
-import sys
 import logging
-
-import pytest
+import sys
+from copy import copy, deepcopy
+from functools import wraps
 
 import numpy as np
+import pytest
+from six import integer_types
 
 import theano
 import theano.tensor as tt
-
-from functools import wraps
-from copy import copy, deepcopy
-
-from six import integer_types
-
 from theano import config
 from theano.compile.debugmode import str_diagnostic
 

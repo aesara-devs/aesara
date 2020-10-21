@@ -1,19 +1,13 @@
-import pytest
-
-import numpy as np
-
-import theano
-
 from collections import OrderedDict
 
+import numpy as np
+import pytest
 
-from theano import gof, change_flags, gradient, config
-
-
+import theano
+from tests import unittest_tools as utt
+from theano import change_flags, config, gof, gradient
 from theano.gof.null_type import NullType
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
-
-from tests import unittest_tools as utt
 
 
 one = theano.tensor.as_tensor_variable(1.0)

@@ -12,12 +12,14 @@ The config option is in configdefaults.py
 
 This note is written by Li Yao.
 """
+from collections import OrderedDict
+
 import numpy as np
 import six.moves.cPickle as pickle
+
 import theano
 import theano.tensor as tt
 
-from collections import OrderedDict
 
 floatX = "float32"
 

@@ -1,16 +1,13 @@
-import pytest
+from functools import reduce
 
 import numpy as np
+import pytest
 
 import theano
 import theano.ifelse
-
-from functools import reduce
-
+from tests import unittest_tools as utt
 from theano import tensor
 from theano.ifelse import IfElse, ifelse
-
-from tests import unittest_tools as utt
 
 
 __docformat__ = "restructedtext en"

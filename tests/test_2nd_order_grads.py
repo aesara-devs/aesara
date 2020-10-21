@@ -2,12 +2,10 @@
 Test for jacobian/hessian functions in Theano
 """
 import numpy as np
+
 import theano
-
-
-from theano import tensor
-
 from tests import unittest_tools as utt
+from theano import tensor
 
 
 utt.seed_rng()
