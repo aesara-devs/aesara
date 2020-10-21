@@ -18,7 +18,7 @@ class MismatchError(Exception):
     """
 
 
-class Record(object):
+class Record:
     """
     Records a sequence of strings (from a string buffer). These can then be
     compared to another sequence of strings, and if the two sequences don't
@@ -67,7 +67,7 @@ class Record(object):
         assert file_object is not None or file_path is not None
 
         if replay and file_object is None:
-            self.f = open(file_path, "r")
+            self.f = open(file_path)
         elif (not replay) and file_object is None:
             self.f = open(file_path, "w")
         else:
@@ -157,7 +157,7 @@ class RecordMode(Mode):
         """
 
         self.record = record
-        self.known_fgraphs = set([])
+        self.known_fgraphs = set()
 
     def __init__(self, record=None, **kwargs):
         """
@@ -262,4 +262,4 @@ class RecordMode(Mode):
         linker = theano.gof.vm.VM_Linker(use_cloop=bool(theano.config.cxx))
 
         wrap_linker = theano.gof.WrapLinkerMany([linker], [callback])
-        super(RecordMode, self).__init__(wrap_linker, optimizer="fast_run")
+        super().__init__(wrap_linker, optimizer="fast_run")

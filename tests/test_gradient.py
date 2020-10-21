@@ -47,7 +47,6 @@ class TestGradSourcesInputs:
             def grad(self, inp, grads):
                 (x,) = inp
                 (gz,) = grads
-                pass
 
         a = retNone().make_node()
         with pytest.raises(TypeError):
