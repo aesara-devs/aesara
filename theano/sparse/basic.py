@@ -13,17 +13,16 @@ http://www-users.cs.umn.edu/~saad/software/SPARSKIT/paper.ps
 import sys
 
 import numpy as np
+import scipy.sparse
 from numpy.lib.stride_tricks import as_strided
 from six import integer_types
 
-import scipy.sparse
-
 import theano
-from theano import gof, tensor, scalar, config
-from theano.gradient import DisconnectedType
-from theano.sparse.utils import hash_from_sparse
-from theano.gradient import grad_not_implemented, grad_undefined
+from theano import config, gof, scalar, tensor
+from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
 from theano.sparse.type import SparseType, _is_sparse
+from theano.sparse.utils import hash_from_sparse
+
 
 sparse_formats = ["csc", "csr"]
 

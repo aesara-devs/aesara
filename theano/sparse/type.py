@@ -1,5 +1,6 @@
 import numpy as np
 
+
 try:
     import scipy.sparse
 
@@ -7,9 +8,10 @@ try:
 except ImportError:
     imported_scipy = False
 
+from six import string_types
+
 import theano
 from theano import gof
-from six import string_types
 
 
 def _is_sparse(x):

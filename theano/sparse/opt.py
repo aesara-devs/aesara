@@ -3,20 +3,20 @@ import scipy
 
 import theano
 from theano import gof, scalar, tensor
-
-from theano.tensor import blas
-from theano.tensor.opt import register_specialize, register_canonicalize
-from theano.sparse import (
+from theano.sparse import basic as sparse
+from theano.sparse.basic import (
     CSC,
     CSR,
-    csm_properties,
+    csm_data,
     csm_grad,
-    usmm,
     csm_indices,
     csm_indptr,
-    csm_data,
+    csm_properties,
+    usmm,
 )
-from theano.sparse import basic as sparse
+from theano.tensor import blas
+from theano.tensor.opt import register_canonicalize, register_specialize
+
 
 _is_sparse_variable = sparse._is_sparse_variable
 _is_dense = sparse._is_dense

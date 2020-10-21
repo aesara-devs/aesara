@@ -1,64 +1,81 @@
 import numpy as np
-
-import theano
 import scipy.sparse
 
+import theano
 from theano import gof, tensor
-from theano.tensor import discrete_dtypes, float_dtypes
-from theano.tensor.opt import register_specialize
-from theano.sparse.basic import (
-    as_sparse_variable,
-    SparseType,
-    add_s_s,
-    neg,
-    mul_s_s,
-    mul_s_d,
-    dot,
-    CSMProperties,
-    CSM,
-    _is_sparse_variable,
-    _is_dense_variable,
+from theano.sparse.basic import (  # To maintain compatibility
     CSC,
+    CSM,
     CSR,
-    csm_properties,
+    AddSSData,
+    Cast,
+    CSMProperties,
+    HStack,
+    MulSV,
+    Remove0,
+    SamplingDot,
+    SparseType,
+    StructuredAddSV,
+    VStack,
+    _is_dense_variable,
+    _is_sparse,
+    _is_sparse_variable,
+    add_s_s,
+    add_s_s_data,
+    as_sparse_variable,
+    bcast,
+    ccast,
     csm_data,
     csm_indices,
     csm_indptr,
+    csm_properties,
     csm_shape,
-    _is_sparse,
-    # To maintain compatibility
-    Remove0,
-    remove0,
-    Cast,
-    bcast,
-    wcast,
+    dcast,
+    dot,
+    fcast,
+    hstack,
     icast,
     lcast,
-    fcast,
-    dcast,
-    ccast,
-    zcast,
-    HStack,
-    hstack,
-    VStack,
-    vstack,
-    AddSSData,
-    add_s_s_data,
-    MulSV,
+    mul_s_d,
+    mul_s_s,
     mul_s_v,
-    structured_monoid,
-    structured_sigmoid,
+    neg,
+    remove0,
+    sampling_dot,
+    structured_add,
+    structured_add_s_v,
     structured_exp,
     structured_log,
-    structured_pow,
-    structured_minimum,
     structured_maximum,
-    structured_add,
-    StructuredAddSV,
-    structured_add_s_v,
-    SamplingDot,
-    sampling_dot,
+    structured_minimum,
+    structured_monoid,
+    structured_pow,
+    structured_sigmoid,
+    vstack,
+    wcast,
+    zcast,
 )
+
+# Also for compatibility
+from theano.sparse.opt import (
+    MulSDCSC,
+    MulSDCSR,
+    MulSVCSR,
+    SamplingDotCSR,
+    StructuredAddSVCSR,
+    local_mul_s_d,
+    local_mul_s_v,
+    local_sampling_dot_csr,
+    local_structured_add_s_v,
+    mul_s_d_csc,
+    mul_s_d_csr,
+    mul_s_v_csr,
+    sampling_dot_csr,
+    structured_add_s_v_csr,
+)
+from theano.tensor import discrete_dtypes, float_dtypes
+from theano.tensor.opt import register_specialize
+
 
 # Probability Ops are currently back in sandbox, because they do not respect
 # Theano's Op contract, as their behaviour is not reproducible: calling
@@ -67,24 +84,6 @@ from theano.sparse.basic import (
 # from theano.sparse.basic import (
 #    Multinomial, multinomial, Poisson, poisson,
 #    Binomial, csr_fbinomial, csc_fbinomial, csr_dbinomial, csc_dbinomial)
-
-# Also for compatibility
-from theano.sparse.opt import (
-    MulSDCSC,
-    mul_s_d_csc,
-    MulSDCSR,
-    mul_s_d_csr,
-    MulSVCSR,
-    mul_s_v_csr,
-    StructuredAddSVCSR,
-    structured_add_s_v_csr,
-    SamplingDotCSR,
-    sampling_dot_csr,
-    local_mul_s_d,
-    local_mul_s_v,
-    local_structured_add_s_v,
-    local_sampling_dot_csr,
-)
 
 
 # Alias to maintain compatibility
