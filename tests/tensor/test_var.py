@@ -1,22 +1,14 @@
 import numpy as np
-
 import pytest
-
-import theano
-import theano.tensor as tt
-
 from numpy.testing import assert_equal, assert_string_equal
 
-from theano.tensor.var import TensorConstant
-from theano.tensor.subtensor import (
-    Subtensor,
-    AdvancedSubtensor,
-    AdvancedSubtensor1,
-)
-from theano.tensor.elemwise import DimShuffle
-from theano.tensor.type_other import MakeSlice
-
 import tests.unittest_tools as utt
+import theano
+import theano.tensor as tt
+from theano.tensor.elemwise import DimShuffle
+from theano.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subtensor
+from theano.tensor.type_other import MakeSlice
+from theano.tensor.var import TensorConstant
 
 
 @pytest.mark.parametrize(

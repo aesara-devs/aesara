@@ -1,25 +1,21 @@
+import numpy as np
 import pytest
 
-import numpy as np
-
 import theano
-
-
+from tests import unittest_tools as utt
 from theano.tensor import (
-    real,
-    imag,
-    zvector,
-    dvector,
     cast,
-    fmatrix,
-    fvector,
-    cvector,
-    imatrix,
     complex,
     complex_from_polar,
+    cvector,
+    dvector,
+    fmatrix,
+    fvector,
+    imag,
+    imatrix,
+    real,
+    zvector,
 )
-
-from tests import unittest_tools as utt
 
 
 class TestRealImag:

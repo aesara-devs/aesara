@@ -1,21 +1,17 @@
 import sys
 
-import pytest
-
 import numpy as np
+import pytest
 
 import theano
 import theano.tensor as tensor
-
+from tests import unittest_tools
+from tests.tensor.test_blas import BaseGemv, TestBlasStrides
+from tests.unittest_tools import OptimizationTestMixin
 from theano.tensor.blas import Ger
-from theano.tensor.blas_c import CGer
+from theano.tensor.blas_c import CGemv, CGer, check_force_gemv_init
 from theano.tensor.blas_scipy import ScipyGer
 
-from theano.tensor.blas_c import CGemv, check_force_gemv_init
-
-from tests import unittest_tools
-from tests.unittest_tools import OptimizationTestMixin
-from tests.tensor.test_blas import BaseGemv, TestBlasStrides
 
 mode_blas_opt = theano.compile.get_default_mode().including(
     "BlasOpt", "specialize", "InplaceBlasOpt", "c_blas"

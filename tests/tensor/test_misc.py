@@ -1,5 +1,7 @@
 import copy
+
 import numpy as np
+
 import theano
 from theano import tensor
 from theano.tensor.nnet import crossentropy_softmax_argmax_1hot_with_bias

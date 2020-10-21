@@ -1,18 +1,23 @@
-from itertools import product, chain
 from functools import reduce
-
-from tests import unittest_tools as utt
+from itertools import chain, product
 
 import numpy as np
 import pytest
 
 import theano
-
+from tests import unittest_tools as utt
 from theano import tensor
+from theano.tensor.sort import (
+    ArgSortOp,
+    SortOp,
+    TopKOp,
+    argsort,
+    argtopk,
+    sort,
+    topk,
+    topk_and_argtopk,
+)
 
-from theano.tensor.sort import sort, SortOp
-from theano.tensor.sort import argsort, ArgSortOp
-from theano.tensor.sort import topk, argtopk, topk_and_argtopk, TopKOp
 
 _all_dtypes = tensor.integer_dtypes + tensor.float_dtypes
 

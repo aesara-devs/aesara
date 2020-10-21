@@ -1,10 +1,8 @@
 import numpy as np
-
 import pytest
 
 import theano
 import theano.tensor as tt
-
 from tests import unittest_tools as utt
 
 

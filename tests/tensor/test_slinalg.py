@@ -1,25 +1,22 @@
 import itertools
 
-import pytest
-
 import numpy as np
 import numpy.linalg
+import pytest
 
 import theano
-
-from theano import tensor, function, grad, config
+from tests import unittest_tools as utt
+from theano import config, function, grad, tensor
 from theano.tensor.slinalg import (
     Cholesky,
-    cholesky,
     CholeskyGrad,
     Solve,
-    solve,
+    cholesky,
     eigvalsh,
     expm,
     kron,
+    solve,
 )
-
-from tests import unittest_tools as utt
 
 
 def check_lower_triangular(pd, ch_f):

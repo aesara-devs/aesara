@@ -1,8 +1,10 @@
-import theano
-import pytest
-from theano import tensor, function, Variable, Generic
-import numpy as np
 import os
+
+import numpy as np
+import pytest
+
+import theano
+from theano import Generic, Variable, function, tensor
 
 
 class TestLoadTensor:

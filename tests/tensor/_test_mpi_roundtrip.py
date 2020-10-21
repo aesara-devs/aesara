@@ -1,13 +1,16 @@
 # Run using
 # mpiexec -np 2 python _test_mpi_roundtrip.py
 
+from sys import exit, stderr, stdout
+
+import numpy as np
 from mpi4py import MPI
+
 import theano
 from theano.configparser import change_flags
-from theano.tensor.io import send, recv, mpi_cmps
 from theano.gof.sched import sort_schedule_fn
-import numpy as np
-from sys import stdout, stderr, exit
+from theano.tensor.io import mpi_cmps, recv, send
+
 
 comm = MPI.COMM_WORLD
 

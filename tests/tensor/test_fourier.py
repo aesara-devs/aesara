@@ -1,13 +1,10 @@
+import numpy as np
 import pytest
 
-import numpy as np
-
 import theano
-
+from tests import unittest_tools as utt
 from theano import tensor
 from theano.tensor.fourier import Fourier, fft
-
-from tests import unittest_tools as utt
 
 
 class TestFourier(utt.InferShapeTester):

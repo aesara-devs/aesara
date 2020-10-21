@@ -3,7 +3,7 @@ import pytest
 from six import integer_types
 
 import theano
-from theano import tensor, function
+from theano import function, tensor
 
 
 # this tests other ops to ensure they keep the dimensions of their

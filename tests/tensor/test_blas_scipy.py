@@ -1,14 +1,11 @@
 import numpy as np
-
 import pytest
 
 import theano
 import theano.tensor as tensor
-
-from theano.tensor.blas_scipy import ScipyGer
-
+from tests.tensor.test_blas import TestBlasStrides, gemm_no_inplace
 from tests.unittest_tools import OptimizationTestMixin
-from tests.tensor.test_blas import gemm_no_inplace, TestBlasStrides
+from theano.tensor.blas_scipy import ScipyGer
 
 
 @pytest.mark.skipif(not theano.tensor.blas_scipy.have_fblas, reason="fblas needed")

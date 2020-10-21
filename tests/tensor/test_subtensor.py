@@ -1,19 +1,17 @@
 import logging
 import sys
 
-import pytest
-
 import numpy as np
+import pytest
+from numpy.testing import assert_array_equal
+from six import StringIO
 
 import theano
 import theano.scalar as scal
 import theano.tensor as tt
-
-from numpy.testing import assert_array_equal
-
-from six import StringIO
-
-from theano import config, change_flags
+from tests import unittest_tools as utt
+from tests.tensor.test_basic import inplace_func, rand, randint_ranged
+from theano import change_flags, config
 from theano.compile import DeepCopyOp
 from theano.gof.op import get_test_value
 from theano.gof.toolbox import is_same_graph
@@ -27,8 +25,8 @@ from theano.tensor import (
     dvector,
     fmatrix,
     fscalar,
-    fvector,
     ftensor4,
+    fvector,
     iscalar,
     lmatrix,
     lrow,
@@ -38,26 +36,23 @@ from theano.tensor import (
 )
 from theano.tensor.basic import DimShuffle
 from theano.tensor.subtensor import (
-    basic_shape,
-    indexed_result_shape,
-    Subtensor,
-    IncSubtensor,
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
     AdvancedSubtensor,
     AdvancedSubtensor1,
+    IncSubtensor,
+    Subtensor,
     advanced_inc_subtensor,
     advanced_inc_subtensor1,
     advanced_set_subtensor,
     advanced_set_subtensor1,
+    basic_shape,
     get_canonical_form_slice,
     inc_subtensor,
+    indexed_result_shape,
     set_subtensor,
 )
 from theano.tensor.type_other import make_slice
-
-from tests import unittest_tools as utt
-from tests.tensor.test_basic import inplace_func, rand, randint_ranged
 
 
 subtensor_ops = (

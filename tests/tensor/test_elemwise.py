@@ -1,34 +1,27 @@
 import math
-
-import six.moves.cPickle as pickle
-
-import pytest
-
-import numpy as np
-
-import theano
-import theano.tensor as tt
-
-import tests.unittest_tools as utt
-
 from copy import copy
 
-from theano import gof, scalar, config
+import numpy as np
+import pytest
+import six.moves.cPickle as pickle
 
+import tests.unittest_tools as utt
+import theano
+import theano.tensor as tt
+from tests import unittest_tools
+from theano import config, gof, scalar
+from theano.compile.mode import Mode, get_default_mode
 from theano.tensor import TensorType, as_tensor_variable
-from theano.compile.mode import get_default_mode, Mode
 from theano.tensor.elemwise import (
     CAReduce,
-    Elemwise,
     DimShuffle,
+    Elemwise,
     Prod,
     ProdWithoutZeros,
     Sum,
 )
-from theano.tensor.type import values_eq_approx_remove_nan
 from theano.tensor.nnet import sigmoid
-
-from tests import unittest_tools
+from theano.tensor.type import values_eq_approx_remove_nan
 
 
 def FunctionGraph(i, o):

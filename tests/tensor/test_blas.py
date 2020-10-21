@@ -1,15 +1,8 @@
-import pytest
-
-import numpy as np
-
-import theano
-import theano.tensor as tt
-import theano.tensor.blas_scipy
-
 from copy import copy
 from itertools import product
 
-
+import numpy as np
+import pytest
 from numpy import (
     arange,
     array,
@@ -25,37 +18,39 @@ from numpy import (
 )
 from numpy.testing import assert_array_almost_equal
 
-from theano import In, shared, config
+import theano
+import theano.tensor as tt
+import theano.tensor.blas_scipy
+from tests import unittest_tools
+from tests.tensor.test_basic import as_tensor_variable, compile, inplace, inplace_func
+from theano import In, config, shared
 from theano.tensor.blas import (
-    _dot22,
-    _dot22scalar,
-    res_is_a,
-    _as_scalar,
-    _is_real_matrix,
-    _gemm_canonicalize,
-    _factor_canonicalized,
-    Gemm,
-    Gemv,
-    gemm_inplace,
-    gemm_no_inplace,
-    InconsistencyError,
-    Ger,
-    ger,
-    ger_destructive,
     Dot22,
     Dot22Scalar,
+    Gemm,
+    Gemv,
+    Ger,
+    InconsistencyError,
+    _as_scalar,
+    _dot22,
+    _dot22scalar,
+    _factor_canonicalized,
+    _gemm_canonicalize,
+    _is_real_matrix,
     gemm,
-    local_dot22_to_dot22scalar,
-    gemv_no_inplace,
+    gemm_inplace,
+    gemm_no_inplace,
     gemv,
     gemv_inplace,
+    gemv_no_inplace,
+    ger,
+    ger_destructive,
+    local_dot22_to_dot22scalar,
     local_gemm_to_ger,
+    res_is_a,
 )
 from theano.tensor.nnet import sigmoid
 from theano.tensor.opt import in2out
-
-from tests import unittest_tools
-from tests.tensor.test_basic import as_tensor_variable, inplace_func, compile, inplace
 
 
 if config.mode == "FAST_COMPILE":

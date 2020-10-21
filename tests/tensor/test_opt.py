@@ -4,13 +4,13 @@ import time
 
 import numpy as np
 import pytest
+from six import StringIO
+
 import theano
 import theano.scalar as scal
 import theano.tensor as tt
 import theano.tensor.opt as opt
-
-from six import StringIO
-
+from tests import unittest_tools as utt
 from theano import change_flags, compile, config, function, gof, pprint, shared
 from theano.compile import DeepCopyOp, deep_copy_op, get_mode
 from theano.gof import FunctionGraph
@@ -47,12 +47,15 @@ from theano.tensor import (
     vectors,
 )
 from theano.tensor.basic import _convert_to_int8
+from theano.tensor.blas import Dot22, Gemv
+from theano.tensor.blas_c import CGemv
 from theano.tensor.elemwise import DimShuffle, Elemwise, Prod
+from theano.tensor.nnet.sigm import softplus
 from theano.tensor.opt import (
     Assert,
-    assert_op,
     MakeVector,
     Shape_i,
+    assert_op,
     local_add_specialize,
     local_canonicalize_alloc,
     local_dimshuffle_lift,
@@ -66,11 +69,7 @@ from theano.tensor.opt import (
     mul_canonizer,
 )
 from theano.tensor.type import values_eq_approx_remove_nan
-from theano.tensor.blas_c import CGemv
-from theano.tensor.blas import Dot22, Gemv
-from theano.tensor.nnet.sigm import softplus
 
-from tests import unittest_tools as utt
 
 mode_opt = theano.config.mode
 if mode_opt == "FAST_COMPILE":

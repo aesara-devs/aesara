@@ -1,7 +1,7 @@
-import pytest
 import numpy as np
-import theano
+import pytest
 
+import theano
 from theano.tensor.utils import hash_from_ndarray, shape_of_variables
 
 

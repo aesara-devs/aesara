@@ -1,10 +1,9 @@
-import pytest
 import numpy as np
-
-from theano import function, shared, tensor, config
-from theano.tensor.shared_randomstreams import RandomStreams
+import pytest
 
 from tests import unittest_tools as utt
+from theano import config, function, shared, tensor
+from theano.tensor.shared_randomstreams import RandomStreams
 
 
 class TestSharedRandomStreams:

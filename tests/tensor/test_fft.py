@@ -3,10 +3,8 @@ import pytest
 
 import theano
 import theano.tensor as tt
-
-from theano.tensor import fft
-
 from tests import unittest_tools as utt
+from theano.tensor import fft
 
 
 N = 16

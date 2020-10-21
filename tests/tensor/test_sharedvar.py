@@ -1,18 +1,15 @@
-import pytest
-
-import six
+from functools import update_wrapper
 
 import numpy as np
+import pytest
+import six
 
 import theano
 import theano.sparse
-
-from functools import update_wrapper
-
+from tests import unittest_tools as utt
 from theano import tensor
 from theano.misc.may_share_memory import may_share_memory
 
-from tests import unittest_tools as utt
 
 utt.seed_rng()
 

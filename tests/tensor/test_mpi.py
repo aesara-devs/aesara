@@ -1,20 +1,21 @@
 import os
 import subprocess
 
-
 import pytest
+
 import theano
 from theano import change_flags
 from theano.gof.sched import sort_schedule_fn
 from theano.tensor.io import (
-    send,
-    recv,
-    mpi_cmps,
     MPISend,
     MPISendWait,
-    mpi_send_wait_cmp,
+    mpi_cmps,
     mpi_enabled,
+    mpi_send_wait_cmp,
+    recv,
+    send,
 )
+
 
 mpi_scheduler = sort_schedule_fn(*mpi_cmps)
 mpi_linker = theano.OpWiseCLinker(schedule=mpi_scheduler)
