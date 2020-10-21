@@ -2206,7 +2206,7 @@ class Prepend_scalar_constant_to_each_row(Op):
         self.val = val
 
     def __str__(self):
-        return "%s{%s}" % (self.__class__.__name__, self.val)
+        return "{}{{{}}}".format(self.__class__.__name__, self.val)
 
     def make_node(self, mat):
         # check type of input

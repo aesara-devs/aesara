@@ -28,7 +28,7 @@ class BNComposite(Composite):
         o = add(mul(true_div(sub(x, mean), std), gamma), beta)
         inputs = [x, mean, std, gamma, beta]
         outputs = [o]
-        super(BNComposite, self).__init__(inputs, outputs)
+        super().__init__(inputs, outputs)
 
     def grad(self, inps, grads):
         x, mean, std, gamma, beta = inps

@@ -1,7 +1,6 @@
 import traceback
 
 import numpy as np
-from six import integer_types
 
 import theano.tensor.basic
 from theano.compile import SharedVariable, shared_constructor
@@ -95,7 +94,7 @@ def scalar_constructor(
     if target != "cpu":
         raise TypeError("not for cpu")
 
-    if not isinstance(value, (np.number, float, integer_types, complex)):
+    if not isinstance(value, (np.number, float, int, complex)):
         raise TypeError()
     try:
         dtype = value.dtype

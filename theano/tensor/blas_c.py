@@ -23,7 +23,7 @@ from theano.tensor.blas import (
 from theano.tensor.opt import in2out
 
 
-class BaseBLAS(object):
+class BaseBLAS:
     def c_libraries(self):
         return ldflags()
 
@@ -617,7 +617,7 @@ class CGemv(BaseBLAS, Gemv):
     )
 
     def __init__(self, inplace):
-        super(CGemv, self).__init__(inplace)
+        super().__init__(inplace)
 
     def c_code(self, node, name, inp, out, sub):
         y, alpha, A, x, beta = inp

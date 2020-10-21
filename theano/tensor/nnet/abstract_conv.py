@@ -6,8 +6,6 @@ Abstract conv interface
 import logging
 import sys
 
-from six import integer_types, reraise
-
 
 try:
     from math import gcd
@@ -635,12 +633,12 @@ def border_mode_to_pad(mode, convdim, kshp):
             )
         border = ()
         for m in mode:
-            if isinstance(m, integer_types) and m >= 0:
+            if isinstance(m, int) and m >= 0:
                 border += ((m, m),)
             elif (
                 isinstance(m, tuple)
                 and min(m) >= 0
-                and all(isinstance(b, integer_types) for b in m)
+                and all(isinstance(b, int) for b in m)
             ):
                 if len(m) != 2:
                     raise NotImplementedError(
@@ -1205,13 +1203,13 @@ def conv2d_grad_wrt_inputs(
     # checking the type of input_shape
     for dim in [0, 1]:
         if not isinstance(
-            input_shape[dim], (theano.tensor.TensorConstant, integer_types, type(None))
+            input_shape[dim], (theano.tensor.TensorConstant, int, type(None))
         ):
             raise ValueError("input_shape[%d] must be a constant or None." % dim)
     for dim in [2, 3]:
         if not isinstance(
             input_shape[dim],
-            (theano.tensor.TensorVariable, theano.tensor.TensorConstant, integer_types),
+            (theano.tensor.TensorVariable, theano.tensor.TensorConstant, int),
         ):
             raise ValueError(
                 "input_shape[%d] must be a symbolic variable,"
@@ -1234,7 +1232,7 @@ def conv2d_grad_wrt_inputs(
         for dim in range(expected_dim):
             if not isinstance(
                 filter_shape[dim],
-                (theano.tensor.TensorConstant, integer_types, type(None)),
+                (theano.tensor.TensorConstant, int, type(None)),
             ):
                 raise ValueError("filter_shape[%d] must be a constant or None" % dim)
 
@@ -1371,12 +1369,12 @@ def conv3d_grad_wrt_inputs(
     # checking the type of input_shape
     for dim in [0, 1]:
         assert isinstance(
-            input_shape[dim], (theano.tensor.TensorConstant, integer_types, type(None))
+            input_shape[dim], (theano.tensor.TensorConstant, int, type(None))
         )
     for dim in [2, 3, 4]:
         assert isinstance(
             input_shape[dim],
-            (theano.tensor.TensorVariable, theano.tensor.TensorConstant, integer_types),
+            (theano.tensor.TensorVariable, theano.tensor.TensorConstant, int),
         )
 
     # checking the type of filter_shape
@@ -1384,7 +1382,7 @@ def conv3d_grad_wrt_inputs(
         for dim in [0, 1, 2, 3, 4]:
             assert isinstance(
                 filter_shape[dim],
-                (theano.tensor.TensorConstant, integer_types, type(None)),
+                (theano.tensor.TensorConstant, int, type(None)),
             )
 
     # setting the last three dimensions of input_shape to None, if
@@ -1526,18 +1524,18 @@ def conv2d_grad_wrt_weights(
     # checking the type of filter_shape
     for dim in [0, 1]:
         assert isinstance(
-            filter_shape[dim], (theano.tensor.TensorConstant, integer_types, type(None))
+            filter_shape[dim], (theano.tensor.TensorConstant, int, type(None))
         )
     if unshared:
         for dim in [2, 3]:
             assert isinstance(
                 filter_shape[dim],
-                (theano.tensor.TensorConstant, integer_types, type(None)),
+                (theano.tensor.TensorConstant, int, type(None)),
             )
     for dim in [-2, -1]:
         assert isinstance(
             filter_shape[dim],
-            (theano.tensor.TensorVariable, theano.tensor.TensorConstant, integer_types),
+            (theano.tensor.TensorVariable, theano.tensor.TensorConstant, int),
         )
 
     # checking the type of input_shape
@@ -1545,7 +1543,7 @@ def conv2d_grad_wrt_weights(
         for dim in [0, 1, 2, 3]:
             assert isinstance(
                 input_shape[dim],
-                (theano.tensor.TensorConstant, integer_types, type(None)),
+                (theano.tensor.TensorConstant, int, type(None)),
             )
 
     # setting the last two dimensions of filter_shape to None, if
@@ -1672,12 +1670,12 @@ def conv3d_grad_wrt_weights(
     # checking the type of filter_shape
     for dim in [0, 1]:
         assert isinstance(
-            filter_shape[dim], (theano.tensor.TensorConstant, integer_types, type(None))
+            filter_shape[dim], (theano.tensor.TensorConstant, int, type(None))
         )
     for dim in [2, 3, 4]:
         assert isinstance(
             filter_shape[dim],
-            (theano.tensor.TensorVariable, theano.tensor.TensorConstant, integer_types),
+            (theano.tensor.TensorVariable, theano.tensor.TensorConstant, int),
         )
 
     # checking the type of input_shape
@@ -1685,7 +1683,7 @@ def conv3d_grad_wrt_weights(
         for dim in [0, 1, 2, 3, 4]:
             assert isinstance(
                 input_shape[dim],
-                (theano.tensor.TensorConstant, integer_types, type(None)),
+                (theano.tensor.TensorConstant, int, type(None)),
             )
 
     # setting the last three dimensions of filter_shape to None, if
@@ -2228,7 +2226,7 @@ class BaseAbstractConv(Op):
         if filter_dilation is None:
             filter_dilation = (1,) * convdim
 
-        if isinstance(border_mode, integer_types):
+        if isinstance(border_mode, int):
             if border_mode < 0:
                 raise ValueError(
                     "invalid border_mode {}, which must be a "
@@ -2244,12 +2242,12 @@ class BaseAbstractConv(Op):
             new_border_mode = ()
             for mode in border_mode:
                 if not (
-                    (isinstance(mode, integer_types) and mode >= 0)
+                    (isinstance(mode, int) and mode >= 0)
                     or (
                         isinstance(mode, tuple)
                         and len(mode) == 2
                         and min(mode) >= 0
-                        and all(isinstance(m, integer_types) for m in mode)
+                        and all(isinstance(m, int) for m in mode)
                     )
                 ):
                     raise ValueError(
@@ -2283,13 +2281,9 @@ class BaseAbstractConv(Op):
                 try:
                     get_scalar_constant_value(imshp_i, only_process_constants=True)
                 except NotScalarConstantError:
-                    reraise(
-                        ValueError,
-                        ValueError(
-                            "imshp should be None or a tuple of " "constant int values"
-                        ),
-                        sys.exc_info()[2],
-                    )
+                    raise ValueError(
+                        "imshp should be None or a tuple of " "constant int values"
+                    ).with_traceback(sys.exc_info()[2])
         if kshp:
             self.kshp = tuple(kshp)
         else:
@@ -2300,13 +2294,9 @@ class BaseAbstractConv(Op):
                 try:
                     get_scalar_constant_value(kshp_i, only_process_constants=True)
                 except NotScalarConstantError:
-                    reraise(
-                        ValueError,
-                        ValueError(
-                            "kshp should be None or a tuple of " "constant int values"
-                        ),
-                        sys.exc_info()[2],
-                    )
+                    raise ValueError(
+                        "kshp should be None or a tuple of " "constant int values"
+                    ).with_traceback(sys.exc_info()[2])
         self.border_mode = border_mode
         self.filter_flip = filter_flip
 
@@ -2374,7 +2364,7 @@ class BaseAbstractConv(Op):
                 "invalid mode {}, which must be either "
                 '"valid" or "full"'.format(mode)
             )
-        if isinstance(dilation, integer_types):
+        if isinstance(dilation, int):
             dilation = (dilation,) * self.convdim
         if len(dilation) != self.convdim:
             raise ValueError(
@@ -2534,7 +2524,7 @@ class AbstractConv(BaseAbstractConv):
         num_groups=1,
         unshared=False,
     ):
-        super(AbstractConv, self).__init__(
+        super().__init__(
             convdim=convdim,
             imshp=imshp,
             kshp=kshp,
@@ -2749,7 +2739,7 @@ class AbstractConv2d(AbstractConv):
         num_groups=1,
         unshared=False,
     ):
-        super(AbstractConv2d, self).__init__(
+        super().__init__(
             convdim=2,
             imshp=imshp,
             kshp=kshp,
@@ -2814,7 +2804,7 @@ class AbstractConv3d(AbstractConv):
         filter_dilation=(1, 1, 1),
         num_groups=1,
     ):
-        super(AbstractConv3d, self).__init__(
+        super().__init__(
             convdim=3,
             imshp=imshp,
             kshp=kshp,
@@ -2882,7 +2872,7 @@ class AbstractConv_gradWeights(BaseAbstractConv):
         num_groups=1,
         unshared=False,
     ):
-        super(AbstractConv_gradWeights, self).__init__(
+        super().__init__(
             convdim=convdim,
             imshp=imshp,
             kshp=kshp,
@@ -3109,7 +3099,7 @@ class AbstractConv2d_gradWeights(AbstractConv_gradWeights):
         num_groups=1,
         unshared=False,
     ):
-        super(AbstractConv2d_gradWeights, self).__init__(
+        super().__init__(
             convdim=2,
             imshp=imshp,
             kshp=kshp,
@@ -3179,7 +3169,7 @@ class AbstractConv3d_gradWeights(AbstractConv_gradWeights):
         filter_dilation=(1, 1, 1),
         num_groups=1,
     ):
-        super(AbstractConv3d_gradWeights, self).__init__(
+        super().__init__(
             convdim=3,
             imshp=imshp,
             kshp=kshp,
@@ -3248,7 +3238,7 @@ class AbstractConv_gradInputs(BaseAbstractConv):
         num_groups=1,
         unshared=False,
     ):
-        super(AbstractConv_gradInputs, self).__init__(
+        super().__init__(
             convdim=convdim,
             imshp=imshp,
             kshp=kshp,
@@ -3502,7 +3492,7 @@ class AbstractConv2d_gradInputs(AbstractConv_gradInputs):
         num_groups=1,
         unshared=False,
     ):
-        super(AbstractConv2d_gradInputs, self).__init__(
+        super().__init__(
             convdim=2,
             imshp=imshp,
             kshp=kshp,
@@ -3572,7 +3562,7 @@ class AbstractConv3d_gradInputs(AbstractConv_gradInputs):
         filter_dilation=(1, 1, 1),
         num_groups=1,
     ):
-        super(AbstractConv3d_gradInputs, self).__init__(
+        super().__init__(
             convdim=3,
             imshp=imshp,
             kshp=kshp,

@@ -283,7 +283,9 @@ class TensorType(Type):
             }[self.dtype]
         except KeyError:
             raise TypeError(
-                "Unsupported dtype for %s: %s" % (self.__class__.__name__, self.dtype)
+                "Unsupported dtype for {}: {}".format(
+                    self.__class__.__name__, self.dtype
+                )
             )
 
     def to_scalar_type(self):
@@ -391,7 +393,7 @@ class TensorType(Type):
                     bcast = str(b)
                 else:
                     bcast = "%iD" % len(b)
-            return "TensorType(%s, %s)" % (str(self.dtype), bcast)
+            return "TensorType({}, {})".format(self.dtype, bcast)
 
     def __repr__(self):
         return str(self)

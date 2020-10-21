@@ -33,7 +33,7 @@ class SortOp(Op):
         self.order = order
 
     def __str__(self):
-        return self.__class__.__name__ + "{%s, %s}" % (self.kind, str(self.order))
+        return self.__class__.__name__ + "{{{}, {}}}".format(self.kind, str(self.order))
 
     def make_node(self, input, axis=-1):
         input = theano.tensor.as_tensor_variable(input)
@@ -168,7 +168,7 @@ class ArgSortOp(Op):
         self.order = order
 
     def __str__(self):
-        return self.__class__.__name__ + "{%s, %s}" % (self.kind, str(self.order))
+        return self.__class__.__name__ + "{{{}, {}}}".format(self.kind, str(self.order))
 
     def make_node(self, input, axis=-1):
         input = theano.tensor.as_tensor_variable(input)

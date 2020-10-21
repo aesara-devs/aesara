@@ -13,7 +13,7 @@ from collections import defaultdict
 from functools import reduce
 
 import numpy as np
-from six import StringIO, integer_types
+from six import StringIO
 
 import theano
 import theano.scalar.basic as ts
@@ -515,7 +515,8 @@ class InplaceElemwiseOptimizer(Optimizer):
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
         print(
-            "%s%s (%s)" % ((" " * level), self.__class__.__name__, self.op), file=stream
+            "{}{} ({})".format((" " * level), self.__class__.__name__, self.op),
+            file=stream,
         )
         return inplace_elemwise_optimizer
 
@@ -996,7 +997,7 @@ class MakeVectorPrinter:
 tt.pprint.assign(MakeVector, MakeVectorPrinter())
 
 
-class ShapeFeature(object):
+class ShapeFeature:
     """Graph optimizer for removing all calls to shape().
 
     This optimizer replaces all Shapes and Subtensors of Shapes with
@@ -1222,12 +1223,10 @@ class ShapeFeature(object):
             # don't make the optimizer merge a zillion ones together
             # by always returning the same object to represent 1
             return self.lscalar_one
-        if type(s_i) is float and int(s_i) == s_i:
+        if isinstance(s_i, float) and int(s_i) == s_i:
             s_i = int(s_i)
-        if (
-            type(s_i) in integer_types
-            or isinstance(s_i, np.integer)
-            or (isinstance(s_i, np.ndarray) and s_i.ndim == 0)
+        if isinstance(s_i, (np.integer, int)) or (
+            isinstance(s_i, np.ndarray) and s_i.ndim == 0
         ):
             # this shape is a constant
             if s_i < 0:
@@ -1241,7 +1240,7 @@ class ShapeFeature(object):
                 # message.
                 raise AssertionError(msg)
             return tt.constant(s_i, dtype="int64")
-        if type(s_i) in (tuple, list):
+        if isinstance(s_i, (tuple, list)):
             # this dimension is the same as many of the inputs
             # which tells us that if one of the inputs is known,
             # the others all become known.
@@ -1384,11 +1383,11 @@ class ShapeFeature(object):
                 #  - Shape_i(i)(other_r);
                 #  - Shape_i(i)(r).
                 merged_shape.append(r_shape[i])
-            elif isinstance(r_shape[i], (Constant, integer_types)):
+            elif isinstance(r_shape[i], (Constant, int)):
                 # We do this to call less often ancestors and make
                 # sure we have the simplest shape possible.
                 merged_shape.append(r_shape[i])
-            elif isinstance(other_shape[i], (Constant, integer_types)):
+            elif isinstance(other_shape[i], (Constant, int)):
                 # We do this to call less often ancestors and make
                 # sure we have the simplest shape possible.
                 merged_shape.append(other_shape[i])
@@ -2225,7 +2224,7 @@ def local_subtensor_remove_broadcastable_index(node):
         elif isinstance(elem, slice):
             if elem != slice(None):
                 return
-        elif isinstance(elem, (integer_types, np.integer)):
+        elif isinstance(elem, (int, np.integer)):
             if elem in [0, -1] and node.inputs[0].broadcastable[dim]:
                 remove_dim.append(dim)
         else:
@@ -2277,7 +2276,7 @@ def local_subtensor_make_vector(node):
     else:
         return
 
-    if isinstance(idx, (integer_types, np.integer)):
+    if isinstance(idx, (int, np.integer)):
         # We don't need to copy over any stack traces here
         return [x.owner.inputs[idx]]
     elif isinstance(idx, Variable):
@@ -3014,7 +3013,7 @@ def local_useless_subtensor(node):
 
             length_pos = shape_of[node.inputs[0]][pos]
 
-            if isinstance(idx.stop, (integer_types, np.integer)):
+            if isinstance(idx.stop, (int, np.integer)):
                 length_pos_data = sys.maxsize
                 try:
                     length_pos_data = get_scalar_constant_value(
@@ -3281,12 +3280,10 @@ def merge_two_slices(slice1, len1, slice2, len2):
             n_val = sl1.stop - 1 - sl2 * sl1.step
             if config.warn.subtensor_merge_bug:
                 warnings.warning(
-                    (
-                        "Your current code is fine, but Theano versions "
-                        "prior to 0.5rc2 might have given an incorrect result. "
-                        "To disable this warning, set the Theano flag "
-                        "warn.subtensor_merge_bug to False."
-                    )
+                    "Your current code is fine, but Theano versions "
+                    "prior to 0.5rc2 might have given an incorrect result. "
+                    "To disable this warning, set the Theano flag "
+                    "warn.subtensor_merge_bug to False."
                 )
             # we need to pick either n_val or p_val and then follow same
             # steps as above for covering the index error cases
@@ -5467,7 +5464,7 @@ class Canonizer(LocalOptimizer):
         return getattr(
             self,
             "name",
-            "Canonizer(%s, %s, %s)" % (self.main, self.inverse, self.reciprocal),
+            "Canonizer({}, {}, {})".format(self.main, self.inverse, self.reciprocal),
         )
 
 
@@ -6125,17 +6122,15 @@ def local_reduce_join(node):
         if len(reduce_axis) != 1 or 0 not in reduce_axis:
             if theano.config.warn.reduce_join:
                 warnings.warning(
-                    (
-                        "Your current code is fine, but Theano versions "
-                        "prior to 0.7 (or this development version Sept 2014) "
-                        "might have given an incorrect result for this code. "
-                        "To disable this warning, set the Theano flag "
-                        "warn.reduce_join to False. The problem was an "
-                        "optimization, that modified the pattern "
-                        '"Reduce{scalar.op}(Join(axis=0, a, b), axis=0)", '
-                        "did not check the reduction axis. So if the "
-                        "reduction axis was not 0, you got a wrong answer."
-                    )
+                    "Your current code is fine, but Theano versions "
+                    "prior to 0.7 (or this development version Sept 2014) "
+                    "might have given an incorrect result for this code. "
+                    "To disable this warning, set the Theano flag "
+                    "warn.reduce_join to False. The problem was an "
+                    "optimization, that modified the pattern "
+                    '"Reduce{scalar.op}(Join(axis=0, a, b), axis=0)", '
+                    "did not check the reduction axis. So if the "
+                    "reduction axis was not 0, you got a wrong answer."
                 )
             return
 
@@ -7049,8 +7044,8 @@ def constant_folding(node):
         # The op asks not to be constant folded.
         return False
 
-    storage_map = dict([(i, [i.data]) for i in node.inputs])
-    compute_map = dict([(i, [True]) for i in node.inputs])
+    storage_map = {i: [i.data] for i in node.inputs}
+    compute_map = {i: [True] for i in node.inputs}
     for o in node.outputs:
         storage_map[o] = [None]
         compute_map[o] = [False]
@@ -7578,7 +7573,7 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
             if (
                 i.owner
                 and isinstance(i.owner.op, op_class)
-                and len(set([n for n, idx in i.clients])) == 1
+                and len({n for n, idx in i.clients}) == 1
                 and
                 # Do not merge elemwise that don't have the same
                 # broadcastable pattern to don't redo duplicate
@@ -7789,7 +7784,6 @@ class FusionOptimizer(Optimizer):
                             nb_replacement += 1
                         except InconsistencyError:
                             nb_inconsistency_replace += 1
-                            pass
             nb_iter += 1
 
         if fgraph.profile:

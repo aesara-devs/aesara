@@ -59,7 +59,7 @@ class RandomStreams(raw_random.RandomStreamsBase):
         return list(self.state_updates)
 
     def __init__(self, seed=None):
-        super(RandomStreams, self).__init__()
+        super().__init__()
         # A list of pairs of the form (input_r, output_r).  This will be
         # over-ridden by the module instance to contain stream generators.
         self.state_updates = []

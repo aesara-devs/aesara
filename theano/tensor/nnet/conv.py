@@ -488,7 +488,7 @@ class ConvOp(OpenMPOp):
             )
 
         # Init the openmp attribute
-        super(ConvOp, self).__init__(openmp=openmp)
+        super().__init__(openmp=openmp)
         if not all_shape or self.openmp:
             # Only this version is parallelized
             unroll_patch = True
@@ -687,7 +687,7 @@ class ConvOp(OpenMPOp):
         return True
 
     def __setstate__(self, d):
-        super(ConvOp, self).__setstate__(d)
+        super().__setstate__(d)
         self.direction_hint = d.get("direction_hint", None)
         self._rehash()
 
@@ -1197,7 +1197,7 @@ using namespace std;
         if theano.gof.cmodule.gcc_version() in ["4.3.0"] and self.kshp == (1, 1):
             ret += ["-O2"]
         # Add the -fopenmp flags
-        ret += super(ConvOp, self).c_compile_args()
+        ret += super().c_compile_args()
 
         return ret
 

@@ -6,7 +6,6 @@ from copy import copy
 from functools import reduce
 
 import numpy as np
-from six import string_types
 
 import theano
 from theano import gof, tensor
@@ -149,7 +148,7 @@ class RandomFunction(gof.Op):
             state = dct
         fn, outtype, inplace, ndim_added = state
         self.fn = fn
-        if isinstance(fn, string_types):
+        if isinstance(fn, str):
             self.exec_fn = getattr(np.random.RandomState, fn)
         else:
             self.exec_fn = fn
@@ -353,7 +352,7 @@ def _infer_ndim_bcast(ndim, shape, *args):
             else:
                 if s >= 0:
                     pre_v_shape.append(tensor.as_tensor_variable(s))
-                    bcast.append((s == 1))
+                    bcast.append(s == 1)
                 elif s == -1:
                     n_a_i = 0
                     for a in args:
@@ -370,11 +369,9 @@ def _infer_ndim_bcast(ndim, shape, *args):
                     else:
                         if n_a_i == 0:
                             raise ValueError(
-                                (
-                                    "Auto-shape of -1 must overlap"
-                                    "with the shape of one of the broadcastable"
-                                    "inputs"
-                                )
+                                "Auto-shape of -1 must overlap"
+                                "with the shape of one of the broadcastable"
+                                "inputs"
                             )
                         else:
                             pre_v_shape.append(tensor.as_tensor_variable(1))
@@ -393,7 +390,7 @@ def _infer_ndim_bcast(ndim, shape, *args):
         # but we need to know ndim
         if not args:
             raise TypeError(
-                ("_infer_ndim_bcast cannot infer shape without" " either shape or args")
+                "_infer_ndim_bcast cannot infer shape without" " either shape or args"
             )
         template = reduce(lambda a, b: a + b, args)
         v_shape = template.shape
@@ -957,7 +954,7 @@ optdb.register(
 )
 
 
-class RandomStreamsBase(object):
+class RandomStreamsBase:
     def binomial(self, size=None, n=1, p=0.5, ndim=None, dtype="int64", prob=None):
         """
         Sample n times with probability of success p for each trial and

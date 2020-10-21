@@ -770,7 +770,7 @@ def blas_header_text():
                 "precision": "d",
             }
         if not common_code or not template_code:
-            raise IOError(
+            raise OSError(
                 "Unable to load NumPy implementation of BLAS functions from C source files."
             )
         blas_code += common_code

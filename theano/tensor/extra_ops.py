@@ -274,7 +274,7 @@ class CumOp(Op):
 
     def __init__(self, axis=None, mode="add"):
         if mode not in ("add", "mul"):
-            raise ValueError('%s: Unknown mode "%s"' % (type(self).__name__, mode))
+            raise ValueError('{}: Unknown mode "{}"'.format(type(self).__name__, mode))
         self.axis = axis
         self.mode = mode
 
@@ -287,7 +287,7 @@ class CumOp(Op):
         if self.axis is None:
             out_type = theano.tensor.vector(dtype=x.dtype)  # Flatten
         elif self.axis >= x.ndim or self.axis < -x.ndim:
-            raise ValueError("axis(={0}) out of bounds".format(self.axis))
+            raise ValueError("axis(={}) out of bounds".format(self.axis))
 
         return theano.Apply(self, [x], [out_type])
 
@@ -327,7 +327,9 @@ class CumOp(Op):
             return [cumsum((fx * gi)[reverse_slicing], self.axis)[reverse_slicing] / x]
         else:
             raise NotImplementedError(
-                '%s: unknown gradient for mode "%s"' % (type(self).__name__, self.mode)
+                '{}: unknown gradient for mode "{}"'.format(
+                    type(self).__name__, self.mode
+                )
             )
 
     def infer_shape(self, node, shapes):
@@ -391,7 +393,7 @@ class CumOp(Op):
         return (8,)
 
     def __str__(self):
-        return "%s{%s, %s}" % (self.__class__.__name__, self.axis, self.mode)
+        return "{}{{{}, {}}}".format(self.__class__.__name__, self.axis, self.mode)
 
 
 def cumsum(x, axis=None):

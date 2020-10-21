@@ -1,8 +1,6 @@
 import logging
 import os
 
-from six import integer_types
-
 import theano
 from theano import gof
 from theano.gof.graph import Apply
@@ -86,8 +84,8 @@ class BaseCorrMM(gof.OpenMPOp):
         unshared=False,
         openmp=None,
     ):
-        super(BaseCorrMM, self).__init__(openmp=openmp)
-        if isinstance(border_mode, integer_types):
+        super().__init__(openmp=openmp)
+        if isinstance(border_mode, int):
             if border_mode < 0:
                 raise ValueError(
                     "invalid border_mode {}, which must be a "
@@ -175,7 +173,7 @@ class BaseCorrMM(gof.OpenMPOp):
     padW_r = property(lambda self: self.pad[1][1])
 
     def __str__(self):
-        return "%s{%s, %s, %s, %s %s}" % (
+        return "{}{{{}, {}, {}, {} {}}}".format(
             self.__class__.__name__,
             self.border_mode,
             str(self.subsample),
@@ -210,7 +208,7 @@ class BaseCorrMM(gof.OpenMPOp):
 
     def c_compile_args(self):
         compile_args = ldflags(libs=False, flags=True)
-        compile_args += super(BaseCorrMM, self).c_compile_args()
+        compile_args += super().c_compile_args()
         return compile_args
 
     def c_lib_dirs(self):
@@ -221,7 +219,7 @@ class BaseCorrMM(gof.OpenMPOp):
 
     def c_headers(self):
         headers = ["<stdio.h>"]
-        headers += super(BaseCorrMM, self).c_headers()
+        headers += super().c_headers()
         return headers
 
     def c_code_cache_version(self):
@@ -710,7 +708,7 @@ class CorrMM(BaseCorrMM):
     def c_code(self, node, nodename, inp, out_, sub):
         bottom, weights = inp
         (top,) = out_
-        return super(CorrMM, self).c_code_helper(bottom, weights, top, sub)
+        return super().c_code_helper(bottom, weights, top, sub)
 
     def grad(self, inp, grads):
         bottom, weights = inp
@@ -835,9 +833,7 @@ class CorrMM_gradWeights(BaseCorrMM):
         bottom, top = inp[:2]
         height, width = inp[2:] or (None, None)
         (weights,) = out_
-        return super(CorrMM_gradWeights, self).c_code_helper(
-            bottom, weights, top, sub, height, width
-        )
+        return super().c_code_helper(bottom, weights, top, sub, height, width)
 
     def grad(self, inp, grads):
         bottom, top = inp[:2]
@@ -969,9 +965,7 @@ class CorrMM_gradInputs(BaseCorrMM):
         weights, top = inp[:2]
         height, width = inp[2:] or (None, None)
         (bottom,) = out_
-        return super(CorrMM_gradInputs, self).c_code_helper(
-            bottom, weights, top, sub, height, width
-        )
+        return super().c_code_helper(bottom, weights, top, sub, height, width)
 
     def grad(self, inp, grads):
         weights, top = inp[:2]

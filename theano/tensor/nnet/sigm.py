@@ -91,7 +91,7 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
             raise NotImplementedError("only floatingpoint is implemented")
 
     def c_code_cache_version(self):
-        v = super(ScalarSigmoid, self).c_code_cache_version()
+        v = super().c_code_cache_version()
         if v:
             return (2,) + v
         else:
@@ -404,7 +404,7 @@ class ScalarSoftplus(scalar.UnaryScalarOp):
             raise NotImplementedError("only floatingpoint is implemented")
 
     def c_code_cache_version(self):
-        v = super(ScalarSoftplus, self).c_code_cache_version()
+        v = super().c_code_cache_version()
         if v:
             return (2,) + v
         else:
