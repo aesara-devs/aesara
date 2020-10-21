@@ -4,22 +4,20 @@ import sys
 import theano
 import theano.tensor as tt
 import theano.tensor.nnet.ctc
-
 from theano import config, gof
-from theano.gpuarray.basic_ops import (
-    gpu_contiguous,
-    as_gpuarray_variable,
-    infer_context_name,
-    gpuarray_helper_inc_dir,
-)
-from theano.gpuarray.type import GpuArrayType, gpu_context_type
-from theano.gpuarray.elemwise import GpuDimShuffle
-from theano.gradient import grad_undefined
 from theano.gof import local_optimizer
-from theano.tensor.opt import register_canonicalize
-from theano.tensor.nnet.ctc import ctc_available
-
 from theano.gpuarray import pygpu
+from theano.gpuarray.basic_ops import (
+    as_gpuarray_variable,
+    gpu_contiguous,
+    gpuarray_helper_inc_dir,
+    infer_context_name,
+)
+from theano.gpuarray.elemwise import GpuDimShuffle
+from theano.gpuarray.type import GpuArrayType, gpu_context_type
+from theano.gradient import grad_undefined
+from theano.tensor.nnet.ctc import ctc_available
+from theano.tensor.opt import register_canonicalize
 
 
 class GpuConnectionistTemporalClassification(gof.COp):

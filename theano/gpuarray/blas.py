@@ -2,7 +2,6 @@ from six import integer_types
 
 import theano
 from theano import Apply, Op
-
 from theano.compile import optdb
 from theano.gof import LocalOptGroup, ParamsType
 from theano.scalar import bool as bool_t
@@ -10,14 +9,15 @@ from theano.tensor.basic import as_tensor_variable
 from theano.tensor.opt import in2out
 
 from .basic_ops import (
-    GpuArrayType,
     CGpuKernelBase,
+    GpuArrayType,
     as_gpuarray_variable,
     gpu_contiguous,
-    infer_context_name,
     gpuarray_helper_inc_dir,
+    infer_context_name,
 )
 from .opt_util import inplace_allocempty
+
 
 try:
     import pygpu

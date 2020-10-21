@@ -1,27 +1,26 @@
 import warnings
 
-import pkg_resources
 import numpy as np
+import pkg_resources
 from numpy.linalg.linalg import LinAlgError
 
 import theano
 from theano import Op, config, tensor
-from theano.scalar import bool as bool_t
 from theano.gof import COp, ParamsType
-from theano.gpuarray import GpuArrayType
-
-from .basic_ops import (
+from theano.gpuarray.basic_ops import (
     CGpuKernelBase,
     as_gpuarray_variable,
     gpu_contiguous,
     gpuarray_helper_inc_dir,
     infer_context_name,
 )
-from .type import gpu_context_type
+from theano.gpuarray.type import GpuArrayType, gpu_context_type
+from theano.scalar import bool as bool_t
+
 
 try:
     import pygpu
-    from pygpu.basic import triu, tril
+    from pygpu.basic import tril, triu
 
     pygpu_available = True
 except ImportError:

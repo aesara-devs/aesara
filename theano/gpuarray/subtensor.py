@@ -1,23 +1,24 @@
 import numpy as np
-
-import theano.tensor as tt
-
 from six import integer_types
 from six.moves import StringIO
 
-from theano import gof, Op
+import theano.tensor as tt
+from theano import Op, gof
 from theano.gof import ParamsType
 from theano.gradient import grad_not_implemented
+from theano.scalar import bool as bool_t
+from theano.scalar import int32 as int_t
+from theano.scalar import uint32 as size_t
 from theano.tensor import AllocDiag
 from theano.tensor.subtensor import (
-    IncSubtensor,
-    AdvancedSubtensor,
-    Subtensor,
     AdvancedIncSubtensor,
+    AdvancedSubtensor,
     AdvancedSubtensor1,
+    IncSubtensor,
+    Subtensor,
     get_idx_list,
 )
-from theano.scalar import bool as bool_t, int32 as int_t, uint32 as size_t
+
 
 try:
     import pygpu
@@ -25,16 +26,17 @@ try:
 except ImportError:
     pass
 
-from theano.gpuarray.type import GpuArrayType, gpu_context_type
 from theano.gpuarray.basic_ops import (
-    as_gpuarray_variable,
-    HideC,
     GpuKernelBase,
+    HideC,
     Kernel,
+    as_gpuarray_variable,
+    gpu_contiguous,
     gpuarray_helper_inc_dir,
     infer_context_name,
-    gpu_contiguous,
 )
+from theano.gpuarray.type import GpuArrayType, gpu_context_type
+
 
 iadd_reg = {}
 

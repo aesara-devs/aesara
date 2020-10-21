@@ -2,18 +2,17 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
-
 from theano import Op
-from theano.gradient import DisconnectedType
 from theano.gpuarray.basic_ops import (
-    gpu_contiguous,
     as_gpuarray_variable,
+    gpu_contiguous,
     infer_context_name,
 )
+from theano.gpuarray.opt import op_lifter, register_opt, register_opt2
 from theano.gpuarray.type import GpuArrayType
-
+from theano.gradient import DisconnectedType
 from theano.tensor.fft import IRFFTOp
-from theano.gpuarray.opt import register_opt, op_lifter, register_opt2
+
 
 try:
     import pygpu

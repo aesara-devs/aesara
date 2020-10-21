@@ -1,36 +1,35 @@
 import copy
 
 import numpy as np
-
-import theano
-
 from six.moves import StringIO
 
-from theano import Apply, scalar, Op
+import theano
+from theano import Apply, Op, scalar
 from theano.gof.utils import MethodNotDefined
-from theano.scalar import Scalar, Composite
-from theano.tensor.elemwise import Elemwise, DimShuffle, CAReduceDtype
-from theano.scalar.basic_scipy import Erfinv, Erfcinv
-from theano.scalar.basic import upgrade_to_float_no_complex, complex_types
+from theano.scalar import Composite, Scalar
+from theano.scalar.basic import complex_types, upgrade_to_float_no_complex
+from theano.scalar.basic_scipy import Erfcinv, Erfinv
+from theano.tensor.elemwise import CAReduceDtype, DimShuffle, Elemwise
+
 
 try:
     import pygpu
     from pygpu import gpuarray
-    from pygpu.tools import ArrayArg
-    from pygpu.reduction import ReductionKernel
     from pygpu.gpuarray import dtype_to_typecode
+    from pygpu.reduction import ReductionKernel
+    from pygpu.tools import ArrayArg
 except ImportError:
     pass
 
 from .basic_ops import (
-    as_gpuarray_variable,
-    HideC,
     GpuKernelBase,
+    HideC,
     Kernel,
+    as_gpuarray_variable,
     infer_context_name,
 )
-from .type import GpuArrayType, gpu_context_type
 from .fp16_help import load_w, write_w
+from .type import GpuArrayType, gpu_context_type
 
 
 def make_argument(v, name):

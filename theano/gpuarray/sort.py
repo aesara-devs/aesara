@@ -11,12 +11,13 @@ from theano.tensor.sort import TopKOp
 from .basic_ops import (
     GpuKernelBase,
     Kernel,
-    infer_context_name,
     as_gpuarray_variable,
     gpuarray_helper_inc_dir,
+    infer_context_name,
 )
-from .opt import register_opt, op_lifter, register_opt2
+from .opt import op_lifter, register_opt, register_opt2
 from .type import GpuArrayType
+
 
 try:
     import pygpu

@@ -1,23 +1,25 @@
 from theano import Apply, Op
 from theano.tensor.extra_ops import CumOp
 
+
 try:
     from pygpu import gpuarray
 except ImportError:
     pass
 
-from .basic_ops import (
-    as_gpuarray_variable,
-    GpuKernelBase,
-    Kernel,
-    GpuReshape,
-    infer_context_name,
-    gpuarray_helper_inc_dir,
-)
-from .opt import register_opt, op_lifter, register_opt2
-from .type import gpu_context_type
-from theano.gof import ParamsType
 import theano.scalar as scalar
+from theano.gof import ParamsType
+
+from .basic_ops import (
+    GpuKernelBase,
+    GpuReshape,
+    Kernel,
+    as_gpuarray_variable,
+    gpuarray_helper_inc_dir,
+    infer_context_name,
+)
+from .opt import op_lifter, register_opt, register_opt2
+from .type import gpu_context_type
 
 
 class GpuCumOp(GpuKernelBase, Op):

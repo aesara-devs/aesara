@@ -1,24 +1,21 @@
-import os
 import copy
+import os
 import re
-
-import numpy as np
-
-import theano
-
 from collections import deque
 
+import numpy as np
 from six import string_types
 
-from theano import Op, Apply, Type, Variable
-from theano import tensor, config
-from theano.gradient import grad_undefined
-from theano.scalar import bool as bool_t, int32 as int32_t
-from theano.tensor.basic import Alloc, AllocEmpty, alloc_validate_shape, Join, Split
-
-from theano.gof import HideC, COp, ParamsType
-from theano.gof.utils import MethodNotDefined
+import theano
+from theano import Apply, Op, Type, Variable, config, tensor
+from theano.gof import COp, HideC, ParamsType
 from theano.gof.opt import copy_stack_trace
+from theano.gof.utils import MethodNotDefined
+from theano.gradient import grad_undefined
+from theano.scalar import bool as bool_t
+from theano.scalar import int32 as int32_t
+from theano.tensor.basic import Alloc, AllocEmpty, Join, Split, alloc_validate_shape
+
 
 try:
     import pygpu
@@ -26,15 +23,15 @@ try:
 except ImportError:
     pass
 
-from .type import (
-    GpuArrayType,
-    GpuArrayConstant,
-    gpu_context_type,
-    get_context,
-    ContextNotDefined,
-    EQ_MAP,
-)
 from .fp16_help import write_w
+from .type import (
+    EQ_MAP,
+    ContextNotDefined,
+    GpuArrayConstant,
+    GpuArrayType,
+    get_context,
+    gpu_context_type,
+)
 
 
 def as_gpuarray_variable(x, context_name):
@@ -1000,7 +997,7 @@ class GpuAlloc(HideC, Alloc):
         return (4,)
 
     def do_constant_folding(self, node):
-        from . import subtensor, blas
+        from . import blas, subtensor
 
         for client in node.outputs[0].clients:
             if client[0] == "output":

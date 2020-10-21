@@ -9,21 +9,21 @@ http://www.iro.umontreal.ca/~simardr/ssj/indexe.html
 
 from theano import Apply, tensor
 from theano.gof import local_optimizer
-from theano.sandbox.rng_mrg import mrg_uniform_base, mrg_uniform
-from theano.tensor import as_tensor_variable, get_vector_length
+from theano.sandbox.rng_mrg import mrg_uniform, mrg_uniform_base
 from theano.scalar import int32 as int_t
+from theano.tensor import as_tensor_variable, get_vector_length
 
 from .basic_ops import (
+    GpuFromHost,
     GpuKernelBase,
     Kernel,
-    infer_context_name,
-    GpuFromHost,
-    host_from_gpu,
     as_gpuarray_variable,
+    host_from_gpu,
+    infer_context_name,
 )
-from .type import GpuArrayType, gpu_context_type
 from .fp16_help import write_w
 from .opt import register_opt, register_opt2
+from .type import GpuArrayType, gpu_context_type
 
 
 class GPUA_mrg_uniform(GpuKernelBase, mrg_uniform_base):

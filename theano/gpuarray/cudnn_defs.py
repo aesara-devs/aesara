@@ -18,6 +18,7 @@ Currently supported cuDNN APIs:
 
 from theano.gof import CEnumType
 
+
 HALF, FLOAT, DOUBLE = ("float16", "float32", "float64")
 TRUE_HALF_CONFIG = (HALF, HALF)
 PSEUDO_HALF_CONFIG = (HALF, FLOAT)

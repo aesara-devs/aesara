@@ -1,7 +1,8 @@
 import numpy as np
-
-from theano import Op, Apply
 from six import StringIO
+
+from theano import Apply, Op
+
 
 try:
     import pygpu
@@ -10,14 +11,14 @@ except ImportError:
     pass
 
 from .basic_ops import (
-    as_gpuarray_variable,
     GpuKernelBase,
     Kernel,
+    as_gpuarray_variable,
     gpuarray_helper_inc_dir,
     infer_context_name,
 )
+from .fp16_help import load_w, work_dtype, write_w
 from .type import GpuArrayType
-from .fp16_help import work_dtype, load_w, write_w
 
 
 class GpuCrossentropySoftmaxArgmax1HotWithBias(GpuKernelBase, Op):

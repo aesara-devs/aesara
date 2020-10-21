@@ -1,17 +1,16 @@
-import sys
 import os
+import sys
 import warnings
 
+import numpy as np
 import six.moves.copyreg as copyreg
 
-import numpy as np
-
 import theano
-
+from theano import Constant, Type, Variable, config, scalar, tensor
+from theano.compile import SharedVariable
 from theano.tensor.type import TensorType
 from theano.tensor.var import _tensor_py_operators
-from theano import Type, Variable, Constant, tensor, config, scalar
-from theano.compile import SharedVariable
+
 
 # Make sure this is importable even if pygpu is absent
 # (it will not work though)

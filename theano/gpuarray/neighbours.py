@@ -1,8 +1,8 @@
 import theano.tensor as tt
-
-from theano import Op, Apply
+from theano import Apply, Op
 from theano.gof import ParamsType
 from theano.tensor.nnet.neighbours import Images2Neibs
+
 
 try:
     from pygpu import gpuarray
@@ -10,9 +10,9 @@ except ImportError:
     pass
 
 from theano.gpuarray.basic_ops import (
-    as_gpuarray_variable,
     GpuKernelBase,
     Kernel,
+    as_gpuarray_variable,
     infer_context_name,
 )
 from theano.gpuarray.type import GpuArrayType, gpu_context_type

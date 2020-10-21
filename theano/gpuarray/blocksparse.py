@@ -1,15 +1,16 @@
 import logging
 
 import numpy as np
+
 from theano import Apply, tensor
 from theano.gof import COp, ParamsType
-from theano.tensor import discrete_dtypes, as_tensor_variable
-from theano.scalar import bool as bool_t
-
 from theano.gradient import grad_undefined
+from theano.scalar import bool as bool_t
+from theano.tensor import as_tensor_variable, discrete_dtypes
 
+from .basic_ops import as_gpuarray_variable, gpuarray_helper_inc_dir, infer_context_name
 from .type import gpu_context_type
-from .basic_ops import as_gpuarray_variable, infer_context_name, gpuarray_helper_inc_dir
+
 
 _logger = logging.getLogger("theano.gpuarray.blocksparse")
 
