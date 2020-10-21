@@ -2,96 +2,92 @@ import time
 
 import pytest
 
+
 sp = pytest.importorskip("scipy", minversion="0.7.0")
-
-import numpy as np
-
-import theano
 
 from itertools import product
 
+import numpy as np
 from packaging import version
 
-
-from theano import tensor, sparse, compile, config, gof
-
-from theano.sparse.basic import (
-    _is_sparse,
-    _mtypes,
-    _is_dense_variable,
-    _is_sparse_variable,
-)
+import theano
+from tests import unittest_tools as utt
+from tests.tensor.test_sharedvar import makeSharedTester
+from theano import compile, config, gof, sparse, tensor
 from theano.sparse import (
-    as_sparse_variable,
-    as_sparse_or_tensor_variable,
-    CSR,
     CSC,
     CSM,
-    CSMProperties,
-    csm_properties,
-    DenseFromSparse,
-    SparseType,
+    CSR,
+    AddSD,
+    AddSS,
+    AddSSData,
+    Cast,
+    ConstructSparseFromList,
     CSMGrad,
+    CSMProperties,
+    DenseFromSparse,
+    Diag,
+    Dot,
+    EnsureSortedIndices,
+    GetItemScalar,
+    HStack,
+    MulSD,
+    MulSS,
+    Neg,
+    Remove0,
+    SamplingDot,
+    SparseFromDense,
+    SparseType,
+    SquareDiagonal,
     StructuredDot,
     StructuredDotGradCSC,
     StructuredDotGradCSR,
-    AddSS,
-    AddSD,
-    MulSS,
-    MulSD,
     Transpose,
-    Neg,
-    Remove0,
+    TrueDot,
+    Usmm,
+    VStack,
     add,
-    mul,
-    structured_dot,
-    transpose,
+    add_s_s_data,
+    as_sparse_or_tensor_variable,
+    as_sparse_variable,
+    cast,
+    clean,
+    construct_sparse_from_list,
     csc_from_dense,
+    csm_properties,
     csr_from_dense,
     dense_from_sparse,
-    Dot,
-    Usmm,
-    sp_ones_like,
-    GetItemScalar,
-    SparseFromDense,
-    Cast,
-    cast,
-    HStack,
-    VStack,
-    AddSSData,
-    add_s_s_data,
-    structured_minimum,
-    structured_maximum,
-    structured_add,
-    mul_s_v,
-    structured_add_s_v,
-    SamplingDot,
-    sampling_dot,
-    Diag,
     diag,
-    SquareDiagonal,
-    square_diagonal,
-    EnsureSortedIndices,
     ensure_sorted_indices,
-    clean,
-    ConstructSparseFromList,
-    construct_sparse_from_list,
-    TrueDot,
-    true_dot,
-    le,
     ge,
     gt,
+    le,
     lt,
+    mul,
+    mul_s_v,
+    sampling_dot,
+    sp_ones_like,
+    square_diagonal,
+    structured_add,
+    structured_add_s_v,
+    structured_dot,
+    structured_maximum,
+    structured_minimum,
+    transpose,
+    true_dot,
 )
+from theano.sparse.basic import (
+    _is_dense_variable,
+    _is_sparse,
+    _is_sparse_variable,
+    _mtypes,
+)
+from theano.sparse.opt import CSMGradC, StructuredDotCSC, UsmmCscDense
+
 
 # Probability distributions are currently tested in test_sp2.py
 # from theano.sparse import (
 #    Poisson, poisson, Binomial, Multinomial, multinomial)
-
-from theano.sparse.opt import StructuredDotCSC, UsmmCscDense, CSMGradC
-
-from tests import unittest_tools as utt
-from tests.tensor.test_sharedvar import makeSharedTester
 
 
 def as_sparse_format(data, format):

@@ -1,25 +1,21 @@
 import pytest
 
+
 sp = pytest.importorskip("scipy", minversion="0.7.0")
 
 import numpy as np
 
 import theano
-
-from theano import config
-from theano import tensor
-from theano import sparse
-
-from theano.sparse.sandbox.sp2 import (
-    Poisson,
-    poisson,
-    Binomial,
-    Multinomial,
-    multinomial,
-)
-
 from tests import unittest_tools as utt
 from tests.sparse.test_basic import as_sparse_format
+from theano import config, sparse, tensor
+from theano.sparse.sandbox.sp2 import (
+    Binomial,
+    Multinomial,
+    Poisson,
+    multinomial,
+    poisson,
+)
 
 
 class TestPoisson(utt.InferShapeTester):
