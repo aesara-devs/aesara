@@ -3,78 +3,16 @@ import scipy.sparse
 
 import theano
 from theano import gof, tensor
-from theano.sparse.basic import (  # To maintain compatibility
-    CSC,
-    CSM,
-    CSR,
-    AddSSData,
-    Cast,
-    CSMProperties,
-    HStack,
-    MulSV,
+from theano.sparse.basic import (
     Remove0,
-    SamplingDot,
     SparseType,
-    StructuredAddSV,
-    VStack,
-    _is_dense_variable,
     _is_sparse,
-    _is_sparse_variable,
-    add_s_s,
-    add_s_s_data,
     as_sparse_variable,
-    bcast,
-    ccast,
-    csm_data,
-    csm_indices,
-    csm_indptr,
-    csm_properties,
-    csm_shape,
-    dcast,
-    dot,
-    fcast,
-    hstack,
-    icast,
-    lcast,
-    mul_s_d,
-    mul_s_s,
-    mul_s_v,
-    neg,
     remove0,
-    sampling_dot,
-    structured_add,
-    structured_add_s_v,
-    structured_exp,
-    structured_log,
-    structured_maximum,
-    structured_minimum,
-    structured_monoid,
-    structured_pow,
-    structured_sigmoid,
-    vstack,
-    wcast,
-    zcast,
 )
 
 # Also for compatibility
-from theano.sparse.opt import (
-    MulSDCSC,
-    MulSDCSR,
-    MulSVCSR,
-    SamplingDotCSR,
-    StructuredAddSVCSR,
-    local_mul_s_d,
-    local_mul_s_v,
-    local_sampling_dot_csr,
-    local_structured_add_s_v,
-    mul_s_d_csc,
-    mul_s_d_csr,
-    mul_s_v_csr,
-    sampling_dot_csr,
-    structured_add_s_v_csr,
-)
 from theano.tensor import discrete_dtypes, float_dtypes
-from theano.tensor.opt import register_specialize
 
 
 # Probability Ops are currently back in sandbox, because they do not respect
