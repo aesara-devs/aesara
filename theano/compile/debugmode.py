@@ -37,7 +37,7 @@ _logger = logging.getLogger("theano.compile.debugmode")
 
 # Filter to avoid duplicating optimization warnings
 class NoDuplicateOptWarningFilter(logging.Filter):
-    prev_msgs = set([])
+    prev_msgs = set()
 
     def filter(self, record):
         msg = record.getMessage()
@@ -63,8 +63,6 @@ class DebugModeError(Exception):
     Generic Exception raised to indicate an internal theano problem.
 
     """
-
-    pass
 
 
 class BadThunkOutput(DebugModeError):
@@ -99,7 +97,7 @@ class BadThunkOutput(DebugModeError):
     """
 
     def __init__(self, r, thunk1, val1, thunk2, val2, inputs_val=()):
-        super(BadThunkOutput, self).__init__()
+        super().__init__()
         self.r = r
         self.thunk1 = thunk1
         self.val1 = val1
@@ -170,7 +168,7 @@ class BadDestroyMap(DebugModeError):
     """
 
     def __init__(self, node, idx, old_val, new_val, perform):
-        super(BadDestroyMap, self).__init__()
+        super().__init__()
         self.node = node
         self.idx = idx
         self.old_val = old_val
@@ -254,7 +252,7 @@ class BadViewMap(DebugModeError):
     def __init__(
         self, node, output_idx, out_storage, in_alias_idx=None, out_alias_idx=None
     ):
-        super(BadViewMap, self).__init__()
+        super().__init__()
         self.node = node
         self.output_idx = output_idx
         self.out_storage = out_storage
@@ -290,8 +288,6 @@ class StochasticOrder(DebugModeError):
 
     """
 
-    pass
-
 
 class InvalidValueError(DebugModeError):
     """
@@ -304,7 +300,7 @@ class InvalidValueError(DebugModeError):
     """
 
     def __init__(self, r, v=None, client_node=None, hint="none", specific_hint="none"):
-        super(InvalidValueError, self).__init__()
+        super().__init__()
         self.r = r
         self.v = v
         self.client_node = client_node
@@ -718,7 +714,7 @@ def debugprint(
             else:
                 outer_id_str = get_id_str(outer_r)
             print(
-                "%s%s %s%s -> %s" % (prefix, r, id_str, type_str, outer_id_str),
+                "{}{} {}{} -> {}".format(prefix, r, id_str, type_str, outer_id_str),
                 file=file,
             )
         else:
@@ -727,7 +723,7 @@ def debugprint(
             if smap:
                 data = " " + str(smap.get(r, ""))
             id_str = get_id_str(r)
-            print("%s%s %s%s%s" % (prefix, r, id_str, type_str, data), file=file)
+            print("{}{} {}{}{}".format(prefix, r, id_str, type_str, data), file=file)
 
     return file
 
@@ -1073,9 +1069,9 @@ def _find_bad_optimizations1(order, reasons, r_vals):
     for i, node in enumerate(order):
         program_position[node] = i
         for new_r in node.outputs:
-            equivalence_sets.setdefault(new_r, set([new_r]))
+            equivalence_sets.setdefault(new_r, {new_r})
             for reason, r, old_graph_str, new_graph_str in reasons[new_r]:
-                equivalence_sets[new_r].update(equivalence_sets.setdefault(r, set([r])))
+                equivalence_sets[new_r].update(equivalence_sets.setdefault(r, {r}))
                 for er in equivalence_sets[r]:
                     equivalence_sets[er] = equivalence_sets[new_r]
 
@@ -1474,7 +1470,7 @@ def _check_preallocated_output(
         ):
             _logger.debug("  name = %s", name)
 
-            thunk_name = "%s with %s output" % (perform, name)
+            thunk_name = "{} with {} output".format(perform, name)
 
             if not out_map:
                 # Map is empty, there is no need to execute thunk() again
@@ -1541,7 +1537,7 @@ def _check_preallocated_output(
             fn.maker.mode = backup_mode
 
 
-class _FunctionGraphEvent(object):
+class _FunctionGraphEvent:
     """
     A record of an event in the life of an FunctionGraph.
 
@@ -1613,7 +1609,7 @@ class _FunctionGraphEvent(object):
         return not (self == other)
 
 
-class _VariableEquivalenceTracker(object):
+class _VariableEquivalenceTracker:
     """
     A FunctionGraph Feature that keeps tabs on an FunctionGraph and
     tries to detect problems.
@@ -1684,7 +1680,7 @@ class _VariableEquivalenceTracker(object):
         else:
             for r in node.outputs:
                 assert r not in self.equiv
-                self.equiv[r] = set([r])
+                self.equiv[r] = {r}
                 self.all_variables_ever.append(r)
                 self.reasons.setdefault(r, [])
                 self.replaced_by.setdefault(r, [])
@@ -1740,13 +1736,13 @@ class _VariableEquivalenceTracker(object):
         if r in self.equiv:
             r_set = self.equiv[r]
         else:
-            r_set = self.equiv.setdefault(r, set([r]))
+            r_set = self.equiv.setdefault(r, {r})
             self.all_variables_ever.append(r)
 
         if new_r in self.equiv:
             new_r_set = self.equiv[new_r]
         else:
-            new_r_set = self.equiv.setdefault(new_r, set([new_r]))
+            new_r_set = self.equiv.setdefault(new_r, {new_r})
             self.all_variables_ever.append(new_r)
 
         assert new_r in new_r_set
@@ -1779,7 +1775,7 @@ default_make_thunk = [get_unbound_function(theano.gof.Op.make_thunk)]
 # the external requirements of the .linker attribute of a mode
 # 1) it's a class instance
 # 2) it a has a .clone() method
-class _DummyLinker(object):
+class _DummyLinker:
     # This is not a real linker anyway
     def clone(self, allow_gc=None):
         return self
@@ -2746,7 +2742,7 @@ class DebugMode(Mode):
                 linker,
             )
 
-        super(DebugMode, self).__init__(optimizer=optimizer, linker=linker)
+        super().__init__(optimizer=optimizer, linker=linker)
 
         if stability_patience is not None:
             self.stability_patience = stability_patience
@@ -2771,7 +2767,7 @@ class DebugMode(Mode):
             raise ValueError("DebugMode has to check at least one of c and py " "code")
 
     def __str__(self):
-        return "DebugMode(linker=%s, optimizer=%s)" % (
+        return "DebugMode(linker={}, optimizer={})".format(
             self.provided_linker,
             self.provided_optimizer,
         )

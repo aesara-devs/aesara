@@ -6,8 +6,6 @@ Define `SymbolicInput`, `SymbolicOutput`, `In`, `Out`.
 
 import logging
 
-from six import string_types
-
 from theano import gof
 
 from .sharedvalue import SharedVariable
@@ -18,7 +16,7 @@ _logger = logging.getLogger("theano.compile.io")
 __docformat__ = "restructuredtext en"
 
 
-class SymbolicInput(object):
+class SymbolicInput:
     """
     Represents a symbolic input for use with function or FunctionMaker.
 
@@ -79,7 +77,7 @@ class SymbolicInput(object):
         else:
             self.name = name
 
-        if self.name is not None and not isinstance(self.name, string_types):
+        if self.name is not None and not isinstance(self.name, str):
             raise TypeError("name must be a string! (got: %s)" % self.name)
         self.update = update
         if update is not None:
@@ -102,7 +100,7 @@ class SymbolicInput(object):
 
     def __str__(self):
         if self.update:
-            return "In(%s -> %s)" % (self.variable, self.update)
+            return "In({} -> {})".format(self.variable, self.update)
         else:
             return "In(%s)" % self.variable
 
@@ -216,7 +214,7 @@ class In(SymbolicInput):
             implicit = isinstance(value, gof.Container) or isinstance(
                 value, SharedVariable
             )
-        super(In, self).__init__(
+        super().__init__(
             variable=variable,
             name=name,
             update=update,
@@ -231,7 +229,7 @@ class In(SymbolicInput):
             raise TypeError("An implicit input must be given a default value")
 
 
-class SymbolicOutput(object):
+class SymbolicOutput:
     """
     Represents a symbolic output for use with function or FunctionMaker.
 
@@ -250,10 +248,10 @@ class SymbolicOutput(object):
         self.borrow = borrow
 
     def __str__(self):
-        return "Out(%s,%s)" % (self.variable, self.borrow)
+        return "Out({},{})".format(self.variable, self.borrow)
 
     def __repr__(self):
-        return "Out(%s,%s)" % (self.variable, self.borrow)
+        return "Out({},{})".format(self.variable, self.borrow)
 
 
 Out = SymbolicOutput

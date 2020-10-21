@@ -11,7 +11,6 @@ from collections import OrderedDict
 
 import numpy as np
 import six.moves.cPickle as pickle
-from six import integer_types
 
 import theano
 from theano.gof import Apply, Op, ParamsType, Variable
@@ -71,7 +70,7 @@ class ViewOp(Op):
             return code % locals()
 
         # Else, no C code
-        return super(ViewOp, self).c_code(node, nodename, inp, out, sub)
+        return super().c_code(node, nodename, inp, out, sub)
 
     def c_code_cache_version(self):
         version = []
@@ -206,7 +205,7 @@ class DeepCopyOp(Op):
             return code % locals()
 
         # Else, no C code
-        return super(DeepCopyOp, self).c_code(node, name, inames, onames, sub)
+        return super().c_code(node, name, inames, onames, sub)
 
 
 deep_copy_op = DeepCopyOp()
@@ -296,7 +295,7 @@ class Shape(Op):
             return code % locals()
 
         # Else, no C code
-        return super(Shape, self).c_code(node, name, inames, onames, sub)
+        return super().c_code(node, name, inames, onames, sub)
 
     def c_code_cache_version(self):
         version = []
@@ -423,7 +422,7 @@ class Shape_i(Op):
             return (check_input + code) % locals()
 
         # Else, no C code
-        return super(Shape_i, self).c_code(node, name, inames, onames, sub)
+        return super().c_code(node, name, inames, onames, sub)
 
     def infer_shape(self, node, input_shapes):
         return [()]
@@ -583,7 +582,7 @@ class FromFunctionOp(Op):
             obj = load_back(mod, name)
         except (ImportError, KeyError, AttributeError):
             raise pickle.PicklingError(
-                "Can't pickle as_op(), not found as %s.%s" % (mod, name)
+                "Can't pickle as_op(), not found as {}.{}".format(mod, name)
             )
         else:
             if obj is not self:
@@ -699,7 +698,7 @@ class Rebroadcast(Op):
         items = sorted(axis)
         self.axis = OrderedDict(items)
         for axis, broad in self.axis.items():
-            if not isinstance(axis, (np.integer, integer_types)):
+            if not isinstance(axis, (np.integer, int)):
                 raise TypeError(
                     "Rebroadcast needs integer axes. " "Got {}".format(axis)
                 )
@@ -723,7 +722,7 @@ class Rebroadcast(Op):
             broadcast_pattern = ["?" for i in range(1 + max(self.axis.keys()))]
         for k, v in self.axis.items():
             broadcast_pattern[k] = str(int(v))
-        return "%s{%s}" % (self.__class__.__name__, ",".join(broadcast_pattern))
+        return "{}{{{}}}".format(self.__class__.__name__, ",".join(broadcast_pattern))
 
     def make_node(self, x):
         if self.axis.keys() and (x.ndim <= max(self.axis.keys())):
@@ -797,7 +796,7 @@ class Rebroadcast(Op):
             """
                 % locals()
             )
-        return super(Rebroadcast, self).c_code(node, nodename, inp, out, sub)
+        return super().c_code(node, nodename, inp, out, sub)
 
     def c_code_cache_version(self):
         version = []
@@ -929,7 +928,7 @@ class SpecifyShape(Op):
             _, _, support_code = self.c_code_and_version[itype]
             if support_code:
                 return support_code
-        return super(SpecifyShape, self).c_support_code_apply(node, name)
+        return super().c_support_code_apply(node, name)
 
     def c_code(self, node, name, inames, onames, sub):
         iname, shape = inames
@@ -941,7 +940,7 @@ class SpecifyShape(Op):
             code, version, _ = self.c_code_and_version[itype]
             return code % locals()
 
-        return super(SpecifyShape, self).c_code(node, node, inames, onames, sub)
+        return super().c_code(node, node, inames, onames, sub)
 
     def c_code_cache_version(self):
         version = []

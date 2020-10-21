@@ -67,9 +67,7 @@ class SharedVariable(Variable):
     # or the "no_default_updates" list passed to "function" contains it.
 
     def __init__(self, name, type, value, strict, allow_downcast=None, container=None):
-        super(SharedVariable, self).__init__(
-            type=type, name=name, owner=None, index=None
-        )
+        super().__init__(type=type, name=name, owner=None, index=None)
 
         if container is not None:
             self.container = container

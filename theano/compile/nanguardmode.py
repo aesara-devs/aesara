@@ -295,6 +295,4 @@ class NanGuardMode(Mode):
         wrap_linker = theano.gof.vm.VM_Linker(
             callback=nan_check, callback_input=nan_check_input
         )
-        super(NanGuardMode, self).__init__(
-            wrap_linker, optimizer=self.provided_optimizer
-        )
+        super().__init__(wrap_linker, optimizer=self.provided_optimizer)

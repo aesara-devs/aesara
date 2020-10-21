@@ -181,7 +181,7 @@ def register_profiler_printer(fct):
     return fct
 
 
-class ProfileStats(object):
+class ProfileStats:
 
     """
     Object to store runtime and memory profiling information for all of
@@ -851,7 +851,7 @@ class ProfileStats(object):
         for node, t in sorted(
             self.linker_make_thunk_time.items(), key=operator.itemgetter(1)
         )[::-1][:5]:
-            print("           Node %s time %es" % (node, t), file=file)
+            print("           Node {} time {:e}s".format(node, t), file=file)
         print("", file=file)
 
         # The validation time is a subset of optimizer_time
@@ -1071,7 +1071,7 @@ class ProfileStats(object):
             mem_bound = np.inf
             # This take only the inputs/outputs dependencies.
             dependencies = fgraph.profile.dependencies
-            done_set = set([])
+            done_set = set()
             done_dict = {}
 
             # Initial compute_map which is used to check if a node is valid
@@ -1451,7 +1451,10 @@ class ProfileStats(object):
             else:
                 size = "%10s" % "Unknown"
 
-            print("     %s  %s %s %s" % (size, shapes, " ".join(code), node), file=file)
+            print(
+                "     {}  {} {} {}".format(size, shapes, " ".join(code), node),
+                file=file,
+            )
 
         sum_remaining = sum(size for _, size in items[N:])
         size_sum_dense = sum(node_mem.values())
@@ -1499,7 +1502,7 @@ class ProfileStats(object):
                 file=file,
             )
         if config.profiling.debugprint:
-            fcts = set([n.fgraph for n in self.apply_time.keys()])
+            fcts = {n.fgraph for n in self.apply_time.keys()}
             theano.printing.debugprint(fcts, print_type=True)
         if self.variable_shape or self.variable_strides:
             self.summary_memory(file, n_apply_to_print)
@@ -1686,10 +1689,7 @@ class ProfileStats(object):
         # tip 6
         for a in self.apply_time:
             node = a
-            if (
-                isinstance(node.op, T.Dot)
-                and len(set(i.dtype for i in node.inputs)) != 1
-            ):
+            if isinstance(node.op, T.Dot) and len({i.dtype for i in node.inputs}) != 1:
                 print(
                     "  - You have a dot operation that has different dtype "
                     " for inputs (%s). Make sure that the inputs have same "
@@ -1742,7 +1742,7 @@ class ScanProfileStats(ProfileStats):
     call_time = 0.0
 
     def __init__(self, atexit_print=True, name=None, **kwargs):
-        super(ScanProfileStats, self).__init__(atexit_print, **kwargs)
+        super().__init__(atexit_print, **kwargs)
         self.name = name
 
     def summary_globals(self, file):
