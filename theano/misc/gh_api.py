@@ -6,9 +6,11 @@ try:
 except NameError:
     pass
 
-import requests
 import getpass
 import json
+
+import requests
+
 
 # Keyring stores passwords by a 'username', but we're not storing a username and
 # password

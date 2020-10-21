@@ -2,8 +2,8 @@
 
 
 import collections
-import operator
 import functools
+import operator
 
 from theano.compat import Mapping
 

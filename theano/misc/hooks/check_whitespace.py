@@ -7,10 +7,11 @@ import difflib
 import operator
 import os
 import string
-from subprocess import Popen, PIPE
 import sys
 import tabnanny
 import tokenize
+from subprocess import PIPE, Popen
+
 
 try:
     import argparse
@@ -23,6 +24,7 @@ except ImportError:
 
 import reindent
 from six import StringIO
+
 
 SKIP_WHITESPACE_CHECK_FILENAME = ".hg/skip_whitespace_check"
 

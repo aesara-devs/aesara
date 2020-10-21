@@ -1,6 +1,7 @@
-import six.moves.cPickle as pickle
 import os
 import sys
+
+import six.moves.cPickle as pickle
 
 import theano
 

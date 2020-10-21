@@ -8,7 +8,6 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
-
 from theano.gpuarray import dnn
 from theano.tensor.nnet.abstract_conv import get_conv_output_shape
 

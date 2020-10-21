@@ -1,12 +1,11 @@
 import sys
 import time
+from optparse import OptionParser
 
 import numpy as np
 
 import theano
 import theano.tensor as tt
-
-from optparse import OptionParser
 
 
 parser = OptionParser(

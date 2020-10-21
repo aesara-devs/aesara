@@ -42,10 +42,10 @@ you'd prefer. You can always use the --nobackup option to prevent this.
 
 __version__ = "1"
 
-import tokenize
 import os
 import shutil
 import sys
+import tokenize
 
 
 verbose = 0

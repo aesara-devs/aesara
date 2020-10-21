@@ -10,12 +10,12 @@
 import os
 import sys
 import time
+from optparse import OptionParser
 
 import numpy as np
+
 import theano
 import theano.tensor as tt
-
-from optparse import OptionParser
 
 
 def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order="C"):

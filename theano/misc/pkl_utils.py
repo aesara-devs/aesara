@@ -5,20 +5,21 @@ These pickled graphs can be used, for instance, as cases for
 unit tests or regression tests.
 """
 
-import numpy as np
 import os
 import pickle
 import sys
 import tempfile
-import zipfile
 import warnings
-
-import theano
-
+import zipfile
 from collections import defaultdict
 from contextlib import closing
 from pickle import HIGHEST_PROTOCOL
+
+import numpy as np
 from six import BytesIO
+
+import theano
+
 
 try:
     from pickle import DEFAULT_PROTOCOL
@@ -27,6 +28,7 @@ except ImportError:
 
 from theano import config
 from theano.compile.sharedvalue import SharedVariable
+
 
 __docformat__ = "restructuredtext en"
 __authors__ = "Pascal Lamblin"
@@ -212,8 +214,8 @@ class PersistentNdarrayLoad(object):
         self.cache = {}
 
     def __call__(self, persid):
-        from theano.gpuarray.type import get_context
         from theano.gpuarray import pygpu
+        from theano.gpuarray.type import get_context
 
         array_type, name = persid.split(".")
 

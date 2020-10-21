@@ -5,10 +5,13 @@ numpy version support only ndarray.
 
 
 import numpy as np
+
 from theano.tensor.basic import TensorType
+
 
 try:
     import scipy.sparse
+
     from theano.sparse.basic import SparseType
 
     def _is_sparse(a):
@@ -22,6 +25,7 @@ except ImportError:
 
 
 from theano import gpuarray
+
 
 if gpuarray.pygpu:
 

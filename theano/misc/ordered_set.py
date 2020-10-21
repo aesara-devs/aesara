@@ -1,6 +1,5 @@
 import types
 import weakref
-
 from collections.abc import MutableSet
 
 from six import string_types
