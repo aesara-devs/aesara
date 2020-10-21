@@ -5,15 +5,16 @@ Define the `function` function.
 
 
 import logging
-
-import traceback as tb
 import re
+import traceback as tb
+import warnings
 
 from six import string_types
+
+from theano import compat
 from theano.compile.function_module import orig_function
 from theano.compile.pfunc import pfunc
-import warnings
-from theano import compat
+
 
 __docformat__ = "restructuredtext en"
 _logger = logging.getLogger("theano.compile.function")

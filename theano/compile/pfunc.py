@@ -3,16 +3,16 @@ Provide a simple user friendly API.
 
 """
 
-import warnings
 import logging
+import warnings
 
 from theano import config
-
-from theano.compile import orig_function, In, Out
-from theano.compile import UnusedInputError
-from theano.compile.sharedvalue import SharedVariable, shared
+from theano.compile.function_module import UnusedInputError, orig_function
+from theano.compile.io import In, Out
 from theano.compile.profiling import ProfileStats
-from theano.gof import Variable, Constant
+from theano.compile.sharedvalue import SharedVariable, shared
+from theano.gof import Constant, Variable
+
 
 _logger = logging.getLogger("theano.compile.pfunc")
 

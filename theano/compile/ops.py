@@ -7,18 +7,14 @@ help make new Ops more rapidly.
 
 import copy
 import warnings
-
-import six.moves.cPickle as pickle
-
-import numpy as np
-
-import theano
-
 from collections import OrderedDict
 
+import numpy as np
+import six.moves.cPickle as pickle
 from six import integer_types
 
-from theano.gof import Op, Apply, ParamsType, Variable
+import theano
+from theano.gof import Apply, Op, ParamsType, Variable
 
 
 def register_view_op_c_code(type, code, version=()):

@@ -6,14 +6,14 @@ WRITEME
 import logging
 import warnings
 
-import theano
-import theano.gof.vm
-
 from six import string_types
 
+import theano
+import theano.gof.vm
 from theano import config, gof
 from theano.compile.function_module import Supervisor
 from theano.sandbox.jax_linker import JAXLinker
+
 
 _logger = logging.getLogger("theano.compile.mode")
 

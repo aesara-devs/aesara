@@ -4,12 +4,14 @@ Define `SymbolicInput`, `SymbolicOutput`, `In`, `Out`.
 """
 
 
-from theano import gof
-from .sharedvalue import SharedVariable
+import logging
 
 from six import string_types
 
-import logging
+from theano import gof
+
+from .sharedvalue import SharedVariable
+
 
 _logger = logging.getLogger("theano.compile.io")
 

@@ -14,6 +14,7 @@ import numpy as np
 # Theano imports
 from theano.gof import Container, Variable, generic, utils
 
+
 _logger = logging.getLogger("theano.compile.sharedvalue")
 __docformat__ = "restructuredtext en"
 

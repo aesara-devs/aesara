@@ -7,32 +7,28 @@ TODO: add support for IfElse Op, LazyLinker, PureOp, etc.
 
 
 import copy
-import sys
 import gc
 import logging
+import sys
+from itertools import chain
+from itertools import product as itertools_product
 
 import numpy as np
-
-import theano
-
-from itertools import chain, product as itertools_product
-
 from six.moves import StringIO
 
-from theano import gof, config
+import theano
+from theano import change_flags, config, gof
 from theano.compat import get_unbound_function
-
-from theano.gof import graph, utils, link, ops_with_inner_function
-from theano.gof.link import raise_with_op
 from theano.compile.function_module import (
-    FunctionMaker,
     Function,
+    FunctionMaker,
     infer_reuse_pattern,
     std_fgraph,
 )
 from theano.compile.mode import Mode, register_mode
 from theano.compile.ops import OutputGuard, _output_guard
-from theano import change_flags
+from theano.gof import graph, link, ops_with_inner_function, utils
+from theano.gof.link import raise_with_op
 
 
 __docformat__ = "restructuredtext en"
@@ -1197,8 +1193,8 @@ def _get_preallocated_maps(
     """
 
     # To avoid circular imports
-    from theano.tensor import TensorType
     from theano.gpuarray import GpuArrayType
+    from theano.tensor import TensorType
 
     try:
         import pygpu

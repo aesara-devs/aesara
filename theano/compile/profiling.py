@@ -16,13 +16,11 @@ import os
 import sys
 import time
 import warnings
+from collections import defaultdict
 
 import numpy as np
 
 import theano
-
-from collections import defaultdict
-
 from theano.gof import graph
 
 
@@ -1701,9 +1699,9 @@ class ProfileStats(object):
                 printed_tip = True
 
         # tip 7
-        from theano.tensor.nnet import LogSoftmax
-        import theano.tensor.signal.pool as pool
         import theano.gpuarray
+        import theano.tensor.signal.pool as pool
+        from theano.tensor.nnet import LogSoftmax
 
         for a in self.apply_time:
             node = a

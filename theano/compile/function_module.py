@@ -4,28 +4,25 @@ Driver of graph construction, optimization, and linking.
 """
 
 import copy
-import time
 import logging
+import time
 import warnings
-
-import six.moves.copyreg as copyreg
-import six.moves.cPickle as pickle
+from itertools import chain
 
 import numpy as np
+import six.moves.copyreg as copyreg
+import six.moves.cPickle as pickle
+from six import string_types
 
 import theano
 import theano.compile.profiling
-
-from itertools import chain
-
-from six import string_types
-
 from theano import config, gof
-from theano.gof import graph
 from theano.compile.io import In, SymbolicInput, SymbolicOutput
 from theano.compile.ops import deep_copy_op, view_op
-from theano.gof.toolbox import is_same_graph
+from theano.gof import graph
 from theano.gof.op import ops_with_inner_function
+from theano.gof.toolbox import is_same_graph
+
 
 _logger = logging.getLogger("theano.compile.function_module")
 
@@ -1369,8 +1366,9 @@ class FunctionMaker(object):
 
     def optimize_graph_with_cache(self, optimizer, inputs, outputs):
         # This function is not finished
-        from theano.gof.compilelock import get_lock, release_lock
         import os.path
+
+        from theano.gof.compilelock import get_lock, release_lock
 
         graph_db_file = os.path.join(theano.config.compiledir, "optimized_graphs.pkl")
 
