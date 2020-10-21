@@ -10,7 +10,7 @@ import sys
 import warnings
 from functools import wraps
 
-from six import PY3, StringIO, string_types
+from six import PY3, StringIO
 
 import theano
 from theano.compat import configparser as ConfigParser
@@ -95,7 +95,7 @@ theano_raw_cfg = ConfigParser.RawConfigParser()
 theano_raw_cfg.read(config_files)
 
 
-class change_flags(object):
+class change_flags:
     """
     Use this as a decorator or context manager to change the value of
     Theano config variables.
@@ -204,12 +204,12 @@ def get_config_hash():
     )
     return theano.gof.utils.hash_from_code(
         "\n".join(
-            ["%s = %s" % (cv.fullname, cv.__get__(True, None)) for cv in all_opts]
+            ["{} = {}".format(cv.fullname, cv.__get__(True, None)) for cv in all_opts]
         )
     )
 
 
-class TheanoConfigParser(object):
+class TheanoConfigParser:
     # properties are installed by AddConfigVar
     _i_am_a_config_class = True
 
@@ -276,7 +276,7 @@ def AddConfigVar(name, doc, configparam, root=config, in_c_key=True):
         if not hasattr(root, sections[0]):
             # every internal node in the config tree is an instance of its own
             # unique class
-            class SubObj(object):
+            class SubObj:
                 _i_am_a_config_class = True
 
             setattr(root.__class__, sections[0], SubObj())
@@ -312,7 +312,7 @@ def AddConfigVar(name, doc, configparam, root=config, in_c_key=True):
         _config_var_list.append(configparam)
 
 
-class ConfigParam(object):
+class ConfigParam:
     def __init__(self, default, filter=None, allow_override=True):
         """
         If allow_override is False, we can't change the value after the import
@@ -368,7 +368,7 @@ class EnumStr(ConfigParam):
 
         # All options should be strings
         for val in self.all:
-            if not isinstance(val, string_types):
+            if not isinstance(val, str):
                 raise ValueError(
                     "Valid values for an EnumStr parameter " "should be strings",
                     val,
@@ -384,17 +384,15 @@ class EnumStr(ConfigParam):
                 return val
             else:
                 raise ValueError(
-                    (
-                        'Invalid value ("%s") for configuration variable "%s". '
-                        "Valid options are %s" % (val, self.fullname, self.all)
-                    )
+                    'Invalid value ("%s") for configuration variable "%s". '
+                    "Valid options are %s" % (val, self.fullname, self.all)
                 )
 
         over = kwargs.get("allow_override", True)
-        super(EnumStr, self).__init__(default, filter, over)
+        super().__init__(default, filter, over)
 
     def __str__(self):
-        return "%s (%s) " % (self.fullname, self.all)
+        return "{} ({}) ".format(self.fullname, self.all)
 
 
 class TypedParam(ConfigParam):
@@ -414,10 +412,10 @@ class TypedParam(ConfigParam):
                     )
             return cast_val
 
-        super(TypedParam, self).__init__(default, filter, allow_override=allow_override)
+        super().__init__(default, filter, allow_override=allow_override)
 
     def __str__(self):
-        return "%s (%s) " % (self.fullname, self.mytype)
+        return "{} ({}) ".format(self.fullname, self.mytype)
 
 
 def StrParam(default, is_valid=None, allow_override=True):

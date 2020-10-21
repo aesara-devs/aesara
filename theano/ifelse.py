@@ -190,11 +190,9 @@ class IfElse(Op):
                 )
         if c.ndim > 0:
             raise TypeError(
-                (
-                    "Condition given to the op has to be a scalar "
-                    "with 0 standing for False, anything else "
-                    "for True"
-                )
+                "Condition given to the op has to be a scalar "
+                "with 0 standing for False, anything else "
+                "for True"
             )
         return Apply(self, [c] + list(args), [t.type() for t in ts])
 
@@ -401,13 +399,11 @@ def ifelse(condition, then_branch, else_branch, name=None):
 
     if len(then_branch) != len(else_branch):
         raise ValueError(
-            (
-                "The number of values on the `then` branch"
-                " should have the same number of variables as "
-                "the `else` branch : (variables on `then` "
-                "%d" % len(then_branch) + ", variables on `else` "
-                "%d" % len(else_branch) + ")"
-            )
+            "The number of values on the `then` branch"
+            " should have the same number of variables as "
+            "the `else` branch : (variables on `then` "
+            "%d" % len(then_branch) + ", variables on `else` "
+            "%d" % len(else_branch) + ")"
         )
 
     new_ifelse = IfElse(n_outs=len(then_branch), as_view=False, gpu=False, name=name)

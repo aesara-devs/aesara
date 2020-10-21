@@ -42,7 +42,7 @@ class OrderedUpdates(OrderedDict):
                 "an OrderedDict that is available at "
                 "theano.compat.OrderedDict for python 2.6+."
             )
-        super(OrderedUpdates, self).__init__(*key, **kwargs)
+        super().__init__(*key, **kwargs)
         for key in self:
             if not isinstance(key, SharedVariable):
                 raise TypeError(
@@ -59,7 +59,7 @@ class OrderedUpdates(OrderedDict):
             # value. Should it be cast to a GPU value right away?  Should
             # literals be transformed into constants immediately?
 
-            return super(OrderedUpdates, self).__setitem__(key, value)
+            return super().__setitem__(key, value)
         else:
             raise TypeError(
                 "OrderedUpdates keys must inherit from " "SharedVariable", key

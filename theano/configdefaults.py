@@ -10,7 +10,6 @@ import textwrap
 import warnings
 
 import numpy as np
-from six import string_types
 
 import theano
 from theano.compat import maybe_add_to_os_environ_pathlist
@@ -142,18 +141,16 @@ class DeviceParam(ConfigParam):
                 )
             else:
                 raise ValueError(
-                    (
-                        'Invalid value ("%s") for configuration '
-                        'variable "%s". Valid options start with '
-                        'one of "cpu", "opencl" or "cuda".' % (val, self.fullname)
-                    )
+                    'Invalid value ("%s") for configuration '
+                    'variable "%s". Valid options start with '
+                    'one of "cpu", "opencl" or "cuda".' % (val, self.fullname)
                 )
 
         over = kwargs.get("allow_override", True)
-        super(DeviceParam, self).__init__(default, filter, over)
+        super().__init__(default, filter, over)
 
     def __str__(self):
-        return "%s (%s, opencl*, cuda*) " % (self.fullname, self.default)
+        return "{} ({}, opencl*, cuda*) ".format(self.fullname, self.default)
 
 
 AddConfigVar(
@@ -211,13 +208,13 @@ class ContextsParam(ConfigParam):
             for v in val.split(";"):
                 s = v.split("->")
                 if len(s) != 2:
-                    raise ValueError("Malformed context map: %s" % (v,))
+                    raise ValueError("Malformed context map: {}".format(v))
                 if (
                     s[0] == "cpu"
                     or s[0].startswith("cuda")
                     or s[0].startswith("opencl")
                 ):
-                    raise ValueError("Cannot use %s as context name" % (s[0],))
+                    raise ValueError("Cannot use {} as context name".format(s[0]))
             return val
 
         ConfigParam.__init__(self, "", filter, False)
@@ -1409,7 +1406,7 @@ AddConfigVar(
 
 
 def is_valid_check_preallocated_output_param(param):
-    if not isinstance(param, string_types):
+    if not isinstance(param, str):
         return False
     valid = [
         "initial",
@@ -1821,7 +1818,7 @@ def default_blas_ldflags():
             # we just pass the whole ldflags as the -l
             # options part.
             [
-                "-L%s%s%s" % (path_wrapper, l, path_wrapper)
+                "-L{}{}{}".format(path_wrapper, l, path_wrapper)
                 for l in blas_info.get("library_dirs", [])
             ]
             + ["-l%s" % l for l in blas_info.get("libraries", [])]
@@ -1902,7 +1899,7 @@ def try_blas_flag(flags):
     path_wrapper = '"' if os.name == "nt" else ""
     cflags.extend(
         [
-            "-L%s%s%s" % (path_wrapper, d, path_wrapper)
+            "-L{}{}{}".format(path_wrapper, d, path_wrapper)
             for d in theano.gof.cmodule.std_lib_dirs()
         ]
     )
@@ -2311,11 +2308,11 @@ def filter_compiledir(path):
     if not os.path.exists(init_file):
         try:
             open(init_file, "w").close()
-        except IOError as e:
+        except OSError as e:
             if os.path.exists(init_file):
                 pass  # has already been created
             else:
-                e.args += ("%s exist? %s" % (path, os.path.exists(path)),)
+                e.args += ("{} exist? {}".format(path, os.path.exists(path)),)
                 raise
     return path
 
@@ -2390,4 +2387,4 @@ AddConfigVar(
 
 # Check if there are remaining flags provided by the user through THEANO_FLAGS.
 for key in THEANO_FLAGS_DICT.keys():
-    warnings.warn("Theano does not recognise this flag: {0}".format(key))
+    warnings.warn("Theano does not recognise this flag: {}".format(key))

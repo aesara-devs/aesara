@@ -5,7 +5,7 @@
 from collections import OrderedDict
 
 # Python 3.x compatibility
-from six import PY3, BytesIO, b, next
+from six import PY3, BytesIO, b
 from six.moves import configparser
 from six.moves import reload_module as reload
 
@@ -24,59 +24,44 @@ except ImportError:
 
 __all__ = ["PY3", "b", "BytesIO", "next", "configparser", "reload"]
 
-if PY3:
-    from operator import truediv as operator_div
-
-    # In python 3.x, when an exception is reraised it saves original
-    # exception in its args, therefore in order to find the actual
-    # message, we need to unpack arguments recursively.
-    def exc_message(e):
-        msg = e.args[0]
-        if isinstance(msg, Exception):
-            return exc_message(msg)
-        return msg
-
-    def cmp(x, y):
-        """Return -1 if x < y, 0 if x == y, 1 if x > y."""
-        return (x > y) - (x < y)
-
-    def get_unbound_function(unbound):
-        # Op.make_thunk isn't bound, so don't have a __func__ attr.
-        # But bound method, have a __func__ method that point to the
-        # not bound method. That is what we want.
-        if hasattr(unbound, "__func__"):
-            return unbound.__func__
-        return unbound
-
-    def decode(x):
-        return x.decode()
-
-    def decode_iter(itr):
-        for x in itr:
-            yield x.decode()
-
-    def decode_with(x, encoding):
-        return x.decode(encoding)
+from operator import truediv as operator_div
 
 
-else:
-    from operator import div as operator_div
+# In python 3.x, when an exception is reraised it saves original
+# exception in its args, therefore in order to find the actual
+# message, we need to unpack arguments recursively.
+def exc_message(e):
+    msg = e.args[0]
+    if isinstance(msg, Exception):
+        return exc_message(msg)
+    return msg
 
-    from six import get_unbound_function
 
-    def exc_message(e):
-        return e[0]
+def cmp(x, y):
+    """Return -1 if x < y, 0 if x == y, 1 if x > y."""
+    return (x > y) - (x < y)
 
-    cmp = cmp
 
-    def decode(x):
-        return x
+def get_unbound_function(unbound):
+    # Op.make_thunk isn't bound, so don't have a __func__ attr.
+    # But bound method, have a __func__ method that point to the
+    # not bound method. That is what we want.
+    if hasattr(unbound, "__func__"):
+        return unbound.__func__
+    return unbound
 
-    def decode_iter(x):
-        return x
 
-    def decode_with(x, encoding):
-        return x
+def decode(x):
+    return x.decode()
+
+
+def decode_iter(itr):
+    for x in itr:
+        yield x.decode()
+
+
+def decode_with(x, encoding):
+    return x.decode(encoding)
 
 
 __all__ += [
