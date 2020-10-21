@@ -1,7 +1,6 @@
-from theano.gpuarray.sort import GpuTopKOp
-
-from tests.tensor.test_sort import TestTopK
 from tests.gpuarray.config import mode_with_gpu
+from tests.tensor.test_sort import TestTopK
+from theano.gpuarray.sort import GpuTopKOp
 
 
 class TestGpuTopK(TestTopK):

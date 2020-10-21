@@ -1,15 +1,13 @@
-import pytest
 import numpy as np
+import pytest
+
 import theano
-
-
-from theano import tensor, config, Apply, Op
-from theano.scalar import int32 as int_t
+from theano import Apply, Op, config, tensor
 from theano.gof import ParamsType
-from theano.gradient import grad_undefined
-
 from theano.gpuarray.basic_ops import CGpuKernelBase
 from theano.gpuarray.type import GpuArrayType, get_context, gpu_context_type
+from theano.gradient import grad_undefined
+from theano.scalar import int32 as int_t
 
 
 # This is an implementation to test that CGpuKernelBase works and also

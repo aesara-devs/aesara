@@ -1,14 +1,11 @@
 import numpy as np
 
 import theano
-
 import theano.sandbox.rng_mrg
-
+from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, test_ctx_name
 from theano.gpuarray.basic_ops import GpuFromHost, HostFromGpu
 from theano.gpuarray.elemwise import GpuElemwise
-
-from tests import unittest_tools as utt
 
 
 class TestScan:

@@ -1,29 +1,27 @@
 import itertools
+
 import numpy as np
 
 import theano
-from theano import config
-from theano import tensor
-from theano.tensor.blas import gemv, gemv_inplace, gemm_inplace, _dot22, batched_dot
-
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, test_ctx_name
+from tests.gpuarray.test_basic_ops import makeTester, rand
+from tests.tensor.test_blas import BaseGemv, TestGer
+from theano import config, tensor
 from theano.gpuarray import gpuarray_shared_constructor
 from theano.gpuarray.blas import (
-    gpugemv_inplace,
-    gpugemv_no_inplace,
+    GpuGemm,
+    GpuGer,
+    gpu_dot22,
     gpugemm_inplace,
     gpugemm_no_inplace,
     gpugemmbatch_inplace,
+    gpugemv_inplace,
+    gpugemv_no_inplace,
     gpuger_inplace,
     gpuger_no_inplace,
-    GpuGer,
-    GpuGemm,
-    gpu_dot22,
 )
-
-from tests import unittest_tools as utt
-from tests.tensor.test_blas import TestGer, BaseGemv
-from tests.gpuarray.config import mode_with_gpu, test_ctx_name
-from tests.gpuarray.test_basic_ops import makeTester, rand
+from theano.tensor.blas import _dot22, batched_dot, gemm_inplace, gemv, gemv_inplace
 
 
 TestGpuGemv = makeTester(

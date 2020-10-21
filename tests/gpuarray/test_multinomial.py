@@ -1,24 +1,20 @@
 import os
-
-import pytest
-import numpy as np
-
-import theano
-
-import tests.unittest_tools as utt
-
 from pickle import Unpickler
 
+import numpy as np
+import pytest
+
+import tests.unittest_tools as utt
+import theano
+from tests.gpuarray.config import mode_with_gpu
 from theano import config, function, tensor
 from theano.compat import PY3
+from theano.gpuarray.multinomial import (
+    GPUAChoiceFromUniform,
+    GPUAMultinomialFromUniform,
+)
 from theano.sandbox import multinomial
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
-from theano.gpuarray.multinomial import (
-    GPUAMultinomialFromUniform,
-    GPUAChoiceFromUniform,
-)
-
-from tests.gpuarray.config import mode_with_gpu
 
 
 def test_multinomial_output_dtype():

@@ -1,18 +1,21 @@
 import os
-import pytest
+
 import numpy as np
+import pytest
+
 import theano
+
 
 pygpu = pytest.importorskip("pygpu")
 
 from pickle import Unpickler
 
+from tests.gpuarray.config import test_ctx_name
+from tests.gpuarray.test_basic_ops import rand_gpuarray
 from theano import config
 from theano.compile import DeepCopyOp, Rebroadcast, ViewOp
 from theano.gpuarray.type import GpuArrayType, gpuarray_shared_constructor
 
-from tests.gpuarray.config import test_ctx_name
-from tests.gpuarray.test_basic_ops import rand_gpuarray
 
 # Disabled for now
 # from tests.tensor.test_sharedvar import makeSharedTester

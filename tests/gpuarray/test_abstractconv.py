@@ -1,33 +1,32 @@
+import numpy as np
 import pytest
 
-import numpy as np
 
 pygpu = pytest.importorskip("pygpu")
 gpuarray = pygpu.gpuarray
 
-from theano.gpuarray.type import GpuArrayType, gpuarray_shared_constructor, get_context
-from theano.gpuarray.dnn import (
-    dnn_available,
-    GpuDnnConv,
-    GpuDnnConvGradW,
-    GpuDnnConvGradI,
-)
-from theano.gpuarray.blas import (
-    GpuCorrMM,
-    GpuCorrMM_gradWeights,
-    GpuCorrMM_gradInputs,
-    GpuCorr3dMM,
-    GpuCorr3dMM_gradWeights,
-    GpuCorr3dMM_gradInputs,
-)
-
+from tests.gpuarray.config import mode_with_gpu, test_ctx_name
 from tests.tensor.nnet.test_abstract_conv import (
     BaseTestConv2d,
     BaseTestConv3d,
-    TestConvTypes,
     TestConv2dTranspose,
+    TestConvTypes,
 )
-from tests.gpuarray.config import mode_with_gpu, test_ctx_name
+from theano.gpuarray.blas import (
+    GpuCorr3dMM,
+    GpuCorr3dMM_gradInputs,
+    GpuCorr3dMM_gradWeights,
+    GpuCorrMM,
+    GpuCorrMM_gradInputs,
+    GpuCorrMM_gradWeights,
+)
+from theano.gpuarray.dnn import (
+    GpuDnnConv,
+    GpuDnnConvGradI,
+    GpuDnnConvGradW,
+    dnn_available,
+)
+from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
 
 
 gpu_ftensor4 = GpuArrayType(dtype="float32", broadcastable=(False,) * 4)

@@ -1,7 +1,7 @@
 import pytest
 
-import theano.tensor
 import theano.gpuarray
+import theano.tensor
 
 
 if theano.gpuarray.pygpu is None:

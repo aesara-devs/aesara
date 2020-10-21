@@ -1,18 +1,17 @@
 import numpy as np
 
+import tests.unittest_tools as utt
 import theano
 import theano.tensor as tt
-
-import tests.unittest_tools as utt
-
-from theano.tensor.nnet import crossentropy_softmax_1hot_with_bias_dx
-from theano.gpuarray.nnet import (
-    GpuCrossentropySoftmaxArgmax1HotWithBias,
-    GpuCrossentropySoftmax1HotWithBiasDx,
-    GpuSoftmaxWithBias,
-    GpuSoftmax,
-)
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
+from theano.gpuarray.nnet import (
+    GpuCrossentropySoftmax1HotWithBiasDx,
+    GpuCrossentropySoftmaxArgmax1HotWithBias,
+    GpuSoftmax,
+    GpuSoftmaxWithBias,
+)
+from theano.tensor.nnet import crossentropy_softmax_1hot_with_bias_dx
+
 
 mode_wo_cudnn = mode_with_gpu.excluding("cudnn")
 

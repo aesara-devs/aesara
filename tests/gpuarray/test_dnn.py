@@ -1,55 +1,57 @@
 import logging
-import pytest
+
 import numpy as np
+import pytest
+
 
 pygpu = pytest.importorskip("pygpu")  # noqa
 
-import theano
-import theano.tensor as tt
-import tests.unittest_tools as utt
-
-from itertools import product, chain
 from collections import OrderedDict
+from itertools import chain, product
 
 from six import StringIO
 
-from theano.tensor.nnet import (
-    bn,
-    softmax_op,
-    SoftmaxGrad,
-    softmax,
-    LogSoftmax,
-    Softmax,
-    conv2d,
-)
-from theano.tensor.nnet.corr3d import Corr3dMM
-from theano.tensor.nnet.corr import CorrMM
-from theano.tensor.nnet.abstract_conv import (
-    get_conv_output_shape,
-    get_conv_gradinputs_shape,
-)
-from theano.tensor.signal.pool import pool_2d, pool_3d
-from theano.tensor.signal.pool import Pool, MaxPoolGrad, AveragePoolGrad
-
-from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_FWD
-
-from theano.gpuarray import dnn
-from theano.gpuarray.basic_ops import GpuAllocEmpty
-from theano.gpuarray.type import gpuarray_shared_constructor, GpuArrayType
-
-from tests.tensor.nnet.test_abstract_conv import (
-    TestGroupedConvNoOptim,
-    TestGroupedConv3dNoOptim,
-)
-
+import tests.unittest_tools as utt
+import theano
+import theano.tensor as tt
 from tests.gpuarray import test_nnet
 from tests.gpuarray.config import (
     mode_with_gpu,
     mode_without_gpu,
-    test_ctx_name,
     ref_cast,
+    test_ctx_name,
 )
-from tests.gpuarray.rnn_support import Model, GRU, LSTM, WrapperLayer
+from tests.gpuarray.rnn_support import GRU, LSTM, Model, WrapperLayer
+from tests.tensor.nnet.test_abstract_conv import (
+    TestGroupedConv3dNoOptim,
+    TestGroupedConvNoOptim,
+)
+from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_FWD
+from theano.gpuarray import dnn
+from theano.gpuarray.basic_ops import GpuAllocEmpty
+from theano.gpuarray.type import GpuArrayType, gpuarray_shared_constructor
+from theano.tensor.nnet import (
+    LogSoftmax,
+    Softmax,
+    SoftmaxGrad,
+    bn,
+    conv2d,
+    softmax,
+    softmax_op,
+)
+from theano.tensor.nnet.abstract_conv import (
+    get_conv_gradinputs_shape,
+    get_conv_output_shape,
+)
+from theano.tensor.nnet.corr import CorrMM
+from theano.tensor.nnet.corr3d import Corr3dMM
+from theano.tensor.signal.pool import (
+    AveragePoolGrad,
+    MaxPoolGrad,
+    Pool,
+    pool_2d,
+    pool_3d,
+)
 
 
 if not dnn.dnn_available(test_ctx_name):

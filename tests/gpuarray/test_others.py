@@ -1,20 +1,20 @@
-import pytest
 import numpy as np
+import pytest
+
 
 pygpu = pytest.importorskip("pygpu")
 
-from theano.misc.pkl_utils import dump, load
-from theano.gpuarray.basic_ops import HostFromGpu, GpuFromHost
+from tests.gpuarray.config import mode_with_gpu, test_ctx_name
+from tests.misc.test_may_share_memory import may_share_memory_core
+from tests.tensor import test_opt
+from theano.gpuarray.basic_ops import GpuFromHost, HostFromGpu
 from theano.gpuarray.type import (
-    get_context,
-    GpuArrayType,
     GpuArraySharedVariable,
+    GpuArrayType,
+    get_context,
     gpuarray_shared_constructor,
 )
-
-from tests.tensor import test_opt
-from tests.misc.test_may_share_memory import may_share_memory_core
-from tests.gpuarray.config import test_ctx_name, mode_with_gpu
+from theano.misc.pkl_utils import dump, load
 
 
 class TestFusion(test_opt.TestFusion):

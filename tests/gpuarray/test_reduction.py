@@ -1,19 +1,16 @@
 import math
 
-import pytest
-
 import numpy as np
+import pytest
 
 import theano
 import theano.tensor as tt
-
-from theano.gpuarray import GpuArrayType
-from theano.gpuarray.reduction import GpuMaxAndArgmax
-from theano.gpuarray.dnn import GpuDnnReduction
-
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
 from tests.gpuarray.test_basic_ops import rand_gpuarray
+from theano.gpuarray import GpuArrayType
+from theano.gpuarray.dnn import GpuDnnReduction
+from theano.gpuarray.reduction import GpuMaxAndArgmax
 
 
 # Number of values to be used in test tensors (except with 0-D tensors!).

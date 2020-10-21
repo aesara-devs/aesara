@@ -1,30 +1,26 @@
 import copy
 import itertools
 
+import numpy as np
 import pytest
 
-import numpy as np
-
 import theano
-
-from theano import gradient
-from theano import tensor
-from theano.tensor.signal.pool import (
-    Pool,
-    MaxPoolGrad,
-    AveragePoolGrad,
-    DownsampleFactorMaxGradGrad,
-)
-from theano.gpuarray.pool import (
-    GpuPool,
-    GpuMaxPoolGrad,
-    GpuAveragePoolGrad,
-    GpuDownsampleFactorMaxGradGrad,
-)
-
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
 from tests.gpuarray.test_basic_ops import rand
+from theano import gradient, tensor
+from theano.gpuarray.pool import (
+    GpuAveragePoolGrad,
+    GpuDownsampleFactorMaxGradGrad,
+    GpuMaxPoolGrad,
+    GpuPool,
+)
+from theano.tensor.signal.pool import (
+    AveragePoolGrad,
+    DownsampleFactorMaxGradGrad,
+    MaxPoolGrad,
+    Pool,
+)
 
 
 class TestPool:

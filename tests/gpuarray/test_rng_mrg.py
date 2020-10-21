@@ -3,17 +3,15 @@ import functools
 import numpy as np
 
 import theano
-
-from theano import change_flags, tensor
-from theano.sandbox import rng_mrg
-from theano.sandbox.rng_mrg import MRG_RandomStreams
-from theano.gpuarray.type import gpuarray_shared_constructor
-from theano.gpuarray.rng_mrg import GPUA_mrg_uniform
-
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu as mode
 from tests.sandbox.test_rng_mrg import java_samples, rng_mrg_overflow
 from tests.sandbox.test_rng_mrg import test_f16_nonzero as cpu_f16_nonzero
+from theano import change_flags, tensor
+from theano.gpuarray.rng_mrg import GPUA_mrg_uniform
+from theano.gpuarray.type import gpuarray_shared_constructor
+from theano.sandbox import rng_mrg
+from theano.sandbox.rng_mrg import MRG_RandomStreams
 
 
 utt.seed_rng()

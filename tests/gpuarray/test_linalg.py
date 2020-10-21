@@ -1,28 +1,29 @@
-import pytest
-
 import numpy as np
-
-import theano
-
+import pytest
 from numpy.linalg.linalg import LinAlgError
 
+import theano
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
+from tests.gpuarray.test_basic_ops import rand
 from theano import config
+from theano.gpuarray import gpuarray_shared_constructor
 from theano.gpuarray.linalg import (
-    GpuCusolverSolve,
-    GpuCublasTriangularSolve,
     GpuCholesky,
+    GpuCublasTriangularSolve,
+    GpuCusolverSolve,
     GpuMagmaCholesky,
     GpuMagmaEigh,
     GpuMagmaMatrixInverse,
     GpuMagmaQR,
     GpuMagmaSVD,
     cusolver_available,
-    gpu_matrix_inverse,
     gpu_cholesky,
+    gpu_matrix_inverse,
+    gpu_qr,
     gpu_solve,
     gpu_solve_lower_triangular,
     gpu_svd,
-    gpu_qr,
 )
 from theano.tensor.nlinalg import (
     SVD,
@@ -34,11 +35,6 @@ from theano.tensor.nlinalg import (
     qr,
 )
 from theano.tensor.slinalg import Cholesky, cholesky, imported_scipy
-from theano.gpuarray import gpuarray_shared_constructor
-
-from tests import unittest_tools as utt
-from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
-from tests.gpuarray.test_basic_ops import rand
 
 
 @pytest.mark.skipif(

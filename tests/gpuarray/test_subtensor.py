@@ -1,28 +1,26 @@
 import numpy as np
 
 import theano
-
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, test_ctx_name
+from tests.tensor.test_basic import TestAllocDiag
+from tests.tensor.test_subtensor import TestAdvancedSubtensor, TestSubtensor
 from theano import tensor
 from theano.compile import DeepCopyOp
-from theano.gpuarray.basic_ops import HostFromGpu, GpuFromHost, GpuContiguous
+from theano.gpuarray.basic_ops import GpuContiguous, GpuFromHost, HostFromGpu
 from theano.gpuarray.elemwise import GpuDimShuffle
 from theano.gpuarray.subtensor import (
-    GpuIncSubtensor,
-    GpuSubtensor,
-    GpuAdvancedSubtensor1,
-    GpuAdvancedSubtensor,
     GpuAdvancedIncSubtensor,
     GpuAdvancedIncSubtensor1,
     GpuAdvancedIncSubtensor1_dev20,
-    GpuExtractDiag,
+    GpuAdvancedSubtensor,
+    GpuAdvancedSubtensor1,
     GpuAllocDiag,
+    GpuExtractDiag,
+    GpuIncSubtensor,
+    GpuSubtensor,
 )
 from theano.gpuarray.type import gpuarray_shared_constructor
-
-from tests import unittest_tools as utt
-from tests.tensor.test_subtensor import TestSubtensor, TestAdvancedSubtensor
-from tests.tensor.test_basic import TestAllocDiag
-from tests.gpuarray.config import mode_with_gpu, test_ctx_name
 
 
 class TestGPUSubtensor(TestSubtensor):

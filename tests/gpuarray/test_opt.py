@@ -1,41 +1,38 @@
 import numpy as np
-
 import pytest
 
 import theano
 import theano.gpuarray
 import theano.tensor.slinalg as slinalg
-
+from tests import test_ifelse
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
+from tests.tensor import test_basic
 from theano import tensor
-from theano.gof.opt import check_stack_trace
-from theano.tensor.nnet import abstract_conv
 from theano.breakpoint import PdbBreakpoint
-from theano.gpuarray import basic_ops
-from theano.gpuarray.type import GpuArrayType, gpuarray_shared_constructor, get_context
+from theano.gof.opt import check_stack_trace
+from theano.gpuarray import basic_ops, blas, dnn, opt
 from theano.gpuarray.basic_ops import (
     GpuAlloc,
     GpuAllocEmpty,
-    GpuReshape,
     GpuFromHost,
+    GpuReshape,
     HostFromGpu,
     host_from_gpu,
 )
 from theano.gpuarray.blas import GpuGemm
+from theano.gpuarray.dnn import GpuDnnReduction
 from theano.gpuarray.elemwise import (
-    GpuCAReduceCuda,
-    GpuCAReduceCPY,
-    GpuElemwise,
     Elemwise,
+    GpuCAReduceCPY,
+    GpuCAReduceCuda,
+    GpuElemwise,
     max_inputs_to_GpuElemwise,
 )
-from theano.gpuarray import dnn, blas, opt
-from theano.gpuarray.dnn import GpuDnnReduction
+from theano.gpuarray.linalg import GpuCholesky, GpuCusolverSolve, cusolver_available
 from theano.gpuarray.subtensor import GpuSubtensor
-from theano.gpuarray.linalg import GpuCusolverSolve, cusolver_available, GpuCholesky
-
-from tests import unittest_tools as utt, test_ifelse
-from tests.tensor import test_basic
-from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
+from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
+from theano.tensor.nnet import abstract_conv
 
 
 def _check_stack_trace(thing):

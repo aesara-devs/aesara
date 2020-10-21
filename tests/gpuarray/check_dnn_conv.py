@@ -13,39 +13,26 @@
 # Else, any arg will be directly passed to pytest.
 # python check_dnn_conv.py -xvs  # verbose mode, capture output, exit at first error.
 
-import sys
 import math
-
-import pytest
+import sys
+from itertools import chain, product
 
 import numpy as np
-
-import theano
+import pytest
 
 import tests.unittest_tools as utt
-
-from itertools import product, chain
-
+import theano
+from tests.gpuarray.config import mode_with_gpu, ref_cast
 from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
 from theano.gpuarray import cudnn_defs
-from theano.gpuarray.dnn import (
-    GpuDnnConv,
-    GpuDnnConvGradW,
-    GpuDnnConvGradI,
-    version,
-    _dnn_conv as dnn_conv,
-    _dnn_gradinput as dnn_gradinput,
-    _dnn_gradweight as dnn_gradweight,
-)
-from theano.tensor.nnet.abstract_conv import get_conv_output_shape, assert_conv_shape
+from theano.gpuarray.dnn import GpuDnnConv, GpuDnnConvGradI, GpuDnnConvGradW
+from theano.gpuarray.dnn import _dnn_conv as dnn_conv
+from theano.gpuarray.dnn import _dnn_gradinput as dnn_gradinput
+from theano.gpuarray.dnn import _dnn_gradweight as dnn_gradweight
+from theano.gpuarray.dnn import version
+from theano.tensor.nnet.abstract_conv import assert_conv_shape, get_conv_output_shape
 from theano.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
-from theano.tensor.nnet.corr3d import (
-    Corr3dMM,
-    Corr3dMMGradInputs,
-    Corr3dMMGradWeights,
-)
-
-from tests.gpuarray.config import mode_with_gpu, ref_cast
+from theano.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGradWeights
 
 
 def check_dtype_config_support(dtype, precision):

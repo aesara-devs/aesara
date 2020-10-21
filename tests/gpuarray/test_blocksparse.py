@@ -1,22 +1,18 @@
+import numpy as np
 import pytest
 
-import numpy as np
-
-import theano
-
 import tests.unittest_tools as utt
-
+import theano
+from tests.gpuarray.config import mode_with_gpu, test_ctx_name
+from tests.tensor.nnet.test_blocksparse import TestBlockSparseGemvAndOuter
 from theano import tensor
-from theano.gpuarray.type import gpuarray_shared_constructor
 from theano.gpuarray.blocksparse import (
     GpuSparseBlockGemv,
     GpuSparseBlockOuter,
     gpu_sparse_block_gemv,
     gpu_sparse_block_outer,
 )
-
-from tests.gpuarray.config import mode_with_gpu, test_ctx_name
-from tests.tensor.nnet.test_blocksparse import TestBlockSparseGemvAndOuter
+from theano.gpuarray.type import gpuarray_shared_constructor
 
 
 class TestBlockSparseGemvAndOuterGPUarray(TestBlockSparseGemvAndOuter):
