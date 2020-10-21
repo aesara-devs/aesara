@@ -45,7 +45,7 @@ def test_rop_lop():
     v1 = rop_f(vx, vv)
     v2 = scan_f(vx, vv)
 
-    assert _allclose(v1, v2), "ROP mismatch: %s %s" % (v1, v2)
+    assert _allclose(v1, v2), "ROP mismatch: {} {}".format(v1, v2)
 
     raised = False
     try:
@@ -54,10 +54,8 @@ def test_rop_lop():
         raised = True
     if not raised:
         raise Exception(
-            (
-                "Op did not raised an error even though the function"
-                " is not differentiable"
-            )
+            "Op did not raised an error even though the function"
+            " is not differentiable"
         )
 
     vv = np.asarray(rng.uniform(size=(4,)), theano.config.floatX)
@@ -69,7 +67,7 @@ def test_rop_lop():
 
     v1 = lop_f(vx, vv)
     v2 = scan_f(vx, vv)
-    assert _allclose(v1, v2), "LOP mismatch: %s %s" % (v1, v2)
+    assert _allclose(v1, v2), "LOP mismatch: {} {}".format(v1, v2)
 
 
 def test_spectral_radius_bound():
