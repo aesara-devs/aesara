@@ -3,26 +3,25 @@ Node classes (`Apply`, `Variable`) and expression graph algorithms.
 """
 import contextlib
 import warnings
-
-import theano
-
 from collections import deque
 from copy import copy
 from itertools import count
 
-from six import string_types, integer_types
+from six import integer_types, string_types
 
+import theano
 from theano import config
 from theano.gof.utils import (
-    TestValueError,
-    object2,
     MethodNotDefined,
     Scratchpad,
+    TestValueError,
     ValidatingScratchpad,
-    get_variable_trace_string,
     add_tag_trace,
+    get_variable_trace_string,
+    object2,
 )
 from theano.misc.ordered_set import OrderedSet
+
 
 __docformat__ = "restructuredtext en"
 

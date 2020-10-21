@@ -1,12 +1,13 @@
 import copy
-import sys
 import math
+import sys
 
-from theano.compat import DefaultOrderedDict
-from theano.misc.ordered_set import OrderedSet
 from six import StringIO, integer_types
-from theano.gof import opt
+
 from theano import config
+from theano.compat import DefaultOrderedDict
+from theano.gof import opt
+from theano.misc.ordered_set import OrderedSet
 
 
 class DB(object):

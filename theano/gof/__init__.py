@@ -1,18 +1,10 @@
 """Graph optimization framework"""
 
-
-from theano.gof.cc import CLinker, OpWiseCLinker, DualLinker, HideC
-
-from theano.gof.fg import (
-    InconsistencyError,
-    MissingInputError,
-    FunctionGraph,
-)
-
+import theano
+from theano.gof.cc import CLinker, DualLinker, HideC, OpWiseCLinker
 from theano.gof.destroyhandler import DestroyHandler
-
-from theano.gof.graph import Apply, Variable, Constant, view_roots
-
+from theano.gof.fg import FunctionGraph, InconsistencyError, MissingInputError
+from theano.gof.graph import Apply, Constant, Variable, view_roots
 from theano.gof.link import (
     Container,
     Linker,
@@ -21,58 +13,48 @@ from theano.gof.link import (
     WrapLinker,
     WrapLinkerMany,
 )
-
 from theano.gof.op import (
+    COp,
     Op,
     OpenMPOp,
     PureOp,
-    COp,
-    ops_with_inner_function,
     get_test_value,
+    ops_with_inner_function,
 )
-
-from theano.gof.type import EnumType, EnumList, CEnumType
-
 from theano.gof.opt import (
-    Optimizer,
-    optimizer,
-    inplace_optimizer,
-    SeqOptimizer,
-    MergeOptimizer,
-    LocalOptimizer,
-    local_optimizer,
-    LocalOptGroup,
-    OpSub,
-    OpRemove,
-    PatternSub,
-    NavigatorOptimizer,
-    TopoOptimizer,
-    EquilibriumOptimizer,
-    OpKeyOptimizer,
     CheckStackTraceOptimization,
+    EquilibriumOptimizer,
+    LocalOptGroup,
+    LocalOptimizer,
+    MergeOptimizer,
+    NavigatorOptimizer,
+    OpKeyOptimizer,
+    OpRemove,
+    OpSub,
+    Optimizer,
+    PatternSub,
+    SeqOptimizer,
+    TopoOptimizer,
+    inplace_optimizer,
+    local_optimizer,
+    optimizer,
 )
-
-from theano.gof.optdb import DB, LocalGroupDB, Query, EquilibriumDB, SequenceDB, ProxyDB
-
+from theano.gof.optdb import DB, EquilibriumDB, LocalGroupDB, ProxyDB, Query, SequenceDB
+from theano.gof.params_type import Params, ParamsType
 from theano.gof.toolbox import (
-    Feature,
     Bookkeeper,
+    Feature,
     History,
-    Validator,
-    ReplaceValidate,
     NodeFinder,
+    NoOutputFromInplace,
     PrintListener,
     ReplacementDidntRemovedError,
-    NoOutputFromInplace,
+    ReplaceValidate,
+    Validator,
 )
+from theano.gof.type import CEnumType, EnumList, EnumType, Generic, Type, generic
+from theano.gof.utils import MethodNotDefined, hashtype, object2
 
-from theano.gof.type import Type, Generic, generic
-
-from theano.gof.utils import hashtype, object2, MethodNotDefined
-
-from theano.gof.params_type import ParamsType, Params
-
-import theano
 
 if theano.config.cmodule.preload_cache:
     from theano.gof.cc import get_module_cache

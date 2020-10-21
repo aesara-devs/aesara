@@ -1,15 +1,16 @@
 import errno
 import logging
 import os
-from six.moves import reload_module as reload
 import sys
 import warnings
 
+from six.moves import reload_module as reload
 
 import theano
 from theano import config
-from theano.gof.compilelock import get_lock, release_lock
 from theano.gof import cmodule
+from theano.gof.compilelock import get_lock, release_lock
+
 
 _logger = logging.getLogger("theano.gof.lazylinker_c")
 

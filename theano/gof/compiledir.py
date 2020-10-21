@@ -1,15 +1,12 @@
+import logging
 import os
 import shutil
-import logging
-
-import six.moves.cPickle as pickle
 
 import numpy as np
-
-import theano
-
+import six.moves.cPickle as pickle
 from six import string_types
 
+import theano
 from theano import config
 from theano.gof.utils import flatten
 

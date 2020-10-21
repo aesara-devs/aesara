@@ -113,10 +113,11 @@ for more info about enumeration aliases).
 """
 
 
-import re
 import hashlib
+import re
+
+from theano.gof.type import EnumType, Type
 from theano.gof.utils import MethodNotDefined, c_cpp_keywords
-from theano.gof import Type, EnumType
 
 
 class Params(dict):

@@ -3,6 +3,7 @@ from collections import defaultdict
 from theano.compat import cmp
 from theano.gof.graph import list_of_nodes
 
+
 # {{{ http://code.activestate.com/recipes/578231/ (r1)
 # Copyright (c) Oren Tirosh 2012
 #

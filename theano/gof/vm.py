@@ -6,18 +6,17 @@ VM was a better name at some point.
 
 """
 import logging
+import platform
 import sys
 import time
 import warnings
-import platform
-
-import theano.gof.cmodule
-
 from collections import defaultdict
 
-from theano.configparser import config, _config_var_list
+import theano.gof.cmodule
+from theano.configparser import _config_var_list, config
 
 from . import link
+
 
 logger = logging.getLogger(__name__)
 

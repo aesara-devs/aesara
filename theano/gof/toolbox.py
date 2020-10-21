@@ -1,23 +1,16 @@
-import sys
 import copy
-import time
 import inspect
+import sys
+import time
+from collections import OrderedDict
+from functools import partial
 
 import numpy as np
-import theano
-
-from functools import partial
-from collections import OrderedDict
-
 from six.moves import StringIO
 
+import theano
 from theano import config
-from theano.gof.graph import (
-    inputs,
-    io_toposort,
-    equal_computations,
-    variables,
-)
+from theano.gof.graph import equal_computations, inputs, io_toposort, variables
 
 
 class AlreadyThere(Exception):

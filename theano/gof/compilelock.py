@@ -3,19 +3,17 @@ Locking mechanism to ensure no two compilations occur simultaneously
 in the same compilation directory (which can cause crashes).
 """
 import atexit
+import logging
 import os
 import socket  # only used for gethostname()
 import time
-import logging
-
-import numpy as np
-
-
-from six import PY3
-
 from contextlib import contextmanager
 
+import numpy as np
+from six import PY3
+
 from theano import config
+
 
 random = np.random.RandomState([2015, 8, 2])
 

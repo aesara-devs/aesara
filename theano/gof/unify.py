@@ -11,9 +11,10 @@ that satisfies the constraints. That's useful for pattern matching.
 """
 
 from copy import copy
-
 from functools import partial
-from theano.gof.utils import ANY_TYPE, comm_guard, FALL_THROUGH
+
+from theano.gof.utils import ANY_TYPE, FALL_THROUGH, comm_guard
+
 
 ################################
 

@@ -2,25 +2,21 @@
 Defines Linkers that deal with C implementations.
 
 """
+import logging
 import os
 import sys
-import logging
-
-import numpy as np
-
-import theano
-
 from copy import copy
 
-from six import string_types, reraise
+import numpy as np
+from six import reraise, string_types
 from six.moves import StringIO
 
+import theano
 from theano import config
 from theano.compat import PY3
-
-from theano.gof import graph, link, utils, cmodule
-from theano.gof.compilelock import get_lock, release_lock
+from theano.gof import cmodule, graph, link, utils
 from theano.gof.callcache import CallCache
+from theano.gof.compilelock import get_lock, release_lock
 
 
 _logger = logging.getLogger("theano.gof.cc")

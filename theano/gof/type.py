@@ -8,19 +8,20 @@ Defines the `Type` class.
 
 import ctypes
 import platform
+import re
 
 from six import string_types
 
-import re
 import theano
-from theano.gof import graph, utils
-from theano.gof.utils import MethodNotDefined, object2
 from theano import change_flags
+from theano.gof import graph, utils
 
 ########
 # Type #
 ########
 from theano.gof.op import CLinkerObject, Op
+from theano.gof.utils import MethodNotDefined, object2
+
 
 __docformat__ = "restructuredtext en"
 
@@ -643,8 +644,8 @@ class _make_cdata(Op):
         return False
 
     def make_node(self, val):
-        from theano.scalar import as_scalar
         from theano import Apply
+        from theano.scalar import as_scalar
 
         val = as_scalar(val).astype("uint64")
         return Apply(self, [val], [self.rtype()])

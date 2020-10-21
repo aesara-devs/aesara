@@ -1,5 +1,7 @@
 import logging
+
 import six.moves.cPickle as pickle
+
 
 _logger = logging.getLogger("theano.gof.callcache")
 

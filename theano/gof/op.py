@@ -5,29 +5,29 @@ The `Op` class is the base interface for all operations
 compatible with `gof`'s :doc:`graph` routines.
 
 """
+import inspect
+import logging
 import os
 import re
 import sys
-import inspect
-import logging
 import warnings
 
 import numpy as np
 
 import theano
 import theano.gof.cc
-
 from theano import config
 from theano.gof import graph
-from theano.gof.utils import (
-    object2,
-    TestValueError,
-    get_variable_trace_string,
-    MethodNotDefined,
-    add_tag_trace,
-)
 from theano.gof.cmodule import GCC_compiler
 from theano.gof.fg import FunctionGraph
+from theano.gof.utils import (
+    MethodNotDefined,
+    TestValueError,
+    add_tag_trace,
+    get_variable_trace_string,
+    object2,
+)
+
 
 __authors__ = "theano-dev"
 __copyright__ = "(c) 2010, Universite de Montreal"

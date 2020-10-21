@@ -3,37 +3,34 @@ Generate and compile C modules for Python.
 
 """
 import atexit
-import textwrap
-import six.moves.cPickle as pickle
+import distutils.sysconfig
 import logging
 import os
+import platform
 import re
 import shutil
 import stat
 import subprocess
 import sys
 import tempfile
+import textwrap
 import time
-import platform
-import distutils.sysconfig
 import warnings
 
 import numpy.distutils
+import six.moves.cPickle as pickle
+from six import BytesIO, StringIO, b, string_types
 
 import theano
-
-from six import b, BytesIO, StringIO, string_types
-
-
 from theano import config
 from theano.compat import PY3, decode, decode_iter
-from theano.gof.utils import flatten
-from theano.gof.utils import hash_from_code
-from theano.misc.windows import subprocess_Popen, output_subprocess_Popen
+from theano.configdefaults import gcc_version_str, local_bitwidth
 
 # we will abuse the lockfile mechanism when reading and writing the registry
 from theano.gof import compilelock
-from theano.configdefaults import gcc_version_str, local_bitwidth
+from theano.gof.utils import flatten, hash_from_code
+from theano.misc.windows import output_subprocess_Popen, subprocess_Popen
+
 
 importlib = None
 try:

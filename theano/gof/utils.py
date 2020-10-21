@@ -1,9 +1,8 @@
-import sys
 import linecache
+import sys
 import traceback
 
 import numpy as np
-
 from six import integer_types, string_types, with_metaclass
 from six.moves import StringIO
 

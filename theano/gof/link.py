@@ -1,21 +1,18 @@
 import sys
 import traceback
+from copy import copy, deepcopy
+from sys import getsizeof
 
 import numpy as np
-
-import theano
-
-from sys import getsizeof
-from copy import copy, deepcopy
-
 from six import reraise
 from six.moves import StringIO
 
-from theano.gof import utils
-from theano.gof import graph
+import theano
+from theano.gof import graph, utils
 from theano.gof.type import Type
 
 from .utils import undef
+
 
 __excepthook = sys.excepthook
 

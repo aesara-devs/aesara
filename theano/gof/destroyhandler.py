@@ -4,16 +4,13 @@ and inplace operations.
 
 """
 import itertools
+from collections import OrderedDict, deque
 
 import theano
-
-from collections import deque, OrderedDict
-
 from theano import config
 from theano.misc.ordered_set import OrderedSet
 
-from . import toolbox
-from . import graph
+from . import graph, toolbox
 from .fg import InconsistencyError
 
 

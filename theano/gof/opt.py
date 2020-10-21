@@ -3,7 +3,6 @@ Defines the base class for optimizations as well as a certain
 amount of useful generic optimization tools.
 
 """
-from collections import deque, defaultdict, OrderedDict
 import contextlib
 import copy
 import inspect
@@ -11,24 +10,22 @@ import logging
 import pdb
 import sys
 import time
-import warnings
 import traceback
-
-import numpy as np
-
-import theano
-
+import warnings
+from collections import OrderedDict, defaultdict, deque
 from functools import reduce
 
-from six import string_types, integer_types
+import numpy as np
+from six import integer_types, string_types
 
+import theano
 from theano import config
-
-from theano.gof import graph, op, utils, unify, toolbox
+from theano.gof import graph, op, toolbox, unify, utils
 from theano.gof.fg import InconsistencyError
 from theano.misc.ordered_set import OrderedSet
 
 from . import destroyhandler as dh
+
 
 _logger = logging.getLogger("theano.gof.opt")
 _optimizer_idx = [0]
