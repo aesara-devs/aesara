@@ -2,6 +2,7 @@ import pytest
 
 import theano
 
+
 sympy = pytest.importorskip("sympy")
 
 from theano.scalar.basic import floats

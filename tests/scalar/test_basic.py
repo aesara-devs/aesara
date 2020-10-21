@@ -8,68 +8,64 @@ If you do want to rewrite these tests, bear in mind:
   * You don't need to use Composite.
   * FunctionGraph and DualLinker are old, use compile.function instead.
 """
+import numpy as np
 import pytest
 
-import numpy as np
-
-import theano
-
 import tests.unittest_tools as utt
-
+import theano
 from theano import gof
 from theano.gof import FunctionGraph
-
 from theano.scalar.basic import (
-    floats,
-    float16,
-    float32,
-    float64,
-    ints,
-    int8,
-    int32,
-    complex64,
-    uint8,
     ComplexError,
-    IntDiv,
-    TrueDiv,
     Composite,
-    add,
-    div_proxy,
-    and_,
-    eq,
-    neq,
-    invert,
-    mul,
-    Scalar,
     InRange,
+    IntDiv,
+    Scalar,
+    TrueDiv,
+    add,
+    and_,
+    arccos,
+    arccosh,
+    arcsin,
+    arcsinh,
+    arctan,
+    arctan2,
+    arctanh,
     cast,
+    complex64,
     constant,
-    switch,
-    true_div,
-    inv,
-    log,
-    log2,
-    log10,
-    log1p,
+    cos,
+    cosh,
+    deg2rad,
+    div_proxy,
+    eq,
     exp,
     exp2,
     expm1,
-    sqrt,
-    deg2rad,
+    float16,
+    float32,
+    float64,
+    floats,
+    int8,
+    int32,
+    ints,
+    inv,
+    invert,
+    log,
+    log1p,
+    log2,
+    log10,
+    mul,
+    neq,
     rad2deg,
-    cos,
-    arccos,
     sin,
-    arcsin,
-    tan,
-    arctan,
-    arctan2,
-    cosh,
-    arccosh,
     sinh,
-    arcsinh,
+    sqrt,
+    switch,
+    tan,
     tanh,
-    arctanh,
+    true_div,
+    uint8,
 )
 
 
