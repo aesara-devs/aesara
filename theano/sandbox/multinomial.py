@@ -1,12 +1,11 @@
 import copy
+import warnings
 
 import numpy as np
-import warnings
 
 import theano
 import theano.tensor as tt
-
-from theano import Op, Apply
+from theano import Apply, Op
 from theano.scalar import as_scalar
 
 

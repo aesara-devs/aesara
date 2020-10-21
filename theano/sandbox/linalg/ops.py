@@ -1,31 +1,26 @@
 import logging
 
-import theano.tensor
-
 from six import integer_types
 
-from theano.gof import Op, Apply
-
+import theano.tensor
 from theano import tensor
+from theano.gof import Apply, Op, local_optimizer
+from theano.gof.opt import Optimizer
 from theano.tensor import DimShuffle, Dot
 from theano.tensor.blas import Dot22
-from theano.tensor.opt import (
-    register_stabilize,
-    register_specialize,
-    register_canonicalize,
-)
-from theano.gof import local_optimizer
-from theano.gof.opt import Optimizer
-
 from theano.tensor.nlinalg import (
     MatrixInverse,
-    matrix_inverse,
-    extract_diag,
-    trace,
     det,
+    extract_diag,
+    matrix_inverse,
+    trace,
 )
-
-from theano.tensor.slinalg import Cholesky, cholesky, Solve, solve, imported_scipy
+from theano.tensor.opt import (
+    register_canonicalize,
+    register_specialize,
+    register_stabilize,
+)
+from theano.tensor.slinalg import Cholesky, Solve, cholesky, imported_scipy, solve
 
 
 logger = logging.getLogger(__name__)

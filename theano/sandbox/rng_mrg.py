@@ -18,23 +18,22 @@ import warnings
 import numpy as np
 from six import integer_types, string_types
 
-
 import theano
-from theano import Op, Apply, shared, config, Variable
-from theano import gradient, function
+from theano import Apply, Op, Variable, config, function, gradient, shared, tensor
+from theano.compile import optdb
+from theano.gof import ParamsType, local_optimizer
 from theano.gradient import undefined_grad
-from theano import tensor
+from theano.scalar import bool as bool_t
+from theano.scalar import int32 as int_t
 from theano.tensor import (
     TensorType,
     as_tensor_variable,
-    get_vector_length,
     cast,
+    get_vector_length,
     opt,
     scal,
 )
-from theano.compile import optdb
-from theano.gof import local_optimizer, ParamsType
-from theano.scalar import bool as bool_t, int32 as int_t
+
 from . import multinomial
 
 

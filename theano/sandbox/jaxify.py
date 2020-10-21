@@ -1,86 +1,74 @@
-import theano
+from collections.abc import Sequence
+from functools import reduce
+from functools import singledispatch as dispatch
+from functools import update_wrapper
+from warnings import warn
 
 import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
 
-from warnings import warn
-from functools import update_wrapper, reduce
-from collections.abc import Sequence
-
-from functools import singledispatch as dispatch
-
-from theano.gof import FunctionGraph
-
-from theano.ifelse import IfElse
-from theano.tensor.subtensor import (
-    get_idx_list,
-    Subtensor,
-    IncSubtensor,
-    # This is essentially `np.take`
-    AdvancedSubtensor1,
-    AdvancedIncSubtensor1,
-    # Boolean mask indexing and setting
-    AdvancedSubtensor,
-    AdvancedIncSubtensor,
-)
-from theano.scan_module.scan_op import Scan
-from theano.scan_module.scan_utils import scan_args as ScanArgs
-from theano.tensor.basic import (
-    Dot,
-    ARange,
-    TensorFromScalar,
-    ScalarFromTensor,
-    AllocEmpty,
-    Alloc,
-    Reshape,
-    Join,
-    MaxAndArgmax,
-)
-from theano.scalar.basic import ScalarOp, Composite, Cast, Clip, Identity
-from theano.tensor.elemwise import Elemwise, CAReduce, DimShuffle
+import theano
 from theano.compile.ops import (
     DeepCopyOp,
+    Rebroadcast,
     Shape,
     Shape_i,
     SpecifyShape,
-    Rebroadcast,
     ViewOp,
 )
-from theano.tensor.opt import MakeVector
-
-from theano.tensor.nnet.sigm import ScalarSoftplus
-
+from theano.gof import FunctionGraph
+from theano.ifelse import IfElse
+from theano.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp
+from theano.scan_module.scan_op import Scan
+from theano.scan_module.scan_utils import scan_args as ScanArgs
+from theano.tensor.basic import (
+    Alloc,
+    AllocEmpty,
+    ARange,
+    Dot,
+    Join,
+    MaxAndArgmax,
+    Reshape,
+    ScalarFromTensor,
+    TensorFromScalar,
+)
+from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
+from theano.tensor.extra_ops import (
+    Bartlett,
+    CumOp,
+    DiffOp,
+    FillDiagonal,
+    FillDiagonalOffset,
+    RavelMultiIndex,
+    RepeatOp,
+    Unique,
+    UnravelIndex,
+)
 from theano.tensor.nlinalg import (
+    SVD,
+    AllocDiag,
     Det,
     Eig,
     Eigh,
+    ExtractDiag,
     MatrixInverse,
     QRFull,
     QRIncomplete,
-    SVD,
-    ExtractDiag,
-    AllocDiag,
 )
-
-from theano.tensor.slinalg import (
-    Cholesky,
-    Solve,
+from theano.tensor.nnet.sigm import ScalarSoftplus
+from theano.tensor.opt import MakeVector
+from theano.tensor.slinalg import Cholesky, Solve
+from theano.tensor.subtensor import (  # This is essentially `np.take`; Boolean mask indexing and setting
+    AdvancedIncSubtensor,
+    AdvancedIncSubtensor1,
+    AdvancedSubtensor,
+    AdvancedSubtensor1,
+    IncSubtensor,
+    Subtensor,
+    get_idx_list,
 )
-
 from theano.tensor.type_other import MakeSlice
-
-from theano.tensor.extra_ops import (
-    CumOp,
-    DiffOp,
-    RepeatOp,
-    Bartlett,
-    FillDiagonal,
-    FillDiagonalOffset,
-    Unique,
-    UnravelIndex,
-    RavelMultiIndex,
-)
 
 
 if theano.config.floatX == "float64":

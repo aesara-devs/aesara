@@ -1,17 +1,16 @@
-from warnings import warn
 from collections.abc import Sequence
-
-from theano.gof.link import (
-    PerformLinker,
-    map_storage,
-    gc_helper,
-    utils,
-    add_clear_storage,
-    Container,
-    streamline,
-)
+from warnings import warn
 
 from theano.gof.graph import Constant
+from theano.gof.link import (
+    Container,
+    PerformLinker,
+    add_clear_storage,
+    gc_helper,
+    map_storage,
+    streamline,
+    utils,
+)
 
 
 class JAXLinker(PerformLinker):
