@@ -6,7 +6,7 @@ from theano.compile.sharedvalue import shared
 from theano.tensor.nnet import sigmoid
 
 
-class NNet(object):
+class NNet:
     def __init__(
         self,
         input=None,
@@ -17,7 +17,7 @@ class NNet(object):
         lr=1e-3,
         **kw,
     ):
-        super(NNet, self).__init__(**kw)
+        super().__init__(**kw)
 
         if input is None:
             input = tensor.dvector("input")
