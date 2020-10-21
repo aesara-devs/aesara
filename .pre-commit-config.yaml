@@ -22,3 +22,14 @@ repos:
                 doc/.*|
                 bin/.*
             )$
+  - repo: https://github.com/pycqa/isort
+    rev: 5.5.2
+    hooks:
+      - id: isort
+        exclude: |
+            (?x)^(
+                versioneer\.py|
+                theano/_version\.py|
+                doc/.*|
+                bin/.*
+            )$
