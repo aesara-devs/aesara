@@ -1,164 +1,154 @@
+import builtins
 import itertools
-import logging
 import operator
 import os
-import sys
 import warnings
-import builtins
-
-import pytest
+from copy import copy, deepcopy
+from functools import partial, reduce
+from tempfile import mkstemp
 
 import numpy as np
+import pytest
+from numpy.testing import assert_allclose, assert_almost_equal, assert_array_equal
 
 import theano
 import theano.tensor as tt
-
-from tempfile import mkstemp
-from copy import copy, deepcopy
-from functools import partial, reduce
-
-from six.moves import StringIO
-
-from numpy.testing import assert_array_equal, assert_allclose, assert_almost_equal
-
-from theano import change_flags
-
-from theano.compat import exc_message, operator_div
-from theano import compile, config, function, gof, shared
+from tests import unittest_tools as utt
+from theano import change_flags, compile, config, function, gof, shared
+from theano.compat import operator_div
 from theano.compile import DeepCopyOp
 from theano.compile.mode import get_default_mode
-from theano.scalar import autocast_float_as, autocast_float
+from theano.scalar import autocast_float, autocast_float_as
 from theano.tensor import (
-    wvector,
-    bvector,
-    argmin,
-    max_and_argmax,
-    cscalar,
-    join,
-    horizontal_stack,
-    vertical_stack,
-    argmax,
-    get_vector_length,
-    fscalar,
-    sum,
-    tensor3,
-    vector,
+    Alloc,
+    AllocDiag,
+    AllocEmpty,
+    ARange,
+    Argmax,
+    Choose,
+    DimShuffle,
+    Dot,
+    ExtractDiag,
+    Eye,
+    Join,
+    MaxAndArgmax,
+    Mean,
+    NoneConst,
+    PermuteRowElements,
+    Rebroadcast,
+    Reshape,
+    ScalarFromTensor,
+    Shape,
+    SpecifyShape,
+    Split,
+    Tensor,
+    TensorFromScalar,
+    TensorType,
+    Tile,
+    Tri,
     add,
     addbroadcast,
+    allclose,
     alloc,
+    arange,
+    argmax,
+    argmin,
     as_tensor_variable,
-    tensor_from_scalar,
-    ARange,
+    batched_dot,
+    bvector,
+    choose,
     clip,
     constant,
+    cscalar,
     default,
     diag,
-    dot,
-    batched_dot,
     dmatrix,
+    dot,
     dscalar,
+    dscalars,
+    dtensor3,
+    dtensor4,
     dvector,
     eq,
+    exp,
+    extract_constant,
     eye,
     fill,
+    flatnonzero,
     flatten,
-    inverse_permutation,
-    tensor4,
-    permute_row_elements,
     fmatrix,
+    fscalar,
     fscalars,
+    fvector,
+    get_scalar_constant_value,
+    get_vector_length,
     grad,
+    hessian,
+    horizontal_stack,
+    imatrix,
     inplace,
+    inverse_permutation,
     iscalar,
-    matrix,
-    minimum,
+    iscalars,
+    isclose,
+    itensor3,
+    ivector,
+    join,
+    lscalar,
+    lvector,
     matrices,
+    matrix,
+    max,
+    max_and_argmax,
     maximum,
+    mgrid,
+    min,
+    minimum,
     mul,
     neq,
-    Reshape,
+    nonzero,
+    nonzero_values,
+    numeric_grad,
+    ogrid,
+    opt,
+    patternbroadcast,
+    permute_row_elements,
+    power,
+    ptp,
+    reshape,
+    roll,
     row,
+    scal,
     scalar,
+    scalar_from_tensor,
     scalars,
     second,
+    shape,
     smallest,
     stack,
+    stacklists,
     sub,
-    Tensor,
+    sum,
+    swapaxes,
+    switch,
+    tensor3,
+    tensor4,
     tensor_copy,
+    tensor_from_scalar,
     tensordot,
-    TensorType,
-    Tri,
+    tile,
     tri,
     tril,
     triu,
+    true_div,
     unbroadcast,
     var,
-    Argmax,
-    Join,
-    shape,
-    MaxAndArgmax,
-    lscalar,
+    vector,
+    vertical_stack,
+    wvector,
     zvector,
-    exp,
-    get_scalar_constant_value,
-    ivector,
-    reshape,
-    scalar_from_tensor,
-    scal,
-    iscalars,
-    arange,
-    dscalars,
-    fvector,
-    imatrix,
-    numeric_grad,
-    opt,
-    lvector,
-    true_div,
-    max,
-    min,
-    Split,
-    roll,
-    tile,
-    patternbroadcast,
-    Eye,
-    Shape,
-    Dot,
-    PermuteRowElements,
-    ScalarFromTensor,
-    TensorFromScalar,
-    dtensor4,
-    Rebroadcast,
-    Alloc,
-    dtensor3,
-    SpecifyShape,
-    Mean,
-    itensor3,
-    Tile,
-    switch,
-    ExtractDiag,
-    AllocDiag,
-    nonzero,
-    flatnonzero,
-    nonzero_values,
-    stacklists,
-    DimShuffle,
-    hessian,
-    ptp,
-    power,
-    swapaxes,
-    choose,
-    Choose,
-    NoneConst,
-    AllocEmpty,
-    isclose,
-    allclose,
-    mgrid,
-    ogrid,
-    extract_constant,
 )
 
-from tests import unittest_tools as utt
 
 imported_scipy_special = False
 mode_no_scipy = get_default_mode()
@@ -2556,8 +2546,8 @@ COMPLEX_DTYPES = ALL_DTYPES[-2:]
 
 def multi_dtype_checks(shape1, shape2, dtypes=ALL_DTYPES, nameprefix=""):
     for dtype1, dtype2 in itertools.combinations(dtypes, 2):
-        name1 = "%s_%s_%s" % (nameprefix, dtype1, dtype2)
-        name2 = "%s_%s_%s" % (nameprefix, dtype2, dtype1)
+        name1 = "{}_{}_{}".format(nameprefix, dtype1, dtype2)
+        name2 = "{}_{}_{}".format(nameprefix, dtype2, dtype1)
         obj1 = rand_of_dtype(shape1, dtype1)
         obj2 = rand_of_dtype(shape2, dtype2)
         yield (name1, (obj1, obj2))
@@ -2566,8 +2556,8 @@ def multi_dtype_checks(shape1, shape2, dtypes=ALL_DTYPES, nameprefix=""):
 
 def multi_dtype_cast_checks(shape, dtypes=ALL_DTYPES, nameprefix=""):
     for dtype1, dtype2 in itertools.combinations(dtypes, 2):
-        name1 = "%s_%s_%s" % (nameprefix, dtype1, dtype2)
-        name2 = "%s_%s_%s" % (nameprefix, dtype2, dtype1)
+        name1 = "{}_{}_{}".format(nameprefix, dtype1, dtype2)
+        name2 = "{}_{}_{}".format(nameprefix, dtype2, dtype1)
         obj1 = rand_of_dtype(shape, dtype1)
         obj2 = rand_of_dtype(shape, dtype2)
         yield (name1, (obj1, dtype2))
@@ -3186,7 +3176,7 @@ class TestCast:
             # Casts from foo to foo
             [
                 (
-                    "%s_%s" % (rand_of_dtype((2,), dtype), dtype),
+                    "{}_{}".format(rand_of_dtype((2,), dtype), dtype),
                     (rand_of_dtype((2,), dtype), dtype),
                 )
                 for dtype in ALL_DTYPES
@@ -3509,7 +3499,7 @@ class TestShape:
         assert (eval_outputs([s]) == [5, 3]).all()
 
     def test_basic1(self):
-        s = shape(np.ones((2)))
+        s = shape(np.ones(2))
         assert (eval_outputs([s]) == [2]).all()
 
     def test_basic2(self):
@@ -3585,31 +3575,12 @@ class TestMaxAndArgmax:
 
     def test_basic_2_invalid(self):
         n = as_tensor_variable(rand(2, 3))
-        # Silence expected error messages
-        _logger = logging.getLogger("theano.gof.opt")
-        oldlevel = _logger.level
-        _logger.setLevel(logging.CRITICAL)
-        try:
-            try:
-                eval_outputs(max_and_argmax(n, 3))
-                assert False
-            except ValueError:
-                pass
-        finally:
-            _logger.setLevel(oldlevel)
+        with pytest.raises(ValueError):
+            eval_outputs(max_and_argmax(n, 3))
 
-    def test_basic_2_invalid_neg(self):
         n = as_tensor_variable(rand(2, 3))
-        old_stderr = sys.stderr
-        sys.stderr = StringIO()
-        try:
-            try:
-                eval_outputs(max_and_argmax(n, -3))
-                assert False
-            except ValueError:
-                pass
-        finally:
-            sys.stderr = old_stderr
+        with pytest.raises(ValueError):
+            eval_outputs(max_and_argmax(n, -3))
 
     def test_basic_2_valid_neg(self):
         n = as_tensor_variable(rand(2, 3))
@@ -3831,32 +3802,10 @@ class TestArgminArgmax:
     def test2_invalid(self):
         for fct, nfct in [(argmax, np.argmax), (argmin, np.argmin)]:
             n = as_tensor_variable(rand(2, 3))
-            # Silence expected error messages
-            _logger = logging.getLogger("theano.gof.opt")
-            oldlevel = _logger.level
-            _logger.setLevel(logging.CRITICAL)
-            try:
-                try:
-                    eval_outputs(fct(n, 3))
-                    assert False
-                except ValueError:
-                    pass
-            finally:
-                _logger.setLevel(oldlevel)
-
-    def test2_invalid_neg(self):
-        for fct, nfct in [(argmax, np.argmax), (argmin, np.argmin)]:
-            n = as_tensor_variable(rand(2, 3))
-            old_stderr = sys.stderr
-            sys.stderr = StringIO()
-            try:
-                try:
-                    eval_outputs(fct(n, -3))
-                    assert False
-                except ValueError:
-                    pass
-            finally:
-                sys.stderr = old_stderr
+            with pytest.raises(ValueError):
+                eval_outputs(fct(n, 3))
+            with pytest.raises(ValueError):
+                eval_outputs(fct(n, -3))
 
     def test2_valid_neg(self):
         for fct, nfct in [(argmax, np.argmax), (argmin, np.argmin)]:
@@ -3994,32 +3943,10 @@ class TestMinMax:
     def test2_invalid(self):
         for fct in [max, min]:
             n = as_tensor_variable(rand(2, 3))
-            # Silence expected error messages
-            _logger = logging.getLogger("theano.gof.opt")
-            oldlevel = _logger.level
-            _logger.setLevel(logging.CRITICAL)
-            try:
-                try:
-                    eval_outputs(fct(n, 3))
-                    assert False
-                except ValueError:
-                    pass
-            finally:
-                _logger.setLevel(oldlevel)
-
-    def test2_invalid_neg(self):
-        for fct in [max, min]:
-            n = as_tensor_variable(rand(2, 3))
-            old_stderr = sys.stderr
-            sys.stderr = StringIO()
-            try:
-                try:
-                    eval_outputs(fct(n, -3))
-                    assert False
-                except ValueError:
-                    pass
-            finally:
-                sys.stderr = old_stderr
+            with pytest.raises(ValueError):
+                eval_outputs(fct(n, 3))
+            with pytest.raises(ValueError):
+                eval_outputs(fct(n, -3))
 
     def test2_valid_neg(self):
         for fct, nfct in [(max, np.max), (min, np.min)]:
@@ -5466,7 +5393,7 @@ class TestMatinv:
         # Here, as_tensor_variable actually uses the data allocated by np.
         diff = ab - as_tensor_variable(np.ones((dim, dim), dtype=config.floatX))
         # Sum of squared errors
-        ssdiff = sum((diff ** 2.0))
+        ssdiff = sum(diff ** 2.0)
 
         g_b = grad(ssdiff, b)
 
@@ -5659,62 +5586,20 @@ class TestDot:
         self.cmp_dot(rand(4, 5, 6), rand(8, 6, 7))
 
     def not_aligned(self, x, y):
-        ctv_backup = config.compute_test_value
-        config.compute_test_value = "off"
-        try:
+        with change_flags(compute_test_value="off"):
             z = dot(x, y)
-        finally:
-            config.compute_test_value = ctv_backup
-        # constant folding will complain to _logger that things are not aligned
-        # this is normal, testers are not interested in seeing that output.
-        _logger = logging.getLogger("theano.gof.opt")
-        oldlevel = _logger.level
-        _logger.setLevel(logging.CRITICAL)
-        try:
-            try:
-                eval_outputs([z])
-                assert False  # should have raised exception
-            except ValueError as e:
-                e0 = exc_message(e)
-                assert (
-                    # Reported by numpy.
-                    e0.split()[1:4] == ["are", "not", "aligned"]
-                    or
-                    # Reported by blas or Theano.
-                    e0.split()[0:2] == ["Shape", "mismatch:"]
-                    or
-                    # Reported by Theano perform
-                    (e0.split()[0:4] == ["Incompatible", "shapes", "for", "gemv"])
-                    or e
-                )
-        finally:
-            _logger.setLevel(oldlevel)
+        with pytest.raises(ValueError):
+            eval_outputs([z])
 
-    def test_align_1_1(self):
+    def test_not_aligned(self):
         self.not_aligned(rand(5), rand(6))
-
-    def test_align_1_2(self):
         self.not_aligned(rand(5), rand(6, 4))
-
-    def test_align_1_3(self):
         self.not_aligned(rand(5), rand(6, 4, 7))
-
-    def test_align_2_1(self):
         self.not_aligned(rand(5, 4), rand(6))
-
-    def test_align_2_2(self):
         self.not_aligned(rand(5, 4), rand(6, 7))
-
-    def test_align_2_3(self):
         self.not_aligned(rand(5, 4), rand(6, 7, 8))
-
-    def test_align_3_1(self):
         self.not_aligned(rand(5, 4, 3), rand(6))
-
-    def test_align_3_2(self):
         self.not_aligned(rand(5, 4, 3), rand(6, 7))
-
-    def test_align_3_3(self):
         self.not_aligned(rand(5, 4, 3), rand(6, 7, 8))
 
     def test_grad(self):
@@ -6259,7 +6144,7 @@ def test_is_flat():
     # given outdim
 
     # Constant variable
-    assert tt.is_flat(tt.as_tensor_variable(np.zeros((10))))
+    assert tt.is_flat(tt.as_tensor_variable(np.zeros(10)))
     assert tt.is_flat(tt.as_tensor_variable(np.zeros((10, 10, 10))), ndim=3)
     assert not tt.is_flat(tt.as_tensor_variable(np.zeros((10, 10, 10))))
 
@@ -7459,11 +7344,14 @@ def _test_autocast_numpy_floatX():
 
 
 class TestArithmeticCast:
-    # Test output types of basic arithmeric operations (* / + - //).
-    #
-    # We only test the behavior for `config.cast_policy` set to either 'numpy' or
-    # 'numpy+floatX': the 'custom' behavior is (at least partially) tested in
-    # `_test_autocast_custom`.
+    """Test output types of basic arithmeric operations (* / + - //).
+
+    We only test the behavior for `config.cast_policy` set to either 'numpy' or
+    'numpy+floatX': the 'custom' behavior is (at least partially) tested in
+    `_test_autocast_custom`.
+
+    """
+
     def test_arithmetic_cast(self):
         backup_config = config.cast_policy
         dtypes = get_numeric_types(with_complex=True)
@@ -7625,7 +7513,7 @@ class TestArithmeticCast:
                                     pytest.skip("Known issue with" "numpy see #761")
                                 # In any other situation: something wrong is
                                 # going on!
-                                assert False
+                                raise AssertionError()
         finally:
             config.cast_policy = backup_config
             if config.int_division == "int":
@@ -7861,52 +7749,32 @@ def test_unalign():
     assert not b.flags.aligned
     a[:] = rand(len(a))
     b[:] = rand(len(b))
-    out_numpy = 2 * a + 3 * b
+    # out_numpy = 2 * a + 3 * b
 
     av, bv = tt.vectors("ab")
     f = theano.function([av, bv], 2 * av + 3 * bv)
     f.maker.fgraph.toposort()
 
-    try:
-        out_theano = f(a, b)
-        assert not a.flags.aligned
-        assert not b.flags.aligned
-        assert np.allclose(out_numpy, out_theano)
-        assert False
-    except TypeError:
-        pass
+    with pytest.raises(TypeError):
+        f(a, b)
 
     a = np.empty((), dtype=dtype)["f1"]
     b = np.empty((), dtype=dtype)["f1"]
     assert not a.flags.aligned
     assert not b.flags.aligned
-    out_numpy = 2 * a + 3 * b
+    # out_numpy = 2 * a + 3 * b
 
     av, bv = tt.scalars("ab")
     f = theano.function([av, bv], 2 * av + 3 * bv)
     f.maker.fgraph.toposort()
-    try:
-        out_theano = f(a, b)
-        assert not a.flags.aligned
-        assert not b.flags.aligned
-        assert np.allclose(out_numpy, out_theano)
-        assert False
-    except TypeError:
-        pass
+    with pytest.raises(TypeError):
+        f(a, b)
 
 
 def test_dimshuffle_duplicate():
     x = tt.vector()
-
-    success = False
-
-    try:
+    with pytest.raises(ValueError, match="may not appear twice"):
         tt.DimShuffle((False,), (0, 0))(x)
-    except ValueError as e:
-        assert str(e).find("may not appear twice") != -1
-        success = True
-
-    assert success
 
 
 class TestGetScalarConstantValue:
@@ -8033,15 +7901,11 @@ class TestGetScalarConstantValue:
         assert e == 3, (c, d, e)
 
 
-class TestComplexMod:
+def test_complex_mod_failure():
     # Make sure % fails on complex numbers.
-    def test_fail(self):
-        x = vector(dtype="complex64")
-        try:
-            x % 5
-            assert False
-        except theano.scalar.ComplexError:
-            pass
+    x = vector(dtype="complex64")
+    with pytest.raises(theano.scalar.ComplexError):
+        x % 5
 
 
 class TestSize:

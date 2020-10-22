@@ -1,25 +1,24 @@
 import theano.tensor as tt
-
-from theano.gof.type import Type
-from theano.gof.graph import Variable, Apply, Constant
+from theano.gof.fg import FunctionGraph
+from theano.gof.graph import Apply, Constant, Variable
 from theano.gof.op import Op
 from theano.gof.opt import (
+    EquilibriumOptimizer,
+    MergeOptimizer,
     OpKeyOptimizer,
+    OpSub,
     PatternSub,
     TopoOptimizer,
-    OpSub,
-    MergeOptimizer,
     config,
-    theano,
-    EquilibriumOptimizer,
     logging,
     pre_constant_merge,
     pre_greedy_local_optimizer,
+    theano,
 )
-from theano.gof.fg import FunctionGraph
-from theano.tensor.type_other import MakeSlice, SliceConstant, slicetype
-from theano.tensor.subtensor import AdvancedSubtensor
+from theano.gof.type import Type
 from theano.tensor.opt import constant_folding
+from theano.tensor.subtensor import AdvancedSubtensor
+from theano.tensor.type_other import MakeSlice, SliceConstant, slicetype
 
 
 def is_variable(x):
@@ -549,7 +548,7 @@ class TestMergeOptimizer:
         assert len(no_input_ops) == 2, fg.apply_nodes
 
 
-class TestEquilibrium(object):
+class TestEquilibrium:
     def test_1(self):
         x, y, z = map(MyVariable, "xyz")
         e = op3(op4(x, y))

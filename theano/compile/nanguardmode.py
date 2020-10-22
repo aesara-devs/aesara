@@ -1,19 +1,19 @@
 import logging
 
 import numpy as np
+from six.moves import StringIO
 
 import theano
 import theano.tensor as tt
-
-from six.moves import StringIO
-
 from theano import config
 from theano.compat import ValuesView
-from theano.compile.mode import get_mode, Mode
+from theano.compile.mode import Mode, get_mode
+
 
 try:
-    from theano.gpuarray.type import GpuArrayType, _name_for_ctx
     from pygpu.gpuarray import GpuArray
+
+    from theano.gpuarray.type import GpuArrayType, _name_for_ctx
 
     pygpu_available = True
 except ImportError:
@@ -295,6 +295,4 @@ class NanGuardMode(Mode):
         wrap_linker = theano.gof.vm.VM_Linker(
             callback=nan_check, callback_input=nan_check_input
         )
-        super(NanGuardMode, self).__init__(
-            wrap_linker, optimizer=self.provided_optimizer
-        )
+        super().__init__(wrap_linker, optimizer=self.provided_optimizer)

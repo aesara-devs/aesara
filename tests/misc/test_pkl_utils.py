@@ -5,9 +5,8 @@ from tempfile import mkdtemp
 import numpy as np
 
 import theano
-
+from theano.misc.pkl_utils import StripPickler, dump, load
 from theano.sandbox.rng_mrg import MRG_RandomStreams
-from theano.misc.pkl_utils import dump, load, StripPickler
 
 
 class TestDumpLoad:

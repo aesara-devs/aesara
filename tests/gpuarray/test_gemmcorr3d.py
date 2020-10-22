@@ -1,25 +1,17 @@
 import numpy as np
 
 import theano
-
-from theano import config
-
-from theano.tensor.nnet.corr3d import (
-    Corr3dMM,
-    Corr3dMMGradWeights,
-    Corr3dMMGradInputs,
-)
-
-from theano.gpuarray.type import gpuarray_shared_constructor
-from theano.gpuarray.blas import (
-    GpuCorr3dMM,
-    GpuCorr3dMM_gradWeights,
-    GpuCorr3dMM_gradInputs,
-)
-
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, ref_cast
 from tests.tensor.nnet.test_abstract_conv import TestGroupedConv3dNoOptim
+from theano import config
+from theano.gpuarray.blas import (
+    GpuCorr3dMM,
+    GpuCorr3dMM_gradInputs,
+    GpuCorr3dMM_gradWeights,
+)
+from theano.gpuarray.type import gpuarray_shared_constructor
+from theano.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGradWeights
 
 
 class TestCorr3dMM:

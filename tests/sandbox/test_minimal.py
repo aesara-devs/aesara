@@ -1,10 +1,9 @@
-import pytest
 import numpy as np
-
-from theano import tensor, function
-from theano.sandbox.minimal import minimal
+import pytest
 
 from tests import unittest_tools as utt
+from theano import function, tensor
+from theano.sandbox.minimal import minimal
 
 
 @pytest.mark.skip(reason="Unfinished test")

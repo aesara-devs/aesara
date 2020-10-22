@@ -17,8 +17,8 @@ import numpy as np
 import theano
 from theano import config
 from theano.compat import reload
-from theano.gof.compilelock import get_lock, release_lock
 from theano.gof import cmodule
+from theano.gof.compilelock import get_lock, release_lock
 
 
 _logger = logging.getLogger("theano.scan_module.scan_perform")
@@ -148,5 +148,5 @@ except ImportError:
 # To fix it completly, we would need to modify Cython to use the new API.
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message="numpy.ndarray size changed")
-    from scan_perform.scan_perform import perform, get_version  # noqa: F401
+    from scan_perform.scan_perform import get_version, perform  # noqa: F401
 assert version == get_version()

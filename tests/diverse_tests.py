@@ -7,8 +7,8 @@
 """
 import numpy as np
 import numpy.random
-import theano
 
+import theano
 from tests import unittest_tools as utt
 
 

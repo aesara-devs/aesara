@@ -2,11 +2,10 @@
 
 
 import numpy as np
+from six.moves import StringIO
 
 import theano
 import theano.tensor as tt
-
-from six.moves import StringIO
 from theano.ifelse import ifelse
 
 

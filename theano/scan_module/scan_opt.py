@@ -50,29 +50,24 @@ scan_eqopt2 -> They are all global optimizer. (in2out convert local to global).
                in2out(remove_constants_and_unused_inputs_scan3)
 """
 
-import logging
 import copy
+import logging
+from collections import OrderedDict
+from sys import maxsize
 
 import numpy as np
 
 import theano
-
-from sys import maxsize
-from collections import OrderedDict
-
-from six import integer_types
-
-from theano import gof, tensor, scalar
-from theano.tensor import opt, get_scalar_constant_value, Alloc, AllocEmpty
-
+from theano import gof, scalar, tensor
 from theano.compile import optdb
 from theano.compile.function_module import deep_copy_op
-from theano.gof import toolbox, DestroyHandler, InconsistencyError
-from theano.gof.opt import Optimizer, pre_constant_merge, pre_greedy_local_optimizer
+from theano.gof import DestroyHandler, InconsistencyError, toolbox
 from theano.gof.graph import equal_computations
-
+from theano.gof.opt import Optimizer, pre_constant_merge, pre_greedy_local_optimizer
 from theano.scan_module import scan_op, scan_utils
 from theano.scan_module.scan_utils import scan_args
+from theano.tensor import Alloc, AllocEmpty, get_scalar_constant_value, opt
+
 
 __docformat__ = "restructedtext en"
 __authors__ = (
@@ -253,7 +248,7 @@ class PushOutNonSeqScan(gof.Optimizer):
 
         local_fgraph_topo = theano.gof.graph.io_toposort(clean_inputs, clean_outputs)
         local_fgraph_outs_set = set(clean_outputs)
-        local_fgraph_outs_map = dict([(v, k) for k, v in enumerate(clean_outputs)])
+        local_fgraph_outs_map = {v: k for k, v in enumerate(clean_outputs)}
 
         to_remove_set = set()
         to_replace_set = set()
@@ -273,7 +268,7 @@ class PushOutNonSeqScan(gof.Optimizer):
         # Construct the list of non_sequences to simplify a few things
         inner_non_seqs = op.inner_non_seqs(clean_inputs)
         inner_non_seqs_set = set(inner_non_seqs)
-        inner_non_seqs_map = dict([(v, k) for k, v in enumerate(inner_non_seqs)])
+        inner_non_seqs_map = {v: k for k, v in enumerate(inner_non_seqs)}
 
         outer_non_seqs = op.outer_non_seqs(node.inputs)
 
@@ -352,7 +347,7 @@ class PushOutNonSeqScan(gof.Optimizer):
         existent_nodes = [nd for nd in local_fgraph_topo if nd not in to_remove_set]
         existent_nodes_set = set(existent_nodes)
 
-        to_keep_set = set([])
+        to_keep_set = set()
         for nd in existent_nodes:
             to_keep_set.update(nd.inputs)
 
@@ -471,7 +466,7 @@ class PushOutSeqScan(gof.Optimizer):
 
         local_fgraph_topo = theano.gof.graph.io_toposort(clean_inputs, clean_outputs)
         local_fgraph_outs_set = set(clean_outputs)
-        local_fgraph_outs_map = dict([(v, k) for k, v in enumerate(clean_outputs)])
+        local_fgraph_outs_map = {v: k for k, v in enumerate(clean_outputs)}
 
         to_remove_set = set()
         to_replace_set = set()
@@ -491,12 +486,12 @@ class PushOutSeqScan(gof.Optimizer):
         # Construct the list of non_sequences to simplify a few things
         inner_non_seqs = op.inner_non_seqs(clean_inputs)
         inner_non_seqs_set = set(inner_non_seqs)
-        inner_non_seqs_map = dict([(v, k) for k, v in enumerate(inner_non_seqs)])
+        inner_non_seqs_map = {v: k for k, v in enumerate(inner_non_seqs)}
 
         outer_non_seqs = op.outer_non_seqs(node.inputs)
         inner_seqs = op.inner_seqs(clean_inputs)
         inner_seqs_set = set(inner_seqs)
-        inner_seqs_map = dict([(v, k) for k, v in enumerate(inner_seqs)])
+        inner_seqs_map = {v: k for k, v in enumerate(inner_seqs)}
 
         outer_seqs = op.outer_seqs(node.inputs)
         assert len(inner_non_seqs) == len(outer_non_seqs)
@@ -609,7 +604,7 @@ class PushOutSeqScan(gof.Optimizer):
         existent_nodes = [nd for nd in local_fgraph_topo if nd not in to_remove_set]
         existent_nodes_set = set(existent_nodes)
 
-        to_keep_set = set([])
+        to_keep_set = set()
         for nd in existent_nodes:
             to_keep_set.update(nd.inputs)
 
@@ -1301,15 +1296,13 @@ class ScanSaveMem(gof.Optimizer):
                         if isinstance(stop, tensor.Variable):
                             global_nsteps["sym"] += [stop]
                         # not if it is maxsize
-                        elif type(stop) in integer_types and stop == maxsize:
+                        elif type(stop) == int and stop == maxsize:
                             global_nsteps = None
                         # yes if it is a int k, 0 < k < maxsize
-                        elif (
-                            type(stop) in integer_types and global_nsteps["real"] < stop
-                        ):
+                        elif type(stop) == int and global_nsteps["real"] < stop:
                             global_nsteps["real"] = stop
                         # yes if it is a int k, 0 < k < maxsize
-                        elif type(stop) in integer_types and stop > 0:
+                        elif type(stop) == int and stop > 0:
                             pass
                         # not otherwise
                         else:

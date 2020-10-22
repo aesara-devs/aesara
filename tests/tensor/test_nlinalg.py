@@ -1,42 +1,38 @@
-import pytest
 import numpy as np
 import numpy.linalg
-import theano
-
-
+import pytest
 from numpy import inf
 from numpy.testing import assert_array_almost_equal
 
-from theano import tensor, function
-from theano.tensor.basic import _allclose
-from theano import config
+import theano
+from tests import unittest_tools as utt
+from theano import config, function, tensor
 from theano.configparser import change_flags
+from theano.tensor.basic import _allclose
 from theano.tensor.nlinalg import (
-    MatrixInverse,
-    matrix_inverse,
-    pinv,
+    SVD,
     AllocDiag,
-    alloc_diag,
-    ExtractDiag,
-    extract_diag,
-    diag,
-    trace,
-    det,
     Eig,
+    ExtractDiag,
+    MatrixInverse,
+    TensorInv,
+    alloc_diag,
+    det,
+    diag,
     eig,
     eigh,
+    extract_diag,
     matrix_dot,
-    qr,
+    matrix_inverse,
     matrix_power,
     norm,
+    pinv,
+    qr,
     svd,
-    SVD,
-    TensorInv,
     tensorinv,
     tensorsolve,
+    trace,
 )
-
-from tests import unittest_tools as utt
 
 
 def test_pseudoinverse_correctness():
@@ -240,11 +236,8 @@ def test_inverse_singular():
     singular = np.array([[1, 0, 0]] + [[0, 1, 0]] * 2, dtype=theano.config.floatX)
     a = tensor.matrix()
     f = function([a], matrix_inverse(a))
-    try:
+    with pytest.raises(np.linalg.LinAlgError):
         f(singular)
-    except np.linalg.LinAlgError:
-        return
-    assert False
 
 
 def test_inverse_grad():

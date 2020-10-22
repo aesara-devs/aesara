@@ -1,33 +1,30 @@
+import logging
 import sys
 import warnings
-import logging
+from itertools import chain, groupby
+from textwrap import dedent
 
 import numpy as np
 
 import theano
-
-from textwrap import dedent
-
-from itertools import groupby, chain
-
-from six import integer_types
-
-from theano import gof, scalar as scal, config
-from theano.gof import Apply, hashtype, Op, Type, MethodNotDefined, ParamsType
+from theano import config, gof
+from theano import scalar as scal
+from theano.gof import Apply, MethodNotDefined, Op, ParamsType, Type, hashtype
 from theano.gradient import DisconnectedType
 from theano.printing import pprint
 from theano.tensor.basic import (
-    alloc,
+    NotScalarConstantError,
+    TensorType,
     addbroadcast,
+    alloc,
     clip,
     get_scalar_constant_value,
-    TensorType,
-    NotScalarConstantError,
 )
 from theano.tensor.elemwise import DimShuffle
-from theano.tensor.inc_code import inc_code
 from theano.tensor.extra_ops import broadcast_shape
-from theano.tensor.type_other import NoneConst, SliceType, NoneTypeT, make_slice
+from theano.tensor.inc_code import inc_code
+from theano.tensor.type_other import NoneConst, NoneTypeT, SliceType, make_slice
+
 
 _logger = logging.getLogger("theano.tensor.subtensor")
 
@@ -37,8 +34,6 @@ class AdvancedIndexingError(TypeError):
     Raised when Subtensor is asked to perform advanced indexing.
 
     """
-
-    pass
 
 
 def as_index_constant(a):
@@ -54,7 +49,7 @@ def as_index_constant(a):
             as_index_constant(a.stop),
             as_index_constant(a.step),
         )
-    elif isinstance(a, (integer_types, np.integer)):
+    elif isinstance(a, (int, np.integer)):
         return scal.ScalarConstant(scal.int64, a)
     elif not isinstance(a, theano.tensor.Variable):
         return theano.tensor.as_tensor(a)
@@ -107,7 +102,7 @@ def get_canonical_form_slice(theslice, length):
     if the resulting set of numbers needs to be reversed or not.
 
     """
-    from theano.tensor import switch, lt, ge, sgn
+    from theano.tensor import ge, lt, sgn, switch
 
     if isinstance(theslice, slice):
 
@@ -269,7 +264,7 @@ def range_len(slc):
     Adapted from CPython.
 
     """
-    from theano.tensor import switch, and_, lt, gt
+    from theano.tensor import and_, gt, lt, switch
 
     start, stop, step = tuple(
         as_index_constant(a) for a in [slc.start, slc.stop, slc.step]
@@ -539,7 +534,7 @@ class Subtensor(Op):
                 slice_c = None
 
             return slice(slice_a, slice_b, slice_c)
-        elif isinstance(entry, (integer_types, np.integer)):
+        elif isinstance(entry, (int, np.integer)):
             # Disallow the use of python scalars in idx_list
             raise TypeError(
                 "Python scalar in idx_list." "Please report this error to theano-dev."
@@ -664,7 +659,7 @@ class Subtensor(Op):
                         if start is None:
                             start = 0
                         if p.stop is None or (
-                            isinstance(p.stop, (integer_types, np.integer, np.ndarray))
+                            isinstance(p.stop, (int, np.integer, np.ndarray))
                             and p.stop > start
                         ):
                             broadcastable.append(True)
@@ -780,7 +775,7 @@ class Subtensor(Op):
                 indices.append(self.str_from_slice(entry))
             else:
                 indices.append(str(entry))
-        return "%s{%s}" % (self.__class__.__name__, ", ".join(indices))
+        return "{}{{{}}}".format(self.__class__.__name__, ", ".join(indices))
 
     @staticmethod
     def default_helper_c_code_args():
@@ -846,7 +841,7 @@ class Subtensor(Op):
             return pos[1]
 
         def init_entry(entry, depth=0):
-            if isinstance(entry, (np.integer, integer_types)):
+            if isinstance(entry, (np.integer, int)):
                 init_cmds.append("subtensor_spec[%i] = %i;" % (spec_pos(), entry))
                 inc_spec_pos(1)
                 if depth == 0:
@@ -1146,7 +1141,7 @@ class SubtensorPrinter:
                 pstate.precedence = -1000
 
                 for entry in idxs:
-                    if isinstance(entry, integer_types):
+                    if isinstance(entry, int):
                         sidxs.append(str(entry))
                     elif isinstance(entry, scal.Scalar):
                         sidxs.append(pstate.pprinter.process(inputs.pop()))
@@ -1166,7 +1161,7 @@ class SubtensorPrinter:
                         else:
                             msg3 = ":%s" % entry.step
 
-                        sidxs.append("%s:%s%s" % (msg1, msg2, msg3))
+                        sidxs.append("{}:{}{}".format(msg1, msg2, msg3))
             finally:
                 pstate.precedence = old_precedence
 
@@ -1175,7 +1170,7 @@ class SubtensorPrinter:
                 sub = pstate.pprinter.process(input, pstate)
             finally:
                 pstate.precedence = old_precedence
-            return "%s[%s]" % (sub, ", ".join(sidxs))
+            return "{}[{}]".format(sub, ", ".join(sidxs))
         else:
             raise TypeError("Can only print Subtensor.")
 
@@ -1466,7 +1461,7 @@ class IncSubtensor(Op):
             msg += "Inc"
         else:
             msg += "Set"
-        return "%s{%s;%s}" % (self.__class__.__name__, msg, ", ".join(indices))
+        return "{}{{{};{}}}".format(self.__class__.__name__, msg, ", ".join(indices))
 
     def make_node(self, x, y, *inputs):
         """
@@ -2432,7 +2427,7 @@ class AdvancedIncSubtensor(Op):
             raise NotImplementedError("In place computation is not" " implemented")
 
     def __str__(self):
-        return "%s{%s, %s}" % (
+        return "{}{{{}, {}}}".format(
             self.__class__.__name__,
             "inplace=" + str(self.inplace),
             " set_instead_of_inc=" + str(self.set_instead_of_inc),

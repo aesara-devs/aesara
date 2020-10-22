@@ -1,19 +1,13 @@
 import sys
 
 import numpy as np
-
 import pytest
 
 import theano
 import theano.tensor
-
-from six import reraise
-
-from theano import config
-from theano import gof
-from theano.compile import debugmode
-
 from tests import unittest_tools as utt
+from theano import config, gof
+from theano.compile import debugmode
 
 
 def test_debugmode_basic():
@@ -306,7 +300,7 @@ def test_badoptimization_opt_err():
         new_e = e.__class__("TTT" + str(e))
         exc_type, exc_value, exc_trace = sys.exc_info()
         exc_value = new_e
-        reraise(e.__class__, exc_value, exc_trace)
+        raise exc_value.with_traceback(exc_trace)
 
 
 def test_stochasticoptimization():

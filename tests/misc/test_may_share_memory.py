@@ -3,7 +3,9 @@ test the tensor and sparse type. (gpuarray is tested in the gpuarray folder).
 """
 
 import numpy as np
+
 import theano
+
 
 try:
     import scipy.sparse

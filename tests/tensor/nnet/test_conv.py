@@ -1,16 +1,13 @@
 import time
 
-import pytest
-
 import numpy as np
+import pytest
 
 import theano
 import theano.tensor as tt
-
-from theano.tensor.nnet import conv, conv2d
-from theano.tensor.basic import _allclose, NotScalarConstantError
-
 from tests import unittest_tools as utt
+from theano.tensor.basic import NotScalarConstantError, _allclose
+from theano.tensor.nnet import conv, conv2d
 
 
 @pytest.mark.skipif(
@@ -100,7 +97,7 @@ class TestConv2D(utt.InferShapeTester):
             return rval
 
         output = sym_conv2d(input, filters)
-        output.name = "conv2d(%s,%s)" % (input.name, filters.name)
+        output.name = "conv2d({},{})".format(input.name, filters.name)
         theano_conv = theano.function([input, filters], output, mode=self.mode)
 
         # initialize input and compute result

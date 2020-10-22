@@ -1,20 +1,17 @@
-import pytest
-
-import numpy as np
-
-import theano
-import theano.tensor as tt
-
 from functools import partial
 from itertools import product
 
-from theano.tensor.extra_ops import CumOp
-from theano.gpuarray.extra_ops import GpuCumOp
-from theano.gpuarray.type import get_context
+import numpy as np
+import pytest
 
+import theano
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, test_ctx_name
 from tests.tensor.test_extra_ops import TestCumOp
+from theano.gpuarray.extra_ops import GpuCumOp
+from theano.gpuarray.type import get_context
+from theano.tensor.extra_ops import CumOp
 
 
 class TestGpuCumOp(TestCumOp):

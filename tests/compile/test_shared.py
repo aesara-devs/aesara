@@ -2,10 +2,8 @@ import numpy as np
 import pytest
 
 import theano
+from theano.compile.sharedvalue import SharedVariable, generic, shared
 from theano.tensor import Tensor, TensorType
-from theano.compile.sharedvalue import shared
-from theano.compile.sharedvalue import SharedVariable
-from theano.compile.sharedvalue import generic
 
 
 class TestSharedVariable:

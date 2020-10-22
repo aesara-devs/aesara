@@ -8,12 +8,10 @@ import warnings
 
 import theano
 import theano.gof.vm
-
-from six import string_types
-
 from theano import config, gof
 from theano.compile.function_module import Supervisor
 from theano.sandbox.jax_linker import JAXLinker
+
 
 _logger = logging.getLogger("theano.compile.mode")
 
@@ -132,7 +130,7 @@ class AddDestroyHandler(gof.Optimizer):
             )
 
     def add_requirements(self, fgraph):
-        super(AddDestroyHandler, self).add_requirements(fgraph)
+        super().add_requirements(fgraph)
         fgraph.attach_feature(gof.DestroyHandler())
 
 
@@ -145,7 +143,7 @@ class AddFeatureOptimizer(gof.Optimizer):
         self.feature = feature
 
     def add_requirements(self, fgraph):
-        super(AddFeatureOptimizer, self).add_requirements(fgraph)
+        super().add_requirements(fgraph)
         fgraph.attach_feature(self.feature)
 
 
@@ -259,7 +257,7 @@ optdb.register("CheckStackTrace", gof.CheckStackTraceOptimization(), -1, *_tags)
 del _tags
 
 
-class Mode(object):
+class Mode:
     """
     The Mode represents a way to optimize and then link a computation graph.
 
@@ -303,10 +301,10 @@ class Mode(object):
         linker, optimizer = state
         self.provided_linker = linker
         self.provided_optimizer = optimizer
-        if isinstance(linker, string_types) or linker is None:
+        if isinstance(linker, str) or linker is None:
             linker = predefined_linkers[linker]
         self.linker = linker
-        if isinstance(optimizer, string_types) or optimizer is None:
+        if isinstance(optimizer, str) or optimizer is None:
             optimizer = predefined_optimizers[optimizer]
         if isinstance(optimizer, gof.Query):
             self.provided_optimizer = optimizer
@@ -315,7 +313,7 @@ class Mode(object):
         self.fn_time = 0
 
     def __str__(self):
-        return "%s(linker = %s, optimizer = %s)" % (
+        return "{}(linker = {}, optimizer = {})".format(
             self.__class__.__name__,
             self.provided_linker,
             self.provided_optimizer,
@@ -330,9 +328,9 @@ class Mode(object):
     optimizer = property(__get_optimizer)
 
     def get_linker_optimizer(self, linker, optimizer):
-        if isinstance(linker, string_types) or linker is None:
+        if isinstance(linker, str) or linker is None:
             linker = predefined_linkers[linker]
-        if isinstance(optimizer, string_types) or optimizer is None:
+        if isinstance(optimizer, str) or optimizer is None:
             optimizer = predefined_optimizers[optimizer]
         return (linker, optimizer)
 
@@ -432,7 +430,7 @@ def get_mode(orig_string):
         string = config.mode
     else:
         string = orig_string
-    if not isinstance(string, string_types):
+    if not isinstance(string, str):
         return string  # it is hopefully already a mode...
 
     global instantiated_default_mode

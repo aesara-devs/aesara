@@ -5,14 +5,15 @@ from theano.scalar import bool as bool_t
 from theano.tensor.basic import as_tensor_variable
 from theano.tensor.signal.pool import Pool, PoolingMode_t
 
-from .type import gpu_context_type
 from .basic_ops import (
     CGpuKernelBase,
-    infer_context_name,
-    gpuarray_helper_inc_dir,
     as_gpuarray_variable,
     gpu_contiguous,
+    gpuarray_helper_inc_dir,
+    infer_context_name,
 )
+from .type import gpu_context_type
+
 
 try:
     import pygpu

@@ -2,29 +2,22 @@
 # This script should not be imported, but only used as a program.
 # python run_dnn_conv.py --help         # Print help.
 # python run_dnn_conv.py {fwd|bwd-filter|bwd-data} {2d|3d} -a <algo> -i <inputShape> -f <filterShape> ...
-import sys
 import argparse
+import sys
 
 import theano
-
+from tests.gpuarray.check_dnn_conv import CheckDnn, TestDnnConv2D, TestDnnConv3D, cudnn
 from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
 from theano.gpuarray.cudnn_defs import (
-    HALF,
-    FLOAT,
     DOUBLE,
-    TRUE_HALF_CONFIG,
-    PSEUDO_HALF_CONFIG,
-    FLOAT_CONFIG,
     DOUBLE_CONFIG,
+    FLOAT,
+    FLOAT_CONFIG,
+    HALF,
+    PSEUDO_HALF_CONFIG,
+    TRUE_HALF_CONFIG,
 )
 from theano.tensor.nnet.abstract_conv import get_conv_output_shape
-
-from tests.gpuarray.check_dnn_conv import (
-    cudnn,
-    TestDnnConv2D,
-    TestDnnConv3D,
-    CheckDnn,
-)
 
 
 if __name__ != "__main__":
@@ -42,7 +35,7 @@ class BorderAction(TupleAction):
     # Border extractor for command line args parser.
     def __call__(self, parser, namespace, values, option_string=None):
         if values not in ("valid", "full", "half"):
-            super(BorderAction, self).__call__(parser, namespace, values, option_string)
+            super().__call__(parser, namespace, values, option_string)
         else:
             setattr(namespace, self.dest, values)
 
@@ -208,7 +201,7 @@ else:
     args.dtype, args.precision = data_type_configurations[args.dtype_config]
 if (args.dtype, args.precision) not in cudnn.get_supported_dtype_configs():
     raise ValueError(
-        "Unsupported data type configuration %s %s." % (args.dtype, args.precision)
+        "Unsupported data type configuration {} {}.".format(args.dtype, args.precision)
     )
 
 if args.algo not in SUPPORTED_DNN_CONV_ALGO_RUNTIME:

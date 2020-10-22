@@ -13,17 +13,15 @@ http://www-users.cs.umn.edu/~saad/software/SPARSKIT/paper.ps
 import sys
 
 import numpy as np
-from numpy.lib.stride_tricks import as_strided
-from six import integer_types
-
 import scipy.sparse
+from numpy.lib.stride_tricks import as_strided
 
 import theano
-from theano import gof, tensor, scalar, config
-from theano.gradient import DisconnectedType
-from theano.sparse.utils import hash_from_sparse
-from theano.gradient import grad_not_implemented, grad_undefined
+from theano import config, gof, scalar, tensor
+from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
 from theano.sparse.type import SparseType, _is_sparse
+from theano.sparse.utils import hash_from_sparse
+
 
 sparse_formats = ["csc", "csr"]
 
@@ -332,7 +330,7 @@ class SparseVariable(_sparse_py_operators, gof.Variable):
     format = property(lambda self: self.type.format)
 
     def __str__(self):
-        return "%s{%s,%s}" % (self.__class__.__name__, self.format, self.dtype)
+        return "{}{{{},{}}}".format(self.__class__.__name__, self.format, self.dtype)
 
     def __repr__(self):
         return str(self)
@@ -370,7 +368,7 @@ class SparseConstant(gof.Constant, _sparse_py_operators):
         return SparseConstantSignature((self.type, self.data))
 
     def __str__(self):
-        return "%s{%s,%s,shape=%s,nnz=%s}" % (
+        return "{}{{{},{},shape={},nnz={}}}".format(
             self.__class__.__name__,
             self.format,
             self.dtype,
@@ -845,7 +843,7 @@ class Cast(gof.op.Op):
         return ins_shapes
 
     def __str__(self):
-        return "%s(%s)" % (self.__class__.__name__, self.out_type)
+        return "{}({})".format(self.__class__.__name__, self.out_type)
 
 
 bcast = Cast("int8")
@@ -894,7 +892,9 @@ class DenseFromSparse(gof.op.Op):
         self.sparse_grad = structured
 
     def __str__(self):
-        return "%s{structured_grad=%s}" % (self.__class__.__name__, self.sparse_grad)
+        return "{}{{structured_grad={}}}".format(
+            self.__class__.__name__, self.sparse_grad
+        )
 
     def make_node(self, x):
         x = as_sparse_variable(x)
@@ -972,7 +972,7 @@ class SparseFromDense(gof.op.Op):
         self.format = format
 
     def __str__(self):
-        return "%s{%s}" % (self.__class__.__name__, self.format)
+        return "{}{{{}}}".format(self.__class__.__name__, self.format)
 
     def make_node(self, x):
         x = tensor.as_tensor_variable(x)
@@ -1323,10 +1323,8 @@ class GetItem2d(gof.op.Op):
                 )
             else:
                 raise ValueError(
-                    (
-                        "Advanced indexing is not implemented for sparse "
-                        "matrices. Argument not supported: %s" % ind
-                    )
+                    "Advanced indexing is not implemented for sparse "
+                    "matrices. Argument not supported: %s" % ind
                 )
             input_op += [start, stop, step]
         if len(index) == 1:
@@ -1398,7 +1396,7 @@ class GetItemScalar(gof.op.Op):
                 raise Exception("GetItemScalar called with a slice as index!")
 
             # in case of indexing using int instead of theano variable
-            elif isinstance(ind, integer_types):
+            elif isinstance(ind, int):
                 ind = theano.tensor.constant(ind)
                 input_op += [ind]
 
@@ -1715,7 +1713,7 @@ class SpSum(gof.op.Op):
     # by the merge optimization and this requires them to compare equal.
 
     def __init__(self, axis=None, sparse_grad=True):
-        super(SpSum, self).__init__()
+        super().__init__()
         self.axis = axis
         self.structured = sparse_grad
         if self.axis not in (None, 0, 1):
@@ -2979,7 +2977,7 @@ class HStack(gof.op.Op):
         return [(ins_shapes[0][0], d)]
 
     def __str__(self):
-        return "%s(%s,%s)" % (self.__class__.__name__, self.format, self.dtype)
+        return "{}({},{})".format(self.__class__.__name__, self.format, self.dtype)
 
 
 def hstack(blocks, format=None, dtype=None):

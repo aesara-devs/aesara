@@ -1,5 +1,7 @@
-import numpy as np
 import math
+
+import numpy as np
+
 from theano import gof, tensor
 
 

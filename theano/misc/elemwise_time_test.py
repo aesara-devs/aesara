@@ -1,12 +1,11 @@
 import sys
 import time
+from optparse import OptionParser
 
 import numpy as np
 
 import theano
 import theano.tensor as tt
-
-from optparse import OptionParser
 
 
 parser = OptionParser(
@@ -68,5 +67,5 @@ if __name__ == "__main__":
     (cheapTime, costlyTime) = ElemwiseOpTime(N=options.N, script=options.script)
 
     if options.script:
-        sys.stdout.write("%2.9f %2.9f\n" % (cheapTime, costlyTime))
+        sys.stdout.write("{:2.9f} {:2.9f}\n".format(cheapTime, costlyTime))
         sys.stdout.flush()

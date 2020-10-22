@@ -2,25 +2,20 @@
 Defines Linkers that deal with C implementations.
 
 """
+import logging
 import os
 import sys
-import logging
-
-import numpy as np
-
-import theano
-
 from copy import copy
 
-from six import string_types, reraise
+import numpy as np
 from six.moves import StringIO
 
+import theano
 from theano import config
 from theano.compat import PY3
-
-from theano.gof import graph, link, utils, cmodule
-from theano.gof.compilelock import get_lock, release_lock
+from theano.gof import cmodule, graph, link, utils
 from theano.gof.callcache import CallCache
+from theano.gof.compilelock import get_lock, release_lock
 
 
 _logger = logging.getLogger("theano.gof.cc")
@@ -237,7 +232,7 @@ def struct_gen(args, struct_builders, blocks, sub):
     # declares the storage
     storage_decl = "\n".join(["PyObject* %s;" % arg for arg in args])
     # in the constructor, sets the storage to the arguments
-    storage_set = "\n".join(["this->%s = %s;" % (arg, arg) for arg in args])
+    storage_set = "\n".join(["this->{} = {};".format(arg, arg) for arg in args])
     # increments the storage's refcount in the constructor
     storage_incref = "\n".join(["Py_XINCREF(%s);" % arg for arg in args])
     # decrements the storage's refcount in the destructor
@@ -363,7 +358,7 @@ def get_c_declare(r, name, sub):
         [
             getattr(c.op, "check_input", config.check_input)
             for (c, _) in r.clients
-            if not isinstance(c, string_types)
+            if not isinstance(c, str)
         ]
     ) or (r.owner and getattr(r.owner.op, "check_input", config.check_input)):
         c_declare = r.type.c_declare(name, sub, True)
@@ -409,7 +404,7 @@ def get_c_extract(r, name, sub):
         [
             getattr(c.op, "check_input", config.check_input)
             for (c, _) in r.clients
-            if not isinstance(c, string_types)
+            if not isinstance(c, str)
         ]
     ):
         # check_broadcast is just an hack to easily remove just the
@@ -419,7 +414,7 @@ def get_c_extract(r, name, sub):
             [
                 getattr(c.op, "check_broadcast", True)
                 for (c, _) in r.clients
-                if not isinstance(c, string_types)
+                if not isinstance(c, str)
             ]
         ):
             c_extract = r.type.c_extract(name, sub, True)
@@ -853,7 +848,7 @@ class CLinker(link.Linker):
                 pass
             else:
                 # The following will be executed if the "try" block succeeds
-                assert isinstance(c_support_code_apply[-1], string_types), (
+                assert isinstance(c_support_code_apply[-1], str), (
                     str(node.op) + " didn't return a string for c_support_code_apply"
                 )
 
@@ -862,13 +857,13 @@ class CLinker(link.Linker):
             except utils.MethodNotDefined:
                 pass
             else:
-                assert isinstance(c_init_code_apply[-1], string_types), (
+                assert isinstance(c_init_code_apply[-1], str), (
                     str(node.op) + " didn't return a string for c_init_code_apply"
                 )
 
             try:
                 struct_init = op.c_init_code_struct(node, name, sub_struct)
-                assert isinstance(struct_init, string_types), (
+                assert isinstance(struct_init, str), (
                     str(node.op) + " didn't return a string for c_init_code_struct"
                 )
             except utils.MethodNotDefined:
@@ -876,7 +871,7 @@ class CLinker(link.Linker):
 
             try:
                 struct_support = op.c_support_code_struct(node, name)
-                assert isinstance(struct_support, string_types), (
+                assert isinstance(struct_support, str), (
                     str(node.op) + " didn't return a string for c_support_code_struct"
                 )
             except utils.MethodNotDefined:
@@ -884,7 +879,7 @@ class CLinker(link.Linker):
 
             try:
                 struct_cleanup = op.c_cleanup_code_struct(node, name)
-                assert isinstance(struct_cleanup, string_types), (
+                assert isinstance(struct_cleanup, str), (
                     str(node.op) + " didn't return a string for c_cleanup_code_struct"
                 )
             except utils.MethodNotDefined:
@@ -895,7 +890,7 @@ class CLinker(link.Linker):
                 behavior = op.c_code(node, name, isyms, osyms, sub)
             except utils.MethodNotDefined:
                 raise NotImplementedError("%s cannot produce C code" % op)
-            assert isinstance(behavior, string_types), (
+            assert isinstance(behavior, str), (
                 str(node.op) + " didn't return a string for c_code"
             )
             # To help understand what is following. It help read the c code.
@@ -1433,7 +1428,7 @@ class CLinker(link.Linker):
         # set of variables that have been computed by nodes we have
         # seen 'so far' in the loop below
         fgraph_computed_set = set()
-        fgraph_inputs_dict = dict((i, (-1, pos)) for pos, i in enumerate(fgraph.inputs))
+        fgraph_inputs_dict = {i: (-1, pos) for pos, i in enumerate(fgraph.inputs)}
         constant_ids = dict()
         op_pos = {}  # Apply -> topological position
 
@@ -1798,7 +1793,7 @@ class CLinker(link.Linker):
         return code.getvalue()
 
 
-class _CThunk(object):
+class _CThunk:
     """
     A thunk with a C implementation.
 
@@ -1868,7 +1863,7 @@ class _CThunk(object):
                 )
                 print(self.error_storage, file=sys.stderr)
                 raise
-            reraise(exc_type, exc_value, exc_trace)
+            raise exc_value.with_traceback(exc_trace)
 
 
 class OpWiseCLinker(link.LocalLinker):
@@ -2134,7 +2129,7 @@ class DualLinker(link.Linker):
         return f, i1, o1
 
 
-class HideC(object):
+class HideC:
     def __hide(*args):
         raise utils.MethodNotDefined()
 

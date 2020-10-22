@@ -5,66 +5,61 @@ __docformat__ = "restructuredtext en"
 
 import warnings
 
+# SpecifyShape is defined in theano.compile, but should be available in tensor
+from theano.compile import SpecifyShape, specify_shape
+from theano.gradient import (
+    Lop,
+    Rop,
+    consider_constant,
+    grad,
+    hessian,
+    jacobian,
+    numeric_grad,
+    verify_grad,
+)
+from theano.tensor import nnet  # used for softmax, sigmoid, etc.
+from theano.tensor import sharedvar  # adds shared-variable constructors
+from theano.tensor import (
+    blas,
+    blas_c,
+    blas_scipy,
+    nlinalg,
+    opt,
+    opt_uncanonicalize,
+    xlogx,
+)
 from theano.tensor.basic import *
+from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
+from theano.tensor.extra_ops import (
+    DiffOp,
+    bartlett,
+    bincount,
+    cumprod,
+    cumsum,
+    fill_diagonal,
+    fill_diagonal_offset,
+    ravel_multi_index,
+    repeat,
+    squeeze,
+    unravel_index,
+)
+from theano.tensor.io import *
+
+# We import as `_shared` instead of `shared` to avoid confusion between
+# `theano.shared` and `tensor._shared`.
+from theano.tensor.sharedvar import tensor_constructor as _shared
+from theano.tensor.sort import argsort, argtopk, sort, topk, topk_and_argtopk
 from theano.tensor.subtensor import *
 from theano.tensor.type_other import *
 from theano.tensor.var import (
-    _tensor_py_operators,
-    TensorVariable,
-    TensorConstantSignature,
     TensorConstant,
+    TensorConstantSignature,
+    TensorVariable,
+    _tensor_py_operators,
 )
 
-from theano.tensor import opt
-from theano.tensor import opt_uncanonicalize
-from theano.tensor import blas
-from theano.tensor import blas_scipy
-from theano.tensor import blas_c
-from theano.tensor import xlogx
-from theano.tensor import nlinalg
 
 # These imports cannot be performed here because the modules depend on tensor.  This is done at the
 # end of theano.__init__.py instead.
 # from theano.tensor import raw_random
 # from theano.tensor import shared_randomstreams
-
-from theano.tensor.elemwise import DimShuffle, Elemwise, CAReduce
-
-from theano.tensor import sharedvar  # adds shared-variable constructors
-
-# We import as `_shared` instead of `shared` to avoid confusion between
-# `theano.shared` and `tensor._shared`.
-from theano.tensor.sharedvar import tensor_constructor as _shared
-
-from theano.tensor.io import *
-
-from theano.tensor import nnet  # used for softmax, sigmoid, etc.
-
-from theano.gradient import (
-    Rop,
-    Lop,
-    grad,
-    numeric_grad,
-    verify_grad,
-    jacobian,
-    hessian,
-    consider_constant,
-)
-
-from theano.tensor.sort import sort, argsort, topk, argtopk, topk_and_argtopk
-from theano.tensor.extra_ops import (
-    DiffOp,
-    bincount,
-    squeeze,
-    repeat,
-    bartlett,
-    fill_diagonal,
-    fill_diagonal_offset,
-    cumsum,
-    cumprod,
-    unravel_index,
-    ravel_multi_index,
-)
-
-# SpecifyShape is defined in theano.compile, but should be available in tensor
-from theano.compile import SpecifyShape, specify_shape

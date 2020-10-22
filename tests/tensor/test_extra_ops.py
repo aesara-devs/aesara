@@ -1,42 +1,39 @@
+import numpy as np
 import pytest
 
-import numpy as np
-
 import theano
-
-from theano.tensor.extra_ops import (
-    SearchsortedOp,
-    searchsorted,
-    CumOp,
-    cumsum,
-    cumprod,
-    CpuContiguous,
-    cpu_contiguous,
-    bincount,
-    DiffOp,
-    diff,
-    squeeze,
-    compress,
-    RepeatOp,
-    repeat,
-    Bartlett,
-    bartlett,
-    FillDiagonal,
-    fill_diagonal,
-    FillDiagonalOffset,
-    fill_diagonal_offset,
-    to_one_hot,
-    Unique,
-    unravel_index,
-    UnravelIndex,
-    ravel_multi_index,
-    RavelMultiIndex,
-    broadcast_shape,
-)
-from theano import tensor as tt
-from theano import config, function
-
 from tests import unittest_tools as utt
+from theano import config, function
+from theano import tensor as tt
+from theano.tensor.extra_ops import (
+    Bartlett,
+    CpuContiguous,
+    CumOp,
+    DiffOp,
+    FillDiagonal,
+    FillDiagonalOffset,
+    RavelMultiIndex,
+    RepeatOp,
+    SearchsortedOp,
+    Unique,
+    UnravelIndex,
+    bartlett,
+    bincount,
+    broadcast_shape,
+    compress,
+    cpu_contiguous,
+    cumprod,
+    cumsum,
+    diff,
+    fill_diagonal,
+    fill_diagonal_offset,
+    ravel_multi_index,
+    repeat,
+    searchsorted,
+    squeeze,
+    to_one_hot,
+    unravel_index,
+)
 
 
 def test_cpu_contiguous():

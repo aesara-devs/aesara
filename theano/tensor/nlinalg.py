@@ -1,15 +1,15 @@
 import logging
 import warnings
-import numpy as np
-
 from functools import partial
 
+import numpy as np
+
 import theano
-from theano.tensor import as_tensor_variable
-from theano.gof import Op, Apply
+from theano.gof import Apply, Op
 from theano.gradient import DisconnectedType
 from theano.tensor import basic as tensor
-from theano.tensor.basic import ExtractDiag
+from theano.tensor.basic import ExtractDiag, as_tensor_variable
+
 
 logger = logging.getLogger(__name__)
 

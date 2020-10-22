@@ -1,9 +1,6 @@
 import types
 import weakref
-
 from collections.abc import MutableSet
-
-from six import string_types
 
 
 def check_deterministic(iterable):
@@ -15,7 +12,7 @@ def check_deterministic(iterable):
     # theano to use exceptions correctly, so that this can be a TypeError.
     if iterable is not None:
         if not isinstance(
-            iterable, (list, tuple, OrderedSet, types.GeneratorType, string_types)
+            iterable, (list, tuple, OrderedSet, types.GeneratorType, str)
         ):
             if len(iterable) > 1:
                 # We need to accept length 1 size to allow unpickle in tests.
@@ -46,7 +43,7 @@ def check_deterministic(iterable):
 # {{{ http://code.activestate.com/recipes/576696/ (r5)
 
 
-class Link(object):
+class Link:
     # This make that we need to use a different pickle protocol
     # then the default.  Othewise, there is pickling errors
     __slots__ = "prev", "next", "key", "__weakref__"
@@ -174,8 +171,8 @@ class OrderedSet(MutableSet):
 
     def __repr__(self):
         if not self:
-            return "%s()" % (self.__class__.__name__,)
-        return "%s(%r)" % (self.__class__.__name__, list(self))
+            return "{}()".format(self.__class__.__name__)
+        return "{}({!r})".format(self.__class__.__name__, list(self))
 
     def __eq__(self, other):
         # Note that we implement only the comparison to another

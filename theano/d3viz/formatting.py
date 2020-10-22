@@ -3,17 +3,15 @@
 Author: Christof Angermueller <cangermueller@gmail.com>
 """
 import os
+from functools import reduce
 
 import numpy as np
 
 import theano
-
-from functools import reduce
-
 from theano import gof
-from theano.compile import Function
-from theano.compile import builders
+from theano.compile import Function, builders
 from theano.printing import pydot_imported, pydot_imported_msg
+
 
 try:
     from theano.printing import pd
@@ -21,7 +19,7 @@ except ImportError:
     pass
 
 
-class PyDotFormatter(object):
+class PyDotFormatter:
     """Create `pydot` graph object from Theano function.
 
     Parameters

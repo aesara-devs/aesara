@@ -1,5 +1,7 @@
 import copy
+
 import numpy as np
+
 import theano
 from theano import tensor
 from theano.tensor.nnet import crossentropy_softmax_argmax_1hot_with_bias
@@ -59,10 +61,10 @@ def test_bug_2009_07_17_borrowed_output():
     z = g(a, b, c)
     z_backup = copy.copy(z)
     id_z = id(z)
-    print(("Output z after first call: %s" % (z,)))
+    print("Output z after first call: {}".format(z))
     a[0, 0] = 1
     id_other = id(g(a, b, c))
-    print(("Output z after second call: %s" % (z,)))
+    print("Output z after second call: {}".format(z))
     # Ensure that calling the function again returns a pointer towards a new
     # array.
     assert id_z != id_other

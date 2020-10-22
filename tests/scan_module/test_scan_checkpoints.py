@@ -2,8 +2,9 @@ import numpy as np
 import pytest
 
 import theano
-import theano.tensor as tt
 import theano.gpuarray
+import theano.tensor as tt
+
 
 try:
     from pygpu.gpuarray import GpuArrayException

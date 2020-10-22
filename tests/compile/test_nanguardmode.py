@@ -3,12 +3,12 @@ This test is for testing the NanGuardMode.
 """
 
 import logging
-import pytest
 
 import numpy as np
+import pytest
+
 import theano
 import theano.tensor as tt
-
 from theano.compile.nanguardmode import NanGuardMode
 
 

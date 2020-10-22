@@ -1,15 +1,13 @@
 import numpy as np
-
 import pytest
 
 import theano
-import theano.tensor as tt
 import theano.gpuarray.fft
-
-from theano.gpuarray.fft import pygpu_available, skcuda_available, pycuda_available
-
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu
+from theano.gpuarray.fft import pycuda_available, pygpu_available, skcuda_available
+
 
 # Skip tests if pygpu is not available.
 if not pygpu_available:  # noqa

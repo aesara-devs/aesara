@@ -1,13 +1,13 @@
-import sys
-import os
 import logging
+import os
+import sys
 import warnings
 
 import theano
 from theano import config
 from theano.compile import optdb
-
 from theano.tensor.basic import register_transfer
+
 
 _logger_name = "theano.gpuarray"
 _logger = logging.getLogger(_logger_name)
@@ -24,19 +24,20 @@ try:
 except ImportError:
     pygpu = None
 
+from . import ctc, dnn, extra_ops, fft, multinomial, opt, reduction, rng_mrg, sort
+from .basic_ops import as_gpuarray_variable
+
 # This is for documentation not to depend on the availability of pygpu
 from .type import (
-    GpuArrayType,
-    GpuArrayVariable,
+    ContextNotDefined,
     GpuArrayConstant,
     GpuArraySharedVariable,
+    GpuArrayType,
+    GpuArrayVariable,
+    get_context,
     gpuarray_shared_constructor,
     reg_context,
-    get_context,
-    ContextNotDefined,
 )
-from .basic_ops import as_gpuarray_variable
-from . import fft, dnn, opt, extra_ops, multinomial, reduction, sort, rng_mrg, ctc
 
 
 def transfer(x, target):
@@ -151,7 +152,7 @@ def init_dev(dev, name=None, preallocate=None):
                         file=sys.stderr,
                     )
         if preallocate < 0:
-            print("Disabling allocation cache on %s" % (dev,))
+            print("Disabling allocation cache on {}".format(dev))
         elif preallocate > 0:
             if preallocate <= 1:
                 gmem = min(preallocate, 0.95) * context.total_gmem
@@ -292,7 +293,7 @@ if pygpu:
         host_from_gpu,
     )
     from .elemwise import GpuElemwise
-    from .subtensor import GpuSubtensor, GpuIncSubtensor, GpuAdvancedIncSubtensor1
+    from .subtensor import GpuAdvancedIncSubtensor1, GpuIncSubtensor, GpuSubtensor
 
 else:
     if (

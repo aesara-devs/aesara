@@ -1,37 +1,31 @@
+import numpy as np
 import pytest
 
-import numpy as np
-
 import theano
-
-from theano import tensor
-from theano import change_flags
+from tests import unittest_tools as utt
+from theano import change_flags, tensor
 from theano.gof.opt import check_stack_trace
-from theano.tensor.nnet import corr, corr3d, conv2d_transpose, abstract_conv as conv
+from theano.tensor.nnet import abstract_conv as conv
+from theano.tensor.nnet import conv2d_transpose, corr, corr3d
 from theano.tensor.nnet.abstract_conv import (
-    get_conv_output_shape,
-    get_conv_gradweights_shape,
-    get_conv_gradinputs_shape,
-    check_conv_gradinputs_shape,
+    AbstractConv2d,
+    AbstractConv2d_gradInputs,
+    AbstractConv2d_gradWeights,
     assert_conv_shape,
     assert_shape,
+    bilinear_kernel_1D,
+    bilinear_kernel_2D,
+    bilinear_upsampling,
+    causal_conv1d,
+    check_conv_gradinputs_shape,
+    get_conv_gradinputs_shape,
+    get_conv_gradweights_shape,
+    get_conv_output_shape,
+    separable_conv2d,
+    separable_conv3d,
 )
-from theano.tensor.nnet.abstract_conv import AbstractConv2d
-from theano.tensor.nnet.abstract_conv import AbstractConv2d_gradInputs
-from theano.tensor.nnet.abstract_conv import AbstractConv2d_gradWeights
-from theano.tensor.nnet.abstract_conv import bilinear_kernel_1D
-from theano.tensor.nnet.abstract_conv import bilinear_kernel_2D
-from theano.tensor.nnet.abstract_conv import bilinear_upsampling
-from theano.tensor.nnet.abstract_conv import separable_conv2d, separable_conv3d
-from theano.tensor.nnet.abstract_conv import causal_conv1d
-from theano.tensor.nnet.corr import CorrMM, CorrMM_gradWeights, CorrMM_gradInputs
-from theano.tensor.nnet.corr3d import (
-    Corr3dMM,
-    Corr3dMMGradWeights,
-    Corr3dMMGradInputs,
-)
-
-from tests import unittest_tools as utt
+from theano.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
+from theano.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGradWeights
 
 
 def conv2d_corr(

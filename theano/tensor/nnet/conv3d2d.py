@@ -1,8 +1,8 @@
 import theano
-from theano.gradient import DisconnectedType
-from theano.gof import Op, Apply, TopoOptimizer
-from theano.gof.opt import copy_stack_trace
 from theano import tensor
+from theano.gof import Apply, Op, TopoOptimizer
+from theano.gof.opt import copy_stack_trace
+from theano.gradient import DisconnectedType
 
 
 def get_diagonal_subtensor_view(x, i0, i1):

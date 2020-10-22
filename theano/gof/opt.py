@@ -3,7 +3,6 @@ Defines the base class for optimizations as well as a certain
 amount of useful generic optimization tools.
 
 """
-from collections import deque, defaultdict, OrderedDict
 import contextlib
 import copy
 import inspect
@@ -11,24 +10,21 @@ import logging
 import pdb
 import sys
 import time
-import warnings
 import traceback
+import warnings
+from collections import OrderedDict, defaultdict, deque
+from functools import reduce
 
 import numpy as np
 
 import theano
-
-from functools import reduce
-
-from six import string_types, integer_types
-
 from theano import config
-
-from theano.gof import graph, op, utils, unify, toolbox
+from theano.gof import graph, op, toolbox, unify, utils
 from theano.gof.fg import InconsistencyError
 from theano.misc.ordered_set import OrderedSet
 
 from . import destroyhandler as dh
+
 
 _logger = logging.getLogger("theano.gof.opt")
 _optimizer_idx = [0]
@@ -45,10 +41,8 @@ class LocalMetaOptimizerSkipAssertionError(AssertionError):
 
     """
 
-    pass
 
-
-class Optimizer(object):
+class Optimizer:
     """
 
     An L{Optimizer} can be applied to an L{FunctionGraph} to transform it.
@@ -82,7 +76,6 @@ class Optimizer(object):
         L{InstanceFinder}, it can do so in its L{add_requirements} method.
 
         """
-        pass
 
     def optimize(self, fgraph, *args, **kwargs):
         """
@@ -114,7 +107,6 @@ class Optimizer(object):
           etc.
 
         """
-        pass
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
         name = getattr(self, "name", None)
@@ -376,9 +368,13 @@ class SeqOptimizer(Optimizer, list):
             i = opt[2]
             if sub_validate_time:
                 val_time = sub_validate_time[i + 1] - sub_validate_time[i]
-                print(blanc, "  %.6fs - %s - %.3fs" % (t, opt, val_time), file=stream)
+                print(
+                    blanc,
+                    "  {:.6f}s - {} - {:.3f}s".format(t, opt, val_time),
+                    file=stream,
+                )
             else:
-                print(blanc, "  %.6fs - %s" % (t, opt), file=stream)
+                print(blanc, "  {:.6f}s - {}".format(t, opt), file=stream)
 
             if sub_profs[i]:
                 opts[i].print_profile(stream, sub_profs[i], level=level + 1)
@@ -452,8 +448,8 @@ class SeqOptimizer(Optimizer, list):
         new_callbacks_times = merge_dict(prof1[9], prof2[9])
         # We need to assert based on the name as we merge also based on
         # the name.
-        assert set([l.name for l in prof1[0]]).issubset(set([l.name for l in new_l]))
-        assert set([l.name for l in prof2[0]]).issubset(set([l.name for l in new_l]))
+        assert {l.name for l in prof1[0]}.issubset({l.name for l in new_l})
+        assert {l.name for l in prof2[0]}.issubset({l.name for l in new_l})
         assert len(new_t) == len(new_opt) == len(new_sub_profile)
         return (
             new_opt,
@@ -540,10 +536,10 @@ class _metadict:
         self._list = []
 
     def __str__(self):
-        return "(%s, %s)" % (self._dict, self._list)
+        return "({}, {})".format(self._dict, self._list)
 
 
-class MergeFeature(object):
+class MergeFeature:
     """
     Keeps track of variables in fgraph that cannot be merged together.
 
@@ -596,7 +592,7 @@ class MergeFeature(object):
             self.process_node(fgraph, node)
 
         # Since we are in on_change_input, node should have inputs.
-        if not isinstance(node, string_types):
+        if not isinstance(node, str):
             assert node.inputs
 
         if isinstance(new_r, graph.Constant):
@@ -1099,7 +1095,6 @@ def pre_constant_merge(vars):
                 )
                 # Some python object like slice aren't hashable. So
                 # don't merge them here.
-                pass
             return var
         if var.owner:
             for idx, inp in enumerate(var.owner.inputs):
@@ -1114,7 +1109,7 @@ def pre_constant_merge(vars):
 ########################
 
 
-class LocalOptimizer(object):
+class LocalOptimizer:
     """
     A class for node-based optimizations.
 
@@ -1168,7 +1163,6 @@ class LocalOptimizer(object):
         """
         # Added by default
         # fgraph.attach_feature(toolbox.ReplaceValidate())
-        pass
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
         print(
@@ -1234,21 +1228,17 @@ class LocalMetaOptimizer(LocalOptimizer):
         if missing:
             if self.verbose > 0:
                 print(
-                    (
-                        "%s cannot meta-optimize %s, "
-                        "%d of %d input shapes unknown"
-                        % (self.__class__.__name__, node, len(missing), node.nin)
-                    )
+                    "%s cannot meta-optimize %s, "
+                    "%d of %d input shapes unknown"
+                    % (self.__class__.__name__, node, len(missing), node.nin)
                 )
             return
         # now we can apply the different optimizations in turn,
         # compile the resulting subgraphs and time their execution
         if self.verbose > 1:
             print(
-                (
-                    "%s meta-optimizing %s (%d choices):"
-                    % (self.__class__.__name__, node, len(self.get_opts(node)))
-                )
+                "%s meta-optimizing %s (%d choices):"
+                % (self.__class__.__name__, node, len(self.get_opts(node)))
             )
         timings = []
         for opt in self.get_opts(node):
@@ -1268,7 +1258,7 @@ class LocalMetaOptimizer(LocalOptimizer):
                     continue
                 else:
                     if self.verbose > 1:
-                        print("* %s: %.5g sec" % (opt, timing))
+                        print("* {}: {:.5g} sec".format(opt, timing))
                     timings.append((timing, outputs, opt))
             else:
                 if self.verbose > 0:
@@ -1465,7 +1455,7 @@ class LocalOptGroup(LocalOptimizer):
                 # We are at the start of the graph.
                 return new_repl
             if len(new_repl) > 1:
-                s = set([v.owner for v in new_repl])
+                s = {v.owner for v in new_repl}
                 assert len(s) == 1
             repl = new_repl
             node = new_vars[0].owner
@@ -1514,7 +1504,7 @@ class LocalOptGroup(LocalOptimizer):
             for (t, o) in not_used[::-1]:
                 if t > 0:
                     # Skip opt that have 0 times, they probably wasn't even tried.
-                    print(blanc + "  ", "  %.3fs - %s" % (t, o), file=stream)
+                    print(blanc + "  ", "  {:.3f}s - {}".format(t, o), file=stream)
         else:
             print(blanc, " The Optimizer wasn't successful ", file=stream)
 
@@ -1550,7 +1540,7 @@ class GraphToGPULocalOptGroup(LocalOptGroup):
     """
 
     def __init__(self, *optimizers, **kwargs):
-        super(GraphToGPULocalOptGroup, self).__init__(*optimizers, **kwargs)
+        super().__init__(*optimizers, **kwargs)
         assert self.apply_all_opts is False
 
     def transform(self, op, context_name, inputs, outputs):
@@ -1620,7 +1610,7 @@ class OpSub(LocalOptimizer):
         return repl.outputs
 
     def __str__(self):
-        return "%s -> %s" % (self.op1, self.op2)
+        return "{} -> {}".format(self.op1, self.op2)
 
 
 class OpRemove(LocalOptimizer):
@@ -1851,15 +1841,13 @@ class PatternSub(LocalOptimizer):
                     )
                 else:
                     return retry_with_equiv()
-            elif isinstance(pattern, string_types):
+            elif isinstance(pattern, str):
                 v = unify.Var(pattern)
                 if u[v] is not v and u[v] is not expr:
                     return retry_with_equiv()
                 else:
                     u = u.merge(expr, v)
-            elif isinstance(pattern, (integer_types, float)) and isinstance(
-                expr, graph.Constant
-            ):
+            elif isinstance(pattern, (int, float)) and isinstance(expr, graph.Constant):
                 if np.all(theano.tensor.constant(pattern).value == expr.value):
                     return u
                 else:
@@ -1885,9 +1873,9 @@ class PatternSub(LocalOptimizer):
                 if isinstance(pattern, (list, tuple)):
                     args = [build(p, u) for p in pattern[1:]]
                     return pattern[0](*args)
-                elif isinstance(pattern, string_types):
+                elif isinstance(pattern, str):
                     return u[unify.Var(pattern)]
-                elif isinstance(pattern, (integer_types, float)):
+                elif isinstance(pattern, (int, float)):
                     return pattern
                 else:
                     return pattern.clone()
@@ -1906,19 +1894,19 @@ class PatternSub(LocalOptimizer):
 
         def pattern_to_str(pattern):
             if isinstance(pattern, (list, tuple)):
-                return "%s(%s)" % (
+                return "{}({})".format(
                     str(pattern[0]),
                     ", ".join([pattern_to_str(p) for p in pattern[1:]]),
                 )
             elif isinstance(pattern, dict):
-                return "%s subject to %s" % (
+                return "{} subject to {}".format(
                     pattern_to_str(pattern["pattern"]),
                     str(pattern.get("constraint", "no conditions")),
                 )
             else:
                 return str(pattern)
 
-        return "%s -> %s" % (
+        return "{} -> {}".format(
             pattern_to_str(self.in_pattern),
             pattern_to_str(self.out_pattern),
         )
@@ -2047,7 +2035,6 @@ class NavigatorOptimizer(Optimizer):
         Failure_callback for NavigatorOptimizer: ignore all errors.
 
         """
-        pass
 
     def __init__(self, local_opt, ignore_newtrees="auto", failure_callback=None):
         self.local_opt = local_opt
@@ -2196,7 +2183,7 @@ class NavigatorOptimizer(Optimizer):
                 raise
 
     def add_requirements(self, fgraph):
-        super(NavigatorOptimizer, self).add_requirements(fgraph)
+        super().add_requirements(fgraph)
         # Added by default
         # fgraph.attach_feature(toolbox.ReplaceValidate())
         if self.local_opt:
@@ -2414,7 +2401,7 @@ class OpKeyOptimizer(NavigatorOptimizer):
           - ReplaceValidate(Added by default)
 
         """
-        super(OpKeyOptimizer, self).add_requirements(fgraph)
+        super().add_requirements(fgraph)
         fgraph.attach_feature(toolbox.NodeFinder())
 
 
@@ -2488,7 +2475,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
         final_optimizers=None,
         cleanup_optimizers=None,
     ):
-        super(EquilibriumOptimizer, self).__init__(
+        super().__init__(
             None, ignore_newtrees=ignore_newtrees, failure_callback=failure_callback
         )
         self.local_optimizers_map = OrderedDict()
@@ -2525,7 +2512,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
                     s.add(opt)
 
     def add_requirements(self, fgraph):
-        super(EquilibriumOptimizer, self).add_requirements(fgraph)
+        super().add_requirements(fgraph)
         for opt in self.get_local_optimizers():
             opt.add_requirements(fgraph)
         for opt in self.global_optimizers:
@@ -2876,7 +2863,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
             for (t, o) in not_used[::-1]:
                 if t > 0:
                     # Skip opt that have 0 times, they probably wasn't even tried.
-                    print(blanc + "  ", "  %.3fs - %s" % (t, o), file=stream)
+                    print(blanc + "  ", "  {:.3f}s - {}".format(t, o), file=stream)
             print(file=stream)
         gf_opts = [
             o
@@ -3259,7 +3246,7 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
         ops_to_check = (ops_to_check,)
 
     # if ops_to_check is a string
-    if isinstance(ops_to_check, string_types):
+    if isinstance(ops_to_check, str):
         if ops_to_check == "last":
             apply_nodes_to_check = [
                 fgraph.outputs[i].owner for i in range(len(fgraph.outputs))
@@ -3294,7 +3281,7 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
         ]
 
     # if ops_to_check is a function
-    elif hasattr(ops_to_check, "__call__"):
+    elif callable(ops_to_check):
         apply_nodes_to_check = [
             node for node in fgraph.apply_nodes if ops_to_check(node)
         ]
@@ -3324,7 +3311,7 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
     return True
 
 
-class CheckStrackTraceFeature(object):
+class CheckStrackTraceFeature:
     def on_import(self, fgraph, node, reason):
         # In optdb we only register the CheckStackTraceOptimization when
         # theano.config.check_stack_trace is not off but we also double check here.

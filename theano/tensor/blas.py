@@ -133,39 +133,39 @@ import time
 import numpy as np
 import numpy.distutils
 
+
 try:
     import numpy.distutils.__config__  # noqa
 except ImportError:
     pass
 
-import theano.scalar
-
 from functools import reduce
 
+import theano.scalar
 from theano import config
-from theano.gof import (
-    Op,
-    view_roots,
-    local_optimizer,
-    Optimizer,
-    InconsistencyError,
-    SequenceDB,
-    EquilibriumOptimizer,
-    Apply,
-    ReplacementDidntRemovedError,
-)
-from theano.gof.toolbox import ReplaceValidate
-from theano.gof.utils import TestValueError, MethodNotDefined, memoize
-from theano.gof.params_type import ParamsType
-from theano.gof.opt import inherit_stack_trace
-from theano.printing import pprint, FunctionPrinter, debugprint
 from theano.compile.mode import optdb
+from theano.gof import (
+    Apply,
+    EquilibriumOptimizer,
+    InconsistencyError,
+    Op,
+    Optimizer,
+    ReplacementDidntRemovedError,
+    SequenceDB,
+    local_optimizer,
+    view_roots,
+)
+from theano.gof.opt import inherit_stack_trace
+from theano.gof.params_type import ParamsType
+from theano.gof.toolbox import ReplaceValidate
+from theano.gof.utils import MethodNotDefined, TestValueError, memoize
+from theano.printing import FunctionPrinter, debugprint, pprint
 from theano.scalar import bool as bool_t
 from theano.tensor import basic as tt
-from theano.tensor.blas_headers import blas_header_text
-from theano.tensor.blas_headers import blas_header_version
+from theano.tensor.blas_headers import blas_header_text, blas_header_version
 from theano.tensor.opt import in2out, local_dimshuffle_lift
 from theano.tensor.type import values_eq_approx_remove_inf_nan
+
 
 _logger = logging.getLogger("theano.tensor.blas")
 
@@ -477,7 +477,7 @@ def _ldflags(ldflags_str, libs, flags, libs_dir, include_dir):
             assert t0 == "-"
         except Exception:
             raise ValueError(
-                'invalid token "%s" in ldflags_str: "%s"' % (t, ldflags_str)
+                'invalid token "{}" in ldflags_str: "{}"'.format(t, ldflags_str)
             )
         if libs_dir and t1 == "L":
             rval.append(t[2:])
@@ -800,7 +800,7 @@ class GemmRelated(Op):
 
     def build_gemm_call(self):
         if hasattr(self, "inplace"):
-            setup_z_Nz_Sz = "if(%%(params)s->inplace){%s}else{%s}" % (
+            setup_z_Nz_Sz = "if(%(params)s->inplace){{{}}}else{{{}}}".format(
                 self.setup_z_Nz_Sz_inplace,
                 self.setup_z_Nz_Sz_outplace,
             )
@@ -880,7 +880,7 @@ class Gemm(GemmRelated):
             inplace_str = "inplace"
         else:
             inplace_str = "no_inplace"
-        return "%s{%s}" % (self.__class__.__name__, inplace_str)
+        return "{}{{{}}}".format(self.__class__.__name__, inplace_str)
 
     def __setstate__(self, dct):
         self.__dict__.update(dct)
@@ -1671,7 +1671,7 @@ class Dot22(GemmRelated):
         if node.inputs[0].type.dtype.startswith("complex"):
             raise MethodNotDefined("%s.c_code" % self.__class__.__name__)
         if len(self.c_libraries()) <= 0:
-            return super(Dot22, self).c_code(node, name, (_x, _y), (_zout,), sub)
+            return super().c_code(node, name, (_x, _y), (_zout,), sub)
         full_code = self.build_gemm_call() % dict(locals(), **sub)
         return full_code
 
@@ -1941,7 +1941,7 @@ class Dot22Scalar(GemmRelated):
         if node.inputs[0].type.dtype.startswith("complex"):
             raise MethodNotDefined("%s.c_code" % self.__class__.__name__)
         if len(self.c_libraries()) <= 0:
-            return super(Dot22Scalar, self).c_code(node, name, (_x, _y), (_zout,), sub)
+            return super().c_code(node, name, (_x, _y), (_zout,), sub)
         full_code = self.build_gemm_call() % dict(locals(), **sub)
         return full_code
 

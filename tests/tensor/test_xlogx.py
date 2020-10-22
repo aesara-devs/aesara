@@ -1,10 +1,9 @@
-import theano
 import numpy.random
 
+import theano
+from tests import unittest_tools as utt
 from theano.tensor import as_tensor_variable
 from theano.tensor.xlogx import xlogx, xlogy0
-
-from tests import unittest_tools as utt
 
 
 class TestXlogX:

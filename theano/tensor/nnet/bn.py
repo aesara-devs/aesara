@@ -1,19 +1,17 @@
 import numpy as np
 
 import theano
-
-# import theano.tensor.basic as tt
-
-from theano import Apply, Op
-from theano.gof import local_optimizer
-from theano.gof.opt import copy_stack_trace
+from theano.gof.graph import Apply
+from theano.gof.op import Op
+from theano.gof.opt import copy_stack_trace, local_optimizer
 from theano.scalar import Composite, add, as_common_dtype, mul, sub, true_div
 
 # Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
 from theano.tensor import basic as tt
-from theano.tensor import TensorType, as_tensor_variable
+from theano.tensor.basic import as_tensor_variable
 from theano.tensor.elemwise import Elemwise
 from theano.tensor.opt import register_specialize_device
+from theano.tensor.type import TensorType
 
 
 class BNComposite(Composite):
@@ -30,7 +28,7 @@ class BNComposite(Composite):
         o = add(mul(true_div(sub(x, mean), std), gamma), beta)
         inputs = [x, mean, std, gamma, beta]
         outputs = [o]
-        super(BNComposite, self).__init__(inputs, outputs)
+        super().__init__(inputs, outputs)
 
     def grad(self, inps, grads):
         x, mean, std, gamma, beta = inps

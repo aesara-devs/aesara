@@ -1,13 +1,14 @@
 """Define new Ops from existing Ops"""
 
-from functools import reduce, partial
 from collections import OrderedDict
+from functools import partial, reduce
 
 import theano
 from theano import gof
-
 from theano.compile.function_module import orig_function
-from theano.compile import SharedVariable, rebuild_collect_shared, optdb
+from theano.compile.mode import optdb
+from theano.compile.pfunc import rebuild_collect_shared
+from theano.compile.sharedvalue import SharedVariable
 from theano.gof import Variable, ops_with_inner_function
 from theano.gof.graph import io_connection_pattern
 from theano.gof.null_type import NullType

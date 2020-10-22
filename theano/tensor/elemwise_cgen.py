@@ -77,7 +77,9 @@ def make_checks(loop_orders, dtypes, sub):
             if index != "x":
                 # Initialize the variables associated to the jth loop
                 # jump = stride - adjust
-                jump = "(%s) - (%s)" % ("%(var)s_stride%(index)s" % locals(), adjust)
+                jump = "({}) - ({})".format(
+                    "%(var)s_stride%(index)s" % locals(), adjust
+                )
                 init += (
                     """
                 %(var)s_n%(index)s = PyArray_DIMS(%(var)s)[%(index)s];

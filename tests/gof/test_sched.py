@@ -1,14 +1,13 @@
-from theano.gof.sched import (
-    make_dependence_cmp,
-    sort_apply_nodes,
-    reverse_dict,
-    _toposort,
-    posort,
-)
-
 from theano import tensor
-from theano.gof.graph import io_toposort
 from theano.compat import cmp
+from theano.gof.graph import io_toposort
+from theano.gof.sched import (
+    _toposort,
+    make_dependence_cmp,
+    posort,
+    reverse_dict,
+    sort_apply_nodes,
+)
 
 
 def test_dependence():
@@ -46,11 +45,11 @@ def test_reverse_dict():
 
 def test__toposort():
     edges = {
-        1: set((4, 6, 7)),
-        2: set((4, 6, 7)),
-        3: set((5, 7)),
-        4: set((6, 7)),
-        5: set((7,)),
+        1: {4, 6, 7},
+        2: {4, 6, 7},
+        3: {5, 7},
+        4: {6, 7},
+        5: {7},
     }
     order = _toposort(edges)
     assert not any(

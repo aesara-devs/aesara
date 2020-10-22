@@ -4,16 +4,13 @@ and inplace operations.
 
 """
 import itertools
+from collections import OrderedDict, deque
 
 import theano
-
-from collections import deque, OrderedDict
-
 from theano import config
 from theano.misc.ordered_set import OrderedSet
 
-from . import toolbox
-from . import graph
+from . import graph, toolbox
 from .fg import InconsistencyError
 
 
@@ -24,8 +21,6 @@ class ProtocolError(Exception):
     never been imported.
 
     """
-
-    pass
 
 
 def _contains_cycle(fgraph, orderings):
@@ -765,17 +760,17 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
                     # OPT: pre-compute this on import
                     tolerate_same = getattr(app.op, "destroyhandler_tolerate_same", [])
                     assert isinstance(tolerate_same, list)
-                    tolerated = set(
+                    tolerated = {
                         idx1 for idx0, idx1 in tolerate_same if idx0 == destroyed_idx
-                    )
+                    }
                     tolerated.add(destroyed_idx)
                     tolerate_aliased = getattr(
                         app.op, "destroyhandler_tolerate_aliased", []
                     )
                     assert isinstance(tolerate_aliased, list)
-                    ignored = set(
+                    ignored = {
                         idx1 for idx0, idx1 in tolerate_aliased if idx0 == destroyed_idx
-                    )
+                    }
                     for i, input in enumerate(app.inputs):
                         if i in ignored:
                             continue

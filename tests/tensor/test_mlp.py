@@ -63,7 +63,7 @@ def gen_data():
     return rval
 
 
-class LogisticRegression(object):
+class LogisticRegression:
     """Multi-class Logistic Regression Class
 
     The logistic regression is fully described by a weight matrix :math:`W`
@@ -131,7 +131,7 @@ class LogisticRegression(object):
         return tt.log(self.p_y_given_x[tt.arange(y.shape[0]), y])
 
 
-class HiddenLayer(object):
+class HiddenLayer:
     def __init__(self, rng, input, n_in, n_out, activation=tt.tanh, name_prefix=""):
         """
         Typical hidden layer of a MLP: units are fully-connected and have
@@ -179,7 +179,7 @@ class HiddenLayer(object):
         self.params = [self.W]
 
 
-class MLP(object):
+class MLP:
     """Multi-Layer Perceptron Class
 
     A multilayer perceptron is a feedforward artificial neural network model

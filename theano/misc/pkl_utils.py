@@ -5,20 +5,21 @@ These pickled graphs can be used, for instance, as cases for
 unit tests or regression tests.
 """
 
-import numpy as np
 import os
 import pickle
 import sys
 import tempfile
-import zipfile
 import warnings
-
-import theano
-
+import zipfile
 from collections import defaultdict
 from contextlib import closing
 from pickle import HIGHEST_PROTOCOL
+
+import numpy as np
 from six import BytesIO
+
+import theano
+
 
 try:
     from pickle import DEFAULT_PROTOCOL
@@ -27,6 +28,7 @@ except ImportError:
 
 from theano import config
 from theano.compile.sharedvalue import SharedVariable
+
 
 __docformat__ = "restructuredtext en"
 __authors__ = "Pascal Lamblin"
@@ -80,7 +82,7 @@ class StripPickler(Pickler):
         return Pickler.save(self, obj)
 
 
-class PersistentNdarrayID(object):
+class PersistentNdarrayID:
     """Persist ndarrays in an object by saving them to a zip file.
 
     :param zip_file: A zip file handle that the NumPy arrays will be saved to.
@@ -102,7 +104,7 @@ class PersistentNdarrayID(object):
 
     def _resolve_name(self, obj):
         """Determine the name the object should be saved under."""
-        name = "array_{0}".format(self.count)
+        name = "array_{}".format(self.count)
         self.count += 1
         return name
 
@@ -115,7 +117,7 @@ class PersistentNdarrayID(object):
 
                 name = self._resolve_name(obj)
                 zipadd(write_array, self.zip_file, name)
-                self.seen[id(obj)] = "ndarray.{0}".format(name)
+                self.seen[id(obj)] = "ndarray.{}".format(name)
             return self.seen[id(obj)]
 
 
@@ -137,9 +139,9 @@ class PersistentGpuArrayID(PersistentNdarrayID):
 
                 name = self._resolve_name(obj)
                 zipadd(write_array, self.zip_file, name)
-                self.seen[id(obj)] = "gpuarray.{0}".format(name)
+                self.seen[id(obj)] = "gpuarray.{}".format(name)
             return self.seen[id(obj)]
-        return super(PersistentGpuArrayID, self).__call__(obj)
+        return super().__call__(obj)
 
 
 class PersistentSharedVariableID(PersistentGpuArrayID):
@@ -167,7 +169,7 @@ class PersistentSharedVariableID(PersistentGpuArrayID):
     """
 
     def __init__(self, zip_file, allow_unnamed=True, allow_duplicates=True):
-        super(PersistentSharedVariableID, self).__init__(zip_file)
+        super().__init__(zip_file)
         self.name_counter = defaultdict(int)
         self.ndarray_names = {}
         self.allow_unnamed = allow_unnamed
@@ -182,11 +184,11 @@ class PersistentSharedVariableID(PersistentGpuArrayID):
                 if not self.allow_duplicates:
                     raise ValueError(
                         "multiple shared variables with the name "
-                        "`{0}` found".format(name)
+                        "`{}` found".format(name)
                     )
-                name = "{0}_{1}".format(name, count + 1)
+                name = "{}_{}".format(name, count + 1)
             return name
-        return super(PersistentSharedVariableID, self)._resolve_name(obj)
+        return super()._resolve_name(obj)
 
     def __call__(self, obj):
         if isinstance(obj, SharedVariable):
@@ -195,11 +197,11 @@ class PersistentSharedVariableID(PersistentGpuArrayID):
                     ValueError("can't pickle shared variable with name `pkl`")
                 self.ndarray_names[id(obj.container.storage[0])] = obj.name
             elif not self.allow_unnamed:
-                raise ValueError("unnamed shared variable, {0}".format(obj))
-        return super(PersistentSharedVariableID, self).__call__(obj)
+                raise ValueError("unnamed shared variable, {}".format(obj))
+        return super().__call__(obj)
 
 
-class PersistentNdarrayLoad(object):
+class PersistentNdarrayLoad:
     """Load NumPy arrays that were persisted to a zip file when pickling.
 
     :param zip_file: The zip file handle in which the NumPy arrays are saved.
@@ -212,8 +214,8 @@ class PersistentNdarrayLoad(object):
         self.cache = {}
 
     def __call__(self, persid):
-        from theano.gpuarray.type import get_context
         from theano.gpuarray import pygpu
+        from theano.gpuarray.type import get_context
 
         array_type, name = persid.split(".")
 

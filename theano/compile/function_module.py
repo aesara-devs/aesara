@@ -4,28 +4,24 @@ Driver of graph construction, optimization, and linking.
 """
 
 import copy
-import time
 import logging
+import time
 import warnings
+from itertools import chain
 
+import numpy as np
 import six.moves.copyreg as copyreg
 import six.moves.cPickle as pickle
 
-import numpy as np
-
 import theano
 import theano.compile.profiling
-
-from itertools import chain
-
-from six import string_types
-
 from theano import config, gof
-from theano.gof import graph
 from theano.compile.io import In, SymbolicInput, SymbolicOutput
 from theano.compile.ops import deep_copy_op, view_op
-from theano.gof.toolbox import is_same_graph
+from theano.gof import graph
 from theano.gof.op import ops_with_inner_function
+from theano.gof.toolbox import is_same_graph
+
 
 _logger = logging.getLogger("theano.compile.function_module")
 
@@ -37,8 +33,6 @@ class UnusedInputError(Exception):
     A symbolic input passed to function is not needed.
 
     """
-
-    pass
 
 
 def alias_root(v):
@@ -97,7 +91,7 @@ def infer_reuse_pattern(fgraph, outputs_to_disown):
     for o in outputs_to_disown:
         view_tree_set(alias_root(o), rval)
     # remove from rval all of the inputs, constants, values.
-    rval = set(r for r in rval if r.owner is not None)
+    rval = {r for r in rval if r.owner is not None}
 
     return rval
 
@@ -222,8 +216,6 @@ class AliasedMemoryError(Exception):
 
     """
 
-    pass
-
 
 ###
 # Function
@@ -233,7 +225,7 @@ class AliasedMemoryError(Exception):
 DUPLICATE = ["DUPLICATE"]
 
 
-class Function(object):
+class Function:
     """
     Type of the functions returned by theano.function or
     theano.FunctionMaker.create.
@@ -481,7 +473,7 @@ class Function(object):
         # this class is important in overriding the square-bracket notation:
         #     fn.value[x]
         # self reference is available via the closure on the class
-        class ValueAttribute(object):
+        class ValueAttribute:
             def __getitem__(self, item):
                 try:
                     s = finder[item]
@@ -504,7 +496,9 @@ class Function(object):
                 except KeyError:
                     # Print informative error message.
                     msg = get_info_on_inputs(named_inputs, n_unnamed_inputs)
-                    raise TypeError("Unknown input or state: %s. %s" % (str(item), msg))
+                    raise TypeError(
+                        "Unknown input or state: {}. {}".format(str(item), msg)
+                    )
                 if s is DUPLICATE:
                     raise TypeError(
                         "Ambiguous name: %s - please check the "
@@ -523,7 +517,7 @@ class Function(object):
         # this class is important in overriding the square-bracket notation:
         #     fn.container[x]
         # self reference is available via the closure on the class
-        class ContainerAttribute(object):
+        class ContainerAttribute:
             def __getitem__(self, item):
                 return finder[item]
 
@@ -1068,10 +1062,10 @@ class Function(object):
                 if output_subset is None:
                     return dict(zip(self.output_keys, outputs))
                 else:
-                    return dict(
-                        (self.output_keys[index], outputs[index])
+                    return {
+                        self.output_keys[index]: outputs[index]
                         for index in output_subset
-                    )
+                    }
 
             if output_subset is None:
                 return outputs
@@ -1204,13 +1198,11 @@ def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
     assert len(wrapped_inputs) == len(fgraph.inputs)
     assert len(wrapped_outputs) == len(fgraph.outputs)
     reason = "insert_deepcopy"
-    updated_fgraph_inputs = set(
-        [
-            fgraph_i
-            for i, fgraph_i in zip(wrapped_inputs, fgraph.inputs)
-            if getattr(i, "update", False)
-        ]
-    )
+    updated_fgraph_inputs = {
+        fgraph_i
+        for i, fgraph_i in zip(wrapped_inputs, fgraph.inputs)
+        if getattr(i, "update", False)
+    }
 
     # We can't use fgraph.inputs as this don't include Constant Value.
     all_graph_inputs = gof.graph.inputs(fgraph.outputs)
@@ -1289,7 +1281,7 @@ def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
 NODEFAULT = ["NODEFAULT"]
 
 
-class FunctionMaker(object):
+class FunctionMaker:
     """
     `FunctionMaker` is the class to `create` `Function` instances.
 
@@ -1369,8 +1361,9 @@ class FunctionMaker(object):
 
     def optimize_graph_with_cache(self, optimizer, inputs, outputs):
         # This function is not finished
-        from theano.gof.compilelock import get_lock, release_lock
         import os.path
+
+        from theano.gof.compilelock import get_lock, release_lock
 
         graph_db_file = os.path.join(theano.config.compiledir, "optimized_graphs.pkl")
 
@@ -2043,7 +2036,7 @@ def convert_function_input(input):
         orig = input
         if not input:
             raise TypeError("Nonsensical input specification: %s" % input)
-        if isinstance(input[0], string_types):
+        if isinstance(input[0], str):
             name = input[0]
             input = input[1:]
         else:
@@ -2135,7 +2128,7 @@ def get_info_on_inputs(named_inputs, n_unnamed_inputs):
                 )
     else:
         if n_unnamed_inputs == 0:
-            msg = "The function has %s named input%s (%s)." % (
+            msg = "The function has {} named input{} ({}).".format(
                 n_named_inputs,
                 get_plural(n_named_inputs),
                 ", ".join(named_inputs),

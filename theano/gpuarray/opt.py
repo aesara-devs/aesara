@@ -1,182 +1,178 @@
 import copy
 import logging
 import pdb
-import time
 import sys
+import time
+from collections import Counter
 
 import numpy as np
 
 import theano
-
-from theano import tensor, scalar, gof, config
-from theano.compile import optdb
-from theano.compile.ops import shape_i
-from theano.gof import (
-    local_optimizer,
-    EquilibriumDB,
-    TopoOptimizer,
-    LocalGroupDB,
-    SequenceDB,
-    Optimizer,
-    DB,
-    toolbox,
-    graph,
-)
-from theano.gof.opt import LocalMetaOptimizer, copy_stack_trace, inherit_stack_trace
-from theano.ifelse import IfElse
-from theano.misc.ordered_set import OrderedSet
-
-from theano.scalar.basic import Scalar, Pow, Cast
-from theano.scalar.basic import log, neg, true_div
-from theano.scalar.basic_scipy import Erfinv, Erfcinv
-from theano.scan_module import scan_utils, scan_op, scan_opt
-
-from theano.tensor.nnet import bn, conv3d2d
-from theano.tensor.nnet.conv import ConvOp
-from theano.tensor.nnet.blocksparse import SparseBlockGemv, SparseBlockOuter
-from theano.tensor.nnet.abstract_conv import (
-    BaseAbstractConv,
-    AbstractConv2d,
-    AbstractConv2d_gradWeights,
-    AbstractConv2d_gradInputs,
-    AbstractConv3d,
-    AbstractConv3d_gradWeights,
-    AbstractConv3d_gradInputs,
-    get_conv_output_shape,
-)
-from theano.tensor.nnet.neighbours import Images2Neibs
-from theano.tensor.nnet.ctc import ConnectionistTemporalClassification
 import theano.tensor.nlinalg as nlinalg
 import theano.tensor.signal.pool as pool
 import theano.tensor.slinalg as slinalg
-from collections import Counter
-
+from theano import config, gof, scalar, tensor
 from theano.breakpoint import PdbBreakpoint
-
-from .type import (
-    GpuArrayType,
-    GpuArrayConstant,
-    get_context,
-    ContextNotDefined,
-    move_to_gpu,
-)
-from .basic_ops import (
-    as_gpuarray_variable,
-    infer_context_name,
-    host_from_gpu,
-    GpuToGpu,
-    HostFromGpu,
-    GpuFromHost,
-    GpuSplit,
-    GpuContiguous,
-    gpu_contiguous,
+from theano.compile import optdb
+from theano.compile.ops import shape_i
+from theano.gof import Optimizer, graph, local_optimizer, toolbox
+from theano.gof.opt import LocalMetaOptimizer, copy_stack_trace, inherit_stack_trace
+from theano.gpuarray.basic_ops import (
     GpuAlloc,
     GpuAllocEmpty,
-    GpuReshape,
+    GpuContiguous,
     GpuEye,
-    GpuTri,
-    gpu_join,
+    GpuFromHost,
     GpuJoin,
+    GpuReshape,
+    GpuSplit,
+    GpuToGpu,
+    GpuTri,
+    HostFromGpu,
+    as_gpuarray_variable,
+    gpu_contiguous,
+    gpu_join,
+    host_from_gpu,
+    infer_context_name,
 )
-from .blas import (
-    gpu_dot22,
-    GpuGemm,
-    GpuGer,
-    GpuGemmBatch,
-    gpugemm_no_inplace,
-    gpugemm_inplace,
-    gpugemmbatch_no_inplace,
-    gpugemv_no_inplace,
-    gpugemv_inplace,
-    GpuCorrMM,
-    GpuCorrMM_gradInputs,
-    GpuCorrMM_gradWeights,
+from theano.gpuarray.blas import (
     GpuCorr3dMM,
     GpuCorr3dMM_gradInputs,
     GpuCorr3dMM_gradWeights,
+    GpuCorrMM,
+    GpuCorrMM_gradInputs,
+    GpuCorrMM_gradWeights,
+    GpuGemm,
+    GpuGemmBatch,
+    GpuGer,
+    gpu_dot22,
+    gpugemm_inplace,
+    gpugemm_no_inplace,
+    gpugemmbatch_no_inplace,
+    gpugemv_inplace,
+    gpugemv_no_inplace,
 )
-from .pool import (
-    GpuPool,
-    GpuMaxPoolGrad,
-    GpuAveragePoolGrad,
-    GpuMaxPoolRop,
-    GpuDownsampleFactorMaxGradGrad,
-)
-from .blocksparse import (
+from theano.gpuarray.blocksparse import (
     GpuSparseBlockGemv,
     GpuSparseBlockOuter,
-    gpu_sparse_block_outer,
-    gpu_sparse_block_outer_inplace,
     gpu_sparse_block_gemv,
     gpu_sparse_block_gemv_inplace,
+    gpu_sparse_block_outer,
+    gpu_sparse_block_outer_inplace,
 )
-from .nnet import (
-    gpu_crossentropy_softmax_1hot_with_bias_dx,
-    gpu_crossentropy_softmax_argmax_1hot_with_bias,
-    gpu_softmax_with_bias,
-    gpu_softmax,
+from theano.gpuarray.ctc import GpuConnectionistTemporalClassification
+from theano.gpuarray.dnn_opt import (
+    local_abstractconv3d_cudnn_alt,
+    local_abstractconv_cudnn,
+    local_abstractconv_cudnn_alt,
+    local_abstractconv_gi_cudnn,
+    local_abstractconv_gw_cudnn,
 )
-from .elemwise import (
-    GpuElemwise,
-    GpuDimShuffle,
-    GpuCAReduceCuda,
+from theano.gpuarray.elemwise import (
     GpuCAReduceCPY,
-    gpu_erfinv,
+    GpuCAReduceCuda,
+    GpuDimShuffle,
+    GpuElemwise,
     gpu_erfcinv,
+    gpu_erfinv,
     max_inputs_to_GpuElemwise,
 )
-from .subtensor import (
-    GpuIncSubtensor,
-    GpuSubtensor,
-    GpuAdvancedSubtensor,
-    GpuAdvancedSubtensor1,
+from theano.gpuarray.linalg import (
+    MATRIX_STRUCTURES_SOLVE,
+    GpuCholesky,
+    GpuCublasTriangularSolve,
+    GpuCusolverSolve,
+    GpuMagmaCholesky,
+    GpuMagmaEigh,
+    GpuMagmaMatrixInverse,
+    cublas_available,
+    cusolver_available,
+    gpu_qr,
+    gpu_svd,
+)
+from theano.gpuarray.neighbours import GpuImages2Neibs
+from theano.gpuarray.nnet import (
+    gpu_crossentropy_softmax_1hot_with_bias_dx,
+    gpu_crossentropy_softmax_argmax_1hot_with_bias,
+    gpu_softmax,
+    gpu_softmax_with_bias,
+)
+from theano.gpuarray.opt_util import (
+    alpha_merge,
+    op_lifter,
+    output_merge,
+    pad_dims,
+    safe_to_cpu,
+    safe_to_gpu,
+    unpad_dims,
+)
+from theano.gpuarray.optdb import (
+    GraphToGPUDB,
+    abstract_batch_norm_db,
+    abstract_batch_norm_db2,
+    abstract_batch_norm_groupopt,
+    abstractconv_groupopt,
+    gpu_cut_copies,
+    gpu_optimizer,
+    gpu_seqopt,
+    matrix_ops_db,
+    matrix_ops_db2,
+    pool_db,
+    pool_db2,
+    register_inplace,
+    register_opt,
+    register_opt2,
+)
+from theano.gpuarray.pool import (
+    GpuAveragePoolGrad,
+    GpuDownsampleFactorMaxGradGrad,
+    GpuMaxPoolGrad,
+    GpuMaxPoolRop,
+    GpuPool,
+)
+from theano.gpuarray.reduction import GpuMaxAndArgmax
+from theano.gpuarray.subtensor import (
     GpuAdvancedIncSubtensor,
     GpuAdvancedIncSubtensor1,
     GpuAdvancedIncSubtensor1_dev20,
+    GpuAdvancedSubtensor,
+    GpuAdvancedSubtensor1,
     GpuAllocDiag,
     GpuExtractDiag,
+    GpuIncSubtensor,
+    GpuSubtensor,
 )
-from .opt_util import alpha_merge, output_merge, pad_dims, unpad_dims
-from .reduction import GpuMaxAndArgmax
-from .linalg import (
-    GpuCusolverSolve,
-    MATRIX_STRUCTURES_SOLVE,
-    GpuCholesky,
-    cusolver_available,
-    GpuMagmaMatrixInverse,
-    gpu_svd,
-    GpuMagmaCholesky,
-    gpu_qr,
-    GpuMagmaEigh,
-    GpuCublasTriangularSolve,
-    cublas_available,
+from theano.gpuarray.type import (
+    ContextNotDefined,
+    GpuArrayConstant,
+    GpuArrayType,
+    get_context,
+    move_to_gpu,
 )
-from .neighbours import GpuImages2Neibs
-from .ctc import GpuConnectionistTemporalClassification
+from theano.ifelse import IfElse
+from theano.misc.ordered_set import OrderedSet
+from theano.scalar.basic import Cast, Pow, Scalar, log, neg, true_div
+from theano.scalar.basic_scipy import Erfcinv, Erfinv
+from theano.scan_module import scan_op, scan_opt, scan_utils
+from theano.tensor.nnet import bn, conv3d2d
+from theano.tensor.nnet.abstract_conv import (
+    AbstractConv2d,
+    AbstractConv2d_gradInputs,
+    AbstractConv2d_gradWeights,
+    AbstractConv3d,
+    AbstractConv3d_gradInputs,
+    AbstractConv3d_gradWeights,
+    BaseAbstractConv,
+    get_conv_output_shape,
+)
+from theano.tensor.nnet.blocksparse import SparseBlockGemv, SparseBlockOuter
+from theano.tensor.nnet.conv import ConvOp
+from theano.tensor.nnet.ctc import ConnectionistTemporalClassification
+from theano.tensor.nnet.neighbours import Images2Neibs
+
 
 _logger = logging.getLogger("theano.gpuarray.opt")
 
-
-gpu_optimizer = EquilibriumDB()
-gpu_cut_copies = EquilibriumDB()
-
-# Not used for an EquilibriumOptimizer. It has the "tracks" that we need for GraphToGPUDB.
-gpu_optimizer2 = EquilibriumDB()
-
-
-class GraphToGPUDB(DB):
-    """
-    Retrieves the list local optimizers based on the optimizer flag's value
-    from EquilibriumOptimizer by calling the method query.
-
-    """
-
-    def query(self, *tags, **kwtags):
-        opt = gpu_optimizer2.query(*tags, **kwtags)
-        return GraphToGPU(opt.local_optimizers_all, opt.local_optimizers_map)
-
-
-gpu_seqopt = SequenceDB()
 
 gpu_seqopt.register(
     "gpuarray_graph_optimization",
@@ -200,68 +196,6 @@ gpu_seqopt.register(
     "gpuarray_cut_transfers", gpu_cut_copies, 2, "fast_compile", "fast_run", "gpuarray"
 )
 
-# do not add 'fast_run' to these two as this would always enable gpuarray mode
-optdb.register(
-    "gpuarray_opt",
-    gpu_seqopt,
-    optdb.__position__.get("add_destroy_handler", 49.5) - 1,
-    "gpuarray",
-)
-
-
-def register_opt(*tags, **kwargs):
-    def f(local_opt):
-        name = (kwargs and kwargs.pop("name")) or local_opt.__name__
-        gpu_optimizer.register(name, local_opt, "fast_run", "gpuarray", *tags)
-        return local_opt
-
-    return f
-
-
-def register_opt2(tracks, *tags, **kwargs):
-    """
-    Decorator for the new GraphToGPU optimizer.
-    Takes an extra parameter(Op) compared to register_opt decorator.
-
-    Parameters
-    ----------
-    tracks : List of Op class Or Op instance or None
-        The Node's Op to which optimization is being applied.
-
-    tags : String
-        The optimization tag to which the optimizer will be registered.
-
-    """
-
-    def f(local_opt):
-        name = (kwargs and kwargs.pop("name")) or local_opt.__name__
-        if isinstance(local_opt, theano.gof.DB):
-            opt = local_opt
-        else:
-            opt = theano.gof.local_optimizer(tracks)(local_opt)
-        gpu_optimizer2.register(name, opt, "fast_run", "gpuarray", *tags)
-        return local_opt
-
-    return f
-
-
-def register_inplace(*tags, **kwargs):
-    def f(local_opt):
-        name = (kwargs and kwargs.pop("name")) or local_opt.__name__
-        optdb.register(
-            name,
-            TopoOptimizer(local_opt, failure_callback=TopoOptimizer.warn_inplace),
-            60,
-            "fast_run",
-            "inplace",
-            "gpuarray",
-            *tags,
-        )
-        return local_opt
-
-    return f
-
-
 register_opt("fast_compile")(theano.tensor.opt.local_track_shape_i)
 register_opt(final_opt=True, name="gpua_constant_folding")(tensor.opt.constant_folding)
 gpu_optimizer.register(
@@ -269,106 +203,9 @@ gpu_optimizer.register(
 )
 
 
-# Define a few operations to use in optimizations,
-# in order to avoid introducin new CPU Ops, or useless ones.
-def safe_to_gpu(x, ctx_name):
-    if isinstance(x.type, tensor.TensorType):
-        return GpuFromHost(ctx_name)(x)
-    else:
-        return x
-
-
-def safe_to_cpu(x):
-    if isinstance(x.type, GpuArrayType):
-        return x.transfer("cpu")
-    else:
-        return x
-
-
 gpu_log = GpuElemwise(log)
 gpu_neg = GpuElemwise(neg)
 gpu_true_div = GpuElemwise(true_div)
-
-
-def op_lifter(OP, cuda_only=False):
-    """
-    OP(..., host_from_gpu(), ...) -> host_from_gpu(GpuOP(...))
-
-    gpu_from_host(OP(inp0, ...)) -> GpuOP(inp0, ...)
-
-    """
-
-    def f(maker):
-        def local_opt(node):
-            if type(node.op) in OP:
-                # Either one of our inputs is on the gpu or
-                # all of our clients are on the gpu
-                replace = False
-                # TODO: Maybe set context_name with infer_context_name()?
-                context_name = None
-                # We replace if any input is a host_from_gpu
-                for i in node.inputs:
-                    if i.owner and i.owner.op == host_from_gpu and move_to_gpu(i):
-                        context_name = i.owner.inputs[0].type.context_name
-                        replace = True
-                        break
-
-                if not replace:
-                    # We replace if *all* clients are on the GPU
-                    clients = [c for o in node.outputs for c in o.clients]
-                    replace = len(clients) != 0
-                    for c, idx in clients:
-                        if c == "output" or not isinstance(c.op, GpuFromHost):
-                            replace = False
-                    # TODO: check that the clients want the same context?
-                    if replace:
-                        # All clients are GpuFromHost and we have at least one
-                        context_name = clients[0][0].op.context_name
-
-                # Check if we should replace
-                if (
-                    not replace
-                    or (cuda_only and get_context(context_name).kind != b"cuda")
-                    or any(["complex" in getattr(i, "dtype", "") for i in node.inputs])
-                ):
-                    return False
-
-                # tag the inputs with the context in case
-                # the context was derived from the outputs
-                for i in node.inputs:
-                    i.tag.context_name = context_name
-
-                new_op = maker(node.op, context_name, node.inputs, node.outputs)
-
-                # This is needed as sometimes new_op inherits from OP.
-                if new_op and new_op != node.op:
-                    if isinstance(new_op, theano.Op):
-                        new_outputs = new_op(*node.inputs, return_list=True)
-                        to_cpu_fn = safe_to_cpu
-                    elif isinstance(new_op, (tuple, list)):
-                        new_outputs = new_op
-                        to_cpu_fn = safe_to_cpu
-                    else:  # suppose it is a variable on the GPU
-                        new_outputs = [new_op]
-
-                        def to_cpu_fn(x):
-                            return x.transfer("cpu")
-
-                    # copy stack traces onto gpu outputs
-                    # also copy the stack traces onto HostFromGpu outputs
-                    on_cpu = []
-                    for old_output, new_output in zip(node.outputs, new_outputs):
-                        copy_stack_trace(old_output, new_output)
-                        cpu = to_cpu_fn(new_output)
-                        on_cpu.append(cpu)
-                        copy_stack_trace(old_output, cpu)
-                    return on_cpu
-            return False
-
-        local_opt.__name__ = maker.__name__
-        return local_optimizer(OP)(local_opt)
-
-    return f
 
 
 class InputToGpuOptimizer(Optimizer):
@@ -409,7 +246,6 @@ class InputToGpuOptimizer(Optimizer):
                     raise
                 # If there is no context tag and no default context
                 # then it stays on the CPU
-                pass
 
 
 gpu_seqopt.register(
@@ -648,7 +484,7 @@ class GraphToGPU(Optimizer):
             for (t, o) in not_used[::-1]:
                 if t > 0:
                     # Skip opt that have 0 times, they probably wasn't even tried.
-                    print(blanc + "  ", "  %.3fs - %s" % (t, o), file=stream)
+                    print(blanc + "  ", "  {:.3f}s - {}".format(t, o), file=stream)
             print(file=stream)
 
     @staticmethod
@@ -1669,12 +1505,14 @@ def local_gpua_assert_graph(op, context_name, inputs, outputs):
 @op_lifter([ConvOp])
 @register_opt2([ConvOp], "fast_compile")
 def local_gpua_error_convop(op, context_name, inputs, outputs):
-    assert False, """
+    raise AssertionError(
+        """
 ConvOp does not work with the gpuarray backend.
 
 Use the new convolution interface to have GPU convolution working:
 theano.tensor.nnet.conv2d()
 """
+    )
 
 
 @register_opt("fast_compile")
@@ -2344,7 +2182,7 @@ def local_abstractconv3d_gradinputs_gemm_alt(node):
 
 class ConvMetaOptimizer(LocalMetaOptimizer):
     def __init__(self):
-        super(ConvMetaOptimizer, self).__init__()
+        super().__init__()
 
     def time_call(self, fn):
         start = time.time()
@@ -2505,9 +2343,6 @@ def local_gpu_pool(op, ctx_name, inputs, outputs):
         return unpad_dims(ret_padded, inp, 2, nd)
 
 
-pool_db = LocalGroupDB()
-pool_db2 = LocalGroupDB(local_opt=theano.gof.opt.GraphToGPULocalOptGroup)
-pool_db2.__name__ = "pool_db2"
 lifter = op_lifter([pool.Pool])(local_gpu_pool)
 pool_db.register(
     "local_gpu_pool", lifter, "gpuarray", "fast_compile", "fast_run", position=1
@@ -2901,10 +2736,6 @@ def local_gpu_cholesky(op, context_name, inputs, outputs):
     return op
 
 
-matrix_ops_db = LocalGroupDB()
-matrix_ops_db2 = LocalGroupDB(local_opt=theano.gof.opt.GraphToGPULocalOptGroup)
-matrix_ops_db2.__name__ = "matrix_ops_db2"
-
 # For Cholesky decomposition, magma 2.2 is slower than cusolver 8 (tested for
 # matrices of size 1000). Thus, cusolver is prioritized during graph
 # optimizations. To explicitly use magma, you should disable cusolver using
@@ -3092,24 +2923,6 @@ optdb.register(
     "scan",
 )
 
-
-# Register GPU convolution implementation
-# They are tried in a specific order so we can control
-# which ones take precedence over others.
-abstractconv_groupopt = theano.gof.optdb.LocalGroupDB()
-abstractconv_groupopt.__name__ = "gpuarray_abstractconv_opts"
-register_opt("fast_compile")(abstractconv_groupopt)
-
-# We import these opts here instead of at the top of this file
-# to avoid a circular dependency problem with dnn
-from .dnn import (  # noqa: E402
-    local_abstractconv_cudnn,
-    local_abstractconv_gw_cudnn,
-    local_abstractconv_gi_cudnn,
-    local_abstractconv_cudnn_alt,
-    local_abstractconv3d_cudnn_alt,
-)
-
 abstractconv_groupopt.register(
     "local_abstractconv_dnn",
     local_abstractconv_cudnn,
@@ -3238,19 +3051,15 @@ abstractconv_groupopt.register("conv_metaopt", conv_metaopt, "conv_meta", positi
 
 # We import these opts here instead of at the top of this file
 # to avoid a circular dependency problem with dnn
-from .dnn import (  # noqa: E402
+from theano.gpuarray.dnn import (  # noqa: E402
+    local_abstract_batch_norm_inference_cudnn,
     local_abstract_batch_norm_train_cudnn,
     local_abstract_batch_norm_train_grad_cudnn,
-    local_abstract_batch_norm_inference_cudnn,
 )
 
-abstract_batch_norm_groupopt = theano.gof.optdb.LocalGroupDB()
-abstract_batch_norm_groupopt.__name__ = "gpuarray_batchnorm_opts"
+
 register_opt("fast_compile")(abstract_batch_norm_groupopt)
 
-abstract_batch_norm_db = LocalGroupDB()
-abstract_batch_norm_db2 = LocalGroupDB(local_opt=theano.gof.opt.GraphToGPULocalOptGroup)
-abstract_batch_norm_db2.__name__ = "abstract_batch_norm_db2"
 register_opt("fast_compile", name="abstract_batch_norm_db")(abstract_batch_norm_db)
 register_opt2(
     [

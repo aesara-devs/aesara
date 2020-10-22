@@ -10,12 +10,12 @@
 import os
 import sys
 import time
+from optparse import OptionParser
 
 import numpy as np
+
 import theano
 import theano.tensor as tt
-
-from optparse import OptionParser
 
 
 def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order="C"):
@@ -293,7 +293,7 @@ if __name__ == "__main__":
         print("(%d, %d) and (%d, %d)." % (M, N, N, K))
 
         print()
-        print("Total execution time: %.2fs on %s." % (t, impl))
+        print("Total execution time: {:.2f}s on {}.".format(t, impl))
         print()
         print(
             "Try to run this script a few times. Experience shows that"

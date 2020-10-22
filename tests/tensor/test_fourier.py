@@ -1,13 +1,10 @@
+import numpy as np
 import pytest
 
-import numpy as np
-
 import theano
-
+from tests import unittest_tools as utt
 from theano import tensor
 from theano.tensor.fourier import Fourier, fft
-
-from tests import unittest_tools as utt
 
 
 class TestFourier(utt.InferShapeTester):
@@ -15,7 +12,7 @@ class TestFourier(utt.InferShapeTester):
     rng = np.random.RandomState(43)
 
     def setup_method(self):
-        super(TestFourier, self).setup_method()
+        super().setup_method()
         self.op_class = Fourier
         self.op = fft
 

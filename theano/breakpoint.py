@@ -2,8 +2,7 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
-
-from theano.gof import Op, Apply
+from theano.gof import Apply, Op
 from theano.gradient import DisconnectedType
 
 

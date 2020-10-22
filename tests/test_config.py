@@ -2,7 +2,7 @@
 Test config options.
 """
 
-from theano.configparser import AddConfigVar, ConfigParam, THEANO_FLAGS_DICT
+from theano.configparser import THEANO_FLAGS_DICT, AddConfigVar, ConfigParam
 
 
 class TestConfig:
@@ -25,7 +25,7 @@ class TestConfig:
                 configparam=ConfigParam("invalid", filter=filter),
                 in_c_key=False,
             )
-            assert False
+            raise AssertionError()
         except ValueError:
             pass
 

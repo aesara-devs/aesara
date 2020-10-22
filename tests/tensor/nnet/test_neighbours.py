@@ -1,13 +1,11 @@
-import pytest
 import numpy as np
+import pytest
+
 import theano
 import theano.tensor as tt
-
-from theano import change_flags
-from theano import shared, function
-from theano.tensor.nnet.neighbours import images2neibs, neibs2images, Images2Neibs
-
 from tests import unittest_tools
+from theano import change_flags, function, shared
+from theano.tensor.nnet.neighbours import Images2Neibs, images2neibs, neibs2images
 
 
 mode_without_gpu = theano.compile.mode.get_default_mode().excluding("gpu")

@@ -4,26 +4,21 @@ They all allow different way to print a graph or the result of an Op
 in a graph(Print Op)
 """
 
+import hashlib
 import logging
 import os
 import sys
-import hashlib
-
-import numpy as np
-
-import theano
-
+from copy import copy
 from functools import reduce
 
-from copy import copy
-
-from six import string_types, integer_types
+import numpy as np
 from six.moves import StringIO
 
-from theano import gof
-from theano import config
-from theano.gof import Op, Apply
-from theano.compile import Function, debugmode, SharedVariable
+import theano
+from theano import config, gof
+from theano.compile import Function, SharedVariable, debugmode
+from theano.gof import Apply, Op
+
 
 pydot_imported = False
 pydot_imported_msg = ""
@@ -59,7 +54,7 @@ except ImportError:
 
 
 _logger = logging.getLogger("theano.printing")
-VALID_ASSOC = set(["left", "right", "either"])
+VALID_ASSOC = {"left", "right", "either"}
 
 
 def debugprint(
@@ -125,7 +120,7 @@ def debugprint(
     to the Apply's identifier, to indicate which output a line corresponds to.
 
     """
-    if not isinstance(depth, integer_types):
+    if not isinstance(depth, int):
         raise Exception("depth parameter must be an int")
     if file == "str":
         _file = StringIO()
@@ -172,7 +167,7 @@ def debugprint(
             smap.extend([getattr(obj, "storage_map", None) for item in obj.outputs])
             topo = obj.toposort()
             order.extend([topo for item in obj.outputs])
-        elif isinstance(obj, (integer_types, float, np.ndarray)):
+        elif isinstance(obj, (int, float, np.ndarray)):
             print(obj, file=_file)
         elif isinstance(obj, (theano.In, theano.Out)):
             results_to_print.append(obj.variable)
@@ -243,14 +238,10 @@ N.B.:
             else:
                 inner_inputs = s.owner.op.inputs
             outer_inputs = s.owner.inputs
-            inner_to_outer_inputs = dict(
-                [
-                    (inner_inputs[i], outer_inputs[o])
-                    for i, o in s.owner.op.var_mappings[
-                        "outer_inp_from_inner_inp"
-                    ].items()
-                ]
-            )
+            inner_to_outer_inputs = {
+                inner_inputs[i]: outer_inputs[o]
+                for i, o in s.owner.op.var_mappings["outer_inp_from_inner_inp"].items()
+            }
 
             print("", file=_file)
             debugmode.debugprint(
@@ -444,7 +435,7 @@ class PatternPrinter:
     def __init__(self, *patterns):
         self.patterns = []
         for pattern in patterns:
-            if isinstance(pattern, string_types):
+            if isinstance(pattern, str):
                 self.patterns.append((pattern, ()))
             else:
                 self.patterns.append((pattern[0], pattern[1:]))
@@ -473,13 +464,13 @@ class PatternPrinter:
 
             return r
 
-        d = dict(
-            (str(i), x)
+        d = {
+            str(i): x
             for i, x in enumerate(
                 pp_process(input, precedence)
                 for input, precedence in zip(node.inputs, precedences)
             )
-        )
+        }
         r = pattern % d
         pstate.memo[output] = r
         return r
@@ -505,7 +496,7 @@ class FunctionPrinter:
         try:
             old_precedence = getattr(pstate, "precedence", None)
             pstate.precedence = new_precedence
-            r = "%s(%s)" % (
+            r = "{}({})".format(
                 name,
                 ", ".join([pprinter.process(input, pstate) for input in node.inputs]),
             )
@@ -560,7 +551,7 @@ class DefaultPrinter:
         try:
             old_precedence = getattr(pstate, "precedence", None)
             pstate.precedence = new_precedence
-            r = "%s(%s)" % (
+            r = "{}({})".format(
                 str(node.op),
                 ", ".join([pprinter.process(input, pstate) for input in node.inputs]),
             )
@@ -628,7 +619,7 @@ class PPrinter:
         pprinter = self.clone_assign(
             lambda pstate, r: r.name is not None and r is not current, leaf_printer
         )
-        inv_updates = dict((b, a) for (a, b) in updates.items())
+        inv_updates = {b: a for (a, b) in updates.items()}
         i = 1
         for node in gof.graph.io_toposort(
             list(inputs) + updates.keys(), list(outputs) + updates.values()
@@ -637,7 +628,7 @@ class PPrinter:
                 if output in inv_updates:
                     name = str(inv_updates[output])
                     strings.append(
-                        (i + 1000, "%s <- %s" % (name, pprinter.process(output)))
+                        (i + 1000, "{} <- {}".format(name, pprinter.process(output)))
                     )
                     i += 1
                 if output.name is not None or output in outputs:
@@ -657,7 +648,7 @@ class PPrinter:
                         strings.append((idx, "return %s" % pprinter.process(output)))
                     else:
                         strings.append(
-                            (idx, "%s = %s" % (name, pprinter.process(output)))
+                            (idx, "{} = {}".format(name, pprinter.process(output)))
                         )
                     i += 1
         strings.sort()
@@ -905,7 +896,7 @@ def pydotprint(
             dstr = "val=" + str(np.asarray(var.data))
             if "\n" in dstr:
                 dstr = dstr[: dstr.index("\n")]
-            varstr = "%s %s" % (dstr, str(var.type))
+            varstr = "{} {}".format(dstr, str(var.type))
         elif var in input_update and input_update[var].name is not None:
             varstr = input_update[var].name
             if not var_with_name_simple:
@@ -937,7 +928,7 @@ def pydotprint(
                 pf = 0
             else:
                 pf = time * 100 / profile.fct_call_time
-            prof_str = "   (%.3fs,%.3f%%)" % (time, pf)
+            prof_str = "   ({:.3f}s,{:.3f}%)".format(time, pf)
         applystr = str(node.op).replace(":", "_")
         applystr += prof_str
         if (applystr in all_strings) or with_ids:
@@ -1345,7 +1336,7 @@ def var_descriptor(obj, _prev_obs=None, _tag_generator=None):
             name = position_independent_str(obj)
             if " at 0x" in name:
                 print(name)
-                assert False
+                raise AssertionError()
 
     prefix = cur_tag + "="
 

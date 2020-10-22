@@ -1,10 +1,13 @@
 #!/bin/env python
 # Import smtplib for the actual sending function
 
-import smtplib
 import os.path
+import smtplib
 import sys
+
 from theano.misc.buildbot_filter import filter_output
+
+
 # me == the sender's email address
 # family = the list of all recipients' email addresses
 family=['theano-buildbot@googlegroups.com']
@@ -33,9 +36,11 @@ else:
     files=[os.path.join('/tmp', x) for x in files]
 print('path', files)
 
+from email.mime.multipart import MIMEMultipart
+
 # Here are the email package modules we'll need
 from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+
 
 COMMASPACE = ', '
 

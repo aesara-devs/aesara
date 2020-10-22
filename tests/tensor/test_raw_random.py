@@ -1,28 +1,26 @@
 import pickle
 
 import numpy as np
-
 import pytest
 
 import theano
-
-from theano import tensor, compile, config
+from tests import unittest_tools as utt
+from theano import compile, config, tensor
+from theano.tensor import dcol, dvector, ivector, raw_random
 from theano.tensor.raw_random import (
     RandomFunction,
-    random_state_type,
-    uniform,
-    poisson,
-    normal,
     binomial,
     choice,
-    random_integers,
     multinomial,
+    normal,
     permutation,
     permutation_helper,
+    poisson,
+    random_integers,
+    random_state_type,
+    uniform,
 )
-from theano.tensor import raw_random, ivector, dvector, dcol
 
-from tests import unittest_tools as utt
 
 __docformat__ = "restructuredtext en"
 

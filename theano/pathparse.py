@@ -2,7 +2,7 @@ import os
 import sys
 
 
-class PathParser(object):
+class PathParser:
     """
     Class that allows to modify system's PATH environment variable
     at runtime. Currently used in ``theano.gpuarray.dnn`` module

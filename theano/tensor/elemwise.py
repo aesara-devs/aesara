@@ -3,20 +3,15 @@ from copy import copy
 import numpy as np
 
 import theano
-
-from six import integer_types
-
-from theano import gof
-
-from theano import change_flags
-from theano.gof import Apply, Op, COp, OpenMPOp, ParamsType
-from theano import scalar
-from theano.scalar import get_scalar_type
-from theano.printing import pprint
-from theano.gradient import DisconnectedType
+from theano import change_flags, gof, scalar
+from theano.gof import Apply, COp, Op, OpenMPOp, ParamsType
 from theano.gof.null_type import NullType
-from theano.tensor import elemwise_cgen as cgen
+from theano.gradient import DisconnectedType
 from theano.misc.frozendict import frozendict
+from theano.printing import pprint
+from theano.scalar import get_scalar_type
+from theano.tensor import elemwise_cgen as cgen
+
 
 config = theano.config
 
@@ -179,7 +174,7 @@ class DimShuffle(COp):
                 # isinstance(x, integer_types) returning False for
                 # numpy integers.  See
                 # <http://projects.scipy.org/numpy/ticket/2235>.
-                if not isinstance(j, (integer_types, np.integer)):
+                if not isinstance(j, (int, np.integer)):
                     raise TypeError(
                         "DimShuffle indices must be python ints. "
                         "Got: '%s' of type '%s'.",
@@ -236,20 +231,16 @@ class DimShuffle(COp):
         if not ib == self.input_broadcastable:
             if len(ib) != len(self.input_broadcastable):
                 raise TypeError(
-                    (
-                        "The number of dimensions of the "
-                        "input is incorrect for this op. Expected %s, got %s."
-                        % (self.input_broadcastable, ib)
-                    )
+                    "The number of dimensions of the "
+                    "input is incorrect for this op. Expected %s, got %s."
+                    % (self.input_broadcastable, ib)
                 )
             for expected, b in zip(self.input_broadcastable, ib):
                 if expected is True and b is False:
                     raise TypeError(
-                        (
-                            "The broadcastable pattern of the "
-                            "input is incorrect for this op. Expected %s, got %s."
-                            % (self.input_broadcastable, ib)
-                        )
+                        "The broadcastable pattern of the "
+                        "input is incorrect for this op. Expected %s, got %s."
+                        % (self.input_broadcastable, ib)
                     )
                 # else, expected == b or expected is False and b is True
                 # Both case are good.
@@ -339,7 +330,7 @@ class DimShufflePrinter:
             return pstate.pprinter.process(r)
         if list(new_order) == list(reversed(range(r.type.ndim))):
             return "%s.T" % pstate.pprinter.process(r)
-        return "DimShuffle{%s}(%s)" % (
+        return "DimShuffle{{{}}}({})".format(
             ", ".join(map(str, new_order)),
             pstate.pprinter.process(r),
         )
@@ -421,13 +412,13 @@ second dimension
         self.name = name
         self.scalar_op = scalar_op
         self.inplace_pattern = inplace_pattern
-        self.destroy_map = dict((o, [i]) for o, i in self.inplace_pattern.items())
+        self.destroy_map = {o: [i] for o, i in self.inplace_pattern.items()}
 
         if nfunc_spec is None:
             nfunc_spec = getattr(scalar_op, "nfunc_spec", None)
         self.nfunc_spec = nfunc_spec
         self.__setstate__(self.__dict__)
-        super(Elemwise, self).__init__(openmp=openmp)
+        super().__init__(openmp=openmp)
 
     def __getstate__(self):
         d = copy(self.__dict__)
@@ -437,7 +428,7 @@ second dimension
         return d
 
     def __setstate__(self, d):
-        super(Elemwise, self).__setstate__(d)
+        super().__setstate__(d)
         self.ufunc = None
         self.nfunc = None
         self.inplace_pattern = frozendict(self.inplace_pattern)
@@ -532,7 +523,7 @@ second dimension
             if self.inplace_pattern:
                 items = list(self.inplace_pattern.items())
                 items.sort()
-                return "Elemwise{%s}%s" % (self.scalar_op, str(items))
+                return "Elemwise{{{}}}{}".format(self.scalar_op, str(items))
             else:
                 return "Elemwise{%s}" % (self.scalar_op)
         else:
@@ -770,7 +761,7 @@ second dimension
             # ValueError, if the number of inputs to a ufunc is 32 or more.
             # In that case, the C version should be used, or Elemwise fusion
             # should be disabled.
-            super(Elemwise, self).perform(node, inputs, output_storage)
+            super().perform(node, inputs, output_storage)
 
         for dims in zip(
             *[
@@ -937,12 +928,9 @@ second dimension
         # The destroy map is a map of output indices to input indices
         # that overwrite them.  We just convert them to the actual
         # Variables.
-        dmap = dict(
-            [
-                (node.outputs[o], [node.inputs[i]])
-                for o, i in self.inplace_pattern.items()
-            ]
-        )
+        dmap = {
+            node.outputs[o]: [node.inputs[i]] for o, i in self.inplace_pattern.items()
+        }
 
         # dtypes of the inputs
         idtypes = [input.type.dtype_specs()[1] for input in inputs]
@@ -1095,7 +1083,7 @@ second dimension
                 # No loops
                 task_decl = "".join(
                     [
-                        "%s& %s_i = *%s_iter;\n" % (dtype, name, name)
+                        "{}& {}_i = *{}_iter;\n".format(dtype, name, name)
                         for name, dtype in zip(
                             inames + list(real_onames), idtypes + list(real_odtypes)
                         )
@@ -1256,7 +1244,7 @@ second dimension
             getattr(self.scalar_op, "inner_float16", False)
         ):
             # Disable C code for float16 vars
-            super(Elemwise, self).c_code(node, nodename, inames, onames, sub)
+            super().c_code(node, nodename, inames, onames, sub)
         code = "\n".join(self._c_all(node, nodename, inames, onames, sub))
         return code
 
@@ -1357,7 +1345,7 @@ class CAReduce(Op):
     def __init__(self, scalar_op, axis=None):
         if scalar_op.nin not in [-1, 2] or scalar_op.nout != 1:
             raise NotImplementedError(
-                ("CAReduce only supports binary functions with a single " "output.")
+                "CAReduce only supports binary functions with a single " "output."
             )
         self.scalar_op = scalar_op
 
@@ -1366,12 +1354,12 @@ class CAReduce(Op):
         # There is a bug in numpy that results in isinstance(x,
         # integer_types) returning False for numpy integers.  See
         # <http://projects.scipy.org/numpy/ticket/2235>.
-        elif isinstance(axis, (integer_types, np.integer)):
+        elif isinstance(axis, (int, np.integer)):
             self.axis = (axis,)
         elif isinstance(axis, np.ndarray) and axis.ndim == 0:
             self.axis = (int(axis),)
         else:
-            self.axis = list(set(int(a) for a in axis))
+            self.axis = list({int(a) for a in axis})
             self.axis.sort()
             self.axis = tuple(self.axis)
 
@@ -1412,10 +1400,8 @@ class CAReduce(Op):
                     axis < 0 and abs(axis) > input.type.ndim
                 ):
                     raise ValueError(
-                        (
-                            "Not enough dimensions on %s to reduce on axis %s"
-                            % (input, axis)
-                        )
+                        "Not enough dimensions on %s to reduce on axis %s"
+                        % (input, axis)
                     )
         input = as_tensor_variable(input)
         axis = self.axis
@@ -1456,7 +1442,7 @@ class CAReduce(Op):
 
     def __str__(self):
         if self.axis is not None:
-            return "Reduce{%s}{%s}" % (
+            return "Reduce{{{}}}{{{}}}".format(
                 self.scalar_op,
                 ", ".join(str(x) for x in self.axis),
             )
@@ -1490,11 +1476,9 @@ class CAReduce(Op):
                         variable.fill(self.scalar_op.identity)
                     else:
                         raise ValueError(
-                            (
-                                "Input (%s) has zero-size on axis %s, but "
-                                "self.scalar_op (%s) has no attribute 'identity'"
-                                % (variable, dimension, self.scalar_op)
-                            )
+                            "Input (%s) has zero-size on axis %s, but "
+                            "self.scalar_op (%s) has no attribute 'identity'"
+                            % (variable, dimension, self.scalar_op)
                         )
                 else:
                     variable = self.ufunc.reduce(variable, dimension, dtype=acc_dtype)
@@ -1779,7 +1763,7 @@ class All(CAReduce):
         input = as_tensor_variable(input)
         if input.dtype != "bool":
             input = theano.tensor.neq(input, 0)
-        ret = super(All, self).make_node(input)
+        ret = super().make_node(input)
         return ret
 
     def grad(self, inp, grads):
@@ -1812,7 +1796,7 @@ class Any(CAReduce):
         input = as_tensor_variable(input)
         if input.dtype != "bool":
             input = theano.tensor.neq(input, 0)
-        ret = super(Any, self).make_node(input)
+        ret = super().make_node(input)
         return ret
 
     def grad(self, inp, grads):
@@ -1881,7 +1865,7 @@ class CAReduceDtype(CAReduce):
         self.acc_dtype = acc_dtype
 
     def __setstate__(self, d):
-        super(CAReduceDtype, self).__setstate__(d)
+        super().__setstate__(d)
         if not hasattr(self, "dtype"):
             # This is needed as old pickled will crash otherwise.
             # We need to keep the old dtype behavior as the op
@@ -1989,7 +1973,7 @@ class CAReduceDtype(CAReduce):
         if self.axis is not None:
             axis = ", ".join(str(x) for x in self.axis)
             axis = "axis=[%s], " % axis
-        return "%s{%sacc_dtype=%s}" % (name, axis, str(self.acc_dtype))
+        return "{}{{{}acc_dtype={}}}".format(name, axis, str(self.acc_dtype))
 
 
 class Sum(CAReduceDtype):
@@ -2042,7 +2026,7 @@ class Sum(CAReduceDtype):
         if self.axis is not None:
             axis = ", ".join(str(x) for x in self.axis)
             axis = "axis=[%s], " % axis
-        return "%s{%sacc_dtype=%s}" % (name, axis, str(self.acc_dtype))
+        return "{}{{{}acc_dtype={}}}".format(name, axis, str(self.acc_dtype))
 
     def L_op(self, inp, out, grads):
         (x,) = inp
@@ -2097,7 +2081,7 @@ class Prod(CAReduceDtype):
         self.no_zeros_in_input = no_zeros_in_input
 
     def __setstate__(self, dct):
-        super(Prod, self).__setstate__(dct)
+        super().__setstate__(dct)
         # Add default value to be able to reload old pickled objects.
         if "no_zeros_in_input" not in dct:
             self.no_zeros_in_input = False

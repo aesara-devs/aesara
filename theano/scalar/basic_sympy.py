@@ -1,11 +1,12 @@
 import itertools as it
 
-from theano.scalar.basic import Apply, ScalarOp, as_scalar, float64, float32, int64
 from theano.gof.utils import remove
+from theano.scalar.basic import Apply, ScalarOp, as_scalar, float32, float64, int64
+
 
 imported_sympy = False
 try:
-    from sympy.utilities.codegen import get_default_datatype, codegen
+    from sympy.utilities.codegen import codegen, get_default_datatype
 
     imported_sympy = True
 except ImportError:

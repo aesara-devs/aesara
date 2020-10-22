@@ -6,13 +6,11 @@ import numpy as np
 import pytest
 
 import theano
-
-
+from tests import unittest_tools as utt
 from theano import change_flags, config, tensor
 from theano.sandbox import rng_mrg
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 
-from tests import unittest_tools as utt
 
 # TODO: test MRG_RandomStreams
 # Partly done in test_consistency_randomstreams
@@ -219,7 +217,9 @@ def check_basics(
     if hasattr(target_avg, "shape"):  # looks if target_avg is an array
         diff = np.mean(abs(mean - target_avg))
         # print prefix, 'mean diff with mean', diff
-        assert np.all(diff < mean_rtol * (1 + abs(target_avg))), "bad mean? %s %s" % (
+        assert np.all(
+            diff < mean_rtol * (1 + abs(target_avg))
+        ), "bad mean? {} {}".format(
             mean,
             target_avg,
         )
@@ -230,7 +230,7 @@ def check_basics(
         # print prefix, 'mean', mean
         assert abs(mean - target_avg) < mean_rtol * (
             1 + abs(target_avg)
-        ), "bad mean? %f %f" % (mean, target_avg)
+        ), "bad mean? {:f} {:f}".format(mean, target_avg)
 
     std = np.sqrt(avg_var)
     # print prefix, 'var', avg_var
@@ -238,7 +238,7 @@ def check_basics(
     if target_std is not None:
         assert abs(std - target_std) < std_tol * (
             1 + abs(target_std)
-        ), "bad std? %f %f %f" % (std, target_std, std_tol)
+        ), "bad std? {:f} {:f} {:f}".format(std, target_std, std_tol)
     # print prefix, 'time', dt
     # print prefix, 'elements', steps * sample_size[0] * sample_size[1]
     # print prefix, 'samples/sec', steps * sample_size[0] * sample_size[1] / dt
@@ -600,11 +600,11 @@ def test_normal_truncation():
 
         # check if truncated at 2*std
         samples = f(*input)
-        assert np.all(avg + 2 * std - samples >= 0), "bad upper bound? %s %s" % (
+        assert np.all(avg + 2 * std - samples >= 0), "bad upper bound? {} {}".format(
             samples,
             avg + 2 * std,
         )
-        assert np.all(samples - (avg - 2 * std) >= 0), "bad lower bound? %s %s" % (
+        assert np.all(samples - (avg - 2 * std) >= 0), "bad lower bound? {} {}".format(
             samples,
             avg - 2 * std,
         )

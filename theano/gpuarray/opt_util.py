@@ -2,13 +2,38 @@ from functools import wraps
 
 import numpy as np
 
-from theano import tensor, scalar as scal, Constant
+from theano import Constant
+from theano import scalar as scal
+from theano import tensor
 from theano.gof import local_optimizer
-from theano.gof.opt import inherit_stack_trace
-from theano.tensor import DimShuffle, get_scalar_constant_value, NotScalarConstantError
+from theano.gof.op import Op
+from theano.gof.opt import copy_stack_trace, inherit_stack_trace
+from theano.gpuarray.basic_ops import (
+    GpuAllocEmpty,
+    GpuFromHost,
+    GpuReshape,
+    HostFromGpu,
+    host_from_gpu,
+)
+from theano.gpuarray.elemwise import GpuDimShuffle, GpuElemwise
+from theano.gpuarray.type import GpuArrayType, get_context, move_to_gpu
+from theano.tensor import DimShuffle, NotScalarConstantError, get_scalar_constant_value
 
-from .basic_ops import GpuFromHost, HostFromGpu, GpuAllocEmpty, GpuReshape
-from .elemwise import GpuDimShuffle, GpuElemwise
+
+# Define a few operations to use in optimizations,
+# in order to avoid introducin new CPU Ops, or useless ones.
+def safe_to_gpu(x, ctx_name):
+    if isinstance(x.type, tensor.TensorType):
+        return GpuFromHost(ctx_name)(x)
+    else:
+        return x
+
+
+def safe_to_cpu(x):
+    if isinstance(x.type, GpuArrayType):
+        return x.transfer("cpu")
+    else:
+        return x
 
 
 def grab_cpu_scalar(v, nd):
@@ -420,3 +445,84 @@ def unpad_dims(output, input, leftdims, rightdims):
     # restore the output to the original shape
     outshp = tensor.join(0, input.shape[:-rightdims], output.shape[-rightdims:])
     return GpuReshape(input.ndim)(output, outshp)
+
+
+def op_lifter(OP, cuda_only=False):
+    """
+    OP(..., host_from_gpu(), ...) -> host_from_gpu(GpuOP(...))
+
+    gpu_from_host(OP(inp0, ...)) -> GpuOP(inp0, ...)
+
+    """
+
+    def f(maker):
+        def local_opt(node):
+            if type(node.op) in OP:
+                # Either one of our inputs is on the gpu or
+                # all of our clients are on the gpu
+                replace = False
+                # TODO: Maybe set context_name with infer_context_name()?
+                context_name = None
+                # We replace if any input is a host_from_gpu
+                for i in node.inputs:
+                    if i.owner and i.owner.op == host_from_gpu and move_to_gpu(i):
+                        context_name = i.owner.inputs[0].type.context_name
+                        replace = True
+                        break
+
+                if not replace:
+                    # We replace if *all* clients are on the GPU
+                    clients = [c for o in node.outputs for c in o.clients]
+                    replace = len(clients) != 0
+                    for c, idx in clients:
+                        if c == "output" or not isinstance(c.op, GpuFromHost):
+                            replace = False
+                    # TODO: check that the clients want the same context?
+                    if replace:
+                        # All clients are GpuFromHost and we have at least one
+                        context_name = clients[0][0].op.context_name
+
+                # Check if we should replace
+                if (
+                    not replace
+                    or (cuda_only and get_context(context_name).kind != b"cuda")
+                    or any(["complex" in getattr(i, "dtype", "") for i in node.inputs])
+                ):
+                    return False
+
+                # tag the inputs with the context in case
+                # the context was derived from the outputs
+                for i in node.inputs:
+                    i.tag.context_name = context_name
+
+                new_op = maker(node.op, context_name, node.inputs, node.outputs)
+
+                # This is needed as sometimes new_op inherits from OP.
+                if new_op and new_op != node.op:
+                    if isinstance(new_op, Op):
+                        new_outputs = new_op(*node.inputs, return_list=True)
+                        to_cpu_fn = safe_to_cpu
+                    elif isinstance(new_op, (tuple, list)):
+                        new_outputs = new_op
+                        to_cpu_fn = safe_to_cpu
+                    else:  # suppose it is a variable on the GPU
+                        new_outputs = [new_op]
+
+                        def to_cpu_fn(x):
+                            return x.transfer("cpu")
+
+                    # copy stack traces onto gpu outputs
+                    # also copy the stack traces onto HostFromGpu outputs
+                    on_cpu = []
+                    for old_output, new_output in zip(node.outputs, new_outputs):
+                        copy_stack_trace(old_output, new_output)
+                        cpu = to_cpu_fn(new_output)
+                        on_cpu.append(cpu)
+                        copy_stack_trace(old_output, cpu)
+                    return on_cpu
+            return False
+
+        local_opt.__name__ = maker.__name__
+        return local_optimizer(OP)(local_opt)
+
+    return f

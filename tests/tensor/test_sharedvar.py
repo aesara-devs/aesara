@@ -1,18 +1,15 @@
-import pytest
-
-import six
+from functools import update_wrapper
 
 import numpy as np
+import pytest
+import six
 
 import theano
 import theano.sparse
-
-from functools import update_wrapper
-
+from tests import unittest_tools as utt
 from theano import tensor
 from theano.misc.may_share_memory import may_share_memory
 
-from tests import unittest_tools as utt
 
 utt.seed_rng()
 
@@ -696,10 +693,10 @@ def makeSharedTester(
     internal_type_=np.ndarray,
     check_internal_type_=lambda a: isinstance(a, np.ndarray),
     theano_fct_=lambda a: a * 2,
-    ref_fct_=lambda a: np.asarray((a * 2)),
+    ref_fct_=lambda a: np.asarray(a * 2),
     cast_value_=np.asarray,
 )
-class TestSharedOptions(object):
+class TestSharedOptions:
     pass
 
 

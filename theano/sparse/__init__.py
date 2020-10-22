@@ -1,5 +1,6 @@
 import sys
 
+
 try:
     import scipy
 
@@ -19,8 +20,8 @@ except ImportError:
 
 from theano.sparse.type import *
 
+
 if enable_sparse:
+    from theano.sparse import opt, sharedvar
     from theano.sparse.basic import *
-    from theano.sparse import opt
-    from theano.sparse import sharedvar
     from theano.sparse.sharedvar import sparse_constructor as shared

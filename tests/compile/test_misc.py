@@ -1,23 +1,28 @@
 import numpy as np
 
+from theano import tensor
 from theano.compile.pfunc import pfunc
 from theano.compile.sharedvalue import shared
-from theano import tensor
 from theano.tensor.nnet import sigmoid
 
 
-class NNet(object):
+class NNet:
     def __init__(
         self,
-        input=tensor.dvector("input"),
-        target=tensor.dvector("target"),
+        input=None,
+        target=None,
         n_input=1,
         n_hidden=1,
         n_output=1,
         lr=1e-3,
         **kw,
     ):
-        super(NNet, self).__init__(**kw)
+        super().__init__(**kw)
+
+        if input is None:
+            input = tensor.dvector("input")
+        if target is None:
+            target = tensor.dvector("target")
 
         self.input = input
         self.target = target
@@ -46,21 +51,20 @@ class NNet(object):
         self.output_from_hidden = pfunc([self.hidden], self.output)
 
 
-class TestNnet:
-    def test_nnet(self):
-        rng = np.random.RandomState(1827)
-        data = rng.rand(10, 4)
-        nnet = NNet(n_input=3, n_hidden=10)
-        for epoch in range(3):
-            mean_cost = 0
-            for x in data:
-                input = x[0:3]
-                target = x[3:]
-                output, cost = nnet.sgd_step(input, target)
-                mean_cost += cost
-            mean_cost /= float(len(data))
-            # print 'Mean cost at epoch %s: %s' % (epoch, mean_cost)
-        assert abs(mean_cost - 0.20588975452) < 1e-6
-        # Just call functions to make sure they do not crash.
-        nnet.compute_output(input)
-        nnet.output_from_hidden(np.ones(10))
+def test_nnet():
+    rng = np.random.RandomState(1827)
+    data = rng.rand(10, 4)
+    nnet = NNet(n_input=3, n_hidden=10)
+    for epoch in range(3):
+        mean_cost = 0
+        for x in data:
+            input = x[0:3]
+            target = x[3:]
+            output, cost = nnet.sgd_step(input, target)
+            mean_cost += cost
+        mean_cost /= float(len(data))
+        # print 'Mean cost at epoch %s: %s' % (epoch, mean_cost)
+    assert abs(mean_cost - 0.20588975452) < 1e-6
+    # Just call functions to make sure they do not crash.
+    nnet.compute_output(input)
+    nnet.output_from_hidden(np.ones(10))

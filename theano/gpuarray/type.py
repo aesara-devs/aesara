@@ -1,17 +1,16 @@
-import sys
 import os
+import sys
 import warnings
 
+import numpy as np
 import six.moves.copyreg as copyreg
 
-import numpy as np
-
 import theano
-
+from theano import Constant, Type, Variable, config, scalar, tensor
+from theano.compile import SharedVariable
 from theano.tensor.type import TensorType
 from theano.tensor.var import _tensor_py_operators
-from theano import Type, Variable, Constant, tensor, config, scalar
-from theano.compile import SharedVariable
+
 
 # Make sure this is importable even if pygpu is absent
 # (it will not work though)
@@ -81,7 +80,7 @@ def reg_context(name, ctx):
 
     """
     if name in _context_reg:
-        raise ValueError("context name %s is already defined" % (name,))
+        raise ValueError("context name {} is already defined".format(name))
     if not isinstance(ctx, gpuarray.GpuContext):
         raise TypeError("context is not GpuContext")
     _context_reg[name] = ctx
@@ -102,7 +101,7 @@ def get_context(name):
 
     """
     if name not in _context_reg:
-        raise ContextNotDefined("context name %s not defined" % (name,))
+        raise ContextNotDefined("context name {} not defined".format(name))
     return _context_reg[name]
 
 
@@ -190,7 +189,9 @@ class GpuArrayType(Type):
             self.typecode = gpuarray.dtype_to_typecode(self.dtype)
         except gpuarray.GpuArrayException:
             raise TypeError(
-                "Unsupported dtype for %s: %s" % (self.__class__.__name__, self.dtype)
+                "Unsupported dtype for {}: {}".format(
+                    self.__class__.__name__, self.dtype
+                )
             )
 
     def clone(self, dtype=None, broadcastable=None):
@@ -234,7 +235,9 @@ class GpuArrayType(Type):
                 bcast = str(b)
             else:
                 bcast = "%iD" % len(b)
-            return "GpuArrayType<%s>(%s, %s)" % (self.context_name, self.dtype, bcast)
+            return "GpuArrayType<{}>({}, {})".format(
+                self.context_name, self.dtype, bcast
+            )
 
     def filter(self, data, strict=False, allow_downcast=None):
         return self.filter_inplace(
@@ -451,7 +454,9 @@ class GpuArrayType(Type):
             }[self.dtype]
         except KeyError:
             raise TypeError(
-                "Unsupported dtype for %s: %s" % (self.__class__.__name__, self.dtype)
+                "Unsupported dtype for {}: {}".format(
+                    self.__class__.__name__, self.dtype
+                )
             )
 
     def get_shape_info(self, obj):
@@ -475,7 +480,7 @@ class GpuArrayType(Type):
         )
 
     def c_init(self, name, sub):
-        return "%s = NULL;" % (name,)
+        return "{} = NULL;".format(name)
 
     def c_extract(self, name, sub, check_input=True):
         # TODO I don't check broadcast stuff for now.
@@ -500,7 +505,7 @@ class GpuArrayType(Type):
         }
 
     def c_cleanup(self, name, sub):
-        return "Py_XDECREF(%(name)s); %(name)s = NULL;" % {"name": name}
+        return "Py_XDECREF({name}); {name} = NULL;".format(name=name)
 
     def c_sync(self, name, sub):
         return """
@@ -915,10 +920,10 @@ class GpuContextType(Type):
         return a == b
 
     def c_declare(self, name, sub, check_input=True):
-        return "PyGpuContextObject *%s;" % (name,)
+        return "PyGpuContextObject *{};".format(name)
 
     def c_init(self, name, sub):
-        return "%s = NULL;" % (name,)
+        return "{} = NULL;".format(name)
 
     def c_extract(self, name, sub, check_input=True):
         if check_input:

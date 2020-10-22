@@ -1,17 +1,15 @@
-import sys
 import linecache
+import sys
 import traceback
 
 import numpy as np
-
-from six import integer_types, string_types, with_metaclass
 from six.moves import StringIO
 
 from theano import config
 from theano.compat import PY3
 
 
-def simple_extract_stack(f=None, limit=None, skips=[]):
+def simple_extract_stack(f=None, limit=None, skips=None):
     """This is traceback.extract_stack from python 2.7 with this change:
 
     - Comment the update of the cache.
@@ -27,6 +25,9 @@ def simple_extract_stack(f=None, limit=None, skips=[]):
         When we find one level that isn't skipped, we stop skipping.
 
     """
+    if skips is None:
+        skips = []
+
     if f is None:
         try:
             raise ZeroDivisionError
@@ -159,8 +160,6 @@ undef = object()
 class TestValueError(Exception):
     """Base exception class for all test value errors."""
 
-    pass
-
 
 class MethodNotDefined(Exception):
     """
@@ -171,8 +170,6 @@ class MethodNotDefined(Exception):
 
     """
 
-    pass
-
 
 class MetaObject(type):
     def __new__(cls, name, bases, dct):
@@ -180,7 +177,7 @@ class MetaObject(type):
         if props is not None:
             if not isinstance(props, tuple):
                 raise TypeError("__props__ has to be a tuple")
-            if not all(isinstance(p, string_types) for p in props):
+            if not all(isinstance(p, str) for p in props):
                 raise TypeError("elements of __props__ have to be strings")
 
             def _props(self):
@@ -199,7 +196,7 @@ class MetaObject(type):
                 least all the original props.
 
                 """
-                return dict([(a, getattr(self, a)) for a in props])
+                return {a: getattr(self, a) for a in props}
 
             dct["_props_dict"] = _props_dict
 
@@ -223,14 +220,16 @@ class MetaObject(type):
                 if len(props) == 0:
 
                     def __str__(self):
-                        return "%s" % (self.__class__.__name__,)
+                        return "{}".format(self.__class__.__name__)
 
                 else:
 
                     def __str__(self):
-                        return "%s{%s}" % (
+                        return "{}{{{}}}".format(
                             self.__class__.__name__,
-                            ", ".join("%s=%r" % (p, getattr(self, p)) for p in props),
+                            ", ".join(
+                                "{}={!r}".format(p, getattr(self, p)) for p in props
+                            ),
                         )
 
                 dct["__str__"] = __str__
@@ -238,14 +237,14 @@ class MetaObject(type):
         return type.__new__(cls, name, bases, dct)
 
 
-class object2(with_metaclass(MetaObject, object)):
+class object2(metaclass=MetaObject):
     __slots__ = []
 
     def __ne__(self, other):
         return not self == other
 
 
-class Scratchpad(object):
+class Scratchpad:
     def clear(self):
         self.__dict__.clear()
 
@@ -262,7 +261,7 @@ class Scratchpad(object):
     def info(self):
         print("<theano.gof.utils.scratchpad instance at %i>" % id(self))
         for k, v in self.__dict__.items():
-            print("  %s: %s" % (k, v))
+            print("  {}: {}".format(k, v))
 
 
 class ValidatingScratchpad(Scratchpad):
@@ -328,7 +327,7 @@ def deprecated(filename, msg=""):
 
         def g(*args, **kwargs):
             if printme[0]:
-                print("WARNING: %s.%s deprecated. %s" % (filename, f.__name__, msg))
+                print("WARNING: {}.{} deprecated. {}".format(filename, f.__name__, msg))
                 printme[0] = False
             return f(*args, **kwargs)
 
@@ -402,7 +401,7 @@ def toposort(prereqs_d):
     for x, prereqs in prereqs_d.items():
         for prereq in prereqs:
             postreqs_d.setdefault(prereq, set()).add(x)
-    next = set([k for k in prereqs_d if not prereqs_d[k]])
+    next = {k for k in prereqs_d if not prereqs_d[k]}
     while next:
         bases = next
         next = set()
@@ -447,7 +446,7 @@ RETRY = Keyword("RETRY", False)
 FAILURE = Keyword("FAILURE", False)
 
 
-simple_types = integer_types + string_types + (float, bool, None.__class__, Keyword)
+simple_types = (int, str, float, bool, type(None), Keyword)
 
 
 ANY_TYPE = Keyword("ANY_TYPE")

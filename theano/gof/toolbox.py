@@ -1,23 +1,16 @@
-import sys
 import copy
-import time
 import inspect
+import sys
+import time
+from collections import OrderedDict
+from functools import partial
 
 import numpy as np
-import theano
-
-from functools import partial
-from collections import OrderedDict
-
 from six.moves import StringIO
 
+import theano
 from theano import config
-from theano.gof.graph import (
-    inputs,
-    io_toposort,
-    equal_computations,
-    variables,
-)
+from theano.gof.graph import equal_computations, inputs, io_toposort, variables
 
 
 class AlreadyThere(Exception):
@@ -28,8 +21,6 @@ class AlreadyThere(Exception):
 
     """
 
-    pass
-
 
 class ReplacementDidntRemovedError(Exception):
     """
@@ -38,8 +29,6 @@ class ReplacementDidntRemovedError(Exception):
     the graph, but the replacement it gived didn't do that.
 
     """
-
-    pass
 
 
 class BadOptimization(Exception):
@@ -110,7 +99,7 @@ class BadOptimization(Exception):
         old_graph=None,
         new_graph=None,
     ):
-        super(BadOptimization, self).__init__()
+        super().__init__()
         self.old_r = old_r
         self.new_r = new_r
         self.old_r_val = old_r_val
@@ -146,7 +135,7 @@ class BadOptimization(Exception):
             return self.full_err
         sio = StringIO()
         val_str_len_limit = 800
-        print("BadOptimization Error", super(BadOptimization, self).__str__(), file=sio)
+        print("BadOptimization Error", super().__str__(), file=sio)
         print("  Variable: id", id(self.new_r), self.new_r, file=sio)
         print("  Op", self.new_r.owner, file=sio)
         print("  Value Type:", type(self.new_r_val), file=sio)
@@ -232,7 +221,7 @@ class BadOptimization(Exception):
         return sio.getvalue()
 
 
-class Feature(object):
+class Feature:
     """
     Base class for FunctionGraph extensions.
 
@@ -473,7 +462,9 @@ class Validator(Feature):
                     r = uf.f_locals.get("r", "")
                     reason = uf_info.function
                     print(
-                        "validate failed on node %s.\n Reason: %s, %s" % (r, reason, e)
+                        "validate failed on node {}.\n Reason: {}, {}".format(
+                            r, reason, e
+                        )
                     )
                 raise
         t1 = time.time()
@@ -585,7 +576,9 @@ class ReplaceValidate(History, Validator):
         except Exception as e:
             fgraph.revert(chk)
             if verbose:
-                print("validate failed on node %s.\n Reason: %s, %s" % (r, reason, e))
+                print(
+                    "validate failed on node {}.\n Reason: {}, {}".format(r, reason, e)
+                )
             raise
         if config.scan.debug:
             scans2 = [
@@ -738,15 +731,15 @@ class PrintListener(Feature):
 
     def on_import(self, fgraph, node, reason):
         if self.active:
-            print("-- importing: %s, reason: %s" % (node, reason))
+            print("-- importing: {}, reason: {}".format(node, reason))
 
     def on_prune(self, fgraph, node, reason):
         if self.active:
-            print("-- pruning: %s, reason: %s" % (node, reason))
+            print("-- pruning: {}, reason: {}".format(node, reason))
 
     def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
         if self.active:
-            print("-- changing (%s.inputs[%s]) from %s to %s" % (node, i, r, new_r))
+            print("-- changing ({}.inputs[{}]) from {} to {}".format(node, i, r, new_r))
 
 
 class PreserveNames(Feature):
@@ -925,9 +918,9 @@ def is_same_graph(var1, var2, givens=None):
         for to_replace, replace_by in givens.items():
             # Map a substitution variable to the computational graphs it
             # belongs to.
-            inside = dict(
-                (v, [in_var(v, k) for k in (1, 2)]) for v in (to_replace, replace_by)
-            )
+            inside = {
+                v: [in_var(v, k) for k in (1, 2)] for v in (to_replace, replace_by)
+            }
             if (
                 inside[to_replace][0]
                 and not inside[to_replace][1]

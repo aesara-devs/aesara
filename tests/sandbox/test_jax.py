@@ -1,9 +1,9 @@
-import pytest
-
 import numpy as np
+import pytest
 
 import theano
 import theano.tensor as tt
+
 
 jax = pytest.importorskip("jax")
 
@@ -21,10 +21,13 @@ def set_theano_flags():
 def compare_jax_and_py(
     fgraph,
     inputs,
-    assert_fn=partial(np.testing.assert_allclose, rtol=1e-4),
+    assert_fn=None,
     simplify=False,
     must_be_device_array=True,
 ):
+    if assert_fn is None:
+        assert_fn = partial(np.testing.assert_allclose, rtol=1e-4)
+
     if not simplify:
         opts = theano.gof.Query(include=[None], exclude=["cxx_only", "BlasOpt"])
         jax_mode = theano.compile.mode.Mode(theano.sandbox.jax_linker.JAXLinker(), opts)
@@ -308,7 +311,7 @@ def test_jax_scan():
     test_input_vals = [np.array(10.0).astype(tt.config.floatX)]
     (jax_res,) = compare_jax_and_py(out_fg, test_input_vals)
 
-    assert False
+    raise AssertionError()
 
 
 def test_jax_Subtensors():

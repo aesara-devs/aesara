@@ -1,9 +1,11 @@
 import numpy as np
+
+import theano
 from theano import gof
 from theano.gof import Constant, Generic, Op
 from theano.gof.sched import key_to_cmp
 from theano.tensor import tensor
-import theano
+
 
 ##########################
 # Disk Access
@@ -56,7 +58,7 @@ class LoadFromDisk(Op):
         out[0][0] = result
 
     def __str__(self):
-        return "Load{dtype: %s, broadcastable: %s, mmep: %s}" % (
+        return "Load{{dtype: {}, broadcastable: {}, mmep: {}}}".format(
             self.dtype,
             self.broadcastable,
             self.mmap_mode,

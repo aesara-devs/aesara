@@ -1,36 +1,35 @@
 import copy
 
 import numpy as np
-
-import theano
-
 from six.moves import StringIO
 
-from theano import Apply, scalar, Op
+import theano
+from theano import Apply, Op, scalar
 from theano.gof.utils import MethodNotDefined
-from theano.scalar import Scalar, Composite
-from theano.tensor.elemwise import Elemwise, DimShuffle, CAReduceDtype
-from theano.scalar.basic_scipy import Erfinv, Erfcinv
-from theano.scalar.basic import upgrade_to_float_no_complex, complex_types
+from theano.scalar import Composite, Scalar
+from theano.scalar.basic import complex_types, upgrade_to_float_no_complex
+from theano.scalar.basic_scipy import Erfcinv, Erfinv
+from theano.tensor.elemwise import CAReduceDtype, DimShuffle, Elemwise
+
 
 try:
     import pygpu
     from pygpu import gpuarray
-    from pygpu.tools import ArrayArg
-    from pygpu.reduction import ReductionKernel
     from pygpu.gpuarray import dtype_to_typecode
+    from pygpu.reduction import ReductionKernel
+    from pygpu.tools import ArrayArg
 except ImportError:
     pass
 
 from .basic_ops import (
-    as_gpuarray_variable,
-    HideC,
     GpuKernelBase,
+    HideC,
     Kernel,
+    as_gpuarray_variable,
     infer_context_name,
 )
-from .type import GpuArrayType, gpu_context_type
 from .fp16_help import load_w, write_w
+from .type import GpuArrayType, gpu_context_type
 
 
 def make_argument(v, name):
@@ -104,7 +103,7 @@ class GpuElemwise(HideC, Elemwise):
         if self.name is not None:
             return self.name
         items = str(sorted(self.inplace_pattern.items()))
-        return "GpuElemwise{%s}%s<gpuarray>" % (self.scalar_op, items)
+        return "GpuElemwise{{{}}}{}<gpuarray>".format(self.scalar_op, items)
 
     def max_inputs(self, node_or_outputs):
         return max_inputs_to_GpuElemwise(node_or_outputs)
@@ -234,7 +233,7 @@ class GpuElemwise(HideC, Elemwise):
             args[%(n)s].typecode = %(typecode)s;
             args[%(n)s].flags = GE_READ;
             """ % dict(
-                n=n, name='"%s"' % (name,), typecode=i.type.typecode
+                n=n, name='"{}"'.format(name), typecode=i.type.typecode
             )
 
         p = len(inps)
@@ -250,7 +249,7 @@ class GpuElemwise(HideC, Elemwise):
                 args[%(n)s].typecode = %(typecode)s;
                 args[%(n)s].flags = GE_WRITE;
                 """ % dict(
-                    n=p, name='"%s"' % (outs[n],), typecode=o.type.typecode
+                    n=p, name='"{}"'.format(outs[n]), typecode=o.type.typecode
                 )
                 p += 1
 
@@ -573,8 +572,8 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
             pre = "pre=%s,red=" % str(self.pre_scalar_op)
         ax = ""
         if self.axis is not None:
-            ax = "{%s}" % (", ".join(str(x) for x in self.axis),)
-        return "GpuCAReduceCuda{%s%s}%s" % (pre, str(self.scalar_op), ax)
+            ax = "{{{}}}".format(", ".join(str(x) for x in self.axis))
+        return "GpuCAReduceCuda{{{}{}}}{}".format(pre, str(self.scalar_op), ax)
 
     def __setstate__(self, d):
         self.__dict__.update(d)
@@ -586,7 +585,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         x = as_gpuarray_variable(x, infer_context_name(x))
         if x.type.context.kind != b"cuda":
             raise TypeError("GpuCAReduceCuda doesn't work for non-cuda devices")
-        ret = super(GpuCAReduceCuda, self).make_node(x)
+        ret = super().make_node(x)
         self = copy.copy(self)
         self.axis = ret.op.axis
         if self.pre_scalar_op:
@@ -3057,8 +3056,8 @@ class GpuCAReduceCPY(GpuKernelBase, HideC, CAReduceDtype):
     def __str__(self):
         ax = ""
         if self.axis is not None:
-            ax = "{%s}" % (", ".join(str(x) for x in self.axis),)
-        return "GpuReduce{%s}%s" % (self.scalar_op, ax)
+            ax = "{{{}}}".format(", ".join(str(x) for x in self.axis))
+        return "GpuReduce{{{}}}{}".format(self.scalar_op, ax)
 
     def make_node(self, input):
         ctx_name = infer_context_name(input)

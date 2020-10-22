@@ -21,19 +21,15 @@ __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 import copy
 import logging
 import warnings
+from collections import OrderedDict
 
 import numpy as np
 
 import theano
-
-from collections import OrderedDict
-
-from six import string_types
-
-from theano import gof, compat, tensor, scalar
+from theano import compat, gof, scalar, tensor
 from theano.compile.pfunc import rebuild_collect_shared
-from theano.tensor.basic import get_scalar_constant_value
 from theano.gof.utils import TestValueError
+from theano.tensor.basic import get_scalar_constant_value
 
 
 # Logging function for sending warning or info
@@ -107,7 +103,7 @@ def safe_new(x, tag="", dtype=None):
     return nw_x
 
 
-class until(object):
+class until:
     """
     Class used to encode the different things the inner function of scan can
     (or needs) to return.
@@ -149,8 +145,8 @@ def traverse(out, x, x_copy, d, visited=None):
     if out in visited:
         return d
     visited.add(out)
-    from theano.gpuarray.basic_ops import GpuFromHost, host_from_gpu
     from theano.gpuarray import pygpu_activated
+    from theano.gpuarray.basic_ops import GpuFromHost, host_from_gpu
     from theano.gpuarray.type import GpuArrayType
 
     if out == x:
@@ -246,7 +242,7 @@ def clone(
     return outs
 
 
-def map_variables(replacer, graphs, additional_inputs=[]):
+def map_variables(replacer, graphs, additional_inputs=None):
     """Construct new graphs based on 'graphs' with some variables replaced
     according to 'replacer'.
 
@@ -277,6 +273,8 @@ def map_variables(replacer, graphs, additional_inputs=[]):
 
         # v is now equal to a * b + c
     """
+    if additional_inputs is None:
+        additional_inputs = []
 
     # wrap replacer to avoid replacing things we just put there.
     graphs_seen = set()
@@ -325,8 +323,8 @@ def map_variables(replacer, graphs, additional_inputs=[]):
             return False
 
         # importing Scan into module scope would be circular
-        from theano.scan_module.scan_op import Scan
         from theano.compile import OpFromGraph
+        from theano.scan_module.scan_op import Scan
 
         if isinstance(node.op, (Scan, OpFromGraph)):
             # recurse on the inner graph
@@ -387,9 +385,10 @@ def _map_variables_inner(
     extra_inner_inputs = []
     extra_outer_inputs = []
 
-    from theano.scan_module import scan_utils
     from itertools import chain
+
     from theano import gof
+    from theano.scan_module import scan_utils
 
     def inner_replacer(graph):
         new_graph = replacer(graph)
@@ -596,7 +595,7 @@ def isNaN_or_Inf_or_None(x):
     try:
         isNaN = np.isnan(x)
         isInf = np.isinf(x)
-        isStr = isinstance(x, string_types)
+        isStr = isinstance(x, str)
     except Exception:
         isNaN = False
         isInf = False
@@ -609,7 +608,7 @@ def isNaN_or_Inf_or_None(x):
         except Exception:
             isNaN = False
             isInf = False
-    if isinstance(x, gof.Constant) and isinstance(x.data, string_types):
+    if isinstance(x, gof.Constant) and isinstance(x.data, str):
         isStr = True
     else:
         isStr = False
@@ -687,7 +686,7 @@ def infer_shape(outs, inputs, input_shapes):
     return ret
 
 
-class Validator(object):
+class Validator:
     """
     Check if variables can be expressed without using variables in invalid.
 
@@ -1007,7 +1006,7 @@ def reconstruct_graph(inputs, outputs, tag=None):
     return (nw_inputs, nw_outputs)
 
 
-class scan_args(object):
+class scan_args:
     """
     Parses the inputs and outputs of scan in an easy to manipulate format.
 

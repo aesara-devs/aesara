@@ -5,15 +5,14 @@ Define the `function` function.
 
 
 import logging
-
-import traceback as tb
 import re
+import traceback as tb
+import warnings
 
-from six import string_types
+from theano import compat
 from theano.compile.function_module import orig_function
 from theano.compile.pfunc import pfunc
-import warnings
-from theano import compat
+
 
 __docformat__ = "restructuredtext en"
 _logger = logging.getLogger("theano.compile.function")
@@ -66,7 +65,7 @@ def function_dump(
     `['annotations', 'replacement_of', 'aggregation_scheme', 'roles']`
 
     """
-    assert isinstance(filename, string_types)
+    assert isinstance(filename, str)
     d = dict(
         inputs=inputs,
         outputs=outputs,
@@ -257,7 +256,7 @@ def function(
         output_items = list(outputs.items())
 
         for item_pair in output_items:
-            assert isinstance(item_pair[0], string_types)
+            assert isinstance(item_pair[0], str)
 
         output_items_sorted = sorted(output_items)
 

@@ -1,18 +1,13 @@
-import sys
 import logging
-
-import pytest
+import sys
+from copy import copy, deepcopy
+from functools import wraps
 
 import numpy as np
+import pytest
 
 import theano
 import theano.tensor as tt
-
-from functools import wraps
-from copy import copy, deepcopy
-
-from six import integer_types
-
 from theano import config
 from theano.compile.debugmode import str_diagnostic
 
@@ -114,7 +109,7 @@ class MockRandomState:
             return out + maxval - 1
 
 
-class OptimizationTestMixin(object):
+class OptimizationTestMixin:
     def assertFunctionContains(self, f, op, min=1, max=sys.maxsize):
         toposort = f.maker.fgraph.toposort()
         matches = [node for node in toposort if node.op == op]
@@ -152,7 +147,7 @@ class OptimizationTestMixin(object):
         return self.assertFunctionContainsClass(f, op, min=N, max=N)
 
 
-class OpContractTestMixin(object):
+class OpContractTestMixin:
     # self.ops should be a list of instantiations of an Op class to test.
     # self.other_op should be an op which is different from every op
     other_op = tt.add
@@ -240,7 +235,7 @@ class InferShapeTester:
             mode = mode.excluding(*excluding)
         if warn:
             for var, inp in zip(inputs, numeric_inputs):
-                if isinstance(inp, (integer_types, float, list, tuple)):
+                if isinstance(inp, (int, float, list, tuple)):
                     inp = var.type.filter(inp)
                 if not hasattr(inp, "shape"):
                     continue

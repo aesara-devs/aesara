@@ -1,17 +1,13 @@
-import numpy as np
-
-import theano
-
 from collections import OrderedDict
 
+import numpy as np
 from six import StringIO
 
-
+import theano
+from tests import disturb_mem
+from tests.record import Record, RecordMode
 from theano import config, shared
 from theano.printing import var_descriptor
-
-from tests import disturb_mem
-from tests.record import RecordMode, Record
 
 
 def sharedX(x, name=None):

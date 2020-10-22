@@ -4,14 +4,15 @@ Provides Ops for FFT and DCT.
 """
 
 
+# This module will soon be deprecated.
+import warnings
+
 import numpy as np
 import numpy.fft
 
 from theano import tensor
-from theano.gof import Op, Apply, generic
+from theano.gof import Apply, Op, generic
 
-# This module will soon be deprecated.
-import warnings
 
 message = (
     "The module theano.sandbox.fourier will soon be deprecated."

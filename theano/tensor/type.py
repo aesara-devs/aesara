@@ -5,8 +5,9 @@ import numpy as np
 
 import theano
 from theano import config
-from theano.gof import hashtype, Type, Variable
 from theano import scalar as scal
+from theano.gof import Type, Variable, hashtype
+
 
 _logger = logging.getLogger("theano.tensor.type")
 
@@ -113,7 +114,7 @@ class TensorType(Type):
                     ("%s expected a ndarray object with " "dtype = %s (got %s).")
                     % (self, self.numpy_dtype, data.dtype)
                 )
-            assert False, "This point should never be reached."
+            raise AssertionError("This point should never be reached.")
         else:
             if allow_downcast:
                 # Convert to self.dtype, regardless of the type of data
@@ -282,7 +283,9 @@ class TensorType(Type):
             }[self.dtype]
         except KeyError:
             raise TypeError(
-                "Unsupported dtype for %s: %s" % (self.__class__.__name__, self.dtype)
+                "Unsupported dtype for {}: {}".format(
+                    self.__class__.__name__, self.dtype
+                )
             )
 
     def to_scalar_type(self):
@@ -390,7 +393,7 @@ class TensorType(Type):
                     bcast = str(b)
                 else:
                     bcast = "%iD" % len(b)
-            return "TensorType(%s, %s)" % (str(self.dtype), bcast)
+            return "TensorType({}, {})".format(self.dtype, bcast)
 
     def __repr__(self):
         return str(self)

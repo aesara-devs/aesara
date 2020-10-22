@@ -1,10 +1,10 @@
-import six.moves.cPickle as pickle
 import os
 import shutil
 import tempfile
 
 import numpy as np
 import pytest
+import six.moves.cPickle as pickle
 
 import theano
 from theano.compile.io import In

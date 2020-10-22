@@ -1,23 +1,20 @@
 import numpy as np
 
 import theano
-
-from theano import function, config
-from theano import scalar
+import theano.tensor as tensor
+from tests import unittest_tools as utt
+from theano import config, function, scalar
 from theano.gof import FunctionGraph
 from theano.gof.opt import out2in
-from theano.tensor.opt_uncanonicalize import (
-    local_alloc_dimshuffle,
-    local_reshape_dimshuffle,
-    local_dimshuffle_alloc,
-    local_dimshuffle_subtensor,
-)
-import theano.tensor as tensor
 
 # from theano.tensor import matrix,max_and_argmax,MaaxAndArgmax,neg
-from theano.tensor.elemwise import CAReduce, Elemwise, DimShuffle
-
-from tests import unittest_tools as utt
+from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
+from theano.tensor.opt_uncanonicalize import (
+    local_alloc_dimshuffle,
+    local_dimshuffle_alloc,
+    local_dimshuffle_subtensor,
+    local_reshape_dimshuffle,
+)
 
 
 class TestMaxAndArgmax:

@@ -3,37 +3,34 @@ Generate and compile C modules for Python.
 
 """
 import atexit
-import textwrap
-import six.moves.cPickle as pickle
+import distutils.sysconfig
 import logging
 import os
+import platform
 import re
 import shutil
 import stat
 import subprocess
 import sys
 import tempfile
+import textwrap
 import time
-import platform
-import distutils.sysconfig
 import warnings
 
 import numpy.distutils
+import six.moves.cPickle as pickle
+from six import BytesIO, StringIO, b
 
 import theano
-
-from six import b, BytesIO, StringIO, string_types
-
-
 from theano import config
 from theano.compat import PY3, decode, decode_iter
-from theano.gof.utils import flatten
-from theano.gof.utils import hash_from_code
-from theano.misc.windows import subprocess_Popen, output_subprocess_Popen
+from theano.configdefaults import gcc_version_str, local_bitwidth
 
 # we will abuse the lockfile mechanism when reading and writing the registry
 from theano.gof import compilelock
-from theano.configdefaults import gcc_version_str, local_bitwidth
+from theano.gof.utils import flatten, hash_from_code
+from theano.misc.windows import output_subprocess_Popen, subprocess_Popen
+
 
 importlib = None
 try:
@@ -56,8 +53,6 @@ class MissingGXX(Exception):
 
     """
 
-    pass
-
 
 def debug_counter(name, every=1):
     """
@@ -73,10 +68,10 @@ def debug_counter(name, every=1):
     setattr(debug_counter, name, getattr(debug_counter, name, 0) + 1)
     n = getattr(debug_counter, name)
     if n % every == 0:
-        print("debug_counter [%s]: %s" % (name, n), file=sys.stderr)
+        print("debug_counter [{}]: {}".format(name, n), file=sys.stderr)
 
 
-class ExtFunction(object):
+class ExtFunction:
     """
     A C function to put into a DynamicModule.
 
@@ -121,10 +116,12 @@ class ExtFunction(object):
         It goes into the DynamicModule's method table.
 
         """
-        return '\t{"%s", %s, %s, "%s"}' % (self.name, self.name, self.method, self.doc)
+        return '\t{{"{}", {}, {}, "{}"}}'.format(
+            self.name, self.name, self.method, self.doc
+        )
 
 
-class DynamicModule(object):
+class DynamicModule:
     def __init__(self, name=None):
         assert name is None, (
             "The 'name' parameter of DynamicModule"
@@ -439,7 +436,7 @@ def get_module_hash(src_code, key):
             # This should be the C++ compilation command line parameters or the
             # libraries to link against.
             to_hash += list(key_element)
-        elif isinstance(key_element, string_types):
+        elif isinstance(key_element, str):
             if key_element.startswith("md5:") or key_element.startswith("hash:"):
                 # This is actually a sha256 hash of the config options.
                 # Currently, we still keep md5 to don't break old Theano.
@@ -484,7 +481,7 @@ def get_safe_part(key):
     # rest of the cache mechanism will just skip that key.
     hash = None
     for key_element in c_link_key[1:]:
-        if isinstance(key_element, string_types):
+        if isinstance(key_element, str):
             if key_element.startswith("md5:"):
                 hash = key_element[4:]
                 break
@@ -495,7 +492,7 @@ def get_safe_part(key):
     return key[0] + (hash,)
 
 
-class KeyData(object):
+class KeyData:
     """
     Used to store the key information in the cache.
 
@@ -597,7 +594,7 @@ class KeyData(object):
                     pass
 
 
-class ModuleCache(object):
+class ModuleCache:
     """
     Interface to the cache of dynamically compiled modules on disk.
 
@@ -1014,7 +1011,7 @@ class ModuleCache(object):
                 # Test to see that the file is [present and] readable.
                 open(entry).close()
                 gone = False
-            except IOError:
+            except OSError:
                 gone = True
 
             if gone:
@@ -1143,7 +1140,7 @@ class ModuleCache(object):
         key_pkl = os.path.join(location, "key.pkl")
         assert not os.path.exists(key_pkl)
         key_data = KeyData(
-            keys=set([key]), module_hash=module_hash, key_pkl=key_pkl, entry=name
+            keys={key}, module_hash=module_hash, key_pkl=key_pkl, entry=name
         )
 
         key_broken = False
@@ -1521,7 +1518,7 @@ class ModuleCache(object):
                     fname = os.path.join(self.dirname, filename, "key.pkl")
                     open(fname).close()
                     has_key = True
-                except IOError:
+                except OSError:
                     has_key = False
                 if not has_key:
                     # Use the compiled file by default
@@ -1727,12 +1724,10 @@ def std_lib_dirs_and_libs():
             for f, lib in [("libpython27.a", "libpython 1.2")]:
                 if not os.path.exists(os.path.join(libdir, f)):
                     print(
-                        (
-                            "Your Python version is from Canopy. "
-                            + "You need to install the package '"
-                            + lib
-                            + "' from Canopy package manager."
-                        )
+                        "Your Python version is from Canopy. "
+                        + "You need to install the package '"
+                        + lib
+                        + "' from Canopy package manager."
                     )
             libdirs = [
                 # Used in older Canopy
@@ -1750,12 +1745,10 @@ def std_lib_dirs_and_libs():
                     ]
                 ):
                     print(
-                        (
-                            "Your Python version is from Canopy. "
-                            + "You need to install the package '"
-                            + lib
-                            + "' from Canopy package manager."
-                        )
+                        "Your Python version is from Canopy. "
+                        + "You need to install the package '"
+                        + lib
+                        + "' from Canopy package manager."
                     )
             python_lib_dirs.insert(0, libdir)
         std_lib_dirs_and_libs.data = [libname], python_lib_dirs
@@ -1836,15 +1829,15 @@ def gcc_llvm():
             # Normally this should not happen as we should not try to
             # compile when g++ is not available. If this happen, it
             # will crash later so supposing it is not llvm is "safe".
-            output = b("")
-        gcc_llvm.is_llvm = b("llvm") in output
+            output = b""
+        gcc_llvm.is_llvm = b"llvm" in output
     return gcc_llvm.is_llvm
 
 
 gcc_llvm.is_llvm = None
 
 
-class Compiler(object):
+class Compiler:
     """
     Meta compiler that offer some generic function.
 
@@ -2080,7 +2073,7 @@ class GCC_compiler(Compiler):
                 # as stdin (which is the default) results in the process
                 # waiting forever without returning. For that reason,
                 # we use a pipe, and use the empty string as input.
-                (stdout, stderr) = p.communicate(input=b(""))
+                (stdout, stderr) = p.communicate(input=b"")
                 if p.returncode != 0:
                     return None
 
@@ -2358,7 +2351,7 @@ class GCC_compiler(Compiler):
                             line.startswith("#define hypot _hypot") for line in config_h
                         ):
                             cxxflags.append("-D_hypot=hypot")
-                except IOError:
+                except OSError:
                     pass
 
         return cxxflags
@@ -2475,9 +2468,9 @@ class GCC_compiler(Compiler):
             if dist_suffix is not None and dist_suffix != "":
                 suffix = dist_suffix
 
-            filepath = "%s%s" % (module_name, suffix)
+            filepath = "{}{}".format(module_name, suffix)
         else:
-            filepath = "%s.%s" % (module_name, get_lib_extension())
+            filepath = "{}.{}".format(module_name, get_lib_extension())
 
         lib_filename = os.path.join(location, filepath)
 
@@ -2491,10 +2484,13 @@ class GCC_compiler(Compiler):
         # to support path that includes spaces, we need to wrap it with double quotes on Windows
         path_wrapper = '"' if os.name == "nt" else ""
         cmd.extend(
-            ["-I%s%s%s" % (path_wrapper, idir, path_wrapper) for idir in include_dirs]
+            [
+                "-I{}{}{}".format(path_wrapper, idir, path_wrapper)
+                for idir in include_dirs
+            ]
         )
         cmd.extend(
-            ["-L%s%s%s" % (path_wrapper, ldir, path_wrapper) for ldir in lib_dirs]
+            ["-L{}{}{}".format(path_wrapper, ldir, path_wrapper) for ldir in lib_dirs]
         )
         if hide_symbols and sys.platform != "win32":
             # This has been available since gcc 4.0 so we suppose it
@@ -2504,8 +2500,8 @@ class GCC_compiler(Compiler):
             # improved loading times on most platforms (win32 is
             # different, as usual).
             cmd.append("-fvisibility=hidden")
-        cmd.extend(["-o", "%s%s%s" % (path_wrapper, lib_filename, path_wrapper)])
-        cmd.append("%s%s%s" % (path_wrapper, cppfilename, path_wrapper))
+        cmd.extend(["-o", "{}{}{}".format(path_wrapper, lib_filename, path_wrapper)])
+        cmd.append("{}{}{}".format(path_wrapper, cppfilename, path_wrapper))
         cmd.extend(["-l%s" % l for l in libs])
         # print >> sys.stderr, 'COMPILING W CMD', cmd
         _logger.debug("Running cmd: %s", " ".join(cmd))

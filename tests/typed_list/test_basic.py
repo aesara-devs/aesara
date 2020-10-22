@@ -1,27 +1,25 @@
 import numpy as np
-
 import pytest
 
 import theano
-import theano.typed_list
 import theano.tensor as tt
-
+import theano.typed_list
+from tests import unittest_tools as utt
 from theano import sparse
 from theano.tensor.type_other import SliceType
-from theano.typed_list.type import TypedListType
 from theano.typed_list.basic import (
-    GetItem,
-    Insert,
     Append,
+    Count,
     Extend,
+    GetItem,
+    Index,
+    Insert,
+    Length,
     Remove,
     Reverse,
-    Index,
-    Count,
-    Length,
     make_list,
 )
-from tests import unittest_tools as utt
+from theano.typed_list.type import TypedListType
 
 
 def rand_ranged_matrix(minimum, maximum, shape):

@@ -2,35 +2,33 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
-
+from tests import unittest_tools as utt
+from tests.tensor.test_basic import (
+    _good_broadcast_unary_normal_no_complex,
+    check_floatX,
+    copymod,
+    makeBroadcastTester,
+    upcast_int8_nfunc,
+)
 from theano import config
-from theano.tensor.inplace import neg_inplace
 from theano.gof.opt import check_stack_trace
 from theano.gof.toolbox import is_same_graph
+from theano.tensor.inplace import neg_inplace
 from theano.tensor.nnet import (
+    hard_sigmoid,
     sigmoid,
     sigmoid_inplace,
     softplus,
     ultra_fast_sigmoid,
-    hard_sigmoid,
 )
 from theano.tensor.nnet.sigm import (
+    ScalarSoftplus,
     compute_mul,
     is_1pexp,
     parse_mul_tree,
     perform_sigm_times_exp,
     register_local_1msigmoid,
     simplify_mul,
-    ScalarSoftplus,
-)
-
-from tests import unittest_tools as utt
-from tests.tensor.test_basic import (
-    makeBroadcastTester,
-    copymod,
-    check_floatX,
-    upcast_int8_nfunc,
-    _good_broadcast_unary_normal_no_complex,
 )
 
 

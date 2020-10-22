@@ -1,46 +1,36 @@
 """A `Type` and `Op` classes to work with numpy.ndarrays symbolically."""
 
-import warnings
-import numbers
-import logging
 import builtins
+import logging
+import numbers
+import warnings
+from collections.abc import Sequence
+from functools import partial
 
 import numpy as np
 
 import theano
 import theano.scalar.sharedvar
-
-from functools import partial
-from collections.abc import Sequence
-
-from six import integer_types
-
-from theano import config, gof, scalar as scal, compile, printing
-from theano.gof import Apply, Constant, Op, Variable, ParamsType
-from theano.gof.type import Generic
-
-from theano.scalar import int32
-from theano.tensor import elemwise
-from theano.tensor.var import (
-    TensorVariable,
-    TensorConstant,
-    _tensor_py_operators,
-)
-from theano.tensor.type import TensorType, values_eq_approx_always_true
-from theano.tensor.type_other import NoneConst
-from theano.printing import pprint, min_informative_str
+from theano import compile, config, gof, printing
+from theano import scalar as scal
 
 # For history
 from theano.compile import Rebroadcast, Shape, shape
-
+from theano.gof import Apply, Constant, Op, ParamsType, Variable
+from theano.gof.type import Generic
 
 # We use these exceptions as well.
-from theano.gradient import grad_undefined
-from theano.gradient import grad_not_implemented
-from theano.gradient import DisconnectedType
+from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
+from theano.printing import min_informative_str, pprint
+from theano.scalar import int32
+from theano.tensor import elemwise
 
 # set up the external interface
-from theano.tensor.elemwise import Elemwise, DimShuffle, CAReduce, Sum
+from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise, Sum
+from theano.tensor.type import TensorType, values_eq_approx_always_true
+from theano.tensor.type_other import NoneConst
+from theano.tensor.var import TensorConstant, TensorVariable, _tensor_py_operators
+
 
 _logger = logging.getLogger("theano.tensor.basic")
 
@@ -64,8 +54,6 @@ uint_dtypes = list(map(str, scal.uint_types))
 
 class ShapeError(Exception):
     """Raised when the shape cannot be computed."""
-
-    pass
 
 
 def check_equal_numpy(x, y):
@@ -443,7 +431,7 @@ def get_scalar_constant_value(
             # to depend on passing it None)
             raise NotScalarConstantError()
 
-        if isinstance(v, (np.integer, integer_types, float)):
+        if isinstance(v, (np.integer, int, float)):
             return np.asarray(v)
 
         if isinstance(v, np.ndarray):
@@ -687,7 +675,7 @@ def tensor(*args, **kwargs):
 
 def _multi(*fns):
     def f2(f, *names):
-        if names and isinstance(names[0], integer_types):
+        if names and isinstance(names[0], int):
             if names == 1:
                 return f()
             else:
@@ -1063,7 +1051,7 @@ def _scal_elemwise_with_nfunc(nfunc, nin, nout):
         else:
             msg = "no_inplace"
 
-        n = "Elemwise{%s,%s}" % (symbolname, msg)
+        n = "Elemwise{{{},{}}}".format(symbolname, msg)
 
         if inplace:
             scalar_op = getattr(scal, symbolname[: -len("_inplace")])
@@ -1125,7 +1113,7 @@ def check_and_normalize_axes(x, axis):
     x = as_tensor_variable(x)
     if axis is None:
         axis = []
-    elif isinstance(axis, (integer_types, np.integer)) or (
+    elif isinstance(axis, (int, np.integer)) or (
         isinstance(axis, np.ndarray) and axis.ndim == 0
     ):
         axis = [int(axis)]
@@ -1138,7 +1126,7 @@ def check_and_normalize_axes(x, axis):
             raise TypeError("Computation needs a constant axis. Got %s" % axis)
         else:
             assert axis.dtype in integer_dtypes
-            if isinstance(axis.data, (integer_types, np.integer)) or (
+            if isinstance(axis.data, (int, np.integer)) or (
                 isinstance(axis.data, np.ndarray) and axis.data.ndim == 0
             ):
                 axis = [int(axis.data)]
@@ -1340,10 +1328,8 @@ def cast(x, dtype):
         return _x
     if _x.type.dtype.startswith("complex") and not dtype.startswith("complex"):
         raise TypeError(
-            (
-                "Casting from complex to real is ambiguous: consider real(), "
-                "imag(), angle() or abs()"
-            )
+            "Casting from complex to real is ambiguous: consider real(), "
+            "imag(), angle() or abs()"
         )
     return _cast_mapping[dtype](x)
 
@@ -1499,14 +1485,12 @@ class MaxAndArgmax(Op):
         if eval_points[0] is None:
             return [None, None]
         if len(self.axis) != 1:
-            raise ValueError(("R_op supported for arg_max only for " "one axis!"))
+            raise ValueError("R_op supported for arg_max only for " "one axis!")
         if self.axis[0] > 1:
-            raise ValueError(
-                ("R_op supported for arg_max only when " " axis is 0 or 1")
-            )
+            raise ValueError("R_op supported for arg_max only when " " axis is 0 or 1")
         if inputs[0].ndim != 2:
             raise ValueError(
-                ("R_op supported for arg_max only when " " input is a matrix")
+                "R_op supported for arg_max only when " " input is a matrix"
             )
         max_vals, max_pos = self.make_node(*inputs).outputs
         if self.axis[0] == 0:
@@ -1719,7 +1703,7 @@ def makeKeepDims(x, y, axis):
 
     if axis is None:
         axis = list(range(x.type.ndim))
-    elif isinstance(axis, (integer_types, np.integer)):
+    elif isinstance(axis, (int, np.integer)):
         axis = [axis]
     elif isinstance(axis, np.ndarray) and axis.ndim == 0:
         axis = [int(axis)]
@@ -1727,7 +1711,7 @@ def makeKeepDims(x, y, axis):
         axis = [int(a) for a in axis]
     newaxis = []
     for a in axis:
-        if not isinstance(a, integer_types):
+        if not isinstance(a, int):
             raise ValueError("keepdims option can be used only with constant axis")
         if a < 0:
             a += x.type.ndim
@@ -3220,7 +3204,7 @@ class Alloc(gof.Op):
         If you always want an Alloc node, call make_node.
 
         """
-        ret = super(Alloc, self).__call__(val, *shapes, **kwargs)
+        ret = super().__call__(val, *shapes, **kwargs)
         try:
             # It makes optimization difficult when useless allocs are thrown
             # into the graph at every stage of optimization.  This little logic
@@ -3303,7 +3287,7 @@ def transfer(var, target):
             res = trans(var, target)
             if res is not None:
                 return res
-    raise ValueError("Can't transfer to target %s" % (target,))
+    raise ValueError("Can't transfer to target {}".format(target))
 
 
 transfer._others = []
@@ -3512,7 +3496,7 @@ def mean(input, axis=None, dtype=None, op=False, keepdims=False, acc_dtype=None)
 
     if axis is None:
         axis = list(range(input.ndim))
-    elif isinstance(axis, (integer_types, np.integer)):
+    elif isinstance(axis, (int, np.integer)):
         axis = [axis]
     elif isinstance(axis, np.ndarray) and axis.ndim == 0:
         axis = [int(axis)]
@@ -3573,7 +3557,7 @@ def var(input, axis=None, ddof=0, keepdims=False, corrected=False):
     input_ndim = input.type.ndim
     if axis is None:
         axis = list(range(input_ndim))
-    elif isinstance(axis, (integer_types, np.integer)):
+    elif isinstance(axis, (int, np.integer)):
         axis = [axis]
     elif isinstance(axis, np.ndarray) and axis.ndim == 0:
         axis = [int(axis)]
@@ -4025,7 +4009,9 @@ class Split(Op):
 
         if np.sum(splits) != len_along_axis:
             raise ValueError(
-                "The splits sum to %s, expected %s" % (np.sum(splits), len_along_axis)
+                "The splits sum to {}, expected {}".format(
+                    np.sum(splits), len_along_axis
+                )
             )
         if python_any([nb < 0 for nb in splits]):
             raise ValueError(
@@ -4360,9 +4346,11 @@ class Join(Op):
         if self.view == -1:
             return self.__class__.__name__
         else:
-            return "%s{%s}" % (
+            return "{}{{{}}}".format(
                 self.__class__.__name__,
-                ", ".join("%s=%r" % (p, getattr(self, p)) for p in self.__props__),
+                ", ".join(
+                    "{}={!r}".format(p, getattr(self, p)) for p in self.__props__
+                ),
             )
 
     def __setstate__(self, d):
@@ -4421,7 +4409,7 @@ class Join(Op):
             bcastable = [False] * len(as_tensor_variable_args[0].type.broadcastable)
             ndim = len(bcastable)
             # Axis can also be a constant
-            if not isinstance(axis, integer_types):
+            if not isinstance(axis, int):
                 try:
                     # Note : `get_scalar_constant_value` returns a ndarray not
                     # an int
@@ -4429,7 +4417,7 @@ class Join(Op):
 
                 except NotScalarConstantError:
                     pass
-            if isinstance(axis, integer_types):
+            if isinstance(axis, int):
                 # Basically, broadcastable -> length 1, but the
                 # converse does not hold. So we permit e.g. T/F/T
                 # joins, and if they fail at runtime they fail, but if
@@ -4895,7 +4883,7 @@ def stack(*tensors, **kwargs):
     # See ticket #660
     if np.all(
         [  # in case there is direct int in tensors.
-            isinstance(t, (np.number, float, integer_types, python_complex))
+            isinstance(t, (np.number, float, int, python_complex))
             or (
                 isinstance(t, Variable)
                 and isinstance(t.type, TensorType)
@@ -5080,7 +5068,7 @@ class Reshape(Op):
         assert name is None, "name attribute for Reshape has been deprecated"
 
     def __str__(self):
-        return "%s{%s}" % (self.__class__.__name__, self.ndim)
+        return "{}{{{}}}".format(self.__class__.__name__, self.ndim)
 
     def make_node(self, x, shp):
         x = as_tensor_variable(x)
@@ -5131,7 +5119,7 @@ class Reshape(Op):
             out[0] = np.reshape(x, shp)
         except Exception:
             raise ValueError(
-                "Cannot reshape input of shape %s to shape %s" % (x.shape, shp)
+                "Cannot reshape input of shape {} to shape {}".format(x.shape, shp)
             )
 
     def connection_pattern(self, node):
@@ -5310,7 +5298,7 @@ class Flatten(Op):
         self.outdim = int(outdim)
 
     def __str__(self):
-        return "%s{%s}" % (self.__class__.__name__, self.outdim)
+        return "{}{{{}}}".format(self.__class__.__name__, self.outdim)
 
     def make_node(self, x):
         t_x = as_tensor_variable(x)
@@ -5676,7 +5664,7 @@ def tile(x, reps, ndim=None):
             raise ValueError("len(reps) should be equal or less than ndim")
         if not np.all(
             [
-                isinstance(r, integer_types)
+                isinstance(r, int)
                 or (
                     isinstance(r, TensorVariable)
                     and r.dtype in theano.tensor.discrete_dtypes
@@ -5870,7 +5858,7 @@ def arange(start, stop=None, step=1, dtype=None):
     return _arange[dtype](start, stop, step)
 
 
-class _nd_grid(object):
+class _nd_grid:
     """Create a dense n-dimensional 'meshgrid' with equally spaced points.
 
     Used to create the instance ``mgrid`` and ``ogrid`` which act similarly
@@ -6055,7 +6043,7 @@ class PermuteRowElements(Op):
                 for i in range(ys0):
                     self._rec_perform(node, x[0], y[i], inverse, out[i], curdim + 1)
             else:
-                raise ValueError("Dimension mismatch: %s, %s" % (xs0, ys0))
+                raise ValueError("Dimension mismatch: {}, {}".format(xs0, ys0))
 
     def perform(self, node, inp, out):
         x, y, inverse = inp
@@ -6074,7 +6062,7 @@ class PermuteRowElements(Op):
             elif ydim == 1:
                 outdim = xdim
             else:
-                raise ValueError("Dimension mismatch: %s, %s" % (xdim, ydim))
+                raise ValueError("Dimension mismatch: {}, {}".format(xdim, ydim))
             out_s.append(outdim)
 
         if outs[0] is None or outs[0].shape != out_s:

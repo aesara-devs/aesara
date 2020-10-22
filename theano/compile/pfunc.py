@@ -3,16 +3,16 @@ Provide a simple user friendly API.
 
 """
 
-import warnings
 import logging
+import warnings
 
 from theano import config
-
-from theano.compile import orig_function, In, Out
-from theano.compile import UnusedInputError
-from theano.compile.sharedvalue import SharedVariable, shared
+from theano.compile.function_module import UnusedInputError, orig_function
+from theano.compile.io import In, Out
 from theano.compile.profiling import ProfileStats
-from theano.gof import Variable, Constant
+from theano.compile.sharedvalue import SharedVariable, shared
+from theano.gof import Constant, Variable
+
 
 _logger = logging.getLogger("theano.compile.pfunc")
 
@@ -300,7 +300,7 @@ class Param(In):
             " by theano.In(value=N)",
             stacklevel=2,
         )
-        super(Param, self).__init__(
+        super().__init__(
             variable,
             name=name,
             value=default,
@@ -447,12 +447,10 @@ def pfunc(
         if v in in_variables[(i + 1) :]:
             dup_v_i = in_variables.index(v, (i + 1))
             raise UnusedInputError(
-                (
-                    "Variable %s is used twice in inputs to theano.function, "
-                    "at indices %i and %i.  This would result in values "
-                    "provided for it being ignored. Please do not duplicate "
-                    "variables in the inputs list." % (v, i, dup_v_i)
-                )
+                "Variable %s is used twice in inputs to theano.function, "
+                "at indices %i and %i.  This would result in values "
+                "provided for it being ignored. Please do not duplicate "
+                "variables in the inputs list." % (v, i, dup_v_i)
             )
 
     # Check that we are not using `givens` to replace input variables, because

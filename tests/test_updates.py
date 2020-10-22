@@ -1,7 +1,7 @@
 import pytest
+
 import theano
 import theano.tensor as tt
-
 from theano.updates import OrderedUpdates
 
 

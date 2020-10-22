@@ -13,11 +13,13 @@ import numpy as np
 
 import theano
 from theano import config, gof, printing, scalar
+from theano.gof.opt import copy_stack_trace
 from theano.printing import pprint
 from theano.tensor import basic as tensor
-from theano.tensor import elemwise, opt, NotScalarConstantError
+from theano.tensor import elemwise, opt
+from theano.tensor.basic import NotScalarConstantError
 from theano.tensor.type import values_eq_approx_remove_inf
-from theano.gof.opt import copy_stack_trace
+
 
 ############
 #
@@ -89,7 +91,7 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
             raise NotImplementedError("only floatingpoint is implemented")
 
     def c_code_cache_version(self):
-        v = super(ScalarSigmoid, self).c_code_cache_version()
+        v = super().c_code_cache_version()
         if v:
             return (2,) + v
         else:
@@ -155,8 +157,9 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
         val_hard = hard_sigmoid(data).eval()
         val_ultra = ultra_fast_sigmoid(data).eval()
 
-        import matplotlib.pyplot as plt
         import os
+
+        import matplotlib.pyplot as plt
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -401,7 +404,7 @@ class ScalarSoftplus(scalar.UnaryScalarOp):
             raise NotImplementedError("only floatingpoint is implemented")
 
     def c_code_cache_version(self):
-        v = super(ScalarSoftplus, self).c_code_cache_version()
+        v = super().c_code_cache_version()
         if v:
             return (2,) + v
         else:

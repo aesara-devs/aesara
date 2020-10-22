@@ -1,7 +1,8 @@
-from theano import scalar as scal
-from . import elemwise
 from theano import printing
+from theano import scalar as scal
 from theano.printing import pprint
+
+from . import elemwise
 
 
 def _scal_inplace(symbol):

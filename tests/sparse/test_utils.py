@@ -1,14 +1,11 @@
+import numpy as np
 import pytest
 
-import numpy as np
 
 sp = pytest.importorskip("scipy", minversion="0.7.0")
 
-import theano.sparse
-
-from theano.sparse.utils import hash_from_sparse
-
 from tests.sparse.test_basic import as_sparse_format
+from theano.sparse.utils import hash_from_sparse
 
 
 def test_hash_from_sparse():

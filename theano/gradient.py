@@ -3,20 +3,20 @@
 import logging
 import time
 import warnings
+from collections import OrderedDict
+from functools import reduce
 
-import numpy as np  # for numeric_grad
+import numpy as np
 
 import theano
-
-from functools import reduce
-from collections import OrderedDict
-
 from theano import gof
-from theano.gof import utils, Variable
-
+from theano.compile.debugmode import DebugMode
+from theano.compile.mode import FAST_RUN, get_mode
+from theano.compile.ops import ViewOp
+from theano.gof import Variable, utils
 from theano.gof.null_type import NullType, null_type
 from theano.gof.op import get_test_values
-from theano.compile import ViewOp, FAST_RUN, DebugMode, get_mode
+
 
 __authors__ = "James Bergstra, Razvan Pascanu, Arnaud Bergeron, Ian Goodfellow"
 __copyright__ = "(c) 2011, Universite de Montreal"
@@ -130,20 +130,16 @@ class DisconnectedType(theano.gof.type.Type):
 
     def filter(self, data, strict=False, allow_downcast=None):
         raise AssertionError(
-            (
-                "If you're assigning to a DisconnectedType you're"
-                " doing something wrong. It should only be used as"
-                " a symbolic placeholder."
-            )
+            "If you're assigning to a DisconnectedType you're"
+            " doing something wrong. It should only be used as"
+            " a symbolic placeholder."
         )
 
     def fiter_variable(self, other):
         raise AssertionError(
-            (
-                "If you're assigning to a DisconnectedType you're"
-                " doing something wrong. It should only be used as"
-                " a symbolic placeholder."
-            )
+            "If you're assigning to a DisconnectedType you're"
+            " doing something wrong. It should only be used as"
+            " a symbolic placeholder."
         )
 
     def may_share_memory(a, b):
@@ -151,11 +147,9 @@ class DisconnectedType(theano.gof.type.Type):
 
     def value_eq(a, b, force_same_dtype=True):
         raise AssertionError(
-            (
-                "If you're assigning to a DisconnectedType you're"
-                " doing something wrong. It should only be used as"
-                " a symbolic placeholder."
-            )
+            "If you're assigning to a DisconnectedType you're"
+            " doing something wrong. It should only be used as"
+            " a symbolic placeholder."
         )
 
     def __str__(self):
@@ -846,7 +840,7 @@ def _node_to_pattern(node):
                 raise TypeError(
                     "%s.connection_pattern should return" % node.op
                     + " a list of lists, but element %d" % ii
-                    + "is %s of type %s." % (output_pattern, type(output_pattern))
+                    + "is {} of type {}.".format(output_pattern, type(output_pattern))
                 )
     else:
         connection_pattern = [[True for output in node.outputs] for ipt in node.inputs]
@@ -933,7 +927,7 @@ def _populate_var_to_app_to_idx(outputs, wrt, consider_constant):
     # Note: we need to revisit the apply nodes repeatedly, because
     #       different outputs of the apply node are connected to
     #       different subsets of the inputs.
-    accounted_for = set([])
+    accounted_for = set()
 
     def account_for(var):
         # Don't visit the same variable twice
@@ -984,7 +978,7 @@ def _populate_var_to_app_to_idx(outputs, wrt, consider_constant):
     # determine which variables have elements of wrt as a true
     # ancestor. Do this with an upward pass starting from wrt,
     # following only true connections
-    visited = set([])
+    visited = set()
 
     def visit(var):
         if var in visited:
@@ -1458,7 +1452,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                     grad_dict[var] = disconnected_type()
 
                 if cost_name is not None and var.name is not None:
-                    grad_dict[var].name = "(d%s/d%s)" % (cost_name, var.name)
+                    grad_dict[var].name = "(d{}/d{})".format(cost_name, var.name)
             else:
                 # this variable isn't connected to the cost in the
                 # computational graph
@@ -1494,7 +1488,7 @@ def _float_ones_like(x):
     return x.ones_like(dtype=dtype)
 
 
-class numeric_grad(object):
+class numeric_grad:
     """
     Compute the numeric derivative of a scalar-valued function at a particular
     point.
@@ -1790,9 +1784,9 @@ def verify_grad(
 
     """
     # The import is here to prevent circular import.
-    from theano import compile, shared
     import theano.tensor
-    from theano.tensor import as_tensor_variable, TensorType
+    from theano import compile, shared
+    from theano.tensor import TensorType, as_tensor_variable
 
     assert isinstance(pt, (list, tuple))
     pt = [np.array(p) for p in pt]
@@ -1818,13 +1812,11 @@ def verify_grad(
 
     if rng is None:
         raise TypeError(
-            (
-                "rng should be a valid instance of "
-                "numpy.random.RandomState. You may "
-                "want to use tests.unittest"
-                "_tools.verify_grad instead of "
-                "theano.gradient.verify_grad."
-            )
+            "rng should be a valid instance of "
+            "numpy.random.RandomState. You may "
+            "want to use tests.unittest"
+            "_tools.verify_grad instead of "
+            "theano.gradient.verify_grad."
         )
 
     # We allow input downcast in function, because numeric_grad works in the
@@ -1853,7 +1845,7 @@ def verify_grad(
 
     if isinstance(o_output, list):
         raise NotImplementedError(
-            ("cant (yet) autotest gradient of fun " "with multiple outputs")
+            "cant (yet) autotest gradient of fun " "with multiple outputs"
         )
         # we could make loop over outputs making random projections R for each,
         # but this doesn't handle the case where not all the outputs are

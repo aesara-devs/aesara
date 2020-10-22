@@ -2,15 +2,13 @@ import gc
 import sys
 import time
 
+import numpy as np
 import pytest
 
-import numpy as np
-
 import theano
-
 from theano import function, tensor
-from theano.gof import vm, OpWiseCLinker
 from theano.compile import Mode
+from theano.gof import OpWiseCLinker, vm
 from theano.ifelse import ifelse
 
 
@@ -102,7 +100,9 @@ def test_speed():
         t_b = t3 - t2
 
         print(
-            "%s takes %f s/Kop" % ("numpy", (1000 * (t_b - t_a) / (steps_b - steps_a)))
+            "{} takes {:f} s/Kop".format(
+                "numpy", (1000 * (t_b - t_a) / (steps_b - steps_a))
+            )
         )
 
     def time_linker(name, linker):
@@ -129,7 +129,11 @@ def test_speed():
         t_a = t1 - t0
         t_b = t3 - t2
 
-        print("%s takes %f s/Kop" % (name, (1000 * (t_b - t_a) / (steps_b - steps_a))))
+        print(
+            "{} takes {:f} s/Kop".format(
+                name, (1000 * (t_b - t_a) / (steps_b - steps_a))
+            )
+        )
 
     time_linker("c|py", OpWiseCLinker)
     time_linker("vmLinker", vm.VM_Linker)
@@ -172,7 +176,11 @@ def test_speed_lazy():
         t_a = t1 - t0
         t_b = t3 - t2
 
-        print("%s takes %f s/Kop" % (name, (1000 * (t_b - t_a) / (steps_b - steps_a))))
+        print(
+            "{} takes {:f} s/Kop".format(
+                name, (1000 * (t_b - t_a) / (steps_b - steps_a))
+            )
+        )
 
     time_linker("vmLinker", vm.VM_Linker)
     time_linker("vmLinker_nogc", lambda: vm.VM_Linker(allow_gc=False))
@@ -427,7 +435,7 @@ def test_reallocation():
             return [False, None]
 
         assert check_storage(storage_map)[0]
-        assert len(set(id(v) for v in storage_map.values())) < len(storage_map)
+        assert len({id(v) for v in storage_map.values()}) < len(storage_map)
 
 
 @pytest.mark.skipif(

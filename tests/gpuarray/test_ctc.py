@@ -1,23 +1,17 @@
-import pytest
 import numpy as np
+import pytest
 
 import theano
-import theano.tensor as tt
 import theano.gpuarray
-
-from theano.gpuarray.ctc import gpu_ctc, GpuConnectionistTemporalClassification
-from theano.tensor.nnet.ctc import (
-    ctc,
-    ctc_available,
-    ConnectionistTemporalClassification,
-)
-
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
-from tests.tensor.nnet.test_ctc import (
-    setup_torch_case,
-    setup_ctc_case,
-    setup_grad_case,
+from tests.tensor.nnet.test_ctc import setup_ctc_case, setup_grad_case, setup_torch_case
+from theano.gpuarray.ctc import GpuConnectionistTemporalClassification, gpu_ctc
+from theano.tensor.nnet.ctc import (
+    ConnectionistTemporalClassification,
+    ctc,
+    ctc_available,
 )
 
 

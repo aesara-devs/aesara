@@ -1,7 +1,9 @@
 import numpy as np
+
 import theano
-from theano.tensor.basic import mul, arange
+from theano.gof.op import Op
 from theano.gradient import grad_undefined
+from theano.tensor.basic import arange, mul
 from theano.tensor.subtensor import set_subtensor
 
 
@@ -18,7 +20,7 @@ def _check_tensor_is_scalar(var):
         raise ValueError(msg % (var, var.ndim))
 
 
-class SortOp(theano.Op):
+class SortOp(Op):
     """
     This class is a wrapper for numpy sort function.
 
@@ -31,7 +33,7 @@ class SortOp(theano.Op):
         self.order = order
 
     def __str__(self):
-        return self.__class__.__name__ + "{%s, %s}" % (self.kind, str(self.order))
+        return self.__class__.__name__ + "{{{}, {}}}".format(self.kind, str(self.order))
 
     def make_node(self, input, axis=-1):
         input = theano.tensor.as_tensor_variable(input)
@@ -153,7 +155,7 @@ def sort(a, axis=-1, kind="quicksort", order=None):
     return SortOp(kind, order)(a, axis)
 
 
-class ArgSortOp(theano.Op):
+class ArgSortOp(Op):
     """
     This class is a wrapper for numpy argsort function.
 
@@ -166,7 +168,7 @@ class ArgSortOp(theano.Op):
         self.order = order
 
     def __str__(self):
-        return self.__class__.__name__ + "{%s, %s}" % (self.kind, str(self.order))
+        return self.__class__.__name__ + "{{{}, {}}}".format(self.kind, str(self.order))
 
     def make_node(self, input, axis=-1):
         input = theano.tensor.as_tensor_variable(input)
@@ -303,7 +305,7 @@ def _topk_py_impl(op, x, k, axis, idx_dtype):
         return zi.astype(idx_dtype)
 
 
-class TopKOp(theano.Op):
+class TopKOp(Op):
     """Operations related to finding k-largest elements.
 
     Parameters

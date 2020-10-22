@@ -1,30 +1,27 @@
 import itertools
+
 import numpy as np
-import pytest
 
 import theano
-from theano import config
-from theano import tensor
-from theano.tensor.blas import gemv, gemv_inplace, gemm_inplace, _dot22, batched_dot
-
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, test_ctx_name
+from tests.gpuarray.test_basic_ops import makeTester, rand
+from tests.tensor.test_blas import BaseGemv, TestGer
+from theano import config, tensor
 from theano.gpuarray import gpuarray_shared_constructor
 from theano.gpuarray.blas import (
-    gpugemv_inplace,
-    gpugemv_no_inplace,
+    GpuGemm,
+    GpuGer,
+    gpu_dot22,
     gpugemm_inplace,
     gpugemm_no_inplace,
     gpugemmbatch_inplace,
+    gpugemv_inplace,
+    gpugemv_no_inplace,
     gpuger_inplace,
     gpuger_no_inplace,
-    GpuGer,
-    GpuGemm,
-    gpu_dot22,
 )
-
-from tests import unittest_tools as utt
-from tests.tensor.test_blas import TestGer, BaseGemv
-from tests.gpuarray.config import mode_with_gpu, test_ctx_name
-from tests.gpuarray.test_basic_ops import makeTester, rand
+from theano.tensor.blas import _dot22, batched_dot, gemm_inplace, gemv, gemv_inplace
 
 
 TestGpuGemv = makeTester(
@@ -156,13 +153,11 @@ TestGpuGemm = makeTester(
 )
 
 
-gemm_batched_tests = dict(
-    (
-        "test_b%im%ik%in%i" % (b, m, k, n),
-        [rand(b, m, n), rand(), rand(b, m, k), rand(b, k, n), rand()],
-    )
+gemm_batched_tests = {
+    "test_b%im%ik%in%i"
+    % (b, m, k, n): [rand(b, m, n), rand(), rand(b, m, k), rand(b, k, n), rand()]
     for b, m, k, n in itertools.combinations([2, 3, 5, 7, 11, 13], 4)
-)
+}
 
 gemm_batched_tests["float16"] = [
     rand(3, 4, 7).astype("float16"),
@@ -222,18 +217,6 @@ class TestGpuSger(TestGer):
         self.ger = gpuger_inplace
         self.gemm = gpugemm_inplace
         super().setup_method()
-
-    @pytest.mark.skip(reason="0-sized objects not supported")
-    def test_f32_0_0(self):
-        assert False
-
-    @pytest.mark.skip(reason="0-sized objects not supported")
-    def test_f32_1_0(self):
-        assert False
-
-    @pytest.mark.skip(reason="0-sized objects not supported")
-    def test_f32_0_1(self):
-        assert False
 
 
 class TestGpuSgerNoTransfer(TestGpuSger):

@@ -3,19 +3,16 @@ Locking mechanism to ensure no two compilations occur simultaneously
 in the same compilation directory (which can cause crashes).
 """
 import atexit
+import logging
 import os
 import socket  # only used for gethostname()
 import time
-import logging
+from contextlib import contextmanager
 
 import numpy as np
 
-
-from six import PY3
-
-from contextlib import contextmanager
-
 from theano import config
+
 
 random = np.random.RandomState([2015, 8, 2])
 
@@ -285,14 +282,9 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
                 nb_wait += 1
                 time.sleep(random.uniform(min_wait, max_wait))
 
-            if PY3:
-                exception = FileExistsError  # noqa
-            else:
-                exception = OSError
-
             try:
                 os.mkdir(tmp_dir)
-            except exception:
+            except FileExistsError:
                 # Error while creating the directory: someone else
                 # must have tried at the exact same time.
                 nb_error += 1
@@ -334,7 +326,7 @@ def refresh_lock(lock_file):
     unique id, using a new (randomly generated) id, which is also returned.
 
     """
-    unique_id = "%s_%s_%s" % (
+    unique_id = "{}_{}_{}".format(
         os.getpid(),
         "".join([str(random.randint(0, 9)) for i in range(10)]),
         hostname,
@@ -357,7 +349,7 @@ def refresh_lock(lock_file):
     return unique_id
 
 
-class Unlocker(object):
+class Unlocker:
     """
     Class wrapper around release mechanism so that the lock is automatically
     released when the program exits (even when crashing or being interrupted),

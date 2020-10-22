@@ -20,7 +20,7 @@ class Minimal(gof.Op):
         #  - If they do not, then you should not use them in
         #    __eq__ and __hash__
 
-        super(Minimal, self).__init__()
+        super().__init__()
 
     def make_node(self, *args):
         # HERE `args` must be THEANO VARIABLES

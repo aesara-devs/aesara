@@ -1,7 +1,6 @@
 import numpy as np
 
 import theano
-
 from theano.gof.utils import hash_from_code
 
 

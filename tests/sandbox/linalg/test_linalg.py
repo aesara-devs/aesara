@@ -1,29 +1,25 @@
-import pytest
-
 import numpy as np
 import numpy.linalg
+import pytest
 
 import theano
-
-from theano import config, tensor, function
-from theano.tensor.basic import _allclose
-from theano.tensor.nlinalg import MatrixInverse
-from theano.tensor import DimShuffle
-
-# The one in comment are not tested...
-from theano.sandbox.linalg.ops import (
-    Cholesky,  # op class
-    matrix_inverse,
-    Solve,
-    solve,
-    # PSD_hint,
-    spectral_radius_bound,
-    imported_scipy,
-    inv_as_solve,
-)
-
 from tests import unittest_tools as utt
 from tests.test_rop import break_op
+from theano import config, function, tensor
+
+# The one in comment are not tested...
+from theano.sandbox.linalg.ops import Cholesky  # PSD_hint,; op class
+from theano.sandbox.linalg.ops import (
+    Solve,
+    imported_scipy,
+    inv_as_solve,
+    matrix_inverse,
+    solve,
+    spectral_radius_bound,
+)
+from theano.tensor import DimShuffle
+from theano.tensor.basic import _allclose
+from theano.tensor.nlinalg import MatrixInverse
 
 
 def test_rop_lop():
@@ -49,7 +45,7 @@ def test_rop_lop():
     v1 = rop_f(vx, vv)
     v2 = scan_f(vx, vv)
 
-    assert _allclose(v1, v2), "ROP mismatch: %s %s" % (v1, v2)
+    assert _allclose(v1, v2), "ROP mismatch: {} {}".format(v1, v2)
 
     raised = False
     try:
@@ -58,10 +54,8 @@ def test_rop_lop():
         raised = True
     if not raised:
         raise Exception(
-            (
-                "Op did not raised an error even though the function"
-                " is not differentiable"
-            )
+            "Op did not raised an error even though the function"
+            " is not differentiable"
         )
 
     vv = np.asarray(rng.uniform(size=(4,)), theano.config.floatX)
@@ -73,7 +67,7 @@ def test_rop_lop():
 
     v1 = lop_f(vx, vv)
     v2 = scan_f(vx, vv)
-    assert _allclose(v1, v2), "LOP mismatch: %s %s" % (v1, v2)
+    assert _allclose(v1, v2), "LOP mismatch: {} {}".format(v1, v2)
 
 
 def test_spectral_radius_bound():

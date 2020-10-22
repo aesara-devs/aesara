@@ -43,23 +43,19 @@ __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 
 import logging
+from collections import OrderedDict
 
 import numpy as np
 
 import theano.tensor as tt
-
-from collections import OrderedDict
-
-from six import integer_types
-
-from theano import compile, gof, config
+from theano import compile, config, gof
 from theano.compile import SharedVariable, function, ops
-from theano.tensor import opt
-from theano.updates import OrderedUpdates
 from theano.gof.utils import TestValueError
-
 from theano.scan_module import scan_op, scan_utils
 from theano.scan_module.scan_utils import safe_new, traverse
+from theano.tensor import opt
+from theano.updates import OrderedUpdates
+
 
 _logger = logging.getLogger("theano.scan_module.scan")
 
@@ -385,7 +381,7 @@ def scan(
     # To do that we check here to see the nature of n_steps
     n_fixed_steps = None
 
-    if isinstance(n_steps, (float, integer_types)):
+    if isinstance(n_steps, (float, int)):
         n_fixed_steps = int(n_steps)
     else:
         try:

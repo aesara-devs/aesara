@@ -1,31 +1,24 @@
 import logging
 
 import theano.tensor
-
-from six import integer_types
-
-from theano.gof import Op, Apply
-
 from theano import tensor
+from theano.gof import Apply, Op, local_optimizer
+from theano.gof.opt import Optimizer
 from theano.tensor import DimShuffle, Dot
 from theano.tensor.blas import Dot22
-from theano.tensor.opt import (
-    register_stabilize,
-    register_specialize,
-    register_canonicalize,
-)
-from theano.gof import local_optimizer
-from theano.gof.opt import Optimizer
-
 from theano.tensor.nlinalg import (
     MatrixInverse,
-    matrix_inverse,
-    extract_diag,
-    trace,
     det,
+    extract_diag,
+    matrix_inverse,
+    trace,
 )
-
-from theano.tensor.slinalg import Cholesky, cholesky, Solve, solve, imported_scipy
+from theano.tensor.opt import (
+    register_canonicalize,
+    register_specialize,
+    register_stabilize,
+)
+from theano.tensor.slinalg import Cholesky, Solve, cholesky, imported_scipy, solve
 
 
 logger = logging.getLogger(__name__)
@@ -89,7 +82,7 @@ def remove_hint_nodes(node):
         return node.inputs
 
 
-class HintsFeature(object):
+class HintsFeature:
     """
     FunctionGraph Feature to track matrix properties.
 
@@ -125,7 +118,7 @@ class HintsFeature(object):
     """
 
     def add_hint(self, r, k, v):
-        logger.debug("adding hint; %s, %s, %s" % (r, k, v))
+        logger.debug("adding hint; {}, {}, {}".format(r, k, v))
         self.hints[r][k] = v
 
     def ensure_init_r(self, r):
@@ -383,7 +376,7 @@ def spectral_radius_bound(X, log2_exponent):
     """
     if X.type.ndim != 2:
         raise TypeError("spectral_radius_bound requires a matrix argument", X)
-    if not isinstance(log2_exponent, integer_types):
+    if not isinstance(log2_exponent, int):
         raise TypeError(
             "spectral_radius_bound requires an integer exponent", log2_exponent
         )

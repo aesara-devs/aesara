@@ -1,13 +1,11 @@
-import pytest
+from copy import deepcopy
 
 import numpy as np
+import pytest
 
 import theano
 import theano.tensor as tt
-
-from copy import deepcopy
-
-from theano import function, Mode
+from theano import Mode, function
 from theano.gof import Apply, generic
 from theano.gof.op import PureOp
 from theano.ifelse import ifelse

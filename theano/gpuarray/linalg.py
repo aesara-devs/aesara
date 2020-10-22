@@ -1,27 +1,26 @@
 import warnings
 
-import pkg_resources
 import numpy as np
+import pkg_resources
 from numpy.linalg.linalg import LinAlgError
 
 import theano
 from theano import Op, config, tensor
-from theano.scalar import bool as bool_t
 from theano.gof import COp, ParamsType
-from theano.gpuarray import GpuArrayType
-
-from .basic_ops import (
+from theano.gpuarray.basic_ops import (
     CGpuKernelBase,
     as_gpuarray_variable,
     gpu_contiguous,
     gpuarray_helper_inc_dir,
     infer_context_name,
 )
-from .type import gpu_context_type
+from theano.gpuarray.type import GpuArrayType, gpu_context_type
+from theano.scalar import bool as bool_t
+
 
 try:
     import pygpu
-    from pygpu.basic import triu, tril
+    from pygpu.basic import tril, triu
 
     pygpu_available = True
 except ImportError:
@@ -138,7 +137,7 @@ class GpuCusolverSolve(Op):
         if self.inplace:
             self.destroy_map = {0: [0]}
         assert A_structure in MATRIX_STRUCTURES_SOLVE
-        super(GpuCusolverSolve, self).__init__()
+        super().__init__()
 
     def make_node(self, inp1, inp2):
         if not cusolver_available:
@@ -359,7 +358,7 @@ class GpuCublasTriangularSolve(Op):
     def __init__(self, lower=True, trans="N"):
         self.trans = trans
         self.lower = lower
-        super(GpuCublasTriangularSolve, self).__init__()
+        super().__init__()
 
     def make_node(self, inp1, inp2):
         if not cublas_available:
@@ -542,7 +541,7 @@ class GpuCholesky(Op):
         self.inplace = inplace
         if self.inplace:
             self.destroy_map = {0: [0]}
-        super(GpuCholesky, self).__init__()
+        super().__init__()
 
     def clone_inplace(self):
         return self.__class__(lower=self.lower, inplace=True)
@@ -789,7 +788,7 @@ class GpuMagmaSVD(GpuMagmaBase):
             )
 
     def prepare_node(self, node, storage_map, compute_map, impl):
-        super(GpuMagmaSVD, self).prepare_node(node, storage_map, compute_map, impl)
+        super().prepare_node(node, storage_map, compute_map, impl)
         # Check node to prevent eventual errors with old pickled nodes.
         if self.compute_uv:
             A, B, C = node.outputs

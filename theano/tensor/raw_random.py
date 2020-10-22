@@ -2,20 +2,16 @@
 
 
 import sys
+from copy import copy
+from functools import reduce
 
 import numpy as np
 
 import theano
-
-from copy import copy
-from functools import reduce
-
-from six import string_types
-
-from theano import tensor
-from theano.tensor import opt
-from theano import gof
+from theano import gof, tensor
 from theano.compile import optdb
+from theano.tensor import opt
+
 
 __docformat__ = "restructuredtext en"
 
@@ -152,7 +148,7 @@ class RandomFunction(gof.Op):
             state = dct
         fn, outtype, inplace, ndim_added = state
         self.fn = fn
-        if isinstance(fn, string_types):
+        if isinstance(fn, str):
             self.exec_fn = getattr(np.random.RandomState, fn)
         else:
             self.exec_fn = fn
@@ -356,7 +352,7 @@ def _infer_ndim_bcast(ndim, shape, *args):
             else:
                 if s >= 0:
                     pre_v_shape.append(tensor.as_tensor_variable(s))
-                    bcast.append((s == 1))
+                    bcast.append(s == 1)
                 elif s == -1:
                     n_a_i = 0
                     for a in args:
@@ -373,11 +369,9 @@ def _infer_ndim_bcast(ndim, shape, *args):
                     else:
                         if n_a_i == 0:
                             raise ValueError(
-                                (
-                                    "Auto-shape of -1 must overlap"
-                                    "with the shape of one of the broadcastable"
-                                    "inputs"
-                                )
+                                "Auto-shape of -1 must overlap"
+                                "with the shape of one of the broadcastable"
+                                "inputs"
                             )
                         else:
                             pre_v_shape.append(tensor.as_tensor_variable(1))
@@ -396,7 +390,7 @@ def _infer_ndim_bcast(ndim, shape, *args):
         # but we need to know ndim
         if not args:
             raise TypeError(
-                ("_infer_ndim_bcast cannot infer shape without" " either shape or args")
+                "_infer_ndim_bcast cannot infer shape without" " either shape or args"
             )
         template = reduce(lambda a, b: a + b, args)
         v_shape = template.shape
@@ -860,9 +854,7 @@ def multinomial_helper(random_state, n, pvals, size):
     return out
 
 
-def multinomial(
-    random_state, size=None, n=1, pvals=[0.5, 0.5], ndim=None, dtype="int64"
-):
+def multinomial(random_state, size=None, n=1, pvals=None, ndim=None, dtype="int64"):
     """
     Sample from one or more multinomial distributions defined by
     one-dimensional slices in pvals.
@@ -923,6 +915,8 @@ def multinomial(
         draws.
 
     """
+    if pvals is None:
+        pvals = [0.5, 0.5]
     n = tensor.as_tensor_variable(n)
     pvals = tensor.as_tensor_variable(pvals)
     # until ellipsis is implemented (argh)
@@ -960,7 +954,7 @@ optdb.register(
 )
 
 
-class RandomStreamsBase(object):
+class RandomStreamsBase:
     def binomial(self, size=None, n=1, p=0.5, ndim=None, dtype="int64", prob=None):
         """
         Sample n times with probability of success p for each trial and
@@ -1056,7 +1050,7 @@ class RandomStreamsBase(object):
         """
         return self.gen(permutation, size, n, ndim=ndim, dtype=dtype)
 
-    def multinomial(self, size=None, n=1, pvals=[0.5, 0.5], ndim=None, dtype="int64"):
+    def multinomial(self, size=None, n=1, pvals=None, ndim=None, dtype="int64"):
         """
         Sample n times from a multinomial distribution defined by
         probabilities pvals, as many times as required by size. For
@@ -1072,6 +1066,8 @@ class RandomStreamsBase(object):
         Note that the output will then be of dimension ndim+1.
 
         """
+        if pvals is None:
+            pvals = [0.5, 0.5]
         return self.gen(multinomial, size, n, pvals, ndim=ndim, dtype=dtype)
 
     def shuffle_row_elements(self, input):

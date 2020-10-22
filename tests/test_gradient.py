@@ -1,19 +1,13 @@
-import pytest
-
-import numpy as np
-
-import theano
-
 from collections import OrderedDict
 
+import numpy as np
+import pytest
 
-from theano import gof, change_flags, gradient, config
-
-
+import theano
+from tests import unittest_tools as utt
+from theano import change_flags, config, gof, gradient
 from theano.gof.null_type import NullType
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
-
-from tests import unittest_tools as utt
 
 
 one = theano.tensor.as_tensor_variable(1.0)
@@ -53,7 +47,6 @@ class TestGradSourcesInputs:
             def grad(self, inp, grads):
                 (x,) = inp
                 (gz,) = grads
-                pass
 
         a = retNone().make_node()
         with pytest.raises(TypeError):
@@ -497,15 +490,7 @@ def test_known_grads():
         full = full(*values)
         assert len(true_grads) == len(full)
         for a, b, var in zip(true_grads, full, inputs):
-            if not np.allclose(a, b):
-                print("Failure")
-                print(a)
-                print(b)
-                print(var)
-                print(layer)
-                for v in known:
-                    print(v, ":", theano.function(inputs, known[v])(*values))
-                assert False
+            assert np.allclose(a, b)
 
 
 def test_dxdx():

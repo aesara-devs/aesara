@@ -3,6 +3,7 @@ from collections import defaultdict
 from theano.compat import cmp
 from theano.gof.graph import list_of_nodes
 
+
 # {{{ http://code.activestate.com/recipes/578231/ (r1)
 # Copyright (c) Oren Tirosh 2012
 #
@@ -138,8 +139,8 @@ def _toposort(edges):
 
     """
     incoming_edges = reverse_dict(edges)
-    incoming_edges = dict((k, set(val)) for k, val in incoming_edges.items())
-    S = set((v for v in edges if v not in incoming_edges))
+    incoming_edges = {k: set(val) for k, val in incoming_edges.items()}
+    S = {v for v in edges if v not in incoming_edges}
     L = []
 
     while S:
@@ -188,8 +189,8 @@ def posort(nodes, *cmps):
     [0, 8, 2, 4, 6, 1, 3, 5, 7, 9, 16, 18, 10, 12, 14, 17, 19, 11, 13, 15]
 
     """
-    comes_before = dict((a, set()) for a in nodes)
-    comes_after = dict((a, set()) for a in nodes)
+    comes_before = {a: set() for a in nodes}
+    comes_after = {a: set() for a in nodes}
 
     def add_links(a, b):  # b depends on a
         comes_after[a].add(b)

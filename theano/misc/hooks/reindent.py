@@ -42,10 +42,10 @@ you'd prefer. You can always use the --nobackup option to prevent this.
 
 __version__ = "1"
 
-import tokenize
 import os
 import shutil
 import sys
+import tokenize
 
 
 verbose = 0
@@ -120,8 +120,8 @@ def check(file):
         print("checking", file, "...", end=" ")
     try:
         f = open(file)
-    except IOError as msg:
-        errprint("%s: I/O Error: %s" % (file, str(msg)))
+    except OSError as msg:
+        errprint("{}: I/O Error: {}".format(file, str(msg)))
         return
 
     r = Reindenter(f)

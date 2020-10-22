@@ -1,27 +1,27 @@
 import numpy as np
+
 import theano
 import theano.tensor.basic as basic
-
 from theano import function
+from theano.compile import In
+from theano.tensor import (
+    TensorType,
+    bvector,
+    cast,
+    dmatrix,
+    dvector,
+    fvector,
+    ivector,
+    zmatrix,
+)
 from theano.tensor.basic import (
-    _convert_to_int32,
-    _convert_to_int8,
-    _convert_to_int16,
-    _convert_to_int64,
     _convert_to_float32,
     _convert_to_float64,
+    _convert_to_int8,
+    _convert_to_int16,
+    _convert_to_int32,
+    _convert_to_int64,
 )
-from theano.tensor import (
-    bvector,
-    ivector,
-    fvector,
-    dvector,
-    zmatrix,
-    cast,
-    TensorType,
-    dmatrix,
-)
-from theano.compile import In
 
 
 class TestCasting:

@@ -9,8 +9,9 @@ import copy
 
 import numpy as np
 
-from theano.compile.sharedvalue import SharedVariable, shared_constructor, shared
+from theano.compile.sharedvalue import SharedVariable, shared, shared_constructor
 from theano.tensor import raw_random
+
 
 __docformat__ = "restructuredtext en"
 
@@ -58,7 +59,7 @@ class RandomStreams(raw_random.RandomStreamsBase):
         return list(self.state_updates)
 
     def __init__(self, seed=None):
-        super(RandomStreams, self).__init__()
+        super().__init__()
         # A list of pairs of the form (input_r, output_r).  This will be
         # over-ridden by the module instance to contain stream generators.
         self.state_updates = []

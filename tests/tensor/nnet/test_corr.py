@@ -1,20 +1,16 @@
-import pytest
 import numpy as np
+import pytest
+
 import theano
 import theano.tensor as tt
-
-from six import integer_types
-from theano.tensor.nnet import corr, conv
-
 from tests import unittest_tools as utt
-from tests.tensor.nnet.test_abstract_conv import (
-    TestGroupedConvNoOptim,
-    TestUnsharedConv,
-)
 from tests.tensor.nnet.test_abstract_conv import (
     TestAsymmetricPadding,
     TestCausalConv,
+    TestGroupedConvNoOptim,
+    TestUnsharedConv,
 )
+from theano.tensor.nnet import conv, corr
 
 
 @pytest.mark.skipif(
@@ -78,7 +74,7 @@ class TestCorr2D(utt.InferShapeTester):
             return rval
 
         output = sym_CorrMM(input, filters)
-        output.name = "CorrMM()(%s,%s)" % (input.name, filters.name)
+        output.name = "CorrMM()({},{})".format(input.name, filters.name)
         theano_corr = theano.function([input, filters], output, mode=self.mode)
 
         # initialize input and compute result
@@ -113,7 +109,7 @@ class TestCorr2D(utt.InferShapeTester):
             padHW = np.floor(dil_fil_shape2d / 2).astype("int32")
         elif isinstance(border_mode, tuple):
             padHW = np.array(border_mode)
-        elif isinstance(border_mode, integer_types):
+        elif isinstance(border_mode, int):
             padHW = np.array([border_mode, border_mode])
         else:
             raise NotImplementedError("Unsupported border_mode {}".format(border_mode))

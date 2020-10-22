@@ -1,24 +1,20 @@
 import os
-
-import pytest
-import numpy as np
-
-import theano
-
-import tests.unittest_tools as utt
-
 from pickle import Unpickler
 
+import numpy as np
+import pytest
+
+import tests.unittest_tools as utt
+import theano
+from tests.gpuarray.config import mode_with_gpu
 from theano import config, function, tensor
 from theano.compat import PY3
+from theano.gpuarray.multinomial import (
+    GPUAChoiceFromUniform,
+    GPUAMultinomialFromUniform,
+)
 from theano.sandbox import multinomial
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
-from theano.gpuarray.multinomial import (
-    GPUAMultinomialFromUniform,
-    GPUAChoiceFromUniform,
-)
-
-from tests.gpuarray.config import mode_with_gpu
 
 
 def test_multinomial_output_dtype():
@@ -151,7 +147,7 @@ def test_gpu_opt_dtypes():
         pval = pval / pval.sum(axis=1)[:, None]
         uval = np.ones_like(pval[:, 0]) * 0.5
         samples = f(pval, uval)
-        assert samples.dtype == dtype, "%s != %s" % (samples.dtype, dtype)
+        assert samples.dtype == dtype, "{} != {}".format(samples.dtype, dtype)
 
 
 def test_gpu_opt():
@@ -384,7 +380,7 @@ def test_unpickle_legacy_op():
     fname = "test_gpuarray_multinomial_wo_replacement.pkl"
 
     if not PY3:
-        with open(os.path.join(testfile_dir, fname), "r") as fp:
+        with open(os.path.join(testfile_dir, fname)) as fp:
             u = Unpickler(fp)
             m = u.load()
             assert isinstance(m, GPUAChoiceFromUniform)

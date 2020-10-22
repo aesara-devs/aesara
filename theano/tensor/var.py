@@ -1,22 +1,20 @@
 import copy
 import traceback as tb
 import warnings
-
-import numpy as np
-import theano
-
-from six import integer_types
 from collections.abc import Iterable
 
-from theano.scalar import ComplexError, IntegerDivisionError
+import numpy as np
+
+import theano
+from theano import config
 from theano.gof import Constant, Variable
 from theano.gof.utils import hashtype
-from theano.tensor.utils import hash_from_ndarray
+from theano.scalar import ComplexError, IntegerDivisionError
 from theano.tensor.type import TensorType
-from theano import config
+from theano.tensor.utils import hash_from_ndarray
 
 
-class _tensor_py_operators(object):
+class _tensor_py_operators:
     def __abs__(self):
         return theano.tensor.basic.abs_(self)
 
@@ -298,7 +296,7 @@ class _tensor_py_operators(object):
         """
 
         if ndim is not None:
-            if not isinstance(ndim, integer_types):
+            if not isinstance(ndim, int):
                 raise ValueError(
                     "Expected ndim to be an integer, is " + str(type(ndim))
                 )
@@ -641,11 +639,9 @@ class _tensor_py_operators(object):
         except TypeError:
             # This prevents accidental iteration via sum(self)
             raise TypeError(
-                (
-                    "TensorType does not support iteration. "
-                    "Maybe you are using builtins.sum instead of "
-                    "theano.tensor.sum? (Maybe .max?)"
-                )
+                "TensorType does not support iteration. "
+                "Maybe you are using builtins.sum instead of "
+                "theano.tensor.sum? (Maybe .max?)"
             )
 
     ndim = property(lambda self: self.type.ndim)
@@ -840,7 +836,7 @@ class TensorVariable(_tensor_py_operators, Variable):
     """
 
     def __init__(self, type, owner=None, index=None, name=None):
-        super(TensorVariable, self).__init__(type, owner=owner, index=index, name=name)
+        super().__init__(type, owner=owner, index=index, name=name)
         if config.warn_float64 != "ignore" and type.dtype == "float64":
             msg = (
                 "You are creating a TensorVariable "
@@ -998,7 +994,7 @@ class TensorConstant(_tensor_py_operators, Constant):
 
     def __str__(self):
         if self.tag.unique_value is not None:
-            name = "%s of %s" % (str(self.data.shape), str(self.tag.unique_value))
+            name = "{} of {}".format(str(self.data.shape), str(self.tag.unique_value))
         else:
             name = "%s" % self.data
         if len(name) > 20:

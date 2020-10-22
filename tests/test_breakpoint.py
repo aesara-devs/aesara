@@ -2,10 +2,8 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
-
-from theano.breakpoint import PdbBreakpoint
-
 from tests import unittest_tools as utt
+from theano.breakpoint import PdbBreakpoint
 
 
 class TestPdbBreakpoint(utt.InferShapeTester):

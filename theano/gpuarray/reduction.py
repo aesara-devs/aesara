@@ -1,8 +1,9 @@
-from theano.gof import Op, Apply
+from theano.gof import Apply, Op
 from theano.gof.type import Generic
 
-from .basic_ops import infer_context_name, as_gpuarray_variable, gpuarray_helper_inc_dir
+from .basic_ops import as_gpuarray_variable, gpuarray_helper_inc_dir, infer_context_name
 from .type import GpuArrayType
+
 
 try:
     import pygpu

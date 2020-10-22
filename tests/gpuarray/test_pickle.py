@@ -8,16 +8,14 @@ regular test file.
 
 import os
 import sys
-
-import pytest
-
-import numpy as np
-
 from pickle import Unpickler
 
-from theano import config
+import numpy as np
+import pytest
 
+from theano import config
 from theano.gpuarray.type import ContextNotDefined
+
 
 try:
     import pygpu  # noqa: F401

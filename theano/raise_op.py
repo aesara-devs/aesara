@@ -2,6 +2,7 @@
 
 from theano import gof
 
+
 __authors__ = "James Bergstra"
 __copyright__ = "(c) 2011, Universite de Montreal"
 __license__ = "3-clause BSD License"
@@ -24,7 +25,7 @@ class Raise(gof.Op):
         self.exc = exc
 
     def __str__(self):
-        return "Raise{%s(%s)}" % (self.exc, self.msg)
+        return "Raise{{{}({})}}".format(self.exc, self.msg)
 
     def make_node(self, x):
         return gof.Apply(self, [x], [x.type()])

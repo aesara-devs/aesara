@@ -5,17 +5,16 @@ types that it can raise.
 
 """
 import time
-
-import theano
-
 from collections import OrderedDict
 
 from six.moves import StringIO
 
+import theano
 from theano import config
-from theano.gof import graph, utils, toolbox
-from theano.gof.utils import get_variable_trace_string, TestValueError
+from theano.gof import graph, toolbox, utils
+from theano.gof.utils import TestValueError, get_variable_trace_string
 from theano.misc.ordered_set import OrderedSet
+
 
 NullType = None
 
@@ -26,8 +25,6 @@ class InconsistencyError(Exception):
     graph's state is invalid.
 
     """
-
-    pass
 
 
 class MissingInputError(Exception):

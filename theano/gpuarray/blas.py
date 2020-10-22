@@ -1,8 +1,5 @@
-from six import integer_types
-
 import theano
 from theano import Apply, Op
-
 from theano.compile import optdb
 from theano.gof import LocalOptGroup, ParamsType
 from theano.scalar import bool as bool_t
@@ -10,14 +7,15 @@ from theano.tensor.basic import as_tensor_variable
 from theano.tensor.opt import in2out
 
 from .basic_ops import (
-    GpuArrayType,
     CGpuKernelBase,
+    GpuArrayType,
     as_gpuarray_variable,
     gpu_contiguous,
-    infer_context_name,
     gpuarray_helper_inc_dir,
+    infer_context_name,
 )
 from .opt_util import inplace_allocempty
+
 
 try:
     import pygpu
@@ -446,7 +444,7 @@ class GpuGemmBatch(BlasOp):
         return Apply(self, [C, alpha, A, B, beta], [C.type()])
 
     def c_headers(self):
-        return super(GpuGemmBatch, self).c_headers() + ["<gpuarray/blas.h>"]
+        return super().c_headers() + ["<gpuarray/blas.h>"]
 
     def c_code(self, node, name, inp, out, sub):
         vars = dict(
@@ -544,7 +542,7 @@ class BaseGpuCorrMM(CGpuKernelBase):
         num_groups=1,
         unshared=False,
     ):
-        if isinstance(border_mode, integer_types):
+        if isinstance(border_mode, int):
             if border_mode < 0:
                 raise ValueError(
                     "invalid border_mode {}, which must be a "
@@ -595,7 +593,7 @@ class BaseGpuCorrMM(CGpuKernelBase):
         return ((0, 0),) * 2
 
     def __str__(self):
-        return "%s{%s, %s, %s, %s, %s}" % (
+        return "{}{{{}, {}, {}, {}, {}}}".format(
             self.__class__.__name__,
             self.border_mode,
             str(self.subsample),
@@ -1071,9 +1069,7 @@ class GpuCorrMM(BaseGpuCorrMM):
         num_groups=1,
         unshared=False,
     ):
-        super(GpuCorrMM, self).__init__(
-            border_mode, subsample, filter_dilation, num_groups, unshared
-        )
+        super().__init__(border_mode, subsample, filter_dilation, num_groups, unshared)
 
     def make_node(self, img, kern):
         ctx_name = infer_context_name(img, kern)
@@ -1108,9 +1104,7 @@ class GpuCorrMM(BaseGpuCorrMM):
         bottom, weights = inp
         (top,) = out_
         direction = "forward"
-        return super(GpuCorrMM, self).c_code_helper(
-            bottom, weights, top, direction, sub
-        )
+        return super().c_code_helper(bottom, weights, top, direction, sub)
 
     def grad(self, inp, grads):
         bottom, weights = inp
@@ -1152,9 +1146,7 @@ class GpuCorrMM_gradWeights(BaseGpuCorrMM):
         num_groups=1,
         unshared=False,
     ):
-        super(GpuCorrMM_gradWeights, self).__init__(
-            border_mode, subsample, filter_dilation, num_groups, unshared
-        )
+        super().__init__(border_mode, subsample, filter_dilation, num_groups, unshared)
 
     def make_node(self, img, topgrad, shape=None):
         ctx_name = infer_context_name(img, topgrad)
@@ -1207,7 +1199,7 @@ class GpuCorrMM_gradWeights(BaseGpuCorrMM):
         height, width = inp[2:] or (None, None)
         (weights,) = out_
         direction = "backprop weights"
-        return super(GpuCorrMM_gradWeights, self).c_code_helper(
+        return super().c_code_helper(
             bottom, weights, top, direction, sub, height, width
         )
 
@@ -1260,9 +1252,7 @@ class GpuCorrMM_gradInputs(BaseGpuCorrMM):
         num_groups=1,
         unshared=False,
     ):
-        super(GpuCorrMM_gradInputs, self).__init__(
-            border_mode, subsample, filter_dilation, num_groups, unshared
-        )
+        super().__init__(border_mode, subsample, filter_dilation, num_groups, unshared)
 
     def make_node(self, kern, topgrad, shape=None):
         ctx_name = infer_context_name(kern, topgrad)
@@ -1311,7 +1301,7 @@ class GpuCorrMM_gradInputs(BaseGpuCorrMM):
         height, width = inp[2:] or (None, None)
         (bottom,) = out_
         direction = "backprop inputs"
-        return super(GpuCorrMM_gradInputs, self).c_code_helper(
+        return super().c_code_helper(
             bottom, weights, top, direction, sub, height, width
         )
 
@@ -1376,7 +1366,7 @@ class BaseGpuCorr3dMM(CGpuKernelBase):
         filter_dilation=(1, 1, 1),
         num_groups=1,
     ):
-        if isinstance(border_mode, integer_types):
+        if isinstance(border_mode, int):
             border_mode = (border_mode, border_mode, border_mode)
         if isinstance(border_mode, tuple):
             pad_h, pad_w, pad_d = map(int, border_mode)
@@ -1409,7 +1399,7 @@ class BaseGpuCorr3dMM(CGpuKernelBase):
         return (0, 0, 0)
 
     def __str__(self):
-        return "%s{%s, %s, %s, %s}" % (
+        return "{}{{{}, {}, {}, {}}}".format(
             self.__class__.__name__,
             self.border_mode,
             str(self.subsample),
@@ -1842,9 +1832,7 @@ class GpuCorr3dMM(BaseGpuCorr3dMM):
         filter_dilation=(1, 1, 1),
         num_groups=1,
     ):
-        super(GpuCorr3dMM, self).__init__(
-            border_mode, subsample, filter_dilation, num_groups
-        )
+        super().__init__(border_mode, subsample, filter_dilation, num_groups)
 
     def make_node(self, img, kern):
         ctx_name = infer_context_name(img, kern)
@@ -1876,9 +1864,7 @@ class GpuCorr3dMM(BaseGpuCorr3dMM):
         bottom, weights = inp
         (top,) = out_
         direction = "forward"
-        return super(GpuCorr3dMM, self).c_code_helper(
-            bottom, weights, top, direction, sub
-        )
+        return super().c_code_helper(bottom, weights, top, direction, sub)
 
     def grad(self, inp, grads):
         bottom, weights = inp
@@ -1911,9 +1897,7 @@ class GpuCorr3dMM_gradWeights(BaseGpuCorr3dMM):
         filter_dilation=(1, 1, 1),
         num_groups=1,
     ):
-        super(GpuCorr3dMM_gradWeights, self).__init__(
-            border_mode, subsample, filter_dilation, num_groups
-        )
+        super().__init__(border_mode, subsample, filter_dilation, num_groups)
 
     def make_node(self, img, topgrad, shape=None):
         ctx_name = infer_context_name(img, topgrad)
@@ -1958,7 +1942,7 @@ class GpuCorr3dMM_gradWeights(BaseGpuCorr3dMM):
         height, width, depth = inp[2:] or (None, None, None)
         (weights,) = out_
         direction = "backprop weights"
-        return super(GpuCorr3dMM_gradWeights, self).c_code_helper(
+        return super().c_code_helper(
             bottom, weights, top, direction, sub, height, width, depth
         )
 
@@ -2002,9 +1986,7 @@ class GpuCorr3dMM_gradInputs(BaseGpuCorr3dMM):
         filter_dilation=(1, 1, 1),
         num_groups=1,
     ):
-        super(GpuCorr3dMM_gradInputs, self).__init__(
-            border_mode, subsample, filter_dilation, num_groups
-        )
+        super().__init__(border_mode, subsample, filter_dilation, num_groups)
 
     def make_node(self, kern, topgrad, shape=None):
         ctx_name = infer_context_name(kern, topgrad)
@@ -2051,7 +2033,7 @@ class GpuCorr3dMM_gradInputs(BaseGpuCorr3dMM):
         height, width, depth = inp[2:] or (None, None, None)
         (bottom,) = out_
         direction = "backprop inputs"
-        return super(GpuCorr3dMM_gradInputs, self).c_code_helper(
+        return super().c_code_helper(
             bottom, weights, top, direction, sub, height, width, depth
         )
 

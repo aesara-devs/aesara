@@ -3,15 +3,14 @@ Ops for downsampling images.
 Planned:
 Pool, DownsampleAvg, DownsampleSoftmax.
 """
-import warnings
 import itertools
+import warnings
 
 import numpy as np
 
 import theano
-
-from theano import gof, OpenMPOp, tensor, Variable, Apply
-from theano.gof import ParamsType, EnumList
+from theano import Apply, OpenMPOp, Variable, gof, tensor
+from theano.gof import EnumList, ParamsType
 from theano.gradient import DisconnectedType
 from theano.scalar import bool as bool_t
 
@@ -471,7 +470,7 @@ class Pool(OpenMPOp):
         return rval
 
     def __init__(self, ignore_border=False, mode="max", ndim=2, openmp=None):
-        super(Pool, self).__init__(openmp=openmp)
+        super().__init__(openmp=openmp)
         self.ndim = ndim
         self.ignore_border = ignore_border
         if mode == "max_deterministic":
@@ -650,7 +649,7 @@ class Pool(OpenMPOp):
 
     def c_headers(self):
         headers = ["<algorithm>"]
-        headers += super(Pool, self).c_headers()
+        headers += super().c_headers()
         return headers
 
     def c_code(self, node, name, inp, out, sub):
@@ -1122,7 +1121,7 @@ class PoolGrad(OpenMPOp):
                 " 'average_inc_pad' and 'average_exc_pad'. Got %s" % mode
             )
         self.mode = mode
-        super(PoolGrad, self).__init__(openmp=openmp)
+        super().__init__(openmp=openmp)
 
     def prepare_node(self, node, storage_map, compute_map, impl):
         if len(node.inputs) < 5:  # 5 for AveragePoolGrad, 6 for MaxPoolGrad
@@ -1837,7 +1836,7 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
         self.ndim = ndim
         self.ignore_border = ignore_border
         self.mode = mode
-        super(DownsampleFactorMaxGradGrad, self).__init__(openmp=openmp)
+        super().__init__(openmp=openmp)
         assert self.mode == "max"
 
     def make_node(self, x, maxout, gz, ws, stride=None, pad=None):
@@ -2173,7 +2172,7 @@ class MaxPoolRop(OpenMPOp):
     )
 
     def __init__(self, ignore_border=False, mode="max", ndim=2, openmp=None):
-        super(MaxPoolRop, self).__init__(openmp=openmp)
+        super().__init__(openmp=openmp)
         self.ndim = ndim
         self.ignore_border = ignore_border
         self.mode = mode
@@ -2277,7 +2276,7 @@ class MaxPoolRop(OpenMPOp):
 
     def c_headers(self):
         headers = ["<algorithm>"]
-        headers += super(MaxPoolRop, self).c_headers()
+        headers += super().c_headers()
         return headers
 
     def c_code(self, node, name, inp, out, sub):

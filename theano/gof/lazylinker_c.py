@@ -1,15 +1,16 @@
 import errno
 import logging
 import os
-from six.moves import reload_module as reload
 import sys
 import warnings
 
+from six.moves import reload_module as reload
 
 import theano
 from theano import config
-from theano.gof.compilelock import get_lock, release_lock
 from theano.gof import cmodule
+from theano.gof.compilelock import get_lock, release_lock
+
 
 _logger = logging.getLogger("theano.gof.lazylinker_c")
 
@@ -58,11 +59,11 @@ try:
     if not os.path.exists(init_file):
         try:
             open(init_file, "w").close()
-        except IOError as e:
+        except OSError as e:
             if os.path.exists(init_file):
                 pass  # has already been created
             else:
-                e.args += ("%s exist? %s" % (location, os.path.exists(location)),)
+                e.args += ("{} exist? {}".format(location, os.path.exists(location)),)
                 raise
 
     _need_reload = False

@@ -6,15 +6,24 @@ from theano.scalar import bool as bool_t
 
 # Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
 from theano.tensor import basic as tt
-
+from theano.tensor.blas import (
+    Gemv,
+    Ger,
+    blas_header_text,
+    blas_header_version,
+    blas_optdb,
+    gemv_inplace,
+    gemv_no_inplace,
+    ger,
+    ger_destructive,
+    ldflags,
+    local_optimizer,
+    optdb,
+)
 from theano.tensor.opt import in2out
-from theano.tensor.blas import ldflags, blas_header_text, blas_header_version
-from theano.tensor.blas import blas_optdb, optdb, local_optimizer
-from theano.tensor.blas import Ger, ger, ger_destructive
-from theano.tensor.blas import Gemv, gemv_inplace, gemv_no_inplace
 
 
-class BaseBLAS(object):
+class BaseBLAS:
     def c_libraries(self):
         return ldflags()
 
@@ -608,7 +617,7 @@ class CGemv(BaseBLAS, Gemv):
     )
 
     def __init__(self, inplace):
-        super(CGemv, self).__init__(inplace)
+        super().__init__(inplace)
 
     def c_code(self, node, name, inp, out, sub):
         y, alpha, A, x, beta = inp

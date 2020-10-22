@@ -2,7 +2,7 @@
 
 import theano
 from theano.gof import Constant
-from theano.tensor.type_other import MakeSlice, make_slice, NoneTypeT, NoneConst
+from theano.tensor.type_other import MakeSlice, NoneConst, NoneTypeT, make_slice
 
 
 def test_make_slice_merge():
@@ -30,6 +30,7 @@ def test_none_Constant():
 
     # This trigger equals that returned the wrong answer in the past.
     import six.moves.cPickle as pickle
+
     import theano
     from theano import tensor
 

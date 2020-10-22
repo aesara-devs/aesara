@@ -4,12 +4,12 @@ Author: Christof Angermueller <cangermueller@gmail.com>
 """
 
 
-import os
 import json
+import os
 import shutil
-import six
 
 from theano.d3viz.formatting import PyDotFormatter
+
 
 __path__ = os.path.dirname(os.path.realpath(__file__))
 
@@ -78,8 +78,7 @@ def d3viz(fct, outfile, copy_deps=True, *args, **kwargs):
     formatter = PyDotFormatter(*args, **kwargs)
     graph = formatter(fct)
     dot_graph = graph.create_dot()
-    if not six.PY2:
-        dot_graph = dot_graph.decode("utf8")
+    dot_graph = dot_graph.decode("utf8")
 
     # Create output directory if not existing
     outdir = os.path.dirname(outfile)

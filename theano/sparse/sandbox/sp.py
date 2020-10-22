@@ -11,10 +11,9 @@ U{http://www-users.cs.umn.edu/~saad/software/SPARSKIT/paper.ps}.
 import numpy as np
 from scipy import sparse as scipy_sparse
 
-
 import theano
 import theano.sparse
-from theano import sparse, Op, tensor
+from theano import Op, sparse, tensor
 
 
 def register_specialize(lopt, *tags, **kwargs):

@@ -3,10 +3,9 @@ import numpy as np
 import theano
 import theano.tensor as tt
 import theano.typed_list
-
 from theano import In
+from theano.typed_list.basic import Append, Extend, Insert, Remove, Reverse
 from theano.typed_list.type import TypedListType
-from theano.typed_list.basic import Insert, Append, Extend, Remove, Reverse
 
 
 # took from tensors/tests/test_basic.py

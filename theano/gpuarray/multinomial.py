@@ -2,6 +2,7 @@
 
 import warnings
 
+
 try:
     import pygpu
 except ImportError:
@@ -11,20 +12,20 @@ import theano
 import theano.sandbox.multinomial
 from theano import Apply
 from theano.gof import Op
-
+from theano.scalar import as_scalar
 from theano.tensor import NotScalarConstantError, get_scalar_constant_value
+
 from .basic_ops import (
-    as_gpuarray_variable,
-    infer_context_name,
     GpuKernelBase,
     Kernel,
+    as_gpuarray_variable,
     gpuarray_helper_inc_dir,
+    infer_context_name,
 )
-from .opt import register_opt, op_lifter, register_opt2
-from .type import GpuArrayType
 from .elemwise import GpuDimShuffle
-from theano.scalar import as_scalar
-from .fp16_help import write_w, load_w, work_dtype
+from .fp16_help import load_w, work_dtype, write_w
+from .opt import op_lifter, register_opt, register_opt2
+from .type import GpuArrayType
 
 
 class GPUAMultinomialFromUniform(GpuKernelBase, Op):
@@ -533,4 +534,4 @@ class GPUAMultinomialWOReplacementFromUniform(GPUAChoiceFromUniform):
             DeprecationWarning,
             stacklevel=2,
         )
-        super(GPUAMultinomialWOReplacementFromUniform, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)

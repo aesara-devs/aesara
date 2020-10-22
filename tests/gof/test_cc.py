@@ -1,14 +1,13 @@
+import numpy as np
 import pytest
 
-import numpy as np
-
 import theano
-from theano.gof.link import PerformLinker
-from theano.gof.cc import CLinker, DualLinker, OpWiseCLinker
-from theano.gof.type import Type
-from theano.gof.graph import Variable, Apply, Constant
-from theano.gof.op import Op
 from theano.gof import fg
+from theano.gof.cc import CLinker, DualLinker, OpWiseCLinker
+from theano.gof.graph import Apply, Constant, Variable
+from theano.gof.link import PerformLinker
+from theano.gof.op import Op
+from theano.gof.type import Type
 
 
 def as_variable(x):

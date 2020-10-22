@@ -1,30 +1,30 @@
-import pytest
 import numpy as np
+import pytest
+
 import theano
+
 
 pygpu = pytest.importorskip("pygpu")
 gpuarray = pygpu.ndgpuarray
 
 from copy import copy
 
-from theano import scalar, gof, tensor
-from theano.compile import DebugMode, Mode
-
-from theano.gpuarray.elemwise import (
-    GpuElemwise,
-    GpuDimShuffle,
-    GpuCAReduceCuda,
-    GpuCAReduceCPY,
-    GpuErfinv,
-    GpuErfcinv,
-)
-from theano.gpuarray.dnn import GpuDnnReduction
-from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
-
-from tests.tensor import test_elemwise
-from tests.unittest_tools import assert_allclose
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
 from tests.gpuarray.test_basic_ops import rand_gpuarray
+from tests.tensor import test_elemwise
+from tests.unittest_tools import assert_allclose
+from theano import gof, scalar, tensor
+from theano.compile import DebugMode, Mode
+from theano.gpuarray.dnn import GpuDnnReduction
+from theano.gpuarray.elemwise import (
+    GpuCAReduceCPY,
+    GpuCAReduceCuda,
+    GpuDimShuffle,
+    GpuElemwise,
+    GpuErfcinv,
+    GpuErfinv,
+)
+from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
 
 
 # This is actually a test for GpuElemwise

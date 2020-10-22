@@ -1,23 +1,23 @@
 import numpy as np
-
-import theano.tensor as tt
-
-from six import integer_types
 from six.moves import StringIO
 
-from theano import gof, Op
+import theano.tensor as tt
+from theano import Op, gof
 from theano.gof import ParamsType
 from theano.gradient import grad_not_implemented
+from theano.scalar import bool as bool_t
+from theano.scalar import int32 as int_t
+from theano.scalar import uint32 as size_t
 from theano.tensor import AllocDiag
 from theano.tensor.subtensor import (
-    IncSubtensor,
-    AdvancedSubtensor,
-    Subtensor,
     AdvancedIncSubtensor,
+    AdvancedSubtensor,
     AdvancedSubtensor1,
+    IncSubtensor,
+    Subtensor,
     get_idx_list,
 )
-from theano.scalar import bool as bool_t, int32 as int_t, uint32 as size_t
+
 
 try:
     import pygpu
@@ -25,16 +25,17 @@ try:
 except ImportError:
     pass
 
-from theano.gpuarray.type import GpuArrayType, gpu_context_type
 from theano.gpuarray.basic_ops import (
-    as_gpuarray_variable,
-    HideC,
     GpuKernelBase,
+    HideC,
     Kernel,
+    as_gpuarray_variable,
+    gpu_contiguous,
     gpuarray_helper_inc_dir,
     infer_context_name,
-    gpu_contiguous,
 )
+from theano.gpuarray.type import GpuArrayType, gpu_context_type
+
 
 iadd_reg = {}
 
@@ -155,7 +156,7 @@ class GpuSubtensor(HideC, Subtensor):
         def fix_idx(idx):
             if idx is None:
                 return "0", 1
-            elif isinstance(idx, (np.integer, integer_types)):
+            elif isinstance(idx, (np.integer, int)):
                 return str(idx), 0
             elif isinstance(idx, gof.Type):
                 return indices.pop(0), 0
@@ -194,7 +195,7 @@ class GpuSubtensor(HideC, Subtensor):
             else:
                 if isinstance(idx, gof.Type):
                     start = indices.pop(0)
-                elif isinstance(idx, (np.integer, integer_types)):
+                elif isinstance(idx, (np.integer, int)):
                     start = idx
                 else:
                     assert 0, idx
@@ -452,7 +453,7 @@ int sub_setarray(GpuArray *dst, GpuArray *src) {
         )
 
     def c_code_cache_version(self):
-        parent_version = super(GpuIncSubtensor, self).c_code_cache_version()
+        parent_version = super().c_code_cache_version()
         if not parent_version:
             return
         return parent_version + (10,)
@@ -574,7 +575,7 @@ def check_and_convert_boolean_masks(input, idx_list):
     return out_idx_list
 
 
-class BaseGpuAdvancedSubtensor(object):
+class BaseGpuAdvancedSubtensor:
     def perform(self, node, inputs, out_):
         (out,) = out_
         x = inputs[0]
@@ -701,7 +702,7 @@ class GpuAdvancedSubtensor(HideC, BaseGpuAdvancedSubtensor, AdvancedSubtensor):
         return gof.Apply(self, [x] + rval.inputs[1:], [otype()])
 
 
-class BaseGpuAdvancedIncSubtensor(object):
+class BaseGpuAdvancedIncSubtensor:
     def perform(self, node, inp, out_):
         (out,) = out_
         x = inp[0]
@@ -1131,7 +1132,7 @@ class GpuAdvancedIncSubtensor1_dev20(GpuKernelBase, HideC, GpuAdvancedIncSubtens
         return gof.Apply(self, [x_, y_, ilist_], [x_.type()])
 
     def perform(self, node, inp, out, params):
-        return super(GpuAdvancedIncSubtensor1_dev20, self).perform(node, inp, out)
+        return super().perform(node, inp, out)
 
     def c_code_cache_version(self):
         return (14,)
@@ -1267,9 +1268,7 @@ if (GpuArray_vector_add_fast(%(out)s, %(y)s, %(ind)s, %(params)s->set_instead_of
 
     def c_support_code_struct(self, node, nodename):
         return (
-            super(GpuAdvancedIncSubtensor1_dev20, self).c_support_code_struct(
-                node, nodename
-            )
+            super().c_support_code_struct(node, nodename)
             + """
         int GpuArray_vector_add_fast(PyGpuArrayObject* py_self,
                                      PyGpuArrayObject* py_other,

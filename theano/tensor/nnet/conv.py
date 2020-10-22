@@ -10,27 +10,27 @@ See especially conv2d().
 
 
 import logging
+import warnings
 
 import numpy as np
 
-import warnings
-
 import theano
-from theano import OpenMPOp
-from theano.tensor import (
+from theano.gof.graph import Apply
+from theano.gof.op import OpenMPOp
+from theano.tensor import blas
+from theano.tensor.basic import (
+    NotScalarConstantError,
     as_tensor_variable,
-    blas,
     get_scalar_constant_value,
     patternbroadcast,
-    NotScalarConstantError,
 )
-from theano.gof import Apply
 from theano.tensor.nnet.abstract_conv import get_conv_output_shape, get_conv_shape_1axis
+
 
 try:
     # TODO: move these back out to global scope when they no longer
     # cause an atexit error
-    from scipy.signal.signaltools import _valfrommode, _bvalfromboundary
+    from scipy.signal.signaltools import _bvalfromboundary, _valfrommode
     from scipy.signal.sigtools import _convolve2d
 
     imported_scipy_signal = True
@@ -488,7 +488,7 @@ class ConvOp(OpenMPOp):
             )
 
         # Init the openmp attribute
-        super(ConvOp, self).__init__(openmp=openmp)
+        super().__init__(openmp=openmp)
         if not all_shape or self.openmp:
             # Only this version is parallelized
             unroll_patch = True
@@ -687,7 +687,7 @@ class ConvOp(OpenMPOp):
         return True
 
     def __setstate__(self, d):
-        super(ConvOp, self).__setstate__(d)
+        super().__setstate__(d)
         self.direction_hint = d.get("direction_hint", None)
         self._rehash()
 
@@ -1197,7 +1197,7 @@ using namespace std;
         if theano.gof.cmodule.gcc_version() in ["4.3.0"] and self.kshp == (1, 1):
             ret += ["-O2"]
         # Add the -fopenmp flags
-        ret += super(ConvOp, self).c_compile_args()
+        ret += super().c_compile_args()
 
         return ret
 

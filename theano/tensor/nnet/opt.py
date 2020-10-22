@@ -5,14 +5,19 @@ Optimizations addressing the ops in nnet root directory
 import theano
 from theano import compile, gof
 from theano.compile import optdb
-from theano.gof import local_optimizer
-from theano.gof.opt import copy_stack_trace
-
-from theano.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
-from theano.tensor.nnet.corr3d import (
-    Corr3dMM,
-    Corr3dMMGradInputs,
-    Corr3dMMGradWeights,
+from theano.gof.opt import (
+    LocalMetaOptimizerSkipAssertionError,
+    copy_stack_trace,
+    local_optimizer,
+)
+from theano.tensor.nnet.abstract_conv import (
+    AbstractConv2d,
+    AbstractConv2d_gradInputs,
+    AbstractConv2d_gradWeights,
+    AbstractConv3d,
+    AbstractConv3d_gradInputs,
+    AbstractConv3d_gradWeights,
+    get_conv_output_shape,
 )
 from theano.tensor.nnet.blocksparse import (
     SparseBlockGemv,
@@ -20,23 +25,13 @@ from theano.tensor.nnet.blocksparse import (
     sparse_block_gemv_inplace,
     sparse_block_outer_inplace,
 )
-from theano.tensor.nnet.abstract_conv import (
-    AbstractConv2d,
-    AbstractConv2d_gradWeights,
-    AbstractConv2d_gradInputs,
-)
-from theano.tensor.nnet.abstract_conv import (
-    AbstractConv3d,
-    AbstractConv3d_gradWeights,
-    AbstractConv3d_gradInputs,
-)
-from theano.tensor.nnet.abstract_conv import get_conv_output_shape
-from theano.tensor.opt import register_specialize_device
-from theano.tensor import TensorType
-from theano.tensor import opt
 
 # Cpu implementation
-from theano.tensor.nnet.conv import conv2d, ConvOp
+from theano.tensor.nnet.conv import ConvOp, conv2d
+from theano.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
+from theano.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGradWeights
+from theano.tensor.opt import in2out, register_specialize_device
+from theano.tensor.type import TensorType
 
 
 @gof.local_optimizer([SparseBlockGemv], inplace=True)
@@ -591,7 +586,7 @@ def local_abstractconv_check(node):
             AbstractConv3d_gradInputs,
         ),
     ):
-        raise gof.opt.LocalMetaOptimizerSkipAssertionError(
+        raise LocalMetaOptimizerSkipAssertionError(
             "%s Theano optimization failed: there is no implementation "
             "available supporting the requested options. Did you exclude "
             'both "conv_dnn" and "conv_gemm" from the optimizer? If on GPU, '
@@ -603,7 +598,7 @@ def local_abstractconv_check(node):
 
 optdb.register(
     "AbstractConvCheck",
-    opt.in2out(local_abstractconv_check, name="AbstractConvCheck"),
+    in2out(local_abstractconv_check, name="AbstractConvCheck"),
     48.7,
     "fast_compile",
     "fast_run",

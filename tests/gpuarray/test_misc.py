@@ -3,11 +3,9 @@
 import numpy as np
 
 import theano
-
+from tests.gpuarray.config import mode_with_gpu
 from theano import tensor
 from theano.compile.nanguardmode import NanGuardMode
-
-from tests.gpuarray.config import mode_with_gpu
 
 
 def test_nan_guard_mode():

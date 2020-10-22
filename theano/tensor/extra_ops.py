@@ -1,21 +1,21 @@
+from collections.abc import Collection
+
 import numpy as np
 
 import theano
-
-from collections.abc import Collection
-
-from theano.gof import Op, Apply, Generic, ParamsType, EnumList
-from theano.tensor import basic, nlinalg
-from theano.scalar import int32 as int_t, upcast
+from theano.gof import Apply, EnumList, Generic, Op, ParamsType
 from theano.gradient import (
     DisconnectedType,
-    disconnected_type,
     _float_zeros_like,
+    disconnected_type,
     grad_undefined,
 )
+from theano.scalar import int32 as int_t
+from theano.scalar import upcast
+from theano.tensor import basic, nlinalg
 
 
-class CpuContiguous(theano.Op):
+class CpuContiguous(Op):
     """
     Check to see if the input is c-contiguous,
     if it is, do nothing, else return a contiguous array.
@@ -76,7 +76,7 @@ class CpuContiguous(theano.Op):
 cpu_contiguous = CpuContiguous()
 
 
-class SearchsortedOp(theano.Op):
+class SearchsortedOp(Op):
     """Wrapper of numpy.searchsorted.
 
     For full documentation, see :func:`searchsorted`.
@@ -263,7 +263,7 @@ def searchsorted(x, v, side="left", sorter=None):
     return SearchsortedOp(side=side)(x, v, sorter)
 
 
-class CumOp(theano.Op):
+class CumOp(Op):
     # See function cumsum/cumprod for docstring
 
     __props__ = ("axis", "mode")
@@ -274,7 +274,7 @@ class CumOp(theano.Op):
 
     def __init__(self, axis=None, mode="add"):
         if mode not in ("add", "mul"):
-            raise ValueError('%s: Unknown mode "%s"' % (type(self).__name__, mode))
+            raise ValueError('{}: Unknown mode "{}"'.format(type(self).__name__, mode))
         self.axis = axis
         self.mode = mode
 
@@ -287,7 +287,7 @@ class CumOp(theano.Op):
         if self.axis is None:
             out_type = theano.tensor.vector(dtype=x.dtype)  # Flatten
         elif self.axis >= x.ndim or self.axis < -x.ndim:
-            raise ValueError("axis(={0}) out of bounds".format(self.axis))
+            raise ValueError("axis(={}) out of bounds".format(self.axis))
 
         return theano.Apply(self, [x], [out_type])
 
@@ -327,7 +327,9 @@ class CumOp(theano.Op):
             return [cumsum((fx * gi)[reverse_slicing], self.axis)[reverse_slicing] / x]
         else:
             raise NotImplementedError(
-                '%s: unknown gradient for mode "%s"' % (type(self).__name__, self.mode)
+                '{}: unknown gradient for mode "{}"'.format(
+                    type(self).__name__, self.mode
+                )
             )
 
     def infer_shape(self, node, shapes):
@@ -391,7 +393,7 @@ class CumOp(theano.Op):
         return (8,)
 
     def __str__(self):
-        return "%s{%s, %s}" % (self.__class__.__name__, self.axis, self.mode)
+        return "{}{{{}, {}}}".format(self.__class__.__name__, self.axis, self.mode)
 
 
 def cumsum(x, axis=None):
@@ -437,7 +439,7 @@ def cumprod(x, axis=None):
 
 # CumsumOp and CumprodOp are for compatibility with old version,
 # just in case unpickling a theano function with old Ops.
-class CumsumOp(theano.Op):
+class CumsumOp(Op):
     __props__ = ("axis",)
 
     def __new__(typ, *args, **kwargs):
@@ -446,7 +448,7 @@ class CumsumOp(theano.Op):
         return obj
 
 
-class CumprodOp(theano.Op):
+class CumprodOp(Op):
     __props__ = ("axis",)
 
     def __new__(typ, *args, **kwargs):
@@ -455,7 +457,7 @@ class CumprodOp(theano.Op):
         return obj
 
 
-class DiffOp(theano.Op):
+class DiffOp(Op):
     # See function diff for docstring
 
     __props__ = ("n", "axis")
@@ -646,7 +648,7 @@ def compress(condition, x, axis=None):
     return x.take(indices, axis=axis)
 
 
-class RepeatOp(theano.Op):
+class RepeatOp(Op):
     # See the repeat function for docstring
 
     __props__ = ("axis",)
@@ -1164,7 +1166,7 @@ def to_one_hot(y, nb_class, dtype=None):
     return ret
 
 
-class Unique(theano.Op):
+class Unique(Op):
     """
     Wraps numpy.unique. This op is not implemented on the GPU.
 

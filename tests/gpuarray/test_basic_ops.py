@@ -1,45 +1,45 @@
 import pytest
 
+
 pygpu = pytest.importorskip("pygpu")
 gpuarray = pygpu.gpuarray
 import numpy as np
+
 import theano
 import theano.tensor as tt
-
-from theano.tensor import TensorType
-from theano.tensor.basic import alloc
-
-# Don't import test classes otherwise they get tested as part of the file
-from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
+from tests.tensor.test_basic import (
+    TestAlloc,
+    TestComparison,
+    TestJoinAndSplit,
+    TestReshape,
+    rand,
+    safe_make_node,
+)
 from theano.gpuarray.basic_ops import (
-    host_from_gpu,
-    HostFromGpu,
-    GpuFromHost,
-    GpuReshape,
-    GpuToGpu,
     GpuAlloc,
     GpuAllocEmpty,
     GpuContiguous,
-    gpu_join,
-    GpuJoin,
-    GpuSplit,
     GpuEye,
+    GpuFromHost,
+    GpuJoin,
+    GpuReshape,
+    GpuSplit,
+    GpuToGpu,
     GpuTri,
+    HostFromGpu,
     gpu_contiguous,
+    gpu_join,
+    host_from_gpu,
 )
 from theano.gpuarray.elemwise import GpuDimShuffle, GpuElemwise
 from theano.gpuarray.subtensor import GpuSubtensor
 
-from tests import unittest_tools as utt
-from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
-from tests.tensor.test_basic import (
-    rand,
-    safe_make_node,
-    TestAlloc,
-    TestComparison,
-    TestReshape,
-    TestJoinAndSplit,
-)
+# Don't import test classes otherwise they get tested as part of the file
+from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
+from theano.tensor import TensorType
+from theano.tensor.basic import alloc
 
 
 utt.seed_rng()
@@ -68,7 +68,7 @@ def inplace_func(
 
 
 def fake_shared(value, name=None, strict=False, allow_downcast=None, **kwargs):
-    from theano.tensor.sharedvar import tensor_constructor, scalar_constructor
+    from theano.tensor.sharedvar import scalar_constructor, tensor_constructor
 
     for c in (gpuarray_shared_constructor, tensor_constructor, scalar_constructor):
         try:

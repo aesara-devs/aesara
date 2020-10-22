@@ -1,25 +1,25 @@
 # Definitions of theano.scalar ops that have their python implementation taken
 # from SciPy. As SciPy is not always available, we treat them separately.
 
-import numpy as np
 import os
+
+import numpy as np
 
 import theano
 from theano.gradient import grad_not_implemented
 from theano.scalar.basic import (
-    UnaryScalarOp,
     BinaryScalarOp,
-    exp,
-    upgrade_to_float,
-    upgrade_to_float64,
-    float_types,
-)
-from theano.scalar.basic import (
-    upgrade_to_float_no_complex,
+    UnaryScalarOp,
     complex_types,
     discrete_types,
+    exp,
+    float_types,
     upcast,
+    upgrade_to_float,
+    upgrade_to_float64,
+    upgrade_to_float_no_complex,
 )
+
 
 imported_scipy_special = False
 try:
@@ -40,7 +40,7 @@ class Erf(UnaryScalarOp):
         if imported_scipy_special:
             return scipy.special.erf(x)
         else:
-            super(Erf, self).impl(x)
+            super().impl(x)
 
     def L_op(self, inputs, outputs, grads):
         (x,) = inputs
@@ -77,7 +77,7 @@ class Erfc(UnaryScalarOp):
         if imported_scipy_special:
             return scipy.special.erfc(x)
         else:
-            super(Erfc, self).impl(x)
+            super().impl(x)
 
     def L_op(self, inputs, outputs, grads):
         (x,) = inputs
@@ -129,7 +129,7 @@ class Erfcx(UnaryScalarOp):
         if imported_scipy_special:
             return scipy.special.erfcx(x)
         else:
-            super(Erfcx, self).impl(x)
+            super().impl(x)
 
     def L_op(self, inputs, outputs, grads):
         (x,) = inputs
@@ -169,7 +169,7 @@ class Erfinv(UnaryScalarOp):
         if imported_scipy_special:
             return scipy.special.erfinv(x)
         else:
-            super(Erfinv, self).impl(x)
+            super().impl(x)
 
     def L_op(self, inputs, outputs, grads):
         (x,) = inputs
@@ -206,7 +206,7 @@ class Erfcinv(UnaryScalarOp):
         if imported_scipy_special:
             return scipy.special.erfcinv(x)
         else:
-            super(Erfcinv, self).impl(x)
+            super().impl(x)
 
     def L_op(self, inputs, outputs, grads):
         (x,) = inputs
@@ -247,7 +247,7 @@ class Gamma(UnaryScalarOp):
         if imported_scipy_special:
             return Gamma.st_impl(x)
         else:
-            super(Gamma, self).impl(x)
+            super().impl(x)
 
     def L_op(self, inputs, outputs, gout):
         (x,) = inputs
@@ -289,7 +289,7 @@ class GammaLn(UnaryScalarOp):
         if imported_scipy_special:
             return GammaLn.st_impl(x)
         else:
-            super(GammaLn, self).impl(x)
+            super().impl(x)
 
     def L_op(self, inputs, outputs, grads):
         (x,) = inputs
@@ -337,7 +337,7 @@ class Psi(UnaryScalarOp):
         if imported_scipy_special:
             return Psi.st_impl(x)
         else:
-            super(Psi, self).impl(x)
+            super().impl(x)
 
     def L_op(self, inputs, outputs, grads):
         (x,) = inputs
@@ -434,7 +434,7 @@ class TriGamma(UnaryScalarOp):
         if imported_scipy_special:
             return TriGamma.st_impl(x)
         else:
-            super(TriGamma, self).impl(x)
+            super().impl(x)
 
     def grad(self, inputs, outputs_gradients):
         raise NotImplementedError()
@@ -526,7 +526,7 @@ class Chi2SF(BinaryScalarOp):
         if imported_scipy_special:
             return Chi2SF.st_impl(x, k)
         else:
-            super(Chi2SF, self).impl(x, k)
+            super().impl(x, k)
 
     def c_support_code(self):
         with open(os.path.join(os.path.dirname(__file__), "c_code", "gamma.c")) as f:
@@ -570,7 +570,7 @@ class GammaInc(BinaryScalarOp):
         if imported_scipy_special:
             return GammaInc.st_impl(k, x)
         else:
-            super(GammaInc, self).impl(k, x)
+            super().impl(k, x)
 
     def c_support_code(self):
         with open(os.path.join(os.path.dirname(__file__), "c_code", "gamma.c")) as f:
@@ -614,7 +614,7 @@ class GammaIncC(BinaryScalarOp):
         if imported_scipy_special:
             return GammaIncC.st_impl(k, x)
         else:
-            super(GammaIncC, self).impl(k, x)
+            super().impl(k, x)
 
     def c_support_code(self):
         with open(os.path.join(os.path.dirname(__file__), "c_code", "gamma.c")) as f:
@@ -658,7 +658,7 @@ class GammaU(BinaryScalarOp):
         if imported_scipy_special:
             return GammaU.st_impl(k, x)
         else:
-            super(GammaU, self).impl(k, x)
+            super().impl(k, x)
 
     def c_support_code(self):
         with open(os.path.join(os.path.dirname(__file__), "c_code", "gamma.c")) as f:
@@ -702,7 +702,7 @@ class GammaL(BinaryScalarOp):
         if imported_scipy_special:
             return GammaL.st_impl(k, x)
         else:
-            super(GammaL, self).impl(k, x)
+            super().impl(k, x)
 
     def c_support_code(self):
         with open(os.path.join(os.path.dirname(__file__), "c_code", "gamma.c")) as f:
@@ -746,7 +746,7 @@ class Jv(BinaryScalarOp):
         if imported_scipy_special:
             return self.st_impl(v, x)
         else:
-            super(Jv, self).impl(v, x)
+            super().impl(v, x)
 
     def grad(self, inputs, grads):
         v, x = inputs
@@ -775,7 +775,7 @@ class J1(UnaryScalarOp):
         if imported_scipy_special:
             return self.st_impl(x)
         else:
-            super(J1, self).impl(x)
+            super().impl(x)
 
     def grad(self, inputs, grads):
         (x,) = inputs
@@ -812,7 +812,7 @@ class J0(UnaryScalarOp):
         if imported_scipy_special:
             return self.st_impl(x)
         else:
-            super(J0, self).impl(x)
+            super().impl(x)
 
     def grad(self, inp, grads):
         (x,) = inp
@@ -849,7 +849,7 @@ class Iv(BinaryScalarOp):
         if imported_scipy_special:
             return self.st_impl(v, x)
         else:
-            super(Iv, self).impl(v, x)
+            super().impl(v, x)
 
     def grad(self, inputs, grads):
         v, x = inputs
@@ -878,7 +878,7 @@ class I1(UnaryScalarOp):
         if imported_scipy_special:
             return self.st_impl(x)
         else:
-            super(I1, self).impl(x)
+            super().impl(x)
 
     def grad(self, inputs, grads):
         (x,) = inputs
@@ -904,7 +904,7 @@ class I0(UnaryScalarOp):
         if imported_scipy_special:
             return self.st_impl(x)
         else:
-            super(I0, self).impl(x)
+            super().impl(x)
 
     def grad(self, inp, grads):
         (x,) = inp

@@ -1,4 +1,5 @@
 import warnings
+
 from theano.tensor.nnet.blocksparse import (
     SparseBlockGemv,
     SparseBlockOuter,
@@ -8,6 +9,7 @@ from theano.tensor.nnet.blocksparse import (
     sparse_block_outer,
     sparse_block_outer_inplace,
 )
+
 
 __all__ = [
     SparseBlockGemv,

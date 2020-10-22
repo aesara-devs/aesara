@@ -2,96 +2,92 @@ import time
 
 import pytest
 
+
 sp = pytest.importorskip("scipy", minversion="0.7.0")
-
-import numpy as np
-
-import theano
 
 from itertools import product
 
+import numpy as np
 from packaging import version
 
-
-from theano import tensor, sparse, compile, config, gof
-
-from theano.sparse.basic import (
-    _is_sparse,
-    _mtypes,
-    _is_dense_variable,
-    _is_sparse_variable,
-)
+import theano
+from tests import unittest_tools as utt
+from tests.tensor.test_sharedvar import makeSharedTester
+from theano import compile, config, gof, sparse, tensor
 from theano.sparse import (
-    as_sparse_variable,
-    as_sparse_or_tensor_variable,
-    CSR,
     CSC,
     CSM,
-    CSMProperties,
-    csm_properties,
-    DenseFromSparse,
-    SparseType,
+    CSR,
+    AddSD,
+    AddSS,
+    AddSSData,
+    Cast,
+    ConstructSparseFromList,
     CSMGrad,
+    CSMProperties,
+    DenseFromSparse,
+    Diag,
+    Dot,
+    EnsureSortedIndices,
+    GetItemScalar,
+    HStack,
+    MulSD,
+    MulSS,
+    Neg,
+    Remove0,
+    SamplingDot,
+    SparseFromDense,
+    SparseType,
+    SquareDiagonal,
     StructuredDot,
     StructuredDotGradCSC,
     StructuredDotGradCSR,
-    AddSS,
-    AddSD,
-    MulSS,
-    MulSD,
     Transpose,
-    Neg,
-    Remove0,
+    TrueDot,
+    Usmm,
+    VStack,
     add,
-    mul,
-    structured_dot,
-    transpose,
+    add_s_s_data,
+    as_sparse_or_tensor_variable,
+    as_sparse_variable,
+    cast,
+    clean,
+    construct_sparse_from_list,
     csc_from_dense,
+    csm_properties,
     csr_from_dense,
     dense_from_sparse,
-    Dot,
-    Usmm,
-    sp_ones_like,
-    GetItemScalar,
-    SparseFromDense,
-    Cast,
-    cast,
-    HStack,
-    VStack,
-    AddSSData,
-    add_s_s_data,
-    structured_minimum,
-    structured_maximum,
-    structured_add,
-    mul_s_v,
-    structured_add_s_v,
-    SamplingDot,
-    sampling_dot,
-    Diag,
     diag,
-    SquareDiagonal,
-    square_diagonal,
-    EnsureSortedIndices,
     ensure_sorted_indices,
-    clean,
-    ConstructSparseFromList,
-    construct_sparse_from_list,
-    TrueDot,
-    true_dot,
-    le,
     ge,
     gt,
+    le,
     lt,
+    mul,
+    mul_s_v,
+    sampling_dot,
+    sp_ones_like,
+    square_diagonal,
+    structured_add,
+    structured_add_s_v,
+    structured_dot,
+    structured_maximum,
+    structured_minimum,
+    transpose,
+    true_dot,
 )
+from theano.sparse.basic import (
+    _is_dense_variable,
+    _is_sparse,
+    _is_sparse_variable,
+    _mtypes,
+)
+from theano.sparse.opt import CSMGradC, StructuredDotCSC, UsmmCscDense
+
 
 # Probability distributions are currently tested in test_sp2.py
 # from theano.sparse import (
 #    Poisson, poisson, Binomial, Multinomial, multinomial)
-
-from theano.sparse.opt import StructuredDotCSC, UsmmCscDense, CSMGradC
-
-from tests import unittest_tools as utt
-from tests.tensor.test_sharedvar import makeSharedTester
 
 
 def as_sparse_format(data, format):
@@ -292,7 +288,7 @@ def verify_grad_sparse(op, pt, structured=False, *args, **kwargs):
                 else:
                     iconv.append(csc_from_dense)
             else:
-                raise NotImplementedError("No conv for %s" % (p.format,))
+                raise NotImplementedError("No conv for {}".format(p.format))
         else:
             dpt.append(p)
             iconv.append(conv_none)
@@ -717,9 +713,14 @@ class TestAddMul:
     def _testSS(
         self,
         op,
-        array1=np.array([[1.0, 0], [3, 0], [0, 6]]),
-        array2=np.asarray([[0, 2.0], [0, 4], [5, 0]]),
+        array1=None,
+        array2=None,
     ):
+        if array1 is None:
+            array1 = np.array([[1.0, 0], [3, 0], [0, 6]])
+        if array2 is None:
+            array2 = np.asarray([[0, 2.0], [0, 4], [5, 0]])
+
         for mtype1, mtype2 in product(_mtypes, _mtypes):
             for dtype1, dtype2 in [
                 ("float64", "int8"),
@@ -757,9 +758,14 @@ class TestAddMul:
     def _testSD(
         self,
         op,
-        array1=np.array([[1.0, 0], [3, 0], [0, 6]]),
-        array2=np.asarray([[0, 2.0], [0, 4], [5, 0]]),
+        array1=None,
+        array2=None,
     ):
+        if array1 is None:
+            array1 = np.array([[1.0, 0], [3, 0], [0, 6]])
+        if array2 is None:
+            array2 = np.asarray([[0, 2.0], [0, 4], [5, 0]])
+
         for mtype in _mtypes:
             for a in [
                 np.array(array1),
@@ -810,9 +816,14 @@ class TestAddMul:
     def _testDS(
         self,
         op,
-        array1=np.array([[1.0, 0], [3, 0], [0, 6]]),
-        array2=np.asarray([[0, 2.0], [0, 4], [5, 0]]),
+        array1=None,
+        array2=None,
     ):
+        if array1 is None:
+            array1 = np.array([[1.0, 0], [3, 0], [0, 6]])
+        if array2 is None:
+            array2 = np.asarray([[0, 2.0], [0, 4], [5, 0]])
+
         for mtype in _mtypes:
             for b in [
                 np.asarray(array2),
@@ -3331,5 +3342,5 @@ class TestSamplingDot(utt.InferShapeTester):
     cast_value_=sp.sparse.csr_matrix,
     expect_fail_fast_shape_inplace=False,
 )
-class TestSharedOptions(object):
+class TestSharedOptions:
     pass

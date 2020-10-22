@@ -52,29 +52,24 @@ import copy
 import itertools
 import logging
 import time
+from collections import OrderedDict
 
 import numpy as np
 
 import theano
-
-from collections import OrderedDict
-
-from six import integer_types, raise_from, string_types
-
-from theano.compile import function, In, Out
+from theano import compile, config, gof, gradient, tensor
+from theano.compile import In, Out, function
 from theano.compile.mode import AddFeatureOptimizer
-from theano import compile, config, gradient, gof, tensor
-from theano.gof import PureOp, Apply
-from theano.gof.graph import io_connection_pattern, equal_computations
-from theano.gof.toolbox import NoOutputFromInplace
-
-from theano.tensor import as_tensor_variable, TensorType
-from theano.tensor.opt import Shape_i
-from theano.gradient import grad_undefined, DisconnectedType, NullType
 from theano.compile.profiling import ScanProfileStats
-
+from theano.gof import Apply, PureOp
+from theano.gof.graph import equal_computations, io_connection_pattern
+from theano.gof.toolbox import NoOutputFromInplace
+from theano.gradient import DisconnectedType, NullType, grad_undefined
 from theano.scan_module import scan_utils
-from theano.scan_module.scan_utils import safe_new, forced_replace
+from theano.scan_module.scan_utils import forced_replace, safe_new
+from theano.tensor import TensorType, as_tensor_variable
+from theano.tensor.opt import Shape_i
+
 
 __docformat__ = "restructedtext en"
 __authors__ = "Razvan Pascanu " "Frederic Bastien " "James Bergstra " "Pascal Lamblin "
@@ -948,10 +943,9 @@ class Scan(PureOp):
 
         profile = None
         if theano.config.profile or (
-            isinstance(self.profile, (string_types, bool, integer_types))
-            and self.profile
+            isinstance(self.profile, (str, bool, (int,))) and self.profile
         ):
-            if isinstance(self.profile, string_types):
+            if isinstance(self.profile, str):
                 profile = ScanProfileStats(name=self.profile)
             else:
                 profile = ScanProfileStats(name=self.name)
@@ -1595,7 +1589,7 @@ class Scan(PureOp):
                                 "'optimizer_excluding=scanOp_pushout_output' "
                                 "to your Theano flags."
                             )
-                            raise_from(ne, e)
+                            raise ne from e
 
             # 5.5 Copy over the values for nit_sot outputs
             begin = end

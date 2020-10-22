@@ -1,5 +1,6 @@
 import numpy as np
 
+
 try:
     import scipy.sparse
 
@@ -7,9 +8,9 @@ try:
 except ImportError:
     imported_scipy = False
 
+
 import theano
 from theano import gof
-from six import string_types
 
 
 def _is_sparse(x):
@@ -59,22 +60,20 @@ class SparseType(gof.Type):
             "csc": scipy.sparse.csc_matrix,
             "bsr": scipy.sparse.bsr_matrix,
         }
-    dtype_set = set(
-        [
-            "int8",
-            "int16",
-            "int32",
-            "int64",
-            "float32",
-            "uint8",
-            "uint16",
-            "uint32",
-            "uint64",
-            "float64",
-            "complex64",
-            "complex128",
-        ]
-    )
+    dtype_set = {
+        "int8",
+        "int16",
+        "int32",
+        "int64",
+        "float32",
+        "uint8",
+        "uint16",
+        "uint32",
+        "uint64",
+        "float64",
+        "complex64",
+        "complex128",
+    }
     ndim = 2
 
     # Will be set to SparseVariable SparseConstant later.
@@ -94,7 +93,7 @@ class SparseType(gof.Type):
                 'unsupported dtype "%s" not in list' % dtype, list(self.dtype_set)
             )
 
-        assert isinstance(format, string_types)
+        assert isinstance(format, str)
         if format in self.format_cls:
             self.format = format
         else:
@@ -121,7 +120,7 @@ class SparseType(gof.Type):
             sp = self.format_cls[self.format](value)
             if str(sp.dtype) != self.dtype:
                 raise NotImplementedError(
-                    "Expected %s dtype but got %s" % (self.dtype, str(sp.dtype))
+                    "Expected {} dtype but got {}".format(self.dtype, str(sp.dtype))
                 )
         if sp.format != self.format:
             raise NotImplementedError()
@@ -163,10 +162,10 @@ class SparseType(gof.Type):
         return hash(self.dtype) ^ hash(self.format)
 
     def __str__(self):
-        return "Sparse[%s, %s]" % (str(self.dtype), str(self.format))
+        return "Sparse[{}, {}]".format(str(self.dtype), str(self.format))
 
     def __repr__(self):
-        return "Sparse[%s, %s]" % (str(self.dtype), str(self.format))
+        return "Sparse[{}, {}]".format(str(self.dtype), str(self.format))
 
     def values_eq_approx(self, a, b, eps=1e-6):
         # WARNING: equality comparison of sparse matrices is not fast or easy

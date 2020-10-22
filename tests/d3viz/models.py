@@ -3,14 +3,12 @@ import numpy as np
 import theano
 import theano.tensor as tt
 
-from six import integer_types
 
-
-class Mlp(object):
+class Mlp:
     def __init__(self, nfeatures=100, noutputs=10, nhiddens=50, rng=None):
         if rng is None:
             rng = 0
-        if isinstance(rng, integer_types):
+        if isinstance(rng, int):
             rng = np.random.RandomState(rng)
         self.rng = rng
         self.nfeatures = nfeatures
@@ -30,7 +28,7 @@ class Mlp(object):
         self.outputs = [y]
 
 
-class OfgNested(object):
+class OfgNested:
     def __init__(self):
         x, y, z = tt.scalars("xyz")
         e = x * y
@@ -43,7 +41,7 @@ class OfgNested(object):
         self.outputs = [e3]
 
 
-class Ofg(object):
+class Ofg:
     def __init__(self):
         x, y, z = tt.scalars("xyz")
         e = tt.nnet.sigmoid((x + y + z) ** 2)
@@ -54,7 +52,7 @@ class Ofg(object):
         self.outputs = [e2]
 
 
-class OfgSimple(object):
+class OfgSimple:
     def __init__(self):
         x, y, z = tt.scalars("xyz")
         e = tt.nnet.sigmoid((x + y + z) ** 2)

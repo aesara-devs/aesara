@@ -94,7 +94,7 @@ class SliceConstant(Constant):
         return (SliceConstant, self.data.start, self.data.stop, self.data.step)
 
     def __str__(self):
-        return "%s{%s, %s, %s}" % (
+        return "{}{{{}, {}, {}}}".format(
             self.__class__.__name__,
             self.data.start,
             self.data.stop,

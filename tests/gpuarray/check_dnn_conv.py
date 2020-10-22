@@ -13,39 +13,26 @@
 # Else, any arg will be directly passed to pytest.
 # python check_dnn_conv.py -xvs  # verbose mode, capture output, exit at first error.
 
-import sys
 import math
-
-import pytest
+import sys
+from itertools import chain, product
 
 import numpy as np
-
-import theano
+import pytest
 
 import tests.unittest_tools as utt
-
-from itertools import product, chain
-
+import theano
+from tests.gpuarray.config import mode_with_gpu, ref_cast
 from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
 from theano.gpuarray import cudnn_defs
-from theano.gpuarray.dnn import (
-    GpuDnnConv,
-    GpuDnnConvGradW,
-    GpuDnnConvGradI,
-    version,
-    _dnn_conv as dnn_conv,
-    _dnn_gradinput as dnn_gradinput,
-    _dnn_gradweight as dnn_gradweight,
-)
-from theano.tensor.nnet.abstract_conv import get_conv_output_shape, assert_conv_shape
+from theano.gpuarray.dnn import GpuDnnConv, GpuDnnConvGradI, GpuDnnConvGradW
+from theano.gpuarray.dnn import _dnn_conv as dnn_conv
+from theano.gpuarray.dnn import _dnn_gradinput as dnn_gradinput
+from theano.gpuarray.dnn import _dnn_gradweight as dnn_gradweight
+from theano.gpuarray.dnn import version
+from theano.tensor.nnet.abstract_conv import assert_conv_shape, get_conv_output_shape
 from theano.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
-from theano.tensor.nnet.corr3d import (
-    Corr3dMM,
-    Corr3dMMGradInputs,
-    Corr3dMMGradWeights,
-)
-
-from tests.gpuarray.config import mode_with_gpu, ref_cast
+from theano.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGradWeights
 
 
 def check_dtype_config_support(dtype, precision):
@@ -59,7 +46,7 @@ def check_dtype_config_support(dtype, precision):
     try:
         f()
     except RuntimeError as e:
-        assert "CUDNN_STATUS_ARCH_MISMATCH" in e.message
+        assert "CUDNN_STATUS_ARCH_MISMATCH" in str(e)
         return False
     return True
 
@@ -332,7 +319,7 @@ class ConvCaseGeneratorChain:
         return chain(*[generator.get_cases(filter) for generator in self.generators])
 
 
-class CuDNNV51ConvCaseGenerator(object):
+class CuDNNV51ConvCaseGenerator:
     """
     Helper class to generate specific test cases for every algorithm supported by cuDNN V5.1.
     Same class exists for cuDNN V6.0 (see below).
@@ -499,9 +486,7 @@ class CuDNNV6ConvCaseGenerator(CuDNNV51ConvCaseGenerator):
             ]
             return ConvCaseGeneratorChain(*generators)
         if ndim == 3:
-            return super(CuDNNV6ConvCaseGenerator, self)._fwd_fft_tiling(
-                ndim, dtype, precision
-            )
+            return super()._fwd_fft_tiling(ndim, dtype, precision)
 
     def _gw_none(self, ndim):
         return self._fwd_none(ndim)
@@ -526,36 +511,34 @@ class CuDNNV6ConvCaseGenerator(CuDNNV51ConvCaseGenerator):
     def _fwd_runtime(self, ndim, dtype, precision):
         if ndim == 2 and dtype == precision == "float16":
             return ConvCaseGenerator(ndim=ndim, dilations=self._dilations(ndim))
-        return super(CuDNNV6ConvCaseGenerator, self)._fwd_runtime(
-            ndim, dtype, precision
-        )
+        return super()._fwd_runtime(ndim, dtype, precision)
 
     def _gw_runtime(self, ndim, dtype, precision):
         if ndim == 2 and dtype == precision == "float16":
             return ConvCaseGenerator(ndim=ndim, dilations=self._dilations(ndim))
-        return super(CuDNNV6ConvCaseGenerator, self)._gw_runtime(ndim, dtype, precision)
+        return super()._gw_runtime(ndim, dtype, precision)
 
     def _gi_runtime(self, ndim, dtype, precision):
         if ndim == 2 and dtype == precision == "float16":
             return ConvCaseGenerator(ndim=ndim, dilations=self._dilations(ndim))
-        return super(CuDNNV6ConvCaseGenerator, self)._gi_runtime(ndim, dtype, precision)
+        return super()._gi_runtime(ndim, dtype, precision)
 
     def fwd(self, algo, ndim, dtype, precision):
         if algo == self.NONE:
             return self._fwd_none(ndim)
-        return super(CuDNNV6ConvCaseGenerator, self).fwd(algo, ndim, dtype, precision)
+        return super().fwd(algo, ndim, dtype, precision)
 
     def gw(self, algo, ndim, dtype, precision):
         if algo == self.NONE:
             return self._gw_none(ndim)
         if algo == self.FFT_TILING:
             return self._gw_fft_tiling(ndim)
-        return super(CuDNNV6ConvCaseGenerator, self).gw(algo, ndim, dtype, precision)
+        return super().gw(algo, ndim, dtype, precision)
 
     def gi(self, algo, ndim, dtype, precision):
         if algo == self.NONE:
             return self._gi_none(ndim)
-        return super(CuDNNV6ConvCaseGenerator, self).gi(algo, ndim, dtype, precision)
+        return super().gi(algo, ndim, dtype, precision)
 
 
 cudnn_conv_case_generator = (
@@ -563,7 +546,7 @@ cudnn_conv_case_generator = (
 )
 
 
-class BaseTestDnnConv(object):
+class BaseTestDnnConv:
     """
     Base class for exhaustive tests. Use its subclasses
     to run actual tests.

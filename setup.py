@@ -5,10 +5,11 @@
 #   * Add download_url
 
 
-import os
 import codecs
-from fnmatch import fnmatchcase
+import os
 from distutils.util import convert_path
+from fnmatch import fnmatchcase
+
 
 try:
     from setuptools import setup
@@ -16,6 +17,7 @@ except ImportError:
     from distutils.core import setup
 
 import versioneer
+
 
 CLASSIFIERS = """\
 Development Status :: 6 - Mature
@@ -82,12 +84,12 @@ if version_data["error"] is not None:
     # Get the fallback version
     # We can't import theano.version as it isn't yet installed, so parse it.
     fname = os.path.join(os.path.split(__file__)[0], "theano", "version.py")
-    with open(fname, "r") as f:
+    with open(fname) as f:
         lines = f.readlines()
     lines = [l for l in lines if l.startswith("FALLBACK_VERSION")]
     assert len(lines) == 1
 
-    FALLBACK_VERSION = lines[0].split("=")[1].strip().strip('""')
+    FALLBACK_VERSION = lines[0].split("=")[1].strip().strip('"')
 
     version_data["version"] = FALLBACK_VERSION
 

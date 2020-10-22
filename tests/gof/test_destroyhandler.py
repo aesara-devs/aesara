@@ -1,26 +1,22 @@
-import pytest
-
-
 from copy import copy
 
-from theano.gof.type import Type
-from theano.gof import graph
-from theano.gof.graph import Variable, Apply
-from theano.gof.op import Op
-from theano.gof.opt import (
-    OpKeyOptimizer,
-    PatternSub,
-    NavigatorOptimizer,
-    TopoOptimizer,
-    OpSub,
-)
-
-from theano import change_flags
-from theano.gof import destroyhandler
-from theano.gof.fg import FunctionGraph, InconsistencyError
-from theano.gof.toolbox import ReplaceValidate
+import pytest
 
 from tests.unittest_tools import assertFailure_fast
+from theano import change_flags
+from theano.gof import destroyhandler, graph
+from theano.gof.fg import FunctionGraph, InconsistencyError
+from theano.gof.graph import Apply, Variable
+from theano.gof.op import Op
+from theano.gof.opt import (
+    NavigatorOptimizer,
+    OpKeyOptimizer,
+    OpSub,
+    PatternSub,
+    TopoOptimizer,
+)
+from theano.gof.toolbox import ReplaceValidate
+from theano.gof.type import Type
 
 
 def PatternOptimizer(p1, p2, ign=True):

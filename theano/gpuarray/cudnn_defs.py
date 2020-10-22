@@ -18,6 +18,7 @@ Currently supported cuDNN APIs:
 
 from theano.gof import CEnumType
 
+
 HALF, FLOAT, DOUBLE = ("float16", "float32", "float64")
 TRUE_HALF_CONFIG = (HALF, HALF)
 PSEUDO_HALF_CONFIG = (HALF, FLOAT)
@@ -47,7 +48,7 @@ def is_double_config(dtype, precision):
 # exclude them from lists of supported algorithms.
 
 
-class CuDNNV51(object):
+class CuDNNV51:
     version = 5
 
     cudnnConvolutionMode_t = CEnumType(
@@ -318,7 +319,7 @@ class CuDNNV6(CuDNNV51):
     )
 
     def fwd_algo_supports_dtype_config(self, algo, dtype, precision, ndim):
-        is_supported = super(CuDNNV6, self).fwd_algo_supports_dtype_config(
+        is_supported = super().fwd_algo_supports_dtype_config(
             algo, dtype, precision, ndim
         )
         if not is_supported:
@@ -338,7 +339,7 @@ class CuDNNV6(CuDNNV51):
         return is_supported
 
     def bwd_filter_algo_supports_dtype_config(self, algo, dtype, precision, ndim):
-        is_supported = super(CuDNNV6, self).bwd_filter_algo_supports_dtype_config(
+        is_supported = super().bwd_filter_algo_supports_dtype_config(
             algo, dtype, precision, ndim
         )
         if not is_supported:
@@ -353,7 +354,7 @@ class CuDNNV6(CuDNNV51):
         return is_supported
 
     def bwd_data_algo_supports_dtype_config(self, algo, dtype, precision, ndim):
-        is_supported = super(CuDNNV6, self).bwd_data_algo_supports_dtype_config(
+        is_supported = super().bwd_data_algo_supports_dtype_config(
             algo, dtype, precision, ndim
         )
         if not is_supported:

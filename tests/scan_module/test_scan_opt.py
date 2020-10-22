@@ -2,11 +2,10 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
-
+from tests import unittest_tools as utt
 from theano import config
 from theano.scan_module.scan_op import Scan
 
-from tests import unittest_tools as utt
 
 mode = theano.compile.mode.get_mode(config.mode)
 
@@ -90,7 +89,7 @@ class TestGaussNewton:
         # during certain iterations of CG in the HF algorithm. There,
         # it's in fact `pi + current update proposal`.  For simplicity,
         # I just multiply by 2 here.
-        cost_ = theano.clone(cost, replace=dict([(pi, 2 * pi) for pi in params]))
+        cost_ = theano.clone(cost, replace={pi: 2 * pi for pi in params})
 
         # Compute Gauss-Newton-Matrix times some vector `v` which is `p` in CG,
         # but for simplicity, I just take the parameters vector because it's
@@ -113,7 +112,7 @@ class TestGaussNewton:
         self._run(100, 10, batch_size=1, mode=mode)
 
 
-class GaussNewtonMatrix(object):
+class GaussNewtonMatrix:
     def __init__(self, s):
         # `s` is the linear network outputs, i.e. the network output
         # without having applied the activation function
@@ -132,7 +131,7 @@ class GaussNewtonMatrix(object):
         return JHJv
 
 
-class TestPushOutScanOutputDot(object):
+class TestPushOutScanOutputDot:
     """
     Test class for the PushOutScanOutput optimizer in the case where the inner
     function of a scan op has an output which is the result of a Dot product
@@ -167,7 +166,7 @@ class TestPushOutScanOutputDot(object):
 
         # Ensure that the function compiled with the optimization produces
         # the same results as the function compiled without
-        v_value = np.random.random((4)).astype(config.floatX)
+        v_value = np.random.random(4).astype(config.floatX)
         m_value = np.random.random((4, 5)).astype(config.floatX)
 
         output_opt = f_opt(v_value, m_value)

@@ -1,21 +1,19 @@
 import pickle
-
-import pytest
-
-import numpy as np
-
 from itertools import count
 
-from theano import sparse, shared, tensor
+import numpy as np
+import pytest
+
+from theano import shared, sparse, tensor
 from theano.gof.graph import (
     Apply,
+    Variable,
     as_string,
     clone,
+    equal_computations,
     general_toposort,
     inputs,
     io_toposort,
-    Variable,
-    equal_computations,
 )
 from theano.gof.op import Op
 from theano.gof.type import Type
@@ -80,7 +78,7 @@ class X:
         return str(leaf.type)
 
     def node_formatter(self, node, argstrings):
-        return "%s(%s)" % (node.op, ", ".join(argstrings))
+        return "{}({})".format(node.op, ", ".join(argstrings))
 
     def str(self, inputs, outputs):
         return as_string(
