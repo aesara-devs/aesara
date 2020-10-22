@@ -1462,9 +1462,28 @@ def broadcast_shape(*arrays, **kwargs):
 
     Parameters
     ----------
-    *arrays: Tuple[TensorVariable] or Tuple[Tuple[Variable]]
-        A tuple of tensors, or a tuple of shapes (as tuples),
+    *arrays: `TensorVariable`s
+        The tensor variables, or their shapes (as tuples),
         for which the broadcast shape is computed.
+    arrays_are_shapes: bool (Optional)
+        Indicates whether or not the `arrays` contains shape tuples.
+        If you use this approach, make sure that the broadcastable dimensions
+        are (scalar) constants with the value `1` or `1` exactly.
+
+    """
+    return broadcast_shape_iter(arrays, **kwargs)
+
+
+def broadcast_shape_iter(arrays, **kwargs):
+    """Compute the shape resulting from broadcasting arrays.
+
+    Parameters
+    ----------
+    arrays: Iterable[TensorVariable] or Iterable[Tuple[Variable]]
+        An iterable of tensors, or a tuple of shapes (as tuples),
+        for which the broadcast shape is computed.
+        XXX: Do not call this with a generator/iterator; this function will not
+        make copies!
     arrays_are_shapes: bool (Optional)
         Indicates whether or not the `arrays` contains shape tuples.
         If you use this approach, make sure that the broadcastable dimensions
