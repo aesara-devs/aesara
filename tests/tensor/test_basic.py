@@ -1,7 +1,6 @@
 import builtins
 import itertools
 import operator
-import os
 import warnings
 from copy import copy, deepcopy
 from functools import partial, reduce
@@ -14,6 +13,61 @@ from numpy.testing import assert_allclose, assert_almost_equal, assert_array_equ
 import theano
 import theano.tensor as tt
 from tests import unittest_tools as utt
+from tests.tensor.utils import (
+    ALL_DTYPES,
+    COMPLEX_DTYPES,
+    REAL_DTYPES,
+    _bad_build_broadcast_binary_normal,
+    _bad_runtime_broadcast_binary_normal,
+    _bad_runtime_inv,
+    _eps,
+    _good_broadcast_binary_arctan2,
+    _good_broadcast_binary_normal,
+    _good_broadcast_div_mod_normal_float,
+    _good_broadcast_div_mod_normal_float_no_complex,
+    _good_broadcast_pow_normal_float,
+    _good_broadcast_unary_arccosh,
+    _good_broadcast_unary_arcsin,
+    _good_broadcast_unary_arctanh,
+    _good_broadcast_unary_normal,
+    _good_broadcast_unary_normal_float_no_complex,
+    _good_broadcast_unary_normal_float_no_empty_no_complex,
+    _good_broadcast_unary_normal_no_complex,
+    _good_broadcast_unary_positive,
+    _good_broadcast_unary_tan,
+    _good_broadcast_unary_wide,
+    _good_inv,
+    _grad_broadcast_binary_normal,
+    _grad_broadcast_pow_normal,
+    _grad_broadcast_unary_normal,
+    _grad_broadcast_unary_normal_no_complex,
+    _grad_broadcast_unary_normal_no_complex_no_corner_case,
+    _grad_broadcast_unary_normal_noint,
+    _grad_inv,
+    _numpy_true_div,
+    angle_eps,
+    check_floatX,
+    copymod,
+    div_grad_rtol,
+    eval_outputs,
+    get_numeric_types,
+    ignore_isfinite_mode,
+    inplace_func,
+    makeBroadcastTester,
+    makeTester,
+    multi_dtype_cast_checks,
+    multi_dtype_checks,
+    rand,
+    rand_nonzero,
+    rand_of_dtype,
+    rand_ranged,
+    randcomplex,
+    randint,
+    randint_ranged,
+    randuint32,
+    upcast_float16_ufunc,
+    upcast_int8_nfunc,
+)
 from theano import change_flags, compile, config, function, gof, shared
 from theano.compat import operator_div
 from theano.compile import DeepCopyOp
@@ -86,7 +140,6 @@ from theano.tensor import (
     hessian,
     horizontal_stack,
     imatrix,
-    inplace,
     inverse_permutation,
     iscalar,
     iscalars,
@@ -150,701 +203,10 @@ from theano.tensor import (
 )
 
 
-imported_scipy_special = False
-mode_no_scipy = get_default_mode()
-try:
-    import scipy.special
-    import scipy.stats
-
-    imported_scipy_special = True
-except ImportError:
-    if config.mode == "FAST_COMPILE":
-        mode_no_scipy = "FAST_RUN"
-
-floatX = config.floatX
-
 if config.mode == "FAST_COMPILE":
     mode_opt = "FAST_RUN"
 else:
     mode_opt = get_default_mode()
-
-
-# Use a seeded random number generator so that unittests are deterministic
-utt.seed_rng()
-test_rng = np.random.RandomState(seed=utt.fetch_seed())
-# In order to check random values close to the boundaries when designing
-# new tests, you can use utt.MockRandomState, for instance:
-# test_rng = MockRandomState(0)
-# test_rng = MockRandomState(0.99999982)
-# test_rng = MockRandomState(1)
-
-
-def inplace_func(
-    inputs,
-    outputs,
-    mode=None,
-    allow_input_downcast=False,
-    on_unused_input="raise",
-    name=None,
-):
-    if mode is None:
-        mode = get_default_mode()
-    return function(
-        inputs,
-        outputs,
-        mode=mode,
-        allow_input_downcast=allow_input_downcast,
-        accept_inplace=True,
-        on_unused_input=on_unused_input,
-        name=name,
-    )
-
-
-def eval_outputs(outputs, ops=(), mode=None):
-    f = inplace_func([], outputs, mode=mode)
-    variables = f()
-    if ops:
-        assert any(isinstance(node.op, ops) for node in f.maker.fgraph.apply_nodes)
-    if isinstance(variables, (tuple, list)) and len(variables) == 1:
-        return variables[0]
-    return variables
-
-
-def get_numeric_subclasses(cls=np.number, ignore=None):
-    # Return subclasses of `cls` in the numpy scalar hierarchy.
-    #
-    # We only return subclasses that correspond to unique data types.
-    # The hierarchy can be seen here:
-    #     http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html
-    if ignore is None:
-        ignore = []
-    rval = []
-    dtype = np.dtype(cls)
-    dtype_num = dtype.num
-    if dtype_num not in ignore:
-        # Safety check: we should be able to represent 0 with this data type.
-        np.array(0, dtype=dtype)
-        rval.append(cls)
-        ignore.append(dtype_num)
-    for sub_ in cls.__subclasses__():
-        rval += [c for c in get_numeric_subclasses(sub_, ignore=ignore)]
-    return rval
-
-
-def get_numeric_types(
-    with_int=True, with_float=True, with_complex=False, only_theano_types=True
-):
-    # Return numpy numeric data types.
-    #
-    # :param with_int: Whether to include integer types.
-    #
-    # :param with_float: Whether to include floating point types.
-    #
-    # :param with_complex: Whether to include complex types.
-    #
-    # :param only_theano_types: If True, then numpy numeric data types that are
-    # not supported by Theano are ignored (i.e. those that are not declared in
-    # scalar/basic.py).
-    #
-    # :returns: A list of unique data type objects. Note that multiple data types
-    # may share the same string representation, but can be differentiated through
-    # their `num` attribute.
-    #
-    # Note that when `only_theano_types` is True we could simply return the list
-    # of types defined in the `scalar` module. However with this function we can
-    # test more unique dtype objects, and in the future we may use it to
-    # automatically detect new data types introduced in numpy.
-    if only_theano_types:
-        theano_types = [d.dtype for d in theano.scalar.all_types]
-    rval = []
-
-    def is_within(cls1, cls2):
-        # Return True if scalars defined from `cls1` are within the hierarchy
-        # starting from `cls2`.
-        # The third test below is to catch for instance the fact that
-        # one can use ``dtype=numpy.number`` and obtain a float64 scalar, even
-        # though `numpy.number` is not under `numpy.floating` in the class
-        # hierarchy.
-        return (
-            cls1 is cls2
-            or issubclass(cls1, cls2)
-            or isinstance(np.array([0], dtype=cls1)[0], cls2)
-        )
-
-    for cls in get_numeric_subclasses():
-        dtype = np.dtype(cls)
-        if (
-            (not with_complex and is_within(cls, np.complexfloating))
-            or (not with_int and is_within(cls, np.integer))
-            or (not with_float and is_within(cls, np.floating))
-            or (only_theano_types and dtype not in theano_types)
-        ):
-            # Ignore this class.
-            continue
-        rval.append([str(dtype), dtype, dtype.num])
-    # We sort it to be deterministic, then remove the string and num elements.
-    return [x[1] for x in sorted(rval, key=str)]
-
-
-def _numpy_checker(x, y):
-    # Checks if x.data and y.data have the same contents.
-    # Used in DualLinker to compare C version with Python version.
-    x, y = x[0], y[0]
-    if x.dtype != y.dtype or x.shape != y.shape or np.any(np.abs(x - y) > 1e-10):
-        raise Exception("Output mismatch.", {"performlinker": x, "clinker": y})
-
-
-def safe_make_node(op, *inputs):
-    # Emulate the behaviour of make_node when op is a function.
-    #
-    # Normally op in an instead of the Op class.
-    node = op(*inputs)
-    if isinstance(node, list):
-        return node[0].owner
-    else:
-        return node.owner
-
-
-def upcast_float16_ufunc(fn):
-    # Decorator that enforces computation is not done in float16 by NumPy.
-    #
-    # Some ufuncs in NumPy will compute float values on int8 and uint8
-    # in half-precision (float16), which is not enough, and not compatible
-    # with the C code.
-    #
-    # :param fn: numpy ufunc
-    # :returns: function similar to fn.__call__, computing the same
-    #     value with a minimum floating-point precision of float32
-    def ret(*args, **kwargs):
-        out_dtype = np.find_common_type([a.dtype for a in args], [np.float16])
-        if out_dtype == "float16":
-            # Force everything to float32
-            sig = "f" * fn.nin + "->" + "f" * fn.nout
-            kwargs.update(sig=sig)
-        return fn(*args, **kwargs)
-
-    return ret
-
-
-def upcast_int8_nfunc(fn):
-    # Decorator that upcasts input of dtype int8 to float32.
-    #
-    # This is so that floating-point computation is not carried using
-    # half-precision (float16), as some NumPy functions do.
-    #
-    # :param fn: function computing a floating-point value from inputs
-    # :returns: function similar to fn, but upcasting its uint8 and int8
-    #     inputs before carrying out the computation.
-    def ret(*args, **kwargs):
-        args = list(args)
-        for i, a in enumerate(args):
-            if getattr(a, "dtype", None) in ("int8", "uint8"):
-                args[i] = a.astype("float32")
-
-        return fn(*args, **kwargs)
-
-    return ret
-
-
-def makeTester(
-    name,
-    op,
-    expected,
-    checks=None,
-    good=None,
-    bad_build=None,
-    bad_runtime=None,
-    grad=None,
-    mode=None,
-    grad_rtol=None,
-    eps=1e-10,
-    skip=False,
-    test_memmap=True,
-    check_name=False,
-    grad_eps=None,
-):
-    # :param check_name:
-    #     Use only for tester that aren't in Theano.
-    if checks is None:
-        checks = {}
-    if good is None:
-        good = {}
-    if bad_build is None:
-        bad_build = {}
-    if bad_runtime is None:
-        bad_runtime = {}
-    if grad is None:
-        grad = {}
-    if grad is True:
-        grad = good
-
-    _op, _expected, _checks, _good = op, expected, checks, good
-    _bad_build, _bad_runtime, _grad = bad_build, bad_runtime, grad
-    _mode, _grad_rtol, _eps, skip_ = mode, grad_rtol, eps, skip
-    _test_memmap = test_memmap
-    _check_name = check_name
-    _grad_eps = grad_eps
-
-    class Checker:
-
-        op = staticmethod(_op)
-        expected = staticmethod(_expected)
-        checks = _checks
-        check_name = _check_name
-        good = _good
-        bad_build = _bad_build
-        bad_runtime = _bad_runtime
-        grad = _grad
-        mode = _mode
-        skip = skip_
-        test_memmap = _test_memmap
-
-        def setup_method(self):
-            # Verify that the test's name is correctly set.
-            # Some tests reuse it outside this module.
-            if self.check_name:
-                eval(self.__class__.__module__ + "." + self.__class__.__name__)
-
-            # We keep a list of temporary files created in add_memmap_values,
-            # to remove them at the end of the test.
-            self.tmp_files = []
-
-        def add_memmap_values(self, val_dict):
-            # If test_memmap is True, we create a temporary file
-            # containing a copy of the data passed in the "val_dict" dict,
-            # then open it as a memmapped array, and we can use the result as a
-            # new test value.
-            if not self.test_memmap:
-                return val_dict
-
-            # Copy dict before modifying them
-            val_dict = val_dict.copy()
-
-            # Note that we sort items in the dictionary to ensure tests are
-            # deterministic (since the loop below will break on the first valid
-            # item that can be memmapped).
-            for k, v in sorted(val_dict.items()):
-                new_k = "_".join((k, "memmap"))
-                if new_k in val_dict:
-                    # A corresponding key was already provided
-                    break
-
-                new_v = []
-                for inp in v:
-                    if type(inp) is np.ndarray and inp.size > 0:
-                        f, fname = mkstemp()
-                        self.tmp_files.append((f, fname))
-                        new_inp = np.memmap(
-                            fname, dtype=inp.dtype, mode="w+", shape=inp.shape
-                        )
-                        new_inp[...] = inp[...]
-                        new_v.append(new_inp)
-                    else:
-                        new_v.append(inp)
-                val_dict[new_k] = new_v
-
-                # We only need one value, no need to copy all of them
-                break
-            return val_dict
-
-        def teardown_method(self):
-            # This is to avoid a problem with deleting memmap files on windows.
-            import gc
-
-            gc.collect()
-            for f, fname in self.tmp_files:
-                os.close(f)
-                os.remove(fname)
-
-        @pytest.mark.skipif(skip, reason="Skipped")
-        def test_good(self):
-            good = self.add_memmap_values(self.good)
-
-            for testname, inputs in good.items():
-                inputs = [copy(input) for input in inputs]
-                inputrs = [
-                    TensorType(
-                        dtype=input.dtype,
-                        broadcastable=[shape_elem == 1 for shape_elem in input.shape],
-                    )()
-                    for input in inputs
-                ]
-                try:
-                    node = safe_make_node(self.op, *inputrs)
-                except Exception as exc:
-                    err_msg = (
-                        "Test %s::%s: Error occurred while"
-                        " making a node with inputs %s"
-                    ) % (self.op, testname, inputs)
-                    exc.args += (err_msg,)
-                    raise
-
-                try:
-                    f = inplace_func(inputrs, node.outputs, mode=mode, name="test_good")
-                except Exception as exc:
-                    err_msg = (
-                        "Test %s::%s: Error occurred while" " trying to make a Function"
-                    ) % (self.op, testname)
-                    exc.args += (err_msg,)
-                    raise
-                if isinstance(self.expected, dict) and testname in self.expected:
-                    expecteds = self.expected[testname]
-                    # with numpy version, when we print a number and read it
-                    # back, we don't get exactly the same result, so we accept
-                    # rounding error in that case.
-                    eps = 5e-9
-                else:
-                    expecteds = self.expected(*inputs)
-                    eps = 1e-10
-
-                if any(
-                    [i.dtype in ("float32", "int8", "uint8", "uint16") for i in inputs]
-                ):
-                    eps = 1e-6
-                eps = np.max([eps, _eps])
-
-                try:
-                    variables = f(*inputs)
-                except Exception as exc:
-                    err_msg = (
-                        "Test %s::%s: Error occurred while calling"
-                        " the Function on the inputs %s"
-                    ) % (self.op, testname, inputs)
-                    exc.args += (err_msg,)
-                    raise
-
-                if not isinstance(expecteds, (list, tuple)):
-                    expecteds = (expecteds,)
-
-                for i, (variable, expected) in enumerate(zip(variables, expecteds)):
-                    condition = (
-                        variable.dtype != expected.dtype
-                        or variable.shape != expected.shape
-                        or not np.allclose(variable, expected, atol=eps, rtol=eps)
-                    )
-                    assert not condition, (
-                        "Test %s::%s: Output %s gave the wrong"
-                        " value. With inputs %s, expected %s (dtype %s),"
-                        " got %s (dtype %s). eps=%f"
-                        " np.allclose returns %s %s"
-                    ) % (
-                        self.op,
-                        testname,
-                        i,
-                        inputs,
-                        expected,
-                        expected.dtype,
-                        variable,
-                        variable.dtype,
-                        eps,
-                        np.allclose(variable, expected, atol=eps, rtol=eps),
-                        np.allclose(variable, expected),
-                    )
-
-                for description, check in self.checks.items():
-                    assert check(inputs, variables), (
-                        "Test %s::%s: Failed check: %s (inputs"
-                        " were %s, outputs were %s)"
-                    ) % (self.op, testname, description, inputs, variables)
-
-        @pytest.mark.skipif(skip, reason="Skipped")
-        def test_bad_build(self):
-            for testname, inputs in self.bad_build.items():
-                inputs = [copy(input) for input in inputs]
-                inputrs = [shared(input) for input in inputs]
-                with pytest.raises(Exception):
-                    safe_make_node(self.op, *inputrs)
-                # The old error string was ("Test %s::%s: %s was successfully
-                # instantiated on the following bad inputs: %s"
-                # % (self.op, testname, node, inputs))
-
-        @change_flags(compute_test_value="off")
-        @pytest.mark.skipif(skip, reason="Skipped")
-        def test_bad_runtime(self):
-            for testname, inputs in self.bad_runtime.items():
-                inputrs = [shared(input) for input in inputs]
-                try:
-                    node = safe_make_node(self.op, *inputrs)
-                except Exception as exc:
-                    err_msg = (
-                        "Test %s::%s: Error occurred while trying"
-                        " to make a node with inputs %s"
-                    ) % (self.op, testname, inputs)
-                    exc.args += (err_msg,)
-                    raise
-
-                try:
-                    f = inplace_func(
-                        [], node.outputs, mode=mode, name="test_bad_runtime"
-                    )
-                except Exception as exc:
-                    err_msg = (
-                        "Test %s::%s: Error occurred while trying" " to make a Function"
-                    ) % (self.op, testname)
-                    exc.args += (err_msg,)
-                    raise
-
-                # Add tester return a ValueError. Should we catch only this
-                # one?
-                # TODO: test that only this one is raised and catch only this
-                # one or the subset that get raised.
-                with pytest.raises(Exception):
-                    f([])
-
-        @pytest.mark.skipif(skip, reason="Skipped")
-        def test_grad(self):
-            # Disable old warning that may be triggered by this test.
-            backup = config.warn.sum_div_dimshuffle_bug
-            config.warn.sum_div_dimshuffle_bug = False
-            try:
-                for testname, inputs in self.grad.items():
-                    inputs = [copy(input) for input in inputs]
-                    try:
-                        utt.verify_grad(
-                            self.op,
-                            inputs,
-                            mode=self.mode,
-                            rel_tol=_grad_rtol,
-                            eps=_grad_eps,
-                        )
-                    except Exception as exc:
-                        err_msg = (
-                            "Test %s::%s: Error occurred while"
-                            " computing the gradient on the following"
-                            " inputs: %s"
-                        ) % (self.op, testname, inputs)
-                        exc.args += (err_msg,)
-                        raise
-            finally:
-                config.warn.sum_div_dimshuffle_bug = backup
-
-        @pytest.mark.skipif(skip, reason="Skipped")
-        def test_grad_none(self):
-            # Check that None is never returned as input gradient
-            # when calling self.op.grad
-            # We use all values in self.good because this has to be true
-            # whether or not the values work for utt.verify_grad.
-            if not hasattr(self.op, "grad"):
-                # This is not actually an Op
-                return
-
-            for testname, inputs in self.good.items():
-                inputs = [copy(input) for input in inputs]
-                inputrs = [
-                    TensorType(
-                        dtype=input.dtype,
-                        broadcastable=[shape_elem == 1 for shape_elem in input.shape],
-                    )()
-                    for input in inputs
-                ]
-
-                if isinstance(self.expected, dict) and testname in self.expected:
-                    expecteds = self.expected[testname]
-                    # with numpy version, when we print a number and read it
-                    # back, we don't get exactly the same result, so we accept
-                    # rounding error in that case.
-                else:
-                    expecteds = self.expected(*inputs)
-                if not isinstance(expecteds, (list, tuple)):
-                    expecteds = (expecteds,)
-
-                out_grad_vars = []
-                for out in expecteds:
-                    if str(out.dtype) in tt.discrete_dtypes:
-                        dtype = floatX
-                    else:
-                        dtype = str(out.dtype)
-                    bcast = [shape_elem == 1 for shape_elem in out.shape]
-                    var = TensorType(dtype=dtype, broadcastable=bcast)()
-                    out_grad_vars.append(var)
-
-                try:
-                    in_grad_vars = self.op.grad(inputrs, out_grad_vars)
-                except (gof.utils.MethodNotDefined, NotImplementedError):
-                    pass
-                else:
-                    assert None not in in_grad_vars
-
-    Checker.__name__ = name
-    if hasattr(Checker, "__qualname__"):
-        Checker.__qualname__ = name
-    return Checker
-
-
-def rand(*shape):
-    r = test_rng.rand(*shape) * 2 - 1
-    return np.asarray(r, dtype=config.floatX)
-
-
-def rand_nonzero(shape, eps=3e-4):
-    # Like rand, but the absolute value has to be at least eps
-    # covers [0, 1)
-    r = np.asarray(test_rng.rand(*shape), dtype=config.floatX)
-    # covers [0, (1 - eps) / 2) U [(1 + eps) / 2, 1)
-    r = r * (1 - eps) + eps * (r >= 0.5)
-    # covers [-1, -eps) U [eps, 1)
-    r = r * 2 - 1
-    return r
-
-
-def randint(*shape):
-    return test_rng.randint(-5, 6, shape)
-
-
-def randuint32(*shape):
-    return np.array(test_rng.randint(5, size=shape), dtype=np.uint32)
-
-
-def randuint16(*shape):
-    return np.array(test_rng.randint(5, size=shape), dtype=np.uint16)
-
-
-# XXX: this so-called complex random array as all-zero imaginary parts
-def randcomplex(*shape):
-    r = np.asarray(test_rng.rand(*shape), dtype=config.floatX)
-    return np.complex128(2 * r - 1)
-
-
-def randcomplex_nonzero(shape, eps=1e-4):
-    return np.complex128(rand_nonzero(shape, eps))
-
-
-def randint_nonzero(*shape):
-    r = test_rng.randint(-5, 5, shape)
-    return r + (r == 0) * 5
-
-
-def rand_ranged(min, max, shape):
-    return np.asarray(test_rng.rand(*shape) * (max - min) + min, dtype=config.floatX)
-
-
-def randint_ranged(min, max, shape):
-    return test_rng.randint(min, max + 1, shape)
-
-
-def randc128_ranged(min, max, shape):
-    return np.asarray(test_rng.rand(*shape) * (max - min) + min, dtype="complex128")
-
-
-def rand_of_dtype(shape, dtype):
-    if dtype in tt.discrete_dtypes:
-        return randint(*shape).astype(dtype)
-    elif dtype in tt.float_dtypes:
-        return rand(*shape).astype(dtype)
-    elif dtype in tt.complex_dtypes:
-        return randcomplex(*shape).astype(dtype)
-    else:
-        raise TypeError()
-
-
-# Used to exclude random numbers too close to certain values
-_eps = 1e-2
-
-
-def makeBroadcastTester(op, expected, checks=None, name=None, **kwargs):
-    if checks is None:
-        checks = {}
-    if name is None:
-        name = str(op)
-    # Here we ensure the test name matches the name of the variable defined in
-    # this script. This is needed to properly identify the test e.g. with the
-    # --with-id option of nosetests, or simply to rerun a specific test that
-    # failed.
-    capitalize = False
-    if name.startswith("Elemwise{") and name.endswith(",no_inplace}"):
-        # For instance: Elemwise{add,no_inplace} -> Add
-        name = name[9:-12]
-        capitalize = True
-    elif name.endswith("_inplace"):
-        # For instance: sub_inplace -> SubInplace
-        capitalize = True
-    if capitalize:
-        name = "".join([x.capitalize() for x in name.split("_")])
-    # Some tests specify a name that already ends with 'Tester', while in other
-    # cases we need to add it manually.
-    if not name.endswith("Tester"):
-        name += "Tester"
-    if "inplace" in kwargs:
-        if kwargs["inplace"]:
-            _expected = expected
-            if not isinstance(_expected, dict):
-
-                def expected(*inputs):
-                    return np.array(_expected(*inputs), dtype=inputs[0].dtype)
-
-            def inplace_check(inputs, outputs):
-                # this used to be inputs[0] is output[0]
-                # I changed it so that it was easier to satisfy by the
-                # DebugMode
-                return np.all(inputs[0] == outputs[0])
-
-            checks = dict(checks, inplace_check=inplace_check)
-        del kwargs["inplace"]
-    return makeTester(name, op, expected, checks, **kwargs)
-
-
-_good_broadcast_binary_normal = dict(
-    same_shapes=(rand(2, 3), rand(2, 3)),
-    not_same_dimensions=(rand(2, 2), rand(2)),
-    scalar=(rand(2, 3), rand(1, 1)),
-    row=(rand(2, 3), rand(1, 3)),
-    column=(rand(2, 3), rand(2, 1)),
-    integers=(randint(2, 3), randint(2, 3)),
-    uint32=(randuint32(2, 3), randuint32(2, 3)),
-    uint16=(randuint16(2, 3), randuint16(2, 3)),
-    dtype_mixup_1=(rand(2, 3), randint(2, 3)),
-    dtype_mixup_2=(randint(2, 3), rand(2, 3)),
-    complex1=(randcomplex(2, 3), randcomplex(2, 3)),
-    complex2=(randcomplex(2, 3), rand(2, 3)),
-    # Disabled as we test the case where we reuse the same output as the
-    # first inputs.
-    # complex3=(rand(2,3),randcomplex(2,3)),
-    empty=(np.asarray([], dtype=config.floatX), np.asarray([1], dtype=config.floatX)),
-)
-
-_bad_build_broadcast_binary_normal = dict()
-
-_bad_runtime_broadcast_binary_normal = dict(
-    bad_shapes=(rand(2, 3), rand(3, 2)), bad_row=(rand(2, 3), rand(1, 2))
-)
-
-_grad_broadcast_binary_normal = dict(
-    same_shapes=(rand(2, 3), rand(2, 3)),
-    scalar=(rand(2, 3), rand(1, 1)),
-    row=(rand(2, 3), rand(1, 3)),
-    column=(rand(2, 3), rand(2, 1)),
-    # This don't work as verify grad don't support that
-    # empty=(np.asarray([]), np.asarray([1]))
-    # complex1=(randcomplex(2,3),randcomplex(2,3)),
-    # complex2=(randcomplex(2,3),rand(2,3)),
-    # Disabled as we test the case where we reuse the same output as the
-    # first inputs.
-    # complex3=(rand(2,3),randcomplex(2,3)),
-)
-
-
-def check_floatX(inputs, rval):
-    # :param inputs: Inputs to a function that returned `rval` with these inputs.
-    #
-    # :param rval: Value returned by a function with inputs set to `inputs`.
-    #
-    # :returns: Either `rval` unchanged, or `rval` cast in float32. The idea is
-    # that when a numpy function would have returned a float64, Theano may prefer
-    # to return a float32 instead when `config.cast_policy` is set to
-    # 'numpy+floatX' and config.floatX to 'float32', and there was no float64
-    # input.
-    if (
-        isinstance(rval, np.ndarray)
-        and rval.dtype == "float64"
-        and config.cast_policy == "numpy+floatX"
-        and config.floatX == "float32"
-        and all(x.dtype != "float64" for x in inputs)
-    ):
-        # Then we expect float32 instead of float64.
-        return rval.astype("float32")
-    else:
-        return rval
-
 
 TestAddBroadcast = makeBroadcastTester(
     op=add,
@@ -864,15 +226,6 @@ TestAddBroadcast = makeBroadcastTester(
 )
 
 
-TestAddInplaceBroadcast = makeBroadcastTester(
-    op=inplace.add_inplace,
-    expected=lambda x, y: x + y,
-    good=_good_broadcast_binary_normal,
-    bad_build=_bad_build_broadcast_binary_normal,
-    bad_runtime=_bad_runtime_broadcast_binary_normal,
-    inplace=True,
-)
-
 TestSubBroadcast = makeBroadcastTester(
     op=sub,
     expected=lambda x, y: check_floatX((x, y), x - y),
@@ -880,15 +233,6 @@ TestSubBroadcast = makeBroadcastTester(
     bad_build=_bad_build_broadcast_binary_normal,
     bad_runtime=_bad_runtime_broadcast_binary_normal,
     grad=_grad_broadcast_binary_normal,
-)
-
-TestSubInplaceBroadcast = makeBroadcastTester(
-    op=inplace.sub_inplace,
-    expected=lambda x, y: x - y,
-    good=_good_broadcast_binary_normal,
-    bad_build=_bad_build_broadcast_binary_normal,
-    bad_runtime=_bad_runtime_broadcast_binary_normal,
-    inplace=True,
 )
 
 TestSwitchBroadcast = makeBroadcastTester(
@@ -925,15 +269,6 @@ TestMaximumBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_binary_normal,
 )
 
-TestMaximumInplaceBroadcast = makeBroadcastTester(
-    op=inplace.maximum_inplace,
-    expected=np.maximum,
-    good=_good_broadcast_binary_normal,
-    bad_build=_bad_build_broadcast_binary_normal,
-    bad_runtime=_bad_runtime_broadcast_binary_normal,
-    inplace=True,
-)
-
 
 def test_maximum_minimum_grad():
     # Test the discontinuity point.
@@ -956,15 +291,6 @@ TestMinimumBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_binary_normal,
 )
 
-TestMinimumInplaceBroadcast = makeBroadcastTester(
-    op=inplace.minimum_inplace,
-    expected=np.minimum,
-    good=_good_broadcast_binary_normal,
-    bad_build=_bad_build_broadcast_binary_normal,
-    bad_runtime=_bad_runtime_broadcast_binary_normal,
-    inplace=True,
-)
-
 TestMulBroadcast = makeBroadcastTester(
     op=mul,
     expected=lambda *inputs: check_floatX(inputs, reduce(lambda x, y: x * y, inputs)),
@@ -982,62 +308,6 @@ TestMulBroadcast = makeBroadcastTester(
     ),
 )
 
-TestMulInplaceBroadcast = makeBroadcastTester(
-    op=inplace.mul_inplace,
-    expected=lambda x, y: x * y,
-    good=_good_broadcast_binary_normal,
-    bad_build=_bad_build_broadcast_binary_normal,
-    bad_runtime=_bad_runtime_broadcast_binary_normal,
-    inplace=True,
-)
-
-
-def copymod(dct, without=None, **kwargs):
-    # Return dct but with the keys named by args removed, and with
-    # kwargs added.
-    if without is None:
-        without = []
-    rval = copy(dct)
-    for a in without:
-        if a in rval:
-            del rval[a]
-    for kw, val in kwargs.items():
-        rval[kw] = val
-    return rval
-
-
-_good_broadcast_div_mod_normal_float_no_complex = dict(
-    same_shapes=(rand(2, 3), rand_nonzero((2, 3))),
-    scalar=(rand(2, 3), rand_nonzero((1, 1))),
-    row=(rand(2, 3), rand_nonzero((1, 3))),
-    column=(rand(2, 3), rand_nonzero((2, 1))),
-    dtype_mixup_1=(rand(2, 3), randint_nonzero(2, 3)),
-    dtype_mixup_2=(randint_nonzero(2, 3), rand_nonzero((2, 3))),
-    integer=(randint(2, 3), randint_nonzero(2, 3)),
-    uint8=(randint(2, 3).astype("uint8"), randint_nonzero(2, 3).astype("uint8")),
-    uint16=(randint(2, 3).astype("uint16"), randint_nonzero(2, 3).astype("uint16")),
-    int8=[
-        np.tile(np.arange(-127, 128, dtype="int8"), [254, 1]).T,
-        np.tile(
-            np.array(list(range(-127, 0)) + list(range(1, 128)), dtype="int8"), [255, 1]
-        ),
-    ],
-    # This empty2 doesn't work for some tests. I don't remember why
-    # empty2=(np.asarray([0]), np.asarray([])),
-)
-
-_good_broadcast_div_mod_normal_float_inplace = copymod(
-    _good_broadcast_div_mod_normal_float_no_complex,
-    empty1=(np.asarray([]), np.asarray([1])),
-    # No complex floor division in python 3.x
-)
-
-_good_broadcast_div_mod_normal_float = copymod(
-    _good_broadcast_div_mod_normal_float_inplace,
-    empty2=(np.asarray([0], dtype=config.floatX), np.asarray([], dtype=config.floatX)),
-)
-
-
 _grad_broadcast_div_mod_normal = dict(
     same_shapes=(rand(2, 3), rand_nonzero((2, 3))),
     scalar=(rand(2, 3), rand_nonzero((1, 1))),
@@ -1052,26 +322,6 @@ _grad_broadcast_div_mod_normal = dict(
     # empty2=(np.asarray([0]), np.asarray([])),
 )
 
-div_grad_rtol = None
-if config.floatX == "float32":
-    # We raise the relative tolerance for the grad as there can be errors in
-    # float32.
-    # This is probably caused by our way of computing the gradient error.
-    div_grad_rtol = 0.025
-
-
-def _numpy_true_div(x, y):
-    # Performs true division, and cast the result in the type we expect.
-    #
-    # We define that function so we can use it in TrueDivTester.expected,
-    # because simply calling np.true_divide could cause a dtype mismatch.
-    out = np.true_divide(x, y)
-    # Use floatX as the result of int / int
-    if x.dtype in tt.discrete_dtypes and y.dtype in tt.discrete_dtypes:
-        out = theano._asarray(out, dtype=config.floatX)
-    return out
-
-
 TestTrueDivBroadcast = makeBroadcastTester(
     op=tt.true_div,
     expected=_numpy_true_div,
@@ -1079,44 +329,6 @@ TestTrueDivBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_div_mod_normal,
     grad_rtol=div_grad_rtol,
 )
-
-TestTrueDivInplaceBroadcast = makeBroadcastTester(
-    op=inplace.true_div_inplace,
-    expected=_numpy_true_div,
-    good=copymod(
-        _good_broadcast_div_mod_normal_float_inplace,
-        # The output is now in float, we cannot work inplace on an int.
-        without=["integer", "uint8", "uint16", "int8"],
-    ),
-    grad_rtol=div_grad_rtol,
-    inplace=True,
-)
-
-
-_good_inv = dict(
-    normal=[5 * rand_nonzero((2, 3))],
-    integers=[randint_nonzero(2, 3)],
-    int8=[np.array(list(range(-127, 0)) + list(range(1, 127)), dtype="int8")],
-    uint8=[np.array(list(range(0, 255)), dtype="uint8")],
-    uint16=[np.array(list(range(0, 65535)), dtype="uint16")],
-    complex=[randcomplex_nonzero((2, 3))],
-    empty=[np.asarray([], dtype=config.floatX)],
-)
-
-_good_inv_inplace = copymod(
-    _good_inv, without=["integers", "int8", "uint8", "uint16", "complex"]
-)
-_grad_inv = copymod(
-    _good_inv, without=["integers", "int8", "uint8", "uint16", "complex", "empty"]
-)
-
-_bad_runtime_inv = dict(
-    float=[np.zeros((2, 3))],
-    integers=[np.zeros((2, 3), dtype="int64")],
-    int8=[np.zeros((2, 3), dtype="int8")],
-    complex=[np.zeros((2, 3), dtype="complex128")],
-)
-
 
 TestInvBroadcast = makeBroadcastTester(
     op=tt.inv,
@@ -1126,16 +338,6 @@ TestInvBroadcast = makeBroadcastTester(
     grad=_grad_inv,
     grad_rtol=div_grad_rtol,
 )
-
-TestInvInplaceBroadcast = makeBroadcastTester(
-    op=inplace.inv_inplace,
-    expected=lambda x: _numpy_true_div(np.int8(1), x),
-    good=_good_inv_inplace,
-    bad_runtime=_bad_runtime_inv,
-    grad_rtol=div_grad_rtol,
-    inplace=True,
-)
-
 
 TestCeilIntDivBroadcast = makeBroadcastTester(
     op=tt.ceil_intdiv,
@@ -1157,184 +359,21 @@ TestModBroadcast = makeBroadcastTester(
     grad_eps=1e-5,
 )
 
-
-TestModInplaceBroadcast = makeBroadcastTester(
-    op=inplace.mod_inplace,
-    expected=lambda x, y: np.asarray(
-        x % y, dtype=theano.scalar.basic.upcast(x.dtype, y.dtype)
-    ),
-    good=copymod(
-        _good_broadcast_div_mod_normal_float_inplace, ["complex1", "complex2"]
-    ),
-    grad_eps=1e-5,
-    inplace=True,
-)
-
-_good_broadcast_pow_normal_float = dict(
-    same_shapes=(rand_ranged(1, 5, (2, 3)), rand_ranged(-3, 3, (2, 3))),
-    scalar=(rand_ranged(1, 5, (2, 3)), rand_ranged(-3, 3, (1, 1))),
-    row=(rand_ranged(1, 5, (2, 3)), rand_ranged(-3, 3, (1, 3))),
-    column=(rand_ranged(1, 5, (2, 3)), rand_ranged(-3, 3, (2, 1))),
-    dtype_mixup=(rand_ranged(-3, 3, (2, 3)), randint_ranged(-3, 3, (2, 3))),
-    complex1=(randcomplex(2, 3), randcomplex(2, 3)),
-    complex2=(randcomplex(2, 3), rand(2, 3)),
-    # complex3 = (rand(2,3),randcomplex(2,3)), # Inplace on the first element.
-    empty1=(np.asarray([], dtype=config.floatX), np.asarray([1], dtype=config.floatX)),
-    empty2=(np.asarray([0], dtype=config.floatX), np.asarray([], dtype=config.floatX)),
-    empty3=(np.asarray([], dtype=config.floatX), np.asarray([], dtype=config.floatX)),
-)
-_grad_broadcast_pow_normal = dict(
-    same_shapes=(rand_ranged(1, 5, (2, 3)), rand_ranged(-3, 3, (2, 3))),
-    scalar=(rand_ranged(1, 5, (2, 3)), rand_ranged(-3, 3, (1, 1))),
-    row=(rand_ranged(1, 5, (2, 3)), rand_ranged(-3, 3, (1, 3))),
-    column=(rand_ranged(1, 5, (2, 3)), rand_ranged(-3, 3, (2, 1))),
-    # complex1 = (randcomplex(2,3),randcomplex(2,3)),
-    # complex2 = (randcomplex(2,3),rand(2,3)),
-    # complex3 = (rand(2,3),randcomplex(2,3)),
-    # empty1 = (np.asarray([]), np.asarray([1])),
-    # empty2 = (np.asarray([0]), np.asarray([])),
-    x_eq_zero=(
-        np.asarray([0.0], dtype=config.floatX),
-        np.asarray([2.0], dtype=config.floatX),
-    ),  # Test for issue 1780
-)
-# empty2 case is not supported by numpy.
-_good_broadcast_pow_normal_float_pow = copy(_good_broadcast_pow_normal_float)
-del _good_broadcast_pow_normal_float_pow["empty2"]
-
 # Disable NAN checking for pow operator per issue #1780
-m = copy(theano.compile.get_default_mode())
-m.check_isfinite = False
-
 TestPowBroadcast = makeBroadcastTester(
     op=pow,
     expected=lambda x, y: check_floatX((x, y), x ** y),
     good=_good_broadcast_pow_normal_float,
     grad=_grad_broadcast_pow_normal,
     name="Pow",
-    mode=m,
+    mode=ignore_isfinite_mode,
 )
-
-TestPowInplaceBroadcast = makeBroadcastTester(
-    op=inplace.pow_inplace,
-    expected=lambda x, y: x ** y,
-    good=_good_broadcast_pow_normal_float_pow,
-    inplace=True,
-    mode=m,
-)
-
-# Those are corner case when rounding. Their is many rounding algo.
-# c round() fct and numpy round are not the same!
-corner_case = np.asarray(
-    [-2.5, -2.0, -1.5, -1.0, -0.5, -0.51, -0.49, 0, 0.49, 0.5, 0.9, 1, 1.5, 2, 2.5],
-    dtype=floatX,
-)
-
-# we remove 0 here as the grad is not always computable numerically.
-corner_case_grad = np.asarray(
-    [-2.5, -2.0, -1.5, -1.0, -0.5, -0.51, -0.49, 0.49, 0.5, 0.9, 1, 1.5, 2, 2.5],
-    dtype=floatX,
-)
-
-_good_broadcast_unary_normal_float = dict(
-    normal=[rand_ranged(-5, 5, (2, 3))],
-    corner_case=[corner_case],
-    complex=[randcomplex(2, 3)],
-    empty=[np.asarray([], dtype=config.floatX)],
-)
-
-_good_broadcast_unary_normal_float_no_empty = copymod(
-    _good_broadcast_unary_normal_float, without=["empty"]
-)
-
-_good_broadcast_unary_normal_float_no_empty_no_complex = copymod(
-    _good_broadcast_unary_normal_float_no_empty, without=["complex"]
-)
-
-_good_broadcast_unary_normal_float_no_complex = copymod(
-    _good_broadcast_unary_normal_float, without=["complex"]
-)
-
-_good_broadcast_unary_normal_float_no_complex_small_neg_range = dict(
-    normal=[rand_ranged(-2, 5, (2, 3))],
-    corner_case=[corner_case],
-    empty=[np.asarray([], dtype=config.floatX)],
-)
-
-_good_broadcast_unary_normal = dict(
-    normal=[np.asarray(rand_ranged(-5, 5, (2, 3)), dtype=config.floatX)],
-    integers=[randint_ranged(-5, 5, (2, 3))],
-    # not using -128 because np.allclose would return False
-    int8=[np.arange(-127, 128, dtype="int8")],
-    uint8=[np.arange(0, 255, dtype="uint8")],
-    uint16=[np.arange(0, 65535, dtype="uint16")],
-    corner_case=[corner_case],
-    complex=[randcomplex(2, 3)],
-    empty=[np.asarray([], dtype=config.floatX)],
-)
-
-_good_broadcast_unary_normal_no_complex = dict(
-    normal=[np.asarray(rand_ranged(-5, 5, (2, 3)), dtype=floatX)],
-    integers=[randint_ranged(-5, 5, (2, 3))],
-    int8=[np.arange(-127, 128, dtype="int8")],
-    uint8=[np.arange(0, 89, dtype="uint8")],
-    uint16=[np.arange(0, 89, dtype="uint16")],
-    corner_case=[corner_case],
-    empty=[np.asarray([], dtype=config.floatX)],
-    big_scalar=[np.arange(17.0, 29.0, 0.5, dtype=floatX)],
-)
-
-_grad_broadcast_unary_normal_no_complex = dict(
-    normal=[np.asarray(rand_ranged(-5, 5, (2, 3)), dtype=floatX)],
-    corner_case=[corner_case_grad],
-)
-
-_grad_broadcast_unary_normal = dict(
-    normal=[np.asarray(rand_ranged(-5, 5, (2, 3)), dtype=floatX)],
-    corner_case=[corner_case_grad],
-    # empty = [np.asarray([])] # XXX: should this be included?
-)
-
-# Avoid epsilon around integer values
-_grad_broadcast_unary_normal_noint = dict(
-    normal=[(rand_ranged(_eps, 1 - _eps, (2, 3)) + randint(2, 3)).astype(floatX)]
-)
-
-_grad_broadcast_unary_normal_small_neg_range = dict(
-    normal=[np.asarray(rand_ranged(-2, 5, (2, 3)), dtype=floatX)],
-    corner_case=[corner_case_grad],
-)
-
-_grad_broadcast_unary_normal_no_complex_no_corner_case = copymod(
-    _grad_broadcast_unary_normal_no_complex, without=["corner_case"]
-)
-
-_grad_broadcast_unary_abs1_no_complex = dict(
-    normal=[np.asarray(rand_ranged(-1 + _eps, 1 - _eps, (2, 3)), dtype=floatX)],
-)
-
-_grad_broadcast_unary_0_2_no_complex = dict(
-    # Don't go too close to 0 or 2 for tests in float32
-    normal=[np.asarray(rand_ranged(_eps, 1 - _eps, (2, 3)), dtype=floatX)],
-)
-
-# inplace ops when the input is integer and the output is float*
-# don't have a well defined behavior. We don't test that case.
 
 TestAbsBroadcast = makeBroadcastTester(
     op=tt.abs_,
     expected=lambda x: abs(x),
     good=_good_broadcast_unary_normal,
     grad=_grad_broadcast_unary_normal,
-)
-_good_broadcast_unary_normal_abs = copy(_good_broadcast_unary_normal)
-# Can't do inplace on Abs as the input/output are not of the same type!
-del _good_broadcast_unary_normal_abs["complex"]
-TestAbsInplaceBroadcast = makeBroadcastTester(
-    op=inplace.abs__inplace,
-    expected=lambda x: np.abs(x),
-    good=_good_broadcast_unary_normal_abs,
-    inplace=True,
 )
 
 TestNegBroadcast = makeBroadcastTester(
@@ -1343,12 +382,6 @@ TestNegBroadcast = makeBroadcastTester(
     good=_good_broadcast_unary_normal,
     grad=_grad_broadcast_unary_normal,
 )
-TestNegInplaceBroadcast = makeBroadcastTester(
-    op=inplace.neg_inplace,
-    expected=lambda x: -x,
-    good=_good_broadcast_unary_normal,
-    inplace=True,
-)
 
 TestSgnBroadcast = makeBroadcastTester(
     op=tt.sgn,
@@ -1356,32 +389,6 @@ TestSgnBroadcast = makeBroadcastTester(
     good=_good_broadcast_unary_normal_no_complex,
     grad=_grad_broadcast_unary_normal,
 )
-TestSgnInplaceBroadcast = makeBroadcastTester(
-    op=inplace.sgn_inplace,
-    expected=np.sign,
-    good=_good_broadcast_unary_normal_no_complex,
-    inplace=True,
-)
-
-TestIntDivBroadcast = makeBroadcastTester(
-    op=tt.int_div,
-    expected=lambda x, y: check_floatX((x, y), x // y),
-    good=_good_broadcast_div_mod_normal_float,
-    # I don't test the grad as the output is always an integer
-    # (this is not a continuous output).
-    # grad=_grad_broadcast_div_mod_normal,
-)
-
-TestIntDivInplaceBroadcast = makeBroadcastTester(
-    op=inplace.int_div_inplace,
-    expected=lambda x, y: check_floatX((x, y), x // y),
-    good=_good_broadcast_div_mod_normal_float_inplace,
-    # I don't test the grad as the output is always an integer
-    # (this is not a continuous output).
-    # grad=_grad_broadcast_div_mod_normal,
-    inplace=True,
-)
-
 
 TestCeilBroadcast = makeBroadcastTester(
     op=tt.ceil,
@@ -1389,20 +396,8 @@ TestCeilBroadcast = makeBroadcastTester(
     good=_good_broadcast_unary_normal_no_complex,
     grad=copymod(
         _grad_broadcast_unary_normal_noint,
-        extra=[np.asarray([-2.5, -1.5, -1.51, 0.49, 0.98, 1.02], dtype=floatX)],
+        extra=[np.asarray([-2.5, -1.5, -1.51, 0.49, 0.98, 1.02], dtype=config.floatX)],
     ),
-)
-
-TestCeilInplaceBroadcast = makeBroadcastTester(
-    op=inplace.ceil_inplace,
-    expected=upcast_float16_ufunc(np.ceil),
-    good=copymod(
-        _good_broadcast_unary_normal_no_complex,
-        without=["integers", "int8", "uint8", "uint16"],
-    ),
-    # corner cases includes a lot of integers: points where Ceil is not
-    # continuous (not differentiable)
-    inplace=True,
 )
 
 TestFloorBroadcast = makeBroadcastTester(
@@ -1410,23 +405,6 @@ TestFloorBroadcast = makeBroadcastTester(
     expected=upcast_float16_ufunc(np.floor),
     good=_good_broadcast_unary_normal_no_complex,
     grad=_grad_broadcast_unary_normal_noint,
-)
-
-TestFloorInplaceBroadcast = makeBroadcastTester(
-    op=inplace.floor_inplace,
-    expected=upcast_float16_ufunc(np.floor),
-    good=copymod(
-        _good_broadcast_unary_normal_no_complex,
-        without=["integers", "int8", "uint8", "uint16"],
-    ),
-    inplace=True,
-)
-
-TestTruncInplaceBroadcast = makeBroadcastTester(
-    op=inplace.trunc_inplace,
-    expected=upcast_float16_ufunc(np.trunc),
-    good=_good_broadcast_unary_normal_no_complex,
-    inplace=True,
 )
 
 TestTruncBroadcast = makeBroadcastTester(
@@ -1442,13 +420,6 @@ TestRoundHalfToEvenBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_normal_no_complex_no_corner_case,
 )
 
-TestRoundHalfToEvenInplaceBroadcast = makeBroadcastTester(
-    op=inplace.round_half_to_even_inplace,
-    expected=np.round,
-    good=_good_broadcast_unary_normal_float_no_complex,
-    inplace=True,
-)
-
 # np.vectorize don't handle correctly empty ndarray.
 # see in their file numpy/lib/function_base.py in class vectorize.__call__
 # This happen in float32 mode.
@@ -1459,25 +430,11 @@ TestRoundHalfAwayFromZeroBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_normal_no_complex_no_corner_case,
 )
 
-TestRoundHalfAwayFromZeroInplaceBroadcast = makeBroadcastTester(
-    op=inplace.round_half_away_from_zero_inplace,
-    expected=lambda a: theano.scalar.basic.round_half_away_from_zero_vec(a),
-    good=_good_broadcast_unary_normal_float_no_empty_no_complex,
-    inplace=True,
-)
-
 TestSqrBroadcast = makeBroadcastTester(
     op=tt.sqr,
     expected=np.square,
     good=_good_broadcast_unary_normal,
     grad=_grad_broadcast_unary_normal,
-)
-
-TestSqrInplaceBroadcast = makeBroadcastTester(
-    op=inplace.sqr_inplace,
-    expected=np.square,
-    good=_good_broadcast_unary_normal,
-    inplace=True,
 )
 
 TestExpBroadcast = makeBroadcastTester(
@@ -1491,12 +448,6 @@ TestExpBroadcast = makeBroadcastTester(
     ),
     grad=_grad_broadcast_unary_normal,
 )
-TestExpInplaceBroadcast = makeBroadcastTester(
-    op=inplace.exp_inplace,
-    expected=np.exp,
-    good=_good_broadcast_unary_normal_float,
-    inplace=True,
-)
 
 TestExp2Broadcast = makeBroadcastTester(
     op=tt.exp2,
@@ -1504,13 +455,6 @@ TestExp2Broadcast = makeBroadcastTester(
     good=_good_broadcast_unary_normal,
     grad=_grad_broadcast_unary_normal,
 )
-TestExp2InplaceBroadcast = makeBroadcastTester(
-    op=inplace.exp2_inplace,
-    expected=np.exp2,
-    good=_good_broadcast_unary_normal_float,
-    inplace=True,
-)
-
 
 TestExpm1Broadcast = makeBroadcastTester(
     op=tt.expm1,
@@ -1523,25 +467,7 @@ TestExpm1Broadcast = makeBroadcastTester(
     ),
     grad=_grad_broadcast_unary_normal,
 )
-TestExpm1InplaceBroadcast = makeBroadcastTester(
-    op=inplace.expm1_inplace,
-    expected=np.expm1,
-    good=_good_broadcast_unary_normal_float,
-    inplace=True,
-)
 
-
-_good_broadcast_unary_positive = dict(
-    normal=(rand_ranged(0.001, 5, (2, 3)),),
-    integers=(randint_ranged(1, 5, (2, 3)),),
-    uint8=[np.arange(1, 256, dtype="uint8")],
-    complex=(randc128_ranged(1, 5, (2, 3)),),
-    empty=(np.asarray([], dtype=config.floatX),),
-)
-
-_good_broadcast_unary_positive_float = copymod(
-    _good_broadcast_unary_positive, without=["integers", "uint8"]
-)
 
 _grad_broadcast_unary_positive = dict(
     normal=(rand_ranged(_eps, 5, (2, 3)),),
@@ -1553,24 +479,12 @@ TestLogBroadcast = makeBroadcastTester(
     good=_good_broadcast_unary_positive,
     grad=_grad_broadcast_unary_positive,
 )
-TestLogInplaceBroadcast = makeBroadcastTester(
-    op=inplace.log_inplace,
-    expected=np.log,
-    good=_good_broadcast_unary_positive_float,
-    inplace=True,
-)
 
 TestLog2Broadcast = makeBroadcastTester(
     op=tt.log2,
     expected=upcast_float16_ufunc(np.log2),
     good=_good_broadcast_unary_positive,
     grad=_grad_broadcast_unary_positive,
-)
-TestLog2InplaceBroadcast = makeBroadcastTester(
-    op=inplace.log2_inplace,
-    expected=np.log2,
-    good=_good_broadcast_unary_positive_float,
-    inplace=True,
 )
 
 TestLog10Broadcast = makeBroadcastTester(
@@ -1579,24 +493,12 @@ TestLog10Broadcast = makeBroadcastTester(
     good=_good_broadcast_unary_positive,
     grad=_grad_broadcast_unary_positive,
 )
-TestLog10InplaceBroadcast = makeBroadcastTester(
-    op=inplace.log10_inplace,
-    expected=np.log10,
-    good=_good_broadcast_unary_positive_float,
-    inplace=True,
-)
 
 TestLog1pBroadcast = makeBroadcastTester(
     op=tt.log1p,
     expected=upcast_float16_ufunc(np.log1p),
     good=_good_broadcast_unary_positive,
     grad=_grad_broadcast_unary_positive,
-)
-TestLog1pInplaceBroadcast = makeBroadcastTester(
-    op=inplace.log1p_inplace,
-    expected=np.log1p,
-    good=_good_broadcast_unary_positive_float,
-    inplace=True,
 )
 
 TestSqrtBroadcast = makeBroadcastTester(
@@ -1605,46 +507,16 @@ TestSqrtBroadcast = makeBroadcastTester(
     good=_good_broadcast_unary_positive,
     grad=_grad_broadcast_unary_positive,
 )
-TestSqrtInplaceBroadcast = makeBroadcastTester(
-    op=inplace.sqrt_inplace,
-    expected=np.sqrt,
-    good=_good_broadcast_unary_positive_float,
-    inplace=True,
-)
 
-_good_broadcast_unary_wide = dict(
-    normal=(rand_ranged(-1000, 1000, (2, 3)),),
-    integers=(randint_ranged(-1000, 1000, (2, 3)),),
-    int8=[np.arange(-127, 128, dtype="int8")],
-    uint8=[np.arange(0, 255, dtype="uint8")],
-    uint16=[np.arange(0, 65535, dtype="uint16")],
-    complex=(randc128_ranged(-1000, 1000, (2, 3)),),
-    empty=(np.asarray([], dtype=config.floatX),),
-)
-_good_broadcast_unary_wide_float = copymod(
-    _good_broadcast_unary_wide, without=["integers", "int8", "uint8", "uint16"]
-)
 _grad_broadcast_unary_wide = dict(
     normal=(rand_ranged(-1000, 1000, (2, 3)),),
 )
-
-if theano.config.floatX == "float32":
-    angle_eps = 1e-4
-else:
-    angle_eps = 1e-10
 
 TestDeg2radBroadcast = makeBroadcastTester(
     op=tt.deg2rad,
     expected=upcast_float16_ufunc(np.deg2rad),
     good=_good_broadcast_unary_normal_no_complex,
     grad=_grad_broadcast_unary_normal_no_complex,
-    eps=angle_eps,
-)
-TestDeg2radInplaceBroadcast = makeBroadcastTester(
-    op=inplace.deg2rad_inplace,
-    expected=np.deg2rad,
-    good=_good_broadcast_unary_normal_float_no_complex,
-    inplace=True,
     eps=angle_eps,
 )
 
@@ -1655,39 +527,12 @@ TestRad2degBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_normal_no_complex,
     eps=angle_eps,
 )
-TestRad2degInplaceBroadcast = makeBroadcastTester(
-    op=inplace.rad2deg_inplace,
-    expected=np.rad2deg,
-    good=_good_broadcast_unary_normal_float_no_complex,
-    inplace=True,
-    eps=angle_eps,
-)
 
 TestSinBroadcast = makeBroadcastTester(
     op=tt.sin,
     expected=upcast_float16_ufunc(np.sin),
     good=_good_broadcast_unary_wide,
     grad=_grad_broadcast_unary_wide,
-)
-TestSinInplaceBroadcast = makeBroadcastTester(
-    op=inplace.sin_inplace,
-    expected=np.sin,
-    good=_good_broadcast_unary_wide_float,
-    inplace=True,
-)
-
-_good_broadcast_unary_arcsin = dict(
-    normal=(rand_ranged(-1, 1, (2, 3)),),
-    integers=(randint_ranged(-1, 1, (2, 3)),),
-    int8=[np.arange(-1, 2, dtype="int8")],
-    uint8=[np.arange(0, 2, dtype="uint8")],
-    uint16=[np.arange(0, 2, dtype="uint16")],
-    complex=(randc128_ranged(-1, 1, (2, 3)),),
-    empty=(np.asarray([], dtype=config.floatX),),
-)
-
-_good_broadcast_unary_arcsin_float = copymod(
-    _good_broadcast_unary_arcsin, without=["integers", "int8", "uint8", "uint16"]
 )
 
 # The actual range is [-1, 1] but the numerical gradient is too
@@ -1702,24 +547,12 @@ TestArcsinBroadcast = makeBroadcastTester(
     good=_good_broadcast_unary_arcsin,
     grad=_grad_broadcast_unary_arcsin,
 )
-TestArcsinInplaceBroadcast = makeBroadcastTester(
-    op=inplace.arcsin_inplace,
-    expected=np.arcsin,
-    good=_good_broadcast_unary_arcsin_float,
-    inplace=True,
-)
 
 TestCosBroadcast = makeBroadcastTester(
     op=tt.cos,
     expected=upcast_float16_ufunc(np.cos),
     good=_good_broadcast_unary_wide,
     grad=_grad_broadcast_unary_wide,
-)
-TestCosInplaceBroadcast = makeBroadcastTester(
-    op=inplace.cos_inplace,
-    expected=np.cos,
-    good=_good_broadcast_unary_wide_float,
-    inplace=True,
 )
 
 
@@ -1736,23 +569,7 @@ TestArccosBroadcast = makeBroadcastTester(
     good=_good_broadcast_unary_arcsin,
     grad=_grad_broadcast_unary_arcsin,
 )
-TestArccosInplaceBroadcast = makeBroadcastTester(
-    op=inplace.arccos_inplace,
-    expected=np.arccos,
-    good=_good_broadcast_unary_arcsin_float,
-    inplace=True,
-)
 
-_good_broadcast_unary_tan = dict(
-    normal=(rand_ranged(-3.14, 3.14, (2, 3)),),
-    shifted=(rand_ranged(3.15, 6.28, (2, 3)),),
-    integers=(randint_ranged(-3, 3, (2, 3)),),
-    int8=[np.arange(-3, 4, dtype="int8")],
-    uint8=[np.arange(0, 4, dtype="uint8")],
-    uint16=[np.arange(0, 4, dtype="uint16")],
-    complex=(randc128_ranged(-3.14, 3.14, (2, 3)),),
-    empty=(np.asarray([], dtype=config.floatX),),
-)
 # We do not want to test around the discontinuity.
 _grad_broadcast_unary_tan = dict(
     normal=(rand_ranged(-1.5, 1.5, (2, 3)),), shifted=(rand_ranged(1.6, 4.6, (2, 3)),)
@@ -1765,50 +582,11 @@ TestTanBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_tan,
 )
 
-TestTanInplaceBroadcast = makeBroadcastTester(
-    op=inplace.tan_inplace,
-    expected=np.tan,
-    good=copymod(
-        _good_broadcast_unary_tan, without=["integers", "int8", "uint8", "uint16"]
-    ),
-    inplace=True,
-)
-
 TestArctanBroadcast = makeBroadcastTester(
     op=tt.arctan,
     expected=upcast_float16_ufunc(np.arctan),
     good=_good_broadcast_unary_wide,
     grad=_grad_broadcast_unary_wide,
-)
-TestArctanInplaceBroadcast = makeBroadcastTester(
-    op=inplace.arctan_inplace,
-    expected=np.arctan,
-    good=_good_broadcast_unary_wide_float,
-    inplace=True,
-)
-
-_good_broadcast_binary_arctan2 = dict(
-    same_shapes=(rand(2, 3), rand(2, 3)),
-    not_same_dimensions=(rand(2, 2), rand(2)),
-    scalar=(rand(2, 3), rand(1, 1)),
-    row=(rand(2, 3), rand(1, 3)),
-    column=(rand(2, 3), rand(2, 1)),
-    integers=(randint(2, 3), randint(2, 3)),
-    int8=[
-        np.arange(-127, 128, dtype="int8"),
-        np.arange(-127, 128, dtype="int8")[:, np.newaxis],
-    ],
-    uint8=[
-        np.arange(0, 128, dtype="uint8"),
-        np.arange(0, 128, dtype="uint8")[:, np.newaxis],
-    ],
-    uint16=[
-        np.arange(0, 128, dtype="uint16"),
-        np.arange(0, 128, dtype="uint16")[:, np.newaxis],
-    ],
-    dtype_mixup_1=(rand(2, 3), randint(2, 3)),
-    dtype_mixup_2=(randint(2, 3), rand(2, 3)),
-    empty=(np.asarray([], dtype=config.floatX), np.asarray([1], dtype=config.floatX)),
 )
 
 _grad_broadcast_binary_arctan2 = dict(
@@ -1825,16 +603,6 @@ TestArctan2Broadcast = makeBroadcastTester(
     grad=_grad_broadcast_binary_arctan2,
 )
 
-TestArctan2InplaceBroadcast = makeBroadcastTester(
-    op=inplace.arctan2_inplace,
-    expected=np.arctan2,
-    good=copymod(
-        _good_broadcast_binary_arctan2,
-        without=["integers", "int8", "uint8", "uint16", "dtype_mixup_2"],
-    ),
-    inplace=True,
-)
-
 TestCoshBroadcast = makeBroadcastTester(
     op=tt.cosh,
     expected=upcast_float16_ufunc(np.cosh),
@@ -1846,20 +614,7 @@ TestCoshBroadcast = makeBroadcastTester(
     ),
     grad=_grad_broadcast_unary_normal,
 )
-TestCoshInplaceBroadcast = makeBroadcastTester(
-    op=inplace.cosh_inplace,
-    expected=np.cosh,
-    good=_good_broadcast_unary_normal_float,
-    inplace=True,
-)
 
-_good_broadcast_unary_arccosh = dict(
-    normal=(rand_ranged(1, 1000, (2, 3)),),
-    integers=(randint_ranged(1, 1000, (2, 3)),),
-    uint8=[np.arange(1, 256, dtype="uint8")],
-    complex=(randc128_ranged(1, 1000, (2, 3)),),
-    empty=(np.asarray([], dtype=config.floatX),),
-)
 _grad_broadcast_unary_arccosh = dict(
     normal=(rand_ranged(1 + _eps, 1000, (2, 3)),),
 )
@@ -1869,12 +624,6 @@ TestArccoshBroadcast = makeBroadcastTester(
     expected=upcast_float16_ufunc(np.arccosh),
     good=_good_broadcast_unary_arccosh,
     grad=_grad_broadcast_unary_arccosh,
-)
-TestArccoshInplaceBroadcast = makeBroadcastTester(
-    op=inplace.arccosh_inplace,
-    expected=np.arccosh,
-    good=copymod(_good_broadcast_unary_arccosh, without=["integers", "uint8"]),
-    inplace=True,
 )
 
 TestSinhBroadcast = makeBroadcastTester(
@@ -1888,24 +637,12 @@ TestSinhBroadcast = makeBroadcastTester(
     ),
     grad=_grad_broadcast_unary_normal,
 )
-TestSinhInplaceBroadcast = makeBroadcastTester(
-    op=inplace.sinh_inplace,
-    expected=np.sinh,
-    good=_good_broadcast_unary_normal_float,
-    inplace=True,
-)
 
 TestArcsinhBroadcast = makeBroadcastTester(
     op=tt.arcsinh,
     expected=upcast_float16_ufunc(np.arcsinh),
     good=_good_broadcast_unary_normal,
     grad=_grad_broadcast_unary_normal,
-)
-TestArcsinhInplaceBroadcast = makeBroadcastTester(
-    op=inplace.arcsinh_inplace,
-    expected=np.arcsinh,
-    good=_good_broadcast_unary_normal_float,
-    inplace=True,
 )
 
 TestTanhBroadcast = makeBroadcastTester(
@@ -1914,22 +651,7 @@ TestTanhBroadcast = makeBroadcastTester(
     good=_good_broadcast_unary_normal,
     grad=_grad_broadcast_unary_normal,
 )
-TestTanhInplaceBroadcast = makeBroadcastTester(
-    op=inplace.tanh_inplace,
-    expected=np.tanh,
-    good=_good_broadcast_unary_normal_float,
-    inplace=True,
-)
 
-_good_broadcast_unary_arctanh = dict(
-    normal=(rand_ranged(-1 + _eps, 1 - _eps, (2, 3)),),
-    integers=(randint_ranged(-1 + _eps, 1 - _eps, (2, 3)),),
-    int8=[np.arange(0, 1, dtype="int8")],
-    uint8=[np.arange(0, 1, dtype="uint8")],
-    uint16=[np.arange(0, 1, dtype="uint16")],
-    complex=(randc128_ranged(-1 + _eps, 1 - _eps, (2, 3)),),
-    empty=(np.asarray([], dtype=config.floatX),),
-)
 _grad_broadcast_unary_arctanh = dict(
     normal=(rand_ranged(-1 + _eps, 1 - _eps, (2, 3)),),
 )
@@ -1940,450 +662,6 @@ TestArctanhBroadcast = makeBroadcastTester(
     good=_good_broadcast_unary_arctanh,
     grad=_grad_broadcast_unary_arctanh,
 )
-TestArctanhInplaceBroadcast = makeBroadcastTester(
-    op=inplace.arctanh_inplace,
-    expected=np.arctanh,
-    good=copymod(
-        _good_broadcast_unary_arctanh, without=["integers", "int8", "uint8", "uint16"]
-    ),
-    inplace=True,
-)
-
-
-# We can't test it if scipy is not installed!
-# Precomputing the result is brittle(it have been broken!)
-# As if we do any modification to random number here,
-# The input random number will change and the output!
-if imported_scipy_special:
-    expected_erf = scipy.special.erf
-    expected_erfc = scipy.special.erfc
-    expected_erfinv = scipy.special.erfinv
-    expected_erfcinv = scipy.special.erfcinv
-    expected_gamma = scipy.special.gamma
-    expected_gammaln = scipy.special.gammaln
-    expected_psi = scipy.special.psi
-    expected_tri_gamma = partial(scipy.special.polygamma, 1)
-    expected_chi2sf = scipy.stats.chi2.sf
-    expected_j0 = scipy.special.j0
-    expected_j1 = scipy.special.j1
-    expected_jv = scipy.special.jv
-    expected_i0 = scipy.special.i0
-    expected_i1 = scipy.special.i1
-    expected_iv = scipy.special.iv
-    skip_scipy = False
-    expected_erfcx = scipy.special.erfcx
-else:
-    expected_erf = []
-    expected_erfc = []
-    expected_erfcx = []
-    expected_erfinv = []
-    expected_erfcinv = []
-    expected_gamma = []
-    expected_gammaln = []
-    expected_psi = []
-    expected_tri_gamma = []
-    expected_chi2sf = []
-    expected_j0 = []
-    expected_j1 = []
-    expected_jv = []
-    expected_i0 = []
-    expected_i1 = []
-    expected_iv = []
-    skip_scipy = "scipy is not present"
-
-TestErfBroadcast = makeBroadcastTester(
-    op=tt.erf,
-    expected=expected_erf,
-    good=_good_broadcast_unary_normal,
-    grad=_grad_broadcast_unary_normal,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    skip=skip_scipy,
-)
-TestErfInplaceBroadcast = makeBroadcastTester(
-    op=inplace.erf_inplace,
-    expected=expected_erf,
-    good=_good_broadcast_unary_normal_float,
-    mode=mode_no_scipy,
-    eps=2e-10,
-    inplace=True,
-    skip=skip_scipy,
-)
-
-TestErfcBroadcast = makeBroadcastTester(
-    op=tt.erfc,
-    expected=expected_erfc,
-    good=_good_broadcast_unary_normal_float_no_complex,
-    grad=_grad_broadcast_unary_normal,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    skip=skip_scipy,
-)
-TestErfcInplaceBroadcast = makeBroadcastTester(
-    op=inplace.erfc_inplace,
-    expected=expected_erfc,
-    good=_good_broadcast_unary_normal_float_no_complex,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    inplace=True,
-    skip=skip_scipy,
-)
-
-TestErfcxBroadcast = makeBroadcastTester(
-    op=tt.erfcx,
-    expected=expected_erfcx,
-    good=_good_broadcast_unary_normal_float_no_complex_small_neg_range,
-    grad=_grad_broadcast_unary_normal_small_neg_range,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    skip=skip_scipy,
-)
-TestErfcxInplaceBroadcast = makeBroadcastTester(
-    op=inplace.erfcx_inplace,
-    expected=expected_erfcx,
-    good=_good_broadcast_unary_normal_float_no_complex_small_neg_range,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    inplace=True,
-    skip=skip_scipy,
-)
-
-TestErfinvBroadcast = makeBroadcastTester(
-    op=tt.erfinv,
-    expected=expected_erfinv,
-    good={
-        "normal": [rand_ranged(-0.9, 0.9, (2, 3))],
-        "empty": [np.asarray([], dtype=config.floatX)],
-    },
-    grad=_grad_broadcast_unary_abs1_no_complex,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    skip=skip_scipy,
-)
-
-TestErfcinvBroadcast = makeBroadcastTester(
-    op=tt.erfcinv,
-    expected=expected_erfcinv,
-    good={
-        "normal": [rand_ranged(0.001, 1.9, (2, 3))],
-        "empty": [np.asarray([], dtype=config.floatX)],
-    },
-    grad=_grad_broadcast_unary_0_2_no_complex,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    skip=skip_scipy,
-)
-
-_good_broadcast_unary_gammaln = dict(
-    normal=(rand_ranged(-1 + 1e-2, 10, (2, 3)),),
-    empty=(np.asarray([], dtype=config.floatX),),
-    int=(randint_ranged(1, 10, (2, 3)),),
-    uint8=(randint_ranged(1, 6, (2, 3)).astype("uint8"),),
-    uint16=(randint_ranged(1, 10, (2, 3)).astype("uint16"),),
-    uint64=(randint_ranged(1, 10, (2, 3)).astype("uint64"),),
-)
-_grad_broadcast_unary_gammaln = dict(
-    # smaller range as our grad method does not estimate it well enough.
-    normal=(rand_ranged(1e-1, 8, (2, 3)),),
-)
-
-TestGammaBroadcast = makeBroadcastTester(
-    op=tt.gamma,
-    expected=expected_gamma,
-    good=_good_broadcast_unary_gammaln,
-    grad=_grad_broadcast_unary_gammaln,
-    mode=mode_no_scipy,
-    eps=1e-5,
-    skip=skip_scipy,
-)
-TestGammaInplaceBroadcast = makeBroadcastTester(
-    op=inplace.gamma_inplace,
-    expected=expected_gamma,
-    good=_good_broadcast_unary_gammaln,
-    mode=mode_no_scipy,
-    eps=1e-5,
-    inplace=True,
-    skip=skip_scipy,
-)
-
-TestGammalnBroadcast = makeBroadcastTester(
-    op=tt.gammaln,
-    expected=expected_gammaln,
-    good=_good_broadcast_unary_gammaln,
-    grad=_grad_broadcast_unary_gammaln,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    skip=skip_scipy,
-)
-TestGammalnInplaceBroadcast = makeBroadcastTester(
-    op=inplace.gammaln_inplace,
-    expected=expected_gammaln,
-    good=_good_broadcast_unary_gammaln,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    inplace=True,
-    skip=skip_scipy,
-)
-
-_good_broadcast_unary_psi = dict(
-    normal=(rand_ranged(1, 10, (2, 3)),),
-    empty=(np.asarray([], dtype=config.floatX),),
-    int=(randint_ranged(1, 10, (2, 3)),),
-    uint8=(randint_ranged(1, 10, (2, 3)).astype("uint8"),),
-    uint16=(randint_ranged(1, 10, (2, 3)).astype("uint16"),),
-)
-
-TestPsiBroadcast = makeBroadcastTester(
-    op=tt.psi,
-    expected=expected_psi,
-    good=_good_broadcast_unary_psi,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    skip=skip_scipy,
-)
-TestPsiInplaceBroadcast = makeBroadcastTester(
-    op=inplace.psi_inplace,
-    expected=expected_psi,
-    good=_good_broadcast_unary_psi,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    inplace=True,
-    skip=skip_scipy,
-)
-
-_good_broadcast_unary_tri_gamma = _good_broadcast_unary_psi
-
-TestTriGammaBroadcast = makeBroadcastTester(
-    op=tt.tri_gamma,
-    expected=expected_tri_gamma,
-    good=_good_broadcast_unary_psi,
-    eps=2e-8,
-    mode=mode_no_scipy,
-    skip=skip_scipy,
-)
-TestTriGammaInplaceBroadcast = makeBroadcastTester(
-    op=inplace.tri_gamma_inplace,
-    expected=expected_tri_gamma,
-    good=_good_broadcast_unary_tri_gamma,
-    eps=2e-8,
-    mode=mode_no_scipy,
-    inplace=True,
-    skip=skip_scipy,
-)
-
-# chi2sf takes two inputs, a value (x) and a degrees of freedom (k).
-# not sure how to deal with that here...
-
-_good_broadcast_unary_chi2sf = dict(
-    normal=(rand_ranged(1, 10, (2, 3)), np.asarray(1, dtype=config.floatX)),
-    empty=(np.asarray([], dtype=config.floatX), np.asarray(1, dtype=config.floatX)),
-    integers=(randint_ranged(1, 10, (2, 3)), np.asarray(1, dtype=config.floatX)),
-    uint8=(
-        randint_ranged(1, 10, (2, 3)).astype("uint8"),
-        np.asarray(1, dtype=config.floatX),
-    ),
-    uint16=(
-        randint_ranged(1, 10, (2, 3)).astype("uint16"),
-        np.asarray(1, dtype=config.floatX),
-    ),
-)
-
-TestChi2SFBroadcast = makeBroadcastTester(
-    op=tt.chi2sf,
-    expected=expected_chi2sf,
-    good=_good_broadcast_unary_chi2sf,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    skip=skip_scipy,
-    name="Chi2SF",
-)
-
-TestChi2SFInplaceBroadcast = makeBroadcastTester(
-    op=inplace.chi2sf_inplace,
-    expected=expected_chi2sf,
-    good=_good_broadcast_unary_chi2sf,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    inplace=True,
-    skip=skip_scipy,
-    name="Chi2SF",
-)
-
-_good_broadcast_unary_bessel = dict(
-    normal=(rand_ranged(-10, 10, (2, 3)),),
-    empty=(np.asarray([], dtype=config.floatX),),
-    int=(randint_ranged(-10, 10, (2, 3)),),
-    uint8=(randint_ranged(0, 10, (2, 3)).astype("uint8"),),
-    uint16=(randint_ranged(0, 10, (2, 3)).astype("uint16"),),
-)
-
-_grad_broadcast_unary_bessel = dict(
-    normal=(rand_ranged(-10.0, 10.0, (2, 3)),),
-)
-
-_good_broadcast_binary_bessel = dict(
-    normal=(rand_ranged(-5, 5, (2, 3)), rand_ranged(0, 10, (2, 3))),
-    empty=(np.asarray([], dtype=config.floatX), np.asarray([], dtype=config.floatX)),
-    integers=(randint_ranged(-5, 5, (2, 3)), randint_ranged(-10, 10, (2, 3))),
-    uint8=(
-        randint_ranged(0, 5, (2, 3)).astype("uint8"),
-        randint_ranged(0, 10, (2, 3)).astype("uint8"),
-    ),
-    uint16=(
-        randint_ranged(0, 5, (2, 3)).astype("uint16"),
-        randint_ranged(0, 10, (2, 3)).astype("uint16"),
-    ),
-)
-
-_grad_broadcast_binary_bessel = dict(
-    normal=(rand_ranged(1, 5, (2, 3)), rand_ranged(0, 10, (2, 3)))
-)
-
-TestJ0Broadcast = makeBroadcastTester(
-    op=tt.j0,
-    expected=expected_j0,
-    good=_good_broadcast_unary_bessel,
-    grad=_grad_broadcast_unary_bessel,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    skip=skip_scipy,
-)
-
-TestJ0InplaceBroadcast = makeBroadcastTester(
-    op=inplace.j0_inplace,
-    expected=expected_j0,
-    good=_good_broadcast_unary_bessel,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    inplace=True,
-    skip=skip_scipy,
-)
-
-TestJ1Broadcast = makeBroadcastTester(
-    op=tt.j1,
-    expected=expected_j1,
-    good=_good_broadcast_unary_bessel,
-    grad=_grad_broadcast_unary_bessel,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    skip=skip_scipy,
-)
-
-TestJ1InplaceBroadcast = makeBroadcastTester(
-    op=inplace.j1_inplace,
-    expected=expected_j1,
-    good=_good_broadcast_unary_bessel,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    inplace=True,
-    skip=skip_scipy,
-)
-
-TestJvBroadcast = makeBroadcastTester(
-    op=tt.jv,
-    expected=expected_jv,
-    good=_good_broadcast_binary_bessel,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    skip=skip_scipy,
-)
-
-TestJvInplaceBroadcast = makeBroadcastTester(
-    op=inplace.jv_inplace,
-    expected=expected_jv,
-    good=_good_broadcast_binary_bessel,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    inplace=True,
-    skip=skip_scipy,
-)
-
-
-@pytest.mark.skipif(skip_scipy, reason="SciPy needed")
-def test_verify_jv_grad():
-    # Verify Jv gradient.
-    # Implemented separately due to need to fix first input for which grad is
-    # not defined.
-    v_val, x_val = _grad_broadcast_binary_bessel["normal"]
-
-    def fixed_first_input_jv(x):
-        return tt.jv(v_val, x)
-
-    utt.verify_grad(fixed_first_input_jv, [x_val])
-
-
-TestI0Broadcast = makeBroadcastTester(
-    op=tt.i0,
-    expected=expected_i0,
-    good=_good_broadcast_unary_bessel,
-    grad=_grad_broadcast_unary_bessel,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    skip=skip_scipy,
-)
-
-TestI0InplaceBroadcast = makeBroadcastTester(
-    op=inplace.i0_inplace,
-    expected=expected_i0,
-    good=_good_broadcast_unary_bessel,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    inplace=True,
-    skip=skip_scipy,
-)
-
-TestI1Broadcast = makeBroadcastTester(
-    op=tt.i1,
-    expected=expected_i1,
-    good=_good_broadcast_unary_bessel,
-    grad=_grad_broadcast_unary_bessel,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    skip=skip_scipy,
-)
-
-TestI1InplaceBroadcast = makeBroadcastTester(
-    op=inplace.i1_inplace,
-    expected=expected_i1,
-    good=_good_broadcast_unary_bessel,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    inplace=True,
-    skip=skip_scipy,
-)
-
-TestIvBroadcast = makeBroadcastTester(
-    op=tt.iv,
-    expected=expected_iv,
-    good=_good_broadcast_binary_bessel,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    skip=skip_scipy,
-)
-
-TestIvInplaceBroadcast = makeBroadcastTester(
-    op=inplace.iv_inplace,
-    expected=expected_iv,
-    good=_good_broadcast_binary_bessel,
-    eps=2e-10,
-    mode=mode_no_scipy,
-    inplace=True,
-    skip=skip_scipy,
-)
-
-
-@pytest.mark.skipif(skip_scipy, reason="SciPy needed")
-def test_verify_iv_grad():
-    # Verify Iv gradient.
-    # Implemented separately due to need to fix first input for which grad is
-    # not defined.
-    v_val, x_val = _grad_broadcast_binary_bessel["normal"]
-
-    def fixed_first_input_iv(x):
-        return tt.iv(v_val, x)
-
-    utt.verify_grad(fixed_first_input_iv, [x_val])
-
 
 TestZerosLikeBroadcast = makeBroadcastTester(
     op=tt.zeros_like,
@@ -2426,12 +704,6 @@ TestComplexFromPolarBroadcast = makeBroadcastTester(
 
 TestConjBroadcast = makeBroadcastTester(
     op=tt.conj, expected=np.conj, good=_good_broadcast_unary_normal
-)
-TestConjInplaceBroadcast = makeBroadcastTester(
-    op=inplace.conj_inplace,
-    expected=np.conj,
-    good=_good_broadcast_unary_normal,
-    inplace=True,
 )
 
 
@@ -2525,43 +797,6 @@ TestBatchedDot = makeTester(
 
 def _numpy_second(x, y):
     return np.broadcast_arrays(x, y)[1]
-
-
-# Don't forget to modify the two lines after!
-ALL_DTYPES = (
-    "int8",
-    "int16",
-    "int32",
-    "int64",
-    "float32",
-    "float64",
-    "uint8",
-    "uint16",
-    "complex64",
-    "complex128",
-)
-REAL_DTYPES = ALL_DTYPES[:6]
-COMPLEX_DTYPES = ALL_DTYPES[-2:]
-
-
-def multi_dtype_checks(shape1, shape2, dtypes=ALL_DTYPES, nameprefix=""):
-    for dtype1, dtype2 in itertools.combinations(dtypes, 2):
-        name1 = "{}_{}_{}".format(nameprefix, dtype1, dtype2)
-        name2 = "{}_{}_{}".format(nameprefix, dtype2, dtype1)
-        obj1 = rand_of_dtype(shape1, dtype1)
-        obj2 = rand_of_dtype(shape2, dtype2)
-        yield (name1, (obj1, obj2))
-        yield (name2, (obj2, obj1))
-
-
-def multi_dtype_cast_checks(shape, dtypes=ALL_DTYPES, nameprefix=""):
-    for dtype1, dtype2 in itertools.combinations(dtypes, 2):
-        name1 = "{}_{}_{}".format(nameprefix, dtype1, dtype2)
-        name2 = "{}_{}_{}".format(nameprefix, dtype2, dtype1)
-        obj1 = rand_of_dtype(shape, dtype1)
-        obj2 = rand_of_dtype(shape, dtype2)
-        yield (name1, (obj1, dtype2))
-        yield (name2, (obj2, dtype1))
 
 
 TestSecondBroadcast = makeTester(
@@ -3363,7 +1598,7 @@ def test_batched_dot_not_contiguous():
         size = 1
         for dimsize in _shape:
             size *= dimsize
-        return np.arange(size, dtype=floatX).reshape(_shape)
+        return np.arange(size, dtype=config.floatX).reshape(_shape)
 
     X = tensor3()
     W = tensor3()
@@ -3378,7 +1613,7 @@ def test_batched_dot_not_contiguous():
         direction = -1 if inverted else 1
         x = x_container[::direction, ::2, ::2]
         assert x.shape == (30, 20, 10)
-        assert x.strides[0] == direction * np.dtype(floatX).itemsize
+        assert x.strides[0] == direction * np.dtype(config.floatX).itemsize
         assert not (x.flags["C_CONTIGUOUS"] or x.flags["F_CONTIGUOUS"])
         result = f(x, w)
         ref_result = np.asarray(list(np.dot(u, v) for u, v in zip(x, w)))
@@ -3725,7 +1960,7 @@ class TestMaxAndArgmax:
         x = tt.matrix()
         m, i = max_and_argmax(x, axis=1)
         f = theano.function([x], [m, i])
-        xv = np.zeros((0, 4), dtype=floatX)
+        xv = np.zeros((0, 4), dtype=config.floatX)
         mv, iv = f(xv)
         assert mv.shape == (0,)
         assert iv.shape == (0,)
@@ -4108,8 +2343,8 @@ class TestOuter:
                 y = tt.tensor(dtype="floatX", broadcastable=(False,) * n)
                 s1 = np.random.randint(1, 10, m)
                 s2 = np.random.randint(1, 10, n)
-                v1 = np.asarray(np.random.rand(*s1)).astype(floatX)
-                v2 = np.asarray(np.random.rand(*s2)).astype(floatX)
+                v1 = np.asarray(np.random.rand(*s1)).astype(config.floatX)
+                v2 = np.asarray(np.random.rand(*s2)).astype(config.floatX)
                 o = tt.outer(x, y).eval({x: v1, y: v2})
                 assert_allclose(o, np.outer(v1, v2))
 
@@ -4130,8 +2365,8 @@ class TestOuter:
             ((1, 1), (4, 5)),
             ((1, 1), (1, 1)),
         ]:
-            data0 = np.random.rand(*shp0).astype(floatX)
-            data1 = np.random.rand(*shp1).astype(floatX)
+            data0 = np.random.rand(*shp0).astype(config.floatX)
+            data1 = np.random.rand(*shp1).astype(config.floatX)
             utt.verify_grad(tt.outer, [data0, data1])
 
 
@@ -5200,20 +3435,14 @@ class TestBitwise:
             v = fn(l, r)
             assert np.all(v == (operator.or_(l, r))), (l, r, v)
 
-    def test_xor(self):
+    def test_XOR(self):
         for dtype in self.dtype:
             x, y = vector(dtype=dtype), vector(dtype=dtype)
             fn = inplace_func([x, y], x ^ y)
-            ix = x
-            ix = inplace.xor_inplace(ix, y)
-            gn = inplace_func([x, y], ix)
             l = theano._asarray([0, 0, 1, 1], dtype=dtype)
             r = theano._asarray([0, 1, 0, 1], dtype=dtype)
             v = fn(l, r)
             assert np.all(v == (operator.xor(l, r))), (l, r, v)
-            v = gn(l, r)
-            # test the in-place stuff
-            assert np.all(l == np.asarray([0, 1, 1, 0])), l
 
     def test_and(self):
         for dtype in self.dtype:
@@ -5290,24 +3519,6 @@ class TestExp:
     def test_grad_0(self):
         utt.verify_grad(
             exp,
-            [
-                np.asarray(
-                    [
-                        [1.5089518, 1.48439076, -4.7820262],
-                        [2.04832468, 0.50791564, -1.58892269],
-                    ]
-                )
-            ],
-        )
-
-    fails = (
-        theano.config.cycle_detection == "fast" and theano.config.mode != "FAST_COMPILE"
-    )
-
-    @pytest.mark.xfail(fails, reason="cycle detection is fast and mode is FAST_COMPILE")
-    def test_grad_1(self):
-        utt.verify_grad(
-            inplace.exp_inplace,
             [
                 np.asarray(
                     [
@@ -7064,7 +5275,7 @@ class TestTensordot:
         utt.verify_grad(self.TensorDot(axes), [aval, bval])
 
     def test_broadcastable1(self):
-        x = TensorType(dtype=floatX, broadcastable=(True, False, False))("x")
+        x = TensorType(dtype=config.floatX, broadcastable=(True, False, False))("x")
         y = tensor3("y")
         z = tensordot(x, y)
         assert z.broadcastable == (True, False)
@@ -7075,7 +5286,7 @@ class TestTensordot:
         assert np.allclose(np.tensordot(xv, yv), zv)
 
     def test_broadcastable2(self):
-        x = TensorType(dtype=floatX, broadcastable=(True, False, False))("x")
+        x = TensorType(dtype=config.floatX, broadcastable=(True, False, False))("x")
         y = tensor3("y")
         axes = [[2, 1], [0, 1]]
         z = tensordot(x, y, axes=axes)
@@ -7668,30 +5879,6 @@ def test_len():
             len(x)
 
 
-def test_mod():
-    # We add this test as not all language and C implementation give the same
-    # sign to the result. This check that the c_code of `Mod` is implemented
-    # as Python. That is what we want.
-    x, y = fscalars("xy")
-    fn = gof.DualLinker().accept(gof.FunctionGraph([x, y], [x % y])).make_function()
-    for a, b in (
-        (0, 1),
-        (1, 1),
-        (0, -1),
-        (1, -1),
-        (-1, -1),
-        (1, 2),
-        (-1, 2),
-        (1, -2),
-        (-1, -2),
-        (5, 3),
-        (-5, 3),
-        (5, -3),
-        (-5, -3),
-    ):
-        assert fn(a, b) == a % b, (a,)
-
-
 def test_divmod():
     # Confirm that divmod is equivalent to the python version.
     x, y = fscalars("xy")
@@ -8204,10 +6391,10 @@ class TestSpecifyShape:
         specify_shape = SpecifyShape()
 
         x = vector()
-        xval = np.random.rand(2).astype(floatX)
+        xval = np.random.rand(2).astype(config.floatX)
         f = theano.function([x], specify_shape(x, [2]), mode=self.mode)
         f(xval)
-        xval = np.random.rand(3).astype(floatX)
+        xval = np.random.rand(3).astype(config.floatX)
         with pytest.raises(AssertionError):
             f(xval)
 
@@ -8219,7 +6406,7 @@ class TestSpecifyShape:
         )
 
         x = matrix()
-        xval = np.random.rand(2, 3).astype(floatX)
+        xval = np.random.rand(2, 3).astype(config.floatX)
         f = theano.function([x], specify_shape(x, [2, 3]), mode=self.mode)
         assert isinstance(
             [n for n in f.maker.fgraph.toposort() if isinstance(n.op, SpecifyShape)][0]
@@ -8229,7 +6416,7 @@ class TestSpecifyShape:
         )
         f(xval)
         for shape_ in [(1, 3), (2, 2), (5, 5)]:
-            xval = np.random.rand(*shape_).astype(floatX)
+            xval = np.random.rand(*shape_).astype(config.floatX)
             with pytest.raises(AssertionError):
                 f(xval)
 
@@ -8239,7 +6426,7 @@ class TestSpecifyShape:
 
         x = vector()
         shape_vec = ivector()
-        xval = np.random.rand(2).astype(floatX)
+        xval = np.random.rand(2).astype(config.floatX)
         with pytest.raises(AssertionError):
             specify_shape(x, [])
         with pytest.raises(AssertionError):
@@ -8258,7 +6445,7 @@ class TestSpecifyShape:
             f(xval, [2, 2])
 
         x = matrix()
-        xval = np.random.rand(2, 3).astype(floatX)
+        xval = np.random.rand(2, 3).astype(config.floatX)
         for shape_ in [(), (1,), (2, 3, 4)]:
             with pytest.raises(AssertionError):
                 specify_shape(x, shape_)
@@ -8745,7 +6932,7 @@ class TestInferShape(utt.InferShapeTester):
 class TestTensorInstanceMethods:
     def setup_method(self):
         self.vars = matrices("X", "Y")
-        self.vals = [m.astype(floatX) for m in [rand(2, 2), rand(2, 2)]]
+        self.vals = [m.astype(config.floatX) for m in [rand(2, 2), rand(2, 2)]]
 
     def test_argmin(self):
         X, _ = self.vars

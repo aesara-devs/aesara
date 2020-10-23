@@ -3,17 +3,10 @@ import numpy as np
 import theano
 import theano.tensor as tt
 import theano.typed_list
+from tests.tensor.utils import rand_ranged
 from theano import In
 from theano.typed_list.basic import Append, Extend, Insert, Remove, Reverse
 from theano.typed_list.type import TypedListType
-
-
-# took from tensors/tests/test_basic.py
-def rand_ranged_matrix(minimum, maximum, shape):
-    return np.asarray(
-        np.random.rand(*shape) * (maximum - minimum) + minimum,
-        dtype=theano.config.floatX,
-    )
 
 
 class TestInplace:
@@ -32,9 +25,9 @@ class TestInplace:
         )
         assert f.maker.fgraph.toposort()[0].op.inplace
 
-        x = rand_ranged_matrix(-1000, 1000, [100, 101])
+        x = rand_ranged(-1000, 1000, [100, 101])
 
-        y = rand_ranged_matrix(-1000, 1000, [100, 101])
+        y = rand_ranged(-1000, 1000, [100, 101])
 
         assert np.array_equal(f([x, y]), [y, x])
 
@@ -56,9 +49,9 @@ class TestInplace:
         )
         assert f.maker.fgraph.toposort()[0].op.inplace
 
-        x = rand_ranged_matrix(-1000, 1000, [100, 101])
+        x = rand_ranged(-1000, 1000, [100, 101])
 
-        y = rand_ranged_matrix(-1000, 1000, [100, 101])
+        y = rand_ranged(-1000, 1000, [100, 101])
 
         assert np.array_equal(f([x], y), [x, y])
 
@@ -83,9 +76,9 @@ class TestInplace:
         )
         assert f.maker.fgraph.toposort()[0].op.inplace
 
-        x = rand_ranged_matrix(-1000, 1000, [100, 101])
+        x = rand_ranged(-1000, 1000, [100, 101])
 
-        y = rand_ranged_matrix(-1000, 1000, [100, 101])
+        y = rand_ranged(-1000, 1000, [100, 101])
 
         assert np.array_equal(f([x], [y]), [x, y])
 
@@ -111,9 +104,9 @@ class TestInplace:
         )
         assert f.maker.fgraph.toposort()[0].op.inplace
 
-        x = rand_ranged_matrix(-1000, 1000, [100, 101])
+        x = rand_ranged(-1000, 1000, [100, 101])
 
-        y = rand_ranged_matrix(-1000, 1000, [100, 101])
+        y = rand_ranged(-1000, 1000, [100, 101])
 
         assert np.array_equal(f([x], np.asarray(1, dtype="int64"), y), [x, y])
 
@@ -135,9 +128,9 @@ class TestInplace:
         )
         assert f.maker.fgraph.toposort()[0].op.inplace
 
-        x = rand_ranged_matrix(-1000, 1000, [100, 101])
+        x = rand_ranged(-1000, 1000, [100, 101])
 
-        y = rand_ranged_matrix(-1000, 1000, [100, 101])
+        y = rand_ranged(-1000, 1000, [100, 101])
 
         assert np.array_equal(f([x, y], y), [x])
 
