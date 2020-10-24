@@ -1947,8 +1947,13 @@ class GradientError(Exception):
         self.rel_tol = rel_tol
 
     def __str__(self):
-        # args may have been inserted by e.g. makeTester
-        args_msg = ", ".join(str(a) for a in self.args)
+        if hasattr(self, "args"):
+            # `self.args` may have been inserted by
+            # `tests.tensor.utils.makeTester`
+            args_msg = ", ".join(str(a) for a in self.args)
+        else:
+            args_msg = ""
+
         return """\
 GradientError: numeric gradient and analytic gradient exceed tolerance:
         At position %i of argument %i with shape %s,

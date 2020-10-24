@@ -3,17 +3,10 @@ import pytest
 
 import theano
 import theano.tensor as tt
-import theano.typed_list
 from tests import unittest_tools as utt
+from tests.tensor.utils import rand_ranged
+from theano.typed_list.basic import TypedListVariable
 from theano.typed_list.type import TypedListType
-
-
-# Taken from tensors/tests/test_basic.py
-def rand_ranged_matrix(minimum, maximum, shape):
-    return np.asarray(
-        np.random.rand(*shape) * (maximum - minimum) + minimum,
-        dtype=theano.config.floatX,
-    )
 
 
 class TestTypedListType:
@@ -70,7 +63,7 @@ class TestTypedListType:
 
         myType = TypedListType(tt.TensorType(theano.config.floatX, (False, False)))
 
-        x = rand_ranged_matrix(-1000, 1000, [100, 100])
+        x = rand_ranged(-1000, 1000, [100, 100])
 
         assert np.array_equal(myType.filter([x]), [x])
 
@@ -88,7 +81,7 @@ class TestTypedListType:
     def test_load_alot(self):
         myType = TypedListType(tt.TensorType(theano.config.floatX, (False, False)))
 
-        x = rand_ranged_matrix(-1000, 1000, [10, 10])
+        x = rand_ranged(-1000, 1000, [10, 10])
         testList = []
         for i in range(10000):
             testList.append(x)
@@ -104,7 +97,7 @@ class TestTypedListType:
 
         myType = TypedListType(myNestedType)
 
-        x = rand_ranged_matrix(-1000, 1000, [100, 100])
+        x = rand_ranged(-1000, 1000, [100, 100])
 
         assert np.array_equal(myType.filter([[x]]), [[x]])
 
@@ -160,4 +153,4 @@ class TestTypedListType:
             tt.TensorType(theano.config.floatX, (False, False))
         )()
 
-        assert isinstance(mySymbolicVariable, theano.typed_list.TypedListVariable)
+        assert isinstance(mySymbolicVariable, TypedListVariable)

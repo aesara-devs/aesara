@@ -10,7 +10,7 @@ import theano
 import theano.scalar as scal
 import theano.tensor as tt
 from tests import unittest_tools as utt
-from tests.tensor.test_basic import inplace_func, rand, randint_ranged
+from tests.tensor.utils import inplace_func, rand, randint_ranged
 from theano import change_flags, config
 from theano.compile import DeepCopyOp
 from theano.gof.op import get_test_value

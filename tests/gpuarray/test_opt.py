@@ -4,10 +4,10 @@ import pytest
 import theano
 import theano.gpuarray
 import theano.tensor.slinalg as slinalg
-from tests import test_ifelse
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
-from tests.tensor import test_basic
+from tests.tensor.test_basic import TestSpecifyShape
+from tests.test_ifelse import TestIfelse
 from theano import tensor
 from theano.breakpoint import PdbBreakpoint
 from theano.gof.opt import check_stack_trace
@@ -312,12 +312,12 @@ def test_rebroadcast():
     assert _check_stack_trace(f)
 
 
-class TestSpecifyShape(test_basic.TestSpecifyShape):
+class TestSpecifyShape(TestSpecifyShape):
     mode = mode_with_gpu
     input_type = GpuArrayType
 
 
-class TestGpuIfelse(test_ifelse.TestIfelse):
+class TestGpuIfelse(TestIfelse):
     mode = mode_with_gpu
 
     @staticmethod

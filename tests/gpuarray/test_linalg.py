@@ -397,7 +397,7 @@ class TestMagma:
         fn = theano.function([A], gpu_matrix_inverse(A), mode=mode_with_gpu)
         N = 1000
         test_rng = np.random.RandomState(seed=1)
-        # Copied from tests.tensor.test_basic.rand.
+        # Copied from tests.tensor.utils.rand.
         A_val = test_rng.rand(N, N).astype("float32") * 2 - 1
         A_val_inv = fn(A_val)
         utt.assert_allclose(np.eye(N), np.dot(A_val_inv, A_val), atol=1e-2)

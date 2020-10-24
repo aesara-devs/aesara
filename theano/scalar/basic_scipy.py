@@ -1,5 +1,8 @@
-# Definitions of theano.scalar ops that have their python implementation taken
-# from SciPy. As SciPy is not always available, we treat them separately.
+"""
+`Op`s that have their python implementations taken from SciPy.
+
+As SciPy is not always available, we treat them separately.
+"""
 
 import os
 

@@ -3,7 +3,7 @@ import numpy as np
 import theano
 import theano.tensor as tt
 from tests import unittest_tools as utt
-from tests.tensor.test_basic import (
+from tests.tensor.utils import (
     _good_broadcast_unary_normal_no_complex,
     check_floatX,
     copymod,
