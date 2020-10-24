@@ -23,7 +23,7 @@ from theano.gof.op import ops_with_inner_function
 from theano.gof.toolbox import is_same_graph
 
 
-_logger = logging.getLogger("theano.compile.function_module")
+_logger = logging.getLogger("theano.compile.function.types")
 
 __docformat__ = "restructuredtext en"
 

@@ -7,8 +7,8 @@ import theano
 import theano.tensor as tt
 from tests import unittest_tools
 from theano import config, shared
-from theano.compile import function
 from theano.compile.builders import OpFromGraph
+from theano.compile.function import function
 from theano.gof.null_type import NullType
 from theano.gradient import DisconnectedType
 from theano.tensor.shared_randomstreams import RandomStreams

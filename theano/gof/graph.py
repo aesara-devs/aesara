@@ -68,9 +68,9 @@ class Apply(Node):
     This class is typically instantiated by a `PureOp.make_node` method, which
     is called by `PureOp.__call__`.
 
-    The driver `theano.compile.function` uses `Apply.inputs` together with
-    `Variable.owner` to search the expression graph and determine which inputs
-    are necessary to compute the function's outputs.
+    The function `theano.compile.function.function` uses `Apply.inputs`
+    together with `Variable.owner` to search the expression graph and determine
+    which inputs are necessary to compute the function's outputs.
 
     A `Linker` uses the `Apply` instance's `op` field to compute numeric values
     for the output variables.
@@ -372,10 +372,6 @@ class Variable(Node):
     The python variables :literal:`a,b,c` all refer to instances of type
     `Variable`. The `Variable` referred to by `a` is also an instance of
     `Constant`.
-
-    `compile.function` uses each `Apply` instance's `inputs` attribute together
-    with each Variable's `owner` field to determine which inputs are necessary
-    to compute the function's outputs.
 
     """
 

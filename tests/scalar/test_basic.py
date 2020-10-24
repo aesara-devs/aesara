@@ -6,7 +6,7 @@ are rarely used by themselves, instead they are the basis for Tensor Ops
 to use numpy's scalar routines.
 If you do want to rewrite these tests, bear in mind:
   * You don't need to use Composite.
-  * FunctionGraph and DualLinker are old, use compile.function instead.
+  * FunctionGraph and DualLinker are old, use theano.compile.function.function instead.
 """
 import numpy as np
 import pytest

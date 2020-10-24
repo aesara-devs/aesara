@@ -5,9 +5,9 @@ from functools import partial, reduce
 
 import theano
 from theano import gof
-from theano.compile.function_module import orig_function
+from theano.compile.function.pfunc import rebuild_collect_shared
+from theano.compile.function.types import orig_function
 from theano.compile.mode import optdb
-from theano.compile.pfunc import rebuild_collect_shared
 from theano.compile.sharedvalue import SharedVariable
 from theano.gof import Variable, ops_with_inner_function
 from theano.gof.graph import io_connection_pattern
@@ -116,7 +116,7 @@ class OpFromGraph(gof.Op):
 
     \*\*kwargs : optional
         Check
-        :func:`orig_function <theano.compile.function_module.orig_function>`
+        :func:`orig_function <theano.compile.function.types.orig_function>`
         for more arguments, only works when not inline.
 
 

@@ -77,7 +77,6 @@ __api_version__ = 1
 
 from theano import scalar, tensor
 from theano.compile import (
-    FunctionMaker,
     In,
     Mode,
     OpFromGraph,
@@ -87,13 +86,13 @@ from theano.compile import (
     SymbolicInput,
     SymbolicOutput,
     as_op,
-    function,
-    function_dump,
     predefined_linkers,
     predefined_modes,
     predefined_optimizers,
     shared,
 )
+from theano.compile.function import function, function_dump
+from theano.compile.function.types import FunctionMaker
 from theano.gof import (
     Apply,
     CLinker,

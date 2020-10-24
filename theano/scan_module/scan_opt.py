@@ -60,7 +60,7 @@ import numpy as np
 import theano
 from theano import gof, scalar, tensor
 from theano.compile import optdb
-from theano.compile.function_module import deep_copy_op
+from theano.compile.function.types import deep_copy_op
 from theano.gof import DestroyHandler, InconsistencyError, toolbox
 from theano.gof.graph import equal_computations
 from theano.gof.opt import Optimizer, pre_constant_merge, pre_greedy_local_optimizer

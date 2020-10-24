@@ -58,7 +58,8 @@ import numpy as np
 
 import theano
 from theano import compile, config, gof, gradient, tensor
-from theano.compile import In, Out, function
+from theano.compile.function import function
+from theano.compile.io import In, Out
 from theano.compile.mode import AddFeatureOptimizer
 from theano.compile.profiling import ScanProfileStats
 from theano.gof import Apply, PureOp
@@ -1703,7 +1704,7 @@ class Scan(PureOp):
             o_s.storage[0] = None
 
         t_call = time.time() - t0_call
-        # NOTE: make this match what's in function_module.Function
+        # NOTE: make this match what's in function.types.Function
         # and this little string helps us to find this spot:
         # "PROFILE_CODE"
 

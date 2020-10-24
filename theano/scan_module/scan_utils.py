@@ -27,7 +27,7 @@ import numpy as np
 
 import theano
 from theano import gof, scalar, tensor
-from theano.compile.pfunc import rebuild_collect_shared
+from theano.compile.function.pfunc import rebuild_collect_shared
 from theano.gof.utils import TestValueError
 from theano.tensor.basic import get_scalar_constant_value
 
