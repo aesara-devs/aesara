@@ -4,8 +4,8 @@ When a compiled theano has shared vars, their values are also being pickled.
 
 Side notes useful for debugging:
 The pickling tools theano uses is here:
-theano.compile.function_module._pickle_Function()
-theano.compile.function_module._pickle_FunctionMaker()
+theano.compile.function.types._pickle_Function()
+theano.compile.function.types._pickle_FunctionMaker()
 Whether reoptimize the pickled function graph is handled by
 FunctionMaker.__init__()
 The config option is in configdefaults.py

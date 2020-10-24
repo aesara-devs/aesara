@@ -7,14 +7,14 @@ import logging
 import warnings
 
 from theano import config
-from theano.compile.function_module import UnusedInputError, orig_function
+from theano.compile.function.types import UnusedInputError, orig_function
 from theano.compile.io import In, Out
 from theano.compile.profiling import ProfileStats
 from theano.compile.sharedvalue import SharedVariable, shared
 from theano.gof import Constant, Variable
 
 
-_logger = logging.getLogger("theano.compile.pfunc")
+_logger = logging.getLogger("theano.compile.function.pfunc")
 
 __docformat__ = "restructuredtext en"
 
@@ -389,8 +389,8 @@ def pfunc(
     """
     #
     # This function works by cloning the graph (except for the
-    # inputs), and then shipping it off to compile.function (There it
-    # will be cloned again, unnecessarily, because it doesn't know
+    # inputs), and then shipping it off to theano.compile.function.function
+    # (There it will be cloned again, unnecessarily, because it doesn't know
     # that we already cloned it.)
     #
     # First, it clones the replacements named in the givens argument,

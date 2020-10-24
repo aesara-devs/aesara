@@ -234,7 +234,7 @@ def fast_inplace_check(inputs):
 
     """
     fgraph = inputs[0].fgraph
-    Supervisor = theano.compile.function_module.Supervisor
+    Supervisor = theano.compile.function.types.Supervisor
     protected_inputs = [
         f.protected for f in fgraph._features if isinstance(f, Supervisor)
     ]

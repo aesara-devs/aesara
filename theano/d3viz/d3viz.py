@@ -60,7 +60,7 @@ def d3viz(fct, outfile, copy_deps=True, *args, **kwargs):
 
     Parameters
     ----------
-    fct : theano.compile.function_module.Function
+    fct : theano.compile.function.types.Function
         A compiled Theano function, variable, apply or a list of variables.
     outfile : str
         Path to output HTML file.
@@ -119,7 +119,7 @@ def d3write(fct, path, *args, **kwargs):
 
     Parameters
     ----------
-    fct : theano.compile.function_module.Function
+    fct : theano.compile.function.types.Function
         A compiled Theano function, variable, apply or a list of variables.
     path: str
         Path to output file

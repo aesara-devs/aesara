@@ -1,19 +1,16 @@
 import time
-
-import pytest
-
-
-sp = pytest.importorskip("scipy", minversion="0.7.0")
-
 from itertools import product
 
 import numpy as np
+import pytest
 from packaging import version
 
 import theano
 from tests import unittest_tools as utt
 from tests.tensor.test_sharedvar import makeSharedTester
-from theano import compile, config, gof, sparse, tensor
+from theano import config, gof, sparse, tensor
+from theano.compile.function import function
+from theano.gradient import GradientError
 from theano.sparse import (
     CSC,
     CSM,
@@ -85,6 +82,9 @@ from theano.sparse.basic import (
 from theano.sparse.opt import CSMGradC, StructuredDotCSC, UsmmCscDense
 
 
+sp = pytest.importorskip("scipy", minversion="0.7.0")
+
+
 # Probability distributions are currently tested in test_sp2.py
 # from theano.sparse import (
 #    Poisson, poisson, Binomial, Multinomial, multinomial)
@@ -100,7 +100,7 @@ def as_sparse_format(data, format):
 
 
 def eval_outputs(outputs):
-    return compile.function([], outputs)()[0]
+    return function([], outputs)()[0]
 
 
 # scipy 0.17 will return sparse values in all cases while previous
@@ -308,9 +308,6 @@ def verify_grad_sparse(op, pt, structured=False, *args, **kwargs):
     return utt.verify_grad(conv_op, dpt, *args, **kwargs)
 
 
-verify_grad_sparse.E_grad = utt.verify_grad.E_grad
-
-
 class TestVerifyGradSparse:
     class FailOp(gof.op.Op):
         def __init__(self, structured):
@@ -345,13 +342,13 @@ class TestVerifyGradSparse:
             return [shapes[0]]
 
     def test_grad_fail(self):
-        with pytest.raises(verify_grad_sparse.E_grad):
+        with pytest.raises(GradientError):
             verify_grad_sparse(
                 self.FailOp(structured=False),
                 [sp.sparse.csr_matrix(random_lil((10, 40), config.floatX, 3))],
             )
 
-        with pytest.raises(verify_grad_sparse.E_grad):
+        with pytest.raises(GradientError):
             verify_grad_sparse(
                 self.FailOp(structured=True),
                 [sp.sparse.csr_matrix(random_lil((10, 40), config.floatX, 3))],

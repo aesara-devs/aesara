@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import tempfile
 
@@ -7,26 +8,36 @@ import pytest
 import six.moves.cPickle as pickle
 
 import theano
+from theano import tensor
+from theano.compile.function import function, function_dump
 from theano.compile.io import In
 
 
 def test_function_dump():
     v = theano.tensor.vector()
-    fct1 = theano.function([v], v + 1)
+    fct1 = function([v], v + 1)
 
     try:
         tmpdir = tempfile.mkdtemp()
         fname = os.path.join(tmpdir, "test_function_dump.pkl")
-        theano.function_dump(fname, [v], v + 1)
+        function_dump(fname, [v], v + 1)
         with open(fname, "rb") as f:
             l = pickle.load(f)
     finally:
         if tmpdir is not None:
             shutil.rmtree(tmpdir)
 
-    fct2 = theano.function(**l)
+    fct2 = function(**l)
     x = [1, 2, 3]
     assert np.allclose(fct1(x), fct2(x))
+
+
+def test_function_name():
+    x = tensor.vector("x")
+    func = function([x], x + 1.0)
+
+    regex = re.compile(os.path.basename(".*test_function.pyc?"))
+    assert regex.match(func.name) is not None
 
 
 class TestFunctionIn:
@@ -36,13 +47,13 @@ class TestFunctionIn:
         b = theano.shared(7)
         out = a + b
 
-        f = theano.function([In(a, strict=False)], out)
+        f = function([In(a, strict=False)], out)
         # works, rand generates float64 by default
         f(np.random.rand(8))
         # works, casting is allowed
         f(np.array([1, 2, 3, 4], dtype="int32"))
 
-        f = theano.function([In(a, strict=True)], out)
+        f = function([In(a, strict=True)], out)
         try:
             # fails, f expects float64
             f(np.array([1, 2, 3, 4], dtype="int32"))
@@ -54,7 +65,7 @@ class TestFunctionIn:
         # on the fact that shared variables cannot be explicit inputs
         a = theano.shared(1.0)
         with pytest.raises(TypeError):
-            theano.function([a], a + 1)
+            function([a], a + 1)
 
     def test_in_shared_variable(self):
         # Ensure that an error is raised if the In wrapped is used to wrap
@@ -62,21 +73,21 @@ class TestFunctionIn:
         a = theano.shared(1.0)
         a_wrapped = In(a, update=a + 1)
         with pytest.raises(TypeError):
-            theano.function([a_wrapped])
+            function([a_wrapped])
 
     def test_in_mutable(self):
         a = theano.tensor.dvector()
         a_out = a * 2  # assuming the op which makes this "in place" triggers
 
         # using mutable=True will let f change the value in aval
-        f = theano.function([In(a, mutable=True)], a_out, mode="FAST_RUN")
+        f = function([In(a, mutable=True)], a_out, mode="FAST_RUN")
         aval = np.random.rand(10)
         aval2 = aval.copy()
         assert np.all(f(aval) == (aval2 * 2))
         assert not np.all(aval == aval2)
 
         # using mutable=False should leave the input untouched
-        f = theano.function([In(a, mutable=False)], a_out, mode="FAST_RUN")
+        f = function([In(a, mutable=False)], a_out, mode="FAST_RUN")
         aval = np.random.rand(10)
         aval2 = aval.copy()
         assert np.all(f(aval) == (aval2 * 2))
@@ -84,7 +95,7 @@ class TestFunctionIn:
 
     def test_in_update(self):
         a = theano.tensor.dscalar("a")
-        f = theano.function([In(a, value=0.0, update=a + 1)], a, mode="FAST_RUN")
+        f = function([In(a, value=0.0, update=a + 1)], a, mode="FAST_RUN")
 
         # Ensure that, through the executions of the function, the state of the
         # input is persistent and is updated as it should
@@ -106,7 +117,7 @@ class TestFunctionIn:
         shared_var = theano.shared(1.0)
         a = theano.tensor.dscalar("a")
         a_wrapped = In(a, value=0.0, update=shared_var)
-        f = theano.function([a_wrapped], [], updates={shared_var: a}, mode="FAST_RUN")
+        f = function([a_wrapped], [], updates={shared_var: a}, mode="FAST_RUN")
 
         # Ensure that, through the executions of the function, the state of
         # the input and the shared variable are appropriate (after N execution,
@@ -120,7 +131,7 @@ class TestFunctionIn:
         a = theano.tensor.wvector("a")  # int16
         b = theano.tensor.bvector("b")  # int8
         c = theano.tensor.bscalar("c")  # int8
-        f = theano.function(
+        f = function(
             [
                 In(a, allow_downcast=True),
                 In(b, allow_downcast=False),
@@ -155,7 +166,7 @@ class TestFunctionIn:
         b = theano.tensor.fscalar("b")
         c = theano.tensor.fscalar("c")
 
-        f = theano.function(
+        f = function(
             [
                 In(a, allow_downcast=True),
                 In(b, allow_downcast=False),
@@ -186,7 +197,7 @@ class TestFunctionIn:
         b = theano.tensor.fvector("b")
         c = theano.tensor.fvector("c")
 
-        f = theano.function(
+        f = function(
             [
                 In(a, allow_downcast=True),
                 In(b, allow_downcast=False),

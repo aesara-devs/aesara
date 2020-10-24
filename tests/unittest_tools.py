@@ -77,19 +77,6 @@ def verify_grad(op, pt, n_tests=2, rng=None, *args, **kwargs):
     tt.verify_grad(op, pt, n_tests, rng, *args, **kwargs)
 
 
-#
-# This supports the following syntax:
-#
-# try:
-#     verify_grad(...)
-# except verify_grad.E_grad, e:
-#     print e.num_grad.gf
-#     print e.analytic_grad
-#     raise
-#
-verify_grad.E_grad = tt.verify_grad.E_grad
-
-
 # A helpful class to check random values close to the boundaries
 # when designing new tests
 class MockRandomState:

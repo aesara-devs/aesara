@@ -48,8 +48,10 @@ from collections import OrderedDict
 import numpy as np
 
 import theano.tensor as tt
-from theano import compile, config, gof
-from theano.compile import SharedVariable, function, ops
+from theano import config, gof
+from theano.compile import SharedVariable, ops
+from theano.compile.function import function
+from theano.compile.mode import Mode
 from theano.gof.utils import TestValueError
 from theano.scan_module import scan_op, scan_utils
 from theano.scan_module.scan_utils import safe_new, traverse
@@ -861,7 +863,7 @@ def scan(
             dummy_args,
             dummy_outs,
             updates=updates,
-            mode=compile.mode.Mode(linker="py", optimizer=None),
+            mode=Mode(linker="py", optimizer=None),
             on_unused_input="ignore",
             profile=False,
         )
