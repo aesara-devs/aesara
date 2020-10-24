@@ -5,7 +5,9 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import compile, config, tensor
+from theano import config, tensor
+from theano.compile.function import function
+from theano.compile.io import In
 from theano.tensor import dcol, dvector, ivector, raw_random
 from theano.tensor.raw_random import (
     RandomFunction,
@@ -43,7 +45,7 @@ class TestRandomFunction(utt.InferShapeTester):
 
         assert out.type == tensor.dvector
 
-        f = compile.function([rng_R], out)
+        f = function([rng_R], out)
 
         rng_state0 = np.random.RandomState(utt.fetch_seed())
 
@@ -74,9 +76,9 @@ class TestRandomFunction(utt.InferShapeTester):
         # configure out4 to be computed inplace
         # The update expression means that the random state rng_R will
         # be maintained by post_r4
-        f = compile.function(
+        f = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=post_r4,
@@ -120,9 +122,9 @@ class TestRandomFunction(utt.InferShapeTester):
         # because shape will have to be moved to the end
         post_r2, out2 = rf2(rng_R, (4,), 0.0, 1.0)
 
-        f = compile.function(
+        f = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=post_r2,
@@ -151,7 +153,7 @@ class TestRandomFunction(utt.InferShapeTester):
         rng_R = random_state_type()
 
         post_r, out = rf(rng_R, (3,), 0.0, 1.0)
-        f = compile.function([rng_R], [post_r, out])
+        f = function([rng_R], [post_r, out])
         rng = np.random.RandomState(utt.fetch_seed())
 
         rng0, val0 = f(rng)
@@ -161,8 +163,8 @@ class TestRandomFunction(utt.InferShapeTester):
         # rng0 should be in an updated state
         assert not rng_R.type.values_eq(rng, rng0)
 
-        f2 = compile.function(
-            [compile.In(rng_R, value=rng, update=post_r, mutable=False)], [post_r, out]
+        f2 = function(
+            [In(rng_R, value=rng, update=post_r, mutable=False)], [post_r, out]
         )
         rng2, val2 = f2()
         # rng should be in a fresh state
@@ -195,9 +197,9 @@ class TestRandomFunction(utt.InferShapeTester):
         with pytest.raises(ValueError):
             uniform(rng_R, (4,), ndim=2)
 
-        f_ok = compile.function(
+        f_ok = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=post_out2_4_4,
@@ -221,9 +223,9 @@ class TestRandomFunction(utt.InferShapeTester):
 
         # No shape, default args -> OK
         post_out, out = uniform(rng_R, size=None, ndim=2)
-        f = compile.function(
+        f = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=post_out,
@@ -244,11 +246,11 @@ class TestRandomFunction(utt.InferShapeTester):
         assert out2.ndim == 4
         assert out2.broadcastable == (True, False, True, False)
 
-        g = compile.function(
+        g = function(
             [
                 low,
                 high,
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=post_out2,
@@ -316,9 +318,9 @@ class TestRandomFunction(utt.InferShapeTester):
         assert unim11.ndim == 0
         assert unim12.ndim == 1
 
-        f11 = compile.function(
+        f11 = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=p_uni11,
@@ -328,9 +330,9 @@ class TestRandomFunction(utt.InferShapeTester):
             [uni11],
             accept_inplace=True,
         )
-        f12 = compile.function(
+        f12 = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=p_uni12,
@@ -340,9 +342,9 @@ class TestRandomFunction(utt.InferShapeTester):
             [uni12],
             accept_inplace=True,
         )
-        fm11 = compile.function(
+        fm11 = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=p_unim11,
@@ -352,9 +354,9 @@ class TestRandomFunction(utt.InferShapeTester):
             [unim11],
             accept_inplace=True,
         )
-        fm12 = compile.function(
+        fm12 = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=p_unim12,
@@ -364,9 +366,9 @@ class TestRandomFunction(utt.InferShapeTester):
             [unim12],
             accept_inplace=True,
         )
-        f0 = compile.function(
+        f0 = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=p_uni02,
@@ -394,9 +396,9 @@ class TestRandomFunction(utt.InferShapeTester):
         # Use non-default parameters
         post_r, out = uniform(rng_R, (4,), -2.0, 2.0)
 
-        f = compile.function(
+        f = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=post_r,
@@ -423,9 +425,9 @@ class TestRandomFunction(utt.InferShapeTester):
         # the integer nature of the result
         post_r, bin = binomial(rng_R, (7, 12), 5, 0.8)
 
-        f = compile.function(
+        f = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=post_r,
@@ -451,9 +453,9 @@ class TestRandomFunction(utt.InferShapeTester):
         # Use non-default parameters
         post_r, out = normal(rng_R, (2, 3), 4.0, 2.0)
 
-        f = compile.function(
+        f = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=post_r,
@@ -483,9 +485,9 @@ class TestRandomFunction(utt.InferShapeTester):
         # the integer nature of the result
         post_r, out = random_integers(rng_R, (11, 8), -3, 16)
 
-        f = compile.function(
+        f = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=post_r,
@@ -518,9 +520,9 @@ class TestRandomFunction(utt.InferShapeTester):
         rng_R = random_state_type()
         post_r, out = rf(rng_R, (7,), 8)
 
-        f = compile.function(
+        f = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=post_r,
@@ -545,9 +547,9 @@ class TestRandomFunction(utt.InferShapeTester):
         # A ValueError should be raised.
         rf0 = RandomFunction(permutation_helper, tensor.imatrix, 8)
         post_r0, out0 = rf0(rng_R, (7,), 8)
-        f0 = compile.function(
+        f0 = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=post_r0,
@@ -563,9 +565,9 @@ class TestRandomFunction(utt.InferShapeTester):
         # Here, ndim_added is 2 instead of 1. A ValueError should be raised.
         rf2 = RandomFunction(permutation_helper, tensor.imatrix, 8, ndim_added=2)
         post_r2, out2 = rf2(rng_R, (7,), 8)
-        f2 = compile.function(
+        f2 = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=post_r2,
@@ -586,9 +588,9 @@ class TestRandomFunction(utt.InferShapeTester):
         # the integer nature of the result
         post_r, out = choice(rng_R, (11, 8), 10, 1, 0)
 
-        f = compile.function(
+        f = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=post_r,
@@ -615,9 +617,9 @@ class TestRandomFunction(utt.InferShapeTester):
         # the integer nature of the result
         post_r, out = poisson(rng_R, lam=5, size=(11, 8))
 
-        f = compile.function(
+        f = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=post_r,
@@ -640,9 +642,9 @@ class TestRandomFunction(utt.InferShapeTester):
         # Test that raw_random.permutation generates the same results as numpy.
         rng_R = random_state_type()
         post_r, out = permutation(rng_R, size=(9,), n=6)
-        f = compile.function(
+        f = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=post_r,
@@ -667,7 +669,7 @@ class TestRandomFunction(utt.InferShapeTester):
         # Test that we can generate a list: have size=None or ().
         for ndim in [1, None]:
             post_r, out = permutation(rng_R, n=10, size=None, ndim=ndim)
-            inp = compile.In(
+            inp = In(
                 rng_R,
                 value=np.random.RandomState(utt.fetch_seed()),
                 update=post_r,
@@ -687,9 +689,9 @@ class TestRandomFunction(utt.InferShapeTester):
         rng_R = random_state_type()
         post_r, out = multinomial(rng_R, (7, 3), 6, [0.2] * 5)
 
-        f = compile.function(
+        f = function(
             [
-                compile.In(
+                In(
                     rng_R,
                     value=np.random.RandomState(utt.fetch_seed()),
                     update=post_r,
@@ -715,7 +717,7 @@ class TestRandomFunction(utt.InferShapeTester):
         rng_R = random_state_type()
         shape = tensor.lvector()
         post_r, out = uniform(rng_R, shape, ndim=2)
-        f = compile.function([rng_R, shape], out)
+        f = function([rng_R, shape], out)
         rng_state0 = np.random.RandomState(utt.fetch_seed())
 
         assert f(rng_state0, [2, 3]).shape == (2, 3)
@@ -732,14 +734,14 @@ class TestRandomFunction(utt.InferShapeTester):
         shape0 = tensor.lscalar()
         shape = (shape0, 3)
         post_r, u = uniform(rng_R, size=shape, ndim=2)
-        f = compile.function([rng_R, shape0], u)
+        f = function([rng_R, shape0], u)
         rng_state0 = np.random.RandomState(utt.fetch_seed())
 
         assert f(rng_state0, 2).shape == (2, 3)
         assert f(rng_state0, 8).shape == (8, 3)
 
         post_r, v = uniform(rng_R, size=shape)
-        g = compile.function([rng_R, shape0], v)
+        g = function([rng_R, shape0], v)
         assert g(rng_state0, 2).shape == (2, 3)
         assert g(rng_state0, 8).shape == (8, 3)
 
@@ -750,7 +752,7 @@ class TestRandomFunction(utt.InferShapeTester):
         shape = (shape0, 1)
         post_r, u = uniform(rng_R, size=shape, ndim=2)
         assert u.broadcastable == (False, True)
-        f = compile.function([rng_R, shape0], u)
+        f = function([rng_R, shape0], u)
         rng_state0 = np.random.RandomState(utt.fetch_seed())
 
         assert f(rng_state0, 2).shape == (2, 1)
@@ -758,14 +760,14 @@ class TestRandomFunction(utt.InferShapeTester):
 
         post_r, v = uniform(rng_R, size=shape)
         assert v.broadcastable == (False, True)
-        g = compile.function([rng_R, shape0], v)
+        g = function([rng_R, shape0], v)
         assert g(rng_state0, 2).shape == (2, 1)
         assert g(rng_state0, 8).shape == (8, 1)
 
     def test_default_shape(self):
         rng_R = random_state_type()
         post_r, out = uniform(rng_R)
-        f = compile.function([rng_R], [post_r, out], accept_inplace=True)
+        f = function([rng_R], [post_r, out], accept_inplace=True)
 
         rng_state0 = np.random.RandomState(utt.fetch_seed())
         numpy_rng = np.random.RandomState(utt.fetch_seed())
@@ -778,7 +780,7 @@ class TestRandomFunction(utt.InferShapeTester):
         assert np.all(val1 == numpy_val1)
 
         post_r, out = multinomial(rng_R)
-        g = compile.function([rng_R], [post_r, out], accept_inplace=True)
+        g = function([rng_R], [post_r, out], accept_inplace=True)
         post2, val2 = g(post1)
         numpy_val2 = np.asarray(
             numpy_rng.multinomial(n=1, pvals=[0.5, 0.5]), dtype=theano.config.floatX
@@ -791,7 +793,7 @@ class TestRandomFunction(utt.InferShapeTester):
         low = tensor.vector()
         post_r, out = uniform(rng_R, low=low, high=1)
         assert out.ndim == 1
-        f = compile.function([rng_R, low], [post_r, out], accept_inplace=True)
+        f = function([rng_R, low], [post_r, out], accept_inplace=True)
 
         def as_floatX(thing):
             return np.asarray(thing, dtype=theano.config.floatX)
@@ -809,7 +811,7 @@ class TestRandomFunction(utt.InferShapeTester):
         high = tensor.vector()
         post_rb, outb = uniform(rng_R, low=low, high=high)
         assert outb.ndim == 1
-        fb = compile.function([rng_R, low, high], [post_rb, outb], accept_inplace=True)
+        fb = function([rng_R, low, high], [post_rb, outb], accept_inplace=True)
 
         post0b, val0b = fb(post1, [-4.0, -2], [-1, 0])
         post1b, val1b = fb(post0b, [-4.0], [-1])
@@ -825,9 +827,7 @@ class TestRandomFunction(utt.InferShapeTester):
 
         size = tensor.lvector()
         post_rc, outc = uniform(rng_R, low=low, high=high, size=size, ndim=1)
-        fc = compile.function(
-            [rng_R, low, high, size], [post_rc, outc], accept_inplace=True
-        )
+        fc = function([rng_R, low, high, size], [post_rc, outc], accept_inplace=True)
         post0c, val0c = fc(post1b, [-4.0, -2], [-1, 0], [2])
         post1c, val1c = fc(post0c, [-4.0], [-1], [1])
         numpy_val0c = as_floatX(numpy_rng.uniform(low=[-4.0, -2], high=[-1, 0]))
@@ -854,7 +854,7 @@ class TestRandomFunction(utt.InferShapeTester):
         high = tensor.dcol()
         post_r, out = uniform(rng_R, low=low, high=high)
         assert out.ndim == 2
-        f = compile.function([rng_R, low, high], [post_r, out], accept_inplace=True)
+        f = function([rng_R, low, high], [post_r, out], accept_inplace=True)
 
         rng_state0 = np.random.RandomState(utt.fetch_seed())
         numpy_rng = np.random.RandomState(utt.fetch_seed())
@@ -876,7 +876,7 @@ class TestRandomFunction(utt.InferShapeTester):
         high = tensor.vector()
         post_r, out = uniform(rng_R, low=low, high=high)
         assert out.ndim == 1
-        f = compile.function([rng_R, low, high], [post_r, out], accept_inplace=True)
+        f = function([rng_R, low, high], [post_r, out], accept_inplace=True)
 
         def as_floatX(thing):
             return np.asarray(thing, dtype=theano.config.floatX)
@@ -897,7 +897,7 @@ class TestRandomFunction(utt.InferShapeTester):
         assert np.all(val1 == numpy_val1)
 
         # Specifying the size explicitly
-        g = compile.function(
+        g = function(
             [rng_R, low, high],
             uniform(rng_R, low=low, high=high, size=(3,)),
             accept_inplace=True,
@@ -914,7 +914,7 @@ class TestRandomFunction(utt.InferShapeTester):
         prob = tensor.vector()
         post_r, out = binomial(rng_R, n=n, p=prob)
         assert out.ndim == 1
-        f = compile.function([rng_R, n, prob], [post_r, out], accept_inplace=True)
+        f = function([rng_R, n, prob], [post_r, out], accept_inplace=True)
 
         n_val = [1, 2, 3]
         prob_val = np.asarray([0.1, 0.2, 0.3], dtype=config.floatX)
@@ -932,7 +932,7 @@ class TestRandomFunction(utt.InferShapeTester):
         assert np.all(val1 == numpy_val1)
 
         # Specifying the size explicitly
-        g = compile.function(
+        g = function(
             [rng_R, n, prob],
             binomial(rng_R, n=n, p=prob, size=(3,)),
             accept_inplace=True,
@@ -949,7 +949,7 @@ class TestRandomFunction(utt.InferShapeTester):
         std = tensor.vector()
         post_r, out = normal(rng_R, avg=avg, std=std)
         assert out.ndim == 1
-        f = compile.function([rng_R, avg, std], [post_r, out], accept_inplace=True)
+        f = function([rng_R, avg, std], [post_r, out], accept_inplace=True)
 
         def as_floatX(thing):
             return np.asarray(thing, dtype=theano.config.floatX)
@@ -975,7 +975,7 @@ class TestRandomFunction(utt.InferShapeTester):
         assert np.all(val1 == numpy_val1)
 
         # Specifying the size explicitly
-        g = compile.function(
+        g = function(
             [rng_R, avg, std],
             normal(rng_R, avg=avg, std=std, size=(3,)),
             accept_inplace=True,
@@ -995,7 +995,7 @@ class TestRandomFunction(utt.InferShapeTester):
         high = tensor.lvector()
         post_r, out = random_integers(rng_R, low=low, high=high)
         assert out.ndim == 1
-        f = compile.function([rng_R, low, high], [post_r, out], accept_inplace=True)
+        f = function([rng_R, low, high], [post_r, out], accept_inplace=True)
 
         low_val = [100, 200, 300]
         high_val = [110, 220, 330]
@@ -1023,7 +1023,7 @@ class TestRandomFunction(utt.InferShapeTester):
         assert np.all(val1 == numpy_val1)
 
         # Specifying the size explicitly
-        g = compile.function(
+        g = function(
             [rng_R, low, high],
             random_integers(rng_R, low=low, high=high, size=(3,)),
             accept_inplace=True,
@@ -1048,7 +1048,7 @@ class TestRandomFunction(utt.InferShapeTester):
         pvals = tensor.matrix()
         post_r, out = multinomial(rng_R, n=n, pvals=pvals)
         assert out.ndim == 2
-        f = compile.function([rng_R, n, pvals], [post_r, out], accept_inplace=True)
+        f = function([rng_R, n, pvals], [post_r, out], accept_inplace=True)
 
         n_val = [1, 2, 3]
         pvals_val = [[0.1, 0.9], [0.2, 0.8], [0.3, 0.7]]
@@ -1074,7 +1074,7 @@ class TestRandomFunction(utt.InferShapeTester):
         assert np.all(val1 == numpy_val1)
 
         # Specifying the size explicitly
-        g = compile.function(
+        g = function(
             [rng_R, n, pvals],
             multinomial(rng_R, n=n, pvals=pvals, size=(3,)),
             accept_inplace=True,
@@ -1097,7 +1097,7 @@ class TestRandomFunction(utt.InferShapeTester):
         assert out.ndim == 3
         assert out.broadcastable == (True, False, False)
 
-        f = compile.function([rng_R, pvals], [post_r, out], accept_inplace=True)
+        f = function([rng_R, pvals], [post_r, out], accept_inplace=True)
 
         rng = np.random.RandomState(utt.fetch_seed())
 
@@ -1118,7 +1118,7 @@ class TestRandomFunction(utt.InferShapeTester):
         assert out.ndim == 4
         assert out.broadcastable == (False, True, False, False)
 
-        f = compile.function([rng_R, pvals], [post_r, out], accept_inplace=True)
+        f = function([rng_R, pvals], [post_r, out], accept_inplace=True)
 
         rng = np.random.RandomState(utt.fetch_seed())
 
@@ -1137,7 +1137,7 @@ class TestRandomFunction(utt.InferShapeTester):
             rng_R, low=low, high=high, size=(20,), dtype="int8"
         )
         assert out.dtype == "int8"
-        f = compile.function([rng_R, low, high], [post_r, out])
+        f = function([rng_R, low, high], [post_r, out])
 
         rng = np.random.RandomState(utt.fetch_seed())
         rng0, val0 = f(rng, 0, 9)

@@ -3204,7 +3204,7 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
 
     Parameters
     ----------
-    f_or_fgraph: theano.compile.function_module.Function or
+    f_or_fgraph: theano.compile.function.types.Function or
           theano.gof.fg.FunctionGraph
         The compiled function or the function graph to be analysed.
     ops_to_check: it can be of four different types:
@@ -3233,7 +3233,7 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
         True if the outputs of the specified ops have a stack, False otherwise.
 
     """
-    if isinstance(f_or_fgraph, theano.compile.function_module.Function):
+    if isinstance(f_or_fgraph, theano.compile.function.types.Function):
         fgraph = f_or_fgraph.maker.fgraph
     elif isinstance(f_or_fgraph, theano.gof.fg.FunctionGraph):
         fgraph = f_or_fgraph

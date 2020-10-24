@@ -14,7 +14,7 @@ import theano.sandbox.rng_mrg
 import theano.scalar.sharedvar
 from tests import unittest_tools as utt
 from theano import tensor
-from theano.compile.pfunc import rebuild_collect_shared
+from theano.compile.function.pfunc import rebuild_collect_shared
 from theano.scan_module.scan_op import Scan
 
 
@@ -1077,7 +1077,7 @@ class TestScan:
         # Traceback (most recent call last):
         #  File "/u/bastienf/repos/Theano/tests/test_scan.py", line 434, in test_shared_arguments_with_updates
         #    theano_y0,theano_y1,theano_y2 = f10(vu2, vy0)
-        #  File "/u/bastienf/repos/theano/compile/function_module.py", line 480, in __call__
+        #  File "/u/bastienf/repos/theano/compile/function/types.py", line 480, in __call__
         #    self.fn()
         #  File "/u/bastienf/repos/theano/compile/profilemode.py", line 59, in profile_f
         #    raise_with_op(node)
@@ -1089,7 +1089,7 @@ class TestScan:
         #    inplace_map)
         #  File "/u/bastienf/repos/theano/scan.py", line 1054, in scan
         #    something = fn(*fn_args)
-        #  File "/u/bastienf/repos/theano/compile/function_module.py", line 458, in __call__
+        #  File "/u/bastienf/repos/theano/compile/function/types.py", line 458, in __call__
         #    s.storage[0] = s.type.filter(arg, strict=s.strict)
         #  File "/u/bastienf/repos/theano/tensor/basic.py", line 415, in filter
         #    data = theano._asarray(data, dtype = self.dtype) #TODO - consider to pad shape with ones

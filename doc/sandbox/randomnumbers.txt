@@ -11,7 +11,7 @@ Random Numbers
 == Requirements ==
 
 
-Theano functions sometimes need random numbers.  
+Theano functions sometimes need random numbers.
 Random operations are not as simple as other operations such as ones_like, or pow(), because the output must be different when we call the same function repeatedly.  CompileFunction's new default-valued, updatable input variables make this possible.  At the same time we need random streams to be repeatable, and easy to work with.  So the basic requirements of our random number mechanism are:
 
  1. Internal random number generators must be used in a clear manner, and be accessible to the caller after a function has been compiled.
@@ -41,10 +41,13 @@ So the proposal is to provide the missing functionality (the last three requirem
 
     #!python
     # create a random generator, providing a default seed to condition how RandomOp instances are produced.
+    from theano.compile.function import function
+
+
     r = MetaRandom(metaseed=872364)
 
     # create a different random generator
-    rr = MetaRandom(metaseed=99) 
+    rr = MetaRandom(metaseed=99)
 
     # create an Op to produce a stream of random numbers.
     # This generates random numbers uniformly between 0.0 and 1.0 excluded
@@ -63,7 +66,7 @@ So the proposal is to provide the missing functionality (the last three requirem
     # note: un-named state inputs will be added automatically.
     # note: it is not necessary to draw samples for u, even though
     #       u was created by r before v.
-    fn_v = compile.function([], [v])
+    fn_v = function([], [v])
 
     # this prints some representation of v's rng in fn_v.
     # The .rng property works for Result instances produced by MetaRandom.
@@ -72,7 +75,7 @@ So the proposal is to provide the missing functionality (the last three requirem
     # compile a function to draw each of u, v, w
     # note: un-named state inputs will be added automatically
     # note: This function (especially its internal state) is independent from fn_v.
-    fn_uvw = compile.function([], [u,v,w])
+    fn_uvw = function([], [u,v,w])
 
     # N.B. The random number streams of fn_v and fn_uvw are independent.
     assert fn_v.state[v.rng] != fn_uvw.state[v.rng]
@@ -110,7 +113,7 @@ The typical case is that only one (global) {{{MetaRandom}}} object is used to pr
 
     class MetaRandom(obj):
      def __init__(self, metaseed=<N>): ... # new functions will be initialized so that seed(fn, <N>) has no effect on output.
-   
+
      def __contains__(self, Result): ...   # True if Result was returned by a call to self.<distribution>
      def results(self): ...                # Iterate over returned Result instances in creation order.
 
@@ -118,7 +121,7 @@ The typical case is that only one (global) {{{MetaRandom}}} object is used to pr
      def getstate(self, fn): ...           # See below.
      def setstate(self, fn, state): ...    # See below.
 
-     def uniform(...): ...                 # return a Result of an Apply of a RandomOp.  
+     def uniform(...): ...                 # return a Result of an Apply of a RandomOp.
                                          # The return value is also stored internally for __contains__ and results().
      def normal(...): ...
      def bernoulli(...): ...
@@ -183,6 +186,9 @@ then any time afterward both {{{r.setstate(fn, state_99)}}} and {{{r.seed(fn, 99
 
     #!python
     # create a random state
+    from theano.compile.function import function
+
+
     r = RandomState(name = 'r')
 
     # create a different random state
@@ -204,14 +210,14 @@ then any time afterward both {{{r.setstate(fn, state_99)}}} and {{{r.seed(fn, 99
     # compile a function to draw random numbers
     # note: it is not necessary to draw samples for u.
     # we provide the seed for the RandomState r in the inputs list as a "Type 4" input
-    fn_v = compile.function([(r, 872364)], [v])
+    fn_v = function([(r, 872364)], [v])
 
     # compile a function to draw each of u, v, w
     # we provide the seeds for the RandomStates r and rr in the inputs list as "Type 4" inputs
     # note: the random state for r here is seeded independently from the one in fn_v, which means
     #       random number generation of fn_v and fn_uvw will not interfere. Since the seed is the
     #       same, it means they will produce the same sequence of tensors for the output v.
-    fn_uvw = compile.function([(r, 872364), (rr, 99)], [u,v,w])
+    fn_uvw = function([(r, 872364), (rr, 99)], [u,v,w])
 
 
     fn_v()  # returns random numbers A
@@ -228,7 +234,7 @@ then any time afterward both {{{r.setstate(fn, state_99)}}} and {{{r.seed(fn, 99
 
     fn()    # returns random numbers A
 
-    ### Is this state well-defined?  
+    ### Is this state well-defined?
     ### Does there even exist a number such that fn_v.r = N would have no effect on the rng states?
     print fn_v.r
 

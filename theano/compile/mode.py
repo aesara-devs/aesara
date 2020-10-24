@@ -9,7 +9,7 @@ import warnings
 import theano
 import theano.gof.vm
 from theano import config, gof
-from theano.compile.function_module import Supervisor
+from theano.compile.function.types import Supervisor
 from theano.sandbox.jax_linker import JAXLinker
 
 
@@ -124,7 +124,7 @@ class AddDestroyHandler(gof.Optimizer):
         if not supervisor_added:
             warnings.warn(
                 "WARNING: Supervisor is not added. Please build a FunctionGraph"
-                "via theano.compile.function_module.std_graph()"
+                "via theano.compile.function.types.std_graph()"
                 "or add the Supervisor class manually.",
                 stacklevel=3,
             )

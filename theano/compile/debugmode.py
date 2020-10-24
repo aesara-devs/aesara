@@ -18,7 +18,7 @@ import numpy as np
 
 import theano
 from theano import change_flags, config, gof
-from theano.compile.function_module import (
+from theano.compile.function.types import (
     Function,
     FunctionMaker,
     infer_reuse_pattern,
@@ -2493,7 +2493,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
             with change_flags(compute_test_value=config.compute_test_value_opt):
                 optimizer(fgraph)
 
-                theano.compile.function_module.insert_deepcopy(
+                theano.compile.function.types.insert_deepcopy(
                     fgraph, inputs, list(chain(outputs, additional_outputs))
                 )
 
@@ -2707,7 +2707,7 @@ class DebugMode(Mode):
     """
 
     # This function will be used to create a FunctionMaker in
-    # function_module.function
+    # function.types.function
     def function_maker(self, i, o, m, *args, **kwargs):
         """
         Return an instance of `_Maker` which handles much of the debugging work.
