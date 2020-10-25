@@ -32,9 +32,9 @@ class OfgNested:
     def __init__(self):
         x, y, z = tt.scalars("xyz")
         e = x * y
-        op = theano.OpFromGraph([x, y], [e])
+        op = theano.compile.builders.OpFromGraph([x, y], [e])
         e2 = op(x, y) + z
-        op2 = theano.OpFromGraph([x, y, z], [e2])
+        op2 = theano.compile.builders.OpFromGraph([x, y, z], [e2])
         e3 = op2(x, y, z) + z
 
         self.inputs = [x, y, z]
@@ -45,7 +45,7 @@ class Ofg:
     def __init__(self):
         x, y, z = tt.scalars("xyz")
         e = tt.nnet.sigmoid((x + y + z) ** 2)
-        op = theano.OpFromGraph([x, y, z], [e])
+        op = theano.compile.builders.OpFromGraph([x, y, z], [e])
         e2 = op(x, y, z) + op(z, y, x)
 
         self.inputs = [x, y, z]
@@ -56,7 +56,7 @@ class OfgSimple:
     def __init__(self):
         x, y, z = tt.scalars("xyz")
         e = tt.nnet.sigmoid((x + y + z) ** 2)
-        op = theano.OpFromGraph([x, y, z], [e])
+        op = theano.compile.builders.OpFromGraph([x, y, z], [e])
         e2 = op(x, y, z)
 
         self.inputs = [x, y, z]

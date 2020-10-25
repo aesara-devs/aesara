@@ -1,10 +1,4 @@
-"""
-This module provides syntax shortcut for the Scan Op.
-
-See scan.py for details on scan.
-
-"""
-
+"""This module provides a convenient constructor for the `Scan` `Op`."""
 
 __docformat__ = "restructedtext en"
 __authors__ = "Razvan Pascanu " "Frederic Bastien " "James Bergstra " "Pascal Lamblin "
@@ -14,19 +8,10 @@ __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 import logging
 
-from theano.scan_module import scan
+from theano.scan import scan
 
 
-# Logging function for sending warning or info
-_logger = logging.getLogger("theano.scan_module.scan_views")
-
-
-#
-# Declaration of views for scan
-#
-
-
-# The ``map`` view of Scan Op.
+_logger = logging.getLogger("theano.scan.views")
 
 
 def map(
@@ -38,8 +23,7 @@ def map(
     mode=None,
     name=None,
 ):
-    """
-    Similar behaviour as python's map.
+    """Construct a `Scan` `Op` that functions like `map`.
 
     Parameters
     ----------
@@ -75,7 +59,6 @@ def map(
     )
 
 
-# The ``reduce`` view of Scan Op.
 def reduce(
     fn,
     sequences,
@@ -85,8 +68,7 @@ def reduce(
     mode=None,
     name=None,
 ):
-    """
-    Similar behaviour as python's reduce.
+    """Construct a `Scan` `Op` that functions like `reduce`.
 
     Parameters
     ----------
@@ -128,10 +110,8 @@ def reduce(
         return rval[0][-1], rval[1]
 
 
-# The ``foldl`` view of Scan Op.
 def foldl(fn, sequences, outputs_info, non_sequences=None, mode=None, name=None):
-    """
-    Similar behaviour as haskell's foldl.
+    """Construct a `Scan` `Op` that functions like Haskell's `foldl`.
 
     Parameters
     ----------
@@ -164,10 +144,8 @@ def foldl(fn, sequences, outputs_info, non_sequences=None, mode=None, name=None)
     )
 
 
-# The ``foldl`` view of Scan Op.
 def foldr(fn, sequences, outputs_info, non_sequences=None, mode=None, name=None):
-    """
-    Similar behaviour as haskell' foldr.
+    """Construct a `Scan` `Op` that functions like Haskell's `foldr`.
 
     Parameters
     ----------

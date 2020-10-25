@@ -2,17 +2,16 @@
 Provide a simple user friendly API to Theano-managed memory.
 
 """
-# Standard imports
-
 
 import copy
 import logging
 
-# Third-party imports
 import numpy as np
 
-# Theano imports
-from theano.gof import Container, Variable, generic, utils
+from theano.gof.graph import Variable
+from theano.gof.link import Container
+from theano.gof.type import generic
+from theano.gof.utils import add_tag_trace
 
 
 _logger = logging.getLogger("theano.compile.sharedvalue")
@@ -287,7 +286,7 @@ def shared(value, name=None, strict=False, allow_downcast=None, **kwargs):
                     allow_downcast=allow_downcast,
                     **kwargs,
                 )
-                utils.add_tag_trace(var)
+                add_tag_trace(var)
                 return var
             except TypeError:
                 continue

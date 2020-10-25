@@ -682,7 +682,9 @@ def debugprint(
                         new_prefix_child = prefix_child + "  "
 
                     if hasattr(i, "owner") and hasattr(i.owner, "op"):
-                        if isinstance(i.owner.op, theano.scan_module.scan_op.Scan):
+                        from theano.scan.op import Scan
+
+                        if isinstance(i.owner.op, Scan):
                             scan_ops.append(i)
 
                     debugprint(

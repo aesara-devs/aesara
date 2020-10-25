@@ -79,7 +79,6 @@ from theano import scalar, tensor
 from theano.compile import (
     In,
     Mode,
-    OpFromGraph,
     Out,
     Param,
     ProfileStats,
@@ -194,4 +193,4 @@ def sparse_grad(var):
 
 
 import theano.tensor.shared_randomstreams
-from theano.scan_module import clone, foldl, foldr, map, reduce, scan, scan_checkpoints
+from theano.scan import checkpoints, clone, foldl, foldr, map, reduce, scan

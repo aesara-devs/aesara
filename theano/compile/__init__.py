@@ -1,4 +1,3 @@
-from theano.compile.builders import OpFromGraph, ops_with_inner_function
 from theano.compile.debugmode import DebugMode
 from theano.compile.function.pfunc import Param, pfunc, rebuild_collect_shared
 from theano.compile.function.types import (
