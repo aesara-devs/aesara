@@ -11,7 +11,7 @@ from theano import config, tensor
 from theano.gpuarray.rng_mrg import GPUA_mrg_uniform
 from theano.gpuarray.type import gpuarray_shared_constructor
 from theano.sandbox import rng_mrg
-from theano.sandbox.rng_mrg import MRG_RandomStreams
+from theano.sandbox.rng_mrg import MRG_RandomStream
 
 
 utt.seed_rng()
@@ -42,7 +42,7 @@ def test_consistency_GPUA_serial():
             rstate.default_update = new_rstate
 
             # Not really necessary, just mimicking
-            # rng_mrg.MRG_RandomStreams' behavior
+            # rng_mrg.MRG_RandomStream' behavior
             sample.rstate = rstate
             sample.update = (rstate, new_rstate)
 
@@ -89,7 +89,7 @@ def test_consistency_GPUA_parallel():
         rstate.default_update = new_rstate
 
         # Not really necessary, just mimicking
-        # rng_mrg.MRG_RandomStreams' behavior
+        # rng_mrg.MRG_RandomStream' behavior
         sample.rstate = rstate
         sample.update = (rstate, new_rstate)
 
@@ -117,7 +117,7 @@ def test_GPUA_full_fill():
     # This needs to be large to trigger the problem on GPU
     size = (10, 1000)
 
-    R = MRG_RandomStreams(234)
+    R = MRG_RandomStream(234)
     uni = R.uniform(size, nstreams=60 * 256)
     f_cpu = theano.function([], uni)
 
@@ -177,7 +177,7 @@ def test_f16_nonzero():
 
 
 def test_cpu_target_with_shared_variable():
-    srng = MRG_RandomStreams()
+    srng = MRG_RandomStream()
     s = np.random.rand(2, 3).astype("float32")
     x = gpuarray_shared_constructor(s, name="x")
     try:

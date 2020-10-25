@@ -1,10 +1,10 @@
-.. _libdoc_tensor_shared_randomstreams:
+.. _libdoc_tensor_random_utils:
 
 ======================================================
-:mod:`shared_randomstreams` -- Friendly random numbers
+:mod:`utils` -- Friendly random numbers
 ======================================================
 
-.. module:: theano.tensor.shared_randomstreams
+.. module:: theano.tensor.random.utils
    :platform: Unix, Windows
    :synopsis: symbolic random variables
 .. moduleauthor:: LISA
@@ -27,17 +27,15 @@ For an example of how to use random numbers, see
 Reference
 =========
 
-.. class:: RandomStreams(raw_random.RandomStreamsBase)
+.. class:: RandomStream()
 
-    This is a symbolic stand-in for ``numpy.random.RandomState``. 
-    Random variables of various distributions are instantiated by calls to
-    parent class :class:`raw_random.RandomStreamsBase`.
+    This is a symbolic stand-in for ``numpy.random.RandomState``.
 
     .. method:: updates()
 
         :returns: a list of all the (state, new_state) update pairs for the
           random variables created by this object
-          
+
         This can be a convenient shortcut to enumerating all the random
         variables in a large graph in the ``update`` parameter of function.
 
@@ -60,21 +58,4 @@ Reference
 
     .. method:: uniform, normal, binomial, multinomial, random_integers, ...
 
-        See :class:`raw_random.RandomStreamsBase`.
-
-.. class:: RandomVariable(object)
-
-    .. attribute:: rng
-
-        The shared variable whose ``.value`` is the numpy RandomState
-        generator feeding this random variable.
-
-    .. attribute:: update
-        
-        A pair
-        whose first element is a shared variable whose value is a numpy RandomState,
-        and whose second element is an [symbolic] expression for the next value of that
-        RandomState after drawing samples.
-        Including this pair in the``updates`` list to function will cause the
-        function to update the random number generator feeding this variable.
-
+        See :class:`basic.RandomVariable`.

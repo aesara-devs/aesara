@@ -4,7 +4,7 @@ from itertools import count
 import numpy as np
 import pytest
 
-from theano import shared, sparse, tensor
+from theano import shared, tensor
 from theano.gof.graph import (
     Apply,
     Variable,
@@ -286,34 +286,6 @@ class TestAutoName:
         assert r1.auto_name == "auto_" + str(autoname_id)
         assert r2.auto_name == "auto_" + str(autoname_id + 1)
         assert r3.auto_name == "auto_" + str(autoname_id + 2)
-
-    @pytest.mark.skipif(
-        not sparse.enable_sparse, reason="Optional package SciPy not installed"
-    )
-    def test_sparsevariable(self):
-        # Get counter value
-        autoname_id = next(Variable.__count__)
-        Variable.__count__ = count(autoname_id)
-        r1 = sparse.csc_matrix(name="x", dtype="float32")
-        r2 = sparse.dense_from_sparse(r1)
-        r3 = sparse.csc_from_dense(r2)
-        assert r1.auto_name == "auto_" + str(autoname_id)
-        assert r2.auto_name == "auto_" + str(autoname_id + 1)
-        assert r3.auto_name == "auto_" + str(autoname_id + 2)
-
-    def test_randomvariable(self):
-        # Get counter value
-        autoname_id = next(Variable.__count__)
-        Variable.__count__ = count(autoname_id)
-        mytype = tensor.TensorType(dtype="int32", broadcastable=())
-        r1 = tensor.shared_randomstreams.RandomStateSharedVariable(
-            name="x", type=mytype, value=1, strict=False
-        )
-        r2 = tensor.shared_randomstreams.RandomStateSharedVariable(
-            name="x", type=mytype, value=1, strict=False
-        )
-        assert r1.auto_name == "auto_" + str(autoname_id)
-        assert r2.auto_name == "auto_" + str(autoname_id + 1)
 
     def test_clone(self):
         # Get counter value
