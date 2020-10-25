@@ -1,7 +1,7 @@
 """
 To update the scan Cython code in Theano you must
 - update the version in this file and scan_perform.py
-- call "cd theano/scan_module/; cython scan_perform.pyx; patch scan_perform.c numpy_api_changes.diff"
+- call "cd theano/scan/; cython scan_perform.pyx; patch scan_perform.c numpy_api_changes.diff"
 
 """
 
@@ -21,7 +21,7 @@ from theano.gof import cmodule
 from theano.gof.compilelock import get_lock, release_lock
 
 
-_logger = logging.getLogger("theano.scan_module.scan_perform")
+_logger = logging.getLogger("theano.scan.scan_perform")
 
 
 version = 0.296  # must match constant returned in function get_version()
@@ -68,9 +68,7 @@ except ImportError:
                 raise ImportError("no c compiler, can't compile cython code")
             _logger.info("Compiling C code for scan")
             dirname = "scan_perform"
-            cfile = os.path.join(
-                theano.__path__[0], "scan_module", "c_code", "scan_perform.c"
-            )
+            cfile = os.path.join(theano.__path__[0], "scan", "c_code", "scan_perform.c")
             if not os.path.exists(cfile):
                 # This can happen in not normal case. We just
                 # disable the cython code. If we are here the user

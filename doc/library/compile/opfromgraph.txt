@@ -6,7 +6,7 @@
 OpFromGraph
 ===========
 
-This page describes :class:`theano.OpFromGraph
+This page describes :class:`theano.compile.builders.OpFromGraph
 <theano.compile.builders.OpFromGraph>`, an Op that allows to
 encapsulate a Theano graph in an op.
 

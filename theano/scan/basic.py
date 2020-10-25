@@ -1,41 +1,3 @@
-"""
-This module provides the Scan Op.
-
-Scanning is a general form of recurrence, which can be used for looping.
-The idea is that you *scan* a function along some input sequence, producing
-an output at each time-step that can be seen (but not modified) by the
-function at the next time-step. (Technically, the function can see the
-previous K  time-steps of your outputs and L time steps (from past and
-future) of your inputs.
-
-So for example, ``sum()`` could be computed by scanning the ``z+x_i``
-function over a list, given an initial state of ``z=0``.
-
-Special cases:
-
-* A *reduce* operation can be performed by using only the last
-  output of a ``scan``.
-* A *map* operation can be performed by applying a function that
-  ignores previous steps of the outputs.
-
-Often a for-loop or while-loop can be expressed as a ``scan()`` operation,
-and ``scan`` is the closest that theano comes to looping. The advantages
-of using ``scan`` over `for` loops in python (amongs other) are:
-
-* it allows the number of iterations to be part of the symbolic graph
-* it allows computing gradients through the for loop
-* there exist a bunch of optimizations that help re-write your loop
-such that less memory is used and that it runs faster
-* it ensures that data is not copied from host to gpu and gpu to
-host at each step
-
-The Scan Op should typically be used by calling any of the following
-functions: ``scan()``, ``map()``, ``reduce()``, ``foldl()``,
-``foldr()``.
-
-"""
-
-
 __docformat__ = "restructedtext en"
 __authors__ = "Razvan Pascanu " "Frederic Bastien " "James Bergstra " "Pascal Lamblin "
 __copyright__ = "(c) 2010, Universite de Montreal"
@@ -53,13 +15,14 @@ from theano.compile import SharedVariable, ops
 from theano.compile.function import function
 from theano.compile.mode import Mode
 from theano.gof.utils import TestValueError
-from theano.scan_module import scan_op, scan_utils
-from theano.scan_module.scan_utils import safe_new, traverse
+from theano.scan import utils
+from theano.scan.op import Scan
+from theano.scan.utils import safe_new, traverse
 from theano.tensor import opt
 from theano.updates import OrderedUpdates
 
 
-_logger = logging.getLogger("theano.scan_module.scan")
+_logger = logging.getLogger("theano.scan.basic")
 
 
 def scan(
@@ -167,7 +130,7 @@ def scan(
         .. code-block:: python
 
             ...
-            return [y1_t, y2_t], {x:x+1}, theano.scan_module.until(x < 50)
+            return [y1_t, y2_t], {x:x+1}, until(x < 50)
 
         Note that a number of steps (considered in here as the maximum
         number of steps ) is still required even though a condition is
@@ -576,7 +539,7 @@ def scan(
     for seq in scan_seqs:
         lengths_vec.append(seq.shape[0])
 
-    if not scan_utils.isNaN_or_Inf_or_None(n_steps):
+    if not utils.isNaN_or_Inf_or_None(n_steps):
         # ^ N_steps should also be considered
         lengths_vec.append(tt.as_tensor(n_steps))
 
@@ -591,7 +554,7 @@ def scan(
 
     # If the user has provided the number of steps, do that regardless ( and
     # raise an error if the sequences are not long enough )
-    if scan_utils.isNaN_or_Inf_or_None(n_steps):
+    if utils.isNaN_or_Inf_or_None(n_steps):
         actual_n_steps = lengths_vec[0]
         for contestant in lengths_vec[1:]:
             actual_n_steps = tt.minimum(actual_n_steps, contestant)
@@ -671,7 +634,7 @@ def scan(
             # the initial state over. We do this using the expand function
             # defined in scan utils
             sit_sot_scan_inputs.append(
-                scan_utils.expand_empty(
+                utils.expand_empty(
                     tt.unbroadcast(tt.shape_padleft(actual_arg), 0),
                     actual_n_steps,
                 )
@@ -695,7 +658,7 @@ def scan(
             mit_sot_tap_array.append(init_out["taps"])
             # Sequence
             mit_sot_scan_inputs.append(
-                scan_utils.expand_empty(init_out["initial"][:mintap], actual_n_steps)
+                utils.expand_empty(init_out["initial"][:mintap], actual_n_steps)
             )
 
             if i in return_steps:
@@ -783,7 +746,7 @@ def scan(
     # when we apply the lambda expression we get a mixture of update rules
     # and outputs that needs to be separated
 
-    condition, outputs, updates = scan_utils.get_updates_and_outputs(fn(*args))
+    condition, outputs, updates = utils.get_updates_and_outputs(fn(*args))
     if condition is not None:
         as_while = True
     else:
@@ -838,7 +801,7 @@ def scan(
     if condition is not None:
         outputs.append(condition)
     fake_nonseqs = [x.type() for x in non_seqs]
-    fake_outputs = scan_utils.clone(
+    fake_outputs = utils.clone(
         outputs, replace=OrderedDict(zip(non_seqs, fake_nonseqs))
     )
     all_inputs = filter(
@@ -927,7 +890,7 @@ def scan(
             if isinstance(new_var.type, ops.expandable_types):
                 sit_sot_inner_inputs.append(new_var)
                 sit_sot_scan_inputs.append(
-                    scan_utils.expand_empty(
+                    utils.expand_empty(
                         tt.unbroadcast(tt.shape_padleft(input.variable), 0),
                         actual_n_steps,
                     )
@@ -1065,7 +1028,7 @@ def scan(
     else:
         new_givens = givens
 
-    new_outs = scan_utils.clone(inner_outs, replace=new_givens)
+    new_outs = utils.clone(inner_outs, replace=new_givens)
 
     ##
     # Step 7. Create the Scan Op
@@ -1095,7 +1058,7 @@ def scan(
     info["allow_gc"] = allow_gc
     info["strict"] = strict
 
-    local_op = scan_op.Scan(inner_inputs, new_outs, info)
+    local_op = Scan(inner_inputs, new_outs, info)
 
     ##
     # Step 8. Compute the outputs using the scan op

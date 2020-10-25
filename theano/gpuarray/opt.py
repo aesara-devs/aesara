@@ -153,7 +153,9 @@ from theano.ifelse import IfElse
 from theano.misc.ordered_set import OrderedSet
 from theano.scalar.basic import Cast, Pow, Scalar, log, neg, true_div
 from theano.scalar.basic_scipy import Erfcinv, Erfinv
-from theano.scan_module import scan_op, scan_opt, scan_utils
+from theano.scan import utils
+from theano.scan.op import Scan
+from theano.scan.opt import ScanInplaceOptimizer
 from theano.tensor.nnet import bn, conv3d2d
 from theano.tensor.nnet.abstract_conv import (
     AbstractConv2d,
@@ -2600,13 +2602,13 @@ def gpu_reconstruct_graph(inputs, outputs, tag=None):
     givens = {}
     for nw_x, x in zip(nw_inputs, inputs):
         givens[x] = nw_x
-    nw_outputs = scan_utils.clone(outputs, replace=givens)
+    nw_outputs = utils.clone(outputs, replace=givens)
     return (nw_inputs, nw_outputs)
 
 
 @register_opt("scan", "fast_compile")
-@op_lifter([scan_op.Scan])
-@register_opt2([scan_op.Scan], "fast_compile")
+@op_lifter([Scan])
+@register_opt2([Scan], "fast_compile")
 def local_gpua_scan_to_gpua(op, context_name, inputs, outputs):
     info = copy.deepcopy(op.info)
     if info.get("gpua", False):
@@ -2628,7 +2630,7 @@ def local_gpua_scan_to_gpua(op, context_name, inputs, outputs):
         scan_outs += [op.outputs[-1]]
     else:
         scan_outs = [safe_to_gpu(x, context_name) for x in op.outputs]
-    scan_outs = scan_utils.clone(
+    scan_outs = utils.clone(
         scan_outs, replace=list(zip(op.inputs, (safe_to_cpu(x) for x in scan_ins)))
     )
 
@@ -2645,9 +2647,9 @@ def local_gpua_scan_to_gpua(op, context_name, inputs, outputs):
             dtype=dtype, broadcastable=broadcastable, context_name=context_name
         )
 
-    nw_op = scan_op.Scan(
-        scan_ins, scan_outs, info, typeConstructor=typebuild
-    ).make_node(*nw_ins)
+    nw_op = Scan(scan_ins, scan_outs, info, typeConstructor=typebuild).make_node(
+        *nw_ins
+    )
     return nw_op.outputs
 
 
@@ -2916,7 +2918,7 @@ def local_gpu_ctc(op, context_name, inputs, outputs):
 # It will be added to fast_run if the GPU is enabled.
 optdb.register(
     "gpua_scanOp_make_inplace",
-    scan_opt.ScanInplaceOptimizer(typeInfer=_scan_type_infer, gpua_flag=True),
+    ScanInplaceOptimizer(typeInfer=_scan_type_infer, gpua_flag=True),
     75,
     "gpuarray",
     "inplace",
