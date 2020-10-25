@@ -533,11 +533,9 @@ class ReplaceValidate(History, Validator):
         if verbose is None:
             verbose = config.optimizer_verbose
         if config.scan.debug:
-            scans = [
-                n
-                for n in fgraph.apply_nodes
-                if isinstance(n.op, theano.scan_module.scan_op.Scan)
-            ]
+            from theano.scan.op import Scan
+
+            scans = [n for n in fgraph.apply_nodes if isinstance(n.op, Scan)]
 
         for r, new_r in replacements:
             try:
@@ -581,11 +579,9 @@ class ReplaceValidate(History, Validator):
                 )
             raise
         if config.scan.debug:
-            scans2 = [
-                n
-                for n in fgraph.apply_nodes
-                if isinstance(n.op, theano.scan_module.scan_op.Scan)
-            ]
+            from theano.scan.op import Scan
+
+            scans2 = [n for n in fgraph.apply_nodes if isinstance(n.op, Scan)]
             nb = len(scans)
             nb2 = len(scans2)
             if nb2 > nb:

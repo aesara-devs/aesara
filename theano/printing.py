@@ -120,6 +120,8 @@ def debugprint(
     to the Apply's identifier, to indicate which output a line corresponds to.
 
     """
+    from theano.scan.op import Scan
+
     if not isinstance(depth, int):
         raise Exception("depth parameter must be an int")
     if file == "str":
@@ -202,9 +204,7 @@ N.B.:
 
     for r, p, s, o in zip(results_to_print, profile_list, smap, order):
         # Add the parent scan op to the list as well
-        if hasattr(r.owner, "op") and isinstance(
-            r.owner.op, theano.scan_module.scan_op.Scan
-        ):
+        if hasattr(r.owner, "op") and isinstance(r.owner.op, Scan):
             scan_ops.append(r)
 
         debugmode.debugprint(
@@ -265,7 +265,7 @@ N.B.:
             for idx, i in enumerate(outputs):
 
                 if hasattr(i, "owner") and hasattr(i.owner, "op"):
-                    if isinstance(i.owner.op, theano.scan_module.scan_op.Scan):
+                    if isinstance(i.owner.op, Scan):
                         scan_ops.append(i)
 
                 debugmode.debugprint(
@@ -804,6 +804,8 @@ def pydotprint(
         scan separately after the top level debugprint output.
 
     """
+    from theano.scan.op import Scan
+
     if colorCodes is None:
         colorCodes = default_colorCodes
 
@@ -1119,11 +1121,7 @@ def pydotprint(
         outfile += "." + format
 
     if scan_graphs:
-        scan_ops = [
-            (idx, x)
-            for idx, x in enumerate(topo)
-            if isinstance(x.op, theano.scan_module.scan_op.Scan)
-        ]
+        scan_ops = [(idx, x) for idx, x in enumerate(topo) if isinstance(x.op, Scan)]
         path, fn = os.path.split(outfile)
         basename = ".".join(fn.split(".")[:-1])
         # Safe way of doing things .. a file name may contain multiple .

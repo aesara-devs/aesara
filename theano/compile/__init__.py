@@ -1,4 +1,3 @@
-from theano.compile.builders import OpFromGraph, ops_with_inner_function
 from theano.compile.debugmode import DebugMode
 
 # This is for some backward compatibility

@@ -1777,8 +1777,8 @@ def verify_grad(
     Notes
     -----
     This function does not support multiple outputs. In
-    tests/test_scan.py there is an experimental verify_grad that
-    covers that case as well by using random projections.
+    tests/scan/test_basic.py there is an experimental `verify_grad` that covers
+    that case as well by using random projections.
 
     """
 

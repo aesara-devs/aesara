@@ -2,29 +2,22 @@ import numpy as np
 import pytest
 
 import theano
-import theano.gpuarray
 import theano.tensor as tt
-
-
-try:
-    from pygpu.gpuarray import GpuArrayException
-
-    PYGPU_AVAILABLE = True
-except ImportError:
-    PYGPU_AVAILABLE = False
+from theano.scan.basic import scan
+from theano.scan.checkpoints import scan_checkpoints
 
 
 class TestScanCheckpoint:
     def setup_method(self):
         self.k = tt.iscalar("k")
         self.A = tt.vector("A")
-        result, _ = theano.scan(
+        result, _ = scan(
             fn=lambda prior_result, A: prior_result * A,
             outputs_info=tt.ones_like(self.A),
             non_sequences=self.A,
             n_steps=self.k,
         )
-        result_check, _ = theano.scan_checkpoints(
+        result_check, _ = scan_checkpoints(
             fn=lambda prior_result, A: prior_result * A,
             outputs_info=tt.ones_like(self.A),
             non_sequences=self.A,
@@ -52,34 +45,7 @@ class TestScanCheckpoint:
         out, out_check = f(range(10), 101)
         assert np.allclose(out, out_check)
 
-    @pytest.mark.skipif(~PYGPU_AVAILABLE, reason="Requires pygpu.")
-    @pytest.mark.skipif(
-        None not in theano.gpuarray.type.list_contexts(),
-        reason="Requires gpuarray backend.",
-    )
-    def test_memory(self):
-        from tests.gpuarray.config import mode_with_gpu  # noqa
-
-        f = theano.function(
-            inputs=[self.A, self.k], outputs=self.grad_A, mode=mode_with_gpu
-        )
-        f_check = theano.function(
-            inputs=[self.A, self.k], outputs=self.grad_A_check, mode=mode_with_gpu
-        )
-        free_gmem = theano.gpuarray.type._context_reg[None].free_gmem
-        data = np.ones(free_gmem // 3000, dtype=np.float32)
-        # Check that it works with the checkpoints
-        size = 1000
-        if isinstance(mode_with_gpu, theano.compile.DebugMode):
-            size = 100
-        f_check(data, size)
-        # Check that the basic scan fails in that case
-        # Skip that check in DebugMode, as it can fail in different ways
-        if not isinstance(mode_with_gpu, theano.compile.DebugMode):
-            with pytest.raises(GpuArrayException):
-                f(data, 1000)
-
     def test_taps_error(self):
         # Test that an error rises if we use taps in outputs_info.
         with pytest.raises(RuntimeError):
-            theano.scan_checkpoints(lambda: None, [], {"initial": self.A, "taps": [-2]})
+            scan_checkpoints(lambda: None, [], {"initial": self.A, "taps": [-2]})
