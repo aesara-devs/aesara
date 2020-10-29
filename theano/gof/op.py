@@ -5,6 +5,7 @@ The `Op` class is the base interface for all operations
 compatible with `gof`'s :doc:`graph` routines.
 
 """
+import copy
 import inspect
 import logging
 import os
@@ -98,7 +99,7 @@ def compute_test_value(node):
             destroyed_inputs_idx.update(i_pos_list)
     for inp_idx in destroyed_inputs_idx:
         inp = node.inputs[inp_idx]
-        storage_map[inp] = [storage_map[inp][0].copy()]
+        storage_map[inp] = [copy.copy(storage_map[inp][0])]
 
     # Prepare `storage_map` and `compute_map` for the outputs
     for o in node.outputs:

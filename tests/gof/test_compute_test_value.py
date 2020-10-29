@@ -6,8 +6,14 @@ import pytest
 import theano
 import theano.tensor as tt
 from theano import config, scalar
-from theano.gof import Apply, Op, utils
+from theano.gof import Apply, Op, Type, utils
 from theano.tensor.basic import _allclose
+
+
+@pytest.fixture(scope="module", autouse=True)
+def set_theano_flags():
+    with theano.change_flags(compute_test_value="raise"):
+        yield
 
 
 # Used in TestComputeTestValue.test_no_perform
@@ -33,7 +39,36 @@ class IncOneC(Op):
 
 
 class TestComputeTestValue:
-    @theano.change_flags(compute_test_value="raise")
+    def test_destroy_map(self):
+        class SomeType(Type):
+            def filter(self, data, strict=False, allow_downcast=None):
+                return data
+
+        class InplaceOp(Op):
+            __props__ = ()
+
+            def __init__(self, inplace):
+                if inplace:
+                    self.destroy_map = {0: [0]}
+
+                super().__init__()
+
+            def make_node(self, input):
+                return Apply(self, [input], [input.type()])
+
+            def perform(self, node, inputs, outputs):
+                outputs[0][0] = inputs[0]
+
+        test_input = SomeType()()
+        orig_object = object()
+        test_input.tag.test_value = orig_object
+
+        res = InplaceOp(False)(test_input)
+        assert res.tag.test_value is orig_object
+
+        res = InplaceOp(True)(test_input)
+        assert res.tag.test_value is not orig_object
+
     def test_variable_only(self):
         x = tt.matrix("x")
         x.tag.test_value = np.random.rand(3, 4).astype(config.floatX)
@@ -51,7 +86,6 @@ class TestComputeTestValue:
         with pytest.raises(ValueError):
             tt.dot(x, y)
 
-    @theano.change_flags(compute_test_value="raise")
     def test_compute_flag(self):
         x = tt.matrix("x")
         y = tt.matrix("y")
@@ -79,7 +113,6 @@ class TestComputeTestValue:
             # Theano drops support of Python 2.4 and 2.5.
             warnings.simplefilter("default", UserWarning)
 
-    @theano.change_flags(compute_test_value="raise")
     def test_string_var(self):
         x = tt.matrix("x")
         x.tag.test_value = np.random.rand(3, 4).astype(config.floatX)
@@ -102,7 +135,6 @@ class TestComputeTestValue:
         with pytest.raises(ValueError):
             f(x, y, z)
 
-    @theano.change_flags(compute_test_value="raise")
     def test_shared(self):
         x = tt.matrix("x")
         x.tag.test_value = np.random.rand(3, 4).astype(config.floatX)
@@ -119,7 +151,6 @@ class TestComputeTestValue:
         with pytest.raises(ValueError):
             tt.dot(x, y)
 
-    @theano.change_flags(compute_test_value="raise")
     def test_ndarray(self):
         x = np.random.rand(2, 3).astype(config.floatX)
         y = theano.shared(np.random.rand(3, 6).astype(config.floatX), "y")
@@ -135,7 +166,6 @@ class TestComputeTestValue:
         with pytest.raises(ValueError):
             tt.dot(x, y)
 
-    @theano.change_flags(compute_test_value="raise")
     def test_empty_elemwise(self):
         x = theano.shared(np.random.rand(0, 6).astype(config.floatX), "x")
 
@@ -145,7 +175,6 @@ class TestComputeTestValue:
         f = theano.function([], z)
         assert _allclose(f(), z.tag.test_value)
 
-    @theano.change_flags(compute_test_value="raise")
     def test_constant(self):
         x = tt.constant(np.random.rand(2, 3), dtype=config.floatX)
         y = theano.shared(np.random.rand(3, 6).astype(config.floatX), "y")
@@ -161,7 +190,6 @@ class TestComputeTestValue:
         with pytest.raises(ValueError):
             tt.dot(x, y)
 
-    @theano.change_flags(compute_test_value="raise")
     def test_incorrect_type(self):
 
         x = tt.vector("x")
@@ -174,7 +202,6 @@ class TestComputeTestValue:
             # Incorrect dtype (float64) for test value
             x.tag.test_value = np.random.rand(3, 4)
 
-    @theano.change_flags(compute_test_value="raise")
     def test_overided_function(self):
         # We need to test those as they mess with Exception
         # And we don't want the exception to be changed.
@@ -185,7 +212,6 @@ class TestComputeTestValue:
         with pytest.raises(ValueError):
             x.__mul__(y)
 
-    @theano.change_flags(compute_test_value="raise")
     def test_scan(self):
         # Test the compute_test_value mechanism Scan.
         k = tt.iscalar("k")
@@ -207,7 +233,6 @@ class TestComputeTestValue:
         final_result = result[-1]
         assert hasattr(final_result.tag, "test_value")
 
-    @theano.change_flags(compute_test_value="raise")
     def test_scan_err1(self):
         # This test should fail when building fx for the first time
         k = tt.iscalar("k")
@@ -225,7 +250,6 @@ class TestComputeTestValue:
         # We should be in the "fx" function defined above
         assert e.traceback[2].name == "fx"
 
-    @theano.change_flags(compute_test_value="raise")
     def test_scan_err2(self):
         # This test should not fail when building fx for the first time,
         # but when calling the scan's perform()
@@ -247,7 +271,6 @@ class TestComputeTestValue:
                 fn=fx, outputs_info=tt.ones_like(A.T), non_sequences=A, n_steps=k
             )
 
-    @theano.change_flags(compute_test_value="raise")
     def test_no_c_code(self):
         class IncOnePython(Op):
             """
@@ -281,7 +304,6 @@ class TestComputeTestValue:
     @pytest.mark.skipif(
         not theano.config.cxx, reason="G++ not available, so we need to skip this test."
     )
-    @theano.change_flags(compute_test_value="raise")
     def test_no_perform(self):
         i = scalar.int32("i")
         i.tag.test_value = 3
@@ -297,7 +319,6 @@ class TestComputeTestValue:
         assert hasattr(o.tag, "test_value")
         assert o.tag.test_value == 4
 
-    @theano.change_flags(compute_test_value="raise")
     def test_disabled_during_compilation(self):
         # We test that it is disabled when we include deep copy in the code
         # This don't test that it is disabled during optimization, but the code do it.
