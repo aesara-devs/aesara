@@ -5,7 +5,7 @@ import collections
 import functools
 import operator
 
-from theano.compat import Mapping
+from collections.abc import Mapping
 
 
 class frozendict(Mapping):
