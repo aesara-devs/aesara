@@ -1,10 +1,10 @@
 import sys
 import traceback
 from copy import copy, deepcopy
+from io import StringIO
 from sys import getsizeof
 
 import numpy as np
-from io import StringIO
 
 import theano
 from theano.gof import graph, utils

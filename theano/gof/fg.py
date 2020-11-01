@@ -6,7 +6,6 @@ types that it can raise.
 """
 import time
 from collections import OrderedDict
-
 from io import StringIO
 
 import theano

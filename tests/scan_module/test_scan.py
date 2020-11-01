@@ -1,4 +1,5 @@
 import os
+import pickle
 import shutil
 import sys
 import time
@@ -7,7 +8,6 @@ from tempfile import mkdtemp
 
 import numpy as np
 import pytest
-import pickle
 
 import theano
 import theano.sandbox.rng_mrg

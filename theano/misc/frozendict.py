@@ -4,7 +4,6 @@
 import collections
 import functools
 import operator
-
 from collections.abc import Mapping
 
 

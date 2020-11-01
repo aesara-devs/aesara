@@ -6,11 +6,11 @@ help make new Ops more rapidly.
 """
 
 import copy
+import pickle
 import warnings
 from collections import OrderedDict
 
 import numpy as np
-import pickle
 
 import theano
 from theano.gof import Apply, Op, ParamsType, Variable

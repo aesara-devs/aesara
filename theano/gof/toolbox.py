@@ -4,9 +4,9 @@ import sys
 import time
 from collections import OrderedDict
 from functools import partial
+from io import StringIO
 
 import numpy as np
-from io import StringIO
 
 import theano
 from theano import config

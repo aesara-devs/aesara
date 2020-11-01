@@ -1,10 +1,10 @@
 import copy
 import logging
 import time
+from io import StringIO
 
 import numpy as np
 import pytest
-from io import StringIO
 
 import theano
 import theano.scalar as scal

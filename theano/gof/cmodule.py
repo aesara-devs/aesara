@@ -6,6 +6,7 @@ import atexit
 import distutils.sysconfig
 import logging
 import os
+import pickle
 import platform
 import re
 import shutil
@@ -16,20 +17,19 @@ import tempfile
 import textwrap
 import time
 import warnings
+from io import BytesIO, StringIO
 
 import numpy.distutils
-import pickle
-from io import BytesIO, StringIO
 
 import theano
 from theano import config
-from theano.utils import decode, decode_iter
 from theano.configdefaults import gcc_version_str, local_bitwidth
 
 # we will abuse the lockfile mechanism when reading and writing the registry
 from theano.gof import compilelock
 from theano.gof.utils import flatten, hash_from_code
 from theano.misc.windows import output_subprocess_Popen, subprocess_Popen
+from theano.utils import decode, decode_iter
 
 
 importlib = None

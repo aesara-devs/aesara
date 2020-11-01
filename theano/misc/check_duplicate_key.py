@@ -1,7 +1,6 @@
 import os
-import sys
-
 import pickle
+import sys
 
 import theano
 

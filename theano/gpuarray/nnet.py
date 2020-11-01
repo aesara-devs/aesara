@@ -1,5 +1,6 @@
-import numpy as np
 from io import StringIO
+
+import numpy as np
 
 from theano import Apply, Op
 

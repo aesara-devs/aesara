@@ -1,8 +1,9 @@
 # Test of memory profiling
 
 
-import numpy as np
 from io import StringIO
+
+import numpy as np
 
 import theano
 import theano.tensor as tt

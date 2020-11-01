@@ -1,10 +1,10 @@
 import logging
 import sys
+from io import StringIO
 
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
-from io import StringIO
 
 import theano
 import theano.scalar as scal

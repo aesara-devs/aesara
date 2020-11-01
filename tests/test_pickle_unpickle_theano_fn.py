@@ -12,10 +12,10 @@ The config option is in configdefaults.py
 
 This note is written by Li Yao.
 """
+import pickle
 from collections import OrderedDict
 
 import numpy as np
-import pickle
 
 import theano
 import theano.tensor as tt

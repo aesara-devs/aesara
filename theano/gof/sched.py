@@ -1,7 +1,7 @@
 from collections import defaultdict
 
-from theano.utils import cmp
 from theano.gof.graph import list_of_nodes
+from theano.utils import cmp
 
 
 # {{{ http://code.activestate.com/recipes/578231/ (r1)

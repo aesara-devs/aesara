@@ -1,9 +1,9 @@
 import logging
 import os
+import pickle
 import shutil
 
 import numpy as np
-import pickle
 
 import theano
 from theano import config

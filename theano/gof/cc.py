@@ -6,9 +6,9 @@ import logging
 import os
 import sys
 from copy import copy
+from io import StringIO
 
 import numpy as np
-from io import StringIO
 
 import theano
 from theano import config

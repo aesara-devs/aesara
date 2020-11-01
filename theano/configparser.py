@@ -3,6 +3,7 @@
 # We also accept the bool type as its corresponding value!
 
 
+import configparser as ConfigParser
 import logging
 import os
 import shlex
@@ -12,7 +13,6 @@ from functools import wraps
 from io import StringIO
 
 import theano
-import configparser as ConfigParser
 
 
 _logger = logging.getLogger("theano.configparser")

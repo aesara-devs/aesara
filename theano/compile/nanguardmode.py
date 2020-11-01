@@ -1,12 +1,12 @@
 import logging
+from collections.abc import ValuesView
+from io import StringIO
 
 import numpy as np
-from io import StringIO
 
 import theano
 import theano.tensor as tt
 from theano import config
-from collections.abc import ValuesView
 from theano.compile.mode import Mode, get_mode
 
 

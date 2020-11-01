@@ -10,15 +10,14 @@ import copy
 import gc
 import logging
 import sys
+from io import StringIO
 from itertools import chain
 from itertools import product as itertools_product
 
 import numpy as np
-from io import StringIO
 
 import theano
 from theano import change_flags, config, gof
-from theano.utils import get_unbound_function
 from theano.compile.function_module import (
     Function,
     FunctionMaker,
@@ -29,6 +28,7 @@ from theano.compile.mode import Mode, register_mode
 from theano.compile.ops import OutputGuard, _output_guard
 from theano.gof import graph, link, ops_with_inner_function, utils
 from theano.gof.link import raise_with_op
+from theano.utils import get_unbound_function
 
 
 __docformat__ = "restructuredtext en"

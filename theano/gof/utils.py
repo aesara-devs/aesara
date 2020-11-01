@@ -1,9 +1,9 @@
 import linecache
 import sys
 import traceback
+from io import StringIO
 
 import numpy as np
-from io import StringIO
 
 from theano import config
 

@@ -12,7 +12,6 @@ import warnings
 import numpy as np
 
 import theano
-from theano.utils import maybe_add_to_os_environ_pathlist
 from theano.configparser import (
     THEANO_FLAGS_DICT,
     AddConfigVar,
@@ -26,6 +25,7 @@ from theano.configparser import (
 )
 from theano.misc.cpucount import cpuCount
 from theano.misc.windows import call_subprocess_Popen, output_subprocess_Popen
+from theano.utils import maybe_add_to_os_environ_pathlist
 
 
 _logger = logging.getLogger("theano.configdefaults")

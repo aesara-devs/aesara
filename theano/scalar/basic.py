@@ -12,11 +12,11 @@ you probably want to use theano.tensor.[c,z,f,d,b,w,i,l,]scalar!
 
 import math
 import warnings
+from collections.abc import Callable
 from copy import copy
 from functools import partial
 from itertools import chain
 from textwrap import dedent
-from collections.abc import Callable
 
 import numpy as np
 

@@ -1,5 +1,4 @@
 from theano import tensor
-from theano.utils import cmp
 from theano.gof.graph import io_toposort
 from theano.gof.sched import (
     _toposort,
@@ -8,6 +7,7 @@ from theano.gof.sched import (
     reverse_dict,
     sort_apply_nodes,
 )
+from theano.utils import cmp
 
 
 def test_dependence():

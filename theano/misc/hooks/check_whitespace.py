@@ -22,8 +22,9 @@ except ImportError:
         " You can install it with this command 'pip install argparse'"
     )
 
-import reindent
 from io import StringIO
+
+import reindent
 
 
 SKIP_WHITESPACE_CHECK_FILENAME = ".hg/skip_whitespace_check"
