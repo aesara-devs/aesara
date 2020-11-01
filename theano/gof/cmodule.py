@@ -1878,7 +1878,10 @@ class Compiler:
                 path = '"' + path + '"'
                 exe_path = '"' + exe_path + '"'
             try:
-                src_code = src_code.encode()  # Convert string to bytes
+                try:
+                    src_code = src_code.encode()
+                except AttributeError:  # src_code was already bytes
+                    pass
                 os.write(fd, src_code)
                 os.close(fd)
                 fd = None
