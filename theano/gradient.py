@@ -1935,7 +1935,6 @@ class GradientError(Exception):
     def __init__(
         self, arg, err_pos, shape, val1, val2, abs_err, rel_err, abs_tol, rel_tol
     ):
-        Exception.__init__(self)  # to be compatible with python2.4
         self.arg = arg
         self.err_pos = err_pos
         self.shape = shape
