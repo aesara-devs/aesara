@@ -1656,7 +1656,9 @@ class CLinker(link.Linker):
             {struct_name} *self = ({struct_name} *)PyCapsule_GetContext(capsule);
             delete self;
         }}
-    """.format(struct_name=self.struct_name)
+    """.format(
+                struct_name=self.struct_name
+            )
 
             # We add all the support code, compile args, headers and libs we need.
             for support_code in self.support_code() + self.c_support_code_apply:
@@ -1753,7 +1755,8 @@ class CLinker(link.Linker):
         print("    delete struct_ptr;", file=code)
         print("    return NULL;", file=code)
         print("  }", file=code)
-        print("""\
+        print(
+            """\
     PyObject* thunk = PyCapsule_New((void*)(&{struct_name}_executor), NULL, {struct_name}_destructor);
     if (thunk != NULL && PyCapsule_SetContext(thunk, struct_ptr) != 0) {{
         PyErr_Clear();

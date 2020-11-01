@@ -599,6 +599,7 @@ def remove(predicate, coll):
 
 import hashlib
 
+
 def hash_from_code(msg):
     # hashlib.sha256() requires an object that supports buffer interface,
     # but Python 3 (unicode) strings don't.

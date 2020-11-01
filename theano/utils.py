@@ -53,7 +53,6 @@ def decode_with(x, encoding):
     return x.decode(encoding)
 
 
-
 class DefaultOrderedDict(OrderedDict):
     def __init__(self, default_factory=None, *a, **kw):
         if default_factory is not None and not isinstance(default_factory, Callable):
@@ -111,4 +110,3 @@ def maybe_add_to_os_environ_pathlist(var, newpath):
                 os.environ[var] = newpaths
         except Exception:
             pass
-
