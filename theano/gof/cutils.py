@@ -3,7 +3,6 @@ import os
 import sys
 
 from theano import config
-from theano.compat import PY3
 from theano.gof.compilelock import get_lock, release_lock
 
 from . import cmodule
@@ -49,35 +48,26 @@ def compile_cutils():
              "Run a theano cthunk."},
             {NULL, NULL, 0, NULL}        /* Sentinel */
         };"""
-    if PY3:
-        # This is not the most efficient code, but it is written this way to
-        # highlight the changes needed to make 2.x code compile under python 3.
-        code = code.replace("<Python.h>", '"numpy/npy_3kcompat.h"', 1)
-        code = code.replace("PyCObject", "NpyCapsule")
-        code += """
-        static struct PyModuleDef moduledef = {
-            PyModuleDef_HEAD_INIT,
-            "cutils_ext",
-            NULL,
-            -1,
-            CutilsExtMethods,
-        };
 
-        PyMODINIT_FUNC
-        PyInit_cutils_ext(void) {
-            return PyModule_Create(&moduledef);
-        }
-        }
-        """
-    else:
-        code += """
-        PyMODINIT_FUNC
-        initcutils_ext(void)
-        {
-          (void) Py_InitModule("cutils_ext", CutilsExtMethods);
-        }
-    } //extern C
-        """
+    # This is not the most efficient code, but it is written this way to
+    # highlight the changes needed to make 2.x code compile under python 3.
+    code = code.replace("<Python.h>", '"numpy/npy_3kcompat.h"', 1)
+    code = code.replace("PyCObject", "NpyCapsule")
+    code += """
+    static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "cutils_ext",
+        NULL,
+        -1,
+        CutilsExtMethods,
+    };
+
+    PyMODINIT_FUNC
+    PyInit_cutils_ext(void) {
+        return PyModule_Create(&moduledef);
+    }
+    }
+    """
 
     loc = os.path.join(config.compiledir, "cutils_ext")
     if not os.path.exists(loc):

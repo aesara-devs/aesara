@@ -5,7 +5,7 @@ import sys
 from six import StringIO
 
 from theano import config
-from theano.compat import DefaultOrderedDict
+from theano.utils import DefaultOrderedDict
 from theano.gof import opt
 from theano.misc.ordered_set import OrderedSet
 

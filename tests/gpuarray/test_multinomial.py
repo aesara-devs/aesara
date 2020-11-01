@@ -8,7 +8,6 @@ import tests.unittest_tools as utt
 import theano
 from tests.gpuarray.config import mode_with_gpu
 from theano import config, function, tensor
-from theano.compat import PY3
 from theano.gpuarray.multinomial import (
     GPUAChoiceFromUniform,
     GPUAMultinomialFromUniform,
@@ -378,9 +377,3 @@ def test_gpu_opt_wor():
 def test_unpickle_legacy_op():
     testfile_dir = os.path.dirname(os.path.realpath(__file__))
     fname = "test_gpuarray_multinomial_wo_replacement.pkl"
-
-    if not PY3:
-        with open(os.path.join(testfile_dir, fname)) as fp:
-            u = Unpickler(fp)
-            m = u.load()
-            assert isinstance(m, GPUAChoiceFromUniform)

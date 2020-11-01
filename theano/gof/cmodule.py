@@ -149,38 +149,28 @@ class DynamicModule:
         print("};", file=stream)
 
     def print_init(self, stream):
-        if PY3:
-            print(
-                """\
+        print(
+            """\
 static struct PyModuleDef moduledef = {{
-      PyModuleDef_HEAD_INIT,
-      "{name}",
-      NULL,
-      -1,
-      MyMethods,
+  PyModuleDef_HEAD_INIT,
+  "{name}",
+  NULL,
+  -1,
+  MyMethods,
 }};
 """.format(
-                    name=self.hash_placeholder
-                ),
-                file=stream,
-            )
-            print(
-                ("PyMODINIT_FUNC PyInit_%s(void) {" % self.hash_placeholder),
-                file=stream,
-            )
-            for block in self.init_blocks:
-                print("  ", block, file=stream)
-            print("    PyObject *m = PyModule_Create(&moduledef);", file=stream)
-            print("    return m;", file=stream)
-        else:
-            print(("PyMODINIT_FUNC init%s(void){" % self.hash_placeholder), file=stream)
-            for block in self.init_blocks:
-                print("  ", block, file=stream)
-            print(
-                "  ",
-                ('(void) Py_InitModule("%s", MyMethods);' % self.hash_placeholder),
-                file=stream,
-            )
+                name=self.hash_placeholder
+            ),
+            file=stream,
+        )
+        print(
+            ("PyMODINIT_FUNC PyInit_%s(void) {" % self.hash_placeholder),
+            file=stream,
+        )
+        for block in self.init_blocks:
+            print("  ", block, file=stream)
+        print("    PyObject *m = PyModule_Create(&moduledef);", file=stream)
+        print("    return m;", file=stream)
         print("}", file=stream)
 
     def add_include(self, str):
