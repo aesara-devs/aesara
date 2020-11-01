@@ -23,7 +23,7 @@ except ImportError:
     )
 
 import reindent
-from six import StringIO
+from io import StringIO
 
 
 SKIP_WHITESPACE_CHECK_FILENAME = ".hg/skip_whitespace_check"

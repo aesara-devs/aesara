@@ -7,7 +7,7 @@ from tempfile import mkdtemp
 
 import numpy as np
 import pytest
-import six.moves.cPickle as pickle
+import pickle
 
 import theano
 import theano.sandbox.rng_mrg

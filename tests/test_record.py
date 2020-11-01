@@ -1,4 +1,4 @@
-from six.moves import StringIO
+from io import StringIO
 
 from tests.record import MismatchError, Record, RecordMode
 from theano import function

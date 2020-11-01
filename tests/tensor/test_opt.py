@@ -4,7 +4,7 @@ import time
 
 import numpy as np
 import pytest
-from six import StringIO
+from io import StringIO
 
 import theano
 import theano.scalar as scal

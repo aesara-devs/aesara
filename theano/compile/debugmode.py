@@ -14,7 +14,7 @@ from itertools import chain
 from itertools import product as itertools_product
 
 import numpy as np
-from six.moves import StringIO
+from io import StringIO
 
 import theano
 from theano import change_flags, config, gof

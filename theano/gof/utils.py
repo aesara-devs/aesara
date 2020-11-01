@@ -3,7 +3,7 @@ import sys
 import traceback
 
 import numpy as np
-from six.moves import StringIO
+from io import StringIO
 
 from theano import config
 

@@ -10,7 +10,7 @@ import warnings
 from collections import OrderedDict
 
 import numpy as np
-import six.moves.cPickle as pickle
+import pickle
 
 import theano
 from theano.gof import Apply, Op, ParamsType, Variable

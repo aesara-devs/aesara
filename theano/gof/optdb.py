@@ -2,7 +2,7 @@ import copy
 import math
 import sys
 
-from six import StringIO
+from io import StringIO
 
 from theano import config
 from theano.utils import DefaultOrderedDict

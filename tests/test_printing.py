@@ -5,7 +5,7 @@ import logging
 
 import numpy as np
 import pytest
-from six.moves import StringIO
+from io import StringIO
 
 import theano
 import theano.tensor as tensor

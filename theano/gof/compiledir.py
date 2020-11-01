@@ -3,7 +3,7 @@ import os
 import shutil
 
 import numpy as np
-import six.moves.cPickle as pickle
+import pickle
 
 import theano
 from theano import config

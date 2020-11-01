@@ -15,7 +15,7 @@ This note is written by Li Yao.
 from collections import OrderedDict
 
 import numpy as np
-import six.moves.cPickle as pickle
+import pickle
 
 import theano
 import theano.tensor as tt

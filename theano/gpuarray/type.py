@@ -3,7 +3,7 @@ import sys
 import warnings
 
 import numpy as np
-import six.moves.copyreg as copyreg
+import copyreg
 
 import theano
 from theano import Constant, Type, Variable, config, scalar, tensor

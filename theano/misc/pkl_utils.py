@@ -16,7 +16,7 @@ from contextlib import closing
 from pickle import HIGHEST_PROTOCOL
 
 import numpy as np
-from six import BytesIO
+from io import BytesIO
 
 import theano
 

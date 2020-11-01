@@ -2,7 +2,7 @@ from itertools import product
 
 import numpy as np
 import pytest
-import six.moves.builtins as builtins
+import builtins
 
 import theano
 import theano.tensor as tensor

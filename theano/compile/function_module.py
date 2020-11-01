@@ -10,8 +10,8 @@ import warnings
 from itertools import chain
 
 import numpy as np
-import six.moves.copyreg as copyreg
-import six.moves.cPickle as pickle
+import copyreg
+import pickle
 
 import theano
 import theano.compile.profiling

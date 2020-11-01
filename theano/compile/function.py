@@ -54,9 +54,9 @@ def function_dump(
 
     To load such a dump and do the compilation:
 
-    >>> from six.moves import cPickle
+    >>> import pickle
     >>> import theano
-    >>> d = cPickle.load(open("func_dump.bin", "rb"))  # doctest: +SKIP
+    >>> d = pickle.load(open("func_dump.bin", "rb"))  # doctest: +SKIP
     >>> f = theano.function(**d)  # doctest: +SKIP
 
     Note:

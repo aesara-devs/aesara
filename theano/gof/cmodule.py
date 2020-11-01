@@ -18,8 +18,8 @@ import time
 import warnings
 
 import numpy.distutils
-import six.moves.cPickle as pickle
-from six import BytesIO, StringIO, b
+import pickle
+from io import BytesIO, StringIO
 
 import theano
 from theano import config
@@ -1878,11 +1878,6 @@ class Compiler:
                 path = '"' + path + '"'
                 exe_path = '"' + exe_path + '"'
             try:
-                # Python3 compatibility: try to cast Py3 strings as Py2 strings
-                try:
-                    src_code = b(src_code)
-                except Exception:
-                    pass
                 os.write(fd, src_code)
                 os.close(fd)
                 fd = None

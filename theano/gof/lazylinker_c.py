@@ -4,7 +4,7 @@ import os
 import sys
 import warnings
 
-from six.moves import reload_module as reload
+from importlib import reload
 
 import theano
 from theano import config

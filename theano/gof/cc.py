@@ -8,7 +8,7 @@ import sys
 from copy import copy
 
 import numpy as np
-from six.moves import StringIO
+from io import StringIO
 
 import theano
 from theano import config

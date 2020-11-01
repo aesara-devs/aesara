@@ -4,7 +4,7 @@ from copy import copy, deepcopy
 from sys import getsizeof
 
 import numpy as np
-from six.moves import StringIO
+from io import StringIO
 
 import theano
 from theano.gof import graph, utils

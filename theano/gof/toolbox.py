@@ -6,7 +6,7 @@ from collections import OrderedDict
 from functools import partial
 
 import numpy as np
-from six.moves import StringIO
+from io import StringIO
 
 import theano
 from theano import config

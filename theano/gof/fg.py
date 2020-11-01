@@ -7,7 +7,7 @@ types that it can raise.
 import time
 from collections import OrderedDict
 
-from six.moves import StringIO
+from io import StringIO
 
 import theano
 from theano import config

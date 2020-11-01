@@ -402,7 +402,7 @@ class SeqOptimizer(Optimizer, list):
                 new_sub_profile.append(None)
 
         # merge not common opt
-        from six import StringIO
+        from io import StringIO
 
         for l in set(prof1[0]).symmetric_difference(set(prof2[0])):
             # The set trick above only work for the same object optimization

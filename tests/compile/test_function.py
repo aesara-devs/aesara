@@ -4,7 +4,7 @@ import tempfile
 
 import numpy as np
 import pytest
-import six.moves.cPickle as pickle
+import pickle
 
 import theano
 from theano.compile.io import In
