@@ -1878,11 +1878,7 @@ class Compiler:
                 path = '"' + path + '"'
                 exe_path = '"' + exe_path + '"'
             try:
-                # Python3 compatibility: try to cast Py3 strings as Py2 strings
-                try:
-                    src_code = b(src_code)
-                except Exception:
-                    pass
+                src_code = src_code.encode()  # Convert string to bytes
                 os.write(fd, src_code)
                 os.close(fd)
                 fd = None
