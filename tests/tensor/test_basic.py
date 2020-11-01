@@ -69,7 +69,6 @@ from tests.tensor.utils import (
     upcast_int8_nfunc,
 )
 from theano import change_flags, compile, config, function, gof, shared
-from theano.compat import operator_div
 from theano.compile import DeepCopyOp
 from theano.compile.mode import get_default_mode
 from theano.scalar import autocast_float, autocast_float_as
@@ -5601,7 +5600,7 @@ class TestArithmeticCast:
                     operator.add,
                     operator.sub,
                     operator.mul,
-                    operator_div,
+                    operator.truediv,
                     operator.floordiv,
                 ):
                     for a_type in dtypes:
@@ -5611,7 +5610,7 @@ class TestArithmeticCast:
                             # Theano deals with integer division in its own
                             # special way (depending on `config.int_division`).
                             is_int_division = (
-                                op is operator_div
+                                op is operator.truediv
                                 and a_type in tt.discrete_dtypes
                                 and b_type in tt.discrete_dtypes
                             )
