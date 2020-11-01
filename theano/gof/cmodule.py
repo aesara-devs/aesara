@@ -23,7 +23,7 @@ from six import BytesIO, StringIO, b
 
 import theano
 from theano import config
-from theano.compat import PY3, decode, decode_iter
+from theano.utils import decode, decode_iter
 from theano.configdefaults import gcc_version_str, local_bitwidth
 
 # we will abuse the lockfile mechanism when reading and writing the registry

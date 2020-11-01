@@ -5,7 +5,7 @@ from locale import getpreferredencoding
 from optparse import OptionParser
 
 import theano
-from theano.compat import decode_with
+from theano.utils import decode_with
 
 
 console_encoding = getpreferredencoding()
