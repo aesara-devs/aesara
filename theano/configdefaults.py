@@ -12,7 +12,7 @@ import warnings
 import numpy as np
 
 import theano
-from theano.compat import maybe_add_to_os_environ_pathlist
+from theano.utils import maybe_add_to_os_environ_pathlist
 from theano.configparser import (
     THEANO_FLAGS_DICT,
     AddConfigVar,
