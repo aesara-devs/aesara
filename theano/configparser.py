@@ -9,11 +9,10 @@ import shlex
 import sys
 import warnings
 from functools import wraps
-
-from six import PY3, StringIO
+from io import StringIO
 
 import theano
-from theano.compat import configparser as ConfigParser
+import configparser as ConfigParser
 
 
 _logger = logging.getLogger("theano.configparser")
@@ -77,7 +76,7 @@ def config_files_from_theanorc():
 
 
 config_files = config_files_from_theanorc()
-theano_cfg = (ConfigParser.ConfigParser if PY3 else ConfigParser.SafeConfigParser)(
+theano_cfg = ConfigParser.ConfigParser(
     {
         "USER": os.getenv("USER", os.path.split(os.path.expanduser("~"))[-1]),
         "LSCRATCH": os.getenv("LSCRATCH", ""),

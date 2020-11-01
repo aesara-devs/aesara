@@ -1049,7 +1049,7 @@ class TestPicklefunction:
 
         f = theano.function([x], tt.dot(x, y))
 
-        from theano.compat import BytesIO
+        from io import BytesIO
 
         fp = BytesIO()
         p = pickle.Pickler(fp, 2)

@@ -16,7 +16,7 @@ import numpy as np
 
 import theano
 from theano import config
-from theano.compat import reload
+from importlib import reload
 from theano.gof import cmodule
 from theano.gof.compilelock import get_lock, release_lock
 
