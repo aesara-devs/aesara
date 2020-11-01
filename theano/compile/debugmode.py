@@ -18,7 +18,7 @@ from six.moves import StringIO
 
 import theano
 from theano import change_flags, config, gof
-from theano.compat import get_unbound_function
+from theano.utils import get_unbound_function
 from theano.compile.function_module import (
     Function,
     FunctionMaker,
