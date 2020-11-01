@@ -26,7 +26,7 @@ from collections import OrderedDict
 import numpy as np
 
 import theano
-from theano import compat, gof, scalar, tensor
+from theano import gof, scalar, tensor
 from theano.compile.pfunc import rebuild_collect_shared
 from theano.gof.utils import TestValueError
 from theano.tensor.basic import get_scalar_constant_value
@@ -486,7 +486,7 @@ def get_updates_and_outputs(ls):
     def is_updates(elem):
         if isinstance(elem, dict):
             # Make sure the updates will be applied in a deterministic order
-            if not isinstance(elem, compat.OrderedDict) and len(elem) > 1:
+            if not isinstance(elem, OrderedDict) and len(elem) > 1:
                 warnings.warn(
                     "Expected OrderedDict or OrderedUpdates, got "
                     + str(type(elem))
