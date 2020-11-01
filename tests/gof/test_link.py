@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 
 import theano
-from theano.compat import cmp
+from theano.utils import cmp
 from theano.gof import fg, graph
 from theano.gof.graph import Apply, Constant, Variable
 from theano.gof.link import Container, PerformLinker, WrapLinker

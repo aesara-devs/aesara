@@ -1,5 +1,5 @@
 from theano import tensor
-from theano.compat import cmp
+from theano.utils import cmp
 from theano.gof.graph import io_toposort
 from theano.gof.sched import (
     _toposort,
