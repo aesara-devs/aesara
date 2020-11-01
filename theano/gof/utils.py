@@ -1,9 +1,8 @@
+import hashlib
 import linecache
 import sys
 import traceback
 from io import StringIO
-
-import numpy as np
 
 from theano import config
 
@@ -595,9 +594,6 @@ def remove(predicate, coll):
 
     """
     return [x for x in coll if not predicate(x)]
-
-
-import hashlib
 
 
 def hash_from_code(msg):

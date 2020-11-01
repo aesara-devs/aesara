@@ -1941,7 +1941,7 @@ class Compiler:
         if not compiler:
             return False
 
-        code = b(
+        code = (
             """
         %(preambule)s
         int main(int argc, char** argv)
@@ -1951,7 +1951,7 @@ class Compiler:
         }
         """
             % locals()
-        )
+        ).encode()
         return cls._try_compile_tmp(
             code,
             tmp_prefix="try_flags_",

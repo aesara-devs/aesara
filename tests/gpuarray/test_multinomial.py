@@ -1,5 +1,4 @@
 import os
-from pickle import Unpickler
 
 import numpy as np
 import pytest
@@ -372,8 +371,3 @@ def test_gpu_opt_wor():
         pval = pval / pval.sum(axis=1)[:, None]
         uval = np.ones_like(pval[:, 0]) * 0.5
         f(pval, uval, 1)
-
-
-def test_unpickle_legacy_op():
-    testfile_dir = os.path.dirname(os.path.realpath(__file__))
-    fname = "test_gpuarray_multinomial_wo_replacement.pkl"
