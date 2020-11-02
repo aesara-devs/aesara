@@ -4924,6 +4924,17 @@ def get_vector_length(v):
         return len(v.owner.inputs)
     if v.owner and isinstance(v.owner.op, Shape):
         return v.owner.inputs[0].type.ndim
+
+    # We can skip `Op`s that don't affect the length, like unary `Elemwise`
+    # `Op`s
+    if (
+        v.owner
+        and isinstance(v.owner.op, theano.tensor.elemwise.Elemwise)
+        and len(v.owner.inputs) == 1
+        and len(v.owner.outputs) == 1
+    ):
+        return get_vector_length(v.owner.inputs[0])
+
     # If we take a slice, we know how many elements it will result in
     if (
         v.owner
