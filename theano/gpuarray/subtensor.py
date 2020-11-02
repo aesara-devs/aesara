@@ -1,5 +1,6 @@
+from io import StringIO
+
 import numpy as np
-from six.moves import StringIO
 
 import theano.tensor as tt
 from theano import Op, gof

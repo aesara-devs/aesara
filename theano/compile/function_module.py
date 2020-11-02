@@ -4,14 +4,14 @@ Driver of graph construction, optimization, and linking.
 """
 
 import copy
+import copyreg
 import logging
+import pickle
 import time
 import warnings
 from itertools import chain
 
 import numpy as np
-import six.moves.copyreg as copyreg
-import six.moves.cPickle as pickle
 
 import theano
 import theano.compile.profiling

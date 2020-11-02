@@ -68,8 +68,8 @@ def test_mpi_roundtrip():
     )
     (stdout, stderr) = p.communicate()
 
-    result = theano.compat.decode(stdout)
-    assert "True" in result, theano.compat.decode(stderr)
+    result = theano.utils.decode(stdout)
+    assert "True" in result, theano.utils.decode(stderr)
 
 
 def test_mpi_send_wait_cmp():

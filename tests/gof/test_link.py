@@ -3,12 +3,12 @@ from copy import deepcopy
 import numpy as np
 
 import theano
-from theano.compat import cmp
 from theano.gof import fg, graph
 from theano.gof.graph import Apply, Constant, Variable
 from theano.gof.link import Container, PerformLinker, WrapLinker
 from theano.gof.op import Op
 from theano.gof.type import Type
+from theano.utils import cmp
 
 
 def as_variable(x):

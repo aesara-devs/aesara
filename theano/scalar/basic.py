@@ -12,6 +12,7 @@ you probably want to use theano.tensor.[c,z,f,d,b,w,i,l,]scalar!
 
 import math
 import warnings
+from collections.abc import Callable
 from copy import copy
 from functools import partial
 from itertools import chain
@@ -21,7 +22,6 @@ import numpy as np
 
 import theano
 from theano import config, gof, printing
-from theano.compat import Callable
 from theano.gof import Apply, Constant, FunctionGraph, Op, Type, Variable, utils
 from theano.gradient import DisconnectedType, grad_undefined
 from theano.misc.safe_asarray import _asarray

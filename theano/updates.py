@@ -40,7 +40,7 @@ class OrderedUpdates(OrderedDict):
                 "non-ordered dictionary with 2+ elements could "
                 "make your code non-deterministic. You can use "
                 "an OrderedDict that is available at "
-                "theano.compat.OrderedDict for python 2.6+."
+                "collections.OrderedDict for python 2.6+."
             )
         super().__init__(*key, **kwargs)
         for key in self:

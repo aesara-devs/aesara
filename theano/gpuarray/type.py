@@ -1,9 +1,9 @@
+import copyreg
 import os
 import sys
 import warnings
 
 import numpy as np
-import six.moves.copyreg as copyreg
 
 import theano
 from theano import Constant, Type, Variable, config, scalar, tensor

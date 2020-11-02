@@ -2,7 +2,6 @@ from functools import update_wrapper
 
 import numpy as np
 import pytest
-import six
 
 import theano
 import theano.sparse
@@ -65,9 +64,6 @@ def makeSharedTester(
         pass
 
     class SharedTester:
-        # This is to allow setting __doc__ with python 2
-        if not six.PY3:
-            __metaclass__ = m
         shared_constructor = staticmethod(shared_constructor_)
         dtype = dtype_
         get_value_borrow_true_alias = get_value_borrow_true_alias_

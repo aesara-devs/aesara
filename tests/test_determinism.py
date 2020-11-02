@@ -1,7 +1,7 @@
 from collections import OrderedDict
+from io import StringIO
 
 import numpy as np
-from six import StringIO
 
 import theano
 from tests import disturb_mem

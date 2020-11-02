@@ -7,9 +7,8 @@ import pytest
 pygpu = pytest.importorskip("pygpu")  # noqa
 
 from collections import OrderedDict
+from io import StringIO
 from itertools import chain, product
-
-from six import StringIO
 
 import tests.unittest_tools as utt
 import theano

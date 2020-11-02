@@ -13,10 +13,10 @@ import warnings
 import zipfile
 from collections import defaultdict
 from contextlib import closing
+from io import BytesIO
 from pickle import HIGHEST_PROTOCOL
 
 import numpy as np
-from six import BytesIO
 
 import theano
 

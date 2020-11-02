@@ -108,7 +108,7 @@ def do_setup():
         platforms=PLATFORMS,
         packages=find_packages(),
         cmdclass=versioneer.get_cmdclass(),
-        install_requires=["numpy>=1.9.1", "scipy>=0.14", "six>=1.9.0"],
+        install_requires=["numpy>=1.9.1", "scipy>=0.14"],
         package_data={
             "": [
                 "*.txt",

@@ -1,9 +1,9 @@
 import math
+import pickle
 from copy import copy
 
 import numpy as np
 import pytest
-import six.moves.cPickle as pickle
 
 import tests.unittest_tools as utt
 import theano

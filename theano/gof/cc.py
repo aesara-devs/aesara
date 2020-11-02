@@ -6,13 +6,12 @@ import logging
 import os
 import sys
 from copy import copy
+from io import StringIO
 
 import numpy as np
-from six.moves import StringIO
 
 import theano
 from theano import config
-from theano.compat import PY3
 from theano.gof import cmodule, graph, link, utils
 from theano.gof.callcache import CallCache
 from theano.gof.compilelock import get_lock, release_lock
@@ -1648,8 +1647,7 @@ class CLinker(link.Linker):
 
             # Static methods that can run and destroy the struct built by
             # instantiate.
-            if PY3:
-                static = """
+            static = """
         static int {struct_name}_executor({struct_name} *self) {{
             return self->run();
         }}
@@ -1658,21 +1656,9 @@ class CLinker(link.Linker):
             {struct_name} *self = ({struct_name} *)PyCapsule_GetContext(capsule);
             delete self;
         }}
-        """.format(
-                    struct_name=self.struct_name
-                )
-            else:
-                static = """
-        static int %(struct_name)s_executor(%(struct_name)s* self) {
-            return self->run();
-        }
-
-        static void %(struct_name)s_destructor(void* executor, void* self) {
-            delete ((%(struct_name)s*)self);
-        }
-        """ % dict(
-                    struct_name=self.struct_name
-                )
+    """.format(
+                struct_name=self.struct_name
+            )
 
             # We add all the support code, compile args, headers and libs we need.
             for support_code in self.support_code() + self.c_support_code_apply:
@@ -1769,9 +1755,8 @@ class CLinker(link.Linker):
         print("    delete struct_ptr;", file=code)
         print("    return NULL;", file=code)
         print("  }", file=code)
-        if PY3:
-            print(
-                """\
+        print(
+            """\
     PyObject* thunk = PyCapsule_New((void*)(&{struct_name}_executor), NULL, {struct_name}_destructor);
     if (thunk != NULL && PyCapsule_SetContext(thunk, struct_ptr) != 0) {{
         PyErr_Clear();
@@ -1779,16 +1764,10 @@ class CLinker(link.Linker):
         thunk = NULL;
     }}
 """.format(
-                    **locals()
-                ),
-                file=code,
-            )
-        else:
-            print(
-                "  PyObject* thunk = PyCObject_FromVoidPtrAndDesc((void*)(&%(struct_name)s_executor), struct_ptr, %(struct_name)s_destructor);"
-                % locals(),
-                file=code,
-            )
+                **locals()
+            ),
+            file=code,
+        )
         print("  return thunk; }", file=code)
         return code.getvalue()
 

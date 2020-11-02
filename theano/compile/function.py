@@ -8,8 +8,8 @@ import logging
 import re
 import traceback as tb
 import warnings
+from collections import OrderedDict
 
-from theano import compat
 from theano.compile.function_module import orig_function
 from theano.compile.pfunc import pfunc
 
@@ -54,9 +54,9 @@ def function_dump(
 
     To load such a dump and do the compilation:
 
-    >>> from six.moves import cPickle
+    >>> import pickle
     >>> import theano
-    >>> d = cPickle.load(open("func_dump.bin", "rb"))  # doctest: +SKIP
+    >>> d = pickle.load(open("func_dump.bin", "rb"))  # doctest: +SKIP
     >>> f = theano.function(**d)  # doctest: +SKIP
 
     Note:
@@ -291,7 +291,7 @@ def function(
 
     if (
         isinstance(updates, dict)
-        and not isinstance(updates, compat.OrderedDict)
+        and not isinstance(updates, OrderedDict)
         and len(updates) > 1
     ):
         warnings.warn(
@@ -300,7 +300,7 @@ def function(
             " got " + str(type(updates)) + ". Using "
             "a standard dictionary here results in "
             "non-deterministic behavior. You should use an OrderedDict"
-            " if you are using Python 2.7 (theano.compat.OrderedDict"
+            " if you are using Python 2.7 (collections.OrderedDict"
             " for older python), or use a list of (shared, update)"
             " pairs. Do not just convert your dictionary to this type before"
             " the call as the conversion will still be non-deterministic.",

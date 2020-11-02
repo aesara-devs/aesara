@@ -2,10 +2,10 @@
 Tests of printing functionality
 """
 import logging
+from io import StringIO
 
 import numpy as np
 import pytest
-from six.moves import StringIO
 
 import theano
 import theano.tensor as tensor

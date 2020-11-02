@@ -11,9 +11,9 @@ import traceback
 import warnings
 from collections import defaultdict
 from functools import reduce
+from io import StringIO
 
 import numpy as np
-from six import StringIO
 
 import theano
 import theano.scalar.basic as ts

@@ -1,30 +1,19 @@
-"""Code supporting compatibility across versions of Python.
-"""
+"""Utility functions for Theano."""
 
 
 from collections import OrderedDict
-
-# Python 3.x compatibility
-from six import PY3, BytesIO, b
-from six.moves import configparser
-from six.moves import reload_module as reload
+from collections.abc import Callable
 
 
-try:
-    from collections.abc import Callable, Iterable, Mapping
-    from collections.abc import MutableMapping as DictMixin
-    from collections.abc import ValuesView
-except ImportError:
-    # this raises an DeprecationWarning on py37 and will become
-    # and Exception in py39. Importing from collections.abc
-    # won't work on py27
-    from collections import Callable, Iterable, Mapping
-    from collections import MutableMapping as DictMixin
-    from collections import ValuesView
-
-__all__ = ["PY3", "b", "BytesIO", "next", "configparser", "reload"]
-
-from operator import truediv as operator_div
+__all__ = [
+    "cmp",
+    "decode",
+    "decode_with",
+    "decode_iter",
+    "get_unbound_function",
+    "maybe_add_to_os_environ_pathlist",
+    "DefaultOrderedDict",
+]
 
 
 # In python 3.x, when an exception is reraised it saves original
@@ -64,20 +53,6 @@ def decode_with(x, encoding):
     return x.decode(encoding)
 
 
-__all__ += [
-    "cmp",
-    "operator_div",
-    "DictMixin",
-    "Iterable",
-    "Mapping",
-    "OrderedDict",
-    "ValuesView",
-    "decode",
-    "decode_iter",
-    "get_unbound_function",
-]
-
-
 class DefaultOrderedDict(OrderedDict):
     def __init__(self, default_factory=None, *a, **kw):
         if default_factory is not None and not isinstance(default_factory, Callable):
@@ -111,9 +86,6 @@ class DefaultOrderedDict(OrderedDict):
         return type(self)(self.default_factory, self)
 
 
-__all__ += ["DefaultOrderedDict"]
-
-
 def maybe_add_to_os_environ_pathlist(var, newpath):
     """Unfortunately, Conda offers to make itself the default Python
     and those who use it that way will probably not activate envs
@@ -138,6 +110,3 @@ def maybe_add_to_os_environ_pathlist(var, newpath):
                 os.environ[var] = newpaths
         except Exception:
             pass
-
-
-__all__ += ["maybe_add_to_os_environ_pathlist"]

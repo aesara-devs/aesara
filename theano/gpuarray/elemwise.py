@@ -1,7 +1,7 @@
 import copy
+from io import StringIO
 
 import numpy as np
-from six.moves import StringIO
 
 import theano
 from theano import Apply, Op, scalar

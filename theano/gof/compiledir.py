@@ -1,9 +1,9 @@
 import logging
 import os
+import pickle
 import shutil
 
 import numpy as np
-import six.moves.cPickle as pickle
 
 import theano
 from theano import config

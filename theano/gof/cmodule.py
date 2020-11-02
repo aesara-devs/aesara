@@ -6,6 +6,7 @@ import atexit
 import distutils.sysconfig
 import logging
 import os
+import pickle
 import platform
 import re
 import shutil
@@ -16,20 +17,19 @@ import tempfile
 import textwrap
 import time
 import warnings
+from io import BytesIO, StringIO
 
 import numpy.distutils
-import six.moves.cPickle as pickle
-from six import BytesIO, StringIO, b
 
 import theano
 from theano import config
-from theano.compat import PY3, decode, decode_iter
 from theano.configdefaults import gcc_version_str, local_bitwidth
 
 # we will abuse the lockfile mechanism when reading and writing the registry
 from theano.gof import compilelock
 from theano.gof.utils import flatten, hash_from_code
 from theano.misc.windows import output_subprocess_Popen, subprocess_Popen
+from theano.utils import decode, decode_iter
 
 
 importlib = None
@@ -149,38 +149,28 @@ class DynamicModule:
         print("};", file=stream)
 
     def print_init(self, stream):
-        if PY3:
-            print(
-                """\
+        print(
+            """\
 static struct PyModuleDef moduledef = {{
-      PyModuleDef_HEAD_INIT,
-      "{name}",
-      NULL,
-      -1,
-      MyMethods,
+  PyModuleDef_HEAD_INIT,
+  "{name}",
+  NULL,
+  -1,
+  MyMethods,
 }};
 """.format(
-                    name=self.hash_placeholder
-                ),
-                file=stream,
-            )
-            print(
-                ("PyMODINIT_FUNC PyInit_%s(void) {" % self.hash_placeholder),
-                file=stream,
-            )
-            for block in self.init_blocks:
-                print("  ", block, file=stream)
-            print("    PyObject *m = PyModule_Create(&moduledef);", file=stream)
-            print("    return m;", file=stream)
-        else:
-            print(("PyMODINIT_FUNC init%s(void){" % self.hash_placeholder), file=stream)
-            for block in self.init_blocks:
-                print("  ", block, file=stream)
-            print(
-                "  ",
-                ('(void) Py_InitModule("%s", MyMethods);' % self.hash_placeholder),
-                file=stream,
-            )
+                name=self.hash_placeholder
+            ),
+            file=stream,
+        )
+        print(
+            ("PyMODINIT_FUNC PyInit_%s(void) {" % self.hash_placeholder),
+            file=stream,
+        )
+        for block in self.init_blocks:
+            print("  ", block, file=stream)
+        print("    PyObject *m = PyModule_Create(&moduledef);", file=stream)
+        print("    return m;", file=stream)
         print("}", file=stream)
 
     def add_include(self, str):
@@ -1888,10 +1878,9 @@ class Compiler:
                 path = '"' + path + '"'
                 exe_path = '"' + exe_path + '"'
             try:
-                # Python3 compatibility: try to cast Py3 strings as Py2 strings
                 try:
-                    src_code = b(src_code)
-                except Exception:
+                    src_code = src_code.encode()
+                except AttributeError:  # src_code was already bytes
                     pass
                 os.write(fd, src_code)
                 os.close(fd)
@@ -1955,7 +1944,7 @@ class Compiler:
         if not compiler:
             return False
 
-        code = b(
+        code = (
             """
         %(preambule)s
         int main(int argc, char** argv)
@@ -1965,7 +1954,7 @@ class Compiler:
         }
         """
             % locals()
-        )
+        ).encode()
         return cls._try_compile_tmp(
             code,
             tmp_prefix="try_flags_",

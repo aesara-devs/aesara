@@ -42,3 +42,5 @@ core
 .idea
 .mypy_cache/
 /htmlcov/
+
+theano-venv/
