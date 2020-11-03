@@ -853,6 +853,25 @@ def test_gradient_scan():
     f(np.arange(1, dtype="float32"))
 
 
+def test_simple_shared_mrg_random():
+    theano_rng = MRG_RandomStreams(10)
+
+    values, updates = theano.scan(
+        lambda: theano_rng.uniform((2,), -1, 1),
+        [],
+        [],
+        [],
+        n_steps=5,
+        truncate_gradient=-1,
+        go_backwards=False,
+    )
+    my_f = theano.function([], values, updates=updates, allow_input_downcast=True)
+
+    # Just check for run-time errors
+    my_f()
+    my_f()
+
+
 def test_multMatVect():
     A1 = tensor.lmatrix("A1")
     s1 = tensor.ivector("s1")

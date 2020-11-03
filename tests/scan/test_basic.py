@@ -1141,24 +1141,6 @@ class TestScan:
         # Check for runtime errors
         f(np.int32(0), np.float32(1.0), np.float32(0.5))
 
-    def test_simple_shared_mrg_random(self):
-        theano_rng = theano.sandbox.rng_mrg.MRG_RandomStreams(utt.fetch_seed())
-
-        values, updates = scan(
-            lambda: theano_rng.uniform((2,), -1, 1),
-            [],
-            [],
-            [],
-            n_steps=5,
-            truncate_gradient=-1,
-            go_backwards=False,
-        )
-        my_f = theano.function([], values, updates=updates, allow_input_downcast=True)
-
-        # Just check for run-time errors
-        my_f()
-        my_f()
-
     def test_simple_shared_random(self):
         theano_rng = theano.tensor.shared_randomstreams.RandomStreams(utt.fetch_seed())
 
