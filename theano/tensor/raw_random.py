@@ -339,8 +339,7 @@ def _infer_ndim_bcast(ndim, shape, *args):
             if shape_ndim != ndim:
                 raise ValueError(
                     "ndim should be equal to len(shape), but\n",
-                    "ndim = %s, len(shape) = %s, shape = %s"
-                    % (ndim, shape_ndim, shape),
+                    f"ndim = {ndim}, len(shape) = {shape_ndim}, shape = {shape}",
                 )
 
         bcast = []
@@ -400,7 +399,7 @@ def _infer_ndim_bcast(ndim, shape, *args):
         v_shape = tensor.as_tensor_variable(shape)
         if v_shape.ndim != 1:
             raise TypeError(
-                "shape must be a vector or list of scalar, got '%s'" % v_shape
+                f"shape must be a vector or list of scalar, got '{v_shape}'"
             )
 
         if ndim is None:
@@ -408,7 +407,7 @@ def _infer_ndim_bcast(ndim, shape, *args):
         bcast = [False] * ndim
 
     if v_shape.ndim != 1:
-        raise TypeError("shape must be a vector or list of scalar, got '%s'" % v_shape)
+        raise TypeError(f"shape must be a vector or list of scalar, got '{v_shape}'")
 
     if v_shape.dtype not in theano.tensor.integer_dtypes:
         raise TypeError("shape must be an integer vector or list", v_shape.dtype)

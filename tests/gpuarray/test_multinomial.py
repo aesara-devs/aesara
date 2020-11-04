@@ -143,7 +143,7 @@ def test_gpu_opt_dtypes():
         pval = pval / pval.sum(axis=1)[:, None]
         uval = np.ones_like(pval[:, 0]) * 0.5
         samples = f(pval, uval)
-        assert samples.dtype == dtype, "{} != {}".format(samples.dtype, dtype)
+        assert samples.dtype == dtype, f"{samples.dtype} != {dtype}"
 
 
 def test_gpu_opt():

@@ -324,12 +324,12 @@ class DimShuffle(COp):
 class DimShufflePrinter:
     def __p(self, new_order, pstate, r):
         if new_order != () and new_order[0] == "x":
-            return "%s" % self.__p(new_order[1:], pstate, r)
+            return f"{self.__p(new_order[1:], pstate, r)}"
         #            return "[%s]" % self.__p(new_order[1:], pstate, r)
         if list(new_order) == list(range(r.type.ndim)):
             return pstate.pprinter.process(r)
         if list(new_order) == list(reversed(range(r.type.ndim))):
-            return "%s.T" % pstate.pprinter.process(r)
+            return f"{pstate.pprinter.process(r)}.T"
         return "DimShuffle{{{}}}({})".format(
             ", ".join(map(str, new_order)),
             pstate.pprinter.process(r),
@@ -523,7 +523,7 @@ second dimension
             if self.inplace_pattern:
                 items = list(self.inplace_pattern.items())
                 items.sort()
-                return "Elemwise{{{}}}{}".format(self.scalar_op, str(items))
+                return f"Elemwise{{{self.scalar_op}}}{str(items)}"
             else:
                 return "Elemwise{%s}" % (self.scalar_op)
         else:
@@ -783,9 +783,9 @@ second dimension
                             msg2 += ["*"]
                         else:
                             msg2 += [str(d)]
-                    msg.append("(%s)" % ", ".join(msg2))
+                    msg.append(f"({', '.join(msg2)})")
 
-                base_exc_str = "Dimension mismatch; shapes are %s" % (", ".join(msg))
+                base_exc_str = f"Dimension mismatch; shapes are {', '.join(msg)}"
                 raise ValueError(base_exc_str)
 
         # Determine the shape of outputs
@@ -1034,8 +1034,8 @@ second dimension
                 % locals()
             )
             # We alias the scalar variables
-            defines += "#define %(oname)s_i %(iname)s_i\n" % locals()
-            undefs += "#undef %(oname)s_i\n" % locals()
+            defines += f"#define {locals()['oname']}_i {locals()['iname']}_i\n"
+            undefs += f"#undef {locals()['oname']}_i\n"
 
         # Note: here, olv_index is either the index of the last output
         # which is allocated, OR, if there are any aliased outputs,
@@ -1051,8 +1051,8 @@ second dimension
         task_code = self.scalar_op.c_code(
             node.tag.fake_node,
             nodename + "_scalar_",
-            ["%s_i" % s for s in _inames],
-            ["%s_i" % s for s in onames],
+            [f"{s}_i" for s in _inames],
+            [f"{s}_i" for s in onames],
             dict(sub, fail=fail),
         )
         code = (
@@ -1165,11 +1165,10 @@ second dimension
                 ):
                     z = onames[0]
                     contig = (
-                        """
+                        f"""
                     // All output have the same size
-                    npy_intp n = PyArray_SIZE(%(z)s);
+                    npy_intp n = PyArray_SIZE({locals()['z']});
                     """
-                        % locals()
                     )
                     index = ""
                     for x, var in zip(inames + onames, inputs + node.outputs):
@@ -1400,8 +1399,7 @@ class CAReduce(Op):
                     axis < 0 and abs(axis) > input.type.ndim
                 ):
                     raise ValueError(
-                        "Not enough dimensions on %s to reduce on axis %s"
-                        % (input, axis)
+                        f"Not enough dimensions on {input} to reduce on axis {axis}"
                     )
         input = as_tensor_variable(input)
         axis = self.axis
@@ -1661,8 +1659,8 @@ class CAReduce(Op):
                 ],
             ),
             None,
-            ["%s_i" % aname, "%s_i" % inames[0]],
-            ["%s_i" % aname],
+            [f"{aname}_i", f"{inames[0]}_i"],
+            [f"{aname}_i"],
             sub,
         )
         code1 = (
@@ -1972,8 +1970,8 @@ class CAReduceDtype(CAReduce):
         axis = ""
         if self.axis is not None:
             axis = ", ".join(str(x) for x in self.axis)
-            axis = "axis=[%s], " % axis
-        return "{}{{{}acc_dtype={}}}".format(name, axis, str(self.acc_dtype))
+            axis = f"axis=[{axis}], "
+        return f"{name}{{{axis}acc_dtype={str(self.acc_dtype)}}}"
 
 
 class Sum(CAReduceDtype):
@@ -2025,8 +2023,8 @@ class Sum(CAReduceDtype):
         axis = ""
         if self.axis is not None:
             axis = ", ".join(str(x) for x in self.axis)
-            axis = "axis=[%s], " % axis
-        return "{}{{{}acc_dtype={}}}".format(name, axis, str(self.acc_dtype))
+            axis = f"axis=[{axis}], "
+        return f"{name}{{{axis}acc_dtype={str(self.acc_dtype)}}}"
 
     def L_op(self, inp, out, grads):
         (x,) = inp

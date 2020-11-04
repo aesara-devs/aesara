@@ -218,7 +218,7 @@ class MetaObject(type):
                 if len(props) == 0:
 
                     def __str__(self):
-                        return "{}".format(self.__class__.__name__)
+                        return f"{self.__class__.__name__}"
 
                 else:
 
@@ -259,7 +259,7 @@ class Scratchpad:
     def info(self):
         print("<theano.gof.utils.scratchpad instance at %i>" % id(self))
         for k, v in self.__dict__.items():
-            print("  {}: {}".format(k, v))
+            print(f"  {k}: {v}")
 
 
 class ValidatingScratchpad(Scratchpad):
@@ -325,7 +325,7 @@ def deprecated(filename, msg=""):
 
         def g(*args, **kwargs):
             if printme[0]:
-                print("WARNING: {}.{} deprecated. {}".format(filename, f.__name__, msg))
+                print(f"WARNING: {filename}.{f.__name__} deprecated. {msg}")
                 printme[0] = False
             return f(*args, **kwargs)
 
@@ -433,10 +433,10 @@ class Keyword:
         return self.nonzero
 
     def __str__(self):
-        return "<%s>" % self.name
+        return f"<{self.name}>"
 
     def __repr__(self):
-        return "<%s>" % self.name
+        return f"<{self.name}>"
 
 
 ABORT = Keyword("ABORT", False)

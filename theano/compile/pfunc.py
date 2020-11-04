@@ -554,7 +554,7 @@ def _pfunc_param_to_in(param, strict=False, allow_downcast=None):
         return In(variable=param, strict=strict, allow_downcast=allow_downcast)
     elif isinstance(param, In):
         return param
-    raise TypeError("Unknown parameter type: %s" % type(param))
+    raise TypeError(f"Unknown parameter type: {type(param)}")
 
 
 def iter_over_pairs(pairs):

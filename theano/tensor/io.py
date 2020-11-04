@@ -48,12 +48,11 @@ class LoadFromDisk(Op):
     def perform(self, node, inp, out):
         path = inp[0]
         if path.split(".")[-1] == "npz":
-            raise ValueError("Expected a .npy file, got %s instead" % path)
+            raise ValueError(f"Expected a .npy file, got {path} instead")
         result = np.load(path, mmap_mode=self.mmap_mode)
         if result.dtype != self.dtype:
             raise TypeError(
-                "Expected an array of type %s, got %s instead"
-                % (self.dtype, result.dtype)
+                f"Expected an array of type {self.dtype}, got {result.dtype} instead"
             )
         out[0][0] = result
 

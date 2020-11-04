@@ -153,7 +153,7 @@ def as_tensor_variable(x, name=None, ndim=None):
 
         if not isinstance(x.type, TensorType):
             raise TypeError(
-                "Tensor type field must be a TensorType; found {}.".format(type(x.type))
+                f"Tensor type field must be a TensorType; found {type(x.type)}."
             )
 
         if ndim is None:
@@ -255,7 +255,7 @@ def constant(x, name=None, ndim=None, dtype=None):
     try:
         return TensorConstant(ttype, x_, name=name)
     except Exception:
-        raise TypeError("Could not convert %s to TensorType" % x, type(x))
+        raise TypeError(f"Could not convert {x} to TensorType", type(x))
 
 
 def _obj_is_wrappable_as_tensor(x):
@@ -654,9 +654,9 @@ def get_scalar_constant_value(
                             + "when x.ndim=%d."
                         ) % (idx, ndim)
                         if config.exception_verbosity == "high":
-                            msg += " x=%s" % min_informative_str(v)
+                            msg += f" x={min_informative_str(v)}"
                         else:
-                            msg += " x=%s" % str(v)
+                            msg += f" x={str(v)}"
                         raise ValueError(msg)
 
                     if gp_broadcastable[idx]:
@@ -1051,7 +1051,7 @@ def _scal_elemwise_with_nfunc(nfunc, nin, nout):
         else:
             msg = "no_inplace"
 
-        n = "Elemwise{{{},{}}}".format(symbolname, msg)
+        n = f"Elemwise{{{symbolname},{msg}}}"
 
         if inplace:
             scalar_op = getattr(scal, symbolname[: -len("_inplace")])
@@ -1123,7 +1123,7 @@ def check_and_normalize_axes(x, axis):
         if NoneConst.equals(axis):
             axis = []
         elif not isinstance(axis, TensorConstant):
-            raise TypeError("Computation needs a constant axis. Got %s" % axis)
+            raise TypeError(f"Computation needs a constant axis. Got {axis}")
         else:
             assert axis.dtype in integer_dtypes
             if isinstance(axis.data, (int, np.integer)) or (
@@ -2301,7 +2301,7 @@ def round(a, mode=None):
     elif mode == "half_to_even":
         return round_half_to_even(a)
     else:
-        raise Exception("round mode %s is not implemented." % mode)
+        raise Exception(f"round mode {mode} is not implemented.")
 
 
 @_scal_elemwise
@@ -3103,11 +3103,9 @@ class Alloc(gof.Op):
         (zz,) = out
         fail = sub["fail"]
 
-        code = """
-            npy_intp shape[%(ndim)s];
-            """ % dict(
-            ndim=ndim
-        )
+        code = f"""
+            npy_intp shape[{dict(ndim=ndim)['ndim']}];
+            """
 
         # Initialize shape
         for i, shp_i in enumerate(inp[1:]):
@@ -3287,7 +3285,7 @@ def transfer(var, target):
             res = trans(var, target)
             if res is not None:
                 return res
-    raise ValueError("Can't transfer to target {}".format(target))
+    raise ValueError(f"Can't transfer to target {target}")
 
 
 transfer._others = []
@@ -3408,10 +3406,9 @@ class Mean(elemwise.CAReduce):
         # TODO: c_code perform support only axis is None
         return (
             ret
-            + """
-  *((double *)PyArray_DATA(%s)) /= PyArray_SIZE(%s);
+            + f"""
+  *((double *)PyArray_DATA({onames[0]})) /= PyArray_SIZE({inames[0]});
   """
-            % (onames[0], inames[0])
         )
 
 
@@ -4009,9 +4006,7 @@ class Split(Op):
 
         if np.sum(splits) != len_along_axis:
             raise ValueError(
-                "The splits sum to {}, expected {}".format(
-                    np.sum(splits), len_along_axis
-                )
+                f"The splits sum to {np.sum(splits)}, expected {len_along_axis}"
             )
         if python_any([nb < 0 for nb in splits]):
             raise ValueError(
@@ -4512,9 +4507,8 @@ class Join(Op):
 
         for i, inp in enumerate(tensors):
             copy_to_list.append(
-                """Py_INCREF(%s);
-                   PyList_SetItem(list, %s, (PyObject*)%s);"""
-                % (inp, i, inp)
+                f"""Py_INCREF({inp});
+                   PyList_SetItem(list, {i}, (PyObject*){inp});"""
             )
 
         copy_inputs_to_list = "\n".join(copy_to_list)
@@ -4947,7 +4941,7 @@ def get_vector_length(v):
     """
     v = as_tensor_variable(v)
     if v.ndim != 1:
-        raise TypeError("argument must be symbolic vector, got '%s'" % v)
+        raise TypeError(f"argument must be symbolic vector, got '{v}'")
     if v.type.broadcastable[0]:
         return 1
     if isinstance(v, theano.tensor.sharedvar.TensorSharedVariable) and v.type.ndim == 1:
@@ -5014,7 +5008,7 @@ def get_vector_length(v):
         msg = theano.printing.debugprint(v, file="str")
     else:
         msg = str(v)
-    raise ValueError("length not known: %s" % msg)
+    raise ValueError(f"length not known: {msg}")
 
 
 @constructor
@@ -5068,7 +5062,7 @@ class Reshape(Op):
         assert name is None, "name attribute for Reshape has been deprecated"
 
     def __str__(self):
-        return "{}{{{}}}".format(self.__class__.__name__, self.ndim)
+        return f"{self.__class__.__name__}{{{self.ndim}}}"
 
     def make_node(self, x, shp):
         x = as_tensor_variable(x)
@@ -5119,7 +5113,7 @@ class Reshape(Op):
             out[0] = np.reshape(x, shp)
         except Exception:
             raise ValueError(
-                "Cannot reshape input of shape {} to shape {}".format(x.shape, shp)
+                f"Cannot reshape input of shape {x.shape} to shape {shp}"
             )
 
     def connection_pattern(self, node):
@@ -5298,7 +5292,7 @@ class Flatten(Op):
         self.outdim = int(outdim)
 
     def __str__(self):
-        return "{}{{{}}}".format(self.__class__.__name__, self.outdim)
+        return f"{self.__class__.__name__}{{{self.outdim}}}"
 
     def make_node(self, x):
         t_x = as_tensor_variable(x)
@@ -6043,7 +6037,7 @@ class PermuteRowElements(Op):
                 for i in range(ys0):
                     self._rec_perform(node, x[0], y[i], inverse, out[i], curdim + 1)
             else:
-                raise ValueError("Dimension mismatch: {}, {}".format(xs0, ys0))
+                raise ValueError(f"Dimension mismatch: {xs0}, {ys0}")
 
     def perform(self, node, inp, out):
         x, y, inverse = inp
@@ -6062,7 +6056,7 @@ class PermuteRowElements(Op):
             elif ydim == 1:
                 outdim = xdim
             else:
-                raise ValueError("Dimension mismatch: {}, {}".format(xdim, ydim))
+                raise ValueError(f"Dimension mismatch: {xdim}, {ydim}")
             out_s.append(outdim)
 
         if outs[0] is None or outs[0].shape != out_s:
@@ -7135,7 +7129,7 @@ class Choose(Op):
         a = as_tensor_variable(a)
         if a.dtype not in theano.tensor.discrete_dtypes:
             raise TypeError(
-                "choose first argument must have an [u]int* dtype. Got %s." % a.dtype
+                f"choose first argument must have an [u]int* dtype. Got {a.dtype}."
             )
 
         if isinstance(choices, (tuple, list, theano.typed_list.TypedListVariable)):
@@ -7231,7 +7225,7 @@ class AllocEmpty(gof.Op):
         shps = inputs
         nd = len(shps)
         params = sub["params"]
-        str = "npy_intp dims[%(nd)s];\n" % locals()
+        str = f"npy_intp dims[{locals()['nd']}];\n"
         for idx, sh in enumerate(shps):
             str += (
                 "dims[%(idx)s] ="
@@ -7240,9 +7234,9 @@ class AllocEmpty(gof.Op):
             )
 
         # Validate that the output storage exists
-        str += "if(%(out)s==NULL\n" % locals()
+        str += f"if({locals()['out']}==NULL\n"
         for idx, sh in enumerate(shps):
-            str += "||PyArray_DIMS(%(out)s)[%(idx)s]!=dims[%(idx)s]" % locals()
+            str += f"||PyArray_DIMS({locals()['out']})[{locals()['idx']}]!=dims[{locals()['idx']}]"
 
         str += (
             """){

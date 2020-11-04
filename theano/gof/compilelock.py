@@ -238,7 +238,7 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
                     read_owner = "failure"
                 if other_dead:
                     if not no_display:
-                        msg = "process '%s'" % read_owner.split("_")[0]
+                        msg = f"process '{read_owner.split('_')[0]}'"
                         _logger.warning(
                             "Overriding existing lock by dead %s "
                             "(I am process '%s')",
@@ -254,7 +254,7 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
                             if read_owner == "failure":
                                 msg = "unknown process"
                             else:
-                                msg = "process '%s'" % read_owner.split("_")[0]
+                                msg = f"process '{read_owner.split('_')[0]}'"
                             _logger.warning(
                                 "Overriding existing lock by %s " "(I am process '%s')",
                                 msg,
@@ -270,7 +270,7 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
                     if read_owner == "failure":
                         msg = "unknown process"
                     else:
-                        msg = "process '%s'" % read_owner.split("_")[0]
+                        msg = f"process '{read_owner.split('_')[0]}'"
                     _logger.info(
                         "Waiting for existing lock by %s (I am " "process '%s')",
                         msg,

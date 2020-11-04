@@ -127,7 +127,7 @@ def as_scalar(x, name=None):
     try:
         return constant(x)
     except TypeError:
-        raise TypeError("Cannot convert %s to Scalar" % x, type(x))
+        raise TypeError(f"Cannot convert {x} to Scalar", type(x))
 
 
 class NumpyAutocaster:
@@ -336,8 +336,7 @@ class Scalar(Type):
         py_type = self.dtype_specs()[0]
         if strict and not isinstance(data, py_type):
             raise TypeError(
-                "%s expected a %s, got %s of type %s"
-                % (self, py_type, data, type(data)),
+                f"{self} expected a {py_type}, got {data} of type {type(data)}",
                 data,
             )
         try:
@@ -359,8 +358,7 @@ class Scalar(Type):
                 )
         except Exception as e:
             raise TypeError(
-                "Could not convert %s (value=%s) to %s"
-                % (type(data), data, self.dtype),
+                f"Could not convert {type(data)} (value={data}) to {self.dtype}",
                 e,
             )
 
@@ -437,9 +435,7 @@ class Scalar(Type):
             }[self.dtype]
         except KeyError:
             raise TypeError(
-                "Unsupported dtype for {}: {}".format(
-                    self.__class__.__name__, self.dtype
-                )
+                f"Unsupported dtype for {self.__class__.__name__}: {self.dtype}"
             )
 
     def upcast(self, *others):
@@ -452,7 +448,7 @@ class Scalar(Type):
         return str(self.dtype)
 
     def __repr__(self):
-        return "Scalar(%s)" % self.dtype
+        return f"Scalar({self.dtype})"
 
     def c_literal(self, data):
         if "complex" in self.dtype:
@@ -480,10 +476,9 @@ class Scalar(Type):
 
     def c_init(self, name, sub):
         return (
-            """
-        %(name)s = 0;
+            f"""
+        {locals()['name']} = 0;
         """
-            % locals()
         )
 
     def c_extract(self, name, sub, check_input=True):
@@ -1151,7 +1146,7 @@ class ScalarOp(Op):
                 )
             return variables
         else:
-            raise NotImplementedError("Cannot calculate the output types for %s" % self)
+            raise NotImplementedError(f"Cannot calculate the output types for {self}")
 
     def perform(self, node, inputs, output_storage):
         if self.nout == 1:
@@ -1295,7 +1290,7 @@ class UnaryScalarOp(ScalarOp):
             fct = self.amd_float64
         else:
             raise theano.gof.utils.MethodNotDefined()
-        return "%(fct)s(%(n)s, %(i)s, %(o)s)" % locals()
+        return f"{locals()['fct']}({locals()['n']}, {locals()['i']}, {locals()['o']})"
 
 
 class BinaryScalarOp(ScalarOp):
@@ -1392,7 +1387,7 @@ class LT(LogicalComparison):
         (z,) = outputs
         if node.inputs[0].type in complex_types:
             raise NotImplementedError()
-        return "%(z)s = (%(x)s < %(y)s);" % locals()
+        return f"{locals()['z']} = ({locals()['x']} < {locals()['y']});"
 
 
 lt = LT()
@@ -1413,7 +1408,7 @@ class GT(LogicalComparison):
         (z,) = outputs
         if node.inputs[0].type in complex_types:
             raise NotImplementedError()
-        return "%(z)s = (%(x)s > %(y)s);" % locals()
+        return f"{locals()['z']} = ({locals()['x']} > {locals()['y']});"
 
 
 gt = GT()
@@ -1434,7 +1429,7 @@ class LE(LogicalComparison):
         (z,) = outputs
         if node.inputs[0].type in complex_types:
             raise NotImplementedError()
-        return "%(z)s = (%(x)s <= %(y)s);" % locals()
+        return f"{locals()['z']} = ({locals()['x']} <= {locals()['y']});"
 
 
 le = LE()
@@ -1455,7 +1450,7 @@ class GE(LogicalComparison):
         (z,) = outputs
         if node.inputs[0].type in complex_types:
             raise NotImplementedError()
-        return "%(z)s = (%(x)s >= %(y)s);" % locals()
+        return f"{locals()['z']} = ({locals()['x']} >= {locals()['y']});"
 
 
 ge = GE()
@@ -1473,7 +1468,7 @@ class EQ(LogicalComparison):
     def c_code(self, node, name, inputs, outputs, sub):
         (x, y) = inputs
         (z,) = outputs
-        return "%(z)s = (%(x)s == %(y)s);" % locals()
+        return f"{locals()['z']} = ({locals()['x']} == {locals()['y']});"
 
 
 eq = EQ()
@@ -1493,7 +1488,7 @@ class NEQ(LogicalComparison):
         (z,) = outputs
         if node.inputs[0].type in complex_types:
             raise NotImplementedError()
-        return "%(z)s = (%(x)s != %(y)s);" % locals()
+        return f"{locals()['z']} = ({locals()['x']} != {locals()['y']});"
 
 
 neq = NEQ()
@@ -1512,11 +1507,11 @@ class IsNan(FixedLogicalComparison):
             raise NotImplementedError()
         # Discrete type can never be nan
         if node.inputs[0].type in discrete_types:
-            return "%(z)s = false;" % locals()
+            return f"{locals()['z']} = false;"
 
         # Windows tries to be different and sometimes return -1, but we want
         # to be consistent with numpy (which returns True), hence the "abs".
-        return "%(z)s = abs(isnan(%(x)s));" % locals()
+        return f"{locals()['z']} = abs(isnan({locals()['x']}));"
 
     def c_code_cache_version(self):
         scalarop_version = super().c_code_cache_version()
@@ -1539,12 +1534,12 @@ class IsInf(FixedLogicalComparison):
             raise NotImplementedError()
         # Discrete type can never be inf
         if node.inputs[0].type in discrete_types:
-            return "%(z)s = false;" % locals()
+            return f"{locals()['z']} = false;"
 
         # Note that the C isinf returns -1 for -Inf and +1 for +Inf, while
         # numpy simply returns True: we mimic numpy's behavior here, thus
         # the absolute value.
-        return "%(z)s = abs(isinf(%(x)s));" % locals()
+        return f"{locals()['z']} = abs(isinf({locals()['x']}));"
 
     def c_code_cache_version(self):
         scalarop_version = super().c_code_cache_version()
@@ -1579,7 +1574,7 @@ class InRange(LogicalComparison):
         cmp1 = ">" if self.openlow else ">="
         cmp2 = "<" if self.openhi else "<="
 
-        return "%(z)s = %(x)s %(cmp1)s %(low)s &&" " %(x)s %(cmp2)s %(hi)s;" % locals()
+        return f"{locals()['z']} = {locals()['x']} {locals()['cmp1']} {locals()['low']} && {locals()['x']} {locals()['cmp2']} {locals()['hi']};"
 
     def get_grad(self, elem):
         if elem.type in complex_types:
@@ -1616,7 +1611,7 @@ class Switch(ScalarOp):
     def c_code(self, node, name, inputs, outputs, sub):
         (cond, ift, iff) = inputs
         (z,) = outputs
-        return "%(z)s = %(cond)s ? %(ift)s : %(iff)s;" % locals()
+        return f"{locals()['z']} = {locals()['cond']} ? {locals()['ift']} : {locals()['iff']};"
 
     def L_op(self, inputs, outputs, gout):
         (cond, ift, iff) = inputs
@@ -1695,7 +1690,7 @@ class OR(BinaryBitOp):
     def c_code(self, node, name, inputs, outputs, sub):
         (x, y) = inputs
         (z,) = outputs
-        return "%(z)s = (%(x)s | %(y)s);" % locals()
+        return f"{locals()['z']} = ({locals()['x']} | {locals()['y']});"
 
 
 or_ = OR()
@@ -1713,7 +1708,7 @@ class XOR(BinaryBitOp):
     def c_code(self, node, name, inputs, outputs, sub):
         (x, y) = inputs
         (z,) = outputs
-        return "%(z)s = (%(x)s ^ %(y)s);" % locals()
+        return f"{locals()['z']} = ({locals()['x']} ^ {locals()['y']});"
 
 
 xor = XOR()
@@ -1731,7 +1726,7 @@ class AND(BinaryBitOp):
     def c_code(self, node, name, inputs, outputs, sub):
         (x, y) = inputs
         (z,) = outputs
-        return "%(z)s = (%(x)s & %(y)s);" % locals()
+        return f"{locals()['z']} = ({locals()['x']} & {locals()['y']});"
 
     def c_code_cache_version(self):
         super_version = super().c_code_cache_version()
@@ -1751,8 +1746,8 @@ class Invert(UnaryBitOp):
         (x,) = inputs
         (z,) = outputs
         if node.outputs[0].type == bool:
-            return "%(z)s = (!%(x)s);" % locals()
-        return "%(z)s = (~%(x)s);" % locals()
+            return f"{locals()['z']} = (!{locals()['x']});"
+        return f"{locals()['z']} = (~{locals()['x']});"
 
 
 invert = Invert()
@@ -1963,7 +1958,7 @@ class Sub(BinaryScalarOp):
     def c_code(self, node, name, inputs, outputs, sub):
         (x, y) = inputs
         (z,) = outputs
-        return "%(z)s = %(x)s - %(y)s;" % locals()
+        return f"{locals()['z']} = {locals()['x']} - {locals()['y']};"
 
     def L_op(self, inputs, outputs, gout):
         (x, y) = inputs
@@ -2085,8 +2080,8 @@ class TrueDiv(BinaryScalarOp):
             node.inputs[0].type in discrete_types
             and node.inputs[1].type in discrete_types
         ):
-            return "%(z)s = ((double)%(x)s) / %(y)s;" % locals()
-        return "%(z)s = %(x)s / %(y)s;" % locals()
+            return f"{locals()['z']} = ((double){locals()['x']}) / {locals()['y']};"
+        return f"{locals()['z']} = {locals()['x']} / {locals()['y']};"
 
     def grad(self, inputs, gout):
 
@@ -2140,12 +2135,12 @@ class IntDiv(BinaryScalarOp):
 
         t = node.inputs[0].type.upcast(*[i.type for i in node.inputs[1:]])
         if t in map(str, discrete_types):
-            x_div_y_pp = "(%(x)s / %(y)s)" % locals()
-            x_div_y_mp = "((-%(x)s) / %(y)s)" % locals()
-            x_mod_y_mp = "THEANO_MACRO_MOD((-%(x)s), %(y)s)" % locals()
-            x_div_y_pm = "(%(x)s / (-%(y)s))" % locals()
-            x_mod_y_pm = "THEANO_MACRO_MOD(%(x)s, (-%(y)s))" % locals()
-            x_div_y_mm = "((-%(x)s) / (-%(y)s))" % locals()
+            x_div_y_pp = f"({locals()['x']} / {locals()['y']})"
+            x_div_y_mp = f"((-{locals()['x']}) / {locals()['y']})"
+            x_mod_y_mp = f"THEANO_MACRO_MOD((-{locals()['x']}), {locals()['y']})"
+            x_div_y_pm = f"({locals()['x']} / (-{locals()['y']}))"
+            x_mod_y_pm = f"THEANO_MACRO_MOD({locals()['x']}, (-{locals()['y']}))"
+            x_div_y_mm = f"((-{locals()['x']}) / (-{locals()['y']}))"
             # If we are in a gpuarray kernel, %(fail)s exits the kernel,
             # and we do not have any error report, and we cannot set
             # Python error messages either, so for now we just call the
@@ -2175,13 +2170,13 @@ class IntDiv(BinaryScalarOp):
             else:
                 raise NotImplementedError("type not supported", t)
 
-            x_div_y_pp = "%(floor)s(%(x)s / %(y)s)" % locals()
-            x_div_y_mp = "%(floor)s((-%(x)s) / %(y)s)" % locals()
-            x_mod_y_mp = "%(fmod)s((-%(x)s), %(y)s)" % locals()
-            x_div_y_pm = "%(floor)s(%(x)s / (-%(y)s))" % locals()
-            x_mod_y_pm = "%(fmod)s(%(x)s, (-%(y)s))" % locals()
-            x_div_y_mm = "%(floor)s((-%(x)s) / (-%(y)s))" % locals()
-            div_zero = "%(z)s = %(x_div_y_pp)s;" % locals()
+            x_div_y_pp = f"{locals()['floor']}({locals()['x']} / {locals()['y']})"
+            x_div_y_mp = f"{locals()['floor']}((-{locals()['x']}) / {locals()['y']})"
+            x_mod_y_mp = f"{locals()['fmod']}((-{locals()['x']}), {locals()['y']})"
+            x_div_y_pm = f"{locals()['floor']}({locals()['x']} / (-{locals()['y']}))"
+            x_mod_y_pm = f"{locals()['fmod']}({locals()['x']}, (-{locals()['y']}))"
+            x_div_y_mm = f"{locals()['floor']}((-{locals()['x']}) / (-{locals()['y']}))"
+            div_zero = f"{locals()['z']} = {locals()['x_div_y_pp']};"
         elif t in complex_types:
             raise self.complex_error
         else:
@@ -2272,10 +2267,10 @@ class Mod(BinaryScalarOp):
             # keep them out of safety, and verify they are useless with an
             # assert.
             assert str(t) in map(str, discrete_types)
-            x_mod_y = "THEANO_MACRO_MOD(%(x)s, %(y)s)" % locals()
-            x_mod_ymm = "THEANO_MACRO_MOD(-%(x)s, -%(y)s)" % locals()
-            x_mod_ypm = "THEANO_MACRO_MOD(%(x)s, -%(y)s)" % locals()
-            x_mod_ymp = "THEANO_MACRO_MOD(-%(x)s, %(y)s)" % locals()
+            x_mod_y = f"THEANO_MACRO_MOD({locals()['x']}, {locals()['y']})"
+            x_mod_ymm = f"THEANO_MACRO_MOD(-{locals()['x']}, -{locals()['y']})"
+            x_mod_ypm = f"THEANO_MACRO_MOD({locals()['x']}, -{locals()['y']})"
+            x_mod_ymp = f"THEANO_MACRO_MOD(-{locals()['x']}, {locals()['y']})"
             # If we are in a gpuarray kernel, %(fail)s exits the kernel,
             # and we do not have any error report, and we cannot set
             # Python error messages either, so for now we just call the
@@ -2302,11 +2297,11 @@ class Mod(BinaryScalarOp):
             # keep them out of safety, and verify they are useless with an
             # assert.
             assert str(t) in map(str, float_types)
-            x_mod_y = "fmod(%(x)s, %(y)s)" % locals()
-            x_mod_ymm = "fmod(-%(x)s, -%(y)s)" % locals()
-            x_mod_ypm = "fmod(%(x)s, -%(y)s)" % locals()
-            x_mod_ymp = "fmod(-%(x)s, %(y)s)" % locals()
-            mod_zero = "%(z)s = %(x_mod_y)s;" % locals()
+            x_mod_y = f"fmod({locals()['x']}, {locals()['y']})"
+            x_mod_ymm = f"fmod(-{locals()['x']}, -{locals()['y']})"
+            x_mod_ypm = f"fmod({locals()['x']}, -{locals()['y']})"
+            x_mod_ymp = f"fmod(-{locals()['x']}, {locals()['y']})"
+            mod_zero = f"{locals()['z']} = {locals()['x_mod_y']};"
         elif str(t) in map(str, complex_types):
             raise self.complex_error
         else:
@@ -2361,7 +2356,7 @@ class Pow(BinaryScalarOp):
         (z,) = outputs
         if node.inputs[0].type in complex_types or node.inputs[1].type in complex_types:
             raise NotImplementedError("type not supported", type)
-        return "%(z)s = pow(%(x)s, %(y)s);" % locals()
+        return f"{locals()['z']} = pow({locals()['x']}, {locals()['y']});"
 
     def L_op(self, inputs, outputs, gout):
         (x, y) = inputs
@@ -2488,7 +2483,7 @@ class Second(BinaryScalarOp):
     def c_code(self, node, name, inputs, outputs, sub):
         (x, y) = inputs
         (z,) = outputs
-        return "%(z)s = %(y)s;" % locals()
+        return f"{locals()['z']} = {locals()['y']};"
 
     def connection_pattern(self, node):
 
@@ -2522,7 +2517,7 @@ class Identity(UnaryScalarOp):
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
         (z,) = outputs
-        return "%(z)s = %(x)s;" % locals()
+        return f"{locals()['z']} = {locals()['x']};"
 
     def grad(self, inputs, gout):
         (x,) = inputs
@@ -2546,7 +2541,7 @@ class Cast(UnaryScalarOp):
         self.ctor = getattr(np, o_type.dtype)
 
     def __str__(self):
-        return "{}{{{}}}".format(self.__class__.__name__, self.o_type.dtype)
+        return f"{self.__class__.__name__}{{{self.o_type.dtype}}}"
 
     def clone_float32(self):
         if self.o_type == float16:
@@ -2572,8 +2567,8 @@ class Cast(UnaryScalarOp):
         (x,) = inputs
         (z,) = outputs
         if node.outputs[0].type == bool:
-            return "{} = ({}) ? 1 : 0;".format(z, x)
-        return "{} = ({}){};".format(z, node.outputs[0].type.dtype_specs()[1], x)
+            return f"{z} = ({x}) ? 1 : 0;"
+        return f"{z} = ({node.outputs[0].type.dtype_specs()[1]}){x};"
 
     def grad(self, inputs, gout):
         (x,) = inputs
@@ -2677,19 +2672,19 @@ class Abs(UnaryScalarOp):
         (z,) = outputs
         type = node.inputs[0].type
         if type in int_types:
-            return "%(z)s = abs(%(x)s);" % locals()
+            return f"{locals()['z']} = abs({locals()['x']});"
         if type in float_types:
-            return "%(z)s = fabs(%(x)s);" % locals()
+            return f"{locals()['z']} = fabs({locals()['x']});"
         if type in complex_types:
             return (
                 "%(z)s = sqrt(%(x)s.real*%(x)s.real + %(x)s.imag*%(x)s.imag);"
                 % locals()
             )
         if node.outputs[0].type == bool:
-            return "%(z)s = (%(x)s) ? 1 : 0;" % locals()
+            return f"{locals()['z']} = ({locals()['x']}) ? 1 : 0;"
         if type in uint_types:
             # uint are always already absolute value.
-            return "%(z)s = %(x)s;" % locals()
+            return f"{locals()['z']} = {locals()['x']};"
         raise NotImplementedError("type not supported", type)
 
 
@@ -2731,7 +2726,7 @@ class Sgn(UnaryScalarOp):
                 % locals()
             )
         if type in int_types:
-            return "%(z)s = (%(x)s >= 0) ? (%(x)s == 0) ? 0 : 1 : -1;" % locals()
+            return f"{locals()['z']} = ({locals()['x']} >= 0) ? ({locals()['x']} == 0) ? 0 : 1 : -1;"
         raise ComplexError("complex has no sgn")
 
     def c_code_cache_version(self):
@@ -2765,7 +2760,7 @@ class Ceil(UnaryScalarOp):
         (x,) = inputs
         (z,) = outputs
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = ceil((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = ceil(({locals()['cast']}){locals()['x']});"
 
 
 ceil = Ceil(upgrade_to_float_no_complex, name="ceil")
@@ -2791,7 +2786,7 @@ class Floor(UnaryScalarOp):
         (x,) = inputs
         (z,) = outputs
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = floor((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = floor(({locals()['cast']}){locals()['x']});"
 
 
 floor = Floor(upgrade_to_float_no_complex, name="floor")
@@ -2811,7 +2806,7 @@ class Trunc(UnaryScalarOp):
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
         (z,) = outputs
-        return "%(z)s = %(x)s >= 0? floor(%(x)s): -floor(-%(x)s);" % locals()
+        return f"{locals()['z']} = {locals()['x']} >= 0? floor({locals()['x']}): -floor(-{locals()['x']});"
 
 
 trunc = Trunc(upgrade_to_float_no_complex, name="trunc")
@@ -2934,7 +2929,7 @@ class RoundHalfAwayFromZero(UnaryScalarOp):
         (x,) = inputs
         (z,) = outputs
         if node.outputs[0].type.dtype in ["float32", "float64"]:
-            return "%(z)s = round(%(x)s);" % locals()
+            return f"{locals()['z']} = round({locals()['x']});"
         else:
             raise NotImplementedError("The output should be float32 or float64")
 
@@ -2965,7 +2960,7 @@ class Neg(UnaryScalarOp):
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
         (z,) = outputs
-        return "%(z)s = -%(x)s;" % locals()
+        return f"{locals()['z']} = -{locals()['x']};"
 
 
 neg = Neg(same_out_nobool, name="neg")
@@ -3009,7 +3004,7 @@ class Inv(UnaryScalarOp):
         (z,) = outputs
         if node.inputs[0].type in complex_types:
             raise NotImplementedError()
-        return "%(z)s = 1.0 / %(x)s;" % locals()
+        return f"{locals()['z']} = 1.0 / {locals()['x']};"
 
 
 inv = Inv(upgrade_to_float, name="inv")
@@ -3055,7 +3050,7 @@ class Log(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = log((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = log(({locals()['cast']}){locals()['x']});"
 
 
 log = Log(upgrade_to_float, name="log")
@@ -3098,7 +3093,7 @@ class Log2(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = log2((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = log2(({locals()['cast']}){locals()['x']});"
 
 
 log2 = Log2(upgrade_to_float, name="log2")
@@ -3141,7 +3136,7 @@ class Log10(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = log10((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = log10(({locals()['cast']}){locals()['x']});"
 
 
 log10 = Log10(upgrade_to_float, name="log10")
@@ -3182,7 +3177,7 @@ class Log1p(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = log1p((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = log1p(({locals()['cast']}){locals()['x']});"
 
 
 log1p = Log1p(upgrade_to_float, name="log1p")
@@ -3220,7 +3215,7 @@ class Exp(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = exp((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = exp(({locals()['cast']}){locals()['x']});"
 
 
 exp = Exp(upgrade_to_float, name="exp")
@@ -3256,7 +3251,7 @@ class Exp2(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = exp2((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = exp2(({locals()['cast']}){locals()['x']});"
 
 
 exp2 = Exp2(upgrade_to_float, name="exp2")
@@ -3292,7 +3287,7 @@ class Expm1(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = expm1((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = expm1(({locals()['cast']}){locals()['x']});"
 
     def c_code_cache_version(self):
         return (5,)
@@ -3323,7 +3318,7 @@ class Sqr(UnaryScalarOp):
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
         (z,) = outputs
-        return "%(z)s = %(x)s * %(x)s;" % locals()
+        return f"{locals()['z']} = {locals()['x']} * {locals()['x']};"
 
 
 sqr = Sqr(same_out, name="sqr")
@@ -3359,7 +3354,7 @@ class Sqrt(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = sqrt((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = sqrt(({locals()['cast']}){locals()['x']});"
 
 
 sqrt = Sqrt(upgrade_to_float, name="sqrt")
@@ -3394,7 +3389,7 @@ class Deg2Rad(UnaryScalarOp):
         (z,) = outputs
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
-        return "%(z)s = %(x)s * (M_PI / 180.0);" % locals()
+        return f"{locals()['z']} = {locals()['x']} * (M_PI / 180.0);"
 
 
 deg2rad = Deg2Rad(upgrade_to_float, name="deg2rad")
@@ -3429,7 +3424,7 @@ class Rad2Deg(UnaryScalarOp):
         (z,) = outputs
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
-        return "%(z)s = %(x)s * (180.0 / M_PI);" % locals()
+        return f"{locals()['z']} = {locals()['x']} * (180.0 / M_PI);"
 
 
 rad2deg = Rad2Deg(upgrade_to_float, name="rad2deg")
@@ -3467,7 +3462,7 @@ class Cos(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = cos((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = cos(({locals()['cast']}){locals()['x']});"
 
 
 cos = Cos(upgrade_to_float, name="cos")
@@ -3503,7 +3498,7 @@ class ArcCos(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = acos((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = acos(({locals()['cast']}){locals()['x']});"
 
 
 arccos = ArcCos(upgrade_to_float, name="arccos")
@@ -3541,7 +3536,7 @@ class Sin(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = sin((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = sin(({locals()['cast']}){locals()['x']});"
 
 
 sin = Sin(upgrade_to_float, name="sin")
@@ -3577,7 +3572,7 @@ class ArcSin(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = asin((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = asin(({locals()['cast']}){locals()['x']});"
 
 
 arcsin = ArcSin(upgrade_to_float, name="arcsin")
@@ -3613,7 +3608,7 @@ class Tan(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = tan((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = tan(({locals()['cast']}){locals()['x']});"
 
 
 tan = Tan(upgrade_to_float, name="tan")
@@ -3649,7 +3644,7 @@ class ArcTan(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = atan((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = atan(({locals()['cast']}){locals()['x']});"
 
 
 arctan = ArcTan(upgrade_to_float, name="arctan")
@@ -3695,7 +3690,7 @@ class ArcTan2(BinaryScalarOp):
         if node.inputs[0].type in complex_types or node.inputs[1].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = atan2((%(cast)s)%(y)s, (%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = atan2(({locals()['cast']}){locals()['y']}, ({locals()['cast']}){locals()['x']});"
 
 
 arctan2 = ArcTan2(upgrade_to_float, name="arctan2")
@@ -3736,7 +3731,7 @@ class Cosh(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = cosh((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = cosh(({locals()['cast']}){locals()['x']});"
 
 
 cosh = Cosh(upgrade_to_float, name="cosh")
@@ -3772,7 +3767,7 @@ class ArcCosh(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = acosh((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = acosh(({locals()['cast']}){locals()['x']});"
 
 
 arccosh = ArcCosh(upgrade_to_float, name="arccosh")
@@ -3813,7 +3808,7 @@ class Sinh(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = sinh((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = sinh(({locals()['cast']}){locals()['x']});"
 
 
 sinh = Sinh(upgrade_to_float, name="sinh")
@@ -3849,7 +3844,7 @@ class ArcSinh(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = asinh((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = asinh(({locals()['cast']}){locals()['x']});"
 
 
 arcsinh = ArcSinh(upgrade_to_float, name="arcsinh")
@@ -3891,7 +3886,7 @@ class Tanh(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = tanh((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = tanh(({locals()['cast']}){locals()['x']});"
 
 
 tanh = Tanh(upgrade_to_float, name="tanh")
@@ -3927,7 +3922,7 @@ class ArcTanh(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = atanh((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = atanh(({locals()['cast']}){locals()['x']});"
 
 
 arctanh = ArcTanh(upgrade_to_float, name="arctanh")
@@ -4049,7 +4044,7 @@ class Conj(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             # For non complex, th
             raise NotImplementedError("type have no c code", node.inputs[0].type)
-        return "%(z)s = %(x)s;" % locals()
+        return f"{locals()['z']} = {locals()['x']};"
 
 
 conj = Conj(same_out_min8, name="conj")
@@ -4125,8 +4120,8 @@ class Composite(ScalarOp):
             return
         subd = dict(
             chain(
-                ((e, "%%(i%i)s" % i) for i, e in enumerate(self.fgraph.inputs)),
-                ((e, "%%(o%i)s" % i) for i, e in enumerate(self.fgraph.outputs)),
+                ((e, f"%{i['i%i']}") for i, e in enumerate(self.fgraph.inputs)),
+                ((e, f"%{i['o%i']}") for i, e in enumerate(self.fgraph.outputs)),
             )
         )
 
@@ -4158,15 +4153,15 @@ class Composite(ScalarOp):
             for output in node.outputs:
                 if output not in subd:
                     i += 1
-                    name = "V%%(id)s_tmp%i" % i
+                    name = f"V%{i['id']}_tmp%i"
                     subd[output] = name
-                    _c_code += "{} {};\n".format(output.type.dtype_specs()[1], name)
+                    _c_code += f"{output.type.dtype_specs()[1]} {name};\n"
             s = node.op.c_code(
                 node,
                 self.nodenames[j],
                 [subd[input] for input in node.inputs],
                 [subd[output] for output in node.outputs],
-                dict(fail="%(fail)s", id="%%(id)s_%i" % j),
+                dict(fail="%(fail)s", id=f"%{j['id']}_%i"),
             )
             _c_code += s
             _c_code += "\n"

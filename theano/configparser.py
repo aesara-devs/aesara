@@ -47,7 +47,7 @@ def parse_config_string(config_string, issue_warnings=True):
         if len(kv_tuple) == 1:
             if issue_warnings:
                 TheanoConfigWarning.warn(
-                    ("Config key '%s' has no value, ignoring it" % kv_tuple[0]),
+                    f"Config key '{kv_tuple[0]}' has no value, ignoring it",
                     stacklevel=1,
                 )
         else:
@@ -391,7 +391,7 @@ class EnumStr(ConfigParam):
         super().__init__(default, filter, over)
 
     def __str__(self):
-        return "{} ({}) ".format(self.fullname, self.all)
+        return f"{self.fullname} ({self.all}) "
 
 
 class TypedParam(ConfigParam):
@@ -414,7 +414,7 @@ class TypedParam(ConfigParam):
         super().__init__(default, filter, allow_override=allow_override)
 
     def __str__(self):
-        return "{} ({}) ".format(self.fullname, self.mytype)
+        return f"{self.fullname} ({self.mytype}) "
 
 
 def StrParam(default, is_valid=None, allow_override=True):

@@ -146,7 +146,7 @@ class BadThunkOutput(DebugModeError):
                 scalar_values.append(ipt)
             else:
                 scalar_values.append("not shown")
-        print("  Inputs values: %s" % scalar_values, file=sio)
+        print(f"  Inputs values: {scalar_values}", file=sio)
         print("  Bad Variable:", self.r, file=sio)
         print("  thunk1  :", self.thunk1, file=sio)
         print("  thunk2  :", self.thunk2, file=sio)
@@ -232,7 +232,7 @@ class BadDestroyMap(DebugModeError):
             )
             print("", file=sio)
         except Exception as e:
-            print("(Numpy-hints failed with: %s)" % str(e), file=sio)
+            print(f"(Numpy-hints failed with: {str(e)})", file=sio)
         print(
             "  Hint: this can also be caused by a deficient "
             "values_eq_approx() or __eq__() implementation "
@@ -345,22 +345,22 @@ class InvalidValueError(DebugModeError):
         specific_hint = self.specific_hint
         context = debugprint(r, prefix="  ", depth=12, file=StringIO()).getvalue()
         return (
-            """InvalidValueError
-        type(variable) = %(type_r)s
-        variable       = %(r)s
-        type(value)    = %(type_v)s
-        dtype(value)   = %(v_dtype)s
-        shape(value)   = %(v_shape)s
-        value          = %(v_val)s
-        min(value)     = %(v_min)s
-        max(value)     = %(v_max)s
-        isfinite       = %(v_isfinite)s
-        client_node    = %(client_node)s
-        hint           = %(hint)s
-        specific_hint  = %(specific_hint)s
-        context        = ...\n%(context)s
+            f"""InvalidValueError
+        type(variable) = {locals()['type_r']}
+        variable       = {locals()['r']}
+        type(value)    = {locals()['type_v']}
+        dtype(value)   = {locals()['v_dtype']}
+        shape(value)   = {locals()['v_shape']}
+        value          = {locals()['v_val']}
+        min(value)     = {locals()['v_min']}
+        max(value)     = {locals()['v_max']}
+        isfinite       = {locals()['v_isfinite']}
+        client_node    = {locals()['client_node']}
+        hint           = {locals()['hint']}
+        specific_hint  = {locals()['specific_hint']}
+        context        = ...
+{locals()['context']}
         """
-            % locals()
         )
 
 
@@ -541,7 +541,7 @@ def debugprint(
         scan_ops = []
 
     if print_type:
-        type_str = " <%s>" % r.type
+        type_str = f" <{r.type}>"
     else:
         type_str = ""
 
@@ -557,11 +557,11 @@ def debugprint(
         elif obj == "output":
             id_str = "output"
         elif ids == "id":
-            id_str = "[id %s]" % str(id(r))
+            id_str = f"[id {str(id(r))}]"
         elif ids == "int":
-            id_str = "[id %s]" % str(len(used_ids))
+            id_str = f"[id {str(len(used_ids))}]"
         elif ids == "CHAR":
-            id_str = "[id %s]" % char_from_number(len(used_ids))
+            id_str = f"[id {char_from_number(len(used_ids))}]"
         elif ids == "":
             id_str = ""
         if get_printed:
@@ -714,7 +714,7 @@ def debugprint(
             else:
                 outer_id_str = get_id_str(outer_r)
             print(
-                "{}{} {}{} -> {}".format(prefix, r, id_str, type_str, outer_id_str),
+                f"{prefix}{r} {id_str}{type_str} -> {outer_id_str}",
                 file=file,
             )
         else:
@@ -723,7 +723,7 @@ def debugprint(
             if smap:
                 data = " " + str(smap.get(r, ""))
             id_str = get_id_str(r)
-            print("{}{} {}{}{}".format(prefix, r, id_str, type_str, data), file=file)
+            print(f"{prefix}{r} {id_str}{type_str}{data}", file=file)
 
     return file
 
@@ -1351,7 +1351,7 @@ def _get_preallocated_maps(
                 steps = [step_signs[0]] * len(out_broadcastable[:-check_ndim])
                 steps += [s * step_size for s in step_signs[1:]]
 
-                name = "strided%s" % str(tuple(steps))
+                name = f"strided{str(tuple(steps))}"
                 for r in considered_outputs:
                     if r in init_strided:
                         strides = []
@@ -1385,7 +1385,7 @@ def _get_preallocated_maps(
                 shape_diff[dim] = diff
 
                 wrong_size = {}
-                name = "wrong_size%s" % str(tuple(shape_diff))
+                name = f"wrong_size{str(tuple(shape_diff))}"
 
                 for r in considered_outputs:
                     if isinstance(r.type, (TensorType, GpuArrayType)):
@@ -1470,7 +1470,7 @@ def _check_preallocated_output(
         ):
             _logger.debug("  name = %s", name)
 
-            thunk_name = "{} with {} output".format(perform, name)
+            thunk_name = f"{perform} with {name} output"
 
             if not out_map:
                 # Map is empty, there is no need to execute thunk() again
@@ -1897,8 +1897,7 @@ class _Linker(gof.link.LocalLinker):
 
             if not self.maker.mode.check_c_code and thunks_py[-1] is None:
                 _logger.warning(
-                    "Op %s doesn't have a perform, "
-                    "forcing check of the C code" % node.op
+                    f"Op {node.op} doesn't have a perform, forcing check of the C code"
                 )
                 node.op.prepare_node(node, storage_map, compute_map, "c")
                 thunk = node.op.make_c_thunk(
@@ -1986,7 +1985,7 @@ class _Linker(gof.link.LocalLinker):
                                 raise InvalidValueError(
                                     r,
                                     storage_map[r][0],
-                                    hint=("Graph Input '%s' is missing" % str(r)),
+                                    hint=f"Graph Input '{str(r)}' is missing",
                                 )
                             raise InvalidValueError(
                                 r,
@@ -2287,7 +2286,7 @@ class _Linker(gof.link.LocalLinker):
                             idx = order.index(node)
                             assert thunks_py[idx] is None, node
                             assert thunks_c[idx] is None, node
-                            raise Exception("No code run for %s" % node)
+                            raise Exception(f"No code run for {node}")
 
                 if False:
                     # This could be useful to help finding refcount problem.

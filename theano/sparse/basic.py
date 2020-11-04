@@ -137,7 +137,7 @@ def as_sparse_variable(x, name=None):
     try:
         return constant(x, name=name)
     except TypeError:
-        raise TypeError("Cannot convert %s to SparseType" % x, type(x))
+        raise TypeError(f"Cannot convert {x} to SparseType", type(x))
 
 
 as_sparse = as_sparse_variable
@@ -173,7 +173,7 @@ def constant(x, name=None):
             SparseType(format=x.format, dtype=x.dtype), x.copy(), name=name
         )
     except TypeError:
-        raise TypeError("Could not convert %s to SparseType" % x, type(x))
+        raise TypeError(f"Could not convert {x} to SparseType", type(x))
 
 
 def sp_ones_like(x):
@@ -330,7 +330,7 @@ class SparseVariable(_sparse_py_operators, gof.Variable):
     format = property(lambda self: self.type.format)
 
     def __str__(self):
-        return "{}{{{},{}}}".format(self.__class__.__name__, self.format, self.dtype)
+        return f"{self.__class__.__name__}{{{self.format},{self.dtype}}}"
 
     def __repr__(self):
         return str(self)
@@ -843,7 +843,7 @@ class Cast(gof.op.Op):
         return ins_shapes
 
     def __str__(self):
-        return "{}({})".format(self.__class__.__name__, self.out_type)
+        return f"{self.__class__.__name__}({self.out_type})"
 
 
 bcast = Cast("int8")
@@ -892,9 +892,7 @@ class DenseFromSparse(gof.op.Op):
         self.sparse_grad = structured
 
     def __str__(self):
-        return "{}{{structured_grad={}}}".format(
-            self.__class__.__name__, self.sparse_grad
-        )
+        return f"{self.__class__.__name__}{{structured_grad={self.sparse_grad}}}"
 
     def make_node(self, x):
         x = as_sparse_variable(x)
@@ -972,7 +970,7 @@ class SparseFromDense(gof.op.Op):
         self.format = format
 
     def __str__(self):
-        return "{}{{{}}}".format(self.__class__.__name__, self.format)
+        return f"{self.__class__.__name__}{{{self.format}}}"
 
     def make_node(self, x):
         x = tensor.as_tensor_variable(x)
@@ -2977,7 +2975,7 @@ class HStack(gof.op.Op):
         return [(ins_shapes[0][0], d)]
 
     def __str__(self):
-        return "{}({},{})".format(self.__class__.__name__, self.format, self.dtype)
+        return f"{self.__class__.__name__}({self.format},{self.dtype})"
 
 
 def hstack(blocks, format=None, dtype=None):

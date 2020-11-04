@@ -37,10 +37,10 @@ options.loc = CTC_CPU;
 options.num_threads = 1;
 """
 
-    params = ["-I%s" % (os.path.dirname(__file__))]
+    params = [f"-I{os.path.dirname(__file__)}"]
     if ctc_lib_path is not None:
-        params.extend(["-I%s" % (os.path.join(config.ctc.root, "include"))])
-        params.extend(["-L%s" % (ctc_lib_path)])
+        params.extend([f"-I{os.path.join(config.ctc.root, 'include')}"])
+        params.extend([f"-L{ctc_lib_path}"])
     params.extend(["-l", "warpctc"])
     compiler_res = GCC_compiler.try_flags(
         params, preambule=preambule, body=body, try_run=False, output=True

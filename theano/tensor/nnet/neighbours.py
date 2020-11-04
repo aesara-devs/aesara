@@ -294,7 +294,7 @@ class Images2Neibs(Op):
             # number of patch in width
             grid_d = 1 + ((ten4.shape[3] + d - 2) // step_y)
         else:
-            raise TypeError("Images2Neibs: unknow mode '%s'" % mode)
+            raise TypeError(f"Images2Neibs: unknow mode '{mode}'")
         z_dim0 = grid_c * grid_d * ten4.shape[1] * ten4.shape[0]
         z_dim1 = c * d
         z[0] = np.empty((z_dim0, z_dim1), dtype=node.outputs[0].dtype)
@@ -366,7 +366,7 @@ class Images2Neibs(Op):
             grid_c = 1 + ((in_shape[2] + c - 2) // step_x)
             grid_d = 1 + ((in_shape[3] + d - 2) // step_y)
         else:
-            raise TypeError("Images2Neibs: unknow mode '%s'" % self.mode)
+            raise TypeError(f"Images2Neibs: unknow mode '{self.mode}'")
         z_dim0 = grid_c * grid_d * in_shape[1] * in_shape[0]
         z_dim1 = c * d
         return [(z_dim0, z_dim1)]
@@ -823,6 +823,6 @@ def neibs2images(neibs, neib_shape, original_shape, mode="valid"):
         # Add a check for the good cases.
         output_4d = output_2d.reshape(original_shape, ndim=4)
     else:
-        raise NotImplementedError("neibs2images do not support mode=%s" % mode)
+        raise NotImplementedError(f"neibs2images do not support mode={mode}")
 
     return output_4d

@@ -154,19 +154,19 @@ if ((err = cudnnCreate(&_handle)) != CUDNN_STATUS_SUCCESS) {
     path_wrapper = '"' if os.name == "nt" else ""
     params = ["-l", "cudnn"]
     params.extend(
-        ["-I{}{}{}".format(path_wrapper, gpuarray_helper_inc_dir(), path_wrapper)]
+        [f"-I{path_wrapper}{gpuarray_helper_inc_dir()}{path_wrapper}"]
     )
     if config.dnn.include_path:
         params.extend(
-            ["-I{}{}{}".format(path_wrapper, config.dnn.include_path, path_wrapper)]
+            [f"-I{path_wrapper}{config.dnn.include_path}{path_wrapper}"]
         )
     if config.cuda.include_path:
         params.extend(
-            ["-I{}{}{}".format(path_wrapper, config.cuda.include_path, path_wrapper)]
+            [f"-I{path_wrapper}{config.cuda.include_path}{path_wrapper}"]
         )
     if config.dnn.library_path:
         params.extend(
-            ["-L{}{}{}".format(path_wrapper, config.dnn.library_path, path_wrapper)]
+            [f"-L{path_wrapper}{config.dnn.library_path}{path_wrapper}"]
         )
     # Do not run here the test program. It would run on the
     # default gpu, not the one selected by the user. If mixed
@@ -645,7 +645,7 @@ def ensure_dt(val, default, name, dtype):
     if hasattr(val, "ndim") and val.ndim == 0:
         val = as_scalar(val)
     if not isinstance(val.type, theano.scalar.Scalar):
-        raise TypeError("{}: expected a scalar value".format(name))
+        raise TypeError(f"{name}: expected a scalar value")
     if not val.type.dtype == dtype:
         val = val.astype(dtype)
     return val
@@ -2971,7 +2971,7 @@ class GpuDnnRNNOp(DnnBase):
             self.num_dirs = 1
         else:
             raise ValueError(
-                "direction_mode is invalid (got {})".format(direction_mode)
+                f"direction_mode is invalid (got {direction_mode})"
             )
 
     def dnn_context(self, node):
@@ -3348,7 +3348,7 @@ def dnn_batch_normalization_train(
             "as inputs; got %d instead of %d" % (running_var.ndim, ndim)
         )
     if epsilon < 1e-5:
-        raise ValueError("epsilon must be at least 1e-5, got %f" % epsilon)
+        raise ValueError(f"epsilon must be at least 1e-5, got {epsilon:f}")
 
     running_averages = running_mean is not None and running_var is not None
 
@@ -3466,7 +3466,7 @@ def dnn_batch_normalization_test(
             "as inputs; got %d and %d instead of %d" % (mean.ndim, var.ndim, ndim)
         )
     if epsilon < 1e-5:
-        raise ValueError("epsilon must be at least 1e-5, got %f" % epsilon)
+        raise ValueError(f"epsilon must be at least 1e-5, got {epsilon:f}")
 
     if ndim < 4:
         inputs = theano.tensor.shape_padright(inputs, 4 - ndim)

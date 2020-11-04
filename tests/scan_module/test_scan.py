@@ -5817,5 +5817,5 @@ def test_mintap_onestep():
     f = theano.function(inputs=[seq], outputs=rs)
     _seq = np.arange(20).astype("int32")
     _sum = f(_seq)
-    print("sum %f" % _sum)
+    print(f"sum {_sum:f}")
     assert _sum == 2

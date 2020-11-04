@@ -431,7 +431,7 @@ class Pool(OpenMPOp):
             ndim = 2
         assert ndim > 0
         if len(imgshape) < ndim:
-            raise TypeError("imgshape must have at least {} dimensions".format(ndim))
+            raise TypeError(f"imgshape must have at least {ndim} dimensions")
 
         if stride is None:
             stride = ws
@@ -553,7 +553,7 @@ class Pool(OpenMPOp):
         assert ws.shape == stride.shape == pad.shape == (nd,)
         if len(x.shape) < nd:
             raise NotImplementedError(
-                "Pool requires input with {} or more dimensions".format(nd)
+                f"Pool requires input with {nd} or more dimensions"
             )
         z_shape = self.out_shape(x.shape, ws, params.ignore_border, stride, pad, nd)
         if not params.ignore_border:
@@ -1074,7 +1074,7 @@ class PoolGrad(OpenMPOp):
                 pad = padding
 
         if len(imgshape) < ndim:
-            raise TypeError("imgshape must have at least {} dimensions".format(ndim))
+            raise TypeError(f"imgshape must have at least {ndim} dimensions")
 
         if stride is None:
             stride = ws
@@ -1200,7 +1200,7 @@ class MaxPoolGrad(PoolGrad):
         assert ws.shape == stride.shape == pad.shape == (nd,)
         if len(x.shape) < nd:
             raise NotImplementedError(
-                "MaxPoolGrad requires input with {} or more dimensions".format(nd)
+                f"MaxPoolGrad requires input with {nd} or more dimensions"
             )
         pool_out_shp = maxout.shape[-nd:]
         img_shp = tuple(x.shape[-nd + i] + 2 * pad[i] for i in range(nd))
@@ -1530,7 +1530,7 @@ class AveragePoolGrad(PoolGrad):
         assert ws.shape == stride.shape == pad.shape == (nd,)
         if len(x.shape) < nd:
             raise NotImplementedError(
-                "AveragePoolGrad requires input with {} or more dimensions".format(nd)
+                f"AveragePoolGrad requires input with {nd} or more dimensions"
             )
         if self.mode == "average_exc_pad" and max(pad) != 0:
             raise NotImplementedError()
@@ -2219,7 +2219,7 @@ class MaxPoolRop(OpenMPOp):
         assert ws.shape == stride.shape == pad.shape == (nd,)
         if len(x.shape) < nd:
             raise NotImplementedError(
-                "Pool requires input with {} or more dimensions".format(nd)
+                f"Pool requires input with {nd} or more dimensions"
             )
         z_shape = Pool.out_shape(x.shape, ws, params.ignore_border, stride, pad, nd)
         if not self.ignore_border:

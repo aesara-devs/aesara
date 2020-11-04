@@ -173,7 +173,7 @@ class FunctionGraph(utils.object2):
 
     def __setup_r__(self, r):
         if hasattr(r, "fgraph") and r.fgraph is not None and r.fgraph is not self:
-            raise Exception("%s is already owned by another fgraph" % r)
+            raise Exception(f"{r} is already owned by another fgraph")
         r.fgraph = self
         r.clients = []
         # self.execute_callbacks('on_setup_variable', r)
@@ -181,7 +181,7 @@ class FunctionGraph(utils.object2):
     def __setup_node__(self, node):
         # sets up node so it belongs to this fgraph
         if hasattr(node, "fgraph") and node.fgraph is not self:
-            raise Exception("%s is already owned by another fgraph" % node)
+            raise Exception(f"{node} is already owned by another fgraph")
         if hasattr(node.op, "view_map") and not all(
             isinstance(view, (list, tuple)) for view in node.op.view_map.values()
         ):
@@ -357,10 +357,10 @@ class FunctionGraph(utils.object2):
         if check:
             for node in new_nodes:
                 if hasattr(node, "fgraph") and node.fgraph is not self:
-                    raise Exception("%s is already owned by another fgraph" % node)
+                    raise Exception(f"{node} is already owned by another fgraph")
                 for r in node.inputs:
                     if hasattr(r, "fgraph") and r.fgraph is not self:
-                        raise Exception("%s is already owned by another fgraph" % r)
+                        raise Exception(f"{r} is already owned by another fgraph")
                     if (
                         r.owner is None
                         and not isinstance(r, graph.Constant)
@@ -458,8 +458,7 @@ class FunctionGraph(utils.object2):
             print(reason, r, new_r)
         if hasattr(r, "fgraph") and r.fgraph is not self:
             raise Exception(
-                "Cannot replace %s because it does not belong "
-                "to this FunctionGraph" % r,
+                f"Cannot replace {r} because it does not belong to this FunctionGraph",
                 str(reason),
             )
         if r.type != new_r.type:
@@ -764,7 +763,7 @@ class FunctionGraph(utils.object2):
                     )
 
     def __str__(self):
-        return "[%s]" % ", ".join(graph.as_string(self.inputs, self.outputs))
+        return f"[{', '.join(graph.as_string(self.inputs, self.outputs))}]"
 
     def __repr__(self):
         return self.__str__()

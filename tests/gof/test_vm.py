@@ -100,9 +100,7 @@ def test_speed():
         t_b = t3 - t2
 
         print(
-            "{} takes {:f} s/Kop".format(
-                "numpy", (1000 * (t_b - t_a) / (steps_b - steps_a))
-            )
+            f"numpy takes {1000 * (t_b - t_a) / (steps_b - steps_a):f} s/Kop"
         )
 
     def time_linker(name, linker):
@@ -130,9 +128,7 @@ def test_speed():
         t_b = t3 - t2
 
         print(
-            "{} takes {:f} s/Kop".format(
-                name, (1000 * (t_b - t_a) / (steps_b - steps_a))
-            )
+            f"{name} takes {1000 * (t_b - t_a) / (steps_b - steps_a):f} s/Kop"
         )
 
     time_linker("c|py", OpWiseCLinker)
@@ -177,9 +173,7 @@ def test_speed_lazy():
         t_b = t3 - t2
 
         print(
-            "{} takes {:f} s/Kop".format(
-                name, (1000 * (t_b - t_a) / (steps_b - steps_a))
-            )
+            f"{name} takes {1000 * (t_b - t_a) / (steps_b - steps_a):f} s/Kop"
         )
 
     time_linker("vmLinker", vm.VM_Linker)

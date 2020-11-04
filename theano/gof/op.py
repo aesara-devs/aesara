@@ -361,7 +361,7 @@ class CLinkerOp(CLinkerObject):
             The subclass does not override this method.
 
         """
-        raise MethodNotDefined("%s.c_code" % self.__class__.__name__)
+        raise MethodNotDefined(f"{self.__class__.__name__}.c_code")
 
     def c_code_cache_version_apply(self, node):
         """
@@ -422,7 +422,7 @@ class CLinkerOp(CLinkerObject):
             The subclass does not override this method.
 
         """
-        raise MethodNotDefined("%s.c_code_cleanup" % self.__class__.__name__)
+        raise MethodNotDefined(f"{self.__class__.__name__}.c_code_cleanup")
 
     def c_support_code_apply(self, node, name):
         """
@@ -872,7 +872,7 @@ class Op(object2, PureOp, CLinkerOp):
                 # that don't implement c code. In those cases, we
                 # don't want to print a warning.
                 cl.get_dynamic_module()
-                print("Disabling C code for %s due to unsupported " "float16" % (self,))
+                print(f"Disabling C code for {self} due to unsupported float16")
                 raise NotImplementedError("float16")
         _logger.debug("Trying CLinker.make_thunk")
         outputs = cl.make_thunk(
@@ -1098,10 +1098,10 @@ def get_test_values(*args):
         except TestValueError:
             if hasattr(arg, "name") and arg.name is not None:
                 missing_test_message(
-                    "Argument {} ('{}') has no test value".format(i, arg.name)
+                    f"Argument {i} ('{arg.name}') has no test value"
                 )
             else:
-                missing_test_message("Argument {} has no test value".format(i))
+                missing_test_message(f"Argument {i} has no test value")
             return []
 
     if len(rval) == 1:
@@ -1390,7 +1390,7 @@ class COp(Op):
 
             else:
                 raise ValueError(
-                    "No valid section marker was found in file " "%s" % func_files[i]
+                    f"No valid section marker was found in file {func_files[i]}"
                 )
 
     def __get_op_params(self):
@@ -1462,7 +1462,7 @@ class COp(Op):
         numi = getattr(self, "_cop_num_inputs", len(inp))
         while len(inp) < numi:
             inp.append("NULL")
-        out = ["&%s" % o for o in out]
+        out = [f"&{o}" for o in out]
         numo = getattr(self, "_cop_num_outputs", len(out))
         while len(out) < numo:
             out.append("NULL")
@@ -1512,7 +1512,7 @@ class COp(Op):
 
         # Generate a macro to mark code as being apply-specific
         define_macros.append(
-            define_template % ("APPLY_SPECIFIC(str)", "str##_%s" % name)
+            define_template % ("APPLY_SPECIFIC(str)", f"str##_{name}")
         )
         undef_macros.append(undef_template % "APPLY_SPECIFIC")
 
@@ -1533,10 +1533,10 @@ class COp(Op):
     def get_sub_macros(self, sub):
         define_macros = []
         undef_macros = []
-        define_macros.append("#define FAIL {}".format(self._lquote_macro(sub["fail"])))
+        define_macros.append(f"#define FAIL {self._lquote_macro(sub['fail'])}")
         undef_macros.append("#undef FAIL")
         if "params" in sub:
-            define_macros.append("#define PARAMS {}".format(sub["params"]))
+            define_macros.append(f"#define PARAMS {sub['params']}")
             undef_macros.append("#undef PARAMS")
 
         return "\n".join(define_macros), "\n".join(undef_macros)
@@ -1582,7 +1582,7 @@ class COp(Op):
 
             params = ""
             if "params" in sub:
-                params = ", {}".format(sub["params"])
+                params = f", {sub['params']}"
 
             # Generate the C code
             return """

@@ -67,5 +67,5 @@ if __name__ == "__main__":
     (cheapTime, costlyTime) = ElemwiseOpTime(N=options.N, script=options.script)
 
     if options.script:
-        sys.stdout.write("{:2.9f} {:2.9f}\n".format(cheapTime, costlyTime))
+        sys.stdout.write(f"{cheapTime:2.9f} {costlyTime:2.9f}\n")
         sys.stdout.flush()

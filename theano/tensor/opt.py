@@ -515,7 +515,7 @@ class InplaceElemwiseOptimizer(Optimizer):
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
         print(
-            "{}{} ({})".format((" " * level), self.__class__.__name__, self.op),
+            f"{' ' * level}{self.__class__.__name__} ({self.op})",
             file=stream,
         )
         return inplace_elemwise_optimizer
@@ -934,7 +934,7 @@ class MakeVector(Op):
         out_dtype = node.outputs[0].type.dtype_specs()[1]
         if len(inp) > 0:
             assert self.dtype == node.inputs[0].dtype
-            out_num = "PyArray_TYPE(%s)" % inp[0]
+            out_num = f"PyArray_TYPE({inp[0]})"
 
         ret = (
             """
@@ -989,7 +989,7 @@ class MakeVectorPrinter:
                 s = [pstate.pprinter.process(input) for input in r.owner.inputs]
             finally:
                 pstate.precedence = old_precedence
-            return "[%s]" % ", ".join(s)
+            return f"[{', '.join(s)}]"
         else:
             raise TypeError("Can only print make_vector.")
 
@@ -2657,13 +2657,12 @@ class Assert(Op):
             )
         check = "\n".join(check)
         return (
-            """
-        %(check)s
-        Py_XDECREF(%(out)s);
-        %(out)s = %(value)s;
-        Py_INCREF(%(value)s);
+            f"""
+        {locals()['check']}
+        Py_XDECREF({locals()['out']});
+        {locals()['out']} = {locals()['value']};
+        Py_INCREF({locals()['value']});
         """
-            % locals()
         )
 
     def c_code_cache_version(self):
@@ -3952,7 +3951,7 @@ def local_useless_inc_subtensor_alloc(node):
             # shape inference later because the variable must be part of the
             # function graph in order to call `same_shape` on it.
             if xi not in shape_of:
-                shape_feature.on_import(node.fgraph, xi.owner, "%s: add `xi`" % reason)
+                shape_feature.on_import(node.fgraph, xi.owner, f"{reason}: add `xi`")
 
             # `xi` may have more dimensions than `y` since the subtensor ops
             # do automatic broadcasting of the increment internally. Thus, we
@@ -3962,7 +3961,7 @@ def local_useless_inc_subtensor_alloc(node):
                 y = tt.shape_padleft(y, xi.ndim - y.ndim)
                 if y not in shape_of:
                     shape_feature.on_import(
-                        node.fgraph, y.owner, "%s: add `y`" % reason
+                        node.fgraph, y.owner, f"{reason}: add `y`"
                     )
 
             # Build `z_broad` explicitly to include extra implicit dimensions.
@@ -5464,7 +5463,7 @@ class Canonizer(LocalOptimizer):
         return getattr(
             self,
             "name",
-            "Canonizer({}, {}, {})".format(self.main, self.inverse, self.reciprocal),
+            f"Canonizer({self.main}, {self.inverse}, {self.reciprocal})",
         )
 
 

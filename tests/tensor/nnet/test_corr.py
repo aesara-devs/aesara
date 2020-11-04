@@ -74,7 +74,7 @@ class TestCorr2D(utt.InferShapeTester):
             return rval
 
         output = sym_CorrMM(input, filters)
-        output.name = "CorrMM()({},{})".format(input.name, filters.name)
+        output.name = f"CorrMM()({input.name},{filters.name})"
         theano_corr = theano.function([input, filters], output, mode=self.mode)
 
         # initialize input and compute result
@@ -112,7 +112,7 @@ class TestCorr2D(utt.InferShapeTester):
         elif isinstance(border_mode, int):
             padHW = np.array([border_mode, border_mode])
         else:
-            raise NotImplementedError("Unsupported border_mode {}".format(border_mode))
+            raise NotImplementedError(f"Unsupported border_mode {border_mode}")
         out_shape2d = (
             np.floor((img_shape2d + 2 * (padHW) - dil_fil_shape2d) / subsample2d) + 1
         )

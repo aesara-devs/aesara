@@ -111,7 +111,7 @@ class PdbBreakpoint(Op):
 
             print("\n")
             print("-------------------------------------------------")
-            print("Conditional breakpoint '%s' activated\n" % self.name)
+            print(f"Conditional breakpoint '{self.name}' activated\n")
             print("The monitored variables are stored, in order,")
             print("in the list variable 'monitored' as NumPy arrays.\n")
             print("Their contents can be altered and, when execution")

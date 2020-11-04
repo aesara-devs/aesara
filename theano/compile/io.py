@@ -78,7 +78,7 @@ class SymbolicInput:
             self.name = name
 
         if self.name is not None and not isinstance(self.name, str):
-            raise TypeError("name must be a string! (got: %s)" % self.name)
+            raise TypeError(f"name must be a string! (got: {self.name})")
         self.update = update
         if update is not None:
             if not variable.type == update.type:
@@ -100,9 +100,9 @@ class SymbolicInput:
 
     def __str__(self):
         if self.update:
-            return "In({} -> {})".format(self.variable, self.update)
+            return f"In({self.variable} -> {self.update})"
         else:
-            return "In(%s)" % self.variable
+            return f"In({self.variable})"
 
     def __repr__(self):
         return str(self)
@@ -248,10 +248,10 @@ class SymbolicOutput:
         self.borrow = borrow
 
     def __str__(self):
-        return "Out({},{})".format(self.variable, self.borrow)
+        return f"Out({self.variable},{self.borrow})"
 
     def __repr__(self):
-        return "Out({},{})".format(self.variable, self.borrow)
+        return f"Out({self.variable},{self.borrow})"
 
 
 Out = SymbolicOutput

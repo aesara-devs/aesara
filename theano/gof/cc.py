@@ -223,7 +223,7 @@ def struct_gen(args, struct_builders, blocks, sub):
         #     be executed if any step in the constructor fails and the
         #     latter only at destruction time.
         struct_decl += block.declare
-        struct_init_head = struct_init_head + ("\n%s" % block.behavior)
+        struct_init_head = struct_init_head + f"\n{block.behavior}"
         struct_cleanup += block.cleanup
 
     behavior = code_gen(blocks)
@@ -364,10 +364,9 @@ def get_c_declare(r, name, sub):
     else:
         c_declare = r.type.c_declare(name, sub, False)
     pre = (
-        """
-    PyObject* py_%(name)s;
+        f"""
+    PyObject* py_{locals()['name']};
     """
-        % locals()
     )
     return pre + c_declare
 
@@ -560,16 +559,16 @@ def struct_variable_codeblocks(variable, policies, id, symbol_table, sub):
     #    sub['name'] = name
     sub["id"] = id
     sub["fail"] = failure_code_init(sub)
-    sub["py_ptr"] = "py_%s" % name
-    sub["stor_ptr"] = "storage_%s" % name
+    sub["py_ptr"] = f"py_{name}"
+    sub["stor_ptr"] = f"storage_{name}"
     # struct_declare, struct_behavior, struct_cleanup, sub)
     struct_builder = CodeBlock(
         *[apply_policy(policy, variable, name, sub) for policy in policies[0]] + [sub]
     )
     sub["id"] = id + 1
     sub["fail"] = failure_code(sub)
-    sub["py_ptr"] = "py_%s" % name
-    sub["stor_ptr"] = "storage_%s" % name
+    sub["py_ptr"] = f"py_{name}"
+    sub["stor_ptr"] = f"storage_{name}"
     # run_declare, run_behavior, run_cleanup, sub)
     block = CodeBlock(
         *[apply_policy(policy, variable, name, sub) for policy in policies[1]] + [sub]
@@ -888,7 +887,7 @@ class CLinker(link.Linker):
             try:
                 behavior = op.c_code(node, name, isyms, osyms, sub)
             except utils.MethodNotDefined:
-                raise NotImplementedError("%s cannot produce C code" % op)
+                raise NotImplementedError(f"{op} cannot produce C code")
             assert isinstance(behavior, str), (
                 str(node.op) + " didn't return a string for c_code"
             )
@@ -921,13 +920,13 @@ class CLinker(link.Linker):
         # compare equal to equivalent Constant instances.
         args = []
         args += [
-            "storage_%s" % symbol[variable]
+            f"storage_{symbol[variable]}"
             for variable in utils.uniq(self.inputs + self.outputs + self.orphans)
         ]
 
         # <<<<HASH_PLACEHOLDER>>>> will be replaced by a hash of the whole
         # code in the file, including support code, in DynamicModule.code.
-        struct_name = "__struct_compiled_op_%s" % "<<<<HASH_PLACEHOLDER>>>>"
+        struct_name = f"__struct_compiled_op_{'<<<<HASH_PLACEHOLDER>>>>'}"
         struct_code = struct_gen(
             args, init_blocks, blocks, dict(failure_var=failure_var, name=struct_name)
         )
@@ -1459,7 +1458,7 @@ class CLinker(link.Linker):
             ndarray_c_version = np.core.multiarray._get_ndarray_c_version()
         else:
             ndarray_c_version = np.core._multiarray_umath._get_ndarray_c_version()
-        sig.append("NPY_ABI_VERSION=0x%X" % ndarray_c_version)
+        sig.append(f"NPY_ABI_VERSION=0x{ndarray_c_version:X}")
         if c_compiler:
             sig.append("c_compiler_str=" + c_compiler.version_str())
 
@@ -1743,7 +1742,7 @@ class CLinker(link.Linker):
         print("     return NULL;", file=code)
         print("  }", file=code)
         print(
-            "  %(struct_name)s* struct_ptr = new %(struct_name)s();" % locals(),
+            f"  {locals()['struct_name']}* struct_ptr = new {locals()['struct_name']}();",
             file=code,
         )
         print(

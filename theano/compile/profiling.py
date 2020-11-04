@@ -752,8 +752,8 @@ class ProfileStats:
                     [self.variable_shape[var] for var in a.inputs],
                     [self.variable_shape[var] for var in a.outputs],
                 )
-                flops = "%8.1f" % (fl / 1024.0 / 1024)
-                flops_s = "%10.1f" % (fl / 1024.0 / 1024 / 1024 / t)
+                flops = f"{fl / 1024.0 / 1024:8.1f}"
+                flops_s = f"{fl / 1024.0 / 1024 / 1024 / t:10.1f}"
             else:
                 flops = "        "
                 flops_s = "          "
@@ -779,7 +779,7 @@ class ProfileStats:
                 st = self.variable_strides.get(var, "no strides")
                 off = self.variable_offset.get(var, "")
                 if off != "":
-                    off = ", offset=%s" % off
+                    off = f", offset={off}"
                 dtype = getattr(var, "dtype", "no dtype")
                 print(
                     "    input %d: dtype=%s, shape=%s, strides=%s%s"
@@ -791,7 +791,7 @@ class ProfileStats:
                 st = self.variable_strides.get(var, "no strides")
                 off = self.variable_offset.get(var, "")
                 if off != "":
-                    off = ", offset=%s" % off
+                    off = f", offset={off}"
                 dtype = getattr(var, "dtype", "no dtype")
                 print(
                     "    output %d: dtype=%s, shape=%s, strides=%s%s"
@@ -815,7 +815,7 @@ class ProfileStats:
     def summary_function(self, file):
         print("Function profiling", file=file)
         print("==================", file=file)
-        print("  Message: %s" % self.message, file=file)
+        print(f"  Message: {self.message}", file=file)
         print(
             "  Time in %i calls to Function.__call__: %es"
             % (self.fct_callcount, self.fct_call_time),
@@ -834,24 +834,24 @@ class ProfileStats:
                     % (local_time, 100 * local_time / self.fct_call_time),
                     file=file,
                 )
-        print("  Total compile time: %es" % self.compile_time, file=file)
+        print(f"  Total compile time: {self.compile_time:e}s", file=file)
         print("    Number of Apply nodes: %d" % self.nb_nodes, file=file)
-        print("    Theano Optimizer time: %es" % self.optimizer_time, file=file)
-        print("       Theano validate time: %es" % self.validate_time, file=file)
+        print(f"    Theano Optimizer time: {self.optimizer_time:e}s", file=file)
+        print(f"       Theano validate time: {self.validate_time:e}s", file=file)
         print(
             "    Theano Linker time (includes C, CUDA code "
             "generation/compiling): %es" % self.linker_time,
             file=file,
         )
-        print("       Import time %es" % self.import_time, file=file)
+        print(f"       Import time {self.import_time:e}s", file=file)
         print(
-            "       Node make_thunk time %es" % self.linker_node_make_thunks, file=file
+            f"       Node make_thunk time {self.linker_node_make_thunks:e}s", file=file
         )
 
         for node, t in sorted(
             self.linker_make_thunk_time.items(), key=operator.itemgetter(1)
         )[::-1][:5]:
-            print("           Node {} time {:e}s".format(node, t), file=file)
+            print(f"           Node {node} time {t:e}s", file=file)
         print("", file=file)
 
         # The validation time is a subset of optimizer_time
@@ -860,11 +860,11 @@ class ProfileStats:
 
     def summary_globals(self, file):
         print(
-            "Time in all call to theano.grad() %es" % theano.gradient.grad_time,
+            f"Time in all call to theano.grad() {theano.gradient.grad_time:e}s",
             file=file,
         )
         total_time = time.time() - theano_imported_time
-        print("Time since theano import %.3fs" % (total_time), file=file)
+        print(f"Time since theano import {total_time:.3f}s", file=file)
 
     def summary_memory(self, file, N=None):
         fct_memory = {}  # fgraph->dict(node->[outputs size])
@@ -1452,7 +1452,7 @@ class ProfileStats:
                 size = "%10s" % "Unknown"
 
             print(
-                "     {}  {} {} {}".format(size, shapes, " ".join(code), node),
+                f"     {size}  {shapes} {' '.join(code)} {node}",
                 file=file,
             )
 
@@ -1461,7 +1461,7 @@ class ProfileStats:
         if size_sum_dense == 0:
             p = "0%"
         else:
-            p = "(%.2f%%)" % (float(sum_remaining) / size_sum_dense * 100)
+            p = f"({float(sum_remaining) / size_sum_dense * 100:.2f}%)"
         print(
             "   ... (remaining %i Apply account for %4dB/%dB (%s) of the"
             " Apply with dense outputs sizes)"
@@ -1767,7 +1767,7 @@ class ScanProfileStats(ProfileStats):
         else:
             print("Scan Op profiling", file=file)
         print("==================", file=file)
-        print("  Message: %s" % self.message, file=file)
+        print(f"  Message: {self.message}", file=file)
 
         print(
             (
@@ -1781,8 +1781,7 @@ class ScanProfileStats(ProfileStats):
         if self.call_time > 0:
             val = self.vm_call_time * 100 / self.call_time
         print(
-            "  Total time spent in calling the VM %es (%.3f%%)"
-            % (self.vm_call_time, val),
+            f"  Total time spent in calling the VM {self.vm_call_time:e}s ({val:.3f}%)",
             file=file,
         )
         val = 100

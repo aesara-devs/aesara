@@ -153,9 +153,9 @@ multiple time in a DB. Tryed to register "%s" again under the new name "%s".
     def __getitem__(self, name):
         variables = self.__db__[name]
         if not variables:
-            raise KeyError("Nothing registered for '%s'" % name)
+            raise KeyError(f"Nothing registered for '{name}'")
         elif len(variables) > 1:
-            raise ValueError("More than one match for %s (please use query)" % name)
+            raise ValueError(f"More than one match for {name} (please use query)")
         for variable in variables:
             return variable
 

@@ -47,7 +47,7 @@ class Fourier(gof.Op):
         a = tensor.as_tensor_variable(a)
         if a.ndim < 1:
             raise TypeError(
-                "%s: input must be an array, not a scalar" % self.__class__.__name__
+                f"{self.__class__.__name__}: input must be an array, not a scalar"
             )
         if axis is None:
             axis = a.ndim - 1

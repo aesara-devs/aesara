@@ -572,35 +572,31 @@ class Generic(SingletonType):
 
     def c_declare(self, name, sub, check_input=True):
         return (
-            """
-        PyObject* %(name)s;
+            f"""
+        PyObject* {locals()['name']};
         """
-            % locals()
         )
 
     def c_init(self, name, sub):
         return (
-            """
-        %(name)s = NULL;
+            f"""
+        {locals()['name']} = NULL;
         """
-            % locals()
         )
 
     def c_extract(self, name, sub, check_input=True):
         return (
-            """
-        Py_INCREF(py_%(name)s);
-        %(name)s = py_%(name)s;
+            f"""
+        Py_INCREF(py_{locals()['name']});
+        {locals()['name']} = py_{locals()['name']};
         """
-            % locals()
         )
 
     def c_cleanup(self, name, sub):
         return (
-            """
-        Py_XDECREF(%(name)s);
+            f"""
+        Py_XDECREF({locals()['name']});
         """
-            % locals()
         )
 
     def c_sync(self, name, sub):
@@ -768,7 +764,7 @@ class CDataType(Type):
         )
 
     def c_init(self, name, sub):
-        return "%(name)s = NULL;" % dict(name=name)
+        return f"{dict(name=name)['name']} = NULL;"
 
     def c_extract(self, name, sub, check_input=True):
         return """
@@ -846,7 +842,7 @@ if (py_%(name)s == NULL) { %(freefunc)s(%(name)s); }
         return v
 
     def __str__(self):
-        return "{}{{{}}}".format(self.__class__.__name__, self.ctype)
+        return f"{self.__class__.__name__}{{{self.ctype}}}"
 
     def __setstate__(self, dct):
         self.__dict__.update(dct)
@@ -976,12 +972,12 @@ class EnumType(Type, dict):
         # We should check each part.
         ctype_parts = ctype.split()
         if not all(re.match("^[A-Za-z_][A-Za-z0-9_]*$", el) for el in ctype_parts):
-            raise TypeError("%s: invalid C type." % type(self).__name__)
+            raise TypeError(f"{type(self).__name__}: invalid C type.")
         self.ctype = " ".join(ctype_parts)
 
     def __init_cname(self, cname):
         if not re.match("^[A-Za-z_][A-Za-z0-9_]*$", cname):
-            raise TypeError("%s: invalid C name." % type(self).__name__)
+            raise TypeError(f"{type(self).__name__}: invalid C name.")
         self.cname = cname
 
     def __init__(self, **kwargs):
@@ -1016,8 +1012,7 @@ class EnumType(Type, dict):
                     )
                 if alias in self.aliases:
                     raise TypeError(
-                        '%s: consant alias "%s" already used.'
-                        % (type(self).__name__, alias)
+                        f'{type(self).__name__}: consant alias "{alias}" already used.'
                     )
                 self.aliases[alias] = k
                 kwargs[k] = value
@@ -1030,7 +1025,7 @@ class EnumType(Type, dict):
                 )
         if [a for a in self.aliases if a in self]:
             raise TypeError(
-                "%s: some aliases have same names as constants." % type(self).__name__
+                f"{type(self).__name__}: some aliases have same names as constants."
             )
         super().__init__(**kwargs)
 
@@ -1057,7 +1052,7 @@ class EnumType(Type, dict):
     def __repr__(self):
         names_to_aliases = {constant_name: "" for constant_name in self}
         for alias in self.aliases:
-            names_to_aliases[self.aliases[alias]] = "(%s)" % alias
+            names_to_aliases[self.aliases[alias]] = f"({alias})"
         return "{}<{}>({})".format(
             type(self).__name__,
             self.ctype,
@@ -1196,10 +1191,10 @@ class EnumType(Type, dict):
         )
 
     def c_declare(self, name, sub, check_input=True):
-        return """%(ctype)s %(name)s;""" % dict(ctype=self.ctype, name=name)
+        return f"""{dict(ctype=self.ctype, name=name)['ctype']} {dict(ctype=self.ctype, name=name)['name']};"""
 
     def c_init(self, name, sub):
-        return "%(name)s = (%(ctype)s)0;" % dict(name=name, ctype=self.ctype)
+        return f"{dict(name=name, ctype=self.ctype)['name']} = ({dict(name=name, ctype=self.ctype)['ctype']})0;"
 
     def c_cleanup(self, name, sub):
         return ""

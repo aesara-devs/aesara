@@ -612,7 +612,7 @@ class ConvOp(OpenMPOp):
         self.out_mode = output_mode
 
         if self.out_mode not in ["valid", "full"]:
-            raise Exception("Mode %s not implemented" % str(self.out_mode))
+            raise Exception(f"Mode {str(self.out_mode)} not implemented")
 
         if any((shp is not None) and (shp <= 0) for shp in self.outshp):
             raise Exception(
@@ -1231,15 +1231,15 @@ using namespace std;
         d["affectation"] = "="
 
         # Default values, will be overrided if the shape info is provided
-        d["self_bsize"] = "PyArray_DIMS(%(img2d)s)[0]" % d
-        d["self_nkern"] = "PyArray_DIMS(%(filtersflipped)s)[0]" % d
+        d["self_bsize"] = f"PyArray_DIMS({d['img2d']})[0]"
+        d["self_nkern"] = f"PyArray_DIMS({d['filtersflipped']})[0]"
         d["self_outshp0"] = "-1"
         d["self_outshp1"] = "-1"
-        d["self_imshp0"] = "PyArray_DIMS(%(img2d)s)[1]" % d
-        d["self_imshp1"] = "PyArray_DIMS(%(img2d)s)[2]" % d
-        d["self_imshp2"] = "PyArray_DIMS(%(img2d)s)[3]" % d
-        d["self_kshp0"] = "PyArray_DIMS(%(filtersflipped)s)[2]" % d
-        d["self_kshp1"] = "PyArray_DIMS(%(filtersflipped)s)[3]" % d
+        d["self_imshp0"] = f"PyArray_DIMS({d['img2d']})[1]"
+        d["self_imshp1"] = f"PyArray_DIMS({d['img2d']})[2]"
+        d["self_imshp2"] = f"PyArray_DIMS({d['img2d']})[3]"
+        d["self_kshp0"] = f"PyArray_DIMS({d['filtersflipped']})[2]"
+        d["self_kshp1"] = f"PyArray_DIMS({d['filtersflipped']})[3]"
         d["assert_size"] = ""
 
         # Override the default value if we have it
@@ -1485,7 +1485,7 @@ if(kerns_dim[1] != img2d_dim[1]){
         elif node.inputs[0].type.dtype == "float64":
             d["type"] = "double"
         else:
-            raise Exception("Type %s not implemented" % node.inputs[0].type.dtype)
+            raise Exception(f"Type {node.inputs[0].type.dtype} not implemented")
         d["gemm"] = "dgemm_"
         if not d["type"] == "double":
             d["gemm"] = "sgemm_"

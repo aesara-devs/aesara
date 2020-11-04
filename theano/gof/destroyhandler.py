@@ -196,7 +196,7 @@ def _build_droot_impact(destroy_handler):
             input_root = r
 
             if input_root in droot:
-                raise InconsistencyError("Multiple destroyers of %s" % input_root)
+                raise InconsistencyError(f"Multiple destroyers of {input_root}")
             droot[input_root] = input_root
             root_destroyer[input_root] = app
 
@@ -480,7 +480,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
                 inp, graph.Constant
             ):
                 self.fail_validate[app] = InconsistencyError(
-                    "Attempting to destroy indestructible variables: %s" % inp
+                    f"Attempting to destroy indestructible variables: {inp}"
                 )
             elif len(inp.clients) > 1:
                 self.fail_validate[app] = theano.gof.InconsistencyError(
@@ -709,8 +709,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
             ]
             if illegal_destroy:
                 raise InconsistencyError(
-                    "Attempting to destroy indestructible variables: %s"
-                    % illegal_destroy
+                    f"Attempting to destroy indestructible variables: {illegal_destroy}"
                 )
 
             # add destroyed variable clients as computational dependencies

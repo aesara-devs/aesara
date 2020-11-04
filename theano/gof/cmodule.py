@@ -68,7 +68,7 @@ def debug_counter(name, every=1):
     setattr(debug_counter, name, getattr(debug_counter, name, 0) + 1)
     n = getattr(debug_counter, name)
     if n % every == 0:
-        print("debug_counter [{}]: {}".format(name, n), file=sys.stderr)
+        print(f"debug_counter [{name}]: {n}", file=sys.stderr)
 
 
 class ExtFunction:
@@ -116,9 +116,7 @@ class ExtFunction:
         It goes into the DynamicModule's method table.
 
         """
-        return '\t{{"{}", {}, {}, "{}"}}'.format(
-            self.name, self.name, self.method, self.doc
-        )
+        return f'\t{{"{self.name}", {self.name}, {self.method}, "{self.doc}"}}'
 
 
 class DynamicModule:
@@ -150,17 +148,14 @@ class DynamicModule:
 
     def print_init(self, stream):
         print(
-            """\
-static struct PyModuleDef moduledef = {{
+            f"""static struct PyModuleDef moduledef = {{
   PyModuleDef_HEAD_INIT,
-  "{name}",
+  "{self.hash_placeholder}",
   NULL,
   -1,
   MyMethods,
 }};
-""".format(
-                name=self.hash_placeholder
-            ),
+""",
             file=stream,
         )
         print(
@@ -198,7 +193,7 @@ static struct PyModuleDef moduledef = {{
             if inc[0] == "<" or inc[0] == '"':
                 print("#include", inc, file=sio)
             else:
-                print('#include "%s"' % inc, file=sio)
+                print(f'#include "{inc}"', file=sio)
 
         print("//////////////////////", file=sio)
         print("////  Support Code", file=sio)
@@ -1591,7 +1586,7 @@ def _rmtree(
         if ignore_nocleanup or not config.nocleanup:
             log_msg = "Deleting"
             if msg:
-                log_msg += " (%s)" % msg
+                log_msg += f" ({msg})"
             _logger.log(level, "%s: %s", log_msg, parent)
             shutil.rmtree(parent)
     except Exception as e:
@@ -2087,7 +2082,7 @@ class GCC_compiler(Compiler):
 
             # The '-' at the end is needed. Otherwise, g++ do not output
             # enough information.
-            native_lines = get_lines("%s -march=native -E -v -" % theano.config.cxx)
+            native_lines = get_lines(f"{theano.config.cxx} -march=native -E -v -")
             if native_lines is None:
                 _logger.info(
                     "Call to 'g++ -march=native' failed," "not setting -march flag"
@@ -2102,7 +2097,7 @@ class GCC_compiler(Compiler):
                     # That means we did not select the right lines, so
                     # we have to report all the lines instead
                     reported_lines = get_lines(
-                        "%s -march=native -E -v -" % theano.config.cxx, parse=False
+                        f"{theano.config.cxx} -march=native -E -v -", parse=False
                     )
                 else:
                     reported_lines = native_lines
@@ -2116,7 +2111,7 @@ class GCC_compiler(Compiler):
                     reported_lines,
                 )
             else:
-                default_lines = get_lines("%s -E -v -" % theano.config.cxx)
+                default_lines = get_lines(f"{theano.config.cxx} -E -v -")
                 _logger.info("g++ default lines: %s", default_lines)
                 if len(default_lines) < 1:
                     _logger.warning(
@@ -2127,7 +2122,7 @@ class GCC_compiler(Compiler):
                         " functions. Please submit the following lines to"
                         " Theano's mailing list so that we can fix this"
                         " problem:\n %s",
-                        get_lines("%s -E -v -" % theano.config.cxx, parse=False),
+                        get_lines(f"{theano.config.cxx} -E -v -", parse=False),
                     )
                 else:
                     # Some options are actually given as "-option value",
@@ -2184,7 +2179,7 @@ class GCC_compiler(Compiler):
                                     opt = p.split()
                                     if len(opt) == 2:
                                         opt_name, opt_val = opt
-                                        new_flags[i] = "-march=%s" % opt_val
+                                        new_flags[i] = f"-march={opt_val}"
 
                             # Some versions of GCC report the native arch
                             # as "corei7-avx", but it generates illegal
@@ -2457,9 +2452,9 @@ class GCC_compiler(Compiler):
             if dist_suffix is not None and dist_suffix != "":
                 suffix = dist_suffix
 
-            filepath = "{}{}".format(module_name, suffix)
+            filepath = f"{module_name}{suffix}"
         else:
-            filepath = "{}.{}".format(module_name, get_lib_extension())
+            filepath = f"{module_name}.{get_lib_extension()}"
 
         lib_filename = os.path.join(location, filepath)
 
@@ -2474,12 +2469,12 @@ class GCC_compiler(Compiler):
         path_wrapper = '"' if os.name == "nt" else ""
         cmd.extend(
             [
-                "-I{}{}{}".format(path_wrapper, idir, path_wrapper)
+                f"-I{path_wrapper}{idir}{path_wrapper}"
                 for idir in include_dirs
             ]
         )
         cmd.extend(
-            ["-L{}{}{}".format(path_wrapper, ldir, path_wrapper) for ldir in lib_dirs]
+            [f"-L{path_wrapper}{ldir}{path_wrapper}" for ldir in lib_dirs]
         )
         if hide_symbols and sys.platform != "win32":
             # This has been available since gcc 4.0 so we suppose it
@@ -2489,9 +2484,9 @@ class GCC_compiler(Compiler):
             # improved loading times on most platforms (win32 is
             # different, as usual).
             cmd.append("-fvisibility=hidden")
-        cmd.extend(["-o", "{}{}{}".format(path_wrapper, lib_filename, path_wrapper)])
-        cmd.append("{}{}{}".format(path_wrapper, cppfilename, path_wrapper))
-        cmd.extend(["-l%s" % l for l in libs])
+        cmd.extend(["-o", f"{path_wrapper}{lib_filename}{path_wrapper}"])
+        cmd.append(f"{path_wrapper}{cppfilename}{path_wrapper}")
+        cmd.extend([f"-l{l}" for l in libs])
         # print >> sys.stderr, 'COMPILING W CMD', cmd
         _logger.debug("Running cmd: %s", " ".join(cmd))
 

@@ -422,9 +422,9 @@ class OperatorPrinter:
         if len(input_strings) == 1:
             s = self.operator + input_strings[0]
         else:
-            s = (" %s " % self.operator).join(input_strings)
+            s = f" {self.operator} ".join(input_strings)
         if parenthesize:
-            r = "(%s)" % s
+            r = f"({s})"
         else:
             r = s
         pstate.memo[output] = r
@@ -519,7 +519,7 @@ class IgnorePrinter:
                 " not the result of an operation" % self.function
             )
         input = node.inputs[0]
-        r = "%s" % pprinter.process(input, pstate)
+        r = f"{pprinter.process(input, pstate)}"
         pstate.memo[output] = r
         return r
 
@@ -628,7 +628,7 @@ class PPrinter:
                 if output in inv_updates:
                     name = str(inv_updates[output])
                     strings.append(
-                        (i + 1000, "{} <- {}".format(name, pprinter.process(output)))
+                        (i + 1000, f"{name} <- {pprinter.process(output)}")
                     )
                     i += 1
                 if output.name is not None or output in outputs:
@@ -645,10 +645,10 @@ class PPrinter:
                     except ValueError:
                         idx = i
                     if len(outputs) == 1 and outputs[0] is output:
-                        strings.append((idx, "return %s" % pprinter.process(output)))
+                        strings.append((idx, f"return {pprinter.process(output)}"))
                     else:
                         strings.append(
-                            (idx, "{} = {}".format(name, pprinter.process(output)))
+                            (idx, f"{name} = {pprinter.process(output)}")
                         )
                     i += 1
         strings.sort()
@@ -896,7 +896,7 @@ def pydotprint(
             dstr = "val=" + str(np.asarray(var.data))
             if "\n" in dstr:
                 dstr = dstr[: dstr.index("\n")]
-            varstr = "{} {}".format(dstr, str(var.type))
+            varstr = f"{dstr} {str(var.type)}"
         elif var in input_update and input_update[var].name is not None:
             varstr = input_update[var].name
             if not var_with_name_simple:
@@ -928,7 +928,7 @@ def pydotprint(
                 pf = 0
             else:
                 pf = time * 100 / profile.fct_call_time
-            prof_str = "   ({:.3f}s,{:.3f}%)".format(time, pf)
+            prof_str = f"   ({time:.3f}s,{pf:.3f}%)"
         applystr = str(node.op).replace(":", "_")
         applystr += prof_str
         if (applystr in all_strings) or with_ids:

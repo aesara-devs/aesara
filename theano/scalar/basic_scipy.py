@@ -67,7 +67,7 @@ class Erf(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = erf((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = erf(({locals()['cast']}){locals()['x']});"
 
 
 erf = Erf(upgrade_to_float, name="erf")
@@ -104,7 +104,7 @@ class Erfc(UnaryScalarOp):
         if node.inputs[0].type in complex_types:
             raise NotImplementedError("type not supported", type)
         cast = node.outputs[0].type.dtype_specs()[1]
-        return "%(z)s = erfc((%(cast)s)%(x)s);" % locals()
+        return f"{locals()['z']} = erfc(({locals()['cast']}){locals()['x']});"
 
 
 # scipy.special.erfc don't support complex. Why?
@@ -269,7 +269,7 @@ class Gamma(UnaryScalarOp):
         (x,) = inputs
         (z,) = outputs
         if node.inputs[0].type in float_types:
-            return """%(z)s = tgamma(%(x)s);""" % locals()
+            return f"""{locals()['z']} = tgamma({locals()['x']});"""
         raise NotImplementedError("only floating point is implemented")
 
 
@@ -318,7 +318,7 @@ class GammaLn(UnaryScalarOp):
         # automatically to float64. This make the compilation crash
         dtype = ""
         cast = node.outputs[0].type.dtype_specs()[1]
-        return """%(z)s = lgamma((%(cast)s)%(x)s);""" % locals()
+        return f"""{locals()['z']} = lgamma(({locals()['cast']}){locals()['x']});"""
 
 
 gammaln = GammaLn(upgrade_to_float, name="gammaln")
@@ -413,9 +413,8 @@ class Psi(UnaryScalarOp):
         (z,) = out
         if node.inputs[0].type in float_types:
             return (
-                """%(z)s =
-                _psi(%(x)s);"""
-                % locals()
+                f"""{locals()['z']} =
+                _psi({locals()['x']});"""
             )
         raise NotImplementedError("only floating point is implemented")
 
@@ -503,9 +502,8 @@ class TriGamma(UnaryScalarOp):
         (z,) = out
         if node.inputs[0].type in float_types:
             return (
-                """%(z)s =
-                _tri_gamma(%(x)s);"""
-                % locals()
+                f"""{locals()['z']} =
+                _tri_gamma({locals()['x']});"""
             )
         raise NotImplementedError("only floating point is implemented")
 
@@ -790,9 +788,8 @@ class J1(UnaryScalarOp):
         (z,) = out
         if node.inputs[0].type in float_types:
             return (
-                """%(z)s =
-                j1(%(x)s);"""
-                % locals()
+                f"""{locals()['z']} =
+                j1({locals()['x']});"""
             )
         raise NotImplementedError("only floating point is implemented")
 
@@ -827,9 +824,8 @@ class J0(UnaryScalarOp):
         (z,) = out
         if node.inputs[0].type in float_types:
             return (
-                """%(z)s =
-                j0(%(x)s);"""
-                % locals()
+                f"""{locals()['z']} =
+                j0({locals()['x']});"""
             )
         raise NotImplementedError("only floating point is implemented")
 

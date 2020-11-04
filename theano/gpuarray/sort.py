@@ -194,8 +194,7 @@ class GpuTopKOp(GpuKernelBase, TopKOp):
         context = node.inputs[0].type.context
         if context.kind != b"cuda":
             raise NotImplementedError(
-                "%s: We only have CUDA "
-                "implementation so far." % self.__class__.__name__
+                f"{self.__class__.__name__}: We only have CUDA implementation so far."
             )
         x, k = inps
         inp_dtc = ga.dtype_to_typecode(node.inputs[0].dtype)
@@ -224,8 +223,8 @@ class GpuTopKOp(GpuKernelBase, TopKOp):
         dims = "".join("dims[%d], " % i for i in reordered_axes[1:])
         prep_output = ""
         if self.return_values:
-            def_dvstrides = "const ssize_t *dvstrides = PyGpuArray_STRIDES(%s)" % yv
-            params_dv = "{}->ga.data, {}->ga.offset,\n".format(yv, yv)
+            def_dvstrides = f"const ssize_t *dvstrides = PyGpuArray_STRIDES({yv})"
+            params_dv = f"{yv}->ga.data, {yv}->ga.offset,\n"
             params_dv += "".join("dvstrides[%d], " % i for i in reordered_axes)
             prep_output += (
                 """
@@ -240,8 +239,8 @@ class GpuTopKOp(GpuKernelBase, TopKOp):
             def_dvstrides = params_dv = ""
 
         if self.return_indices:
-            def_distrides = "const ssize_t *distrides = PyGpuArray_STRIDES(%s)" % yi
-            params_di = "{}->ga.data, {}->ga.offset,\n".format(yi, yi)
+            def_distrides = f"const ssize_t *distrides = PyGpuArray_STRIDES({yi})"
+            params_di = f"{yi}->ga.data, {yi}->ga.offset,\n"
             params_di += "".join("distrides[%d], " % i for i in reordered_axes)
             prep_output += (
                 """

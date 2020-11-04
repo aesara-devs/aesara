@@ -155,8 +155,8 @@ def print_compiledir_content():
                     if len(ops) == 1:
                         table.append((dir, ops[0], types, compile_time))
                     else:
-                        ops_to_str = "[%s]" % ", ".join(sorted(str(op) for op in ops))
-                        types_to_str = "[%s]" % ", ".join(sorted(str(t) for t in types))
+                        ops_to_str = f"[{', '.join(sorted(str(op) for op in ops))}]"
+                        types_to_str = f"[{', '.join(sorted(str(t) for t in types))}]"
                         table_multiple_ops.append(
                             (dir, ops_to_str, types_to_str, compile_time)
                         )
@@ -173,7 +173,7 @@ def print_compiledir_content():
             except AttributeError:
                 _logger.error("Could not read key file '%s'.", filename)
 
-    print_title("Theano cache: %s" % compiledir, overline="=", underline="=")
+    print_title(f"Theano cache: {compiledir}", overline="=", underline="=")
     print()
 
     print_title("List of %d compiled individual ops" % len(table), underline="+")
@@ -182,7 +182,7 @@ def print_compiledir_content():
     )
     table = sorted(table, key=lambda t: str(t[1]))
     for dir, op, types, compile_time in table:
-        print(dir, "%.3fs" % compile_time, op, types)
+        print(dir, f"{compile_time:.3f}s", op, types)
 
     print()
     print_title(
@@ -194,7 +194,7 @@ def print_compiledir_content():
     )
     table_multiple_ops = sorted(table_multiple_ops, key=lambda t: (t[1], t[2]))
     for dir, ops_to_str, types_to_str, compile_time in table_multiple_ops:
-        print(dir, "%.3fs" % compile_time, ops_to_str, types_to_str)
+        print(dir, f"{compile_time:.3f}s", ops_to_str, types_to_str)
 
     print()
     print_title(
@@ -257,10 +257,10 @@ def basecompiledir_ls():
     subdirs = sorted(subdirs)
     others = sorted(others)
 
-    print("Base compile dir is %s" % theano.config.base_compiledir)
+    print(f"Base compile dir is {theano.config.base_compiledir}")
     print("Sub-directories (possible compile caches):")
     for d in subdirs:
-        print("    %s" % d)
+        print(f"    {d}")
     if not subdirs:
         print("    (None)")
 
@@ -268,7 +268,7 @@ def basecompiledir_ls():
         print()
         print("Other files in base_compiledir:")
         for f in others:
-            print("    %s" % f)
+            print(f"    {f}")
 
 
 def basecompiledir_purge():

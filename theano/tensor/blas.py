@@ -477,7 +477,7 @@ def _ldflags(ldflags_str, libs, flags, libs_dir, include_dir):
             assert t0 == "-"
         except Exception:
             raise ValueError(
-                'invalid token "{}" in ldflags_str: "{}"'.format(t, ldflags_str)
+                f'invalid token "{t}" in ldflags_str: "{ldflags_str}"'
             )
         if libs_dir and t1 == "L":
             rval.append(t[2:])
@@ -880,7 +880,7 @@ class Gemm(GemmRelated):
             inplace_str = "inplace"
         else:
             inplace_str = "no_inplace"
-        return "{}{{{}}}".format(self.__class__.__name__, inplace_str)
+        return f"{self.__class__.__name__}{{{inplace_str}}}"
 
     def __setstate__(self, dct):
         self.__dict__.update(dct)
@@ -901,8 +901,7 @@ class Gemm(GemmRelated):
         inputs = list(map(tt.as_tensor_variable, inputs))
         if len(inputs) != 5:
             raise TypeError(
-                "Wrong number of inputs for %s (expected 5, got %s)"
-                % (self, len(inputs))
+                f"Wrong number of inputs for {self} (expected 5, got {len(inputs)})"
             )
         z, a, x, y, b = inputs
 
@@ -1083,7 +1082,7 @@ class Gemm(GemmRelated):
         _z, _a, _x, _y, _b = inp
         (_zout,) = out
         if node.inputs[0].type.dtype.startswith("complex"):
-            raise MethodNotDefined("%s.c_code" % self.__class__.__name__)
+            raise MethodNotDefined(f"{self.__class__.__name__}.c_code")
         full_code = self.build_gemm_call() % dict(locals(), **sub)
         return full_code
 
@@ -1669,7 +1668,7 @@ class Dot22(GemmRelated):
         _x, _y = inp
         (_zout,) = out
         if node.inputs[0].type.dtype.startswith("complex"):
-            raise MethodNotDefined("%s.c_code" % self.__class__.__name__)
+            raise MethodNotDefined(f"{self.__class__.__name__}.c_code")
         if len(self.c_libraries()) <= 0:
             return super().c_code(node, name, (_x, _y), (_zout,), sub)
         full_code = self.build_gemm_call() % dict(locals(), **sub)
@@ -1939,7 +1938,7 @@ class Dot22Scalar(GemmRelated):
         _x, _y, _a = inp
         (_zout,) = out
         if node.inputs[0].type.dtype.startswith("complex"):
-            raise MethodNotDefined("%s.c_code" % self.__class__.__name__)
+            raise MethodNotDefined(f"{self.__class__.__name__}.c_code")
         if len(self.c_libraries()) <= 0:
             return super().c_code(node, name, (_x, _y), (_zout,), sub)
         full_code = self.build_gemm_call() % dict(locals(), **sub)
@@ -2252,9 +2251,9 @@ class BatchedDot(Op):
 
         # generate contiguity condition
         def contiguous(var, ndim):
-            strides = "PyArray_STRIDES(%s)" % var
+            strides = f"PyArray_STRIDES({var})"
             if ndim == 1:
-                return "{strides}[0] == type_size".format(strides=strides)
+                return f"{strides}[0] == type_size"
             return " && ".join(
                 [
                     " && ".join(
@@ -2278,11 +2277,11 @@ class BatchedDot(Op):
         )
 
         # generate code to allocate output based on runtime input shapes
-        z_dims = ["PyArray_DIMS(%s)[0]" % _x]
+        z_dims = [f"PyArray_DIMS({_x})[0]"]
         if x_ndim == 3:
-            z_dims.append("PyArray_DIMS(%s)[1]" % _x)
+            z_dims.append(f"PyArray_DIMS({_x})[1]")
         if y_ndim == 3:
-            z_dims.append("PyArray_DIMS(%s)[2]" % _y)
+            z_dims.append(f"PyArray_DIMS({_y})[2]")
         assert len(z_dims) == z_ndim
 
         z_shape_correct = " && ".join(

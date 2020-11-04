@@ -266,7 +266,7 @@ class OpFromGraph(gof.Op):
         **kwargs,
     ):
         if not isinstance(outputs, list):
-            raise TypeError("outputs must be list, got %s" % type(outputs))
+            raise TypeError(f"outputs must be list, got {type(outputs)}")
         for i in inputs + outputs:
             if not isinstance(i, gof.Variable):
                 raise TypeError("inputs and outputs must be Variable instances", i)

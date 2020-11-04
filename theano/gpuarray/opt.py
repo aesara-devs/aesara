@@ -449,10 +449,10 @@ class GraphToGPU(Optimizer):
 
         print(blanc, getattr(opt, "name", getattr(opt, "__name__", "")), file=stream)
 
-        print(blanc, "  time io_toposort %.3fs" % toposort_timing, file=stream)
+        print(blanc, f"  time io_toposort {toposort_timing:.3f}s", file=stream)
 
         s = sum(time_opts.values())
-        print(blanc, "Total time taken by local optimizers %.3fs " % s, file=stream)
+        print(blanc, f"Total time taken by local optimizers {s:.3f}s ", file=stream)
 
         count_opt = []
         not_used = []
@@ -484,7 +484,7 @@ class GraphToGPU(Optimizer):
             for (t, o) in not_used[::-1]:
                 if t > 0:
                     # Skip opt that have 0 times, they probably wasn't even tried.
-                    print(blanc + "  ", "  {:.3f}s - {}".format(t, o), file=stream)
+                    print(blanc + "  ", f"  {t:.3f}s - {o}", file=stream)
             print(file=stream)
 
     @staticmethod
@@ -2537,7 +2537,7 @@ def local_assert_no_cpu_op(node):
                 ("CPU Op %s is detected in the computation " "graph") % node
             )
         elif config.assert_no_cpu_op == "raise":
-            raise AssertionError("The Op %s is on CPU." % node)
+            raise AssertionError(f"The Op {node} is on CPU.")
         elif config.assert_no_cpu_op == "pdb":
             pdb.set_trace()
 

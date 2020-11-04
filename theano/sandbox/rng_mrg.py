@@ -347,7 +347,7 @@ class mrg_uniform_base(Op):
             s = "inplace"
         else:
             s = "no_inplace"
-        return self.__class__.__name__ + "{{{},{}}}".format(self.output_type, s)
+        return self.__class__.__name__ + f"{{{self.output_type},{s}}}"
 
     def grad(self, inputs, ograd):
         return [
@@ -918,7 +918,7 @@ class MRG_RandomStreams:
             d = dict(target=kwargs.pop("target"))
         if len(kwargs) > 0:
             raise TypeError(
-                "uniform() got unexpected keyword arguments %s" % (str(kwargs.keys()))
+                f"uniform() got unexpected keyword arguments {str(kwargs.keys())}"
             )
         node_rstate = shared(rstates, **d)
         u = self.pretty_return(

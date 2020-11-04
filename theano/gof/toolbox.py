@@ -462,9 +462,7 @@ class Validator(Feature):
                     r = uf.f_locals.get("r", "")
                     reason = uf_info.function
                     print(
-                        "validate failed on node {}.\n Reason: {}, {}".format(
-                            r, reason, e
-                        )
+                        f"validate failed on node {r}.\n Reason: {reason}, {e}"
                     )
                 raise
         t1 = time.time()
@@ -577,7 +575,7 @@ class ReplaceValidate(History, Validator):
             fgraph.revert(chk)
             if verbose:
                 print(
-                    "validate failed on node {}.\n Reason: {}, {}".format(r, reason, e)
+                    f"validate failed on node {r}.\n Reason: {reason}, {e}"
                 )
             raise
         if config.scan.debug:
@@ -707,7 +705,7 @@ class NodeFinder(Bookkeeper):
             all = self.d.get(op, [])
         except TypeError:
             raise TypeError(
-                "%s in unhashable and cannot be queried by the" " optimizer" % op
+                f"{op} in unhashable and cannot be queried by the optimizer"
             )
         all = list(all)
         return all
@@ -731,15 +729,15 @@ class PrintListener(Feature):
 
     def on_import(self, fgraph, node, reason):
         if self.active:
-            print("-- importing: {}, reason: {}".format(node, reason))
+            print(f"-- importing: {node}, reason: {reason}")
 
     def on_prune(self, fgraph, node, reason):
         if self.active:
-            print("-- pruning: {}, reason: {}".format(node, reason))
+            print(f"-- pruning: {node}, reason: {reason}")
 
     def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
         if self.active:
-            print("-- changing ({}.inputs[{}]) from {} to {}".format(node, i, r, new_r))
+            print(f"-- changing ({node}.inputs[{i}]) from {r} to {new_r}")
 
 
 class PreserveNames(Feature):

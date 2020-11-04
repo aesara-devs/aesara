@@ -147,12 +147,11 @@ def init_dev(dev, name=None, preallocate=None):
                     )
                 else:
                     print(
-                        "Can not use cuDNN on context %s: %s"
-                        % (name, dnn.dnn_available.msg),
+                        f"Can not use cuDNN on context {name}: {dnn.dnn_available.msg}",
                         file=sys.stderr,
                     )
         if preallocate < 0:
-            print("Disabling allocation cache on {}".format(dev))
+            print(f"Disabling allocation cache on {dev}")
         elif preallocate > 0:
             if preallocate <= 1:
                 gmem = min(preallocate, 0.95) * context.total_gmem
@@ -200,8 +199,7 @@ def init_dev(dev, name=None, preallocate=None):
             unique_id = ""
 
         print(
-            "Mapped name %s to device %s: %s %s"
-            % (name, dev, context.devname, unique_id),
+            f"Mapped name {name} to device {dev}: {context.devname} {unique_id}",
             file=sys.stderr,
         )
     pygpu_activated = True

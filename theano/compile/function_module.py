@@ -478,7 +478,7 @@ class Function:
                 try:
                     s = finder[item]
                 except KeyError:
-                    raise TypeError("Unknown input or state: %s" % str(item))
+                    raise TypeError(f"Unknown input or state: {str(item)}")
                 if s is DUPLICATE:
                     raise TypeError(
                         "Ambiguous name: %s - please check the "
@@ -497,7 +497,7 @@ class Function:
                     # Print informative error message.
                     msg = get_info_on_inputs(named_inputs, n_unnamed_inputs)
                     raise TypeError(
-                        "Unknown input or state: {}. {}".format(str(item), msg)
+                        f"Unknown input or state: {str(item)}. {msg}"
                     )
                 if s is DUPLICATE:
                     raise TypeError(
@@ -664,7 +664,7 @@ class Function:
             # Check if given ShareVariables exist
             for sv in swap.keys():
                 if sv not in exist_svs:
-                    raise ValueError("SharedVariable: %s not found" % (sv.name))
+                    raise ValueError(f"SharedVariable: {sv.name} not found")
 
             # Swap SharedVariable in fgraph and In instances
             for index, (i, in_v) in enumerate(zip(ins, fg_cpy.inputs)):
@@ -1381,7 +1381,7 @@ class FunctionMaker:
             else:
                 # create graph_db
                 with open(graph_db_file, "wb") as f:
-                    print("create new graph_db in %s" % graph_db_file)
+                    print(f"create new graph_db in {graph_db_file}")
             # load the graph_db dictionary
             try:
                 with open(graph_db_file, "rb") as f:
@@ -2035,7 +2035,7 @@ def convert_function_input(input):
     elif isinstance(input, (list, tuple)):
         orig = input
         if not input:
-            raise TypeError("Nonsensical input specification: %s" % input)
+            raise TypeError(f"Nonsensical input specification: {input}")
         if isinstance(input[0], str):
             name = input[0]
             input = input[1:]
@@ -2068,17 +2068,16 @@ def convert_function_input(input):
                 input.value = value
                 return input
         else:
-            raise TypeError("The input specification is not valid: %s" % input)
+            raise TypeError(f"The input specification is not valid: {input}")
 
         if not isinstance(variable, gof.Variable):
             raise TypeError(
-                "Unknown input type: %s, expected Variable "
-                "instance" % type(variable),
+                f"Unknown input type: {type(variable)}, expected Variable instance",
                 variable,
             )
         if update is not None and not isinstance(update, gof.Variable):
             raise TypeError(
-                "Unknown update type: %s, expected Variable " "instance" % type(update),
+                f"Unknown update type: {type(update)}, expected Variable instance",
                 update,
             )
         if value is not None and isinstance(value, (gof.Variable, SymbolicInput)):
@@ -2090,7 +2089,7 @@ def convert_function_input(input):
         return In(variable, name=name, value=value, update=update)
     else:
         raise TypeError(
-            "Unknown input type: %s, expected Variable instance" % type(input), input
+            f"Unknown input type: {type(input)}, expected Variable instance", input
         )
 
 

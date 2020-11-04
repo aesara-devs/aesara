@@ -138,7 +138,7 @@ class JAXLinker(PerformLinker):
             if not self.allow_non_jax:
                 raise
 
-            warn("JaxLinker could not JAXify graph: {}".format(e))
+            warn(f"JaxLinker could not JAXify graph: {e}")
 
             thunks = []
             for node in nodes:

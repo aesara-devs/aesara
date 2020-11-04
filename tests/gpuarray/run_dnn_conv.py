@@ -201,7 +201,7 @@ else:
     args.dtype, args.precision = data_type_configurations[args.dtype_config]
 if (args.dtype, args.precision) not in cudnn.get_supported_dtype_configs():
     raise ValueError(
-        "Unsupported data type configuration {} {}.".format(args.dtype, args.precision)
+        f"Unsupported data type configuration {args.dtype} {args.precision}."
     )
 
 if args.algo not in SUPPORTED_DNN_CONV_ALGO_RUNTIME:

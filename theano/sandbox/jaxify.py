@@ -167,7 +167,7 @@ def compose_jax_funcs(out_node, fgraph_inputs, memo=None):
 @dispatch
 def jax_funcify(op):
     """Create a JAX "perform" function for a Theano `Variable` and its `Op`."""
-    raise NotImplementedError("No JAX conversion for the given `Op`: {}".format(op))
+    raise NotImplementedError(f"No JAX conversion for the given `Op`: {op}")
 
 
 @jax_funcify.register(MakeSlice)
@@ -273,7 +273,7 @@ def jnp_safe_copy(x):
         if hasattr(x, "copy"):
             res = jnp.array(x.copy())
         else:
-            warn("Object has no `copy` method: {}".format(x))
+            warn(f"Object has no `copy` method: {x}")
             res = x
 
     return res

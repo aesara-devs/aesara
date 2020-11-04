@@ -79,7 +79,7 @@ class SymPyCCode(ScalarOp):
         (y,) = output_names
         xs = ", ".join(input_names)
         f = self.name
-        return "%(y)s = %(f)s(%(xs)s);" % locals()
+        return f"{locals()['y']} = {locals()['f']}({locals()['xs']});"
 
     def output_types_preference(self, *inputs):
         return [theano_dtype(self.expr)]

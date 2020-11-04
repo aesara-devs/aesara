@@ -107,7 +107,7 @@ class TensorType(Type):
             # we raise a meaningful TypeError.
             if not (type(data) is np.ndarray):
                 raise TypeError(
-                    "%s expected a ndarray object." % self, data, type(data)
+                    f"{self} expected a ndarray object.", data, type(data)
                 )
             if data.dtype != self.numpy_dtype:
                 raise TypeError(
@@ -283,9 +283,7 @@ class TensorType(Type):
             }[self.dtype]
         except KeyError:
             raise TypeError(
-                "Unsupported dtype for {}: {}".format(
-                    self.__class__.__name__, self.dtype
-                )
+                f"Unsupported dtype for {self.__class__.__name__}: {self.dtype}"
             )
 
     def to_scalar_type(self):
@@ -393,7 +391,7 @@ class TensorType(Type):
                     bcast = str(b)
                 else:
                     bcast = "%iD" % len(b)
-            return "TensorType({}, {})".format(self.dtype, bcast)
+            return f"TensorType({self.dtype}, {bcast})"
 
     def __repr__(self):
         return str(self)

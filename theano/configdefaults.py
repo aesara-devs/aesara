@@ -150,7 +150,7 @@ class DeviceParam(ConfigParam):
         super().__init__(default, filter, over)
 
     def __str__(self):
-        return "{} ({}, opencl*, cuda*) ".format(self.fullname, self.default)
+        return f"{self.fullname} ({self.default}, opencl*, cuda*) "
 
 
 AddConfigVar(
@@ -208,13 +208,13 @@ class ContextsParam(ConfigParam):
             for v in val.split(";"):
                 s = v.split("->")
                 if len(s) != 2:
-                    raise ValueError("Malformed context map: {}".format(v))
+                    raise ValueError(f"Malformed context map: {v}")
                 if (
                     s[0] == "cpu"
                     or s[0].startswith("cuda")
                     or s[0].startswith("opencl")
                 ):
-                    raise ValueError("Cannot use {} as context name".format(s[0]))
+                    raise ValueError(f"Cannot use {s[0]} as context name")
             return val
 
         ConfigParam.__init__(self, "", filter, False)
@@ -668,7 +668,7 @@ if param != "":
 
 # to support path that includes spaces, we need to wrap it with double quotes on Windows
 if param and os.name == "nt":
-    param = '"%s"' % param
+    param = f'"{param}"'
 
 
 def warn_cxx(val):
@@ -1209,8 +1209,7 @@ if var:
         int(var)
     except ValueError:
         raise TypeError(
-            "The environment variable OMP_NUM_THREADS"
-            " should be a number, got '%s'." % var
+            f"The environment variable OMP_NUM_THREADS should be a number, got '{var}'."
         )
     else:
         default_openmp = not int(var) == 1
@@ -1685,7 +1684,7 @@ def default_blas_ldflags():
                     # Why on Windows, the library used are not the
                     # same as what is in
                     # blas_info['libraries']?
-                    ["-l%s" % l for l in ["mk2_core", "mk2_intel_thread", "mk2_rt"]]
+                    [f"-l{l}" for l in ["mk2_core", "mk2_intel_thread", "mk2_rt"]]
                 )
             elif sys.platform == "darwin":
                 # The env variable is needed to link with mkl
@@ -1758,7 +1757,7 @@ def default_blas_ldflags():
                     +
                     # Why on Windows, the library used are not the
                     # same as what is in blas_info['libraries']?
-                    ["-l%s" % l for l in ["mk2_core", "mk2_intel_thread", "mk2_rt"]]
+                    [f"-l{l}" for l in ["mk2_core", "mk2_intel_thread", "mk2_rt"]]
                 )
 
         # MKL
@@ -1777,24 +1776,24 @@ def default_blas_ldflags():
             # This branch is executed if no exception was raised
             if sys.platform == "win32":
                 lib_path = os.path.join(sys.prefix, "Library", "bin")
-                flags = ['-L"%s"' % lib_path]
+                flags = [f'-L"{lib_path}"']
             else:
                 lib_path = blas_info.get("library_dirs", [])
                 flags = []
                 if lib_path:
-                    flags = ["-L%s" % lib_path[0]]
+                    flags = [f"-L{lib_path[0]}"]
             if "2018" in mkl.get_version_string():
                 thr = "mkl_gnu_thread"
             else:
                 thr = "mkl_intel_thread"
             base_flags = list(flags)
-            flags += ["-l%s" % l for l in ["mkl_core", thr, "mkl_rt"]]
+            flags += [f"-l{l}" for l in ["mkl_core", thr, "mkl_rt"]]
             res = try_blas_flag(flags)
 
             if not res and sys.platform == "win32" and thr == "mkl_gnu_thread":
                 # Check if it would work for intel OpenMP on windows
                 flags = base_flags + [
-                    "-l%s" % l for l in ["mkl_core", "mkl_intel_thread", "mkl_rt"]
+                    f"-l{l}" for l in ["mkl_core", "mkl_intel_thread", "mkl_rt"]
                 ]
                 res = try_blas_flag(flags)
 
@@ -1818,10 +1817,10 @@ def default_blas_ldflags():
             # we just pass the whole ldflags as the -l
             # options part.
             [
-                "-L{}{}{}".format(path_wrapper, l, path_wrapper)
+                f"-L{path_wrapper}{l}{path_wrapper}"
                 for l in blas_info.get("library_dirs", [])
             ]
-            + ["-l%s" % l for l in blas_info.get("libraries", [])]
+            + [f"-l{l}" for l in blas_info.get("libraries", [])]
             + blas_info.get("extra_link_args", [])
         )
         # For some very strange reason, we need to specify -lm twice
@@ -1899,7 +1898,7 @@ def try_blas_flag(flags):
     path_wrapper = '"' if os.name == "nt" else ""
     cflags.extend(
         [
-            "-L{}{}{}".format(path_wrapper, d, path_wrapper)
+            f"-L{path_wrapper}{d}{path_wrapper}"
             for d in theano.gof.cmodule.std_lib_dirs()
         ]
     )
@@ -2312,7 +2311,7 @@ def filter_compiledir(path):
             if os.path.exists(init_file):
                 pass  # has already been created
             else:
-                e.args += ("{} exist? {}".format(path, os.path.exists(path)),)
+                e.args += (f"{path} exist? {os.path.exists(path)}",)
                 raise
     return path
 
@@ -2387,4 +2386,4 @@ AddConfigVar(
 
 # Check if there are remaining flags provided by the user through THEANO_FLAGS.
 for key in THEANO_FLAGS_DICT.keys():
-    warnings.warn("Theano does not recognise this flag: {}".format(key))
+    warnings.warn(f"Theano does not recognise this flag: {key}")

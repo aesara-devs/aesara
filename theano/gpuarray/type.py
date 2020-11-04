@@ -80,7 +80,7 @@ def reg_context(name, ctx):
 
     """
     if name in _context_reg:
-        raise ValueError("context name {} is already defined".format(name))
+        raise ValueError(f"context name {name} is already defined")
     if not isinstance(ctx, gpuarray.GpuContext):
         raise TypeError("context is not GpuContext")
     _context_reg[name] = ctx
@@ -101,7 +101,7 @@ def get_context(name):
 
     """
     if name not in _context_reg:
-        raise ContextNotDefined("context name {} not defined".format(name))
+        raise ContextNotDefined(f"context name {name} not defined")
     return _context_reg[name]
 
 
@@ -189,9 +189,7 @@ class GpuArrayType(Type):
             self.typecode = gpuarray.dtype_to_typecode(self.dtype)
         except gpuarray.GpuArrayException:
             raise TypeError(
-                "Unsupported dtype for {}: {}".format(
-                    self.__class__.__name__, self.dtype
-                )
+                f"Unsupported dtype for {self.__class__.__name__}: {self.dtype}"
             )
 
     def clone(self, dtype=None, broadcastable=None):
@@ -235,9 +233,7 @@ class GpuArrayType(Type):
                 bcast = str(b)
             else:
                 bcast = "%iD" % len(b)
-            return "GpuArrayType<{}>({}, {})".format(
-                self.context_name, self.dtype, bcast
-            )
+            return f"GpuArrayType<{self.context_name}>({self.dtype}, {bcast})"
 
     def filter(self, data, strict=False, allow_downcast=None):
         return self.filter_inplace(
@@ -252,7 +248,7 @@ class GpuArrayType(Type):
         elif strict:
             if not isinstance(data, gpuarray.GpuArray):
                 raise TypeError(
-                    "%s expected a GpuArray object." % self, data, type(data)
+                    f"{self} expected a GpuArray object.", data, type(data)
                 )
             if self.typecode != data.typecode:
                 raise TypeError(
@@ -454,9 +450,7 @@ class GpuArrayType(Type):
             }[self.dtype]
         except KeyError:
             raise TypeError(
-                "Unsupported dtype for {}: {}".format(
-                    self.__class__.__name__, self.dtype
-                )
+                f"Unsupported dtype for {self.__class__.__name__}: {self.dtype}"
             )
 
     def get_shape_info(self, obj):
@@ -473,14 +467,13 @@ class GpuArrayType(Type):
 
     def c_declare(self, name, sub, check_input=True):
         return (
-            """
-        PyGpuArrayObject *%(name)s;
+            f"""
+        PyGpuArrayObject *{locals()['name']};
         """
-            % locals()
         )
 
     def c_init(self, name, sub):
-        return "{} = NULL;".format(name)
+        return f"{name} = NULL;"
 
     def c_extract(self, name, sub, check_input=True):
         # TODO I don't check broadcast stuff for now.
@@ -920,10 +913,10 @@ class GpuContextType(Type):
         return a == b
 
     def c_declare(self, name, sub, check_input=True):
-        return "PyGpuContextObject *{};".format(name)
+        return f"PyGpuContextObject *{name};"
 
     def c_init(self, name, sub):
-        return "{} = NULL;".format(name)
+        return f"{name} = NULL;"
 
     def c_extract(self, name, sub, check_input=True):
         if check_input:
@@ -947,7 +940,7 @@ Py_INCREF(%(name)s);
         )
 
     def c_cleanup(self, name, sub):
-        return "Py_XDECREF(%(name)s); %(name)s = NULL;" % dict(name=name)
+        return f"Py_XDECREF({dict(name=name)['name']}); {dict(name=name)['name']} = NULL;"
 
     # c_sync is intentionally not declared to prevent normal usage
 

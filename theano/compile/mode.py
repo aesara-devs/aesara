@@ -35,7 +35,7 @@ predefined_linkers = {
 def register_linker(name, linker):
     """Add a `Linker` which can be referred to by `name` in `Mode`."""
     if name in predefined_linkers:
-        raise ValueError("Linker name already taken: %s" % name)
+        raise ValueError(f"Linker name already taken: {name}")
     predefined_linkers[name] = linker
 
 
@@ -95,7 +95,7 @@ predefined_optimizers = {
 def register_optimizer(name, opt):
     """Add a `Optimizer` which can be referred to by `name` in `Mode`."""
     if name in predefined_optimizers:
-        raise ValueError("Optimizer name already taken: %s" % name)
+        raise ValueError(f"Optimizer name already taken: {name}")
     predefined_optimizers[name] = opt
 
 
@@ -463,7 +463,7 @@ def get_mode(orig_string):
     elif string in predefined_modes:
         ret = predefined_modes[string]
     else:
-        raise Exception("No predefined mode exist for string: %s" % string)
+        raise Exception(f"No predefined mode exist for string: {string}")
 
     if orig_string is None:
         # Build and cache the default mode
@@ -488,5 +488,5 @@ def register_mode(name, mode):
 
     """
     if name in predefined_modes:
-        raise ValueError("Mode name already taken: %s" % name)
+        raise ValueError(f"Mode name already taken: {name}")
     predefined_modes[name] = mode

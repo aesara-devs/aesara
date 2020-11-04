@@ -170,12 +170,12 @@ class Apply(Node):
                 return self.outputs[0]
             else:
                 raise ValueError(
-                    "%s.default_output should be an output index." % self.op
+                    f"{self.op}.default_output should be an output index."
                 )
         elif not isinstance(do, int):
-            raise ValueError("%s.default_output should be an int or long" % self.op)
+            raise ValueError(f"{self.op}.default_output should be an int or long")
         elif do < 0 or do >= len(self.outputs):
-            raise ValueError("%s.default_output is out of range." % self.op)
+            raise ValueError(f"{self.op}.default_output is out of range.")
         return self.outputs[do]
 
     out = property(default_output, doc="alias for self.default_output()")
@@ -416,7 +416,7 @@ class Variable(Node):
         if not hasattr(self.tag, "test_value"):
             detailed_err_msg = get_variable_trace_string(self)
             raise TestValueError(
-                "{} has no test value {}".format(self, detailed_err_msg)
+                f"{self} has no test value {detailed_err_msg}"
             )
 
         return self.tag.test_value
@@ -432,7 +432,7 @@ class Variable(Node):
             else:
                 return str(self.owner.op) + "." + str(self.index)
         else:
-            return "<%s>" % str(self.type)
+            return f"<{str(self.type)}>"
 
     def __repr_test_value__(self):
         """Return a repr of the test value.
@@ -1154,7 +1154,7 @@ default_leaf_formatter = str
 
 
 def default_node_formatter(op, argstrings):
-    return "{}({})".format(op.op, ", ".join(argstrings))
+    return f"{op.op}({', '.join(argstrings)})"
 
 
 def io_connection_pattern(inputs, outputs):

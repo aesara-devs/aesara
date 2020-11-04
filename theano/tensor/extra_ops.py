@@ -96,7 +96,7 @@ class SearchsortedOp(Op):
             self.side = side
         else:
             raise ValueError(
-                "'%(side)s' is an invalid value for keyword 'side'" % locals()
+                f"'{locals()['side']}' is an invalid value for keyword 'side'"
             )
 
     def get_params(self, node):
@@ -140,10 +140,9 @@ class SearchsortedOp(Op):
 
     def c_support_code_struct(self, node, name):
         return (
-            """
-            int right_%(name)s;
+            f"""
+            int right_{locals()['name']};
         """
-            % locals()
         )
 
     def c_init_code_struct(self, node, name, sub):
@@ -274,7 +273,7 @@ class CumOp(Op):
 
     def __init__(self, axis=None, mode="add"):
         if mode not in ("add", "mul"):
-            raise ValueError('{}: Unknown mode "{}"'.format(type(self).__name__, mode))
+            raise ValueError(f'{type(self).__name__}: Unknown mode "{mode}"')
         self.axis = axis
         self.mode = mode
 
@@ -287,7 +286,7 @@ class CumOp(Op):
         if self.axis is None:
             out_type = theano.tensor.vector(dtype=x.dtype)  # Flatten
         elif self.axis >= x.ndim or self.axis < -x.ndim:
-            raise ValueError("axis(={}) out of bounds".format(self.axis))
+            raise ValueError(f"axis(={self.axis}) out of bounds")
 
         return theano.Apply(self, [x], [out_type])
 
@@ -311,8 +310,7 @@ class CumOp(Op):
                 return [cumsum((fx * gi)[::-1])[::-1].reshape(x.shape) / x]
             else:
                 raise NotImplementedError(
-                    '%s: unknown gradient for mode "%s"'
-                    % (type(self).__name__, self.mode)
+                    f'{type(self).__name__}: unknown gradient for mode "{self.mode}"'
                 )
 
         reverse_slicing = [slice(None, None, None)] * gi.ndim
@@ -327,9 +325,7 @@ class CumOp(Op):
             return [cumsum((fx * gi)[reverse_slicing], self.axis)[reverse_slicing] / x]
         else:
             raise NotImplementedError(
-                '{}: unknown gradient for mode "{}"'.format(
-                    type(self).__name__, self.mode
-                )
+                f'{type(self).__name__}: unknown gradient for mode "{self.mode}"'
             )
 
     def infer_shape(self, node, shapes):
@@ -393,7 +389,7 @@ class CumOp(Op):
         return (8,)
 
     def __str__(self):
-        return "{}{{{}, {}}}".format(self.__class__.__name__, self.axis, self.mode)
+        return f"{self.__class__.__name__}{{{self.axis}, {self.mode}}}"
 
 
 def cumsum(x, axis=None):
@@ -840,10 +836,10 @@ class Bartlett(Op):
     def make_node(self, M):
         M = basic.as_tensor_variable(M)
         if M.ndim != 0:
-            raise TypeError("%s only works on scalar input" % self.__class__.__name__)
+            raise TypeError(f"{self.__class__.__name__} only works on scalar input")
         elif M.dtype not in theano.tensor.integer_dtypes:
             # dtype is a theano attribute here
-            raise TypeError("%s only works on integer input" % self.__class__.__name__)
+            raise TypeError(f"{self.__class__.__name__} only works on integer input")
         return Apply(self, [M], [basic.dvector()])
 
     def perform(self, node, inputs, out_):
@@ -908,7 +904,7 @@ class FillDiagonal(Op):
             )
         elif val.ndim != 0:
             raise TypeError(
-                "%s: second parameter must be a scalar" % self.__class__.__name__
+                f"{self.__class__.__name__}: second parameter must be a scalar"
             )
         val = basic.cast(val, dtype=upcast(a.dtype, val.dtype))
         if val.dtype != a.dtype:
@@ -1011,11 +1007,11 @@ class FillDiagonalOffset(Op):
             )
         elif val.ndim != 0:
             raise TypeError(
-                "%s: second parameter must be a scalar" % self.__class__.__name__
+                f"{self.__class__.__name__}: second parameter must be a scalar"
             )
         elif offset.ndim != 0:
             raise TypeError(
-                "%s: third parameter must be a scalar" % self.__class__.__name__
+                f"{self.__class__.__name__}: third parameter must be a scalar"
             )
         val = basic.cast(val, dtype=upcast(a.dtype, val.dtype))
         if val.dtype != a.dtype:
@@ -1201,8 +1197,7 @@ class Unique(Op):
             raise RuntimeError(
                 "Numpy version = "
                 + np.__version__
-                + ". Option 'axis={}' works starting"
-                " from version 1.13.0.".format(axis)
+                + f". Option 'axis={axis}' works starting from version 1.13.0."
             )
 
     def make_node(self, x):
@@ -1264,8 +1259,7 @@ class Unique(Op):
                 self_axis += ndim
             if self_axis < 0 or self_axis >= ndim:
                 raise RuntimeError(
-                    "Unique axis `{}` is outside of input ndim = "
-                    "{}.".format(self.axis, ndim)
+                    f"Unique axis `{self.axis}` is outside of input ndim = {ndim}."
                 )
             ret[0] = tuple(
                 [
@@ -1306,11 +1300,11 @@ class UnravelIndex(Op):
 
         if indices.dtype not in basic.int_dtypes:
             raise TypeError(
-                "'%s' object cannot be interpreted as an index" % str(indices.dtype)
+                f"'{str(indices.dtype)}' object cannot be interpreted as an index"
             )
         if dims.dtype not in basic.int_dtypes:
             raise TypeError(
-                "'%s' object cannot be interpreted as an index" % str(dims.dtype)
+                f"'{str(dims.dtype)}' object cannot be interpreted as an index"
             )
         if dims.ndim != 1:
             raise TypeError("dims must be a 1D array")
@@ -1390,11 +1384,11 @@ class RavelMultiIndex(Op):
         for i in multi_index:
             if i.dtype not in basic.int_dtypes:
                 raise TypeError(
-                    "'%s' object cannot be interpreted as an index" % str(i.dtype)
+                    f"'{str(i.dtype)}' object cannot be interpreted as an index"
                 )
         if dims.dtype not in basic.int_dtypes:
             raise TypeError(
-                "'%s' object cannot be interpreted as an index" % str(dims.dtype)
+                f"'{str(dims.dtype)}' object cannot be interpreted as an index"
             )
         if dims.ndim != 1:
             raise TypeError("dims must be a 1D array")

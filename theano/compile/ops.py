@@ -57,7 +57,7 @@ class ViewOp(Op):
         z[0] = x
 
     def __str__(self):
-        return "%s" % self.__class__.__name__
+        return f"{self.__class__.__name__}"
 
     def c_code(self, node, nodename, inp, out, sub):
         (iname,) = inp
@@ -582,12 +582,12 @@ class FromFunctionOp(Op):
             obj = load_back(mod, name)
         except (ImportError, KeyError, AttributeError):
             raise pickle.PicklingError(
-                "Can't pickle as_op(), not found as {}.{}".format(mod, name)
+                f"Can't pickle as_op(), not found as {mod}.{name}"
             )
         else:
             if obj is not self:
                 raise pickle.PicklingError(
-                    "Can't pickle as_op(), not the object " "at %s.%s" % (mod, name)
+                    f"Can't pickle as_op(), not the object at {mod}.{name}"
                 )
         return load_back, (mod, name)
 
@@ -700,13 +700,12 @@ class Rebroadcast(Op):
         for axis, broad in self.axis.items():
             if not isinstance(axis, (np.integer, int)):
                 raise TypeError(
-                    "Rebroadcast needs integer axes. " "Got {}".format(axis)
+                    f"Rebroadcast needs integer axes. Got {axis}"
                 )
 
             if not isinstance(broad, (np.bool_, bool)):
                 raise TypeError(
-                    "Rebroadcast needs bool for new broadcast "
-                    "pattern. Got {}".format(broad)
+                    f"Rebroadcast needs bool for new broadcast pattern. Got {broad}"
                 )
 
     def __hash__(self):
@@ -722,7 +721,7 @@ class Rebroadcast(Op):
             broadcast_pattern = ["?" for i in range(1 + max(self.axis.keys()))]
         for k, v in self.axis.items():
             broadcast_pattern[k] = str(int(v))
-        return "{}{{{}}}".format(self.__class__.__name__, ",".join(broadcast_pattern))
+        return f"{self.__class__.__name__}{{{','.join(broadcast_pattern)}}}"
 
     def make_node(self, x):
         if self.axis.keys() and (x.ndim <= max(self.axis.keys())):
@@ -789,12 +788,11 @@ class Rebroadcast(Op):
                     final_code += code % locals()
             return (
                 final_code
-                + """
-            Py_XDECREF(%(oname)s);
-            %(oname)s = %(iname)s;
-            Py_XINCREF(%(oname)s);
+                + f"""
+            Py_XDECREF({locals()['oname']});
+            {locals()['oname']} = {locals()['iname']};
+            Py_XINCREF({locals()['oname']});
             """
-                % locals()
             )
         return super().c_code(node, nodename, inp, out, sub)
 

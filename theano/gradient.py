@@ -826,9 +826,8 @@ def _node_to_pattern(node):
         if not isinstance(connection_pattern, list):
             raise TypeError(
                 "Op.connection_pattern should return "
-                + ("list of list of bool, but for Op=%s" % node.op)
-                + "got %s with type %s."
-                % (connection_pattern, type(connection_pattern))
+                + f"list of list of bool, but for Op={node.op}"
+                + f"got {connection_pattern} with type {type(connection_pattern)}."
             )
         if len(connection_pattern) != len(node.inputs):
             raise ValueError(
@@ -838,9 +837,9 @@ def _node_to_pattern(node):
         for ii, output_pattern in enumerate(connection_pattern):
             if not isinstance(output_pattern, list):
                 raise TypeError(
-                    "%s.connection_pattern should return" % node.op
+                    f"{node.op}.connection_pattern should return"
                     + " a list of lists, but element %d" % ii
-                    + "is {} of type {}.".format(output_pattern, type(output_pattern))
+                    + f"is {output_pattern} of type {type(output_pattern)}."
                 )
     else:
         connection_pattern = [[True for output in node.outputs] for ipt in node.inputs]
@@ -1226,8 +1225,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
 
                 if input_grads is None:
                     raise TypeError(
-                        "%s.grad returned NoneType, "
-                        "expected iterable." % str(node.op)
+                        f"{str(node.op)}.grad returned NoneType, expected iterable."
                     )
 
                 if len(input_grads) != len(inputs):
@@ -1452,7 +1450,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                     grad_dict[var] = disconnected_type()
 
                 if cost_name is not None and var.name is not None:
-                    grad_dict[var].name = "(d{}/d{})".format(cost_name, var.name)
+                    grad_dict[var].name = f"(d{cost_name}/d{var.name})"
             else:
                 # this variable isn't connected to the cost in the
                 # computational graph

@@ -628,8 +628,7 @@ def border_mode_to_pad(mode, convdim, kshp):
     if isinstance(mode, tuple):
         if len(mode) != convdim:
             raise ValueError(
-                "invalid border_mode {} which must be a "
-                "tuple of length {}".format(mode, convdim)
+                f"invalid border_mode {mode} which must be a tuple of length {convdim}"
             )
         border = ()
         for m in mode:
@@ -642,7 +641,7 @@ def border_mode_to_pad(mode, convdim, kshp):
             ):
                 if len(m) != 2:
                     raise NotImplementedError(
-                        "Asymmetric padding not implemented " "for {}d".format(len(m))
+                        f"Asymmetric padding not implemented for {len(m)}d"
                     )
                 border += ((m[0], m[1]),)
             else:
@@ -2257,7 +2256,7 @@ class BaseAbstractConv(Op):
                 if isinstance(mode, tuple):
                     if convdim != 2:
                         raise NotImplementedError(
-                            "Asymmetric padding not implemented for {}D".format(convdim)
+                            f"Asymmetric padding not implemented for {convdim}D"
                         )
                     if mode[0] == mode[1]:
                         mode = mode[0]
@@ -2301,10 +2300,10 @@ class BaseAbstractConv(Op):
         self.filter_flip = filter_flip
 
         if len(subsample) != convdim:
-            raise ValueError("subsample must have {} elements".format(convdim))
+            raise ValueError(f"subsample must have {convdim} elements")
         self.subsample = tuple(subsample)
         if len(filter_dilation) != convdim:
-            raise ValueError("filter_dilation must have {} elements".format(convdim))
+            raise ValueError(f"filter_dilation must have {convdim} elements")
         self.filter_dilation = tuple(filter_dilation)
         if num_groups < 1:
             raise ValueError("num_groups must have value greater than zero")
@@ -2368,7 +2367,7 @@ class BaseAbstractConv(Op):
             dilation = (dilation,) * self.convdim
         if len(dilation) != self.convdim:
             raise ValueError(
-                "invalid dilation {}, expected {} values".format(dilation, self.convdim)
+                f"invalid dilation {dilation}, expected {self.convdim} values"
             )
         if unshared and direction == "backprop weights":
             if mode != "valid":
@@ -2501,7 +2500,7 @@ class BaseAbstractConv(Op):
                     )
         else:
             raise ValueError(
-                "unshared2d: invalid value '{}' for 'direction'".format(direction)
+                f"unshared2d: invalid value '{direction}' for 'direction'"
             )
         return out
 
