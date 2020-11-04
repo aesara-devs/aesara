@@ -4159,7 +4159,7 @@ class Composite(ScalarOp):
                 self.nodenames[j],
                 [subd[input] for input in node.inputs],
                 [subd[output] for output in node.outputs],
-                dict(fail="%(fail)s", id=f"%{j['id']}_%i"),
+                dict(fail="%(fail)s", id="%%(id)s_%i" % j),
             )
             _c_code += s
             _c_code += "\n"
