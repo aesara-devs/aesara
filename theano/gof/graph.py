@@ -108,8 +108,7 @@ class Apply(Node):
                 self.inputs.append(input)
             else:
                 raise TypeError(
-                    "The 'inputs' argument to Apply must contain Variable instances, not %s"
-                    % input
+                    f"The 'inputs' argument to Apply must contain Variable instances, not {input}"
                 )
         self.outputs = []
         # filter outputs to make sure each element is a Variable
@@ -125,8 +124,7 @@ class Apply(Node):
                 self.outputs.append(output)
             else:
                 raise TypeError(
-                    "The 'outputs' argument to Apply must contain Variable instances with no owner, not %s"
-                    % output
+                    f"The 'outputs' argument to Apply must contain Variable instances with no owner, not {output}"
                 )
 
     def run_params(self):
@@ -169,13 +167,11 @@ class Apply(Node):
             if len(self.outputs) == 1:
                 return self.outputs[0]
             else:
-                raise ValueError(
-                    "%s.default_output should be an output index." % self.op
-                )
+                raise ValueError(f"{self.op}.default_output should be an output index.")
         elif not isinstance(do, int):
-            raise ValueError("%s.default_output should be an int or long" % self.op)
+            raise ValueError(f"{self.op}.default_output should be an int or long")
         elif do < 0 or do >= len(self.outputs):
-            raise ValueError("%s.default_output is out of range." % self.op)
+            raise ValueError(f"{self.op}.default_output is out of range.")
         return self.outputs[do]
 
     out = property(default_output, doc="alias for self.default_output()")
@@ -411,9 +407,7 @@ class Variable(Node):
         """
         if not hasattr(self.tag, "test_value"):
             detailed_err_msg = get_variable_trace_string(self)
-            raise TestValueError(
-                "{} has no test value {}".format(self, detailed_err_msg)
-            )
+            raise TestValueError(f"{self} has no test value {detailed_err_msg}")
 
         return self.tag.test_value
 
@@ -428,7 +422,7 @@ class Variable(Node):
             else:
                 return str(self.owner.op) + "." + str(self.index)
         else:
-            return "<%s>" % str(self.type)
+            return f"<{self.type}>"
 
     def __repr_test_value__(self):
         """Return a repr of the test value.
@@ -559,8 +553,7 @@ class Variable(Node):
             if not type(config).pickle_test_value.is_default:
                 warnings.warn(
                     "pickle_test_value is not defaut value (True).\n"
-                    "Test value of variable %s(%s) will not be dumped."
-                    % (d["auto_name"], d["name"])
+                    f"Test value of variable {d['auto_name']}({d['name']}) will not be dumped."
                 )
             t = copy(d["tag"])
             del t.test_value
@@ -1150,7 +1143,7 @@ default_leaf_formatter = str
 
 
 def default_node_formatter(op, argstrings):
-    return "{}({})".format(op.op, ", ".join(argstrings))
+    return f"{op.op}({', '.join(argstrings)})"
 
 
 def io_connection_pattern(inputs, outputs):
@@ -1297,14 +1290,14 @@ def as_string(
             if len(op.outputs) == 1:
                 idxs = ""
             else:
-                idxs = "::%i" % idx
+                idxs = f"::{idx}"
             if op in done:
-                return "*%i%s" % (multi_index(op), idxs)
+                return f"*{multi_index(op)}{idxs}"
             else:
                 done.add(op)
                 s = node_formatter(op, [describe(input) for input in op.inputs])
                 if op in multi:
-                    return "*%i -> %s" % (multi_index(op), s)
+                    return f"*{multi_index(op)} -> {s}"
                 else:
                     return s
         else:

@@ -61,10 +61,10 @@ def test_bug_2009_07_17_borrowed_output():
     z = g(a, b, c)
     z_backup = copy.copy(z)
     id_z = id(z)
-    print("Output z after first call: {}".format(z))
+    print(f"Output z after first call: {z}")
     a[0, 0] = 1
     id_other = id(g(a, b, c))
-    print("Output z after second call: {}".format(z))
+    print(f"Output z after second call: {z}")
     # Ensure that calling the function again returns a pointer towards a new
     # array.
     assert id_z != id_other

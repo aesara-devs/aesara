@@ -96,8 +96,7 @@ def _dnn_lib():
                 raise RuntimeError(
                     "Could not find cudnn library (looked for v5* to v7*)."
                     " Check your cudnn installation. Maybe using the Theano"
-                    ' flag dnn.base_path can help you. Current value "%s"'
-                    % config.dnn.base_path
+                    f' flag dnn.base_path can help you. Current value "{config.dnn.base_path}"'
                 )
             else:
                 dnn_handle = ctypes.cdll.LoadLibrary(lib_name)
@@ -105,8 +104,7 @@ def _dnn_lib():
             raise RuntimeError(
                 "Could not load cudnn library. Check your cudnn"
                 " installation. Maybe using the Theano"
-                ' flag dnn.base_path can help you. Current value "%s"'
-                % config.dnn.base_path
+                f' flag dnn.base_path can help you. Current value "{config.dnn.base_path}"'
             )
         _dnn_lib.handle = dnn_handle
         cudnn = _dnn_lib.handle
@@ -153,21 +151,13 @@ if ((err = cudnnCreate(&_handle)) != CUDNN_STATUS_SUCCESS) {
 
     path_wrapper = '"' if os.name == "nt" else ""
     params = ["-l", "cudnn"]
-    params.extend(
-        ["-I{}{}{}".format(path_wrapper, gpuarray_helper_inc_dir(), path_wrapper)]
-    )
+    params.extend([f"-I{path_wrapper}{gpuarray_helper_inc_dir()}{path_wrapper}"])
     if config.dnn.include_path:
-        params.extend(
-            ["-I{}{}{}".format(path_wrapper, config.dnn.include_path, path_wrapper)]
-        )
+        params.extend([f"-I{path_wrapper}{config.dnn.include_path}{path_wrapper}"])
     if config.cuda.include_path:
-        params.extend(
-            ["-I{}{}{}".format(path_wrapper, config.cuda.include_path, path_wrapper)]
-        )
+        params.extend([f"-I{path_wrapper}{config.cuda.include_path}{path_wrapper}"])
     if config.dnn.library_path:
-        params.extend(
-            ["-L{}{}{}".format(path_wrapper, config.dnn.library_path, path_wrapper)]
-        )
+        params.extend([f"-L{path_wrapper}{config.dnn.library_path}{path_wrapper}"])
     # Do not run here the test program. It would run on the
     # default gpu, not the one selected by the user. If mixed
     # GPU are installed or if the GPUs are configured in
@@ -190,7 +180,10 @@ if ((err = cudnnCreate(&_handle)) != CUDNN_STATUS_SUCCESS) {
 def _dnn_check_version():
     v = version()
     if v < 5000:
-        return False, "cuDNN version is too old. Update to v5* or higher, was %d." % v
+        return (
+            False,
+            f"cuDNN version is too old. Update to v5* or higher, was {int(v)}.",
+        )
     if v >= 7200:
         warnings.warn(
             "Your cuDNN version is more recent than "
@@ -355,8 +348,8 @@ def version(raises=True):
         v = f()
         if v[0] != v[1]:
             raise RuntimeError(
-                "Mixed dnn version. The header is version %s "
-                "while the library is version %s." % v
+                f"Mixed dnn version. The header is version {v[0]} "
+                f"while the library is version {v[1]}."
             )
         version.v = v[1]
     return version.v
@@ -645,7 +638,7 @@ def ensure_dt(val, default, name, dtype):
     if hasattr(val, "ndim") and val.ndim == 0:
         val = as_scalar(val)
     if not isinstance(val.type, theano.scalar.Scalar):
-        raise TypeError("{}: expected a scalar value".format(name))
+        raise TypeError(f"{name}: expected a scalar value")
     if not val.type.dtype == dtype:
         val = val.astype(dtype)
     return val
@@ -749,7 +742,7 @@ class GpuDnnConv(DnnBase):
             cudnn.conv3d_fwd_algorithms + SUPPORTED_DNN_CONV_ALGO_RUNTIME
         ):
             raise ValueError(
-                "convolution algo %s can't be used for " "3d convolutions", (self.algo,)
+                f"convolution algo {self.algo} can't be used for 3d convolutions"
             )
 
         if (
@@ -966,7 +959,7 @@ class GpuDnnConvGradW(DnnBase):
             cudnn.conv3d_bwd_filter_algorithms + SUPPORTED_DNN_CONV_ALGO_RUNTIME
         ):
             raise ValueError(
-                "convolution algo %s can't be used for " "3d convolutions", (self.algo,)
+                f"convolution algo {self.algo} can't be used for 3d convolutions"
             )
 
         if (
@@ -1102,7 +1095,7 @@ class GpuDnnConvGradI(DnnBase):
             cudnn.conv3d_bwd_data_algorithms + SUPPORTED_DNN_CONV_ALGO_RUNTIME
         ):
             raise ValueError(
-                "convolution algo %s can't be used for " "3d convolutions", (self.algo,)
+                f"convolution algo {self.algo} can't be used for 3d convolutions"
             )
 
         if (
@@ -2970,9 +2963,7 @@ class GpuDnnRNNOp(DnnBase):
         elif direction_mode == "unidirectional":
             self.num_dirs = 1
         else:
-            raise ValueError(
-                "direction_mode is invalid (got {})".format(direction_mode)
-            )
+            raise ValueError(f"direction_mode is invalid (got {direction_mode})")
 
     def dnn_context(self, node):
         return node.outputs[1].type.context_name
@@ -3331,7 +3322,7 @@ def dnn_batch_normalization_train(
     if gamma.ndim != ndim or beta.ndim != ndim:
         raise ValueError(
             "gamma and beta must be of the same dimensionality "
-            "as inputs; got %d and %d instead of %d" % (gamma.ndim, beta.ndim, ndim)
+            f"as inputs; got {int(gamma.ndim)} and {int(beta.ndim)} instead of {int(ndim)}"
         )
     if (running_mean is None) != (running_var is None):
         raise ValueError(
@@ -3340,15 +3331,15 @@ def dnn_batch_normalization_train(
     if running_mean is not None and running_mean.ndim != ndim:
         raise ValueError(
             "running_mean must be of the same dimensionality "
-            "as inputs; got %d instead of %d" % (running_mean.ndim, ndim)
+            f"as inputs; got {int(running_mean.ndim)} instead of {int(ndim)}"
         )
     if running_var is not None and running_var.ndim != ndim:
         raise ValueError(
             "running_var must be of the same dimensionality "
-            "as inputs; got %d instead of %d" % (running_var.ndim, ndim)
+            f"as inputs; got {int(running_var.ndim)} instead of {int(ndim)}"
         )
     if epsilon < 1e-5:
-        raise ValueError("epsilon must be at least 1e-5, got %f" % epsilon)
+        raise ValueError(f"epsilon must be at least 1e-5, got {epsilon:f}")
 
     running_averages = running_mean is not None and running_var is not None
 
@@ -3458,15 +3449,15 @@ def dnn_batch_normalization_test(
     if gamma.ndim != ndim or beta.ndim != ndim:
         raise ValueError(
             "gamma and beta must be of the same dimensionality "
-            "as inputs; got %d and %d instead of %d" % (gamma.ndim, beta.ndim, ndim)
+            f"as inputs; got {int(gamma.ndim)} and {int(beta.ndim)} instead of {int(ndim)}"
         )
     if mean.ndim != ndim or var.ndim != ndim:
         raise ValueError(
             "mean and var must be of the same dimensionality "
-            "as inputs; got %d and %d instead of %d" % (mean.ndim, var.ndim, ndim)
+            f"as inputs; got {int(mean.ndim)} and {int(var.ndim)} instead of {int(ndim)}"
         )
     if epsilon < 1e-5:
-        raise ValueError("epsilon must be at least 1e-5, got %f" % epsilon)
+        raise ValueError(f"epsilon must be at least 1e-5, got {epsilon:f}")
 
     if ndim < 4:
         inputs = theano.tensor.shape_padright(inputs, 4 - ndim)

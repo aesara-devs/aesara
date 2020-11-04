@@ -326,7 +326,7 @@ class GpuIncSubtensor(IncSubtensor):
         different types of arrays.
 
         """
-        return """pygpu_copy(%(x)s, GA_ANY_ORDER)""" % locals()
+        return f"""pygpu_copy({x}, GA_ANY_ORDER)"""
 
     def decl_view(self):
         return "PyGpuArrayObject* zview = NULL;"
@@ -345,25 +345,22 @@ class GpuIncSubtensor(IncSubtensor):
             right indexing; we'll do that manually later.
 
         """
-        ret = (
-            """
-        size_t dims[%(view_ndim)s];
-        for(int i=0; i<%(view_ndim)s; i++)
+        ret = f"""
+        size_t dims[{view_ndim}];
+        for(int i=0; i<{view_ndim}; i++)
             dims[i] = xview_dims[i];
 
-        zview = pygpu_fromgpudata(%(x)s->ga.data,
-                                  %(x)s->ga.offset + xview_offset,
-                                  %(x)s->ga.typecode,
-                                  %(view_ndim)s,
+        zview = pygpu_fromgpudata({x}->ga.data,
+                                  {x}->ga.offset + xview_offset,
+                                  {x}->ga.typecode,
+                                  {view_ndim},
                                   dims,
                                   xview_strides,
-                                  %(x)s->context,
+                                  {x}->context,
                                   1,
-                                  (PyObject *)%(x)s,
+                                  (PyObject *){x},
                                   (PyObject *)&PyGpuArrayType);
         """
-            % locals()
-        )
         return ret
 
     def get_helper_c_code_args(self):
@@ -389,7 +386,7 @@ class GpuIncSubtensor(IncSubtensor):
             C code expression to copy source into view, and 0 on success.
 
         """
-        return """sub_setarray(&%(view)s->ga, &%(source)s->ga)""" % locals()
+        return f"""sub_setarray(&{view}->ga, &{source}->ga)"""
 
     def c_headers(self):
         return [
@@ -564,9 +561,8 @@ def check_and_convert_boolean_masks(input, idx_list):
                 if index.shape[i] != input.shape[dim_seen + i]:
                     raise IndexError(
                         "boolean index did not match indexed array "
-                        "along dimension %d; dimension is %d but "
-                        "corresponding boolean dimension is %d"
-                        % (dim_seen + i, input.shape[dim_seen + i], index.shape[i])
+                        f"along dimension {int(dim_seen + i)}; dimension is {int(input.shape[dim_seen + i])} but "
+                        f"corresponding boolean dimension is {int(index.shape[i])}"
                     )
             dim_seen += index.ndim
             out_idx_list += index.nonzero()

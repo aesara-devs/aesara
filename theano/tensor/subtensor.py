@@ -334,7 +334,7 @@ def basic_shape(shape, indices):
         elif isinstance(getattr(idx, "type", None), NoneTypeT):
             res_shape += (scal.ScalarConstant(scal.int64, 1),)
         else:
-            raise ValueError("Invalid index type: {}".format(idx))
+            raise ValueError(f"Invalid index type: {idx}")
     return res_shape
 
 
@@ -775,7 +775,7 @@ class Subtensor(Op):
                 indices.append(self.str_from_slice(entry))
             else:
                 indices.append(str(entry))
-        return "{}{{{}}}".format(self.__class__.__name__, ", ".join(indices))
+        return f"{self.__class__.__name__}{{{', '.join(indices)}}}"
 
     @staticmethod
     def default_helper_c_code_args():
@@ -876,7 +876,7 @@ class Subtensor(Op):
         len_is_slice = len(is_slice)
 
         len_subtensor_spec = spec_pos()
-        subensor_spec = "npy_intp subtensor_spec[%(len_subtensor_spec)s];" % locals()
+        subensor_spec = f"npy_intp subtensor_spec[{len_subtensor_spec}];"
         if len_subtensor_spec == 0:
             subensor_spec = "npy_intp * subtensor_spec = NULL;"
 
@@ -892,15 +892,12 @@ class Subtensor(Op):
         (z,) = outputs
 
         if view_ndim:
-            rval = (
-                """
+            rval = f"""
         // Argument of the view
-        npy_intp xview_dims[%(view_ndim)s];
-        npy_intp xview_strides[%(view_ndim)s];
+        npy_intp xview_dims[{view_ndim}];
+        npy_intp xview_strides[{view_ndim}];
 
         """
-                % locals()
-            )
         else:
             rval = """
         // Argument of the view
@@ -1097,16 +1094,13 @@ class Subtensor(Op):
             % locals()
         )
 
-        finish_view = (
-            """
-        Py_XDECREF(%(z)s);
-        Py_INCREF(py_%(x)s);
-        PyArray_SetBaseObject(xview, py_%(x)s);
-        assert(py_%(x)s == (PyObject*)%(x)s);
-        %(z)s = xview;
+        finish_view = f"""
+        Py_XDECREF({z});
+        Py_INCREF(py_{x});
+        PyArray_SetBaseObject(xview, py_{x});
+        assert(py_{x} == (PyObject*){x});
+        {z} = xview;
         """
-            % locals()
-        )
 
         return decl + checkNDim + "{" + get_xview + build_view + finish_view + "}"
 
@@ -1159,9 +1153,9 @@ class SubtensorPrinter:
                         if entry.step is None:
                             msg3 = ""
                         else:
-                            msg3 = ":%s" % entry.step
+                            msg3 = f":{entry.step}"
 
-                        sidxs.append("{}:{}{}".format(msg1, msg2, msg3))
+                        sidxs.append(f"{msg1}:{msg2}{msg3}")
             finally:
                 pstate.precedence = old_precedence
 
@@ -1170,7 +1164,7 @@ class SubtensorPrinter:
                 sub = pstate.pprinter.process(input, pstate)
             finally:
                 pstate.precedence = old_precedence
-            return "{}[{}]".format(sub, ", ".join(sidxs))
+            return f"{sub}[{', '.join(sidxs)}]"
         else:
             raise TypeError("Can only print Subtensor.")
 
@@ -1246,11 +1240,8 @@ def inc_subtensor(
 
     if y.ndim > x.ndim:
         raise TypeError(
-            (
-                "Trying to increment a %d-dimensional "
-                "subtensor with a %d-dimensional value."
-            )
-            % (x.ndim, y.ndim)
+            f"Trying to increment a {int(x.ndim)}-dimensional "
+            f"subtensor with a {int(y.ndim)}-dimensional value."
         )
 
     dim_offset = x.ndim - y.ndim
@@ -1461,7 +1452,7 @@ class IncSubtensor(Op):
             msg += "Inc"
         else:
             msg += "Set"
-        return "{}{{{};{}}}".format(self.__class__.__name__, msg, ", ".join(indices))
+        return f"{self.__class__.__name__}{{{msg};{', '.join(indices)}}}"
 
     def make_node(self, x, y, *inputs):
         """
@@ -1477,11 +1468,8 @@ class IncSubtensor(Op):
         x, y = map(theano.tensor.as_tensor_variable, [x, y])
         if y.ndim > x.ndim:
             raise ValueError(
-                (
-                    "Trying to increment a %d-dimensional "
-                    "subtensor with a %d-dimensional value."
-                )
-                % (x.ndim, y.ndim)
+                f"Trying to increment a {int(x.ndim)}-dimensional "
+                f"subtensor with a {int(y.ndim)}-dimensional value."
             )
         inputs = tuple(map(Subtensor.my_as_scalar, inputs))
 
@@ -1700,11 +1688,8 @@ class IncSubtensor(Op):
         # max_depth: we pass 0 to have this parameter ignored
         # requirements: here we pass NPY_ARRAY_ENSURECOPY to force a copy
         # context: this is almost always NULL, I'm not sure what it's used for
-        return (
-            """(PyArrayObject*)PyArray_FromAny(py_%(x)s, NULL, 0, 0,
+        return f"""(PyArrayObject*)PyArray_FromAny(py_{x}, NULL, 0, 0,
                 NPY_ARRAY_ENSURECOPY, NULL)"""
-            % locals()
-        )
 
     def make_view_array(self, x, view_ndim):
         """
@@ -1757,7 +1742,7 @@ class IncSubtensor(Op):
             C code expression to copy source into view, and 0 on success.
 
         """
-        return """PyArray_CopyInto(%(view)s, %(source)s)""" % locals()
+        return f"""PyArray_CopyInto({view}, {source})"""
 
     def add_to_zview(self, name, x, fail):
         """
@@ -2149,11 +2134,8 @@ class AdvancedIncSubtensor1(Op):
         # max_depth: we pass 0 to have this parameter ignored
         # requirements: here we pass NPY_ARRAY_ENSURECOPY to force a copy
         # context: this is almost always NULL, I'm not sure what it's used for
-        return (
-            """(PyArrayObject*)PyArray_FromAny(py_%(x)s, NULL, 0, 0,
+        return f"""(PyArrayObject*)PyArray_FromAny(py_{x}, NULL, 0, 0,
                 NPY_ARRAY_ENSURECOPY, NULL)"""
-            % locals()
-        )
 
     def c_support_code(self):
         return inc_code()
@@ -2294,9 +2276,9 @@ def check_advanced_indexing_dimensions(input, idx_list):
                 if index.shape[i] != input.shape[dim_seen + i]:
                     raise IndexError(
                         "boolean index did not match indexed array "
-                        "along dimension %d; dimension is %d but "
-                        "corresponding boolean dimension is %d"
-                        % (dim_seen + i, input.shape[dim_seen + i], index.shape[i])
+                        f"along dimension {int(dim_seen + i)}; dimension is "
+                        f"{int(input.shape[dim_seen + i])} but "
+                        f"corresponding boolean dimension is {index.shape[i]}"
                     )
             dim_seen += index.ndim
         else:

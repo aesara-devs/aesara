@@ -68,26 +68,23 @@ def cleanup():
                                 keydata.remove_key(key)
                             except OSError:
                                 _logger.error(
-                                    "Could not remove file '%s'. To complete "
+                                    f"Could not remove file '{filename}'. To complete "
                                     "the clean-up, please remove manually "
-                                    "the directory containing it.",
-                                    filename,
+                                    "the directory containing it."
                                 )
                     if len(keydata.keys) == 0:
                         shutil.rmtree(os.path.join(compiledir, directory))
 
                 except (EOFError, AttributeError):
                     _logger.error(
-                        "Could not read key file '%s'. To complete "
+                        f"Could not read key file '{filename}'. To complete "
                         "the clean-up, please remove manually "
-                        "the directory containing it.",
-                        filename,
+                        "the directory containing it."
                     )
             except OSError:
                 _logger.error(
-                    "Could not clean up this directory: '%s'. To complete "
-                    "the clean-up, please remove it manually.",
-                    directory,
+                    f"Could not clean up this directory: '{directory}'. To complete "
+                    "the clean-up, please remove it manually."
                 )
         finally:
             if file is not None:
@@ -155,8 +152,8 @@ def print_compiledir_content():
                     if len(ops) == 1:
                         table.append((dir, ops[0], types, compile_time))
                     else:
-                        ops_to_str = "[%s]" % ", ".join(sorted(str(op) for op in ops))
-                        types_to_str = "[%s]" % ", ".join(sorted(str(t) for t in types))
+                        ops_to_str = f"[{', '.join(sorted(str(op) for op in ops))}]"
+                        types_to_str = f"[{', '.join(sorted(str(t) for t in types))}]"
                         table_multiple_ops.append(
                             (dir, ops_to_str, types_to_str, compile_time)
                         )
@@ -171,22 +168,22 @@ def print_compiledir_content():
             except OSError:
                 pass
             except AttributeError:
-                _logger.error("Could not read key file '%s'.", filename)
+                _logger.error(f"Could not read key file '{filename}'.")
 
-    print_title("Theano cache: %s" % compiledir, overline="=", underline="=")
+    print_title(f"Theano cache: {compiledir}", overline="=", underline="=")
     print()
 
-    print_title("List of %d compiled individual ops" % len(table), underline="+")
+    print_title(f"List of {len(table)} compiled individual ops", underline="+")
     print_title(
         "sub dir/compiletime/Op/set of different associated Theano types", underline="-"
     )
     table = sorted(table, key=lambda t: str(t[1]))
     for dir, op, types, compile_time in table:
-        print(dir, "%.3fs" % compile_time, op, types)
+        print(dir, f"{compile_time:.3f}s", op, types)
 
     print()
     print_title(
-        "List of %d compiled sets of ops" % len(table_multiple_ops), underline="+"
+        f"List of {len(table_multiple_ops)} compiled sets of ops", underline="+"
     )
     print_title(
         "sub dir/compiletime/Set of ops/set of different associated Theano types",
@@ -194,13 +191,13 @@ def print_compiledir_content():
     )
     table_multiple_ops = sorted(table_multiple_ops, key=lambda t: (t[1], t[2]))
     for dir, ops_to_str, types_to_str, compile_time in table_multiple_ops:
-        print(dir, "%.3fs" % compile_time, ops_to_str, types_to_str)
+        print(dir, f"{compile_time:.3f}s", ops_to_str, types_to_str)
 
     print()
     print_title(
         (
-            "List of %d compiled Op classes and "
-            "the number of times they got compiled" % len(table_op_class)
+            f"List of {len(table_op_class)} compiled Op classes and "
+            "the number of times they got compiled"
         ),
         underline="+",
     )
@@ -212,12 +209,12 @@ def print_compiledir_content():
         big_key_files = sorted(big_key_files, key=lambda t: str(t[1]))
         big_total_size = sum([sz for _, sz, _ in big_key_files])
         print(
-            "There are directories with key files bigger than %d bytes "
-            "(they probably contain big tensor constants)" % max_key_file_size
+            f"There are directories with key files bigger than {int(max_key_file_size)} bytes "
+            "(they probably contain big tensor constants)"
         )
         print(
-            "They use %d bytes out of %d (total size used by all key files)"
-            "" % (big_total_size, total_key_sizes)
+            f"They use {int(big_total_size)} bytes out of {int(total_key_sizes)} (total size "
+            "used by all key files)"
         )
 
         for dir, size, ops in big_key_files:
@@ -233,8 +230,8 @@ def print_compiledir_content():
         print(n_k, n_m)
     print()
     print(
-        "Skipped %d files that contained 0 op "
-        "(are they always theano.scalar ops?)" % zeros_op
+        f"Skipped {int(zeros_op)} files that contained 0 op "
+        "(are they always theano.scalar ops?)"
     )
 
 
@@ -257,10 +254,10 @@ def basecompiledir_ls():
     subdirs = sorted(subdirs)
     others = sorted(others)
 
-    print("Base compile dir is %s" % theano.config.base_compiledir)
+    print(f"Base compile dir is {theano.config.base_compiledir}")
     print("Sub-directories (possible compile caches):")
     for d in subdirs:
-        print("    %s" % d)
+        print(f"    {d}")
     if not subdirs:
         print("    (None)")
 
@@ -268,7 +265,7 @@ def basecompiledir_ls():
         print()
         print("Other files in base_compiledir:")
         for f in others:
-            print("    %s" % f)
+            print(f"    {f}")
 
 
 def basecompiledir_purge():

@@ -18,7 +18,7 @@ if __name__ == '__main__':
         ['rst', 'help', 'nopdf', 'cache', 'check', 'test'])
     options.update(dict([x, y or True] for x, y in opts))
     if options['--help']:
-        print('Usage: %s [OPTIONS] [files...]' % sys.argv[0])
+        print(f'Usage: {sys.argv[0]} [OPTIONS] [files...]')
         print('  -o <dir>: output the html files in the specified dir')
         print('  --cache: use the doctree cache')
         print('  --rst: only compile the doc (requires sphinx)')

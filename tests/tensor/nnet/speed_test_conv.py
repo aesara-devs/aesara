@@ -360,7 +360,7 @@ def speed_multilayer_conv():
                 ntot += [ntot_]
     else:
         tctot = N.asarray(tctot_)
-    print("old code timing %.3fs" % sum(tctot), tctot)
+    print(f"old code timing {sum(tctot):.3f}s", tctot)
     best = N.asarray(best)
     worst = N.asarray(worst)
     print("timing for unrolled version")
@@ -371,18 +371,17 @@ def speed_multilayer_conv():
     # t_detail = t
     t = t.sum(axis=2)
     print(
-        "max %.3fs" % t.max(),
+        f"max {t.max():.3f}s",
         "max param(batch unloop size/kernel unloop size)",
         t_b_k[t.argmax()],
     )
     print(
-        "min %.3fs" % t.min(),
+        f"min {t.min():.3f}s",
         "min param(batch unloop size/kernel unloop size)",
         t_b_k[t.argmin()],
     )
     print(
-        "speedup vs (1/1)%.3fx, vs old %.3fx"
-        % (t.max() / t.min(), sum(tctot) / t.min())
+        f"speedup vs (1/1){t.max() / t.min():.3f}x, vs old {sum(tctot) / t.min():.3f}x"
     )
     print(worst / best, tctot / best)
 
@@ -429,8 +428,7 @@ def speed_multilayer_conv():
     t_patch = sum(tctot_patch)
     print("unroll_patch without shape time", tctot_patch)
     print(
-        "speedup vs (1/1)%.3fx, vs old %.3fx"
-        % (t.max() / t_patch, sum(tctot) / t_patch)
+        f"speedup vs (1/1){t.max() / t_patch:.3f}x, vs old {sum(tctot) / t_patch:.3f}x"
     )
     print(best / tctot_patch, worst / tctot_patch)
     t_patch_size = sum(tctot_patch_size)

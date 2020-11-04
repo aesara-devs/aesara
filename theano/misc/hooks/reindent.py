@@ -121,7 +121,7 @@ def check(file):
     try:
         f = open(file)
     except OSError as msg:
-        errprint("{}: I/O Error: {}".format(file, str(msg)))
+        errprint(f"{file}: I/O Error: {msg}")
         return
 
     r = Reindenter(f)

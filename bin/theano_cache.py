@@ -22,7 +22,7 @@ _logger = logging.getLogger('theano.bin.theano-cache')
 
 def print_help(exit_status):
     if exit_status:
-        print('command "%s" not recognized' % (' '.join(sys.argv)))
+        print(f"command \"{' '.join(sys.argv)}\" not recognized")
     print('Type "theano-cache" to print the cache location')
     print('Type "theano-cache help" to print this help')
     print('Type "theano-cache clear" to erase the cache')
@@ -66,8 +66,7 @@ def main():
                     'You can also call "theano-cache purge" to '
                     'remove everything from that directory.' %
                     config.compiledir)
-                _logger.debug('Remaining elements (%s): %s' %
-                              (len(items), ', '.join(items)))
+                _logger.debug(f"Remaining elements ({len(items)}): {', '.join(items)}")
         elif sys.argv[1] == 'list':
             theano.gof.compiledir.print_compiledir_content()
         elif sys.argv[1] == 'cleanup':

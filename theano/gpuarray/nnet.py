@@ -211,7 +211,7 @@ class GpuCrossentropySoftmaxArgmax1HotWithBias(GpuKernelBase, Op):
         nll, sm, am = out
         fail = sub["fail"]
         ctx = sub["params"]
-        k_var = "k_xent_sm_1hot_bias_%(nodename)s" % locals()
+        k_var = f"k_xent_sm_1hot_bias_{nodename}"
         err_check = (
             """
             if (err != GA_NO_ERROR) {

@@ -149,8 +149,8 @@ def rebuild_collect_shared(
                 "(old_v, new_v) replacement pairs, you can not have a "
                 "new_v variable depend on an old_v one. For instance, "
                 "givens = {a:b, b:(a+1)} is not allowed. Here, the old_v "
-                "%s is used to compute other new_v's, but it is scheduled "
-                "to be replaced by %s." % (v_orig, v_repl)
+                f"{v_orig} is used to compute other new_v's, but it is scheduled "
+                f"to be replaced by {v_repl}."
             )
 
         clone_d[v_orig] = clone_v_get_shared_updates(v_repl, copy_inputs_over)
@@ -174,12 +174,9 @@ def rebuild_collect_shared(
     for v in input_variables:
         if isinstance(v, SharedVariable):
             raise TypeError(
-                (
-                    "Cannot use a shared variable (%s) as explicit "
-                    "input. Consider substituting a non-shared"
-                    " variable via the `givens` parameter"
-                )
-                % v
+                f"Cannot use a shared variable ({v}) as explicit "
+                "input. Consider substituting a non-shared"
+                " variable via the `givens` parameter"
             )
 
     # Fill update_d and update_expr with provided updates
@@ -202,15 +199,9 @@ def rebuild_collect_shared(
         except TypeError:
             err_msg = (
                 "An update must have the same type as the"
-                " original shared variable (shared_var=%s,"
-                " shared_var.type=%s,"
-                " update_val=%s, update_val.type=%s)."
-                % (
-                    store_into,
-                    store_into.type,
-                    update_val,
-                    getattr(update_val, "type", None),
-                )
+                f" original shared variable (shared_var={store_into},"
+                f" shared_var.type={store_into.type},"
+                f" update_val={update_val}, update_val.type={getattr(update_val, 'type', None)})."
             )
             err_sug = (
                 "If the difference is related to the broadcast pattern,"
@@ -447,10 +438,10 @@ def pfunc(
         if v in in_variables[(i + 1) :]:
             dup_v_i = in_variables.index(v, (i + 1))
             raise UnusedInputError(
-                "Variable %s is used twice in inputs to theano.function, "
-                "at indices %i and %i.  This would result in values "
+                f"Variable {v} is used twice in inputs to theano.function, "
+                f"at indices {i} and {dup_v_i}.  This would result in values "
                 "provided for it being ignored. Please do not duplicate "
-                "variables in the inputs list." % (v, i, dup_v_i)
+                "variables in the inputs list."
             )
 
     # Check that we are not using `givens` to replace input variables, because
@@ -463,7 +454,7 @@ def pfunc(
     for x, y in givens_pairs:
         if x in in_var_set:
             raise RuntimeError(
-                "You are trying to replace variable '%s' through the "
+                f"You are trying to replace variable '{x}' through the "
                 "`givens` parameter, but this variable is an input to your "
                 "function. Replacing inputs is currently forbidden because it "
                 "has no effect. One way to modify an input `x` to a function "
@@ -471,7 +462,7 @@ def pfunc(
                 "`theano.function([y], f(x), givens={x: g(y)})`. Another "
                 "solution consists in using `theano.clone`, e.g. like this: "
                 "`theano.function([x], "
-                "theano.clone(f(x), replace={x: g(x)}))`." % x
+                "theano.clone(f(x), replace={x: g(x)}))`."
             )
 
     # Extend the outputs with the updates on input variables so they are also
@@ -554,7 +545,7 @@ def _pfunc_param_to_in(param, strict=False, allow_downcast=None):
         return In(variable=param, strict=strict, allow_downcast=allow_downcast)
     elif isinstance(param, In):
         return param
-    raise TypeError("Unknown parameter type: %s" % type(param))
+    raise TypeError(f"Unknown parameter type: {type(param)}")
 
 
 def iter_over_pairs(pairs):

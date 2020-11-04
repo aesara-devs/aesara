@@ -114,7 +114,7 @@ class RopLopChecker:
         v1 = rop_f(vx, vv)
         v2 = scan_f(vx, vv)
 
-        assert np.allclose(v1, v2), "ROP mismatch: {} {}".format(v1, v2)
+        assert np.allclose(v1, v2), f"ROP mismatch: {v1} {v2}"
 
         self.check_nondiff_rop(theano.clone(y, replace={self.mx: break_op(self.mx)}))
 
@@ -127,7 +127,7 @@ class RopLopChecker:
 
         v1 = lop_f(vx, vv)
         v2 = scan_f(vx, vv)
-        assert np.allclose(v1, v2), "LOP mismatch: {} {}".format(v1, v2)
+        assert np.allclose(v1, v2), f"LOP mismatch: {v1} {v2}"
 
     def check_rop_lop(self, y, out_shape):
         """
@@ -151,7 +151,7 @@ class RopLopChecker:
 
         v1 = rop_f(vx, vv)
         v2 = scan_f(vx, vv)
-        assert np.allclose(v1, v2), "ROP mismatch: {} {}".format(v1, v2)
+        assert np.allclose(v1, v2), f"ROP mismatch: {v1} {v2}"
 
         try:
             tensor.Rop(
@@ -179,7 +179,7 @@ class RopLopChecker:
 
         v1 = lop_f(vx, vv)
         v2 = scan_f(vx, vv)
-        assert np.allclose(v1, v2), "LOP mismatch: {} {}".format(v1, v2)
+        assert np.allclose(v1, v2), f"LOP mismatch: {v1} {v2}"
 
 
 class TestRopLop(RopLopChecker):
@@ -297,7 +297,7 @@ class TestRopLop(RopLopChecker):
             scan_f = function([], sy, on_unused_input="ignore", mode=mode)
             v1 = rop_f()
             v2 = scan_f()
-            assert np.allclose(v1, v2), "Rop mismatch: {} {}".format(v1, v2)
+            assert np.allclose(v1, v2), f"Rop mismatch: {v1} {v2}"
 
     def test_conv(self):
         for conv_op in [conv.conv2d, conv2d]:
@@ -353,7 +353,7 @@ class TestRopLop(RopLopChecker):
                 ev_filter_data = np.random.random(filter_shape).astype(dtype)
                 v1 = rop_f(image_data, filter_data, ev_image_data, ev_filter_data)
                 v2 = scan_f(image_data, filter_data, ev_image_data, ev_filter_data)
-                assert np.allclose(v1, v2), "Rop mismatch: {} {}".format(v1, v2)
+                assert np.allclose(v1, v2), f"Rop mismatch: {v1} {v2}"
 
     def test_join(self):
         tv = np.asarray(self.rng.uniform(size=(10,)), theano.config.floatX)

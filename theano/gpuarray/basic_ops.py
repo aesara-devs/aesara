@@ -220,7 +220,7 @@ class Kernel:
             elif isinstance(t, Variable):
                 return t.type.dtype
             else:
-                raise TypeError("can't get a dtype from {}".format(type(t)))
+                raise TypeError(f"can't get a dtype from {type(t)}")
 
         dtypes = [get_dtype(t) for t in types]
         flags = dict()
@@ -333,10 +333,7 @@ class GpuKernelBase:
         if isinstance(self.params_type, ParamsType) and self.params_type.has_type(
             gpu_context_type
         ):
-            return "({}->{})".format(
-                params_c_name,
-                self.params_type.get_field(gpu_context_type),
-            )
+            return f"({params_c_name}->{self.params_type.get_field(gpu_context_type)})"
         assert self.params_type is gpu_context_type
         return params_c_name
 
@@ -373,13 +370,13 @@ class GpuKernelBase:
         )
 
     def _generate_kernel_vars(self, k):
-        return """GpuKernel %(kname)s;""" % dict(kname=k.objvar)
+        return f"""GpuKernel {k.objvar};"""
 
     def _generate_kernel_wrap(self, k):
         args = []
         setargs = []
         for i, p in enumerate(k.params):
-            args.append("{} arg{}".format(get_ctype(p), i))
+            args.append(f"{get_ctype(p)} arg{i}")
             if p is gpuarray.GpuArray:
                 setarg = "GpuKernel_setarg(&{0}, {1}, arg{1});"
             else:
@@ -428,7 +425,7 @@ int {sname}(unsigned int _nd, size_t *_n, size_t _shared, {args}) {{
         return kvars + "\n" + wrappers
 
     def _generate_zeros(self, k):
-        return """memset(&%(v)s, 0, sizeof(%(v)s));""" % dict(v=k.objvar)
+        return f"""memset(&{k.objvar}, 0, sizeof({k.objvar}));"""
 
     def _generate_kernel_init(self, k, fail, ctx):
         return """{
@@ -462,7 +459,7 @@ int {sname}(unsigned int _nd, size_t *_n, size_t _shared, {args}) {{
         return "\n".join([inits_0, inits])
 
     def _generate_kernel_cleanup(self, k):
-        return "GpuKernel_clear(&%(ovar)s);" % dict(ovar=k.objvar)
+        return f"GpuKernel_clear(&{k.objvar});"
 
     def c_cleanup_code_struct(self, node, name):
         kernels = self.gpu_kernels(node, name)
@@ -544,13 +541,13 @@ class CGpuKernelBase(COp, GpuKernelBase):
         undef_macros = []
         for i, v in enumerate(node.inputs):
             if isinstance(v.type, GpuArrayType):
-                macro_name = "DTYPE_INPUT_%d" % (i,)
+                macro_name = f"DTYPE_INPUT_{i}"
                 macro_value = pygpu.gpuarray.dtype_to_ctype(v.dtype)
                 define_macros.append(define_template % (macro_name, macro_value))
                 undef_macros.append(undef_template % macro_name)
         for i, v in enumerate(node.outputs):
             if isinstance(v.type, GpuArrayType):
-                macro_name = "DTYPE_OUTPUT_%d" % (i,)
+                macro_name = f"DTYPE_OUTPUT_{i}"
                 macro_value = pygpu.gpuarray.dtype_to_ctype(v.dtype)
                 define_macros.append(define_template % (macro_name, macro_value))
                 undef_macros.append(undef_template % macro_name)
@@ -576,7 +573,7 @@ class CGpuKernelBase(COp, GpuKernelBase):
                 kcode = split[n + 1]
                 splt2 = kspec.split(":")
                 if len(splt2) != 3:
-                    raise ValueError("Bad kernel spec: {}".format(kspec))
+                    raise ValueError(f"Bad kernel spec: {kspec}")
                 kname = splt2[0].strip()
                 ktypes = [get_dtype(s.strip()) for s in splt2[1].split(",")]
                 kflags = splt2[2].strip()
@@ -696,7 +693,7 @@ class GpuFromHost(Op):
         self.context_name = context_name
 
     def __str__(self):
-        return "GpuFromHost<{}>".format(self.context_name)
+        return f"GpuFromHost<{self.context_name}>"
 
     def make_node(self, x):
         if not isinstance(x.type, tensor.TensorType):
@@ -799,7 +796,7 @@ class GpuToGpu(Op):
         self.context_name = context_name
 
     def __str__(self):
-        return "GpuToGpu<{}>".format(self.context_name)
+        return f"GpuToGpu<{self.context_name}>"
 
     def make_node(self, x):
         if not isinstance(x.type, GpuArrayType):
@@ -892,7 +889,7 @@ class GpuAlloc(HideC, Alloc):
             m = "{memset_0=True}"
         else:
             m = ""
-        return "{}<{}>{}".format(self.__class__.__name__, self.context_name, m)
+        return f"{self.__class__.__name__}<{self.context_name}>{m}"
 
     def make_node(self, value, *shape):
         value = as_gpuarray_variable(value, context_name=self.context_name)
@@ -1091,11 +1088,10 @@ class GpuAllocEmpty(HideC, AllocEmpty):
         fail = sub["fail"]
 
         code = [
-            """
+            f"""
 int i;
-size_t shape[%(ndim)s];
+size_t shape[{ndim}];
 """
-            % dict(ndim=ndim)
         ]
 
         for i, shp_i in enumerate(inp):
@@ -1435,7 +1431,7 @@ class GpuJoin(HideC, Join):
         view = self.view
         non_empty_tensor = tensors[view]
         for i, inp in enumerate(tensors):
-            copy_to_list.append("als[{}] = &{}->ga;".format(i, inp))
+            copy_to_list.append(f"als[{i}] = &{inp}->ga;")
 
         n = len(tensors)
         fail = sub["fail"]

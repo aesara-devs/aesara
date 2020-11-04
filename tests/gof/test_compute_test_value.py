@@ -35,7 +35,7 @@ class IncOneC(Op):
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
         (z,) = outputs
-        return "%(z)s = %(x)s + 1;" % locals()
+        return f"{z} = {x} + 1;"
 
 
 class TestComputeTestValue:

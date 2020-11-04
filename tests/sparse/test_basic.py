@@ -288,7 +288,7 @@ def verify_grad_sparse(op, pt, structured=False, *args, **kwargs):
                 else:
                     iconv.append(csc_from_dense)
             else:
-                raise NotImplementedError("No conv for {}".format(p.format))
+                raise NotImplementedError(f"No conv for {p.format}")
         else:
             dpt.append(p)
             iconv.append(conv_none)
@@ -2951,7 +2951,7 @@ def test_hstack_vstack():
     # classes that they wrap).
 
     def make_block(dtype):
-        return theano.sparse.csr_matrix(name="%s block" % dtype, dtype=dtype)
+        return theano.sparse.csr_matrix(name=f"{dtype} block", dtype=dtype)
 
     def get_expected_dtype(blocks, to_dtype):
         if to_dtype is None:

@@ -124,7 +124,7 @@ def conv2d(
                     raise NotScalarConstantError(
                         "The convolution need that the shape"
                         " information are constant values. We got"
-                        " %s for the image_shape parameter" % image_shape[i]
+                        " {image_shape[i]} for the image_shape parameter"
                     )
                 assert image_shape[i].dtype in theano.tensor.discrete_dtypes
                 image_shape[i] = int(image_shape[i])
@@ -140,8 +140,8 @@ def conv2d(
                     raise NotScalarConstantError(
                         "The convolution need that the shape"
                         " information are constant values. We got"
-                        " %s for the filter_shape "
-                        "parameter" % filter_shape[i]
+                        " {filter_shape[i]} for the filter_shape "
+                        "parameter"
                     )
                 assert filter_shape[i].dtype in theano.tensor.discrete_dtypes
                 filter_shape[i] = int(filter_shape[i])
@@ -462,9 +462,9 @@ class ConvOp(OpenMPOp):
         if len(imshp) == 2:
             imshp = (1,) + imshp
         elif len(imshp) != 3:
-            raise ValueError("len(imshp) must be 2 or 3, got %d" % len(imshp))
+            raise ValueError(f"len(imshp) must be 2 or 3, got {len(imshp)}")
         if len(kshp) != 2:
-            raise ValueError("len(kshp) must be 2, got %d" % len(kshp))
+            raise ValueError(f"len(kshp) must be 2, got {len(kshp)}")
 
         # We must continue to consider None as 1 for backward compatibility.
         if dx is None:
@@ -510,7 +510,7 @@ class ConvOp(OpenMPOp):
             imshp_logical = tuple(imshp_logical)
             if len(imshp_logical) != 3:
                 raise ValueError(
-                    "len(imshp_logical) must be 3, got %d" % len(imshp_logical)
+                    f"len(imshp_logical) must be 3, got {len(imshp_logical)}"
                 )
             self.imshp_logical = imshp_logical
 
@@ -521,7 +521,7 @@ class ConvOp(OpenMPOp):
             kshp_logical = tuple(kshp_logical)
             if len(kshp_logical) != 2:
                 raise ValueError(
-                    "len(kshp_logical) must be 2, got %d" % len(kshp_logical)
+                    f"len(kshp_logical) must be 2, got {len(kshp_logical)}"
                 )
             self.kshp_logical = kshp_logical
 
@@ -612,14 +612,14 @@ class ConvOp(OpenMPOp):
         self.out_mode = output_mode
 
         if self.out_mode not in ["valid", "full"]:
-            raise Exception("Mode %s not implemented" % str(self.out_mode))
+            raise Exception(f"Mode {self.out_mode} not implemented")
 
         if any((shp is not None) and (shp <= 0) for shp in self.outshp):
             raise Exception(
                 "Bad size for the output shape. Verify that [post-"
-                "supersampling] input shape (%s) and kern"
-                " shape(%s) are ok. (Hint: kerns must fit inside"
-                " image in valid mode)" % (self.imshp_logical, self.kshp_logical)
+                f"supersampling] input shape ({self.imshp_logical}) and kern"
+                f" shape({self.kshp_logical}) are ok. (Hint: kerns must fit inside"
+                " image in valid mode)"
             )
 
         if (
@@ -753,14 +753,14 @@ class ConvOp(OpenMPOp):
         if _inputs.ndim != 4:
             raise TypeError(
                 "ConvOp (make_node) requires input be a 4D tensor;"
-                ' received "%s" (%i dims)' % (inputs, _inputs.ndim)
+                f' received "{inputs}" ({_inputs.ndim} dims)'
             )
         if _kerns.ndim != 4:
             raise TypeError("make_node requires 4D tensor of kernels")
         if _inputs.type.dtype != _kerns.type.dtype:
             raise NotImplementedError(
                 "The image and the kernel must have the same type."
-                "inputs(%s), kerns(%s)" % (_inputs.dtype, _kerns.dtype)
+                "inputs({_inputs.dtype}), kerns({_kerns.dtype})"
             )
         bcastable23 = [self.outshp[0] == 1, self.outshp[1] == 1]
         output = theano.tensor.tensor(
@@ -1231,15 +1231,15 @@ using namespace std;
         d["affectation"] = "="
 
         # Default values, will be overrided if the shape info is provided
-        d["self_bsize"] = "PyArray_DIMS(%(img2d)s)[0]" % d
-        d["self_nkern"] = "PyArray_DIMS(%(filtersflipped)s)[0]" % d
+        d["self_bsize"] = f"PyArray_DIMS({d['img2d']})[0]"
+        d["self_nkern"] = f"PyArray_DIMS({d['filtersflipped']})[0]"
         d["self_outshp0"] = "-1"
         d["self_outshp1"] = "-1"
-        d["self_imshp0"] = "PyArray_DIMS(%(img2d)s)[1]" % d
-        d["self_imshp1"] = "PyArray_DIMS(%(img2d)s)[2]" % d
-        d["self_imshp2"] = "PyArray_DIMS(%(img2d)s)[3]" % d
-        d["self_kshp0"] = "PyArray_DIMS(%(filtersflipped)s)[2]" % d
-        d["self_kshp1"] = "PyArray_DIMS(%(filtersflipped)s)[3]" % d
+        d["self_imshp0"] = f"PyArray_DIMS({d['img2d']})[1]"
+        d["self_imshp1"] = f"PyArray_DIMS({d['img2d']})[2]"
+        d["self_imshp2"] = f"PyArray_DIMS({d['img2d']})[3]"
+        d["self_kshp0"] = f"PyArray_DIMS({d['filtersflipped']})[2]"
+        d["self_kshp1"] = f"PyArray_DIMS({d['filtersflipped']})[3]"
         d["assert_size"] = ""
 
         # Override the default value if we have it
@@ -1485,7 +1485,7 @@ if(kerns_dim[1] != img2d_dim[1]){
         elif node.inputs[0].type.dtype == "float64":
             d["type"] = "double"
         else:
-            raise Exception("Type %s not implemented" % node.inputs[0].type.dtype)
+            raise Exception(f"Type {node.inputs[0].type.dtype} not implemented")
         d["gemm"] = "dgemm_"
         if not d["type"] == "double":
             d["gemm"] = "sgemm_"

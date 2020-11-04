@@ -77,7 +77,7 @@ class PyDotFormatter:
             Unique node id.
         """
         assert node not in self.__nodes
-        _id = "%s%d" % (self.__node_prefix, len(self.__nodes) + 1)
+        _id = f"{self.__node_prefix}{len(self.__nodes) + 1}"
         self.__nodes[node] = _id
         return _id
 

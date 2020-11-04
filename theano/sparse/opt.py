@@ -111,7 +111,7 @@ class AddSD_ccode(gof.op.Op):
         inp = ""
         if self.inplace:
             inp = ",inplace"
-        return "{}{{{}{}}}".format(self.__class__.__name__, self.format, inp)
+        return f"{self.__class__.__name__}{{{self.format}{inp}}}"
 
     def make_node(self, x, y):
         x, y = sparse.as_sparse_variable(x), tensor.as_tensor_variable(y)

@@ -98,7 +98,7 @@ class IfElse(Op):
             args.append("inplace")
         if self.gpu:
             args.append("gpu")
-        return "if{%s}" % ",".join(args)
+        return "if{{{','.join(args)}}}"
 
     def infer_shape(self, node, inputs_shapes):
         # By construction, corresponding then/else pairs have the same number
@@ -159,10 +159,7 @@ class IfElse(Op):
     def make_node(self, c, *args):
         assert (
             len(args) == 2 * self.n_outs
-        ), "Wrong number of arguments to make_node: " "expected %d, got %d" % (
-            2 * self.n_outs,
-            len(args),
-        )
+        ), f"Wrong number of arguments to make_node: expected {int(2 * self.n_outs)}, got {len(args)}"
         c = theano.tensor.as_tensor_variable(c)
         if not self.gpu:
             # When gpu is true, we are given only gpuarrays, and we want
@@ -386,10 +383,10 @@ def ifelse(condition, then_branch, else_branch, name=None):
                 # If the types still don't match, there is a problem.
                 raise TypeError(
                     "The two branches should have identical types, but "
-                    "they are %s and %s respectively. This error could be "
+                    f"they are {then_branch_elem.type} and {else_branch_elem.type} respectively. This error could be "
                     "raised if for example you provided a one element "
                     "list on the `then` branch but a tensor on the `else` "
-                    "branch." % (then_branch_elem.type, else_branch_elem.type)
+                    "branch."
                 )
 
         new_then_branch.append(then_branch_elem)
@@ -400,8 +397,8 @@ def ifelse(condition, then_branch, else_branch, name=None):
             "The number of values on the `then` branch"
             " should have the same number of variables as "
             "the `else` branch : (variables on `then` "
-            "%d" % len(then_branch) + ", variables on `else` "
-            "%d" % len(else_branch) + ")"
+            f"{len(then_branch)}, variables on `else` "
+            f"{len(else_branch)})"
         )
 
     new_ifelse = IfElse(n_outs=len(then_branch), as_view=False, gpu=False, name=name)

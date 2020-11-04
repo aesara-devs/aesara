@@ -84,9 +84,9 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
             node.inputs[0].type == scalar.float32
             or node.inputs[0].type == scalar.float16
         ):
-            return """%(z)s = 1.0f / (1.0f + exp(-%(x)s));""" % locals()
+            return f"""{z} = 1.0f / (1.0f + exp(-{x}));"""
         elif node.inputs[0].type == scalar.float64:
-            return """%(z)s = 1.0 / (1.0 + exp(-%(x)s));""" % locals()
+            return f"""{z} = 1.0 / (1.0 + exp(-{x}));"""
         else:
             raise NotImplementedError("only floatingpoint is implemented")
 
@@ -908,12 +908,12 @@ def perform_sigm_times_exp(
         full_tree = tree
     if False:  # Debug code.
         print("<perform_sigm_times_exp>")
-        print("  full_tree   = %s" % full_tree)
-        print("  tree        = %s" % tree)
-        print("  exp_x       = %s" % exp_x)
-        print("  exp_minus_x = %s" % exp_minus_x)
-        print("  sigm_x      = %s" % sigm_x)
-        print("  sigm_minus_x= %s" % sigm_minus_x)
+        print(f"  full_tree   = {full_tree}")
+        print(f"  tree        = {tree}")
+        print(f"  exp_x       = {exp_x}")
+        print(f"  exp_minus_x = {exp_minus_x}")
+        print(f"  sigm_x      = {sigm_x}")
+        print(f"  sigm_minus_x= {sigm_minus_x}")
     neg, inputs = tree
     if isinstance(inputs, list):
         # Recurse through inputs of the multiplication.

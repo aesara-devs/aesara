@@ -174,8 +174,8 @@ def code_gen(blocks):
     tail = ""
     for block in blocks:
         decl += block.declare
-        head = head + ("\n{\n%s" % block.behavior)
-        tail = ("%s\n}\n" % block.cleanup) + tail
+        head = f"{head}\n{{\n{block.behavior}"
+        tail = f"{block.cleanup}\n}}\n{tail}"
     return decl + head + tail
 
 
@@ -223,22 +223,22 @@ def struct_gen(args, struct_builders, blocks, sub):
         #     be executed if any step in the constructor fails and the
         #     latter only at destruction time.
         struct_decl += block.declare
-        struct_init_head = struct_init_head + ("\n%s" % block.behavior)
+        struct_init_head = struct_init_head + f"\n{block.behavior}"
         struct_cleanup += block.cleanup
 
     behavior = code_gen(blocks)
 
     # declares the storage
-    storage_decl = "\n".join(["PyObject* %s;" % arg for arg in args])
+    storage_decl = "\n".join([f"PyObject* {arg};" for arg in args])
     # in the constructor, sets the storage to the arguments
-    storage_set = "\n".join(["this->{} = {};".format(arg, arg) for arg in args])
+    storage_set = "\n".join([f"this->{arg} = {arg};" for arg in args])
     # increments the storage's refcount in the constructor
-    storage_incref = "\n".join(["Py_XINCREF(%s);" % arg for arg in args])
+    storage_incref = "\n".join([f"Py_XINCREF({arg});" for arg in args])
     # decrements the storage's refcount in the destructor
-    storage_decref = "\n".join(["Py_XDECREF(this->%s);" % arg for arg in args])
+    storage_decref = "\n".join([f"Py_XDECREF(this->{arg});" for arg in args])
 
     args_names = ", ".join(args)
-    args_decl = ", ".join(["PyObject* %s" % arg for arg in args])
+    args_decl = ", ".join([f"PyObject* {arg}" for arg in args])
 
     # The following code stores the exception data in __ERROR, which
     # is a special field of the struct. __ERROR is a list of length 3
@@ -363,12 +363,9 @@ def get_c_declare(r, name, sub):
         c_declare = r.type.c_declare(name, sub, True)
     else:
         c_declare = r.type.c_declare(name, sub, False)
-    pre = (
-        """
-    PyObject* py_%(name)s;
+    pre = f"""
+    PyObject* py_{name};
     """
-        % locals()
-    )
     return pre + c_declare
 
 
@@ -553,23 +550,23 @@ def struct_variable_codeblocks(variable, policies, id, symbol_table, sub):
 
     """
 
-    name = "V%i" % id
+    name = f"V{id}"
     if variable not in symbol_table:
         symbol_table[variable] = name
     sub = dict(sub)
     #    sub['name'] = name
     sub["id"] = id
     sub["fail"] = failure_code_init(sub)
-    sub["py_ptr"] = "py_%s" % name
-    sub["stor_ptr"] = "storage_%s" % name
+    sub["py_ptr"] = f"py_{name}"
+    sub["stor_ptr"] = f"storage_{name}"
     # struct_declare, struct_behavior, struct_cleanup, sub)
     struct_builder = CodeBlock(
         *[apply_policy(policy, variable, name, sub) for policy in policies[0]] + [sub]
     )
     sub["id"] = id + 1
     sub["fail"] = failure_code(sub)
-    sub["py_ptr"] = "py_%s" % name
-    sub["stor_ptr"] = "storage_%s" % name
+    sub["py_ptr"] = f"py_{name}"
+    sub["stor_ptr"] = f"storage_{name}"
     # run_declare, run_behavior, run_cleanup, sub)
     block = CodeBlock(
         *[apply_policy(policy, variable, name, sub) for policy in policies[1]] + [sub]
@@ -817,7 +814,7 @@ class CLinker(link.Linker):
             # This ensures that, when defining functions in support code,
             # we cannot have two different functions, in different modules,
             # that have the same name.
-            name = "node_<<<<HASH_PLACEHOLDER>>>>_%i" % node_num
+            name = f"node_<<<<HASH_PLACEHOLDER>>>>_{node_num}"
             isyms = [symbol[r] for r in node.inputs]
             osyms = [symbol[r] for r in node.outputs]
 
@@ -888,10 +885,10 @@ class CLinker(link.Linker):
             try:
                 behavior = op.c_code(node, name, isyms, osyms, sub)
             except utils.MethodNotDefined:
-                raise NotImplementedError("%s cannot produce C code" % op)
-            assert isinstance(behavior, str), (
-                str(node.op) + " didn't return a string for c_code"
-            )
+                raise NotImplementedError(f"{op} cannot produce C code")
+            assert isinstance(
+                behavior, str
+            ), f"{node.op} didn't return a string for c_code"
             # To help understand what is following. It help read the c code.
             # This prevent different op that generate the same c code
             # to be merged, I suppose this won't happen...
@@ -902,7 +899,7 @@ class CLinker(link.Linker):
             except utils.MethodNotDefined:
                 cleanup = ""
 
-            _logger.info("compiling un-versioned Apply %s", str(node))
+            _logger.info(f"compiling un-versioned Apply {node}")
 
             blocks.append(CodeBlock("", behavior, cleanup, sub))
             tasks.append((node, "code", id))
@@ -921,13 +918,13 @@ class CLinker(link.Linker):
         # compare equal to equivalent Constant instances.
         args = []
         args += [
-            "storage_%s" % symbol[variable]
+            f"storage_{symbol[variable]}"
             for variable in utils.uniq(self.inputs + self.outputs + self.orphans)
         ]
 
         # <<<<HASH_PLACEHOLDER>>>> will be replaced by a hash of the whole
         # code in the file, including support code, in DynamicModule.code.
-        struct_name = "__struct_compiled_op_%s" % "<<<<HASH_PLACEHOLDER>>>>"
+        struct_name = f"__struct_compiled_op_{'<<<<HASH_PLACEHOLDER>>>>'}"
         struct_code = struct_gen(
             args, init_blocks, blocks, dict(failure_var=failure_var, name=struct_name)
         )
@@ -1459,7 +1456,7 @@ class CLinker(link.Linker):
             ndarray_c_version = np.core.multiarray._get_ndarray_c_version()
         else:
             ndarray_c_version = np.core._multiarray_umath._get_ndarray_c_version()
-        sig.append("NPY_ABI_VERSION=0x%X" % ndarray_c_version)
+        sig.append(f"NPY_ABI_VERSION=0x{ndarray_c_version:X}")
         if c_compiler:
             sig.append("c_compiler_str=" + c_compiler.version_str())
 
@@ -1605,7 +1602,7 @@ class CLinker(link.Linker):
         src_code = mod.code()
         get_lock()
         try:
-            _logger.debug("LOCATION %s", str(location))
+            _logger.debug(f"LOCATION {location}")
             module = c_compiler.compile_str(
                 module_name=mod.code_hash,
                 src_code=src_code,
@@ -1743,12 +1740,12 @@ class CLinker(link.Linker):
         print("     return NULL;", file=code)
         print("  }", file=code)
         print(
-            "  %(struct_name)s* struct_ptr = new %(struct_name)s();" % locals(),
+            f"  {struct_name}* struct_ptr = new {struct_name}();",
             file=code,
         )
         print(
             "  if (struct_ptr->init(",
-            ",".join("PyTuple_GET_ITEM(argtuple, %i)" % n for n in range(n_args)),
+            ",".join(f"PyTuple_GET_ITEM(argtuple, {n})" for n in range(n_args)),
             ") != 0) {",
             file=code,
         )

@@ -39,7 +39,7 @@ class TestGpuCumOp(TestCumOp):
 
     @pytest.mark.skipif(
         theano.config.floatX != "float32",
-        reason="Gpucumop not implemented for dtype %s" % theano.config.floatX,
+        reason=f"Gpucumop not implemented for dtype {theano.config.floatX}",
     )
     @pytest.mark.parametrized("mode", ["mul", "add"])
     def test_infer_shape(self, mode):

@@ -93,13 +93,13 @@ def _prepare_batch_normalization_axes(axes, ndim):
     elif isinstance(axes, (tuple, list, np.ndarray)):
         axes = tuple(int(a) for a in axes)
     else:
-        raise ValueError("invalid axes: %s", str(axes))
+        raise ValueError(f"invalid axes: {axes}")
     axes = tuple(sorted(axes))
     if len(axes) == 0:
         raise ValueError("there should be at least one normalization axis")
     if min(axes) < 0 or max(axes) >= ndim:
         raise ValueError(
-            "axes should be less than ndim (<%d), but %s given" % (ndim, str(axes))
+            f"axes should be less than ndim (<{int(ndim)}), but {axes} given"
         )
     non_bc_axes = tuple(i for i in range(ndim) if i not in axes)
     return axes, non_bc_axes
@@ -210,7 +210,7 @@ def batch_normalization_train(
             "gamma and beta dimensionality must match the "
             "number of non-normalized axes, or have the "
             "same number of dimensions as the inputs; "
-            "got %d and %d instead of %d" % (gamma.ndim, beta.ndim, params_ndim)
+            f"got {int(gamma.ndim)} and {int(beta.ndim)} instead of {int(params_ndim)}"
         )
     if (running_mean is None) != (running_var is None):
         raise ValueError(
@@ -219,19 +219,19 @@ def batch_normalization_train(
     if running_mean is not None and running_mean.ndim != params_ndim:
         raise ValueError(
             "running_mean must be of the same dimensionality "
-            "as gamma and beta; got %d instead of %d" % (running_mean.ndim, params_ndim)
+            f"as gamma and beta; got {int(running_mean.ndim)} instead of {int(params_ndim)}"
         )
     if running_var is not None and running_var.ndim != params_ndim:
         raise ValueError(
             "running_var must be of the same dimensionality "
-            "as gamma and beta; got %d instead of %d" % (running_var.ndim, params_ndim)
+            f"as gamma and beta; got {int(running_var.ndim)} instead of {int(params_ndim)}"
         )
 
     # epsilon will be converted to floatX later. we need to check
     # for rounding errors now, since numpy.float32(1e-5) < 1e-5.
     epsilon = np.cast[theano.config.floatX](epsilon)
     if epsilon < 1e-5:
-        raise ValueError("epsilon must be at least 1e-5, got %s" % str(epsilon))
+        raise ValueError(f"epsilon must be at least 1e-5, got {epsilon}")
 
     inputs = as_tensor_variable(inputs)
     gamma = as_tensor_variable(gamma)
@@ -352,20 +352,19 @@ def batch_normalization_test(
             "gamma and beta dimensionality must match the "
             "number of non-normalized axes, or have the "
             "same number of dimensions as the inputs; "
-            "got %d and %d instead of %d" % (gamma.ndim, beta.ndim, params_ndim)
+            f"got {int(gamma.ndim)} and {int(beta.ndim)} instead of {int(params_ndim)}"
         )
     if mean.ndim != params_ndim or var.ndim != params_ndim:
         raise ValueError(
             "mean and var must be of the same dimensionality "
-            "as gamma and beta; got %d and %d instead of %d"
-            % (mean.ndim, var.ndim, params_ndim)
+            f"as gamma and beta; got {int(mean.ndim)} and {int(var.ndim)} instead of {int(params_ndim)}"
         )
 
     # epsilon will be converted to floatX later. we need to check
     # for rounding errors now, since numpy.float32(1e-5) < 1e-5.
     epsilon = np.cast[theano.config.floatX](epsilon)
     if epsilon < 1e-5:
-        raise ValueError("epsilon must be at least 1e-5, got %s" % str(epsilon))
+        raise ValueError(f"epsilon must be at least 1e-5, got {epsilon}")
 
     gamma = as_tensor_variable(gamma)
     beta = as_tensor_variable(beta)
@@ -519,8 +518,7 @@ class AbstractBatchNormTrain(Op):
         axes = self.axes
         if min(axes) < 0 or max(axes) >= x.ndim:
             raise ValueError(
-                "axes should be less than ndim (<%d), but %s given"
-                % (x.ndim, str(axes))
+                f"axes should be less than ndim (<{x.ndim}), but {axes} given"
             )
 
         mean = x.mean(axes, keepdims=True)
@@ -607,8 +605,7 @@ class AbstractBatchNormInference(Op):
         axes = self.axes
         if min(axes) < 0 or max(axes) >= x.ndim:
             raise ValueError(
-                "axes should be less than ndim (<%d), but %s given"
-                % (x.ndim, str(axes))
+                f"axes should be less than ndim (<{x.ndim}), but {axes} given"
             )
 
         scale, bias, est_mean, est_var = (
@@ -760,8 +757,7 @@ class AbstractBatchNormTrainGrad(Op):
         axes = self.axes
         if min(axes) < 0 or max(axes) >= x.ndim:
             raise ValueError(
-                "axes should be less than ndim (<%d), but %s given"
-                % (x.ndim, str(axes))
+                f"axes should be less than ndim (<{x.ndim}), but {axes} given"
             )
 
         x_diff = x - x_mean

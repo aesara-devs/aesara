@@ -45,14 +45,11 @@ def get_parse_error(code):
     try:
         tabnanny.process_tokens(tokenize.generate_tokens(code_buffer.readline))
     except tokenize.TokenError as err:
-        return "Could not parse code: %s" % err
+        return f"Could not parse code: {err}"
     except IndentationError as err:
-        return "Indentation error: %s" % err
+        return f"Indentation error: {err}"
     except tabnanny.NannyNag as err:
-        return "Ambiguous tab at line %d; line is '%s'." % (
-            err.get_lineno(),
-            err.get_line(),
-        )
+        return f"Ambiguous tab at line {err.get_lineno()}; line is '{err.get_line()}'."
     return None
 
 
@@ -151,7 +148,7 @@ def is_python_file(filename):
 
 
 def get_file_contents(filename, revision="tip"):
-    hg_out = run_mercurial_command("cat -r {} {}".format(revision, filename))
+    hg_out = run_mercurial_command(f"cat -r {revision} {filename}")
     return hg_out
 
 
@@ -254,7 +251,7 @@ def main(argv=None):
         parse_error = get_parse_error(code)
         if parse_error is not None:
             print(
-                "*** {} has parse error: {}".format(filename, parse_error),
+                f"*** {filename} has parse error: {parse_error}",
                 file=sys.stderr,
             )
             block_commit = True
@@ -281,29 +278,25 @@ def main(argv=None):
                         if was_clean or not args.incremental_with_patch:
                             block_commit = True
                         diffs.append(indentation_diff)
-                        print(
-                            "%s is not correctly indented" % filename, file=sys.stderr
-                        )
+                        print(f"{filename} is not correctly indented", file=sys.stderr)
 
     if len(diffs) > 0:
         diffs_filename = ".hg/indentation_fixes.patch"
         save_diffs(diffs, diffs_filename)
         print(
-            "*** To fix all indentation issues, run: cd `hg root` && patch -p0 < %s"
-            % diffs_filename,
+            f"*** To fix all indentation issues, run: cd `hg root` && patch -p0 < {diffs_filename}",
             file=sys.stderr,
         )
 
     if block_commit:
         save_filename = ".hg/commit_message.saved"
         save_commit_message(save_filename)
-        print("*** Commit message saved to %s" % save_filename, file=sys.stderr)
+        print(f"*** Commit message saved to {save_filename}", file=sys.stderr)
 
         if args.skip_after_failure:
             save_skip_next_commit()
             print(
-                "*** Next commit attempt will not be checked. To change this, rm %s"
-                % SKIP_WHITESPACE_CHECK_FILENAME,
+                f"*** Next commit attempt will not be checked. To change this, rm {SKIP_WHITESPACE_CHECK_FILENAME}",
                 file=sys.stderr,
             )
 

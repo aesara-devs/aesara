@@ -32,10 +32,10 @@ class MyType(Type):
         return isinstance(other, MyType) and other.thingy == self.thingy
 
     def __str__(self):
-        return "R%s" % str(self.thingy)
+        return f"R{self.thingy}"
 
     def __repr__(self):
-        return "R%s" % str(self.thingy)
+        return f"R{self.thingy}"
 
 
 def MyVariable(thingy):
@@ -78,7 +78,7 @@ class X:
         return str(leaf.type)
 
     def node_formatter(self, node, argstrings):
-        return "{}({})".format(node.op, ", ".join(argstrings))
+        return f"{node.op}({', '.join(argstrings)})"
 
     def str(self, inputs, outputs):
         return as_string(

@@ -404,8 +404,8 @@ class GraphToGPU(Optimizer):
                     ]
                 ):
                     _logger.warning(
-                        "The optimization %s returned bad dtype. Skipping it."
-                        " Write to theano-dev mailing list about this." % str(lopt)
+                        f"The optimization {lopt} returned bad dtype. Skipping it."
+                        " Write to theano-dev mailing list about this."
                     )
                     newnode = node.clone_with_new_inputs(
                         [mapping.get(i) for i in node.inputs]
@@ -451,10 +451,10 @@ class GraphToGPU(Optimizer):
 
         print(blanc, getattr(opt, "name", getattr(opt, "__name__", "")), file=stream)
 
-        print(blanc, "  time io_toposort %.3fs" % toposort_timing, file=stream)
+        print(blanc, f"  time io_toposort {toposort_timing:.3f}s", file=stream)
 
         s = sum(time_opts.values())
-        print(blanc, "Total time taken by local optimizers %.3fs " % s, file=stream)
+        print(blanc, f"Total time taken by local optimizers {s:.3f}s ", file=stream)
 
         count_opt = []
         not_used = []
@@ -473,20 +473,19 @@ class GraphToGPU(Optimizer):
             for (t, count, n_created, o) in count_opt[::-1]:
                 print(
                     blanc,
-                    "  %.3fs - %d - %d - %s" % (t, count, n_created, o),
+                    f"  {t:.3f}s - {int(count)} - {int(n_created)} - {o}",
                     file=stream,
                 )
             print(
                 blanc,
-                "  %.3fs - in %d optimization that were not used (display only those with a runtime > 0)"
-                % (not_used_time, len(not_used)),
+                f"  {not_used_time:.3f}s - in {len(not_used)} optimization that were not used (display only those with a runtime > 0)",
                 file=stream,
             )
             not_used.sort(key=lambda nu: (nu[0], str(nu[1])))
             for (t, o) in not_used[::-1]:
                 if t > 0:
                     # Skip opt that have 0 times, they probably wasn't even tried.
-                    print(blanc + "  ", "  {:.3f}s - {}".format(t, o), file=stream)
+                    print(blanc + "  ", f"  {t:.3f}s - {o}", file=stream)
             print(file=stream)
 
     @staticmethod
@@ -521,7 +520,7 @@ class GraphToGPU(Optimizer):
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
         print(
-            "%s%s (%i)" % ((" " * level), self.__class__.__name__, id(self)),
+            f"{' ' * level}{self.__class__.__name__} ({id(self)})",
             file=stream,
         )
         if depth != 0:
@@ -755,8 +754,7 @@ def local_gpua_elemwise(op, context_name, inputs, outputs):
         scal_op = convert[scal_op.__class__]
         if have_opencl:
             _logger.warning(
-                'Function "%s" is not supported with OpenCL. Use "device=cuda" instead.'
-                % scal_op
+                f'Function "{scal_op}" is not supported with OpenCL. Use "device=cuda" instead.'
             )
         if not have_cuda:
             return None
@@ -2535,11 +2533,9 @@ def local_assert_no_cpu_op(node):
     ):
 
         if config.assert_no_cpu_op == "warn":
-            _logger.warning(
-                ("CPU Op %s is detected in the computation " "graph") % node
-            )
+            _logger.warning(f"CPU Op {node} is detected in the computation graph")
         elif config.assert_no_cpu_op == "raise":
-            raise AssertionError("The Op %s is on CPU." % node)
+            raise AssertionError(f"The Op {node} is on CPU.")
         elif config.assert_no_cpu_op == "pdb":
             pdb.set_trace()
 

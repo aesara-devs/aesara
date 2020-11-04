@@ -25,7 +25,7 @@ class Raise(gof.Op):
         self.exc = exc
 
     def __str__(self):
-        return "Raise{{{}({})}}".format(self.exc, self.msg)
+        return f"Raise{{{self.exc}({self.msg})}}"
 
     def make_node(self, x):
         return gof.Apply(self, [x], [x.type()])

@@ -28,13 +28,10 @@ class XlogX(scalar.UnaryScalarOp):
         (x,) = inputs
         (z,) = outputs
         if node.inputs[0].type in [scalar.float32, scalar.float64]:
-            return (
-                """%(z)s =
-                %(x)s == 0.0
+            return f"""{z} =
+                {x} == 0.0
                 ? 0.0
-                : %(x)s * log(%(x)s);"""
-                % locals()
-            )
+                : {x} * log({x});"""
         raise NotImplementedError("only floatingpoint is implemented")
 
 
@@ -66,13 +63,10 @@ class XlogY0(scalar.BinaryScalarOp):
         x, y = inputs
         (z,) = outputs
         if node.inputs[0].type in [scalar.float32, scalar.float64]:
-            return (
-                """%(z)s =
-                %(x)s == 0.0
+            return f"""{z} =
+                {x} == 0.0
                 ? 0.0
-                : %(x)s * log(%(y)s);"""
-                % locals()
-            )
+                : {x} * log({y});"""
         raise NotImplementedError("only floatingpoint is implemented")
 
 
