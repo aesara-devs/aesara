@@ -425,7 +425,9 @@ int {sname}(unsigned int _nd, size_t *_n, size_t _shared, {args}) {{
         return kvars + "\n" + wrappers
 
     def _generate_zeros(self, k):
-        return f"""memset(&{dict(v=k.objvar)['v']}, 0, sizeof({dict(v=k.objvar)['v']}));"""
+        return (
+            f"""memset(&{dict(v=k.objvar)['v']}, 0, sizeof({dict(v=k.objvar)['v']}));"""
+        )
 
     def _generate_kernel_init(self, k, fail, ctx):
         return """{

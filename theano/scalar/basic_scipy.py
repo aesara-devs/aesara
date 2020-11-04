@@ -412,10 +412,8 @@ class Psi(UnaryScalarOp):
         (x,) = inp
         (z,) = out
         if node.inputs[0].type in float_types:
-            return (
-                f"""{locals()['z']} =
+            return f"""{locals()['z']} =
                 _psi({locals()['x']});"""
-            )
         raise NotImplementedError("only floating point is implemented")
 
 
@@ -501,10 +499,8 @@ class TriGamma(UnaryScalarOp):
         (x,) = inp
         (z,) = out
         if node.inputs[0].type in float_types:
-            return (
-                f"""{locals()['z']} =
+            return f"""{locals()['z']} =
                 _tri_gamma({locals()['x']});"""
-            )
         raise NotImplementedError("only floating point is implemented")
 
 
@@ -787,10 +783,8 @@ class J1(UnaryScalarOp):
         (x,) = inp
         (z,) = out
         if node.inputs[0].type in float_types:
-            return (
-                f"""{locals()['z']} =
+            return f"""{locals()['z']} =
                 j1({locals()['x']});"""
-            )
         raise NotImplementedError("only floating point is implemented")
 
 
@@ -823,10 +817,8 @@ class J0(UnaryScalarOp):
         (x,) = inp
         (z,) = out
         if node.inputs[0].type in float_types:
-            return (
-                f"""{locals()['z']} =
+            return f"""{locals()['z']} =
                 j0({locals()['x']});"""
-            )
         raise NotImplementedError("only floating point is implemented")
 
 

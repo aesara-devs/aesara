@@ -5112,9 +5112,7 @@ class Reshape(Op):
         try:
             out[0] = np.reshape(x, shp)
         except Exception:
-            raise ValueError(
-                f"Cannot reshape input of shape {x.shape} to shape {shp}"
-            )
+            raise ValueError(f"Cannot reshape input of shape {x.shape} to shape {shp}")
 
     def connection_pattern(self, node):
         return [[True], [False]]

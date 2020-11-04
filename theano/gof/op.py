@@ -1097,9 +1097,7 @@ def get_test_values(*args):
             rval.append(get_test_value(arg))
         except TestValueError:
             if hasattr(arg, "name") and arg.name is not None:
-                missing_test_message(
-                    f"Argument {i} ('{arg.name}') has no test value"
-                )
+                missing_test_message(f"Argument {i} ('{arg.name}') has no test value")
             else:
                 missing_test_message(f"Argument {i} has no test value")
             return []
@@ -1511,9 +1509,7 @@ class COp(Op):
                 undef_macros.append(undef_template % macro_name)
 
         # Generate a macro to mark code as being apply-specific
-        define_macros.append(
-            define_template % ("APPLY_SPECIFIC(str)", f"str##_{name}")
-        )
+        define_macros.append(define_template % ("APPLY_SPECIFIC(str)", f"str##_{name}"))
         undef_macros.append(undef_template % "APPLY_SPECIFIC")
 
         for n, v in self.__get_op_params():

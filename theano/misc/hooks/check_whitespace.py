@@ -281,9 +281,7 @@ def main(argv=None):
                         if was_clean or not args.incremental_with_patch:
                             block_commit = True
                         diffs.append(indentation_diff)
-                        print(
-                            f"{filename} is not correctly indented", file=sys.stderr
-                        )
+                        print(f"{filename} is not correctly indented", file=sys.stderr)
 
     if len(diffs) > 0:
         diffs_filename = ".hg/indentation_fixes.patch"

@@ -139,11 +139,9 @@ class SearchsortedOp(Op):
         )
 
     def c_support_code_struct(self, node, name):
-        return (
-            f"""
+        return f"""
             int right_{locals()['name']};
         """
-        )
 
     def c_init_code_struct(self, node, name, sub):
         side = sub["params"]

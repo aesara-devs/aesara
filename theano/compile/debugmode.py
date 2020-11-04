@@ -344,8 +344,7 @@ class InvalidValueError(DebugModeError):
         hint = self.hint
         specific_hint = self.specific_hint
         context = debugprint(r, prefix="  ", depth=12, file=StringIO()).getvalue()
-        return (
-            f"""InvalidValueError
+        return f"""InvalidValueError
         type(variable) = {locals()['type_r']}
         variable       = {locals()['r']}
         type(value)    = {locals()['type_v']}
@@ -361,7 +360,6 @@ class InvalidValueError(DebugModeError):
         context        = ...
 {locals()['context']}
         """
-        )
 
 
 ########################

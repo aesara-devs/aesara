@@ -391,9 +391,7 @@ def scan(
 
     # Check n_steps is an int
     if hasattr(n_steps, "dtype") and str(n_steps.dtype) not in tt.integer_dtypes:
-        raise ValueError(
-            f" n_steps must be an int. dtype provided is {n_steps.dtype}"
-        )
+        raise ValueError(f" n_steps must be an int. dtype provided is {n_steps.dtype}")
 
     # compute number of sequences and number of outputs
     n_seqs = len(seqs)

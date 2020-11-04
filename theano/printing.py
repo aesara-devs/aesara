@@ -627,9 +627,7 @@ class PPrinter:
             for output in node.outputs:
                 if output in inv_updates:
                     name = str(inv_updates[output])
-                    strings.append(
-                        (i + 1000, f"{name} <- {pprinter.process(output)}")
-                    )
+                    strings.append((i + 1000, f"{name} <- {pprinter.process(output)}"))
                     i += 1
                 if output.name is not None or output in outputs:
                     if output.name is None:
@@ -647,9 +645,7 @@ class PPrinter:
                     if len(outputs) == 1 and outputs[0] is output:
                         strings.append((idx, f"return {pprinter.process(output)}"))
                     else:
-                        strings.append(
-                            (idx, f"{name} = {pprinter.process(output)}")
-                        )
+                        strings.append((idx, f"{name} = {pprinter.process(output)}"))
                     i += 1
         strings.sort()
         return "\n".join(s[1] for s in strings)

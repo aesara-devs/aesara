@@ -11,11 +11,9 @@ def make_declare(loop_orders, dtypes, sub):
         var = sub["lv%i" % i]  # input name corresponding to ith loop variable
         # we declare an iteration variable
         # and an integer for the number of dimensions
-        decl += (
-            f"""
+        decl += f"""
         {locals()['dtype']}* {locals()['var']}_iter;
         """
-        )
         for j, value in enumerate(loop_order):
             if value != "x":
                 # If the dimension is not broadcasted, we declare
@@ -330,11 +328,9 @@ def make_reordered_loop(
             )
         else:
             # Stride is 0 when dimension is broadcastable
-            order_loops += (
-                f"""
+            order_loops += f"""
             {locals()['ovar']}_loops_it->first = 0;
             """
-            )
 
         order_loops += (
             """
@@ -381,11 +377,9 @@ def make_reordered_loop(
 
     # Sort totals to match the new order that was computed by sorting
     # the loop vector. One integer variable per loop is declared.
-    declare_totals += (
-        f"""
+    declare_totals += f"""
     {locals()['ovar']}_loops_it = {locals()['ovar']}_loops.begin();
     """
-    )
 
     for i in range(nnested):
         declare_totals += (
@@ -440,10 +434,8 @@ def make_reordered_loop(
 
     for i in range(nvars):
         var = sub["lv%i" % i]
-        declare_strides += (
-            f"""
+        declare_strides += f"""
         {locals()['ovar']}_loops_rit = {locals()['ovar']}_loops.rbegin();"""
-        )
         for j in reversed(range(nnested)):
             declare_strides += (
                 """
@@ -456,14 +448,14 @@ def make_reordered_loop(
     declare_iter = ""
     for i, dtype in enumerate(dtypes):
         var = sub["lv%i" % i]
-        declare_iter += (
-            f"{locals()['var']}_iter = ({locals()['dtype']}*)(PyArray_DATA({locals()['var']}));\n"
-        )
+        declare_iter += f"{locals()['var']}_iter = ({locals()['dtype']}*)(PyArray_DATA({locals()['var']}));\n"
 
     pointer_update = ""
     for j, dtype in enumerate(dtypes):
         var = sub["lv%i" % j]
-        pointer_update += f"{locals()['dtype']} &{locals()['var']}_i = * ( {locals()['var']}_iter"
+        pointer_update += (
+            f"{locals()['dtype']} &{locals()['var']}_i = * ( {locals()['var']}_iter"
+        )
         tot_jump = ""
         for i in reversed(range(nnested)):
             iterv = "ITER_%i" % i

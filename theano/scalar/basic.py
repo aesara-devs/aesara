@@ -475,11 +475,9 @@ class Scalar(Type):
         )
 
     def c_init(self, name, sub):
-        return (
-            f"""
+        return f"""
         {locals()['name']} = 0;
         """
-        )
 
     def c_extract(self, name, sub, check_input=True):
         if self.dtype == "float16":

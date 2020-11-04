@@ -106,9 +106,7 @@ class TensorType(Type):
             # If any of the two conditions above was not met,
             # we raise a meaningful TypeError.
             if not (type(data) is np.ndarray):
-                raise TypeError(
-                    f"{self} expected a ndarray object.", data, type(data)
-                )
+                raise TypeError(f"{self} expected a ndarray object.", data, type(data))
             if data.dtype != self.numpy_dtype:
                 raise TypeError(
                     ("%s expected a ndarray object with " "dtype = %s (got %s).")

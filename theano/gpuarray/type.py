@@ -247,9 +247,7 @@ class GpuArrayType(Type):
             pass
         elif strict:
             if not isinstance(data, gpuarray.GpuArray):
-                raise TypeError(
-                    f"{self} expected a GpuArray object.", data, type(data)
-                )
+                raise TypeError(f"{self} expected a GpuArray object.", data, type(data))
             if self.typecode != data.typecode:
                 raise TypeError(
                     "%s expected typecode %d (dtype %s), "
@@ -466,11 +464,9 @@ class GpuArrayType(Type):
         return pygpu.gpuarray.dtype_to_ctype(self.dtype)
 
     def c_declare(self, name, sub, check_input=True):
-        return (
-            f"""
+        return f"""
         PyGpuArrayObject *{locals()['name']};
         """
-        )
 
     def c_init(self, name, sub):
         return f"{name} = NULL;"
@@ -940,7 +936,9 @@ Py_INCREF(%(name)s);
         )
 
     def c_cleanup(self, name, sub):
-        return f"Py_XDECREF({dict(name=name)['name']}); {dict(name=name)['name']} = NULL;"
+        return (
+            f"Py_XDECREF({dict(name=name)['name']}); {dict(name=name)['name']} = NULL;"
+        )
 
     # c_sync is intentionally not declared to prevent normal usage
 

@@ -892,14 +892,12 @@ class Subtensor(Op):
         (z,) = outputs
 
         if view_ndim:
-            rval = (
-                f"""
+            rval = f"""
         // Argument of the view
         npy_intp xview_dims[{locals()['view_ndim']}];
         npy_intp xview_strides[{locals()['view_ndim']}];
 
         """
-            )
         else:
             rval = """
         // Argument of the view
@@ -1096,15 +1094,13 @@ class Subtensor(Op):
             % locals()
         )
 
-        finish_view = (
-            f"""
+        finish_view = f"""
         Py_XDECREF({locals()['z']});
         Py_INCREF(py_{locals()['x']});
         PyArray_SetBaseObject(xview, py_{locals()['x']});
         assert(py_{locals()['x']} == (PyObject*){locals()['x']});
         {locals()['z']} = xview;
         """
-        )
 
         return decl + checkNDim + "{" + get_xview + build_view + finish_view + "}"
 
@@ -1698,10 +1694,8 @@ class IncSubtensor(Op):
         # max_depth: we pass 0 to have this parameter ignored
         # requirements: here we pass NPY_ARRAY_ENSURECOPY to force a copy
         # context: this is almost always NULL, I'm not sure what it's used for
-        return (
-            f"""(PyArrayObject*)PyArray_FromAny(py_{locals()['x']}, NULL, 0, 0,
+        return f"""(PyArrayObject*)PyArray_FromAny(py_{locals()['x']}, NULL, 0, 0,
                 NPY_ARRAY_ENSURECOPY, NULL)"""
-        )
 
     def make_view_array(self, x, view_ndim):
         """
@@ -2146,10 +2140,8 @@ class AdvancedIncSubtensor1(Op):
         # max_depth: we pass 0 to have this parameter ignored
         # requirements: here we pass NPY_ARRAY_ENSURECOPY to force a copy
         # context: this is almost always NULL, I'm not sure what it's used for
-        return (
-            f"""(PyArrayObject*)PyArray_FromAny(py_{locals()['x']}, NULL, 0, 0,
+        return f"""(PyArrayObject*)PyArray_FromAny(py_{locals()['x']}, NULL, 0, 0,
                 NPY_ARRAY_ENSURECOPY, NULL)"""
-        )
 
     def c_support_code(self):
         return inc_code()

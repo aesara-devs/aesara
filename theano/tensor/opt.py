@@ -2656,14 +2656,12 @@ class Assert(Op):
                 "%(fail)s}" % locals()
             )
         check = "\n".join(check)
-        return (
-            f"""
+        return f"""
         {locals()['check']}
         Py_XDECREF({locals()['out']});
         {locals()['out']} = {locals()['value']};
         Py_INCREF({locals()['value']});
         """
-        )
 
     def c_code_cache_version(self):
         return (3, 0)
@@ -3960,9 +3958,7 @@ def local_useless_inc_subtensor_alloc(node):
             if xi.ndim > y.ndim:
                 y = tt.shape_padleft(y, xi.ndim - y.ndim)
                 if y not in shape_of:
-                    shape_feature.on_import(
-                        node.fgraph, y.owner, f"{reason}: add `y`"
-                    )
+                    shape_feature.on_import(node.fgraph, y.owner, f"{reason}: add `y`")
 
             # Build `z_broad` explicitly to include extra implicit dimensions.
             z_broad = (True,) * (xi.ndim - z.ndim) + z.broadcastable

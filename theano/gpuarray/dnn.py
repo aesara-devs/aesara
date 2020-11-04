@@ -153,21 +153,13 @@ if ((err = cudnnCreate(&_handle)) != CUDNN_STATUS_SUCCESS) {
 
     path_wrapper = '"' if os.name == "nt" else ""
     params = ["-l", "cudnn"]
-    params.extend(
-        [f"-I{path_wrapper}{gpuarray_helper_inc_dir()}{path_wrapper}"]
-    )
+    params.extend([f"-I{path_wrapper}{gpuarray_helper_inc_dir()}{path_wrapper}"])
     if config.dnn.include_path:
-        params.extend(
-            [f"-I{path_wrapper}{config.dnn.include_path}{path_wrapper}"]
-        )
+        params.extend([f"-I{path_wrapper}{config.dnn.include_path}{path_wrapper}"])
     if config.cuda.include_path:
-        params.extend(
-            [f"-I{path_wrapper}{config.cuda.include_path}{path_wrapper}"]
-        )
+        params.extend([f"-I{path_wrapper}{config.cuda.include_path}{path_wrapper}"])
     if config.dnn.library_path:
-        params.extend(
-            [f"-L{path_wrapper}{config.dnn.library_path}{path_wrapper}"]
-        )
+        params.extend([f"-L{path_wrapper}{config.dnn.library_path}{path_wrapper}"])
     # Do not run here the test program. It would run on the
     # default gpu, not the one selected by the user. If mixed
     # GPU are installed or if the GPUs are configured in
@@ -2970,9 +2962,7 @@ class GpuDnnRNNOp(DnnBase):
         elif direction_mode == "unidirectional":
             self.num_dirs = 1
         else:
-            raise ValueError(
-                f"direction_mode is invalid (got {direction_mode})"
-            )
+            raise ValueError(f"direction_mode is invalid (got {direction_mode})")
 
     def dnn_context(self, node):
         return node.outputs[1].type.context_name

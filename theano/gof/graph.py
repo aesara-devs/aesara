@@ -169,9 +169,7 @@ class Apply(Node):
             if len(self.outputs) == 1:
                 return self.outputs[0]
             else:
-                raise ValueError(
-                    f"{self.op}.default_output should be an output index."
-                )
+                raise ValueError(f"{self.op}.default_output should be an output index.")
         elif not isinstance(do, int):
             raise ValueError(f"{self.op}.default_output should be an int or long")
         elif do < 0 or do >= len(self.outputs):
@@ -415,9 +413,7 @@ class Variable(Node):
         """
         if not hasattr(self.tag, "test_value"):
             detailed_err_msg = get_variable_trace_string(self)
-            raise TestValueError(
-                f"{self} has no test value {detailed_err_msg}"
-            )
+            raise TestValueError(f"{self} has no test value {detailed_err_msg}")
 
         return self.tag.test_value
 

@@ -699,9 +699,7 @@ class Rebroadcast(Op):
         self.axis = OrderedDict(items)
         for axis, broad in self.axis.items():
             if not isinstance(axis, (np.integer, int)):
-                raise TypeError(
-                    f"Rebroadcast needs integer axes. Got {axis}"
-                )
+                raise TypeError(f"Rebroadcast needs integer axes. Got {axis}")
 
             if not isinstance(broad, (np.bool_, bool)):
                 raise TypeError(

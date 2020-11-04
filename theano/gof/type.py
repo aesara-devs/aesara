@@ -571,33 +571,25 @@ class Generic(SingletonType):
         return True
 
     def c_declare(self, name, sub, check_input=True):
-        return (
-            f"""
+        return f"""
         PyObject* {locals()['name']};
         """
-        )
 
     def c_init(self, name, sub):
-        return (
-            f"""
+        return f"""
         {locals()['name']} = NULL;
         """
-        )
 
     def c_extract(self, name, sub, check_input=True):
-        return (
-            f"""
+        return f"""
         Py_INCREF(py_{locals()['name']});
         {locals()['name']} = py_{locals()['name']};
         """
-        )
 
     def c_cleanup(self, name, sub):
-        return (
-            f"""
+        return f"""
         Py_XDECREF({locals()['name']});
         """
-        )
 
     def c_sync(self, name, sub):
         return (

@@ -2499,9 +2499,7 @@ class BaseAbstractConv(Op):
                         inp[row, col] * kern[row, col, ::-1, ::-1]
                     )
         else:
-            raise ValueError(
-                f"unshared2d: invalid value '{direction}' for 'direction'"
-            )
+            raise ValueError(f"unshared2d: invalid value '{direction}' for 'direction'")
         return out
 
 

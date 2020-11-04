@@ -363,11 +363,9 @@ def get_c_declare(r, name, sub):
         c_declare = r.type.c_declare(name, sub, True)
     else:
         c_declare = r.type.c_declare(name, sub, False)
-    pre = (
-        f"""
+    pre = f"""
     PyObject* py_{locals()['name']};
     """
-    )
     return pre + c_declare
 
 

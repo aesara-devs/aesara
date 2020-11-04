@@ -461,9 +461,7 @@ class Validator(Feature):
                 if verbose:
                     r = uf.f_locals.get("r", "")
                     reason = uf_info.function
-                    print(
-                        f"validate failed on node {r}.\n Reason: {reason}, {e}"
-                    )
+                    print(f"validate failed on node {r}.\n Reason: {reason}, {e}")
                 raise
         t1 = time.time()
         if fgraph.profile:
@@ -574,9 +572,7 @@ class ReplaceValidate(History, Validator):
         except Exception as e:
             fgraph.revert(chk)
             if verbose:
-                print(
-                    f"validate failed on node {r}.\n Reason: {reason}, {e}"
-                )
+                print(f"validate failed on node {r}.\n Reason: {reason}, {e}")
             raise
         if config.scan.debug:
             scans2 = [

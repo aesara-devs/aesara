@@ -23,14 +23,12 @@ class TDouble(Type):
         return f"double {locals()['name']}; void* {locals()['name']}_bad_thing;"
 
     def c_init(self, name, sub):
-        return (
-            f"""
+        return f"""
         {locals()['name']} = 0;
         {locals()['name']}_bad_thing = malloc(100000);
         //printf("Initializing {locals()['name']}\
 ");
         """
-        )
 
     def c_literal(self, data):
         return str(data)
@@ -49,8 +47,7 @@ class TDouble(Type):
         )
 
     def c_sync(self, name, sub):
-        return (
-            f"""
+        return f"""
         Py_XDECREF(py_{locals()['name']});
         py_{locals()['name']} = PyFloat_FromDouble({locals()['name']});
         if (!py_{locals()['name']})
@@ -58,17 +55,14 @@ class TDouble(Type):
         //printf("Syncing {locals()['name']}\
 ");
         """
-        )
 
     def c_cleanup(self, name, sub):
-        return (
-            f"""
+        return f"""
         //printf("Cleaning up {locals()['name']}\
 ");
         if ({locals()['name']}_bad_thing)
             free({locals()['name']}_bad_thing);
         """
-        )
 
     def c_code_cache_version(self):
         return (1,)
@@ -385,11 +379,9 @@ class AddFail(Binary):
         x, y = inp
         (z,) = out
         fail = sub["fail"]
-        return (
-            f"""{locals()['z']} = {locals()['x']} + {locals()['y']};
+        return f"""{locals()['z']} = {locals()['x']} + {locals()['y']};
             PyErr_SetString(PyExc_RuntimeError, "failing here");
             {locals()['fail']};"""
-        )
 
     def impl(self, x, y):
         return x + y

@@ -476,9 +476,7 @@ def _ldflags(ldflags_str, libs, flags, libs_dir, include_dir):
             t0, t1, t2 = t[0:3]
             assert t0 == "-"
         except Exception:
-            raise ValueError(
-                f'invalid token "{t}" in ldflags_str: "{ldflags_str}"'
-            )
+            raise ValueError(f'invalid token "{t}" in ldflags_str: "{ldflags_str}"')
         if libs_dir and t1 == "L":
             rval.append(t[2:])
         elif include_dir and t1 == "I":

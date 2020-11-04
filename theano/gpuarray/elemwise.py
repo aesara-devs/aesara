@@ -831,14 +831,14 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
             print("if(%(x)s->ga.flags & GA_C_CONTIGUOUS){" % locals(), file=sio)
             self.c_code_reduce_ccontig(sio, node, name, x, z, fail)
             print("}else{", file=sio)
-            getattr(
-                self, f"c_code_reduce_{''.join(str(i) for i in self.reduce_mask)}"
-            )(sio, node, name, x, z, fail)
+            getattr(self, f"c_code_reduce_{''.join(str(i) for i in self.reduce_mask)}")(
+                sio, node, name, x, z, fail
+            )
             print("}", file=sio)
         else:
-            getattr(
-                self, f"c_code_reduce_{''.join(str(i) for i in self.reduce_mask)}"
-            )(sio, node, name, x, z, fail)
+            getattr(self, f"c_code_reduce_{''.join(str(i) for i in self.reduce_mask)}")(
+                sio, node, name, x, z, fail
+            )
 
         # \end bracket the reduction ...
         print(

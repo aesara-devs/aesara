@@ -345,8 +345,7 @@ class GpuIncSubtensor(IncSubtensor):
             right indexing; we'll do that manually later.
 
         """
-        ret = (
-            f"""
+        ret = f"""
         size_t dims[{locals()['view_ndim']}];
         for(int i=0; i<{locals()['view_ndim']}; i++)
             dims[i] = xview_dims[i];
@@ -362,7 +361,6 @@ class GpuIncSubtensor(IncSubtensor):
                                   (PyObject *){locals()['x']},
                                   (PyObject *)&PyGpuArrayType);
         """
-        )
         return ret
 
     def get_helper_c_code_args(self):

@@ -1164,12 +1164,10 @@ second dimension
                     ]
                 ):
                     z = onames[0]
-                    contig = (
-                        f"""
+                    contig = f"""
                     // All output have the same size
                     npy_intp n = PyArray_SIZE({locals()['z']});
                     """
-                    )
                     index = ""
                     for x, var in zip(inames + onames, inputs + node.outputs):
                         if not all(var.broadcastable):
