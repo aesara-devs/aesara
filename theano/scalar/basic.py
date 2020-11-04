@@ -4151,7 +4151,7 @@ class Composite(ScalarOp):
             for output in node.outputs:
                 if output not in subd:
                     i += 1
-                    name = f"V%{i['id']}_tmp%i"
+                    name = "V%%(id)s_tmp%i" % i
                     subd[output] = name
                     _c_code += f"{output.type.dtype_specs()[1]} {name};\n"
             s = node.op.c_code(
