@@ -90,7 +90,7 @@ class SparseType(gof.Type):
             self.dtype = dtype
         else:
             raise NotImplementedError(
-                'unsupported dtype "%s" not in list' % dtype, list(self.dtype_set)
+                f'unsupported dtype "{dtype}" not in list', list(self.dtype_set)
             )
 
         assert isinstance(format, str)
@@ -98,7 +98,7 @@ class SparseType(gof.Type):
             self.format = format
         else:
             raise NotImplementedError(
-                'unsupported format "%s" not in list' % format,
+                f'unsupported format "{format}" not in list',
                 list(self.format_cls.keys()),
             )
 
@@ -110,8 +110,8 @@ class SparseType(gof.Type):
             return value
         if strict:
             raise TypeError(
-                "%s is not sparse, or not the right dtype (is %s, "
-                "expected %s)" % (value, value.dtype, self.dtype)
+                f"{value} is not sparse, or not the right dtype (is {value.dtype}, "
+                f"expected {self.dtype})"
             )
         # The input format could be converted here
         if allow_downcast:
@@ -120,7 +120,7 @@ class SparseType(gof.Type):
             sp = self.format_cls[self.format](value)
             if str(sp.dtype) != self.dtype:
                 raise NotImplementedError(
-                    "Expected {} dtype but got {}".format(self.dtype, str(sp.dtype))
+                    f"Expected {self.dtype} dtype but got {sp.dtype}"
                 )
         if sp.format != self.format:
             raise NotImplementedError()
@@ -162,10 +162,10 @@ class SparseType(gof.Type):
         return hash(self.dtype) ^ hash(self.format)
 
     def __str__(self):
-        return "Sparse[{}, {}]".format(str(self.dtype), str(self.format))
+        return f"Sparse[{self.dtype}, {self.format}]"
 
     def __repr__(self):
-        return "Sparse[{}, {}]".format(str(self.dtype), str(self.format))
+        return f"Sparse[{self.dtype}, {self.format}]"
 
     def values_eq_approx(self, a, b, eps=1e-6):
         # WARNING: equality comparison of sparse matrices is not fast or easy

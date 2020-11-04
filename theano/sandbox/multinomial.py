@@ -22,7 +22,7 @@ class MultinomialFromUniform(Op):
         self.odtype = odtype
 
     def __str__(self):
-        return "{}{{{}}}".format(self.__class__.__name__, self.odtype)
+        return f"{self.__class__.__name__}{{{self.odtype}}}"
 
     def __setstate__(self, dct):
         self.__dict__.update(dct)
@@ -67,7 +67,7 @@ class MultinomialFromUniform(Op):
             (pvals, unis, n) = ins
         (z,) = outs
         if self.odtype == "auto":
-            t = "PyArray_TYPE(%(pvals)s)" % locals()
+            t = f"PyArray_TYPE({pvals})"
         else:
             t = theano.scalar.Scalar(self.odtype).dtype_specs()[1]
             if t.startswith("theano_complex"):

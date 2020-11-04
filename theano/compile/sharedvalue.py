@@ -191,20 +191,20 @@ class SharedVariable(Variable):
         if isinstance(value, np.ndarray):
             # Array probably had an unknown dtype.
             msg = (
-                "a Numpy array with dtype: '%s'. This data type is not "
+                f"a Numpy array with dtype: '{value.dtype}'. This data type is not "
                 "currently recognized by Theano tensors: please cast "
                 "your data into a supported numeric type if you need "
-                "Theano tensor functionalities." % value.dtype
+                "Theano tensor functionalities."
             )
         else:
             msg = (
-                "an object of type: %s. Did you forget to cast it into "
-                "a Numpy array before calling theano.shared()?" % type(value)
+                f"an object of type: {type(value)}. Did you forget to cast it into "
+                "a Numpy array before calling theano.shared()?"
             )
 
         raise TypeError(
             "The generic 'SharedVariable' object is not subscriptable. "
-            "This shared variable contains %s" % msg
+            f"This shared variable contains {msg}"
         )
 
     def _value_get(self):
@@ -306,7 +306,7 @@ def shared(value, name=None, strict=False, allow_downcast=None, **kwargs):
         "No suitable SharedVariable constructor could be found."
         " Are you sure all kwargs are supported?"
         " We do not support the parameter dtype or type."
-        ' value="%s". parameters="%s"' % (value, kwargs)
+        f' value="{value}". parameters="{kwargs}"'
     )
 
 

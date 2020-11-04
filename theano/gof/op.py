@@ -65,8 +65,7 @@ def compute_test_value(node):
             # no test-value was specified, act accordingly
             if config.compute_test_value == "warn":
                 warnings.warn(
-                    "Warning, Cannot compute test value: input %i (%s) of Op %s missing default value"
-                    % (i, ins, node),
+                    f"Warning, Cannot compute test value: input {i} ({ins}) of Op {node} missing default value",
                     stacklevel=2,
                 )
                 return
@@ -74,8 +73,7 @@ def compute_test_value(node):
                 detailed_err_msg = get_variable_trace_string(ins)
 
                 raise ValueError(
-                    "Cannot compute test value: input %i (%s) of Op %s missing default value. %s"
-                    % (i, ins, node, detailed_err_msg)
+                    f"Cannot compute test value: input {i} ({ins}) of Op {node} missing default value. {detailed_err_msg}"
                 )
             elif config.compute_test_value == "ignore":
                 return
@@ -85,8 +83,7 @@ def compute_test_value(node):
                 pdb.post_mortem(sys.exc_info()[2])
             else:
                 raise ValueError(
-                    "%s is invalid for option config.compute_test_value"
-                    % config.compute_test_value
+                    f"{config.compute_test_value} is invalid for option config.compute_test_value"
                 )
 
     # All inputs have test-values; perform the `Op`'s computation
@@ -361,7 +358,7 @@ class CLinkerOp(CLinkerObject):
             The subclass does not override this method.
 
         """
-        raise MethodNotDefined("%s.c_code" % self.__class__.__name__)
+        raise MethodNotDefined(f"{self.__class__.__name__}.c_code")
 
     def c_code_cache_version_apply(self, node):
         """
@@ -422,7 +419,7 @@ class CLinkerOp(CLinkerObject):
             The subclass does not override this method.
 
         """
-        raise MethodNotDefined("%s.c_code_cleanup" % self.__class__.__name__)
+        raise MethodNotDefined(f"{self.__class__.__name__}.c_code_cleanup")
 
     def c_support_code_apply(self, node, name):
         """
@@ -824,8 +821,7 @@ class Op(object2, PureOp, CLinkerOp):
                     field for field in wrapper.fields if not hasattr(self, field)
                 )
                 raise AttributeError(
-                    "%s: missing attributes %s for ParamsType."
-                    % (type(self).__name__, not_found)
+                    f"{type(self).__name__}: missing attributes {not_found} for ParamsType."
                 )
             # ParamsType.get_params() will apply filtering to attributes.
             return self.params_type.get_params(self)
@@ -872,7 +868,7 @@ class Op(object2, PureOp, CLinkerOp):
                 # that don't implement c code. In those cases, we
                 # don't want to print a warning.
                 cl.get_dynamic_module()
-                print("Disabling C code for %s due to unsupported " "float16" % (self,))
+                print(f"Disabling C code for {self} due to unsupported float16")
                 raise NotImplementedError("float16")
         _logger.debug("Trying CLinker.make_thunk")
         outputs = cl.make_thunk(
@@ -1010,12 +1006,11 @@ class Op(object2, PureOp, CLinkerOp):
 
         if len(inputs) != len(self.itypes):
             raise ValueError(
-                "We expected %d inputs but got %d." % (len(self.itypes), len(inputs))
+                f"We expected {len(self.itypes)} inputs but got {len(inputs)}."
             )
         if not all(inp.type == it for inp, it in zip(inputs, self.itypes)):
             raise TypeError(
-                "We expected inputs of types '%s' but got types '%s' "
-                % (str(self.itypes), str([inp.type for inp in inputs]))
+                f"We expected inputs of types '{str(self.itypes)}' but got types '{str([inp.type for inp in inputs])}'"
             )
         return theano.Apply(self, inputs, [o() for o in self.otypes])
 
@@ -1097,11 +1092,9 @@ def get_test_values(*args):
             rval.append(get_test_value(arg))
         except TestValueError:
             if hasattr(arg, "name") and arg.name is not None:
-                missing_test_message(
-                    "Argument {} ('{}') has no test value".format(i, arg.name)
-                )
+                missing_test_message(f"Argument {i} ('{arg.name}') has no test value")
             else:
-                missing_test_message("Argument {} has no test value".format(i))
+                missing_test_message(f"Argument {i} has no test value")
             return []
 
     if len(rval) == 1:
@@ -1372,7 +1365,7 @@ class COp(Op):
                 if split[0].strip() != "":
                     raise ValueError(
                         "Stray code before first #section "
-                        "statement (in file %s): %s" % (func_files[i], split[0])
+                        f"statement (in file {func_files[i]}): {split[0]}"
                     )
 
                 # Separate the code into the proper sections
@@ -1380,8 +1373,7 @@ class COp(Op):
                 while n < len(split):
                     if split[n] not in self.SECTIONS:
                         raise ValueError(
-                            "Unknown section type (in file %s): %s"
-                            % (func_files[i], split[n])
+                            f"Unknown section type (in file {func_files[i]}): {split[n]}"
                         )
                     if split[n] not in self.code_sections:
                         self.code_sections[split[n]] = ""
@@ -1390,7 +1382,7 @@ class COp(Op):
 
             else:
                 raise ValueError(
-                    "No valid section marker was found in file " "%s" % func_files[i]
+                    f"No valid section marker was found in file {func_files[i]}"
                 )
 
     def __get_op_params(self):
@@ -1462,7 +1454,7 @@ class COp(Op):
         numi = getattr(self, "_cop_num_inputs", len(inp))
         while len(inp) < numi:
             inp.append("NULL")
-        out = ["&%s" % o for o in out]
+        out = [f"&{o}" for o in out]
         numo = getattr(self, "_cop_num_outputs", len(out))
         while len(out) < numo:
             out.append("NULL")
@@ -1480,8 +1472,8 @@ class COp(Op):
         if check_input:
             # Extract the various properties of the input and output variables
             variables = node.inputs + node.outputs
-            variable_names = ["INPUT_%i" % i for i in range(len(node.inputs))] + [
-                "OUTPUT_%i" % i for i in range(len(node.outputs))
+            variable_names = [f"INPUT_{i}" for i in range(len(node.inputs))] + [
+                f"OUTPUT_{i}" for i in range(len(node.outputs))
             ]
 
             # Generate dtype macros
@@ -1511,9 +1503,7 @@ class COp(Op):
                 undef_macros.append(undef_template % macro_name)
 
         # Generate a macro to mark code as being apply-specific
-        define_macros.append(
-            define_template % ("APPLY_SPECIFIC(str)", "str##_%s" % name)
-        )
+        define_macros.append(define_template % ("APPLY_SPECIFIC(str)", f"str##_{name}"))
         undef_macros.append(undef_template % "APPLY_SPECIFIC")
 
         for n, v in self.__get_op_params():
@@ -1533,10 +1523,10 @@ class COp(Op):
     def get_sub_macros(self, sub):
         define_macros = []
         undef_macros = []
-        define_macros.append("#define FAIL {}".format(self._lquote_macro(sub["fail"])))
+        define_macros.append(f"#define FAIL {self._lquote_macro(sub['fail'])}")
         undef_macros.append("#undef FAIL")
         if "params" in sub:
-            define_macros.append("#define PARAMS {}".format(sub["params"]))
+            define_macros.append(f"#define PARAMS {sub['params']}")
             undef_macros.append("#undef PARAMS")
 
         return "\n".join(define_macros), "\n".join(undef_macros)
@@ -1546,12 +1536,12 @@ class COp(Op):
         undef_macros = []
 
         for i, inp in enumerate(inputs):
-            define_macros.append("#define INPUT_%d %s" % (i, inp))
-            undef_macros.append("#undef INPUT_%d" % (i,))
+            define_macros.append(f"#define INPUT_{int(i)} {inp}")
+            undef_macros.append(f"#undef INPUT_{int(i)}")
 
         for i, out in enumerate(outputs):
-            define_macros.append("#define OUTPUT_%d %s" % (i, inp))
-            undef_macros.append("#undef OUTPUT_%d" % (i,))
+            define_macros.append(f"#define OUTPUT_{int(i)} {inp}")
+            undef_macros.append(f"#undef OUTPUT_{int(i)}")
 
     def c_init_code_struct(self, node, name, sub):
         """
@@ -1582,7 +1572,7 @@ class COp(Op):
 
             params = ""
             if "params" in sub:
-                params = ", {}".format(sub["params"])
+                params = f", {sub['params']}"
 
             # Generate the C code
             return """

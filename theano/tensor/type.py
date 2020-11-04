@@ -130,13 +130,12 @@ class TensorType(Type):
                         data = theano._asarray(data, dtype=self.dtype)
                     if up_dtype != self.dtype:
                         err_msg = (
-                            "%s cannot store a value of dtype %s without "
+                            f"{self} cannot store a value of dtype {data.dtype} without "
                             "risking loss of precision. If you do not mind "
                             "this loss, you can: "
-                            "1) explicitly cast your data to %s, or "
+                            f"1) explicitly cast your data to {self.dtype}, or "
                             '2) set "allow_input_downcast=True" when calling '
-                            '"function". Value: "%s"'
-                            % (self, data.dtype, self.dtype, repr(data))
+                            f'"function". Value: "{repr(data)}"'
                         )
                         raise TypeError(err_msg)
                 elif (
@@ -165,20 +164,20 @@ class TensorType(Type):
                             str_data = str_data[:75] + "(...)"
 
                         err_msg = (
-                            "%s cannot store accurately value %s, "
-                            "it would be represented as %s. "
+                            f"{self} cannot store accurately value {data}, "
+                            f"it would be represented as {converted_data}. "
                             "If you do not mind this precision loss, you can: "
                             "1) explicitly convert your data to a numpy array "
-                            "of dtype %s, or "
+                            f"of dtype {self.dtype}, or "
                             '2) set "allow_input_downcast=True" when calling '
-                            '"function".' % (self, data, converted_data, self.dtype)
+                            '"function".'
                         )
                         raise TypeError(err_msg)
 
         if self.ndim != data.ndim:
             raise TypeError(
-                "Wrong number of dimensions: expected %s,"
-                " got %s with shape %s." % (self.ndim, data.ndim, data.shape)
+                f"Wrong number of dimensions: expected {self.ndim},"
+                f" got {data.ndim} with shape {data.shape}."
             )
         if not data.flags.aligned:
             try:
@@ -237,10 +236,9 @@ class TensorType(Type):
                 return other2
 
         raise TypeError(
-            "Cannot convert Type %(othertype)s "
-            "(of Variable %(other)s) into Type %(self)s. "
-            "You can try to manually convert %(other)s into a %(self)s."
-            % dict(othertype=other.type, other=other, self=self)
+            f"Cannot convert Type {other.type} "
+            f"(of Variable {other}) into Type {self}. "
+            f"You can try to manually convert {other} into a {self}."
         )
 
     def value_validity_msg(self, a):
@@ -279,9 +277,7 @@ class TensorType(Type):
             }[self.dtype]
         except KeyError:
             raise TypeError(
-                "Unsupported dtype for {}: {}".format(
-                    self.__class__.__name__, self.dtype
-                )
+                f"Unsupported dtype for {self.__class__.__name__}: {self.dtype}"
             )
 
     def to_scalar_type(self):
@@ -388,8 +384,8 @@ class TensorType(Type):
                 if any(b):
                     bcast = str(b)
                 else:
-                    bcast = "%iD" % len(b)
-            return "TensorType({}, {})".format(self.dtype, bcast)
+                    bcast = f"{len(b)}D"
+            return f"TensorType({self.dtype}, {bcast})"
 
     def __repr__(self):
         return str(self)
@@ -694,9 +690,7 @@ def values_eq_approx(
                 # There are no missing values in a, thus this is not the
                 # reason why numpy.allclose(a, b) returned False.
                 _logger.info(
-                    "numpy allclose failed for abs_err %f and rel_err %f",
-                    np.max(abs(a - b)),
-                    np.max(abs(a - b) / (abs(a) + abs(b))),
+                    f"numpy allclose failed for abs_err {np.max(abs(a - b))} and rel_err {np.max(abs(a - b) / (abs(a) + abs(b)))}"
                 )
                 return False
             # The following line is what numpy.allclose bases its decision

@@ -1409,7 +1409,7 @@ class TestCast:
             # Casts from foo to foo
             [
                 (
-                    "{}_{}".format(rand_of_dtype((2,), dtype), dtype),
+                    f"{rand_of_dtype((2,), dtype)}_{dtype}",
                     (rand_of_dtype((2,), dtype), dtype),
                 )
                 for dtype in ALL_DTYPES
@@ -5493,10 +5493,10 @@ class TestArithmeticCast:
                             ):
 
                                 theano_args = list(
-                                    map(eval, ["theano_%s" % c for c in combo])
+                                    map(eval, [f"theano_{c}" for c in combo])
                                 )
                                 numpy_args = list(
-                                    map(eval, ["numpy_%s" % c for c in combo])
+                                    map(eval, [f"numpy_{c}" for c in combo])
                                 )
                                 try:
                                     theano_dtype = op(

@@ -76,15 +76,14 @@ class SymbolicInput:
             self.name = name
 
         if self.name is not None and not isinstance(self.name, str):
-            raise TypeError("name must be a string! (got: %s)" % self.name)
+            raise TypeError(f"name must be a string! (got: {self.name})")
         self.update = update
         if update is not None:
             if not variable.type == update.type:
                 raise TypeError(
-                    "Variable '%s' has type %s but an update of "
-                    "type %s. The type of the update should be "
+                    f"Variable '{variable}' has type {variable.type} but an update of "
+                    f"type {update.type}. The type of the update should be "
                     "the same as the type of the variable"
-                    % (variable, variable.type, update.type)
                 )
 
         if mutable is not None:
@@ -98,9 +97,9 @@ class SymbolicInput:
 
     def __str__(self):
         if self.update:
-            return "In({} -> {})".format(self.variable, self.update)
+            return f"In({self.variable} -> {self.update})"
         else:
-            return "In(%s)" % self.variable
+            return f"In({self.variable})"
 
     def __repr__(self):
         return str(self)
@@ -199,13 +198,11 @@ class In(SymbolicInput):
         # aliased to the input. Thus mutable=True should require borrow=True.
         if mutable and not self.borrow:
             raise AssertionError(
-                "Symbolic input for variable %s (name=%s) has "
+                f"Symbolic input for variable {variable} (name={name}) has "
                 "flags mutable=True, borrow=False. This combination is "
                 "incompatible since mutable=True implies that the "
                 "input variable may be both aliased (borrow=True) and "
                 "overwritten.",
-                variable,
-                name,
             )
 
         if implicit is None:
@@ -248,10 +245,10 @@ class SymbolicOutput:
         self.borrow = borrow
 
     def __str__(self):
-        return "Out({},{})".format(self.variable, self.borrow)
+        return f"Out({self.variable},{self.borrow})"
 
     def __repr__(self):
-        return "Out({},{})".format(self.variable, self.borrow)
+        return f"Out({self.variable},{self.borrow})"
 
 
 Out = SymbolicOutput

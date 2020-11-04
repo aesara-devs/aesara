@@ -104,7 +104,7 @@ class PersistentNdarrayID:
 
     def _resolve_name(self, obj):
         """Determine the name the object should be saved under."""
-        name = "array_{}".format(self.count)
+        name = f"array_{self.count}"
         self.count += 1
         return name
 
@@ -117,7 +117,7 @@ class PersistentNdarrayID:
 
                 name = self._resolve_name(obj)
                 zipadd(write_array, self.zip_file, name)
-                self.seen[id(obj)] = "ndarray.{}".format(name)
+                self.seen[id(obj)] = f"ndarray.{name}"
             return self.seen[id(obj)]
 
 
@@ -139,7 +139,7 @@ class PersistentGpuArrayID(PersistentNdarrayID):
 
                 name = self._resolve_name(obj)
                 zipadd(write_array, self.zip_file, name)
-                self.seen[id(obj)] = "gpuarray.{}".format(name)
+                self.seen[id(obj)] = f"gpuarray.{name}"
             return self.seen[id(obj)]
         return super().__call__(obj)
 
@@ -183,10 +183,9 @@ class PersistentSharedVariableID(PersistentGpuArrayID):
             if count:
                 if not self.allow_duplicates:
                     raise ValueError(
-                        "multiple shared variables with the name "
-                        "`{}` found".format(name)
+                        f"multiple shared variables with the name `{name}` found"
                     )
-                name = "{}_{}".format(name, count + 1)
+                name = f"{name}_{count + 1}"
             return name
         return super()._resolve_name(obj)
 
@@ -197,7 +196,7 @@ class PersistentSharedVariableID(PersistentGpuArrayID):
                     ValueError("can't pickle shared variable with name `pkl`")
                 self.ndarray_names[id(obj.container.storage[0])] = obj.name
             elif not self.allow_unnamed:
-                raise ValueError("unnamed shared variable, {}".format(obj))
+                raise ValueError(f"unnamed shared variable, {obj}")
         return super().__call__(obj)
 
 

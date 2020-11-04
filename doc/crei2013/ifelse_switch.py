@@ -27,9 +27,9 @@ n_times = 10
 tic = time.clock()
 for i in range(n_times):
     f_switch(val1, val2, big_mat1, big_mat2)
-print('time spent evaluating both values %f sec' % (time.clock() - tic))
+print(f'time spent evaluating both values {time.clock() - tic:f} sec')
 
 tic = time.clock()
 for i in range(n_times):
     f_lazyifelse(val1, val2, big_mat1, big_mat2)
-print('time spent evaluating one value %f sec' % (time.clock() - tic))
+print(f'time spent evaluating one value {time.clock() - tic:f} sec')

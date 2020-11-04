@@ -82,8 +82,8 @@ def _atexit_print_fn():
             # Make a global profile
             cum = copy.copy(to_sum[0])
             msg = (
-                "Sum of all(%d) printed profiles at exit excluding Scan op"
-                " profile." % len(to_sum)
+                f"Sum of all({len(to_sum)}) printed profiles at exit excluding Scan op"
+                " profile."
             )
             cum.message = msg
             for ps in to_sum[1:]:
@@ -157,16 +157,12 @@ def print_global_stats():
 
     print("=" * 50, file=destination_file)
     print(
-        "Global stats: ",
-        "Time elasped since Theano import = %6.3fs, "
-        "Time spent in Theano functions = %6.3fs, "
-        "Time spent compiling Theano functions: "
-        " optimzation = %6.3fs, linker = %6.3fs "
-        % (
-            time.time() - theano_imported_time,
-            total_fct_exec_time,
-            total_graph_opt_time,
-            total_time_linker,
+        (
+            "Global stats: ",
+            f"Time elasped since Theano import = {time.time() - theano_imported_time:6.3f}s, "
+            f"Time spent in Theano functions = {total_fct_exec_time:6.3f}s, "
+            "Time spent compiling Theano functions: "
+            f" optimization = {total_graph_opt_time:6.3f}s, linker = {total_time_linker:6.3f}s ",
         ),
         file=destination_file,
     )
@@ -752,8 +748,8 @@ class ProfileStats:
                     [self.variable_shape[var] for var in a.inputs],
                     [self.variable_shape[var] for var in a.outputs],
                 )
-                flops = "%8.1f" % (fl / 1024.0 / 1024)
-                flops_s = "%10.1f" % (fl / 1024.0 / 1024 / 1024 / t)
+                flops = f"{fl / 1024.0 / 1024:8.1f}"
+                flops_s = f"{fl / 1024.0 / 1024 / 1024 / t:10.1f}"
             else:
                 flops = "        "
                 flops_s = "          "
@@ -779,11 +775,10 @@ class ProfileStats:
                 st = self.variable_strides.get(var, "no strides")
                 off = self.variable_offset.get(var, "")
                 if off != "":
-                    off = ", offset=%s" % off
+                    off = f", offset={off}"
                 dtype = getattr(var, "dtype", "no dtype")
                 print(
-                    "    input %d: dtype=%s, shape=%s, strides=%s%s"
-                    % (idx, dtype, sh, st, off),
+                    f"    input {int(idx)}: dtype={dtype}, shape={sh}, strides={st}{off}",
                     file=file,
                 )
             for idx, var in enumerate(a.outputs):
@@ -791,11 +786,10 @@ class ProfileStats:
                 st = self.variable_strides.get(var, "no strides")
                 off = self.variable_offset.get(var, "")
                 if off != "":
-                    off = ", offset=%s" % off
+                    off = f", offset={off}"
                 dtype = getattr(var, "dtype", "no dtype")
                 print(
-                    "    output %d: dtype=%s, shape=%s, strides=%s%s"
-                    % (idx, dtype, sh, st, off),
+                    f"    output {int(idx)}: dtype={dtype}, shape={sh}, strides={st}{off}",
                     file=file,
                 )
             # Same as before, this I've sacrificied some information making
@@ -815,43 +809,42 @@ class ProfileStats:
     def summary_function(self, file):
         print("Function profiling", file=file)
         print("==================", file=file)
-        print("  Message: %s" % self.message, file=file)
+        print(f"  Message: {self.message}", file=file)
         print(
-            "  Time in %i calls to Function.__call__: %es"
-            % (self.fct_callcount, self.fct_call_time),
+            f"  Time in {self.fct_callcount} calls to Function.__call__: {self.fct_call_time:e}s",
             file=file,
         )
         if self.fct_call_time > 0:
             print(
-                "  Time in Function.fn.__call__: %es (%.3f%%)"
-                % (self.vm_call_time, 100 * self.vm_call_time / self.fct_call_time),
+                f"  Time in Function.fn.__call__: {self.vm_call_time}s ({100 * self.vm_call_time / self.fct_call_time:.3f}%)",
                 file=file,
             )
             local_time = sum(self.apply_time.values())
             if local_time > 0:
                 print(
-                    "  Time in thunks: %es (%.3f%%)"
-                    % (local_time, 100 * local_time / self.fct_call_time),
+                    f"  Time in thunks: {local_time}s ({100 * local_time / self.fct_call_time:.3f}%)",
                     file=file,
                 )
-        print("  Total compile time: %es" % self.compile_time, file=file)
-        print("    Number of Apply nodes: %d" % self.nb_nodes, file=file)
-        print("    Theano Optimizer time: %es" % self.optimizer_time, file=file)
-        print("       Theano validate time: %es" % self.validate_time, file=file)
+        print(f"  Total compile time: {self.compile_time:e}s", file=file)
+        print(f"    Number of Apply nodes: {int(self.nb_nodes)}", file=file)
+        print(f"    Theano Optimizer time: {self.optimizer_time:e}s", file=file)
+        print(f"       Theano validate time: {self.validate_time:e}s", file=file)
         print(
-            "    Theano Linker time (includes C, CUDA code "
-            "generation/compiling): %es" % self.linker_time,
+            (
+                "    Theano Linker time (includes C, CUDA code "
+                f"generation/compiling): {self.linker_time}s"
+            ),
             file=file,
         )
-        print("       Import time %es" % self.import_time, file=file)
+        print(f"       Import time {self.import_time:e}s", file=file)
         print(
-            "       Node make_thunk time %es" % self.linker_node_make_thunks, file=file
+            f"       Node make_thunk time {self.linker_node_make_thunks:e}s", file=file
         )
 
         for node, t in sorted(
             self.linker_make_thunk_time.items(), key=operator.itemgetter(1)
         )[::-1][:5]:
-            print("           Node {} time {:e}s".format(node, t), file=file)
+            print(f"           Node {node} time {t:e}s", file=file)
         print("", file=file)
 
         # The validation time is a subset of optimizer_time
@@ -860,11 +853,11 @@ class ProfileStats:
 
     def summary_globals(self, file):
         print(
-            "Time in all call to theano.grad() %es" % theano.gradient.grad_time,
+            f"Time in all call to theano.grad() {theano.gradient.grad_time:e}s",
             file=file,
         )
         total_time = time.time() - theano_imported_time
-        print("Time since theano import %.3fs" % (total_time), file=file)
+        print(f"Time since theano import {total_time:.3f}s", file=file)
 
     def summary_memory(self, file, N=None):
         fct_memory = {}  # fgraph->dict(node->[outputs size])
@@ -1354,30 +1347,23 @@ class ProfileStats:
             (_, new_max_running_max_memory_size, _, _) = stats2
 
             print(
-                "        CPU: %dKB (%dKB)"
-                % (
-                    (
-                        int(round(new_max_running_max_memory_size[1] / 1024.0)),
-                        int(round(max_running_max_memory_size[1] / 1024.0)),
-                    )
+                (
+                    f"        CPU: {int(round(new_max_running_max_memory_size[1] / 1024.0))}KB "
+                    f"({int(round(max_running_max_memory_size[1] / 1024.0))}KB)"
                 ),
                 file=file,
             )
             print(
-                "        GPU: %dKB (%dKB)"
-                % (
-                    (
-                        int(round(new_max_running_max_memory_size[2] / 1024.0)),
-                        int(round(max_running_max_memory_size[2] / 1024.0)),
-                    )
+                (
+                    f"        GPU: {int(round(new_max_running_max_memory_size[2] / 1024.0))}KB "
+                    f"({int(round(max_running_max_memory_size[2] / 1024.0))}KB)"
                 ),
                 file=file,
             )
             print(
-                "        CPU + GPU: %dKB (%dKB)"
-                % (
-                    int(round(new_max_running_max_memory_size[0] / 1024.0)),
-                    int(round(max_running_max_memory_size[0] / 1024.0)),
+                (
+                    f"        CPU + GPU: {int(round(new_max_running_max_memory_size[0] / 1024.0))}KB "
+                    f"({int(round(max_running_max_memory_size[0] / 1024.0))}KB)"
                 ),
                 file=file,
             )
@@ -1398,16 +1384,15 @@ class ProfileStats:
             file=file,
         )
         print(
-            "        CPU: %dKB" % int(round(new_max_node_memory_size[1] / 1024.0)),
+            f"        CPU: {int(round(new_max_node_memory_size[1] / 1024.0))}KB",
             file=file,
         )
         print(
-            "        GPU: %dKB" % int(round(new_max_node_memory_size[2] / 1024.0)),
+            f"        GPU: {int(round(new_max_node_memory_size[2] / 1024.0))}KB",
             file=file,
         )
         print(
-            "        CPU + GPU: %dKB"
-            % int(round(new_max_node_memory_size[0] / 1024.0)),
+            f"        CPU + GPU: {int(round(new_max_node_memory_size[0] / 1024.0))}KB",
             file=file,
         )
         print("---", file=file)
@@ -1415,8 +1400,7 @@ class ProfileStats:
         if min_max_peak:
             print(
                 "    Minimum peak from all valid apply node order is "
-                "%dKB(took %.3fs to compute)"
-                % (int(round(min_max_peak / 1024.0)), min_peak_time),
+                f"{int(round(min_max_peak / 1024.0))}KB(took {min_peak_time:3f}s to compute)",
                 file=file,
             )
 
@@ -1444,15 +1428,15 @@ class ProfileStats:
             shapes = str(fct_shapes[node.fgraph][node])
 
             if all([hasattr(out.type, "get_size") for out in node.outputs]):
-                size = "%9dB" % node_outputs_size
+                size = "{node_outputs_size:9d}B"
                 if node_outputs_size < config.profiling.min_memory_size:
                     N = idx
                     break
             else:
-                size = "%10s" % "Unknown"
+                size = "   Unknown"
 
             print(
-                "     {}  {} {} {}".format(size, shapes, " ".join(code), node),
+                f"     {size}  {shapes} {' '.join(code)} {node}",
                 file=file,
             )
 
@@ -1461,18 +1445,19 @@ class ProfileStats:
         if size_sum_dense == 0:
             p = "0%"
         else:
-            p = "(%.2f%%)" % (float(sum_remaining) / size_sum_dense * 100)
+            p = f"({float(sum_remaining) / size_sum_dense * 100:.2f}%)"
         print(
-            "   ... (remaining %i Apply account for %4dB/%dB (%s) of the"
-            " Apply with dense outputs sizes)"
-            % (max(0, len(node_mem) - N), sum_remaining, size_sum_dense, p),
+            (
+                f"   ... (remaining {max(0, len(node_mem) - N)} Apply account for {sum_remaining:4d}B/{size_sum_dense :d}B ({p}) of the"
+                " Apply with dense outputs sizes)"
+            ),
             file=file,
         )
         print("", file=file)
         if N == 0:
             print(
                 "    All Apply nodes have output sizes that take less "
-                "than %dB." % config.profiling.min_memory_size,
+                f"than {int(config.profiling.min_memory_size)}B.",
                 file=file,
             )
         print(
@@ -1658,10 +1643,12 @@ class ProfileStats:
                 [len(i.type.broadcastable) == 2 for i in node.inputs]
             ):
                 print(
-                    "  - You have a dot operation that was not optimized to"
-                    " dot22 (which is faster). Make sure the inputs are "
-                    "float32 or float64, and are the same for both inputs. "
-                    "Currently they are: %s" % [i.type for i in node.inputs],
+                    (
+                        "  - You have a dot operation that was not optimized to"
+                        " dot22 (which is faster). Make sure the inputs are "
+                        "float32 or float64, and are the same for both inputs. "
+                        f"Currently they are: {[i.type for i in node.inputs]}"
+                    ),
                     file=file,
                 )
                 printed_tip = True
@@ -1691,9 +1678,11 @@ class ProfileStats:
             node = a
             if isinstance(node.op, T.Dot) and len({i.dtype for i in node.inputs}) != 1:
                 print(
-                    "  - You have a dot operation that has different dtype "
-                    " for inputs (%s). Make sure that the inputs have same "
-                    " dtype." % [i.type for i in node.inputs],
+                    (
+                        "  - You have a dot operation that has different dtype "
+                        f" for inputs ({[i.type for i in node.inputs]}). Make sure that the inputs have same "
+                        " dtype."
+                    ),
                     file=file,
                 )
                 printed_tip = True
@@ -1767,12 +1756,12 @@ class ScanProfileStats(ProfileStats):
         else:
             print("Scan Op profiling", file=file)
         print("==================", file=file)
-        print("  Message: %s" % self.message, file=file)
+        print(f"  Message: {self.message}", file=file)
 
         print(
             (
-                "  Time in %i calls of the op (for a total of %i "
-                "steps) %es" % (self.callcount, self.nbsteps, self.call_time)
+                f"  Time in {self.callcount} calls of the op (for a total of {self.nbsteps} "
+                f"steps) {self.call_time:3}s"
             ),
             file=file,
         )
@@ -1781,16 +1770,14 @@ class ScanProfileStats(ProfileStats):
         if self.call_time > 0:
             val = self.vm_call_time * 100 / self.call_time
         print(
-            "  Total time spent in calling the VM %es (%.3f%%)"
-            % (self.vm_call_time, val),
+            f"  Total time spent in calling the VM {self.vm_call_time:e}s ({val:.3f}%)",
             file=file,
         )
         val = 100
         if self.call_time > 0:
             val = 100.0 - self.vm_call_time * 100 / self.call_time
         print(
-            "  Total overhead (computing slices..) %es (%.3f%%)"
-            % (self.call_time - self.vm_call_time, val),
+            f"  Total overhead (computing slices..) {self.call_time - self.vm_call_time:e}s ({val:.3f}%)",
             file=file,
         )
         print("", file=file)

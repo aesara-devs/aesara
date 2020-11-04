@@ -29,7 +29,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         """Helper function, implementing pool_2d in pure numpy"""
         if len(input.shape) < 2:
             raise NotImplementedError(
-                "input should have at least 2 dim," " shape is %s" % str(input.shape)
+                f"input should have at least 2 dim, shape is {input.shape}"
             )
         xi = 0
         yi = 0
@@ -62,8 +62,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         """Helper function, implementing pool_nd in pure numpy"""
         if len(input.shape) < len(ws):
             raise NotImplementedError(
-                "input should have at least %s dim,"
-                " shape is %s" % (str(ws), str(input.shape))
+                f"input should have at least {ws} dim, shape is {input.shape}"
             )
         nd = len(ws)
         si = [0] * nd
@@ -215,7 +214,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         for the pooling regions. if not indicated, stride == ws."""
         if len(input.shape) < 2:
             raise NotImplementedError(
-                "input should have at least 2 dim," " shape is %s" % str(input.shape)
+                f"input should have at least 2 dim, shape is {input.shape}"
             )
 
         if stride is None:
@@ -465,10 +464,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
             )
             assert (
                 numpy_output_val.shape == outputshp
-            ), "outshape is {}, calculated shape is {}".format(
-                outputshp,
-                numpy_output_val.shape,
-            )
+            ), f"outshape is {outputshp}, calculated shape is {numpy_output_val.shape}"
             maxpool_op = Pool(
                 ndim=len(maxpoolshp), ignore_border=ignore_border, mode=mode
             )(images, maxpoolshp, stride)

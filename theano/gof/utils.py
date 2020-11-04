@@ -140,7 +140,7 @@ def get_variable_trace_string(v):
             # backtraces
             for idx, subtr in enumerate(tr):
                 if len(tr) > 1:
-                    print("trace %d" % idx, file=sio)
+                    print(f"trace {int(idx)}", file=sio)
                 traceback.print_list(subtr, sio)
     return sio.getvalue()
 
@@ -218,7 +218,7 @@ class MetaObject(type):
                 if len(props) == 0:
 
                     def __str__(self):
-                        return "{}".format(self.__class__.__name__)
+                        return f"{self.__class__.__name__}"
 
                 else:
 
@@ -257,9 +257,9 @@ class Scratchpad:
         return "scratchpad" + str(self.__dict__)
 
     def info(self):
-        print("<theano.gof.utils.scratchpad instance at %i>" % id(self))
+        print(f"<theano.gof.utils.scratchpad instance at {id(self)}>")
         for k, v in self.__dict__.items():
-            print("  {}: {}".format(k, v))
+            print(f"  {k}: {v}")
 
 
 class ValidatingScratchpad(Scratchpad):
@@ -325,7 +325,7 @@ def deprecated(filename, msg=""):
 
         def g(*args, **kwargs):
             if printme[0]:
-                print("WARNING: {}.{} deprecated. {}".format(filename, f.__name__, msg))
+                print(f"WARNING: {filename}.{f.__name__} deprecated. {msg}")
                 printme[0] = False
             return f(*args, **kwargs)
 
@@ -433,10 +433,10 @@ class Keyword:
         return self.nonzero
 
     def __str__(self):
-        return "<%s>" % self.name
+        return f"<{self.name}>"
 
     def __repr__(self):
-        return "<%s>" % self.name
+        return f"<{self.name}>"
 
 
 ABORT = Keyword("ABORT", False)
@@ -571,7 +571,7 @@ def give_variables_names(variables):
         return not var.name or h[var.name] > 1
 
     for i, var in enumerate(filter(bad_var, variables)):
-        var.name = (var.name or "") + "_%d" % i
+        var.name = (var.name or "") + f"_{int(i)}"
 
     if not unique([str(v) for v in variables]):
         raise ValueError(

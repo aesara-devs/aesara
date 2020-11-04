@@ -48,12 +48,11 @@ class LoadFromDisk(Op):
     def perform(self, node, inp, out):
         path = inp[0]
         if path.split(".")[-1] == "npz":
-            raise ValueError("Expected a .npy file, got %s instead" % path)
+            raise ValueError(f"Expected a .npy file, got {path} instead")
         result = np.load(path, mmap_mode=self.mmap_mode)
         if result.dtype != self.dtype:
             raise TypeError(
-                "Expected an array of type %s, got %s instead"
-                % (self.dtype, result.dtype)
+                f"Expected an array of type {self.dtype}, got {result.dtype} instead"
             )
         out[0][0] = result
 
@@ -158,12 +157,7 @@ class MPIRecv(Op):
         out[1][0] = data
 
     def __str__(self):
-        return "MPIRecv{source: %d, tag: %d, shape: %s, dtype: %s}" % (
-            self.source,
-            self.tag,
-            self.shape,
-            self.dtype,
-        )
+        return f"MPIRecv{{source: {int(self.source)}, tag: {int(self.tag)}, shape: {self.shape}, dtype: {self.dtype}}}"
 
     def infer_shape(self, node, shapes):
         return [None, self.shape]
@@ -249,7 +243,7 @@ class MPISend(Op):
         out[1][0] = data
 
     def __str__(self):
-        return "MPISend{dest: %d, tag: %d}" % (self.dest, self.tag)
+        return f"MPISend{{dest: {int(self.dest)}, tag: {int(self.tag)}}}"
 
 
 class MPISendWait(Op):

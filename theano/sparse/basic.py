@@ -3,7 +3,6 @@ Classes for handling sparse matrices.
 
 To read about different sparse formats, see
 http://www-users.cs.umn.edu/~saad/software/SPARSKIT/paper.ps
-
 """
 
 
@@ -137,7 +136,7 @@ def as_sparse_variable(x, name=None):
     try:
         return constant(x, name=name)
     except TypeError:
-        raise TypeError("Cannot convert %s to SparseType" % x, type(x))
+        raise TypeError(f"Cannot convert {x} to SparseType", type(x))
 
 
 as_sparse = as_sparse_variable
@@ -173,7 +172,7 @@ def constant(x, name=None):
             SparseType(format=x.format, dtype=x.dtype), x.copy(), name=name
         )
     except TypeError:
-        raise TypeError("Could not convert %s to SparseType" % x, type(x))
+        raise TypeError(f"Could not convert {x} to SparseType", type(x))
 
 
 def sp_ones_like(x):
@@ -332,7 +331,7 @@ class SparseVariable(_sparse_py_operators, gof.Variable):
     format = property(lambda self: self.type.format)
 
     def __str__(self):
-        return "{}{{{},{}}}".format(self.__class__.__name__, self.format, self.dtype)
+        return f"{self.__class__.__name__}{{{self.format},{self.dtype}}}"
 
     def __repr__(self):
         return str(self)
@@ -845,7 +844,7 @@ class Cast(gof.op.Op):
         return ins_shapes
 
     def __str__(self):
-        return "{}({})".format(self.__class__.__name__, self.out_type)
+        return f"{self.__class__.__name__}({self.out_type})"
 
 
 bcast = Cast("int8")
@@ -894,9 +893,7 @@ class DenseFromSparse(gof.op.Op):
         self.sparse_grad = structured
 
     def __str__(self):
-        return "{}{{structured_grad={}}}".format(
-            self.__class__.__name__, self.sparse_grad
-        )
+        return f"{self.__class__.__name__}{{structured_grad={self.sparse_grad}}}"
 
     def make_node(self, x):
         x = as_sparse_variable(x)
@@ -974,14 +971,14 @@ class SparseFromDense(gof.op.Op):
         self.format = format
 
     def __str__(self):
-        return "{}{{{}}}".format(self.__class__.__name__, self.format)
+        return f"{self.__class__.__name__}{{{self.format}}}"
 
     def make_node(self, x):
         x = tensor.as_tensor_variable(x)
         if x.ndim > 2:
             raise TypeError(
                 "Theano does not have sparse tensor types with more "
-                "than 2 dimensions, but %s.ndim = %i" % (x, x.ndim)
+                f"than 2 dimensions, but {x}.ndim = {x.ndim}"
             )
         elif x.ndim == 1:
             x = x.dimshuffle("x", 0)
@@ -1280,7 +1277,7 @@ class GetItem2d(gof.op.Op):
                         raise ValueError(
                             (
                                 "Impossible to index into a sparse matrix with "
-                                "slice where step=%s" % step
+                                f"slice where step={step}"
                             ),
                             step.ndim,
                             step.dtype,
@@ -1295,7 +1292,7 @@ class GetItem2d(gof.op.Op):
                         raise ValueError(
                             (
                                 "Impossible to index into a sparse matrix with "
-                                "slice where start=%s" % start
+                                f"slice where start={start}"
                             ),
                             start.ndim,
                             start.dtype,
@@ -1310,7 +1307,7 @@ class GetItem2d(gof.op.Op):
                         raise ValueError(
                             (
                                 "Impossible to index into a sparse matrix with "
-                                "slice where stop=%s" % stop
+                                f"slice where stop={stop}"
                             ),
                             stop.ndim,
                             stop.dtype,
@@ -1326,7 +1323,7 @@ class GetItem2d(gof.op.Op):
             else:
                 raise ValueError(
                     "Advanced indexing is not implemented for sparse "
-                    "matrices. Argument not supported: %s" % ind
+                    f"matrices. Argument not supported: {ind}"
                 )
             input_op += [start, stop, step]
         if len(index) == 1:
@@ -1782,7 +1779,7 @@ class SpSum(gof.op.Op):
         return r
 
     def __str__(self):
-        return self.__class__.__name__ + "{axis=%s}" % str(self.axis)
+        return f"{self.__class__.__name__ }{{axis={self.axis}}}"
 
 
 def sp_sum(x, axis=None, sparse_grad=False):
@@ -2436,7 +2433,7 @@ class MulSV(gof.op.Op):
         if x.type.dtype != y.type.dtype:
             raise NotImplementedError(
                 "MulSV not implemented for differing dtypes."
-                "Got %s and %s." % (str(x.type.dtype), str(y.type.dtype))
+                f"Got {x.type.dtype} and {y.type.dtype}."
             )
         return gof.Apply(
             self, [x, y], [SparseType(dtype=x.type.dtype, format=x.type.format)()]
@@ -2979,7 +2976,7 @@ class HStack(gof.op.Op):
         return [(ins_shapes[0][0], d)]
 
     def __str__(self):
-        return "{}({},{})".format(self.__class__.__name__, self.format, self.dtype)
+        return f"{self.__class__.__name__}({self.format},{self.dtype})"
 
 
 def hstack(blocks, format=None, dtype=None):
@@ -3108,7 +3105,7 @@ class Remove0(gof.Op):
         l = []
         if self.inplace:
             l.append("inplace")
-        return self.__class__.__name__ + "{%s}" % ", ".join(l)
+        return f"{self.__class__.__name__ }{{{', '.join(l)}}}"
 
     def make_node(self, x):
         x = as_sparse_variable(x)
@@ -3626,18 +3623,16 @@ class StructuredDot(gof.Op):
         if variable.shape != (a.shape[0], b.shape[1]):
             if b.shape[0] == 1:
                 raise Exception(
-                    "a.shape=%s, b.shape=%s, "
-                    "variable.shape=%s ??? This is probably "
-                    "because scipy.csc_matrix dot has a bug "
+                    f"a.shape={a.shape}, b.shape={b.shape}, "
+                    f"variable.shape={variable.shape}?  This is probably "
+                    "because scipy.csc_matrix.dot has a bug "
                     "with singleton dimensions (i.e. "
-                    "b.shape[0]=1), for scipy 0.6. Use scipy "
-                    "0.7. NB you have scipy version %s"
-                    % (a.shape, b.shape, variable.shape, scipy.__version__)
+                    "b.shape[0]=1) in SciPy 0.6.  Use SciPy "
+                    f"0.7.  (You have SciPy version {scipy.__version__}.)"
                 )
             else:
                 raise Exception(
-                    "a.shape=%s, b.shape=%s, variable.shape=%s "
-                    " ??? I have no idea why"
+                    f"a.shape={a.shape}, b.shape={b.shape}, variable.shape={variable.shape}?"
                 )
 
         # The cast is needed as otherwise we hit the bug mentioned into
@@ -4118,7 +4113,7 @@ class Dot(gof.op.Op):
             raise TypeError(
                 "Sparse dot product should have at least one "
                 "sparse variable as inputs, but the inputs are "
-                "%s (%s) and %s (%s)." % (x, x.type, y, y.type)
+                f"{x} ({x.type}) and {y} ({y.type})."
             )
 
         if x_is_sparse_var:
@@ -4130,7 +4125,7 @@ class Dot(gof.op.Op):
             if x.ndim not in (1, 2):
                 raise TypeError(
                     "theano.sparse.Dot: input 0 (0-indexed) must have ndim of "
-                    "1 or 2, %d given." % x.ndim
+                    f"1 or 2, {int(x.ndim)} given."
                 )
 
         if y_is_sparse_var:
@@ -4142,7 +4137,7 @@ class Dot(gof.op.Op):
             if y.ndim not in (1, 2):
                 raise TypeError(
                     "theano.sparse.Dot: input 1 (1-indexed) must have ndim of "
-                    "1 or 2, %d given." % y.ndim
+                    f"1 or 2, {int(y.ndim)} given."
                 )
 
         if len(broadcast_y) == 2:
@@ -4357,12 +4352,11 @@ class ConstructSparseFromList(gof.Op):
             raise TypeError("index must be vector")
         if x_.type.ndim != 2:
             raise TypeError(
-                "cannot create a sparse matrix with %d dimensions" % x_.type.ndim
+                f"cannot create a sparse matrix with {int(x_.type.ndim)} dimensions"
             )
         if values_.type.ndim != 2:
             raise TypeError(
-                "cannot create a sparse matrix from values with %d ndim"
-                % values_.type.ndim
+                f"cannot create a sparse matrix from values with {int(values_.type.ndim)} ndim"
             )
 
         # We only need the shape of `x` in the perform

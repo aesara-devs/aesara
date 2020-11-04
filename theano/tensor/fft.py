@@ -78,7 +78,7 @@ class IRFFTOp(gof.Op):
         a = tt.as_tensor_variable(a)
         if a.ndim < 3:
             raise TypeError(
-                "%s: input must have dimension >= 3,  with " % self.__class__.__name__
+                f"{self.__class__.__name__}: input must have dimension >= 3,  with "
                 + "first dimension batches and last real/imag parts"
             )
 
@@ -193,7 +193,7 @@ def irfft(inp, norm=None, is_odd=False):
     """
 
     if is_odd not in (True, False):
-        raise ValueError("Invalid value %s for id_odd, must be True or False" % is_odd)
+        raise ValueError(f"Invalid value {is_odd} for id_odd, must be True or False")
 
     s = inp.shape[1:-1]
     if is_odd:
@@ -215,6 +215,6 @@ def irfft(inp, norm=None, is_odd=False):
 def _unitary(norm):
     if norm not in (None, "ortho", "no_norm"):
         raise ValueError(
-            "Invalid value %s for norm, must be None, 'ortho' or " "'no norm'" % norm
+            f"Invalid value {norm} for norm, must be None, 'ortho' or 'no norm'"
         )
     return norm

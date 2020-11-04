@@ -8,9 +8,9 @@ try:
     enable_sparse = bool(scipy_ver >= [0, 7])
     if not enable_sparse:
         sys.stderr.write(
-            "WARNING: scipy version = %s."
+            f"WARNING: scipy version = {scipy.__version__}."
             " We request version >=0.7.0 for the sparse code as it has"
-            " bugs fixed in the sparse matrix code.\n" % scipy.__version__
+            " bugs fixed in the sparse matrix code.\n"
         )
 except ImportError:
     enable_sparse = False

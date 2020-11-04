@@ -470,7 +470,7 @@ def kron(a, b):
     if a.ndim + b.ndim <= 2:
         raise TypeError(
             "kron: inputs dimensions must sum to 3 or more. "
-            "You passed %d and %d." % (a.ndim, b.ndim)
+            f"You passed {int(a.ndim)} and {int(b.ndim)}."
         )
     o = tensor.outer(a, b)
     o = o.reshape(tensor.concatenate((a.shape, b.shape)), a.ndim + b.ndim)

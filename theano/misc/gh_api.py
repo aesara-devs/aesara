@@ -60,9 +60,7 @@ def make_auth_header():
 
 
 def post_issue_comment(project, num, body):
-    url = "https://api.github.com/repos/{project}/issues/{num}/comments".format(
-        project=project, num=num
-    )
+    url = f"https://api.github.com/repos/{project}/issues/{num}/comments"
     payload = json.dumps({"body": body})
     requests.post(url, data=payload, headers=make_auth_header())
 
@@ -92,13 +90,9 @@ def get_pull_request(project, num, github_api=3):
     github_api : version of github api to use
     """
     if github_api == 2:
-        url = "http://github.com/api/v2/json/pulls/{project}/{num}".format(
-            project=project, num=num
-        )
+        url = f"http://github.com/api/v2/json/pulls/{project}/{num}"
     elif github_api == 3:
-        url = "https://api.github.com/repos/{project}/pulls/{num}".format(
-            project=project, num=num
-        )
+        url = f"https://api.github.com/repos/{project}/pulls/{num}"
     response = requests.get(url)
     response.raise_for_status()
     if github_api == 2:
@@ -112,9 +106,9 @@ def get_pulls_list(project, github_api=3):
     github_api : version of github api to use
     """
     if github_api == 3:
-        url = "https://api.github.com/repos/{project}/pulls".format(project=project)
+        url = f"https://api.github.com/repos/{project}/pulls"
     else:
-        url = "http://github.com/api/v2/json/pulls/{project}".format(project=project)
+        url = f"http://github.com/api/v2/json/pulls/{project}"
     response = requests.get(url)
     response.raise_for_status()
     if github_api == 2:

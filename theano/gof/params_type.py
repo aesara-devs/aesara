@@ -151,7 +151,7 @@ class Params(dict):
         for field in params_type.fields:
             if field not in kwargs:
                 raise TypeError(
-                    'Params: ParamsType attribute "%s" not in Params args.' % field
+                    f'Params: ParamsType attribute "{field}" not in Params args.'
                 )
         super().__init__(**kwargs)
         self.__dict__.update(__params_type__=params_type, __signatures__=None)
@@ -166,7 +166,7 @@ class Params(dict):
 
     def __getattr__(self, key):
         if key not in self:
-            raise AttributeError('Params: attribute "%s" does not exist.' % key)
+            raise AttributeError(f'Params: attribute "{key}" does not exist.')
         return self[key]
 
     def __setattr__(self, key, value):
@@ -348,7 +348,7 @@ class ParamsType(Type):
         types_string = ",".join(str(t) for t in self.types).encode("utf-8")
         fields_hex = hashlib.sha256(fields_string).hexdigest()
         types_hex = hashlib.sha256(types_string).hexdigest()
-        return "_Params_{}_{}".format(fields_hex, types_hex)
+        return f"_Params_{fields_hex}_{types_hex}"
 
     def has_type(self, theano_type):
         """
@@ -523,7 +523,7 @@ class ParamsType(Type):
     def filter(self, data, strict=False, allow_downcast=None):
         if strict and not isinstance(data, Params):
             raise TypeError(
-                "%s: strict mode: data should be an instance of Params." % self
+                f"{self}: strict mode: data should be an instance of Params."
             )
         # Filter data attributes to check if they respect the ParamsType's contract.
         filtered = {
@@ -760,19 +760,15 @@ class ParamsType(Type):
     def c_init(self, name, sub):
         # NB: It seems c_init() is not called for an op param.
         # So the real initialization is done at top of c_extract.
-        return """
-        %(name)s = NULL;
-        """ % dict(
-            name=name
-        )
+        return f"""
+        {name} = NULL;
+        """
 
     def c_cleanup(self, name, sub):
-        return """
-        delete %(name)s;
-        %(name)s = NULL;
-        """ % dict(
-            name=name
-        )
+        return f"""
+        delete {name};
+        {name} = NULL;
+        """
 
     def c_extract(self, name, sub, check_input=True):
         return """

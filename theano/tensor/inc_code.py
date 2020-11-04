@@ -62,13 +62,11 @@ def inc_code():
     )
 
     def gen_binop(type, typen):
-        return """
-#if defined(%(typen)s)
-%(type)s_inplace_add,
+        return f"""
+#if defined({typen})
+{type}_inplace_add,
 #endif
-""" % dict(
-            type=type, typen=typen
-        )
+"""
 
     fn_array = (
         "static inplace_map_binop addition_funcs[] = {"
@@ -77,13 +75,11 @@ def inc_code():
     )
 
     def gen_num(typen):
-        return """
-#if defined(%(typen)s)
-%(typen)s,
+        return f"""
+#if defined({typen})
+{typen},
 #endif
-""" % dict(
-            type=type, typen=typen
-        )
+"""
 
     type_number_array = (
         "static int type_numbers[] = {"

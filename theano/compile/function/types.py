@@ -478,12 +478,12 @@ class Function:
                 try:
                     s = finder[item]
                 except KeyError:
-                    raise TypeError("Unknown input or state: %s" % str(item))
+                    raise TypeError(f"Unknown input or state: {item}")
                 if s is DUPLICATE:
                     raise TypeError(
-                        "Ambiguous name: %s - please check the "
+                        f"Ambiguous name: {item} - please check the "
                         "names of the inputs of your function "
-                        "for duplicates." % str(item)
+                        "for duplicates."
                     )
                 if isinstance(s, gof.Container):
                     return s.value
@@ -496,14 +496,12 @@ class Function:
                 except KeyError:
                     # Print informative error message.
                     msg = get_info_on_inputs(named_inputs, n_unnamed_inputs)
-                    raise TypeError(
-                        "Unknown input or state: {}. {}".format(str(item), msg)
-                    )
+                    raise TypeError(f"Unknown input or state: {item}. {msg}")
                 if s is DUPLICATE:
                     raise TypeError(
-                        "Ambiguous name: %s - please check the "
+                        f"Ambiguous name: {item} - please check the "
                         "names of the inputs of your function "
-                        "for duplicates." % str(item)
+                        "for duplicates."
                     )
                 if isinstance(s, gof.Container):
                     s.value = value
@@ -664,7 +662,7 @@ class Function:
             # Check if given ShareVariables exist
             for sv in swap.keys():
                 if sv not in exist_svs:
-                    raise ValueError("SharedVariable: %s not found" % (sv.name))
+                    raise ValueError(f"SharedVariable: {sv.name} not found")
 
             # Swap SharedVariable in fgraph and In instances
             for index, (i, in_v) in enumerate(zip(ins, fg_cpy.inputs)):
@@ -871,7 +869,7 @@ class Function:
                                 + argument_name
                                 + " to "
                                 + function_name
-                                + " at index %d (0-based). %s" % (i, where)
+                                + f" at index {int(i)} (0-based). {where}"
                                 + e.args[0],
                             )
                         else:
@@ -880,7 +878,7 @@ class Function:
                                 + argument_name
                                 + " to "
                                 + function_name
-                                + " at index %d (0-based). %s" % (i, where),
+                                + f" at index {int(i)} (0-based). {where}"
                             ) + e.args
                         restore_defaults()
                         raise
@@ -950,20 +948,17 @@ class Function:
                 if c.required and not c.provided:
                     restore_defaults()
                     raise TypeError(
-                        "Missing required input: %s"
-                        % getattr(self.inv_finder[c], "variable", self.inv_finder[c])
+                        f"Missing required input: {getattr(self.inv_finder[c], 'variable', self.inv_finder[c])}"
                     )
                 if c.provided > 1:
                     restore_defaults()
                     raise TypeError(
-                        "Multiple values for input: %s"
-                        % getattr(self.inv_finder[c], "variable", self.inv_finder[c])
+                        f"Multiple values for input: {getattr(self.inv_finder[c], 'variable', self.inv_finder[c])}"
                     )
                 if c.implicit and c.provided > 0:
                     restore_defaults()
                     raise TypeError(
-                        "Tried to provide value for implicit input: %s"
-                        % getattr(self.inv_finder[c], "variable", self.inv_finder[c])
+                        f"Tried to provide value for implicit input: {getattr(self.inv_finder[c], 'variable', self.inv_finder[c])}"
                     )
 
         # Do the actual work
@@ -1143,9 +1138,9 @@ def _pickle_Function(f):
                         if f.pickle_aliased_memory_strategy == "warn":
                             _logger.warning(
                                 "aliased relationship between "
-                                "Function arguments %s, %s "
+                                f"Function arguments {d_i}, {d_j} "
                                 "will not be preserved by "
-                                "un-pickling operation" % (str(d_i), str(d_j))
+                                "un-pickling operation"
                             )
                         else:
                             raise AliasedMemoryError(d_i, d_j)
@@ -1331,9 +1326,8 @@ class FunctionMaker:
                 raise TypeError("Expected two elements in the list or tuple.", input)
         else:
             raise TypeError(
-                "Unknown input type: %s (%s), expected Variable " "instance",
-                type(input),
-                input,
+                f"Unknown input type: {type(input)} ({input}), expected Variable "
+                "instance"
             )
 
     @staticmethod
@@ -1357,7 +1351,7 @@ class FunctionMaker:
         elif isinstance(output, gof.Variable):
             return SymbolicOutput(output)
         else:
-            raise TypeError("Unknown output type: %s (%s)", type(output), output)
+            raise TypeError(f"Unknown output type: {type(output)} ({output})")
 
     def optimize_graph_with_cache(self, optimizer, inputs, outputs):
         # This function is not finished
@@ -1381,7 +1375,7 @@ class FunctionMaker:
             else:
                 # create graph_db
                 with open(graph_db_file, "wb") as f:
-                    print("create new graph_db in %s" % graph_db_file)
+                    print(f"create new graph_db in {graph_db_file}")
             # load the graph_db dictionary
             try:
                 with open(graph_db_file, "rb") as f:
@@ -1507,7 +1501,7 @@ class FunctionMaker:
             return found_graph_in_db
 
         graph_db = load_graph_db()
-        print("loaded graph_db from %s, size=%d" % (graph_db_file, len(graph_db)))
+        print(f"loaded graph_db from {graph_db_file}, size={len(graph_db)}")
         found_graph = find_same_graph_in_db(graph_db)
         if found_graph:
             self.fgraph = found_graph
@@ -1633,7 +1627,7 @@ class FunctionMaker:
 
                 end_optimizer = time.time()
                 opt_time = end_optimizer - start_optimizer
-                _logger.debug("Optimizing took %f seconds", opt_time)
+                _logger.debug(f"Optimizing took {opt_time:f} seconds")
 
                 # Add deep copy to respect the memory interface
                 insert_deepcopy(fgraph, inputs, outputs + additional_outputs)
@@ -1666,8 +1660,7 @@ class FunctionMaker:
         if not hasattr(linker, "accept"):
             raise ValueError(
                 "'linker' parameter of FunctionMaker should be "
-                "a Linker with an accept method or one of %s"
-                % list(theano.compile.mode.predefined_linkers.keys())
+                f"a Linker with an accept method or one of {list(theano.compile.mode.predefined_linkers.keys())}"
             )
 
         # the 'no_borrow' outputs are the ones for which that we can't
@@ -1857,7 +1850,7 @@ class FunctionMaker:
 
         linker_time = end_linker - start_linker
         theano.compile.profiling.total_time_linker += linker_time
-        _logger.debug("Linker took %f seconds", linker_time)
+        _logger.debug(f"Linker took {linker_time:f} seconds")
         if self.profile:
             self.profile.linker_time += linker_time
             _fn.time_thunks = self.profile.flag_time_thunks
@@ -2035,7 +2028,7 @@ def convert_function_input(input):
     elif isinstance(input, (list, tuple)):
         orig = input
         if not input:
-            raise TypeError("Nonsensical input specification: %s" % input)
+            raise TypeError(f"Nonsensical input specification: {input}")
         if isinstance(input[0], str):
             name = input[0]
             input = input[1:]
@@ -2044,8 +2037,8 @@ def convert_function_input(input):
         if isinstance(input[0], (list, tuple)):
             if len(input[0]) != 2 or len(input) != 2:
                 raise TypeError(
-                    "Invalid input syntax: %s (check "
-                    "documentation or use an In instance)" % orig
+                    f"Invalid input syntax: {orig} (check "
+                    "documentation or use an In instance)"
                 )
             (variable, update), value = input
         elif isinstance(input[0], gof.Variable):
@@ -2055,8 +2048,8 @@ def convert_function_input(input):
                 (variable, value), update = input, None
             else:
                 raise TypeError(
-                    "Invalid input syntax: %s (check "
-                    "documentation or use an In instance)" % orig
+                    f"Invalid input syntax: {orig} (check "
+                    "documentation or use an In instance)"
                 )
         elif isinstance(input[0], SymbolicInput):
             if len(input) == 1:
@@ -2068,29 +2061,28 @@ def convert_function_input(input):
                 input.value = value
                 return input
         else:
-            raise TypeError("The input specification is not valid: %s" % input)
+            raise TypeError(f"The input specification is not valid: {input}")
 
         if not isinstance(variable, gof.Variable):
             raise TypeError(
-                "Unknown input type: %s, expected Variable "
-                "instance" % type(variable),
+                f"Unknown input type: {type(variable)}, expected Variable instance",
                 variable,
             )
         if update is not None and not isinstance(update, gof.Variable):
             raise TypeError(
-                "Unknown update type: %s, expected Variable " "instance" % type(update),
+                f"Unknown update type: {type(update)}, expected Variable instance",
                 update,
             )
         if value is not None and isinstance(value, (gof.Variable, SymbolicInput)):
             raise TypeError(
-                "The value for input %s should not be a Variable "
-                "or SymbolicInput instance (got: %s)" % (variable, value)
+                f"The value for input {variable} should not be a Variable "
+                f"or SymbolicInput instance (got: {value})"
             )
 
         return In(variable, name=name, value=value, update=update)
     else:
         raise TypeError(
-            "Unknown input type: %s, expected Variable instance" % type(input), input
+            f"Unknown input type: {type(input)}, expected Variable instance", input
         )
 
 
@@ -2121,10 +2113,10 @@ def get_info_on_inputs(named_inputs, n_unnamed_inputs):
             else:
                 # Use plural.
                 msg = (
-                    "The function has %s inputs, but none of them is named,"
+                    f"The function has {n_unnamed_inputs} inputs, but none of them is named,"
                     " and thus they cannot be assigned through keyword "
                     "arguments (use 'name=...' in a Variable's "
-                    "constructor to give it a name)." % n_unnamed_inputs
+                    "constructor to give it a name)."
                 )
     else:
         if n_unnamed_inputs == 0:
@@ -2135,17 +2127,9 @@ def get_info_on_inputs(named_inputs, n_unnamed_inputs):
             )
         else:
             msg = (
-                "The function has %s named input%s (%s), and %s unnamed "
-                "input%s which thus cannot be accessed through keyword "
-                "argument%s (use 'name=...' in a variable's constructor "
+                f"The function has {n_named_inputs} named input{get_plural(n_named_inputs)} ({', '.join(named_inputs)}), and {n_unnamed_inputs} unnamed "
+                f"input{get_plural(n_unnamed_inputs)} which thus cannot be accessed through keyword "
+                f"argument{get_plural(n_unnamed_inputs)} (use 'name=...' in a variable's constructor "
                 "to give it a name)."
-                % (
-                    n_named_inputs,
-                    get_plural(n_named_inputs),
-                    ", ".join(named_inputs),
-                    n_unnamed_inputs,
-                    get_plural(n_unnamed_inputs),
-                    get_plural(n_unnamed_inputs),
-                )
             )
     return msg

@@ -437,7 +437,7 @@ class Softmax(Op):
     def make_node(self, x):
         x = tt.as_tensor_variable(x)
         if x.type.ndim not in (1, 2) or x.type.dtype not in tt.float_dtypes:
-            raise ValueError("x must be 1-d or 2-d tensor of floats. Got %s" % x.type)
+            raise ValueError(f"x must be 1-d or 2-d tensor of floats. Got {x.type}")
         if x.ndim == 1:
             warnings.warn(
                 "DEPRECATION: If x is a vector, Softmax will not automatically pad x "
@@ -635,7 +635,7 @@ class LogSoftmax(Op):
     def make_node(self, x):
         x = tt.as_tensor_variable(x)
         if x.type.ndim not in (1, 2) or x.type.dtype not in tt.float_dtypes:
-            raise ValueError("x must be 1-d or 2-d tensor of floats. Got %s" % x.type)
+            raise ValueError(f"x must be 1-d or 2-d tensor of floats. Got {x.type}")
         if x.ndim == 1:
             warnings.warn(
                 "DEPRECATION: If x is a vector, LogSoftmax will not automatically pad x "
@@ -1484,7 +1484,7 @@ class CrossentropyCategorical1Hot(Op):
         if _true_one_of_n.type not in (tt.lvector, tt.ivector):
             raise TypeError(
                 "integer vector required for argument: true_one_of_n"
-                "(got type: %s instead of: %s)" % (_true_one_of_n.type, tt.lvector)
+                f"(got type: {_true_one_of_n.type} instead of: {tt.lvector})"
             )
 
         return Apply(
@@ -2206,7 +2206,7 @@ class Prepend_scalar_constant_to_each_row(Op):
         self.val = val
 
     def __str__(self):
-        return "{}{{{}}}".format(self.__class__.__name__, self.val)
+        return f"{self.__class__.__name__}{{{self.val}}}"
 
     def make_node(self, mat):
         # check type of input
@@ -2612,7 +2612,7 @@ class ScalarSoftsign(UnaryScalarOp):
         (x,) = inp
         (z,) = out
         if node.inputs[0].type in [theano.scalar.float32, theano.scalar.float64]:
-            return "%(z)s = %(x)s / (1.0+fabs(%(x)s));" % locals()
+            return f"{z} = {x} / (1.0+fabs({x}));"
         raise NotImplementedError("only floating point x is implemented")
 
 

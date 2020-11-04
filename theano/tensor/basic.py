@@ -240,7 +240,7 @@ def constant(x, name=None, ndim=None, dtype=None):
                 x_ = np.squeeze(x_, axis=tuple(range(x_.ndim - ndim)))
             except np.AxisError:
                 raise ValueError(
-                    "ndarray could not be cast to constant with %i dimensions" % ndim
+                    f"ndarray could not be cast to constant with {int(ndim)} dimensions"
                 )
 
         assert x_.ndim == ndim
@@ -250,7 +250,7 @@ def constant(x, name=None, ndim=None, dtype=None):
     try:
         return TensorConstant(ttype, x_, name=name)
     except Exception:
-        raise TypeError("Could not convert %s to TensorType" % x, type(x))
+        raise TypeError(f"Could not convert {x} to TensorType", type(x))
 
 
 def _obj_is_wrappable_as_tensor(x):
@@ -647,13 +647,13 @@ def get_scalar_constant_value(
                     if not (idx < len(gp_broadcastable)):
                         msg = (
                             "get_scalar_constant_value detected "
-                            + "deterministic IndexError: x.shape[%d] "
-                            + "when x.ndim=%d."
-                        ) % (idx, ndim)
+                            f"deterministic IndexError: x.shape[{int(idx)}] "
+                            f"when x.ndim={int(ndim)}."
+                        )
                         if config.exception_verbosity == "high":
-                            msg += " x=%s" % min_informative_str(v)
+                            msg += f" x={min_informative_str(v)}"
                         else:
-                            msg += " x=%s" % str(v)
+                            msg += f" x={v}"
                         raise ValueError(msg)
 
                     if gp_broadcastable[idx]:
@@ -1048,7 +1048,7 @@ def _scal_elemwise_with_nfunc(nfunc, nin, nout):
         else:
             msg = "no_inplace"
 
-        n = "Elemwise{{{},{}}}".format(symbolname, msg)
+        n = f"Elemwise{{{symbolname},{msg}}}"
 
         if inplace:
             scalar_op = getattr(scal, symbolname[: -len("_inplace")])
@@ -1120,7 +1120,7 @@ def check_and_normalize_axes(x, axis):
         if NoneConst.equals(axis):
             axis = []
         elif not isinstance(axis, TensorConstant):
-            raise TypeError("Computation needs a constant axis. Got %s" % axis)
+            raise TypeError(f"Computation needs a constant axis. Got {axis}")
         else:
             assert axis.dtype in integer_dtypes
             if isinstance(axis.data, (int, np.integer)) or (
@@ -1131,8 +1131,7 @@ def check_and_normalize_axes(x, axis):
                 axis = [int(i) for i in axis.data]
     else:
         raise TypeError(
-            "Axis must be an integer, tuple, list of integers or a TensorVariable. Got %s"
-            % axis
+            f"Axis must be an integer, tuple, list of integers or a TensorVariable. Got {axis}"
         )
     if len(axis) > 0:
         for i in range(len(axis)):
@@ -1140,8 +1139,7 @@ def check_and_normalize_axes(x, axis):
                 axis[i] += x.type.ndim
             if axis[i] < 0 or axis[i] >= x.type.ndim:
                 raise ValueError(
-                    "Computation needs a valid axis number for %d-D tensor. Got %d"
-                    % (x.type.ndim, axis[i])
+                    f"Computation needs a valid axis number for {int(x.type.ndim)}-D tensor. Got {int(axis[i])}"
                 )
         axis = list(set(axis))
         axis.sort()
@@ -2298,7 +2296,7 @@ def round(a, mode=None):
     elif mode == "half_to_even":
         return round_half_to_even(a)
     else:
-        raise Exception("round mode %s is not implemented." % mode)
+        raise Exception(f"round mode {mode} is not implemented.")
 
 
 @_scal_elemwise
@@ -3023,14 +3021,13 @@ def alloc_validate_shape(shape):
             s_as_str = err_str()
             raise TypeError(
                 "Shape arguments to Alloc must be integers, "
-                "but argument %s is not for apply node: %s" % (i, s_as_str)
+                f"but argument {i} is not for apply node: {s_as_str}"
             )
         if s.ndim != 0:
             s_as_str = err_str()
             raise TypeError(
                 "Each shape dimension to Alloc must be a scalar, ",
-                "but dimension %s have %d dimensions for apply node: %s"
-                % (i, s.ndim, s_as_str),
+                f"but dimension {i} have {int(s.ndim)} dimensions for apply node: {s_as_str}",
             )
 
         # if s is constant 1, then we're broadcastable in that dim
@@ -3100,11 +3097,9 @@ class Alloc(gof.Op):
         (zz,) = out
         fail = sub["fail"]
 
-        code = """
-            npy_intp shape[%(ndim)s];
-            """ % dict(
-            ndim=ndim
-        )
+        code = f"""
+            npy_intp shape[{ndim}];
+            """
 
         # Initialize shape
         for i, shp_i in enumerate(inp[1:]):
@@ -3284,7 +3279,7 @@ def transfer(var, target):
             res = trans(var, target)
             if res is not None:
                 return res
-    raise ValueError("Can't transfer to target {}".format(target))
+    raise ValueError(f"Can't transfer to target {target}")
 
 
 transfer._others = []
@@ -3405,10 +3400,9 @@ class Mean(elemwise.CAReduce):
         # TODO: c_code perform support only axis is None
         return (
             ret
-            + """
-  *((double *)PyArray_DATA(%s)) /= PyArray_SIZE(%s);
+            + f"""
+  *((double *)PyArray_DATA({onames[0]})) /= PyArray_SIZE({inames[0]});
   """
-            % (onames[0], inames[0])
         )
 
 
@@ -3963,7 +3957,7 @@ class Split(Op):
         self.len_splits = int(len_splits)
 
     def __str__(self):
-        return self.__class__.__name__ + "{%s}" % self.len_splits
+        return "{self.__class__.__name__ }{{{self.len_splits}}}"
 
     def make_node(self, x, axis, splits):
         """WRITEME"""
@@ -3995,8 +3989,8 @@ class Split(Op):
             len_along_axis = x.shape[axis]
         except Exception:
             raise ValueError(
-                "Split.perform() with axis=(%s) is invalid"
-                " for x.shape==(%s)" % (axis, x.shape)
+                f"Split.perform() with axis=({axis}) is invalid"
+                f" for x.shape==({x.shape})"
             )
         if len(splits) != self.len_splits:
             raise ValueError(
@@ -4006,9 +4000,7 @@ class Split(Op):
 
         if np.sum(splits) != len_along_axis:
             raise ValueError(
-                "The splits sum to {}, expected {}".format(
-                    np.sum(splits), len_along_axis
-                )
+                f"The splits sum to {np.sum(splits)}, expected {len_along_axis}"
             )
         if builtins.any([nb < 0 for nb in splits]):
             raise ValueError(
@@ -4425,7 +4417,7 @@ class Join(Op):
 
                 if axis < -ndim:
                     raise IndexError(
-                        "Join axis %d out of bounds [0, %d)" % (axis, ndim)
+                        f"Join axis {int(axis)} out of bounds [0, {int(ndim)})"
                     )
                 if axis < 0:
                     axis += ndim
@@ -4487,7 +4479,9 @@ class Join(Op):
         else:
             ndim = tensors[0].ndim
             if axis < -ndim:
-                raise IndexError("Join axis %d out of bounds [0, %d)" % (axis, ndim))
+                raise IndexError(
+                    f"Join axis {int(axis)} out of bounds [0, {int(ndim)})"
+                )
 
             out[0] = theano._asarray(
                 np.concatenate(tensors, axis=axis), dtype=node.outputs[0].type.dtype
@@ -4509,9 +4503,8 @@ class Join(Op):
 
         for i, inp in enumerate(tensors):
             copy_to_list.append(
-                """Py_INCREF(%s);
-                   PyList_SetItem(list, %s, (PyObject*)%s);"""
-                % (inp, i, inp)
+                f"""Py_INCREF({inp});
+                   PyList_SetItem(list, {i}, (PyObject*){inp});"""
             )
 
         copy_inputs_to_list = "\n".join(copy_to_list)
@@ -4944,7 +4937,7 @@ def get_vector_length(v):
     """
     v = as_tensor_variable(v)
     if v.ndim != 1:
-        raise TypeError("argument must be symbolic vector, got '%s'" % v)
+        raise TypeError(f"argument must be symbolic vector, got '{v}'")
     if v.type.broadcastable[0]:
         return 1
     if isinstance(v, theano.tensor.sharedvar.TensorSharedVariable) and v.type.ndim == 1:
@@ -5011,7 +5004,7 @@ def get_vector_length(v):
         msg = theano.printing.debugprint(v, file="str")
     else:
         msg = str(v)
-    raise ValueError("length not known: %s" % msg)
+    raise ValueError(f"length not known: {msg}")
 
 
 @constructor
@@ -5065,7 +5058,7 @@ class Reshape(Op):
         assert name is None, "name attribute for Reshape has been deprecated"
 
     def __str__(self):
-        return "{}{{{}}}".format(self.__class__.__name__, self.ndim)
+        return f"{self.__class__.__name__}{{{self.ndim}}}"
 
     def make_node(self, x, shp):
         x = as_tensor_variable(x)
@@ -5107,17 +5100,17 @@ class Reshape(Op):
         (out,) = out_
         if len(shp) != self.ndim:
             raise ValueError(
-                "shape argument to Reshape.perform has incorrect"
-                " length %i"
-                ", should be %i" % (len(shp), self.ndim),
+                (
+                    "shape argument to Reshape.perform has incorrect"
+                    f" length {len(shp)}"
+                    f", should be {self.ndim}"
+                ),
                 shp,
             )
         try:
             out[0] = np.reshape(x, shp)
         except Exception:
-            raise ValueError(
-                "Cannot reshape input of shape {} to shape {}".format(x.shape, shp)
-            )
+            raise ValueError(f"Cannot reshape input of shape {x.shape} to shape {shp}")
 
     def connection_pattern(self, node):
         return [[True], [False]]
@@ -5254,17 +5247,17 @@ def reshape(x, newshape, ndim=None):
         if newshape.ndim != 1:
             raise TypeError(
                 "New shape in reshape must be a vector or a list/tuple of"
-                " scalar. Got %s after conversion to a vector." % newshape
+                f" scalar. Got {newshape} after conversion to a vector."
             )
         try:
             ndim = get_vector_length(newshape)
         except ValueError:
             raise ValueError(
-                "The length of the provided shape (%s) cannot "
+                f"The length of the provided shape ({newshape}) cannot "
                 "be automatically determined, so Theano is not able "
                 "to know what the number of dimensions of the reshaped "
                 "variable will be. You can provide the 'ndim' keyword "
-                "argument to 'reshape' to avoid this problem." % newshape
+                "argument to 'reshape' to avoid this problem."
             )
     op = Reshape(ndim)
     rval = op(x, newshape)
@@ -5295,14 +5288,14 @@ class Flatten(Op):
         self.outdim = int(outdim)
 
     def __str__(self):
-        return "{}{{{}}}".format(self.__class__.__name__, self.outdim)
+        return f"{self.__class__.__name__}{{{self.outdim}}}"
 
     def make_node(self, x):
         t_x = as_tensor_variable(x)
         if self.outdim < 1 or (x.ndim and self.outdim > x.ndim):
             raise ValueError(
-                "invalid output ndimensions (%i) for tensor of "
-                "rank %i" % (self.outdim, t_x.ndim)
+                f"invalid output ndimensions ({self.outdim}) for tensor of "
+                f"rank {t_x.ndim}"
             )
 
         # Infer the broadcastable pattern of the output. For every dimension
@@ -5346,8 +5339,8 @@ class Flatten(Op):
                 part2 = (1,)
             else:
                 raise ValueError(
-                    "invalid output ndimensions (%i) for tensor "
-                    "of rank %i" % (self.outdim, len(in_shp))
+                    f"invalid output ndimensions ({self.outdim}) for tensor "
+                    f"of rank {len(in_shp)}"
                 )
 
         out_shape = part1 + part2
@@ -5493,7 +5486,7 @@ def flatten(x, ndim=None, outdim=None):
     # even if it's a scalar. Otherwise, ndim must be positive
     # and smaller than x.ndim.
     if ndim < 1 or (ndim > 1 and ndim > x.ndim):
-        raise ValueError("ndim %s out of bound [1, %d)" % (ndim, x.ndim + 1))
+        raise ValueError(f"ndim {ndim} out of bound [1, {x.ndim + 1})")
 
     if ndim > 1:
         dims = tuple(x.shape[: ndim - 1]) + (-1,)
@@ -5553,7 +5546,7 @@ class Tile(Op):
         self.ndim = ndim
 
     def __str__(self):
-        return self.__class__.__name__ + "{ndim=%d}" % self.ndim
+        return f"{self.__class__.__name__ }{{ndim={self.ndim}}}"
 
     def make_node(self, x, reps):
         warnings.warn(
@@ -6040,7 +6033,7 @@ class PermuteRowElements(Op):
                 for i in range(ys0):
                     self._rec_perform(node, x[0], y[i], inverse, out[i], curdim + 1)
             else:
-                raise ValueError("Dimension mismatch: {}, {}".format(xs0, ys0))
+                raise ValueError(f"Dimension mismatch: {xs0}, {ys0}")
 
     def perform(self, node, inp, out):
         x, y, inverse = inp
@@ -6059,7 +6052,7 @@ class PermuteRowElements(Op):
             elif ydim == 1:
                 outdim = xdim
             else:
-                raise ValueError("Dimension mismatch: {}, {}".format(xdim, ydim))
+                raise ValueError(f"Dimension mismatch: {xdim}, {ydim}")
             out_s.append(outdim)
 
         if outs[0] is None or outs[0].shape != out_s:
@@ -6177,19 +6170,19 @@ class Dot(Op):
 
         if len(inputs) != 2:
             raise TypeError(
-                "theano.tensor.Dot: 2 arguments required, %d given " % len(inputs)
+                f"theano.tensor.Dot: 2 arguments required, {len(inputs)} given "
             )
         if inputs[0].ndim not in (1, 2):
             raise TypeError(
                 "theano.tensor.Dot: input 0 (0-indexed) must have ndim of "
-                "1 or 2, %d given. Consider calling theano.tensor.dot "
-                "instead." % inputs[0].ndim
+                f"1 or 2, {int(inputs[0].ndim)} given. Consider calling "
+                "theano.tensor.dot instead."
             )
         if inputs[1].ndim not in (1, 2):
             raise TypeError(
                 "theano.tensor.Dot: input 1 (0-indexed) must have ndim of "
-                "1 or 2, %d given. Consider calling theano.tensor.dot "
-                "instead." % inputs[1].ndim
+                f"1 or 2, {int(inputs[1].ndim)} given. Consider calling "
+                "theano.tensor.dot instead."
             )
 
         i_broadcastables = [input.type.broadcastable for input in inputs]
@@ -6409,7 +6402,7 @@ def _tensordot_as_dot(a, b, axes, dot, batched):
     if not np.isscalar(axes) and len(axes) != 2:
         raise ValueError(
             "Axes should be an integer or a "
-            "list/tuple of len 2 (%s was provided)" % str(axes)
+            "list/tuple of len 2 ({axes} was provided)"
         )
 
     # if 'axes' is a number of axes to multiply and sum over (trailing axes
@@ -6420,15 +6413,13 @@ def _tensordot_as_dot(a, b, axes, dot, batched):
         for operand_name, operand in (("a", a), ("b", b)):
             if axes > operand.ndim:
                 raise ValueError(
-                    "axes can not be larger than the dimension of %s "
-                    "(%s.ndim=%i, axes=%i)"
-                    % (operand_name, operand_name, operand.ndim, axes)
+                    f"axes can not be larger than the dimension of {operand_name} "
+                    f"({operand_name}.ndim={operand.ndim}, axes={axes})"
                 )
             if batched and axes == operand.ndim:
                 raise ValueError(
                     "axes to sum over must not include the batch axis "
-                    "of %s (%s.ndim=%i, axes=%i)"
-                    % (operand_name, operand_name, operand.ndim, axes)
+                    f"of {operand_name} ({operand_name}.ndim={operand.ndim}, axes={axes})"
                 )
 
         batch_axes = 1 if batched else 0
@@ -6475,26 +6466,18 @@ def _tensordot_as_dot(a, b, axes, dot, batched):
         for i, (operand_name, operand) in enumerate((("a", a), ("b", b))):
             if len(axes[i]) > operand.ndim:
                 raise ValueError(
-                    "axes[%i] should be array_like with length less than "
-                    "the dimensions of %s (%s.ndim=%i, len(axes[0])=%i)."
-                    % (i, operand_name, operand_name, operand.ndim, len(axes[i]))
+                    f"axes[{i}] should be array_like with length less than "
+                    f"the dimensions of {operand_name} ({operand_name}.ndim={operand.ndim}, len(axes[0])={len(axes[i])})."
                 )
             if len(axes[i]) > 0 and np.max(axes[i]) >= operand.ndim:
                 raise ValueError(
-                    "axes[%i] contains dimensions greater than or equal "
-                    "to %s.ndim (%s.ndim=%i, max(axes[0])=%i)."
-                    % (
-                        i,
-                        operand_name,
-                        operand_name,
-                        operand.ndim,
-                        np.max(np.array(axes[i])),
-                    )
+                    f"axes[{i}] contains dimensions greater than or equal "
+                    f"to {operand_name}.ndim ({operand_name}.ndim={operand.ndim}, max(axes[0])={np.max(np.array(axes[i]))})."
                 )
             if batched and 0 in axes[i]:
                 raise ValueError(
                     "axes to sum over must not contain the batch axis "
-                    "(axes[%i]=%s)" % (i, axes[i])
+                    f"(axes[{i}]={axes[i]})"
                 )
 
         batch_axes = [0] if batched else []
@@ -6711,9 +6694,9 @@ class ExtractDiag(Op):
         if self.view and not numpy_diagonal_return_view:
             warnings.warn(
                 "View will forced to False. ExtractDiag property view is "
-                "set to True but numpy version %s and prior versions of "
+                f"set to True but numpy version {np.version.version} and prior versions of "
                 "numpy.diagonal() do not return a view. Update "
-                "numpy to use ExtractDiag(view=True)" % np.version.version
+                "numpy to use ExtractDiag(view=True)"
             )
             self.view = False
         if self.view:
@@ -6783,9 +6766,10 @@ class ExtractDiag(Op):
         if self.view and not numpy_diagonal_return_view:
             warnings.warn(
                 "View will forced to False. ExtractDiag property view is "
+                f"set to True but numpy version {np.version.version} and prior versions of "
                 "set to True but numpy version %s and prior versions of "
                 "numpy.diagonal() do not return a view. Update "
-                "numpy to use ExtractDiag(view=True)" % np.version.version
+                "numpy to use ExtractDiag(view=True)"
             )
             self.view = False
 
@@ -7141,7 +7125,7 @@ class Choose(Op):
         a = as_tensor_variable(a)
         if a.dtype not in theano.tensor.discrete_dtypes:
             raise TypeError(
-                "choose first argument must have an [u]int* dtype. Got %s." % a.dtype
+                f"choose first argument must have an [u]int* dtype. Got {a.dtype}."
             )
 
         # Only use make_list if choices have inconsistent shapes
@@ -7226,7 +7210,7 @@ class AllocEmpty(gof.Op):
         shps = inputs
         nd = len(shps)
         params = sub["params"]
-        str = "npy_intp dims[%(nd)s];\n" % locals()
+        str = f"npy_intp dims[{nd}];\n"
         for idx, sh in enumerate(shps):
             str += (
                 "dims[%(idx)s] ="
@@ -7235,9 +7219,9 @@ class AllocEmpty(gof.Op):
             )
 
         # Validate that the output storage exists
-        str += "if(%(out)s==NULL\n" % locals()
+        str += f"if({out}==NULL\n"
         for idx, sh in enumerate(shps):
-            str += "||PyArray_DIMS(%(out)s)[%(idx)s]!=dims[%(idx)s]" % locals()
+            str += f"||PyArray_DIMS({out})[{idx}]!=dims[{idx}]"
 
         str += (
             """){

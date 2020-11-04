@@ -1270,9 +1270,7 @@ def run_conv_small_batched_vs_multicall(inputs_shape, filters_shape, batch_sub):
             # It seems results are repeated in the entire conv.
             # It should not happen.
             if np.allclose(res_all[p % checked_limit], res_all[p]):
-                print(
-                    "\nconv[%d] == conv[%d] == %s" % (p % checked_limit, p, res_all[p])
-                )
+                print(f"\nconv[{int(p % checked_limit)}] == conv[{p}] == {res_all[p]}")
         utt.assert_allclose(res_batch_bottom[i], res_all[p])
 
 

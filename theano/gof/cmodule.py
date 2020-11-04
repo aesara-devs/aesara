@@ -68,7 +68,7 @@ def debug_counter(name, every=1):
     setattr(debug_counter, name, getattr(debug_counter, name, 0) + 1)
     n = getattr(debug_counter, name)
     if n % every == 0:
-        print("debug_counter [{}]: {}".format(name, n), file=sys.stderr)
+        print(f"debug_counter [{name}]: {n}", file=sys.stderr)
 
 
 class ExtFunction:
@@ -116,9 +116,7 @@ class ExtFunction:
         It goes into the DynamicModule's method table.
 
         """
-        return '\t{{"{}", {}, {}, "{}"}}'.format(
-            self.name, self.name, self.method, self.doc
-        )
+        return f'\t{{"{self.name}", {self.name}, {self.method}, "{self.doc}"}}'
 
 
 class DynamicModule:
@@ -150,21 +148,18 @@ class DynamicModule:
 
     def print_init(self, stream):
         print(
-            """\
-static struct PyModuleDef moduledef = {{
+            f"""static struct PyModuleDef moduledef = {{
   PyModuleDef_HEAD_INIT,
-  "{name}",
+  "{self.hash_placeholder}",
   NULL,
   -1,
   MyMethods,
 }};
-""".format(
-                name=self.hash_placeholder
-            ),
+""",
             file=stream,
         )
         print(
-            ("PyMODINIT_FUNC PyInit_%s(void) {" % self.hash_placeholder),
+            f"PyMODINIT_FUNC PyInit_{self.hash_placeholder}(void) {{",
             file=stream,
         )
         for block in self.init_blocks:
@@ -198,7 +193,7 @@ static struct PyModuleDef moduledef = {{
             if inc[0] == "<" or inc[0] == '"':
                 print("#include", inc, file=sio)
             else:
-                print('#include "%s"' % inc, file=sio)
+                print(f'#include "{inc}"', file=sio)
 
         print("//////////////////////", file=sio)
         print("////  Support Code", file=sio)
@@ -236,7 +231,7 @@ static struct PyModuleDef moduledef = {{
 
         """
         for i, line in enumerate(self.code().split("\n")):
-            print(("%4i" % (i + 1)), line, file=ofile)
+            print(f"{i + 1}", line, file=ofile)
         ofile.flush()
 
     # TODO: add_type
@@ -295,8 +290,8 @@ def dlimport(fullpath, suffix=None):
         raise ValueError("path has wrong suffix", (fullpath, suffix))
     workdir = fullpath[: -len(module_name) - 1 - len(suffix)]
 
-    _logger.debug("WORKDIR %s", workdir)
-    _logger.debug("module_name %s", module_name)
+    _logger.debug(f"WORKDIR {workdir}")
+    _logger.debug(f"module_name {module_name}")
 
     sys.path[0:0] = [workdir]  # insert workdir at beginning (temporarily)
     global import_time
@@ -537,7 +532,7 @@ class KeyData:
             with open(self.key_pkl, "wb") as f:
                 pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
         except pickle.PicklingError:
-            _logger.warning("Cache leak due to unpickle-able key data %s", self.keys)
+            _logger.warning(f"Cache leak due to unpickle-able key data {self.keys}")
             os.remove(self.key_pkl)
             raise
 
@@ -712,11 +707,11 @@ class ModuleCache:
 
         """
         if name not in self.module_from_name:
-            _logger.debug("loading name %s", name)
+            _logger.debug(f"loading name {name}")
             self.module_from_name[name] = dlimport(name)
             self.stats[1] += 1
         else:
-            _logger.debug("returning compiled module from cache %s", name)
+            _logger.debug(f"returning compiled module from cache {name}")
             self.stats[0] += 1
         return self.module_from_name[name]
 
@@ -803,8 +798,7 @@ class ModuleCache:
                         # to time.
                         _logger.warning(
                             "ModuleCache.refresh() Found key "
-                            "without dll in cache, deleting it. %s",
-                            key_pkl,
+                            f"without dll in cache, deleting it. {key_pkl}",
                         )
                     rmtree(
                         root,
@@ -814,12 +808,11 @@ class ModuleCache:
                     )
                     continue
                 if (time_now - last_access_time(entry)) < age_thresh_use:
-                    _logger.debug("refresh adding %s", key_pkl)
+                    _logger.debug(f"refresh adding {key_pkl}")
 
                     def unpickle_failure():
                         _logger.info(
-                            "ModuleCache.refresh() Failed to " "unpickle cache file %s",
-                            key_pkl,
+                            f"ModuleCache.refresh() Failed to unpickle cache file {key_pkl}",
                         )
 
                     try:
@@ -903,8 +896,7 @@ class ModuleCache:
                     if to_del:
                         _logger.warning(
                             "ModuleCache.refresh() Found unversioned "
-                            "key in cache, removing it. %s",
-                            key_pkl,
+                            f"key in cache, removing it. {key_pkl}",
                         )
                         # Since the version is in the module hash, all
                         # keys should be unversioned.
@@ -912,8 +904,7 @@ class ModuleCache:
                             _logger.warning(
                                 "Found a mix of unversioned and "
                                 "versioned keys for the same "
-                                "module %s",
-                                key_pkl,
+                                f"module {key_pkl}",
                             )
                         rmtree(
                             root,
@@ -946,9 +937,7 @@ class ModuleCache:
                                 _logger.debug(
                                     "Found duplicated module not "
                                     "old enough yet to be deleted "
-                                    "(age: %s): %s",
-                                    age,
-                                    entry,
+                                    f"(age: {age}): {entry}",
                                 )
                         continue
 
@@ -972,12 +961,10 @@ class ModuleCache:
                             dir2 = os.path.dirname(entry)
                             _logger.warning(
                                 "The same cache key is associated to "
-                                "different modules (%s and %s). This "
+                                f"different modules ({dir1} and {dir2}). This "
                                 "is not supposed to happen! You may "
                                 "need to manually delete your cache "
                                 "directory to fix this.",
-                                dir1,
-                                dir2,
                             )
                     # Clean up the name space to prevent bug.
                     if key_data.keys:
@@ -1014,12 +1001,11 @@ class ModuleCache:
                     _logger.warning(
                         "A module that was loaded by this "
                         "ModuleCache can no longer be read from file "
-                        "%s... this could lead to problems.",
-                        entry,
+                        f"{entry}... this could lead to problems.",
                     )
                     del self.module_from_name[entry]
 
-                _logger.info("deleting ModuleCache entry %s", entry)
+                _logger.info(f"deleting ModuleCache entry {entry}")
                 key_data.delete_keys_from(self.entry_from_key)
                 del self.module_hash_to_key_data[module_hash]
                 if key_data.keys and list(key_data.keys)[0][0]:
@@ -1033,10 +1019,9 @@ class ModuleCache:
                         # os. So it is normal that this happen from time to
                         # time.
                         _logger.warning(
-                            "Removing key file %s because the "
+                            f"Removing key file {pkl_file_to_remove} because the "
                             "corresponding module is gone from the "
-                            "file system.",
-                            pkl_file_to_remove,
+                            "file system."
                         )
                     self.loaded_key_pkl.remove(pkl_file_to_remove)
 
@@ -1049,7 +1034,7 @@ class ModuleCache:
                     if not files:
                         _rmtree(*a, **kw)
 
-        _logger.debug("Time needed to refresh cache: %s", (time.time() - start_time))
+        _logger.debug(f"Time needed to refresh cache: {time.time() - start_time}")
 
         return too_old_to_use
 
@@ -1120,7 +1105,7 @@ class ModuleCache:
 
         """
         name = module.__file__
-        _logger.debug("Adding module to cache %s %s", key, name)
+        _logger.debug(f"Adding module to cache {key} {name}")
         # Changing the hash of the key is not allowed during
         # compilation. That is the only cause found that makes
         # the following assert fail.
@@ -1226,9 +1211,7 @@ class ModuleCache:
                 _logger.error(e)
                 if e.errno == 31:
                     _logger.error(
-                        "There are %i files in %s",
-                        len(os.listdir(config.compiledir)),
-                        config.compiledir,
+                        f"There are {len(os.listdir(config.compiledir))} files in {config.compiledir}"
                     )
                 raise
             finally:
@@ -1294,8 +1277,8 @@ class ModuleCache:
             msg = "Multiple equal keys found in unpickled KeyData file"
         if msg:
             raise AssertionError(
-                "%s. Verify the __eq__ and __hash__ functions of your "
-                "Ops. The file is: %s. The key is: %s" % (msg, key_pkl, key)
+                f"{msg}. Verify the __eq__ and __hash__ functions of your "
+                f"Ops. The file is: {key_pkl}. The key is: {key}"
             )
         # Also verify that there exists no other loaded key that would be equal
         # to this key. In order to speed things up, we only compare to keys
@@ -1306,8 +1289,7 @@ class ModuleCache:
                 raise AssertionError(
                     "Found two keys that are equal but have a different hash. "
                     "Verify the __eq__ and __hash__ functions of your Ops. "
-                    "The keys are:\n  %s\nand\n  %s\n(found in %s)."
-                    % (other, key, key_pkl)
+                    f"The keys are:\n  {other}\nand\n  {key}\n(found in {key_pkl})."
                 )
 
         self.time_spent_in_check_key += time.time() - start_time
@@ -1346,10 +1328,8 @@ class ModuleCache:
             if age_thresh_del > 0:
                 _logger.warning(
                     "Clearing modules that were not deemed "
-                    "too old to use: age_thresh_del=%d, "
-                    "self.age_thresh_use=%d",
-                    age_thresh_del,
-                    self.age_thresh_use,
+                    f"too old to use: age_thresh_del={age_thresh_del}, "
+                    f"self.age_thresh_use={self.age_thresh_use}"
                 )
             else:
                 _logger.info("Clearing all modules.")
@@ -1428,16 +1408,16 @@ class ModuleCache:
                 if os.path.isdir(to_delete):
                     try:
                         shutil.rmtree(to_delete)
-                        _logger.debug("Deleted: %s", to_delete)
+                        _logger.debug(f"Deleted: {to_delete}")
                     except Exception:
-                        _logger.warning("Could not delete %s", to_delete)
+                        _logger.warning(f"Could not delete {to_delete}")
                         continue
                 to_rename = os.path.join(self.dirname, base_dir)
                 if os.path.isdir(to_rename):
                     try:
                         shutil.move(to_rename, to_delete)
                     except Exception:
-                        _logger.warning("Could not move %s to %s", to_rename, to_delete)
+                        _logger.warning(f"Could not move {to_rename} to {to_delete}")
 
     def clear_unversioned(self, min_age=None):
         """Delete unversioned dynamic modules.
@@ -1560,7 +1540,7 @@ class ModuleCache:
         # take the lock when it happen.
         self.clear_old()
         self.clear_unversioned()
-        _logger.debug("Time spent checking keys: %s", self.time_spent_in_check_key)
+        _logger.debug(f"Time spent checking keys: {self.time_spent_in_check_key}")
 
 
 def _rmtree(
@@ -1591,21 +1571,19 @@ def _rmtree(
         if ignore_nocleanup or not config.nocleanup:
             log_msg = "Deleting"
             if msg:
-                log_msg += " (%s)" % msg
-            _logger.log(level, "%s: %s", log_msg, parent)
+                log_msg += f" ({msg})"
+            _logger.log(level, f"{log_msg}: {parent}")
             shutil.rmtree(parent)
     except Exception as e:
         # If parent still exists, mark it for deletion by a future refresh()
-        _logger.debug("In _rmtree, encountered exception: %s(%s)", type(e), e)
+        _logger.debug(f"In _rmtree, encountered exception: {type(e)}({e})")
         if os.path.exists(parent):
             try:
-                _logger.info('placing "delete.me" in %s', parent)
+                _logger.info(f'placing "delete.me" in {parent}')
                 open(os.path.join(parent, "delete.me"), "w").close()
             except Exception as ee:
                 _logger.warning(
-                    "Failed to remove or mark cache directory %s " "for removal %s",
-                    parent,
-                    ee,
+                    f"Failed to remove or mark cache directory {parent} for removal {ee}"
                 )
 
 
@@ -1637,9 +1615,7 @@ def get_module_cache(dirname, init_args=None):
     if _module_cache.dirname != dirname:
         _logger.warning(
             "Returning module cache instance with different "
-            "dirname (%s) than you requested (%s)",
-            _module_cache.dirname,
-            dirname,
+            f"dirname ({_module_cache.dirname}) than you requested ({dirname})"
         )
     return _module_cache
 
@@ -2087,14 +2063,14 @@ class GCC_compiler(Compiler):
 
             # The '-' at the end is needed. Otherwise, g++ do not output
             # enough information.
-            native_lines = get_lines("%s -march=native -E -v -" % theano.config.cxx)
+            native_lines = get_lines(f"{theano.config.cxx} -march=native -E -v -")
             if native_lines is None:
                 _logger.info(
                     "Call to 'g++ -march=native' failed," "not setting -march flag"
                 )
                 detect_march = False
             else:
-                _logger.info("g++ -march=native selected lines: %s", native_lines)
+                _logger.info(f"g++ -march=native selected lines: {native_lines}")
 
         if detect_march:
             if len(native_lines) != 1:
@@ -2102,7 +2078,7 @@ class GCC_compiler(Compiler):
                     # That means we did not select the right lines, so
                     # we have to report all the lines instead
                     reported_lines = get_lines(
-                        "%s -march=native -E -v -" % theano.config.cxx, parse=False
+                        f"{theano.config.cxx} -march=native -E -v -", parse=False
                     )
                 else:
                     reported_lines = native_lines
@@ -2112,12 +2088,11 @@ class GCC_compiler(Compiler):
                     " specific CPU. This can slow down the execution of Theano"
                     " functions. Please submit the following lines to"
                     " Theano's mailing list so that we can fix this"
-                    " problem:\n %s",
-                    reported_lines,
+                    f" problem:\n {reported_lines}"
                 )
             else:
-                default_lines = get_lines("%s -E -v -" % theano.config.cxx)
-                _logger.info("g++ default lines: %s", default_lines)
+                default_lines = get_lines(f"{theano.config.cxx} -E -v -")
+                _logger.info(f"g++ default lines: {default_lines}")
                 if len(default_lines) < 1:
                     _logger.warning(
                         "OPTIMIZATION WARNING: Theano was not able to find the"
@@ -2127,7 +2102,7 @@ class GCC_compiler(Compiler):
                         " functions. Please submit the following lines to"
                         " Theano's mailing list so that we can fix this"
                         " problem:\n %s",
-                        get_lines("%s -E -v -" % theano.config.cxx, parse=False),
+                        get_lines(f"{theano.config.cxx} -E -v -", parse=False),
                     )
                 else:
                     # Some options are actually given as "-option value",
@@ -2184,7 +2159,7 @@ class GCC_compiler(Compiler):
                                     opt = p.split()
                                     if len(opt) == 2:
                                         opt_name, opt_val = opt
-                                        new_flags[i] = "-march=%s" % opt_val
+                                        new_flags[i] = f"-march={opt_val}"
 
                             # Some versions of GCC report the native arch
                             # as "corei7-avx", but it generates illegal
@@ -2228,8 +2203,7 @@ class GCC_compiler(Compiler):
                             GCC_compiler.march_flags = split_flags
                             break
                     _logger.info(
-                        "g++ -march=native equivalent flags: %s",
-                        GCC_compiler.march_flags,
+                        f"g++ -march=native equivalent flags: {GCC_compiler.march_flags}"
                     )
 
             # Find working march flag:
@@ -2308,8 +2282,8 @@ class GCC_compiler(Compiler):
             arch in platform.machine() for arch in ["arm", "aarch"]
         ):
             n_bits = local_bitwidth()
-            cxxflags.append("-m%d" % n_bits)
-            _logger.debug("Compiling for %s bit architecture", n_bits)
+            cxxflags.append(f"-m{int(n_bits)}")
+            _logger.debug(f"Compiling for {n_bits} bit architecture")
 
         if sys.platform != "win32":
             # Under Windows it looks like fPIC is useless. Compiler warning:
@@ -2443,7 +2417,7 @@ class GCC_compiler(Compiler):
         cppfilename = os.path.join(location, "mod.cpp")
         with open(cppfilename, "w") as cppfile:
 
-            _logger.debug("Writing module C++ code to %s", cppfilename)
+            _logger.debug(f"Writing module C++ code to {cppfilename}")
 
             cppfile.write(src_code)
             # Avoid gcc warning "no newline at end of file".
@@ -2457,13 +2431,13 @@ class GCC_compiler(Compiler):
             if dist_suffix is not None and dist_suffix != "":
                 suffix = dist_suffix
 
-            filepath = "{}{}".format(module_name, suffix)
+            filepath = f"{module_name}{suffix}"
         else:
-            filepath = "{}.{}".format(module_name, get_lib_extension())
+            filepath = f"{module_name}.{get_lib_extension()}"
 
         lib_filename = os.path.join(location, filepath)
 
-        _logger.debug("Generating shared lib %s", lib_filename)
+        _logger.debug(f"Generating shared lib {lib_filename}")
         cmd = [theano.config.cxx, get_gcc_shared_library_arg(), "-g"]
 
         if config.cmodule.remove_gxx_opt:
@@ -2472,15 +2446,8 @@ class GCC_compiler(Compiler):
             cmd.extend(preargs)
         # to support path that includes spaces, we need to wrap it with double quotes on Windows
         path_wrapper = '"' if os.name == "nt" else ""
-        cmd.extend(
-            [
-                "-I{}{}{}".format(path_wrapper, idir, path_wrapper)
-                for idir in include_dirs
-            ]
-        )
-        cmd.extend(
-            ["-L{}{}{}".format(path_wrapper, ldir, path_wrapper) for ldir in lib_dirs]
-        )
+        cmd.extend([f"-I{path_wrapper}{idir}{path_wrapper}" for idir in include_dirs])
+        cmd.extend([f"-L{path_wrapper}{ldir}{path_wrapper}" for ldir in lib_dirs])
         if hide_symbols and sys.platform != "win32":
             # This has been available since gcc 4.0 so we suppose it
             # is always available. We pass it here since it
@@ -2489,11 +2456,11 @@ class GCC_compiler(Compiler):
             # improved loading times on most platforms (win32 is
             # different, as usual).
             cmd.append("-fvisibility=hidden")
-        cmd.extend(["-o", "{}{}{}".format(path_wrapper, lib_filename, path_wrapper)])
-        cmd.append("{}{}{}".format(path_wrapper, cppfilename, path_wrapper))
-        cmd.extend(["-l%s" % l for l in libs])
+        cmd.extend(["-o", f"{path_wrapper}{lib_filename}{path_wrapper}"])
+        cmd.append(f"{path_wrapper}{cppfilename}{path_wrapper}")
+        cmd.extend([f"-l{l}" for l in libs])
         # print >> sys.stderr, 'COMPILING W CMD', cmd
-        _logger.debug("Running cmd: %s", " ".join(cmd))
+        _logger.debug(f"Running cmd: {' '.join(cmd)}")
 
         def print_command_line_error():
             # Print command line when a problem occurred.
@@ -2520,7 +2487,7 @@ class GCC_compiler(Compiler):
             # gcc put its messages to stderr, so we add ours now
             tf.write("===============================\n")
             for i, l in enumerate(src_code.split("\n")):
-                tf.write("%05i\t%s\n" % (i + 1, l))
+                tf.write(f"{i + 1}\t{l}\n")
             tf.write("===============================\n")
             tf.write(
                 "Problem occurred during compilation with the " "command line below:\n"
@@ -2553,9 +2520,9 @@ class GCC_compiler(Compiler):
             # We replace '\n' by '. ' in the error message because when Python
             # prints the exception, having '\n' in the text makes it more
             # difficult to read.
+            compile_stderr = compile_stderr.replace("\n", ". ")
             raise Exception(
-                "Compilation failed (return status=%s): %s"
-                % (status, compile_stderr.replace("\n", ". "))
+                f"Compilation failed (return status={status}): {compile_stderr}"
             )
         elif config.cmodule.compilation_warning and compile_stderr:
             # Print errors just below the command line.

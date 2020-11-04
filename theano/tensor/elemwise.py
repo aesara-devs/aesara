@@ -177,14 +177,12 @@ class DimShuffle(COp):
                 if not isinstance(j, (int, np.integer)):
                     raise TypeError(
                         "DimShuffle indices must be python ints. "
-                        "Got: '%s' of type '%s'.",
-                        str(j),
-                        str(type(j)),
+                        f"Got: '{j}' of type '{type(j)}'."
                     )
                 if j >= len(input_broadcastable):
                     raise ValueError(
-                        ("new_order[%d] is %d, but the input " "only has %d axes.")
-                        % (i, j, len(input_broadcastable))
+                        f"new_order[{i}] is {j}, but the input only has "
+                        f"{len(input_broadcastable)} axes."
                     )
                 if j in new_order[(i + 1) :]:
                     raise ValueError(
@@ -232,15 +230,13 @@ class DimShuffle(COp):
             if len(ib) != len(self.input_broadcastable):
                 raise TypeError(
                     "The number of dimensions of the "
-                    "input is incorrect for this op. Expected %s, got %s."
-                    % (self.input_broadcastable, ib)
+                    f"input is incorrect for this op. Expected {self.input_broadcastable}, got {ib}."
                 )
             for expected, b in zip(self.input_broadcastable, ib):
                 if expected is True and b is False:
                     raise TypeError(
                         "The broadcastable pattern of the "
-                        "input is incorrect for this op. Expected %s, got %s."
-                        % (self.input_broadcastable, ib)
+                        f"input is incorrect for this op. Expected {self.input_broadcastable}, got {ib}."
                     )
                 # else, expected == b or expected is False and b is True
                 # Both case are good.
@@ -324,12 +320,12 @@ class DimShuffle(COp):
 class DimShufflePrinter:
     def __p(self, new_order, pstate, r):
         if new_order != () and new_order[0] == "x":
-            return "%s" % self.__p(new_order[1:], pstate, r)
+            return f"{self.__p(new_order[1:], pstate, r)}"
         #            return "[%s]" % self.__p(new_order[1:], pstate, r)
         if list(new_order) == list(range(r.type.ndim)):
             return pstate.pprinter.process(r)
         if list(new_order) == list(reversed(range(r.type.ndim))):
-            return "%s.T" % pstate.pprinter.process(r)
+            return f"{pstate.pprinter.process(r)}.T"
         return "DimShuffle{{{}}}({})".format(
             ", ".join(map(str, new_order)),
             pstate.pprinter.process(r),
@@ -523,7 +519,7 @@ second dimension
             if self.inplace_pattern:
                 items = list(self.inplace_pattern.items())
                 items.sort()
-                return "Elemwise{{{}}}{}".format(self.scalar_op, str(items))
+                return f"Elemwise{{{self.scalar_op}}}{items}"
             else:
                 return "Elemwise{%s}" % (self.scalar_op)
         else:
@@ -645,8 +641,7 @@ second dimension
 
         if not isinstance(scalar_igrads, (list, tuple)):
             raise TypeError(
-                "%s.grad returned %s instead of list or tuple"
-                % (str(self.scalar_op), str(type(scalar_igrads)))
+                f"{str(self.scalar_op)}.grad returned {str(type(scalar_igrads))} instead of list or tuple"
             )
 
         nd = len(inputs[0].type.broadcastable)  # this is the same for everyone
@@ -783,9 +778,9 @@ second dimension
                             msg2 += ["*"]
                         else:
                             msg2 += [str(d)]
-                    msg.append("(%s)" % ", ".join(msg2))
+                    msg.append(f"({', '.join(msg2)})")
 
-                base_exc_str = "Dimension mismatch; shapes are %s" % (", ".join(msg))
+                base_exc_str = f"Dimension mismatch; shapes are {', '.join(msg)}"
                 raise ValueError(base_exc_str)
 
         # Determine the shape of outputs
@@ -976,7 +971,7 @@ second dimension
         for i, (input, iname) in enumerate(zip(inputs, inames)):
             # the c generators will substitute the input names for
             # references to loop variables lv0, lv1, ...
-            sub["lv%i" % i] = iname
+            sub[f"lv{i}"] = iname
 
         decl = cgen.make_declare(orders, idtypes, sub)
         checks = cgen.make_checks(orders, idtypes, sub)
@@ -986,7 +981,7 @@ second dimension
         z = list(zip(inames, inputs))
         alloc_fortran = " && ".join(
             [
-                "PyArray_ISFORTRAN(%s)" % arr
+                f"PyArray_ISFORTRAN({arr})"
                 for arr, var in z
                 if not all(var.broadcastable)
             ]
@@ -1002,7 +997,7 @@ second dimension
         # them
         for output, oname, odtype in zip(real_outputs, real_onames, real_odtypes):
             i += 1  # before this loop, i = number of inputs
-            sub["lv%i" % i] = oname
+            sub[f"lv{i}"] = oname
             sub["olv"] = oname
             alloc += cgen.make_declare(
                 [list(range(nnested))], [odtype], dict(sub, lv0=oname)
@@ -1034,8 +1029,8 @@ second dimension
                 % locals()
             )
             # We alias the scalar variables
-            defines += "#define %(oname)s_i %(iname)s_i\n" % locals()
-            undefs += "#undef %(oname)s_i\n" % locals()
+            defines += f"#define {oname}_i {iname}_i\n"
+            undefs += f"#undef {oname}_i\n"
 
         # Note: here, olv_index is either the index of the last output
         # which is allocated, OR, if there are any aliased outputs,
@@ -1051,8 +1046,8 @@ second dimension
         task_code = self.scalar_op.c_code(
             node.tag.fake_node,
             nodename + "_scalar_",
-            ["%s_i" % s for s in _inames],
-            ["%s_i" % s for s in onames],
+            [f"{s}_i" for s in _inames],
+            [f"{s}_i" for s in onames],
             dict(sub, fail=fail),
         )
         code = (
@@ -1164,13 +1159,10 @@ second dimension
                     ]
                 ):
                     z = onames[0]
-                    contig = (
-                        """
+                    contig = f"""
                     // All output have the same size
-                    npy_intp n = PyArray_SIZE(%(z)s);
+                    npy_intp n = PyArray_SIZE({z});
                     """
-                        % locals()
-                    )
                     index = ""
                     for x, var in zip(inames + onames, inputs + node.outputs):
                         if not all(var.broadcastable):
@@ -1194,10 +1186,8 @@ second dimension
                                 % locals()
                             )
                     if self.openmp:
-                        contig += """#pragma omp parallel for if(n>=%d)
-                        """ % (
-                            config.openmp_elemwise_minsize
-                        )
+                        contig += """#pragma omp parallel for if(n>={int(config.openmp_elemwise_minsize)})
+                        """
                     contig += (
                         """
                     for(int i=0; i<n; i++){
@@ -1400,8 +1390,7 @@ class CAReduce(Op):
                     axis < 0 and abs(axis) > input.type.ndim
                 ):
                     raise ValueError(
-                        "Not enough dimensions on %s to reduce on axis %s"
-                        % (input, axis)
+                        f"Not enough dimensions on {input} to reduce on axis {axis}"
                     )
         input = as_tensor_variable(input)
         axis = self.axis
@@ -1476,9 +1465,8 @@ class CAReduce(Op):
                         variable.fill(self.scalar_op.identity)
                     else:
                         raise ValueError(
-                            "Input (%s) has zero-size on axis %s, but "
-                            "self.scalar_op (%s) has no attribute 'identity'"
-                            % (variable, dimension, self.scalar_op)
+                            f"Input ({variable}) has zero-size on axis {dimension}, but "
+                            f"self.scalar_op ({self.scalar_op}) has no attribute 'identity'"
                         )
                 else:
                     variable = self.ufunc.reduce(variable, dimension, dtype=acc_dtype)
@@ -1547,7 +1535,7 @@ class CAReduce(Op):
 
         sub = dict(sub)
         for i, (input, iname) in enumerate(zip(node.inputs, inames)):
-            sub["lv%i" % i] = iname
+            sub[f"lv{i}"] = iname
 
         decl = ""
         if adtype != odtype:
@@ -1564,7 +1552,7 @@ class CAReduce(Op):
 
         alloc = ""
         i += 1
-        sub["lv%i" % i] = oname
+        sub[f"lv{i}"] = oname
         sub["olv"] = oname
 
         # Allocate output buffer
@@ -1578,7 +1566,7 @@ class CAReduce(Op):
 
         if adtype != odtype:
             # Allocate accumulation buffer
-            sub["lv%i" % i] = aname
+            sub[f"lv{i}"] = aname
             sub["olv"] = aname
 
             alloc += cgen.make_declare(
@@ -1661,8 +1649,8 @@ class CAReduce(Op):
                 ],
             ),
             None,
-            ["%s_i" % aname, "%s_i" % inames[0]],
-            ["%s_i" % aname],
+            [f"{aname}_i", f"{inames[0]}_i"],
+            [f"{aname}_i"],
             sub,
         )
         code1 = (
@@ -1930,17 +1918,16 @@ class CAReduceDtype(CAReduce):
             upcasted_dtype = scalar.upcast(idtype, acc_dtype)
             if acc_dtype != upcasted_dtype:
                 raise TypeError(
-                    "Cannot build %s node with input dtype %s "
-                    "and acc_dtype %s, as precision would be lost. "
+                    f"Cannot build {self} node with input dtype {idtype} "
+                    f"and acc_dtype {acc_dtype}, as precision would be lost. "
                     "To correct this error, you can:\n"
                     "  - not specify acc_dtype, or\n"
-                    "  - use an acc_dtype at least as precise as %s.\n"
+                    f"  - use an acc_dtype at least as precise as {upcasted_dtype}.\n"
                     '  - specify "dtype" instead of "acc_dtype", so '
                     "the reduction will be precise, but the result will "
                     'be casted into "dtype" at the end.\n'
                     "If you are expecting the precision loss, you can "
-                    'use tensor.cast(..., dtype="%s"), on your input.'
-                    % (self, idtype, acc_dtype, upcasted_dtype, acc_dtype)
+                    f'use tensor.cast(..., dtype="{acc_dtype}"), on your input.'
                 )
             return acc_dtype
 
@@ -1972,8 +1959,8 @@ class CAReduceDtype(CAReduce):
         axis = ""
         if self.axis is not None:
             axis = ", ".join(str(x) for x in self.axis)
-            axis = "axis=[%s], " % axis
-        return "{}{{{}acc_dtype={}}}".format(name, axis, str(self.acc_dtype))
+            axis = f"axis=[{axis}], "
+        return f"{name}{{{axis}acc_dtype={self.acc_dtype}}}"
 
 
 class Sum(CAReduceDtype):
@@ -2025,8 +2012,8 @@ class Sum(CAReduceDtype):
         axis = ""
         if self.axis is not None:
             axis = ", ".join(str(x) for x in self.axis)
-            axis = "axis=[%s], " % axis
-        return "{}{{{}acc_dtype={}}}".format(name, axis, str(self.acc_dtype))
+            axis = f"axis=[{axis}], "
+        return f"{name}{{{axis}acc_dtype={self.acc_dtype}}}"
 
     def L_op(self, inp, out, grads):
         (x,) = inp

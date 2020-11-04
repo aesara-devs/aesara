@@ -118,7 +118,7 @@ class HintsFeature:
     """
 
     def add_hint(self, r, k, v):
-        logger.debug("adding hint; {}, {}, {}".format(r, k, v))
+        logger.debug(f"adding hint; {r}, {k}, {v}")
         self.hints[r][k] = v
 
     def ensure_init_r(self, r):
@@ -214,7 +214,7 @@ def is_positive(v):
         return True
     # TODO: how to handle this - a registry?
     #      infer_hints on Ops?
-    logger.debug("is_positive: %s" % str(v))
+    logger.debug(f"is_positive: {v}")
     if v.owner and v.owner.op == tensor.pow:
         try:
             exponent = tensor.get_scalar_constant_value(v.owner.inputs[1])
