@@ -4118,8 +4118,8 @@ class Composite(ScalarOp):
             return
         subd = dict(
             chain(
-                ((e, f"%{i['i%i']}") for i, e in enumerate(self.fgraph.inputs)),
-                ((e, f"%{i['o%i']}") for i, e in enumerate(self.fgraph.outputs)),
+                ((e, "%%(i%i)s" % i) for i, e in enumerate(self.fgraph.inputs)),
+                ((e, "%%(o%i)s" % i) for i, e in enumerate(self.fgraph.outputs)),
             )
         )
 

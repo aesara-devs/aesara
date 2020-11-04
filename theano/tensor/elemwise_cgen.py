@@ -44,7 +44,7 @@ def make_declare(loop_orders, dtypes, sub):
 def make_checks(loop_orders, dtypes, sub):
     init = ""
     for i, (loop_order, dtype) in enumerate(zip(loop_orders, dtypes)):
-        var = f"%{i['lv%i']}"
+        var = "%%(lv%i)s" % i
         # List of dimensions of var that are not broadcasted
         nonx = [x for x in loop_order if x != "x"]
         if nonx:
