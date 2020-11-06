@@ -316,7 +316,6 @@ class GammaLn(UnaryScalarOp):
             raise NotImplementedError("gammaln complex c code is not implemented")
         # For some reason, on the GPU, uint64 inputs don't get casted
         # automatically to float64. This make the compilation crash
-        dtype = ""
         cast = node.outputs[0].type.dtype_specs()[1]
         return f"""{z} = lgamma(({cast}){x});"""
 
