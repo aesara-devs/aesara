@@ -370,7 +370,7 @@ class GpuKernelBase:
         )
 
     def _generate_kernel_vars(self, k):
-        return f"""GpuKernel {dict(kname=k.objvar)['kname']};"""
+        return f"""GpuKernel {k.objvar};"""
 
     def _generate_kernel_wrap(self, k):
         args = []
@@ -426,7 +426,7 @@ int {sname}(unsigned int _nd, size_t *_n, size_t _shared, {args}) {{
 
     def _generate_zeros(self, k):
         return (
-            f"""memset(&{dict(v=k.objvar)['v']}, 0, sizeof({dict(v=k.objvar)['v']}));"""
+            f"""memset(&{k.objvar}, 0, sizeof({k.objvar}));"""
         )
 
     def _generate_kernel_init(self, k, fail, ctx):
@@ -461,7 +461,7 @@ int {sname}(unsigned int _nd, size_t *_n, size_t _shared, {args}) {{
         return "\n".join([inits_0, inits])
 
     def _generate_kernel_cleanup(self, k):
-        return f"GpuKernel_clear(&{dict(ovar=k.objvar)['ovar']});"
+        return f"GpuKernel_clear(&{k.objvar});"
 
     def c_cleanup_code_struct(self, node, name):
         kernels = self.gpu_kernels(node, name)
@@ -1092,7 +1092,7 @@ class GpuAllocEmpty(HideC, AllocEmpty):
         code = [
             f"""
 int i;
-size_t shape[{dict(ndim=ndim)['ndim']}];
+size_t shape[{ndim}];
 """
         ]
 

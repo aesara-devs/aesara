@@ -120,7 +120,7 @@ class SparseType(gof.Type):
             sp = self.format_cls[self.format](value)
             if str(sp.dtype) != self.dtype:
                 raise NotImplementedError(
-                    f"Expected {self.dtype} dtype but got {str(sp.dtype)}"
+                    f"Expected {self.dtype} dtype but got {sp.dtype}"
                 )
         if sp.format != self.format:
             raise NotImplementedError()
@@ -162,10 +162,10 @@ class SparseType(gof.Type):
         return hash(self.dtype) ^ hash(self.format)
 
     def __str__(self):
-        return f"Sparse[{str(self.dtype)}, {str(self.format)}]"
+        return f"Sparse[{self.dtype}, {self.format}]"
 
     def __repr__(self):
-        return f"Sparse[{str(self.dtype)}, {str(self.format)}]"
+        return f"Sparse[{self.dtype}, {self.format}]"
 
     def values_eq_approx(self, a, b, eps=1e-6):
         # WARNING: equality comparison of sparse matrices is not fast or easy

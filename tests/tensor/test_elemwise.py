@@ -482,7 +482,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                     zv = np.bitwise_xor.reduce(zv, axis)
             else:
                 raise Exception(
-                    f"Test for CAReduce with scalar_op {str(scalar_op)} not implemented"
+                    f"Test for CAReduce with scalar_op {scalar_op} not implemented"
                 )
             if scalar_op in [scalar.maximum, scalar.minimum] and numpy_raised:
                 with pytest.raises(ValueError):

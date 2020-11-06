@@ -2104,7 +2104,7 @@ class TimesN(scal.basic.UnaryScalarOp):
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
         (z,) = outputs
-        return f"{locals()['z']} = {locals()['name']}_timesn({locals()['x']});"
+        return f"{z} = {name}_timesn({x});"
 
 
 class TestCompositeCodegen:

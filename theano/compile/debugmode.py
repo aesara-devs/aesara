@@ -232,7 +232,7 @@ class BadDestroyMap(DebugModeError):
             )
             print("", file=sio)
         except Exception as e:
-            print(f"(Numpy-hints failed with: {str(e)})", file=sio)
+            print(f"(Numpy-hints failed with: {e})", file=sio)
         print(
             "  Hint: this can also be caused by a deficient "
             "values_eq_approx() or __eq__() implementation "
@@ -345,20 +345,20 @@ class InvalidValueError(DebugModeError):
         specific_hint = self.specific_hint
         context = debugprint(r, prefix="  ", depth=12, file=StringIO()).getvalue()
         return f"""InvalidValueError
-        type(variable) = {locals()['type_r']}
-        variable       = {locals()['r']}
-        type(value)    = {locals()['type_v']}
-        dtype(value)   = {locals()['v_dtype']}
-        shape(value)   = {locals()['v_shape']}
-        value          = {locals()['v_val']}
-        min(value)     = {locals()['v_min']}
-        max(value)     = {locals()['v_max']}
-        isfinite       = {locals()['v_isfinite']}
-        client_node    = {locals()['client_node']}
-        hint           = {locals()['hint']}
-        specific_hint  = {locals()['specific_hint']}
+        type(variable) = {type_r}
+        variable       = {r}
+        type(value)    = {type_v}
+        dtype(value)   = {v_dtype}
+        shape(value)   = {v_shape}
+        value          = {v_val}
+        min(value)     = {v_min}
+        max(value)     = {v_max}
+        isfinite       = {v_isfinite}
+        client_node    = {client_node}
+        hint           = {hint}
+        specific_hint  = {specific_hint}
         context        = ...
-{locals()['context']}
+{context}
         """
 
 
@@ -555,9 +555,9 @@ def debugprint(
         elif obj == "output":
             id_str = "output"
         elif ids == "id":
-            id_str = f"[id {str(id(r))}]"
+            id_str = f"[id {id(r)}]"
         elif ids == "int":
-            id_str = f"[id {str(len(used_ids))}]"
+            id_str = f"[id {len(used_ids)}]"
         elif ids == "CHAR":
             id_str = f"[id {char_from_number(len(used_ids))}]"
         elif ids == "":
@@ -1349,7 +1349,7 @@ def _get_preallocated_maps(
                 steps = [step_signs[0]] * len(out_broadcastable[:-check_ndim])
                 steps += [s * step_size for s in step_signs[1:]]
 
-                name = f"strided{str(tuple(steps))}"
+                name = f"strided{tuple(steps)}"
                 for r in considered_outputs:
                     if r in init_strided:
                         strides = []
@@ -1383,7 +1383,7 @@ def _get_preallocated_maps(
                 shape_diff[dim] = diff
 
                 wrong_size = {}
-                name = f"wrong_size{str(tuple(shape_diff))}"
+                name = f"wrong_size{tuple(shape_diff)}"
 
                 for r in considered_outputs:
                     if isinstance(r.type, (TensorType, GpuArrayType)):
@@ -1983,7 +1983,7 @@ class _Linker(gof.link.LocalLinker):
                                 raise InvalidValueError(
                                     r,
                                     storage_map[r][0],
-                                    hint=f"Graph Input '{str(r)}' is missing",
+                                    hint=f"Graph Input '{r}' is missing",
                                 )
                             raise InvalidValueError(
                                 r,

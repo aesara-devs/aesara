@@ -2612,7 +2612,7 @@ class ScalarSoftsign(UnaryScalarOp):
         (x,) = inp
         (z,) = out
         if node.inputs[0].type in [theano.scalar.float32, theano.scalar.float64]:
-            return f"{locals()['z']} = {locals()['x']} / (1.0+fabs({locals()['x']}));"
+            return f"{z} = {x} / (1.0+fabs({x}));"
         raise NotImplementedError("only floating point x is implemented")
 
 

@@ -84,9 +84,9 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
             node.inputs[0].type == scalar.float32
             or node.inputs[0].type == scalar.float16
         ):
-            return f"""{locals()['z']} = 1.0f / (1.0f + exp(-{locals()['x']}));"""
+            return f"""{z} = 1.0f / (1.0f + exp(-{x}));"""
         elif node.inputs[0].type == scalar.float64:
-            return f"""{locals()['z']} = 1.0 / (1.0 + exp(-{locals()['x']}));"""
+            return f"""{z} = 1.0 / (1.0 + exp(-{x}));"""
         else:
             raise NotImplementedError("only floatingpoint is implemented")
 

@@ -523,7 +523,7 @@ second dimension
             if self.inplace_pattern:
                 items = list(self.inplace_pattern.items())
                 items.sort()
-                return f"Elemwise{{{self.scalar_op}}}{str(items)}"
+                return f"Elemwise{{{self.scalar_op}}}{items}"
             else:
                 return "Elemwise{%s}" % (self.scalar_op)
         else:
@@ -1034,8 +1034,8 @@ second dimension
                 % locals()
             )
             # We alias the scalar variables
-            defines += f"#define {locals()['oname']}_i {locals()['iname']}_i\n"
-            undefs += f"#undef {locals()['oname']}_i\n"
+            defines += f"#define {oname}_i {iname}_i\n"
+            undefs += f"#undef {oname}_i\n"
 
         # Note: here, olv_index is either the index of the last output
         # which is allocated, OR, if there are any aliased outputs,
@@ -1166,7 +1166,7 @@ second dimension
                     z = onames[0]
                     contig = f"""
                     // All output have the same size
-                    npy_intp n = PyArray_SIZE({locals()['z']});
+                    npy_intp n = PyArray_SIZE({z});
                     """
                     index = ""
                     for x, var in zip(inames + onames, inputs + node.outputs):
@@ -1969,7 +1969,7 @@ class CAReduceDtype(CAReduce):
         if self.axis is not None:
             axis = ", ".join(str(x) for x in self.axis)
             axis = f"axis=[{axis}], "
-        return f"{name}{{{axis}acc_dtype={str(self.acc_dtype)}}}"
+        return f"{name}{{{axis}acc_dtype={self.acc_dtype}}}"
 
 
 class Sum(CAReduceDtype):
@@ -2022,7 +2022,7 @@ class Sum(CAReduceDtype):
         if self.axis is not None:
             axis = ", ".join(str(x) for x in self.axis)
             axis = f"axis=[{axis}], "
-        return f"{name}{{{axis}acc_dtype={str(self.acc_dtype)}}}"
+        return f"{name}{{{axis}acc_dtype={self.acc_dtype}}}"
 
     def L_op(self, inp, out, grads):
         (x,) = inp

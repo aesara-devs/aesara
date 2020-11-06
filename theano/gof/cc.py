@@ -364,7 +364,7 @@ def get_c_declare(r, name, sub):
     else:
         c_declare = r.type.c_declare(name, sub, False)
     pre = f"""
-    PyObject* py_{locals()['name']};
+    PyObject* py_{name};
     """
     return pre + c_declare
 
@@ -1740,7 +1740,7 @@ class CLinker(link.Linker):
         print("     return NULL;", file=code)
         print("  }", file=code)
         print(
-            f"  {locals()['struct_name']}* struct_ptr = new {locals()['struct_name']}();",
+            f"  {struct_name}* struct_ptr = new {struct_name}();",
             file=code,
         )
         print(

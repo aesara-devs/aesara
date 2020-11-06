@@ -892,7 +892,7 @@ def pydotprint(
             dstr = "val=" + str(np.asarray(var.data))
             if "\n" in dstr:
                 dstr = dstr[: dstr.index("\n")]
-            varstr = f"{dstr} {str(var.type)}"
+            varstr = f"{dstr} {var.type}"
         elif var in input_update and input_update[var].name is not None:
             varstr = input_update[var].name
             if not var_with_name_simple:

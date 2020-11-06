@@ -2657,10 +2657,10 @@ class Assert(Op):
             )
         check = "\n".join(check)
         return f"""
-        {locals()['check']}
-        Py_XDECREF({locals()['out']});
-        {locals()['out']} = {locals()['value']};
-        Py_INCREF({locals()['value']});
+        {check}
+        Py_XDECREF({out});
+        {out} = {value};
+        Py_INCREF({value});
         """
 
     def c_code_cache_version(self):

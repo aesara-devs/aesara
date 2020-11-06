@@ -326,7 +326,7 @@ class GpuIncSubtensor(IncSubtensor):
         different types of arrays.
 
         """
-        return f"""pygpu_copy({locals()['x']}, GA_ANY_ORDER)"""
+        return f"""pygpu_copy({x}, GA_ANY_ORDER)"""
 
     def decl_view(self):
         return "PyGpuArrayObject* zview = NULL;"
@@ -346,19 +346,19 @@ class GpuIncSubtensor(IncSubtensor):
 
         """
         ret = f"""
-        size_t dims[{locals()['view_ndim']}];
-        for(int i=0; i<{locals()['view_ndim']}; i++)
+        size_t dims[{view_ndim}];
+        for(int i=0; i<{view_ndim}; i++)
             dims[i] = xview_dims[i];
 
-        zview = pygpu_fromgpudata({locals()['x']}->ga.data,
-                                  {locals()['x']}->ga.offset + xview_offset,
-                                  {locals()['x']}->ga.typecode,
-                                  {locals()['view_ndim']},
+        zview = pygpu_fromgpudata({x}->ga.data,
+                                  {x}->ga.offset + xview_offset,
+                                  {x}->ga.typecode,
+                                  {view_ndim},
                                   dims,
                                   xview_strides,
-                                  {locals()['x']}->context,
+                                  {x}->context,
                                   1,
-                                  (PyObject *){locals()['x']},
+                                  (PyObject *){x},
                                   (PyObject *)&PyGpuArrayType);
         """
         return ret
@@ -386,7 +386,7 @@ class GpuIncSubtensor(IncSubtensor):
             C code expression to copy source into view, and 0 on success.
 
         """
-        return f"""sub_setarray(&{locals()['view']}->ga, &{locals()['source']}->ga)"""
+        return f"""sub_setarray(&{view}->ga, &{source}->ga)"""
 
     def c_headers(self):
         return [

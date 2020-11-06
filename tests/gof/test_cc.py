@@ -20,13 +20,13 @@ class TDouble(Type):
         return float(data)
 
     def c_declare(self, name, sub, check_input=True):
-        return f"double {locals()['name']}; void* {locals()['name']}_bad_thing;"
+        return f"double {name}; void* {name}_bad_thing;"
 
     def c_init(self, name, sub):
         return f"""
-        {locals()['name']} = 0;
-        {locals()['name']}_bad_thing = malloc(100000);
-        //printf("Initializing {locals()['name']}\
+        {name} = 0;
+        {name}_bad_thing = malloc(100000);
+        //printf("Initializing {name}\
 ");
         """
 
@@ -48,20 +48,20 @@ class TDouble(Type):
 
     def c_sync(self, name, sub):
         return f"""
-        Py_XDECREF(py_{locals()['name']});
-        py_{locals()['name']} = PyFloat_FromDouble({locals()['name']});
-        if (!py_{locals()['name']})
-            py_{locals()['name']} = Py_None;
-        //printf("Syncing {locals()['name']}\
+        Py_XDECREF(py_{name});
+        py_{name} = PyFloat_FromDouble({name});
+        if (!py_{name})
+            py_{name} = Py_None;
+        //printf("Syncing {name}\
 ");
         """
 
     def c_cleanup(self, name, sub):
         return f"""
-        //printf("Cleaning up {locals()['name']}\
+        //printf("Cleaning up {name}\
 ");
-        if ({locals()['name']}_bad_thing)
-            free({locals()['name']}_bad_thing);
+        if ({name}_bad_thing)
+            free({name}_bad_thing);
         """
 
     def c_code_cache_version(self):
@@ -123,7 +123,7 @@ class Add(Binary):
     def c_code(self, node, name, inp, out, sub):
         x, y = inp
         (z,) = out
-        return f"{locals()['z']} = {locals()['x']} + {locals()['y']};"
+        return f"{z} = {x} + {y};"
 
     def impl(self, x, y):
         return x + y
@@ -136,7 +136,7 @@ class BadSub(Binary):
     def c_code(self, node, name, inp, out, sub):
         x, y = inp
         (z,) = out
-        return f"{locals()['z']} = {locals()['x']} - {locals()['y']};"
+        return f"{z} = {x} - {y};"
 
     def impl(self, x, y):
         return -10  # erroneous (most of the time)
@@ -149,7 +149,7 @@ class Mul(Binary):
     def c_code(self, node, name, inp, out, sub):
         x, y = inp
         (z,) = out
-        return f"{locals()['z']} = {locals()['x']} * {locals()['y']};"
+        return f"{z} = {x} * {y};"
 
     def impl(self, x, y):
         return x * y
@@ -162,7 +162,7 @@ class Div(Binary):
     def c_code(self, node, name, inp, out, sub):
         x, y = inp
         (z,) = out
-        return f"{locals()['z']} = {locals()['x']} / {locals()['y']};"
+        return f"{z} = {x} / {y};"
 
     def impl(self, x, y):
         return x / y
@@ -379,9 +379,9 @@ class AddFail(Binary):
         x, y = inp
         (z,) = out
         fail = sub["fail"]
-        return f"""{locals()['z']} = {locals()['x']} + {locals()['y']};
+        return f"""{z} = {x} + {y};
             PyErr_SetString(PyExc_RuntimeError, "failing here");
-            {locals()['fail']};"""
+            {fail};"""
 
     def impl(self, x, y):
         return x + y

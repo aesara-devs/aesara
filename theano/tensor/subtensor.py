@@ -876,7 +876,7 @@ class Subtensor(Op):
         len_is_slice = len(is_slice)
 
         len_subtensor_spec = spec_pos()
-        subensor_spec = f"npy_intp subtensor_spec[{locals()['len_subtensor_spec']}];"
+        subensor_spec = f"npy_intp subtensor_spec[{len_subtensor_spec}];"
         if len_subtensor_spec == 0:
             subensor_spec = "npy_intp * subtensor_spec = NULL;"
 
@@ -894,8 +894,8 @@ class Subtensor(Op):
         if view_ndim:
             rval = f"""
         // Argument of the view
-        npy_intp xview_dims[{locals()['view_ndim']}];
-        npy_intp xview_strides[{locals()['view_ndim']}];
+        npy_intp xview_dims[{view_ndim}];
+        npy_intp xview_strides[{view_ndim}];
 
         """
         else:
@@ -1095,11 +1095,11 @@ class Subtensor(Op):
         )
 
         finish_view = f"""
-        Py_XDECREF({locals()['z']});
-        Py_INCREF(py_{locals()['x']});
-        PyArray_SetBaseObject(xview, py_{locals()['x']});
-        assert(py_{locals()['x']} == (PyObject*){locals()['x']});
-        {locals()['z']} = xview;
+        Py_XDECREF({z});
+        Py_INCREF(py_{x});
+        PyArray_SetBaseObject(xview, py_{x});
+        assert(py_{x} == (PyObject*){x});
+        {z} = xview;
         """
 
         return decl + checkNDim + "{" + get_xview + build_view + finish_view + "}"
@@ -1694,7 +1694,7 @@ class IncSubtensor(Op):
         # max_depth: we pass 0 to have this parameter ignored
         # requirements: here we pass NPY_ARRAY_ENSURECOPY to force a copy
         # context: this is almost always NULL, I'm not sure what it's used for
-        return f"""(PyArrayObject*)PyArray_FromAny(py_{locals()['x']}, NULL, 0, 0,
+        return f"""(PyArrayObject*)PyArray_FromAny(py_{x}, NULL, 0, 0,
                 NPY_ARRAY_ENSURECOPY, NULL)"""
 
     def make_view_array(self, x, view_ndim):
@@ -1748,7 +1748,7 @@ class IncSubtensor(Op):
             C code expression to copy source into view, and 0 on success.
 
         """
-        return f"""PyArray_CopyInto({locals()['view']}, {locals()['source']})"""
+        return f"""PyArray_CopyInto({view}, {source})"""
 
     def add_to_zview(self, name, x, fail):
         """
@@ -2140,7 +2140,7 @@ class AdvancedIncSubtensor1(Op):
         # max_depth: we pass 0 to have this parameter ignored
         # requirements: here we pass NPY_ARRAY_ENSURECOPY to force a copy
         # context: this is almost always NULL, I'm not sure what it's used for
-        return f"""(PyArrayObject*)PyArray_FromAny(py_{locals()['x']}, NULL, 0, 0,
+        return f"""(PyArrayObject*)PyArray_FromAny(py_{x}, NULL, 0, 0,
                 NPY_ARRAY_ENSURECOPY, NULL)"""
 
     def c_support_code(self):

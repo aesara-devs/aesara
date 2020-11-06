@@ -656,7 +656,7 @@ def get_scalar_constant_value(
                         if config.exception_verbosity == "high":
                             msg += f" x={min_informative_str(v)}"
                         else:
-                            msg += f" x={str(v)}"
+                            msg += f" x={v}"
                         raise ValueError(msg)
 
                     if gp_broadcastable[idx]:
@@ -3104,7 +3104,7 @@ class Alloc(gof.Op):
         fail = sub["fail"]
 
         code = f"""
-            npy_intp shape[{dict(ndim=ndim)['ndim']}];
+            npy_intp shape[{ndim}];
             """
 
         # Initialize shape
@@ -7223,7 +7223,7 @@ class AllocEmpty(gof.Op):
         shps = inputs
         nd = len(shps)
         params = sub["params"]
-        str = f"npy_intp dims[{locals()['nd']}];\n"
+        str = f"npy_intp dims[{nd}];\n"
         for idx, sh in enumerate(shps):
             str += (
                 "dims[%(idx)s] ="
@@ -7232,9 +7232,9 @@ class AllocEmpty(gof.Op):
             )
 
         # Validate that the output storage exists
-        str += f"if({locals()['out']}==NULL\n"
+        str += f"if({out}==NULL\n"
         for idx, sh in enumerate(shps):
-            str += f"||PyArray_DIMS({locals()['out']})[{locals()['idx']}]!=dims[{locals()['idx']}]"
+            str += f"||PyArray_DIMS({out})[{idx}]!=dims[{idx}]"
 
         str += (
             """){

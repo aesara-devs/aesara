@@ -918,7 +918,7 @@ class MRG_RandomStreams:
             d = dict(target=kwargs.pop("target"))
         if len(kwargs) > 0:
             raise TypeError(
-                f"uniform() got unexpected keyword arguments {str(kwargs.keys())}"
+                f"uniform() got unexpected keyword arguments {kwargs.keys()}"
             )
         node_rstate = shared(rstates, **d)
         u = self.pretty_return(

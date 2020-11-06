@@ -271,12 +271,12 @@ def inline_reduce_fixed_shared(
         )
     else:
         init = manner_init(
-            f"{locals()['load_x']}({locals()['x']}[{locals()['pos']} * {locals()['stride_x']}])"
+            f"{load_x}({x}[{pos} * {stride_x}])"
         )
         loop_line = manner_fn(
             "red",
             manner_init(
-                f"{locals()['load_x']}({locals()['x']}[i * {locals()['stride_x']}])"
+                f"{load_x}({x}[i * {stride_x}])"
             ),
         )
     loop_line2 = manner_fn(f"{buf}[{pos}]", f"{buf}[i]")

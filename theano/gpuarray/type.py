@@ -465,7 +465,7 @@ class GpuArrayType(Type):
 
     def c_declare(self, name, sub, check_input=True):
         return f"""
-        PyGpuArrayObject *{locals()['name']};
+        PyGpuArrayObject *{name};
         """
 
     def c_init(self, name, sub):
@@ -937,7 +937,7 @@ Py_INCREF(%(name)s);
 
     def c_cleanup(self, name, sub):
         return (
-            f"Py_XDECREF({dict(name=name)['name']}); {dict(name=name)['name']} = NULL;"
+            f"Py_XDECREF({name}); {name} = NULL;"
         )
 
     # c_sync is intentionally not declared to prevent normal usage

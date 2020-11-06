@@ -176,7 +176,7 @@ class Append(Op):
             )
         else:
             init = f"""
-            {locals()['output_name']} =  {locals()['x_name']};
+            {output_name} =  {x_name};
             """
         return (
             init
@@ -261,7 +261,7 @@ class Extend(Op):
             )
         else:
             init = f"""
-            {locals()['output_name']} =  {locals()['x_name']};
+            {output_name} =  {x_name};
             """
         return (
             init
@@ -353,7 +353,7 @@ class Insert(Op):
             )
         else:
             init = f"""
-            {locals()['output_name']} =  {locals()['x_name']};
+            {output_name} =  {x_name};
             """
         return (
             init
@@ -485,7 +485,7 @@ class Reverse(Op):
             )
         else:
             init = f"""
-            {locals()['output_name']} =  {locals()['x_name']};
+            {output_name} =  {x_name};
             """
         return (
             init

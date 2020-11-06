@@ -612,7 +612,7 @@ class ConvOp(OpenMPOp):
         self.out_mode = output_mode
 
         if self.out_mode not in ["valid", "full"]:
-            raise Exception(f"Mode {str(self.out_mode)} not implemented")
+            raise Exception(f"Mode {self.out_mode} not implemented")
 
         if any((shp is not None) and (shp <= 0) for shp in self.outshp):
             raise Exception(

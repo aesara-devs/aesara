@@ -185,7 +185,7 @@ class SeqOptimizer(Optimizer, list):
         Default failure_callback for SeqOptimizer.
 
         """
-        _logger.error(f"SeqOptimizer apply {str(optimizer)}")
+        _logger.error(f"SeqOptimizer apply {optimizer}")
         _logger.error("Traceback:")
         _logger.error(traceback.format_exc())
         if config.on_opt_error == "raise":
@@ -2004,8 +2004,8 @@ class NavigatorOptimizer(Optimizer):
 
         """
         if config.on_opt_error != "ignore":
-            _logger.error(f"Optimization failure due to: {str(local_opt)}")
-            _logger.error(f"node: {str(node)}")
+            _logger.error(f"Optimization failure due to: {local_opt}")
+            _logger.error(f"node: {node}")
             _logger.error("TRACEBACK:")
             _logger.error(traceback.format_exc())
         if config.on_opt_error == "pdb":

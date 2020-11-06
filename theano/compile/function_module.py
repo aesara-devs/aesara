@@ -478,7 +478,7 @@ class Function:
                 try:
                     s = finder[item]
                 except KeyError:
-                    raise TypeError(f"Unknown input or state: {str(item)}")
+                    raise TypeError(f"Unknown input or state: {item}")
                 if s is DUPLICATE:
                     raise TypeError(
                         "Ambiguous name: %s - please check the "
@@ -496,7 +496,7 @@ class Function:
                 except KeyError:
                     # Print informative error message.
                     msg = get_info_on_inputs(named_inputs, n_unnamed_inputs)
-                    raise TypeError(f"Unknown input or state: {str(item)}. {msg}")
+                    raise TypeError(f"Unknown input or state: {item}. {msg}")
                 if s is DUPLICATE:
                     raise TypeError(
                         "Ambiguous name: %s - please check the "

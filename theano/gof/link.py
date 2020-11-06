@@ -172,7 +172,7 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
                 [getattr(getattr(i[0], "dtype", ""), "num", "") for i in thunk.inputs]
             )
         if hasattr(node.op, "__input_name__"):
-            detailed_err_msg += f"\nInputs name: {str(node.op.__input_name__)}\n"
+            detailed_err_msg += f"\nInputs name: {node.op.__input_name__}\n"
 
         detailed_err_msg += f"\nOutputs clients: {clients}\n"
     else:
@@ -308,7 +308,7 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
             elif item[4] is False:
                 detailed_err_msg += "Input, "
             if item[1] is not None:
-                detailed_err_msg += f"Shape: {str(item[1])}, "
+                detailed_err_msg += f"Shape: {item[1]}, "
             detailed_err_msg += f"ElemSize: {item[2]} Byte(s)"
             if item[3] is not None:
                 detailed_err_msg += f", TotalSize: {item[3]} Byte(s)\n"

@@ -63,8 +63,8 @@ def inc_code():
 
     def gen_binop(type, typen):
         return f"""
-#if defined({dict(type=type, typen=typen)['typen']})
-{dict(type=type, typen=typen)['type']}_inplace_add,
+#if defined({typen})
+{type}_inplace_add,
 #endif
 """
 
@@ -76,8 +76,8 @@ def inc_code():
 
     def gen_num(typen):
         return f"""
-#if defined({dict(type=type, typen=typen)['typen']})
-{dict(type=type, typen=typen)['typen']},
+#if defined({typen})
+{typen},
 #endif
 """
 

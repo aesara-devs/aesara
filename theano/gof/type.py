@@ -572,23 +572,23 @@ class Generic(SingletonType):
 
     def c_declare(self, name, sub, check_input=True):
         return f"""
-        PyObject* {locals()['name']};
+        PyObject* {name};
         """
 
     def c_init(self, name, sub):
         return f"""
-        {locals()['name']} = NULL;
+        {name} = NULL;
         """
 
     def c_extract(self, name, sub, check_input=True):
         return f"""
-        Py_INCREF(py_{locals()['name']});
-        {locals()['name']} = py_{locals()['name']};
+        Py_INCREF(py_{name});
+        {name} = py_{name};
         """
 
     def c_cleanup(self, name, sub):
         return f"""
-        Py_XDECREF({locals()['name']});
+        Py_XDECREF({name});
         """
 
     def c_sync(self, name, sub):
@@ -756,7 +756,7 @@ class CDataType(Type):
         )
 
     def c_init(self, name, sub):
-        return f"{dict(name=name)['name']} = NULL;"
+        return f"{name} = NULL;"
 
     def c_extract(self, name, sub, check_input=True):
         return """
@@ -1183,10 +1183,10 @@ class EnumType(Type, dict):
         )
 
     def c_declare(self, name, sub, check_input=True):
-        return f"""{dict(ctype=self.ctype, name=name)['ctype']} {dict(ctype=self.ctype, name=name)['name']};"""
+        return f"""{self.ctype} {name};"""
 
     def c_init(self, name, sub):
-        return f"{dict(name=name, ctype=self.ctype)['name']} = ({dict(name=name, ctype=self.ctype)['ctype']})0;"
+        return f"{name} = ({self.ctype})0;"
 
     def c_cleanup(self, name, sub):
         return ""

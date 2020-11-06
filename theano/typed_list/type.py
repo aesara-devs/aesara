@@ -49,7 +49,7 @@ class TypedListType(gof.Type):
                 return x
 
             else:
-                raise TypeError(f"Expected all elements to be {str(self.ttype)}")
+                raise TypeError(f"Expected all elements to be {self.ttype}")
 
     def __eq__(self, other):
         """
@@ -101,12 +101,12 @@ class TypedListType(gof.Type):
 
     def c_declare(self, name, sub, check_input=True):
         return f"""
-        PyListObject* {dict(name=name)['name']};
+        PyListObject* {name};
         """
 
     def c_init(self, name, sub):
         return f"""
-        {dict(name=name)['name']} = NULL;
+        {name} = NULL;
         """
 
     def c_extract(self, name, sub, check_input=True):

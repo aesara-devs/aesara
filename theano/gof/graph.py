@@ -428,7 +428,7 @@ class Variable(Node):
             else:
                 return str(self.owner.op) + "." + str(self.index)
         else:
-            return f"<{str(self.type)}>"
+            return f"<{self.type}>"
 
     def __repr_test_value__(self):
         """Return a repr of the test value.

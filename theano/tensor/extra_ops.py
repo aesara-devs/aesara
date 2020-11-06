@@ -96,7 +96,7 @@ class SearchsortedOp(Op):
             self.side = side
         else:
             raise ValueError(
-                f"'{locals()['side']}' is an invalid value for keyword 'side'"
+                f"'{side}' is an invalid value for keyword 'side'"
             )
 
     def get_params(self, node):
@@ -140,7 +140,7 @@ class SearchsortedOp(Op):
 
     def c_support_code_struct(self, node, name):
         return f"""
-            int right_{locals()['name']};
+            int right_{name};
         """
 
     def c_init_code_struct(self, node, name, sub):
@@ -1298,11 +1298,11 @@ class UnravelIndex(Op):
 
         if indices.dtype not in basic.int_dtypes:
             raise TypeError(
-                f"'{str(indices.dtype)}' object cannot be interpreted as an index"
+                f"'{indices.dtype}' object cannot be interpreted as an index"
             )
         if dims.dtype not in basic.int_dtypes:
             raise TypeError(
-                f"'{str(dims.dtype)}' object cannot be interpreted as an index"
+                f"'{dims.dtype}' object cannot be interpreted as an index"
             )
         if dims.ndim != 1:
             raise TypeError("dims must be a 1D array")
@@ -1382,11 +1382,11 @@ class RavelMultiIndex(Op):
         for i in multi_index:
             if i.dtype not in basic.int_dtypes:
                 raise TypeError(
-                    f"'{str(i.dtype)}' object cannot be interpreted as an index"
+                    f"'{i.dtype}' object cannot be interpreted as an index"
                 )
         if dims.dtype not in basic.int_dtypes:
             raise TypeError(
-                f"'{str(dims.dtype)}' object cannot be interpreted as an index"
+                f"'{dims.dtype}' object cannot be interpreted as an index"
             )
         if dims.ndim != 1:
             raise TypeError("dims must be a 1D array")

@@ -32,10 +32,10 @@ class MyType(Type):
         return isinstance(other, MyType) and other.thingy == self.thingy
 
     def __str__(self):
-        return f"R{str(self.thingy)}"
+        return f"R{self.thingy}"
 
     def __repr__(self):
-        return f"R{str(self.thingy)}"
+        return f"R{self.thingy}"
 
 
 def MyVariable(thingy):

@@ -231,7 +231,7 @@ def batch_normalization_train(
     # for rounding errors now, since numpy.float32(1e-5) < 1e-5.
     epsilon = np.cast[theano.config.floatX](epsilon)
     if epsilon < 1e-5:
-        raise ValueError(f"epsilon must be at least 1e-5, got {str(epsilon)}")
+        raise ValueError(f"epsilon must be at least 1e-5, got {epsilon}")
 
     inputs = as_tensor_variable(inputs)
     gamma = as_tensor_variable(gamma)
@@ -365,7 +365,7 @@ def batch_normalization_test(
     # for rounding errors now, since numpy.float32(1e-5) < 1e-5.
     epsilon = np.cast[theano.config.floatX](epsilon)
     if epsilon < 1e-5:
-        raise ValueError(f"epsilon must be at least 1e-5, got {str(epsilon)}")
+        raise ValueError(f"epsilon must be at least 1e-5, got {epsilon}")
 
     gamma = as_tensor_variable(gamma)
     beta = as_tensor_variable(beta)

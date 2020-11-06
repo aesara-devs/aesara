@@ -204,7 +204,7 @@ class TestMakeThunk:
             def c_code(self, node, name, inputs, outputs, sub):
                 (x,) = inputs
                 (z,) = outputs
-                return f"{locals()['z']} = {locals()['x']} + 1;"
+                return f"{z} = {x} + 1;"
 
         i = scalar.int32("i")
         o = IncOneC()(i)

@@ -12,7 +12,7 @@ def make_declare(loop_orders, dtypes, sub):
         # we declare an iteration variable
         # and an integer for the number of dimensions
         decl += f"""
-        {locals()['dtype']}* {locals()['var']}_iter;
+        {dtype}* {var}_iter;
         """
         for j, value in enumerate(loop_order):
             if value != "x":
@@ -74,7 +74,7 @@ def make_checks(loop_orders, dtypes, sub):
             if index != "x":
                 # Initialize the variables associated to the jth loop
                 # jump = stride - adjust
-                jump = f"({locals()['var']}_stride{locals()['index']}) - ({adjust})"
+                jump = f"({var}_stride{index}) - ({adjust})"
                 init += (
                     """
                 %(var)s_n%(index)s = PyArray_DIMS(%(var)s)[%(index)s];
@@ -83,7 +83,7 @@ def make_checks(loop_orders, dtypes, sub):
                 """
                     % locals()
                 )
-                adjust = f"{locals()['var']}_n{locals()['index']}*{locals()['var']}_stride{locals()['index']}"
+                adjust = f"{var}_n{index}*{var}_stride{index}"
             else:
                 jump = f"-({adjust})"
                 init += (
@@ -152,10 +152,10 @@ def make_alloc(loop_orders, dtype, sub, fortran="0"):
         for j, candidate in enumerate(candidates):
             if candidate != "x":
                 var = sub["lv%i" % j]
-                init_dims += f"dims[{locals()['i']}] = {locals()['var']}_n{locals()['candidate']};\n"
+                init_dims += f"dims[{i}] = {var}_n{candidate};\n"
                 break
         else:
-            init_dims += f"dims[{locals()['i']}] = 1;\n"
+            init_dims += f"dims[{i}] = 1;\n"
 
     # TODO: it would be interesting to allocate the output in such a
     # way that its contiguous dimensions match one of the input's
@@ -232,7 +232,7 @@ def make_loop(loop_orders, dtypes, loop_tasks, sub, openmp=None):
                 % locals()
             )
             if index != "x":
-                suitable_n = f"{locals()['var']}_n{locals()['index']}"
+                suitable_n = f"{var}_n{index}"
         if openmp:
             openmp_elemwise_minsize = theano.config.openmp_elemwise_minsize
             forloop = (
@@ -329,7 +329,7 @@ def make_reordered_loop(
         else:
             # Stride is 0 when dimension is broadcastable
             order_loops += f"""
-            {locals()['ovar']}_loops_it->first = 0;
+            {ovar}_loops_it->first = 0;
             """
 
         order_loops += (
@@ -363,7 +363,7 @@ def make_reordered_loop(
         for j, candidate in enumerate(candidates):
             if candidate != "x":
                 var = sub["lv%i" % j]
-                total = f"{locals()['var']}_n{locals()['candidate']}"
+                total = f"{var}_n{candidate}"
                 break
         else:
             total = "1"
@@ -378,7 +378,7 @@ def make_reordered_loop(
     # Sort totals to match the new order that was computed by sorting
     # the loop vector. One integer variable per loop is declared.
     declare_totals += f"""
-    {locals()['ovar']}_loops_it = {locals()['ovar']}_loops.begin();
+    {ovar}_loops_it = {ovar}_loops.begin();
     """
 
     for i in range(nnested):
@@ -404,7 +404,7 @@ def make_reordered_loop(
         for index in loop_order:
             # Note: the stride variable is not declared for broadcasted variables
             if index != "x":
-                r.append(f"{locals()['var']}_stride{locals()['index']}")
+                r.append(f"{var}_stride{index}")
             else:
                 r.append("0")
         return r
@@ -435,7 +435,7 @@ def make_reordered_loop(
     for i in range(nvars):
         var = sub["lv%i" % i]
         declare_strides += f"""
-        {locals()['ovar']}_loops_rit = {locals()['ovar']}_loops.rbegin();"""
+        {ovar}_loops_rit = {ovar}_loops.rbegin();"""
         for j in reversed(range(nnested)):
             declare_strides += (
                 """
@@ -448,13 +448,13 @@ def make_reordered_loop(
     declare_iter = ""
     for i, dtype in enumerate(dtypes):
         var = sub["lv%i" % i]
-        declare_iter += f"{locals()['var']}_iter = ({locals()['dtype']}*)(PyArray_DATA({locals()['var']}));\n"
+        declare_iter += f"{var}_iter = ({dtype}*)(PyArray_DATA({var}));\n"
 
     pointer_update = ""
     for j, dtype in enumerate(dtypes):
         var = sub["lv%i" % j]
         pointer_update += (
-            f"{locals()['dtype']} &{locals()['var']}_i = * ( {locals()['var']}_iter"
+            f"{dtype} &{var}_i = * ( {var}_iter"
         )
         tot_jump = ""
         for i in reversed(range(nnested)):
@@ -478,7 +478,7 @@ def make_reordered_loop(
                     """#pragma omp parallel for if( %(total)s >=%(openmp_elemwise_minsize)s)\n"""
                     % locals()
                 )
-        forloop += f"for(int {locals()['iterv']} = 0; {locals()['iterv']}<{locals()['total']}; {locals()['iterv']}++)"
+        forloop += f"for(int {iterv} = 0; {iterv}<{total}; {iterv}++)"
 
         loop = (
             """
@@ -565,9 +565,9 @@ def make_loop_careduce(loop_orders, dtypes, loop_tasks, sub):
         suitable_n = "1"
         for j, index in enumerate(indices):
             var = sub["lv%i" % j]
-            update += f"{locals()['var']}_iter += {locals()['var']}_jump{locals()['index']}_{locals()['i']};\n"
+            update += f"{var}_iter += {var}_jump{index}_{i};\n"
             if index != "x":
-                suitable_n = f"{locals()['var']}_n{locals()['index']}"
+                suitable_n = f"{var}_n{index}"
         return (
             """
         %(preloop)s

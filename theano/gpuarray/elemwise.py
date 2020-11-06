@@ -313,7 +313,7 @@ class GpuElemwise(HideC, Elemwise):
         # check that all inputs have valid dimensions
         emitted_inames = {}
         for idx, iname in enumerate(inputs):
-            code += f"rargs[{dict(idx=idx, iname=iname)['idx']}] = &{dict(idx=idx, iname=iname)['iname']}->ga;\n"
+            code += f"rargs[{idx}] = &{iname}->ga;\n"
             if iname in emitted_inames:
                 continue
             code += (
@@ -569,7 +569,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
     def __str__(self):
         pre = ""
         if self.pre_scalar_op:
-            pre = f"pre={str(self.pre_scalar_op)},red="
+            pre = f"pre={self.pre_scalar_op},red="
         ax = ""
         if self.axis is not None:
             ax = f"{{{', '.join(str(x) for x in self.axis)}}}"
@@ -736,8 +736,8 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         # check the basics of out output
         print(
             f"""
-        if (  !{locals()['z']}
-           || (PyGpuArray_NDIM({locals()['z']}) != {locals()['nd_out']})
+        if (  !{z}
+           || (PyGpuArray_NDIM({z}) != {nd_out})
         """,
             file=sio,
         )
@@ -762,7 +762,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
             file=sio,
         )
         if nd_out > 0:
-            print(f"size_t new_dims[{locals()['nd_out']}]; ", file=sio)
+            print(f"size_t new_dims[{nd_out}]; ", file=sio)
         else:
             print("size_t *new_dims=NULL; ", file=sio)
 
@@ -770,7 +770,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         for i in range(nd_in):
             if not self.reduce_mask[i]:
                 print(
-                    f"new_dims[{locals()['j']}] = PyGpuArray_DIMS({locals()['x']})[{locals()['i']}];",
+                    f"new_dims[{j}] = PyGpuArray_DIMS({x})[{i}];",
                     file=sio,
                 )
                 j += 1
@@ -795,7 +795,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         # \begin bracket the reduction in a check that there is
         # actually work to do
         if getattr(self.scalar_op, "identity", None) == 0:
-            zero_shp = f"GpuArray_memset(&{locals()['z']}->ga, 0)"
+            zero_shp = f"GpuArray_memset(&{z}->ga, 0)"
         # TODO: elif getattr(self.scalar_op, 'identity', None) == 1:
         else:
             scalar_op = self.scalar_op
@@ -895,16 +895,16 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
                 for i in range(node.inputs[0].ndim)
             ]
         )
-        k_var = f"kernel_reduce_{locals()['pattern']}_{locals()['name']}"
+        k_var = f"kernel_reduce_{pattern}_{name}"
         params = []
 
         for i in range(ndim):
-            params.append(f"(void *)&PyGpuArray_DIMS({locals()['x']})[{locals()['i']}]")
+            params.append(f"(void *)&PyGpuArray_DIMS({x})[{i}]")
         for declaration, value in extra_dims:
             print(declaration % locals(), file=sio)
             params.append(value)
-        params.append(f"(void *){locals()['x']}->ga.data")
-        params.append(f"(void *)&{locals()['x']}->ga.offset")
+        params.append(f"(void *){x}->ga.data")
+        params.append(f"(void *)&{x}->ga.offset")
         for i in range(ndim):
             print(
                 """
@@ -918,8 +918,8 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
             print(declaration % locals(), file=sio)
             params.append(value)
 
-        params.append(f"(void *){locals()['z']}->ga.data")
-        params.append(f"(void *)&{locals()['z']}->ga.offset")
+        params.append(f"(void *){z}->ga.data")
+        params.append(f"(void *)&{z}->ga.offset")
         for i in range(nd_out):
             print(
                 """
@@ -1003,14 +1003,14 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
             ndim = len(reduce_mask)
         if pattern is None:
             pattern = "".join(str(i) for i in reduce_mask)
-        kname = f"kernel_reduce_{locals()['pattern']}"
-        k_var = f"kernel_reduce_{locals()['pattern']}_{locals()['nodename']}"
+        kname = f"kernel_reduce_{pattern}"
+        k_var = f"kernel_reduce_{pattern}_{nodename}"
         params = []
         sio = StringIO()
 
         print(
             f"""
-            KERNEL void {locals()['kname']}(
+            KERNEL void {kname}(
         """,
             file=sio,
         )
@@ -1018,7 +1018,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
             params.append("uintp")
             print(
                 f"""
-                    const ga_size d{locals()['i']},
+                    const ga_size d{i},
         """,
                 file=sio,
             )
@@ -1026,7 +1026,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         params.append("uintp")
         print(
             f"""
-                    const {locals()['in_type']} *A, const ga_size offset_A,
+                    const {in_type} *A, const ga_size offset_A,
         """,
             file=sio,
         )
@@ -1034,7 +1034,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
             params.append("intp")
             print(
                 f"""
-                    const ga_ssize sA{locals()['i']},
+                    const ga_ssize sA{i},
         """,
                 file=sio,
             )
@@ -1042,7 +1042,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         params.append("uintp")
         print(
             f"""
-                    {locals()['out_type']} * Z, const ga_size offset_Z
+                    {out_type} * Z, const ga_size offset_Z
         """,
             file=sio,
         )
@@ -1050,7 +1050,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
             params.append("intp")
             print(
                 f"""
-                    , const ga_ssize sZ{locals()['i']}
+                    , const ga_ssize sZ{i}
         """,
                 file=sio,
             )
@@ -1248,7 +1248,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         in_dtype = "npy_" + node.inputs[0].dtype
         out_dtype = "npy_" + node.outputs[0].dtype
         if getattr(self.scalar_op, "identity", None) == 0:
-            zero_shp = f"GpuArray_memset(&{locals()['z']}->ga, 0)"
+            zero_shp = f"GpuArray_memset(&{z}->ga, 0)"
         # TODO: elif getattr(self.scalar_op, 'identity', None) == 1:
         else:
             zero_shp = (
@@ -1261,7 +1261,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
             )
 
         acc_dtype = "npy_" + self._acc_dtype(node.inputs[0].dtype)
-        k_var = f"kernel_reduce_ccontig_{locals()['name']}"
+        k_var = f"kernel_reduce_ccontig_{name}"
         err_check = (
             """
             if (err != GA_NO_ERROR) {
@@ -1431,7 +1431,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         in_dtype = "npy_" + node.inputs[0].dtype
         out_dtype = "npy_" + node.outputs[0].dtype
         acc_dtype = "npy_" + self._acc_dtype(node.inputs[0].dtype)
-        k_var = f"kernel_reduce_10_{locals()['name']}"
+        k_var = f"kernel_reduce_10_{name}"
         err_check = (
             """
             if (err != GA_NO_ERROR) {
@@ -1534,7 +1534,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         pattern = "".join(str(i) for i in self.reduce_mask)
         in_dtype = "npy_" + node.inputs[0].dtype
         out_dtype = "npy_" + node.outputs[0].dtype
-        k_var = f"kernel_reduce_010_AD_{locals()['name']}"
+        k_var = f"kernel_reduce_010_AD_{name}"
         err_check = (
             """
             if (err != GA_NO_ERROR) {
@@ -1670,7 +1670,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         in_dtype = "npy_" + node.inputs[0].dtype
         out_dtype = "npy_" + node.outputs[0].dtype
         acc_dtype = "npy_" + self._acc_dtype(node.inputs[0].dtype)
-        k_var = f"kernel_reduce_010_AD_{locals()['name']}"
+        k_var = f"kernel_reduce_010_AD_{name}"
         err_check = (
             """
             if (err != GA_NO_ERROR) {
@@ -3226,7 +3226,7 @@ class GpuCAReduceCPY(GpuKernelBase, HideC, CAReduceDtype):
             )
         else:
             code += f"""
-        tmp = {dict(output=output)['output']};
+        tmp = {output};
         Py_INCREF(tmp);
         """
 

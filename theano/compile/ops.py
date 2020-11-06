@@ -787,9 +787,9 @@ class Rebroadcast(Op):
             return (
                 final_code
                 + f"""
-            Py_XDECREF({locals()['oname']});
-            {locals()['oname']} = {locals()['iname']};
-            Py_XINCREF({locals()['oname']});
+            Py_XDECREF({oname});
+            {oname} = {iname};
+            Py_XINCREF({oname});
             """
             )
         return super().c_code(node, nodename, inp, out, sub)

@@ -1225,7 +1225,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
 
                 if input_grads is None:
                     raise TypeError(
-                        f"{str(node.op)}.grad returned NoneType, expected iterable."
+                        f"{node.op}.grad returned NoneType, expected iterable."
                     )
 
                 if len(input_grads) != len(inputs):

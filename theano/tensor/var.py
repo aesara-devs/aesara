@@ -994,7 +994,7 @@ class TensorConstant(_tensor_py_operators, Constant):
 
     def __str__(self):
         if self.tag.unique_value is not None:
-            name = f"{str(self.data.shape)} of {str(self.tag.unique_value)}"
+            name = f"{self.data.shape} of {self.tag.unique_value}"
         else:
             name = f"{self.data}"
         if len(name) > 20:

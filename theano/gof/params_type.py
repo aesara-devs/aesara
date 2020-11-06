@@ -761,13 +761,13 @@ class ParamsType(Type):
         # NB: It seems c_init() is not called for an op param.
         # So the real initialization is done at top of c_extract.
         return f"""
-        {dict(name=name)['name']} = NULL;
+        {name} = NULL;
         """
 
     def c_cleanup(self, name, sub):
         return f"""
-        delete {dict(name=name)['name']};
-        {dict(name=name)['name']} = NULL;
+        delete {name};
+        {name} = NULL;
         """
 
     def c_extract(self, name, sub, check_input=True):
