@@ -936,9 +936,7 @@ Py_INCREF(%(name)s);
         )
 
     def c_cleanup(self, name, sub):
-        return (
-            f"Py_XDECREF({name}); {name} = NULL;"
-        )
+        return f"Py_XDECREF({name}); {name} = NULL;"
 
     # c_sync is intentionally not declared to prevent normal usage
 

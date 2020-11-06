@@ -95,9 +95,7 @@ class SearchsortedOp(Op):
         if side == "left" or side == "right":
             self.side = side
         else:
-            raise ValueError(
-                f"'{side}' is an invalid value for keyword 'side'"
-            )
+            raise ValueError(f"'{side}' is an invalid value for keyword 'side'")
 
     def get_params(self, node):
         return self.side
@@ -1301,9 +1299,7 @@ class UnravelIndex(Op):
                 f"'{indices.dtype}' object cannot be interpreted as an index"
             )
         if dims.dtype not in basic.int_dtypes:
-            raise TypeError(
-                f"'{dims.dtype}' object cannot be interpreted as an index"
-            )
+            raise TypeError(f"'{dims.dtype}' object cannot be interpreted as an index")
         if dims.ndim != 1:
             raise TypeError("dims must be a 1D array")
 
@@ -1381,13 +1377,9 @@ class RavelMultiIndex(Op):
 
         for i in multi_index:
             if i.dtype not in basic.int_dtypes:
-                raise TypeError(
-                    f"'{i.dtype}' object cannot be interpreted as an index"
-                )
+                raise TypeError(f"'{i.dtype}' object cannot be interpreted as an index")
         if dims.dtype not in basic.int_dtypes:
-            raise TypeError(
-                f"'{dims.dtype}' object cannot be interpreted as an index"
-            )
+            raise TypeError(f"'{dims.dtype}' object cannot be interpreted as an index")
         if dims.ndim != 1:
             raise TypeError("dims must be a 1D array")
 

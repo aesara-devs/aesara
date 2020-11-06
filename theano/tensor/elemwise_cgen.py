@@ -453,9 +453,7 @@ def make_reordered_loop(
     pointer_update = ""
     for j, dtype in enumerate(dtypes):
         var = sub["lv%i" % j]
-        pointer_update += (
-            f"{dtype} &{var}_i = * ( {var}_iter"
-        )
+        pointer_update += f"{dtype} &{var}_i = * ( {var}_iter"
         tot_jump = ""
         for i in reversed(range(nnested)):
             iterv = "ITER_%i" % i

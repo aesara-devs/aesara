@@ -270,14 +270,10 @@ def inline_reduce_fixed_shared(
             ),
         )
     else:
-        init = manner_init(
-            f"{load_x}({x}[{pos} * {stride_x}])"
-        )
+        init = manner_init(f"{load_x}({x}[{pos} * {stride_x}])")
         loop_line = manner_fn(
             "red",
-            manner_init(
-                f"{load_x}({x}[i * {stride_x}])"
-            ),
+            manner_init(f"{load_x}({x}[i * {stride_x}])"),
         )
     loop_line2 = manner_fn(f"{buf}[{pos}]", f"{buf}[i]")
     r_n = manner_fn(f"{buf}[{pos}]", f"{buf}[{pos}+_n]")
