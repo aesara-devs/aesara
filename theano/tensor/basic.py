@@ -659,6 +659,9 @@ def get_scalar_constant_value(
                     if gp_broadcastable[idx]:
                         return np.asarray(1)
 
+                    if isinstance(grandparent, Constant):
+                        return np.asarray(grandparent.data.shape[idx])
+
         raise NotScalarConstantError(v)
 
 

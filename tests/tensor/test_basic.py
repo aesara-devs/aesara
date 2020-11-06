@@ -5847,6 +5847,19 @@ class TestGetScalarConstantValue:
         v = tt.row()
         assert get_scalar_constant_value(v.shape[0]) == 1
 
+        res = tt.get_scalar_constant_value(tt.as_tensor([10, 20]).shape[0])
+        assert isinstance(res, np.ndarray)
+        assert 2 == res
+
+        res = tt.get_scalar_constant_value(
+            9 + tt.as_tensor([1.0]).shape[0],
+            elemwise=True,
+            only_process_constants=False,
+            max_recur=9,
+        )
+        assert isinstance(res, np.ndarray)
+        assert 10 == res
+
     def test_subtensor_of_constant(self):
         c = constant(rand(5))
         for i in range(c.value.shape[0]):
