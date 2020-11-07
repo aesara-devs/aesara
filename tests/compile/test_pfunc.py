@@ -786,7 +786,7 @@ class TestAliasingRules:
                 theano.In(m1, mutable=True),
                 theano.In(m2, mutable=True),
             ],
-            theano.dot((x * 2), m1) + theano.dot((y * 3), m2),
+            theano.tensor.dot((x * 2), m1) + theano.tensor.dot((y * 3), m2),
         )
         # Test 1. If the same variable is given twice
 
@@ -851,9 +851,9 @@ class TestAliasingRules:
                 theano.In(m3, mutable=True),
             ],
             (
-                theano.dot((x * 2), m1)
-                + theano.dot((y * 3), m2)
-                + theano.dot((z * 4), m3)
+                theano.tensor.dot((x * 2), m1)
+                + theano.tensor.dot((y * 3), m2)
+                + theano.tensor.dot((z * 4), m3)
             ),
         )
 

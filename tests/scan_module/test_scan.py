@@ -485,8 +485,8 @@ class TestScan:
 
         def f_rnn_cmpl(u1_t, u2_t, x_tm1, y_tm1, W_in1):
             return [
-                theano.dot(u1_t, W_in1) + u2_t * W_in2 + theano.dot(x_tm1, W),
-                theano.dot(x_tm1, W_out),
+                theano.tensor.dot(u1_t, W_in1) + u2_t * W_in2 + theano.tensor.dot(x_tm1, W),
+                theano.tensor.dot(x_tm1, W_out),
             ]
 
         outputs, updates = theano.scan(
@@ -539,11 +539,11 @@ class TestScan:
 
         def f_rnn_cmpl(u1_t, u2_tm1, u2_t, u2_tp1, x_tm1, y_tm1, y_tm3, W_in1):
             return [
-                theano.dot(u1_t, W_in1)
+                theano.tensor.dot(u1_t, W_in1)
                 + (u2_t + u2_tm1 * u2_tp1) * W_in2
-                + theano.dot(x_tm1, W),
-                (y_tm1 + y_tm3) * theano.dot(x_tm1, W_out),
-                theano.dot(u1_t, W_in1),
+                + theano.tensor.dot(x_tm1, W),
+                (y_tm1 + y_tm3) * theano.tensor.dot(x_tm1, W_out),
+                theano.tensor.dot(u1_t, W_in1),
             ]
 
         outputs, updates = theano.scan(
@@ -1107,13 +1107,13 @@ class TestScan:
 
         def f(u1_t, u2_t, y0_tm3, y0_tm2, y0_tm1, y1_tm1):
             y0_t = (
-                theano.dot(theano.dot(u1_t, W1), W2)
+                theano.tensor.dot(theano.tensor.dot(u1_t, W1), W2)
                 + 0.1 * y0_tm1
                 + 0.33 * y0_tm2
                 + 0.17 * y0_tm3
             )
-            y1_t = theano.dot(u2_t, W2) + y1_tm1
-            y2_t = theano.dot(u1_t, W1)
+            y1_t = theano.tensor.dot(u2_t, W2) + y1_tm1
+            y2_t = theano.tensor.dot(u1_t, W1)
             nwW1 = W1 + 0.1
             nwW2 = W2 + 0.05
             # return outputs followed by a list of updates
@@ -1250,11 +1250,11 @@ class TestScan:
         trng = theano.tensor.shared_randomstreams.RandomStreams(utt.fetch_seed())
 
         def f(vsample_tm1):
-            hmean_t = theano.tensor.nnet.sigmoid(theano.dot(vsample_tm1, W) + bhid)
+            hmean_t = theano.tensor.nnet.sigmoid(theano.tensor.dot(vsample_tm1, W) + bhid)
             hsample_t = theano.tensor.cast(
                 trng.binomial(hmean_t.shape, 1, hmean_t), dtype="float32"
             )
-            vmean_t = theano.tensor.nnet.sigmoid(theano.dot(hsample_t, W.T) + bvis)
+            vmean_t = theano.tensor.nnet.sigmoid(theano.tensor.dot(hsample_t, W.T) + bvis)
             return theano.tensor.cast(
                 trng.binomial(vmean_t.shape, 1, vmean_t), dtype="float32"
             )
@@ -1463,8 +1463,8 @@ class TestScan:
 
         def f_rnn_cmpl(u1_t, u2_t, x_tm1, y_tm1, W_in1):
             return [
-                theano.dot(u1_t, W_in1) + u2_t * W_in2 + theano.dot(x_tm1, W),
-                theano.dot(x_tm1, W_out),
+                theano.tensor.dot(u1_t, W_in1) + u2_t * W_in2 + theano.tensor.dot(x_tm1, W),
+                theano.tensor.dot(x_tm1, W_out),
             ]
 
         cost, updates = scan_project_sum(
@@ -1532,11 +1532,11 @@ class TestScan:
 
         def f_rnn_cmpl(u1_t, u2_tm1, u2_t, u2_tp1, x_tm1, y_tm1, y_tm3, W_in1):
             return [
-                theano.dot(u1_t, W_in1)
+                theano.tensor.dot(u1_t, W_in1)
                 + (u2_t + u2_tm1 * u2_tp1) * W_in2
-                + theano.dot(x_tm1, W),
-                (y_tm1 + y_tm3) * theano.dot(x_tm1, W_out),
-                theano.dot(u1_t, W_in1),
+                + theano.tensor.dot(x_tm1, W),
+                (y_tm1 + y_tm3) * theano.tensor.dot(x_tm1, W_out),
+                theano.tensor.dot(u1_t, W_in1),
             ]
 
         # We change the compute_test_value[_opt] flag to run the
@@ -1795,10 +1795,10 @@ for{cpu,scan_fn}.2 [id H] ''
 
         def f_rnn_cmpl(u1_t, u2_tm1, u2_t, u2_tp1, x_tm1, y_tm1, y_tm3, W_in1):
             return [
-                theano.dot(u1_t, W_in1)
+                theano.tensor.dot(u1_t, W_in1)
                 + (u2_t + u2_tm1 * u2_tp1) * W_in2
-                + theano.dot(x_tm1, W),
-                (y_tm1 + y_tm3) * theano.dot(x_tm1, W_out),
+                + theano.tensor.dot(x_tm1, W),
+                (y_tm1 + y_tm3) * theano.tensor.dot(x_tm1, W_out),
             ]
 
         cost, updates = scan_project_sum(
@@ -1853,7 +1853,7 @@ for{cpu,scan_fn}.2 [id H] ''
             trng1 = theano.tensor.shared_randomstreams.RandomStreams(123)
             x_t = (
                 theano.tensor.cast(u2_t, theano.config.floatX)
-                + theano.dot(u_t, W_in)
+                + theano.tensor.dot(u_t, W_in)
                 + x_tm1
                 + trng1.uniform(low=-1.1, high=1.1, dtype=theano.config.floatX)
             )
@@ -1935,7 +1935,7 @@ for{cpu,scan_fn}.2 [id H] ''
         def f_rnn_cmpl(u_t, x_tm1, W_in):
             trng1 = theano.tensor.shared_randomstreams.RandomStreams(123)
             rnd_nb = trng1.uniform(low=-0.1, high=0.1)
-            x_t = theano.dot(u_t, W_in) + x_tm1 + rnd_nb
+            x_t = theano.tensor.dot(u_t, W_in) + x_tm1 + rnd_nb
             x_t = theano.tensor.cast(x_t, dtype=theano.config.floatX)
             return x_t
 
@@ -2026,8 +2026,8 @@ for{cpu,scan_fn}.2 [id H] ''
         # prior results: h_tm2, h_tm1
         # non-sequences: W_ih, W_hh, W_ho, b_h
         def one_step(x_t, h_tm2, h_tm1, W_ih, W_hh, b_h, W_ho, b_o):
-            h_t = tensor.tanh(theano.dot(x_t, W_ih) + theano.dot(h_tm2, W_hh) + b_h)
-            y_t = theano.dot(h_t, W_ho) + b_o
+            h_t = tensor.tanh(theano.tensor.dot(x_t, W_ih) + theano.tensor.dot(h_tm2, W_hh) + b_h)
+            y_t = theano.tensor.dot(h_t, W_ho) + b_o
             return [h_t, y_t]
 
         # hidden and outputs of the entire sequence
@@ -2181,7 +2181,7 @@ for{cpu,scan_fn}.2 [id H] ''
         A = theano.tensor.matrix("A")
         fc1 = theano.shared(0.5, name="fc1")
         fc2 = theano.shared(0.9, name="fc2")
-        y = fc1 * theano.dot(x * x, theano.dot(A, x))
+        y = fc1 * theano.tensor.dot(x * x, theano.tensor.dot(A, x))
         y.name = "y"
         gy = theano.tensor.grad(y, x)
         gy.name = "gy"
@@ -2326,8 +2326,8 @@ for{cpu,scan_fn}.2 [id H] ''
             return [
                 y_tm3 + 1,
                 y_tm3 + 2,
-                theano.dot(u1_t, W_in1) + u2_t * W_in2 + theano.dot(x_tm1, W),
-                y_tm1 + theano.dot(x_tm1, W_out),
+                theano.tensor.dot(u1_t, W_in1) + u2_t * W_in2 + theano.tensor.dot(x_tm1, W),
+                y_tm1 + theano.tensor.dot(x_tm1, W_out),
             ]
 
         outputs, updates = theano.scan(
@@ -2407,8 +2407,8 @@ for{cpu,scan_fn}.2 [id H] ''
         def f_rnn_cmpl(u1_t, u2_t, x_tm1, y_tm1, y_tm3, W_in1):
             return [
                 y_tm3 + 1,
-                theano.dot(u1_t, W_in1) + u2_t * W_in2 + theano.dot(x_tm1, W),
-                y_tm1 + theano.dot(x_tm1, W_out),
+                theano.tensor.dot(u1_t, W_in1) + u2_t * W_in2 + theano.tensor.dot(x_tm1, W),
+                y_tm1 + theano.tensor.dot(x_tm1, W_out),
             ]
 
         _outputs, updates = theano.scan(
@@ -4022,8 +4022,8 @@ for{cpu,scan_fn}.2 [id H] ''
         def f_rnn_cmpl(u1_t, u2_t, x_tm1, y_tm1, y_tm3, W_in1):
             return [
                 y_tm3 + 1,
-                theano.dot(u1_t, W_in1) + u2_t * W_in2 + theano.dot(x_tm1, W),
-                y_tm1 + theano.dot(x_tm1, W_out),
+                theano.tensor.dot(u1_t, W_in1) + u2_t * W_in2 + theano.tensor.dot(x_tm1, W),
+                y_tm1 + theano.tensor.dot(x_tm1, W_out),
             ]
 
         rval, updates = theano.scan(
@@ -4069,7 +4069,7 @@ for{cpu,scan_fn}.2 [id H] ''
         A = theano.tensor.matrix("A")
 
         z, updates = theano.scan(
-            theano.dot, sequences=[], non_sequences=[x, A], n_steps=2
+            theano.tensor.dot, sequences=[], non_sequences=[x, A], n_steps=2
         )
         f = theano.function([x, A], z)
         topo = f.maker.fgraph.toposort()
@@ -5603,7 +5603,7 @@ def test_compute_test_value_grad_cast():
         w = theano.shared(np.random.randn(4, 3).astype(floatX), name="w")
 
         outputs, _ = theano.scan(
-            lambda i, h, w: (theano.dot(h[i], w), i),
+            lambda i, h, w: (theano.tensor.dot(h[i], w), i),
             outputs_info=[None, 0],
             non_sequences=[h, w],
             n_steps=3,
