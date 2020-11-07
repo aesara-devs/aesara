@@ -485,7 +485,9 @@ class TestScan:
 
         def f_rnn_cmpl(u1_t, u2_t, x_tm1, y_tm1, W_in1):
             return [
-                theano.tensor.dot(u1_t, W_in1) + u2_t * W_in2 + theano.tensor.dot(x_tm1, W),
+                theano.tensor.dot(u1_t, W_in1)
+                + u2_t * W_in2
+                + theano.tensor.dot(x_tm1, W),
                 theano.tensor.dot(x_tm1, W_out),
             ]
 
@@ -1250,11 +1252,15 @@ class TestScan:
         trng = theano.tensor.shared_randomstreams.RandomStreams(utt.fetch_seed())
 
         def f(vsample_tm1):
-            hmean_t = theano.tensor.nnet.sigmoid(theano.tensor.dot(vsample_tm1, W) + bhid)
+            hmean_t = theano.tensor.nnet.sigmoid(
+                theano.tensor.dot(vsample_tm1, W) + bhid
+            )
             hsample_t = theano.tensor.cast(
                 trng.binomial(hmean_t.shape, 1, hmean_t), dtype="float32"
             )
-            vmean_t = theano.tensor.nnet.sigmoid(theano.tensor.dot(hsample_t, W.T) + bvis)
+            vmean_t = theano.tensor.nnet.sigmoid(
+                theano.tensor.dot(hsample_t, W.T) + bvis
+            )
             return theano.tensor.cast(
                 trng.binomial(vmean_t.shape, 1, vmean_t), dtype="float32"
             )
@@ -1463,7 +1469,9 @@ class TestScan:
 
         def f_rnn_cmpl(u1_t, u2_t, x_tm1, y_tm1, W_in1):
             return [
-                theano.tensor.dot(u1_t, W_in1) + u2_t * W_in2 + theano.tensor.dot(x_tm1, W),
+                theano.tensor.dot(u1_t, W_in1)
+                + u2_t * W_in2
+                + theano.tensor.dot(x_tm1, W),
                 theano.tensor.dot(x_tm1, W_out),
             ]
 
@@ -2026,7 +2034,9 @@ for{cpu,scan_fn}.2 [id H] ''
         # prior results: h_tm2, h_tm1
         # non-sequences: W_ih, W_hh, W_ho, b_h
         def one_step(x_t, h_tm2, h_tm1, W_ih, W_hh, b_h, W_ho, b_o):
-            h_t = tensor.tanh(theano.tensor.dot(x_t, W_ih) + theano.tensor.dot(h_tm2, W_hh) + b_h)
+            h_t = tensor.tanh(
+                theano.tensor.dot(x_t, W_ih) + theano.tensor.dot(h_tm2, W_hh) + b_h
+            )
             y_t = theano.tensor.dot(h_t, W_ho) + b_o
             return [h_t, y_t]
 
@@ -2326,7 +2336,9 @@ for{cpu,scan_fn}.2 [id H] ''
             return [
                 y_tm3 + 1,
                 y_tm3 + 2,
-                theano.tensor.dot(u1_t, W_in1) + u2_t * W_in2 + theano.tensor.dot(x_tm1, W),
+                theano.tensor.dot(u1_t, W_in1)
+                + u2_t * W_in2
+                + theano.tensor.dot(x_tm1, W),
                 y_tm1 + theano.tensor.dot(x_tm1, W_out),
             ]
 
@@ -2407,7 +2419,9 @@ for{cpu,scan_fn}.2 [id H] ''
         def f_rnn_cmpl(u1_t, u2_t, x_tm1, y_tm1, y_tm3, W_in1):
             return [
                 y_tm3 + 1,
-                theano.tensor.dot(u1_t, W_in1) + u2_t * W_in2 + theano.tensor.dot(x_tm1, W),
+                theano.tensor.dot(u1_t, W_in1)
+                + u2_t * W_in2
+                + theano.tensor.dot(x_tm1, W),
                 y_tm1 + theano.tensor.dot(x_tm1, W_out),
             ]
 
@@ -4022,7 +4036,9 @@ for{cpu,scan_fn}.2 [id H] ''
         def f_rnn_cmpl(u1_t, u2_t, x_tm1, y_tm1, y_tm3, W_in1):
             return [
                 y_tm3 + 1,
-                theano.tensor.dot(u1_t, W_in1) + u2_t * W_in2 + theano.tensor.dot(x_tm1, W),
+                theano.tensor.dot(u1_t, W_in1)
+                + u2_t * W_in2
+                + theano.tensor.dot(x_tm1, W),
                 y_tm1 + theano.tensor.dot(x_tm1, W_out),
             ]
 

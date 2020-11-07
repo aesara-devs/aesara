@@ -533,7 +533,8 @@ def makeSharedTester(
             s = self.cast_value(s)
             s_shared = self.shared_constructor(s)
             f = theano.function(
-                [], updates=[(s_shared, theano.tensor.dot(a_shared, b_shared) + s_shared)]
+                [],
+                updates=[(s_shared, theano.tensor.dot(a_shared, b_shared) + s_shared)],
             )
             topo = f.maker.fgraph.toposort()
             f()
@@ -569,7 +570,9 @@ def makeSharedTester(
             f = theano.function(
                 [],
                 s_shared.shape,
-                updates=[(s_shared, theano.tensor.dot(a_shared, b_shared) + s_shared_specify)],
+                updates=[
+                    (s_shared, theano.tensor.dot(a_shared, b_shared) + s_shared_specify)
+                ],
             )
             topo = f.maker.fgraph.toposort()
             shp = f()
@@ -606,7 +609,9 @@ def makeSharedTester(
             f = theano.function(
                 [],
                 s_shared.shape,
-                updates=[(s_shared, theano.tensor.dot(a_shared, b_shared) + s_shared_specify)],
+                updates=[
+                    (s_shared, theano.tensor.dot(a_shared, b_shared) + s_shared_specify)
+                ],
             )
             topo = f.maker.fgraph.toposort()
             shp = f()
