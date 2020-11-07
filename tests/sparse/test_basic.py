@@ -535,7 +535,7 @@ class TestSparseInferShape(utt.InferShapeTester):
             (tensor.matrix(), SparseType("csr", "float32")()),
         ]:
 
-            sparse_out = theano.dot(x, y)
+            sparse_out = x.dot(y)
             if isinstance(x, sparse.SparseVariable):
                 x = tensor.matrix()
             if isinstance(y, sparse.SparseVariable):
@@ -1342,7 +1342,7 @@ class TestStructuredDot:
             for sparse_format_b in ["csc", "csr", "bsr"]:
                 a = SparseType(sparse_format_a, dtype=sparse_dtype)()
                 b = SparseType(sparse_format_b, dtype=sparse_dtype)()
-                d = theano.dot(a, b)
+                d = a.dot(b)
                 f = theano.function([a, b], theano.Out(d, borrow=True))
                 for M, N, K, nnz in [
                     (4, 3, 2, 3),
@@ -1364,7 +1364,7 @@ class TestStructuredDot:
 
         a = SparseType("csc", dtype=sparse_dtype)()
         b = tensor.matrix(dtype=dense_dtype)
-        d = theano.dot(a, b)
+        d = a.dot(b)
         f = theano.function([a, b], theano.Out(d, borrow=True))
 
         for M, N, K, nnz in [
@@ -1412,7 +1412,7 @@ class TestStructuredDot:
 
         a = SparseType("csr", dtype=sparse_dtype)()
         b = tensor.matrix(dtype=dense_dtype)
-        d = theano.dot(a, b)
+        d = a.dot(b)
         f = theano.function([a, b], d)
 
         for M, N, K, nnz in [
