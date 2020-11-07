@@ -160,27 +160,6 @@ np.seterr(all=_all, divide=_divide, over=_over, under=_under, invalid=_invalid)
 del _all, _divide, _over, _under, _invalid
 
 
-def dot(l, r):
-    """Return a symbolic dot product.
-
-    This is designed to work with both sparse and dense tensors types.
-    """
-    try:
-        res = l.__dot__(r)
-
-        if res is NotImplemented:
-            raise NotImplementedError()
-
-        return res
-    except (NotImplementedError, AttributeError, TypeError):
-        res = r.__rdot__(l)
-
-        if res is NotImplemented:
-            raise NotImplementedError()
-
-        return res
-
-
 def get_scalar_constant_value(v):
     """Return the constant scalar (i.e. 0-D) value underlying variable `v`.
 
