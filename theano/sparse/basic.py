@@ -268,15 +268,7 @@ class _sparse_py_operators:
     # extra pseudo-operator symbols
 
     def __dot__(left, right):
-        try:
-            res = structured_dot(left, right)
-        except (NotImplementedError, AttributeError, TypeError):
-            res = right.__rdot__(left)
-
-        if res is NotImplemented:
-            raise NotImplementedError()
-
-        return res
+        return structured_dot(left, right)
 
     def __rdot__(right, left):
         return structured_dot(left, right)

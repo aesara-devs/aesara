@@ -661,15 +661,7 @@ class _tensor_py_operators:
     """The dtype of this tensor."""
 
     def __dot__(left, right):
-        try:
-            res = theano.tensor.basic.dot(left, right)
-        except (NotImplementedError, AttributeError, TypeError):
-            res = right.__rdot__(left)
-
-        if res is NotImplemented:
-            raise NotImplementedError()
-
-        return res
+        return theano.tensor.basic.dot(left, right)
 
     def __rdot__(right, left):
         return theano.tensor.basic.dot(left, right)
