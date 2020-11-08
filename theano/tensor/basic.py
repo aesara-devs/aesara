@@ -6356,8 +6356,10 @@ def dense_dot(a, b):
     tensor.blas).
     Matrix-vector products are sometimes optimized to Gemv, CGemv (see
     tensor.blas).
+
     """
     a, b = as_tensor_variable(a), as_tensor_variable(b)
+
     if a.ndim == 0 or b.ndim == 0:
         return a * b
     elif a.ndim > 2 or b.ndim > 2:
