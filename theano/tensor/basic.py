@@ -6305,6 +6305,7 @@ pprint.assign(
     _dot, printing.OperatorPrinter(printing.special["middle_dot"], -1, "left")
 )
 
+
 def dot(l, r):
     """Return a symbolic dot product.
     This is designed to work with both sparse and dense tensors types.
