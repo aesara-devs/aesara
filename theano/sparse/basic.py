@@ -281,6 +281,8 @@ class _sparse_py_operators:
     def __rdot__(right, left):
         return structured_dot(left, right)
 
+    dot = __dot__
+
     # N.B. THIS IS COMMENTED OUT ON PURPOSE!!!
     #     Discussion with Fred & James (at least, and maybe others before)
     #     we decided that casting from a sparse to dense should be explicit
