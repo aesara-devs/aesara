@@ -6305,8 +6305,22 @@ pprint.assign(
     _dot, printing.OperatorPrinter(printing.special["middle_dot"], -1, "left")
 )
 
+def dot(l, r):
+    """Return a symbolic dot product.
+    This is designed to work with both sparse and dense tensors types.
+    """
+    try:
+        res = l.__dot__(r)
+    except (NotImplementedError, AttributeError, TypeError):
+        res = r.__rdot__(l)
 
-def dot(a, b):
+    if res is NotImplemented:
+        raise NotImplementedError()
+
+    return res
+
+
+def dense_dot(a, b):
     """
     Computes the dot product of two variables.
 
@@ -6341,10 +6355,8 @@ def dot(a, b):
     tensor.blas).
     Matrix-vector products are sometimes optimized to Gemv, CGemv (see
     tensor.blas).
-
     """
     a, b = as_tensor_variable(a), as_tensor_variable(b)
-
     if a.ndim == 0 or b.ndim == 0:
         return a * b
     elif a.ndim > 2 or b.ndim > 2:
