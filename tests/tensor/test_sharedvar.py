@@ -570,9 +570,7 @@ def makeSharedTester(
             f = theano.function(
                 [],
                 s_shared.shape,
-                updates=[
-                    (s_shared, a_shared.dot(b_shared) + s_shared_specify)
-                ],
+                updates=[(s_shared, a_shared.dot(b_shared) + s_shared_specify)],
             )
             topo = f.maker.fgraph.toposort()
             shp = f()
@@ -609,9 +607,7 @@ def makeSharedTester(
             f = theano.function(
                 [],
                 s_shared.shape,
-                updates=[
-                    (s_shared, a_shared.dot(b_shared) + s_shared_specify)
-                ],
+                updates=[(s_shared, a_shared.dot(b_shared) + s_shared_specify)],
             )
             topo = f.maker.fgraph.toposort()
             shp = f()
