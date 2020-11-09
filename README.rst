@@ -4,7 +4,7 @@
 efficiently evaluate mathematical expressions involving multi-dimensional
 arrays.  It can use GPUs and perform efficient symbolic differentiation.
 
-This is a fork of the `original Aesara library <https://github.com/Aesara/Aesara>`__ that is being
+This is a fork of the `original Theano library <https://github.com/Theano/Theano>`__ that is being
 maintained by the `PyMC team <https://github.com/pymc-devs>`__.
 
 .. warning::
@@ -23,7 +23,7 @@ Features
 Getting started
 ===============
 
-The legacy documentation is located `here <http://deeplearning.net/software/aesara/>`__.
+The legacy documentation is located `here <http://deeplearning.net/software/theano/>`__.
 
 .. warning::
     As development progresses, the legacy documentation may become less applicable.
@@ -53,7 +53,7 @@ The current development branch of |Project Name| can be installed from GitHub, a
     pip install git+https://github.com/pymc-devs/Aesara-PyMC
 
 
-For platform-specific installation information see the legacy documentation `here <http://deeplearning.net/software/aesara/install.html>`__.
+For platform-specific installation information see the legacy documentation `here <http://deeplearning.net/software/theano/install.html>`__.
 
 
 Support
