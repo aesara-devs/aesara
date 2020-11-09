@@ -2,9 +2,9 @@ import time
 
 import numpy as N
 
-import theano.tensor as tt
-from theano import Mode, function
-from theano.tensor.nnet.conv import ConvOp
+import aesara.tensor as tt
+from aesara import Mode, function
+from aesara.tensor.nnet.conv import ConvOp
 
 
 def flip(kern, kshp):

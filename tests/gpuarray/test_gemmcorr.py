@@ -1,6 +1,6 @@
 import numpy as np
 
-import theano
+import aesara
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, ref_cast
 from tests.tensor.nnet.test_abstract_conv import (
@@ -9,10 +9,10 @@ from tests.tensor.nnet.test_abstract_conv import (
     TestGroupedConvNoOptim,
     TestUnsharedConv,
 )
-from theano import config
-from theano.gpuarray.blas import GpuCorrMM, GpuCorrMM_gradInputs, GpuCorrMM_gradWeights
-from theano.gpuarray.type import gpuarray_shared_constructor
-from theano.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
+from aesara import config
+from aesara.gpuarray.blas import GpuCorrMM, GpuCorrMM_gradInputs, GpuCorrMM_gradWeights
+from aesara.gpuarray.type import gpuarray_shared_constructor
+from aesara.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
 
 
 class TestCorrMM:
@@ -44,7 +44,7 @@ class TestCorrMM:
             subsample=subsample,
             unshared=unshared,
         )(ref_cast(inputs), ref_cast(filters))
-        f_ref = theano.function([], conv_ref, mode=mode_without_gpu)
+        f_ref = aesara.function([], conv_ref, mode=mode_without_gpu)
 
         conv = GpuCorrMM(
             border_mode=border_mode,
@@ -52,7 +52,7 @@ class TestCorrMM:
             subsample=subsample,
             unshared=unshared,
         )(inputs, filters)
-        f = theano.function([], conv, mode=mode_with_gpu)
+        f = aesara.function([], conv, mode=mode_with_gpu)
 
         res_ref = f_ref()
         res = f()
@@ -236,8 +236,8 @@ class TestCorrMM:
                 inputs, dCdH, shape=shape
             )
 
-        f_ref = theano.function([], conv_ref, mode=mode_without_gpu)
-        f = theano.function([], conv_gemm, mode=mode_with_gpu)
+        f_ref = aesara.function([], conv_ref, mode=mode_without_gpu)
+        f = aesara.function([], conv_gemm, mode=mode_with_gpu)
 
         res_ref = f_ref()
         res = f()
@@ -299,8 +299,8 @@ class TestCorrMM:
                 kern=filters, topgrad=inputs, shape=bottom_shape
             )
 
-        f_ref = theano.function([], conv_ref, mode=mode_without_gpu)
-        f = theano.function([], conv_gemm, mode=mode_with_gpu)
+        f_ref = aesara.function([], conv_ref, mode=mode_without_gpu)
+        f = aesara.function([], conv_gemm, mode=mode_with_gpu)
 
         res_ref = f_ref()
         res = f()

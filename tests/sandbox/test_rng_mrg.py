@@ -5,11 +5,11 @@ import time
 import numpy as np
 import pytest
 
-import theano
+import aesara
 from tests import unittest_tools as utt
-from theano import change_flags, config, tensor
-from theano.sandbox import rng_mrg
-from theano.sandbox.rng_mrg import MRG_RandomStreams
+from aesara import change_flags, config, tensor
+from aesara.sandbox import rng_mrg
+from aesara.sandbox.rng_mrg import MRG_RandomStreams
 
 
 # TODO: test MRG_RandomStreams
@@ -26,7 +26,7 @@ utt.seed_rng()
 # 5 samples drawn from each substream
 java_samples = np.loadtxt(
     os.path.join(
-        os.path.split(theano.__file__)[0], "sandbox", "samples_MRG31k3p_12_7_5.txt"
+        os.path.split(aesara.__file__)[0], "sandbox", "samples_MRG31k3p_12_7_5.txt"
     )
 )
 
@@ -37,7 +37,7 @@ def test_deterministic():
 
     R = MRG_RandomStreams(seed=seed)
     u = R.uniform(size=sample_size)
-    f = theano.function([], u)
+    f = aesara.function([], u)
 
     fsample1 = f()
     fsample2 = f()
@@ -45,7 +45,7 @@ def test_deterministic():
 
     R2 = MRG_RandomStreams(seed=seed)
     u2 = R2.uniform(size=sample_size)
-    g = theano.function([], u2)
+    g = aesara.function([], u2)
     gsample1 = g()
     gsample2 = g()
     assert np.allclose(fsample1, gsample1)
@@ -65,7 +65,7 @@ def test_consistency_randomstreams():
     for i in range(n_streams):
         stream_samples = []
         u = rng.uniform(size=(n_substreams,), nstreams=n_substreams)
-        f = theano.function([], u)
+        f = aesara.function([], u)
         for j in range(n_samples):
             s = f()
             stream_samples.append(s)
@@ -79,8 +79,8 @@ def test_consistency_randomstreams():
 
 def test_get_substream_rstates():
     try:
-        orig = theano.config.compute_test_value
-        theano.config.compute_test_value = "raise"
+        orig = aesara.config.compute_test_value
+        aesara.config.compute_test_value = "raise"
         n_streams = 100
 
         dtype = "float32"
@@ -89,7 +89,7 @@ def test_get_substream_rstates():
         rng.get_substream_rstates(n_streams, dtype)
 
     finally:
-        theano.config.compute_test_value = orig
+        aesara.config.compute_test_value = orig
 
 
 def test_consistency_cpu_serial():
@@ -107,7 +107,7 @@ def test_consistency_cpu_serial():
     for i in range(n_streams):
         stream_rstate = curr_rstate.copy()
         for j in range(n_substreams):
-            rstate = theano.shared(np.array([stream_rstate.copy()], dtype="int32"))
+            rstate = aesara.shared(np.array([stream_rstate.copy()], dtype="int32"))
             new_rstate, sample = rng_mrg.mrg_uniform.new(
                 rstate, ndim=None, dtype=config.floatX, size=(1,)
             )
@@ -117,7 +117,7 @@ def test_consistency_cpu_serial():
             sample.update = (rstate, new_rstate)
 
             rstate.default_update = new_rstate
-            f = theano.function([], sample)
+            f = aesara.function([], sample)
             for k in range(n_samples):
                 s = f()
                 samples.append(s)
@@ -150,7 +150,7 @@ def test_consistency_cpu_parallel():
         for j in range(1, n_substreams):
             rstate.append(rng_mrg.ff_2p72(rstate[-1]))
         rstate = np.asarray(rstate)
-        rstate = theano.shared(rstate)
+        rstate = aesara.shared(rstate)
 
         new_rstate, sample = rng_mrg.mrg_uniform.new(
             rstate, ndim=None, dtype=config.floatX, size=(n_substreams,)
@@ -161,7 +161,7 @@ def test_consistency_cpu_parallel():
         sample.update = (rstate, new_rstate)
 
         rstate.default_update = new_rstate
-        f = theano.function([], sample)
+        f = aesara.function([], sample)
 
         for k in range(n_samples):
             s = f()
@@ -286,10 +286,10 @@ def test_uniform():
         # for such situations: it would be better to instead filter the
         # warning using the warning module.
         u = R.uniform(size=size, nstreams=rng_mrg.guess_n_streams(size, warn=False))
-        f = theano.function(var_input, u)
+        f = aesara.function(var_input, u)
         assert any(
             [
-                isinstance(node.op, theano.sandbox.rng_mrg.mrg_uniform)
+                isinstance(node.op, aesara.sandbox.rng_mrg.mrg_uniform)
                 for node in f.maker.fgraph.toposort()
             ]
         )
@@ -302,10 +302,10 @@ def test_uniform():
             steps_ = steps
         check_basics(f, steps_, const_size, prefix="mrg cpu", inputs=input)
 
-        RR = theano.tensor.shared_randomstreams.RandomStreams(234)
+        RR = aesara.tensor.shared_randomstreams.RandomStreams(234)
 
         uu = RR.uniform(size=size)
-        ff = theano.function(var_input, uu)
+        ff = aesara.function(var_input, uu)
         # It's not our problem if numpy generates 0 or 1
         check_basics(
             ff, steps_, const_size, prefix="numpy", allow_01=True, inputs=input
@@ -337,7 +337,7 @@ def test_broadcastable():
             uu = distribution(pvals=pvals_1)
             assert uu.broadcastable == (False, True)
 
-            # check when some dimensions are theano variables
+            # check when some dimensions are aesara variables
             uu = distribution(pvals=pvals_2)
             assert uu.broadcastable == (False, True)
         else:
@@ -345,7 +345,7 @@ def test_broadcastable():
             uu = distribution(size=size1)
             assert uu.broadcastable == (False, True)
 
-            # check when some dimensions are theano variables
+            # check when some dimensions are aesara variables
             uu = distribution(size=size2)
             assert uu.broadcastable == (False, True)
 
@@ -353,7 +353,7 @@ def test_broadcastable():
 def check_binomial(mean, size, const_size, var_input, input, steps, rtol):
     R = MRG_RandomStreams(234)
     u = R.binomial(size=size, p=mean)
-    f = theano.function(var_input, u)
+    f = aesara.function(var_input, u)
     f(*input)
 
     # Increase the number of steps if sizes implies only a few samples
@@ -372,10 +372,10 @@ def check_binomial(mean, size, const_size, var_input, input, steps, rtol):
         mean_rtol=rtol,
     )
 
-    RR = theano.tensor.shared_randomstreams.RandomStreams(234)
+    RR = aesara.tensor.shared_randomstreams.RandomStreams(234)
 
     uu = RR.binomial(size=size, p=mean)
-    ff = theano.function(var_input, uu)
+    ff = aesara.function(var_input, uu)
     # It's not our problem if numpy generates 0 or 1
     check_basics(
         ff,
@@ -486,7 +486,7 @@ def test_normal0():
             std=std,
             nstreams=rng_mrg.guess_n_streams(size, warn=False),
         )
-        f = theano.function(var_input, n)
+        f = aesara.function(var_input, n)
         f(*input)
 
         # Increase the number of steps if size implies only a few samples
@@ -509,10 +509,10 @@ def test_normal0():
 
         sys.stdout.flush()
 
-        RR = theano.tensor.shared_randomstreams.RandomStreams(234)
+        RR = aesara.tensor.shared_randomstreams.RandomStreams(234)
 
         nn = RR.normal(size=size, avg=avg, std=std)
-        ff = theano.function(var_input, nn)
+        ff = aesara.function(var_input, nn)
 
         check_basics(
             ff,
@@ -596,7 +596,7 @@ def test_normal_truncation():
             truncate=True,
             nstreams=rng_mrg.guess_n_streams(size, warn=False),
         )
-        f = theano.function(var_input, n)
+        f = aesara.function(var_input, n)
 
         # check if truncated at 2*std
         samples = f(*input)
@@ -695,7 +695,7 @@ def test_truncated_normal():
             std=std,
             nstreams=rng_mrg.guess_n_streams(size, warn=False),
         )
-        f = theano.function(var_input, n)
+        f = aesara.function(var_input, n)
 
         # Increase the number of steps if size implies only a few samples
         if np.prod(const_size) < 10:
@@ -762,7 +762,7 @@ def test_multinomial():
     R = MRG_RandomStreams(234)
     # Note: we specify `nstreams` to avoid a warning.
     m = R.multinomial(pvals=pvals, dtype=config.floatX, nstreams=30 * 256)
-    f = theano.function([], m)
+    f = aesara.function([], m)
     f()
     basic_multinomialtest(f, steps, sample_size, pvals, n_samples=1, prefix="mrg ")
 
@@ -785,7 +785,7 @@ def test_multinomial_n_samples():
         m = R.multinomial(
             pvals=pvals, n=n_samples, dtype=config.floatX, nstreams=30 * 256
         )
-        f = theano.function([], m)
+        f = aesara.function([], m)
         basic_multinomialtest(f, steps, sample_size, pvals, n_samples, prefix="mrg ")
         sys.stdout.flush()
 
@@ -816,7 +816,7 @@ class TestMRG:
 def test_multiple_rng_aliasing():
     # Test that when we have multiple random number generators, we do not alias
     # the state_updates member. `state_updates` can be useful when attempting to
-    # copy the (random) state between two similar theano graphs. The test is
+    # copy the (random) state between two similar aesara graphs. The test is
     # meant to detect a previous bug where state_updates was initialized as a
     # class-attribute, instead of the __init__ function.
 
@@ -826,7 +826,7 @@ def test_multiple_rng_aliasing():
 
 
 def test_random_state_transfer():
-    # Test that random state can be transferred from one theano graph to another.
+    # Test that random state can be transferred from one aesara graph to another.
 
     class Graph:
         def __init__(self, seed=123):
@@ -834,9 +834,9 @@ def test_random_state_transfer():
             self.y = self.rng.uniform(size=(1,))
 
     g1 = Graph(seed=123)
-    f1 = theano.function([], g1.y)
+    f1 = aesara.function([], g1.y)
     g2 = Graph(seed=987)
-    f2 = theano.function([], g2.y)
+    f2 = aesara.function([], g2.y)
 
     g2.rng.rstate = g1.rng.rstate
     for (su1, su2) in zip(g1.rng.state_updates, g2.rng.state_updates):
@@ -847,17 +847,17 @@ def test_random_state_transfer():
 
 def test_gradient_scan():
     # Test for a crash when using MRG inside scan and taking the gradient
-    # See https://groups.google.com/d/msg/theano-dev/UbcYyU5m-M8/UO9UgXqnQP0J
-    theano_rng = MRG_RandomStreams(10)
-    w = theano.shared(np.ones(1, dtype="float32"))
+    # See https://groups.google.com/d/msg/aesara-dev/UbcYyU5m-M8/UO9UgXqnQP0J
+    aesara_rng = MRG_RandomStreams(10)
+    w = aesara.shared(np.ones(1, dtype="float32"))
 
     def one_step(x):
-        return x + theano_rng.uniform((1,), dtype="float32") * w
+        return x + aesara_rng.uniform((1,), dtype="float32") * w
 
     x = tensor.vector(dtype="float32")
-    values, updates = theano.scan(one_step, outputs_info=x, n_steps=10)
-    gw = theano.grad(tensor.sum(values[-1]), w)
-    f = theano.function([x], gw)
+    values, updates = aesara.scan(one_step, outputs_info=x, n_steps=10)
+    gw = aesara.grad(tensor.sum(values[-1]), w)
+    f = aesara.function([x], gw)
     f(np.arange(1, dtype="float32"))
 
 
@@ -870,7 +870,7 @@ def test_multMatVect():
     m2 = tensor.iscalar("m2")
 
     g0 = rng_mrg.DotModulo()(A1, s1, m1, A2, s2, m2)
-    f0 = theano.function([A1, s1, m1, A2, s2, m2], g0)
+    f0 = aesara.function([A1, s1, m1, A2, s2, m2], g0)
 
     i32max = np.iinfo(np.int32).max
 
@@ -902,9 +902,9 @@ def test_seed_fn():
 
     for new_seed, same in [(234, True), (None, True), (23, False)]:
         random = MRG_RandomStreams(234)
-        fn1 = theano.function([], random.uniform((2, 2), dtype="float32"))
-        fn2 = theano.function([], random.uniform((3, 3), nstreams=2, dtype="float32"))
-        fn3 = theano.function(
+        fn1 = aesara.function([], random.uniform((2, 2), dtype="float32"))
+        fn2 = aesara.function([], random.uniform((3, 3), nstreams=2, dtype="float32"))
+        fn3 = aesara.function(
             [idx], random.uniform(idx, nstreams=3, ndim=1, dtype="float32")
         )
 
@@ -939,7 +939,7 @@ def test_seed_fn():
 def rng_mrg_overflow(sizes, fct, mode, should_raise_error):
     for size in sizes:
         y = fct(size=size)
-        f = theano.function([], y, mode=mode)
+        f = aesara.function([], y, mode=mode)
         if should_raise_error:
             with pytest.raises(ValueError):
                 f()
@@ -978,89 +978,89 @@ def test_undefined_grad():
     # checking uniform distribution
     low = tensor.scalar()
     out = srng.uniform((), low=low)
-    with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(out, low)
+    with pytest.raises(aesara.gradient.NullTypeGradError):
+        aesara.grad(out, low)
 
     high = tensor.scalar()
     out = srng.uniform((), low=0, high=high)
-    with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(out, high)
+    with pytest.raises(aesara.gradient.NullTypeGradError):
+        aesara.grad(out, high)
 
     out = srng.uniform((), low=low, high=high)
-    with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(out, (low, high))
+    with pytest.raises(aesara.gradient.NullTypeGradError):
+        aesara.grad(out, (low, high))
 
     # checking binomial distribution
     prob = tensor.scalar()
     out = srng.binomial((), p=prob)
-    with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(out, prob)
+    with pytest.raises(aesara.gradient.NullTypeGradError):
+        aesara.grad(out, prob)
 
     # checking multinomial distribution
     prob1 = tensor.scalar()
     prob2 = tensor.scalar()
-    p = [theano.tensor.as_tensor_variable([prob1, 0.5, 0.25])]
+    p = [aesara.tensor.as_tensor_variable([prob1, 0.5, 0.25])]
     out = srng.multinomial(size=None, pvals=p, n=4)[0]
-    with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(theano.tensor.sum(out), prob1)
+    with pytest.raises(aesara.gradient.NullTypeGradError):
+        aesara.grad(aesara.tensor.sum(out), prob1)
 
-    p = [theano.tensor.as_tensor_variable([prob1, prob2])]
+    p = [aesara.tensor.as_tensor_variable([prob1, prob2])]
     out = srng.multinomial(size=None, pvals=p, n=4)[0]
-    with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(theano.tensor.sum(out), (prob1, prob2))
+    with pytest.raises(aesara.gradient.NullTypeGradError):
+        aesara.grad(aesara.tensor.sum(out), (prob1, prob2))
 
     # checking choice
-    p = [theano.tensor.as_tensor_variable([prob1, prob2, 0.1, 0.2])]
+    p = [aesara.tensor.as_tensor_variable([prob1, prob2, 0.1, 0.2])]
     out = srng.choice(a=None, size=1, p=p, replace=False)[0]
-    with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(out[0], (prob1, prob2))
+    with pytest.raises(aesara.gradient.NullTypeGradError):
+        aesara.grad(out[0], (prob1, prob2))
 
-    p = [theano.tensor.as_tensor_variable([prob1, prob2])]
+    p = [aesara.tensor.as_tensor_variable([prob1, prob2])]
     out = srng.choice(a=None, size=1, p=p, replace=False)[0]
-    with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(out[0], (prob1, prob2))
+    with pytest.raises(aesara.gradient.NullTypeGradError):
+        aesara.grad(out[0], (prob1, prob2))
 
-    p = [theano.tensor.as_tensor_variable([prob1, 0.2, 0.3])]
+    p = [aesara.tensor.as_tensor_variable([prob1, 0.2, 0.3])]
     out = srng.choice(a=None, size=1, p=p, replace=False)[0]
-    with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(out[0], prob1)
+    with pytest.raises(aesara.gradient.NullTypeGradError):
+        aesara.grad(out[0], prob1)
 
     # checking normal distribution
     avg = tensor.scalar()
     out = srng.normal((), avg=avg)
-    with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(out, avg)
+    with pytest.raises(aesara.gradient.NullTypeGradError):
+        aesara.grad(out, avg)
 
     std = tensor.scalar()
     out = srng.normal((), avg=0, std=std)
-    with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(out, std)
+    with pytest.raises(aesara.gradient.NullTypeGradError):
+        aesara.grad(out, std)
 
     out = srng.normal((), avg=avg, std=std)
-    with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(out, (avg, std))
+    with pytest.raises(aesara.gradient.NullTypeGradError):
+        aesara.grad(out, (avg, std))
 
     # checking truncated normal distribution
     avg = tensor.scalar()
     out = srng.truncated_normal((), avg=avg)
-    with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(out, avg)
+    with pytest.raises(aesara.gradient.NullTypeGradError):
+        aesara.grad(out, avg)
 
     std = tensor.scalar()
     out = srng.truncated_normal((), avg=0, std=std)
-    with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(out, std)
+    with pytest.raises(aesara.gradient.NullTypeGradError):
+        aesara.grad(out, std)
 
     out = srng.truncated_normal((), avg=avg, std=std)
-    with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(out, (avg, std))
+    with pytest.raises(aesara.gradient.NullTypeGradError):
+        aesara.grad(out, (avg, std))
 
 
 def test_f16_nonzero(mode=None, op_to_check=rng_mrg.mrg_uniform):
     srng = MRG_RandomStreams(seed=utt.fetch_seed())
     m = srng.uniform(size=(1000, 1000), dtype="float16")
     assert m.dtype == "float16", m.type
-    f = theano.function([], m, mode=mode)
+    f = aesara.function([], m, mode=mode)
     assert any(isinstance(n.op, op_to_check) for n in f.maker.fgraph.apply_nodes)
     m_val = f()
     assert np.all((0 < m_val) & (m_val < 1))
@@ -1072,7 +1072,7 @@ def test_target_parameter():
     pvals = np.array([[0.98, 0.01, 0.01], [0.01, 0.49, 0.50]])
 
     def basic_target_parameter_test(x):
-        f = theano.function([], x)
+        f = aesara.function([], x)
         assert isinstance(f(), np.ndarray)
 
     basic_target_parameter_test(srng.uniform((3, 2), target="cpu"))

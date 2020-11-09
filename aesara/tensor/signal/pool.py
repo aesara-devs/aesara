@@ -8,11 +8,11 @@ import warnings
 
 import numpy as np
 
-import theano
-from theano import Apply, OpenMPOp, Variable, gof, tensor
-from theano.gof import EnumList, ParamsType
-from theano.gradient import DisconnectedType
-from theano.scalar import bool as bool_t
+import aesara
+from aesara import Apply, OpenMPOp, Variable, gof, tensor
+from aesara.gof import EnumList, ParamsType
+from aesara.gradient import DisconnectedType
+from aesara.scalar import bool as bool_t
 
 
 def max_pool_2d_same_size(input, patch_size):
@@ -24,9 +24,9 @@ def max_pool_2d_same_size(input, patch_size):
 
     Parameters
     ----------
-    input : 4-D theano tensor of input images
+    input : 4-D aesara tensor of input images
         Input images. Max pooling will be done over the 2 last dimensions.
-    patch_size : tuple of length 2 or theano vector of ints of size 2.
+    patch_size : tuple of length 2 or aesara vector of ints of size 2.
         Size of the patch (patch height, patch width).
         (2,2) will retain only one non-zero value per patch of 4 values.
 
@@ -55,20 +55,20 @@ def pool_2d(
 
     Parameters
     ----------
-    input : N-D theano tensor of input images
+    input : N-D aesara tensor of input images
         Input images. Max pooling will be done over the 2 last dimensions.
-    ws : tuple of length 2 or theano vector of ints of size 2.
+    ws : tuple of length 2 or aesara vector of ints of size 2.
         Factor by which to downscale (vertical ws, horizontal ws).
         (2,2) will halve the image in each dimension.
     ignore_border : bool (default None, will print a warning and set to False)
         When True, (5,5) input with ws=(2,2) will generate a (2,2) output.
         (3,3) otherwise.
-    stride : tuple of two ints or theano vector of ints of size 2.
+    stride : tuple of two ints or aesara vector of ints of size 2.
         Stride size, which is the number of shifts over rows/cols to get the
         next pool region. If stride is None, it is considered equal to ws
         (no overlap on pooling regions), eg: stride=(1,1) will shifts over
         one row and one col for every iteration.
-    pad : tuple of two ints or theano vector of ints of size 2.
+    pad : tuple of two ints or aesara vector of ints of size 2.
         (pad_h, pad_w), pad zeros to extend beyond four borders of the
         images, pad_h is the size of the top and bottom margins, and
         pad_w is the size of the left and right margins.
@@ -138,7 +138,7 @@ def pool_2d(
         warnings.warn(
             "pool_2d() will have the parameter ignore_border"
             " default value changed to True (currently"
-            " False). To have consistent behavior with all Theano"
+            " False). To have consistent behavior with all Aesara"
             " version, explicitly add the parameter ignore_border=True."
             " On the GPU, using ignore_border=True is needed to use cuDNN."
             " When using ignore_border=False and not using cuDNN, the only"
@@ -172,19 +172,19 @@ def pool_3d(
 
     Parameters
     ----------
-    input : N-D theano tensor of input images
+    input : N-D aesara tensor of input images
         Input images. Max pooling will be done over the 3 last dimensions.
-    ws : tuple of length 3 or theano vector of ints of size 3
+    ws : tuple of length 3 or aesara vector of ints of size 3
         Factor by which to downscale (vertical ws, horizontal ws, depth ws).
         (2,2,2) will halve the image in each dimension.
     ignore_border : bool (default None, will print a warning and set to False)
         When True, (5,5,5) input with ws=(2,2,2) will generate a (2,2,2) output.
         (3,3,3) otherwise.
-    st : tuple of three ints or theano vector of ints of size 3
+    st : tuple of three ints or aesara vector of ints of size 3
         Stride size, which is the number of shifts over rows/cols/slices to get
         the next pool region. If st is None, it is considered equal to ws
         (no overlap on pooling regions).
-    pad : tuple of two ints or theano vector of ints of size 3
+    pad : tuple of two ints or aesara vector of ints of size 3
         (pad_h, pad_w, pad_d), pad zeros to extend beyond six borders of the
         images, pad_h is the size of the top and bottom margins,
         pad_w is the size of the left and right margins, and pad_d is the size
@@ -255,7 +255,7 @@ def pool_3d(
         warnings.warn(
             "pool_3d() will have the parameter ignore_border"
             " default value changed to True (currently"
-            " False). To have consistent behavior with all Theano"
+            " False). To have consistent behavior with all Aesara"
             " version, explicitly add the parameter ignore_border=True."
             " On the GPU, using ignore_border=True is needed to use cuDNN."
             " When using ignore_border=False and not using cuDNN, the only"
@@ -273,7 +273,7 @@ def pool_3d(
 # NB: This enum type is currently used in gpuarray/pool.py.
 # It may be used later as op param in this current file.
 # Enum name and constants names are inspired from cuDNN type `cudnnPoolingMode_t`
-# (cf. `theano/gpuarray/cudnn_defs.py`).
+# (cf. `aesara/gpuarray/cudnn_defs.py`).
 PoolingMode_t = EnumList(
     ("POOLING_MAX", "max"),
     ("POOLING_SUM", "sum"),
@@ -342,7 +342,7 @@ class Pool(OpenMPOp):
 
         Parameters
         ----------
-        imgshape : tuple, list, or similar of integer or scalar Theano variable
+        imgshape : tuple, list, or similar of integer or scalar Aesara variable
             The shape of a tensor of images. The last N elements are
             interpreted as the number of rows, and the number of cols.
         ws : list or tuple of N ints
@@ -448,12 +448,12 @@ class Pool(OpenMPOp):
                     return v // stride
                 else:
                     out = (v - downsample) // stride + 1
-                    if isinstance(out, theano.Variable):
+                    if isinstance(out, aesara.Variable):
                         return tensor.maximum(out, 0)
                     else:
                         return np.maximum(out, 0)
             else:
-                if isinstance(v, theano.Variable):
+                if isinstance(v, aesara.Variable):
                     return tensor.switch(
                         tensor.ge(stride, downsample),
                         (v - 1) // stride + 1,
@@ -488,25 +488,25 @@ class Pool(OpenMPOp):
             # Old interface
             self.ndim = len(node.op.ds)
             self.mode = node.op.mode
-            ws = theano.tensor.constant(node.op.ds)
-            st = theano.tensor.constant(node.op.st)
-            pad = theano.tensor.constant(node.op.padding)
+            ws = aesara.tensor.constant(node.op.ds)
+            st = aesara.tensor.constant(node.op.st)
+            pad = aesara.tensor.constant(node.op.padding)
             node.inputs.append(ws)
             node.inputs.append(st)
             node.inputs.append(pad)
-            if isinstance(ws, theano.Constant):
+            if isinstance(ws, aesara.Constant):
                 storage_map[ws] = [ws.data]
                 compute_map[ws] = [True]
             else:
                 storage_map[ws] = [None]
                 compute_map[ws] = [False]
-            if isinstance(st, theano.Constant):
+            if isinstance(st, aesara.Constant):
                 storage_map[st] = [st.data]
                 compute_map[st] = [True]
             else:
                 storage_map[st] = [None]
                 compute_map[st] = [False]
-            if isinstance(pad, theano.Constant):
+            if isinstance(pad, aesara.Constant):
                 storage_map[pad] = [pad.data]
                 compute_map[pad] = [True]
             else:
@@ -654,7 +654,7 @@ class Pool(OpenMPOp):
 
     def c_code(self, node, name, inp, out, sub):
         if self.mode not in ("max", "sum", "average_exc_pad", "average_inc_pad"):
-            raise theano.gof.utils.MethodNotDefined()
+            raise aesara.gof.utils.MethodNotDefined()
         x, ws, stride, pad = inp
         (z,) = out
         nd = self.ndim
@@ -988,7 +988,7 @@ class PoolGrad(OpenMPOp):
 
         Parameters
         ----------
-        imgshape : tuple of integers or scalar Theano variables
+        imgshape : tuple of integers or scalar Aesara variables
             the shape of a tensor of images. The last N elements are
             interpreted as the downsampling dimensions.
         ws : tuple of N ints
@@ -1088,12 +1088,12 @@ class PoolGrad(OpenMPOp):
         def compute_out(v, downsample, stride):
             if ignore_border:
                 out = (v - downsample) // stride + 1
-                if isinstance(out, theano.Variable):
+                if isinstance(out, aesara.Variable):
                     return tensor.maximum(out, 0)
                 else:
                     return np.maximum(out, 0)
             else:
-                if isinstance(v, theano.Variable):
+                if isinstance(v, aesara.Variable):
                     return tensor.switch(
                         tensor.ge(stride, downsample),
                         (v - 1) // stride + 1,
@@ -1128,25 +1128,25 @@ class PoolGrad(OpenMPOp):
             # Old interface
             self.ndim = len(node.op.ds)
             self.mode = node.op.mode
-            ws = theano.tensor.constant(node.op.ds)
-            st = theano.tensor.constant(node.op.st)
-            pad = theano.tensor.constant(node.op.padding)
+            ws = aesara.tensor.constant(node.op.ds)
+            st = aesara.tensor.constant(node.op.st)
+            pad = aesara.tensor.constant(node.op.padding)
             node.inputs.append(ws)
             node.inputs.append(st)
             node.inputs.append(pad)
-            if isinstance(ws, theano.Constant):
+            if isinstance(ws, aesara.Constant):
                 storage_map[ws] = [ws.data]
                 compute_map[ws] = [True]
             else:
                 storage_map[ws] = [None]
                 compute_map[ws] = [False]
-            if isinstance(st, theano.Constant):
+            if isinstance(st, aesara.Constant):
                 storage_map[st] = [st.data]
                 compute_map[st] = [True]
             else:
                 storage_map[st] = [None]
                 compute_map[st] = [False]
-            if isinstance(pad, theano.Constant):
+            if isinstance(pad, aesara.Constant):
                 storage_map[pad] = [pad.data]
                 compute_map[pad] = [True]
             else:
@@ -1251,8 +1251,8 @@ class MaxPoolGrad(PoolGrad):
         x, maxout, gz, ws, stride, pad = inp
         (ggx,) = grads
         return [
-            theano.tensor.zeros_like(x),
-            theano.tensor.zeros_like(maxout),
+            aesara.tensor.zeros_like(x),
+            aesara.tensor.zeros_like(maxout),
             DownsampleFactorMaxGradGrad(
                 ndim=self.ndim, ignore_border=self.ignore_border
             )(x, maxout, ggx, ws, stride, pad),
@@ -1589,7 +1589,7 @@ class AveragePoolGrad(PoolGrad):
         x, gz, ws, stride, pad = inp
         (ggx,) = grads
         return [
-            theano.tensor.zeros_like(x),
+            aesara.tensor.zeros_like(x),
             Pool(ignore_border=self.ignore_border, ndim=self.ndim, mode=self.mode)(
                 ggx, ws, stride, pad
             ),
@@ -1936,8 +1936,8 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
         x, maxout, ggx, ws, stride, pad = inp
         (gz,) = grads
         return [
-            theano.tensor.zeros_like(x),
-            theano.tensor.zeros_like(maxout),
+            aesara.tensor.zeros_like(x),
+            aesara.tensor.zeros_like(maxout),
             MaxPoolGrad(ignore_border=self.ignore_border, ndim=self.ndim)(
                 x, maxout, gz, ws, stride, pad
             ),
@@ -1951,7 +1951,7 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
 
     def c_code(self, node, name, inp, out, sub):
         if self.mode != "max":
-            raise theano.gof.utils.MethodNotDefined()
+            raise aesara.gof.utils.MethodNotDefined()
         x, maxout, ggx, ws, stride, pad = inp
         (z,) = out  # the grad of grad
         nd = self.ndim
@@ -2281,7 +2281,7 @@ class MaxPoolRop(OpenMPOp):
 
     def c_code(self, node, name, inp, out, sub):
         if self.mode != "max":
-            raise theano.gof.utils.MethodNotDefined()
+            raise aesara.gof.utils.MethodNotDefined()
         x, ex, ws, stride, pad = inp
         (z,) = out
         nd = self.ndim

@@ -4,12 +4,12 @@ import pytest
 from numpy import inf
 from numpy.testing import assert_array_almost_equal
 
-import theano
+import aesara
 from tests import unittest_tools as utt
-from theano import config, function, tensor
-from theano.configparser import change_flags
-from theano.tensor.basic import _allclose
-from theano.tensor.nlinalg import (
+from aesara import config, function, tensor
+from aesara.configparser import change_flags
+from aesara.tensor.basic import _allclose
+from aesara.tensor.nlinalg import (
     SVD,
     AllocDiag,
     Eig,
@@ -39,7 +39,7 @@ def test_pseudoinverse_correctness():
     rng = np.random.RandomState(utt.fetch_seed())
     d1 = rng.randint(4) + 2
     d2 = rng.randint(4) + 2
-    r = rng.randn(d1, d2).astype(theano.config.floatX)
+    r = rng.randn(d1, d2).astype(aesara.config.floatX)
 
     x = tensor.matrix()
     xi = pinv(x)
@@ -57,7 +57,7 @@ def test_pseudoinverse_grad():
     rng = np.random.RandomState(utt.fetch_seed())
     d1 = rng.randint(4) + 2
     d2 = rng.randint(4) + 2
-    r = rng.randn(d1, d2).astype(theano.config.floatX)
+    r = rng.randn(d1, d2).astype(aesara.config.floatX)
 
     utt.verify_grad(pinv, [r])
 
@@ -71,7 +71,7 @@ class TestMatrixInverse(utt.InferShapeTester):
 
     def test_inverse_correctness(self):
 
-        r = self.rng.randn(4, 4).astype(theano.config.floatX)
+        r = self.rng.randn(4, 4).astype(aesara.config.floatX)
 
         x = tensor.matrix()
         xi = self.op(x)
@@ -88,7 +88,7 @@ class TestMatrixInverse(utt.InferShapeTester):
 
     def test_infer_shape(self):
 
-        r = self.rng.randn(4, 4).astype(theano.config.floatX)
+        r = self.rng.randn(4, 4).astype(aesara.config.floatX)
 
         x = tensor.matrix()
         xi = self.op(x)
@@ -102,23 +102,23 @@ def test_matrix_dot():
     rs = []
     xs = []
     for k in range(n):
-        rs += [rng.randn(4, 4).astype(theano.config.floatX)]
+        rs += [rng.randn(4, 4).astype(aesara.config.floatX)]
         xs += [tensor.matrix()]
     sol = matrix_dot(*xs)
 
-    theano_sol = function(xs, sol)(*rs)
+    aesara_sol = function(xs, sol)(*rs)
     numpy_sol = rs[0]
     for r in rs[1:]:
         numpy_sol = np.dot(numpy_sol, r)
 
-    assert _allclose(numpy_sol, theano_sol)
+    assert _allclose(numpy_sol, aesara_sol)
 
 
 def test_qr_modes():
     rng = np.random.RandomState(utt.fetch_seed())
 
-    A = tensor.matrix("A", dtype=theano.config.floatX)
-    a = rng.rand(4, 4).astype(theano.config.floatX)
+    A = tensor.matrix("A", dtype=aesara.config.floatX)
+    a = rng.rand(4, 4).astype(aesara.config.floatX)
 
     f = function([A], qr(A))
     t_qr = f(a)
@@ -151,7 +151,7 @@ class TestSvd(utt.InferShapeTester):
     def setup_method(self):
         super().setup_method()
         self.rng = np.random.RandomState(utt.fetch_seed())
-        self.A = theano.tensor.matrix(dtype=self.dtype)
+        self.A = aesara.tensor.matrix(dtype=self.dtype)
         self.op = svd
 
     def test_svd(self):
@@ -189,15 +189,15 @@ class TestSvd(utt.InferShapeTester):
 def test_tensorsolve():
     rng = np.random.RandomState(utt.fetch_seed())
 
-    A = tensor.tensor4("A", dtype=theano.config.floatX)
-    B = tensor.matrix("B", dtype=theano.config.floatX)
+    A = tensor.tensor4("A", dtype=aesara.config.floatX)
+    B = tensor.matrix("B", dtype=aesara.config.floatX)
     X = tensorsolve(A, B)
     fn = function([A, B], [X])
 
     # slightly modified example from np.linalg.tensorsolve docstring
-    a = np.eye(2 * 3 * 4).astype(theano.config.floatX)
+    a = np.eye(2 * 3 * 4).astype(aesara.config.floatX)
     a.shape = (2 * 3, 4, 2, 3 * 4)
-    b = rng.rand(2 * 3, 4).astype(theano.config.floatX)
+    b = rng.rand(2 * 3, 4).astype(aesara.config.floatX)
 
     n_x = np.linalg.tensorsolve(a, b)
     t_x = fn(a, b)
@@ -233,7 +233,7 @@ def test_tensorsolve():
 
 
 def test_inverse_singular():
-    singular = np.array([[1, 0, 0]] + [[0, 1, 0]] * 2, dtype=theano.config.floatX)
+    singular = np.array([[1, 0, 0]] + [[0, 1, 0]] * 2, dtype=aesara.config.floatX)
     a = tensor.matrix()
     f = function([a], matrix_inverse(a))
     with pytest.raises(np.linalg.LinAlgError):
@@ -256,7 +256,7 @@ def test_det():
 
     r = rng.randn(5, 5).astype(config.floatX)
     x = tensor.matrix()
-    f = theano.function([x], det(x))
+    f = aesara.function([x], det(x))
     assert np.allclose(np.linalg.det(r), f(r))
 
 
@@ -272,8 +272,8 @@ def test_det_shape():
     r = rng.randn(5, 5).astype(config.floatX)
 
     x = tensor.matrix()
-    f = theano.function([x], det(x))
-    f_shape = theano.function([x], det(x).shape)
+    f = aesara.function([x], det(x))
+    f_shape = aesara.function([x], det(x).shape)
     assert np.all(f(r).shape == f_shape(r))
 
 
@@ -301,9 +301,9 @@ class TestDiag:
 
     def test_alloc_diag(self):
         rng = np.random.RandomState(utt.fetch_seed())
-        x = theano.tensor.vector()
+        x = aesara.tensor.vector()
         g = alloc_diag(x)
-        f = theano.function([x], g)
+        f = aesara.function([x], g)
 
         # test "normal" scenario (5x5 matrix) and special cases of 0x0 and 1x1
         for shp in [5, 0, 1]:
@@ -314,7 +314,7 @@ class TestDiag:
             assert (r == v).all()
 
         # Test we accept only vectors
-        xx = theano.tensor.matrix()
+        xx = aesara.tensor.matrix()
         ok = False
         try:
             alloc_diag(xx)
@@ -323,7 +323,7 @@ class TestDiag:
         assert ok
 
         # Test infer_shape
-        f = theano.function([x], g.shape)
+        f = aesara.function([x], g.shape)
         topo = f.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
             assert sum([node.op.__class__ == AllocDiag for node in topo]) == 0
@@ -339,12 +339,12 @@ class TestDiag:
     def test_diag(self):
         # test that it builds a matrix with given diagonal when using
         # vector inputs
-        x = theano.tensor.vector()
+        x = aesara.tensor.vector()
         y = diag(x)
         assert y.owner.op.__class__ == AllocDiag
 
         # test that it extracts the diagonal when using matrix input
-        x = theano.tensor.matrix()
+        x = aesara.tensor.matrix()
         y = extract_diag(x)
         assert y.owner.op.__class__ == ExtractDiag
 
@@ -354,7 +354,7 @@ class TestDiag:
         m = rng.rand(2, 3).astype(self.floatX)
         x = self.shared(m)
         g = extract_diag(x)
-        f = theano.function([], g)
+        f = aesara.function([], g)
         assert [
             isinstance(node.inputs[0].type, self.type)
             for node in f.maker.fgraph.toposort()
@@ -370,7 +370,7 @@ class TestDiag:
             assert (r == v).all()
 
         # Test we accept only matrix
-        xx = theano.tensor.vector()
+        xx = aesara.tensor.vector()
         ok = False
         try:
             extract_diag(xx)
@@ -381,7 +381,7 @@ class TestDiag:
         assert ok
 
         # Test infer_shape
-        f = theano.function([], g.shape)
+        f = aesara.function([], g.shape)
         topo = f.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
             assert sum([node.op.__class__ == ExtractDiag for node in topo]) == 0
@@ -398,7 +398,7 @@ class TestDiag:
     @pytest.mark.slow
     def test_extract_diag_empty(self):
         c = self.shared(np.array([[], []], self.floatX))
-        f = theano.function([], extract_diag(c), mode=self.mode)
+        f = aesara.function([], extract_diag(c), mode=self.mode)
 
         assert [
             isinstance(node.inputs[0].type, self.type)
@@ -409,16 +409,16 @@ class TestDiag:
 
 def test_trace():
     rng = np.random.RandomState(utt.fetch_seed())
-    x = theano.tensor.matrix()
+    x = aesara.tensor.matrix()
     g = trace(x)
-    f = theano.function([x], g)
+    f = aesara.function([x], g)
 
     for shp in [(2, 3), (3, 2), (3, 3)]:
         m = rng.rand(*shp).astype(config.floatX)
         v = np.trace(m)
         assert v == f(m)
 
-    xx = theano.tensor.vector()
+    xx = aesara.tensor.vector()
     ok = False
     try:
         trace(xx)
@@ -438,7 +438,7 @@ class TestEig(utt.InferShapeTester):
     def setup_method(self):
         super().setup_method()
         self.rng = np.random.RandomState(utt.fetch_seed())
-        self.A = theano.tensor.matrix(dtype=self.dtype)
+        self.A = aesara.tensor.matrix(dtype=self.dtype)
         self.X = np.asarray(self.rng.rand(5, 5), dtype=self.dtype)
         self.S = self.X.dot(self.X.T)
 
@@ -446,8 +446,8 @@ class TestEig(utt.InferShapeTester):
         A = self.A
         S = self.S
         self._compile_and_check(
-            [A],  # theano.function inputs
-            self.op(A),  # theano.function outputs
+            [A],  # aesara.function inputs
+            self.op(A),  # aesara.function outputs
             # S must be square
             [S],
             self.op_class,
@@ -455,7 +455,7 @@ class TestEig(utt.InferShapeTester):
         )
 
     def test_eval(self):
-        A = theano.tensor.matrix(dtype=self.dtype)
+        A = aesara.tensor.matrix(dtype=self.dtype)
         assert [e.eval({A: [[1]]}) for e in self.op(A)] == [[1.0], [[1.0]]]
         x = [[0, 1], [1, 0]]
         w, v = [e.eval({A: x}) for e in self.op(A)]
@@ -467,7 +467,7 @@ class TestEigh(TestEig):
 
     def test_uplo(self):
         S = self.S
-        a = theano.tensor.matrix(dtype=self.dtype)
+        a = aesara.tensor.matrix(dtype=self.dtype)
         wu, vu = [out.eval({a: S}) for out in self.op(a, "U")]
         wl, vl = [out.eval({a: S}) for out in self.op(a, "L")]
         assert_array_almost_equal(wu, wl)
@@ -498,7 +498,7 @@ class TestLstsq:
         x = tensor.lmatrix()
         y = tensor.lmatrix()
         z = tensor.lscalar()
-        b = theano.tensor.nlinalg.lstsq()(x, y, z)
+        b = aesara.tensor.nlinalg.lstsq()(x, y, z)
         f = function([x, y, z], b)
         TestMatrix1 = np.asarray([[2, 1], [3, 4]])
         TestMatrix2 = np.asarray([[17, 20], [43, 50]])
@@ -511,7 +511,7 @@ class TestLstsq:
         x = tensor.vector()
         y = tensor.vector()
         z = tensor.scalar()
-        b = theano.tensor.nlinalg.lstsq()(x, y, z)
+        b = aesara.tensor.nlinalg.lstsq()(x, y, z)
         f = function([x, y, z], b)
         with pytest.raises(np.linalg.linalg.LinAlgError):
             f([2, 1], [2, 1], 1)
@@ -520,7 +520,7 @@ class TestLstsq:
         x = tensor.vector()
         y = tensor.vector()
         z = tensor.vector()
-        b = theano.tensor.nlinalg.lstsq()(x, y, z)
+        b = aesara.tensor.nlinalg.lstsq()(x, y, z)
         f = function([x, y, z], b)
         with pytest.raises(np.linalg.LinAlgError):
             f([2, 1], [2, 1], [2, 1])
@@ -531,16 +531,16 @@ class TestMatrixPower:
     @pytest.mark.parametrize("n", [-1, 0, 1, 2, 3, 4, 5, 11])
     def test_numpy_compare(self, n):
         a = np.array([[0.1231101, 0.72381381], [0.28748201, 0.43036511]]).astype(
-            theano.config.floatX
+            aesara.config.floatX
         )
-        A = tensor.matrix("A", dtype=theano.config.floatX)
+        A = tensor.matrix("A", dtype=aesara.config.floatX)
         A.tag.test_value = a
         Q = matrix_power(A, n)
         n_p = np.linalg.matrix_power(a, n)
         assert np.allclose(n_p, Q.get_test_value())
 
     def test_non_square_matrix(self):
-        A = tensor.matrix("A", dtype=theano.config.floatX)
+        A = tensor.matrix("A", dtype=aesara.config.floatX)
         Q = matrix_power(A, 3)
         f = function([A], [Q])
         a = np.array(
@@ -549,7 +549,7 @@ class TestMatrixPower:
                 [0.74387558, 0.31780172],
                 [0.54381007, 0.28153101],
             ]
-        ).astype(theano.config.floatX)
+        ).astype(aesara.config.floatX)
         with pytest.raises(ValueError):
             f(a)
 
@@ -574,11 +574,11 @@ class TestNormTests:
     def test_numpy_compare(self):
         rng = np.random.RandomState(utt.fetch_seed())
 
-        M = tensor.matrix("A", dtype=theano.config.floatX)
-        V = tensor.vector("V", dtype=theano.config.floatX)
+        M = tensor.matrix("A", dtype=aesara.config.floatX)
+        V = tensor.vector("V", dtype=aesara.config.floatX)
 
-        a = rng.rand(4, 4).astype(theano.config.floatX)
-        b = rng.rand(4).astype(theano.config.floatX)
+        a = rng.rand(4, 4).astype(aesara.config.floatX)
+        b = rng.rand(4).astype(aesara.config.floatX)
 
         A = (
             [None, "fro", "inf", "-inf", 1, -1, None, "inf", "-inf", 0, 1, -1, 2, -2],
@@ -597,20 +597,20 @@ class TestNormTests:
 class TestTensorInv(utt.InferShapeTester):
     def setup_method(self):
         super().setup_method()
-        self.A = tensor.tensor4("A", dtype=theano.config.floatX)
-        self.B = tensor.tensor3("B", dtype=theano.config.floatX)
-        self.a = np.random.rand(4, 6, 8, 3).astype(theano.config.floatX)
-        self.b = np.random.rand(2, 15, 30).astype(theano.config.floatX)
+        self.A = tensor.tensor4("A", dtype=aesara.config.floatX)
+        self.B = tensor.tensor3("B", dtype=aesara.config.floatX)
+        self.a = np.random.rand(4, 6, 8, 3).astype(aesara.config.floatX)
+        self.b = np.random.rand(2, 15, 30).astype(aesara.config.floatX)
         self.b1 = np.random.rand(30, 2, 15).astype(
-            theano.config.floatX
+            aesara.config.floatX
         )  # for ind=1 since we need prod(b1.shape[:ind]) == prod(b1.shape[ind:])
 
     def test_infer_shape(self):
         A = self.A
         Ai = tensorinv(A)
         self._compile_and_check(
-            [A],  # theano.function inputs
-            [Ai],  # theano.function outputs
+            [A],  # aesara.function inputs
+            [Ai],  # aesara.function outputs
             [self.a],  # value to substitute
             TensorInv,
         )

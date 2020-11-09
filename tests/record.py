@@ -1,6 +1,6 @@
-import theano
-from theano.compile import Mode
-from theano.printing import hex_digest
+import aesara
+from aesara.compile import Mode
+from aesara.printing import hex_digest
 
 
 __authors__ = "Ian Goodfellow"
@@ -125,10 +125,10 @@ class RecordMode(Mode):
 
        # Then compile and call the function you wish to test, which uses
        # Apply nodes with record_mode as first parameter to record all the
-       # computations to file. For example, call a Theano function with the
+       # computations to file. For example, call a Aesara function with the
        # RecordMode object.
-       x = theano.tensor.dscalar()
-       f = theano.function([x], 2*x, mode=record_mode)
+       x = aesara.tensor.dscalar()
+       f = aesara.function([x], 2*x, mode=record_mode)
        print f(4)
 
        # Create another RecordMode object and initialize it with the previous
@@ -140,8 +140,8 @@ class RecordMode(Mode):
        # Compile and call the function to test again with record_mode as
        # first parameter. An exception will be thrown if the recorded
        # computations are not identical between the two runs.
-       x = theano.tensor.dscalar()
-       f = theano.function([x], 2*x, mode=playback_mode)
+       x = aesara.tensor.dscalar()
+       f = aesara.function([x], 2*x, mode=playback_mode)
        print f(4)
 
     """
@@ -202,7 +202,7 @@ class RecordMode(Mode):
                 print("str(node):", str(node))
                 print("Symbolic inputs: ")
                 for elem in node.inputs:
-                    print(theano.printing.min_informative_str(elem))
+                    print(aesara.printing.min_informative_str(elem))
                 print("str(output) of outputs: ")
                 for elem in fn.outputs:
                     assert isinstance(elem, list)
@@ -258,8 +258,8 @@ class RecordMode(Mode):
             line = "Outputs: " + outputs_digest + "\n"
             handle_line(line, i, node, fn)
 
-        # linker = theano.gof.OpWiseCLinker()
-        linker = theano.gof.vm.VM_Linker(use_cloop=bool(theano.config.cxx))
+        # linker = aesara.gof.OpWiseCLinker()
+        linker = aesara.gof.vm.VM_Linker(use_cloop=bool(aesara.config.cxx))
 
-        wrap_linker = theano.gof.WrapLinkerMany([linker], [callback])
+        wrap_linker = aesara.gof.WrapLinkerMany([linker], [callback])
         super().__init__(wrap_linker, optimizer="fast_run")

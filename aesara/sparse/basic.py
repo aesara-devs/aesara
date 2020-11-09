@@ -16,11 +16,11 @@ import numpy as np
 import scipy.sparse
 from numpy.lib.stride_tricks import as_strided
 
-import theano
-from theano import config, gof, scalar, tensor
-from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
-from theano.sparse.type import SparseType, _is_sparse
-from theano.sparse.utils import hash_from_sparse
+import aesara
+from aesara import config, gof, scalar, tensor
+from aesara.gradient import DisconnectedType, grad_not_implemented, grad_undefined
+from aesara.sparse.type import SparseType, _is_sparse
+from aesara.sparse.utils import hash_from_sparse
 
 
 sparse_formats = ["csc", "csr"]
@@ -162,7 +162,7 @@ def as_sparse_or_tensor_variable(x, name=None):
     try:
         return as_sparse_variable(x, name)
     except (ValueError, TypeError):
-        return theano.tensor.as_tensor_variable(x, name)
+        return aesara.tensor.as_tensor_variable(x, name)
 
 
 def constant(x, name=None):
@@ -354,7 +354,7 @@ class SparseConstantSignature(tuple):
         (a, b) = self
         return hash(type(self)) ^ hash(a) ^ hash(type(b))
 
-    def theano_hash(self):
+    def aesara_hash(self):
         (_, d) = self
         return hash_from_sparse(d)
 
@@ -466,11 +466,11 @@ class CSMProperties(gof.Op):
         (csm,) = inputs
         out[0][0] = csm.data
         if str(csm.data.dtype) == "int32":
-            out[0][0] = theano._asarray(out[0][0], dtype="int32")
+            out[0][0] = aesara._asarray(out[0][0], dtype="int32")
         # backport
-        out[1][0] = theano._asarray(csm.indices, dtype="int32")
-        out[2][0] = theano._asarray(csm.indptr, dtype="int32")
-        out[3][0] = theano._asarray(csm.shape, dtype="int32")
+        out[1][0] = aesara._asarray(csm.indices, dtype="int32")
+        out[2][0] = aesara._asarray(csm.indptr, dtype="int32")
+        out[3][0] = aesara._asarray(csm.shape, dtype="int32")
 
     def grad(self, inputs, g):
 
@@ -574,17 +574,17 @@ class CSM(gof.Op):
 
         if not isinstance(indices, gof.Variable):
             indices_ = np.asarray(indices)
-            indices_32 = theano._asarray(indices, dtype="int32")
+            indices_32 = aesara._asarray(indices, dtype="int32")
             assert (indices_ == indices_32).all()
             indices = indices_32
         if not isinstance(indptr, gof.Variable):
             indptr_ = np.asarray(indptr)
-            indptr_32 = theano._asarray(indptr, dtype="int32")
+            indptr_32 = aesara._asarray(indptr, dtype="int32")
             assert (indptr_ == indptr_32).all()
             indptr = indptr_32
         if not isinstance(shape, gof.Variable):
             shape_ = np.asarray(shape)
-            shape_32 = theano._asarray(shape, dtype="int32")
+            shape_32 = aesara._asarray(shape, dtype="int32")
             assert (shape_ == shape_32).all()
             shape = shape_32
 
@@ -830,7 +830,7 @@ class Cast(gof.op.Op):
 
         if gz.dtype in discrete_dtypes:
             if inputs[0].dtype in discrete_dtypes:
-                return [inputs[0].zeros_like(dtype=theano.config.floatX)]
+                return [inputs[0].zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [inputs[0].zeros_like()]
         else:
@@ -952,7 +952,7 @@ x
 
 Returns
 -------
-theano.tensor.matrix
+aesara.tensor.matrix
     A dense matrix, the same as `x`.
 
 Notes
@@ -978,7 +978,7 @@ class SparseFromDense(gof.op.Op):
         x = tensor.as_tensor_variable(x)
         if x.ndim > 2:
             raise TypeError(
-                "Theano does not have sparse tensor types with more "
+                "Aesara does not have sparse tensor types with more "
                 "than 2 dimensions, but %s.ndim = %i" % (x, x.ndim)
             )
         elif x.ndim == 1:
@@ -1150,7 +1150,7 @@ class GetItem2Lists(gof.op.Op):
         assert ind1.dtype in integer_dtypes
         assert ind2.dtype in integer_dtypes
 
-        return gof.Apply(self, [x, ind1, ind2], [theano.tensor.vector()])
+        return gof.Apply(self, [x, ind1, ind2], [aesara.tensor.vector()])
 
     def perform(self, node, inp, outputs):
         (out,) = outputs
@@ -1189,7 +1189,7 @@ index
 
 Returns
 -------
-theano.tensor.vector
+aesara.tensor.vector
     The corresponding elements in `x`.
 
 """
@@ -1253,11 +1253,11 @@ class GetItem2d(gof.op.Op):
         assert len(index) in [1, 2]
 
         input_op = [x]
-        generic_None = theano.gof.Constant(theano.gof.generic, None)
+        generic_None = aesara.gof.Constant(aesara.gof.generic, None)
 
         for ind in index:
             if isinstance(ind, slice):
-                # in case of slice is written in theano variable
+                # in case of slice is written in aesara variable
                 start = ind.start
                 stop = ind.stop
                 step = ind.step
@@ -1318,7 +1318,7 @@ class GetItem2d(gof.op.Op):
                 isinstance(ind, gof.Variable) and getattr(ind, "ndim", -1) == 0
             ) or np.isscalar(ind):
                 raise NotImplementedError(
-                    "Theano has no sparse vector"
+                    "Aesara has no sparse vector"
                     + "Use X[a:b, c:d], X[a:b, c:c+1] or X[a:b] instead."
                 )
             else:
@@ -1368,7 +1368,7 @@ an error will be raised. Use instead x[a:b, c:c+1] or x[a:a+1, b:c].
 The above indexing methods are not supported because the return value
 would be a sparse matrix rather than a sparse vector, which is a
 deviation from numpy indexing rule. This decision is made largely
-to preserve consistency between numpy and theano. This may be revised
+to preserve consistency between numpy and aesara. This may be revised
 when sparse vectors are supported.
 
 The grad is not implemented for this op.
@@ -1395,12 +1395,12 @@ class GetItemScalar(gof.op.Op):
             if isinstance(ind, slice):
                 raise Exception("GetItemScalar called with a slice as index!")
 
-            # in case of indexing using int instead of theano variable
+            # in case of indexing using int instead of aesara variable
             elif isinstance(ind, int):
-                ind = theano.tensor.constant(ind)
+                ind = aesara.tensor.constant(ind)
                 input_op += [ind]
 
-            # in case of indexing using theano variable
+            # in case of indexing using aesara variable
             elif ind.ndim == 0:
                 input_op += [ind]
             else:
@@ -1412,7 +1412,7 @@ class GetItemScalar(gof.op.Op):
         (x, ind1, ind2) = inputs
         (out,) = outputs
         assert _is_sparse(x)
-        out[0] = theano._asarray(x[ind1, ind2], x.dtype)
+        out[0] = aesara._asarray(x[ind1, ind2], x.dtype)
 
 
 get_item_scalar = GetItemScalar()
@@ -1432,7 +1432,7 @@ index
 
 Returns
 -------
-theano.tensor.scalar
+aesara.tensor.scalar
     The corresponding item in `x`.
 
 Notes
@@ -1741,14 +1741,14 @@ class SpSum(gof.op.Op):
         (x,) = inputs
         (gz,) = gout
         if x.dtype not in continuous_dtypes:
-            return [x.zeros_like(dtype=theano.config.floatX)]
+            return [x.zeros_like(dtype=aesara.config.floatX)]
         if self.structured:
             if self.axis is None:
-                r = gz * theano.sparse.sp_ones_like(x)
+                r = gz * aesara.sparse.sp_ones_like(x)
             elif self.axis == 0:
-                r = col_scale(theano.sparse.sp_ones_like(x), gz)
+                r = col_scale(aesara.sparse.sp_ones_like(x), gz)
             elif self.axis == 1:
-                r = row_scale(theano.sparse.sp_ones_like(x), gz)
+                r = row_scale(aesara.sparse.sp_ones_like(x), gz)
             else:
                 raise ValueError("Illegal value for self.axis.")
         else:
@@ -1857,7 +1857,7 @@ x
 
 Returns
 -------
-theano.tensor.vector
+aesara.tensor.vector
     A dense vector representing the diagonal elements.
 
 Notes
@@ -2132,7 +2132,7 @@ class AddSD(gof.op.Op):
 
         # The asarray is needed as in some case, this return a
         # numpy.matrixlib.defmatrix.matrix object and not an ndarray.
-        out[0] = theano._asarray(x + y, dtype=node.outputs[0].type.dtype)
+        out[0] = aesara._asarray(x + y, dtype=node.outputs[0].type.dtype)
 
     def grad(self, inputs, gout):
         (x, y) = inputs
@@ -2242,10 +2242,10 @@ def add(x, y):
         x = as_sparse_variable(x)
     if hasattr(y, "getnnz"):
         y = as_sparse_variable(y)
-    if not isinstance(x, theano.Variable):
-        x = theano.tensor.as_tensor_variable(x)
-    if not isinstance(y, theano.Variable):
-        y = theano.tensor.as_tensor_variable(y)
+    if not isinstance(x, aesara.Variable):
+        x = aesara.tensor.as_tensor_variable(x)
+    if not isinstance(y, aesara.Variable):
+        y = aesara.tensor.as_tensor_variable(y)
 
     x_is_sparse_variable = _is_sparse_variable(x)
     y_is_sparse_variable = _is_sparse_variable(y)
@@ -2667,10 +2667,10 @@ def __ComparisonSwitch(SS, SD, DS):
             x = as_sparse_variable(x)
         if hasattr(y, "getnnz"):
             y = as_sparse_variable(y)
-        if not isinstance(x, theano.Variable):
-            x = theano.tensor.as_tensor_variable(x)
-        if not isinstance(y, theano.Variable):
-            y = theano.tensor.as_tensor_variable(y)
+        if not isinstance(x, aesara.Variable):
+            x = aesara.tensor.as_tensor_variable(x)
+        if not isinstance(y, aesara.Variable):
+            y = aesara.tensor.as_tensor_variable(y)
 
         x_is_sparse_variable = _is_sparse_variable(x)
         y_is_sparse_variable = _is_sparse_variable(y)
@@ -3010,7 +3010,7 @@ def hstack(blocks, format=None, dtype=None):
 
     blocks = [as_sparse_variable(i) for i in blocks]
     if dtype is None:
-        dtype = theano.scalar.upcast(*[i.dtype for i in blocks])
+        dtype = aesara.scalar.upcast(*[i.dtype for i in blocks])
     return HStack(format=format, dtype=dtype)(*blocks)
 
 
@@ -3089,7 +3089,7 @@ def vstack(blocks, format=None, dtype=None):
 
     blocks = [as_sparse_variable(i) for i in blocks]
     if dtype is None:
-        dtype = theano.scalar.upcast(*[i.dtype for i in blocks])
+        dtype = aesara.scalar.upcast(*[i.dtype for i in blocks])
     return VStack(format=format, dtype=dtype)(*blocks)
 
 
@@ -3639,8 +3639,8 @@ class StructuredDot(gof.Op):
                 )
 
         # The cast is needed as otherwise we hit the bug mentioned into
-        # theano._asarray function documentation.
-        out[0] = theano._asarray(variable, str(variable.dtype))
+        # aesara._asarray function documentation.
+        out[0] = aesara._asarray(variable, str(variable.dtype))
 
     def grad(self, inputs, gout):
         # a is sparse, b is dense, g_out is dense
@@ -4127,7 +4127,7 @@ class Dot(gof.op.Op):
             assert y.format in ["csr", "csc"]
             if x.ndim not in (1, 2):
                 raise TypeError(
-                    "theano.sparse.Dot: input 0 (0-indexed) must have ndim of "
+                    "aesara.sparse.Dot: input 0 (0-indexed) must have ndim of "
                     "1 or 2, %d given." % x.ndim
                 )
 
@@ -4139,7 +4139,7 @@ class Dot(gof.op.Op):
             assert x.format in ["csr", "csc"]
             if y.ndim not in (1, 2):
                 raise TypeError(
-                    "theano.sparse.Dot: input 1 (1-indexed) must have ndim of "
+                    "aesara.sparse.Dot: input 1 (1-indexed) must have ndim of "
                     "1 or 2, %d given." % y.ndim
                 )
 
@@ -4165,7 +4165,7 @@ class Dot(gof.op.Op):
         if x_is_sparse and y_is_sparse:
             rval = rval.toarray()
 
-        out[0] = theano._asarray(rval, dtype=node.outputs[0].dtype)
+        out[0] = aesara._asarray(rval, dtype=node.outputs[0].dtype)
 
     def grad(self, inputs, gout):
         (x, y) = inputs
@@ -4345,9 +4345,9 @@ class ConstructSparseFromList(gof.Op):
                 output[out_idx] = values[in_idx]
 
         """
-        x_ = theano.tensor.as_tensor_variable(x)
-        values_ = theano.tensor.as_tensor_variable(values)
-        ilist_ = theano.tensor.as_tensor_variable(ilist)
+        x_ = aesara.tensor.as_tensor_variable(x)
+        values_ = aesara.tensor.as_tensor_variable(values)
+        ilist_ = aesara.tensor.as_tensor_variable(ilist)
 
         if ilist_.type.dtype not in integer_dtypes:
             raise TypeError("index must be integers")
@@ -4403,7 +4403,7 @@ class ConstructSparseFromList(gof.Op):
         idx_list = inputs[2:]
 
         gx = g_output
-        gy = theano.tensor.advanced_subtensor1(g_output, *idx_list)
+        gy = aesara.tensor.advanced_subtensor1(g_output, *idx_list)
 
         return [gx, gy] + [DisconnectedType()()] * len(idx_list)
 

@@ -39,10 +39,10 @@ So for example:
 
 Be careful!
 
-Theano defines a max function (called theano.tensor.max) that is
+Aesara defines a max function (called aesara.tensor.max) that is
 similar numpy's max.
 
-Theano also defines a function called theano.tensor.largest that is
+Aesara also defines a function called aesara.tensor.largest that is
 closer to python's, but not identical since it works elemwise for
 tensors.  There is a corresponding 'smallest' function that is like
 min()

@@ -103,15 +103,15 @@ HPCS 2011, Montr\'eal
 \section{Overview}
 \subsection{Motivation}
 \begin{frame}
-  \frametitle{Theano Goal}
+  \frametitle{Aesara Goal}
 \begin{itemize}
 \item Tries to be the {\bf holy grail} in computing: {\it easy to code} and {\it fast to execute} !
 \item Only on mathematical expressions
 \item So you won't have:
   \begin{itemize}
-  \item Function call inside a theano function
+  \item Function call inside a aesara function
   \item Structure, enum
-  \item Dynamic type (Theano is Fully typed)
+  \item Dynamic type (Aesara is Fully typed)
   \item ...
   \item And doesn't do coffee! \includegraphics[width=1.3in]{pics/Caffeine_Machine_no_background_red.png}
   \end{itemize}
@@ -125,9 +125,9 @@ HPCS 2011, Montr\'eal
 
 \frame{
   \frametitle{Project Status}
-  Why you can rely on Theano:
+  Why you can rely on Aesara:
   \begin{itemize}
-  \item Theano has been developed and used since January 2008 (3.5 yrs old)
+  \item Aesara has been developed and used since January 2008 (3.5 yrs old)
   \item Core technology for a funded Silicon-Valley startup
   \item Driven over 40 research papers in the last few years
   \item Good user documentation
@@ -157,12 +157,12 @@ HPCS 2011, Montr\'eal
     \begin{itemize}
 %Why GPU
     \item Why Scripting for GPUs?
-    \item Theano vs. PyCUDA vs. PyOpenCL vs. CUDA
+    \item Aesara vs. PyCUDA vs. PyOpenCL vs. CUDA
 %What is your background
     \item Python in 1 slide
     \item NumPy in 1 slide
     \end{itemize}
-  \item Theano
+  \item Aesara
     \begin{itemize}
     \item Introduction
     \item Simple example
@@ -172,7 +172,7 @@ HPCS 2011, Montr\'eal
 % More info on tt.grad
 % Where are the optimization in the example?
 % Exercises 2: logreg\_example.py
-    \item Theano Flags
+    \item Aesara Flags
     \item GPU
 % Exercises 3: logreg\_example.py on the gpu
     \item Symbolic Variables
@@ -188,20 +188,20 @@ HPCS 2011, Montr\'eal
 %  \begin{tabular}{lcr}
 
   \begin{itemize}
-  \item Advanced Theano
+  \item Advanced Aesara
     \begin{itemize}
     \item Compilation Pipeline
     \item Inplace Optimization
     \item Profiling
 %exercises 4: ProfileMode on logreg\_example, CPU vs GPU
-    \item Drawing/Printing Theano Graph
+    \item Drawing/Printing Aesara Graph
     \item Debugging
     \item Scan (For-Loop generalization)
 %exercises 5: about scan
     \item Known Limitations
-    \end{itemize} %& \includegraphics[width=1.in]{pics/theano_logo.png}
+    \end{itemize} %& \includegraphics[width=1.in]{pics/aesara_logo.png}
   \begin{tabular}{lcr}
-    \imagetop{\includegraphics[width=1.in]{pics/theano_logo.png}}&
+    \imagetop{\includegraphics[width=1.in]{pics/aesara_logo.png}}&
     %\imagetop{\includegraphics[width=.6in]{pics/pycuda-logo-crop.pdf}}
   \end{tabular}
   \end{itemize}
@@ -217,20 +217,20 @@ HPCS 2011, Montr\'eal
 % Exercices 6: pycuda_simple.py
     \end{itemize}
   \item CUDA Overview
-  \item Extending Theano
+  \item Extending Aesara
     \begin{itemize}
-    \item Theano Graph
+    \item Aesara Graph
     \item Op Contract
     \item Op Example
 % Exercises 7: double.py
-    \item Theano + PyCUDA
+    \item Aesara + PyCUDA
 % Exercises 8: pycuda_double_op.py
     \end{itemize}
   \item GpuNdArray
   \item Conclusion
   \end{itemize}
   \begin{tabular}{lcr}
-    %\imagetop{\includegraphics[width=1.in]{pics/theano_logo.png}}&
+    %\imagetop{\includegraphics[width=1.in]{pics/aesara_logo.png}}&
     \imagetop{\includegraphics[width=.6in]{pics/pycuda-logo-crop.pdf}}
   \end{tabular}
 }
@@ -264,9 +264,9 @@ HPCS 2011, Montr\'eal
       \item NVIDIA GTX580 (1.5Tf/s float32) 512 cores
       \end{itemize}
     \end{itemize}
-  \item Theano goes up to 100x faster on th GPU because we don't use multiple core on CPU
+  \item Aesara goes up to 100x faster on th GPU because we don't use multiple core on CPU
     \begin{itemize}
-    \item Theano can be linked with multi-core capable BLAS (GEMM and GEMV)
+    \item Aesara can be linked with multi-core capable BLAS (GEMM and GEMV)
     \end{itemize}
   \item If you see 1000x, it probably means the benchmark is not fair
 \end{itemize}
@@ -291,9 +291,9 @@ HPCS 2011, Montr\'eal
   \end{itemize}
 }
 \frame{
-  \frametitle{Theano vs PyCUDA vs PyOpenCL vs CUDA}
+  \frametitle{Aesara vs PyCUDA vs PyOpenCL vs CUDA}
   \begin{itemize}
-    \item Theano
+    \item Aesara
       \begin{itemize}
       \item Mathematical expression compiler
       \item Generates costum C and CUDA code
@@ -375,26 +375,26 @@ HPCS 2011, Montr\'eal
 %  \end{itemize}
 %}
 
-\section{Theano}
+\section{Aesara}
 \subsection{Introduction}
 \frame{
-%%  \frametitle{Theano}
+%%  \frametitle{Aesara}
 \begin{center}
-  \includegraphics[width=3.in]{../images/theano_logo_allblue_350x95.png}
-%  \includegraphics[width=3.in]{../images/theano_logo_allblue_200x54.png}
+  \includegraphics[width=3.in]{../images/aesara_logo_allblue_350x95.png}
+%  \includegraphics[width=3.in]{../images/aesara_logo_allblue_200x54.png}
 \end{center}
 }
 
 \frame{
   \frametitle{Pointers}
   \begin{itemize}
-  \item Website: http://deeplearning.net/software/theano/
-  \item Announcements mailing list: http://groups.google.com/group/theano-announce
-  \item User mailing list: http://groups.google.com/group/theano-users
+  \item Website: http://deeplearning.net/software/aesara/
+  \item Announcements mailing list: http://groups.google.com/group/aesara-announce
+  \item User mailing list: http://groups.google.com/group/aesara-users
   \item Deep Learning Tutorials: http://www.deeplearning.net/tutorial/
 
     \vfill
-  \item Installation: https://deeplearning.net/software/theano/install.html
+  \item Installation: https://deeplearning.net/software/aesara/install.html
   \end{itemize}
 }
 
@@ -405,7 +405,7 @@ HPCS 2011, Montr\'eal
   \item Dynamic C/CUDA code generation
   \item Efficient symbolic differentiation
     \begin{itemize}
-    \item Theano computes derivatives of functions with one or many inputs.
+    \item Aesara computes derivatives of functions with one or many inputs.
     \end{itemize}
   \item Speed and stability optimizations
     \begin{itemize}
@@ -440,8 +440,8 @@ HPCS 2011, Montr\'eal
 }
 
 \frame{
-  \frametitle{Why Theano is better}
-  Executing the code is faster because Theano:
+  \frametitle{Why Aesara is better}
+  Executing the code is faster because Aesara:
   \begin{itemize}
   \item Rearranges high-level expressions
   \item Produces customized low-level code
@@ -452,11 +452,11 @@ HPCS 2011, Montr\'eal
   Writing the code is faster because:
   \begin{itemize}
   \item High-level language allows to {\bf concentrate on the algorithm}
-  \item Theano do {\bf automatic optimization}
+  \item Aesara do {\bf automatic optimization}
     \begin{itemize}
     \item No need to manually optimize for each algorithm you want to test
     \end{itemize}
-  \item Theano do {\bf automatic efficient symbolic differentiation}
+  \item Aesara do {\bf automatic efficient symbolic differentiation}
     \begin{itemize}
     \item No need to manually differentiate your functions (tedious \& error-prone for complicated expressions!)
     \end{itemize}
@@ -469,10 +469,10 @@ HPCS 2011, Montr\'eal
 \begin{frame}[fragile]
   \frametitle{Simple Example}
 \begin{Verbatim}[commandchars=\\\{\}]
-import theano
-a = theano.tensor.vector("a") {\color{gray} # declare symbolic variable}
+import aesara
+a = aesara.tensor.vector("a") {\color{gray} # declare symbolic variable}
 b = a + a**10                 {\color{gray} # build symbolic expression}
-f = theano.function([a], b)   {\color{gray} # compile function}
+f = aesara.function([a], b)   {\color{gray} # compile function}
 print f([0,1,2])              {\color{gray} # prints `array([0,2,1026])`}
 \end{Verbatim}
   \includegraphics[width=1.2in]{pics/f_unoptimized.png}
@@ -494,8 +494,8 @@ print f([0,1,2])              {\color{gray} # prints `array([0,2,1026])`}
   \frametitle{Exercises 1}
   \begin{Verbatim}
 source /groups/h/hpc2011/bin/GPU.csh
-hg clone http://hg.assembla.com/theano Theano
-cd Theano/doc/hpcs2011_tutorial
+hg clone http://hg.assembla.com/aesara Aesara
+cd Aesara/doc/hpcs2011_tutorial
 python simple_example.py
   \end{Verbatim}
   \vfill
@@ -517,8 +517,8 @@ Modify and execute the example to do this expression: a**2 + b**2 + 2*a*b
   \frametitle{A Real Example: Logistic Regression}
 \begin{Verbatim}[commandchars=\\\{\}]
 import numpy
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 rng = numpy.random
 
 N = 400
@@ -531,11 +531,11 @@ training_steps = 10000
 \begin{frame}[fragile]
   \frametitle{A Real Example: Logistic Regression}
 \begin{Verbatim}[commandchars=\\\{\}]
-{\color{gray}# Declare Theano symbolic variables}
+{\color{gray}# Declare Aesara symbolic variables}
 x = tt.matrix("x")
 y = tt.vector("y")
-\codeHighlight{w = theano.shared(rng.randn(100), name="w")}
-\codeHighlight{b = theano.shared(0., name="b")}
+\codeHighlight{w = aesara.shared(rng.randn(100), name="w")}
+\codeHighlight{b = aesara.shared(0., name="b")}
 print "Initial model:"
 print w.get_value(), b.get_value()
 \end{Verbatim}
@@ -544,13 +544,13 @@ print w.get_value(), b.get_value()
 \begin{frame}[fragile]
   \frametitle{A Real Example: Logistic Regression}
 \begin{Verbatim}[commandchars=\\\{\}]
-{\color{gray}# Declare Theano symbolic variables}
+{\color{gray}# Declare Aesara symbolic variables}
 {\color{gray}x = tt.matrix("x")}
 {\color{gray}y = tt.vector("y")}
-{\color{gray}w = theano.shared(rng.randn(100), name="w")}
-{\color{gray}b = theano.shared(0., name="b")}
+{\color{gray}w = aesara.shared(rng.randn(100), name="w")}
+{\color{gray}b = aesara.shared(0., name="b")}
 
-{\color{gray}# Construct Theano expression graph}
+{\color{gray}# Construct Aesara expression graph}
 p_1 = 1 / (1 + tt.exp(-T.dot(x, w)-b))    {\color{gray}# Probability that target = 1}
 prediction = p_1 > 0.5                   {\color{gray}# The prediction thresholded}
 xent = -y*T.log(p_1) - (1-y)*T.log(1-p_1){\color{gray}# Cross-entropy loss function}
@@ -564,8 +564,8 @@ cost = xent.mean() + 0.01*(w**2).sum()   {\color{gray}# The cost to minimize}
 \begin{Verbatim}[commandchars=\\\{\}]
 {\color{gray}x = tt.matrix("x")}
 {\color{gray}y = tt.vector("y")}
-{\color{gray}w = theano.shared(rng.randn(100), name="w")}
-{\color{gray}b = theano.shared(0., name="b")}
+{\color{gray}w = aesara.shared(rng.randn(100), name="w")}
+{\color{gray}b = aesara.shared(0., name="b")}
 {\color{gray}p_1 = 1 / (1 + tt.exp(-T.dot(x, w)-b))}
 {\color{gray}prediction = p_1 > 0.5}
 {\color{gray}xent = -y*T.log(p_1) - (1-y)*T.log(1-p_1)}
@@ -573,11 +573,11 @@ cost = xent.mean() + 0.01*(w**2).sum()   {\color{gray}# The cost to minimize}
 {\color{gray}gw,gb = tt.grad(cost, [w,b])}
 
 {\color{gray}# Compile}
-train = theano.function(
+train = aesara.function(
             inputs=[x,y],
             \codeHighlight{outputs=[prediction, xent]},
             \codeHighlight{updates=\{w:w-0.1*gw, b:b-0.1*gb\}})
-predict = theano.function(inputs=[x], outputs=prediction)
+predict = aesara.function(inputs=[x], outputs=prediction)
 \end{Verbatim}
 \end{frame}
 
@@ -604,7 +604,7 @@ prediction = p_1 > 0.5
 cost = xent.mean() + 0.01*(w**2).sum()
 gw,gb = tt.grad(cost, [w,b])
 
-train = theano.function(
+train = aesara.function(
             inputs=[x,y],
             outputs=[prediction, xent],
             updates=\{w:w-0.1*gw, b:b-0.1*gb\})  {\color{gray}# This is a dictionary}
@@ -631,7 +631,7 @@ prediction = p_1 > 0.5
 cost = xent.mean() + 0.01*(w**2).sum()
 gw,gb = tt.grad(cost, [w,b])
 
-train = theano.function(
+train = aesara.function(
             inputs=[x,y],
             outputs=[prediction, xent],
 \codeHighlight{# w-0.1*gw: GEMV with the dot in the grad}
@@ -643,13 +643,13 @@ train = theano.function(
 \end{itemize}
 \end{frame}
 
-\subsection{Theano Flags}
+\subsection{Aesara Flags}
 \frame{
-\frametitle{Theano Flags}
-Theano can be configured with flags. They can be defined in two ways
+\frametitle{Aesara Flags}
+Aesara can be configured with flags. They can be defined in two ways
 \begin{itemize}
 \item With an environment variable: \texttt{THEANO\_FLAGS="mode=ProfileMode,ProfileMode.profile\_memory=True"}
-\item With a configuration file that defaults to \textasciitilde/.theanorc
+\item With a configuration file that defaults to \textasciitilde/.aesararc
 \end{itemize}
 }
 
@@ -661,7 +661,7 @@ python logreg_example.py
 \vfill
 Modify and execute the example in the file logreg\_example.py to run on CPU with floatX=float32
 
-* You will need to use: theano.config.floatX and ndarray.astype("str")
+* You will need to use: aesara.config.floatX and ndarray.astype("str")
 \end{frame}
 
 \subsection{GPU}
@@ -670,14 +670,14 @@ Modify and execute the example in the file logreg\_example.py to run on CPU with
 \begin{itemize}
 \item Only 32 bit floats are supported (being worked on)
 \item Only 1 GPU per process
-\item Use the Theano flag \texttt{device=gpu} to tell to use the GPU device
+\item Use the Aesara flag \texttt{device=gpu} to tell to use the GPU device
   \begin{itemize}
   \item Use \texttt{device=gpu{0, 1, ...}} to specify which GPU if you have more than one
   \item Shared variables with float32 dtype are by default moved to the GPU memory space
   \end{itemize}
-\item Use the Theano flag \texttt{floatX=float32}
+\item Use the Aesara flag \texttt{floatX=float32}
   \begin{itemize}
-  \item Be sure to use \texttt{floatX} (\texttt{theano.config.floatX}) in your code
+  \item Be sure to use \texttt{floatX} (\texttt{aesara.config.floatX}) in your code
   \item Cast inputs before putting them into a shared variable
   \item Cast "problem": int32 with float32 $\to$ float64
     \begin{itemize}
@@ -766,7 +766,7 @@ Computers in the class
 {\color{gray}gw,gb = tt.grad(cost, [w,b])}
 \end{Verbatim}
 \begin{itemize}
-\item tt.grad works symbolically: takes and returns a Theano variable
+\item tt.grad works symbolically: takes and returns a Aesara variable
 \item tt.grad can be compared to a macro: it can be applied multiple times
 \item tt.grad takes scalar costs only
 \item Simple recipe allows to compute efficiently vector $\times$ Jacobian and vector $\times$ Hessian
@@ -787,7 +787,7 @@ Example:
 Competitors: NumPy + SciPy, MATLAB, EBLearn, Torch5, numexpr
 \begin{itemize}
 \item EBLearn, Torch5: specialized libraries written by practitioners specifically for these tasks
-\item numexpr: similar to Theano, 'virtual machine' for elemwise expressions
+\item numexpr: similar to Aesara, 'virtual machine' for elemwise expressions
 \end{itemize}
 }
 
@@ -812,7 +812,7 @@ Convolutional Network: 256x256 images convolved with 6 7x7 filters, downsampled 
 \frametitle{Elemwise Benchmark}
 \begin{itemize}
 \item All on CPU
-\item Solid blue: Theano
+\item Solid blue: Aesara
 \item Dashed Red: numexpr (without MKL)
 \end{itemize}
 \begin{center}
@@ -820,7 +820,7 @@ Convolutional Network: 256x256 images convolved with 6 7x7 filters, downsampled 
 \end{center}
 }
 
-\section{Advanced Theano}
+\section{Advanced Aesara}
 \subsection{Optimizations}
 \frame{
 \frametitle{Compilation Pipeline}
@@ -838,7 +838,7 @@ Convolutional Network: 256x256 images convolved with 6 7x7 filters, downsampled 
   \item An op that write the output on the inputs memory space
   \end{itemize}
 \item This allows some memory optimization
-\item The Op must tell Theano if they work inplace
+\item The Op must tell Aesara if they work inplace
 \item Inplace Op add constraints to the order of execution
 \end{itemize}
 }
@@ -846,29 +846,29 @@ Convolutional Network: 256x256 images convolved with 6 7x7 filters, downsampled 
 \subsection{Profiling}
 \begin{frame}[fragile]
 \frametitle{Profile Mode}
-To replace the default mode with this mode, use the Theano flags \texttt{mode=ProfileMode}
+To replace the default mode with this mode, use the Aesara flags \texttt{mode=ProfileMode}
 
 To enable the memory profiling use the flags \texttt{ProfileMode.profile\_memory=True}
 \begin{Verbatim}
 Time since import 33.456s
-Theano compile time: 1.023s (3.1% since import)
+Aesara compile time: 1.023s (3.1% since import)
     Optimization time: 0.789s
     Linker time: 0.221s
-Theano fct call 30.878s (92.3% since import)
-   Theano Op time 29.411s 87.9%(since import) 95.3%(of fct call)
-   Theano function overhead in ProfileMode 1.466s 4.4%(since import)
+Aesara fct call 30.878s (92.3% since import)
+   Aesara Op time 29.411s 87.9%(since import) 95.3%(of fct call)
+   Aesara function overhead in ProfileMode 1.466s 4.4%(since import)
                                                   4.7%(of fct call)
-10001 Theano fct call, 0.003s per call
+10001 Aesara fct call, 0.003s per call
 Rest of the time since import 1.555s 4.6%
 \end{Verbatim}
 \end{frame}
 
 \begin{frame}[fragile]
 \frametitle{Profile Mode: Function Summary}
-Theano outputs:
+Aesara outputs:
 \vfill
 \begin{Verbatim}
-Theano fct summary:
+Aesara fct summary:
 <% total fct time> <total time> <time per call> <nb call> <fct name>
    100.0% 30.877s 3.09e-03s 10000 train
     0.0% 0.000s 4.06e-04s 1 predict
@@ -877,7 +877,7 @@ Theano fct summary:
 
 \begin{frame}[fragile]
 \frametitle{Profile Mode: Single Op-Wise Summary}
-Theano outputs:
+Aesara outputs:
 \vfill
 \begin{Verbatim}
 Single Op-wise summary:
@@ -897,7 +897,7 @@ Single Op-wise summary:
 
 \begin{frame}[fragile]
 \frametitle{Profile Mode: Op-Wise Summary}
-Theano outputs:
+Aesara outputs:
 \vfill
 \begin{Verbatim}
 Op-wise summary:
@@ -919,7 +919,7 @@ Op-wise summary:
 
 \begin{frame}[fragile]
 \frametitle{Profile Mode: Apply-Wise Summary}
-Theano outputs:
+Aesara outputs:
 \vfill
 \begin{Verbatim}
 Apply-wise summary:
@@ -940,13 +940,13 @@ Apply-wise summary:
 
 \begin{frame}[fragile]
 \frametitle{Profile Mode: Memory Profile}
-Theano outputs:
+Aesara outputs:
 \vfill
 \begin{Verbatim}
-Profile of Theano functions memory:
+Profile of Aesara functions memory:
 (This check only the output of each apply node. It don't check the
     temporary memory used by the op in the apply node.)
-Theano fct: train
+Aesara fct: train
     Max without gc, inplace and view (KB) 2481
     Max FAST_RUN_NO_GC (KB) 16
     Max FAST_RUN (KB) 16
@@ -964,13 +964,13 @@ Theano fct: train
 
 \begin{frame}[fragile]
 \frametitle{Profile Mode: Tips}
-Theano outputs:
+Aesara outputs:
 \vfill
 \begin{Verbatim}
 Here are tips to potentially make your code run faster
 (if you think of new ones, suggest them on the mailing list).
 Test them first, as they are not guaranteed to always provide a speedup.
-  - Try the Theano flag floatX=float32
+  - Try the Aesara flag floatX=float32
 \end{Verbatim}
 \end{frame}
 
@@ -987,11 +987,11 @@ Test them first, as they are not guaranteed to always provide a speedup.
 
 \subsection{Printing}
 \begin{frame}[fragile]
-\frametitle{Text Printing of Your Theano Graph: Pretty Printing}
-theano.printing.pprint(variable)
+\frametitle{Text Printing of Your Aesara Graph: Pretty Printing}
+aesara.printing.pprint(variable)
 \vfill
 \begin{Verbatim}
->>> theano.printing.pprint(prediction)
+>>> aesara.printing.pprint(prediction)
 gt((TensorConstant{1} / (TensorConstant{1} + exp(((-(x \\dot w)) - b)))),
 TensorConstant{0.5})
 \end{Verbatim}
@@ -999,12 +999,12 @@ TensorConstant{0.5})
 
 
 \begin{frame}[fragile]
-\frametitle{Text Printing of Your Theano Graph: Debug Print}
-theano.printing.debugprint({fct, variable, list of variables})
+\frametitle{Text Printing of Your Aesara Graph: Debug Print}
+aesara.printing.debugprint({fct, variable, list of variables})
 \vfill
 \small
 \begin{Verbatim}
->>> theano.printing.debugprint(prediction)
+>>> aesara.printing.debugprint(prediction)
 Elemwise{gt,no_inplace} [@181772236] ''
  |Elemwise{true_div,no_inplace} [@181746668] ''
  | |InplaceDimShuffle{x} [@181746412] ''
@@ -1026,12 +1026,12 @@ Elemwise{gt,no_inplace} [@181772236] ''
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Text Printing of Your Theano Graph: Debug Print}
-theano.printing.debugprint({fct, variable, list of variables})
+\frametitle{Text Printing of Your Aesara Graph: Debug Print}
+aesara.printing.debugprint({fct, variable, list of variables})
 \vfill
 \small
 \begin{Verbatim}
->>> theano.printing.debugprint(predict)
+>>> aesara.printing.debugprint(predict)
 Elemwise{Composite{neg,{sub,{{scalar_sigmoid,GT},neg}}}} [@183160204] ''   2
  |dot [@183018796] ''   1
  | |x [@183000780]
@@ -1045,7 +1045,7 @@ Elemwise{Composite{neg,{sub,{{scalar_sigmoid,GT},neg}}}} [@183160204] ''   2
 \begin{frame}[fragile]
 \frametitle{Picture Printing of Graphs}
 \begin{Verbatim}
->>> theano.printing.pydotprint_variables(prediction)
+>>> aesara.printing.pydotprint_variables(prediction)
 \end{Verbatim}
 \includegraphics[width=1.9in]{pics/logreg_pydotprint_prediction.png}
 \end{frame}
@@ -1054,7 +1054,7 @@ Elemwise{Composite{neg,{sub,{{scalar_sigmoid,GT},neg}}}} [@183160204] ''   2
 \frametitle{Picture Printing of Graphs}
 \begin{Verbatim}
 All pydotprint* requires graphviz and pydot
->>> theano.printing.pydotprint(predict)
+>>> aesara.printing.pydotprint(predict)
 \end{Verbatim}
 \includegraphics[width=4in]{pics/logreg_pydotprint_predic.png}
 \end{frame}
@@ -1062,7 +1062,7 @@ All pydotprint* requires graphviz and pydot
 \begin{frame}[fragile]
 \frametitle{Picture Printing of Graphs}
 \begin{Verbatim}[commandchars=\\\{\}]
->>> theano.printing.pydotprint(train) {\color{gray}# This is a small train example!}
+>>> aesara.printing.pydotprint(train) {\color{gray}# This is a small train example!}
 \end{Verbatim}
 \hspace{-.8cm}
 \includegraphics[width=5.0in]{pics/logreg_pydotprint_train.png}
@@ -1080,7 +1080,7 @@ All pydotprint* requires graphviz and pydot
   \item Checks many things that Op should/shouldn't do
   \item Executes both the Python and C code versions
   \end{itemize}
-\item Run with the Theano flag \texttt{compute\_test\_value = {``off'', ``ignore'', ``warn'', ``raise''}}
+\item Run with the Aesara flag \texttt{compute\_test\_value = {``off'', ``ignore'', ``warn'', ``raise''}}
   \begin{itemize}
   \item Run the code as we create the graph
   \item Allows you to find the bug earlier (ex: shape mismatch)
@@ -1108,13 +1108,13 @@ All pydotprint* requires graphviz and pydot
 \item ``sum()`` could be computed by scanning the $z + x_i$ function
   over a list, given an initial state of ``z=0``.
 \item Often a for-loop can be expressed as a ``scan()`` operation, and
-  ``scan`` is the closest that Theano comes to looping.
+  ``scan`` is the closest that Aesara comes to looping.
 \item The advantage of using ``scan`` over for loops
   \begin{itemize}
   \item The number of iterations to be part of the symbolic graph
   \item Minimizes GPU transfers if GPU is involved
   \item Compute gradients through sequential steps
-  \item Slightly faster then using a for loop in Python with a compiled Theano function
+  \item Slightly faster then using a for loop in Python with a compiled Aesara function
   \item Can lower the overall memory usage by detecting the actual \\ amount of memory needed
   \end{itemize}
 \end{itemize}
@@ -1127,7 +1127,7 @@ k = tt.iscalar("k"); A = tt.vector("A")
 
 def inner_fct(prior_result, A): return prior_result * A
 # Symbolic description of the result
-result, updates = theano.scan(fn=inner_fct,
+result, updates = aesara.scan(fn=inner_fct,
                               outputs_info=T.ones_like(A),
                               non_sequences=A, n_steps=k)
 
@@ -1135,7 +1135,7 @@ result, updates = theano.scan(fn=inner_fct,
 # value. Scan notices this and does not waste memory saving them.
 final_result = result[-1]
 
-power = theano.function(inputs=[A,k], outputs=final_result,
+power = aesara.function(inputs=[A,k], outputs=final_result,
                         updates=updates)
 
 print power(range(10),2)
@@ -1146,18 +1146,18 @@ print power(range(10),2)
 \begin{frame}[fragile]
 \frametitle{Scan Example: Calculating a Polynomial}
 \begin{Verbatim}
-coefficients = theano.tensor.vector("coefficients")
+coefficients = aesara.tensor.vector("coefficients")
 x = tt.scalar("x"); max_coefficients_supported = 10000
 
 # Generate the components of the polynomial
-full_range=theano.tensor.arange(max_coefficients_supported)
-components, updates = theano.scan(fn=lambda coeff, power, free_var:
+full_range=aesara.tensor.arange(max_coefficients_supported)
+components, updates = aesara.scan(fn=lambda coeff, power, free_var:
                                      coeff * (free_var ** power),
                                   outputs_info=None,
                                   sequences=[coefficients, full_range],
                                   non_sequences=x)
 polynomial = components.sum()
-calculate_polynomial = theano.function(inputs=[coefficients, x],
+calculate_polynomial = aesara.function(inputs=[coefficients, x],
                                        outputs=polynomial)
 
 test_coeff = numpy.asarray([1, 0, 2], dtype=numpy.float32)
@@ -1355,17 +1355,17 @@ multiply_them(
 %\end{frame}
 
 
-\section{Extending Theano}
-\subsection{Theano}
+\section{Extending Aesara}
+\subsection{Aesara}
 \frame{
-\frametitle{Theano Graph}
+\frametitle{Aesara Graph}
 \begin{itemize}
-\item Theano works with symbolic graphs
+\item Aesara works with symbolic graphs
 \item Those graphs are bi-partite graphs (graph with 2 types of nodes)
 \item Those 2 nodes types are Apply and Variable nodes
 \end{itemize}
 \begin{itemize}
-\item Inputs and Outputs are lists of Theano variables
+\item Inputs and Outputs are lists of Aesara variables
 \end{itemize}
 \begin{center}
 \includegraphics[width=3.5in]{pics/apply_node.pdf}
@@ -1383,7 +1383,7 @@ class MyOp(Op):
 
 {\color{gray}# Python implementation:}
     def perform(self, node, inputs_storage, outputs_storage):
-{\color{gray}# C implementation:} [see theano web site]
+{\color{gray}# C implementation:} [see aesara web site]
 {\color{gray}# others implementation (pycuda, ...):}
      def make_thunk(self, node, storage_map, _, _2):
 
@@ -1397,9 +1397,9 @@ class MyOp(Op):
 \begin{frame}[fragile]
 \frametitle{Op Example}
 \begin{Verbatim}
-import theano
+import aesara
 
-class DoubleOp(theano.Op):
+class DoubleOp(aesara.Op):
     def __eq__(self, other):
         return type(self) == type(other)
     def __hash__(self):
@@ -1407,8 +1407,8 @@ class DoubleOp(theano.Op):
     def __str__(self):
         return self.__class__.__name__
     def make_node(self, x):
-        x = theano.tensor.as_tensor_variable(x)
-        return theano.Apply(self, [x], [x.type()])
+        x = aesara.tensor.as_tensor_variable(x)
+        return aesara.Apply(self, [x], [x.type()])
     def perform(self, node, inputs, output_storage):
         x = inputs[0]
         z = output_storage[0]
@@ -1418,10 +1418,10 @@ class DoubleOp(theano.Op):
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Theano Op Example: Test it!}
+\frametitle{Aesara Op Example: Test it!}
 \begin{Verbatim}
-x = theano.tensor.matrix()
-f = theano.function([x],DoubleOp()(x))
+x = aesara.tensor.matrix()
+f = aesara.function([x],DoubleOp()(x))
 
 import numpy
 inp = numpy.random.rand(5,5)
@@ -1444,16 +1444,16 @@ print out
 \end{itemize}
 \end{frame}
 
-\subsection{Theano+PyCUDA}
+\subsection{Aesara+PyCUDA}
 \begin{frame}[fragile]
-\frametitle{Theano+PyCUDA Op Example}
+\frametitle{Aesara+PyCUDA Op Example}
 \begin{Verbatim}
-import numpy, theano
-import theano.misc.pycuda_init
+import numpy, aesara
+import aesara.misc.pycuda_init
 from pycuda.compiler import SourceModule
-import theano.sandbox.cuda as cuda
+import aesara.sandbox.cuda as cuda
 
-class PyCUDADoubleOp(theano.Op):
+class PyCUDADoubleOp(aesara.Op):
     def __eq__(self, other):
         return type(self) == type(other)
     def __hash__(self):
@@ -1464,13 +1464,13 @@ class PyCUDADoubleOp(theano.Op):
         inp = cuda.basic_ops.gpu_contiguous(
            cuda.basic_ops.as_cuda_ndarray_variable(inp))
         assert inp.dtype == "float32"
-        return theano.Apply(self, [inp], [inp.type()])
+        return aesara.Apply(self, [inp], [inp.type()])
 \end{Verbatim}
 \end{frame}
 
 
 \begin{frame}[fragile]
-\frametitle{Theano + PyCUDA Op Example: make\_thunk}
+\frametitle{Aesara + PyCUDA Op Example: make\_thunk}
 \begin{Verbatim}
     def make_thunk(self, node, storage_map, _, _2):
         mod = SourceModule( THE_C_CODE )
@@ -1490,7 +1490,7 @@ class PyCUDADoubleOp(theano.Op):
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Theano + PyCUDA Op Example: GPU Code}
+\frametitle{Aesara + PyCUDA Op Example: GPU Code}
 \begin{Verbatim}
 THE_C_CODE = """
 __global__ void my_fct(float * i0, float * o0, int size) {
@@ -1504,10 +1504,10 @@ __global__ void my_fct(float * i0, float * o0, int size) {
 
 
 \begin{frame}[fragile]
-\frametitle{Theano + PyCUDA Op Example: Test it!}
+\frametitle{Aesara + PyCUDA Op Example: Test it!}
 \begin{Verbatim}
-x = theano.tensor.fmatrix()
-f = theano.function([x], PyCUDADoubleOp()(x))
+x = aesara.tensor.fmatrix()
+f = aesara.function([x], PyCUDADoubleOp()(x))
 xv=numpy.ones((4,5), dtype="float32")
 
 assert numpy.allclose(f(xv), xv*2)
@@ -1535,7 +1535,7 @@ print numpy.asarray(f(xv))
 \begin{itemize}
 \item Currently there are at least 4 different GPU array data structures in use by Python packages
   \begin{itemize}
-  \item CudaNdarray (Theano), GPUArray (PyCUDA), CUDAMatrix (cudamat), GPUArray (PyOpenCL), ...
+  \item CudaNdarray (Aesara), GPUArray (PyCUDA), CUDAMatrix (cudamat), GPUArray (PyOpenCL), ...
   \item There are even more if we include other languages
   \end{itemize}
 \item All of them are a subset of the functionality of \texttt{numpy.ndarray} on the GPU
@@ -1566,7 +1566,7 @@ print numpy.asarray(f(xv))
 \frametitle{Final GpuNdArray Note}
 \begin{itemize}
 \item Under development
-\item Will be the next GPU array container for Theano (this summer!)
+\item Will be the next GPU array container for Aesara (this summer!)
 \item Probably also for PyCUDA, PyOpenCL
 \item Mailing list: http://lists.tiker.net/listinfo/gpundarray
 \end{itemize}
@@ -1580,7 +1580,7 @@ print numpy.asarray(f(xv))
   \begin{itemize}
   \item I presented a tool that tries to be the holy grail in computing: {\bf easy to code} and {\bf fast to execute}!
   \item Generates fast, custom CPU code \textit{and} GPU code
-  \item You can easily wrap existing CPU/GPU code with Theano
+  \item You can easily wrap existing CPU/GPU code with Aesara
   \item It {\bf works} and is {\bf used in the real world} by academic researchers \textit{and} industry
   \end{itemize}
 }

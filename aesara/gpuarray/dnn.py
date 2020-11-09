@@ -6,16 +6,16 @@ from functools import reduce
 
 import numpy as np
 
-import theano
-import theano.pathparse
-from theano import Apply, Op, Variable, config, tensor
-from theano.compile.ops import shape_i, shape_i_op
-from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
-from theano.gof import COp, EnumList, ParamsType
-from theano.gof.cmodule import GCC_compiler
-from theano.gof.type import CDataType, Generic
-from theano.gpuarray import cudnn_defs, pygpu
-from theano.gpuarray.basic_ops import (
+import aesara
+import aesara.pathparse
+from aesara import Apply, Op, Variable, config, tensor
+from aesara.compile.ops import shape_i, shape_i_op
+from aesara.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
+from aesara.gof import COp, EnumList, ParamsType
+from aesara.gof.cmodule import GCC_compiler
+from aesara.gof.type import CDataType, Generic
+from aesara.gpuarray import cudnn_defs, pygpu
+from aesara.gpuarray.basic_ops import (
     GpuAllocEmpty,
     GpuArrayType,
     HostFromGpu,
@@ -25,16 +25,16 @@ from theano.gpuarray.basic_ops import (
     gpuarray_helper_inc_dir,
     infer_context_name,
 )
-from theano.gpuarray.type import GpuArraySharedVariable, get_context, gpu_context_type
-from theano.gradient import DisconnectedType, grad_not_implemented
-from theano.scalar import as_scalar
-from theano.scalar import bool as bool_t
-from theano.scalar import constant, get_scalar_type
-from theano.scalar import int32 as int_t
-from theano.scalar import uint32 as uint32_t
-from theano.tensor.basic import as_tensor_variable
-from theano.tensor.extra_ops import cpu_contiguous
-from theano.tensor.nnet.abstract_conv import (
+from aesara.gpuarray.type import GpuArraySharedVariable, get_context, gpu_context_type
+from aesara.gradient import DisconnectedType, grad_not_implemented
+from aesara.scalar import as_scalar
+from aesara.scalar import bool as bool_t
+from aesara.scalar import constant, get_scalar_type
+from aesara.scalar import int32 as int_t
+from aesara.scalar import uint32 as uint32_t
+from aesara.tensor.basic import as_tensor_variable
+from aesara.tensor.extra_ops import cpu_contiguous
+from aesara.tensor.nnet.abstract_conv import (
     AbstractConv2d,
     AbstractConv2d_gradInputs,
     AbstractConv2d_gradWeights,
@@ -44,7 +44,7 @@ from theano.tensor.nnet.abstract_conv import (
     assert_conv_shape,
     get_conv_output_shape,
 )
-from theano.tensor.opt import Assert
+from aesara.tensor.opt import Assert
 
 
 DNN_CONV_ALGO_CHOOSE_ONCE = ["guess_once", "time_once"]
@@ -59,7 +59,7 @@ except ImportError:
 WIN32_CUDNN_NAMES = ["cudnn64_7.dll", "cudnn64_6.dll", "cudnn64_5.dll"]
 
 if sys.platform == "win32":
-    theano.pathparse.PathParser(theano.config.dnn.bin_path)
+    aesara.pathparse.PathParser(aesara.config.dnn.bin_path)
 
 
 def _load_lib(name):
@@ -95,7 +95,7 @@ def _dnn_lib():
             if lib_name is None:
                 raise RuntimeError(
                     "Could not find cudnn library (looked for v5* to v7*)."
-                    " Check your cudnn installation. Maybe using the Theano"
+                    " Check your cudnn installation. Maybe using the Aesara"
                     ' flag dnn.base_path can help you. Current value "%s"'
                     % config.dnn.base_path
                 )
@@ -104,7 +104,7 @@ def _dnn_lib():
         if dnn_handle is None:
             raise RuntimeError(
                 "Could not load cudnn library. Check your cudnn"
-                " installation. Maybe using the Theano"
+                " installation. Maybe using the Aesara"
                 ' flag dnn.base_path can help you. Current value "%s"'
                 % config.dnn.base_path
             )
@@ -194,8 +194,8 @@ def _dnn_check_version():
     if v >= 7200:
         warnings.warn(
             "Your cuDNN version is more recent than "
-            "Theano. If you encounter problems, try "
-            "updating Theano or downgrading cuDNN to "
+            "Aesara. If you encounter problems, try "
+            "updating Aesara or downgrading cuDNN to "
             "a version >= v5 and <= v7."
         )
     return True, None
@@ -349,8 +349,8 @@ def version(raises=True):
             return -1
 
     if version.v is None:
-        f = theano.function(
-            [], DnnVersion()(), theano.Mode(optimizer=None), profile=False
+        f = aesara.function(
+            [], DnnVersion()(), aesara.Mode(optimizer=None), profile=False
         )
         v = f()
         if v[0] != v[1]:
@@ -371,12 +371,12 @@ cudnn = cudnn_defs.get_definitions(version(raises=False))
 
 
 def get_precision(precision, inputs, for_grad=False):
-    common_dtype = theano.scalar.upcast(*[i.dtype for i in inputs])
+    common_dtype = aesara.scalar.upcast(*[i.dtype for i in inputs])
     if not common_dtype.startswith("float"):
         raise TypeError("cuDNN convolution only works on real numbers")
 
     if precision is None:
-        precision = theano.config.dnn.conv.precision
+        precision = aesara.config.dnn.conv.precision
     if precision == "as_input" or precision == "as_input_f32":
         if common_dtype == "float16" and precision == "as_input_f32":
             precision = "float32"
@@ -572,10 +572,10 @@ class GpuDnnConvDesc(COp):
         kern_shape = as_tensor_variable(kern_shape)
         if (
             kern_shape.type.ndim != 1
-            or kern_shape.dtype not in theano.tensor.basic.int_dtypes
+            or kern_shape.dtype not in aesara.tensor.basic.int_dtypes
         ):
             raise TypeError("kern must be an int64 1D shape tensor")
-        kern_shape = theano.tensor.basic.cast(kern_shape, "int64")
+        kern_shape = aesara.tensor.basic.cast(kern_shape, "int64")
 
         node = Apply(
             self,
@@ -644,7 +644,7 @@ def ensure_dt(val, default, name, dtype):
         val = constant(val)
     if hasattr(val, "ndim") and val.ndim == 0:
         val = as_scalar(val)
-    if not isinstance(val.type, theano.scalar.Scalar):
+    if not isinstance(val.type, aesara.scalar.Scalar):
         raise TypeError("{}: expected a scalar value".format(name))
     if not val.type.dtype == dtype:
         val = val.astype(dtype)
@@ -927,7 +927,7 @@ class GpuDnnConvGradW(DnnBase):
             and img.type.dtype == "float32"
             and self.algo not in ("none", "deterministic", "fft", "small")
             and beta is not None
-            and theano.tensor.extract_constant(beta) != 1
+            and aesara.tensor.extract_constant(beta) != 1
         )
 
     def make_node(self, img, topgrad, output, desc, alpha=None, beta=None):
@@ -936,14 +936,14 @@ class GpuDnnConvGradW(DnnBase):
                 "cuDNN backward filter operation for 3D convolutions may produce bad results "
                 "with certain cuDNN algorithms depending on the compute capability of your GPU "
                 "if subsample is not (1, 1, 1). If you encounter problems, consider "
-                'setting the theano flag "dnn.conv.algo_bwd_filter" to "none".'
+                'setting the aesara flag "dnn.conv.algo_bwd_filter" to "none".'
             )
         if self.op_may_fail_with_beta(img, beta):
             warnings.warn(
                 "cuDNN backward filter operation for convolutions may produce bad results "
                 "with certain cuDNN algorithms depending on the compute capability of your GPU "
                 "if beta != 1. If you encounter problems, consider "
-                'setting the theano flag "dnn.conv.algo_bwd_filter" to '
+                'setting the aesara flag "dnn.conv.algo_bwd_filter" to '
                 '"none", "deterministic", "fft", or "small".'
             )
         ctx_name = infer_context_name(img, topgrad, output)
@@ -1174,7 +1174,7 @@ def _dnn_conv(
         check = Assert(
             "GpuDnnConv: given output (for beta not null) does not have expected shape"
         )
-        real_out = check(out, theano.tensor.all(theano.tensor.eq(out.shape, out_shp)))
+        real_out = check(out, aesara.tensor.all(aesara.tensor.eq(out.shape, out_shp)))
     return GpuDnnConv(algo=algo, num_groups=num_groups)(
         img, kerns, real_out, desc, alpha, beta
     )
@@ -1199,7 +1199,7 @@ def _dnn_gradweight(
 
     img = as_gpuarray_variable(img, ctx_name)
     topgrad = as_gpuarray_variable(topgrad, ctx_name)
-    kerns_shp = theano.tensor.as_tensor_variable(kerns_shp)
+    kerns_shp = aesara.tensor.as_tensor_variable(kerns_shp)
 
     precision, dt = get_precision(precision, [img, topgrad], for_grad=True)
 
@@ -1222,7 +1222,7 @@ def _dnn_gradweight(
         check = Assert(
             "GpuDnnConvGradW: given output (for beta not null) does not have expected shape"
         )
-        real_out = check(out, theano.tensor.all(theano.tensor.eq(out.shape, kerns_shp)))
+        real_out = check(out, aesara.tensor.all(aesara.tensor.eq(out.shape, kerns_shp)))
     return GpuDnnConvGradW(algo=algo, num_groups=num_groups)(
         img, topgrad, real_out, desc, alpha, beta
     )
@@ -1247,7 +1247,7 @@ def _dnn_gradinput(
 
     kerns = as_gpuarray_variable(kerns, ctx_name)
     topgrad = as_gpuarray_variable(topgrad, ctx_name)
-    img_shp = theano.tensor.as_tensor_variable(img_shp)
+    img_shp = aesara.tensor.as_tensor_variable(img_shp)
 
     precision, dt = get_precision(precision, [kerns, topgrad], for_grad=True)
 
@@ -1270,7 +1270,7 @@ def _dnn_gradinput(
         check = Assert(
             "GpuDnnConvGradI: given output (for beta not null) does not have expected shape"
         )
-        real_out = check(out, theano.tensor.all(theano.tensor.eq(out.shape, img_shp)))
+        real_out = check(out, aesara.tensor.all(aesara.tensor.eq(out.shape, img_shp)))
     return GpuDnnConvGradI(algo=algo, num_groups=num_groups)(
         kerns, topgrad, real_out, desc, alpha, beta
     )
@@ -1907,9 +1907,9 @@ class GpuDnnPool(GpuDnnPoolBase):
 
         return (
             g_out,
-            theano.gradient.DisconnectedType()(),
-            theano.gradient.DisconnectedType()(),
-            theano.gradient.DisconnectedType()(),
+            aesara.gradient.DisconnectedType()(),
+            aesara.gradient.DisconnectedType()(),
+            aesara.gradient.DisconnectedType()(),
         )
 
     def connection_pattern(self, node):
@@ -2009,7 +2009,7 @@ def dnn_pool(img, ws, stride=None, mode="max", pad=None):
     if mode == "sum":
         ret = GpuDnnPool(mode="average_inc_pad")(img, ws, stride, pad)
         context_name = ret.type.context_name
-        window_elem = theano.tensor.prod(ws).astype(ret.dtype)
+        window_elem = aesara.tensor.prod(ws).astype(ret.dtype)
         return as_gpuarray_variable(ret * window_elem, context_name)
     return GpuDnnPool(mode=mode)(img, ws, stride, pad)
 
@@ -2443,14 +2443,14 @@ class GpuDnnBatchNormInference(DnnBase):
         elif self.mode == "spatial":
             axes = (0,) + tuple(range(2, x.ndim))
         scale, bias, est_mean, est_var = (
-            theano.tensor.addbroadcast(t, *axes)
+            aesara.tensor.addbroadcast(t, *axes)
             for t in (scale, bias, est_mean, est_var)
         )
 
         # define helper expressions
         est_var_eps = est_var + epsilon
-        est_std = theano.tensor.sqrt(est_var_eps)
-        two = theano.tensor.constant(2.0)
+        est_std = aesara.tensor.sqrt(est_var_eps)
+        two = aesara.tensor.constant(2.0)
 
         # define and return gradients
         dx = dy * (scale / est_std)
@@ -2566,10 +2566,10 @@ class _DropoutDescriptor(DnnBase):
 
 
 def _make_dropout_desc(dropout, seed, context_name):
-    desc, states = theano.function(
+    desc, states = aesara.function(
         [],
         _DropoutDescriptor(context_name)(dropout, seed, context_name),
-        theano.Mode(optimizer=None),
+        aesara.Mode(optimizer=None),
         profile=False,
     )()
     return desc, states
@@ -2672,12 +2672,12 @@ def _make_rnn_desc(
     dtype,
     context_name,
 ):
-    desc = theano.function(
+    desc = aesara.function(
         [],
         _RNNDescriptor(context_name)(
             hidden_size, num_layers, ddesc, input_mode, direction_mode, rnn_mode, dtype
         ),
-        theano.Mode(optimizer=None),
+        aesara.Mode(optimizer=None),
         profile=False,
     )()
     return desc
@@ -2708,10 +2708,10 @@ class _RNNParamSize(DnnBase):
 
 def _get_param_size(desc, input_size, dtype, context_name):
     typecode = gpuarray.dtype_to_typecode(dtype)
-    return theano.function(
+    return aesara.function(
         [],
         _RNNParamSize(context_name)(desc, input_size, typecode),
-        theano.Mode(optimizer=None),
+        aesara.Mode(optimizer=None),
         profile=False,
     )()
 
@@ -2953,8 +2953,8 @@ class _RNNSplitParams(DnnBase):
 def _split_rnn_params(w, desc, layer, input_size, dtype, rnn_mode):
     typecode = gpuarray.dtype_to_typecode(dtype)
     outs = _RNNSplitParams(rnn_mode)(w, desc, layer, input_size, typecode)
-    outs = [theano.Out(o, borrow=True) for o in outs]
-    return theano.function([], outs, theano.Mode(optimizer=None), profile=False)()
+    outs = [aesara.Out(o, borrow=True) for o in outs]
+    return aesara.function([], outs, aesara.Mode(optimizer=None), profile=False)()
 
 
 class GpuDnnRNNOp(DnnBase):
@@ -3021,7 +3021,7 @@ class GpuDnnRNNOp(DnnBase):
         # Since the op return two outputs which contain essentially
         # the same information, the user will most likely only use one
         # of them. This leads to the situation that the other is
-        # considered "disconnected" by theano in the gradient.
+        # considered "disconnected" by aesara in the gradient.
         # However we know that this isn't really the case so we fix it
         # here.
 
@@ -3118,9 +3118,9 @@ class GpuDnnRNNGradWeights(DnnBase):
 class RNNBlock:
     """
     An object that allow us to use CuDNN RNN implementation.
-    TODO: make an example how to use. You can check Theano tests
+    TODO: make an example how to use. You can check Aesara tests
     test_dnn_rnn_gru() and test_dnn_rnn_lstm() in the file
-    theano/gpuarray/tests/test_dnn.py for now.
+    aesara/gpuarray/tests/test_dnn.py for now.
 
 
     Parameters
@@ -3307,7 +3307,7 @@ def dnn_batch_normalization_train(
 
     Notes
     -----
-    Requires cuDNN 5 and Theano 0.9dev2 or more recent.
+    Requires cuDNN 5 and Aesara 0.9dev2 or more recent.
 
     For 4d tensors, returned values are equivalent to:
 
@@ -3353,21 +3353,21 @@ def dnn_batch_normalization_train(
     running_averages = running_mean is not None and running_var is not None
 
     if ndim < 4:
-        inputs = theano.tensor.shape_padright(inputs, 4 - ndim)
-        gamma = theano.tensor.shape_padright(gamma, 4 - ndim)
-        beta = theano.tensor.shape_padright(beta, 4 - ndim)
+        inputs = aesara.tensor.shape_padright(inputs, 4 - ndim)
+        gamma = aesara.tensor.shape_padright(gamma, 4 - ndim)
+        beta = aesara.tensor.shape_padright(beta, 4 - ndim)
         if running_averages:
-            running_mean = theano.tensor.shape_padright(running_mean, 4 - ndim)
-            running_var = theano.tensor.shape_padright(running_var, 4 - ndim)
+            running_mean = aesara.tensor.shape_padright(running_mean, 4 - ndim)
+            running_var = aesara.tensor.shape_padright(running_var, 4 - ndim)
     elif ndim > 5:
         inputs_shape = inputs.shape
         params_shape = gamma.shape
-        inputs = theano.tensor.flatten(inputs, 5)
-        gamma = theano.tensor.flatten(gamma, 5)
-        beta = theano.tensor.flatten(beta, 5)
+        inputs = aesara.tensor.flatten(inputs, 5)
+        gamma = aesara.tensor.flatten(gamma, 5)
+        beta = aesara.tensor.flatten(beta, 5)
         if running_averages:
-            running_mean = theano.tensor.flatten(running_mean, 5)
-            running_var = theano.tensor.flatten(running_var, 5)
+            running_mean = aesara.tensor.flatten(running_mean, 5)
+            running_var = aesara.tensor.flatten(running_var, 5)
 
     batchnorm_op = GpuDnnBatchNorm(mode=mode, running_averages=running_averages)
     if running_averages:
@@ -3397,10 +3397,10 @@ def dnn_batch_normalization_train(
             epsilon=epsilon,
         )
     if ndim < 4:
-        result = tuple(theano.tensor.flatten(r, ndim) for r in result)
+        result = tuple(aesara.tensor.flatten(r, ndim) for r in result)
     elif ndim > 5:
-        result = (theano.tensor.reshape(result[0], inputs_shape),) + tuple(
-            theano.tensor.reshape(r, params_shape) for r in result[1:]
+        result = (aesara.tensor.reshape(result[0], inputs_shape),) + tuple(
+            aesara.tensor.reshape(r, params_shape) for r in result[1:]
         )
     return result
 
@@ -3441,7 +3441,7 @@ def dnn_batch_normalization_test(
 
     Notes
     -----
-    Requires cuDNN 5 and Theano 0.9dev2 or more recent.
+    Requires cuDNN 5 and Aesara 0.9dev2 or more recent.
 
     For 4d tensors, the returned value is equivalent to:
 
@@ -3469,18 +3469,18 @@ def dnn_batch_normalization_test(
         raise ValueError("epsilon must be at least 1e-5, got %f" % epsilon)
 
     if ndim < 4:
-        inputs = theano.tensor.shape_padright(inputs, 4 - ndim)
-        gamma = theano.tensor.shape_padright(gamma, 4 - ndim)
-        beta = theano.tensor.shape_padright(beta, 4 - ndim)
-        mean = theano.tensor.shape_padright(mean, 4 - ndim)
-        var = theano.tensor.shape_padright(var, 4 - ndim)
+        inputs = aesara.tensor.shape_padright(inputs, 4 - ndim)
+        gamma = aesara.tensor.shape_padright(gamma, 4 - ndim)
+        beta = aesara.tensor.shape_padright(beta, 4 - ndim)
+        mean = aesara.tensor.shape_padright(mean, 4 - ndim)
+        var = aesara.tensor.shape_padright(var, 4 - ndim)
     elif ndim > 5:
         inputs_shape = inputs.shape
-        inputs = theano.tensor.flatten(inputs, 5)
-        gamma = theano.tensor.flatten(gamma, 5)
-        beta = theano.tensor.flatten(beta, 5)
-        mean = theano.tensor.flatten(mean, 5)
-        var = theano.tensor.flatten(var, 5)
+        inputs = aesara.tensor.flatten(inputs, 5)
+        gamma = aesara.tensor.flatten(gamma, 5)
+        beta = aesara.tensor.flatten(beta, 5)
+        mean = aesara.tensor.flatten(mean, 5)
+        var = aesara.tensor.flatten(var, 5)
     batchnorm_op = GpuDnnBatchNormInference(mode=mode)
     result = batchnorm_op(
         gpu_contiguous(inputs),
@@ -3491,9 +3491,9 @@ def dnn_batch_normalization_test(
         epsilon=epsilon,
     )
     if ndim < 4:
-        result = theano.tensor.flatten(result, ndim)
+        result = aesara.tensor.flatten(result, ndim)
     elif ndim > 5:
-        result = theano.tensor.reshape(result, inputs_shape)
+        result = aesara.tensor.reshape(result, inputs_shape)
     return result
 
 
@@ -3536,10 +3536,10 @@ class GpuDnnTransformerGrid(DnnBase):
         assert theta.ndim == 3
 
         out_dims = cpu_contiguous(as_tensor_variable(out_dims))
-        assert out_dims.dtype in theano.tensor.basic.integer_dtypes
+        assert out_dims.dtype in aesara.tensor.basic.integer_dtypes
         assert out_dims.ndim == 1
         # Ensure 64-bit ints are passed to the C code
-        out_dims = theano.tensor.basic.cast(out_dims, "int64")
+        out_dims = aesara.tensor.basic.cast(out_dims, "int64")
         grid = GpuArrayType(
             dtype=theta.dtype,
             broadcastable=(theta.type.ndim + 1) * (False,),
@@ -3733,8 +3733,8 @@ def dnn_spatialtf(img, theta, scale_width=1, scale_height=1):
     out_dims = (
         img.shape[0],
         img.shape[1],
-        theano.tensor.ceil(img.shape[2] * scale_height),
-        theano.tensor.ceil(img.shape[3] * scale_width),
+        aesara.tensor.ceil(img.shape[2] * scale_height),
+        aesara.tensor.ceil(img.shape[3] * scale_width),
     )
     out_dims = tuple([as_scalar(v).astype("int64") for v in out_dims])
     # Setup spatial transformer
@@ -3905,16 +3905,16 @@ def local_abstract_batch_norm_train_cudnn(op, ctx_name, inputs, outputs):
         return None
 
     try:
-        eps = theano.tensor.get_scalar_constant_value(epsilon)
-    except theano.tensor.NotScalarConstantError:
+        eps = aesara.tensor.get_scalar_constant_value(epsilon)
+    except aesara.tensor.NotScalarConstantError:
         return None
     if eps < 1e-5:
         return None
     try:
-        running_average_factor = theano.tensor.get_scalar_constant_value(
+        running_average_factor = aesara.tensor.get_scalar_constant_value(
             running_average_factor
         )
-    except theano.tensor.NotScalarConstantError:
+    except aesara.tensor.NotScalarConstantError:
         return None
 
     ctx = infer_context_name(*inputs)
@@ -3958,23 +3958,23 @@ def local_abstract_batch_norm_train_grad_cudnn(op, ctx_name, inputs, outputs):
 
     ndim = x.ndim
     if ndim < 4:
-        x = theano.tensor.shape_padright(x, 4 - ndim)
-        dy = theano.tensor.shape_padright(dy, 4 - ndim)
-        scale = theano.tensor.shape_padright(scale, 4 - ndim)
-        x_mean = theano.tensor.shape_padright(x_mean, 4 - ndim)
-        x_invstd = theano.tensor.shape_padright(x_invstd, 4 - ndim)
+        x = aesara.tensor.shape_padright(x, 4 - ndim)
+        dy = aesara.tensor.shape_padright(dy, 4 - ndim)
+        scale = aesara.tensor.shape_padright(scale, 4 - ndim)
+        x_mean = aesara.tensor.shape_padright(x_mean, 4 - ndim)
+        x_invstd = aesara.tensor.shape_padright(x_invstd, 4 - ndim)
     elif ndim > 5:
         x_shape = x.shape
         params_shape = scale.shape
-        x = theano.tensor.flatten(x, 5)
-        dy = theano.tensor.flatten(dy, 5)
-        scale = theano.tensor.flatten(scale, 5)
-        x_mean = theano.tensor.flatten(x_mean, 5)
-        x_invstd = theano.tensor.flatten(x_invstd, 5)
+        x = aesara.tensor.flatten(x, 5)
+        dy = aesara.tensor.flatten(dy, 5)
+        scale = aesara.tensor.flatten(scale, 5)
+        x_mean = aesara.tensor.flatten(x_mean, 5)
+        x_invstd = aesara.tensor.flatten(x_invstd, 5)
 
     try:
-        eps = theano.tensor.get_scalar_constant_value(epsilon)
-    except theano.tensor.NotScalarConstantError:
+        eps = aesara.tensor.get_scalar_constant_value(epsilon)
+    except aesara.tensor.NotScalarConstantError:
         return None
     if eps < 1e-5:
         return None
@@ -3993,13 +3993,13 @@ def local_abstract_batch_norm_train_grad_cudnn(op, ctx_name, inputs, outputs):
     )
 
     if ndim < 4:
-        g_wrt_inputs = theano.tensor.flatten(g_wrt_inputs, ndim)
-        g_wrt_scale = theano.tensor.flatten(g_wrt_scale, ndim)
-        g_wrt_bias = theano.tensor.flatten(g_wrt_bias, ndim)
+        g_wrt_inputs = aesara.tensor.flatten(g_wrt_inputs, ndim)
+        g_wrt_scale = aesara.tensor.flatten(g_wrt_scale, ndim)
+        g_wrt_bias = aesara.tensor.flatten(g_wrt_bias, ndim)
     elif ndim > 5:
-        g_wrt_inputs = theano.tensor.reshape(g_wrt_inputs, x_shape)
-        g_wrt_scale = theano.tensor.reshape(g_wrt_scale, params_shape)
-        g_wrt_bias = theano.tensor.reshape(g_wrt_bias, params_shape)
+        g_wrt_inputs = aesara.tensor.reshape(g_wrt_inputs, x_shape)
+        g_wrt_scale = aesara.tensor.reshape(g_wrt_scale, params_shape)
+        g_wrt_bias = aesara.tensor.reshape(g_wrt_bias, params_shape)
 
     return [g_wrt_inputs, g_wrt_scale, g_wrt_bias]
 
@@ -4016,8 +4016,8 @@ def local_abstract_batch_norm_inference_cudnn(op, ctx_name, inputs, outputs):
         return None
 
     try:
-        eps = theano.tensor.get_scalar_constant_value(epsilon)
-    except theano.tensor.NotScalarConstantError:
+        eps = aesara.tensor.get_scalar_constant_value(epsilon)
+    except aesara.tensor.NotScalarConstantError:
         return None
     if eps < 1e-5:
         return None

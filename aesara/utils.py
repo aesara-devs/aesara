@@ -1,4 +1,4 @@
-"""Utility functions for Theano."""
+"""Utility functions for Aesara."""
 
 
 from collections import OrderedDict

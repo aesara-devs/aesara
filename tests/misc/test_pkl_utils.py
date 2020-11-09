@@ -4,9 +4,9 @@ from tempfile import mkdtemp
 
 import numpy as np
 
-import theano
-from theano.misc.pkl_utils import StripPickler, dump, load
-from theano.sandbox.rng_mrg import MRG_RandomStreams
+import aesara
+from aesara.misc.pkl_utils import StripPickler, dump, load
+from aesara.sandbox.rng_mrg import MRG_RandomStreams
 
 
 class TestDumpLoad:
@@ -34,9 +34,9 @@ class TestDumpLoad:
         assert type(rng) == MRG_RandomStreams
 
     def test_dump_zip_names(self):
-        foo_1 = theano.shared(0, name="foo")
-        foo_2 = theano.shared(1, name="foo")
-        foo_3 = theano.shared(2, name="foo")
+        foo_1 = aesara.shared(0, name="foo")
+        foo_2 = aesara.shared(1, name="foo")
+        foo_3 = aesara.shared(2, name="foo")
         with open("model.zip", "wb") as f:
             dump((foo_1, foo_2, foo_3, np.array(3)), f)
         keys = list(np.load("model.zip").keys())
@@ -63,7 +63,7 @@ class TestStripPickler:
 
     def test_basic(self):
         with open("test.pkl", "wb") as f:
-            m = theano.tensor.matrix()
+            m = aesara.tensor.matrix()
             dest_pkl = "my_test.pkl"
             f = open(dest_pkl, "wb")
             strip_pickler = StripPickler(f, protocol=-1)

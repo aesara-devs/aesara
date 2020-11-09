@@ -6,9 +6,9 @@ from sys import getsizeof
 
 import numpy as np
 
-import theano
-from theano.gof import graph, utils
-from theano.gof.type import Type
+import aesara
+from aesara.gof import graph, utils
+from aesara.gof.type import Type
 
 from .utils import undef
 
@@ -18,7 +18,7 @@ __excepthook = sys.excepthook
 
 def log_thunk_trace(value, f=sys.stderr):
     """
-    Log Theano's diagnostic stack trace for an exception
+    Log Aesara's diagnostic stack trace for an exception
     raised by raise_with_op.
 
     """
@@ -46,7 +46,7 @@ def log_thunk_trace(value, f=sys.stderr):
                 write(line)
             write(
                 "For the full definition stack trace set"
-                " the Theano flags traceback.limit to -1"
+                " the Aesara flags traceback.limit to -1"
             )
 
 
@@ -97,7 +97,7 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
         associated traceback, as would be returned by a call to
         `sys.exc_info()` (which is done if `None` is passed).
     storage_map: dict, optional
-        storage map of the theano function that resulted in the
+        storage map of the aesara function that resulted in the
         raised exception.
 
     Notes
@@ -105,7 +105,7 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
     This re-raises the exception described by `exc_info` (or the last
     one raised, if `exc_info` is omitted) and annotates the exception
     object with several new members which may be helpful for debugging
-    Theano graphs. They are:
+    Aesara graphs. They are:
 
      * __op_instance__: The Op that is responsible for the exception
        being raised.
@@ -167,7 +167,7 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
             + "\nInputs strides: %s" % strides
             + "\nInputs values: %s" % scalar_values
         )
-        if theano.config.exception_verbosity == "high":
+        if aesara.config.exception_verbosity == "high":
             detailed_err_msg += "\nInputs type_num: %s" % str(
                 [getattr(getattr(i[0], "dtype", ""), "num", "") for i in thunk.inputs]
             )
@@ -184,7 +184,7 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
     # Print node backtraces
     tr = getattr(node.outputs[0].tag, "trace", [])
     if isinstance(tr, list) and len(tr) > 0:
-        detailed_err_msg += "\nBacktrace when the node is created(use Theano flag traceback.limit=N to make it longer):\n"
+        detailed_err_msg += "\nBacktrace when the node is created(use Aesara flag traceback.limit=N to make it longer):\n"
 
         # Print separate message for each element in the list of batcktraces
         sio = StringIO()
@@ -193,32 +193,32 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
         detailed_err_msg += str(sio.getvalue())
     else:
         hints.append(
-            "HINT: Re-running with most Theano optimization disabled could"
+            "HINT: Re-running with most Aesara optimization disabled could"
             " give you a back-trace of when this node was created. This can"
-            " be done with by setting the Theano flag"
+            " be done with by setting the Aesara flag"
             " 'optimizer=fast_compile'. If that does not work,"
-            " Theano optimizations can be disabled with 'optimizer=None'."
+            " Aesara optimizations can be disabled with 'optimizer=None'."
         )
 
-    if theano.config.exception_verbosity == "high":
+    if aesara.config.exception_verbosity == "high":
 
         f = StringIO()
-        theano.printing.debugprint(node, file=f, stop_on_name=True, print_type=True)
+        aesara.printing.debugprint(node, file=f, stop_on_name=True, print_type=True)
         detailed_err_msg += "\nDebugprint of the apply node: \n"
         detailed_err_msg += f.getvalue()
 
     # Prints output_map
-    if theano.config.exception_verbosity == "high" and storage_map is not None:
+    if aesara.config.exception_verbosity == "high" and storage_map is not None:
         detailed_err_msg += "\nStorage map footprint:\n"
         shared_input_list = [
             item
             for item in node.fgraph.inputs
-            if isinstance(item, theano.compile.SharedVariable)
+            if isinstance(item, aesara.compile.SharedVariable)
         ]
         nonshared_input_list = [
             item
             for item in node.fgraph.inputs
-            if not isinstance(item, theano.compile.SharedVariable)
+            if not isinstance(item, aesara.compile.SharedVariable)
         ]
         storage_map_list = []
         total_size = 0
@@ -325,7 +325,7 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
 
     else:
         hints.append(
-            "HINT: Use the Theano flag 'exception_verbosity=high'"
+            "HINT: Use the Aesara flag 'exception_verbosity=high'"
             " for a debugprint and storage map footprint of this apply node."
         )
 
@@ -773,7 +773,7 @@ def gc_helper(node_list):
     This is used to allow garbage collection within graphs.
 
     It ignores view_map and destroy_map. This isn't needed as python
-    have reference count. In Theano gc, we should not take into
+    have reference count. In Aesara gc, we should not take into
     account view_map and destroy_map as if the thunk decided to create
     a new output, we would delay uselessly its gc by Python.
 
@@ -798,7 +798,7 @@ class PerformLinker(LocalLinker):
 
     def __init__(self, allow_gc=None, schedule=None):
         if allow_gc is None:
-            allow_gc = theano.config.allow_gc
+            allow_gc = aesara.config.allow_gc
         self.fgraph = None
         self.allow_gc = allow_gc
         if schedule:

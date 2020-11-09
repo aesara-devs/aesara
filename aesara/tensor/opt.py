@@ -15,11 +15,11 @@ from io import StringIO
 
 import numpy as np
 
-import theano
-import theano.scalar.basic as ts
-from theano import compile, config, gof  # to register the optimizer built by this file
-from theano.compile.ops import Shape, Shape_i
-from theano.gof import (
+import aesara
+import aesara.scalar.basic as ts
+from aesara import compile, config, gof  # to register the optimizer built by this file
+from aesara.compile.ops import Shape, Shape_i
+from aesara.gof import (
     Constant,
     InconsistencyError,
     LocalOptimizer,
@@ -31,8 +31,8 @@ from theano.gof import (
     opt,
     toolbox,
 )
-from theano.gof.op import Op
-from theano.gof.opt import (
+from aesara.gof.op import Op
+from aesara.gof.opt import (
     Optimizer,
     copy_stack_trace,
     in2out,
@@ -40,12 +40,12 @@ from theano.gof.opt import (
     pre_constant_merge,
     pre_greedy_local_optimizer,
 )
-from theano.gof.utils import MethodNotDefined, TestValueError
-from theano.gradient import DisconnectedType
+from aesara.gof.utils import MethodNotDefined, TestValueError
+from aesara.gradient import DisconnectedType
 
-# Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
-from theano.tensor import basic as tt
-from theano.tensor.basic import (
+# Work-around for Python 3.6 issue that prevents `import aesara.tensor as tt`
+from aesara.tensor import basic as tt
+from aesara.tensor.basic import (
     Alloc,
     AllocEmpty,
     Dot,
@@ -78,7 +78,7 @@ from theano.tensor.basic import (
     tensor_copy,
     true_div,
 )
-from theano.tensor.elemwise import (
+from aesara.tensor.elemwise import (
     All,
     Any,
     CAReduce,
@@ -88,8 +88,8 @@ from theano.tensor.elemwise import (
     ProdWithoutZeros,
     Sum,
 )
-from theano.tensor.sort import TopKOp
-from theano.tensor.subtensor import (
+from aesara.tensor.sort import TopKOp
+from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
     AdvancedSubtensor1,
@@ -102,17 +102,17 @@ from theano.tensor.subtensor import (
     get_canonical_form_slice,
     get_idx_list,
 )
-from theano.tensor.type import (
+from aesara.tensor.type import (
     values_eq_approx_remove_inf,
     values_eq_approx_remove_inf_nan,
     values_eq_approx_remove_nan,
 )
 
 
-# import theano.tensor.basic as tt
+# import aesara.tensor.basic as tt
 
 
-_logger = logging.getLogger("theano.tensor.opt")
+_logger = logging.getLogger("aesara.tensor.opt")
 
 
 def _fill_chain(new_out, orig_inputs):
@@ -262,7 +262,7 @@ class InplaceElemwiseOptimizer(Optimizer):
         """
         # We should not validate too often as this takes too much time to
         # execute!
-        # It is the _dfs_toposort() fct in theano/gof/destroyhandler.py
+        # It is the _dfs_toposort() fct in aesara/gof/destroyhandler.py
         # that takes so much time.
         # Should we try to use another lib that does toposort?
         #   igraph: http://igraph.sourceforge.net/
@@ -272,7 +272,7 @@ class InplaceElemwiseOptimizer(Optimizer):
         #   deque class too?
         #   And init the deque and other list to an upper bound number of
         #   elements?
-        # Maybe Theano should do online toposort as in
+        # Maybe Aesara should do online toposort as in
         #   http://code.google.com/p/acyclic
         #
         # The next longest optimizer is the canonizer phase.
@@ -307,7 +307,7 @@ class InplaceElemwiseOptimizer(Optimizer):
         protected_inputs = [
             f.protected
             for f in fgraph._features
-            if isinstance(f, theano.compile.function_module.Supervisor)
+            if isinstance(f, aesara.compile.function_module.Supervisor)
         ]
         protected_inputs = sum(protected_inputs, [])  # flatten the list
         protected_inputs.extend(fgraph.outputs)
@@ -662,7 +662,7 @@ def local_0_dot_x(node):
         else:
             _logger.warning(
                 "Optimization Warning: "
-                "Optimization theano/opt.py:local_0_dot_x Found "
+                "Optimization aesara/opt.py:local_0_dot_x Found "
                 "that it could apply, but was not implemented "
                 "for dot product with these input types:\n"
                 "(%s, %s)",
@@ -912,9 +912,9 @@ class MakeVector(Op):
 
     def perform(self, node, inputs, out_):
         (out,) = out_
-        # not calling theano._asarray as optimization
+        # not calling aesara._asarray as optimization
         if (out[0] is None) or (out[0].size != len(inputs)):
-            out[0] = theano._asarray(inputs, dtype=node.outputs[0].dtype)
+            out[0] = aesara._asarray(inputs, dtype=node.outputs[0].dtype)
         else:
             # assume that out has correct dtype. there is no cheap way to check
             out[0][...] = inputs
@@ -962,7 +962,7 @@ class MakeVector(Op):
     def grad(self, inputs, output_gradients):
         # If the output is of an integer dtype, no gradient shall pass
         if self.dtype in tt.discrete_dtypes:
-            return [ipt.zeros_like().astype(theano.config.floatX) for ipt in inputs]
+            return [ipt.zeros_like().astype(aesara.config.floatX) for ipt in inputs]
 
         grads = []
         for i, inp in enumerate(inputs):
@@ -1080,7 +1080,7 @@ class ShapeFeature:
     elements are either integers or symbolic integers.
 
     TODO: check to see if the symbols are necessarily
-    non-constant... or are integer literals sometimes Theano
+    non-constant... or are integer literals sometimes Aesara
     constants?? That would be confusing.
 
     """
@@ -1306,7 +1306,7 @@ class ShapeFeature:
 
             if r.ndim != len(s):
                 sio = StringIO()
-                theano.printing.debugprint(r, file=sio, print_type=True)
+                aesara.printing.debugprint(r, file=sio, print_type=True)
                 raise AssertionError(
                     "Something inferred a shape with %d dimensions "
                     "for a variable with %d dimensions"
@@ -1665,9 +1665,9 @@ class ShapeFeature:
             if dx.owner.inputs[0] == dy.owner.inputs[0]:
                 continue
             # To be sure to cover all case, call equal_computation.
-            # Can't use theano.gof.graph.is_same_graph(dx, dy)
+            # Can't use aesara.gof.graph.is_same_graph(dx, dy)
             # As it currently expect that dx and dy aren't in a FunctionGraph
-            from theano.gof.graph import equal_computations
+            from aesara.gof.graph import equal_computations
 
             if not equal_computations([dx], [dy]):
                 return False
@@ -1695,13 +1695,13 @@ class UnShapeOptimizer(Optimizer):
 
 # Register it after merge1 optimization at 0. We don't want to track
 # the shape of merged node.
-theano.compile.mode.optdb.register(
+aesara.compile.mode.optdb.register(
     "ShapeOpt", ShapeOptimizer(), 0.1, "fast_run", "fast_compile"
 )
 # Not enabled by default for now. Some crossentropy opt use the
 # shape_feature.  They are at step 2.01. uncanonicalize is at step
 # 3. After it goes to 48.5 that move to the gpu. So 10 seem resonable.
-theano.compile.mode.optdb.register("UnShapeOpt", UnShapeOptimizer(), 10)
+aesara.compile.mode.optdb.register("UnShapeOpt", UnShapeOptimizer(), 10)
 
 
 def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
@@ -1819,7 +1819,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
                 # when i.owner.inputs[0].type == i.owner.outputs[0].type we
                 # will remove that alloc later
                 assert i.type.ndim == cmp_op.ndim
-                if theano.config.experimental.local_alloc_elemwise_assert:
+                if aesara.config.experimental.local_alloc_elemwise_assert:
                     get_shape = node.fgraph.shape_feature.get_shape
                     cond = []
                     for idx in range(i.type.ndim):
@@ -1836,7 +1836,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
             # Remove Alloc in DimShuffle
             elif i.owner and dimshuffled_alloc(i):
                 assert i.type.ndim == cmp_op.type.ndim
-                if theano.config.experimental.local_alloc_elemwise_assert:
+                if aesara.config.experimental.local_alloc_elemwise_assert:
                     assert_cond = [
                         tt.eq(i.shape[idx], cmp_op.shape[idx])
                         for idx in range(i.type.ndim)
@@ -1979,7 +1979,7 @@ def local_fill_to_alloc(node):
             node.outputs[0].type,
             "node",
             node,
-        )  # theano.printing.debugprint(node.outputs[0], file='str'))
+        )  # aesara.printing.debugprint(node.outputs[0], file='str'))
         return rval
 
 
@@ -2050,7 +2050,7 @@ def local_canonicalize_alloc(node):
     Also, it will canonicalize alloc by creating Dimshuffle after the
     alloc to introduce the dimensions of constant size 1.
 
-    See https://github.com/Theano/Theano/issues/4072 to know why this
+    See https://github.com/Aesara/Aesara/issues/4072 to know why this
     is needed.
 
     """
@@ -2102,7 +2102,7 @@ def local_alloc_empty_to_zeros(node):
     """This convert AllocEmpty to Alloc of 0.
 
     This help investigate NaN with NanGuardMode.  Not registered by
-    default. To activate it, use the Theano flag
+    default. To activate it, use the Aesara flag
     optimizer_including=alloc_empty_to_zeros. This also enable
     the GPU version of this optimizations.
 
@@ -2498,7 +2498,7 @@ def local_cast_cast(node):
 def is_an_upcast(type1, type2):
     """Given two data types (as strings), check if converting to
     type2 from type1 constitutes an upcast.
-    Differs from theano.scalar.upcast
+    Differs from aesara.scalar.upcast
 
     """
     category = {
@@ -2600,11 +2600,11 @@ class Assert(Op):
 
     Examples
     --------
-    >>> import theano
-    >>> T = theano.tensor
+    >>> import aesara
+    >>> T = aesara.tensor
     >>> x = T.vector('x')
     >>> assert_op = T.opt.Assert()
-    >>> func = theano.function([x], assert_op(x, x.size<2))
+    >>> func = aesara.function([x], assert_op(x, x.size<2))
 
     """
 
@@ -2614,13 +2614,13 @@ class Assert(Op):
 
     check_input = False
 
-    def __init__(self, msg="Theano Assert failed!"):
+    def __init__(self, msg="Aesara Assert failed!"):
         self.msg = msg
 
     def __setstate__(self, attrs):
         self.__dict__.update(attrs)
         if not hasattr(self, "msg"):
-            self.msg = "Theano Assert failed!"
+            self.msg = "Aesara Assert failed!"
 
     def make_node(self, value, *conds):
         if not isinstance(value, Variable):
@@ -3280,9 +3280,9 @@ def merge_two_slices(slice1, len1, slice2, len2):
             n_val = sl1.stop - 1 - sl2 * sl1.step
             if config.warn.subtensor_merge_bug:
                 warnings.warning(
-                    "Your current code is fine, but Theano versions "
+                    "Your current code is fine, but Aesara versions "
                     "prior to 0.5rc2 might have given an incorrect result. "
-                    "To disable this warning, set the Theano flag "
+                    "To disable this warning, set the Aesara flag "
                     "warn.subtensor_merge_bug to False."
                 )
             # we need to pick either n_val or p_val and then follow same
@@ -3870,7 +3870,7 @@ def local_adv_sub1_adv_inc_sub1(node):
     if not inp.owner.op.set_instead_of_inc:
         if config.warn.inc_subtensor1_opt:
             warnings.warning(
-                "Your current code is fine, but Theano versions "
+                "Your current code is fine, but Aesara versions "
                 "between 0.7rc1 and 0.10 (or development versions "
                 "between Nov. 2014 and May 2017) "
                 "might have given incorrect results. This graph has "
@@ -3878,7 +3878,7 @@ def local_adv_sub1_adv_inc_sub1(node):
                 "where idx is an array of integers. This used to be "
                 'optimized to "x", which is incorrect if there are '
                 "duplicated indices in idx. "
-                "To disable this warning, set the Theano flag "
+                "To disable this warning, set the Aesara flag "
                 "warn.inc_subtensor1_opt to False."
             )
         return
@@ -4187,7 +4187,7 @@ def local_join_empty(node):
         # to 2,0.  This trigger DebugMode error. This happen with
         # stack(...,[]) as this add a dimshuffle on [], that add a
         # dimensions with shape 1.
-        if isinstance(inp, theano.Constant) and inp.data.shape[join_idx] == 0:
+        if isinstance(inp, aesara.Constant) and inp.data.shape[join_idx] == 0:
             continue
         new_inputs.append(inp)
     if len(new_inputs) < len(node.inputs) - 1:
@@ -5017,8 +5017,8 @@ class Canonizer(LocalOptimizer):
 
     Examples
     --------
-    >>> import theano.tensor as tt
-    >>> from theano.tensor.opt import Canonizer
+    >>> import aesara.tensor as tt
+    >>> from aesara.tensor.opt import Canonizer
     >>> add_canonizer = Canonizer(add, sub, neg, \\
     ...                           lambda n, d: sum(n) - sum(d))
     >>> mul_canonizer = Canonizer(mul, true_div, inv, \\
@@ -5437,7 +5437,7 @@ class Canonizer(LocalOptimizer):
 
         if new.type == out.type:
             # This happen with test
-            # theano/tensor/tests/test_opt.py:T_local_switch_sink
+            # aesara/tensor/tests/test_opt.py:T_local_switch_sink
             new.tag.values_eq_approx = values_eq_approx_remove_inf_nan
 
             # We need to implement the copy over of the stacktrace.
@@ -5481,7 +5481,7 @@ def mul_calculate(num, denum, aslist=False, out_type=None):
         out_dtype = ts.upcast(*[v.dtype for v in (num + denum)])
     else:
         out_dtype = out_type.dtype
-    one = theano._asarray(1, dtype=out_dtype)
+    one = aesara._asarray(1, dtype=out_dtype)
 
     v = reduce(np.multiply, num, one) / reduce(np.multiply, denum, one)
     if aslist:
@@ -5872,11 +5872,11 @@ def local_sum_prod_div_dimshuffle(node):
                 if compatible_dims:
                     _logger.warning(
                         "WARNING: Your current code is fine, but"
-                        " Theano versions between "
+                        " Aesara versions between "
                         "rev. 3bd9b789f5e8 (2010-06-16) and"
                         " cfc6322e5ad4 (2010-08-03) would "
                         "have given an incorrect result. "
-                        "To disable this warning, set the Theano"
+                        "To disable this warning, set the Aesara"
                         " flag warn.sum_div_dimshuffle_bug to"
                         " False."
                     )
@@ -5927,12 +5927,12 @@ def local_sum_prod_div_dimshuffle(node):
                         ):
                             _logger.warning(
                                 "WARNING: Your current code is fine,"
-                                " but Theano versions between "
+                                " but Aesara versions between "
                                 "rev. 3bd9b789f5e8 (2010-06-16) and"
                                 " cfc6322e5ad4 (2010-08-03) would "
                                 "have given an incorrect result. "
                                 "To disable this warning, set the"
-                                " Theano flag "
+                                " Aesara flag "
                                 "warn.sum_div_dimshuffle_bug"
                                 " to False."
                             )
@@ -6031,12 +6031,12 @@ def local_op_of_op(node):
                 ]
 
                 if (
-                    theano.config.warn.sum_sum_bug
+                    aesara.config.warn.sum_sum_bug
                     and newaxis != newaxis_old
                     and len(newaxis) == len(newaxis_old)
                 ):
                     _logger.warning(
-                        "WARNING (YOUR CURRENT CODE IS FINE): Theano "
+                        "WARNING (YOUR CURRENT CODE IS FINE): Aesara "
                         "versions between version 9923a40c7b7a and August "
                         "2nd, 2010 generated bugged code in this case. "
                         "This happens when there are two consecutive sums "
@@ -6045,7 +6045,7 @@ def local_op_of_op(node):
                         "removed some bad code, but not in all cases. You "
                         "are in one such case. To disable this warning "
                         "(that you can safely ignore since this bug has "
-                        "been fixed) set the theano flag "
+                        "been fixed) set the aesara flag "
                         "`warn.sum_sum_bug` to False."
                     )
 
@@ -6120,12 +6120,12 @@ def local_reduce_join(node):
 
         # I put this warning late to don't add extra warning.
         if len(reduce_axis) != 1 or 0 not in reduce_axis:
-            if theano.config.warn.reduce_join:
+            if aesara.config.warn.reduce_join:
                 warnings.warning(
-                    "Your current code is fine, but Theano versions "
+                    "Your current code is fine, but Aesara versions "
                     "prior to 0.7 (or this development version Sept 2014) "
                     "might have given an incorrect result for this code. "
-                    "To disable this warning, set the Theano flag "
+                    "To disable this warning, set the Aesara flag "
                     "warn.reduce_join to False. The problem was an "
                     "optimization, that modified the pattern "
                     '"Reduce{scalar.op}(Join(axis=0, a, b), axis=0)", '
@@ -6316,7 +6316,7 @@ def local_mul_zero(node):
             # print 'MUL by value', value, node.inputs
             if value == 0:
                 # print '... returning zeros'
-                return _fill_chain(theano._asarray(0, dtype=otype.dtype), node.inputs)
+                return _fill_chain(aesara._asarray(0, dtype=otype.dtype), node.inputs)
 
 
 register_canonicalize(local_mul_zero)
@@ -6841,8 +6841,8 @@ def add_calculate(num, denum, aslist=False, out_type=None):
     if out_type is None:
         zero = 0.0
     else:
-        zero = theano._asarray(0, dtype=out_type.dtype)
-    # zero = 0.0 if out_type is None else theano._asarray(0,
+        zero = aesara._asarray(0, dtype=out_type.dtype)
+    # zero = 0.0 if out_type is None else aesara._asarray(0,
     # dtype=out_type.dtype)
     if out_type and out_type.dtype == "bool":
         if len(denum) == 0:
@@ -7506,7 +7506,7 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
         For mixed dtype, we let the `Composite` `Op` do the cast. It lets the C
         compiler do the cast.
 
-        The number of dimensions is validated at call time by Theano itself.
+        The number of dimensions is validated at call time by Aesara itself.
 
         """
         # META TODO:  PUT THESE THINGS IN TRAC, NOT TODO NOTES!!
@@ -7660,7 +7660,7 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
                 else:
                     s = ts.get_scalar_type(i.dtype).make_variable()
                     try:
-                        if theano.config.compute_test_value != "off":
+                        if aesara.config.compute_test_value != "off":
                             v = gof.op.get_test_value(i)
                             if v.size > 0:
                                 s.tag.test_value = v.flatten()[0]
@@ -7735,7 +7735,7 @@ your code will run correctly, but may be slower."""
 def elemwise_max_input_fct(node):
     # The Elemwise.perform use numpy ufunc and they are limited to 31
     # inputs.
-    if not theano.config.cxx:
+    if not aesara.config.cxx:
         return 31
     return 1024
 
@@ -7948,7 +7948,7 @@ def local_useless_composite(node):
 @register_useless("fast_compile")
 @local_optimizer(None)
 def local_view_op(node):
-    if isinstance(node.op, theano.compile.ops.ViewOp):
+    if isinstance(node.op, aesara.compile.ops.ViewOp):
         return node.inputs
 
 
@@ -7985,7 +7985,7 @@ def local_merge_alloc(node):
                 dims_outer[-1 - i] = Assert(
                     "You have a shape error in your graph. To see a better"
                     " error message and a stack trace of where in your code"
-                    " the error is created, use the Theano flags"
+                    " the error is created, use the Aesara flags"
                     " optimizer=None or optimizer=fast_compile."
                 )(dim_outer, tt.eq(dim_outer, dim_inner))
         i += 1

@@ -2,7 +2,7 @@ from io import StringIO
 
 import numpy as np
 
-from theano import Apply, Op
+from aesara import Apply, Op
 
 
 try:
@@ -239,9 +239,9 @@ class GpuCrossentropySoftmaxArgmax1HotWithBias(GpuKernelBase, Op):
                             "dimension mismatch in x,b arguments");
             %(fail)s;
         }
-        if (theano_prep_output(&%(nll)s, 1, PyGpuArray_DIMS(%(y_idx)s), %(x)s->ga.typecode, GA_C_ORDER, %(ctx)s)) %(fail)s
-        if (theano_prep_output(&%(sm)s, 2, PyGpuArray_DIMS(%(x)s), %(x)s->ga.typecode, GA_C_ORDER, %(ctx)s)) %(fail)s
-        if (theano_prep_output(&%(am)s, 1, PyGpuArray_DIMS(%(y_idx)s), %(y_idx)s->ga.typecode, GA_C_ORDER, %(ctx)s)) %(fail)s
+        if (aesara_prep_output(&%(nll)s, 1, PyGpuArray_DIMS(%(y_idx)s), %(x)s->ga.typecode, GA_C_ORDER, %(ctx)s)) %(fail)s
+        if (aesara_prep_output(&%(sm)s, 2, PyGpuArray_DIMS(%(x)s), %(x)s->ga.typecode, GA_C_ORDER, %(ctx)s)) %(fail)s
+        if (aesara_prep_output(&%(am)s, 1, PyGpuArray_DIMS(%(y_idx)s), %(y_idx)s->ga.typecode, GA_C_ORDER, %(ctx)s)) %(fail)s
         {
             size_t n_blocks = std::min(PyGpuArray_DIM(%(x)s, 0), (size_t)4096);
             size_t n_threads = std::min(PyGpuArray_DIM(%(x)s, 1), (size_t)256);

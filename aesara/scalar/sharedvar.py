@@ -11,14 +11,14 @@ up to the Python interpreter in benchmarking tests.
 We don't want to encourage people to use scalars (rather than 0-d tensors), but
 the reason is just to keep the docs simple, not because scalars are bad.  If we
 just don't register this shared variable constructor to handle any values by
-default when calling theano.shared(value) then users must really go out of their
+default when calling aesara.shared(value) then users must really go out of their
 way (as scan does) to create a shared variable of this kind.
 
 """
 
 import numpy as np
 
-from theano.compile import SharedVariable
+from aesara.compile import SharedVariable
 
 from .basic import Scalar, _scalar_py_operators
 
@@ -26,7 +26,7 @@ from .basic import Scalar, _scalar_py_operators
 __authors__ = "James Bergstra"
 __copyright__ = "(c) 2010, Universite de Montreal"
 __license__ = "3-clause BSD License"
-__contact__ = "theano-dev <theano-dev@googlegroups.com>"
+__contact__ = "aesara-dev <aesara-dev@googlegroups.com>"
 
 __docformat__ = "restructuredtext en"
 

@@ -7,17 +7,17 @@ from collections import Counter
 
 import numpy as np
 
-import theano
-import theano.tensor.nlinalg as nlinalg
-import theano.tensor.signal.pool as pool
-import theano.tensor.slinalg as slinalg
-from theano import config, gof, scalar, tensor
-from theano.breakpoint import PdbBreakpoint
-from theano.compile import optdb
-from theano.compile.ops import shape_i
-from theano.gof import Optimizer, graph, local_optimizer, toolbox
-from theano.gof.opt import LocalMetaOptimizer, copy_stack_trace, inherit_stack_trace
-from theano.gpuarray.basic_ops import (
+import aesara
+import aesara.tensor.nlinalg as nlinalg
+import aesara.tensor.signal.pool as pool
+import aesara.tensor.slinalg as slinalg
+from aesara import config, gof, scalar, tensor
+from aesara.breakpoint import PdbBreakpoint
+from aesara.compile import optdb
+from aesara.compile.ops import shape_i
+from aesara.gof import Optimizer, graph, local_optimizer, toolbox
+from aesara.gof.opt import LocalMetaOptimizer, copy_stack_trace, inherit_stack_trace
+from aesara.gpuarray.basic_ops import (
     GpuAlloc,
     GpuAllocEmpty,
     GpuContiguous,
@@ -35,7 +35,7 @@ from theano.gpuarray.basic_ops import (
     host_from_gpu,
     infer_context_name,
 )
-from theano.gpuarray.blas import (
+from aesara.gpuarray.blas import (
     GpuCorr3dMM,
     GpuCorr3dMM_gradInputs,
     GpuCorr3dMM_gradWeights,
@@ -52,7 +52,7 @@ from theano.gpuarray.blas import (
     gpugemv_inplace,
     gpugemv_no_inplace,
 )
-from theano.gpuarray.blocksparse import (
+from aesara.gpuarray.blocksparse import (
     GpuSparseBlockGemv,
     GpuSparseBlockOuter,
     gpu_sparse_block_gemv,
@@ -60,15 +60,15 @@ from theano.gpuarray.blocksparse import (
     gpu_sparse_block_outer,
     gpu_sparse_block_outer_inplace,
 )
-from theano.gpuarray.ctc import GpuConnectionistTemporalClassification
-from theano.gpuarray.dnn_opt import (
+from aesara.gpuarray.ctc import GpuConnectionistTemporalClassification
+from aesara.gpuarray.dnn_opt import (
     local_abstractconv3d_cudnn_alt,
     local_abstractconv_cudnn,
     local_abstractconv_cudnn_alt,
     local_abstractconv_gi_cudnn,
     local_abstractconv_gw_cudnn,
 )
-from theano.gpuarray.elemwise import (
+from aesara.gpuarray.elemwise import (
     GpuCAReduceCPY,
     GpuCAReduceCuda,
     GpuDimShuffle,
@@ -77,7 +77,7 @@ from theano.gpuarray.elemwise import (
     gpu_erfinv,
     max_inputs_to_GpuElemwise,
 )
-from theano.gpuarray.linalg import (
+from aesara.gpuarray.linalg import (
     MATRIX_STRUCTURES_SOLVE,
     GpuCholesky,
     GpuCublasTriangularSolve,
@@ -90,14 +90,14 @@ from theano.gpuarray.linalg import (
     gpu_qr,
     gpu_svd,
 )
-from theano.gpuarray.neighbours import GpuImages2Neibs
-from theano.gpuarray.nnet import (
+from aesara.gpuarray.neighbours import GpuImages2Neibs
+from aesara.gpuarray.nnet import (
     gpu_crossentropy_softmax_1hot_with_bias_dx,
     gpu_crossentropy_softmax_argmax_1hot_with_bias,
     gpu_softmax,
     gpu_softmax_with_bias,
 )
-from theano.gpuarray.opt_util import (
+from aesara.gpuarray.opt_util import (
     alpha_merge,
     op_lifter,
     output_merge,
@@ -106,7 +106,7 @@ from theano.gpuarray.opt_util import (
     safe_to_gpu,
     unpad_dims,
 )
-from theano.gpuarray.optdb import (
+from aesara.gpuarray.optdb import (
     GraphToGPUDB,
     abstract_batch_norm_db,
     abstract_batch_norm_db2,
@@ -123,15 +123,15 @@ from theano.gpuarray.optdb import (
     register_opt,
     register_opt2,
 )
-from theano.gpuarray.pool import (
+from aesara.gpuarray.pool import (
     GpuAveragePoolGrad,
     GpuDownsampleFactorMaxGradGrad,
     GpuMaxPoolGrad,
     GpuMaxPoolRop,
     GpuPool,
 )
-from theano.gpuarray.reduction import GpuMaxAndArgmax
-from theano.gpuarray.subtensor import (
+from aesara.gpuarray.reduction import GpuMaxAndArgmax
+from aesara.gpuarray.subtensor import (
     GpuAdvancedIncSubtensor,
     GpuAdvancedIncSubtensor1,
     GpuAdvancedIncSubtensor1_dev20,
@@ -142,20 +142,20 @@ from theano.gpuarray.subtensor import (
     GpuIncSubtensor,
     GpuSubtensor,
 )
-from theano.gpuarray.type import (
+from aesara.gpuarray.type import (
     ContextNotDefined,
     GpuArrayConstant,
     GpuArrayType,
     get_context,
     move_to_gpu,
 )
-from theano.ifelse import IfElse
-from theano.misc.ordered_set import OrderedSet
-from theano.scalar.basic import Cast, Pow, Scalar, log, neg, true_div
-from theano.scalar.basic_scipy import Erfcinv, Erfinv
-from theano.scan_module import scan_op, scan_opt, scan_utils
-from theano.tensor.nnet import bn, conv3d2d
-from theano.tensor.nnet.abstract_conv import (
+from aesara.ifelse import IfElse
+from aesara.misc.ordered_set import OrderedSet
+from aesara.scalar.basic import Cast, Pow, Scalar, log, neg, true_div
+from aesara.scalar.basic_scipy import Erfcinv, Erfinv
+from aesara.scan_module import scan_op, scan_opt, scan_utils
+from aesara.tensor.nnet import bn, conv3d2d
+from aesara.tensor.nnet.abstract_conv import (
     AbstractConv2d,
     AbstractConv2d_gradInputs,
     AbstractConv2d_gradWeights,
@@ -165,13 +165,13 @@ from theano.tensor.nnet.abstract_conv import (
     BaseAbstractConv,
     get_conv_output_shape,
 )
-from theano.tensor.nnet.blocksparse import SparseBlockGemv, SparseBlockOuter
-from theano.tensor.nnet.conv import ConvOp
-from theano.tensor.nnet.ctc import ConnectionistTemporalClassification
-from theano.tensor.nnet.neighbours import Images2Neibs
+from aesara.tensor.nnet.blocksparse import SparseBlockGemv, SparseBlockOuter
+from aesara.tensor.nnet.conv import ConvOp
+from aesara.tensor.nnet.ctc import ConnectionistTemporalClassification
+from aesara.tensor.nnet.neighbours import Images2Neibs
 
 
-_logger = logging.getLogger("theano.gpuarray.opt")
+_logger = logging.getLogger("aesara.gpuarray.opt")
 
 
 gpu_seqopt.register(
@@ -196,10 +196,10 @@ gpu_seqopt.register(
     "gpuarray_cut_transfers", gpu_cut_copies, 2, "fast_compile", "fast_run", "gpuarray"
 )
 
-register_opt("fast_compile")(theano.tensor.opt.local_track_shape_i)
+register_opt("fast_compile")(aesara.tensor.opt.local_track_shape_i)
 register_opt(final_opt=True, name="gpua_constant_folding")(tensor.opt.constant_folding)
 gpu_optimizer.register(
-    "local_remove_all_assert", theano.tensor.opt.local_remove_all_assert, "unsafe"
+    "local_remove_all_assert", aesara.tensor.opt.local_remove_all_assert, "unsafe"
 )
 
 
@@ -297,7 +297,7 @@ class GraphToGPU(Optimizer):
             else:
                 mapping[i] = i
         for i in fgraph.variables:
-            if isinstance(i, theano.Constant):
+            if isinstance(i, aesara.Constant):
                 mapping[i] = i
         for node in topo:
             for lopt in (
@@ -327,10 +327,10 @@ class GraphToGPU(Optimizer):
             if not move_to_GPU and isinstance(
                 node.op,
                 (
-                    theano.tensor.Alloc,
-                    theano.tensor.AllocEmpty,
-                    theano.tensor.basic.Eye,
-                    theano.tensor.basic.Tri,
+                    aesara.tensor.Alloc,
+                    aesara.tensor.AllocEmpty,
+                    aesara.tensor.basic.Eye,
+                    aesara.tensor.basic.Tri,
                 ),
             ):
                 # If the Alloc[Empty] have a client that will be moved
@@ -373,7 +373,7 @@ class GraphToGPU(Optimizer):
                         break
             outputs = []
 
-            if isinstance(new_ops, theano.Op):
+            if isinstance(new_ops, aesara.Op):
                 with inherit_stack_trace(node.outputs):
                     outputs = new_ops(
                         *[mapping[i] for i in node.inputs], return_list=True
@@ -385,7 +385,7 @@ class GraphToGPU(Optimizer):
                 outputs = newnode.outputs
             elif isinstance(new_ops, (tuple, list)):
                 outputs = new_ops
-            elif isinstance(new_ops, theano.Variable):
+            elif isinstance(new_ops, aesara.Variable):
                 outputs = [new_ops]
 
             for old_output, new_output in zip(node.outputs, outputs):
@@ -403,7 +403,7 @@ class GraphToGPU(Optimizer):
                 ):
                     _logger.warning(
                         "The optimization %s returned bad dtype. Skipping it."
-                        " Write to theano-dev mailing list about this." % str(lopt)
+                        " Write to aesara-dev mailing list about this." % str(lopt)
                     )
                     newnode = node.clone_with_new_inputs(
                         [mapping.get(i) for i in node.inputs]
@@ -673,7 +673,7 @@ def local_gpua_alloc_empty_to_zeros(node):
 
 optdb.register(
     "local_gpua_alloc_empty_to_zeros",
-    theano.tensor.opt.in2out(local_gpua_alloc_empty_to_zeros),
+    aesara.tensor.opt.in2out(local_gpua_alloc_empty_to_zeros),
     # After move to gpu and merge2, before inplace.
     49.3,
     "alloc_empty_to_zeros",
@@ -724,7 +724,7 @@ def local_gpua_flatten(op, context_name, inputs, outputs):
         shp = [inputs[0].shape[i] for i in range(op.outdim - 1)]
     shp += [-1]
     res = GpuReshape(op.outdim)
-    o = res(inputs[0], theano.tensor.as_tensor_variable(shp))
+    o = res(inputs[0], aesara.tensor.as_tensor_variable(shp))
     return o
 
 
@@ -811,12 +811,12 @@ def split_inputs(inputs, max_nb_inputs, op):
 
     Parameters
     ----------
-    inputs: List of theano variables.
+    inputs: List of aesara variables.
             List of inputs to node.
     max_nb_inputs: int
                    Maximum number of inputs the node can handle without
                    compilation fail.
-    op : Theano operator instance.
+    op : Aesara operator instance.
          Operator that should be used to rebuild the computation graph with smaller
          number of inputs per node.
     """
@@ -890,7 +890,7 @@ def local_gpua_specifyShape_graph(op, context_name, inputs, outputs):
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.compile.ops.Shape])
+@op_lifter([aesara.compile.ops.Shape])
 def local_gpua_shape(op, context_name, inputs, outputs):
     # op_lifter will call this opt too frequently as the output is
     # always on the CPU.
@@ -1180,7 +1180,7 @@ def local_advincsub1_gpua_inplace(node):
 # AllocDiag
 @register_opt("fast_compile")
 @op_lifter([tensor.AllocDiag])
-@register_opt2([theano.tensor.AllocDiag], "fast_compile")
+@register_opt2([aesara.tensor.AllocDiag], "fast_compile")
 def local_gpu_alloc_diag(op, context_name, inputs, outputs):
     if outputs[0].ndim != 2:
         # AllocDiag only supports 2d output
@@ -1191,7 +1191,7 @@ def local_gpu_alloc_diag(op, context_name, inputs, outputs):
 # ExtractDiag
 @register_opt("fast_compile")
 @op_lifter([tensor.ExtractDiag])
-@register_opt2([theano.tensor.ExtractDiag], "fast_compile")
+@register_opt2([aesara.tensor.ExtractDiag], "fast_compile")
 def local_gpu_extract_diag(op, context_name, inputs, outputs):
     return GpuExtractDiag(
         offset=op.offset, axis1=op.axis1, axis2=op.axis2, view=op.view
@@ -1463,7 +1463,7 @@ def local_gpu_crossentropycategorical1hot(op, context_name, inputs, outputs):
     #   coding, one_of_n = inputs
     #   -log(coding[arange(coding.shape[0]), one_of_n])
     coding, one_of_n = inputs
-    idx0 = theano.tensor.arange(shape_i(coding, 0))
+    idx0 = aesara.tensor.arange(shape_i(coding, 0))
     return [gpu_neg(gpu_log(coding[idx0, one_of_n]))]
 
 
@@ -1477,7 +1477,7 @@ def local_gpu_crossentropycategorical1hotgrad(op, context_name, inputs, outputs)
     #   gcoding[arange(coding.shape[0]), one_of_n] = -g / (
     #       coding[arange(coding.shape[0]), one_of_n])
     gy, coding, one_of_n = inputs
-    idx0 = theano.tensor.arange(shape_i(coding, 0))
+    idx0 = aesara.tensor.arange(shape_i(coding, 0))
     z = GpuAlloc(context_name, memset_0=True)(
         as_gpuarray_variable(np.zeros((), dtype=coding.dtype), context_name),
         *[shape_i(coding, i) for i in range(coding.ndim)],
@@ -1489,14 +1489,14 @@ def local_gpu_crossentropycategorical1hotgrad(op, context_name, inputs, outputs)
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.tensor.opt.Assert])
+@op_lifter([aesara.tensor.opt.Assert])
 def local_gpua_assert(op, context_name, inputs, outputs):
     if isinstance(inputs[0].type, GpuArrayType):
         return
     return local_gpua_assert_graph(op, context_name, inputs, outputs)
 
 
-@register_opt2([theano.tensor.opt.Assert], "fast_compile")
+@register_opt2([aesara.tensor.opt.Assert], "fast_compile")
 def local_gpua_assert_graph(op, context_name, inputs, outputs):
     return [op(as_gpuarray_variable(inputs[0], context_name), *inputs[1:])]
 
@@ -1510,7 +1510,7 @@ def local_gpua_error_convop(op, context_name, inputs, outputs):
 ConvOp does not work with the gpuarray backend.
 
 Use the new convolution interface to have GPU convolution working:
-theano.tensor.nnet.conv2d()
+aesara.tensor.nnet.conv2d()
 """
     )
 
@@ -1582,7 +1582,7 @@ def local_conv_gpu_conv(node):
             inps[1] = as_gpuarray_variable(inps[1], context_name=ctx)
             out = conv(*inps)
             # out is on the GPU because both inputs are.
-            out = theano.tensor.patternbroadcast(out, node.outputs[0].broadcastable)
+            out = aesara.tensor.patternbroadcast(out, node.outputs[0].broadcastable)
             return [out]
 
     if isinstance(node.op, BaseAbstractConv):
@@ -1608,7 +1608,7 @@ def local_conv_gpu_conv(node):
             inps[1] = as_gpuarray_variable(inps[1], context_name=ctx)
             out = conv(*inps)
             # out is on the GPU because both inputs are.
-            out = theano.tensor.patternbroadcast(out, node.outputs[0].broadcastable)
+            out = aesara.tensor.patternbroadcast(out, node.outputs[0].broadcastable)
             # If the original output was on CPU, we have to transfer it
             if isinstance(node.outputs[0].type, tensor.TensorType):
                 return [tensor.as_tensor_variable(out)]
@@ -2203,7 +2203,7 @@ class ConvMetaOptimizer(LocalMetaOptimizer):
         if type(node.op) in [AbstractConv2d, AbstractConv3d]:
             img, kern = node.inputs
             for (var, shape) in zip((img, kern), shapes):
-                result[var] = theano.shared(
+                result[var] = aesara.shared(
                     np.random.random(shape).astype(var.dtype),
                     var.name,
                     broadcastable=var.broadcastable,
@@ -2222,10 +2222,10 @@ class ConvMetaOptimizer(LocalMetaOptimizer):
             )
             convdim = img.ndim - 2
 
-            result[kshape] = theano.tensor.as_tensor_variable(node.op.kshp[-convdim:])
+            result[kshape] = aesara.tensor.as_tensor_variable(node.op.kshp[-convdim:])
 
             for (var, shape) in zip((img, top), (node.op.imshp, tshp)):
-                result[var] = theano.shared(
+                result[var] = aesara.shared(
                     np.random.random(shape).astype(var.dtype),
                     var.name,
                     broadcastable=var.broadcastable,
@@ -2243,10 +2243,10 @@ class ConvMetaOptimizer(LocalMetaOptimizer):
                 node.op.filter_dilation,
             )
 
-            result[ishape] = theano.tensor.as_tensor_variable(node.op.imshp[2:])
+            result[ishape] = aesara.tensor.as_tensor_variable(node.op.imshp[2:])
 
             for (var, shape) in zip((kern, top), (node.op.kshp, tshp)):
-                result[var] = theano.shared(
+                result[var] = aesara.shared(
                     np.random.random(shape).astype(var.dtype),
                     var.name,
                     broadcastable=var.broadcastable,
@@ -2543,7 +2543,7 @@ def local_assert_no_cpu_op(node):
 
 
 # Register the local_assert_no_cpu_op:
-assert_no_cpu_op = theano.tensor.opt.in2out(
+assert_no_cpu_op = aesara.tensor.opt.in2out(
     local_assert_no_cpu_op, name="assert_no_cpu_op"
 )
 # 49.2 is after device specialization & fusion optimizations for last transfers
@@ -2578,7 +2578,7 @@ def gpu_safe_new(x, tag=""):
     else:
         nw_name = None
 
-    if isinstance(x, theano.Constant):
+    if isinstance(x, aesara.Constant):
         return x.clone()
 
     nw_x = x.type()
@@ -2687,7 +2687,7 @@ def local_gpua_images2neibs(op, context_name, inputs, outputs):
 # solve
 @register_opt("fast_compile")
 @op_lifter([slinalg.Solve])
-@register_opt2([theano.tensor.slinalg.Solve], "fast_compile")
+@register_opt2([aesara.tensor.slinalg.Solve], "fast_compile")
 def local_gpu_solve(op, context_name, inputs, outputs):
     if inputs[0].dtype not in ["float16", "float32", "float64"]:
         return
@@ -2739,7 +2739,7 @@ def local_gpu_cholesky(op, context_name, inputs, outputs):
 # For Cholesky decomposition, magma 2.2 is slower than cusolver 8 (tested for
 # matrices of size 1000). Thus, cusolver is prioritized during graph
 # optimizations. To explicitly use magma, you should disable cusolver using
-# `optimizer_excluding=cusolver` in Theano config.
+# `optimizer_excluding=cusolver` in Aesara config.
 lifter = op_lifter([slinalg.Cholesky])(local_gpu_cholesky)
 matrix_ops_db.register(
     "local_gpu_cholesky",
@@ -2813,7 +2813,7 @@ def local_inplace_gpu_magma_cholesky(node):
 # QR decomposition
 @register_opt("magma", "fast_compile")
 @op_lifter([nlinalg.QRFull])
-@register_opt2([theano.tensor.nlinalg.QRFull], "magma", "fast_compile")
+@register_opt2([aesara.tensor.nlinalg.QRFull], "magma", "fast_compile")
 def local_gpu_magma_qr(op, context_name, inputs, outputs):
     if not config.magma.enabled or op.mode != "reduced":
         return
@@ -2830,7 +2830,7 @@ def local_gpu_magma_qr(op, context_name, inputs, outputs):
 
 @register_opt("magma", "fast_compile")
 @op_lifter([nlinalg.QRIncomplete])
-@register_opt2([theano.tensor.nlinalg.QRIncomplete], "magma", "fast_compile")
+@register_opt2([aesara.tensor.nlinalg.QRIncomplete], "magma", "fast_compile")
 def local_gpu_magma_qr_incomplete(op, context_name, inputs, outputs):
     if not config.magma.enabled:
         return
@@ -2848,7 +2848,7 @@ def local_gpu_magma_qr_incomplete(op, context_name, inputs, outputs):
 # Matrix inverse
 @register_opt("magma", "fast_compile")
 @op_lifter([nlinalg.MatrixInverse])
-@register_opt2([theano.tensor.nlinalg.MatrixInverse], "magma", "fast_compile")
+@register_opt2([aesara.tensor.nlinalg.MatrixInverse], "magma", "fast_compile")
 def local_gpu_magma_matrix_inverse(op, context_name, inputs, outputs):
     if not config.magma.enabled:
         return
@@ -2871,7 +2871,7 @@ def local_inplace_gpu_magma_matrix_inverse(node):
 # Eigen decomposition of a symmetric matrix
 @register_opt("magma", "fast_compile")
 @op_lifter([nlinalg.Eigh])
-@register_opt2([theano.tensor.nlinalg.Eigh], "magma", "fast_compile")
+@register_opt2([aesara.tensor.nlinalg.Eigh], "magma", "fast_compile")
 def local_gpu_magma_eigh(op, context_name, inputs, outputs):
     if not config.magma.enabled:
         return
@@ -2886,7 +2886,7 @@ def local_gpu_magma_eigh(op, context_name, inputs, outputs):
 # Singular Value Decomposition
 @register_opt("magma", "fast_compile")
 @op_lifter([nlinalg.SVD])
-@register_opt2([theano.tensor.nlinalg.SVD], "magma", "fast_compile")
+@register_opt2([aesara.tensor.nlinalg.SVD], "magma", "fast_compile")
 def local_gpu_magma_svd(op, context_name, inputs, outputs):
     if not config.magma.enabled:
         return
@@ -2905,7 +2905,7 @@ def local_gpu_magma_svd(op, context_name, inputs, outputs):
 
 
 @register_opt("ctc", "fast_compile")
-@op_lifter([theano.tensor.nnet.ctc.ConnectionistTemporalClassification])
+@op_lifter([aesara.tensor.nnet.ctc.ConnectionistTemporalClassification])
 @register_opt2([ConnectionistTemporalClassification], "ctc", "fast_compile")
 def local_gpu_ctc(op, context_name, inputs, outputs):
     op = GpuConnectionistTemporalClassification(compute_grad=op.compute_grad)
@@ -3051,7 +3051,7 @@ abstractconv_groupopt.register("conv_metaopt", conv_metaopt, "conv_meta", positi
 
 # We import these opts here instead of at the top of this file
 # to avoid a circular dependency problem with dnn
-from theano.gpuarray.dnn import (  # noqa: E402
+from aesara.gpuarray.dnn import (  # noqa: E402
     local_abstract_batch_norm_inference_cudnn,
     local_abstract_batch_norm_train_cudnn,
     local_abstract_batch_norm_train_grad_cudnn,
@@ -3112,7 +3112,7 @@ for op, fct, cpu in [
     # cpu is a normal optimization. We can't register it in
     # GraphToGPU.  So for now, only add it to the slower EQ phase.  If
     # there is no cuDNN, we still want to move it to the GPU now with
-    # a Theano graph so to have this graph on the GPU.
+    # a Aesara graph so to have this graph on the GPU.
     abstract_batch_norm_db.register(
         cpu.__name__, cpu, "gpuarray", "fast_compile", "fast_run", position="last"
     )

@@ -5,7 +5,7 @@
 :mod:`raw_random` -- Low-level random numbers
 =============================================
 
-.. module:: theano.tensor.raw_random
+.. module:: aesara.tensor.raw_random
    :synopsis: symbolic random variables
 .. moduleauthor:: LISA
 
@@ -19,7 +19,7 @@ Reference
 .. class:: RandomStreamsBase(object)
     
     This is the interface for the
-    :class:`theano.tensor.shared_randomstreams.RandomStreams` subclass
+    :class:`aesara.tensor.shared_randomstreams.RandomStreams` subclass
 
     .. method:: binomial(self, size=(), n=1, p=0.5, ndim=None):
 
@@ -95,7 +95,7 @@ Reference
         the output shape will be ``(p,q,n)``, because each permutation
         is of size ``n``.
 
-        Theano tries to infer the number of dimensions from the length
+        Aesara tries to infer the number of dimensions from the length
         of ``size``, but you may always specify it with ``ndim``.
 
         .. note::
@@ -112,7 +112,7 @@ Reference
         will be drawn, and the output shape will be
         ``(p,q,len(pvals))``.
 
-        Theano tries to infer the number of dimensions from the length
+        Aesara tries to infer the number of dimensions from the length
         of ``size``, but you may always specify it with ``ndim``.
 
         .. note::

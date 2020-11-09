@@ -1,10 +1,10 @@
 import numpy as np
 
-import theano
-import theano.tensor.basic as basic
-from theano import function
-from theano.compile import In
-from theano.tensor import (
+import aesara
+import aesara.tensor.basic as basic
+from aesara import function
+from aesara.compile import In
+from aesara.tensor import (
     TensorType,
     bvector,
     cast,
@@ -14,7 +14,7 @@ from theano.tensor import (
     ivector,
     zmatrix,
 )
-from theano.tensor.basic import (
+from aesara.tensor.basic import (
     _convert_to_float32,
     _convert_to_float64,
     _convert_to_int8,
@@ -31,7 +31,7 @@ class TestCasting:
                 x = type_fn()
                 f = function([x], op_fn(x))
 
-                xval = theano._asarray(np.random.rand(10) * 10, dtype=type_fn.dtype)
+                xval = aesara._asarray(np.random.rand(10) * 10, dtype=type_fn.dtype)
                 yval = f(xval)
                 assert (
                     str(yval.dtype)
@@ -99,22 +99,22 @@ class TestCasting:
 
         # upcasting to complex128
         for t in ["int8", "int16", "int32", "int64", "float32", "float64"]:
-            a = theano.shared(np.ones(3, dtype=t))
-            b = theano.shared(np.ones(3, dtype="complex128"))
+            a = aesara.shared(np.ones(3, dtype=t))
+            b = aesara.shared(np.ones(3, dtype="complex128"))
             f = function([], basic._convert_to_complex128(a))
             assert a.type.values_eq_approx(b.get_value(), f())
 
         # upcasting to complex64
         for t in ["int8", "int16", "int32", "int64", "float32"]:
-            a = theano.shared(np.ones(3, dtype=t))
-            b = theano.shared(np.ones(3, dtype="complex64"))
+            a = aesara.shared(np.ones(3, dtype=t))
+            b = aesara.shared(np.ones(3, dtype="complex64"))
             f = function([], basic._convert_to_complex64(a))
             assert a.type.values_eq_approx(b.get_value(), f())
 
         # downcast to complex64
         for t in ["float64"]:
-            a = theano.shared(np.ones(3, dtype=t))
-            b = theano.shared(np.ones(3, dtype="complex64"))
+            a = aesara.shared(np.ones(3, dtype=t))
+            b = aesara.shared(np.ones(3, dtype="complex64"))
             f = function([], basic._convert_to_complex64(a))
             assert a.type.values_eq_approx(b.get_value(), f())
 

@@ -5,7 +5,7 @@
 :mod:`mode` -- controlling compilation
 ======================================
 
-.. module:: theano.compile.mode
+.. module:: aesara.compile.mode
    :platform: Unix, Windows
    :synopsis: controlling compilation
 .. moduleauthor:: LISA
@@ -13,10 +13,10 @@
 Guide
 =====
 
-The ``mode`` parameter to :func:`theano.function` controls how the
+The ``mode`` parameter to :func:`aesara.function` controls how the
 inputs-to-outputs graph is transformed into a callable object.
 
-Theano defines the following modes by name:
+Aesara defines the following modes by name:
 
 - ``'FAST_COMPILE'``: Apply just a few graph optimizations and only use Python implementations.
 - ``'FAST_RUN'``: Apply all optimizations, and use C implementations where possible.
@@ -26,7 +26,7 @@ Theano defines the following modes by name:
 
 The default mode is typically ``FAST_RUN``, but it can be controlled via the
 configuration variable :attr:`config.mode`, which can be
-overridden by passing the keyword argument to :func:`theano.function`.
+overridden by passing the keyword argument to :func:`aesara.function`.
 
 .. TODO::
 

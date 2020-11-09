@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from tests import unittest_tools as utt
-from theano import function, tensor
-from theano.sandbox.minimal import minimal
+from aesara import function, tensor
+from aesara.sandbox.minimal import minimal
 
 
 @pytest.mark.skip(reason="Unfinished test")

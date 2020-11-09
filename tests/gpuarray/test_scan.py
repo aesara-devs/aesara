@@ -1,11 +1,11 @@
 import numpy as np
 
-import theano
-import theano.sandbox.rng_mrg
+import aesara
+import aesara.sandbox.rng_mrg
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, test_ctx_name
-from theano.gpuarray.basic_ops import GpuFromHost, HostFromGpu
-from theano.gpuarray.elemwise import GpuElemwise
+from aesara.gpuarray.basic_ops import GpuFromHost, HostFromGpu
+from aesara.gpuarray.elemwise import GpuElemwise
 
 
 class TestScan:
@@ -16,13 +16,13 @@ class TestScan:
         def f_rnn(u_t, x_tm1, W_in, W):
             return u_t * W_in + x_tm1 * W
 
-        u = theano.tensor.fvector("u")
-        x0 = theano.tensor.fscalar("x0")
-        W_in = theano.tensor.fscalar("win")
-        W = theano.tensor.fscalar("w")
+        u = aesara.tensor.fvector("u")
+        x0 = aesara.tensor.fscalar("x0")
+        W_in = aesara.tensor.fscalar("win")
+        W = aesara.tensor.fscalar("w")
 
         mode = mode_with_gpu.excluding("InputToGpuOptimizer")
-        output, updates = theano.scan(
+        output, updates = aesara.scan(
             f_rnn,
             u,
             x0,
@@ -34,7 +34,7 @@ class TestScan:
         )
 
         output = GpuFromHost(test_ctx_name)(output)
-        f2 = theano.function(
+        f2 = aesara.function(
             [u, x0, W_in, W],
             output,
             updates=updates,
@@ -59,15 +59,15 @@ class TestScan:
         for step in range(1, 4):
             v_out[step] = v_u[step] * W_in + v_out[step - 1] * W
 
-        theano_values = f2(v_u, v_x0, W_in, W)
-        utt.assert_allclose(theano_values, v_out)
+        aesara_values = f2(v_u, v_x0, W_in, W)
+        utt.assert_allclose(aesara_values, v_out)
 
         # TO DEL
         topo = f2.maker.fgraph.toposort()
         scan_node = [
             node
             for node in topo
-            if isinstance(node.op, theano.scan_module.scan_op.Scan)
+            if isinstance(node.op, aesara.scan_module.scan_op.Scan)
         ]
         assert len(scan_node) == 1
         scan_node = scan_node[0]
@@ -79,7 +79,7 @@ class TestScan:
         scan_node = [
             node
             for node in topo
-            if isinstance(node.op, theano.scan_module.scan_op.Scan)
+            if isinstance(node.op, aesara.scan_module.scan_op.Scan)
         ]
         assert len(scan_node) == 1
         scan_node = scan_node[0]
@@ -95,11 +95,11 @@ class TestScan:
         def f_rnn(u_t, x_tm1, W_in, W):
             return u_t * W_in + x_tm1 * W
 
-        u = theano.tensor.fvector("u")
-        x0 = theano.tensor.fscalar("x0")
-        W_in = theano.tensor.fscalar("win")
-        W = theano.tensor.fscalar("w")
-        output, updates = theano.scan(
+        u = aesara.tensor.fvector("u")
+        x0 = aesara.tensor.fscalar("x0")
+        W_in = aesara.tensor.fscalar("win")
+        W = aesara.tensor.fscalar("w")
+        output, updates = aesara.scan(
             f_rnn,
             u,
             x0,
@@ -110,7 +110,7 @@ class TestScan:
             mode=mode_with_gpu,
         )
 
-        f2 = theano.function(
+        f2 = aesara.function(
             [u, x0, W_in, W],
             output,
             updates=updates,
@@ -131,8 +131,8 @@ class TestScan:
         for step in range(1, 4):
             v_out[step] = v_u[step] * W_in + v_out[step - 1] * W
 
-        theano_values = f2(v_u, v_x0, W_in, W)
-        utt.assert_allclose(theano_values, v_out)
+        aesara_values = f2(v_u, v_x0, W_in, W)
+        utt.assert_allclose(aesara_values, v_out)
 
         topo = f2.maker.fgraph.toposort()
         assert sum([isinstance(node.op, HostFromGpu) for node in topo]) == 1
@@ -141,7 +141,7 @@ class TestScan:
         scan_node = [
             node
             for node in topo
-            if isinstance(node.op, theano.scan_module.scan_op.Scan)
+            if isinstance(node.op, aesara.scan_module.scan_op.Scan)
         ]
         assert len(scan_node) == 1
         scan_node = scan_node[0]
@@ -156,13 +156,13 @@ class TestScan:
     # outputs when is running on GPU
     def test_gpu3_mixture_dtype_outputs(self):
         def f_rnn(u_t, x_tm1, W_in, W):
-            return (u_t * W_in + x_tm1 * W, theano.tensor.cast(u_t + x_tm1, "int64"))
+            return (u_t * W_in + x_tm1 * W, aesara.tensor.cast(u_t + x_tm1, "int64"))
 
-        u = theano.tensor.fvector("u")
-        x0 = theano.tensor.fscalar("x0")
-        W_in = theano.tensor.fscalar("win")
-        W = theano.tensor.fscalar("w")
-        output, updates = theano.scan(
+        u = aesara.tensor.fvector("u")
+        x0 = aesara.tensor.fscalar("x0")
+        W_in = aesara.tensor.fscalar("win")
+        W = aesara.tensor.fscalar("w")
+        output, updates = aesara.scan(
             f_rnn,
             u,
             [x0, None],
@@ -173,7 +173,7 @@ class TestScan:
             mode=mode_with_gpu,
         )
 
-        f2 = theano.function(
+        f2 = aesara.function(
             [u, x0, W_in, W],
             output,
             updates=updates,
@@ -197,15 +197,15 @@ class TestScan:
             v_out1[step] = v_u[step] * W_in + v_out1[step - 1] * W
             v_out2[step] = np.int64(v_u[step] + v_out1[step - 1])
 
-        theano_out1, theano_out2 = f2(v_u, v_x0, W_in, W)
-        utt.assert_allclose(theano_out1, v_out1)
-        utt.assert_allclose(theano_out2, v_out2)
+        aesara_out1, aesara_out2 = f2(v_u, v_x0, W_in, W)
+        utt.assert_allclose(aesara_out1, v_out1)
+        utt.assert_allclose(aesara_out2, v_out2)
 
         topo = f2.maker.fgraph.toposort()
         scan_node = [
             node
             for node in topo
-            if isinstance(node.op, theano.scan_module.scan_op.Scan)
+            if isinstance(node.op, aesara.scan_module.scan_op.Scan)
         ]
         assert len(scan_node) == 1
         scan_node = scan_node[0]
@@ -227,8 +227,8 @@ class TestScan:
             ),
             dtype="float32",
         )
-        vsample = theano.shared(v_vsample)
-        trng = theano.sandbox.rng_mrg.MRG_RandomStreams(utt.fetch_seed())
+        vsample = aesara.shared(v_vsample)
+        trng = aesara.sandbox.rng_mrg.MRG_RandomStreams(utt.fetch_seed())
 
         def f(vsample_tm1):
             return (
@@ -236,7 +236,7 @@ class TestScan:
                 * vsample_tm1
             )
 
-        theano_vsamples, updates = theano.scan(
+        aesara_vsamples, updates = aesara.scan(
             f,
             [],
             vsample,
@@ -246,9 +246,9 @@ class TestScan:
             go_backwards=False,
             mode=mode_with_gpu,
         )
-        my_f = theano.function(
+        my_f = aesara.function(
             [],
-            theano_vsamples[-1],
+            aesara_vsamples[-1],
             updates=updates,
             allow_input_downcast=True,
             mode=mode_with_gpu,

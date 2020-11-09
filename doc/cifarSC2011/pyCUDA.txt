@@ -75,19 +75,19 @@ Exercise 6
 - Modify and execute it to work for a matrix of 20 x 10
 
 
-.. _cifar2011_pyCUDA_theano:
+.. _cifar2011_pyCUDA_aesara:
 
-Theano + PyCUDA
+Aesara + PyCUDA
 ---------------
 
 .. testcode::
 
-    import numpy, theano
-    import theano.misc.pycuda_init
+    import numpy, aesara
+    import aesara.misc.pycuda_init
     from pycuda.compiler import SourceModule
-    import theano.sandbox.cuda as cuda
+    import aesara.sandbox.cuda as cuda
 
-    class PyCUDADoubleOp(theano.Op):
+    class PyCUDADoubleOp(aesara.Op):
         def __eq__(self, other):
             return type(self) == type(other)
         def __hash__(self):
@@ -98,7 +98,7 @@ Theano + PyCUDA
             inp = cuda.basic_ops.gpu_contiguous(
                cuda.basic_ops.as_cuda_ndarray_variable(inp))
             assert inp.dtype == "float32"
-            return theano.Apply(self, [inp], [inp.type()])
+            return aesara.Apply(self, [inp], [inp.type()])
         def make_thunk(self, node, storage_map, _, _2):
             mod = SourceModule("""
         __global__ void my_fct(float * i0, float * o0, int size) {
@@ -127,8 +127,8 @@ Theano + PyCUDA
 
 Test it!
 
->>> x = theano.tensor.fmatrix() # doctest: +SKIP
->>> f = theano.function([x], PyCUDADoubleOp()(x)) # doctest: +SKIP
+>>> x = aesara.tensor.fmatrix() # doctest: +SKIP
+>>> f = aesara.function([x], PyCUDADoubleOp()(x)) # doctest: +SKIP
 >>> xv=numpy.ones((4,5), dtype="float32") # doctest: +SKIP
 >>> assert numpy.allclose(f(xv), xv*2) # doctest: +SKIP
 >>> print numpy.asarray(f(xv)) # doctest: +SKIP

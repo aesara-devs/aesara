@@ -4,9 +4,9 @@
 
 import numpy as np
 
-import theano
-from theano.gof import Apply, Constant, Generic, Op, Type, hashtype
-from theano.gradient import DisconnectedType
+import aesara
+from aesara.gof import Apply, Constant, Generic, Op, Type, hashtype
+from aesara.gradient import DisconnectedType
 
 
 def as_int_none_variable(x):
@@ -14,8 +14,8 @@ def as_int_none_variable(x):
         return NoneConst
     elif NoneConst.equals(x):
         return x
-    x = theano.tensor.as_tensor_variable(x, ndim=0)
-    if x.type.dtype not in theano.tensor.integer_dtypes:
+    x = aesara.tensor.as_tensor_variable(x, ndim=0)
+    if x.type.dtype not in aesara.tensor.integer_dtypes:
         raise TypeError("index must be integers")
     return x
 
@@ -78,15 +78,15 @@ class SliceConstant(Constant):
         # Numpy ndarray aren't hashable, so get rid of them.
         if isinstance(data.start, np.ndarray):
             assert data.start.ndim == 0
-            assert str(data.start.dtype) in theano.tensor.integer_dtypes
+            assert str(data.start.dtype) in aesara.tensor.integer_dtypes
             data = slice(int(data.start), data.stop, data.step)
         elif isinstance(data.stop, np.ndarray):
             assert data.stop.ndim == 0
-            assert str(data.stop.dtype) in theano.tensor.integer_dtypes
+            assert str(data.stop.dtype) in aesara.tensor.integer_dtypes
             data = slice(data.start, int(data.stop), data.step)
         elif isinstance(data.step, np.ndarray):
             assert data.step.ndim == 0
-            assert str(data.step.dtype) in theano.tensor.integer_dtypes
+            assert str(data.step.dtype) in aesara.tensor.integer_dtypes
             data = slice(data.start, int(data.stop), data.step)
         Constant.__init__(self, type, data, name)
 
@@ -127,6 +127,6 @@ class NoneTypeT(Generic):
 none_type_t = NoneTypeT()
 
 # This is a variable instance. It can be used only once per fgraph.
-# So use NoneConst.clone() before using it in a Theano graph.
+# So use NoneConst.clone() before using it in a Aesara graph.
 # Use NoneConst.equals(x) to check if two variable are NoneConst.
 NoneConst = Constant(none_type_t, None, name="NoneConst")

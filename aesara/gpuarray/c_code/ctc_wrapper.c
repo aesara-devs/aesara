@@ -180,7 +180,7 @@ int APPLY_SPECIFIC(ctc_cost_gpu)(PyGpuArrayObject   *  in_activations,
         return 1;
     }
 
-    if ( theano_prep_output( out_costs, 1, &cost_size, in_activations->ga.typecode,
+    if ( aesara_prep_output( out_costs, 1, &cost_size, in_activations->ga.typecode,
                              GA_C_ORDER, gpu_context ) != 0 )
     {
         ctc_context_destroy( context );
@@ -196,7 +196,7 @@ int APPLY_SPECIFIC(ctc_cost_gpu)(PyGpuArrayObject   *  in_activations,
 
     if ( NULL != out_gradients )  // if gradient computation is not disabled
     {
-        if ( theano_prep_output( out_gradients, 3, grad_dims, in_activations->ga.typecode,
+        if ( aesara_prep_output( out_gradients, 3, grad_dims, in_activations->ga.typecode,
                                  GA_C_ORDER, gpu_context ) != 0 )
         {
             ctc_context_destroy( context );

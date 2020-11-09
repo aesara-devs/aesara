@@ -2,17 +2,17 @@ from collections.abc import Collection
 
 import numpy as np
 
-import theano
-from theano.gof import Apply, EnumList, Generic, Op, ParamsType
-from theano.gradient import (
+import aesara
+from aesara.gof import Apply, EnumList, Generic, Op, ParamsType
+from aesara.gradient import (
     DisconnectedType,
     _float_zeros_like,
     disconnected_type,
     grad_undefined,
 )
-from theano.scalar import int32 as int_t
-from theano.scalar import upcast
-from theano.tensor import basic, nlinalg
+from aesara.scalar import int32 as int_t
+from aesara.scalar import upcast
+from aesara.tensor import basic, nlinalg
 
 
 class CpuContiguous(Op):
@@ -26,8 +26,8 @@ class CpuContiguous(Op):
     check_input = False
 
     def make_node(self, x):
-        x_ = theano.tensor.as_tensor_variable(x)
-        return theano.Apply(self, [x_], [x_.type()])
+        x_ = aesara.tensor.as_tensor_variable(x)
+        return aesara.Apply(self, [x_], [x_.type()])
 
     def perform(self, node, inputs, output_storage):
         (x,) = inputs
@@ -40,7 +40,7 @@ class CpuContiguous(Op):
         y[0] = x
 
     def grad(self, inputs, dout):
-        return [theano.tensor.as_tensor_variable(dout[0])]
+        return [aesara.tensor.as_tensor_variable(dout[0])]
 
     def c_code(self, node, name, inames, onames, sub):
         (x,) = inames
@@ -107,11 +107,11 @@ class SearchsortedOp(Op):
         v = basic.as_tensor(v)
         out_type = v.type.clone(dtype="int64")
         if sorter is None:
-            return theano.Apply(self, [x, v], [out_type()])
+            return aesara.Apply(self, [x, v], [out_type()])
         else:
             sorter = basic.as_tensor(sorter, ndim=1)
             if (
-                theano.configdefaults.python_int_bitwidth() == 32
+                aesara.configdefaults.python_int_bitwidth() == 32
                 and sorter.dtype == "int64"
             ):
                 raise TypeError(
@@ -120,7 +120,7 @@ class SearchsortedOp(Op):
                 )
             if sorter.type not in basic.int_vector_types:
                 raise TypeError("sorter must be an integer vector", sorter.type)
-            return theano.Apply(self, [x, v, sorter], [out_type()])
+            return aesara.Apply(self, [x, v, sorter], [out_type()])
 
     def infer_shape(self, node, shapes):
         return [shapes[1]]
@@ -245,7 +245,7 @@ def searchsorted(x, v, side="left", sorter=None):
 
     Examples
     --------
-    >>> from theano import tensor
+    >>> from aesara import tensor
     >>> x = tensor.dvector()
     >>> idx = x.searchsorted(3)
     >>> idx.eval({x: [1,2,3,4,5]})
@@ -285,11 +285,11 @@ class CumOp(Op):
         out_type = x.type()
 
         if self.axis is None:
-            out_type = theano.tensor.vector(dtype=x.dtype)  # Flatten
+            out_type = aesara.tensor.vector(dtype=x.dtype)  # Flatten
         elif self.axis >= x.ndim or self.axis < -x.ndim:
             raise ValueError("axis(={}) out of bounds".format(self.axis))
 
-        return theano.Apply(self, [x], [out_type])
+        return aesara.Apply(self, [x], [out_type])
 
     def perform(self, node, inputs, output_storage, params):
         x = inputs[0]
@@ -438,7 +438,7 @@ def cumprod(x, axis=None):
 
 
 # CumsumOp and CumprodOp are for compatibility with old version,
-# just in case unpickling a theano function with old Ops.
+# just in case unpickling a aesara function with old Ops.
 class CumsumOp(Op):
     __props__ = ("axis",)
 
@@ -472,7 +472,7 @@ class DiffOp(Op):
 
     def make_node(self, x):
         x = basic.as_tensor_variable(x)
-        return theano.Apply(self, [x], [x.type()])
+        return aesara.Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, output_storage):
         x = inputs[0]
@@ -561,24 +561,24 @@ def bincount(x, weights=None, minlength=None, assert_nonneg=False):
         raise TypeError("Inputs must be of dimension 1.")
 
     if assert_nonneg:
-        from theano.tensor.opt import Assert
+        from aesara.tensor.opt import Assert
 
         assert_op = Assert("Input to bincount has negative values!")
-        x = assert_op(x, theano.tensor.all(x >= 0))
+        x = assert_op(x, aesara.tensor.all(x >= 0))
 
-    max_value = theano.tensor.cast(x.max() + 1, "int64")
+    max_value = aesara.tensor.cast(x.max() + 1, "int64")
 
     if minlength is not None:
-        max_value = theano.tensor.maximum(max_value, minlength)
+        max_value = aesara.tensor.maximum(max_value, minlength)
 
     # Note: we do not use inc_subtensor(out[x], ...) in the following lines,
     # since out[x] raises an exception if the indices (x) are int8.
     if weights is None:
-        out = theano.tensor.zeros([max_value], dtype=x.dtype)
-        out = theano.tensor.advanced_inc_subtensor1(out, 1, x)
+        out = aesara.tensor.zeros([max_value], dtype=x.dtype)
+        out = aesara.tensor.advanced_inc_subtensor1(out, 1, x)
     else:
-        out = theano.tensor.zeros([max_value], dtype=weights.dtype)
-        out = theano.tensor.advanced_inc_subtensor1(out, weights, x)
+        out = aesara.tensor.zeros([max_value], dtype=weights.dtype)
+        out = aesara.tensor.advanced_inc_subtensor1(out, weights, x)
     return out
 
 
@@ -644,7 +644,7 @@ def compress(condition, x, axis=None):
         `x` with selected slices.
 
     """
-    indices = theano.tensor.basic.flatnonzero(condition)
+    indices = aesara.tensor.basic.flatnonzero(condition)
     return x.take(indices, axis=axis)
 
 
@@ -666,7 +666,7 @@ class RepeatOp(Op):
         # Some dtypes are not supported by numpy's implementation of repeat.
         # Until another one is available, we should fail at graph construction
         # time, not wait for execution.
-        ptr_bitwidth = theano.configdefaults.local_bitwidth()
+        ptr_bitwidth = aesara.configdefaults.local_bitwidth()
         if ptr_bitwidth == 64:
             numpy_unsupported_dtypes = ("uint64",)
         if ptr_bitwidth == 32:
@@ -694,9 +694,9 @@ class RepeatOp(Op):
                 broadcastable = list(x.broadcastable)
                 broadcastable[self.axis] = False
 
-        out_type = theano.tensor.TensorType(x.dtype, broadcastable)
+        out_type = aesara.tensor.TensorType(x.dtype, broadcastable)
 
-        return theano.Apply(self, [x, repeats], [out_type()])
+        return aesara.Apply(self, [x, repeats], [out_type()])
 
     def perform(self, node, inputs, output_storage):
         x = inputs[0]
@@ -751,12 +751,12 @@ class RepeatOp(Op):
                         res = res * d
                     out_shape = (res * repeats,)
             else:
-                out_shape = [theano.tensor.sum(repeats, dtype=dtype)]
+                out_shape = [aesara.tensor.sum(repeats, dtype=dtype)]
         else:
             if repeats.ndim == 0:
                 out_shape[self.axis] = out_shape[self.axis] * repeats
             else:
-                out_shape[self.axis] = theano.tensor.sum(repeats, dtype=dtype)
+                out_shape[self.axis] = aesara.tensor.sum(repeats, dtype=dtype)
         return [out_shape]
 
 
@@ -798,7 +798,7 @@ def repeat(x, repeats, axis=None):
             repeats = repeats[0]
 
         if x.dtype == "uint64":
-            raise TypeError("theano.tensor.repeat don't support dtype uint64")
+            raise TypeError("aesara.tensor.repeat don't support dtype uint64")
 
         if axis is None:
             axis = 0
@@ -841,8 +841,8 @@ class Bartlett(Op):
         M = basic.as_tensor_variable(M)
         if M.ndim != 0:
             raise TypeError("%s only works on scalar input" % self.__class__.__name__)
-        elif M.dtype not in theano.tensor.integer_dtypes:
-            # dtype is a theano attribute here
+        elif M.dtype not in aesara.tensor.integer_dtypes:
+            # dtype is a aesara attribute here
             raise TypeError("%s only works on integer input" % self.__class__.__name__)
         return Apply(self, [M], [basic.dvector()])
 
@@ -1023,10 +1023,10 @@ class FillDiagonalOffset(Op):
                 "%s: type of second parameter must be the same"
                 " as the first's" % self.__class__.__name__
             )
-        elif offset.dtype not in theano.tensor.integer_dtypes:
+        elif offset.dtype not in aesara.tensor.integer_dtypes:
             raise TypeError(
                 "%s: type of third parameter must be as integer"
-                " use theano.tensor.cast( input, 'int32/int64')"
+                " use aesara.tensor.cast( input, 'int32/int64')"
                 % self.__class__.__name__
             )
 
@@ -1161,8 +1161,8 @@ def to_one_hot(y, nb_class, dtype=None):
         the one hot encoding of the corresponding ``y[i]`` value.
 
     """
-    ret = theano.tensor.zeros((y.shape[0], nb_class), dtype=dtype)
-    ret = theano.tensor.set_subtensor(ret[theano.tensor.arange(y.shape[0]), y], 1)
+    ret = aesara.tensor.zeros((y.shape[0], nb_class), dtype=dtype)
+    ret = aesara.tensor.set_subtensor(ret[aesara.tensor.arange(y.shape[0]), y], 1)
     return ret
 
 
@@ -1173,15 +1173,15 @@ class Unique(Op):
     Examples
     --------
     >>> import numpy as np
-    >>> import theano
+    >>> import aesara
 
-    >>> x = theano.tensor.vector()
-    >>> f = theano.function([x], Unique(True, True, False)(x))
+    >>> x = aesara.tensor.vector()
+    >>> f = aesara.function([x], Unique(True, True, False)(x))
     >>> f([1, 2., 3, 4, 3, 2, 1.])
     [array([ 1.,  2.,  3.,  4.]), array([0, 1, 2, 3]), array([0, 1, 2, 3, 2, 1, 0])]
 
-    >>> y = theano.tensor.matrix()
-    >>> g = theano.function([y], Unique(True, True, False)(y))
+    >>> y = aesara.tensor.matrix()
+    >>> g = aesara.function([y], Unique(True, True, False)(y))
     >>> g([[1, 1, 1.0], (2, 3, 3.0)])
     [array([ 1.,  2.,  3.]), array([0, 3, 4]), array([0, 0, 0, 1, 2, 2])]
 
@@ -1230,7 +1230,7 @@ class Unique(Op):
             outputs.append(typ())
         if self.return_counts:
             outputs.append(typ())
-        return theano.Apply(self, [x], outputs)
+        return aesara.Apply(self, [x], outputs)
 
     def perform(self, node, inputs, output_storage):
         x = inputs[0]
@@ -1332,7 +1332,7 @@ class UnravelIndex(Op):
         res = np.unravel_index(indices, dims, order=self.order)
         assert len(res) == len(out)
         for i in range(len(out)):
-            ret = theano._asarray(res[i], node.outputs[0].dtype)
+            ret = aesara._asarray(res[i], node.outputs[0].dtype)
             if ret.base is not None:
                 # NumPy will return a view when it can.
                 # But we don't want that.
@@ -1347,7 +1347,7 @@ def unravel_index(indices, dims, order="C"):
 
     Parameters
     ----------
-    indices : Theano or NumPy array
+    indices : Aesara or NumPy array
         An integer array whose elements are indices into the flattened
         version of an array of dimensions ``dims``.
     dims : tuple of ints
@@ -1415,7 +1415,7 @@ class RavelMultiIndex(Op):
     def perform(self, node, inp, out):
         multi_index, dims = inp[:-1], inp[-1]
         res = np.ravel_multi_index(multi_index, dims, mode=self.mode, order=self.order)
-        out[0][0] = theano._asarray(res, node.outputs[0].dtype)
+        out[0][0] = aesara._asarray(res, node.outputs[0].dtype)
 
 
 def ravel_multi_index(multi_index, dims, mode="raise", order="C"):
@@ -1425,7 +1425,7 @@ def ravel_multi_index(multi_index, dims, mode="raise", order="C"):
 
     Parameters
     ----------
-    multi_index : tuple of Theano or NumPy arrays
+    multi_index : tuple of Aesara or NumPy arrays
         A tuple of integer arrays, one array for each dimension.
     dims : tuple of ints
         The shape of array into which the indices from ``multi_index`` apply.
@@ -1444,7 +1444,7 @@ def ravel_multi_index(multi_index, dims, mode="raise", order="C"):
 
     Returns
     -------
-    raveled_indices : Theano array
+    raveled_indices : Aesara array
         An array of indices into the flattened version of an array
         of dimensions ``dims``.
 
@@ -1492,7 +1492,7 @@ def broadcast_shape_iter(arrays, **kwargs):
         are (scalar) constants with the value `1` or `1` exactly.
 
     """
-    one = theano.scalar.ScalarConstant(theano.scalar.int64, 1)
+    one = aesara.scalar.ScalarConstant(aesara.scalar.int64, 1)
 
     arrays_are_shapes = kwargs.pop("arrays_are_shapes", False)
     if arrays_are_shapes:
@@ -1528,11 +1528,11 @@ def broadcast_shape_iter(arrays, **kwargs):
                 for dim in non_bcast_shapes
                 # TODO FIXME: This is a largely deficient means of comparing graphs
                 # (and especially shapes)
-                if not theano.gof.graph.equal_computations([i_dim], [dim])
+                if not aesara.gof.graph.equal_computations([i_dim], [dim])
             ]
 
             if potentially_unequal_dims:
-                from theano.tensor.opt import Assert
+                from aesara.tensor.opt import Assert
 
                 # In this case, we can't tell whether or not the dimensions are
                 # equal, so we'll need to assert their equality and move the error
@@ -1570,7 +1570,7 @@ class BroadcastTo(Op):
 
         out = type(a.type)(dtype=a.type.dtype, broadcastable=bcast)()
 
-        return theano.Apply(self, [a] + shape, [out])
+        return aesara.Apply(self, [a] + shape, [out])
 
     def perform(self, node, inputs, output_storage):
         a, *shape = inputs

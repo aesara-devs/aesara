@@ -33,10 +33,10 @@ from tests.tensor.utils import (
     makeBroadcastTester,
     upcast_float16_ufunc,
 )
-from theano import _asarray, config
-from theano.scalar.basic import round_half_away_from_zero_vec, upcast
-from theano.tensor import vector
-from theano.tensor.inplace import (
+from aesara import _asarray, config
+from aesara.scalar.basic import round_half_away_from_zero_vec, upcast
+from aesara.tensor import vector
+from aesara.tensor.inplace import (
     abs__inplace,
     add_inplace,
     arccos_inplace,

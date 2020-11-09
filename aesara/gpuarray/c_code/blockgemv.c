@@ -11,7 +11,7 @@ int APPLY_SPECIFIC(blockgemv)(PyGpuArrayObject *o, PyGpuArrayObject *W,
     out = o;
     Py_INCREF(out);
   } else {
-    out = theano_try_copy(out, o);
+    out = aesara_try_copy(out, o);
     if (out == NULL) {
       // Error already set
       return -1;

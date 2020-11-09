@@ -13,17 +13,17 @@ from itertools import chain
 
 import numpy as np
 
-import theano
-import theano.compile.profiling
-from theano import config, gof
-from theano.compile.io import In, SymbolicInput, SymbolicOutput
-from theano.compile.ops import deep_copy_op, view_op
-from theano.gof import graph
-from theano.gof.op import ops_with_inner_function
-from theano.gof.toolbox import is_same_graph
+import aesara
+import aesara.compile.profiling
+from aesara import config, gof
+from aesara.compile.io import In, SymbolicInput, SymbolicOutput
+from aesara.compile.ops import deep_copy_op, view_op
+from aesara.gof import graph
+from aesara.gof.op import ops_with_inner_function
+from aesara.gof.toolbox import is_same_graph
 
 
-_logger = logging.getLogger("theano.compile.function_module")
+_logger = logging.getLogger("aesara.compile.function_module")
 
 __docformat__ = "restructuredtext en"
 
@@ -227,8 +227,8 @@ DUPLICATE = ["DUPLICATE"]
 
 class Function:
     """
-    Type of the functions returned by theano.function or
-    theano.FunctionMaker.create.
+    Type of the functions returned by aesara.function or
+    aesara.FunctionMaker.create.
 
     `Function` is the callable object that does computation.  It has the storage
     of inputs and outputs, performs the packing and unpacking of inputs and
@@ -400,7 +400,7 @@ class Function:
         self._check_for_aliased_inputs = False
         for i in maker.inputs:
             # If the input is a shared variable, the memory region is
-            # under Theano control and so we don't need to check if it
+            # under Aesara control and so we don't need to check if it
             # is aliased as we never do that.
             if (
                 isinstance(i, In)
@@ -593,12 +593,12 @@ class Function:
             Function. Otherwise, it will be old + " copy"
 
         profile :
-            as theano.function profile parameter
+            as aesara.function profile parameter
 
         Returns
         -------
-        theano.Function
-            Copied theano.Function
+        aesara.Function
+            Copied aesara.Function
         """
         # helper function
         def checkSV(sv_ori, sv_rpl):
@@ -607,7 +607,7 @@ class Function:
                 1. same type
                 2. same shape or dim?
             """
-            SharedVariable = theano.tensor.sharedvar.SharedVariable
+            SharedVariable = aesara.tensor.sharedvar.SharedVariable
             assert isinstance(sv_ori, SharedVariable), (
                 "Key of swap should be SharedVariable, given:",
                 sv_ori,
@@ -728,10 +728,10 @@ class Function:
                 message = name
             else:
                 message = str(profile.message) + " copy"
-            profile = theano.compile.profiling.ProfileStats(message=message)
+            profile = aesara.compile.profiling.ProfileStats(message=message)
             # profile -> object
         elif type(profile) == str:
-            profile = theano.compile.profiling.ProfileStats(message=profile)
+            profile = aesara.compile.profiling.ProfileStats(message=profile)
 
         f_cpy = maker.__class__(
             inputs=ins,
@@ -837,7 +837,7 @@ class Function:
                 c.provided = 0
 
             if len(args) + len(kwargs) > len(self.input_storage):
-                raise TypeError("Too many parameter passed to theano function")
+                raise TypeError("Too many parameter passed to aesara function")
 
             # Set positional arguments
             i = 0
@@ -846,7 +846,7 @@ class Function:
                 #      really want speed.
                 s = self.input_storage[i]
                 # see this emails for a discuation about None as input
-                # https://groups.google.com/group/theano-dev/browse_thread/thread/920a5e904e8a8525/4f1b311a28fc27e5
+                # https://groups.google.com/group/aesara-dev/browse_thread/thread/920a5e904e8a8525/4f1b311a28fc27e5
                 if arg is None:
                     s.storage[0] = arg
                 else:
@@ -856,13 +856,13 @@ class Function:
                         )
 
                     except Exception as e:
-                        function_name = "theano function"
+                        function_name = "aesara function"
                         argument_name = "argument"
                         if self.name:
                             function_name += ' with name "' + self.name + '"'
                         if hasattr(arg, "name") and arg.name:
                             argument_name += ' with name "' + arg.name + '"'
-                        where = theano.gof.utils.get_variable_trace_string(
+                        where = aesara.gof.utils.get_variable_trace_string(
                             self.maker.inputs[i].variable
                         )
                         if len(e.args) == 1:
@@ -1039,7 +1039,7 @@ class Function:
         #
 
         dt_call = time.time() - t0
-        theano.compile.profiling.total_fct_exec_time += dt_call
+        aesara.compile.profiling.total_fct_exec_time += dt_call
         self.maker.mode.call_time += dt_call
         if profile:
             profile.fct_callcount += 1
@@ -1091,7 +1091,7 @@ class Function:
         # 2.has allow_gc, if allow_gc is False, return True
         if not getattr(self.fn, "allow_gc", True):
             for key in self.fn.storage_map:
-                if not isinstance(key, theano.gof.Constant):
+                if not isinstance(key, aesara.gof.Constant):
                     self.fn.storage_map[key][0] = None
 
             for node in self.nodes_with_inner_function:
@@ -1104,7 +1104,7 @@ class Function:
         return [i.variable for i in self.maker.inputs if i.implicit]
 
     def sync_shared(self):
-        if hasattr(theano, "gpuarray") and theano.gpuarray.pygpu_activated:
+        if hasattr(aesara, "gpuarray") and aesara.gpuarray.pygpu_activated:
             import pygpu
 
             for i in self.maker.fgraph.update_mapping.values():
@@ -1157,7 +1157,7 @@ def _pickle_Function(f):
 
 
 def _constructor_Function(maker, input_storage, inputs_data, trust_input=False):
-    if not theano.config.unpickle_function:
+    if not aesara.config.unpickle_function:
         return None
 
     f = maker.create(input_storage, trustme=True)
@@ -1309,7 +1309,7 @@ class FunctionMaker:
         - 'raise': raise an error
         - 'warn': log a warning
         - 'ignore': do not do anything
-        - None: Use the value in the Theano flags on_unused_input.
+        - None: Use the value in the Aesara flags on_unused_input.
     name : str
         An optional name for this function. If used, the profile mode will
         print the time spent in this function.
@@ -1363,9 +1363,9 @@ class FunctionMaker:
         # This function is not finished
         import os.path
 
-        from theano.gof.compilelock import get_lock, release_lock
+        from aesara.gof.compilelock import get_lock, release_lock
 
-        graph_db_file = os.path.join(theano.config.compiledir, "optimized_graphs.pkl")
+        graph_db_file = os.path.join(aesara.config.compiledir, "optimized_graphs.pkl")
 
         # the inputs, outputs, and size of the graph to be optimized
         inputs_new = [inp.variable for inp in inputs]
@@ -1388,8 +1388,8 @@ class FunctionMaker:
                     # Temporary hack to allow
                     # tests.scan_module.test_scan.T_Scan to
                     # finish. Should be changed in definitive version.
-                    tmp = theano.config.unpickle_function
-                    theano.config.unpickle_function = False
+                    tmp = aesara.config.unpickle_function
+                    aesara.config.unpickle_function = False
                     graph_db = pickle.load(f)
                 print("graph_db loaded and it is not empty")
             except EOFError as e:
@@ -1398,7 +1398,7 @@ class FunctionMaker:
                 print("graph_db loaded and it is empty")
                 graph_db = {}
             finally:
-                theano.config.unpickle_function = tmp
+                aesara.config.unpickle_function = tmp
 
             return graph_db
 
@@ -1545,11 +1545,11 @@ class FunctionMaker:
         name=None,
     ):
         # Save the provided mode, not the instanciated mode.
-        # The instanciated mode don't pickle and if we unpickle a Theano
+        # The instanciated mode don't pickle and if we unpickle a Aesara
         # function and it get re-compiled, we want the current optimizer to be
         # used, not the optimizer when it was saved.
         self.mode = mode
-        mode = theano.compile.mode.get_mode(mode)
+        mode = aesara.compile.mode.get_mode(mode)
 
         # Assert old way of working isn't used
         if getattr(mode, "profile", None):
@@ -1563,7 +1563,7 @@ class FunctionMaker:
             #    too much execution time during testing as we compile
             #    much more functions then the number of compile c
             #    module.
-            theano.gof.cc.get_module_cache().refresh()
+            aesara.gof.cc.get_module_cache().refresh()
         # Handle the case where inputs and/or outputs is a single
         # Variable (not in a list)
         unpack_single = False
@@ -1610,13 +1610,13 @@ class FunctionMaker:
         # Fetch the optimizer and linker
         optimizer, linker = mode.optimizer, copy.copy(mode.linker)
         if need_opt:
-            compute_test_value_orig = theano.config.compute_test_value
-            limit_orig = theano.config.traceback.limit
+            compute_test_value_orig = aesara.config.compute_test_value
+            limit_orig = aesara.config.traceback.limit
             # Why we add stack on node when it get done in output var?
             try:
                 # optimize the fgraph
-                theano.config.compute_test_value = theano.config.compute_test_value_opt
-                theano.config.traceback.limit = theano.config.traceback.compile_limit
+                aesara.config.compute_test_value = aesara.config.compute_test_value_opt
+                aesara.config.traceback.limit = aesara.config.traceback.compile_limit
                 start_optimizer = time.time()
 
                 # In case there is an error during optimization.
@@ -1624,7 +1624,7 @@ class FunctionMaker:
                 opt_time = None
 
                 # now optimize the graph
-                if theano.config.cache_optimizations:
+                if aesara.config.cache_optimizations:
                     optimizer_profile = self.optimize_graph_with_cache(
                         optimizer, inputs, outputs
                     )
@@ -1638,22 +1638,22 @@ class FunctionMaker:
                 # Add deep copy to respect the memory interface
                 insert_deepcopy(fgraph, inputs, outputs + additional_outputs)
             finally:
-                theano.config.compute_test_value = compute_test_value_orig
-                theano.config.traceback.limit = limit_orig
+                aesara.config.compute_test_value = compute_test_value_orig
+                aesara.config.traceback.limit = limit_orig
 
                 # If the optimizer got interrupted
                 if opt_time is None:
                     end_optimizer = time.time()
                     opt_time = end_optimizer - start_optimizer
-                theano.compile.profiling.total_graph_opt_time += opt_time
+                aesara.compile.profiling.total_graph_opt_time += opt_time
                 if profile:
                     if optimizer_profile is None and hasattr(optimizer, "pre_profile"):
                         optimizer_profile = optimizer.pre_profile
                     profile.optimizer_time += opt_time
-                    if theano.config.profile_optimizer:
+                    if aesara.config.profile_optimizer:
                         profile.optimizer_profile = (optimizer, optimizer_profile)
                 # IF False, if mean the profile for that function was explicitly disabled
-                elif theano.config.profile_optimizer and profile is not False:
+                elif aesara.config.profile_optimizer and profile is not False:
                     warnings.warn(
                         (
                             "config.profile_optimizer requires config.profile to "
@@ -1667,7 +1667,7 @@ class FunctionMaker:
             raise ValueError(
                 "'linker' parameter of FunctionMaker should be "
                 "a Linker with an accept method or one of %s"
-                % list(theano.compile.mode.predefined_linkers.keys())
+                % list(aesara.compile.mode.predefined_linkers.keys())
             )
 
         # the 'no_borrow' outputs are the ones for which that we can't
@@ -1715,7 +1715,7 @@ class FunctionMaker:
 
     def _check_unused_inputs(self, inputs, outputs, on_unused_input):
         if on_unused_input is None:
-            on_unused_input = theano.config.on_unused_input
+            on_unused_input = aesara.config.on_unused_input
 
         if on_unused_input == "ignore":
             return
@@ -1732,19 +1732,19 @@ class FunctionMaker:
         )
 
         msg = (
-            "theano.function was asked to create a function computing "
+            "aesara.function was asked to create a function computing "
             "outputs given certain inputs, but the provided input "
             "variable at index %i is not part of the computational graph "
             "needed to compute the outputs: %s.\n%s"
         )
         warn_msg = (
             "To make this warning into an error, you can pass the "
-            "parameter on_unused_input='raise' to theano.function. "
+            "parameter on_unused_input='raise' to aesara.function. "
             "To disable it completely, use on_unused_input='ignore'."
         )
         err_msg = (
             "To make this error into a warning, you can pass the "
-            "parameter on_unused_input='warn' to theano.function. "
+            "parameter on_unused_input='warn' to aesara.function. "
             "To disable it completely, use on_unused_input='ignore'."
         )
 
@@ -1759,7 +1759,7 @@ class FunctionMaker:
                 else:
                     raise ValueError(
                         "Invalid value for keyword "
-                        "on_unused_input of theano.function: "
+                        "on_unused_input of aesara.function: "
                         "'%s'.\nValid values are 'raise', "
                         "'warn', and 'ignore'." % on_unused_input
                     )
@@ -1843,25 +1843,25 @@ class FunctionMaker:
 
         # Get a function instance
         start_linker = time.time()
-        start_import_time = theano.gof.cmodule.import_time
-        limit_orig = theano.config.traceback.limit
+        start_import_time = aesara.gof.cmodule.import_time
+        limit_orig = aesara.config.traceback.limit
         try:
-            theano.config.traceback.limit = theano.config.traceback.compile_limit
+            aesara.config.traceback.limit = aesara.config.traceback.compile_limit
             _fn, _i, _o = self.linker.make_thunk(
                 input_storage=input_storage_lists, storage_map=storage_map
             )
         finally:
-            theano.config.traceback.limit = limit_orig
+            aesara.config.traceback.limit = limit_orig
 
         end_linker = time.time()
 
         linker_time = end_linker - start_linker
-        theano.compile.profiling.total_time_linker += linker_time
+        aesara.compile.profiling.total_time_linker += linker_time
         _logger.debug("Linker took %f seconds", linker_time)
         if self.profile:
             self.profile.linker_time += linker_time
             _fn.time_thunks = self.profile.flag_time_thunks
-            import_time = theano.gof.cmodule.import_time - start_import_time
+            import_time = aesara.gof.cmodule.import_time - start_import_time
             self.profile.import_time += import_time
 
         fn = self.function_builder(
@@ -1885,8 +1885,8 @@ class FunctionMaker:
 def _constructor_FunctionMaker(kwargs):
     # Needed for old pickle
     # Old pickle have at least the problem that output_keys where not saved.
-    if theano.config.unpickle_function:
-        if theano.config.reoptimize_unpickled_function:
+    if aesara.config.unpickle_function:
+        if aesara.config.reoptimize_unpickled_function:
             del kwargs["fgraph"]
         return FunctionMaker(**kwargs)
     else:
@@ -1942,7 +1942,7 @@ def orig_function(
     on_unused_input : {'raise', 'warn', 'ignore', None}
         What to do if a variable in the 'inputs' list is not used in the graph.
     output_keys :
-        If the outputs were provided to theano.function as a list, then
+        If the outputs were provided to aesara.function as a list, then
         output_keys is None. Otherwise, if outputs were provided as a dict,
         output_keys is the sorted list of keys from the outputs.
 
@@ -1967,7 +1967,7 @@ def orig_function(
     # instance if necessary:
 
     t1 = time.time()
-    mode = theano.compile.mode.get_mode(mode)
+    mode = aesara.compile.mode.get_mode(mode)
 
     inputs = list(map(convert_function_input, inputs))
     if outputs is not None:
@@ -1993,7 +1993,7 @@ def orig_function(
             output_keys=output_keys,
             name=name,
         )
-        with theano.change_flags(compute_test_value="off"):
+        with aesara.change_flags(compute_test_value="off"):
             fn = m.create(defaults)
     finally:
         t2 = time.time()

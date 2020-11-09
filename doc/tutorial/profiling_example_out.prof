@@ -5,14 +5,14 @@ Function profiling
   Time in Function.fn.__call__: 1.192093e-05s (20.921%)
   Time in thunks: 6.198883e-06s (10.879%)
   Total compile time: 3.642474e+00s
-    Theano Optimizer time: 7.326508e-02s
-       Theano validate time: 3.712177e-04s
-    Theano Linker time (includes C, CUDA code generation/compiling): 9.584920e-01s
+    Aesara Optimizer time: 7.326508e-02s
+       Aesara validate time: 3.712177e-04s
+    Aesara Linker time (includes C, CUDA code generation/compiling): 9.584920e-01s
 
 Class
 ---
 <% time> <sum %> <apply time> <time per call> <type> <#call> <#apply> <Class name>
-  100.0%   100.0%       0.000s       2.07e-06s     C        3        3   <class 'theano.tensor.elemwise.Elemwise'>
+  100.0%   100.0%       0.000s       2.07e-06s     C        3        3   <class 'aesara.tensor.elemwise.Elemwise'>
    ... (remaining 0 Classes account for   0.00%(0.00s) of the runtime)
 
 Ops

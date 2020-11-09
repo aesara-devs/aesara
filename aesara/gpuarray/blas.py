@@ -1,10 +1,10 @@
-import theano
-from theano import Apply, Op
-from theano.compile import optdb
-from theano.gof import LocalOptGroup, ParamsType
-from theano.scalar import bool as bool_t
-from theano.tensor.basic import as_tensor_variable
-from theano.tensor.opt import in2out
+import aesara
+from aesara import Apply, Op
+from aesara.compile import optdb
+from aesara.gof import LocalOptGroup, ParamsType
+from aesara.scalar import bool as bool_t
+from aesara.tensor.basic import as_tensor_variable
+from aesara.tensor.opt import in2out
 
 from .basic_ops import (
     CGpuKernelBase,
@@ -21,7 +21,7 @@ try:
     import pygpu
     from pygpu import blas
 except ImportError:
-    # To make sure theano is importable
+    # To make sure aesara is importable
     pass
 
 
@@ -67,7 +67,7 @@ class GpuGemv(BlasOp):
 
         # float16 not supported
         expected = A.dtype
-        assert theano.scalar.upcast(alpha.dtype, beta.dtype, expected) == expected
+        assert aesara.scalar.upcast(alpha.dtype, beta.dtype, expected) == expected
         alpha = alpha.astype(expected)
         beta = beta.astype(expected)
         return Apply(self, [y, alpha, A, x, beta], [y.type()])
@@ -97,7 +97,7 @@ class GpuGemv(BlasOp):
         code = (
             """
                if (!%(params)s->inplace || %(y)s->ga.strides[0] <= 0) {
-                 %(out)s = theano_try_copy(%(out)s, %(y)s);
+                 %(out)s = aesara_try_copy(%(out)s, %(y)s);
                  if (%(out)s == NULL) {
                    %(fail)s
                  }
@@ -183,17 +183,17 @@ class GpuGemm(BlasOp):
 
         if not (A.dtype == B.dtype == C.dtype):
             raise TypeError(
-                theano.tensor.blas.Gemm.E_mixed,
+                aesara.tensor.blas.Gemm.E_mixed,
                 (A.dtype, B.dtype, C.dtype, alpha.dtype, beta.dtype),
             )
         if not A.dtype.startswith("float"):
-            raise TypeError(theano.tensor.blas.Gemm.E_float, (A.dtype))
+            raise TypeError(aesara.tensor.blas.Gemm.E_float, (A.dtype))
 
         if A.dtype == "float16":
             expected = "float32"
         else:
             expected = A.dtype
-        assert theano.scalar.upcast(alpha.dtype, beta.dtype, expected) == expected
+        assert aesara.scalar.upcast(alpha.dtype, beta.dtype, expected) == expected
         alpha = alpha.astype(expected)
         beta = beta.astype(expected)
 
@@ -226,7 +226,7 @@ class GpuGemm(BlasOp):
         code = (
             """
                if (!%(params)s->inplace || !GpuArray_ISONESEGMENT(&%(C)s->ga)) {
-                 %(out)s = theano_try_copy(%(out)s, %(C)s);
+                 %(out)s = aesara_try_copy(%(out)s, %(C)s);
                  if (%(out)s == NULL) {
                    %(fail)s
                  }
@@ -281,7 +281,7 @@ class GpuGer(BlasOp):
                 "ger requires matching dtypes", (A.dtype, alpha.dtype, x.dtype, y.dtype)
             )
 
-        assert theano.scalar.upcast(alpha.dtype, A.dtype) == A.dtype
+        assert aesara.scalar.upcast(alpha.dtype, A.dtype) == A.dtype
         alpha = alpha.astype(A.dtype)
         assert alpha.ndim == 0
         assert A.ndim == 2
@@ -310,7 +310,7 @@ class GpuGer(BlasOp):
         code = (
             """
                if (!%(params)s->inplace || !GpuArray_ISONESEGMENT(&%(A)s->ga)) {
-                 %(out)s = theano_try_copy(%(out)s, %(A)s);
+                 %(out)s = aesara_try_copy(%(out)s, %(A)s);
                  if (%(out)s == NULL) {
                    %(fail)s
                  }
@@ -385,7 +385,7 @@ class GpuDot22(BlasOp):
         dims[0] = PyGpuArray_DIMS(%(A)s)[0];
         dims[1] = PyGpuArray_DIMS(%(B)s)[1];
 
-        if (theano_prep_output(&%(out)s, 2, dims, %(typecode)s, GA_C_ORDER,
+        if (aesara_prep_output(&%(out)s, 2, dims, %(typecode)s, GA_C_ORDER,
                                %(A)s->context)) {
             %(fail)s
         }
@@ -463,7 +463,7 @@ class GpuGemmBatch(BlasOp):
         int err;
         if (%(params)s->inplace){
                    if (!GpuArray_ISONESEGMENT(&%(C)s->ga)) {
-                     %(out)s = theano_try_copy(%(out)s, %(C)s);
+                     %(out)s = aesara_try_copy(%(out)s, %(C)s);
                      if (%(out)s == NULL) {
                        %(fail)s
                      }
@@ -473,7 +473,7 @@ class GpuGemmBatch(BlasOp):
                      Py_INCREF(%(out)s);
                    }
         } else {
-                   %(out)s = theano_try_copy(%(out)s, %(C)s);
+                   %(out)s = aesara_try_copy(%(out)s, %(C)s);
                    if (%(out)s == NULL) {
                        %(fail)s
                    }
@@ -975,7 +975,7 @@ class BaseGpuCorrMM(CGpuKernelBase):
     }
 
     // Prepare output array
-    if (theano_prep_output(&%(out)s, odim, out_dim_size, out_typecode, GA_C_ORDER, out_context) != 0)
+    if (aesara_prep_output(&%(out)s, odim, out_dim_size, out_typecode, GA_C_ORDER, out_context) != 0)
     {
         if (odim == 4) {
             PyErr_Format(PyExc_RuntimeError,
@@ -1048,13 +1048,13 @@ class GpuCorrMM(BaseGpuCorrMM):
     -----
     Currently, the Op requires the inputs, filters and outputs to be
     C-contiguous. Use :func:`gpu_contiguous
-    <theano.gpuarray.basic_ops.gpu_contiguous>` on these arguments
+    <aesara.gpuarray.basic_ops.gpu_contiguous>` on these arguments
     if needed.
 
-    You can either enable the Theano flag `optimizer_including=conv_gemm`
+    You can either enable the Aesara flag `optimizer_including=conv_gemm`
     to automatically replace all convolution operations with `GpuCorrMM`
     or one of its gradients, or you can use it as a replacement for
-    :func:`conv2d <theano.tensor.nnet.conv.conv2d>`, called as
+    :func:`conv2d <aesara.tensor.nnet.conv.conv2d>`, called as
     `GpuCorrMM(subsample=...)(image, filters)`. The latter is currently
     faster, but note that it computes a correlation -- if you need to
     compute a convolution, flip the filters as `filters[:,:,::-1,::-1]`.
@@ -1133,7 +1133,7 @@ class GpuCorrMM_gradWeights(BaseGpuCorrMM):
 
     Notes
     -----
-    You will not want to use this directly, but rely on Theano's automatic
+    You will not want to use this directly, but rely on Aesara's automatic
     differentiation or graph optimization to use it as needed.
 
     """
@@ -1222,7 +1222,7 @@ class GpuCorrMM_gradWeights(BaseGpuCorrMM):
             self.unshared,
         )(bottom, weights)
         d_height_width = (
-            (theano.gradient.DisconnectedType()(),) * 2 if len(inp) == 4 else ()
+            (aesara.gradient.DisconnectedType()(),) * 2 if len(inp) == 4 else ()
         )
         return (d_bottom, d_top) + d_height_width
 
@@ -1239,7 +1239,7 @@ class GpuCorrMM_gradInputs(BaseGpuCorrMM):
 
     Notes
     -----
-    You will not want to use this directly, but rely on Theano's automatic
+    You will not want to use this directly, but rely on Aesara's automatic
     differentiation or graph optimization to use it as needed.
 
     """
@@ -1324,7 +1324,7 @@ class GpuCorrMM_gradInputs(BaseGpuCorrMM):
             self.unshared,
         )(bottom, weights)
         d_height_width = (
-            (theano.gradient.DisconnectedType()(),) * 2 if len(inp) == 4 else ()
+            (aesara.gradient.DisconnectedType()(),) * 2 if len(inp) == 4 else ()
         )
         return (d_weights, d_top) + d_height_width
 
@@ -1750,7 +1750,7 @@ class BaseGpuCorr3dMM(CGpuKernelBase):
     out_dim_size[4] = (size_t)out_dim[4];
 
     // Prepare output array
-    if (theano_prep_output(&%(out)s, 5, out_dim_size, out_typecode, GA_C_ORDER, out_context) != 0)
+    if (aesara_prep_output(&%(out)s, 5, out_dim_size, out_typecode, GA_C_ORDER, out_context) != 0)
     {
         PyErr_Format(PyExc_RuntimeError,
                 "BaseGpuCorrMM: Failed to allocate output of %%lld x %%lld x %%lld x %%lld x %%lld",
@@ -1812,13 +1812,13 @@ class GpuCorr3dMM(BaseGpuCorr3dMM):
     -----
     Currently, the Op requires the inputs, filters and outputs to be
     C-contiguous. Use :func:`gpu_contiguous
-    <theano.gpuarray.basic_ops.gpu_contiguous>` on these arguments
+    <aesara.gpuarray.basic_ops.gpu_contiguous>` on these arguments
     if needed.
 
-    You can either enable the Theano flag `optimizer_including=conv_gemm`
+    You can either enable the Aesara flag `optimizer_including=conv_gemm`
     to automatically replace all convolution operations with `GpuCorr3dMM`
     or one of its gradients, or you can use it as a replacement for
-    :func:`conv2d <theano.tensor.nnet.conv.conv2d>`, called as
+    :func:`conv2d <aesara.tensor.nnet.conv.conv2d>`, called as
     `GpuCorr3dMM(subsample=...)(image, filters)`. The latter is currently
     faster, but note that it computes a correlation -- if you need to
     compute a convolution, flip the filters as `filters[:,:,::-1,::-1,::-1]`.
@@ -1885,7 +1885,7 @@ class GpuCorr3dMM_gradWeights(BaseGpuCorr3dMM):
 
     Notes
     -----
-    You will not want to use this directly, but rely on Theano's automatic
+    You will not want to use this directly, but rely on Aesara's automatic
     differentiation or graph optimization to use it as needed.
 
     """
@@ -1957,7 +1957,7 @@ class GpuCorr3dMM_gradWeights(BaseGpuCorr3dMM):
             self.border_mode, self.subsample, self.filter_dilation, self.num_groups
         )(bottom, weights)
         d_height_width_depth = (
-            (theano.gradient.DisconnectedType()(),) * 3 if len(inp) == 5 else ()
+            (aesara.gradient.DisconnectedType()(),) * 3 if len(inp) == 5 else ()
         )
         return (d_bottom, d_top) + d_height_width_depth
 
@@ -1974,7 +1974,7 @@ class GpuCorr3dMM_gradInputs(BaseGpuCorr3dMM):
 
     Notes
     -----
-    You will not want to use this directly, but rely on Theano's automatic
+    You will not want to use this directly, but rely on Aesara's automatic
     differentiation or graph optimization to use it as needed.
 
     """
@@ -2048,7 +2048,7 @@ class GpuCorr3dMM_gradInputs(BaseGpuCorr3dMM):
             self.border_mode, self.subsample, self.filter_dilation, self.num_groups
         )(bottom, weights)
         d_height_width_depth = (
-            (theano.gradient.DisconnectedType()(),) * 3 if len(inp) == 5 else ()
+            (aesara.gradient.DisconnectedType()(),) * 3 if len(inp) == 5 else ()
         )
         return (d_weights, d_top) + d_height_width_depth
 

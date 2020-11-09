@@ -1,9 +1,9 @@
 import numpy as np
 
-from theano import tensor
-from theano.compile.pfunc import pfunc
-from theano.compile.sharedvalue import shared
-from theano.tensor.nnet import sigmoid
+from aesara import tensor
+from aesara.compile.pfunc import pfunc
+from aesara.compile.sharedvalue import shared
+from aesara.tensor.nnet import sigmoid
 
 
 class NNet:

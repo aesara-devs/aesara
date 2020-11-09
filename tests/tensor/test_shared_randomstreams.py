@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from tests import unittest_tools as utt
-from theano import config, function, shared, tensor
-from theano.tensor.shared_randomstreams import RandomStreams
+from aesara import config, function, shared, tensor
+from aesara.tensor.shared_randomstreams import RandomStreams
 
 
 class TestSharedRandomStreams:
@@ -794,7 +794,7 @@ class TestSharedRandomStreams:
     def test_multiple_rng_aliasing(self):
         # Test that when we have multiple random number generators, we do not alias
         # the state_updates member. `state_updates` can be useful when attempting to
-        # copy the (random) state between two similar theano graphs. The test is
+        # copy the (random) state between two similar aesara graphs. The test is
         # meant to detect a previous bug where state_updates was initialized as a
         # class-attribute, instead of the __init__ function.
 
@@ -804,7 +804,7 @@ class TestSharedRandomStreams:
         assert rng1.gen_seedgen is not rng2.gen_seedgen
 
     def test_random_state_transfer(self):
-        # Test that random state can be transferred from one theano graph to another.
+        # Test that random state can be transferred from one aesara graph to another.
 
         class Graph:
             def __init__(self, seed=123):

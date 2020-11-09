@@ -12,10 +12,10 @@ except ImportError:
     # some ops (e.g. Cholesky, Solve, A_Xinv_b) won't work
     imported_scipy = False
 
-import theano.tensor
-from theano import tensor
-from theano.gof import Apply, Op
-from theano.tensor import as_tensor_variable
+import aesara.tensor
+from aesara import tensor
+from aesara.gof import Apply, Op
+from aesara.tensor import as_tensor_variable
 
 
 logger = logging.getLogger(__name__)
@@ -319,12 +319,12 @@ x : `(M, ) or (M, N) symbolic vector or matrix`
 """
 # lower and upper triangular solves
 solve_lower_triangular = Solve(A_structure="lower_triangular", lower=True)
-"""Optimized implementation of :func:`theano.tensor.slinalg.solve` when A is lower triangular."""
+"""Optimized implementation of :func:`aesara.tensor.slinalg.solve` when A is lower triangular."""
 solve_upper_triangular = Solve(A_structure="upper_triangular", lower=False)
-"""Optimized implementation of :func:`theano.tensor.slinalg.solve` when A is upper triangular."""
+"""Optimized implementation of :func:`aesara.tensor.slinalg.solve` when A is upper triangular."""
 # symmetric solves
 solve_symmetric = Solve(A_structure="symmetric")
-"""Optimized implementation of :func:`theano.tensor.slinalg.solve` when A is symmetric."""
+"""Optimized implementation of :func:`aesara.tensor.slinalg.solve` when A is symmetric."""
 
 # TODO: Optimizations to replace multiplication by matrix inverse
 #      with solve() Op (still unwritten)
@@ -347,12 +347,12 @@ class Eigvalsh(Op):
             imported_scipy
         ), "Scipy not  available. Scipy is needed for the Eigvalsh op"
 
-        if b == theano.tensor.NoneConst:
+        if b == aesara.tensor.NoneConst:
             a = as_tensor_variable(a)
             assert a.ndim == 2
 
-            out_dtype = theano.scalar.upcast(a.dtype)
-            w = theano.tensor.vector(dtype=out_dtype)
+            out_dtype = aesara.scalar.upcast(a.dtype)
+            w = aesara.tensor.vector(dtype=out_dtype)
             return Apply(self, [a], [w])
         else:
             a = as_tensor_variable(a)
@@ -360,8 +360,8 @@ class Eigvalsh(Op):
             assert a.ndim == 2
             assert b.ndim == 2
 
-            out_dtype = theano.scalar.upcast(a.dtype, b.dtype)
-            w = theano.tensor.vector(dtype=out_dtype)
+            out_dtype = aesara.scalar.upcast(a.dtype, b.dtype)
+            w = aesara.tensor.vector(dtype=out_dtype)
             return Apply(self, [a, b], [w])
 
     def perform(self, node, inputs, outputs):
@@ -389,12 +389,12 @@ class EigvalshGrad(Op):
     """
 
     # Note: This Op (EigvalshGrad), should be removed and replaced with a graph
-    # of theano ops that is constructed directly in Eigvalsh.grad.
+    # of aesara ops that is constructed directly in Eigvalsh.grad.
     # But this can only be done once scipy.linalg.eigh is available as an Op
     # (currently the Eigh uses numpy.linalg.eigh, which doesn't let you
     # pass the right-hand-side matrix for a generalized eigenproblem.) See the
     # discussion on github at
-    # https://github.com/Theano/Theano/pull/1846#discussion-diff-12486764
+    # https://github.com/Aesara/Aesara/pull/1846#discussion-diff-12486764
 
     __props__ = ("lower",)
 
@@ -419,9 +419,9 @@ class EigvalshGrad(Op):
         assert b.ndim == 2
         assert gw.ndim == 1
 
-        out_dtype = theano.scalar.upcast(a.dtype, b.dtype, gw.dtype)
-        out1 = theano.tensor.matrix(dtype=out_dtype)
-        out2 = theano.tensor.matrix(dtype=out_dtype)
+        out_dtype = aesara.scalar.upcast(a.dtype, b.dtype, gw.dtype)
+        out1 = aesara.tensor.matrix(dtype=out_dtype)
+        out2 = aesara.tensor.matrix(dtype=out_dtype)
         return Apply(self, [a, b, gw], [out1, out2])
 
     def perform(self, node, inputs, outputs):
@@ -499,7 +499,7 @@ class Expm(Op):
 
         A = as_tensor_variable(A)
         assert A.ndim == 2
-        expm = theano.tensor.matrix(dtype=A.dtype)
+        expm = aesara.tensor.matrix(dtype=A.dtype)
         return Apply(
             self,
             [
@@ -536,7 +536,7 @@ class ExpmGrad(Op):
         assert imported_scipy, "Scipy not available. Scipy is needed for the Expm op"
         A = as_tensor_variable(A)
         assert A.ndim == 2
-        out = theano.tensor.matrix(dtype=A.dtype)
+        out = aesara.tensor.matrix(dtype=A.dtype)
         return Apply(
             self,
             [A, gw],

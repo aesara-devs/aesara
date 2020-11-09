@@ -3,16 +3,16 @@ import warnings
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tt
-from theano import config, scalar
-from theano.gof import Apply, Op, Type, utils
-from theano.tensor.basic import _allclose
+import aesara
+import aesara.tensor as tt
+from aesara import config, scalar
+from aesara.gof import Apply, Op, Type, utils
+from aesara.tensor.basic import _allclose
 
 
 @pytest.fixture(scope="module", autouse=True)
-def set_theano_flags():
-    with theano.change_flags(compute_test_value="raise"):
+def set_aesara_flags():
+    with aesara.change_flags(compute_test_value="raise"):
         yield
 
 
@@ -78,7 +78,7 @@ class TestComputeTestValue:
         # should work
         z = tt.dot(x, y)
         assert hasattr(z.tag, "test_value")
-        f = theano.function([x, y], z)
+        f = aesara.function([x, y], z)
         assert _allclose(f(x.tag.test_value, y.tag.test_value), z.tag.test_value)
 
         # this test should fail
@@ -92,17 +92,17 @@ class TestComputeTestValue:
         y.tag.test_value = np.random.rand(4, 5).astype(config.floatX)
 
         # should skip computation of test value
-        theano.config.compute_test_value = "off"
+        aesara.config.compute_test_value = "off"
         z = tt.dot(x, y)
         assert not hasattr(z.tag, "test_value")
 
         # should fail when asked by user
-        theano.config.compute_test_value = "raise"
+        aesara.config.compute_test_value = "raise"
         with pytest.raises(ValueError):
             tt.dot(x, y)
 
         # test that a warning is raised if required
-        theano.config.compute_test_value = "warn"
+        aesara.config.compute_test_value = "warn"
         warnings.simplefilter("error", UserWarning)
         try:
             with pytest.raises(UserWarning):
@@ -110,7 +110,7 @@ class TestComputeTestValue:
         finally:
             # Restore the default behavior.
             # TODO There is a cleaner way to do this in Python 2.6, once
-            # Theano drops support of Python 2.4 and 2.5.
+            # Aesara drops support of Python 2.4 and 2.5.
             warnings.simplefilter("default", UserWarning)
 
     def test_string_var(self):
@@ -119,12 +119,12 @@ class TestComputeTestValue:
         y = tt.matrix("y")
         y.tag.test_value = np.random.rand(4, 5).astype(config.floatX)
 
-        z = theano.shared(np.random.rand(5, 6).astype(config.floatX))
+        z = aesara.shared(np.random.rand(5, 6).astype(config.floatX))
 
         # should work
         out = tt.dot(tt.dot(x, y), z)
         assert hasattr(out.tag, "test_value")
-        tf = theano.function([x, y], out)
+        tf = aesara.function([x, y], out)
         assert _allclose(tf(x.tag.test_value, y.tag.test_value), out.tag.test_value)
 
         def f(x, y, z):
@@ -138,12 +138,12 @@ class TestComputeTestValue:
     def test_shared(self):
         x = tt.matrix("x")
         x.tag.test_value = np.random.rand(3, 4).astype(config.floatX)
-        y = theano.shared(np.random.rand(4, 6).astype(config.floatX), "y")
+        y = aesara.shared(np.random.rand(4, 6).astype(config.floatX), "y")
 
         # should work
         z = tt.dot(x, y)
         assert hasattr(z.tag, "test_value")
-        f = theano.function([x], z)
+        f = aesara.function([x], z)
         assert _allclose(f(x.tag.test_value), z.tag.test_value)
 
         # this test should fail
@@ -153,12 +153,12 @@ class TestComputeTestValue:
 
     def test_ndarray(self):
         x = np.random.rand(2, 3).astype(config.floatX)
-        y = theano.shared(np.random.rand(3, 6).astype(config.floatX), "y")
+        y = aesara.shared(np.random.rand(3, 6).astype(config.floatX), "y")
 
         # should work
         z = tt.dot(x, y)
         assert hasattr(z.tag, "test_value")
-        f = theano.function([], z)
+        f = aesara.function([], z)
         assert _allclose(f(), z.tag.test_value)
 
         # this test should fail
@@ -167,22 +167,22 @@ class TestComputeTestValue:
             tt.dot(x, y)
 
     def test_empty_elemwise(self):
-        x = theano.shared(np.random.rand(0, 6).astype(config.floatX), "x")
+        x = aesara.shared(np.random.rand(0, 6).astype(config.floatX), "x")
 
         # should work
         z = (x + 2) * 3
         assert hasattr(z.tag, "test_value")
-        f = theano.function([], z)
+        f = aesara.function([], z)
         assert _allclose(f(), z.tag.test_value)
 
     def test_constant(self):
         x = tt.constant(np.random.rand(2, 3), dtype=config.floatX)
-        y = theano.shared(np.random.rand(3, 6).astype(config.floatX), "y")
+        y = aesara.shared(np.random.rand(3, 6).astype(config.floatX), "y")
 
         # should work
         z = tt.dot(x, y)
         assert hasattr(z.tag, "test_value")
-        f = theano.function([], z)
+        f = aesara.function([], z)
         assert _allclose(f(), z.tag.test_value)
 
         # this test should fail
@@ -223,7 +223,7 @@ class TestComputeTestValue:
             return prior_result * A
 
         # Symbolic description of the result
-        result, updates = theano.scan(
+        result, updates = aesara.scan(
             fn=fx, outputs_info=tt.ones_like(A), non_sequences=A, n_steps=k
         )
 
@@ -244,7 +244,7 @@ class TestComputeTestValue:
             return tt.dot(prior_result, A)
 
         with pytest.raises(ValueError) as e:
-            theano.scan(fn=fx, outputs_info=tt.ones_like(A), non_sequences=A, n_steps=k)
+            aesara.scan(fn=fx, outputs_info=tt.ones_like(A), non_sequences=A, n_steps=k)
 
         assert str(e.traceback[0].path).endswith("test_compute_test_value.py")
         # We should be in the "fx" function defined above
@@ -262,12 +262,12 @@ class TestComputeTestValue:
             return tt.dot(prior_result, A)
 
         with pytest.raises(ValueError):
-            theano.scan(
+            aesara.scan(
                 fn=fx, outputs_info=tt.ones_like(A.T), non_sequences=A, n_steps=k
             )
 
         with pytest.raises(ValueError, match="^could not broadcast input"):
-            theano.scan(
+            aesara.scan(
                 fn=fx, outputs_info=tt.ones_like(A.T), non_sequences=A, n_steps=k
             )
 
@@ -302,7 +302,7 @@ class TestComputeTestValue:
         assert o.tag.test_value == 4
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_no_perform(self):
         i = scalar.int32("i")
@@ -322,6 +322,6 @@ class TestComputeTestValue:
     def test_disabled_during_compilation(self):
         # We test that it is disabled when we include deep copy in the code
         # This don't test that it is disabled during optimization, but the code do it.
-        init_Mu1 = theano.shared(np.zeros((5,), dtype=config.floatX)).dimshuffle("x", 0)
+        init_Mu1 = aesara.shared(np.zeros((5,), dtype=config.floatX)).dimshuffle("x", 0)
 
-        theano.function([], outputs=[init_Mu1])
+        aesara.function([], outputs=[init_Mu1])

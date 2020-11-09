@@ -4,9 +4,9 @@
 :mod:`toolbox` -- [doc TODO]
 ================================================
 
-.. module:: theano.gof.toolbox
+.. module:: aesara.gof.toolbox
    :platform: Unix, Windows
-   :synopsis: Theano Internals
+   :synopsis: Aesara Internals
 .. moduleauthor:: LISA
 
 Guide

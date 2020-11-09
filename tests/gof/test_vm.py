@@ -5,11 +5,11 @@ import time
 import numpy as np
 import pytest
 
-import theano
-from theano import function, tensor
-from theano.compile import Mode
-from theano.gof import OpWiseCLinker, vm
-from theano.ifelse import ifelse
+import aesara
+from aesara import function, tensor
+from aesara.compile import Mode
+from aesara.gof import OpWiseCLinker, vm
+from aesara.ifelse import ifelse
 
 
 class TestCallbacks:
@@ -52,7 +52,7 @@ def test_c_thunks():
     a = tensor.scalars("a")
     b, c = tensor.vectors("bc")
     cases = [False]
-    if theano.config.cxx:
+    if aesara.config.cxx:
         cases.append(True)
     for c_thunks in cases:
         f = function(
@@ -69,7 +69,7 @@ def test_c_thunks():
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_speed():
     def build_graph(x, depth=5):
@@ -87,7 +87,7 @@ def test_speed():
     def time_numpy():
         steps_a = 5
         steps_b = 100
-        x = np.asarray([2.0, 3.0], dtype=theano.config.floatX)
+        x = np.asarray([2.0, 3.0], dtype=aesara.config.floatX)
 
         numpy_version(x, steps_a)
         t0 = time.time()
@@ -138,7 +138,7 @@ def test_speed():
     time_linker("c|py", OpWiseCLinker)
     time_linker("vmLinker", vm.VM_Linker)
     time_linker("vmLinker_nogc", lambda: vm.VM_Linker(allow_gc=False))
-    if theano.config.cxx:
+    if aesara.config.cxx:
         time_linker(
             "vmLinker_CLOOP", lambda: vm.VM_Linker(allow_gc=False, use_cloop=True)
         )
@@ -184,7 +184,7 @@ def test_speed_lazy():
 
     time_linker("vmLinker", vm.VM_Linker)
     time_linker("vmLinker_nogc", lambda: vm.VM_Linker(allow_gc=False))
-    if theano.config.cxx:
+    if aesara.config.cxx:
         time_linker("vmLinker_C", lambda: vm.VM_Linker(allow_gc=False, use_cloop=True))
 
 
@@ -194,7 +194,7 @@ def test_partial_function():
     def check_partial_function(linker_name):
         x = tensor.scalar("input")
         y = x ** 2
-        f = theano.function(
+        f = aesara.function(
             [x], [y + 7, y - 9, y / 14.0], mode=Mode(optimizer=None, linker=linker_name)
         )
 
@@ -203,19 +203,19 @@ def test_partial_function():
         utt.assert_allclose(f(5), np.array([32.0, 16.0, 1.7857142857142858]))
 
     check_partial_function(vm.VM_Linker(allow_partial_eval=True, use_cloop=False))
-    if not theano.config.cxx:
+    if not aesara.config.cxx:
         pytest.skip("Need cxx for this test")
     check_partial_function("cvm")
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_partial_function_with_output_keys():
     def check_partial_function_output_keys(linker_name):
         x = tensor.scalar("input")
         y = 3 * x
-        f = theano.function(
+        f = aesara.function(
             [x], {"a": y * 5, "b": y - 7}, mode=Mode(optimizer=None, linker=linker_name)
         )
 
@@ -228,19 +228,19 @@ def test_partial_function_with_output_keys():
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_partial_function_with_updates():
     def check_updates(linker_name):
         x = tensor.lscalar("input")
-        y = theano.shared(np.asarray(1, "int64"), name="global")
-        f = theano.function(
+        y = aesara.shared(np.asarray(1, "int64"), name="global")
+        f = aesara.function(
             [x],
             [x, x + 34],
             updates=[(y, x + 1)],
             mode=Mode(optimizer=None, linker=linker_name),
         )
-        g = theano.function(
+        g = aesara.function(
             [x],
             [x - 6],
             updates=[(y, y + 3)],
@@ -258,12 +258,12 @@ def test_partial_function_with_updates():
 
 
 def test_allow_gc_cvm():
-    mode = theano.config.mode
+    mode = aesara.config.mode
     if mode in ["DEBUG_MODE", "DebugMode"]:
         mode = "FAST_RUN"
 
-    v = theano.tensor.vector()
-    f = theano.function([v], v + 1, mode=mode)
+    v = aesara.tensor.vector()
+    f = aesara.function([v], v + 1, mode=mode)
 
     f([1])
     n = list(f.maker.fgraph.apply_nodes)[0].outputs[0]
@@ -371,7 +371,7 @@ if run_memory_usage_tests:
         time_linker("vmLinker", lambda: vm.VM_Linker(allow_gc=False, use_cloop=False))
 
 
-class RunOnce(theano.Op):
+class RunOnce(aesara.Op):
 
     __props__ = ("nb_run",)
 
@@ -379,7 +379,7 @@ class RunOnce(theano.Op):
         self.nb_run = 0
 
     def make_node(self, x):
-        return theano.Apply(self, [x], [x.type()])
+        return aesara.Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, outputs):
         assert self.nb_run == 0
@@ -388,20 +388,20 @@ class RunOnce(theano.Op):
 
 
 def test_vm_gc():
-    # This already caused a bug in the trunk of Theano.
+    # This already caused a bug in the trunk of Aesara.
     #
     # The bug was introduced in the trunk on July 5th, 2012 and fixed on
     # July 30th.
 
-    x = theano.tensor.vector()
+    x = aesara.tensor.vector()
     p = RunOnce()(x)
-    mode = theano.Mode(linker=theano.gof.vm.VM_Linker(lazy=True))
-    f = theano.function([theano.In(x, mutable=True)], [p + 1, p + 2], mode=mode)
+    mode = aesara.Mode(linker=aesara.gof.vm.VM_Linker(lazy=True))
+    f = aesara.function([aesara.In(x, mutable=True)], [p + 1, p + 2], mode=mode)
     f([1, 2, 3])
 
     p = RunOnce()(x)
     pp = p + p
-    f = theano.function([x], [pp + pp], mode=mode)
+    f = aesara.function([x], [pp + pp], mode=mode)
     f([1, 2, 3])
 
 
@@ -414,16 +414,16 @@ def test_reallocation():
         vm.VM_Linker(allow_gc=False, lazy=False, use_cloop=False),
         vm.VM_Linker(allow_gc=True, lazy=False, use_cloop=False),
     ]:
-        m = theano.compile.get_mode(theano.Mode(linker=linker))
+        m = aesara.compile.get_mode(aesara.Mode(linker=linker))
         m = m.excluding("fusion", "inplace")
 
-        f = theano.function([x, y], z, name="test_reduce_memory", mode=m)
+        f = aesara.function([x, y], z, name="test_reduce_memory", mode=m)
         output = f(1, 2)
         assert output
         storage_map = f.fn.storage_map
 
         def check_storage(storage_map):
-            from theano.tensor.var import TensorConstant
+            from aesara.tensor.var import TensorConstant
 
             for i in storage_map:
                 if not isinstance(i, TensorConstant):
@@ -439,10 +439,10 @@ def test_reallocation():
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_no_recycling():
-    x = theano.tensor.vector()
+    x = aesara.tensor.vector()
     for lnk in [
         vm.VM_Linker(use_cloop=True),
         vm.VM_Linker(use_cloop=False, lazy=True),
@@ -450,9 +450,9 @@ def test_no_recycling():
         vm.VM_Linker(use_cloop=False, lazy=False, allow_gc=False),
     ]:
 
-        mode = theano.Mode(optimizer="fast_compile", linker=lnk)
-        f = theano.function([x], x + 1, mode=mode)
-        f2 = theano.function([x], (x + 1) * 2, mode=mode)
+        mode = aesara.Mode(optimizer="fast_compile", linker=lnk)
+        f = aesara.function([x], x + 1, mode=mode)
+        f2 = aesara.function([x], (x + 1) * 2, mode=mode)
         m1 = f.fn.thunks[0].thunk.module
         m2 = f2.fn.thunks[0].thunk.module
         assert m1 is m2

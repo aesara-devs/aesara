@@ -2,22 +2,22 @@ from functools import wraps
 
 import numpy as np
 
-from theano import Constant
-from theano import scalar as scal
-from theano import tensor
-from theano.gof import local_optimizer
-from theano.gof.op import Op
-from theano.gof.opt import copy_stack_trace, inherit_stack_trace
-from theano.gpuarray.basic_ops import (
+from aesara import Constant
+from aesara import scalar as scal
+from aesara import tensor
+from aesara.gof import local_optimizer
+from aesara.gof.op import Op
+from aesara.gof.opt import copy_stack_trace, inherit_stack_trace
+from aesara.gpuarray.basic_ops import (
     GpuAllocEmpty,
     GpuFromHost,
     GpuReshape,
     HostFromGpu,
     host_from_gpu,
 )
-from theano.gpuarray.elemwise import GpuDimShuffle, GpuElemwise
-from theano.gpuarray.type import GpuArrayType, get_context, move_to_gpu
-from theano.tensor import DimShuffle, NotScalarConstantError, get_scalar_constant_value
+from aesara.gpuarray.elemwise import GpuDimShuffle, GpuElemwise
+from aesara.gpuarray.type import GpuArrayType, get_context, move_to_gpu
+from aesara.tensor import DimShuffle, NotScalarConstantError, get_scalar_constant_value
 
 
 # Define a few operations to use in optimizations,
@@ -46,7 +46,7 @@ def grab_cpu_scalar(v, nd):
     Parameters
     ----------
     v
-        Theano variable to extract the constant value from.
+        Aesara variable to extract the constant value from.
     nd : int
         Expected number of dimensions for the variable (for
         broadcasted constants).

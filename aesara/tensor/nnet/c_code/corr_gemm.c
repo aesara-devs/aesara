@@ -58,7 +58,7 @@ void im2col(const %(float_type)s* data_im, const int channels,
   }
 }
 
-// Unlike the Caffe and Theano GPU verions, the data_im array is set to zero
+// Unlike the Caffe and Aesara GPU verions, the data_im array is set to zero
 // before the col2im call rather than doing it here. So, the result is just
 // accumulated into data_im.
 void col2im(const %(float_type)s* data_col, const int channels,
@@ -92,7 +92,7 @@ void col2im(const %(float_type)s* data_col, const int channels,
 }
 
 
-// Theano op code
+// Aesara op code
 // GPU version authors: Arjun Jain, Frederic Bastien, Jan Schlueter
 // Reference code: https://github.com/BVLC/caffe/blob/master/src/caffe/layers/conv_layer.cu
 //   and https://github.com/torch/cunn/blob/master/SpatialConvolutionMM.cu
@@ -339,7 +339,7 @@ PyArrayObject* corrMM(PyArrayObject* bottom,
 
         /*
         // Original caffe code for comparison
-        // Note that this code was translated from the Theano GPU code,
+        // Note that this code was translated from the Aesara GPU code,
         // not the Caffe CPU code.
         // https://github.com/BVLC/caffe/blob/master/src/caffe/layers/conv_layer.cu
         // Note that this is for grouped convolution; we can ignore groups here,
@@ -456,7 +456,7 @@ PyArrayObject* corrMM(PyArrayObject* bottom,
         Py_DECREF(local_weight);
         /*
         // Original caffe code for comparison
-        // Note that this code was translated from the Theano GPU code,
+        // Note that this code was translated from the Aesara GPU code,
         // not the Caffe CPU code.
         // https://github.com/BVLC/caffe/blob/master/src/caffe/layers/conv_layer.cu
         // Note that this is for grouped convolution; we can ignore groups
@@ -529,7 +529,7 @@ PyArrayObject* corrMM(PyArrayObject* bottom,
         %(blas_set_num_threads)s(blas_threads_saved);
         /*
         // Original caffe code for comparison
-        // Note that this code was translated from the Theano GPU code,
+        // Note that this code was translated from the Aesara GPU code,
         // not the Caffe CPU code.
         // https://github.com/BVLC/caffe/blob/master/src/caffe/layers/conv_layer.cu
         for (int n = 0; n < num_; ++n) {

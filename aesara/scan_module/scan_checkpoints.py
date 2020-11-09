@@ -1,5 +1,5 @@
-import theano
-from theano.tensor.basic import Join
+import aesara
+from aesara.tensor.basic import Join
 
 
 def scan_checkpoints(
@@ -14,7 +14,7 @@ def scan_checkpoints(
 ):
     """Scan function that uses less memory, but is more restrictive.
 
-    In :func:`~theano.scan`, if you compute the gradient of the output
+    In :func:`~aesara.scan`, if you compute the gradient of the output
     with respect to the input, you will have to store the intermediate
     results at each time step, which can be prohibitively huge. This
     function allows to do ``save_every_N`` steps of forward computations
@@ -38,16 +38,16 @@ def scan_checkpoints(
     ----------
     fn
         ``fn`` is a function that describes the operations involved in one
-        step of ``scan``. See the documentation of :func:`~theano.scan`
+        step of ``scan``. See the documentation of :func:`~aesara.scan`
         for more information.
 
     sequences
-        ``sequences`` is the list of Theano variables or dictionaries
+        ``sequences`` is the list of Aesara variables or dictionaries
         describing the sequences ``scan`` has to iterate over. All
         sequences must be the same length in this version of ``scan``.
 
     outputs_info
-        ``outputs_info`` is the list of Theano variables or dictionaries
+        ``outputs_info`` is the list of Aesara variables or dictionaries
         describing the initial state of the outputs computed
         recurrently.
 
@@ -59,7 +59,7 @@ def scan_checkpoints(
 
     n_steps
         ``n_steps`` is the number of steps to iterate given as an int
-        or Theano scalar (> 0). If any of the input sequences do not have
+        or Aesara scalar (> 0). If any of the input sequences do not have
         enough elements, scan will raise an error. If n_steps is not provided,
         ``scan`` will figure out the amount of steps it should run given its
         input sequences.
@@ -79,7 +79,7 @@ def scan_checkpoints(
     Returns
     -------
     tuple
-        Tuple of the form ``(outputs, updates)`` as in :func:`~theano.scan`, but
+        Tuple of the form ``(outputs, updates)`` as in :func:`~aesara.scan`, but
         with a small change: It only contain the output at each
         ``save_every_N`` step. The time steps that are not returned by
         this function will be recomputed during the gradient computation
@@ -87,7 +87,7 @@ def scan_checkpoints(
 
     See Also
     --------
-    :func:`~theano.scan`: Looping in Theano.
+    :func:`~aesara.scan`: Looping in Aesara.
 
     """
     # Standardize the format of input arguments
@@ -114,13 +114,13 @@ def scan_checkpoints(
         n_steps = sequences[0].shape[0]
 
     # Compute the number of steps of the outer scan
-    o_n_steps = theano.tensor.cast(theano.tensor.ceil(n_steps / save_every_N), "int64")
+    o_n_steps = aesara.tensor.cast(aesara.tensor.ceil(n_steps / save_every_N), "int64")
 
     # Compute the number of steps of the inner scan
-    i_n_steps = save_every_N * theano.tensor.ones((o_n_steps,), "int64")
+    i_n_steps = save_every_N * aesara.tensor.ones((o_n_steps,), "int64")
     mod = n_steps % save_every_N
-    last_n_steps = theano.tensor.switch(theano.tensor.eq(mod, 0), save_every_N, mod)
-    i_n_steps = theano.tensor.set_subtensor(i_n_steps[-1], last_n_steps)
+    last_n_steps = aesara.tensor.switch(aesara.tensor.eq(mod, 0), save_every_N, mod)
+    i_n_steps = aesara.tensor.set_subtensor(i_n_steps[-1], last_n_steps)
 
     # Pad the sequences if needed
     if padding:
@@ -128,7 +128,7 @@ def scan_checkpoints(
         join = Join(view=0)
         for i, s in enumerate(sequences):
             n = s.shape[0] % save_every_N
-            z = theano.tensor.zeros((n, s.shape[1:]), dtype=s.dtype)
+            z = aesara.tensor.zeros((n, s.shape[1:]), dtype=s.dtype)
             sequences[i] = join(0, [s, z])
 
     # Establish the input variables of the outer scan
@@ -159,7 +159,7 @@ def scan_checkpoints(
         )
 
         # Call the user-provided function with the proper arguments
-        results, updates = theano.scan(
+        results, updates = aesara.scan(
             fn=fn,
             sequences=i_sequences[:-1],
             outputs_info=i_outputs_infos,
@@ -176,7 +176,7 @@ def scan_checkpoints(
         else:
             return [r[-1] for r in results], updates
 
-    results, updates = theano.scan(
+    results, updates = aesara.scan(
         fn=outer_step,
         sequences=o_sequences,
         outputs_info=outputs_info,

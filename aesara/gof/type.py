@@ -10,15 +10,15 @@ import ctypes
 import platform
 import re
 
-import theano
-from theano import change_flags
-from theano.gof import graph, utils
+import aesara
+from aesara import change_flags
+from aesara.gof import graph, utils
 
 ########
 # Type #
 ########
-from theano.gof.op import CLinkerObject, Op
-from theano.gof.utils import MethodNotDefined, object2
+from aesara.gof.op import CLinkerObject, Op
+from aesara.gof.utils import MethodNotDefined, object2
 
 
 __docformat__ = "restructuredtext en"
@@ -431,7 +431,7 @@ class PureType:
         """
         Return True if a and b can be considered approximately equal.
 
-        This function is used by theano debugging tools to decide
+        This function is used by aesara debugging tools to decide
         whether two values are equivalent, admitting a certain amount
         of numerical instability. For example, for floating-point
         numbers this function should be an approximate comparison.
@@ -474,7 +474,7 @@ class Type(object2, PureType, CLinkerType):
     """
     Convenience wrapper combining `PureType` and `CLinkerType`.
 
-    Theano comes with several subclasses of such as:
+    Aesara comes with several subclasses of such as:
 
     - `Generic`: for any python type
 
@@ -495,13 +495,13 @@ class Type(object2, PureType, CLinkerType):
         # Create a second Variable with the same Type instance
         c = tensor.fvector()
 
-    Whenever you create a symbolic variable in theano (technically,
+    Whenever you create a symbolic variable in aesara (technically,
     `Variable`) it will contain a reference to a Type instance. That
     reference is typically constant during the lifetime of the
     Variable.  Many variables can refer to a single Type instance, as
     do b and c above.  The Type instance defines the kind of value
     which might end up in that variable when executing a `Function`.
-    In this sense, theano is like a strongly-typed language because
+    In this sense, aesara is like a strongly-typed language because
     the types are included in the graph before the values.  In our
     example above, b is a Variable which is guaranteed to correspond
     to a numpy.ndarray of rank 1 when we try to do some computations
@@ -642,8 +642,8 @@ class _make_cdata(Op):
         return False
 
     def make_node(self, val):
-        from theano import Apply
-        from theano.scalar import as_scalar
+        from aesara import Apply
+        from aesara.scalar import as_scalar
 
         val = as_scalar(val).astype("uint64")
         return Apply(self, [val], [self.rtype()])
@@ -666,7 +666,7 @@ class CDataType(Type):
     Represents opaque C data to be passed around. The intent is to
     ease passing arbitrary data between ops C code.
 
-    The constructor builds a type made to represent a C pointer in theano.
+    The constructor builds a type made to represent a C pointer in aesara.
 
     Parameters
     ----------
@@ -678,7 +678,7 @@ class CDataType(Type):
         have a `void` return and take a single pointer argument.
 
     version
-        The version to use in Theano cache system.
+        The version to use in Aesara cache system.
     """
 
     __props__ = (
@@ -735,15 +735,15 @@ class CDataType(Type):
         The integer value is assumed to be a valid pointer for the
         type and no check is done to ensure that.
         """
-        from theano.scalar import get_scalar_type
+        from aesara.scalar import get_scalar_type
 
         if self._fn is None:
             with change_flags(compute_test_value="off"):
                 v = get_scalar_type("int64")()
-                self._fn = theano.function(
+                self._fn = aesara.function(
                     [v],
                     _make_cdata(self)(v),
-                    mode=theano.Mode(optimizer=None),
+                    mode=aesara.Mode(optimizer=None),
                     profile=False,
                 )
         return self._fn
@@ -943,7 +943,7 @@ class EnumType(Type, dict):
 
     .. code-block:: python
 
-        from theano.gof import EnumType
+        from aesara.gof import EnumType
 
         # You can remark that constant 'C' does not have an alias.
         enum = EnumType(A=('alpha', 1), B=('beta', 2), C=3, D=('delta', 4))
@@ -1144,20 +1144,20 @@ class EnumType(Type, dict):
 
         .. code-block:: c
 
-            int theano_enum_to_string_<cname>(<ctype> value, char* output_string);
+            int aesara_enum_to_string_<cname>(<ctype> value, char* output_string);
 
-        Where ``ctype`` and ``cname`` are the C type and the C name of current Theano enumeration.
+        Where ``ctype`` and ``cname`` are the C type and the C name of current Aesara enumeration.
 
         ``output_string`` should be large enough to contain the longest name in this enumeration.
 
         If given value is unknown, the C function sets a Python ValueError exception and returns a non-zero.
 
         This C function may be useful to retrieve some runtime informations.
-        It is available in C code when theano flag ``config.cmodule.debug`` is set to ``True``.
+        It is available in C code when aesara flag ``config.cmodule.debug`` is set to ``True``.
         """
         return """
         #ifdef DEBUG
-        int theano_enum_to_string_%(cname)s(%(ctype)s in, char* out) {
+        int aesara_enum_to_string_%(cname)s(%(ctype)s in, char* out) {
             int ret = 0;
             switch(in) {
                 %(cases)s

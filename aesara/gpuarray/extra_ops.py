@@ -1,5 +1,5 @@
-from theano import Apply, Op
-from theano.tensor.extra_ops import CumOp
+from aesara import Apply, Op
+from aesara.tensor.extra_ops import CumOp
 
 
 try:
@@ -7,8 +7,8 @@ try:
 except ImportError:
     pass
 
-import theano.scalar as scalar
-from theano.gof import ParamsType
+import aesara.scalar as scalar
+from aesara.gof import ParamsType
 
 from .basic_ops import (
     GpuKernelBase,
@@ -315,7 +315,7 @@ class GpuCumOp(GpuKernelBase, Op):
                 axis += PyGpuArray_NDIM(%(x)s);
             }
 
-            if (theano_prep_output(&%(z)s, PyGpuArray_NDIM(%(x)s), PyGpuArray_DIMS(%(x)s),
+            if (aesara_prep_output(&%(z)s, PyGpuArray_NDIM(%(x)s), PyGpuArray_DIMS(%(x)s),
                                    %(x)s->ga.typecode, GA_C_ORDER, %(params)s->context) != 0) {
                 %(fail)s;
             }

@@ -1,8 +1,8 @@
 """
-Declarations of cuDNN types and constants used in Theano gpuarray DNN module.
+Declarations of cuDNN types and constants used in Aesara gpuarray DNN module.
 
-For every cuDNN API supported by Theano, this module defines a class that
-provides the set of cuDNN definitions to be used in Theano Ops.
+For every cuDNN API supported by Aesara, this module defines a class that
+provides the set of cuDNN definitions to be used in Aesara Ops.
 
 Use :func:`get_definitions` to get the right cuDNN definitions
 for a given cuDNN version.
@@ -16,7 +16,7 @@ Currently supported cuDNN APIs:
 """
 
 
-from theano.gof import CEnumType
+from aesara.gof import CEnumType
 
 
 HALF, FLOAT, DOUBLE = ("float16", "float32", "float64")
@@ -149,7 +149,7 @@ class CuDNNV51:
     def get_supported_dtype_configs(self, check_runtime=None):
         """
         Return the tuple of data type configurations supported by this version of cuDNN.
-        This is currently convenient for all supported cuDNN versions, as Theano does not
+        This is currently convenient for all supported cuDNN versions, as Aesara does not
         yet support new data types (like INT8, INT8x4, etc.).
 
         ``check_runtime`` may be a function that tests if a data type configuration is supported.::
@@ -208,7 +208,7 @@ class CuDNNV51:
         return False
 
     def bwd_filter_algo_supports_dtype_config(self, algo, dtype, precision, ndim):
-        # NB: Theano does not support float16 precision anymore for backward cuDNN convolutions.
+        # NB: Aesara does not support float16 precision anymore for backward cuDNN convolutions.
         if is_true_half_config(dtype, precision):
             return False
         algorithms = self.cudnnConvolutionBwdFilterAlgo_t
@@ -231,7 +231,7 @@ class CuDNNV51:
         return False
 
     def bwd_data_algo_supports_dtype_config(self, algo, dtype, precision, ndim):
-        # NB: Theano does not support float16 precision anymore for backward cuDNN convolutions.
+        # NB: Aesara does not support float16 precision anymore for backward cuDNN convolutions.
         if is_true_half_config(dtype, precision):
             return False
         algorithms = self.cudnnConvolutionBwdDataAlgo_t
@@ -241,7 +241,7 @@ class CuDNNV51:
         if algo == algorithms.CUDNN_CONVOLUTION_BWD_DATA_ALGO_1:
             # CUDNN_CONVOLUTION_BWD_DATA_ALGO_1: all data type configs supported.
             # NB: Let's avoid float16 precision, as some strange errors may be encountered
-            # with that precision ( see https://github.com/Theano/Theano/pull/5932/ )
+            # with that precision ( see https://github.com/Aesara/Aesara/pull/5932/ )
             return not is_true_half_config(dtype, precision)
         if algo == algorithms.CUDNN_CONVOLUTION_BWD_DATA_ALGO_FFT:
             return ndim == 2 and (
@@ -390,10 +390,10 @@ class CuDNNV7(CuDNNV6):
 
 def get_definitions(cudnn_version=None):
     """
-    Return cuDNN definitions to be used by Theano for the given cuDNN version.
+    Return cuDNN definitions to be used by Aesara for the given cuDNN version.
 
     ``cudnn_version`` must be None or an integer
-    (typically the version returned by :func:`theano.gpuarray.dnn.version`).
+    (typically the version returned by :func:`aesara.gpuarray.dnn.version`).
     if None, return definitions for the  most recent supported cuDNN version.
 
     """

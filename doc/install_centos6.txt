@@ -7,9 +7,9 @@ CentOS 6 Installation Instructions
 ##################################
 
 .. warning::
-    If you want to install the bleeding-edge or development version of Theano
+    If you want to install the bleeding-edge or development version of Aesara
     from GitHub, please make sure you are reading `the latest version of this
-    page <http://deeplearning.net/software/theano_versions/dev/install_centos6.html>`_.
+    page <http://deeplearning.net/software/aesara_versions/dev/install_centos6.html>`_.
 
 .. |PythonDistRecommended| replace:: The development package (python-dev or python-devel on most Linux distributions) is recommended (see just below)
 .. |PlatformCompiler| replace:: ``python-dev``, ``g++`` >= 4.2

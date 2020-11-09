@@ -18,7 +18,7 @@ True conditional evaluation requires lazy graph evaluation.
 Without lazy graph evaluation, the runtime of a graph can be exponential in the
 number of conditionals instead of linear.  No one waits an exponential amount of
 time, so instead people work around this problem in various other ways, but it
-would be better if theano had an 'if-then-else' expression (call it cond).
+would be better if aesara had an 'if-then-else' expression (call it cond).
 
 A lazily-evaluted 'cond' requires a linker to use a different method for
 interacting with Ops.  Neither the current perform() nor c_code() approaches
@@ -46,10 +46,10 @@ seems like a natural choice.
 A third motivation for introducing an Op.make_thunk function is to clarify the
 relationship between Ops (the classes you implement in Python) and mathematical
 operations (the more abstract things in terms of which you think when using
-Theano).
+Aesara).
 I propose that *technically* an Op, when conditioned by particular inputs,
 generates *at most one implementation* that defines the behaviour of that Op.
-In *intuitive terms*, the abstract mathematical steps that we sometimes talk about regarding Theano
+In *intuitive terms*, the abstract mathematical steps that we sometimes talk about regarding Aesara
 still correspond to Ops -- it's just that these Ops have relatively generic
 implementations.
 The process of optimization is to specialize those generic implementations
@@ -75,7 +75,7 @@ in the PureOp class (a superclass of Op) that will return a Thunk.
   class Thunk (object):
     """Abstract class / interface
 
-    It describes the interface used by a Theano linker to execute the nodes in a
+    It describes the interface used by a Aesara linker to execute the nodes in a
     graph.  Thunk instances are in correspondance with Apply instances that
     remain in the final form of the graph after optimization.
 

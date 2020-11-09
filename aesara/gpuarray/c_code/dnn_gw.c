@@ -97,7 +97,7 @@ APPLY_SPECIFIC(conv_gw)(PyGpuArrayObject *input, PyGpuArrayObject *output,
   if (_cppver) fprintf(stderr, "%s\n", _cppver);
   #endif
   #ifdef DEBUG_TIMING
-  TheanoTimer timer;
+  AesaraTimer timer;
   #endif
 
   if (PyGpuArray_DIMS(input)[1] != PyGpuArray_DIMS(km)[1] * params->num_groups) {
@@ -131,7 +131,7 @@ APPLY_SPECIFIC(conv_gw)(PyGpuArrayObject *input, PyGpuArrayObject *output,
     *kerns = km;
     Py_INCREF(*kerns);
   } else {
-    if (theano_prep_output(kerns, PyGpuArray_NDIM(km), PyGpuArray_DIMS(km),
+    if (aesara_prep_output(kerns, PyGpuArray_NDIM(km), PyGpuArray_DIMS(km),
                            km->ga.typecode, GA_C_ORDER, c) != 0)
       return 1;
     if (beta != 0.0 && pygpu_move(*kerns, km))
@@ -313,7 +313,7 @@ APPLY_SPECIFIC(conv_gw)(PyGpuArrayObject *input, PyGpuArrayObject *output,
     if (err == CUDNN_STATUS_NOT_SUPPORTED) {
       // Fallback to none algo if not supported
 #ifdef DEBUG
-      if (0 != theano_enum_to_string_cudnnConvolutionBwdFilterAlgo_t(algo, algorithm_name)) {
+      if (0 != aesara_enum_to_string_cudnnConvolutionBwdFilterAlgo_t(algo, algorithm_name)) {
         cuda_exit(c->ctx);
         return 1;
       }
@@ -337,7 +337,7 @@ APPLY_SPECIFIC(conv_gw)(PyGpuArrayObject *input, PyGpuArrayObject *output,
   if (params->choose_algo) {
 
 #ifdef DEBUG
-    if (0 != theano_enum_to_string_cudnnConvolutionBwdFilterAlgo_t(algo, algorithm_name)) {
+    if (0 != aesara_enum_to_string_cudnnConvolutionBwdFilterAlgo_t(algo, algorithm_name)) {
       cuda_exit(c->ctx);
       return 1;
     }

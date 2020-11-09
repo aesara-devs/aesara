@@ -3,12 +3,12 @@ from copy import deepcopy
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tt
-from theano import Mode, function
-from theano.gof import Apply, generic
-from theano.gof.op import PureOp
-from theano.ifelse import ifelse
+import aesara
+import aesara.tensor as tt
+from aesara import Mode, function
+from aesara.gof import Apply, generic
+from aesara.gof.op import PureOp
+from aesara.ifelse import ifelse
 
 
 class IfElseIfElseIf(PureOp):
@@ -114,17 +114,17 @@ def test_ifelse():
 
     lazys = [True]
     # We need lazy to end up being True for this test.
-    if theano.config.vm.lazy in [True, None]:
+    if aesara.config.vm.lazy in [True, None]:
         lazys = [True, None]
 
     cloops = [True, False]
 
-    if theano.config.cxx == "":
+    if aesara.config.cxx == "":
         cloops = [False]
 
     for cloop in cloops:
         for lazy in lazys:
-            linker = theano.gof.vm.VM_Linker(use_cloop=cloop, lazy=lazy)
+            linker = aesara.gof.vm.VM_Linker(use_cloop=cloop, lazy=lazy)
             f = function(
                 [a, b, c],
                 ifelse(a, notimpl(b), c),
@@ -154,11 +154,11 @@ def test_nested():
     t4 = ifelseifelseif(tt.eq(x1, x2), x1, tt.eq(x1, 5), x2, c2, t3, t3 + 0.5)
     t4.name = "t4"
 
-    linker = theano.gof.vm.VM_Linker(lazy=False)
+    linker = aesara.gof.vm.VM_Linker(lazy=False)
     f = function([c1, c2, x1, x2], t4, mode=Mode(linker=linker, optimizer="fast_run"))
     with pytest.raises(NotImplementedOpException):
         f(1, 0, np.array(10, dtype=x1.dtype), 0)
 
-    linker = theano.gof.vm.VM_Linker(lazy=True)
+    linker = aesara.gof.vm.VM_Linker(lazy=True)
     f = function([c1, c2, x1, x2], t4, mode=Mode(linker=linker, optimizer="fast_run"))
     assert f(1, 0, np.array(10, dtype=x1.dtype), 0) == 20.5

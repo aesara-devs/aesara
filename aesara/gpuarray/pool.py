@@ -1,9 +1,9 @@
-import theano
-from theano import Apply
-from theano.gof import ParamsType
-from theano.scalar import bool as bool_t
-from theano.tensor.basic import as_tensor_variable
-from theano.tensor.signal.pool import Pool, PoolingMode_t
+import aesara
+from aesara import Apply
+from aesara.gof import ParamsType
+from aesara.scalar import bool as bool_t
+from aesara.tensor.basic import as_tensor_variable
+from aesara.tensor.signal.pool import Pool, PoolingMode_t
 
 from .basic_ops import (
     CGpuKernelBase,
@@ -18,7 +18,7 @@ from .type import gpu_context_type
 try:
     import pygpu
 except ImportError:
-    # To make sure theano is importable
+    # To make sure aesara is importable
     pass
 
 
@@ -73,16 +73,16 @@ class GpuPool(CGpuKernelBase):
         pad = as_tensor_variable(pad)
         assert ws.ndim == stride.ndim and ws.ndim == pad.ndim
         assert ws.ndim == 1
-        if ws.dtype not in theano.tensor.int_dtypes:
+        if ws.dtype not in aesara.tensor.int_dtypes:
             raise TypeError("Window shape parameters must be ints.")
-        if stride.dtype not in theano.tensor.int_dtypes:
+        if stride.dtype not in aesara.tensor.int_dtypes:
             raise TypeError("Stride parameters must be ints.")
-        if pad.dtype not in theano.tensor.int_dtypes:
+        if pad.dtype not in aesara.tensor.int_dtypes:
             raise TypeError("Padding parameters must be ints.")
 
-        ws = theano.tensor.cast(ws, "int64")
-        stride = theano.tensor.cast(stride, "int64")
-        pad = theano.tensor.cast(pad, "int64")
+        ws = aesara.tensor.cast(ws, "int64")
+        stride = aesara.tensor.cast(stride, "int64")
+        pad = aesara.tensor.cast(pad, "int64")
 
         return Apply(self, [inp, ws, stride, pad], [inp.type()])
 
@@ -99,7 +99,7 @@ class GpuPool(CGpuKernelBase):
 
         grad = gpu_contiguous(grad)
 
-        disc = [theano.gradient.DisconnectedType()() for i in inp[1:]]
+        disc = [aesara.gradient.DisconnectedType()() for i in inp[1:]]
         if self.mode == "max":
             out = self(img, ws, stride, pad)
             g_out = GpuMaxPoolGrad(ndim=self.ndim, ignore_border=self.ignore_border)(
@@ -182,16 +182,16 @@ class GpuMaxPoolGrad(CGpuKernelBase):
         pad = as_tensor_variable(pad)
         assert ws.ndim == stride.ndim and ws.ndim == pad.ndim
         assert ws.ndim == 1
-        if ws.dtype not in theano.tensor.int_dtypes:
+        if ws.dtype not in aesara.tensor.int_dtypes:
             raise TypeError("Window shape parameters must be ints.")
-        if stride.dtype not in theano.tensor.int_dtypes:
+        if stride.dtype not in aesara.tensor.int_dtypes:
             raise TypeError("Stride parameters must be ints.")
-        if pad.dtype not in theano.tensor.int_dtypes:
+        if pad.dtype not in aesara.tensor.int_dtypes:
             raise TypeError("Padding parameters must be ints.")
 
-        ws = theano.tensor.cast(ws, "int64")
-        stride = theano.tensor.cast(stride, "int64")
-        pad = theano.tensor.cast(pad, "int64")
+        ws = aesara.tensor.cast(ws, "int64")
+        stride = aesara.tensor.cast(stride, "int64")
+        pad = aesara.tensor.cast(pad, "int64")
 
         return Apply(self, [inp, out, out_grad, ws, stride, pad], [inp.type()])
 
@@ -202,12 +202,12 @@ class GpuMaxPoolGrad(CGpuKernelBase):
         x, maxout, gz, ws, stride, pad = inp
         (ggx,) = grads
         return [
-            theano.tensor.zeros_like(x),
-            theano.tensor.zeros_like(maxout),
+            aesara.tensor.zeros_like(x),
+            aesara.tensor.zeros_like(maxout),
             GpuDownsampleFactorMaxGradGrad(
                 ndim=self.ndim, ignore_border=self.ignore_border
             )(x, maxout, ggx, ws, stride, pad),
-        ] + [theano.tensor.DisconnectedType()() for i in inp[3:]]
+        ] + [aesara.tensor.DisconnectedType()() for i in inp[3:]]
 
     def connection_pattern(self, node):
         return [[1], [1], [1], [0], [0], [0]]
@@ -265,16 +265,16 @@ class GpuAveragePoolGrad(CGpuKernelBase):
         pad = as_tensor_variable(pad)
         assert ws.ndim == stride.ndim and ws.ndim == pad.ndim
         assert ws.ndim == 1
-        if ws.dtype not in theano.tensor.int_dtypes:
+        if ws.dtype not in aesara.tensor.int_dtypes:
             raise TypeError("Window shape parameters must be ints.")
-        if stride.dtype not in theano.tensor.int_dtypes:
+        if stride.dtype not in aesara.tensor.int_dtypes:
             raise TypeError("Stride parameters must be ints.")
-        if pad.dtype not in theano.tensor.int_dtypes:
+        if pad.dtype not in aesara.tensor.int_dtypes:
             raise TypeError("Padding parameters must be ints.")
 
-        ws = theano.tensor.cast(ws, "int64")
-        stride = theano.tensor.cast(stride, "int64")
-        pad = theano.tensor.cast(pad, "int64")
+        ws = aesara.tensor.cast(ws, "int64")
+        stride = aesara.tensor.cast(stride, "int64")
+        pad = aesara.tensor.cast(pad, "int64")
 
         return Apply(self, [inp, out_grad, ws, stride, pad], [inp.type()])
 
@@ -285,11 +285,11 @@ class GpuAveragePoolGrad(CGpuKernelBase):
         x, gz, ws, stride, pad = inp
         (ggx,) = grads
         return [
-            theano.tensor.zeros_like(x),
+            aesara.tensor.zeros_like(x),
             GpuPool(ignore_border=self.ignore_border, ndim=self.ndim, mode=self.mode)(
                 ggx, ws, stride, pad
             ),
-        ] + [theano.gradient.DisconnectedType()() for i in inp[2:]]
+        ] + [aesara.gradient.DisconnectedType()() for i in inp[2:]]
 
     def connection_pattern(self, node):
         return [[1], [1], [0], [0], [0]]
@@ -341,16 +341,16 @@ class GpuDownsampleFactorMaxGradGrad(CGpuKernelBase):
         pad = as_tensor_variable(pad)
         assert ws.ndim == stride.ndim and ws.ndim == pad.ndim
         assert ws.ndim == 1
-        if ws.dtype not in theano.tensor.int_dtypes:
+        if ws.dtype not in aesara.tensor.int_dtypes:
             raise TypeError("Window shape parameters must be ints.")
-        if stride.dtype not in theano.tensor.int_dtypes:
+        if stride.dtype not in aesara.tensor.int_dtypes:
             raise TypeError("Stride parameters must be ints.")
-        if pad.dtype not in theano.tensor.int_dtypes:
+        if pad.dtype not in aesara.tensor.int_dtypes:
             raise TypeError("Padding parameters must be ints.")
 
-        ws = theano.tensor.cast(ws, "int64")
-        stride = theano.tensor.cast(stride, "int64")
-        pad = theano.tensor.cast(pad, "int64")
+        ws = aesara.tensor.cast(ws, "int64")
+        stride = aesara.tensor.cast(stride, "int64")
+        pad = aesara.tensor.cast(pad, "int64")
 
         return Apply(self, [inp, out, out_grad, ws, stride, pad], [inp.type()])
 
@@ -361,12 +361,12 @@ class GpuDownsampleFactorMaxGradGrad(CGpuKernelBase):
         x, maxout, ggx, ws, stride, pad = inp
         (gz,) = grads
         return [
-            theano.tensor.zeros_like(x),
-            theano.tensor.zeros_like(maxout),
+            aesara.tensor.zeros_like(x),
+            aesara.tensor.zeros_like(maxout),
             GpuMaxPoolGrad(ignore_border=self.ignore_border, ndim=self.ndim)(
                 x, maxout, gz, ws, stride, pad
             ),
-        ] + [theano.gradient.DisconnectedType()() for i in inp[3:]]
+        ] + [aesara.gradient.DisconnectedType()() for i in inp[3:]]
 
     def connection_pattern(self, node):
         return [[1], [1], [1], [0], [0], [0]]
@@ -424,16 +424,16 @@ class GpuMaxPoolRop(CGpuKernelBase):
         pad = as_tensor_variable(pad)
         assert ws.ndim == stride.ndim and ws.ndim == pad.ndim
         assert ws.ndim == 1
-        if ws.dtype not in theano.tensor.int_dtypes:
+        if ws.dtype not in aesara.tensor.int_dtypes:
             raise TypeError("Window shape parameters must be ints.")
-        if stride.dtype not in theano.tensor.int_dtypes:
+        if stride.dtype not in aesara.tensor.int_dtypes:
             raise TypeError("Stride parameters must be ints.")
-        if pad.dtype not in theano.tensor.int_dtypes:
+        if pad.dtype not in aesara.tensor.int_dtypes:
             raise TypeError("Padding parameters must be ints.")
 
-        ws = theano.tensor.cast(ws, "int64")
-        stride = theano.tensor.cast(stride, "int64")
-        pad = theano.tensor.cast(pad, "int64")
+        ws = aesara.tensor.cast(ws, "int64")
+        stride = aesara.tensor.cast(stride, "int64")
+        pad = aesara.tensor.cast(pad, "int64")
 
         return Apply(self, [inp, eval_point, ws, stride, pad], [eval_point.type()])
 

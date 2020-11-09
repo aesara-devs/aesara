@@ -2,14 +2,14 @@ import copy
 
 import numpy as np
 
-import theano
-from theano import tensor
-from theano.tensor.nnet import crossentropy_softmax_argmax_1hot_with_bias
+import aesara
+from aesara import tensor
+from aesara.tensor.nnet import crossentropy_softmax_argmax_1hot_with_bias
 
 
 def test_bug_2009_06_02_trac_387():
     y = tensor.lvector("y")
-    f = theano.function(
+    f = aesara.function(
         [y], tensor.int_div(tensor.DimShuffle(y[0].broadcastable, ["x"])(y[0]), 2)
     )
     print(f(np.ones(1, dtype="int64") * 3))
@@ -19,10 +19,10 @@ def test_bug_2009_06_02_trac_387():
 
 def test_bug_2009_07_17_borrowed_output():
     # Regression test for a bug where output was borrowed by mistake.
-    a = theano.tensor.dmatrix()
-    b = theano.tensor.dmatrix()
+    a = aesara.tensor.dmatrix()
+    b = aesara.tensor.dmatrix()
     # The output should *NOT* be borrowed.
-    g = theano.function([a, b], theano.Out(theano.tensor.dot(a, b), borrow=False))
+    g = aesara.function([a, b], aesara.Out(aesara.tensor.dot(a, b), borrow=False))
 
     x = np.zeros((1, 2))
     y = np.ones((2, 5))
@@ -42,16 +42,16 @@ def test_bug_2009_07_17_borrowed_output():
     # that it may better be moved into the test_nnet.py test file if it turns
     # out the bug was caused by 'crossentropy_softmax_argmax_1hot_with_bias',
     # and was not a more general issue.
-    test_output_activation_no_bias = theano.tensor.dmatrix()
-    test_b2 = theano.tensor.dvector()
-    test_target = theano.tensor.ivector()
+    test_output_activation_no_bias = aesara.tensor.dmatrix()
+    test_b2 = aesara.tensor.dvector()
+    test_target = aesara.tensor.ivector()
     nll_softmax_argmax = crossentropy_softmax_argmax_1hot_with_bias(
         test_output_activation_no_bias, test_b2, test_target
     )
     output = nll_softmax_argmax[1]
-    g = theano.function(
+    g = aesara.function(
         [test_output_activation_no_bias, test_b2, test_target],
-        theano.Out(output, borrow=False),
+        aesara.Out(output, borrow=False),
     )
 
     a = np.zeros((1, 5))

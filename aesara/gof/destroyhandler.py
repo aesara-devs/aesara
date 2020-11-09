@@ -6,9 +6,9 @@ and inplace operations.
 import itertools
 from collections import OrderedDict, deque
 
-import theano
-from theano import config
-from theano.misc.ordered_set import OrderedSet
+import aesara
+from aesara import config
+from aesara.misc.ordered_set import OrderedSet
 
 from . import graph, toolbox
 from .fg import InconsistencyError
@@ -234,7 +234,7 @@ def fast_inplace_check(inputs):
 
     """
     fgraph = inputs[0].fgraph
-    Supervisor = theano.compile.function_module.Supervisor
+    Supervisor = aesara.compile.function_module.Supervisor
     protected_inputs = [
         f.protected for f in fgraph._features if isinstance(f, Supervisor)
     ]
@@ -483,7 +483,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
                     "Attempting to destroy indestructible variables: %s" % inp
                 )
             elif len(inp.clients) > 1:
-                self.fail_validate[app] = theano.gof.InconsistencyError(
+                self.fail_validate[app] = aesara.gof.InconsistencyError(
                     "Destroyed variable has more than one client. " + str(reason)
                 )
             elif inp.owner:
@@ -494,13 +494,13 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
                 if v:
                     v = v.get(inp_idx2, [])
                     if len(v) > 0:
-                        self.fail_validate[app] = theano.gof.InconsistencyError(
+                        self.fail_validate[app] = aesara.gof.InconsistencyError(
                             "Destroyed variable has view_map. " + str(reason)
                         )
                 elif d:
                     d = d.get(inp_idx2, [])
                     if len(d) > 0:
-                        self.fail_validate[app] = theano.gof.InconsistencyError(
+                        self.fail_validate[app] = aesara.gof.InconsistencyError(
                             "Destroyed variable has destroy_map. " + str(reason)
                         )
 

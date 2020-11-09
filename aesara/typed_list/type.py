@@ -1,4 +1,4 @@
-from theano import gof
+from aesara import gof
 
 
 class TypedListType(gof.Type):
@@ -7,7 +7,7 @@ class TypedListType(gof.Type):
     Parameters
     ----------
     ttype
-        Type of theano variable this list will contains, can be another list.
+        Type of aesara variable this list will contains, can be another list.
     depth
         Optionnal parameters, any value above 0 will create a nested list of
         this depth. (0-based)
@@ -19,7 +19,7 @@ class TypedListType(gof.Type):
         if depth < 0:
             raise ValueError("Please specify a depth superior or" "equal to 0")
         if not isinstance(ttype, gof.Type):
-            raise TypeError("Expected a Theano Type")
+            raise TypeError("Expected a Aesara Type")
 
         if depth == 0:
             self.ttype = ttype

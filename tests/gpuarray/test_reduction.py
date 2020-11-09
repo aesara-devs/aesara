@@ -3,14 +3,14 @@ import math
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
 from tests.gpuarray.test_basic_ops import rand_gpuarray
-from theano.gpuarray import GpuArrayType
-from theano.gpuarray.dnn import GpuDnnReduction
-from theano.gpuarray.reduction import GpuMaxAndArgmax
+from aesara.gpuarray import GpuArrayType
+from aesara.gpuarray.dnn import GpuDnnReduction
+from aesara.gpuarray.reduction import GpuMaxAndArgmax
 
 
 # Number of values to be used in test tensors (except with 0-D tensors!).
@@ -28,7 +28,7 @@ def numpy_random_array(shapes):
     size = 1
     for dimsize in shapes:
         size *= dimsize
-    return np.random.normal(size=size).astype(theano.config.floatX).reshape(shapes)
+    return np.random.normal(size=size).astype(aesara.config.floatX).reshape(shapes)
 
 
 def numpy_maxandargmax(X, axis=None):
@@ -53,17 +53,17 @@ def numpy_maxandargmax(X, axis=None):
     return (ref_max, np.argmax(reshaped_x, axis=-1))
 
 
-def check_if_gpu_reduce_in_graph(theano_function):
+def check_if_gpu_reduce_in_graph(aesara_function):
     assert any(
         isinstance(node.op, (GpuMaxAndArgmax, GpuDnnReduction))
-        for node in theano_function.maker.fgraph.apply_nodes
+        for node in aesara_function.maker.fgraph.apply_nodes
     )
 
 
-def check_if_gpu_reduce_not_in_graph(theano_function):
+def check_if_gpu_reduce_not_in_graph(aesara_function):
     assert all(
         not isinstance(node.op, (GpuMaxAndArgmax, GpuDnnReduction))
-        for node in theano_function.maker.fgraph.apply_nodes
+        for node in aesara_function.maker.fgraph.apply_nodes
     )
 
 
@@ -72,7 +72,7 @@ class BaseTest:
     tensor_size = None
     shape = None
 
-    dtype = theano.config.floatX
+    dtype = aesara.config.floatX
 
     def get_shape(self):
         if self.tensor_size == 0:
@@ -106,12 +106,12 @@ class BaseTest:
         return rand_gpuarray(*self.shape)
 
     # NB: In compute_host() and compute_gpu(),
-    # the first call of the theano function should be ignored in profiling,
-    # with Theano config flag profiling.ignore_first_call=True.
+    # the first call of the aesara function should be ignored in profiling,
+    # with Aesara config flag profiling.ignore_first_call=True.
 
     def compute_host(self, test_tensor, axis):
         M = self.get_host_tensor()
-        f = theano.function(
+        f = aesara.function(
             [M],
             [tt.max(M, axis=axis), tt.argmax(M, axis=axis)],
             name="shape:" + str(test_tensor.shape) + "/axis:" + str(axis) + "/HOST",
@@ -119,14 +119,14 @@ class BaseTest:
         )
         check_if_gpu_reduce_not_in_graph(f)
         f(test_tensor)
-        theano_max, theano_argmax = f(test_tensor)
+        aesara_max, aesara_argmax = f(test_tensor)
         ref_max, ref_argmax = numpy_maxandargmax(test_tensor, axis=axis)
-        utt.assert_allclose(ref_max, theano_max)
-        utt.assert_allclose(ref_argmax, theano_argmax)
+        utt.assert_allclose(ref_max, aesara_max)
+        utt.assert_allclose(ref_argmax, aesara_argmax)
 
     def compute_gpu(self, test_gpu_tensor, test_host_tensor, axis):
         M = self.get_gpu_tensor()
-        f = theano.function(
+        f = aesara.function(
             [M],
             [tt.max(M, axis=axis), tt.argmax(M, axis=axis)],
             name="shape:" + str(test_gpu_tensor.shape) + "/axis:" + str(axis) + "/GPU",
@@ -134,10 +134,10 @@ class BaseTest:
         )
         check_if_gpu_reduce_in_graph(f)
         f(test_gpu_tensor)
-        theano_max, theano_argmax = f(test_gpu_tensor)
+        aesara_max, aesara_argmax = f(test_gpu_tensor)
         ref_max, ref_argmax = numpy_maxandargmax(test_host_tensor, axis=axis)
-        utt.assert_allclose(ref_max, theano_max)
-        utt.assert_allclose(ref_argmax, theano_argmax)
+        utt.assert_allclose(ref_max, aesara_max)
+        utt.assert_allclose(ref_argmax, aesara_argmax)
 
     def compute(self, axis=None):
         # We want to run CPU op and GPU op on the same tensor randomly generated.

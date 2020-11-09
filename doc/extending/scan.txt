@@ -7,14 +7,14 @@ Context
 =======
 
 This document is meant to act as reference material for developers working
-on Theano's loop mechanism. This mechanism is called Scan and its internals
+on Aesara's loop mechanism. This mechanism is called Scan and its internals
 are highly complex, hence the need for a centralized repository of knowledge
 regarding its inner workings.
 
-The ``theano.scan()`` function is the public-facing interface for looping in
-Theano. Under the hood, this function will perform some processing on its
+The ``aesara.scan()`` function is the public-facing interface for looping in
+Aesara. Under the hood, this function will perform some processing on its
 inputs and instantiate the ``Scan`` op class which implements the looping
-mechanism. It achieves this by compiling its own Theano function representing
+mechanism. It achieves this by compiling its own Aesara function representing
 the computation to be done at every iteration of the loop and calling it as
 many times as necessary.
 
@@ -32,21 +32,21 @@ Pre-requisites
 
 The following sections assumes the reader is familiar with the following :
 
-1. Theano's :ref:`graph structure <extending_theano>` (Apply nodes, Variable nodes and Ops)
+1. Aesara's :ref:`graph structure <extending_aesara>` (Apply nodes, Variable nodes and Ops)
 
-2. The interface and usage of Theano's :ref:`scan() <lib_scan>` function
+2. The interface and usage of Aesara's :ref:`scan() <lib_scan>` function
 
 Additionally, the :ref:`scan_internals_optimizations` section below assumes
 knowledge of:
 
-3. Theano's :ref:`graph optimizations <optimization>`
+3. Aesara's :ref:`graph optimizations <optimization>`
 
 
 Relevant code files
 ===================
 
 The implementation of Scan is spread over several files in
-``theano/scan_module``.  The different files, and sections of the code they
+``aesara/scan_module``.  The different files, and sections of the code they
 deal with, are :
 
 * ``scan.py`` implements the ``scan`` function. The ``scan`` function
@@ -63,7 +63,7 @@ deal with, are :
 * ``scan_views.py`` contains different views of the scan op that have
   simpler and easier signatures to be used in specific cases.
 
-* ``scan_opt.py`` contains the list of all Theano graph optimizations for the
+* ``scan_opt.py`` contains the list of all Aesara graph optimizations for the
   scan operator.
 
 
@@ -73,12 +73,12 @@ Notation
 Scan being a sizeable and complex module, it has its own naming convention for
 functions and variables which this section will attempt to introduce.
 
-A scan op contains a Theano function representing the computation
+A scan op contains a Aesara function representing the computation
 that is done in a single iteration of the loop represented by the scan op (in
 other words, the computation given by the function provided as value to
-``theano.scan``'s ``fn`` argument ). Whenever we discuss a scan op, the **outer
-function** refers to the Theano function that *contains* the scan op whereas the
-**inner function** refers to the Theano function that is *contained* inside the
+``aesara.scan``'s ``fn`` argument ). Whenever we discuss a scan op, the **outer
+function** refers to the Aesara function that *contains* the scan op whereas the
+**inner function** refers to the Aesara function that is *contained* inside the
 scan op.
 
 In the same spirit, the inputs and outputs of the *Apply node wrapping the scan
@@ -94,19 +94,19 @@ Scan variables
 The following are the different types of variables that Scan has the
 capacity to handle, along with their various caracteristics.
 
-**Sequence** : A sequence is a Theano variable which Scan will iterate
+**Sequence** : A sequence is a Aesara variable which Scan will iterate
 over and give sub-elements to its inner function as input. A sequence
 has no associated output. For a sequence variable ``X``, at timestep
 ``t``, the inner function will receive as input the sequence element
 ``X[t]``. These variables are used through the argument ``sequences``
-of the ``theano.scan()`` function.
+of the ``aesara.scan()`` function.
 
-**Non-sequences** : A non-sequence is a Theano variable which Scan
+**Non-sequences** : A non-sequence is a Aesara variable which Scan
 *will provide as-is* to its inner function. Like a sequence, a
 non-sequence has no associated output. For a non-sequence variable
 ``X``, at timestep ``t``, the inner function will receive as input
 the variable ``X``. These variables are used through the argument
-``non_sequences`` of the ``theano.scan()`` function.
+``non_sequences`` of the ``aesara.scan()`` function.
 
 **Nitsot (no input tap, single output tap)** : A nitsot is an output
 variable of the inner function that is not fed back as an input to the
@@ -133,7 +133,7 @@ timestep, since every computed term needs to be reused to compute the
 two next terms of the sequence.
 
 **Mitmot (multiple input taps, multiple output taps)** : These outputs exist
-but they cannot be directly created by the user. They can appear in a theano
+but they cannot be directly created by the user. They can appear in a aesara
 graph as a result of taking the gradient of the output of a Scan with respect
 to its inputs: This will result in the creation of a new scan node used to
 compute the gradients of the first scan node. If the original Scan had sitsots
@@ -144,7 +144,7 @@ through time for these variables.
 To synthesize :
 
 ===========================================================  =====================================================  ==========================================================  ===========================================================  =========================================================  ======================================================
-Type of scan variables                                       Corresponding outer input                              Corresponding inner input at timestep `t` (indexed from 0)  Corresponding inner output at timestep `t` (indexed from 0)  Corresponding outer output `t`                             Corresponding argument of the `theano.scan()` function
+Type of scan variables                                       Corresponding outer input                              Corresponding inner input at timestep `t` (indexed from 0)  Corresponding inner output at timestep `t` (indexed from 0)  Corresponding outer output `t`                             Corresponding argument of the `aesara.scan()` function
 ===========================================================  =====================================================  ==========================================================  ===========================================================  =========================================================  ======================================================
 Sequence                                                     Sequence of elements X                                 Individual sequence element X[t]                            *No corresponding inner output*                              *No corresponding outer output*                            `sequences`
 Non-Sequence                                                 Any variable X                                         Variable identical to X                                     *No corresponding inner output*                              *No corresponding outer output*                            `non_sequences`

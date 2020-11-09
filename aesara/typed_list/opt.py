@@ -1,6 +1,6 @@
-from theano import compile, gof
-from theano.gof import TopoOptimizer
-from theano.typed_list.basic import Append, Extend, Insert, Remove, Reverse
+from aesara import compile, gof
+from aesara.gof import TopoOptimizer
+from aesara.typed_list.basic import Append, Extend, Insert, Remove, Reverse
 
 
 @gof.local_optimizer([Append, Extend, Insert, Reverse, Remove], inplace=True)

@@ -4,7 +4,7 @@ import sys
 import traceback
 from io import StringIO
 
-from theano import config
+from aesara import config
 
 
 def simple_extract_stack(f=None, limit=None, skips=None):
@@ -93,22 +93,22 @@ def add_tag_trace(thing, user_line=None):
     if user_line == -1:
         user_line = None
     skips = [
-        "theano/tensor/",
-        "theano\\tensor\\",
-        "theano/compile/",
-        "theano\\compile\\",
-        "theano/gof/",
-        "theano\\gof\\",
-        "theano/scalar/basic.py",
-        "theano\\scalar\\basic.py",
-        "theano/sandbox/",
-        "theano\\sandbox\\",
-        "theano/scan_module/",
-        "theano\\scan_module\\",
-        "theano/sparse/",
-        "theano\\sparse\\",
-        "theano/typed_list/",
-        "theano\\typed_list\\",
+        "aesara/tensor/",
+        "aesara\\tensor\\",
+        "aesara/compile/",
+        "aesara\\compile\\",
+        "aesara/gof/",
+        "aesara\\gof\\",
+        "aesara/scalar/basic.py",
+        "aesara\\scalar\\basic.py",
+        "aesara/sandbox/",
+        "aesara\\sandbox\\",
+        "aesara/scan_module/",
+        "aesara\\scan_module\\",
+        "aesara/sparse/",
+        "aesara\\sparse\\",
+        "aesara/typed_list/",
+        "aesara\\typed_list\\",
     ]
 
     if config.traceback.compile_limit > 0:
@@ -257,7 +257,7 @@ class Scratchpad:
         return "scratchpad" + str(self.__dict__)
 
     def info(self):
-        print("<theano.gof.utils.scratchpad instance at %i>" % id(self))
+        print("<aesara.gof.utils.scratchpad instance at %i>" % id(self))
         for k, v in self.__dict__.items():
             print("  {}: {}".format(k, v))
 
@@ -556,7 +556,7 @@ def hist(coll):
     return counts
 
 
-@deprecated("theano.gof.utils", msg="Use a_theano_variable.auto_name instead")
+@deprecated("aesara.gof.utils", msg="Use a_aesara_variable.auto_name instead")
 def give_variables_names(variables):
     """
     Gives unique names to an iterable of variables. Modifies input.

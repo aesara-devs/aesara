@@ -3,13 +3,13 @@ from io import StringIO
 
 import numpy as np
 
-import theano
-from theano import Apply, Op, scalar
-from theano.gof.utils import MethodNotDefined
-from theano.scalar import Composite, Scalar
-from theano.scalar.basic import complex_types, upgrade_to_float_no_complex
-from theano.scalar.basic_scipy import Erfcinv, Erfinv
-from theano.tensor.elemwise import CAReduceDtype, DimShuffle, Elemwise
+import aesara
+from aesara import Apply, Op, scalar
+from aesara.gof.utils import MethodNotDefined
+from aesara.scalar import Composite, Scalar
+from aesara.scalar.basic import complex_types, upgrade_to_float_no_complex
+from aesara.scalar.basic_scipy import Erfcinv, Erfinv
+from aesara.tensor.elemwise import CAReduceDtype, DimShuffle, Elemwise
 
 
 try:
@@ -504,7 +504,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
 
     Examples
     --------
-    When scalar_op is a theano.scalar.basic.Add instance:
+    When scalar_op is a aesara.scalar.basic.Add instance:
 
       - reduce_mask == (1,) sums a vector to a scalar
 
@@ -623,7 +623,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         )
 
     def perform(self, node, inp, out, ctx):
-        theano.Op.perform(self, node, inp, out, ctx)
+        aesara.Op.perform(self, node, inp, out, ctx)
 
     def supports_c_code(self, inputs):
         """
@@ -680,7 +680,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
 
         nd_in = node.inputs[0].type.ndim
         nd_out = node.outputs[0].type.ndim
-        # For complex, we need to use theano_complex* in the c code to
+        # For complex, we need to use aesara_complex* in the c code to
         # have it run. But libgpuarray don't understand it.
         in_dtype = node.inputs[0].type.dtype_specs()[1]
         out_dtype = node.outputs[0].type.dtype_specs()[1]
@@ -1068,7 +1068,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         in_dtype = node.inputs[0].dtype
         out_dtype = node.outputs[0].dtype
         acc_dtype = self._acc_dtype(node.inputs[0].dtype)
-        # We need to use theano_complex* and not npy_complex*
+        # We need to use aesara_complex* and not npy_complex*
         in_type = gpuarray.dtype_to_ctype(in_dtype)
         out_type = gpuarray.dtype_to_ctype(out_dtype)
         acc_type = gpuarray.dtype_to_ctype(acc_dtype)

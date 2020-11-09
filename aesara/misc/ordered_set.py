@@ -4,12 +4,12 @@ from collections.abc import MutableSet
 
 
 def check_deterministic(iterable):
-    # Most places where OrderedSet is used, theano interprets any exception
+    # Most places where OrderedSet is used, aesara interprets any exception
     # whatsoever as a problem that an optimization introduced into the graph.
     # If I raise a TypeError when the DestoryHandler tries to do something
     # non-deterministic, it will just result in optimizations getting ignored.
     # So I must use an assert here. In the long term we should fix the rest of
-    # theano to use exceptions correctly, so that this can be a TypeError.
+    # aesara to use exceptions correctly, so that this can be a TypeError.
     if iterable is not None:
         if not isinstance(
             iterable, (list, tuple, OrderedSet, types.GeneratorType, str)
@@ -76,7 +76,7 @@ class OrderedSet(MutableSet):
     # Individual links are kept alive by the hard reference in self.__map.
     # Those hard references disappear when a key is deleted from an OrderedSet.
 
-    # Added by IG-- pre-existing theano code expected sets
+    # Added by IG-- pre-existing aesara code expected sets
     #   to have this method
     def update(self, iterable):
         check_deterministic(iterable)

@@ -8,11 +8,11 @@ import time
 from collections import OrderedDict
 from io import StringIO
 
-import theano
-from theano import config
-from theano.gof import graph, toolbox, utils
-from theano.gof.utils import TestValueError, get_variable_trace_string
-from theano.misc.ordered_set import OrderedSet
+import aesara
+from aesara import config
+from aesara.gof import graph, toolbox, utils
+from aesara.gof.utils import TestValueError, get_variable_trace_string
+from aesara.misc.ordered_set import OrderedSet
 
 
 NullType = None
@@ -46,13 +46,13 @@ class MissingInputError(Exception):
 class FunctionGraph(utils.object2):
     """
     A FunctionGraph represents a subgraph bound by a set of input variables and
-    a set of output variables, ie a subgraph that specifies a theano function.
+    a set of output variables, ie a subgraph that specifies a aesara function.
     The inputs list should contain all the inputs on which the outputs depend.
     Variables of type Constant are not counted as inputs.
 
     The FunctionGraph supports the replace operation which allows to replace a
     variable in the subgraph by another, e.g. replace (x + x).out by (2
-    * x).out. This is the basis for optimization in theano.
+    * x).out. This is the basis for optimization in aesara.
 
     This class is also responsible for verifying that a graph is valid
     (ie, all the dtypes and broadcast patterns are compatible with the
@@ -371,7 +371,7 @@ class FunctionGraph(utils.object2):
                             "Input %d of the graph (indices start "
                             "from 0), used to compute %s, was not "
                             "provided and not given a value. Use the "
-                            "Theano flag exception_verbosity='high', "
+                            "Aesara flag exception_verbosity='high', "
                             "for more information on this error."
                             % (node.inputs.index(r), str(node))
                         )
@@ -468,7 +468,7 @@ class FunctionGraph(utils.object2):
             if new_r2 is None or new_r2.type != r.type:
                 done = dict()
                 used_ids = dict()
-                old = theano.compile.debugmode.debugprint(
+                old = aesara.compile.debugmode.debugprint(
                     r,
                     prefix="  ",
                     depth=6,
@@ -477,7 +477,7 @@ class FunctionGraph(utils.object2):
                     print_type=True,
                     used_ids=used_ids,
                 ).getvalue()
-                new = theano.compile.debugmode.debugprint(
+                new = aesara.compile.debugmode.debugprint(
                     new_r,
                     prefix="  ",
                     depth=6,
@@ -503,10 +503,10 @@ class FunctionGraph(utils.object2):
             # multiple-output ops
             return
 
-        if theano.config.compute_test_value != "off":
+        if aesara.config.compute_test_value != "off":
             try:
-                tval = theano.gof.op.get_test_value(r)
-                new_tval = theano.gof.op.get_test_value(new_r)
+                tval = aesara.gof.op.get_test_value(r)
+                new_tval = aesara.gof.op.get_test_value(new_r)
             except TestValueError:
                 pass
             else:

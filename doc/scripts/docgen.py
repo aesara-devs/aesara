@@ -49,7 +49,7 @@ if __name__ == '__main__':
     mkdir(outdir)
     os.chdir(outdir)
 
-    # Make sure the appropriate 'theano' directory is in the PYTHONPATH
+    # Make sure the appropriate 'aesara' directory is in the PYTHONPATH
     pythonpath = os.environ.get('PYTHONPATH', '')
     pythonpath = os.pathsep.join([throot, pythonpath])
     sys.path[0:0] = [throot]  # We must not use os.environ.
@@ -95,7 +95,7 @@ if __name__ == '__main__':
             os.chdir(workdir)
             os.system('make')
             try:
-                shutil.copy(os.path.join(workdir, 'theano.pdf'), outdir)
+                shutil.copy(os.path.join(workdir, 'aesara.pdf'), outdir)
                 os.chdir(outdir)
                 shutil.rmtree(workdir)
             except OSError as e:

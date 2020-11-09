@@ -10,13 +10,13 @@ import warnings
 import numpy as np
 import numpy.fft
 
-from theano import tensor
-from theano.gof import Apply, Op, generic
+from aesara import tensor
+from aesara.gof import Apply, Op, generic
 
 
 message = (
-    "The module theano.sandbox.fourier will soon be deprecated."
-    " Please use theano.tensor.fft, which supports gradients and "
+    "The module aesara.sandbox.fourier will soon be deprecated."
+    " Please use aesara.tensor.fft, which supports gradients and "
     "automatic optimization transfers to the GPU ops."
 )
 warnings.warn(message)

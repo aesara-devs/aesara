@@ -3,10 +3,10 @@ import os
 import numpy as np
 import pytest
 
-import theano
-from theano import Apply, Op, scalar
-from theano.gof.type import CDataType, CEnumType, EnumList, EnumType
-from theano.tensor import TensorType
+import aesara
+from aesara import Apply, Op, scalar
+from aesara.gof.type import CDataType, CEnumType, EnumList, EnumType
+from aesara.tensor import TensorType
 
 
 # todo: test generic
@@ -65,18 +65,18 @@ Py_INCREF(%(out)s);
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_cdata():
     i = TensorType("float32", (False,))()
     c = ProdOp()(i)
     i2 = GetOp()(c)
     mode = None
-    if theano.config.mode == "FAST_COMPILE":
+    if aesara.config.mode == "FAST_COMPILE":
         mode = "FAST_RUN"
 
     # This should be a passthrough function for vectors
-    f = theano.function([i], i2, mode=mode)
+    f = aesara.function([i], i2, mode=mode)
 
     v = np.random.randn(9).astype("float32")
 
@@ -125,7 +125,7 @@ class MyOpEnumList(Op):
             o[0] = a * b
         elif op == self.params_type.DIVIDE:
             if any(
-                dtype in theano.tensor.continuous_dtypes for dtype in (a.dtype, b.dtype)
+                dtype in aesara.tensor.continuous_dtypes for dtype in (a.dtype, b.dtype)
             ):
                 o[0] = a / b
             else:
@@ -264,7 +264,7 @@ class TestEnumTypes:
         c_sub = MyOpEnumList("-")(a, b)
         c_multiply = MyOpEnumList("*")(a, b)
         c_divide = MyOpEnumList("/")(a, b)
-        f = theano.function([a, b], [c_add, c_sub, c_multiply, c_divide])
+        f = aesara.function([a, b], [c_add, c_sub, c_multiply, c_divide])
         va = 12
         vb = 15
         ref = [va + vb, va - vb, va * vb, va // vb]
@@ -272,18 +272,18 @@ class TestEnumTypes:
         assert ref == out, (ref, out)
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_op_with_cenumtype(self):
         million = MyOpCEnumType("million")()
         billion = MyOpCEnumType("billion")()
         two_billions = MyOpCEnumType("two_billions")()
-        f = theano.function([], [million, billion, two_billions])
+        f = aesara.function([], [million, billion, two_billions])
         val_million, val_billion, val_two_billions = f()
         assert val_million == 1000000
         assert val_billion == val_million * 1000
         assert val_two_billions == val_billion * 2
 
-    @theano.change_flags(**{"cmodule.debug": True})
+    @aesara.change_flags(**{"cmodule.debug": True})
     def test_op_with_cenumtype_debug(self):
         self.test_op_with_cenumtype()

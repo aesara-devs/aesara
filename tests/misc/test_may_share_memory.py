@@ -4,7 +4,7 @@ test the tensor and sparse type. (gpuarray is tested in the gpuarray folder).
 
 import numpy as np
 
-import theano
+import aesara
 
 
 try:
@@ -14,7 +14,7 @@ try:
 except ImportError:
     scipy_imported = False
 
-from theano.misc.may_share_memory import may_share_memory
+from aesara.misc.may_share_memory import may_share_memory
 
 
 def may_share_memory_core(a, b):
@@ -86,7 +86,7 @@ if scipy_imported:
         b = scipy.sparse.csc_matrix(scipy.sparse.eye(4, 3))
 
         def as_ar(a):
-            return theano._asarray(a, dtype="int32")
+            return aesara._asarray(a, dtype="int32")
 
         for a_, b_, rep in [
             (a, a, True),

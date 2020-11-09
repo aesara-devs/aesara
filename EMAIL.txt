@@ -1,5 +1,5 @@
 ===========================
- Announcing Theano 0.5
+ Announcing Aesara 0.5
 ===========================
 
 ## You can select and adapt one of the following templates.
@@ -10,8 +10,8 @@ This is a release for a major version, with lots of new
 features, bug fixes, and some interface changes (deprecated or
 potentially misleading features were removed).
 
-Upgrading to Theano 0.5 is recommended for everyone, but you should first make
-sure that your code does not raise deprecation warnings with Theano 0.4.1.
+Upgrading to Aesara 0.5 is recommended for everyone, but you should first make
+sure that your code does not raise deprecation warnings with Aesara 0.4.1.
 Otherwise, in one case the results can change. In other cases, the warnings are
 turned into errors (see below for details).
 
@@ -51,23 +51,23 @@ What's New
 Download and Install
 --------------------
 
-You can download Theano from http://pypi.python.org/pypi/Theano
+You can download Aesara from http://pypi.python.org/pypi/Aesara
 
 Installation instructions are available at
-http://deeplearning.net/software/theano/install.html
+http://deeplearning.net/software/aesara/install.html
 
 Description
 -----------
 
-Theano is a Python library that allows you to define, optimize, and
+Aesara is a Python library that allows you to define, optimize, and
 efficiently evaluate mathematical expressions involving
-multi-dimensional arrays. It is built on top of NumPy. Theano
+multi-dimensional arrays. It is built on top of NumPy. Aesara
 features:
 
  * tight integration with NumPy: a similar interface to NumPy's.
-   numpy.ndarrays are also used internally in Theano-compiled functions.
+   numpy.ndarrays are also used internally in Aesara-compiled functions.
  * transparent use of a GPU: perform data-intensive computations much faster than on a CPU.
- * efficient symbolic differentiation: Theano can compute derivatives
+ * efficient symbolic differentiation: Aesara can compute derivatives
    for functions of one or many inputs.
  * speed and stability optimizations: avoid nasty bugs when computing
    expressions such as log(1+ exp(x)) for large values of x.
@@ -75,20 +75,20 @@ features:
  * extensive unit-testing and self-verification: includes tools for
    detecting and diagnosing bugs and/or potential problems.
 
-Theano has been powering large-scale computationally intensive
+Aesara has been powering large-scale computationally intensive
 scientific research since 2007, but it is also approachable
 enough to be used in the classroom (IFT6266 at the University of Montreal).
 
 Resources
 ---------
 
-About Theano:
+About Aesara:
 
-http://deeplearning.net/software/theano/
+http://deeplearning.net/software/aesara/
 
-Theano-related projects:
+Aesara-related projects:
 
-http://github.com/Theano/Theano/wiki/Related-projects
+http://github.com/Aesara/Aesara/wiki/Related-projects
 
 About NumPy:
 
@@ -98,7 +98,7 @@ About SciPy:
 
 http://www.scipy.org/
 
-Machine Learning Tutorial with Theano on Deep Architectures:
+Machine Learning Tutorial with Aesara on Deep Architectures:
 
 http://deeplearning.net/tutorial/
 
@@ -107,17 +107,17 @@ Acknowledgments
 
 
 
-I would like to thank all contributors of Theano. For this particular
+I would like to thank all contributors of Aesara. For this particular
 release, many people have helped, notably (in alphabetical order):
 [Generate the list of commiters: git shortlog -s <previous_tag>...| cut -c8-]
 
 I would also like to thank users who submitted bug reports, notably:
 [TODO]
 
-Also, thank you to all NumPy and Scipy developers as Theano builds on
+Also, thank you to all NumPy and Scipy developers as Aesara builds on
 their strengths.
 
-All questions/comments are always welcome on the Theano
-mailing-lists ( http://deeplearning.net/software/theano/#community )
+All questions/comments are always welcome on the Aesara
+mailing-lists ( http://deeplearning.net/software/aesara/#community )
 
 

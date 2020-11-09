@@ -6,17 +6,17 @@ from tempfile import mkstemp
 import numpy as np
 import pytest
 
-import theano
+import aesara
 from tests import unittest_tools as utt
-from theano import change_flags, config, function, gof, shared, tensor
-from theano.compile.mode import get_default_mode
-from theano.tensor.type import TensorType
+from aesara import change_flags, config, function, gof, shared, tensor
+from aesara.compile.mode import get_default_mode
+from aesara.tensor.type import TensorType
 
 
 # Used to exclude random numbers too close to certain values
 _eps = 1e-2
 
-if theano.config.floatX == "float32":
+if aesara.config.floatX == "float32":
     angle_eps = 1e-4
 else:
     angle_eps = 1e-10
@@ -54,7 +54,7 @@ ALL_DTYPES = (
 REAL_DTYPES = ALL_DTYPES[:6]
 COMPLEX_DTYPES = ALL_DTYPES[-2:]
 
-ignore_isfinite_mode = copy(theano.compile.get_default_mode())
+ignore_isfinite_mode = copy(aesara.compile.get_default_mode())
 ignore_isfinite_mode.check_isfinite = False
 
 
@@ -131,7 +131,7 @@ def get_numeric_subclasses(cls=np.number, ignore=None):
 
 
 def get_numeric_types(
-    with_int=True, with_float=True, with_complex=False, only_theano_types=True
+    with_int=True, with_float=True, with_complex=False, only_aesara_types=True
 ):
     # Return numpy numeric data types.
     #
@@ -141,20 +141,20 @@ def get_numeric_types(
     #
     # :param with_complex: Whether to include complex types.
     #
-    # :param only_theano_types: If True, then numpy numeric data types that are
-    # not supported by Theano are ignored (i.e. those that are not declared in
+    # :param only_aesara_types: If True, then numpy numeric data types that are
+    # not supported by Aesara are ignored (i.e. those that are not declared in
     # scalar/basic.py).
     #
     # :returns: A list of unique data type objects. Note that multiple data types
     # may share the same string representation, but can be differentiated through
     # their `num` attribute.
     #
-    # Note that when `only_theano_types` is True we could simply return the list
+    # Note that when `only_aesara_types` is True we could simply return the list
     # of types defined in the `scalar` module. However with this function we can
     # test more unique dtype objects, and in the future we may use it to
     # automatically detect new data types introduced in numpy.
-    if only_theano_types:
-        theano_types = [d.dtype for d in theano.scalar.all_types]
+    if only_aesara_types:
+        aesara_types = [d.dtype for d in aesara.scalar.all_types]
     rval = []
 
     def is_within(cls1, cls2):
@@ -176,7 +176,7 @@ def get_numeric_types(
             (not with_complex and is_within(cls, np.complexfloating))
             or (not with_int and is_within(cls, np.integer))
             or (not with_float and is_within(cls, np.floating))
-            or (only_theano_types and dtype not in theano_types)
+            or (only_aesara_types and dtype not in aesara_types)
         ):
             # Ignore this class.
             continue
@@ -317,7 +317,7 @@ def check_floatX(inputs, rval):
     # :param rval: Value returned by a function with inputs set to `inputs`.
     #
     # :returns: Either `rval` unchanged, or `rval` cast in float32. The idea is
-    # that when a numpy function would have returned a float64, Theano may prefer
+    # that when a numpy function would have returned a float64, Aesara may prefer
     # to return a float32 instead when `config.cast_policy` is set to
     # 'numpy+floatX' and config.floatX to 'float32', and there was no float64
     # input.
@@ -342,7 +342,7 @@ def _numpy_true_div(x, y):
     out = np.true_divide(x, y)
     # Use floatX as the result of int / int
     if x.dtype in tensor.discrete_dtypes and y.dtype in tensor.discrete_dtypes:
-        out = theano._asarray(out, dtype=config.floatX)
+        out = aesara._asarray(out, dtype=config.floatX)
     return out
 
 
@@ -378,7 +378,7 @@ def makeTester(
     grad_eps=None,
 ):
     # :param check_name:
-    #     Use only for tester that aren't in Theano.
+    #     Use only for tester that aren't in Aesara.
     if checks is None:
         checks = {}
     if good is None:

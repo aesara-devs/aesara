@@ -7,15 +7,15 @@ generic 2D convolution.
 import logging
 import warnings
 
-import theano
-import theano.tensor as tensor
-from theano.tensor.nnet import conv
+import aesara
+import aesara.tensor as tensor
+from aesara.tensor.nnet import conv
 
 
 __docformat__ = "restructuredtext en"
 
 
-_logger = logging.getLogger("theano.tensor.signal.conv")
+_logger = logging.getLogger("aesara.tensor.signal.conv")
 
 
 def conv2d(
@@ -37,9 +37,9 @@ def conv2d(
 
     Parameters
     ----------
-    input   : Symbolic theano tensor for images to be filtered.
+    input   : Symbolic aesara tensor for images to be filtered.
               Dimensions: ([num_images], image height, image width)
-    filters : Symbolic theano tensor for convolution filter(s).
+    filters : Symbolic aesara tensor for convolution filter(s).
               Dimensions: ([num_filters], filter height, filter width)
     border_mode: {'valid', 'full'}
         See scipy.signal.convolve2d.
@@ -50,7 +50,7 @@ def conv2d(
     filter_shape : tuple of length 2 or 3
         ([num_filters,] filter height, filter width).
     kwargs
-        See theano.tensor.nnet.conv.conv2d.
+        See aesara.tensor.nnet.conv.conv2d.
 
     Returns
     -------
@@ -112,10 +112,10 @@ def conv2d(
 
     # flatten to 3D tensor if convolving with single filter or single image
     if input.ndim == 2 and filters.ndim == 2:
-        if theano.config.warn.signal_conv2d_interface:
+        if aesara.config.warn.signal_conv2d_interface:
             warnings.warn(
-                "theano.tensor.signal.conv2d() now outputs a 2d tensor when both"
-                " inputs are 2d. To disable this warning, set the Theano flag"
+                "aesara.tensor.signal.conv2d() now outputs a 2d tensor when both"
+                " inputs are 2d. To disable this warning, set the Aesara flag"
                 " warn.signal_conv2d_interface to False",
                 stacklevel=3,
             )

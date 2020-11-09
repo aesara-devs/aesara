@@ -1,5 +1,5 @@
 #include <Python.h>
-#include "theano_mod_helper.h"
+#include "aesara_mod_helper.h"
 #include "structmember.h"
 #include <sys/time.h>
 

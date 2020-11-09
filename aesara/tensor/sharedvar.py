@@ -2,9 +2,9 @@ import traceback
 
 import numpy as np
 
-import theano.tensor.basic
-from theano.compile import SharedVariable, shared_constructor
-from theano.tensor.basic import TensorType, _tensor_py_operators
+import aesara.tensor.basic
+from aesara.compile import SharedVariable, shared_constructor
+from aesara.tensor.basic import TensorType, _tensor_py_operators
 
 
 def load_shared_variable(val):
@@ -69,7 +69,7 @@ def tensor_constructor(
 # _tensor_py_operators is first to have its version of __{gt,ge,lt,le}__
 #
 # N.B. THERE IS ANOTHER CLASS CALLED ScalarSharedVariable in the
-# theano.scalar.sharedvar file.  It is not registered as a shared_constructor,
+# aesara.scalar.sharedvar file.  It is not registered as a shared_constructor,
 # this one is.
 class ScalarSharedVariable(_tensor_py_operators, SharedVariable):
     pass
@@ -88,7 +88,7 @@ def scalar_constructor(
 
     We ignore the borrow parameter as we convert ``value`` to an
     ndarray (this is a new object). This respects the semantic of
-    borrow, as it is a hint to Theano that we can reuse it.
+    borrow, as it is a hint to Aesara that we can reuse it.
 
     """
     if target != "cpu":
@@ -102,7 +102,7 @@ def scalar_constructor(
         dtype = np.asarray(value).dtype
 
     dtype = str(dtype)
-    value = theano._asarray(value, dtype=dtype)
+    value = aesara._asarray(value, dtype=dtype)
     tensor_type = TensorType(dtype=str(value.dtype), broadcastable=[])
 
     try:

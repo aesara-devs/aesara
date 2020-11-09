@@ -134,7 +134,7 @@ int APPLY_SPECIFIC(ave_pool_grad)(PyGpuArrayObject *x,
       PyErr_SetString(PyExc_ValueError, "GpuMaxPoolGrad: rank error");
       return 1;
     }
-  if (theano_prep_output(gx, PyGpuArray_NDIM(x), PyGpuArray_DIMS(x),
+  if (aesara_prep_output(gx, PyGpuArray_NDIM(x), PyGpuArray_DIMS(x),
                          x->ga.typecode, GA_C_ORDER, params->context) != 0)
     {
       PyErr_SetString(PyExc_RuntimeError,

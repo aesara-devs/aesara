@@ -4,7 +4,7 @@
 Unit Testing
 ============
 
-Theano relies heavily on unit testing. Its importance cannot be
+Aesara relies heavily on unit testing. Its importance cannot be
 stressed enough!
 
 Unit Testing revolves around the following principles:
@@ -30,7 +30,7 @@ Unit Testing revolves around the following principles:
 This page is in no way meant to replace tutorials on Python's unittest
 module, for this we refer the reader to the `official documentation
 <http://docs.python.org/library/unittest.html>`_.  We will however
-adress certain specificities about how unittests relate to theano.
+adress certain specificities about how unittests relate to aesara.
 
 PyTest Primer
 ===============
@@ -40,12 +40,12 @@ We use pytest now! New tests should mostly be functions, with assertions
 How to Run Unit Tests ?
 -----------------------
 
-Mostly `pytest theano/`
+Mostly `pytest aesara/`
 
 Folder Layout
 -------------
 
-"tests" directories are scattered throughout theano. Each tests
+"tests" directories are scattered throughout aesara. Each tests
 subfolder is meant to contain the unittests which validate the .py
 files in the parent folder.
 
@@ -55,10 +55,10 @@ Optimally every python module should have a unittest file associated
 with it, as shown below. Unittests testing functionality of module
 <module>.py should therefore be stored in tests/test_<module>.py::
 
-    Theano/theano/tensor/basic.py
-    Theano/theano/tensor/elemwise.py
-    Theano/theano/tensor/tests/test_basic.py
-    Theano/theano/tensor/tests/test_elemwise.py
+    Aesara/aesara/tensor/basic.py
+    Aesara/aesara/tensor/elemwise.py
+    Aesara/aesara/tensor/tests/test_basic.py
+    Aesara/aesara/tensor/tests/test_elemwise.py
 
 
 How to Write a Unittest
@@ -123,7 +123,7 @@ Checking for correctness
 ------------------------
 
 When checking for correctness of mathematical expressions, the user
-should preferably compare theano's output to the equivalent numpy
+should preferably compare aesara's output to the equivalent numpy
 implementation.
 
 Example:
@@ -138,7 +138,7 @@ Example:
             a = T.dmatrix('a')
             b = T.dmatrix('b')
             c = T.dot(a, b)
-            f = theano.function([a, b], [c])
+            f = aesara.function([a, b], [c])
             cmp = f(self.avals, self.bvals) == numpy.dot(self.avals, self.bvals)
             self.assertTrue(numpy.all(cmp))
 
@@ -164,7 +164,7 @@ Here is a list of useful functions, as defined by TestCase:
   assertNotEqual
 
 * checking for (in)equality constraints up to a given precision (very
-  useful in theano): assertAlmostEqual,
+  useful in aesara): assertAlmostEqual,
   assertNotAlmostEqual
 
 
@@ -198,17 +198,17 @@ Useful function, as defined by TestCase:
 * assertRaises
 
 
-Test Cases and Theano Modes
+Test Cases and Aesara Modes
 ---------------------------
 
-When compiling theano functions or modules, a mode parameter can be
+When compiling aesara functions or modules, a mode parameter can be
 given to specify which linker and optimizer to use.
 
 Example:
 
 .. code-block:: python
 
-    from theano import function
+    from aesara import function
 
     f = function([a,b],[c],mode='FAST_RUN')
 
@@ -287,7 +287,7 @@ Similarly, to provide a seed to ``numpy.random.RandomState``, simply use:
 
 Note that the ability to change the seed from one test to another,
 is incompatible with the method of hard-coding the baseline variables
-(against which we compare the theano outputs). These must then be
+(against which we compare the aesara outputs). These must then be
 determined "algorithmically". Although this represents more work, the
 test suite will be better because of it.
 
@@ -301,7 +301,7 @@ Creating an Op UnitTest
 =======================
 
 A few tools have been developed to help automate the development of
-unitests for Theano Ops.
+unitests for Aesara Ops.
 
 
 .. _validating_grad:
@@ -341,8 +341,8 @@ both the given absolute and relative tolerances.
 
 The parameters are as follows:
 
-* ``fun``: a Python function that takes Theano variables as inputs,
-  and returns a Theano variable.
+* ``fun``: a Python function that takes Aesara variables as inputs,
+  and returns a Aesara variable.
   For instance, an Op instance with a single output is such a function.
   It can also be a Python function that calls an op with some of its
   inputs being fixed to specific values, or that combine multiple ops.
@@ -361,7 +361,7 @@ The parameters are as follows:
 * ``rel_tol``: relative tolerance used as threshold for gradient comparison
 
 In the general case, you can define ``fun`` as you want, as long as it
-takes as inputs Theano symbolic variables and returns a sinble Theano
+takes as inputs Aesara symbolic variables and returns a sinble Aesara
 symbolic variable:
 
 .. testcode::
@@ -412,10 +412,10 @@ which would cause ``verify_grad`` to crash.
 
 .. note::
 
-    Although ``verify_grad`` is defined in ``theano.tensor.basic``, unittests
+    Although ``verify_grad`` is defined in ``aesara.tensor.basic``, unittests
     should use the version of ``verify_grad`` defined in ``tests.unittest_tools``.
     This is simply a wrapper function which takes care of seeding the random
-    number generator appropriately before calling ``theano.tensor.basic.verify_grad``
+    number generator appropriately before calling ``aesara.tensor.basic.verify_grad``
 
 makeTester and makeBroadcastTester
 ==================================

@@ -1,15 +1,15 @@
-import theano
-from theano.compile import optdb
-from theano.compile.ops import shape_i_op
-from theano.gof.opt import Optimizer, inherit_stack_trace, local_optimizer
-from theano.gpuarray.basic_ops import (
+import aesara
+from aesara.compile import optdb
+from aesara.compile.ops import shape_i_op
+from aesara.gof.opt import Optimizer, inherit_stack_trace, local_optimizer
+from aesara.gpuarray.basic_ops import (
     GpuAllocEmpty,
     GpuArrayType,
     as_gpuarray_variable,
     gpu_contiguous,
     infer_context_name,
 )
-from theano.gpuarray.dnn import (
+from aesara.gpuarray.dnn import (
     GpuDnnBatchNorm,
     GpuDnnBatchNormInference,
     GpuDnnConv,
@@ -30,9 +30,9 @@ from theano.gpuarray.dnn import (
     local_abstractconv_cudnn_graph,
     version,
 )
-from theano.gpuarray.elemwise import GpuCAReduceCuda, GpuElemwise
-from theano.gpuarray.nnet import GpuSoftmax
-from theano.gpuarray.opt_util import (
+from aesara.gpuarray.elemwise import GpuCAReduceCuda, GpuElemwise
+from aesara.gpuarray.nnet import GpuSoftmax
+from aesara.gpuarray.opt_util import (
     alpha_merge,
     inplace_allocempty,
     op_lifter,
@@ -40,7 +40,7 @@ from theano.gpuarray.opt_util import (
     pad_dims,
     unpad_dims,
 )
-from theano.gpuarray.optdb import (
+from aesara.gpuarray.optdb import (
     gpu_seqopt,
     pool_db,
     pool_db2,
@@ -48,12 +48,12 @@ from theano.gpuarray.optdb import (
     register_opt,
     register_opt2,
 )
-from theano.gpuarray.reduction import GpuMaxAndArgmax
-from theano.gpuarray.type import list_contexts
-from theano.scalar import Log
-from theano.tensor import Argmax
-from theano.tensor.nnet import LogSoftmax, SoftmaxGrad
-from theano.tensor.nnet.abstract_conv import (
+from aesara.gpuarray.reduction import GpuMaxAndArgmax
+from aesara.gpuarray.type import list_contexts
+from aesara.scalar import Log
+from aesara.tensor import Argmax
+from aesara.tensor.nnet import LogSoftmax, SoftmaxGrad
+from aesara.tensor.nnet.abstract_conv import (
     AbstractConv2d,
     AbstractConv2d_gradInputs,
     AbstractConv2d_gradWeights,
@@ -63,7 +63,7 @@ from theano.tensor.nnet.abstract_conv import (
     assert_conv_shape,
     get_conv_output_shape,
 )
-from theano.tensor.signal.pool import AveragePoolGrad, MaxPoolGrad, Pool
+from aesara.tensor.signal.pool import AveragePoolGrad, MaxPoolGrad, Pool
 
 
 @local_optimizer([AbstractConv2d, AbstractConv3d])
@@ -425,7 +425,7 @@ def local_dnn_convgi_inplace(node, inputs):
 
 optdb.register(
     "local_dnna_conv_inplace",
-    theano.tensor.opt.in2out(
+    aesara.tensor.opt.in2out(
         local_dnn_conv_inplace,
         local_dnn_convgw_inplace,
         local_dnn_convgi_inplace,
@@ -723,22 +723,22 @@ def local_dnn_reduction(node):
         return a
 
     def _square(a):
-        return GpuElemwise(theano.scalar.basic.sqr)(a)
+        return GpuElemwise(aesara.scalar.basic.sqr)(a)
 
     scal = node.op.scalar_op.name
     post = _identity
 
     if node.op.pre_scalar_op is not None:
-        if isinstance(node.op.scalar_op, theano.scalar.basic.Add):
-            if isinstance(node.op.pre_scalar_op, theano.scalar.basic.Sqr):
+        if isinstance(node.op.scalar_op, aesara.scalar.basic.Add):
+            if isinstance(node.op.pre_scalar_op, aesara.scalar.basic.Sqr):
                 scal = "norm2"
                 post = _square
-            elif isinstance(node.op.pre_scalar_op, theano.scalar.basic.Abs):
+            elif isinstance(node.op.pre_scalar_op, aesara.scalar.basic.Abs):
                 scal = "norm1"
             else:
                 return
-        elif isinstance(node.op.scalar_op, theano.scalar.basic.Maximum) and isinstance(
-            node.op.pre_scalar_op, theano.scalar.basic.Abs
+        elif isinstance(node.op.scalar_op, aesara.scalar.basic.Maximum) and isinstance(
+            node.op.pre_scalar_op, aesara.scalar.basic.Abs
         ):
             scal = "absmax"
         else:
@@ -825,10 +825,10 @@ class NoCuDNNRaise(Optimizer):
         """
         for c in list_contexts():
             if not dnn_available(c):
-                # Make an assert error as we want Theano to fail, not
+                # Make an assert error as we want Aesara to fail, not
                 # just skip this optimization.
                 raise AssertionError(
-                    "cuDNN optimization was enabled, but Theano was not able "
+                    "cuDNN optimization was enabled, but Aesara was not able "
                     "to use it for context "
                     + str(c)
                     + ". We got this error: \n"

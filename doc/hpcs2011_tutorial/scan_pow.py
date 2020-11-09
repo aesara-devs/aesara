@@ -1,5 +1,5 @@
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 
 
 k = tt.iscalar("k")
@@ -11,7 +11,7 @@ def inner_fct(prior_result, A):
 
 
 # Symbolic description of the result
-result, updates = theano.scan(
+result, updates = aesara.scan(
     fn=inner_fct, outputs_info=tt.ones_like(A), non_sequences=A, n_steps=k
 )
 
@@ -19,6 +19,6 @@ result, updates = theano.scan(
 # value. Scan notices this and does not waste memory saving them.
 final_result = result[-1]
 
-power = theano.function(inputs=[A, k], outputs=final_result, updates=updates)
+power = aesara.function(inputs=[A, k], outputs=final_result, updates=updates)
 
 print(power(list(range(10)), 2))

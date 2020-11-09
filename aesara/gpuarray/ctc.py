@@ -1,23 +1,23 @@
 import os
 import sys
 
-import theano
-import theano.tensor as tt
-import theano.tensor.nnet.ctc
-from theano import config, gof
-from theano.gof import local_optimizer
-from theano.gpuarray import pygpu
-from theano.gpuarray.basic_ops import (
+import aesara
+import aesara.tensor as tt
+import aesara.tensor.nnet.ctc
+from aesara import config, gof
+from aesara.gof import local_optimizer
+from aesara.gpuarray import pygpu
+from aesara.gpuarray.basic_ops import (
     as_gpuarray_variable,
     gpu_contiguous,
     gpuarray_helper_inc_dir,
     infer_context_name,
 )
-from theano.gpuarray.elemwise import GpuDimShuffle
-from theano.gpuarray.type import GpuArrayType, gpu_context_type
-from theano.gradient import grad_undefined
-from theano.tensor.nnet.ctc import ctc_available
-from theano.tensor.opt import register_canonicalize
+from aesara.gpuarray.elemwise import GpuDimShuffle
+from aesara.gpuarray.type import GpuArrayType, gpu_context_type
+from aesara.gradient import grad_undefined
+from aesara.tensor.nnet.ctc import ctc_available
+from aesara.tensor.opt import register_canonicalize
 
 
 class GpuConnectionistTemporalClassification(gof.COp):
@@ -142,7 +142,7 @@ class GpuConnectionistTemporalClassification(gof.COp):
             )()
             outputs += [gradients]
 
-        return theano.Apply(
+        return aesara.Apply(
             self, inputs=[t_activations, t_labels, t_input_lengths], outputs=outputs
         )
 

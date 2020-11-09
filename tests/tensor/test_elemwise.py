@@ -6,13 +6,13 @@ import numpy as np
 import pytest
 
 import tests.unittest_tools as utt
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 from tests import unittest_tools
-from theano import config, gof, scalar
-from theano.compile.mode import Mode, get_default_mode
-from theano.tensor import TensorType, as_tensor_variable
-from theano.tensor.elemwise import (
+from aesara import config, gof, scalar
+from aesara.compile.mode import Mode, get_default_mode
+from aesara.tensor import TensorType, as_tensor_variable
+from aesara.tensor.elemwise import (
     CAReduce,
     DimShuffle,
     Elemwise,
@@ -20,8 +20,8 @@ from theano.tensor.elemwise import (
     ProdWithoutZeros,
     Sum,
 )
-from theano.tensor.nnet import sigmoid
-from theano.tensor.type import values_eq_approx_remove_nan
+from aesara.tensor.nnet import sigmoid
+from aesara.tensor.type import values_eq_approx_remove_nan
 
 
 def FunctionGraph(i, o):
@@ -32,7 +32,7 @@ def FunctionGraph(i, o):
 class TestDimShuffle(unittest_tools.InferShapeTester):
     op = DimShuffle
     type = TensorType
-    dtype = theano.config.floatX
+    dtype = aesara.config.floatX
 
     def with_linker(self, linker):
         for xsh, shuffle, zsh in [
@@ -170,10 +170,10 @@ class TestBroadcast:
     linkers = [gof.PerformLinker, gof.CLinker]
 
     def rand_val(self, shp):
-        return np.asarray(np.random.rand(*shp), dtype=theano.config.floatX)
+        return np.asarray(np.random.rand(*shp), dtype=aesara.config.floatX)
 
     def rand_cval(self, shp):
-        return np.asarray(np.random.rand(*shp), dtype=theano.config.floatX)
+        return np.asarray(np.random.rand(*shp), dtype=aesara.config.floatX)
 
     def setup_method(self):
         unittest_tools.seed_rng()
@@ -195,8 +195,8 @@ class TestBroadcast:
             ((2, 3, 4, 5), (1, 1, 1, 1)),
             ((), ()),
         ]:
-            x = type(theano.config.floatX, [(entry == 1) for entry in xsh])("x")
-            y = type(theano.config.floatX, [(entry == 1) for entry in ysh])("y")
+            x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
+            y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
             e = op(scalar.add)(x, y)
             f = copy(linker).accept(FunctionGraph([x, y], [e])).make_function()
             xv = rand_val(xsh)
@@ -208,8 +208,8 @@ class TestBroadcast:
             # test Elemwise.infer_shape
             # the Shape op don't implement c_code!
             if isinstance(linker, gof.PerformLinker):
-                x = type(theano.config.floatX, [(entry == 1) for entry in xsh])("x")
-                y = type(theano.config.floatX, [(entry == 1) for entry in ysh])("y")
+                x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
+                y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
                 e = op(scalar.add)(x, y)
                 f = (
                     copy(linker)
@@ -229,8 +229,8 @@ class TestBroadcast:
             ((2, 3, 4, 5), (1, 1, 1, 1)),
             ((), ()),
         ]:
-            x = type(theano.config.floatX, [(entry == 1) for entry in xsh])("x")
-            y = type(theano.config.floatX, [(entry == 1) for entry in ysh])("y")
+            x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
+            y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
             e = op(scalar.Add(scalar.transfer_type(0)), {0: 0})(x, y)
             f = copy(linker).accept(FunctionGraph([x, y], [e])).make_function()
             xv = rand_val(xsh)
@@ -243,8 +243,8 @@ class TestBroadcast:
             # test Elemwise.infer_shape
             # the Shape op don't implement c_code!
             if isinstance(linker, gof.PerformLinker):
-                x = type(theano.config.floatX, [(entry == 1) for entry in xsh])("x")
-                y = type(theano.config.floatX, [(entry == 1) for entry in ysh])("y")
+                x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
+                y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
                 e = op(scalar.Add(scalar.transfer_type(0)), {0: 0})(x, y)
                 f = (
                     copy(linker)
@@ -263,7 +263,7 @@ class TestBroadcast:
         self.with_linker(gof.PerformLinker(), self.op, self.type, self.rand_val)
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_c(self):
         self.with_linker(gof.CLinker(), self.cop, self.ctype, self.rand_cval)
@@ -272,13 +272,13 @@ class TestBroadcast:
         self.with_linker_inplace(gof.PerformLinker(), self.op, self.type, self.rand_val)
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_c_inplace(self):
         self.with_linker_inplace(gof.CLinker(), self.cop, self.ctype, self.rand_cval)
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_fill(self):
         for linker, op, t, rval in zip(
@@ -287,8 +287,8 @@ class TestBroadcast:
             [self.type, self.ctype],
             [self.rand_val, self.rand_cval],
         ):
-            x = t(theano.config.floatX, [0, 0])("x")
-            y = t(theano.config.floatX, [1, 1])("y")
+            x = t(aesara.config.floatX, [0, 0])("x")
+            y = t(aesara.config.floatX, [1, 1])("y")
             e = op(scalar.Second(scalar.transfer_type(0)), {0: 0})(x, y)
             f = linker().accept(FunctionGraph([x, y], [e])).make_function()
             xv = rval((5, 5))
@@ -302,14 +302,14 @@ class TestBroadcast:
 
     def test_fill_grad(self):
         # Fix bug reported at
-        # https://groups.google.com/d/topic/theano-users/nQshB8gUA6k/discussion
+        # https://groups.google.com/d/topic/aesara-users/nQshB8gUA6k/discussion
         x = TensorType(config.floatX, [0, 1, 0])("x")
         y = TensorType(config.floatX, [0, 1, 0])("y")
         e = tt.second(x, y)
-        theano.grad(e.sum(), y)
+        aesara.grad(e.sum(), y)
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_weird_strides(self):
         for linker, op, t, rval in zip(
@@ -318,8 +318,8 @@ class TestBroadcast:
             [self.type, self.ctype],
             [self.rand_val, self.rand_cval],
         ):
-            x = t(theano.config.floatX, [0, 0, 0, 0, 0])("x")
-            y = t(theano.config.floatX, [0, 0, 0, 0, 0])("y")
+            x = t(aesara.config.floatX, [0, 0, 0, 0, 0])("x")
+            y = t(aesara.config.floatX, [0, 0, 0, 0, 0])("y")
             e = op(scalar.add)(x, y)
             f = linker().accept(FunctionGraph([x, y], [e])).make_function()
             xv = rval((2, 2, 2, 2, 2))
@@ -328,7 +328,7 @@ class TestBroadcast:
             assert (f(xv, yv) == zv).all()
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_same_inputs(self):
         for linker, op, t, rval in zip(
@@ -337,7 +337,7 @@ class TestBroadcast:
             [self.type, self.ctype],
             [self.rand_val, self.rand_cval],
         ):
-            x = t(theano.config.floatX, [0, 0])("x")
+            x = t(aesara.config.floatX, [0, 0])("x")
             e = op(scalar.add)(x, x)
             f = linker().accept(FunctionGraph([x], [e])).make_function()
             xv = rval((2, 2))
@@ -393,7 +393,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
     ):
         for xsh, tosum in self.cases:
             if dtype == "floatX":
-                dtype = theano.config.floatX
+                dtype = aesara.config.floatX
             x = self.type(dtype, [(entry == 1) for entry in xsh])("x")
             d = {}
             if pre_scalar_op is not None:
@@ -406,7 +406,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             if tosum is None:
                 tosum = list(range(len(xsh)))
 
-            f = theano.function([x], e, mode=mode)
+            f = aesara.function([x], e, mode=mode)
             xv = np.asarray(np.random.rand(*xsh))
 
             if dtype not in tt.discrete_dtypes:
@@ -511,7 +511,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 e = tensor_op(x, axis=tosum)
             if tosum is None:
                 tosum = list(range(len(xsh)))
-            f = theano.function([x], e.shape, mode=mode)
+            f = aesara.function([x], e.shape, mode=mode)
             if not (
                 scalar_op in [scalar.maximum, scalar.minimum]
                 and (xsh == () or np.prod(xsh) == 0)
@@ -566,7 +566,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             )
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_c_noopt(self):
         # We need to make sure that we cover the corner cases that
@@ -575,7 +575,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
 
     @pytest.mark.slow
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_c(self):
         for dtype in ["bool", "floatX", "complex64", "complex128", "int8", "uint8"]:
@@ -593,7 +593,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
 
     @pytest.mark.slow
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_c_nan(self):
         for dtype in ["floatX", "complex64", "complex128"]:
@@ -605,7 +605,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
 
     def test_infer_shape(self, dtype=None, pre_scalar_op=None):
         if dtype is None:
-            dtype = theano.config.floatX
+            dtype = aesara.config.floatX
         for xsh, tosum in self.cases:
             x = self.type(dtype, [(entry == 1) for entry in xsh])("x")
             if pre_scalar_op is not None:
@@ -633,7 +633,7 @@ class TestProd:
 
         # we want to allow nans in the matrices, so we disable this
         # DEBUG_MODE check
-        mode = theano.compile.mode.get_default_mode()
+        mode = aesara.compile.mode.get_default_mode()
         mode = copy(mode)
         mode.check_isfinite = False
 
@@ -671,16 +671,16 @@ class TestProd:
         # Uncomment this for debugging if needed
         # x2 = tt.dmatrix()
         # p2 = Prod(axis=1)(x2)
-        # fn = theano.function([x, x2], [p - p2], mode=self.mode)
+        # fn = aesara.function([x, x2], [p - p2], mode=self.mode)
         # print("hand computed diff for each row")
         # x2_val = np.asarray([[1., 2., 3.003], [0.003, 5., 6], [
         #     0., 0., 9.01]])
         # print(fn(x_val, x2_val))
-        # fn2 = theano.function([x], [tt.grad(p.sum(), x)],
+        # fn2 = aesara.function([x], [tt.grad(p.sum(), x)],
         #                       mode=self.mode)
         # print("real grad")
         # print(fn2(x_val))
-        fn3 = theano.function([x], [p], mode=self.mode)
+        fn3 = aesara.function([x], [p], mode=self.mode)
         assert np.allclose(fn3(x_val), [6.0, 0.0, 0.0])
 
         # now with verify_grad
@@ -693,7 +693,7 @@ class TestProd:
 
         # x4 = tt.dmatrix()
         # p4 = tt.sqr(Prod(axis=1)(x4))
-        # fn4 = theano.function([x4], p4)
+        # fn4 = aesara.function([x4], p4)
         # print("with sqr")
         # print(fn4(x_val))
         # print(fn4(x2_val))
@@ -705,14 +705,14 @@ class TestProd:
         x = tt.dmatrix()
         x_val = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype="float32")
         pwz = Prod(axis=1, no_zeros_in_input=True)(x)
-        fn = theano.function([x], pwz, mode=self.mode)
+        fn = aesara.function([x], pwz, mode=self.mode)
 
         assert np.allclose(fn(x_val), [6, 120, 504])
 
         pwz = Prod(no_zeros_in_input=True)(x)
-        g = theano.grad(pwz, x)
-        gg = theano.grad(g.sum(), x)
-        fn = theano.function([x], g, mode=self.mode)
+        g = aesara.grad(pwz, x)
+        gg = aesara.grad(g.sum(), x)
+        fn = aesara.function([x], g, mode=self.mode)
         assert np.allclose(
             fn(x_val),
             [
@@ -721,7 +721,7 @@ class TestProd:
                 [51840.0, 45360.0, 40320.0],
             ],
         )
-        fn = theano.function([x], gg, mode=self.mode)
+        fn = aesara.function([x], gg, mode=self.mode)
         assert np.allclose(
             fn(x_val),
             [
@@ -738,7 +738,7 @@ class TestProd:
         )
 
         def second_deriv(x):
-            return theano.grad(Prod(no_zeros_in_input=True)(x), x)
+            return aesara.grad(Prod(no_zeros_in_input=True)(x), x)
 
         unittest_tools.verify_grad(second_deriv, [x_val], mode=self.mode)
 
@@ -746,19 +746,19 @@ class TestProd:
         x = tt.dmatrix()
         x_val = np.array([[1, 2, 3], [0, 5, 6], [0, 0, 9]], dtype="float32")
         pwz = ProdWithoutZeros(axis=1)(x)
-        fn = theano.function([x], pwz, mode=self.mode)
+        fn = aesara.function([x], pwz, mode=self.mode)
         assert np.allclose(fn(x_val), [6, 30, 9])
 
         pwz_a0 = ProdWithoutZeros(axis=0)(x)
-        fn_a0 = theano.function([x], pwz_a0, mode=self.mode)
+        fn_a0 = aesara.function([x], pwz_a0, mode=self.mode)
         assert np.allclose(fn_a0(x_val), [1, 10, 162])
 
-    @pytest.mark.xfail(raises=theano.gradient.NullTypeGradError)
+    @pytest.mark.xfail(raises=aesara.gradient.NullTypeGradError)
     def test_prod_without_zeros_grad(self):
         x = tt.dmatrix()
         pwz_a1 = ProdWithoutZeros(axis=0)(x)
-        pwz_grad = theano.grad(tt.sum(pwz_a1), x)
-        theano.function([x], pwz_grad, mode=self.mode)
+        pwz_grad = aesara.grad(tt.sum(pwz_a1), x)
+        aesara.function([x], pwz_grad, mode=self.mode)
 
     @pytest.mark.slow
     def test_other_grad_tests(self):
@@ -771,7 +771,7 @@ class TestProd:
 
         p = Prod(axis=1)
         grad_p = tt.grad(p(x).sum(), x)
-        grad_fn = theano.function([x], grad_p, mode=self.mode)
+        grad_fn = aesara.function([x], grad_p, mode=self.mode)
         assert np.allclose(
             grad_fn(x_val1), [[6.0, 3.0, 2.0], [30.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
         )
@@ -782,7 +782,7 @@ class TestProd:
 
         p_axis0 = Prod(axis=0)
         grad_p_axis0 = tt.grad(p_axis0(x).sum(), x)
-        grad_fn_axis0 = theano.function([x], grad_p_axis0, mode=self.mode)
+        grad_fn_axis0 = aesara.function([x], grad_p_axis0, mode=self.mode)
         assert np.allclose(
             grad_fn_axis0(x_val2),
             [
@@ -802,7 +802,7 @@ class TestProd:
 
         mul1 = ProdWithoutZeros(axis=0)(x)
 
-        fn_debug = theano.function([x], mul1, mode=self.mode)
+        fn_debug = aesara.function([x], mul1, mode=self.mode)
 
         fn_debug(a)
 
@@ -830,21 +830,21 @@ class TestIsInfIsNan:
         self.scalar = tt.scalar()
         self.vector = tt.vector()
         self.mode = get_default_mode()
-        if isinstance(self.mode, theano.compile.debugmode.DebugMode):
+        if isinstance(self.mode, aesara.compile.debugmode.DebugMode):
             # Disable the check preventing usage of NaN / Inf values.
             self.mode = copy(self.mode)
             self.mode.check_isfinite = False
 
     def run_isfunc(self, tt_func, np_func):
         for args in (self.scalar, self.vector):
-            theano_isfunc = theano.function([args], tt_func(args), mode=self.mode)
+            aesara_isfunc = aesara.function([args], tt_func(args), mode=self.mode)
             for x in self.test_vals:
                 if (x.ndim == 0 and args is not self.scalar) or (
                     x.ndim == 1 and args is not self.vector
                 ):
                     # We only test with the appropriate input type.
                     continue
-                t_out = theano_isfunc(x)
+                t_out = aesara_isfunc(x)
                 n_out = np_func(x)
                 assert (t_out == n_out).all(), (t_out, n_out)
 
@@ -856,11 +856,11 @@ class TestIsInfIsNan:
 
 
 class TestReduceDtype:
-    mode = theano.compile.get_default_mode().excluding("local_cut_useless_reduce")
+    mode = aesara.compile.get_default_mode().excluding("local_cut_useless_reduce")
     op = CAReduce
     axes = [None, 0, 1, [], [0], [1], [0, 1]]
     methods = ["sum", "prod"]
-    dtypes = list(map(str, theano.scalar.all_types))
+    dtypes = list(map(str, aesara.scalar.all_types))
 
     # Test the default dtype of a method().
     def test_reduce_default_dtype(self):
@@ -882,7 +882,7 @@ class TestReduceDtype:
                         uint32="uint64",
                     ).get(dtype, dtype)
                 )
-                f = theano.function([x], s, mode=self.mode)
+                f = aesara.function([x], s, mode=self.mode)
                 topo = f.maker.fgraph.toposort()
                 assert [n for n in topo if isinstance(n.op, self.op)], (topo, dtype)
                 data = np.random.rand(3, 4) * 10
@@ -913,7 +913,7 @@ class TestReduceDtype:
                         complex64="complex128",
                     ).get(dtype, dtype)
                 )
-                f = theano.function([x], s, mode=self.mode)
+                f = aesara.function([x], s, mode=self.mode)
                 topo = f.maker.fgraph.toposort()
                 assert [n for n in topo if isinstance(n.op, self.op)], (topo, dtype)
                 data = np.random.rand(3, 4) * 10
@@ -940,7 +940,7 @@ class TestReduceDtype:
                     var = getattr(x, method)(dtype=output_dtype, axis=axis)
                     assert var.dtype == output_dtype
 
-                    f = theano.function([x], var, mode=self.mode)
+                    f = aesara.function([x], var, mode=self.mode)
                     topo = f.maker.fgraph.toposort()
                     assert [n for n in topo if isinstance(n.op, self.op)], (
                         topo,
@@ -1007,9 +1007,9 @@ class TestReduceDtype:
     def test_reduce_precision(self):
         # Check that the default accumulator precision is sufficient
         for method in self.methods:
-            x = theano.shared(np.asarray([1e8, 1, -1e8], dtype="float32"))
+            x = aesara.shared(np.asarray([1e8, 1, -1e8], dtype="float32"))
             s = getattr(x, method)()
-            f = theano.function([], s, mode=self.mode)
+            f = aesara.function([], s, mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert [n for n in topo if isinstance(n.op, self.op)], topo
             s_val = f()
@@ -1024,7 +1024,7 @@ class TestMeanDtype:
 
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
-        for idx, dtype in enumerate(map(str, theano.scalar.all_types)):
+        for idx, dtype in enumerate(map(str, aesara.scalar.all_types)):
             axis = axes[idx % len(axes)]
             x = tt.matrix(dtype=dtype)
             m = x.mean(axis=axis)
@@ -1032,7 +1032,7 @@ class TestMeanDtype:
                 assert m.dtype == "float64"
             else:
                 assert m.dtype == dtype, (m, m.dtype, dtype)
-            f = theano.function([x], m)
+            f = aesara.function([x], m)
             data = np.random.rand(3, 4) * 10
             data = data.astype(dtype)
             f(data)
@@ -1044,9 +1044,9 @@ class TestMeanDtype:
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         idx = 0
-        for input_dtype in map(str, theano.scalar.all_types):
+        for input_dtype in map(str, aesara.scalar.all_types):
             x = tt.matrix(dtype=input_dtype)
-            for sum_dtype in map(str, theano.scalar.all_types):
+            for sum_dtype in map(str, aesara.scalar.all_types):
                 axis = axes[idx % len(axes)]
                 # If the inner sum cannot be created, it will raise a
                 # TypeError.
@@ -1064,7 +1064,7 @@ class TestMeanDtype:
                         "complex" in input_dtype or "complex" in sum_dtype
                     ) and input_dtype != sum_dtype:
                         continue
-                    f = theano.function([x], mean_var)
+                    f = aesara.function([x], mean_var)
                     data = np.random.rand(3, 4) * 10
                     data = data.astype(input_dtype)
                     f(data)
@@ -1085,9 +1085,9 @@ class TestMeanDtype:
 
     def test_mean_precision(self):
         # Check that the default accumulator precision is sufficient
-        x = theano.shared(np.asarray([1e8, 1, -1e8], dtype="float32"))
+        x = aesara.shared(np.asarray([1e8, 1, -1e8], dtype="float32"))
         m = x.mean()
-        f = theano.function([], m)
+        f = aesara.function([], m)
         m_val = f()
         assert np.allclose(m_val, 1.0 / 3)
 
@@ -1098,7 +1098,7 @@ class TestProdWithoutZerosDtype:
 
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
-        for idx, dtype in enumerate(map(str, theano.scalar.all_types)):
+        for idx, dtype in enumerate(map(str, aesara.scalar.all_types)):
             axis = axes[idx % len(axes)]
             x = ProdWithoutZeros(axis=axis)(tt.matrix(dtype=dtype))
             assert (
@@ -1119,7 +1119,7 @@ class TestProdWithoutZerosDtype:
 
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
-        for idx, dtype in enumerate(map(str, theano.scalar.all_types)):
+        for idx, dtype in enumerate(map(str, aesara.scalar.all_types)):
             axis = axes[idx % len(axes)]
             x = tt.matrix(dtype=dtype)
             p = ProdWithoutZeros(axis=axis)(x)
@@ -1141,7 +1141,7 @@ class TestProdWithoutZerosDtype:
 
             if "complex" in dtype:
                 continue
-            f = theano.function([x], p)
+            f = aesara.function([x], p)
             data = np.random.rand(2, 3) * 3
             data = data.astype(dtype)
             f(data)
@@ -1153,16 +1153,16 @@ class TestProdWithoutZerosDtype:
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         idx = 0
-        for input_dtype in map(str, theano.scalar.all_types):
+        for input_dtype in map(str, aesara.scalar.all_types):
             x = tt.matrix(dtype=input_dtype)
-            for output_dtype in map(str, theano.scalar.all_types):
+            for output_dtype in map(str, aesara.scalar.all_types):
                 axis = axes[idx % len(axes)]
                 prod_woz_var = ProdWithoutZeros(axis=axis, dtype=output_dtype)(x)
                 assert prod_woz_var.dtype == output_dtype
                 idx += 1
                 if "complex" in output_dtype or "complex" in input_dtype:
                     continue
-                f = theano.function([x], prod_woz_var)
+                f = aesara.function([x], prod_woz_var)
                 data = np.random.rand(2, 3) * 3
                 data = data.astype(input_dtype)
                 f(data)
@@ -1174,9 +1174,9 @@ class TestProdWithoutZerosDtype:
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         idx = 0
-        for input_dtype in map(str, theano.scalar.all_types):
+        for input_dtype in map(str, aesara.scalar.all_types):
             x = tt.matrix(dtype=input_dtype)
-            for acc_dtype in map(str, theano.scalar.all_types):
+            for acc_dtype in map(str, aesara.scalar.all_types):
                 axis = axes[idx % len(axes)]
                 # If acc_dtype would force a downcast, we expect a TypeError
                 # We always allow int/uint inputs with float/complex outputs.
@@ -1190,7 +1190,7 @@ class TestProdWithoutZerosDtype:
 
                     if acc_dtype.startswith("complex") and input_dtype != acc_dtype:
                         continue
-                    f = theano.function([x], prod_woz_var)
+                    f = aesara.function([x], prod_woz_var)
                     data = np.random.rand(2, 3) * 3
                     data = data.astype(input_dtype)
                     f(data)
@@ -1208,8 +1208,8 @@ class TestBitOpReduceGrad:
     def test_all_grad(self):
         x = tt.bmatrix("x")
         x_all = x.all()
-        gx = theano.grad(x_all, x)
-        f = theano.function([x], gx)
+        gx = aesara.grad(x_all, x)
+        f = aesara.function([x], gx)
         x_random = self.rng.binomial(n=1, p=0.5, size=(5, 7)).astype("int8")
         for x_val in (x_random, np.zeros_like(x_random), np.ones_like(x_random)):
             gx_val = f(x_val)
@@ -1219,8 +1219,8 @@ class TestBitOpReduceGrad:
     def test_any_grad(self):
         x = tt.bmatrix("x")
         x_all = x.any()
-        gx = theano.grad(x_all, x)
-        f = theano.function([x], gx)
+        gx = aesara.grad(x_all, x)
+        f = aesara.function([x], gx)
         x_random = self.rng.binomial(n=1, p=0.5, size=(5, 7)).astype("int8")
         for x_val in (x_random, np.zeros_like(x_random), np.ones_like(x_random)):
             gx_val = f(x_val)
@@ -1233,7 +1233,7 @@ class TestElemwise(unittest_tools.InferShapeTester):
         x = tt.scalar(dtype="bool")
         y = tt.bscalar()
         z = x * y
-        dx, dy = theano.grad(z, [x, y])
+        dx, dy = aesara.grad(z, [x, y])
 
     def test_infer_shape(self):
 
@@ -1249,7 +1249,7 @@ class TestElemwise(unittest_tools.InferShapeTester):
             ((2, 1, 4, 5), (2, 3, 4, 5)),
             ((2, 3, 4, 1), (2, 3, 4, 5)),
         ]:
-            dtype = theano.config.floatX
+            dtype = aesara.config.floatX
             t_left = TensorType(dtype, [(entry == 1) for entry in s_left])()
             t_right = TensorType(dtype, [(entry == 1) for entry in s_right])()
             t_left_val = np.zeros(s_left, dtype=dtype)
@@ -1267,8 +1267,8 @@ class TestElemwise(unittest_tools.InferShapeTester):
         # it overflowed in this case.
         a, b, c, d, e, f = tt.vectors("abcdef")
         s = a + b + c + d + e + f
-        g = theano.function(
-            [a, b, c, d, e, f], s, mode=theano.compile.Mode(linker="py")
+        g = aesara.function(
+            [a, b, c, d, e, f], s, mode=aesara.compile.Mode(linker="py")
         )
         g(*[np.zeros(2 ** 11, config.floatX) for i in range(6)])
 
@@ -1281,15 +1281,15 @@ def test_gt_grad():
     # integer.
 
     floatX = config.floatX
-    T = theano.tensor
+    T = aesara.tensor
 
     input_ = T.vector(dtype=floatX)
     random_values = np.random.RandomState(1234).uniform(low=-1, high=1, size=(2, 2))
     W_values = np.asarray(random_values, dtype=floatX)
-    W = theano.shared(value=W_values, name="weights")
+    W = aesara.shared(value=W_values, name="weights")
     correct_score = T.dot(input_, W)
     wrong_input = T.vector(dtype=floatX)
-    wrong_score = theano.clone(correct_score, {input_: wrong_input})
+    wrong_score = aesara.clone(correct_score, {input_: wrong_input})
     # Hinge loss
 
     scores = T.ones_like(correct_score) - correct_score + wrong_score
@@ -1312,7 +1312,7 @@ def test_grad_useless_sum():
     """
     Test absence of useless sum.
 
-    When an operation (such as `theano.tensor.mul`) is done on a broadcastable
+    When an operation (such as `aesara.tensor.mul`) is done on a broadcastable
     vector and a matrix, the gradient in backward path is computed for the
     broadcasted vector. So a sum reverts the broadcasted vector to a vector. In
     the case of operations on two broadcastable vectors, the sum should not be
@@ -1322,14 +1322,14 @@ def test_grad_useless_sum():
     computations.
     """
 
-    mode = theano.compile.get_default_mode().including("canonicalize")
+    mode = aesara.compile.get_default_mode().including("canonicalize")
     mode.check_isfinite = False
-    x = TensorType(theano.config.floatX, (True,))("x")
+    x = TensorType(aesara.config.floatX, (True,))("x")
     l = tt.log(1.0 - sigmoid(x))[0]
     g = tt.grad(l, x)
-    nodes = theano.gof.graph.ops([x], [g])
+    nodes = aesara.gof.graph.ops([x], [g])
 
-    f = theano.function([x], g, mode=mode)
+    f = aesara.function([x], g, mode=mode)
     test_values = [-100, -1, 0, 1, 100]
     outputs = []
     old_values_eq_approx = staticmethod(TensorType.values_eq_approx)
@@ -1352,9 +1352,9 @@ def test_elemwise_grad_broadcast():
     x = tt.tensor(dtype="float32", broadcastable=(True, False, False, False))
     y = tt.tensor(dtype="float32", broadcastable=(True, True, False, False))
 
-    theano.grad(tt.tanh(x).sum(), x)
-    theano.grad(tt.tanh(x + y).sum(), y)
-    theano.grad(tt.tanh(x + y).sum(), [x, y])
+    aesara.grad(tt.tanh(x).sum(), x)
+    aesara.grad(tt.tanh(x + y).sum(), y)
+    aesara.grad(tt.tanh(x + y).sum(), [x, y])
 
 
 def test_clip_grad_int():
@@ -1380,12 +1380,12 @@ def test_not_implemented_elemwise_grad():
             (n, x) = inputs
             (gz,) = gout
             dy_dx = n
-            return [theano.gradient.grad_not_implemented(self, 0, n), gz * dy_dx]
+            return [aesara.gradient.grad_not_implemented(self, 0, n), gz * dy_dx]
 
     test_op = tt.Elemwise(TestOp())
     x = tt.scalar()
     assert isinstance(tt.grad(test_op(2, x), x), gof.graph.Variable)
 
     # Verify that trying to use the not implemented gradient fails.
-    with pytest.raises(theano.gradient.NullTypeGradError):
+    with pytest.raises(aesara.gradient.NullTypeGradError):
         tt.grad(test_op(x, 2), x)

@@ -17,7 +17,7 @@ int dnn_dropout_fwd(PyGpuArrayObject *x,
   if (c_make_tensorNd(x, &xdesc))
     return -1;
 
-  if (theano_prep_output(y, x->ga.nd, x->ga.dimensions, x->ga.typecode,
+  if (aesara_prep_output(y, x->ga.nd, x->ga.dimensions, x->ga.typecode,
                          GA_C_ORDER, c)) {
     cudnnDestroyTensorDescriptor(xdesc);
     return -1;

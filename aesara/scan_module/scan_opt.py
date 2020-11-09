@@ -57,16 +57,16 @@ from sys import maxsize
 
 import numpy as np
 
-import theano
-from theano import gof, scalar, tensor
-from theano.compile import optdb
-from theano.compile.function_module import deep_copy_op
-from theano.gof import DestroyHandler, InconsistencyError, toolbox
-from theano.gof.graph import equal_computations
-from theano.gof.opt import Optimizer, pre_constant_merge, pre_greedy_local_optimizer
-from theano.scan_module import scan_op, scan_utils
-from theano.scan_module.scan_utils import scan_args
-from theano.tensor import Alloc, AllocEmpty, get_scalar_constant_value, opt
+import aesara
+from aesara import gof, scalar, tensor
+from aesara.compile import optdb
+from aesara.compile.function_module import deep_copy_op
+from aesara.gof import DestroyHandler, InconsistencyError, toolbox
+from aesara.gof.graph import equal_computations
+from aesara.gof.opt import Optimizer, pre_constant_merge, pre_greedy_local_optimizer
+from aesara.scan_module import scan_op, scan_utils
+from aesara.scan_module.scan_utils import scan_args
+from aesara.tensor import Alloc, AllocEmpty, get_scalar_constant_value, opt
 
 
 __docformat__ = "restructedtext en"
@@ -82,7 +82,7 @@ __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 
 # Logging function for sending warning or info
-_logger = logging.getLogger("theano.scan_module.scan_opt")
+_logger = logging.getLogger("aesara.scan_module.scan_opt")
 
 list_opt_slice = [
     tensor.opt.local_abs_merge,
@@ -94,11 +94,11 @@ list_opt_slice = [
 
 
 def warning(*msg):
-    _logger.warning("WARNING theano.scan: " + " ".join(msg))
+    _logger.warning("WARNING aesara.scan: " + " ".join(msg))
 
 
 def info(*msg):
-    _logger.info("INFO theano.scan: " + " ".join(msg))
+    _logger.info("INFO aesara.scan: " + " ".join(msg))
 
 
 @gof.local_optimizer([scan_op.Scan])
@@ -246,7 +246,7 @@ class PushOutNonSeqScan(gof.Optimizer):
             node.op.inputs, node.op.outputs
         )
 
-        local_fgraph_topo = theano.gof.graph.io_toposort(clean_inputs, clean_outputs)
+        local_fgraph_topo = aesara.gof.graph.io_toposort(clean_inputs, clean_outputs)
         local_fgraph_outs_set = set(clean_outputs)
         local_fgraph_outs_map = {v: k for k, v in enumerate(clean_outputs)}
 
@@ -295,8 +295,8 @@ class PushOutNonSeqScan(gof.Optimizer):
                 # we can do this because the assumption is that a
                 # viewOp or deepCopyOp will be just at the end of the
                 # function and not somewhere in the middle ..
-                not isinstance(nd.op, theano.compile.ViewOp)
-                and not isinstance(nd.op, theano.compile.DeepCopyOp)
+                not isinstance(nd.op, aesara.compile.ViewOp)
+                and not isinstance(nd.op, aesara.compile.DeepCopyOp)
             ):
 
                 # We have a candidate node to removable
@@ -309,7 +309,7 @@ class PushOutNonSeqScan(gof.Optimizer):
                         outside_ins.append(outer_non_seqs[_idx])
                     elif x in to_replace_set:
                         outside_ins.append(replace_with_out[to_replace_map[x]])
-                    elif isinstance(x, theano.Constant):
+                    elif isinstance(x, aesara.Constant):
                         outside_ins.append(x.clone())
                     else:
                         raise Exception(
@@ -318,7 +318,7 @@ class PushOutNonSeqScan(gof.Optimizer):
                                 "operations`. The optimization tries "
                                 "to move some computation fron scan "
                                 "which is not allowed to move. Report "
-                                "this on theano-users list"
+                                "this on aesara-users list"
                             ),
                             x,
                         )
@@ -370,7 +370,7 @@ class PushOutNonSeqScan(gof.Optimizer):
             for to_repl, repl_in, repl_out in zip(
                 clean_to_replace, clean_replace_with_in, clean_replace_with_out
             ):
-                if isinstance(repl_out, theano.Constant):
+                if isinstance(repl_out, aesara.Constant):
                     repl_in = repl_out.clone()
                 else:
                     nw_inner.append(repl_in)
@@ -464,7 +464,7 @@ class PushOutSeqScan(gof.Optimizer):
             node.op.inputs, node.op.outputs
         )
 
-        local_fgraph_topo = theano.gof.graph.io_toposort(clean_inputs, clean_outputs)
+        local_fgraph_topo = aesara.gof.graph.io_toposort(clean_inputs, clean_outputs)
         local_fgraph_outs_set = set(clean_outputs)
         local_fgraph_outs_map = {v: k for k, v in enumerate(clean_outputs)}
 
@@ -509,7 +509,7 @@ class PushOutSeqScan(gof.Optimizer):
                         for x in nd.inputs
                     ]
                 )
-                and isinstance(nd.op, theano.tensor.Elemwise)
+                and isinstance(nd.op, aesara.tensor.Elemwise)
             ):
 
                 outside_ins = []
@@ -525,7 +525,7 @@ class PushOutSeqScan(gof.Optimizer):
                     elif x in to_replace_set:
                         outside_ins.append(replace_with_out[to_replace_map[x]])
                         depends_on_seqs = True
-                    elif isinstance(x, theano.Constant):
+                    elif isinstance(x, aesara.Constant):
                         outside_ins.append(x.clone())
                     else:
                         raise Exception(
@@ -534,7 +534,7 @@ class PushOutSeqScan(gof.Optimizer):
                                 "operations`. The optimization tries "
                                 "to move some computation fron scan "
                                 "which is not allowed to move. Report "
-                                "this on theano-users list"
+                                "this on aesara-users list"
                             ),
                             x,
                         )
@@ -561,7 +561,7 @@ class PushOutSeqScan(gof.Optimizer):
 
             elif (
                 nd not in to_remove_set
-                and isinstance(nd.op, theano.tensor.DimShuffle)
+                and isinstance(nd.op, aesara.tensor.DimShuffle)
                 and (
                     nd.inputs[0] in inner_seqs_set
                     or nd.inputs[0].owner in to_remove_set
@@ -630,7 +630,7 @@ class PushOutSeqScan(gof.Optimizer):
             for to_repl, repl_in, repl_out in zip(
                 clean_to_replace, clean_replace_with_in, clean_replace_with_out
             ):
-                if isinstance(repl_out, theano.Constant):
+                if isinstance(repl_out, aesara.Constant):
                     repl_in = repl_out.clone()
                 else:
                     nw_inner.append(repl_in)
@@ -729,13 +729,13 @@ class PushOutScanOutput(gof.Optimizer):
 
         new_scan_node = None
         clients = {}
-        local_fgraph_topo = theano.gof.graph.io_toposort(
+        local_fgraph_topo = aesara.gof.graph.io_toposort(
             args.inner_inputs, args.inner_outputs, clients=clients
         )
 
         for nd in local_fgraph_topo:
             if (
-                isinstance(nd.op, theano.tensor.elemwise.Elemwise)
+                isinstance(nd.op, aesara.tensor.elemwise.Elemwise)
                 and isinstance(nd.op.scalar_op, scalar.Add)
                 and nd.out in args.inner_out_sit_sot
                 and self.inner_sitsot_only_last_step_used(nd.out, args)
@@ -762,7 +762,7 @@ class PushOutScanOutput(gof.Optimizer):
 
                     if (
                         dot_input.owner is not None
-                        and isinstance(dot_input.owner.op, theano.tensor.Dot)
+                        and isinstance(dot_input.owner.op, aesara.tensor.Dot)
                         and len(clients[dot_input]) == 1
                         and dot_input.owner.inputs[0].ndim == 2
                         and dot_input.owner.inputs[1].ndim == 2
@@ -787,18 +787,18 @@ class PushOutScanOutput(gof.Optimizer):
                         # so that they become matrices. This is because a
                         # dot is usually faster on two large matrices than
                         # a bunch of small ones
-                        outer_dot_inputs[0] = theano.tensor.flatten(
+                        outer_dot_inputs[0] = aesara.tensor.flatten(
                             outer_dot_inputs[0].dimshuffle(1, 0, 2), ndim=2
                         )
 
-                        shape_input1 = theano.tensor.shape(outer_dot_inputs[1])
+                        shape_input1 = aesara.tensor.shape(outer_dot_inputs[1])
                         outer_dot_inputs[1] = outer_dot_inputs[1].reshape(
                             (shape_input1[0] * shape_input1[1], shape_input1[2])
                         )
 
                         # Perform the dot on the newly obtained matrices and
                         # add the initial value
-                        outer_dot_output = theano.tensor.dot(*outer_dot_inputs)
+                        outer_dot_output = aesara.tensor.dot(*outer_dot_inputs)
                         init_value = new_scan_args.outer_in_sit_sot[sitsot_idx][0]
                         replacement = outer_dot_output + init_value
 
@@ -830,11 +830,11 @@ class PushOutScanOutput(gof.Optimizer):
 
         if len(outer_var.clients) == 1:
             client = outer_var.clients[0][0]
-            if client != "output" and isinstance(client.op, theano.tensor.Subtensor):
-                lst = theano.tensor.subtensor.get_idx_list(
+            if client != "output" and isinstance(client.op, aesara.tensor.Subtensor):
+                lst = aesara.tensor.subtensor.get_idx_list(
                     client.inputs, client.op.idx_list
                 )
-                if len(lst) == 1 and theano.tensor.extract_constant(lst[0]) == -1:
+                if len(lst) == 1 and aesara.tensor.extract_constant(lst[0]) == -1:
                     return True
 
         return False
@@ -843,7 +843,7 @@ class PushOutScanOutput(gof.Optimizer):
 
         # Given a variable, determine the number of dimension it would have if
         # it was pushed out of scan
-        if var in scan_args.inner_in_non_seqs or isinstance(var, theano.Constant):
+        if var in scan_args.inner_in_non_seqs or isinstance(var, aesara.Constant):
 
             outer_ndim = var.ndim
         else:
@@ -871,7 +871,7 @@ class PushOutScanOutput(gof.Optimizer):
                 idx_non_seq = old_scan_args.inner_in_non_seqs.index(var)
                 outer_vars[idx] = old_scan_args.outer_in_non_seqs[idx_non_seq]
 
-            elif isinstance(var, theano.Constant):
+            elif isinstance(var, aesara.Constant):
                 outer_vars[idx] = var.clone()
 
             elif var in old_scan_args.inner_out_nit_sot:
@@ -1054,7 +1054,7 @@ class ScanInplaceOptimizer(Optimizer):
             # gpuarray might be imported but not its GpuAlloc and
             # GpuAllopEmpty ops.
             try:
-                alloc_ops += (theano.gpuarray.GpuAlloc, theano.gpuarray.GpuAllocEmpty)
+                alloc_ops += (aesara.gpuarray.GpuAlloc, aesara.gpuarray.GpuAllocEmpty)
             except Exception:
                 pass
 
@@ -1386,7 +1386,7 @@ class ScanSaveMem(gof.Optimizer):
                         # for mitsots and sitsots (because mitmots are not
                         # currently supported by the mechanism) and only if
                         # the pre-allocation mechanism is activated.
-                        prealloc_outs = theano.config.scan.allow_output_prealloc
+                        prealloc_outs = aesara.config.scan.allow_output_prealloc
 
                         first_mitsot_idx = node.op.n_mit_mot
                         last_sitsot_idx = (
@@ -1415,7 +1415,7 @@ class ScanSaveMem(gof.Optimizer):
                         # pval = pre_greedy_local_optimizer(list_opt_slice,
                         #                                  pval)
                         # pval = pre_constant_merge([pval])[0]
-                        # if (isinstance(pval, theano.tensor.TensorConstant)
+                        # if (isinstance(pval, aesara.tensor.TensorConstant)
                         # and
                         #    pval.dtype.startswith('int')):
                         #    try:
@@ -1564,7 +1564,7 @@ class ScanSaveMem(gof.Optimizer):
             # don't create one.
             # For test, mark that savemem have optimized this node
             info["_scan_savemem_visited"] = True
-            if theano.tensor.extract_constant(node_ins[0]) == 0:
+            if aesara.tensor.extract_constant(node_ins[0]) == 0:
                 return
 
             # Do not call make_node for test_value
@@ -2172,12 +2172,12 @@ class PushOutDot1(gof.Optimizer):
 
             if (
                 out.owner
-                and isinstance(out.owner.op, theano.tensor.Elemwise)
-                and isinstance(out.owner.op.scalar_op, theano.scalar.Add)
+                and isinstance(out.owner.op, aesara.tensor.Elemwise)
+                and isinstance(out.owner.op.scalar_op, aesara.scalar.Add)
                 and inp in out.owner.inputs
                 and len(outer_out.clients) == 1
                 and not isinstance(outer_out.clients[0][0], str)
-                and isinstance(outer_out.clients[0][0].op, theano.tensor.Subtensor)
+                and isinstance(outer_out.clients[0][0].op, aesara.tensor.Subtensor)
                 and outer_out.clients[0][0].op.idx_list == (-1,)
             ):
 
@@ -2187,7 +2187,7 @@ class PushOutDot1(gof.Optimizer):
                 # We need to check if x is the result of an outer product
                 if (
                     x.owner
-                    and isinstance(x.owner.op, theano.tensor.Dot)
+                    and isinstance(x.owner.op, aesara.tensor.Dot)
                     and x.owner.inputs[0].ndim == 2
                     and x.owner.inputs[1].ndim == 2
                 ):
@@ -2329,9 +2329,9 @@ class PushOutDot1(gof.Optimizer):
 # I've added an equilibrium because later scan optimization in the sequence
 # can make it such that earlier optimizations should apply. However, in
 # general I do not expect the sequence to run more then once
-scan_eqopt1 = theano.gof.EquilibriumDB()
-scan_seqopt1 = theano.gof.SequenceDB()
-scan_eqopt2 = theano.gof.EquilibriumDB()
+scan_eqopt1 = aesara.gof.EquilibriumDB()
+scan_seqopt1 = aesara.gof.SequenceDB()
+scan_eqopt2 = aesara.gof.EquilibriumDB()
 
 # scan_eqopt1 before ShapeOpt at 0.1
 # This is needed to don't have ShapeFeature trac old Scan that we

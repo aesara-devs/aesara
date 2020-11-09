@@ -1,4 +1,4 @@
-from theano.configdefaults import short_platform
+from aesara.configdefaults import short_platform
 
 
 def test_short_platform():

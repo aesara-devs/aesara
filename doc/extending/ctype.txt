@@ -1,4 +1,4 @@
-.. _theano_ctype:
+.. _aesara_ctype:
 
 
 ========================
@@ -133,7 +133,7 @@ the most important ones:
     .. method:: c_element_type()
 
        Optional: should return the name of the primitive C type of
-       items into variables handled by this Theano type. For example,
+       items into variables handled by this Aesara type. For example,
        for a matrix of 32-bit signed NumPy integers, it should return
        ``"npy_int32"``. If C type may change from an instance to another
        (e.g. ``Scalar('int32')`` vs ``Scalar('int64')``), consider
@@ -169,7 +169,7 @@ out:
    nor ``break`` outside of your own loops or ``goto`` to strange
    places or anything like that. Failure to comply with this
    restriction could lead to erratic behavior, segfaults and/or memory
-   leaks because Theano defines its own cleanup system and assumes
+   leaks because Aesara defines its own cleanup system and assumes
    that you are not meddling with it. Furthermore, advanced operations
    or types might do code transformations on your code such as
    inserting it in a loop -- in that case they can call your
@@ -182,8 +182,8 @@ Defining the methods
 
 .. testsetup:: 
 
-    import theano
-    double = theano.Type()
+    import aesara
+    double = aesara.Type()
 
 **c_declare**
 
@@ -207,7 +207,7 @@ do typedefs. Make sure that the name of each variable contains the
 ``name`` argument in order to avoid name collisions (collisions *will*
 happen if you don't parameterize the variable names as indicated
 here). Also note that you cannot declare a variable called
-``py_<name>`` or ``storage_<name>`` because Theano already defines
+``py_<name>`` or ``storage_<name>`` because Aesara already defines
 them.
 
 What you declare there is basically the C interface you are giving to
@@ -256,9 +256,9 @@ called, without knowing for sure which of the two.
     double.c_extract = c_extract
 
 This method is slightly more sophisticated. What happens here is that
-we have a reference to a Python object which Theano has placed in
+we have a reference to a Python object which Aesara has placed in
 ``py_%(name)s`` where ``%(name)s`` must be substituted for the name
-given in the inputs. This special variable is declared by Theano as
+given in the inputs. This special variable is declared by Aesara as
 ``PyObject* py_%(name)s`` where ``PyObject*`` is a pointer to a Python
 object as defined by CPython's C API. This is the reference that
 corresponds, on the Python side of things, to a Variable with the
@@ -298,7 +298,7 @@ have computed some operation on doubles and we have put the variable
 into the double variable ``%(name)s``. Now, we need to put this data
 into a Python object that we can manipulate on the Python side of
 things. This Python object must be put into the ``py_%(name)s``
-variable which Theano recognizes (this is the same pointer we get in
+variable which Aesara recognizes (this is the same pointer we get in
 c_extract).
 
 Now, that pointer is already a pointer to a valid Python object
@@ -314,12 +314,12 @@ if the data you work on is large.
 Now that we have decreased the reference count, we call
 ``PyFloat_FromDouble`` on our double variable in order to convert it
 to a Python ``float``. This returns a new reference which we assign to
-``py_%(name)s``. From there Theano will do the rest and the end user
+``py_%(name)s``. From there Aesara will do the rest and the end user
 will happily see a Python ``float`` come out of his computations.
 
 The rest of the code is not absolutely necessary and it is basically
 "good practice". ``PyFloat_FromDouble`` can return ``NULL`` on failure.
-``NULL`` is a pretty bad reference to have and neither Python nor Theano
+``NULL`` is a pretty bad reference to have and neither Python nor Aesara
 like it. If this happens, we change the ``NULL`` pointer (which will
 cause us problems) to a pointer to ``None`` (which is *not* a ``NULL``
 pointer). Since ``None`` is an object like the others, we need to
@@ -367,7 +367,7 @@ Second, whenever you use ``%(fail)s`` in ``c_extract`` or in the code of an
 :ref:`operation <op>`, you can count on ``c_cleanup`` being called right
 after that. Therefore, it's important to make sure that ``c_cleanup``
 doesn't depend on any code placed after a reference to
-``%(fail)s``. Furthermore, because of the way Theano blocks code together,
+``%(fail)s``. Furthermore, because of the way Aesara blocks code together,
 only the variables declared in ``c_declare`` will be visible in ``c_cleanup``!
 
 
@@ -398,13 +398,13 @@ like this:
 
 .. code-block:: c
 
-   // BEGIN defined by Theano
+   // BEGIN defined by Aesara
    PyObject* py_x = ...;
    PyObject* py_y = ...;
    PyObject* py_z = ...;
    PyObject* py_a = ...; // note: this reference won't actually be used for anything
    PyObject* py_b = ...;
-   // END defined by Theano
+   // END defined by Aesara
 
    {
      double x; //c_declare for x
@@ -469,7 +469,7 @@ Final version
 
 .. testcode::
 
-   from theano import gof
+   from aesara import gof
 
    class Double(gof.Type):
 
@@ -524,21 +524,21 @@ DeepCopyOp
 ==========
 
 We have an internal Op called DeepCopyOp. It is used to make sure we
-respect the user vs Theano memory region as described in the :ref:`tutorial
-<aliasing>`. Theano has a Python implementation that calls the object's
-``copy()`` or ``deepcopy()`` method for Theano types for which it does not
+respect the user vs Aesara memory region as described in the :ref:`tutorial
+<aliasing>`. Aesara has a Python implementation that calls the object's
+``copy()`` or ``deepcopy()`` method for Aesara types for which it does not
 know how to generate C code.
 
 You can implement c_code for this op. You register it like this:
 
 .. code-block:: python
 
-   theano.compile.ops.register_deep_copy_op_c_code(YOUR_TYPE_CLASS, THE_C_CODE, version=())
+   aesara.compile.ops.register_deep_copy_op_c_code(YOUR_TYPE_CLASS, THE_C_CODE, version=())
 
 In your C code, you should use %(iname)s and %(oname)s to represent
 the C variable names of the DeepCopyOp input and output
 respectively. See an example for the type ``GpuArrayType`` (GPU
-array) in the file `theano/gpuarray/type.py`. The version
+array) in the file `aesara/gpuarray/type.py`. The version
 parameter is what is returned by DeepCopyOp.c_code_cache_version(). By
 default, it will recompile the c code for each process.
 
@@ -555,7 +555,7 @@ calling:
 
 .. code-block:: python
 
-   theano.compile.ops.register_view_op_c_code(YOUR_TYPE_CLASS, THE_C_CODE, version=())
+   aesara.compile.ops.register_view_op_c_code(YOUR_TYPE_CLASS, THE_C_CODE, version=())
 
 In your C code, you should use %(iname)s and %(oname)s to represent
 the C variable names of the ViewOp input and output
@@ -569,14 +569,14 @@ Shape and Shape_i
 =================
 
 We have 2 generic Ops, Shape and Shape_i, that return the shape of any
-Theano Variable that has a shape attribute (Shape_i returns only one of
+Aesara Variable that has a shape attribute (Shape_i returns only one of
 the elements of the shape).
 
 
 .. code-block:: python
 
-   theano.compile.ops.register_shape_c_code(YOUR_TYPE_CLASS, THE_C_CODE, version=())
-   theano.compile.ops.register_shape_i_c_code(YOUR_TYPE_CLASS, THE_C_CODE, CHECK_INPUT, version=())
+   aesara.compile.ops.register_shape_c_code(YOUR_TYPE_CLASS, THE_C_CODE, version=())
+   aesara.compile.ops.register_shape_i_c_code(YOUR_TYPE_CLASS, THE_C_CODE, CHECK_INPUT, version=())
 
 The C code works as the ViewOp. Shape_i has the additional ``i`` parameter
 that you can use with ``%(i)s``.

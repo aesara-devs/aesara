@@ -10,8 +10,8 @@ from collections import OrderedDict
 
 import numpy as np
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 
 
 def gen_data():
@@ -34,14 +34,14 @@ def gen_data():
         """Function that loads the dataset into shared variables
 
         The reason we store our dataset in shared variables is to allow
-        Theano to copy it into the GPU memory (when code is run on GPU).
+        Aesara to copy it into the GPU memory (when code is run on GPU).
         Since copying data into the GPU is slow, copying a minibatch every time
         is needed (the default behaviour if the data is not in a shared
         variable) would lead to a large decrease in performance.
         """
         data_x, data_y = data_xy
-        shared_x = theano.shared(np.asarray(data_x, dtype=theano.config.floatX))
-        shared_y = theano.shared(np.asarray(data_y, dtype=theano.config.floatX))
+        shared_x = aesara.shared(np.asarray(data_x, dtype=aesara.config.floatX))
+        shared_y = aesara.shared(np.asarray(data_y, dtype=aesara.config.floatX))
         # When storing data on the GPU it has to be stored as floats
         # therefore we will store the labels as ``floatX`` as well
         # (``shared_y`` does exactly that). But during our computations
@@ -75,7 +75,7 @@ class LogisticRegression:
     def __init__(self, input, n_in, n_out, name_prefix=""):
         """Initialize the parameters of the logistic regression
 
-        :type input: theano.tensor.TensorType
+        :type input: aesara.tensor.TensorType
         :param input: symbolic variable that describes the input of the
                       architecture (one minibatch)
 
@@ -90,8 +90,8 @@ class LogisticRegression:
         """
 
         # initialize with 0 the weights W as a matrix of shape (n_in, n_out)
-        self.W = theano.shared(
-            value=np.zeros((n_in, n_out), dtype=theano.config.floatX),
+        self.W = aesara.shared(
+            value=np.zeros((n_in, n_out), dtype=aesara.config.floatX),
             name=name_prefix + "W",
         )
 
@@ -115,7 +115,7 @@ class LogisticRegression:
             \frac{1}{|\mathcal{D}|} \sum_{i=0}^{|\mathcal{D}|} \log(P(Y=y^{(i)}|x^{(i)}, W,b)) \\
                 \ell (\theta=\{W,b\}, \mathcal{D})
 
-        :type y: theano.tensor.TensorType
+        :type y: aesara.tensor.TensorType
         :param y: corresponds to a vector that gives for each example the
                   correct label
 
@@ -145,7 +145,7 @@ class HiddenLayer:
         :type rng: numpy.random.RandomState
         :param rng: a random number generator used to initialize weights
 
-        :type input: theano.tensor.dmatrix
+        :type input: aesara.tensor.dmatrix
         :param input: a symbolic tensor of shape (n_examples, n_in)
 
         :type n_in: int
@@ -154,7 +154,7 @@ class HiddenLayer:
         :type n_out: int
         :param n_out: number of hidden units
 
-        :type activation: theano.Op or function
+        :type activation: aesara.Op or function
         :param activation: Non linearity to be applied in the hidden
                               layer
         """
@@ -163,16 +163,16 @@ class HiddenLayer:
         # `W` is initialized with `W_values` which is uniformely sampled
         # from -6./sqrt(n_in+n_hidden) and 6./sqrt(n_in+n_hidden)
         # the output of uniform if converted using asarray to dtype
-        # theano.config.floatX so that the code is runable on GPU
+        # aesara.config.floatX so that the code is runable on GPU
         W_values = np.asarray(
             rng.uniform(
                 low=-np.sqrt(6.0 / (n_in + n_out)),
                 high=np.sqrt(6.0 / (n_in + n_out)),
                 size=(n_in, n_out),
             ),
-            dtype=theano.config.floatX,
+            dtype=aesara.config.floatX,
         )
-        self.W = theano.shared(value=W_values, name=name_prefix + "W")
+        self.W = aesara.shared(value=W_values, name=name_prefix + "W")
 
         self.output = tt.dot(input, self.W)
         # parameters of the model
@@ -196,7 +196,7 @@ class MLP:
         :type rng: numpy.random.RandomState
         :param rng: a random number generator used to initialize weights
 
-        :type input: theano.tensor.TensorType
+        :type input: aesara.tensor.TensorType
         :param input: symbolic variable that describes the input of the
         architecture (one minibatch)
 
@@ -308,14 +308,14 @@ def test_mlp():
 
     # Some optimizations needed are tagged with 'fast_run'
     # TODO: refine that and include only those
-    mode = theano.compile.get_default_mode().including("fast_run")
+    mode = aesara.compile.get_default_mode().including("fast_run")
 
     updates2 = OrderedDict()
 
     updates2[classifier.hiddenLayer.params[0]] = tt.grad(
         cost, classifier.hiddenLayer.params[0]
     )
-    train_model = theano.function(
+    train_model = aesara.function(
         inputs=[index],
         updates=updates2,
         givens={
@@ -325,7 +325,7 @@ def test_mlp():
         mode=mode,
     )
     # print 'MODEL 1'
-    # theano.printing.debugprint(train_model, print_type=True)
+    # aesara.printing.debugprint(train_model, print_type=True)
     assert any(
         [
             isinstance(i.op, tt.nnet.CrossentropySoftmax1HotWithBiasDx)
@@ -334,7 +334,7 @@ def test_mlp():
     )
 
     # Even without FeatureShape
-    train_model = theano.function(
+    train_model = aesara.function(
         inputs=[index],
         updates=updates2,
         mode=mode.excluding("ShapeOpt"),
@@ -345,7 +345,7 @@ def test_mlp():
     )
     # print
     # print 'MODEL 2'
-    # theano.printing.debugprint(train_model, print_type=True)
+    # aesara.printing.debugprint(train_model, print_type=True)
     assert any(
         [
             isinstance(i.op, tt.nnet.CrossentropySoftmax1HotWithBiasDx)

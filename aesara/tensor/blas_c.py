@@ -1,12 +1,12 @@
-# import theano.tensor.basic as tt
+# import aesara.tensor.basic as tt
 
-from theano import config
-from theano.gof.params_type import ParamsType
-from theano.scalar import bool as bool_t
+from aesara import config
+from aesara.gof.params_type import ParamsType
+from aesara.scalar import bool as bool_t
 
-# Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
-from theano.tensor import basic as tt
-from theano.tensor.blas import (
+# Work-around for Python 3.6 issue that prevents `import aesara.tensor as tt`
+from aesara.tensor import basic as tt
+from aesara.tensor.blas import (
     Gemv,
     Ger,
     blas_header_text,
@@ -20,7 +20,7 @@ from theano.tensor.blas import (
     local_optimizer,
     optdb,
 )
-from theano.tensor.opt import in2out
+from aesara.tensor.opt import in2out
 
 
 class BaseBLAS:
@@ -645,7 +645,7 @@ cgemv_no_inplace = CGemv(inplace=False)
 
 def check_force_gemv_init():
     if check_force_gemv_init._force_init_beta is None:
-        from theano.gof.cmodule import GCC_compiler
+        from aesara.gof.cmodule import GCC_compiler
 
         """
         Test issue 1569.

@@ -24,8 +24,8 @@ relies on the following elements to work properly :
   inputs and the outputs of the inner function which could lead to invalid
   results.
 - In make_thunk(), again, the borrow flag must be set to True for the outputs.
-  This will make Theano consider the output storages as persistent and make
-  Theano provide them as pre-allocated storage to the ops that compute the
+  This will make Aesara consider the output storages as persistent and make
+  Aesara provide them as pre-allocated storage to the ops that compute the
   outputs of the inner function instead of letting these ops allocate their
   own output storage.
 - The ops that produce the outputs of the inner function must be prevented
@@ -56,19 +56,19 @@ from collections import OrderedDict
 
 import numpy as np
 
-import theano
-from theano import compile, config, gof, gradient, tensor
-from theano.compile import In, Out, function
-from theano.compile.mode import AddFeatureOptimizer
-from theano.compile.profiling import ScanProfileStats
-from theano.gof import Apply, PureOp
-from theano.gof.graph import equal_computations, io_connection_pattern
-from theano.gof.toolbox import NoOutputFromInplace
-from theano.gradient import DisconnectedType, NullType, grad_undefined
-from theano.scan_module import scan_utils
-from theano.scan_module.scan_utils import forced_replace, safe_new
-from theano.tensor import TensorType, as_tensor_variable
-from theano.tensor.opt import Shape_i
+import aesara
+from aesara import compile, config, gof, gradient, tensor
+from aesara.compile import In, Out, function
+from aesara.compile.mode import AddFeatureOptimizer
+from aesara.compile.profiling import ScanProfileStats
+from aesara.gof import Apply, PureOp
+from aesara.gof.graph import equal_computations, io_connection_pattern
+from aesara.gof.toolbox import NoOutputFromInplace
+from aesara.gradient import DisconnectedType, NullType, grad_undefined
+from aesara.scan_module import scan_utils
+from aesara.scan_module.scan_utils import forced_replace, safe_new
+from aesara.tensor import TensorType, as_tensor_variable
+from aesara.tensor.opt import Shape_i
 
 
 __docformat__ = "restructedtext en"
@@ -77,7 +77,7 @@ __copyright__ = "(c) 2010, Universite de Montreal"
 __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 # Logging function for sending warning or info
-_logger = logging.getLogger("theano.scan_module.scan_op")
+_logger = logging.getLogger("aesara.scan_module.scan_op")
 
 
 class Scan(PureOp):
@@ -94,12 +94,12 @@ class Scan(PureOp):
         of different types of arguments, name, mode, if it should run on GPU or
         not, etc.).
     typeConstructor
-        Function that constructs an equivalent to Theano TensorType.
+        Function that constructs an equivalent to Aesara TensorType.
 
     Notes
     -----
     ``typeConstructor`` had been added to refactor how
-    Theano deals with the GPU. If it runs on the GPU, scan needs
+    Aesara deals with the GPU. If it runs on the GPU, scan needs
     to construct certain outputs (those who reside in the GPU
     memory) as the GPU-specific type.  However we can not import
     gpu code in this file (as it is in sandbox, and not available
@@ -201,9 +201,9 @@ class Scan(PureOp):
             self._hash_inner_graph = self.info["gpu_hash"]
         else:
             # Do the missing inputs check here to have the error early.
-            for var in theano.gof.graph.inputs(self.outputs, self.inputs):
-                if var not in self.inputs and not isinstance(var, theano.Constant):
-                    raise theano.gof.MissingInputError(
+            for var in aesara.gof.graph.inputs(self.outputs, self.inputs):
+                if var not in self.inputs and not isinstance(var, aesara.Constant):
+                    raise aesara.gof.MissingInputError(
                         "ScanOp is missing an input: %s" % repr(var)
                     )
             self._cmodule_key = gof.CLinker().cmodule_key_variables(
@@ -249,7 +249,7 @@ class Scan(PureOp):
         # If scan has the flag 'gpua' set to false (meaning that is shouldn't
         # use the gpuarray gpu backend ), ensure that is has no input and no
         # output with type GpuArrayType
-        from theano.gpuarray import GpuArrayType
+        from aesara.gpuarray import GpuArrayType
 
         if not self.info.get("gpua", False):
             for inp in self.inputs:
@@ -293,11 +293,11 @@ class Scan(PureOp):
                 # compilation time, of the location of the inputs and outputs.
                 # Perform this analysis here.
                 self.inps_is_tensor = [
-                    isinstance(out, theano.tensor.TensorVariable)
+                    isinstance(out, aesara.tensor.TensorVariable)
                     for out in self.fn.maker.fgraph.inputs
                 ]
                 self.outs_is_tensor = [
-                    isinstance(out, theano.tensor.TensorVariable)
+                    isinstance(out, aesara.tensor.TensorVariable)
                     for out in self.fn.maker.fgraph.outputs
                 ]
 
@@ -411,7 +411,7 @@ class Scan(PureOp):
                 "axis %d in `output_info`. This can happen if one of the "
                 "dimension is fixed to 1 in the input, while it is still "
                 "variable in the output, or vice-verca. You have to make "
-                "them consistent, e.g. using theano.tensor."
+                "them consistent, e.g. using aesara.tensor."
                 "{patternbroadcast,unbroadcast,addbroadcast}."
             )
             size = min(len(v1.broadcastable), len(v2.broadcastable))
@@ -852,7 +852,7 @@ class Scan(PureOp):
         # scan is done
         slices = self.n_mit_mot_outs + self.n_mit_sot + self.n_sit_sot + self.n_nit_sot
 
-        if theano.config.scan.allow_output_prealloc:
+        if aesara.config.scan.allow_output_prealloc:
 
             # Go through the mitmots. Whenever a mitmot has a tap both as an
             # input and an output, wrap the input such that the corresponding
@@ -942,7 +942,7 @@ class Scan(PureOp):
             compilation_mode = self.mode_instance
 
         profile = None
-        if theano.config.profile or (
+        if aesara.config.profile or (
             isinstance(self.profile, (str, bool, (int,))) and self.profile
         ):
             if isinstance(self.profile, str):
@@ -966,17 +966,17 @@ class Scan(PureOp):
         # Analyse the compile inner function to determine which inputs and
         # outputs are on the gpu and speed up some checks during the execution
         self.inps_is_tensor = [
-            isinstance(out, theano.tensor.TensorVariable)
+            isinstance(out, aesara.tensor.TensorVariable)
             for out in self.fn.maker.fgraph.inputs
         ]
         self.outs_is_tensor = [
-            isinstance(out, theano.tensor.TensorVariable)
+            isinstance(out, aesara.tensor.TensorVariable)
             for out in self.fn.maker.fgraph.outputs
         ]
 
         try:
             if impl == "py":
-                raise theano.gof.cmodule.MissingGXX
+                raise aesara.gof.cmodule.MissingGXX
             cython_mintaps = np.asarray(self.mintaps, dtype="int32")
             cython_tap_array_len = np.asarray(
                 [len(x) for x in self.tap_array], dtype="int32"
@@ -1053,7 +1053,7 @@ class Scan(PureOp):
                     node,
                 )
 
-        except (ImportError, theano.gof.cmodule.MissingGXX):
+        except (ImportError, aesara.gof.cmodule.MissingGXX):
             p = self.execute
         # default arguments are stored in the closure of `rval`
 
@@ -1488,7 +1488,7 @@ class Scan(PureOp):
                 pdx = offset + self.n_shared_outs
                 cond = output_storage[pdx].storage[0] == 0
 
-            # 5.2. By calling fn() directly instead of calling the theano
+            # 5.2. By calling fn() directly instead of calling the aesara
             # function, it is possible that the updates have not been
             # performed. Perform the updates if needed.
             offset_out = len(output_storage) - 1
@@ -1587,7 +1587,7 @@ class Scan(PureOp):
                                 "This may be caused by a pushout optimization."
                                 " Try adding "
                                 "'optimizer_excluding=scanOp_pushout_output' "
-                                "to your Theano flags."
+                                "to your Aesara flags."
                             )
                             raise ne from e
 
@@ -1853,7 +1853,7 @@ class Scan(PureOp):
 
         # We cache the result of this function because, with a previous
         # implementation that repeatedly called grad, there were cases
-        # where calls to theano.grad() took as much as 4h for functions
+        # where calls to aesara.grad() took as much as 4h for functions
         # containing many nested scans.
         if hasattr(node.tag, "connection_pattern"):
             return node.tag.connection_pattern
@@ -2170,7 +2170,7 @@ class Scan(PureOp):
 
             wrt = [
                 x
-                for x in theano.gof.graph.inputs(y_s)
+                for x in aesara.gof.graph.inputs(y_s)
                 if (x in diff_inputs)
                 and get_inp_idx(self_inputs.index(x)) in connected_inputs
             ]
@@ -2235,7 +2235,7 @@ class Scan(PureOp):
                 )
 
                 for pos, inp in enumerate(states):
-                    if inp in theano.gof.graph.inputs([Xt]):
+                    if inp in aesara.gof.graph.inputs([Xt]):
                         # Get the index of the outer output that to which
                         # the state variable 'inp' corresponds.
                         outer_oidx = self.var_mappings["outer_out_from_inner_inp"][
@@ -2245,9 +2245,9 @@ class Scan(PureOp):
                         if not isinstance(dC_douts[outer_oidx].type, DisconnectedType):
                             dtypes.append(dC_douts[outer_oidx].dtype)
                 if dtypes:
-                    new_dtype = theano.scalar.upcast(*dtypes)
+                    new_dtype = aesara.scalar.upcast(*dtypes)
                 else:
-                    new_dtype = theano.config.floatX
+                    new_dtype = aesara.config.floatX
                 dC_dXt = safe_new(Xt, dtype=new_dtype)
             else:
                 if isinstance(dC_douts[idx].type, DisconnectedType):
@@ -2427,7 +2427,7 @@ class Scan(PureOp):
                     # use a zero tensor of the appropriate shape instead.
                     inner_out_mitmot.append(
                         tensor.zeros(
-                            diff_inputs[ins_pos].shape, dtype=theano.config.floatX
+                            diff_inputs[ins_pos].shape, dtype=aesara.config.floatX
                         )
                     )
                     undefined_msg = dC_dinps_t[ins_pos].type.why_null
@@ -2445,7 +2445,7 @@ class Scan(PureOp):
                         replacement = inner_inp_mitmot[-replacement_idx]
 
                         self.tap_array[idx]
-                        new_inner_out_mitmot = theano.clone(
+                        new_inner_out_mitmot = aesara.clone(
                             new_inner_out_mitmot, replace=[(to_replace, replacement)]
                         )
 
@@ -2500,7 +2500,7 @@ class Scan(PureOp):
                     # use a zero tensor of the appropriate shape instead.
                     inner_out_mitmot.append(
                         tensor.zeros(
-                            diff_inputs[ins_pos].shape, dtype=theano.config.floatX
+                            diff_inputs[ins_pos].shape, dtype=aesara.config.floatX
                         )
                     )
                     undefined_msg = dC_dinps_t[ins_pos].type.why_null
@@ -2542,7 +2542,7 @@ class Scan(PureOp):
                     # be used anyway.
                     outer_inp_mitmot.append(
                         tensor.zeros(
-                            outs[idx + offset].shape, dtype=theano.config.floatX
+                            outs[idx + offset].shape, dtype=aesara.config.floatX
                         )
                     )
                 else:
@@ -2556,7 +2556,7 @@ class Scan(PureOp):
                 # We cannot use Null in the inner graph, so we
                 # use a zero tensor of the appropriate shape instead.
                 inner_out_mitmot.append(
-                    tensor.zeros(diff_inputs[ins_pos].shape, dtype=theano.config.floatX)
+                    tensor.zeros(diff_inputs[ins_pos].shape, dtype=aesara.config.floatX)
                 )
             else:
                 inner_out_mitmot.append(dC_dinps_t[ins_pos])
@@ -2593,7 +2593,7 @@ class Scan(PureOp):
                 # Replace the inner output with a zero tensor of
                 # the right shape
                 inner_out_sitsot[_p] = tensor.zeros(
-                    diff_inputs[ins_pos + _p].shape, dtype=theano.config.floatX
+                    diff_inputs[ins_pos + _p].shape, dtype=aesara.config.floatX
                 )
             elif through_shared:
                 type_outs.append("through_shared")
@@ -2612,7 +2612,7 @@ class Scan(PureOp):
                 # Replace the inner output with a zero tensor of
                 # the right shape
                 inner_out_nitsot[_p] = tensor.zeros(
-                    diff_inputs[_p].shape, dtype=theano.config.floatX
+                    diff_inputs[_p].shape, dtype=aesara.config.floatX
                 )
 
             if through_shared:
@@ -2631,12 +2631,12 @@ class Scan(PureOp):
                 outer_inp_sitsot.append(
                     tensor.zeros(
                         [grad_steps + 1] + [x.shape[i] for i in range(x.ndim)],
-                        dtype=theano.config.floatX,
+                        dtype=aesara.config.floatX,
                     )
                 )
                 # replace y by a zero tensor of the right shape
                 inner_inp_sitsot[_idx] = tensor.zeros(
-                    diff_inputs[ins_pos + _idx].shape, dtype=theano.config.floatX
+                    diff_inputs[ins_pos + _idx].shape, dtype=aesara.config.floatX
                 )
 
             else:
@@ -3046,12 +3046,12 @@ class Scan(PureOp):
         return final_outs
 
 
-# Since Scan is an op that contains a Theano compiled function, it is
+# Since Scan is an op that contains a Aesara compiled function, it is
 # useful to let DebugMode know about it.
 gof.ops_with_inner_function[Scan] = "fn"
 
 
-@theano.compile.profiling.register_profiler_printer
+@aesara.compile.profiling.register_profiler_printer
 def profile_printer(
     message, compile_time, fct_call_time, apply_time, apply_cimpl, outputs_size, file
 ):
@@ -3073,11 +3073,11 @@ def profile_printer(
             if isinstance(node.op, Scan) and not node.op.fn.profile:
                 print(
                     "  One scan node do not have its inner profile enabled. "
-                    "If you enable Theano profiler with "
-                    "'theano.function(..., profile=True)', you must manually"
+                    "If you enable Aesara profiler with "
+                    "'aesara.function(..., profile=True)', you must manually"
                     " enable the profiling for each scan too: "
-                    "'theano.scan_module.scan(...,profile=True)'."
-                    " Or use Theano flag 'profile=True'.",
+                    "'aesara.scan_module.scan(...,profile=True)'."
+                    " Or use Aesara flag 'profile=True'.",
                     file=file,
                 )
             elif isinstance(node.op, Scan) and node.op.fn.profile:

@@ -5,7 +5,7 @@
 :mod:`nanguardmode`
 ===================
 
-.. module:: theano.compile.nanguardmode
+.. module:: aesara.compile.nanguardmode
    :platform: Unix, Windows
    :synopsis: defines NanGuardMode
 .. moduleauthor:: LISA
@@ -24,19 +24,19 @@ NanGuardMode can be used as follows:
 .. testcode::
 
     import numpy
-    import theano
-    import theano.tensor as tt
-    from theano.compile.nanguardmode import NanGuardMode
+    import aesara
+    import aesara.tensor as tt
+    from aesara.compile.nanguardmode import NanGuardMode
 
     x = tt.matrix()
-    w = theano.shared(numpy.random.randn(5, 7).astype(theano.config.floatX))
+    w = aesara.shared(numpy.random.randn(5, 7).astype(aesara.config.floatX))
     y = tt.dot(x, w)
-    fun = theano.function(
+    fun = aesara.function(
         [x], y,
         mode=NanGuardMode(nan_is_error=True, inf_is_error=True, big_is_error=True)
     )
 
-While using the theano function ``fun``, it will monitor the values of each
+While using the aesara function ``fun``, it will monitor the values of each
 input and output variable of each node. When abnormal values are
 detected, it raises an error to indicate which node yields the NaNs. For
 example, if we pass the following values to ``fun``:
@@ -44,7 +44,7 @@ example, if we pass the following values to ``fun``:
 .. testcode::
 
     infa = numpy.tile(
-        (numpy.asarray(100.) ** 1000000).astype(theano.config.floatX), (3, 5))
+        (numpy.asarray(100.) ** 1000000).astype(aesara.config.floatX), (3, 5))
     fun(infa)
 
 .. testoutput::
@@ -71,4 +71,4 @@ set to be ``True`` by default.
 Reference
 =========
 
-.. autoclass:: theano.compile.nanguardmode.NanGuardMode
+.. autoclass:: aesara.compile.nanguardmode.NanGuardMode

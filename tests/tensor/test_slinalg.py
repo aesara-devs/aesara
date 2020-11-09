@@ -4,10 +4,10 @@ import numpy as np
 import numpy.linalg
 import pytest
 
-import theano
+import aesara
 from tests import unittest_tools as utt
-from theano import config, function, grad, tensor
-from theano.tensor.slinalg import (
+from aesara import config, function, grad, tensor
+from aesara.tensor.slinalg import (
     Cholesky,
     CholeskyGrad,
     Solve,
@@ -108,9 +108,9 @@ def test_cholesky_and_cholesky_grad_shape():
     rng = np.random.RandomState(utt.fetch_seed())
     x = tensor.matrix()
     for l in (cholesky(x), Cholesky(lower=True)(x), Cholesky(lower=False)(x)):
-        f_chol = theano.function([x], l.shape)
+        f_chol = aesara.function([x], l.shape)
         g = tensor.grad(l.sum(), x)
-        f_cholgrad = theano.function([x], g.shape)
+        f_cholgrad = aesara.function([x], g.shape)
         topo_chol = f_chol.maker.fgraph.toposort()
         topo_cholgrad = f_cholgrad.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
@@ -127,8 +127,8 @@ def test_cholesky_and_cholesky_grad_shape():
 def test_eigvalsh():
     scipy = pytest.importorskip("scipy")
 
-    A = theano.tensor.dmatrix("a")
-    B = theano.tensor.dmatrix("b")
+    A = aesara.tensor.dmatrix("a")
+    B = aesara.tensor.dmatrix("b")
     f = function([A, B], eigvalsh(A, B))
 
     rng = np.random.RandomState(utt.fetch_seed())
@@ -142,7 +142,7 @@ def test_eigvalsh():
     # We need to test None separatly, as otherwise DebugMode will
     # complain, as this isn't a valid ndarray.
     b = None
-    B = theano.tensor.NoneConst
+    B = aesara.tensor.NoneConst
     f = function([A], eigvalsh(A, B))
     w = f(a)
     refw = scipy.linalg.eigvalsh(a, b)
@@ -170,11 +170,11 @@ class TestSolve(utt.InferShapeTester):
     def test_infer_shape(self):
         pytest.importorskip("scipy")
         rng = np.random.RandomState(utt.fetch_seed())
-        A = theano.tensor.matrix()
-        b = theano.tensor.matrix()
+        A = aesara.tensor.matrix()
+        b = aesara.tensor.matrix()
         self._compile_and_check(
-            [A, b],  # theano.function inputs
-            [self.op(A, b)],  # theano.function outputs
+            [A, b],  # aesara.function inputs
+            [self.op(A, b)],  # aesara.function outputs
             # A must be square
             [
                 np.asarray(rng.rand(5, 5), dtype=config.floatX),
@@ -184,11 +184,11 @@ class TestSolve(utt.InferShapeTester):
             warn=False,
         )
         rng = np.random.RandomState(utt.fetch_seed())
-        A = theano.tensor.matrix()
-        b = theano.tensor.vector()
+        A = aesara.tensor.matrix()
+        b = aesara.tensor.vector()
         self._compile_and_check(
-            [A, b],  # theano.function inputs
-            [self.op(A, b)],  # theano.function outputs
+            [A, b],  # aesara.function inputs
+            [self.op(A, b)],  # aesara.function outputs
             # A must be square
             [
                 np.asarray(rng.rand(5, 5), dtype=config.floatX),
@@ -201,20 +201,20 @@ class TestSolve(utt.InferShapeTester):
     def test_solve_correctness(self):
         scipy = pytest.importorskip("scipy")
         rng = np.random.RandomState(utt.fetch_seed())
-        A = theano.tensor.matrix()
-        b = theano.tensor.matrix()
+        A = aesara.tensor.matrix()
+        b = aesara.tensor.matrix()
         y = self.op(A, b)
-        gen_solve_func = theano.function([A, b], y)
+        gen_solve_func = aesara.function([A, b], y)
 
         cholesky_lower = Cholesky(lower=True)
         L = cholesky_lower(A)
         y_lower = self.op(L, b)
-        lower_solve_func = theano.function([L, b], y_lower)
+        lower_solve_func = aesara.function([L, b], y_lower)
 
         cholesky_upper = Cholesky(lower=False)
         U = cholesky_upper(A)
         y_upper = self.op(U, b)
-        upper_solve_func = theano.function([U, b], y_upper)
+        upper_solve_func = aesara.function([U, b], y_upper)
 
         b_val = np.asarray(rng.rand(5, 1), dtype=config.floatX)
 

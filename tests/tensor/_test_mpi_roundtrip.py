@@ -6,10 +6,10 @@ from sys import exit, stderr, stdout
 import numpy as np
 from mpi4py import MPI
 
-import theano
-from theano.configparser import change_flags
-from theano.gof.sched import sort_schedule_fn
-from theano.tensor.io import mpi_cmps, recv, send
+import aesara
+from aesara.configparser import change_flags
+from aesara.gof.sched import sort_schedule_fn
+from aesara.tensor.io import mpi_cmps, recv, send
 
 
 comm = MPI.COMM_WORLD
@@ -29,17 +29,17 @@ shape = (2, 2)
 dtype = "float32"
 
 scheduler = sort_schedule_fn(*mpi_cmps)
-mode = theano.Mode(optimizer=None, linker=theano.OpWiseCLinker(schedule=scheduler))
+mode = aesara.Mode(optimizer=None, linker=aesara.OpWiseCLinker(schedule=scheduler))
 
 with change_flags(compute_test_value="off"):
     if rank == 0:
-        x = theano.tensor.matrix("x", dtype=dtype)
+        x = aesara.tensor.matrix("x", dtype=dtype)
         y = x + 1
         send_request = send(y, 1, 11)
 
         z = recv(shape, dtype, 1, 12)
 
-        f = theano.function([x], [send_request, z], mode=mode)
+        f = aesara.function([x], [send_request, z], mode=mode)
 
         xx = np.random.rand(*shape).astype(dtype)
         expected = (xx + 1) * 2
@@ -56,6 +56,6 @@ with change_flags(compute_test_value="off"):
         z = y * 2
         send_request = send(z, 0, 12)
 
-        f = theano.function([], send_request, mode=mode)
+        f = aesara.function([], send_request, mode=mode)
 
         f()

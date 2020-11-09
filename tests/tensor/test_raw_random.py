@@ -3,11 +3,11 @@ import pickle
 import numpy as np
 import pytest
 
-import theano
+import aesara
 from tests import unittest_tools as utt
-from theano import compile, config, tensor
-from theano.tensor import dcol, dvector, ivector, raw_random
-from theano.tensor.raw_random import (
+from aesara import compile, config, tensor
+from aesara.tensor import dcol, dvector, ivector, raw_random
+from aesara.tensor.raw_random import (
     RandomFunction,
     binomial,
     choice,
@@ -673,7 +673,7 @@ class TestRandomFunction(utt.InferShapeTester):
                 update=post_r,
                 mutable=True,
             )
-            f = theano.function([inp], out)
+            f = aesara.function([inp], out)
             o = f()
             assert o.shape == (10,)
             assert (np.sort(o) == np.arange(10)).all()
@@ -771,8 +771,8 @@ class TestRandomFunction(utt.InferShapeTester):
         numpy_rng = np.random.RandomState(utt.fetch_seed())
         post0, val0 = f(rng_state0)
         post1, val1 = f(post0)
-        numpy_val0 = np.asarray(numpy_rng.uniform(), dtype=theano.config.floatX)
-        numpy_val1 = np.asarray(numpy_rng.uniform(), dtype=theano.config.floatX)
+        numpy_val0 = np.asarray(numpy_rng.uniform(), dtype=aesara.config.floatX)
+        numpy_val1 = np.asarray(numpy_rng.uniform(), dtype=aesara.config.floatX)
 
         assert np.all(val0 == numpy_val0)
         assert np.all(val1 == numpy_val1)
@@ -781,7 +781,7 @@ class TestRandomFunction(utt.InferShapeTester):
         g = compile.function([rng_R], [post_r, out], accept_inplace=True)
         post2, val2 = g(post1)
         numpy_val2 = np.asarray(
-            numpy_rng.multinomial(n=1, pvals=[0.5, 0.5]), dtype=theano.config.floatX
+            numpy_rng.multinomial(n=1, pvals=[0.5, 0.5]), dtype=aesara.config.floatX
         )
 
         assert np.all(val2 == numpy_val2)
@@ -794,7 +794,7 @@ class TestRandomFunction(utt.InferShapeTester):
         f = compile.function([rng_R, low], [post_r, out], accept_inplace=True)
 
         def as_floatX(thing):
-            return np.asarray(thing, dtype=theano.config.floatX)
+            return np.asarray(thing, dtype=aesara.config.floatX)
 
         rng_state0 = np.random.RandomState(utt.fetch_seed())
         numpy_rng = np.random.RandomState(utt.fetch_seed())
@@ -879,7 +879,7 @@ class TestRandomFunction(utt.InferShapeTester):
         f = compile.function([rng_R, low, high], [post_r, out], accept_inplace=True)
 
         def as_floatX(thing):
-            return np.asarray(thing, dtype=theano.config.floatX)
+            return np.asarray(thing, dtype=aesara.config.floatX)
 
         low_val = as_floatX([0.1, 0.2, 0.3])
         high_val = as_floatX([1.1, 2.2, 3.3])
@@ -952,7 +952,7 @@ class TestRandomFunction(utt.InferShapeTester):
         f = compile.function([rng_R, avg, std], [post_r, out], accept_inplace=True)
 
         def as_floatX(thing):
-            return np.asarray(thing, dtype=theano.config.floatX)
+            return np.asarray(thing, dtype=aesara.config.floatX)
 
         avg_val = [1, 2, 3]
         std_val = as_floatX([0.1, 0.2, 0.3])
@@ -970,7 +970,7 @@ class TestRandomFunction(utt.InferShapeTester):
         rng1, val1 = f(rng0, avg_val[:-1], std_val[:-1])
         numpy_val1 = np.asarray(
             numpy_rng.normal(loc=avg_val[:-1], scale=std_val[:-1]),
-            dtype=theano.config.floatX,
+            dtype=aesara.config.floatX,
         )
         assert np.all(val1 == numpy_val1)
 
@@ -983,7 +983,7 @@ class TestRandomFunction(utt.InferShapeTester):
         rng2, val2 = g(rng1, avg_val, std_val)
         numpy_val2 = np.asarray(
             numpy_rng.normal(loc=avg_val, scale=std_val, size=(3,)),
-            dtype=theano.config.floatX,
+            dtype=aesara.config.floatX,
         )
         assert np.all(val2 == numpy_val2)
         with pytest.raises(ValueError):
@@ -1278,7 +1278,7 @@ class TestRandomFunction(utt.InferShapeTester):
 
         # uniform with explicit size and size implicit in parameters
         # NOTE 1: Would it be desirable that size could also be supplied
-        # as a Theano variable?
+        # as a Aesara variable?
         post_r, out = uniform(rng_R, size=size_val, low=low, high=high)
         self._compile_and_check(
             [rng_R, low, high], [out], [rng_R_val, low_val, high_val], RandomFunction
@@ -1352,13 +1352,13 @@ class TestRandomFunction(utt.InferShapeTester):
         # random_integers by calling it on a function.
         rng_r = random_state_type()
         mode = None
-        if theano.config.mode in ["DEBUG_MODE", "DebugMode"]:
+        if aesara.config.mode in ["DEBUG_MODE", "DebugMode"]:
             mode = "FAST_COMPILE"
         post_bin_r, bin_sample = binomial(rng_r, (3, 5), 1, 0.3)
-        f = theano.function([rng_r], [post_bin_r, bin_sample], mode=mode)
+        f = aesara.function([rng_r], [post_bin_r, bin_sample], mode=mode)
         pickle.dumps(f)
 
         post_int_r, int_sample = random_integers(rng_r, (3, 5), -1, 8)
-        g = theano.function([rng_r], [post_int_r, int_sample], mode=mode)
+        g = aesara.function([rng_r], [post_int_r, int_sample], mode=mode)
         pkl_g = pickle.dumps(g)
         pickle.loads(pkl_g)

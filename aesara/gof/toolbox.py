@@ -8,9 +8,9 @@ from io import StringIO
 
 import numpy as np
 
-import theano
-from theano import config
-from theano.gof.graph import equal_computations, inputs, io_toposort, variables
+import aesara
+from aesara import config
+from aesara.gof.graph import equal_computations, inputs, io_toposort, variables
 
 
 class AlreadyThere(Exception):
@@ -231,7 +231,7 @@ class Feature:
 
     See Also
     --------
-    theano.gof.toolbox : for common extensions.
+    aesara.gof.toolbox : for common extensions.
 
     """
 
@@ -536,7 +536,7 @@ class ReplaceValidate(History, Validator):
             scans = [
                 n
                 for n in fgraph.apply_nodes
-                if isinstance(n.op, theano.scan_module.scan_op.Scan)
+                if isinstance(n.op, aesara.scan_module.scan_op.Scan)
             ]
 
         for r, new_r in replacements:
@@ -552,7 +552,7 @@ class ReplaceValidate(History, Validator):
                     # So don't revert as this raise a different error
                     # that isn't helpful.
                     e.args += (
-                        "Please, report this to theano-dev mailing list."
+                        "Please, report this to aesara-dev mailing list."
                         " As a temporary work around, you can raise Python"
                         " stack limit with:"
                         " import sys; sys.setrecursionlimit(10000)",
@@ -584,7 +584,7 @@ class ReplaceValidate(History, Validator):
             scans2 = [
                 n
                 for n in fgraph.apply_nodes
-                if isinstance(n.op, theano.scan_module.scan_op.Scan)
+                if isinstance(n.op, aesara.scan_module.scan_op.Scan)
             ]
             nb = len(scans)
             nb2 = len(scans2)
@@ -627,7 +627,7 @@ class ReplaceValidate(History, Validator):
                         " remove it. We disabled the optimization."
                         " Your function runs correctly, but it would be"
                         " appreciated if you submit this problem to the"
-                        " mailing list theano-users so that we can fix it.",
+                        " mailing list aesara-users so that we can fix it.",
                         file=out,
                     )
                     print(reason, replacements, file=out)
@@ -646,7 +646,7 @@ class ReplaceValidate(History, Validator):
     def validate(self, fgraph):
         if self.fail_validate:
             self.fail_validate = False
-            raise theano.gof.InconsistencyError("Trying to reintroduce a removed node")
+            raise aesara.gof.InconsistencyError("Trying to reintroduce a removed node")
 
 
 class NodeFinder(Bookkeeper):
@@ -791,7 +791,7 @@ class NoOutputFromInplace(Feature):
             op = node.op
             out_idx = node.outputs.index(out)
             if hasattr(op, "destroy_map") and out_idx in op.destroy_map:
-                raise theano.gof.InconsistencyError(
+                raise aesara.gof.InconsistencyError(
                     "A function graph Feature has requested (probably for ",
                     "efficiency reasons for scan) that outputs of the graph",
                     "be prevented from being the result of inplace ",
@@ -805,12 +805,12 @@ class NoOutputFromInplace(Feature):
 
 def is_same_graph_with_merge(var1, var2, givens=None):
     """
-    Merge-based implementation of `theano.gof.graph.is_same_graph`.
+    Merge-based implementation of `aesara.gof.graph.is_same_graph`.
 
-    See help on `theano.gof.graph.is_same_graph` for additional documentation.
+    See help on `aesara.gof.graph.is_same_graph` for additional documentation.
 
     """
-    from theano.gof.opt import MergeOptimizer
+    from aesara.gof.opt import MergeOptimizer
 
     if givens is None:
         givens = {}
@@ -822,7 +822,7 @@ def is_same_graph_with_merge(var1, var2, givens=None):
     graph_inputs = inputs(vars)
     # The clone isn't needed as we did a deepcopy and we cloning will
     # break the mapping in givens.
-    fgraph = theano.gof.fg.FunctionGraph(graph_inputs, vars, clone=False)
+    fgraph = aesara.gof.fg.FunctionGraph(graph_inputs, vars, clone=False)
     # Perform Variable substitution.
     for to_replace, replace_by in givens.items():
         fgraph.replace(to_replace, replace_by)
@@ -864,7 +864,7 @@ def is_same_graph(var1, var2, givens=None):
     var2
         The second Variable to compare.
     givens
-        Similar to the `givens` argument of `theano.function`, it can be used
+        Similar to the `givens` argument of `aesara.function`, it can be used
         to perform substitutions in the computational graph of `var1` and
         `var2`. This argument is associated to neither `var1` nor `var2`:
         substitutions may affect both graphs if the substituted variable

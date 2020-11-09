@@ -1,13 +1,13 @@
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 
 
 class TestDictionaryOutput:
     def test_output_dictionary(self):
-        # Tests that theano.function works when outputs is a dictionary
+        # Tests that aesara.function works when outputs is a dictionary
 
         x = tt.scalar()
-        f = theano.function([x], outputs={"a": x, "c": x * 2, "b": x * 3, "1": x * 4})
+        f = aesara.function([x], outputs={"a": x, "c": x * 2, "b": x * 3, "1": x * 4})
 
         outputs = f(10.0)
 
@@ -22,7 +22,7 @@ class TestDictionaryOutput:
         x = tt.scalar("x")
         y = tt.scalar("y")
 
-        f = theano.function([x, y], outputs={"a": x + y, "b": x * y})
+        f = aesara.function([x, y], outputs={"a": x + y, "b": x * y})
 
         assert f(2, 4) == {"a": 6, "b": 8}
         assert f(2, y=4) == f(2, 4)
@@ -37,7 +37,7 @@ class TestDictionaryOutput:
         e1 = tt.scalar("1")
         e2 = tt.scalar("2")
 
-        f = theano.function(
+        f = aesara.function(
             [x, y, z, e1, e2], outputs={"x": x, "y": y, "z": z, "1": e1, "2": e2}
         )
 
@@ -48,7 +48,7 @@ class TestDictionaryOutput:
         assert "z" in str(f.outputs[4])
 
     def test_composing_function(self):
-        # Tests that one can compose two theano functions when the outputs are
+        # Tests that one can compose two aesara functions when the outputs are
         # provided in a dictionary.
 
         x = tt.scalar("x")
@@ -57,7 +57,7 @@ class TestDictionaryOutput:
         a = x + y
         b = x * y
 
-        f = theano.function([x, y], outputs={"a": a, "b": b})
+        f = aesara.function([x, y], outputs={"a": a, "b": b})
 
         a = tt.scalar("a")
         b = tt.scalar("b")
@@ -65,7 +65,7 @@ class TestDictionaryOutput:
         l = a + b
         r = a * b
 
-        g = theano.function([a, b], outputs=[l, r])
+        g = aesara.function([a, b], outputs=[l, r])
 
         result = g(**f(5, 7))
 
@@ -73,11 +73,11 @@ class TestDictionaryOutput:
         assert result[1] == 420.0
 
     def test_output_list_still_works(self):
-        # Test that theano.function works if outputs is a list.
+        # Test that aesara.function works if outputs is a list.
 
         x = tt.scalar("x")
 
-        f = theano.function([x], outputs=[x * 3, x * 2, x * 4, x])
+        f = aesara.function([x], outputs=[x * 3, x * 2, x * 4, x])
 
         result = f(5.0)
 
@@ -91,7 +91,7 @@ class TestDictionaryOutput:
 
         x = tt.scalar("x")
 
-        f = theano.function(
+        f = aesara.function(
             [x], outputs={"1": x, "2": 2 * x, "3": 3 * x}, mode="DEBUG_MODE"
         )
 
@@ -106,7 +106,7 @@ class TestDictionaryOutput:
 
         x = tt.scalar("x")
 
-        f = theano.function([x], outputs=[x, 2 * x, 3 * x], mode="DEBUG_MODE")
+        f = aesara.function([x], outputs=[x, 2 * x, 3 * x], mode="DEBUG_MODE")
 
         result = f(5.0)
 
@@ -120,17 +120,17 @@ class TestDictionaryOutput:
 
         x = tt.scalar("x")
         try:
-            theano.function([x], outputs={1.0: x})
+            aesara.function([x], outputs={1.0: x})
             raise Exception("Did not throw exception with 1.0 as only key")
         except AssertionError:
             pass
         try:
-            theano.function([x], outputs={1.0: x, "a": x ** 2})
+            aesara.function([x], outputs={1.0: x, "a": x ** 2})
             raise Exception("Did not throw exception with 1.0 as one key")
         except AssertionError:
             pass
         try:
-            theano.function([x], outputs={(1, "b"): x, 1.0: x ** 2})
+            aesara.function([x], outputs={(1, "b"): x, 1.0: x ** 2})
             raise Exception("Did not throw exception with tuple as key")
         except AssertionError:
             pass

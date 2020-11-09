@@ -1,10 +1,10 @@
-# This is the example in the Theano/doc/tutorial/extending_theano.txt
+# This is the example in the Aesara/doc/tutorial/extending_aesara.txt
 
 
-import theano
+import aesara
 
 
-class DoubleOp(theano.Op):
+class DoubleOp(aesara.Op):
     """
     Double each element of a tensor.
 
@@ -25,8 +25,8 @@ class DoubleOp(theano.Op):
 
     See Also
     --------
-    :class:`~theano.tensor.elemwise.Elemwise` : You can use this to replace
-    this example.  Just execute `x * 2` with x being a Theano variable.
+    :class:`~aesara.tensor.elemwise.Elemwise` : You can use this to replace
+    this example.  Just execute `x * 2` with x being a Aesara variable.
 
 
     .. versionadded:: 0.6
@@ -42,8 +42,8 @@ class DoubleOp(theano.Op):
         return self.__class__.__name__
 
     def make_node(self, x):
-        x = theano.tensor.as_tensor_variable(x)
-        return theano.Apply(self, [x], [x.type()])
+        x = aesara.tensor.as_tensor_variable(x)
+        return aesara.Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, output_storage):
         x = inputs[0]

@@ -6,10 +6,10 @@ GPU power consumption then gemm call.
 
 import numpy as np
 
-import theano
-import theano.tensor as tt
-from theano.gpuarray import dnn
-from theano.tensor.nnet.abstract_conv import get_conv_output_shape
+import aesara
+import aesara.tensor as tt
+from aesara.gpuarray import dnn
+from aesara.tensor.nnet.abstract_conv import get_conv_output_shape
 
 
 def burn():
@@ -22,17 +22,17 @@ def burn():
     out = tt.tensor4("out")
 
     def rand(shp):
-        return np.random.rand(*shp).astype(theano.config.floatX)
+        return np.random.rand(*shp).astype(aesara.config.floatX)
 
-    img = theano.shared(rand(img_shp))
-    kern = theano.shared(rand(kern_shp))
-    out = theano.shared(rand(out_shp))
+    img = aesara.shared(rand(img_shp))
+    kern = aesara.shared(rand(kern_shp))
+    out = aesara.shared(rand(out_shp))
     # beta 1 is needed to force the reuse of out, otherwise, it is
     # replaced by a GpuAllocEmpty
     o1 = dnn._dnn_conv(img, kern, conv_mode="conv", out=out, beta=1.0)
-    mode = theano.compile.get_default_mode().including("local_remove_all_assert")
-    f = theano.function([], [o1], mode=mode)
-    theano.printing.debugprint(f)
+    mode = aesara.compile.get_default_mode().including("local_remove_all_assert")
+    f = aesara.function([], [o1], mode=mode)
+    aesara.printing.debugprint(f)
     print("Start computation")
     for i in range(10000):
         f.fn()

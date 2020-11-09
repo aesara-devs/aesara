@@ -5,37 +5,37 @@ import os
 import sys
 
 if sys.platform == 'win32':
-    config_for_theano_cache_script = 'cxx=,device=cpu'
-    theano_flags = os.environ['THEANO_FLAGS'] if 'THEANO_FLAGS' in os.environ else ''
-    if theano_flags:
-        theano_flags += ','
-    theano_flags += config_for_theano_cache_script
-    os.environ['THEANO_FLAGS'] = theano_flags
+    config_for_aesara_cache_script = 'cxx=,device=cpu'
+    aesara_flags = os.environ['THEANO_FLAGS'] if 'THEANO_FLAGS' in os.environ else ''
+    if aesara_flags:
+        aesara_flags += ','
+    aesara_flags += config_for_aesara_cache_script
+    os.environ['THEANO_FLAGS'] = aesara_flags
 
-import theano
-from theano import config
-import theano.gof.compiledir
-from theano.gof.cc import get_module_cache
+import aesara
+from aesara import config
+import aesara.gof.compiledir
+from aesara.gof.cc import get_module_cache
 
-_logger = logging.getLogger('theano.bin.theano-cache')
+_logger = logging.getLogger('aesara.bin.aesara-cache')
 
 
 def print_help(exit_status):
     if exit_status:
         print('command "%s" not recognized' % (' '.join(sys.argv)))
-    print('Type "theano-cache" to print the cache location')
-    print('Type "theano-cache help" to print this help')
-    print('Type "theano-cache clear" to erase the cache')
-    print('Type "theano-cache list" to print the cache content')
-    print('Type "theano-cache unlock" to unlock the cache directory')
-    print('Type "theano-cache cleanup" to delete keys in the old '
+    print('Type "aesara-cache" to print the cache location')
+    print('Type "aesara-cache help" to print this help')
+    print('Type "aesara-cache clear" to erase the cache')
+    print('Type "aesara-cache list" to print the cache content')
+    print('Type "aesara-cache unlock" to unlock the cache directory')
+    print('Type "aesara-cache cleanup" to delete keys in the old '
           'format/code version')
-    print('Type "theano-cache purge" to force deletion of the cache directory')
-    print('Type "theano-cache basecompiledir" '
+    print('Type "aesara-cache purge" to force deletion of the cache directory')
+    print('Type "aesara-cache basecompiledir" '
           'to print the parent of the cache directory')
-    print('Type "theano-cache basecompiledir list" '
+    print('Type "aesara-cache basecompiledir list" '
           'to print the content of the base compile dir')
-    print('Type "theano-cache basecompiledir purge" '
+    print('Type "aesara-cache basecompiledir purge" '
           'to remove everything in the base compile dir, '
           'that is, erase ALL cache directories')
     sys.exit(exit_status)
@@ -56,39 +56,39 @@ def main():
 
             # Print a warning if some cached modules were not removed, so that the
             # user knows he should manually delete them, or call
-            # theano-cache purge, # to properly clear the cache.
+            # aesara-cache purge, # to properly clear the cache.
             items = [item for item in sorted(os.listdir(cache.dirname))
                      if item.startswith('tmp')]
             if items:
                 _logger.warning(
                     'There remain elements in the cache dir that you may '
                     'need to erase manually. The cache dir is:\n  %s\n'
-                    'You can also call "theano-cache purge" to '
+                    'You can also call "aesara-cache purge" to '
                     'remove everything from that directory.' %
                     config.compiledir)
                 _logger.debug('Remaining elements (%s): %s' %
                               (len(items), ', '.join(items)))
         elif sys.argv[1] == 'list':
-            theano.gof.compiledir.print_compiledir_content()
+            aesara.gof.compiledir.print_compiledir_content()
         elif sys.argv[1] == 'cleanup':
-            theano.gof.compiledir.cleanup()
+            aesara.gof.compiledir.cleanup()
             cache = get_module_cache(init_args=dict(do_refresh=False))
             cache.clear_old()
         elif sys.argv[1] == 'unlock':
-            theano.gof.compilelock.force_unlock()
+            aesara.gof.compilelock.force_unlock()
             print('Lock successfully removed!')
         elif sys.argv[1] == 'purge':
-            theano.gof.compiledir.compiledir_purge()
+            aesara.gof.compiledir.compiledir_purge()
         elif sys.argv[1] == 'basecompiledir':
             # Simply print the base_compiledir
-            print(theano.config.base_compiledir)
+            print(aesara.config.base_compiledir)
         else:
             print_help(exit_status=1)
     elif len(sys.argv) == 3 and sys.argv[1] == 'basecompiledir':
         if sys.argv[2] == 'list':
-            theano.gof.compiledir.basecompiledir_ls()
+            aesara.gof.compiledir.basecompiledir_ls()
         elif sys.argv[2] == 'purge':
-            theano.gof.compiledir.basecompiledir_purge()
+            aesara.gof.compiledir.basecompiledir_purge()
         else:
             print_help(exit_status=1)
     else:

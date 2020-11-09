@@ -5,17 +5,17 @@ import logging
 import warnings
 from collections import OrderedDict
 
-from theano.compile.sharedvalue import SharedVariable
+from aesara.compile.sharedvalue import SharedVariable
 
 
-__authors__ = "theano-dev"
+__authors__ = "aesara-dev"
 __copyright__ = "(c) 2010, Universite de Montreal"
 __license__ = "3-clause BSD License"
-__contact__ = "theano-dev <theano-dev@googlegroups.com>"
+__contact__ = "aesara-dev <aesara-dev@googlegroups.com>"
 
 __docformat__ = "restructuredtext en"
 
-logger = logging.getLogger("theano.updates")
+logger = logging.getLogger("aesara.updates")
 
 
 # Must be an OrderedDict or updates will be applied in a non-deterministic
@@ -53,7 +53,7 @@ class OrderedUpdates(OrderedDict):
         if isinstance(key, SharedVariable):
 
             # TODO: consider doing error-checking on value.
-            # insist that it is a Theano variable? Have the right type?
+            # insist that it is a Aesara variable? Have the right type?
             # This could have weird consequences - for example a
             # GPU SharedVariable is customarily associated with a TensorType
             # value. Should it be cast to a GPU value right away?  Should

@@ -3,22 +3,22 @@ import time
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 from tests import unittest_tools as utt
-from theano.tensor.basic import NotScalarConstantError, _allclose
-from theano.tensor.nnet import conv, conv2d
+from aesara.tensor.basic import NotScalarConstantError, _allclose
+from aesara.tensor.nnet import conv, conv2d
 
 
 @pytest.mark.skipif(
-    not conv.imported_scipy_signal and theano.config.cxx == "",
+    not conv.imported_scipy_signal and aesara.config.cxx == "",
     reason="conv2d tests need SciPy or a c++ compiler",
 )
 class TestConv2D(utt.InferShapeTester):
     # This class contains tests for the legacy 2d convolution,
     # but will also be inherited from for other implementations
     mode = None
-    dtype = theano.config.floatX
+    dtype = aesara.config.floatX
     # This will be set to the appropriate function in the inherited classes.
     # The call to `staticmethod` is necessary to prevent Python from passing
     # `self` as the first argument.
@@ -79,7 +79,7 @@ class TestConv2D(utt.InferShapeTester):
 
         # we create a symbolic function so that verify_grad can work
         def sym_conv2d(input, filters):
-            # define theano graph and function
+            # define aesara graph and function
             input.name = "input"
             filters.name = "filters"
             rval = conv.conv2d(
@@ -98,13 +98,13 @@ class TestConv2D(utt.InferShapeTester):
 
         output = sym_conv2d(input, filters)
         output.name = "conv2d({},{})".format(input.name, filters.name)
-        theano_conv = theano.function([input, filters], output, mode=self.mode)
+        aesara_conv = aesara.function([input, filters], output, mode=self.mode)
 
         # initialize input and compute result
         image_data = np.random.random(N_image_shape).astype(self.dtype)
         filter_data = np.random.random(N_filter_shape).astype(self.dtype)
         try:
-            theano_output = theano_conv(image_data, filter_data)
+            aesara_output = aesara_conv(image_data, filter_data)
         except ValueError:
             if not should_raise:
                 raise
@@ -163,7 +163,7 @@ class TestConv2D(utt.InferShapeTester):
                                 * filter2d[::-1, ::-1]
                             ).sum()
 
-        assert _allclose(theano_output, ref_output)
+        assert _allclose(aesara_output, ref_output)
 
         # TEST GRADIENT
         if verify_grad:
@@ -528,7 +528,7 @@ class TestConv2D(utt.InferShapeTester):
     def test_wrong_info(self):
         # Test convolutions when we don't give a constant as shape information
 
-        i = theano.scalar.basic.int32()
+        i = aesara.scalar.basic.int32()
         with pytest.raises(NotScalarConstantError):
             self.validate(
                 (3, 2, 8, i),
@@ -594,8 +594,8 @@ class TestConv2D(utt.InferShapeTester):
                     print("filter_shapes", filter_shapes)
                     for filter_shape in filter_shapes:
 
-                        input = theano.shared(np.random.random(image_shape))
-                        filters = theano.shared(np.random.random(filter_shape))
+                        input = aesara.shared(np.random.random(image_shape))
+                        filters = aesara.shared(np.random.random(filter_shape))
 
                         output = self.conv2d(
                             input,
@@ -606,14 +606,14 @@ class TestConv2D(utt.InferShapeTester):
                             unroll_patch=True,
                             openmp=openmp,
                         )
-                        mode = theano.Mode(
-                            linker=theano.gof.vm.VM_Linker(
+                        mode = aesara.Mode(
+                            linker=aesara.gof.vm.VM_Linker(
                                 allow_gc=False, use_cloop=True
                             )
                         )
-                        theano_conv = theano.function([], output, mode=mode)
+                        aesara_conv = aesara.function([], output, mode=mode)
                         t1 = time.time()
-                        theano_conv.fn(n_calls=n_calls)
+                        aesara_conv.fn(n_calls=n_calls)
                         t2 = time.time()
                         print(t2 - t1, end=" ")
                     print()
@@ -741,11 +741,11 @@ def test_broadcast_grad():
     window_radius = 3
 
     filter_1d = tt.arange(-window_radius, window_radius + 1)
-    filter_1d = filter_1d.astype(theano.config.floatX)
+    filter_1d = filter_1d.astype(aesara.config.floatX)
     filter_1d = tt.exp(-0.5 * filter_1d ** 2 / sigma ** 2)
     filter_1d = filter_1d / filter_1d.sum()
 
     filter_W = filter_1d.dimshuffle(["x", "x", 0, "x"])
 
     y = conv2d(x1, filter_W, border_mode="full", filter_shape=[1, 1, None, None])
-    theano.grad(y.sum(), sigma)
+    aesara.grad(y.sum(), sigma)

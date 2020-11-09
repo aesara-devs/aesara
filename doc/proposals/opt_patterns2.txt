@@ -10,7 +10,7 @@ Optimization Patterns
 Motivation
 ==========
 
-Theano optimizations are organized at high level, 
+Aesara optimizations are organized at high level, 
 but canonicalization and specialization (C&S) are a mess.  It is difficult to know how a graph will
 be optimized, or to know in which order optimizations will be performed.  
 C&S is also slow because of the guess-and-check nature of node optimization within equilibrium

@@ -110,7 +110,7 @@ APPLY_SPECIFIC(dnn_sptf_sampler)(PyGpuArrayObject * input,
         return 1;
     }
 
-    if ( theano_prep_output( output, 4, out_dims, input->ga.typecode,
+    if ( aesara_prep_output( output, 4, out_dims, input->ga.typecode,
                              GA_C_ORDER, gpu_ctx ) != 0 )
     {
         PyErr_SetString( PyExc_MemoryError,

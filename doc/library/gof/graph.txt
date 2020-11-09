@@ -1,14 +1,14 @@
 .. _libdoc_gof_graph:
 
 ==============================================
-:mod:`graph` -- Interface for the Theano graph
+:mod:`graph` -- Interface for the Aesara graph
 ==============================================
 
 ---------
 Reference
 ---------
 
-.. automodule:: theano.gof.graph
+.. automodule:: aesara.gof.graph
    :platform: Unix, Windows
    :synopsis: Interface for types of symbolic variables
    :members:

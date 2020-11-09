@@ -88,7 +88,7 @@ int APPLY_SPECIFIC(dnn_redux)(PyGpuArrayObject *input,
   }
 
   if (indices != NULL) {
-    if (theano_prep_output(indices, p, dims, GA_UINT, GA_C_ORDER, c) != 0)
+    if (aesara_prep_output(indices, p, dims, GA_UINT, GA_C_ORDER, c) != 0)
       return 1;
     indsize = PyGpuArray_SIZE(*indices) * 4;
   }
@@ -159,7 +159,7 @@ int APPLY_SPECIFIC(dnn_redux)(PyGpuArrayObject *input,
     return 0;
   }
 
-  if (theano_prep_output(output, p, dims, input->ga.typecode,
+  if (aesara_prep_output(output, p, dims, input->ga.typecode,
                          GA_C_ORDER, c) != 0)
     return 1;
 

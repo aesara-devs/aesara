@@ -14,14 +14,14 @@ from optparse import OptionParser
 
 import numpy as np
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 
 
 def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order="C"):
     """
-    :param execute: If True, execute a Theano function that should call gemm.
-    :param verbose: If True, will print some Theano flags and env variables.
+    :param execute: If True, execute a Aesara function that should call gemm.
+    :param verbose: If True, will print some Aesara flags and env variables.
     :param M,N,K: The M,N,K size used by gemm.
     :param iters: The number of calls to gemm to do.
 
@@ -30,11 +30,11 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order=
     """
 
     if verbose:
-        print("Some Theano flags:")
-        print("    blas.ldflags=", theano.config.blas.ldflags)
-        print("    compiledir=", theano.config.compiledir)
-        print("    floatX=", theano.config.floatX)
-        print("    device=", theano.config.device)
+        print("Some Aesara flags:")
+        print("    blas.ldflags=", aesara.config.blas.ldflags)
+        print("    compiledir=", aesara.config.compiledir)
+        print("    floatX=", aesara.config.floatX)
+        print("    device=", aesara.config.device)
         print("Some OS information:")
         print("    sys.platform=", sys.platform)
         print("    sys.version=", sys.version)
@@ -44,16 +44,16 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order=
         print("    OMP_NUM_THREADS=", os.getenv("OMP_NUM_THREADS"))
         print("    GOTO_NUM_THREADS=", os.getenv("GOTO_NUM_THREADS"))
         print()
-        print("Numpy config: (used when the Theano flag" ' "blas.ldflags" is empty)')
+        print("Numpy config: (used when the Aesara flag" ' "blas.ldflags" is empty)')
         np.show_config()
         print("Numpy dot module:", np.dot.__module__)
         print("Numpy location:", np.__file__)
         print("Numpy version:", np.__version__)
 
-    a = theano.shared(np.ones((M, N), dtype=theano.config.floatX, order=order))
-    b = theano.shared(np.ones((N, K), dtype=theano.config.floatX, order=order))
-    c = theano.shared(np.ones((M, K), dtype=theano.config.floatX, order=order))
-    f = theano.function([], updates=[(c, 0.4 * c + 0.8 * tt.dot(a, b))])
+    a = aesara.shared(np.ones((M, N), dtype=aesara.config.floatX, order=order))
+    b = aesara.shared(np.ones((N, K), dtype=aesara.config.floatX, order=order))
+    c = aesara.shared(np.ones((M, K), dtype=aesara.config.floatX, order=order))
+    f = aesara.function([], updates=[(c, 0.4 * c + 0.8 * tt.dot(a, b))])
 
     if any([x.op.__class__.__name__ == "Gemm" for x in f.maker.fgraph.toposort()]):
         c_impl = [
@@ -63,13 +63,13 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order=
         ]
         assert len(c_impl) == 1
         if c_impl[0]:
-            impl = "CPU (with direct Theano binding to blas)"
+            impl = "CPU (with direct Aesara binding to blas)"
         else:
-            impl = "CPU (without direct Theano binding to blas but with numpy/scipy binding to blas)"
+            impl = "CPU (without direct Aesara binding to blas but with numpy/scipy binding to blas)"
     elif any([x.op.__class__.__name__ == "GpuGemm" for x in f.maker.fgraph.toposort()]):
         impl = "GPU"
     else:
-        impl = "ERROR, unable to tell if Theano used the cpu or the gpu:\n"
+        impl = "ERROR, unable to tell if Aesara used the cpu or the gpu:\n"
         impl += str(f.maker.fgraph.toposort())
 
     t0 = 0
@@ -77,8 +77,8 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order=
 
     f()  # Ignore first function call to get representative time.
     if execute:
-        sync = hasattr(theano, "gpuarray") and isinstance(
-            c, theano.gpuarray.GpuArraySharedVariable
+        sync = hasattr(aesara, "gpuarray") and isinstance(
+            c, aesara.gpuarray.GpuArraySharedVariable
         )
         if sync:
             # Make sure we don't include the time from the first call

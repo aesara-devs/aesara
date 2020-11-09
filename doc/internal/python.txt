@@ -11,7 +11,7 @@ give you a warm feeling in your stomach.
 Non-Basic Python features
 -------------------------
 
-Theano doesn't use your grandfather's python.
+Aesara doesn't use your grandfather's python.
 
   * properties
 

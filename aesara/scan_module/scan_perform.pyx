@@ -60,7 +60,7 @@ cimport numpy
 import copy
 import time
 
-from theano import gof
+from aesara import gof
 
 
 def get_version():
@@ -155,7 +155,7 @@ def perform(
         that code)
     fnct: python object
         Only used to attach some timings for the profile mode ( can be
-        skiped if we don't care about Theano's profile mode)
+        skiped if we don't care about Aesara's profile mode)
     destroy_map
         Array of boolean saying if an output is computed inplace
     args: list of ndarrays (and random states)
@@ -422,7 +422,7 @@ def perform(
             pdx = offset + n_shared_outs
             cond = output_storage[pdx].storage[0] == 0
 
-        # 5.2. By calling fn() directly instead of calling the theano
+        # 5.2. By calling fn() directly instead of calling the aesara
         # function, it is possible that the updates have not been
         # performed. Perform the updates if needed.
         offset_out = len(output_storage) - 1
@@ -554,7 +554,7 @@ def perform(
                             "This may be caused by a pushout optimization."
                             " Try adding "
                             "'optimizer_excluding=scanOp_pushout_output' "
-                            "to your Theano flags.")
+                            "to your Aesara flags.")
 
         # 5.6 Copy over the values for outputs corresponding to shared
         # variables

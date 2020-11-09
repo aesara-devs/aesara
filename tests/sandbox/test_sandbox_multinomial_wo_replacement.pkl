@@ -1,7 +1,7 @@
 ccopy_reg
 _reconstructor
 p1
-(ctheano.sandbox.multinomial
+(caesara.sandbox.multinomial
 MultinomialWOReplacementFromUniform
 p2
 c__builtin__

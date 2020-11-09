@@ -5,9 +5,9 @@
 :mod:`fg` -- Graph Container [doc TODO]
 ================================================
 
-.. module:: theano.gof.fg
+.. module:: aesara.gof.fg
    :platform: Unix, Windows
-   :synopsis: Theano Internals
+   :synopsis: Aesara Internals
 .. moduleauthor:: LISA
 
 
@@ -16,7 +16,7 @@
 FunctionGraph
 -------------
 
-.. autoclass:: theano.gof.FunctionGraph
+.. autoclass:: aesara.gof.FunctionGraph
     :members: 
 
     ***TODO***
@@ -33,7 +33,7 @@ FunctionGraph
 FunctionGraph Features
 ----------------------
 
-.. autoclass:: theano.gof.toolbox.Feature 
+.. autoclass:: aesara.gof.toolbox.Feature 
     :members: 
 
 .. _libdoc_gof_fgraphfeaturelist:

@@ -1,7 +1,7 @@
 import numpy as np
 
-import theano
-from theano.gof.utils import hash_from_code
+import aesara
+from aesara.gof.utils import hash_from_code
 
 
 def hash_from_ndarray(data):
@@ -38,7 +38,7 @@ def shape_of_variables(fgraph, input_shapes):
     Parameters
     ----------
     fgraph
-        The theano.FunctionGraph in question.
+        The aesara.FunctionGraph in question.
     input_shapes : dict
         A dict mapping input to shape.
 
@@ -51,10 +51,10 @@ def shape_of_variables(fgraph, input_shapes):
 
     Examples
     --------
-    >>> import theano
-    >>> x = theano.tensor.matrix('x')
+    >>> import aesara
+    >>> x = aesara.tensor.matrix('x')
     >>> y = x[512:]; y.name = 'y'
-    >>> fgraph = theano.FunctionGraph([x], [y], clone=False)
+    >>> fgraph = aesara.FunctionGraph([x], [y], clone=False)
     >>> d = shape_of_variables(fgraph, {x: (1024, 1024)})
     >>> d[y]
     (array(512), array(1024))
@@ -63,7 +63,7 @@ def shape_of_variables(fgraph, input_shapes):
     """
 
     if not hasattr(fgraph, "shape_feature"):
-        fgraph.attach_feature(theano.tensor.opt.ShapeFeature())
+        fgraph.attach_feature(aesara.tensor.opt.ShapeFeature())
 
     input_dims = [
         dimension
@@ -77,7 +77,7 @@ def shape_of_variables(fgraph, input_shapes):
         for dimension in shape
     ]
 
-    compute_shapes = theano.function(input_dims, output_dims)
+    compute_shapes = aesara.function(input_dims, output_dims)
 
     if any([i not in fgraph.inputs for i in input_shapes.keys()]):
         raise ValueError(

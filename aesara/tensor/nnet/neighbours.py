@@ -4,11 +4,11 @@ TODO: implement Images2Neibs.infer_shape() methods
 """
 import numpy as np
 
-import theano
-import theano.tensor as tt
-from theano import Apply, Op
-from theano.gof import EnumList
-from theano.gradient import grad_not_implemented, grad_undefined
+import aesara
+import aesara.tensor as tt
+from aesara import Apply, Op
+from aesara.gof import EnumList
+from aesara.gradient import grad_not_implemented, grad_undefined
 
 
 class Images2Neibs(Op):
@@ -123,7 +123,7 @@ class Images2Neibs(Op):
                 neib_shape is neib_step
                 or neib_shape == neib_step
                 or
-                # Theano Constant == do not compare the data
+                # Aesara Constant == do not compare the data
                 # the equals function do that.
                 (hasattr(neib_shape, "equals") and neib_shape.equals(neib_step))
             ):
@@ -166,7 +166,7 @@ class Images2Neibs(Op):
 
             indices = tt.arange(neib_shape[0] * neib_shape[1])
             pgzs = gz.dimshuffle((1, 0))
-            result, _ = theano.scan(
+            result, _ = aesara.scan(
                 fn=pos2map,
                 sequences=[indices, pgzs],
                 outputs_info=tt.zeros(x.shape),
@@ -193,7 +193,7 @@ class Images2Neibs(Op):
         (z,) = out_
         # GpuImages2Neibs should not run this perform in DebugMode
         if type(self) != Images2Neibs:
-            raise theano.gof.utils.MethodNotDefined()
+            raise aesara.gof.utils.MethodNotDefined()
 
         def CEIL_INTDIV(a, b):
             if a % b:
@@ -644,7 +644,7 @@ class Images2Neibs(Op):
 
 def images2neibs(ten4, neib_shape, neib_step=None, mode="valid"):
     r"""
-    Function :func:`images2neibs <theano.tensor.nnet.neighbours.images2neibs>`
+    Function :func:`images2neibs <aesara.tensor.nnet.neighbours.images2neibs>`
     allows to apply a sliding window operation to a tensor containing
     images or other two-dimensional objects.
     The sliding window operation loops over points in input data and stores
@@ -723,8 +723,8 @@ def images2neibs(ten4, neib_shape, neib_step=None, mode="valid"):
         images = T.tensor4('images')
         neibs = images2neibs(images, neib_shape=(5, 5))
 
-        # Constructing theano function
-        window_function = theano.function([images], neibs)
+        # Constructing aesara function
+        window_function = aesara.function([images], neibs)
 
         # Input tensor (one image 10x10)
         im_val = np.arange(100.).reshape((1, 1, 10, 10))
@@ -741,29 +741,29 @@ def images2neibs(ten4, neib_shape, neib_step=None, mode="valid"):
 
 def neibs2images(neibs, neib_shape, original_shape, mode="valid"):
     """
-    Function :func:`neibs2images <theano.sandbox.neighbours.neibs2images>`
+    Function :func:`neibs2images <aesara.sandbox.neighbours.neibs2images>`
     performs the inverse operation of
-    :func:`images2neibs <theano.sandbox.neigbours.neibs2images>`. It inputs
-    the output of :func:`images2neibs <theano.sandbox.neigbours.neibs2images>`
+    :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>`. It inputs
+    the output of :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>`
     and reconstructs its input.
 
     Parameters
     ----------
     neibs : 2d tensor
         Like the one obtained by
-        :func:`images2neibs <theano.sandbox.neigbours.neibs2images>`.
+        :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>`.
     neib_shape
         `neib_shape` that was used in
-        :func:`images2neibs <theano.sandbox.neigbours.neibs2images>`.
+        :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>`.
     original_shape
         Original shape of the 4d tensor given to
-        :func:`images2neibs <theano.sandbox.neigbours.neibs2images>`
+        :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>`
 
     Returns
     -------
     object
         Reconstructs the input of
-        :func:`images2neibs <theano.sandbox.neigbours.neibs2images>`,
+        :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>`,
         a 4d tensor of shape `original_shape`.
 
     Notes
@@ -771,21 +771,21 @@ def neibs2images(neibs, neib_shape, original_shape, mode="valid"):
     Currently, the function doesn't support tensors created with
     `neib_step` different from default value. This means that it may be
     impossible to compute the gradient of a variable gained by
-    :func:`images2neibs <theano.sandbox.neigbours.neibs2images>` w.r.t.
+    :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>` w.r.t.
     its inputs in this case, because it uses
-    :func:`images2neibs <theano.sandbox.neigbours.neibs2images>` for
+    :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>` for
     gradient computation.
 
     Examples
     --------
     Example, which uses a tensor gained in example for
-    :func:`images2neibs <theano.sandbox.neigbours.neibs2images>`:
+    :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>`:
 
     .. code-block:: python
 
         im_new = neibs2images(neibs, (5, 5), im_val.shape)
-        # Theano function definition
-        inv_window = theano.function([neibs], im_new)
+        # Aesara function definition
+        inv_window = aesara.function([neibs], im_new)
         # Function application
         im_new_val = inv_window(neibs_val)
 

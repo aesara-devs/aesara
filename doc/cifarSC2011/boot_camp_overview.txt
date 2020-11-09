@@ -7,7 +7,7 @@ Schedule
 ========
 
 
-Theano lab sessions will be in 4 x 90 minute blocks,
+Aesara lab sessions will be in 4 x 90 minute blocks,
 on the afternoons of Aug 2, 3, 5, and 6 (but not Aug 4th).
 
 Day 1
@@ -17,19 +17,19 @@ Day 1
 
 * Python & NumPy in a nutshell
 
-* Theano basics
+* Aesara basics
 
 * Quick tour through Deep Learning Tutorials (think about projects)
 
 .. :
     day 1:
     I think that I could cover those 2 pages:
-     * http://deeplearning.net/software/theano/hpcs2011_tutorial/introduction.html
-     * http://deeplearning.net/software/theano/hpcs2011_tutorial/theano.html
+     * http://deeplearning.net/software/aesara/hpcs2011_tutorial/introduction.html
+     * http://deeplearning.net/software/aesara/hpcs2011_tutorial/aesara.html
     That include:
      simple example
      linear regression example with shared var
-     theano flags
+     aesara flags
      grad detail
      Symbolic variables
      gpu
@@ -38,7 +38,7 @@ Day 1
 Day 2
 -----
 
-* Loop/Condition in Theano (10-20m)
+* Loop/Condition in Aesara (10-20m)
 
 * Propose/discuss projects
 
@@ -47,7 +47,7 @@ Day 2
 Day 3
 -----
 
-* Advanced Theano (30 minutes)
+* Advanced Aesara (30 minutes)
 
  * Debugging, profiling, compilation pipeline
 
@@ -58,11 +58,11 @@ Day 4
 
 * *You choose* (we can split the group)
 
- * Extending Theano
+ * Extending Aesara
 
   * How to write an Op
 
-  * How to use pycuda code in Theano
+  * How to use pycuda code in Aesara
 
 * Projects / General hacking / code-sprinting.
 

@@ -7,17 +7,17 @@
 #include <gpuarray/util.h>
 
 
-static int theano_size_check(PyGpuArrayObject *a, unsigned int nd,
+static int aesara_size_check(PyGpuArrayObject *a, unsigned int nd,
                              const size_t *dims, int typecode) {
   return (a->ga.nd == nd && a->ga.typecode == typecode &&
           memcmp(a->ga.dimensions, dims, nd * sizeof(size_t)) == 0);
 }
 
-static int theano_prep_output(PyGpuArrayObject **out, unsigned int nd,
+static int aesara_prep_output(PyGpuArrayObject **out, unsigned int nd,
                              const size_t *dims, int typecode, ga_order ord,
                              PyGpuContextObject *c) {
   if (*out != NULL &&
-      theano_size_check(*out, nd, dims, typecode)) {
+      aesara_size_check(*out, nd, dims, typecode)) {
     return 0;
   }
 
@@ -26,11 +26,11 @@ static int theano_prep_output(PyGpuArrayObject **out, unsigned int nd,
   return (*out == NULL) ? 1 : 0;
 }
 
-static PyGpuArrayObject *theano_try_copy(PyGpuArrayObject *out,
+static PyGpuArrayObject *aesara_try_copy(PyGpuArrayObject *out,
                                          PyGpuArrayObject *V) {
   if (out &&
       GpuArray_CHKFLAGS(&out->ga, GA_CARRAY) &&
-      theano_size_check(out, PyGpuArray_NDIM(V),
+      aesara_size_check(out, PyGpuArray_NDIM(V),
                         PyGpuArray_DIMS(V),
                         V->ga.typecode)) {
     if (pygpu_move(out, V)) {

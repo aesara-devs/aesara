@@ -12,7 +12,7 @@
 
 \mode<presentation>
 
-\title{Theano, Pylearn2, libgpuarray Presentation}
+\title{Aesara, Pylearn2, libgpuarray Presentation}
 
 \author{%
 \footnotesize
@@ -39,13 +39,13 @@ Montréal, Canada \newline
 
 \section{Introduction}
 \begin{frame}{High level}\setcounter{page}{1}
-  Python <- \{NumPy/SciPy/libgpuarray\} <- Theano <- Pylearn2
+  Python <- \{NumPy/SciPy/libgpuarray\} <- Aesara <- Pylearn2
   \begin{itemize}
   \item Python: OO coding language
   \item Numpy: $n$-dimensional array object and scientific computing toolbox
   \item SciPy: sparse matrix objects and more scientific computing functionality
   \item libgpuarray: GPU $n$-dimensional array object in C for CUDA and OpenCL
-  \item Theano: compiler/symbolic graph manipulation
+  \item Aesara: compiler/symbolic graph manipulation
   \item Pylearn2: machine learning framework
   \end{itemize}
 \end{frame}
@@ -126,12 +126,12 @@ Montréal, Canada \newline
 
 %%   \begin{bf}Best of both worlds:\end{bf} easily scripted code which invokes high-performance GPU kernels.
 
-%%   \begin{bf}Theano C code generation removes overhead\end{bf} of
+%%   \begin{bf}Aesara C code generation removes overhead\end{bf} of
 %%   function calls between Python and C by launching many C functions at once.
 
 %% \end{frame}
 
-\begin{frame}{Theano}
+\begin{frame}{Aesara}
 
   High-level domain-specific language tailored to numeric computation.
 
@@ -161,8 +161,8 @@ Montréal, Canada \newline
   Machine Learning library aimed at researchers
 
   \begin{itemize}
-    \item Built on top of Theano, for fast execution and use of GPU
-    \item Easy to try variants of implemented algorithms, and to extend them (using Theano)
+    \item Built on top of Aesara, for fast execution and use of GPU
+    \item Easy to try variants of implemented algorithms, and to extend them (using Aesara)
     \item Very modular, each component of the library can be used in isolation
     \item Experiments can be specified through a YAML config file, or by a Python script
     \item Scripts for visualizing weights, plot monitored values
@@ -177,7 +177,7 @@ Montréal, Canada \newline
   \begin{itemize}
   \item Currently there are at least 6 different GPU arrays in Python
     \begin{itemize}
-    \item CudaNdarray (Theano), GPUArray (pycuda), CUDAMatrix (cudamat), GPUArray (pyopencl), Clyther, Copperhead, ...
+    \item CudaNdarray (Aesara), GPUArray (pycuda), CUDAMatrix (cudamat), GPUArray (pyopencl), Clyther, Copperhead, ...
     \item There are even more if we include other languages.
     \end{itemize}
   \item They are incompatible
@@ -185,7 +185,7 @@ Montréal, Canada \newline
     \item None have the same properties and interface
     \end{itemize}
   \item All of them implement a subset of numpy.ndarray properties
-  \item This is the new GPU backend on Theano
+  \item This is the new GPU backend on Aesara
   \end{itemize}
 \end{frame}
 
@@ -200,7 +200,7 @@ Montréal, Canada \newline
 \end{frame}
 
 
-\section{Theano}
+\section{Aesara}
 % I think it is a good idea to make explicit the change into a new section -- PL
 \begin{frame}
   \tableofcontents[currentsection]
@@ -249,13 +249,13 @@ Montréal, Canada \newline
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-import theano
+import aesara
 # declare symbolic variable
-a = theano.tensor.vector("a")
+a = aesara.tensor.vector("a")
 # build symbolic expression
 b = a + a ** 10
 # compile function
-f = theano.function([a], b)
+f = aesara.function([a], b)
 print f([0, 1, 2])
 # prints `array([0, 2, 1026])`
 \end{lstlisting}
@@ -273,7 +273,7 @@ print f([0, 1, 2])
 
 \begin{frame}{Project status?}
   \begin{itemize}
-    \item Mature: Theano has been developed and used since January 2008 (6.5 yrs old)
+    \item Mature: Aesara has been developed and used since January 2008 (6.5 yrs old)
     \item Driven over 100 research papers
     \item Good user documentation
     \item Active mailing list with participants from outside our lab
@@ -282,7 +282,7 @@ print f([0, 1, 2])
     \item Used to teach many university classes
     \item Has been used for research at Google and Yahoo.
   \end{itemize}
-  Theano: \url{deeplearning.net/software/theano/}
+  Aesara: \url{deeplearning.net/software/aesara/}
 
   Deep Learning Tutorials: \url{deeplearning.net/tutorial/}
 \end{frame}
@@ -384,7 +384,7 @@ print f([0, 1, 2])
 %% \begin{lstlisting}
 %% # Use Pylearn2 to perform a linear transformation
 %% # followed by a softmax
-%% x = theano.tensor.vector("x")
+%% x = aesara.tensor.vector("x")
 %% softmax = pylearn2.models.mlp.Softmax(
 %%     n_classes=2, layer_name="softmax", irange=0.05
 %% )
@@ -392,7 +392,7 @@ print f([0, 1, 2])
 %%   pylearn2.space.VectorSpace(dim=5)
 %% )
 %% y = softmax.fprop(x)
-%% f = theano.function([x], y)
+%% f = aesara.function([x], y)
 %% print f([0.12, 0.12, 0.43, 0.32, 0.96])
 %% # prints [0.43, 0.54]
 %% \end{lstlisting}
@@ -424,9 +424,9 @@ print f([0, 1, 2])
   \begin{itemize}
   \item Usable directly, but not all implementation available.
   \item Multiple GPUs works.
-  \item Is the next GPU array container for Theano and is working.
+  \item Is the next GPU array container for Aesara and is working.
     \begin{itemize}
-    \item Not all Theano implementations available now.
+    \item Not all Aesara implementations available now.
     \item OpenCL misses more implementations.
     \item Multiple GPUs on the way.
     \end{itemize}
@@ -440,7 +440,7 @@ print f([0, 1, 2])
 \end{frame}
 
 \begin{frame}{Conclusion}
-Theano/Pylearn2/libgpuarry provide an environment for machine learning that is:
+Aesara/Pylearn2/libgpuarry provide an environment for machine learning that is:
 \begin{bf}Fast to develop\end{bf}\newline
 \begin{bf}Fast to run\end{bf}\newline
 \end{frame}
@@ -448,7 +448,7 @@ Theano/Pylearn2/libgpuarry provide an environment for machine learning that is:
 \begin{frame}{Acknowledgments}
 \begin{itemize}
 \item All people working or having worked at the LISA lab.
-\item All Theano/Pylearn 2 users/contributors
+\item All Aesara/Pylearn 2 users/contributors
 \item Compute Canada, RQCHP, NSERC, and Canada Research Chairs for providing funds or access to compute resources.
 \end{itemize}
 \end{frame}

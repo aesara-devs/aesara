@@ -1,15 +1,15 @@
 import numpy as np
 import pytest
 
-import theano
-import theano.gof.op as op
-import theano.tensor as tt
-from theano import config, scalar, shared
-from theano.configparser import change_flags
-from theano.gof.graph import Apply, Variable
-from theano.gof.op import Op
-from theano.gof.type import Generic, Type
-from theano.gof.utils import MethodNotDefined, TestValueError
+import aesara
+import aesara.gof.op as op
+import aesara.tensor as tt
+from aesara import config, scalar, shared
+from aesara.configparser import change_flags
+from aesara.gof.graph import Apply, Variable
+from aesara.gof.op import Op
+from aesara.gof.type import Generic, Type
+from aesara.gof.utils import MethodNotDefined, TestValueError
 
 
 def as_variable(x):
@@ -128,27 +128,27 @@ class TestOp:
 
     def test_op_no_input(self):
         x = NoInputOp()()
-        f = theano.function([], x)
+        f = aesara.function([], x)
         rval = f()
         assert rval == "test Op no input"
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_op_struct(self):
         sop = StructOp()
-        c = sop(theano.tensor.constant(0))
+        c = sop(aesara.tensor.constant(0))
         mode = None
-        if theano.config.mode == "FAST_COMPILE":
+        if aesara.config.mode == "FAST_COMPILE":
             mode = "FAST_RUN"
-        f = theano.function([], c, mode=mode)
+        f = aesara.function([], c, mode=mode)
         rval = f()
         assert rval == 0
         rval = f()
         assert rval == 1
 
-        c2 = sop(theano.tensor.constant(1))
-        f2 = theano.function([], [c, c2], mode=mode)
+        c2 = sop(aesara.tensor.constant(1))
+        f2 = aesara.function([], [c, c2], mode=mode)
         rval = f2()
         assert rval == [0, 0]
 
@@ -219,7 +219,7 @@ class TestMakeThunk:
         thunk = o.owner.op.make_thunk(
             o.owner, storage_map, compute_map, no_recycling=[]
         )
-        if theano.config.cxx:
+        if aesara.config.cxx:
             required = thunk()
             # Check everything went OK
             assert not required  # We provided all inputs
@@ -244,7 +244,7 @@ class TestMakeThunk:
                 output[0] = inp * 2
 
         x_input = tt.dmatrix("x_input")
-        f = theano.function([x_input], DoubleOp()(x_input))
+        f = aesara.function([x_input], DoubleOp()(x_input))
         inp = np.random.rand(5, 4)
         out = f(inp)
         assert np.allclose(inp * 2, out)

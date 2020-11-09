@@ -3,22 +3,22 @@
 from collections import OrderedDict
 from functools import partial, reduce
 
-import theano
-from theano import gof
-from theano.compile.function_module import orig_function
-from theano.compile.mode import optdb
-from theano.compile.pfunc import rebuild_collect_shared
-from theano.compile.sharedvalue import SharedVariable
-from theano.gof import Variable, ops_with_inner_function
-from theano.gof.graph import io_connection_pattern
-from theano.gof.null_type import NullType
-from theano.gradient import DisconnectedType
+import aesara
+from aesara import gof
+from aesara.compile.function_module import orig_function
+from aesara.compile.mode import optdb
+from aesara.compile.pfunc import rebuild_collect_shared
+from aesara.compile.sharedvalue import SharedVariable
+from aesara.gof import Variable, ops_with_inner_function
+from aesara.gof.graph import io_connection_pattern
+from aesara.gof.null_type import NullType
+from aesara.gradient import DisconnectedType
 
 
 class OpFromGraph(gof.Op):
     r"""
     This creates an ``Op`` from inputs and outputs lists of variables.
-    The signature is similar to :func:`theano.function <theano.function>`
+    The signature is similar to :func:`aesara.function <aesara.function>`
     and the resulting ``Op``'s perform will do the same operation as::
 
         orig_function(inputs, outputs, **kwargs)
@@ -28,9 +28,9 @@ class OpFromGraph(gof.Op):
     Parameters
     ----------
 
-    inputs: list of :class:`Variable <theano.gof.Variable>`
+    inputs: list of :class:`Variable <aesara.gof.Variable>`
 
-    outputs: list of :class:`Variable <theano.gof.Variable>`
+    outputs: list of :class:`Variable <aesara.gof.Variable>`
 
     inline: bool, optional
         Defaults to ``False``
@@ -52,15 +52,15 @@ class OpFromGraph(gof.Op):
         arguments as one would specify in grad() method.
 
         callable : Should take two args: ``inputs`` and ``output_grads``.
-        Each argument is expected to be a list of :class:`Variable <theano.gof.Variable>`.
-        Must return list of :class:`Variable <theano.gof.Variable>`.
+        Each argument is expected to be a list of :class:`Variable <aesara.gof.Variable>`.
+        Must return list of :class:`Variable <aesara.gof.Variable>`.
 
         Variable :
             ``NullType() instance`` : Treat as non-differentiable
             ``DisconnectedType() instance`` : Treat as disconnected gradient, numerically gives zero
 
         list: Each OpFromGraph/callable must return a single
-        :class:`Variable <theano.gof.Variable>`. Each list element corresponds to gradient of
+        :class:`Variable <aesara.gof.Variable>`. Each list element corresponds to gradient of
         a specific input, length of list must be equal to number of inputs.
 
     lop_overrides : single or list of {'default', OpFromGraph, callable, Variable with special type}, optional
@@ -74,15 +74,15 @@ class OpFromGraph(gof.Op):
         arguments as one would specify in grad() method.
 
         callable : Should take three args: ``inputs``, ``outputs`` and ``output_grads``.
-        Each argument is expected to be a list of :class:`Variable <theano.gof.Variable>`.
-        Must return list of :class:`Variable <theano.gof.Variable>`.
+        Each argument is expected to be a list of :class:`Variable <aesara.gof.Variable>`.
+        Must return list of :class:`Variable <aesara.gof.Variable>`.
 
         Variable :
             ``NullType() instance`` : Treat as non-differentiable
             ``DisconnectedType() instance`` : Treat as disconnected gradient, numerically gives zero
 
         list: Each OpFromGraph/callable must return a single
-        :class:`Variable <theano.gof.Variable>`. Each list element corresponds to gradient of
+        :class:`Variable <aesara.gof.Variable>`. Each list element corresponds to gradient of
         a specific input, length of list must be equal to number of inputs.
 
     rop_overrides : single or list of {'default', OpFromGraph, callable, Variable with special type}, optional
@@ -95,15 +95,15 @@ class OpFromGraph(gof.Op):
         arguments as one would specify in R_op() method.
 
         callable : Should take two args: ``inputs`` and ``eval_points``.
-        Each argument is expected to be a list of :class:`Variable <theano.gof.Variable>`.
-        Must return list of :class:`Variable <theano.gof.Variable>`.
+        Each argument is expected to be a list of :class:`Variable <aesara.gof.Variable>`.
+        Must return list of :class:`Variable <aesara.gof.Variable>`.
 
         Variable :
             ``NullType() instance`` : Treat as non-differentiable
             ``DisconnectedType() instance`` : Treat as zero since DisconnectedType is not yet supported in R_op
 
         list: Each OpFromGraph/callable must return a single
-        :class:`Variable <theano.gof.Variable>`. Each list element corresponds
+        :class:`Variable <aesara.gof.Variable>`. Each list element corresponds
         to a specific output of R_op, length of list must be equal to number of outputs.
 
     connection_pattern : list of list
@@ -116,7 +116,7 @@ class OpFromGraph(gof.Op):
 
     \*\*kwargs : optional
         Check
-        :func:`orig_function <theano.compile.function_module.orig_function>`
+        :func:`orig_function <aesara.compile.function_module.orig_function>`
         for more arguments, only works when not inline.
 
 
@@ -158,11 +158,11 @@ class OpFromGraph(gof.Op):
 
     .. code-block:: python
 
-        from theano import function, OpFromGraph, tensor
+        from aesara import function, OpFromGraph, tensor
         x, y, z = tensor.scalars('xyz')
         e = x + y * z
         op = OpFromGraph([x, y, z], [e])
-        # op behaves like a normal theano op
+        # op behaves like a normal aesara op
         e2 = op(x, y, z) + op(z, y, x)
         fn = function([x, y, z], [e2])
 
@@ -171,13 +171,13 @@ class OpFromGraph(gof.Op):
     .. code-block:: python
 
         import numpy as np
-        import theano
-        from theano import config, function, OpFromGraph, tensor
+        import aesara
+        from aesara import config, function, OpFromGraph, tensor
         x, y, z = tensor.scalars('xyz')
-        s = theano.shared(np.random.rand(2, 2).astype(config.floatX))
+        s = aesara.shared(np.random.rand(2, 2).astype(config.floatX))
         e = x + y * z + s
         op = OpFromGraph([x, y, z], [e])
-        # op behaves like a normal theano op
+        # op behaves like a normal aesara op
         e2 = op(x, y, z) + op(z, y, x)
         fn = function([x, y, z], [e2])
 
@@ -185,7 +185,7 @@ class OpFromGraph(gof.Op):
 
     .. code-block:: python
 
-        from theano import function, OpFromGraph, tensor, grad
+        from aesara import function, OpFromGraph, tensor, grad
         x, y, z = tensor.scalars('xyz')
         e = x + y * z
         def rescale_dy(inps, grads):
@@ -237,7 +237,7 @@ class OpFromGraph(gof.Op):
             if hasattr(inp, "zeros_like"):
                 return inp.zeros_like(), grad
             else:
-                return theano.tensor.constant(0.0), grad
+                return aesara.tensor.constant(0.0), grad
         else:
             return grad, None
 
@@ -339,7 +339,7 @@ class OpFromGraph(gof.Op):
         is_inline = self.is_inline
         return "%(name)s{inline=%(is_inline)s}" % locals()
 
-    @theano.change_flags(compute_test_value="off")
+    @aesara.change_flags(compute_test_value="off")
     def _recompute_lop_op(self):
         """
         converts self._lop_op from user supplied form to type(self) instance
@@ -379,7 +379,7 @@ class OpFromGraph(gof.Op):
 
         output_grads = [out_t() for out_t in self.output_types]
         fn_grad = partial(
-            theano.gradient.grad,
+            aesara.gradient.grad,
             cost=None,
             disconnected_inputs="ignore",
             return_disconnected="Disconnected",
@@ -480,7 +480,7 @@ class OpFromGraph(gof.Op):
         self._lop_op_is_cached = True
         self._lop_type = "lop"
 
-    @theano.change_flags(compute_test_value="off")
+    @aesara.change_flags(compute_test_value="off")
     def _recompute_rop_op(self):
         """
         converts self._rop_op from user supplied form to type(self) instance
@@ -498,7 +498,7 @@ class OpFromGraph(gof.Op):
             return
 
         eval_points = [inp_t() for inp_t in self.input_types]
-        fn_rop = partial(theano.gradient.Rop, wrt=local_inputs, eval_points=eval_points)
+        fn_rop = partial(aesara.gradient.Rop, wrt=local_inputs, eval_points=eval_points)
         TYPE_ERR_MSG = (
             "R_op overrides should be (single or list of)"
             "OpFromGraph | 'default' | None | 0 | callable, got %s"
@@ -615,7 +615,7 @@ class OpFromGraph(gof.Op):
 
     def set_grad_overrides(self, grad_overrides):
         """
-        Set gradient overrides, see help(theano.OpFromGraph) for syntax
+        Set gradient overrides, see help(aesara.OpFromGraph) for syntax
         This will completely remove any previously set L_op/gradient overrides
 
         """
@@ -626,7 +626,7 @@ class OpFromGraph(gof.Op):
 
     def set_lop_overrides(self, lop_overrides):
         """
-        Set L_op overrides, see help(theano.OpFromGraph) for syntax
+        Set L_op overrides, see help(aesara.OpFromGraph) for syntax
         This will completely remove any previously set L_op/gradient overrides
 
         """
@@ -637,7 +637,7 @@ class OpFromGraph(gof.Op):
 
     def set_rop_overrides(self, rop_overrides):
         """
-        Set R_op overrides, see help(theano.OpFromGraph) for syntax
+        Set R_op overrides, see help(aesara.OpFromGraph) for syntax
         This will completely remove any previously set R_op overrides
 
         """
@@ -718,19 +718,19 @@ class OpFromGraph(gof.Op):
         return list(map(list, cpmat_self))
 
     def infer_shape(self, node, shapes):
-        out_shp = theano.scan_module.scan_utils.infer_shape(
+        out_shp = aesara.scan_module.scan_utils.infer_shape(
             self.local_outputs, self.local_inputs, shapes
         )
 
         # Clone the output shape so that shape are computed from outer inputs.
         # Note:
         # Here we can do it more simply like:
-        #      ret = [theano.clone(shp, replace=repl) for shp in out_shp]
+        #      ret = [aesara.clone(shp, replace=repl) for shp in out_shp]
         # But  doing it multiple time could duplicate common subgraph between
-        # each shape call. Theano optimizer will clean this up later, but this
+        # each shape call. Aesara optimizer will clean this up later, but this
         # will ask extra work to the optimizer.
         repl = dict(zip(self.local_inputs, node.inputs))
-        cloned = theano.clone(reduce(tuple.__add__, out_shp), replace=repl)
+        cloned = aesara.clone(reduce(tuple.__add__, out_shp), replace=repl)
         ret = []
         used = 0
         for i in range(len(out_shp)):
@@ -768,7 +768,7 @@ def inline_ofg_expansion(node):
         return False
     if not op.is_inline:
         return False
-    return theano.clone(
+    return aesara.clone(
         op.local_outputs, {u: v for u, v in zip(node.op.local_inputs, node.inputs)}
     )
 
@@ -783,6 +783,6 @@ optdb.register(
     "fast_run",
 )
 
-# Since OpFromGraph contains a Theano compiled function,
+# Since OpFromGraph contains a Aesara compiled function,
 # we should let DebugMode know about it
 ops_with_inner_function[OpFromGraph] = "fn"

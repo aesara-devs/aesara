@@ -21,15 +21,15 @@ from io import BytesIO, StringIO
 
 import numpy.distutils
 
-import theano
-from theano import config
-from theano.configdefaults import gcc_version_str, local_bitwidth
+import aesara
+from aesara import config
+from aesara.configdefaults import gcc_version_str, local_bitwidth
 
 # we will abuse the lockfile mechanism when reading and writing the registry
-from theano.gof import compilelock
-from theano.gof.utils import flatten, hash_from_code
-from theano.misc.windows import output_subprocess_Popen, subprocess_Popen
-from theano.utils import decode, decode_iter
+from aesara.gof import compilelock
+from aesara.gof.utils import flatten, hash_from_code
+from aesara.misc.windows import output_subprocess_Popen, subprocess_Popen
+from aesara.utils import decode, decode_iter
 
 
 importlib = None
@@ -38,7 +38,7 @@ try:
 except ImportError:
     pass
 
-_logger = logging.getLogger("theano.gof.cmodule")
+_logger = logging.getLogger("aesara.gof.cmodule")
 
 METH_VARARGS = "METH_VARARGS"
 METH_NOARGS = "METH_NOARGS"
@@ -138,7 +138,7 @@ class DynamicModule:
 
         self.support_code = []
         self.functions = []
-        self.includes = ["<Python.h>", "<iostream>", '"theano_mod_helper.h"']
+        self.includes = ["<Python.h>", "<iostream>", '"aesara_mod_helper.h"']
         self.init_blocks = []
 
     def print_methoddef(self, stream):
@@ -429,9 +429,9 @@ def get_module_hash(src_code, key):
         elif isinstance(key_element, str):
             if key_element.startswith("md5:") or key_element.startswith("hash:"):
                 # This is actually a sha256 hash of the config options.
-                # Currently, we still keep md5 to don't break old Theano.
+                # Currently, we still keep md5 to don't break old Aesara.
                 # We add 'hash:' so that when we change it in
-                # the futur, it won't break this version of Theano.
+                # the futur, it won't break this version of Aesara.
                 break
             elif key_element.startswith("NPY_ABI_VERSION=0x") or key_element.startswith(
                 "c_compiler_str="
@@ -463,8 +463,8 @@ def get_safe_part(key):
 
     # Find the hash part. This is actually a sha256 hash of the config
     # options.  Currently, we still keep md5 to don't break old
-    # Theano.  We add 'hash:' so that when we change it
-    # in the futur, it won't break this version of Theano.
+    # Aesara.  We add 'hash:' so that when we change it
+    # in the futur, it won't break this version of Aesara.
     c_link_key = key[1]
     # In case in the future, we don't have an md5 part and we have
     # such stuff in the cache.  In that case, we can set None, and the
@@ -849,7 +849,7 @@ class ModuleCache:
                             # This exception is often triggered by keys
                             # that contain references to classes that have
                             # not yet been imported (e.g. when running two
-                            # different Theano-based scripts). They are not
+                            # different Aesara-based scripts). They are not
                             # necessarily broken, but we cannot load them
                             # now. They will be loaded later if needed.
                             pass
@@ -1146,7 +1146,7 @@ class ModuleCache:
             self.loaded_key_pkl.add(key_pkl)
         elif config.cmodule.warn_no_version:
             key_flat = flatten(key)
-            ops = [k for k in key_flat if isinstance(k, theano.Op)]
+            ops = [k for k in key_flat if isinstance(k, aesara.Op)]
             _logger.warning(
                 "not all the"
                 " following op(s) implement"
@@ -1189,10 +1189,10 @@ class ModuleCache:
         with compilelock.lock_ctx(keep_lock=keep_lock):
             # 1) Maybe somebody else compiled it for us while we
             #    where waiting for the lock. Try to load it again.
-            # 2) If other repo that import Theano have Theano ops defined,
+            # 2) If other repo that import Aesara have Aesara ops defined,
             #    we need to refresh the cache here. Otherwise, there are import
             #    order problems.
-            #    When device=gpu, we compile during Theano
+            #    When device=gpu, we compile during Aesara
             #    import. This triggers the loading of the cache. But
             #    unpickling the cache asks that the external Ops are
             #    completly loaded, which isn't always the case!
@@ -1810,7 +1810,7 @@ def gcc_llvm():
     """
     if gcc_llvm.is_llvm is None:
         try:
-            p_out = output_subprocess_Popen([theano.config.cxx, "--version"])
+            p_out = output_subprocess_Popen([aesara.config.cxx, "--version"])
             output = p_out[0] + p_out[1]
         except OSError:
             # Typically means g++ cannot be found.
@@ -1989,7 +1989,7 @@ def try_march_flag(flags):
             """
     )
 
-    cflags = flags + ["-L" + d for d in theano.gof.cmodule.std_lib_dirs()]
+    cflags = flags + ["-L" + d for d in aesara.gof.cmodule.std_lib_dirs()]
     compilation_result, execution_result = GCC_compiler.try_compile_tmp(
         test_code, tmp_prefix="try_march_", flags=cflags, try_run=True
     )
@@ -2004,15 +2004,15 @@ class GCC_compiler(Compiler):
 
     @staticmethod
     def version_str():
-        return theano.config.cxx + " " + gcc_version_str
+        return aesara.config.cxx + " " + gcc_version_str
 
     @staticmethod
     def compile_args(march_flags=True):
         cxxflags = [flag for flag in config.gcc.cxxflags.split(" ") if flag]
         if "-fopenmp" in cxxflags:
             raise ValueError(
-                "Do not use -fopenmp in Theano flag gcc.cxxflags."
-                " To enable OpenMP, use the Theano flag openmp=True"
+                "Do not use -fopenmp in Aesara flag gcc.cxxflags."
+                " To enable OpenMP, use the Aesara flag openmp=True"
             )
         # Add the equivalent of -march=native flag.  We can't use
         # -march=native as when the compiledir is shared by multiple
@@ -2032,18 +2032,18 @@ class GCC_compiler(Compiler):
                     break
 
         if (
-            "g++" not in theano.config.cxx
-            and "clang++" not in theano.config.cxx
-            and "clang-omp++" not in theano.config.cxx
-            and "icpc" not in theano.config.cxx
+            "g++" not in aesara.config.cxx
+            and "clang++" not in aesara.config.cxx
+            and "clang-omp++" not in aesara.config.cxx
+            and "icpc" not in aesara.config.cxx
         ):
             _logger.warning(
-                "OPTIMIZATION WARNING: your Theano flag `cxx` seems not to be"
+                "OPTIMIZATION WARNING: your Aesara flag `cxx` seems not to be"
                 " the g++ compiler. So we disable the compiler optimization"
                 " specific to g++ that tell to compile for a specific CPU."
                 " At worst, this could cause slow down.\n"
                 "         You can add those parameters to the compiler yourself"
-                " via the Theano flag `gcc.cxxflags`."
+                " via the Aesara flag `gcc.cxxflags`."
             )
             detect_march = False
 
@@ -2087,7 +2087,7 @@ class GCC_compiler(Compiler):
 
             # The '-' at the end is needed. Otherwise, g++ do not output
             # enough information.
-            native_lines = get_lines("%s -march=native -E -v -" % theano.config.cxx)
+            native_lines = get_lines("%s -march=native -E -v -" % aesara.config.cxx)
             if native_lines is None:
                 _logger.info(
                     "Call to 'g++ -march=native' failed," "not setting -march flag"
@@ -2102,32 +2102,32 @@ class GCC_compiler(Compiler):
                     # That means we did not select the right lines, so
                     # we have to report all the lines instead
                     reported_lines = get_lines(
-                        "%s -march=native -E -v -" % theano.config.cxx, parse=False
+                        "%s -march=native -E -v -" % aesara.config.cxx, parse=False
                     )
                 else:
                     reported_lines = native_lines
                 _logger.warning(
-                    "OPTIMIZATION WARNING: Theano was not able to find the"
+                    "OPTIMIZATION WARNING: Aesara was not able to find the"
                     " g++ parameters that tune the compilation to your "
-                    " specific CPU. This can slow down the execution of Theano"
+                    " specific CPU. This can slow down the execution of Aesara"
                     " functions. Please submit the following lines to"
-                    " Theano's mailing list so that we can fix this"
+                    " Aesara's mailing list so that we can fix this"
                     " problem:\n %s",
                     reported_lines,
                 )
             else:
-                default_lines = get_lines("%s -E -v -" % theano.config.cxx)
+                default_lines = get_lines("%s -E -v -" % aesara.config.cxx)
                 _logger.info("g++ default lines: %s", default_lines)
                 if len(default_lines) < 1:
                     _logger.warning(
-                        "OPTIMIZATION WARNING: Theano was not able to find the"
+                        "OPTIMIZATION WARNING: Aesara was not able to find the"
                         " default g++ parameters. This is needed to tune"
                         " the compilation to your specific"
-                        " CPU. This can slow down the execution of Theano"
+                        " CPU. This can slow down the execution of Aesara"
                         " functions. Please submit the following lines to"
-                        " Theano's mailing list so that we can fix this"
+                        " Aesara's mailing list so that we can fix this"
                         " problem:\n %s",
-                        get_lines("%s -E -v -" % theano.config.cxx, parse=False),
+                        get_lines("%s -E -v -" % aesara.config.cxx, parse=False),
                     )
                 else:
                     # Some options are actually given as "-option value",
@@ -2302,7 +2302,7 @@ class GCC_compiler(Compiler):
         # Figure out whether the current Python executable is 32
         # or 64 bit and compile accordingly. This step is ignored for
         # ARM (32-bit and 64-bit) architectures in order to make
-        # Theano compatible with the Raspberry Pi, Raspberry Pi 2, or
+        # Aesara compatible with the Raspberry Pi, Raspberry Pi 2, or
         # other systems with ARM processors.
         if not any(["arm" in flag for flag in cxxflags]) and not any(
             arch in platform.machine() for arch in ["arm", "aarch"]
@@ -2327,7 +2327,7 @@ class GCC_compiler(Compiler):
             cxxflags.extend(["-undefined", "dynamic_lookup"])
 
         if sys.platform == "win32":
-            # Workaround for https://github.com/Theano/Theano/issues/4926.
+            # Workaround for https://github.com/Aesara/Aesara/issues/4926.
             # https://github.com/python/cpython/pull/11283/ removed the "hypot"
             # redefinition for recent CPython versions (>=2.7.16 and >=3.7.3).
             # The following nullifies that redefinition, if it is found.
@@ -2356,7 +2356,7 @@ class GCC_compiler(Compiler):
         comp_args=True,
     ):
         return cls._try_compile_tmp(
-            src_code, tmp_prefix, flags, try_run, output, theano.config.cxx, comp_args
+            src_code, tmp_prefix, flags, try_run, output, aesara.config.cxx, comp_args
         )
 
     @classmethod
@@ -2370,7 +2370,7 @@ class GCC_compiler(Compiler):
         comp_args=True,
     ):
         return cls._try_flags(
-            flag_list, preambule, body, try_run, output, theano.config.cxx, comp_args
+            flag_list, preambule, body, try_run, output, aesara.config.cxx, comp_args
         )
 
     @staticmethod
@@ -2420,7 +2420,7 @@ class GCC_compiler(Compiler):
         """
         # TODO: Do not do the dlimport in this function
 
-        if not theano.config.cxx:
+        if not aesara.config.cxx:
             raise MissingGXX("g++ not available! We can't compile c code.")
 
         if include_dirs is None:
@@ -2464,7 +2464,7 @@ class GCC_compiler(Compiler):
         lib_filename = os.path.join(location, filepath)
 
         _logger.debug("Generating shared lib %s", lib_filename)
-        cmd = [theano.config.cxx, get_gcc_shared_library_arg(), "-g"]
+        cmd = [aesara.config.cxx, get_gcc_shared_library_arg(), "-g"]
 
         if config.cmodule.remove_gxx_opt:
             cmd.extend(p for p in preargs if not p.startswith("-O"))
@@ -2515,7 +2515,7 @@ class GCC_compiler(Compiler):
 
         if status:
             tf = tempfile.NamedTemporaryFile(
-                mode="w", prefix="theano_compilation_error_", delete=False
+                mode="w", prefix="aesara_compilation_error_", delete=False
             )
             # gcc put its messages to stderr, so we add ours now
             tf.write("===============================\n")

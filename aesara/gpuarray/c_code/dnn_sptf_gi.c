@@ -117,12 +117,12 @@ APPLY_SPECIFIC(dnn_sptf_gi)(PyGpuArrayObject * input,
         return 1;
     }
 
-    if ( theano_prep_output( input_grad, PyGpuArray_NDIM( input ),
+    if ( aesara_prep_output( input_grad, PyGpuArray_NDIM( input ),
                              PyGpuArray_DIMS( input ), input->ga.typecode,
                              GA_C_ORDER, gpu_ctx ) != 0 )
         return 1;
 
-    if ( theano_prep_output( grid_grad, PyGpuArray_NDIM( grid ),
+    if ( aesara_prep_output( grid_grad, PyGpuArray_NDIM( grid ),
                              PyGpuArray_DIMS( grid ), grid->ga.typecode,
                              GA_C_ORDER, gpu_ctx ) != 0 )
         return 1;

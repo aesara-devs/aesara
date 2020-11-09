@@ -9,8 +9,8 @@ import numpy as np
 from scipy.signal import convolve2d
 
 from tests import unittest_tools as utt
-from theano import function, tensor
-from theano.sparse.sandbox import sp
+from aesara import function, tensor
+from aesara.sparse.sandbox import sp
 
 
 class TestSP:
@@ -116,7 +116,7 @@ class TestSP:
 
     #            print '**** Convolution Profiling Results (',mode,') ****'
     #            print 'Numpy processing time: ', ntot
-    #            print 'Theano processing time: ', ttot
+    #            print 'Aesara processing time: ', ttot
 
     # this doesn't compare the output of anything... but I manually verified that the patches
     # are properly generated

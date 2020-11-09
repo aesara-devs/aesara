@@ -11,12 +11,12 @@ from contextlib import contextmanager
 
 import numpy as np
 
-from theano import config
+from aesara import config
 
 
 random = np.random.RandomState([2015, 8, 2])
 
-_logger = logging.getLogger("theano.gof.compilelock")
+_logger = logging.getLogger("aesara.gof.compilelock")
 # If the user provided a logging level, we don't want to override it.
 if _logger.level == logging.NOTSET:
     # INFO will show the "Refreshing lock" messages

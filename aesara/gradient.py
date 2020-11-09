@@ -8,30 +8,30 @@ from functools import reduce
 
 import numpy as np
 
-import theano
-from theano import gof
-from theano.compile.debugmode import DebugMode
-from theano.compile.mode import FAST_RUN, get_mode
-from theano.compile.ops import ViewOp
-from theano.gof import Variable, utils
-from theano.gof.null_type import NullType, null_type
-from theano.gof.op import get_test_values
+import aesara
+from aesara import gof
+from aesara.compile.debugmode import DebugMode
+from aesara.compile.mode import FAST_RUN, get_mode
+from aesara.compile.ops import ViewOp
+from aesara.gof import Variable, utils
+from aesara.gof.null_type import NullType, null_type
+from aesara.gof.op import get_test_values
 
 
 __authors__ = "James Bergstra, Razvan Pascanu, Arnaud Bergeron, Ian Goodfellow"
 __copyright__ = "(c) 2011, Universite de Montreal"
 __license__ = "3-clause BSD License"
-__contact__ = "theano-dev <theano-dev@googlegroups.com>"
+__contact__ = "aesara-dev <aesara-dev@googlegroups.com>"
 
 __docformat__ = "restructuredtext en"
-_logger = logging.getLogger("theano.gradient")
+_logger = logging.getLogger("aesara.gradient")
 
-# we can't do "import theano.tensor"
-# tensor depends on theano.compile
-# theano.compile depends on theano.gradient (this file)
-# the reason theano.compile depends on theano.gradient
-# is that theano.compile.builders contains the op from graph
-# functionality and it uses theano.gradient to implement
+# we can't do "import aesara.tensor"
+# tensor depends on aesara.compile
+# aesara.compile depends on aesara.gradient (this file)
+# the reason aesara.compile depends on aesara.gradient
+# is that aesara.compile.builders contains the op from graph
+# functionality and it uses aesara.gradient to implement
 # the new op's grad method
 tensor = None
 
@@ -76,7 +76,7 @@ def grad_not_implemented(op, x_pos, x, comment=""):
     un-computable variable, an exception (NotImplementedError) will be
     raised indicating that the gradient on the
     `x_pos`'th input of `op` has not been implemented. Likewise if
-    any call to theano.function involves this variable.
+    any call to aesara.function involves this variable.
 
     Optionally adds a comment to the exception explaining why this
     gradient is not implemented.
@@ -101,7 +101,7 @@ def grad_undefined(op, x_pos, x, comment=""):
     un-computable variable, an exception (GradUndefinedError) will be
     raised indicating that the gradient on the
     `x_pos`'th input of `op` is mathematically undefined. Likewise if
-    any call to theano.function involves this variable.
+    any call to aesara.function involves this variable.
 
     Optionally adds a comment to the exception explaining why this
     gradient is not defined.
@@ -118,7 +118,7 @@ def grad_undefined(op, x_pos, x, comment=""):
     )()
 
 
-class DisconnectedType(theano.gof.type.Type):
+class DisconnectedType(aesara.gof.type.Type):
 
     """A type indicating that a variable is a result
     of taking the gradient of c with respect to x
@@ -173,13 +173,13 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
 
     Parameters
     ----------
-    f : :class:`~theano.gof.graph.Variable` or list of Variables
+    f : :class:`~aesara.gof.graph.Variable` or list of Variables
         `f` stands for the output of the computational graph to which you
         want to apply the R operator
-    wrt : :class:`~theano.gof.graph.Variable` or list of Variables
+    wrt : :class:`~aesara.gof.graph.Variable` or list of Variables
         variables for which you compute the R operator of the expression
         described by `f`
-    eval_points : :class:`~theano.gof.graph.Variable` or list of Variables
+    eval_points : :class:`~aesara.gof.graph.Variable` or list of Variables
         evalutation points for each of the variables in `wrt`
     disconnected_outputs : str
         Defines the behaviour if some of the variables in `f`
@@ -199,7 +199,7 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
 
     Returns
     -------
-    :class:`~theano.gof.graph.Variable` or list/tuple of Variables depending on type of f
+    :class:`~aesara.gof.graph.Variable` or list/tuple of Variables depending on type of f
         Symbolic expression such that
         R_op[i] = sum_j (d f[i] / d wrt[j]) eval_point[j]
         where the indices in that expression are magic multidimensional
@@ -207,7 +207,7 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
         coordinates of the tensor element in the last.
         If `wrt` is a list/tuple, then return a list/tuple with the results.
     """
-    from theano.tensor import as_tensor_variable
+    from aesara.tensor import as_tensor_variable
 
     using_list = isinstance(f, list)
     using_tuple = isinstance(f, tuple)
@@ -308,7 +308,7 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
                     # we have to make it be wrong for Rop to keep working
                     # Rop should eventually be upgraded to handle integers
                     # correctly, the same as grad
-                    y = theano.tensor.cast(y, x.type.dtype)
+                    y = aesara.tensor.cast(y, x.type.dtype)
                     y = x.type.filter_variable(y)
                 assert x.type == y.type
                 same_type_eval_points.append(y)
@@ -377,18 +377,18 @@ def Lop(f, wrt, eval_points, consider_constant=None, disconnected_inputs="raise"
 
     Parameters
     ----------
-    f : :class:`~theano.gof.graph.Variable` or list of Variables
+    f : :class:`~aesara.gof.graph.Variable` or list of Variables
         `f` stands for the output of the computational graph to which you
         want to apply the L operator
-    wrt : :class:`~theano.gof.graph.Variable` or list of Variables
+    wrt : :class:`~aesara.gof.graph.Variable` or list of Variables
         variables for which you compute the L operator of the expression
         described by `f`
-    eval_points : :class:`~theano.gof.graph.Variable` or list of Variables
+    eval_points : :class:`~aesara.gof.graph.Variable` or list of Variables
         evalutation points for each of the variables in `f`
 
     Returns
     -------
-    :class:`~theano.gof.Variable` or list/tuple of Variables depending on type of f
+    :class:`~aesara.gof.Variable` or list/tuple of Variables depending on type of f
         Symbolic expression such that
         L_op[i] = sum_i (d f[i] / d wrt[j]) eval_point[i]
         where the indices in that expression are magic multidimensional
@@ -444,16 +444,16 @@ def grad(
     """
     Return symbolic gradients of one cost with respect to one or more variables.
 
-    For more information about how automatic differentiation works in Theano,
+    For more information about how automatic differentiation works in Aesara,
     see :mod:`gradient`. For information on how to implement the gradient of
     a certain Op, see :func:`grad`.
 
     Parameters
     ----------
-    cost : :class:`~theano.gof.graph.Variable` scalar (0-dimensional) tensor variable or ``None``
+    cost : :class:`~aesara.gof.graph.Variable` scalar (0-dimensional) tensor variable or ``None``
         Value that we are differentiating (that we want the gradient of).
         May be `None` if `known_grads` is provided.
-    wrt : :class:`~theano.gof.graph.Variable` or list of Variables
+    wrt : :class:`~aesara.gof.graph.Variable` or list of Variables
         Term[s] with respect to which we want gradients
     consider_constant : list of variables
         Expressions not to backpropagate through
@@ -498,7 +498,7 @@ def grad(
     t0 = time.time()
     global tensor
     if tensor is None:
-        from theano import tensor
+        from aesara import tensor
 
     if cost is None:
         if known_grads is None:
@@ -577,9 +577,9 @@ def grad(
 
         if not hasattr(g_var, "type"):
             raise TypeError(
-                "output grads must be theano variables."
+                "output grads must be aesara variables."
                 "Ambiguous whether %s should be made into tensor"
-                " or sparse theano variable" % str(type(g_var))
+                " or sparse aesara variable" % str(type(g_var))
             )
 
         if not isinstance(
@@ -674,12 +674,12 @@ def subgraph_grad(wrt, end, start=None, cost=None, details=False):
     With respect to `wrt`, computes gradients of cost and/or from
     existing `start` gradients, up to the `end` variables of a
     symbolic digraph.  In other words, computes gradients for a
-    subgraph of the symbolic theano function. Ignores all disconnected
+    subgraph of the symbolic aesara function. Ignores all disconnected
     inputs.
 
     This can be useful when one needs to perform the gradient descent
     iteratively (e.g. one layer at a time in an MLP), or when a
-    particular operation is not differentiable in theano
+    particular operation is not differentiable in aesara
     (e.g. stochastic sampling from a multinomial). In the latter case,
     the gradient of the non-differentiable process could be
     approximated by user-defined formula, which could be calculated
@@ -696,14 +696,14 @@ def subgraph_grad(wrt, end, start=None, cost=None, details=False):
 
     .. code-block:: python
 
-        x, t = theano.tensor.fvector('x'), theano.tensor.fvector('t')
-        w1 = theano.shared(np.random.randn(3,4))
-        w2 = theano.shared(np.random.randn(4,2))
-        a1 = theano.tensor.tanh(theano.tensor.dot(x,w1))
-        a2 = theano.tensor.tanh(theano.tensor.dot(a1,w2))
-        cost2 = theano.tensor.sqr(a2 - t).sum()
-        cost2 += theano.tensor.sqr(w2.sum())
-        cost1 = theano.tensor.sqr(w1.sum())
+        x, t = aesara.tensor.fvector('x'), aesara.tensor.fvector('t')
+        w1 = aesara.shared(np.random.randn(3,4))
+        w2 = aesara.shared(np.random.randn(4,2))
+        a1 = aesara.tensor.tanh(aesara.tensor.dot(x,w1))
+        a2 = aesara.tensor.tanh(aesara.tensor.dot(a1,w2))
+        cost2 = aesara.tensor.sqr(a2 - t).sum()
+        cost2 += aesara.tensor.sqr(w2.sum())
+        cost1 = aesara.tensor.sqr(w1.sum())
 
         params = [[w2],[w1]]
         costs = [cost2,cost1]
@@ -712,7 +712,7 @@ def subgraph_grad(wrt, end, start=None, cost=None, details=False):
         next_grad = None
         param_grads = []
         for i in range(2):
-            param_grad, next_grad = theano.subgraph_grad(
+            param_grad, next_grad = aesara.subgraph_grad(
                 wrt=params[i], end=grad_ends[i],
                 start=next_grad, cost=costs[i]
             )
@@ -726,8 +726,8 @@ def subgraph_grad(wrt, end, start=None, cost=None, details=False):
         Gradients are computed with respect to `wrt`.
 
     end : list of variables
-        Theano variables at which to end gradient descent (they are
-        considered constant in theano.grad).  For convenience, the
+        Aesara variables at which to end gradient descent (they are
+        considered constant in aesara.grad).  For convenience, the
         gradients with respect to these variables are also returned.
 
     start : dictionary of variables
@@ -735,9 +735,9 @@ def subgraph_grad(wrt, end, start=None, cost=None, details=False):
         gradients. This is useful when the gradient on some variables
         are known. These are used to compute the gradients backwards up
         to the variables in `end` (they are used as known_grad in
-        theano.grad).
+        aesara.grad).
 
-    cost : :class:`~theano.gof.Variable` scalar (0-dimensional) variable
+    cost : :class:`~aesara.gof.Variable` scalar (0-dimensional) variable
         Additional costs for which to compute the gradients.  For
         example, these could be weight decay, an l1 constraint, MSE,
         NLL, etc. May optionally be None if start is provided.
@@ -774,7 +774,7 @@ def subgraph_grad(wrt, end, start=None, cost=None, details=False):
     cost_grads = None
     if start is not None:
         start_grads = list(
-            theano.grad(
+            aesara.grad(
                 cost=None,
                 wrt=params,
                 known_grads=start,
@@ -785,7 +785,7 @@ def subgraph_grad(wrt, end, start=None, cost=None, details=False):
 
     if cost is not None:
         cost_grads = list(
-            theano.grad(
+            aesara.grad(
                 cost=cost,
                 wrt=params,
                 consider_constant=end,
@@ -898,9 +898,9 @@ def _populate_var_to_app_to_idx(outputs, wrt, consider_constant):
         consider_constant = []
     else:
         # error checking on consider_constant: verify that it is a collection
-        # of theano variables
+        # of aesara variables
         # this is important, if someone accidentally passes a nested data
-        # structure with theano variables at the leaves, only the root will
+        # structure with aesara variables at the leaves, only the root will
         # be properly considered constant
         try:
             iter(consider_constant)
@@ -1089,7 +1089,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
             # List of bools indicating if each output is an integer dtype
             output_is_int = [
                 hasattr(output.type, "dtype")
-                and output.type.dtype in theano.tensor.discrete_dtypes
+                and output.type.dtype in aesara.tensor.discrete_dtypes
                 for output in node.outputs
             ]
 
@@ -1169,7 +1169,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                     o_dt = getattr(o.type, "dtype", None)
                     og_dt = getattr(og.type, "dtype", None)
                     if (
-                        o_dt not in theano.tensor.discrete_dtypes
+                        o_dt not in aesara.tensor.discrete_dtypes
                         and og_dt
                         and o_dt != og_dt
                     ):
@@ -1182,7 +1182,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                 for o, ng in zip(node.outputs, new_output_grads):
                     o_dt = getattr(o.type, "dtype", None)
                     ng_dt = getattr(ng.type, "dtype", None)
-                    if ng_dt is not None and o_dt not in theano.tensor.discrete_dtypes:
+                    if ng_dt is not None and o_dt not in aesara.tensor.discrete_dtypes:
                         assert ng_dt == o_dt
 
                 # Someone who had obviously not read the Op contract tried
@@ -1195,7 +1195,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                 for ng in new_output_grads:
                     assert (
                         getattr(ng.type, "dtype", None)
-                        not in theano.tensor.discrete_dtypes
+                        not in aesara.tensor.discrete_dtypes
                     )
 
                 # If config.compute_test_value is turned on, check that the
@@ -1315,7 +1315,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                             )
 
                 if not isinstance(term.type, (NullType, DisconnectedType)):
-                    if term.type.dtype not in theano.tensor.float_dtypes:
+                    if term.type.dtype not in aesara.tensor.float_dtypes:
                         raise TypeError(
                             str(node.op) + ".grad illegally "
                             " returned an integer-valued variable."
@@ -1340,7 +1340,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                                 "integer-valued outputs so it should be "
                                 "NullType, DisconnectedType, or some form "
                                 "of zeros. It is not NullType or "
-                                "DisconnectedType and theano can't "
+                                "DisconnectedType and aesara can't "
                                 "simplify it to a constant, so it's not "
                                 "verifiably zeros."
                             )
@@ -1361,7 +1361,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                                 term,
                                 type(term),
                                 i,
-                                theano.get_scalar_constant_value(term),
+                                aesara.get_scalar_constant_value(term),
                             )
 
                             raise ValueError(msg)
@@ -1474,7 +1474,7 @@ def _float_zeros_like(x):
     if rval.type.dtype.find("float") != -1:
         return rval
 
-    return rval.astype(theano.config.floatX)
+    return rval.astype(aesara.config.floatX)
 
 
 def _float_ones_like(x):
@@ -1483,7 +1483,7 @@ def _float_ones_like(x):
 
     dtype = x.type.dtype
     if dtype not in tensor.float_dtypes:
-        dtype = theano.config.floatX
+        dtype = aesara.config.floatX
 
     return x.ones_like(dtype=dtype)
 
@@ -1738,14 +1738,14 @@ def verify_grad(
 
     Examples
     --------
-    >>> verify_grad(theano.tensor.tanh,
+    >>> verify_grad(aesara.tensor.tanh,
     ...             (np.asarray([[2, 3, 4], [-1, 3.3, 9.9]]),),
     ...             rng=np.random)
 
     Parameters
     ----------
     fun : a Python function
-        `fun` takes Theano variables as inputs, and returns a Theano variable.
+        `fun` takes Aesara variables as inputs, and returns a Aesara variable.
         For instance, an Op instance with  a single output.
     pt : list of numpy.ndarrays
         Input values, points where the gradient is estimated.
@@ -1784,9 +1784,9 @@ def verify_grad(
 
     """
     # The import is here to prevent circular import.
-    import theano.tensor
-    from theano import compile, shared
-    from theano.tensor import TensorType, as_tensor_variable
+    import aesara.tensor
+    from aesara import compile, shared
+    from aesara.tensor import TensorType, as_tensor_variable
 
     assert isinstance(pt, (list, tuple))
     pt = [np.array(p) for p in pt]
@@ -1816,7 +1816,7 @@ def verify_grad(
             "numpy.random.RandomState. You may "
             "want to use tests.unittest"
             "_tools.verify_grad instead of "
-            "theano.gradient.verify_grad."
+            "aesara.gradient.verify_grad."
         )
 
     # We allow input downcast in function, because numeric_grad works in the
@@ -1874,7 +1874,7 @@ def verify_grad(
 
     # random projection of o onto t_r
     # This sum() is defined above, it's not the builtin sum.
-    cost = theano.tensor.sum(t_r * o_output)
+    cost = aesara.tensor.sum(t_r * o_output)
 
     if no_debug_ref:
         mode_for_cost = mode_not_slow(mode)
@@ -1982,9 +1982,9 @@ def jacobian(expression, wrt, consider_constant=None, disconnected_inputs="raise
 
     Parameters
     ----------
-    expression : Vector (1-dimensional) :class:`~theano.gof.graph.Variable`
+    expression : Vector (1-dimensional) :class:`~aesara.gof.graph.Variable`
         Values that we are differentiating (that we want the Jacobian of)
-    wrt : :class:`~theano.gof.graph.Variable` or list of Variables
+    wrt : :class:`~aesara.gof.graph.Variable` or list of Variables
         Term[s] with respect to which we compute the Jacobian
     consider_constant : list of variables
         Expressions not to backpropagate through
@@ -2000,13 +2000,13 @@ def jacobian(expression, wrt, consider_constant=None, disconnected_inputs="raise
 
     Returns
     -------
-    :class:`~theano.gof.graph.Variable` or list/tuple of Variables (depending upon `wrt`)
+    :class:`~aesara.gof.graph.Variable` or list/tuple of Variables (depending upon `wrt`)
         The Jacobian of `expression` with respect to (elements of) `wrt`.
         If an element of `wrt` is not differentiable with respect to the
         output, then a zero variable is returned. The return value is
         of same type as `wrt`: a list/tuple or TensorVariable in all cases.
     """
-    from theano.tensor import arange
+    from aesara.tensor import arange
 
     # Check inputs have the right format
     assert isinstance(
@@ -2056,14 +2056,14 @@ def jacobian(expression, wrt, consider_constant=None, disconnected_inputs="raise
     # generator used n expression (because during computing gradients we are
     # just backtracking over old values. (rp Jan 2012 - if anyone has a
     # counter example please show me)
-    jacobs, updates = theano.scan(
+    jacobs, updates = aesara.scan(
         inner_function,
         sequences=arange(expression.shape[0]),
         non_sequences=[expression] + wrt,
     )
     assert not updates, (
         "Scan has returned a list of updates. This should not "
-        "happen! Report this to theano-users (also include the "
+        "happen! Report this to aesara-users (also include the "
         "script that generated the error)"
     )
     return format_as(using_list, using_tuple, jacobs)
@@ -2089,13 +2089,13 @@ def hessian(cost, wrt, consider_constant=None, disconnected_inputs="raise"):
 
     Returns
     -------
-    :class:`~theano.gof.graph.Variable` or list/tuple of Variables
+    :class:`~aesara.gof.graph.Variable` or list/tuple of Variables
         The Hessian of the `cost` with respect to (elements of) `wrt`.
         If an element of `wrt` is not differentiable with respect to the
         output, then a zero variable is returned. The return value is
         of same type as `wrt`: a list/tuple or TensorVariable in all cases.
     """
-    from theano.tensor import arange
+    from aesara.tensor import arange
 
     # Check inputs have the right format
     assert isinstance(cost, Variable), "tensor.hessian expects a Variable as `cost`"
@@ -2127,7 +2127,7 @@ def hessian(cost, wrt, consider_constant=None, disconnected_inputs="raise"):
         # It is possible that the inputs are disconnected from expr,
         # even if they are connected to cost.
         # This should not be an error.
-        hess, updates = theano.scan(
+        hess, updates = aesara.scan(
             lambda i, y, x: grad(
                 y[i],
                 x,
@@ -2139,7 +2139,7 @@ def hessian(cost, wrt, consider_constant=None, disconnected_inputs="raise"):
         )
         assert not updates, (
             "Scan has returned a list of updates. This should not "
-            "happen! Report this to theano-users (also include the "
+            "happen! Report this to aesara-users (also include the "
             "script that generated the error)"
         )
         hessians.append(hess)
@@ -2162,9 +2162,9 @@ def _is_zero(x):
 
     no_constant_value = True
     try:
-        constant_value = theano.get_scalar_constant_value(x)
+        constant_value = aesara.get_scalar_constant_value(x)
         no_constant_value = False
-    except theano.tensor.basic.NotScalarConstantError:
+    except aesara.tensor.basic.NotScalarConstantError:
         pass
 
     if no_constant_value:
@@ -2197,7 +2197,7 @@ def consider_constant(x):
     through. In other words, the gradient of the expression is
     truncated to 0.
 
-    :param x: A Theano expression whose gradient should be truncated.
+    :param x: A Aesara expression whose gradient should be truncated.
 
     :return: The expression is returned unmodified, but its gradient
         is now truncated to 0.
@@ -2223,7 +2223,7 @@ class ZeroGrad(ViewOp):
         if eval_points[0] is None:
             return [None]
 
-        return theano.tensor.zeros(1)
+        return aesara.tensor.zeros(1)
 
 
 zero_grad_ = ZeroGrad()
@@ -2241,12 +2241,12 @@ def zero_grad(x):
 
     Parameters
     ----------
-    x: :class:`~theano.gof.graph.Variable`
-        A Theano expression whose gradient should be truncated.
+    x: :class:`~aesara.gof.graph.Variable`
+        A Aesara expression whose gradient should be truncated.
 
     Returns
     -------
-    :class:`~theano.gof.graph.Variable`
+    :class:`~aesara.gof.graph.Variable`
         An expression equivalent to ``x``, with its gradient
         truncated to 0.
     """
@@ -2280,12 +2280,12 @@ def undefined_grad(x):
 
     Parameters
     ----------
-    x: :class:`~theano.gof.graph.Variable`
-        A Theano expression whose gradient should be undefined.
+    x: :class:`~aesara.gof.graph.Variable`
+        A Aesara expression whose gradient should be undefined.
 
     Returns
     -------
-    :class:`~theano.gof.graph.Variable`
+    :class:`~aesara.gof.graph.Variable`
         An expression equivalent to ``x``, with its gradient undefined.
     """
     return undefined_grad_(x)
@@ -2321,13 +2321,13 @@ def disconnected_grad(x):
 
     Parameters
     ----------
-    x: :class:`~theano.gof.graph.Variable`
-        A Theano expression whose gradient should not be
+    x: :class:`~aesara.gof.graph.Variable`
+        A Aesara expression whose gradient should not be
         backpropagated through.
 
     Returns
     -------
-    :class:`~theano.gof.graph.Variable`
+    :class:`~aesara.gof.graph.Variable`
         An expression equivalent to ``x``, with its gradient
         now effectively truncated to 0.
     """
@@ -2347,7 +2347,7 @@ class GradClip(ViewOp):
 
     def grad(self, args, g_outs):
         return [
-            theano.tensor.clip(g_out, self.clip_lower_bound, self.clip_upper_bound)
+            aesara.tensor.clip(g_out, self.clip_lower_bound, self.clip_upper_bound)
             for g_out in g_outs
         ]
 
@@ -2369,10 +2369,10 @@ def grad_clip(x, lower_bound, upper_bound):
 
     Examples
     --------
-    >>> x = theano.tensor.scalar()
-    >>> z = theano.tensor.grad(grad_clip(x, -1, 1)**2, x)
-    >>> z2 = theano.tensor.grad(x**2, x)
-    >>> f = theano.function([x], outputs = [z, z2])
+    >>> x = aesara.tensor.scalar()
+    >>> z = aesara.tensor.grad(grad_clip(x, -1, 1)**2, x)
+    >>> z2 = aesara.tensor.grad(x**2, x)
+    >>> f = aesara.function([x], outputs = [z, z2])
     >>> print(f(2.0))
     [array(1.0), array(4.0)]
 
@@ -2406,15 +2406,15 @@ def grad_scale(x, multiplier):
 
     Examples
     --------
-    >>> x = theano.tensor.fscalar()
-    >>> fx = theano.tensor.sin(x)
-    >>> fp = theano.tensor.grad(fx, wrt=x)
-    >>> fprime = theano.function([x], fp)
+    >>> x = aesara.tensor.fscalar()
+    >>> fx = aesara.tensor.sin(x)
+    >>> fp = aesara.tensor.grad(fx, wrt=x)
+    >>> fprime = aesara.function([x], fp)
     >>> print(fprime(2))  # doctest: +ELLIPSIS
     -0.416...
     >>> f_inverse=grad_scale(fx, -1.)
-    >>> fpp = theano.tensor.grad(f_inverse, wrt=x)
-    >>> fpprime = theano.function([x], fpp)
+    >>> fpp = aesara.tensor.grad(f_inverse, wrt=x)
+    >>> fpprime = aesara.function([x], fpp)
     >>> print(fpprime(2))  # doctest: +ELLIPSIS
     0.416...
     """

@@ -1,9 +1,9 @@
 # Note: this code was initially copied from the 'pyutools' package by its
-# original author, and re-licensed under Theano's license.
+# original author, and re-licensed under Aesara's license.
 import numpy as np
 
-import theano
-from theano.compile.mode import Mode
+import aesara
+from aesara.compile.mode import Mode
 
 
 class MonitorMode(Mode):
@@ -40,11 +40,11 @@ class MonitorMode(Mode):
     def __init__(self, pre_func=None, post_func=None, optimizer="default", linker=None):
         self.pre_func = pre_func
         self.post_func = post_func
-        wrap_linker = theano.gof.WrapLinkerMany(
-            [theano.gof.OpWiseCLinker()], [self.eval]
+        wrap_linker = aesara.gof.WrapLinkerMany(
+            [aesara.gof.OpWiseCLinker()], [self.eval]
         )
         if optimizer == "default":
-            optimizer = theano.config.optimizer
+            optimizer = aesara.config.optimizer
         if linker is not None and not isinstance(linker.mode, MonitorMode):
             raise Exception(
                 "MonitorMode can only use its own linker! You "
@@ -101,7 +101,7 @@ def detect_nan(i, node, fn):
             and np.isnan(output[0]).any()
         ):
             print("*** NaN detected ***")
-            theano.printing.debugprint(node)
+            aesara.printing.debugprint(node)
             print("Inputs : %s" % [input[0] for input in fn.inputs])
             print("Outputs: %s" % [output[0] for output in fn.outputs])
             break

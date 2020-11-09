@@ -3,13 +3,13 @@ import warnings
 
 import numpy as np
 
-import theano
-from theano import config
-from theano import scalar as scal
-from theano.gof import Type, Variable, hashtype
+import aesara
+from aesara import config
+from aesara import scalar as scal
+from aesara.gof import Type, Variable, hashtype
 
 
-_logger = logging.getLogger("theano.tensor.type")
+_logger = logging.getLogger("aesara.tensor.type")
 
 
 class TensorType(Type):
@@ -57,7 +57,7 @@ class TensorType(Type):
             warnings.warn(
                 "DEPRECATION WARNING: You use an old interface to"
                 " AdvancedSubtensor1 sparse_grad. Now use"
-                " theano.sparse_grad(a_tensor[an_int_vector])."
+                " aesara.sparse_grad(a_tensor[an_int_vector])."
             )
 
     def clone(self, dtype=None, broadcastable=None):
@@ -94,7 +94,7 @@ class TensorType(Type):
 
         if (type(data) is np.ndarray) and (data.dtype == self.numpy_dtype):
             if data.dtype.num != self.numpy_dtype.num:
-                data = theano._asarray(data, dtype=self.dtype)
+                data = aesara._asarray(data, dtype=self.dtype)
             # -- now fall through to ndim check
         elif (type(data) is np.memmap) and (data.dtype == self.numpy_dtype):
             # numpy.memmap is a "safe" subclass of ndarray,
@@ -118,7 +118,7 @@ class TensorType(Type):
         else:
             if allow_downcast:
                 # Convert to self.dtype, regardless of the type of data
-                data = theano._asarray(data, dtype=self.dtype)
+                data = aesara._asarray(data, dtype=self.dtype)
                 # TODO: consider to pad shape with ones to make it consistent
                 # with self.broadcastable... like vector->row type thing
             else:
@@ -131,7 +131,7 @@ class TensorType(Type):
                         # scalar array, see
                         # http://projects.scipy.org/numpy/ticket/1611
                         # data = data.astype(self.dtype)
-                        data = theano._asarray(data, dtype=self.dtype)
+                        data = aesara._asarray(data, dtype=self.dtype)
                     if up_dtype != self.dtype:
                         err_msg = (
                             "%s cannot store a value of dtype %s without "
@@ -146,15 +146,15 @@ class TensorType(Type):
                 elif (
                     allow_downcast is None
                     and type(data) is float
-                    and self.dtype == theano.config.floatX
+                    and self.dtype == aesara.config.floatX
                 ):
                     # Special case where we allow downcasting of Python float
                     # literals to floatX, even when floatX=='float32'
-                    data = theano._asarray(data, self.dtype)
+                    data = aesara._asarray(data, self.dtype)
                 else:
                     # data has to be converted.
                     # Check that this conversion is lossless
-                    converted_data = theano._asarray(data, self.dtype)
+                    converted_data = aesara._asarray(data, self.dtype)
                     # We use the `values_eq` static function from TensorType
                     # to handle NaN values.
                     if TensorType.values_eq(
@@ -191,7 +191,7 @@ class TensorType(Type):
                 msg = ""
             raise TypeError(
                 "The numpy.ndarray object is not aligned."
-                " Theano C code does not support that.",
+                " Aesara C code does not support that.",
                 msg,
                 "object shape",
                 data.shape,
@@ -278,8 +278,8 @@ class TensorType(Type):
                 "int32": (int, "npy_int32", "NPY_INT32"),
                 "uint64": (int, "npy_uint64", "NPY_UINT64"),
                 "int64": (int, "npy_int64", "NPY_INT64"),
-                "complex128": (complex, "theano_complex128", "NPY_COMPLEX128"),
-                "complex64": (complex, "theano_complex64", "NPY_COMPLEX64"),
+                "complex128": (complex, "aesara_complex128", "NPY_COMPLEX128"),
+                "complex64": (complex, "aesara_complex64", "NPY_COMPLEX64"),
             }[self.dtype]
         except KeyError:
             raise TypeError(
@@ -312,7 +312,7 @@ class TensorType(Type):
                 for sb, ob in zip(self.broadcastable, var.type.broadcastable)
             )
         ):
-            return theano.tensor.patternbroadcast(var, self.broadcastable)
+            return aesara.tensor.patternbroadcast(var, self.broadcastable)
 
     @staticmethod
     def may_share_memory(a, b):
@@ -650,7 +650,7 @@ class TensorType(Type):
             return np.dtype(self.dtype).itemsize
 
 
-theano.compile.ops.expandable_types += (TensorType,)
+aesara.compile.ops.expandable_types += (TensorType,)
 
 
 def values_eq_approx(
@@ -676,10 +676,10 @@ def values_eq_approx(
             return False
         if a.dtype != b.dtype:
             return False
-        if str(a.dtype) not in theano.tensor.continuous_dtypes:
+        if str(a.dtype) not in aesara.tensor.continuous_dtypes:
             return np.all(a == b)
         else:
-            cmp = theano.tensor.basic._allclose(a, b, rtol=rtol, atol=atol)
+            cmp = aesara.tensor.basic._allclose(a, b, rtol=rtol, atol=atol)
             if cmp:
                 # Numpy claims they are close, this is good enough for us.
                 return True
@@ -749,7 +749,7 @@ def values_eq_approx_always_true(a, b):
 
 
 # Register TensorType C code for ViewOp.
-theano.compile.register_view_op_c_code(
+aesara.compile.register_view_op_c_code(
     TensorType,
     """
     Py_XDECREF(%(oname)s);
@@ -761,7 +761,7 @@ theano.compile.register_view_op_c_code(
 
 
 # Register TensorType C code for Shape Op.
-theano.compile.register_shape_c_code(
+aesara.compile.register_shape_c_code(
     TensorType,
     """
     npy_intp shape[] = {PyArray_NDIM(%(iname)s)};
@@ -780,7 +780,7 @@ theano.compile.register_shape_c_code(
 
 
 # Register TensorType C code for ViewOp.
-theano.compile.register_shape_i_c_code(
+aesara.compile.register_shape_i_c_code(
     TensorType,
     """
     if(!%(oname)s)
@@ -798,7 +798,7 @@ theano.compile.register_shape_i_c_code(
 )
 
 # Register TensorType C code for DeepCopyOp
-theano.compile.register_deep_copy_op_c_code(
+aesara.compile.register_deep_copy_op_c_code(
     TensorType,
     """
     int alloc = %(oname)s == NULL;
@@ -830,7 +830,7 @@ theano.compile.register_deep_copy_op_c_code(
 )
 
 
-theano.compile.register_rebroadcast_c_code(
+aesara.compile.register_rebroadcast_c_code(
     TensorType,
     """
     if(PyArray_DIMS(%(iname)s)[%(axis)s] != 1){
@@ -845,7 +845,7 @@ theano.compile.register_rebroadcast_c_code(
 )
 
 
-theano.compile.register_specify_shape_c_code(
+aesara.compile.register_specify_shape_c_code(
     TensorType,
     """
         if (PyArray_NDIM(%(iname)s) != PyArray_DIMS(%(shape)s)[0]) {

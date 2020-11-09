@@ -1,8 +1,8 @@
 
-.. _advanced_theano:
+.. _advanced_aesara:
 
 ***************
-Advanced Theano
+Advanced Aesara
 ***************
 
 Conditions
@@ -18,9 +18,9 @@ Conditions
 
 .. testcode::
 
-   from theano import tensor as tt
-   from theano.ifelse import ifelse
-   import theano, time, numpy
+   from aesara import tensor as tt
+   from aesara.ifelse import ifelse
+   import aesara, time, numpy
 
    a,b = tt.scalars('a','b')
    x,y = tt.matrices('x','y')
@@ -28,10 +28,10 @@ Conditions
    z_switch = tt.switch(tt.lt(a,b), tt.mean(x), tt.mean(y))
    z_lazy = ifelse(tt.lt(a,b), tt.mean(x), tt.mean(y))
 
-   f_switch = theano.function([a,b,x,y], z_switch,
-                              mode=theano.Mode(linker='vm'))
-   f_lazyifelse = theano.function([a,b,x,y], z_lazy,
-                                  mode=theano.Mode(linker='vm'))
+   f_switch = aesara.function([a,b,x,y], z_switch,
+                              mode=aesara.Mode(linker='vm'))
+   f_lazyifelse = aesara.function([a,b,x,y], z_lazy,
+                                  mode=aesara.Mode(linker='vm'))
 
    val1 = 0.
    val2 = 1.
@@ -84,27 +84,27 @@ Loops
 - You 'scan' a function along some input sequence, producing an output at each time-step
 - The function can see the **previous K time-steps** of your function
 - ``sum()`` could be computed by scanning the z + x(i) function over a list, given an initial state of ``z=0``.
-- Often a for-loop can be expressed as a ``scan()`` operation, and ``scan`` is the closest that Theano comes to looping.
+- Often a for-loop can be expressed as a ``scan()`` operation, and ``scan`` is the closest that Aesara comes to looping.
 - The advantage of using ``scan`` over for loops
 
   - The number of iterations to be part of the symbolic graph
   - Minimizes GPU transfers if GPU is involved
   - Compute gradients through sequential steps
-  - Slightly faster then using a for loop in Python with a compiled Theano function
+  - Slightly faster then using a for loop in Python with a compiled Aesara function
   - Can lower the overall memory usage by detecting the actual amount of memory needed
 
 **Scan Example: Computing pow(A,k)**
 
 .. code-block:: python
 
-  import theano
-  import theano.tensor as tt
+  import aesara
+  import aesara.tensor as tt
 
   k = tt.iscalar("k"); A = tt.vector("A")
 
   def inner_fct(prior_result, A): return prior_result * A
   # Symbolic description of the result
-  result, updates = theano.scan(fn=inner_fct,
+  result, updates = aesara.scan(fn=inner_fct,
                               outputs_info=tt.ones_like(A),
                               non_sequences=A, n_steps=k)
 
@@ -112,7 +112,7 @@ Loops
   # value. Scan notices this and does not waste memory saving them.
   final_result = result[-1]
 
-  power = theano.function(inputs=[A,k], outputs=final_result,
+  power = aesara.function(inputs=[A,k], outputs=final_result,
                         updates=updates)
 
   print power(range(10),2)
@@ -124,21 +124,21 @@ Loops
 .. testcode::
 
   import numpy
-  import theano
-  import theano.tensor as tt
+  import aesara
+  import aesara.tensor as tt
 
-  coefficients = theano.tensor.vector("coefficients")
+  coefficients = aesara.tensor.vector("coefficients")
   x = tt.scalar("x"); max_coefficients_supported = 10000
 
   # Generate the components of the polynomial
-  full_range=theano.tensor.arange(max_coefficients_supported)
-  components, updates = theano.scan(fn=lambda coeff, power, free_var:
+  full_range=aesara.tensor.arange(max_coefficients_supported)
+  components, updates = aesara.scan(fn=lambda coeff, power, free_var:
                                      coeff * (free_var ** power),
                                   outputs_info=None,
                                   sequences=[coefficients, full_range],
                                   non_sequences=x)
   polynomial = components.sum()
-  calculate_polynomial = theano.function(inputs=[coefficients, x],
+  calculate_polynomial = aesara.function(inputs=[coefficients, x],
                                        outputs=polynomial)
 
   test_coeff = numpy.asarray([1, 0, 2], dtype=numpy.float32)
@@ -173,18 +173,18 @@ Inplace optimization
   - An op that write the output on the inputs memory space
 
 - This allows some memory optimization
-- The Op must tell Theano if they work inplace
+- The Op must tell Aesara if they work inplace
 - Inplace Op add constraints to the order of execution
 
 
 Profiling
 ---------
 
-- To replace the default mode with this mode, use the Theano flags ``profile=True``
+- To replace the default mode with this mode, use the Aesara flags ``profile=True``
 
 - To enable the memory profiling use the flags ``profile=True,profile_memory=True``
 
-Theano output for running the train function of logistic regression
+Aesara output for running the train function of logistic regression
 example from :doc:`here <../tutorial/examples>` for one epoch:
 
 .. code-block:: python
@@ -198,25 +198,25 @@ example from :doc:`here <../tutorial/examples>` for one epoch:
       Time in thunks: 4.213095e-03s (70.430%)
       Total compile time: 3.739440e-01s
         Number of Apply nodes: 21
-        Theano Optimizer time: 3.258998e-01s
-           Theano validate time: 5.632162e-03s
-        Theano Linker time (includes C, CUDA code generation/compiling): 3.185582e-02s
+        Aesara Optimizer time: 3.258998e-01s
+           Aesara validate time: 5.632162e-03s
+        Aesara Linker time (includes C, CUDA code generation/compiling): 3.185582e-02s
            Import time 3.157377e-03s
 
-    Time in all call to theano.grad() 2.997899e-02s
-    Time since theano import 3.616s
+    Time in all call to aesara.grad() 2.997899e-02s
+    Time since aesara import 3.616s
     Class
     ---
     <% time> <sum %> <apply time> <time per call> <type> <#call> <#apply> <Class name>
-      50.6%    50.6%       0.002s       1.07e-03s     Py       2       2   theano.tensor.basic.Dot
-      27.2%    77.8%       0.001s       5.74e-04s     C        2       2   theano.sandbox.cuda.basic_ops.HostFromGpu
-      18.1%    95.9%       0.001s       3.81e-04s     C        2       2   theano.sandbox.cuda.basic_ops.GpuFromHost
-       2.6%    98.6%       0.000s       1.23e-05s     C        9       9   theano.tensor.elemwise.Elemwise
-       0.8%    99.3%       0.000s       3.29e-05s     C        1       1   theano.sandbox.cuda.basic_ops.GpuElemwise
-       0.3%    99.6%       0.000s       5.60e-06s     C        2       2   theano.tensor.elemwise.DimShuffle
-       0.2%    99.8%       0.000s       6.91e-06s     C        1       1   theano.sandbox.cuda.basic_ops.GpuDimShuffle
-       0.1%    99.9%       0.000s       5.01e-06s     C        1       1   theano.compile.ops.Shape_i
-       0.1%   100.0%       0.000s       5.01e-06s     C        1       1   theano.tensor.elemwise.Sum
+      50.6%    50.6%       0.002s       1.07e-03s     Py       2       2   aesara.tensor.basic.Dot
+      27.2%    77.8%       0.001s       5.74e-04s     C        2       2   aesara.sandbox.cuda.basic_ops.HostFromGpu
+      18.1%    95.9%       0.001s       3.81e-04s     C        2       2   aesara.sandbox.cuda.basic_ops.GpuFromHost
+       2.6%    98.6%       0.000s       1.23e-05s     C        9       9   aesara.tensor.elemwise.Elemwise
+       0.8%    99.3%       0.000s       3.29e-05s     C        1       1   aesara.sandbox.cuda.basic_ops.GpuElemwise
+       0.3%    99.6%       0.000s       5.60e-06s     C        2       2   aesara.tensor.elemwise.DimShuffle
+       0.2%    99.8%       0.000s       6.91e-06s     C        1       1   aesara.sandbox.cuda.basic_ops.GpuDimShuffle
+       0.1%    99.9%       0.000s       5.01e-06s     C        1       1   aesara.compile.ops.Shape_i
+       0.1%   100.0%       0.000s       5.01e-06s     C        1       1   aesara.tensor.elemwise.Sum
        ... (remaining 0 Classes account for   0.00%(0.00s) of the runtime)
 
     Ops
@@ -377,28 +377,28 @@ Exercise 5
 - Is there something we can do to speed up the GPU version?
 
 
-Printing/Drawing Theano graphs
+Printing/Drawing Aesara graphs
 ------------------------------
 
 Consider the following logistic regression model:
 
 >>> import numpy
->>> import theano
->>> import theano.tensor as tt
+>>> import aesara
+>>> import aesara.tensor as tt
 >>> rng = numpy.random
 >>> # Training data
 >>> N = 400
 >>> feats = 784
->>> D = (rng.randn(N, feats).astype(theano.config.floatX), rng.randint(size=N,low=0, high=2).astype(theano.config.floatX))
+>>> D = (rng.randn(N, feats).astype(aesara.config.floatX), rng.randint(size=N,low=0, high=2).astype(aesara.config.floatX))
 >>> training_steps = 10000
->>> # Declare Theano symbolic variables
+>>> # Declare Aesara symbolic variables
 >>> x = tt.matrix("x")
 >>> y = tt.vector("y")
->>> w = theano.shared(rng.randn(feats).astype(theano.config.floatX), name="w")
->>> b = theano.shared(numpy.asarray(0., dtype=theano.config.floatX), name="b")
+>>> w = aesara.shared(rng.randn(feats).astype(aesara.config.floatX), name="w")
+>>> b = aesara.shared(numpy.asarray(0., dtype=aesara.config.floatX), name="b")
 >>> x.tag.test_value = D[0]
 >>> y.tag.test_value = D[1]
->>> # Construct Theano expression graph
+>>> # Construct Aesara expression graph
 >>> p_1 = 1 / (1 + tt.exp(-tt.dot(x, w)-b)) # Probability of having a one
 >>> prediction = p_1 > 0.5 # The prediction that is done: 0 or 1
 >>> # Compute gradients
@@ -406,17 +406,17 @@ Consider the following logistic regression model:
 >>> cost = xent.mean() + 0.01*(w**2).sum() # The cost to optimize
 >>> gw,gb = tt.grad(cost, [w,b])
 >>> # Training and prediction function
->>> train = theano.function(inputs=[x,y], outputs=[prediction, xent], updates=[[w, w-0.01*gw], [b, b-0.01*gb]], name = "train")
->>> predict = theano.function(inputs=[x], outputs=prediction, name = "predict")
+>>> train = aesara.function(inputs=[x,y], outputs=[prediction, xent], updates=[[w, w-0.01*gw], [b, b-0.01*gb]], name = "train")
+>>> predict = aesara.function(inputs=[x], outputs=prediction, name = "predict")
 
-We will now make use of Theano's printing features to compare the unoptimized
+We will now make use of Aesara's printing features to compare the unoptimized
 graph (``prediction``) to the optimized graph (``predict``).
 
 
 Pretty Printing
 ~~~~~~~~~~~~~~~
 
->>> theano.printing.pprint(prediction) # doctest: +NORMALIZE_WHITESPACE
+>>> aesara.printing.pprint(prediction) # doctest: +NORMALIZE_WHITESPACE
 'gt((TensorConstant{1} / (TensorConstant{1} + exp(((-(x \\dot w)) - b)))), TensorConstant{0.5})'
 
 
@@ -425,7 +425,7 @@ Debug Print
 
 The graph before optimization:
 
->>> theano.printing.debugprint(prediction) # doctest: +NORMALIZE_WHITESPACE, +SKIP
+>>> aesara.printing.debugprint(prediction) # doctest: +NORMALIZE_WHITESPACE, +SKIP
     Elemwise{gt,no_inplace} [@A] ''
     |Elemwise{true_div,no_inplace} [@B] ''
     | |DimShuffle{x} [@C] ''
@@ -446,7 +446,7 @@ The graph before optimization:
 
 The graph after optimization:
 
->>> theano.printing.debugprint(predict) # doctest: +NORMALIZE_WHITESPACE, +SKIP
+>>> aesara.printing.debugprint(predict) # doctest: +NORMALIZE_WHITESPACE, +SKIP
     Elemwise{Composite{GT(scalar_sigmoid((-((-i0) - i1))), i2)}} [@A] ''   4
      |CGemv{inplace} [@B] ''   3
      | |Alloc [@C] ''   2
@@ -468,7 +468,7 @@ Picture Printing of Graphs
 
 The graph before optimization:
 
->>> theano.printing.pydotprint(prediction, outfile="pics/logreg_pydotprint_prediction.png", var_with_name_simple=True)  # doctest: +SKIP
+>>> aesara.printing.pydotprint(prediction, outfile="pics/logreg_pydotprint_prediction.png", var_with_name_simple=True)  # doctest: +SKIP
 The output file is available at pics/logreg_pydotprint_prediction.png
 
 .. image:: ./pics/logreg_pydotprint_prediction.png
@@ -476,7 +476,7 @@ The output file is available at pics/logreg_pydotprint_prediction.png
 
 The graph after optimization:
 
->>> theano.printing.pydotprint(predict, outfile="pics/logreg_pydotprint_predict.png", var_with_name_simple=True)  # doctest: +SKIP
+>>> aesara.printing.pydotprint(predict, outfile="pics/logreg_pydotprint_predict.png", var_with_name_simple=True)  # doctest: +SKIP
 The output file is available at pics/logreg_pydotprint_predict.png
 
 .. image:: ./pics/logreg_pydotprint_predict.png
@@ -484,7 +484,7 @@ The output file is available at pics/logreg_pydotprint_predict.png
 
 The optimized training graph:
 
->>> theano.printing.pydotprint(train, outfile="pics/logreg_pydotprint_train.png", var_with_name_simple=True)  # doctest: +SKIP
+>>> aesara.printing.pydotprint(train, outfile="pics/logreg_pydotprint_train.png", var_with_name_simple=True)  # doctest: +SKIP
 The output file is available at pics/logreg_pydotprint_train.png
 
 .. image:: ./pics/logreg_pydotprint_train.png
@@ -501,7 +501,7 @@ Debugging
   - Checks many things that Op should/shouldn't do
   - Executes both the Python and C code versions
 
-- Run with the Theano flag ``compute_test_value = {``off'',``ignore'', ``warn'', ``raise''}``
+- Run with the Aesara flag ``compute_test_value = {``off'',``ignore'', ``warn'', ``raise''}``
 
   - Run the code as we create the graph
   - Allows you to find the bug earlier (ex: shape mismatch)

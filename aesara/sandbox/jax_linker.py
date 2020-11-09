@@ -1,8 +1,8 @@
 from collections.abc import Sequence
 from warnings import warn
 
-from theano.gof.graph import Constant
-from theano.gof.link import (
+from aesara.gof.graph import Constant
+from aesara.gof.link import (
     Container,
     PerformLinker,
     add_clear_storage,
@@ -50,7 +50,7 @@ class JAXLinker(PerformLinker):
         """
         import jax
 
-        from theano.sandbox.jaxify import jax_funcify
+        from aesara.sandbox.jaxify import jax_funcify
 
         output_nodes = [o.owner for o in self.fgraph.outputs]
 

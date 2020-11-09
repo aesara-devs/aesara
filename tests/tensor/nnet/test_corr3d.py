@@ -1,30 +1,30 @@
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 from tests import unittest_tools as utt
 from tests.tensor.nnet.test_abstract_conv import TestGroupedConv3dNoOptim
-from theano.tensor.nnet import conv, corr3d
+from aesara.tensor.nnet import conv, corr3d
 
 
 @pytest.mark.skipif(
-    theano.config.cxx == "" or not conv.imported_scipy_signal,
+    aesara.config.cxx == "" or not conv.imported_scipy_signal,
     reason="SciPy and cxx needed",
 )
 class TestCorr3D(utt.InferShapeTester):
-    if theano.config.mode == "FAST_COMPILE":
-        mode = theano.compile.get_mode("FAST_RUN")
+    if aesara.config.mode == "FAST_COMPILE":
+        mode = aesara.compile.get_mode("FAST_RUN")
     else:
         mode = None
-    dtype = theano.config.floatX
+    dtype = aesara.config.floatX
 
     def setup_method(self):
         self.input = tt.tensor5("input", dtype=self.dtype)
         self.input.name = "default_V"
         self.filters = tt.tensor5("filters", dtype=self.dtype)
         self.filters.name = "default_filters"
-        # This tests can run even when theano.config.blas.ldflags is empty.
+        # This tests can run even when aesara.config.blas.ldflags is empty.
         super().setup_method()
 
     def validate(
@@ -43,7 +43,7 @@ class TestCorr3D(utt.InferShapeTester):
         :param image_shape: The constant shape info passed to corr3dMM.
         :param filter_shape: The constant shape info passed to corr3dMM.
         """
-        if not theano.config.cxx:
+        if not aesara.config.cxx:
             pytest.skip("Need cxx for this test")
 
         N_image_shape = [
@@ -62,7 +62,7 @@ class TestCorr3D(utt.InferShapeTester):
 
         # we create a symbolic function so that verify_grad can work
         def sym_Corr3dMM(input, filters):
-            # define theano graph and function
+            # define aesara graph and function
             input.name = "input"
             filters.name = "filters"
             rval = corr3d.Corr3dMM(border_mode, subsample, filter_dilation)(
@@ -73,7 +73,7 @@ class TestCorr3D(utt.InferShapeTester):
 
         output = sym_Corr3dMM(input, filters)
         output.name = "Corr3dMM()({},{})".format(input.name, filters.name)
-        theano_corr = theano.function([input, filters], output, mode=self.mode)
+        aesara_corr = aesara.function([input, filters], output, mode=self.mode)
 
         # initialize input and compute result
         image_data = np.random.random(N_image_shape).astype(self.dtype)
@@ -90,7 +90,7 @@ class TestCorr3D(utt.InferShapeTester):
             assert not image_data.flags["CONTIGUOUS"]
             assert not filter_data.flags["CONTIGUOUS"]
 
-        theano_output = theano_corr(image_data, filter_data)
+        aesara_output = aesara_corr(image_data, filter_data)
 
         # REFERENCE IMPLEMENTATION
         # Testing correlation, not convolution. Reverse filters.
@@ -166,7 +166,7 @@ class TestCorr3D(utt.InferShapeTester):
                                     * filter3d[::-1, ::-1, ::-1]
                                 ).sum()
 
-        utt.assert_allclose(theano_output, ref_output)
+        utt.assert_allclose(aesara_output, ref_output)
 
         # TEST GRADIENT
         if verify_grad:
@@ -336,7 +336,7 @@ class TestCorr3D(utt.InferShapeTester):
                 (3, 2, 8, 8, 8), (4, 2, 5, 5, 5), "valid", input=tt.dtensor4()
             )
 
-    @pytest.mark.skipif(not theano.config.cxx, reason="Need cxx for this test")
+    @pytest.mark.skipif(not aesara.config.cxx, reason="Need cxx for this test")
     def test_dtype_upcast(self):
         # Checks dtype upcast for Corr3dMM methods.
 
@@ -352,19 +352,19 @@ class TestCorr3D(utt.InferShapeTester):
         for op, a_shape, b_shape in zip(ops, a_shapes, b_shapes):
             for a_dtype in dtypes:
                 for b_dtype in dtypes:
-                    c_dtype = theano.scalar.upcast(a_dtype, b_dtype)
+                    c_dtype = aesara.scalar.upcast(a_dtype, b_dtype)
                     a_tens = tt.tensor5(dtype=a_dtype)
                     b_tens = tt.tensor5(dtype=b_dtype)
                     a_tens_val = rand(a_shape, dtype=a_dtype)
                     b_tens_val = rand(b_shape, dtype=b_dtype)
 
                     c_tens = op()(a_tens, b_tens)
-                    f = theano.function([a_tens, b_tens], c_tens, mode=self.mode)
+                    f = aesara.function([a_tens, b_tens], c_tens, mode=self.mode)
                     assert f(a_tens_val, b_tens_val).dtype == c_dtype
 
     @pytest.mark.slow
     @pytest.mark.skipif(
-        theano.config.mode == "FAST_COMPILE" or not theano.config.cxx,
+        aesara.config.mode == "FAST_COMPILE" or not aesara.config.cxx,
         reason="Need cxx for this test",
     )
     def test_infer_shape_forward(self):
@@ -412,7 +412,7 @@ class TestCorr3D(utt.InferShapeTester):
 
     @pytest.mark.slow
     @pytest.mark.skipif(
-        theano.config.mode == "FAST_COMPILE" or not theano.config.cxx,
+        aesara.config.mode == "FAST_COMPILE" or not aesara.config.cxx,
         reason="Need cxx for this test",
     )
     def test_infer_shape_gradW(self):
@@ -451,13 +451,13 @@ class TestCorr3D(utt.InferShapeTester):
                     cdtens = corr3dMM(border_mode=mode, subsample=subsample)(
                         adtens, bdtens
                     )
-                    f = theano.function([adtens, bdtens], cdtens)
+                    f = aesara.function([adtens, bdtens], cdtens)
                     cdtens_val = f(adtens_val, bdtens_val)
                     # Corr3dMM_gradWeights
                     shape = (
-                        theano.shared(bivec_val[2]),
-                        theano.shared(bivec_val[3]),
-                        theano.shared(bivec_val[4]),
+                        aesara.shared(bivec_val[2]),
+                        aesara.shared(bivec_val[3]),
+                        aesara.shared(bivec_val[4]),
                     )
                     bdtens_g = gradW(border_mode=mode, subsample=subsample)(
                         adtens, cdtens, shape=shape
@@ -472,7 +472,7 @@ class TestCorr3D(utt.InferShapeTester):
 
     @pytest.mark.slow
     @pytest.mark.skipif(
-        theano.config.mode == "FAST_COMPILE" or not theano.config.cxx,
+        aesara.config.mode == "FAST_COMPILE" or not aesara.config.cxx,
         reason="Need cxx for this test",
     )
     def test_infer_shape_gradI(self):
@@ -511,13 +511,13 @@ class TestCorr3D(utt.InferShapeTester):
                     cdtens = corr3dMM(border_mode=mode, subsample=subsample)(
                         adtens, bdtens
                     )
-                    f = theano.function([adtens, bdtens], cdtens)
+                    f = aesara.function([adtens, bdtens], cdtens)
                     cdtens_val = f(adtens_val, bdtens_val)
                     # Corr3dMM_gradInputs
                     shape = (
-                        theano.shared(aivec_val[2]),
-                        theano.shared(aivec_val[3]),
-                        theano.shared(aivec_val[4]),
+                        aesara.shared(aivec_val[2]),
+                        aesara.shared(aivec_val[3]),
+                        aesara.shared(aivec_val[4]),
                     )
                     adtens_g = gradI(border_mode=mode, subsample=subsample)(
                         bdtens, cdtens, shape=shape
@@ -544,7 +544,7 @@ class TestCorr3D(utt.InferShapeTester):
 
 
 class TestGroupCorr3d(TestGroupedConv3dNoOptim):
-    mode = theano.compile.get_mode("FAST_RUN")
+    mode = aesara.compile.get_mode("FAST_RUN")
     conv_op = corr3d.Corr3dMM
     conv_gradw_op = corr3d.Corr3dMMGradWeights
     conv_gradi_op = corr3d.Corr3dMMGradInputs

@@ -8,12 +8,12 @@ try:
 except ImportError:
     pass
 
-import theano
-import theano.sandbox.multinomial
-from theano import Apply
-from theano.gof import Op
-from theano.scalar import as_scalar
-from theano.tensor import NotScalarConstantError, get_scalar_constant_value
+import aesara
+import aesara.sandbox.multinomial
+from aesara import Apply
+from aesara.gof import Op
+from aesara.scalar import as_scalar
+from aesara.tensor import NotScalarConstantError, get_scalar_constant_value
 
 from .basic_ops import (
     GpuKernelBase,
@@ -184,7 +184,7 @@ KERNEL void k_multi_warp_multinomial(
 
     dims[0] = PyGpuArray_DIMS(pvals)[1];
     dims[1] = PyGpuArray_DIMS(pvals)[0];
-    if (theano_prep_output(&out, 2, dims, %(out_typecode)s,
+    if (aesara_prep_output(&out, 2, dims, %(out_typecode)s,
                            GA_C_ORDER, %(ctx)s) != 0){
       %(fail)s
     }
@@ -434,7 +434,7 @@ KERNEL void k_multi_warp_multinomial_wor(
     dims[0] = n_samples;
     dims[1] = PyGpuArray_DIMS(pvals)[0];
 
-    if (theano_prep_output(&out, 2, dims, GA_LONG,
+    if (aesara_prep_output(&out, 2, dims, GA_LONG,
                            GA_C_ORDER, %(ctx)s) != 0){
         Py_DECREF(pvals_copy);
         %(fail)s
@@ -494,8 +494,8 @@ KERNEL void k_multi_warp_multinomial_wor(
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.sandbox.multinomial.MultinomialFromUniform])
-@register_opt2([theano.sandbox.multinomial.MultinomialFromUniform], "fast_compile")
+@op_lifter([aesara.sandbox.multinomial.MultinomialFromUniform])
+@register_opt2([aesara.sandbox.multinomial.MultinomialFromUniform], "fast_compile")
 def local_gpua_multinomial(op, context_name, inputs, outputs):
     # TODO : need description for function
 
@@ -515,8 +515,8 @@ def local_gpua_multinomial(op, context_name, inputs, outputs):
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.sandbox.multinomial.ChoiceFromUniform])
-@register_opt2([theano.sandbox.multinomial.ChoiceFromUniform], "fast_compile")
+@op_lifter([aesara.sandbox.multinomial.ChoiceFromUniform])
+@register_opt2([aesara.sandbox.multinomial.ChoiceFromUniform], "fast_compile")
 def local_gpua_multinomial_wor(op, context_name, inputs, outputs):
     # TODO : need description for function
     p, u, n = inputs

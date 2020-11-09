@@ -2,12 +2,12 @@
 Test config options.
 """
 
-from theano.configparser import THEANO_FLAGS_DICT, AddConfigVar, ConfigParam
+from aesara.configparser import THEANO_FLAGS_DICT, AddConfigVar, ConfigParam
 
 
 class TestConfig:
     def test_invalid_default(self):
-        # Ensure an invalid default value found in the Theano code only causes
+        # Ensure an invalid default value found in the Aesara code only causes
         # a crash if it is not overridden by the user.
 
         def filter(val):

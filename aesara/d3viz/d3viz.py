@@ -1,4 +1,4 @@
-"""Dynamic visualization of Theano graphs.
+"""Dynamic visualization of Aesara graphs.
 
 Author: Christof Angermueller <cangermueller@gmail.com>
 """
@@ -8,7 +8,7 @@ import json
 import os
 import shutil
 
-from theano.d3viz.formatting import PyDotFormatter
+from aesara.d3viz.formatting import PyDotFormatter
 
 
 __path__ = os.path.dirname(os.path.realpath(__file__))
@@ -42,7 +42,7 @@ def safe_json(obj):
 
 
 def d3viz(fct, outfile, copy_deps=True, *args, **kwargs):
-    """Create HTML file with dynamic visualizing of a Theano function graph.
+    """Create HTML file with dynamic visualizing of a Aesara function graph.
 
     In the HTML file, the whole graph or single nodes can be moved by drag and
     drop. Zooming is possible via the mouse wheel. Detailed information about
@@ -60,8 +60,8 @@ def d3viz(fct, outfile, copy_deps=True, *args, **kwargs):
 
     Parameters
     ----------
-    fct : theano.compile.function_module.Function
-        A compiled Theano function, variable, apply or a list of variables.
+    fct : aesara.compile.function_module.Function
+        A compiled Aesara function, variable, apply or a list of variables.
     outfile : str
         Path to output HTML file.
     copy_deps : bool, optional
@@ -70,7 +70,7 @@ def d3viz(fct, outfile, copy_deps=True, *args, **kwargs):
     Notes
     -----
     This function accepts extra parameters which will be forwarded to
-    :class:`theano.d3viz.formatting.PyDotFormatter`.
+    :class:`aesara.d3viz.formatting.PyDotFormatter`.
 
     """
 
@@ -115,19 +115,19 @@ def d3viz(fct, outfile, copy_deps=True, *args, **kwargs):
 
 
 def d3write(fct, path, *args, **kwargs):
-    """Convert Theano graph to pydot graph and write to dot file.
+    """Convert Aesara graph to pydot graph and write to dot file.
 
     Parameters
     ----------
-    fct : theano.compile.function_module.Function
-        A compiled Theano function, variable, apply or a list of variables.
+    fct : aesara.compile.function_module.Function
+        A compiled Aesara function, variable, apply or a list of variables.
     path: str
         Path to output file
 
     Notes
     -----
     This function accepts extra parameters which will be forwarded to
-    :class:`theano.d3viz.formatting.PyDotFormatter`.
+    :class:`aesara.d3viz.formatting.PyDotFormatter`.
 
     """
 

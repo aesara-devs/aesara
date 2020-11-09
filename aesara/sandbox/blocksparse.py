@@ -1,6 +1,6 @@
 import warnings
 
-from theano.tensor.nnet.blocksparse import (
+from aesara.tensor.nnet.blocksparse import (
     SparseBlockGemv,
     SparseBlockOuter,
     sparse_block_dot,
@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 warnings.warn(
-    "DEPRECATION: theano.sandbox.blocksparse does not exist anymore,"
-    "it has been moved to theano.tensor.nnet.blocksparse.",
+    "DEPRECATION: aesara.sandbox.blocksparse does not exist anymore,"
+    "it has been moved to aesara.tensor.nnet.blocksparse.",
     category=DeprecationWarning,
 )

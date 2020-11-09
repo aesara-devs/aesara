@@ -44,7 +44,7 @@ Defining a params type
 
     This section is only relevant if you decide to create your own type.
 
-The first thing you need to do is to define a Theano Type for your
+The first thing you need to do is to define a Aesara Type for your
 params object.  It doesn't have to be complete type because only the
 following methods will be used for the type:
 
@@ -73,8 +73,8 @@ attribute :attr:`params_type` to an instance of your params Type.
 
 .. note::
 
-   If you want to have multiple parameters, Theano provides the convenient class
-   :class:`theano.gof.params_type.ParamsType` that allows to bundle many parameters into
+   If you want to have multiple parameters, Aesara provides the convenient class
+   :class:`aesara.gof.params_type.ParamsType` that allows to bundle many parameters into
    one object that will be available in both Python (as a Python object) and C code (as a struct).
    See :ref:`ParamsType tutorial and API documentation <libdoc_gof_params_type>` for more infos.
 
@@ -139,9 +139,9 @@ the params type.
 
 .. testcode::
 
-   from theano import Op
-   from theano.gof.type import Generic
-   from theano.scalar import as_scalar
+   from aesara import Op
+   from aesara.gof.type import Generic
+   from aesara.scalar import as_scalar
 
    class MulOp(Op):
        params_type = Generic()
@@ -175,9 +175,9 @@ weights.
 
 .. testcode::
 
-   from theano import Op
-   from theano.gof.type import Generic
-   from theano.scalar import as_scalar
+   from aesara import Op
+   from aesara.gof.type import Generic
+   from aesara.scalar import as_scalar
 
    class ab(object):
        def __init__(self, alpha, beta):

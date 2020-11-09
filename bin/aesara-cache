@@ -1,3 +1,3 @@
 #!/usr/bin/env python
-import theano_cache
-theano_cache.main()
+import aesara_cache
+aesara_cache.main()

@@ -4,11 +4,11 @@ from itertools import product
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tensor
+import aesara
+import aesara.tensor as tensor
 from tests import unittest_tools as utt
-from theano import function
-from theano.tensor.signal.pool import (
+from aesara import function
+from aesara.tensor.signal.pool import (
     AveragePoolGrad,
     DownsampleFactorMaxGradGrad,
     MaxPoolGrad,
@@ -350,7 +350,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         ):
             (maxpoolshp, inputsize) = example
             imval = rng.rand(*inputsize)
-            images = theano.shared(imval)
+            images = aesara.shared(imval)
 
             # Pure Numpy computation
             numpy_output_val = self.numpy_max_pool_nd(
@@ -458,7 +458,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
             (maxpoolshp, stride, ignore_border, inputshp, outputshp) = example
             # generate random images
             imval = rng.rand(*inputshp)
-            images = theano.shared(imval)
+            images = aesara.shared(imval)
             # Pool op
             numpy_output_val = self.numpy_max_pool_nd_stride(
                 imval, maxpoolshp, ignore_border, stride, mode
@@ -548,7 +548,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         ):
             (maxpoolshp, stridesize, padsize, inputsize) = example
             imval = rng.rand(*inputsize) - 0.5
-            images = theano.shared(imval)
+            images = aesara.shared(imval)
 
             numpy_output_val = self.numpy_max_pool_nd_stride_pad(
                 imval, maxpoolshp, ignore_border, stridesize, padsize, mode
@@ -922,7 +922,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
 
     def test_DownsampleFactorMax_hessian(self):
         # Example provided by Frans Cronje, see
-        # https://groups.google.com/d/msg/theano-users/qpqUy_3glhw/JMwIvlN5wX4J
+        # https://groups.google.com/d/msg/aesara-users/qpqUy_3glhw/JMwIvlN5wX4J
         x_vec = tensor.vector("x")
         z = tensor.dot(x_vec.dimshuffle(0, "x"), x_vec.dimshuffle("x", 0))
         y = pool_2d(input=z, ws=(2, 2), ignore_border=True)
@@ -1066,10 +1066,10 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         rng = np.random.RandomState(utt.fetch_seed())
         test_input_array = np.array(
             [[[[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0]]]]
-        ).astype(theano.config.floatX)
+        ).astype(aesara.config.floatX)
         test_answer_array = np.array(
             [[[[0.0, 0.0, 0.0, 0.0], [0.0, 6.0, 0.0, 8.0]]]]
-        ).astype(theano.config.floatX)
+        ).astype(aesara.config.floatX)
         input = tensor.tensor4(name="input")
         patch_size = (2, 2)
         op = max_pool_2d_same_size(input, patch_size)
@@ -1213,8 +1213,8 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         for ignore_border in [True, False]:
             for mode in ["max", "sum", "average_inc_pad", "average_exc_pad"]:
                 y = pool_2d(x, window_size, ignore_border, stride, padding, mode)
-                dx = theano.gradient.grad(y.sum(), x)
-                var_fct = theano.function([x, window_size, stride, padding], [y, dx])
+                dx = aesara.gradient.grad(y.sum(), x)
+                var_fct = aesara.function([x, window_size, stride, padding], [y, dx])
                 for ws in (4, 2, 5):
                     for st in (2, 3):
                         for pad in (0, 1):
@@ -1228,8 +1228,8 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
                             y = pool_2d(
                                 x, (ws, ws), ignore_border, (st, st), (pad, pad), mode
                             )
-                            dx = theano.gradient.grad(y.sum(), x)
-                            fix_fct = theano.function([x], [y, dx])
+                            dx = aesara.gradient.grad(y.sum(), x)
+                            fix_fct = aesara.function([x], [y, dx])
                             var_y, var_dx = var_fct(
                                 data, (ws, ws), (st, st), (pad, pad)
                             )
@@ -1255,8 +1255,8 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
                     padding=padding,
                     mode=mode,
                 )
-                dx = theano.gradient.grad(y.sum(), x)
-                var_fct = theano.function([x, window_size, stride, padding], [y, dx])
+                dx = aesara.gradient.grad(y.sum(), x)
+                var_fct = aesara.function([x, window_size, stride, padding], [y, dx])
                 ws = 5
                 st = 3
                 pad = 1
@@ -1275,8 +1275,8 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
                     padding=(pad, pad),
                     mode=mode,
                 )
-                dx = theano.gradient.grad(y.sum(), x)
-                fix_fct = theano.function([x], [y, dx])
+                dx = aesara.gradient.grad(y.sum(), x)
+                fix_fct = aesara.function([x], [y, dx])
                 var_y, var_dx = var_fct(data, (ws, ws), (st, st), (pad, pad))
                 fix_y, fix_dx = fix_fct(data)
                 utt.assert_allclose(var_y, fix_y)

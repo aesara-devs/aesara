@@ -3,11 +3,11 @@ from functools import reduce
 import numpy as np
 import pytest
 
-import theano
-import theano.ifelse
+import aesara
+import aesara.ifelse
 from tests import unittest_tools as utt
-from theano import tensor
-from theano.ifelse import IfElse, ifelse
+from aesara import tensor
+from aesara.ifelse import IfElse, ifelse
 
 
 __docformat__ = "restructedtext en"
@@ -18,12 +18,12 @@ __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 class TestIfelse(utt.OptimizationTestMixin):
     mode = None
-    dtype = theano.config.floatX
+    dtype = aesara.config.floatX
     cast_output = staticmethod(tensor.as_tensor_variable)
-    shared = staticmethod(theano.shared)
+    shared = staticmethod(aesara.shared)
 
     def get_ifelse(self, n):
-        if theano.config.mode == "FAST_COMPILE":
+        if aesara.config.mode == "FAST_COMPILE":
             return IfElse(n)
         else:
             return IfElse(n, as_view=True)
@@ -35,7 +35,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         x = tensor.vector("x", dtype=self.dtype)
         y = tensor.vector("y", dtype=self.dtype)
         c = tensor.iscalar("c")
-        f = theano.function([c, x, y], ifelse(c, x, y), mode=self.mode)
+        f = aesara.function([c, x, y], ifelse(c, x, y), mode=self.mode)
         self.assertFunctionContains1(f, self.get_ifelse(1))
         rng = np.random.RandomState(utt.fetch_seed())
 
@@ -54,7 +54,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         x = tensor.vector("x", dtype=self.dtype)
         y = tensor.vector("y", dtype=self.dtype)
         c = tensor.iscalar("c")
-        mode = theano.compile.get_mode(self.mode).excluding(
+        mode = aesara.compile.get_mode(self.mode).excluding(
             # Disable many opt to keep the graph big enough to disable
             # the opt.
             "fusion",
@@ -64,7 +64,7 @@ class TestIfelse(utt.OptimizationTestMixin):
             "constant_folding",
         )
         y2 = reduce(lambda x, y: x + y, [y] + list(range(200)))
-        f = theano.function([c, x, y], ifelse(c, x, y2), mode=mode)
+        f = aesara.function([c, x, y], ifelse(c, x, y2), mode=mode)
         # For not inplace ifelse
         ifnode = [n for n in f.maker.fgraph.toposort() if isinstance(n.op, IfElse)]
         assert len(ifnode) == 1
@@ -86,7 +86,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         y1 = tensor.vector("y1", dtype="int32")
         y2 = tensor.vector("y2", dtype=self.dtype)
         c = tensor.iscalar("c")
-        f = theano.function(
+        f = aesara.function(
             [c, x1, x2, y1, y2], ifelse(c, (x1, x2), (y1, y2)), mode=self.mode
         )
         self.assertFunctionContains1(f, self.get_ifelse(2))
@@ -109,10 +109,10 @@ class TestIfelse(utt.OptimizationTestMixin):
         assert np.allclose(vy2, o2)
 
     def test_lazy_if_on_generics(self):
-        x = theano.generic()
-        y = theano.generic()
+        x = aesara.generic()
+        y = aesara.generic()
         c = tensor.iscalar("c")
-        f = theano.function([c, x, y], ifelse(c, x, y))
+        f = aesara.function([c, x, y], ifelse(c, x, y))
 
         vx = ["testX"]
         vy = ["testY"]
@@ -127,7 +127,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         z = ifelse(c, x, y)
         gx, gy = tensor.grad(z.sum(), [x, y])
 
-        f = theano.function(
+        f = aesara.function(
             [c, x, y], [self.cast_output(gx), self.cast_output(gy)], mode=self.mode
         )
         # There is only 2 of the 3 ifelse that are moved on the GPU.
@@ -160,7 +160,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         z = ifelse(c, self.cast_output(x), self.cast_output(y))
         gx, gy = tensor.grad(z.sum(), [x, y])
 
-        theano.function([c, x, y], [gx, gy], mode=self.mode)
+        aesara.function([c, x, y], [gx, gy], mode=self.mode)
 
     def test_multiple_out(self):
         x1 = tensor.vector("x1", dtype=self.dtype)
@@ -169,7 +169,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         y2 = tensor.vector("y2", dtype=self.dtype)
         c = tensor.iscalar("c")
         z = ifelse(c, (x1, x2), (y1, y2))
-        f = theano.function([c, x1, x2, y1, y2], z, mode=self.mode)
+        f = aesara.function([c, x1, x2, y1, y2], z, mode=self.mode)
         self.assertFunctionContains1(f, self.get_ifelse(2))
 
         ifnode = [x for x in f.maker.fgraph.toposort() if isinstance(x.op, IfElse)][0]
@@ -204,12 +204,12 @@ class TestIfelse(utt.OptimizationTestMixin):
         z = ifelse(c, (x1, x2), (y1, y2))
         grads = tensor.grad(z[0].sum() + z[1].sum(), [x1, x2, y1, y2])
 
-        f = theano.function([c, x1, x2, y1, y2], grads)
+        f = aesara.function([c, x1, x2, y1, y2], grads)
         rng = np.random.RandomState(utt.fetch_seed())
 
         lens = [rng.randint(200) for i in range(4)]
         values = [
-            np.asarray(rng.uniform(size=(l,)), theano.config.floatX) for l in lens
+            np.asarray(rng.uniform(size=(l,)), aesara.config.floatX) for l in lens
         ]
         outs_1 = f(1, *values)
         assert all([x.shape[0] == y for x, y in zip(outs_1, lens)])
@@ -247,13 +247,13 @@ class TestIfelse(utt.OptimizationTestMixin):
 
         fsub = [fsub0, fsub1, fsub2, fsub3]
 
-        acc = theano.tensor.constant(1, "int8") >= 0
+        acc = aesara.tensor.constant(1, "int8") >= 0
 
-        new_positions = theano.ifelse.ifelse(acc, fsub, p)
+        new_positions = aesara.ifelse.ifelse(acc, fsub, p)
 
         new_updates = [(p[0], new_positions[0])]
 
-        f = theano.function(
+        f = aesara.function(
             [ften0, fmat1, ften2, fmat3], [], updates=new_updates, mode=self.mode
         )
         self.assertFunctionContains1(f, self.get_ifelse(4))
@@ -270,7 +270,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         data = rng.rand(5).astype(self.dtype)
         x = self.shared(data)
         y = tensor.cast(x * 10, "int8")
-        cond = theano.tensor.iscalar("cond")
+        cond = aesara.tensor.iscalar("cond")
 
         with pytest.raises(TypeError):
             ifelse(cond, x, y)
@@ -282,7 +282,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         data = rng.rand(5).astype(self.dtype)
         x = self.shared(data)
         y = tensor.col("y", self.dtype)
-        cond = theano.tensor.iscalar("cond")
+        cond = aesara.tensor.iscalar("cond")
 
         with pytest.raises(TypeError):
             ifelse(cond, x, y)
@@ -296,7 +296,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         # print x.broadcastable
         y = tensor.row("y", self.dtype)
         # print y.broadcastable
-        cond = theano.tensor.iscalar("cond")
+        cond = aesara.tensor.iscalar("cond")
 
         with pytest.raises(TypeError):
             ifelse(cond, x, y)
@@ -306,14 +306,14 @@ class TestIfelse(utt.OptimizationTestMixin):
     def test_sparse_tensor_error(self):
         pytest.importorskip("scipy", minversion="0.7.0")
 
-        import theano.sparse
+        import aesara.sparse
 
         rng = np.random.RandomState(utt.fetch_seed())
         data = rng.rand(2, 3).astype(self.dtype)
         x = self.shared(data)
-        y = theano.sparse.matrix("csc", dtype=self.dtype, name="y")
-        z = theano.sparse.matrix("csr", dtype=self.dtype, name="z")
-        cond = theano.tensor.iscalar("cond")
+        y = aesara.sparse.matrix("csc", dtype=self.dtype, name="y")
+        z = aesara.sparse.matrix("csr", dtype=self.dtype, name="z")
+        cond = aesara.tensor.iscalar("cond")
 
         with pytest.raises(TypeError):
             ifelse(cond, x, y)
@@ -336,7 +336,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         z1 = ifelse(c, x + 1, y + 1)
         z2 = ifelse(c, x + 2, y + 2)
         z = z1 + z2
-        f = theano.function([c, x, y], z)
+        f = aesara.function([c, x, y], z)
         assert (
             len([n for n in f.maker.fgraph.toposort() if isinstance(n.op, IfElse)]) == 1
         )
@@ -347,7 +347,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         y = tensor.vector("y")
         c = tensor.iscalar("c")
         z = ifelse(c, (x, x), (y, y))
-        f = theano.function([c, x, y], z)
+        f = aesara.function([c, x, y], z)
 
         ifnode = [n for n in f.maker.fgraph.toposort() if isinstance(n.op, IfElse)][0]
         assert len(ifnode.inputs) == 3
@@ -360,7 +360,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         y2 = tensor.vector("y2")
         c = tensor.iscalar("c")
         z = ifelse(c, (x1, x1, x1, x2, x2), (y1, y1, y2, y2, y2))
-        f = theano.function([c, x1, x2, y1, y2], z)
+        f = aesara.function([c, x1, x2, y1, y2], z)
 
         ifnode = [x for x in f.maker.fgraph.toposort() if isinstance(x.op, IfElse)][0]
         assert len(ifnode.outputs) == 3
@@ -378,7 +378,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         z = ifelse(c, w1, w2, name="f2")
         out = x * z * y
 
-        f = theano.function([x1, x2, y1, y2, w1, w2, c], out, allow_input_downcast=True)
+        f = aesara.function([x1, x2, y1, y2, w1, w2, c], out, allow_input_downcast=True)
         assert isinstance(f.maker.fgraph.toposort()[-1].op, IfElse)
         rng = np.random.RandomState(utt.fetch_seed())
         vx1 = rng.uniform()
@@ -397,14 +397,14 @@ class TestIfelse(utt.OptimizationTestMixin):
         y1 = tensor.scalar("x2")
         y2 = tensor.scalar("y2")
         c = tensor.iscalar("c")
-        two = np.asarray(2, dtype=theano.config.floatX)
+        two = np.asarray(2, dtype=aesara.config.floatX)
         x, y = ifelse(c, (x1, y1), (two, y2), name="f1")
-        o3 = np.asarray(0.3, dtype=theano.config.floatX)
-        o2 = np.asarray(0.2, dtype=theano.config.floatX)
+        o3 = np.asarray(0.3, dtype=aesara.config.floatX)
+        o2 = np.asarray(0.2, dtype=aesara.config.floatX)
         z = ifelse(c, o3, o2, name="f2")
         out = x * z * y
 
-        f = theano.function([x1, y1, y2, c], out, allow_input_downcast=True)
+        f = aesara.function([x1, y1, y2, c], out, allow_input_downcast=True)
         assert isinstance(f.maker.fgraph.toposort()[-1].op, IfElse)
         rng = np.random.RandomState(utt.fetch_seed())
         vx1 = rng.uniform()
@@ -427,7 +427,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         z = ifelse(x > y, w1, w2, name="f2")
         out = x * z * y
 
-        f = theano.function([x1, x2, y1, y2, w1, w2, c], out, allow_input_downcast=True)
+        f = aesara.function([x1, x2, y1, y2, w1, w2, c], out, allow_input_downcast=True)
         assert isinstance(f.maker.fgraph.toposort()[-1].op, IfElse)
         rng = np.random.RandomState(utt.fetch_seed())
         vx1 = rng.uniform()
@@ -463,7 +463,7 @@ class TestIfelse(utt.OptimizationTestMixin):
             ifelse(c, x1, x2) + ifelse(c, y1, y2) + w1,
             ifelse(c, x1, x2) + ifelse(c, y1, y2) + w2,
         )
-        f = theano.function([x1, x2, y1, y2, w1, w2, c], out, allow_input_downcast=True)
+        f = aesara.function([x1, x2, y1, y2, w1, w2, c], out, allow_input_downcast=True)
         assert (
             len([x for x in f.maker.fgraph.toposort() if isinstance(x.op, IfElse)]) == 1
         )
@@ -481,19 +481,19 @@ class TestIfelse(utt.OptimizationTestMixin):
     def test_grad_test_values(self):
         # Regression test for test values of `ifelse` gradient.
 
-        backup = theano.config.compute_test_value
-        theano.config.compute_test_value = "raise"
+        backup = aesara.config.compute_test_value
+        aesara.config.compute_test_value = "raise"
         try:
             x = tensor.scalar("x")
             x.tag.test_value = 1
             # Used to crash due to undefined test value.
             tensor.grad(ifelse(0, x, x), x)
         finally:
-            theano.config.compute_test_value = backup
+            aesara.config.compute_test_value = backup
 
     def test_grad_int_value(self):
-        w = theano.shared(np.random.rand(10))
-        b = theano.shared(np.random.rand())
+        w = aesara.shared(np.random.rand(10))
+        b = aesara.shared(np.random.rand())
         params = [w, b]
 
         x = tensor.vector()

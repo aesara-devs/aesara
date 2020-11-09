@@ -2,7 +2,7 @@
 ccopy_reg
 _reconstructor
 p2
-(ctheano.tensor.var
+(caesara.tensor.var
 TensorVariable
 p3
 c__builtin__
@@ -18,7 +18,7 @@ sS'index'
 p9
 NsS'tag'
 p10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p11
 (dp12
@@ -41,7 +41,7 @@ p20
 NsS'type'
 p21
 g2
-(ctheano.tensor.type
+(caesara.tensor.type
 TensorType
 p22
 g4
@@ -85,7 +85,7 @@ p35
 sg9
 I0
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p36
 (dp37
@@ -100,7 +100,7 @@ tp40
 aasbsg19
 Nsg20
 g2
-(ctheano.gof.graph
+(caesara.gof.graph
 Apply
 p41
 g4
@@ -120,7 +120,7 @@ p48
 sg9
 I0
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p49
 (dp50
@@ -152,7 +152,7 @@ p59
 sg9
 I0
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p60
 (dp61
@@ -175,7 +175,7 @@ g44
 (lp67
 g5
 asg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p68
 (dp69
@@ -186,7 +186,7 @@ g57
 asS'op'
 p72
 g2
-(ctheano.tensor.elemwise
+(caesara.tensor.elemwise
 Elemwise
 p73
 g4
@@ -199,7 +199,7 @@ p77
 sS'scalar_op'
 p78
 g2
-(ctheano.scalar.basic
+(caesara.scalar.basic
 Exp
 p79
 g4
@@ -207,7 +207,7 @@ NtRp80
 (dp81
 S'output_types_preference'
 p82
-ctheano.scalar.basic
+caesara.scalar.basic
 upgrade_to_float
 p83
 sS'_op_use_c_code'
@@ -269,7 +269,7 @@ p102
 sg9
 I0
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p103
 (dp104
@@ -301,7 +301,7 @@ p113
 sg9
 I0
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p114
 (dp115
@@ -324,7 +324,7 @@ g44
 (lp121
 g57
 asg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p122
 (dp123
@@ -333,7 +333,7 @@ bsg70
 g111
 asg72
 g2
-(ctheano.tensor.elemwise
+(caesara.tensor.elemwise
 Sum
 p125
 g4
@@ -348,14 +348,14 @@ sg84
 g85
 sg78
 g2
-(ctheano.scalar.basic
+(caesara.scalar.basic
 Add
 p129
 g4
 NtRp130
 (dp131
 g82
-ctheano.scalar.basic
+caesara.scalar.basic
 upcast_out
 p132
 sg84
@@ -384,7 +384,7 @@ sg32
 I00
 sg19
 Nsbsbasg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p139
 (dp140
@@ -393,7 +393,7 @@ bsg70
 g100
 asg72
 g2
-(ctheano.tensor.elemwise
+(caesara.tensor.elemwise
 DimShuffle
 p142
 g4
@@ -441,7 +441,7 @@ sg32
 I00
 sg19
 Nsbsbasg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p158
 (dp159
@@ -458,7 +458,7 @@ g76
 g77
 sg78
 g2
-(ctheano.scalar.basic
+(caesara.scalar.basic
 TrueDiv
 p163
 g4
@@ -518,7 +518,7 @@ p177
 sg9
 I0
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p178
 (dp179
@@ -550,7 +550,7 @@ p188
 sg9
 I0
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p189
 (dp190
@@ -582,7 +582,7 @@ sg19
 NsS'update'
 p199
 (g2
-(ctheano.tensor.sharedvar
+(caesara.tensor.sharedvar
 TensorSharedVariable
 p200
 g4
@@ -592,7 +592,7 @@ g9
 NsS'container'
 p203
 g2
-(ctheano.gof.link
+(caesara.gof.link
 Container
 p204
 g4
@@ -657,7 +657,7 @@ Nsg7
 S'auto_62'
 p220
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p221
 (dp222
@@ -667,7 +667,7 @@ I01
 sg13
 (lp224
 (lp225
-(S'/u/almahaia/repos/Theano/theano/compile/sharedvalue.py'
+(S'/u/almahaia/repos/Aesara/aesara/compile/sharedvalue.py'
 p226
 I248
 S'shared'
@@ -688,7 +688,7 @@ p232
 sg9
 I0
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p233
 (dp234
@@ -721,7 +721,7 @@ p243
 sg9
 I0
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p244
 (dp245
@@ -753,19 +753,19 @@ p254
 sg9
 I0
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p255
 (dp256
 g13
 (lp257
 (lp258
-(S'/u/almahaia/repos/Theano/theano/compile/ops.py'
+(S'/u/almahaia/repos/Aesara/aesara/compile/ops.py'
 p259
 I249
 S'make_node'
 p260
-S'return gof.Apply(self, [x], [theano.tensor.lvector()])'
+S'return gof.Apply(self, [x], [aesara.tensor.lvector()])'
 tp261
 aasbsg19
 Nsg20
@@ -787,7 +787,7 @@ p267
 sg9
 I0
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p268
 (dp269
@@ -810,7 +810,7 @@ g44
 (lp275
 g46
 ag2
-(ctheano.scalar.basic
+(caesara.scalar.basic
 ScalarConstant
 p276
 g4
@@ -821,14 +821,14 @@ S'auto_17'
 p279
 sg9
 Nsg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p280
 (dp281
 bsg19
 Nsg21
 g2
-(ctheano.scalar.basic
+(caesara.scalar.basic
 Scalar
 p282
 g4
@@ -855,7 +855,7 @@ I0
 tbS'\x00\x00\x00\x00\x00\x00\x00\x00'
 tRp289
 sbasg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p290
 (dp291
@@ -864,7 +864,7 @@ bsg70
 g265
 asg72
 g2
-(ctheano.tensor.subtensor
+(caesara.tensor.subtensor
 Subtensor
 p293
 g4
@@ -897,7 +897,7 @@ sg32
 I00
 sg19
 Nsbsbasg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p303
 (dp304
@@ -906,7 +906,7 @@ bsg70
 g252
 asg72
 g2
-(ctheano.compile.ops
+(caesara.compile.ops
 Shape
 p306
 g4
@@ -931,7 +931,7 @@ sg32
 I00
 sg19
 Nsbsbasg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p312
 (dp313
@@ -950,7 +950,7 @@ p317
 sg19
 Nsg78
 g2
-(ctheano.scalar.basic
+(caesara.scalar.basic
 Cast
 p318
 g4
@@ -958,7 +958,7 @@ NtRp319
 (dp320
 g82
 g2
-(ctheano.scalar.basic
+(caesara.scalar.basic
 specific_out
 p321
 g4
@@ -1019,7 +1019,7 @@ sg32
 I00
 sg19
 Nsbsbasg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p341
 (dp342
@@ -1029,7 +1029,7 @@ g230
 ag197
 asg72
 g2
-(ctheano.sandbox.rng_mrg
+(caesara.sandbox.rng_mrg
 mrg_uniform
 p344
 g4
@@ -1073,7 +1073,7 @@ sg7
 S'auto_64'
 p355
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p356
 (dp357
@@ -1100,7 +1100,7 @@ p363
 sg9
 I0
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p364
 (dp365
@@ -1126,7 +1126,7 @@ p372
 sg9
 I0
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p373
 (dp374
@@ -1158,7 +1158,7 @@ p383
 sg9
 I0
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p384
 (dp385
@@ -1180,7 +1180,7 @@ NtRp389
 g44
 (lp391
 g2
-(ctheano.tensor.var
+(caesara.tensor.var
 TensorConstant
 p392
 g4
@@ -1191,7 +1191,7 @@ S'auto_24'
 p395
 sg9
 Nsg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p396
 (dp397
@@ -1236,7 +1236,7 @@ tRp404
 I00
 S'\x00\x00\x80?'
 tbsbasg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p405
 (dp406
@@ -1321,7 +1321,7 @@ p426
 sg9
 I0
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p427
 (dp428
@@ -1352,7 +1352,7 @@ S'auto_23'
 p437
 sg9
 Nsg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p438
 (dp439
@@ -1386,7 +1386,7 @@ tRp443
 I00
 S'\x00\x00\x00\x00'
 tbsbasg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p444
 (dp445
@@ -1410,7 +1410,7 @@ sg32
 I00
 sg19
 Nsbsbasg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p449
 (dp450
@@ -1427,7 +1427,7 @@ g76
 g77
 sg78
 g2
-(ctheano.scalar.basic
+(caesara.scalar.basic
 Sub
 p454
 g4
@@ -1474,7 +1474,7 @@ sg32
 I00
 sg19
 Nsbsbasg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p465
 (dp466
@@ -1519,7 +1519,7 @@ sg32
 I00
 sg19
 Nsbsbasg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p477
 (dp478
@@ -1536,7 +1536,7 @@ g76
 g77
 sg78
 g2
-(ctheano.scalar.basic
+(caesara.scalar.basic
 Mul
 p482
 g4
@@ -1595,7 +1595,7 @@ p496
 sg9
 I0
 sg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p497
 (dp498
@@ -1612,7 +1612,7 @@ g44
 (lp502
 g424
 asg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p503
 (dp504
@@ -1657,7 +1657,7 @@ sg32
 I00
 sg19
 Nsbsbasg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p515
 (dp516
@@ -1710,7 +1710,7 @@ sg32
 I00
 sg19
 Nsbsbasg10
-(itheano.gof.utils
+(iaesara.gof.utils
 scratchpad
 p528
 (dp529
@@ -1719,7 +1719,7 @@ bsg70
 g33
 asg72
 g2
-(ctheano.sandbox.multinomial
+(caesara.sandbox.multinomial
 MultinomialFromUniform
 p531
 g4

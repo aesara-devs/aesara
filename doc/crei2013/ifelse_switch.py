@@ -3,10 +3,10 @@ import time
 
 import numpy as np
 
-import theano
-from theano import tensor as tt
+import aesara
+from aesara import tensor as tt
 
-from theano.ifelse import ifelse
+from aesara.ifelse import ifelse
 
 a, b = tt.scalars('a', 'b')
 x, y = tt.matrices('x', 'y')
@@ -14,8 +14,8 @@ x, y = tt.matrices('x', 'y')
 z_switch = tt.switch(tt.lt(a, b), tt.mean(x), tt.mean(y))
 z_lazy = ifelse(tt.lt(a, b), tt.mean(x), tt.mean(y))
 
-f_switch = theano.function([a, b, x, y], z_switch)
-f_lazyifelse = theano.function([a, b, x, y], z_lazy)
+f_switch = aesara.function([a, b, x, y], z_switch)
+f_lazyifelse = aesara.function([a, b, x, y], z_lazy)
 
 val1 = 0.
 val2 = 1.

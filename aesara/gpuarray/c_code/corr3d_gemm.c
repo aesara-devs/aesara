@@ -400,7 +400,7 @@ int col2im3d(GpuArray *data_col, const size_t channels,
 }
 
 
-// Theano op code
+// Aesara op code
 // Authors: Arjun Jain, Frederic Bastien, Jan Schluter
 // Reference code: https://github.com/BVLC/caffe/blob/master/src/caffe/layers/conv_layer.cu
 //   and https://github.com/torch/cunn/blob/master/SpatialConvolutionMM.cu

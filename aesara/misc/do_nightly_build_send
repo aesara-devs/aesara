@@ -5,22 +5,22 @@ import os.path
 import smtplib
 import sys
 
-from theano.misc.buildbot_filter import filter_output
+from aesara.misc.buildbot_filter import filter_output
 
 
 # me == the sender's email address
 # family = the list of all recipients' email addresses
-family=['theano-buildbot@googlegroups.com']
+family=['aesara-buildbot@googlegroups.com']
 me='lisa@iro.umontreal.ca'
 
 #Those file contain the output of the do_nightly_build script.
-files=["do_nightly_build_theano.log",
+files=["do_nightly_build_aesara.log",
        "do_nightly_build_deeplearning.log",
-       "do_nightly_build_theano_python3.3.0.log",
+       "do_nightly_build_aesara_python3.3.0.log",
 ]
-msgs=['Theano buildbot',
+msgs=['Aesara buildbot',
       'Deep Learning Tutorial buildbot',
-      'Theano Python3.3.0 buildbot']
+      'Aesara Python3.3.0 buildbot']
 
 print('files', files)
 print("msgs", msgs)

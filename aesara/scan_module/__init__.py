@@ -19,7 +19,7 @@ Special cases:
   ignores previous steps of the outputs.
 
 Often a for-loop can be expressed as a ``scan()`` operation, and ``scan`` is
-the closest that theano comes to looping. The advantage of using ``scan``
+the closest that aesara comes to looping. The advantage of using ``scan``
 over for loops is that it allows the number of iterations to be a part of
 the symbolic graph.
 
@@ -41,8 +41,8 @@ __authors__ = (
 __copyright__ = "(c) 2010, Universite de Montreal"
 __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
-from theano.scan_module import scan_opt
-from theano.scan_module.scan import scan
-from theano.scan_module.scan_checkpoints import scan_checkpoints
-from theano.scan_module.scan_utils import clone, until
-from theano.scan_module.scan_views import foldl, foldr, map, reduce
+from aesara.scan_module import scan_opt
+from aesara.scan_module.scan import scan
+from aesara.scan_module.scan_checkpoints import scan_checkpoints
+from aesara.scan_module.scan_utils import clone, until
+from aesara.scan_module.scan_views import foldl, foldr, map, reduce

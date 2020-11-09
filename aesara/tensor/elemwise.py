@@ -2,18 +2,18 @@ from copy import copy
 
 import numpy as np
 
-import theano
-from theano import change_flags, gof, scalar
-from theano.gof import Apply, COp, Op, OpenMPOp, ParamsType
-from theano.gof.null_type import NullType
-from theano.gradient import DisconnectedType
-from theano.misc.frozendict import frozendict
-from theano.printing import pprint
-from theano.scalar import get_scalar_type
-from theano.tensor import elemwise_cgen as cgen
+import aesara
+from aesara import change_flags, gof, scalar
+from aesara.gof import Apply, COp, Op, OpenMPOp, ParamsType
+from aesara.gof.null_type import NullType
+from aesara.gradient import DisconnectedType
+from aesara.misc.frozendict import frozendict
+from aesara.printing import pprint
+from aesara.scalar import get_scalar_type
+from aesara.tensor import elemwise_cgen as cgen
 
 
-config = theano.config
+config = aesara.config
 
 
 _numpy_ver = [int(n) for n in np.__version__.split(".")[:2]]
@@ -71,7 +71,7 @@ class DimShuffle(COp):
         A list representing the relationship between the input's
         dimensions and the output's dimensions. Each element of the
         list can either be an index or 'x'. Indices must be encoded
-        as python integers, not theano symbolic integers.
+        as python integers, not aesara symbolic integers.
     inplace : bool, optional
         If True (default), the output will be a view of the input.
 
@@ -141,9 +141,9 @@ class DimShuffle(COp):
         # because of importation issues related to TensorType.
         return ParamsType(
             input_broadcastable=TensorType(dtype="bool", broadcastable=(False,)),
-            _new_order=theano.tensor.lvector,
+            _new_order=aesara.tensor.lvector,
             transposition=TensorType(dtype="uint32", broadcastable=(False,)),
-            inplace=theano.scalar.bool,
+            inplace=aesara.scalar.bool,
         )
 
     @property
@@ -311,8 +311,8 @@ class DimShuffle(COp):
         # Do not make the DimShuffle inplace as an optimization at the
         # canonicalization optimization phase will remove the inplace.
         # The inplace will be reintroduced automatically later in the graph.
-        if inp[0].dtype in theano.tensor.discrete_dtypes:
-            return [inp[0].zeros_like(dtype=theano.config.floatX)]
+        if inp[0].dtype in aesara.tensor.discrete_dtypes:
+            return [inp[0].zeros_like(dtype=aesara.config.floatX)]
         else:
             return [
                 DimShuffle(gz.type.broadcastable, grad_order)(
@@ -537,7 +537,7 @@ second dimension
             # make such that _bgrads computes only the gradients of the
             # current output on the inputs ( and not all outputs)
             ograds = [x.zeros_like() for x in outs]
-            ograds[idx] = theano.tensor.ones_like(out)
+            ograds[idx] = aesara.tensor.ones_like(out)
 
             bgrads = self._bgrad(inputs, outs, ograds)
             rop_out = None
@@ -578,7 +578,7 @@ second dimension
         # TODO: make sure that zeros are clearly identifiable
         # to the gradient.grad method when the outputs have
         # some integer and some floating point outputs
-        if any(out.type.dtype not in theano.tensor.continuous_dtypes for out in outs):
+        if any(out.type.dtype not in aesara.tensor.continuous_dtypes for out in outs):
             # For integer output, return value may
             # only be zero or undefined
             # We don't bother with trying to check
@@ -594,9 +594,9 @@ second dimension
                     new_rval.append(elem)
                 else:
                     elem = ipt.zeros_like()
-                    if str(elem.type.dtype) not in theano.tensor.continuous_dtypes:
-                        elem = elem.astype(theano.config.floatX)
-                    assert str(elem.type.dtype) not in theano.tensor.discrete_dtypes
+                    if str(elem.type.dtype) not in aesara.tensor.continuous_dtypes:
+                        elem = elem.astype(aesara.config.floatX)
+                    assert str(elem.type.dtype) not in aesara.tensor.discrete_dtypes
                     new_rval.append(elem)
             return new_rval
 
@@ -615,7 +615,7 @@ second dimension
             ]
 
             if to_sum:
-                sr = theano.tensor.basic.sum(rval[i], axis=to_sum, keepdims=True)
+                sr = aesara.tensor.basic.sum(rval[i], axis=to_sum, keepdims=True)
                 rval[i] = sr
             # close if
         # close for
@@ -666,7 +666,7 @@ second dimension
                 # the gradient contains a constant, translate it as
                 # an equivalent TensorType of size 1 and proper number of
                 # dimensions
-                res = theano.tensor.constant(np.asarray(r.data), dtype=r.type.dtype)
+                res = aesara.tensor.constant(np.asarray(r.data), dtype=r.type.dtype)
                 return DimShuffle((), ["x"] * nd)(res)
 
             new_r = Elemwise(node.op, {})(*[transform(ipt) for ipt in node.inputs])
@@ -734,9 +734,9 @@ second dimension
         # when the input is complex. So add it only when inputs is int.
         out_dtype = node.outputs[0].dtype
         if (
-            out_dtype in theano.tensor.float_dtypes
+            out_dtype in aesara.tensor.float_dtypes
             and isinstance(self.nfunc, np.ufunc)
-            and node.inputs[0].dtype in theano.tensor.discrete_dtypes
+            and node.inputs[0].dtype in aesara.tensor.discrete_dtypes
         ):
             char = np.sctype2char(out_dtype)
             sig = char * node.nin + "->" + char * node.nout
@@ -852,13 +852,13 @@ second dimension
                 odat[...] = variable
                 storage[0] = odat
             # Sometimes NumPy return a Python type.
-            # Some Theano op return a different dtype like floor, ceil,
+            # Some Aesara op return a different dtype like floor, ceil,
             # trunc, eq, ...
             elif not isinstance(variable, np.ndarray) or variable.dtype != nout.dtype:
                 variable = np.asarray(variable, nout.dtype)
                 # The next line is needed for numpy 1.9. Otherwise
                 # there are tests that fail in DebugMode.
-                # Normally we would call theano.misc._asarray, but it
+                # Normally we would call aesara.misc._asarray, but it
                 # is faster to inline the code. We know that the dtype
                 # are the same string, just different typenum.
                 if np.dtype(nout.dtype).num != variable.dtype.num:
@@ -884,7 +884,7 @@ second dimension
                     # there must be some input that is not broadcastable in
                     # dimension 'dim'
                     for ishp, i in zip(i_shapes, node.inputs):
-                        if isinstance(i.type, theano.scalar.Scalar):
+                        if isinstance(i.type, aesara.scalar.Scalar):
                             continue  # we skip scalar
                         if not i.type.broadcastable[dim]:
                             # input i is not broadcastable in position dim
@@ -1152,7 +1152,7 @@ second dimension
                 contig = self.scalar_op.c_code_contiguous(
                     node, nodename + "_scalar_contig_", _inames, onames, sub
                 )
-            except theano.gof.utils.MethodNotDefined:
+            except aesara.gof.utils.MethodNotDefined:
                 # Try to make one generic version, this will help the
                 # compiler to vectorize the code as their won't be as
                 # many ptr and the stride will be hard coded.
@@ -1367,23 +1367,23 @@ class CAReduce(Op):
 
     def set_ufunc(self, scalar_op):
         # This is probably a speed up of the implementation
-        if isinstance(scalar_op, theano.scalar.basic.Add):
+        if isinstance(scalar_op, aesara.scalar.basic.Add):
             self.ufunc = np.add
-        elif isinstance(scalar_op, theano.scalar.basic.Mul):
+        elif isinstance(scalar_op, aesara.scalar.basic.Mul):
             self.ufunc = np.multiply
-        elif isinstance(scalar_op, theano.scalar.basic.Maximum):
+        elif isinstance(scalar_op, aesara.scalar.basic.Maximum):
             self.ufunc = np.maximum
-        elif isinstance(scalar_op, theano.scalar.basic.Minimum):
+        elif isinstance(scalar_op, aesara.scalar.basic.Minimum):
             self.ufunc = np.minimum
-        elif isinstance(scalar_op, theano.scalar.basic.AND) and _numpy_ver >= [1, 12]:
+        elif isinstance(scalar_op, aesara.scalar.basic.AND) and _numpy_ver >= [1, 12]:
             # numpy.bitwise_and.identity was incorrect for versions before
             # 1.12 (it was 1 instead of -1), so we skip it in that case.
             # We will fall back to the "else:" case, which defines a
             # ufunc without identity.
             self.ufunc = np.bitwise_and
-        elif isinstance(scalar_op, theano.scalar.basic.OR):
+        elif isinstance(scalar_op, aesara.scalar.basic.OR):
             self.ufunc = np.bitwise_or
-        elif isinstance(scalar_op, theano.scalar.basic.XOR):
+        elif isinstance(scalar_op, aesara.scalar.basic.XOR):
             self.ufunc = np.bitwise_xor
         else:
             self.ufunc = np.frompyfunc(scalar_op.impl, 2, 1)
@@ -1488,7 +1488,7 @@ class CAReduce(Op):
                 # perhaps numpy is clever for reductions of size 1?
                 # We don't want this.
                 variable = variable.copy()
-            output[0] = theano._asarray(variable, dtype=node.outputs[0].type.dtype)
+            output[0] = aesara._asarray(variable, dtype=node.outputs[0].type.dtype)
         else:
             # Force a copy
             output[0] = np.array(variable, copy=True, dtype=node.outputs[0].type.dtype)
@@ -1519,7 +1519,7 @@ class CAReduce(Op):
 
         if hasattr(self, "acc_dtype") and self.acc_dtype is not None:
             if self.acc_dtype == "float16":
-                raise theano.gof.utils.MethodNotDefined("no c_code for " "float16")
+                raise aesara.gof.utils.MethodNotDefined("no c_code for " "float16")
             acc_type = TensorType(
                 broadcastable=node.outputs[0].broadcastable, dtype=self.acc_dtype
             )
@@ -1534,7 +1534,7 @@ class CAReduce(Op):
         if len(axis) == 0:
             # The acc_dtype is never a downcast compared to the input dtype
             # So we just need a cast to the output dtype.
-            var = theano.tensor.cast(input, node.outputs[0].dtype)
+            var = aesara.tensor.cast(input, node.outputs[0].dtype)
             if var is input:
                 var = Elemwise(scalar.identity)(input)
             assert var.dtype == node.outputs[0].dtype
@@ -1762,13 +1762,13 @@ class All(CAReduce):
     def make_node(self, input):
         input = as_tensor_variable(input)
         if input.dtype != "bool":
-            input = theano.tensor.neq(input, 0)
+            input = aesara.tensor.neq(input, 0)
         ret = super().make_node(input)
         return ret
 
     def grad(self, inp, grads):
         (x,) = inp
-        return [x.zeros_like(theano.config.floatX)]
+        return [x.zeros_like(aesara.config.floatX)]
 
 
 class Any(CAReduce):
@@ -1795,13 +1795,13 @@ class Any(CAReduce):
     def make_node(self, input):
         input = as_tensor_variable(input)
         if input.dtype != "bool":
-            input = theano.tensor.neq(input, 0)
+            input = aesara.tensor.neq(input, 0)
         ret = super().make_node(input)
         return ret
 
     def grad(self, inp, grads):
         (x,) = inp
-        return [x.zeros_like(theano.config.floatX)]
+        return [x.zeros_like(aesara.config.floatX)]
 
 
 class CAReduceDtype(CAReduce):
@@ -1920,8 +1920,8 @@ class CAReduceDtype(CAReduce):
                 complex64="complex128",
             ).get(idtype, idtype)
         elif (
-            acc_dtype in theano.tensor.continuous_dtypes
-            and idtype in theano.tensor.discrete_dtypes
+            acc_dtype in aesara.tensor.continuous_dtypes
+            and idtype in aesara.tensor.discrete_dtypes
         ):
             # Specifying a continuous accumulator for discrete input is OK
             return acc_dtype
@@ -2031,8 +2031,8 @@ class Sum(CAReduceDtype):
     def L_op(self, inp, out, grads):
         (x,) = inp
 
-        if out[0].dtype not in theano.tensor.continuous_dtypes:
-            return [x.zeros_like(dtype=theano.config.floatX)]
+        if out[0].dtype not in aesara.tensor.continuous_dtypes:
+            return [x.zeros_like(dtype=aesara.config.floatX)]
 
         (gz,) = grads
         gz = as_tensor_variable(gz)
@@ -2136,11 +2136,11 @@ class Prod(CAReduceDtype):
         (gz,) = grads
 
         if (
-            out[0].dtype in theano.tensor.discrete_dtypes
-            or self.acc_dtype in theano.tensor.discrete_dtypes
+            out[0].dtype in aesara.tensor.discrete_dtypes
+            or self.acc_dtype in aesara.tensor.discrete_dtypes
         ):
             # There is an int conversion in the way
-            return [prod_in.zeros_like(dtype=theano.config.floatX)]
+            return [prod_in.zeros_like(dtype=aesara.config.floatX)]
 
         # Prepare the broadcasting that is used everywhere to broadcast
         # over the original groups (ie. broadcast over the elements of a given
@@ -2173,7 +2173,7 @@ class Prod(CAReduceDtype):
             # this handles inputs with zeros, but only certain input shapes
             return [grad_case_without_zeros]
         else:
-            T = theano.tensor
+            T = aesara.tensor
 
             where_zeros = T.eq(prod_in, 0.0)
             sum_where_zeros = T.sum(where_zeros, axis=self.axis)
@@ -2257,7 +2257,7 @@ class ProdWithoutZeros(CAReduceDtype):
 
     def grad(self, inp, grads):
         (a,) = inp
-        a_grad = theano.gradient.grad_not_implemented(
+        a_grad = aesara.gradient.grad_not_implemented(
             self,
             0,
             a,

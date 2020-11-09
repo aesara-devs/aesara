@@ -1,8 +1,8 @@
-import theano
-from theano import tensor
-from theano.gof import Apply, Op, TopoOptimizer
-from theano.gof.opt import copy_stack_trace
-from theano.gradient import DisconnectedType
+import aesara
+from aesara import tensor
+from aesara.gof import Apply, Op, TopoOptimizer
+from aesara.gof.opt import copy_stack_trace
+from aesara.gradient import DisconnectedType
 
 
 def get_diagonal_subtensor_view(x, i0, i1):
@@ -208,8 +208,8 @@ def conv3d(
     See Also
     --------
     Someone made a script that shows how to swap the axes between
-    both 3d convolution implementations in Theano. See the last
-    `attachment <https://groups.google.com/d/msg/theano-users/1S9_bZgHxVw/0cQR9a4riFUJ>`_
+    both 3d convolution implementations in Aesara. See the last
+    `attachment <https://groups.google.com/d/msg/aesara-users/1S9_bZgHxVw/0cQR9a4riFUJ>`_
 
     """
 
@@ -300,7 +300,7 @@ def conv3d(
     return out_5d
 
 
-@theano.gof.local_optimizer([DiagonalSubtensor, IncDiagonalSubtensor])
+@aesara.gof.local_optimizer([DiagonalSubtensor, IncDiagonalSubtensor])
 def local_inplace_DiagonalSubtensor(node):
     """Also work for IncDiagonalSubtensor."""
     if (
@@ -314,7 +314,7 @@ def local_inplace_DiagonalSubtensor(node):
     return False
 
 
-theano.compile.optdb.register(
+aesara.compile.optdb.register(
     "local_inplace_DiagonalSubtensor",
     TopoOptimizer(
         local_inplace_DiagonalSubtensor, failure_callback=TopoOptimizer.warn_inplace

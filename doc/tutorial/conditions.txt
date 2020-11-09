@@ -20,9 +20,9 @@ IfElse vs Switch
 
 .. testcode::
 
-   from theano import tensor as tt
-   from theano.ifelse import ifelse
-   import theano, time, numpy
+   from aesara import tensor as tt
+   from aesara.ifelse import ifelse
+   import aesara, time, numpy
 
    a,b = tt.scalars('a', 'b')
    x,y = tt.matrices('x', 'y')
@@ -30,10 +30,10 @@ IfElse vs Switch
    z_switch = tt.switch(tt.lt(a, b), tt.mean(x), tt.mean(y))
    z_lazy = ifelse(tt.lt(a, b), tt.mean(x), tt.mean(y))
 
-   f_switch = theano.function([a, b, x, y], z_switch,
-                              mode=theano.Mode(linker='vm'))
-   f_lazyifelse = theano.function([a, b, x, y], z_lazy,
-                                  mode=theano.Mode(linker='vm'))
+   f_switch = aesara.function([a, b, x, y], z_switch,
+                              mode=aesara.Mode(linker='vm'))
+   f_lazyifelse = aesara.function([a, b, x, y], z_lazy,
+                                  mode=aesara.Mode(linker='vm'))
 
    val1 = 0.
    val2 = 1.
@@ -74,7 +74,7 @@ is not currently set by default to ``cvm``, it will be in the near future.
 
 There is no automatic optimization replacing a ``switch`` with a
 broadcasted scalar to an ``ifelse``, as this is not always faster. See
-this `ticket <http://www.assembla.com/spaces/theano/tickets/764>`_.
+this `ticket <http://www.assembla.com/spaces/aesara/tickets/764>`_.
 
 .. note::
 
@@ -83,4 +83,4 @@ this `ticket <http://www.assembla.com/spaces/theano/tickets/764>`_.
    means everything will be computed when we build it, due to Python's
    greedy evaluation and the semantic of test value. As we build both
    branches, they will be executed for test values. This doesn't cause
-   any changes during the execution of the compiled Theano function.
+   any changes during the execution of the compiled Aesara function.

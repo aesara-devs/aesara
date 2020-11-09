@@ -12,13 +12,13 @@ import warnings
 from functools import wraps
 from io import StringIO
 
-import theano
+import aesara
 
 
-_logger = logging.getLogger("theano.configparser")
+_logger = logging.getLogger("aesara.configparser")
 
 
-class TheanoConfigWarning(Warning):
+class AesaraConfigWarning(Warning):
     def warn(cls, message, stacklevel=0):
         warnings.warn(message, cls, stacklevel=stacklevel + 3)
 
@@ -46,7 +46,7 @@ def parse_config_string(config_string, issue_warnings=True):
         kv_tuple = kv_pair.split("=", 1)
         if len(kv_tuple) == 1:
             if issue_warnings:
-                TheanoConfigWarning.warn(
+                AesaraConfigWarning.warn(
                     ("Config key '%s' has no value, ignoring it" % kv_tuple[0]),
                     stacklevel=1,
                 )
@@ -61,22 +61,22 @@ THEANO_FLAGS_DICT = parse_config_string(THEANO_FLAGS, issue_warnings=True)
 
 
 # THEANORC can contain a colon-delimited list of config files, like
-# THEANORC=~lisa/.theanorc:~/.theanorc
-# In that case, definitions in files on the right (here, ~/.theanorc) have
+# THEANORC=~lisa/.aesararc:~/.aesararc
+# In that case, definitions in files on the right (here, ~/.aesararc) have
 # precedence over those in files on the left.
-def config_files_from_theanorc():
+def config_files_from_aesararc():
     rval = [
         os.path.expanduser(s)
-        for s in os.getenv("THEANORC", "~/.theanorc").split(os.pathsep)
+        for s in os.getenv("THEANORC", "~/.aesararc").split(os.pathsep)
     ]
     if os.getenv("THEANORC") is None and sys.platform == "win32":
         # to don't need to change the filename and make it open easily
-        rval.append(os.path.expanduser("~/.theanorc.txt"))
+        rval.append(os.path.expanduser("~/.aesararc.txt"))
     return rval
 
 
-config_files = config_files_from_theanorc()
-theano_cfg = ConfigParser.ConfigParser(
+config_files = config_files_from_aesararc()
+aesara_cfg = ConfigParser.ConfigParser(
     {
         "USER": os.getenv("USER", os.path.split(os.path.expanduser("~"))[-1]),
         "LSCRATCH": os.getenv("LSCRATCH", ""),
@@ -86,18 +86,18 @@ theano_cfg = ConfigParser.ConfigParser(
         "PID": str(os.getpid()),
     }
 )
-theano_cfg.read(config_files)
+aesara_cfg.read(config_files)
 # Having a raw version of the config around as well enables us to pass
 # through config values that contain format strings.
 # The time required to parse the config twice is negligible.
-theano_raw_cfg = ConfigParser.RawConfigParser()
-theano_raw_cfg.read(config_files)
+aesara_raw_cfg = ConfigParser.RawConfigParser()
+aesara_raw_cfg.read(config_files)
 
 
 class change_flags:
     """
     Use this as a decorator or context manager to change the value of
-    Theano config variables.
+    Aesara config variables.
 
     Useful during tests.
     """
@@ -144,7 +144,7 @@ def fetch_val_for_key(key, delete_key=False):
 
     The (decreasing) priority order is:
     - THEANO_FLAGS
-    - ~./theanorc
+    - ~./aesararc
 
     """
 
@@ -169,9 +169,9 @@ def fetch_val_for_key(key, delete_key=False):
         section, option = "global", key
     try:
         try:
-            return theano_cfg.get(section, option)
+            return aesara_cfg.get(section, option)
         except ConfigParser.InterpolationError:
-            return theano_raw_cfg.get(section, option)
+            return aesara_raw_cfg.get(section, option)
     except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
         raise KeyError(key)
 
@@ -201,14 +201,14 @@ def get_config_hash():
     all_opts = sorted(
         [c for c in _config_var_list if c.in_c_key], key=lambda cv: cv.fullname
     )
-    return theano.gof.utils.hash_from_code(
+    return aesara.gof.utils.hash_from_code(
         "\n".join(
             ["{} = {}".format(cv.fullname, cv.__get__(True, None)) for cv in all_opts]
         )
     )
 
 
-class TheanoConfigParser:
+class AesaraConfigParser:
     # properties are installed by AddConfigVar
     _i_am_a_config_class = True
 
@@ -218,26 +218,26 @@ class TheanoConfigParser:
         return sio.getvalue()
 
 
-# N.B. all instances of TheanoConfigParser give access to the same properties.
-config = TheanoConfigParser()
+# N.B. all instances of AesaraConfigParser give access to the same properties.
+config = AesaraConfigParser()
 
 
 # The data structure at work here is a tree of CLASSES with
 # CLASS ATTRIBUTES/PROPERTIES that are either a) INSTANTIATED
 # dynamically-generated CLASSES, or b) ConfigParam instances.  The root
-# of this tree is the TheanoConfigParser CLASS, and the internal nodes
+# of this tree is the AesaraConfigParser CLASS, and the internal nodes
 # are the SubObj classes created inside of AddConfigVar().
 # Why this design ?
 # - The config object is a true singleton.  Every instance of
-#   TheanoConfigParser is an empty instance that looks up attributes/properties
-#   in the [single] TheanoConfigParser.__dict__
+#   AesaraConfigParser is an empty instance that looks up attributes/properties
+#   in the [single] AesaraConfigParser.__dict__
 # - The subtrees provide the same interface as the root
 # - ConfigParser subclasses control get/set of config properties to guard
 #   against craziness.
 
 
 def AddConfigVar(name, doc, configparam, root=config, in_c_key=True):
-    """Add a new variable to theano.config
+    """Add a new variable to aesara.config
 
     :type name: string for form "[section0.[section1.[etc]]].option"
     :param name: the full name for this configuration variable.
@@ -315,7 +315,7 @@ class ConfigParam:
     def __init__(self, default, filter=None, allow_override=True):
         """
         If allow_override is False, we can't change the value after the import
-        of Theano. So the value should be the same during all the execution.
+        of Aesara. So the value should be the same during all the execution.
         """
         self.default = default
         self.filter = filter

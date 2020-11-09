@@ -1,19 +1,19 @@
 
-.. _extending_theano_c:
+.. _extending_aesara_c:
 
 ============================
-Extending Theano with a C Op
+Extending Aesara with a C Op
 ============================
 
-This tutorial covers how to extend Theano with an op that offers a C
+This tutorial covers how to extend Aesara with an op that offers a C
 implementation. It does not cover ops that run on a GPU but it does introduce
 many elements and concepts which are relevant for GPU ops. This tutorial is
-aimed at individuals who already know how to extend Theano (see tutorial
-:ref:`extending_theano`) by adding a new op with a Python implementation
+aimed at individuals who already know how to extend Aesara (see tutorial
+:ref:`extending_aesara`) by adding a new op with a Python implementation
 and will only cover the additional knowledge required to also produce ops
 with C implementations.
 
-Providing a Theano op with a C implementation requires to interact with
+Providing a Aesara op with a C implementation requires to interact with
 Python's C-API and Numpy's C-API. Thus, the first step of this tutorial is to
 introduce both and highlight their features which are most relevant to the
 task of implementing a C op. This tutorial then introduces the most important
@@ -50,7 +50,7 @@ PyObjects implement reference counting and the Python C-API defines a number
 of macros to help manage those reference counts. The definition of these
 macros can be found here : `Python C-API Reference Counting
 <https://docs.python.org/2/c-api/refcounting.html>`_. Listed below are the
-two macros most often used in Theano C ops.
+two macros most often used in Aesara C ops.
 
 
 .. method:: void Py_XINCREF(PyObject *o)
@@ -85,11 +85,11 @@ NumPy C-API
 
 The NumPy library provides a C-API to allow users to create, access and
 manipulate NumPy arrays from within their own C routines. NumPy's ndarrays
-are used extensively inside Theano and so extending Theano with a C op will
+are used extensively inside Aesara and so extending Aesara with a C op will
 require interaction with the NumPy C-API.
 
 This sections covers the API's elements that are often required to write code
-for a Theano C op. The full documentation for the API can be found here :
+for a Aesara C op. The full documentation for the API can be found here :
 `NumPy C-API <http://docs.scipy.org/doc/numpy/reference/c-api.html>`_.
 
 
@@ -269,14 +269,14 @@ instead defines functions that will **return** the C code to the caller.
 
 This is because calling C code from Python code comes with a significant
 overhead. If every op was responsible for executing its own C code, every
-time a Theano function was called, this overhead would occur as many times
+time a Aesara function was called, this overhead would occur as many times
 as the number of ops with C implementations in the function's computational
 graph.
 
-To maximize performance, Theano instead requires the C ops to simply return
+To maximize performance, Aesara instead requires the C ops to simply return
 the code needed for their execution and takes upon itself the task of
 organizing, linking and compiling the code from the various ops. Through this,
-Theano is able to minimize the number of times C code is called from Python
+Aesara is able to minimize the number of times C code is called from Python
 code.
 
 The following is a very simple example to illustrate how it's possible to
@@ -289,8 +289,8 @@ the C code from each op and then define your own C module that would call
 the C code from each op in succession. In this case, the overhead would only
 occur once; when calling your custom module itself.
 
-Moreover, the fact that Theano itself takes care of compiling the C code,
-instead of the individual ops, allows Theano to easily cache the compiled C
+Moreover, the fact that Aesara itself takes care of compiling the C code,
+instead of the individual ops, allows Aesara to easily cache the compiled C
 code. This allows for faster compilation times.
 
 See :ref:`cop` for the full documentation of the various methods of the
@@ -384,9 +384,9 @@ commonly used.
     each apply.
 
     Both ``c_support_code()`` and ``c_support_code_apply ()`` are necessary
-    because a Theano op can be used more than once in a given Theano
+    because a Aesara op can be used more than once in a given Aesara
     function. For example, an op that adds two matrices could be used at some
-    point in the Theano function to add matrices of integers and, at another
+    point in the Aesara function to add matrices of integers and, at another
     point, to add matrices of doubles. Because the dtype of the inputs and
     outputs can change between different applies of the op, any support code
     that relies on a certain dtype is specific to a given apply of the op and
@@ -397,15 +397,15 @@ commonly used.
     Returns a tuple of integers representing the version of the C code in this
     op. Ex : (1, 4, 0) for version 1.4.0
 
-    This tuple is used by Theano to cache the compiled C code for this op. As
+    This tuple is used by Aesara to cache the compiled C code for this op. As
     such, the return value **MUST BE CHANGED** every time the C code is altered
-    or else Theano will disregard the change in the code and simply load a
+    or else Aesara will disregard the change in the code and simply load a
     previous version of the op from the cache. If you want to avoid caching of
     the C code of this op, return an empty tuple or do not implement this
     method.
 
     :note:
-        Theano can handle tuples of any hashable objects as return values
+        Aesara can handle tuples of any hashable objects as return values
         for this function but, for greater readability and easier management,
         this function should return a tuple of integers as previously
         described.
@@ -423,7 +423,7 @@ not modify any of the inputs.
 TODO: EXPLAIN DESTROYMAP and VIEWMAP BETTER AND GIVE EXAMPLE.
 
 When developing an Op, you should run computations in DebugMode, by using
-argument ``mode='DebugMode'`` to ``theano.function``. DebugMode is
+argument ``mode='DebugMode'`` to ``aesara.function``. DebugMode is
 slow, but it can catch many common violations of the Op contract.
 
 TODO: Like what? How? Talk about Python vs. C too.
@@ -455,16 +455,16 @@ managed. Also take note of how the new variables required for the op's
 computation are declared in a new scope to avoid cross-initialization errors.
 
 Also, in the C code, it is very important to properly validate the inputs
-and outputs storage. Theano guarantees that the inputs exist and have the
+and outputs storage. Aesara guarantees that the inputs exist and have the
 right number of dimensions but it does not guarantee their exact shape. For
 instance, if an op computes the sum of two vectors, it needs to validate that
 its two inputs have the same shape. In our case, we do not need to validate
 the exact shapes of the inputs because we don't have a need that they match
 in any way.
 
-For the outputs, things are a little bit more subtle. Theano does not
+For the outputs, things are a little bit more subtle. Aesara does not
 guarantee that they have been allocated but it does guarantee that, if they
-have been allocated, they have the right number of dimension. Again, Theano
+have been allocated, they have the right number of dimension. Again, Aesara
 offers no guarantee on the exact shapes. This means that, in our example, we
 need to validate that the output storage has been allocated and has the same
 shape as our vector input. If it is not the case, we allocate a new output
@@ -473,9 +473,9 @@ storage with the right shape and number of dimensions.
 .. testcode:: examples
 
     import numpy
-    import theano
+    import aesara
 
-    from theano import gof
+    from aesara import gof
 
 
     class VectorTimesScalar(gof.Op):
@@ -614,8 +614,8 @@ C code.
                 raise TypeError('y must be a 1-d vector')
 
             # Create an output variable of the same type as x
-            output_var = theano.tensor.TensorType(
-                            dtype=theano.scalar.upcast(x.dtype, y.dtype),
+            output_var = aesara.tensor.TensorType(
+                            dtype=aesara.scalar.upcast(x.dtype, y.dtype),
                             broadcastable=[False])()
 
             return gof.Apply(self, [x, y], [output_var])
@@ -715,12 +715,12 @@ Alternate way of defining C Ops
 ===============================
 
 The two previous examples have covered the standard way of implementing C Ops
-in Theano by inheriting from the class :class:`Op`. This process is mostly
+in Aesara by inheriting from the class :class:`Op`. This process is mostly
 simple but it still involves defining many methods as well as mixing, in the
 same file, both Python and C code which tends to make the result less
 readable.
 
-To help with this, Theano defines a class, ``COp``, from which new C ops
+To help with this, Aesara defines a class, ``COp``, from which new C ops
 can inherit. The class ``COp`` aims to simplify the process of implementing
 C ops by doing the following :
 
@@ -743,8 +743,8 @@ The new op is defined inside a Python file with the following code :
 
 .. testcode::
 
-    import theano
-    from theano import gof
+    import aesara
+    from aesara import gof
 
     class VectorTimesVector(gof.COp):
         __props__ = ()
@@ -764,8 +764,8 @@ The new op is defined inside a Python file with the following code :
                 raise TypeError('y must be a 1-d vector')
 
             # Create an output variable of the same type as x
-            output_var = theano.tensor.TensorType(
-                            dtype=theano.scalar.upcast(x.dtype, y.dtype),
+            output_var = aesara.tensor.TensorType(
+                            dtype=aesara.scalar.upcast(x.dtype, y.dtype),
                             broadcastable=[False])()
 
             return gof.Apply(self, [x, y], [output_var])
@@ -885,14 +885,14 @@ If you pass a function name to the ``__init__()`` method of the
 *       It must return an int. The value of that int indicates whether
         the op could perform its task or not. A value of 0 indicates
         success while any non-zero value will interrupt the execution
-        of the Theano function.  When returning non-zero the function
+        of the Aesara function.  When returning non-zero the function
         must set a python exception indicating the details of the
         problem.
 
 *       It must receive one argument for each input to the op followed
         by one pointer to an argument for each output of the op.  The
         types for the argument is dependant on the Types (that is
-        theano Types) of your inputs and outputs.
+        aesara Types) of your inputs and outputs.
 
 *       You can sepcify the number of inputs and outputs for your op
         by setting the ``_cop_num_inputs`` and ``_cop_num_outputs``
@@ -1032,9 +1032,9 @@ Using GDB to debug Op's C code
 ==============================
 
 When debugging C code, it can be useful to use GDB for code compiled
-by Theano.
+by Aesara.
 
-For this, you must enable this Theano: `cmodule.remove_gxx_opt=True`.
+For this, you must enable this Aesara: `cmodule.remove_gxx_opt=True`.
 For the GPU, you must add in this second flag `nvcc.flags=-g` (it slow
 down computation on the GPU, but it is enabled by default on the CPU).
 
@@ -1044,7 +1044,7 @@ process:
 .. code-block:: sh
 
     $gdb python
-    (gdb)r pytest theano/
+    (gdb)r pytest aesara/
 
 `Quick guide to GDB <https://www.cs.cmu.edu/~gilpin/tutorial/>`_.
 
@@ -1052,5 +1052,5 @@ Final Note
 ==========
 
 This tutorial focuses on providing C implementations to ops that manipulate
-Theano tensors. For more information about other Theano types, you can refer
-to the section :ref:`Alternate Theano Types <alternate_theano_types>`.
+Aesara tensors. For more information about other Aesara types, you can refer
+to the section :ref:`Alternate Aesara Types <alternate_aesara_types>`.

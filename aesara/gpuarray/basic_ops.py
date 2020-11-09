@@ -5,15 +5,15 @@ from collections import deque
 
 import numpy as np
 
-import theano
-from theano import Apply, Op, Type, Variable, config, tensor
-from theano.gof import COp, HideC, ParamsType
-from theano.gof.opt import copy_stack_trace
-from theano.gof.utils import MethodNotDefined
-from theano.gradient import grad_undefined
-from theano.scalar import bool as bool_t
-from theano.scalar import int32 as int32_t
-from theano.tensor.basic import Alloc, AllocEmpty, Join, Split, alloc_validate_shape
+import aesara
+from aesara import Apply, Op, Type, Variable, config, tensor
+from aesara.gof import COp, HideC, ParamsType
+from aesara.gof.opt import copy_stack_trace
+from aesara.gof.utils import MethodNotDefined
+from aesara.gradient import grad_undefined
+from aesara.scalar import bool as bool_t
+from aesara.scalar import int32 as int32_t
+from aesara.tensor.basic import Alloc, AllocEmpty, Join, Split, alloc_validate_shape
 
 
 try:
@@ -750,7 +750,7 @@ class GpuFromHost(Op):
           %(fail)s
 
         if (%(out)s == NULL || !GpuArray_IS_C_CONTIGUOUS(&%(out)s->ga) ||
-            !theano_size_check(%(out)s, PyArray_NDIM(%(name)s_tmp),
+            !aesara_size_check(%(out)s, PyArray_NDIM(%(name)s_tmp),
                                (size_t *)PyArray_DIMS(%(name)s_tmp),
                                get_typecode((PyObject *)PyArray_DESCR(%(name)s_tmp)))) {
           Py_XDECREF(%(out)s);
@@ -1108,7 +1108,7 @@ shape[%(i)s] = ((dtype_%(shp_i)s *)PyArray_DATA(%(shp_i)s))[0];
 
         code.append(
             """
-if (theano_prep_output(&%(zz)s, %(ndim)s, shape, %(params)s->typecode, GA_C_ORDER,
+if (aesara_prep_output(&%(zz)s, %(ndim)s, shape, %(params)s->typecode, GA_C_ORDER,
                        %(params)s->context)) {
   %(fail)s
 }
@@ -1178,7 +1178,7 @@ class GpuContiguous(Op):
                 Py_INCREF(%(z)s);
 
             } else if (NULL == %(z)s
-                || !theano_size_check(%(z)s, PyGpuArray_NDIM(%(input)s), PyGpuArray_DIMS(%(input)s),
+                || !aesara_size_check(%(z)s, PyGpuArray_NDIM(%(input)s), PyGpuArray_DIMS(%(input)s),
                                       %(input)s->ga.typecode)
                 || !GpuArray_IS_C_CONTIGUOUS(&(%(z)s->ga)))
             {
@@ -1663,7 +1663,7 @@ class GpuSplit(HideC, Split):
         return main_code % locals()
 
 
-@theano.compile.profiling.register_profiler_printer
+@aesara.compile.profiling.register_profiler_printer
 def profile_printer(
     message, compile_time, fct_call_time, apply_time, apply_cimpl, outputs_size, file
 ):
@@ -1703,7 +1703,7 @@ def profile_printer(
         )
 
         print("", file=file)
-        print("    Theano function input that are float64", file=file)
+        print("    Aesara function input that are float64", file=file)
         print("    <fct name> <input name> <input type> <str input>", file=file)
         for fg in fgraphs:
             for i in fg.inputs:

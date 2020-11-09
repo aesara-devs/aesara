@@ -5,13 +5,13 @@ import sys
 import warnings
 from importlib import reload
 
-import theano
-from theano import config
-from theano.gof import cmodule
-from theano.gof.compilelock import get_lock, release_lock
+import aesara
+from aesara import config
+from aesara.gof import cmodule
+from aesara.gof.compilelock import get_lock, release_lock
 
 
-_logger = logging.getLogger("theano.gof.lazylinker_c")
+_logger = logging.getLogger("aesara.gof.lazylinker_c")
 
 force_compile = False
 version = 0.211  # must match constant returned in function get_version()
@@ -107,11 +107,11 @@ except ImportError:
             # It is useless to try to compile if there isn't any
             # compiler!  But we still want to try to load it, in case
             # the cache was copied from another computer.
-            if not theano.config.cxx:
+            if not aesara.config.cxx:
                 raise
             _logger.info("Compiling new CVM")
             dirname = "lazylinker_ext"
-            cfile = os.path.join(theano.__path__[0], "gof", "c_code", "lazylinker_c.c")
+            cfile = os.path.join(aesara.__path__[0], "gof", "c_code", "lazylinker_c.c")
             if not os.path.exists(cfile):
                 # This can happen in not normal case. We just
                 # disable the c clinker. If we are here the user
@@ -119,9 +119,9 @@ except ImportError:
                 warnings.warn(
                     "The file lazylinker_c.c is not available. This do"
                     "not happen normally. You are probably in a strange"
-                    "setup. This mean Theano can not use the cvm:"
-                    "our c execution engine for Theano function. If you"
-                    "want to remove this warning, use the Theano flag"
+                    "setup. This mean Aesara can not use the cvm:"
+                    "our c execution engine for Aesara function. If you"
+                    "want to remove this warning, use the Aesara flag"
                     "'cxx=' (set to an empty string) to disable all c"
                     "code generation."
                 )

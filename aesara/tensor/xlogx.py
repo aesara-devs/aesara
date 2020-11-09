@@ -1,7 +1,7 @@
 import numpy as np
 
-from theano import scalar
-from theano.tensor.elemwise import Elemwise
+from aesara import scalar
+from aesara.tensor.elemwise import Elemwise
 
 
 class XlogX(scalar.UnaryScalarOp):

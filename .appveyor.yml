@@ -6,7 +6,7 @@ pull_requests:
 platform:
   - x64
 
-clone_folder: C:\projects\theano
+clone_folder: C:\projects\aesara
 
 environment:
   BINSTAR_TOKEN:
@@ -31,7 +31,7 @@ test_script:
   - cmd: conda build --py 3.5 conda
   - cmd: conda build --py 3.6 conda
   - cmd: mkdir pkgs
-  - cmd: xcopy "%CONDA_LOC%"\conda-bld\win-64\theano* pkgs\ /Y
+  - cmd: xcopy "%CONDA_LOC%"\conda-bld\win-64\aesara* pkgs\ /Y
   - ps: |
       if($env:appveyor_repo_tag -eq 'True') {
         cmd /c "anaconda -t $env:BINSTAR_TOKEN upload --user=mila-udem pkgs/* 2>&1"

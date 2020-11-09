@@ -1,12 +1,12 @@
 """
 Module for wrapping many Op parameters into one object available in both Python and C code.
 
-The module provides the main public class :class:`ParamsType` that allows to bundle many Theano types
+The module provides the main public class :class:`ParamsType` that allows to bundle many Aesara types
 into one parameter type, and an internal convenient class :class:`Params` which will be automatically
 used to create a Params object that is compatible with the ParamsType defined.
 
 The Params object will be available in both Python code (as a standard Python object) and C code
-(as a specific struct with parameters as struct fields). To be fully-available in C code, Theano
+(as a specific struct with parameters as struct fields). To be fully-available in C code, Aesara
 types wrapped into a ParamsType must provide a C interface (e.g. TensorType, Scalar, GpuArrayType,
 or your own type. See :ref:`extending_op_params` for more details).
 
@@ -18,12 +18,12 @@ Importation:
 .. code-block:: python
 
     # Import ParamsType class.
-    from theano.gof import ParamsType
+    from aesara.gof import ParamsType
 
     # If you want to use a tensor and a scalar as parameters,
-    # you should import required Theano types.
-    from theano.tensor import TensorType
-    from theano.scalar import Scalar
+    # you should import required Aesara types.
+    from aesara.tensor import TensorType
+    from aesara.scalar import Scalar
 
 In your Op sub-class:
 
@@ -60,21 +60,21 @@ In ``c_code()`` implementation (with ``param = sub['params']``):
     /* You won't need to free them or whatever else. */
 
 
-See :class:`QuadraticOpFunc` and :class:`QuadraticCOpFunc` in ``theano/gof/tests/test_params_type.py``
+See :class:`QuadraticOpFunc` and :class:`QuadraticCOpFunc` in ``aesara/gof/tests/test_params_type.py``
 for complete working examples.
 
-Combining ParamsType with Theano enumeration types
+Combining ParamsType with Aesara enumeration types
 --------------------------------------------------
 
-Theano provide some enumeration types that allow to create constant primitive values (integer and floating values)
-available in both Python and C code. See :class:`theano.gof.type.EnumType` and its subclasses for more details.
+Aesara provide some enumeration types that allow to create constant primitive values (integer and floating values)
+available in both Python and C code. See :class:`aesara.gof.type.EnumType` and its subclasses for more details.
 
-If your ParamsType contains Theano enumeration types, then constants defined inside these
+If your ParamsType contains Aesara enumeration types, then constants defined inside these
 enumerations will be directly available as ParamsType attributes.
 
 **Example**::
 
-    from theano.gof import ParamsType, EnumType, EnumList
+    from aesara.gof import ParamsType, EnumType, EnumList
 
     wrapper = ParamsType(enum1=EnumList('CONSTANT_1', 'CONSTANT_2', 'CONSTANT_3'),
                          enum2=EnumType(PI=3.14, EPSILON=0.001))
@@ -98,7 +98,7 @@ This implies that a ParamsType cannot contain different enum types with common e
                          enum2=EnumType(CONSTANT_1=0, CONSTANT_3=5))
 
 If your enum types contain constant aliases, you can retrive them from ParamsType
-with ``ParamsType.enum_from_alias(alias)`` method (see :class:`theano.gof.type.EnumType`
+with ``ParamsType.enum_from_alias(alias)`` method (see :class:`aesara.gof.type.EnumType`
 for more info about enumeration aliases).
 
 .. code-block:: python
@@ -116,8 +116,8 @@ for more info about enumeration aliases).
 import hashlib
 import re
 
-from theano.gof.type import EnumType, Type
-from theano.gof.utils import MethodNotDefined, c_cpp_keywords
+from aesara.gof.type import EnumType, Type
+from aesara.gof.utils import MethodNotDefined, c_cpp_keywords
 
 
 class Params(dict):
@@ -129,8 +129,8 @@ class Params(dict):
 
     .. code-block:: python
 
-        from theano.gof import ParamsType, Params
-        from theano.scalar import Scalar
+        from aesara.gof import ParamsType, Params
+        from aesara.scalar import Scalar
         # You must create a ParamsType first:
         params_type = ParamsType(attr1=Scalar('int32'),
                                  key2=Scalar('float32'),
@@ -212,12 +212,12 @@ class Params(dict):
 
 class ParamsType(Type):
     """
-    This class can create a struct of Theano types (like TensorType, GpuArrayType, etc.)
+    This class can create a struct of Aesara types (like TensorType, GpuArrayType, etc.)
     to be used as a convenience op parameter wrapping many data.
 
     ParamsType constructor takes key-value args.
     Key will be the name of the attribute in the struct.
-    Value is the Theano type of this attribute, ie. an instance of (a subclass of) :class:`Type`
+    Value is the Aesara type of this attribute, ie. an instance of (a subclass of) :class:`Type`
     (eg. ``TensorType('int64', (False,))``).
 
     In a Python code any attribute named ``key`` will be available via::
@@ -255,7 +255,7 @@ class ParamsType(Type):
             type_name = type_instance.__class__.__name__
             if not isinstance(type_instance, Type):
                 raise TypeError(
-                    'ParamsType: attribute "%s" should inherit from Theano Type, got "%s".'
+                    'ParamsType: attribute "%s" should inherit from Aesara Type, got "%s".'
                     % (attribute_name, type_name)
                 )
 
@@ -350,46 +350,46 @@ class ParamsType(Type):
         types_hex = hashlib.sha256(types_string).hexdigest()
         return "_Params_{}_{}".format(fields_hex, types_hex)
 
-    def has_type(self, theano_type):
+    def has_type(self, aesara_type):
         """
-        Return True if current ParamsType contains the specified Theano type.
+        Return True if current ParamsType contains the specified Aesara type.
 
         """
-        return theano_type in self.types
+        return aesara_type in self.types
 
     def get_type(self, field_name):
         """
-        Return the Theano type associated to the given field name
+        Return the Aesara type associated to the given field name
         in the current ParamsType.
 
         """
         return self.types[self.fields.index(field_name)]
 
-    def get_field(self, theano_type):
+    def get_field(self, aesara_type):
         """
         Return the name (string) of the first field associated to
-        the given Theano type. Fields are sorted in lexicographic
-        order. Raise an exception if this Theano type is not
+        the given Aesara type. Fields are sorted in lexicographic
+        order. Raise an exception if this Aesara type is not
         in the current ParamsType.
 
         This method is intended to be used to retrieve a field name
         when we know that current ParamsType contains the given
-        Theano type only once.
+        Aesara type only once.
 
         """
-        return self.fields[self.types.index(theano_type)]
+        return self.fields[self.types.index(aesara_type)]
 
     def get_enum(self, key):
         """
-        Look for a constant named ``key`` in the Theano enumeration types
+        Look for a constant named ``key`` in the Aesara enumeration types
         wrapped into current ParamsType. Return value of the constant found,
         or raise an exception if either the constant is not found or
-        current wrapper does not contain any Theano enumeration type.
+        current wrapper does not contain any Aesara enumeration type.
 
         **Example**::
 
-            from theano.gof import ParamsType, EnumType, EnumList
-            from theano.scalar import Scalar
+            from aesara.gof import ParamsType, EnumType, EnumList
+            from aesara.scalar import Scalar
 
             wrapper = ParamsType(scalar=Scalar('int32'),
                                  letters=EnumType(A=1, B=2, C=3),
@@ -406,18 +406,18 @@ class ParamsType(Type):
 
     def enum_from_alias(self, alias):
         """
-        Look for a constant that has alias ``alias`` in the Theano enumeration types
+        Look for a constant that has alias ``alias`` in the Aesara enumeration types
         wrapped into current ParamsType. Return value of the constant found,
         or raise an exception if either
 
         1. there is no constant with this alias,
         2. there is no constant which name is this alias, or
-        3. current wrapper does not contain any Theano enumeration type.
+        3. current wrapper does not contain any Aesara enumeration type.
 
         **Example**::
 
-            from theano.gof import ParamsType, EnumType, EnumList
-            from theano.scalar import Scalar
+            from aesara.gof import ParamsType, EnumType, EnumList
+            from aesara.scalar import Scalar
 
             wrapper = ParamsType(scalar=Scalar('int32'),
                                  letters=EnumType(A=(1, 'alpha'), B=(2, 'beta'), C=3),
@@ -462,9 +462,9 @@ class ParamsType(Type):
         **Example**::
 
             import numpy
-            from theano.gof import ParamsType
-            from theano.tensor import dmatrix
-            from theano.scalar import Scalar
+            from aesara.gof import ParamsType
+            from aesara.tensor import dmatrix
+            from aesara.scalar import Scalar
 
             class MyObject:
                 def __init__(self):

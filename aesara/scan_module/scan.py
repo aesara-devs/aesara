@@ -19,7 +19,7 @@ Special cases:
   ignores previous steps of the outputs.
 
 Often a for-loop or while-loop can be expressed as a ``scan()`` operation,
-and ``scan`` is the closest that theano comes to looping. The advantages
+and ``scan`` is the closest that aesara comes to looping. The advantages
 of using ``scan`` over `for` loops in python (amongs other) are:
 
 * it allows the number of iterations to be part of the symbolic graph
@@ -47,17 +47,17 @@ from collections import OrderedDict
 
 import numpy as np
 
-import theano.tensor as tt
-from theano import compile, config, gof
-from theano.compile import SharedVariable, function, ops
-from theano.gof.utils import TestValueError
-from theano.scan_module import scan_op, scan_utils
-from theano.scan_module.scan_utils import safe_new, traverse
-from theano.tensor import opt
-from theano.updates import OrderedUpdates
+import aesara.tensor as tt
+from aesara import compile, config, gof
+from aesara.compile import SharedVariable, function, ops
+from aesara.gof.utils import TestValueError
+from aesara.scan_module import scan_op, scan_utils
+from aesara.scan_module.scan_utils import safe_new, traverse
+from aesara.tensor import opt
+from aesara.updates import OrderedUpdates
 
 
-_logger = logging.getLogger("theano.scan_module.scan")
+_logger = logging.getLogger("aesara.scan_module.scan")
 
 
 def scan(
@@ -83,7 +83,7 @@ def scan(
     fn
         ``fn`` is a function that describes the operations involved in one
         step of ``scan``. ``fn`` should construct variables describing the
-        output of one iteration step. It should expect as input theano
+        output of one iteration step. It should expect as input aesara
         variables representing all the slices of the input sequences
         and previous values of the outputs, as well as all other arguments
         given to scan as ``non_sequences``. The order in which scan passes
@@ -139,7 +139,7 @@ def scan(
 
         .. code-block:: python
 
-            import theano.tensor as tt
+            import aesara.tensor as tt
             W   = tt.matrix()
             W_2 = W**2
             def f(x):
@@ -165,20 +165,20 @@ def scan(
         .. code-block:: python
 
             ...
-            return [y1_t, y2_t], {x:x+1}, theano.scan_module.until(x < 50)
+            return [y1_t, y2_t], {x:x+1}, aesara.scan_module.until(x < 50)
 
         Note that a number of steps (considered in here as the maximum
         number of steps ) is still required even though a condition is
         passed (and it is used to allocate memory if needed). = {}):
 
     sequences
-        ``sequences`` is the list of Theano variables or dictionaries
+        ``sequences`` is the list of Aesara variables or dictionaries
         describing the sequences ``scan`` has to iterate over. If a
         sequence is given as wrapped in a dictionary, then a set of optional
         information can be provided about the sequence. The dictionary
         should have the following keys:
 
-        * ``input`` (*mandatory*) -- Theano variable representing the
+        * ``input`` (*mandatory*) -- Aesara variable representing the
           sequence.
 
         * ``taps`` -- Temporal taps of the sequence required by ``fn``.
@@ -186,18 +186,18 @@ def scan(
           impiles that at iteration step ``t`` scan will pass to ``fn``
           the slice ``t+k``. Default value is ``[0]``
 
-        Any Theano variable in the list ``sequences`` is automatically
+        Any Aesara variable in the list ``sequences`` is automatically
         wrapped into a dictionary where ``taps`` is set to ``[0]``
 
     outputs_info
-        ``outputs_info`` is the list of Theano variables or dictionaries
+        ``outputs_info`` is the list of Aesara variables or dictionaries
         describing the initial state of the outputs computed
         recurrently. When this initial states are given as dictionary
         optional information can be provided about the output corresponding
         to these initial states. The dictionary should have the following
         keys:
 
-        * ``initial`` -- Theano variable that represents the initial
+        * ``initial`` -- Aesara variable that represents the initial
           state of a given output. In case the output is not computed
           recursively (think of a map) and does not require an initial
           state this field can be skipped. Given that (only) the previous
@@ -255,7 +255,7 @@ def scan(
 
     n_steps
         ``n_steps`` is the number of steps to iterate given as an int
-        or Theano scalar. If any of the input sequences do not have
+        or Aesara scalar. If any of the input sequences do not have
         enough elements, scan will raise an error. If the *value is 0* the
         outputs will have *0 rows*. If n_steps is not provided, ``scan`` will
         figure out the amount of steps it should run given its input
@@ -290,7 +290,7 @@ def scan(
         be accurate). If you prefer the computations of one step of
         ``scan`` to be done differently then the entire function, you
         can use this parameter to describe how the computations in this
-        loop are done (see ``theano.function`` for details about
+        loop are done (see ``aesara.function`` for details about
         possible values and their meaning).
 
     profile
@@ -307,14 +307,14 @@ def scan(
         set to None, this will use the value of config.scan.allow_gc.
 
         The full scan behavior related to allocation is determined by
-        this value and the Theano flag allow_gc. If the flag allow_gc
+        this value and the Aesara flag allow_gc. If the flag allow_gc
         is True (default) and this scan parameter allow_gc is False
         (default), then we let scan allocate all intermediate memory
         on the first iteration, those are not garbage collected them
         during that first iteration (this is determined by the scan
         allow_gc). This speed up allocation of the following
         iteration. But we free all those temp allocation at the end of
-        all iterations (this is what the Theano flag allow_gc mean).
+        all iterations (this is what the Aesara flag allow_gc mean).
 
         If you use preallocate and this scan is on GPU, the speed up
         from the scan allow_gc is small. If you are missing memory,
@@ -332,11 +332,11 @@ def scan(
     -------
     tuple
         Tuple of the form (outputs, updates); ``outputs`` is either a
-        Theano variable or a list of Theano variables representing the
+        Aesara variable or a list of Aesara variables representing the
         outputs of ``scan`` (in the same order as in ``outputs_info``).
         ``updates`` is a subclass of dictionary specifying the update rules for
         all shared variables used in scan.
-        This dictionary should be passed to ``theano.function`` when you compile
+        This dictionary should be passed to ``aesara.function`` when you compile
         your function. The change compared to a normal dictionary is that we
         validate that keys are SharedVariable and addition of those dictionary
         are validated to be consistent.
@@ -478,7 +478,7 @@ def scan(
     # for compiling a dummy function (Iteration #1)
     ##
 
-    # create theano inputs for the recursive function
+    # create aesara inputs for the recursive function
     # note : this is a first batch of possible inputs that will
     #        be compiled in a dummy function; we used this dummy
     #        function to detect shared variables and their updates
@@ -1043,7 +1043,7 @@ def scan(
     # the file because that would force on the user some dependencies that we
     # might do not want to. Currently we are working on removing the
     # dependencies on sandbox code completeley.
-    from theano import gpuarray
+    from aesara import gpuarray
 
     if gpuarray.pygpu_activated:
         # very often we end up in this situation when we want to

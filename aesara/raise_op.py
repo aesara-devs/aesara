@@ -1,12 +1,12 @@
 """Symbolic Op for raising an exception."""
 
-from theano import gof
+from aesara import gof
 
 
 __authors__ = "James Bergstra"
 __copyright__ = "(c) 2011, Universite de Montreal"
 __license__ = "3-clause BSD License"
-__contact__ = "theano-dev <theano-dev@googlegroups.com>"
+__contact__ = "aesara-dev <aesara-dev@googlegroups.com>"
 
 __docformat__ = "restructuredtext en"
 

@@ -4,10 +4,10 @@ from itertools import chain, product
 import numpy as np
 import pytest
 
-import theano
+import aesara
 from tests import unittest_tools as utt
-from theano import tensor
-from theano.tensor.sort import (
+from aesara import tensor
+from aesara.tensor.sort import (
     ArgSortOp,
     SortOp,
     TopKOp,
@@ -37,14 +37,14 @@ class TestSort:
     def test1(self):
         a = tensor.dmatrix()
         w = sort(a)
-        f = theano.function([a], w)
+        f = aesara.function([a], w)
         utt.assert_allclose(f(self.m_val), np.sort(self.m_val))
 
     def test2(self):
         a = tensor.dmatrix()
         axis = tensor.scalar()
         w = sort(a, axis)
-        f = theano.function([a, axis], w)
+        f = aesara.function([a, axis], w)
         for axis_val in 0, 1:
             gv = f(self.m_val, axis_val)
             gt = np.sort(self.m_val, axis_val)
@@ -53,7 +53,7 @@ class TestSort:
     def test3(self):
         a = tensor.dvector()
         w2 = sort(a)
-        f = theano.function([a], w2)
+        f = aesara.function([a], w2)
         gv = f(self.v_val)
         gt = np.sort(self.v_val)
         utt.assert_allclose(gv, gt)
@@ -62,7 +62,7 @@ class TestSort:
         a = tensor.dmatrix()
         axis = tensor.scalar()
         l = sort(a, axis, "mergesort")
-        f = theano.function([a, axis], l)
+        f = aesara.function([a, axis], l)
         for axis_val in 0, 1:
             gv = f(self.m_val, axis_val)
             gt = np.sort(self.m_val, axis_val)
@@ -80,71 +80,71 @@ class TestSort:
     def test_None(self):
         a = tensor.dmatrix()
         l = sort(a, None)
-        f = theano.function([a], l)
+        f = aesara.function([a], l)
         gv = f(self.m_val)
         gt = np.sort(self.m_val, None)
         utt.assert_allclose(gv, gt)
 
     def test_grad_vector(self):
-        data = np.random.rand(10).astype(theano.config.floatX)
+        data = np.random.rand(10).astype(aesara.config.floatX)
         utt.verify_grad(sort, [data])
 
     def test_grad_none_axis(self):
-        data = np.random.rand(10).astype(theano.config.floatX)
+        data = np.random.rand(10).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, None), [data])
         utt.verify_grad(lambda x: sort(x, 0), [data])
 
-        data = np.random.rand(2, 3).astype(theano.config.floatX)
+        data = np.random.rand(2, 3).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, None), [data])
-        data = np.random.rand(2, 3, 4).astype(theano.config.floatX)
+        data = np.random.rand(2, 3, 4).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, None), [data])
 
     def test_grad_negative_axis_2d(self):
-        data = np.random.rand(2, 3).astype(theano.config.floatX)
+        data = np.random.rand(2, 3).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -1), [data])
-        data = np.random.rand(2, 3).astype(theano.config.floatX)
+        data = np.random.rand(2, 3).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -2), [data])
 
     def test_grad_negative_axis_3d(self):
-        data = np.random.rand(2, 3, 4).astype(theano.config.floatX)
+        data = np.random.rand(2, 3, 4).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -1), [data])
-        data = np.random.rand(2, 3, 4).astype(theano.config.floatX)
+        data = np.random.rand(2, 3, 4).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -2), [data])
-        data = np.random.rand(2, 3, 4).astype(theano.config.floatX)
+        data = np.random.rand(2, 3, 4).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -3), [data])
 
     def test_grad_negative_axis_4d(self):
-        data = np.random.rand(2, 3, 4, 2).astype(theano.config.floatX)
+        data = np.random.rand(2, 3, 4, 2).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -1), [data])
-        data = np.random.rand(2, 3, 4, 2).astype(theano.config.floatX)
+        data = np.random.rand(2, 3, 4, 2).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -2), [data])
-        data = np.random.rand(2, 3, 4, 2).astype(theano.config.floatX)
+        data = np.random.rand(2, 3, 4, 2).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -3), [data])
-        data = np.random.rand(2, 3, 4, 2).astype(theano.config.floatX)
+        data = np.random.rand(2, 3, 4, 2).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -4), [data])
 
     def test_grad_nonnegative_axis_2d(self):
-        data = np.random.rand(2, 3).astype(theano.config.floatX)
+        data = np.random.rand(2, 3).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 0), [data])
-        data = np.random.rand(2, 3).astype(theano.config.floatX)
+        data = np.random.rand(2, 3).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 1), [data])
 
     def test_grad_nonnegative_axis_3d(self):
-        data = np.random.rand(2, 3, 4).astype(theano.config.floatX)
+        data = np.random.rand(2, 3, 4).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 0), [data])
-        data = np.random.rand(2, 3, 4).astype(theano.config.floatX)
+        data = np.random.rand(2, 3, 4).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 1), [data])
-        data = np.random.rand(2, 3, 4).astype(theano.config.floatX)
+        data = np.random.rand(2, 3, 4).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 2), [data])
 
     def test_grad_nonnegative_axis_4d(self):
-        data = np.random.rand(2, 3, 4, 2).astype(theano.config.floatX)
+        data = np.random.rand(2, 3, 4, 2).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 0), [data])
-        data = np.random.rand(2, 3, 4, 2).astype(theano.config.floatX)
+        data = np.random.rand(2, 3, 4, 2).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 1), [data])
-        data = np.random.rand(2, 3, 4, 2).astype(theano.config.floatX)
+        data = np.random.rand(2, 3, 4, 2).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 2), [data])
-        data = np.random.rand(2, 3, 4, 2).astype(theano.config.floatX)
+        data = np.random.rand(2, 3, 4, 2).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 3), [data])
 
 
@@ -154,13 +154,13 @@ class TestSortInferShape(utt.InferShapeTester):
         self._compile_and_check(
             [x],
             [sort(x)],
-            [np.random.randn(10, 40).astype(theano.config.floatX)],
+            [np.random.randn(10, 40).astype(aesara.config.floatX)],
             SortOp,
         )
         self._compile_and_check(
             [x],
             [sort(x, axis=None)],
-            [np.random.randn(10, 40).astype(theano.config.floatX)],
+            [np.random.randn(10, 40).astype(aesara.config.floatX)],
             SortOp,
         )
 
@@ -174,7 +174,7 @@ def test_argsort():
     # Example 1
     a = tensor.dmatrix()
     w = argsort(a)
-    f = theano.function([a], w)
+    f = aesara.function([a], w)
     gv = f(m_val)
     gt = np.argsort(m_val)
     utt.assert_allclose(gv, gt)
@@ -183,7 +183,7 @@ def test_argsort():
     a = tensor.dmatrix()
     axis = tensor.lscalar()
     w = argsort(a, axis)
-    f = theano.function([a, axis], w)
+    f = aesara.function([a, axis], w)
     for axis_val in 0, 1:
         gv = f(m_val, axis_val)
         gt = np.argsort(m_val, axis_val)
@@ -192,7 +192,7 @@ def test_argsort():
     # Example 3
     a = tensor.dvector()
     w2 = argsort(a)
-    f = theano.function([a], w2)
+    f = aesara.function([a], w2)
     gv = f(v_val)
     gt = np.argsort(v_val)
     utt.assert_allclose(gv, gt)
@@ -201,7 +201,7 @@ def test_argsort():
     a = tensor.dmatrix()
     axis = tensor.lscalar()
     l = argsort(a, axis, "mergesort")
-    f = theano.function([a, axis], l)
+    f = aesara.function([a, axis], l)
     for axis_val in 0, 1:
         gv = f(m_val, axis_val)
         gt = np.argsort(m_val, axis_val)
@@ -220,7 +220,7 @@ def test_argsort():
     # Example 6: Testing axis=None
     a = tensor.dmatrix()
     w2 = argsort(a, None)
-    f = theano.function([a], w2)
+    f = aesara.function([a], w2)
     gv = f(m_val)
     gt = np.argsort(m_val, None)
     utt.assert_allclose(gv, gt)
@@ -228,13 +228,13 @@ def test_argsort():
 
 def test_argsort_grad():
     # Testing grad of argsort
-    data = np.random.rand(2, 3).astype(theano.config.floatX)
+    data = np.random.rand(2, 3).astype(aesara.config.floatX)
     utt.verify_grad(lambda x: argsort(x, axis=-1), [data])
 
-    data = np.random.rand(2, 3, 4, 5).astype(theano.config.floatX)
+    data = np.random.rand(2, 3, 4, 5).astype(aesara.config.floatX)
     utt.verify_grad(lambda x: argsort(x, axis=-3), [data])
 
-    data = np.random.rand(2, 3, 3).astype(theano.config.floatX)
+    data = np.random.rand(2, 3, 3).astype(aesara.config.floatX)
     utt.verify_grad(lambda x: argsort(x, axis=2), [data])
 
 
@@ -251,7 +251,7 @@ class TestTopK:
     @pytest.mark.parametrize("sorted", [False])
     def test_argtopk_sanity(self, dtype, idx_dtype, axis, sorted):
         x = tensor.vector(name="x", dtype=dtype)
-        fn = theano.function(
+        fn = aesara.function(
             [x],
             argtopk(x, 1, axis=axis, sorted=sorted, idx_dtype=idx_dtype),
             mode=self.mode,
@@ -269,7 +269,7 @@ class TestTopK:
     @pytest.mark.parametrize("sorted", [False])
     def test_topk_sanity(self, dtype, axis, sorted):
         x = tensor.vector(name="x", dtype=dtype)
-        fn = theano.function([x], topk(x, 1, axis=axis, sorted=sorted), mode=self.mode)
+        fn = aesara.function([x], topk(x, 1, axis=axis, sorted=sorted), mode=self.mode)
         assert any(
             [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]
         )
@@ -285,7 +285,7 @@ class TestTopK:
     def test_combined_sanity(self, dtype, idx_dtype, axis, sorted):
         x = tensor.vector(name="x", dtype=dtype)
         yv, yi = topk_and_argtopk(x, 1, axis=axis, sorted=sorted, idx_dtype=idx_dtype)
-        fn = theano.function([x], [yv, yi], mode=self.mode)
+        fn = aesara.function([x], [yv, yi], mode=self.mode)
         assert any(
             [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]
         )
@@ -312,9 +312,9 @@ class TestTopK:
         if isinstance(k, str):
             k = eval(k.replace("n", str(size)))
 
-        x = theano.tensor.vector(name="x", dtype=dtype)
+        x = aesara.tensor.vector(name="x", dtype=dtype)
         y = topk(x, k, sorted=sorted)
-        fn = theano.function([x], y, mode=self.mode)
+        fn = aesara.function([x], y, mode=self.mode)
         assert any(
             [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]
         )
@@ -347,9 +347,9 @@ class TestTopK:
         if isinstance(k, str):
             k = eval(k.replace("n", str(size)))
 
-        x = theano.tensor.vector(name="x", dtype=dtype)
+        x = aesara.tensor.vector(name="x", dtype=dtype)
         y = argtopk(x, k, sorted=sorted, idx_dtype=idx_dtype)
-        fn = theano.function([x], y, mode=self.mode)
+        fn = aesara.function([x], y, mode=self.mode)
         assert any(
             [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]
         )
@@ -383,9 +383,9 @@ class TestTopK:
         if isinstance(k, str):
             k = eval(k.replace("n", str(size)))
 
-        x = theano.tensor.vector(name="x", dtype=dtype)
+        x = aesara.tensor.vector(name="x", dtype=dtype)
         yv, yi = topk_and_argtopk(x, k, sorted=sorted, idx_dtype=idx_dtype)
-        fn = theano.function([x], [yv, yi], mode=self.mode)
+        fn = aesara.function([x], [yv, yi], mode=self.mode)
         assert any(
             [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]
         )
@@ -412,14 +412,14 @@ class TestTopK:
         if isinstance(k, str):
             k = eval(k.replace("n", str(size)))
 
-        x = theano.tensor.vector(name="x", dtype=dtype)
+        x = aesara.tensor.vector(name="x", dtype=dtype)
         y = argtopk(x, k, sorted=sorted, idx_dtype="int32")
         # DebugMode won't like the index change on collision on CPU
         # So don't use DebugMode here.
         mode = self.mode
-        if isinstance(self.mode, theano.compile.DebugMode):
-            mode = theano.Mode(optimizer=mode.optimizer)
-        fn = theano.function([x], y, mode=mode)
+        if isinstance(self.mode, aesara.compile.DebugMode):
+            mode = aesara.Mode(optimizer=mode.optimizer)
+        fn = aesara.function([x], y, mode=mode)
         assert any(
             [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]
         )
@@ -457,11 +457,11 @@ class TestTopK:
             if k == 0:
                 continue
 
-            x = theano.tensor.tensor(
+            x = aesara.tensor.tensor(
                 name="x", broadcastable=(False,) * len(shp), dtype=dtype
             )
             y = argtopk(x, k, axis=axis, sorted=sorted, idx_dtype=idx_dtype)
-            fn = theano.function([x], y, mode=self.mode)
+            fn = aesara.function([x], y, mode=self.mode)
             assert any(
                 [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]
             )
@@ -492,7 +492,7 @@ class TestTopK:
 
             # make input away from undefined gradient (where some inputs are equal)
             xval = gen_unique_vector(
-                reduce(int.__mul__, shp), dtype=theano.config.floatX
+                reduce(int.__mul__, shp), dtype=aesara.config.floatX
             ).reshape(shp)
             utt.verify_grad(
                 lambda x: topk(x, k, axis=axis, sorted=sorted), [xval], eps=1e-2
@@ -515,10 +515,10 @@ class TestTopKInferShape(utt.InferShapeTester):
             if k == 0:
                 continue
 
-            x = theano.tensor.tensor(
-                name="x", broadcastable=(False,) * len(shp), dtype=theano.config.floatX
+            x = aesara.tensor.tensor(
+                name="x", broadcastable=(False,) * len(shp), dtype=aesara.config.floatX
             )
             yv, yi = topk_and_argtopk(x, k, axis=axis, sorted=False, idx_dtype="int32")
             size = reduce(int.__mul__, shp)
-            xval = gen_unique_vector(size, theano.config.floatX).reshape(shp)
+            xval = gen_unique_vector(size, aesara.config.floatX).reshape(shp)
             self._compile_and_check([x], [yv, yi], [xval], TopKOp)

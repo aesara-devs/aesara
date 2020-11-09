@@ -1,7 +1,7 @@
 import numpy as np
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 from tests import unittest_tools as utt
 from tests.tensor.utils import (
     _good_broadcast_unary_normal_no_complex,
@@ -10,18 +10,18 @@ from tests.tensor.utils import (
     makeBroadcastTester,
     upcast_int8_nfunc,
 )
-from theano import config
-from theano.gof.opt import check_stack_trace
-from theano.gof.toolbox import is_same_graph
-from theano.tensor.inplace import neg_inplace
-from theano.tensor.nnet import (
+from aesara import config
+from aesara.gof.opt import check_stack_trace
+from aesara.gof.toolbox import is_same_graph
+from aesara.tensor.inplace import neg_inplace
+from aesara.tensor.nnet import (
     hard_sigmoid,
     sigmoid,
     sigmoid_inplace,
     softplus,
     ultra_fast_sigmoid,
 )
-from theano.tensor.nnet.sigm import (
+from aesara.tensor.nnet.sigm import (
     ScalarSoftplus,
     compute_mul,
     is_1pexp,
@@ -48,7 +48,7 @@ TestSigmoidBroadcast = makeBroadcastTester(
     good=copymod(
         _good_broadcast_unary_normal_no_complex, without=["uint16"]
     ),  # The reason that 'uint16' is excluted is that
-    # theano works well but numpy overflows resulting
+    # aesara works well but numpy overflows resulting
     # in an assertion error.
     # grad=_grad_broadcast_unary_normal,
     name="SigmoidTester",
@@ -127,9 +127,9 @@ class TestSigmoidOpts:
             excluding = []
         m = config.mode
         if m == "FAST_COMPILE":
-            mode = theano.compile.mode.get_mode("FAST_RUN")
+            mode = aesara.compile.mode.get_mode("FAST_RUN")
         else:
-            mode = theano.compile.mode.get_default_mode()
+            mode = aesara.compile.mode.get_default_mode()
         if excluding:
             return mode.excluding(*excluding)
         else:
@@ -145,37 +145,37 @@ class TestSigmoidOpts:
         config.warn.identify_1pexp_bug = False
         try:
             # tests exp_over_1_plus_exp
-            f = theano.function([x], tt.exp(x) / (1 + tt.exp(x)), mode=m)
+            f = aesara.function([x], tt.exp(x) / (1 + tt.exp(x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] == [sigmoid]
             f(data)
-            f = theano.function([x], tt.exp(x) / (2 + tt.exp(x)), mode=m)
+            f = aesara.function([x], tt.exp(x) / (2 + tt.exp(x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
             f(data)
-            f = theano.function([x], tt.exp(x) / (1 - tt.exp(x)), mode=m)
+            f = aesara.function([x], tt.exp(x) / (1 - tt.exp(x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
             f(data)
-            f = theano.function([x], tt.exp(x + 1) / (1 + tt.exp(x)), mode=m)
+            f = aesara.function([x], tt.exp(x + 1) / (1 + tt.exp(x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
             f(data)
 
             # tests inv_1_plus_exp
-            f = theano.function([x], tt.fill(x, 1.0) / (1 + tt.exp(-x)), mode=m)
+            f = aesara.function([x], tt.fill(x, 1.0) / (1 + tt.exp(-x)), mode=m)
             # todo: solve issue #4589 first
             # assert check_stack_trace(f, ops_to_check=sigmoid)
             assert [node.op for node in f.maker.fgraph.toposort()] == [sigmoid]
             f(data)
-            f = theano.function([x], tt.fill(x, 1.0) / (2 + tt.exp(-x)), mode=m)
+            f = aesara.function([x], tt.fill(x, 1.0) / (2 + tt.exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
             f(data)
-            f = theano.function([x], tt.fill(x, 1.0) / (1 - tt.exp(-x)), mode=m)
+            f = aesara.function([x], tt.fill(x, 1.0) / (1 - tt.exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
             f(data)
-            f = theano.function([x], tt.fill(x, 1.1) / (1 + tt.exp(-x)), mode=m)
+            f = aesara.function([x], tt.fill(x, 1.1) / (1 + tt.exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
             f(data)
 
             # tests inv_1_plus_exp with neg
-            f = theano.function([x], tt.fill(x, -1.0) / (1 + tt.exp(-x)), mode=m)
+            f = aesara.function([x], tt.fill(x, -1.0) / (1 + tt.exp(-x)), mode=m)
             # todo: solve issue #4589 first
             # assert check_stack_trace(
             #     f, ops_to_check=[sigmoid, neg_inplace])
@@ -184,19 +184,19 @@ class TestSigmoidOpts:
                 neg_inplace,
             ]
             f(data)
-            f = theano.function([x], tt.fill(x, -1.0) / (1 - tt.exp(-x)), mode=m)
+            f = aesara.function([x], tt.fill(x, -1.0) / (1 - tt.exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [
                 sigmoid,
                 neg_inplace,
             ]
             f(data)
-            f = theano.function([x], tt.fill(x, -1.0) / (2 + tt.exp(-x)), mode=m)
+            f = aesara.function([x], tt.fill(x, -1.0) / (2 + tt.exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [
                 sigmoid,
                 neg_inplace,
             ]
             f(data)
-            f = theano.function([x], tt.fill(x, -1.1) / (1 + tt.exp(-x)), mode=m)
+            f = aesara.function([x], tt.fill(x, -1.1) / (1 + tt.exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [
                 sigmoid,
                 neg_inplace,
@@ -207,7 +207,7 @@ class TestSigmoidOpts:
             # (-1)(exp(x)) / (1+exp(x))(1+exp(-x))
             # = (-1)/(1+exp(-x)) * exp(x)/(1+exp(x))
             # = - (sigm(x) * sigm(x))
-            f = theano.function(
+            f = aesara.function(
                 [x],
                 (tt.fill(x, -1.0) * tt.exp(x)) / ((1 + tt.exp(x)) * (1 + tt.exp(-x))),
                 mode=m,
@@ -216,7 +216,7 @@ class TestSigmoidOpts:
             # assert check_stack_trace(f, ops_to_check=[sigmoid, tt.mul])
             assert [node.op for node in f.maker.fgraph.toposort()] == [sigmoid, tt.mul]
             f(data)
-            f = theano.function(
+            f = aesara.function(
                 [x],
                 (tt.fill(x, -1.1) * tt.exp(x)) / ((1 + tt.exp(x)) * (1 + tt.exp(-x))),
                 mode=m,
@@ -227,7 +227,7 @@ class TestSigmoidOpts:
                 neg_inplace,
             ]
             f(data)
-            f = theano.function(
+            f = aesara.function(
                 [x],
                 (tt.fill(x, -1.0) * tt.exp(x)) / ((2 + tt.exp(x)) * (1 + tt.exp(-x))),
                 mode=m,
@@ -238,7 +238,7 @@ class TestSigmoidOpts:
                 neg_inplace,
             ]
             f(data)
-            f = theano.function(
+            f = aesara.function(
                 [x],
                 (tt.fill(x, -1.0) * tt.exp(x)) / ((1 + tt.exp(x)) * (2 + tt.exp(-x))),
                 mode=m,
@@ -249,7 +249,7 @@ class TestSigmoidOpts:
                 neg_inplace,
             ]
             f(data)
-            f = theano.function(
+            f = aesara.function(
                 [x],
                 (tt.fill(x, -1.0) * tt.exp(x)) / ((1 + tt.exp(x)) * (1 + tt.exp(x))),
                 mode=m,
@@ -260,7 +260,7 @@ class TestSigmoidOpts:
                 neg_inplace,
             ]
             f(data)
-            f = theano.function(
+            f = aesara.function(
                 [x],
                 (tt.fill(x, -1.0) * tt.exp(x)) / ((1 + tt.exp(x)) * (2 + tt.exp(-x))),
                 mode=m,
@@ -284,7 +284,7 @@ class TestSigmoidOpts:
         x = tt.fmatrix()
 
         # tests exp_over_1_plus_exp
-        f = theano.function([x], 1 - tt.exp(x) / (1 + tt.exp(x)), mode=m)
+        f = aesara.function([x], 1 - tt.exp(x) / (1 + tt.exp(x)), mode=m)
         assert check_stack_trace(f, ops_to_check=[tt.neg, sigmoid_inplace])
         assert [node.op for node in f.maker.fgraph.toposort()] == [
             tt.neg,
@@ -292,7 +292,7 @@ class TestSigmoidOpts:
         ]
 
         # tests inv_1_plus_exp
-        f = theano.function([x], 1 - tt.fill(x, 1.0) / (1 + tt.exp(-x)), mode=m)
+        f = aesara.function([x], 1 - tt.fill(x, 1.0) / (1 + tt.exp(-x)), mode=m)
         assert check_stack_trace(f, ops_to_check=[tt.neg, sigmoid_inplace])
         assert [node.op for node in f.maker.fgraph.toposort()] == [
             tt.neg,
@@ -311,19 +311,19 @@ class TestSigmoidOpts:
         m = self.get_mode(excluding=["local_elemwise_fusion", "inplace"])
         x, y = tt.vectors("x", "y")
 
-        f = theano.function([x], sigmoid(-x) * tt.exp(x), mode=m)
+        f = aesara.function([x], sigmoid(-x) * tt.exp(x), mode=m)
         match(f, [sigmoid])
         assert check_stack_trace(f, ops_to_check=sigmoid)
 
-        f = theano.function([x], sigmoid(x) * tt.exp(-x), mode=m)
+        f = aesara.function([x], sigmoid(x) * tt.exp(-x), mode=m)
         match(f, [tt.neg, sigmoid])
         assert check_stack_trace(f, ops_to_check=sigmoid)
 
-        f = theano.function([x], -(-(-(sigmoid(x)))) * tt.exp(-x), mode=m)
+        f = aesara.function([x], -(-(-(sigmoid(x)))) * tt.exp(-x), mode=m)
         match(f, [tt.neg, sigmoid, tt.neg])
         # assert check_stack_trace(f, ops_to_check=sigmoid)
 
-        f = theano.function(
+        f = aesara.function(
             [x, y],
             (sigmoid(x) * sigmoid(-y) * -tt.exp(-x) * tt.exp(x * y) * tt.exp(y)),
             mode=m,
@@ -338,7 +338,7 @@ class TestSigmoidOpts:
         # Test the core function doing the `sigm_times_exp` optimization.
         #
         # It is easier to test different graph scenarios this way than by
-        # compiling a theano function.
+        # compiling a aesara function.
 
         x, y, z, t = tt.vectors("x", "y", "z", "t")
         exp = tt.exp
@@ -352,9 +352,9 @@ class TestSigmoidOpts:
                 print(trees[0])
                 print(trees[1])
                 print("***")
-                theano.printing.debugprint(compute_mul(trees[0]))
+                aesara.printing.debugprint(compute_mul(trees[0]))
                 print("***")
-                theano.printing.debugprint(compute_mul(trees[1]))
+                aesara.printing.debugprint(compute_mul(trees[1]))
             assert good
 
         ok(sigmoid(x) * exp(-x), sigmoid(-x))
@@ -387,13 +387,13 @@ class TestSigmoidOpts:
         s = sigmoid(x)
         l = tt.log(1 - s)
         c = l.mean()
-        ux = x - lr * theano.grad(c, x)
+        ux = x - lr * aesara.grad(c, x)
 
         # Before the optimization, inf and NaN will be produced in the graph,
         # and DebugMode will complain. Everything is fine afterwards.
         mode = self.get_mode()
-        if not isinstance(mode, theano.compile.DebugMode):
-            f = theano.function([x, lr], ux, mode=mode)
+        if not isinstance(mode, aesara.compile.DebugMode):
+            f = aesara.function([x, lr], ux, mode=mode)
             ux_v = f([[50]], 0.1)
             assert not np.isnan(ux_v)
 
@@ -402,14 +402,14 @@ class TestSigmoidOpts:
         s = sigmoid(x)
 
         mode = self.get_mode("local_ultra_fast_sigmoid")
-        f = theano.function([x], s, mode=mode)
+        f = aesara.function([x], s, mode=mode)
         assert check_stack_trace(f, ops_to_check=sigmoid)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
         assert topo[0].op == sigmoid
 
         mode = self.get_mode().including("local_ultra_fast_sigmoid")
-        f = theano.function([x], s, mode=mode)
+        f = aesara.function([x], s, mode=mode)
         assert check_stack_trace(f, ops_to_check=ultra_fast_sigmoid)
         topo = f.maker.fgraph.toposort()
         assert topo[0].op == ultra_fast_sigmoid
@@ -421,31 +421,31 @@ class TestSigmoidOpts:
         s = sigmoid(x)
 
         mode = self.get_mode("local_hard_sigmoid")
-        f = theano.function([x], s, mode=mode)
+        f = aesara.function([x], s, mode=mode)
         assert check_stack_trace(f, ops_to_check=sigmoid)
         topo = f.maker.fgraph.toposort()
         assert topo[0].op == sigmoid
         assert len(topo) == 1
 
         mode = self.get_mode().including("local_hard_sigmoid")
-        f = theano.function([x], s, mode=mode)
+        f = aesara.function([x], s, mode=mode)
         topo = f.maker.fgraph.toposort()
         assert not any([n.op == sigmoid for n in topo])
         f([[-50, -10, -4, -1, 0, 1, 4, 10, 50]])
 
         mode2 = mode.excluding("fusion").excluding("inplace")
-        f2 = theano.function([x], s, mode=mode2)
+        f2 = aesara.function([x], s, mode=mode2)
         assert check_stack_trace(f2, ops_to_check=tt.clip)
 
 
 class TestSoftplusOpts:
     def setup_method(self):
-        if theano.config.mode == "FAST_COMPILE":
-            m = theano.compile.mode.get_mode("FAST_RUN").excluding(
+        if aesara.config.mode == "FAST_COMPILE":
+            m = aesara.compile.mode.get_mode("FAST_RUN").excluding(
                 "local_elemwise_fusion"
             )
         else:
-            m = theano.compile.mode.get_default_mode().excluding(
+            m = aesara.compile.mode.get_default_mode().excluding(
                 "local_elemwise_fusion"
             )
         self.m = m
@@ -455,46 +455,46 @@ class TestSoftplusOpts:
         x = tt.vector()
 
         out = tt.log(sigmoid(x))
-        f = theano.function([x], out, mode=self.m)
+        f = aesara.function([x], out, mode=self.m)
 
         # Fix ticket #4581 first
         # assert check_stack_trace(
-        #     f, ops_to_check=(theano.scalar.Neg,
+        #     f, ops_to_check=(aesara.scalar.Neg,
         #                      ScalarSoftplus))
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 3
-        assert isinstance(topo[0].op.scalar_op, theano.scalar.Neg)
+        assert isinstance(topo[0].op.scalar_op, aesara.scalar.Neg)
         assert isinstance(topo[1].op.scalar_op, ScalarSoftplus)
-        assert isinstance(topo[2].op.scalar_op, theano.scalar.Neg)
+        assert isinstance(topo[2].op.scalar_op, aesara.scalar.Neg)
         f(np.random.rand(54).astype(config.floatX))
 
     def test_log1msigm_to_softplus(self):
         x = tt.matrix()
 
         out = tt.log(1 - sigmoid(x))
-        f = theano.function([x], out, mode=self.m)
+        f = aesara.function([x], out, mode=self.m)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 2
         assert isinstance(topo[0].op.scalar_op, ScalarSoftplus)
-        assert isinstance(topo[1].op.scalar_op, theano.scalar.Neg)
+        assert isinstance(topo[1].op.scalar_op, aesara.scalar.Neg)
         # assert check_stack_trace(f, ops_to_check='all')
         f(np.random.rand(54, 11).astype(config.floatX))
 
         # Same test with a flatten
         out = tt.log(1 - tt.flatten(sigmoid(x)))
-        f = theano.function([x], out, mode=self.m)
+        f = aesara.function([x], out, mode=self.m)
 
         # assert check_stack_trace(f, ops_to_check='all')
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 3
         assert tt.is_flat(topo[0].outputs[0])
         assert isinstance(topo[1].op.scalar_op, ScalarSoftplus)
-        assert isinstance(topo[2].op.scalar_op, theano.scalar.Neg)
+        assert isinstance(topo[2].op.scalar_op, aesara.scalar.Neg)
         f(np.random.rand(54, 11).astype(config.floatX))
 
         # Same test with a reshape
         out = tt.log(1 - sigmoid(x).reshape([x.size]))
-        f = theano.function([x], out, mode=self.m)
+        f = aesara.function([x], out, mode=self.m)
         topo = f.maker.fgraph.toposort()
         # assert len(topo) == 3
         assert any(isinstance(node.op, tt.Reshape) for node in topo)
@@ -508,14 +508,14 @@ class TestSoftplusOpts:
         f(np.random.rand(54, 11).astype(config.floatX))
 
     def test_log1pexp_to_softplus(self):
-        m = theano.config.mode
+        m = aesara.config.mode
         if m == "FAST_COMPILE":
             m = "FAST_RUN"
 
         x = tt.vector()
 
         out = tt.log(1 + tt.exp(x))
-        f = theano.function([x], out, mode=self.m)
+        f = aesara.function([x], out, mode=self.m)
 
         # Fix ticket #4581 first
         # assert check_stack_trace(f, ops_to_check='all')

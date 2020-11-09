@@ -1,8 +1,8 @@
-import theano
+import aesara
 from tests.unittest_tools import assertFailure_fast
-from theano import tensor
-from theano.gof.opt import check_stack_trace
-from theano.tensor.nnet.blocksparse import (
+from aesara import tensor
+from aesara.gof.opt import check_stack_trace
+from aesara.tensor.nnet.blocksparse import (
     sparse_block_dot,
     sparse_block_gemv,
     sparse_block_gemv_inplace,
@@ -20,9 +20,9 @@ def test_blocksparse_inplace_gemv_opt():
 
     o = sparse_block_dot(W, h, iIdx, b, oIdx)
 
-    f = theano.function([W, h, iIdx, b, oIdx], o)
+    f = aesara.function([W, h, iIdx, b, oIdx], o)
 
-    if theano.config.mode == "FAST_COMPILE":
+    if aesara.config.mode == "FAST_COMPILE":
         assert not f.maker.fgraph.toposort()[-1].op.inplace
         assert check_stack_trace(f, ops_to_check=[sparse_block_gemv])
     else:
@@ -30,7 +30,7 @@ def test_blocksparse_inplace_gemv_opt():
         assert check_stack_trace(f, ops_to_check=[sparse_block_gemv_inplace])
 
 
-if theano.config.mode != "FAST_COMPILE":
+if aesara.config.mode != "FAST_COMPILE":
     test_blocksparse_inplace_gemv_opt = assertFailure_fast(
         test_blocksparse_inplace_gemv_opt
     )
@@ -45,9 +45,9 @@ def test_blocksparse_inplace_outer_opt():
 
     o = sparse_block_dot(W, h, iIdx, b, oIdx)
 
-    f = theano.function([W, h, iIdx, b, oIdx], [o, tensor.grad(o.sum(), wrt=W)])
+    f = aesara.function([W, h, iIdx, b, oIdx], [o, tensor.grad(o.sum(), wrt=W)])
 
-    if theano.config.mode == "FAST_COMPILE":
+    if aesara.config.mode == "FAST_COMPILE":
         assert not f.maker.fgraph.toposort()[-1].op.inplace
         assert check_stack_trace(f, ops_to_check=sparse_block_outer)
     else:

@@ -2,14 +2,14 @@ import itertools
 
 import numpy as np
 
-import theano
+import aesara
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, test_ctx_name
 from tests.gpuarray.test_basic_ops import makeTester, rand
 from tests.tensor.test_blas import BaseGemv, TestGer
-from theano import config, tensor
-from theano.gpuarray import gpuarray_shared_constructor
-from theano.gpuarray.blas import (
+from aesara import config, tensor
+from aesara.gpuarray import gpuarray_shared_constructor
+from aesara.gpuarray.blas import (
     GpuGemm,
     GpuGer,
     gpu_dot22,
@@ -21,7 +21,7 @@ from theano.gpuarray.blas import (
     gpuger_inplace,
     gpuger_no_inplace,
 )
-from theano.tensor.blas import _dot22, batched_dot, gemm_inplace, gemv, gemv_inplace
+from aesara.tensor.blas import _dot22, batched_dot, gemm_inplace, gemv, gemv_inplace
 
 
 TestGpuGemv = makeTester(
@@ -67,7 +67,7 @@ def test_float16():
         gpuarray_shared_constructor(val, target=test_ctx_name) for val in float16_data
     ]
     o = gemv(*float16_shared)
-    f = theano.function([], o, mode=mode_with_gpu)
+    f = aesara.function([], o, mode=mode_with_gpu)
     y, alpha, A, x, beta = float16_data
     out = f()
     utt.assert_allclose(np.asarray(out), alpha * np.dot(A, x) + beta * y)
@@ -86,7 +86,7 @@ def test_float16():
         gpuarray_shared_constructor(val, target=test_ctx_name) for val in float16_data
     ]
     o = gpugemm_no_inplace(*float16_shared)
-    f = theano.function([], o)
+    f = aesara.function([], o)
     y, alpha, A, x, beta = float16_data
     out = f()
     utt.assert_allclose(np.asarray(out), alpha * np.dot(A, x) + beta * y)
@@ -96,7 +96,7 @@ def test_float16():
 
     float16_shared = [gpuarray_shared_constructor(val) for val in float16_data]
     o = gpu_dot22(*float16_shared)
-    f = theano.function([], o)
+    f = aesara.function([], o)
     x, y = float16_data
     out = f()
     utt.assert_allclose(np.asarray(out), np.dot(x, y))
@@ -114,7 +114,7 @@ class TestGpuSgemv(BaseGemv, utt.OptimizationTestMixin):
         try:
             return gpuarray_shared_constructor(val)
         except TypeError:
-            return theano.shared(val)
+            return aesara.shared(val)
 
 
 TestGpuGemm = makeTester(
@@ -192,11 +192,11 @@ TestGpuGemmBatch = makeTester(
 
 class TestGpuGemmBatchStrided:
     def test_basic(self):
-        # Reported in https://github.com/Theano/Theano/issues/5730
+        # Reported in https://github.com/Aesara/Aesara/issues/5730
         x = tensor.tensor3()
         y = tensor.tensor3()
         z = tensor.batched_dot(x, y[:, 0, :, np.newaxis])
-        f = theano.function([x, y], z, mode=mode_with_gpu)
+        f = aesara.function([x, y], z, mode=mode_with_gpu)
         x_num = np.arange(32 * 19 * 600, dtype=config.floatX).reshape((32, 19, 600))
         y_num = np.arange(7 * 32 * 600, dtype=config.floatX).reshape((32, 7, 600))
         f(x_num, y_num)
@@ -252,22 +252,22 @@ TestGpuDot22 = makeTester(
 def test_gemv_zeros():
     W = tensor.matrix()
     v = tensor.vector()
-    f = theano.function([W, v], W.dot(v), mode=mode_with_gpu)
+    f = aesara.function([W, v], W.dot(v), mode=mode_with_gpu)
 
     # Apply to an empty matrix shape (5,0) and an empty vector shape (0,)
     dim = 1000
-    A = np.zeros((dim, 0), dtype=theano.config.floatX)
-    b = np.zeros((0,), dtype=theano.config.floatX)
+    A = np.zeros((dim, 0), dtype=aesara.config.floatX)
+    b = np.zeros((0,), dtype=aesara.config.floatX)
     tmp = f(A, b)
     assert np.allclose(tmp, np.zeros((dim,)))
 
 
 def test_gemv_dot_strides():
-    # Reported in https://github.com/Theano/Theano/issues/6142
+    # Reported in https://github.com/Aesara/Aesara/issues/6142
     xv = rand(5)
     yv = rand(5, 1)
     x = gpuarray_shared_constructor(xv)
     y = gpuarray_shared_constructor(yv, broadcastable=(False, True))
-    f = theano.function([], tensor.dot(x, y[::-1]), mode=mode_with_gpu)
+    f = aesara.function([], tensor.dot(x, y[::-1]), mode=mode_with_gpu)
     out = f()
     utt.assert_allclose(out, np.dot(xv, yv[::-1]))

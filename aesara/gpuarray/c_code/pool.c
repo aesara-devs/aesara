@@ -271,7 +271,7 @@ int APPLY_SPECIFIC(pool)(PyGpuArrayObject *x,
     return 1;
   }
 
-  if (theano_prep_output(z, PyGpuArray_NDIM(x), z_dims,
+  if (aesara_prep_output(z, PyGpuArray_NDIM(x), z_dims,
                          x->ga.typecode, GA_C_ORDER, params->context) != 0)
     {
       PyErr_SetString(PyExc_RuntimeError,

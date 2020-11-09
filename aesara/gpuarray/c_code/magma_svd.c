@@ -120,7 +120,7 @@ int APPLY_SPECIFIC(magma_svd)(PyGpuArrayObject *A,
   }
 
   s_dims[0] = K;
-  if (theano_prep_output(S, 1, s_dims, A->ga.typecode, GA_C_ORDER, params->context) != 0){
+  if (aesara_prep_output(S, 1, s_dims, A->ga.typecode, GA_C_ORDER, params->context) != 0){
     PyErr_SetString(PyExc_RuntimeError,
                     "GpuMagmaSVD: failed to allocate memory");
     goto fail;
@@ -130,7 +130,7 @@ int APPLY_SPECIFIC(magma_svd)(PyGpuArrayObject *A,
 
   if (compute_uv) {
     u_dims[0] = N; u_dims[1] = N_VT;
-    if (theano_prep_output(U, 2, u_dims, A->ga.typecode, GA_C_ORDER, params->context) != 0){
+    if (aesara_prep_output(U, 2, u_dims, A->ga.typecode, GA_C_ORDER, params->context) != 0){
       PyErr_SetString(PyExc_RuntimeError,
                       "GpuMagmaSVD: failed to allocate memory");
       goto fail;
@@ -141,7 +141,7 @@ int APPLY_SPECIFIC(magma_svd)(PyGpuArrayObject *A,
                cudaMemcpyDeviceToDevice);
 
     vt_dims[0] = M_U; vt_dims[1] = M;
-    if (theano_prep_output(VT, 2, vt_dims, A->ga.typecode, GA_C_ORDER, params->context) != 0){
+    if (aesara_prep_output(VT, 2, vt_dims, A->ga.typecode, GA_C_ORDER, params->context) != 0){
       PyErr_SetString(PyExc_RuntimeError,
                       "GpuMagmaSVD: failed to allocate memory");
       goto fail;

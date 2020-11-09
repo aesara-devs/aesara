@@ -12,7 +12,7 @@
 
 \mode<presentation>
 
-\title{Theano and LSTM for Sentiment Analysis}
+\title{Aesara and LSTM for Sentiment Analysis}
 
 \author{%
 \footnotesize
@@ -54,13 +54,13 @@ We use the IMDB dataset.
 
 
 \begin{frame}{High level}\setcounter{page}{1}
-  Python <- \{NumPy/SciPy/libgpuarray\} <- Theano <- Pylearn2
+  Python <- \{NumPy/SciPy/libgpuarray\} <- Aesara <- Pylearn2
   \begin{itemize}
   \item Python: OO coding language
   \item Numpy: $n$-dimensional array object and scientific computing toolbox
   \item SciPy: sparse matrix objects and more scientific computing functionality
   \item libgpuarray: GPU $n$-dimensional array object in C for CUDA and OpenCL
-  \item Theano: compiler/symbolic graph manipulation
+  \item Aesara: compiler/symbolic graph manipulation
   \item Pylearn2: machine learning framework for researchers
   \end{itemize}
 \end{frame}
@@ -139,7 +139,7 @@ We use the IMDB dataset.
 \end{frame}
 
 
-\section{Theano}
+\section{Aesara}
 \begin{frame}
   \tableofcontents[currentsection]
 \end{frame}
@@ -186,14 +186,14 @@ We use the IMDB dataset.
 
 %%   \begin{bf}Best of both worlds:\end{bf} easily scripted code which invokes high-performance GPU kernels.
 
-%%   \begin{bf}Theano C code generation removes overhead\end{bf} of
+%%   \begin{bf}Aesara C code generation removes overhead\end{bf} of
 %%   function calls between Python and C by launching many C functions at once.
 
 %% \end{frame}
 
 \begin{frame}{Project status?}
   \begin{itemize}
-    \item Mature: Theano has been developed and used since January 2008 (7 yrs old)
+    \item Mature: Aesara has been developed and used since January 2008 (7 yrs old)
     \item Driven hundreds research papers
     \item Good user documentation
     \item Active mailing list with participants from outside our lab
@@ -202,7 +202,7 @@ We use the IMDB dataset.
     \item Used to teach many university classes
     \item Has been used for research at big compagnies
   \end{itemize}
-  Theano: \url{deeplearning.net/software/theano/}
+  Aesara: \url{deeplearning.net/software/aesara/}
 
   Deep Learning Tutorials: \url{deeplearning.net/tutorial/}
 \end{frame}
@@ -215,15 +215,15 @@ We use the IMDB dataset.
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-import theano
+import aesara
 # declare symbolic variable
-a = theano.tensor.vector("a")
+a = aesara.tensor.vector("a")
 
 # build symbolic expression
 b = a + a ** 10
 
 # compile function
-f = theano.function([a], b)
+f = aesara.function([a], b)
 
 # Execute with numerical value
 print f([0, 1, 2])
@@ -240,7 +240,7 @@ print f([0, 1, 2])
 
 
 %% \begin{frame}{Overview of Library}
-%%   Theano is many things
+%%   Aesara is many things
 %%   \begin{itemize}
 %%   \item Language
 %%   \item Compiler
@@ -270,8 +270,8 @@ Some example of scalar operations:
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-import theano
-from theano import tensor as tt
+import aesara
+from aesara import tensor as tt
 x = tt.scalar()
 y = tt.scalar()
 z = x+y
@@ -291,7 +291,7 @@ d = tt.log(c)
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-from theano import tensor as tt
+from aesara import tensor as tt
 x = tt.vector()
 y = tt.vector()
 # Scalar math applied elementwise
@@ -311,7 +311,7 @@ c = a + b
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-from theano import tensor as tt
+from aesara import tensor as tt
 x = tt.matrix()
 y = tt.matrix()
 a = tt.vector()
@@ -324,7 +324,7 @@ c = tt.dot(x, a)
 
 \begin{frame}[fragile]
   \frametitle{Tensors}
-  Using Theano:
+  Using Aesara:
   \begin{itemize}
   \item Dimensionality defined by length of ``broadcastable'' argument
   \item Can add (or do other elemwise op) on two
@@ -336,7 +336,7 @@ c = tt.dot(x, a)
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-from theano import tensor as tt
+from aesara import tensor as tt
 tensor3 = tt.TensorType(
     broadcastable=(False, False, False),
     dtype='float32')
@@ -351,7 +351,7 @@ x = tt.tensor3()
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-from theano import tensor as tt
+from aesara import tensor as tt
 tensor3 = tt.TensorType(
     broadcastable=(False, False, False),
     dtype='float32')
@@ -370,7 +370,7 @@ mx = x.max(axis=1)
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-from theano import tensor as tt
+from aesara import tensor as tt
 tensor3 = tt.TensorType(
     broadcastable=(False, False, False))
 x = tensor3()
@@ -411,7 +411,7 @@ a_tensor[an_index_tensor, ...]
 \subsection{Compiling/Running}
 \begin{frame}{Compiling and running expression}
   \begin{itemize}
-  \item theano.function
+  \item aesara.function
   \item shared variables and updates
   \item compilation modes
   \item compilation for GPU
@@ -420,17 +420,17 @@ a_tensor[an_index_tensor, ...]
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{theano.function}
+  \frametitle{aesara.function}
 
 \lstset{language=Python,
         commentstyle=\itshape\color{blue},
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
->>> from theano import tensor as tt
+>>> from aesara import tensor as tt
 >>> x = tt.scalar()
 >>> y = tt.scalar()
->>> from theano import function
+>>> from aesara import function
 >>> # first arg is list of SYMBOLIC inputs
 >>> # second arg is SYMBOLIC output
 >>> f = function([x, y], x + y)
@@ -445,9 +445,9 @@ array(3.0)
   \begin{itemize}
   \item It’s hard to do much with purely functional programming
   \item ``shared variables'' add just a little bit of imperative programming
-  \item A ``shared variable'' is a buffer that stores a numerical value for a Theano variable
+  \item A ``shared variable'' is a buffer that stores a numerical value for a Aesara variable
   \item Can write to as many shared variables as you want, once each, at the end of the function
-  \item  Modify outside Theano function with get\_value() and set\_value() methods.
+  \item  Modify outside Aesara function with get\_value() and set\_value() methods.
   \end{itemize}
 \end{frame}
 
@@ -459,9 +459,9 @@ array(3.0)
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
->>> from theano import shared
+>>> from aesara import shared
 >>> x = shared(0.)
->>> from theano.compat.python2x import OrderedDict
+>>> from aesara.compat.python2x import OrderedDict
 >>> updates = OrderedDict()
 >>> updates[x] = x + 1
 >>> f = function([], updates=updates)
@@ -477,7 +477,7 @@ array(3.0)
 
 \begin{frame}{Which dict?}
   \begin{itemize}
-  \item Use theano.compat.python2x.OrderedDict
+  \item Use aesara.compat.python2x.OrderedDict
   \item Not collections.OrderedDict
   \begin{itemize}
   \item This isn’t available in older versions of python
@@ -485,7 +485,7 @@ array(3.0)
   \item Not \{\} aka dict
   \begin{itemize}
   \item The iteration order of this built-in class is not
-    deterministic (thanks, Python!) so if Theano
+    deterministic (thanks, Python!) so if Aesara
     accepted this, the same script could compile
     different C programs each time you run it
   \end{itemize}
@@ -495,7 +495,7 @@ array(3.0)
 \begin{frame}{Compilation modes}
   \begin{itemize}
   \item Can compile in different modes to get different kinds of programs
-  \item Can specify these modes very precisely with arguments to theano.function
+  \item Can specify these modes very precisely with arguments to aesara.function
   \item Can use a few quick presets with environment variable flags
   \end{itemize}
 \end{frame}
@@ -508,18 +508,18 @@ array(3.0)
 Raises error messages in situations other
 modes regard as fine.
   \item optimizer=fast\_compile: as mode=FAST\_COMPILE, but with C code.
-  \item theano.function(..., mode=``FAST\_COMPILE'')
+  \item aesara.function(..., mode=``FAST\_COMPILE'')
   \item THEANO\_FLAGS=mode=FAST\_COMPILE python script.py
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Compilation for GPU}
   \begin{itemize}
-  \item Theano current back-end only supports 32 bit on GPU
+  \item Aesara current back-end only supports 32 bit on GPU
   \item libgpuarray (new-backend) support all dtype
   \item CUDA supports 64 bit, but is slow on gamer GPUs
   \item tt.fscalar, tt.fvector, tt.fmatrix are all 32 bit
-  \item tt.scalar, tt.vector, tt.matrix resolve to 32 bit or 64 bit depending on theano’s floatX flag
+  \item tt.scalar, tt.vector, tt.matrix resolve to 32 bit or 64 bit depending on aesara’s floatX flag
   \item floatX is float64 by default, set it to float32
   \item Set device flag to gpu (or a specific gpu, like gpu0)
   \item Flag: warn\_float64={'ignore', 'warn', 'raise', 'pdb'}
@@ -551,14 +551,14 @@ modes regard as fine.
 >>> y = 2. * x
 >>> g = tt.grad(y, x)
 # Print the not optimized graph
->>> theano.printing.pydotprint(g)
+>>> aesara.printing.pydotprint(g)
 \end{lstlisting}
-\includegraphics[width=0.75\textwidth]{theano_grad.png}
+\includegraphics[width=0.75\textwidth]{aesara_grad.png}
 \end{frame}
 
-%% \begin{frame}{Theano Variables}
+%% \begin{frame}{Aesara Variables}
 %%   \begin{itemize}
-%%   \item A Variable is a theano expression
+%%   \item A Variable is a aesara expression
 %%   \item Can come from tt.scalar, tt.matrix, etc.
 %%   \item Can come from doing operations on other Variables
 %%   \item Every Variable has a type field, identifying its Type \newline
@@ -591,7 +591,7 @@ modes regard as fine.
 %%     \end{itemize}
 %%   \item Variable.owner identifies the Apply that created the variable
 %%   \item Variable and Apply instances are nodes and owner/
-%%     inputs/outputs identify edges in a Theano graph
+%%     inputs/outputs identify edges in a Aesara graph
 %%   \end{itemize}
 %% \end{frame}
 
@@ -610,7 +610,7 @@ modes regard as fine.
   \begin{itemize}
   \item DEBUG\_MODE
   \item Error message
-  \item theano.printing.debugprint
+  \item aesara.printing.debugprint
   \end{itemize}
 \end{frame}
 
@@ -622,13 +622,13 @@ modes regard as fine.
         }
 \begin{lstlisting}
 import numpy as np
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 x = tt.vector()
 y = tt.vector()
 z = x + x
 z = z + y
-f = theano.function([x, y], z)
+f = aesara.function([x, y], z)
 f(np.ones((2,)), np.ones((3,)))
 \end{lstlisting}
 \end{frame}
@@ -668,11 +668,11 @@ Inputs scalar values: ['not scalar', 'not scalar', 'not scalar']
         basicstyle=\footnotesize
         }
 \begin{lstlisting}
-HINT: Re-running with most Theano optimization
+HINT: Re-running with most Aesara optimization
 disabled could give you a back-traces when this
 node was created. This can be done with by setting
-the Theano flags optimizer=fast_compile
-HINT: Use the Theano flag 'exception_verbosity=high'
+the Aesara flags optimizer=fast_compile
+HINT: Use the Aesara flag 'exception_verbosity=high'
 for a debugprint of this apply node.
 \end{lstlisting}
 \end{frame}
@@ -723,10 +723,10 @@ Backtrace when the node is created:
 Traceback (most recent call last):
   File "test.py", line 9, in <module>
     f(np.ones((2,)), np.ones((3,)))
-  File "/u/bastienf/repos/theano/compile/function_module.py",
+  File "/u/bastienf/repos/aesara/compile/function_module.py",
        line 589, in __call__
     self.fn.thunks[self.fn.position_of_error])
-  File "/u/bastienf/repos/theano/compile/function_module.py",
+  File "/u/bastienf/repos/aesara/compile/function_module.py",
        line 579, in __call__
     outputs = self.fn()
 
@@ -741,7 +741,7 @@ Traceback (most recent call last):
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
->>> from theano.printing import debugprint
+>>> from aesara.printing import debugprint
 >>> debugprint(a)
 Elemwise{mul,no_inplace} [@A] ''
  |TensorConstant{2.0} [@B]
@@ -756,8 +756,8 @@ Elemwise{mul,no_inplace} [@A] ''
 %%   Machine Learning library aimed at researchers
 
 %%   \begin{itemize}
-%%     \item Built on top of Theano, for fast execution and use of GPU
-%%     \item Easy to try variants of implemented algorithms, and to extend them (using Theano)
+%%     \item Built on top of Aesara, for fast execution and use of GPU
+%%     \item Easy to try variants of implemented algorithms, and to extend them (using Aesara)
 %%     \item Very modular, each component of the library can be used in isolation
 %%     \item Experiments can be specified through a YAML config file, or by a Python script
 %%     \item Scripts for visualizing weights, plot monitored values
@@ -772,7 +772,7 @@ Elemwise{mul,no_inplace} [@A] ''
 %%   \begin{itemize}
 %%   \item Currently there are at least 6 different GPU arrays in Python
 %%     \begin{itemize}
-%%     \item CudaNdarray (Theano), GPUArray (pycuda), CUDAMatrix (cudamat), GPUArray (pyopencl), Clyther, Copperhead, ...
+%%     \item CudaNdarray (Aesara), GPUArray (pycuda), CUDAMatrix (cudamat), GPUArray (pyopencl), Clyther, Copperhead, ...
 %%     \item There are even more if we include other languages.
 %%     \end{itemize}
 %%   \item They are incompatible
@@ -780,7 +780,7 @@ Elemwise{mul,no_inplace} [@A] ''
 %%     \item None have the same properties and interface
 %%     \end{itemize}
 %%   \item All of them implement a subset of numpy.ndarray properties
-%%   \item This is the new GPU backend on Theano
+%%   \item This is the new GPU backend on Aesara
 %%   \end{itemize}
 %% \end{frame}
 
@@ -789,12 +789,12 @@ Elemwise{mul,no_inplace} [@A] ''
 %%   \begin{itemize}
 %%   \item Usable directly, but not all implementation available.
 %%   \item Multiple GPUs works.
-%%   \item Is the next GPU array container for Theano and is working.
+%%   \item Is the next GPU array container for Aesara and is working.
 %%     \begin{itemize}
-%%     \item Not all Theano implementations available now.
+%%     \item Not all Aesara implementations available now.
 %%     \item OpenCL misses more implementations.
 %%     \item Multiple GPUs: supported in libgpuarray
-%%     \item Multiple GPUs: close to get integrated in Theano.
+%%     \item Multiple GPUs: close to get integrated in Aesara.
 %%     \end{itemize}
 %%   \item Web site: \url{http://deeplearning.net/software/libgpuarray/}
 %%   \end{itemize}
@@ -856,8 +856,8 @@ Elemwise{mul,no_inplace} [@A] ''
         basicstyle=\footnotesize
         }
 \begin{lstlisting}
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 import numpy as np
 
 # define tensor variables
@@ -880,15 +880,15 @@ d=trng.binomial(size=W[1].shape)
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-results, updates = theano.scan(
+results, updates = aesara.scan(
     lambda v: tt.tanh(tt.dot(v, W) + b_sym) * d,
     sequences=X)
-f = theano.function(inputs=[X, W, b_sym],
+f = aesara.function(inputs=[X, W, b_sym],
                     outputs=[results],
                     updates=updates)
-x = np.eye(10, 2, dtype=theano.config.floatX)
-w = np.ones((2, 2), dtype=theano.config.floatX)
-b = np.ones((2), dtype=theano.config.floatX)
+x = np.eye(10, 2, dtype=aesara.config.floatX)
+w = np.ones((2, 2), dtype=aesara.config.floatX)
+b = np.ones((2), dtype=aesara.config.floatX)
 
 print f(x, w, b)
 \end{lstlisting}
@@ -902,9 +902,9 @@ print f(x, w, b)
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-import theano
-import theano.tensor as tt
-theano.config.warn.subtensor_merge_bug = False
+import aesara
+import aesara.tensor as tt
+aesara.config.warn.subtensor_merge_bug = False
 
 k = tt.iscalar("k")
 A = tt.vector("A")
@@ -922,7 +922,7 @@ def inner_fct(prior_result, B):
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-result, updates = theano.scan(
+result, updates = aesara.scan(
     fn=inner_fct,
     outputs_info=T.ones_like(A),
     non_sequences=A, n_steps=k)
@@ -931,7 +931,7 @@ result, updates = theano.scan(
 # Keep only the last value. Scan optimize memory.
 final = result[-1]
 
-power = theano.function(inputs=[A, k], outputs=final,
+power = aesara.function(inputs=[A, k], outputs=final,
                       updates=updates)
 print power(range(10), 2)
 #[  0.   1.   4.   9.  16.  25.  36.  49.  64.  81.]
@@ -946,7 +946,7 @@ print power(range(10), 2)
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-result, updates = theano.scan(
+result, updates = aesara.scan(
     fn=inner_fct,
     sequences=[]
     outputs_info=[tt.ones_like(A)],
@@ -957,7 +957,7 @@ result, updates = theano.scan(
 \begin{itemize}
 \item Updates are needed if there are random numbers generated in the inner function
 \begin{itemize}
-\item Pass them to the call theano.function(..., updates=updates)
+\item Pass them to the call aesara.function(..., updates=updates)
 \end{itemize}
 \item The inner function of scan takes arguments like this:
    scan: sequences, outputs\_info, non sequences
@@ -1104,7 +1104,7 @@ The result is then sliced to obtain the pre-nonlinearity activations for i, f, $
 \item Do not use SGD, but use something like adagrad or rmsprop.
 \item Initialize any recurrent weights as orthogonal matrices (orth\_weights). This helps optimization.
 \item Take out any operation that does not have to be inside "scan".
-      Theano does many cases, but not all.
+      Aesara does many cases, but not all.
 \item Rescale (clip) the L2 norm of the gradient, if necessary.
 \item You can use weight noise (try first with $dot(U_c+noise, h_{t-1})$).
 \item You can use dropout at the output of the recurrent layer.
@@ -1114,11 +1114,11 @@ The result is then sliced to obtain the pre-nonlinearity activations for i, f, $
 \section{Exercices}
 \begin{frame}{Exercices}
 \begin{itemize}
-  \item Theano exercice: Work through the ``0[1-4]*'' exercices (directory):
+  \item Aesara exercice: Work through the ``0[1-4]*'' exercices (directory):
 
-    Available at ``git~clone~https://github.com/abergeron/ccw\_tutorial\_theano.git''.
+    Available at ``git~clone~https://github.com/abergeron/ccw\_tutorial\_aesara.git''.
 
-  \item Scan exercices: \url{http://deeplearning.net/software/theano/tutorial/loop.html\#exercise}
+  \item Scan exercices: \url{http://deeplearning.net/software/aesara/tutorial/loop.html\#exercise}
 
   \item Modif LSTM: Add the V\_o parameter and use it.
   \item Modif LSTM: Reverse the input sequence and try it like that:
@@ -1139,7 +1139,7 @@ Deep Learning Tutorial on LSTM: \url{http://deeplearning.net/tutorial/lstm.html}
 \begin{frame}{Acknowledgments}
 \begin{itemize}
 \item All people working or having worked at the LISA lab.
-\item All Theano users/contributors
+\item All Aesara users/contributors
 \item Compute Canada, RQCHP, NSERC, and Canada Research Chairs for providing funds or access to compute resources.
 \end{itemize}
 \end{frame}

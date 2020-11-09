@@ -4,18 +4,18 @@ import itertools
 import numpy as np
 import pytest
 
-import theano
+import aesara
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
 from tests.gpuarray.test_basic_ops import rand
-from theano import gradient, tensor
-from theano.gpuarray.pool import (
+from aesara import gradient, tensor
+from aesara.gpuarray.pool import (
     GpuAveragePoolGrad,
     GpuDownsampleFactorMaxGradGrad,
     GpuMaxPoolGrad,
     GpuPool,
 )
-from theano.tensor.signal.pool import (
+from aesara.tensor.signal.pool import (
     AveragePoolGrad,
     DownsampleFactorMaxGradGrad,
     MaxPoolGrad,
@@ -26,7 +26,7 @@ from theano.tensor.signal.pool import (
 class TestPool:
     def test_pool_py_interface(self):
         shp = (2, 2, 2, 2)
-        inp = theano.shared(rand(*shp), "a")
+        inp = aesara.shared(rand(*shp), "a")
         inp = tensor.as_tensor_variable(inp)
         with pytest.raises(ValueError):
             # test when pad >= ws
@@ -42,13 +42,13 @@ class TestPool:
         gpu_mode.check_py_code = False
 
         shp = (2, 2, 2, 2)
-        inp = theano.shared(rand(*shp), "a")
+        inp = aesara.shared(rand(*shp), "a")
         inp = tensor.as_tensor_variable(inp)
         with pytest.raises(ValueError):
             # test when ignore_border and pad >= 0
             ds_op = GpuPool(ignore_border=False, ndim=2)
             pad = tensor.as_tensor_variable([1, 1])
-            f = theano.function([], ds_op(inp, [2, 2], pad=pad), mode=gpu_mode)
+            f = aesara.function([], ds_op(inp, [2, 2], pad=pad), mode=gpu_mode)
             f()
 
     def test_pool_big_ws(self):
@@ -56,11 +56,11 @@ class TestPool:
         gpu_mode.check_py_code = False
 
         shp = (2, 2, 2, 2)
-        inp = theano.shared(rand(*shp), "a")
+        inp = aesara.shared(rand(*shp), "a")
         inp = tensor.as_tensor_variable(inp)
         ds_op = GpuPool(ignore_border=False, mode="average_exc_pad", ndim=2)
         pad = tensor.as_tensor_variable([0, 0])
-        f = theano.function(
+        f = aesara.function(
             [], ds_op(inp, [5, 5], stride=[1, 1], pad=pad), mode=gpu_mode
         )
         f()
@@ -123,11 +123,11 @@ def test_pool2d():
                 # print('test_pool2d', shp, ws, st, pad, mode, ignore_border)
                 ds_op = Pool(ndim=len(ws), mode=mode, ignore_border=ignore_border)
 
-                a = theano.shared(rand(*shp), "a")
+                a = aesara.shared(rand(*shp), "a")
                 a_pooled = ds_op(tensor.as_tensor_variable(a), ws, st, pad)
 
-                f = theano.function([], a_pooled, mode=gpu_mode)
-                f2 = theano.function([], a_pooled, mode=ref_mode)
+                f = aesara.function([], a_pooled, mode=gpu_mode)
+                f2 = aesara.function([], a_pooled, mode=ref_mode)
 
                 assert any(
                     [isinstance(node.op, GpuPool) for node in f.maker.fgraph.toposort()]
@@ -139,8 +139,8 @@ def test_pool2d():
 
                 a_pooled_grad = tensor.grad(a_pooled.sum(), a)
 
-                g = theano.function([], a_pooled_grad, mode=gpu_mode)
-                g2 = theano.function([], a_pooled_grad, mode=ref_mode)
+                g = aesara.function([], a_pooled_grad, mode=gpu_mode)
+                g2 = aesara.function([], a_pooled_grad, mode=ref_mode)
 
                 if mode == "max":
                     gop = GpuMaxPoolGrad
@@ -162,10 +162,10 @@ def test_pool2d():
                 if mode != "max":
                     continue
 
-                ea = theano.shared(rand(*shp), "ea")
+                ea = aesara.shared(rand(*shp), "ea")
 
-                gr = theano.function([], tensor.Rop(a_pooled, a, ea), mode=gpu_mode)
-                gr2 = theano.function([], tensor.Rop(a_pooled, a, ea), mode=ref_mode)
+                gr = aesara.function([], tensor.Rop(a_pooled, a, ea), mode=gpu_mode)
+                gr2 = aesara.function([], tensor.Rop(a_pooled, a, ea), mode=ref_mode)
 
                 assert any(
                     [
@@ -183,8 +183,8 @@ def test_pool2d():
 
                 ggf = gradient.Lop(tensor.grad((a_pooled ** 2).sum(), a), a, a)
 
-                gg = theano.function([], ggf, mode=gpu_mode)
-                gg2 = theano.function([], ggf, mode=ref_mode)
+                gg = aesara.function([], ggf, mode=gpu_mode)
+                gg2 = aesara.function([], ggf, mode=ref_mode)
 
                 assert any(
                     [
@@ -249,11 +249,11 @@ def test_pool3d():
                 # print('test_pool3d', shp, ws, st, pad, mode, ignore_border)
                 ds_op = Pool(ndim=len(ws), mode=mode, ignore_border=ignore_border)
 
-                a = theano.shared(rand(*shp), "a")
+                a = aesara.shared(rand(*shp), "a")
                 a_pooled = ds_op(tensor.as_tensor_variable(a), ws, st, pad)
 
-                f = theano.function([], a_pooled, mode=gpu_mode)
-                f2 = theano.function([], a_pooled, mode=ref_mode)
+                f = aesara.function([], a_pooled, mode=gpu_mode)
+                f2 = aesara.function([], a_pooled, mode=ref_mode)
 
                 assert any(
                     [isinstance(node.op, GpuPool) for node in f.maker.fgraph.toposort()]
@@ -265,8 +265,8 @@ def test_pool3d():
 
                 a_pooled_grad = tensor.grad(a_pooled.sum(), a)
 
-                g = theano.function([], a_pooled_grad, mode=gpu_mode)
-                g2 = theano.function([], a_pooled_grad, mode=ref_mode)
+                g = aesara.function([], a_pooled_grad, mode=gpu_mode)
+                g2 = aesara.function([], a_pooled_grad, mode=ref_mode)
 
                 if mode == "max":
                     gop = GpuMaxPoolGrad
@@ -288,10 +288,10 @@ def test_pool3d():
                 if mode != "max":
                     continue
 
-                ea = theano.shared(rand(*shp), "ea")
+                ea = aesara.shared(rand(*shp), "ea")
 
-                gr = theano.function([], tensor.Rop(a_pooled, a, ea), mode=gpu_mode)
-                gr2 = theano.function([], tensor.Rop(a_pooled, a, ea), mode=ref_mode)
+                gr = aesara.function([], tensor.Rop(a_pooled, a, ea), mode=gpu_mode)
+                gr2 = aesara.function([], tensor.Rop(a_pooled, a, ea), mode=ref_mode)
 
                 assert any(
                     [
@@ -309,8 +309,8 @@ def test_pool3d():
 
                 ggf = gradient.Lop(tensor.grad((a_pooled ** 2).sum(), a), a, a)
 
-                gg = theano.function([], ggf, mode=gpu_mode)
-                gg2 = theano.function([], ggf, mode=ref_mode)
+                gg = aesara.function([], ggf, mode=gpu_mode)
+                gg2 = aesara.function([], ggf, mode=ref_mode)
 
                 assert any(
                     [

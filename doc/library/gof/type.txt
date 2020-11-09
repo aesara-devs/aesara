@@ -8,7 +8,7 @@
 Reference
 ---------
 
-.. automodule:: theano.gof.type
+.. automodule:: aesara.gof.type
    :platform: Unix, Windows
    :synopsis: Interface for types of symbolic variables
    :members:

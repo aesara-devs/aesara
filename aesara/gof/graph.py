@@ -7,9 +7,9 @@ from collections import deque
 from copy import copy
 from itertools import count
 
-import theano
-from theano import config
-from theano.gof.utils import (
+import aesara
+from aesara import config
+from aesara.gof.utils import (
     MethodNotDefined,
     Scratchpad,
     TestValueError,
@@ -18,7 +18,7 @@ from theano.gof.utils import (
     get_variable_trace_string,
     object2,
 )
-from theano.misc.ordered_set import OrderedSet
+from aesara.misc.ordered_set import OrderedSet
 
 
 __docformat__ = "restructuredtext en"
@@ -27,7 +27,7 @@ NoParams = object()
 
 
 class Node(object2):
-    """A `Node` in a Theano graph.
+    """A `Node` in a Aesara graph.
 
     Currently, graphs contain two kinds of `Nodes`: `Variable`s and `Apply`s.
     Edges in the graph are not explicitly represented.
@@ -68,7 +68,7 @@ class Apply(Node):
     This class is typically instantiated by a `PureOp.make_node` method, which
     is called by `PureOp.__call__`.
 
-    The driver `theano.compile.function` uses `Apply.inputs` together with
+    The driver `aesara.compile.function` uses `Apply.inputs` together with
     `Variable.owner` to search the expression graph and determine which inputs
     are necessary to compute the function's outputs.
 
@@ -279,7 +279,7 @@ class Variable(Node):
     A :term:`Variable` is a node in an expression graph that represents a
     variable.
 
-    The inputs and outputs of every `Apply` (theano.gof.Apply) are `Variable`
+    The inputs and outputs of every `Apply` (aesara.gof.Apply) are `Variable`
     instances. The input and output arguments to create a `function` are also
     `Variable` instances. A `Variable` is like a strongly-typed variable in
     some other languages; each `Variable` contains a reference to a `Type`
@@ -349,25 +349,25 @@ class Variable(Node):
 
     .. code-block:: python
 
-        import theano
-        import theano.tensor as tt
+        import aesara
+        import aesara.tensor as tt
 
         a = tt.constant(1.5)            # declare a symbolic constant
         b = tt.fscalar()                # declare a symbolic floating-point scalar
 
         c = a + b                       # create a simple expression
 
-        f = theano.function([b], [c])   # this works because a has a value associated with it already
+        f = aesara.function([b], [c])   # this works because a has a value associated with it already
 
         assert 4.0 == f(2.5)            # bind 2.5 to an internal copy of b and evaluate an internal c
 
-        theano.function([a], [c])       # compilation error because b (required by c) is undefined
+        aesara.function([a], [c])       # compilation error because b (required by c) is undefined
 
-        theano.function([a,b], [c])     # compilation error because a is constant, it can't be an input
+        aesara.function([a,b], [c])     # compilation error because a is constant, it can't be an input
 
         d = tt.value(1.5)               # create a value similar to the constant 'a'
         e = d + b
-        theano.function([d,b], [e])     # this works.  d's default value of 1.5 is ignored.
+        aesara.function([d,b], [e])     # this works.  d's default value of 1.5 is ignored.
 
     The python variables :literal:`a,b,c` all refer to instances of type
     `Variable`. The `Variable` referred to by `a` is also an instance of
@@ -512,20 +512,20 @@ class Variable(Node):
         Parameters
         ----------
         inputs_to_values
-            A dictionary mapping theano Variables to values.
+            A dictionary mapping aesara Variables to values.
 
         Examples
         --------
 
         >>> import numpy as np
-        >>> import theano.tensor as tt
+        >>> import aesara.tensor as tt
         >>> x = tt.dscalar('x')
         >>> y = tt.dscalar('y')
         >>> z = x + y
         >>> np.allclose(z.eval({x : 16.3, y : 12.1}), 28.4)
         True
 
-        We passed :func:`eval` a dictionary mapping symbolic theano
+        We passed :func:`eval` a dictionary mapping symbolic aesara
         variables to the values to substitute for them, and it returned
         the numerical value of the expression.
 
@@ -537,7 +537,7 @@ class Variable(Node):
         the scenes. Subsequent calls to :func:`eval` on that same variable
         will be fast, because the variable caches the compiled function.
 
-        This way of computing has more overhead than a normal Theano
+        This way of computing has more overhead than a normal Aesara
         function, so don't use it too much in real scripts.
         """
 
@@ -549,7 +549,7 @@ class Variable(Node):
 
         inputs = tuple(sorted(inputs_to_values.keys(), key=id))
         if inputs not in self._fn_cache:
-            self._fn_cache[inputs] = theano.function(inputs, self)
+            self._fn_cache[inputs] = aesara.function(inputs, self)
         args = [inputs_to_values[param] for param in inputs]
 
         rval = self._fn_cache[inputs](*args)
@@ -1419,7 +1419,7 @@ def nodes_constructed():
 
 
 def equal_computations(xs, ys, in_xs=None, in_ys=None):
-    """Checks if Theano graphs represent the same computations.
+    """Checks if Aesara graphs represent the same computations.
 
     The two lists `xs`, `ys` should have the same number of entries. The
     function checks if for any corresponding pair `(x,y)` from `zip(xs,ys)`

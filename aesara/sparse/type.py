@@ -9,8 +9,8 @@ except ImportError:
     imported_scipy = False
 
 
-import theano
-from theano import gof
+import aesara
+from aesara import gof
 
 
 def _is_sparse(x):
@@ -210,7 +210,7 @@ class SparseType(gof.Type):
 
 
 # Register SparseType's C code for ViewOp.
-theano.compile.register_view_op_c_code(
+aesara.compile.register_view_op_c_code(
     SparseType,
     """
     Py_XDECREF(%(oname)s);

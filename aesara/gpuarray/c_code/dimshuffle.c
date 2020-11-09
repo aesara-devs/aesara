@@ -28,7 +28,7 @@ int APPLY_SPECIFIC(gpu_dimshuffle)(PyGpuArrayObject* input, PyGpuArrayObject** o
 
     new_order = (npy_int64*) PyArray_DATA(params->_new_order);
     /* Type of params->transposition (npy_uint32) should be an alias of unsigned int
-     * on platforms supported by Theano. */
+     * on platforms supported by Aesara. */
     transposition = (unsigned int*) PyArray_DATA(params->transposition);
     sh = (size_t*) malloc(nd_out * sizeof(size_t));
     if (sh == NULL) {

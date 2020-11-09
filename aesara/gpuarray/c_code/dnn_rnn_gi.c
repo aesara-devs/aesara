@@ -94,7 +94,7 @@ int dnn_rnn_gi(cudnnRNNDescriptor_t desc, npy_uint64 xshp,
   shape[0] = seqLength;
   shape[1] = miniBatch;
   shape[2] = inputSize;
-  if (theano_prep_output(dx, 3, shape, y->ga.typecode, GA_C_ORDER, c) != 0)
+  if (aesara_prep_output(dx, 3, shape, y->ga.typecode, GA_C_ORDER, c) != 0)
     goto fail;
 
   err = cudnnCreateTensorDescriptor(&dxdesc);
@@ -121,7 +121,7 @@ int dnn_rnn_gi(cudnnRNNDescriptor_t desc, npy_uint64 xshp,
     goto fail;
   }
 
-  if (theano_prep_output(dhx, 3, PyGpuArray_DIMS(hx), hx->ga.typecode,
+  if (aesara_prep_output(dhx, 3, PyGpuArray_DIMS(hx), hx->ga.typecode,
                          GA_C_ORDER, c) != 0)
     goto fail;
 
@@ -129,7 +129,7 @@ int dnn_rnn_gi(cudnnRNNDescriptor_t desc, npy_uint64 xshp,
     goto fail;
 
   if (cx != NULL) {
-    if (theano_prep_output(dcx, 3, PyGpuArray_DIMS(cx), cx->ga.typecode,
+    if (aesara_prep_output(dcx, 3, PyGpuArray_DIMS(cx), cx->ga.typecode,
                            GA_C_ORDER, c) != 0)
       goto fail;
 

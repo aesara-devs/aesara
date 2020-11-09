@@ -105,7 +105,7 @@ int APPLY_SPECIFIC(magma_eigh)(PyGpuArrayObject *A_,
   }
 
   d_dims[0] = N;
-  if (theano_prep_output(D, 1, d_dims, A->ga.typecode, GA_C_ORDER, params->context) != 0){
+  if (aesara_prep_output(D, 1, d_dims, A->ga.typecode, GA_C_ORDER, params->context) != 0){
     PyErr_SetString(PyExc_RuntimeError,
                     "GpuMagmaEigh: failed to allocate memory for the output");
     goto fail;
@@ -114,7 +114,7 @@ int APPLY_SPECIFIC(magma_eigh)(PyGpuArrayObject *A_,
              cudaMemcpyDeviceToDevice);
 
   if (params->compute_v) {
-    *V = theano_try_copy(*V, A);
+    *V = aesara_try_copy(*V, A);
     if (*V == NULL) {
       PyErr_SetString(PyExc_RuntimeError,
                       "GpuMagmaEigh: failed to allocate memory for the output");

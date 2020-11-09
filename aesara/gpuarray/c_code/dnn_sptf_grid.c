@@ -99,7 +99,7 @@ APPLY_SPECIFIC(dnn_sptf_grid)(PyGpuArrayObject * theta,
         return 1;
     }
 
-    if ( theano_prep_output( grid, 4, grid_dims, theta->ga.typecode,
+    if ( aesara_prep_output( grid, 4, grid_dims, theta->ga.typecode,
                              GA_C_ORDER, gpu_ctx ) != 0 )
     {
         PyErr_SetString( PyExc_RuntimeError,

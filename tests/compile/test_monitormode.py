@@ -3,7 +3,7 @@ from io import StringIO
 
 import numpy as np
 
-import theano
+import aesara
 
 
 def test_detect_nan():
@@ -15,17 +15,17 @@ def test_detect_nan():
         for output in fn.outputs:
             if np.isnan(output[0]).any():
                 print("*** NaN detected ***")
-                theano.printing.debugprint(node)
+                aesara.printing.debugprint(node)
                 print("Inputs : %s" % [input[0] for input in fn.inputs])
                 print("Outputs: %s" % [output[0] for output in fn.outputs])
                 nan_detected[0] = True
                 break
 
-    x = theano.tensor.dscalar("x")
-    f = theano.function(
+    x = aesara.tensor.dscalar("x")
+    f = aesara.function(
         [x],
-        [theano.tensor.log(x) * x],
-        mode=theano.compile.MonitorMode(post_func=detect_nan),
+        [aesara.tensor.log(x) * x],
+        mode=aesara.compile.MonitorMode(post_func=detect_nan),
     )
     try:
         old_stdout = sys.stdout
@@ -45,16 +45,16 @@ def test_optimizer():
         for output in fn.outputs:
             if np.isnan(output[0]).any():
                 print("*** NaN detected ***")
-                theano.printing.debugprint(node)
+                aesara.printing.debugprint(node)
                 print("Inputs : %s" % [input[0] for input in fn.inputs])
                 print("Outputs: %s" % [output[0] for output in fn.outputs])
                 nan_detected[0] = True
                 break
 
-    x = theano.tensor.dscalar("x")
-    mode = theano.compile.MonitorMode(post_func=detect_nan)
+    x = aesara.tensor.dscalar("x")
+    mode = aesara.compile.MonitorMode(post_func=detect_nan)
     mode = mode.excluding("fusion")
-    f = theano.function([x], [theano.tensor.log(x) * x], mode=mode)
+    f = aesara.function([x], [aesara.tensor.log(x) * x], mode=mode)
     # Test that the fusion wasn't done
     assert len(f.maker.fgraph.apply_nodes) == 2
     try:
@@ -77,19 +77,19 @@ def test_not_inplace():
         for output in fn.outputs:
             if np.isnan(output[0]).any():
                 print("*** NaN detected ***")
-                theano.printing.debugprint(node)
+                aesara.printing.debugprint(node)
                 print("Inputs : %s" % [input[0] for input in fn.inputs])
                 print("Outputs: %s" % [output[0] for output in fn.outputs])
                 nan_detected[0] = True
                 break
 
-    x = theano.tensor.vector("x")
-    mode = theano.compile.MonitorMode(post_func=detect_nan)
+    x = aesara.tensor.vector("x")
+    mode = aesara.compile.MonitorMode(post_func=detect_nan)
     # mode = mode.excluding('fusion', 'inplace')
     mode = mode.excluding("local_elemwise_fusion", "inplace_elemwise_optimizer")
-    o = theano.tensor.outer(x, x)
-    out = theano.tensor.log(o) * o
-    f = theano.function([x], [out], mode=mode)
+    o = aesara.tensor.outer(x, x)
+    out = aesara.tensor.log(o) * o
+    f = aesara.function([x], [out], mode=mode)
 
     # Test that the fusion wasn't done
     assert len(f.maker.fgraph.apply_nodes) == 5

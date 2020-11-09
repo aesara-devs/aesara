@@ -3,20 +3,20 @@ from copy import copy
 import pytest
 
 from tests.unittest_tools import assertFailure_fast
-from theano import change_flags
-from theano.gof import destroyhandler, graph
-from theano.gof.fg import FunctionGraph, InconsistencyError
-from theano.gof.graph import Apply, Variable
-from theano.gof.op import Op
-from theano.gof.opt import (
+from aesara import change_flags
+from aesara.gof import destroyhandler, graph
+from aesara.gof.fg import FunctionGraph, InconsistencyError
+from aesara.gof.graph import Apply, Variable
+from aesara.gof.op import Op
+from aesara.gof.opt import (
     NavigatorOptimizer,
     OpKeyOptimizer,
     OpSub,
     PatternSub,
     TopoOptimizer,
 )
-from theano.gof.toolbox import ReplaceValidate
-from theano.gof.type import Type
+from aesara.gof.toolbox import ReplaceValidate
+from aesara.gof.type import Type
 
 
 def PatternOptimizer(p1, p2, ign=True):

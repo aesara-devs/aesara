@@ -83,7 +83,7 @@ int APPLY_SPECIFIC(dnn_pool_grad)(PyGpuArrayObject *inp,
     return 1;
   }
 
-  if (theano_prep_output(inp_grad, PyGpuArray_NDIM(inp),
+  if (aesara_prep_output(inp_grad, PyGpuArray_NDIM(inp),
                          PyGpuArray_DIMS(inp), inp->ga.typecode,
                          GA_C_ORDER, c) != 0) {
     return 1;

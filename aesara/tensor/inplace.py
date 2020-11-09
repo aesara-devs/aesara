@@ -1,6 +1,6 @@
-from theano import printing
-from theano import scalar as scal
-from theano.printing import pprint
+from aesara import printing
+from aesara import scalar as scal
+from aesara.printing import pprint
 
 from . import elemwise
 
@@ -24,7 +24,7 @@ def _scal_inplace(symbol):
     # for the meaning of this see the ./epydoc script
     # it makes epydoc display rval as if it were a function, not an object
     rval.__epydoc_asRoutine = symbol
-    rval.__module__ = "theano.tensor.inplace"
+    rval.__module__ = "aesara.tensor.inplace"
 
     pprint.assign(rval, printing.FunctionPrinter(symbolname.replace("_inplace", "=")))
     return rval

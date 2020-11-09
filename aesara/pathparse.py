@@ -5,20 +5,20 @@ import sys
 class PathParser:
     """
     Class that allows to modify system's PATH environment variable
-    at runtime. Currently used in ``theano.gpuarray.dnn`` module
+    at runtime. Currently used in ``aesara.gpuarray.dnn`` module
     on Windows only.
 
     **Examples**:
 
     ..code-block:: python
 
-        theano.pathparse.PathParser(pathToAdd1, pathToAdd2, ...)
+        aesara.pathparse.PathParser(pathToAdd1, pathToAdd2, ...)
         # PATH is then automatically updated for this execution.
 
 
     ..code-block:: python
 
-        paths = theano.pathparse.PathParser()
+        paths = aesara.pathparse.PathParser()
         paths.add(path1)
         paths.add(path2)
         # PATH is updated after each call to ``add()``.

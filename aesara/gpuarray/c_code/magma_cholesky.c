@@ -76,7 +76,7 @@ int APPLY_SPECIFIC(magma_cholesky)(PyGpuArrayObject *A, PyGpuArrayObject **L,
     *L = A;
     Py_INCREF(*L);
   } else {
-    *L = theano_try_copy(*L, A);
+    *L = aesara_try_copy(*L, A);
     if (*L == NULL) {
       PyErr_SetString(
           PyExc_RuntimeError,

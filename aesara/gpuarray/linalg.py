@@ -4,18 +4,18 @@ import numpy as np
 import pkg_resources
 from numpy.linalg.linalg import LinAlgError
 
-import theano
-from theano import Op, config, tensor
-from theano.gof import COp, ParamsType
-from theano.gpuarray.basic_ops import (
+import aesara
+from aesara import Op, config, tensor
+from aesara.gof import COp, ParamsType
+from aesara.gpuarray.basic_ops import (
     CGpuKernelBase,
     as_gpuarray_variable,
     gpu_contiguous,
     gpuarray_helper_inc_dir,
     infer_context_name,
 )
-from theano.gpuarray.type import GpuArrayType, gpu_context_type
-from theano.scalar import bool as bool_t
+from aesara.gpuarray.type import GpuArrayType, gpu_context_type
+from aesara.scalar import bool as bool_t
 
 
 try:
@@ -161,7 +161,7 @@ class GpuCusolverSolve(Op):
         assert inp2.ndim == 2
         assert inp1.dtype == inp2.dtype
 
-        return theano.Apply(
+        return aesara.Apply(
             self,
             [inp1, inp2],
             [
@@ -329,7 +329,7 @@ class GpuCusolverSolve(Op):
         z[0] = b
 
     def L_op(self, inputs, outputs, output_gradients):
-        # Modified from theano/tensor/slinalg.py
+        # Modified from aesara/tensor/slinalg.py
         A, b = inputs
         c = outputs[0]
         c_bar = output_gradients[0]
@@ -379,7 +379,7 @@ class GpuCublasTriangularSolve(Op):
         assert inp2.ndim in [1, 2]
         assert inp1.dtype == inp2.dtype
 
-        return theano.Apply(
+        return aesara.Apply(
             self,
             [inp1, inp2],
             [
@@ -484,7 +484,7 @@ class GpuCublasTriangularSolve(Op):
         x[0] = b
 
     def L_op(self, inputs, outputs, output_gradients):
-        # Modified from theano/tensor/slinalg.py
+        # Modified from aesara/tensor/slinalg.py
         A, b = inputs
         c = outputs[0]
         c_bar = output_gradients[0]
@@ -568,7 +568,7 @@ class GpuCholesky(Op):
 
         assert inp.ndim == 2
 
-        return theano.Apply(self, [inp], [inp.type()])
+        return aesara.Apply(self, [inp], [inp.type()])
 
     def prepare_node(self, node, storage_map, compute_map, impl):
         ctx = node.inputs[0].type.context
@@ -596,7 +596,7 @@ class GpuCholesky(Op):
 
         # The output matrix will contain only the upper or lower
         # triangular factorization of A. If L is C ordered (it
-        # probably is as it is the default in Theano) we just switch
+        # probably is as it is the default in Aesara) we just switch
         # the fill mode parameter of cusolver
         l_parameter = 0 if self.lower else 1
         if L.flags["C_CONTIGUOUS"]:
@@ -651,7 +651,7 @@ class GpuCholesky(Op):
         outputs[0][0] = L
 
     def L_op(self, inputs, outputs, gradients):
-        # Modified from theano/tensor/slinalg.py
+        # Modified from aesara/tensor/slinalg.py
         # No handling for on_error = 'nan'
         dz = gradients[0]
         chol_x = outputs[0]
@@ -742,7 +742,7 @@ class GpuMagmaSVD(GpuMagmaBase):
     .. warning::
 
         Because of implementation constraints, this Op returns outputs
-        in order ``S, U, VT``. Use :func:`theano.gpuarray.linalg.gpu_svd`
+        in order ``S, U, VT``. Use :func:`aesara.gpuarray.linalg.gpu_svd`
         to get them in expected order ``U, S, VT``.
 
     """
@@ -767,7 +767,7 @@ class GpuMagmaSVD(GpuMagmaBase):
         if A.dtype != "float32":
             raise TypeError("only `float32` is supported for now")
         if self.compute_uv:
-            return theano.Apply(
+            return aesara.Apply(
                 self,
                 [A],
                 # return S, U, VT
@@ -780,7 +780,7 @@ class GpuMagmaSVD(GpuMagmaBase):
                 ],
             )
         else:
-            return theano.Apply(
+            return aesara.Apply(
                 self,
                 [A],
                 # return only S
@@ -865,7 +865,7 @@ class GpuMagmaMatrixInverse(GpuMagmaBase):
             raise LinAlgError("Matrix rank error")
         if A.dtype != "float32":
             raise TypeError("only `float32` is supported for now")
-        return theano.Apply(self, [A], [A.type()])
+        return aesara.Apply(self, [A], [A.type()])
 
     def get_params(self, node):
         return self.params_type.get_params(self, context=node.inputs[0].type.context)
@@ -916,7 +916,7 @@ class GpuMagmaCholesky(GpuMagmaBase, CGpuKernelBase):
             raise LinAlgError("Matrix rank error")
         if A.dtype != "float32":
             raise TypeError("only `float32` is supported for now")
-        return theano.Apply(self, [A], [A.type()])
+        return aesara.Apply(self, [A], [A.type()])
 
     def get_params(self, node):
         return self.params_type.get_params(self, context=node.inputs[0].type.context)
@@ -937,7 +937,7 @@ class GpuMagmaQR(GpuMagmaBase, CGpuKernelBase):
     .. warning::
 
         Because of implementation constraints, this Op returns outputs
-        in order ``R, Q``. Use :func:`theano.gpuarray.linalg.gpu_qr`
+        in order ``R, Q``. Use :func:`aesara.gpuarray.linalg.gpu_qr`
         to get them in expected order ``Q, R``.
     """
 
@@ -960,14 +960,14 @@ class GpuMagmaQR(GpuMagmaBase, CGpuKernelBase):
         if A.dtype != "float32":
             raise TypeError("only `float32` is supported for now")
         if self.complete:
-            return theano.Apply(
+            return aesara.Apply(
                 self,
                 [A],
                 # return R, Q
                 [A.type(), A.type()],
             )
         else:
-            return theano.Apply(
+            return aesara.Apply(
                 self,
                 [A],
                 # return R
@@ -1032,7 +1032,7 @@ class GpuMagmaEigh(GpuMagmaBase):
         if A.dtype != "float32":
             raise TypeError("only `float32` is supported for now")
         if self.compute_v:
-            return theano.Apply(
+            return aesara.Apply(
                 self,
                 [A],
                 # return D, V
@@ -1044,7 +1044,7 @@ class GpuMagmaEigh(GpuMagmaBase):
                 ],
             )
         else:
-            return theano.Apply(
+            return aesara.Apply(
                 self,
                 [A],
                 # return D

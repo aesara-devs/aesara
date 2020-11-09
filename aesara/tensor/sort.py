@@ -1,14 +1,14 @@
 import numpy as np
 
-import theano
-from theano.gof.op import Op
-from theano.gradient import grad_undefined
-from theano.tensor.basic import arange, mul
-from theano.tensor.subtensor import set_subtensor
+import aesara
+from aesara.gof.op import Op
+from aesara.gradient import grad_undefined
+from aesara.tensor.basic import arange, mul
+from aesara.tensor.subtensor import set_subtensor
 
 
 def _variable_is_none(var):
-    return isinstance(var, theano.Constant) and var.data is None
+    return isinstance(var, aesara.Constant) and var.data is None
 
 
 def _check_tensor_is_scalar(var):
@@ -36,10 +36,10 @@ class SortOp(Op):
         return self.__class__.__name__ + "{{{}, {}}}".format(self.kind, str(self.order))
 
     def make_node(self, input, axis=-1):
-        input = theano.tensor.as_tensor_variable(input)
-        axis = theano.tensor.as_tensor_variable(axis)
+        input = aesara.tensor.as_tensor_variable(input)
+        axis = aesara.tensor.as_tensor_variable(axis)
         out_type = input.type()
-        return theano.Apply(self, [input, axis], [out_type])
+        return aesara.Apply(self, [input, axis], [out_type])
 
     def perform(self, node, inputs, output_storage):
         a = inputs[0]
@@ -102,12 +102,12 @@ class SortOp(Op):
         # rev_idx is the reverse of previous argsort operation
         rev_idx = argsort(idx, axis, kind=self.kind, order=self.order)
         indices = []
-        axis_data = theano.tensor.switch(
-            theano.tensor.ge(axis.data, 0), axis.data, a.ndim + axis.data
+        axis_data = aesara.tensor.switch(
+            aesara.tensor.ge(axis.data, 0), axis.data, a.ndim + axis.data
         )
         for i in range(a.ndim):
-            index_val = theano.tensor.switch(
-                theano.tensor.eq(i, axis_data),
+            index_val = aesara.tensor.switch(
+                aesara.tensor.eq(i, axis_data),
                 rev_idx,
                 self.__get_expanded_dim(a, axis, i),
             )
@@ -171,13 +171,13 @@ class ArgSortOp(Op):
         return self.__class__.__name__ + "{{{}, {}}}".format(self.kind, str(self.order))
 
     def make_node(self, input, axis=-1):
-        input = theano.tensor.as_tensor_variable(input)
-        axis = theano.tensor.as_tensor_variable(axis)
+        input = aesara.tensor.as_tensor_variable(input)
+        axis = aesara.tensor.as_tensor_variable(axis)
         bcast = input.type.broadcastable
-        return theano.Apply(
+        return aesara.Apply(
             self,
             [input, axis],
-            [theano.tensor.TensorType(dtype="int64", broadcastable=bcast)()],
+            [aesara.tensor.TensorType(dtype="int64", broadcastable=bcast)()],
         )
 
     def perform(self, node, inputs, output_storage):
@@ -188,7 +188,7 @@ class ArgSortOp(Op):
                 raise ValueError("sort axis must be an integer or None")
             axis = int(axis)
         z = output_storage[0]
-        z[0] = theano._asarray(
+        z[0] = aesara._asarray(
             np.argsort(a, axis, self.kind, self.order), dtype=node.outputs[0].dtype
         )
 
@@ -379,7 +379,7 @@ class TopKOp(Op):
             raise NotImplementedError(
                 "The sorted parameter is not yet implemented. Use sorted=False for now."
             )
-        if idx_dtype not in theano.tensor.integer_dtypes:
+        if idx_dtype not in aesara.tensor.integer_dtypes:
             raise TypeError(
                 '"idx_dtype" parameter must be an integer dtype, got "%s"' % idx_dtype
             )
@@ -401,7 +401,7 @@ class TopKOp(Op):
         )
 
     def make_node(self, inp, kth):
-        inp = theano.tensor.as_tensor_variable(inp)
+        inp = aesara.tensor.as_tensor_variable(inp)
         ndim = inp.ndim
         if ndim == 0:
             raise ValueError("Cannot take scalar as input")
@@ -411,7 +411,7 @@ class TopKOp(Op):
                 " expected integer within [%d, %d]" % (-ndim, ndim - 1)
             )
 
-        kth = theano.tensor.as_tensor_variable(kth)
+        kth = aesara.tensor.as_tensor_variable(kth)
         _check_tensor_is_scalar(kth)
         bcast = inp.type.broadcastable
         outs = []
@@ -419,9 +419,9 @@ class TopKOp(Op):
             outs.append(inp.type())
         if self.return_indices:
             outs.append(
-                theano.tensor.TensorType(dtype=self.idx_dtype, broadcastable=bcast)()
+                aesara.tensor.TensorType(dtype=self.idx_dtype, broadcastable=bcast)()
             )
-        return theano.Apply(self, [inp, kth], outs)
+        return aesara.Apply(self, [inp, kth], outs)
 
     def perform(self, node, inputs, output_storage):
         x, k = inputs
@@ -455,7 +455,7 @@ class TopKOp(Op):
                 "topk: cannot get gradient" " without both indices and values",
             )
         else:
-            x_shp = theano.tensor.shape(x)
+            x_shp = aesara.tensor.shape(x)
             z_grad = out_grads[0]
             ndim = x.ndim
             axis = self.axis % ndim
@@ -507,7 +507,7 @@ def topk(x, kth, axis=-1, sorted=True, idx_dtype="int64"):
 
     """
     if axis is None:
-        x = theano.tensor.flatten(x)
+        x = aesara.tensor.flatten(x)
         axis = 0
     return TopKOp(axis=axis, sorted=sorted, idx_dtype=idx_dtype)(x, kth)[0]
 
@@ -551,7 +551,7 @@ def argtopk(x, kth, axis=-1, sorted=True, idx_dtype="int64"):
 
     """
     if axis is None:
-        x = theano.tensor.flatten(x)
+        x = aesara.tensor.flatten(x)
         axis = 0
     return TopKOp(axis=axis, sorted=sorted, idx_dtype=idx_dtype)(x, kth)[1]
 
@@ -568,6 +568,6 @@ def topk_and_argtopk(x, kth, axis=-1, sorted=True, idx_dtype="int64"):
 
     """
     if axis is None:
-        x = theano.tensor.flatten(x)
+        x = aesara.tensor.flatten(x)
         axis = 0
     return TopKOp(axis=axis, sorted=sorted, idx_dtype=idx_dtype)(x, kth)

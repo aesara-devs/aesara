@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# theano documentation build configuration file, created by
+# aesara documentation build configuration file, created by
 # sphinx-quickstart on Tue Oct  7 16:34:06 2008.
 #
 # This file is execfile()d with the current directory set to its containing
@@ -22,10 +22,10 @@
 
 import os
 import sys
-import theano
+import aesara
 
-theano_path = os.path.join(os.path.dirname(__file__), os.pardir)
-sys.path.append(os.path.abspath(theano_path))
+aesara_path = os.path.join(os.path.dirname(__file__), os.pardir)
+sys.path.append(os.path.abspath(aesara_path))
 import versioneer
 
 # General configuration
@@ -66,7 +66,7 @@ source_suffix = '.txt'
 master_doc = 'index'
 
 # General substitutions.
-project = 'Theano'
+project = 'Aesara'
 copyright = '2008--2019, LISA lab'
 
 # The default replacements for |version| and |release|, also used in various
@@ -147,7 +147,7 @@ def setup(app):
 
 # The name of an image file (within the static path) to place at the top of
 # the sidebar.
-html_logo = 'images/theano_logo_allwhite_210x70.png'
+html_logo = 'images/aesara_logo_allwhite_210x70.png'
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -195,7 +195,7 @@ html_use_smartypants = True
 #html_file_suffix = ''
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'theanodoc'
+htmlhelp_basename = 'aesaradoc'
 
 # Options for the linkcode extension
 # ----------------------------------
@@ -211,21 +211,21 @@ def linkcode_resolve(domain, info):
         import inspect
         import os
         fn = inspect.getsourcefile(obj)
-        fn = os.path.relpath(fn, start=os.path.dirname(theano.__file__))
+        fn = os.path.relpath(fn, start=os.path.dirname(aesara.__file__))
         source, lineno = inspect.getsourcelines(obj)
         return fn, lineno, lineno + len(source) - 1
 
     if domain != 'py' or not info['module']:
         return None
     try:
-        filename = 'theano/%s#L%d-L%d' % find_source()
+        filename = 'aesara/%s#L%d-L%d' % find_source()
     except Exception:
         filename = info['module'].replace('.', '/') + '.py'
     import subprocess
     tag = subprocess.Popen(['git', 'rev-parse', 'HEAD'],
                            stdout=subprocess.PIPE,
                            universal_newlines=True).communicate()[0][:-1]
-    return "https://github.com/Theano/theano/blob/%s/%s" % (tag, filename)
+    return "https://github.com/Aesara/aesara/blob/%s/%s" % (tag, filename)
 
 # Options for LaTeX output
 # ------------------------
@@ -245,14 +245,14 @@ latex_elements = {
 # (source start file, target name, title, author, document class
 # [howto/manual]).
 latex_documents = [
-  ('index', 'theano.tex', 'theano Documentation',
+  ('index', 'aesara.tex', 'aesara Documentation',
    'LISA lab, University of Montreal', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
 #latex_logo = 'images/snake_theta2-trans.png'
-latex_logo = 'images/theano_logo_allblue_200x46.png'
+latex_logo = 'images/aesara_logo_allblue_200x46.png'
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.

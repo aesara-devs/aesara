@@ -52,7 +52,7 @@ int dnn_conv_fwd_fallback(cudnnConvolutionFwdAlgo_t* _algo,
         algo == CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING))
   {
     #ifdef DEBUG
-    if (0 != theano_enum_to_string_cudnnConvolutionFwdAlgo_t(algo, algorithm_name))
+    if (0 != aesara_enum_to_string_cudnnConvolutionFwdAlgo_t(algo, algorithm_name))
         return 1;
     fprintf(stderr, "(%s unsupported for 3D: fallback to CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM)\n", algorithm_name);
     #endif
@@ -145,7 +145,7 @@ APPLY_SPECIFIC(conv_fwd)(PyGpuArrayObject *input, PyGpuArrayObject *kerns,
   if (_cppver) fprintf(stderr, "%s\n", _cppver);
   #endif
   #ifdef DEBUG_TIMING
-  TheanoTimer timer;
+  AesaraTimer timer;
   #endif
 
   if (PyGpuArray_DIMS(input)[1] != PyGpuArray_DIMS(kerns)[1] * params->num_groups) {
@@ -179,7 +179,7 @@ APPLY_SPECIFIC(conv_fwd)(PyGpuArrayObject *input, PyGpuArrayObject *kerns,
     *output = om;
     Py_INCREF(*output);
   } else {
-    if (theano_prep_output(output, PyGpuArray_NDIM(om), PyGpuArray_DIMS(om),
+    if (aesara_prep_output(output, PyGpuArray_NDIM(om), PyGpuArray_DIMS(om),
                            om->ga.typecode, GA_C_ORDER, c) != 0)
       return 1;
     if (beta != 0.0 && pygpu_move(*output, om))
@@ -361,7 +361,7 @@ APPLY_SPECIFIC(conv_fwd)(PyGpuArrayObject *input, PyGpuArrayObject *kerns,
     if (err == CUDNN_STATUS_NOT_SUPPORTED) {
       // Fallback to none algo if not supported
       #ifdef DEBUG
-      if (0 != theano_enum_to_string_cudnnConvolutionFwdAlgo_t(algo, algorithm_name)) {
+      if (0 != aesara_enum_to_string_cudnnConvolutionFwdAlgo_t(algo, algorithm_name)) {
         cuda_exit(c->ctx);
         return 1;
       }
@@ -389,7 +389,7 @@ APPLY_SPECIFIC(conv_fwd)(PyGpuArrayObject *input, PyGpuArrayObject *kerns,
   if (params->choose_algo) {
 
 #ifdef DEBUG
-    if (0 != theano_enum_to_string_cudnnConvolutionFwdAlgo_t(algo, algorithm_name)) {
+    if (0 != aesara_enum_to_string_cudnnConvolutionFwdAlgo_t(algo, algorithm_name)) {
       cuda_exit(c->ctx);
       return 1;
     }

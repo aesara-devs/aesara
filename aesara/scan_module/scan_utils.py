@@ -25,15 +25,15 @@ from collections import OrderedDict
 
 import numpy as np
 
-import theano
-from theano import gof, scalar, tensor
-from theano.compile.pfunc import rebuild_collect_shared
-from theano.gof.utils import TestValueError
-from theano.tensor.basic import get_scalar_constant_value
+import aesara
+from aesara import gof, scalar, tensor
+from aesara.compile.pfunc import rebuild_collect_shared
+from aesara.gof.utils import TestValueError
+from aesara.tensor.basic import get_scalar_constant_value
 
 
 # Logging function for sending warning or info
-_logger = logging.getLogger("theano.scan_utils")
+_logger = logging.getLogger("aesara.scan_utils")
 
 
 def safe_new(x, tag="", dtype=None):
@@ -50,7 +50,7 @@ def safe_new(x, tag="", dtype=None):
     else:
         nw_name = None
 
-    if isinstance(x, theano.Constant):
+    if isinstance(x, aesara.Constant):
         if dtype and x.dtype != dtype:
             casted_x = x.astype(dtype)
             nwx = x.__class__(casted_x.type, x.data, x.name)
@@ -67,7 +67,7 @@ def safe_new(x, tag="", dtype=None):
         else:
             nw_x = x.type()
         nw_x.name = nw_name
-        if theano.config.compute_test_value != "off":
+        if aesara.config.compute_test_value != "off":
             # Copy test value, cast it if necessary
             try:
                 x_test_value = gof.op.get_test_value(x)
@@ -94,7 +94,7 @@ def safe_new(x, tag="", dtype=None):
     # The test value is deep-copied to ensure there can be no interactions
     # between test values, due to inplace operations for instance. This may
     # not be the most efficient memory-wise, though.
-    if theano.config.compute_test_value != "off":
+    if aesara.config.compute_test_value != "off":
         try:
             nw_x.tag.test_value = copy.deepcopy(gof.op.get_test_value(x))
         except TestValueError:
@@ -145,9 +145,9 @@ def traverse(out, x, x_copy, d, visited=None):
     if out in visited:
         return d
     visited.add(out)
-    from theano.gpuarray import pygpu_activated
-    from theano.gpuarray.basic_ops import GpuFromHost, host_from_gpu
-    from theano.gpuarray.type import GpuArrayType
+    from aesara.gpuarray import pygpu_activated
+    from aesara.gpuarray.basic_ops import GpuFromHost, host_from_gpu
+    from aesara.gpuarray.type import GpuArrayType
 
     if out == x:
         assert isinstance(x.type, GpuArrayType)
@@ -193,8 +193,8 @@ def clone(
 
     Parameters
     ----------
-    output : Theano Variables (or Theano expressions)
-        Theano expression that represents the computational graph.
+    output : Aesara Variables (or Aesara expressions)
+        Aesara expression that represents the computational graph.
     replace : dict
         Dictionary describing which subgraphs should be replaced by what.
     share_inputs : bool
@@ -323,8 +323,8 @@ def map_variables(replacer, graphs, additional_inputs=None):
             return False
 
         # importing Scan into module scope would be circular
-        from theano.compile import OpFromGraph
-        from theano.scan_module.scan_op import Scan
+        from aesara.compile import OpFromGraph
+        from aesara.scan_module.scan_op import Scan
 
         if isinstance(node.op, (Scan, OpFromGraph)):
             # recurse on the inner graph
@@ -387,8 +387,8 @@ def _map_variables_inner(
 
     from itertools import chain
 
-    from theano import gof
-    from theano.scan_module import scan_utils
+    from aesara import gof
+    from aesara.scan_module import scan_utils
 
     def inner_replacer(graph):
         new_graph = replacer(graph)
@@ -421,7 +421,7 @@ def _map_variables_inner(
 
         for outer_input in foreign_inputs:
             if getattr(outer_input, "update", False):
-                # when theano.scan() constructs a scan node, it detects
+                # when aesara.scan() constructs a scan node, it detects
                 # shared variables with updates and returns these updates
                 # to the user.  we need to do the same thing for every new
                 # use of such a variable that is introduced.  it's hard to
@@ -450,7 +450,7 @@ def _map_variables_inner(
 
         replacements.extend(outer_to_inner.items())
 
-        (new_graph,) = theano.clone(
+        (new_graph,) = aesara.clone(
             [new_graph], share_inputs=True, replace=replacements
         )
         return new_graph
@@ -476,10 +476,10 @@ def get_updates_and_outputs(ls):
 
     def is_outputs(elem):
         if isinstance(elem, (list, tuple)) and all(
-            [isinstance(x, theano.Variable) for x in elem]
+            [isinstance(x, aesara.Variable) for x in elem]
         ):
             return True
-        if isinstance(elem, theano.Variable):
+        if isinstance(elem, aesara.Variable):
             return True
         return False
 
@@ -502,7 +502,7 @@ def get_updates_and_outputs(ls):
         return False
 
     def is_condition(elem):
-        return isinstance(elem, theano.scan_module.until)
+        return isinstance(elem, aesara.scan_module.until)
 
     def _list(x):
         if isinstance(x, (list, tuple)):
@@ -514,8 +514,8 @@ def get_updates_and_outputs(ls):
         """
         Ensure `x` is made only of allowed data types.
 
-        Return True iff `x` is made only of lists, tuples, dictionaries, Theano
-        variables or `theano.scan_module.until` objects.
+        Return True iff `x` is made only of lists, tuples, dictionaries, Aesara
+        variables or `aesara.scan_module.until` objects.
 
         """
         # Is `x` a container we can iterate on?
@@ -527,18 +527,18 @@ def get_updates_and_outputs(ls):
         if iter_on is not None:
             return all(_filter(y) for y in iter_on)
         else:
-            return isinstance(x, theano.Variable) or isinstance(
-                x, theano.scan_module.until
+            return isinstance(x, aesara.Variable) or isinstance(
+                x, aesara.scan_module.until
             )
 
     if not _filter(ls):
         raise ValueError(
             "The return value of your scan lambda expression may only be "
-            "made of lists, tuples, or dictionaries containing Theano "
-            "variables (or `theano.scan_module.until` objects for "
+            "made of lists, tuples, or dictionaries containing Aesara "
+            "variables (or `aesara.scan_module.until` objects for "
             "conditions). In particular if you need to use constant "
             "values, you can use `tensor.constant` to turn them into "
-            "Theano variables."
+            "Aesara variables."
         )
 
     if is_outputs(ls):
@@ -635,7 +635,7 @@ def expand_empty(tensor_var, size):
 
 def infer_shape(outs, inputs, input_shapes):
     """
-    Compute the shape of the outputs given the shape of the inputs of a theano
+    Compute the shape of the outputs given the shape of the inputs of a aesara
     graph.
 
     We do it this way to avoid compiling the inner function just to get
@@ -651,7 +651,7 @@ def infer_shape(outs, inputs, input_shapes):
             assert len(inp_shp) == inp.ndim
 
     shape_feature = tensor.opt.ShapeFeature()
-    shape_feature.on_attach(theano.gof.FunctionGraph([], []))
+    shape_feature.on_attach(aesara.gof.FunctionGraph([], []))
 
     # Initialize shape_of with the input shapes
     for inp, inp_shp in zip(inputs, input_shapes):
@@ -997,9 +997,9 @@ def reconstruct_graph(inputs, outputs, tag=None):
     givens = OrderedDict()
     for nw_x, x in zip(nw_inputs, inputs):
         givens[x] = nw_x
-    allinputs = theano.gof.graph.inputs(outputs)
+    allinputs = aesara.gof.graph.inputs(outputs)
     for inp in allinputs:
-        if isinstance(inp, theano.Constant):
+        if isinstance(inp, aesara.Constant):
             givens[inp] = inp.clone()
 
     nw_outputs = clone(outputs, replace=givens)
@@ -1244,9 +1244,9 @@ def forced_replace(out, x, y):
 
     Parameters
     ----------
-    out : Theano Variable
-    x : Theano Variable
-    y : Theano Variable
+    out : Aesara Variable
+    x : Aesara Variable
+    y : Aesara Variable
 
     Examples
     --------

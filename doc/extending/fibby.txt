@@ -15,9 +15,9 @@ you should check the strides and alignment.
 
 .. testcode::
 
-   import theano
+   import aesara
 
-   class Fibby(theano.Op):
+   class Fibby(aesara.Op):
        """
        An arbitrarily generalized Fibbonacci sequence
        """
@@ -26,7 +26,7 @@ you should check the strides and alignment.
        def make_node(self, x):
            x_ = tensor.as_tensor_variable(x)
            assert x_.ndim == 1
-           return theano.Apply(self,
+           return aesara.Apply(self,
                inputs=[x_],
                outputs=[x_.type()])
            # using x_.type() is dangerous, it copies x's broadcasting behaviour
@@ -77,7 +77,7 @@ TensorType also set up ``dtype_%(x)s`` to be a typdef to the C type for ``x``.
 The first line reduces the reference count of the data that y originally
 pointed to. The second line allocates the new data and makes y point to it.
 
-In C code for a theano op, numpy arrays are represented as ``PyArrayObject`` C
+In C code for a aesara op, numpy arrays are represented as ``PyArrayObject`` C
 structs. This is part of the numpy/scipy C API documented at
 http://docs.scipy.org/doc/numpy/reference/c-api.types-and-structures.html
 
@@ -90,7 +90,7 @@ Writing an Optimization
 
 ``fibby`` of a vector of zeros is another vector of zeros of
 the same size.
-Theano does not attempt to infer this from the code provided via ``Fibby.perform`` or ``Fibby.c_code``.
+Aesara does not attempt to infer this from the code provided via ``Fibby.perform`` or ``Fibby.c_code``.
 However, we can write an optimization that makes use of this observation.
 This sort of local substitution of special cases is common,
 and there is a stage of optimization (specialization) devoted to such optimizations.
@@ -105,11 +105,11 @@ TODO: talk about OPTIMIZATION STAGES
 
 .. testcode::
 
-   from theano.tensor.opt import get_scalar_constant_value, NotScalarConstantError
+   from aesara.tensor.opt import get_scalar_constant_value, NotScalarConstantError
 
    # Remove any fibby(zeros(...))
-   @theano.tensor.opt.register_specialize
-   @theano.gof.local_optimizer([fibby])
+   @aesara.tensor.opt.register_specialize
+   @aesara.gof.local_optimizer([fibby])
    def fibby_of_zero(node):
        if node.op == fibby:
            x = node.inputs[0]
@@ -120,7 +120,7 @@ TODO: talk about OPTIMIZATION STAGES
                pass
 
 The ``register_specialize`` decorator is what activates our optimization, and
-tells Theano to use it in the specialization stage.
+tells Aesara to use it in the specialization stage.
 The ``local_optimizer`` decorator builds a class instance around our global
 function.  The ``[fibby]`` argument is a hint that our optimizer works on nodes
 whose ``.op`` attribute equals ``fibby``.
@@ -137,9 +137,9 @@ Here is some code to test that the optimization is applied only when needed.
 .. testcode::
 
    import numpy
-   import theano.tensor as tt
-   from theano import function
-   from theano import tensor
+   import aesara.tensor as tt
+   from aesara import function
+   from aesara import tensor
 
    # Test it does not apply when not needed
    x = tt.dvector()
@@ -160,9 +160,9 @@ Here is some code to test that the optimization is applied only when needed.
    f_zero()
 
    # Check that the optimization removes the Fibby Op.
-   # For security, the Theano memory interface ensures that the output
+   # For security, the Aesara memory interface ensures that the output
    # of the function is always memory not aliased to the input.
    # That is why there is a DeepCopyOp op.
    topo = f_zero.maker.fgraph.toposort()
    assert len(topo) == 1
-   assert isinstance(topo[0].op, theano.compile.ops.DeepCopyOp)
+   assert isinstance(topo[0].op, aesara.compile.ops.DeepCopyOp)

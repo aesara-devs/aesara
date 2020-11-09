@@ -1,7 +1,7 @@
 """
-To update the scan Cython code in Theano you must
+To update the scan Cython code in Aesara you must
 - update the version in this file and scan_perform.py
-- call "cd theano/scan_module/; cython scan_perform.pyx; patch scan_perform.c numpy_api_changes.diff"
+- call "cd aesara/scan_module/; cython scan_perform.pyx; patch scan_perform.c numpy_api_changes.diff"
 
 """
 
@@ -15,13 +15,13 @@ from importlib import reload
 
 import numpy as np
 
-import theano
-from theano import config
-from theano.gof import cmodule
-from theano.gof.compilelock import get_lock, release_lock
+import aesara
+from aesara import config
+from aesara.gof import cmodule
+from aesara.gof.compilelock import get_lock, release_lock
 
 
-_logger = logging.getLogger("theano.scan_module.scan_perform")
+_logger = logging.getLogger("aesara.scan_module.scan_perform")
 
 
 version = 0.296  # must match constant returned in function get_version()
@@ -64,12 +64,12 @@ except ImportError:
             if version != getattr(scan_perform, "_version", None):
                 raise ImportError()
         except ImportError:
-            if not theano.config.cxx:
+            if not aesara.config.cxx:
                 raise ImportError("no c compiler, can't compile cython code")
             _logger.info("Compiling C code for scan")
             dirname = "scan_perform"
             cfile = os.path.join(
-                theano.__path__[0], "scan_module", "c_code", "scan_perform.c"
+                aesara.__path__[0], "scan_module", "c_code", "scan_perform.c"
             )
             if not os.path.exists(cfile):
                 # This can happen in not normal case. We just
@@ -78,9 +78,9 @@ except ImportError:
                 warnings.warn(
                     "The file scan_perform.c is not available. This do"
                     "not happen normally. You are probably in a strange"
-                    "setup. This mean Theano can not use the cython code for "
+                    "setup. This mean Aesara can not use the cython code for "
                     "scan. If you"
-                    "want to remove this warning, use the Theano flag"
+                    "want to remove this warning, use the Aesara flag"
                     "'cxx=' (set to an empty string) to disable all c"
                     "code generation."
                 )
@@ -100,7 +100,7 @@ except ImportError:
             preargs += cmodule.GCC_compiler.compile_args()
             # Cython 19.1 always use the old NumPy interface.  So we
             # need to manually modify the .c file to get it compiled
-            # by Theano. As by default, we tell NumPy to don't import
+            # by Aesara. As by default, we tell NumPy to don't import
             # the old interface.
             if False:
                 # During scan cython development, it is helpful to keep the old interface, to don't manually edit the c file each time.

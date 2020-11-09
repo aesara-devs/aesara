@@ -1,10 +1,10 @@
 import numpy as np
 
-import theano
-from theano.gof.graph import Apply
-from theano.gof.op import Op
-from theano.gradient import grad_undefined
-from theano.tensor.basic import discrete_dtypes
+import aesara
+from aesara.gof.graph import Apply
+from aesara.gof.op import Op
+from aesara.gradient import grad_undefined
+from aesara.tensor.basic import discrete_dtypes
 
 
 class SparseBlockGemv(Op):
@@ -73,11 +73,11 @@ class SparseBlockGemv(Op):
             Which blocks will be computed is specified in `outputIdx`.
 
         """
-        o = theano.tensor.as_tensor_variable(o)
-        W = theano.tensor.as_tensor_variable(W)
-        h = theano.tensor.as_tensor_variable(h)
-        inputIdx = theano.tensor.as_tensor_variable(inputIdx)
-        outputIdx = theano.tensor.as_tensor_variable(outputIdx)
+        o = aesara.tensor.as_tensor_variable(o)
+        W = aesara.tensor.as_tensor_variable(W)
+        h = aesara.tensor.as_tensor_variable(h)
+        inputIdx = aesara.tensor.as_tensor_variable(inputIdx)
+        outputIdx = aesara.tensor.as_tensor_variable(outputIdx)
 
         if o.ndim != 3:
             raise TypeError("The output o must be a 2D tensor")
@@ -190,10 +190,10 @@ class SparseBlockOuter(Op):
           Which blocks will be computed is specified in `yIdx`.
 
         """
-        one = theano.tensor.constant(np.asarray(1.0, dtype="float32"))
-        o = theano.tensor.as_tensor_variable(o)
-        x = theano.tensor.as_tensor_variable(x)
-        y = theano.tensor.as_tensor_variable(y)
+        one = aesara.tensor.constant(np.asarray(1.0, dtype="float32"))
+        o = aesara.tensor.as_tensor_variable(o)
+        x = aesara.tensor.as_tensor_variable(x)
+        y = aesara.tensor.as_tensor_variable(y)
 
         if alpha is None:
             alpha = one

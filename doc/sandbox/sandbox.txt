@@ -35,7 +35,7 @@ Gradients for a particular variable can be one of four kinds:
 
 You will get an exception of the following form.
 
-theano.gof.utils.MethodNotDefined: ('grad', <class 'pylearn.algorithms.sandbox.cost.LogFactorial'>, 'LogFactorial')
+aesara.gof.utils.MethodNotDefined: ('grad', <class 'pylearn.algorithms.sandbox.cost.LogFactorial'>, 'LogFactorial')
 
 2) a symbolic variable
 3) None / zero
@@ -72,7 +72,7 @@ should be encouraged where possible.**
 how do we write scalar ops and upgrade them to tensor ops?
 ============================================================
 
-**Olivier says that** :class:`~theano.tensor.xlogx.XlogX` **gives a good example. In fact, I would
+**Olivier says that** :class:`~aesara.tensor.xlogx.XlogX` **gives a good example. In fact, I would
 like to beef xlogx up into our running example for demonstrating how to
 write an Op:**
 
@@ -147,7 +147,7 @@ More simple numpy stuff
         ``x.reshape(x.size)``
         You can also use ``resize`` but there is not reason to ''resize''
     * How do you convert the type of a numpy array?
-        ``theano._asarray(x, dtype = 'int32')``
+        ``aesara._asarray(x, dtype = 'int32')``
         Note that using ``numpy.asarray`` is potentially dangerous, due to
         a problem in numpy where the type may not be properly set (see
         numpy's Track ticket #870).
@@ -157,5 +157,5 @@ More simple numpy stuff
 How to reuse (overwrite) a storage tensor
 =========================================
 
-``theano.compile.io.Out(gw1, borrow = True)`` for that value in
+``aesara.compile.io.Out(gw1, borrow = True)`` for that value in
 ``compile.function``

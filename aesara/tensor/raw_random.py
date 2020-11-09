@@ -7,10 +7,10 @@ from functools import reduce
 
 import numpy as np
 
-import theano
-from theano import gof, tensor
-from theano.compile import optdb
-from theano.tensor import opt
+import aesara
+from aesara import gof, tensor
+from aesara.compile import optdb
+from aesara.tensor import opt
 
 
 __docformat__ = "restructuredtext en"
@@ -87,7 +87,7 @@ class RandomStateType(gof.Type):
 
 
 # Register RandomStateType's C code for ViewOp.
-theano.compile.register_view_op_c_code(
+aesara.compile.register_view_op_c_code(
     RandomStateType,
     """
     Py_XDECREF(%(oname)s);
@@ -115,7 +115,7 @@ class RandomFunction(gof.Op):
         the shape (sometimes called size) of the output as the last
         positional argument.
     outtype
-        The theano Type of the output.
+        The aesara Type of the output.
     args
         A list of default arguments for the function
         kwargs
@@ -262,7 +262,7 @@ class RandomFunction(gof.Op):
             not isinstance(rval, np.ndarray)
             or str(rval.dtype) != node.outputs[1].type.dtype
         ):
-            rval = theano._asarray(rval, dtype=node.outputs[1].type.dtype)
+            rval = aesara._asarray(rval, dtype=node.outputs[1].type.dtype)
 
         # When shape is None, numpy has a tendency to unexpectedly
         # return a scalar instead of a higher-dimension array containing
@@ -295,7 +295,7 @@ class RandomFunction(gof.Op):
 
     def grad(self, inputs, outputs):
         return [
-            theano.gradient.grad_undefined(
+            aesara.gradient.grad_undefined(
                 self, k, inp, "No gradient defined through raw random numbers op"
             )
             for k, inp in enumerate(inputs)
@@ -410,7 +410,7 @@ def _infer_ndim_bcast(ndim, shape, *args):
     if v_shape.ndim != 1:
         raise TypeError("shape must be a vector or list of scalar, got '%s'" % v_shape)
 
-    if v_shape.dtype not in theano.tensor.integer_dtypes:
+    if v_shape.dtype not in aesara.tensor.integer_dtypes:
         raise TypeError("shape must be an integer vector or list", v_shape.dtype)
 
     if args_ndim > ndim:
@@ -490,7 +490,7 @@ def uniform(random_state, size=None, low=0.0, high=1.0, ndim=None, dtype=None):
     low = tensor.as_tensor_variable(low)
     high = tensor.as_tensor_variable(high)
     if dtype is None:
-        dtype = tensor.scal.upcast(theano.config.floatX, low.dtype, high.dtype)
+        dtype = tensor.scal.upcast(aesara.config.floatX, low.dtype, high.dtype)
     ndim, size, bcast = _infer_ndim_bcast(ndim, size, low, high)
     op = RandomFunction("uniform", tensor.TensorType(dtype=dtype, broadcastable=bcast))
     return op(random_state, size, low, high)
@@ -514,7 +514,7 @@ def normal(random_state, size=None, avg=0.0, std=1.0, ndim=None, dtype=None):
     avg = tensor.as_tensor_variable(avg)
     std = tensor.as_tensor_variable(std)
     if dtype is None:
-        dtype = tensor.scal.upcast(theano.config.floatX, avg.dtype, std.dtype)
+        dtype = tensor.scal.upcast(aesara.config.floatX, avg.dtype, std.dtype)
     ndim, size, bcast = _infer_ndim_bcast(ndim, size, avg, std)
     op = RandomFunction("normal", tensor.TensorType(dtype=dtype, broadcastable=bcast))
     return op(random_state, size, avg, std)
@@ -750,7 +750,7 @@ def permutation(random_state, size=None, n=1, ndim=None, dtype="int64"):
     p*q permutations will be generated, and the output shape will be (p,q,n),
     because each permutation is of size n.
 
-    Theano tries to infer the number of dimensions from the length of
+    Aesara tries to infer the number of dimensions from the length of
     the size argument and the shape of n, but you may always specify it
     with the `ndim` parameter.
 
@@ -1039,7 +1039,7 @@ class RandomStreamsBase:
         and the output shape will be (p,q,n), because each
         permutation is of size n.
 
-        Theano tries to infer the number of dimensions from the length
+        Aesara tries to infer the number of dimensions from the length
         of the size argument and the shape of n, but you may always
         specify it with the `ndim` parameter.
 
@@ -1057,7 +1057,7 @@ class RandomStreamsBase:
         instance, if size=(p,q), p*q samples will be drawn, and the
         output shape will be (p,q,len(pvals)).
 
-        Theano tries to infer the number of dimensions from the length
+        Aesara tries to infer the number of dimensions from the length
         of the size argument and the shapes of n and pvals, but you may
         always specify it with the `ndim` parameter.
 

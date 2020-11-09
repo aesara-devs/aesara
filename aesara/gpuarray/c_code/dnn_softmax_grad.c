@@ -50,7 +50,7 @@ int APPLY_SPECIFIC(softmax_grad)(PyGpuArrayObject *dy,
   PyGpuContextObject *c = dy->context;
   cudnnStatus_t err;
 
-  if (theano_prep_output(dx, PyGpuArray_NDIM(dy),
+  if (aesara_prep_output(dx, PyGpuArray_NDIM(dy),
                          PyGpuArray_DIMS(dy), dy->ga.typecode,
                          GA_C_ORDER, c) != 0)
     return 1;

@@ -5,7 +5,7 @@ Helper function to safely convert an array to a new data type.
 
 import numpy as np
 
-import theano
+import aesara
 
 
 __docformat__ = "restructuredtext en"
@@ -27,10 +27,10 @@ def _asarray(a, dtype, order=None):
 
     This function's name starts with a '_' to indicate that it is meant to be
     used internally. It is imported so as to be available directly through
-        theano._asarray
+        aesara._asarray
     """
     if str(dtype) == "floatX":
-        dtype = theano.config.floatX
+        dtype = aesara.config.floatX
     dtype = np.dtype(dtype)  # Convert into dtype object.
     rval = np.asarray(a, dtype=dtype, order=order)
     # Note that dtype comparison must be done by comparing their `num`
@@ -51,7 +51,7 @@ def _asarray(a, dtype, order=None):
                 "numpy.array did not return the data type we "
                 "asked for (%s %s #%s), instead it returned type "
                 "%s %s #%s: function "
-                "theano._asarray may need to be modified to handle this "
+                "aesara._asarray may need to be modified to handle this "
                 "data type."
                 % (dtype, dtype.str, dtype.num, rval.dtype, rval.str, rval.dtype.num)
             )

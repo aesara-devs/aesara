@@ -1,10 +1,10 @@
 import numpy as np
 import scipy
 
-import theano
-from theano import gof, scalar, tensor
-from theano.sparse import basic as sparse
-from theano.sparse.basic import (
+import aesara
+from aesara import gof, scalar, tensor
+from aesara.sparse import basic as sparse
+from aesara.sparse.basic import (
     CSC,
     CSR,
     csm_data,
@@ -14,8 +14,8 @@ from theano.sparse.basic import (
     csm_properties,
     usmm,
 )
-from theano.tensor import blas
-from theano.tensor.opt import register_canonicalize, register_specialize
+from aesara.tensor import blas
+from aesara.tensor.opt import register_canonicalize, register_specialize
 
 
 _is_sparse_variable = sparse._is_sparse_variable
@@ -37,7 +37,7 @@ def local_csm_properties_csm(node):
             # csm.owner.inputs could be broadcastable. In that case, we have
             # to adjust the broadcasting flag here.
             ret_var = [
-                theano.tensor.patternbroadcast(i, o.broadcastable)
+                aesara.tensor.patternbroadcast(i, o.broadcastable)
                 for i, o in zip(csm.owner.inputs, node.outputs)
             ]
             return ret_var
@@ -64,7 +64,7 @@ def local_inplace_remove0(node):
     return False
 
 
-theano.compile.optdb.register(
+aesara.compile.optdb.register(
     "local_inplace_remove0",
     gof.TopoOptimizer(
         local_inplace_remove0, failure_callback=gof.TopoOptimizer.warn_inplace
@@ -194,7 +194,7 @@ def local_inplace_addsd_ccode(node):
     Optimization to insert inplace versions of AddSD.
 
     """
-    if isinstance(node.op, sparse.AddSD) and theano.config.cxx:
+    if isinstance(node.op, sparse.AddSD) and aesara.config.cxx:
         out_dtype = scalar.upcast(*node.inputs)
         if out_dtype != node.inputs[1].dtype:
             return
@@ -205,7 +205,7 @@ def local_inplace_addsd_ccode(node):
     return False
 
 
-theano.compile.optdb.register(
+aesara.compile.optdb.register(
     "local_inplace_addsd_ccode",
     gof.TopoOptimizer(
         local_inplace_addsd_ccode, failure_callback=gof.TopoOptimizer.warn_inplace
@@ -232,13 +232,13 @@ def local_addsd_ccode(node):
     Convert AddSD to faster AddSD_ccode.
 
     """
-    if isinstance(node.op, sparse.AddSD) and theano.config.cxx:
+    if isinstance(node.op, sparse.AddSD) and aesara.config.cxx:
         new_node = AddSD_ccode(format=node.inputs[0].type.format)(*node.inputs)
         return [new_node]
     return False
 
 
-theano.compile.optdb.register(
+aesara.compile.optdb.register(
     "local_addsd_ccode",
     gof.TopoOptimizer(local_addsd_ccode),
     # Must be after local_inplace_addsd_ccode at 60
@@ -291,7 +291,7 @@ class StructuredDotCSC(gof.Op):
             (a_val, a_ind, a_ptr), (a_nrows, b.shape[0]), copy=False
         )
         # out[0] = a.dot(b)
-        out[0] = theano._asarray(a * b, dtype=node.outputs[0].type.dtype)
+        out[0] = aesara._asarray(a * b, dtype=node.outputs[0].type.dtype)
         assert _is_dense(out[0])  # scipy 0.7 automatically converts to dense
 
     def c_code(self, node, name, inputs, outputs, sub):
@@ -930,20 +930,20 @@ usmm_csc_dense_inplace = UsmmCscDense(inplace=True)
 # This is tested in tests/test_basic.py:UsmmTests
 local_usmm = gof.opt.PatternSub(
     (
-        theano.tensor.sub,
+        aesara.tensor.sub,
         "z",
         (
-            theano.tensor.mul,
+            aesara.tensor.mul,
             {
                 "pattern": "alpha",
                 "constraint": lambda expr: (
-                    np.all(expr.type.broadcastable) and theano.config.blas.ldflags
+                    np.all(expr.type.broadcastable) and aesara.config.blas.ldflags
                 ),
             },
             (sparse._dot, "x", "y"),
         ),
     ),
-    (usmm, (theano.tensor.neg, "alpha"), "x", "y", "z"),
+    (usmm, (aesara.tensor.neg, "alpha"), "x", "y", "z"),
 )
 register_specialize(local_usmm, name="local_usmm")
 
@@ -2057,7 +2057,7 @@ sampling_dot_csr = SamplingDotCSR()
 # register a specialization to replace SamplingDot -> SamplingDotCsr
 @gof.local_optimizer([sparse.sampling_dot])
 def local_sampling_dot_csr(node):
-    if not theano.config.blas.ldflags:
+    if not aesara.config.blas.ldflags:
         # The C implementation of SamplingDotCsr relies on BLAS routines
         return
     if node.op == sparse.sampling_dot:

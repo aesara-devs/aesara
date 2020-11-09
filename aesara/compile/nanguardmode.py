@@ -4,23 +4,23 @@ from io import StringIO
 
 import numpy as np
 
-import theano
-import theano.tensor as tt
-from theano import config
-from theano.compile.mode import Mode, get_mode
+import aesara
+import aesara.tensor as tt
+from aesara import config
+from aesara.compile.mode import Mode, get_mode
 
 
 try:
     from pygpu.gpuarray import GpuArray
 
-    from theano.gpuarray.type import GpuArrayType, _name_for_ctx
+    from aesara.gpuarray.type import GpuArrayType, _name_for_ctx
 
     pygpu_available = True
 except ImportError:
     pygpu_available = False
 
 
-logger = logging.getLogger("theano.compile.nanguardmode")
+logger = logging.getLogger("aesara.compile.nanguardmode")
 
 
 def _is_numeric_value(arr, var):
@@ -30,8 +30,8 @@ def _is_numeric_value(arr, var):
 
     Parameters
     ----------
-    arr : the data of that correspond to any Theano Variable
-    var : The corresponding Theano variable
+    arr : the data of that correspond to any Aesara Variable
+    var : The corresponding Aesara variable
 
     Returns
     -------
@@ -39,7 +39,7 @@ def _is_numeric_value(arr, var):
         `True` the value is non-numeric.
 
     """
-    if isinstance(arr, theano.gof.type._cdata_type):
+    if isinstance(arr, aesara.gof.type._cdata_type):
         return False
     elif isinstance(arr, np.random.mtrand.RandomState):
         return False
@@ -87,10 +87,10 @@ def contains_nan(arr, node=None, var=None):
 
     Parameters
     ----------
-    arr : np.ndarray or output of any Theano op
+    arr : np.ndarray or output of any Aesara op
     node : None or an Apply instance.
-        If arr is the output of a Theano op, the node associated to it.
-    var : The Theano symbolic variable.
+        If arr is the output of a Aesara op, the node associated to it.
+    var : The Aesara symbolic variable.
 
     Returns
     -------
@@ -121,10 +121,10 @@ def contains_inf(arr, node=None, var=None):
 
     Parameters
     ----------
-    arr : np.ndarray or output of any Theano op
+    arr : np.ndarray or output of any Aesara op
     node : None or an Apply instance.
-        If the output of a Theano op, the node associated to it.
-    var : The Theano symbolic variable.
+        If the output of a Aesara op, the node associated to it.
+    var : The Aesara symbolic variable.
 
     Returns
     -------
@@ -161,7 +161,7 @@ def f_compute(op):
         if f is None:
             guard_in = GpuArrayType(str(dtype), (False,), context_name=ctx_name)()
             mode = get_mode("FAST_RUN").including("gpuarray")
-            f = theano.function([guard_in], op(guard_in), mode=mode, profile=False)
+            f = aesara.function([guard_in], op(guard_in), mode=mode, profile=False)
             result.cache[key] = f
         return f(inp)
 
@@ -176,7 +176,7 @@ f_gpua_absmax = f_compute(lambda x: tt.max(tt.abs_(x)))
 
 class NanGuardMode(Mode):
     """
-    A Theano compilation Mode that makes the compiled function automatically
+    A Aesara compilation Mode that makes the compiled function automatically
     detect NaNs and Infs and detect an error if they occur.
 
     Parameters
@@ -225,9 +225,9 @@ class NanGuardMode(Mode):
             ----------
             value : numpy.ndarray
                 The value to be checked.
-            nd : theano.gof.Apply
+            nd : aesara.gof.Apply
                 The Apply node being executed.
-            var : theano.gof.Variable
+            var : aesara.gof.Variable
                 Not used if nd is there. Otherwise, used to print the stack
                 trace for inputs of the graph.
 
@@ -260,7 +260,7 @@ class NanGuardMode(Mode):
                         "output of a node in this variable:",
                         file=sio,
                     )
-                    print(theano.printing.debugprint(nd, file="str"), file=sio)
+                    print(aesara.printing.debugprint(nd, file="str"), file=sio)
                 else:
                     print(
                         "NanGuardMode found an error in an input of the " "graph.",
@@ -269,7 +269,7 @@ class NanGuardMode(Mode):
                 # Add the stack trace
                 if nd:
                     var = nd.outputs[0]
-                print(theano.gof.utils.get_variable_trace_string(var), file=sio)
+                print(aesara.gof.utils.get_variable_trace_string(var), file=sio)
                 msg = sio.getvalue()
                 if config.NanGuardMode.action == "raise":
                     raise AssertionError(msg)
@@ -292,7 +292,7 @@ class NanGuardMode(Mode):
             if getattr(var.tag, "nan_guard_mode_check", True):
                 do_check_on(value, None, var=var)
 
-        wrap_linker = theano.gof.vm.VM_Linker(
+        wrap_linker = aesara.gof.vm.VM_Linker(
             callback=nan_check, callback_input=nan_check_input
         )
         super().__init__(wrap_linker, optimizer=self.provided_optimizer)

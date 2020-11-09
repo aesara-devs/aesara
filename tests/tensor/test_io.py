@@ -3,14 +3,14 @@ import os
 import numpy as np
 import pytest
 
-import theano
-from theano import Generic, Variable, function, tensor
+import aesara
+from aesara import Generic, Variable, function, tensor
 
 
 class TestLoadTensor:
     def setup_method(self):
         self.data = np.arange(5, dtype=np.int32)
-        self.filename = os.path.join(theano.config.compiledir, "_test.npy")
+        self.filename = os.path.join(aesara.config.compiledir, "_test.npy")
         np.save(self.filename, self.data)
 
     def test_basic(self):
@@ -23,7 +23,7 @@ class TestLoadTensor:
         assert (fn(self.filename) == (self.data * 2)).all()
 
     def test_invalid_modes(self):
-        # Modes 'r+', 'r', and 'w+' cannot work with Theano, becausei
+        # Modes 'r+', 'r', and 'w+' cannot work with Aesara, becausei
         # the output array may be modified inplace, and that should not
         # modify the original file.
         path = Variable(Generic())
@@ -51,4 +51,4 @@ class TestLoadTensor:
         assert type(fn(self.filename)) == np.core.memmap
 
     def teardown_method(self):
-        os.remove(os.path.join(theano.config.compiledir, "_test.npy"))
+        os.remove(os.path.join(aesara.config.compiledir, "_test.npy"))

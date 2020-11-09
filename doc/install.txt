@@ -1,6 +1,6 @@
 .. _install:
 
-Installing Theano 
+Installing Aesara 
 =================
 
 Supported platforms:

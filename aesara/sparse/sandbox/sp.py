@@ -11,13 +11,13 @@ U{http://www-users.cs.umn.edu/~saad/software/SPARSKIT/paper.ps}.
 import numpy as np
 from scipy import sparse as scipy_sparse
 
-import theano
-import theano.sparse
-from theano import Op, sparse, tensor
+import aesara
+import aesara.sparse
+from aesara import Op, sparse, tensor
 
 
 def register_specialize(lopt, *tags, **kwargs):
-    theano.compile.optdb["specialize"].register(
+    aesara.compile.optdb["specialize"].register(
         (kwargs and kwargs.pop("name")) or lopt.__name__, lopt, "fast_run", *tags
     )
 
@@ -343,7 +343,7 @@ def convolve(
     )
 
     # build sparse matrix, then generate stack of image patches
-    csc = theano.sparse.CSM(sptype)(np.ones(indices.size), indices, indptr, spmat_shape)
+    csc = aesara.sparse.CSM(sptype)(np.ones(indices.size), indices, indptr, spmat_shape)
     patches = (sparse.structured_dot(csc, images.T)).T
 
     # compute output of linear classifier
@@ -412,7 +412,7 @@ def max_pool(images, imgshp, maxpoolshp):
     #    print 'outshp = ', outshp
 
     # build sparse matrix, then generate stack of image patches
-    csc = theano.sparse.CSM(sptype)(np.ones(indices.size), indices, indptr, spmat_shape)
+    csc = aesara.sparse.CSM(sptype)(np.ones(indices.size), indices, indptr, spmat_shape)
     patches = sparse.structured_dot(csc, images.T).T
 
     pshape = tensor.stack(

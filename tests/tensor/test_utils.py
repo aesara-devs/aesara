@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-import theano
-from theano.tensor.utils import hash_from_ndarray, shape_of_variables
+import aesara
+from aesara.tensor.utils import hash_from_ndarray, shape_of_variables
 
 
 def test_hash_from_ndarray():
@@ -49,29 +49,29 @@ def test_hash_from_ndarray():
 
 class TestShapeOfVariables:
     def test_simple(self):
-        x = theano.tensor.matrix("x")
+        x = aesara.tensor.matrix("x")
         y = x + x
-        fgraph = theano.FunctionGraph([x], [y], clone=False)
+        fgraph = aesara.FunctionGraph([x], [y], clone=False)
         shapes = shape_of_variables(fgraph, {x: (5, 5)})
         assert shapes == {x: (5, 5), y: (5, 5)}
 
-        x = theano.tensor.matrix("x")
-        y = theano.tensor.dot(x, x.T)
-        fgraph = theano.FunctionGraph([x], [y], clone=False)
+        x = aesara.tensor.matrix("x")
+        y = aesara.tensor.dot(x, x.T)
+        fgraph = aesara.FunctionGraph([x], [y], clone=False)
         shapes = shape_of_variables(fgraph, {x: (5, 1)})
         assert shapes[x] == (5, 1)
         assert shapes[y] == (5, 5)
 
     def test_subtensor(self):
-        x = theano.tensor.matrix("x")
+        x = aesara.tensor.matrix("x")
         subx = x[1:]
-        fgraph = theano.FunctionGraph([x], [subx], clone=False)
+        fgraph = aesara.FunctionGraph([x], [subx], clone=False)
         shapes = shape_of_variables(fgraph, {x: (10, 10)})
         assert shapes[subx] == (9, 10)
 
     def test_err(self):
-        x = theano.tensor.matrix("x")
+        x = aesara.tensor.matrix("x")
         subx = x[1:]
-        fgraph = theano.FunctionGraph([x], [subx])
+        fgraph = aesara.FunctionGraph([x], [subx])
         with pytest.raises(ValueError):
             shape_of_variables(fgraph, {x: (10, 10)})

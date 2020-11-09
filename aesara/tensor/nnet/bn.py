@@ -1,30 +1,30 @@
 import numpy as np
 
-import theano
-from theano.gof.graph import Apply
-from theano.gof.op import Op
-from theano.gof.opt import copy_stack_trace, local_optimizer
-from theano.scalar import Composite, add, as_common_dtype, mul, sub, true_div
+import aesara
+from aesara.gof.graph import Apply
+from aesara.gof.op import Op
+from aesara.gof.opt import copy_stack_trace, local_optimizer
+from aesara.scalar import Composite, add, as_common_dtype, mul, sub, true_div
 
-# Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
-from theano.tensor import basic as tt
-from theano.tensor.basic import as_tensor_variable
-from theano.tensor.elemwise import Elemwise
-from theano.tensor.opt import register_specialize_device
-from theano.tensor.type import TensorType
+# Work-around for Python 3.6 issue that prevents `import aesara.tensor as tt`
+from aesara.tensor import basic as tt
+from aesara.tensor.basic import as_tensor_variable
+from aesara.tensor.elemwise import Elemwise
+from aesara.tensor.opt import register_specialize_device
+from aesara.tensor.type import TensorType
 
 
 class BNComposite(Composite):
     init_param = ("dtype",)
 
-    @theano.change_flags(compute_test_value="off")
+    @aesara.change_flags(compute_test_value="off")
     def __init__(self, dtype):
         self.dtype = dtype
-        x = theano.scalar.Scalar(dtype=dtype).make_variable()
-        mean = theano.scalar.Scalar(dtype=dtype).make_variable()
-        std = theano.scalar.Scalar(dtype=dtype).make_variable()
-        gamma = theano.scalar.Scalar(dtype=dtype).make_variable()
-        beta = theano.scalar.Scalar(dtype=dtype).make_variable()
+        x = aesara.scalar.Scalar(dtype=dtype).make_variable()
+        mean = aesara.scalar.Scalar(dtype=dtype).make_variable()
+        std = aesara.scalar.Scalar(dtype=dtype).make_variable()
+        gamma = aesara.scalar.Scalar(dtype=dtype).make_variable()
+        beta = aesara.scalar.Scalar(dtype=dtype).make_variable()
         o = add(mul(true_div(sub(x, mean), std), gamma), beta)
         inputs = [x, mean, std, gamma, beta]
         outputs = [o]
@@ -229,7 +229,7 @@ def batch_normalization_train(
 
     # epsilon will be converted to floatX later. we need to check
     # for rounding errors now, since numpy.float32(1e-5) < 1e-5.
-    epsilon = np.cast[theano.config.floatX](epsilon)
+    epsilon = np.cast[aesara.config.floatX](epsilon)
     if epsilon < 1e-5:
         raise ValueError("epsilon must be at least 1e-5, got %s" % str(epsilon))
 
@@ -363,7 +363,7 @@ def batch_normalization_test(
 
     # epsilon will be converted to floatX later. we need to check
     # for rounding errors now, since numpy.float32(1e-5) < 1e-5.
-    epsilon = np.cast[theano.config.floatX](epsilon)
+    epsilon = np.cast[aesara.config.floatX](epsilon)
     if epsilon < 1e-5:
         raise ValueError("epsilon must be at least 1e-5, got %s" % str(epsilon))
 
@@ -483,12 +483,12 @@ class AbstractBatchNormTrain(Op):
         dy = grads[0]
         _, x_mean, x_invstd = outputs[:3]
         disconnected_outputs = [
-            theano.gradient.DisconnectedType()(),  # epsilon
-            theano.gradient.DisconnectedType()(),
+            aesara.gradient.DisconnectedType()(),  # epsilon
+            aesara.gradient.DisconnectedType()(),
         ]  # running_average_factor
         # Optional running_mean and running_var.
         for i in range(5, len(inputs)):
-            disconnected_outputs.append(theano.gradient.DisconnectedType()())
+            disconnected_outputs.append(aesara.gradient.DisconnectedType()())
         return (
             AbstractBatchNormTrainGrad(self.axes)(
                 x, dy, scale, x_mean, x_invstd, epsilon
@@ -628,7 +628,7 @@ class AbstractBatchNormInference(Op):
         dvar = -(dy * (x - est_mean)).sum(axes, keepdims=True) * (
             scale / (two * est_var_eps * est_std)
         )
-        return [dx, dscale, dbias, dmean, dvar, theano.gradient.DisconnectedType()()]
+        return [dx, dscale, dbias, dmean, dvar, aesara.gradient.DisconnectedType()()]
 
     def connection_pattern(self, node):
         # Specificy that epsilon is not connected to outputs.
@@ -683,7 +683,7 @@ class AbstractBatchNormTrainGrad(Op):
         g_wrt_x_mean = 0
         g_wrt_x_invstd = 0
 
-        if not isinstance(ddinputs.type, theano.gradient.DisconnectedType):
+        if not isinstance(ddinputs.type, aesara.gradient.DisconnectedType):
             ccc = scale * (ddinputs - tt.mean(ddinputs, axis=self.axes, keepdims=True))
             ddd = (x_invstd ** 3) * (
                 ccc * tt.mean(dy * x_diff, axis=self.axes, keepdims=True)
@@ -714,7 +714,7 @@ class AbstractBatchNormTrainGrad(Op):
                 keepdims=True,
             )
 
-        if not isinstance(ddscale.type, theano.gradient.DisconnectedType):
+        if not isinstance(ddscale.type, aesara.gradient.DisconnectedType):
             g_wrt_x = g_wrt_x + (x_invstd * ddscale * dy)
             g_wrt_dy = g_wrt_dy + (x_invstd * ddscale * x_diff)
             g_wrt_x_mean = g_wrt_x_mean - (
@@ -724,7 +724,7 @@ class AbstractBatchNormTrainGrad(Op):
                 ddscale * tt.sum(dy * x_diff, axis=self.axes, keepdims=True)
             )
 
-        if not isinstance(ddbias.type, theano.gradient.DisconnectedType):
+        if not isinstance(ddbias.type, aesara.gradient.DisconnectedType):
             g_wrt_dy = g_wrt_dy + tt.fill(dy, ddbias)
 
         # depending on which output gradients are given,
@@ -735,10 +735,10 @@ class AbstractBatchNormTrainGrad(Op):
             g_wrt_scale,
             g_wrt_x_mean,
             g_wrt_x_invstd,
-            theano.gradient.DisconnectedType()(),
+            aesara.gradient.DisconnectedType()(),
         ]
         return [
-            theano.gradient.DisconnectedType()() if (type(r) == int and r == 0) else r
+            aesara.gradient.DisconnectedType()() if (type(r) == int and r == 0) else r
             for r in results
         ]
 
@@ -817,7 +817,7 @@ def local_abstract_batch_norm_train(node):
         )
         results.append(running_mean)
     if len(node.inputs) > 6:
-        m = tt.cast(tt.prod(x.shape) / tt.prod(scale.shape), theano.config.floatX)
+        m = tt.cast(tt.prod(x.shape) / tt.prod(scale.shape), aesara.config.floatX)
         running_var = node.inputs[6]
         running_var = (
             running_var * (1.0 - running_average_factor)
@@ -830,7 +830,7 @@ def local_abstract_batch_norm_train(node):
         for (r, r_orig) in zip(results, node.outputs)
     ]
 
-    for var in theano.gof.graph.variables(node.inputs, results):
+    for var in aesara.gof.graph.variables(node.inputs, results):
         if var not in node.inputs:
             copy_stack_trace(node.outputs[0], var)
     return results
@@ -869,7 +869,7 @@ def local_abstract_batch_norm_train_grad(node):
         for (r, r_orig) in zip(results, node.outputs)
     ]
 
-    for var in theano.gof.graph.variables(node.inputs, results):
+    for var in aesara.gof.graph.variables(node.inputs, results):
         if var not in node.inputs:
             copy_stack_trace(node.outputs[0], var)
     return results
@@ -901,14 +901,14 @@ def local_abstract_batch_norm_inference(node):
     ) + bias
     result = tt.patternbroadcast(result, node.outputs[0].broadcastable)
 
-    for var in theano.gof.graph.variables(node.inputs, [result]):
+    for var in aesara.gof.graph.variables(node.inputs, [result]):
         if var not in node.inputs:
             copy_stack_trace(node.outputs[0], var)
     return [result]
 
 
 # Register Cpu Optmization
-bn_groupopt = theano.gof.optdb.LocalGroupDB()
+bn_groupopt = aesara.gof.optdb.LocalGroupDB()
 bn_groupopt.__name__ = "batchnorm_opts"
 register_specialize_device(bn_groupopt, "fast_compile", "fast_run")
 

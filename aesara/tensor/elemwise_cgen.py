@@ -1,4 +1,4 @@
-import theano
+import aesara
 
 
 def make_declare(loop_orders, dtypes, sub):
@@ -239,7 +239,7 @@ def make_loop(loop_orders, dtypes, loop_tasks, sub, openmp=None):
             if index != "x":
                 suitable_n = "%(var)s_n%(index)s" % locals()
         if openmp:
-            openmp_elemwise_minsize = theano.config.openmp_elemwise_minsize
+            openmp_elemwise_minsize = aesara.config.openmp_elemwise_minsize
             forloop = (
                 """#pragma omp parallel for if( %(suitable_n)s >=%(openmp_elemwise_minsize)s)\n"""
                 % locals()
@@ -487,7 +487,7 @@ def make_reordered_loop(
             update = pointer_update
         if i == 0:
             if openmp:
-                openmp_elemwise_minsize = theano.config.openmp_elemwise_minsize
+                openmp_elemwise_minsize = aesara.config.openmp_elemwise_minsize
                 forloop += (
                     """#pragma omp parallel for if( %(total)s >=%(openmp_elemwise_minsize)s)\n"""
                     % locals()

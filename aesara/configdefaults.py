@@ -11,8 +11,8 @@ import warnings
 
 import numpy as np
 
-import theano
-from theano.configparser import (
+import aesara
+from aesara.configparser import (
     THEANO_FLAGS_DICT,
     AddConfigVar,
     BoolParam,
@@ -21,16 +21,16 @@ from theano.configparser import (
     FloatParam,
     IntParam,
     StrParam,
-    TheanoConfigParser,
+    AesaraConfigParser,
 )
-from theano.misc.cpucount import cpuCount
-from theano.misc.windows import call_subprocess_Popen, output_subprocess_Popen
-from theano.utils import maybe_add_to_os_environ_pathlist
+from aesara.misc.cpucount import cpuCount
+from aesara.misc.windows import call_subprocess_Popen, output_subprocess_Popen
+from aesara.utils import maybe_add_to_os_environ_pathlist
 
 
-_logger = logging.getLogger("theano.configdefaults")
+_logger = logging.getLogger("aesara.configdefaults")
 
-config = TheanoConfigParser()
+config = AesaraConfigParser()
 
 
 def floatX_convert(s):
@@ -135,8 +135,8 @@ class DeviceParam(ConfigParam):
             elif val.startswith("gpu"):
                 raise ValueError(
                     "You are tring to use the old GPU back-end. "
-                    "It was removed from Theano. Use device=cuda* now. "
-                    "See https://github.com/Theano/Theano/wiki/Converting-to-the-new-gpu-back-end%28gpuarray%29 "
+                    "It was removed from Aesara. Use device=cuda* now. "
+                    "See https://github.com/Aesara/Aesara/wiki/Converting-to-the-new-gpu-back-end%28gpuarray%29 "
                     "for more information."
                 )
             else:
@@ -246,14 +246,14 @@ AddConfigVar(
 def deprecated_gpuarray_sync(val):
     if val:
         raise RuntimeError(
-            "Flag gpuarray.sync is deprecated and will be removed in next Theano release."
+            "Flag gpuarray.sync is deprecated and will be removed in next Aesara release."
         )
     return False
 
 
 AddConfigVar(
     "gpuarray.sync",
-    """This flag is deprecated and will be removed in next Theano release.""",
+    """This flag is deprecated and will be removed in next Aesara release.""",
     ConfigParam(False, allow_override=False, filter=deprecated_gpuarray_sync),
     in_c_key=False,
 )
@@ -322,8 +322,8 @@ AddConfigVar(
 
 
 def default_cuda_include():
-    if theano.config.cuda.root:
-        return os.path.join(theano.config.cuda.root, "include")
+    if aesara.config.cuda.root:
+        return os.path.join(aesara.config.cuda.root, "include")
     return ""
 
 
@@ -391,7 +391,7 @@ def safe_no_dnn_algo_bwd(algo):
     return True
 
 
-# Those are the options provided by Theano to choose algorithms at runtime.
+# Those are the options provided by Aesara to choose algorithms at runtime.
 SUPPORTED_DNN_CONV_ALGO_RUNTIME = (
     "guess_once",
     "guess_on_shape_change",
@@ -399,7 +399,7 @@ SUPPORTED_DNN_CONV_ALGO_RUNTIME = (
     "time_on_shape_change",
 )
 
-# Those are the supported algorithm by Theano,
+# Those are the supported algorithm by Aesara,
 # The tests will reference those lists.
 SUPPORTED_DNN_CONV_ALGO_FWD = (
     "small",
@@ -481,7 +481,7 @@ AddConfigVar(
 
 # We want to default to the cuda root if cudnn is installed there
 def default_dnn_base_path():
-    root = theano.config.cuda.root
+    root = aesara.config.cuda.root
     # The include doesn't change location between OS.
     if root and os.path.exists(os.path.join(root, "include", "cudnn.h")):
         return root
@@ -497,8 +497,8 @@ AddConfigVar(
 
 
 def default_dnn_inc_path():
-    if theano.config.dnn.base_path != "":
-        return os.path.join(theano.config.dnn.base_path, "include")
+    if aesara.config.dnn.base_path != "":
+        return os.path.join(aesara.config.dnn.base_path, "include")
     return ""
 
 
@@ -511,14 +511,14 @@ AddConfigVar(
 
 
 def default_dnn_lib_path():
-    if theano.config.dnn.base_path != "":
+    if aesara.config.dnn.base_path != "":
         if sys.platform == "win32":
-            path = os.path.join(theano.config.dnn.base_path, "lib", "x64")
+            path = os.path.join(aesara.config.dnn.base_path, "lib", "x64")
         elif sys.platform == "darwin":
-            path = os.path.join(theano.config.dnn.base_path, "lib")
+            path = os.path.join(aesara.config.dnn.base_path, "lib")
         else:
             # This is linux
-            path = os.path.join(theano.config.dnn.base_path, "lib64")
+            path = os.path.join(aesara.config.dnn.base_path, "lib64")
         return path
     return ""
 
@@ -532,11 +532,11 @@ AddConfigVar(
 
 
 def default_dnn_bin_path():
-    if theano.config.dnn.base_path != "":
+    if aesara.config.dnn.base_path != "":
         if sys.platform == "win32":
-            return os.path.join(theano.config.dnn.base_path, "bin")
+            return os.path.join(aesara.config.dnn.base_path, "bin")
         else:
-            return theano.config.dnn.library_path
+            return aesara.config.dnn.library_path
     return ""
 
 
@@ -603,9 +603,9 @@ def filter_mode(val):
         "JAX",
     ]:
         return val
-    # This can be executed before Theano is completly imported, so
-    # theano.Mode is not always available.
-    elif hasattr(theano, "Mode") and isinstance(val, theano.Mode):
+    # This can be executed before Aesara is completly imported, so
+    # aesara.Mode is not always available.
+    elif hasattr(aesara, "Mode") and isinstance(val, aesara.Mode):
         return val
     else:
         raise ValueError(
@@ -695,14 +695,14 @@ del param
 if not config.cxx:
     warnings.warn(
         "DeprecationWarning: there is no c++ compiler."
-        "This is deprecated and with Theano 0.11 a c++ compiler will be mandatory"
+        "This is deprecated and with Aesara 0.11 a c++ compiler will be mandatory"
     )
 
 if rc == 0 and config.cxx != "":
     # Keep the default linker the same as the one for the mode FAST_RUN
     AddConfigVar(
         "linker",
-        "Default linker used if the theano flags mode is Mode",
+        "Default linker used if the aesara flags mode is Mode",
         EnumStr("cvm", "c|py", "py", "c", "c|py_nogc", "vm", "vm_nogc", "cvm_nogc"),
         in_c_key=False,
     )
@@ -711,17 +711,17 @@ else:
     # linker should default to python only.
     AddConfigVar(
         "linker",
-        "Default linker used if the theano flags mode is Mode",
+        "Default linker used if the aesara flags mode is Mode",
         EnumStr("vm", "py", "vm_nogc"),
         in_c_key=False,
     )
     if type(config).cxx.is_default:
         # If the user provided an empty value for cxx, do not warn.
         _logger.warning(
-            "g++ not detected ! Theano will be unable to execute "
+            "g++ not detected ! Aesara will be unable to execute "
             "optimized C-implementations (for both CPU and GPU) and will "
             "default to Python implementations. Performance will be severely "
-            "degraded. To remove this warning, set Theano flags cxx to an "
+            "degraded. To remove this warning, set Aesara flags cxx to an "
             "empty string."
         )
 
@@ -729,7 +729,7 @@ else:
 # Keep the default value the same as the one for the mode FAST_RUN
 AddConfigVar(
     "allow_gc",
-    "Do we default to delete intermediate results during Theano"
+    "Do we default to delete intermediate results during Aesara"
     " function calls? Doing so lowers the memory requirement, but"
     " asks that we reallocate memory at the next function call."
     " This is implemented for the default linker, but may not work"
@@ -775,12 +775,12 @@ AddConfigVar(
 AddConfigVar(
     "on_unused_input",
     "What to do if a variable in the 'inputs' list of "
-    " theano.function() is not used in the graph.",
+    " aesara.function() is not used in the graph.",
     EnumStr("raise", "warn", "ignore"),
     in_c_key=False,
 )
 
-# This flag is used when we import Theano to initialize global variables.
+# This flag is used when we import Aesara to initialize global variables.
 # So changing it after import will not modify these global variables.
 # This could be done differently... but for now we simply prevent it from being
 # changed at runtime.
@@ -832,9 +832,9 @@ AddConfigVar(
     "The number of stack to trace. -1 mean all.",
     # We default to a number to be able to know where v1 + v2 is created in the
     # user script. The bigger this number is, the more run time it takes.
-    # We need to default to 8 to support theano.tensor.tensor(...).
-    # import theano, numpy
-    # X = theano.tensor.matrix()
+    # We need to default to 8 to support aesara.tensor.tensor(...).
+    # import aesara, numpy
+    # X = aesara.tensor.matrix()
     # y = X.reshape((5,3,1))
     # assert y.tag.trace
     IntParam(8),
@@ -844,7 +844,7 @@ AddConfigVar(
 AddConfigVar(
     "traceback.compile_limit",
     "The number of stack to trace to keep during compilation. -1 mean all."
-    " If greater then 0, will also make us save Theano internal stack trace.",
+    " If greater then 0, will also make us save Aesara internal stack trace.",
     IntParam(0),
     in_c_key=False,
 )
@@ -939,9 +939,9 @@ AddConfigVar(
 AddConfigVar(
     "warn.ignore_bug_before",
     (
-        "If 'None', we warn about all Theano bugs found by default. "
-        "If 'all', we don't warn about Theano bugs found by default. "
-        "If a version, we print only the warnings relative to Theano "
+        "If 'None', we warn about all Aesara bugs found by default. "
+        "If 'all', we don't warn about Aesara bugs found by default. "
+        "If a version, we print only the warnings relative to Aesara "
         "bugs found after that version. "
         "Warning for specific bugs can be configured with specific "
         "[warn] flags."
@@ -996,8 +996,8 @@ def warn_default(version):
 AddConfigVar(
     "warn.argmax_pushdown_bug",
     (
-        "Warn if in past version of Theano we generated a bug with the "
-        "theano.tensor.nnet.nnet.local_argmax_pushdown optimization. "
+        "Warn if in past version of Aesara we generated a bug with the "
+        "aesara.tensor.nnet.nnet.local_argmax_pushdown optimization. "
         "Was fixed 27 may 2010"
     ),
     BoolParam(warn_default("0.3")),
@@ -1007,7 +1007,7 @@ AddConfigVar(
 AddConfigVar(
     "warn.gpusum_01_011_0111_bug",
     (
-        "Warn if we are in a case where old version of Theano had a "
+        "Warn if we are in a case where old version of Aesara had a "
         "silent bug with GpuSum pattern 01,011 and 0111 when the first "
         "dimensions was bigger then 4096. Was fixed 31 may 2010"
     ),
@@ -1018,7 +1018,7 @@ AddConfigVar(
 AddConfigVar(
     "warn.sum_sum_bug",
     (
-        "Warn if we are in a case where Theano version between version "
+        "Warn if we are in a case where Aesara version between version "
         "9923a40c7b7a and the 2 august 2010 (fixed date), generated an "
         "error in that case. This happens when there are 2 consecutive "
         "sums in the graph, bad code was generated. "
@@ -1031,7 +1031,7 @@ AddConfigVar(
 AddConfigVar(
     "warn.sum_div_dimshuffle_bug",
     (
-        "Warn if previous versions of Theano (between rev. "
+        "Warn if previous versions of Aesara (between rev. "
         "3bd9b789f5e8, 2010-06-16, and cfc6322e5ad4, 2010-08-03) "
         "would have given incorrect result. This bug was triggered by "
         "sum of division of dimshuffled tensors."
@@ -1042,7 +1042,7 @@ AddConfigVar(
 
 AddConfigVar(
     "warn.subtensor_merge_bug",
-    "Warn if previous versions of Theano (before 0.5rc2) could have given "
+    "Warn if previous versions of Aesara (before 0.5rc2) could have given "
     "incorrect results when indexing into a subtensor with negative "
     "stride (for instance, for instance, x[a:b:-1][c]).",
     BoolParam(warn_default("0.5")),
@@ -1051,7 +1051,7 @@ AddConfigVar(
 
 AddConfigVar(
     "warn.gpu_set_subtensor1",
-    "Warn if previous versions of Theano (before 0.6) could have given "
+    "Warn if previous versions of Aesara (before 0.6) could have given "
     "incorrect results when moving to the gpu "
     "set_subtensor(x[int vector], new_value)",
     BoolParam(warn_default("0.6")),
@@ -1060,12 +1060,12 @@ AddConfigVar(
 
 AddConfigVar(
     "warn.vm_gc_bug",
-    "There was a bug that existed in the default Theano configuration,"
+    "There was a bug that existed in the default Aesara configuration,"
     " only in the development version between July 5th 2012"
     " and July 30th 2012. This was not in a released version."
     " If your code was affected by this bug, a warning"
     " will be printed during the code execution if you use the"
-    " `linker=vm,vm.lazy=True,warn.vm_gc_bug=True` Theano flags."
+    " `linker=vm,vm.lazy=True,warn.vm_gc_bug=True` Aesara flags."
     " This warning is disabled by default as the bug was not released.",
     BoolParam(False),
     in_c_key=False,
@@ -1081,10 +1081,10 @@ AddConfigVar(
 AddConfigVar(
     "warn.reduce_join",
     (
-        "Your current code is fine, but Theano versions "
+        "Your current code is fine, but Aesara versions "
         "prior to 0.7 (or this development version) "
         "might have given an incorrect result. "
-        "To disable this warning, set the Theano flag "
+        "To disable this warning, set the Aesara flag "
         "warn.reduce_join to False. The problem was an "
         "optimization, that modified the pattern "
         '"Reduce{scalar.op}(Join(axis=0, a, b), axis=0)", '
@@ -1098,7 +1098,7 @@ AddConfigVar(
 AddConfigVar(
     "warn.inc_set_subtensor1",
     (
-        "Warn if previous versions of Theano (before 0.7) could have "
+        "Warn if previous versions of Aesara (before 0.7) could have "
         "given incorrect results for inc_subtensor and set_subtensor "
         "when using some patterns of advanced indexing (indexing with "
         "one vector or matrix of ints)."
@@ -1118,7 +1118,7 @@ AddConfigVar(
 
 AddConfigVar(
     "warn.inc_subtensor1_opt",
-    "Warn if previous versions of Theano (before 0.10) could have "
+    "Warn if previous versions of Aesara (before 0.10) could have "
     "given incorrect results when computing "
     "inc_subtensor(zeros[idx], x)[idx], when idx is an array of integers "
     "with duplicated values.",
@@ -1130,7 +1130,7 @@ AddConfigVar(
 AddConfigVar(
     "compute_test_value",
     (
-        "If 'True', Theano will run each op at graph build time, using "
+        "If 'True', Aesara will run each op at graph build time, using "
         "Constants, SharedVariables and the tag 'test_value' as inputs "
         "to the function. This helps the user track down problems in the "
         "graph before it gets optimized."
@@ -1143,7 +1143,7 @@ AddConfigVar(
 AddConfigVar(
     "print_test_value",
     (
-        "If 'True', the __eval__ of a Theano variable will return its test_value "
+        "If 'True', the __eval__ of a Aesara variable will return its test_value "
         "when this is available. This has the practical conseguence that, e.g., "
         "in debugging `my_var` will print the same as `my_var.tag.test_value` "
         "when a test value is defined."
@@ -1156,9 +1156,9 @@ AddConfigVar(
 AddConfigVar(
     "compute_test_value_opt",
     (
-        "For debugging Theano optimization only."
+        "For debugging Aesara optimization only."
         " Same as compute_test_value, but is used"
-        " during Theano optimization"
+        " during Aesara optimization"
     ),
     EnumStr("off", "ignore", "warn", "raise", "pdb"),
     in_c_key=False,
@@ -1167,7 +1167,7 @@ AddConfigVar(
 AddConfigVar(
     "unpickle_function",
     (
-        "Replace unpickled Theano functions with None. "
+        "Replace unpickled Aesara functions with None. "
         "This is useful to unpickle old graphs that pickled"
         " them when it shouldn't"
     ),
@@ -1177,7 +1177,7 @@ AddConfigVar(
 
 AddConfigVar(
     "reoptimize_unpickled_function",
-    "Re-optimize the graph when a theano function is unpickled from the disk.",
+    "Re-optimize the graph when a aesara function is unpickled from the disk.",
     BoolParam(False, allow_override=True),
     in_c_key=False,
 )
@@ -1223,7 +1223,7 @@ else:
             " We disable openmp by default. To remove this"
             " warning, set the environment variable"
             " OMP_NUM_THREADS to the number of threads you"
-            " want theano to use."
+            " want aesara to use."
         )
     default_openmp = count > 1
 
@@ -1237,13 +1237,13 @@ AddConfigVar(
     "Allow (or not) parallel computation on the CPU with OpenMP. "
     "This is the default value used when creating an Op that "
     "supports OpenMP parallelization. It is preferable to define it "
-    "via the Theano configuration file ~/.theanorc or with the "
+    "via the Aesara configuration file ~/.aesararc or with the "
     "environment variable THEANO_FLAGS. Parallelization is only "
     "done for some operations that implement it, and even for "
     "operations that implement parallelism, each operation is free "
     "to respect this flag or not. You can control the number of "
     "threads used with the environment variable OMP_NUM_THREADS."
-    " If it is set to 1, we disable openmp in Theano by default.",
+    " If it is set to 1, we disable openmp in Aesara by default.",
     BoolParam(default_openmp),
     in_c_key=False,
 )
@@ -1365,7 +1365,7 @@ AddConfigVar(
 AddConfigVar(
     "DebugMode.check_c",
     "Run C implementations where possible",
-    BoolParam(lambda: bool(theano.config.cxx)),
+    BoolParam(lambda: bool(aesara.config.cxx)),
     in_c_key=False,
 )
 
@@ -1517,7 +1517,7 @@ AddConfigVar(
 AddConfigVar(
     "profiling.ignore_first_call",
     """
-             Do we ignore the first call of a Theano function.
+             Do we ignore the first call of a Aesara function.
              """,
     BoolParam(False),
     in_c_key=False,
@@ -1559,7 +1559,7 @@ AddConfigVar(
 AddConfigVar(
     "cmodule.remove_gxx_opt",
     "If True, will remove the -O* parameter passed to g++."
-    "This is useful to debug in gdb modules compiled by Theano."
+    "This is useful to debug in gdb modules compiled by Aesara."
     "The parameter -g is passed by default to g++",
     BoolParam(False),
     # TODO: change so that this isn't needed.
@@ -1584,7 +1584,7 @@ AddConfigVar(
 
 AddConfigVar(
     "cmodule.age_thresh_use",
-    "In seconds. The time after which " "Theano won't reuse a compile c module.",
+    "In seconds. The time after which " "Aesara won't reuse a compile c module.",
     # 24 days
     IntParam(60 * 60 * 24 * 24, allow_override=False),
     in_c_key=False,
@@ -1599,7 +1599,7 @@ AddConfigVar(
 
 
 def check_mkl_openmp():
-    if not theano.config.blas.check_openmp:
+    if not aesara.config.blas.check_openmp:
         return
     if sys.platform == "darwin":
         return
@@ -1620,7 +1620,7 @@ def check_mkl_openmp():
         if "2018" in mkl.get_version_string():
             raise RuntimeError(
                 """
-To use MKL 2018 with Theano either update the numpy conda packages to
+To use MKL 2018 with Aesara either update the numpy conda packages to
 their latest build or set "MKL_THREADING_LAYER=GNU" in your
 environment.
 """
@@ -1633,7 +1633,7 @@ packages to the latest build otherwise, set MKL_THREADING_LAYER=GNU in
 your environment for MKL 2018.
 
 If you have MKL 2017 install and are not in a conda environment you
-can set the Theano flag blas.check_openmp to False.  Be warned that if
+can set the Aesara flag blas.check_openmp to False.  Be warned that if
 you set this flag and don't set the appropriate environment or make
 sure you have the right version you *will* get wrong results.
 """
@@ -1658,7 +1658,7 @@ def default_blas_ldflags():
             blas_info = numpy.distutils.__config__.blas_opt_info
         else:
             # We do this import only here, as in some setup, if we
-            # just import theano and exit, with the import at global
+            # just import aesara and exit, with the import at global
             # scope, we get this error at exit: "Exception TypeError:
             # "'NoneType' object is not callable" in <bound method
             # Popen.__del__ of <subprocess.Popen object at 0x21359d0>>
@@ -1706,7 +1706,7 @@ def default_blas_ldflags():
                         "The environment variable "
                         "'DYLD_FALLBACK_LIBRARY_PATH' does not contain "
                         "the '%s' path in its value. This will make "
-                        "Theano use a slow version of BLAS. Update "
+                        "Aesara use a slow version of BLAS. Update "
                         "'DYLD_FALLBACK_LIBRARY_PATH' to contain the "
                         "said value, this will disable this warning." % new_path
                     )
@@ -1874,7 +1874,7 @@ def default_blas_ldflags():
 
 
 def try_blas_flag(flags):
-    from theano.gof.cmodule import GCC_compiler
+    from aesara.gof.cmodule import GCC_compiler
 
     test_code = textwrap.dedent(
         """\
@@ -1900,7 +1900,7 @@ def try_blas_flag(flags):
     cflags.extend(
         [
             "-L{}{}{}".format(path_wrapper, d, path_wrapper)
-            for d in theano.gof.cmodule.std_lib_dirs()
+            for d in aesara.gof.cmodule.std_lib_dirs()
         ]
     )
 
@@ -1934,7 +1934,7 @@ AddConfigVar(
     "metaopt.verbose",
     "0 for silent, 1 for only warnings, 2 for full output with"
     "timings and selected implementation",
-    theano.configparser.IntParam(0),
+    aesara.configparser.IntParam(0),
     in_c_key=False,
 )
 
@@ -2000,7 +2000,7 @@ AddConfigVar(
 
 AddConfigVar(
     "warn.identify_1pexp_bug",
-    "Warn if Theano versions prior to 7987b51 (2011-12-18) could have "
+    "Warn if Aesara versions prior to 7987b51 (2011-12-18) could have "
     "yielded a wrong result due to a bug in the is_1pexp function",
     BoolParam(warn_default("0.4.1")),
     in_c_key=False,
@@ -2009,14 +2009,14 @@ AddConfigVar(
 AddConfigVar(
     "on_shape_error",
     "warn: print a warning and use the default" " value. raise: raise an error",
-    theano.configparser.EnumStr("warn", "raise"),
+    aesara.configparser.EnumStr("warn", "raise"),
     in_c_key=False,
 )
 
 AddConfigVar(
     "tensor.insert_inplace_optimizer_validate_nb",
     "-1: auto, if graph have less then 500 nodes 1, else 10",
-    theano.configparser.IntParam(-1),
+    aesara.configparser.IntParam(-1),
     in_c_key=False,
 )
 
@@ -2027,7 +2027,7 @@ AddConfigVar(
     " Generates error if not True. Use"
     " optimizer_excluding=local_alloc_elemwise"
     " to dsiable.",
-    theano.configparser.BoolParam(True, is_valid=lambda x: x),
+    aesara.configparser.BoolParam(True, is_valid=lambda x: x),
     in_c_key=False,
 )
 
@@ -2036,7 +2036,7 @@ AddConfigVar(
     "experimental.local_alloc_elemwise_assert",
     "When the local_alloc_elemwise is applied, add"
     " an assert to highlight shape errors.",
-    theano.configparser.BoolParam(True),
+    aesara.configparser.BoolParam(True),
     in_c_key=False,
 )
 
@@ -2096,7 +2096,7 @@ AddConfigVar(
 
 
 def _timeout_default():
-    return theano.config.compile.wait * 24
+    return aesara.config.compile.wait * 24
 
 
 AddConfigVar(
@@ -2151,7 +2151,7 @@ compiledir_format_dict = {
     "python_version": platform.python_version(),
     "python_bitwidth": local_bitwidth(),
     "python_int_bitwidth": python_int_bitwidth(),
-    "theano_version": theano.__version__,
+    "aesara_version": aesara.__version__,
     "numpy_version": np.__version__,
     "gxx_version": gcc_version_str.replace(" ", "_"),
     "hostname": socket.gethostname(),
@@ -2162,7 +2162,7 @@ def short_platform(r=None, p=None):
     """
     Return a safe shorter version of platform.platform().
 
-    The old default Theano compiledir used platform.platform in
+    The old default Aesara compiledir used platform.platform in
     it. This use the platform.version() as a substring. This is too
     specific as it contain the full kernel number and package
     version. This cause the compiledir to change each time there is a
@@ -2262,7 +2262,7 @@ AddConfigVar(
 
 
 def default_compiledirname():
-    formatted = theano.config.compiledir_format % compiledir_format_dict
+    formatted = aesara.config.compiledir_format % compiledir_format_dict
     safe = re.sub(r"[\(\)\s,]+", "_", formatted)
     return safe
 
@@ -2292,7 +2292,7 @@ def filter_compiledir(path):
         try:
             os.makedirs(path, 0o770)  # read-write-execute for user and group
         except OSError as e:
-            # Maybe another parallel execution of theano was trying to create
+            # Maybe another parallel execution of aesara was trying to create
             # the same directory at the same time.
             if e.errno != errno.EEXIST:
                 raise ValueError(
@@ -2325,7 +2325,7 @@ def get_home_dir():
     home = os.getenv("HOME")
     if home is None:
         # This expanduser usually works on Windows (see discussion on
-        # theano-users, July 13 2010).
+        # aesara-users, July 13 2010).
         home = os.path.expanduser("~")
         if home == "~":
             # This might happen when expanduser fails. Although the cause of
@@ -2339,9 +2339,9 @@ def get_home_dir():
 # part of the roaming part of the user profile. Instead we use the local part
 # of the user profile, when available.
 if sys.platform == "win32" and os.getenv("LOCALAPPDATA") is not None:
-    default_base_compiledir = os.path.join(os.getenv("LOCALAPPDATA"), "Theano")
+    default_base_compiledir = os.path.join(os.getenv("LOCALAPPDATA"), "Aesara")
 else:
-    default_base_compiledir = os.path.join(get_home_dir(), ".theano")
+    default_base_compiledir = os.path.join(get_home_dir(), ".aesara")
 
 
 AddConfigVar(
@@ -2355,7 +2355,7 @@ AddConfigVar(
 
 
 def default_compiledir():
-    return os.path.join(theano.config.base_compiledir, default_compiledirname())
+    return os.path.join(aesara.config.base_compiledir, default_compiledirname())
 
 
 AddConfigVar(
@@ -2387,4 +2387,4 @@ AddConfigVar(
 
 # Check if there are remaining flags provided by the user through THEANO_FLAGS.
 for key in THEANO_FLAGS_DICT.keys():
-    warnings.warn("Theano does not recognise this flag: {}".format(key))
+    warnings.warn("Aesara does not recognise this flag: {}".format(key))

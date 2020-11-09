@@ -1,17 +1,17 @@
 import numpy as np
 
-import theano
-import theano.tensor as tt
-from theano import Op
-from theano.gpuarray.basic_ops import (
+import aesara
+import aesara.tensor as tt
+from aesara import Op
+from aesara.gpuarray.basic_ops import (
     as_gpuarray_variable,
     gpu_contiguous,
     infer_context_name,
 )
-from theano.gpuarray.opt import op_lifter, register_opt, register_opt2
-from theano.gpuarray.type import GpuArrayType
-from theano.gradient import DisconnectedType
-from theano.tensor.fft import IRFFTOp
+from aesara.gpuarray.opt import op_lifter, register_opt, register_opt2
+from aesara.gpuarray.type import GpuArrayType
+from aesara.gradient import DisconnectedType
+from aesara.tensor.fft import IRFFTOp
 
 
 try:
@@ -77,7 +77,7 @@ class CuRFFTOp(Op):
         assert s.ndim == 1
         assert s.dtype in tt.integer_dtypes
 
-        return theano.Apply(self, [inp, s], [self.output_type(inp)()])
+        return aesara.Apply(self, [inp, s], [self.output_type(inp)()])
 
     def make_thunk(self, node, storage_map, _, _2, impl=None):
 
@@ -208,7 +208,7 @@ class CuIRFFTOp(Op):
         assert inp.dtype == "float32"
         assert s.ndim == 1
 
-        return theano.Apply(self, [inp, s], [self.output_type(inp)()])
+        return aesara.Apply(self, [inp, s], [self.output_type(inp)()])
 
     def make_thunk(self, node, storage_map, _, _2, impl=None):
 

@@ -18,7 +18,7 @@ from pickle import HIGHEST_PROTOCOL
 
 import numpy as np
 
-import theano
+import aesara
 
 
 try:
@@ -26,8 +26,8 @@ try:
 except ImportError:
     DEFAULT_PROTOCOL = HIGHEST_PROTOCOL
 
-from theano import config
-from theano.compile.sharedvalue import SharedVariable
+from aesara import config
+from aesara.compile.sharedvalue import SharedVariable
 
 
 __docformat__ = "restructuredtext en"
@@ -45,7 +45,7 @@ Pickler = pickle.Pickler
 
 class StripPickler(Pickler):
     """
-    Subclass of Pickler that strips unnecessary attributes from Theano objects.
+    Subclass of Pickler that strips unnecessary attributes from Aesara objects.
 
     .. versionadded:: 0.8
 
@@ -70,12 +70,12 @@ class StripPickler(Pickler):
 
     def save(self, obj):
         # Remove the tag.trace attribute from Variable and Apply nodes
-        if isinstance(obj, theano.gof.utils.Scratchpad):
+        if isinstance(obj, aesara.gof.utils.Scratchpad):
             for tag in self.tag_to_remove:
                 if hasattr(obj, tag):
                     del obj.__dict__[tag]
         # Remove manually-added docstring of Elemwise ops
-        elif isinstance(obj, theano.tensor.Elemwise):
+        elif isinstance(obj, aesara.tensor.Elemwise):
             if "__doc__" in obj.__dict__:
                 del obj.__dict__["__doc__"]
 
@@ -123,7 +123,7 @@ class PersistentNdarrayID:
 
 class PersistentGpuArrayID(PersistentNdarrayID):
     def __call__(self, obj):
-        from theano.gpuarray.type import _name_for_ctx
+        from aesara.gpuarray.type import _name_for_ctx
 
         try:
             import pygpu
@@ -214,8 +214,8 @@ class PersistentNdarrayLoad:
         self.cache = {}
 
     def __call__(self, persid):
-        from theano.gpuarray import pygpu
-        from theano.gpuarray.type import get_context
+        from aesara.gpuarray import pygpu
+        from aesara.gpuarray.type import get_context
 
         array_type, name = persid.split(".")
 
@@ -277,9 +277,9 @@ def dump(
         number of external objects. Note that the zip files are compatible with
         NumPy's :func:`numpy.load` function.
 
-    >>> import theano
-    >>> foo_1 = theano.shared(0, name='foo')
-    >>> foo_2 = theano.shared(1, name='foo')
+    >>> import aesara
+    >>> foo_1 = aesara.shared(0, name='foo')
+    >>> foo_2 = aesara.shared(1, name='foo')
     >>> with open('model.zip', 'wb') as f:
     ...     dump((foo_1, foo_2, np.array(2)), f)
     >>> np.load('model.zip').keys()

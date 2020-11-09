@@ -10,10 +10,10 @@ FFT gradients are implemented as the opposite Fourier transform of the output gr
 
 .. warning ::
     The real and imaginary parts of the Fourier domain arrays are stored as a pair of float
-    arrays, emulating complex. Since theano has limited support for complex
+    arrays, emulating complex. Since aesara has limited support for complex
     number operations, care must be taken to manually implement operations such as gradients.
 
-.. automodule:: theano.tensor.fft
+.. automodule:: aesara.tensor.fft
    :members: rfft, irfft
 
 For example, the code below performs the real input FFT of a box function,
@@ -23,14 +23,14 @@ oscillates due to the box function being shifted to the middle of the array.
 .. testcode::
 
     import numpy as np
-    import theano
-    import theano.tensor as tt
-    from theano.tensor import fft
+    import aesara
+    import aesara.tensor as tt
+    from aesara.tensor import fft
 
     x = tt.matrix('x', dtype='float64')
 
     rfft = fft.rfft(x, norm='ortho')
-    f_rfft = theano.function([x], rfft)
+    f_rfft = aesara.function([x], rfft)
 
     N = 1024
     box = np.zeros((1, N), dtype='float64')

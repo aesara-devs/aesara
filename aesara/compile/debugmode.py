@@ -1,5 +1,5 @@
 """
-Provides `DebugMode`, an evaluation mode for debugging theano internals.
+Provides `DebugMode`, an evaluation mode for debugging aesara internals.
 
 TODO: add support for IfElse Op, LazyLinker, PureOp, etc.
 
@@ -16,23 +16,23 @@ from itertools import product as itertools_product
 
 import numpy as np
 
-import theano
-from theano import change_flags, config, gof
-from theano.compile.function_module import (
+import aesara
+from aesara import change_flags, config, gof
+from aesara.compile.function_module import (
     Function,
     FunctionMaker,
     infer_reuse_pattern,
     std_fgraph,
 )
-from theano.compile.mode import Mode, register_mode
-from theano.compile.ops import OutputGuard, _output_guard
-from theano.gof import graph, link, ops_with_inner_function, utils
-from theano.gof.link import raise_with_op
-from theano.utils import get_unbound_function
+from aesara.compile.mode import Mode, register_mode
+from aesara.compile.ops import OutputGuard, _output_guard
+from aesara.gof import graph, link, ops_with_inner_function, utils
+from aesara.gof.link import raise_with_op
+from aesara.utils import get_unbound_function
 
 
 __docformat__ = "restructuredtext en"
-_logger = logging.getLogger("theano.compile.debugmode")
+_logger = logging.getLogger("aesara.compile.debugmode")
 
 
 # Filter to avoid duplicating optimization warnings
@@ -60,7 +60,7 @@ _logger.addFilter(NoDuplicateOptWarningFilter())
 ########################
 class DebugModeError(Exception):
     """
-    Generic Exception raised to indicate an internal theano problem.
+    Generic Exception raised to indicate an internal aesara problem.
 
     """
 
@@ -156,7 +156,7 @@ class BadThunkOutput(DebugModeError):
         return ret
 
 
-class BadOptimization(DebugModeError, theano.gof.toolbox.BadOptimization):
+class BadOptimization(DebugModeError, aesara.gof.toolbox.BadOptimization):
     pass
 
 
@@ -283,7 +283,7 @@ class StochasticOrder(DebugModeError):
     The most common cause is that an Optimization iterates over some
     objects in a memory-address-dependent order (such as id() or
     object.hash()).  If you see this error and you think it is related
-    to optimizations within Theano, email theano-dev with the message
+    to optimizations within Aesara, email aesara-dev with the message
     attached to this exception.
 
     """
@@ -427,7 +427,7 @@ def str_diagnostic(expected, value, rtol, atol):
         print(ssio.getvalue(), file=sio)
     except Exception:
         pass
-    atol_, rtol_ = theano.tensor.basic._get_atol_rtol(expected, value)
+    atol_, rtol_ = aesara.tensor.basic._get_atol_rtol(expected, value)
     if rtol is not None:
         rtol_ = rtol
     if atol is not None:
@@ -520,7 +520,7 @@ def debugprint(
         A dictionary mapping a scan ops inner function inputs to the scan op
         inputs (outer inputs) for printing purposes.
     smap
-        None or the storage_map when printing an Theano function.
+        None or the storage_map when printing an Aesara function.
     used_ids
         Internal. Used to pass information when recursing.
         It is a dict from obj to the id used for it.
@@ -682,7 +682,7 @@ def debugprint(
                         new_prefix_child = prefix_child + "  "
 
                     if hasattr(i, "owner") and hasattr(i.owner, "op"):
-                        if isinstance(i.owner.op, theano.scan_module.scan_op.Scan):
+                        if isinstance(i.owner.op, aesara.scan_module.scan_op.Scan):
                             scan_ops.append(i)
 
                     debugprint(
@@ -893,7 +893,7 @@ def _check_viewmap(node, storage_map):
         view_map = getattr(node.op, "view_map", {})
         destroy_map = getattr(node.op, "destroy_map", {})
 
-        # In theory, theano's view_map only allows for 1 output to
+        # In theory, aesara's view_map only allows for 1 output to
         # alias 1 input. Checking for multiple aliases just in
         # case...
 
@@ -1000,7 +1000,7 @@ def _lessbroken_deepcopy(a):
     """
     # this exists because copy.deepcopy on numpy arrays is broken
     # This logic is also in link.py
-    from theano.gof.type import _cdata_type
+    from aesara.gof.type import _cdata_type
 
     if type(a) in (np.ndarray, np.memmap):
         rval = a.copy(order="K")
@@ -1189,8 +1189,8 @@ def _get_preallocated_maps(
     """
 
     # To avoid circular imports
-    from theano.gpuarray import GpuArrayType
-    from theano.tensor import TensorType
+    from aesara.gpuarray import GpuArrayType
+    from aesara.tensor import TensorType
 
     try:
         import pygpu
@@ -1421,7 +1421,7 @@ def _check_preallocated_output(
 
     """
 
-    # If node has an inner compiled Theano function with mode DebugMode,
+    # If node has an inner compiled Aesara function with mode DebugMode,
     # disable memory checks in that mode, since they were already run.
     try:
         changed_inner_mode = False
@@ -1430,7 +1430,7 @@ def _check_preallocated_output(
             fn = getattr(node.op, fn_attr_name, None)
             if not fn or not hasattr(fn, "maker") or not hasattr(fn.maker, "mode"):
                 _logger.warning(
-                    "Expected theano function not found in %s.%s", node.op, fn_attr_name
+                    "Expected aesara function not found in %s.%s", node.op, fn_attr_name
                 )
             else:
                 if isinstance(fn.maker.mode, DebugMode):
@@ -1767,7 +1767,7 @@ class _VariableEquivalenceTracker:
 
 # List of default version of make thunk.
 # This is needed to know if the user overrided it.
-default_make_thunk = [get_unbound_function(theano.gof.Op.make_thunk)]
+default_make_thunk = [get_unbound_function(aesara.gof.Op.make_thunk)]
 
 
 # Debug mode cheats and initializes the linker in a different way in
@@ -1810,7 +1810,7 @@ class _Linker(gof.link.LocalLinker):
         # can't import at toplevel because of circular import TODO:
         # don't do this ugly hacky way of setting the
         # filter_checks_isfinite
-        from theano.tensor import TensorType  # to set filter_check_isfinite
+        from aesara.tensor import TensorType  # to set filter_check_isfinite
 
         fgraph = self.fgraph
         input_storage_ = input_storage
@@ -2418,7 +2418,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
         What to do if a variable in the 'inputs' list is not used in the
         graph. Possible values are 'raise', 'warn' and 'ignore'.
     output_keys
-        If the outputs argument for theano.function was a list, then
+        If the outputs argument for aesara.function was a list, then
         output_keys is None. If the outputs argument was a dict, then
         output_keys is a sorted list of the keys from that dict.
 
@@ -2493,7 +2493,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
             with change_flags(compute_test_value=config.compute_test_value_opt):
                 optimizer(fgraph)
 
-                theano.compile.function_module.insert_deepcopy(
+                aesara.compile.function_module.insert_deepcopy(
                     fgraph, inputs, list(chain(outputs, additional_outputs))
                 )
 
@@ -2550,7 +2550,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
                             file=sys.stderr,
                         )
         self.fgraph = fgraph
-        if theano.config.cycle_detection == "regular":
+        if aesara.config.cycle_detection == "regular":
             destroy_handler_added = False
             for feature in fgraph._features:
                 if isinstance(feature, gof.DestroyHandler):
@@ -2624,7 +2624,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
 
 class DebugMode(Mode):
     """
-    Evaluation Mode that detects internal theano errors.
+    Evaluation Mode that detects internal aesara errors.
 
     This mode catches several kinds of internal error:
 

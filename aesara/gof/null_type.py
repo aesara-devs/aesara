@@ -1,4 +1,4 @@
-from theano.gof.type import Type
+from aesara.gof.type import Type
 
 
 class NullType(Type):

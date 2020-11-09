@@ -1,11 +1,11 @@
 
 import numpy as np
 
-import theano
+import aesara
 
-x, y, z = theano.tensor.vectors('xyz')
-f = theano.function([x, y, z], [(x + y + z) * 2])
-xv = np.random.rand(10).astype(theano.config.floatX)
-yv = np.random.rand(10).astype(theano.config.floatX)
-zv = np.random.rand(10).astype(theano.config.floatX)
+x, y, z = aesara.tensor.vectors('xyz')
+f = aesara.function([x, y, z], [(x + y + z) * 2])
+xv = np.random.rand(10).astype(aesara.config.floatX)
+yv = np.random.rand(10).astype(aesara.config.floatX)
+zv = np.random.rand(10).astype(aesara.config.floatX)
 f(xv, yv, zv)

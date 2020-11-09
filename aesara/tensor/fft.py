@@ -1,8 +1,8 @@
 import numpy as np
 
-import theano.tensor as tt
-from theano import gof
-from theano.gradient import DisconnectedType
+import aesara.tensor as tt
+from aesara import gof
+from aesara.gradient import DisconnectedType
 
 
 class RFFTOp(gof.Op):

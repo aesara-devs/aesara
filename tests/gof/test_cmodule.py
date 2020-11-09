@@ -8,11 +8,11 @@ deterministic based on the input type and the op.
 
 import numpy as np
 
-import theano
-from theano.gof.cmodule import GCC_compiler
+import aesara
+from aesara.gof.cmodule import GCC_compiler
 
 
-class MyOp(theano.compile.ops.DeepCopyOp):
+class MyOp(aesara.compile.ops.DeepCopyOp):
     nb_called = 0
 
     def c_code_cache_version(self):
@@ -29,7 +29,7 @@ class MyOp(theano.compile.ops.DeepCopyOp):
             rand = np.random.rand()
             return ('printf("%(rand)s\\n");' + code) % locals()
         # Else, no C code
-        return super(theano.compile.ops.DeepCopyOp, self).c_code(
+        return super(aesara.compile.ops.DeepCopyOp, self).c_code(
             node, name, inames, onames, sub
         )
 
@@ -44,19 +44,19 @@ def test_inter_process_cache():
     # This is to know if the c_code can add information specific to the
     # node.inputs[*].owner like the name of the variable.
 
-    x, y = theano.tensor.dvectors("xy")
-    f = theano.function([x, y], [MyOp()(x), MyOp()(y)])
+    x, y = aesara.tensor.dvectors("xy")
+    f = aesara.function([x, y], [MyOp()(x), MyOp()(y)])
     f(np.arange(60), np.arange(60))
-    if theano.config.mode == "FAST_COMPILE" or theano.config.cxx == "":
+    if aesara.config.mode == "FAST_COMPILE" or aesara.config.cxx == "":
         assert MyOp.nb_called == 0
     else:
         assert MyOp.nb_called == 1
 
     # What if we compile a new function with new variables?
-    x, y = theano.tensor.dvectors("xy")
-    f = theano.function([x, y], [MyOp()(x), MyOp()(y)])
+    x, y = aesara.tensor.dvectors("xy")
+    f = aesara.function([x, y], [MyOp()(x), MyOp()(y)])
     f(np.arange(60), np.arange(60))
-    if theano.config.mode == "FAST_COMPILE" or theano.config.cxx == "":
+    if aesara.config.mode == "FAST_COMPILE" or aesara.config.cxx == "":
         assert MyOp.nb_called == 0
     else:
         assert MyOp.nb_called == 1

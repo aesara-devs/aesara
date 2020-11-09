@@ -9,14 +9,14 @@ Random Numbers, Random Variables and Compiling Graphical Models
 Objective
 =========
 
-It might be nice to use Theano as a language and compiler for questions about
+It might be nice to use Aesara as a language and compiler for questions about
 graphical models.
 
 In this way, we could express something like Logistic Regression like this:
 
 .. code-block:: python
 
-    from theano import random_variable as RV
+    from aesara import random_variable as RV
 
     X, Y, s_idx = RV.empirical(my_dataset)
 

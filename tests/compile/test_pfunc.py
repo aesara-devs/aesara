@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 
-import theano
-from theano import tensor
-from theano.compile import In, config, pfunc, shared
-from theano.tensor import dmatrices, dmatrix, iscalar, lscalar
+import aesara
+from aesara import tensor
+from aesara.compile import In, config, pfunc, shared
+from aesara.tensor import dmatrices, dmatrix, iscalar, lscalar
 
 
 def data_of(s):
@@ -72,7 +72,7 @@ class TestPfunc:
         with pytest.raises(
             TypeError, match=r"^Cannot use a shared variable \(w\) as explicit input"
         ):
-            pfunc([w], theano.tensor.sum(w * w))
+            pfunc([w], aesara.tensor.sum(w * w))
 
     def test_default_container(self):
         # Ensure it is possible to (implicitly) use a shared variable in a
@@ -81,7 +81,7 @@ class TestPfunc:
         rng = np.random.RandomState(1827)
         w_init = rng.rand(5)
         w = shared(w_init.copy(), "w")
-        reg = theano.tensor.sum(w * w)
+        reg = aesara.tensor.sum(w * w)
         f = pfunc([], reg)
 
         assert f() == np.sum(w_init * w_init)
@@ -359,7 +359,7 @@ class TestPfunc:
         # the update_var has type matrix, and the update expression
         # is a broadcasted scalar, and that should be allowed.
         with pytest.raises(TypeError):
-            theano.function(
+            aesara.function(
                 inputs=[],
                 outputs=[],
                 updates={output_var: output_var.sum().dimshuffle("x", "x")},
@@ -369,7 +369,7 @@ class TestPfunc:
         x, y = dmatrices("x", "y")
         z = shared(np.ones((2, 3)))
         with pytest.raises(ValueError):
-            theano.function([x, y], [z], updates=[(z, (z + x + y)), (z, (z - x))])
+            aesara.function([x, y], [z], updates=[(z, (z + x + y)), (z, (z - x))])
 
     def test_givens(self):
         x = shared(0)
@@ -384,7 +384,7 @@ class TestPfunc:
 
         z = tensor.ivector()
         c = z * y
-        f = pfunc([y], (c + 7), givens={z: theano._asarray([4, 4, 4], dtype="int32")})
+        f = pfunc([y], (c + 7), givens={z: aesara._asarray([4, 4, 4], dtype="int32")})
         assert np.all(f([1, 1, 1]) == [11, 11, 11])
         assert x.get_value() == 0
 
@@ -568,7 +568,7 @@ class TestPfunc:
     def test_default_updates_input(self):
         x = shared(0)
         y = shared(1)
-        if theano.configdefaults.python_int_bitwidth() == 32:
+        if aesara.configdefaults.python_int_bitwidth() == 32:
             a = iscalar("a")
         else:
             a = lscalar("a")
@@ -602,7 +602,7 @@ class TestPfunc:
         assert y.get_value() == 2
 
         # a is needed as input if y.default_update is used
-        with pytest.raises(theano.gof.MissingInputError):
+        with pytest.raises(aesara.gof.MissingInputError):
             pfunc([], x)
 
     def test_default_updates_partial_graph(self):
@@ -635,9 +635,9 @@ class TestPfunc:
         assert f() == 34
 
     def test_duplicate_inputs(self):
-        x = theano.tensor.lscalar("x")
-        with pytest.raises(theano.compile.UnusedInputError):
-            theano.function([x, x, x], x)
+        x = aesara.tensor.lscalar("x")
+        with pytest.raises(aesara.compile.UnusedInputError):
+            aesara.function([x, x, x], x)
 
     def test_update_same(self):
         # There was a bug in CVM, triggered when a shared variable
@@ -654,8 +654,8 @@ class TestPfunc:
         # Is that all the comment above meant, or is the CVM intended
         # to add extra non-determinism? Or is the CVM meant to
         # deterministically but arbitrarily pick an order for the updates?
-        f = theano.function([], [], updates=[(a, a), (b, (2 * b))])
-        g = theano.function([], [], updates=[(a, (a * 2)), (b, b)])
+        f = aesara.function([], [], updates=[(a, a), (b, (2 * b))])
+        g = aesara.function([], [], updates=[(a, (a * 2)), (b, b)])
 
         f()
         assert a.get_value(borrow=True).shape == (), a.get_value()
@@ -672,8 +672,8 @@ class TestPfunc:
 
         # See comment in test_update_same about why we try both
         # shared variables.
-        f = theano.function([], [], updates=[(a, a), (b, (2 * b - b))])
-        g = theano.function([], [], updates=[(a, (a * 2 - a)), (b, b)])
+        f = aesara.function([], [], updates=[(a, a), (b, (2 * b - b))])
+        g = aesara.function([], [], updates=[(a, (a * 2 - a)), (b, b)])
 
         f()
         assert a.get_value(borrow=True).shape == (), a.get_value()
@@ -684,7 +684,7 @@ class TestPfunc:
 
 
 class TestAliasingRules:
-    # 1. Theano manages its own memory space, which typically does not overlap
+    # 1. Aesara manages its own memory space, which typically does not overlap
     # with the memory of normal python variables that the user uses.
     #
     # 2. shared variables are allocated in this memory space, as are the
@@ -693,16 +693,16 @@ class TestAliasingRules:
     # 3. Physically, this managed memory space may be spread across the host,
     # on a GPU device(s), or even on a remote machine.
     #
-    # 4. Theano assumes that shared variables are never aliased to one another,
+    # 4. Aesara assumes that shared variables are never aliased to one another,
     # and tries to make it impossible to accidentally alias them.
     #
-    # 5. Theano's managed data is constant while Theano Functions are not running
-    # and theano library code is not running.
+    # 5. Aesara's managed data is constant while Aesara Functions are not running
+    # and aesara library code is not running.
     #
     # 6. The default behaviour of Function is to return user-space values for
     # outputs, but this can be overridden (borrow=True) for better performance,
     # in which case the returned value may be aliased to managed memory, and
-    # potentially invalidated by the next Theano Function call or call to theano
+    # potentially invalidated by the next Aesara Function call or call to aesara
     # library code.
 
     def shared(self, x):
@@ -715,23 +715,23 @@ class TestAliasingRules:
         A = self.shared(orig_a)
         assert not np.may_share_memory(orig_a, data_of(A))
 
-        # rule #2 reading back from theano-managed memory
+        # rule #2 reading back from aesara-managed memory
         assert not np.may_share_memory(A.get_value(borrow=False), data_of(A))
 
     def test_sparse_input_aliasing_affecting_inplace_operations(self):
         sp = pytest.importorskip("scipy", minversion="0.7.0")
 
-        from theano import sparse
+        from aesara import sparse
 
-        # Note: to trigger this bug with theano rev 4586:2bc6fc7f218b,
+        # Note: to trigger this bug with aesara rev 4586:2bc6fc7f218b,
         #        you need to make in inputs mutable (so that inplace
         #        operations are used) and to break the elemwise composition
         #        with some non-elemwise op (here dot)
 
         x = sparse.SparseType("csc", dtype="float64")()
         y = sparse.SparseType("csc", dtype="float64")()
-        f = theano.function(
-            [theano.In(x, mutable=True), theano.In(y, mutable=True)], (x + y) + (x + y)
+        f = aesara.function(
+            [aesara.In(x, mutable=True), aesara.In(y, mutable=True)], (x + y) + (x + y)
         )
         # Test 1. If the same variable is given twice
 
@@ -771,22 +771,22 @@ class TestAliasingRules:
 
     def test_input_aliasing_affecting_inplace_operations(self):
 
-        # Note: to trigger this bug with theano rev 4586:2bc6fc7f218b,
+        # Note: to trigger this bug with aesara rev 4586:2bc6fc7f218b,
         #        you need to make in inputs mutable (so that inplace
         #        operations are used) and to break the elemwise composition
         #        with some non-elemwise op (here dot)
-        x = theano.tensor.dvector()
-        y = theano.tensor.dvector()
-        m1 = theano.tensor.dmatrix()
-        m2 = theano.tensor.dmatrix()
-        f = theano.function(
+        x = aesara.tensor.dvector()
+        y = aesara.tensor.dvector()
+        m1 = aesara.tensor.dmatrix()
+        m2 = aesara.tensor.dmatrix()
+        f = aesara.function(
             [
-                theano.In(x, mutable=True),
-                theano.In(y, mutable=True),
-                theano.In(m1, mutable=True),
-                theano.In(m2, mutable=True),
+                aesara.In(x, mutable=True),
+                aesara.In(y, mutable=True),
+                aesara.In(m1, mutable=True),
+                aesara.In(m2, mutable=True),
             ],
-            theano.dot((x * 2), m1) + theano.dot((y * 3), m2),
+            aesara.dot((x * 2), m1) + aesara.dot((y * 3), m2),
         )
         # Test 1. If the same variable is given twice
 
@@ -825,35 +825,35 @@ class TestAliasingRules:
 
     def test_partial_input_aliasing_affecting_inplace_operations(self):
 
-        # Note: to trigger this bug with theano rev 4586:2bc6fc7f218b,
+        # Note: to trigger this bug with aesara rev 4586:2bc6fc7f218b,
         #        you need to make in inputs mutable ( so that inplace
         #        operations are used) and to break the elemwise composition
         #        with some non-elemwise op ( here dot )
-        x = theano.tensor.dvector()
-        y = theano.tensor.dvector()
-        z = theano.tensor.dvector()
-        m1 = theano.tensor.dmatrix()
-        m2 = theano.tensor.dmatrix()
-        m3 = theano.tensor.dmatrix()
+        x = aesara.tensor.dvector()
+        y = aesara.tensor.dvector()
+        z = aesara.tensor.dvector()
+        m1 = aesara.tensor.dmatrix()
+        m2 = aesara.tensor.dmatrix()
+        m3 = aesara.tensor.dmatrix()
 
         # Test 2. If variables only partial overlap
         #   more exactly we care about the case when we have a,b,c
         #   and a shares memory with b, b shares memory with c, but
         #   c does not share memory with a
 
-        f = theano.function(
+        f = aesara.function(
             [
-                theano.In(x, mutable=True),
-                theano.In(y, mutable=True),
-                theano.In(z, mutable=True),
-                theano.In(m1, mutable=True),
-                theano.In(m2, mutable=True),
-                theano.In(m3, mutable=True),
+                aesara.In(x, mutable=True),
+                aesara.In(y, mutable=True),
+                aesara.In(z, mutable=True),
+                aesara.In(m1, mutable=True),
+                aesara.In(m2, mutable=True),
+                aesara.In(m3, mutable=True),
             ],
             (
-                theano.dot((x * 2), m1)
-                + theano.dot((y * 3), m2)
-                + theano.dot((z * 4), m3)
+                aesara.dot((x * 2), m1)
+                + aesara.dot((y * 3), m2)
+                + aesara.dot((z * 4), m3)
             ),
         )
 
@@ -941,7 +941,7 @@ class TestAliasingRules:
         z = np.zeros((2, 2))
         f(z)
         assert not np.may_share_memory(data_of(A), data_of(B))
-        # Theano tries to maintain its own memory space.
+        # Aesara tries to maintain its own memory space.
         assert not np.may_share_memory(z, data_of(B))
         assert np.all(data_of(B) == z)
 
@@ -965,7 +965,7 @@ class TestAliasingRules:
         # shared vars may not be aliased
         assert not np.may_share_memory(data_of(A), data_of(B))
 
-        # theano should have been smart enough to not make copies
+        # aesara should have been smart enough to not make copies
         assert np.may_share_memory(data_of(A), data_of_b)
         assert np.may_share_memory(data_of(B), data_of_a)
 
@@ -984,7 +984,7 @@ class TestAliasingRules:
         data_of_b = data_of(B)
 
         f = pfunc([], [], updates=[(A, B[:, ::-1]), (B, A.T)])
-        # theano.printing.debugprint(f)
+        # aesara.printing.debugprint(f)
         f()
         # correctness (doesn't actually test the view...)
         assert np.all(data_of(A) == -0.5)
@@ -993,8 +993,8 @@ class TestAliasingRules:
         # shared vars may not be aliased
         assert not np.may_share_memory(data_of(A), data_of(B))
 
-        # theano should have been smart enough to not make copies
-        if theano.config.mode not in ["DebugMode", "DEBUG_MODE", "FAST_COMPILE"]:
+        # aesara should have been smart enough to not make copies
+        if aesara.config.mode not in ["DebugMode", "DEBUG_MODE", "FAST_COMPILE"]:
             # We don't ask DebugMode and FAST_COMPILE not to make copy.
             # We have the right to do so.
             assert np.all(data_of(A) < 5)
@@ -1021,11 +1021,11 @@ class TestAliasingRules:
 class TestRebuildStrict:
     def test_rebuild_strict(self):
         # Test fix for error reported at
-        # https://groups.google.com/d/topic/theano-users/BRK0UEB72XA/discussion
+        # https://groups.google.com/d/topic/aesara-users/BRK0UEB72XA/discussion
         w = tensor.imatrix()
         x, y = tensor.ivectors("x", "y")
         z = x * y
-        f = theano.function([w, y], z, givens=[(x, w)], rebuild_strict=False)
+        f = aesara.function([w, y], z, givens=[(x, w)], rebuild_strict=False)
         z_val = f(np.ones((3, 5), dtype="int32"), np.arange(5, dtype="int32"))
         assert z_val.ndim == 2
         assert np.all(z_val == np.ones((3, 5)) * np.arange(5))

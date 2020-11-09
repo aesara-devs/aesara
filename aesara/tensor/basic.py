@@ -9,30 +9,30 @@ from functools import partial
 
 import numpy as np
 
-import theano
-import theano.scalar.sharedvar
-from theano import compile, config, gof, printing
-from theano import scalar as scal
+import aesara
+import aesara.scalar.sharedvar
+from aesara import compile, config, gof, printing
+from aesara import scalar as scal
 
 # For history
-from theano.compile import Rebroadcast, Shape, shape
-from theano.gof import Apply, Constant, Op, ParamsType, Variable
-from theano.gof.type import Generic
+from aesara.compile import Rebroadcast, Shape, shape
+from aesara.gof import Apply, Constant, Op, ParamsType, Variable
+from aesara.gof.type import Generic
 
 # We use these exceptions as well.
-from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
-from theano.printing import min_informative_str, pprint
-from theano.scalar import int32
-from theano.tensor import elemwise
+from aesara.gradient import DisconnectedType, grad_not_implemented, grad_undefined
+from aesara.printing import min_informative_str, pprint
+from aesara.scalar import int32
+from aesara.tensor import elemwise
 
 # set up the external interface
-from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise, Sum
-from theano.tensor.type import TensorType, values_eq_approx_always_true
-from theano.tensor.type_other import NoneConst
-from theano.tensor.var import TensorConstant, TensorVariable, _tensor_py_operators
+from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise, Sum
+from aesara.tensor.type import TensorType, values_eq_approx_always_true
+from aesara.tensor.type_other import NoneConst
+from aesara.tensor.var import TensorConstant, TensorVariable, _tensor_py_operators
 
 
-_logger = logging.getLogger("theano.tensor.basic")
+_logger = logging.getLogger("aesara.tensor.basic")
 
 __docformat__ = "restructuredtext en"
 
@@ -199,7 +199,7 @@ def as_tensor_variable(x, name=None, ndim=None):
             "np.array(True) or np.array(False) if you need these constants. "
             "This error might be caused by using the == operator on "
             "Variables. v == w does not do what you think it does, "
-            "use theano.tensor.eq(v, w) instead."
+            "use aesara.tensor.eq(v, w) instead."
         )
 
     return constant(x, name=name, ndim=ndim)
@@ -270,7 +270,7 @@ if int(config.tensor.cmp_sloppy) > 1:
     # This config variable is a quick-and-dirty way to get low-precision
     # comparisons.  For a more precise setting of these tolerances set
     # them explicitly in your user code by assigning, for example,
-    # "theano.tensor.basic.float32_atol = ..."
+    # "aesara.tensor.basic.float32_atol = ..."
 
     # When config.tensor.cmp_sloppy>1 we are even more sloppy. This is
     # useful to test the GPU as they don't use extended precision and
@@ -463,7 +463,7 @@ def get_scalar_constant_value(
             ):
                 v = v.owner.inputs[0]
                 continue
-            elif isinstance(v.owner.op, theano.compile.ops.Shape_i):
+            elif isinstance(v.owner.op, aesara.compile.ops.Shape_i):
                 i = v.owner.op.i
                 inp = v.owner.inputs[0]
                 if isinstance(inp, Constant):
@@ -480,7 +480,7 @@ def get_scalar_constant_value(
             elif isinstance(v.owner.op, (ScalarFromTensor, TensorFromScalar)):
                 v = v.owner.inputs[0]
                 continue
-            elif isinstance(v.owner.op, theano.tensor.opt.Assert):
+            elif isinstance(v.owner.op, aesara.tensor.opt.Assert):
                 # check if all conditions are constant and true
                 cond = [
                     get_scalar_constant_value(c, max_recur=max_recur)
@@ -523,7 +523,7 @@ def get_scalar_constant_value(
                     v.owner.op.perform(v.owner, const, ret)
                     return ret[0][0].copy()
             elif (
-                isinstance(v.owner.op, theano.tensor.subtensor.Subtensor)
+                isinstance(v.owner.op, aesara.tensor.subtensor.Subtensor)
                 and v.ndim == 0
             ):
                 if isinstance(v.owner.inputs[0], TensorConstant):
@@ -543,7 +543,7 @@ def get_scalar_constant_value(
                 assert len(v.owner.op.idx_list) == v.owner.inputs[0].ndim
 
                 # Needed to make better graph in this test in
-                # theano/tensor/tests/test_sharedvar.py:
+                # aesara/tensor/tests/test_sharedvar.py:
                 # test_shared_options.test_specify_shape_partial
                 if (
                     v.owner.inputs[0].owner
@@ -566,7 +566,7 @@ def get_scalar_constant_value(
                         ret = v.owner.inputs[0].owner.inputs[idx + 1]
                         ret = get_scalar_constant_value(ret, max_recur=max_recur)
                         # join can cast implicitly its input in some case.
-                        return theano._asarray(ret, dtype=v.type.dtype)
+                        return aesara._asarray(ret, dtype=v.type.dtype)
                     if python_all(
                         var.ndim == 1 for var in v.owner.inputs[0].owner.inputs[1:]
                     ):
@@ -596,7 +596,7 @@ def get_scalar_constant_value(
                 elif (
                     v.owner.inputs[0].owner
                     and isinstance(
-                        v.owner.inputs[0].owner.op, theano.tensor.opt.MakeVector
+                        v.owner.inputs[0].owner.op, aesara.tensor.opt.MakeVector
                     )
                     and
                     # MakeVector normally accept only scalar as input.
@@ -616,14 +616,14 @@ def get_scalar_constant_value(
                     ret = v.owner.inputs[0].owner.inputs[idx]
                     ret = get_scalar_constant_value(ret, max_recur=max_recur)
                     # MakeVector can cast implicitly its input in some case.
-                    return theano._asarray(ret, dtype=v.type.dtype)
+                    return aesara._asarray(ret, dtype=v.type.dtype)
 
                 # This is needed when we take the grad as the Shape op
                 # are not already changed into MakeVector
                 owner = v.owner
                 leftmost_parent = owner.inputs[0]
                 if leftmost_parent.owner and isinstance(
-                    leftmost_parent.owner.op, theano.tensor.Shape
+                    leftmost_parent.owner.op, aesara.tensor.Shape
                 ):
                     op = owner.op
                     idx_list = op.idx_list
@@ -710,7 +710,7 @@ def scalar(name=None, dtype=None):
     Parameters
     ----------
     dtype: numeric
-        None means to use theano.config.floatX.
+        None means to use aesara.config.floatX.
     name
         A name to attach to this variable.
 
@@ -748,7 +748,7 @@ def vector(name=None, dtype=None):
     Parameters
     ----------
     dtype: numeric
-        None means to use theano.config.floatX.
+        None means to use aesara.config.floatX.
     name
         A name to attach to this variable
 
@@ -783,7 +783,7 @@ def matrix(name=None, dtype=None):
     Parameters
     ----------
     dtype: numeric
-        None means to use theano.config.floatX.
+        None means to use aesara.config.floatX.
     name
         A name to attach to this variable.
 
@@ -818,7 +818,7 @@ def row(name=None, dtype=None):
     Parameters
     ----------
     dtype: numeric type
-        None means to use theano.config.floatX.
+        None means to use aesara.config.floatX.
     name
         A name to attach to this variable.
 
@@ -847,7 +847,7 @@ def col(name=None, dtype=None):
     Parameters
     ----------
     dtype : numeric
-        None means to use theano.config.floatX.
+        None means to use aesara.config.floatX.
     name
         A name to attach to this variable.
 
@@ -876,7 +876,7 @@ def tensor3(name=None, dtype=None):
     Parameters
     ----------
     dtype: numeric type
-        None means to use theano.config.floatX.
+        None means to use aesara.config.floatX.
     name
         A name to attach to this variable.
 
@@ -907,7 +907,7 @@ def tensor4(name=None, dtype=None):
     Parameters
     ----------
     dtype: numeric type
-        None means to use theano.config.floatX.
+        None means to use aesara.config.floatX.
     name
         A name to attach to this variable.
 
@@ -938,7 +938,7 @@ def tensor5(name=None, dtype=None):
     Parameters
     ----------
     dtype: numeric type
-        None means to use theano.config.floatX.
+        None means to use aesara.config.floatX.
     name
         A name to attach to this variable.
 
@@ -969,7 +969,7 @@ def tensor6(name=None, dtype=None):
     Parameters
     ----------
     dtype: numeric type
-        None means to use theano.config.floatX.
+        None means to use aesara.config.floatX.
     name
         A name to attach to this variable.
 
@@ -1000,7 +1000,7 @@ def tensor7(name=None, dtype=None):
     Parameters
     ----------
     dtype: numeric type
-        None means to use theano.config.floatX.
+        None means to use aesara.config.floatX.
     name
         A name to attach to this variable.
 
@@ -1181,10 +1181,10 @@ class TensorFromScalar(Op):
 
         # If the input dtype is an integer, then so is the output dtype,
         # and the "zero" gradient can be represented in that int dtype.
-        # Currently, theano.grad insists that the dtype of the returned
+        # Currently, aesara.grad insists that the dtype of the returned
         # gradient has a float dtype, so we use floatX.
         if s.type.dtype in discrete_dtypes:
-            return [s.zeros_like().astype(theano.config.floatX)]
+            return [s.zeros_like().astype(aesara.config.floatX)]
 
         raise NotImplementedError("grad not implemented for complex dtypes")
 
@@ -1383,7 +1383,7 @@ class MaxAndArgmax(Op):
             axes = tuple(range(x.ndim))
         else:
             axes = tuple(int(ax) for ax in axes)
-        max[0] = theano._asarray(np.max(x, axes), dtype=node.outputs[0].dtype)
+        max[0] = aesara._asarray(np.max(x, axes), dtype=node.outputs[0].dtype)
         # Numpy does not support multiple axes for argmax
         # Work around
         keep_axes = np.array([i for i in range(x.ndim) if i not in axes], dtype="int64")
@@ -1397,7 +1397,7 @@ class MaxAndArgmax(Op):
         new_shape = kept_shape + (np.prod(reduced_shape, dtype="int64"),)
         reshaped_x = transposed_x.reshape(new_shape)
 
-        max_idx[0] = theano._asarray(np.argmax(reshaped_x, axis=-1), dtype="int64")
+        max_idx[0] = aesara._asarray(np.argmax(reshaped_x, axis=-1), dtype="int64")
 
     def c_code(self, node, name, inp, out, sub):
         if len(self.axis) != 1 and len(self.axis) != node.inputs[0].ndim:
@@ -1618,7 +1618,7 @@ class Argmax(Op):
         new_shape = kept_shape + (np.prod(reduced_shape),)
         reshaped_x = transposed_x.reshape(new_shape)
 
-        max_idx[0] = theano._asarray(np.argmax(reshaped_x, axis=-1), dtype="int64")
+        max_idx[0] = aesara._asarray(np.argmax(reshaped_x, axis=-1), dtype="int64")
 
     def c_code(self, node, name, inp, out, sub):
         (x,) = inp
@@ -2074,35 +2074,35 @@ def isclose(a, b, rtol=1.0e-5, atol=1.0e-8, equal_nan=False):
 
     Examples
     --------
-    >>> import theano
+    >>> import aesara
     >>> import numpy as np
-    >>> a = theano._asarray([1e10, 1e-7], dtype="float64")
-    >>> b = theano._asarray([1.00001e10, 1e-8], dtype="float64")
-    >>> theano.tensor.isclose(a, b).eval()
+    >>> a = aesara._asarray([1e10, 1e-7], dtype="float64")
+    >>> b = aesara._asarray([1.00001e10, 1e-8], dtype="float64")
+    >>> aesara.tensor.isclose(a, b).eval()
     array([1, 0], dtype=int8)
-    >>> a = theano._asarray([1e10, 1e-8], dtype="float64")
-    >>> b = theano._asarray([1.00001e10, 1e-9], dtype="float64")
-    >>> theano.tensor.isclose(a, b).eval()
+    >>> a = aesara._asarray([1e10, 1e-8], dtype="float64")
+    >>> b = aesara._asarray([1.00001e10, 1e-9], dtype="float64")
+    >>> aesara.tensor.isclose(a, b).eval()
     array([1, 1], dtype=int8)
-    >>> a = theano._asarray([1e10, 1e-8], dtype="float64")
-    >>> b = theano._asarray([1.0001e10, 1e-9], dtype="float64")
-    >>> theano.tensor.isclose(a, b).eval()
+    >>> a = aesara._asarray([1e10, 1e-8], dtype="float64")
+    >>> b = aesara._asarray([1.0001e10, 1e-9], dtype="float64")
+    >>> aesara.tensor.isclose(a, b).eval()
     array([0, 1], dtype=int8)
-    >>> a = theano._asarray([1.0, np.nan], dtype="float64")
-    >>> b = theano._asarray([1.0, np.nan], dtype="float64")
-    >>> theano.tensor.isclose(a, b).eval()
+    >>> a = aesara._asarray([1.0, np.nan], dtype="float64")
+    >>> b = aesara._asarray([1.0, np.nan], dtype="float64")
+    >>> aesara.tensor.isclose(a, b).eval()
     array([1, 0], dtype==int8)
-    >>> a = theano._asarray([1.0, np.nan], dtype="float64")
-    >>> b = theano._asarray([1.0, np.nan], dtype="float64")
-    >>> theano.tensor.isclose(a, b, equal_nan=True).eval()
+    >>> a = aesara._asarray([1.0, np.nan], dtype="float64")
+    >>> b = aesara._asarray([1.0, np.nan], dtype="float64")
+    >>> aesara.tensor.isclose(a, b, equal_nan=True).eval()
     array([1, 1], dtype==int8)
-    >>> a = theano._asarray([1.0, np.inf], dtype="float64")
-    >>> b = theano._asarray([1.0, -np.inf], dtype="float64")
-    >>> theano.tensor.isclose(a, b).eval()
+    >>> a = aesara._asarray([1.0, np.inf], dtype="float64")
+    >>> b = aesara._asarray([1.0, -np.inf], dtype="float64")
+    >>> aesara.tensor.isclose(a, b).eval()
     array([1, 0], dtype==int8)
-    >>> a = theano._asarray([1.0, np.inf], dtype="float64")
-    >>> b = theano._asarray([1.0, np.inf], dtype="float64")
-    >>> theano.tensor.isclose(a, b).eval()
+    >>> a = aesara._asarray([1.0, np.inf], dtype="float64")
+    >>> b = aesara._asarray([1.0, np.inf], dtype="float64")
+    >>> aesara.tensor.isclose(a, b).eval()
     array([1, 1], dtype==int8)
 
     """
@@ -2291,9 +2291,9 @@ def round(a, mode=None):
         mode = "half_to_even"
         if config.warn.round:
             warnings.warn(
-                "theano.tensor.round() changed its default from"
+                "aesara.tensor.round() changed its default from"
                 " `half_away_from_zero` to `half_to_even` to have"
-                " the same default as NumPy. Use the Theano flag"
+                " the same default as NumPy. Use the Aesara flag"
                 " `warn.round=False` to disable this warning."
             )
     if mode == "half_away_from_zero":
@@ -2367,7 +2367,7 @@ def cov(m, y=None, rowvar=True, bias=False, ddof=None, fweights=None, aweights=N
     if y is not None:
         if not rowvar and y.shape[0] != 1:
             y = y.T
-        m = theano.tensor.concatenate((m, y), axis=0)
+        m = aesara.tensor.concatenate((m, y), axis=0)
 
     if ddof is None:
         if not bias:
@@ -2380,7 +2380,7 @@ def cov(m, y=None, rowvar=True, bias=False, ddof=None, fweights=None, aweights=N
 
     m -= m.mean(axis=1, keepdims=1)
     c = m.dot(m.T)
-    c *= theano.tensor.constant(1) / fact
+    c *= aesara.tensor.constant(1) / fact
     return c.squeeze()
 
 
@@ -2624,7 +2624,7 @@ def ones_like(model, dtype=None, opt=False):
     model : tensor
     dtype : data-type, optional
     opt : If True, we will return a constant instead of a graph when possible.
-          Useful for Theano optimization, not for user building a graph as this
+          Useful for Aesara optimization, not for user building a graph as this
           have the consequence that model isn't always in the graph.
 
     Returns
@@ -2648,7 +2648,7 @@ def zeros_like(model, dtype=None, opt=False):
     model : tensor
     dtype : data-type, optional
     opt : If True, we will return a constant instead of a graph when possible.
-          Useful for Theano optimization, not for user building a graph as this
+          Useful for Aesara optimization, not for user building a graph as this
           have the consequence that model isn't always in the graph.
 
     Returns
@@ -2743,7 +2743,7 @@ def nonzero(a, return_matrix=False):
             is the index of the ith non-zero element of the input array in the
             jth dimension.
 
-        If return_matrix is True (same as Theano Op):
+        If return_matrix is True (same as Aesara Op):
             Returns a matrix of shape (ndim, number of nonzero elements) such
             that element (i,j) is the index in the ith dimension of the jth
             non-zero element.
@@ -3242,14 +3242,14 @@ class Alloc(gof.Op):
                         # Not doing the constant folding could also lower
                         # the peak memory usage, as we the "constant" won't
                         # always exists.
-                        theano.tensor.subtensor.IncSubtensor,
-                        theano.tensor.subtensor.AdvancedIncSubtensor1,
-                        theano.tensor.subtensor.AdvancedIncSubtensor,
-                        theano.tensor.blas.Gemv,
-                        theano.tensor.blas_c.CGemv,
-                        theano.tensor.blas.Ger,
-                        theano.tensor.blas_c.CGer,
-                        theano.tensor.blas_scipy.ScipyGer,
+                        aesara.tensor.subtensor.IncSubtensor,
+                        aesara.tensor.subtensor.AdvancedIncSubtensor1,
+                        aesara.tensor.subtensor.AdvancedIncSubtensor,
+                        aesara.tensor.blas.Gemv,
+                        aesara.tensor.blas_c.CGemv,
+                        aesara.tensor.blas.Ger,
+                        aesara.tensor.blas_c.CGer,
+                        aesara.tensor.blas_scipy.ScipyGer,
                     ),
                 )
             ):
@@ -3276,7 +3276,7 @@ def transfer(var, target):
     Parameters
     ----------
     var : variable
-        A theano variable
+        A aesara variable
     target : str
         The target of the transfer
     """
@@ -3503,7 +3503,7 @@ def mean(input, axis=None, dtype=None, op=False, keepdims=False, acc_dtype=None)
     else:
         axis = [int(a) for a in axis]
 
-    # This sequential division will possibly be optimized by Theano:
+    # This sequential division will possibly be optimized by Aesara:
     for i in axis:
         s = true_div(s, shp[i])
 
@@ -3663,7 +3663,7 @@ class Default(gof.Op):
         x, default = inp
         (out,) = out_
         if x is None:
-            # why copy?  Theano can't yet understand out[0] being a view of
+            # why copy?  Aesara can't yet understand out[0] being a view of
             # either x or y, so we can be a view of x, but only a copy of y.
             out[0] = default.copy()
         else:
@@ -3867,12 +3867,12 @@ def batched_dot(a, b):
     following sequence:
 
         1.  If either a or b is a vector, it returns the batched elementwise
-            product without calling the Theano BatchedDot op.
+            product without calling the Aesara BatchedDot op.
 
-        2.  If both a and b have either 2 or 3 dimensions, it calls Theano's
+        2.  If both a and b have either 2 or 3 dimensions, it calls Aesara's
             BatchedDot op on a and b.
 
-        3.  If either a or b has more than 3 dimensions, it calls Theano's
+        3.  If either a or b has more than 3 dimensions, it calls Aesara's
             batched_tensordot function with appropriate axes. The
             batched_tensordot function expresses high-dimensional batched
             dot products in terms of batched matrix-matrix dot products, so
@@ -3892,7 +3892,7 @@ def batched_dot(a, b):
         return batched_tensordot(a, b, [[a.ndim - 1], [np.maximum(1, b.ndim - 2)]])
     else:
         # avoid circular import
-        return theano.tensor.blas.BatchedDot()(a, b)
+        return aesara.tensor.blas.BatchedDot()(a, b)
 
 
 def batched_tensordot(x, y, axes=2):
@@ -4038,7 +4038,7 @@ class Split(Op):
         out_shapes = []
         for i in range(self.len_splits):
             temp = as_tensor_variable(shp_x)
-            temp = theano.tensor.subtensor.set_subtensor(temp[axis], splits[i])
+            temp = aesara.tensor.subtensor.set_subtensor(temp[axis], splits[i])
             temp = [temp[i] for i in range(len(shp_x))]
             out_shapes.append(temp)
         return out_shapes
@@ -4230,7 +4230,7 @@ def addbroadcast(x, *axes):
     Parameters
     ----------
     x : tensor_like
-        Input theano tensor.
+        Input aesara tensor.
     axis : an int or an iterable object such as list or tuple of int values
         The dimension along which the tensor x should be broadcastable.
         If the length of x along these dimensions is not 1, a ValueError will
@@ -4239,11 +4239,11 @@ def addbroadcast(x, *axes):
     Returns
     -------
     tensor
-        A theano tensor, which is broadcastable along the specified dimensions.
+        A aesara tensor, which is broadcastable along the specified dimensions.
 
     """
     rval = Rebroadcast(*[(axis, True) for axis in axes])(x)
-    return theano.tensor.opt.apply_rebroadcast_opt(rval)
+    return aesara.tensor.opt.apply_rebroadcast_opt(rval)
 
 
 def unbroadcast(x, *axes):
@@ -4260,7 +4260,7 @@ def unbroadcast(x, *axes):
     Parameters
     ----------
     x : tensor_like
-        Input theano tensor.
+        Input aesara tensor.
     axis : an int or an iterable object such as list or tuple of int values
         The dimension along which the tensor x should be unbroadcastable.
         If the length of x along these dimensions is not 1, a ValueError will
@@ -4269,11 +4269,11 @@ def unbroadcast(x, *axes):
     Returns
     -------
     tensor
-        A theano tensor, which is unbroadcastable along the specified dimensions.
+        A aesara tensor, which is unbroadcastable along the specified dimensions.
 
     """
     rval = Rebroadcast(*[(axis, False) for axis in axes])(x)
-    return theano.tensor.opt.apply_rebroadcast_opt(rval)
+    return aesara.tensor.opt.apply_rebroadcast_opt(rval)
 
 
 def patternbroadcast(x, broadcastable):
@@ -4291,7 +4291,7 @@ def patternbroadcast(x, broadcastable):
     Parameters
     ----------
     x : tensor_like
-        Input theano tensor.
+        Input aesara tensor.
     broadcastable : an iterable object such as list or tuple of bool values
         A set of boolean values indicating whether a dimension should be
         broadcastable or not. If the length of x along these dimensions is
@@ -4300,11 +4300,11 @@ def patternbroadcast(x, broadcastable):
     Returns
     -------
     tensor
-        A theano tensor, which is unbroadcastable along the specified dimensions.
+        A aesara tensor, which is unbroadcastable along the specified dimensions.
 
     """
     rval = Rebroadcast(*[(i, broadcastable[i]) for i in range(len(broadcastable))])(x)
-    return theano.tensor.opt.apply_rebroadcast_opt(rval)
+    return aesara.tensor.opt.apply_rebroadcast_opt(rval)
 
 
 class Join(Op):
@@ -4492,7 +4492,7 @@ class Join(Op):
             if axis < -ndim:
                 raise IndexError("Join axis %d out of bounds [0, %d)" % (axis, ndim))
 
-            out[0] = theano._asarray(
+            out[0] = aesara._asarray(
                 np.concatenate(tensors, axis=axis), dtype=node.outputs[0].type.dtype
             )
 
@@ -4757,14 +4757,14 @@ def shape_padaxis(t, axis):
 
     Examples
     --------
-    >>> tensor = theano.tensor.tensor3()
-    >>> theano.tensor.shape_padaxis(tensor, axis=0)
+    >>> tensor = aesara.tensor.tensor3()
+    >>> aesara.tensor.shape_padaxis(tensor, axis=0)
     DimShuffle{x,0,1,2}.0
-    >>> theano.tensor.shape_padaxis(tensor, axis=1)
+    >>> aesara.tensor.shape_padaxis(tensor, axis=1)
     DimShuffle{0,x,1,2}.0
-    >>> theano.tensor.shape_padaxis(tensor, axis=3)
+    >>> aesara.tensor.shape_padaxis(tensor, axis=3)
     DimShuffle{0,1,2,x}.0
-    >>> theano.tensor.shape_padaxis(tensor, axis=-1)
+    >>> aesara.tensor.shape_padaxis(tensor, axis=-1)
     DimShuffle{0,1,2,x}.0
 
     See Also
@@ -4808,28 +4808,28 @@ def stack(*tensors, **kwargs):
 
     Examples
     --------
-    >>> a = theano.tensor.scalar()
-    >>> b = theano.tensor.scalar()
-    >>> c = theano.tensor.scalar()
-    >>> x = theano.tensor.stack([a, b, c])
+    >>> a = aesara.tensor.scalar()
+    >>> b = aesara.tensor.scalar()
+    >>> c = aesara.tensor.scalar()
+    >>> x = aesara.tensor.stack([a, b, c])
     >>> x.ndim # x is a vector of length 3.
     1
-    >>> a = theano.tensor.tensor4()
-    >>> b = theano.tensor.tensor4()
-    >>> c = theano.tensor.tensor4()
-    >>> x = theano.tensor.stack([a, b, c])
+    >>> a = aesara.tensor.tensor4()
+    >>> b = aesara.tensor.tensor4()
+    >>> c = aesara.tensor.tensor4()
+    >>> x = aesara.tensor.stack([a, b, c])
     >>> x.ndim # x is a 5d tensor.
     5
     >>> rval = x.eval(dict((t, np.zeros((2, 2, 2, 2))) for t in [a, b, c]))
     >>> rval.shape # 3 tensors are stacked on axis 0
     (3, 2, 2, 2, 2)
-    >>> x = theano.tensor.stack([a, b, c], axis=3)
+    >>> x = aesara.tensor.stack([a, b, c], axis=3)
     >>> x.ndim
     5
     >>> rval = x.eval(dict((t, np.zeros((2, 2, 2, 2))) for t in [a, b, c]))
     >>> rval.shape # 3 tensors are stacked on axis 3
     (2, 2, 2, 3, 2)
-    >>> x = theano.tensor.stack([a, b, c], axis=-2)
+    >>> x = aesara.tensor.stack([a, b, c], axis=-2)
     >>> x.ndim
     5
     >>> rval = x.eval(dict((t, np.zeros((2, 2, 2, 2))) for t in [a, b, c]))
@@ -4839,7 +4839,7 @@ def stack(*tensors, **kwargs):
     # ---> Remove this when moving to the new interface:
     if not tensors and not kwargs:
         raise Exception(
-            "theano.tensor.stack(tensors, axis) must have at least" " one parameter"
+            "aesara.tensor.stack(tensors, axis) must have at least" " one parameter"
         )
 
     if not kwargs and not isinstance(tensors[0], (list, tuple)):
@@ -4869,7 +4869,7 @@ def stack(*tensors, **kwargs):
     if len(tensors) == 0:
         raise Exception(
             "tensors is empty. You should at least provide one"
-            " tensor to theano.tensor.stack(tensors, axis)."
+            " tensor to aesara.tensor.stack(tensors, axis)."
         )
 
     # If all tensors are scalars of the same type, call make_vector.
@@ -4895,7 +4895,7 @@ def stack(*tensors, **kwargs):
         # in case there is direct int
         tensors = list(map(as_tensor_variable, tensors))
         dtype = scal.upcast(*[i.dtype for i in tensors])
-        return theano.tensor.opt.MakeVector(dtype)(*tensors)
+        return aesara.tensor.opt.MakeVector(dtype)(*tensors)
     return join(axis, *[shape_padaxis(t, axis) for t in tensors])
 
 
@@ -4950,34 +4950,34 @@ def get_vector_length(v):
         raise TypeError("argument must be symbolic vector, got '%s'" % v)
     if v.type.broadcastable[0]:
         return 1
-    if isinstance(v, theano.tensor.sharedvar.TensorSharedVariable) and v.type.ndim == 1:
+    if isinstance(v, aesara.tensor.sharedvar.TensorSharedVariable) and v.type.ndim == 1:
         return len(v.get_value())
     if isinstance(v, gof.Constant) and v.type.ndim == 1:
         return len(v.data)
-    if v.owner and isinstance(v.owner.op, theano.tensor.opt.MakeVector):
+    if v.owner and isinstance(v.owner.op, aesara.tensor.opt.MakeVector):
         return len(v.owner.inputs)
     if v.owner and isinstance(v.owner.op, Shape):
         return v.owner.inputs[0].type.ndim
     # If we take a slice, we know how many elements it will result in
     if (
         v.owner
-        and isinstance(v.owner.op, theano.tensor.subtensor.Subtensor)
+        and isinstance(v.owner.op, aesara.tensor.subtensor.Subtensor)
         and isinstance(v.owner.op.idx_list[0], slice)
         and v.owner.inputs[0].owner
-        and isinstance(v.owner.inputs[0].owner.op, theano.compile.ops.Shape)
+        and isinstance(v.owner.inputs[0].owner.op, aesara.compile.ops.Shape)
     ):
         start = extract_constant(
-            theano.tensor.subtensor.get_idx_list(v.owner.inputs, v.owner.op.idx_list)[
+            aesara.tensor.subtensor.get_idx_list(v.owner.inputs, v.owner.op.idx_list)[
                 0
             ].start
         )
         stop = extract_constant(
-            theano.tensor.subtensor.get_idx_list(v.owner.inputs, v.owner.op.idx_list)[
+            aesara.tensor.subtensor.get_idx_list(v.owner.inputs, v.owner.op.idx_list)[
                 0
             ].stop
         )
         step = extract_constant(
-            theano.tensor.subtensor.get_idx_list(v.owner.inputs, v.owner.op.idx_list)[
+            aesara.tensor.subtensor.get_idx_list(v.owner.inputs, v.owner.op.idx_list)[
                 0
             ].step
         )
@@ -5011,7 +5011,7 @@ def get_vector_length(v):
         ):
             return (stop - start - 1) // step + 1
     if isinstance(v, Variable):
-        msg = theano.printing.debugprint(v, file="str")
+        msg = aesara.printing.debugprint(v, file="str")
     else:
         msg = str(v)
     raise ValueError("length not known: %s" % msg)
@@ -5148,7 +5148,7 @@ class Reshape(Op):
         # because it tries to replace the Shape_i node by the switch
         # statement, which depends on Shape_i.
         # return [tuple([switch(eq(node.inputs[1][i], -1),
-        #                      theano.tensor.opt.Shape_i(i)(node.outputs[0]),
+        #                      aesara.tensor.opt.Shape_i(i)(node.outputs[0]),
         #                      node.inputs[1][i])
         #                    for i in range(self.ndim)]
         #    )]
@@ -5163,7 +5163,7 @@ class Reshape(Op):
 
         requ = node.inputs[1]
         input_size = mul(*ishapes[0])
-        if isinstance(requ, theano.tensor.TensorConstant):
+        if isinstance(requ, aesara.tensor.TensorConstant):
             requ = list(requ.data)
             requ_part = [ele for ele in requ if ele != -1]
             crit = len(requ) - len(requ_part)
@@ -5264,7 +5264,7 @@ def reshape(x, newshape, ndim=None):
         except ValueError:
             raise ValueError(
                 "The length of the provided shape (%s) cannot "
-                "be automatically determined, so Theano is not able "
+                "be automatically determined, so Aesara is not able "
                 "to know what the number of dimensions of the reshaped "
                 "variable will be. You can provide the 'ndim' keyword "
                 "argument to 'reshape' to avoid this problem." % newshape
@@ -5440,8 +5440,8 @@ def is_flat(var, ndim=None, outdim=None):
 
     Parameters
     ----------
-        var : theano.tensor.var.TensorVariable
-            the theano var on which the dimensionality is checked.
+        var : aesara.tensor.var.TensorVariable
+            the aesara var on which the dimensionality is checked.
 
         outdim : int
             the expected dimensionality of var.
@@ -5471,7 +5471,7 @@ def flatten(x, ndim=None, outdim=None):
 
     Parameters
     ----------
-        x : theano.tensor.var.TensorVariable
+        x : aesara.tensor.var.TensorVariable
             the variable that should be reshaped.
 
         ndim : int
@@ -5481,7 +5481,7 @@ def flatten(x, ndim=None, outdim=None):
             DEPRECATED synonym for ndim
     Returns
     -------
-    theano.tensor.var.TensorVariable
+    aesara.tensor.var.TensorVariable
         the flattend variable with dimensionality of outdim
     """
     if outdim is None and ndim is None:
@@ -5506,7 +5506,7 @@ def flatten(x, ndim=None, outdim=None):
     bcast_kept_dims = x.broadcastable[: ndim - 1]
     bcast_new_dim = python_all(x.broadcastable[ndim - 1 :])
     broadcastable = bcast_kept_dims + (bcast_new_dim,)
-    x_reshaped = theano.tensor.addbroadcast(
+    x_reshaped = aesara.tensor.addbroadcast(
         x_reshaped, *filter(lambda i: broadcastable[i], range(ndim))
     )
     return x_reshaped
@@ -5632,7 +5632,7 @@ def tile(x, reps, ndim=None):
     if not isinstance(reps, (list, tuple)):
         reps_astensor = as_tensor_variable(reps)
         ndim_check = reps_astensor.ndim
-        if reps_astensor.dtype not in theano.tensor.discrete_dtypes:
+        if reps_astensor.dtype not in aesara.tensor.discrete_dtypes:
             raise ValueError("elements of reps must be integer dtype")
 
         # tensor.scalar/integer case
@@ -5649,7 +5649,7 @@ def tile(x, reps, ndim=None):
                 offset = ndim - reps.shape[0]
 
                 # assert that reps.shape[0] does not exceed ndim
-                offset = theano.tensor.opt.assert_(offset, ge(offset, 0))
+                offset = aesara.tensor.opt.assert_(offset, ge(offset, 0))
 
                 # if reps.ndim is less than x.ndim, we pad the reps with
                 # "1" so that reps will have the same ndim as x.
@@ -5667,7 +5667,7 @@ def tile(x, reps, ndim=None):
                 isinstance(r, int)
                 or (
                     isinstance(r, TensorVariable)
-                    and r.dtype in theano.tensor.discrete_dtypes
+                    and r.dtype in aesara.tensor.discrete_dtypes
                 )
                 for r in reps
             ]
@@ -5717,7 +5717,7 @@ class ARange(Op):
 
         return Apply(self, inputs, outputs)
 
-    @theano.configparser.change_flags(warn_float64="ignore")
+    @aesara.configparser.change_flags(warn_float64="ignore")
     def infer_shape(self, node, i_shapes):
         # Note start, stop and step can be float numbers.
         start, stop, step = node.inputs
@@ -6180,18 +6180,18 @@ class Dot(Op):
 
         if len(inputs) != 2:
             raise TypeError(
-                "theano.tensor.Dot: 2 arguments required, %d given " % len(inputs)
+                "aesara.tensor.Dot: 2 arguments required, %d given " % len(inputs)
             )
         if inputs[0].ndim not in (1, 2):
             raise TypeError(
-                "theano.tensor.Dot: input 0 (0-indexed) must have ndim of "
-                "1 or 2, %d given. Consider calling theano.tensor.dot "
+                "aesara.tensor.Dot: input 0 (0-indexed) must have ndim of "
+                "1 or 2, %d given. Consider calling aesara.tensor.dot "
                 "instead." % inputs[0].ndim
             )
         if inputs[1].ndim not in (1, 2):
             raise TypeError(
-                "theano.tensor.Dot: input 1 (0-indexed) must have ndim of "
-                "1 or 2, %d given. Consider calling theano.tensor.dot "
+                "aesara.tensor.Dot: input 1 (0-indexed) must have ndim of "
+                "1 or 2, %d given. Consider calling aesara.tensor.dot "
                 "instead." % inputs[1].ndim
             )
 
@@ -6322,15 +6322,15 @@ def dot(a, b):
     sequence:
 
         1.  If either a or b is scalar, it returns the elementwise product
-            without calling the Theano Dot op.
+            without calling the Aesara Dot op.
 
-        2.  If either a or b has more than 2 dimensions, it calls Theano's
+        2.  If either a or b has more than 2 dimensions, it calls Aesara's
             tensordot function with appropriate axes. The tensordot function
             expresses high-dimensional dot products in terms of 2D matrix
             multiplications, so it may be possible to futherize optimize for
             performance.
 
-        3.  If both a and b have either 1 or 2 dimensions, it calls Theano's
+        3.  If both a and b have either 1 or 2 dimensions, it calls Aesara's
             Dot op on a and b.
 
     Notes
@@ -6496,7 +6496,7 @@ def tensordot(a, b, axes=2):
     Compute a generalized dot product over provided axes.
 
     Given two tensors a and b, tensordot computes a generalized dot product over
-    the provided axes. Theano's implementation reduces all expressions to
+    the provided axes. Aesara's implementation reduces all expressions to
     matrix or vector dot products and is based on code from Tijmen Tieleman's
     gnumpy (http://www.cs.toronto.edu/~tijmen/gnumpy.html).
 
@@ -6540,7 +6540,7 @@ def tensordot(a, b, axes=2):
     Examples
     --------
     It may be helpful to consider an example to see what tensordot does.
-    Theano's implementation is identical to NumPy's. Here a has shape (2, 3, 4)
+    Aesara's implementation is identical to NumPy's. Here a has shape (2, 3, 4)
     and b has shape (5, 6, 4, 3). The axes to sum over are [[1, 2], [3, 2]] --
     note that a.shape[1] == b.shape[3] and a.shape[2] == b.shape[2]; these axes
     are compatible. The resulting tensor will have shape (2, 5, 6) -- the
@@ -6726,16 +6726,16 @@ class ExtractDiag(Op):
         (gz,) = gout
 
         if x.ndim == 2:
-            x = theano.tensor.zeros_like(x)
-            xdiag = theano.tensor.AllocDiag(offset=self.offset)(gz)
+            x = aesara.tensor.zeros_like(x)
+            xdiag = aesara.tensor.AllocDiag(offset=self.offset)(gz)
             return [
-                theano.tensor.set_subtensor(
+                aesara.tensor.set_subtensor(
                     x[: xdiag.shape[0], : xdiag.shape[1]], xdiag
                 )
             ]
         else:
             warnings.warn(
-                "gradient of theano.tensor.basic.ExtractDiag only" "works for matrices."
+                "gradient of aesara.tensor.basic.ExtractDiag only" "works for matrices."
             )
             return [grad_not_implemented(self, 0, x)]
 
@@ -6781,7 +6781,7 @@ class ExtractDiag(Op):
 
 def diagonal(a, offset=0, axis1=0, axis2=1):
     """
-    A helper function for `theano.tensor.ExtractDiag`. It accepts tensor with
+    A helper function for `aesara.tensor.ExtractDiag`. It accepts tensor with
     `ndim >= 2` as input. The name `diagonal` is just meant to keep it
     consistent with numpy.
 
@@ -6924,8 +6924,8 @@ class AllocDiag(Op):
 
 def diag(v, k=0):
     """
-    A helper function for two ops: `theano.tensor.ExtractDiag` and
-    `theano.tensor.AllocDiag`. The name `diag` is meant to keep it consistent
+    A helper function for two ops: `aesara.tensor.ExtractDiag` and
+    `aesara.tensor.AllocDiag`. The name `diag` is meant to keep it consistent
     with numpy. It both accepts tensor vector and tensor matrix.
     While the passed tensor variable `v` has `v.ndim>=2`, it builds a
     `ExtractDiag` instance, and returns a vector with its entries equal to
@@ -6960,8 +6960,8 @@ def stacklists(arg):
 
     Examples
     --------
-    >>> from theano.tensor import stacklists, scalars, matrices
-    >>> from theano import function
+    >>> from aesara.tensor import stacklists, scalars, matrices
+    >>> from aesara import function
     >>> a, b, c, d = scalars('abcd')
     >>> X = stacklists([[a, b], [c, d]])
     >>> f = function([a, b, c, d], X)
@@ -7118,9 +7118,9 @@ class Choose(Op):
                     l.append(sh1)
             return [tuple(l)]
         else:
-            import theano.typed_list
+            import aesara.typed_list
 
-            assert isinstance(node.inputs[1], theano.typed_list.TypedListVariable)
+            assert isinstance(node.inputs[1], aesara.typed_list.TypedListVariable)
             raise ShapeError("Case not implemented")
             shape = shapes[0]
             for i in range(len(shapes[0]) - 1):
@@ -7130,16 +7130,16 @@ class Choose(Op):
     def make_node(self, a, choices):
         # Import here as it isn't imported by default and we can't
         # import at the top as it would cause circular import.
-        import theano.typed_list
+        import aesara.typed_list
 
         a = as_tensor_variable(a)
-        if a.dtype not in theano.tensor.discrete_dtypes:
+        if a.dtype not in aesara.tensor.discrete_dtypes:
             raise TypeError(
                 "choose first argument must have an [u]int* dtype. Got %s." % a.dtype
             )
 
-        if isinstance(choices, (tuple, list, theano.typed_list.TypedListVariable)):
-            choice = theano.typed_list.make_list(choices)
+        if isinstance(choices, (tuple, list, aesara.typed_list.TypedListVariable)):
+            choice = aesara.typed_list.make_list(choices)
             choice_ndim = choice.ttype.ndim
             choice_bcast = choice.ttype.broadcastable
         else:

@@ -7,9 +7,9 @@ Ubuntu Installation Instructions
 ################################
 
 .. warning::
-    If you want to install the bleeding-edge or development version of Theano
+    If you want to install the bleeding-edge or development version of Aesara
     from GitHub, please make sure you are reading `the latest version of this
-    page <http://deeplearning.net/software/theano_versions/dev/install_ubuntu.html>`_.
+    page <http://deeplearning.net/software/aesara_versions/dev/install_ubuntu.html>`_.
 
 .. _gpu_linux:
 
@@ -33,7 +33,7 @@ For Ubuntu 16.04 with cuda 7.5
 .. code-block:: bash
 
     sudo apt-get install python-numpy python-scipy python-dev python-pip python-pytest g++ libopenblas-dev git graphviz
-    sudo pip install Theano
+    sudo pip install Aesara
 
     # cuda 7.5 don't support the default g++ version. Install an supported version and make it the default.
     sudo apt-get install g++-4.9
@@ -61,7 +61,7 @@ On 14.04, this will install Python 2 by default. If you want to use Python 3:
 .. code-block:: bash
 
     sudo apt-get install python3-numpy python3-scipy python3-dev python3-pip python3-pytest g++ libopenblas-dev git
-    sudo pip3 install Theano
+    sudo pip3 install Aesara
 
 For Ubuntu 11.04:
 
@@ -86,7 +86,7 @@ some code that will help you.
     cd OpenBLAS
     make FC=gfortran
     sudo make PREFIX=/usr/local/ install
-    # Tell Theano to use OpenBLAS.
+    # Tell Aesara to use OpenBLAS.
     # This works only for the current user.
-    # Each Theano user on that computer should run that line.
-    echo -e "\n[blas]\nldflags = -lopenblas\n" >> ~/.theanorc
+    # Each Aesara user on that computer should run that line.
+    echo -e "\n[blas]\nldflags = -lopenblas\n" >> ~/.aesararc

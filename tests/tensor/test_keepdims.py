@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-import theano
-from theano import function, tensor
+import aesara
+from aesara import function, tensor
 
 
 # this tests other ops to ensure they keep the dimensions of their
@@ -40,7 +40,7 @@ class TestKeepDims:
         a = np.random.rand(3, 2, 4)
         # We don't need to test all opt and C code, as this is tested
         # by the ops tests.
-        mode = theano.compile.Mode(optimizer="fast_compile", linker="py")
+        mode = aesara.compile.Mode(optimizer="fast_compile", linker="py")
 
         # 'max_and_argmax' has two outputs and can be specified with either
         # a single or every axis:
@@ -173,8 +173,8 @@ class TestKeepDims:
     def test_norm(self):
 
         x = tensor.dtensor3()
-        a = np.random.rand(3, 2, 4).astype(theano.config.floatX)
-        mode = theano.compile.Mode(optimizer="fast_compile", linker="py")
+        a = np.random.rand(3, 2, 4).astype(aesara.config.floatX)
+        mode = aesara.compile.Mode(optimizer="fast_compile", linker="py")
 
         for axis in [
             0,

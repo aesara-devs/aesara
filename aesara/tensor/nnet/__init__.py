@@ -166,7 +166,7 @@ def conv2d(
         GPU. Otherwise, it is the *CorrMM* convolution that will be used
         "caffe style convolution".
 
-        This is only supported in Theano 0.8 or the development
+        This is only supported in Aesara 0.8 or the development
         version until it is released.
 
         The parameter filter_dilation is an implementation of `dilated
@@ -179,7 +179,7 @@ def conv2d(
             "Keyword arguments 'imshp_logical' and 'kshp_logical' for conv2d "
             "are not supported anymore (and have not been a reliable way to "
             "perform upsampling). That feature is still available by calling "
-            "theano.tensor.nnet.conv.conv2d() for the time being."
+            "aesara.tensor.nnet.conv.conv2d() for the time being."
         )
     if len(kwargs.keys()) > 0:
         warnings.warn(

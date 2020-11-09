@@ -1,9 +1,9 @@
 import numpy as np
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 from tests import unittest_tools as utt
-from theano.breakpoint import PdbBreakpoint
+from aesara.breakpoint import PdbBreakpoint
 
 
 class TestPdbBreakpoint(utt.InferShapeTester):
@@ -49,10 +49,10 @@ class TestPdbBreakpoint(utt.InferShapeTester):
             tt.grad(self.monitored_input2.sum(), self.input2),
         ]
 
-        # Add self.monitored_input1 as an output to the Theano function to
-        # prevent Theano from optimizing the PdbBreakpoint op out of the
+        # Add self.monitored_input1 as an output to the Aesara function to
+        # prevent Aesara from optimizing the PdbBreakpoint op out of the
         # function graph
-        fct = theano.function(
+        fct = aesara.function(
             [self.input1, self.input2], grads + [self.monitored_input1]
         )
 
@@ -70,7 +70,7 @@ class TestPdbBreakpoint(utt.InferShapeTester):
 
         input1_value = np.arange(9).reshape(3, 3).astype("float32")
         input2_value = 10.0
-        fct = theano.function(
+        fct = aesara.function(
             [self.input1, self.input2], [self.monitored_input1, self.monitored_input2]
         )
 

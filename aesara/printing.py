@@ -14,10 +14,10 @@ from io import StringIO
 
 import numpy as np
 
-import theano
-from theano import config, gof
-from theano.compile import Function, SharedVariable, debugmode
-from theano.gof import Apply, Op
+import aesara
+from aesara import config, gof
+from aesara.compile import Function, SharedVariable, debugmode
+from aesara.gof import Apply, Op
 
 
 pydot_imported = False
@@ -53,7 +53,7 @@ except ImportError:
         pydot_imported_msg += str(e.args)
 
 
-_logger = logging.getLogger("theano.printing")
+_logger = logging.getLogger("aesara.printing")
 VALID_ASSOC = {"left", "right", "either"}
 
 
@@ -71,7 +71,7 @@ def debugprint(
 ):
     """Print a computation graph as text to stdout or a file.
 
-    :type obj: :class:`~theano.gof.Variable`, Apply, or Function instance
+    :type obj: :class:`~aesara.gof.Variable`, Apply, or Function instance
     :param obj: symbolic thing to print
     :type depth: integer
     :param depth: print graph to this depth (-1 for unlimited)
@@ -92,8 +92,8 @@ def debugprint(
         Useful to have multiple call to debugprint share the same ids.
     :type print_storage: bool
     :param print_storage: If True, this will print the storage map
-        for Theano functions. Combined with allow_gc=False, after the
-        execution of a Theano function, we see the intermediate result.
+        for Aesara functions. Combined with allow_gc=False, after the
+        execution of a Aesara function, we see the intermediate result.
     :type print_clients: bool
     :param print_clients: If True, this will print for Apply node that
          have more then 1 clients its clients. This help find who use
@@ -169,7 +169,7 @@ def debugprint(
             order.extend([topo for item in obj.outputs])
         elif isinstance(obj, (int, float, np.ndarray)):
             print(obj, file=_file)
-        elif isinstance(obj, (theano.In, theano.Out)):
+        elif isinstance(obj, (aesara.In, aesara.Out)):
             results_to_print.append(obj.variable)
             profile_list.append(None)
             smap.append(None)
@@ -203,7 +203,7 @@ N.B.:
     for r, p, s, o in zip(results_to_print, profile_list, smap, order):
         # Add the parent scan op to the list as well
         if hasattr(r.owner, "op") and isinstance(
-            r.owner.op, theano.scan_module.scan_op.Scan
+            r.owner.op, aesara.scan_module.scan_op.Scan
         ):
             scan_ops.append(r)
 
@@ -265,7 +265,7 @@ N.B.:
             for idx, i in enumerate(outputs):
 
                 if hasattr(i, "owner") and hasattr(i.owner, "op"):
-                    if isinstance(i.owner.op, theano.scan_module.scan_op.Scan):
+                    if isinstance(i.owner.op, aesara.scan_module.scan_op.Scan):
                         scan_ops.append(i)
 
                 debugmode.debugprint(
@@ -728,10 +728,10 @@ def pydotprint(
     print_output_file=True,
     return_image=False,
 ):
-    """Print to a file the graph of a compiled theano function's ops. Supports
+    """Print to a file the graph of a compiled aesara function's ops. Supports
     all pydot output formats, including png and svg.
 
-    :param fct: a compiled Theano function, a Variable, an Apply or
+    :param fct: a compiled Aesara function, a Variable, an Apply or
                 a list of Variable.
     :param outfile: the output file where to put the graph.
     :param compact: if True, will remove intermediate var that don't have name.
@@ -762,10 +762,10 @@ def pydotprint(
 
         .. code-block:: python
 
-            import theano
-            v = theano.tensor.vector()
+            import aesara
+            v = aesara.tensor.vector()
             from IPython.display import SVG
-            SVG(theano.printing.pydotprint(v*2, return_image=True,
+            SVG(aesara.printing.pydotprint(v*2, return_image=True,
                                            format='svg'))
 
     In the graph, ellipses are Apply Nodes (the execution of an op)
@@ -809,7 +809,7 @@ def pydotprint(
 
     if outfile is None:
         outfile = os.path.join(
-            config.compiledir, "theano.pydotprint." + config.device + "." + format
+            config.compiledir, "aesara.pydotprint." + config.device + "." + format
         )
 
     if isinstance(fct, Function):
@@ -1122,7 +1122,7 @@ def pydotprint(
         scan_ops = [
             (idx, x)
             for idx, x in enumerate(topo)
-            if isinstance(x.op, theano.scan_module.scan_op.Scan)
+            if isinstance(x.op, aesara.scan_module.scan_op.Scan)
         ]
         path, fn = os.path.split(outfile)
         basename = ".".join(fn.split(".")[:-1])
@@ -1159,7 +1159,7 @@ def pydotprint(
         try:
             g.write(outfile, prog="dot", format=format)
         except pd.InvocationException:
-            # based on https://github.com/Theano/Theano/issues/2988
+            # based on https://github.com/Aesara/Aesara/issues/2988
             version = getattr(pd, "__version__", "")
             if version and [int(n) for n in version.split(".")] < [1, 0, 28]:
                 raise Exception(
@@ -1346,8 +1346,8 @@ def var_descriptor(obj, _prev_obs=None, _tag_generator=None):
 
 
 def position_independent_str(obj):
-    if isinstance(obj, theano.gof.graph.Variable):
-        rval = "theano_var"
+    if isinstance(obj, aesara.gof.graph.Variable):
+        rval = "aesara_var"
         rval += "{type=" + str(obj.type) + "}"
     else:
         raise NotImplementedError()

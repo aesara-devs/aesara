@@ -1,5 +1,5 @@
-from theano.sandbox.linalg.ops import psd, spectral_radius_bound
-from theano.tensor.nlinalg import (
+from aesara.sandbox.linalg.ops import psd, spectral_radius_bound
+from aesara.tensor.nlinalg import (
     alloc_diag,
     det,
     diag,
@@ -9,4 +9,4 @@ from theano.tensor.nlinalg import (
     matrix_inverse,
     trace,
 )
-from theano.tensor.slinalg import cholesky, eigvalsh, solve
+from aesara.tensor.slinalg import cholesky, eigvalsh, solve

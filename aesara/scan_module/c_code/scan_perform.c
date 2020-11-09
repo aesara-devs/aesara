@@ -559,8 +559,8 @@ static CYTHON_INLINE float __PYX_NAN() {
   #endif
 #endif
 
-#define __PYX_HAVE__theano__scan_module__scan_perform
-#define __PYX_HAVE_API__theano__scan_module__scan_perform
+#define __PYX_HAVE__aesara__scan_module__scan_perform
+#define __PYX_HAVE_API__aesara__scan_module__scan_perform
 /* Early includes */
 #include <string.h>
 #include <stdio.h>
@@ -1678,13 +1678,13 @@ static PyTypeObject *__pyx_ptype_5numpy_ndarray = 0;
 static PyTypeObject *__pyx_ptype_5numpy_ufunc = 0;
 static CYTHON_INLINE char *__pyx_f_5numpy__util_dtypestring(PyArray_Descr *, char *, char *, int *); /*proto*/
 
-/* Module declarations from 'theano.scan_module.scan_perform' */
+/* Module declarations from 'aesara.scan_module.scan_perform' */
 static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_5numpy_int32_t = { "int32_t", NULL, sizeof(__pyx_t_5numpy_int32_t), { 0 }, 0, IS_UNSIGNED(__pyx_t_5numpy_int32_t) ? 'U' : 'I', IS_UNSIGNED(__pyx_t_5numpy_int32_t), 0 };
-#define __Pyx_MODULE_NAME "theano.scan_module.scan_perform"
-extern int __pyx_module_is_main_theano__scan_module__scan_perform;
-int __pyx_module_is_main_theano__scan_module__scan_perform = 0;
+#define __Pyx_MODULE_NAME "aesara.scan_module.scan_perform"
+extern int __pyx_module_is_main_aesara__scan_module__scan_perform;
+int __pyx_module_is_main_aesara__scan_module__scan_perform = 0;
 
-/* Implementation of 'theano.scan_module.scan_perform' */
+/* Implementation of 'aesara.scan_module.scan_perform' */
 static PyObject *__pyx_builtin_IndexError;
 static PyObject *__pyx_builtin_NotImplementedError;
 static PyObject *__pyx_builtin_range;
@@ -1747,7 +1747,7 @@ static const char __pyx_k_n_outs[] = "n_outs";
 static const char __pyx_k_n_seqs[] = "n_seqs";
 static const char __pyx_k_offset[] = "offset";
 static const char __pyx_k_t_call[] = "t_call";
-static const char __pyx_k_theano[] = "theano";
+static const char __pyx_k_aesara[] = "aesara";
 static const char __pyx_k_thunks[] = "thunks";
 static const char __pyx_k_update[] = "update";
 static const char __pyx_k_xrange[] = "xrange";
@@ -1829,9 +1829,9 @@ static const char __pyx_k_c_2011_Universite_de_Montreal[] = "(c) 2011, Universit
 static const char __pyx_k_Razvan_Pascanu_r_pascanu_gmail[] = "Razvan Pascanu <r.pascanu@gmail>";
 static const char __pyx_k_This_code_implements_the_operat[] = "\n This code implements the operations that scan has to carry on when called\n as a stand alone function.\n\n IF anything this is the entire code that needs to be transported to C.\n\n Short description of how this code works:\n     Scan divides its inputs ( Op's inputs) into different classes of inputs\n     as follows:\n         i) sequences : inputs over which scan loops to get data. Nothing is\n         written into them ( they are readonly, loop over)\n\n         ii) mit_mot : multiple input taps multiple output taps arguments.\n         These are inputs over which scan loops and gets data but into which\n         scan also writes data. The shorthand mit_mot describes how scan\n         deal with them at each step : at each step take several slices as\n         input and produce sevaral slices as outputs\n\n         iii) mit_sot : multiple input taps single output tap arguments.\n         As before scan reads from these but also writes. At each step scan\n         uses several slices as input but produces only one as output\n\n         iv) sit_sot : single input tap single output tap arguments.\n         At each step use only the previous slice as input, produce only one\n         slice as output\n\n         v) nit_sot: no input tap single output tap arguments.\n         At each step don't use any previous values, only produce new onese\n\n         vi) shared_outs: arguments corresponding to shared variables with\n         updates.\n         At each step use its value as input, and afterwards replace it with\n         a new value.\n         vii) other_args: arguments that are passed to every call of the\n         inner function as they are ( no slicing is perfomed)\n\n    All these outputs are one after the other in the inputs list (named in\n    this code as args) in a given order ( namely the one described above\n    with little discrepencies depending if we are talking about the outputs\n    of the Scan op or the inputs of the Scan op Node, and if we are tal""king\n    about the inputs of the inner function of scan or of the scan op).\n\n    Because of this, all we need to be able to separate and tell arguments\n    apart is how many of which we have as well as how many taps and which\n    ones (where applicable). All this information is desribed (more or less)\n    by describing the arguments of this function)\n";
 static const char __pyx_k_numpy_core_multiarray_failed_to[] = "numpy.core.multiarray failed to import";
-static const char __pyx_k_theano_scan_module_scan_perform[] = "theano.scan_module.scan_perform";
+static const char __pyx_k_aesara_scan_module_scan_perform[] = "aesara.scan_module.scan_perform";
 static const char __pyx_k_unknown_dtype_code_in_numpy_pxd[] = "unknown dtype code in numpy.pxd (%d)";
-static const char __pyx_k_An_output_of_the_scan_has_change[] = "An output of the scan has changed shape. This may be caused by a pushout optimization. Try adding 'optimizer_excluding=scanOp_pushout_output' to your Theano flags.";
+static const char __pyx_k_An_output_of_the_scan_has_change[] = "An output of the scan has changed shape. This may be caused by a pushout optimization. Try adding 'optimizer_excluding=scanOp_pushout_output' to your Aesara flags.";
 static const char __pyx_k_Format_string_allocated_too_shor[] = "Format string allocated too short, see comment in numpy.pxd";
 static const char __pyx_k_Non_native_byte_order_not_suppor[] = "Non-native byte order not supported";
 static const char __pyx_k_Scan_was_asked_to_run_for_negati[] = "Scan was asked to run for negative number of step %d";
@@ -1969,8 +1969,8 @@ static PyObject *__pyx_n_s_tap_array;
 static PyObject *__pyx_n_s_tap_array_len;
 static PyObject *__pyx_n_s_tdx;
 static PyObject *__pyx_n_s_test;
-static PyObject *__pyx_n_s_theano;
-static PyObject *__pyx_n_s_theano_scan_module_scan_perform;
+static PyObject *__pyx_n_s_aesara;
+static PyObject *__pyx_n_s_aesara_scan_module_scan_perform;
 static PyObject *__pyx_n_s_thunks;
 static PyObject *__pyx_n_s_time;
 static PyObject *__pyx_n_s_tmp;
@@ -1986,8 +1986,8 @@ static PyObject *__pyx_n_s_vm;
 static PyObject *__pyx_n_s_vm_call_time;
 static PyObject *__pyx_n_s_xrange;
 static PyObject *__pyx_n_s_zip;
-static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_get_version(CYTHON_UNUSED PyObject *__pyx_self); /* proto */
-static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_UNUSED PyObject *__pyx_self, unsigned int __pyx_v_n_shared_outs, unsigned int __pyx_v_n_mit_mot_outs, unsigned int __pyx_v_n_seqs, unsigned int __pyx_v_n_mit_mot, unsigned int __pyx_v_n_mit_sot, unsigned int __pyx_v_n_sit_sot, unsigned int __pyx_v_n_nit_sot, int __pyx_v_n_steps, int __pyx_v_as_while, PyArrayObject *__pyx_v_mintaps, PyArrayObject *__pyx_v_tap_array, PyArrayObject *__pyx_v_tap_array_len, PyArrayObject *__pyx_v_vector_seqs, PyArrayObject *__pyx_v_vector_outs, CYTHON_UNUSED PyArrayObject *__pyx_v_mit_mot_out_slices, CYTHON_UNUSED PyArrayObject *__pyx_v_mit_mot_out_nslices, PyArrayObject *__pyx_v_mitmots_preallocated, PyArrayObject *__pyx_v_inps_is_tensor, PyArrayObject *__pyx_v_outs_is_tensor, PyObject *__pyx_v_fn, PyObject *__pyx_v_fnct, PyArrayObject *__pyx_v_destroy_map, PyObject *__pyx_v_args, PyObject *__pyx_v_outs, PyObject *__pyx_v_self, PyObject *__pyx_v_node); /* proto */
+static PyObject *__pyx_pf_6aesara_11scan_module_12scan_perform_get_version(CYTHON_UNUSED PyObject *__pyx_self); /* proto */
+static PyObject *__pyx_pf_6aesara_11scan_module_12scan_perform_2perform(CYTHON_UNUSED PyObject *__pyx_self, unsigned int __pyx_v_n_shared_outs, unsigned int __pyx_v_n_mit_mot_outs, unsigned int __pyx_v_n_seqs, unsigned int __pyx_v_n_mit_mot, unsigned int __pyx_v_n_mit_sot, unsigned int __pyx_v_n_sit_sot, unsigned int __pyx_v_n_nit_sot, int __pyx_v_n_steps, int __pyx_v_as_while, PyArrayObject *__pyx_v_mintaps, PyArrayObject *__pyx_v_tap_array, PyArrayObject *__pyx_v_tap_array_len, PyArrayObject *__pyx_v_vector_seqs, PyArrayObject *__pyx_v_vector_outs, CYTHON_UNUSED PyArrayObject *__pyx_v_mit_mot_out_slices, CYTHON_UNUSED PyArrayObject *__pyx_v_mit_mot_out_nslices, PyArrayObject *__pyx_v_mitmots_preallocated, PyArrayObject *__pyx_v_inps_is_tensor, PyArrayObject *__pyx_v_outs_is_tensor, PyObject *__pyx_v_fn, PyObject *__pyx_v_fnct, PyArrayObject *__pyx_v_destroy_map, PyObject *__pyx_v_args, PyObject *__pyx_v_outs, PyObject *__pyx_v_self, PyObject *__pyx_v_node); /* proto */
 static int __pyx_pf_5numpy_7ndarray___getbuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info, int __pyx_v_flags); /* proto */
 static void __pyx_pf_5numpy_7ndarray_2__releasebuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info); /* proto */
 static PyObject *__pyx_float_0_296;
@@ -2023,7 +2023,7 @@ static PyObject *__pyx_codeobj__25;
 static PyObject *__pyx_codeobj__27;
 /* Late includes */
 
-/* "theano/scan_module/scan_perform.pyx":64
+/* "aesara/scan_module/scan_perform.pyx":64
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
@@ -2032,25 +2032,25 @@ static PyObject *__pyx_codeobj__27;
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_6theano_11scan_module_12scan_perform_1get_version(PyObject *__pyx_self, CYTHON_UNUSED PyObject *unused); /*proto*/
-static PyMethodDef __pyx_mdef_6theano_11scan_module_12scan_perform_1get_version = {"get_version", (PyCFunction)__pyx_pw_6theano_11scan_module_12scan_perform_1get_version, METH_NOARGS, 0};
-static PyObject *__pyx_pw_6theano_11scan_module_12scan_perform_1get_version(PyObject *__pyx_self, CYTHON_UNUSED PyObject *unused) {
+static PyObject *__pyx_pw_6aesara_11scan_module_12scan_perform_1get_version(PyObject *__pyx_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static PyMethodDef __pyx_mdef_6aesara_11scan_module_12scan_perform_1get_version = {"get_version", (PyCFunction)__pyx_pw_6aesara_11scan_module_12scan_perform_1get_version, METH_NOARGS, 0};
+static PyObject *__pyx_pw_6aesara_11scan_module_12scan_perform_1get_version(PyObject *__pyx_self, CYTHON_UNUSED PyObject *unused) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("get_version (wrapper)", 0);
-  __pyx_r = __pyx_pf_6theano_11scan_module_12scan_perform_get_version(__pyx_self);
+  __pyx_r = __pyx_pf_6aesara_11scan_module_12scan_perform_get_version(__pyx_self);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_get_version(CYTHON_UNUSED PyObject *__pyx_self) {
+static PyObject *__pyx_pf_6aesara_11scan_module_12scan_perform_get_version(CYTHON_UNUSED PyObject *__pyx_self) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("get_version", 0);
 
-  /* "theano/scan_module/scan_perform.pyx":65
+  /* "aesara/scan_module/scan_perform.pyx":65
  * 
  * def get_version():
  *     return 0.296             # <<<<<<<<<<<<<<
@@ -2062,7 +2062,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_get_version(CYTHO
   __pyx_r = __pyx_float_0_296;
   goto __pyx_L0;
 
-  /* "theano/scan_module/scan_perform.pyx":64
+  /* "aesara/scan_module/scan_perform.pyx":64
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
@@ -2077,7 +2077,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_get_version(CYTHO
   return __pyx_r;
 }
 
-/* "theano/scan_module/scan_perform.pyx":68
+/* "aesara/scan_module/scan_perform.pyx":68
  * 
  * @cython.boundscheck(False)
  * def perform(             # <<<<<<<<<<<<<<
@@ -2086,10 +2086,10 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_get_version(CYTHO
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_6theano_11scan_module_12scan_perform_3perform(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static char __pyx_doc_6theano_11scan_module_12scan_perform_2perform[] = "\n    Parameters\n    ----------\n    n_shared_outs: unsigned int\n        Number of arugments that correspond to shared variables with\n        updates\n    n_mit_mot_outs: unsigned int\n        Sum over the number of output taps for each mit_mot sequence\n    n_seqs: unsigned int\n        Number of sequences provided as input\n    n_mit_mot : unsigned int\n        Number of mit_mot arguemnts\n    n_mit_sot: unsigned int\n        Number of mit_sot arguments\n    n_sit_sot: unsigned int\n        Number of sit sot arguemnts\n    n_nit_sot: unsigned int\n        Number of nit_sot arguments\n    n_steps: unsigned int\n        Number of steps to loop over\n    mintaps: int32 ndarray (can also be a simple python list if that is better !)\n        For any of the mit_mot, mit_sot, sit_sot says which is the furtherst\n        away input tap from current position. For example, if the taps where [-2,\n        -5, -9], the mintap would be -9. For sit_sot this is always -1 since\n        is the only allowed tap.\n    tap_array: int32 ndarray( can be replaced by a list of list in python if better)\n        For each of the mit_mot, mit_sot, sit_sot (the first dimension) says\n        which are the corresponding input taps. While this is a matrix, not all\n        values in a row are needed and tap_array_len is there to say up to\n        which entry we are dealing with valid taps ( afterwards there are\n        just 0s to ensure the fix format)\n    tap_array_len: int32 ndarray( can be replaced by a list if better)\n        For each of the mit_mot, mit_sot, sit_sot says how many input taps\n        each has. For sit_sot this will always be 1.\n    vector_seqs: int32 ndarray (can be replaced by a list of bools if better)\n        For each sequence the corresponding entry is either a 1, is the\n        sequence is a vector or 0 if it has more than 1 dimension\n    vector_outs: int32 ndarray( can be replaced by list of bools if better)\n        For each output ( mit_mot, mit_sot, si""t_sot, nit_sot in this order)\n        the entry is 1 if the corresponding argument is a 1 dimensional\n        tensor, 0 otherwise.\n    mit_mot_out_slices : int32 ndarray( can be replaced by list of lists)\n        Same as tap_array, but for the output taps of mit_mot sequences\n    mit_mot_out_nslices: int32 ndarray (Can be replaced by a list)\n        Same as tap_array_len, but is the number of output taps of the\n        mit_mot sequences (i.e. it corresponds to mit_mot_out_slices)\n    inps_is_tensor : int32 ndarray (Can be replaced by a list)\n        Array of boolean indicating, for every input, whether it is a tensor\n        or not\n    outs_is_tensor : int32 ndarray (Can be replaced by a list)\n        Array of boolean indicating, for every output, whether it is a tensor\n        or not\n    fn: callable\n        This is the linker, i.e. the function that will loop over the\n        computational graph and call the perform of each operation. For this\n        linker there is a c version in gof/lazy_linker.c that will be the\n        starting point of implementing this function in C ( we need to take\n        all the code around the call of this function and put in C inside\n        that code)\n    fnct: python object\n        Only used to attach some timings for the profile mode ( can be\n        skiped if we don't care about Theano's profile mode)\n    destroy_map\n        Array of boolean saying if an output is computed inplace\n    args: list of ndarrays (and random states)\n        The inputs of scan in a given order ( n_steps, sequences, mit_mot,\n        mit_sot, sit_sot, nit_sot, shared_outs, other_args)\n    outs: list of 1 element list ( or storage objects?)\n        This is where we need to copy our outputs ( we don't return the\n        results, though we can change the code such that we return, and\n        figure things out on the outside - python)\n    self: python object\n        The scan op itself. I only use it to attach to it some timing""\n        informations .. but I don;t need to.\n\n    ";
-static PyMethodDef __pyx_mdef_6theano_11scan_module_12scan_perform_3perform = {"perform", (PyCFunction)__pyx_pw_6theano_11scan_module_12scan_perform_3perform, METH_VARARGS|METH_KEYWORDS, __pyx_doc_6theano_11scan_module_12scan_perform_2perform};
-static PyObject *__pyx_pw_6theano_11scan_module_12scan_perform_3perform(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static PyObject *__pyx_pw_6aesara_11scan_module_12scan_perform_3perform(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static char __pyx_doc_6aesara_11scan_module_12scan_perform_2perform[] = "\n    Parameters\n    ----------\n    n_shared_outs: unsigned int\n        Number of arugments that correspond to shared variables with\n        updates\n    n_mit_mot_outs: unsigned int\n        Sum over the number of output taps for each mit_mot sequence\n    n_seqs: unsigned int\n        Number of sequences provided as input\n    n_mit_mot : unsigned int\n        Number of mit_mot arguemnts\n    n_mit_sot: unsigned int\n        Number of mit_sot arguments\n    n_sit_sot: unsigned int\n        Number of sit sot arguemnts\n    n_nit_sot: unsigned int\n        Number of nit_sot arguments\n    n_steps: unsigned int\n        Number of steps to loop over\n    mintaps: int32 ndarray (can also be a simple python list if that is better !)\n        For any of the mit_mot, mit_sot, sit_sot says which is the furtherst\n        away input tap from current position. For example, if the taps where [-2,\n        -5, -9], the mintap would be -9. For sit_sot this is always -1 since\n        is the only allowed tap.\n    tap_array: int32 ndarray( can be replaced by a list of list in python if better)\n        For each of the mit_mot, mit_sot, sit_sot (the first dimension) says\n        which are the corresponding input taps. While this is a matrix, not all\n        values in a row are needed and tap_array_len is there to say up to\n        which entry we are dealing with valid taps ( afterwards there are\n        just 0s to ensure the fix format)\n    tap_array_len: int32 ndarray( can be replaced by a list if better)\n        For each of the mit_mot, mit_sot, sit_sot says how many input taps\n        each has. For sit_sot this will always be 1.\n    vector_seqs: int32 ndarray (can be replaced by a list of bools if better)\n        For each sequence the corresponding entry is either a 1, is the\n        sequence is a vector or 0 if it has more than 1 dimension\n    vector_outs: int32 ndarray( can be replaced by list of bools if better)\n        For each output ( mit_mot, mit_sot, si""t_sot, nit_sot in this order)\n        the entry is 1 if the corresponding argument is a 1 dimensional\n        tensor, 0 otherwise.\n    mit_mot_out_slices : int32 ndarray( can be replaced by list of lists)\n        Same as tap_array, but for the output taps of mit_mot sequences\n    mit_mot_out_nslices: int32 ndarray (Can be replaced by a list)\n        Same as tap_array_len, but is the number of output taps of the\n        mit_mot sequences (i.e. it corresponds to mit_mot_out_slices)\n    inps_is_tensor : int32 ndarray (Can be replaced by a list)\n        Array of boolean indicating, for every input, whether it is a tensor\n        or not\n    outs_is_tensor : int32 ndarray (Can be replaced by a list)\n        Array of boolean indicating, for every output, whether it is a tensor\n        or not\n    fn: callable\n        This is the linker, i.e. the function that will loop over the\n        computational graph and call the perform of each operation. For this\n        linker there is a c version in gof/lazy_linker.c that will be the\n        starting point of implementing this function in C ( we need to take\n        all the code around the call of this function and put in C inside\n        that code)\n    fnct: python object\n        Only used to attach some timings for the profile mode ( can be\n        skiped if we don't care about Aesara's profile mode)\n    destroy_map\n        Array of boolean saying if an output is computed inplace\n    args: list of ndarrays (and random states)\n        The inputs of scan in a given order ( n_steps, sequences, mit_mot,\n        mit_sot, sit_sot, nit_sot, shared_outs, other_args)\n    outs: list of 1 element list ( or storage objects?)\n        This is where we need to copy our outputs ( we don't return the\n        results, though we can change the code such that we return, and\n        figure things out on the outside - python)\n    self: python object\n        The scan op itself. I only use it to attach to it some timing""\n        informations .. but I don;t need to.\n\n    ";
+static PyMethodDef __pyx_mdef_6aesara_11scan_module_12scan_perform_3perform = {"perform", (PyCFunction)__pyx_pw_6aesara_11scan_module_12scan_perform_3perform, METH_VARARGS|METH_KEYWORDS, __pyx_doc_6aesara_11scan_module_12scan_perform_2perform};
+static PyObject *__pyx_pw_6aesara_11scan_module_12scan_perform_3perform(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   unsigned int __pyx_v_n_shared_outs;
   unsigned int __pyx_v_n_mit_mot_outs;
   unsigned int __pyx_v_n_seqs;
@@ -2401,7 +2401,7 @@ static PyObject *__pyx_pw_6theano_11scan_module_12scan_perform_3perform(PyObject
   __pyx_L5_argtuple_error:;
   __Pyx_RaiseArgtupleInvalid("perform", 1, 26, 26, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 68, __pyx_L3_error)
   __pyx_L3_error:;
-  __Pyx_AddTraceback("theano.scan_module.scan_perform.perform", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("aesara.scan_module.scan_perform.perform", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
@@ -2416,7 +2416,7 @@ static PyObject *__pyx_pw_6theano_11scan_module_12scan_perform_3perform(PyObject
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_inps_is_tensor), __pyx_ptype_5numpy_ndarray, 1, "inps_is_tensor", 0))) __PYX_ERR(0, 86, __pyx_L1_error)
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_outs_is_tensor), __pyx_ptype_5numpy_ndarray, 1, "outs_is_tensor", 0))) __PYX_ERR(0, 87, __pyx_L1_error)
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_destroy_map), __pyx_ptype_5numpy_ndarray, 1, "destroy_map", 0))) __PYX_ERR(0, 90, __pyx_L1_error)
-  __pyx_r = __pyx_pf_6theano_11scan_module_12scan_perform_2perform(__pyx_self, __pyx_v_n_shared_outs, __pyx_v_n_mit_mot_outs, __pyx_v_n_seqs, __pyx_v_n_mit_mot, __pyx_v_n_mit_sot, __pyx_v_n_sit_sot, __pyx_v_n_nit_sot, __pyx_v_n_steps, __pyx_v_as_while, __pyx_v_mintaps, __pyx_v_tap_array, __pyx_v_tap_array_len, __pyx_v_vector_seqs, __pyx_v_vector_outs, __pyx_v_mit_mot_out_slices, __pyx_v_mit_mot_out_nslices, __pyx_v_mitmots_preallocated, __pyx_v_inps_is_tensor, __pyx_v_outs_is_tensor, __pyx_v_fn, __pyx_v_fnct, __pyx_v_destroy_map, __pyx_v_args, __pyx_v_outs, __pyx_v_self, __pyx_v_node);
+  __pyx_r = __pyx_pf_6aesara_11scan_module_12scan_perform_2perform(__pyx_self, __pyx_v_n_shared_outs, __pyx_v_n_mit_mot_outs, __pyx_v_n_seqs, __pyx_v_n_mit_mot, __pyx_v_n_mit_sot, __pyx_v_n_sit_sot, __pyx_v_n_nit_sot, __pyx_v_n_steps, __pyx_v_as_while, __pyx_v_mintaps, __pyx_v_tap_array, __pyx_v_tap_array_len, __pyx_v_vector_seqs, __pyx_v_vector_outs, __pyx_v_mit_mot_out_slices, __pyx_v_mit_mot_out_nslices, __pyx_v_mitmots_preallocated, __pyx_v_inps_is_tensor, __pyx_v_outs_is_tensor, __pyx_v_fn, __pyx_v_fnct, __pyx_v_destroy_map, __pyx_v_args, __pyx_v_outs, __pyx_v_self, __pyx_v_node);
 
   /* function exit code */
   goto __pyx_L0;
@@ -2427,7 +2427,7 @@ static PyObject *__pyx_pw_6theano_11scan_module_12scan_perform_3perform(PyObject
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_UNUSED PyObject *__pyx_self, unsigned int __pyx_v_n_shared_outs, unsigned int __pyx_v_n_mit_mot_outs, unsigned int __pyx_v_n_seqs, unsigned int __pyx_v_n_mit_mot, unsigned int __pyx_v_n_mit_sot, unsigned int __pyx_v_n_sit_sot, unsigned int __pyx_v_n_nit_sot, int __pyx_v_n_steps, int __pyx_v_as_while, PyArrayObject *__pyx_v_mintaps, PyArrayObject *__pyx_v_tap_array, PyArrayObject *__pyx_v_tap_array_len, PyArrayObject *__pyx_v_vector_seqs, PyArrayObject *__pyx_v_vector_outs, CYTHON_UNUSED PyArrayObject *__pyx_v_mit_mot_out_slices, CYTHON_UNUSED PyArrayObject *__pyx_v_mit_mot_out_nslices, PyArrayObject *__pyx_v_mitmots_preallocated, PyArrayObject *__pyx_v_inps_is_tensor, PyArrayObject *__pyx_v_outs_is_tensor, PyObject *__pyx_v_fn, PyObject *__pyx_v_fnct, PyArrayObject *__pyx_v_destroy_map, PyObject *__pyx_v_args, PyObject *__pyx_v_outs, PyObject *__pyx_v_self, PyObject *__pyx_v_node) {
+static PyObject *__pyx_pf_6aesara_11scan_module_12scan_perform_2perform(CYTHON_UNUSED PyObject *__pyx_self, unsigned int __pyx_v_n_shared_outs, unsigned int __pyx_v_n_mit_mot_outs, unsigned int __pyx_v_n_seqs, unsigned int __pyx_v_n_mit_mot, unsigned int __pyx_v_n_mit_sot, unsigned int __pyx_v_n_sit_sot, unsigned int __pyx_v_n_nit_sot, int __pyx_v_n_steps, int __pyx_v_as_while, PyArrayObject *__pyx_v_mintaps, PyArrayObject *__pyx_v_tap_array, PyArrayObject *__pyx_v_tap_array_len, PyArrayObject *__pyx_v_vector_seqs, PyArrayObject *__pyx_v_vector_outs, CYTHON_UNUSED PyArrayObject *__pyx_v_mit_mot_out_slices, CYTHON_UNUSED PyArrayObject *__pyx_v_mit_mot_out_nslices, PyArrayObject *__pyx_v_mitmots_preallocated, PyArrayObject *__pyx_v_inps_is_tensor, PyArrayObject *__pyx_v_outs_is_tensor, PyObject *__pyx_v_fn, PyObject *__pyx_v_fnct, PyArrayObject *__pyx_v_destroy_map, PyObject *__pyx_v_args, PyObject *__pyx_v_outs, PyObject *__pyx_v_self, PyObject *__pyx_v_node) {
   PyObject *__pyx_v_t0_call = NULL;
   PyObject *__pyx_v_t_fn = NULL;
   unsigned int __pyx_v_n_outs;
@@ -2662,7 +2662,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   }
   __pyx_pybuffernd_destroy_map.diminfo[0].strides = __pyx_pybuffernd_destroy_map.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_destroy_map.diminfo[0].shape = __pyx_pybuffernd_destroy_map.rcbuffer->pybuffer.shape[0];
 
-  /* "theano/scan_module/scan_perform.pyx":173
+  /* "aesara/scan_module/scan_perform.pyx":173
  *     # 1. Unzip the number of steps and sequences. If number of steps is
  *     # negative flip sequences around, and make n_steps positive
  *     t0_call = time.time()             # <<<<<<<<<<<<<<
@@ -2695,7 +2695,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   __pyx_v_t0_call = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":174
+  /* "aesara/scan_module/scan_perform.pyx":174
  *     # negative flip sequences around, and make n_steps positive
  *     t0_call = time.time()
  *     t_fn = 0             # <<<<<<<<<<<<<<
@@ -2705,7 +2705,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   __Pyx_INCREF(__pyx_int_0);
   __pyx_v_t_fn = __pyx_int_0;
 
-  /* "theano/scan_module/scan_perform.pyx":175
+  /* "aesara/scan_module/scan_perform.pyx":175
  *     t0_call = time.time()
  *     t_fn = 0
  *     cdef unsigned int n_outs = n_mit_mot + n_mit_sot + n_sit_sot             # <<<<<<<<<<<<<<
@@ -2714,7 +2714,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   __pyx_v_n_outs = ((__pyx_v_n_mit_mot + __pyx_v_n_mit_sot) + __pyx_v_n_sit_sot);
 
-  /* "theano/scan_module/scan_perform.pyx":176
+  /* "aesara/scan_module/scan_perform.pyx":176
  *     t_fn = 0
  *     cdef unsigned int n_outs = n_mit_mot + n_mit_sot + n_sit_sot
  *     cdef unsigned int seqs_arg_offset = n_seqs + 1             # <<<<<<<<<<<<<<
@@ -2723,7 +2723,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   __pyx_v_seqs_arg_offset = (__pyx_v_n_seqs + 1);
 
-  /* "theano/scan_module/scan_perform.pyx":178
+  /* "aesara/scan_module/scan_perform.pyx":178
  *     cdef unsigned int seqs_arg_offset = n_seqs + 1
  *     cdef unsigned int shared_arg_offset = ( 1 + n_seqs + n_mit_mot +
  *                                            n_mit_sot + n_sit_sot)             # <<<<<<<<<<<<<<
@@ -2732,7 +2732,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   __pyx_v_shared_arg_offset = ((((1 + __pyx_v_n_seqs) + __pyx_v_n_mit_mot) + __pyx_v_n_mit_sot) + __pyx_v_n_sit_sot);
 
-  /* "theano/scan_module/scan_perform.pyx":179
+  /* "aesara/scan_module/scan_perform.pyx":179
  *     cdef unsigned int shared_arg_offset = ( 1 + n_seqs + n_mit_mot +
  *                                            n_mit_sot + n_sit_sot)
  *     cdef unsigned int nit_sot_arg_offset = ( shared_arg_offset +             # <<<<<<<<<<<<<<
@@ -2741,7 +2741,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   __pyx_v_nit_sot_arg_offset = (__pyx_v_shared_arg_offset + __pyx_v_n_shared_outs);
 
-  /* "theano/scan_module/scan_perform.pyx":182
+  /* "aesara/scan_module/scan_perform.pyx":182
  *                                             n_shared_outs)
  *     cdef unsigned int offset_out
  *     cdef unsigned int lenpos = n_outs + n_nit_sot             # <<<<<<<<<<<<<<
@@ -2750,7 +2750,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   __pyx_v_lenpos = (__pyx_v_n_outs + __pyx_v_n_nit_sot);
 
-  /* "theano/scan_module/scan_perform.pyx":184
+  /* "aesara/scan_module/scan_perform.pyx":184
  *     cdef unsigned int lenpos = n_outs + n_nit_sot
  *     cdef int pos[500] # put a maximum of 500 outputs
  *     cdef unsigned int len_store_steps = n_mit_mot + n_mit_sot + n_sit_sot + n_nit_sot             # <<<<<<<<<<<<<<
@@ -2759,7 +2759,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   __pyx_v_len_store_steps = (((__pyx_v_n_mit_mot + __pyx_v_n_mit_sot) + __pyx_v_n_sit_sot) + __pyx_v_n_nit_sot);
 
-  /* "theano/scan_module/scan_perform.pyx":204
+  /* "aesara/scan_module/scan_perform.pyx":204
  *     cdef int cond
  *     cdef unsigned int len_output_storage = (n_mit_mot_outs + n_mit_sot +
  *                                             n_sit_sot + n_nit_sot +             # <<<<<<<<<<<<<<
@@ -2768,7 +2768,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   __pyx_v_len_output_storage = ((((__pyx_v_n_mit_mot_outs + __pyx_v_n_mit_sot) + __pyx_v_n_sit_sot) + __pyx_v_n_nit_sot) + __pyx_v_n_shared_outs);
 
-  /* "theano/scan_module/scan_perform.pyx":208
+  /* "aesara/scan_module/scan_perform.pyx":208
  * 
  * 
  *     if n_steps < 0:             # <<<<<<<<<<<<<<
@@ -2778,7 +2778,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   __pyx_t_4 = ((__pyx_v_n_steps < 0) != 0);
   if (unlikely(__pyx_t_4)) {
 
-    /* "theano/scan_module/scan_perform.pyx":213
+    /* "aesara/scan_module/scan_perform.pyx":213
  *         raise IndexError(
  *             "Scan was asked to run for negative number of step %d" %
  *             n_steps)             # <<<<<<<<<<<<<<
@@ -2788,7 +2788,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_t_1 = __Pyx_PyInt_From_int(__pyx_v_n_steps); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 213, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
 
-    /* "theano/scan_module/scan_perform.pyx":212
+    /* "aesara/scan_module/scan_perform.pyx":212
  *         # scan. Now we reverse the inputs outside of scan.
  *         raise IndexError(
  *             "Scan was asked to run for negative number of step %d" %             # <<<<<<<<<<<<<<
@@ -2799,7 +2799,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-    /* "theano/scan_module/scan_perform.pyx":211
+    /* "aesara/scan_module/scan_perform.pyx":211
  *         # History, in the past, this was used for backward
  *         # scan. Now we reverse the inputs outside of scan.
  *         raise IndexError(             # <<<<<<<<<<<<<<
@@ -2813,7 +2813,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __PYX_ERR(0, 211, __pyx_L1_error)
 
-    /* "theano/scan_module/scan_perform.pyx":208
+    /* "aesara/scan_module/scan_perform.pyx":208
  * 
  * 
  *     if n_steps < 0:             # <<<<<<<<<<<<<<
@@ -2822,7 +2822,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   }
 
-  /* "theano/scan_module/scan_perform.pyx":214
+  /* "aesara/scan_module/scan_perform.pyx":214
  *             "Scan was asked to run for negative number of step %d" %
  *             n_steps)
  *     elif n_steps == 0:             # <<<<<<<<<<<<<<
@@ -2832,7 +2832,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   __pyx_t_4 = ((__pyx_v_n_steps == 0) != 0);
   if (unlikely(__pyx_t_4)) {
 
-    /* "theano/scan_module/scan_perform.pyx":215
+    /* "aesara/scan_module/scan_perform.pyx":215
  *             n_steps)
  *     elif n_steps == 0:
  *         raise NotImplementedError(             # <<<<<<<<<<<<<<
@@ -2845,7 +2845,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __PYX_ERR(0, 215, __pyx_L1_error)
 
-    /* "theano/scan_module/scan_perform.pyx":214
+    /* "aesara/scan_module/scan_perform.pyx":214
  *             "Scan was asked to run for negative number of step %d" %
  *             n_steps)
  *     elif n_steps == 0:             # <<<<<<<<<<<<<<
@@ -2854,7 +2854,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   }
 
-  /* "theano/scan_module/scan_perform.pyx":218
+  /* "aesara/scan_module/scan_perform.pyx":218
  *             "We didn't implemented yet the case where scan do 0 iteration")
  *     else:
  *         for idx in range(n_seqs):             # <<<<<<<<<<<<<<
@@ -2867,7 +2867,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
       __pyx_v_idx = __pyx_t_7;
 
-      /* "theano/scan_module/scan_perform.pyx":219
+      /* "aesara/scan_module/scan_perform.pyx":219
  *     else:
  *         for idx in range(n_seqs):
  *             if args[<unsigned int>(1+idx)].shape[0] < n_steps:             # <<<<<<<<<<<<<<
@@ -2892,7 +2892,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
       if (unlikely(__pyx_t_4)) {
 
-        /* "theano/scan_module/scan_perform.pyx":222
+        /* "aesara/scan_module/scan_perform.pyx":222
  *                 raise ValueError(('Sequence is shorter than the required '
  *                                  'number of steps : (n_steps, seq, '
  *                                   'seq.shape):'), n_steps,             # <<<<<<<<<<<<<<
@@ -2902,7 +2902,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_n_steps); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 222, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_2);
 
-        /* "theano/scan_module/scan_perform.pyx":223
+        /* "aesara/scan_module/scan_perform.pyx":223
  *                                  'number of steps : (n_steps, seq, '
  *                                   'seq.shape):'), n_steps,
  *                                   args[1+idx],             # <<<<<<<<<<<<<<
@@ -2913,7 +2913,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_args, __pyx_t_9, long, 1, __Pyx_PyInt_From_long, 0, 1, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 223, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_3);
 
-        /* "theano/scan_module/scan_perform.pyx":224
+        /* "aesara/scan_module/scan_perform.pyx":224
  *                                   'seq.shape):'), n_steps,
  *                                   args[1+idx],
  *                                   args[1+idx].shape)             # <<<<<<<<<<<<<<
@@ -2927,7 +2927,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_GOTREF(__pyx_t_10);
         __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":220
+        /* "aesara/scan_module/scan_perform.pyx":220
  *         for idx in range(n_seqs):
  *             if args[<unsigned int>(1+idx)].shape[0] < n_steps:
  *                 raise ValueError(('Sequence is shorter than the required '             # <<<<<<<<<<<<<<
@@ -2955,7 +2955,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
         __PYX_ERR(0, 220, __pyx_L1_error)
 
-        /* "theano/scan_module/scan_perform.pyx":219
+        /* "aesara/scan_module/scan_perform.pyx":219
  *     else:
  *         for idx in range(n_seqs):
  *             if args[<unsigned int>(1+idx)].shape[0] < n_steps:             # <<<<<<<<<<<<<<
@@ -2966,7 +2966,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     }
   }
 
-  /* "theano/scan_module/scan_perform.pyx":229
+  /* "aesara/scan_module/scan_perform.pyx":229
  *     #       pos          -- map containing the current position of each output
  * 
  *     for idx in range(n_mit_mot + n_mit_sot + n_sit_sot):             # <<<<<<<<<<<<<<
@@ -2978,7 +2978,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
     __pyx_v_idx = __pyx_t_7;
 
-    /* "theano/scan_module/scan_perform.pyx":230
+    /* "aesara/scan_module/scan_perform.pyx":230
  * 
  *     for idx in range(n_mit_mot + n_mit_sot + n_sit_sot):
  *         store_steps[<unsigned int>idx] = args[<unsigned int>(idx+n_seqs+1)].shape[0]             # <<<<<<<<<<<<<<
@@ -2999,7 +2999,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     (__pyx_v_store_steps[((unsigned int)__pyx_v_idx)]) = __pyx_t_11;
   }
 
-  /* "theano/scan_module/scan_perform.pyx":232
+  /* "aesara/scan_module/scan_perform.pyx":232
  *         store_steps[<unsigned int>idx] = args[<unsigned int>(idx+n_seqs+1)].shape[0]
  * 
  *     for idx in range(n_nit_sot):             # <<<<<<<<<<<<<<
@@ -3011,7 +3011,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
     __pyx_v_idx = __pyx_t_7;
 
-    /* "theano/scan_module/scan_perform.pyx":234
+    /* "aesara/scan_module/scan_perform.pyx":234
  *     for idx in range(n_nit_sot):
  *         store_steps[<unsigned int>(idx + n_mit_mot + n_mit_sot + n_sit_sot)]=\
  *                 args[<unsigned int>(idx + n_mit_mot + n_mit_sot + n_sit_sot             # <<<<<<<<<<<<<<
@@ -3024,7 +3024,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_t_11 = __Pyx_PyInt_As_int(__pyx_t_10); if (unlikely((__pyx_t_11 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 234, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-    /* "theano/scan_module/scan_perform.pyx":233
+    /* "aesara/scan_module/scan_perform.pyx":233
  * 
  *     for idx in range(n_nit_sot):
  *         store_steps[<unsigned int>(idx + n_mit_mot + n_mit_sot + n_sit_sot)]=\             # <<<<<<<<<<<<<<
@@ -3034,7 +3034,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     (__pyx_v_store_steps[((unsigned int)(((__pyx_v_idx + __pyx_v_n_mit_mot) + __pyx_v_n_mit_sot) + __pyx_v_n_sit_sot))]) = __pyx_t_11;
   }
 
-  /* "theano/scan_module/scan_perform.pyx":237
+  /* "aesara/scan_module/scan_perform.pyx":237
  *                                     + n_shared_outs + n_seqs+1)]
  * 
  *     for idx in range(n_outs + n_nit_sot):             # <<<<<<<<<<<<<<
@@ -3046,7 +3046,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
     __pyx_v_idx = __pyx_t_7;
 
-    /* "theano/scan_module/scan_perform.pyx":238
+    /* "aesara/scan_module/scan_perform.pyx":238
  * 
  *     for idx in range(n_outs + n_nit_sot):
  *         pos[idx] = (-mintaps[idx])%store_steps[idx]             # <<<<<<<<<<<<<<
@@ -3062,7 +3062,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     (__pyx_v_pos[__pyx_v_idx]) = __Pyx_mod___pyx_t_5numpy_int32_t(__pyx_t_13, (__pyx_v_store_steps[__pyx_v_idx]));
   }
 
-  /* "theano/scan_module/scan_perform.pyx":242
+  /* "aesara/scan_module/scan_perform.pyx":242
  * 
  *     # 2.1 Create storage space for outputs
  *     for idx in range(n_outs):             # <<<<<<<<<<<<<<
@@ -3074,7 +3074,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
     __pyx_v_idx = __pyx_t_7;
 
-    /* "theano/scan_module/scan_perform.pyx":243
+    /* "aesara/scan_module/scan_perform.pyx":243
  *     # 2.1 Create storage space for outputs
  *     for idx in range(n_outs):
  *         if destroy_map[idx] != 0:             # <<<<<<<<<<<<<<
@@ -3085,7 +3085,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_t_4 = (((*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_int32_t *, __pyx_pybuffernd_destroy_map.rcbuffer->pybuffer.buf, __pyx_t_14, __pyx_pybuffernd_destroy_map.diminfo[0].strides)) != 0) != 0);
     if (__pyx_t_4) {
 
-      /* "theano/scan_module/scan_perform.pyx":246
+      /* "aesara/scan_module/scan_perform.pyx":246
  *             # ^ Case 1. Outputs should be computed inplace of their
  *             # initial state
  *             outs[idx][0] = args[ <unsigned int>(1+ n_seqs + idx)]             # <<<<<<<<<<<<<<
@@ -3101,7 +3101,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
       __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-      /* "theano/scan_module/scan_perform.pyx":243
+      /* "aesara/scan_module/scan_perform.pyx":243
  *     # 2.1 Create storage space for outputs
  *     for idx in range(n_outs):
  *         if destroy_map[idx] != 0:             # <<<<<<<<<<<<<<
@@ -3111,7 +3111,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       goto __pyx_L15;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":247
+    /* "aesara/scan_module/scan_perform.pyx":247
  *             # initial state
  *             outs[idx][0] = args[ <unsigned int>(1+ n_seqs + idx)]
  *         elif ( outs[idx][0] is not None and             # <<<<<<<<<<<<<<
@@ -3132,7 +3132,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       goto __pyx_L16_bool_binop_done;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":248
+    /* "aesara/scan_module/scan_perform.pyx":248
  *             outs[idx][0] = args[ <unsigned int>(1+ n_seqs + idx)]
  *         elif ( outs[idx][0] is not None and
  *               outs[idx][0].shape[1:] == args[<unsigned int>(1+ n_seqs + idx)].shape[1:]             # <<<<<<<<<<<<<<
@@ -3170,7 +3170,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       goto __pyx_L16_bool_binop_done;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":249
+    /* "aesara/scan_module/scan_perform.pyx":249
  *         elif ( outs[idx][0] is not None and
  *               outs[idx][0].shape[1:] == args[<unsigned int>(1+ n_seqs + idx)].shape[1:]
  *               and outs[idx][0].shape[0] >= store_steps[idx] ):             # <<<<<<<<<<<<<<
@@ -3198,7 +3198,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_t_4 = __pyx_t_16;
     __pyx_L16_bool_binop_done:;
 
-    /* "theano/scan_module/scan_perform.pyx":247
+    /* "aesara/scan_module/scan_perform.pyx":247
  *             # initial state
  *             outs[idx][0] = args[ <unsigned int>(1+ n_seqs + idx)]
  *         elif ( outs[idx][0] is not None and             # <<<<<<<<<<<<<<
@@ -3207,7 +3207,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     if (__pyx_t_4) {
 
-      /* "theano/scan_module/scan_perform.pyx":251
+      /* "aesara/scan_module/scan_perform.pyx":251
  *               and outs[idx][0].shape[0] >= store_steps[idx] ):
  *             # Put in the values of the initial state
  *             outs[idx][0] = outs[idx][0][:store_steps[idx]]             # <<<<<<<<<<<<<<
@@ -3228,7 +3228,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
       __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-      /* "theano/scan_module/scan_perform.pyx":252
+      /* "aesara/scan_module/scan_perform.pyx":252
  *             # Put in the values of the initial state
  *             outs[idx][0] = outs[idx][0][:store_steps[idx]]
  *             if idx > n_mit_mot:             # <<<<<<<<<<<<<<
@@ -3238,7 +3238,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_t_4 = ((__pyx_v_idx > __pyx_v_n_mit_mot) != 0);
       if (__pyx_t_4) {
 
-        /* "theano/scan_module/scan_perform.pyx":253
+        /* "aesara/scan_module/scan_perform.pyx":253
  *             outs[idx][0] = outs[idx][0][:store_steps[idx]]
  *             if idx > n_mit_mot:
  *                 l = - mintaps[idx]             # <<<<<<<<<<<<<<
@@ -3248,7 +3248,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __pyx_t_17 = __pyx_v_idx;
         __pyx_v_l = (-(*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_int32_t *, __pyx_pybuffernd_mintaps.rcbuffer->pybuffer.buf, __pyx_t_17, __pyx_pybuffernd_mintaps.diminfo[0].strides)));
 
-        /* "theano/scan_module/scan_perform.pyx":254
+        /* "aesara/scan_module/scan_perform.pyx":254
  *             if idx > n_mit_mot:
  *                 l = - mintaps[idx]
  *                 outs[idx][0][:l] = args[<unsigned int>(seqs_arg_offset +             # <<<<<<<<<<<<<<
@@ -3259,7 +3259,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __pyx_t_10 = __Pyx_GetItemInt(__pyx_v_args, __pyx_t_8, unsigned int, 0, __Pyx_PyInt_From_unsigned_int, 0, 0, 0); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 254, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_10);
 
-        /* "theano/scan_module/scan_perform.pyx":255
+        /* "aesara/scan_module/scan_perform.pyx":255
  *                 l = - mintaps[idx]
  *                 outs[idx][0][:l] = args[<unsigned int>(seqs_arg_offset +
  *                                                        idx)][:l]             # <<<<<<<<<<<<<<
@@ -3270,7 +3270,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_GOTREF(__pyx_t_3);
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":254
+        /* "aesara/scan_module/scan_perform.pyx":254
  *             if idx > n_mit_mot:
  *                 l = - mintaps[idx]
  *                 outs[idx][0][:l] = args[<unsigned int>(seqs_arg_offset +             # <<<<<<<<<<<<<<
@@ -3286,7 +3286,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
         __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":252
+        /* "aesara/scan_module/scan_perform.pyx":252
  *             # Put in the values of the initial state
  *             outs[idx][0] = outs[idx][0][:store_steps[idx]]
  *             if idx > n_mit_mot:             # <<<<<<<<<<<<<<
@@ -3296,7 +3296,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         goto __pyx_L19;
       }
 
-      /* "theano/scan_module/scan_perform.pyx":257
+      /* "aesara/scan_module/scan_perform.pyx":257
  *                                                        idx)][:l]
  *             else:
  *                 outs[idx][0][:] = args[<unsigned int>(seqs_arg_offset + idx)]             # <<<<<<<<<<<<<<
@@ -3318,7 +3318,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       }
       __pyx_L19:;
 
-      /* "theano/scan_module/scan_perform.pyx":247
+      /* "aesara/scan_module/scan_perform.pyx":247
  *             # initial state
  *             outs[idx][0] = args[ <unsigned int>(1+ n_seqs + idx)]
  *         elif ( outs[idx][0] is not None and             # <<<<<<<<<<<<<<
@@ -3328,7 +3328,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       goto __pyx_L15;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":259
+    /* "aesara/scan_module/scan_perform.pyx":259
  *                 outs[idx][0][:] = args[<unsigned int>(seqs_arg_offset + idx)]
  *         else:
  *             outs[idx][0] = args[<unsigned int>(seqs_arg_offset + idx)].copy()             # <<<<<<<<<<<<<<
@@ -3369,7 +3369,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_L15:;
   }
 
-  /* "theano/scan_module/scan_perform.pyx":262
+  /* "aesara/scan_module/scan_perform.pyx":262
  * 
  * 
  *     offset = nit_sot_arg_offset + n_nit_sot             # <<<<<<<<<<<<<<
@@ -3378,7 +3378,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   __pyx_v_offset = (__pyx_v_nit_sot_arg_offset + __pyx_v_n_nit_sot);
 
-  /* "theano/scan_module/scan_perform.pyx":263
+  /* "aesara/scan_module/scan_perform.pyx":263
  * 
  *     offset = nit_sot_arg_offset + n_nit_sot
  *     other_args = args[offset:]             # <<<<<<<<<<<<<<
@@ -3390,7 +3390,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   __pyx_v_other_args = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":264
+  /* "aesara/scan_module/scan_perform.pyx":264
  *     offset = nit_sot_arg_offset + n_nit_sot
  *     other_args = args[offset:]
  *     input_storage = fnct.input_storage             # <<<<<<<<<<<<<<
@@ -3402,7 +3402,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   __pyx_v_input_storage = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":265
+  /* "aesara/scan_module/scan_perform.pyx":265
  *     other_args = args[offset:]
  *     input_storage = fnct.input_storage
  *     nb_mitmot_in = 0             # <<<<<<<<<<<<<<
@@ -3412,7 +3412,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   __Pyx_INCREF(__pyx_int_0);
   __pyx_v_nb_mitmot_in = __pyx_int_0;
 
-  /* "theano/scan_module/scan_perform.pyx":266
+  /* "aesara/scan_module/scan_perform.pyx":266
  *     input_storage = fnct.input_storage
  *     nb_mitmot_in = 0
  *     for idx in range(n_mit_mot):             # <<<<<<<<<<<<<<
@@ -3424,7 +3424,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
     __pyx_v_idx = __pyx_t_7;
 
-    /* "theano/scan_module/scan_perform.pyx":267
+    /* "aesara/scan_module/scan_perform.pyx":267
  *     nb_mitmot_in = 0
  *     for idx in range(n_mit_mot):
  *         nb_mitmot_in += tap_array_len[idx]             # <<<<<<<<<<<<<<
@@ -3441,7 +3441,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_t_1 = 0;
   }
 
-  /* "theano/scan_module/scan_perform.pyx":268
+  /* "aesara/scan_module/scan_perform.pyx":268
  *     for idx in range(n_mit_mot):
  *         nb_mitmot_in += tap_array_len[idx]
  *     old_mitmot_input_storage = [None] * nb_mitmot_in             # <<<<<<<<<<<<<<
@@ -3461,7 +3461,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   __pyx_v_old_mitmot_input_storage = ((PyObject*)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":269
+  /* "aesara/scan_module/scan_perform.pyx":269
  *         nb_mitmot_in += tap_array_len[idx]
  *     old_mitmot_input_storage = [None] * nb_mitmot_in
  *     old_mitmot_input_data = [None] * nb_mitmot_in             # <<<<<<<<<<<<<<
@@ -3481,7 +3481,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   __pyx_v_old_mitmot_input_data = ((PyObject*)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":270
+  /* "aesara/scan_module/scan_perform.pyx":270
  *     old_mitmot_input_storage = [None] * nb_mitmot_in
  *     old_mitmot_input_data = [None] * nb_mitmot_in
  *     output_storage = fnct.output_storage             # <<<<<<<<<<<<<<
@@ -3493,7 +3493,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   __pyx_v_output_storage = __pyx_t_1;
   __pyx_t_1 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":271
+  /* "aesara/scan_module/scan_perform.pyx":271
  *     old_mitmot_input_data = [None] * nb_mitmot_in
  *     output_storage = fnct.output_storage
  *     old_output_storage = [None] * len_output_storage             # <<<<<<<<<<<<<<
@@ -3512,7 +3512,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   __pyx_v_old_output_storage = ((PyObject*)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":272
+  /* "aesara/scan_module/scan_perform.pyx":272
  *     output_storage = fnct.output_storage
  *     old_output_storage = [None] * len_output_storage
  *     old_output_data = [None] * len_output_storage             # <<<<<<<<<<<<<<
@@ -3531,7 +3531,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   __pyx_v_old_output_data = ((PyObject*)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":273
+  /* "aesara/scan_module/scan_perform.pyx":273
  *     old_output_storage = [None] * len_output_storage
  *     old_output_data = [None] * len_output_storage
  *     offset = n_seqs             # <<<<<<<<<<<<<<
@@ -3540,7 +3540,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   __pyx_v_offset = __pyx_v_n_seqs;
 
-  /* "theano/scan_module/scan_perform.pyx":274
+  /* "aesara/scan_module/scan_perform.pyx":274
  *     old_output_data = [None] * len_output_storage
  *     offset = n_seqs
  *     for idx in range(n_outs):             # <<<<<<<<<<<<<<
@@ -3552,7 +3552,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
     __pyx_v_idx = __pyx_t_7;
 
-    /* "theano/scan_module/scan_perform.pyx":275
+    /* "aesara/scan_module/scan_perform.pyx":275
  *     offset = n_seqs
  *     for idx in range(n_outs):
  *         offset += tap_array_len[idx]             # <<<<<<<<<<<<<<
@@ -3563,7 +3563,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_v_offset = (__pyx_v_offset + (*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_int32_t *, __pyx_pybuffernd_tap_array_len.rcbuffer->pybuffer.buf, __pyx_t_19, __pyx_pybuffernd_tap_array_len.diminfo[0].strides)));
   }
 
-  /* "theano/scan_module/scan_perform.pyx":276
+  /* "aesara/scan_module/scan_perform.pyx":276
  *     for idx in range(n_outs):
  *         offset += tap_array_len[idx]
  *     offset += n_shared_outs             # <<<<<<<<<<<<<<
@@ -3572,7 +3572,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   __pyx_v_offset = (__pyx_v_offset + __pyx_v_n_shared_outs);
 
-  /* "theano/scan_module/scan_perform.pyx":278
+  /* "aesara/scan_module/scan_perform.pyx":278
  *     offset += n_shared_outs
  * 
  *     for idx in range(len(other_args)):             # <<<<<<<<<<<<<<
@@ -3584,7 +3584,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   for (__pyx_t_5 = 0; __pyx_t_5 < __pyx_t_21; __pyx_t_5+=1) {
     __pyx_v_idx = __pyx_t_5;
 
-    /* "theano/scan_module/scan_perform.pyx":279
+    /* "aesara/scan_module/scan_perform.pyx":279
  * 
  *     for idx in range(len(other_args)):
  *         input_storage[<unsigned int>(idx+offset)].storage[0] = other_args[idx]             # <<<<<<<<<<<<<<
@@ -3604,7 +3604,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   }
 
-  /* "theano/scan_module/scan_perform.pyx":282
+  /* "aesara/scan_module/scan_perform.pyx":282
  * 
  * 
  *     i = 0             # <<<<<<<<<<<<<<
@@ -3613,7 +3613,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   __pyx_v_i = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":283
+  /* "aesara/scan_module/scan_perform.pyx":283
  * 
  *     i = 0
  *     cond = 1             # <<<<<<<<<<<<<<
@@ -3622,7 +3622,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   __pyx_v_cond = 1;
 
-  /* "theano/scan_module/scan_perform.pyx":286
+  /* "aesara/scan_module/scan_perform.pyx":286
  *     ############## THE MAIN LOOP #########################
  *     #for i in range(n_steps):
  *     while (i < n_steps) and cond == 1:             # <<<<<<<<<<<<<<
@@ -3641,7 +3641,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_L28_bool_binop_done:;
     if (!__pyx_t_4) break;
 
-    /* "theano/scan_module/scan_perform.pyx":289
+    /* "aesara/scan_module/scan_perform.pyx":289
  *         # sequences over which scan iterates
  *         # 3. collect input slices
  *         for idx in range(n_seqs):             # <<<<<<<<<<<<<<
@@ -3653,7 +3653,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
       __pyx_v_idx = __pyx_t_7;
 
-      /* "theano/scan_module/scan_perform.pyx":290
+      /* "aesara/scan_module/scan_perform.pyx":290
  *         # 3. collect input slices
  *         for idx in range(n_seqs):
  *             if vector_seqs[idx] == 1:             # <<<<<<<<<<<<<<
@@ -3664,7 +3664,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_t_4 = (((*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_int32_t *, __pyx_pybuffernd_vector_seqs.rcbuffer->pybuffer.buf, __pyx_t_22, __pyx_pybuffernd_vector_seqs.diminfo[0].strides)) == 1) != 0);
       if (__pyx_t_4) {
 
-        /* "theano/scan_module/scan_perform.pyx":292
+        /* "aesara/scan_module/scan_perform.pyx":292
  *             if vector_seqs[idx] == 1:
  *                 input_storage[idx].storage[0] = args[\
  *                             <unsigned int>(1+idx)][i:<unsigned int>(i+1)].reshape(())             # <<<<<<<<<<<<<<
@@ -3673,7 +3673,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
         __pyx_t_8 = ((unsigned int)(1 + __pyx_v_idx));
 
-        /* "theano/scan_module/scan_perform.pyx":291
+        /* "aesara/scan_module/scan_perform.pyx":291
  *         for idx in range(n_seqs):
  *             if vector_seqs[idx] == 1:
  *                 input_storage[idx].storage[0] = args[\             # <<<<<<<<<<<<<<
@@ -3683,7 +3683,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __pyx_t_1 = __Pyx_GetItemInt(__pyx_v_args, __pyx_t_8, unsigned int, 0, __Pyx_PyInt_From_unsigned_int, 0, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 291, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
 
-        /* "theano/scan_module/scan_perform.pyx":292
+        /* "aesara/scan_module/scan_perform.pyx":292
  *             if vector_seqs[idx] == 1:
  *                 input_storage[idx].storage[0] = args[\
  *                             <unsigned int>(1+idx)][i:<unsigned int>(i+1)].reshape(())             # <<<<<<<<<<<<<<
@@ -3700,7 +3700,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_GOTREF(__pyx_t_10);
         __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":291
+        /* "aesara/scan_module/scan_perform.pyx":291
  *         for idx in range(n_seqs):
  *             if vector_seqs[idx] == 1:
  *                 input_storage[idx].storage[0] = args[\             # <<<<<<<<<<<<<<
@@ -3716,7 +3716,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":290
+        /* "aesara/scan_module/scan_perform.pyx":290
  *         # 3. collect input slices
  *         for idx in range(n_seqs):
  *             if vector_seqs[idx] == 1:             # <<<<<<<<<<<<<<
@@ -3726,7 +3726,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         goto __pyx_L32;
       }
 
-      /* "theano/scan_module/scan_perform.pyx":295
+      /* "aesara/scan_module/scan_perform.pyx":295
  *             else:
  *                 input_storage[idx].storage[0] = \
  *                         args[<unsigned int>(idx+1)][i]             # <<<<<<<<<<<<<<
@@ -3741,7 +3741,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_GOTREF(__pyx_t_3);
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":294
+        /* "aesara/scan_module/scan_perform.pyx":294
  *                             <unsigned int>(1+idx)][i:<unsigned int>(i+1)].reshape(())
  *             else:
  *                 input_storage[idx].storage[0] = \             # <<<<<<<<<<<<<<
@@ -3760,7 +3760,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_L32:;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":297
+    /* "aesara/scan_module/scan_perform.pyx":297
  *                         args[<unsigned int>(idx+1)][i]
  * 
  *         offset = n_seqs             # <<<<<<<<<<<<<<
@@ -3769,7 +3769,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     __pyx_v_offset = __pyx_v_n_seqs;
 
-    /* "theano/scan_module/scan_perform.pyx":298
+    /* "aesara/scan_module/scan_perform.pyx":298
  * 
  *         offset = n_seqs
  *         for idx in range(n_outs):             # <<<<<<<<<<<<<<
@@ -3781,7 +3781,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
       __pyx_v_idx = __pyx_t_7;
 
-      /* "theano/scan_module/scan_perform.pyx":299
+      /* "aesara/scan_module/scan_perform.pyx":299
  *         offset = n_seqs
  *         for idx in range(n_outs):
  *             if vector_outs[idx] == 1:             # <<<<<<<<<<<<<<
@@ -3792,7 +3792,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_t_4 = (((*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_int32_t *, __pyx_pybuffernd_vector_outs.rcbuffer->pybuffer.buf, __pyx_t_23, __pyx_pybuffernd_vector_outs.diminfo[0].strides)) == 1) != 0);
       if (__pyx_t_4) {
 
-        /* "theano/scan_module/scan_perform.pyx":300
+        /* "aesara/scan_module/scan_perform.pyx":300
  *         for idx in range(n_outs):
  *             if vector_outs[idx] == 1:
  *                 for tdx in range(tap_array_len[idx]):             # <<<<<<<<<<<<<<
@@ -3805,7 +3805,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         for (__pyx_t_8 = 0; __pyx_t_8 < __pyx_t_25; __pyx_t_8+=1) {
           __pyx_v_tdx = __pyx_t_8;
 
-          /* "theano/scan_module/scan_perform.pyx":301
+          /* "aesara/scan_module/scan_perform.pyx":301
  *             if vector_outs[idx] == 1:
  *                 for tdx in range(tap_array_len[idx]):
  *                     tap = tap_array[idx,tdx]             # <<<<<<<<<<<<<<
@@ -3816,7 +3816,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __pyx_t_27 = __pyx_v_tdx;
           __pyx_v_tap = (*__Pyx_BufPtrStrided2d(__pyx_t_5numpy_int32_t *, __pyx_pybuffernd_tap_array.rcbuffer->pybuffer.buf, __pyx_t_26, __pyx_pybuffernd_tap_array.diminfo[0].strides, __pyx_t_27, __pyx_pybuffernd_tap_array.diminfo[1].strides));
 
-          /* "theano/scan_module/scan_perform.pyx":302
+          /* "aesara/scan_module/scan_perform.pyx":302
  *                 for tdx in range(tap_array_len[idx]):
  *                     tap = tap_array[idx,tdx]
  *                     _idx = (pos[idx]+tap)%store_steps[idx]             # <<<<<<<<<<<<<<
@@ -3830,7 +3830,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           }
           __pyx_v__idx = __Pyx_mod_int(__pyx_t_11, (__pyx_v_store_steps[__pyx_v_idx]));
 
-          /* "theano/scan_module/scan_perform.pyx":304
+          /* "aesara/scan_module/scan_perform.pyx":304
  *                     _idx = (pos[idx]+tap)%store_steps[idx]
  *                     input_storage[offset].storage[0] =\
  *                             outs[idx][0][_idx:<unsigned int>(_idx+1)].reshape(())             # <<<<<<<<<<<<<<
@@ -3852,7 +3852,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __Pyx_GOTREF(__pyx_t_3);
           __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":303
+          /* "aesara/scan_module/scan_perform.pyx":303
  *                     tap = tap_array[idx,tdx]
  *                     _idx = (pos[idx]+tap)%store_steps[idx]
  *                     input_storage[offset].storage[0] =\             # <<<<<<<<<<<<<<
@@ -3868,7 +3868,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
           __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":305
+          /* "aesara/scan_module/scan_perform.pyx":305
  *                     input_storage[offset].storage[0] =\
  *                             outs[idx][0][_idx:<unsigned int>(_idx+1)].reshape(())
  *                     offset += 1             # <<<<<<<<<<<<<<
@@ -3878,7 +3878,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __pyx_v_offset = (__pyx_v_offset + 1);
         }
 
-        /* "theano/scan_module/scan_perform.pyx":299
+        /* "aesara/scan_module/scan_perform.pyx":299
  *         offset = n_seqs
  *         for idx in range(n_outs):
  *             if vector_outs[idx] == 1:             # <<<<<<<<<<<<<<
@@ -3888,7 +3888,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         goto __pyx_L35;
       }
 
-      /* "theano/scan_module/scan_perform.pyx":307
+      /* "aesara/scan_module/scan_perform.pyx":307
  *                     offset += 1
  *             else:
  *                 for tdx in range(tap_array_len[idx]):             # <<<<<<<<<<<<<<
@@ -3902,7 +3902,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         for (__pyx_t_8 = 0; __pyx_t_8 < __pyx_t_25; __pyx_t_8+=1) {
           __pyx_v_tdx = __pyx_t_8;
 
-          /* "theano/scan_module/scan_perform.pyx":308
+          /* "aesara/scan_module/scan_perform.pyx":308
  *             else:
  *                 for tdx in range(tap_array_len[idx]):
  *                     tap = tap_array[idx,tdx]             # <<<<<<<<<<<<<<
@@ -3913,7 +3913,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __pyx_t_30 = __pyx_v_tdx;
           __pyx_v_tap = (*__Pyx_BufPtrStrided2d(__pyx_t_5numpy_int32_t *, __pyx_pybuffernd_tap_array.rcbuffer->pybuffer.buf, __pyx_t_29, __pyx_pybuffernd_tap_array.diminfo[0].strides, __pyx_t_30, __pyx_pybuffernd_tap_array.diminfo[1].strides));
 
-          /* "theano/scan_module/scan_perform.pyx":309
+          /* "aesara/scan_module/scan_perform.pyx":309
  *                 for tdx in range(tap_array_len[idx]):
  *                     tap = tap_array[idx,tdx]
  *                     _idx = (pos[idx]+tap)%store_steps[idx]             # <<<<<<<<<<<<<<
@@ -3927,7 +3927,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           }
           __pyx_v__idx = __Pyx_mod_int(__pyx_t_11, (__pyx_v_store_steps[__pyx_v_idx]));
 
-          /* "theano/scan_module/scan_perform.pyx":310
+          /* "aesara/scan_module/scan_perform.pyx":310
  *                     tap = tap_array[idx,tdx]
  *                     _idx = (pos[idx]+tap)%store_steps[idx]
  *                     input_storage[offset].storage[0] = outs[idx][0][_idx]             # <<<<<<<<<<<<<<
@@ -3951,7 +3951,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
           __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":311
+          /* "aesara/scan_module/scan_perform.pyx":311
  *                     _idx = (pos[idx]+tap)%store_steps[idx]
  *                     input_storage[offset].storage[0] = outs[idx][0][_idx]
  *                     offset += 1             # <<<<<<<<<<<<<<
@@ -3964,7 +3964,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_L35:;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":314
+    /* "aesara/scan_module/scan_perform.pyx":314
  * 
  * 
  *         a_offset = shared_arg_offset             # <<<<<<<<<<<<<<
@@ -3973,7 +3973,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     __pyx_v_a_offset = __pyx_v_shared_arg_offset;
 
-    /* "theano/scan_module/scan_perform.pyx":315
+    /* "aesara/scan_module/scan_perform.pyx":315
  * 
  *         a_offset = shared_arg_offset
  *         o_offset = n_outs + n_nit_sot             # <<<<<<<<<<<<<<
@@ -3982,7 +3982,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     __pyx_v_o_offset = (__pyx_v_n_outs + __pyx_v_n_nit_sot);
 
-    /* "theano/scan_module/scan_perform.pyx":316
+    /* "aesara/scan_module/scan_perform.pyx":316
  *         a_offset = shared_arg_offset
  *         o_offset = n_outs + n_nit_sot
  *         if i == 0:             # <<<<<<<<<<<<<<
@@ -3992,7 +3992,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_t_4 = ((__pyx_v_i == 0) != 0);
     if (__pyx_t_4) {
 
-      /* "theano/scan_module/scan_perform.pyx":317
+      /* "aesara/scan_module/scan_perform.pyx":317
  *         o_offset = n_outs + n_nit_sot
  *         if i == 0:
  *             for j in range(n_shared_outs):             # <<<<<<<<<<<<<<
@@ -4004,7 +4004,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
         __pyx_v_j = __pyx_t_7;
 
-        /* "theano/scan_module/scan_perform.pyx":318
+        /* "aesara/scan_module/scan_perform.pyx":318
  *         if i == 0:
  *             for j in range(n_shared_outs):
  *                 input_storage[offset].storage[0] = args[<unsigned int>(a_offset+j)]             # <<<<<<<<<<<<<<
@@ -4023,7 +4023,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
         __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":319
+        /* "aesara/scan_module/scan_perform.pyx":319
  *             for j in range(n_shared_outs):
  *                 input_storage[offset].storage[0] = args[<unsigned int>(a_offset+j)]
  *                 offset += 1             # <<<<<<<<<<<<<<
@@ -4033,7 +4033,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __pyx_v_offset = (__pyx_v_offset + 1);
       }
 
-      /* "theano/scan_module/scan_perform.pyx":316
+      /* "aesara/scan_module/scan_perform.pyx":316
  *         a_offset = shared_arg_offset
  *         o_offset = n_outs + n_nit_sot
  *         if i == 0:             # <<<<<<<<<<<<<<
@@ -4043,7 +4043,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       goto __pyx_L40;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":321
+    /* "aesara/scan_module/scan_perform.pyx":321
  *                 offset += 1
  *         else:
  *             for j in range(n_shared_outs):             # <<<<<<<<<<<<<<
@@ -4056,7 +4056,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
         __pyx_v_j = __pyx_t_7;
 
-        /* "theano/scan_module/scan_perform.pyx":322
+        /* "aesara/scan_module/scan_perform.pyx":322
  *         else:
  *             for j in range(n_shared_outs):
  *                 input_storage[offset].storage[0] = outs[<unsigned int>(o_offset+j)][0]             # <<<<<<<<<<<<<<
@@ -4078,7 +4078,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":323
+        /* "aesara/scan_module/scan_perform.pyx":323
  *             for j in range(n_shared_outs):
  *                 input_storage[offset].storage[0] = outs[<unsigned int>(o_offset+j)][0]
  *                 offset += 1             # <<<<<<<<<<<<<<
@@ -4090,7 +4090,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     }
     __pyx_L40:;
 
-    /* "theano/scan_module/scan_perform.pyx":328
+    /* "aesara/scan_module/scan_perform.pyx":328
  * 
  *         # 4.1. Collect slices for mitmots
  *         offset = 0             # <<<<<<<<<<<<<<
@@ -4099,7 +4099,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     __pyx_v_offset = 0;
 
-    /* "theano/scan_module/scan_perform.pyx":329
+    /* "aesara/scan_module/scan_perform.pyx":329
  *         # 4.1. Collect slices for mitmots
  *         offset = 0
  *         for idx in range(n_mit_mot_outs):             # <<<<<<<<<<<<<<
@@ -4111,7 +4111,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
       __pyx_v_idx = __pyx_t_7;
 
-      /* "theano/scan_module/scan_perform.pyx":330
+      /* "aesara/scan_module/scan_perform.pyx":330
  *         offset = 0
  *         for idx in range(n_mit_mot_outs):
  *             if not mitmots_preallocated[<unsigned int>idx]:             # <<<<<<<<<<<<<<
@@ -4122,7 +4122,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_t_4 = ((!((*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_int32_t *, __pyx_pybuffernd_mitmots_preallocated.rcbuffer->pybuffer.buf, __pyx_t_31, __pyx_pybuffernd_mitmots_preallocated.diminfo[0].strides)) != 0)) != 0);
       if (__pyx_t_4) {
 
-        /* "theano/scan_module/scan_perform.pyx":331
+        /* "aesara/scan_module/scan_perform.pyx":331
  *         for idx in range(n_mit_mot_outs):
  *             if not mitmots_preallocated[<unsigned int>idx]:
  *                 output_storage[<unsigned int>offset].storage[0] = None             # <<<<<<<<<<<<<<
@@ -4137,7 +4137,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         if (unlikely(__Pyx_SetItemInt(__pyx_t_1, 0, Py_None, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 331, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":332
+        /* "aesara/scan_module/scan_perform.pyx":332
  *             if not mitmots_preallocated[<unsigned int>idx]:
  *                 output_storage[<unsigned int>offset].storage[0] = None
  *                 offset += 1             # <<<<<<<<<<<<<<
@@ -4146,7 +4146,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
         __pyx_v_offset = (__pyx_v_offset + 1);
 
-        /* "theano/scan_module/scan_perform.pyx":330
+        /* "aesara/scan_module/scan_perform.pyx":330
  *         offset = 0
  *         for idx in range(n_mit_mot_outs):
  *             if not mitmots_preallocated[<unsigned int>idx]:             # <<<<<<<<<<<<<<
@@ -4156,7 +4156,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       }
     }
 
-    /* "theano/scan_module/scan_perform.pyx":335
+    /* "aesara/scan_module/scan_perform.pyx":335
  * 
  *         # 4.2. Collect slices for mitsots, sitsots and nitsots
  *         if i != 0:             # <<<<<<<<<<<<<<
@@ -4166,7 +4166,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_t_4 = ((__pyx_v_i != 0) != 0);
     if (__pyx_t_4) {
 
-      /* "theano/scan_module/scan_perform.pyx":336
+      /* "aesara/scan_module/scan_perform.pyx":336
  *         # 4.2. Collect slices for mitsots, sitsots and nitsots
  *         if i != 0:
  *             for idx in range(n_outs + n_nit_sot - n_mit_mot):             # <<<<<<<<<<<<<<
@@ -4178,7 +4178,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
         __pyx_v_idx = __pyx_t_7;
 
-        /* "theano/scan_module/scan_perform.pyx":337
+        /* "aesara/scan_module/scan_perform.pyx":337
  *         if i != 0:
  *             for idx in range(n_outs + n_nit_sot - n_mit_mot):
  *                 if ( store_steps[<unsigned int>(idx+n_mit_mot)] == 1 or             # <<<<<<<<<<<<<<
@@ -4192,7 +4192,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           goto __pyx_L52_bool_binop_done;
         }
 
-        /* "theano/scan_module/scan_perform.pyx":338
+        /* "aesara/scan_module/scan_perform.pyx":338
  *             for idx in range(n_outs + n_nit_sot - n_mit_mot):
  *                 if ( store_steps[<unsigned int>(idx+n_mit_mot)] == 1 or
  *                     vector_outs[<unsigned int>(idx+n_mit_mot)] == 1):             # <<<<<<<<<<<<<<
@@ -4204,7 +4204,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __pyx_t_4 = __pyx_t_16;
         __pyx_L52_bool_binop_done:;
 
-        /* "theano/scan_module/scan_perform.pyx":337
+        /* "aesara/scan_module/scan_perform.pyx":337
  *         if i != 0:
  *             for idx in range(n_outs + n_nit_sot - n_mit_mot):
  *                 if ( store_steps[<unsigned int>(idx+n_mit_mot)] == 1 or             # <<<<<<<<<<<<<<
@@ -4213,7 +4213,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
         if (__pyx_t_4) {
 
-          /* "theano/scan_module/scan_perform.pyx":339
+          /* "aesara/scan_module/scan_perform.pyx":339
  *                 if ( store_steps[<unsigned int>(idx+n_mit_mot)] == 1 or
  *                     vector_outs[<unsigned int>(idx+n_mit_mot)] == 1):
  *                     output_storage[<unsigned int>(idx+offset)].storage[0] = None             # <<<<<<<<<<<<<<
@@ -4229,7 +4229,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           if (unlikely(__Pyx_SetItemInt(__pyx_t_10, 0, Py_None, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 339, __pyx_L1_error)
           __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":337
+          /* "aesara/scan_module/scan_perform.pyx":337
  *         if i != 0:
  *             for idx in range(n_outs + n_nit_sot - n_mit_mot):
  *                 if ( store_steps[<unsigned int>(idx+n_mit_mot)] == 1 or             # <<<<<<<<<<<<<<
@@ -4239,7 +4239,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           goto __pyx_L51;
         }
 
-        /* "theano/scan_module/scan_perform.pyx":342
+        /* "aesara/scan_module/scan_perform.pyx":342
  *                 else:
  *                     output_storage[<unsigned int>(idx+offset)].storage[0] =\
  *                         outs[<unsigned int>(idx+n_mit_mot)][0][pos[\             # <<<<<<<<<<<<<<
@@ -4254,7 +4254,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __Pyx_GOTREF(__pyx_t_1);
           __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":343
+          /* "aesara/scan_module/scan_perform.pyx":343
  *                     output_storage[<unsigned int>(idx+offset)].storage[0] =\
  *                         outs[<unsigned int>(idx+n_mit_mot)][0][pos[\
  *                                             <unsigned int>(idx+n_mit_mot)]]             # <<<<<<<<<<<<<<
@@ -4263,7 +4263,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
           __pyx_t_11 = (__pyx_v_pos[((unsigned int)(__pyx_v_idx + __pyx_v_n_mit_mot))]);
 
-          /* "theano/scan_module/scan_perform.pyx":342
+          /* "aesara/scan_module/scan_perform.pyx":342
  *                 else:
  *                     output_storage[<unsigned int>(idx+offset)].storage[0] =\
  *                         outs[<unsigned int>(idx+n_mit_mot)][0][pos[\             # <<<<<<<<<<<<<<
@@ -4274,7 +4274,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __Pyx_GOTREF(__pyx_t_10);
           __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":341
+          /* "aesara/scan_module/scan_perform.pyx":341
  *                     output_storage[<unsigned int>(idx+offset)].storage[0] = None
  *                 else:
  *                     output_storage[<unsigned int>(idx+offset)].storage[0] =\             # <<<<<<<<<<<<<<
@@ -4294,7 +4294,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __pyx_L51:;
       }
 
-      /* "theano/scan_module/scan_perform.pyx":335
+      /* "aesara/scan_module/scan_perform.pyx":335
  * 
  *         # 4.2. Collect slices for mitsots, sitsots and nitsots
  *         if i != 0:             # <<<<<<<<<<<<<<
@@ -4304,7 +4304,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       goto __pyx_L48;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":345
+    /* "aesara/scan_module/scan_perform.pyx":345
  *                                             <unsigned int>(idx+n_mit_mot)]]
  *         else:
  *             for idx in range(n_outs + n_nit_sot - n_mit_mot):             # <<<<<<<<<<<<<<
@@ -4317,7 +4317,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
         __pyx_v_idx = __pyx_t_7;
 
-        /* "theano/scan_module/scan_perform.pyx":346
+        /* "aesara/scan_module/scan_perform.pyx":346
  *         else:
  *             for idx in range(n_outs + n_nit_sot - n_mit_mot):
  *                 output_storage[<unsigned int>(idx+offset)].storage[0] = None             # <<<<<<<<<<<<<<
@@ -4336,7 +4336,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     }
     __pyx_L48:;
 
-    /* "theano/scan_module/scan_perform.pyx":349
+    /* "aesara/scan_module/scan_perform.pyx":349
  * 
  *         # 4.3. Collect slices for shared outputs
  *         offset += n_outs+n_nit_sot - n_mit_mot             # <<<<<<<<<<<<<<
@@ -4345,7 +4345,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     __pyx_v_offset = (__pyx_v_offset + ((__pyx_v_n_outs + __pyx_v_n_nit_sot) - __pyx_v_n_mit_mot));
 
-    /* "theano/scan_module/scan_perform.pyx":350
+    /* "aesara/scan_module/scan_perform.pyx":350
  *         # 4.3. Collect slices for shared outputs
  *         offset += n_outs+n_nit_sot - n_mit_mot
  *         for idx in range(n_shared_outs):             # <<<<<<<<<<<<<<
@@ -4357,7 +4357,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
       __pyx_v_idx = __pyx_t_7;
 
-      /* "theano/scan_module/scan_perform.pyx":351
+      /* "aesara/scan_module/scan_perform.pyx":351
  *         offset += n_outs+n_nit_sot - n_mit_mot
  *         for idx in range(n_shared_outs):
  *             output_storage[<unsigned int>(idx+offset)].storage[0] = None             # <<<<<<<<<<<<<<
@@ -4374,7 +4374,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":354
+    /* "aesara/scan_module/scan_perform.pyx":354
  * 
  *         # 4.4. If there is a condition add it to the mix
  *         if as_while:             # <<<<<<<<<<<<<<
@@ -4384,7 +4384,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_t_4 = (__pyx_v_as_while != 0);
     if (__pyx_t_4) {
 
-      /* "theano/scan_module/scan_perform.pyx":355
+      /* "aesara/scan_module/scan_perform.pyx":355
  *         # 4.4. If there is a condition add it to the mix
  *         if as_while:
  *             pdx = offset + n_shared_outs             # <<<<<<<<<<<<<<
@@ -4393,7 +4393,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
       __pyx_v_pdx = (__pyx_v_offset + __pyx_v_n_shared_outs);
 
-      /* "theano/scan_module/scan_perform.pyx":356
+      /* "aesara/scan_module/scan_perform.pyx":356
  *         if as_while:
  *             pdx = offset + n_shared_outs
  *             output_storage[<unsigned int>pdx].storage[0] = None             # <<<<<<<<<<<<<<
@@ -4408,7 +4408,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       if (unlikely(__Pyx_SetItemInt(__pyx_t_3, 0, Py_None, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 356, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-      /* "theano/scan_module/scan_perform.pyx":354
+      /* "aesara/scan_module/scan_perform.pyx":354
  * 
  *         # 4.4. If there is a condition add it to the mix
  *         if as_while:             # <<<<<<<<<<<<<<
@@ -4417,7 +4417,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     }
 
-    /* "theano/scan_module/scan_perform.pyx":364
+    /* "aesara/scan_module/scan_perform.pyx":364
  *         # cases where outputs reused the allocated object but alter the
  *         # memory region they refer to.
  *         for idx in range(len_output_storage):             # <<<<<<<<<<<<<<
@@ -4429,7 +4429,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
       __pyx_v_idx = __pyx_t_7;
 
-      /* "theano/scan_module/scan_perform.pyx":366
+      /* "aesara/scan_module/scan_perform.pyx":366
  *         for idx in range(len_output_storage):
  * 
  *             var = output_storage[idx].storage[0]             # <<<<<<<<<<<<<<
@@ -4447,7 +4447,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __Pyx_XDECREF_SET(__pyx_v_var, __pyx_t_3);
       __pyx_t_3 = 0;
 
-      /* "theano/scan_module/scan_perform.pyx":367
+      /* "aesara/scan_module/scan_perform.pyx":367
  * 
  *             var = output_storage[idx].storage[0]
  *             old_output_storage[idx] = var             # <<<<<<<<<<<<<<
@@ -4456,7 +4456,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
       if (unlikely(__Pyx_SetItemInt(__pyx_v_old_output_storage, __pyx_v_idx, __pyx_v_var, unsigned int, 0, __Pyx_PyInt_From_unsigned_int, 1, 0, 0) < 0)) __PYX_ERR(0, 367, __pyx_L1_error)
 
-      /* "theano/scan_module/scan_perform.pyx":369
+      /* "aesara/scan_module/scan_perform.pyx":369
  *             old_output_storage[idx] = var
  * 
  *             if var is None:             # <<<<<<<<<<<<<<
@@ -4467,7 +4467,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_t_16 = (__pyx_t_4 != 0);
       if (__pyx_t_16) {
 
-        /* "theano/scan_module/scan_perform.pyx":370
+        /* "aesara/scan_module/scan_perform.pyx":370
  * 
  *             if var is None:
  *                 old_output_data[idx] = None             # <<<<<<<<<<<<<<
@@ -4476,7 +4476,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
         if (unlikely(__Pyx_SetItemInt(__pyx_v_old_output_data, __pyx_v_idx, Py_None, unsigned int, 0, __Pyx_PyInt_From_unsigned_int, 1, 0, 0) < 0)) __PYX_ERR(0, 370, __pyx_L1_error)
 
-        /* "theano/scan_module/scan_perform.pyx":369
+        /* "aesara/scan_module/scan_perform.pyx":369
  *             old_output_storage[idx] = var
  * 
  *             if var is None:             # <<<<<<<<<<<<<<
@@ -4486,7 +4486,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         goto __pyx_L61;
       }
 
-      /* "theano/scan_module/scan_perform.pyx":371
+      /* "aesara/scan_module/scan_perform.pyx":371
  *             if var is None:
  *                 old_output_data[idx] = None
  *             elif outs_is_tensor[idx]:             # <<<<<<<<<<<<<<
@@ -4497,7 +4497,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_t_16 = ((*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_int32_t *, __pyx_pybuffernd_outs_is_tensor.rcbuffer->pybuffer.buf, __pyx_t_33, __pyx_pybuffernd_outs_is_tensor.diminfo[0].strides)) != 0);
       if (__pyx_t_16) {
 
-        /* "theano/scan_module/scan_perform.pyx":372
+        /* "aesara/scan_module/scan_perform.pyx":372
  *                 old_output_data[idx] = None
  *             elif outs_is_tensor[idx]:
  *                 old_output_data[idx] = var.data             # <<<<<<<<<<<<<<
@@ -4509,7 +4509,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         if (unlikely(__Pyx_SetItemInt(__pyx_v_old_output_data, __pyx_v_idx, __pyx_t_3, unsigned int, 0, __Pyx_PyInt_From_unsigned_int, 1, 0, 0) < 0)) __PYX_ERR(0, 372, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":371
+        /* "aesara/scan_module/scan_perform.pyx":371
  *             if var is None:
  *                 old_output_data[idx] = None
  *             elif outs_is_tensor[idx]:             # <<<<<<<<<<<<<<
@@ -4519,7 +4519,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         goto __pyx_L61;
       }
 
-      /* "theano/scan_module/scan_perform.pyx":374
+      /* "aesara/scan_module/scan_perform.pyx":374
  *                 old_output_data[idx] = var.data
  *             else:
  *                 old_output_data[idx] = var.gpudata             # <<<<<<<<<<<<<<
@@ -4535,7 +4535,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_L61:;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":382
+    /* "aesara/scan_module/scan_perform.pyx":382
  *         # be able to detect cases where outputs reused the allocated object
  *         # but alter the memory region they refer to.
  *         for idx in xrange(nb_mitmot_in):             # <<<<<<<<<<<<<<
@@ -4547,7 +4547,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     for (__pyx_t_5 = 0; __pyx_t_5 < __pyx_t_34; __pyx_t_5+=1) {
       __pyx_v_idx = __pyx_t_5;
 
-      /* "theano/scan_module/scan_perform.pyx":383
+      /* "aesara/scan_module/scan_perform.pyx":383
  *         # but alter the memory region they refer to.
  *         for idx in xrange(nb_mitmot_in):
  *             var = input_storage[idx + n_seqs].storage[0]             # <<<<<<<<<<<<<<
@@ -4566,7 +4566,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __Pyx_XDECREF_SET(__pyx_v_var, __pyx_t_3);
       __pyx_t_3 = 0;
 
-      /* "theano/scan_module/scan_perform.pyx":384
+      /* "aesara/scan_module/scan_perform.pyx":384
  *         for idx in xrange(nb_mitmot_in):
  *             var = input_storage[idx + n_seqs].storage[0]
  *             old_mitmot_input_storage[idx] = var             # <<<<<<<<<<<<<<
@@ -4575,7 +4575,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
       if (unlikely(__Pyx_SetItemInt(__pyx_v_old_mitmot_input_storage, __pyx_v_idx, __pyx_v_var, unsigned int, 0, __Pyx_PyInt_From_unsigned_int, 1, 0, 0) < 0)) __PYX_ERR(0, 384, __pyx_L1_error)
 
-      /* "theano/scan_module/scan_perform.pyx":386
+      /* "aesara/scan_module/scan_perform.pyx":386
  *             old_mitmot_input_storage[idx] = var
  * 
  *             if var is None:             # <<<<<<<<<<<<<<
@@ -4586,7 +4586,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_t_4 = (__pyx_t_16 != 0);
       if (__pyx_t_4) {
 
-        /* "theano/scan_module/scan_perform.pyx":387
+        /* "aesara/scan_module/scan_perform.pyx":387
  * 
  *             if var is None:
  *                 old_mitmot_input_data[idx] = None             # <<<<<<<<<<<<<<
@@ -4595,7 +4595,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
         if (unlikely(__Pyx_SetItemInt(__pyx_v_old_mitmot_input_data, __pyx_v_idx, Py_None, unsigned int, 0, __Pyx_PyInt_From_unsigned_int, 1, 0, 0) < 0)) __PYX_ERR(0, 387, __pyx_L1_error)
 
-        /* "theano/scan_module/scan_perform.pyx":386
+        /* "aesara/scan_module/scan_perform.pyx":386
  *             old_mitmot_input_storage[idx] = var
  * 
  *             if var is None:             # <<<<<<<<<<<<<<
@@ -4605,7 +4605,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         goto __pyx_L64;
       }
 
-      /* "theano/scan_module/scan_perform.pyx":388
+      /* "aesara/scan_module/scan_perform.pyx":388
  *             if var is None:
  *                 old_mitmot_input_data[idx] = None
  *             elif inps_is_tensor[idx + n_seqs]:             # <<<<<<<<<<<<<<
@@ -4616,7 +4616,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_t_4 = ((*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_int32_t *, __pyx_pybuffernd_inps_is_tensor.rcbuffer->pybuffer.buf, __pyx_t_35, __pyx_pybuffernd_inps_is_tensor.diminfo[0].strides)) != 0);
       if (__pyx_t_4) {
 
-        /* "theano/scan_module/scan_perform.pyx":389
+        /* "aesara/scan_module/scan_perform.pyx":389
  *                 old_mitmot_input_data[idx] = None
  *             elif inps_is_tensor[idx + n_seqs]:
  *                 old_mitmot_input_data[idx] = var.data             # <<<<<<<<<<<<<<
@@ -4628,7 +4628,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         if (unlikely(__Pyx_SetItemInt(__pyx_v_old_mitmot_input_data, __pyx_v_idx, __pyx_t_3, unsigned int, 0, __Pyx_PyInt_From_unsigned_int, 1, 0, 0) < 0)) __PYX_ERR(0, 389, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":388
+        /* "aesara/scan_module/scan_perform.pyx":388
  *             if var is None:
  *                 old_mitmot_input_data[idx] = None
  *             elif inps_is_tensor[idx + n_seqs]:             # <<<<<<<<<<<<<<
@@ -4638,7 +4638,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         goto __pyx_L64;
       }
 
-      /* "theano/scan_module/scan_perform.pyx":391
+      /* "aesara/scan_module/scan_perform.pyx":391
  *                 old_mitmot_input_data[idx] = var.data
  *             else:
  *                 old_mitmot_input_data[idx] = var.gpudata             # <<<<<<<<<<<<<<
@@ -4654,7 +4654,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_L64:;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":394
+    /* "aesara/scan_module/scan_perform.pyx":394
  * 
  *         # 5.1 compute outputs
  *         t0_fn = time.time()             # <<<<<<<<<<<<<<
@@ -4687,7 +4687,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __Pyx_XDECREF_SET(__pyx_v_t0_fn, __pyx_t_3);
     __pyx_t_3 = 0;
 
-    /* "theano/scan_module/scan_perform.pyx":396
+    /* "aesara/scan_module/scan_perform.pyx":396
  *         t0_fn = time.time()
  * 
  *         try:             # <<<<<<<<<<<<<<
@@ -4703,7 +4703,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __Pyx_XGOTREF(__pyx_t_38);
       /*try:*/ {
 
-        /* "theano/scan_module/scan_perform.pyx":397
+        /* "aesara/scan_module/scan_perform.pyx":397
  * 
  *         try:
  *             fn()             # <<<<<<<<<<<<<<
@@ -4731,7 +4731,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
         __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":396
+        /* "aesara/scan_module/scan_perform.pyx":396
  *         t0_fn = time.time()
  * 
  *         try:             # <<<<<<<<<<<<<<
@@ -4749,7 +4749,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
       __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-      /* "theano/scan_module/scan_perform.pyx":398
+      /* "aesara/scan_module/scan_perform.pyx":398
  *         try:
  *             fn()
  *         except Exception:             # <<<<<<<<<<<<<<
@@ -4758,13 +4758,13 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
       __pyx_t_11 = __Pyx_PyErr_ExceptionMatches(((PyObject *)(&((PyTypeObject*)PyExc_Exception)[0])));
       if (__pyx_t_11) {
-        __Pyx_AddTraceback("theano.scan_module.scan_perform.perform", __pyx_clineno, __pyx_lineno, __pyx_filename);
+        __Pyx_AddTraceback("aesara.scan_module.scan_perform.perform", __pyx_clineno, __pyx_lineno, __pyx_filename);
         if (__Pyx_GetException(&__pyx_t_3, &__pyx_t_1, &__pyx_t_10) < 0) __PYX_ERR(0, 398, __pyx_L67_except_error)
         __Pyx_GOTREF(__pyx_t_3);
         __Pyx_GOTREF(__pyx_t_1);
         __Pyx_GOTREF(__pyx_t_10);
 
-        /* "theano/scan_module/scan_perform.pyx":399
+        /* "aesara/scan_module/scan_perform.pyx":399
  *             fn()
  *         except Exception:
  *             if hasattr(fn, 'position_of_error'):             # <<<<<<<<<<<<<<
@@ -4775,7 +4775,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __pyx_t_16 = (__pyx_t_4 != 0);
         if (likely(__pyx_t_16)) {
 
-          /* "theano/scan_module/scan_perform.pyx":403
+          /* "aesara/scan_module/scan_perform.pyx":403
  *                 # the C VM needs this because the exception manipulation
  *                 # done by raise_with_op is not implemented in C.
  *                 if hasattr(fn, 'thunks'):             # <<<<<<<<<<<<<<
@@ -4786,7 +4786,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __pyx_t_4 = (__pyx_t_16 != 0);
           if (__pyx_t_4) {
 
-            /* "theano/scan_module/scan_perform.pyx":405
+            /* "aesara/scan_module/scan_perform.pyx":405
  *                 if hasattr(fn, 'thunks'):
  *                     # For the CVM
  *                     gof.link.raise_with_op(fn.nodes[fn.position_of_error],             # <<<<<<<<<<<<<<
@@ -4810,7 +4810,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             __Pyx_DECREF(__pyx_t_40); __pyx_t_40 = 0;
             __Pyx_DECREF(__pyx_t_41); __pyx_t_41 = 0;
 
-            /* "theano/scan_module/scan_perform.pyx":406
+            /* "aesara/scan_module/scan_perform.pyx":406
  *                     # For the CVM
  *                     gof.link.raise_with_op(fn.nodes[fn.position_of_error],
  *                                            fn.thunks[fn.position_of_error])             # <<<<<<<<<<<<<<
@@ -4876,7 +4876,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             __Pyx_DECREF(__pyx_t_39); __pyx_t_39 = 0;
             __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-            /* "theano/scan_module/scan_perform.pyx":403
+            /* "aesara/scan_module/scan_perform.pyx":403
  *                 # the C VM needs this because the exception manipulation
  *                 # done by raise_with_op is not implemented in C.
  *                 if hasattr(fn, 'thunks'):             # <<<<<<<<<<<<<<
@@ -4886,7 +4886,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             goto __pyx_L76;
           }
 
-          /* "theano/scan_module/scan_perform.pyx":412
+          /* "aesara/scan_module/scan_perform.pyx":412
  *                     # temps values So for now, we just don't print
  *                     # the extra shapes/strides info
  *                     gof.vm.raise_with_op(fn.nodes[fn.position_of_error])             # <<<<<<<<<<<<<<
@@ -4960,7 +4960,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           }
           __pyx_L76:;
 
-          /* "theano/scan_module/scan_perform.pyx":399
+          /* "aesara/scan_module/scan_perform.pyx":399
  *             fn()
  *         except Exception:
  *             if hasattr(fn, 'position_of_error'):             # <<<<<<<<<<<<<<
@@ -4970,7 +4970,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           goto __pyx_L75;
         }
 
-        /* "theano/scan_module/scan_perform.pyx":415
+        /* "aesara/scan_module/scan_perform.pyx":415
  *             else:
  *                 # old-style linkers raise their own exceptions
  *                 raise             # <<<<<<<<<<<<<<
@@ -4994,7 +4994,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       goto __pyx_L67_except_error;
       __pyx_L67_except_error:;
 
-      /* "theano/scan_module/scan_perform.pyx":396
+      /* "aesara/scan_module/scan_perform.pyx":396
  *         t0_fn = time.time()
  * 
  *         try:             # <<<<<<<<<<<<<<
@@ -5014,7 +5014,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_L72_try_end:;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":417
+    /* "aesara/scan_module/scan_perform.pyx":417
  *                 raise
  * 
  *         dt_fn = time.time() - t0_fn             # <<<<<<<<<<<<<<
@@ -5050,7 +5050,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __Pyx_XDECREF_SET(__pyx_v_dt_fn, __pyx_t_3);
     __pyx_t_3 = 0;
 
-    /* "theano/scan_module/scan_perform.pyx":418
+    /* "aesara/scan_module/scan_perform.pyx":418
  * 
  *         dt_fn = time.time() - t0_fn
  *         t_fn += dt_fn             # <<<<<<<<<<<<<<
@@ -5062,7 +5062,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __Pyx_DECREF_SET(__pyx_v_t_fn, __pyx_t_3);
     __pyx_t_3 = 0;
 
-    /* "theano/scan_module/scan_perform.pyx":419
+    /* "aesara/scan_module/scan_perform.pyx":419
  *         dt_fn = time.time() - t0_fn
  *         t_fn += dt_fn
  *         if self.as_while:             # <<<<<<<<<<<<<<
@@ -5075,7 +5075,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     if (__pyx_t_4) {
 
-      /* "theano/scan_module/scan_perform.pyx":420
+      /* "aesara/scan_module/scan_perform.pyx":420
  *         t_fn += dt_fn
  *         if self.as_while:
  *             pdx = offset + n_shared_outs             # <<<<<<<<<<<<<<
@@ -5084,12 +5084,12 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
       __pyx_v_pdx = (__pyx_v_offset + __pyx_v_n_shared_outs);
 
-      /* "theano/scan_module/scan_perform.pyx":421
+      /* "aesara/scan_module/scan_perform.pyx":421
  *         if self.as_while:
  *             pdx = offset + n_shared_outs
  *             cond = output_storage[pdx].storage[0] == 0             # <<<<<<<<<<<<<<
  * 
- *         # 5.2. By calling fn() directly instead of calling the theano
+ *         # 5.2. By calling fn() directly instead of calling the aesara
  */
       __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_output_storage, __pyx_v_pdx, unsigned int, 0, __Pyx_PyInt_From_unsigned_int, 0, 0, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 421, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
@@ -5106,7 +5106,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
       __pyx_v_cond = __pyx_t_11;
 
-      /* "theano/scan_module/scan_perform.pyx":419
+      /* "aesara/scan_module/scan_perform.pyx":419
  *         dt_fn = time.time() - t0_fn
  *         t_fn += dt_fn
  *         if self.as_while:             # <<<<<<<<<<<<<<
@@ -5115,7 +5115,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     }
 
-    /* "theano/scan_module/scan_perform.pyx":426
+    /* "aesara/scan_module/scan_perform.pyx":426
  *         # function, it is possible that the updates have not been
  *         # performed. Perform the updates if needed.
  *         offset_out = len(output_storage) - 1             # <<<<<<<<<<<<<<
@@ -5125,7 +5125,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_t_20 = PyObject_Length(__pyx_v_output_storage); if (unlikely(__pyx_t_20 == ((Py_ssize_t)-1))) __PYX_ERR(0, 426, __pyx_L1_error)
     __pyx_v_offset_out = (__pyx_t_20 - 1);
 
-    /* "theano/scan_module/scan_perform.pyx":427
+    /* "aesara/scan_module/scan_perform.pyx":427
  *         # performed. Perform the updates if needed.
  *         offset_out = len(output_storage) - 1
  *         if getattr(fn, 'need_update_inputs', True):             # <<<<<<<<<<<<<<
@@ -5138,7 +5138,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
     if (__pyx_t_4) {
 
-      /* "theano/scan_module/scan_perform.pyx":429
+      /* "aesara/scan_module/scan_perform.pyx":429
  *         if getattr(fn, 'need_update_inputs', True):
  *             # Update the inputs that have an update function
  *             for inp, storage in zip(self.fn.maker.expanded_inputs[::-1],             # <<<<<<<<<<<<<<
@@ -5157,7 +5157,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-      /* "theano/scan_module/scan_perform.pyx":430
+      /* "aesara/scan_module/scan_perform.pyx":430
  *             # Update the inputs that have an update function
  *             for inp, storage in zip(self.fn.maker.expanded_inputs[::-1],
  *                                     self.fn.input_storage[::-1]):             # <<<<<<<<<<<<<<
@@ -5173,7 +5173,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __Pyx_GOTREF(__pyx_t_10);
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-      /* "theano/scan_module/scan_perform.pyx":429
+      /* "aesara/scan_module/scan_perform.pyx":429
  *         if getattr(fn, 'need_update_inputs', True):
  *             # Update the inputs that have an update function
  *             for inp, storage in zip(self.fn.maker.expanded_inputs[::-1],             # <<<<<<<<<<<<<<
@@ -5282,7 +5282,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_XDECREF_SET(__pyx_v_storage, __pyx_t_2);
         __pyx_t_2 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":431
+        /* "aesara/scan_module/scan_perform.pyx":431
  *             for inp, storage in zip(self.fn.maker.expanded_inputs[::-1],
  *                                     self.fn.input_storage[::-1]):
  *                 if inp.update is not None:             # <<<<<<<<<<<<<<
@@ -5296,7 +5296,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __pyx_t_16 = (__pyx_t_4 != 0);
         if (__pyx_t_16) {
 
-          /* "theano/scan_module/scan_perform.pyx":432
+          /* "aesara/scan_module/scan_perform.pyx":432
  *                                     self.fn.input_storage[::-1]):
  *                 if inp.update is not None:
  *                     storage.data = output_storage[offset_out].data             # <<<<<<<<<<<<<<
@@ -5311,7 +5311,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           if (__Pyx_PyObject_SetAttrStr(__pyx_v_storage, __pyx_n_s_data, __pyx_t_2) < 0) __PYX_ERR(0, 432, __pyx_L1_error)
           __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":433
+          /* "aesara/scan_module/scan_perform.pyx":433
  *                 if inp.update is not None:
  *                     storage.data = output_storage[offset_out].data
  *                     offset_out -= 1             # <<<<<<<<<<<<<<
@@ -5320,7 +5320,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
           __pyx_v_offset_out = (__pyx_v_offset_out - 1);
 
-          /* "theano/scan_module/scan_perform.pyx":431
+          /* "aesara/scan_module/scan_perform.pyx":431
  *             for inp, storage in zip(self.fn.maker.expanded_inputs[::-1],
  *                                     self.fn.input_storage[::-1]):
  *                 if inp.update is not None:             # <<<<<<<<<<<<<<
@@ -5329,7 +5329,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
         }
 
-        /* "theano/scan_module/scan_perform.pyx":429
+        /* "aesara/scan_module/scan_perform.pyx":429
  *         if getattr(fn, 'need_update_inputs', True):
  *             # Update the inputs that have an update function
  *             for inp, storage in zip(self.fn.maker.expanded_inputs[::-1],             # <<<<<<<<<<<<<<
@@ -5339,7 +5339,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       }
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-      /* "theano/scan_module/scan_perform.pyx":427
+      /* "aesara/scan_module/scan_perform.pyx":427
  *         # performed. Perform the updates if needed.
  *         offset_out = len(output_storage) - 1
  *         if getattr(fn, 'need_update_inputs', True):             # <<<<<<<<<<<<<<
@@ -5348,7 +5348,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     }
 
-    /* "theano/scan_module/scan_perform.pyx":435
+    /* "aesara/scan_module/scan_perform.pyx":435
  *                     offset_out -= 1
  * 
  *         offset_out = 0             # <<<<<<<<<<<<<<
@@ -5357,7 +5357,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     __pyx_v_offset_out = 0;
 
-    /* "theano/scan_module/scan_perform.pyx":438
+    /* "aesara/scan_module/scan_perform.pyx":438
  * 
  *         # 5.3 Copy over the values for mit_mot outputs
  *         mitmot_inp_offset = 0             # <<<<<<<<<<<<<<
@@ -5367,7 +5367,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __Pyx_INCREF(__pyx_int_0);
     __Pyx_XDECREF_SET(__pyx_v_mitmot_inp_offset, __pyx_int_0);
 
-    /* "theano/scan_module/scan_perform.pyx":439
+    /* "aesara/scan_module/scan_perform.pyx":439
  *         # 5.3 Copy over the values for mit_mot outputs
  *         mitmot_inp_offset = 0
  *         mitmot_out_idx = 0             # <<<<<<<<<<<<<<
@@ -5377,7 +5377,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __Pyx_INCREF(__pyx_int_0);
     __Pyx_XDECREF_SET(__pyx_v_mitmot_out_idx, __pyx_int_0);
 
-    /* "theano/scan_module/scan_perform.pyx":440
+    /* "aesara/scan_module/scan_perform.pyx":440
  *         mitmot_inp_offset = 0
  *         mitmot_out_idx = 0
  *         for j in xrange(self.n_mit_mot):             # <<<<<<<<<<<<<<
@@ -5392,7 +5392,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     for (__pyx_t_5 = 0; __pyx_t_5 < __pyx_t_34; __pyx_t_5+=1) {
       __pyx_v_j = __pyx_t_5;
 
-      /* "theano/scan_module/scan_perform.pyx":441
+      /* "aesara/scan_module/scan_perform.pyx":441
  *         mitmot_out_idx = 0
  *         for j in xrange(self.n_mit_mot):
  *             for k in self.mit_mot_out_slices[j]:             # <<<<<<<<<<<<<<
@@ -5448,7 +5448,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
         __pyx_v_k = __pyx_t_11;
 
-        /* "theano/scan_module/scan_perform.pyx":442
+        /* "aesara/scan_module/scan_perform.pyx":442
  *         for j in xrange(self.n_mit_mot):
  *             for k in self.mit_mot_out_slices[j]:
  *                 if mitmots_preallocated[<unsigned int>mitmot_out_idx]:             # <<<<<<<<<<<<<<
@@ -5460,7 +5460,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __pyx_t_16 = ((*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_int32_t *, __pyx_pybuffernd_mitmots_preallocated.rcbuffer->pybuffer.buf, __pyx_t_46, __pyx_pybuffernd_mitmots_preallocated.diminfo[0].strides)) != 0);
         if (__pyx_t_16) {
 
-          /* "theano/scan_module/scan_perform.pyx":445
+          /* "aesara/scan_module/scan_perform.pyx":445
  *                     # This output tap has been preallocated.
  *                     inp_idx = (mitmot_inp_offset +
  *                                self.tap_array[j].index(k))             # <<<<<<<<<<<<<<
@@ -5524,7 +5524,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           }
           __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":444
+          /* "aesara/scan_module/scan_perform.pyx":444
  *                 if mitmots_preallocated[<unsigned int>mitmot_out_idx]:
  *                     # This output tap has been preallocated.
  *                     inp_idx = (mitmot_inp_offset +             # <<<<<<<<<<<<<<
@@ -5537,7 +5537,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __Pyx_XDECREF_SET(__pyx_v_inp_idx, __pyx_t_10);
           __pyx_t_10 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":449
+          /* "aesara/scan_module/scan_perform.pyx":449
  *                     # Verify whether the input points to the same data as
  *                     # it did before the execution of the inner function.
  *                     old_var = old_mitmot_input_storage[inp_idx]             # <<<<<<<<<<<<<<
@@ -5549,7 +5549,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __Pyx_XDECREF_SET(__pyx_v_old_var, __pyx_t_10);
           __pyx_t_10 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":450
+          /* "aesara/scan_module/scan_perform.pyx":450
  *                     # it did before the execution of the inner function.
  *                     old_var = old_mitmot_input_storage[inp_idx]
  *                     new_var = input_storage[n_seqs + inp_idx].storage[0]             # <<<<<<<<<<<<<<
@@ -5573,7 +5573,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __Pyx_XDECREF_SET(__pyx_v_new_var, __pyx_t_10);
           __pyx_t_10 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":451
+          /* "aesara/scan_module/scan_perform.pyx":451
  *                     old_var = old_mitmot_input_storage[inp_idx]
  *                     new_var = input_storage[n_seqs + inp_idx].storage[0]
  *                     if old_var is new_var:             # <<<<<<<<<<<<<<
@@ -5584,7 +5584,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __pyx_t_4 = (__pyx_t_16 != 0);
           if (__pyx_t_4) {
 
-            /* "theano/scan_module/scan_perform.pyx":452
+            /* "aesara/scan_module/scan_perform.pyx":452
  *                     new_var = input_storage[n_seqs + inp_idx].storage[0]
  *                     if old_var is new_var:
  *                         old_data = old_mitmot_input_data[inp_idx]             # <<<<<<<<<<<<<<
@@ -5596,7 +5596,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             __Pyx_XDECREF_SET(__pyx_v_old_data, __pyx_t_10);
             __pyx_t_10 = 0;
 
-            /* "theano/scan_module/scan_perform.pyx":453
+            /* "aesara/scan_module/scan_perform.pyx":453
  *                     if old_var is new_var:
  *                         old_data = old_mitmot_input_data[inp_idx]
  *                         if inps_is_tensor[n_seqs + inp_idx]:             # <<<<<<<<<<<<<<
@@ -5615,7 +5615,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
             if (__pyx_t_4) {
 
-              /* "theano/scan_module/scan_perform.pyx":454
+              /* "aesara/scan_module/scan_perform.pyx":454
  *                         old_data = old_mitmot_input_data[inp_idx]
  *                         if inps_is_tensor[n_seqs + inp_idx]:
  *                             same_data = (new_var.data == old_data)             # <<<<<<<<<<<<<<
@@ -5629,7 +5629,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
               __Pyx_XDECREF_SET(__pyx_v_same_data, __pyx_t_2);
               __pyx_t_2 = 0;
 
-              /* "theano/scan_module/scan_perform.pyx":453
+              /* "aesara/scan_module/scan_perform.pyx":453
  *                     if old_var is new_var:
  *                         old_data = old_mitmot_input_data[inp_idx]
  *                         if inps_is_tensor[n_seqs + inp_idx]:             # <<<<<<<<<<<<<<
@@ -5639,7 +5639,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
               goto __pyx_L90;
             }
 
-            /* "theano/scan_module/scan_perform.pyx":456
+            /* "aesara/scan_module/scan_perform.pyx":456
  *                             same_data = (new_var.data == old_data)
  *                         else:
  *                             same_data = (new_var.gpudata == old_data)             # <<<<<<<<<<<<<<
@@ -5656,7 +5656,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             }
             __pyx_L90:;
 
-            /* "theano/scan_module/scan_perform.pyx":451
+            /* "aesara/scan_module/scan_perform.pyx":451
  *                     old_var = old_mitmot_input_storage[inp_idx]
  *                     new_var = input_storage[n_seqs + inp_idx].storage[0]
  *                     if old_var is new_var:             # <<<<<<<<<<<<<<
@@ -5666,7 +5666,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             goto __pyx_L89;
           }
 
-          /* "theano/scan_module/scan_perform.pyx":458
+          /* "aesara/scan_module/scan_perform.pyx":458
  *                             same_data = (new_var.gpudata == old_data)
  *                     else:
  *                         same_data = False             # <<<<<<<<<<<<<<
@@ -5679,7 +5679,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           }
           __pyx_L89:;
 
-          /* "theano/scan_module/scan_perform.pyx":463
+          /* "aesara/scan_module/scan_perform.pyx":463
  *                     # recover the value as usual. Otherwise, the input was
  *                     # modified inplace and nothing needs to be done.
  *                     if not same_data:             # <<<<<<<<<<<<<<
@@ -5690,7 +5690,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __pyx_t_16 = ((!__pyx_t_4) != 0);
           if (__pyx_t_16) {
 
-            /* "theano/scan_module/scan_perform.pyx":465
+            /* "aesara/scan_module/scan_perform.pyx":465
  *                     if not same_data:
  *                         outs[j][0][<unsigned int>(k + pos[j])] = \
  *                             input_storage[<unsigned int>(n_seqs + inp_idx)].storage[0]             # <<<<<<<<<<<<<<
@@ -5713,7 +5713,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             __Pyx_GOTREF(__pyx_t_2);
             __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-            /* "theano/scan_module/scan_perform.pyx":464
+            /* "aesara/scan_module/scan_perform.pyx":464
  *                     # modified inplace and nothing needs to be done.
  *                     if not same_data:
  *                         outs[j][0][<unsigned int>(k + pos[j])] = \             # <<<<<<<<<<<<<<
@@ -5730,7 +5730,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             __Pyx_DECREF(__pyx_t_41); __pyx_t_41 = 0;
             __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-            /* "theano/scan_module/scan_perform.pyx":463
+            /* "aesara/scan_module/scan_perform.pyx":463
  *                     # recover the value as usual. Otherwise, the input was
  *                     # modified inplace and nothing needs to be done.
  *                     if not same_data:             # <<<<<<<<<<<<<<
@@ -5739,7 +5739,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
           }
 
-          /* "theano/scan_module/scan_perform.pyx":442
+          /* "aesara/scan_module/scan_perform.pyx":442
  *         for j in xrange(self.n_mit_mot):
  *             for k in self.mit_mot_out_slices[j]:
  *                 if mitmots_preallocated[<unsigned int>mitmot_out_idx]:             # <<<<<<<<<<<<<<
@@ -5749,7 +5749,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           goto __pyx_L88;
         }
 
-        /* "theano/scan_module/scan_perform.pyx":470
+        /* "aesara/scan_module/scan_perform.pyx":470
  *                     # This output tap has not been preallocated, recover
  *                     # its value as usual
  *                     outs[j][0][<unsigned int>(k + pos[j])] = \             # <<<<<<<<<<<<<<
@@ -5758,7 +5758,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
         /*else*/ {
 
-          /* "theano/scan_module/scan_perform.pyx":471
+          /* "aesara/scan_module/scan_perform.pyx":471
  *                     # its value as usual
  *                     outs[j][0][<unsigned int>(k + pos[j])] = \
  *                             output_storage[<unsigned int>offset_out].storage[0]             # <<<<<<<<<<<<<<
@@ -5774,7 +5774,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __Pyx_GOTREF(__pyx_t_2);
           __Pyx_DECREF(__pyx_t_41); __pyx_t_41 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":470
+          /* "aesara/scan_module/scan_perform.pyx":470
  *                     # This output tap has not been preallocated, recover
  *                     # its value as usual
  *                     outs[j][0][<unsigned int>(k + pos[j])] = \             # <<<<<<<<<<<<<<
@@ -5791,7 +5791,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
           __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":472
+          /* "aesara/scan_module/scan_perform.pyx":472
  *                     outs[j][0][<unsigned int>(k + pos[j])] = \
  *                             output_storage[<unsigned int>offset_out].storage[0]
  *                     offset_out += 1             # <<<<<<<<<<<<<<
@@ -5802,7 +5802,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         }
         __pyx_L88:;
 
-        /* "theano/scan_module/scan_perform.pyx":474
+        /* "aesara/scan_module/scan_perform.pyx":474
  *                     offset_out += 1
  * 
  *                 mitmot_out_idx += 1             # <<<<<<<<<<<<<<
@@ -5814,7 +5814,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_DECREF_SET(__pyx_v_mitmot_out_idx, __pyx_t_2);
         __pyx_t_2 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":441
+        /* "aesara/scan_module/scan_perform.pyx":441
  *         mitmot_out_idx = 0
  *         for j in xrange(self.n_mit_mot):
  *             for k in self.mit_mot_out_slices[j]:             # <<<<<<<<<<<<<<
@@ -5824,7 +5824,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       }
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-      /* "theano/scan_module/scan_perform.pyx":476
+      /* "aesara/scan_module/scan_perform.pyx":476
  *                 mitmot_out_idx += 1
  * 
  *             mitmot_inp_offset += len(self.tap_array[j])             # <<<<<<<<<<<<<<
@@ -5847,7 +5847,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_t_1 = 0;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":479
+    /* "aesara/scan_module/scan_perform.pyx":479
  * 
  *         # 5.4 Copy over the values for mit_sot/sit_sot outputs
  *         begin = n_mit_mot             # <<<<<<<<<<<<<<
@@ -5856,7 +5856,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     __pyx_v_begin = __pyx_v_n_mit_mot;
 
-    /* "theano/scan_module/scan_perform.pyx":480
+    /* "aesara/scan_module/scan_perform.pyx":480
  *         # 5.4 Copy over the values for mit_sot/sit_sot outputs
  *         begin = n_mit_mot
  *         end   = n_outs             # <<<<<<<<<<<<<<
@@ -5865,7 +5865,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     __pyx_v_end = __pyx_v_n_outs;
 
-    /* "theano/scan_module/scan_perform.pyx":481
+    /* "aesara/scan_module/scan_perform.pyx":481
  *         begin = n_mit_mot
  *         end   = n_outs
  *         offset_out -= n_mit_mot             # <<<<<<<<<<<<<<
@@ -5874,7 +5874,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     __pyx_v_offset_out = (__pyx_v_offset_out - __pyx_v_n_mit_mot);
 
-    /* "theano/scan_module/scan_perform.pyx":483
+    /* "aesara/scan_module/scan_perform.pyx":483
  *         offset_out -= n_mit_mot
  * 
  *         for j in range(begin, end):             # <<<<<<<<<<<<<<
@@ -5886,7 +5886,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     for (__pyx_t_7 = __pyx_v_begin; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
       __pyx_v_j = __pyx_t_7;
 
-      /* "theano/scan_module/scan_perform.pyx":486
+      /* "aesara/scan_module/scan_perform.pyx":486
  * 
  *             # Copy the output value to `outs`, if necessary
  *             if store_steps[j] == 1 or vector_outs[j] == 1:             # <<<<<<<<<<<<<<
@@ -5905,7 +5905,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_L95_bool_binop_done:;
       if (__pyx_t_16) {
 
-        /* "theano/scan_module/scan_perform.pyx":487
+        /* "aesara/scan_module/scan_perform.pyx":487
  *             # Copy the output value to `outs`, if necessary
  *             if store_steps[j] == 1 or vector_outs[j] == 1:
  *                 outs[j][0][pos[j]] = output_storage[<unsigned int>(offset_out+j)].storage[0]             # <<<<<<<<<<<<<<
@@ -5930,7 +5930,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
         __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":486
+        /* "aesara/scan_module/scan_perform.pyx":486
  * 
  *             # Copy the output value to `outs`, if necessary
  *             if store_steps[j] == 1 or vector_outs[j] == 1:             # <<<<<<<<<<<<<<
@@ -5940,7 +5940,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         goto __pyx_L94;
       }
 
-      /* "theano/scan_module/scan_perform.pyx":491
+      /* "aesara/scan_module/scan_perform.pyx":491
  *                 # Check whether the initialization of the output storage map
  *                 # for this output has been reused.
  *                 old_var = old_output_storage[offset_out + j]             # <<<<<<<<<<<<<<
@@ -5954,7 +5954,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_XDECREF_SET(__pyx_v_old_var, __pyx_t_1);
         __pyx_t_1 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":492
+        /* "aesara/scan_module/scan_perform.pyx":492
  *                 # for this output has been reused.
  *                 old_var = old_output_storage[offset_out + j]
  *                 old_data = old_output_data[offset_out + j]             # <<<<<<<<<<<<<<
@@ -5967,7 +5967,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_XDECREF_SET(__pyx_v_old_data, __pyx_t_1);
         __pyx_t_1 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":493
+        /* "aesara/scan_module/scan_perform.pyx":493
  *                 old_var = old_output_storage[offset_out + j]
  *                 old_data = old_output_data[offset_out + j]
  *                 new_var = output_storage[offset_out + j].storage[0]             # <<<<<<<<<<<<<<
@@ -5986,7 +5986,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_XDECREF_SET(__pyx_v_new_var, __pyx_t_1);
         __pyx_t_1 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":494
+        /* "aesara/scan_module/scan_perform.pyx":494
  *                 old_data = old_output_data[offset_out + j]
  *                 new_var = output_storage[offset_out + j].storage[0]
  *                 if old_var is new_var:             # <<<<<<<<<<<<<<
@@ -5997,7 +5997,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __pyx_t_4 = (__pyx_t_16 != 0);
         if (__pyx_t_4) {
 
-          /* "theano/scan_module/scan_perform.pyx":495
+          /* "aesara/scan_module/scan_perform.pyx":495
  *                 new_var = output_storage[offset_out + j].storage[0]
  *                 if old_var is new_var:
  *                     if old_data is None:             # <<<<<<<<<<<<<<
@@ -6008,7 +6008,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __pyx_t_16 = (__pyx_t_4 != 0);
           if (__pyx_t_16) {
 
-            /* "theano/scan_module/scan_perform.pyx":496
+            /* "aesara/scan_module/scan_perform.pyx":496
  *                 if old_var is new_var:
  *                     if old_data is None:
  *                         output_reused = False             # <<<<<<<<<<<<<<
@@ -6018,7 +6018,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             __Pyx_INCREF(Py_False);
             __Pyx_XDECREF_SET(__pyx_v_output_reused, Py_False);
 
-            /* "theano/scan_module/scan_perform.pyx":495
+            /* "aesara/scan_module/scan_perform.pyx":495
  *                 new_var = output_storage[offset_out + j].storage[0]
  *                 if old_var is new_var:
  *                     if old_data is None:             # <<<<<<<<<<<<<<
@@ -6028,7 +6028,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             goto __pyx_L98;
           }
 
-          /* "theano/scan_module/scan_perform.pyx":497
+          /* "aesara/scan_module/scan_perform.pyx":497
  *                     if old_data is None:
  *                         output_reused = False
  *                     elif outs_is_tensor[offset_out + j]:             # <<<<<<<<<<<<<<
@@ -6039,7 +6039,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __pyx_t_16 = ((*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_int32_t *, __pyx_pybuffernd_outs_is_tensor.rcbuffer->pybuffer.buf, __pyx_t_48, __pyx_pybuffernd_outs_is_tensor.diminfo[0].strides)) != 0);
           if (__pyx_t_16) {
 
-            /* "theano/scan_module/scan_perform.pyx":498
+            /* "aesara/scan_module/scan_perform.pyx":498
  *                         output_reused = False
  *                     elif outs_is_tensor[offset_out + j]:
  *                         output_reused = (new_var.data == old_data)             # <<<<<<<<<<<<<<
@@ -6053,7 +6053,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             __Pyx_XDECREF_SET(__pyx_v_output_reused, __pyx_t_10);
             __pyx_t_10 = 0;
 
-            /* "theano/scan_module/scan_perform.pyx":497
+            /* "aesara/scan_module/scan_perform.pyx":497
  *                     if old_data is None:
  *                         output_reused = False
  *                     elif outs_is_tensor[offset_out + j]:             # <<<<<<<<<<<<<<
@@ -6063,7 +6063,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             goto __pyx_L98;
           }
 
-          /* "theano/scan_module/scan_perform.pyx":500
+          /* "aesara/scan_module/scan_perform.pyx":500
  *                         output_reused = (new_var.data == old_data)
  *                     else:
  *                         output_reused = (new_var.gpudata == old_data)             # <<<<<<<<<<<<<<
@@ -6080,7 +6080,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           }
           __pyx_L98:;
 
-          /* "theano/scan_module/scan_perform.pyx":494
+          /* "aesara/scan_module/scan_perform.pyx":494
  *                 old_data = old_output_data[offset_out + j]
  *                 new_var = output_storage[offset_out + j].storage[0]
  *                 if old_var is new_var:             # <<<<<<<<<<<<<<
@@ -6090,7 +6090,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           goto __pyx_L97;
         }
 
-        /* "theano/scan_module/scan_perform.pyx":502
+        /* "aesara/scan_module/scan_perform.pyx":502
  *                         output_reused = (new_var.gpudata == old_data)
  *                 else:
  *                     output_reused = False             # <<<<<<<<<<<<<<
@@ -6103,7 +6103,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         }
         __pyx_L97:;
 
-        /* "theano/scan_module/scan_perform.pyx":504
+        /* "aesara/scan_module/scan_perform.pyx":504
  *                     output_reused = False
  * 
  *                 if not output_reused:             # <<<<<<<<<<<<<<
@@ -6114,7 +6114,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __pyx_t_4 = ((!__pyx_t_16) != 0);
         if (__pyx_t_4) {
 
-          /* "theano/scan_module/scan_perform.pyx":506
+          /* "aesara/scan_module/scan_perform.pyx":506
  *                 if not output_reused:
  *                     outs[j][0][pos[j]] = \
  *                         output_storage[<unsigned int>(offset_out+j)].storage[0]             # <<<<<<<<<<<<<<
@@ -6131,7 +6131,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __Pyx_GOTREF(__pyx_t_1);
           __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":505
+          /* "aesara/scan_module/scan_perform.pyx":505
  * 
  *                 if not output_reused:
  *                     outs[j][0][pos[j]] = \             # <<<<<<<<<<<<<<
@@ -6147,7 +6147,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
           __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":504
+          /* "aesara/scan_module/scan_perform.pyx":504
  *                     output_reused = False
  * 
  *                 if not output_reused:             # <<<<<<<<<<<<<<
@@ -6159,7 +6159,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_L94:;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":510
+    /* "aesara/scan_module/scan_perform.pyx":510
  * 
  *         # 5.5 Copy over the values for nit_sot outputs
  *         begin  = end             # <<<<<<<<<<<<<<
@@ -6168,7 +6168,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     __pyx_v_begin = __pyx_v_end;
 
-    /* "theano/scan_module/scan_perform.pyx":511
+    /* "aesara/scan_module/scan_perform.pyx":511
  *         # 5.5 Copy over the values for nit_sot outputs
  *         begin  = end
  *         end   += n_nit_sot             # <<<<<<<<<<<<<<
@@ -6177,7 +6177,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     __pyx_v_end = (__pyx_v_end + __pyx_v_n_nit_sot);
 
-    /* "theano/scan_module/scan_perform.pyx":512
+    /* "aesara/scan_module/scan_perform.pyx":512
  *         begin  = end
  *         end   += n_nit_sot
  *         for j in range(begin,end):             # <<<<<<<<<<<<<<
@@ -6189,7 +6189,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     for (__pyx_t_7 = __pyx_v_begin; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
       __pyx_v_j = __pyx_t_7;
 
-      /* "theano/scan_module/scan_perform.pyx":514
+      /* "aesara/scan_module/scan_perform.pyx":514
  *         for j in range(begin,end):
  * 
  *             if i == 0:             # <<<<<<<<<<<<<<
@@ -6199,7 +6199,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_t_4 = ((__pyx_v_i == 0) != 0);
       if (__pyx_t_4) {
 
-        /* "theano/scan_module/scan_perform.pyx":515
+        /* "aesara/scan_module/scan_perform.pyx":515
  * 
  *             if i == 0:
  *                 jout = j+offset_out             # <<<<<<<<<<<<<<
@@ -6208,7 +6208,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
         __pyx_v_jout = (__pyx_v_j + __pyx_v_offset_out);
 
-        /* "theano/scan_module/scan_perform.pyx":516
+        /* "aesara/scan_module/scan_perform.pyx":516
  *             if i == 0:
  *                 jout = j+offset_out
  *                 shape = (store_steps[j],) + output_storage[jout].storage[0].shape             # <<<<<<<<<<<<<<
@@ -6240,7 +6240,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_XDECREF_SET(__pyx_v_shape, __pyx_t_1);
         __pyx_t_1 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":517
+        /* "aesara/scan_module/scan_perform.pyx":517
  *                 jout = j+offset_out
  *                 shape = (store_steps[j],) + output_storage[jout].storage[0].shape
  *                 dtype = output_storage[jout].storage[0].dtype             # <<<<<<<<<<<<<<
@@ -6261,7 +6261,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_XDECREF_SET(__pyx_v_dtype, __pyx_t_10);
         __pyx_t_10 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":518
+        /* "aesara/scan_module/scan_perform.pyx":518
  *                 shape = (store_steps[j],) + output_storage[jout].storage[0].shape
  *                 dtype = output_storage[jout].storage[0].dtype
  *                 if (outs[j][0] is None or             # <<<<<<<<<<<<<<
@@ -6282,7 +6282,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           goto __pyx_L104_bool_binop_done;
         }
 
-        /* "theano/scan_module/scan_perform.pyx":519
+        /* "aesara/scan_module/scan_perform.pyx":519
  *                 dtype = output_storage[jout].storage[0].dtype
  *                 if (outs[j][0] is None or
  *                         outs[j][0].shape[0] < store_steps[j] or             # <<<<<<<<<<<<<<
@@ -6313,7 +6313,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           goto __pyx_L104_bool_binop_done;
         }
 
-        /* "theano/scan_module/scan_perform.pyx":520
+        /* "aesara/scan_module/scan_perform.pyx":520
  *                 if (outs[j][0] is None or
  *                         outs[j][0].shape[0] < store_steps[j] or
  *                         outs[j][0].shape[1:] != shape[1:] or             # <<<<<<<<<<<<<<
@@ -6344,7 +6344,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           goto __pyx_L104_bool_binop_done;
         }
 
-        /* "theano/scan_module/scan_perform.pyx":521
+        /* "aesara/scan_module/scan_perform.pyx":521
  *                         outs[j][0].shape[0] < store_steps[j] or
  *                         outs[j][0].shape[1:] != shape[1:] or
  *                         outs[j][0].dtype != dtype ):             # <<<<<<<<<<<<<<
@@ -6366,7 +6366,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __pyx_t_4 = __pyx_t_15;
         __pyx_L104_bool_binop_done:;
 
-        /* "theano/scan_module/scan_perform.pyx":518
+        /* "aesara/scan_module/scan_perform.pyx":518
  *                 shape = (store_steps[j],) + output_storage[jout].storage[0].shape
  *                 dtype = output_storage[jout].storage[0].dtype
  *                 if (outs[j][0] is None or             # <<<<<<<<<<<<<<
@@ -6375,7 +6375,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
         if (__pyx_t_4) {
 
-          /* "theano/scan_module/scan_perform.pyx":522
+          /* "aesara/scan_module/scan_perform.pyx":522
  *                         outs[j][0].shape[1:] != shape[1:] or
  *                         outs[j][0].dtype != dtype ):
  *                     outs[j][0] = node.outputs[j].type.value_zeros(shape)             # <<<<<<<<<<<<<<
@@ -6442,7 +6442,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
           __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":518
+          /* "aesara/scan_module/scan_perform.pyx":518
  *                 shape = (store_steps[j],) + output_storage[jout].storage[0].shape
  *                 dtype = output_storage[jout].storage[0].dtype
  *                 if (outs[j][0] is None or             # <<<<<<<<<<<<<<
@@ -6452,7 +6452,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           goto __pyx_L103;
         }
 
-        /* "theano/scan_module/scan_perform.pyx":523
+        /* "aesara/scan_module/scan_perform.pyx":523
  *                         outs[j][0].dtype != dtype ):
  *                     outs[j][0] = node.outputs[j].type.value_zeros(shape)
  *                 elif outs[j][0].shape[0] != store_steps[j]:             # <<<<<<<<<<<<<<
@@ -6479,7 +6479,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_DECREF(__pyx_t_41); __pyx_t_41 = 0;
         if (__pyx_t_4) {
 
-          /* "theano/scan_module/scan_perform.pyx":524
+          /* "aesara/scan_module/scan_perform.pyx":524
  *                     outs[j][0] = node.outputs[j].type.value_zeros(shape)
  *                 elif outs[j][0].shape[0] != store_steps[j]:
  *                     outs[j][0] = outs[j][0][:store_steps[j]]             # <<<<<<<<<<<<<<
@@ -6500,7 +6500,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
           __Pyx_DECREF(__pyx_t_41); __pyx_t_41 = 0;
 
-          /* "theano/scan_module/scan_perform.pyx":523
+          /* "aesara/scan_module/scan_perform.pyx":523
  *                         outs[j][0].dtype != dtype ):
  *                     outs[j][0] = node.outputs[j].type.value_zeros(shape)
  *                 elif outs[j][0].shape[0] != store_steps[j]:             # <<<<<<<<<<<<<<
@@ -6510,7 +6510,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         }
         __pyx_L103:;
 
-        /* "theano/scan_module/scan_perform.pyx":525
+        /* "aesara/scan_module/scan_perform.pyx":525
  *                 elif outs[j][0].shape[0] != store_steps[j]:
  *                     outs[j][0] = outs[j][0][:store_steps[j]]
  *                 outs[j][0][pos[j]] = output_storage[jout].storage[0]             # <<<<<<<<<<<<<<
@@ -6534,7 +6534,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
         __Pyx_DECREF(__pyx_t_41); __pyx_t_41 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":514
+        /* "aesara/scan_module/scan_perform.pyx":514
  *         for j in range(begin,end):
  * 
  *             if i == 0:             # <<<<<<<<<<<<<<
@@ -6544,7 +6544,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         goto __pyx_L102;
       }
 
-      /* "theano/scan_module/scan_perform.pyx":526
+      /* "aesara/scan_module/scan_perform.pyx":526
  *                     outs[j][0] = outs[j][0][:store_steps[j]]
  *                 outs[j][0][pos[j]] = output_storage[jout].storage[0]
  *             elif store_steps[j] == 1 or vector_outs[j] == 1:             # <<<<<<<<<<<<<<
@@ -6563,7 +6563,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_L108_bool_binop_done:;
       if (__pyx_t_4) {
 
-        /* "theano/scan_module/scan_perform.pyx":527
+        /* "aesara/scan_module/scan_perform.pyx":527
  *                 outs[j][0][pos[j]] = output_storage[jout].storage[0]
  *             elif store_steps[j] == 1 or vector_outs[j] == 1:
  *                 outs[j][0][pos[j]] = output_storage[j+offset_out].storage[0]             # <<<<<<<<<<<<<<
@@ -6588,7 +6588,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
         __Pyx_DECREF(__pyx_t_41); __pyx_t_41 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":526
+        /* "aesara/scan_module/scan_perform.pyx":526
  *                     outs[j][0] = outs[j][0][:store_steps[j]]
  *                 outs[j][0][pos[j]] = output_storage[jout].storage[0]
  *             elif store_steps[j] == 1 or vector_outs[j] == 1:             # <<<<<<<<<<<<<<
@@ -6598,7 +6598,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         goto __pyx_L102;
       }
 
-      /* "theano/scan_module/scan_perform.pyx":531
+      /* "aesara/scan_module/scan_perform.pyx":531
  *                 # Check whether the initialization of the output storage map
  *                 # for this output has been reused.
  *                 old_var = old_output_storage[offset_out + j]             # <<<<<<<<<<<<<<
@@ -6612,7 +6612,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_XDECREF_SET(__pyx_v_old_var, __pyx_t_41);
         __pyx_t_41 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":532
+        /* "aesara/scan_module/scan_perform.pyx":532
  *                 # for this output has been reused.
  *                 old_var = old_output_storage[offset_out + j]
  *                 old_data = old_output_data[offset_out + j]             # <<<<<<<<<<<<<<
@@ -6625,7 +6625,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_XDECREF_SET(__pyx_v_old_data, __pyx_t_41);
         __pyx_t_41 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":533
+        /* "aesara/scan_module/scan_perform.pyx":533
  *                 old_var = old_output_storage[offset_out + j]
  *                 old_data = old_output_data[offset_out + j]
  *                 new_var = output_storage[offset_out + j].storage[0]             # <<<<<<<<<<<<<<
@@ -6644,7 +6644,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_XDECREF_SET(__pyx_v_new_var, __pyx_t_41);
         __pyx_t_41 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":534
+        /* "aesara/scan_module/scan_perform.pyx":534
  *                 old_data = old_output_data[offset_out + j]
  *                 new_var = output_storage[offset_out + j].storage[0]
  *                 if old_var is new_var:             # <<<<<<<<<<<<<<
@@ -6655,7 +6655,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __pyx_t_15 = (__pyx_t_4 != 0);
         if (__pyx_t_15) {
 
-          /* "theano/scan_module/scan_perform.pyx":535
+          /* "aesara/scan_module/scan_perform.pyx":535
  *                 new_var = output_storage[offset_out + j].storage[0]
  *                 if old_var is new_var:
  *                     if old_data is None:             # <<<<<<<<<<<<<<
@@ -6666,7 +6666,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __pyx_t_4 = (__pyx_t_15 != 0);
           if (__pyx_t_4) {
 
-            /* "theano/scan_module/scan_perform.pyx":536
+            /* "aesara/scan_module/scan_perform.pyx":536
  *                 if old_var is new_var:
  *                     if old_data is None:
  *                         output_reused = False             # <<<<<<<<<<<<<<
@@ -6676,7 +6676,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             __Pyx_INCREF(Py_False);
             __Pyx_XDECREF_SET(__pyx_v_output_reused, Py_False);
 
-            /* "theano/scan_module/scan_perform.pyx":535
+            /* "aesara/scan_module/scan_perform.pyx":535
  *                 new_var = output_storage[offset_out + j].storage[0]
  *                 if old_var is new_var:
  *                     if old_data is None:             # <<<<<<<<<<<<<<
@@ -6686,7 +6686,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             goto __pyx_L111;
           }
 
-          /* "theano/scan_module/scan_perform.pyx":537
+          /* "aesara/scan_module/scan_perform.pyx":537
  *                     if old_data is None:
  *                         output_reused = False
  *                     elif outs_is_tensor[offset_out + j]:             # <<<<<<<<<<<<<<
@@ -6697,7 +6697,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           __pyx_t_4 = ((*__Pyx_BufPtrStrided1d(__pyx_t_5numpy_int32_t *, __pyx_pybuffernd_outs_is_tensor.rcbuffer->pybuffer.buf, __pyx_t_50, __pyx_pybuffernd_outs_is_tensor.diminfo[0].strides)) != 0);
           if (__pyx_t_4) {
 
-            /* "theano/scan_module/scan_perform.pyx":538
+            /* "aesara/scan_module/scan_perform.pyx":538
  *                         output_reused = False
  *                     elif outs_is_tensor[offset_out + j]:
  *                         output_reused = (new_var.data == old_data)             # <<<<<<<<<<<<<<
@@ -6711,7 +6711,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             __Pyx_XDECREF_SET(__pyx_v_output_reused, __pyx_t_2);
             __pyx_t_2 = 0;
 
-            /* "theano/scan_module/scan_perform.pyx":537
+            /* "aesara/scan_module/scan_perform.pyx":537
  *                     if old_data is None:
  *                         output_reused = False
  *                     elif outs_is_tensor[offset_out + j]:             # <<<<<<<<<<<<<<
@@ -6721,7 +6721,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             goto __pyx_L111;
           }
 
-          /* "theano/scan_module/scan_perform.pyx":540
+          /* "aesara/scan_module/scan_perform.pyx":540
  *                         output_reused = (new_var.data == old_data)
  *                     else:
  *                         output_reused = (new_var.gpudata == old_data)             # <<<<<<<<<<<<<<
@@ -6738,7 +6738,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           }
           __pyx_L111:;
 
-          /* "theano/scan_module/scan_perform.pyx":534
+          /* "aesara/scan_module/scan_perform.pyx":534
  *                 old_data = old_output_data[offset_out + j]
  *                 new_var = output_storage[offset_out + j].storage[0]
  *                 if old_var is new_var:             # <<<<<<<<<<<<<<
@@ -6748,7 +6748,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
           goto __pyx_L110;
         }
 
-        /* "theano/scan_module/scan_perform.pyx":542
+        /* "aesara/scan_module/scan_perform.pyx":542
  *                         output_reused = (new_var.gpudata == old_data)
  *                 else:
  *                     output_reused = False             # <<<<<<<<<<<<<<
@@ -6761,7 +6761,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         }
         __pyx_L110:;
 
-        /* "theano/scan_module/scan_perform.pyx":544
+        /* "aesara/scan_module/scan_perform.pyx":544
  *                     output_reused = False
  * 
  *                 if not output_reused:             # <<<<<<<<<<<<<<
@@ -6772,7 +6772,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __pyx_t_15 = ((!__pyx_t_4) != 0);
         if (__pyx_t_15) {
 
-          /* "theano/scan_module/scan_perform.pyx":545
+          /* "aesara/scan_module/scan_perform.pyx":545
  * 
  *                 if not output_reused:
  *                     try:             # <<<<<<<<<<<<<<
@@ -6788,7 +6788,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             __Pyx_XGOTREF(__pyx_t_36);
             /*try:*/ {
 
-              /* "theano/scan_module/scan_perform.pyx":546
+              /* "aesara/scan_module/scan_perform.pyx":546
  *                 if not output_reused:
  *                     try:
  *                         outs[j][0][pos[j]] = output_storage[j+offset_out].storage[0]             # <<<<<<<<<<<<<<
@@ -6813,7 +6813,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
               __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
               __Pyx_DECREF(__pyx_t_41); __pyx_t_41 = 0;
 
-              /* "theano/scan_module/scan_perform.pyx":545
+              /* "aesara/scan_module/scan_perform.pyx":545
  * 
  *                 if not output_reused:
  *                     try:             # <<<<<<<<<<<<<<
@@ -6836,7 +6836,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
             __Pyx_XDECREF(__pyx_t_41); __pyx_t_41 = 0;
 
-            /* "theano/scan_module/scan_perform.pyx":547
+            /* "aesara/scan_module/scan_perform.pyx":547
  *                     try:
  *                         outs[j][0][pos[j]] = output_storage[j+offset_out].storage[0]
  *                     except ValueError as e:             # <<<<<<<<<<<<<<
@@ -6845,7 +6845,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
             __pyx_t_11 = __Pyx_PyErr_ExceptionMatches(__pyx_builtin_ValueError);
             if (__pyx_t_11) {
-              __Pyx_AddTraceback("theano.scan_module.scan_perform.perform", __pyx_clineno, __pyx_lineno, __pyx_filename);
+              __Pyx_AddTraceback("aesara.scan_module.scan_perform.perform", __pyx_clineno, __pyx_lineno, __pyx_filename);
               if (__Pyx_GetException(&__pyx_t_41, &__pyx_t_1, &__pyx_t_2) < 0) __PYX_ERR(0, 547, __pyx_L115_except_error)
               __Pyx_GOTREF(__pyx_t_41);
               __Pyx_GOTREF(__pyx_t_1);
@@ -6853,7 +6853,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
               __Pyx_INCREF(__pyx_t_1);
               __pyx_v_e = __pyx_t_1;
 
-              /* "theano/scan_module/scan_perform.pyx":548
+              /* "aesara/scan_module/scan_perform.pyx":548
  *                         outs[j][0][pos[j]] = output_storage[j+offset_out].storage[0]
  *                     except ValueError as e:
  *                         if i == 0:             # <<<<<<<<<<<<<<
@@ -6863,7 +6863,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
               __pyx_t_15 = ((__pyx_v_i == 0) != 0);
               if (unlikely(__pyx_t_15)) {
 
-                /* "theano/scan_module/scan_perform.pyx":549
+                /* "aesara/scan_module/scan_perform.pyx":549
  *                     except ValueError as e:
  *                         if i == 0:
  *                             raise             # <<<<<<<<<<<<<<
@@ -6877,7 +6877,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
                 __pyx_t_41 = 0; __pyx_t_1 = 0; __pyx_t_2 = 0; 
                 __PYX_ERR(0, 549, __pyx_L115_except_error)
 
-                /* "theano/scan_module/scan_perform.pyx":548
+                /* "aesara/scan_module/scan_perform.pyx":548
  *                         outs[j][0][pos[j]] = output_storage[j+offset_out].storage[0]
  *                     except ValueError as e:
  *                         if i == 0:             # <<<<<<<<<<<<<<
@@ -6886,7 +6886,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
               }
 
-              /* "theano/scan_module/scan_perform.pyx":550
+              /* "aesara/scan_module/scan_perform.pyx":550
  *                         if i == 0:
  *                             raise
  *                         raise ValueError(             # <<<<<<<<<<<<<<
@@ -6902,7 +6902,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             goto __pyx_L115_except_error;
             __pyx_L115_except_error:;
 
-            /* "theano/scan_module/scan_perform.pyx":545
+            /* "aesara/scan_module/scan_perform.pyx":545
  * 
  *                 if not output_reused:
  *                     try:             # <<<<<<<<<<<<<<
@@ -6917,7 +6917,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
             __pyx_L120_try_end:;
           }
 
-          /* "theano/scan_module/scan_perform.pyx":544
+          /* "aesara/scan_module/scan_perform.pyx":544
  *                     output_reused = False
  * 
  *                 if not output_reused:             # <<<<<<<<<<<<<<
@@ -6929,7 +6929,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_L102:;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":559
+    /* "aesara/scan_module/scan_perform.pyx":559
  *         # 5.6 Copy over the values for outputs corresponding to shared
  *         # variables
  *         begin  = end             # <<<<<<<<<<<<<<
@@ -6938,7 +6938,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     __pyx_v_begin = __pyx_v_end;
 
-    /* "theano/scan_module/scan_perform.pyx":560
+    /* "aesara/scan_module/scan_perform.pyx":560
  *         # variables
  *         begin  = end
  *         end   += n_shared_outs             # <<<<<<<<<<<<<<
@@ -6947,7 +6947,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     __pyx_v_end = (__pyx_v_end + __pyx_v_n_shared_outs);
 
-    /* "theano/scan_module/scan_perform.pyx":561
+    /* "aesara/scan_module/scan_perform.pyx":561
  *         begin  = end
  *         end   += n_shared_outs
  *         for j in range(begin,end):             # <<<<<<<<<<<<<<
@@ -6959,7 +6959,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     for (__pyx_t_7 = __pyx_v_begin; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
       __pyx_v_j = __pyx_t_7;
 
-      /* "theano/scan_module/scan_perform.pyx":562
+      /* "aesara/scan_module/scan_perform.pyx":562
  *         end   += n_shared_outs
  *         for j in range(begin,end):
  *             jout = j +offset_out             # <<<<<<<<<<<<<<
@@ -6968,7 +6968,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
       __pyx_v_jout = (__pyx_v_j + __pyx_v_offset_out);
 
-      /* "theano/scan_module/scan_perform.pyx":563
+      /* "aesara/scan_module/scan_perform.pyx":563
  *         for j in range(begin,end):
  *             jout = j +offset_out
  *             outs[j][0] = output_storage[jout].storage[0]             # <<<<<<<<<<<<<<
@@ -6990,7 +6990,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":565
+    /* "aesara/scan_module/scan_perform.pyx":565
  *             outs[j][0] = output_storage[jout].storage[0]
  * 
  *         for idx in range(lenpos):             # <<<<<<<<<<<<<<
@@ -7002,7 +7002,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
       __pyx_v_idx = __pyx_t_7;
 
-      /* "theano/scan_module/scan_perform.pyx":566
+      /* "aesara/scan_module/scan_perform.pyx":566
  * 
  *         for idx in range(lenpos):
  *             pos[idx] = (pos[idx]+1)%store_steps[idx]             # <<<<<<<<<<<<<<
@@ -7017,7 +7017,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       (__pyx_v_pos[__pyx_v_idx]) = __Pyx_mod_long(__pyx_t_9, (__pyx_v_store_steps[__pyx_v_idx]));
     }
 
-    /* "theano/scan_module/scan_perform.pyx":567
+    /* "aesara/scan_module/scan_perform.pyx":567
  *         for idx in range(lenpos):
  *             pos[idx] = (pos[idx]+1)%store_steps[idx]
  *         i = i + 1             # <<<<<<<<<<<<<<
@@ -7027,7 +7027,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_v_i = (__pyx_v_i + 1);
   }
 
-  /* "theano/scan_module/scan_perform.pyx":570
+  /* "aesara/scan_module/scan_perform.pyx":570
  * 
  *     # 6. Check if you need to re-order output buffers
  *     begin = n_mit_mot             # <<<<<<<<<<<<<<
@@ -7036,7 +7036,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   __pyx_v_begin = __pyx_v_n_mit_mot;
 
-  /* "theano/scan_module/scan_perform.pyx":571
+  /* "aesara/scan_module/scan_perform.pyx":571
  *     # 6. Check if you need to re-order output buffers
  *     begin = n_mit_mot
  *     end   = n_outs + n_nit_sot             # <<<<<<<<<<<<<<
@@ -7045,7 +7045,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   __pyx_v_end = (__pyx_v_n_outs + __pyx_v_n_nit_sot);
 
-  /* "theano/scan_module/scan_perform.pyx":572
+  /* "aesara/scan_module/scan_perform.pyx":572
  *     begin = n_mit_mot
  *     end   = n_outs + n_nit_sot
  *     for idx in range(begin, end):             # <<<<<<<<<<<<<<
@@ -7057,7 +7057,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   for (__pyx_t_7 = __pyx_v_begin; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
     __pyx_v_idx = __pyx_t_7;
 
-    /* "theano/scan_module/scan_perform.pyx":573
+    /* "aesara/scan_module/scan_perform.pyx":573
  *     end   = n_outs + n_nit_sot
  *     for idx in range(begin, end):
  *         if ( store_steps[idx] < i-mintaps[idx] and             # <<<<<<<<<<<<<<
@@ -7072,7 +7072,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       goto __pyx_L131_bool_binop_done;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":574
+    /* "aesara/scan_module/scan_perform.pyx":574
  *     for idx in range(begin, end):
  *         if ( store_steps[idx] < i-mintaps[idx] and
  *             pos[idx] < store_steps[idx] ):             # <<<<<<<<<<<<<<
@@ -7083,7 +7083,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_t_15 = __pyx_t_4;
     __pyx_L131_bool_binop_done:;
 
-    /* "theano/scan_module/scan_perform.pyx":573
+    /* "aesara/scan_module/scan_perform.pyx":573
  *     end   = n_outs + n_nit_sot
  *     for idx in range(begin, end):
  *         if ( store_steps[idx] < i-mintaps[idx] and             # <<<<<<<<<<<<<<
@@ -7092,7 +7092,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     if (__pyx_t_15) {
 
-      /* "theano/scan_module/scan_perform.pyx":576
+      /* "aesara/scan_module/scan_perform.pyx":576
  *             pos[idx] < store_steps[idx] ):
  * 
  *             pdx = pos[idx]             # <<<<<<<<<<<<<<
@@ -7101,7 +7101,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
       __pyx_v_pdx = (__pyx_v_pos[__pyx_v_idx]);
 
-      /* "theano/scan_module/scan_perform.pyx":577
+      /* "aesara/scan_module/scan_perform.pyx":577
  * 
  *             pdx = pos[idx]
  *             if pdx >= store_steps[idx]//2 :             # <<<<<<<<<<<<<<
@@ -7111,7 +7111,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_t_15 = ((__pyx_v_pdx >= __Pyx_div_long((__pyx_v_store_steps[__pyx_v_idx]), 2)) != 0);
       if (__pyx_t_15) {
 
-        /* "theano/scan_module/scan_perform.pyx":584
+        /* "aesara/scan_module/scan_perform.pyx":584
  *                 # This way, there will be no information overwritten
  *                 # before it is read (as it used to happen).
  *                 shape = (pdx,)+ outs[idx][0].shape[1:]             # <<<<<<<<<<<<<<
@@ -7143,7 +7143,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_XDECREF_SET(__pyx_v_shape, __pyx_t_2);
         __pyx_t_2 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":586
+        /* "aesara/scan_module/scan_perform.pyx":586
  *                 shape = (pdx,)+ outs[idx][0].shape[1:]
  * 
  *                 tmp = node.outputs[idx].type.value_zeros(shape)             # <<<<<<<<<<<<<<
@@ -7207,7 +7207,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_XDECREF_SET(__pyx_v_tmp, __pyx_t_2);
         __pyx_t_2 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":587
+        /* "aesara/scan_module/scan_perform.pyx":587
  * 
  *                 tmp = node.outputs[idx].type.value_zeros(shape)
  *                 tmp[:] = outs[idx][0][:pdx]             # <<<<<<<<<<<<<<
@@ -7225,7 +7225,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         if (__Pyx_PyObject_SetSlice(__pyx_v_tmp, __pyx_t_2, 0, 0, NULL, NULL, &__pyx_slice__13, 0, 0, 1) < 0) __PYX_ERR(0, 587, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":588
+        /* "aesara/scan_module/scan_perform.pyx":588
  *                 tmp = node.outputs[idx].type.value_zeros(shape)
  *                 tmp[:] = outs[idx][0][:pdx]
  *                 outs[idx][0][:store_steps[idx]-pdx] = outs[idx][0][pdx:]             # <<<<<<<<<<<<<<
@@ -7249,7 +7249,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
         __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":589
+        /* "aesara/scan_module/scan_perform.pyx":589
  *                 tmp[:] = outs[idx][0][:pdx]
  *                 outs[idx][0][:store_steps[idx]-pdx] = outs[idx][0][pdx:]
  *                 outs[idx][0][store_steps[idx]-pdx:] = tmp             # <<<<<<<<<<<<<<
@@ -7264,7 +7264,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         if (__Pyx_PyObject_SetSlice(__pyx_t_10, __pyx_v_tmp, ((__pyx_v_store_steps[__pyx_v_idx]) - __pyx_v_pdx), 0, NULL, NULL, NULL, 1, 0, 1) < 0) __PYX_ERR(0, 589, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":577
+        /* "aesara/scan_module/scan_perform.pyx":577
  * 
  *             pdx = pos[idx]
  *             if pdx >= store_steps[idx]//2 :             # <<<<<<<<<<<<<<
@@ -7274,7 +7274,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         goto __pyx_L133;
       }
 
-      /* "theano/scan_module/scan_perform.pyx":591
+      /* "aesara/scan_module/scan_perform.pyx":591
  *                 outs[idx][0][store_steps[idx]-pdx:] = tmp
  *             else:
  *                 shape = (store_steps[idx]-pdx,) + outs[idx][0].shape[1:]             # <<<<<<<<<<<<<<
@@ -7307,7 +7307,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_XDECREF_SET(__pyx_v_shape, __pyx_t_10);
         __pyx_t_10 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":592
+        /* "aesara/scan_module/scan_perform.pyx":592
  *             else:
  *                 shape = (store_steps[idx]-pdx,) + outs[idx][0].shape[1:]
  *                 tmp = node.outputs[idx].type.value_zeros(shape)             # <<<<<<<<<<<<<<
@@ -7371,7 +7371,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_XDECREF_SET(__pyx_v_tmp, __pyx_t_10);
         __pyx_t_10 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":593
+        /* "aesara/scan_module/scan_perform.pyx":593
  *                 shape = (store_steps[idx]-pdx,) + outs[idx][0].shape[1:]
  *                 tmp = node.outputs[idx].type.value_zeros(shape)
  *                 tmp[:] = outs[idx][0][pdx:]             # <<<<<<<<<<<<<<
@@ -7389,7 +7389,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         if (__Pyx_PyObject_SetSlice(__pyx_v_tmp, __pyx_t_10, 0, 0, NULL, NULL, &__pyx_slice__15, 0, 0, 1) < 0) __PYX_ERR(0, 593, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":594
+        /* "aesara/scan_module/scan_perform.pyx":594
  *                 tmp = node.outputs[idx].type.value_zeros(shape)
  *                 tmp[:] = outs[idx][0][pdx:]
  *                 outs[idx][0][store_steps[idx]-pdx:] = outs[idx][0][:pdx]             # <<<<<<<<<<<<<<
@@ -7413,7 +7413,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_DECREF(__pyx_t_41); __pyx_t_41 = 0;
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":595
+        /* "aesara/scan_module/scan_perform.pyx":595
  *                 tmp[:] = outs[idx][0][pdx:]
  *                 outs[idx][0][store_steps[idx]-pdx:] = outs[idx][0][:pdx]
  *                 outs[idx][0][:store_steps[idx]-pdx] = tmp             # <<<<<<<<<<<<<<
@@ -7430,7 +7430,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       }
       __pyx_L133:;
 
-      /* "theano/scan_module/scan_perform.pyx":573
+      /* "aesara/scan_module/scan_perform.pyx":573
  *     end   = n_outs + n_nit_sot
  *     for idx in range(begin, end):
  *         if ( store_steps[idx] < i-mintaps[idx] and             # <<<<<<<<<<<<<<
@@ -7440,7 +7440,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       goto __pyx_L130;
     }
 
-    /* "theano/scan_module/scan_perform.pyx":600
+    /* "aesara/scan_module/scan_perform.pyx":600
  *         # expected to return 0 for all entries for which the gradient is
  *         # not actually computed
  *         elif store_steps[idx] > i - self.mintaps[idx]:             # <<<<<<<<<<<<<<
@@ -7467,7 +7467,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     if (__pyx_t_15) {
 
-      /* "theano/scan_module/scan_perform.pyx":601
+      /* "aesara/scan_module/scan_perform.pyx":601
  *         # not actually computed
  *         elif store_steps[idx] > i - self.mintaps[idx]:
  *             outs[idx][0][i-self.mintaps[idx]:] = 0             # <<<<<<<<<<<<<<
@@ -7494,7 +7494,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
       __Pyx_DECREF(__pyx_t_41); __pyx_t_41 = 0;
 
-      /* "theano/scan_module/scan_perform.pyx":610
+      /* "aesara/scan_module/scan_perform.pyx":610
  *             # if optimization gets applied compared to when optimization
  *             # do not get applied
  *             if i < n_steps:             # <<<<<<<<<<<<<<
@@ -7504,7 +7504,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_t_15 = ((__pyx_v_i < __pyx_v_n_steps) != 0);
       if (__pyx_t_15) {
 
-        /* "theano/scan_module/scan_perform.pyx":617
+        /* "aesara/scan_module/scan_perform.pyx":617
  * 	    # code faster, so this workaround is better then removing
  * 	    # the directive.
  *                 sh0 = outs[idx][0].shape[0]             # <<<<<<<<<<<<<<
@@ -7525,7 +7525,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_XDECREF_SET(__pyx_v_sh0, __pyx_t_2);
         __pyx_t_2 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":618
+        /* "aesara/scan_module/scan_perform.pyx":618
  * 	    # the directive.
  *                 sh0 = outs[idx][0].shape[0]
  *                 outs[idx][0] = outs[idx][0][:sh0-(n_steps - i)]             # <<<<<<<<<<<<<<
@@ -7552,7 +7552,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
         __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":610
+        /* "aesara/scan_module/scan_perform.pyx":610
  *             # if optimization gets applied compared to when optimization
  *             # do not get applied
  *             if i < n_steps:             # <<<<<<<<<<<<<<
@@ -7561,7 +7561,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
       }
 
-      /* "theano/scan_module/scan_perform.pyx":600
+      /* "aesara/scan_module/scan_perform.pyx":600
  *         # expected to return 0 for all entries for which the gradient is
  *         # not actually computed
  *         elif store_steps[idx] > i - self.mintaps[idx]:             # <<<<<<<<<<<<<<
@@ -7572,7 +7572,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_L130:;
   }
 
-  /* "theano/scan_module/scan_perform.pyx":622
+  /* "aesara/scan_module/scan_perform.pyx":622
  *     # We never reuse the input or output storage of the
  *     # inner function so we clear it.
  *     for i_s in input_storage:             # <<<<<<<<<<<<<<
@@ -7621,7 +7621,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __Pyx_XDECREF_SET(__pyx_v_i_s, __pyx_t_10);
     __pyx_t_10 = 0;
 
-    /* "theano/scan_module/scan_perform.pyx":623
+    /* "aesara/scan_module/scan_perform.pyx":623
  *     # inner function so we clear it.
  *     for i_s in input_storage:
  *         i_s.storage[0] = None             # <<<<<<<<<<<<<<
@@ -7633,7 +7633,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     if (unlikely(__Pyx_SetItemInt(__pyx_t_10, 0, Py_None, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 623, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-    /* "theano/scan_module/scan_perform.pyx":622
+    /* "aesara/scan_module/scan_perform.pyx":622
  *     # We never reuse the input or output storage of the
  *     # inner function so we clear it.
  *     for i_s in input_storage:             # <<<<<<<<<<<<<<
@@ -7643,7 +7643,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   }
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":624
+  /* "aesara/scan_module/scan_perform.pyx":624
  *     for i_s in input_storage:
  *         i_s.storage[0] = None
  *     for o_s in output_storage:             # <<<<<<<<<<<<<<
@@ -7692,7 +7692,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __Pyx_XDECREF_SET(__pyx_v_o_s, __pyx_t_10);
     __pyx_t_10 = 0;
 
-    /* "theano/scan_module/scan_perform.pyx":625
+    /* "aesara/scan_module/scan_perform.pyx":625
  *         i_s.storage[0] = None
  *     for o_s in output_storage:
  *         o_s.storage[0] = None             # <<<<<<<<<<<<<<
@@ -7704,7 +7704,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     if (unlikely(__Pyx_SetItemInt(__pyx_t_10, 0, Py_None, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 625, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-    /* "theano/scan_module/scan_perform.pyx":624
+    /* "aesara/scan_module/scan_perform.pyx":624
  *     for i_s in input_storage:
  *         i_s.storage[0] = None
  *     for o_s in output_storage:             # <<<<<<<<<<<<<<
@@ -7714,7 +7714,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   }
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":627
+  /* "aesara/scan_module/scan_perform.pyx":627
  *         o_s.storage[0] = None
  * 
  *     t_call = time.time() - t0_call             # <<<<<<<<<<<<<<
@@ -7750,7 +7750,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   __pyx_v_t_call = __pyx_t_41;
   __pyx_t_41 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":629
+  /* "aesara/scan_module/scan_perform.pyx":629
  *     t_call = time.time() - t0_call
  * 
  *     if hasattr(fnct.maker, 'profile'):             # <<<<<<<<<<<<<<
@@ -7764,7 +7764,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
   __pyx_t_4 = (__pyx_t_15 != 0);
   if (__pyx_t_4) {
 
-    /* "theano/scan_module/scan_perform.pyx":630
+    /* "aesara/scan_module/scan_perform.pyx":630
  * 
  *     if hasattr(fnct.maker, 'profile'):
  *         profile = fnct.maker.profile             # <<<<<<<<<<<<<<
@@ -7779,7 +7779,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_v_profile = __pyx_t_2;
     __pyx_t_2 = 0;
 
-    /* "theano/scan_module/scan_perform.pyx":631
+    /* "aesara/scan_module/scan_perform.pyx":631
  *     if hasattr(fnct.maker, 'profile'):
  *         profile = fnct.maker.profile
  *         if type(profile) is not bool and profile:             # <<<<<<<<<<<<<<
@@ -7798,7 +7798,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __pyx_L141_bool_binop_done:;
     if (__pyx_t_4) {
 
-      /* "theano/scan_module/scan_perform.pyx":632
+      /* "aesara/scan_module/scan_perform.pyx":632
  *         profile = fnct.maker.profile
  *         if type(profile) is not bool and profile:
  *             profile.vm_call_time +=  t_fn             # <<<<<<<<<<<<<<
@@ -7813,7 +7813,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       if (__Pyx_PyObject_SetAttrStr(__pyx_v_profile, __pyx_n_s_vm_call_time, __pyx_t_41) < 0) __PYX_ERR(0, 632, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_41); __pyx_t_41 = 0;
 
-      /* "theano/scan_module/scan_perform.pyx":633
+      /* "aesara/scan_module/scan_perform.pyx":633
  *         if type(profile) is not bool and profile:
  *             profile.vm_call_time +=  t_fn
  *             profile.callcount += 1             # <<<<<<<<<<<<<<
@@ -7828,7 +7828,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       if (__Pyx_PyObject_SetAttrStr(__pyx_v_profile, __pyx_n_s_callcount, __pyx_t_2) < 0) __PYX_ERR(0, 633, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-      /* "theano/scan_module/scan_perform.pyx":634
+      /* "aesara/scan_module/scan_perform.pyx":634
  *             profile.vm_call_time +=  t_fn
  *             profile.callcount += 1
  *             profile.nbsteps += n_steps             # <<<<<<<<<<<<<<
@@ -7846,7 +7846,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       if (__Pyx_PyObject_SetAttrStr(__pyx_v_profile, __pyx_n_s_nbsteps, __pyx_t_10) < 0) __PYX_ERR(0, 634, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-      /* "theano/scan_module/scan_perform.pyx":635
+      /* "aesara/scan_module/scan_perform.pyx":635
  *             profile.callcount += 1
  *             profile.nbsteps += n_steps
  *             profile.call_time += t_call             # <<<<<<<<<<<<<<
@@ -7861,7 +7861,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       if (__Pyx_PyObject_SetAttrStr(__pyx_v_profile, __pyx_n_s_call_time, __pyx_t_41) < 0) __PYX_ERR(0, 635, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_41); __pyx_t_41 = 0;
 
-      /* "theano/scan_module/scan_perform.pyx":636
+      /* "aesara/scan_module/scan_perform.pyx":636
  *             profile.nbsteps += n_steps
  *             profile.call_time += t_call
  *             if hasattr(fn, 'update_profile'):             # <<<<<<<<<<<<<<
@@ -7872,7 +7872,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
       __pyx_t_16 = (__pyx_t_4 != 0);
       if (__pyx_t_16) {
 
-        /* "theano/scan_module/scan_perform.pyx":637
+        /* "aesara/scan_module/scan_perform.pyx":637
  *             profile.call_time += t_call
  *             if hasattr(fn, 'update_profile'):
  *                 fn.update_profile(profile)             # <<<<<<<<<<<<<<
@@ -7926,7 +7926,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
         __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
         __Pyx_DECREF(__pyx_t_41); __pyx_t_41 = 0;
 
-        /* "theano/scan_module/scan_perform.pyx":636
+        /* "aesara/scan_module/scan_perform.pyx":636
  *             profile.nbsteps += n_steps
  *             profile.call_time += t_call
  *             if hasattr(fn, 'update_profile'):             # <<<<<<<<<<<<<<
@@ -7935,7 +7935,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
       }
 
-      /* "theano/scan_module/scan_perform.pyx":631
+      /* "aesara/scan_module/scan_perform.pyx":631
  *     if hasattr(fnct.maker, 'profile'):
  *         profile = fnct.maker.profile
  *         if type(profile) is not bool and profile:             # <<<<<<<<<<<<<<
@@ -7944,7 +7944,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
     }
 
-    /* "theano/scan_module/scan_perform.pyx":629
+    /* "aesara/scan_module/scan_perform.pyx":629
  *     t_call = time.time() - t0_call
  * 
  *     if hasattr(fnct.maker, 'profile'):             # <<<<<<<<<<<<<<
@@ -7953,7 +7953,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   }
 
-  /* "theano/scan_module/scan_perform.pyx":648
+  /* "aesara/scan_module/scan_perform.pyx":648
  * 
  *     # DEBUG PRINT :
  *     self.t_call = t_call             # <<<<<<<<<<<<<<
@@ -7962,7 +7962,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   if (__Pyx_PyObject_SetAttrStr(__pyx_v_self, __pyx_n_s_t_call, __pyx_v_t_call) < 0) __PYX_ERR(0, 648, __pyx_L1_error)
 
-  /* "theano/scan_module/scan_perform.pyx":649
+  /* "aesara/scan_module/scan_perform.pyx":649
  *     # DEBUG PRINT :
  *     self.t_call = t_call
  *     self.t_fn   = t_fn             # <<<<<<<<<<<<<<
@@ -7970,7 +7970,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
  */
   if (__Pyx_PyObject_SetAttrStr(__pyx_v_self, __pyx_n_s_t_fn, __pyx_v_t_fn) < 0) __PYX_ERR(0, 649, __pyx_L1_error)
 
-  /* "theano/scan_module/scan_perform.pyx":68
+  /* "aesara/scan_module/scan_perform.pyx":68
  * 
  * @cython.boundscheck(False)
  * def perform(             # <<<<<<<<<<<<<<
@@ -8007,7 +8007,7 @@ static PyObject *__pyx_pf_6theano_11scan_module_12scan_perform_2perform(CYTHON_U
     __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_vector_outs.rcbuffer->pybuffer);
     __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_vector_seqs.rcbuffer->pybuffer);
   __Pyx_ErrRestore(__pyx_type, __pyx_value, __pyx_tb);}
-  __Pyx_AddTraceback("theano.scan_module.scan_perform.perform", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("aesara.scan_module.scan_perform.perform", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   goto __pyx_L2;
   __pyx_L0:;
@@ -10692,8 +10692,8 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_tap_array_len, __pyx_k_tap_array_len, sizeof(__pyx_k_tap_array_len), 0, 0, 1, 1},
   {&__pyx_n_s_tdx, __pyx_k_tdx, sizeof(__pyx_k_tdx), 0, 0, 1, 1},
   {&__pyx_n_s_test, __pyx_k_test, sizeof(__pyx_k_test), 0, 0, 1, 1},
-  {&__pyx_n_s_theano, __pyx_k_theano, sizeof(__pyx_k_theano), 0, 0, 1, 1},
-  {&__pyx_n_s_theano_scan_module_scan_perform, __pyx_k_theano_scan_module_scan_perform, sizeof(__pyx_k_theano_scan_module_scan_perform), 0, 0, 1, 1},
+  {&__pyx_n_s_aesara, __pyx_k_aesara, sizeof(__pyx_k_aesara), 0, 0, 1, 1},
+  {&__pyx_n_s_aesara_scan_module_scan_perform, __pyx_k_aesara_scan_module_scan_perform, sizeof(__pyx_k_aesara_scan_module_scan_perform), 0, 0, 1, 1},
   {&__pyx_n_s_thunks, __pyx_k_thunks, sizeof(__pyx_k_thunks), 0, 0, 1, 1},
   {&__pyx_n_s_time, __pyx_k_time, sizeof(__pyx_k_time), 0, 0, 1, 1},
   {&__pyx_n_s_tmp, __pyx_k_tmp, sizeof(__pyx_k_tmp), 0, 0, 1, 1},
@@ -10733,7 +10733,7 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__Pyx_InitCachedConstants", 0);
 
-  /* "theano/scan_module/scan_perform.pyx":215
+  /* "aesara/scan_module/scan_perform.pyx":215
  *             n_steps)
  *     elif n_steps == 0:
  *         raise NotImplementedError(             # <<<<<<<<<<<<<<
@@ -10744,7 +10744,7 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple_);
   __Pyx_GIVEREF(__pyx_tuple_);
 
-  /* "theano/scan_module/scan_perform.pyx":248
+  /* "aesara/scan_module/scan_perform.pyx":248
  *             outs[idx][0] = args[ <unsigned int>(1+ n_seqs + idx)]
  *         elif ( outs[idx][0] is not None and
  *               outs[idx][0].shape[1:] == args[<unsigned int>(1+ n_seqs + idx)].shape[1:]             # <<<<<<<<<<<<<<
@@ -10758,7 +10758,7 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_slice__3);
   __Pyx_GIVEREF(__pyx_slice__3);
 
-  /* "theano/scan_module/scan_perform.pyx":257
+  /* "aesara/scan_module/scan_perform.pyx":257
  *                                                        idx)][:l]
  *             else:
  *                 outs[idx][0][:] = args[<unsigned int>(seqs_arg_offset + idx)]             # <<<<<<<<<<<<<<
@@ -10769,7 +10769,7 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_slice__4);
   __Pyx_GIVEREF(__pyx_slice__4);
 
-  /* "theano/scan_module/scan_perform.pyx":292
+  /* "aesara/scan_module/scan_perform.pyx":292
  *             if vector_seqs[idx] == 1:
  *                 input_storage[idx].storage[0] = args[\
  *                             <unsigned int>(1+idx)][i:<unsigned int>(i+1)].reshape(())             # <<<<<<<<<<<<<<
@@ -10780,7 +10780,7 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__5);
   __Pyx_GIVEREF(__pyx_tuple__5);
 
-  /* "theano/scan_module/scan_perform.pyx":304
+  /* "aesara/scan_module/scan_perform.pyx":304
  *                     _idx = (pos[idx]+tap)%store_steps[idx]
  *                     input_storage[offset].storage[0] =\
  *                             outs[idx][0][_idx:<unsigned int>(_idx+1)].reshape(())             # <<<<<<<<<<<<<<
@@ -10791,7 +10791,7 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__6);
   __Pyx_GIVEREF(__pyx_tuple__6);
 
-  /* "theano/scan_module/scan_perform.pyx":429
+  /* "aesara/scan_module/scan_perform.pyx":429
  *         if getattr(fn, 'need_update_inputs', True):
  *             # Update the inputs that have an update function
  *             for inp, storage in zip(self.fn.maker.expanded_inputs[::-1],             # <<<<<<<<<<<<<<
@@ -10802,7 +10802,7 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_slice__7);
   __Pyx_GIVEREF(__pyx_slice__7);
 
-  /* "theano/scan_module/scan_perform.pyx":430
+  /* "aesara/scan_module/scan_perform.pyx":430
  *             # Update the inputs that have an update function
  *             for inp, storage in zip(self.fn.maker.expanded_inputs[::-1],
  *                                     self.fn.input_storage[::-1]):             # <<<<<<<<<<<<<<
@@ -10813,7 +10813,7 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_slice__8);
   __Pyx_GIVEREF(__pyx_slice__8);
 
-  /* "theano/scan_module/scan_perform.pyx":520
+  /* "aesara/scan_module/scan_perform.pyx":520
  *                 if (outs[j][0] is None or
  *                         outs[j][0].shape[0] < store_steps[j] or
  *                         outs[j][0].shape[1:] != shape[1:] or             # <<<<<<<<<<<<<<
@@ -10827,7 +10827,7 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_slice__10);
   __Pyx_GIVEREF(__pyx_slice__10);
 
-  /* "theano/scan_module/scan_perform.pyx":550
+  /* "aesara/scan_module/scan_perform.pyx":550
  *                         if i == 0:
  *                             raise
  *                         raise ValueError(             # <<<<<<<<<<<<<<
@@ -10838,7 +10838,7 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__11);
   __Pyx_GIVEREF(__pyx_tuple__11);
 
-  /* "theano/scan_module/scan_perform.pyx":584
+  /* "aesara/scan_module/scan_perform.pyx":584
  *                 # This way, there will be no information overwritten
  *                 # before it is read (as it used to happen).
  *                 shape = (pdx,)+ outs[idx][0].shape[1:]             # <<<<<<<<<<<<<<
@@ -10849,7 +10849,7 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_slice__12);
   __Pyx_GIVEREF(__pyx_slice__12);
 
-  /* "theano/scan_module/scan_perform.pyx":587
+  /* "aesara/scan_module/scan_perform.pyx":587
  * 
  *                 tmp = node.outputs[idx].type.value_zeros(shape)
  *                 tmp[:] = outs[idx][0][:pdx]             # <<<<<<<<<<<<<<
@@ -10860,7 +10860,7 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_slice__13);
   __Pyx_GIVEREF(__pyx_slice__13);
 
-  /* "theano/scan_module/scan_perform.pyx":591
+  /* "aesara/scan_module/scan_perform.pyx":591
  *                 outs[idx][0][store_steps[idx]-pdx:] = tmp
  *             else:
  *                 shape = (store_steps[idx]-pdx,) + outs[idx][0].shape[1:]             # <<<<<<<<<<<<<<
@@ -10871,7 +10871,7 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_slice__14);
   __Pyx_GIVEREF(__pyx_slice__14);
 
-  /* "theano/scan_module/scan_perform.pyx":593
+  /* "aesara/scan_module/scan_perform.pyx":593
  *                 shape = (store_steps[idx]-pdx,) + outs[idx][0].shape[1:]
  *                 tmp = node.outputs[idx].type.value_zeros(shape)
  *                 tmp[:] = outs[idx][0][pdx:]             # <<<<<<<<<<<<<<
@@ -10979,7 +10979,7 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__24);
   __Pyx_GIVEREF(__pyx_tuple__24);
 
-  /* "theano/scan_module/scan_perform.pyx":64
+  /* "aesara/scan_module/scan_perform.pyx":64
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
@@ -10988,7 +10988,7 @@ static int __Pyx_InitCachedConstants(void) {
  */
   __pyx_codeobj__25 = (PyObject*)__Pyx_PyCode_New(0, 0, 0, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_scan_perform_pyx, __pyx_n_s_get_version, 64, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__25)) __PYX_ERR(0, 64, __pyx_L1_error)
 
-  /* "theano/scan_module/scan_perform.pyx":68
+  /* "aesara/scan_module/scan_perform.pyx":68
  * 
  * @cython.boundscheck(False)
  * def perform(             # <<<<<<<<<<<<<<
@@ -11242,14 +11242,14 @@ if (!__Pyx_RefNanny) {
   #if PY_MAJOR_VERSION < 3 && (__PYX_DEFAULT_STRING_ENCODING_IS_ASCII || __PYX_DEFAULT_STRING_ENCODING_IS_DEFAULT)
   if (__Pyx_init_sys_getdefaultencoding_params() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
-  if (__pyx_module_is_main_theano__scan_module__scan_perform) {
+  if (__pyx_module_is_main_aesara__scan_module__scan_perform) {
     if (PyObject_SetAttrString(__pyx_m, "__name__", __pyx_n_s_main) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   }
   #if PY_MAJOR_VERSION >= 3
   {
     PyObject *modules = PyImport_GetModuleDict(); if (unlikely(!modules)) __PYX_ERR(0, 1, __pyx_L1_error)
-    if (!PyDict_GetItemString(modules, "theano.scan_module.scan_perform")) {
-      if (unlikely(PyDict_SetItemString(modules, "theano.scan_module.scan_perform", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
+    if (!PyDict_GetItemString(modules, "aesara.scan_module.scan_perform")) {
+      if (unlikely(PyDict_SetItemString(modules, "aesara.scan_module.scan_perform", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
     }
   }
   #endif
@@ -11270,7 +11270,7 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
 
-  /* "theano/scan_module/scan_perform.pyx":50
+  /* "aesara/scan_module/scan_perform.pyx":50
  * 
  * 
  * __authors__ = "Razvan Pascanu"             # <<<<<<<<<<<<<<
@@ -11279,7 +11279,7 @@ if (!__Pyx_RefNanny) {
  */
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_authors, __pyx_kp_s_Razvan_Pascanu) < 0) __PYX_ERR(0, 50, __pyx_L1_error)
 
-  /* "theano/scan_module/scan_perform.pyx":51
+  /* "aesara/scan_module/scan_perform.pyx":51
  * 
  * __authors__ = "Razvan Pascanu"
  * __copyright__ = "(c) 2011, Universite de Montreal"             # <<<<<<<<<<<<<<
@@ -11288,7 +11288,7 @@ if (!__Pyx_RefNanny) {
  */
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_copyright, __pyx_kp_s_c_2011_Universite_de_Montreal) < 0) __PYX_ERR(0, 51, __pyx_L1_error)
 
-  /* "theano/scan_module/scan_perform.pyx":52
+  /* "aesara/scan_module/scan_perform.pyx":52
  * __authors__ = "Razvan Pascanu"
  * __copyright__ = "(c) 2011, Universite de Montreal"
  * __contact__ = "Razvan Pascanu <r.pascanu@gmail>"             # <<<<<<<<<<<<<<
@@ -11297,22 +11297,22 @@ if (!__Pyx_RefNanny) {
  */
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_contact, __pyx_kp_s_Razvan_Pascanu_r_pascanu_gmail) < 0) __PYX_ERR(0, 52, __pyx_L1_error)
 
-  /* "theano/scan_module/scan_perform.pyx":57
+  /* "aesara/scan_module/scan_perform.pyx":57
  * import cython
  * 
  * import numpy             # <<<<<<<<<<<<<<
  * cimport numpy
- * from theano import gof
+ * from aesara import gof
  */
   __pyx_t_1 = __Pyx_Import(__pyx_n_s_numpy, 0, -1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 57, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_numpy, __pyx_t_1) < 0) __PYX_ERR(0, 57, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":59
+  /* "aesara/scan_module/scan_perform.pyx":59
  * import numpy
  * cimport numpy
- * from theano import gof             # <<<<<<<<<<<<<<
+ * from aesara import gof             # <<<<<<<<<<<<<<
  * import time
  * import copy
  */
@@ -11321,7 +11321,7 @@ if (!__Pyx_RefNanny) {
   __Pyx_INCREF(__pyx_n_s_gof);
   __Pyx_GIVEREF(__pyx_n_s_gof);
   PyList_SET_ITEM(__pyx_t_1, 0, __pyx_n_s_gof);
-  __pyx_t_2 = __Pyx_Import(__pyx_n_s_theano, __pyx_t_1, -1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_Import(__pyx_n_s_aesara, __pyx_t_1, -1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 59, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_t_1 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_gof); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 59, __pyx_L1_error)
@@ -11330,9 +11330,9 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":60
+  /* "aesara/scan_module/scan_perform.pyx":60
  * cimport numpy
- * from theano import gof
+ * from aesara import gof
  * import time             # <<<<<<<<<<<<<<
  * import copy
  * 
@@ -11342,8 +11342,8 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_time, __pyx_t_2) < 0) __PYX_ERR(0, 60, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":61
- * from theano import gof
+  /* "aesara/scan_module/scan_perform.pyx":61
+ * from aesara import gof
  * import time
  * import copy             # <<<<<<<<<<<<<<
  * 
@@ -11354,31 +11354,31 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_copy, __pyx_t_2) < 0) __PYX_ERR(0, 61, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":64
+  /* "aesara/scan_module/scan_perform.pyx":64
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
  *     return 0.296
  * 
  */
-  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_6theano_11scan_module_12scan_perform_1get_version, NULL, __pyx_n_s_theano_scan_module_scan_perform); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 64, __pyx_L1_error)
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_6aesara_11scan_module_12scan_perform_1get_version, NULL, __pyx_n_s_aesara_scan_module_scan_perform); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 64, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_version, __pyx_t_2) < 0) __PYX_ERR(0, 64, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":68
+  /* "aesara/scan_module/scan_perform.pyx":68
  * 
  * @cython.boundscheck(False)
  * def perform(             # <<<<<<<<<<<<<<
  *             unsigned int n_shared_outs,
  *             unsigned int n_mit_mot_outs,
  */
-  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_6theano_11scan_module_12scan_perform_3perform, NULL, __pyx_n_s_theano_scan_module_scan_perform); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 68, __pyx_L1_error)
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_6aesara_11scan_module_12scan_perform_3perform, NULL, __pyx_n_s_aesara_scan_module_scan_perform); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 68, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_perform, __pyx_t_2) < 0) __PYX_ERR(0, 68, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "theano/scan_module/scan_perform.pyx":1
+  /* "aesara/scan_module/scan_perform.pyx":1
  * """             # <<<<<<<<<<<<<<
  *  This code implements the operations that scan has to carry on when called
  *  as a stand alone function.
@@ -11404,11 +11404,11 @@ if (!__Pyx_RefNanny) {
   __Pyx_XDECREF(__pyx_t_2);
   if (__pyx_m) {
     if (__pyx_d) {
-      __Pyx_AddTraceback("init theano.scan_module.scan_perform", 0, __pyx_lineno, __pyx_filename);
+      __Pyx_AddTraceback("init aesara.scan_module.scan_perform", 0, __pyx_lineno, __pyx_filename);
     }
     Py_DECREF(__pyx_m); __pyx_m = 0;
   } else if (!PyErr_Occurred()) {
-    PyErr_SetString(PyExc_ImportError, "init theano.scan_module.scan_perform");
+    PyErr_SetString(PyExc_ImportError, "init aesara.scan_module.scan_perform");
   }
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();

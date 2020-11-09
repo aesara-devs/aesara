@@ -1,7 +1,7 @@
 ccopy_reg
 _reconstructor
 p1
-(ctheano.gpuarray.multinomial
+(caesara.gpuarray.multinomial
 GPUAMultinomialWOReplacementFromUniform
 p2
 c__builtin__

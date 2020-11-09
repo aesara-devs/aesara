@@ -39,7 +39,7 @@ Programming Language :: Python :: 3.7
 Programming Language :: Python :: 3.8
 Programming Language :: Python :: 3.9
 """
-NAME = "Theano-PyMC"
+NAME = "Aesara-PyMC"
 MAINTAINER = "PyMC developers"
 MAINTAINER_EMAIL = "pymc-devs@gmail.com"
 DESCRIPTION = (
@@ -50,7 +50,7 @@ LONG_DESCRIPTION = (
     + "\n\n"
     + codecs.open("NEWS.txt", encoding="utf-8").read()
 )
-URL = "http://deeplearning.net/software/theano/"
+URL = "http://deeplearning.net/software/aesara/"
 DOWNLOAD_URL = ""
 LICENSE = "BSD"
 CLASSIFIERS = [_f for _f in CLASSIFIERS.split("\n") if _f]
@@ -82,8 +82,8 @@ version_data = versioneer.get_versions()
 
 if version_data["error"] is not None:
     # Get the fallback version
-    # We can't import theano.version as it isn't yet installed, so parse it.
-    fname = os.path.join(os.path.split(__file__)[0], "theano", "version.py")
+    # We can't import aesara.version as it isn't yet installed, so parse it.
+    fname = os.path.join(os.path.split(__file__)[0], "aesara", "version.py")
     with open(fname) as f:
         lines = f.readlines()
     lines = [l for l in lines if l.startswith("FALLBACK_VERSION")]
@@ -123,17 +123,17 @@ def do_setup():
                 "ChangeLog",
                 "c_code/*",
             ],
-            "theano.misc": ["*.sh"],
-            "theano.d3viz": ["html/*", "css/*", "js/*"],
+            "aesara.misc": ["*.sh"],
+            "aesara.d3viz": ["html/*", "css/*", "js/*"],
         },
         entry_points={
             "console_scripts": [
-                "theano-cache = bin.theano_cache:main",
+                "aesara-cache = bin.aesara_cache:main",
             ]
         },
         keywords=" ".join(
             [
-                "theano",
+                "aesara",
                 "math",
                 "numerical",
                 "symbolic",

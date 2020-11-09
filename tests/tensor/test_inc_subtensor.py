@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 from tests import unittest_tools as utt
 
 
@@ -42,7 +42,7 @@ class TestIncSubtensor:
             else:
                 resut = tt.inc_subtensor(a[sl1, sl2], increment)
 
-            f = theano.function([a, increment, sl2_end], resut)
+            f = aesara.function([a, increment, sl2_end], resut)
 
             val_a = np.ones((5, 5))
             val_inc = 2.3
@@ -77,12 +77,12 @@ class TestIncSubtensor:
         rng = np.random.RandomState(utt.fetch_seed())
 
         def rng_randX(*shape):
-            return rng.rand(*shape).astype(theano.config.floatX)
+            return rng.rand(*shape).astype(aesara.config.floatX)
 
         for op in (tt.set_subtensor, tt.inc_subtensor):
             for base in (a[:], a[0]):
                 out = op(base, increment)
-                f = theano.function([a, increment], out)
+                f = aesara.function([a, increment], out)
                 # This one should work
                 f(rng_randX(3, 1), rng_randX(1))
                 # These ones should not
@@ -113,7 +113,7 @@ class TestIncSubtensor:
 
             resut = method(a[sl1, sl3, sl2], increment)
 
-            f = theano.function([a, increment, sl2_end], resut)
+            f = aesara.function([a, increment, sl2_end], resut)
 
             expected_result = np.copy(val_a)
             result = f(val_a, val_inc, val_sl2_end)
@@ -128,7 +128,7 @@ class TestIncSubtensor:
             # Test when we broadcast the result
             resut = method(a[sl1, sl2], increment)
 
-            f = theano.function([a, increment, sl2_end], resut)
+            f = aesara.function([a, increment, sl2_end], resut)
 
             expected_result = np.copy(val_a)
             result = f(val_a, val_inc, val_sl2_end)

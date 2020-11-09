@@ -25,7 +25,7 @@ int APPLY_SPECIFIC(blockger)(PyGpuArrayObject *o, PyGpuArrayObject *x,
     out = o;
     Py_INCREF(out);
   } else {
-    out = theano_try_copy(out, o);
+    out = aesara_try_copy(out, o);
     if (out == NULL)
       return -1;
   }

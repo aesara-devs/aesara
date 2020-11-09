@@ -30,13 +30,13 @@ int dnn_batchnorm_op(PyGpuArrayObject *inp, PyGpuArrayObject *scale,
     Py_XDECREF(*outp);
     *outp = inp;
     Py_INCREF(*outp);
-  } else if (theano_prep_output(outp, inp->ga.nd, inp->ga.dimensions, inp->ga.typecode, GA_C_ORDER, c) != 0) {
+  } else if (aesara_prep_output(outp, inp->ga.nd, inp->ga.dimensions, inp->ga.typecode, GA_C_ORDER, c) != 0) {
     return 1;
   }
 
-  if (theano_prep_output(x_mean, scale->ga.nd, scale->ga.dimensions, scale->ga.typecode, GA_C_ORDER, c) != 0)
+  if (aesara_prep_output(x_mean, scale->ga.nd, scale->ga.dimensions, scale->ga.typecode, GA_C_ORDER, c) != 0)
     return 1;
-  if (theano_prep_output(x_invstd, scale->ga.nd, scale->ga.dimensions, scale->ga.typecode, GA_C_ORDER, c) != 0)
+  if (aesara_prep_output(x_invstd, scale->ga.nd, scale->ga.dimensions, scale->ga.typecode, GA_C_ORDER, c) != 0)
     return 1;
 
   if (c_set_tensorNd(*outp, bn_output) != 0)
@@ -51,7 +51,7 @@ int dnn_batchnorm_op(PyGpuArrayObject *inp, PyGpuArrayObject *scale,
       Py_INCREF(running_mean);
     } else {
       running_mean = *out_running_mean;
-      running_mean = theano_try_copy(running_mean, in_running_mean);
+      running_mean = aesara_try_copy(running_mean, in_running_mean);
       if (running_mean == NULL) {
         return 1;
       }
@@ -62,7 +62,7 @@ int dnn_batchnorm_op(PyGpuArrayObject *inp, PyGpuArrayObject *scale,
       Py_INCREF(running_var);
     } else {
       running_var = *out_running_var;
-      running_var = theano_try_copy(running_var, in_running_var);
+      running_var = aesara_try_copy(running_var, in_running_var);
       if (running_var == NULL) {
         return 1;
       }

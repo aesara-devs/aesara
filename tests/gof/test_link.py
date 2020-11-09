@@ -2,13 +2,13 @@ from copy import deepcopy
 
 import numpy as np
 
-import theano
-from theano.gof import fg, graph
-from theano.gof.graph import Apply, Constant, Variable
-from theano.gof.link import Container, PerformLinker, WrapLinker
-from theano.gof.op import Op
-from theano.gof.type import Type
-from theano.utils import cmp
+import aesara
+from aesara.gof import fg, graph
+from aesara.gof.graph import Apply, Constant, Variable
+from aesara.gof.link import Container, PerformLinker, WrapLinker
+from aesara.gof.op import Op
+from aesara.gof.type import Type
+from aesara.utils import cmp
 
 
 def as_variable(x):
@@ -172,18 +172,18 @@ class TestWrapLinker:
 
 
 def test_sort_schedule_fn():
-    import theano
-    from theano.gof.sched import make_depends, sort_schedule_fn
+    import aesara
+    from aesara.gof.sched import make_depends, sort_schedule_fn
 
-    x = theano.tensor.matrix("x")
-    y = theano.tensor.dot(x[:5] * 2, x.T + 1).T
+    x = aesara.tensor.matrix("x")
+    y = aesara.tensor.dot(x[:5] * 2, x.T + 1).T
 
     def str_cmp(a, b):
         return cmp(str(a), str(b))  # lexicographical sort
 
-    linker = theano.OpWiseCLinker(schedule=sort_schedule_fn(str_cmp))
-    mode = theano.Mode(linker=linker)
-    f = theano.function((x,), (y,), mode=mode)
+    linker = aesara.OpWiseCLinker(schedule=sort_schedule_fn(str_cmp))
+    mode = aesara.Mode(linker=linker)
+    f = aesara.function((x,), (y,), mode=mode)
 
     nodes = f.maker.linker.make_all()[-1]
     depends = make_depends()
@@ -195,11 +195,11 @@ def test_sort_schedule_fn():
 def test_container_deepcopy():
     # This is a test to a work around a NumPy bug.
 
-    t = theano.tensor.scalar()
+    t = aesara.tensor.scalar()
     # It seam that numpy.asarray(0.).astype(floatX) can return a numpy
     # scalar with some NumPy Version. So we call numpy.asarray with
     # the dtype parameter.
-    v = np.asarray(0.0, dtype=theano.config.floatX)
+    v = np.asarray(0.0, dtype=aesara.config.floatX)
     assert isinstance(v, np.ndarray), type(v)
     for readonly in [True, False]:
         c = Container(t, [v], readonly=readonly)

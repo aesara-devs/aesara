@@ -1,13 +1,13 @@
 """
 .. warning::
 
-This directory is for the internal of Theano.
+This directory is for the internal of Aesara.
 
 You are strongly advised not to use it, except if you know
 what you are doing!
 
-If you want to use a scalar variable in a Theano graph,
-you probably want to use theano.tensor.[c,z,f,d,b,w,i,l,]scalar!
+If you want to use a scalar variable in a Aesara graph,
+you probably want to use aesara.tensor.[c,z,f,d,b,w,i,l,]scalar!
 """
 
 import math
@@ -20,12 +20,12 @@ from textwrap import dedent
 
 import numpy as np
 
-import theano
-from theano import config, gof, printing
-from theano.gof import Apply, Constant, FunctionGraph, Op, Type, Variable, utils
-from theano.gradient import DisconnectedType, grad_undefined
-from theano.misc.safe_asarray import _asarray
-from theano.printing import pprint
+import aesara
+from aesara import config, gof, printing
+from aesara.gof import Apply, Constant, FunctionGraph, Op, Type, Variable, utils
+from aesara.gradient import DisconnectedType, grad_undefined
+from aesara.misc.safe_asarray import _asarray
+from aesara.printing import pprint
 
 
 builtin_bool = bool
@@ -84,7 +84,7 @@ def upcast(dtype, *dtypes):
 
 def as_common_dtype(*vars):
     """
-    For for theano.scalar.Scalar and TensorVariable.
+    For for aesara.scalar.Scalar and TensorVariable.
     """
     dtype = upcast(*[v.dtype for v in vars])
     return (v.astype(dtype) for v in vars)
@@ -347,7 +347,7 @@ class Scalar(Type):
                 or (
                     allow_downcast is None
                     and type(data) is float
-                    and self.dtype == theano.config.floatX
+                    and self.dtype == aesara.config.floatX
                 )
                 or data == converted_data
             ):
@@ -406,7 +406,7 @@ class Scalar(Type):
             # Windows and Linux.
             # NOTE: equivalent type on a platform can have different typenum.
             #     This is the source of all dtype/typenum problem found up to
-            #     now, as Theano always expect the exact typenum that
+            #     now, as Aesara always expect the exact typenum that
             #     correspond to our supported dtype.
             """
             for dtype in ['bool', 'int8', 'uint8', 'short', 'ushort', 'intc',
@@ -423,8 +423,8 @@ class Scalar(Type):
                 "float16": (np.float16, "npy_float16", "Float16"),
                 "float32": (np.float32, "npy_float32", "Float32"),
                 "float64": (np.float64, "npy_float64", "Float64"),
-                "complex128": (np.complex128, "theano_complex128", "Complex128"),
-                "complex64": (np.complex64, "theano_complex64", "Complex64"),
+                "complex128": (np.complex128, "aesara_complex128", "Complex128"),
+                "complex64": (np.complex64, "aesara_complex64", "Complex64"),
                 "bool": (np.bool_, "npy_bool", "Bool"),
                 "uint8": (np.uint8, "npy_uint8", "UInt8"),
                 "int8": (np.int8, "npy_int8", "Int8"),
@@ -536,7 +536,7 @@ class Scalar(Type):
     def c_support_code(self):
 
         if self.dtype.startswith("complex"):
-            cplx_types = ["theano_complex64", "theano_complex128"]
+            cplx_types = ["aesara_complex64", "aesara_complex128"]
             real_types = [
                 "npy_int8",
                 "npy_int16",
@@ -547,15 +547,15 @@ class Scalar(Type):
             ]
             # If the 'int' C type is not exactly the same as an existing
             # 'npy_intX', some C code may not compile, e.g. when assigning
-            # the value 0 (cast to 'int' in C) to a theano_complex64.
+            # the value 0 (cast to 'int' in C) to a aesara_complex64.
             if np.dtype("intc").num not in [np.dtype(d[4:]).num for d in real_types]:
                 # In that case we add the 'int' type to the real types.
                 real_types.append("int")
 
             template = """
-            struct theano_complex%(nbits)s : public npy_complex%(nbits)s
+            struct aesara_complex%(nbits)s : public npy_complex%(nbits)s
             {
-                typedef theano_complex%(nbits)s complex_type;
+                typedef aesara_complex%(nbits)s complex_type;
                 typedef npy_float%(half_nbits)s scalar_type;
 
                 complex_type operator +(const complex_type &y) const {
@@ -599,13 +599,13 @@ class Scalar(Type):
                 template <typename T>
                 complex_type& operator =(const T& y);
 
-                theano_complex%(nbits)s() {}
+                aesara_complex%(nbits)s() {}
 
                 template <typename T>
-                theano_complex%(nbits)s(const T& y) { *this = y; }
+                aesara_complex%(nbits)s(const T& y) { *this = y; }
 
                 template <typename TR, typename TI>
-                theano_complex%(nbits)s(const TR& r, const TI& i) { this->real=r; this->imag=i; }
+                aesara_complex%(nbits)s(const TR& r, const TI& i) { this->real=r; this->imag=i; }
             };
             """
 
@@ -718,7 +718,7 @@ class Scalar(Type):
 
 
 # Register C code for ViewOp on Scalars.
-theano.compile.register_view_op_c_code(
+aesara.compile.register_view_op_c_code(
     Scalar,
     """
     %(oname)s = %(iname)s;
@@ -1214,7 +1214,7 @@ class ScalarOp(Op):
               the inputs/outputs types)
 
         """
-        raise theano.gof.utils.MethodNotDefined()
+        raise aesara.gof.utils.MethodNotDefined()
 
     def supports_c_code(self, inputs, outputs):
         """Returns True if the current op has functioning C code for
@@ -1233,7 +1233,7 @@ class ScalarOp(Op):
                     tmp_s_input.append(tmp)
                     mapping[ii] = tmp_s_input[-1]
 
-            with theano.change_flags(compute_test_value="ignore"):
+            with aesara.change_flags(compute_test_value="ignore"):
                 s_op = self(*tmp_s_input, return_list=True)
 
             # if the scalar_op don't have a c implementation,
@@ -1246,7 +1246,7 @@ class ScalarOp(Op):
                 ["z" for z in outputs],
                 {"fail": "%(fail)s"},
             )
-        except (theano.gof.utils.MethodNotDefined, NotImplementedError):
+        except (aesara.gof.utils.MethodNotDefined, NotImplementedError):
             return False
         return True
 
@@ -1260,13 +1260,13 @@ class UnaryScalarOp(ScalarOp):
         (x,) = inputs
         (z,) = outputs
         if (
-            not theano.config.lib.amdlibm
+            not aesara.config.lib.amdlibm
             or
             # We compare the dtype AND the broadcast flag
             # as this function do not broadcast
             node.inputs[0].type != node.outputs[0].type
         ):
-            raise theano.gof.utils.MethodNotDefined()
+            raise aesara.gof.utils.MethodNotDefined()
 
         dtype = node.inputs[0].type.dtype_specs()[1]
         fct_call = self.c_code_contiguous_raw(dtype, "n", "x", "z")
@@ -1284,7 +1284,7 @@ class UnaryScalarOp(ScalarOp):
 
     def c_code_contiguous_raw(self, dtype, n, i, o):
         if not config.lib.amdlibm:
-            raise theano.gof.utils.MethodNotDefined()
+            raise aesara.gof.utils.MethodNotDefined()
         if dtype.startswith("npy_"):
             dtype = dtype[4:]
         if dtype == "float32" and self.amd_float32 is not None:
@@ -1294,7 +1294,7 @@ class UnaryScalarOp(ScalarOp):
             dtype = "double"
             fct = self.amd_float64
         else:
-            raise theano.gof.utils.MethodNotDefined()
+            raise aesara.gof.utils.MethodNotDefined()
         return "%(fct)s(%(n)s, %(i)s, %(o)s)" % locals()
 
 
@@ -1335,8 +1335,8 @@ class LogicalComparison(BinaryScalarOp):
         x, y = inputs
         assert outputs[0].type == bool
         return [
-            x.zeros_like().astype(theano.config.floatX),
-            y.zeros_like().astype(theano.config.floatX),
+            x.zeros_like().astype(aesara.config.floatX),
+            y.zeros_like().astype(aesara.config.floatX),
         ]
 
     def c_code_cache_version(self):
@@ -1370,7 +1370,7 @@ class FixedLogicalComparison(UnaryScalarOp):
     def L_op(self, inputs, outputs, output_gradients):
         (x,) = inputs
         assert outputs[0].type == bool
-        return [x.zeros_like().astype(theano.config.floatX)]
+        return [x.zeros_like().astype(aesara.config.floatX)]
 
     def c_code_cache_version(self):
         super_version = super().c_code_cache_version()
@@ -1589,7 +1589,7 @@ class InRange(LogicalComparison):
             )
             raise NotImplementedError(msg)
         elif elem.type in discrete_types:
-            return elem.zeros_like().astype(theano.config.floatX)
+            return elem.zeros_like().astype(aesara.config.floatX)
         else:
             return elem.zeros_like()
 
@@ -1631,7 +1631,7 @@ class Switch(ScalarOp):
         # cond does affect the elements of the output so it is connected.
         # For the sake of making the gradient convenient we assume that
         # condition + epsilon always triggers the same branch as condition
-        condition_grad = cond.zeros_like().astype(theano.config.floatX)
+        condition_grad = cond.zeros_like().astype(aesara.config.floatX)
 
         return (condition_grad, first_part, second_part)
 
@@ -1658,7 +1658,7 @@ class UnaryBitOp(UnaryScalarOp):
         return upcast_out(*input_types[0])
 
     def grad(self, inputs, output_gradients):
-        return [inputs[0].zeros_like().astype(theano.config.floatX)]
+        return [inputs[0].zeros_like().astype(aesara.config.floatX)]
 
 
 class BinaryBitOp(BinaryScalarOp):
@@ -1678,8 +1678,8 @@ class BinaryBitOp(BinaryScalarOp):
     def grad(self, inputs, output_gradients):
         a, b = inputs
         return [
-            a.zeros_like().astype(theano.config.floatX),
-            b.zeros_like().astype(theano.config.floatX),
+            a.zeros_like().astype(aesara.config.floatX),
+            b.zeros_like().astype(aesara.config.floatX),
         ]
 
 
@@ -1792,8 +1792,8 @@ class Maximum(BinaryScalarOp):
 
         if outputs[0].type in discrete_types:
             return [
-                x.zeros_like().astype(theano.config.floatX),
-                y.zeros_like().astype(theano.config.floatX),
+                x.zeros_like().astype(aesara.config.floatX),
+                y.zeros_like().astype(aesara.config.floatX),
             ]
         # This form handle the case when both value are the same.
         # In that case, gx will be gz, gy will be 0.
@@ -1836,8 +1836,8 @@ class Minimum(BinaryScalarOp):
 
         if outputs[0].type in discrete_types:
             return [
-                x.zeros_like().astype(theano.config.floatX),
-                y.zeros_like().astype(theano.config.floatX),
+                x.zeros_like().astype(aesara.config.floatX),
+                y.zeros_like().astype(aesara.config.floatX),
             ]
         # This form handle the case when both value are the same.
         # In that case, gx will be gz, gy will be 0.
@@ -1879,7 +1879,7 @@ class Add(ScalarOp):
             retval = []
             for ii, inp in enumerate(inputs):
                 if hasattr(inp, "zeros_like"):
-                    retval.append(inp.zeros_like().astype(theano.config.floatX))
+                    retval.append(inp.zeros_like().astype(aesara.config.floatX))
                 else:
                     retval.append(grad_undefined(self, ii, inp))
         else:
@@ -1929,7 +1929,7 @@ class Mul(ScalarOp):
                 )
 
         if output_type in discrete_types:
-            return [ipt.zeros_like().astype(theano.config.floatX) for ipt in inputs]
+            return [ipt.zeros_like().astype(aesara.config.floatX) for ipt in inputs]
 
         for input in inputs:
             if gz.type in complex_types:
@@ -1972,8 +1972,8 @@ class Sub(BinaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             return [
-                x.zeros_like().astype(theano.config.floatX),
-                y.zeros_like().astype(theano.config.floatX),
+                x.zeros_like().astype(aesara.config.floatX),
+                y.zeros_like().astype(aesara.config.floatX),
             ]
 
         first_part = gz
@@ -2120,7 +2120,7 @@ true_div = TrueDiv(upcast_out, name="true_div")
 class IntDiv(BinaryScalarOp):
     nfunc_spec = ("floor_divide", 2, 1)
     complex_error = ComplexError(
-        "Theano does not support integer division (//) on "
+        "Aesara does not support integer division (//) on "
         "complex numbers, since numpy deprecated it."
     )
 
@@ -2214,7 +2214,7 @@ class IntDiv(BinaryScalarOp):
         return (6,)
 
     def grad(self, inputs, g_output):
-        return [inp.zeros_like(dtype=theano.config.floatX) for inp in inputs]
+        return [inp.zeros_like(dtype=aesara.config.floatX) for inp in inputs]
 
 
 int_div = IntDiv(upcast_out, name="int_div")
@@ -2234,7 +2234,7 @@ def mod_check(x, y):
 class Mod(BinaryScalarOp):
     nfunc_spec = ("mod", 2, 1)
     complex_error = ComplexError(
-        "Theano does not support the mod operator (%) on "
+        "Aesara does not support the mod operator (%) on "
         "complex numbers, since numpy deprecated it."
     )
 
@@ -2341,8 +2341,8 @@ class Mod(BinaryScalarOp):
         if outputs[0].type.dtype in discrete_types:
             # The gradient does not flow in if the output is discrete
             return [
-                x.zeros_like(dtype=theano.config.floatX),
-                y.zeros_like(dtype=theano.config.floatX),
+                x.zeros_like(dtype=aesara.config.floatX),
+                y.zeros_like(dtype=aesara.config.floatX),
             ]
         return [gz, -(x // y) * gz]
 
@@ -2371,8 +2371,8 @@ class Pow(BinaryScalarOp):
 
         if outputs[0].type in discrete_types:
             return [
-                x.zeros_like().astype(theano.config.floatX),
-                y.zeros_like().astype(theano.config.floatX),
+                x.zeros_like().astype(aesara.config.floatX),
+                y.zeros_like().astype(aesara.config.floatX),
             ]
 
         first_part = gz * y * x ** (y - 1)
@@ -2385,8 +2385,8 @@ class Pow(BinaryScalarOp):
     def c_code_contiguous(self, node, name, inputs, outputs, sub):
         (x, y) = inputs
         (z,) = outputs
-        if not theano.config.lib.amdlibm:
-            raise theano.gof.utils.MethodNotDefined()
+        if not aesara.config.lib.amdlibm:
+            raise aesara.gof.utils.MethodNotDefined()
 
         # We compare the dtype AND the broadcast flag
         # as this function do not broadcast
@@ -2433,7 +2433,7 @@ class Pow(BinaryScalarOp):
                 % locals()
             )
 
-        raise theano.gof.utils.MethodNotDefined()
+        raise aesara.gof.utils.MethodNotDefined()
 
 
 pow = Pow(upcast_out_min8, name="pow")
@@ -2530,7 +2530,7 @@ class Identity(UnaryScalarOp):
         if x.type in continuous_types:
             return (gz,)
         else:
-            return (x.zeros_like(dtype=theano.config.floatX),)
+            return (x.zeros_like(dtype=aesara.config.floatX),)
 
 
 identity = Identity(same_out, name="identity")
@@ -2581,7 +2581,7 @@ class Cast(UnaryScalarOp):
         if self.o_type in continuous_types:
             return [gz]
         else:
-            return [x.zeros_like().astype(theano.config.floatX)]
+            return [x.zeros_like().astype(aesara.config.floatX)]
 
     def c_code_cache_version(self):
         s = super().c_code_cache_version()
@@ -2664,7 +2664,7 @@ class Abs(UnaryScalarOp):
         (gz,) = gout
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -2715,7 +2715,7 @@ class Sgn(UnaryScalarOp):
         rval = x.zeros_like()
 
         if rval.type.dtype in discrete_types:
-            rval = rval.astype(theano.config.floatX)
+            rval = rval.astype(aesara.config.floatX)
 
         return [rval]
 
@@ -2757,7 +2757,7 @@ class Ceil(UnaryScalarOp):
         rval = x.zeros_like()
 
         if rval.type.dtype in discrete_types:
-            rval = rval.astype(theano.config.floatX)
+            rval = rval.astype(aesara.config.floatX)
 
         return [rval]
 
@@ -2783,7 +2783,7 @@ class Floor(UnaryScalarOp):
         rval = x.zeros_like()
 
         if rval.type.dtype in discrete_types:
-            rval = rval.astype(theano.config.floatX)
+            rval = rval.astype(aesara.config.floatX)
 
         return [rval]
 
@@ -2806,7 +2806,7 @@ class Trunc(UnaryScalarOp):
     def grad(self, inputs, gout):
         (x,) = inputs
         (gz,) = gout
-        return [x.zeros_like().astype(theano.config.floatX)]
+        return [x.zeros_like().astype(aesara.config.floatX)]
 
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
@@ -2837,7 +2837,7 @@ class RoundHalfToEven(UnaryScalarOp):
         rval = x.zeros_like()
 
         if rval.type.dtype in discrete_types:
-            rval = rval.astype(theano.config.floatX)
+            rval = rval.astype(aesara.config.floatX)
 
         return [rval]
 
@@ -2926,7 +2926,7 @@ class RoundHalfAwayFromZero(UnaryScalarOp):
         rval = x.zeros_like()
 
         if rval.type.dtype in discrete_types:
-            rval = rval.astype(theano.config.floatX)
+            rval = rval.astype(aesara.config.floatX)
 
         return [rval]
 
@@ -2944,7 +2944,7 @@ round_half_away_from_zero = RoundHalfAwayFromZero(same_out_float_only)
 
 class Neg(UnaryScalarOp):
     # We can use numpy.negative here, because even if it gives unexpected
-    # results on Boolean arrays, it will be passed other dtypes as Theano
+    # results on Boolean arrays, it will be passed other dtypes as Aesara
     # does not have a Boolean type for tensors.
     nfunc_spec = ("negative", 1, 1)
 
@@ -2956,7 +2956,7 @@ class Neg(UnaryScalarOp):
         (gz,) = gout
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -2998,7 +2998,7 @@ class Inv(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3040,7 +3040,7 @@ class Log(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3086,7 +3086,7 @@ class Log2(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3129,7 +3129,7 @@ class Log10(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3170,7 +3170,7 @@ class Log1p(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3208,7 +3208,7 @@ class Exp(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3244,7 +3244,7 @@ class Exp2(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3280,7 +3280,7 @@ class Expm1(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3314,7 +3314,7 @@ class Sqr(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3347,7 +3347,7 @@ class Sqrt(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3383,7 +3383,7 @@ class Deg2Rad(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3418,7 +3418,7 @@ class Rad2Deg(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3455,7 +3455,7 @@ class Cos(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3491,7 +3491,7 @@ class ArcCos(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3529,7 +3529,7 @@ class Sin(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3565,7 +3565,7 @@ class ArcSin(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3601,7 +3601,7 @@ class Tan(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3637,7 +3637,7 @@ class ArcTan(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3676,11 +3676,11 @@ class ArcTan2(BinaryScalarOp):
         else:
             if outputs[0].type in discrete_types:
                 if x.type in discrete_types:
-                    gx = x.zeros_like(dtype=theano.config.floatX)
+                    gx = x.zeros_like(dtype=aesara.config.floatX)
                 else:
                     gx = x.zeros_like()
                 if y.type in discrete_types:
-                    gy = y.zeros_like(dtype=theano.config.floatX)
+                    gy = y.zeros_like(dtype=aesara.config.floatX)
                 else:
                     gy = y.zeros_like()
                 return [gx, gy]
@@ -3724,7 +3724,7 @@ class Cosh(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3760,7 +3760,7 @@ class ArcCosh(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3801,7 +3801,7 @@ class Sinh(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3837,7 +3837,7 @@ class ArcSinh(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3879,7 +3879,7 @@ class Tanh(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3915,7 +3915,7 @@ class ArcTanh(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=aesara.config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -3968,7 +3968,7 @@ class Imag(UnaryScalarOp):
         elif x.type in float_types:
             return [second(x, 0)]
         else:
-            return [x.zeros_like(dtype=theano.config.floatX)]
+            return [x.zeros_like(dtype=aesara.config.floatX)]
 
 
 imag = Imag(real_out, name="imag")
@@ -4005,7 +4005,7 @@ class Angle(UnaryScalarOp):
         elif c in float_types:
             return [cast(second(x, 0), x.type.dtype)]
         else:
-            return [c.zeros_like(dtype=theano.config.floatX)]
+            return [c.zeros_like(dtype=aesara.config.floatX)]
 
 
 angle = Angle(specific_out(float64), name="angle")
@@ -4282,12 +4282,12 @@ class Composite(ScalarOp):
             assert len(outputs) == 1
             # 1. Create a new graph from inputs up to the
             # Composite
-            res = theano.compile.rebuild_collect_shared(
+            res = aesara.compile.rebuild_collect_shared(
                 inputs=inputs, outputs=outputs[0].owner.inputs, copy_inputs_over=False
             )  # Clone also the inputs
             # 2. We continue this partial clone with the graph in
             # the inner Composite
-            res2 = theano.compile.rebuild_collect_shared(
+            res2 = aesara.compile.rebuild_collect_shared(
                 inputs=outputs[0].owner.op.inputs,
                 outputs=outputs[0].owner.op.outputs,
                 replace=dict(zip(outputs[0].owner.op.inputs, res[1])),
@@ -4298,7 +4298,7 @@ class Composite(ScalarOp):
             inputs, outputs = res[0], res2[1]
             # Next assert comment just for speed
             # assert not any([isinstance(node.op, Composite) for node in
-            #                theano.gof.graph.ops(inputs, outputs)])
+            #                aesara.gof.graph.ops(inputs, outputs)])
 
         self.inputs = copy(inputs)
         self.outputs = copy(outputs)
@@ -4316,7 +4316,7 @@ class Composite(ScalarOp):
         if impl == "py":
             self.init_py_impls()  # self._impls
         if impl not in self.prepare_node_called:
-            for n in theano.gof.graph.list_of_nodes(self.inputs, self.outputs):
+            for n in aesara.gof.graph.list_of_nodes(self.inputs, self.outputs):
                 n.op.prepare_node(n, None, None, impl)
             self.prepare_node_called.add(impl)
 
@@ -4339,7 +4339,7 @@ class Composite(ScalarOp):
         else:
             # Make a new op with the right input type.
             assert len(inputs) == self.nin
-            res = theano.compile.rebuild_collect_shared(
+            res = aesara.compile.rebuild_collect_shared(
                 self.outputs,
                 replace=dict(zip(self.inputs, inputs)),
                 rebuild_strict=False,

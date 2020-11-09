@@ -1,5 +1,5 @@
 """
-Implementation of MRG31k3p random number generator for Theano.
+Implementation of MRG31k3p random number generator for Aesara.
 
 Generator code in SSJ package (L'Ecuyer & Simard).
 http://www.iro.umontreal.ca/~simardr/ssj/indexe.html
@@ -17,14 +17,14 @@ import warnings
 
 import numpy as np
 
-import theano
-from theano import Apply, Op, Variable, config, function, gradient, shared, tensor
-from theano.compile import optdb
-from theano.gof import ParamsType, local_optimizer
-from theano.gradient import undefined_grad
-from theano.scalar import bool as bool_t
-from theano.scalar import int32 as int_t
-from theano.tensor import (
+import aesara
+from aesara import Apply, Op, Variable, config, function, gradient, shared, tensor
+from aesara.compile import optdb
+from aesara.gof import ParamsType, local_optimizer
+from aesara.gradient import undefined_grad
+from aesara.scalar import bool as bool_t
+from aesara.scalar import int32 as int_t
+from aesara.tensor import (
     TensorType,
     as_tensor_variable,
     cast,
@@ -66,7 +66,7 @@ def multMatVect(v, A, m1, B, m2):
             [A_sym, s_sym, m_sym, A2_sym, s2_sym, m2_sym], o, profile=False
         )
 
-    # This way of calling the Theano fct is done to bypass Theano overhead.
+    # This way of calling the Aesara fct is done to bypass Aesara overhead.
     f = multMatVect.dot_modulo
     f.input_storage[0].storage[0] = A
     f.input_storage[1].storage[0] = v[:3]
@@ -799,7 +799,7 @@ class MRG_RandomStreams:
         self.rstate = multMatVect(self.rstate, A1p134, M1, A2p134, M2)
         assert self.rstate.dtype == np.int32
 
-    @theano.change_flags(compute_test_value="off")
+    @aesara.change_flags(compute_test_value="off")
     def get_substream_rstates(self, n_streams, dtype, inc_rstate=True):
         # TODO : need description for parameter and return
         """
@@ -817,7 +817,7 @@ class MRG_RandomStreams:
         if multMatVect.dot_modulo is None:
             multMatVect(rval[0], A1p72, M1, A2p72, M2)
 
-        # This way of calling the Theano fct is done to bypass Theano overhead.
+        # This way of calling the Aesara fct is done to bypass Aesara overhead.
         f = multMatVect.dot_modulo
         f.input_storage[0].storage[0] = A1p72
         f.input_storage[2].storage[0] = M1
@@ -871,8 +871,8 @@ class MRG_RandomStreams:
             If the ``dtype`` arg is provided, ``high`` will be cast into
             dtype. This bound is excluded.
         size
-          Can be a list of integer or Theano variable (ex: the shape
-          of other Theano Variable).
+          Can be a list of integer or Aesara variable (ex: the shape
+          of other Aesara Variable).
         dtype
             The output data type. If dtype is not specified, it will be
             inferred from the dtype of low and high, but will be at
@@ -892,7 +892,7 @@ class MRG_RandomStreams:
         high = undefined_grad(high)
 
         if isinstance(size, tuple):
-            msg = "size must be a tuple of int or a Theano variable"
+            msg = "size must be a tuple of int or a Aesara variable"
             assert all([isinstance(i, (np.integer, int, Variable)) for i in size]), msg
             if any([isinstance(i, (np.integer, int)) and i <= 0 for i in size]):
                 raise ValueError(
@@ -902,7 +902,7 @@ class MRG_RandomStreams:
         else:
             if not (isinstance(size, Variable) and size.ndim == 1):
                 raise TypeError(
-                    "size must be a tuple of int or a Theano "
+                    "size must be a tuple of int or a Aesara "
                     "Variable with 1 dimension, got "
                     + str(size)
                     + " of type "
@@ -1043,7 +1043,7 @@ class MRG_RandomStreams:
         replace: bool (default True)
             Whether the sample is with or without replacement.
             Only replace=False is implemented for now.
-        p: 2d numpy array or theano tensor
+        p: 2d numpy array or aesara tensor
             the probabilities of the distribution, corresponding to values
             0 to `p.shape[1]-1`.
 
@@ -1111,7 +1111,7 @@ class MRG_RandomStreams:
         warnings.warn(
             "MRG_RandomStreams.multinomial_wo_replacement() is "
             "deprecated and will be removed in the next release of "
-            "Theano. Please use MRG_RandomStreams.choice() instead."
+            "Aesara. Please use MRG_RandomStreams.choice() instead."
         )
         assert size is None
         return self.choice(
@@ -1162,7 +1162,7 @@ class MRG_RandomStreams:
         Returns
         -------
         samples : TensorVariable
-            A Theano tensor of samples randomly drawn from a normal distribution.
+            A Aesara tensor of samples randomly drawn from a normal distribution.
 
         """
         size = _check_size(size)
@@ -1177,7 +1177,7 @@ class MRG_RandomStreams:
 
         # generate even number of uniform samples
         # Do manual constant folding to lower optiimizer work.
-        if isinstance(size, theano.Constant):
+        if isinstance(size, aesara.Constant):
             n_odd_samples = size.prod(dtype="int64")
         else:
             n_odd_samples = tensor.prod(size, dtype="int64")
@@ -1230,7 +1230,7 @@ class MRG_RandomStreams:
             norm_samples = tensor.join(0, z0_valid, z0_fixed, z1_valid, z1_fixed)
         else:
             norm_samples = tensor.join(0, z0, z1)
-        if isinstance(n_odd_samples, theano.Variable):
+        if isinstance(n_odd_samples, aesara.Variable):
             samples = norm_samples[:n_odd_samples]
         elif n_odd_samples % 2 == 1:
             samples = norm_samples[:-1]
@@ -1268,7 +1268,7 @@ class MRG_RandomStreams:
         Returns
         -------
         samples : TensorVariable
-            A Theano tensor of samples randomly drawn from a truncated normal distribution.
+            A Aesara tensor of samples randomly drawn from a truncated normal distribution.
 
         See Also
         --------
@@ -1290,19 +1290,19 @@ class MRG_RandomStreams:
 
 def _check_size(size):
     """
-    Canonicalise inputs to get valid output sizes for Theano tensors.
+    Canonicalise inputs to get valid output sizes for Aesara tensors.
 
     Parameters
     ----------
     size : int_vector_like
-        Some variable that could serve as the shape for a Theano tensor.
+        Some variable that could serve as the shape for a Aesara tensor.
         This can be an int, a tuple of ints, a list of ints
-        or a Theano Variable with similar properties.
+        or a Aesara Variable with similar properties.
 
     Returns
     -------
     size_var : int_vector
-        A one-dimensional Theano variable encapsulating the given size.
+        A one-dimensional Aesara variable encapsulating the given size.
 
     Raises
     ------
@@ -1310,25 +1310,25 @@ def _check_size(size):
         If this method can not build a valid size from the input.
     """
     # non-tuple checks and scalar-to-tuple transform
-    if isinstance(size, theano.Variable):
+    if isinstance(size, aesara.Variable):
         if size.ndim == 1:
             return size
         elif size.ndim == 0:
             return tensor.stack([size], ndim=1)
         else:
             raise ValueError(
-                "Theano variable must have 1 dimension to be a valid size.", size
+                "Aesara variable must have 1 dimension to be a valid size.", size
             )
     elif isinstance(size, (np.integer, int)):
         return tensor.constant([size], ndim=1)
     elif not isinstance(size, (tuple, list)):
-        raise ValueError("Size must be a int, tuple, list or Theano variable.", size)
+        raise ValueError("Size must be a int, tuple, list or Aesara variable.", size)
 
     # check entries of list or tuple
     for i in size:
-        if isinstance(i, theano.Variable):
+        if isinstance(i, aesara.Variable):
             if i.ndim != 0:
-                raise ValueError("Non-scalar Theano variable in size", size, i)
+                raise ValueError("Non-scalar Aesara variable in size", size, i)
         elif isinstance(i, (np.integer, int)):
             if i <= 0:
                 raise ValueError(
@@ -1336,7 +1336,7 @@ def _check_size(size):
                 )
         else:
             raise ValueError(
-                "Only Theano variables and integers are allowed in a size-tuple.",
+                "Only Aesara variables and integers are allowed in a size-tuple.",
                 size,
                 i,
             )

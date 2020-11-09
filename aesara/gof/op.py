@@ -15,13 +15,13 @@ import warnings
 
 import numpy as np
 
-import theano
-import theano.gof.cc
-from theano import config
-from theano.gof import graph
-from theano.gof.cmodule import GCC_compiler
-from theano.gof.fg import FunctionGraph
-from theano.gof.utils import (
+import aesara
+import aesara.gof.cc
+from aesara import config
+from aesara.gof import graph
+from aesara.gof.cmodule import GCC_compiler
+from aesara.gof.fg import FunctionGraph
+from aesara.gof.utils import (
     MethodNotDefined,
     TestValueError,
     add_tag_trace,
@@ -30,14 +30,14 @@ from theano.gof.utils import (
 )
 
 
-__authors__ = "theano-dev"
+__authors__ = "aesara-dev"
 __copyright__ = "(c) 2010, Universite de Montreal"
 __license__ = "3-clause BSD License"
-__contact__ = "theano-dev <theano-dev@googlegroups.com>"
+__contact__ = "aesara-dev <aesara-dev@googlegroups.com>"
 
 __docformat__ = "restructuredtext en"
 
-_logger = logging.getLogger("theano.gof.op.Op")
+_logger = logging.getLogger("aesara.gof.op.Op")
 
 
 def compute_test_value(node):
@@ -779,7 +779,7 @@ class PureOp:
             "perform",
             type(self),
             self.__class__.__name__,
-            "Did you used Theano flags mode=FAST_COMPILE?"
+            "Did you used Aesara flags mode=FAST_COMPILE?"
             " You can use optimizer=fast_compile instead.",
         )
 
@@ -815,7 +815,7 @@ class Op(object2, PureOp, CLinkerOp):
     # if params_type is set to a ParamsType. If not, we raise a MethodNotDefined exception.
     def get_params(self, node):
         if hasattr(self, "params_type") and isinstance(
-            self.params_type, theano.gof.ParamsType
+            self.params_type, aesara.gof.ParamsType
         ):
             wrapper = self.params_type
             if not all(hasattr(self, field) for field in wrapper.fields):
@@ -855,7 +855,7 @@ class Op(object2, PureOp, CLinkerOp):
             for (new_o, old_o) in zip(e.outputs, node.outputs)
             if old_o in no_recycling
         ]
-        cl = theano.gof.cc.CLinker().accept(e, no_recycling=e_no_recycling)
+        cl = aesara.gof.cc.CLinker().accept(e, no_recycling=e_no_recycling)
         # float16 gets special treatment since running
         # unprepared C code will get bad results.
         if not getattr(self, "_f16_ok", False):
@@ -973,7 +973,7 @@ class Op(object2, PureOp, CLinkerOp):
         fail and we try again 'py', prepare_node will be called twice.
         """
 
-        if (impl is None and theano.config.cxx) or impl == "c":
+        if (impl is None and aesara.config.cxx) or impl == "c":
             self.prepare_node(
                 node, storage_map=storage_map, compute_map=compute_map, impl="c"
             )
@@ -1017,7 +1017,7 @@ class Op(object2, PureOp, CLinkerOp):
                 "We expected inputs of types '%s' but got types '%s' "
                 % (str(self.itypes), str([inp.type for inp in inputs]))
             )
-        return theano.Apply(self, inputs, [o() for o in self.otypes])
+        return aesara.Apply(self, inputs, [o() for o in self.otypes])
 
 
 def get_test_value(v):
@@ -1032,7 +1032,7 @@ def get_test_value(v):
 
     """
     if not isinstance(v, graph.Variable):
-        v = theano.tensor.as_tensor_variable(v)
+        v = aesara.tensor.as_tensor_variable(v)
 
     return v.get_test_value()
 
@@ -1112,7 +1112,7 @@ def get_test_values(*args):
 
 ops_with_inner_function = {}
 """
-Registry of Ops that have an inner compiled Theano function.
+Registry of Ops that have an inner compiled Aesara function.
 
 The keys are Op classes (not instances), and values are the name of the
 attribute that contains the function. For instance, if the function is
@@ -1148,7 +1148,7 @@ class OpenMPOp(Op):
 
     def __init__(self, openmp=None):
         if openmp is None:
-            openmp = theano.config.openmp
+            openmp = aesara.config.openmp
         self.openmp = openmp
 
     def __setstate__(self, d):
@@ -1210,14 +1210,14 @@ int main( int argc, const char* argv[] )
                         "Your g++ compiler fails to compile OpenMP code. We"
                         " know this happen with some version of the EPD mingw"
                         " compiler and LLVM compiler on Mac OS X."
-                        " We disable openmp everywhere in Theano."
-                        " To remove this warning set the theano flags `openmp`"
+                        " We disable openmp everywhere in Aesara."
+                        " To remove this warning set the aesara flags `openmp`"
                         " to False.",
                         stacklevel=3,
                     )
             if OpenMPOp.gxx_support_openmp is False:
                 self.openmp = False
-                theano.config.openmp = False
+                aesara.config.openmp = False
 
     def prepare_node(self, node, storage_map, compute_map, impl):
         if impl == "c":
@@ -1300,7 +1300,7 @@ class COp(Op):
 
         self.func_name = func_name
         # Keep the original name. If we reload old pickle, we want to
-        # find the new path and new version of the file in Theano.
+        # find the new path and new version of the file in Aesara.
         self.func_files = func_files
         self.load_c_code(func_files)
 
@@ -1401,26 +1401,26 @@ class COp(Op):
         The names must be strings that are not a C keyword and the
         values must be strings of literal C representations.
 
-        If op uses a :class:`theano.gof.params_type.ParamsType` as ``params_type``,
+        If op uses a :class:`aesara.gof.params_type.ParamsType` as ``params_type``,
         it returns:
          - a default macro ``PARAMS_TYPE`` which defines the class name of the
            corresponding C struct.
          - a macro ``DTYPE_PARAM_key`` for every ``key`` in the ParamsType for which associated
-           type implements the method :func:`theano.gof.type.CLinkerType.c_element_type`.
+           type implements the method :func:`aesara.gof.type.CLinkerType.c_element_type`.
            ``DTYPE_PARAM_key`` defines the primitive C type name of an item in a variable
            associated to ``key``.
 
         """
         if hasattr(self, "params_type") and isinstance(
-            self.params_type, theano.gof.ParamsType
+            self.params_type, aesara.gof.ParamsType
         ):
             wrapper = self.params_type
             params = [("PARAMS_TYPE", wrapper.name)]
             for i in range(wrapper.length):
                 try:
                     # NB (reminder): These macros are currently used only in ParamsType example test
-                    # (`theano/gof/tests/test_quadratic_function.c`), to demonstrate how we can
-                    # access params dtypes when dtypes may change (e.g. if based on theano.config.floatX).
+                    # (`aesara/gof/tests/test_quadratic_function.c`), to demonstrate how we can
+                    # access params dtypes when dtypes may change (e.g. if based on aesara.config.floatX).
                     # But in practice, params types generally have fixed types per op.
                     params.append(
                         (

@@ -4,7 +4,7 @@
 Optimizations
 ==============
 
-Theano applies many kinds of graph optimizations, with different objectives:
+Aesara applies many kinds of graph optimizations, with different objectives:
  * simplifying and standardizing the form of the expression graph (e.g.  :term:`merge`, :term:`add canonicalization` ), 
  * reducing the maximum memory footprint (e.g. :term:`inplace_elemwise`),
  * increasing execution speed (e.g. :term:`constant folding`).
@@ -14,7 +14,7 @@ gives a quick summary of the optimizations included in the default modes.
 The descriptions are brief and point to further reading.
 
 If you would like to add an additional optimization, refer to
-:ref:`optimization` in the guide to extending Theano.
+:ref:`optimization` in the guide to extending Aesara.
 
 When compiling, we can make a tradeoff between compile-time and run-time.
 Faster compile times will result in fewer optimizations being applied, hence generally slower run-times.
@@ -31,7 +31,7 @@ For an even faster run-time, we could disable assertions (which could be time co
 
     .. code-block:: bash
 
-        python -c "import theano; theano.compile.optdb.query(theano.compile.predefined_optimizers['<OPT_ID>']).print_summary()"
+        python -c "import aesara; aesara.compile.optdb.query(aesara.compile.predefined_optimizers['<OPT_ID>']).print_summary()"
 
     where <OPT_ID> can be one of o1 (:ref:`† <o1=>`), o2, o3, o4 (:ref:`* <o4=>`), 
     Stabilization or unsafe.
@@ -86,7 +86,7 @@ Optimization                                              o4             o3  o2 
         optimization will ensure that ``x`` and ``y`` are only added once.
 
         This optimization is very useful because it frees users to write
-        highly redundant mathematical code.  Theano will make sure to compute
+        highly redundant mathematical code.  Aesara will make sure to compute
         just what is necessary.
 
         See :class:`MergeOptimizer`.
@@ -98,7 +98,7 @@ Optimization                                              o4             o3  o2 
         See :func:`opt.constant_folding`
 
     shape promotion
-        Theano often knows how to infer the shape of an output from the shape
+        Aesara often knows how to infer the shape of an output from the shape
         of its inputs.  Without this optimization, it would otherwise have to
         compute things (e.g. ``log(x)``) just to find out the shape of it!
 
@@ -131,7 +131,7 @@ Optimization                                              o4             o3  o2 
 
     constant elimination
         Many constants indicate special cases, such as ``pow(x,1) -> x``.
-        Theano recognizes many of these special cases.
+        Aesara recognizes many of these special cases.
 
         See :func:`local_mul_specialize`, :func:`local_mul_specialize`,:func:`local_mul_specialize`
 
@@ -164,7 +164,7 @@ Optimization                                              o4             o3  o2 
         See :func:`local_dot_to_dot22`
 
     sparse_dot           
-        Theano has a sparse matrix multiplication algorithm that is faster in
+        Aesara has a sparse matrix multiplication algorithm that is faster in
         many cases than scipy's (for dense matrix output).  This optimization
         swaps scipy's algorithm for ours.
 
@@ -272,7 +272,7 @@ Optimization                                              o4             o3  o2 
         'float32' ndarray arguments, and these shared variables act as seeds
         for the greedy algorithm.
 
-        See :func:`theano.sandbox.cuda.opt.*`.
+        See :func:`aesara.sandbox.cuda.opt.*`.
 
     local_log_softmax
         This is a stabilization optimization.
@@ -282,7 +282,7 @@ Optimization                                              o4             o3  o2 
 
     local_remove_all_assert
         This is an unsafe optimization.
-        For the fastest possible Theano, this optimization can be enabled by
+        For the fastest possible Aesara, this optimization can be enabled by
 	setting ``optimizer_including=local_remove_all_assert`` which will
 	remove all assertions in the graph for checking user inputs are valid.
         Use this optimization if you are sure everything is valid in your graph.

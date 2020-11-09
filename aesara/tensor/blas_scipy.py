@@ -4,7 +4,7 @@ Implementations of BLAS Ops based on scipy's BLAS bindings.
 
 import numpy as np
 
-from theano.tensor.blas import (
+from aesara.tensor.blas import (
     Ger,
     blas_optdb,
     ger,
@@ -13,11 +13,11 @@ from theano.tensor.blas import (
     local_optimizer,
     optdb,
 )
-from theano.tensor.opt import in2out
+from aesara.tensor.opt import in2out
 
 
 if have_fblas:
-    from theano.tensor.blas import fblas
+    from aesara.tensor.blas import fblas
 
     _blas_ger_fns = {
         np.dtype("float32"): fblas.sger,

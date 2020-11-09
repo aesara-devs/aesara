@@ -2,7 +2,7 @@
 .. _extend_faq:
 
 =========================================
-Extending Theano: FAQ and Troubleshooting
+Extending Aesara: FAQ and Troubleshooting
 =========================================
 
 I wrote a new Op/Type, and weird stuff is happening...

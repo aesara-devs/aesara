@@ -2,15 +2,15 @@
 Optimizations addressing the ops in nnet root directory
 """
 
-import theano
-from theano import compile, gof
-from theano.compile import optdb
-from theano.gof.opt import (
+import aesara
+from aesara import compile, gof
+from aesara.compile import optdb
+from aesara.gof.opt import (
     LocalMetaOptimizerSkipAssertionError,
     copy_stack_trace,
     local_optimizer,
 )
-from theano.tensor.nnet.abstract_conv import (
+from aesara.tensor.nnet.abstract_conv import (
     AbstractConv2d,
     AbstractConv2d_gradInputs,
     AbstractConv2d_gradWeights,
@@ -19,7 +19,7 @@ from theano.tensor.nnet.abstract_conv import (
     AbstractConv3d_gradWeights,
     get_conv_output_shape,
 )
-from theano.tensor.nnet.blocksparse import (
+from aesara.tensor.nnet.blocksparse import (
     SparseBlockGemv,
     SparseBlockOuter,
     sparse_block_gemv_inplace,
@@ -27,11 +27,11 @@ from theano.tensor.nnet.blocksparse import (
 )
 
 # Cpu implementation
-from theano.tensor.nnet.conv import ConvOp, conv2d
-from theano.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
-from theano.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGradWeights
-from theano.tensor.opt import in2out, register_specialize_device
-from theano.tensor.type import TensorType
+from aesara.tensor.nnet.conv import ConvOp, conv2d
+from aesara.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
+from aesara.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGradWeights
+from aesara.tensor.opt import in2out, register_specialize_device
+from aesara.tensor.type import TensorType
 
 
 @gof.local_optimizer([SparseBlockGemv], inplace=True)
@@ -84,9 +84,9 @@ compile.optdb.register(
 # Conv opts
 @local_optimizer([AbstractConv2d])
 def local_abstractconv_gemm(node):
-    # If theano.config.blas.ldflags is empty, Theano will use
+    # If aesara.config.blas.ldflags is empty, Aesara will use
     # a NumPy C implementation of [sd]gemm_.
-    if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
+    if aesara.config.cxx == "" or node.inputs[0].dtype == "float16":
         return
     if not isinstance(node.op, AbstractConv2d):
         return None
@@ -112,9 +112,9 @@ def local_abstractconv_gemm(node):
 
 @local_optimizer([AbstractConv3d])
 def local_abstractconv3d_gemm(node):
-    # If theano.config.blas.ldflags is empty, Theano will use
+    # If aesara.config.blas.ldflags is empty, Aesara will use
     # a NumPy C implementation of [sd]gemm_.
-    if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
+    if aesara.config.cxx == "" or node.inputs[0].dtype == "float16":
         return
     if not isinstance(node.op, AbstractConv3d):
         return None
@@ -138,9 +138,9 @@ def local_abstractconv3d_gemm(node):
 
 @local_optimizer([AbstractConv2d_gradWeights])
 def local_abstractconv_gradweight_gemm(node):
-    # If theano.config.blas.ldflags is empty, Theano will use
+    # If aesara.config.blas.ldflags is empty, Aesara will use
     # a NumPy C implementation of [sd]gemm_.
-    if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
+    if aesara.config.cxx == "" or node.inputs[0].dtype == "float16":
         return
     if not isinstance(node.op, AbstractConv2d_gradWeights):
         return None
@@ -161,7 +161,7 @@ def local_abstractconv_gradweight_gemm(node):
     if node.op.filter_flip:
         flip = (slice(None),) * (rval.ndim - 2) + (slice(None, None, -1),) * 2
         rval = rval[flip]
-    rval = theano.tensor.patternbroadcast(rval, node.outputs[0].broadcastable)
+    rval = aesara.tensor.patternbroadcast(rval, node.outputs[0].broadcastable)
     copy_stack_trace(node.outputs[0], rval)
 
     return [rval]
@@ -169,9 +169,9 @@ def local_abstractconv_gradweight_gemm(node):
 
 @local_optimizer([AbstractConv3d_gradWeights])
 def local_abstractconv3d_gradweight_gemm(node):
-    # If theano.config.blas.ldflags is empty, Theano will use
+    # If aesara.config.blas.ldflags is empty, Aesara will use
     # a NumPy C implementation of [sd]gemm_.
-    if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
+    if aesara.config.cxx == "" or node.inputs[0].dtype == "float16":
         return
     if not isinstance(node.op, AbstractConv3d_gradWeights):
         return None
@@ -190,7 +190,7 @@ def local_abstractconv3d_gradweight_gemm(node):
     # need to flip the kernel if necessary
     if node.op.filter_flip:
         rval = rval[:, :, ::-1, ::-1, ::-1]
-    rval = theano.tensor.patternbroadcast(rval, node.outputs[0].broadcastable)
+    rval = aesara.tensor.patternbroadcast(rval, node.outputs[0].broadcastable)
     copy_stack_trace(node.outputs[0], rval)
 
     return [rval]
@@ -198,9 +198,9 @@ def local_abstractconv3d_gradweight_gemm(node):
 
 @local_optimizer([AbstractConv2d_gradInputs])
 def local_abstractconv_gradinputs_gemm(node):
-    # If theano.config.blas.ldflags is empty, Theano will use
+    # If aesara.config.blas.ldflags is empty, Aesara will use
     # a NumPy C implementation of [sd]gemm_.
-    if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
+    if aesara.config.cxx == "" or node.inputs[0].dtype == "float16":
         return
     if not isinstance(node.op, AbstractConv2d_gradInputs):
         return None
@@ -228,9 +228,9 @@ def local_abstractconv_gradinputs_gemm(node):
 
 @local_optimizer([AbstractConv3d_gradInputs])
 def local_abstractconv3d_gradinputs_gemm(node):
-    # If theano.config.blas.ldflags is empty, Theano will use
+    # If aesara.config.blas.ldflags is empty, Aesara will use
     # a NumPy C implementation of [sd]gemm_.
-    if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
+    if aesara.config.cxx == "" or node.inputs[0].dtype == "float16":
         return
     if not isinstance(node.op, AbstractConv3d_gradInputs):
         return None
@@ -391,7 +391,7 @@ def local_conv2d_gradweight_cpu(node):
         res = res.dimshuffle((1, 0, 2, 3))
         res = res[:, :, ::-1, ::-1]
 
-    res = theano.tensor.patternbroadcast(res, node.outputs[0].broadcastable)
+    res = aesara.tensor.patternbroadcast(res, node.outputs[0].broadcastable)
 
     copy_stack_trace(node.outputs[0], res)
     return [res]
@@ -482,13 +482,13 @@ def local_conv2d_gradinputs_cpu(node):
     )
     din = din(topgrad, filters)
     copy_stack_trace(node.outputs[0], din)
-    din = theano.tensor.patternbroadcast(din, node.outputs[0].broadcastable)
+    din = aesara.tensor.patternbroadcast(din, node.outputs[0].broadcastable)
     copy_stack_trace(node.outputs[0], din)
     return [din]
 
 
 # Register Cpu Optmization
-conv_groupopt = theano.gof.optdb.LocalGroupDB()
+conv_groupopt = aesara.gof.optdb.LocalGroupDB()
 conv_groupopt.__name__ = "conv_opts"
 register_specialize_device(conv_groupopt, "fast_compile", "fast_run")
 
@@ -587,11 +587,11 @@ def local_abstractconv_check(node):
         ),
     ):
         raise LocalMetaOptimizerSkipAssertionError(
-            "%s Theano optimization failed: there is no implementation "
+            "%s Aesara optimization failed: there is no implementation "
             "available supporting the requested options. Did you exclude "
             'both "conv_dnn" and "conv_gemm" from the optimizer? If on GPU, '
             "is cuDNN available and does the GPU support it? If on CPU, "
-            "do you have a BLAS library installed Theano can link against? "
+            "do you have a BLAS library installed Aesara can link against? "
             "On the CPU we do not support float16." % node.op.__class__.__name__
         )
 

@@ -1,7 +1,7 @@
 from collections import defaultdict
 
-from theano.gof.graph import list_of_nodes
-from theano.utils import cmp
+from aesara.gof.graph import list_of_nodes
+from aesara.utils import cmp
 
 
 # {{{ http://code.activestate.com/recipes/578231/ (r1)
@@ -233,8 +233,8 @@ def sort_apply_nodes(inputs, outputs, cmps):
 
     Examples
     --------
-    >>> from theano.gof.graph import sort_apply_nodes, dependence
-    >>> from theano.tensor import matrix, dot
+    >>> from aesara.gof.graph import sort_apply_nodes, dependence
+    >>> from aesara.tensor import matrix, dot
     >>> x = matrix('x')
     >>> y = dot(x*2, x+1)
     >>> str_cmp = lambda a, b: cmp(str(a), str(b)) # lexicographical sort

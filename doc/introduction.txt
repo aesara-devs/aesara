@@ -2,26 +2,26 @@
 .. _introduction:
 
 ==================
-Theano at a Glance
+Aesara at a Glance
 ==================
 
-Theano is a Python library that lets you define, optimize, and evaluate
+Aesara is a Python library that lets you define, optimize, and evaluate
 mathematical expressions, especially ones with multi-dimensional arrays
-(numpy.ndarray).  Using Theano it is
+(numpy.ndarray).  Using Aesara it is
 possible to attain speeds rivaling hand-crafted C implementations for problems
 involving large amounts of data.  It can also surpass C on a CPU by many orders
 of magnitude by taking advantage of recent GPUs.
 
-Theano combines aspects of a computer algebra system (CAS) with aspects of an
+Aesara combines aspects of a computer algebra system (CAS) with aspects of an
 optimizing compiler. It can also generate customized C code for many
 mathematical operations.  This combination of CAS with optimizing compilation
 is particularly useful for tasks in which complicated mathematical expressions
 are evaluated repeatedly and evaluation speed is critical.  For situations
-where many different expressions are each evaluated once Theano can minimize
+where many different expressions are each evaluated once Aesara can minimize
 the amount of compilation/analysis overhead, but still provide symbolic
 features such as automatic differentiation.
 
-Theano's compiler applies many optimizations of varying complexity to
+Aesara's compiler applies many optimizations of varying complexity to
 these symbolic expressions. These optimizations include, but are not
 limited to:
 
@@ -37,17 +37,17 @@ limited to:
 * improvements to numerical stability (e.g.  :math:`\log(1+\exp(x))` and :math:`\log(\sum_i \exp(x[i]))`)
 * for a complete list, see :ref:`optimizations`
 
-Theano was written at the LISA_ lab to support rapid development of
-efficient machine learning algorithms. Theano is
+Aesara was written at the LISA_ lab to support rapid development of
+efficient machine learning algorithms. Aesara is
 named after the `Greek mathematician`_, who may have been Pythagoras'
-wife.  Theano is released under a BSD license (:ref:`link <license>`).
+wife.  Aesara is released under a BSD license (:ref:`link <license>`).
 
 
 Sneak peek
 ==========
 
-Here is an example of how to use Theano. It doesn't show off many of
-Theano's features, but it illustrates concretely what Theano is.
+Here is an example of how to use Aesara. It doesn't show off many of
+Aesara's features, but it illustrates concretely what Aesara is.
 
 
 .. If you modify this code, also change :
@@ -55,8 +55,8 @@ Theano's features, but it illustrates concretely what Theano is.
 
 .. code-block:: python
 
-    import theano
-    from theano import tensor
+    import aesara
+    from aesara import tensor
 
     # declare two symbolic floating-point scalars
     a = tensor.dscalar()
@@ -67,14 +67,14 @@ Theano's features, but it illustrates concretely what Theano is.
 
     # convert the expression into a callable object that takes (a,b)
     # values as input and computes a value for c
-    f = theano.function([a,b], c)
+    f = aesara.function([a,b], c)
 
     # bind 1.5 to 'a', 2.5 to 'b', and evaluate 'c'
     assert 4.0 == f(1.5, 2.5)
 
 
-Theano is not a programming language in the normal sense because you
-write a program in Python that builds expressions for Theano. Still it
+Aesara is not a programming language in the normal sense because you
+write a program in Python that builds expressions for Aesara. Still it
 is like a programming language in the sense that you have to
 
 - declare variables (``a,b``) and give their types
@@ -83,9 +83,9 @@ is like a programming language in the sense that you have to
 
 - compile expression graphs to functions in order to use them for computation.
 
-It is good to think of ``theano.function`` as the interface to a
+It is good to think of ``aesara.function`` as the interface to a
 compiler which builds a callable object from a purely symbolic graph.
-One of Theano's most important features is that ``theano.function``
+One of Aesara's most important features is that ``aesara.function``
 can optimize a graph and even compile some or all of it into native
 machine instructions.
 
@@ -93,28 +93,28 @@ machine instructions.
 What does it do that they don't?
 ================================
 
-Theano is a Python library and optimizing compiler for manipulating
+Aesara is a Python library and optimizing compiler for manipulating
 and evaluating expressions, especially matrix-valued
 ones. Manipulation of matrices is typically done using the numpy
-package, so what does Theano do that Python and numpy do not?
+package, so what does Aesara do that Python and numpy do not?
 
-- *execution speed optimizations*: Theano can use `g++` or `nvcc` to compile
+- *execution speed optimizations*: Aesara can use `g++` or `nvcc` to compile
   parts your expression graph into CPU or GPU instructions, which run
   much faster than pure Python.
 
-- *symbolic differentiation*: Theano can automatically build symbolic graphs
+- *symbolic differentiation*: Aesara can automatically build symbolic graphs
   for computing gradients.
 
-- *stability optimizations*: Theano can recognize [some] numerically unstable
+- *stability optimizations*: Aesara can recognize [some] numerically unstable
   expressions and compute them with more stable algorithms.
 
-The closest Python package to Theano is sympy_.
-Theano focuses more on tensor expressions than Sympy, and has more machinery
+The closest Python package to Aesara is sympy_.
+Aesara focuses more on tensor expressions than Sympy, and has more machinery
 for compilation.  Sympy has more sophisticated algebra rules and can
 handle a wider variety of mathematical operations (such as series, limits, and integrals).
 
 If numpy_ is to be compared to MATLAB_ and sympy_ to Mathematica_,
-Theano is a sort of hybrid of the two which tries to combine the best of
+Aesara is a sort of hybrid of the two which tries to combine the best of
 both worlds.
 
 
@@ -122,27 +122,27 @@ Getting started
 ===============
 
 :ref:`install`
-  Instructions to download and install Theano on your system.
+  Instructions to download and install Aesara on your system.
 
 :ref:`tutorial`
-  Getting started with Theano's basic features. Go here if you are
+  Getting started with Aesara's basic features. Go here if you are
   new!
 
 :ref:`libdoc`
-  Details of what Theano provides. It is recommended to go through
+  Details of what Aesara provides. It is recommended to go through
   the :ref:`tutorial` first though.
 
 
 A PDF version of the online documentation may be found `here
-<http://deeplearning.net/software/theano/theano.pdf>`_.
+<http://deeplearning.net/software/aesara/aesara.pdf>`_.
 
 
-Theano Vision
+Aesara Vision
 =============
 
-This is the vision we have for Theano. This is give people an idea of what to
-expect in the future of Theano, but we can't promise to implement all
-of it. This should also help you to understand where Theano fits in relation
+This is the vision we have for Aesara. This is give people an idea of what to
+expect in the future of Aesara, but we can't promise to implement all
+of it. This should also help you to understand where Aesara fits in relation
 to other computational tools.
 
 * Support tensor and sparse operations
@@ -158,16 +158,16 @@ to other computational tools.
 * Parallel execution (SIMD, multi-core, multi-node on cluster,
   multi-node distributed)
 * Support all NumPy/basic SciPy functionality
-* Easy wrapping of library functions in Theano
+* Easy wrapping of library functions in Aesara
 
 Note: There is no short term plan to support multi-node computation.
 
-Theano Vision State
+Aesara Vision State
 ===================
 
-Here is the state of that vision as of November 15th, 2017 (after Theano 1.0.0):
+Here is the state of that vision as of November 15th, 2017 (after Aesara 1.0.0):
 
-* `MILA will stop developing Theano. <https://groups.google.com/d/msg/theano-users/7Poq8BZutbY/rNCIfvAEAwAJ>`_.
+* `MILA will stop developing Aesara. <https://groups.google.com/d/msg/aesara-users/7Poq8BZutbY/rNCIfvAEAwAJ>`_.
   We will provide support for one year, starting from ``1.0`` release (November 15th, 2017 to November 15th, 2018).
 * We support tensors using the `numpy.ndarray` object and we support many operations on them.
 * We support sparse types by using the `scipy.{csc,csr,bsr}_matrix` object and support some operations on them.
@@ -200,7 +200,7 @@ Here is the state of that vision as of November 15th, 2017 (after Theano 1.0.0):
 * No multi-node support.
 * Most, but not all NumPy functions/aliases are implemented.
 
-  * https://github.com/Theano/Theano/issues/1080
+  * https://github.com/Aesara/Aesara/issues/1080
 
 * Wrapping an existing Python function in easy and documented.
 * We know how to separate the shared variable memory
@@ -211,22 +211,22 @@ Here is the state of that vision as of November 15th, 2017 (after Theano 1.0.0):
 Contact us
 ==========
 
-Discussion about Theano takes place in the theano-dev_ and
-theano-users_ mailing lists. People interested in development of
-Theano should check the former, while the latter is reserved for
+Discussion about Aesara takes place in the aesara-dev_ and
+aesara-users_ mailing lists. People interested in development of
+Aesara should check the former, while the latter is reserved for
 issues that concern the end users.
 
 Questions, comments, praise, criticism as well as bug reports should
 be submitted to these mailing lists.
 
 We welcome all kinds of contributions. If you have any questions
-regarding how to extend Theano, please feel free to ask on the
-theano-dev_ mailing list.
+regarding how to extend Aesara, please feel free to ask on the
+aesara-dev_ mailing list.
 
 
 
 .. _LISA:  https://mila.umontreal.ca/
-.. _Greek mathematician: http://en.wikipedia.org/wiki/Theano_(mathematician)
+.. _Greek mathematician: http://en.wikipedia.org/wiki/Aesara_(mathematician)
 .. _numpy: http://numpy.scipy.org/
 .. _BLAS: http://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms
 
@@ -234,5 +234,5 @@ theano-dev_ mailing list.
 .. _MATLAB: http://www.mathworks.com/products/matlab/
 .. _Mathematica: http://www.wolfram.com/mathematica/
 
-.. _theano-users: http://groups.google.com/forum/#!forum/theano-users
-.. _theano-dev: http://groups.google.com/forum/#!forum/theano-dev
+.. _aesara-users: http://groups.google.com/forum/#!forum/aesara-users
+.. _aesara-dev: http://groups.google.com/forum/#!forum/aesara-dev

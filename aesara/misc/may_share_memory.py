@@ -6,13 +6,13 @@ numpy version support only ndarray.
 
 import numpy as np
 
-from theano.tensor.basic import TensorType
+from aesara.tensor.basic import TensorType
 
 
 try:
     import scipy.sparse
 
-    from theano.sparse.basic import SparseType
+    from aesara.sparse.basic import SparseType
 
     def _is_sparse(a):
         return scipy.sparse.issparse(a)
@@ -24,7 +24,7 @@ except ImportError:
         return False
 
 
-from theano import gpuarray
+from aesara import gpuarray
 
 
 if gpuarray.pygpu:

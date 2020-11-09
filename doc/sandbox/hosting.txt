@@ -1,10 +1,10 @@
 ==============
-Hosting Theano
+Hosting Aesara
 ==============
 
 '''Historical Interest.  This has been addressed for now.  20080904'''
 
-There are several [http://en.wikipedia.org/wiki/Comparison_of_free_software_hosting_facilities project hosting services] online, but none is perfect for theano.
+There are several [http://en.wikipedia.org/wiki/Comparison_of_free_software_hosting_facilities project hosting services] online, but none is perfect for aesara.
 
 Wishlist:
  - version control (mercurial)
@@ -14,9 +14,9 @@ Wishlist:
  - mailing list
  - reliability of hosting service
 
-Should we get a domain name? To my dismay, theano.org, theano.com and theano.net are all taken. The first two seem legit, but theano.net doesn't look like it has anything on it and expires on May 29, so maybe there's a chance we can snag it? -ob
+Should we get a domain name? To my dismay, aesara.org, aesara.com and aesara.net are all taken. The first two seem legit, but aesara.net doesn't look like it has anything on it and expires on May 29, so maybe there's a chance we can snag it? -ob
 
-We could also get [http://www.theano.io]. -jpt
+We could also get [http://www.aesara.io]. -jpt
 
 --------
 

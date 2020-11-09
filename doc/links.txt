@@ -8,13 +8,13 @@ Links
 This page lists links to various resources.
 
 
-Theano requirements
+Aesara requirements
 -------------------
 
 - git_: A distributed revision control system (RCS).
 - pytest_: A system for unit testing.
 - numpy_: A library for efficient numerical computing.
-- python_: The programming language Theano is for.
+- python_: The programming language Aesara is for.
 - scipy_: A library for scientific computing.
 
 

@@ -395,39 +395,39 @@ static __device__ inline ga_half ptr_read_cached(ga_half *ptr, ssize_t offset) {
  * Following functions are provided to bypass these issues. */
 
 template<typename T>
-static __device__ inline T theano_zero() {return 0;}
+static __device__ inline T aesara_zero() {return 0;}
 template<>
-__device__ inline ga_half theano_zero() {return ga_float2half(0);}
+__device__ inline ga_half aesara_zero() {return ga_float2half(0);}
 
 template<typename T>
-static __device__ inline T theano_one() {return 1;}
+static __device__ inline T aesara_one() {return 1;}
 template<>
-__device__ inline ga_half theano_one() {return ga_float2half(1);}
+__device__ inline ga_half aesara_one() {return ga_float2half(1);}
 
-template<typename A, typename B> static __device__ inline bool theano_eq(const A& a, const B& b) {return a == b;}
-template<typename A, typename B> static __device__ inline bool theano_ne(const A& a, const B& b) {return a != b;}
-template<typename A, typename B> static __device__ inline bool theano_lt(const A& a, const B& b) {return a < b;}
-template<typename A, typename B> static __device__ inline bool theano_gt(const A& a, const B& b) {return a > b;}
-template<typename A, typename B> static __device__ inline bool theano_le(const A& a, const B& b) {return a <= b;}
-template<typename A, typename B> static __device__ inline bool theano_ge(const A& a, const B& b) {return a >= b;}
+template<typename A, typename B> static __device__ inline bool aesara_eq(const A& a, const B& b) {return a == b;}
+template<typename A, typename B> static __device__ inline bool aesara_ne(const A& a, const B& b) {return a != b;}
+template<typename A, typename B> static __device__ inline bool aesara_lt(const A& a, const B& b) {return a < b;}
+template<typename A, typename B> static __device__ inline bool aesara_gt(const A& a, const B& b) {return a > b;}
+template<typename A, typename B> static __device__ inline bool aesara_le(const A& a, const B& b) {return a <= b;}
+template<typename A, typename B> static __device__ inline bool aesara_ge(const A& a, const B& b) {return a >= b;}
 
-template<typename T> static __device__ inline bool theano_eq(const ga_half& a, const T& b) {return ga_half2float(a) == b;}
-template<typename T> static __device__ inline bool theano_ne(const ga_half& a, const T& b) {return ga_half2float(a) != b;}
-template<typename T> static __device__ inline bool theano_lt(const ga_half& a, const T& b) {return ga_half2float(a) < b;}
-template<typename T> static __device__ inline bool theano_gt(const ga_half& a, const T& b) {return ga_half2float(a) > b;}
-template<typename T> static __device__ inline bool theano_le(const ga_half& a, const T& b) {return ga_half2float(a) <= b;}
-template<typename T> static __device__ inline bool theano_ge(const ga_half& a, const T& b) {return ga_half2float(a) >= b;}
+template<typename T> static __device__ inline bool aesara_eq(const ga_half& a, const T& b) {return ga_half2float(a) == b;}
+template<typename T> static __device__ inline bool aesara_ne(const ga_half& a, const T& b) {return ga_half2float(a) != b;}
+template<typename T> static __device__ inline bool aesara_lt(const ga_half& a, const T& b) {return ga_half2float(a) < b;}
+template<typename T> static __device__ inline bool aesara_gt(const ga_half& a, const T& b) {return ga_half2float(a) > b;}
+template<typename T> static __device__ inline bool aesara_le(const ga_half& a, const T& b) {return ga_half2float(a) <= b;}
+template<typename T> static __device__ inline bool aesara_ge(const ga_half& a, const T& b) {return ga_half2float(a) >= b;}
 
-template<typename T> static __device__ inline bool theano_eq(const T& a, const ga_half& b) {return a == ga_half2float(b);}
-template<typename T> static __device__ inline bool theano_ne(const T& a, const ga_half& b) {return a != ga_half2float(b);}
-template<typename T> static __device__ inline bool theano_lt(const T& a, const ga_half& b) {return a < ga_half2float(b);}
-template<typename T> static __device__ inline bool theano_gt(const T& a, const ga_half& b) {return a > ga_half2float(b);}
-template<typename T> static __device__ inline bool theano_le(const T& a, const ga_half& b) {return a <= ga_half2float(b);}
-template<typename T> static __device__ inline bool theano_ge(const T& a, const ga_half& b) {return a >= ga_half2float(b);}
+template<typename T> static __device__ inline bool aesara_eq(const T& a, const ga_half& b) {return a == ga_half2float(b);}
+template<typename T> static __device__ inline bool aesara_ne(const T& a, const ga_half& b) {return a != ga_half2float(b);}
+template<typename T> static __device__ inline bool aesara_lt(const T& a, const ga_half& b) {return a < ga_half2float(b);}
+template<typename T> static __device__ inline bool aesara_gt(const T& a, const ga_half& b) {return a > ga_half2float(b);}
+template<typename T> static __device__ inline bool aesara_le(const T& a, const ga_half& b) {return a <= ga_half2float(b);}
+template<typename T> static __device__ inline bool aesara_ge(const T& a, const ga_half& b) {return a >= ga_half2float(b);}
 
-static __device__ inline bool theano_eq(const ga_half& a, const ga_half& b) {return ga_half2float(a) == ga_half2float(b);}
-static __device__ inline bool theano_ne(const ga_half& a, const ga_half& b) {return ga_half2float(a) != ga_half2float(b);}
-static __device__ inline bool theano_lt(const ga_half& a, const ga_half& b) {return ga_half2float(a) < ga_half2float(b);}
-static __device__ inline bool theano_gt(const ga_half& a, const ga_half& b) {return ga_half2float(a) > ga_half2float(b);}
-static __device__ inline bool theano_le(const ga_half& a, const ga_half& b) {return ga_half2float(a) <= ga_half2float(b);}
-static __device__ inline bool theano_ge(const ga_half& a, const ga_half& b) {return ga_half2float(a) >= ga_half2float(b);}
+static __device__ inline bool aesara_eq(const ga_half& a, const ga_half& b) {return ga_half2float(a) == ga_half2float(b);}
+static __device__ inline bool aesara_ne(const ga_half& a, const ga_half& b) {return ga_half2float(a) != ga_half2float(b);}
+static __device__ inline bool aesara_lt(const ga_half& a, const ga_half& b) {return ga_half2float(a) < ga_half2float(b);}
+static __device__ inline bool aesara_gt(const ga_half& a, const ga_half& b) {return ga_half2float(a) > ga_half2float(b);}
+static __device__ inline bool aesara_le(const ga_half& a, const ga_half& b) {return ga_half2float(a) <= ga_half2float(b);}
+static __device__ inline bool aesara_ge(const ga_half& a, const ga_half& b) {return ga_half2float(a) >= ga_half2float(b);}

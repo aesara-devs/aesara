@@ -39,11 +39,11 @@ int dnn_batchnorm_grad(PyGpuArrayObject *inp, PyGpuArrayObject *doutp,
     return 1;
   }
 
-  if (theano_prep_output(dinp, inp->ga.nd, inp->ga.dimensions, inp->ga.typecode, GA_C_ORDER, c) != 0)
+  if (aesara_prep_output(dinp, inp->ga.nd, inp->ga.dimensions, inp->ga.typecode, GA_C_ORDER, c) != 0)
     return 1;
-  if (theano_prep_output(dscale, scale->ga.nd, scale->ga.dimensions, scale->ga.typecode, GA_C_ORDER, c) != 0)
+  if (aesara_prep_output(dscale, scale->ga.nd, scale->ga.dimensions, scale->ga.typecode, GA_C_ORDER, c) != 0)
     return 1;
-  if (theano_prep_output(dbias, scale->ga.nd, scale->ga.dimensions, scale->ga.typecode, GA_C_ORDER, c) != 0)
+  if (aesara_prep_output(dbias, scale->ga.nd, scale->ga.dimensions, scale->ga.typecode, GA_C_ORDER, c) != 0)
     return 1;
 
   if (c_set_tensorNd(*dinp, bn_output) != 0)

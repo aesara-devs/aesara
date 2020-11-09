@@ -2,12 +2,12 @@
 .. _libdoc_compile_shared:
 
 ===========================================
-:mod:`shared` - defines theano.shared
+:mod:`shared` - defines aesara.shared
 ===========================================
 
-.. module:: theano.compile.sharedvalue
+.. module:: aesara.compile.sharedvalue
    :platform: Unix, Windows
-   :synopsis: defines theano.shared and related classes
+   :synopsis: defines aesara.shared and related classes
 .. moduleauthor:: LISA
 
 

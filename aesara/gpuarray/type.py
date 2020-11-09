@@ -5,11 +5,11 @@ import warnings
 
 import numpy as np
 
-import theano
-from theano import Constant, Type, Variable, config, scalar, tensor
-from theano.compile import SharedVariable
-from theano.tensor.type import TensorType
-from theano.tensor.var import _tensor_py_operators
+import aesara
+from aesara import Constant, Type, Variable, config, scalar, tensor
+from aesara.compile import SharedVariable
+from aesara.tensor.type import TensorType
+from aesara.tensor.var import _tensor_py_operators
 
 
 # Make sure this is importable even if pygpu is absent
@@ -172,7 +172,7 @@ class GpuArrayType(Type):
 
     See Also
     --------
-    theano.gof.type.PureType
+    aesara.gof.type.PureType
 
     """
 
@@ -282,7 +282,7 @@ class GpuArrayType(Type):
                 )
         else:
             if not hasattr(data, "dtype"):
-                converted_data = theano._asarray(data, self.dtype)
+                converted_data = aesara._asarray(data, self.dtype)
                 # We use the `values_eq` static function from TensorType
                 # to handle NaN values.
                 if TensorType.values_eq(
@@ -422,7 +422,7 @@ class GpuArrayType(Type):
                 sb == ob or ob for sb, ob in zip(self.broadcastable, vt.broadcastable)
             )
         ):
-            return theano.tensor.patternbroadcast(var, self.broadcastable)
+            return aesara.tensor.patternbroadcast(var, self.broadcastable)
 
     def __hash__(self):
         return hash((type(self), self.typecode, self.broadcastable, self.context_name))
@@ -449,8 +449,8 @@ class GpuArrayType(Type):
                 "int32": (int, "npy_int32", "NPY_INT32"),
                 "uint64": (int, "npy_uint64", "NPY_UINT64"),
                 "int64": (int, "npy_int64", "NPY_INT64"),
-                # 'complex128': (complex, 'theano_complex128', 'NPY_COMPLEX128'),
-                # 'complex64': (complex, 'theano_complex64', 'NPY_COMPLEX64')
+                # 'complex128': (complex, 'aesara_complex128', 'NPY_COMPLEX128'),
+                # 'complex64': (complex, 'aesara_complex64', 'NPY_COMPLEX64')
             }[self.dtype]
         except KeyError:
             raise TypeError(
@@ -575,11 +575,11 @@ def values_eq_approx(
 ):
     if a.shape != b.shape or a.dtype != b.dtype:
         return False
-    if str(a.dtype) in theano.tensor.discrete_dtypes:
+    if str(a.dtype) in aesara.tensor.discrete_dtypes:
         return GpuArrayType.values_eq(a, b)
     else:
         if not (allow_remove_inf or allow_remove_nan):
-            atol_, rtol_ = theano.tensor.basic._get_atol_rtol(a, b)
+            atol_, rtol_ = aesara.tensor.basic._get_atol_rtol(a, b)
             if rtol is not None:
                 rtol_ = rtol
             if atol is not None:
@@ -623,10 +623,10 @@ def values_eq_approx_remove_inf_nan(a, b):
 
 # This is to map ndarray-specific versions of these functions to the GPU.
 EQ_MAP = {
-    theano.tensor.type.values_eq_approx: values_eq_approx,
-    theano.tensor.type.values_eq_approx_remove_inf: values_eq_approx_remove_inf,
-    theano.tensor.type.values_eq_approx_remove_nan: values_eq_approx_remove_nan,
-    theano.tensor.type.values_eq_approx_remove_inf_nan: values_eq_approx_remove_inf_nan,
+    aesara.tensor.type.values_eq_approx: values_eq_approx,
+    aesara.tensor.type.values_eq_approx_remove_inf: values_eq_approx_remove_inf,
+    aesara.tensor.type.values_eq_approx_remove_nan: values_eq_approx_remove_nan,
+    aesara.tensor.type.values_eq_approx_remove_inf_nan: values_eq_approx_remove_inf_nan,
 }
 
 
@@ -664,7 +664,7 @@ class GpuArrayVariable(_operators, Variable):
 
     # override the default
     def __repr_test_value__(self):
-        return repr(np.array(theano.gof.op.get_test_value(self)))
+        return repr(np.array(aesara.gof.op.get_test_value(self)))
 
 
 GpuArrayType.Variable = GpuArrayVariable
@@ -757,7 +757,7 @@ def gpuarray_shared_constructor(
     """
     SharedVariable constructor for GpuArrayType.
 
-    See :func:`theano.shared`.
+    See :func:`aesara.shared`.
 
     :target: default None
         The device target. As None is a valid value and we need to
@@ -793,7 +793,7 @@ def gpuarray_shared_constructor(
     return GpuArraySharedVariable(type=type, value=deviceval, name=name, strict=strict)
 
 
-theano.compile.register_view_op_c_code(
+aesara.compile.register_view_op_c_code(
     GpuArrayType,
     """
     Py_XDECREF(%(oname)s);
@@ -804,7 +804,7 @@ theano.compile.register_view_op_c_code(
 )
 
 # Register GpuArrayType C code for Shape Op.
-theano.compile.register_shape_c_code(
+aesara.compile.register_shape_c_code(
     GpuArrayType,
     """
     npy_intp shape[] = {%(iname)s->ga.nd};
@@ -821,7 +821,7 @@ theano.compile.register_shape_c_code(
     version=1,
 )
 
-theano.compile.register_shape_i_c_code(
+aesara.compile.register_shape_i_c_code(
     GpuArrayType,
     """
     if(!%(oname)s)
@@ -839,7 +839,7 @@ theano.compile.register_shape_i_c_code(
     version=(1,),
 )
 
-theano.compile.register_deep_copy_op_c_code(
+aesara.compile.register_deep_copy_op_c_code(
     GpuArrayType,
     """
     Py_XDECREF(%(oname)s);
@@ -849,7 +849,7 @@ theano.compile.register_deep_copy_op_c_code(
     version=(5,),
 )
 
-theano.compile.register_rebroadcast_c_code(
+aesara.compile.register_rebroadcast_c_code(
     GpuArrayType,
     """
     if(%(iname)s->ga.dimensions[%(axis)s] != 1){
@@ -863,7 +863,7 @@ theano.compile.register_rebroadcast_c_code(
     version=1,
 )
 
-theano.compile.register_specify_shape_c_code(
+aesara.compile.register_specify_shape_c_code(
     GpuArrayType,
     """
         if (PyGpuArray_NDIM(%(iname)s) != PyArray_DIMS(%(shape)s)[0]) {

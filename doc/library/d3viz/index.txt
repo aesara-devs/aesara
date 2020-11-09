@@ -1,12 +1,12 @@
 .. _libdoc_d3viz:
 
 =========================================================================
-:mod:`d3viz` -- d3viz: Interactive visualization of Theano compute graphs
+:mod:`d3viz` -- d3viz: Interactive visualization of Aesara compute graphs
 =========================================================================
 
-.. module:: theano.d3viz
+.. module:: aesara.d3viz
    :platform: Unix, Windows
-   :synopsis: Allows to interactively visualize Theano compute graphs
+   :synopsis: Allows to interactively visualize Aesara compute graphs
 .. moduleauthor:: Christof Angermueller
 
 
@@ -22,15 +22,15 @@ maintained, and it works both in Python 2.x and 3.x. Install it with pip::
 
     pip install pydot-ng
 
-Like Theano’s `printing module
-<http://deeplearning.net/software/theano/library/printing.html>`__, ``d3viz``
+Like Aesara’s `printing module
+<http://deeplearning.net/software/aesara/library/printing.html>`__, ``d3viz``
 requires `graphviz <http://www.graphviz.org/>`__ binary to be available.
 
 Overview
 --------
 
-``d3viz`` extends Theano’s `printing
-module <http://deeplearning.net/software/theano/library/printing.html>`__
+``d3viz`` extends Aesara’s `printing
+module <http://deeplearning.net/software/aesara/library/printing.html>`__
 to interactively visualize compute graphs. Instead of creating a static
 picture, it creates an HTML file, which can be opened with current
 web-browsers. ``d3viz`` allows
@@ -53,8 +53,8 @@ hidden layer and a softmax output layer.
 
 .. code:: python
 
-    import theano as th
-    import theano.tensor as tt
+    import aesara as th
+    import aesara.tensor as tt
     import numpy as np
 
     ninputs = 1000
@@ -75,11 +75,11 @@ hidden layer and a softmax output layer.
     predict = th.function([x], y)
 
 The function ``predict`` outputs the probability of 10 classes. You can
-visualize it with :py:func:`theano.printing.pydotprint` as follows:
+visualize it with :py:func:`aesara.printing.pydotprint` as follows:
 
 .. code:: python
 
-    from theano.printing import pydotprint
+    from aesara.printing import pydotprint
     import os
 
     if not os.path.exists('examples'):
@@ -104,12 +104,12 @@ visualize it with :py:func:`theano.printing.pydotprint` as follows:
 
 
 
-To visualize it interactively, import :py:func:`theano.d3viz.d3viz.d3viz` from
-the the :py:mod:`theano.d3viz.d3viz` module, which can be called as before:
+To visualize it interactively, import :py:func:`aesara.d3viz.d3viz.d3viz` from
+the the :py:mod:`aesara.d3viz.d3viz` module, which can be called as before:
 
 .. code:: python
 
-    import theano.d3viz as d3v
+    import aesara.d3viz as d3v
     d3v.d3viz(predict, 'examples/mlp.html')
 
 `Open visualization! <../../_static/mlp.html>`__
@@ -142,8 +142,8 @@ in /tmp/).
 Profiling
 ---------
 
-Theano allows `function
-profiling <http://deeplearning.net/software/theano/tutorial/profiling.html>`__
+Aesara allows `function
+profiling <http://deeplearning.net/software/aesara/tutorial/profiling.html>`__
 via the ``profile=True`` flag. After at least one function call, the
 compute time of each node can be printed in text form with
 ``debugprint``. However, analyzing complex graphs in this way can be
@@ -200,7 +200,7 @@ export graphs to different formats.
 .. image:: index_files/index_24_0.png
 
 
-Here, we used the :py:class:`theano.d3viz.formatting.PyDotFormatter` class to
+Here, we used the :py:class:`aesara.d3viz.formatting.PyDotFormatter` class to
 convert the compute graph into a ``pydot`` graph, and created a
 :download:`PNG <examples/mlp2.png>` and :download:`PDF <examples/mlp2.pdf>`
 file. You can find all output formats supported by Graphviz `here
@@ -210,7 +210,7 @@ OpFromGraph nodes
 -----------------
 
 An
-`OpFromGraph <http://deeplearning.net/software/theano/library/compile/opfromgraph.html>`__
+`OpFromGraph <http://deeplearning.net/software/aesara/library/compile/opfromgraph.html>`__
 node defines a new operation, which can be called with different inputs
 at different places in the compute graph. Each ``OpFromGraph`` node
 defines a nested graph, which will be visualized accordingly by
@@ -278,13 +278,13 @@ References
 d3viz module
 ------------
 
-.. automodule:: theano.d3viz.d3viz
+.. automodule:: aesara.d3viz.d3viz
   :members:
 
 PyDotFormatter
 --------------
 
-.. autoclass:: theano.d3viz.formatting.PyDotFormatter
+.. autoclass:: aesara.d3viz.formatting.PyDotFormatter
   :members: __call__
   :special-members:
   :private-members:

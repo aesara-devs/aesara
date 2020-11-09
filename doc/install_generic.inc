@@ -12,37 +12,37 @@ Stable Installation
 With ``conda``
 ^^^^^^^^^^^^^^
 
-If you use conda, you can directly install both theano and pygpu. Libgpuarray
+If you use conda, you can directly install both aesara and pygpu. Libgpuarray
 will be automatically installed as a dependency of pygpu.
 
 .. code-block:: bash
 
-    conda install theano pygpu
+    conda install aesara pygpu
 
 .. warning::
 
-    Latest conda packages for theano (``>= 0.9``) and pygpu (``>= 0.6*``) currently don't support
+    Latest conda packages for aesara (``>= 0.9``) and pygpu (``>= 0.6*``) currently don't support
     Python 3.4 branch.
 
 With ``pip``
 ^^^^^^^^^^^^
 
-If you use pip, you have to install Theano and libgpuarray separately.
+If you use pip, you have to install Aesara and libgpuarray separately.
 
-theano
+aesara
 ::::::
 
-Install the latest stable version of Theano with:
+Install the latest stable version of Aesara with:
 
 .. raw:: html
 
-    <div class="highlight"><pre><span class="red">&lt;sudo&gt;</span> pip install <span class="blue">&lt;--user&gt;</span> Theano[test, doc]</pre></div>
+    <div class="highlight"><pre><span class="red">&lt;sudo&gt;</span> pip install <span class="blue">&lt;--user&gt;</span> Aesara[test, doc]</pre></div>
 
 - Any argument between <...> is optional.
 
 - Use :red:`sudo` for a root installation.
 
-- Use :blue:`user` for a user installation without admin rights. It will install Theano in your local site-packages.
+- Use :blue:`user` for a user installation without admin rights. It will install Aesara in your local site-packages.
 
 - Use `pip install -r requirements.txt` to install the requirements for testing.
 
@@ -50,14 +50,14 @@ Install the latest stable version of Theano with:
 
 If you encountered any trouble, head to the :ref:`troubleshooting` page.
 
-The latest stable version of Theano-PyMC is ``1.0.5`` (tagged with ``rel-1.0.5``).
+The latest stable version of Aesara-PyMC is ``1.0.5`` (tagged with ``rel-1.0.5``).
 
 libgpuarray
 :::::::::::
 
 Download it with::
 
-    git clone https://github.com/Theano/libgpuarray.git
+    git clone https://github.com/Aesara/libgpuarray.git
     cd libgpuarray
 
 and then follow the `Step-by-step instructions <http://deeplearning.net/software/libgpuarray/installation.html#step-by-step-install>`__.
@@ -66,19 +66,19 @@ and then follow the `Step-by-step instructions <http://deeplearning.net/software
 Bleeding-Edge Installation (recommended)
 ----------------------------------------
 
-Install the latest, bleeding-edge, development version of Theano with:
+Install the latest, bleeding-edge, development version of Aesara with:
 
 .. raw:: html
 
-    <div class='highlight'><pre><span class="red">&lt;sudo&gt;</span> pip install <span class="blue">&lt;--user&gt;</span> <span class="pink">&lt;--no-deps&gt;</span> git+https://github.com/Theano/Theano.git#egg=Theano</pre></div>
+    <div class='highlight'><pre><span class="red">&lt;sudo&gt;</span> pip install <span class="blue">&lt;--user&gt;</span> <span class="pink">&lt;--no-deps&gt;</span> git+https://github.com/Aesara/Aesara.git#egg=Aesara</pre></div>
 
 - Any argument between <...> is optional.
 
 - Use :red:`sudo` for a root installation.
 
-- Use :blue:`user` for a user installation without admin rights. It will install Theano in your local site-packages.
+- Use :blue:`user` for a user installation without admin rights. It will install Aesara in your local site-packages.
 
-- Use :pink:`no-deps` when you don't want the dependencies of Theano to be installed through pip. This is important when they have already been installed as system packages.
+- Use :pink:`no-deps` when you don't want the dependencies of Aesara to be installed through pip. This is important when they have already been installed as system packages.
 
 If you encountered any trouble, head to the :ref:`troubleshooting` page.
 
@@ -98,21 +98,21 @@ Install the latest, development version of libgpuarray following the
 Developer Installation
 ----------------------
 
-Install the developer version of Theano with:
+Install the developer version of Aesara with:
 
 .. raw:: html
 
-    <div class="highlight"><pre>git clone git://github.com/Theano/Theano.git
-    cd Theano
+    <div class="highlight"><pre>git clone git://github.com/Aesara/Aesara.git
+    cd Aesara
     <span class="red">&lt;sudo&gt;</span> pip install <span class="blue">&lt;--user&gt;</span> <span class="pink">&lt;--no-deps&gt;</span> <span class="green">-e .</span></pre></div>
 
 - Any argument between <...> is optional.
 
 - Use :red:`sudo` for a root installation.
 
-- Use :blue:`user` for a user installation without admin rights. It will install Theano in your local site-packages.
+- Use :blue:`user` for a user installation without admin rights. It will install Aesara in your local site-packages.
 
-- Use :pink:`no-deps` when you don't want the dependencies of Theano to be installed through pip. This is important when they have already been installed as system packages.
+- Use :pink:`no-deps` when you don't want the dependencies of Aesara to be installed through pip. This is important when they have already been installed as system packages.
 
 - :green:`-e` makes your installation *editable*, i.e., it links it to your
   source directory.

@@ -1,24 +1,24 @@
 import logging
 
-import theano.tensor
-from theano import tensor
-from theano.gof import Apply, Op, local_optimizer
-from theano.gof.opt import Optimizer
-from theano.tensor import DimShuffle, Dot
-from theano.tensor.blas import Dot22
-from theano.tensor.nlinalg import (
+import aesara.tensor
+from aesara import tensor
+from aesara.gof import Apply, Op, local_optimizer
+from aesara.gof.opt import Optimizer
+from aesara.tensor import DimShuffle, Dot
+from aesara.tensor.blas import Dot22
+from aesara.tensor.nlinalg import (
     MatrixInverse,
     det,
     extract_diag,
     matrix_inverse,
     trace,
 )
-from theano.tensor.opt import (
+from aesara.tensor.opt import (
     register_canonicalize,
     register_specialize,
     register_stabilize,
 )
-from theano.tensor.slinalg import Cholesky, Solve, cholesky, imported_scipy, solve
+from aesara.tensor.slinalg import Cholesky, Solve, cholesky, imported_scipy, solve
 
 
 logger = logging.getLogger(__name__)
@@ -187,7 +187,7 @@ class HintsOptimizer(Optimizer):
 
 
 # -1 should make it run right before the first merge
-theano.compile.mode.optdb.register(
+aesara.compile.mode.optdb.register(
     "HintsOpt", HintsOptimizer(), -1, "fast_run", "fast_compile"
 )
 

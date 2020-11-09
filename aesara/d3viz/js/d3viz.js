@@ -1,5 +1,5 @@
 /*
- * Theano javascript library for interactive visualization.
+ * Aesara javascript library for interactive visualization.
  *
  * Author: Christof Angermueller <cangermueller@gmail.com>
 */

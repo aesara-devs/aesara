@@ -1,10 +1,10 @@
 import numpy as np
 
-import theano
-from theano import gof
-from theano.gof import Constant, Generic, Op
-from theano.gof.sched import key_to_cmp
-from theano.tensor import tensor
+import aesara
+from aesara import gof
+from aesara.gof import Constant, Generic, Op
+from aesara.gof.sched import key_to_cmp
+from aesara.tensor import tensor
 
 
 ##########################
@@ -85,11 +85,11 @@ def load(path, dtype, broadcastable, mmap_mode=None):
         will be mapped into virtual memory, so only the parts that are
         needed will be actually read from disk and put into memory.
         Other modes supported by numpy.load ('r', 'r+', 'w+') cannot
-        be supported by Theano.
+        be supported by Aesara.
 
     Examples
     --------
-    >>> from theano import *
+    >>> from aesara import *
     >>> path = Variable(Generic())
     >>> x = tensor.load(path, 'int64', (False,))
     >>> y = x*2
@@ -144,7 +144,7 @@ class MPIRecv(Op):
             self,
             [],
             [
-                theano.Variable(Generic()),
+                aesara.Variable(Generic()),
                 tensor(self.dtype, broadcastable=self.broadcastable),
             ],
         )
@@ -235,7 +235,7 @@ class MPISend(Op):
         self.tag = tag
 
     def make_node(self, data):
-        return gof.Apply(self, [data], [theano.Variable(Generic()), data.type()])
+        return gof.Apply(self, [data], [aesara.Variable(Generic()), data.type()])
 
     view_map = {1: [0]}
 
@@ -272,7 +272,7 @@ class MPISendWait(Op):
         self.tag = tag
 
     def make_node(self, request, data):
-        return gof.Apply(self, [request, data], [theano.Variable(Generic())])
+        return gof.Apply(self, [request, data], [aesara.Variable(Generic())])
 
     def perform(self, node, inp, out):
         request = inp[0]

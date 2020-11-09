@@ -3,10 +3,10 @@ import warnings
 
 import numpy as np
 
-import theano
-import theano.tensor as tt
-from theano import Apply, Op
-from theano.scalar import as_scalar
+import aesara
+import aesara.tensor as tt
+from aesara import Apply, Op
+from aesara.scalar import as_scalar
 
 
 class MultinomialFromUniform(Op):
@@ -49,7 +49,7 @@ class MultinomialFromUniform(Op):
         pvals, unis, n = ins
         (gz,) = outgrads
         return [
-            tt.zeros_like(x, dtype=theano.config.floatX)
+            tt.zeros_like(x, dtype=aesara.config.floatX)
             if x.dtype in tt.discrete_dtypes
             else tt.zeros_like(x)
             for x in ins
@@ -69,9 +69,9 @@ class MultinomialFromUniform(Op):
         if self.odtype == "auto":
             t = "PyArray_TYPE(%(pvals)s)" % locals()
         else:
-            t = theano.scalar.Scalar(self.odtype).dtype_specs()[1]
-            if t.startswith("theano_complex"):
-                t = t.replace("theano_complex", "NPY_COMPLEX")
+            t = aesara.scalar.Scalar(self.odtype).dtype_specs()[1]
+            if t.startswith("aesara_complex"):
+                t = t.replace("aesara_complex", "NPY_COMPLEX")
             else:
                 t = t.upper()
         fail = sub["fail"]
@@ -261,9 +261,9 @@ class ChoiceFromUniform(MultinomialFromUniform):
         if self.odtype == "auto":
             t = "NPY_INT64"
         else:
-            t = theano.scalar.Scalar(self.odtype).dtype_specs()[1]
-            if t.startswith("theano_complex"):
-                t = t.replace("theano_complex", "NPY_COMPLEX")
+            t = aesara.scalar.Scalar(self.odtype).dtype_specs()[1]
+            if t.startswith("aesara_complex"):
+                t = t.replace("aesara_complex", "NPY_COMPLEX")
             else:
                 t = t.upper()
         fail = sub["fail"]

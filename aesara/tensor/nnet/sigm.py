@@ -11,14 +11,14 @@ import warnings
 
 import numpy as np
 
-import theano
-from theano import config, gof, printing, scalar
-from theano.gof.opt import copy_stack_trace
-from theano.printing import pprint
-from theano.tensor import basic as tensor
-from theano.tensor import elemwise, opt
-from theano.tensor.basic import NotScalarConstantError
-from theano.tensor.type import values_eq_approx_remove_inf
+import aesara
+from aesara import config, gof, printing, scalar
+from aesara.gof.opt import copy_stack_trace
+from aesara.printing import pprint
+from aesara.tensor import basic as tensor
+from aesara.tensor import elemwise, opt
+from aesara.tensor.basic import NotScalarConstantError
+from aesara.tensor.type import values_eq_approx_remove_inf
 
 
 ############
@@ -70,12 +70,12 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
         # The constants were obtained by looking at the output of
         # python commands like:
         #
-        # import numpy, theano
+        # import numpy, aesara
         # dt='float32'  # or float64
         # for i in range(750):
-        #     print i, repr(theano._asarray(1.0, dtype=dt) /
-        #                   (theano._asarray(1.0, dtype=dt) +
-        #                    numpy.exp(-theano._asarray([i,-i], dtype=dt))))
+        #     print i, repr(aesara._asarray(1.0, dtype=dt) /
+        #                   (aesara._asarray(1.0, dtype=dt) +
+        #                    numpy.exp(-aesara._asarray([i,-i], dtype=dt))))
 
         # float16 limits: -11.0, 7.0f
         # We use the float32 limits for float16 for now as the
@@ -102,10 +102,10 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
         (x,) = inp
         (z,) = out
         if (
-            not theano.config.lib.amdlibm
+            not aesara.config.lib.amdlibm
             or node.inputs[0].dtype != node.outputs[0].dtype
         ):
-            raise theano.gof.utils.MethodNotDefined()
+            raise aesara.gof.utils.MethodNotDefined()
         dtype = node.inputs[0].dtype
         if dtype == "float32" and self.amd_float32 is not None:
             dtype = "float"
@@ -114,7 +114,7 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
             dtype = "double"
             fct = "amd_vrda_exp"
         else:
-            raise theano.gof.utils.MethodNotDefined()
+            raise aesara.gof.utils.MethodNotDefined()
         return (
             """
         npy_intp n = PyArray_SIZE(%(z)s);
@@ -137,7 +137,7 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
         """
             % locals()
         )
-        raise theano.gof.utils.MethodNotDefined()
+        raise aesara.gof.utils.MethodNotDefined()
 
     @staticmethod
     def gen_graph():
@@ -149,10 +149,10 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
         val = 1 / (1 + np.exp(-data))
 
         def hard_sigmoid(x):
-            return theano.tensor.nnet.hard_sigmoid(x)
+            return aesara.tensor.nnet.hard_sigmoid(x)
 
         def ultra_fast_sigmoid(x):
-            return theano.tensor.nnet.ultra_fast_sigmoid(x)
+            return aesara.tensor.nnet.ultra_fast_sigmoid(x)
 
         val_hard = hard_sigmoid(data).eval()
         val_ultra = ultra_fast_sigmoid(data).eval()
@@ -169,7 +169,7 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
         ax.grid(True)
         ax.legend(("sigmoid", "ultra_fast", "hard"), "upper left")
         fname = os.path.join(
-            os.path.dirname(theano.__file__),
+            os.path.dirname(aesara.__file__),
             "..",
             "doc",
             "library",
@@ -279,7 +279,7 @@ def local_ultra_fast_sigmoid(node):
     When enabled, change all sigmoid to ultra_fast_sigmoid.
 
     For example do mode.including('local_ultra_fast_sigmoid')
-    or use the Theano flag optimizer_including=local_ultra_fast_sigmoid.
+    or use the Aesara flag optimizer_including=local_ultra_fast_sigmoid.
 
     This speeds up the sigmoid op by using an approximation.
 
@@ -301,7 +301,7 @@ def local_ultra_fast_sigmoid(node):
         return [out]
 
 
-theano.compile.optdb["uncanonicalize"].register(
+aesara.compile.optdb["uncanonicalize"].register(
     "local_ultra_fast_sigmoid", local_ultra_fast_sigmoid
 )
 
@@ -344,7 +344,7 @@ def local_hard_sigmoid(node):
         return [out]
 
 
-theano.compile.optdb["uncanonicalize"].register(
+aesara.compile.optdb["uncanonicalize"].register(
     "local_hard_sigmoid", local_hard_sigmoid
 )
 
@@ -381,7 +381,7 @@ class ScalarSoftplus(scalar.UnaryScalarOp):
         # These constants were obtained by looking at the output of
         # python commands like:
         #  for i in range(750):
-        #      print i, repr(numpy.log1p(numpy.exp(theano._asarray([i,-i], dtype=dt))))
+        #      print i, repr(numpy.log1p(numpy.exp(aesara._asarray([i,-i], dtype=dt))))
         # the boundary checks prevent us from generating inf
 
         # float16 limits: -17.0, 6.0
@@ -509,7 +509,7 @@ def is_1pexp(t, only_process_constants=True):
                 if config.warn.identify_1pexp_bug:
                     warnings.warn(
                         "Although your current code is fine, please note that "
-                        "Theano versions prior to 0.5 (more specifically, "
+                        "Aesara versions prior to 0.5 (more specifically, "
                         "prior to commit 7987b51 on 2011-12-18) may have "
                         "yielded an incorrect result. To remove this warning, "
                         "either set the `warn.identify_1pexp_bug` config "

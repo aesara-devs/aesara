@@ -1,13 +1,13 @@
 import numpy as np
 import pytest
 
-import theano
-from theano import Apply, Op, config, tensor
-from theano.gof import ParamsType
-from theano.gpuarray.basic_ops import CGpuKernelBase
-from theano.gpuarray.type import GpuArrayType, get_context, gpu_context_type
-from theano.gradient import grad_undefined
-from theano.scalar import int32 as int_t
+import aesara
+from aesara import Apply, Op, config, tensor
+from aesara.gof import ParamsType
+from aesara.gpuarray.basic_ops import CGpuKernelBase
+from aesara.gpuarray.type import GpuArrayType, get_context, gpu_context_type
+from aesara.gradient import grad_undefined
+from aesara.scalar import int32 as int_t
 
 
 # This is an implementation to test that CGpuKernelBase works and also
@@ -69,7 +69,7 @@ def test_cgpukernelbase():
 
     op = GpuEye(dtype="int32", context_name=test_ctx_name)
 
-    f = theano.function([], op(4, 5), mode=mode_with_gpu)
+    f = aesara.function([], op(4, 5), mode=mode_with_gpu)
 
     r = f()
 

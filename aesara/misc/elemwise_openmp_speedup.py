@@ -4,8 +4,8 @@ import sys
 from locale import getpreferredencoding
 from optparse import OptionParser
 
-import theano
-from theano.utils import decode_with
+import aesara
+from aesara.utils import decode_with
 
 
 console_encoding = getpreferredencoding()
@@ -18,7 +18,7 @@ parser.add_option(
     "--N",
     action="store",
     dest="N",
-    default=theano.config.openmp_elemwise_minsize,
+    default=aesara.config.openmp_elemwise_minsize,
     type="int",
     help="Number of vector elements",
 )

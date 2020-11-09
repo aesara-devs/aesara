@@ -97,7 +97,7 @@ const char* const _cppver = "No timing available: C++11 or later is required.";
 
 #include <chrono>
 const char* const _cppver = NULL;
-struct TheanoTimer {
+struct AesaraTimer {
     double milliseconds;
     std::chrono::steady_clock::time_point base;
     void start() {base = std::chrono::steady_clock::now();}

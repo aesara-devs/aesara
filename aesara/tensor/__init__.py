@@ -5,9 +5,9 @@ __docformat__ = "restructuredtext en"
 
 import warnings
 
-# SpecifyShape is defined in theano.compile, but should be available in tensor
-from theano.compile import SpecifyShape, specify_shape
-from theano.gradient import (
+# SpecifyShape is defined in aesara.compile, but should be available in tensor
+from aesara.compile import SpecifyShape, specify_shape
+from aesara.gradient import (
     Lop,
     Rop,
     consider_constant,
@@ -17,9 +17,9 @@ from theano.gradient import (
     numeric_grad,
     verify_grad,
 )
-from theano.tensor import nnet  # used for softmax, sigmoid, etc.
-from theano.tensor import sharedvar  # adds shared-variable constructors
-from theano.tensor import (
+from aesara.tensor import nnet  # used for softmax, sigmoid, etc.
+from aesara.tensor import sharedvar  # adds shared-variable constructors
+from aesara.tensor import (
     blas,
     blas_c,
     blas_scipy,
@@ -28,9 +28,9 @@ from theano.tensor import (
     opt_uncanonicalize,
     xlogx,
 )
-from theano.tensor.basic import *
-from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
-from theano.tensor.extra_ops import (
+from aesara.tensor.basic import *
+from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
+from aesara.tensor.extra_ops import (
     DiffOp,
     bartlett,
     bincount,
@@ -43,15 +43,15 @@ from theano.tensor.extra_ops import (
     squeeze,
     unravel_index,
 )
-from theano.tensor.io import *
+from aesara.tensor.io import *
 
 # We import as `_shared` instead of `shared` to avoid confusion between
-# `theano.shared` and `tensor._shared`.
-from theano.tensor.sharedvar import tensor_constructor as _shared
-from theano.tensor.sort import argsort, argtopk, sort, topk, topk_and_argtopk
-from theano.tensor.subtensor import *
-from theano.tensor.type_other import *
-from theano.tensor.var import (
+# `aesara.shared` and `tensor._shared`.
+from aesara.tensor.sharedvar import tensor_constructor as _shared
+from aesara.tensor.sort import argsort, argtopk, sort, topk, topk_and_argtopk
+from aesara.tensor.subtensor import *
+from aesara.tensor.type_other import *
+from aesara.tensor.var import (
     TensorConstant,
     TensorConstantSignature,
     TensorVariable,
@@ -60,6 +60,6 @@ from theano.tensor.var import (
 
 
 # These imports cannot be performed here because the modules depend on tensor.  This is done at the
-# end of theano.__init__.py instead.
-# from theano.tensor import raw_random
-# from theano.tensor import shared_randomstreams
+# end of aesara.__init__.py instead.
+# from aesara.tensor import raw_random
+# from aesara.tensor import shared_randomstreams

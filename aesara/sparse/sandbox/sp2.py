@@ -1,9 +1,9 @@
 import numpy as np
 import scipy.sparse
 
-import theano
-from theano import gof, tensor
-from theano.sparse.basic import (
+import aesara
+from aesara import gof, tensor
+from aesara.sparse.basic import (
     Remove0,
     SparseType,
     _is_sparse,
@@ -12,14 +12,14 @@ from theano.sparse.basic import (
 )
 
 # Also for compatibility
-from theano.tensor import discrete_dtypes, float_dtypes
+from aesara.tensor import discrete_dtypes, float_dtypes
 
 
 # Probability Ops are currently back in sandbox, because they do not respect
-# Theano's Op contract, as their behaviour is not reproducible: calling
+# Aesara's Op contract, as their behaviour is not reproducible: calling
 # the perform() method twice with the same argument will yield different
 # results.
-# from theano.sparse.basic import (
+# from aesara.sparse.basic import (
 #    Multinomial, multinomial, Poisson, poisson,
 #    Binomial, csr_fbinomial, csc_fbinomial, csr_dbinomial, csc_dbinomial)
 
@@ -36,7 +36,7 @@ class Poisson(gof.op.Op):
 
     WARNING: This Op is NOT deterministic, as calling it twice with the
     same inputs will NOT give the same result. This is a violation of
-    Theano's contract for Ops
+    Aesara's contract for Ops
 
     :param x: Sparse matrix.
 
@@ -61,9 +61,9 @@ class Poisson(gof.op.Op):
 
     def grad(self, inputs, outputs_gradients):
         comment = "No gradient exists for class Poisson in\
-                   theano/sparse/sandbox/sp2.py"
+                   aesara/sparse/sandbox/sp2.py"
         return [
-            theano.gradient.grad_undefined(
+            aesara.gradient.grad_undefined(
                 op=self, x_pos=0, x=inputs[0], comment=comment
             )
         ]
@@ -82,7 +82,7 @@ class Binomial(gof.op.Op):
 
     WARNING: This Op is NOT deterministic, as calling it twice with the
     same inputs will NOT give the same result. This is a violation of
-    Theano's contract for Ops
+    Aesara's contract for Ops
 
     :param n: Tensor scalar representing the number of experiment.
     :param p: Tensor scalar representing the probability of success.
@@ -125,13 +125,13 @@ class Binomial(gof.op.Op):
         (n, p, shape) = inputs
         (gz,) = gout
         comment_n = "No gradient exists for the number of samples in class\
-                     Binomial of theano/sparse/sandbox/sp2.py"
+                     Binomial of aesara/sparse/sandbox/sp2.py"
         comment_p = "No gradient exists for the prob of success in class\
-                     Binomial of theano/sparse/sandbox/sp2.py"
+                     Binomial of aesara/sparse/sandbox/sp2.py"
         return [
-            theano.gradient.grad_undefined(op=self, x_pos=0, x=n, comment=comment_n),
-            theano.gradient.grad_undefined(op=self, x_pos=1, x=p, comment=comment_p),
-            theano.gradient.disconnected_type(),
+            aesara.gradient.grad_undefined(op=self, x_pos=0, x=n, comment=comment_n),
+            aesara.gradient.grad_undefined(op=self, x_pos=1, x=p, comment=comment_p),
+            aesara.gradient.disconnected_type(),
         ]
 
     def infer_shape(self, node, ins_shapes):
@@ -151,7 +151,7 @@ class Multinomial(gof.op.Op):
 
     WARNING: This Op is NOT deterministic, as calling it twice with the
     same inputs will NOT give the same result. This is a violation of
-    Theano's contract for Ops
+    Aesara's contract for Ops
 
     :param n: Tensor type vector or scalar representing the number of
               experiment for each row. If `n` is a scalar, it will be
@@ -201,14 +201,14 @@ class Multinomial(gof.op.Op):
 
     def grad(self, inputs, outputs_gradients):
         comment_n = "No gradient exists for the number of samples in class\
-                     Multinomial of theano/sparse/sandbox/sp2.py"
+                     Multinomial of aesara/sparse/sandbox/sp2.py"
         comment_p = "No gradient exists for the prob of success in class\
-                     Multinomial of theano/sparse/sandbox/sp2.py"
+                     Multinomial of aesara/sparse/sandbox/sp2.py"
         return [
-            theano.gradient.grad_undefined(
+            aesara.gradient.grad_undefined(
                 op=self, x_pos=0, x=inputs[0], comment=comment_n
             ),
-            theano.gradient.grad_undefined(
+            aesara.gradient.grad_undefined(
                 op=self, x_pos=1, x=inputs[1], comment=comment_p
             ),
         ]

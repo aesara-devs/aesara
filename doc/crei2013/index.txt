@@ -3,13 +3,13 @@
 .. _crei2013_index:
 
 ===========================
-Theano Tutorial @ CREI 2013
+Aesara Tutorial @ CREI 2013
 ===========================
 
 July 19, 2013, Sherbrook, Québec, Canada.
 
 
-Theano is python software for evaluating complicated array expressions.
+Aesara is python software for evaluating complicated array expressions.
 
 What does it do?
 
@@ -49,7 +49,7 @@ It has proven to be useful for implementing:
 
  - Even SVM!
 
-As people's needs change this list will grow, but Theano is built
+As people's needs change this list will grow, but Aesara is built
 around vector, matrix, and tensor expressions; there is little reason
 to use it for calculations on other data structures except. There is
 also some sparse matrix support.
@@ -60,13 +60,13 @@ Contents
 
 The structured part of these lab sessions will be a walk-through of the following
 material. Interleaved with this structured part will be blocks of time for
-individual or group work.  The idea is that you can try out Theano and get help
+individual or group work.  The idea is that you can try out Aesara and get help
 from gurus on hand if you get stuck.
 
 .. toctree::
 
     introduction
-    theano
-    advanced_theano
+    aesara
+    advanced_aesara
     gpundarray
-    /extending/extending_theano
+    /extending/extending_aesara

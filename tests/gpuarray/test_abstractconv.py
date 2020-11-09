@@ -12,7 +12,7 @@ from tests.tensor.nnet.test_abstract_conv import (
     TestConv2dTranspose,
     TestConvTypes,
 )
-from theano.gpuarray.blas import (
+from aesara.gpuarray.blas import (
     GpuCorr3dMM,
     GpuCorr3dMM_gradInputs,
     GpuCorr3dMM_gradWeights,
@@ -20,13 +20,13 @@ from theano.gpuarray.blas import (
     GpuCorrMM_gradInputs,
     GpuCorrMM_gradWeights,
 )
-from theano.gpuarray.dnn import (
+from aesara.gpuarray.dnn import (
     GpuDnnConv,
     GpuDnnConvGradI,
     GpuDnnConvGradW,
     dnn_available,
 )
-from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
+from aesara.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
 
 
 gpu_ftensor4 = GpuArrayType(dtype="float32", broadcastable=(False,) * 4)

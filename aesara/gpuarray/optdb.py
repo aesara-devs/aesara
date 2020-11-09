@@ -1,6 +1,6 @@
-from theano.compile import optdb
-from theano.gof.opt import GraphToGPULocalOptGroup, TopoOptimizer, local_optimizer
-from theano.gof.optdb import DB, EquilibriumDB, LocalGroupDB, SequenceDB
+from aesara.compile import optdb
+from aesara.gof.opt import GraphToGPULocalOptGroup, TopoOptimizer, local_optimizer
+from aesara.gof.optdb import DB, EquilibriumDB, LocalGroupDB, SequenceDB
 
 
 gpu_optimizer = EquilibriumDB()
@@ -105,7 +105,7 @@ class GraphToGPUDB(DB):
     """
 
     def query(self, *tags, **kwtags):
-        from theano.gpuarray.opt import GraphToGPU
+        from aesara.gpuarray.opt import GraphToGPU
 
         opt = gpu_optimizer2.query(*tags, **kwtags)
         return GraphToGPU(opt.local_optimizers_all, opt.local_optimizers_map)

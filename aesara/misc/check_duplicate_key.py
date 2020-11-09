@@ -2,7 +2,7 @@ import os
 import pickle
 import sys
 
-import theano
+import aesara
 
 
 DISPLAY_DUPLICATE_KEYS = False
@@ -13,8 +13,8 @@ if len(sys.argv) > 1:
     for compiledir in sys.argv[1:]:
         dirs.extend([os.path.join(compiledir, d) for d in os.listdir(compiledir)])
 else:
-    dirs = os.listdir(theano.config.compiledir)
-    dirs = [os.path.join(theano.config.compiledir, d) for d in dirs]
+    dirs = os.listdir(aesara.config.compiledir)
+    dirs = [os.path.join(aesara.config.compiledir, d) for d in dirs]
 keys = {}  # key -> nb seen
 mods = {}
 for dir in dirs:

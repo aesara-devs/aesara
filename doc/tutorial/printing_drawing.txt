@@ -2,23 +2,23 @@
 .. _tutorial_printing_drawing:
 
 ==============================
-Printing/Drawing Theano graphs
+Printing/Drawing Aesara graphs
 ==============================
 
 
-Theano provides the functions :func:`theano.printing.pprint` and
-:func:`theano.printing.debugprint` to print a graph to the terminal before or
+Aesara provides the functions :func:`aesara.printing.pprint` and
+:func:`aesara.printing.debugprint` to print a graph to the terminal before or
 after compilation. :func:`pprint` is more compact and math-like,
-:func:`debugprint` is more verbose. Theano also provides :func:`pydotprint`
+:func:`debugprint` is more verbose. Aesara also provides :func:`pydotprint`
 that creates an image of the function. You can read about them in
 :ref:`libdoc_printing`.
 
 .. note::
 
 
-    When printing Theano functions, they can sometimes be hard to
-    read.  To help with this, you can disable some Theano optimizations
-    by using the Theano flag:
+    When printing Aesara functions, they can sometimes be hard to
+    read.  To help with this, you can disable some Aesara optimizations
+    by using the Aesara flag:
     ``optimizer_excluding=fusion:inplace``. Do not use this during
     real job execution, as this will make the graph slower and use more
     memory.
@@ -26,22 +26,22 @@ that creates an image of the function. You can read about them in
 Consider again the logistic regression example:
 
 >>> import numpy
->>> import theano
->>> import theano.tensor as tt
+>>> import aesara
+>>> import aesara.tensor as tt
 >>> rng = numpy.random
 >>> # Training data
 >>> N = 400
 >>> feats = 784
->>> D = (rng.randn(N, feats).astype(theano.config.floatX), rng.randint(size=N,low=0, high=2).astype(theano.config.floatX))
+>>> D = (rng.randn(N, feats).astype(aesara.config.floatX), rng.randint(size=N,low=0, high=2).astype(aesara.config.floatX))
 >>> training_steps = 10000
->>> # Declare Theano symbolic variables
+>>> # Declare Aesara symbolic variables
 >>> x = tt.matrix("x")
 >>> y = tt.vector("y")
->>> w = theano.shared(rng.randn(feats).astype(theano.config.floatX), name="w")
->>> b = theano.shared(numpy.asarray(0., dtype=theano.config.floatX), name="b")
+>>> w = aesara.shared(rng.randn(feats).astype(aesara.config.floatX), name="w")
+>>> b = aesara.shared(numpy.asarray(0., dtype=aesara.config.floatX), name="b")
 >>> x.tag.test_value = D[0]
 >>> y.tag.test_value = D[1]
->>> # Construct Theano expression graph
+>>> # Construct Aesara expression graph
 >>> p_1 = 1 / (1 + tt.exp(-tt.dot(x, w)-b)) # Probability of having a one
 >>> prediction = p_1 > 0.5 # The prediction that is done: 0 or 1
 >>> # Compute gradients
@@ -49,14 +49,14 @@ Consider again the logistic regression example:
 >>> cost = xent.mean() + 0.01*(w**2).sum() # The cost to optimize
 >>> gw,gb = tt.grad(cost, [w,b])
 >>> # Training and prediction function
->>> train = theano.function(inputs=[x,y], outputs=[prediction, xent], updates=[[w, w-0.01*gw], [b, b-0.01*gb]], name = "train")
->>> predict = theano.function(inputs=[x], outputs=prediction, name = "predict")
+>>> train = aesara.function(inputs=[x,y], outputs=[prediction, xent], updates=[[w, w-0.01*gw], [b, b-0.01*gb]], name = "train")
+>>> predict = aesara.function(inputs=[x], outputs=prediction, name = "predict")
 
 
 Pretty Printing
 ===============
 
->>> theano.printing.pprint(prediction) # doctest: +NORMALIZE_WHITESPACE
+>>> aesara.printing.pprint(prediction) # doctest: +NORMALIZE_WHITESPACE
 'gt((TensorConstant{1} / (TensorConstant{1} + exp(((-(x \\dot w)) - b)))),
 TensorConstant{0.5})'
 
@@ -66,7 +66,7 @@ Debug Print
 
 The pre-compilation graph:
 
->>> theano.printing.debugprint(prediction) # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
+>>> aesara.printing.debugprint(prediction) # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
 Elemwise{gt,no_inplace} [id A] ''
  |Elemwise{true_div,no_inplace} [id B] ''
  | |InplaceDimShuffle{x} [id C] ''
@@ -87,7 +87,7 @@ Elemwise{gt,no_inplace} [id A] ''
 
 The post-compilation graph:
 
->>> theano.printing.debugprint(predict)  # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
+>>> aesara.printing.debugprint(predict)  # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
 Elemwise{Composite{GT(scalar_sigmoid((-((-i0) - i1))), i2)}} [id A] ''   4
  |...Gemv{inplace} [id B] ''   3
  | |AllocEmpty{dtype='float64'} [id C] ''   2
@@ -107,7 +107,7 @@ Picture Printing of Graphs
 
 The pre-compilation graph:
 
->>> theano.printing.pydotprint(prediction, outfile="pics/logreg_pydotprint_prediction.png", var_with_name_simple=True)  # doctest: +SKIP
+>>> aesara.printing.pydotprint(prediction, outfile="pics/logreg_pydotprint_prediction.png", var_with_name_simple=True)  # doctest: +SKIP
 The output file is available at pics/logreg_pydotprint_prediction.png
 
 .. image:: ./pics/logreg_pydotprint_prediction.png
@@ -115,7 +115,7 @@ The output file is available at pics/logreg_pydotprint_prediction.png
 
 The post-compilation graph:
 
->>> theano.printing.pydotprint(predict, outfile="pics/logreg_pydotprint_predict.png", var_with_name_simple=True)  # doctest: +SKIP
+>>> aesara.printing.pydotprint(predict, outfile="pics/logreg_pydotprint_predict.png", var_with_name_simple=True)  # doctest: +SKIP
 The output file is available at pics/logreg_pydotprint_predict.png
 
 .. image:: ./pics/logreg_pydotprint_predict.png
@@ -123,7 +123,7 @@ The output file is available at pics/logreg_pydotprint_predict.png
 
 The optimized training graph:
 
->>> theano.printing.pydotprint(train, outfile="pics/logreg_pydotprint_train.png", var_with_name_simple=True)  # doctest: +SKIP
+>>> aesara.printing.pydotprint(train, outfile="pics/logreg_pydotprint_train.png", var_with_name_simple=True)  # doctest: +SKIP
 The output file is available at pics/logreg_pydotprint_train.png
 
 .. image:: ./pics/logreg_pydotprint_train.png
@@ -133,7 +133,7 @@ The output file is available at pics/logreg_pydotprint_train.png
 Interactive Graph Visualization
 ===============================
 
-The new :mod:`d3viz` module complements :func:`theano.printing.pydotprint` to
+The new :mod:`d3viz` module complements :func:`aesara.printing.pydotprint` to
 visualize complex graph structures. Instead of creating a static image, it
 generates an HTML file, which allows to dynamically inspect graph structures in
 a web browser. Features include zooming, drag-and-drop, editing node labels, or

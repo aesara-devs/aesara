@@ -75,7 +75,7 @@ int APPLY_SPECIFIC(dnn_pool)(PyGpuArrayObject *img,
   if (ndims == 3)
     dims[4] = (PyGpuArray_DIM(img, 4) + (p[2]*2) - w[2]) / s[2] + 1;
 
-  if (theano_prep_output(out, ndims+2, dims, img->ga.typecode,
+  if (aesara_prep_output(out, ndims+2, dims, img->ga.typecode,
                          GA_C_ORDER, c) != 0)
     return 1;
 

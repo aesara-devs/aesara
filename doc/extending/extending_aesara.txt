@@ -1,5 +1,5 @@
 
-.. _extending_theano:
+.. _extending_aesara:
 
 Creating a new Op: Python implementation
 ========================================
@@ -8,12 +8,12 @@ So suppose you have looked through the library documentation and you don't see
 a function that does what you want.
 
 If you can implement something in terms of existing Ops, you should do that.
-Odds are your function that uses existing Theano expressions is short,
+Odds are your function that uses existing Aesara expressions is short,
 has no bugs, and potentially profits from optimizations that have already been
 implemented.
 
 However, if you cannot implement an Op in terms of existing Ops, you have to
-write a new one. Don't worry, Theano was designed to make it easy to add new
+write a new one. Don't worry, Aesara was designed to make it easy to add new
 Ops, Types, and Optimizations.
 
 .. These first few pages will walk you through the definition of a new :ref:`type`,
@@ -35,25 +35,25 @@ As an illustration, this tutorial shows how to write a simple Python-based
     :ref:`views_and_inplace` for an explanation on how to do this.
 
     If your op returns a view or changes the value of its inputs
-    without doing as prescribed in that page, Theano will run, but will
+    without doing as prescribed in that page, Aesara will run, but will
     return correct results for some graphs and wrong results for others.
 
-    It is recommended that you run your tests in DebugMode (Theano *flag*
+    It is recommended that you run your tests in DebugMode (Aesara *flag*
     ``mode=DebugMode``) since it verifies if your op behaves correctly in this
     regard.
 
 
-Theano Graphs refresher
+Aesara Graphs refresher
 -----------------------
 
 .. image:: ../hpcs2011_tutorial/pics/apply_node.png
     :width: 500 px
 
-Theano represents symbolic mathematical computations as graphs. Those graphs
+Aesara represents symbolic mathematical computations as graphs. Those graphs
 are bi-partite graphs (graphs with 2 types of nodes), they are composed of
 interconnected :ref:`apply` and :ref:`variable` nodes.
 :ref:`variable` nodes represent data in the graph, either inputs, outputs or
-intermediary values. As such, Inputs and Outputs of a graph are lists of Theano
+intermediary values. As such, Inputs and Outputs of a graph are lists of Aesara
 :ref:`variable` nodes. :ref:`apply` nodes perform computation on these
 variables to produce new variables. Each :ref:`apply` node has a link to an
 instance of :ref:`Op` which describes the computation to perform. This tutorial
@@ -73,9 +73,9 @@ possibilities you may encounter or need.  For that refer to
 
 .. testcode:: python
 
-    import theano
+    import aesara
 
-    class MyOp(theano.Op):
+    class MyOp(aesara.Op):
         # Properties attribute
         __props__ = ()
 
@@ -94,7 +94,7 @@ possibilities you may encounter or need.  For that refer to
             pass
 
         # Other type of implementation
-        # C implementation: [see theano web site for other functions]
+        # C implementation: [see aesara web site for other functions]
         def c_code(self, node, inputs, outputs, sub):
             pass
 
@@ -130,7 +130,7 @@ or :func:`make_thunk`.
       with the current op. If the op cannot be applied on the provided
       input types, it must raises an exception (such as :class:`TypeError`).
     - it operates on the Variables found in
-      ``*inputs`` in Theano's symbolic language to infer the type of
+      ``*inputs`` in Aesara's symbolic language to infer the type of
       the symbolic output Variables. It creates output Variables of a suitable
       symbolic Type to serve as the outputs of this op's
       application.
@@ -167,7 +167,7 @@ or :func:`make_thunk`.
   :class:`gof.Op` allows some other way to define the op implentation.
   For instance, it is possible to define :meth:`Op.c_code` to provide a
   C-implementation to the op. Please refers to tutorial
-  :ref:`extending_theano_c` for a description of :meth:`Op.c_code` and other
+  :ref:`extending_aesara_c` for a description of :meth:`Op.c_code` and other
   related c_methods. Note that an op can provide both Python and C
   implementation.
 
@@ -196,7 +196,7 @@ or :func:`make_thunk`.
   :func:`make_thunk` is useful if you want to generate code and compile
   it yourself.
 
-  If :func:`make_thunk()` is defined by an op, it will be used by Theano
+  If :func:`make_thunk()` is defined by an op, it will be used by Aesara
   to obtain the op's implementation.
   :func:`perform` and :meth:`Op.c_code` will be ignored.
 
@@ -240,7 +240,7 @@ There are other methods that can be optionally defined by the op:
   The :func:`infer_shape` method allows to infer the shape of the op
   output variables, without actually computing the outputs.
   It takes as input ``node``, a reference to the op Apply node,
-  and a list of Theano symbolic Varables (``i0_shape``, ``i1_shape``, ...)
+  and a list of Aesara symbolic Varables (``i0_shape``, ``i1_shape``, ...)
   which are the shape of the op input Variables.
   :func:`infer_shape` returns a list where each element is a tuple representing
   the shape of one output.
@@ -251,8 +251,8 @@ There are other methods that can be optionally defined by the op:
   The :func:`grad` method is required if you want to differentiate some cost
   whose expression includes your op. The gradient may be
   specified symbolically in this method. It takes two arguments ``inputs`` and
-  ``output_gradients`` which are both lists of symbolic Theano Variables and
-  those must be operated on using Theano's symbolic language. The grad
+  ``output_gradients`` which are both lists of symbolic Aesara Variables and
+  those must be operated on using Aesara's symbolic language. The grad
   method must return a list containing one Variable for each
   input. Each returned Variable represents the gradient with respect
   to that input computed based on the symbolic gradients with respect
@@ -264,7 +264,7 @@ There are other methods that can be optionally defined by the op:
   NullType for that input. Please refer to :func:`grad` for a more detailed
   view.
 
-  The :func:`R_op` method is needed if you want ``theano.tensor.Rop`` to
+  The :func:`R_op` method is needed if you want ``aesara.tensor.Rop`` to
   work with your op.
   This function implements the application of the R-operator on the
   function represented by your op. Let assume that function is :math:`f`,
@@ -283,19 +283,19 @@ Example: Op definition
 
 .. testcode:: example
 
-    import theano
+    import aesara
 
     #Using make_node
 
 
-    class DoubleOp1(theano.Op):
+    class DoubleOp1(aesara.Op):
         __props__ = ()
 
         def make_node(self, x):
-            x = theano.tensor.as_tensor_variable(x)
+            x = aesara.tensor.as_tensor_variable(x)
             # Note: using x_.type() is dangerous, as it copies x's broadcasting
             # behaviour
-            return theano.Apply(self, [x], [x.type()])
+            return aesara.Apply(self, [x], [x.type()])
 
         def perform(self, node, inputs, output_storage):
             x = inputs[0]
@@ -322,11 +322,11 @@ Example: Op definition
     #Using itypes and otypes
 
 
-    class DoubleOp2(theano.Op):
+    class DoubleOp2(aesara.Op):
         __props__ = ()
 
-        itypes = [theano.tensor.dmatrix]
-        otypes = [theano.tensor.dmatrix]
+        itypes = [aesara.tensor.dmatrix]
+        otypes = [aesara.tensor.dmatrix]
 
         def perform(self, node, inputs, output_storage):
             x = inputs[0]
@@ -355,13 +355,13 @@ creates one instance of it (e.g., ``doubleOp1``).
 
 We often gloss over this distinction, but will be precise here:
 ``doubleOp1`` (the instance) is an Op, not ``DoubleOp1`` (the class which is a
-subclass of ``theano.Op``). You can call ``doubleOp1(tensor.vector())`` on a
+subclass of ``aesara.Op``). You can call ``doubleOp1(tensor.vector())`` on a
 Variable to build an expression, and in the expression there will be
 a ``.op`` attribute that refers to ``doubleOp1``.
 
 .. The first two methods in the Op are relatively boilerplate: ``__eq__``
 .. and ``__hash__``.
-.. When two Ops are equal, Theano will merge their outputs if they are applied to the same inputs.
+.. When two Ops are equal, Aesara will merge their outputs if they are applied to the same inputs.
 .. The base class (Op) says two objects are equal if (and only if)
 .. they are the same object.
 .. Writing these boilerplate definitions ensures that the logic of the equality comparison is always explicit.
@@ -377,7 +377,7 @@ a ``.op`` attribute that refers to ``doubleOp1``.
 .. arguments to the constructor. If we had done that, and if that different
 .. configuration made ``fibby2`` compute different results from ``fibby`` (for the
 .. same inputs) then we would have to add logic to the ``__eq__`` and ``__hash__``
-.. function so that he two ``Fibby`` Ops would *not be equal*.  The reason why: Theano's merge
+.. function so that he two ``Fibby`` Ops would *not be equal*.  The reason why: Aesara's merge
 .. optimization looks for Ops comparing equal and merges them. If two Ops compare
 .. equal but don't always produce equal results from equal inputs, then you might
 .. see wrong calculation.
@@ -386,7 +386,7 @@ The ``make_node`` method creates a node to be included in the expression graph.
 It runs when we apply our Op (``doubleOp1``) to the Variable (``x``), as
 in ``doubleOp1(tensor.vector())``.
 When an Op has multiple inputs, their order in the inputs argument to ``Apply``
-is important:  Theano will call ``make_node(*inputs)`` to copy the graph,
+is important:  Aesara will call ``make_node(*inputs)`` to copy the graph,
 so it is important not to change the semantics of the expression by changing
 the argument order.
 
@@ -412,9 +412,9 @@ You can try the new Op as follows:
 
 .. testcode:: example
 
-    import theano
-    x = theano.tensor.matrix()
-    f = theano.function([x], DoubleOp1()(x))
+    import aesara
+    x = aesara.tensor.matrix()
+    f = aesara.function([x], DoubleOp1()(x))
     import numpy
     inp = numpy.random.rand(5, 4)
     out = f(inp)
@@ -443,9 +443,9 @@ You can try the new Op as follows:
 
 .. testcode:: example
 
-    import theano
-    x = theano.tensor.matrix()
-    f = theano.function([x], DoubleOp2()(x))
+    import aesara
+    x = aesara.tensor.matrix()
+    f = aesara.function([x], DoubleOp2()(x))
     import numpy
     inp = numpy.random.rand(5, 4)
     out = f(inp)
@@ -486,9 +486,9 @@ and ``b`` are equal.
 
 .. testcode:: properties
 
-    import theano
+    import aesara
 
-    class AXPBOp(theano.Op):
+    class AXPBOp(aesara.Op):
         """
         This creates an Op that takes x to a*x+b.
         """
@@ -500,8 +500,8 @@ and ``b`` are equal.
             super(AXPBOp, self).__init__()
 
         def make_node(self, x):
-            x = theano.tensor.as_tensor_variable(x)
-            return theano.Apply(self, [x], [x.type()])
+            x = aesara.tensor.as_tensor_variable(x)
+            return aesara.Apply(self, [x], [x.type()])
 
         def perform(self, node, inputs, output_storage):
             x = inputs[0]
@@ -531,9 +531,9 @@ We can test this by running the following segment:
     assert mult4plus5op == another_mult4plus5op
     assert mult4plus5op != mult2plus3op
 
-    x = theano.tensor.matrix()
-    f = theano.function([x], mult4plus5op(x))
-    g = theano.function([x], mult2plus3op(x))
+    x = aesara.tensor.matrix()
+    f = aesara.function([x], mult4plus5op(x))
+    g = aesara.function([x], mult2plus3op(x))
 
     import numpy
     inp = numpy.random.rand(5, 4).astype(numpy.float32)
@@ -544,7 +544,7 @@ We can test this by running the following segment:
 How To Test it
 --------------
 
-Theano has some functionalities to simplify testing. These help test the
+Aesara has some functionalities to simplify testing. These help test the
 ``infer_shape``, ``grad`` and ``R_op`` methods. Put the following code
 in a file and execute it with the ``pytest`` program.
 
@@ -559,10 +559,10 @@ returns the right answer. If you detect an error, you must raise an
 .. testcode:: tests
 
     import numpy
-    import theano
+    import aesara
 
     from tests import unittest_tools as utt
-    from theano import config
+    from aesara import config
     class TestDouble(utt.InferShapeTester):
         def setup_method(self):
             super().setup_method()
@@ -570,8 +570,8 @@ returns the right answer. If you detect an error, you must raise an
             self.op = DoubleOp()
 
         def test_basic(self):
-            x = theano.tensor.matrix()
-            f = theano.function([x], self.op(x))
+            x = aesara.tensor.matrix()
+            f = aesara.function([x], self.op(x))
             inp = numpy.asarray(numpy.random.rand(5, 4), dtype=config.floatX)
             out = f(inp)
             # Compare the result computed to the expected value.
@@ -579,7 +579,7 @@ returns the right answer. If you detect an error, you must raise an
 
 We call ``utt.assert_allclose(expected_value, value)`` to compare
 NumPy ndarray.This raise an error message with more information. Also,
-the default tolerance can be changed with the Theano flags
+the default tolerance can be changed with the Aesara flags
 ``config.tensor.cmp_sloppy`` that take values in 0, 1 and 2. The
 defaul value do the most strict comparison, 1 and 2 make less strict
 comparison.
@@ -595,9 +595,9 @@ itself. Additionally, it checks that the optimized graph computes
 the correct shape, by comparing it to the actual shape of the computed
 output.
 
-``self._compile_and_check`` compiles a Theano function. It takes as
-parameters the lists of input and output Theano variables, as would be
-provided to ``theano.function``, and a list of real values to pass to the
+``self._compile_and_check`` compiles a Aesara function. It takes as
+parameters the lists of input and output Aesara variables, as would be
+provided to ``aesara.function``, and a list of real values to pass to the
 compiled function. It also takes the op class as a parameter
 in order to verify that no instance of it appears in the shape-optimized graph.
 
@@ -618,13 +618,13 @@ your op works only with such matrices, you can disable the warning with the
 .. testcode:: tests
 
     from tests import unittest_tools as utt
-    from theano import config
+    from aesara import config
     class TestDouble(utt.InferShapeTester):
         # [...] as previous tests.
         def test_infer_shape(self):
-            x = theano.tensor.matrix()
-            self._compile_and_check([x],  # theano.function inputs
-                                    [self.op(x)],  # theano.function outputs
+            x = aesara.tensor.matrix()
+            self._compile_and_check([x],  # aesara.function inputs
+                                    [self.op(x)],  # aesara.function outputs
                                     # Always use not square matrix!
                                     # inputs data
                                     [numpy.asarray(numpy.random.rand(5, 4),
@@ -636,7 +636,7 @@ Testing the gradient
 ^^^^^^^^^^^^^^^^^^^^
 
 The function :ref:`verify_grad <validating_grad>`
-verifies the gradient of an op or Theano graph. It compares the
+verifies the gradient of an op or Aesara graph. It compares the
 analytic (symbolically computed) gradient and the numeric
 gradient (computed through the Finite Difference Method).
 
@@ -713,7 +713,7 @@ Modify and execute the example to return two outputs: x + y and x - y.
 You can omit the Rop functions. Try to implement the testing apparatus
 described above.
 
-(Notice that Theano's current *elemwise fusion* optimization is
+(Notice that Aesara's current *elemwise fusion* optimization is
 only applicable to computations involving a single output. Hence, to gain
 efficiency over the basic solution that is asked here, the two operations would
 have to be jointly optimized explicitly in the code.)
@@ -733,14 +733,14 @@ don't forget to call the parent ``setUp`` function.
 For more details see :ref:`random_value_in_tests`.
 
 
-:download:`Solution<extending_theano_solution_1.py>`
+:download:`Solution<extending_aesara_solution_1.py>`
 
 
 as_op
 -----
 
 as_op is a python decorator that converts a python function into a
-basic Theano op that will call the supplied function during execution.
+basic Aesara op that will call the supplied function during execution.
 
 This isn't the recommended way to build an op, but allows for a quick
 implementation.
@@ -772,7 +772,7 @@ signature:
 .. note::
 
     It converts the Python function to a callable object that takes as
-    inputs Theano variables that were declared.
+    inputs Aesara variables that were declared.
 
 .. note::
     The python function wrapped by the `as_op` decorator needs to return a new
@@ -783,17 +783,17 @@ as_op Example
 
 .. testcode:: asop
 
-    import theano
+    import aesara
     import numpy
-    from theano import function
-    from theano.compile.ops import as_op
+    from aesara import function
+    from aesara.compile.ops import as_op
 
     def infer_shape_numpy_dot(node, input_shapes):
         ashp, bshp = input_shapes
         return [ashp[:-1] + bshp[-1:]]
 
-    @as_op(itypes=[theano.tensor.fmatrix, theano.tensor.fmatrix],
-           otypes=[theano.tensor.fmatrix], infer_shape=infer_shape_numpy_dot)
+    @as_op(itypes=[aesara.tensor.fmatrix, aesara.tensor.fmatrix],
+           otypes=[aesara.tensor.fmatrix], infer_shape=infer_shape_numpy_dot)
     def numpy_dot(a, b):
        return numpy.dot(a, b)
 
@@ -801,8 +801,8 @@ You can try it as follows:
 
 .. testcode:: asop
 
-    x = theano.tensor.fmatrix()
-    y = theano.tensor.fmatrix()
+    x = aesara.tensor.fmatrix()
+    y = aesara.tensor.fmatrix()
     f = function([x, y], numpy_dot(x, y))
     inp1 = numpy.random.rand(5, 4).astype('float32')
     inp2 = numpy.random.rand(4, 7).astype('float32')
@@ -847,7 +847,7 @@ Final Note
 ----------
 
 A more extensive discussion of this section's content may be found in
-the advanced tutorial :ref:`Extending Theano<extending>`.
+the advanced tutorial :ref:`Extending Aesara<extending>`.
 
 The section :ref:`Other ops <other_ops>` includes more instructions for
 the following specific cases:

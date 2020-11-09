@@ -14,17 +14,17 @@ import warnings
 
 import numpy as np
 
-import theano
-from theano.gof.graph import Apply
-from theano.gof.op import OpenMPOp
-from theano.tensor import blas
-from theano.tensor.basic import (
+import aesara
+from aesara.gof.graph import Apply
+from aesara.gof.op import OpenMPOp
+from aesara.tensor import blas
+from aesara.tensor.basic import (
     NotScalarConstantError,
     as_tensor_variable,
     get_scalar_constant_value,
     patternbroadcast,
 )
-from theano.tensor.nnet.abstract_conv import get_conv_output_shape, get_conv_shape_1axis
+from aesara.tensor.nnet.abstract_conv import get_conv_output_shape, get_conv_shape_1axis
 
 
 try:
@@ -38,7 +38,7 @@ except ImportError:
     imported_scipy_signal = False
 
 __docformat__ = "restructuredtext en"
-_logger = logging.getLogger("theano.tensor.nnet.conv")
+_logger = logging.getLogger("aesara.tensor.nnet.conv")
 
 
 def conv2d(
@@ -107,8 +107,8 @@ def conv2d(
     """
 
     warnings.warn(
-        "theano.tensor.nnet.conv.conv2d is deprecated."
-        " Use theano.tensor.nnet.conv2d instead."
+        "aesara.tensor.nnet.conv.conv2d is deprecated."
+        " Use aesara.tensor.nnet.conv2d instead."
     )
 
     # accept Constant value for image_shape and filter_shape.
@@ -126,7 +126,7 @@ def conv2d(
                         " information are constant values. We got"
                         " %s for the image_shape parameter" % image_shape[i]
                     )
-                assert image_shape[i].dtype in theano.tensor.discrete_dtypes
+                assert image_shape[i].dtype in aesara.tensor.discrete_dtypes
                 image_shape[i] = int(image_shape[i])
     if filter_shape is not None:
         filter_shape = list(filter_shape)
@@ -143,7 +143,7 @@ def conv2d(
                         " %s for the filter_shape "
                         "parameter" % filter_shape[i]
                     )
-                assert filter_shape[i].dtype in theano.tensor.discrete_dtypes
+                assert filter_shape[i].dtype in aesara.tensor.discrete_dtypes
                 filter_shape[i] = int(filter_shape[i])
 
     if image_shape and filter_shape:
@@ -314,7 +314,7 @@ class ConvOp(OpenMPOp):
 
     # the value of speed_unroll_batch_kern,speed_unroll_patch_noshape,speed_unroll_patch_shape
     # have bean calculated on maggie36 when their is only 1 session logged on and only this was running.
-    # It is an Intel(R) Xeon(R) CPU E5430 @ 2.66GHz. It is computer with theano/tensor/nnet/tests/speed_test_conv.py
+    # It is an Intel(R) Xeon(R) CPU E5430 @ 2.66GHz. It is computer with aesara/tensor/nnet/tests/speed_test_conv.py
     # and took 5 minutes to run.
     # TODO: we should compute this table for each computer/os as this can change.
     #      I saw on one computer that the speed with the shape can be slower than without!
@@ -763,7 +763,7 @@ class ConvOp(OpenMPOp):
                 "inputs(%s), kerns(%s)" % (_inputs.dtype, _kerns.dtype)
             )
         bcastable23 = [self.outshp[0] == 1, self.outshp[1] == 1]
-        output = theano.tensor.tensor(
+        output = aesara.tensor.tensor(
             dtype=_inputs.type.dtype,
             broadcastable=[_inputs.broadcastable[0], _kerns.broadcastable[0]]
             + bcastable23,
@@ -808,7 +808,7 @@ class ConvOp(OpenMPOp):
         img2d, filtersflipped = inp
         (z,) = out
         if not imported_scipy_signal:
-            raise theano.gof.utils.MethodNotDefined(
+            raise aesara.gof.utils.MethodNotDefined(
                 "c_headers",
                 type(self),
                 self.__class__.__name__,
@@ -1024,7 +1024,7 @@ class ConvOp(OpenMPOp):
         if self.out_mode == "valid" and (self.dx, self.dy) != (1, 1):
             raise NotImplementedError(
                 "ERROR: ConvOp.grad is now disabled for 'valid' convolutions with"
-                " stride != (1, 1); call theano.tensor.nnet.conv2d() instead."
+                " stride != (1, 1); call aesara.tensor.nnet.conv2d() instead."
             )
 
         if self.dx not in (1, 2) or self.dy not in (1, 2):
@@ -1184,7 +1184,7 @@ using namespace std;
     def c_no_compile_args(self):
         # when the ksph==(1,1) gcc 4.3.0 segfault during the
         # compilation with -O3.  This don't happen at -O2
-        if theano.gof.cmodule.gcc_version() in ["4.3.0"] and self.kshp == (1, 1):
+        if aesara.gof.cmodule.gcc_version() in ["4.3.0"] and self.kshp == (1, 1):
             return ["-O3"]
         else:
             return []
@@ -1194,7 +1194,7 @@ using namespace std;
 
         if self.use_blas():
             ret = blas.ldflags(libs=False, flags=True)
-        if theano.gof.cmodule.gcc_version() in ["4.3.0"] and self.kshp == (1, 1):
+        if aesara.gof.cmodule.gcc_version() in ["4.3.0"] and self.kshp == (1, 1):
             ret += ["-O2"]
         # Add the -fopenmp flags
         ret += super().c_compile_args()

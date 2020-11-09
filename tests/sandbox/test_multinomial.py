@@ -1,8 +1,8 @@
 import numpy as np
 
 import tests.unittest_tools as utt
-from theano import config, function, tensor
-from theano.sandbox import multinomial
+from aesara import config, function, tensor
+from aesara.sandbox import multinomial
 
 
 def test_n_samples_1():

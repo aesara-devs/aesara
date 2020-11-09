@@ -1,10 +1,10 @@
 
-import numpy, theano
-import theano.misc.pycuda_init
+import numpy, aesara
+import aesara.misc.pycuda_init
 from pycuda.compiler import SourceModule
-import theano.sandbox.cuda as cuda
+import aesara.sandbox.cuda as cuda
 
-class PyCUDADoubleOp(theano.Op):
+class PyCUDADoubleOp(aesara.Op):
     def __eq__(self, other):
         return type(self) == type(other)
     def __hash__(self):
@@ -15,7 +15,7 @@ class PyCUDADoubleOp(theano.Op):
         inp = cuda.basic_ops.gpu_contiguous(
            cuda.basic_ops.as_cuda_ndarray_variable(inp))
         assert inp.dtype == "float32"
-        return theano.Apply(self, [inp], [inp.type()])
+        return aesara.Apply(self, [inp], [inp.type()])
 
     def make_thunk(self, node, storage_map, _, _2):
         mod = SourceModule("""
@@ -38,8 +38,8 @@ class PyCUDADoubleOp(theano.Op):
 
         return thunk
 
-x = theano.tensor.fmatrix()
-f = theano.function([x], PyCUDADoubleOp()(x))
+x = aesara.tensor.fmatrix()
+f = aesara.function([x], PyCUDADoubleOp()(x))
 xv=numpy.ones((4,5), dtype="float32")
 
 assert numpy.allclose(f(xv), xv*2)

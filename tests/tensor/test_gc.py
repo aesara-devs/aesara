@@ -3,14 +3,14 @@ import time
 
 import numpy as np
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 
 
 def test_no_reuse():
     x = tt.lvector()
     y = tt.lvector()
-    f = theano.function([x, y], x + y)
+    f = aesara.function([x, y], x + y)
 
     # provide both inputs in the first call
     f(np.ones(10, dtype="int64"), np.ones(10, dtype="int64"))
@@ -33,19 +33,19 @@ def test_gc_never_pickles_temporaries():
     optimizer = "fast_run"
 
     for f_linker, g_linker in [
-        (theano.PerformLinker(allow_gc=True), theano.PerformLinker(allow_gc=False)),
-        (theano.OpWiseCLinker(allow_gc=True), theano.OpWiseCLinker(allow_gc=False)),
+        (aesara.PerformLinker(allow_gc=True), aesara.PerformLinker(allow_gc=False)),
+        (aesara.OpWiseCLinker(allow_gc=True), aesara.OpWiseCLinker(allow_gc=False)),
     ]:
 
         # f_linker has garbage collection
 
         # g_linker has no garbage collection
 
-        f = theano.function(
-            [x], r, mode=theano.Mode(optimizer=optimizer, linker=f_linker)
+        f = aesara.function(
+            [x], r, mode=aesara.Mode(optimizer=optimizer, linker=f_linker)
         )
-        g = theano.function(
-            [x], r, mode=theano.Mode(optimizer=optimizer, linker=g_linker)
+        g = aesara.function(
+            [x], r, mode=aesara.Mode(optimizer=optimizer, linker=g_linker)
         )
 
         pre_f = pickle.dumps(f)
@@ -66,7 +66,7 @@ def test_gc_never_pickles_temporaries():
 
         def b(fn):
             return len(
-                pickle.dumps(theano.compile.function_module._pickle_Function(fn))
+                pickle.dumps(aesara.compile.function_module._pickle_Function(fn))
             )
 
         assert b(f) == b(f)  # some sanity checks on the pickling mechanism
@@ -112,7 +112,7 @@ def test_merge_opt_runtime():
         r = r + r / 10
 
     t = time.time()
-    theano.function([x], r, mode="FAST_COMPILE")
+    aesara.function([x], r, mode="FAST_COMPILE")
     # FAST_RUN does in-place optimizer which requires a lot of
     # toposorting, which is actually pretty slow at the moment.  This
     # test was designed to test MergeOptimizer... so I'm leaving

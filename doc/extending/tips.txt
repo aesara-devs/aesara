@@ -21,26 +21,26 @@ simple function:
 
 .. testcode::
 
-   from theano import tensor as tt
+   from aesara import tensor as tt
 
    def sum_square_difference(a, b):
        return tt.sum((a - b)**2)
 
-Even without taking Theano's optimizations into account, it is likely
+Even without taking Aesara's optimizations into account, it is likely
 to work just as well as a custom implementation. It also supports all
 data types, tensors of all dimensions as well as broadcasting, whereas
 a custom implementation would probably only bother to support
 contiguous vectors/matrices of doubles...
 
 
-Use Theano's high order Ops when applicable
+Use Aesara's high order Ops when applicable
 ===========================================
 
-Theano provides some generic Op classes which allow you to generate a
+Aesara provides some generic Op classes which allow you to generate a
 lot of Ops at a lesser effort. For instance, Elemwise can be used to
 make :term:`elementwise` operations easily whereas DimShuffle can be
 used to make transpose-like transformations. These higher order Ops
-are mostly Tensor-related, as this is Theano's specialty.
+are mostly Tensor-related, as this is Aesara's specialty.
 
 
 .. _opchecklist:

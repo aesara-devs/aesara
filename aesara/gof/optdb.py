@@ -3,10 +3,10 @@ import math
 import sys
 from io import StringIO
 
-from theano import config
-from theano.gof import opt
-from theano.misc.ordered_set import OrderedSet
-from theano.utils import DefaultOrderedDict
+from aesara import config
+from aesara.gof import opt
+from aesara.misc.ordered_set import OrderedSet
+from aesara.utils import DefaultOrderedDict
 
 
 class DB:
@@ -68,7 +68,7 @@ class DB:
             raise ValueError(
                 """You can\'t register the same optimization
 multiple time in a DB. Tryed to register "%s" again under the new name "%s".
- Use theano.gof.ProxyDB to work around that"""
+ Use aesara.gof.ProxyDB to work around that"""
                 % (obj.name, name)
             )
         self.__db__[name] = OrderedSet([obj])
@@ -340,7 +340,7 @@ class SequenceDB(DB):
     No matter which optimizations are selected by a query, they are carried
     out in order of increasing position.
 
-    The optdb itself (`theano.compile.mode.optdb`), from which (among many
+    The optdb itself (`aesara.compile.mode.optdb`), from which (among many
     other tags) fast_run and fast_compile optimizers are drawn is a SequenceDB.
 
     """

@@ -6,15 +6,15 @@ Provide a simple user friendly API.
 import logging
 import warnings
 
-from theano import config
-from theano.compile.function_module import UnusedInputError, orig_function
-from theano.compile.io import In, Out
-from theano.compile.profiling import ProfileStats
-from theano.compile.sharedvalue import SharedVariable, shared
-from theano.gof import Constant, Variable
+from aesara import config
+from aesara.compile.function_module import UnusedInputError, orig_function
+from aesara.compile.io import In, Out
+from aesara.compile.profiling import ProfileStats
+from aesara.compile.sharedvalue import SharedVariable, shared
+from aesara.gof import Constant, Variable
 
 
-_logger = logging.getLogger("theano.compile.pfunc")
+_logger = logging.getLogger("aesara.compile.pfunc")
 
 __docformat__ = "restructuredtext en"
 
@@ -37,11 +37,11 @@ def rebuild_collect_shared(
 
     Parameters
     ----------
-    outputs : list of Theano Variables (or Theano expressions)
-        List of Theano variables or expressions representing the outputs of the
+    outputs : list of Aesara Variables (or Aesara expressions)
+        List of Aesara variables or expressions representing the outputs of the
         computational graph.
-    inputs : list of Theano Variables (or Theano expressions)
-        List of Theano variables or expressions representing the inputs of the
+    inputs : list of Aesara Variables (or Aesara expressions)
+        List of Aesara variables or expressions representing the inputs of the
         computational graph (or None).
     replace : dict
         Dictionary describing which subgraphs should be replaced by what.
@@ -237,7 +237,7 @@ def rebuild_collect_shared(
                 cloned_outputs.append(Out(cloned_v, borrow=v.borrow))
             else:
                 raise TypeError(
-                    "Outputs must be theano Variable or "
+                    "Outputs must be aesara Variable or "
                     "Out instances. Received " + str(v) + " of type " + str(type(v))
                 )
             # computed_list.append(cloned_v)
@@ -254,7 +254,7 @@ def rebuild_collect_shared(
             cloned_outputs = []  # TODO: get Function.__call__ to return None
         else:
             raise TypeError(
-                "output must be a theano Variable or Out " "instance (or list of them)",
+                "output must be a aesara Variable or Out " "instance (or list of them)",
                 outputs,
             )
 
@@ -297,7 +297,7 @@ class Param(In):
     ):
         warnings.warn(
             "The Param class is deprecated. Replace Param(default=N)"
-            " by theano.In(value=N)",
+            " by aesara.In(value=N)",
             stacklevel=2,
         )
         super().__init__(
@@ -336,7 +336,7 @@ def pfunc(
         Function parameters, these are not allowed to be shared variables.
     outputs : list of Variables or Out instances
         Expressions to compute.
-    mode : string or `theano.compile.Mode` instance
+    mode : string or `aesara.compile.Mode` instance
         Compilation mode.
     updates : iterable over pairs (shared_variable, new_expression). List, tuple or dict.
         Update the values for SharedVariable inputs according to these
@@ -374,7 +374,7 @@ def pfunc(
 
     Returns
     -------
-    theano.compile.Function
+    aesara.compile.Function
         A callable object that will compute the outputs (given the inputs) and
         update the implicit function arguments according to the `updates`.
 
@@ -436,7 +436,7 @@ def pfunc(
             "lists/tuples with 2 elements"
         )
 
-    # transform params into theano.compile.In objects.
+    # transform params into aesara.compile.In objects.
     inputs = [
         _pfunc_param_to_in(p, allow_downcast=allow_input_downcast) for p in params
     ]
@@ -447,7 +447,7 @@ def pfunc(
         if v in in_variables[(i + 1) :]:
             dup_v_i = in_variables.index(v, (i + 1))
             raise UnusedInputError(
-                "Variable %s is used twice in inputs to theano.function, "
+                "Variable %s is used twice in inputs to aesara.function, "
                 "at indices %i and %i.  This would result in values "
                 "provided for it being ignored. Please do not duplicate "
                 "variables in the inputs list." % (v, i, dup_v_i)
@@ -468,10 +468,10 @@ def pfunc(
                 "function. Replacing inputs is currently forbidden because it "
                 "has no effect. One way to modify an input `x` to a function "
                 "evaluating f(x) is to define a new input `y` and use "
-                "`theano.function([y], f(x), givens={x: g(y)})`. Another "
-                "solution consists in using `theano.clone`, e.g. like this: "
-                "`theano.function([x], "
-                "theano.clone(f(x), replace={x: g(x)}))`." % x
+                "`aesara.function([y], f(x), givens={x: g(y)})`. Another "
+                "solution consists in using `aesara.clone`, e.g. like this: "
+                "`aesara.function([x], "
+                "aesara.clone(f(x), replace={x: g(x)}))`." % x
             )
 
     # Extend the outputs with the updates on input variables so they are also

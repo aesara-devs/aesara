@@ -17,16 +17,16 @@ from functools import reduce
 
 import numpy as np
 
-import theano
-from theano import config
-from theano.gof import graph, op, toolbox, unify, utils
-from theano.gof.fg import InconsistencyError
-from theano.misc.ordered_set import OrderedSet
+import aesara
+from aesara import config
+from aesara.gof import graph, op, toolbox, unify, utils
+from aesara.gof.fg import InconsistencyError
+from aesara.misc.ordered_set import OrderedSet
 
 from . import destroyhandler as dh
 
 
-_logger = logging.getLogger("theano.gof.opt")
+_logger = logging.getLogger("aesara.gof.opt")
 _optimizer_idx = [0]
 
 
@@ -671,7 +671,7 @@ class MergeFeature:
             # TODO: Deactivated for now as this cause cycle in the graph.
             # (There is a second deactivation part below.)
             for i in []:  # node.inputs:
-                if i.owner and isinstance(i.owner.op, theano.tensor.opt.Assert):
+                if i.owner and isinstance(i.owner.op, aesara.tensor.opt.Assert):
                     node_has_assert = True
                     assert_clients = [
                         c
@@ -681,7 +681,7 @@ class MergeFeature:
 
                     for idx in range(len(assert_clients)):
                         client = assert_clients[idx]
-                        if isinstance(i.owner.op, theano.tensor.opt.Assert):
+                        if isinstance(i.owner.op, aesara.tensor.opt.Assert):
                             for c in client.outputs[0].clients:
                                 if c[0] in self.nodes_seen:
                                     assert_clients.append(c[0])
@@ -706,7 +706,7 @@ class MergeFeature:
             cand_inputs_assert_removed = []
             # TODO: Deactivated while Assert merging is disabled. (See above and below.)
             for i in []:  # candidate.inputs:
-                if i.owner and isinstance(i.owner.op, theano.tensor.opt.Assert):
+                if i.owner and isinstance(i.owner.op, aesara.tensor.opt.Assert):
                     cand_has_assert = True
                     cand_inputs_assert_removed.append(i.owner.inputs[0])
                 else:
@@ -721,7 +721,7 @@ class MergeFeature:
             if node_has_assert:
                 node_inputs_assert_removed = []
                 for i in node.inputs:
-                    if i.owner and isinstance(i.owner.op, theano.tensor.opt.Assert):
+                    if i.owner and isinstance(i.owner.op, aesara.tensor.opt.Assert):
                         node_inputs_assert_removed.append(i.owner.inputs[0])
                     else:
                         node_inputs_assert_removed.append(i)
@@ -799,10 +799,10 @@ class MergeFeature:
         new_inputs = []
         for node_i, cand_i in zip(node.inputs, candidate.inputs):
             # if node_i is assert
-            if node_i.owner and isinstance(node_i.owner.op, theano.tensor.opt.Assert):
+            if node_i.owner and isinstance(node_i.owner.op, aesara.tensor.opt.Assert):
                 # node_i is assert, cand_i is assert
                 if cand_i.owner and isinstance(
-                    cand_i.owner.op, theano.tensor.opt.Assert
+                    cand_i.owner.op, aesara.tensor.opt.Assert
                 ):
                     # Here two assert nodes are merged.
                     # Step 1. Merge conditions of both assert nodes.
@@ -811,7 +811,7 @@ class MergeFeature:
                     cand_cond = cand_i.owner.inputs[1:]
                     new_cond = list(set(node_cond + cand_cond))
                     new_inputs.append(
-                        theano.tensor.opt.assert_op(node_i.owner.inputs[0], *new_cond)
+                        aesara.tensor.opt.assert_op(node_i.owner.inputs[0], *new_cond)
                     )
 
                 # node_i is assert, cand_i is not assert
@@ -886,7 +886,7 @@ class MergeOptimizer(Optimizer):
                     # nodes removed
                     cand_inputs_assert_removed = []
                     for i in candidate.inputs:
-                        if i.owner and isinstance(i.owner.op, theano.tensor.opt.Assert):
+                        if i.owner and isinstance(i.owner.op, aesara.tensor.opt.Assert):
                             cand_inputs_assert_removed.append(i.owner.inputs[0])
                         else:
                             cand_inputs_assert_removed.append(i)
@@ -894,7 +894,7 @@ class MergeOptimizer(Optimizer):
                     # Get input list of the node with assert nodes removed
                     node_inputs_assert_removed = []
                     for i in node.inputs:
-                        if i.owner and isinstance(i.owner.op, theano.tensor.opt.Assert):
+                        if i.owner and isinstance(i.owner.op, aesara.tensor.opt.Assert):
                             node_inputs_assert_removed.append(i.owner.inputs[0])
                         else:
                             node_inputs_assert_removed.append(i)
@@ -1091,7 +1091,7 @@ def pre_constant_merge(vars):
                 warnings.warn(
                     "We work around a problem, the following variable"
                     " signature isn't hashable. Please, report this to"
-                    " theano-dev so that the better fix is done. %s" % var
+                    " aesara-dev so that the better fix is done. %s" % var
                 )
                 # Some python object like slice aren't hashable. So
                 # don't merge them here.
@@ -1210,10 +1210,10 @@ class LocalMetaOptimizer(LocalOptimizer):
         givens = {}
         missing = set()
         for input in node.inputs:
-            if isinstance(input, theano.compile.SharedVariable):
+            if isinstance(input, aesara.compile.SharedVariable):
                 pass
             elif hasattr(input.tag, "test_value"):
-                givens[input] = theano.shared(
+                givens[input] = aesara.shared(
                     input.type.filter(input.tag.test_value),
                     input.name,
                     broadcastable=input.broadcastable,
@@ -1245,7 +1245,7 @@ class LocalMetaOptimizer(LocalOptimizer):
             outputs = opt.transform(node)
             if outputs:
                 try:
-                    fn = theano.function(
+                    fn = aesara.function(
                         [], outputs, givens=givens, on_unused_input="ignore"
                     )
                     fn.trust_input = True
@@ -1848,7 +1848,7 @@ class PatternSub(LocalOptimizer):
                 else:
                     u = u.merge(expr, v)
             elif isinstance(pattern, (int, float)) and isinstance(expr, graph.Constant):
-                if np.all(theano.tensor.constant(pattern).value == expr.value):
+                if np.all(aesara.tensor.constant(pattern).value == expr.value):
                     return u
                 else:
                     return retry_with_equiv()
@@ -2714,10 +2714,10 @@ class EquilibriumOptimizer(NavigatorOptimizer):
             msg = (
                 "EquilibriumOptimizer max'ed out by '%s'" % opt_name
                 + ". You can safely raise the current threshold of "
-                + "%f with the theano flag 'optdb.max_use_ratio'."
+                + "%f with the aesara flag 'optdb.max_use_ratio'."
                 % config.optdb.max_use_ratio
             )
-            if theano.config.on_opt_error == "raise":
+            if aesara.config.on_opt_error == "raise":
                 raise AssertionError(msg)
             else:
                 _logger.error(msg)
@@ -3204,15 +3204,15 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
 
     Parameters
     ----------
-    f_or_fgraph: theano.compile.function_module.Function or
-          theano.gof.fg.FunctionGraph
+    f_or_fgraph: aesara.compile.function_module.Function or
+          aesara.gof.fg.FunctionGraph
         The compiled function or the function graph to be analysed.
     ops_to_check: it can be of four different types:
-          - classes or instances inheriting from theano.gof.Op
-          - tuple/list of classes or instances inheriting from theano.gof.Op
+          - classes or instances inheriting from aesara.gof.Op
+          - tuple/list of classes or instances inheriting from aesara.gof.Op
           - string
           - function returning a boolean and taking as input an instance of
-            theano.gof.Op.
+            aesara.gof.Op.
         - if ops_to_check is a string, it should be either 'last' or 'all'.
           'last' will check only the last op of the graph while 'all' will
           check all the ops of the graph.
@@ -3220,7 +3220,7 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
           check that all the outputs of their occurrences in the graph have a
           stack trace.
         - if ops_to_check is a function, it should take as input a
-          theano.gof.Op and return a boolean indicating if the input op should
+          aesara.gof.Op and return a boolean indicating if the input op should
           be checked or not.
     bug_print: string belonging to {'raise', 'warn', 'ignore'}
         You can specify the behaviour of the function when the specified
@@ -3233,15 +3233,15 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
         True if the outputs of the specified ops have a stack, False otherwise.
 
     """
-    if isinstance(f_or_fgraph, theano.compile.function_module.Function):
+    if isinstance(f_or_fgraph, aesara.compile.function_module.Function):
         fgraph = f_or_fgraph.maker.fgraph
-    elif isinstance(f_or_fgraph, theano.gof.fg.FunctionGraph):
+    elif isinstance(f_or_fgraph, aesara.gof.fg.FunctionGraph):
         fgraph = f_or_fgraph
     else:
         raise ValueError("The type of f_or_fgraph is not supported")
 
-    if isinstance(ops_to_check, theano.gof.Op) or (
-        inspect.isclass(ops_to_check) and issubclass(ops_to_check, theano.gof.Op)
+    if isinstance(ops_to_check, aesara.gof.Op) or (
+        inspect.isclass(ops_to_check) and issubclass(ops_to_check, aesara.gof.Op)
     ):
         ops_to_check = (ops_to_check,)
 
@@ -3262,7 +3262,7 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
         op_instances = []
         op_classes = []
         for obj in ops_to_check:
-            if isinstance(obj, theano.gof.Op):
+            if isinstance(obj, aesara.gof.Op):
                 op_instances.append(obj)
             else:
                 op_classes.append(obj)
@@ -3314,16 +3314,16 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
 class CheckStrackTraceFeature:
     def on_import(self, fgraph, node, reason):
         # In optdb we only register the CheckStackTraceOptimization when
-        # theano.config.check_stack_trace is not off but we also double check here.
-        if theano.config.check_stack_trace != "off" and not check_stack_trace(
+        # aesara.config.check_stack_trace is not off but we also double check here.
+        if aesara.config.check_stack_trace != "off" and not check_stack_trace(
             fgraph, "all"
         ):
-            if theano.config.check_stack_trace == "raise":
+            if aesara.config.check_stack_trace == "raise":
                 raise AssertionError(
                     "Empty stack trace! The optimization that inserted this variable is "
                     + str(reason)
                 )
-            elif theano.config.check_stack_trace in ["log", "warn"]:
+            elif aesara.config.check_stack_trace in ["log", "warn"]:
                 apply_nodes_to_check = fgraph.apply_nodes
                 for node in apply_nodes_to_check:
                     for output in node.outputs:
@@ -3340,7 +3340,7 @@ class CheckStrackTraceFeature:
                                     )
                                 ]
                             ]
-                if theano.config.check_stack_trace == "warn":
+                if aesara.config.check_stack_trace == "warn":
                     warnings.warn(
                         "Empty stack trace! The optimization that inserted this variable is"
                         + str(reason)

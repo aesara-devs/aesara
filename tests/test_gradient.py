@@ -3,14 +3,14 @@ from collections import OrderedDict
 import numpy as np
 import pytest
 
-import theano
+import aesara
 from tests import unittest_tools as utt
-from theano import change_flags, config, gof, gradient
-from theano.gof.null_type import NullType
-from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
+from aesara import change_flags, config, gof, gradient
+from aesara.gof.null_type import NullType
+from aesara.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
 
-one = theano.tensor.as_tensor_variable(1.0)
+one = aesara.tensor.as_tensor_variable(1.0)
 
 
 def grad_sources_inputs(sources, inputs):
@@ -19,11 +19,11 @@ def grad_sources_inputs(sources, inputs):
     the new interface so the tests don't need to be rewritten.
     """
     if inputs is None:
-        inputs = theano.gof.graph.inputs([source[0] for source in sources])
+        inputs = aesara.gof.graph.inputs([source[0] for source in sources])
     return dict(
         zip(
             inputs,
-            theano.gradient.grad(
+            aesara.gradient.grad(
                 cost=None,
                 known_grads=dict(sources),
                 wrt=inputs,
@@ -40,8 +40,8 @@ class TestGradSourcesInputs:
             __props__ = ()
 
             def make_node(self):
-                inputs = [theano.tensor.vector()]
-                outputs = [theano.tensor.vector()]
+                inputs = [aesara.tensor.vector()]
+                outputs = [aesara.tensor.vector()]
                 return gof.Apply(self, inputs, outputs)
 
             def grad(self, inp, grads):
@@ -59,14 +59,14 @@ class TestGradSourcesInputs:
             __props__ = ()
 
             def make_node(self, *inputs):
-                outputs = [theano.tensor.vector()]
+                outputs = [aesara.tensor.vector()]
                 return gof.Apply(self, inputs, outputs)
 
             def grad(self, inputs, grads):
                 return [inputs[0].zeros_like()]
 
-        i = theano.tensor.vector()
-        j = theano.tensor.vector()
+        i = aesara.tensor.vector()
+        j = aesara.tensor.vector()
         a1 = retOne().make_node(i)
         grad_sources_inputs([(a1.out, one)], None)
         a2 = retOne().make_node(i, j)
@@ -75,14 +75,14 @@ class TestGradSourcesInputs:
 
     def test_1in_1out(self):
         # Test grad is called correctly for a 1-to-1 op
-        gval = theano.tensor.matrix()
+        gval = aesara.tensor.matrix()
 
         class TestOp(gof.op.Op):
             __props__ = ()
 
             def make_node(self):
-                inputs = [theano.tensor.matrix()]
-                outputs = [theano.tensor.matrix()]
+                inputs = [aesara.tensor.matrix()]
+                outputs = [aesara.tensor.matrix()]
                 return gof.Apply(self, inputs, outputs)
 
             def grad(self, inp, grads):
@@ -94,14 +94,14 @@ class TestGradSourcesInputs:
 
     def test_1in_Nout(self):
         # Test grad is called correctly for a 1-to-many op
-        gval = theano.tensor.matrix()
+        gval = aesara.tensor.matrix()
 
         class TestOp(gof.op.Op):
             __props__ = ()
 
             def make_node(self):
-                inputs = [theano.tensor.matrix()]
-                outputs = [theano.tensor.scalar(), theano.tensor.scalar()]
+                inputs = [aesara.tensor.matrix()]
+                outputs = [aesara.tensor.scalar(), aesara.tensor.scalar()]
                 return gof.Apply(self, inputs, outputs)
 
             def grad(self, inp, grads):
@@ -115,15 +115,15 @@ class TestGradSourcesInputs:
 
     def test_Nin_1out(self):
         # Test grad is called correctly for a many-to-1 op
-        gval0 = theano.tensor.scalar()
-        gval1 = theano.tensor.scalar()
+        gval0 = aesara.tensor.scalar()
+        gval1 = aesara.tensor.scalar()
 
         class TestOp(gof.op.Op):
             __props__ = ()
 
             def make_node(self):
-                inputs = [theano.tensor.scalar(), theano.tensor.scalar()]
-                outputs = [theano.tensor.matrix()]
+                inputs = [aesara.tensor.scalar(), aesara.tensor.scalar()]
+                outputs = [aesara.tensor.matrix()]
                 return gof.Apply(self, inputs, outputs)
 
             def grad(self, inp, grads):
@@ -138,15 +138,15 @@ class TestGradSourcesInputs:
 
     def test_Nin_Nout(self):
         # Test grad is called correctly for a many-to-many op
-        gval0 = theano.tensor.matrix()
-        gval1 = theano.tensor.matrix()
+        gval0 = aesara.tensor.matrix()
+        gval1 = aesara.tensor.matrix()
 
         class TestOp(gof.op.Op):
             __props__ = ()
 
             def make_node(self):
-                inputs = [theano.tensor.matrix(), theano.tensor.matrix()]
-                outputs = [theano.tensor.matrix(), theano.tensor.matrix()]
+                inputs = [aesara.tensor.matrix(), aesara.tensor.matrix()]
+                outputs = [aesara.tensor.matrix(), aesara.tensor.matrix()]
                 return gof.Apply(self, inputs, outputs)
 
             def grad(self, inp, grads):
@@ -163,17 +163,17 @@ class TestGrad:
         # tests that function compilation catches unimplemented grads
         # in the graph
 
-        a = theano.tensor.vector()
-        b = theano.gradient.grad_not_implemented(theano.tensor.add, 0, a)
+        a = aesara.tensor.vector()
+        b = aesara.gradient.grad_not_implemented(aesara.tensor.add, 0, a)
         with pytest.raises(TypeError):
-            theano.function([a], b, on_unused_input="ignore")
+            aesara.function([a], b, on_unused_input="ignore")
 
     def test_undefined_grad_func(self):
         # tests that function compilation catches undefined grads in the graph
-        a = theano.tensor.vector()
-        b = theano.gradient.grad_undefined(theano.tensor.add, 0, a)
+        a = aesara.tensor.vector()
+        b = aesara.gradient.grad_undefined(aesara.tensor.add, 0, a)
         with pytest.raises(TypeError):
-            theano.function([a], b, on_unused_input="ignore")
+            aesara.function([a], b, on_unused_input="ignore")
 
     def test_unimplemented_grad_grad(self):
         # tests that unimplemented grads are caught in the grad method
@@ -185,13 +185,13 @@ class TestGrad:
                 return gof.Apply(self, [x], [x.type()])
 
             def grad(self, inputs, output_grads):
-                return [theano.gradient.grad_not_implemented(self, 0, inputs[0])]
+                return [aesara.gradient.grad_not_implemented(self, 0, inputs[0])]
 
-        a = theano.tensor.scalar()
+        a = aesara.tensor.scalar()
         b = DummyOp()(a)
 
         with pytest.raises(TypeError):
-            theano.gradient.grad(b, a)
+            aesara.gradient.grad(b, a)
 
     def test_undefined_grad_grad(self):
         # tests that undefined grads are caught in the grad method
@@ -203,20 +203,20 @@ class TestGrad:
                 return gof.Apply(self, [x], [x.type()])
 
             def grad(self, inputs, output_grads):
-                return [theano.gradient.grad_undefined(self, 0, inputs[0])]
+                return [aesara.gradient.grad_undefined(self, 0, inputs[0])]
 
-        a = theano.tensor.scalar()
+        a = aesara.tensor.scalar()
         b = DummyOp()(a)
 
         with pytest.raises(TypeError):
-            theano.gradient.grad(b, a)
+            aesara.gradient.grad(b, a)
 
     def test_grad_name(self):
-        A = theano.tensor.matrix("A")
-        x = theano.tensor.vector("x")
-        f = theano.tensor.dot(x, theano.tensor.dot(A, x))
+        A = aesara.tensor.matrix("A")
+        x = aesara.tensor.vector("x")
+        f = aesara.tensor.dot(x, aesara.tensor.dot(A, x))
         f.name = "f"
-        g = theano.tensor.grad(f, x)
+        g = aesara.tensor.grad(f, x)
         assert g.name == "(df/dx)"
 
     def test_grad_duplicate_input(self):
@@ -236,7 +236,7 @@ class TestGrad:
         # test the gradient on a tiny graph
 
         def cost(x, A):
-            return theano.tensor.dot(x, theano.tensor.dot(A, x))
+            return aesara.tensor.dot(x, aesara.tensor.dot(A, x))
 
         rng = np.random.RandomState([2012, 8, 28])
 
@@ -249,7 +249,7 @@ class TestGrad:
         # test the gradient on a small graph
 
         def output(x, A):
-            return theano.tensor.dot(x * x, A)
+            return aesara.tensor.dot(x * x, A)
 
         rng = np.random.RandomState([2012, 8, 28])
 
@@ -262,7 +262,7 @@ class TestGrad:
         # test the gradient on a bigger graph
 
         def cost(x, A):
-            return theano.tensor.dot(x * x, theano.tensor.dot(A, x))
+            return aesara.tensor.dot(x * x, aesara.tensor.dot(A, x))
 
         rng = np.random.RandomState([2012, 8, 28])
 
@@ -275,8 +275,8 @@ class TestGrad:
         # test the gradient on a graph constructed using the gradient
 
         def output(x, A):
-            orig_cost = theano.tensor.dot(x, theano.tensor.dot(A, x))
-            return theano.gradient.grad(orig_cost, x)
+            orig_cost = aesara.tensor.dot(x, aesara.tensor.dot(A, x))
+            return aesara.gradient.grad(orig_cost, x)
 
         rng = np.random.RandomState([2012, 8, 28])
 
@@ -289,8 +289,8 @@ class TestGrad:
         # test the gradient on a bigger graph constructed using the gradient
 
         def output(x, A):
-            orig_cost = theano.tensor.dot(x * x, theano.tensor.dot(A, x))
-            return theano.gradient.grad(orig_cost, x)
+            orig_cost = aesara.tensor.dot(x * x, aesara.tensor.dot(A, x))
+            return aesara.gradient.grad(orig_cost, x)
 
         rng = np.random.RandomState([2012, 8, 28])
 
@@ -303,28 +303,28 @@ class TestGrad:
         # tests that the gradient with respect to an integer
         # is the same as the gradient with respect to a float
 
-        W = theano.tensor.matrix()
-        b = theano.tensor.vector()
+        W = aesara.tensor.matrix()
+        b = aesara.tensor.vector()
 
         def make_grad_func(X):
-            Z = theano.tensor.dot(X, W) + b
-            H = theano.tensor.nnet.sigmoid(Z)
+            Z = aesara.tensor.dot(X, W) + b
+            H = aesara.tensor.nnet.sigmoid(Z)
             cost = H.sum()
             g = gradient.grad(cost, X)
-            return theano.function([X, W, b], g, on_unused_input="ignore")
+            return aesara.function([X, W, b], g, on_unused_input="ignore")
 
-        int_func = make_grad_func(theano.tensor.imatrix())
+        int_func = make_grad_func(aesara.tensor.imatrix())
         # we have to use float64 as the float type to get the results to match
         # using an integer for the input makes all the later functions use
         # float64
-        float_func = make_grad_func(theano.tensor.matrix(dtype="float64"))
+        float_func = make_grad_func(aesara.tensor.matrix(dtype="float64"))
 
         m = 5
         d = 3
         n = 4
         rng = np.random.RandomState([2012, 9, 5])
 
-        int_type = theano.tensor.imatrix().dtype
+        int_type = aesara.tensor.imatrix().dtype
         float_type = "float64"
 
         X = np.cast[int_type](rng.randn(m, d) * 127.0)
@@ -339,12 +339,12 @@ class TestGrad:
     def test_grad_disconnected(self):
         # tests corner cases of gradient for shape and alloc
 
-        x = theano.tensor.vector(name="x")
+        x = aesara.tensor.vector(name="x")
         total = x.sum()
         total.name = "total"
         num_elements = x.shape[0]
         num_elements.name = "num_elements"
-        silly_vector = theano.tensor.alloc(total / num_elements, num_elements)
+        silly_vector = aesara.tensor.alloc(total / num_elements, num_elements)
         silly_vector.name = "silly_vector"
         cost = silly_vector.sum()
         cost.name = "cost"
@@ -352,7 +352,7 @@ class TestGrad:
         g = gradient.grad(cost, x, add_names=False)
         # we still need to pass in x because it determines the shape of
         # the output
-        f = theano.function([x], g)
+        f = aesara.function([x], g)
         rng = np.random.RandomState([2012, 9, 5])
         x = np.cast[x.dtype](rng.randn(3))
         g = f(x)
@@ -363,12 +363,12 @@ class TestGrad:
 
         # Op1 has two outputs, f and g
         # x is connected to f but not to g
-        class Op1(theano.gof.Op):
+        class Op1(aesara.gof.Op):
             __props__ = ()
 
             def make_node(self, x):
-                return theano.Apply(
-                    self, inputs=[x], outputs=[x.type(), theano.tensor.scalar()]
+                return aesara.Apply(
+                    self, inputs=[x], outputs=[x.type(), aesara.tensor.scalar()]
                 )
 
             def connection_pattern(self, node):
@@ -379,24 +379,24 @@ class TestGrad:
 
         # Op2 has two inputs, f and g
         # Its gradient with respect to g is not defined
-        class Op2(theano.gof.Op):
+        class Op2(aesara.gof.Op):
             __props__ = ()
 
             def make_node(self, f, g):
-                return theano.Apply(
-                    self, inputs=[f, g], outputs=[theano.tensor.scalar()]
+                return aesara.Apply(
+                    self, inputs=[f, g], outputs=[aesara.tensor.scalar()]
                 )
 
             def grad(self, inputs, output_grads):
                 return [inputs[0].zeros_like(), NullType()()]
 
-        x = theano.tensor.vector()
+        x = aesara.tensor.vector()
         f, g = Op1()(x)
         cost = Op2()(f, g)
 
         # cost is differentiable wrt x
         # but we can't tell that without using Op1's connection pattern
-        # looking at the theano graph alone, g is an ancestor of cost
+        # looking at the aesara graph alone, g is an ancestor of cost
         # and has x as an ancestor, so we must compute its gradient
 
         g = gradient.grad(cost, x)
@@ -408,12 +408,12 @@ class TestGrad:
         # Test that the gradient of a cost wrt a float32 variable does not
         # get upcasted to float64.
         # x has dtype float32, regardless of the value of floatX
-        x = theano.tensor.fscalar("x")
+        x = aesara.tensor.fscalar("x")
         y = x * 2
-        z = theano.tensor.lscalar("z")
+        z = aesara.tensor.lscalar("z")
 
         c = y + z
-        dc_dx, dc_dy, dc_dz, dc_dc = theano.grad(c, [x, y, z, c])
+        dc_dx, dc_dy, dc_dz, dc_dc = aesara.grad(c, [x, y, z, c])
         # The dtype of dc_dy and dc_dz can be either float32 or float64,
         # that might depend on floatX, but is not specified.
         assert dc_dc.dtype in ("float32", "float64")
@@ -428,14 +428,14 @@ class TestGrad:
         # Test that the gradient handles Constants and consider_constant variables
         # consistently
 
-        x = theano.tensor.scalar()
-        y = theano.tensor.scalar()
+        x = aesara.tensor.scalar()
+        y = aesara.tensor.scalar()
         z_x = x + y
         z_one = one + y
-        g_x = theano.tensor.grad(z_x, x, consider_constant=[x])
-        g_one = theano.tensor.grad(z_one, one)
+        g_x = aesara.tensor.grad(z_x, x, consider_constant=[x])
+        g_one = aesara.tensor.grad(z_one, one)
 
-        f = theano.function([x, y], [g_x, g_one])
+        f = aesara.function([x, y], [g_x, g_one])
 
         g_x, g_one = f(1, 0.5)
 
@@ -453,19 +453,19 @@ def test_known_grads():
     # matches what happens if you put its own known_grads
     # in for each variable
 
-    full_range = theano.tensor.arange(10)
-    x = theano.tensor.scalar("x")
-    t = theano.tensor.iscalar("t")
+    full_range = aesara.tensor.arange(10)
+    x = aesara.tensor.scalar("x")
+    t = aesara.tensor.iscalar("t")
     ft = full_range[t]
     ft.name = "ft"
-    coeffs = theano.tensor.vector("c")
+    coeffs = aesara.tensor.vector("c")
     ct = coeffs[t]
     ct.name = "ct"
     p = x ** ft
     p.name = "p"
     y = ct * p
     y.name = "y"
-    cost = theano.tensor.sqr(y)
+    cost = aesara.tensor.sqr(y)
     cost.name = "cost"
 
     layers = [[cost], [y], [ct, p], [ct, x, ft], [coeffs, t, full_range, x]]
@@ -476,17 +476,17 @@ def test_known_grads():
     values = [rng.randn(10), rng.randint(10), rng.randn()]
     values = [np.cast[ipt.dtype](value) for ipt, value in zip(inputs, values)]
 
-    true_grads = theano.tensor.grad(cost, inputs, disconnected_inputs="ignore")
-    true_grads = theano.function(inputs, true_grads)
+    true_grads = aesara.tensor.grad(cost, inputs, disconnected_inputs="ignore")
+    true_grads = aesara.function(inputs, true_grads)
     true_grads = true_grads(*values)
 
     for layer in layers:
-        first = theano.tensor.grad(cost, layer, disconnected_inputs="ignore")
+        first = aesara.tensor.grad(cost, layer, disconnected_inputs="ignore")
         known = OrderedDict(zip(layer, first))
-        full = theano.tensor.grad(
+        full = aesara.tensor.grad(
             cost=None, known_grads=known, wrt=inputs, disconnected_inputs="ignore"
         )
-        full = theano.function(inputs, full)
+        full = aesara.function(inputs, full)
         full = full(*values)
         assert len(true_grads) == len(full)
         for a, b, var in zip(true_grads, full, inputs):
@@ -500,10 +500,10 @@ def test_dxdx():
     # of the gradient as defined in the Op contract, it should be 1.
     # If you feel the need to change this unit test you are probably
     # modifying the Op contract and should definitely get the approval
-    # of multiple people on theano-dev.
+    # of multiple people on aesara-dev.
 
-    x = theano.tensor.iscalar()
-    g = theano.tensor.grad(x, x)
+    x = aesara.tensor.iscalar()
+    g = aesara.tensor.grad(x, x)
 
     g = g.eval({x: 12})
 
@@ -513,15 +513,15 @@ def test_dxdx():
 def test_known_grads_integers():
     # Tests that known_grads works on integers
 
-    x = theano.tensor.iscalar()
-    g_expected = theano.tensor.scalar()
+    x = aesara.tensor.iscalar()
+    g_expected = aesara.tensor.scalar()
 
-    g_grad = theano.gradient.grad(cost=None, known_grads={x: g_expected}, wrt=x)
+    g_grad = aesara.gradient.grad(cost=None, known_grads={x: g_expected}, wrt=x)
 
-    f = theano.function([g_expected], g_grad)
+    f = aesara.function([g_expected], g_grad)
 
     x = -3
-    gv = np.cast[theano.config.floatX](0.6)
+    gv = np.cast[aesara.config.floatX](0.6)
 
     g_actual = f(gv)
 
@@ -535,13 +535,13 @@ def test_undefined_cost_grad():
     # This is so that Ops that are built around minigraphs like OpFromGraph
     # and scan can implement Op.grad by passing ograds to known_grads
 
-    x = theano.tensor.iscalar()
-    y = theano.tensor.iscalar()
+    x = aesara.tensor.iscalar()
+    y = aesara.tensor.iscalar()
     cost = x + y
-    assert cost.dtype in theano.tensor.discrete_dtypes
+    assert cost.dtype in aesara.tensor.discrete_dtypes
     try:
-        theano.tensor.grad(cost, [x, y], known_grads={cost: NullType()()})
-    except theano.gradient.NullTypeGradError:
+        aesara.tensor.grad(cost, [x, y], known_grads={cost: NullType()()})
+    except aesara.gradient.NullTypeGradError:
         return
     raise AssertionError("An undefined gradient has been ignored.")
 
@@ -553,18 +553,18 @@ def test_disconnected_cost_grad():
     # This is so that Ops that are built around minigraphs like OpFromGraph
     # and scan can implement Op.grad by passing ograds to known_grads
 
-    x = theano.tensor.iscalar()
-    y = theano.tensor.iscalar()
+    x = aesara.tensor.iscalar()
+    y = aesara.tensor.iscalar()
     cost = x + y
-    assert cost.dtype in theano.tensor.discrete_dtypes
+    assert cost.dtype in aesara.tensor.discrete_dtypes
     try:
-        theano.tensor.grad(
+        aesara.tensor.grad(
             cost,
             [x, y],
             known_grads={cost: gradient.DisconnectedType()()},
             disconnected_inputs="raise",
         )
-    except theano.gradient.DisconnectedInputError:
+    except aesara.gradient.DisconnectedInputError:
         return
     raise AssertionError("A disconnected gradient has been ignored.")
 
@@ -573,15 +573,15 @@ def test_subgraph_grad():
     # Tests that the grad method with no known_grads
     # matches what happens if you use successive subgraph_grads
 
-    x = theano.tensor.fvector("x")
-    t = theano.tensor.fvector("t")
-    w1 = theano.shared(np.random.randn(3, 4))
-    w2 = theano.shared(np.random.randn(4, 2))
-    a1 = theano.tensor.tanh(theano.tensor.dot(x, w1))
-    a2 = theano.tensor.tanh(theano.tensor.dot(a1, w2))
-    cost2 = theano.tensor.sqr(a2 - t).sum()
-    cost2 += theano.tensor.sqr(w2.sum())
-    cost1 = theano.tensor.sqr(w1.sum())
+    x = aesara.tensor.fvector("x")
+    t = aesara.tensor.fvector("t")
+    w1 = aesara.shared(np.random.randn(3, 4))
+    w2 = aesara.shared(np.random.randn(4, 2))
+    a1 = aesara.tensor.tanh(aesara.tensor.dot(x, w1))
+    a2 = aesara.tensor.tanh(aesara.tensor.dot(a1, w2))
+    cost2 = aesara.tensor.sqr(a2 - t).sum()
+    cost2 += aesara.tensor.sqr(w2.sum())
+    cost1 = aesara.tensor.sqr(w1.sum())
 
     params = [[w2], [w1]]
     costs = [cost2, cost1]
@@ -594,19 +594,19 @@ def test_subgraph_grad():
 
     wrt = [w2, w1]
     cost = cost2 + cost1
-    true_grads = theano.grad(cost, wrt)
-    true_grads = theano.function(inputs, true_grads)
+    true_grads = aesara.grad(cost, wrt)
+    true_grads = aesara.function(inputs, true_grads)
     true_grads = true_grads(*values)
     next_grad = None
     param_grads = []
     for i in range(2):
-        param_grad, next_grad = theano.subgraph_grad(
+        param_grad, next_grad = aesara.subgraph_grad(
             wrt=params[i], end=grad_ends[i], start=next_grad, cost=costs[i]
         )
         next_grad = OrderedDict(zip(grad_ends[i], next_grad))
         param_grads.extend(param_grad)
 
-    pgrads = theano.function(inputs, param_grads)
+    pgrads = aesara.function(inputs, param_grads)
     pgrads = pgrads(*values)
 
     for true_grad, pgrad in zip(true_grads, pgrads):
@@ -619,17 +619,17 @@ class TestConsiderConstant:
         self.rng = np.random.RandomState(seed=utt.fetch_seed())
 
     def test_op_removed(self):
-        x = theano.tensor.matrix("x")
+        x = aesara.tensor.matrix("x")
         y = x * gradient.consider_constant(x)
-        f = theano.function([x], y)
-        # need to refer to theano.gradient.consider_constant_ here,
-        # theano.gradient.consider_constant is a wrapper function!
+        f = aesara.function([x], y)
+        # need to refer to aesara.gradient.consider_constant_ here,
+        # aesara.gradient.consider_constant is a wrapper function!
         assert gradient.consider_constant_ not in [
             node.op for node in f.maker.fgraph.toposort()
         ]
 
     def test_grad(self):
-        T = theano.tensor
+        T = aesara.tensor
         a = np.asarray(self.rng.randn(5, 5), dtype=config.floatX)
 
         x = T.matrix("x")
@@ -643,10 +643,10 @@ class TestConsiderConstant:
 
         for expr, expr_grad in expressions_gradients:
             g = gradient.grad(expr.sum(), x)
-            # gradient according to theano
-            f = theano.function([x], g, on_unused_input="ignore")
+            # gradient according to aesara
+            f = aesara.function([x], g, on_unused_input="ignore")
             # desired gradient
-            f2 = theano.function([x], expr_grad, on_unused_input="ignore")
+            f2 = aesara.function([x], expr_grad, on_unused_input="ignore")
 
             assert np.allclose(f(a), f2(a))
 
@@ -657,17 +657,17 @@ class TestZeroGrad:
         self.rng = np.random.RandomState(seed=utt.fetch_seed())
 
     def test_op_removed(self):
-        x = theano.tensor.matrix("x")
+        x = aesara.tensor.matrix("x")
         y = x * gradient.zero_grad(x)
-        f = theano.function([x], y)
-        # need to refer to theano.gradient.zero_grad here,
-        # theano.gradient.zero_grad is a wrapper function!
+        f = aesara.function([x], y)
+        # need to refer to aesara.gradient.zero_grad here,
+        # aesara.gradient.zero_grad is a wrapper function!
         assert gradient.zero_grad_ not in [
             node.op for node in f.maker.fgraph.toposort()
         ]
 
     def test_grad(self):
-        T = theano.tensor
+        T = aesara.tensor
         a = np.asarray(self.rng.randn(5, 5), dtype=config.floatX)
 
         x = T.matrix("x")
@@ -681,22 +681,22 @@ class TestZeroGrad:
 
         for expr, expr_grad in expressions_gradients:
             g = gradient.grad(expr.sum(), x)
-            # gradient according to theano
-            f = theano.function([x], g, on_unused_input="ignore")
+            # gradient according to aesara
+            f = aesara.function([x], g, on_unused_input="ignore")
             # desired gradient
-            f2 = theano.function([x], expr_grad, on_unused_input="ignore")
+            f2 = aesara.function([x], expr_grad, on_unused_input="ignore")
 
             assert np.allclose(f(a), f2(a))
 
     def test_rop(self):
-        T = theano.tensor
+        T = aesara.tensor
 
         x = T.vector()
         v = T.vector()
         y = gradient.zero_grad(x)
 
         rop = T.Rop(y, x, v)
-        f = theano.function([x, v], rop, on_unused_input="ignore")
+        f = aesara.function([x, v], rop, on_unused_input="ignore")
 
         a = np.asarray(self.rng.randn(5), dtype=config.floatX)
         u = np.asarray(self.rng.randn(5), dtype=config.floatX)
@@ -710,17 +710,17 @@ class TestDisconnectedGrad:
         self.rng = np.random.RandomState(seed=utt.fetch_seed())
 
     def test_op_removed(self):
-        x = theano.tensor.matrix("x")
+        x = aesara.tensor.matrix("x")
         y = x * gradient.disconnected_grad(x)
-        f = theano.function([x], y)
-        # need to refer to theano.gradient.disconnected_grad here,
-        # theano.gradient.disconnected_grad is a wrapper function!
+        f = aesara.function([x], y)
+        # need to refer to aesara.gradient.disconnected_grad here,
+        # aesara.gradient.disconnected_grad is a wrapper function!
         assert gradient.disconnected_grad_ not in [
             node.op for node in f.maker.fgraph.toposort()
         ]
 
     def test_grad(self):
-        T = theano.tensor
+        T = aesara.tensor
         a = np.asarray(self.rng.randn(5, 5), dtype=config.floatX)
 
         x = T.matrix("x")
@@ -733,15 +733,15 @@ class TestDisconnectedGrad:
 
         for expr, expr_grad in expressions_gradients:
             g = gradient.grad(expr.sum(), x)
-            # gradient according to theano
-            f = theano.function([x], g, on_unused_input="ignore")
+            # gradient according to aesara
+            f = aesara.function([x], g, on_unused_input="ignore")
             # desired gradient
-            f2 = theano.function([x], expr_grad, on_unused_input="ignore")
+            f2 = aesara.function([x], expr_grad, on_unused_input="ignore")
 
             assert np.allclose(f(a), f2(a))
 
     def test_connection_pattern(self):
-        T = theano.tensor
+        T = aesara.tensor
         x = T.matrix("x")
         y = gradient.disconnected_grad(x)
 
@@ -751,7 +751,7 @@ class TestDisconnectedGrad:
     def test_disconnected_paths(self):
         # Test that taking gradient going through a disconnected
         # path rasises an exception
-        T = theano.tensor
+        T = aesara.tensor
         a = np.asarray(self.rng.randn(5, 5), dtype=config.floatX)
 
         x = T.matrix("x")
@@ -777,14 +777,14 @@ class TestDisconnectedGrad:
 
 
 def test_grad_clip():
-    x = theano.tensor.scalar()
+    x = aesara.tensor.scalar()
 
-    z = theano.tensor.grad(gradient.grad_clip(x, -1, 1) ** 2, x)
-    z2 = theano.tensor.grad(x ** 2, x)
+    z = aesara.tensor.grad(gradient.grad_clip(x, -1, 1) ** 2, x)
+    z2 = aesara.tensor.grad(x ** 2, x)
 
-    f = theano.function([x], outputs=[z, z2])
+    f = aesara.function([x], outputs=[z, z2])
 
-    if theano.config.mode != "FAST_COMPILE":
+    if aesara.config.mode != "FAST_COMPILE":
         topo = f.maker.fgraph.toposort()
         assert not any([isinstance(node.op, gradient.GradClip) for node in topo])
     out = f(2.0)
@@ -793,14 +793,14 @@ def test_grad_clip():
 
 
 def test_grad_scale():
-    x = theano.tensor.scalar()
+    x = aesara.tensor.scalar()
 
-    z = theano.tensor.grad(gradient.grad_scale(x, 2) ** 2, x)
-    z2 = theano.tensor.grad(x ** 2, x)
+    z = aesara.tensor.grad(gradient.grad_scale(x, 2) ** 2, x)
+    z2 = aesara.tensor.grad(x ** 2, x)
 
-    f = theano.function([x], outputs=[z, z2])
+    f = aesara.function([x], outputs=[z, z2])
 
-    if theano.config.mode != "FAST_COMPILE":
+    if aesara.config.mode != "FAST_COMPILE":
         topo = f.maker.fgraph.toposort()
         assert not any([isinstance(node.op, gradient.GradScale) for node in topo])
     out = f(2.0)
@@ -812,16 +812,16 @@ def test_grad_scale():
 def test_undefined_grad_opt():
     # Make sure that undefined grad get removed in optimized graph.
     random = RandomStreams(np.random.randint(1, 2147462579))
-    pvals = theano.shared(np.random.rand(10, 20).astype(theano.config.floatX))
+    pvals = aesara.shared(np.random.rand(10, 20).astype(aesara.config.floatX))
     pvals = pvals / pvals.sum(axis=1)
     pvals = gradient.zero_grad(pvals)
     samples = random.multinomial(pvals=pvals, n=1)
-    samples = theano.tensor.cast(samples, pvals.dtype)
+    samples = aesara.tensor.cast(samples, pvals.dtype)
     samples = gradient.zero_grad(samples)
-    cost = theano.tensor.sum(samples + pvals)
-    grad = theano.tensor.grad(cost, samples)
-    f = theano.function([], grad)
-    theano.printing.debugprint(f)
+    cost = aesara.tensor.sum(samples + pvals)
+    grad = aesara.tensor.grad(cost, samples)
+    f = aesara.function([], grad)
+    aesara.printing.debugprint(f)
     assert not any(
         [
             isinstance(node.op, gradient.UndefinedGrad)

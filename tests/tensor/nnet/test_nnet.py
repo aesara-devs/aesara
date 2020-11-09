@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 from tests import unittest_tools as utt
 from tests.tensor.utils import (
     _good_broadcast_unary_normal_float_no_complex,
@@ -10,10 +10,10 @@ from tests.tensor.utils import (
     makeBroadcastTester,
     upcast_int8_nfunc,
 )
-from theano import config, gof, printing
-from theano.gof.opt import check_stack_trace
-from theano.tensor import lvector, matrix, scalar, vector
-from theano.tensor.nnet import (
+from aesara import config, gof, printing
+from aesara.gof.opt import check_stack_trace
+from aesara.tensor import lvector, matrix, scalar, vector
+from aesara.tensor.nnet import (
     CrossentropyCategorical1Hot,
     CrossentropyCategorical1HotGrad,
     CrossentropySoftmax1HotWithBiasDx,
@@ -46,7 +46,7 @@ from theano.tensor.nnet import (
     softmax_with_bias,
     softplus,
 )
-from theano.tensor.nnet.nnet import LogSoftmax, softsign
+from aesara.tensor.nnet.nnet import LogSoftmax, softsign
 
 
 class TestSigmoid:
@@ -94,7 +94,7 @@ class TestSoftmax(utt.InferShapeTester):
 
     def test_vector(self):
         x = tt.vector()
-        f = theano.function([x], softmax_op(x))
+        f = aesara.function([x], softmax_op(x))
 
         xv = np.random.randn(6).astype(config.floatX)
         assert np.allclose(f(xv), np.exp(xv) / np.exp(xv).sum())
@@ -134,12 +134,12 @@ class TestSoftmaxWithBias(utt.InferShapeTester):
         # broadcasted inputs pattern
         initial_W = np.asarray(
             [[0.1, 0.1, 0.1], [0.1, 0.1, 0.1], [0.1, 0.1, 0.1]],
-            dtype=theano.config.floatX,
+            dtype=aesara.config.floatX,
         )
-        W = theano.shared(value=initial_W, name="W")
-        vbias = theano.shared(value=0.1, name="vbias")  # 0.01
+        W = aesara.shared(value=initial_W, name="W")
+        vbias = aesara.shared(value=0.1, name="vbias")  # 0.01
         hid = tt.vector("hid")
-        f = theano.function([hid], softmax_op(tt.dot(hid, W.T) + vbias))
+        f = aesara.function([hid], softmax_op(tt.dot(hid, W.T) + vbias))
         ops = [node.op for node in f.maker.fgraph.toposort()]
         assert softmax_with_bias not in ops
         assert softmax_op in ops
@@ -148,10 +148,10 @@ class TestSoftmaxWithBias(utt.InferShapeTester):
         # print f.maker.fgraph.toposort()
 
     def test_softmax_with_bias_trace(self):
-        a = theano.shared(np.random.randn(3).astype(config.floatX))
-        b = theano.shared(np.float32(np.random.randn()))
+        a = aesara.shared(np.random.randn(3).astype(config.floatX))
+        b = aesara.shared(np.float32(np.random.randn()))
         sm = softmax(a + b)
-        f = theano.function([], sm)
+        f = aesara.function([], sm)
         assert check_stack_trace(f, ops_to_check="last")
 
     def test_infer_shape(self):
@@ -197,7 +197,7 @@ class TestLogSoftmax(utt.InferShapeTester):
 
     def test_vector(self):
         x = tt.vector()
-        f = theano.function([x], logsoftmax_op(x))
+        f = aesara.function([x], logsoftmax_op(x))
 
         xv = np.random.randn(6).astype(config.floatX)
         assert np.allclose(f(xv), np.log(np.exp(xv) / np.exp(xv).sum()))
@@ -209,8 +209,8 @@ class TestLogSoftmax(utt.InferShapeTester):
         utt.verify_grad(f, [np.random.rand(4)])
 
     def test_allclose(self):
-        m = theano.config.mode
-        m = theano.compile.get_mode(m)
+        m = aesara.config.mode
+        m = aesara.compile.get_mode(m)
         m.check_isfinite = False
         x, y = tt.matrices("xy")
         # regular softmax and crossentropy
@@ -224,26 +224,26 @@ class TestLogSoftmax(utt.InferShapeTester):
         grad = tt.grad(cm2.mean(), x)
 
         # create some inputs into a softmax that are large and labels
-        a = np.exp(10 * np.random.rand(5, 10).astype(theano.config.floatX))
+        a = np.exp(10 * np.random.rand(5, 10).astype(aesara.config.floatX))
         # create some one-hot coded labels
-        b = np.eye(5, 10).astype(theano.config.floatX)
+        b = np.eye(5, 10).astype(aesara.config.floatX)
 
         # show equivalence of softmax and exponentiated numerically stable
         # log-softmax
-        f1 = theano.function([x], [sm, sm2])
+        f1 = aesara.function([x], [sm, sm2])
         sm_, sm2_ = f1(a)
         utt.assert_allclose(sm_, sm2_)
 
         # now show that the two versions result in the same crossentropy cost
         # this indicates that the forward function does provide some numerical
         # stability
-        f2 = theano.function([x, y], [cm, cm2], mode=m)
+        f2 = aesara.function([x, y], [cm, cm2], mode=m)
         cm_, cm2_ = f2(a, b)
         utt.assert_allclose(cm_, cm2_)
 
         # now, show that in the standard softmax case the gradients blow up
         # while in the log-softmax case they don't
-        f3 = theano.function([x, y], [grad])
+        f3 = aesara.function([x, y], [grad])
         grad_ = f3(a, b)
         assert not np.any(np.isnan(grad_))
 
@@ -260,7 +260,7 @@ class TestLogSoftmax(utt.InferShapeTester):
         x, y = tt.matrices("xy")
         sm = softmax(x)
         logsm = tt.log(sm)
-        f = theano.function([x], logsm)
+        f = aesara.function([x], logsm)
         assert isinstance(f.maker.fgraph.outputs[0].owner.op, LogSoftmax)
         assert check_stack_trace(f, ops_to_check=LogSoftmax)
 
@@ -271,12 +271,12 @@ class TestLogSoftmax(utt.InferShapeTester):
         # grad and that the new operation does not explode for big inputs.
         # Note that only the grad is checked.
 
-        m = theano.config.mode
-        m = theano.compile.get_mode(m)
+        m = aesara.config.mode
+        m = aesara.compile.get_mode(m)
         m.check_isfinite = False
         # some inputs that are large to make the gradient explode in the non
         # optimized case
-        a = np.exp(10 * np.random.rand(5, 10).astype(theano.config.floatX))
+        a = np.exp(10 * np.random.rand(5, 10).astype(aesara.config.floatX))
 
         def myfunc(x):
             sm = softmax(x)
@@ -285,8 +285,8 @@ class TestLogSoftmax(utt.InferShapeTester):
 
         # We set step to 0.1 because for big values we need a big epsilon
         utt.verify_grad(myfunc, [a], eps=0.1, mode=m)
-        sa = theano.shared(a)
-        f = theano.function([], myfunc(sa))
+        sa = aesara.shared(a)
+        f = aesara.function([], myfunc(sa))
         assert check_stack_trace(f, ops_to_check="all")
 
     def test_logsoftmax_grad_true_div_elemwise(self):
@@ -307,7 +307,7 @@ class TestLogSoftmax(utt.InferShapeTester):
         new_g = softmax_grad(tt.add(*true_div_node.inputs), softmax_grad_node.inputs[1])
 
         fgraph = gof.FunctionGraph([x], [new_g])
-        theano.compile.mode.optdb.query(theano.compile.mode.OPT_FAST_RUN).optimize(
+        aesara.compile.mode.optdb.query(aesara.compile.mode.OPT_FAST_RUN).optimize(
             fgraph
         )
 
@@ -421,7 +421,7 @@ class TestCrossentropySoftmax1HotWithBiasDx(utt.InferShapeTester):
         alvec_val = rng.randint(low=0, high=5, size=10)
         alvec_val[1] = -1
         out = CrossentropySoftmax1HotWithBiasDx()(advec, admat, alvec)
-        f = theano.function([advec, admat, alvec], out)
+        f = aesara.function([advec, admat, alvec], out)
         with pytest.raises(ValueError):
             f(advec_val, admat_val, alvec_val)
 
@@ -487,7 +487,7 @@ class TestCrossentropySoftmaxArgmax1HotWithBias(utt.InferShapeTester):
         alvec_val = rng.randint(low=0, high=5, size=3)
         alvec_val[1] = -1
         out = CrossentropySoftmaxArgmax1HotWithBias()(admat, advec, alvec)
-        f = theano.function([admat, advec, alvec], out)
+        f = aesara.function([admat, advec, alvec], out)
         with pytest.raises(ValueError):
             f(admat_val, advec_val, alvec_val)
 
@@ -496,7 +496,7 @@ class TestPrepend(utt.InferShapeTester):
     def test_prepend_constant(self):
         x = tt.matrix("x")
         y = Prepend_scalar_constant_to_each_row(4.0)(x)
-        f = theano.function([x], y)
+        f = aesara.function([x], y)
         m = np.random.rand(3, 5).astype(config.floatX)
         my = f(m)
         assert my.shape == (3, 6)
@@ -506,7 +506,7 @@ class TestPrepend(utt.InferShapeTester):
         """Test basic functionality."""
         x = tt.matrix("x")
         y = Prepend_scalar_to_each_row()(5.0, x)
-        f = theano.function([x], y)
+        f = aesara.function([x], y)
         m = np.ones((3, 5), dtype="float32")
         my = f(m)
         assert my.shape == (3, 6)
@@ -556,7 +556,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         one_of_n = tt.lvector("one_of_n")
         op = crossentropy_categorical_1hot
         xe = op(x, one_of_n)
-        f = theano.function([x, one_of_n], xe)
+        f = aesara.function([x, one_of_n], xe)
         x_val = np.asarray([[0.4, 0.6, 0.0], [0.1, 0.8, 0.1]], dtype=config.floatX)
         xe_val = f(x_val, [0, 1])
         assert np.allclose(xe_val, -np.log([0.4, 0.8]))
@@ -588,7 +588,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         fgraph = gof.FunctionGraph([x, one_of_n], [op(softmax_op(x), one_of_n)])
         assert fgraph.outputs[0].owner.op == op
 
-        theano.compile.mode.optdb.query(theano.compile.mode.OPT_FAST_RUN).optimize(
+        aesara.compile.mode.optdb.query(aesara.compile.mode.OPT_FAST_RUN).optimize(
             fgraph
         )
         assert fgraph.outputs[0].owner.op == crossentropy_softmax_argmax_1hot_with_bias
@@ -600,7 +600,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         fgraph = gof.FunctionGraph([x, one_of_n], [op(softmax_op(x), one_of_n)])
         assert fgraph.outputs[0].owner.op == op
 
-        theano.compile.mode.optdb.query(theano.compile.mode.OPT_FAST_RUN).optimize(
+        aesara.compile.mode.optdb.query(aesara.compile.mode.OPT_FAST_RUN).optimize(
             fgraph
         )
         assert fgraph.outputs[0].owner.op == crossentropy_softmax_argmax_1hot_with_bias
@@ -621,7 +621,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         # print printing.pprint(node.outputs[0])
         # print '----'
 
-        theano.compile.mode.optdb.query(theano.compile.mode.OPT_FAST_RUN).optimize(
+        aesara.compile.mode.optdb.query(aesara.compile.mode.OPT_FAST_RUN).optimize(
             fgraph
         )
 
@@ -650,7 +650,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         #    print node.op
         # print '----'
 
-        theano.compile.mode.optdb.query(theano.compile.mode.OPT_FAST_RUN).optimize(
+        aesara.compile.mode.optdb.query(aesara.compile.mode.OPT_FAST_RUN).optimize(
             fgraph
         )
 
@@ -674,7 +674,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         # print printing.pprint(node.outputs[0])
         # print '----'
 
-        theano.compile.mode.optdb.query(theano.compile.mode.OPT_FAST_RUN).optimize(
+        aesara.compile.mode.optdb.query(aesara.compile.mode.OPT_FAST_RUN).optimize(
             fgraph
         )
         # print 'AFTER'
@@ -700,7 +700,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         # for node in fgraph.toposort():
         #    print node.op, node.inputs
         # print '----'
-        theano.compile.mode.optdb.query(theano.compile.mode.OPT_FAST_RUN).optimize(
+        aesara.compile.mode.optdb.query(aesara.compile.mode.OPT_FAST_RUN).optimize(
             fgraph
         )
 
@@ -739,7 +739,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         # for node in fgraph.toposort():
         #    print node.op, node.inputs
         # print '----'
-        theano.compile.mode.optdb.query(theano.compile.mode.OPT_FAST_RUN).optimize(
+        aesara.compile.mode.optdb.query(aesara.compile.mode.OPT_FAST_RUN).optimize(
             fgraph
         )
 
@@ -769,8 +769,8 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         verbose = 0
         # TODO: add the optimization in FAST_COMPILE?
         # In the mean time, run it as 'FAST_RUN' instead
-        mode = theano.compile.mode.get_default_mode()
-        if mode == theano.compile.mode.get_mode("FAST_COMPILE"):
+        mode = aesara.compile.mode.get_default_mode()
+        if mode == aesara.compile.mode.get_mode("FAST_COMPILE"):
             mode = "FAST_RUN"
         rng = np.random.RandomState(utt.fetch_seed())
         x_val = rng.randn(3, 5).astype(config.floatX)
@@ -789,12 +789,12 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         ]
         for expr in expressions:
             # Verify the optimizer worked on the expressions
-            f = theano.function([x, y], expr, mode=mode)
+            f = aesara.function([x, y], expr, mode=mode)
             # todo: only the first output of the op has a stack trace
             # assert check_stack_trace(
             #     f, ops_to_check=crossentropy_softmax_argmax_1hot_with_bias)
             if verbose:
-                theano.printing.debugprint(f)
+                aesara.printing.debugprint(f)
             try:
                 ops = [node.op for node in f.maker.fgraph.toposort()]
                 assert len(ops) == 4
@@ -802,16 +802,16 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
                 f(x_val, y_val)
             except Exception:
-                theano.printing.debugprint(f)
+                aesara.printing.debugprint(f)
                 raise
 
             # Also verify the gradient wrt x
-            g = theano.function([x, y], tt.grad(expr, x), mode=mode)
+            g = aesara.function([x, y], tt.grad(expr, x), mode=mode)
             assert check_stack_trace(
                 g, ops_to_check=[crossentropy_softmax_1hot_with_bias_dx, softmax_op]
             )
             if verbose:
-                theano.printing.debugprint(g)
+                aesara.printing.debugprint(g)
             try:
                 ops = [node.op for node in g.maker.fgraph.toposort()]
                 assert len(ops) == 2
@@ -820,7 +820,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 assert softmax_grad not in ops
                 g(x_val, y_val)
             except Exception:
-                theano.printing.debugprint(g)
+                aesara.printing.debugprint(g)
                 raise
 
         # Test that a biased softmax is optimized correctly
@@ -832,21 +832,21 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         ]
 
         for expr in bias_expressions:
-            f = theano.function([x, b, y], expr, mode=mode)
+            f = aesara.function([x, b, y], expr, mode=mode)
             # todo: only the first output of the op has a stack trace
             # assert check_stack_trace(
             #     f, ops_to_check=crossentropy_softmax_argmax_1hot_with_bias)
             if verbose:
-                theano.printing.debugprint(f)
+                aesara.printing.debugprint(f)
             try:
                 ops = [node.op for node in f.maker.fgraph.toposort()]
                 assert len(ops) == 2  # [big_op, sum]
                 assert crossentropy_softmax_argmax_1hot_with_bias in ops
                 f(x_val, b_val, y_val)
             except Exception:
-                theano.printing.debugprint(f)
+                aesara.printing.debugprint(f)
                 raise
-            g = theano.function([x, b, y], tt.grad(expr, x), mode=mode)
+            g = aesara.function([x, b, y], tt.grad(expr, x), mode=mode)
             assert check_stack_trace(
                 g,
                 ops_to_check=[
@@ -855,7 +855,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 ],
             )
             if verbose:
-                theano.printing.debugprint(g)
+                aesara.printing.debugprint(g)
             try:
                 ops = [node.op for node in g.maker.fgraph.toposort()]
                 assert len(ops) == 2
@@ -864,7 +864,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 assert softmax_grad not in ops
                 g(x_val, b_val, y_val)
             except Exception:
-                theano.printing.debugprint(g)
+                aesara.printing.debugprint(g)
                 raise
 
         # Test that using "mean" instead of sum works, too
@@ -876,12 +876,12 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         ]
 
         for expr in mean_expressions:
-            f = theano.function([x, y], expr, mode=mode)
+            f = aesara.function([x, y], expr, mode=mode)
             # todo: only the first output of the op has a stack trace
             # assert check_stack_trace(
             #     f, ops_to_check=[crossentropy_softmax_argmax_1hot_with_bias])
             if verbose:
-                theano.printing.debugprint(f)
+                aesara.printing.debugprint(f)
             try:
                 ops = [node.op for node in f.maker.fgraph.toposort()]
                 assert len(ops) == 6
@@ -889,15 +889,15 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
                 f(x_val, y_val)
             except Exception:
-                theano.printing.debugprint(f)
+                aesara.printing.debugprint(f)
                 raise
 
-            g = theano.function([x, y], tt.grad(expr, x), mode=mode)
+            g = aesara.function([x, y], tt.grad(expr, x), mode=mode)
             assert check_stack_trace(
                 g, ops_to_check=[crossentropy_softmax_1hot_with_bias_dx, softmax_op]
             )
             if verbose:
-                theano.printing.debugprint(g)
+                aesara.printing.debugprint(g)
             try:
                 ops = [node.op for node in g.maker.fgraph.toposort()]
                 assert len(ops) == 5
@@ -908,7 +908,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 assert softmax_grad not in ops
                 g(x_val, y_val)
             except Exception:
-                theano.printing.debugprint(g)
+                aesara.printing.debugprint(g)
                 raise
 
         mean_bias_expressions = [
@@ -919,21 +919,21 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         ]
 
         for expr in mean_bias_expressions:
-            f = theano.function([x, b, y], expr, mode=mode)
+            f = aesara.function([x, b, y], expr, mode=mode)
             # todo: only the first output of the op has a stack trace
             # assert check_stack_trace(
             #     f, ops_to_check=crossentropy_softmax_argmax_1hot_with_bias)
             if verbose:
-                theano.printing.debugprint(f)
+                aesara.printing.debugprint(f)
             try:
                 ops = [node.op for node in f.maker.fgraph.toposort()]
                 assert len(ops) == 4
                 assert crossentropy_softmax_argmax_1hot_with_bias in ops
                 assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
             except Exception:
-                theano.printing.debugprint(f)
+                aesara.printing.debugprint(f)
                 raise
-            g = theano.function([x, b, y], tt.grad(expr, x), mode=mode)
+            g = aesara.function([x, b, y], tt.grad(expr, x), mode=mode)
             assert check_stack_trace(
                 g,
                 ops_to_check=[
@@ -942,7 +942,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 ],
             )
             if verbose:
-                theano.printing.debugprint(g)
+                aesara.printing.debugprint(g)
             try:
                 ops = [node.op for node in g.maker.fgraph.toposort()]
                 assert len(ops) == 5
@@ -951,13 +951,13 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 assert softmax_grad not in ops
                 g(x_val, b_val, y_val)
             except Exception:
-                theano.printing.debugprint(g)
+                aesara.printing.debugprint(g)
                 raise
 
     def test_xent_thing_int32(self):
         verbose = 0
-        mode = theano.compile.mode.get_default_mode()
-        if mode == theano.compile.mode.get_mode("FAST_COMPILE"):
+        mode = aesara.compile.mode.get_default_mode()
+        if mode == aesara.compile.mode.get_mode("FAST_COMPILE"):
             mode = "FAST_RUN"
         rng = np.random.RandomState(utt.fetch_seed())
         x_val = rng.randn(3, 5).astype(config.floatX)
@@ -974,9 +974,9 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
 
         for expr in expressions:
             # Verify the optimizer worked on the expressions
-            f = theano.function([x, y], expr, mode=mode)
+            f = aesara.function([x, y], expr, mode=mode)
             if verbose:
-                theano.printing.debugprint(f)
+                aesara.printing.debugprint(f)
             try:
                 ops = [node.op for node in f.maker.fgraph.toposort()]
                 assert len(ops) == 5
@@ -984,13 +984,13 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
                 f(x_val, y_val)
             except Exception:
-                theano.printing.debugprint(f)
+                aesara.printing.debugprint(f)
                 raise
 
             # Also verify the gradient wrt x
-            g = theano.function([x, y], tt.grad(expr, x), mode=mode)
+            g = aesara.function([x, y], tt.grad(expr, x), mode=mode)
             if verbose:
-                theano.printing.debugprint(g)
+                aesara.printing.debugprint(g)
             try:
                 ops = [node.op for node in g.maker.fgraph.toposort()]
                 assert len(ops) == 3
@@ -999,13 +999,13 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 assert softmax_grad not in ops
                 g(x_val, y_val)
             except Exception:
-                theano.printing.debugprint(g)
+                aesara.printing.debugprint(g)
                 raise
 
     def test_optimize_xent_vector(self):
         verbose = 0
-        mode = theano.compile.mode.get_default_mode()
-        if mode == theano.compile.mode.get_mode("FAST_COMPILE"):
+        mode = aesara.compile.mode.get_default_mode()
+        if mode == aesara.compile.mode.get_mode("FAST_COMPILE"):
             mode = "FAST_RUN"
         rng = np.random.RandomState(utt.fetch_seed())
         x_val = rng.randn(5).astype(config.floatX)
@@ -1021,7 +1021,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         ]
 
         for expr in bias_expressions:
-            f = theano.function([x, y], expr, mode=mode)
+            f = aesara.function([x, y], expr, mode=mode)
             if verbose:
                 printing.debugprint(f)
             try:
@@ -1031,9 +1031,9 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
                 f(x_val, y_val)
             except Exception:
-                theano.printing.debugprint(f)
+                aesara.printing.debugprint(f)
                 raise
-            g = theano.function([x, y], tt.grad(expr, x), mode=mode)
+            g = aesara.function([x, y], tt.grad(expr, x), mode=mode)
             if verbose:
                 printing.debugprint(g)
             try:
@@ -1044,13 +1044,13 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 assert softmax_grad not in ops
                 g(x_val, y_val)
             except Exception:
-                theano.printing.debugprint(g)
+                aesara.printing.debugprint(g)
                 raise
 
     def test_optimize_xent_vector2(self):
         verbose = 0
-        mode = theano.compile.mode.get_default_mode()
-        if mode == theano.compile.mode.get_mode("FAST_COMPILE"):
+        mode = aesara.compile.mode.get_default_mode()
+        if mode == aesara.compile.mode.get_mode("FAST_COMPILE"):
             mode = "FAST_RUN"
         rng = np.random.RandomState(utt.fetch_seed())
         x_val = rng.randn(5).astype(config.floatX)
@@ -1070,7 +1070,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         ]
 
         for expr in bias_expressions:
-            f = theano.function([x, b, y], expr, mode=mode)
+            f = aesara.function([x, b, y], expr, mode=mode)
             if verbose:
                 printing.debugprint(f)
             try:
@@ -1081,13 +1081,13 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
                 f(x_val, b_val, y_val)
             except Exception:
-                theano.printing.debugprint(f)
+                aesara.printing.debugprint(f)
                 raise
 
             backup = config.warn.sum_div_dimshuffle_bug
             config.warn.sum_div_dimshuffle_bug = False
             try:
-                g = theano.function([x, b, y], tt.grad(expr, x), mode=mode)
+                g = aesara.function([x, b, y], tt.grad(expr, x), mode=mode)
             finally:
                 config.warn.sum_div_dimshuffle_bug = backup
 
@@ -1101,7 +1101,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 assert softmax_grad not in ops
                 g(x_val, b_val, y_val)
             except Exception:
-                theano.printing.debugprint(g)
+                aesara.printing.debugprint(g)
                 raise
 
     def test_optimize_xent_vector3(self):
@@ -1109,8 +1109,8 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         # a "flatten", and it used to make the constant-folding
         # of arange(y.shape[0]) happen before the xent optimization
         verbose = 0
-        mode = theano.compile.mode.get_default_mode()
-        if mode == theano.compile.mode.get_mode("FAST_COMPILE"):
+        mode = aesara.compile.mode.get_default_mode()
+        if mode == aesara.compile.mode.get_mode("FAST_COMPILE"):
             mode = "FAST_RUN"
         rng = np.random.RandomState(utt.fetch_seed())
         x_val = rng.randn(5).astype(config.floatX)
@@ -1131,7 +1131,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         ]
 
         for expr in bias_expressions:
-            f = theano.function([x, b, y_], expr, mode=mode)
+            f = aesara.function([x, b, y_], expr, mode=mode)
             if verbose:
                 printing.debugprint(f)
             try:
@@ -1142,13 +1142,13 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
                 f(x_val, b_val, y_val)
             except Exception:
-                theano.printing.debugprint(f)
+                aesara.printing.debugprint(f)
                 raise
 
             backup = config.warn.sum_div_dimshuffle_bug
             config.warn.sum_div_dimshuffle_bug = False
             try:
-                g = theano.function([x, b, y], tt.grad(expr, x), mode=mode)
+                g = aesara.function([x, b, y], tt.grad(expr, x), mode=mode)
             finally:
                 config.warn.sum_div_dimshuffle_bug = backup
 
@@ -1162,7 +1162,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 assert softmax_grad not in ops
                 g(x_val, b_val, y_val)
             except Exception:
-                theano.printing.debugprint(g)
+                aesara.printing.debugprint(g)
                 raise
 
     def test_optimize_xent_vector4(self):
@@ -1171,8 +1171,8 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         # constant-folding of arange(y.shape[0]) happen before the xent
         # optimization
         verbose = 0
-        mode = theano.compile.mode.get_default_mode()
-        if mode == theano.compile.mode.get_mode("FAST_COMPILE"):
+        mode = aesara.compile.mode.get_default_mode()
+        if mode == aesara.compile.mode.get_mode("FAST_COMPILE"):
             mode = "FAST_RUN"
         rng = np.random.RandomState(utt.fetch_seed())
         x_val = rng.randn(5).astype(config.floatX)
@@ -1193,7 +1193,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
         ]
 
         for expr in bias_expressions:
-            f = theano.function([x, b, y_], expr, mode=mode)
+            f = aesara.function([x, b, y_], expr, mode=mode)
             if verbose:
                 printing.debugprint(f)
             try:
@@ -1204,13 +1204,13 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
                 f(x_val, b_val, y_val)
             except Exception:
-                theano.printing.debugprint(f)
+                aesara.printing.debugprint(f)
                 raise
 
             backup = config.warn.sum_div_dimshuffle_bug
             config.warn.sum_div_dimshuffle_bug = False
             try:
-                g = theano.function([x, b, y], tt.grad(expr, x), mode=mode)
+                g = aesara.function([x, b, y], tt.grad(expr, x), mode=mode)
             finally:
                 config.warn.sum_div_dimshuffle_bug = backup
 
@@ -1224,14 +1224,14 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 assert softmax_grad not in ops
                 g(x_val, b_val, y_val)
             except Exception:
-                theano.printing.debugprint(g)
+                aesara.printing.debugprint(g)
                 raise
 
     def test_crossentropy_softmax_1hot_with_bias_dxcale_cost(self):
         # TODO: add the optimization in FAST_COMPILE?
         # In the mean time, run it as 'FAST_RUN' instead
-        mode = theano.compile.mode.get_default_mode()
-        if mode == theano.compile.mode.get_mode("FAST_COMPILE"):
+        mode = aesara.compile.mode.get_default_mode()
+        if mode == aesara.compile.mode.get_mode("FAST_COMPILE"):
             mode = "FAST_RUN"
         rng = np.random.RandomState(utt.fetch_seed())
         x_val = rng.randn(3, 5).astype(config.floatX)
@@ -1292,27 +1292,27 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
 
         for expr in expressions:
             # Verify the optimizer worked on the expressions
-            f = theano.function([x, y, a], expr, mode=mode)
+            f = aesara.function([x, y, a], expr, mode=mode)
             try:
                 assert 5 <= len(f.maker.fgraph.toposort()) <= 10
                 validate_fn_graph(f)
                 f(x_val, y_val, 0.1)
             except Exception:
-                theano.printing.debugprint(f)
+                aesara.printing.debugprint(f)
                 raise
 
             # Verify the gradient wrt x
-            g = theano.function([x, y, a], tt.grad(expr, x), mode=mode)
+            g = aesara.function([x, y, a], tt.grad(expr, x), mode=mode)
             try:
                 assert 3 <= len(g.maker.fgraph.toposort()) <= 6
                 validate_grad_graph(g)
                 g(x_val, y_val, 0.1)
             except Exception:
-                theano.printing.debugprint(g)
+                aesara.printing.debugprint(g)
                 raise
 
             # Verify the gradient when providing output gradient
-            h = theano.function(
+            h = aesara.function(
                 [x, y, a], tt.grad(expr, x, known_grads={expr: a * x.sum()}), mode=mode
             )
             try:
@@ -1320,7 +1320,7 @@ class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
                 validate_grad_graph(h)
                 h(x_val, y_val, 0.1)
             except Exception:
-                theano.printing.debugprint(h)
+                aesara.printing.debugprint(h)
                 raise
 
 
@@ -1330,7 +1330,7 @@ def test_argmax_pushdown():
         # test that the max_and_argmax is pushed down if the max is not used
         out = tt.max_and_argmax(sm(tt.exp(tt.tanh(sigmoid(x)))), axis=-1)[1]
         fgraph = gof.FunctionGraph([x], [out])
-        theano.compile.mode.optdb.query(theano.compile.mode.OPT_FAST_RUN).optimize(
+        aesara.compile.mode.optdb.query(aesara.compile.mode.OPT_FAST_RUN).optimize(
             fgraph
         )
 
@@ -1349,7 +1349,7 @@ def test_argmax_pushdown():
         backup = config.warn.argmax_pushdown_bug
         config.warn.argmax_pushdown_bug = False
         try:
-            theano.compile.mode.optdb.query(theano.compile.mode.OPT_FAST_RUN).optimize(
+            aesara.compile.mode.optdb.query(aesara.compile.mode.OPT_FAST_RUN).optimize(
                 fgraph
             )
         finally:
@@ -1362,7 +1362,7 @@ def test_argmax_pushdown():
         assert isinstance(fgraph.toposort()[0].op, tt.Elemwise)
         assert isinstance(fgraph.toposort()[1].op, Softmax)
         assert isinstance(fgraph.toposort()[2].op, tt.CAReduce)
-        assert isinstance(fgraph.toposort()[2].op.scalar_op, theano.scalar.Maximum)
+        assert isinstance(fgraph.toposort()[2].op.scalar_op, aesara.scalar.Maximum)
 
 
 def test_argmax_pushdown_bias():
@@ -1372,7 +1372,7 @@ def test_argmax_pushdown_bias():
     out = tt.argmax(softmax_with_bias(x, b), axis=-1)
     fgraph = gof.FunctionGraph([x, b], [out])
 
-    theano.compile.mode.optdb.query(theano.compile.mode.OPT_FAST_RUN).optimize(fgraph)
+    aesara.compile.mode.optdb.query(aesara.compile.mode.OPT_FAST_RUN).optimize(fgraph)
 
     # print 'AFTER'
     # for node in fgraph.toposort():
@@ -1392,7 +1392,7 @@ def test_argmax_pushdown_bias():
     backup = config.warn.argmax_pushdown_bug
     config.warn.argmax_pushdown_bug = False
     try:
-        theano.compile.mode.optdb.query(theano.compile.mode.OPT_FAST_RUN).optimize(
+        aesara.compile.mode.optdb.query(aesara.compile.mode.OPT_FAST_RUN).optimize(
             fgraph
         )
     finally:
@@ -1404,7 +1404,7 @@ def test_argmax_pushdown_bias():
     assert len(fgraph.toposort()) == 2
     assert isinstance(fgraph.toposort()[0].op, SoftmaxWithBias)
     assert isinstance(fgraph.toposort()[1].op, tt.CAReduce)
-    assert isinstance(fgraph.toposort()[1].op.scalar_op, theano.scalar.Maximum)
+    assert isinstance(fgraph.toposort()[1].op.scalar_op, aesara.scalar.Maximum)
     assert check_stack_trace(fgraph, ops_to_check=(SoftmaxWithBias, tt.CAReduce))
 
 
@@ -1425,7 +1425,7 @@ def test_asymptotic_32():
         y = tt.lvector()
 
         c = categorical_crossentropy(softmax(x + x2), y)
-        f = theano.function([x, y, x2], [c.sum(), tt.grad(c.sum(), x)], mode="FAST_RUN")
+        f = aesara.function([x, y, x2], [c.sum(), tt.grad(c.sum(), x)], mode="FAST_RUN")
 
         xval = np.zeros((5, 5), dtype=dtype).astype(dtype)
         x2val = np.zeros(5, dtype=xval.dtype).astype(dtype)
@@ -1463,7 +1463,7 @@ class TestSoftmaxOpt:
     def setup_method(self):
         utt.seed_rng()
         self.rng = np.random.RandomState(utt.fetch_seed())
-        self.mode = theano.compile.mode.get_default_mode()
+        self.mode = aesara.compile.mode.get_default_mode()
         self.mode = self.mode.including("canonicalize")
 
     def test_basic(self):
@@ -1471,7 +1471,7 @@ class TestSoftmaxOpt:
         p_y = tt.exp(c) / tt.exp(c).sum(axis=1).dimshuffle(0, "x")
 
         # test that function contains softmax and no div.
-        f = theano.function([c], p_y, mode=self.mode)
+        f = aesara.function([c], p_y, mode=self.mode)
 
         assert check_stack_trace(f, ops_to_check=softmax_op)
 
@@ -1488,7 +1488,7 @@ class TestSoftmaxOpt:
         p_y = tt.exp(c) / tt.exp(c).sum(axis=1, keepdims=True)
 
         # test that function contains softmax and no div.
-        f = theano.function([c], p_y, mode=self.mode)
+        f = aesara.function([c], p_y, mode=self.mode)
 
         assert check_stack_trace(f, ops_to_check=softmax_op)
 
@@ -1510,7 +1510,7 @@ class TestSoftmaxOpt:
         backup = config.warn.sum_div_dimshuffle_bug
         config.warn.sum_div_dimshuffle_bug = False
         try:
-            g = theano.function([c, w], tt.grad((p_y * w).sum(), c))
+            g = aesara.function([c, w], tt.grad((p_y * w).sum(), c))
         finally:
             config.warn.sum_div_dimshuffle_bug = backup
         g_ops = [n.op for n in g.maker.fgraph.toposort()]
@@ -1530,14 +1530,14 @@ class TestSoftmaxOpt:
         p_y = tt.exp(c) / tt.exp(c).sum(axis=0)
 
         # test that function contains softmax and no div.
-        theano.function([c], p_y)
+        aesara.function([c], p_y)
         # printing.debugprint(f)
 
         # test that function contains softmax and no div.
         backup = config.warn.sum_div_dimshuffle_bug
         config.warn.sum_div_dimshuffle_bug = False
         try:
-            theano.function([c], tt.grad(p_y.sum(), c))
+            aesara.function([c], tt.grad(p_y.sum(), c))
         finally:
             config.warn.sum_div_dimshuffle_bug = backup
         # printing.debugprint(g)
@@ -1549,14 +1549,14 @@ class TestSoftmaxOpt:
         p_y = tt.exp(c) / tt.exp(c).sum()
 
         # test that function contains softmax and no div.
-        theano.function([c], p_y)
+        aesara.function([c], p_y)
         # printing.debugprint(f)
 
         # test that function contains softmax and no div.
         backup = config.warn.sum_div_dimshuffle_bug
         config.warn.sum_div_dimshuffle_bug = False
         try:
-            theano.function([c], tt.grad(p_y.sum(), c))
+            aesara.function([c], tt.grad(p_y.sum(), c))
         finally:
             config.warn.sum_div_dimshuffle_bug = backup
         # printing.debugprint(g)
@@ -1567,35 +1567,35 @@ class TestSoftmaxOpt:
 
 def test_softmax_graph():
     rng = np.random.RandomState(utt.fetch_seed())
-    x = theano.shared(rng.normal(size=(3, 4)))
+    x = aesara.shared(rng.normal(size=(3, 4)))
 
     def f(inputs):
         y = softmax_graph(x)
-        return theano.grad(None, x, known_grads={y: inputs})
+        return aesara.grad(None, x, known_grads={y: inputs})
 
     utt.verify_grad(f, [rng.rand(3, 4)])
 
 
 def test_grad_softmax_grad():
     rng = np.random.RandomState(utt.fetch_seed())
-    x = theano.shared(rng.normal(size=(3, 4)))
+    x = aesara.shared(rng.normal(size=(3, 4)))
 
     def f(inputs):
         y = softmax_op(x)
-        return theano.grad(None, x, known_grads={y: inputs})
+        return aesara.grad(None, x, known_grads={y: inputs})
 
     utt.verify_grad(f, [rng.rand(3, 4)])
 
 
 def test_stabilize_log_softmax():
-    mode = theano.compile.mode.get_default_mode()
+    mode = aesara.compile.mode.get_default_mode()
     mode = mode.including("local_log_softmax", "specialize")
 
     x = matrix()
     y = softmax(x)
     z = tt.log(y)
 
-    f = theano.function([x], z, mode=mode)
+    f = aesara.function([x], z, mode=mode)
     assert check_stack_trace(f, ops_to_check="all")
 
     # check that the softmax has been optimized out
@@ -1657,8 +1657,8 @@ def test_h_softmax():
     # Initialize shared variables
     #############
 
-    floatX = theano.config.floatX
-    shared = theano.shared
+    floatX = aesara.config.floatX
+    shared = aesara.shared
 
     # First level of h_softmax
     W1 = np.asarray(
@@ -1717,8 +1717,8 @@ def test_h_softmax():
     #############
     # Compile functions
     #############
-    fun_output_tg = theano.function([x, y], y_hat_tg)
-    fun_output = theano.function([x], y_hat_all)
+    fun_output_tg = aesara.function([x, y], y_hat_tg)
+    fun_output = aesara.function([x], y_hat_all)
 
     #############
     # Test
@@ -1766,17 +1766,17 @@ def test_selu():
 
 
 def test_binary_crossentropy_reshape():
-    # Reported as https://github.com/Theano/Theano/issues/4086
+    # Reported as https://github.com/Aesara/Aesara/issues/4086
     a = tt.tensor4("a")
     for c in (
         binary_crossentropy(sigmoid(a.reshape((-1, 1))), 1).sum(),
         binary_crossentropy(sigmoid(a).reshape((-1, 1)), 1).sum(),
     ):
 
-        ga = theano.grad(c, a)
+        ga = aesara.grad(c, a)
         # This only works when "specialize" options are included
-        mode = theano.compile.get_default_mode().including("fast_run")
-        fga = theano.function([a], ga, mode=mode)
+        mode = aesara.compile.get_default_mode().including("fast_run")
+        fga = aesara.function([a], ga, mode=mode)
         utt.assert_allclose(
             fga(np.array([[[[30.0]]]], dtype=config.floatX)),
             np.zeros((1, 1, 1, 1), dtype=config.floatX),
@@ -1809,10 +1809,10 @@ class TestSigmoidBinaryCrossentropy:
         pred, target = inputs = tt.vectors("pt")
 
         reference_val = binary_crossentropy(sigmoid(pred), target)
-        f_reference = theano.function(inputs, reference_val)
+        f_reference = aesara.function(inputs, reference_val)
 
         test_val = sigmoid_binary_crossentropy(pred, target)
-        f_test = theano.function(inputs, test_val)
+        f_test = aesara.function(inputs, test_val)
 
         test_inputs = self._get_test_inputs()
         utt.assert_allclose(f_reference(*test_inputs), f_test(*test_inputs))
@@ -1835,7 +1835,7 @@ def test_confusion_matrix():
 
     x = tt.vector()
     y = tt.vector()
-    f = theano.function([x, y], confusion_matrix(x, y))
+    f = aesara.function([x, y], confusion_matrix(x, y))
     list_inputs = [
         [[0, 1, 2, 1, 0], [0, 0, 2, 1, 2]],
         [[2, 0, 2, 2, 0, 1], [0, 0, 2, 2, 0, 2]],

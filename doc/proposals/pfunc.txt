@@ -8,7 +8,7 @@ Proposal for pfunc  Function Interface [DONE]
   This proposal was implemented some time around summer 2009, and merged into
   the trunk around new years 2010.
 
-Following discussion on theano-dev (titled TheanoObject), the following
+Following discussion on aesara-dev (titled AesaraObject), the following
 changes are proposed to make function-construction calls more
 readable and intuitive, and to make it easier to share values between
 functions.
@@ -132,7 +132,7 @@ functions that use it.
     f1(5) # -> 13   # the new value is reflected in any compiled functions
     f2(4) # -> 32   # f2 uses the latest value in b's container
 
-However, SharedVariables cannot be used as inputs to theano functions.
+However, SharedVariables cannot be used as inputs to aesara functions.
 This is because doing it may yield code that would be either ambiguous, or
 prone to easy mistakes (e.g. accidentally overwriting the content of a shared
 variable).
@@ -162,7 +162,7 @@ Corner cases and exotic examples can be found in the tests.
         :type updates: iterable over pairs (shared_variable, new_expression). List, tuple or dict.
         :param updates: update the values for SharedVariable inputs according to these expressions
 
-        :rtype: theano.compile.Function
+        :rtype: aesara.compile.Function
         :returns: a callable object that will compute the outputs (given the inputs)
         and update the implicit function arguments according to the `updates`.
 
@@ -172,7 +172,7 @@ Corner cases and exotic examples can be found in the tests.
 
 Note that if some update value is not a variable, it will be cast into
 a ``SharedVariable`` using the ``shared`` function. This ensures it is
-properly taken into account to build the Theano function underlying the
+properly taken into account to build the Aesara function underlying the
 ``pfunc``. A consequence of this is that if this update value is mutable
 (e.g. a Numpy array), it may be modified after the function is created.
 
@@ -186,12 +186,12 @@ simple one.
 .. code-block:: python
 
 
-    import numpy, theano
+    import numpy, aesara
 
     from pfunc import pfunc
     from sharedvalue import shared
-    from theano import tensor
-    from theano.tensor.nnet import sigmoid
+    from aesara import tensor
+    from aesara.tensor.nnet import sigmoid
 
     class NNet(object):
 

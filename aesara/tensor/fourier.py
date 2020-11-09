@@ -2,12 +2,12 @@ import math
 
 import numpy as np
 
-from theano import gof, tensor
+from aesara import gof, tensor
 
 
 class Fourier(gof.Op):
     """
-    WARNING: for officially supported FFTs, use theano.tensor.fft, which
+    WARNING: for officially supported FFTs, use aesara.tensor.fft, which
     provides real-input FFTs. Gradients are supported, as well as optimization
     transfers to GPU ops.
 
@@ -128,7 +128,7 @@ class Fourier(gof.Op):
         if not isinstance(axis, tensor.TensorConstant):
             raise NotImplementedError(
                 "%s: gradient is currently implemented"
-                " only for axis being a Theano constant" % self.__class__.__name__
+                " only for axis being a Aesara constant" % self.__class__.__name__
             )
         axis = int(axis.data)
         # notice that the number of actual elements in wrto is independent of
@@ -140,7 +140,7 @@ class Fourier(gof.Op):
         pow_outer = tensor.exp(((-2 * math.pi * 1j) * outer) / (1.0 * n))
         res = tensor.tensordot(grad, pow_outer, (axis, 0))
 
-        # This would be simpler but not implemented by theano:
+        # This would be simpler but not implemented by aesara:
         # res = tensor.switch(tensor.lt(n, tensor.shape(a)[axis]),
         # tensor.set_subtensor(res[...,n::], 0, False, False), res)
 

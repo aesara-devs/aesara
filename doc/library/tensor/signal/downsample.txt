@@ -11,4 +11,4 @@
 
 .. note:: 
 
-    This module is deprecated. Use the functions in :func:`theano.tensor.nnet.signal.pool`
+    This module is deprecated. Use the functions in :func:`aesara.tensor.nnet.signal.pool`

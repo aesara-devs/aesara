@@ -1,6 +1,6 @@
 """
   Different tests that are not connected to any particular Op, or
-  functionality of Theano. Here will go for example code that we will
+  functionality of Aesara. Here will go for example code that we will
   publish in papers, that we should ensure that it will remain
   operational
 
@@ -8,32 +8,32 @@
 import numpy as np
 import numpy.random
 
-import theano
+import aesara
 from tests import unittest_tools as utt
 
 
 class TestScipy:
     def setup_method(self):
         utt.seed_rng()
-        self.orig_floatX = theano.config.floatX
+        self.orig_floatX = aesara.config.floatX
 
     def teardown_method(self):
-        theano.config.floatX = self.orig_floatX
+        aesara.config.floatX = self.orig_floatX
 
     def test_scipy_paper_example1(self):
-        a = theano.tensor.vector("a")  # declare variable
+        a = aesara.tensor.vector("a")  # declare variable
         b = a + a ** 10  # build expression
-        f = theano.function([a], b)  # compile function
+        f = aesara.function([a], b)  # compile function
         assert np.all(f([0, 1, 2]) == np.array([0, 2, 1026]))
 
     def test_scipy_paper_example2(self):
         """ This just sees if things compile well and if they run """
         # PREAMPBLE
-        T = theano.tensor
-        shared = theano.shared
-        function = theano.function
+        T = aesara.tensor
+        shared = aesara.shared
+        function = aesara.function
         rng = numpy.random
-        theano.config.floatX = "float64"
+        aesara.config.floatX = "float64"
 
         #
         # ACTUAL SCRIPT FROM PAPER
@@ -43,7 +43,7 @@ class TestScipy:
         w = shared(rng.randn(100))
         b = shared(np.zeros(()))
 
-        # Construct Theano expression graph
+        # Construct Aesara expression graph
         p_1 = 1 / (1 + T.exp(-T.dot(x, w) - b))
         xent = -y * T.log(p_1) - (1 - y) * T.log(1 - p_1)
         prediction = p_1 > 0.5

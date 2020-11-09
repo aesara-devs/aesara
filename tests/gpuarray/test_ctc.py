@@ -1,14 +1,14 @@
 import numpy as np
 import pytest
 
-import theano
-import theano.gpuarray
-import theano.tensor as tt
+import aesara
+import aesara.gpuarray
+import aesara.tensor as tt
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
 from tests.tensor.nnet.test_ctc import setup_ctc_case, setup_grad_case, setup_torch_case
-from theano.gpuarray.ctc import GpuConnectionistTemporalClassification, gpu_ctc
-from theano.tensor.nnet.ctc import (
+from aesara.gpuarray.ctc import GpuConnectionistTemporalClassification, gpu_ctc
+from aesara.tensor.nnet.ctc import (
     ConnectionistTemporalClassification,
     ctc,
     ctc_available,
@@ -23,9 +23,9 @@ class TestCTC:
         self, activations, labels, input_length, expected_costs, expected_grads
     ):
         # Create symbolic variables
-        t_activations = theano.shared(activations, name="activations")
-        t_activation_times = theano.shared(input_length, name="activation_times")
-        t_labels = theano.shared(labels, name="labels")
+        t_activations = aesara.shared(activations, name="activations")
+        t_activation_times = aesara.shared(input_length, name="activation_times")
+        t_labels = aesara.shared(labels, name="labels")
 
         inputs = [t_activations, t_labels, t_activation_times]
 
@@ -52,7 +52,7 @@ class TestCTC:
             # Symbolic gradient of CTC cost
             cpu_ctc_grad = tt.grad(tt.mean(cpu_ctc_cost), activations)
             outputs += [cpu_ctc_grad]
-        return theano.function([], outputs, mode=mode)
+        return aesara.function([], outputs, mode=mode)
 
     def setup_gpu_op(self, activations, labels, input_length, compute_grad=True):
         gpu_ctc_cost = gpu_ctc(activations, labels, input_length)
@@ -61,7 +61,7 @@ class TestCTC:
             # Symbolic gradient of CTC cost
             gpu_ctc_grad = tt.grad(tt.mean(gpu_ctc_cost), activations)
             outputs += [gpu_ctc_grad]
-        return theano.function([], outputs, mode=mode_with_gpu)
+        return aesara.function([], outputs, mode=mode_with_gpu)
 
     def check_expected_values(
         self, activations, labels, input_length, expected_costs, expected_grads
@@ -95,7 +95,7 @@ class TestCTC:
         Check if optimization to disable gradients is working
         """
         gpu_ctc_cost = gpu_ctc(activations, labels, input_length)
-        gpu_ctc_function = theano.function([], [gpu_ctc_cost])
+        gpu_ctc_function = aesara.function([], [gpu_ctc_cost])
         for node in gpu_ctc_function.maker.fgraph.apply_nodes:
             if isinstance(node.op, GpuConnectionistTemporalClassification):
                 assert node.op.compute_grad is False
@@ -166,8 +166,8 @@ class TestCTC:
         def ctc_op_functor(labels, in_lengths):
             def wrapper(acts):
                 # Create auxiliary symbolic variables
-                t_activation_times = theano.shared(in_lengths, name="activation_times")
-                t_labels = theano.shared(labels, name="labels")
+                t_activation_times = aesara.shared(in_lengths, name="activation_times")
+                t_labels = aesara.shared(labels, name="labels")
                 return gpu_ctc(acts, t_labels, t_activation_times)
 
             return wrapper

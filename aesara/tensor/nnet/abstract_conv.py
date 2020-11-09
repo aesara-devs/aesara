@@ -16,15 +16,15 @@ import warnings
 
 import numpy as np
 
-import theano
-from theano.gof import Apply, Op
-from theano.tensor.basic import (
+import aesara
+from aesara.gof import Apply, Op
+from aesara.tensor.basic import (
     NotScalarConstantError,
     as_tensor_variable,
     get_scalar_constant_value,
     patternbroadcast,
 )
-from theano.tensor.opt import Assert
+from aesara.tensor.opt import Assert
 
 
 try:
@@ -37,7 +37,7 @@ except ImportError:
 
 
 __docformat__ = "restructuredtext en"
-_logger = logging.getLogger("theano.tensor.nnet.abstract_conv")
+_logger = logging.getLogger("aesara.tensor.nnet.abstract_conv")
 
 
 def get_conv_output_shape(
@@ -559,12 +559,12 @@ def assert_conv_shape(shape):
                 assert_shp = Assert(
                     "The convolution would produce an invalid shape (dim[%d] < 0)." % i
                 )
-                out_shape.append(assert_shp(n, theano.tensor.ge(n, 0)))
+                out_shape.append(assert_shp(n, aesara.tensor.ge(n, 0)))
             else:
                 assert_shp = Assert(
                     "The convolution would produce an invalid shape (dim[%d] <= 0)." % i
                 )
-                out_shape.append(assert_shp(n, theano.tensor.gt(n, 0)))
+                out_shape.append(assert_shp(n, aesara.tensor.gt(n, 0)))
     return tuple(out_shape)
 
 
@@ -590,13 +590,13 @@ def assert_shape(x, expected_shape, msg="Unexpected shape."):
         will return `x` directly.
 
     """
-    if expected_shape is None or not theano.config.conv.assert_shape:
+    if expected_shape is None or not aesara.config.conv.assert_shape:
         return x
     shape = x.shape
     tests = []
     for i in range(x.ndim):
         if expected_shape[i] is not None:
-            tests.append(theano.tensor.eq(shape[i], expected_shape[i]))
+            tests.append(aesara.tensor.eq(shape[i], expected_shape[i]))
     if tests:
         return Assert(msg)(x, *tests)
     else:
@@ -682,7 +682,7 @@ def conv2d(
     stack of 2D inputs with a set of 2D filters. The implementation is modelled
     after Convolutional Neural Networks (CNN).
 
-    Refer to :func:`nnet.conv2d <theano.tensor.nnet.conv2d>` for a more detailed documentation.
+    Refer to :func:`nnet.conv2d <aesara.tensor.nnet.conv2d>` for a more detailed documentation.
     """
 
     input = as_tensor_variable(input)
@@ -1055,7 +1055,7 @@ def conv3d(
         GPU. Otherwise, it is the *Corr3dMM* convolution that will be used
         "caffe style convolution".
 
-        This is only supported in Theano 0.8 or the development
+        This is only supported in Aesara 0.8 or the development
         version until it is released.
 
     """
@@ -1192,7 +1192,7 @@ def conv2d_grad_wrt_inputs(
         GPU. Otherwise, it is the *CorrMM* convolution that will be used
         "caffe style convolution".
 
-    :note: This is only supported in Theano 0.8 or the development
+    :note: This is only supported in Aesara 0.8 or the development
         version until it is released.
 
     """
@@ -1203,13 +1203,13 @@ def conv2d_grad_wrt_inputs(
     # checking the type of input_shape
     for dim in [0, 1]:
         if not isinstance(
-            input_shape[dim], (theano.tensor.TensorConstant, int, type(None))
+            input_shape[dim], (aesara.tensor.TensorConstant, int, type(None))
         ):
             raise ValueError("input_shape[%d] must be a constant or None." % dim)
     for dim in [2, 3]:
         if not isinstance(
             input_shape[dim],
-            (theano.tensor.TensorVariable, theano.tensor.TensorConstant, int),
+            (aesara.tensor.TensorVariable, aesara.tensor.TensorConstant, int),
         ):
             raise ValueError(
                 "input_shape[%d] must be a symbolic variable,"
@@ -1232,7 +1232,7 @@ def conv2d_grad_wrt_inputs(
         for dim in range(expected_dim):
             if not isinstance(
                 filter_shape[dim],
-                (theano.tensor.TensorConstant, int, type(None)),
+                (aesara.tensor.TensorConstant, int, type(None)),
             ):
                 raise ValueError("filter_shape[%d] must be a constant or None" % dim)
 
@@ -1240,7 +1240,7 @@ def conv2d_grad_wrt_inputs(
     # the type of these dimensions is TensorVariable.
     numerical_input_shape = list(input_shape)
     for dim in [2, 3]:
-        if isinstance(input_shape[dim], theano.tensor.TensorVariable):
+        if isinstance(input_shape[dim], aesara.tensor.TensorVariable):
             numerical_input_shape[dim] = None
 
     grad_input_op = AbstractConv2d_gradInputs(
@@ -1358,7 +1358,7 @@ def conv3d_grad_wrt_inputs(
         GPU. Otherwise, it is the *Corr3dMM* convolution that will be used
         "caffe style convolution".
 
-    :note: This is only supported in Theano 0.8 or the development
+    :note: This is only supported in Aesara 0.8 or the development
         version until it is released.
 
     """
@@ -1369,12 +1369,12 @@ def conv3d_grad_wrt_inputs(
     # checking the type of input_shape
     for dim in [0, 1]:
         assert isinstance(
-            input_shape[dim], (theano.tensor.TensorConstant, int, type(None))
+            input_shape[dim], (aesara.tensor.TensorConstant, int, type(None))
         )
     for dim in [2, 3, 4]:
         assert isinstance(
             input_shape[dim],
-            (theano.tensor.TensorVariable, theano.tensor.TensorConstant, int),
+            (aesara.tensor.TensorVariable, aesara.tensor.TensorConstant, int),
         )
 
     # checking the type of filter_shape
@@ -1382,14 +1382,14 @@ def conv3d_grad_wrt_inputs(
         for dim in [0, 1, 2, 3, 4]:
             assert isinstance(
                 filter_shape[dim],
-                (theano.tensor.TensorConstant, int, type(None)),
+                (aesara.tensor.TensorConstant, int, type(None)),
             )
 
     # setting the last three dimensions of input_shape to None, if
     # the type of these dimensions is TensorVariable.
     numerical_input_shape = list(input_shape)
     for dim in [2, 3, 4]:
-        if isinstance(input_shape[dim], theano.tensor.TensorVariable):
+        if isinstance(input_shape[dim], aesara.tensor.TensorVariable):
             numerical_input_shape[dim] = None
 
     grad_input_op = AbstractConv3d_gradInputs(
@@ -1513,7 +1513,7 @@ def conv2d_grad_wrt_weights(
         GPU. Otherwise, it is the *CorrMM* convolution that will be used
         "caffe style convolution".
 
-    :note: This is only supported in Theano 0.8 or the development
+    :note: This is only supported in Aesara 0.8 or the development
         version until it is released.
 
     """
@@ -1524,18 +1524,18 @@ def conv2d_grad_wrt_weights(
     # checking the type of filter_shape
     for dim in [0, 1]:
         assert isinstance(
-            filter_shape[dim], (theano.tensor.TensorConstant, int, type(None))
+            filter_shape[dim], (aesara.tensor.TensorConstant, int, type(None))
         )
     if unshared:
         for dim in [2, 3]:
             assert isinstance(
                 filter_shape[dim],
-                (theano.tensor.TensorConstant, int, type(None)),
+                (aesara.tensor.TensorConstant, int, type(None)),
             )
     for dim in [-2, -1]:
         assert isinstance(
             filter_shape[dim],
-            (theano.tensor.TensorVariable, theano.tensor.TensorConstant, int),
+            (aesara.tensor.TensorVariable, aesara.tensor.TensorConstant, int),
         )
 
     # checking the type of input_shape
@@ -1543,14 +1543,14 @@ def conv2d_grad_wrt_weights(
         for dim in [0, 1, 2, 3]:
             assert isinstance(
                 input_shape[dim],
-                (theano.tensor.TensorConstant, int, type(None)),
+                (aesara.tensor.TensorConstant, int, type(None)),
             )
 
     # setting the last two dimensions of filter_shape to None, if
     # the type of these dimensions is TensorVariable.
     numerical_filter_shape = list(filter_shape)
     for dim in [-2, -1]:
-        if isinstance(filter_shape[dim], theano.tensor.TensorVariable):
+        if isinstance(filter_shape[dim], aesara.tensor.TensorVariable):
             numerical_filter_shape[dim] = None
 
     gradWeight_op = AbstractConv2d_gradWeights(
@@ -1659,7 +1659,7 @@ def conv3d_grad_wrt_weights(
         GPU. Otherwise, it is the *Corr3dMM* convolution that will be used
         "caffe style convolution".
 
-    :note: This is only supported in Theano 0.8 or the development
+    :note: This is only supported in Aesara 0.8 or the development
         version until it is released.
 
     """
@@ -1670,12 +1670,12 @@ def conv3d_grad_wrt_weights(
     # checking the type of filter_shape
     for dim in [0, 1]:
         assert isinstance(
-            filter_shape[dim], (theano.tensor.TensorConstant, int, type(None))
+            filter_shape[dim], (aesara.tensor.TensorConstant, int, type(None))
         )
     for dim in [2, 3, 4]:
         assert isinstance(
             filter_shape[dim],
-            (theano.tensor.TensorVariable, theano.tensor.TensorConstant, int),
+            (aesara.tensor.TensorVariable, aesara.tensor.TensorConstant, int),
         )
 
     # checking the type of input_shape
@@ -1683,14 +1683,14 @@ def conv3d_grad_wrt_weights(
         for dim in [0, 1, 2, 3, 4]:
             assert isinstance(
                 input_shape[dim],
-                (theano.tensor.TensorConstant, int, type(None)),
+                (aesara.tensor.TensorConstant, int, type(None)),
             )
 
     # setting the last three dimensions of filter_shape to None, if
     # the type of these dimensions is TensorVariable.
     numerical_filter_shape = list(filter_shape)
     for dim in [2, 3, 4]:
-        if isinstance(filter_shape[dim], theano.tensor.TensorVariable):
+        if isinstance(filter_shape[dim], aesara.tensor.TensorVariable):
             numerical_filter_shape[dim] = None
 
     gradWeight_op = AbstractConv3d_gradWeights(
@@ -1820,7 +1820,7 @@ def bilinear_kernel_2D(ratio, normalize=True):
 
     Parameters
     ----------
-    ratio: int or Constant/Scalar Theano tensor of int* dtype
+    ratio: int or Constant/Scalar Aesara tensor of int* dtype
         the ratio by which an image will be upsampled by the returned filter
         in the 2D space.
 
@@ -1856,7 +1856,7 @@ def bilinear_kernel_1D(ratio, normalize=True):
 
     Parameters
     ----------
-    ratio: int or Constant/Scalar Theano tensor of int* dtype
+    ratio: int or Constant/Scalar Aesara tensor of int* dtype
         the ratio by which an image will be upsampled by the returned filter
         in the 2D space.
 
@@ -1872,12 +1872,12 @@ def bilinear_kernel_1D(ratio, normalize=True):
 
     """
 
-    T = theano.tensor
-    half_kern = T.arange(1, ratio + 1, dtype=theano.config.floatX)
+    T = aesara.tensor
+    half_kern = T.arange(1, ratio + 1, dtype=aesara.config.floatX)
     kern = T.concatenate([half_kern, half_kern[-2::-1]])
 
     if normalize:
-        kern /= T.cast(ratio, theano.config.floatX)
+        kern /= T.cast(ratio, aesara.config.floatX)
     return kern
 
 
@@ -1912,7 +1912,7 @@ def frac_bilinear_upsampling(input, frac_ratio):
         sides. This does not happen when it is odd.
     """
 
-    T = theano.tensor
+    T = aesara.tensor
     row, col = input.shape[2:]
     up_input = input.reshape((-1, 1, row, col))
 
@@ -1950,7 +1950,7 @@ def frac_bilinear_upsampling(input, frac_ratio):
 
     # build pyramidal kernel
     kern = bilinear_kernel_2D(ratio=ratio)[np.newaxis, np.newaxis, :, :].astype(
-        theano.config.floatX
+        aesara.config.floatX
     )
 
     # add corresponding padding
@@ -1958,23 +1958,23 @@ def frac_bilinear_upsampling(input, frac_ratio):
         (
             T.zeros(
                 tuple(kern.shape[:2]) + (pad[0], kern.shape[-1]),
-                dtype=theano.config.floatX,
+                dtype=aesara.config.floatX,
             ),
             kern,
             T.zeros(
                 tuple(kern.shape[:2]) + (double_pad[0] - pad[0], kern.shape[-1]),
-                dtype=theano.config.floatX,
+                dtype=aesara.config.floatX,
             ),
         ),
         axis=2,
     )
     pad_kern = T.concatenate(
         (
-            T.zeros(tuple(pad_kern.shape[:3]) + (pad[1],), dtype=theano.config.floatX),
+            T.zeros(tuple(pad_kern.shape[:3]) + (pad[1],), dtype=aesara.config.floatX),
             pad_kern,
             T.zeros(
                 tuple(pad_kern.shape[:3]) + (double_pad[1] - pad[1],),
-                dtype=theano.config.floatX,
+                dtype=aesara.config.floatX,
             ),
         ),
         axis=3,
@@ -2057,7 +2057,7 @@ def bilinear_upsampling(
         return frac_bilinear_upsampling(input, frac_ratio=frac_ratio)
 
     # the remaining case if integer ratio with use_1D_kernel
-    T = theano.tensor
+    T = aesara.tensor
     try:
         up_bs = batch_size * num_input_channels
     except TypeError:
@@ -2508,7 +2508,7 @@ class BaseAbstractConv(Op):
 
 class AbstractConv(BaseAbstractConv):
     """Abstract Op for the forward convolution.
-    Refer to :func:`BaseAbstractConv <theano.tensor.nnet.abstract_conv.BaseAbstractConv>`
+    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
     for a more detailed documentation.
     """
 
@@ -2538,9 +2538,9 @@ class AbstractConv(BaseAbstractConv):
 
     def make_node(self, img, kern):
         # Make sure both inputs are Variables with the same Type
-        if not isinstance(img, theano.Variable):
+        if not isinstance(img, aesara.Variable):
             img = as_tensor_variable(img)
-        if not isinstance(kern, theano.Variable):
+        if not isinstance(kern, aesara.Variable):
             kern = as_tensor_variable(kern)
         ktype = img.type.clone(dtype=kern.dtype, broadcastable=kern.broadcastable)
         kern = ktype.filter_variable(kern)
@@ -2724,7 +2724,7 @@ class AbstractConv(BaseAbstractConv):
 
 class AbstractConv2d(AbstractConv):
     """Abstract Op for the forward convolution.
-    Refer to :func:`BaseAbstractConv <theano.tensor.nnet.abstract_conv.BaseAbstractConv>`
+    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
     for a more detailed documentation.
     """
 
@@ -2790,7 +2790,7 @@ class AbstractConv2d(AbstractConv):
 
 class AbstractConv3d(AbstractConv):
     """Abstract Op for the forward convolution.
-    Refer to :func:`BaseAbstractConv <theano.tensor.nnet.abstract_conv.BaseAbstractConv>`
+    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
     for a more detailed documentation.
     """
 
@@ -2851,11 +2851,11 @@ class AbstractConv3d(AbstractConv):
 
 class AbstractConv_gradWeights(BaseAbstractConv):
     """Gradient wrt. filters for `AbstractConv`.
-    Refer to :func:`BaseAbstractConv <theano.tensor.nnet.abstract_conv.BaseAbstractConv>`
+    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
     for a more detailed documentation.
 
     :note: You will not want to use this directly, but rely on
-           Theano's automatic differentiation or graph optimization to
+           Aesara's automatic differentiation or graph optimization to
            use it as needed.
 
     """
@@ -2887,9 +2887,9 @@ class AbstractConv_gradWeights(BaseAbstractConv):
     # Update shape/height_width
     def make_node(self, img, topgrad, shape, add_assert_shape=True):
         # Make sure both inputs are Variables with the same Type
-        if not isinstance(img, theano.Variable):
+        if not isinstance(img, aesara.Variable):
             img = as_tensor_variable(img)
-        if not isinstance(topgrad, theano.Variable):
+        if not isinstance(topgrad, aesara.Variable):
             topgrad = as_tensor_variable(topgrad)
         gtype = img.type.clone(dtype=topgrad.dtype, broadcastable=topgrad.broadcastable)
         topgrad = gtype.filter_variable(topgrad)
@@ -3079,11 +3079,11 @@ class AbstractConv_gradWeights(BaseAbstractConv):
 
 class AbstractConv2d_gradWeights(AbstractConv_gradWeights):
     """Gradient wrt. filters for `AbstractConv2d`.
-    Refer to :func:`BaseAbstractConv <theano.tensor.nnet.abstract_conv.BaseAbstractConv>`
+    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
     for a more detailed documentation.
 
     :note: You will not want to use this directly, but rely on
-           Theano's automatic differentiation or graph optimization to
+           Aesara's automatic differentiation or graph optimization to
            use it as needed.
 
     """
@@ -3144,17 +3144,17 @@ class AbstractConv2d_gradWeights(AbstractConv_gradWeights):
         d_top = patternbroadcast(d_top, top.broadcastable)
         d_top = top.type.filter_variable(d_top)
 
-        d_height_width = (theano.gradient.DisconnectedType()(),)
+        d_height_width = (aesara.gradient.DisconnectedType()(),)
         return (d_bottom, d_top) + d_height_width
 
 
 class AbstractConv3d_gradWeights(AbstractConv_gradWeights):
     """Gradient wrt. filters for `AbstractConv3d`.
-    Refer to :func:`BaseAbstractConv <theano.tensor.nnet.abstract_conv.BaseAbstractConv>`
+    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
     for a more detailed documentation.
 
     :note: You will not want to use this directly, but rely on
-           Theano's automatic differentiation or graph optimization to
+           Aesara's automatic differentiation or graph optimization to
            use it as needed.
 
     """
@@ -3211,17 +3211,17 @@ class AbstractConv3d_gradWeights(AbstractConv_gradWeights):
         d_top = patternbroadcast(d_top, top.broadcastable)
         d_top = top.type.filter_variable(d_top)
 
-        d_depth_height_width = (theano.gradient.DisconnectedType()(),)
+        d_depth_height_width = (aesara.gradient.DisconnectedType()(),)
         return (d_bottom, d_top) + d_depth_height_width
 
 
 class AbstractConv_gradInputs(BaseAbstractConv):
     """Gradient wrt. inputs for `AbstractConv`.
-    Refer to :func:`BaseAbstractConv <theano.tensor.nnet.abstract_conv.BaseAbstractConv>`
+    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
     for a more detailed documentation.
 
     :note: You will not want to use this directly, but rely on
-           Theano's automatic differentiation or graph optimization to
+           Aesara's automatic differentiation or graph optimization to
            use it as needed.
 
     """
@@ -3253,9 +3253,9 @@ class AbstractConv_gradInputs(BaseAbstractConv):
     # Update shape/height_width
     def make_node(self, kern, topgrad, shape, add_assert_shape=True):
         # Make sure both inputs are Variables with the same Type
-        if not isinstance(kern, theano.Variable):
+        if not isinstance(kern, aesara.Variable):
             kern = as_tensor_variable(kern)
-        if not isinstance(topgrad, theano.Variable):
+        if not isinstance(topgrad, aesara.Variable):
             topgrad = as_tensor_variable(topgrad)
         gtype = kern.type.clone(
             dtype=topgrad.dtype, broadcastable=topgrad.broadcastable
@@ -3472,11 +3472,11 @@ class AbstractConv_gradInputs(BaseAbstractConv):
 
 class AbstractConv2d_gradInputs(AbstractConv_gradInputs):
     """Gradient wrt. inputs for `AbstractConv2d`.
-    Refer to :func:`BaseAbstractConv <theano.tensor.nnet.abstract_conv.BaseAbstractConv>`
+    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
     for a more detailed documentation.
 
     :note: You will not want to use this directly, but rely on
-           Theano's automatic differentiation or graph optimization to
+           Aesara's automatic differentiation or graph optimization to
            use it as needed.
 
     """
@@ -3537,17 +3537,17 @@ class AbstractConv2d_gradInputs(AbstractConv_gradInputs):
         d_top = patternbroadcast(d_top, top.broadcastable)
         d_top = top.type.filter_variable(d_top)
 
-        d_height_width = (theano.gradient.DisconnectedType()(),)
+        d_height_width = (aesara.gradient.DisconnectedType()(),)
         return (d_weights, d_top) + d_height_width
 
 
 class AbstractConv3d_gradInputs(AbstractConv_gradInputs):
     """Gradient wrt. inputs for `AbstractConv3d`.
-    Refer to :func:`BaseAbstractConv <theano.tensor.nnet.abstract_conv.BaseAbstractConv>`
+    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
     for a more detailed documentation.
 
     :note: You will not want to use this directly, but rely on
-           Theano's automatic differentiation or graph optimization to
+           Aesara's automatic differentiation or graph optimization to
            use it as needed.
 
     """
@@ -3604,5 +3604,5 @@ class AbstractConv3d_gradInputs(AbstractConv_gradInputs):
         d_top = patternbroadcast(d_top, top.broadcastable)
         d_top = top.type.filter_variable(d_top)
 
-        d_depth_height_width = (theano.gradient.DisconnectedType()(),)
+        d_depth_height_width = (aesara.gradient.DisconnectedType()(),)
         return (d_weights, d_top) + d_depth_height_width

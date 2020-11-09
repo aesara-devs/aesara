@@ -1,16 +1,16 @@
 #!/usr/bin/env python
-# Theano tutorial
-# Solution to Exercise in section 'Extending Theano'
+# Aesara tutorial
+# Solution to Exercise in section 'Extending Aesara'
 
 
 import unittest
 
-import theano
+import aesara
 
 
 # 1. Op returns x * y
 
-class ProdOp(theano.Op):
+class ProdOp(aesara.Op):
     def __eq__(self, other):
         return type(self) == type(other)
 
@@ -21,13 +21,13 @@ class ProdOp(theano.Op):
         return self.__class__.__name__
 
     def make_node(self, x, y):
-        x = theano.tensor.as_tensor_variable(x)
-        y = theano.tensor.as_tensor_variable(y)
+        x = aesara.tensor.as_tensor_variable(x)
+        y = aesara.tensor.as_tensor_variable(y)
         outdim = x.ndim
-        output = (theano.tensor.TensorType
-                  (dtype=theano.scalar.upcast(x.dtype, y.dtype),
+        output = (aesara.tensor.TensorType
+                  (dtype=aesara.scalar.upcast(x.dtype, y.dtype),
                       broadcastable=[False] * outdim)())
-        return theano.Apply(self, inputs=[x, y], outputs=[output])
+        return aesara.Apply(self, inputs=[x, y], outputs=[output])
 
     def perform(self, node, inputs, output_storage):
         x, y = inputs
@@ -43,7 +43,7 @@ class ProdOp(theano.Op):
 
 # 2. Op returns x + y and x - y
 
-class SumDiffOp(theano.Op):
+class SumDiffOp(aesara.Op):
     def __eq__(self, other):
         return type(self) == type(other)
 
@@ -54,16 +54,16 @@ class SumDiffOp(theano.Op):
         return self.__class__.__name__
 
     def make_node(self, x, y):
-        x = theano.tensor.as_tensor_variable(x)
-        y = theano.tensor.as_tensor_variable(y)
+        x = aesara.tensor.as_tensor_variable(x)
+        y = aesara.tensor.as_tensor_variable(y)
         outdim = x.ndim
-        output1 = (theano.tensor.TensorType
-                  (dtype=theano.scalar.upcast(x.dtype, y.dtype),
+        output1 = (aesara.tensor.TensorType
+                  (dtype=aesara.scalar.upcast(x.dtype, y.dtype),
                       broadcastable=[False] * outdim)())
-        output2 = (theano.tensor.TensorType
-                  (dtype=theano.scalar.upcast(x.dtype, y.dtype),
+        output2 = (aesara.tensor.TensorType
+                  (dtype=aesara.scalar.upcast(x.dtype, y.dtype),
                       broadcastable=[False] * outdim)())
-        return theano.Apply(self, inputs=[x, y], outputs=[output1, output2])
+        return aesara.Apply(self, inputs=[x, y], outputs=[output1, output2])
 
     def perform(self, node, inputs, output_storage):
         x, y = inputs
@@ -77,17 +77,17 @@ class SumDiffOp(theano.Op):
     def grad(self, inputs, output_grads):
         og1, og2 = output_grads
         if og1 is None:
-            og1 = theano.tensor.zeros_like(og2)
+            og1 = aesara.tensor.zeros_like(og2)
         if og2 is None:
-            og2 = theano.tensor.zeros_like(og1)
+            og2 = aesara.tensor.zeros_like(og1)
         return [og1 + og2, og1 - og2]
 
 
 # 3. Testing apparatus
 
 import numpy as np
-from theano.gof import Op, Apply
-from theano import tensor, function, printing
+from aesara.gof import Op, Apply
+from aesara import tensor, function, printing
 from tests import unittest_tools as utt
 
 
@@ -100,9 +100,9 @@ class TestProdOp(utt.InferShapeTester):
         self.op_class = ProdOp  # case 1
 
     def test_perform(self):
-        x = theano.tensor.matrix()
-        y = theano.tensor.matrix()
-        f = theano.function([x, y], self.op_class()(x, y))
+        x = aesara.tensor.matrix()
+        y = aesara.tensor.matrix()
+        f = aesara.function([x, y], self.op_class()(x, y))
         x_val = np.random.rand(5, 4)
         y_val = np.random.rand(5, 4)
         out = f(x_val, y_val)
@@ -132,9 +132,9 @@ class TestSumDiffOp(utt.InferShapeTester):
         self.op_class = SumDiffOp
 
     def test_perform(self):
-        x = theano.tensor.matrix()
-        y = theano.tensor.matrix()
-        f = theano.function([x, y], self.op_class()(x, y))
+        x = aesara.tensor.matrix()
+        y = aesara.tensor.matrix()
+        f = aesara.function([x, y], self.op_class()(x, y))
         x_val = np.random.rand(5, 4)
         y_val = np.random.rand(5, 4)
         out = f(x_val, y_val)
@@ -167,9 +167,9 @@ class TestSumDiffOp(utt.InferShapeTester):
 
 
 # as_op exercice
-import theano
+import aesara
 import numpy as np
-from theano.compile.ops import as_op
+from aesara.compile.ops import as_op
 
 
 def infer_shape_numpy_dot(node, input_shapes):
@@ -177,8 +177,8 @@ def infer_shape_numpy_dot(node, input_shapes):
     return [ashp[:-1] + bshp[-1:]]
 
 
-@as_op(itypes=[theano.tensor.fmatrix, theano.tensor.fmatrix],
-       otypes=[theano.tensor.fmatrix], infer_shape=infer_shape_numpy_dot)
+@as_op(itypes=[aesara.tensor.fmatrix, aesara.tensor.fmatrix],
+       otypes=[aesara.tensor.fmatrix], infer_shape=infer_shape_numpy_dot)
 def numpy_add(a, b):
     return np.add(a, b)
 
@@ -189,14 +189,14 @@ def infer_shape_numpy_add_sub(node, input_shapes):
     return [ashp[0]]
 
 
-@as_op(itypes=[theano.tensor.fmatrix, theano.tensor.fmatrix],
-       otypes=[theano.tensor.fmatrix], infer_shape=infer_shape_numpy_add_sub)
+@as_op(itypes=[aesara.tensor.fmatrix, aesara.tensor.fmatrix],
+       otypes=[aesara.tensor.fmatrix], infer_shape=infer_shape_numpy_add_sub)
 def numpy_add(a, b):
     return np.add(a, b)
 
 
-@as_op(itypes=[theano.tensor.fmatrix, theano.tensor.fmatrix],
-       otypes=[theano.tensor.fmatrix], infer_shape=infer_shape_numpy_add_sub)
+@as_op(itypes=[aesara.tensor.fmatrix, aesara.tensor.fmatrix],
+       otypes=[aesara.tensor.fmatrix], infer_shape=infer_shape_numpy_add_sub)
 def numpy_sub(a, b):
     return np.sub(a, b)
 

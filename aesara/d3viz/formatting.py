@@ -1,4 +1,4 @@
-"""Functions for formatting Theano compute graphs.
+"""Functions for formatting Aesara compute graphs.
 
 Author: Christof Angermueller <cangermueller@gmail.com>
 """
@@ -7,20 +7,20 @@ from functools import reduce
 
 import numpy as np
 
-import theano
-from theano import gof
-from theano.compile import Function, builders
-from theano.printing import pydot_imported, pydot_imported_msg
+import aesara
+from aesara import gof
+from aesara.compile import Function, builders
+from aesara.printing import pydot_imported, pydot_imported_msg
 
 
 try:
-    from theano.printing import pd
+    from aesara.printing import pd
 except ImportError:
     pass
 
 
 class PyDotFormatter:
-    """Create `pydot` graph object from Theano function.
+    """Create `pydot` graph object from Aesara function.
 
     Parameters
     ----------
@@ -68,7 +68,7 @@ class PyDotFormatter:
 
         Parameters
         ----------
-        node : Theano graph node
+        node : Aesara graph node
             Apply node, tensor variable, or shared variable in compute graph.
 
         Returns
@@ -86,7 +86,7 @@ class PyDotFormatter:
 
         Parameters
         ----------
-        node : Theano graph node
+        node : Aesara graph node
             Apply node, tensor variable, or shared variable in compute graph.
 
         Returns
@@ -104,8 +104,8 @@ class PyDotFormatter:
 
         Parameters
         ----------
-        fct : theano.compile.function_module.Function
-            A compiled Theano function, variable, apply or a list of variables.
+        fct : aesara.compile.function_module.Function
+            A compiled Aesara function, variable, apply or a list of variables.
         graph: pydot.Dot
             `pydot` graph to which nodes are added. Creates new one if
             undefined.
@@ -174,7 +174,7 @@ class PyDotFormatter:
                     }
                     if isinstance(var, gof.Constant):
                         vparams["node_type"] = "constant_input"
-                    elif isinstance(var, theano.tensor.sharedvar.TensorSharedVariable):
+                    elif isinstance(var, aesara.tensor.sharedvar.TensorSharedVariable):
                         vparams["node_type"] = "shared_input"
                     vparams["dtype"] = type_to_str(var.type)
                     vparams["tag"] = var_tag(var)

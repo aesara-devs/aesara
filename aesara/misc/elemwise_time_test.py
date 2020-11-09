@@ -4,8 +4,8 @@ from optparse import OptionParser
 
 import numpy as np
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 
 
 parser = OptionParser(
@@ -16,7 +16,7 @@ parser.add_option(
     "--N",
     action="store",
     dest="N",
-    default=theano.config.openmp_elemwise_minsize,
+    default=aesara.config.openmp_elemwise_minsize,
     type="int",
     help="Number of vector elements",
 )
@@ -44,11 +44,11 @@ def evalTime(f, v, script=False, loops=1000):
 def ElemwiseOpTime(N, script=False, loops=1000):
     x = tt.vector("x")
     np.random.seed(1235)
-    v = np.random.random(N).astype(theano.config.floatX)
-    f = theano.function([x], 2 * x + x * x)
-    f1 = theano.function([x], tt.tanh(x))
+    v = np.random.random(N).astype(aesara.config.floatX)
+    f = aesara.function([x], 2 * x + x * x)
+    f1 = aesara.function([x], tt.tanh(x))
     if not script:
-        if theano.config.openmp:
+        if aesara.config.openmp:
             print("With openmp:")
         print("Fast op ", end=" ")
     ceapTime = evalTime(f, v, script=script, loops=loops)

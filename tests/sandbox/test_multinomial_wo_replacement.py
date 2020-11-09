@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from theano import config, function, tensor
-from theano.sandbox import multinomial
-from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
+from aesara import config, function, tensor
+from aesara.sandbox import multinomial
+from aesara.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
 
 class TestOP:

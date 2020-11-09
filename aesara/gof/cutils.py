@@ -2,8 +2,8 @@ import errno
 import os
 import sys
 
-from theano import config
-from theano.gof.compilelock import get_lock, release_lock
+from aesara import config
+from aesara.gof.compilelock import get_lock, release_lock
 
 from . import cmodule
 
@@ -21,7 +21,7 @@ def compile_cutils():
     """
     code = """
         #include <Python.h>
-        #include "theano_mod_helper.h"
+        #include "aesara_mod_helper.h"
 
         extern "C"{
         static PyObject *
@@ -45,7 +45,7 @@ def compile_cutils():
          }
          static PyMethodDef CutilsExtMethods[] = {
             {"run_cthunk",  run_cthunk, METH_VARARGS|METH_KEYWORDS,
-             "Run a theano cthunk."},
+             "Run a aesara cthunk."},
             {NULL, NULL, 0, NULL}        /* Sentinel */
         };"""
 

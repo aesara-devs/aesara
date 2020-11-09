@@ -8,8 +8,8 @@ import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
 
-import theano
-from theano.compile.ops import (
+import aesara
+from aesara.compile.ops import (
     DeepCopyOp,
     Rebroadcast,
     Shape,
@@ -17,12 +17,12 @@ from theano.compile.ops import (
     SpecifyShape,
     ViewOp,
 )
-from theano.gof import FunctionGraph
-from theano.ifelse import IfElse
-from theano.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp
-from theano.scan_module.scan_op import Scan
-from theano.scan_module.scan_utils import scan_args as ScanArgs
-from theano.tensor.basic import (
+from aesara.gof import FunctionGraph
+from aesara.ifelse import IfElse
+from aesara.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp
+from aesara.scan_module.scan_op import Scan
+from aesara.scan_module.scan_utils import scan_args as ScanArgs
+from aesara.tensor.basic import (
     Alloc,
     AllocEmpty,
     ARange,
@@ -33,8 +33,8 @@ from theano.tensor.basic import (
     ScalarFromTensor,
     TensorFromScalar,
 )
-from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
-from theano.tensor.extra_ops import (
+from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
+from aesara.tensor.extra_ops import (
     Bartlett,
     CumOp,
     DiffOp,
@@ -45,7 +45,7 @@ from theano.tensor.extra_ops import (
     Unique,
     UnravelIndex,
 )
-from theano.tensor.nlinalg import (
+from aesara.tensor.nlinalg import (
     SVD,
     AllocDiag,
     Det,
@@ -56,10 +56,10 @@ from theano.tensor.nlinalg import (
     QRFull,
     QRIncomplete,
 )
-from theano.tensor.nnet.sigm import ScalarSoftplus
-from theano.tensor.opt import MakeVector
-from theano.tensor.slinalg import Cholesky, Solve
-from theano.tensor.subtensor import (  # This is essentially `np.take`; Boolean mask indexing and setting
+from aesara.tensor.nnet.sigm import ScalarSoftplus
+from aesara.tensor.opt import MakeVector
+from aesara.tensor.slinalg import Cholesky, Solve
+from aesara.tensor.subtensor import (  # This is essentially `np.take`; Boolean mask indexing and setting
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
     AdvancedSubtensor,
@@ -68,10 +68,10 @@ from theano.tensor.subtensor import (  # This is essentially `np.take`; Boolean 
     Subtensor,
     get_idx_list,
 )
-from theano.tensor.type_other import MakeSlice
+from aesara.tensor.type_other import MakeSlice
 
 
-if theano.config.floatX == "float64":
+if aesara.config.floatX == "float64":
     jax.config.update("jax_enable_x64", True)
 else:
     jax.config.update("jax_enable_x64", False)
@@ -166,7 +166,7 @@ def compose_jax_funcs(out_node, fgraph_inputs, memo=None):
 
 @dispatch
 def jax_funcify(op):
-    """Create a JAX "perform" function for a Theano `Variable` and its `Op`."""
+    """Create a JAX "perform" function for a Aesara `Variable` and its `Op`."""
     raise NotImplementedError("No JAX conversion for the given `Op`: {}".format(op))
 
 
@@ -189,7 +189,7 @@ def jax_funcify_ScalarOp(op):
 
     if hasattr(op, "nfunc_variadic"):
         # These are special cases that handle invalid arities due to the broken
-        # Theano `Op` type contract (e.g. binary `Op`s that also function as
+        # Aesara `Op` type contract (e.g. binary `Op`s that also function as
         # their own variadic counterparts--even when those counterparts already
         # exist as independent `Op`s).
         jax_variadic_func = getattr(jnp, op.nfunc_variadic)
@@ -514,7 +514,7 @@ def jax_funcify_IfElse(op):
 
 
 def convert_indices(indices, entry):
-    if indices and isinstance(entry, theano.gof.Type):
+    if indices and isinstance(entry, aesara.gof.Type):
         rval = indices.pop(0)
         return rval
     elif isinstance(entry, slice):
@@ -621,7 +621,7 @@ def jax_funcify_CAReduce(op):
             jax_op = getattr(jnp, op_nfunc_spec[0])
             return jax_op(x, axis=axis).astype(acc_dtype)
 
-        # The Theano `Op` didn't tell us which NumPy equivalent to use (or
+        # The Aesara `Op` didn't tell us which NumPy equivalent to use (or
         # there isn't one), so we use this fallback approach
         if scalar_nfunc_spec:
             scalar_fn_name = scalar_nfunc_spec[0]

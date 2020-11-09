@@ -1,7 +1,7 @@
 .. _libdoc_tensor_nnet_ctc:
 
 ==================================================================================
-:mod:`theano.tensor.nnet.ctc` -- Connectionist Temporal Classification (CTC) loss
+:mod:`aesara.tensor.nnet.ctc` -- Connectionist Temporal Classification (CTC) loss
 ==================================================================================
 
 .. note::
@@ -22,11 +22,11 @@
     Unfortunately, Windows platforms are not yet supported by the underlying
     library.
 
-.. module:: theano.tensor.nnet.ctc
+.. module:: aesara.tensor.nnet.ctc
    :platform: Unix
    :synopsis: Connectionist temporal classification (CTC) loss Op, using the warp-ctc library
 .. moduleauthor:: `João Victor Risso <https://github.com/joaovictortr>`_
 
-.. autofunction:: theano.tensor.nnet.ctc.ctc
-.. autoclass:: theano.tensor.nnet.ctc.ConnectionistTemporalClassification
+.. autofunction:: aesara.tensor.nnet.ctc.ctc
+.. autoclass:: aesara.tensor.nnet.ctc.ConnectionistTemporalClassification
 

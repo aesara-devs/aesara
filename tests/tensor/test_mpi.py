@@ -3,10 +3,10 @@ import subprocess
 
 import pytest
 
-import theano
-from theano import change_flags
-from theano.gof.sched import sort_schedule_fn
-from theano.tensor.io import (
+import aesara
+from aesara import change_flags
+from aesara.gof.sched import sort_schedule_fn
+from aesara.tensor.io import (
     MPISend,
     MPISendWait,
     mpi_cmps,
@@ -18,8 +18,8 @@ from theano.tensor.io import (
 
 
 mpi_scheduler = sort_schedule_fn(*mpi_cmps)
-mpi_linker = theano.OpWiseCLinker(schedule=mpi_scheduler)
-mpi_mode = theano.Mode(linker=mpi_linker)
+mpi_linker = aesara.OpWiseCLinker(schedule=mpi_scheduler)
+mpi_mode = aesara.Mode(linker=mpi_linker)
 
 
 @change_flags(compute_test_value="off")
@@ -34,7 +34,7 @@ def test_recv():
 
 
 def test_send():
-    x = theano.tensor.matrix("x")
+    x = aesara.tensor.matrix("x")
     y = send(x, 1, 11)
     sendnode = y.owner.inputs[0].owner
     assert sendnode.op.dest == 1
@@ -45,12 +45,12 @@ def test_send():
 def test_can_make_function():
     x = recv((5, 5), "float32", 0, 11)
     y = x + 1
-    assert theano.function([], [y])
+    assert aesara.function([], [y])
 
 
 @pytest.mark.skipif(not mpi_enabled, reason="MPI not enabled")
 def test_mpi_roundtrip():
-    theano_root = theano.__file__.split("__init__")[0]
+    aesara_root = aesara.__file__.split("__init__")[0]
     env = os.environ.copy()
     flags = env.get("THEANO_FLAGS", "")
     keep_flags = ",".join(
@@ -58,7 +58,7 @@ def test_mpi_roundtrip():
     )
     env["THEANO_FLAGS"] = keep_flags
     p = subprocess.Popen(
-        "mpiexec -np 2 python " + theano_root + "tensor/tests/_test_mpi_roundtrip.py",
+        "mpiexec -np 2 python " + aesara_root + "tensor/tests/_test_mpi_roundtrip.py",
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -68,12 +68,12 @@ def test_mpi_roundtrip():
     )
     (stdout, stderr) = p.communicate()
 
-    result = theano.utils.decode(stdout)
-    assert "True" in result, theano.utils.decode(stderr)
+    result = aesara.utils.decode(stdout)
+    assert "True" in result, aesara.utils.decode(stderr)
 
 
 def test_mpi_send_wait_cmp():
-    x = theano.tensor.matrix("x")
+    x = aesara.tensor.matrix("x")
     y = send(x, 1, 11)
     z = x + x
     waitnode = y.owner
@@ -88,18 +88,18 @@ def test_mpi_tag_ordering():
     x = recv((2, 2), "float32", 1, 12)
     y = recv((2, 2), "float32", 1, 11)
     z = recv((2, 2), "float32", 1, 13)
-    f = theano.function([], [x, y, z], mode=mpi_mode)
+    f = aesara.function([], [x, y, z], mode=mpi_mode)
     nodes = f.maker.linker.make_all()[-1]
 
     assert all(node.op.tag == tag for node, tag in zip(nodes, (11, 12, 13, 11, 12, 13)))
 
 
 def test_mpi_schedule():
-    x = theano.tensor.matrix("x")
+    x = aesara.tensor.matrix("x")
     y = send(x, 1, 11)
     z = x + x
 
-    f = theano.function([x], [y, z], mode=mpi_mode)
+    f = aesara.function([x], [y, z], mode=mpi_mode)
     nodes = f.maker.linker.make_all()[-1]
-    optypes = [MPISend, theano.tensor.Elemwise, MPISendWait]
+    optypes = [MPISend, aesara.tensor.Elemwise, MPISendWait]
     assert all(isinstance(node.op, optype) for node, optype in zip(nodes, optypes))

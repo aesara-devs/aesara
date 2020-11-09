@@ -6,12 +6,12 @@ Define `SymbolicInput`, `SymbolicOutput`, `In`, `Out`.
 
 import logging
 
-from theano import gof
+from aesara import gof
 
 from .sharedvalue import SharedVariable
 
 
-_logger = logging.getLogger("theano.compile.io")
+_logger = logging.getLogger("aesara.compile.io")
 
 __docformat__ = "restructuredtext en"
 

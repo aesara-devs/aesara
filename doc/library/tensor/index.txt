@@ -9,7 +9,7 @@
    :synopsis: symbolic types and operations for n-dimensional arrays.
 .. moduleauthor:: LISA
 
-Theano's strength is in expressing symbolic calculations involving tensors.  
+Aesara's strength is in expressing symbolic calculations involving tensors.  
 There are many types of symbolic expressions for tensors. 
 They are grouped into the following sections:
 

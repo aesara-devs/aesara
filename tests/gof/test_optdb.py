@@ -1,6 +1,6 @@
 import pytest
 
-from theano.gof.optdb import DB, opt
+from aesara.gof.optdb import DB, opt
 
 
 class TestDB:

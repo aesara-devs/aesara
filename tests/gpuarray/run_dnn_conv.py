@@ -5,10 +5,10 @@
 import argparse
 import sys
 
-import theano
+import aesara
 from tests.gpuarray.check_dnn_conv import CheckDnn, TestDnnConv2D, TestDnnConv3D, cudnn
-from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
-from theano.gpuarray.cudnn_defs import (
+from aesara.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
+from aesara.gpuarray.cudnn_defs import (
     DOUBLE,
     DOUBLE_CONFIG,
     FLOAT,
@@ -17,7 +17,7 @@ from theano.gpuarray.cudnn_defs import (
     PSEUDO_HALF_CONFIG,
     TRUE_HALF_CONFIG,
 )
-from theano.tensor.nnet.abstract_conv import get_conv_output_shape
+from aesara.tensor.nnet.abstract_conv import get_conv_output_shape
 
 
 if __name__ != "__main__":
@@ -95,7 +95,7 @@ parser.add_argument(
     "--dtype-config",
     choices=list(sorted(data_type_configurations.keys())),
     default=None,
-    help="Data type configuration for (data type; precision). Default (theano floatX; theano floatX). "
+    help="Data type configuration for (data type; precision). Default (aesara floatX; aesara floatX). "
     "To specify data type configuration, you can either use this option or set data type and "
     'precision separately with "-t" and "-p" options.',
 )
@@ -104,14 +104,14 @@ parser.add_argument(
     "--dtype",
     choices=types,
     default=None,
-    help="Data type (default theano floatX).",
+    help="Data type (default aesara floatX).",
 )
 parser.add_argument(
     "-p",
     "--precision",
     choices=types,
     default=None,
-    help="Precision (default theano floatX).",
+    help="Precision (default aesara floatX).",
 )
 parser.add_argument(
     "-s",
@@ -189,9 +189,9 @@ if args.alpha == 0:
 
 if args.dtype_config is None:
     if args.dtype is None:
-        args.dtype = theano.config.floatX
+        args.dtype = aesara.config.floatX
     if args.precision is None:
-        args.precision = theano.config.floatX
+        args.precision = aesara.config.floatX
 else:
     if args.dtype is not None or args.precision is not None:
         raise ValueError(

@@ -3,13 +3,13 @@ import os
 import sys
 import warnings
 
-import theano
-from theano import config
-from theano.compile import optdb
-from theano.tensor.basic import register_transfer
+import aesara
+from aesara import config
+from aesara.compile import optdb
+from aesara.tensor.basic import register_transfer
 
 
-_logger_name = "theano.gpuarray"
+_logger_name = "aesara.gpuarray"
 _logger = logging.getLogger(_logger_name)
 
 error = _logger.error
@@ -17,7 +17,7 @@ info = _logger.info
 
 pygpu_activated = False
 # Used to skip initialization checking when we are in the same processus.
-theano_gpu_is_already_active = False
+aesara_gpu_is_already_active = False
 try:
     import pygpu
     import pygpu.gpuarray
@@ -71,9 +71,9 @@ def pygpu_parse_version(version_string):
 
 def init_dev(dev, name=None, preallocate=None):
     global pygpu_activated
-    global theano_gpu_is_already_active
+    global aesara_gpu_is_already_active
     if (
-        not theano_gpu_is_already_active
+        not aesara_gpu_is_already_active
         and os.environ.get("THEANO_GPU_IS_ALREADY_ACTIVE", "") == "Yes"
     ):
         raise RuntimeError(
@@ -92,10 +92,10 @@ def init_dev(dev, name=None, preallocate=None):
     gpuarray_version_major_detected = pygpu.gpuarray.api_version()[0]
     if gpuarray_version_major_detected != gpuarray_version_major_supported:
         raise ValueError(
-            "Your installed version of libgpuarray is not in sync with the current Theano"
+            "Your installed version of libgpuarray is not in sync with the current Aesara"
             " version. The installed libgpuarray version supports API version %d,"
-            " while current Theano supports API version %d. Change the version of"
-            " libgpuarray or Theano to fix this problem.",
+            " while current Aesara supports API version %d. Change the version of"
+            " libgpuarray or Aesara to fix this problem.",
             gpuarray_version_major_detected,
             gpuarray_version_major_supported,
         )
@@ -116,7 +116,7 @@ def init_dev(dev, name=None, preallocate=None):
             **args,
         )
         os.environ["THEANO_GPU_IS_ALREADY_ACTIVE"] = "Yes"
-        theano_gpu_is_already_active = True
+        aesara_gpu_is_already_active = True
         context.dev = dev
         init_dev.devmap[dev] = context
         reg_context(name, context)
@@ -252,9 +252,9 @@ def use(
         optdb.add_tags("gpuarray_opt", "fast_run", "fast_compile")
         optdb.add_tags("gpua_scanOp_make_inplace", "fast_run")
     if move_shared_to_gpu:
-        import theano.compile
+        import aesara.compile
 
-        theano.compile.shared_constructor(gpuarray_shared_constructor)
+        aesara.compile.shared_constructor(gpuarray_shared_constructor)
 
 
 if pygpu:

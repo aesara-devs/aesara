@@ -6,16 +6,16 @@ Learn more about BLAS here:
 The standard BLAS libraries implement what is called "legacy BLAS" in that
 document.
 
-This documentation describes Theano's BLAS optimization pipeline.
+This documentation describes Aesara's BLAS optimization pipeline.
 
 Where there is a discrepancy between how things do work and how they *should*
 work, both aspects should be documented.
 
-There are four kinds of BLAS Ops in Theano:
+There are four kinds of BLAS Ops in Aesara:
     - Python implementations (this file)
     - SciPy-based (blas_scipy)
     - C-based (blas_c)
-    - GPU-based (theano.gpuarray)
+    - GPU-based (aesara.gpuarray)
 
 Notes
 -----
@@ -141,10 +141,10 @@ except ImportError:
 
 from functools import reduce
 
-import theano.scalar
-from theano import config
-from theano.compile.mode import optdb
-from theano.gof import (
+import aesara.scalar
+from aesara import config
+from aesara.compile.mode import optdb
+from aesara.gof import (
     Apply,
     EquilibriumOptimizer,
     InconsistencyError,
@@ -155,19 +155,19 @@ from theano.gof import (
     local_optimizer,
     view_roots,
 )
-from theano.gof.opt import inherit_stack_trace
-from theano.gof.params_type import ParamsType
-from theano.gof.toolbox import ReplaceValidate
-from theano.gof.utils import MethodNotDefined, TestValueError, memoize
-from theano.printing import FunctionPrinter, debugprint, pprint
-from theano.scalar import bool as bool_t
-from theano.tensor import basic as tt
-from theano.tensor.blas_headers import blas_header_text, blas_header_version
-from theano.tensor.opt import in2out, local_dimshuffle_lift
-from theano.tensor.type import values_eq_approx_remove_inf_nan
+from aesara.gof.opt import inherit_stack_trace
+from aesara.gof.params_type import ParamsType
+from aesara.gof.toolbox import ReplaceValidate
+from aesara.gof.utils import MethodNotDefined, TestValueError, memoize
+from aesara.printing import FunctionPrinter, debugprint, pprint
+from aesara.scalar import bool as bool_t
+from aesara.tensor import basic as tt
+from aesara.tensor.blas_headers import blas_header_text, blas_header_version
+from aesara.tensor.opt import in2out, local_dimshuffle_lift
+from aesara.tensor.type import values_eq_approx_remove_inf_nan
 
 
-_logger = logging.getLogger("theano.tensor.blas")
+_logger = logging.getLogger("aesara.tensor.blas")
 
 try:
     import scipy.linalg.blas
@@ -189,12 +189,12 @@ try:
 except ImportError as e:
     have_fblas = False
     # This is used in Gemv and ScipyGer. We use CGemv and CGer
-    # when theano.config.blas.ldflags is defined. So we don't need a
+    # when aesara.config.blas.ldflags is defined. So we don't need a
     # warning in that case.
     if not config.blas.ldflags:
         _logger.warning(
             "Failed to import scipy.linalg.blas, and "
-            "Theano flag blas.ldflags is empty. "
+            "Aesara flag blas.ldflags is empty. "
             "Falling back on slower implementations for "
             "dot(matrix, vector), dot(vector, matrix) and "
             "dot(vector, vector) (%s)",
@@ -406,7 +406,7 @@ def ldflags(libs=True, flags=False, libs_dir=False, include_dir=False):
         Extracted flags.
 
     """
-    ldflags_str = theano.config.blas.ldflags
+    ldflags_str = aesara.config.blas.ldflags
     return _ldflags(
         ldflags_str=ldflags_str,
         libs=libs,
@@ -426,7 +426,7 @@ def _ldflags(ldflags_str, libs, flags, libs_dir, include_dir):
     ----------
     ldflags_str : string
         The string to process. Typically, this will be the content of
-        `theano.config.blas.ldflags`.
+        `aesara.config.blas.ldflags`.
     libs : bool
         Extract flags starting with "-l".
     flags: bool
@@ -853,7 +853,7 @@ class Gemm(GemmRelated):
     argument. Because of this in-place computation, an L{Apply} of
     this op will destroy the L{Variable} z on which it operates.  (See
     L{DestructiveOps} for an explanation of what destroying means in
-    the context of theano graphs. See L{BlasLapackSupport} for more
+    the context of aesara graphs. See L{BlasLapackSupport} for more
     optimized linear algebra operations.)
 
     """
@@ -912,7 +912,7 @@ class Gemm(GemmRelated):
         # declare to be inplace only on z. So to make it safe, we
         # raise an error if z can be a view on x or y.
 
-        # I don't know if Theano currently can support that case. As
+        # I don't know if Aesara currently can support that case. As
         # this case don't happen in our code, I won't spent time
         # investigating this. So the assert is for safety.  I also
         # think there is another mechanism that would prevent this,
@@ -1097,7 +1097,7 @@ class Gemm(GemmRelated):
 
 gemm_inplace = Gemm(inplace=True)
 gemm_no_inplace = Gemm(inplace=False)
-# For the user interface. Theano optimization will make them inplace
+# For the user interface. Aesara optimization will make them inplace
 gemm = gemm_no_inplace
 pprint.assign(gemm_inplace, FunctionPrinter("gemm_inplace"))
 pprint.assign(gemm_no_inplace, FunctionPrinter("gemm_no_inplace"))
@@ -1124,13 +1124,13 @@ def _as_scalar(res, dtype=None):
             rval = res.dimshuffle()
         else:
             rval = res
-        if rval.type.dtype in theano.tensor.integer_dtypes:
+        if rval.type.dtype in aesara.tensor.integer_dtypes:
             # We check that the upcast of res and dtype won't change dtype.
             # If dtype is float64, we will cast int64 to float64.
             # This is valid when res is a scalar used as input to a dot22
             # as the cast of the scalar can be done before or after the dot22
             # and this will give the same result.
-            if theano.scalar.upcast(res.dtype, dtype) == dtype:
+            if aesara.scalar.upcast(res.dtype, dtype) == dtype:
                 return tt.cast(rval, dtype)
             else:
                 return None
@@ -1330,7 +1330,7 @@ def _factor_canonicalized(lst):
     #        t = (t,)
     #    for e in t:
     #        try:
-    #            theano.printing.debugprint(e)
+    #            aesara.printing.debugprint(e)
     #        except TypeError:
     #            print e, type(e)
     i = 0
@@ -1369,11 +1369,11 @@ def _gemm_from_factored_list(lst):
     # This can happen when we try to cast a complex to a real
     for sM in lst:
         # Make every pair in list have matching dtypes
-        # sM can be a tuple of 2 elements or a theano variable.
+        # sM can be a tuple of 2 elements or a aesara variable.
         if isinstance(sM, tuple):
             sm0, sm1 = sM
             sm0 = tt.as_tensor_variable(sm0)
-            if theano.scalar.upcast(sm0.dtype, sm1.dtype) == sm1.dtype:
+            if aesara.scalar.upcast(sm0.dtype, sm1.dtype) == sm1.dtype:
                 lst2.append((tt.cast(sm0, sm1.dtype), sM[1]))
 
     lst = lst2
@@ -1445,7 +1445,7 @@ def _gemm_from_node2(node):
         # factors forces the upcast of the whole expression.  In that
         # case, we simply skip that candidate for Gemm.  This was
         # discussed in
-        # http://groups.google.com/group/theano-dev/browse_thread/thread/a3096c82856e3ad5,
+        # http://groups.google.com/group/aesara-dev/browse_thread/thread/a3096c82856e3ad5,
         # but never made it into a trac ticket.
 
         if rval and (rval[0][0].type == node.outputs[0].type):
@@ -1484,12 +1484,12 @@ class GemmOptimizer(Optimizer):
             if new_node is not node:
                 nodelist.append(new_node)
 
-        u = theano.gof.opt.Updater(on_import, None, None, name="GemmOptimizer")
+        u = aesara.gof.opt.Updater(on_import, None, None, name="GemmOptimizer")
         fgraph.attach_feature(u)
         while did_something:
             nb_iter += 1
             t0 = time.time()
-            nodelist = theano.gof.graph.io_toposort(fgraph.inputs, fgraph.outputs)
+            nodelist = aesara.gof.graph.io_toposort(fgraph.inputs, fgraph.outputs)
             time_toposort += time.time() - t0
             did_something = False
             nodelist.reverse()
@@ -1499,10 +1499,10 @@ class GemmOptimizer(Optimizer):
                     and isinstance(
                         node.op.scalar_op,
                         (
-                            theano.scalar.Add,
-                            theano.scalar.Sub,
-                            theano.scalar.Neg,
-                            theano.scalar.Mul,
+                            aesara.scalar.Add,
+                            aesara.scalar.Sub,
+                            aesara.scalar.Neg,
+                            aesara.scalar.Mul,
                         ),
                     )
                 ):
@@ -1798,7 +1798,7 @@ def local_dot22_to_ger_or_gemv(node):
                 return [rval]
             if xb[0] and yb[1]:
                 # x and y are both vectors so this qualifies for a sdot / ddot
-                # TODO: Theano doesn't have a sdot, but gemv is better than _dot22
+                # TODO: Aesara doesn't have a sdot, but gemv is better than _dot22
                 xv = x.dimshuffle(1)
                 zeros = tt.AllocEmpty(x.dtype)(1)
                 rval = gemv_no_inplace(zeros, one, y.T, xv, zero)
@@ -2015,7 +2015,7 @@ def local_dot22_to_dot22scalar(node):
         scalar_idx = -1
         for i, x in enumerate(m.owner.inputs):
             if _as_scalar(x, dtype=d.dtype) and (
-                theano.scalar.upcast(x.type.dtype, d.type.dtype) == d.type.dtype
+                aesara.scalar.upcast(x.type.dtype, d.type.dtype) == d.type.dtype
             ):
                 scalar_idx = i
                 break
@@ -2051,7 +2051,7 @@ def local_dot22_to_dot22scalar(node):
         if (
             i != dot22_idx
             and i_scalar[i] is not None
-            and (theano.scalar.upcast(x.type.dtype, d.type.dtype) == d.type.dtype)
+            and (aesara.scalar.upcast(x.type.dtype, d.type.dtype) == d.type.dtype)
         ):
             scalar_idx = i
             break
@@ -2098,23 +2098,23 @@ class BatchedDot(Op):
 
         if len(inputs) != 2:
             raise TypeError(
-                "theano.tensor.blas.BatchedDot: 2 arguments"
+                "aesara.tensor.blas.BatchedDot: 2 arguments"
                 " required, %d given " % len(inputs)
             )
         if inputs[0].ndim not in (2, 3):
             raise TypeError(
-                "theano.tensor.blas.BatchedDot: input 0 (0-indexed)"
+                "aesara.tensor.blas.BatchedDot: input 0 (0-indexed)"
                 " must have ndim of 2 or 3, %d given. Consider"
-                " calling theano.tensor.batched_dot instead." % inputs[0].ndim
+                " calling aesara.tensor.batched_dot instead." % inputs[0].ndim
             )
         if inputs[1].ndim not in (2, 3):
             raise TypeError(
-                "theano.tensor.blas.BatchedDot: input 1 (0-indexed)"
+                "aesara.tensor.blas.BatchedDot: input 1 (0-indexed)"
                 " must have ndim of 2 or 3, %d given. Consider"
-                " calling theano.tensor.batched_dot instead." % inputs[1].ndim
+                " calling aesara.tensor.batched_dot instead." % inputs[1].ndim
             )
 
-        dtype = theano.scalar.upcast(*[input.type.dtype for input in inputs])
+        dtype = aesara.scalar.upcast(*[input.type.dtype for input in inputs])
         # upcast inputs to common dtype if needed
         upcasted_inputs = [tt.cast(input, dtype) for input in inputs]
         broadcastable = (
@@ -2130,7 +2130,7 @@ class BatchedDot(Op):
 
         if x.shape[0] != y.shape[0]:
             raise TypeError(
-                "theano.tensor.blas.BatchedDot: inputs [%s] must have the"
+                "aesara.tensor.blas.BatchedDot: inputs [%s] must have the"
                 " same size in axis 0, but have sizes [%s]."
                 % (", ".join(map(str, inp)), ", ".join([str(i.shape[0]) for i in inp]))
             )
@@ -2443,7 +2443,7 @@ class BatchedDot(Op):
         )
 
     def c_code_cache_version(self):
-        from theano.tensor.blas_headers import blas_header_version
+        from aesara.tensor.blas_headers import blas_header_version
 
         return (4, blas_header_version())
 
@@ -2496,35 +2496,35 @@ class BatchedDot(Op):
 
         if test_values_enabled:
             try:
-                iv0 = theano.gof.op.get_test_value(inputs[0])
+                iv0 = aesara.gof.op.get_test_value(inputs[0])
             except TestValueError:
-                theano.gof.op.missing_test_message(
+                aesara.gof.op.missing_test_message(
                     "first input passed to BatchedDot.R_op has no test value"
                 )
                 test_values_enabled = False
 
             try:
-                iv1 = theano.gof.op.get_test_value(inputs[1])
+                iv1 = aesara.gof.op.get_test_value(inputs[1])
             except TestValueError:
-                theano.gof.op.missing_test_message(
+                aesara.gof.op.missing_test_message(
                     "second input passed to BatchedDot.R_op has no test value"
                 )
                 test_values_enabled = False
 
             if eval_points[0]:
                 try:
-                    ev0 = theano.gof.op.get_test_value(eval_points[0])
+                    ev0 = aesara.gof.op.get_test_value(eval_points[0])
                 except TestValueError:
-                    theano.gof.op.missing_test_message(
+                    aesara.gof.op.missing_test_message(
                         "first eval point passed to BatchedDot.R_op "
                         "has no test value"
                     )
                     test_values_enabled = False
             if eval_points[1]:
                 try:
-                    ev1 = theano.gof.op.get_test_value(eval_points[1])
+                    ev1 = aesara.gof.op.get_test_value(eval_points[1])
                 except TestValueError:
-                    theano.gof.op.missing_test_message(
+                    aesara.gof.op.missing_test_message(
                         "second eval point passed to BatchedDot.R_op "
                         "has no test value"
                     )

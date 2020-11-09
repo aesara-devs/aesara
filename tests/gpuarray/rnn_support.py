@@ -1,7 +1,7 @@
 import numpy as np
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 
 
 class Model:
@@ -28,13 +28,13 @@ def uniform(stdev, size):
     """uniform distribution with the given stdev and size"""
     return np.random.uniform(
         low=-stdev * np.sqrt(3), high=stdev * np.sqrt(3), size=size
-    ).astype(theano.config.floatX)
+    ).astype(aesara.config.floatX)
 
 
 def linear_transform_weights(input_dim, output_dim, param_list=None, name=""):
-    "theano shared variable given input and output dimension"
+    "aesara shared variable given input and output dimension"
     weight_inialization = uniform(np.sqrt(2.0 / input_dim), (input_dim, output_dim))
-    W = theano.shared(weight_inialization, name=name)
+    W = aesara.shared(weight_inialization, name=name)
 
     assert param_list is not None
 
@@ -43,10 +43,10 @@ def linear_transform_weights(input_dim, output_dim, param_list=None, name=""):
 
 
 def bias_weights(length, param_list=None, name=""):
-    "theano shared variable for bias unit, given length"
-    bias_initialization = np.zeros(length).astype(theano.config.floatX)
+    "aesara shared variable for bias unit, given length"
+    bias_initialization = np.zeros(length).astype(aesara.config.floatX)
 
-    bias = theano.shared(bias_initialization, name=name)
+    bias = aesara.shared(bias_initialization, name=name)
 
     if param_list is not None:
         param_list.append(bias)
@@ -144,7 +144,7 @@ class GRU(Layer):
 
         outputs_info = self.s0
 
-        states, updates = theano.scan(
+        states, updates = aesara.scan(
             fn=step, sequences=[self.X], outputs_info=outputs_info
         )
 
@@ -249,7 +249,7 @@ class LSTM(Layer):
 
         outputs_info = [self.s0, self.c0]
 
-        states, updates = theano.scan(
+        states, updates = aesara.scan(
             fn=step, sequences=[self.X], outputs_info=outputs_info
         )
 

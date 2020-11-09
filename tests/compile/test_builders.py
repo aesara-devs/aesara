@@ -3,15 +3,15 @@ from functools import partial
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 from tests import unittest_tools
-from theano import config, shared
-from theano.compile import function
-from theano.compile.builders import OpFromGraph
-from theano.gof.null_type import NullType
-from theano.gradient import DisconnectedType
-from theano.tensor.shared_randomstreams import RandomStreams
+from aesara import config, shared
+from aesara.compile import function
+from aesara.compile.builders import OpFromGraph
+from aesara.gof.null_type import NullType
+from aesara.gradient import DisconnectedType
+from aesara.tensor.shared_randomstreams import RandomStreams
 
 
 class TestOpFromGraph(unittest_tools.InferShapeTester):
@@ -295,7 +295,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             return y + tt.round(y)
 
         def f1_back(inputs, output_gradients):
-            return [output_gradients[0], theano.gradient.disconnected_type()]
+            return [output_gradients[0], aesara.gradient.disconnected_type()]
 
         op = cls_ofg(
             inputs=[x, y],
@@ -307,7 +307,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
 
         c = op(x, y)
 
-        g1 = theano.grad(c.sum(), x)
+        g1 = aesara.grad(c.sum(), x)
 
         out = g1.eval(
             {x: np.ones((5,), dtype=np.float32), y: np.ones((5,), dtype=np.float32)}
@@ -396,7 +396,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             OpFromGraph,
         )
 
-    @theano.change_flags(compute_test_value="raise")
+    @aesara.change_flags(compute_test_value="raise")
     def test_compute_test_value(self):
         x = tt.scalar("x")
         x.tag.test_value = np.array(1.0, dtype=config.floatX)

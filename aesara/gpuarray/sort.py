@@ -3,10 +3,10 @@ from string import Template
 
 import numpy as np
 
-import theano
-from theano import Apply
-from theano.tensor import as_tensor_variable
-from theano.tensor.sort import TopKOp
+import aesara
+from aesara import Apply
+from aesara.tensor import as_tensor_variable
+from aesara.tensor.sort import TopKOp
 
 from .basic_ops import (
     GpuKernelBase,
@@ -23,7 +23,7 @@ try:
     import pygpu
     import pygpu.gpuarray as ga
 except ImportError:
-    # To make sure theano is importable
+    # To make sure aesara is importable
     pass
 
 
@@ -229,7 +229,7 @@ class GpuTopKOp(GpuKernelBase, TopKOp):
             params_dv += "".join("dvstrides[%d], " % i for i in reordered_axes)
             prep_output += (
                 """
-    if (0 != theano_prep_output(
+    if (0 != aesara_prep_output(
         &%(yv)s, %(ndim)d, odims,
         %(inp_dtc)s, GA_C_ORDER, %(ctx)s)) {
         %(fail)s;
@@ -245,7 +245,7 @@ class GpuTopKOp(GpuKernelBase, TopKOp):
             params_di += "".join("distrides[%d], " % i for i in reordered_axes)
             prep_output += (
                 """
-    if (0 != theano_prep_output(
+    if (0 != aesara_prep_output(
         &%(yi)s, %(ndim)d, odims,
         %(out_dtc)s, GA_C_ORDER, %(ctx)s)) {
         %(fail)s;
@@ -380,7 +380,7 @@ class ValuesEqApproxNoOrder:
     def __call__(self, val1, val2):
         v1 = np.sort(val1, axis=self.axis)
         v2 = np.sort(val2, axis=self.axis)
-        ret = theano.tensor.type.values_eq_approx(v1, v2)
+        ret = aesara.tensor.type.values_eq_approx(v1, v2)
         return ret
 
 

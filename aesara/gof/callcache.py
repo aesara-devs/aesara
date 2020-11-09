@@ -2,7 +2,7 @@ import logging
 import pickle
 
 
-_logger = logging.getLogger("theano.gof.callcache")
+_logger = logging.getLogger("aesara.gof.callcache")
 
 
 class CallCache:

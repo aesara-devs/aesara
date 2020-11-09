@@ -2,38 +2,38 @@
 .. _debug_faq:
 
 =========================================
-Debugging Theano: FAQ and Troubleshooting
+Debugging Aesara: FAQ and Troubleshooting
 =========================================
 
 There are many kinds of bugs that might come up in a computer program.
 This page is structured as a FAQ.  It provides recipes to tackle common
 problems, and introduces some of the tools that we use to find problems in our
-own Theano code, and even (it happens) in Theano's internals, in
+own Aesara code, and even (it happens) in Aesara's internals, in
 :ref:`using_debugmode`.
 
-Isolating the Problem/Testing Theano Compiler
+Isolating the Problem/Testing Aesara Compiler
 ---------------------------------------------
 
-You can run your Theano function in a :ref:`DebugMode<using_debugmode>`.
-This tests the Theano optimizations and helps to find where NaN, inf and other problems come from.
+You can run your Aesara function in a :ref:`DebugMode<using_debugmode>`.
+This tests the Aesara optimizations and helps to find where NaN, inf and other problems come from.
 
 Interpreting Error Messages
 ---------------------------
 
-Even in its default configuration, Theano tries to display useful error
+Even in its default configuration, Aesara tries to display useful error
 messages. Consider the following faulty code.
 
 .. testcode::
 
     import numpy as np
-    import theano
-    import theano.tensor as tt
+    import aesara
+    import aesara.tensor as tt
 
     x = tt.vector()
     y = tt.vector()
     z = x + x
     z = z + y
-    f = theano.function([x, y], z)
+    f = aesara.function([x, y], z)
     f(np.ones((2,)), np.ones((3,)))
 
 Running the code above we see:
@@ -50,8 +50,8 @@ Running the code above we see:
    Inputs strides: [(8,), (8,), (8,)]
    Inputs scalar values: ['not scalar', 'not scalar', 'not scalar']
 
-   HINT: Re-running with most Theano optimization disabled could give you a back-traces when this node was created. This can be done with by setting the Theano flags 'optimizer=fast_compile'. If that does not work, Theano optimization can be disabled with 'optimizer=None'.
-   HINT: Use the Theano flag 'exception_verbosity=high' for a debugprint of this apply node.
+   HINT: Re-running with most Aesara optimization disabled could give you a back-traces when this node was created. This can be done with by setting the Aesara flags 'optimizer=fast_compile'. If that does not work, Aesara optimization can be disabled with 'optimizer=None'.
+   HINT: Use the Aesara flag 'exception_verbosity=high' for a debugprint of this apply node.
 
 Arguably the most useful information is approximately half-way through
 the error message, where the kind of error is displayed along with its
@@ -61,7 +61,7 @@ Below it, some other information is given, such as the apply node that
 caused the error, as well as the input types, shapes, strides and
 scalar values.
 
-The two hints can also be helpful when debugging. Using the theano flag
+The two hints can also be helpful when debugging. Using the aesara flag
 ``optimizer=fast_compile`` or ``optimizer=None`` can often tell you
 the faulty line, while ``exception_verbosity=high`` will display a
 debugprint of the apply node. Using these hints, the end of the error
@@ -89,11 +89,11 @@ you could set ``optimizer=None`` or use test values.
 Using Test Values
 -----------------
 
-As of v.0.4.0, Theano has a new mechanism by which graphs are executed
-on-the-fly, before a ``theano.function`` is ever compiled. Since optimizations
+As of v.0.4.0, Aesara has a new mechanism by which graphs are executed
+on-the-fly, before a ``aesara.function`` is ever compiled. Since optimizations
 haven't been applied at this stage, it is easier for the user to locate the
 source of some bug. This functionality is enabled through the config flag
-``theano.config.compute_test_value``. Its use is best shown through the
+``aesara.config.compute_test_value``. Its use is best shown through the
 following example. Here, we use ``exception_verbosity=high`` and
 ``optimizer=fast_compile``, which would not tell you the line at fault.
 ``optimizer=None`` would and it could therefore be used instead of test values.
@@ -102,24 +102,24 @@ following example. Here, we use ``exception_verbosity=high`` and
 .. testcode:: testvalue
 
     import numpy
-    import theano
-    import theano.tensor as tt
+    import aesara
+    import aesara.tensor as tt
 
     # compute_test_value is 'off' by default, meaning this feature is inactive
-    theano.config.compute_test_value = 'off' # Use 'warn' to activate this feature
+    aesara.config.compute_test_value = 'off' # Use 'warn' to activate this feature
 
     # configure shared variables
-    W1val = numpy.random.rand(2, 10, 10).astype(theano.config.floatX)
-    W1 = theano.shared(W1val, 'W1')
-    W2val = numpy.random.rand(15, 20).astype(theano.config.floatX)
-    W2 = theano.shared(W2val, 'W2')
+    W1val = numpy.random.rand(2, 10, 10).astype(aesara.config.floatX)
+    W1 = aesara.shared(W1val, 'W1')
+    W2val = numpy.random.rand(15, 20).astype(aesara.config.floatX)
+    W2 = aesara.shared(W2val, 'W2')
 
     # input which will be of shape (5,10)
     x  = tt.matrix('x')
-    # provide Theano with a default test-value
+    # provide Aesara with a default test-value
     #x.tag.test_value = numpy.random.rand(5, 10)
 
-    # transform the shared variable in some way. Theano does not
+    # transform the shared variable in some way. Aesara does not
     # know off hand that the matrix func_of_W1 has shape (20, 10)
     func_of_W1 = W1.dimshuffle(2, 0, 1).flatten(2).T
 
@@ -130,7 +130,7 @@ following example. Here, we use ``exception_verbosity=high`` and
     h2 = tt.dot(h1, W2.T)
 
     # compile and call the actual function
-    f = theano.function([x], h2)
+    f = aesara.function([x], h2)
     f(numpy.random.rand(5, 10))
 
 Running the above code generates the following error message:
@@ -140,9 +140,9 @@ Running the above code generates the following error message:
     Traceback (most recent call last):
       File "test1.py", line 31, in <module>
         f(numpy.random.rand(5, 10))
-      File "PATH_TO_THEANO/theano/compile/function_module.py", line 605, in __call__
+      File "PATH_TO_THEANO/aesara/compile/function_module.py", line 605, in __call__
         self.fn.thunks[self.fn.position_of_error])
-      File "PATH_TO_THEANO/theano/compile/function_module.py", line 595, in __call__
+      File "PATH_TO_THEANO/aesara/compile/function_module.py", line 595, in __call__
         outputs = self.fn()
     ValueError: Shape mismatch: x has 10 cols (and 5 rows) but y has 20 rows (and 10 cols)
     Apply node that caused the error: Dot22(x, DimShuffle{1,0}.0)
@@ -159,25 +159,25 @@ Running the above code generates the following error message:
          |DimShuffle{2,0,1} [id E] <TensorType(float64, 3D)> ''
            |W1 [id F] <TensorType(float64, 3D)>
 
-    HINT: Re-running with most Theano optimization disabled could give you a back-traces when this node was created. This can be done with by setting the Theano flags 'optimizer=fast_compile'. If that does not work, Theano optimization can be disabled with 'optimizer=None'.
+    HINT: Re-running with most Aesara optimization disabled could give you a back-traces when this node was created. This can be done with by setting the Aesara flags 'optimizer=fast_compile'. If that does not work, Aesara optimization can be disabled with 'optimizer=None'.
 
 If the above is not informative enough, by instrumenting the code ever
-so slightly, we can get Theano to reveal the exact source of the error.
+so slightly, we can get Aesara to reveal the exact source of the error.
 
 .. code-block:: python
 
     # enable on-the-fly graph computations
-    theano.config.compute_test_value = 'warn'
+    aesara.config.compute_test_value = 'warn'
 
     ...
 
     # input which will be of shape (5, 10)
     x  = tt.matrix('x')
-    # provide Theano with a default test-value
+    # provide Aesara with a default test-value
     x.tag.test_value = numpy.random.rand(5, 10)
 
 In the above, we are tagging the symbolic matrix *x* with a special test
-value. This allows Theano to evaluate symbolic expressions on-the-fly (by
+value. This allows Aesara to evaluate symbolic expressions on-the-fly (by
 calling the ``perform`` method of each op), as they are being defined. Sources
 of error can thus be identified with much more precision and much earlier in
 the compilation pipeline. For example, running the above code yields the
@@ -188,22 +188,22 @@ following error message, which properly identifies *line 24* as the culprit.
     Traceback (most recent call last):
       File "test2.py", line 24, in <module>
         h1 = tt.dot(x, func_of_W1)
-      File "PATH_TO_THEANO/theano/tensor/basic.py", line 4734, in dot
+      File "PATH_TO_THEANO/aesara/tensor/basic.py", line 4734, in dot
         return _dot(a, b)
-      File "PATH_TO_THEANO/theano/gof/op.py", line 545, in __call__
+      File "PATH_TO_THEANO/aesara/gof/op.py", line 545, in __call__
         required = thunk()
-      File "PATH_TO_THEANO/theano/gof/op.py", line 752, in rval
+      File "PATH_TO_THEANO/aesara/gof/op.py", line 752, in rval
         r = p(n, [x[0] for x in i], o)
-      File "PATH_TO_THEANO/theano/tensor/basic.py", line 4554, in perform
+      File "PATH_TO_THEANO/aesara/tensor/basic.py", line 4554, in perform
         z[0] = numpy.asarray(numpy.dot(x, y))
     ValueError: matrices are not aligned
 
 The ``compute_test_value`` mechanism works as follows:
 
-* Theano ``constants`` and ``shared`` variables are used as is. No need to instrument them.
-* A Theano *variable* (i.e. ``dmatrix``, ``vector``, etc.) should be
+* Aesara ``constants`` and ``shared`` variables are used as is. No need to instrument them.
+* A Aesara *variable* (i.e. ``dmatrix``, ``vector``, etc.) should be
   given a special test value through the attribute ``tag.test_value``.
-* Theano automatically instruments intermediate results. As such, any quantity
+* Aesara automatically instruments intermediate results. As such, any quantity
   derived from *x* will be given a ``tag.test_value`` automatically.
 
 ``compute_test_value`` can take the following values:
@@ -224,8 +224,8 @@ It is also possible to override variables ``__repr__`` method to have them retur
 
 .. testsetup:: printtestvalue
 
-   import theano
-   import theano.tensor as tt
+   import aesara
+   import aesara.tensor as tt
 
 
 .. testcode:: printtestvalue
@@ -235,11 +235,11 @@ It is also possible to override variables ``__repr__`` method to have them retur
    x.tag.test_value = 42
 
    # Enable test value printing
-   theano.config.print_test_value = True
+   aesara.config.print_test_value = True
    print(x.__repr__())
 
    # Disable test value printing
-   theano.config.print_test_value = False
+   aesara.config.print_test_value = False
    print(x.__repr__())
 
 Running the code above returns the following output:
@@ -254,19 +254,19 @@ Running the code above returns the following output:
 "How do I Print an Intermediate Value in a Function?"
 -----------------------------------------------------
 
-Theano provides a 'Print' op to do this.
+Aesara provides a 'Print' op to do this.
 
 .. testcode::
 
     import numpy
-    import theano
+    import aesara
 
-    x = theano.tensor.dvector('x')
+    x = aesara.tensor.dvector('x')
 
-    x_printed = theano.printing.Print('this is a very important value')(x)
+    x_printed = aesara.printing.Print('this is a very important value')(x)
 
-    f = theano.function([x], x * 5)
-    f_with_print = theano.function([x], x_printed * 5)
+    f = aesara.function([x], x * 5)
+    f_with_print = aesara.function([x], x_printed * 5)
 
     #this runs the graph without any printing
     assert numpy.all( f([1, 2, 3]) == [5, 10, 15])
@@ -278,14 +278,14 @@ Theano provides a 'Print' op to do this.
 
     this is a very important value __str__ = [ 1.  2.  3.]
 
-Since Theano runs your program in a topological order, you won't have precise
+Since Aesara runs your program in a topological order, you won't have precise
 control over the order in which multiple ``Print()`` ops are evaluated.  For a more
 precise inspection of what's being computed where, when, and how, see the discussion
 :ref:`faq_monitormode`.
 
 .. warning::
 
-    Using this ``Print`` Theano Op can prevent some Theano
+    Using this ``Print`` Aesara Op can prevent some Aesara
     optimization from being applied. This can also happen with
     stability optimization. So if you use this Print and have nan, try
     to remove them to know if this is the cause or not.
@@ -296,11 +296,11 @@ precise inspection of what's being computed where, when, and how, see the discus
 
 .. TODO: dead links in the next paragraph
 
-Theano provides two functions (:func:`theano.pp` and
-:func:`theano.printing.debugprint`) to print a graph to the terminal before or after
+Aesara provides two functions (:func:`aesara.pp` and
+:func:`aesara.printing.debugprint`) to print a graph to the terminal before or after
 compilation.  These two functions print expression graphs in different ways:
 :func:`pp` is more compact and math-like, :func:`debugprint` is more verbose.
-Theano also provides :func:`theano.printing.pydotprint` that creates a png image of the function.
+Aesara also provides :func:`aesara.printing.pydotprint` that creates a png image of the function.
 
 You can read about them in :ref:`libdoc_printing`.
 
@@ -311,16 +311,16 @@ You can read about them in :ref:`libdoc_printing`.
 
 First, make sure you're running in ``FAST_RUN`` mode. Even though
 ``FAST_RUN`` is the default mode, insist by passing ``mode='FAST_RUN'``
-to ``theano.function`` (or ``theano.make``) or by setting :attr:`config.mode`
+to ``aesara.function`` (or ``aesara.make``) or by setting :attr:`config.mode`
 to ``FAST_RUN``.
 
-Second, try the Theano :ref:`profiling <tut_profiling>`.  This will tell you which
+Second, try the Aesara :ref:`profiling <tut_profiling>`.  This will tell you which
 ``Apply`` nodes, and which ops are eating up your CPU cycles.
 
 Tips:
 
 * Use the flags ``floatX=float32`` to require type *float32* instead of *float64*;
-  Use the Theano constructors matrix(),vector(),... instead of dmatrix(), dvector(),...
+  Use the Aesara constructors matrix(),vector(),... instead of dmatrix(), dvector(),...
   since they respectively involve the default types *float32* and *float64*.
 * Check in the ``profile`` mode that there is no ``Dot`` op in the post-compilation
   graph while you are multiplying two matrices of the same type. ``Dot`` should be
@@ -332,7 +332,7 @@ Tips:
 "Why does my GPU function seem to be slow?"
 -------------------------------------------
 
-When you compile a theano function, if you do not get the speedup that you expect over the
+When you compile a aesara function, if you do not get the speedup that you expect over the
 CPU performance of the same code. It is oftentimes due to the fact that some Ops might be running
 on CPU instead GPU. If that is the case, you can use assert_no_cpu_op to check if there
 is a CPU Op on your computational graph. assert_no_cpu_op can take the following one of the three
@@ -361,7 +361,7 @@ shows how to print all inputs and outputs:
 .. testcode::
 
     from __future__ import print_function
-    import theano
+    import aesara
 
     def inspect_inputs(i, node, fn):
         print(i, node, "input(s) value(s):", [input[0] for input in fn.inputs],
@@ -370,9 +370,9 @@ shows how to print all inputs and outputs:
     def inspect_outputs(i, node, fn):
         print(" output(s) value(s):", [output[0] for output in fn.outputs])
 
-    x = theano.tensor.dscalar('x')
-    f = theano.function([x], [5 * x],
-                        mode=theano.compile.MonitorMode(
+    x = aesara.tensor.dscalar('x')
+    f = aesara.function([x], [5 * x],
+                        mode=aesara.compile.MonitorMode(
                             pre_func=inspect_inputs,
                             post_func=inspect_outputs))
     f(3)
@@ -398,12 +398,12 @@ can be achieved as follows:
 
     import numpy
 
-    import theano
+    import aesara
 
     # This is the current suggested detect_nan implementation to
     # show you how it work.  That way, you can modify it for your
     # need.  If you want exactly this method, you can use
-    # ``theano.compile.monitormode.detect_nan`` that will always
+    # ``aesara.compile.monitormode.detect_nan`` that will always
     # contain the current suggested version.
 
     def detect_nan(i, node, fn):
@@ -411,14 +411,14 @@ can be achieved as follows:
             if (not isinstance(output[0], numpy.random.RandomState) and
                 numpy.isnan(output[0]).any()):
                 print('*** NaN detected ***')
-                theano.printing.debugprint(node)
+                aesara.printing.debugprint(node)
                 print('Inputs : %s' % [input[0] for input in fn.inputs])
                 print('Outputs: %s' % [output[0] for output in fn.outputs])
                 break
 
-    x = theano.tensor.dscalar('x')
-    f = theano.function([x], [theano.tensor.log(x) * x],
-                        mode=theano.compile.MonitorMode(
+    x = aesara.tensor.dscalar('x')
+    f = aesara.function([x], [aesara.tensor.log(x) * x],
+                        mode=aesara.compile.MonitorMode(
                             post_func=detect_nan))
     f(0)  # log(0) * 0 = -inf * 0 = NaN
 
@@ -438,19 +438,19 @@ operations together. This makes it harder to know which particular
 elemwise causes the problem. The second optimization makes some ops'
 outputs overwrite their inputs. So, if an op creates a bad output, you
 will not be able to see the input that was overwritten in the ``post_func``
-function. To disable those optimizations (with a Theano version after
+function. To disable those optimizations (with a Aesara version after
 0.6rc3), define the MonitorMode like this:
 
 .. testcode:: compiled
 
-   mode = theano.compile.MonitorMode(post_func=detect_nan).excluding(
+   mode = aesara.compile.MonitorMode(post_func=detect_nan).excluding(
        'local_elemwise_fusion', 'inplace')
-   f = theano.function([x], [theano.tensor.log(x) * x],
+   f = aesara.function([x], [aesara.tensor.log(x) * x],
                        mode=mode)
 
 .. note::
 
-    The Theano flags ``optimizer_including``, ``optimizer_excluding``
+    The Aesara flags ``optimizer_including``, ``optimizer_excluding``
     and ``optimizer_requiring`` aren't used by the MonitorMode, they
     are used only by the ``default`` mode. You can't use the ``default``
     mode with MonitorMode, as you need to define what you monitor.
@@ -458,7 +458,7 @@ function. To disable those optimizations (with a Theano version after
 To be sure all inputs of the node are available during the call to
 ``post_func``, you must also disable the garbage collector. Otherwise,
 the execution of the node can garbage collect its inputs that aren't
-needed anymore by the Theano function. This can be done with the Theano
+needed anymore by the Aesara function. This can be done with the Aesara
 flag:
 
 .. code-block:: python
@@ -483,14 +483,14 @@ Consider this example script ("ex.py"):
 
 .. testcode::
 
-   import theano
+   import aesara
    import numpy
-   import theano.tensor as tt
+   import aesara.tensor as tt
 
    a = tt.dmatrix('a')
    b = tt.dmatrix('b')
 
-   f = theano.function([a, b], [a * b])
+   f = aesara.function([a, b], [a * b])
 
    # matrices chosen so dimensions are unsuitable for multiplication
    mat1 = numpy.arange(12).reshape((3, 4))
@@ -515,9 +515,9 @@ Consider this example script ("ex.py"):
 
    Backtrace when the node is created:
      File "<doctest default[0]>", line 8, in <module>
-       f = theano.function([a, b], [a * b])
+       f = aesara.function([a, b], [a * b])
 
-   HINT: Use the Theano flag 'exception_verbosity=high' for a debugprint and storage map footprint of this apply node.
+   HINT: Use the Aesara flag 'exception_verbosity=high' for a debugprint and storage map footprint of this apply node.
 
 This is actually so simple the debugging could be done easily, but it's for
 illustrative purposes. As the matrices can't be multiplied element-wise
@@ -527,10 +527,10 @@ illustrative purposes. As the matrices can't be multiplied element-wise
 
     File "ex.py", line 14, in <module>
       f(mat1, mat2)
-    File "/u/username/Theano/theano/compile/function_module.py", line 451, in __call__
-    File "/u/username/Theano/theano/gof/link.py", line 271, in streamline_default_f
-    File "/u/username/Theano/theano/gof/link.py", line 267, in streamline_default_f
-    File "/u/username/Theano/theano/gof/cc.py", line 1049, in execute ValueError: ('Input dimension mis-match. (input[0].shape[0] = 3, input[1].shape[0] = 5)', Elemwise{mul,no_inplace}(a, b), Elemwise{mul,no_inplace}(a, b))
+    File "/u/username/Aesara/aesara/compile/function_module.py", line 451, in __call__
+    File "/u/username/Aesara/aesara/gof/link.py", line 271, in streamline_default_f
+    File "/u/username/Aesara/aesara/gof/link.py", line 267, in streamline_default_f
+    File "/u/username/Aesara/aesara/gof/cc.py", line 1049, in execute ValueError: ('Input dimension mis-match. (input[0].shape[0] = 3, input[1].shape[0] = 5)', Elemwise{mul,no_inplace}(a, b), Elemwise{mul,no_inplace}(a, b))
 
 The call stack contains some useful information to trace back the source
 of the error. There's the script where the compiled function was called --
@@ -540,7 +540,7 @@ tells us about the op that caused the exception. In this case it's a "mul"
 involving variables with names "a" and "b". But suppose we instead had an
 intermediate result to which we hadn't given a name.
 
-After learning a few things about the graph structure in Theano, we can use
+After learning a few things about the graph structure in Aesara, we can use
 the Python debugger to explore the graph, and then we can get runtime
 information about the error. Matrix dimensions, especially, are useful to
 pinpoint the source of the error. In the printout, there are also 2 of the 4
@@ -552,7 +552,7 @@ the debugger module and run the program with "c":
 
     python -m pdb ex.py
     > /u/username/experiments/doctmp1/ex.py(1)<module>()
-    -> import theano
+    -> import aesara
     (Pdb) c
 
 Then we get back the above error printout, but the interpreter breaks in
@@ -583,31 +583,31 @@ Dumping a Function to help debug
 If you are reading this, there is high chance that you emailed our
 mailing list and we asked you to read this section. This section
 explain how to dump all the parameter passed to
-``theano.function()``. This is useful to help us reproduce a problem
+``aesara.function()``. This is useful to help us reproduce a problem
 during compilation and it doesn't request you to make a self contained
 example.
 
 For this to work, we need to be able to import the code for all Op in
 the graph. So if you create your own Op, we will need this
 code. Otherwise, we won't be able to unpickle it. We already have all
-the Ops from Theano and Pylearn2.
+the Ops from Aesara and Pylearn2.
 
 .. code-block:: python
 
     # Replace this line:
-    theano.function(...)
+    aesara.function(...)
     # with
-    theano.function_dump(filename, ...)
+    aesara.function_dump(filename, ...)
     # Where filename is a string to a file that we will write to.
 
 Then send us filename.
 
 
-Breakpoint during Theano function execution
+Breakpoint during Aesara function execution
 -------------------------------------------
 
-You can set a breakpoint during the execution of a Theano function with
-:class:`PdbBreakpoint <theano.breakpoint.PdbBreakpoint>`.
-:class:`PdbBreakpoint <theano.breakpoint.PdbBreakpoint>` automatically
+You can set a breakpoint during the execution of a Aesara function with
+:class:`PdbBreakpoint <aesara.breakpoint.PdbBreakpoint>`.
+:class:`PdbBreakpoint <aesara.breakpoint.PdbBreakpoint>` automatically
 detects available debuggers and uses the first available in the following order:
 `pudb`, `ipdb`, or `pdb`.

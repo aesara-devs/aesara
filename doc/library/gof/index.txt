@@ -2,12 +2,12 @@
 .. _libdoc_gof:
 
 ================================================
-:mod:`gof` -- Theano Internals [doc TODO]
+:mod:`gof` -- Aesara Internals [doc TODO]
 ================================================
 
 .. module:: gof
    :platform: Unix, Windows
-   :synopsis: Theano Internals
+   :synopsis: Aesara Internals
 .. moduleauthor:: LISA
 
 .. toctree::

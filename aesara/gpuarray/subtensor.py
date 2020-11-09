@@ -2,15 +2,15 @@ from io import StringIO
 
 import numpy as np
 
-import theano.tensor as tt
-from theano import Op, gof
-from theano.gof import ParamsType
-from theano.gradient import grad_not_implemented
-from theano.scalar import bool as bool_t
-from theano.scalar import int32 as int_t
-from theano.scalar import uint32 as size_t
-from theano.tensor import AllocDiag
-from theano.tensor.subtensor import (
+import aesara.tensor as tt
+from aesara import Op, gof
+from aesara.gof import ParamsType
+from aesara.gradient import grad_not_implemented
+from aesara.scalar import bool as bool_t
+from aesara.scalar import int32 as int_t
+from aesara.scalar import uint32 as size_t
+from aesara.tensor import AllocDiag
+from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
     AdvancedSubtensor,
     AdvancedSubtensor1,
@@ -26,7 +26,7 @@ try:
 except ImportError:
     pass
 
-from theano.gpuarray.basic_ops import (
+from aesara.gpuarray.basic_ops import (
     GpuKernelBase,
     HideC,
     Kernel,
@@ -35,7 +35,7 @@ from theano.gpuarray.basic_ops import (
     gpuarray_helper_inc_dir,
     infer_context_name,
 )
-from theano.gpuarray.type import GpuArrayType, gpu_context_type
+from aesara.gpuarray.type import GpuArrayType, gpu_context_type
 
 
 iadd_reg = {}
@@ -1014,7 +1014,7 @@ class GpuAdvancedIncSubtensor1(Op):
         step[0] = 0;
         num_indices = PyArray_SIZE(%(ind)s);
         if (!%(params)s->inplace) {
-          %(out)s = theano_try_copy(%(out)s, %(x)s);
+          %(out)s = aesara_try_copy(%(out)s, %(x)s);
           if (%(out)s == NULL) {
             // Exception already set
             %(fail)s
@@ -1155,7 +1155,7 @@ if (%(params)s->inplace) {
   %(out)s = %(x)s;
   Py_INCREF(%(out)s);
 } else {
-  %(out)s = theano_try_copy(%(out)s, %(x)s);
+  %(out)s = aesara_try_copy(%(out)s, %(x)s);
 }
 if (!%(out)s) {
   // Exception already set

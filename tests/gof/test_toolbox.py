@@ -1,9 +1,9 @@
-from theano import tensor
-from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Apply, Variable
-from theano.gof.op import Op
-from theano.gof.toolbox import NodeFinder, is_same_graph
-from theano.gof.type import Type
+from aesara import tensor
+from aesara.gof.fg import FunctionGraph
+from aesara.gof.graph import Apply, Variable
+from aesara.gof.op import Op
+from aesara.gof.toolbox import NodeFinder, is_same_graph
+from aesara.gof.type import Type
 
 
 class TestNodeFinder:

@@ -11,9 +11,9 @@ import time
 
 import numpy as np
 
-import theano
-from theano.gpuarray import init_dev
-from theano.gpuarray.blas import gpu_dot22
+import aesara
+from aesara.gpuarray import init_dev
+from aesara.gpuarray.blas import gpu_dot22
 
 
 def main(dev1, dev2):
@@ -22,20 +22,20 @@ def main(dev1, dev2):
 
     size = 1024 * 16
     data = np.random.randn(size, size).astype("float32")
-    val1a = theano.shared(data, target="ctx1")
-    val1b = theano.shared(data, target="ctx1")
-    val1c = theano.shared(data, target="ctx1")
-    val1d = theano.shared(data, target="ctx1")
+    val1a = aesara.shared(data, target="ctx1")
+    val1b = aesara.shared(data, target="ctx1")
+    val1c = aesara.shared(data, target="ctx1")
+    val1d = aesara.shared(data, target="ctx1")
 
-    val2a = theano.shared(data, target="ctx2")
-    val2b = theano.shared(data, target="ctx2")
+    val2a = aesara.shared(data, target="ctx2")
+    val2b = aesara.shared(data, target="ctx2")
 
-    f1 = theano.function([], [gpu_dot22(val1a, val1b), gpu_dot22(val1c, val1d)])
-    f2 = theano.function([], [gpu_dot22(val1a, val1b), gpu_dot22(val2a, val2b)])
-    f3 = theano.function([], [gpu_dot22(val1a, val1b)])
-    f4 = theano.function([], [gpu_dot22(val2a, val2b)])
-    f5 = theano.function([], [gpu_dot22(val1a, val1b)[0, 0].transfer("cpu")])
-    f6 = theano.function([], [gpu_dot22(val2a, val2b)[0, 0].transfer("cpu")])
+    f1 = aesara.function([], [gpu_dot22(val1a, val1b), gpu_dot22(val1c, val1d)])
+    f2 = aesara.function([], [gpu_dot22(val1a, val1b), gpu_dot22(val2a, val2b)])
+    f3 = aesara.function([], [gpu_dot22(val1a, val1b)])
+    f4 = aesara.function([], [gpu_dot22(val2a, val2b)])
+    f5 = aesara.function([], [gpu_dot22(val1a, val1b)[0, 0].transfer("cpu")])
+    f6 = aesara.function([], [gpu_dot22(val2a, val2b)[0, 0].transfer("cpu")])
 
     # pre-execute to load code to GPU.
     r = f1.fn()

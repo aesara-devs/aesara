@@ -13,7 +13,7 @@ that satisfies the constraints. That's useful for pattern matching.
 from copy import copy
 from functools import partial
 
-from theano.gof.utils import ANY_TYPE, FALL_THROUGH, comm_guard
+from aesara.gof.utils import ANY_TYPE, FALL_THROUGH, comm_guard
 
 
 ################################
@@ -30,12 +30,12 @@ class Variable:
 
     Notes
     -----
-    There are two Variable classes in theano and this is the more rarely used
+    There are two Variable classes in aesara and this is the more rarely used
     one.
     This class is used internally by the PatternSub optimization,
     and possibly other subroutines that have to perform graph queries.
     If that doesn't sound like what you're doing, the Variable class you
-    want is probably theano.gof.graph.Variable.
+    want is probably aesara.gof.graph.Variable.
 
     """
 

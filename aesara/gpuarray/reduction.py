@@ -1,5 +1,5 @@
-from theano.gof import Apply, Op
-from theano.gof.type import Generic
+from aesara.gof import Apply, Op
+from aesara.gof.type import Generic
 
 from .basic_ops import as_gpuarray_variable, gpuarray_helper_inc_dir, infer_context_name
 from .type import GpuArrayType
@@ -95,11 +95,11 @@ class GpuMaxAndArgmax(Op):
             }
         }
 
-        if (theano_prep_output(&%(max)s, %(name)s_output_ndim, %(name)s_output_dims, %(max_typecode)s, GA_C_ORDER, %(X)s->context)) {
+        if (aesara_prep_output(&%(max)s, %(name)s_output_ndim, %(name)s_output_dims, %(max_typecode)s, GA_C_ORDER, %(X)s->context)) {
             PyErr_SetString(PyExc_RuntimeError, "GpuMaxAndArgmax: unable to prepare max output.");
             %(fail)s
         }
-        if (theano_prep_output(&%(argmax)s, %(name)s_output_ndim, %(name)s_output_dims, %(argmax_typecode)s, GA_C_ORDER, %(X)s->context)) {
+        if (aesara_prep_output(&%(argmax)s, %(name)s_output_ndim, %(name)s_output_dims, %(argmax_typecode)s, GA_C_ORDER, %(X)s->context)) {
             PyErr_SetString(PyExc_RuntimeError, "GpuMaxAndArgmax: unable to prepare argmax output.");
             %(fail)s
         }

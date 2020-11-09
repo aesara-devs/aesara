@@ -4,16 +4,16 @@
 Debugging with a customized so-called StepMode
 ==============================================
 
-One convenient trick I've found for debugging my programs that are running with theano is to
+One convenient trick I've found for debugging my programs that are running with aesara is to
 use what I call a 'StepMode'.  There is no such StepMode in the standard library because the
 purpose of it is to hack it to investigate what your own particular program is doing.
 
 
 .. code-block:: python
 
-    from theano.gof.link import WrapLinkerMany
-    from theano import config
-    from theano.compile.mode import (Mode, register_mode, predefined_modes, predefined_linkers,
+    from aesara.gof.link import WrapLinkerMany
+    from aesara import config
+    from aesara.compile.mode import (Mode, register_mode, predefined_modes, predefined_linkers,
             predefined_optimizers)
 
     class StepMode(Mode):

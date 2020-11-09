@@ -1,17 +1,17 @@
 import logging
 import os
 
-import theano
-from theano import gof
-from theano.gof.graph import Apply
-from theano.gof.params_type import ParamsType
-from theano.gof.type import EnumList
-from theano.scalar import int64
-from theano.tensor import blas_headers
-from theano.tensor.basic import as_tensor_variable
-from theano.tensor.blas import blas_header_version, ldflags
-from theano.tensor.nnet.abstract_conv import get_conv_output_shape
-from theano.tensor.type import TensorType
+import aesara
+from aesara import gof
+from aesara.gof.graph import Apply
+from aesara.gof.params_type import ParamsType
+from aesara.gof.type import EnumList
+from aesara.scalar import int64
+from aesara.tensor import blas_headers
+from aesara.tensor.basic import as_tensor_variable
+from aesara.tensor.blas import blas_header_version, ldflags
+from aesara.tensor.nnet.abstract_conv import get_conv_output_shape
+from aesara.tensor.type import TensorType
 
 
 _logger = logging.getLogger(__name__)
@@ -111,13 +111,13 @@ class BaseCorr3dMM(gof.OpenMPOp):
             raise ValueError("Number of groups should be greater than 0")
         self.num_groups = num_groups
 
-        if not theano.config.blas.ldflags:
-            # Theano will use a NumPy C implementation of [sd]gemm_ instead.
+        if not aesara.config.blas.ldflags:
+            # Aesara will use a NumPy C implementation of [sd]gemm_ instead.
             self.blas_type = ""
         else:
-            if "openblas" in theano.config.blas.ldflags:
+            if "openblas" in aesara.config.blas.ldflags:
                 self.blas_type = "openblas"
-            elif "mkl" in theano.config.blas.ldflags:
+            elif "mkl" in aesara.config.blas.ldflags:
                 self.blas_type = "mkl"
             else:
                 self.blas_type = ""
@@ -170,7 +170,7 @@ class BaseCorr3dMM(gof.OpenMPOp):
         """
         Upcast input variables if necessary.
         """
-        dtype = theano.scalar.upcast(in1.dtype, in2.dtype)
+        dtype = aesara.scalar.upcast(in1.dtype, in2.dtype)
         return in1.astype(dtype), in2.astype(dtype)
 
     def __setstate__(self, d):
@@ -675,7 +675,7 @@ class Corr3dMMGradWeights(BaseCorr3dMM):
     Notes
     -----
     You will not want to use this directly, but rely on
-    Theano's automatic differentiation or graph optimization to
+    Aesara's automatic differentiation or graph optimization to
     use it as needed.
 
     """
@@ -780,7 +780,7 @@ class Corr3dMMGradWeights(BaseCorr3dMM):
             num_groups=self.num_groups,
         )(bottom, weights)
         d_height_width_depth = (
-            (theano.gradient.DisconnectedType()(),) * 3 if len(inp) == 5 else ()
+            (aesara.gradient.DisconnectedType()(),) * 3 if len(inp) == 5 else ()
         )
         return (d_bottom, d_top) + d_height_width_depth
 
@@ -798,7 +798,7 @@ class Corr3dMMGradInputs(BaseCorr3dMM):
     Notes
     -----
     You will not want to use this directly, but rely on
-    Theano's automatic differentiation or graph optimization to
+    Aesara's automatic differentiation or graph optimization to
     use it as needed.
 
     """
@@ -914,7 +914,7 @@ class Corr3dMMGradInputs(BaseCorr3dMM):
             num_groups=self.num_groups,
         )(bottom, weights)
         d_height_width_depth = (
-            (theano.gradient.DisconnectedType()(),) * 3 if len(inp) == 5 else ()
+            (aesara.gradient.DisconnectedType()(),) * 3 if len(inp) == 5 else ()
         )
         return (d_weights, d_top) + d_height_width_depth
 

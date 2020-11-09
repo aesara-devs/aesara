@@ -4,11 +4,11 @@ from functools import partial
 
 import numpy as np
 
-import theano
-from theano.gof import Apply, Op
-from theano.gradient import DisconnectedType
-from theano.tensor import basic as tensor
-from theano.tensor.basic import ExtractDiag, as_tensor_variable
+import aesara
+from aesara.gof import Apply, Op
+from aesara.gradient import DisconnectedType
+from aesara.tensor import basic as tensor
+from aesara.tensor.basic import ExtractDiag, as_tensor_variable
 
 
 logger = logging.getLogger(__name__)
@@ -62,13 +62,13 @@ class MatrixPinv(Op):
         (z,) = outputs
         (gz,) = g_outputs
 
-        x_dot_z = theano.tensor.dot(x, z)
-        z_dot_x = theano.tensor.dot(z, x)
+        x_dot_z = aesara.tensor.dot(x, z)
+        z_dot_x = aesara.tensor.dot(z, x)
 
         grad = (
             -matrix_dot(z, gz.T, z)
-            + matrix_dot(z, z.T, gz, (theano.tensor.identity_like(x_dot_z) - x_dot_z))
-            + matrix_dot((theano.tensor.identity_like(z_dot_x) - z_dot_x), gz, z.T, z)
+            + matrix_dot(z, z.T, gz, (aesara.tensor.identity_like(x_dot_z) - x_dot_z))
+            + matrix_dot((aesara.tensor.identity_like(z_dot_x) - z_dot_x), gz, z.T, z)
         ).T
         return [grad]
 
@@ -161,7 +161,7 @@ def matrix_dot(*args):
     """
     rval = args[0]
     for a in args[1:]:
-        rval = theano.tensor.dot(rval, a)
+        rval = aesara.tensor.dot(rval, a)
     return rval
 
 
@@ -174,15 +174,15 @@ class AllocDiag(Op):
 
     def make_node(self, _x):
         warnings.warn(
-            "DeprecationWarning: theano.tensor.nlinalg.AllocDiag"
-            "is deprecated, please use theano.tensor.AllocDiag"
+            "DeprecationWarning: aesara.tensor.nlinalg.AllocDiag"
+            "is deprecated, please use aesara.tensor.AllocDiag"
             "instead.",
             category=DeprecationWarning,
         )
         x = as_tensor_variable(_x)
         if x.type.ndim != 1:
             raise TypeError("AllocDiag only works on vectors", _x)
-        return Apply(self, [x], [theano.tensor.matrix(dtype=x.type.dtype)])
+        return Apply(self, [x], [aesara.tensor.matrix(dtype=x.type.dtype)])
 
     def grad(self, inputs, g_outputs):
         return [extract_diag(g_outputs[0])]
@@ -244,7 +244,7 @@ class Det(Op):
     def make_node(self, x):
         x = as_tensor_variable(x)
         assert x.ndim == 2
-        o = theano.tensor.scalar(dtype=x.dtype)
+        o = aesara.tensor.scalar(dtype=x.dtype)
         return Apply(self, [x], [o])
 
     def perform(self, node, inputs, outputs):
@@ -283,8 +283,8 @@ class Eig(Op):
     def make_node(self, x):
         x = as_tensor_variable(x)
         assert x.ndim == 2
-        w = theano.tensor.vector(dtype=x.dtype)
-        v = theano.tensor.matrix(dtype=x.dtype)
+        w = aesara.tensor.vector(dtype=x.dtype)
+        v = aesara.tensor.matrix(dtype=x.dtype)
         return Apply(self, [x], [w, v])
 
     def perform(self, node, inputs, outputs):
@@ -322,8 +322,8 @@ class Eigh(Eig):
         # involved) logic, we just probe linalg.eigh with a trivial
         # input.
         w_dtype = self._numop([[np.dtype(x.dtype).type()]])[0].dtype.name
-        w = theano.tensor.vector(dtype=w_dtype)
-        v = theano.tensor.matrix(dtype=x.dtype)
+        w = aesara.tensor.vector(dtype=w_dtype)
+        v = aesara.tensor.matrix(dtype=x.dtype)
         return Apply(self, [x], [w, v])
 
     def perform(self, node, inputs, outputs):
@@ -397,8 +397,8 @@ class EighGrad(Op):
         assert v.ndim == 2
         assert gw.ndim == 1
         assert gv.ndim == 2
-        out_dtype = theano.scalar.upcast(x.dtype, w.dtype, v.dtype, gw.dtype, gv.dtype)
-        out = theano.tensor.matrix(dtype=out_dtype)
+        out_dtype = aesara.scalar.upcast(x.dtype, w.dtype, v.dtype, gw.dtype, gv.dtype)
+        out = aesara.tensor.matrix(dtype=out_dtype)
         return Apply(self, [x, w, v, gw, gv], [out])
 
     def perform(self, node, inputs, outputs):
@@ -461,11 +461,11 @@ class QRFull(Op):
     def make_node(self, x):
         x = as_tensor_variable(x)
         assert x.ndim == 2, "The input of qr function should be a matrix."
-        q = theano.tensor.matrix(dtype=x.dtype)
+        q = aesara.tensor.matrix(dtype=x.dtype)
         if self.mode != "raw":
-            r = theano.tensor.matrix(dtype=x.dtype)
+            r = aesara.tensor.matrix(dtype=x.dtype)
         else:
-            r = theano.tensor.vector(dtype=x.dtype)
+            r = aesara.tensor.vector(dtype=x.dtype)
 
         return Apply(self, [x], [q, r])
 
@@ -494,7 +494,7 @@ class QRIncomplete(Op):
     def make_node(self, x):
         x = as_tensor_variable(x)
         assert x.ndim == 2, "The input of qr function should be a matrix."
-        r = theano.tensor.matrix(dtype=x.dtype)
+        r = aesara.tensor.matrix(dtype=x.dtype)
         return Apply(self, [x], [r])
 
     def perform(self, node, inputs, outputs):
@@ -581,10 +581,10 @@ class SVD(Op):
     def make_node(self, x):
         x = as_tensor_variable(x)
         assert x.ndim == 2, "The input of svd function should be a matrix."
-        s = theano.tensor.vector(dtype=x.dtype)
+        s = aesara.tensor.vector(dtype=x.dtype)
         if self.compute_uv:
-            u = theano.tensor.matrix(dtype=x.dtype)
-            vt = theano.tensor.matrix(dtype=x.dtype)
+            u = aesara.tensor.matrix(dtype=x.dtype)
+            vt = aesara.tensor.matrix(dtype=x.dtype)
             return Apply(self, [x], [u, s, vt])
         else:
             return Apply(self, [x], [s])
@@ -640,17 +640,17 @@ class lstsq(Op):
     __props__ = ()
 
     def make_node(self, x, y, rcond):
-        x = theano.tensor.as_tensor_variable(x)
-        y = theano.tensor.as_tensor_variable(y)
-        rcond = theano.tensor.as_tensor_variable(rcond)
-        return theano.Apply(
+        x = aesara.tensor.as_tensor_variable(x)
+        y = aesara.tensor.as_tensor_variable(y)
+        rcond = aesara.tensor.as_tensor_variable(rcond)
+        return aesara.Apply(
             self,
             [x, y, rcond],
             [
-                theano.tensor.matrix(),
-                theano.tensor.dvector(),
-                theano.tensor.lscalar(),
-                theano.tensor.dvector(),
+                aesara.tensor.matrix(),
+                aesara.tensor.dvector(),
+                aesara.tensor.lscalar(),
+                aesara.tensor.dvector(),
             ],
         )
 
@@ -687,18 +687,18 @@ def matrix_power(M, n):
         return M
 
     elif n == 2:
-        return theano.dot(M, M)
+        return aesara.dot(M, M)
 
     elif n == 3:
-        return theano.dot(theano.dot(M, M), M)
+        return aesara.dot(aesara.dot(M, M), M)
 
     result = z = None
 
     while n > 0:
-        z = M if z is None else theano.dot(z, z)
+        z = M if z is None else aesara.dot(z, z)
         n, bit = divmod(n, 2)
         if bit:
-            result = z if result is None else theano.dot(result, z)
+            result = z if result is None else aesara.dot(result, z)
 
     return result
 
@@ -743,7 +743,7 @@ def norm(x, ord):
 class TensorInv(Op):
     """
     Class wrapper for tensorinv() function;
-    Theano utilization of numpy.linalg.tensorinv;
+    Aesara utilization of numpy.linalg.tensorinv;
     """
 
     _numop = staticmethod(np.linalg.tensorinv)
@@ -770,7 +770,7 @@ class TensorInv(Op):
 def tensorinv(a, ind=2):
     """
     Does not run on GPU;
-    Theano utilization of numpy.linalg.tensorinv;
+    Aesara utilization of numpy.linalg.tensorinv;
 
     Compute the 'inverse' of an N-dimensional array.
     The result is an inverse for `a` relative to the tensordot operation
@@ -802,7 +802,7 @@ def tensorinv(a, ind=2):
 
 class TensorSolve(Op):
     """
-    Theano utilization of numpy.linalg.tensorsolve
+    Aesara utilization of numpy.linalg.tensorsolve
     Class wrapper for tensorsolve function.
 
     """
@@ -816,8 +816,8 @@ class TensorSolve(Op):
     def make_node(self, a, b):
         a = as_tensor_variable(a)
         b = as_tensor_variable(b)
-        out_dtype = theano.scalar.upcast(a.dtype, b.dtype)
-        x = theano.tensor.matrix(dtype=out_dtype)
+        out_dtype = aesara.scalar.upcast(a.dtype, b.dtype)
+        x = aesara.tensor.matrix(dtype=out_dtype)
         return Apply(self, [a, b], [x])
 
     def perform(self, node, inputs, outputs):
@@ -831,7 +831,7 @@ class TensorSolve(Op):
 
 def tensorsolve(a, b, axes=None):
     """
-    Theano utilization of numpy.linalg.tensorsolve. Does not run on GPU!
+    Aesara utilization of numpy.linalg.tensorsolve. Does not run on GPU!
 
     Solve the tensor equation ``a x = b`` for x.
     It is assumed that all indices of `x` are summed over in the product,

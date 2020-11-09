@@ -1,18 +1,18 @@
 
-.. _theano:
+.. _aesara:
 
 ******
-Theano
+Aesara
 ******
 
 Pointers
 --------
 
-* http://deeplearning.net/software/theano/
-* Announcements mailing list: http://groups.google.com/group/theano-announce
-* User mailing list: http://groups.google.com/group/theano-users
+* http://deeplearning.net/software/aesara/
+* Announcements mailing list: http://groups.google.com/group/aesara-announce
+* User mailing list: http://groups.google.com/group/aesara-users
 * Deep Learning Tutorials: http://www.deeplearning.net/tutorial/
-* Installation: https://deeplearning.net/software/theano/install.html
+* Installation: https://deeplearning.net/software/aesara/install.html
 
 
 Description
@@ -22,7 +22,7 @@ Description
 * Dynamic C/CUDA code generation
 * Efficient symbolic differentiation
 
-  * Theano computes derivatives of functions with one or many inputs.
+  * Aesara computes derivatives of functions with one or many inputs.
 
 * Speed and stability optimizations
 
@@ -52,10 +52,10 @@ Description
 Simple example
 --------------
 
->>> import theano
->>> a = theano.tensor.vector("a")      # declare symbolic variable
+>>> import aesara
+>>> a = aesara.tensor.vector("a")      # declare symbolic variable
 >>> b = a + a**10                      # build symbolic expression
->>> f = theano.function([a], b)        # compile function
+>>> f = aesara.function([a], b)        # compile function
 >>> f([0,1,2])
 array([    0.,     2.,  1026.])
 
@@ -73,15 +73,15 @@ Exercise 1
 
 .. code-block:: python
 
-  import theano
-  a = theano.tensor.vector() # declare variable
+  import aesara
+  a = aesara.tensor.vector() # declare variable
   out = a + a**10               # build symbolic expression
-  f = theano.function([a], out)   # compile function
+  f = aesara.function([a], out)   # compile function
   print f([0,1,2])
   # prints `array([0,2,1026])`
 
-  theano.printing.pydotprint_variables(b, outfile="f_unoptimized.png", var_with_name_simple=True)
-  theano.printing.pydotprint(f, outfile="f_optimized.png", var_with_name_simple=True)
+  aesara.printing.pydotprint_variables(b, outfile="f_unoptimized.png", var_with_name_simple=True)
+  aesara.printing.pydotprint(f, outfile="f_optimized.png", var_with_name_simple=True)
 
 Modify and execute the example to do this expression: a**2 + b**2 + 2*a*b
 
@@ -98,8 +98,8 @@ Real example
 .. code-block:: python
 
   import numpy
-  import theano
-  import theano.tensor as tt
+  import aesara
+  import aesara.tensor as tt
   rng = numpy.random
 
   N = 400
@@ -107,15 +107,15 @@ Real example
   D = (rng.randn(N, feats), rng.randint(size=N,low=0, high=2))
   training_steps = 10000
 
-  # Declare Theano symbolic variables
+  # Declare Aesara symbolic variables
   x = tt.matrix("x")
   y = tt.vector("y")
-  w = theano.shared(rng.randn(feats), name="w")
-  b = theano.shared(0., name="b")
+  w = aesara.shared(rng.randn(feats), name="w")
+  b = aesara.shared(0., name="b")
   print "Initial model:"
   print w.get_value(), b.get_value()
 
-  # Construct Theano expression graph
+  # Construct Aesara expression graph
   p_1 = 1 / (1 + tt.exp(-tt.dot(x, w)-b))     # Probability that target = 1
   prediction = p_1 > 0.5                    # The prediction thresholded
   xent = -y*tt.log(p_1) - (1-y)*tt.log(1-p_1) # Cross-entropy loss function
@@ -123,11 +123,11 @@ Real example
   gw,gb = tt.grad(cost, [w,b])
 
   # Compile
-  train = theano.function(
+  train = aesara.function(
             inputs=[x,y],
             outputs=[prediction, xent],
             updates={w:w-0.1*gw, b:b-0.1*gb})
-  predict = theano.function(inputs=[x], outputs=prediction)
+  predict = aesara.function(inputs=[x], outputs=prediction)
 
   # Train
   for i in range(training_steps):
@@ -164,21 +164,21 @@ Where are those optimization applied?
   cost = xent.mean() + 0.01*(w**2).sum()
   gw,gb = tt.grad(cost, [w,b])
 
-  train = theano.function(
+  train = aesara.function(
             inputs=[x,y],
             outputs=[prediction, xent],
             # w-0.1*gw: GEMV with the dot in the grad
             updates={w:w-0.1*gw, b:b-0.1*gb})
 
 
-Theano flags
+Aesara flags
 ------------
 
-Theano can be configured with flags. They can be defined in two ways
+Aesara can be configured with flags. They can be defined in two ways
 
 * With an environment variable: ``THEANO_FLAGS="profile=True,profile_memory=True"``
 
-* With a configuration file that defaults to ``~/.theanorc``
+* With a configuration file that defaults to ``~/.aesararc``
 
 
 Exercise 2
@@ -187,28 +187,28 @@ Exercise 2
 .. code-block:: python
 
     import numpy
-    import theano
-    import theano.tensor as tt
+    import aesara
+    import aesara.tensor as tt
     rng = numpy.random
 
     N = 400
     feats = 784
-    D = (rng.randn(N, feats).astype(theano.config.floatX),
-    rng.randint(size=N,low=0, high=2).astype(theano.config.floatX))
+    D = (rng.randn(N, feats).astype(aesara.config.floatX),
+    rng.randint(size=N,low=0, high=2).astype(aesara.config.floatX))
     training_steps = 10000
 
-    # Declare Theano symbolic variables
+    # Declare Aesara symbolic variables
     x = tt.matrix("x")
     y = tt.vector("y")
-    w = theano.shared(rng.randn(feats).astype(theano.config.floatX), name="w")
-    b = theano.shared(numpy.asarray(0., dtype=theano.config.floatX), name="b")
+    w = aesara.shared(rng.randn(feats).astype(aesara.config.floatX), name="w")
+    b = aesara.shared(numpy.asarray(0., dtype=aesara.config.floatX), name="b")
     x.tag.test_value = D[0]
     y.tag.test_value = D[1]
     #print "Initial model:"
     #print w.get_value(), b.get_value()
 
 
-    # Construct Theano expression graph
+    # Construct Aesara expression graph
     p_1 = 1 / (1 + tt.exp(-tt.dot(x, w)-b)) # Probability of having a one
     prediction = p_1 > 0.5 # The prediction that is done: 0 or 1
     xent = -y*tt.log(p_1) - (1-y)*tt.log(1-p_1) # Cross-entropy
@@ -216,12 +216,12 @@ Exercise 2
     gw,gb = tt.grad(cost, [w,b])
 
     # Compile expressions to functions
-    train = theano.function(
+    train = aesara.function(
                 inputs=[x,y],
                 outputs=[prediction, xent],
                 updates={w:w-0.01*gw, b:b-0.01*gb},
                 name = "train")
-    predict = theano.function(inputs=[x], outputs=prediction,
+    predict = aesara.function(inputs=[x], outputs=prediction,
                 name = "predict")
 
     if any( [x.op.__class__.__name__=='Gemv' for x in
@@ -231,7 +231,7 @@ Exercise 2
     train.maker.fgraph.toposort()]):
         print 'Used the gpu'
     else:
-        print 'ERROR, not able to tell if theano used the cpu or the gpu'
+        print 'ERROR, not able to tell if aesara used the cpu or the gpu'
         print train.maker.fgraph.toposort()
 
 
@@ -248,33 +248,33 @@ Exercise 2
     print predict(D[0])
 
     # Print the graph used in the slides
-    theano.printing.pydotprint(predict,
+    aesara.printing.pydotprint(predict,
                                outfile="pics/logreg_pydotprint_predic.png",
                                var_with_name_simple=True)
-    theano.printing.pydotprint_variables(prediction,
+    aesara.printing.pydotprint_variables(prediction,
                                outfile="pics/logreg_pydotprint_prediction.png",
                                var_with_name_simple=True)
-    theano.printing.pydotprint(train,
+    aesara.printing.pydotprint(train,
                                outfile="pics/logreg_pydotprint_train.png",
                                var_with_name_simple=True)
 
 Modify and execute the example to run on CPU with floatX=float32
 
-* You will need to use: ``theano.config.floatX`` and ``ndarray.astype("str")``
+* You will need to use: ``aesara.config.floatX`` and ``ndarray.astype("str")``
 
 GPU
 ---
 
 * Only 32 bit floats are supported (being worked on)
 * Only 1 GPU per process
-* Use the Theano flag ``device=gpu`` to tell to use the GPU device
+* Use the Aesara flag ``device=gpu`` to tell to use the GPU device
 
  * Use ``device=gpu{0, 1, ...}`` to specify which GPU if you have more than one
  * Shared variables with float32 dtype are by default moved to the GPU memory space
 
-* Use the Theano flag ``floatX=float32``
+* Use the Aesara flag ``floatX=float32``
 
- * Be sure to use ``floatX`` (``theano.config.floatX``) in your code
+ * Be sure to use ``floatX`` (``aesara.config.floatX``) in your code
  * Cast inputs before putting them into a shared variable
  * Cast "problem": int32 with float32 to float64
 
@@ -335,7 +335,7 @@ Differentiation details
 
 >>> gw,gb = tt.grad(cost, [w,b])  # doctest: +SKIP
 
-* tt.grad works symbolically: takes and returns a Theano variable
+* tt.grad works symbolically: takes and returns a Aesara variable
 
 * tt.grad can be compared to a macro: it can be applied multiple times
 
@@ -369,7 +369,7 @@ tanh, matrix multiply, softmax elementwise, then in reverse
 **Elemwise**
 
 * All on CPU
-* Solid blue: Theano
+* Solid blue: Aesara
 * Dashed Red: numexpr (without MKL)
 
 .. image:: ../hpcs2011_tutorial/pics/multiple_graph.png

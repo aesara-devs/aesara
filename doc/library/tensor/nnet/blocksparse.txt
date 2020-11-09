@@ -10,5 +10,5 @@
 .. moduleauthor:: LISA
 
 
-.. automodule:: theano.tensor.nnet.blocksparse
+.. automodule:: aesara.tensor.nnet.blocksparse
     :members:

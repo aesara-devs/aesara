@@ -1,6 +1,6 @@
 import numpy as np
 
-from theano import gof, tensor
+from aesara import gof, tensor
 
 
 class Minimal(gof.Op):

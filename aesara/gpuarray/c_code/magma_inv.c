@@ -42,7 +42,7 @@ int APPLY_SPECIFIC(magma_inv)(PyGpuArrayObject *A, PyGpuArrayObject **A_inv,
     *A_inv = A;
     Py_INCREF(*A_inv);
   } else {
-    *A_inv = theano_try_copy(*A_inv, A);
+    *A_inv = aesara_try_copy(*A_inv, A);
     if (*A_inv == NULL) {
       PyErr_SetString(
           PyExc_RuntimeError,

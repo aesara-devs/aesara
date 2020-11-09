@@ -2,17 +2,17 @@ import logging
 
 import numpy as np
 
-from theano import Apply, tensor
-from theano.gof import COp, ParamsType
-from theano.gradient import grad_undefined
-from theano.scalar import bool as bool_t
-from theano.tensor import as_tensor_variable, discrete_dtypes
+from aesara import Apply, tensor
+from aesara.gof import COp, ParamsType
+from aesara.gradient import grad_undefined
+from aesara.scalar import bool as bool_t
+from aesara.tensor import as_tensor_variable, discrete_dtypes
 
 from .basic_ops import as_gpuarray_variable, gpuarray_helper_inc_dir, infer_context_name
 from .type import gpu_context_type
 
 
-_logger = logging.getLogger("theano.gpuarray.blocksparse")
+_logger = logging.getLogger("aesara.gpuarray.blocksparse")
 
 
 class GpuSparseBlockGemv(COp):

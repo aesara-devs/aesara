@@ -1,7 +1,7 @@
 import pickle
 
-from theano import tensor as tt
-from theano.gof.fg import FunctionGraph
+from aesara import tensor as tt
+from aesara.gof.fg import FunctionGraph
 
 
 class TestFunctionGraph:

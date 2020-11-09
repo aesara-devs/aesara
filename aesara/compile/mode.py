@@ -6,26 +6,26 @@ WRITEME
 import logging
 import warnings
 
-import theano
-import theano.gof.vm
-from theano import config, gof
-from theano.compile.function_module import Supervisor
-from theano.sandbox.jax_linker import JAXLinker
+import aesara
+import aesara.gof.vm
+from aesara import config, gof
+from aesara.compile.function_module import Supervisor
+from aesara.sandbox.jax_linker import JAXLinker
 
 
-_logger = logging.getLogger("theano.compile.mode")
+_logger = logging.getLogger("aesara.compile.mode")
 
 
 # If a string is passed as the linker argument in the constructor for
 # Mode, it will be used as the key to retrieve the real linker in this
 # dictionary
 predefined_linkers = {
-    "py": gof.PerformLinker(),  # Use allow_gc Theano flag
+    "py": gof.PerformLinker(),  # Use allow_gc Aesara flag
     "c": gof.CLinker(),  # Don't support gc. so don't check allow_gc
-    "c|py": gof.OpWiseCLinker(),  # Use allow_gc Theano flag
+    "c|py": gof.OpWiseCLinker(),  # Use allow_gc Aesara flag
     "c|py_nogc": gof.OpWiseCLinker(allow_gc=False),
-    "vm": gof.vm.VM_Linker(use_cloop=False),  # Use allow_gc Theano flag
-    "cvm": gof.vm.VM_Linker(use_cloop=True),  # Use allow_gc Theano flag
+    "vm": gof.vm.VM_Linker(use_cloop=False),  # Use allow_gc Aesara flag
+    "cvm": gof.vm.VM_Linker(use_cloop=True),  # Use allow_gc Aesara flag
     "vm_nogc": gof.vm.VM_Linker(allow_gc=False, use_cloop=False),
     "cvm_nogc": gof.vm.VM_Linker(allow_gc=False, use_cloop=True),
     "jax": JAXLinker(),
@@ -43,7 +43,7 @@ def register_linker(name, linker):
 # for Mode, it will be used as the key to retrieve the real optimizer
 # in this dictionary
 exclude = []
-if not theano.config.cxx:
+if not aesara.config.cxx:
     exclude = ["cxx_only"]
 OPT_NONE = gof.Query(include=[], exclude=exclude)
 # Even if multiple merge optimizer call will be there, this shouldn't
@@ -111,7 +111,7 @@ class AddDestroyHandler(gof.Optimizer):
 
     2) It tries to replace each output with an Op that purports to destroy it
     (but it won't I promise). If this replacement succeeds it means that
-    there is a bug in theano. It should not be possible to destroy outputs.
+    there is a bug in aesara. It should not be possible to destroy outputs.
 
     """
 
@@ -124,7 +124,7 @@ class AddDestroyHandler(gof.Optimizer):
         if not supervisor_added:
             warnings.warn(
                 "WARNING: Supervisor is not added. Please build a FunctionGraph"
-                "via theano.compile.function_module.std_graph()"
+                "via aesara.compile.function_module.std_graph()"
                 "or add the Supervisor class manually.",
                 stacklevel=3,
             )
@@ -160,10 +160,10 @@ class PrintCurrentFunctionGraph(gof.Optimizer):
         self.header = header
 
     def apply(self, fgraph):
-        import theano.printing
+        import aesara.printing
 
         print("PrintCurrentFunctionGraph:", self.header)
-        theano.printing.debugprint(fgraph.outputs)
+        aesara.printing.debugprint(fgraph.outputs)
 
 
 optdb = gof.SequenceDB()
@@ -247,10 +247,10 @@ optdb.register("add_destroy_handler", AddDestroyHandler(), 49.5, "fast_run", "in
 # final pass just to make sure
 optdb.register("merge3", gof.MergeOptimizer(), 100, "fast_run", "merge")
 
-if theano.config.check_stack_trace in ["raise", "warn", "log"]:
+if aesara.config.check_stack_trace in ["raise", "warn", "log"]:
     _tags = ("fast_run", "fast_compile")
 
-if theano.config.check_stack_trace == "off":
+if aesara.config.check_stack_trace == "off":
     _tags = ()
 
 optdb.register("CheckStackTrace", gof.CheckStackTraceOptimization(), -1, *_tags)
@@ -404,9 +404,9 @@ class Mode:
 # string as the key
 # Use VM_linker to allow lazy evaluation by default.
 FAST_COMPILE = Mode(
-    theano.gof.vm.VM_Linker(use_cloop=False, c_thunks=False), "fast_compile"
+    aesara.gof.vm.VM_Linker(use_cloop=False, c_thunks=False), "fast_compile"
 )
-if theano.config.cxx:
+if aesara.config.cxx:
     FAST_RUN = Mode("cvm", "fast_run")
 else:
     FAST_RUN = Mode("vm", "fast_run")
@@ -467,12 +467,12 @@ def get_mode(orig_string):
 
     if orig_string is None:
         # Build and cache the default mode
-        if theano.config.optimizer_excluding:
-            ret = ret.excluding(*theano.config.optimizer_excluding.split(":"))
-        if theano.config.optimizer_including:
-            ret = ret.including(*theano.config.optimizer_including.split(":"))
-        if theano.config.optimizer_requiring:
-            ret = ret.requiring(*theano.config.optimizer_requiring.split(":"))
+        if aesara.config.optimizer_excluding:
+            ret = ret.excluding(*aesara.config.optimizer_excluding.split(":"))
+        if aesara.config.optimizer_including:
+            ret = ret.including(*aesara.config.optimizer_including.split(":"))
+        if aesara.config.optimizer_requiring:
+            ret = ret.requiring(*aesara.config.optimizer_requiring.split(":"))
         instantiated_default_mode = ret
 
     return ret

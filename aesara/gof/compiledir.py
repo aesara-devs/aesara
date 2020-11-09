@@ -5,12 +5,12 @@ import shutil
 
 import numpy as np
 
-import theano
-from theano import config
-from theano.gof.utils import flatten
+import aesara
+from aesara import config
+from aesara.gof.utils import flatten
 
 
-_logger = logging.getLogger("theano.gof.compiledir")
+_logger = logging.getLogger("aesara.gof.compiledir")
 
 
 def cleanup():
@@ -26,7 +26,7 @@ def cleanup():
     If there is no key left for a compiled module, we delete the module.
 
     """
-    compiledir = theano.config.compiledir
+    compiledir = aesara.config.compiledir
     for directory in os.listdir(compiledir):
         file = None
         try:
@@ -51,7 +51,7 @@ def cleanup():
                                 elif obj.startswith("c_compiler_str="):
                                     have_c_compiler = True
                             elif isinstance(
-                                obj, (theano.gof.Op, theano.gof.Type)
+                                obj, (aesara.gof.Op, aesara.gof.Type)
                             ) and hasattr(obj, "c_code_cache_version"):
                                 v = obj.c_code_cache_version()
                                 if v not in [(), None] and v not in key[0]:
@@ -105,11 +105,11 @@ def print_title(title, overline="", underline=""):
 
 def print_compiledir_content():
     """
-    print list of %d compiled individual ops in the "theano.config.compiledir"
+    print list of %d compiled individual ops in the "aesara.config.compiledir"
     """
     max_key_file_size = 1 * 1024 * 1024  # 1M
 
-    compiledir = theano.config.compiledir
+    compiledir = aesara.config.compiledir
     table = []
     table_multiple_ops = []
     table_op_class = {}
@@ -125,7 +125,7 @@ def print_compiledir_content():
             try:
                 keydata = pickle.load(file)
                 ops = list(
-                    {x for x in flatten(keydata.keys) if isinstance(x, theano.gof.Op)}
+                    {x for x in flatten(keydata.keys) if isinstance(x, aesara.gof.Op)}
                 )
                 # Whatever the case, we count compilations for OP classes.
                 for op_class in {op.__class__ for op in ops}:
@@ -138,7 +138,7 @@ def print_compiledir_content():
                         {
                             x
                             for x in flatten(keydata.keys)
-                            if isinstance(x, theano.gof.Type)
+                            if isinstance(x, aesara.gof.Type)
                         }
                     )
                     compile_start = compile_end = float("nan")
@@ -173,12 +173,12 @@ def print_compiledir_content():
             except AttributeError:
                 _logger.error("Could not read key file '%s'.", filename)
 
-    print_title("Theano cache: %s" % compiledir, overline="=", underline="=")
+    print_title("Aesara cache: %s" % compiledir, overline="=", underline="=")
     print()
 
     print_title("List of %d compiled individual ops" % len(table), underline="+")
     print_title(
-        "sub dir/compiletime/Op/set of different associated Theano types", underline="-"
+        "sub dir/compiletime/Op/set of different associated Aesara types", underline="-"
     )
     table = sorted(table, key=lambda t: str(t[1]))
     for dir, op, types, compile_time in table:
@@ -189,7 +189,7 @@ def print_compiledir_content():
         "List of %d compiled sets of ops" % len(table_multiple_ops), underline="+"
     )
     print_title(
-        "sub dir/compiletime/Set of ops/set of different associated Theano types",
+        "sub dir/compiletime/Set of ops/set of different associated Aesara types",
         underline="-",
     )
     table_multiple_ops = sorted(table_multiple_ops, key=lambda t: (t[1], t[2]))
@@ -234,7 +234,7 @@ def print_compiledir_content():
     print()
     print(
         "Skipped %d files that contained 0 op "
-        "(are they always theano.scalar ops?)" % zeros_op
+        "(are they always aesara.scalar ops?)" % zeros_op
     )
 
 
@@ -244,7 +244,7 @@ def compiledir_purge():
 
 def basecompiledir_ls():
     """
-    Print list of files in the "theano.config.base_compiledir"
+    Print list of files in the "aesara.config.base_compiledir"
     """
     subdirs = []
     others = []
@@ -257,7 +257,7 @@ def basecompiledir_ls():
     subdirs = sorted(subdirs)
     others = sorted(others)
 
-    print("Base compile dir is %s" % theano.config.base_compiledir)
+    print("Base compile dir is %s" % aesara.config.base_compiledir)
     print("Sub-directories (possible compile caches):")
     for d in subdirs:
         print("    %s" % d)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Theano tutorial
+# Aesara tutorial
 # Solution to Exercise in section 'Using the GPU'
 
 
@@ -8,30 +8,30 @@
 
 
 import numpy as np
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 
-theano.config.floatX = 'float32'
+aesara.config.floatX = 'float32'
 
 rng = np.random
 
 N = 400
 feats = 784
-D = (rng.randn(N, feats).astype(theano.config.floatX),
-    rng.randint(size=N, low=0, high=2).astype(theano.config.floatX))
+D = (rng.randn(N, feats).astype(aesara.config.floatX),
+    rng.randint(size=N, low=0, high=2).astype(aesara.config.floatX))
 training_steps = 10000
 
-# Declare Theano symbolic variables
-x = theano.shared(D[0], name="x")
-y = theano.shared(D[1], name="y")
-w = theano.shared(rng.randn(feats).astype(theano.config.floatX), name="w")
-b = theano.shared(np.asarray(0., dtype=theano.config.floatX), name="b")
+# Declare Aesara symbolic variables
+x = aesara.shared(D[0], name="x")
+y = aesara.shared(D[1], name="y")
+w = aesara.shared(rng.randn(feats).astype(aesara.config.floatX), name="w")
+b = aesara.shared(np.asarray(0., dtype=aesara.config.floatX), name="b")
 x.tag.test_value = D[0]
 y.tag.test_value = D[1]
 #print "Initial model:"
 #print w.get_value(), b.get_value()
 
-# Construct Theano expression graph
+# Construct Aesara expression graph
 p_1 = 1 / (1 + tt.exp(-tt.dot(x, w) - b))  # Probability of having a one
 prediction = p_1 > 0.5  # The prediction that is done: 0 or 1
 xent = -y * tt.log(p_1) - (1 - y) * tt.log(1 - p_1)  # Cross-entropy
@@ -40,12 +40,12 @@ cost = tt.cast(xent.mean(), 'float32') + \
 gw, gb = tt.grad(cost, [w, b])
 
 # Compile expressions to functions
-train = theano.function(
+train = aesara.function(
             inputs=[],
             outputs=[prediction, xent],
             updates=[(w, w - 0.01 * gw), (b, b - 0.01 * gb)],
             name="train")
-predict = theano.function(inputs=[], outputs=prediction,
+predict = aesara.function(inputs=[], outputs=prediction,
             name="predict")
 
 if any([n.op.__class__.__name__ in ['Gemv', 'CGemv', 'Gemm', 'CGemm'] for n in
@@ -55,7 +55,7 @@ elif any([n.op.__class__.__name__ in ['GpuGemm', 'GpuGemv'] for n in
 train.maker.fgraph.toposort()]):
     print('Used the gpu')
 else:
-    print('ERROR, not able to tell if theano used the cpu or the gpu')
+    print('ERROR, not able to tell if aesara used the cpu or the gpu')
     print(train.maker.fgraph.toposort())
 
 for i in range(training_steps):
@@ -98,22 +98,22 @@ Function profiling
   Time in thunks: 1.157602e+00s (89.015%)
   Total compile time: 8.922548e-01s
     Number of Apply nodes: 17
-    Theano Optimizer time: 6.270301e-01s
-       Theano validate time: 5.993605e-03s
-    Theano Linker time (includes C, CUDA code generation/compiling): 2.949309e-02s
+    Aesara Optimizer time: 6.270301e-01s
+       Aesara validate time: 5.993605e-03s
+    Aesara Linker time (includes C, CUDA code generation/compiling): 2.949309e-02s
        Import time 3.543139e-03s
 
-Time in all call to theano.grad() 1.848292e-02s
-Time since theano import 2.864s
+Time in all call to aesara.grad() 1.848292e-02s
+Time since aesara import 2.864s
 Class
 ---
 <% time> <sum %> <apply time> <time per call> <type> <#call> <#apply> <Class name>
-  64.5%    64.5%       0.747s       3.73e-05s     C    20001       3   theano.tensor.blas_c.CGemv
-  33.1%    97.7%       0.384s       4.79e-06s     C    80001       9   theano.tensor.elemwise.Elemwise
-   1.0%    98.6%       0.011s       1.14e-06s     C    10000       1   theano.tensor.elemwise.Sum
-   0.7%    99.4%       0.009s       2.85e-07s     C    30001       4   theano.tensor.elemwise.DimShuffle
-   0.3%    99.7%       0.004s       3.64e-07s     C    10001       2   theano.tensor.basic.AllocEmpty
-   0.3%   100.0%       0.004s       1.78e-07s     C    20001       3   theano.compile.ops.Shape_i
+  64.5%    64.5%       0.747s       3.73e-05s     C    20001       3   aesara.tensor.blas_c.CGemv
+  33.1%    97.7%       0.384s       4.79e-06s     C    80001       9   aesara.tensor.elemwise.Elemwise
+   1.0%    98.6%       0.011s       1.14e-06s     C    10000       1   aesara.tensor.elemwise.Sum
+   0.7%    99.4%       0.009s       2.85e-07s     C    30001       4   aesara.tensor.elemwise.DimShuffle
+   0.3%    99.7%       0.004s       3.64e-07s     C    10001       2   aesara.tensor.basic.AllocEmpty
+   0.3%   100.0%       0.004s       1.78e-07s     C    20001       3   aesara.compile.ops.Shape_i
    ... (remaining 0 Classes account for   0.00%(0.00s) of the runtime)
 
 Ops
@@ -186,24 +186,24 @@ Function profiling
   Time in thunks: 3.915566e+00s (93.646%)
   Total compile time: 9.256095e+00s
     Number of Apply nodes: 21
-    Theano Optimizer time: 9.996419e-01s
-       Theano validate time: 6.523132e-03s
-    Theano Linker time (includes C, CUDA code generation/compiling): 8.239602e+00s
+    Aesara Optimizer time: 9.996419e-01s
+       Aesara validate time: 6.523132e-03s
+    Aesara Linker time (includes C, CUDA code generation/compiling): 8.239602e+00s
        Import time 4.228115e-03s
 
-Time in all call to theano.grad() 3.286195e-02s
-Time since theano import 15.415s
+Time in all call to aesara.grad() 3.286195e-02s
+Time since aesara import 15.415s
 Class
 ---
 <% time> <sum %> <apply time> <time per call> <type> <#call> <#apply> <Class name>
-  59.5%    59.5%       2.329s       1.16e-04s     C    20001       3   theano.sandbox.gpuarray.blas.GpuGemv
-  29.8%    89.3%       1.166s       1.30e-05s     C    90001      10   theano.sandbox.gpuarray.elemwise.GpuElemwise
-   4.1%    93.4%       0.162s       8.10e-06s     C    20001       3   theano.sandbox.gpuarray.basic_ops.HostFromGpu
-   3.3%    96.7%       0.131s       1.31e-05s     C    10000       1   theano.sandbox.gpuarray.elemwise.GpuCAReduceCuda
-   1.6%    98.3%       0.061s       6.10e-06s     C    10000       1   theano.sandbox.gpuarray.basic_ops.GpuFromHost
-   0.8%    99.1%       0.033s       1.09e-06s     C    30001       4   theano.sandbox.gpuarray.elemwise.GpuDimShuffle
-   0.7%    99.8%       0.026s       2.59e-06s     C    10001       2   theano.sandbox.gpuarray.basic_ops.GpuAllocEmpty
-   0.2%   100.0%       0.008s       3.95e-07s     C    20001       3   theano.compile.ops.Shape_i
+  59.5%    59.5%       2.329s       1.16e-04s     C    20001       3   aesara.sandbox.gpuarray.blas.GpuGemv
+  29.8%    89.3%       1.166s       1.30e-05s     C    90001      10   aesara.sandbox.gpuarray.elemwise.GpuElemwise
+   4.1%    93.4%       0.162s       8.10e-06s     C    20001       3   aesara.sandbox.gpuarray.basic_ops.HostFromGpu
+   3.3%    96.7%       0.131s       1.31e-05s     C    10000       1   aesara.sandbox.gpuarray.elemwise.GpuCAReduceCuda
+   1.6%    98.3%       0.061s       6.10e-06s     C    10000       1   aesara.sandbox.gpuarray.basic_ops.GpuFromHost
+   0.8%    99.1%       0.033s       1.09e-06s     C    30001       4   aesara.sandbox.gpuarray.elemwise.GpuDimShuffle
+   0.7%    99.8%       0.026s       2.59e-06s     C    10001       2   aesara.sandbox.gpuarray.basic_ops.GpuAllocEmpty
+   0.2%   100.0%       0.008s       3.95e-07s     C    20001       3   aesara.compile.ops.Shape_i
    ... (remaining 0 Classes account for   0.00%(0.00s) of the runtime)
 
 Ops

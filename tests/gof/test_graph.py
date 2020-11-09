@@ -4,8 +4,8 @@ from itertools import count
 import numpy as np
 import pytest
 
-from theano import shared, sparse, tensor
-from theano.gof.graph import (
+from aesara import shared, sparse, tensor
+from aesara.gof.graph import (
     Apply,
     Variable,
     as_string,
@@ -15,8 +15,8 @@ from theano.gof.graph import (
     inputs,
     io_toposort,
 )
-from theano.gof.op import Op
-from theano.gof.type import Type
+from aesara.gof.op import Op
+from aesara.gof.type import Type
 
 
 def as_variable(x):
@@ -326,7 +326,7 @@ class TestAutoName:
 
 
 def test_equal_computations():
-    # This was a bug report by a Theano user.
+    # This was a bug report by a Aesara user.
     c = tensor.type_other.NoneConst
     assert equal_computations([c], [c])
     m = tensor.matrix()

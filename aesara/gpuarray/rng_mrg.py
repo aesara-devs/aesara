@@ -1,5 +1,5 @@
 """
-GPU implementation of MRG31k3p random number generator for Theano.
+GPU implementation of MRG31k3p random number generator for Aesara.
 
 Generator code in SSJ package (L'Ecuyer & Simard).
 http://www.iro.umontreal.ca/~simardr/ssj/indexe.html
@@ -7,11 +7,11 @@ http://www.iro.umontreal.ca/~simardr/ssj/indexe.html
 """
 
 
-from theano import Apply, tensor
-from theano.gof import local_optimizer
-from theano.sandbox.rng_mrg import mrg_uniform, mrg_uniform_base
-from theano.scalar import int32 as int_t
-from theano.tensor import as_tensor_variable, get_vector_length
+from aesara import Apply, tensor
+from aesara.gof import local_optimizer
+from aesara.sandbox.rng_mrg import mrg_uniform, mrg_uniform_base
+from aesara.scalar import int32 as int_t
+from aesara.tensor import as_tensor_variable, get_vector_length
 
 from .basic_ops import (
     GpuFromHost,

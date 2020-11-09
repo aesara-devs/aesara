@@ -1,5 +1,5 @@
 """
-Provide a simple user friendly API to Theano-managed memory.
+Provide a simple user friendly API to Aesara-managed memory.
 
 """
 # Standard imports
@@ -11,11 +11,11 @@ import logging
 # Third-party imports
 import numpy as np
 
-# Theano imports
-from theano.gof import Container, Variable, generic, utils
+# Aesara imports
+from aesara.gof import Container, Variable, generic, utils
 
 
-_logger = logging.getLogger("theano.compile.sharedvalue")
+_logger = logging.getLogger("aesara.compile.sharedvalue")
 __docformat__ = "restructuredtext en"
 
 
@@ -138,7 +138,7 @@ class SharedVariable(Variable):
               subtensor of it).
 
         It is also worth mentioning that, for efficient transfer to the GPU,
-        Theano will make the new data ``c_contiguous``. This can require an
+        Aesara will make the new data ``c_contiguous``. This can require an
         extra copy of the data on the host.
 
         The inplace on gpu memory work when borrow is either True or False.
@@ -187,20 +187,20 @@ class SharedVariable(Variable):
         # __getitem__ is not available for generic SharedVariable objects.
         # We raise a TypeError like Python would do if __getitem__ was not
         # implemented at all, but with a more explicit error message to help
-        # Theano users figure out the root of the problem more easily.
+        # Aesara users figure out the root of the problem more easily.
         value = self.get_value(borrow=True)
         if isinstance(value, np.ndarray):
             # Array probably had an unknown dtype.
             msg = (
                 "a Numpy array with dtype: '%s'. This data type is not "
-                "currently recognized by Theano tensors: please cast "
+                "currently recognized by Aesara tensors: please cast "
                 "your data into a supported numeric type if you need "
-                "Theano tensor functionalities." % value.dtype
+                "Aesara tensor functionalities." % value.dtype
             )
         else:
             msg = (
                 "an object of type: %s. Did you forget to cast it into "
-                "a Numpy array before calling theano.shared()?" % type(value)
+                "a Numpy array before calling aesara.shared()?" % type(value)
             )
 
         raise TypeError(
@@ -247,7 +247,7 @@ def shared(value, name=None, strict=False, allow_downcast=None, **kwargs):
     This function is meant as a convenient default.  If you want to use a
     specific shared variable constructor, consider calling it directly.
 
-    ``theano.shared`` is a shortcut to this function.
+    ``aesara.shared`` is a shortcut to this function.
 
     .. attribute:: constructors
 
@@ -260,7 +260,7 @@ def shared(value, name=None, strict=False, allow_downcast=None, **kwargs):
     to those that can accept those kwargs.
 
     Some shared variable have ``borrow`` as extra kwargs.
-    `See <http://deeplearning.net/software/theano/tutorial/aliasing.\
+    `See <http://deeplearning.net/software/aesara/tutorial/aliasing.\
     html#borrowing-when-creating-shared-variables>`_ for details.
 
     Some shared variable have ``broadcastable`` as extra kwargs. As shared
@@ -299,7 +299,7 @@ def shared(value, name=None, strict=False, allow_downcast=None, **kwargs):
 
     except MemoryError as e:
         e.args = e.args + (
-            "you might consider" " using 'theano.shared(..., borrow=True)'",
+            "you might consider" " using 'aesara.shared(..., borrow=True)'",
         )
         raise
 

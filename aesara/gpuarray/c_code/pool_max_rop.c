@@ -159,7 +159,7 @@ int APPLY_SPECIFIC(max_pool_rop)(PyGpuArrayObject *x,
     return 1;
   }
 
-  if (theano_prep_output(z, PyGpuArray_NDIM(ex), z_dims,
+  if (aesara_prep_output(z, PyGpuArray_NDIM(ex), z_dims,
                          ex->ga.typecode, GA_C_ORDER, params->context) != 0)
     {
       PyErr_SetString(PyExc_RuntimeError,

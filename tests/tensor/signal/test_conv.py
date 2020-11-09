@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 from tests import unittest_tools as utt
-from theano.tensor.basic import _allclose
-from theano.tensor.signal import conv
+from aesara.tensor.basic import _allclose
+from aesara.tensor.signal import conv
 
 
 _ = pytest.importorskip("scipy.signal")
@@ -36,12 +36,12 @@ class TestSignalConv2D:
 
         output = sym_conv2d(input, filters)
         assert output.ndim == out_dim
-        theano_conv = theano.function([input, filters], output)
+        aesara_conv = aesara.function([input, filters], output)
 
         # initialize input and compute result
         image_data = np.random.random(image_shape)
         filter_data = np.random.random(filter_shape)
-        theano_output = theano_conv(image_data, filter_data)
+        aesara_output = aesara_conv(image_data, filter_data)
 
         # REFERENCE IMPLEMENTATION ############
         out_shape2d = np.array(image_shape[-2:]) - np.array(filter_shape[-2:]) + 1
@@ -50,13 +50,13 @@ class TestSignalConv2D:
         # reshape as 3D input tensors to make life easier
         image_data3d = image_data.reshape((bsize,) + image_shape[-2:])
         filter_data3d = filter_data.reshape((nkern,) + filter_shape[-2:])
-        # reshape theano output as 4D to make life easier
-        theano_output4d = theano_output.reshape(
+        # reshape aesara output as 4D to make life easier
+        aesara_output4d = aesara_output.reshape(
             (
                 bsize,
                 nkern,
             )
-            + theano_output.shape[-2:]
+            + aesara_output.shape[-2:]
         )
 
         # loop over mini-batches (if required)
@@ -78,14 +78,14 @@ class TestSignalConv2D:
                             * filter2d[::-1, ::-1]
                         ).sum()
 
-                assert _allclose(theano_output4d[b, k, :, :], output2d)
+                assert _allclose(aesara_output4d[b, k, :, :], output2d)
 
         # TEST GRADIENT ############
         if verify_grad:
             utt.verify_grad(sym_conv2d, [image_data, filter_data])
 
     @pytest.mark.skipif(
-        theano.config.cxx == "",
+        aesara.config.cxx == "",
         reason="conv2d tests need a c++ compiler",
     )
     def test_basic(self):
@@ -109,7 +109,7 @@ class TestSignalConv2D:
     def test_bug_josh_reported(self):
         # Test refers to a bug reported by Josh, when due to a bad merge these
         # few lines of code failed. See
-        # http://groups.google.com/group/theano-dev/browse_thread/thread/8856e7ca5035eecb
+        # http://groups.google.com/group/aesara-dev/browse_thread/thread/8856e7ca5035eecb
 
         m1 = tt.matrix()
         m2 = tt.matrix()

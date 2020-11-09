@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import theano
+import aesara
 
 
 pygpu = pytest.importorskip("pygpu")
@@ -13,10 +13,10 @@ from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
 from tests.gpuarray.test_basic_ops import rand_gpuarray
 from tests.tensor import test_elemwise
 from tests.unittest_tools import assert_allclose
-from theano import gof, scalar, tensor
-from theano.compile import DebugMode, Mode
-from theano.gpuarray.dnn import GpuDnnReduction
-from theano.gpuarray.elemwise import (
+from aesara import gof, scalar, tensor
+from aesara.compile import DebugMode, Mode
+from aesara.gpuarray.dnn import GpuDnnReduction
+from aesara.gpuarray.elemwise import (
     GpuCAReduceCPY,
     GpuCAReduceCuda,
     GpuDimShuffle,
@@ -24,7 +24,7 @@ from theano.gpuarray.elemwise import (
     GpuErfcinv,
     GpuErfinv,
 )
-from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
+from aesara.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
 
 
 # This is actually a test for GpuElemwise
@@ -62,11 +62,11 @@ def test_elemwise_pow():
             base_val = np.random.randint(0, 5, size=10).astype(dtype_base)
             exp_val = np.random.randint(0, 3, size=10).astype(dtype_exp)
 
-            base = theano.tensor.vector(dtype=dtype_base)
+            base = aesara.tensor.vector(dtype=dtype_base)
             exp = gpuarray_shared_constructor(exp_val)
             assert exp.dtype == dtype_exp
             output = base ** exp
-            f = theano.function([base], output, mode=mode_with_gpu)
+            f = aesara.function([base], output, mode=mode_with_gpu)
             # We don't transfer to the GPU when the output dtype is int*
             n = len(
                 [n for n in f.maker.fgraph.apply_nodes if isinstance(n.op, GpuElemwise)]
@@ -114,26 +114,26 @@ class TestMathErrorFunctions:
         else:
             cls.mode_without_gpu = mode_without_gpu
 
-    def check_gpu_scalar_op(self, theano_function, scalar_optype):
-        for node in theano_function.maker.fgraph.apply_nodes:
+    def check_gpu_scalar_op(self, aesara_function, scalar_optype):
+        for node in aesara_function.maker.fgraph.apply_nodes:
             if isinstance(node.op, GpuElemwise) and isinstance(
                 node.op.scalar_op, scalar_optype
             ):
                 return True
-        theano.printing.debugprint(theano_function)
+        aesara.printing.debugprint(aesara_function)
         return False
 
     def test_elemwise_erfinv(self):
         for dtype in self.dtypes:
-            vector = theano.tensor.vector(dtype=dtype)
-            output = theano.tensor.erfinv(vector)
-            f_host = theano.function(
+            vector = aesara.tensor.vector(dtype=dtype)
+            output = aesara.tensor.erfinv(vector)
+            f_host = aesara.function(
                 [vector],
                 output,
                 name="HOST/erfinv/" + dtype,
                 mode=self.mode_without_gpu,
             )
-            f_gpu = theano.function(
+            f_gpu = aesara.function(
                 [vector], output, name="GPU/erfinv/" + dtype, mode=self.mode_with_gpu
             )
             assert (
@@ -146,7 +146,7 @@ class TestMathErrorFunctions:
                 )
                 == 0
             )
-            if not theano.config.device.startswith("opencl"):
+            if not aesara.config.device.startswith("opencl"):
                 assert self.check_gpu_scalar_op(
                     f_gpu, GpuErfinv
                 ), 'Function graph does not contains scalar op "GpuErfinv".'
@@ -160,15 +160,15 @@ class TestMathErrorFunctions:
 
     def test_elemwise_erfcinv(self):
         for dtype in self.dtypes:
-            vector = theano.tensor.vector(dtype=dtype)
-            output = theano.tensor.erfcinv(vector)
-            f_host = theano.function(
+            vector = aesara.tensor.vector(dtype=dtype)
+            output = aesara.tensor.erfcinv(vector)
+            f_host = aesara.function(
                 [vector],
                 output,
                 name="HOST/erfcinv/" + dtype,
                 mode=self.mode_without_gpu,
             )
-            f_gpu = theano.function(
+            f_gpu = aesara.function(
                 [vector], output, name="GPU/erfcinv/" + dtype, mode=self.mode_with_gpu
             )
             assert (
@@ -181,7 +181,7 @@ class TestMathErrorFunctions:
                 )
                 == 0
             )
-            if not theano.config.device.startswith("opencl"):
+            if not aesara.config.device.startswith("opencl"):
                 assert self.check_gpu_scalar_op(
                     f_gpu, GpuErfcinv
                 ), 'Function graph does not contains scalar op "GpuErfcinv".'
@@ -196,9 +196,9 @@ class TestMathErrorFunctions:
 
 class TestFloat16:
     def test_composite_elemwise_float16(self):
-        w = theano.tensor.bvector()
-        x = theano.tensor.vector(dtype="float16")
-        y = theano.tensor.fvector()
+        w = aesara.tensor.bvector()
+        x = aesara.tensor.vector(dtype="float16")
+        y = aesara.tensor.fvector()
 
         cz = tensor.tanh(x + tensor.cast(y, "float16"))
         o = (
@@ -210,22 +210,22 @@ class TestFloat16:
             - tensor.constant(np.float16(1.0))
         )
 
-        theano.function([w, x, y], o, mode=mode_with_gpu)
+        aesara.function([w, x, y], o, mode=mode_with_gpu)
 
-        v = theano.tensor.vector(dtype="uint8")
-        w = theano.tensor.vector(dtype="float16")
-        x = theano.tensor.vector(dtype="float16")
-        y = theano.tensor.vector(dtype="float16")
-        z = theano.tensor.vector(dtype="float16")
+        v = aesara.tensor.vector(dtype="uint8")
+        w = aesara.tensor.vector(dtype="float16")
+        x = aesara.tensor.vector(dtype="float16")
+        y = aesara.tensor.vector(dtype="float16")
+        z = aesara.tensor.vector(dtype="float16")
 
         o = tensor.switch(v, tensor.mul(w, x, y), z)
-        theano.function([v, w, x, y, z], o, mode=mode_with_gpu)
+        aesara.function([v, w, x, y, z], o, mode=mode_with_gpu)
 
     def test_cast_float16(self):
-        f16 = theano.tensor.vector(dtype="float16")
-        f32 = theano.tensor.fvector()
-        i8 = theano.tensor.bvector()
-        f = theano.function(
+        f16 = aesara.tensor.vector(dtype="float16")
+        f32 = aesara.tensor.fvector()
+        i8 = aesara.tensor.bvector()
+        f = aesara.function(
             [f16, f32, i8],
             [
                 f16.astype("float32"),
@@ -502,6 +502,6 @@ class TestGpuReduceDtype(test_elemwise.TestReduceDtype):
 
 def speed_reduce10():
     data = np.random.rand(1000, 1000).astype("float32")
-    m = theano.tensor.fmatrix()
-    f = theano.function([m], [m.sum(axis=0), m.T.sum(axis=0)], mode=mode_with_gpu)
+    m = aesara.tensor.fmatrix()
+    f = aesara.function([m], [m.sum(axis=0), m.T.sum(axis=0)], mode=mode_with_gpu)
     f(data)

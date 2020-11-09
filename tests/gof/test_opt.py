@@ -1,8 +1,8 @@
-import theano.tensor as tt
-from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Apply, Constant, Variable
-from theano.gof.op import Op
-from theano.gof.opt import (
+import aesara.tensor as tt
+from aesara.gof.fg import FunctionGraph
+from aesara.gof.graph import Apply, Constant, Variable
+from aesara.gof.op import Op
+from aesara.gof.opt import (
     EquilibriumOptimizer,
     MergeOptimizer,
     OpKeyOptimizer,
@@ -13,12 +13,12 @@ from theano.gof.opt import (
     logging,
     pre_constant_merge,
     pre_greedy_local_optimizer,
-    theano,
+    aesara,
 )
-from theano.gof.type import Type
-from theano.tensor.opt import constant_folding
-from theano.tensor.subtensor import AdvancedSubtensor
-from theano.tensor.type_other import MakeSlice, SliceConstant, slicetype
+from aesara.gof.type import Type
+from aesara.tensor.opt import constant_folding
+from aesara.tensor.subtensor import AdvancedSubtensor
+from aesara.tensor.type_other import MakeSlice, SliceConstant, slicetype
 
 
 def is_variable(x):
@@ -392,10 +392,10 @@ class TestMergeOptimizer:
         e = tt.dot(x1, x2) + tt.dot(tt.opt.assert_op(x1, (x1 > x2).all()), x2)
         g = FunctionGraph([x1, x2], [e])
         MergeOptimizer().optimize(g)
-        strg = theano.printing.debugprint(g, file="str")
+        strg = aesara.printing.debugprint(g, file="str")
         strref = """Elemwise{add,no_inplace} [id A] ''   4
  |dot [id B] ''   3
- | |Assert{msg='Theano Assert failed!'} [id C] ''   2
+ | |Assert{msg='Aesara Assert failed!'} [id C] ''   2
  | | |x1 [id D]
  | | |All [id E] ''   1
  | |   |Elemwise{gt,no_inplace} [id F] ''   0
@@ -416,10 +416,10 @@ class TestMergeOptimizer:
         )
         g = FunctionGraph([x1, x2], [e])
         MergeOptimizer().optimize(g)
-        strg = theano.printing.debugprint(g, file="str")
+        strg = aesara.printing.debugprint(g, file="str")
         strref = """Elemwise{add,no_inplace} [id A] ''   4
  |dot [id B] ''   3
- | |Assert{msg='Theano Assert failed!'} [id C] ''   2
+ | |Assert{msg='Aesara Assert failed!'} [id C] ''   2
  | | |x1 [id D]
  | | |All [id E] ''   1
  | |   |Elemwise{gt,no_inplace} [id F] ''   0
@@ -442,10 +442,10 @@ class TestMergeOptimizer:
         )
         g = FunctionGraph([x1, x2, x3], [e])
         MergeOptimizer().optimize(g)
-        strg = theano.printing.debugprint(g, file="str")
+        strg = aesara.printing.debugprint(g, file="str")
         strref1 = """Elemwise{add,no_inplace} [id A] ''   6
  |dot [id B] ''   5
- | |Assert{msg='Theano Assert failed!'} [id C] ''   4
+ | |Assert{msg='Aesara Assert failed!'} [id C] ''   4
  | | |x1 [id D]
  | | |All [id E] ''   3
  | | | |Elemwise{gt,no_inplace} [id F] ''   1
@@ -460,7 +460,7 @@ class TestMergeOptimizer:
 """
         strref2 = """Elemwise{add,no_inplace} [id A] ''   6
  |dot [id B] ''   5
- | |Assert{msg='Theano Assert failed!'} [id C] ''   4
+ | |Assert{msg='Aesara Assert failed!'} [id C] ''   4
  | | |x1 [id D]
  | | |All [id E] ''   3
  | | | |Elemwise{gt,no_inplace} [id F] ''   1
@@ -486,16 +486,16 @@ class TestMergeOptimizer:
         )
         g = FunctionGraph([x1, x2, x3], [e])
         MergeOptimizer().optimize(g)
-        strg = theano.printing.debugprint(g, file="str")
+        strg = aesara.printing.debugprint(g, file="str")
         strref = """Elemwise{add,no_inplace} [id A] ''   7
  |dot [id B] ''   6
- | |Assert{msg='Theano Assert failed!'} [id C] ''   5
+ | |Assert{msg='Aesara Assert failed!'} [id C] ''   5
  | | |x1 [id D]
  | | |All [id E] ''   3
  | |   |Elemwise{gt,no_inplace} [id F] ''   1
  | |     |x1 [id D]
  | |     |x3 [id G]
- | |Assert{msg='Theano Assert failed!'} [id H] ''   4
+ | |Assert{msg='Aesara Assert failed!'} [id H] ''   4
  |   |x2 [id I]
  |   |All [id J] ''   2
  |     |Elemwise{gt,no_inplace} [id K] ''   0
@@ -516,16 +516,16 @@ class TestMergeOptimizer:
         )
         g = FunctionGraph([x1, x2, x3], [e])
         MergeOptimizer().optimize(g)
-        strg = theano.printing.debugprint(g, file="str")
+        strg = aesara.printing.debugprint(g, file="str")
         strref = """Elemwise{add,no_inplace} [id A] ''   7
  |dot [id B] ''   6
- | |Assert{msg='Theano Assert failed!'} [id C] ''   5
+ | |Assert{msg='Aesara Assert failed!'} [id C] ''   5
  | | |x1 [id D]
  | | |All [id E] ''   3
  | |   |Elemwise{gt,no_inplace} [id F] ''   1
  | |     |x1 [id D]
  | |     |x3 [id G]
- | |Assert{msg='Theano Assert failed!'} [id H] ''   4
+ | |Assert{msg='Aesara Assert failed!'} [id H] ''   4
  |   |x2 [id I]
  |   |All [id J] ''   2
  |     |Elemwise{gt,no_inplace} [id K] ''   0
@@ -584,15 +584,15 @@ class TestEquilibrium:
         opt.optimize(g)
         assert str(g) == "[Op2(x, y)]"
 
-    @theano.change_flags(on_opt_error="ignore")
+    @aesara.change_flags(on_opt_error="ignore")
     def test_low_use_ratio(self):
         x, y, z = map(MyVariable, "xyz")
         e = op3(op4(x, y))
         g = FunctionGraph([x, y, z], [e])
         # print 'before', g
         # display pesky warnings along with stdout
-        # also silence logger for 'theano.gof.opt'
-        _logger = logging.getLogger("theano.gof.opt")
+        # also silence logger for 'aesara.gof.opt'
+        _logger = logging.getLogger("aesara.gof.opt")
         oldlevel = _logger.level
         _logger.setLevel(logging.CRITICAL)
         try:

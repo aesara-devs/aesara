@@ -1,15 +1,15 @@
 import numpy as np
 
-import theano
-import theano.tensor as tt
-from theano.gof import Apply, Op
-from theano.gradient import DisconnectedType
+import aesara
+import aesara.tensor as tt
+from aesara.gof import Apply, Op
+from aesara.gradient import DisconnectedType
 
 
 class PdbBreakpoint(Op):
     """
     This is an identity-like op with the side effect of enforcing a
-    conditional breakpoint, inside a theano function, based on a symbolic
+    conditional breakpoint, inside a aesara function, based on a symbolic
     scalar condition. It automatically detects available debuggers and uses
     the first available in the following order: `pudb`, `ipdb`, or `pdb`.
 
@@ -18,11 +18,11 @@ class PdbBreakpoint(Op):
                  breakpoint is activated.
 
     :note: WARNING. At least one of the outputs of the op must be used
-                    otherwise the op will be removed from the Theano graph
+                    otherwise the op will be removed from the Aesara graph
                     due to its outputs being unused
 
-    :note: WARNING. Employing the function inside a theano graph can prevent
-                    Theano from applying certain optimizations to improve
+    :note: WARNING. Employing the function inside a aesara graph can prevent
+                    Aesara from applying certain optimizations to improve
                     performance, reduce memory consumption and/or reduce
                     numerical instability.
 
@@ -35,9 +35,9 @@ class PdbBreakpoint(Op):
 
     .. code-block:: python
 
-        import theano
-        import theano.tensor as tt
-        from theano.breakpoint import PdbBreakpoint
+        import aesara
+        import aesara.tensor as tt
+        from aesara.breakpoint import PdbBreakpoint
 
         input = tt.fvector()
         target = tt.fvector()
@@ -53,8 +53,8 @@ class PdbBreakpoint(Op):
         mse, monitored_input, monitored_target = breakpointOp(condition, mse,
                                                               input, target)
 
-        # Compile the theano function
-        fct = theano.function([input, target], mse)
+        # Compile the aesara function
+        fct = aesara.function([input, target], mse)
 
         # Use the function
         print fct([10, 0], [10, 5]) # Will NOT activate the breakpoint
@@ -70,8 +70,8 @@ class PdbBreakpoint(Op):
 
     def make_node(self, condition, *monitored_vars):
 
-        # Ensure that condition is a theano tensor
-        if not isinstance(condition, theano.Variable):
+        # Ensure that condition is a aesara tensor
+        if not isinstance(condition, aesara.Variable):
             condition = tt.as_tensor_variable(condition)
 
         # Validate that the condition is a scalar (else it is not obvious how

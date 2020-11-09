@@ -9,7 +9,7 @@ Why a common GPU ndarray?
 
 - Currently there are at least 4 different GPU array data structures in use by Python packages
 
-  - CudaNdarray (Theano), GPUArray (PyCUDA), CUDAMatrix (cudamat), GPUArray (PyOpenCL), ...
+  - CudaNdarray (Aesara), GPUArray (PyCUDA), CUDAMatrix (cudamat), GPUArray (PyOpenCL), ...
   - There are even more if we include other languages
 
 - All of them are a subset of the functionality of ``numpy.ndarray`` on the GPU
@@ -34,7 +34,7 @@ Design Goals
 Final GpuNdArray Note
 
 - Under development
-- Will be the next GPU array container for Theano (this summer!)
+- Will be the next GPU array container for Aesara (this summer!)
 - Probably also for PyCUDA, PyOpenCL
 - Mailing list: http://lists.tiker.net/listinfo/gpundarray
 

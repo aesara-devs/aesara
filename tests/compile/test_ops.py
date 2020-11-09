@@ -7,11 +7,11 @@ import pickle
 
 import numpy as np
 
-import theano
+import aesara
 from tests import unittest_tools as utt
-from theano import function
-from theano.compile import as_op
-from theano.tensor import dmatrix, dvector
+from aesara import function
+from aesara.compile import as_op
+from aesara.tensor import dmatrix, dvector
 
 
 # This is for test_pickle, since the function still has to be
@@ -86,4 +86,4 @@ class TestOpDecorator(utt.InferShapeTester):
 
 
 def test_shape_i_hash():
-    assert isinstance(theano.tensor.opt.Shape_i(np.int64(1)).__hash__(), int)
+    assert isinstance(aesara.tensor.opt.Shape_i(np.int64(1)).__hash__(), int)

@@ -11,18 +11,18 @@ import sys
 import textwrap
 from os.path import dirname
 
-from theano import config
-from theano.gof.cmodule import GCC_compiler
+from aesara import config
+from aesara.gof.cmodule import GCC_compiler
 
 
-_logger = logging.getLogger("theano.tensor.blas")
+_logger = logging.getLogger("aesara.tensor.blas")
 
 
 def detect_macos_sdot_bug():
     """
     Try to detect a bug in the default BLAS in MacOS.
 
-    The problem in Theano has been reported in gh-1240,
+    The problem in Aesara has been reported in gh-1240,
     the underlying bug has been confirmed in
     http://www.macresearch.org/lapackblas-fortran-106#comment-17227.
 
@@ -1002,7 +1002,7 @@ def blas_header_text():
                             "FATAL: The implementation of BLAS SDOT "
                             "routine in your system has a bug that "
                             "makes it return wrong results.\\n"
-                            "Please contact theano-dev@groups.google.com.\\n"
+                            "Please contact aesara-dev@groups.google.com.\\n"
                             "You can work around this bug by using a "
                             "different BLAS library, or disabling BLAS\\n");
                         assert(0);

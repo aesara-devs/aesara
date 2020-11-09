@@ -1,5 +1,5 @@
 """
-VMs that run Theano graph computations.
+VMs that run Aesara graph computations.
 
 A VM is not actually different from a Linker, we just decided
 VM was a better name at some point.
@@ -12,8 +12,8 @@ import time
 import warnings
 from collections import defaultdict
 
-import theano.gof.cmodule
-from theano.configparser import _config_var_list, config
+import aesara.gof.cmodule
+from aesara.configparser import _config_var_list, config
 
 from . import link
 
@@ -57,7 +57,7 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
                 )
                 ins = node.inputs[idx_v[0]]
             if ins is not None:
-                assert isinstance(ins, theano.Variable)
+                assert isinstance(ins, aesara.Variable)
                 origin = view_of.get(ins, ins)
                 view_of[out] = origin
                 viewed_by[origin].append(out)
@@ -98,7 +98,7 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
                     if (
                         not viewed_by[origin]
                         and origin not in fgraph.inputs
-                        and not isinstance(origin, theano.Constant)
+                        and not isinstance(origin, aesara.Constant)
                     ):
                         # where gc
                         for i in range(idx + 1, len(order)):
@@ -122,7 +122,7 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
 
 class VM:
     """
-    A VM object's __call__ method evaluates a Theano program.
+    A VM object's __call__ method evaluates a Aesara program.
 
     The Stack should be considered the reference VM/Linker implementation.
     It can correctly evaluate all graphs and is the easiest to read. The CVM
@@ -239,7 +239,7 @@ class Loop(VM):
 
     """
 
-    # Some other part of Theano query that information
+    # Some other part of Aesara query that information
     allow_gc = False
 
     def __call__(self):
@@ -275,7 +275,7 @@ class LoopGC(VM):
     def __init__(self, nodes, thunks, pre_call_clear, post_thunk_clear):
         super().__init__(nodes, thunks, pre_call_clear)
         self.post_thunk_clear = post_thunk_clear
-        # Some other part of Theano query that information
+        # Some other part of Aesara query that information
         self.allow_gc = True
         if not (len(nodes) == len(thunks) == len(post_thunk_clear)):
             raise ValueError()
@@ -575,7 +575,7 @@ class Stack(VM):
                                     ):
                                         warnings.warn(
                                             "There was a bug that existed in "
-                                            "the default Theano configuration,"
+                                            "the default Aesara configuration,"
                                             " only in the development version "
                                             "between July 5th 2012 and "
                                             "July 30th 2012. This was not in "
@@ -671,7 +671,7 @@ class Stack(VM):
 
         # Hacky coarse gc final pass
         # This is required until we have a proper gc algorithm for graphs with
-        # lazy evaluation. See discussion on theano-dev June 19 2012.
+        # lazy evaluation. See discussion on aesara-dev June 19 2012.
         final_index = []
 
         if self.allow_gc:
@@ -690,9 +690,9 @@ class Stack(VM):
 try:
     # If cxx is explicitely set to an empty string, we do not want to import neither lazylinker C code
     # nor lazylinker compiled C code from cache.
-    if not theano.config.cxx:
-        raise theano.gof.cmodule.MissingGXX(
-            "lazylinker will not be imported if theano.config.cxx is not set."
+    if not aesara.config.cxx:
+        raise aesara.gof.cmodule.MissingGXX(
+            "lazylinker will not be imported if aesara.config.cxx is not set."
         )
     from . import lazylinker_c
 
@@ -704,7 +704,7 @@ try:
 
 except ImportError:
     pass
-except (OSError, theano.gof.cmodule.MissingGXX) as e:
+except (OSError, aesara.gof.cmodule.MissingGXX) as e:
     # OSError happens when g++ is not installed.  In that case, we
     # already changed the default linker to something else then CVM.
     # Currently this is the py linker.
@@ -724,7 +724,7 @@ class VM_Linker(link.LocalLinker):
         Force the virtual machine to clean up unnecessary
         references, in order to allow garbage collection on
         intermediate values during computation of a function.
-        If None use as default the value of the Theano flag allow_gc.
+        If None use as default the value of the Aesara flag allow_gc.
     use_cloop
         Use the C-based virtual machine if possible
     callback
@@ -738,7 +738,7 @@ class VM_Linker(link.LocalLinker):
         'var', 'value'.
     lazy
         Useful only when use_cloop is False. When lazy is None, use the
-        theano flag vm.lazy value. Then if we have a None (default) we auto
+        aesara flag vm.lazy value. Then if we have a None (default) we auto
         detect if lazy evaluation is needed and use the appropriate
         version. If lazy is True or False, we force the version used
         between Loop/LoopGC and Stack.
@@ -773,7 +773,7 @@ class VM_Linker(link.LocalLinker):
         self.callback_input = callback_input
         self.lazy = lazy
         if c_thunks is None:
-            c_thunks = bool(theano.config.cxx)
+            c_thunks = bool(aesara.config.cxx)
         self.c_thunks = c_thunks
         self.allow_partial_eval = allow_partial_eval
         self.updated_vars = {}

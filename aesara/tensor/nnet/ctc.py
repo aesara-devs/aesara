@@ -1,13 +1,13 @@
 import os
 import sys
 
-import theano.tensor as tt
-from theano import config, gof
-from theano.gof import local_optimizer
-from theano.gof.cmodule import GCC_compiler
-from theano.gradient import grad_undefined
-from theano.tensor.extra_ops import cpu_contiguous
-from theano.tensor.opt import register_canonicalize
+import aesara.tensor as tt
+from aesara import config, gof
+from aesara.gof import local_optimizer
+from aesara.gof.cmodule import GCC_compiler
+from aesara.gradient import grad_undefined
+from aesara.tensor.extra_ops import cpu_contiguous
+from aesara.tensor.opt import register_canonicalize
 
 
 def _ctc_find_lib():

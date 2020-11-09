@@ -21,28 +21,28 @@ import numpy as np
 import pytest
 
 import tests.unittest_tools as utt
-import theano
+import aesara
 from tests.gpuarray.config import mode_with_gpu, ref_cast
-from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
-from theano.gpuarray import cudnn_defs
-from theano.gpuarray.dnn import GpuDnnConv, GpuDnnConvGradI, GpuDnnConvGradW
-from theano.gpuarray.dnn import _dnn_conv as dnn_conv
-from theano.gpuarray.dnn import _dnn_gradinput as dnn_gradinput
-from theano.gpuarray.dnn import _dnn_gradweight as dnn_gradweight
-from theano.gpuarray.dnn import version
-from theano.tensor.nnet.abstract_conv import assert_conv_shape, get_conv_output_shape
-from theano.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
-from theano.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGradWeights
+from aesara.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
+from aesara.gpuarray import cudnn_defs
+from aesara.gpuarray.dnn import GpuDnnConv, GpuDnnConvGradI, GpuDnnConvGradW
+from aesara.gpuarray.dnn import _dnn_conv as dnn_conv
+from aesara.gpuarray.dnn import _dnn_gradinput as dnn_gradinput
+from aesara.gpuarray.dnn import _dnn_gradweight as dnn_gradweight
+from aesara.gpuarray.dnn import version
+from aesara.tensor.nnet.abstract_conv import assert_conv_shape, get_conv_output_shape
+from aesara.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
+from aesara.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGradWeights
 
 
 def check_dtype_config_support(dtype, precision):
     # We use FWD 2D to check it.
     # Based on documentation, algo small (CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM)
     # should support all configurations, for both v5.1, v6 and v7.
-    inputs = theano.shared(np.zeros((1, 1, 2, 2), dtype=dtype))
-    filters = theano.shared(np.zeros((1, 1, 2, 2), dtype=dtype))
+    inputs = aesara.shared(np.zeros((1, 1, 2, 2), dtype=dtype))
+    filters = aesara.shared(np.zeros((1, 1, 2, 2), dtype=dtype))
     conv = dnn_conv(inputs, filters, precision=precision, algo="small")
-    f = theano.function([], conv, mode=mode_with_gpu)
+    f = aesara.function([], conv, mode=mode_with_gpu)
     try:
         f()
     except RuntimeError as e:
@@ -82,9 +82,9 @@ class ConvCase:
         assert len(inputs_shape) == len(filters_shape) in (4, 5)
         ndim = len(inputs_shape) - 2
         if dtype is None:
-            dtype = theano.config.floatX
+            dtype = aesara.config.floatX
         if precision is None:
-            precision = theano.config.floatX
+            precision = aesara.config.floatX
         if subsample is None:
             subsample = (1,) * ndim
         if dilation is None:
@@ -646,8 +646,8 @@ class BaseTestDnnConv:
         inputs_val /= 10
         filters_val /= 10
 
-        inputs = theano.shared(inputs_val)
-        filters = theano.shared(filters_val)
+        inputs = aesara.shared(inputs_val)
+        filters = aesara.shared(filters_val)
 
         if beta == 0:
             out = None
@@ -656,7 +656,7 @@ class BaseTestDnnConv:
                 inputs_shape, filters_shape, border_mode, subsample, dilation, dtype
             )
             out /= 10
-        # Compile a theano function for the cuDNN implementation
+        # Compile a aesara function for the cuDNN implementation
         conv = dnn_conv(
             img=inputs,
             kerns=filters,
@@ -670,7 +670,7 @@ class BaseTestDnnConv:
             algo=algo,
             precision=precision,
         )
-        f = theano.function([], conv, mode=mode_with_gpu)
+        f = aesara.function([], conv, mode=mode_with_gpu)
 
         # If conv_mode is 'conv' the reference implementation should use
         # filters flipped according to the width, height and time axis
@@ -682,11 +682,11 @@ class BaseTestDnnConv:
         else:
             flipped_filters = filters
 
-        # Compile a theano function for the reference implementation
+        # Compile a aesara function for the reference implementation
         conv_ref = self.cpu_conv_class(
             border_mode=border_mode, subsample=subsample, filter_dilation=dilation
         )(ref_cast(inputs), flipped_filters)
-        f_ref = theano.function([], conv_ref, mode="FAST_RUN")
+        f_ref = aesara.function([], conv_ref, mode="FAST_RUN")
 
         # Compare the results of the two implementations
         res_ref = f_ref()
@@ -728,10 +728,10 @@ class BaseTestDnnConv:
         filters_val /= 10
         topgrad_val /= 10
 
-        filters = theano.shared(filters_val)
-        topgrad = theano.shared(topgrad_val)
+        filters = aesara.shared(filters_val)
+        topgrad = aesara.shared(topgrad_val)
 
-        # Compile a theano function for the cuDNN implementation
+        # Compile a aesara function for the cuDNN implementation
         grad_i = dnn_gradinput(
             filters,
             topgrad,
@@ -747,7 +747,7 @@ class BaseTestDnnConv:
             precision=precision,
         )
 
-        f = theano.function([], grad_i, mode=mode_with_gpu)
+        f = aesara.function([], grad_i, mode=mode_with_gpu)
 
         # If conv_mode is 'conv' the reference implementation should use
         # filters flipped according to the width, height and time axis
@@ -759,11 +759,11 @@ class BaseTestDnnConv:
         else:
             flipped_filters = filters
 
-        # Compile a theano function for the reference implementation
+        # Compile a aesara function for the reference implementation
         grad_i_ref = self.cpu_gradinput_class(
             border_mode=border_mode, subsample=subsample, filter_dilation=dilation
         )(ref_cast(flipped_filters), ref_cast(topgrad), inputs_shape[2:])
-        f_ref = theano.function([], grad_i_ref, mode="FAST_RUN")
+        f_ref = aesara.function([], grad_i_ref, mode="FAST_RUN")
 
         # Compare the results of the two implementations
         res_ref = f_ref()
@@ -805,10 +805,10 @@ class BaseTestDnnConv:
         inputs_val /= 10
         topgrad_val /= 10
 
-        inputs = theano.shared(inputs_val)
-        topgrad = theano.shared(topgrad_val)
+        inputs = aesara.shared(inputs_val)
+        topgrad = aesara.shared(topgrad_val)
 
-        # Compile a theano function for the cuDNN implementation
+        # Compile a aesara function for the cuDNN implementation
         grad_w = dnn_gradweight(
             inputs,
             topgrad,
@@ -824,9 +824,9 @@ class BaseTestDnnConv:
             precision=precision,
         )
 
-        f = theano.function([], grad_w, mode=mode_with_gpu)
+        f = aesara.function([], grad_w, mode=mode_with_gpu)
 
-        # Compile a theano function for the reference implementation
+        # Compile a aesara function for the reference implementation
         grad_w_ref = self.cpu_gradweight_class(
             border_mode=border_mode, subsample=subsample, filter_dilation=dilation
         )(ref_cast(inputs), ref_cast(topgrad), filters_shape[2:])
@@ -835,7 +835,7 @@ class BaseTestDnnConv:
                 grad_w_ref = grad_w_ref[:, :, ::-1, ::-1, ::-1]
             else:
                 grad_w_ref = grad_w_ref[:, :, ::-1, ::-1]
-        f_ref = theano.function([], grad_w_ref, mode="FAST_RUN")
+        f_ref = aesara.function([], grad_w_ref, mode="FAST_RUN")
 
         # Compare the results of the two implementations
         res_ref = f_ref()
@@ -969,7 +969,7 @@ class BaseTestDnnConv:
                 else:
                     self.run_conv_gradweight(dnn_case.get_case())
 
-    # The 3 following tests are intended to be run with theano flag `cmodule.debug=True`.
+    # The 3 following tests are intended to be run with aesara flag `cmodule.debug=True`.
     # The output message should then be analyzed to check if runtime algorithms are
     # reused, reloaded from cache or updated, depending on what we expect from
     # dnn_fwd/dnn_gi/dnn_gw current codes. I currently don't know a better way
@@ -981,8 +981,8 @@ class BaseTestDnnConv:
         _broadcastable = [False] * (2 + self.ndim)
 
         def run_fwd_runtime_algorithm(algo):
-            inputs = theano.tensor.TensorType(dtype, _broadcastable)()
-            filters = theano.tensor.TensorType(dtype, _broadcastable)()
+            inputs = aesara.tensor.TensorType(dtype, _broadcastable)()
+            filters = aesara.tensor.TensorType(dtype, _broadcastable)()
             # Scale down the input values to prevent very large absolute errors
             # due to float rounding
             lower_inputs = inputs / 10
@@ -995,7 +995,7 @@ class BaseTestDnnConv:
                 subsample=unit_shape,
                 dilation=unit_shape,
             )
-            f = theano.function([inputs, filters], conv, mode=mode_with_gpu)
+            f = aesara.function([inputs, filters], conv, mode=mode_with_gpu)
             if self.ndim == 3:
                 flipped_filters = lower_filters[:, :, ::-1, ::-1, ::-1]
             else:
@@ -1003,7 +1003,7 @@ class BaseTestDnnConv:
             conv_ref = self.cpu_conv_class(subsample=unit_shape)(
                 ref_cast(lower_inputs), flipped_filters
             )
-            f_ref = theano.function([inputs, filters], conv_ref, mode="FAST_RUN")
+            f_ref = aesara.function([inputs, filters], conv_ref, mode="FAST_RUN")
             runtime_shapes = self.runtime_shapes
             if algo in ("time_once", "guess_once"):
                 runtime_shapes = [list(runtime_shapes[0])]
@@ -1027,9 +1027,9 @@ class BaseTestDnnConv:
         _broadcastable = [False] * (2 + self.ndim)
 
         def run_gradinput_runtime_algorithm(algo):
-            theano.config.dnn.conv.algo_bwd_data = algo
-            inputs = theano.tensor.TensorType(dtype, _broadcastable)()
-            filters = theano.tensor.TensorType(dtype, _broadcastable)()
+            aesara.config.dnn.conv.algo_bwd_data = algo
+            inputs = aesara.tensor.TensorType(dtype, _broadcastable)()
+            filters = aesara.tensor.TensorType(dtype, _broadcastable)()
             conv = dnn_conv(
                 img=inputs,
                 kerns=filters,
@@ -1038,8 +1038,8 @@ class BaseTestDnnConv:
                 subsample=unit_shape,
                 dilation=unit_shape,
             )
-            grad_i = theano.tensor.grad(conv.sum(), [inputs])
-            f = theano.function([inputs, filters], grad_i, mode=mode_with_gpu)
+            grad_i = aesara.tensor.grad(conv.sum(), [inputs])
+            f = aesara.function([inputs, filters], grad_i, mode=mode_with_gpu)
             assert 1 == len(
                 [
                     node
@@ -1061,8 +1061,8 @@ class BaseTestDnnConv:
             conv_ref = self.cpu_conv_class(subsample=unit_shape)(
                 ref_cast(inputs), flipped_filters
             )
-            grad_i_ref = theano.tensor.grad(conv_ref.sum(), [inputs])
-            f_ref = theano.function([inputs, filters], grad_i_ref, mode="FAST_RUN")
+            grad_i_ref = aesara.tensor.grad(conv_ref.sum(), [inputs])
+            f_ref = aesara.function([inputs, filters], grad_i_ref, mode="FAST_RUN")
             runtime_shapes = self.runtime_shapes
             if algo in ("time_once", "guess_once"):
                 runtime_shapes = [list(runtime_shapes[0])]
@@ -1085,9 +1085,9 @@ class BaseTestDnnConv:
         _broadcastable = [False] * (2 + self.ndim)
 
         def run_gradweight_runtime_algorithm(algo):
-            theano.config.dnn.conv.algo_bwd_filter = algo
-            inputs = theano.tensor.TensorType(dtype, _broadcastable)()
-            filters = theano.tensor.TensorType(dtype, _broadcastable)()
+            aesara.config.dnn.conv.algo_bwd_filter = algo
+            inputs = aesara.tensor.TensorType(dtype, _broadcastable)()
+            filters = aesara.tensor.TensorType(dtype, _broadcastable)()
             conv = dnn_conv(
                 img=inputs,
                 kerns=filters,
@@ -1096,8 +1096,8 @@ class BaseTestDnnConv:
                 subsample=unit_shape,
                 dilation=unit_shape,
             )
-            grad_w = theano.tensor.grad(conv.sum(), [filters])
-            f = theano.function([inputs, filters], grad_w, mode=mode_with_gpu)
+            grad_w = aesara.tensor.grad(conv.sum(), [filters])
+            f = aesara.function([inputs, filters], grad_w, mode=mode_with_gpu)
             assert 1 == len(
                 [
                     node
@@ -1119,8 +1119,8 @@ class BaseTestDnnConv:
             conv_ref = self.cpu_conv_class(subsample=unit_shape)(
                 ref_cast(inputs), flipped_filters
             )
-            grad_w_ref = theano.tensor.grad(conv_ref.sum(), [filters])
-            f_ref = theano.function([inputs, filters], grad_w_ref, mode="FAST_RUN")
+            grad_w_ref = aesara.tensor.grad(conv_ref.sum(), [filters])
+            f_ref = aesara.function([inputs, filters], grad_w_ref, mode="FAST_RUN")
             runtime_shapes = self.runtime_shapes
             if algo in ("time_once", "guess_once"):
                 runtime_shapes = [list(runtime_shapes[0])]

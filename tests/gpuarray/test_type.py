@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pytest
 
-import theano
+import aesara
 
 
 pygpu = pytest.importorskip("pygpu")
@@ -12,9 +12,9 @@ from pickle import Unpickler
 
 from tests.gpuarray.config import test_ctx_name
 from tests.gpuarray.test_basic_ops import rand_gpuarray
-from theano import config
-from theano.compile import DeepCopyOp, Rebroadcast, ViewOp
-from theano.gpuarray.type import GpuArrayType, gpuarray_shared_constructor
+from aesara import config
+from aesara.compile import DeepCopyOp, Rebroadcast, ViewOp
+from aesara.gpuarray.type import GpuArrayType, gpuarray_shared_constructor
 
 
 # Disabled for now
@@ -26,7 +26,7 @@ def test_deep_copy():
         a = rand_gpuarray(20, dtype=dtype)
         g = GpuArrayType(dtype=dtype, broadcastable=(False,))("g")
 
-        f = theano.function([g], g)
+        f = aesara.function([g], g)
 
         assert isinstance(f.maker.fgraph.toposort()[0].op, DeepCopyOp)
 
@@ -40,8 +40,8 @@ def test_view():
         a = rand_gpuarray(20, dtype=dtype)
         g = GpuArrayType(dtype=dtype, broadcastable=(False,))("g")
 
-        m = theano.compile.get_default_mode().excluding("local_view_op")
-        f = theano.function([g], ViewOp()(g), mode=m)
+        m = aesara.compile.get_default_mode().excluding("local_view_op")
+        f = aesara.function([g], ViewOp()(g), mode=m)
 
         assert isinstance(f.maker.fgraph.toposort()[0].op, ViewOp)
 
@@ -55,7 +55,7 @@ def test_rebroadcast():
         a = rand_gpuarray(1, dtype=dtype)
         g = GpuArrayType(dtype=dtype, broadcastable=(False,))("g")
 
-        f = theano.function([g], Rebroadcast((0, True))(g))
+        f = aesara.function([g], Rebroadcast((0, True))(g))
 
         assert isinstance(f.maker.fgraph.toposort()[0].op, Rebroadcast)
 
@@ -79,29 +79,29 @@ def test_specify_shape():
     for dtype in ["float16", "float32"]:
         a = rand_gpuarray(20, dtype=dtype)
         g = GpuArrayType(dtype=dtype, broadcastable=(False,))("g")
-        f = theano.function([g], theano.tensor.specify_shape(g, [20]))
+        f = aesara.function([g], aesara.tensor.specify_shape(g, [20]))
         f(a)
 
 
 def test_filter_float():
-    theano.compile.shared_constructor(gpuarray_shared_constructor)
+    aesara.compile.shared_constructor(gpuarray_shared_constructor)
     try:
-        s = theano.shared(np.array(0.0, dtype="float32"), target=test_ctx_name)
-        theano.function([], updates=[(s, 0.0)])
+        s = aesara.shared(np.array(0.0, dtype="float32"), target=test_ctx_name)
+        aesara.function([], updates=[(s, 0.0)])
     finally:
-        del theano.compile.sharedvalue.shared.constructors[-1]
+        del aesara.compile.sharedvalue.shared.constructors[-1]
 
 
 def test_filter_variable():
     # Test that filter_variable accepts more restrictive broadcast
-    gpu_row = GpuArrayType(dtype=theano.config.floatX, broadcastable=(True, False))
-    gpu_matrix = GpuArrayType(dtype=theano.config.floatX, broadcastable=(False, False))
+    gpu_row = GpuArrayType(dtype=aesara.config.floatX, broadcastable=(True, False))
+    gpu_matrix = GpuArrayType(dtype=aesara.config.floatX, broadcastable=(False, False))
     r = gpu_row()
     m = gpu_matrix.filter_variable(r)
     assert m.type == gpu_matrix
 
     # On CPU as well
-    r = theano.tensor.row()
+    r = aesara.tensor.row()
     m = gpu_matrix.filter_variable(r)
     assert m.type == gpu_matrix
 
@@ -136,7 +136,7 @@ def test_unpickle_gpuarray_as_numpy_ndarray_flag0():
 # These tests are disabled because they expect the impossible
 # @makeSharedTester(
 #     shared_constructor_=gpuarray_shared_constructor,
-#     dtype_=theano.config.floatX,
+#     dtype_=aesara.config.floatX,
 #     get_value_borrow_true_alias_=True,
 #     shared_borrow_true_alias_=True,
 #     set_value_borrow_true_alias_=True,
@@ -146,7 +146,7 @@ def test_unpickle_gpuarray_as_numpy_ndarray_flag0():
 #     internal_type_=lambda v: pygpu.array(v, context=get_context(test_ctx_name),
 #                                          cls=pygpu._array.ndgpuarray),
 #     test_internal_type_=lambda a: isinstance(a, pygpu.gpuarray.GpuArray),
-#     theano_fct_=theano.tensor.exp,
+#     aesara_fct_=aesara.tensor.exp,
 #     ref_fct_=np.exp,
 #     cast_value_=lambda v: pygpu.array(v, context=get_context(test_ctx_name),
 #                                       cls=pygpu._array.ndgpuarray))
@@ -156,7 +156,7 @@ def test_unpickle_gpuarray_as_numpy_ndarray_flag0():
 
 # @makeSharedTester(
 #     shared_constructor_=gpuarray_shared_constructor,
-#     dtype_=theano.config.floatX,
+#     dtype_=aesara.config.floatX,
 #     get_value_borrow_true_alias_=False,
 #     shared_borrow_true_alias_=False,
 #     set_value_borrow_true_alias_=False,
@@ -166,7 +166,7 @@ def test_unpickle_gpuarray_as_numpy_ndarray_flag0():
 #     internal_type_=lambda v: pygpu.array(v, context=get_context(test_ctx_name),
 #                                          cls=pygpu._array.ndgpuarray),
 #     test_internal_type_=lambda a: isinstance(a, pygpu.gpuarray.GpuArray),
-#     theano_fct_=theano.tensor.exp,
+#     aesara_fct_=aesara.tensor.exp,
 #     ref_fct_=np.exp,
 #     cast_value_=lambda v: pygpu.array(v, context=get_context(test_ctx_name),
 #                                       cls=pygpu._array.ndgpuarray))

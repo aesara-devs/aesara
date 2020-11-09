@@ -3,9 +3,9 @@ import itertools
 import numpy as np
 import pytest
 
-import theano
-from theano import tensor
-from theano.scan_module.scan_utils import map_variables
+import aesara
+from aesara import tensor
+from aesara.scan_module.scan_utils import map_variables
 
 
 class TestMapVariables:
@@ -33,10 +33,10 @@ class TestMapVariables:
 
         y.tag.replacement = z
 
-        s, _ = theano.scan(lambda x: x * y, sequences=x)
+        s, _ = aesara.scan(lambda x: x * y, sequences=x)
         (s2,) = map_variables(self.replacer, [s])
 
-        f = theano.function([x, y, z], [s, s2])
+        f = aesara.function([x, y, z], [s, s2])
         rval = f(x=np.array([1, 2, 3], dtype=np.float32), y=1, z=2)
         assert np.array_equal(rval, [[1, 2, 3], [2, 4, 6]])
 
@@ -49,7 +49,7 @@ class TestMapVariables:
         # imports them into the inner graph properly, and map_variables()
         # should do this as well.
         outer = tensor.scalar("outer")
-        shared = theano.shared(np.array(1.0, dtype=theano.config.floatX), name="shared")
+        shared = aesara.shared(np.array(1.0, dtype=aesara.config.floatX), name="shared")
         constant = tensor.constant(1, name="constant")
 
         # z will equal 1 so multiplying by it doesn't change any values
@@ -60,14 +60,14 @@ class TestMapVariables:
             r.tag.replacement = z * (a - x)
             return r
 
-        s, _ = theano.scan(step, sequences=x, outputs_info=[np.array(0.0)])
+        s, _ = aesara.scan(step, sequences=x, outputs_info=[np.array(0.0)])
         # ensure z is owned by the outer graph so map_variables() will need to
         # jump through additional hoops to placate FunctionGraph.
         t = z * s
         (s2,) = map_variables(self.replacer, [t])
         t2 = z * s2
 
-        f = theano.function([x, outer], [t, t2])
+        f = aesara.function([x, outer], [t, t2])
         rval = f(x=np.array([1, 2, 3], dtype=np.float32), outer=0.5)
         assert np.array_equal(rval, [[1, 3, 6], [-1, -3, -6]])
 
@@ -75,7 +75,7 @@ class TestMapVariables:
         x = tensor.vector("x")
 
         # counts how many times its value is used
-        counter = theano.shared(0, name="shared")
+        counter = aesara.shared(0, name="shared")
         counter.update = counter + 1
 
         def step(x, a):
@@ -86,7 +86,7 @@ class TestMapVariables:
             r.tag.replacement = counter * (a - x)
             return r
 
-        s, _ = theano.scan(step, sequences=x, outputs_info=[np.array(0.0)])
+        s, _ = aesara.scan(step, sequences=x, outputs_info=[np.array(0.0)])
         with pytest.raises(NotImplementedError):
             map_variables(self.replacer, [s])
 
@@ -94,7 +94,7 @@ class TestMapVariables:
         x = tensor.vector("x")
 
         # counts how many times its value is used
-        counter = theano.shared(0, name="shared")
+        counter = aesara.shared(0, name="shared")
         counter.update = counter + 1
 
         def step(x, a):
@@ -109,7 +109,7 @@ class TestMapVariables:
             # unsupported.
             return r + counter
 
-        s, _ = theano.scan(step, sequences=x, outputs_info=[np.array(0.0)])
+        s, _ = aesara.scan(step, sequences=x, outputs_info=[np.array(0.0)])
         with pytest.raises(NotImplementedError):
             map_variables(self.replacer, [s])
 
@@ -117,7 +117,7 @@ class TestMapVariables:
         # as with the scan tests above, insert foreign inputs into the
         # inner graph.
         outer = tensor.scalar("outer")
-        shared = theano.shared(np.array(1.0, dtype=theano.config.floatX), name="shared")
+        shared = aesara.shared(np.array(1.0, dtype=aesara.config.floatX), name="shared")
         constant = tensor.constant(1.0, name="constant")
         z = outer * (shared + constant)
 
@@ -130,12 +130,12 @@ class TestMapVariables:
         # construct the outer graph
         c = tensor.scalar()
         d = tensor.scalar()
-        u = theano.OpFromGraph([a, b], [r])(c, d)
+        u = aesara.OpFromGraph([a, b], [r])(c, d)
         t = z * u
         (v,) = map_variables(self.replacer, [t])
         t2 = z * v
 
-        f = theano.function([c, d, outer], [t, t2])
+        f = aesara.function([c, d, outer], [t, t2])
         for m, n in itertools.combinations(range(10), 2):
             assert f(m, n, outer=0.5) == [m + n, m - n]
 

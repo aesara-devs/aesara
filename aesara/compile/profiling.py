@@ -20,25 +20,25 @@ from collections import defaultdict
 
 import numpy as np
 
-import theano
-from theano.gof import graph
+import aesara
+from aesara.gof import graph
 
 
 __authors__ = "James Bergstra"
 __reviewer__ = "Razvan Pascanu"
 __copyright__ = "(c) 2011, Universite de Montreal"
 __license__ = "3-clause BSD License"
-__contact__ = "theano-dev <theano-dev@googlegroups.com>"
+__contact__ = "aesara-dev <aesara-dev@googlegroups.com>"
 
 __docformat__ = "restructuredtext en"
 
-logger = logging.getLogger("theano.compile.profiling")
+logger = logging.getLogger("aesara.compile.profiling")
 
-theano_imported_time = time.time()
+aesara_imported_time = time.time()
 total_fct_exec_time = 0.0
 total_graph_opt_time = 0.0
 total_time_linker = 0.0
-config = theano.config
+config = aesara.config
 
 _atexit_print_list = []
 _atexit_registered = False
@@ -141,9 +141,9 @@ def _atexit_print_fn():
 def print_global_stats():
     """
     Print the following stats:
-      -- Time elapsed since Theano was imported
-      -- Time spent inside Theano functions
-      -- Time spent in compiling Theano functions
+      -- Time elapsed since Aesara was imported
+      -- Time spent inside Aesara functions
+      -- Time spent in compiling Aesara functions
            -- on graph optimization
            -- on linker
     """
@@ -158,12 +158,12 @@ def print_global_stats():
     print("=" * 50, file=destination_file)
     print(
         "Global stats: ",
-        "Time elasped since Theano import = %6.3fs, "
-        "Time spent in Theano functions = %6.3fs, "
-        "Time spent compiling Theano functions: "
+        "Time elasped since Aesara import = %6.3fs, "
+        "Time spent in Aesara functions = %6.3fs, "
+        "Time spent compiling Aesara functions: "
         " optimzation = %6.3fs, linker = %6.3fs "
         % (
-            time.time() - theano_imported_time,
+            time.time() - aesara_imported_time,
             total_fct_exec_time,
             total_graph_opt_time,
             total_time_linker,
@@ -185,7 +185,7 @@ class ProfileStats:
 
     """
     Object to store runtime and memory profiling information for all of
-    Theano's operations: compilation, optimization, execution.
+    Aesara's operations: compilation, optimization, execution.
 
     Parameters
     ----------
@@ -296,12 +296,12 @@ class ProfileStats:
     ):
         if (
             gpu_checks
-            and (hasattr(theano, "gpuarray") and theano.gpuarray.pygpu_activated)
+            and (hasattr(aesara, "gpuarray") and aesara.gpuarray.pygpu_activated)
             and os.environ.get("CUDA_LAUNCH_BLOCKING", "0") != "1"
         ):
             msg = (
-                "You are running the Theano profiler with CUDA enabled."
-                " Theano GPU ops execution is asynchronous by default."
+                "You are running the Aesara profiler with CUDA enabled."
+                " Aesara GPU ops execution is asynchronous by default."
                 " So by default, the profile is useless."
                 " You must set the environment variable"
                 " CUDA_LAUNCH_BLOCKING to 1 to tell the CUDA driver to"
@@ -315,12 +315,12 @@ class ProfileStats:
         if (
             config.profile
             and gpu_checks
-            and hasattr(theano, "gpuarray")
-            and theano.gpuarray.pygpu_activated
+            and hasattr(aesara, "gpuarray")
+            and aesara.gpuarray.pygpu_activated
             and not config.profiling.ignore_first_call
         ):
             warnings.warn(
-                "Theano flag profiling.ignore_first_call is False. "
+                "Aesara flag profiling.ignore_first_call is False. "
                 "This cause bad profiling result in the gpu "
                 "back-end, as sometimes we compile at the first call."
             )
@@ -344,7 +344,7 @@ class ProfileStats:
             if not _atexit_registered:
                 atexit.register(_atexit_print_fn)
                 _atexit_registered = True
-        self.ignore_first_call = theano.config.profiling.ignore_first_call
+        self.ignore_first_call = aesara.config.profiling.ignore_first_call
 
     def class_time(self):
         """
@@ -554,8 +554,8 @@ class ProfileStats:
             tot += t
             ftot = tot * 100 / local_time
             # Remove the useless start and end of the class name:
-            # "<class 'theano.gpuarray.blas.GpuDot22'>" ->
-            #  "theano.gpuarray.blas.GpuDot22"
+            # "<class 'aesara.gpuarray.blas.GpuDot22'>" ->
+            #  "aesara.gpuarray.blas.GpuDot22"
             class_name = str(a)[8:-2][:maxlen]
             print(
                 format_str
@@ -836,10 +836,10 @@ class ProfileStats:
                 )
         print("  Total compile time: %es" % self.compile_time, file=file)
         print("    Number of Apply nodes: %d" % self.nb_nodes, file=file)
-        print("    Theano Optimizer time: %es" % self.optimizer_time, file=file)
-        print("       Theano validate time: %es" % self.validate_time, file=file)
+        print("    Aesara Optimizer time: %es" % self.optimizer_time, file=file)
+        print("       Aesara validate time: %es" % self.validate_time, file=file)
         print(
-            "    Theano Linker time (includes C, CUDA code "
+            "    Aesara Linker time (includes C, CUDA code "
             "generation/compiling): %es" % self.linker_time,
             file=file,
         )
@@ -860,11 +860,11 @@ class ProfileStats:
 
     def summary_globals(self, file):
         print(
-            "Time in all call to theano.grad() %es" % theano.gradient.grad_time,
+            "Time in all call to aesara.grad() %es" % aesara.gradient.grad_time,
             file=file,
         )
-        total_time = time.time() - theano_imported_time
-        print("Time since theano import %.3fs" % (total_time), file=file)
+        total_time = time.time() - aesara_imported_time
+        print("Time since aesara import %.3fs" % (total_time), file=file)
 
     def summary_memory(self, file, N=None):
         fct_memory = {}  # fgraph->dict(node->[outputs size])
@@ -930,7 +930,7 @@ class ProfileStats:
                 new allocation.
 
             """
-            from theano.gpuarray import GpuArrayType
+            from aesara.gpuarray import GpuArrayType
 
             # Initial Mem info values [CPU, GPU]
             node_memory_size = [0, 0]
@@ -1008,7 +1008,7 @@ class ProfileStats:
                         # return a partial view that is destroyed.  So
                         # the output could be different then the
                         # input.
-                        assert isinstance(ins, theano.Variable)
+                        assert isinstance(ins, aesara.Variable)
                         # we keep trac of view only again the origin
                         origin = view_of.get(ins, ins)
                         view_of[out] = origin
@@ -1025,7 +1025,7 @@ class ProfileStats:
                     running_max_memory_size[1], running_memory_size[1]
                 )
 
-                # Mimic the combination of Theano and Python gc
+                # Mimic the combination of Aesara and Python gc
                 for ins in set(node.inputs):
                     assert not (ins in view_of and viewed_by[ins])
                     # we trac the original var, so this shouldn't happen
@@ -1047,7 +1047,7 @@ class ProfileStats:
                             if (
                                 not viewed_by[origin]
                                 and origin not in fgraph.inputs
-                                and not isinstance(origin, theano.Constant)
+                                and not isinstance(origin, aesara.Constant)
                             ):
                                 running_memory_size[cg] -= var_mem[origin]
                     else:
@@ -1157,7 +1157,7 @@ class ProfileStats:
                             # return a partial view that is destroyed. So
                             # the output could be different then the
                             # input.
-                            assert isinstance(ins, theano.Variable)
+                            assert isinstance(ins, aesara.Variable)
                             # We keep track of view only again the original
                             origin = view_of.get(ins, ins)
                             view_of[out] = origin
@@ -1171,7 +1171,7 @@ class ProfileStats:
                     mem_count += mem_created
                     max_mem_count = max(max_mem_count, mem_count)
 
-                    # Mimic the combination of Theano and Python gc.
+                    # Mimic the combination of Aesara and Python gc.
                     for ins in node.inputs:
                         assert not (ins in view_of and viewed_by[ins])
                         # We track of the original var, so this shouldn't
@@ -1191,7 +1191,7 @@ class ProfileStats:
                                 if (
                                     not viewed_by[origin]
                                     and origin not in fgraph.inputs
-                                    and not isinstance(origin, theano.Constant)
+                                    and not isinstance(origin, aesara.Constant)
                                 ):
                                     mem_freed += var_mem[origin]
                         else:
@@ -1386,7 +1386,7 @@ class ProfileStats:
         print("    Max peak memory with current setting", file=file)
         print_stats(stats[0], stats[2])
         print(
-            "    Max peak memory with current setting and Theano flag optimizer_excluding=inplace",
+            "    Max peak memory with current setting and Aesara flag optimizer_excluding=inplace",
             file=file,
         )
         print_stats(stats[1], stats[3])
@@ -1503,7 +1503,7 @@ class ProfileStats:
             )
         if config.profiling.debugprint:
             fcts = {n.fgraph for n in self.apply_time.keys()}
-            theano.printing.debugprint(fcts, print_type=True)
+            aesara.printing.debugprint(fcts, print_type=True)
         if self.variable_shape or self.variable_strides:
             self.summary_memory(file, n_apply_to_print)
         if self.optimizer_profile:
@@ -1521,11 +1521,11 @@ class ProfileStats:
             file=file,
         )
 
-        import theano
+        import aesara
 
-        RandomFunction = theano.tensor.raw_random.RandomFunction
-        scal = theano.scalar
-        T = theano.tensor
+        RandomFunction = aesara.tensor.raw_random.RandomFunction
+        scal = aesara.scalar
+        T = aesara.tensor
         scalar_op_amdlibm_no_speed_up = [
             scal.LT,
             scal.GT,
@@ -1580,7 +1580,7 @@ class ProfileStats:
         ]
 
         def get_scalar_ops(s):
-            if isinstance(s, theano.scalar.Composite):
+            if isinstance(s, aesara.scalar.Composite):
                 l = []
                 for node in s.fgraph.toposort():
                     l += get_scalar_ops(node.op)
@@ -1589,7 +1589,7 @@ class ProfileStats:
                 return [s]
 
         def list_scalar_op(op):
-            if isinstance(op.scalar_op, theano.scalar.Composite):
+            if isinstance(op.scalar_op, aesara.scalar.Composite):
                 return get_scalar_ops(op.scalar_op)
             else:
                 return [op.scalar_op]
@@ -1621,7 +1621,7 @@ class ProfileStats:
         printed_tip = False
         # tip 1
         if config.floatX == "float64":
-            print("  - Try the Theano flag floatX=float32", file=file)
+            print("  - Try the Aesara flag floatX=float32", file=file)
             printed_tip = True
 
         # tip 2
@@ -1629,7 +1629,7 @@ class ProfileStats:
             [amdlibm_speed_up(a.op) for a in self.apply_time]
         ):
             print(
-                "  - Try installing amdlibm and set the Theano flag "
+                "  - Try installing amdlibm and set the Aesara flag "
                 "lib.amdlibm=True. This speeds up only some Elemwise "
                 "operation.",
                 file=file,
@@ -1645,8 +1645,8 @@ class ProfileStats:
         ):
             print(
                 "  - With the default gcc libm, exp in float32 is slower "
-                "than in float64! Try Theano flag floatX=float64, or "
-                "install amdlibm and set the theano flags lib.amdlibm=True",
+                "than in float64! Try Aesara flag floatX=float64, or "
+                "install amdlibm and set the aesara flags lib.amdlibm=True",
                 file=file,
             )
             printed_tip = True
@@ -1673,7 +1673,7 @@ class ProfileStats:
                 printed_tip = True
                 print(
                     "  - Replace the default random number generator by "
-                    "'from theano.sandbox.rng_mrg import MRG_RandomStreams "
+                    "'from aesara.sandbox.rng_mrg import MRG_RandomStreams "
                     "as RandomStreams', as this is is faster. It is still "
                     "experimental, but seems to work correctly.",
                     file=file,
@@ -1699,21 +1699,21 @@ class ProfileStats:
                 printed_tip = True
 
         # tip 7
-        import theano.gpuarray
-        import theano.tensor.signal.pool as pool
-        from theano.tensor.nnet import LogSoftmax
+        import aesara.gpuarray
+        import aesara.tensor.signal.pool as pool
+        from aesara.tensor.nnet import LogSoftmax
 
         for a in self.apply_time:
             node = a
             if isinstance(node.op, pool.Pool):
-                if not theano.gpuarray.dnn.dnn_present():
+                if not aesara.gpuarray.dnn.dnn_present():
                     print(
                         "Install CuDNN to do pooling faster"
                         "this allows the operation to run on GPU"
                     )
                     printed_tip = True
             if isinstance(node.op, LogSoftmax):
-                if not theano.gpuarray.dnn.dnn_present():
+                if not aesara.gpuarray.dnn.dnn_present():
                     print(
                         "Install CuDNN to do LogSoftmax faster"
                         "this allows the operation to run on GPU"

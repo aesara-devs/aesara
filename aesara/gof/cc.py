@@ -10,14 +10,14 @@ from io import StringIO
 
 import numpy as np
 
-import theano
-from theano import config
-from theano.gof import cmodule, graph, link, utils
-from theano.gof.callcache import CallCache
-from theano.gof.compilelock import get_lock, release_lock
+import aesara
+from aesara import config
+from aesara.gof import cmodule, graph, link, utils
+from aesara.gof.callcache import CallCache
+from aesara.gof.compilelock import get_lock, release_lock
 
 
-_logger = logging.getLogger("theano.gof.cc")
+_logger = logging.getLogger("aesara.gof.cc")
 
 
 run_cthunk = None  # Will be imported only when needed.
@@ -653,9 +653,9 @@ class CLinker(link.Linker):
             for r in self.variables
             if isinstance(r, graph.Constant) and r not in self.inputs
         )
-        # C type constants (theano.scalar.Scalar). They don't request an object
+        # C type constants (aesara.scalar.Scalar). They don't request an object
         self.consts = []
-        # Move c type from orphans (theano.scalar.Scalar) to self.consts
+        # Move c type from orphans (aesara.scalar.Scalar) to self.consts
         for variable in self.orphans:
             if isinstance(variable, graph.Constant):
                 try:
@@ -1303,7 +1303,7 @@ class CLinker(link.Linker):
 
         The outer tuple has a brief header, containing the compilation options
         passed to the compiler, the libraries to link against, a sha256 hash
-        of theano.config (for all config options where "in_c_key" is True).
+        of aesara.config (for all config options where "in_c_key" is True).
         It is followed by elements for every node in the topological ordering
         of `self.fgraph`.
 
@@ -1471,7 +1471,7 @@ class CLinker(link.Linker):
         # NOTE: config md5 is not using md5 hash, but sha256 instead. Function
         # string instances of md5 will be updated at a later release.
         if insert_config_hash:
-            sig.append("md5:" + theano.configparser.get_config_hash())
+            sig.append("md5:" + aesara.configparser.get_config_hash())
         else:
             sig.append("md5: <omitted>")
 
@@ -1488,14 +1488,14 @@ class CLinker(link.Linker):
             if isinstance(i, graph.Constant):  # orphans
                 if id(i) not in constant_ids:
                     isig = (i.signature(), topological_pos, i_idx)
-                    # If the Theano constant provides a strong hash
+                    # If the Aesara constant provides a strong hash
                     # (no collision for transpose, 2, 1, 0, -1, -2,
                     # 2 element swapped...) we put this hash in the signature
                     # instead of the value. This makes the key file much
                     # smaller for big constant arrays. Before this, we saw key
                     # files up to 80M.
-                    if hasattr(isig[0], "theano_hash"):
-                        isig = (isig[0].theano_hash(), topological_pos, i_idx)
+                    if hasattr(isig[0], "aesara_hash"):
+                        isig = (isig[0].aesara_hash(), topological_pos, i_idx)
                     try:
                         hash(isig)
                     except Exception:
@@ -1795,8 +1795,8 @@ class _CThunk:
     def __init__(self, cthunk, init_tasks, tasks, error_storage, module):
         global run_cthunk
         if run_cthunk is None:
-            # Lazy import to avoid compilation when importing theano.
-            from theano.gof.cutils import run_cthunk  # noqa
+            # Lazy import to avoid compilation when importing aesara.
+            from aesara.gof.cutils import run_cthunk  # noqa
         self.cthunk = cthunk
         self.init_tasks = init_tasks
         self.tasks = tasks
@@ -1862,7 +1862,7 @@ class OpWiseCLinker(link.LocalLinker):
 
     Notes
     -----
-    This is in a sense the 'default' linker for Theano. The
+    This is in a sense the 'default' linker for Aesara. The
     overhead of using the OpWiseCLinker as compared with the CLinker
     is only noticeable for graphs of very small tensors (such as 20
     elements or less).

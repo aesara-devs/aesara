@@ -18,29 +18,29 @@ import warnings
 
 import numpy as np
 
-import theano
-from theano import scalar
-from theano.compile import optdb
-from theano.gof.graph import Apply
-from theano.gof.op import Op
-from theano.gof.opt import copy_stack_trace, local_optimizer, optimizer
-from theano.gradient import DisconnectedType, grad_not_implemented
-from theano.scalar import UnaryScalarOp
+import aesara
+from aesara import scalar
+from aesara.compile import optdb
+from aesara.gof.graph import Apply
+from aesara.gof.op import Op
+from aesara.gof.opt import copy_stack_trace, local_optimizer, optimizer
+from aesara.gradient import DisconnectedType, grad_not_implemented
+from aesara.scalar import UnaryScalarOp
 
-# Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
-from theano.tensor import basic as tt
-from theano.tensor import extra_ops, opt, subtensor
-from theano.tensor.basic import MaxAndArgmax, as_tensor_variable, log
-from theano.tensor.elemwise import Elemwise
-from theano.tensor.nnet.blocksparse import sparse_block_dot
-from theano.tensor.nnet.sigm import sigmoid, softplus
-from theano.tensor.opt import (
+# Work-around for Python 3.6 issue that prevents `import aesara.tensor as tt`
+from aesara.tensor import basic as tt
+from aesara.tensor import extra_ops, opt, subtensor
+from aesara.tensor.basic import MaxAndArgmax, as_tensor_variable, log
+from aesara.tensor.elemwise import Elemwise
+from aesara.tensor.nnet.blocksparse import sparse_block_dot
+from aesara.tensor.nnet.sigm import sigmoid, softplus
+from aesara.tensor.opt import (
     register_canonicalize,
     register_specialize,
     register_stabilize,
 )
-from theano.tensor.subtensor import AdvancedSubtensor
-from theano.tensor.type import values_eq_approx_remove_inf, values_eq_approx_remove_nan
+from aesara.tensor.subtensor import AdvancedSubtensor
+from aesara.tensor.type import values_eq_approx_remove_inf, values_eq_approx_remove_nan
 
 
 class SoftmaxWithBias(Op):
@@ -236,7 +236,7 @@ class SoftmaxWithBias(Op):
 
         # Get the vectorized version of exp if it exist
         try:
-            vec_exp = theano.scalar.exp.c_code_contiguous_raw(
+            vec_exp = aesara.scalar.exp.c_code_contiguous_raw(
                 dtype, "Nx[1]", "sm_i", "sm_i"
             )
             inside_row_loop_contig = (
@@ -275,7 +275,7 @@ class SoftmaxWithBias(Op):
             """
                 % locals()
             )
-        except theano.gof.utils.MethodNotDefined:
+        except aesara.gof.utils.MethodNotDefined:
             pass
         end_row_loop = """
         }
@@ -560,7 +560,7 @@ class Softmax(Op):
         """
         # Get the vectorized version of exp if it exist
         try:
-            vec_exp = theano.scalar.exp.c_code_contiguous_raw(
+            vec_exp = aesara.scalar.exp.c_code_contiguous_raw(
                 dtype, "Nx[1]", "sm_i", "sm_i"
             )
             inside_row_loop_contig = (
@@ -596,7 +596,7 @@ class Softmax(Op):
             """
                 % locals()
             )
-        except theano.gof.utils.MethodNotDefined:
+        except aesara.gof.utils.MethodNotDefined:
             pass
 
         end_row_loop = """
@@ -1659,14 +1659,14 @@ def local_argmax_pushdown(node):
             softmax_with_bias,
         )
     ):
-        if theano.config.warn.argmax_pushdown_bug:
-            logging.getLogger("theano.tensor.nnet.nnet").warn(
+        if aesara.config.warn.argmax_pushdown_bug:
+            logging.getLogger("aesara.tensor.nnet.nnet").warn(
                 "WARNING: there "
-                "was a bug in Theano fixed on May 27th, 2010 in this case."
+                "was a bug in Aesara fixed on May 27th, 2010 in this case."
                 " I.E. when we take the max of a softplus, softmax, exp, "
                 "log, tanh, sigmoid, softmax_with_bias op, we were doing "
                 "the max of the parent of the input. To remove this "
-                "warning set the Theano flags 'warn.argmax_pushdown_bug' "
+                "warning set the Aesara flags 'warn.argmax_pushdown_bug' "
                 "to False"
             )
 
@@ -2137,7 +2137,7 @@ def sigmoid_binary_crossentropy(output, target):
 
     inp = [output, target]
     outp = softplus(-abs(output)) + output * ((output > 0) - target)
-    return theano.OpFromGraph(
+    return aesara.OpFromGraph(
         inp,
         [outp],
         grad_overrides=grad,
@@ -2439,9 +2439,9 @@ def h_softmax(
     The following example builds a simple hierarchical softmax layer.
 
     >>> import numpy as np
-    >>> import theano
-    >>> import theano.tensor as tt
-    >>> from theano.tensor.nnet import h_softmax
+    >>> import aesara
+    >>> import aesara.tensor as tt
+    >>> from aesara.tensor.nnet import h_softmax
     >>>
     >>> # Parameters
     >>> batch_size = 32
@@ -2452,16 +2452,16 @@ def h_softmax(
     >>> output_size = n_outputs_per_class * n_outputs_per_class
     >>>
     >>> # First level of h_softmax
-    >>> floatX = theano.config.floatX
-    >>> W1 = theano.shared(
+    >>> floatX = aesara.config.floatX
+    >>> W1 = aesara.shared(
     ...     np.random.normal(0, 0.001, (dim_x, n_classes)).astype(floatX))
-    >>> b1 = theano.shared(np.zeros((n_classes,), floatX))
+    >>> b1 = aesara.shared(np.zeros((n_classes,), floatX))
     >>>
     >>> # Second level of h_softmax
     >>> W2 = np.random.normal(0, 0.001,
     ...     size=(n_classes, dim_x, n_outputs_per_class)).astype(floatX)
-    >>> W2 = theano.shared(W2)
-    >>> b2 = theano.shared(np.zeros((n_classes, n_outputs_per_class), floatX))
+    >>> W2 = aesara.shared(W2)
+    >>> b2 = aesara.shared(np.zeros((n_classes, n_outputs_per_class), floatX))
     >>>
     >>> # We can now build the graph to compute a loss function, typically the
     >>> # negative log-likelihood:
@@ -2611,12 +2611,12 @@ class ScalarSoftsign(UnaryScalarOp):
     def c_code(self, node, name, inp, out, sub):
         (x,) = inp
         (z,) = out
-        if node.inputs[0].type in [theano.scalar.float32, theano.scalar.float64]:
+        if node.inputs[0].type in [aesara.scalar.float32, aesara.scalar.float64]:
             return "%(z)s = %(x)s / (1.0+fabs(%(x)s));" % locals()
         raise NotImplementedError("only floating point x is implemented")
 
 
-scalar_softsign = ScalarSoftsign(theano.scalar.upgrade_to_float, name="scalar_softsign")
+scalar_softsign = ScalarSoftsign(aesara.scalar.upgrade_to_float, name="scalar_softsign")
 softsign = Elemwise(scalar_softsign, name="softsign")
 
 
@@ -2643,13 +2643,13 @@ def confusion_matrix(actual, pred):
 
     Examples
     --------
-    >>> import theano
-    >>> import theano.tensor as tt
-    >>> from theano.tensor.nnet import confusion_matrix
+    >>> import aesara
+    >>> import aesara.tensor as tt
+    >>> from aesara.tensor.nnet import confusion_matrix
 
     >>> x = tt.vector()
     >>> y = tt.vector()
-    >>> f = theano.function([x, y], confusion_matrix(x, y))
+    >>> f = aesara.function([x, y], confusion_matrix(x, y))
     >>> y_true = [2, 0, 2, 2, 0, 1]
     >>> y_pred = [0, 0, 2, 2, 0, 2]
     >>> print(f(y_true, y_pred))

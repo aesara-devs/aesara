@@ -6,13 +6,13 @@
 
 .. testsetup:: *
 
-   from theano.gof.utils import *
+   from aesara.gof.utils import *
 
 ---------
 Reference
 ---------
 
-.. automodule:: theano.gof.utils
+.. automodule:: aesara.gof.utils
    :platform: Unix, Windows
    :synopsis: Utilities functions operating on the graph
    :members:

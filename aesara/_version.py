@@ -42,7 +42,7 @@ def get_config():
     cfg.style = "pep440"
     cfg.tag_prefix = "rel-"
     cfg.parentdir_prefix = "None"
-    cfg.versionfile_source = "theano/_version.py"
+    cfg.versionfile_source = "aesara/_version.py"
     cfg.verbose = False
     return cfg
 

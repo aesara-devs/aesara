@@ -1,11 +1,11 @@
-from theano.compile.builders import *
-from theano.compile.debugmode import DebugMode
-from theano.compile.function import function, function_dump
-from theano.compile.function_module import *
-from theano.compile.io import *
-from theano.compile.mode import *
-from theano.compile.monitormode import MonitorMode
-from theano.compile.ops import (
+from aesara.compile.builders import *
+from aesara.compile.debugmode import DebugMode
+from aesara.compile.function import function, function_dump
+from aesara.compile.function_module import *
+from aesara.compile.io import *
+from aesara.compile.mode import *
+from aesara.compile.monitormode import MonitorMode
+from aesara.compile.ops import (
     DeepCopyOp,
     FromFunctionOp,
     Rebroadcast,
@@ -25,6 +25,6 @@ from theano.compile.ops import (
     specify_shape,
     view_op,
 )
-from theano.compile.pfunc import Param, pfunc, rebuild_collect_shared
-from theano.compile.profiling import ProfileStats, ScanProfileStats
-from theano.compile.sharedvalue import SharedVariable, shared, shared_constructor
+from aesara.compile.pfunc import Param, pfunc, rebuild_collect_shared
+from aesara.compile.profiling import ProfileStats, ScanProfileStats
+from aesara.compile.sharedvalue import SharedVariable, shared, shared_constructor

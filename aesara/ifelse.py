@@ -1,5 +1,5 @@
 """
-IfElse introduces lazy evaluation in Theano (coupled with the CVM/VM
+IfElse introduces lazy evaluation in Aesara (coupled with the CVM/VM
 linkers). It resembles the if clause of any programming language, that
 has a `then` and `else` branch, and executes either one or the other
 according to the condition provided.
@@ -16,12 +16,12 @@ from copy import deepcopy
 
 import numpy as np
 
-import theano.tensor
-from theano import gof
-from theano.compile import optdb
-from theano.gof import Apply, Op
-from theano.scan_module.scan_utils import clone
-from theano.tensor import TensorType, opt
+import aesara.tensor
+from aesara import gof
+from aesara.compile import optdb
+from aesara.gof import Apply, Op
+from aesara.scan_module.scan_utils import clone
+from aesara.tensor import TensorType, opt
 
 
 __docformat__ = "restructedtext en"
@@ -29,7 +29,7 @@ __authors__ = "Razvan Pascanu " "James Bergstra " "Dumitru Erhan " "David Warde-
 __copyright__ = "(c) 2010, Universite de Montreal"
 __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
-_logger = logging.getLogger("theano.ifelse")
+_logger = logging.getLogger("aesara.ifelse")
 
 
 class IfElse(Op):
@@ -163,7 +163,7 @@ class IfElse(Op):
             2 * self.n_outs,
             len(args),
         )
-        c = theano.tensor.as_tensor_variable(c)
+        c = aesara.tensor.as_tensor_variable(c)
         if not self.gpu:
             # When gpu is true, we are given only gpuarrays, and we want
             # to keep them as gpuarrays
@@ -171,10 +171,10 @@ class IfElse(Op):
             for x in args:
                 if hasattr(x, "_as_TensorVariable"):
                     nw_args.append(x._as_TensorVariable())
-                elif isinstance(x, theano.Variable):
+                elif isinstance(x, aesara.Variable):
                     nw_args.append(x)
                 else:
-                    nw_args.append(theano.tensor.as_tensor_variable(x))
+                    nw_args.append(aesara.tensor.as_tensor_variable(x))
             args = nw_args
         ts = args[: self.n_outs]
         fs = args[self.n_outs :]
@@ -224,14 +224,14 @@ class IfElse(Op):
             [ins[0]]
             + grads
             + [
-                theano.tensor.zeros_like(t, dtype=grads[i].dtype)
+                aesara.tensor.zeros_like(t, dtype=grads[i].dtype)
                 for i, t in enumerate(ts)
             ]
         )
         if_false = (
             [ins[0]]
             + [
-                theano.tensor.zeros_like(f, dtype=grads[i].dtype)
+                aesara.tensor.zeros_like(f, dtype=grads[i].dtype)
                 for i, f in enumerate(fs)
             ]
             + grads
@@ -241,7 +241,7 @@ class IfElse(Op):
         # condition does affect the elements of the output so it is connected.
         # For the sake of making the gradient convenient we assume that
         # condition + epsilon always triggers the same branch as condition
-        condition_grad = condition.zeros_like().astype(theano.config.floatX)
+        condition_grad = condition.zeros_like().astype(aesara.config.floatX)
         return (
             [condition_grad]
             + if_true_op(*if_true, **dict(return_list=True))
@@ -318,24 +318,24 @@ def ifelse(condition, then_branch, else_branch, name=None):
         If it evaluates to 0 it corresponds to False, anything else stands
         for True.
 
-    :type then_branch: list of theano expressions/ theano expression
+    :type then_branch: list of aesara expressions/ aesara expression
     :param then_branch:
-        A single theano variable or a list of theano variables that the
+        A single aesara variable or a list of aesara variables that the
         function should return as the output if ``condition`` evaluates to
         true. The number of variables should match those in the
         ``else_branch``, and there should be a one to one correspondance
         (type wise) with the tensors provided in the else branch
 
-    :type else_branch: list of theano expressions/ theano expressions
+    :type else_branch: list of aesara expressions/ aesara expressions
     :param else_branch:
-        A single theano variable or a list of theano variables that the
+        A single aesara variable or a list of aesara variables that the
         function should return as the output if ``condition`` evaluates to
         false. The number of variables should match those in the then branch,
         and there should be a one to one correspondace (type wise) with the
         tensors provided in the then branch.
 
     :return:
-        A list of theano variables or a single variable (depending on the
+        A list of aesara variables or a single variable (depending on the
         nature of the ``then_branch`` and ``else_branch``). More exactly if
         ``then_branch`` and ``else_branch`` is a tensor, then
         the return variable will be just a single variable, otherwise a
@@ -360,10 +360,10 @@ def ifelse(condition, then_branch, else_branch, name=None):
     new_then_branch = []
     new_else_branch = []
     for then_branch_elem, else_branch_elem in zip(then_branch, else_branch):
-        if not isinstance(then_branch_elem, theano.Variable):
-            then_branch_elem = theano.tensor.as_tensor_variable(then_branch_elem)
-        if not isinstance(else_branch_elem, theano.Variable):
-            else_branch_elem = theano.tensor.as_tensor_variable(else_branch_elem)
+        if not isinstance(then_branch_elem, aesara.Variable):
+            then_branch_elem = aesara.tensor.as_tensor_variable(then_branch_elem)
+        if not isinstance(else_branch_elem, aesara.Variable):
+            else_branch_elem = aesara.tensor.as_tensor_variable(else_branch_elem)
 
         if then_branch_elem.type != else_branch_elem.type:
             # If one of them is a TensorType, and the other one can be
@@ -482,17 +482,17 @@ where, each of the optimization do the following things:
 #                'ifelse')
 
 acceptable_ops = (
-    theano.tensor.basic.Dot,
-    theano.tensor.basic.Reshape,
-    theano.tensor.basic.Shape,
-    theano.tensor.SpecifyShape,
-    theano.tensor.basic.MaxAndArgmax,
-    theano.tensor.Subtensor,
-    theano.tensor.IncSubtensor,
-    theano.tensor.basic.Rebroadcast,
-    theano.tensor.basic.Alloc,
-    theano.tensor.elemwise.Elemwise,
-    theano.tensor.elemwise.DimShuffle,
+    aesara.tensor.basic.Dot,
+    aesara.tensor.basic.Reshape,
+    aesara.tensor.basic.Shape,
+    aesara.tensor.SpecifyShape,
+    aesara.tensor.basic.MaxAndArgmax,
+    aesara.tensor.Subtensor,
+    aesara.tensor.IncSubtensor,
+    aesara.tensor.basic.Rebroadcast,
+    aesara.tensor.basic.Alloc,
+    aesara.tensor.elemwise.Elemwise,
+    aesara.tensor.elemwise.DimShuffle,
 )
 
 

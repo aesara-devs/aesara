@@ -1,15 +1,15 @@
 import numpy as np
 
-import theano
-import theano.tensor as tensor
+import aesara
+import aesara.tensor as tensor
 from tests import unittest_tools as utt
-from theano import config, function, scalar
-from theano.gof import FunctionGraph
-from theano.gof.opt import out2in
+from aesara import config, function, scalar
+from aesara.gof import FunctionGraph
+from aesara.gof.opt import out2in
 
-# from theano.tensor import matrix,max_and_argmax,MaaxAndArgmax,neg
-from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
-from theano.tensor.opt_uncanonicalize import (
+# from aesara.tensor import matrix,max_and_argmax,MaaxAndArgmax,neg
+from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
+from aesara.tensor.opt_uncanonicalize import (
     local_alloc_dimshuffle,
     local_dimshuffle_alloc,
     local_dimshuffle_subtensor,
@@ -21,7 +21,7 @@ class TestMaxAndArgmax:
     def test_optimization(self):
         # If we use only the max output, we should replace this op with
         # a faster one.
-        mode = theano.compile.mode.get_default_mode().including(
+        mode = aesara.compile.mode.get_default_mode().including(
             "canonicalize", "fast_run"
         )
 
@@ -42,7 +42,7 @@ class TestMaxAndArgmax:
 class TestMinMax:
     def setup_method(self):
         utt.seed_rng()
-        self.mode = theano.compile.mode.get_default_mode().including(
+        self.mode = aesara.compile.mode.get_default_mode().including(
             "canonicalize", "fast_run"
         )
 
@@ -158,7 +158,7 @@ def test_local_dimshuffle_alloc():
     g = FunctionGraph([x], [out])
     reshape_dimshuffle(g)
 
-    l = theano.gof.PerformLinker()
+    l = aesara.gof.PerformLinker()
     l.accept(g)
     f = l.make_function()
 
@@ -199,13 +199,13 @@ def test_local_dimshuffle_subtensor():
     x = tensor.tensor(broadcastable=(False, True, False, True), dtype="float64")
     out = x[i].dimshuffle(1)
 
-    f = theano.function([x, i], out)
+    f = aesara.function([x, i], out)
 
     topo = f.maker.fgraph.toposort()
     assert any([not isinstance(x, DimShuffle) for x in topo])
     assert f(np.random.rand(5, 1, 4, 1), 2).shape == (4,)
 
-    # Test a corner case that had Theano return a bug.
+    # Test a corner case that had Aesara return a bug.
     x = tensor.dtensor4("x")
     x = tensor.patternbroadcast(x, (False, True, False, False))
 

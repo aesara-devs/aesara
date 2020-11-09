@@ -21,9 +21,9 @@ from tests.tensor.utils import (
     rand_ranged,
     randint_ranged,
 )
-from theano import config, tensor
-from theano.compile.mode import get_default_mode
-from theano.tensor import inplace
+from aesara import config, tensor
+from aesara.compile.mode import get_default_mode
+from aesara.tensor import inplace
 
 
 imported_scipy_special = False
