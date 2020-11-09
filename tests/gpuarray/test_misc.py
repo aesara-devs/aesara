@@ -3,9 +3,9 @@
 import numpy as np
 
 import aesara
-from tests.gpuarray.config import mode_with_gpu
 from aesara import tensor
 from aesara.compile.nanguardmode import NanGuardMode
+from tests.gpuarray.config import mode_with_gpu
 
 
 def test_nan_guard_mode():

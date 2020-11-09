@@ -4,8 +4,8 @@ Test for jacobian/hessian functions in Aesara
 import numpy as np
 
 import aesara
-from tests import unittest_tools as utt
 from aesara import tensor
+from tests import unittest_tools as utt
 
 
 utt.seed_rng()

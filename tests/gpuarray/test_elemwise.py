@@ -9,10 +9,6 @@ gpuarray = pygpu.ndgpuarray
 
 from copy import copy
 
-from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
-from tests.gpuarray.test_basic_ops import rand_gpuarray
-from tests.tensor import test_elemwise
-from tests.unittest_tools import assert_allclose
 from aesara import gof, scalar, tensor
 from aesara.compile import DebugMode, Mode
 from aesara.gpuarray.dnn import GpuDnnReduction
@@ -25,6 +21,10 @@ from aesara.gpuarray.elemwise import (
     GpuErfinv,
 )
 from aesara.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
+from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
+from tests.gpuarray.test_basic_ops import rand_gpuarray
+from tests.tensor import test_elemwise
+from tests.unittest_tools import assert_allclose
 
 
 # This is actually a test for GpuElemwise

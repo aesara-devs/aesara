@@ -4,8 +4,8 @@
 import numpy as np
 from numpy.random import randn
 
-import tests.unittest_tools as utt
 import aesara
+import tests.unittest_tools as utt
 from aesara import tensor
 from aesara.tensor.nnet.blocksparse import (
     SparseBlockGemv,

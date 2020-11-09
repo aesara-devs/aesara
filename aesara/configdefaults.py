@@ -15,13 +15,13 @@ import aesara
 from aesara.configparser import (
     THEANO_FLAGS_DICT,
     AddConfigVar,
+    AesaraConfigParser,
     BoolParam,
     ConfigParam,
     EnumStr,
     FloatParam,
     IntParam,
     StrParam,
-    AesaraConfigParser,
 )
 from aesara.misc.cpucount import cpuCount
 from aesara.misc.windows import call_subprocess_Popen, output_subprocess_Popen

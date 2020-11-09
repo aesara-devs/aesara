@@ -6,7 +6,6 @@ import argparse
 import sys
 
 import aesara
-from tests.gpuarray.check_dnn_conv import CheckDnn, TestDnnConv2D, TestDnnConv3D, cudnn
 from aesara.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
 from aesara.gpuarray.cudnn_defs import (
     DOUBLE,
@@ -18,6 +17,7 @@ from aesara.gpuarray.cudnn_defs import (
     TRUE_HALF_CONFIG,
 )
 from aesara.tensor.nnet.abstract_conv import get_conv_output_shape
+from tests.gpuarray.check_dnn_conv import CheckDnn, TestDnnConv2D, TestDnnConv3D, cudnn
 
 
 if __name__ != "__main__":

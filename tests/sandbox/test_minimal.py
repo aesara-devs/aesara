@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from tests import unittest_tools as utt
 from aesara import function, tensor
 from aesara.sandbox.minimal import minimal
+from tests import unittest_tools as utt
 
 
 @pytest.mark.skip(reason="Unfinished test")

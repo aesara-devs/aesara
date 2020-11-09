@@ -1,6 +1,10 @@
 import numpy as np
 
 import aesara
+from aesara import config
+from aesara.gpuarray.blas import GpuCorrMM, GpuCorrMM_gradInputs, GpuCorrMM_gradWeights
+from aesara.gpuarray.type import gpuarray_shared_constructor
+from aesara.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, ref_cast
 from tests.tensor.nnet.test_abstract_conv import (
@@ -9,10 +13,6 @@ from tests.tensor.nnet.test_abstract_conv import (
     TestGroupedConvNoOptim,
     TestUnsharedConv,
 )
-from aesara import config
-from aesara.gpuarray.blas import GpuCorrMM, GpuCorrMM_gradInputs, GpuCorrMM_gradWeights
-from aesara.gpuarray.type import gpuarray_shared_constructor
-from aesara.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
 
 
 class TestCorrMM:

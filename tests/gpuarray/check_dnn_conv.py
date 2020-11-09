@@ -20,9 +20,8 @@ from itertools import chain, product
 import numpy as np
 import pytest
 
-import tests.unittest_tools as utt
 import aesara
-from tests.gpuarray.config import mode_with_gpu, ref_cast
+import tests.unittest_tools as utt
 from aesara.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
 from aesara.gpuarray import cudnn_defs
 from aesara.gpuarray.dnn import GpuDnnConv, GpuDnnConvGradI, GpuDnnConvGradW
@@ -33,6 +32,7 @@ from aesara.gpuarray.dnn import version
 from aesara.tensor.nnet.abstract_conv import assert_conv_shape, get_conv_output_shape
 from aesara.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
 from aesara.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGradWeights
+from tests.gpuarray.config import mode_with_gpu, ref_cast
 
 
 def check_dtype_config_support(dtype, precision):

@@ -3,12 +3,12 @@ import pytest
 
 import aesara
 import aesara.tensor as tt
-from tests import unittest_tools as utt
 from aesara.tensor.nnet.ctc import (
     ConnectionistTemporalClassification,
     ctc,
     ctc_available,
 )
+from tests import unittest_tools as utt
 
 
 def setup_torch_case():

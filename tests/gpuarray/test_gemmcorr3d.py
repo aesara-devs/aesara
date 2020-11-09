@@ -1,9 +1,6 @@
 import numpy as np
 
 import aesara
-from tests import unittest_tools as utt
-from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, ref_cast
-from tests.tensor.nnet.test_abstract_conv import TestGroupedConv3dNoOptim
 from aesara import config
 from aesara.gpuarray.blas import (
     GpuCorr3dMM,
@@ -12,6 +9,9 @@ from aesara.gpuarray.blas import (
 )
 from aesara.gpuarray.type import gpuarray_shared_constructor
 from aesara.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGradWeights
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, ref_cast
+from tests.tensor.nnet.test_abstract_conv import TestGroupedConv3dNoOptim
 
 
 class TestCorr3dMM:

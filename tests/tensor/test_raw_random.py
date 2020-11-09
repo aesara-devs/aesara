@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 import aesara
-from tests import unittest_tools as utt
 from aesara import compile, config, tensor
 from aesara.tensor import dcol, dvector, ivector, raw_random
 from aesara.tensor.raw_random import (
@@ -20,6 +19,7 @@ from aesara.tensor.raw_random import (
     random_state_type,
     uniform,
 )
+from tests import unittest_tools as utt
 
 
 __docformat__ = "restructuredtext en"

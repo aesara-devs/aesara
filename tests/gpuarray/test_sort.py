@@ -1,6 +1,6 @@
+from aesara.gpuarray.sort import GpuTopKOp
 from tests.gpuarray.config import mode_with_gpu
 from tests.tensor.test_sort import TestTopK
-from aesara.gpuarray.sort import GpuTopKOp
 
 
 class TestGpuTopK(TestTopK):

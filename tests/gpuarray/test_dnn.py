@@ -10,21 +10,9 @@ from collections import OrderedDict
 from io import StringIO
 from itertools import chain, product
 
-import tests.unittest_tools as utt
 import aesara
 import aesara.tensor as tt
-from tests.gpuarray import test_nnet
-from tests.gpuarray.config import (
-    mode_with_gpu,
-    mode_without_gpu,
-    ref_cast,
-    test_ctx_name,
-)
-from tests.gpuarray.rnn_support import GRU, LSTM, Model, WrapperLayer
-from tests.tensor.nnet.test_abstract_conv import (
-    TestGroupedConv3dNoOptim,
-    TestGroupedConvNoOptim,
-)
+import tests.unittest_tools as utt
 from aesara.configdefaults import SUPPORTED_DNN_CONV_ALGO_FWD
 from aesara.gpuarray import dnn
 from aesara.gpuarray.basic_ops import GpuAllocEmpty
@@ -50,6 +38,18 @@ from aesara.tensor.signal.pool import (
     Pool,
     pool_2d,
     pool_3d,
+)
+from tests.gpuarray import test_nnet
+from tests.gpuarray.config import (
+    mode_with_gpu,
+    mode_without_gpu,
+    ref_cast,
+    test_ctx_name,
+)
+from tests.gpuarray.rnn_support import GRU, LSTM, Model, WrapperLayer
+from tests.tensor.nnet.test_abstract_conv import (
+    TestGroupedConv3dNoOptim,
+    TestGroupedConvNoOptim,
 )
 
 

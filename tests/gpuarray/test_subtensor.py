@@ -1,10 +1,6 @@
 import numpy as np
 
 import aesara
-from tests import unittest_tools as utt
-from tests.gpuarray.config import mode_with_gpu, test_ctx_name
-from tests.tensor.test_basic import TestAllocDiag
-from tests.tensor.test_subtensor import TestAdvancedSubtensor, TestSubtensor
 from aesara import tensor
 from aesara.compile import DeepCopyOp
 from aesara.gpuarray.basic_ops import GpuContiguous, GpuFromHost, HostFromGpu
@@ -21,6 +17,10 @@ from aesara.gpuarray.subtensor import (
     GpuSubtensor,
 )
 from aesara.gpuarray.type import gpuarray_shared_constructor
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, test_ctx_name
+from tests.tensor.test_basic import TestAllocDiag
+from tests.tensor.test_subtensor import TestAdvancedSubtensor, TestSubtensor
 
 
 class TestGPUSubtensor(TestSubtensor):

@@ -4,10 +4,6 @@ import pytest
 import aesara
 import aesara.gpuarray
 import aesara.tensor.slinalg as slinalg
-from tests import unittest_tools as utt
-from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
-from tests.tensor.test_basic import TestSpecifyShape
-from tests.test_ifelse import TestIfelse
 from aesara import tensor
 from aesara.breakpoint import PdbBreakpoint
 from aesara.gof.opt import check_stack_trace
@@ -33,6 +29,10 @@ from aesara.gpuarray.linalg import GpuCholesky, GpuCusolverSolve, cusolver_avail
 from aesara.gpuarray.subtensor import GpuSubtensor
 from aesara.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
 from aesara.tensor.nnet import abstract_conv
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
+from tests.tensor.test_basic import TestSpecifyShape
+from tests.test_ifelse import TestIfelse
 
 
 def _check_stack_trace(thing):

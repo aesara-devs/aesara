@@ -5,10 +5,9 @@ from copy import copy
 import numpy as np
 import pytest
 
-import tests.unittest_tools as utt
 import aesara
 import aesara.tensor as tt
-from tests import unittest_tools
+import tests.unittest_tools as utt
 from aesara import config, gof, scalar
 from aesara.compile.mode import Mode, get_default_mode
 from aesara.tensor import TensorType, as_tensor_variable
@@ -22,6 +21,7 @@ from aesara.tensor.elemwise import (
 )
 from aesara.tensor.nnet import sigmoid
 from aesara.tensor.type import values_eq_approx_remove_nan
+from tests import unittest_tools
 
 
 def FunctionGraph(i, o):

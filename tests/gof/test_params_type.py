@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 
 import aesara
-from tests import unittest_tools as utt
 from aesara import Generic, tensor
 from aesara.gof import Apply, COp, EnumList, Op, Params, ParamsType
 from aesara.scalar import Scalar
 from aesara.tensor import TensorType
+from tests import unittest_tools as utt
 
 
 tensor_type_0d = TensorType("float64", tuple())

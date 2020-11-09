@@ -3,17 +3,6 @@ import pytest
 
 import aesara
 import aesara.tensor as tt
-
-# Don't import test classes otherwise they get tested as part of the file
-from tests import unittest_tools as utt
-from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
-from tests.tensor.test_basic import (
-    TestAlloc,
-    TestComparison,
-    TestJoinAndSplit,
-    TestReshape,
-)
-from tests.tensor.utils import rand, safe_make_node
 from aesara.gpuarray.basic_ops import (
     GpuAlloc,
     GpuAllocEmpty,
@@ -35,6 +24,17 @@ from aesara.gpuarray.subtensor import GpuSubtensor
 from aesara.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
 from aesara.tensor import TensorType
 from aesara.tensor.basic import alloc
+
+# Don't import test classes otherwise they get tested as part of the file
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
+from tests.tensor.test_basic import (
+    TestAlloc,
+    TestComparison,
+    TestJoinAndSplit,
+    TestReshape,
+)
+from tests.tensor.utils import rand, safe_make_node
 
 
 pygpu = pytest.importorskip("pygpu")

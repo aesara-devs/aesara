@@ -4,10 +4,10 @@ import numpy as np
 import pytest
 
 import aesara
-from tests import unittest_tools as utt
 from aesara import change_flags, config, gof, gradient
 from aesara.gof.null_type import NullType
 from aesara.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
+from tests import unittest_tools as utt
 
 
 one = aesara.tensor.as_tensor_variable(1.0)

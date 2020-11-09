@@ -5,9 +5,6 @@ import numpy as np
 import pytest
 
 import aesara
-from tests import unittest_tools as utt
-from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
-from tests.gpuarray.test_basic_ops import rand
 from aesara import gradient, tensor
 from aesara.gpuarray.pool import (
     GpuAveragePoolGrad,
@@ -21,6 +18,9 @@ from aesara.tensor.signal.pool import (
     MaxPoolGrad,
     Pool,
 )
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
+from tests.gpuarray.test_basic_ops import rand
 
 
 class TestPool:

@@ -4,9 +4,9 @@ import pytest
 import aesara
 import aesara.gpuarray.fft
 import aesara.tensor as tt
+from aesara.gpuarray.fft import pycuda_available, pygpu_available, skcuda_available
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu
-from aesara.gpuarray.fft import pycuda_available, pygpu_available, skcuda_available
 
 
 # Skip tests if pygpu is not available.

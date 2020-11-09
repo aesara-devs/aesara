@@ -3,10 +3,6 @@ import itertools
 import numpy as np
 
 import aesara
-from tests import unittest_tools as utt
-from tests.gpuarray.config import mode_with_gpu, test_ctx_name
-from tests.gpuarray.test_basic_ops import makeTester, rand
-from tests.tensor.test_blas import BaseGemv, TestGer
 from aesara import config, tensor
 from aesara.gpuarray import gpuarray_shared_constructor
 from aesara.gpuarray.blas import (
@@ -22,6 +18,10 @@ from aesara.gpuarray.blas import (
     gpuger_no_inplace,
 )
 from aesara.tensor.blas import _dot22, batched_dot, gemm_inplace, gemv, gemv_inplace
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, test_ctx_name
+from tests.gpuarray.test_basic_ops import makeTester, rand
+from tests.tensor.test_blas import BaseGemv, TestGer
 
 
 TestGpuGemv = makeTester(

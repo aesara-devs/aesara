@@ -2,8 +2,8 @@ import numpy as np
 
 import aesara
 import aesara.tensor as tt
-from tests import unittest_tools as utt
 from aesara.breakpoint import PdbBreakpoint
+from tests import unittest_tools as utt
 
 
 class TestPdbBreakpoint(utt.InferShapeTester):

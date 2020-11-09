@@ -1,8 +1,8 @@
 from io import StringIO
 
-from tests.record import MismatchError, Record, RecordMode
 from aesara import function
 from aesara.tensor import iscalar
+from tests.record import MismatchError, Record, RecordMode
 
 
 def test_record_good():

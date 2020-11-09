@@ -3,8 +3,6 @@ import numpy.linalg
 import pytest
 
 import aesara
-from tests import unittest_tools as utt
-from tests.test_rop import break_op
 from aesara import config, function, tensor
 
 # The one in comment are not tested...
@@ -20,6 +18,8 @@ from aesara.sandbox.linalg.ops import (
 from aesara.tensor import DimShuffle
 from aesara.tensor.basic import _allclose
 from aesara.tensor.nlinalg import MatrixInverse
+from tests import unittest_tools as utt
+from tests.test_rop import break_op
 
 
 def test_rop_lop():

@@ -5,9 +5,9 @@ import pytest
 
 import aesara
 import aesara.tensor as tt
-from tests import unittest_tools as utt
 from aesara.tensor.basic import NotScalarConstantError, _allclose
 from aesara.tensor.nnet import conv, conv2d
+from tests import unittest_tools as utt
 
 
 @pytest.mark.skipif(

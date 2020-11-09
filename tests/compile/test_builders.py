@@ -5,13 +5,13 @@ import pytest
 
 import aesara
 import aesara.tensor as tt
-from tests import unittest_tools
 from aesara import config, shared
 from aesara.compile import function
 from aesara.compile.builders import OpFromGraph
 from aesara.gof.null_type import NullType
 from aesara.gradient import DisconnectedType
 from aesara.tensor.shared_randomstreams import RandomStreams
+from tests import unittest_tools
 
 
 class TestOpFromGraph(unittest_tools.InferShapeTester):

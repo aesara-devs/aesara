@@ -1,7 +1,9 @@
-
 import numpy as np
+
 import aesara
 import aesara.tensor as tt
+
+
 rng = np.random
 
 N = 400
@@ -13,13 +15,13 @@ training_steps = 10000
 x = tt.matrix("x")
 y = tt.vector("y")
 w = aesara.shared(rng.randn(feats), name="w")
-b = aesara.shared(0., name="b")
+b = aesara.shared(0.0, name="b")
 print("Initial model:")
 print(w.get_value(), b.get_value())
 
 # Construct Aesara expression graph
-p_1 = 1 / (1 + tt.exp(-tt.dot(x, w) - b))   # Probability that target = 1
-prediction = p_1 > 0.5                      # The prediction thresholded
+p_1 = 1 / (1 + tt.exp(-tt.dot(x, w) - b))  # Probability that target = 1
+prediction = p_1 > 0.5  # The prediction thresholded
 xent = -y * tt.log(p_1) - (1 - y) * tt.log(1 - p_1)  # Cross-entropy loss
 cost = xent.mean() + 0.01 * (w ** 2).sum()  # The cost to minimize
 gw, gb = tt.grad(cost, [w, b])
@@ -28,12 +30,11 @@ gw, gb = tt.grad(cost, [w, b])
 train = aesara.function(
     inputs=[x, y],
     outputs=[prediction, xent],
-    updates=[(w, w - 0.1 * gw),
-             (b, b - 0.1 * gb)],
-    name='train')
+    updates=[(w, w - 0.1 * gw), (b, b - 0.1 * gb)],
+    name="train",
+)
 
-predict = aesara.function(inputs=[x], outputs=prediction,
-                          name='predict')
+predict = aesara.function(inputs=[x], outputs=prediction, name="predict")
 
 # Train
 for i in range(training_steps):

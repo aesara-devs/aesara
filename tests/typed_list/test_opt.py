@@ -3,10 +3,10 @@ import numpy as np
 import aesara
 import aesara.tensor as tt
 import aesara.typed_list
-from tests.tensor.utils import rand_ranged
 from aesara import In
 from aesara.typed_list.basic import Append, Extend, Insert, Remove, Reverse
 from aesara.typed_list.type import TypedListType
+from tests.tensor.utils import rand_ranged
 
 
 class TestInplace:

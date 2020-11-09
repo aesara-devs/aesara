@@ -5,13 +5,6 @@ import pytest
 pygpu = pytest.importorskip("pygpu")
 gpuarray = pygpu.gpuarray
 
-from tests.gpuarray.config import mode_with_gpu, test_ctx_name
-from tests.tensor.nnet.test_abstract_conv import (
-    BaseTestConv2d,
-    BaseTestConv3d,
-    TestConv2dTranspose,
-    TestConvTypes,
-)
 from aesara.gpuarray.blas import (
     GpuCorr3dMM,
     GpuCorr3dMM_gradInputs,
@@ -27,6 +20,13 @@ from aesara.gpuarray.dnn import (
     dnn_available,
 )
 from aesara.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
+from tests.gpuarray.config import mode_with_gpu, test_ctx_name
+from tests.tensor.nnet.test_abstract_conv import (
+    BaseTestConv2d,
+    BaseTestConv3d,
+    TestConv2dTranspose,
+    TestConvTypes,
+)
 
 
 gpu_ftensor4 = GpuArrayType(dtype="float32", broadcastable=(False,) * 4)

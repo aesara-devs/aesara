@@ -18,12 +18,12 @@ import numpy as np
 import pytest
 
 import aesara
-from tests import unittest_tools as utt
 from aesara import function, tensor
 from aesara.gof import Apply, Op
 from aesara.gradient import grad_undefined
 from aesara.tensor.nnet import conv, conv2d
 from aesara.tensor.signal.pool import Pool
+from tests import unittest_tools as utt
 
 
 class BreakRop(Op):

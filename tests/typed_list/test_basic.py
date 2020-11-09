@@ -4,7 +4,6 @@ import pytest
 import aesara
 import aesara.tensor as tt
 import aesara.typed_list
-from tests import unittest_tools as utt
 from aesara import sparse
 from aesara.tensor.type_other import SliceType
 from aesara.typed_list.basic import (
@@ -20,6 +19,7 @@ from aesara.typed_list.basic import (
     make_list,
 )
 from aesara.typed_list.type import TypedListType
+from tests import unittest_tools as utt
 
 
 def rand_ranged_matrix(minimum, maximum, shape):

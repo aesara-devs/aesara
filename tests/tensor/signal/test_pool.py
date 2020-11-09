@@ -6,7 +6,6 @@ import pytest
 
 import aesara
 import aesara.tensor as tensor
-from tests import unittest_tools as utt
 from aesara import function
 from aesara.tensor.signal.pool import (
     AveragePoolGrad,
@@ -17,6 +16,7 @@ from aesara.tensor.signal.pool import (
     pool_2d,
     pool_3d,
 )
+from tests import unittest_tools as utt
 
 
 class TestDownsampleFactorMax(utt.InferShapeTester):

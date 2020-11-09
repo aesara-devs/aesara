@@ -5,8 +5,8 @@ import pytest
 
 import aesara
 import aesara.tensor as tt
-from tests import unittest_tools as utt
 from aesara.tensor.nnet import bn
+from tests import unittest_tools as utt
 
 
 def test_BNComposite():

@@ -4,10 +4,10 @@ from io import StringIO
 import numpy as np
 
 import aesara
-from tests import disturb_mem
-from tests.record import Record, RecordMode
 from aesara import config, shared
 from aesara.printing import var_descriptor
+from tests import disturb_mem
+from tests.record import Record, RecordMode
 
 
 def sharedX(x, name=None):

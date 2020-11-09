@@ -2,9 +2,9 @@ import numpy as np
 
 import aesara
 import aesara.tensor as tt
-from tests import unittest_tools as utt
 from aesara import config
 from aesara.scan_module.scan_op import Scan
+from tests import unittest_tools as utt
 
 
 mode = aesara.compile.mode.get_mode(config.mode)

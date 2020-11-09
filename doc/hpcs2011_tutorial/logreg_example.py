@@ -1,6 +1,8 @@
 import numpy as np
+
 import aesara
 import aesara.tensor as tt
+
 
 rng = np.random
 

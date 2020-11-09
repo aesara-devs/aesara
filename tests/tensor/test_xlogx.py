@@ -1,9 +1,9 @@
 import numpy.random
 
 import aesara
-from tests import unittest_tools as utt
 from aesara.tensor import as_tensor_variable
 from aesara.tensor.xlogx import xlogx, xlogy0
+from tests import unittest_tools as utt
 
 
 class TestXlogX:

@@ -7,10 +7,10 @@ import numpy as np
 import pytest
 
 import aesara
-from tests import unittest_tools as utt
 from aesara import change_flags, config, function, gof, shared, tensor
 from aesara.compile.mode import get_default_mode
 from aesara.tensor.type import TensorType
+from tests import unittest_tools as utt
 
 
 # Used to exclude random numbers too close to certain values

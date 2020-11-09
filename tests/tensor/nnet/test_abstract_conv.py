@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 import aesara
-from tests import unittest_tools as utt
 from aesara import change_flags, tensor
 from aesara.gof.opt import check_stack_trace
 from aesara.tensor.nnet import abstract_conv as conv
@@ -26,6 +25,7 @@ from aesara.tensor.nnet.abstract_conv import (
 )
 from aesara.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
 from aesara.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGradWeights
+from tests import unittest_tools as utt
 
 
 def conv2d_corr(

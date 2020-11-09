@@ -11,8 +11,8 @@ If you do want to rewrite these tests, bear in mind:
 import numpy as np
 import pytest
 
-import tests.unittest_tools as utt
 import aesara
+import tests.unittest_tools as utt
 from aesara import gof
 from aesara.gof import FunctionGraph
 from aesara.scalar.basic import (

@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 
-from tests import unittest_tools as utt
 from aesara import config, function, shared, tensor
 from aesara.tensor.shared_randomstreams import RandomStreams
+from tests import unittest_tools as utt
 
 
 class TestSharedRandomStreams:

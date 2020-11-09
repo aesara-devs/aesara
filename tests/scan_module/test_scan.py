@@ -12,10 +12,10 @@ import pytest
 import aesara
 import aesara.sandbox.rng_mrg
 import aesara.scalar.sharedvar
-from tests import unittest_tools as utt
 from aesara import tensor
 from aesara.compile.pfunc import rebuild_collect_shared
 from aesara.scan_module.scan_op import Scan
+from tests import unittest_tools as utt
 
 
 """

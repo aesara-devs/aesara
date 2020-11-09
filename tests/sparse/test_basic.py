@@ -11,8 +11,6 @@ import numpy as np
 from packaging import version
 
 import aesara
-from tests import unittest_tools as utt
-from tests.tensor.test_sharedvar import makeSharedTester
 from aesara import compile, config, gof, sparse, tensor
 from aesara.sparse import (
     CSC,
@@ -83,6 +81,8 @@ from aesara.sparse.basic import (
     _mtypes,
 )
 from aesara.sparse.opt import CSMGradC, StructuredDotCSC, UsmmCscDense
+from tests import unittest_tools as utt
+from tests.tensor.test_sharedvar import makeSharedTester
 
 
 # Probability distributions are currently tested in test_sp2.py

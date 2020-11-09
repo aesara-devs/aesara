@@ -5,7 +5,6 @@ import numpy.linalg
 import pytest
 
 import aesara
-from tests import unittest_tools as utt
 from aesara import config, function, grad, tensor
 from aesara.tensor.slinalg import (
     Cholesky,
@@ -17,6 +16,7 @@ from aesara.tensor.slinalg import (
     kron,
     solve,
 )
+from tests import unittest_tools as utt
 
 
 def check_lower_triangular(pd, ch_f):

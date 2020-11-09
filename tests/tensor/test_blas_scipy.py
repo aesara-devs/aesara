@@ -3,9 +3,9 @@ import pytest
 
 import aesara
 import aesara.tensor as tensor
+from aesara.tensor.blas_scipy import ScipyGer
 from tests.tensor.test_blas import TestBlasStrides, gemm_no_inplace
 from tests.unittest_tools import OptimizationTestMixin
-from aesara.tensor.blas_scipy import ScipyGer
 
 
 @pytest.mark.skipif(not aesara.tensor.blas_scipy.have_fblas, reason="fblas needed")

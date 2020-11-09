@@ -2,7 +2,6 @@ import numpy as np
 
 import aesara
 import aesara.tensor as tensor
-from tests import unittest_tools as utt
 from aesara import config, function, scalar
 from aesara.gof import FunctionGraph
 from aesara.gof.opt import out2in
@@ -15,6 +14,7 @@ from aesara.tensor.opt_uncanonicalize import (
     local_dimshuffle_subtensor,
     local_reshape_dimshuffle,
 )
+from tests import unittest_tools as utt
 
 
 class TestMaxAndArgmax:

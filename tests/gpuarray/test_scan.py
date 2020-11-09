@@ -2,10 +2,10 @@ import numpy as np
 
 import aesara
 import aesara.sandbox.rng_mrg
-from tests import unittest_tools as utt
-from tests.gpuarray.config import mode_with_gpu, test_ctx_name
 from aesara.gpuarray.basic_ops import GpuFromHost, HostFromGpu
 from aesara.gpuarray.elemwise import GpuElemwise
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, test_ctx_name
 
 
 class TestScan:

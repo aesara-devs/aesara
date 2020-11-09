@@ -8,10 +8,10 @@ import pickle
 import numpy as np
 
 import aesara
-from tests import unittest_tools as utt
 from aesara import function
 from aesara.compile import as_op
 from aesara.tensor import dmatrix, dvector
+from tests import unittest_tools as utt
 
 
 # This is for test_pickle, since the function still has to be

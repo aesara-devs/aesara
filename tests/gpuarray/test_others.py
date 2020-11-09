@@ -4,9 +4,6 @@ import pytest
 
 pygpu = pytest.importorskip("pygpu")
 
-from tests.gpuarray.config import mode_with_gpu, test_ctx_name
-from tests.misc.test_may_share_memory import may_share_memory_core
-from tests.tensor import test_opt
 from aesara.gpuarray.basic_ops import GpuFromHost, HostFromGpu
 from aesara.gpuarray.type import (
     GpuArraySharedVariable,
@@ -15,6 +12,9 @@ from aesara.gpuarray.type import (
     gpuarray_shared_constructor,
 )
 from aesara.misc.pkl_utils import dump, load
+from tests.gpuarray.config import mode_with_gpu, test_ctx_name
+from tests.misc.test_may_share_memory import may_share_memory_core
+from tests.tensor import test_opt
 
 
 class TestFusion(test_opt.TestFusion):

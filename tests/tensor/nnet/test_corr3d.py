@@ -3,9 +3,9 @@ import pytest
 
 import aesara
 import aesara.tensor as tt
+from aesara.tensor.nnet import conv, corr3d
 from tests import unittest_tools as utt
 from tests.tensor.nnet.test_abstract_conv import TestGroupedConv3dNoOptim
-from aesara.tensor.nnet import conv, corr3d
 
 
 @pytest.mark.skipif(

@@ -3,15 +3,15 @@ import functools
 import numpy as np
 
 import aesara
-from tests import unittest_tools as utt
-from tests.gpuarray.config import mode_with_gpu as mode
-from tests.sandbox.test_rng_mrg import java_samples, rng_mrg_overflow
-from tests.sandbox.test_rng_mrg import test_f16_nonzero as cpu_f16_nonzero
 from aesara import change_flags, tensor
 from aesara.gpuarray.rng_mrg import GPUA_mrg_uniform
 from aesara.gpuarray.type import gpuarray_shared_constructor
 from aesara.sandbox import rng_mrg
 from aesara.sandbox.rng_mrg import MRG_RandomStreams
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu as mode
+from tests.sandbox.test_rng_mrg import java_samples, rng_mrg_overflow
+from tests.sandbox.test_rng_mrg import test_f16_nonzero as cpu_f16_nonzero
 
 
 utt.seed_rng()

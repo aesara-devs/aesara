@@ -6,9 +6,9 @@ sp = pytest.importorskip("scipy", minversion="0.7.0")
 import numpy as np
 
 import aesara
+from aesara import config, sparse, tensor
 from tests import unittest_tools as utt
 from tests.sparse.test_basic import random_lil
-from aesara import config, sparse, tensor
 
 
 def test_local_csm_properties_csm():

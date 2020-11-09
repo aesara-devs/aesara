@@ -3,6 +3,7 @@ import pytest
 
 import aesara
 import aesara.tensor as tt
+from aesara.tensor.nnet import conv, corr
 from tests import unittest_tools as utt
 from tests.tensor.nnet.test_abstract_conv import (
     TestAsymmetricPadding,
@@ -10,7 +11,6 @@ from tests.tensor.nnet.test_abstract_conv import (
     TestGroupedConvNoOptim,
     TestUnsharedConv,
 )
-from aesara.tensor.nnet import conv, corr
 
 
 @pytest.mark.skipif(

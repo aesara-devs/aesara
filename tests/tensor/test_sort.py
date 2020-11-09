@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 import aesara
-from tests import unittest_tools as utt
 from aesara import tensor
 from aesara.tensor.sort import (
     ArgSortOp,
@@ -17,6 +16,7 @@ from aesara.tensor.sort import (
     topk,
     topk_and_argtopk,
 )
+from tests import unittest_tools as utt
 
 
 _all_dtypes = tensor.integer_dtypes + tensor.float_dtypes

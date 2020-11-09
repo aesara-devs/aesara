@@ -7,8 +7,8 @@ import pytest
 
 import aesara as th
 import aesara.d3viz as d3v
-from tests.d3viz import models
 from aesara.d3viz.formatting import pydot_imported, pydot_imported_msg
+from tests.d3viz import models
 
 
 if not pydot_imported:

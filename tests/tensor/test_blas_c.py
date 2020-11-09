@@ -5,12 +5,12 @@ import pytest
 
 import aesara
 import aesara.tensor as tensor
-from tests import unittest_tools
-from tests.tensor.test_blas import BaseGemv, TestBlasStrides
-from tests.unittest_tools import OptimizationTestMixin
 from aesara.tensor.blas import Ger
 from aesara.tensor.blas_c import CGemv, CGer, check_force_gemv_init
 from aesara.tensor.blas_scipy import ScipyGer
+from tests import unittest_tools
+from tests.tensor.test_blas import BaseGemv, TestBlasStrides
+from tests.unittest_tools import OptimizationTestMixin
 
 
 mode_blas_opt = aesara.compile.get_default_mode().including(

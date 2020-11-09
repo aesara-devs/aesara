@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 from numpy.testing import assert_equal, assert_string_equal
 
-import tests.unittest_tools as utt
 import aesara
 import aesara.tensor as tt
+import tests.unittest_tools as utt
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subtensor
 from aesara.tensor.type_other import MakeSlice

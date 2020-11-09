@@ -2,14 +2,6 @@ import numpy as np
 
 import aesara
 import aesara.tensor as tt
-from tests import unittest_tools as utt
-from tests.tensor.utils import (
-    _good_broadcast_unary_normal_no_complex,
-    check_floatX,
-    copymod,
-    makeBroadcastTester,
-    upcast_int8_nfunc,
-)
 from aesara import config
 from aesara.gof.opt import check_stack_trace
 from aesara.gof.toolbox import is_same_graph
@@ -29,6 +21,14 @@ from aesara.tensor.nnet.sigm import (
     perform_sigm_times_exp,
     register_local_1msigmoid,
     simplify_mul,
+)
+from tests import unittest_tools as utt
+from tests.tensor.utils import (
+    _good_broadcast_unary_normal_no_complex,
+    check_floatX,
+    copymod,
+    makeBroadcastTester,
+    upcast_int8_nfunc,
 )
 
 

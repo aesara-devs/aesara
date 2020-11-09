@@ -3,8 +3,8 @@ import pytest
 
 import aesara
 import aesara.tensor as tt
-from tests import unittest_tools as utt
 from aesara.tensor import fft
+from tests import unittest_tools as utt
 
 
 N = 16

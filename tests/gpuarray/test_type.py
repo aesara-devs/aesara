@@ -10,11 +10,11 @@ pygpu = pytest.importorskip("pygpu")
 
 from pickle import Unpickler
 
-from tests.gpuarray.config import test_ctx_name
-from tests.gpuarray.test_basic_ops import rand_gpuarray
 from aesara import config
 from aesara.compile import DeepCopyOp, Rebroadcast, ViewOp
 from aesara.gpuarray.type import GpuArrayType, gpuarray_shared_constructor
+from tests.gpuarray.config import test_ctx_name
+from tests.gpuarray.test_basic_ops import rand_gpuarray
 
 
 # Disabled for now

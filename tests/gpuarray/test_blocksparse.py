@@ -1,10 +1,8 @@
 import numpy as np
 import pytest
 
-import tests.unittest_tools as utt
 import aesara
-from tests.gpuarray.config import mode_with_gpu, test_ctx_name
-from tests.tensor.nnet.test_blocksparse import TestBlockSparseGemvAndOuter
+import tests.unittest_tools as utt
 from aesara import tensor
 from aesara.gpuarray.blocksparse import (
     GpuSparseBlockGemv,
@@ -13,6 +11,8 @@ from aesara.gpuarray.blocksparse import (
     gpu_sparse_block_outer,
 )
 from aesara.gpuarray.type import gpuarray_shared_constructor
+from tests.gpuarray.config import mode_with_gpu, test_ctx_name
+from tests.tensor.nnet.test_blocksparse import TestBlockSparseGemvAndOuter
 
 
 class TestBlockSparseGemvAndOuterGPUarray(TestBlockSparseGemvAndOuter):

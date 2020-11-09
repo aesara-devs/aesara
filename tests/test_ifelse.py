@@ -5,9 +5,9 @@ import pytest
 
 import aesara
 import aesara.ifelse
-from tests import unittest_tools as utt
 from aesara import tensor
 from aesara.ifelse import IfElse, ifelse
+from tests import unittest_tools as utt
 
 
 __docformat__ = "restructedtext en"

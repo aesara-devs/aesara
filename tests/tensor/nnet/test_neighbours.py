@@ -3,9 +3,9 @@ import pytest
 
 import aesara
 import aesara.tensor as tt
-from tests import unittest_tools
 from aesara import change_flags, function, shared
 from aesara.tensor.nnet.neighbours import Images2Neibs, images2neibs, neibs2images
+from tests import unittest_tools
 
 
 mode_without_gpu = aesara.compile.mode.get_default_mode().excluding("gpu")

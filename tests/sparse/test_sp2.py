@@ -6,8 +6,6 @@ sp = pytest.importorskip("scipy", minversion="0.7.0")
 import numpy as np
 
 import aesara
-from tests import unittest_tools as utt
-from tests.sparse.test_basic import as_sparse_format
 from aesara import config, sparse, tensor
 from aesara.sparse.sandbox.sp2 import (
     Binomial,
@@ -16,6 +14,8 @@ from aesara.sparse.sandbox.sp2 import (
     multinomial,
     poisson,
 )
+from tests import unittest_tools as utt
+from tests.sparse.test_basic import as_sparse_format
 
 
 class TestPoisson(utt.InferShapeTester):

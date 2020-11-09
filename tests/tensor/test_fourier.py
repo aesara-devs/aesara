@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 
 import aesara
-from tests import unittest_tools as utt
 from aesara import tensor
 from aesara.tensor.fourier import Fourier, fft
+from tests import unittest_tools as utt
 
 
 class TestFourier(utt.InferShapeTester):

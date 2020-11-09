@@ -3,13 +3,6 @@ import pytest
 
 import aesara
 import aesara.tensor as tt
-from tests import unittest_tools as utt
-from tests.tensor.utils import (
-    _good_broadcast_unary_normal_float_no_complex,
-    check_floatX,
-    makeBroadcastTester,
-    upcast_int8_nfunc,
-)
 from aesara import config, gof, printing
 from aesara.gof.opt import check_stack_trace
 from aesara.tensor import lvector, matrix, scalar, vector
@@ -47,6 +40,13 @@ from aesara.tensor.nnet import (
     softplus,
 )
 from aesara.tensor.nnet.nnet import LogSoftmax, softsign
+from tests import unittest_tools as utt
+from tests.tensor.utils import (
+    _good_broadcast_unary_normal_float_no_complex,
+    check_floatX,
+    makeBroadcastTester,
+    upcast_int8_nfunc,
+)
 
 
 class TestSigmoid:

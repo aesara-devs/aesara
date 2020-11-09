@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 import aesara
-from tests import unittest_tools as utt
 from aesara import change_flags, config, function
 from aesara import tensor as tt
 from aesara.tensor.extra_ops import (
@@ -36,6 +35,7 @@ from aesara.tensor.extra_ops import (
     to_one_hot,
     unravel_index,
 )
+from tests import unittest_tools as utt
 
 
 def test_cpu_contiguous():

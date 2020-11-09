@@ -5,7 +5,6 @@ from numpy import inf
 from numpy.testing import assert_array_almost_equal
 
 import aesara
-from tests import unittest_tools as utt
 from aesara import config, function, tensor
 from aesara.configparser import change_flags
 from aesara.tensor.basic import _allclose
@@ -33,6 +32,7 @@ from aesara.tensor.nlinalg import (
     tensorsolve,
     trace,
 )
+from tests import unittest_tools as utt
 
 
 def test_pseudoinverse_correctness():

@@ -5,9 +5,9 @@ import pytest
 
 import aesara
 import aesara.sparse
-from tests import unittest_tools as utt
 from aesara import tensor
 from aesara.misc.may_share_memory import may_share_memory
+from tests import unittest_tools as utt
 
 
 utt.seed_rng()

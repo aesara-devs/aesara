@@ -8,9 +8,9 @@ pytest.importorskip("scipy", minversion="0.7.0")
 import numpy as np
 from scipy.signal import convolve2d
 
-from tests import unittest_tools as utt
 from aesara import function, tensor
 from aesara.sparse.sandbox import sp
+from tests import unittest_tools as utt
 
 
 class TestSP:

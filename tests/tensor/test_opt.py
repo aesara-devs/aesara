@@ -10,7 +10,6 @@ import aesara
 import aesara.scalar as scal
 import aesara.tensor as tt
 import aesara.tensor.opt as opt
-from tests import unittest_tools as utt
 from aesara import change_flags, compile, config, function, gof, pprint, shared
 from aesara.compile import DeepCopyOp, deep_copy_op, get_mode
 from aesara.gof import FunctionGraph
@@ -69,6 +68,7 @@ from aesara.tensor.opt import (
     mul_canonizer,
 )
 from aesara.tensor.type import values_eq_approx_remove_nan
+from tests import unittest_tools as utt
 
 
 mode_opt = aesara.config.mode

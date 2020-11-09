@@ -3,10 +3,10 @@ import pytest
 
 import aesara
 import aesara.tensor as tt
-from tests import unittest_tools as utt
-from tests.tensor.utils import rand_ranged
 from aesara.typed_list.basic import TypedListVariable
 from aesara.typed_list.type import TypedListType
+from tests import unittest_tools as utt
+from tests.tensor.utils import rand_ranged
 
 
 class TestTypedListType:

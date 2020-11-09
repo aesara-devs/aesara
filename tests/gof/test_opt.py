@@ -9,11 +9,11 @@ from aesara.gof.opt import (
     OpSub,
     PatternSub,
     TopoOptimizer,
+    aesara,
     config,
     logging,
     pre_constant_merge,
     pre_greedy_local_optimizer,
-    aesara,
 )
 from aesara.gof.type import Type
 from aesara.tensor.opt import constant_folding

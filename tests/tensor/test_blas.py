@@ -21,8 +21,6 @@ from numpy.testing import assert_array_almost_equal
 import aesara
 import aesara.tensor as tt
 import aesara.tensor.blas_scipy
-from tests import unittest_tools
-from tests.tensor.utils import inplace_func
 from aesara import In, config, shared
 from aesara.tensor import as_tensor_variable, inplace
 from aesara.tensor.blas import (
@@ -52,6 +50,8 @@ from aesara.tensor.blas import (
 )
 from aesara.tensor.nnet import sigmoid
 from aesara.tensor.opt import in2out
+from tests import unittest_tools
+from tests.tensor.utils import inplace_func
 
 
 if config.mode == "FAST_COMPILE":

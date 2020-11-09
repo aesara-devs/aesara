@@ -3,9 +3,6 @@ import pytest
 from numpy.linalg.linalg import LinAlgError
 
 import aesara
-from tests import unittest_tools as utt
-from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
-from tests.gpuarray.test_basic_ops import rand
 from aesara import config
 from aesara.gpuarray import gpuarray_shared_constructor
 from aesara.gpuarray.linalg import (
@@ -35,6 +32,9 @@ from aesara.tensor.nlinalg import (
     qr,
 )
 from aesara.tensor.slinalg import Cholesky, cholesky, imported_scipy
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
+from tests.gpuarray.test_basic_ops import rand
 
 
 @pytest.mark.skipif(

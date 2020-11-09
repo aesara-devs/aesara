@@ -1,9 +1,8 @@
 import numpy as np
 import pytest
 
-import tests.unittest_tools as utt
 import aesara
-from tests.gpuarray.config import mode_with_gpu
+import tests.unittest_tools as utt
 from aesara import config, function, tensor
 from aesara.gpuarray.multinomial import (
     GPUAChoiceFromUniform,
@@ -11,6 +10,7 @@ from aesara.gpuarray.multinomial import (
 )
 from aesara.sandbox import multinomial
 from aesara.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
+from tests.gpuarray.config import mode_with_gpu
 
 
 def test_multinomial_output_dtype():

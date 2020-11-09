@@ -5,12 +5,12 @@ import pytest
 
 import aesara
 import aesara.tensor as tt
-from tests import unittest_tools as utt
-from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
-from tests.gpuarray.test_basic_ops import rand_gpuarray
 from aesara.gpuarray import GpuArrayType
 from aesara.gpuarray.dnn import GpuDnnReduction
 from aesara.gpuarray.reduction import GpuMaxAndArgmax
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
+from tests.gpuarray.test_basic_ops import rand_gpuarray
 
 
 # Number of values to be used in test tensors (except with 0-D tensors!).

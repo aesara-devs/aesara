@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 import aesara
-from tests import unittest_tools as utt
 from aesara.tensor import (
     cast,
     complex,
@@ -16,6 +15,7 @@ from aesara.tensor import (
     real,
     zvector,
 )
+from tests import unittest_tools as utt
 
 
 class TestRealImag:

@@ -1,5 +1,4 @@
 import aesara
-from tests.unittest_tools import assertFailure_fast
 from aesara import tensor
 from aesara.gof.opt import check_stack_trace
 from aesara.tensor.nnet.blocksparse import (
@@ -9,6 +8,7 @@ from aesara.tensor.nnet.blocksparse import (
     sparse_block_outer,
     sparse_block_outer_inplace,
 )
+from tests.unittest_tools import assertFailure_fast
 
 
 def test_blocksparse_inplace_gemv_opt():

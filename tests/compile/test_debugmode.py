@@ -5,9 +5,9 @@ import pytest
 
 import aesara
 import aesara.tensor
-from tests import unittest_tools as utt
 from aesara import config, gof
 from aesara.compile import debugmode
+from tests import unittest_tools as utt
 
 
 def test_debugmode_basic():

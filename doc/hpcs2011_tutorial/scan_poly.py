@@ -3,6 +3,7 @@ import numpy as np
 import aesara
 import aesara.tensor as tt
 
+
 coefficients = aesara.tensor.vector("coefficients")
 x = tt.scalar("x")
 max_coefficients_supported = 10000

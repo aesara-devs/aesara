@@ -4,15 +4,15 @@ import pytest
 import aesara
 import aesara.gpuarray
 import aesara.tensor as tt
-from tests import unittest_tools as utt
-from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
-from tests.tensor.nnet.test_ctc import setup_ctc_case, setup_grad_case, setup_torch_case
 from aesara.gpuarray.ctc import GpuConnectionistTemporalClassification, gpu_ctc
 from aesara.tensor.nnet.ctc import (
     ConnectionistTemporalClassification,
     ctc,
     ctc_available,
 )
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
+from tests.tensor.nnet.test_ctc import setup_ctc_case, setup_grad_case, setup_torch_case
 
 
 @pytest.mark.skipif(

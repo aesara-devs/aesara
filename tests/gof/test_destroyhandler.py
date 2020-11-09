@@ -2,7 +2,6 @@ from copy import copy
 
 import pytest
 
-from tests.unittest_tools import assertFailure_fast
 from aesara import change_flags
 from aesara.gof import destroyhandler, graph
 from aesara.gof.fg import FunctionGraph, InconsistencyError
@@ -17,6 +16,7 @@ from aesara.gof.opt import (
 )
 from aesara.gof.toolbox import ReplaceValidate
 from aesara.gof.type import Type
+from tests.unittest_tools import assertFailure_fast
 
 
 def PatternOptimizer(p1, p2, ign=True):

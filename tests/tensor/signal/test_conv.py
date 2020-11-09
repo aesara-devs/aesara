@@ -3,9 +3,9 @@ import pytest
 
 import aesara
 import aesara.tensor as tt
-from tests import unittest_tools as utt
 from aesara.tensor.basic import _allclose
 from aesara.tensor.signal import conv
+from tests import unittest_tools as utt
 
 
 _ = pytest.importorskip("scipy.signal")

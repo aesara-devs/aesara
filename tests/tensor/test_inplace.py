@@ -1,38 +1,6 @@
 import numpy as np
 import pytest
 
-from tests import unittest_tools as utt
-from tests.tensor.utils import (
-    _bad_build_broadcast_binary_normal,
-    _bad_runtime_broadcast_binary_normal,
-    _bad_runtime_inv,
-    _good_broadcast_binary_arctan2,
-    _good_broadcast_binary_normal,
-    _good_broadcast_div_mod_normal_float_inplace,
-    _good_broadcast_pow_normal_float_pow,
-    _good_broadcast_unary_arccosh,
-    _good_broadcast_unary_arcsin_float,
-    _good_broadcast_unary_arctanh,
-    _good_broadcast_unary_normal,
-    _good_broadcast_unary_normal_abs,
-    _good_broadcast_unary_normal_float,
-    _good_broadcast_unary_normal_float_no_complex,
-    _good_broadcast_unary_normal_float_no_empty_no_complex,
-    _good_broadcast_unary_normal_no_complex,
-    _good_broadcast_unary_positive_float,
-    _good_broadcast_unary_tan,
-    _good_broadcast_unary_wide_float,
-    _good_inv_inplace,
-    _numpy_true_div,
-    angle_eps,
-    check_floatX,
-    copymod,
-    div_grad_rtol,
-    ignore_isfinite_mode,
-    inplace_func,
-    makeBroadcastTester,
-    upcast_float16_ufunc,
-)
 from aesara import _asarray, config
 from aesara.scalar.basic import round_half_away_from_zero_vec, upcast
 from aesara.tensor import vector
@@ -81,6 +49,38 @@ from aesara.tensor.inplace import (
     true_div_inplace,
     trunc_inplace,
     xor_inplace,
+)
+from tests import unittest_tools as utt
+from tests.tensor.utils import (
+    _bad_build_broadcast_binary_normal,
+    _bad_runtime_broadcast_binary_normal,
+    _bad_runtime_inv,
+    _good_broadcast_binary_arctan2,
+    _good_broadcast_binary_normal,
+    _good_broadcast_div_mod_normal_float_inplace,
+    _good_broadcast_pow_normal_float_pow,
+    _good_broadcast_unary_arccosh,
+    _good_broadcast_unary_arcsin_float,
+    _good_broadcast_unary_arctanh,
+    _good_broadcast_unary_normal,
+    _good_broadcast_unary_normal_abs,
+    _good_broadcast_unary_normal_float,
+    _good_broadcast_unary_normal_float_no_complex,
+    _good_broadcast_unary_normal_float_no_empty_no_complex,
+    _good_broadcast_unary_normal_no_complex,
+    _good_broadcast_unary_positive_float,
+    _good_broadcast_unary_tan,
+    _good_broadcast_unary_wide_float,
+    _good_inv_inplace,
+    _numpy_true_div,
+    angle_eps,
+    check_floatX,
+    copymod,
+    div_grad_rtol,
+    ignore_isfinite_mode,
+    inplace_func,
+    makeBroadcastTester,
+    upcast_float16_ufunc,
 )
 
 

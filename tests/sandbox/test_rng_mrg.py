@@ -6,10 +6,10 @@ import numpy as np
 import pytest
 
 import aesara
-from tests import unittest_tools as utt
 from aesara import change_flags, config, tensor
 from aesara.sandbox import rng_mrg
 from aesara.sandbox.rng_mrg import MRG_RandomStreams
+from tests import unittest_tools as utt
 
 
 # TODO: test MRG_RandomStreams

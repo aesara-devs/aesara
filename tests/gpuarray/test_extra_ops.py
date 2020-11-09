@@ -6,12 +6,12 @@ import pytest
 
 import aesara
 import aesara.tensor as tt
-from tests import unittest_tools as utt
-from tests.gpuarray.config import mode_with_gpu, test_ctx_name
-from tests.tensor.test_extra_ops import TestCumOp
 from aesara.gpuarray.extra_ops import GpuCumOp
 from aesara.gpuarray.type import get_context
 from aesara.tensor.extra_ops import CumOp
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, test_ctx_name
+from tests.tensor.test_extra_ops import TestCumOp
 
 
 class TestGpuCumOp(TestCumOp):

@@ -9,8 +9,6 @@ from numpy.testing import assert_array_equal
 import aesara
 import aesara.scalar as scal
 import aesara.tensor as tt
-from tests import unittest_tools as utt
-from tests.tensor.utils import inplace_func, rand, randint_ranged
 from aesara import change_flags, config
 from aesara.compile import DeepCopyOp
 from aesara.gof.op import get_test_value
@@ -53,6 +51,8 @@ from aesara.tensor.subtensor import (
     set_subtensor,
 )
 from aesara.tensor.type_other import make_slice
+from tests import unittest_tools as utt
+from tests.tensor.utils import inplace_func, rand, randint_ranged
 
 
 subtensor_ops = (

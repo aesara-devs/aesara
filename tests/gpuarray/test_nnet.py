@@ -1,9 +1,8 @@
 import numpy as np
 
-import tests.unittest_tools as utt
 import aesara
 import aesara.tensor as tt
-from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
+import tests.unittest_tools as utt
 from aesara.gpuarray.nnet import (
     GpuCrossentropySoftmax1HotWithBiasDx,
     GpuCrossentropySoftmaxArgmax1HotWithBias,
@@ -11,6 +10,7 @@ from aesara.gpuarray.nnet import (
     GpuSoftmaxWithBias,
 )
 from aesara.tensor.nnet import crossentropy_softmax_1hot_with_bias_dx
+from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
 
 
 mode_wo_cudnn = mode_with_gpu.excluding("cudnn")
