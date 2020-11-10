@@ -984,3 +984,17 @@ def jax_funcify_RavelMultiIndex(op):
         return jnp.ravel_multi_index(multi_index, dims, mode=mode, order=order)
 
     return ravelmultiindex
+
+
+# Where does eye come from?
+# Follow up question: Because eye doesn't exist in Theano (or so I think) do we need to update it?
+@jax_funcify.register(Eye)
+def jax_funcify_Eye(op):
+    mode = op.mode
+    order = op.order
+
+    def ravelmultiindex(*inp, mode=mode, order=order):
+        multi_index, dims = inp[:-1], inp[-1]
+        return jnp.ravel_multi_index(multi_index, dims, mode=mode, order=order)
+
+    return ravelmultiindex
