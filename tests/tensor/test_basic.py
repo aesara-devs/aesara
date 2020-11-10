@@ -71,6 +71,7 @@ from tests.tensor.utils import (
 from theano import change_flags, compile, config, function, gof, shared
 from theano.compile import DeepCopyOp
 from theano.compile.mode import get_default_mode
+from theano.gof.graph import Variable
 from theano.scalar import autocast_float, autocast_float_as
 from theano.tensor import (
     Alloc,
@@ -3646,6 +3647,15 @@ class TestMatinv:
             w -= 0.4 * gw
         assert_almost_equal(ssd0, myssd0)
         assert_almost_equal(ssd, myssd)
+
+
+def test_dot_numpy_inputs():
+    """Test the `theano.tensor.dot` interface function with NumPy inputs."""
+    a = np.ones(2)
+    b = np.ones(2)
+    res = tt.dot(a, b)
+    assert isinstance(res, Variable)
+    assert isinstance(res.owner.op, Dot)
 
 
 class TestDot:
