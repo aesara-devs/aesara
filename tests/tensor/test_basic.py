@@ -707,8 +707,8 @@ TestConjBroadcast = makeBroadcastTester(
 )
 
 
-TestDot = makeTester(
-    name="DotTester",
+TestDenseDot = makeTester(
+    name="DenseDotTester",
     op=dense_dot,
     expected=lambda x, y: np.dot(x, y),
     checks={},
@@ -3662,20 +3662,7 @@ class TestDot:
     def setup_method(self):
         utt.seed_rng()
 
-    def cmp_dot(self, x, y):
-        # x, y are matrices or numbers
-        def spec(x):
-            x = np.asarray(x)
-            return type(x), x.dtype, x.shape
-
-        nz = np.dot(x, y)
-        tz = eval_outputs([dense_dot(as_tensor_variable(x), as_tensor_variable(y))])
-        assert tz.dtype == nz.dtype, (tz.dtype, tz.dtype.num, nz.dtype, nz.dtype.num)
-        assert tz.shape == nz.shape, (tz.shape, nz.shape)
-        utt.assert_allclose(nz, tz, rtol=1e-4, atol=1e-4)
-
     def test_Op_dims(self):
-        # _dot is a Dot op instance
         _dot = tt.basic._dot
         d0 = scalar()
         d1 = vector()
@@ -3711,145 +3698,26 @@ class TestDot:
         with pytest.raises(TypeError):
             _dot(d3, d3)
 
-    def test_dot_0d_0d(self):
-        self.cmp_dot(rand(), rand())
-
-    def test_dot_0d_1d(self):
-        self.cmp_dot(rand(), rand(5))
-
-    def test_dot_0d_2d(self):
-        self.cmp_dot(rand(), rand(6, 7))
-
-    def test_dot_0d_3d(self):
-        self.cmp_dot(rand(), rand(8, 6, 7))
-
-    def test_dot_1d_0d(self):
-        self.cmp_dot(rand(5), rand())
-
-    def test_dot_1d_1d(self):
-        self.cmp_dot(rand(5), rand(5))
-
-    def test_dot_1d0_1d0(self):
-        self.cmp_dot(rand(0), rand(0))
-
-    # numpy return matrix not aligned...
-    def test_dot_1d_1d0(self):
-        with pytest.raises(ValueError):
-            self.cmp_dot(rand(5), rand(0))
-
-    # numpy return matrix not aligned...
-    def test_dot_1d0_1d(self):
-        with pytest.raises(ValueError):
-            self.cmp_dot(rand(0), rand(5))
-
-    def test_dot_1d_2d(self):
-        self.cmp_dot(rand(6), rand(6, 7))
-
-    def test_dot_1d0_2d(self):
-        self.cmp_dot(rand(0), rand(0, 7))
-
-    def test_dot_1d_2d0(self):
-        self.cmp_dot(rand(6), rand(6, 0))
-
-    def test_dot_1d0_2d0(self):
-        self.cmp_dot(rand(0), rand(0, 0))
-
-    def test_dot_1d_3d(self):
-        self.cmp_dot(rand(6), rand(8, 6, 7))
-
-    def test_dot_2d_0d(self):
-        self.cmp_dot(rand(5, 6), rand())
-
-    def test_dot_2d_1d(self):
-        self.cmp_dot(rand(5, 6), rand(6))
-
-    def test_dot_2d0_1d(self):
-        self.cmp_dot(rand(0, 6), rand(6))
-
-    def test_dot_2d_1d0(self):
-        self.cmp_dot(rand(5, 0), rand(0))
-
-    def test_dot_2d0_1d0(self):
-        self.cmp_dot(rand(0, 0), rand(0))
-
-    def test_dot_2d_2d(self):
-        self.cmp_dot(rand(5, 6), rand(6, 7))
-
-    def test_dot_2d0_2d(self):
-        self.cmp_dot(rand(0, 6), rand(6, 7))
-
-    def test_dot_2d_2d0(self):
-        self.cmp_dot(rand(5, 6), rand(6, 0))
-
-    def test_dot_2d0_2d0(self):
-        self.cmp_dot(rand(0, 6), rand(6, 0))
-
-    def test_dot_2d_0_2d(self):
-        self.cmp_dot(rand(5, 0), rand(0, 7))
-
-    def test_dot_2d0_0_2d0(self):
-        self.cmp_dot(rand(0, 6), rand(6, 0))
-
-    def test_dot_2d_3d(self):
-        self.cmp_dot(rand(5, 6), rand(8, 6, 7))
-
-    def test_dot_3d_0d(self):
-        self.cmp_dot(rand(4, 5, 6), rand())
-
-    def test_dot_3d_1d(self):
-        self.cmp_dot(rand(4, 5, 6), rand(6))
-
-    def test_dot_3d_2d(self):
-        self.cmp_dot(rand(4, 5, 6), rand(6, 7))
-
-    def test_dot_3d_3d(self):
-        self.cmp_dot(rand(4, 5, 6), rand(8, 6, 7))
-
-    def not_aligned(self, x, y):
-        with change_flags(compute_test_value="off"):
-            z = dense_dot(x, y)
-        with pytest.raises(ValueError):
-            eval_outputs([z])
-
-    def test_not_aligned(self):
-        self.not_aligned(rand(5), rand(6))
-        self.not_aligned(rand(5), rand(6, 4))
-        self.not_aligned(rand(5), rand(6, 4, 7))
-        self.not_aligned(rand(5, 4), rand(6))
-        self.not_aligned(rand(5, 4), rand(6, 7))
-        self.not_aligned(rand(5, 4), rand(6, 7, 8))
-        self.not_aligned(rand(5, 4, 3), rand(6))
-        self.not_aligned(rand(5, 4, 3), rand(6, 7))
-        self.not_aligned(rand(5, 4, 3), rand(6, 7, 8))
-
     def test_grad(self):
         utt.verify_grad(dense_dot, [rand(2, 3), rand(3, 2)])
         utt.verify_grad(dense_dot, [rand(2), rand(2, 3)])
         utt.verify_grad(dense_dot, [rand(3, 2), rand(2)])
         utt.verify_grad(dense_dot, [rand(2), rand(2)])
-        utt.verify_grad(dense_dot, [rand(), rand(2)])
-        utt.verify_grad(dense_dot, [rand(), rand(2, 5)])
-        utt.verify_grad(dense_dot, [rand(2), rand()])
-        utt.verify_grad(dense_dot, [rand(2, 5), rand()])
-        utt.verify_grad(dense_dot, [rand(2, 3, 4), rand(4)])
-        utt.verify_grad(dense_dot, [rand(3), rand(2, 3, 4)])
-        utt.verify_grad(dense_dot, [rand(4, 3), rand(2, 3, 4)])
-        utt.verify_grad(dense_dot, [rand(2, 3, 4), rand(4, 5)])
-        utt.verify_grad(dense_dot, [rand(2, 3, 4), rand(3, 4, 5)])
+        utt.verify_grad(dense_dot, [rand(), rand()])
+        # TODO: What about the broadcastable conditions in `Dot.grad`?
 
-    @pytest.mark.slow
     def test_broadcastable_patterns(self):
 
         #
-        # These examples should all work because we broadcastable or
-        # no, all dimensions of all results have size 1.
+        # These examples should all work.  All dimensions of all results have
+        # size 1.
         #
         def val_for(r):
             if r.dtype.startswith("complex"):
                 # We want to test complex at the same time, so we give a value
-                # To the imaginary component.
+                # to the imaginary component.
                 # This strange way of doing things is the only way that worked
-                # on numpy 1.4.1
+                # on NumPy 1.4.1.
                 if r.ndim == 0:
                     return np.asarray(np.complex(1.1, 2.1), dtype=r.dtype)
                 if r.ndim == 1:
@@ -3869,7 +3737,7 @@ class TestDot:
                 return np.asarray([1.2], dtype=r.dtype)
             elif r.ndim == 2:
                 return np.asarray([[1.3]], dtype=r.dtype)
-            raise ValueError()
+            raise AssertionError()
 
         for dtype0 in ("float32", "float64", "complex64"):
             for dtype1 in ("float32", "complex64", "complex128"):
@@ -3893,15 +3761,7 @@ class TestDot:
 
                         y = TensorType(dtype=dtype1, broadcastable=bc1)()
                         z = dense_dot(x, y)
-                        t = TensorType(dtype=dtype0, broadcastable=z.broadcastable)()
 
-                        rval = z * 3 + 2 * t
-                        f = function([x, y, t], rval)
-                        xval = val_for(x)
-                        yval = val_for(y)
-                        tval = val_for(t)
-
-                        f(xval, yval, tval)  # debugmode checks result
                         if dtype0.startswith("float") and dtype1.startswith("float"):
                             g = grad(z.sum(), x)
                             assert g.broadcastable == x.broadcastable
