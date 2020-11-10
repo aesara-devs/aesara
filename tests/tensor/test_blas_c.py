@@ -147,7 +147,7 @@ class TestCGemv(OptimizationTestMixin):
         mode.check_isfinite = False
         f = theano.function(
             [self.A, self.x, self.y, self.a],
-            self.a * self.y + theano.dot(self.A, self.x),
+            self.a * self.y + theano.tensor.dot(self.A, self.x),
             mode=mode,
         )
         Aval = np.ones((3, 1), dtype=self.dtype)
@@ -160,7 +160,7 @@ class TestCGemv(OptimizationTestMixin):
         skip_if_blas_ldflags_empty()
         """ Test vector dot matrix """
         f = theano.function(
-            [self.x, self.A], theano.dot(self.x, self.A), mode=self.mode
+            [self.x, self.A], theano.tensor.dot(self.x, self.A), mode=self.mode
         )
 
         # Assert that the dot was optimized somehow
@@ -180,7 +180,7 @@ class TestCGemv(OptimizationTestMixin):
         skip_if_blas_ldflags_empty()
         """ Test matrix dot vector """
         f = theano.function(
-            [self.A, self.y], theano.dot(self.A, self.y), mode=self.mode
+            [self.A, self.y], theano.tensor.dot(self.A, self.y), mode=self.mode
         )
 
         # Assert that the dot was optimized somehow
@@ -220,7 +220,7 @@ class TestCGemv(OptimizationTestMixin):
 
         # test the inplace version
         g = theano.function(
-            [], [], updates=[(v2, v2 + theano.dot(m, v1))], mode=self.mode
+            [], [], updates=[(v2, v2 + theano.tensor.dot(m, v1))], mode=self.mode
         )
 
         # Assert they produce the same output

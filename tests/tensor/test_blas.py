@@ -1254,7 +1254,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         rng = np.random.RandomState(unittest_tools.fetch_seed())
         v = theano.shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
         w = theano.shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
-        f = theano.function([], theano.dot(v, w), mode=mode_blas_opt)
+        f = theano.function([], theano.tensor.dot(v, w), mode=mode_blas_opt)
 
         # Assert that the dot was optimized somehow
         self.assertFunctionContains0(f, tt.dot)
@@ -1268,7 +1268,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         rng = np.random.RandomState(unittest_tools.fetch_seed())
         v = theano.shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
         m = theano.shared(np.array(rng.uniform(size=(2, 3)), dtype="float32"))
-        f = theano.function([], theano.dot(v, m), mode=mode_blas_opt)
+        f = theano.function([], theano.tensor.dot(v, m), mode=mode_blas_opt)
 
         # Assert that the dot was optimized somehow
         self.assertFunctionContains0(f, tt.dot)
@@ -1285,7 +1285,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         rng = np.random.RandomState(unittest_tools.fetch_seed())
         v = theano.shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
         m = theano.shared(np.array(rng.uniform(size=(3, 2)), dtype="float32"))
-        f = theano.function([], theano.dot(m, v), mode=mode_blas_opt)
+        f = theano.function([], theano.tensor.dot(m, v), mode=mode_blas_opt)
 
         # Assert that the dot was optimized somehow
         self.assertFunctionContains0(f, tt.dot)
@@ -1306,7 +1306,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         v2 = theano.shared(v2_orig)
         m = theano.shared(np.array(rng.uniform(size=m_shp), dtype="float32"))
 
-        f = theano.function([], v2 + theano.dot(m, v1), mode=mode_blas_opt)
+        f = theano.function([], v2 + theano.tensor.dot(m, v1), mode=mode_blas_opt)
 
         # Assert they produce the same output
         assert np.allclose(f(), np.dot(m.get_value(), v1.get_value()) + v2_orig)
@@ -1317,7 +1317,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
 
         # test the inplace version
         g = theano.function(
-            [], [], updates=[(v2, v2 + theano.dot(m, v1))], mode=mode_blas_opt
+            [], [], updates=[(v2, v2 + theano.tensor.dot(m, v1))], mode=mode_blas_opt
         )
 
         # Assert they produce the same output
@@ -1355,7 +1355,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         v2 = theano.shared(v2_orig)
         m = theano.shared(np.array(rng.uniform(size=(2, 3)), dtype="float32"))
 
-        f = theano.function([], v2 + theano.dot(v1, m), mode=mode_blas_opt)
+        f = theano.function([], v2 + theano.tensor.dot(v1, m), mode=mode_blas_opt)
 
         # Assert they produce the same output
         assert np.allclose(f(), np.dot(v1.get_value(), m.get_value()) + v2.get_value())
@@ -1365,7 +1365,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
 
         # test the inplace version
         g = theano.function(
-            [], [], updates=[(v2, v2 + theano.dot(v1, m))], mode=mode_blas_opt
+            [], [], updates=[(v2, v2 + theano.tensor.dot(v1, m))], mode=mode_blas_opt
         )
 
         # Assert they produce the same output
@@ -1397,7 +1397,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
             np.array(rng.uniform(size=(1, 2)), dtype="float32"),
             broadcastable=(True, False),
         )
-        o = theano.dot(m, v1)
+        o = theano.tensor.dot(m, v1)
         f = theano.function([], o + v2, mode=mode_blas_opt)
 
         # Assert they produce the same output
