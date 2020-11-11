@@ -25,6 +25,28 @@ def compare_jax_and_py(
     simplify=False,
     must_be_device_array=True,
 ):
+    """
+
+    Parameters
+    ----------
+    fgraph: theano.gof.FunctionGraph
+        Theano function Graph object
+    inputs: iter
+        Inputs for function graph
+    assert_fn: func, opt
+        Assert function used to check for equality between python and jax. If not
+        provided uses np.testing.assert_allclose
+    simplify: Bool
+        ???
+    must_be_device_array: Bool
+        Checks for instance of jax.interpreters.xla.DeviceArray. For testing purposes
+        if this device array is found it indicates if the result was computed by jax
+
+    Returns
+    -------
+    jax_res
+
+    """
     if assert_fn is None:
         assert_fn = partial(np.testing.assert_allclose, rtol=1e-4)
 
