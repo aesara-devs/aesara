@@ -27,6 +27,7 @@ from theano.tensor.basic import (
     AllocEmpty,
     ARange,
     Dot,
+    Eye,
     Join,
     MaxAndArgmax,
     Reshape,
@@ -986,15 +987,14 @@ def jax_funcify_RavelMultiIndex(op):
     return ravelmultiindex
 
 
-# Where does eye come from?
-# Follow up question: Because eye doesn't exist in Theano (or so I think) do we need to update it?
+# TODO: Remove all these when done
+# https://jax.readthedocs.io/en/latest/_autosummary/jax.numpy.eye.html#jax.numpy.eye
 @jax_funcify.register(Eye)
 def jax_funcify_Eye(op):
-    mode = op.mode
     order = op.order
 
-    def ravelmultiindex(*inp, mode=mode, order=order):
-        multi_index, dims = inp[:-1], inp[-1]
-        return jnp.ravel_multi_index(multi_index, dims, mode=mode, order=order)
+    def eye(*inp, order=order):
+        N, M, k = inp
+        return jnp.eye(N, M, k,  order=order)
 
-    return ravelmultiindex
+    return eye
