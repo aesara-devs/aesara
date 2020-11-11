@@ -222,6 +222,19 @@ def test_jax_basic():
     )
 
 
+@pytest.mark.skip("Currently in WIP and broken")
+def test_jax_eye():
+    """Tests that jaxification of eye operator
+
+    Currently WIP
+    """
+    x = tt.matrix("x")
+    out = tt.eye(3)
+    out_fg = theano.gof.FunctionGraph(x, [out])
+
+    compare_jax_and_py(out_fg, [3].astype(tt.config.floatX))
+
+
 def test_jax_basic_multiout():
 
     np.random.seed(213234)
