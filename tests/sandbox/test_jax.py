@@ -25,7 +25,7 @@ def compare_jax_and_py(
     simplify=False,
     must_be_device_array=True,
 ):
-    """
+    """Function to compare python graph output and jax compiled output for testing equality
 
     Parameters
     ----------
