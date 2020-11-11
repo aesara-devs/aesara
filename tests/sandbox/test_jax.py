@@ -27,6 +27,10 @@ def compare_jax_and_py(
 ):
     """Function to compare python graph output and jax compiled output for testing equality
 
+    In the tests below computational graphs are defined in Theano. These graphs are then passed to
+    this function which then compiles the graphs in both jax and python, runs the calculation
+    in both and checks if the results are the same
+
     Parameters
     ----------
     fgraph: theano.gof.FunctionGraph
