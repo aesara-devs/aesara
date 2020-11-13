@@ -224,17 +224,11 @@ def test_jax_basic():
 
 def test_jax_eye():
     """Tests that jaxification of eye operator
-
-    Currently WIP
     """
+    out = tt.eye(3)
+    out_fg = theano.gof.FunctionGraph([], [out])
 
-    # eye = theano.tensor.eye(3).shape
-    x = tt.iscalar()
-    out = tt.eye(x)
-
-    out_fg = theano.gof.FunctionGraph([x], [out])
-
-    compare_jax_and_py(out_fg, [3])
+    compare_jax_and_py(out_fg, [])
 
 
 def test_jax_basic_multiout():
