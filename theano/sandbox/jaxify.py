@@ -991,9 +991,9 @@ def jax_funcify_RavelMultiIndex(op):
 # https://jax.readthedocs.io/en/latest/_autosummary/jax.numpy.eye.html#jax.numpy.eye
 @jax_funcify.register(Eye)
 def jax_funcify_Eye(op):
-    # order = op.order
+    dtype = op.order
 
     def eye(N, M, k, order="C"):
-        return jnp.eye(N, M, k, dtype=op.dtype)
+        return jnp.eye(N, M, k, dtype=dtype)
 
     return eye
