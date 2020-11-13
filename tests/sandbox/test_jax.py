@@ -223,8 +223,7 @@ def test_jax_basic():
 
 
 def test_jax_eye():
-    """Tests that jaxification of eye operator
-    """
+    """Tests that jaxification of eye operator"""
     out = tt.eye(3)
     out_fg = theano.gof.FunctionGraph([], [out])
 
