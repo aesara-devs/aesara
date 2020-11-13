@@ -234,7 +234,7 @@ def test_jax_eye():
 
     out_fg = theano.gof.FunctionGraph([x], [out])
 
-    compare_jax_and_py(out_fg, [3.0])
+    compare_jax_and_py(out_fg, [3])
 
 
 def test_jax_basic_multiout():
