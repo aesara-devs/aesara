@@ -8,6 +8,9 @@ class TestDB:
         class Opt(opt.GlobalOptimizer):  # inheritance buys __hash__
             name = "blah"
 
+            def apply(self, fgraph):
+                pass
+
         db = DB()
         db.register("a", Opt())
 

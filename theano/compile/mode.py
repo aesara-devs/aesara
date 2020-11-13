@@ -146,6 +146,9 @@ class AddFeatureOptimizer(gof.GlobalOptimizer):
         super().add_requirements(fgraph)
         fgraph.attach_feature(self.feature)
 
+    def apply(self, fgraph):
+        pass
+
 
 class PrintCurrentFunctionGraph(gof.GlobalOptimizer):
     """
