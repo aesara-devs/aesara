@@ -144,12 +144,12 @@ def test_misc():
     g = Env([x, y, z], [e])
     assert g.consistent()
     PatternOptimizer((transpose_view, (transpose_view, "x")), "x").optimize(g)
-    assert str(g) == "[x]"
+    assert str(g) == "FunctionGraph(x)"
     new_e = add(x, y)
     g.replace_validate(x, new_e)
-    assert str(g) == "[Add(x, y)]"
+    assert str(g) == "FunctionGraph(Add(x, y))"
     g.replace(new_e, dot(add_in_place(x, y), transpose_view(x)))
-    assert str(g) == "[Dot(AddInPlace(x, y), TransposeView(x))]"
+    assert str(g) == "FunctionGraph(Dot(AddInPlace(x, y), TransposeView(x)))"
     assert not g.consistent()
 
 
@@ -325,7 +325,10 @@ def test_long_destroyers_loop():
     OpSubOptimizer(add, add_in_place).optimize(g)
     assert g.consistent()
     # we don't want to see that!
-    assert str(g) != "[Dot(Dot(AddInPlace(x, y), AddInPlace(y, z)), AddInPlace(z, x))]"
+    assert (
+        str(g)
+        != "FunctionGraph(Dot(Dot(AddInPlace(x, y), AddInPlace(y, z)), AddInPlace(z, x)))"
+    )
     e2 = dot(dot(add_in_place(x, y), add_in_place(y, z)), add_in_place(z, x))
     with pytest.raises(InconsistencyError):
         Env(*graph.clone([x, y, z], [e2]))

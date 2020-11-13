@@ -812,11 +812,8 @@ class FunctionGraph(utils.object2):
                         "Inconsistent clients list.", variable, node.inputs[i]
                     )
 
-    def __str__(self):
-        return f"[{', '.join(graph.as_string(self.inputs, self.outputs))}]"
-
     def __repr__(self):
-        return self.__str__()
+        return f"FunctionGraph({', '.join(graph.as_string(self.inputs, self.outputs))})"
 
     def clone(self, check_integrity=True):
         """
