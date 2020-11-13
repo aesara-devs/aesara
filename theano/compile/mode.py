@@ -93,13 +93,13 @@ predefined_optimizers = {
 
 
 def register_optimizer(name, opt):
-    """Add a `Optimizer` which can be referred to by `name` in `Mode`."""
+    """Add a `GlobalOptimizer` which can be referred to by `name` in `Mode`."""
     if name in predefined_optimizers:
         raise ValueError(f"Optimizer name already taken: {name}")
     predefined_optimizers[name] = opt
 
 
-class AddDestroyHandler(gof.Optimizer):
+class AddDestroyHandler(gof.GlobalOptimizer):
     """
     This optimizer performs two important functions:
 
@@ -134,7 +134,7 @@ class AddDestroyHandler(gof.Optimizer):
         fgraph.attach_feature(gof.DestroyHandler())
 
 
-class AddFeatureOptimizer(gof.Optimizer):
+class AddFeatureOptimizer(gof.GlobalOptimizer):
     """
     This optimizer adds a provided feature to the function graph.
     """
@@ -147,7 +147,7 @@ class AddFeatureOptimizer(gof.Optimizer):
         fgraph.attach_feature(self.feature)
 
 
-class PrintCurrentFunctionGraph(gof.Optimizer):
+class PrintCurrentFunctionGraph(gof.GlobalOptimizer):
     """
     This optimizer is for debugging.
 

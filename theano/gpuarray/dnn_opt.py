@@ -1,7 +1,7 @@
 import theano
 from theano.compile import optdb
 from theano.compile.ops import shape_i_op
-from theano.gof.opt import Optimizer, inherit_stack_trace, local_optimizer
+from theano.gof.opt import GlobalOptimizer, inherit_stack_trace, local_optimizer
 from theano.gpuarray.basic_ops import (
     GpuAllocEmpty,
     GpuArrayType,
@@ -817,7 +817,7 @@ def local_dnn_argmax(op, ctx_name, inputs, outputs):
     return [as_gpuarray_variable(arg.astype("int64"), ctx_name)]
 
 
-class NoCuDNNRaise(Optimizer):
+class NoCuDNNRaise(GlobalOptimizer):
     def apply(self, fgraph):
         """
         Raise a error if cudnn can't be used.

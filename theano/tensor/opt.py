@@ -33,7 +33,7 @@ from theano.gof import (
 )
 from theano.gof.op import Op
 from theano.gof.opt import (
-    Optimizer,
+    GlobalOptimizer,
     copy_stack_trace,
     in2out,
     local_optimizer,
@@ -214,7 +214,7 @@ def broadcast_like(value, template, fgraph, dtype=None):
     return rval
 
 
-class InplaceElemwiseOptimizer(Optimizer):
+class InplaceElemwiseOptimizer(GlobalOptimizer):
     """
     We parametrise it to make it work for Elemwise and GpuElemwise op.
     """
@@ -1664,7 +1664,7 @@ class ShapeFeature:
         return True
 
 
-class ShapeOptimizer(Optimizer):
+class ShapeOptimizer(GlobalOptimizer):
     """Optimizer that serves to add ShapeFeature as an fgraph feature."""
 
     def add_requirements(self, fgraph):
@@ -1674,7 +1674,7 @@ class ShapeOptimizer(Optimizer):
         pass
 
 
-class UnShapeOptimizer(Optimizer):
+class UnShapeOptimizer(GlobalOptimizer):
     """Optimizer remove ShapeFeature as an fgraph feature."""
 
     def apply(self, fgraph):
@@ -7729,11 +7729,11 @@ def elemwise_max_input_fct(node):
 local_elemwise_fusion = local_elemwise_fusion_op(Elemwise, elemwise_max_input_fct)
 
 
-class FusionOptimizer(Optimizer):
+class FusionOptimizer(GlobalOptimizer):
     """Graph optimizer for Fusion of elemwise operations."""
 
     def __init__(self, local_optimizer):
-        Optimizer.__init__(self)
+        super().__init__()
         self.optimizer = local_optimizer
 
     def add_requirements(self, fgraph):

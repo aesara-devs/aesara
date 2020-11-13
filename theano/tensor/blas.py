@@ -147,9 +147,9 @@ from theano.compile.mode import optdb
 from theano.gof import (
     Apply,
     EquilibriumOptimizer,
+    GlobalOptimizer,
     InconsistencyError,
     Op,
-    Optimizer,
     ReplacementDidNotRemoveError,
     SequenceDB,
     local_optimizer,
@@ -1449,11 +1449,11 @@ def _gemm_from_node2(node):
     return None, t1 - t0, 0, 0
 
 
-class GemmOptimizer(Optimizer):
+class GemmOptimizer(GlobalOptimizer):
     """Graph optimizer for inserting Gemm operations."""
 
     def __init__(self):
-        Optimizer.__init__(self)
+        super().__init__()
         self.warned = False
 
     def add_requirements(self, fgraph):

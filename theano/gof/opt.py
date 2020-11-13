@@ -43,10 +43,10 @@ class LocalMetaOptimizerSkipAssertionError(AssertionError):
     """
 
 
-class Optimizer:
+class GlobalOptimizer:
     """
 
-    An L{Optimizer} can be applied to an L{FunctionGraph} to transform it.
+    A L{GlobalOptimizer} can be applied to an L{FunctionGraph} to transform it.
     It can represent an optimization or in general any kind
     of transformation you could apply to an L{FunctionGraph}.
 
@@ -73,7 +73,7 @@ class Optimizer:
 
         Applies the optimization to the provided L{FunctionGraph}. It may
         use all the methods defined by the L{FunctionGraph}. If the
-        L{Optimizer} needs to use a certain tool, such as an
+        L{GlobalOptimizer} needs to use a certain tool, such as an
         L{InstanceFinder}, it can do so in its L{add_requirements} method.
 
         """
@@ -125,11 +125,8 @@ class Optimizer:
             )
 
 
-class FromFunctionOptimizer(Optimizer):
-    """
-    WRITEME
-
-    """
+class FromFunctionOptimizer(GlobalOptimizer):
+    """A `GlobalOptimizer` constructed from a given function."""
 
     def __init__(self, fn, requirements=()):
         self.apply = fn
@@ -171,14 +168,8 @@ def inplace_optimizer(f):
     return rval
 
 
-class SeqOptimizer(Optimizer, list):
-    # inherit from Optimizer first to get Optimizer.__hash__
-    """
-
-    Takes a list of L{Optimizer} instances and applies them
-    sequentially.
-
-    """
+class SeqOptimizer(GlobalOptimizer, list):
+    """A `GlobalOptimizer` that applies a list of optimizers sequentially."""
 
     @staticmethod
     def warn(exc, self, optimizer):
@@ -214,7 +205,7 @@ class SeqOptimizer(Optimizer, list):
     def apply(self, fgraph):
         """
 
-        Applies each L{Optimizer} in self in turn.
+        Applies each L{GlobalOptimizer} in self in turn.
 
         """
         l = []
@@ -823,7 +814,7 @@ class MergeFeature:
         return new_inputs
 
 
-class MergeOptimizer(Optimizer):
+class MergeOptimizer(GlobalOptimizer):
     """
     Merges parts of the graph that are identical and redundant.
 
@@ -1945,7 +1936,7 @@ class Updater:
         self.chin = None
 
 
-class NavigatorOptimizer(Optimizer):
+class NavigatorOptimizer(GlobalOptimizer):
     """
     Abstract class.
 
@@ -2835,7 +2826,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
                 + list(opt.final_optimizers)
                 + list(opt.cleanup_optimizers)
             )
-            if o.print_profile.__code__ is not Optimizer.print_profile.__code__
+            if o.print_profile.__code__ is not GlobalOptimizer.print_profile.__code__
         ]
         if not gf_opts:
             return
@@ -3310,7 +3301,7 @@ class CheckStrackTraceFeature:
                     )
 
 
-class CheckStackTraceOptimization(Optimizer):
+class CheckStackTraceOptimization(GlobalOptimizer):
     """Optimizer that serves to add CheckStackTraceOptimization as an fgraph feature."""
 
     def add_requirements(self, fgraph):

@@ -15,7 +15,7 @@ from theano import config, gof, scalar, tensor
 from theano.breakpoint import PdbBreakpoint
 from theano.compile import optdb
 from theano.compile.ops import shape_i
-from theano.gof import Optimizer, graph, local_optimizer, toolbox
+from theano.gof import GlobalOptimizer, graph, local_optimizer, toolbox
 from theano.gof.opt import LocalMetaOptimizer, copy_stack_trace, inherit_stack_trace
 from theano.gpuarray.basic_ops import (
     GpuAlloc,
@@ -210,7 +210,7 @@ gpu_neg = GpuElemwise(neg)
 gpu_true_div = GpuElemwise(true_div)
 
 
-class InputToGpuOptimizer(Optimizer):
+class InputToGpuOptimizer(GlobalOptimizer):
     """
     Transfer the input to the gpu to start the rolling wave.
 
@@ -260,7 +260,7 @@ gpu_seqopt.register(
 )
 
 
-class GraphToGPU(Optimizer):
+class GraphToGPU(GlobalOptimizer):
     """
     Transfer the graph as a whole to GPU instead of transferring node by node.
 

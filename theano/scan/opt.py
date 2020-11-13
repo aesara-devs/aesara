@@ -63,7 +63,11 @@ from theano.compile import optdb
 from theano.compile.function.types import deep_copy_op
 from theano.gof import DestroyHandler, InconsistencyError, toolbox
 from theano.gof.graph import equal_computations
-from theano.gof.opt import Optimizer, pre_constant_merge, pre_greedy_local_optimizer
+from theano.gof.opt import (
+    GlobalOptimizer,
+    pre_constant_merge,
+    pre_greedy_local_optimizer,
+)
 from theano.scan.op import Scan
 from theano.scan.utils import (
     clone,
@@ -224,14 +228,14 @@ def remove_constants_and_unused_inputs_scan(node):
 
 # This is a global opt for historical reason
 # It should be possible to change it to a local opt.
-class PushOutNonSeqScan(gof.Optimizer):
+class PushOutNonSeqScan(gof.GlobalOptimizer):
     """
     A global optimizer for pushing out the variables inside the scan that depend
     only on non-sequences.
     """
 
     def __init__(self):
-        gof.Optimizer.__init__(self)
+        super().__init__()
 
     def add_requirements(self, fgraph):
         fgraph.attach_feature(gof.toolbox.ReplaceValidate())
@@ -440,14 +444,14 @@ class PushOutNonSeqScan(gof.Optimizer):
 
 # This is a global opt for historical reason
 # It should be possible to change it to a local opt.
-class PushOutSeqScan(gof.Optimizer):
+class PushOutSeqScan(gof.GlobalOptimizer):
     """
     A global optimizer for pushing out the variables inside the
     scan that depend only on constants and sequences.
     """
 
     def __init__(self):
-        gof.Optimizer.__init__(self)
+        super().__init__()
 
     def add_requirements(self, fgraph):
         fgraph.attach_feature(gof.toolbox.ReplaceValidate())
@@ -696,14 +700,14 @@ class PushOutSeqScan(gof.Optimizer):
             return False
 
 
-class PushOutScanOutput(gof.Optimizer):
+class PushOutScanOutput(gof.GlobalOptimizer):
     """
     This is an optimization that can push operations performed
     at the end of the inner graph of scan to outside of scan.
     """
 
     def __init__(self):
-        gof.Optimizer.__init__(self)
+        super().__init__()
 
     def add_requirements(self, fgraph):
         fgraph.attach_feature(gof.toolbox.ReplaceValidate())
@@ -958,14 +962,14 @@ class PushOutScanOutput(gof.Optimizer):
         return new_scan_node
 
 
-class ScanInplaceOptimizer(Optimizer):
+class ScanInplaceOptimizer(GlobalOptimizer):
     """
     Graph optimizer for Scan (makes it run inplace).
 
     """
 
     def __init__(self, typeInfer=None, gpua_flag=False):
-        Optimizer.__init__(self)
+        super().__init__()
         self.typeInfer = typeInfer
         self.gpua_flag = gpua_flag
 
@@ -1124,14 +1128,14 @@ class ScanInplaceOptimizer(Optimizer):
                     node = self.attempt_scan_inplace(fgraph, node, [pos], alloc_ops)
 
 
-class ScanSaveMem(gof.Optimizer):
+class ScanSaveMem(gof.GlobalOptimizer):
     """
     Graph Optimizer that reduces scan memory consumption.
 
     """
 
     def __init__(self):
-        gof.Optimizer.__init__(self)
+        super().__init__()
 
     def add_requirements(self, fgraph):
         fgraph.attach_feature(gof.toolbox.ReplaceValidate())
@@ -1680,7 +1684,7 @@ class ScanSaveMem(gof.Optimizer):
             self.process_node(fgraph, node)
 
 
-class ScanMerge(gof.Optimizer):
+class ScanMerge(gof.GlobalOptimizer):
     """
     Graph Optimizer that merges different scan ops.
 
@@ -2135,14 +2139,14 @@ def scan_merge_inouts(node):
     return na.outer_outputs
 
 
-class PushOutDot1(gof.Optimizer):
+class PushOutDot1(gof.GlobalOptimizer):
     """
     Graph optimizer for Scan(makes it run inplace).
 
     """
 
     def __init__(self):
-        Optimizer.__init__(self)
+        super().__init__()
 
     def add_requirements(self, fgraph):
         fgraph.attach_feature(toolbox.ReplaceValidate())

@@ -43,10 +43,10 @@ class DB:
             tags specified will enable that optimization.
 
         """
-        # N.B. obj is not an instance of class Optimizer.
+        # N.B. obj is not an instance of class `GlobalOptimizer`.
         # It is an instance of a DB.In the tests for example,
         # this is not always the case.
-        if not isinstance(obj, (DB, opt.Optimizer, opt.LocalOptimizer)):
+        if not isinstance(obj, (DB, opt.GlobalOptimizer, opt.LocalOptimizer)):
             raise TypeError("Object cannot be registered in OptDB", obj)
         if name in self.__db__:
             raise ValueError(
@@ -285,8 +285,8 @@ class EquilibriumDB(DB):
 
     Notes
     -----
-    We can put LocalOptimizer and Optimizer as EquilibriumOptimizer
-    suppor both.
+    We can use `LocalOptimizer` and `GlobalOptimizer` since `EquilibriumOptimizer`
+    supports both.
 
     It is probably not a good idea to have ignore_newtrees=False and
     tracks_on_change_inputs=True
@@ -473,7 +473,7 @@ class LocalGroupDB(DB):
 class TopoDB(DB):
     """
 
-    Generate a Global Optimizer of type TopoOptimizer.
+    Generate a `GlobalOptimizer` of type TopoOptimizer.
 
     """
 

@@ -3,7 +3,7 @@ import logging
 import theano.tensor
 from theano import tensor
 from theano.gof import Apply, Op, local_optimizer
-from theano.gof.opt import Optimizer
+from theano.gof.opt import GlobalOptimizer
 from theano.tensor import DimShuffle, Dot
 from theano.tensor.blas import Dot22
 from theano.tensor.nlinalg import (
@@ -171,13 +171,13 @@ class HintsFeature:
         # 2) we are putting things back after a failed transaction.
 
 
-class HintsOptimizer(Optimizer):
+class HintsOptimizer(GlobalOptimizer):
     """
     Optimizer that serves to add HintsFeature as an fgraph feature.
     """
 
     def __init__(self):
-        Optimizer.__init__(self)
+        super().__init__()
 
     def add_requirements(self, fgraph):
         fgraph.attach_feature(HintsFeature())

@@ -592,7 +592,7 @@ def cond_merge_ifs_false(node):
     return op(*old_ins, **dict(return_list=True))
 
 
-class CondMerge(gof.Optimizer):
+class CondMerge(gof.GlobalOptimizer):
     """ Graph Optimizer that merges different cond ops """
 
     def add_requirements(self, fgraph):
