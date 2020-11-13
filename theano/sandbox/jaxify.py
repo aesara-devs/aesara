@@ -995,6 +995,6 @@ def jax_funcify_Eye(op):
 
     def eye(*inp, order="C"):
         N, M, k = inp
-        return jnp.eye(N, M, k)
+        return jnp.eye(N, M, k, dtype=op.dtype)
 
     return eye
