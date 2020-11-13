@@ -993,8 +993,7 @@ def jax_funcify_RavelMultiIndex(op):
 def jax_funcify_Eye(op):
     # order = op.order
 
-    def eye(*inp, order="C"):
-        N, M, k = inp
+    def eye(N, M, k, order="C"):
         return jnp.eye(N, M, k, dtype=op.dtype)
 
     return eye
