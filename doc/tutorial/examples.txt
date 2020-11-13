@@ -286,7 +286,7 @@ Copying functions
 =================
 Theano functions can be copied, which can be useful for creating similar
 functions but with different shared variables or updates. This is done using
-the :func:`copy()<theano.compile.function_module.Function.copy>` method of ``function`` objects. The optimized graph of the original function is copied,
+the :func:`copy()<theano.compile.function.types.Function.copy>` method of ``function`` objects. The optimized graph of the original function is copied,
 so compilation only needs to be performed once.
 
 Let's start from the accumulator defined above:

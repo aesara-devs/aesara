@@ -20,8 +20,8 @@ from theano.compile.ops import (
 from theano.gof import FunctionGraph
 from theano.ifelse import IfElse
 from theano.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp
-from theano.scan_module.scan_op import Scan
-from theano.scan_module.scan_utils import scan_args as ScanArgs
+from theano.scan.op import Scan
+from theano.scan.utils import scan_args as ScanArgs
 from theano.tensor.basic import (
     Alloc,
     AllocEmpty,

@@ -5,7 +5,7 @@ import pytest
 
 import theano
 from theano import tensor
-from theano.scan_module.scan_utils import map_variables
+from theano.scan.utils import map_variables
 
 
 class TestMapVariables:
@@ -130,7 +130,7 @@ class TestMapVariables:
         # construct the outer graph
         c = tensor.scalar()
         d = tensor.scalar()
-        u = theano.OpFromGraph([a, b], [r])(c, d)
+        u = theano.compile.builders.OpFromGraph([a, b], [r])(c, d)
         t = z * u
         (v,) = map_variables(self.replacer, [t])
         t2 = z * v

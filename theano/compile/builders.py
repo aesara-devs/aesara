@@ -5,17 +5,74 @@ from functools import partial, reduce
 
 import theano
 from theano import gof
-from theano.compile.function_module import orig_function
+from theano.compile.function.pfunc import rebuild_collect_shared
+from theano.compile.function.types import orig_function
 from theano.compile.mode import optdb
-from theano.compile.pfunc import rebuild_collect_shared
 from theano.compile.sharedvalue import SharedVariable
 from theano.gof import Variable, ops_with_inner_function
+from theano.gof.fg import FunctionGraph
 from theano.gof.graph import io_connection_pattern
 from theano.gof.null_type import NullType
+from theano.gof.op import Op
+from theano.gof.opt import in2out, local_optimizer
 from theano.gradient import DisconnectedType
+from theano.tensor.opt import ShapeFeature
 
 
-class OpFromGraph(gof.Op):
+def infer_shape(outs, inputs, input_shapes):
+    """
+    Compute the shape of the outputs given the shape of the inputs of a theano
+    graph.
+
+    We do it this way to avoid compiling the inner function just to get
+    the shape. Changes to ShapeFeature could require changes in this function.
+
+    """
+    # We use a ShapeFeature because it has all the necessary logic
+    # inside.  We don't use the full ShapeFeature interface, but we
+    # let it initialize itself with an empty fgraph, otherwise we will
+    # need to do it manually
+    for inp, inp_shp in zip(inputs, input_shapes):
+        if inp_shp is not None and len(inp_shp) != inp.ndim:
+            assert len(inp_shp) == inp.ndim
+
+    shape_feature = ShapeFeature()
+    shape_feature.on_attach(FunctionGraph([], []))
+
+    # Initialize shape_of with the input shapes
+    for inp, inp_shp in zip(inputs, input_shapes):
+        shape_feature.set_shape(inp, inp_shp)
+
+    def local_traverse(out):
+        """
+        Go back in the graph, from out, adding computable shapes to shape_of.
+
+        """
+        if out in shape_feature.shape_of:
+            # Its shape is already known
+            return
+        elif out.owner is None:
+            # This is an input of the graph
+            shape_feature.init_r(out)
+        else:
+            # Recurse over inputs
+            for inp in out.owner.inputs:
+                if inp not in shape_feature.shape_of:
+                    local_traverse(inp)
+
+            # shape_feature.on_import does not actually use an fgraph
+            # It will call infer_shape and set_shape appropriately
+            dummy_fgraph = None
+            shape_feature.on_import(dummy_fgraph, out.owner, reason="dummy")
+
+    ret = []
+    for o in outs:
+        local_traverse(o)
+        ret.append(shape_feature.shape_of[o])
+    return ret
+
+
+class OpFromGraph(Op):
     r"""
     This creates an ``Op`` from inputs and outputs lists of variables.
     The signature is similar to :func:`theano.function <theano.function>`
@@ -28,9 +85,9 @@ class OpFromGraph(gof.Op):
     Parameters
     ----------
 
-    inputs: list of :class:`Variable <theano.gof.Variable>`
+    inputs: list of :class:`Variable <theano.gof.graph.Variable>`
 
-    outputs: list of :class:`Variable <theano.gof.Variable>`
+    outputs: list of :class:`Variable <theano.gof.graph.Variable>`
 
     inline: bool, optional
         Defaults to ``False``
@@ -52,15 +109,15 @@ class OpFromGraph(gof.Op):
         arguments as one would specify in grad() method.
 
         callable : Should take two args: ``inputs`` and ``output_grads``.
-        Each argument is expected to be a list of :class:`Variable <theano.gof.Variable>`.
-        Must return list of :class:`Variable <theano.gof.Variable>`.
+        Each argument is expected to be a list of :class:`Variable <theano.gof.graph.Variable>`.
+        Must return list of :class:`Variable <theano.gof.graph.Variable>`.
 
         Variable :
             ``NullType() instance`` : Treat as non-differentiable
             ``DisconnectedType() instance`` : Treat as disconnected gradient, numerically gives zero
 
         list: Each OpFromGraph/callable must return a single
-        :class:`Variable <theano.gof.Variable>`. Each list element corresponds to gradient of
+        :class:`Variable <theano.gof.graph.Variable>`. Each list element corresponds to gradient of
         a specific input, length of list must be equal to number of inputs.
 
     lop_overrides : single or list of {'default', OpFromGraph, callable, Variable with special type}, optional
@@ -74,15 +131,15 @@ class OpFromGraph(gof.Op):
         arguments as one would specify in grad() method.
 
         callable : Should take three args: ``inputs``, ``outputs`` and ``output_grads``.
-        Each argument is expected to be a list of :class:`Variable <theano.gof.Variable>`.
-        Must return list of :class:`Variable <theano.gof.Variable>`.
+        Each argument is expected to be a list of :class:`Variable <theano.gof.graph.Variable>`.
+        Must return list of :class:`Variable <theano.gof.graph.Variable>`.
 
         Variable :
             ``NullType() instance`` : Treat as non-differentiable
             ``DisconnectedType() instance`` : Treat as disconnected gradient, numerically gives zero
 
         list: Each OpFromGraph/callable must return a single
-        :class:`Variable <theano.gof.Variable>`. Each list element corresponds to gradient of
+        :class:`Variable <theano.gof.graph.Variable>`. Each list element corresponds to gradient of
         a specific input, length of list must be equal to number of inputs.
 
     rop_overrides : single or list of {'default', OpFromGraph, callable, Variable with special type}, optional
@@ -95,15 +152,15 @@ class OpFromGraph(gof.Op):
         arguments as one would specify in R_op() method.
 
         callable : Should take two args: ``inputs`` and ``eval_points``.
-        Each argument is expected to be a list of :class:`Variable <theano.gof.Variable>`.
-        Must return list of :class:`Variable <theano.gof.Variable>`.
+        Each argument is expected to be a list of :class:`Variable <theano.gof.graph.Variable>`.
+        Must return list of :class:`Variable <theano.gof.graph.Variable>`.
 
         Variable :
             ``NullType() instance`` : Treat as non-differentiable
             ``DisconnectedType() instance`` : Treat as zero since DisconnectedType is not yet supported in R_op
 
         list: Each OpFromGraph/callable must return a single
-        :class:`Variable <theano.gof.Variable>`. Each list element corresponds
+        :class:`Variable <theano.gof.graph.Variable>`. Each list element corresponds
         to a specific output of R_op, length of list must be equal to number of outputs.
 
     connection_pattern : list of list
@@ -116,7 +173,7 @@ class OpFromGraph(gof.Op):
 
     \*\*kwargs : optional
         Check
-        :func:`orig_function <theano.compile.function_module.orig_function>`
+        :func:`orig_function <theano.compile.function.types.orig_function>`
         for more arguments, only works when not inline.
 
 
@@ -158,7 +215,8 @@ class OpFromGraph(gof.Op):
 
     .. code-block:: python
 
-        from theano import function, OpFromGraph, tensor
+        from theano import function, tensor
+        from theano.compile.builders import OpFromGraph
         x, y, z = tensor.scalars('xyz')
         e = x + y * z
         op = OpFromGraph([x, y, z], [e])
@@ -172,7 +230,9 @@ class OpFromGraph(gof.Op):
 
         import numpy as np
         import theano
-        from theano import config, function, OpFromGraph, tensor
+        from theano import config, function, tensor
+        from theano.compile.builders import OpFromGraph
+
         x, y, z = tensor.scalars('xyz')
         s = theano.shared(np.random.rand(2, 2).astype(config.floatX))
         e = x + y * z + s
@@ -185,7 +245,9 @@ class OpFromGraph(gof.Op):
 
     .. code-block:: python
 
-        from theano import function, OpFromGraph, tensor, grad
+        from theano import function, tensor, grad
+        from theano.compile.builders import OpFromGraph
+
         x, y, z = tensor.scalars('xyz')
         e = x + y * z
         def rescale_dy(inps, grads):
@@ -718,9 +780,8 @@ class OpFromGraph(gof.Op):
         return list(map(list, cpmat_self))
 
     def infer_shape(self, node, shapes):
-        out_shp = theano.scan_module.scan_utils.infer_shape(
-            self.local_outputs, self.local_inputs, shapes
-        )
+
+        out_shp = infer_shape(self.local_outputs, self.local_inputs, shapes)
 
         # Clone the output shape so that shape are computed from outer inputs.
         # Note:
@@ -756,7 +817,7 @@ class OpFromGraph(gof.Op):
             output[0] = variable.copy()
 
 
-@gof.local_optimizer([OpFromGraph])
+@local_optimizer([OpFromGraph])
 def inline_ofg_expansion(node):
     """
     This optimization expands internal graph of OpFromGraph.
@@ -777,7 +838,7 @@ def inline_ofg_expansion(node):
 # and before the first scan optimizer.
 optdb.register(
     "inline_ofg_expansion",
-    gof.opt.in2out(inline_ofg_expansion),
+    in2out(inline_ofg_expansion),
     -0.01,
     "fast_compile",
     "fast_run",

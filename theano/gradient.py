@@ -4,15 +4,17 @@ import logging
 import time
 import warnings
 from collections import OrderedDict
-from functools import reduce
+from functools import partial, reduce
 
 import numpy as np
 
 import theano
 from theano import gof
 from theano.compile.debugmode import DebugMode
+from theano.compile.function import function
 from theano.compile.mode import FAST_RUN, get_mode
 from theano.compile.ops import ViewOp
+from theano.compile.sharedvalue import shared
 from theano.gof import Variable, utils
 from theano.gof.null_type import NullType, null_type
 from theano.gof.op import get_test_values
@@ -207,7 +209,6 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
         coordinates of the tensor element in the last.
         If `wrt` is a list/tuple, then return a list/tuple with the results.
     """
-    from theano.tensor import as_tensor_variable
 
     using_list = isinstance(f, list)
     using_tuple = isinstance(f, tuple)
@@ -228,9 +229,9 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
         i = pack[0]
         wrt_elem, eval_point = pack[1]
         if not isinstance(wrt_elem, gof.Variable):
-            wrt_elem = as_tensor_variable(wrt_elem)
+            wrt_elem = theano.tensor.as_tensor_variable(wrt_elem)
         if not isinstance(eval_point, gof.Variable):
-            eval_point = as_tensor_variable(eval_point)
+            eval_point = theano.tensor.as_tensor_variable(eval_point)
 
         try:
 
@@ -290,9 +291,9 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
         for x, y in zip(inputs, local_eval_points):
             if y is not None:
                 if not isinstance(x, gof.Variable):
-                    x = as_tensor_variable(x)
+                    x = theano.tensor.as_tensor_variable(x)
                 if not isinstance(y, gof.Variable):
-                    y = as_tensor_variable(y)
+                    y = theano.tensor.as_tensor_variable(y)
                 try:
                     y = x.type.filter_variable(y)
                 except TypeError:
@@ -351,7 +352,7 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
                     "'ignore', 'warn' and 'raise'."
                 )
             if return_disconnected.lower() == "zero":
-                rval.append(tensor.zeros_like(out))
+                rval.append(theano.tensor.zeros_like(out))
             elif return_disconnected.lower() == "none":
                 rval.append(None)
             elif return_disconnected.lower() == "disconnected":
@@ -496,9 +497,6 @@ def grad(
 
     """
     t0 = time.time()
-    global tensor
-    if tensor is None:
-        from theano import tensor
 
     if cost is None:
         if known_grads is None:
@@ -559,7 +557,7 @@ def grad(
         # So before we try to cast it make sure it even has a dtype
         if (
             hasattr(g_cost.type, "dtype")
-            and cost.type.dtype in tensor.continuous_dtypes
+            and cost.type.dtype in theano.tensor.continuous_dtypes
         ):
             # Here we enforce the constraint that floating point variables
             # have the same dtype as their gradient.
@@ -568,7 +566,7 @@ def grad(
         # This is to be enforced by the Op.grad method for the
         # Op that outputs cost.
         if hasattr(g_cost.type, "dtype"):
-            assert g_cost.type.dtype in tensor.continuous_dtypes
+            assert g_cost.type.dtype in theano.tensor.continuous_dtypes
 
         grad_dict[cost] = g_cost
 
@@ -638,7 +636,7 @@ def grad(
     for var in grad_dict:
         g = grad_dict[var]
         if hasattr(g.type, "dtype"):
-            assert g.type.dtype in tensor.float_dtypes
+            assert g.type.dtype in theano.tensor.float_dtypes
 
     rval = _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name)
 
@@ -646,7 +644,7 @@ def grad(
         if isinstance(rval[i].type, NullType):
             if null_gradients == "raise":
                 raise NullTypeGradError(
-                    "tensor.grad encountered a NaN. " + rval[i].type.why_null
+                    "theano.tensor.grad encountered a NaN. " + rval[i].type.why_null
                 )
             else:
                 assert null_gradients == "return"
@@ -1482,7 +1480,7 @@ def _float_ones_like(x):
     floating point dtype"""
 
     dtype = x.type.dtype
-    if dtype not in tensor.float_dtypes:
+    if dtype not in theano.tensor.float_dtypes:
         dtype = theano.config.floatX
 
     return x.ones_like(dtype=dtype)
@@ -1779,14 +1777,10 @@ def verify_grad(
     Notes
     -----
     This function does not support multiple outputs. In
-    tests/test_scan.py there is an experimental verify_grad that
-    covers that case as well by using random projections.
+    tests/scan/test_basic.py there is an experimental `verify_grad` that covers
+    that case as well by using random projections.
 
     """
-    # The import is here to prevent circular import.
-    import theano.tensor
-    from theano import compile, shared
-    from theano.tensor import TensorType, as_tensor_variable
 
     assert isinstance(pt, (list, tuple))
     pt = [np.array(p) for p in pt]
@@ -1819,24 +1813,22 @@ def verify_grad(
             "theano.gradient.verify_grad."
         )
 
-    # We allow input downcast in function, because numeric_grad works in the
-    # most precise dtype used among the inputs, so we may need to cast some.
-    def function(inputs, output, name, mode=mode):
-        f = compile.function(
-            inputs,
-            output,
-            accept_inplace=True,
-            allow_input_downcast=True,
-            mode=mode,
-            on_unused_input="ignore",
-            name=name,
-        )
-        return f
+    # We allow input downcast in `function`, because `numeric_grad` works in
+    # the most precise dtype used among the inputs, so we may need to cast
+    # some.
+    fn_maker = partial(
+        function,
+        accept_inplace=True,
+        allow_input_downcast=True,
+        on_unused_input="ignore",
+        mode=mode,
+    )
 
     tensor_pt = [
-        TensorType(as_tensor_variable(p).dtype, as_tensor_variable(p).broadcastable)(
-            name="input %i" % i
-        )
+        theano.tensor.TensorType(
+            theano.tensor.as_tensor_variable(p).dtype,
+            theano.tensor.as_tensor_variable(p).broadcastable,
+        )(name="input %i" % i)
         for i, p in enumerate(pt)
     ]
 
@@ -1845,19 +1837,19 @@ def verify_grad(
 
     if isinstance(o_output, list):
         raise NotImplementedError(
-            "cant (yet) autotest gradient of fun " "with multiple outputs"
+            "Cant (yet) auto-test the gradient of a function with multiple outputs"
         )
         # we could make loop over outputs making random projections R for each,
         # but this doesn't handle the case where not all the outputs are
         # differentiable... so I leave this as TODO for now -JB.
 
-    o_fn = function(tensor_pt, o_output, name="gradient.py fwd")
+    o_fn = fn_maker(tensor_pt, o_output, name="gradient.py fwd")
     o_fn_out = o_fn(*[p.copy() for p in pt])
 
     if isinstance(o_fn_out, tuple) or isinstance(o_fn_out, list):
         raise TypeError(
             "It seems like you are trying to use verify_grad "
-            "on an op or a function which outputs a list: there should"
+            "on an Op or a function which outputs a list: there should"
             " be a single (array-like) output instead"
         )
 
@@ -1881,60 +1873,50 @@ def verify_grad(
     else:
         mode_for_cost = mode
 
-    cost_fn = function(tensor_pt, cost, name="gradient.py cost", mode=mode_for_cost)
+    cost_fn = fn_maker(tensor_pt, cost, name="gradient.py cost", mode=mode_for_cost)
 
     symbolic_grad = grad(cost, tensor_pt, disconnected_inputs="ignore")
 
-    grad_fn = function(tensor_pt, symbolic_grad, name="gradient.py symbolic grad")
+    grad_fn = fn_maker(tensor_pt, symbolic_grad, name="gradient.py symbolic grad")
 
     for test_num in range(n_tests):
-        try:
-            num_grad = numeric_grad(cost_fn, [p.copy() for p in pt], eps, out_type)
+        num_grad = numeric_grad(cost_fn, [p.copy() for p in pt], eps, out_type)
 
-            analytic_grad = grad_fn(*[p.copy() for p in pt])
+        analytic_grad = grad_fn(*[p.copy() for p in pt])
 
-            # Since `tensor_pt` is a list, `analytic_grad` should be one too.
-            assert isinstance(analytic_grad, list)
+        # Since `tensor_pt` is a list, `analytic_grad` should be one too.
+        assert isinstance(analytic_grad, list)
 
-            max_arg, max_err_pos, max_abs_err, max_rel_err = num_grad.max_err(
-                analytic_grad, abs_tol, rel_tol
+        max_arg, max_err_pos, max_abs_err, max_rel_err = num_grad.max_err(
+            analytic_grad, abs_tol, rel_tol
+        )
+
+        if max_abs_err > abs_tol and max_rel_err > rel_tol:
+
+            raise GradientError(
+                max_arg,
+                max_err_pos,
+                analytic_grad[max_arg].shape,
+                analytic_grad[max_arg].flatten()[max_err_pos],
+                num_grad.gf[max_arg].flatten()[max_err_pos],
+                max_abs_err,
+                max_rel_err,
+                abs_tol,
+                rel_tol,
             )
 
-            if max_abs_err > abs_tol and max_rel_err > rel_tol:
-
-                raise verify_grad.E_grad(
-                    max_arg,
-                    max_err_pos,
-                    analytic_grad[max_arg].shape,
-                    analytic_grad[max_arg].flatten()[max_err_pos],
-                    num_grad.gf[max_arg].flatten()[max_err_pos],
-                    max_abs_err,
-                    max_rel_err,
-                    abs_tol,
-                    rel_tol,
-                )
-
-            # get new random projection for next test
-            if test_num < n_tests - 1:
-                t_r.set_value(random_projection(), borrow=True)
-        except Exception as e:
-            e.args += (
-                "\nThe error happened with the following inputs:",
-                pt,
-                "\nThe value of eps is:",
-                eps,
-                "\nThe out_type is:",
-                out_type,
-            )
-            raise
+        # get new random projection for next test
+        if test_num < n_tests - 1:
+            t_r.set_value(random_projection(), borrow=True)
 
 
 class GradientError(Exception):
-    """This error is raised when a gradient is calculated, but incorrect."""
+    """This error is raised when a gradient is incorrectly calculated."""
 
     def __init__(
         self, arg, err_pos, shape, val1, val2, abs_err, rel_err, abs_tol, rel_tol
     ):
+        super().__init__()
         self.arg = arg
         self.err_pos = err_pos
         self.shape = shape
@@ -1973,9 +1955,6 @@ Exception args: %s""" % (
         )
 
 
-verify_grad.E_grad = GradientError
-
-
 def jacobian(expression, wrt, consider_constant=None, disconnected_inputs="raise"):
     """
     Compute the full Jacobian, row by row.
@@ -2006,14 +1985,13 @@ def jacobian(expression, wrt, consider_constant=None, disconnected_inputs="raise
         output, then a zero variable is returned. The return value is
         of same type as `wrt`: a list/tuple or TensorVariable in all cases.
     """
-    from theano.tensor import arange
 
     # Check inputs have the right format
     assert isinstance(
         expression, Variable
-    ), "tensor.jacobian expects a Variable as `expression`"
+    ), "theano.tensor.jacobian expects a Variable as `expression`"
     assert expression.ndim < 2, (
-        "tensor.jacobian expects a 1 dimensional variable as "
+        "theano.tensor.jacobian expects a 1 dimensional variable as "
         "`expression`. If not use flatten to make it a vector"
     )
 
@@ -2058,7 +2036,7 @@ def jacobian(expression, wrt, consider_constant=None, disconnected_inputs="raise
     # counter example please show me)
     jacobs, updates = theano.scan(
         inner_function,
-        sequences=arange(expression.shape[0]),
+        sequences=theano.tensor.arange(expression.shape[0]),
         non_sequences=[expression] + wrt,
     )
     assert not updates, (
@@ -2095,11 +2073,14 @@ def hessian(cost, wrt, consider_constant=None, disconnected_inputs="raise"):
         output, then a zero variable is returned. The return value is
         of same type as `wrt`: a list/tuple or TensorVariable in all cases.
     """
-    from theano.tensor import arange
 
     # Check inputs have the right format
-    assert isinstance(cost, Variable), "tensor.hessian expects a Variable as `cost`"
-    assert cost.ndim == 0, "tensor.hessian expects a 0 dimensional variable as `cost`"
+    assert isinstance(
+        cost, Variable
+    ), "theano.tensor.hessian expects a Variable as `cost`"
+    assert (
+        cost.ndim == 0
+    ), "theano.tensor.hessian expects a 0 dimensional variable as `cost`"
 
     using_list = isinstance(wrt, list)
     using_tuple = isinstance(wrt, tuple)
@@ -2113,9 +2094,10 @@ def hessian(cost, wrt, consider_constant=None, disconnected_inputs="raise"):
     for input in wrt:
         assert isinstance(
             input, Variable
-        ), "tensor.hessian expects a (list of) Variable as `wrt`"
+        ), "theano.tensor.hessian expects a (list of) Variable as `wrt`"
         assert input.ndim == 1, (
-            "tensor.hessian expects a (list of) 1 dimensional variable " "as `wrt`"
+            "theano.tensor.hessian expects a (list of) 1 dimensional variable "
+            "as `wrt`"
         )
         expr = grad(
             cost,
@@ -2134,7 +2116,7 @@ def hessian(cost, wrt, consider_constant=None, disconnected_inputs="raise"):
                 consider_constant=consider_constant,
                 disconnected_inputs="ignore",
             ),
-            sequences=arange(expr.shape[0]),
+            sequences=theano.tensor.arange(expr.shape[0]),
             non_sequences=[expr, input],
         )
         assert not updates, (

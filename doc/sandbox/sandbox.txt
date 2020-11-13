@@ -158,4 +158,4 @@ How to reuse (overwrite) a storage tensor
 =========================================
 
 ``theano.compile.io.Out(gw1, borrow = True)`` for that value in
-``compile.function``
+``theano.compile.function.function``

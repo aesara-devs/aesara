@@ -3,6 +3,7 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
+from theano.gradient import GradientError
 from theano.tensor import (
     cast,
     complex,
@@ -78,7 +79,7 @@ class TestRealImag:
         aval = np.asarray(rng.randn(2, 5))
         try:
             utt.verify_grad(f, [aval])
-        except utt.verify_grad.E_grad as e:
+        except GradientError as e:
             print(e.num_grad.gf)
             print(e.analytic_grad)
             raise
@@ -93,7 +94,7 @@ class TestRealImag:
         aval = np.asarray(rng.randn(2, 5))
         try:
             utt.verify_grad(f, [aval])
-        except utt.verify_grad.E_grad as e:
+        except GradientError as e:
             print(e.num_grad.gf)
             print(e.analytic_grad)
             raise
@@ -109,7 +110,7 @@ class TestRealImag:
         bval = rng.randn(5)
         try:
             utt.verify_grad(f, [aval, bval])
-        except utt.verify_grad.E_grad as e:
+        except GradientError as e:
             print(e.num_grad.gf)
             print(e.analytic_grad)
             raise

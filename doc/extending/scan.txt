@@ -46,24 +46,24 @@ Relevant code files
 ===================
 
 The implementation of Scan is spread over several files in
-``theano/scan_module``.  The different files, and sections of the code they
+``theano/scan``.  The different files, and sections of the code they
 deal with, are :
 
-* ``scan.py`` implements the ``scan`` function. The ``scan`` function
+* ``basic.py`` implements the ``scan`` function. The ``scan`` function
   arranges the arguments of scan correctly, constructs the scan op and
   afterwards calls the constructed scan op on the arguments. This function
   takes care of figuring out missing inputs and shared variables.
 
-* ``scan_op.py`` implements the ``Scan`` op class. The ``Scan`` respects
+* ``op.py`` implements the ``Scan`` op class. The ``Scan`` respects
   the ``Op`` interface, and contains most of the logic of the scan operator.
 
-* ``scan_utils.py`` contains several helpful functions used throughout out the
+* ``utils.py`` contains several helpful functions used throughout out the
   other files that are specific of the scan operator.
 
-* ``scan_views.py`` contains different views of the scan op that have
+* ``views.py`` contains different views of the scan op that have
   simpler and easier signatures to be used in specific cases.
 
-* ``scan_opt.py`` contains the list of all Theano graph optimizations for the
+* ``opt.py`` contains the list of all Theano graph optimizations for the
   scan operator.
 
 
@@ -269,14 +269,14 @@ Because of the complexity involved in dealing with Scan, a large number of
 helper classes and functions have been developped over time to implement
 operations commonly needed when dealing with the scan op. The scan op
 itself defines a large number of them and others can be found in the file
-``scan_utils.py``. This sections aims to point out the most useful ones sorted
+``utils.py``. This sections aims to point out the most useful ones sorted
 by usage.
 
 
 Accessing/manipulating Scan's inputs and outputs by type
 --------------------------------------------------------
 
-Declared in ``scan_utils.py``, the class ``scan_args`` handles the
+Declared in ``utils.py``, the class ``scan_args`` handles the
 parsing of the inputs and outputs (both inner and outer) to a format
 that is easier to analyse and manipulate. Without this class,
 analysing Scan's inputs and outputs often required convoluted logic

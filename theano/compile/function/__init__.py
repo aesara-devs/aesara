@@ -1,18 +1,14 @@
-"""
-Define the `function` function.
-
-"""
-
-
 import logging
 import re
 import traceback as tb
 import warnings
 from collections import OrderedDict
 
-from theano.compile.function_module import orig_function
-from theano.compile.pfunc import pfunc
+from theano.compile.function.pfunc import pfunc
+from theano.compile.function.types import orig_function
 
+
+__all__ = ["types", "pfunc"]
 
 __docformat__ = "restructuredtext en"
 _logger = logging.getLogger("theano.compile.function")
@@ -104,7 +100,7 @@ def function(
     on_unused_input=None,
 ):
     """
-    Return a :class:`callable object <theano.compile.function_module.Function>`
+    Return a :class:`callable object <theano.compile.function.types.Function>`
     that will calculate `outputs` from `inputs`.
 
     Parameters
@@ -162,7 +158,7 @@ def function(
 
     Returns
     -------
-    :class:`theano.compile.function_module.Function` instance
+    :class:`theano.compile.function.types.Function` instance
         A callable object that will compute the outputs (given the inputs) and
         update the implicit function arguments according to the `updates`.
 

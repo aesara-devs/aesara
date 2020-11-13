@@ -723,10 +723,10 @@ Backtrace when the node is created:
 Traceback (most recent call last):
   File "test.py", line 9, in <module>
     f(np.ones((2,)), np.ones((3,)))
-  File "/u/bastienf/repos/theano/compile/function_module.py",
+  File "/u/bastienf/repos/theano/compile/function/types.py",
        line 589, in __call__
     self.fn.thunks[self.fn.position_of_error])
-  File "/u/bastienf/repos/theano/compile/function_module.py",
+  File "/u/bastienf/repos/theano/compile/function/types.py",
        line 579, in __call__
     outputs = self.fn()
 

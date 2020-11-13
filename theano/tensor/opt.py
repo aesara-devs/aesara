@@ -307,7 +307,7 @@ class InplaceElemwiseOptimizer(Optimizer):
         protected_inputs = [
             f.protected
             for f in fgraph._features
-            if isinstance(f, theano.compile.function_module.Supervisor)
+            if isinstance(f, theano.compile.function.types.Supervisor)
         ]
         protected_inputs = sum(protected_inputs, [])  # flatten the list
         protected_inputs.extend(fgraph.outputs)

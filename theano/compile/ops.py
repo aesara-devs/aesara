@@ -260,7 +260,7 @@ class Shape(Op):
     def perform(self, node, inp, out_):
         (x,) = inp
         (out,) = out_
-        out[0] = theano._asarray(x.shape, dtype="int64")
+        out[0] = theano._asarray(np.shape(x), dtype="int64")
 
     def infer_shape(self, node, in_shapes):
         return [[len(in_shapes[0])]]
@@ -370,9 +370,6 @@ class Shape_i(Op):
         return "%s{%i}" % (self.__class__.__name__, self.i)
 
     def make_node(self, x):
-        # x could be one of a number of types
-        # the only thing we require is that the variable have a .ndim,
-        # and that the value have a .shape
         if not isinstance(x, theano.Variable):
             raise TypeError("x must be Variable with ndim attribute", x)
         if x.ndim <= self.i:
@@ -383,9 +380,9 @@ class Shape_i(Op):
         (x,) = inp
         (out,) = out_
         if out[0] is None:
-            out[0] = theano._asarray(x.shape[self.i], dtype="int64")
+            out[0] = theano._asarray(np.shape(x)[self.i], dtype="int64")
         else:
-            out[0][...] = x.shape[self.i]
+            out[0][...] = np.shape(x)[self.i]
 
     def c_code_cache_version(self):
         version = []
@@ -489,7 +486,7 @@ def shape_i(var, i, fgraph=None):
     # If we are not able to use the shape feature, we should not put
     # Shape_i in the graph. Otherwise, the shape feature optimization
     # won't get applied.
-    return var.shape[i]
+    return shape(var)[i]
 
 
 def shape_i_op(i):
