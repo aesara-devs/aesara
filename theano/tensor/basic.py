@@ -650,7 +650,7 @@ def get_scalar_constant_value(
                     if not (idx < len(gp_broadcastable)):
                         msg = (
                             "get_scalar_constant_value detected "
-                            f"deterministic IndexError: x.shape[{int(idx)] "
+                            f"deterministic IndexError: x.shape[{int(idx)}] "
                             f"when x.ndim={int(ndim)}."
                         )
                         if config.exception_verbosity == "high":
