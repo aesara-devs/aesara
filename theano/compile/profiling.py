@@ -1405,7 +1405,7 @@ class ProfileStats:
         if min_max_peak:
             print(
                 "    Minimum peak from all valid apply node order is "
-                f"{int(round(min_max_peak / 1024.0))}KB(took {min_peak_time:3f}s to compute)"
+                f"{int(round(min_max_peak / 1024.0))}KB(took {min_peak_time:3f}s to compute)",
                 file=file,
             )
 
