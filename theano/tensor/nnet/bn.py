@@ -774,7 +774,7 @@ class AbstractBatchNormTrainGrad(Op):
 
 
 @local_optimizer([AbstractBatchNormTrain])
-def local_abstract_batch_norm_train(node):
+def local_abstract_batch_norm_train(fgraph, node):
     if not isinstance(node.op, AbstractBatchNormTrain):
         return None
 
@@ -833,7 +833,7 @@ def local_abstract_batch_norm_train(node):
 
 
 @local_optimizer([AbstractBatchNormTrainGrad])
-def local_abstract_batch_norm_train_grad(node):
+def local_abstract_batch_norm_train_grad(fgraph, node):
     if not isinstance(node.op, AbstractBatchNormTrainGrad):
         return None
 
@@ -872,7 +872,7 @@ def local_abstract_batch_norm_train_grad(node):
 
 
 @local_optimizer([AbstractBatchNormInference])
-def local_abstract_batch_norm_inference(node):
+def local_abstract_batch_norm_inference(fgraph, node):
     if not isinstance(node.op, AbstractBatchNormInference):
         return None
 

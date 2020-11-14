@@ -3212,7 +3212,7 @@ class Alloc(gof.Op):
             return [None]
         return self(eval_points[0], *inputs[1:], **dict(return_list=True))
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         if not getattr(node.outputs[0], "clients", []):
             # If there are no clients then there is no point doing constant
             # folding.
@@ -7250,7 +7250,7 @@ class AllocEmpty(gof.Op):
     def c_code_cache_version(self):
         return (4,)
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         return False
 
     def connection_pattern(self, node):

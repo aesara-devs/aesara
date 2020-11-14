@@ -1150,7 +1150,7 @@ def _is_real_vector(res):
     )
 
 
-def _beta_L_plus_alpha_M(beta, L, alpha, M, recurse_flip=True):
+def _beta_L_plus_alpha_M(fgraph, beta, L, alpha, M, recurse_flip=True):
     # print 'BETA L + ALPHA M', beta, L, alpha, M, recurse_flip
     # EXPRESSION: (beta * L) + (alpha * M)
 
@@ -1223,7 +1223,7 @@ def _beta_L_plus_alpha_M(beta, L, alpha, M, recurse_flip=True):
             return rval
 
     if recurse_flip:
-        return _beta_L_plus_alpha_M(alpha, M, beta, L, recurse_flip=False)
+        return _beta_L_plus_alpha_M(fgraph, alpha, M, beta, L, recurse_flip=False)
     else:
         return False, False
 
@@ -1354,7 +1354,7 @@ def _factor_canonicalized(lst):
     return lst
 
 
-def _gemm_from_factored_list(lst):
+def _gemm_from_factored_list(fgraph, lst):
     """
     Returns None, or a list to replace node.outputs.
 
@@ -1396,7 +1396,9 @@ def _gemm_from_factored_list(lst):
 
             # print 'TRYING', (s_i, M_i, s_j, M_j)
 
-            gemm_of_sM_list, old_dot22 = _beta_L_plus_alpha_M(s_i, M_i, s_j, M_j)
+            gemm_of_sM_list, old_dot22 = _beta_L_plus_alpha_M(
+                fgraph, s_i, M_i, s_j, M_j
+            )
             # print 'GOT IT', gemm_of_sM_list
             if gemm_of_sM_list:
 
@@ -1413,7 +1415,7 @@ def _gemm_from_factored_list(lst):
                 return rval, old_dot22
 
 
-def _gemm_from_node2(node):
+def _gemm_from_node2(fgraph, node):
     """
     :todo: In many expressions, there are many ways to turn it into a
         gemm.  For example dot(a,b) + c + d.  This function should
@@ -1431,7 +1433,7 @@ def _gemm_from_node2(node):
     if len(lst) > 1:
         lst = _factor_canonicalized(lst)
         t2 = time.time()
-        rval = _gemm_from_factored_list(lst)
+        rval = _gemm_from_factored_list(fgraph, lst)
         t3 = time.time()
 
         # It can happen that _factor_canonicalized and
@@ -1507,7 +1509,7 @@ class GemmOptimizer(GlobalOptimizer):
                     # the graph
                     continue
                 try:
-                    new_outputs, time1, time2, time3 = _gemm_from_node2(node)
+                    new_outputs, time1, time2, time3 = _gemm_from_node2(fgraph, node)
                     time_canonicalize += time1
                     time_factor_can += time2
                     time_factor_list += time3
@@ -1682,7 +1684,7 @@ _dot22 = Dot22()
 
 
 @local_optimizer([tt.Dot])
-def local_dot_to_dot22(node):
+def local_dot_to_dot22(fgraph, node):
     # This works for tensor.outer too because basic.outer is a macro that
     # produces a dot(dimshuffle,dimshuffle) of form 4 below
     if not isinstance(node.op, tt.Dot):
@@ -1709,28 +1711,28 @@ def local_dot_to_dot22(node):
 
 
 @local_optimizer([gemm_no_inplace], inplace=True)
-def local_inplace_gemm(node):
+def local_inplace_gemm(fgraph, node):
     if node.op == gemm_no_inplace:
         with inherit_stack_trace(node.outputs):
             return [gemm_inplace(*node.inputs)]
 
 
 @local_optimizer([gemv_no_inplace], inplace=True)
-def local_inplace_gemv(node):
+def local_inplace_gemv(fgraph, node):
     if node.op == gemv_no_inplace:
         with inherit_stack_trace(node.outputs):
             return [gemv_inplace(*node.inputs)]
 
 
 @local_optimizer([ger], inplace=True)
-def local_inplace_ger(node):
+def local_inplace_ger(fgraph, node):
     if node.op == ger:
         with inherit_stack_trace(node.outputs):
             return [ger_destructive(*node.inputs)]
 
 
 @local_optimizer([gemm_no_inplace])
-def local_gemm_to_gemv(node):
+def local_gemm_to_gemv(fgraph, node):
     """GEMM acting on row or column matrices -> GEMV."""
     if node.op == gemm_no_inplace:
         z, a, x, y, b = node.inputs
@@ -1744,7 +1746,7 @@ def local_gemm_to_gemv(node):
 
 
 @local_optimizer([gemm_no_inplace])
-def local_gemm_to_ger(node):
+def local_gemm_to_ger(fgraph, node):
     """GEMM computing an outer-product -> GER."""
     if node.op == gemm_no_inplace:
         z, a, x, y, b = node.inputs
@@ -1775,7 +1777,7 @@ def local_gemm_to_ger(node):
 # TODO: delete this optimization when we have the proper dot->gemm->ger pipeline
 #      working
 @local_optimizer([_dot22])
-def local_dot22_to_ger_or_gemv(node):
+def local_dot22_to_ger_or_gemv(fgraph, node):
     """dot22 computing an outer-product -> GER."""
     if node.op == _dot22:
         with inherit_stack_trace(node.outputs):
@@ -1952,7 +1954,7 @@ _dot22scalar = Dot22Scalar()
 
 
 @local_optimizer([tt.mul])
-def local_dot22_to_dot22scalar(node):
+def local_dot22_to_dot22scalar(fgraph, node):
     """
     Notes
     -----
@@ -2563,6 +2565,6 @@ batched_dot = BatchedDot()
 # from opt import register_specialize, register_canonicalize
 # @register_specialize
 @local_optimizer([tt.sub, tt.add])
-def local_print_as_we_go_along(node):
+def local_print_as_we_go_along(fgraph, node):
     if node.op in (tt.sub, tt.add):
         debugprint(node)

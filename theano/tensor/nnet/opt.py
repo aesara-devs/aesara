@@ -35,7 +35,7 @@ from theano.tensor.type import TensorType
 
 
 @gof.local_optimizer([SparseBlockGemv], inplace=True)
-def local_inplace_sparse_block_gemv(node):
+def local_inplace_sparse_block_gemv(fgraph, node):
     """
     SparseBlockGemv(inplace=False) -> SparseBlockGemv(inplace=True)
     """
@@ -58,7 +58,7 @@ compile.optdb.register(
 
 
 @gof.local_optimizer([SparseBlockOuter], inplace=True)
-def local_inplace_sparse_block_outer(node):
+def local_inplace_sparse_block_outer(fgraph, node):
     """
     SparseBlockOuter(inplace=False) -> SparseBlockOuter(inplace=True)
     """
@@ -83,7 +83,7 @@ compile.optdb.register(
 
 # Conv opts
 @local_optimizer([AbstractConv2d])
-def local_abstractconv_gemm(node):
+def local_abstractconv_gemm(fgraph, node):
     # If theano.config.blas.ldflags is empty, Theano will use
     # a NumPy C implementation of [sd]gemm_.
     if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
@@ -111,7 +111,7 @@ def local_abstractconv_gemm(node):
 
 
 @local_optimizer([AbstractConv3d])
-def local_abstractconv3d_gemm(node):
+def local_abstractconv3d_gemm(fgraph, node):
     # If theano.config.blas.ldflags is empty, Theano will use
     # a NumPy C implementation of [sd]gemm_.
     if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
@@ -137,7 +137,7 @@ def local_abstractconv3d_gemm(node):
 
 
 @local_optimizer([AbstractConv2d_gradWeights])
-def local_abstractconv_gradweight_gemm(node):
+def local_abstractconv_gradweight_gemm(fgraph, node):
     # If theano.config.blas.ldflags is empty, Theano will use
     # a NumPy C implementation of [sd]gemm_.
     if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
@@ -168,7 +168,7 @@ def local_abstractconv_gradweight_gemm(node):
 
 
 @local_optimizer([AbstractConv3d_gradWeights])
-def local_abstractconv3d_gradweight_gemm(node):
+def local_abstractconv3d_gradweight_gemm(fgraph, node):
     # If theano.config.blas.ldflags is empty, Theano will use
     # a NumPy C implementation of [sd]gemm_.
     if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
@@ -197,7 +197,7 @@ def local_abstractconv3d_gradweight_gemm(node):
 
 
 @local_optimizer([AbstractConv2d_gradInputs])
-def local_abstractconv_gradinputs_gemm(node):
+def local_abstractconv_gradinputs_gemm(fgraph, node):
     # If theano.config.blas.ldflags is empty, Theano will use
     # a NumPy C implementation of [sd]gemm_.
     if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
@@ -227,7 +227,7 @@ def local_abstractconv_gradinputs_gemm(node):
 
 
 @local_optimizer([AbstractConv3d_gradInputs])
-def local_abstractconv3d_gradinputs_gemm(node):
+def local_abstractconv3d_gradinputs_gemm(fgraph, node):
     # If theano.config.blas.ldflags is empty, Theano will use
     # a NumPy C implementation of [sd]gemm_.
     if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
@@ -255,7 +255,7 @@ def local_abstractconv3d_gradinputs_gemm(node):
 
 
 @local_optimizer([AbstractConv2d])
-def local_conv2d_cpu(node):
+def local_conv2d_cpu(fgraph, node):
 
     if not isinstance(node.op, AbstractConv2d) or node.inputs[0].dtype == "float16":
         return None
@@ -287,7 +287,7 @@ def local_conv2d_cpu(node):
 
 
 @local_optimizer([AbstractConv2d_gradWeights])
-def local_conv2d_gradweight_cpu(node):
+def local_conv2d_gradweight_cpu(fgraph, node):
     if (
         not isinstance(node.op, AbstractConv2d_gradWeights)
         or node.inputs[0].dtype == "float16"
@@ -398,7 +398,7 @@ def local_conv2d_gradweight_cpu(node):
 
 
 @local_optimizer([AbstractConv2d_gradInputs])
-def local_conv2d_gradinputs_cpu(node):
+def local_conv2d_gradinputs_cpu(fgraph, node):
     if (
         not isinstance(node.op, AbstractConv2d_gradInputs)
         or node.inputs[0].dtype == "float16"
@@ -574,7 +574,7 @@ conv_groupopt.register(
         AbstractConv3d_gradInputs,
     ]
 )
-def local_abstractconv_check(node):
+def local_abstractconv_check(fgraph, node):
     if isinstance(
         node.op,
         (

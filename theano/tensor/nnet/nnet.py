@@ -771,7 +771,7 @@ logsoftmax_op = LogSoftmax()
 # optimization to not be inserted.
 @register_specialize("stabilize", "fast_compile")
 @local_optimizer([Elemwise])
-def local_logsoftmax(node):
+def local_logsoftmax(fgraph, node):
     """
     Detect Log(Softmax(x)) and replace it with LogSoftmax(x)
 
@@ -796,7 +796,7 @@ def local_logsoftmax(node):
 # optimization to not be inserted.
 @register_specialize("stabilize", "fast_compile")
 @local_optimizer([SoftmaxGrad])
-def local_logsoftmax_grad(node):
+def local_logsoftmax_grad(fgraph, node):
     """
     Detect Log(Softmax(x))'s grad and replace it with LogSoftmax(x)'s grad
 
@@ -852,7 +852,7 @@ def logsoftmax(c):
 
 @register_specialize("fast_compile_gpu")
 @local_optimizer([softmax_op])
-def local_softmax_with_bias(node):
+def local_softmax_with_bias(fgraph, node):
     """
     Try to turn softmax(sum_of_stuff) -> softmax_w_bias(matrix, bias).
 
@@ -1626,7 +1626,7 @@ optdb.register(
     "fast_compile_gpu", "local_crossentropy_to_crossentropy_with_softmax_grad"
 )  # old name
 @local_optimizer([softmax_grad])
-def local_softmax_grad_to_crossentropy_with_softmax_grad(node):
+def local_softmax_grad_to_crossentropy_with_softmax_grad(fgraph, node):
     if node.op == softmax_grad:
         g_coding_dist, coding_dist = node.inputs
         if (
@@ -1643,7 +1643,7 @@ def local_softmax_grad_to_crossentropy_with_softmax_grad(node):
 
 @register_specialize("fast_compile_gpu")
 @local_optimizer([MaxAndArgmax])
-def local_argmax_pushdown(node):
+def local_argmax_pushdown(fgraph, node):
     if (
         isinstance(node.op, MaxAndArgmax)
         and node.inputs[0].owner
@@ -1761,7 +1761,7 @@ def _is_const(z, val, approx=False):
 
 @register_specialize("fast_compile_gpu")
 @local_optimizer([AdvancedSubtensor, log])
-def local_advanced_indexing_crossentropy_onehot(node):
+def local_advanced_indexing_crossentropy_onehot(fgraph, node):
     log_op = None
     sm = None
     # First case: log(softmax(x))[rows, labels]
@@ -1783,7 +1783,7 @@ def local_advanced_indexing_crossentropy_onehot(node):
                 pass
 
     if sm is not None and sm.owner and sm.owner.op in (softmax_op, softmax_with_bias):
-        sm_w_bias = local_softmax_with_bias.transform(sm.owner)
+        sm_w_bias = local_softmax_with_bias.transform(fgraph, sm.owner)
         if sm_w_bias:
             assert sm_w_bias[0].owner.op == softmax_with_bias
             x_var, b_var = sm_w_bias[0].owner.inputs
@@ -1804,7 +1804,7 @@ def local_advanced_indexing_crossentropy_onehot(node):
 
 @register_specialize("fast_compile_gpu")
 @local_optimizer([softmax_grad])
-def local_advanced_indexing_crossentropy_onehot_grad(node):
+def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
     if not (node.op == softmax_grad):
         return
 
@@ -1819,7 +1819,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(node):
         and sm.owner
         and (sm.owner.op in (softmax_op, softmax_with_bias))
     ):
-        sm_w_bias = local_softmax_with_bias.transform(sm.owner)
+        sm_w_bias = local_softmax_with_bias.transform(fgraph, sm.owner)
         if sm_w_bias:
             assert sm_w_bias[0].owner.op == softmax_with_bias
             x_var, b_var = sm_w_bias[0].owner.inputs
@@ -2018,7 +2018,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(node):
 
 @register_specialize("fast_compile_gpu")
 @local_optimizer([softmax_with_bias])
-def graph_merge_softmax_with_crossentropy_softmax(node):
+def graph_merge_softmax_with_crossentropy_softmax(fgraph, node):
     if node.op == softmax_with_bias:
         x, b = node.inputs
         for x_client in x.clients:
@@ -2035,7 +2035,7 @@ def graph_merge_softmax_with_crossentropy_softmax(node):
 @register_stabilize
 @register_canonicalize
 @local_optimizer([CrossentropySoftmax1HotWithBiasDx])
-def local_useless_crossentropy_softmax_1hot_with_bias_dx_alloc(node):
+def local_useless_crossentropy_softmax_1hot_with_bias_dx_alloc(fgraph, node):
     """
     Replace a CrossentropySoftmax1HotWithBiasDx op, whose incoming gradient is
     an `alloc` of a scalar variable or one that has either broadcastable or

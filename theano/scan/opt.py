@@ -114,7 +114,7 @@ def info(*msg):
 
 
 @gof.local_optimizer([Scan])
-def remove_constants_and_unused_inputs_scan(node):
+def remove_constants_and_unused_inputs_scan(fgraph, node):
     """
     Move constants into the inner graph, and remove unused inputs.
 
@@ -746,7 +746,7 @@ class PushOutScanOutput(gof.GlobalOptimizer):
                 isinstance(nd.op, theano.tensor.elemwise.Elemwise)
                 and isinstance(nd.op.scalar_op, scalar.Add)
                 and nd.out in args.inner_out_sit_sot
-                and self.inner_sitsot_only_last_step_used(nd.out, args)
+                and self.inner_sitsot_only_last_step_used(fgraph, nd.out, args)
             ):
 
                 # Ensure that one of the input to the add is the output of
@@ -825,7 +825,7 @@ class PushOutScanOutput(gof.GlobalOptimizer):
                         break
         return new_scan_node
 
-    def inner_sitsot_only_last_step_used(self, var, scan_args):
+    def inner_sitsot_only_last_step_used(self, fgraph, var, scan_args):
         """
         Given a inner nit_sot output of scan, return True iff the outer
         nit_sot output has only one client and that client is a Subtensor
@@ -1420,7 +1420,7 @@ class ScanSaveMem(gof.GlobalOptimizer):
                         # currently.
                         # pval = pre_greedy_local_optimizer(list_opt_slice,
                         #                                  pval)
-                        # pval = pre_constant_merge([pval])[0]
+                        # pval = pre_constant_merge(fgraph, [pval])[0]
                         # if (isinstance(pval, theano.tensor.TensorConstant)
                         # and
                         #    pval.dtype.startswith('int')):
@@ -1486,16 +1486,20 @@ class ScanSaveMem(gof.GlobalOptimizer):
                             tmp_idx = tensor.switch(
                                 cval < initl, cval + initl, cval - initl
                             )
-                            tmp = pre_greedy_local_optimizer(list_opt_slice, tmp_idx)
-                            tmp = pre_constant_merge([tmp])[0]
+                            tmp = pre_greedy_local_optimizer(
+                                fgraph, list_opt_slice, tmp_idx
+                            )
+                            tmp = pre_constant_merge(fgraph, [tmp])[0]
 
                             nw_input = expand_empty(_nw_input, tmp)
                         else:
                             tmp = tensor.as_tensor_variable(val)
                             initl = tensor.as_tensor_variable(init_l[i])
                             tmp = tensor.maximum(tmp, initl)
-                            tmp = pre_greedy_local_optimizer(list_opt_slice, tmp)
-                            tmp = pre_constant_merge([tmp])[0]
+                            tmp = pre_greedy_local_optimizer(
+                                fgraph, list_opt_slice, tmp
+                            )
+                            tmp = pre_constant_merge(fgraph, [tmp])[0]
                             nw_input = nw_inputs[offset + idx][:tmp]
 
                         nw_inputs[offset + idx] = nw_input
@@ -1561,8 +1565,10 @@ class ScanSaveMem(gof.GlobalOptimizer):
             for k, v in compress_map.items():
                 inv_compress_map[v] = k
 
-            node_ins = [pre_greedy_local_optimizer(list_opt_slice, x) for x in node_ins]
-            node_ins = pre_constant_merge(node_ins)
+            node_ins = [
+                pre_greedy_local_optimizer(fgraph, list_opt_slice, x) for x in node_ins
+            ]
+            node_ins = pre_constant_merge(fgraph, node_ins)
             # 3.6 Compose the new scan
             # TODO: currently we don't support scan with 0 step. So
             # don't create one.
@@ -1961,7 +1967,7 @@ def make_equiv(lo, li):
 
 
 @gof.local_optimizer([Scan])
-def scan_merge_inouts(node):
+def scan_merge_inouts(fgraph, node):
     if not isinstance(node.op, Scan):
         return False
 

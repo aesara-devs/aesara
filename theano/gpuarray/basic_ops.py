@@ -992,7 +992,7 @@ class GpuAlloc(HideC, Alloc):
     def c_code_cache_version(self):
         return (4,)
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         from . import blas, subtensor
 
         for client in node.outputs[0].clients:
@@ -1117,7 +1117,7 @@ if (theano_prep_output(&%(zz)s, %(ndim)s, shape, %(params)s->typecode, GA_C_ORDE
     def c_code_cache_version(self):
         return (2,)
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         return False
 
     def infer_shape(self, node, input_shapes):

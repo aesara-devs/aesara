@@ -79,7 +79,7 @@ class NoInputOp(Op):
 class StructOp(Op):
     __props__ = ()
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         # we are not constant
         return False
 

@@ -1466,6 +1466,7 @@ class Scan(PureOp):
                     if hasattr(fn, "thunks"):
                         # For the CVM
                         gof.link.raise_with_op(
+                            self.fn.maker.fgraph,
                             fn.nodes[fn.position_of_error],
                             fn.thunks[fn.position_of_error],
                         )
@@ -1474,7 +1475,9 @@ class Scan(PureOp):
                         # We don't have access from python to all the
                         # temps values So for now, we just don't print
                         # the extra shapes/strides info
-                        gof.vm.raise_with_op(fn.nodes[fn.position_of_error])
+                        gof.link.raise_with_op(
+                            self.fn.maker.fgraph, fn.nodes[fn.position_of_error]
+                        )
                 else:
                     # old-style linkers raise their own exceptions
                     raise

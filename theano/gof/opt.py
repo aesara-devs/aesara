@@ -856,9 +856,9 @@ class MergeOptimizer(GlobalOptimizer):
                 # skipped by validate() if the graph don't contain
                 # destroyers.
                 var, candidate, merge_mode = pairs_[0]
-                if merge_mode == "new_node" and hasattr(var, "fgraph"):
+                if merge_mode == "new_node" and var in fgraph.variables:
                     pass
-                elif not hasattr(var, "fgraph") or not hasattr(candidate, "fgraph"):
+                elif var not in fgraph.variables or candidate not in fgraph.variables:
                     continue
 
                 # Keep len(item) == 2 for item in pairs
@@ -899,7 +899,7 @@ class MergeOptimizer(GlobalOptimizer):
                     if not inputs_match:
                         continue
 
-                    if hasattr(pairs[0][0].fgraph, "destroy_handler"):
+                    if hasattr(fgraph, "destroy_handler"):
                         # If both nodes have clients that destroy
                         # them, we can't merge them.
                         clients = pairs[0][0].clients + pairs[0][1].clients
@@ -1036,57 +1036,64 @@ class MergeOptimizer(GlobalOptimizer):
         )
 
 
-def pre_constant_merge(vars):
-    """
-    Merge constants in the subgraph used to compute nodes in `vars`.
+def pre_constant_merge(fgraph, variables):
+    """Merge constants in the graphs for a list of `variables`.
 
-    `vars` is a list of nodes, and we want to merge together nodes
-    that are constant inputs used to compute nodes in that list.
+    XXX: This changes the nodes in a graph in-place!
+
+    `variables` is a list of nodes, and we want to merge together nodes that
+    are constant inputs used to compute nodes in that list.
+
+    We also want to avoid terms in the graphs for `variables` that are
+    contained in the `FunctionGraph` given by `fgraph`.  The reason for that:
+    it will break consistency of `fgraph` and its features
+    (e.g. `ShapeFeature`).
 
     Notes
     -----
-    This function will ignore nodes that are in an fgraph.
-    It is used to pre-merge nodes generated inside an optimization,
-    before it is inserted in the fgraph.
-    It is useful if there are many such replacements to make,
-    so that DebugMode will not check each of them.
+    It is used to pre-merge nodes generated inside an optimization.  It is
+    useful if there are many such replacements to make, so that `DebugMode`
+    will not check each of them.
 
     """
     seen_var = set()
     # signature -> variable (for constants)
     const_sig_inv = {}
-    if isinstance(vars, graph.Variable):
-        vars = [vars]
+    if isinstance(variables, graph.Variable):
+        variables = [variables]
 
     def recursive_merge(var):
+
         if var in seen_var:
             return var
+
         if not hasattr(var, "owner"):
             return var
-        if var.owner and hasattr(var.owner, "fgraph"):
+
+        # We don't want to merge constants that are *within* the
+        # `FunctionGraph`
+        if var.owner in fgraph.apply_nodes:
             return var
+
         seen_var.add(var)
+
         if isinstance(var, graph.Constant):
             sig = var.signature()
-            try:
-                if sig in const_sig_inv:
-                    return const_sig_inv[sig]
-                const_sig_inv[sig] = var
-            except TypeError:  # unhashable type
-                warnings.warn(
-                    "We work around a problem, the following variable"
-                    " signature isn't hashable. Please, report this to"
-                    f" theano-dev so that the better fix is done. {var}"
-                )
-                # Some python object like slice aren't hashable. So
-                # don't merge them here.
+
+            if sig in const_sig_inv:
+                return const_sig_inv[sig]
+
+            const_sig_inv[sig] = var
+
             return var
+
         if var.owner:
             for idx, inp in enumerate(var.owner.inputs):
+                # XXX: This is changing the graph in place!
                 var.owner.inputs[idx] = recursive_merge(inp)
         return var
 
-    return list(map(recursive_merge, vars))
+    return [recursive_merge(v) for v in variables]
 
 
 class LocalOptimizer(abc.ABC):
@@ -1108,7 +1115,7 @@ class LocalOptimizer(abc.ABC):
         return None
 
     @abc.abstractmethod
-    def transform(self, node, *args, **kwargs):
+    def transform(self, fgraph, node, *args, **kwargs):
         """
         Transform a subgraph whose output is `node`.
 
@@ -1171,7 +1178,7 @@ class LocalMetaOptimizer(LocalOptimizer):
     def tracks(self):
         return self._tracks
 
-    def transform(self, node):
+    def transform(self, fgraph, node, *args, **kwargs):
         # safety check: depending on registration, tracks may have been ignored
         if self._tracks is not None:
             if not isinstance(node.op, tuple(self._tracks)):
@@ -1211,7 +1218,7 @@ class LocalMetaOptimizer(LocalOptimizer):
             )
         timings = []
         for opt in self.get_opts(node):
-            outputs = opt.transform(node)
+            outputs = opt.transform(fgraph, node, *args, **kwargs)
             if outputs:
                 try:
                     fn = theano.function(
@@ -1386,10 +1393,9 @@ class LocalOptGroup(LocalOptimizer):
                 t.extend(tt)
         return t
 
-    def transform(self, node):
+    def transform(self, fgraph, node):
         if len(self.opts) == 0:
             return
-        fgraph = node.fgraph
         repl = None
         while True:
             opts = (
@@ -1400,7 +1406,7 @@ class LocalOptGroup(LocalOptimizer):
             new_repl = None
             for opt in opts:
                 opt_start = time.time()
-                new_repl = opt.transform(node)
+                new_repl = opt.transform(fgraph, node)
                 opt_finish = time.time()
                 if self.profile:
                     self.time_opts[opt] += opt_start - opt_finish
@@ -1508,14 +1514,13 @@ class GraphToGPULocalOptGroup(LocalOptGroup):
         super().__init__(*optimizers, **kwargs)
         assert self.apply_all_opts is False
 
-    def transform(self, op, context_name, inputs, outputs):
+    def transform(self, fgraph, op, context_name, inputs, outputs):
         if len(self.opts) == 0:
             return
-        fgraph = outputs[0].fgraph
         opts = self.track_map[type(op)] + self.track_map[op] + self.track_map[None]
         for opt in opts:
             opt_start = time.time()
-            new_repl = opt.transform(op, context_name, inputs, outputs)
+            new_repl = opt.transform(fgraph, op, context_name, inputs, outputs)
             opt_finish = time.time()
             if self.profile:
                 self.time_opts[opt] += opt_start - opt_finish
@@ -1564,7 +1569,7 @@ class OpSub(LocalOptimizer):
     def tracks(self):
         return [self.op1]
 
-    def transform(self, node):
+    def transform(self, fgraph, node):
         if node.op != self.op1:
             return False
         repl = self.op2.make_node(*node.inputs)
@@ -1597,7 +1602,7 @@ class OpRemove(LocalOptimizer):
     def tracks(self):
         return [self.op]
 
-    def transform(self, node):
+    def transform(self, fgraph, node):
         if node.op != self.op:
             return False
         return node.inputs
@@ -1736,17 +1741,17 @@ class PatternSub(LocalOptimizer):
             return self._tracks
         return [self.op]
 
-    def transform(self, node, get_nodes=True):
+    def transform(self, fgraph, node, get_nodes=True):
         """
         Checks if the graph from node corresponds to in_pattern. If it does,
         constructs out_pattern and performs the replacement.
 
         """
         if get_nodes and self.get_nodes is not None:
-            for real_node in self.get_nodes(node):
+            for real_node in self.get_nodes(fgraph, node):
                 if real_node == "output":
                     continue
-                ret = self.transform(real_node, get_nodes=False)
+                ret = self.transform(fgraph, real_node, get_nodes=False)
                 if ret is not False and ret is not None:
                     assert len(real_node.outputs) == len(ret)
                     if self.values_eq_approx:
@@ -2081,7 +2086,7 @@ class NavigatorOptimizer(GlobalOptimizer):
         """
         lopt = lopt or self.local_opt
         try:
-            replacements = lopt.transform(node)
+            replacements = lopt.transform(fgraph, node)
         except Exception as e:
             if self.failure_callback is not None:
                 self.failure_callback(
@@ -2999,11 +3004,14 @@ def check_chain(r, *chain):
     return _check_chain(r, reduce(list.__iadd__, ([x, 0] for x in chain)))
 
 
-def pre_greedy_local_optimizer(list_optimizations, out):
-    """
-    This function traverses the computation graph described by all
-    ``node`` in the graph before the variable out but that are not in the
-    fgraph. It applies each of the local_optimizations on the traversed graph.
+def pre_greedy_local_optimizer(fgraph, optimizations, out):
+    """Apply local optimizations to a graph.
+
+    This function traverses the computation graph in the graph before the
+    variable `out` but that are not in the `fgraph`. It applies
+    `local_optimizations` to each variable on the traversed graph.
+
+    XXX: This changes the nodes in a graph in-place!
 
     Its main use is to apply locally constant folding when generating
     the graph of the indices of a subtensor.
@@ -3018,6 +3026,15 @@ def pre_greedy_local_optimizer(list_optimizations, out):
     adds additional node to the inputs of the node, it can
     be needed to call this function multiple times.
 
+    Parameters
+    ----------
+    fgraph : FunctionGraph
+        The graph used to avoid/filter nodes.
+    optimizations : list of LocalOptimizer
+        The list of local optimizations to apply
+    out : Variable
+        A `Variable` specifying the graph to optimize.
+
     """
 
     def local_recursive_function(list_opt, out, optimized_vars, depth):
@@ -3025,8 +3042,10 @@ def pre_greedy_local_optimizer(list_optimizations, out):
             return [out], optimized_vars
         node = out.owner
 
-        if hasattr(node, "fgraph"):
+        if node in fgraph.apply_nodes:
             return node.outputs, optimized_vars
+
+        # Walk up the graph via the node's inputs
         for idx, inp in enumerate(node.inputs):
             if inp in optimized_vars:
                 nw_in = optimized_vars[inp]
@@ -3042,11 +3061,14 @@ def pre_greedy_local_optimizer(list_optimizations, out):
                 else:
                     nw_in = inp
                     optimized_vars[inp] = inp
+
+            # XXX: An in-place change
             node.inputs[idx] = nw_in
 
+        # Apply the optimizations
         results = node.outputs
         for opt in list_opt:
-            ret = opt.transform(node)
+            ret = opt.transform(fgraph, node)
             if ret is not False and ret is not None:
                 assert len(ret) == len(node.outputs), opt
                 for k, v in zip(node.outputs, ret):
@@ -3056,15 +3078,15 @@ def pre_greedy_local_optimizer(list_optimizations, out):
                     node = out.owner
                 else:
                     break
+
         return results, optimized_vars
 
     if out.owner:
         out_index = out.owner.outputs.index(out)
     else:
         out_index = 0
-    final_outs, optimized_nodes = local_recursive_function(
-        list_optimizations, out, {}, 0
-    )
+
+    final_outs, optimized_nodes = local_recursive_function(optimizations, out, {}, 0)
     return final_outs[out_index]
 
 

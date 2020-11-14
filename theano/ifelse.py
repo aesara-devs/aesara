@@ -415,7 +415,7 @@ def ifelse(condition, then_branch, else_branch, name=None):
 
 
 @gof.local_optimizer([IfElse])
-def cond_make_inplace(node):
+def cond_make_inplace(fgraph, node):
     op = node.op
     if (
         isinstance(op, IfElse)
@@ -424,7 +424,7 @@ def cond_make_inplace(node):
         # For big graph, do not make inplace scalar to speed up
         # optimization.
         (
-            len(node.fgraph.apply_nodes) < 500
+            len(fgraph.apply_nodes) < 500
             or not all([getattr(o.type, "ndim", -1) == 0 for o in node.outputs])
         )
     ):
@@ -492,7 +492,7 @@ acceptable_ops = (
 
 
 @gof.local_optimizer(acceptable_ops)
-def ifelse_lift_single_if_through_acceptable_ops(main_node):
+def ifelse_lift_single_if_through_acceptable_ops(fgraph, main_node):
     """This optimization lifts up certain ifelse instances.
 
         op(ifelse(c, x, y)) -> ifelse(c, op(x), op(y))
@@ -539,7 +539,7 @@ def ifelse_lift_single_if_through_acceptable_ops(main_node):
 
 
 @gof.local_optimizer([IfElse])
-def cond_merge_ifs_true(node):
+def cond_merge_ifs_true(fgraph, node):
     op = node.op
     if not isinstance(op, IfElse):
         return False
@@ -566,7 +566,7 @@ def cond_merge_ifs_true(node):
 
 
 @gof.local_optimizer([IfElse])
-def cond_merge_ifs_false(node):
+def cond_merge_ifs_false(fgraph, node):
     op = node.op
     if not isinstance(op, IfElse):
         return False
@@ -645,7 +645,7 @@ class CondMerge(gof.GlobalOptimizer):
 
 
 @gof.local_optimizer([IfElse])
-def cond_remove_identical(node):
+def cond_remove_identical(fgraph, node):
     op = node.op
 
     if not isinstance(op, IfElse):
@@ -691,7 +691,7 @@ def cond_remove_identical(node):
 
 
 @gof.local_optimizer([IfElse])
-def cond_merge_random_op(main_node):
+def cond_merge_random_op(fgraph, main_node):
     if isinstance(main_node.op, IfElse):
         return False
 

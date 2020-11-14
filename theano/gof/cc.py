@@ -335,7 +335,7 @@ def struct_gen(args, struct_builders, blocks, sub):
 # with handling of the py_<name> variable.
 
 
-def get_nothing(r, name, sub):
+def get_nothing(fgraph, r, name, sub):
     """
     WRITEME
 
@@ -343,7 +343,7 @@ def get_nothing(r, name, sub):
     return ""
 
 
-def get_c_declare(r, name, sub):
+def get_c_declare(fgraph, r, name, sub):
     """
     Wrapper around c_declare that declares py_name.
 
@@ -369,7 +369,7 @@ def get_c_declare(r, name, sub):
     return pre + c_declare
 
 
-def get_c_init(r, name, sub):
+def get_c_init(fgraph, r, name, sub):
     """
     Wrapper around c_init that initializes py_name to Py_None.
 
@@ -385,7 +385,7 @@ def get_c_init(r, name, sub):
     return pre + r.type.c_init(name, sub)
 
 
-def get_c_extract(r, name, sub):
+def get_c_extract(fgraph, r, name, sub):
     """
     Wrapper around c_extract that initializes py_name from storage.
 
@@ -432,7 +432,7 @@ def get_c_extract(r, name, sub):
     return pre + c_extract
 
 
-def get_c_extract_out(r, name, sub):
+def get_c_extract_out(fgraph, r, name, sub):
     """
     Wrapper around c_extract_out that initializes py_name from storage.
 
@@ -469,7 +469,7 @@ def get_c_extract_out(r, name, sub):
     return pre + c_extract
 
 
-def get_c_cleanup(r, name, sub):
+def get_c_cleanup(fgraph, r, name, sub):
     """
     Wrapper around c_cleanup that decrefs py_name.
 
@@ -483,7 +483,7 @@ def get_c_cleanup(r, name, sub):
     return r.type.c_cleanup(name, sub) + post
 
 
-def get_c_sync(r, name, sub):
+def get_c_sync(fgraph, r, name, sub):
     """
     Wrapper around c_sync that syncs py_name with storage.
 
@@ -501,7 +501,7 @@ def get_c_sync(r, name, sub):
     )
 
 
-def apply_policy(policy, r, name, sub):
+def apply_policy(fgraph, policy, r, name, sub):
     """
     Apply the list of policies to name.r,sub
 
@@ -521,12 +521,12 @@ def apply_policy(policy, r, name, sub):
     if isinstance(policy, (list, tuple)):
         ret = ""
         for sub_policy in policy:
-            ret += sub_policy(r, name, sub)
+            ret += sub_policy(fgraph, r, name, sub)
         return ret
-    return policy(r, name, sub)
+    return policy(fgraph, r, name, sub)
 
 
-def struct_variable_codeblocks(variable, policies, id, symbol_table, sub):
+def struct_variable_codeblocks(fgraph, variable, policies, id, symbol_table, sub):
     """
     Update "sub" dict and create two codeblocks with different failure modes
 
@@ -561,7 +561,8 @@ def struct_variable_codeblocks(variable, policies, id, symbol_table, sub):
     sub["stor_ptr"] = f"storage_{name}"
     # struct_declare, struct_behavior, struct_cleanup, sub)
     struct_builder = CodeBlock(
-        *[apply_policy(policy, variable, name, sub) for policy in policies[0]] + [sub]
+        *[apply_policy(fgraph, policy, variable, name, sub) for policy in policies[0]]
+        + [sub]
     )
     sub["id"] = id + 1
     sub["fail"] = failure_code(sub)
@@ -569,7 +570,8 @@ def struct_variable_codeblocks(variable, policies, id, symbol_table, sub):
     sub["stor_ptr"] = f"storage_{name}"
     # run_declare, run_behavior, run_cleanup, sub)
     block = CodeBlock(
-        *[apply_policy(policy, variable, name, sub) for policy in policies[1]] + [sub]
+        *[apply_policy(fgraph, policy, variable, name, sub) for policy in policies[1]]
+        + [sub]
     )
 
     return struct_builder, block
@@ -783,7 +785,7 @@ class CLinker(link.Linker):
                 )
 
             builder, block = struct_variable_codeblocks(
-                variable, policy, id, symbol, sub
+                self.fgraph, variable, policy, id, symbol, sub
             )
 
             # each Variable generates two CodeBlocks, one to
@@ -2100,7 +2102,7 @@ class DualLinker(link.Linker):
                     for output1, output2 in zip(thunk1.outputs, thunk2.outputs):
                         self.checker(output1, output2)
                 except Exception:
-                    link.raise_with_op(node1)
+                    link.raise_with_op(fgraph, node1)
 
         return f, i1, o1
 

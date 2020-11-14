@@ -227,7 +227,7 @@ def is_positive(v):
 
 @register_canonicalize
 @local_optimizer([DimShuffle])
-def transinv_to_invtrans(node):
+def transinv_to_invtrans(fgraph, node):
     if isinstance(node.op, DimShuffle):
         if node.op.new_order == (1, 0):
             (A,) = node.inputs
@@ -239,7 +239,7 @@ def transinv_to_invtrans(node):
 
 @register_stabilize
 @local_optimizer([Dot, Dot22])
-def inv_as_solve(node):
+def inv_as_solve(fgraph, node):
     if not imported_scipy:
         return False
     if isinstance(node.op, (Dot, Dot22)):
@@ -256,7 +256,7 @@ def inv_as_solve(node):
 @register_stabilize
 @register_canonicalize
 @local_optimizer([Solve])
-def tag_solve_triangular(node):
+def tag_solve_triangular(fgraph, node):
     """
     If a general solve() is applied to the output of a cholesky op, then
     replace it with a triangular solve.
@@ -287,7 +287,7 @@ def tag_solve_triangular(node):
 @register_stabilize
 @register_specialize
 @local_optimizer([DimShuffle])
-def no_transpose_symmetric(node):
+def no_transpose_symmetric(fgraph, node):
     if isinstance(node.op, DimShuffle):
         x = node.inputs[0]
         if x.type.ndim == 2 and is_symmetric(x):
@@ -298,7 +298,7 @@ def no_transpose_symmetric(node):
 
 @register_stabilize
 @local_optimizer(None)  # XXX: solve is defined later and can't be used here
-def psd_solve_with_chol(node):
+def psd_solve_with_chol(fgraph, node):
     if node.op == solve:
         A, b = node.inputs  # result is solution Ax=b
         if is_psd(A):
@@ -314,7 +314,7 @@ def psd_solve_with_chol(node):
 @register_stabilize
 @register_specialize
 @local_optimizer(None)  # XXX: det is defined later and can't be used here
-def local_det_chol(node):
+def local_det_chol(fgraph, node):
     """
     If we have det(X) and there is already an L=cholesky(X)
     floating around, then we can use prod(diag(L)) to get the determinant.
@@ -332,7 +332,7 @@ def local_det_chol(node):
 @register_stabilize
 @register_specialize
 @local_optimizer([tensor.log])
-def local_log_prod_sqr(node):
+def local_log_prod_sqr(fgraph, node):
     if node.op == tensor.log:
         (x,) = node.inputs
         if x.owner and isinstance(x.owner.op, tensor.elemwise.Prod):
@@ -352,7 +352,7 @@ def local_log_prod_sqr(node):
 @register_stabilize
 @register_specialize
 @local_optimizer([tensor.log])
-def local_log_pow(node):
+def local_log_pow(fgraph, node):
     if node.op == tensor.log:
         (x,) = node.inputs
         if x.owner and x.owner.op == tensor.pow:

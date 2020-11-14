@@ -83,7 +83,7 @@ sys.excepthook = thunk_hook
 
 
 # TODO: Make this work with linker defined schedule
-def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
+def raise_with_op(fgraph, node, thunk=None, exc_info=None, storage_map=None):
     """
     Re-raise an exception while annotating the exception object with
     debug info.
@@ -132,7 +132,7 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
             trace = ()
     exc_value.__thunk_trace__ = trace
     exc_value.__op_instance__ = node
-    topo = node.fgraph.toposort()
+    topo = fgraph.toposort()
     if node in topo:
         node_index = topo.index(node)
     else:
@@ -212,12 +212,12 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
         detailed_err_msg += "\nStorage map footprint:\n"
         shared_input_list = [
             item
-            for item in node.fgraph.inputs
+            for item in fgraph.inputs
             if isinstance(item, theano.compile.SharedVariable)
         ]
         nonshared_input_list = [
             item
-            for item in node.fgraph.inputs
+            for item in fgraph.inputs
             if not isinstance(item, theano.compile.SharedVariable)
         ]
         storage_map_list = []
@@ -692,7 +692,7 @@ def streamline(
                     for old_s in old_storage:
                         old_s[0] = None
             except Exception:
-                raise_with_op(node, thunk)
+                raise_with_op(fgraph, node, thunk)
 
         f = streamline_default_f
     elif nice_errors:
@@ -704,7 +704,7 @@ def streamline(
                 for thunk, node in zip(thunks, order):
                     thunk()
             except Exception:
-                raise_with_op(node, thunk)
+                raise_with_op(fgraph, node, thunk)
 
         f = streamline_nice_errors_f
     else:
@@ -1062,7 +1062,7 @@ class WrapLinker(Linker):
                 try:
                     wrapper(i, node, *thunks)
                 except Exception:
-                    raise_with_op(node, *thunks)
+                    raise_with_op(self.fgraph, node, *thunks)
 
         f.thunk_groups = thunk_groups
 

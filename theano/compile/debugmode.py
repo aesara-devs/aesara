@@ -2042,7 +2042,7 @@ class _Linker(gof.link.LocalLinker):
                             exc_type, exc_value, exc_trace = sys.exc_info()
                             exc_value = new_e
                             raise_with_op(
-                                node, thunk_c, (exc_type, exc_value, exc_trace)
+                                fgraph, node, thunk_c, (exc_type, exc_value, exc_trace)
                             )
 
                     if thunk_py:
@@ -2154,7 +2154,7 @@ class _Linker(gof.link.LocalLinker):
                             exc_type, exc_value, exc_trace = sys.exc_info()
                             exc_value = new_e
                             raise_with_op(
-                                node, thunk_c, (exc_type, exc_value, exc_trace)
+                                fgraph, node, thunk_c, (exc_type, exc_value, exc_trace)
                             )
 
                         for r in node.outputs:
@@ -2222,7 +2222,7 @@ class _Linker(gof.link.LocalLinker):
                                 try:
                                     thunk_c()
                                 except Exception:
-                                    raise_with_op(node, thunk_c)
+                                    raise_with_op(fgraph, node, thunk_c)
 
                             _logger.debug(
                                 f"{i} - calling _check_preallocated_output "

@@ -196,7 +196,7 @@ class TestDimshuffleLift:
             "InplaceDimShuffle{x,x}(TensorConstant{84})))))"
         )
         assert str(g) == init_str_g
-        new_out = local_dimshuffle_lift.transform(g.outputs[0].owner)[0]
+        new_out = local_dimshuffle_lift.transform(g, g.outputs[0].owner)[0]
         new_g = FunctionGraph(g.inputs, [new_out])
         opt_str_g = (
             "FunctionGraph(Elemwise{mul,no_inplace}(Elemwise{add,no_inplace}"
@@ -5050,7 +5050,7 @@ class TestShapeOptimizer:
         identity_shape = IdentityShape()
 
         @gof.local_optimizer([IdentityNoShape])
-        def local_identity_noshape_to_identity_shape(node):
+        def local_identity_noshape_to_identity_shape(fgraph, node):
             """Optimization transforming the first Op into the second"""
             if isinstance(node.op, IdentityNoShape):
                 return [identity_shape(node.inputs[0])]
@@ -7433,18 +7433,18 @@ def test_local_add_specialize():
     # test of non-zero dimension
     a = tt.vector()
     s = tt.add(tt.zeros_like(a))
-    assert local_add_specialize.transform(s.owner)
+    assert local_add_specialize.transform(None, s.owner)
 
     # test of 0-d
     a = tt.scalar()
     s = tt.add(tt.zeros_like(a))
-    assert local_add_specialize.transform(s.owner)
+    assert local_add_specialize.transform(None, s.owner)
 
     # Test when the 0 input is forcing upcasting
     a = tt.constant(0, dtype="int64")
     b = tt.constant(1, dtype="int32")
     s = a + b
-    transformed = local_add_specialize.transform(s.owner)
+    transformed = local_add_specialize.transform(None, s.owner)
     assert transformed
     assert transformed[0].type == s.type
 

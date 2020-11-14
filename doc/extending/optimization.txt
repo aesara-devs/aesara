@@ -89,14 +89,14 @@ A local optimization is an object which defines the following methods:
 
 .. class:: LocalOptimizer
 
-    .. method:: transform(node)
+    .. method:: transform(fgraph, node)
 
-      This method takes an :ref:`apply` node and returns either ``False`` to
-      signify that no changes are to be done or a list of Variables which
-      matches the length of the node's ``outputs`` list. When the
-      LocalOptimizer is applied by a Navigator, the outputs of the node
-      passed as argument to the LocalOptimizer will be replaced by the
-      list returned.
+      This method takes a :ref:`FunctionGraph` and an :ref:`Apply` node and
+      returns either ``False`` to signify that no changes are to be done or a
+      list of `Variable`s which matches the length of the node's ``outputs``
+      list. When the `LocalOptimizer` is applied by a `Navigator`, the outputs
+      of the node passed as argument to the `LocalOptimizer` will be replaced by
+      the list returned.
 
 
 
@@ -252,7 +252,7 @@ The local version of the above code would be the following:
 .. testcode::
 
    class LocalSimplify(gof.LocalOptimizer):
-       def transform(self, node):
+       def transform(self, fgraph, node):
            if node.op == true_div:
                x, y = node.inputs
                if x.owner and x.owner.op == mul:

@@ -1218,7 +1218,7 @@ def test_local_dot22_to_dot22scalar():
             tt.mul(_dot22(A, A), (r * m), (m * x)),
         ]
     ):
-        node2 = local_dot22_to_dot22scalar.transform(node.owner)
+        node2 = local_dot22_to_dot22scalar.transform(None, node.owner)
         assert node2
         f = theano.function(
             [x, y, z, m, r, A], node, mode=mode, on_unused_input="ignore"
@@ -1806,49 +1806,53 @@ class TestGer(unittest_tools.OptimizationTestMixin):
     def test_b_0_triggers_ger(self):
         # test local_gemm_to_ger opt
         assert local_gemm_to_ger.transform(
+            None,
             gemm_no_inplace(
                 self.A,
                 self.a,
                 self.x.dimshuffle(0, "x"),
                 self.y.dimshuffle("x", 0),
                 self.b(0),
-            ).owner
+            ).owner,
         )
 
     def test_b_1_triggers_ger(self):
         # test local_gemm_to_ger opt
         assert local_gemm_to_ger.transform(
+            None,
             gemm_no_inplace(
                 self.A,
                 self.a,
                 self.x.dimshuffle(0, "x"),
                 self.y.dimshuffle("x", 0),
                 self.b(1),
-            ).owner
+            ).owner,
         )
 
     def test_b_other_does_not_triggers_ger(self):
         # test local_gemm_to_ger opt
         assert not local_gemm_to_ger.transform(
+            None,
             gemm_no_inplace(
                 self.A,
                 self.a,
                 self.x.dimshuffle(0, "x"),
                 self.y.dimshuffle("x", 0),
                 self.b(1.5),
-            ).owner
+            ).owner,
         )
 
     def test_b_nonconst_does_not_triggers_ger(self):
         # test local_gemm_to_ger opt
         assert not local_gemm_to_ger.transform(
+            None,
             gemm_no_inplace(
                 self.A,
                 self.a,
                 self.x.dimshuffle(0, "x"),
                 self.y.dimshuffle("x", 0),
                 self.a,
-            ).owner
+            ).owner,
         )
 
     def test_outer(self):

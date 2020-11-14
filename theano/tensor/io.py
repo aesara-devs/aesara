@@ -162,7 +162,7 @@ class MPIRecv(Op):
     def infer_shape(self, node, shapes):
         return [None, self.shape]
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         return False
 
 

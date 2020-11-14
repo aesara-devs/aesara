@@ -915,7 +915,7 @@ class TestConv_opt:
         # so it use the default mode.
         if op is None:
             # No convolutions optimization takes place
-            assert optimiser.transform(conv_op.owner) is None
+            assert optimiser.transform(None, conv_op.owner) is None
         else:
             ref_func = theano.function([], conv_op, mode=mode_with_gpu)
             with theano.change_flags(mode=mode):
@@ -991,7 +991,7 @@ class TestConv_opt:
         # so it use the default mode.
         if op is None:
             # No convolutions optimization takes place
-            assert optimiser.transform(conv_op.owner) is None
+            assert optimiser.transform(None, conv_op.owner) is None
             return
         elif op != "conv3d2d":
             with theano.change_flags(mode=mode):

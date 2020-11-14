@@ -549,7 +549,8 @@ def test_pre_constant_merge_slice():
     adv = AdvancedSubtensor()(tt.matrix(), [2, 3], const_slice)
     pre_constant_merge(adv)
 
-    cst = pre_greedy_local_optimizer([constant_folding], ms)
+    fgraph = FunctionGraph([], [])
+    cst = pre_greedy_local_optimizer(fgraph, [constant_folding], ms)
     assert isinstance(cst, SliceConstant)
 
     # Make sure constant of slice signature is hashable.

@@ -930,7 +930,7 @@ def multinomial(random_state, size=None, n=1, pvals=None, ndim=None, dtype="int6
 
 
 @gof.local_optimizer([RandomFunction])
-def random_make_inplace(node):
+def random_make_inplace(fgraph, node):
     op = node.op
     if isinstance(op, RandomFunction) and not op.inplace:
         # Read op_fn from op.state, not from op.fn, since op.fn

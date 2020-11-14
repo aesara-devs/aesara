@@ -110,7 +110,7 @@ TODO: talk about OPTIMIZATION STAGES
    # Remove any fibby(zeros(...))
    @theano.tensor.opt.register_specialize
    @theano.gof.local_optimizer([fibby])
-   def fibby_of_zero(node):
+   def fibby_of_zero(fgraph, node):
        if node.op == fibby:
            x = node.inputs[0]
            try:
@@ -124,8 +124,8 @@ tells Theano to use it in the specialization stage.
 The ``local_optimizer`` decorator builds a class instance around our global
 function.  The ``[fibby]`` argument is a hint that our optimizer works on nodes
 whose ``.op`` attribute equals ``fibby``.
-The function here (``fibby_of_zero``) expects an ``Apply`` instance as an
-argument for parameter ``node``. It tests using
+The function here (``fibby_of_zero``) expects a ``FunctionGraph`` and an ``Apply`` instance as
+arguments for the parameters ``fgraph`` and ``node``. It tests using
 function ``get_scalar_constant_value``, which determines if a
 Variable (``x``) is guaranteed to be a constant, and if so, what constant.
 

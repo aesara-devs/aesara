@@ -159,5 +159,5 @@ def test_matrix_inverse_solve():
     A = theano.tensor.dmatrix("A")
     b = theano.tensor.dmatrix("b")
     node = matrix_inverse(A).dot(b).owner
-    [out] = inv_as_solve.transform(node)
+    [out] = inv_as_solve.transform(None, node)
     assert isinstance(out.owner.op, Solve)

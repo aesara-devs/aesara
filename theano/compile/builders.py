@@ -819,7 +819,7 @@ class OpFromGraph(Op):
 
 
 @local_optimizer([OpFromGraph])
-def inline_ofg_expansion(node):
+def inline_ofg_expansion(fgraph, node):
     """
     This optimization expands internal graph of OpFromGraph.
     Only performed if node.op.is_inline == True

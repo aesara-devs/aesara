@@ -311,7 +311,7 @@ def map_variables(replacer, graphs, additional_inputs=None):
     nodes_seen = set()
 
     @gof.opt.local_optimizer(None)
-    def local_transform(node):
+    def local_transform(fgraph, node):
         if node in nodes_seen:
             return False
 

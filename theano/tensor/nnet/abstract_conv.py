@@ -2311,7 +2311,7 @@ class BaseAbstractConv(Op):
             )
         self.unshared = unshared
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         # Disable constant folding since there is no implementation.
         # This may change in the future.
         return False

@@ -58,7 +58,7 @@ def alias_root(v):
         return v
 
 
-def view_tree_set(v, treeset):
+def view_tree_set(fgraph, v, treeset):
     """
     Add to `treeset` all variables that are views of v, given that v is
     not a view.
@@ -73,7 +73,7 @@ def view_tree_set(v, treeset):
         for opos, iposlist in chain(vmap.items(), dmap.items()):
             if v_input_pos_to_cl in iposlist:
                 if cl.outputs[opos] not in treeset:
-                    view_tree_set(cl.outputs[opos], treeset)
+                    view_tree_set(fgraph, cl.outputs[opos], treeset)
 
 
 def infer_reuse_pattern(fgraph, outputs_to_disown):
@@ -89,7 +89,7 @@ def infer_reuse_pattern(fgraph, outputs_to_disown):
     """
     rval = set()
     for o in outputs_to_disown:
-        view_tree_set(alias_root(o), rval)
+        view_tree_set(fgraph, alias_root(o), rval)
     # remove from rval all of the inputs, constants, values.
     rval = {r for r in rval if r.owner is not None}
 
@@ -979,6 +979,7 @@ class Function:
                 if hasattr(self.fn, "thunks"):
                     thunk = self.fn.thunks[self.fn.position_of_error]
                 gof.link.raise_with_op(
+                    self.maker.fgraph,
                     node=self.fn.nodes[self.fn.position_of_error],
                     thunk=thunk,
                     storage_map=getattr(self.fn, "storage_map", None),
@@ -1205,7 +1206,7 @@ def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
 
     for i in range(len(fgraph.outputs)):
         views_of_output_i = set()
-        view_tree_set(alias_root(fgraph.outputs[i]), views_of_output_i)
+        view_tree_set(fgraph, alias_root(fgraph.outputs[i]), views_of_output_i)
         copied = False
         # do not allow outputs to be aliased
         for j in range(i + 1, len(fgraph.outputs)):

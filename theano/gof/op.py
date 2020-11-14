@@ -780,7 +780,7 @@ class PureOp:
             " You can use optimizer=fast_compile instead.",
         )
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         """Determine whether or not constant folding should be performed for the given node.
 
         This allows each `PureOp` to determine if it wants to be constant

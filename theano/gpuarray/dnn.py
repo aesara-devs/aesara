@@ -311,7 +311,7 @@ class DnnVersion(Op):
             % locals()
         )
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         # Needed as we do not want to cache this information.
         return False
 
@@ -517,7 +517,7 @@ class GpuDnnConvDesc(COp):
             return ["-Wl,-rpath," + config.dnn.bin_path]
         return []
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         return False
 
     def __init__(
@@ -1270,6 +1270,7 @@ def _dnn_gradinput(
 
 
 def dnn_conv(
+    fgraph,
     img,
     kerns,
     border_mode="valid",
@@ -1290,6 +1291,8 @@ def dnn_conv(
 
     Parameters
     ----------
+    fgraph : FunctionGraph
+        The function graph containing `img`.
     img
         Images to do the convolution over.
     kerns
@@ -1340,7 +1343,6 @@ def dnn_conv(
             raise ValueError("You can't use both algo and workmem")
         warnings.warn("workmem is deprecated, use algo instead", stacklevel=2)
         algo = workmem
-    fgraph = getattr(img, "fgraph", None) or getattr(kerns, "fgraph", None)
     ctx_name = infer_context_name(img, kerns)
     if (
         border_mode == "valid"
@@ -1423,6 +1425,7 @@ def dnn_conv(
 
 
 def dnn_conv3d(
+    fgraph,
     img,
     kerns,
     border_mode="valid",
@@ -1442,6 +1445,8 @@ def dnn_conv3d(
 
     Parameters
     ----------
+    fgraph : FunctionGraph
+        The `FunctionGraph` containing `img`.
     img
         Images to do the convolution over.
     kerns
@@ -1486,8 +1491,6 @@ def dnn_conv3d(
         work with this Op.
 
     """
-
-    fgraph = getattr(img, "fgraph", None) or getattr(kerns, "fgraph", None)
     ctx_name = infer_context_name(img, kerns)
     if (
         border_mode == "valid"
@@ -1725,7 +1728,7 @@ class GpuDnnPoolDesc(Op):
     def c_lib_dirs(self):
         return [config.dnn.library_path]
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         return False
 
     def __init__(self, ws=(1, 1), stride=(1, 1), mode="max", pad=(0, 0)):
@@ -2532,7 +2535,7 @@ class _DropoutDescriptor(DnnBase):
     def dnn_context(self, node):
         return self.context_name
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         return False
 
     def make_node(self, dropout, seed, context_name):
@@ -2593,7 +2596,7 @@ class _RNNDescriptor(DnnBase):
     def dnn_context(self, node):
         return self.context_name
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         return False
 
     def make_node(
@@ -2686,7 +2689,7 @@ class _RNNParamSize(DnnBase):
     def dnn_context(self, node):
         return self.context_name
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         return False
 
     def make_node(self, desc, input_size, typecode):
@@ -3734,7 +3737,7 @@ def dnn_spatialtf(img, theta, scale_width=1, scale_height=1):
     return sampler
 
 
-def local_abstractconv_cudnn_graph(op, context_name, inputs, outputs):
+def local_abstractconv_cudnn_graph(fgraph, op, context_name, inputs, outputs):
     if not isinstance(
         op, (AbstractConv2d, AbstractConv2d_gradWeights, AbstractConv2d_gradInputs)
     ):
@@ -3765,6 +3768,7 @@ def local_abstractconv_cudnn_graph(op, context_name, inputs, outputs):
 
     if isinstance(op, AbstractConv2d):
         rval = dnn_conv(
+            fgraph,
             inp1,
             inp2,
             border_mode=op.border_mode,
@@ -3811,7 +3815,7 @@ def local_abstractconv_cudnn_graph(op, context_name, inputs, outputs):
     return [rval]
 
 
-def local_abstractconv3d_cudnn_graph(op, context_name, inputs, outputs):
+def local_abstractconv3d_cudnn_graph(fgraph, op, context_name, inputs, outputs):
     if not isinstance(
         op, (AbstractConv3d, AbstractConv3d_gradWeights, AbstractConv3d_gradInputs)
     ):
@@ -3833,6 +3837,7 @@ def local_abstractconv3d_cudnn_graph(op, context_name, inputs, outputs):
 
     if isinstance(op, AbstractConv3d):
         rval = dnn_conv3d(
+            fgraph,
             inp1,
             inp2,
             border_mode=op.border_mode,
@@ -3881,7 +3886,7 @@ def local_abstractconv3d_cudnn_graph(op, context_name, inputs, outputs):
     return [rval]
 
 
-def local_abstract_batch_norm_train_cudnn(op, ctx_name, inputs, outputs):
+def local_abstract_batch_norm_train_cudnn(fgraph, op, ctx_name, inputs, outputs):
     x, scale, bias, epsilon, running_average_factor = inputs[:5]
     running_mean = inputs[5] if len(inputs) > 5 else None
     running_var = inputs[6] if len(inputs) > 6 else None
@@ -3925,7 +3930,7 @@ def local_abstract_batch_norm_train_cudnn(op, ctx_name, inputs, outputs):
     return results
 
 
-def local_abstract_batch_norm_train_grad_cudnn(op, ctx_name, inputs, outputs):
+def local_abstract_batch_norm_train_grad_cudnn(fgraph, op, ctx_name, inputs, outputs):
     x, dy, scale, x_mean, x_invstd, epsilon = inputs
 
     # input on gpu?  TODO what about the output?
@@ -3995,7 +4000,7 @@ def local_abstract_batch_norm_train_grad_cudnn(op, ctx_name, inputs, outputs):
     return [g_wrt_inputs, g_wrt_scale, g_wrt_bias]
 
 
-def local_abstract_batch_norm_inference_cudnn(op, ctx_name, inputs, outputs):
+def local_abstract_batch_norm_inference_cudnn(fgraph, op, ctx_name, inputs, outputs):
     x, scale, bias, estimated_mean, estimated_variance, epsilon = inputs
 
     axes = tuple(op.axes)

@@ -67,7 +67,7 @@ from theano.tensor.signal.pool import AveragePoolGrad, MaxPoolGrad, Pool
 
 
 @local_optimizer([AbstractConv2d, AbstractConv3d])
-def local_abstractconv_cudnn(node):
+def local_abstractconv_cudnn(fgraph, node):
     ctx = infer_context_name(*node.inputs)
     if not isinstance(node.inputs[0].type, GpuArrayType):
         return
@@ -93,7 +93,7 @@ def local_abstractconv_cudnn(node):
 @local_optimizer(
     [AbstractConv2d, AbstractConv2d_gradWeights, AbstractConv2d_gradInputs]
 )
-def local_abstractconv_cudnn_alt(node):
+def local_abstractconv_cudnn_alt(fgraph, node):
     if not isinstance(
         node.op, (AbstractConv2d, AbstractConv2d_gradWeights, AbstractConv2d_gradInputs)
     ):
@@ -225,7 +225,7 @@ def local_abstractconv_cudnn_alt(node):
 @local_optimizer(
     [AbstractConv3d, AbstractConv3d_gradWeights, AbstractConv3d_gradInputs]
 )
-def local_abstractconv3d_cudnn_alt(node):
+def local_abstractconv3d_cudnn_alt(fgraph, node):
     if not isinstance(
         node.op, (AbstractConv3d, AbstractConv3d_gradWeights, AbstractConv3d_gradInputs)
     ):
@@ -262,6 +262,7 @@ def local_abstractconv3d_cudnn_alt(node):
             return None
 
         rval = dnn_conv3d(
+            fgraph,
             inp1,
             inp2,
             border_mode=border_mode,
@@ -349,7 +350,7 @@ def local_abstractconv3d_cudnn_alt(node):
 
 
 @local_optimizer([AbstractConv2d_gradWeights, AbstractConv3d_gradWeights])
-def local_abstractconv_gw_cudnn(node):
+def local_abstractconv_gw_cudnn(fgraph, node):
     ctx = infer_context_name(*node.inputs)
     if not isinstance(node.inputs[0].type, GpuArrayType):
         return
@@ -373,7 +374,7 @@ def local_abstractconv_gw_cudnn(node):
 
 
 @local_optimizer([AbstractConv2d_gradInputs, AbstractConv3d_gradInputs])
-def local_abstractconv_gi_cudnn(node):
+def local_abstractconv_gi_cudnn(fgraph, node):
     ctx = infer_context_name(*node.inputs)
     if not isinstance(node.inputs[0].type, GpuArrayType):
         return
@@ -478,7 +479,7 @@ def local_dnn_convi_output_merge(node, *inputs):
     return [GpuDnnConvGradI(algo=node.op.algo, num_groups=node.op.num_groups)(*inputs)]
 
 
-def local_gpua_pool_dnn_alternative(op, ctx_name, inputs, outputs):
+def local_gpua_pool_dnn_alternative(fgraph, op, ctx_name, inputs, outputs):
     if not dnn_available(ctx_name):
         return
     if not op.ignore_border:
@@ -519,7 +520,7 @@ pool_db2.register(
 )
 
 
-def local_gpua_pool_dnn_grad_stride(op, ctx_name, inputs, outputs):
+def local_gpua_pool_dnn_grad_stride(fgraph, op, ctx_name, inputs, outputs):
     if not dnn_available(ctx_name):
         return
     if not op.ignore_border:
@@ -567,7 +568,7 @@ pool_db2.register(
 )
 
 
-def local_gpua_avg_pool_dnn_grad_stride(op, ctx_name, inputs, outputs):
+def local_gpua_avg_pool_dnn_grad_stride(fgraph, op, ctx_name, inputs, outputs):
     if not dnn_available(ctx_name):
         return
     if not op.ignore_border:
@@ -618,7 +619,7 @@ pool_db2.register(
 
 @register_opt("cudnn", "fast_compile")
 @local_optimizer([GpuSoftmax])
-def local_softmax_dnn(node):
+def local_softmax_dnn(fgraph, node):
     if isinstance(node.op, GpuSoftmax):
         if not dnn_available(node.outputs[0].type.context_name):
             return
@@ -631,7 +632,7 @@ def local_softmax_dnn(node):
 
 @register_opt("cudnn", "stabilize")
 @local_optimizer([GpuElemwise])
-def local_log_softmax_dnn(node):
+def local_log_softmax_dnn(fgraph, node):
     # This looks for GpuDnnSoftmax so we know that we have cudnn.
     if (
         isinstance(node.op, GpuElemwise)
@@ -685,7 +686,7 @@ def local_gpua_softmax_dnn_grad(op, ctx_name, inputs, outputs):
 
 @register_opt("cudnn")
 @local_optimizer([GpuCAReduceCuda])
-def local_dnn_reduction(node):
+def local_dnn_reduction(fgraph, node):
     if not isinstance(node.op, GpuCAReduceCuda):
         return
 
@@ -756,7 +757,7 @@ def local_dnn_reduction(node):
 
 @register_opt("cudnn")
 @local_optimizer([GpuMaxAndArgmax])
-def local_cudnn_maxandargmax(node):
+def local_cudnn_maxandargmax(fgraph, node):
     if not isinstance(node.op, GpuMaxAndArgmax):
         return
 
@@ -841,7 +842,7 @@ gpu_seqopt.register("NoCuDNNRaise", NoCuDNNRaise(), 0, "cudnn")
 
 @register_inplace()
 @local_optimizer([GpuDnnBatchNorm], inplace=True)
-def local_batch_norm_inplace_output(node):
+def local_batch_norm_inplace_output(fgraph, node):
     if isinstance(node.op, GpuDnnBatchNorm) and not node.op.inplace_output:
         return GpuDnnBatchNorm(
             mode=node.op.mode,
@@ -854,7 +855,7 @@ def local_batch_norm_inplace_output(node):
 
 @register_inplace()
 @local_optimizer([GpuDnnBatchNorm], inplace=True)
-def local_batch_norm_inplace_running_mean(node):
+def local_batch_norm_inplace_running_mean(fgraph, node):
     if (
         isinstance(node.op, GpuDnnBatchNorm)
         and node.op.running_averages
@@ -871,7 +872,7 @@ def local_batch_norm_inplace_running_mean(node):
 
 @register_inplace()
 @local_optimizer([GpuDnnBatchNorm], inplace=True)
-def local_batch_norm_inplace_running_var(node):
+def local_batch_norm_inplace_running_var(fgraph, node):
     if (
         isinstance(node.op, GpuDnnBatchNorm)
         and node.op.running_averages
@@ -888,6 +889,6 @@ def local_batch_norm_inplace_running_var(node):
 
 @register_inplace()
 @local_optimizer([GpuDnnBatchNormInference], inplace=True)
-def local_batch_norm_inference_inplace(node):
+def local_batch_norm_inference_inplace(fgraph, node):
     if isinstance(node.op, GpuDnnBatchNormInference) and not node.op.inplace:
         return [GpuDnnBatchNormInference(mode=node.op.mode, inplace=True)(*node.inputs)]
