@@ -583,7 +583,7 @@ class OpFromGraph(gof.Op):
                     (
                         f"Rop overriding function {self._rop_op} should return list of "
                         f"{int(out_len)} outputs, got {len(all_rops_l)}",
-                    )
+                    ),
                     rop_op,
                 )
             all_rops_l = list(all_rops_l)

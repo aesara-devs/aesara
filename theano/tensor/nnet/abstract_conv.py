@@ -2540,7 +2540,7 @@ class AbstractConv(BaseAbstractConv):
         kern = ktype.filter_variable(kern)
 
         if img.type.ndim != 2 + self.convdim:
-            raise TypeError(f"img must be {int(2 + self.convdim)}D tensor"
+            raise TypeError(f"img must be {int(2 + self.convdim)}D tensor")
 
         if self.unshared:
             if kern.type.ndim != 2 + 2 * self.convdim:

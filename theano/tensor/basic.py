@@ -153,7 +153,7 @@ def as_tensor_variable(x, name=None, ndim=None):
 
         if not isinstance(x.type, TensorType):
             raise TypeError(
-                f"Tensor type field must be a TensorType; found {type(x.type)}."
+                "Tensor type field must be a TensorType; found {}.".format(type(x.type))
             )
 
         if ndim is None:
@@ -255,7 +255,7 @@ def constant(x, name=None, ndim=None, dtype=None):
     try:
         return TensorConstant(ttype, x_, name=name)
     except Exception:
-        raise TypeError(f"Could not convert {x} to TensorType", type(x))
+        raise TypeError("Could not convert %s to TensorType" % x, type(x))
 
 
 def _obj_is_wrappable_as_tensor(x):
@@ -3031,7 +3031,7 @@ def alloc_validate_shape(shape):
             s_as_str = err_str()
             raise TypeError(
                 "Each shape dimension to Alloc must be a scalar, ",
-                f"but dimension {i} have {int(s.ndim)} dimensions for apply node: {s_as_str}"
+                f"but dimension {i} have {int(s.ndim)} dimensions for apply node: {s_as_str}",
             )
 
         # if s is constant 1, then we're broadcastable in that dim
@@ -4483,7 +4483,9 @@ class Join(Op):
         else:
             ndim = tensors[0].ndim
             if axis < -ndim:
-                raise IndexError(f"Join axis {int(axis)} out of bounds [0, {int(ndim)})"
+                raise IndexError(
+                    f"Join axis {int(axis)} out of bounds [0, {int(ndim)})"
+                )
 
             out[0] = theano._asarray(
                 np.concatenate(tensors, axis=axis), dtype=node.outputs[0].type.dtype
@@ -5486,7 +5488,7 @@ def flatten(x, ndim=None, outdim=None):
     # even if it's a scalar. Otherwise, ndim must be positive
     # and smaller than x.ndim.
     if ndim < 1 or (ndim > 1 and ndim > x.ndim):
-        raise ValueError(f"ndim {ndim} out of bound [1, {x.ndim + 1})"
+        raise ValueError(f"ndim {ndim} out of bound [1, {x.ndim + 1})")
 
     if ndim > 1:
         dims = tuple(x.shape[: ndim - 1]) + (-1,)

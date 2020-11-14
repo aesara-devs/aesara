@@ -153,9 +153,7 @@ class GpuElemwise(HideC, Elemwise):
     def _get_vnames(self, node):
         inps = [f"i{n}" for n, _ in enumerate(node.inputs)]
         outs = [
-            f"o{n}"
-            if n not in self.inplace_pattern
-            else inps[self.inplace_pattern[n]]
+            f"o{n}" if n not in self.inplace_pattern else inps[self.inplace_pattern[n]]
             for n, _ in enumerate(node.outputs)
         ]
         return inps, outs
@@ -890,10 +888,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         nd_out = ndim - sum(self.reduce_mask)
         shapes_format = f"shape=({','.join(['%llu'] * node.inputs[0].ndim)})"
         shapes_data = ",".join(
-            [
-                f"(size_t) PyGpuArray_DIMS({x})[{i}]"
-                for i in range(node.inputs[0].ndim)
-            ]
+            [f"(size_t) PyGpuArray_DIMS({x})[{i}]" for i in range(node.inputs[0].ndim)]
         )
         k_var = f"kernel_reduce_{pattern}_{name}"
         params = []
@@ -1360,10 +1355,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         N_pattern = "".join(["1"] * N)
         param_dim = ",".join([f"PyGpuArray_DIMS({x})[{i}]" for i in range(N + 1)])
         strides_dim = ",".join(
-            [
-                f"PyGpuArray_STRIDES({x})[{i}]/sizeof({in_dtype})"
-                for i in range(N + 1)
-            ]
+            [f"PyGpuArray_STRIDES({x})[{i}]/sizeof({in_dtype})" for i in range(N + 1)]
         )
 
         threads_y = (

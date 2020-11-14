@@ -1505,7 +1505,7 @@ class FunctionMaker:
             return found_graph_in_db
 
         graph_db = load_graph_db()
-        print(f"loaded graph_db from {graph_db_file}, size={len(graph_db)}"
+        print(f"loaded graph_db from {graph_db_file}, size={len(graph_db)}")
         found_graph = find_same_graph_in_db(graph_db)
         if found_graph:
             self.fgraph = found_graph

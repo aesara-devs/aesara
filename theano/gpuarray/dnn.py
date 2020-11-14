@@ -182,7 +182,10 @@ if ((err = cudnnCreate(&_handle)) != CUDNN_STATUS_SUCCESS) {
 def _dnn_check_version():
     v = version()
     if v < 5000:
-        return False, f"cuDNN version is too old. Update to v5* or higher, was {int(v)}."
+        return (
+            False,
+            f"cuDNN version is too old. Update to v5* or higher, was {int(v)}.",
+        )
     if v >= 7200:
         warnings.warn(
             "Your cuDNN version is more recent than "

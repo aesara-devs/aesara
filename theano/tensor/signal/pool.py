@@ -945,9 +945,7 @@ class Pool(OpenMPOp):
                 )
             else:
                 # region size = number elements of in this region
-                region_size = " * ".join(
-                    f"(r_end[{i}]-r_st[{i}])" for i in range(nd)
-                )
+                region_size = " * ".join(f"(r_end[{i}]-r_st[{i}])" for i in range(nd))
                 ccode += """
                   z[0] = collector / (%(region_size)s);
                 """ % dict(
