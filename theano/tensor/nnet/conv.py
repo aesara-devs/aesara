@@ -462,9 +462,9 @@ class ConvOp(OpenMPOp):
         if len(imshp) == 2:
             imshp = (1,) + imshp
         elif len(imshp) != 3:
-            raise ValueError("len(imshp) must be 2 or 3, got %d" % len(imshp))
+            raise ValueError(f"len(imshp) must be 2 or 3, got {len(imshp)}")
         if len(kshp) != 2:
-            raise ValueError("len(kshp) must be 2, got %d" % len(kshp))
+            raise ValueError(f"len(kshp) must be 2, got {len(kshp)}")
 
         # We must continue to consider None as 1 for backward compatibility.
         if dx is None:
@@ -510,7 +510,7 @@ class ConvOp(OpenMPOp):
             imshp_logical = tuple(imshp_logical)
             if len(imshp_logical) != 3:
                 raise ValueError(
-                    "len(imshp_logical) must be 3, got %d" % len(imshp_logical)
+                    f"len(imshp_logical) must be 3, got {len(imshp_logical)}"
                 )
             self.imshp_logical = imshp_logical
 
@@ -521,7 +521,7 @@ class ConvOp(OpenMPOp):
             kshp_logical = tuple(kshp_logical)
             if len(kshp_logical) != 2:
                 raise ValueError(
-                    "len(kshp_logical) must be 2, got %d" % len(kshp_logical)
+                    f"len(kshp_logical) must be 2, got {len(kshp_logical)}"
                 )
             self.kshp_logical = kshp_logical
 

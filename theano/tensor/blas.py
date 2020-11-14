@@ -2096,19 +2096,19 @@ class BatchedDot(Op):
         if len(inputs) != 2:
             raise TypeError(
                 "theano.tensor.blas.BatchedDot: 2 arguments"
-                " required, %d given " % len(inputs)
+                f" required, {len(inputs)} given "
             )
         if inputs[0].ndim not in (2, 3):
             raise TypeError(
                 "theano.tensor.blas.BatchedDot: input 0 (0-indexed)"
-                " must have ndim of 2 or 3, %d given. Consider"
-                " calling theano.tensor.batched_dot instead." % inputs[0].ndim
+                f" must have ndim of 2 or 3, {int(inputs[0].ndim)} given. Consider"
+                " calling theano.tensor.batched_dot instead."
             )
         if inputs[1].ndim not in (2, 3):
             raise TypeError(
                 "theano.tensor.blas.BatchedDot: input 1 (0-indexed)"
-                " must have ndim of 2 or 3, %d given. Consider"
-                " calling theano.tensor.batched_dot instead." % inputs[1].ndim
+                f" must have ndim of 2 or 3, {int(inputs[1].ndim)} given. Consider"
+                " calling theano.tensor.batched_dot instead."
             )
 
         dtype = theano.scalar.upcast(*[input.type.dtype for input in inputs])

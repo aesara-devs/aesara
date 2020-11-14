@@ -82,8 +82,8 @@ def _atexit_print_fn():
             # Make a global profile
             cum = copy.copy(to_sum[0])
             msg = (
-                "Sum of all(%d) printed profiles at exit excluding Scan op"
-                " profile." % len(to_sum)
+                f"Sum of all({len(to_sum)}) printed profiles at exit excluding Scan op"
+                " profile."
             )
             cum.message = msg
             for ps in to_sum[1:]:
@@ -782,8 +782,7 @@ class ProfileStats:
                     off = f", offset={off}"
                 dtype = getattr(var, "dtype", "no dtype")
                 print(
-                    "    input %d: dtype=%s, shape=%s, strides=%s%s"
-                    % (idx, dtype, sh, st, off),
+                    f"    input {int(idx)}: dtype={dtype}, shape={sh}, strides={st}{off}",
                     file=file,
                 )
             for idx, var in enumerate(a.outputs):
@@ -794,8 +793,7 @@ class ProfileStats:
                     off = f", offset={off}"
                 dtype = getattr(var, "dtype", "no dtype")
                 print(
-                    "    output %d: dtype=%s, shape=%s, strides=%s%s"
-                    % (idx, dtype, sh, st, off),
+                    f"    output {int(idx)}: dtype={dtype}, shape={sh}, strides={st}{off}",
                     file=file,
                 )
             # Same as before, this I've sacrificied some information making
@@ -835,7 +833,7 @@ class ProfileStats:
                     file=file,
                 )
         print(f"  Total compile time: {self.compile_time:e}s", file=file)
-        print("    Number of Apply nodes: %d" % self.nb_nodes, file=file)
+        print(f"    Number of Apply nodes: {int(self.nb_nodes)}", file=file)
         print(f"    Theano Optimizer time: {self.optimizer_time:e}s", file=file)
         print(f"       Theano validate time: {self.validate_time:e}s", file=file)
         print(
@@ -1354,30 +1352,23 @@ class ProfileStats:
             (_, new_max_running_max_memory_size, _, _) = stats2
 
             print(
-                "        CPU: %dKB (%dKB)"
-                % (
-                    (
-                        int(round(new_max_running_max_memory_size[1] / 1024.0)),
-                        int(round(max_running_max_memory_size[1] / 1024.0)),
-                    )
+                (
+                    f"        CPU: {int(round(new_max_running_max_memory_size[1] / 1024.0))}KB "
+                    f"({int(round(max_running_max_memory_size[1] / 1024.0))}KB)"
                 ),
                 file=file,
             )
             print(
-                "        GPU: %dKB (%dKB)"
-                % (
-                    (
-                        int(round(new_max_running_max_memory_size[2] / 1024.0)),
-                        int(round(max_running_max_memory_size[2] / 1024.0)),
-                    )
+                (
+                    f"        GPU: {int(round(new_max_running_max_memory_size[2] / 1024.0))}KB "
+                    f"({int(round(max_running_max_memory_size[2] / 1024.0))}KB)"
                 ),
                 file=file,
             )
             print(
-                "        CPU + GPU: %dKB (%dKB)"
-                % (
-                    int(round(new_max_running_max_memory_size[0] / 1024.0)),
-                    int(round(max_running_max_memory_size[0] / 1024.0)),
+                (
+                    f"        CPU + GPU: {int(round(new_max_running_max_memory_size[0] / 1024.0))}KB "
+                    f"({int(round(max_running_max_memory_size[0] / 1024.0))}KB)"
                 ),
                 file=file,
             )
@@ -1398,16 +1389,15 @@ class ProfileStats:
             file=file,
         )
         print(
-            "        CPU: %dKB" % int(round(new_max_node_memory_size[1] / 1024.0)),
+            f"        CPU: {int(round(new_max_node_memory_size[1] / 1024.0))}KB",
             file=file,
         )
         print(
-            "        GPU: %dKB" % int(round(new_max_node_memory_size[2] / 1024.0)),
+            f"        GPU: {int(round(new_max_node_memory_size[2] / 1024.0))}KB",
             file=file,
         )
         print(
-            "        CPU + GPU: %dKB"
-            % int(round(new_max_node_memory_size[0] / 1024.0)),
+            f"        CPU + GPU: {int(round(new_max_node_memory_size[0] / 1024.0))}KB",
             file=file,
         )
         print("---", file=file)
@@ -1415,8 +1405,7 @@ class ProfileStats:
         if min_max_peak:
             print(
                 "    Minimum peak from all valid apply node order is "
-                "%dKB(took %.3fs to compute)"
-                % (int(round(min_max_peak / 1024.0)), min_peak_time),
+                f"{int(round(min_max_peak / 1024.0))}KB(took {min_peak_time:3f}s to compute)"
                 file=file,
             )
 
@@ -1472,7 +1461,7 @@ class ProfileStats:
         if N == 0:
             print(
                 "    All Apply nodes have output sizes that take less "
-                "than %dB." % config.profiling.min_memory_size,
+                f"than {int(config.profiling.min_memory_size)}B."
                 file=file,
             )
         print(

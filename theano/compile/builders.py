@@ -414,8 +414,7 @@ class OpFromGraph(gof.Op):
             goverrides_l = lop_op
             if len(goverrides_l) != inp_len:
                 raise ValueError(
-                    "Need to override %d gradients, got %d"
-                    % (inp_len, len(goverrides_l)),
+                    f"Need to override {int(inp_len)} gradients, got {len(goverrides_l)}",
                     goverrides_l,
                 )
             # compute non-overriding downsteam grads from upstreams grads
@@ -465,7 +464,7 @@ class OpFromGraph(gof.Op):
             if len(all_grads_l) != len(local_inputs):
                 raise ValueError(
                     "Gradient/L_op overriding function should return list of "
-                    "%d outputs, got %d" % (inp_len, len(all_grads_l))
+                    f"{int(inp_len)} outputs, got {len(all_grads_l)}"
                 )
         all_grads_l = list(all_grads_l)
         all_grads_ov_l = list(all_grads_ov_l)
@@ -530,7 +529,7 @@ class OpFromGraph(gof.Op):
             roverrides_l = rop_op
             if len(roverrides_l) != out_len:
                 raise ValueError(
-                    "Need to override %d Rop, got %d" % (out_len, len(roverrides_l)),
+                    f"Need to override {int(out_len)} Rop, got {len(roverrides_l)}",
                     roverrides_l,
                 )
             # get outputs that does not have Rop override
@@ -581,8 +580,10 @@ class OpFromGraph(gof.Op):
             )
             if len(all_rops_l) != out_len:
                 raise ValueError(
-                    "Rop overriding function %s should return list of "
-                    "%d outputs, got %d" % (self._rop_op, out_len, len(all_rops_l)),
+                    (
+                        f"Rop overriding function {self._rop_op} should return list of "
+                        f"{int(out_len)} outputs, got {len(all_rops_l)}",
+                    )
                     rop_op,
                 )
             all_rops_l = list(all_rops_l)
@@ -670,7 +671,7 @@ class OpFromGraph(gof.Op):
         num_expected_inps = len(self.local_inputs) - len(self.shared_inputs)
         if len(inputs) != num_expected_inps:
             raise ValueError(
-                "Expected %d inputs, got %d" % (num_expected_inps, len(inputs))
+                f"Expected {int(num_expected_inps)} inputs, got {len(inputs)}"
             )
         inputs = [
             inp_t.filter_variable(inp) for inp, inp_t in zip(inputs, self.input_types)

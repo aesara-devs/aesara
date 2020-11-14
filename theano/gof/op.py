@@ -1010,7 +1010,7 @@ class Op(object2, PureOp, CLinkerOp):
 
         if len(inputs) != len(self.itypes):
             raise ValueError(
-                "We expected %d inputs but got %d." % (len(self.itypes), len(inputs))
+                f"We expected {len(self.itypes)} inputs but got {len(inputs)}."
             )
         if not all(inp.type == it for inp, it in zip(inputs, self.itypes)):
             raise TypeError(
@@ -1542,12 +1542,12 @@ class COp(Op):
         undef_macros = []
 
         for i, inp in enumerate(inputs):
-            define_macros.append("#define INPUT_%d %s" % (i, inp))
-            undef_macros.append("#undef INPUT_%d" % (i,))
+            define_macros.append(f"#define INPUT_{int(i)} {inp}"
+            undef_macros.append(f"#undef INPUT_{int(i)}")
 
         for i, out in enumerate(outputs):
-            define_macros.append("#define OUTPUT_%d %s" % (i, inp))
-            undef_macros.append("#undef OUTPUT_%d" % (i,))
+            define_macros.append(f"#define OUTPUT_{int(i)} {inp}"
+            undef_macros.append(f"#undef OUTPUT_{int(i)}")
 
     def c_init_code_struct(self, node, name, sub):
         """

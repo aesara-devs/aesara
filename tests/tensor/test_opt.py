@@ -1907,7 +1907,7 @@ class TestFusion:
         failed = len(fail1 + fail2 + fail3 + fail4)
         if failed > 0:
             print("Executed", len(cases), "cases", "failed", failed)
-            raise Exception("Failed %d cases" % failed, fail1, fail2, fail3, fail4)
+            raise Exception(f"Failed {int(failed)} cases", fail1, fail2, fail3, fail4)
 
         return times
 

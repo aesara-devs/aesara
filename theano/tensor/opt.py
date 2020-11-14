@@ -1308,9 +1308,9 @@ class ShapeFeature:
                 sio = StringIO()
                 theano.printing.debugprint(r, file=sio, print_type=True)
                 raise AssertionError(
-                    "Something inferred a shape with %d dimensions "
-                    "for a variable with %d dimensions"
-                    " for the variable:\n%s" % (len(s), r.ndim, sio.getvalue())
+                    f"Something inferred a shape with {len(s)} dimensions "
+                    f"for a variable with {int(r.ndim)} dimensions"
+                    f" for the variable:\n{sio.getvalue()}"
                 )
 
             shape_vars = []
@@ -1513,11 +1513,10 @@ class ShapeFeature:
         if len(o_shapes) != len(node.outputs):
             raise Exception(
                 (
-                    'The infer_shape method for the Op "%s" returned a list '
-                    + "with the wrong number of element: len(o_shapes) = %d "
-                    + " != len(node.outputs) = %d"
+                    f'The infer_shape method for the Op "{node.op}" returned a list '
+                    f"with the wrong number of element: len(o_shapes) = {len(o_shapes)} "
+                    f" != len(node.outputs) = {len(node.outputs)}"
                 )
-                % (str(node.op), len(o_shapes), len(node.outputs))
             )
 
         # Ensure shapes are in 'int64'. This is to make sure the assert

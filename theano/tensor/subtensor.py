@@ -1240,11 +1240,8 @@ def inc_subtensor(
 
     if y.ndim > x.ndim:
         raise TypeError(
-            (
-                "Trying to increment a %d-dimensional "
-                "subtensor with a %d-dimensional value."
-            )
-            % (x.ndim, y.ndim)
+            f"Trying to increment a {int(x.ndim)}-dimensional "
+            f"subtensor with a {int(y.ndim)}-dimensional value."
         )
 
     dim_offset = x.ndim - y.ndim
@@ -1471,11 +1468,8 @@ class IncSubtensor(Op):
         x, y = map(theano.tensor.as_tensor_variable, [x, y])
         if y.ndim > x.ndim:
             raise ValueError(
-                (
-                    "Trying to increment a %d-dimensional "
-                    "subtensor with a %d-dimensional value."
-                )
-                % (x.ndim, y.ndim)
+                f"Trying to increment a {int(x.ndim)}-dimensional "
+                f"subtensor with a {int(y.ndim)}-dimensional value."
             )
         inputs = tuple(map(Subtensor.my_as_scalar, inputs))
 
@@ -2282,9 +2276,9 @@ def check_advanced_indexing_dimensions(input, idx_list):
                 if index.shape[i] != input.shape[dim_seen + i]:
                     raise IndexError(
                         "boolean index did not match indexed array "
-                        "along dimension %d; dimension is %d but "
-                        "corresponding boolean dimension is %d"
-                        % (dim_seen + i, input.shape[dim_seen + i], index.shape[i])
+                        f"along dimension {int(dim_seen + i)}; dimension is "
+                        f"{int(input.shape[dim_seen + i])} but "
+                        f"corresponding boolean dimension is {index.shape[i]}"
                     )
             dim_seen += index.ndim
         else:

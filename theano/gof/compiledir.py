@@ -176,7 +176,7 @@ def print_compiledir_content():
     print_title(f"Theano cache: {compiledir}", overline="=", underline="=")
     print()
 
-    print_title("List of %d compiled individual ops" % len(table), underline="+")
+    print_title(f"List of {len(table)} compiled individual ops", underline="+")
     print_title(
         "sub dir/compiletime/Op/set of different associated Theano types", underline="-"
     )
@@ -186,7 +186,7 @@ def print_compiledir_content():
 
     print()
     print_title(
-        "List of %d compiled sets of ops" % len(table_multiple_ops), underline="+"
+        f"List of {len(table_multiple_ops)} compiled sets of ops", underline="+"
     )
     print_title(
         "sub dir/compiletime/Set of ops/set of different associated Theano types",
@@ -199,8 +199,8 @@ def print_compiledir_content():
     print()
     print_title(
         (
-            "List of %d compiled Op classes and "
-            "the number of times they got compiled" % len(table_op_class)
+            f"List of {len(table_op_class)} compiled Op classes and "
+            "the number of times they got compiled"
         ),
         underline="+",
     )
@@ -212,12 +212,12 @@ def print_compiledir_content():
         big_key_files = sorted(big_key_files, key=lambda t: str(t[1]))
         big_total_size = sum([sz for _, sz, _ in big_key_files])
         print(
-            "There are directories with key files bigger than %d bytes "
-            "(they probably contain big tensor constants)" % max_key_file_size
+            f"There are directories with key files bigger than {int(max_key_file_size)} bytes "
+            "(they probably contain big tensor constants)"
         )
         print(
-            "They use %d bytes out of %d (total size used by all key files)"
-            "" % (big_total_size, total_key_sizes)
+            f"They use {int(big_total_size)} bytes out of {int(total_key_sizes)} (total size "
+            "used by all key files)"
         )
 
         for dir, size, ops in big_key_files:
@@ -233,8 +233,8 @@ def print_compiledir_content():
         print(n_k, n_m)
     print()
     print(
-        "Skipped %d files that contained 0 op "
-        "(are they always theano.scalar ops?)" % zeros_op
+        f"Skipped {int(zeros_op)} files that contained 0 op "
+        "(are they always theano.scalar ops?)"
     )
 
 

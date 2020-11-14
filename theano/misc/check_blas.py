@@ -290,7 +290,7 @@ if __name__ == "__main__":
         print()
         print("We executed", options.iter, end=" ")
         print("calls to gemm with a and b matrices of shapes", end=" ")
-        print("(%d, %d) and (%d, %d)." % (M, N, N, K))
+        print(f"({int(M)}, {int(N)}) and ({int(N)}, {int(K)})."
 
         print()
         print(f"Total execution time: {t:.2f}s on {impl}.")

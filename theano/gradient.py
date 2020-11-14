@@ -831,14 +831,14 @@ def _node_to_pattern(node):
             )
         if len(connection_pattern) != len(node.inputs):
             raise ValueError(
-                "%s.connection_pattern should have %d" % (node.op, len(node.inputs))
-                + " rows but has %d." % len(connection_pattern)
+                f"{node.op}.connection_pattern should have {len(node.inputs)}"
+                + f" rows but has {len(connection_pattern)}."
             )
         for ii, output_pattern in enumerate(connection_pattern):
             if not isinstance(output_pattern, list):
                 raise TypeError(
                     f"{node.op}.connection_pattern should return"
-                    + " a list of lists, but element %d" % ii
+                    + f" a list of lists, but element {int(ii)}"
                     + f"is {output_pattern} of type {type(output_pattern)}."
                 )
     else:
@@ -1307,9 +1307,9 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                         t_shape = term_v.shape
                         if i_shape != t_shape:
                             raise ValueError(
-                                "%s.grad returned object of "
-                                "shape %s as gradient term on input %d "
-                                "of shape %s" % (node.op, t_shape, i, i_shape)
+                                f"{node.op}.grad returned object of "
+                                f"shape {t_shape} as gradient term on input {int(i)} "
+                                f"of shape {i_shape}"
                             )
 
                 if not isinstance(term.type, (NullType, DisconnectedType)):
@@ -1317,7 +1317,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                         raise TypeError(
                             str(node.op) + ".grad illegally "
                             " returned an integer-valued variable."
-                            " (Input index %d, dtype %s)" % (i, term.type.dtype)
+                            f" (Input index {int(i)}, dtype {term.type.dtype})"
                         )
 
                     if only_connected_to_nan[i]:
@@ -1429,10 +1429,9 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                         if hasattr(var, "ndim") and term.ndim != var.ndim:
                             raise ValueError(
                                 (
-                                    "%s.grad returned a term with"
-                                    " %d dimensions, but %d are required."
+                                    f"{node.op}.grad returned a term with"
+                                    f" {int(term.ndim)} dimensions, but {int(var.ndim)} are required."
                                 )
-                                % (str(node.op), term.ndim, var.ndim)
                             )
 
                         terms.append(term)

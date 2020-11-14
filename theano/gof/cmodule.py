@@ -2303,7 +2303,7 @@ class GCC_compiler(Compiler):
             arch in platform.machine() for arch in ["arm", "aarch"]
         ):
             n_bits = local_bitwidth()
-            cxxflags.append("-m%d" % n_bits)
+            cxxflags.append(f"-m{int(n_bits)}")
             _logger.debug("Compiling for %s bit architecture", n_bits)
 
         if sys.platform != "win32":

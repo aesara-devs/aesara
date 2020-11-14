@@ -250,7 +250,7 @@ def _topk_py_impl(op, x, k, axis, idx_dtype):
         raise ValueError("topk: kth cannot be zero")
     elif k > x.shape[axis]:
         raise ValueError(
-            "topk: kth cannot be larger than the size of specified axis %d" % axis
+            f"topk: kth cannot be larger than the size of specified axis {int(axis)}"
         )
     if abs(k) == 1:
         # negative k means min instead of max
@@ -408,7 +408,7 @@ class TopKOp(Op):
         if not -ndim <= self.axis < ndim:
             raise IndexError(
                 '"axis" parameter out of range,'
-                " expected integer within [%d, %d]" % (-ndim, ndim - 1)
+                f" expected integer within [{int(-ndim)}, {int(ndim - 1)}]"
             )
 
         kth = theano.tensor.as_tensor_variable(kth)

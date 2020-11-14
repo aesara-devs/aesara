@@ -869,7 +869,7 @@ class Function:
                                 + argument_name
                                 + " to "
                                 + function_name
-                                + " at index %d (0-based). %s" % (i, where)
+                                + f" at index {int(i)} (0-based). {where}"
                                 + e.args[0],
                             )
                         else:
@@ -878,7 +878,7 @@ class Function:
                                 + argument_name
                                 + " to "
                                 + function_name
-                                + " at index %d (0-based). %s" % (i, where),
+                                + f" at index {int(i)} (0-based). {where}"
                             ) + e.args
                         restore_defaults()
                         raise
@@ -1505,7 +1505,7 @@ class FunctionMaker:
             return found_graph_in_db
 
         graph_db = load_graph_db()
-        print("loaded graph_db from %s, size=%d" % (graph_db_file, len(graph_db)))
+        print(f"loaded graph_db from {graph_db_file}, size={len(graph_db)}"
         found_graph = find_same_graph_in_db(graph_db)
         if found_graph:
             self.fgraph = found_graph

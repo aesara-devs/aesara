@@ -228,21 +228,20 @@ class Images2Neibs(Op):
                 raise TypeError(
                     "Images2Neibs: in wrap_centered mode, don't support"
                     " image shapes smaller then the patch shapes:"
-                    " neib_shape=(%d,%d), ten4[2:]=[%d,%d]"
-                    % (c, d, ten4.shape[2], ten4.shape[3])
+                    f" neib_shape=({int(c)},{int(d)}), ten4[2:]=[{int(ten4.shape[2])},{int(ten4.shape[3])}]"
                 )
             grid_c = CEIL_INTDIV(ten4.shape[2], step_x)
             grid_d = CEIL_INTDIV(ten4.shape[3], step_y)
         elif mode == "valid":
             if (ten4.shape[2] < c) or (((ten4.shape[2] - c) % step_x) != 0):
                 raise TypeError(
-                    "neib_shape[0]=%d, neib_step[0]=%d and"
-                    " ten4.shape[2]=%d not consistent" % (c, step_x, ten4.shape[2])
+                    f"neib_shape[0]={int(c)}, neib_step[0]={int(step_x)} and"
+                    f" ten4.shape[2]={int(ten4.shape[2])} not consistent"
                 )
             if (ten4.shape[3] < d) or (((ten4.shape[3] - d) % step_y) != 0):
                 raise TypeError(
-                    "neib_shape[1]=%d, neib_step[1]=%d and"
-                    " ten4.shape[3]=%d not consistent" % (d, step_y, ten4.shape[3])
+                    f"neib_shape[1]={int(d)}, neib_step[1]={int(step_y)} and"
+                    f" ten4.shape[3]={int(ten4.shape[3])} not consistent"
                 )
             # number of patch in height
             grid_c = 1 + ((ten4.shape[2] - c) // step_x)
@@ -261,13 +260,13 @@ class Images2Neibs(Op):
             # w + 2 * (d // 2) - c  = w - (d % 2)
             if (ten4.shape[2] < c) or (((ten4.shape[2] - (c % 2)) % step_x) != 0):
                 raise TypeError(
-                    "neib_shape[0]=%d, neib_step[0]=%d and"
-                    " ten4.shape[2]=%d not consistent" % (c, step_x, ten4.shape[2])
+                    f"neib_shape[0]={int(c)}, neib_step[0]={int(step_x)} and"
+                    f" ten4.shape[2]={int(ten4.shape[2])} not consistent"
                 )
             if (ten4.shape[3] < d) or (((ten4.shape[3] - (d % 2)) % step_y) != 0):
                 raise TypeError(
-                    "neib_shape[1]=%d, neib_step[1]=%d and"
-                    " ten4.shape[3]=%d not consistent" % (d, step_y, ten4.shape[3])
+                    f"neib_shape[0]={int(d)}, neib_step[0]={int(step_y)} and"
+                    f" ten4.shape[3]={int(ten4.shape[3])} not consistent"
                 )
             # number of patch in height
             grid_c = 1 + ((ten4.shape[2] - (c % 2)) // step_x)
@@ -281,13 +280,13 @@ class Images2Neibs(Op):
             # w + 2 * (d - 1) - c  = w + d - 2
             if (ten4.shape[2] < c) or (((ten4.shape[2] + c - 2) % step_x) != 0):
                 raise TypeError(
-                    "neib_shape[0]=%d, neib_step[0]=%d and"
-                    " ten4.shape[2]=%d not consistent" % (c, step_x, ten4.shape[2])
+                    f"neib_shape[0]={int(c)}, neib_step[0]={int(step_x)} and"
+                    f" ten4.shape[2]={int(ten4.shape[2])} not consistent"
                 )
             if (ten4.shape[3] < d) or (((ten4.shape[3] + d - 2) % step_y) != 0):
                 raise TypeError(
-                    "neib_shape[1]=%d, neib_step[1]=%d and"
-                    " ten4.shape[3]=%d not consistent" % (d, step_y, ten4.shape[3])
+                    f"neib_shape[0]={int(d)}, neib_step[0]={int(step_y)} and"
+                    f" ten4.shape[3]={int(ten4.shape[3])} not consistent"
                 )
             # number of patch in height
             grid_c = 1 + ((ten4.shape[2] + c - 2) // step_x)

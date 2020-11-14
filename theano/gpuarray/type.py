@@ -250,9 +250,8 @@ class GpuArrayType(Type):
                 raise TypeError(f"{self} expected a GpuArray object.", data, type(data))
             if self.typecode != data.typecode:
                 raise TypeError(
-                    "%s expected typecode %d (dtype %s), "
-                    "got %d (dtype %s)."
-                    % (self, self.typecode, self.dtype, data.typecode, str(data.dtype))
+                    f"{self} expected typecode {int(self.typecode)} (dtype {self.dtype}), "
+                    f"got {int(data.typecode)} (dtype {data.dtype})."
                 )
             if self.context != data.context:
                 raise TypeError("data context does not match type context")
@@ -343,7 +342,7 @@ class GpuArrayType(Type):
         if other.type.ndim != self.ndim:
             raise TypeError(
                 "Incompatible number of dimensions."
-                " Expected %d, got %d." % (self.ndim, other.ndim)
+                f" Expected {int(self.ndim)}, got {int(other.ndim)}."
             )
         if other.type.broadcastable != self.broadcastable:
             if allow_convert:

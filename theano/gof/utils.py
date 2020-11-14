@@ -140,7 +140,7 @@ def get_variable_trace_string(v):
             # backtraces
             for idx, subtr in enumerate(tr):
                 if len(tr) > 1:
-                    print("trace %d" % idx, file=sio)
+                    print(f"trace {int(idx)}", file=sio)
                 traceback.print_list(subtr, sio)
     return sio.getvalue()
 
@@ -571,7 +571,7 @@ def give_variables_names(variables):
         return not var.name or h[var.name] > 1
 
     for i, var in enumerate(filter(bad_var, variables)):
-        var.name = (var.name or "") + "_%d" % i
+        var.name = (var.name or "") + f"_{int(i)}"
 
     if not unique([str(v) for v in variables]):
         raise ValueError(

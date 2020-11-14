@@ -368,12 +368,11 @@ class FunctionGraph(utils.object2):
                     ):
                         # Standard error message
                         error_msg = (
-                            "Input %d of the graph (indices start "
-                            "from 0), used to compute %s, was not "
+                            f"Input {int(node.inputs.index(r))} of the graph (indices start "
+                            f"from 0), used to compute {node}, was not "
                             "provided and not given a value. Use the "
                             "Theano flag exception_verbosity='high', "
                             "for more information on this error."
-                            % (node.inputs.index(r), str(node))
                         )
                         raise MissingInputError(error_msg, variable=r)
 

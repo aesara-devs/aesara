@@ -541,13 +541,13 @@ class CGpuKernelBase(COp, GpuKernelBase):
         undef_macros = []
         for i, v in enumerate(node.inputs):
             if isinstance(v.type, GpuArrayType):
-                macro_name = "DTYPE_INPUT_%d" % (i,)
+                macro_name = f"DTYPE_INPUT_{i}"
                 macro_value = pygpu.gpuarray.dtype_to_ctype(v.dtype)
                 define_macros.append(define_template % (macro_name, macro_value))
                 undef_macros.append(undef_template % macro_name)
         for i, v in enumerate(node.outputs):
             if isinstance(v.type, GpuArrayType):
-                macro_name = "DTYPE_OUTPUT_%d" % (i,)
+                macro_name = f"DTYPE_OUTPUT_{i}"
                 macro_value = pygpu.gpuarray.dtype_to_ctype(v.dtype)
                 define_macros.append(define_template % (macro_name, macro_value))
                 undef_macros.append(undef_template % macro_name)

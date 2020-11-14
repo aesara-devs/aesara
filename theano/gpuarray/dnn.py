@@ -182,7 +182,7 @@ if ((err = cudnnCreate(&_handle)) != CUDNN_STATUS_SUCCESS) {
 def _dnn_check_version():
     v = version()
     if v < 5000:
-        return False, "cuDNN version is too old. Update to v5* or higher, was %d." % v
+        return False, f"cuDNN version is too old. Update to v5* or higher, was {int(v)}."
     if v >= 7200:
         warnings.warn(
             "Your cuDNN version is more recent than "
@@ -3321,7 +3321,7 @@ def dnn_batch_normalization_train(
     if gamma.ndim != ndim or beta.ndim != ndim:
         raise ValueError(
             "gamma and beta must be of the same dimensionality "
-            "as inputs; got %d and %d instead of %d" % (gamma.ndim, beta.ndim, ndim)
+            f"as inputs; got {int(gamma.ndim)} and {int(beta.ndim)} instead of {int(ndim)}"
         )
     if (running_mean is None) != (running_var is None):
         raise ValueError(
@@ -3330,12 +3330,12 @@ def dnn_batch_normalization_train(
     if running_mean is not None and running_mean.ndim != ndim:
         raise ValueError(
             "running_mean must be of the same dimensionality "
-            "as inputs; got %d instead of %d" % (running_mean.ndim, ndim)
+            f"as inputs; got {int(running_mean.ndim)} instead of {int(ndim)}"
         )
     if running_var is not None and running_var.ndim != ndim:
         raise ValueError(
             "running_var must be of the same dimensionality "
-            "as inputs; got %d instead of %d" % (running_var.ndim, ndim)
+            f"as inputs; got {int(running_var.ndim)} instead of {int(ndim)}"
         )
     if epsilon < 1e-5:
         raise ValueError(f"epsilon must be at least 1e-5, got {epsilon:f}")
@@ -3448,12 +3448,12 @@ def dnn_batch_normalization_test(
     if gamma.ndim != ndim or beta.ndim != ndim:
         raise ValueError(
             "gamma and beta must be of the same dimensionality "
-            "as inputs; got %d and %d instead of %d" % (gamma.ndim, beta.ndim, ndim)
+            f"as inputs; got {int(gamma.ndim)} and {int(beta.ndim)} instead of {int(ndim)}"
         )
     if mean.ndim != ndim or var.ndim != ndim:
         raise ValueError(
             "mean and var must be of the same dimensionality "
-            "as inputs; got %d and %d instead of %d" % (mean.ndim, var.ndim, ndim)
+            f"as inputs; got {int(mean.ndim)} and {int(var.ndim)} instead of {int(ndim)}"
         )
     if epsilon < 1e-5:
         raise ValueError(f"epsilon must be at least 1e-5, got {epsilon:f}")

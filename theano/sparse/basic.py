@@ -4126,7 +4126,7 @@ class Dot(gof.op.Op):
             if x.ndim not in (1, 2):
                 raise TypeError(
                     "theano.sparse.Dot: input 0 (0-indexed) must have ndim of "
-                    "1 or 2, %d given." % x.ndim
+                    f"1 or 2, {int(x.ndim)} given."
                 )
 
         if y_is_sparse_var:
@@ -4138,7 +4138,7 @@ class Dot(gof.op.Op):
             if y.ndim not in (1, 2):
                 raise TypeError(
                     "theano.sparse.Dot: input 1 (1-indexed) must have ndim of "
-                    "1 or 2, %d given." % y.ndim
+                    f"1 or 2, {int(y.ndim)} given."
                 )
 
         if len(broadcast_y) == 2:
@@ -4353,12 +4353,11 @@ class ConstructSparseFromList(gof.Op):
             raise TypeError("index must be vector")
         if x_.type.ndim != 2:
             raise TypeError(
-                "cannot create a sparse matrix with %d dimensions" % x_.type.ndim
+                f"cannot create a sparse matrix with {int(x_.type.ndim)} dimensions"
             )
         if values_.type.ndim != 2:
             raise TypeError(
-                "cannot create a sparse matrix from values with %d ndim"
-                % values_.type.ndim
+                f"cannot create a sparse matrix from values with {int(values_.type.ndim)} ndim"
             )
 
         # We only need the shape of `x` in the perform

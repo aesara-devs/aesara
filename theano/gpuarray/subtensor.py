@@ -561,9 +561,8 @@ def check_and_convert_boolean_masks(input, idx_list):
                 if index.shape[i] != input.shape[dim_seen + i]:
                     raise IndexError(
                         "boolean index did not match indexed array "
-                        "along dimension %d; dimension is %d but "
-                        "corresponding boolean dimension is %d"
-                        % (dim_seen + i, input.shape[dim_seen + i], index.shape[i])
+                        f"along dimension {int(dim_seen + i)}; dimension is {int(input.shape[dim_seen + i])} but "
+                        f"corresponding boolean dimension is {int(index.shape[i])}"
                     )
             dim_seen += index.ndim
             out_idx_list += index.nonzero()

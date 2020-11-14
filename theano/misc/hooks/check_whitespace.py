@@ -49,10 +49,7 @@ def get_parse_error(code):
     except IndentationError as err:
         return f"Indentation error: {err}"
     except tabnanny.NannyNag as err:
-        return "Ambiguous tab at line %d; line is '%s'." % (
-            err.get_lineno(),
-            err.get_line(),
-        )
+        return f"Ambiguous tab at line {err.get_lineno()}; line is '{err.get_line()}'."
     return None
 
 

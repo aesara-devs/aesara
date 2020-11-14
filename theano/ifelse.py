@@ -159,10 +159,7 @@ class IfElse(Op):
     def make_node(self, c, *args):
         assert (
             len(args) == 2 * self.n_outs
-        ), "Wrong number of arguments to make_node: " "expected %d, got %d" % (
-            2 * self.n_outs,
-            len(args),
-        )
+        ), f"Wrong number of arguments to make_node: expected {int(2 * self.n_outs)}, got {len(args)}"
         c = theano.tensor.as_tensor_variable(c)
         if not self.gpu:
             # When gpu is true, we are given only gpuarrays, and we want
@@ -402,8 +399,8 @@ def ifelse(condition, then_branch, else_branch, name=None):
             "The number of values on the `then` branch"
             " should have the same number of variables as "
             "the `else` branch : (variables on `then` "
-            "%d" % len(then_branch) + ", variables on `else` "
-            "%d" % len(else_branch) + ")"
+            f"{len(then_branch)}, variables on `else` "
+            f"{len(else_branch)})"
         )
 
     new_ifelse = IfElse(n_outs=len(then_branch), as_view=False, gpu=False, name=name)

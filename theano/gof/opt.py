@@ -332,9 +332,8 @@ class SeqOptimizer(Optimizer, list):
             print(blanc, opts.__name__, end=" ", file=stream)
         print(
             (
-                " time %.3fs for %d/%d nodes"
+                f" time {sum(prof):.3f}s for {int(nb_node_before)}/{int(nb_node_after)} nodes"
                 " before/after optimization"
-                % (sum(prof), nb_node_before, nb_node_after)
             ),
             file=stream,
         )
@@ -1228,17 +1227,15 @@ class LocalMetaOptimizer(LocalOptimizer):
         if missing:
             if self.verbose > 0:
                 print(
-                    "%s cannot meta-optimize %s, "
-                    "%d of %d input shapes unknown"
-                    % (self.__class__.__name__, node, len(missing), node.nin)
+                    f"{self.__class__.__name__} cannot meta-optimize {node}, "
+                    f"{len(missing)} of {int(node.nin)} input shapes unknown"
                 )
             return
         # now we can apply the different optimizations in turn,
         # compile the resulting subgraphs and time their execution
         if self.verbose > 1:
             print(
-                "%s meta-optimizing %s (%d choices):"
-                % (self.__class__.__name__, node, len(self.get_opts(node)))
+                f"{self.__class__.__name__} meta-optimizing {node} ({len(self.get_opts(node))} choices):"
             )
         timings = []
         for opt in self.get_opts(node):
@@ -1491,13 +1488,12 @@ class LocalOptGroup(LocalOptimizer):
             for (t, a_t, count, o, n_c) in count_opt[::-1]:
                 print(
                     blanc,
-                    "  %.3fs - %d - %d - %s - %d" % (t, a_t, count, o, n_c),
+                    f"  {t:.3f}s - {int(a_t)} - {int(count)} - {o} - {int(n_c)}",
                     file=stream,
                 )
             print(
                 blanc,
-                "  %.3fs - in %d optimization that were not used (display those with runtime greater than 0)"
-                % (not_used_time, len(not_used)),
+                f"  {not_used_time:.3f}s - in {len(not_used)} optimization that were not used (display those with runtime greater than 0)",
                 file=stream,
             )
             not_used.sort(key=lambda nu: (nu[0], str(nu[1])))
@@ -2776,13 +2772,12 @@ class EquilibriumOptimizer(NavigatorOptimizer):
         print(blanc, getattr(opt, "name", getattr(opt, "__name__", "")), file=stream)
         print(
             blanc,
-            "  time %.3fs for %d passes" % (sum(loop_timing), len(loop_timing)),
+            f"  time {sum(loop_timing):.3f}s for {len(loop_timing)} passes",
             file=stream,
         )
         print(
             blanc,
-            "  nb nodes (start, end,  max) %d %d %d"
-            % (start_nb_nodes, end_nb_nodes, max_nb_nodes),
+            f"  nb nodes (start, end,  max) {int(start_nb_nodes)} {int(end_nb_nodes)} {int(max_nb_nodes)}",
             file=stream,
         )
         print(blanc, f"  time io_toposort {sum(io_toposort_timing):.3f}s", file=stream)
@@ -2806,17 +2801,8 @@ class EquilibriumOptimizer(NavigatorOptimizer):
             print(
                 blanc,
                 (
-                    "  %2d - %.3fs %d (%.3fs in global opts, "
-                    "%.3fs io_toposort) - %d nodes - %s"
-                    % (
-                        i,
-                        loop_timing[i],
-                        sum(loop_process_count[i].values()),
-                        global_opt_timing[i],
-                        io_toposort_timing[i],
-                        nb_nodes[i],
-                        lopt,
-                    )
+                    f"  {int(i):2d} - {loop_timing[i]:.3f}s {int(sum(loop_process_count[i].values()))} ({global_opt_timing[i]:.3f}s in global opts, "
+                    f"{io_toposort_timing[i]:.3f}s io_toposort) - {int(nb_nodes[i])} nodes - {lopt}"
                 ),
                 file=stream,
             )
@@ -2850,13 +2836,12 @@ class EquilibriumOptimizer(NavigatorOptimizer):
             for (t, count, n_created, o) in count_opt[::-1]:
                 print(
                     blanc,
-                    "  %.3fs - %d - %d - %s" % (t, count, n_created, o),
+                    f"  {t:.3f}s - {int(count)} - {int(n_created)} - {o}",
                     file=stream,
                 )
             print(
                 blanc,
-                "  %.3fs - in %d optimization that were not used (display only those with a runtime > 0)"
-                % (not_used_time, len(not_used)),
+                f"  {not_used_time:.3f}s - in {len(not_used)} optimization that were not used (display only those with a runtime > 0)",
                 file=stream,
             )
             not_used.sort(key=lambda nu: (nu[0], str(nu[1])))
@@ -2878,7 +2863,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
             return
         print(blanc, "Global, final and clean up optimizers", file=stream)
         for i in range(len(loop_timing)):
-            print(blanc, "Iter %d" % i, file=stream)
+            print(blanc, f"Iter {int(i)}", file=stream)
             for o, prof in zip(opt.global_optimizers, global_sub_profs[i]):
                 try:
                     o.print_profile(stream, prof, level + 2)

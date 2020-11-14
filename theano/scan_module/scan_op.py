@@ -1265,7 +1265,7 @@ class Scan(PureOp):
             # History, in the past, this was used for backward
             # scan. Now we reverse the inputs outside of scan.
             raise IndexError(
-                "Scan was asked to run for negative number of step %d" % n_steps
+                f"Scan was asked to run for negative number of step {int(n_steps)}"
             )
         elif n_steps == 0:
             raise NotImplementedError(

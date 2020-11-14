@@ -650,9 +650,9 @@ def get_scalar_constant_value(
                     if not (idx < len(gp_broadcastable)):
                         msg = (
                             "get_scalar_constant_value detected "
-                            + "deterministic IndexError: x.shape[%d] "
-                            + "when x.ndim=%d."
-                        ) % (idx, ndim)
+                            f"deterministic IndexError: x.shape[{int(idx)] "
+                            f"when x.ndim={int(ndim)}."
+                        )
                         if config.exception_verbosity == "high":
                             msg += f" x={min_informative_str(v)}"
                         else:
@@ -1143,8 +1143,7 @@ def check_and_normalize_axes(x, axis):
                 axis[i] += x.type.ndim
             if axis[i] < 0 or axis[i] >= x.type.ndim:
                 raise ValueError(
-                    "Computation needs a valid axis number for %d-D tensor. Got %d"
-                    % (x.type.ndim, axis[i])
+                    f"Computation needs a valid axis number for {int(x.type.ndim)}-D tensor. Got {int(axis[i])}"
                 )
         axis = list(set(axis))
         axis.sort()
@@ -3032,8 +3031,7 @@ def alloc_validate_shape(shape):
             s_as_str = err_str()
             raise TypeError(
                 "Each shape dimension to Alloc must be a scalar, ",
-                "but dimension %s have %d dimensions for apply node: %s"
-                % (i, s.ndim, s_as_str),
+                f"but dimension {i} have {int(s.ndim)} dimensions for apply node: {s_as_str}"
             )
 
         # if s is constant 1, then we're broadcastable in that dim
@@ -4423,7 +4421,7 @@ class Join(Op):
 
                 if axis < -ndim:
                     raise IndexError(
-                        "Join axis %d out of bounds [0, %d)" % (axis, ndim)
+                        f"Join axis {int(axis)} out of bounds [0, {int(ndim)})"
                     )
                 if axis < 0:
                     axis += ndim
@@ -4485,7 +4483,7 @@ class Join(Op):
         else:
             ndim = tensors[0].ndim
             if axis < -ndim:
-                raise IndexError("Join axis %d out of bounds [0, %d)" % (axis, ndim))
+                raise IndexError(f"Join axis {int(axis)} out of bounds [0, {int(ndim)})"
 
             out[0] = theano._asarray(
                 np.concatenate(tensors, axis=axis), dtype=node.outputs[0].type.dtype
@@ -5488,7 +5486,7 @@ def flatten(x, ndim=None, outdim=None):
     # even if it's a scalar. Otherwise, ndim must be positive
     # and smaller than x.ndim.
     if ndim < 1 or (ndim > 1 and ndim > x.ndim):
-        raise ValueError("ndim %s out of bound [1, %d)" % (ndim, x.ndim + 1))
+        raise ValueError(f"ndim {ndim} out of bound [1, {x.ndim + 1})"
 
     if ndim > 1:
         dims = tuple(x.shape[: ndim - 1]) + (-1,)
@@ -6172,19 +6170,19 @@ class Dot(Op):
 
         if len(inputs) != 2:
             raise TypeError(
-                "theano.tensor.Dot: 2 arguments required, %d given " % len(inputs)
+                f"theano.tensor.Dot: 2 arguments required, {len(inputs)} given "
             )
         if inputs[0].ndim not in (1, 2):
             raise TypeError(
                 "theano.tensor.Dot: input 0 (0-indexed) must have ndim of "
-                "1 or 2, %d given. Consider calling theano.tensor.dot "
-                "instead." % inputs[0].ndim
+                f"1 or 2, {int(inputs[0].ndim)} given. Consider calling "
+                "theano.tensor.dot instead."
             )
         if inputs[1].ndim not in (1, 2):
             raise TypeError(
                 "theano.tensor.Dot: input 1 (0-indexed) must have ndim of "
-                "1 or 2, %d given. Consider calling theano.tensor.dot "
-                "instead." % inputs[1].ndim
+                f"1 or 2, {int(inputs[1].ndim)} given. Consider calling "
+                "theano.tensor.dot instead."
             )
 
         i_broadcastables = [input.type.broadcastable for input in inputs]

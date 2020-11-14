@@ -937,7 +937,7 @@ class Pool(OpenMPOp):
                 """
             elif self.mode == "average_inc_pad" and self.ignore_border:
                 # region size = product over all pooling dimensions
-                region_size = " * ".join("ws[%d]" % i for i in range(nd))
+                region_size = " * ".join(f"ws[{i}]" for i in range(nd))
                 ccode += """
                   z[0] = collector / (%(region_size)s);
                 """ % dict(
@@ -946,7 +946,7 @@ class Pool(OpenMPOp):
             else:
                 # region size = number elements of in this region
                 region_size = " * ".join(
-                    "(r_end[%d]-r_st[%d])" % (i, i) for i in range(nd)
+                    f"(r_end[{i}]-r_st[{i}])" for i in range(nd)
                 )
                 ccode += """
                   z[0] = collector / (%(region_size)s);
@@ -1788,7 +1788,7 @@ class AveragePoolGrad(PoolGrad):
                     val = gz[0] / (%(region_size)s);
                   }
         """
-        region_size = " * ".join("r_pad_width[%d]" % i for i in range(nd))
+        region_size = " * ".join(f"r_pad_width[{i}]" for i in range(nd))
         for i in range(nd):
             ccode += """
                   // go through the pooled region in the unpadded input

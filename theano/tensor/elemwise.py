@@ -183,8 +183,8 @@ class DimShuffle(COp):
                     )
                 if j >= len(input_broadcastable):
                     raise ValueError(
-                        ("new_order[%d] is %d, but the input " "only has %d axes.")
-                        % (i, j, len(input_broadcastable))
+                        f"new_order[{i}] is {j}, but the input only has "
+                        f"{len(input_broadcastable)} axes."
                     )
                 if j in new_order[(i + 1) :]:
                     raise ValueError(
@@ -1191,10 +1191,8 @@ second dimension
                                 % locals()
                             )
                     if self.openmp:
-                        contig += """#pragma omp parallel for if(n>=%d)
-                        """ % (
-                            config.openmp_elemwise_minsize
-                        )
+                        contig += """#pragma omp parallel for if(n>={int(config.openmp_elemwise_minsize)})
+                        """
                     contig += (
                         """
                     for(int i=0; i<n; i++){

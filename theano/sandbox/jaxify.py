@@ -694,7 +694,7 @@ def jax_funcify_Join(op):
         else:
             ndim = tensors[0].ndim
             if axis < -ndim:
-                raise IndexError("Join axis %d out of bounds [0, %d)" % (axis, ndim))
+                raise IndexError(f"Join axis {int(axis)} out of bounds [0, {int(ndim)})"
 
             return jnp.concatenate(tensors, axis=axis)
 

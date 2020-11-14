@@ -142,7 +142,7 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
     hints = []
     detailed_err_msg = "\nApply node that caused the error: " + str(node)
     if exc_value.__applynode_index__ is not None:
-        detailed_err_msg += "\nToposort index: %d" % node_index
+        detailed_err_msg += f"\nToposort index: {int(node_index)}"
 
     types = [getattr(ipt, "type", "No type") for ipt in node.inputs]
     detailed_err_msg += f"\nInputs types: {types}\n"

@@ -446,7 +446,7 @@ def scan(
                 if "taps" in outs_info[i]:
                     # ^ explicitly provided a None for taps
                     _logger.warning(
-                        "Output %s ( index %d) has a initial "
+                        "Output %s (index %d) has a initial "
                         "state but taps is explicitly set to None ",
                         getattr(outs_info[i]["initial"], "name", "None"),
                         i,
@@ -536,11 +536,11 @@ def scan(
                 # that is if the input already has a name
                 if getattr(seq["input"], "name", None) is not None:
                     if k > 0:
-                        nw_name = seq["input"].name + "[t+%d]" % k
+                        nw_name = seq["input"].name + f"[t+{int(k)}]"
                     elif k == 0:
                         nw_name = seq["input"].name + "[t]"
                     else:
-                        nw_name = seq["input"].name + "[t%d]" % k
+                        nw_name = seq["input"].name + f"[t{int(k)}]"
                     nw_slice.name = nw_name
 
                 start = k - mintap_proxy
@@ -548,12 +548,12 @@ def scan(
                 if k == maxtap_proxy:
                     nw_seq = seq["input"][start:]
                     if getattr(seq["input"], "name", None) is not None:
-                        nw_name = seq["input"].name + "[%d:]" % start
+                        nw_name = seq["input"].name + f"[{int(start)}:]"
                 else:
                     end = -(maxtap_proxy - k)
                     nw_seq = seq["input"][start:end]
                     if getattr(seq["input"], "name", None) is not None:
-                        nw_name = seq["input"].name + "[%d:%d]" % (start, end)
+                        nw_name = seq["input"].name + f"[{int(start)}:{int(end)}]"
 
                 if go_backwards:
                     nw_seq = nw_seq[::-1]
@@ -724,11 +724,11 @@ def scan(
                 # give it a name or debugging and pretty printing
                 if getattr(init_out["initial"], "name", None) is not None:
                     if k > 0:
-                        nw_slice.name = init_out["initial"].name + "[t+%d]" % k
+                        nw_slice.name = init_out["initial"].name + f"[t+{int(k)}]"
                     elif k == 0:
                         nw_slice.name = init_out["initial"].name + "[t]"
                     else:
-                        nw_slice.name = init_out["initial"].name + "[t%d]" % k
+                        nw_slice.name = init_out["initial"].name + f"[t{int(k)}]"
                 mit_sot_inner_inputs.append(nw_slice)
                 mit_sot_inner_slices.append(actual_nw_slice)
         # NOTE: there is another case, in which we do not want to provide

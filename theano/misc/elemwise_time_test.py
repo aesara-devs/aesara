@@ -37,7 +37,7 @@ def evalTime(f, v, script=False, loops=1000):
         dt = time.time() - t0
         min = dt if dt < min else min
     if not script:
-        print(" run time in %d loops was %2.9f sec" % (loops, min))
+        print(f" run time in {int(loops)} loops was {min:2.9f} sec")
     return min
 
 
