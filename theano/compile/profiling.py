@@ -1461,7 +1461,7 @@ class ProfileStats:
         if N == 0:
             print(
                 "    All Apply nodes have output sizes that take less "
-                f"than {int(config.profiling.min_memory_size)}B."
+                f"than {int(config.profiling.min_memory_size)}B.",
                 file=file,
             )
         print(
