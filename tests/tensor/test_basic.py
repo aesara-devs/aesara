@@ -114,9 +114,9 @@ from theano.tensor import (
     constant,
     cscalar,
     default,
+    dense_dot,
     diag,
     dmatrix,
-    dot,
     dscalar,
     dscalars,
     dtensor3,
@@ -708,7 +708,7 @@ TestConjBroadcast = makeBroadcastTester(
 
 TestDot = makeTester(
     name="DotTester",
-    op=dot,
+    op=dense_dot,
     expected=lambda x, y: np.dot(x, y),
     checks={},
     good=dict(
@@ -1140,7 +1140,7 @@ class TestAlloc:
                 (some_matrix[idx, idx], 1),
             ],
         ):
-            derp = sum(dot(subtensor, variables))
+            derp = sum(dense_dot(subtensor, variables))
 
             fobj = theano.function([some_vector], derp, mode=self.mode)
             grad_derp = theano.grad(derp, some_vector)
@@ -3659,7 +3659,7 @@ class TestDot:
             return type(x), x.dtype, x.shape
 
         nz = np.dot(x, y)
-        tz = eval_outputs([dot(as_tensor_variable(x), as_tensor_variable(y))])
+        tz = eval_outputs([dense_dot(as_tensor_variable(x), as_tensor_variable(y))])
         assert tz.dtype == nz.dtype, (tz.dtype, tz.dtype.num, nz.dtype, nz.dtype.num)
         assert tz.shape == nz.shape, (tz.shape, nz.shape)
         utt.assert_allclose(nz, tz, rtol=1e-4, atol=1e-4)
@@ -3797,7 +3797,7 @@ class TestDot:
 
     def not_aligned(self, x, y):
         with change_flags(compute_test_value="off"):
-            z = dot(x, y)
+            z = dense_dot(x, y)
         with pytest.raises(ValueError):
             eval_outputs([z])
 
@@ -3813,19 +3813,19 @@ class TestDot:
         self.not_aligned(rand(5, 4, 3), rand(6, 7, 8))
 
     def test_grad(self):
-        utt.verify_grad(dot, [rand(2, 3), rand(3, 2)])
-        utt.verify_grad(dot, [rand(2), rand(2, 3)])
-        utt.verify_grad(dot, [rand(3, 2), rand(2)])
-        utt.verify_grad(dot, [rand(2), rand(2)])
-        utt.verify_grad(dot, [rand(), rand(2)])
-        utt.verify_grad(dot, [rand(), rand(2, 5)])
-        utt.verify_grad(dot, [rand(2), rand()])
-        utt.verify_grad(dot, [rand(2, 5), rand()])
-        utt.verify_grad(dot, [rand(2, 3, 4), rand(4)])
-        utt.verify_grad(dot, [rand(3), rand(2, 3, 4)])
-        utt.verify_grad(dot, [rand(4, 3), rand(2, 3, 4)])
-        utt.verify_grad(dot, [rand(2, 3, 4), rand(4, 5)])
-        utt.verify_grad(dot, [rand(2, 3, 4), rand(3, 4, 5)])
+        utt.verify_grad(dense_dot, [rand(2, 3), rand(3, 2)])
+        utt.verify_grad(dense_dot, [rand(2), rand(2, 3)])
+        utt.verify_grad(dense_dot, [rand(3, 2), rand(2)])
+        utt.verify_grad(dense_dot, [rand(2), rand(2)])
+        utt.verify_grad(dense_dot, [rand(), rand(2)])
+        utt.verify_grad(dense_dot, [rand(), rand(2, 5)])
+        utt.verify_grad(dense_dot, [rand(2), rand()])
+        utt.verify_grad(dense_dot, [rand(2, 5), rand()])
+        utt.verify_grad(dense_dot, [rand(2, 3, 4), rand(4)])
+        utt.verify_grad(dense_dot, [rand(3), rand(2, 3, 4)])
+        utt.verify_grad(dense_dot, [rand(4, 3), rand(2, 3, 4)])
+        utt.verify_grad(dense_dot, [rand(2, 3, 4), rand(4, 5)])
+        utt.verify_grad(dense_dot, [rand(2, 3, 4), rand(3, 4, 5)])
 
     @pytest.mark.slow
     def test_broadcastable_patterns(self):
@@ -3882,7 +3882,7 @@ class TestDot:
                     ):
 
                         y = TensorType(dtype=dtype1, broadcastable=bc1)()
-                        z = dot(x, y)
+                        z = dense_dot(x, y)
                         t = TensorType(dtype=dtype0, broadcastable=z.broadcastable)()
 
                         rval = z * 3 + 2 * t

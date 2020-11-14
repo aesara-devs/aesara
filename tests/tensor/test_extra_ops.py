@@ -3,10 +3,11 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import config, function
+from theano import change_flags, config, function
 from theano import tensor as tt
 from theano.tensor.extra_ops import (
     Bartlett,
+    BroadcastTo,
     CpuContiguous,
     CumOp,
     DiffOp,
@@ -20,6 +21,7 @@ from theano.tensor.extra_ops import (
     bartlett,
     bincount,
     broadcast_shape,
+    broadcast_to,
     compress,
     cpu_contiguous,
     cumprod,
@@ -1305,3 +1307,70 @@ def test_broadcast_shape():
     y_tt = tt.ones(y_shapes)
     b_tt = broadcast_shape(x_tt, y_tt)
     assert isinstance(b_tt[-1].owner.op, tt.opt.Assert)
+
+
+class TestBroadcastTo(utt.InferShapeTester):
+
+    rng = np.random.RandomState(43)
+
+    def setup_method(self):
+        super().setup_method()
+        self.op_class = BroadcastTo
+        self.op = broadcast_to
+
+    @change_flags(compute_test_value="raise")
+    def test_perform(self):
+        a = tt.scalar()
+        a.tag.test_value = 5
+
+        s_1 = tt.iscalar("s_1")
+        s_1.tag.test_value = 4
+        shape = (s_1, 1)
+
+        bcast_res = broadcast_to(a, shape)
+
+        assert bcast_res.broadcastable == (False, True)
+
+        bcast_np = np.broadcast_to(5, (4, 1))
+        bcast_tt = bcast_res.get_test_value()
+
+        assert np.array_equal(bcast_tt, bcast_np)
+        assert np.shares_memory(bcast_tt, a.get_test_value())
+
+    @pytest.mark.parametrize(
+        "fn,input_dims",
+        [
+            [lambda x: broadcast_to(x, (1,)), (1,)],
+            [lambda x: broadcast_to(x, (6, 2, 5, 3)), (1,)],
+            [lambda x: broadcast_to(x, (6, 2, 5, 3)), (5, 1)],
+            [lambda x: broadcast_to(x, (6, 2, 1, 3)), (2, 1, 3)],
+        ],
+    )
+    def test_gradient(self, fn, input_dims):
+        utt.verify_grad(
+            fn,
+            [np.random.rand(*input_dims).astype(config.floatX)],
+            n_tests=1,
+            rng=self.rng,
+        )
+
+    def test_infer_shape(self):
+        a = tt.tensor(config.floatX, [False, True, False])
+        shape = list(a.shape)
+        out = self.op(a, shape)
+
+        self._compile_and_check(
+            [a] + shape,
+            [out],
+            [np.random.rand(2, 1, 3).astype(config.floatX), 2, 1, 3],
+            self.op_class,
+        )
+
+        a = tt.tensor(config.floatX, [False, True, False])
+        shape = [tt.iscalar() for i in range(4)]
+        self._compile_and_check(
+            [a] + shape,
+            [self.op(a, shape)],
+            [np.random.rand(2, 1, 3).astype(config.floatX), 6, 2, 5, 3],
+            self.op_class,
+        )

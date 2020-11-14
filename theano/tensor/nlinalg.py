@@ -687,18 +687,18 @@ def matrix_power(M, n):
         return M
 
     elif n == 2:
-        return theano.dot(M, M)
+        return theano.tensor.dot(M, M)
 
     elif n == 3:
-        return theano.dot(theano.dot(M, M), M)
+        return theano.tensor.dot(theano.tensor.dot(M, M), M)
 
     result = z = None
 
     while n > 0:
-        z = M if z is None else theano.dot(z, z)
+        z = M if z is None else theano.tensor.dot(z, z)
         n, bit = divmod(n, 2)
         if bit:
-            result = z if result is None else theano.dot(result, z)
+            result = z if result is None else theano.tensor.dot(result, z)
 
     return result
 

@@ -1537,3 +1537,56 @@ def broadcast_shape_iter(arrays, **kwargs):
             result_dims.append(one)
 
     return tuple(result_dims)
+
+
+class BroadcastTo(Op):
+
+    view_map = {0: [0]}
+
+    def __call__(self, a, shape, **kwargs):
+        return super().__call__(a, *shape, **kwargs)
+
+    def make_node(self, a, *shape):
+        a = basic.as_tensor_variable(a)
+        shape = basic.as_tensor_variable(shape, ndim=1)
+
+        shape, bcast = basic.alloc_validate_shape(shape)
+
+        out = type(a.type)(dtype=a.type.dtype, broadcastable=bcast)()
+
+        return theano.Apply(self, [a] + shape, [out])
+
+    def perform(self, node, inputs, output_storage):
+        a, *shape = inputs
+        z = output_storage[0]
+        z[0] = np.broadcast_to(a, shape)
+
+    def grad(self, inputs, outputs_gradients):
+        a, *shape = inputs
+        (dout,) = outputs_gradients
+
+        # Determine the dimensions that were added by broadcasting
+        new_dims = list(range(dout.ndim - a.ndim))
+
+        d_wrt_a = broadcast_to(dout, shape).sum(axis=new_dims)
+
+        # Determine the dimensions that were broadcast
+        _, shape_bcast = basic.alloc_validate_shape(shape)
+        bcast_sums = [
+            i
+            for i, (a_b, s_b) in enumerate(zip(a.broadcastable, shape_bcast[-a.ndim :]))
+            if a_b and not s_b
+        ]
+
+        if bcast_sums:
+            d_wrt_a = d_wrt_a.sum(axis=bcast_sums, keepdims=True)
+
+        return [d_wrt_a] + [
+            grad_undefined(self, i, shp) for i, shp in enumerate(shape, 1)
+        ]
+
+    def infer_shape(self, node, ins_shapes):
+        return [node.inputs[1:]]
+
+
+broadcast_to = BroadcastTo()

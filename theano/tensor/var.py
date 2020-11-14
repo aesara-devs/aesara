@@ -661,10 +661,10 @@ class _tensor_py_operators:
     """The dtype of this tensor."""
 
     def __dot__(left, right):
-        return theano.tensor.basic.dot(left, right)
+        return theano.tensor.basic.dense_dot(left, right)
 
     def __rdot__(right, left):
-        return theano.tensor.basic.dot(left, right)
+        return theano.tensor.basic.dense_dot(left, right)
 
     dot = __dot__
 

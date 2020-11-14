@@ -6298,7 +6298,24 @@ pprint.assign(
 )
 
 
-def dot(a, b):
+def dot(l, r):
+    """Return a symbolic dot product.
+
+    This is designed to work with both sparse and dense tensors types.
+    """
+    try:
+        res = l.__dot__(r)
+        if res is NotImplemented:
+            raise NotImplementedError
+    except (NotImplementedError, AttributeError, TypeError):
+        res = r.__rdot__(l)
+        if res is NotImplemented:
+            raise NotImplementedError()
+
+    return res
+
+
+def dense_dot(a, b):
     """
     Computes the dot product of two variables.
 
