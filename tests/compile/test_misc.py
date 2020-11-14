@@ -1,7 +1,7 @@
 import numpy as np
 
 from theano import tensor
-from theano.compile.pfunc import pfunc
+from theano.compile.function.pfunc import pfunc
 from theano.compile.sharedvalue import shared
 from theano.tensor.nnet import sigmoid
 

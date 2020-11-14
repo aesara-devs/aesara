@@ -77,23 +77,21 @@ __api_version__ = 1
 
 from theano import scalar, tensor
 from theano.compile import (
-    FunctionMaker,
     In,
     Mode,
-    OpFromGraph,
     Out,
     Param,
     ProfileStats,
     SymbolicInput,
     SymbolicOutput,
     as_op,
-    function,
-    function_dump,
     predefined_linkers,
     predefined_modes,
     predefined_optimizers,
     shared,
 )
+from theano.compile.function import function, function_dump
+from theano.compile.function.types import FunctionMaker
 from theano.gof import (
     Apply,
     CLinker,
@@ -195,4 +193,4 @@ def sparse_grad(var):
 
 
 import theano.tensor.shared_randomstreams
-from theano.scan_module import clone, foldl, foldr, map, reduce, scan, scan_checkpoints
+from theano.scan import checkpoints, clone, foldl, foldr, map, reduce, scan

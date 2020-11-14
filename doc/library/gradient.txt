@@ -52,7 +52,7 @@ list of ops that support R-op:
     * Reshape
     * Flatten
     * DimShuffle
-    * Scan [In scan_module/tests/test_scan.test_rop]
+    * Scan [In scan/tests/test_scan.test_rop]
 
  * without test
     * Split

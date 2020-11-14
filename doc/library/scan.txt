@@ -539,7 +539,7 @@ value ``max_value``.
 .. testcode::
 
     def power_of_2(previous_power, max_value):
-        return previous_power*2, theano.scan_module.until(previous_power*2 > max_value)
+        return previous_power*2, theano.scan.utils.until(previous_power*2 > max_value)
 
     max_value = tt.scalar()
     values, _ = theano.scan(power_of_2,
@@ -557,7 +557,7 @@ value ``max_value``.
 
 As you can see, in order to terminate on condition, the only thing required
 is that the inner function ``power_of_2`` to return also the condition
-wrapped in the class ``theano.scan_module.until``. The condition has to be
+wrapped in the class ``theano.scan.utils.until``. The condition has to be
 expressed in terms of the arguments of the inner function (in this case
 ``previous_power`` and ``max_value``).
 
@@ -675,7 +675,7 @@ higher memory usage.
 reference
 =========
 
-.. automodule:: theano.scan_module
+.. automodule:: theano.scan
 
 .. autofunction:: theano.map
 .. autofunction:: theano.reduce

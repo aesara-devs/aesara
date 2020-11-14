@@ -8,8 +8,6 @@ import logging
 
 from theano import gof
 
-from .sharedvalue import SharedVariable
-
 
 _logger = logging.getLogger("theano.compile.io")
 
@@ -211,6 +209,8 @@ class In(SymbolicInput):
             )
 
         if implicit is None:
+            from theano.compile.sharedvalue import SharedVariable
+
             implicit = isinstance(value, gof.Container) or isinstance(
                 value, SharedVariable
             )

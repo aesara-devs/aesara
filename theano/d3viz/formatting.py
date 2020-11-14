@@ -104,7 +104,7 @@ class PyDotFormatter:
 
         Parameters
         ----------
-        fct : theano.compile.function_module.Function
+        fct : theano.compile.function.types.Function
             A compiled Theano function, variable, apply or a list of variables.
         graph: pydot.Dot
             `pydot` graph to which nodes are added. Creates new one if

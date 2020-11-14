@@ -1,8 +1,4 @@
-"""
-This module provides the Scan Op.
-
-See scan.py for details on scan.
-
+"""This module provides the `Scan` `Op`.
 
 Memory reuse in scan
 --------------------
@@ -58,15 +54,16 @@ import numpy as np
 
 import theano
 from theano import compile, config, gof, gradient, tensor
-from theano.compile import In, Out, function
+from theano.compile.builders import infer_shape
+from theano.compile.function import function
+from theano.compile.io import In, Out
 from theano.compile.mode import AddFeatureOptimizer
 from theano.compile.profiling import ScanProfileStats
 from theano.gof import Apply, PureOp
 from theano.gof.graph import equal_computations, io_connection_pattern
 from theano.gof.toolbox import NoOutputFromInplace
 from theano.gradient import DisconnectedType, NullType, grad_undefined
-from theano.scan_module import scan_utils
-from theano.scan_module.scan_utils import forced_replace, safe_new
+from theano.scan.utils import Validator, forced_replace, hash_listsDictsTuples, safe_new
 from theano.tensor import TensorType, as_tensor_variable
 from theano.tensor.opt import Shape_i
 
@@ -77,7 +74,7 @@ __copyright__ = "(c) 2010, Universite de Montreal"
 __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 # Logging function for sending warning or info
-_logger = logging.getLogger("theano.scan_module.scan_op")
+_logger = logging.getLogger("theano.scan.op")
 
 
 class Scan(PureOp):
@@ -804,7 +801,7 @@ class Scan(PureOp):
                 # and a hash representing the inner graph using the
                 # CLinker.cmodule_key_
                 self._hash_inner_graph,
-                scan_utils.hash_listsDictsTuples(self.info),
+                hash_listsDictsTuples(self.info),
             )
         )
 
@@ -1703,7 +1700,7 @@ class Scan(PureOp):
             o_s.storage[0] = None
 
         t_call = time.time() - t0_call
-        # NOTE: make this match what's in function_module.Function
+        # NOTE: make this match what's in function.types.Function
         # and this little string helps us to find this spot:
         # "PROFILE_CODE"
 
@@ -1794,13 +1791,13 @@ class Scan(PureOp):
             self_outs = self.outputs[:-1]
         else:
             self_outs = self.outputs
-        outs_shape = scan_utils.infer_shape(
+        outs_shape = infer_shape(
             outs=self_outs, inputs=self.inputs, input_shapes=inner_ins_shapes
         )
         # Will be used to check if outs_shape can be expressed without using
         # variables in self.inputs.
         # The shapes of node.inputs are valid.
-        validator = scan_utils.Validator(
+        validator = Validator(
             valid=input_shapes, invalid=self.inputs, valid_equivalent=out_equivalent
         )
 
@@ -2829,9 +2826,7 @@ class Scan(PureOp):
         self_outputs = self.outputs
 
         # Step 1. Compute the R_op of the inner function
-        inner_eval_points = [
-            scan_utils.safe_new(x, "_evalpoint") for x in rop_of_inputs
-        ]
+        inner_eval_points = [safe_new(x, "_evalpoint") for x in rop_of_inputs]
         if self.as_while:
             rop_self_outputs = self_outputs[:-1]
         else:
@@ -3076,7 +3071,7 @@ def profile_printer(
                     "If you enable Theano profiler with "
                     "'theano.function(..., profile=True)', you must manually"
                     " enable the profiling for each scan too: "
-                    "'theano.scan_module.scan(...,profile=True)'."
+                    "'theano.scan(...,profile=True)'."
                     " Or use Theano flag 'profile=True'.",
                     file=file,
                 )

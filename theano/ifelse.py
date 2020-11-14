@@ -20,7 +20,7 @@ import theano.tensor
 from theano import gof
 from theano.compile import optdb
 from theano.gof import Apply, Op
-from theano.scan_module.scan_utils import clone
+from theano.scan.utils import clone
 from theano.tensor import TensorType, opt
 
 

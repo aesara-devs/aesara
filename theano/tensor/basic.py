@@ -6303,6 +6303,13 @@ def dot(l, r):
 
     This is designed to work with both sparse and dense tensors types.
     """
+
+    if not isinstance(l, Variable):
+        l = as_tensor_variable(l)
+
+    if not isinstance(r, Variable):
+        r = as_tensor_variable(r)
+
     try:
         res = l.__dot__(r)
         if res is NotImplemented:

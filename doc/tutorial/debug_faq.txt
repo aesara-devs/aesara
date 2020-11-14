@@ -140,9 +140,9 @@ Running the above code generates the following error message:
     Traceback (most recent call last):
       File "test1.py", line 31, in <module>
         f(numpy.random.rand(5, 10))
-      File "PATH_TO_THEANO/theano/compile/function_module.py", line 605, in __call__
+      File "PATH_TO_THEANO/theano/compile/function/types.py", line 605, in __call__
         self.fn.thunks[self.fn.position_of_error])
-      File "PATH_TO_THEANO/theano/compile/function_module.py", line 595, in __call__
+      File "PATH_TO_THEANO/theano/compile/function/types.py", line 595, in __call__
         outputs = self.fn()
     ValueError: Shape mismatch: x has 10 cols (and 5 rows) but y has 20 rows (and 10 cols)
     Apply node that caused the error: Dot22(x, DimShuffle{1,0}.0)
@@ -527,7 +527,7 @@ illustrative purposes. As the matrices can't be multiplied element-wise
 
     File "ex.py", line 14, in <module>
       f(mat1, mat2)
-    File "/u/username/Theano/theano/compile/function_module.py", line 451, in __call__
+    File "/u/username/Theano/theano/compile/function/types.py", line 451, in __call__
     File "/u/username/Theano/theano/gof/link.py", line 271, in streamline_default_f
     File "/u/username/Theano/theano/gof/link.py", line 267, in streamline_default_f
     File "/u/username/Theano/theano/gof/cc.py", line 1049, in execute ValueError: ('Input dimension mis-match. (input[0].shape[0] = 3, input[1].shape[0] = 5)', Elemwise{mul,no_inplace}(a, b), Elemwise{mul,no_inplace}(a, b))

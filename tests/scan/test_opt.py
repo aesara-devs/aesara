@@ -4,7 +4,7 @@ import theano
 import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import config
-from theano.scan_module.scan_op import Scan
+from theano.scan.op import Scan
 
 
 mode = theano.compile.mode.get_mode(config.mode)

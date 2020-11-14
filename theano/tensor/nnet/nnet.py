@@ -2137,7 +2137,7 @@ def sigmoid_binary_crossentropy(output, target):
 
     inp = [output, target]
     outp = softplus(-abs(output)) + output * ((output > 0) - target)
-    return theano.OpFromGraph(
+    return theano.compile.builders.OpFromGraph(
         inp,
         [outp],
         grad_overrides=grad,

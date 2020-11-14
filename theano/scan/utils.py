@@ -1,10 +1,4 @@
-"""
-This module provides utility functions for the Scan Op.
-
-See scan.py for details on scan.
-
-"""
-
+"""This module provides utility functions for the `Scan` `Op`."""
 
 __docformat__ = "restructedtext en"
 __authors__ = (
@@ -27,13 +21,13 @@ import numpy as np
 
 import theano
 from theano import gof, scalar, tensor
-from theano.compile.pfunc import rebuild_collect_shared
+from theano.compile.function.pfunc import rebuild_collect_shared
 from theano.gof.utils import TestValueError
 from theano.tensor.basic import get_scalar_constant_value
 
 
 # Logging function for sending warning or info
-_logger = logging.getLogger("theano.scan_utils")
+_logger = logging.getLogger("theano.scan.utils")
 
 
 def safe_new(x, tag="", dtype=None):
@@ -323,8 +317,8 @@ def map_variables(replacer, graphs, additional_inputs=None):
             return False
 
         # importing Scan into module scope would be circular
-        from theano.compile import OpFromGraph
-        from theano.scan_module.scan_op import Scan
+        from theano.compile.builders import OpFromGraph
+        from theano.scan.op import Scan
 
         if isinstance(node.op, (Scan, OpFromGraph)):
             # recurse on the inner graph
@@ -388,7 +382,7 @@ def _map_variables_inner(
     from itertools import chain
 
     from theano import gof
-    from theano.scan_module import scan_utils
+    from theano.scan import utils
 
     def inner_replacer(graph):
         new_graph = replacer(graph)
@@ -439,7 +433,7 @@ def _map_variables_inner(
             # as an inner input, connect it through a new
             # inner input
             if outer_input not in outer_to_inner.keys():
-                inner_input = scan_utils.safe_new(outer_input, tag="_copy")
+                inner_input = utils.safe_new(outer_input, tag="_copy")
                 outer_to_inner[outer_input] = inner_input
                 extra_inner_inputs.append(inner_input)
                 extra_outer_inputs.append(outer_input)
@@ -502,7 +496,7 @@ def get_updates_and_outputs(ls):
         return False
 
     def is_condition(elem):
-        return isinstance(elem, theano.scan_module.until)
+        return isinstance(elem, until)
 
     def _list(x):
         if isinstance(x, (list, tuple)):
@@ -515,7 +509,7 @@ def get_updates_and_outputs(ls):
         Ensure `x` is made only of allowed data types.
 
         Return True iff `x` is made only of lists, tuples, dictionaries, Theano
-        variables or `theano.scan_module.until` objects.
+        variables or `theano.scan.utils.until` objects.
 
         """
         # Is `x` a container we can iterate on?
@@ -527,15 +521,13 @@ def get_updates_and_outputs(ls):
         if iter_on is not None:
             return all(_filter(y) for y in iter_on)
         else:
-            return isinstance(x, theano.Variable) or isinstance(
-                x, theano.scan_module.until
-            )
+            return isinstance(x, theano.Variable) or isinstance(x, until)
 
     if not _filter(ls):
         raise ValueError(
             "The return value of your scan lambda expression may only be "
             "made of lists, tuples, or dictionaries containing Theano "
-            "variables (or `theano.scan_module.until` objects for "
+            "variables (or `theano.scan.utils.until` objects for "
             "conditions). In particular if you need to use constant "
             "values, you can use `tensor.constant` to turn them into "
             "Theano variables."
@@ -629,59 +621,6 @@ def expand_empty(tensor_var, size):
 
     ret = tensor.set_subtensor(empty[: shapes[0]], tensor_var)
     ret.tag.nan_guard_mode_check = False
-    return ret
-
-
-def infer_shape(outs, inputs, input_shapes):
-    """
-    Compute the shape of the outputs given the shape of the inputs of a theano
-    graph.
-
-    We do it this way to avoid compiling the inner function just to get
-    the shape. Changes to ShapeFeature could require changes in this function.
-
-    """
-    # We use a ShapeFeature because it has all the necessary logic
-    # inside.  We don't use the full ShapeFeature interface, but we
-    # let it initialize itself with an empty fgraph, otherwise we will
-    # need to do it manually
-    for inp, inp_shp in zip(inputs, input_shapes):
-        if inp_shp is not None and len(inp_shp) != inp.ndim:
-            assert len(inp_shp) == inp.ndim
-
-    shape_feature = tensor.opt.ShapeFeature()
-    shape_feature.on_attach(theano.gof.FunctionGraph([], []))
-
-    # Initialize shape_of with the input shapes
-    for inp, inp_shp in zip(inputs, input_shapes):
-        shape_feature.set_shape(inp, inp_shp)
-
-    def local_traverse(out):
-        """
-        Go back in the graph, from out, adding computable shapes to shape_of.
-
-        """
-        if out in shape_feature.shape_of:
-            # Its shape is already known
-            return
-        elif out.owner is None:
-            # This is an input of the graph
-            shape_feature.init_r(out)
-        else:
-            # Recurse over inputs
-            for inp in out.owner.inputs:
-                if inp not in shape_feature.shape_of:
-                    local_traverse(inp)
-
-            # shape_feature.on_import does not actually use an fgraph
-            # It will call infer_shape and set_shape appropriately
-            dummy_fgraph = None
-            shape_feature.on_import(dummy_fgraph, out.owner, reason="dummy")
-
-    ret = []
-    for o in outs:
-        local_traverse(o)
-        ret.append(shape_feature.shape_of[o])
     return ret
 
 
