@@ -987,8 +987,6 @@ def jax_funcify_RavelMultiIndex(op):
     return ravelmultiindex
 
 
-# TODO: Remove all these when done
-# https://jax.readthedocs.io/en/latest/_autosummary/jax.numpy.eye.html#jax.numpy.eye
 @jax_funcify.register(Eye)
 def jax_funcify_Eye(op):
     dtype = op.dtype
