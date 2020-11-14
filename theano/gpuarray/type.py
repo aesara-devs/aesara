@@ -232,7 +232,7 @@ class GpuArrayType(Type):
             elif any(b):
                 bcast = str(b)
             else:
-                bcast = "%iD" % len(b)
+                bcast = f"{len(b)}D"
             return f"GpuArrayType<{self.context_name}>({self.dtype}, {bcast})"
 
     def filter(self, data, strict=False, allow_downcast=None):

@@ -515,8 +515,8 @@ class IgnorePrinter:
         node = output.owner
         if node is None:
             raise TypeError(
-                "function %s cannot represent a variable that is"
-                " not the result of an operation" % self.function
+                f"function {self.function} cannot represent a variable that is"
+                " not the result of an operation"
             )
         input = node.inputs[0]
         r = f"{pprinter.process(input, pstate)}"

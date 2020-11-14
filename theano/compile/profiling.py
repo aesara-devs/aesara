@@ -1438,7 +1438,7 @@ class ProfileStats:
                     N = idx
                     break
             else:
-                size = "%10s" % "Unknown"
+                size = "   Unknown"
 
             print(
                 f"     {size}  {shapes} {' '.join(code)} {node}",
