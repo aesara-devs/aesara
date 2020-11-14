@@ -222,6 +222,14 @@ def test_jax_basic():
     )
 
 
+def test_jax_eye():
+    """Tests jaxification of the Eye operator"""
+    out = tt.eye(3)
+    out_fg = theano.gof.FunctionGraph([], [out])
+
+    compare_jax_and_py(out_fg, [])
+
+
 def test_jax_basic_multiout():
 
     np.random.seed(213234)

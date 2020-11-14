@@ -27,6 +27,7 @@ from theano.tensor.basic import (
     AllocEmpty,
     ARange,
     Dot,
+    Eye,
     Join,
     MaxAndArgmax,
     Reshape,
@@ -984,3 +985,13 @@ def jax_funcify_RavelMultiIndex(op):
         return jnp.ravel_multi_index(multi_index, dims, mode=mode, order=order)
 
     return ravelmultiindex
+
+
+@jax_funcify.register(Eye)
+def jax_funcify_Eye(op):
+    dtype = op.dtype
+
+    def eye(N, M, k):
+        return jnp.eye(N, M, k, dtype=dtype)
+
+    return eye
