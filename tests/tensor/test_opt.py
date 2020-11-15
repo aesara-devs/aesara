@@ -4916,7 +4916,7 @@ class TestLocalUselessIncSubtensorAlloc:
         assert check_stack_trace(f2, ops_to_check="last")
 
 
-class TestShapeoptimizer:
+class TestShapeOptimizer:
     def setup_method(self):
         utt.seed_rng()
 
