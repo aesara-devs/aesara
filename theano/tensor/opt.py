@@ -7697,6 +7697,7 @@ your code will run correctly, but may be slower."""
                     "loop fusion."
                 )
             )
+            return False
 
         # create the composite op.
         composite_op = ts.Composite(s_inputs, s_new_out)

@@ -2080,6 +2080,34 @@ class TestFusion:
             ),
         )
 
+    @pytest.mark.skipif(not theano.config.cxx, reason="No cxx compiler")
+    def test_no_c_code(self):
+        """Make sure we avoid fusions for `Op`s without C code implementations."""
+
+        # This custom `Op` has no `c_code` method
+        class NoCCodeOp(scal.basic.UnaryScalarOp):
+            def impl(self, x):
+                return x * 2
+
+        no_c_code_op = Elemwise(NoCCodeOp(scal.basic.upgrade_to_float))
+
+        mode = theano.Mode(linker="cvm")
+        mode._optimizer = mode._optimizer.including(
+            "local_elemwise_fusion",
+            "composite_elemwise_fusion",
+            "canonicalize",
+            "inplace",
+        )
+
+        x = tt.vector()
+        out = x * no_c_code_op(x + 1)
+        f = function([x], out, mode=mode)
+
+        assert not any(
+            isinstance(getattr(n.op, "scalar_op"), scal.basic.Composite)
+            for n in f.maker.fgraph.toposort()
+        )
+
 
 class TimesN(scal.basic.UnaryScalarOp):
     """
