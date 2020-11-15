@@ -53,11 +53,6 @@ class NoDuplicateOptWarningFilter(logging.Filter):
 _logger.addFilter(NoDuplicateOptWarningFilter())
 
 
-########################
-#
-# Exceptions
-#
-########################
 class DebugModeError(Exception):
     """
     Generic Exception raised to indicate an internal theano problem.
@@ -360,13 +355,6 @@ class InvalidValueError(DebugModeError):
         context        = ...
 {context}
         """
-
-
-########################
-#
-# Private Functions
-#
-########################
 
 
 def str_diagnostic(expected, value, rtol, atol):
@@ -2592,13 +2580,6 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
             )
             for i in self.inputs
         ]
-
-
-########################
-#
-# API symbol: DebugMode
-#
-########################
 
 
 class DebugMode(Mode):

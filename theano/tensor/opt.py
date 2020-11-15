@@ -1455,10 +1455,6 @@ class ShapeFeature:
     def make_vector_shape(self, r):
         return make_vector(*self.shape_of[r])
 
-    #
-    # Feature interface
-    #
-    #
     def on_attach(self, fgraph):
         assert not hasattr(fgraph, "shape_feature")
         fgraph.shape_feature = self
