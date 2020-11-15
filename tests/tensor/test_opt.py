@@ -1202,7 +1202,16 @@ def test_cast_in_mul_canonizer():
 
 
 class TestFusion:
-    mode = copy.copy(compile.mode.get_default_mode())
+    opts = theano.gof.Query(
+        include=[
+            "local_elemwise_fusion",
+            "composite_elemwise_fusion",
+            "canonicalize",
+            "inplace",
+        ],
+        exclude=["cxx_only", "BlasOpt"],
+    )
+    mode = theano.compile.Mode(compile.mode.get_default_mode().linker, opts)
     _shared = staticmethod(shared)
     topo_exclude = ()
 
@@ -1879,10 +1888,6 @@ class TestFusion:
                 atol = 1e-6
             if not np.allclose(out, answer * nb_repeat, atol=atol):
                 fail1.append(id)
-                print("cases", id)
-                print(val_inputs)
-                print(out)
-                print(answer * nb_repeat)
             topo = f.maker.fgraph.toposort()
             topo_ = [n for n in topo if not isinstance(n.op, self.topo_exclude)]
             if assert_len_topo:
@@ -1905,52 +1910,39 @@ class TestFusion:
             if not out_dtype == out.dtype:
                 fail4.append((id, out_dtype, out.dtype))
 
-        failed = len(fail1 + fail2 + fail3 + fail4)
-        if failed > 0:
-            print("Executed", len(cases), "cases", "failed", failed)
-            raise Exception("Failed %d cases" % failed, fail1, fail2, fail3, fail4)
+        assert len(fail1 + fail2 + fail3 + fail4) == 0
 
         return times
 
     def test_elemwise_fusion(self):
         shp = (5, 5)
-        mode = copy.copy(self.mode)
-        # we need the optimisation enabled and the canonicalize.
-        # the canonicalize is needed to merge multiplication/addition by constant.
-        mode._optimizer = mode._optimizer.including(
-            "local_elemwise_fusion", "composite_elemwise_fusion", "canonicalize"
-        )
-        self.do(mode, self._shared, shp)
+        self.do(self.mode, self._shared, shp)
 
-    @pytest.mark.slow
-    def test_elemwise_fusion_4d(self):
-        shp = (3, 3, 3, 3)
-        mode = copy.copy(self.mode)
-        # we need the optimisation enabled and the canonicalize.
-        # the canonicalize is needed to merge multiplication/addition by constant.
-        mode._optimizer = mode._optimizer.including(
-            "local_elemwise_fusion", "composite_elemwise_fusion", "canonicalize"
-        )
-        self.do(mode, self._shared, shp, slice=slice(0, 1))
-
-    def test_fusion_35inputs(self):
-        # Make sure a fused graph with more than 35 inputs does not segfault
-        # or error.
+    def test_fusion_35_inputs(self):
+        """Make sure we don't fuse too many `Op`s and go past the 31 function arguments limit."""
         inpts = vectors(["i%i" % i for i in range(35)])
+
         # Make an elemwise graph looking like:
         # sin(i34 + sin(i33 + sin(... i1 + sin(i0) ...)))
         out = tt.sin(inpts[0])
         for idx in range(1, 35):
             out = tt.sin(inpts[idx] + out)
 
-        f = function(inpts, out, mode=self.mode)
-        # Test it on some dummy values
-        f(*[list(range(i, 4 + i)) for i in range(35)])
+        with theano.change_flags(cxx=""):
+            f = function(inpts, out, mode=self.mode)
+
+        # Make sure they all weren't fused
+        composite_nodes = [
+            node
+            for node in f.maker.fgraph.toposort()
+            if isinstance(getattr(node.op, "scalar_op", None), scal.basic.Composite)
+        ]
+        assert not any(len(node.inputs) > 31 for node in composite_nodes)
 
     @pytest.mark.skipif(not theano.config.cxx, reason="No cxx compiler")
-    def test_pickle_big_fusion(self):
+    def test_big_fusion(self):
         # In the past, pickle of Composite generated in that case
-        # crashed with max recusion limit. So we where not able to
+        # crashed with max recursion limit. So we were not able to
         # generate C code in that case.
         factors = []
         sd = tt.dscalar()
@@ -1974,8 +1966,47 @@ class TestFusion:
         logp = tt.add(*factors)
 
         vars = [sd, means]
-        dlogp = function(vars, [theano.grad(logp, v) for v in vars])
-        dlogp(2, np.random.rand(n))
+
+        # Make sure that C compilation is used
+        mode = theano.compile.Mode("cvm", self.opts)
+        dlogp = function(vars, [theano.grad(logp, v) for v in vars], mode=mode)
+
+        # Make sure something was fused
+        assert any(
+            isinstance(getattr(node.op, "scalar_op", None), scal.basic.Composite)
+            for node in dlogp.maker.fgraph.toposort()
+        )
+
+    def test_add_mul_fusion_inplace(self):
+
+        opts = theano.gof.Query(
+            include=[
+                "local_elemwise_fusion",
+                "composite_elemwise_fusion",
+                "canonicalize",
+                "inplace",
+            ],
+            exclude=["cxx_only", "BlasOpt"],
+        )
+
+        mode = theano.compile.mode.Mode(self.mode.linker, opts)
+
+        x, y, z = dmatrices("xyz")
+        out = tt.dot(x, y) + x + y + z
+        f = function([x, y, z], out, mode=mode)
+        topo = [n for n in f.maker.fgraph.toposort()]
+        assert len(topo) == 2
+        assert topo[-1].op.inplace_pattern
+
+        new_out = f.maker.fgraph.outputs[0]
+        assert isinstance(new_out.owner.op, Elemwise)
+        assert isinstance(new_out.owner.op.scalar_op, scal.basic.Add)
+        assert len(new_out.owner.inputs) == 4
+
+        # TODO: Do we really need to do this?
+        _ = f(
+            np.random.random((5, 5)), np.random.random((5, 5)), np.random.random((5, 5))
+        )
 
     def speed_fusion(self, s=None):
         """
@@ -2034,28 +2065,6 @@ class TestFusion:
             "std",
             d.std(),
         )
-
-    def test_fusion_inplace(self):
-        mode = copy.copy(self.mode)
-        # we need the optimisation enabled and the canonicalize.
-        # the canonicalize is needed to merge multiplication/addition by constant.
-        mode._optimizer = mode._optimizer.including(
-            "local_elemwise_fusion",
-            "composite_elemwise_fusion",
-            "canonicalize",
-            "inplace",
-        )
-
-        x, y, z = dmatrices("xyz")
-        f = function([x, y, z], tt.dot(x, y) + x + y + z, mode=mode)
-        topo = [
-            n
-            for n in f.maker.fgraph.toposort()
-            if not isinstance(n.op, self.topo_exclude)
-        ]
-        assert len(topo) == 2
-        assert topo[-1].op.inplace_pattern
-        f(np.random.random((5, 5)), np.random.random((5, 5)), np.random.random((5, 5)))
 
     def speed_log_exp(self):
         s = slice(31, 36)
