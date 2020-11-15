@@ -7126,27 +7126,12 @@ class Choose(Op):
 
     def infer_shape(self, node, shapes):
 
-        if isinstance(node.inputs[1], TensorVariable):
-            # We have padded node.inputs[0] to the right number of
-            # dimensions for the output
-            l = []
-            for sh1, sh2, b1 in zip(
-                shapes[0], shapes[1][1:], node.inputs[0].broadcastable
-            ):
-                if b1:
-                    l.append(sh2)
-                else:
-                    l.append(sh1)
-            return [tuple(l)]
-        else:
-            import theano.typed_list
+        a_shape, choices_shape = shapes
+        out_shape = theano.tensor.extra_ops.broadcast_shape(
+            a_shape, choices_shape[1:], arrays_are_shapes=True
+        )
 
-            assert isinstance(node.inputs[1], theano.typed_list.TypedListVariable)
-            raise ShapeError("Case not implemented")
-            shape = shapes[0]
-            for i in range(len(shapes[0]) - 1):
-                shape[i] = shapes[1][i]
-            return [(shape)]
+        return [out_shape]
 
     def make_node(self, a, choices):
         # Import here as it isn't imported by default and we can't
@@ -7159,39 +7144,28 @@ class Choose(Op):
                 "choose first argument must have an [u]int* dtype. Got %s." % a.dtype
             )
 
-        if isinstance(choices, (tuple, list, theano.typed_list.TypedListVariable)):
+        # Only use make_list if choices have inconsistent shapes
+        # otherwise use as_tensor_variable
+        if isinstance(choices, (tuple, list)):
             choice = theano.typed_list.make_list(choices)
-            choice_ndim = choice.ttype.ndim
-            choice_bcast = choice.ttype.broadcastable
         else:
             choice = as_tensor_variable(choices)
-            choice_ndim = choice.ndim - 1
-            choice_bcast = choice.broadcastable[1:]
-        out_ndim = np.max([a.ndim, choice_ndim])
+        (out_shape,) = self.infer_shape(
+            None, [tuple(a.shape), tuple(theano.tensor.basic.shape(choice))]
+        )
 
-        # Make explicit all added broadcastable dimensions.
-        a = shape_padleft(a, out_ndim - a.ndim)
-        if len(choice_bcast) != out_ndim:
-            if isinstance(choice.type, TensorType):
-                choice = choice.dimshuffle(
-                    0,
-                    *(("x",) * (out_ndim - choice_ndim) + tuple(range(1, choice.ndim))),
-                )
-                choice_ndim = choice.ndim - 1
-                choice_bcast = choice.broadcastable[1:]
+        bcast = []
+        for s in out_shape:
+            try:
+                s_val = theano.get_scalar_constant_value(s)
+            except (theano.tensor.basic.NotScalarConstantError, AttributeError):
+                s_val = None
+
+            if s_val == 1:
+                bcast.append(True)
             else:
-                raise NotImplementedError(
-                    "We currently didn't implemented that case. "
-                    "To make it work, explicitly add dimensions "
-                    "of size one for dimensions that will be broadcasted"
-                )
+                bcast.append(False)
 
-        bcast = [False] * out_ndim
-        for idx, (b1, b2) in enumerate(
-            zip(a.broadcastable, (True,) * (out_ndim - choice_ndim) + choice_bcast)
-        ):
-            if b1 and b2:
-                bcast[idx] = True
         o = TensorType(choice.dtype, bcast)
         return Apply(self, [a, choice], [o()])
 
