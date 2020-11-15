@@ -36,11 +36,6 @@ _logger = logging.getLogger("theano.tensor.basic")
 
 __docformat__ = "restructuredtext en"
 
-# This is needed as we will hide it later
-python_complex = complex
-python_any = any
-python_all = all
-
 # Define common subsets of dtypes (as strings).
 complex_dtypes = list(map(str, scal.complex_types))
 continuous_dtypes = list(map(str, scal.continuous_types))
@@ -66,7 +61,7 @@ def check_equal_numpy(x, y):
     if isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
         return x.dtype == y.dtype and x.shape == y.shape and np.all(abs(x - y) < 1e-10)
     elif isinstance(x, np.random.RandomState) and isinstance(y, np.random.RandomState):
-        return python_all(
+        return builtins.all(
             np.all(a == b) for a, b in zip(x.__getstate__(), y.__getstate__())
         )
     else:
@@ -553,7 +548,7 @@ def get_scalar_constant_value(
                     # Ensure the Join is joining only scalar variables (so that
                     # the constant value can be found at the same index as the
                     # one used in the sub-tensor).
-                    if python_all(
+                    if builtins.all(
                         var.ndim == 0 for var in v.owner.inputs[0].owner.inputs[1:]
                     ):
                         idx = v.owner.op.idx_list[0]
@@ -567,7 +562,7 @@ def get_scalar_constant_value(
                         ret = get_scalar_constant_value(ret, max_recur=max_recur)
                         # join can cast implicitly its input in some case.
                         return theano._asarray(ret, dtype=v.type.dtype)
-                    if python_all(
+                    if builtins.all(
                         var.ndim == 1 for var in v.owner.inputs[0].owner.inputs[1:]
                     ):
                         idx = v.owner.op.idx_list[0]
@@ -601,7 +596,9 @@ def get_scalar_constant_value(
                     and
                     # MakeVector normally accept only scalar as input.
                     # We put this check in case there is change in the future
-                    python_all(var.ndim == 0 for var in v.owner.inputs[0].owner.inputs)
+                    builtins.all(
+                        var.ndim == 0 for var in v.owner.inputs[0].owner.inputs
+                    )
                     and len(v.owner.op.idx_list) == 1
                 ):
 
@@ -4013,7 +4010,7 @@ class Split(Op):
                     np.sum(splits), len_along_axis
                 )
             )
-        if python_any([nb < 0 for nb in splits]):
+        if builtins.any([nb < 0 for nb in splits]):
             raise ValueError(
                 "Split: you tried to make an ndarray with a "
                 "negative number of elements."
@@ -4048,7 +4045,7 @@ class Split(Op):
         x, axis, n = inputs
         outputs = self(*inputs, **dict(return_list=True))
         # If all the output gradients are disconnected, then so are the inputs
-        if python_all([isinstance(g.type, DisconnectedType) for g in g_outputs]):
+        if builtins.all([isinstance(g.type, DisconnectedType) for g in g_outputs]):
             return [
                 DisconnectedType()(),
                 grad_undefined(self, 1, axis),
@@ -4391,7 +4388,7 @@ class Join(Op):
         )
 
     def _make_node_internal(self, axis, tensors, as_tensor_variable_args, output_maker):
-        if not python_all(targs.type.ndim for targs in as_tensor_variable_args):
+        if not builtins.all(targs.type.ndim for targs in as_tensor_variable_args):
             raise TypeError(
                 "Join cannot handle arguments of dimension 0."
                 " For joining scalar values, see @stack"
@@ -4453,7 +4450,7 @@ class Join(Op):
                 # broadcastable.
                 bcastable = [False] * len(as_tensor_variable_args[0].type.broadcastable)
 
-        if not python_all(
+        if not builtins.all(
             [x.ndim == len(bcastable) for x in as_tensor_variable_args[1:]]
         ):
             raise TypeError(
@@ -4883,7 +4880,7 @@ def stack(*tensors, **kwargs):
     # See ticket #660
     if np.all(
         [  # in case there is direct int in tensors.
-            isinstance(t, (np.number, float, int, python_complex))
+            isinstance(t, (np.number, float, int, builtins.complex))
             or (
                 isinstance(t, Variable)
                 and isinstance(t.type, TensorType)
@@ -5314,7 +5311,7 @@ class Flatten(Op):
         # it should be broadcastable iff all the collapsed dimensions were
         # broadcastable.
         bcast_kept_dims = x.broadcastable[: self.outdim - 1]
-        bcast_new_dim = python_all(x.broadcastable[self.outdim - 1 :])
+        bcast_new_dim = builtins.all(x.broadcastable[self.outdim - 1 :])
         broadcastable = bcast_kept_dims + (bcast_new_dim,)
 
         return gof.Apply(self, [t_x], [tensor(x.type.dtype, broadcastable)])
@@ -5504,7 +5501,7 @@ def flatten(x, ndim=None, outdim=None):
         dims = (-1,)
     x_reshaped = x.reshape(dims)
     bcast_kept_dims = x.broadcastable[: ndim - 1]
-    bcast_new_dim = python_all(x.broadcastable[ndim - 1 :])
+    bcast_new_dim = builtins.all(x.broadcastable[ndim - 1 :])
     broadcastable = bcast_kept_dims + (bcast_new_dim,)
     x_reshaped = theano.tensor.addbroadcast(
         x_reshaped, *filter(lambda i: broadcastable[i], range(ndim))
@@ -5841,7 +5838,7 @@ def arange(start, stop=None, step=1, dtype=None):
                     and numpy_dtype == "float64"
                     and
                     # No explicit float64 in the three arguments?
-                    python_all(
+                    builtins.all(
                         dt != "float64" for dt in [s.dtype for s in (start, stop, step)]
                     )
                 ):
@@ -5908,7 +5905,7 @@ class _nd_grid:
 
         ndim = len(args[0])
         for sl in args[0]:
-            if isinstance(sl.step, python_complex):
+            if isinstance(sl.step, builtins.complex):
                 raise NotImplementedError(
                     "Not implemented for slices " "whose step is complex"
                 )
