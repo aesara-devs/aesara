@@ -7624,11 +7624,10 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
                 except (NotImplementedError, MethodNotDefined):
                     _logger.warning(
                         (
-                            "%s does not implement the c_code function."
-                            " As well as being potentially slow, this"
-                            " disables loop fusion of this op."
+                            f"The Op {i.owner.op.scalar_op} does not provide a C implementation."
+                            " As well as being potentially slow, this also disables "
+                            "loop fusion."
                         )
-                        % str(i.owner.op.scalar_op)
                     )
                     do_fusion = False
 
@@ -7693,12 +7692,12 @@ your code will run correctly, but may be slower."""
         except (NotImplementedError, MethodNotDefined):
             _logger.warning(
                 (
-                    "%s does not implement the c_code function."
-                    " As well as being potentially slow, this disables "
-                    "loop fusion of this op."
+                    f"The Op {s_new_out[0].owner.op} does not provide a C implementation."
+                    " As well as being potentially slow, this also disables "
+                    "loop fusion."
                 )
-                % str(s_new_out[0].owner.op)
             )
+            return False
 
         # create the composite op.
         composite_op = ts.Composite(s_inputs, s_new_out)
