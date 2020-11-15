@@ -166,7 +166,7 @@ def scalarconsts_rest(inputs, elemwise=True, only_process_constants=False):
     return consts, origconsts, nonconsts
 
 
-def broadcast_like(value, template, fgraph, dtype=None):
+def broadcast_to(value, template, fgraph, dtype=None):
     """
     Return a Variable with the same shape and dtype as the template,
     filled by broadcasting value through it. `value` will be cast as
@@ -178,7 +178,7 @@ def broadcast_like(value, template, fgraph, dtype=None):
         return value
     if template not in fgraph.variables:
         raise NotImplementedError(
-            "broadcast_like currently requires the "
+            "broadcast_to currently requires the "
             "template Variable to be in the fgraph already"
         )
     if dtype is None:
@@ -1956,7 +1956,7 @@ def local_fill_to_alloc(node):
             rval = [tt.cast(v, node.outputs[0].type.dtype)]
         elif r.type.broadcastable == node.outputs[0].type.broadcastable:
             # we are broadcasting v somehow, but not r
-            o = broadcast_like(v, r, node.fgraph, dtype=v.dtype)
+            o = broadcast_to(v, r, node.fgraph, dtype=v.dtype)
             copy_stack_trace(node.outputs[0], o)
             rval = [o]
         else:
@@ -6334,7 +6334,7 @@ def local_div_to_inv(node):
             new_out = tt.cast(new_out, dtype=out.dtype)
         # The ones could have forced a specific length
         if new_out.type != out.type:
-            new_out = broadcast_like(new_out, out, node.fgraph)
+            new_out = broadcast_to(new_out, out, node.fgraph)
         return [new_out]
     else:
         return False
@@ -6359,9 +6359,9 @@ def local_pow_canonicalize(node):
     if node.op == pow:
         cst = local_mul_canonizer.get_constant(node.inputs[1])
         if cst == 0:
-            return [broadcast_like(1, node.outputs[0], node.fgraph)]
+            return [broadcast_to(1, node.outputs[0], node.fgraph)]
         if cst == 1:
-            return [broadcast_like(node.inputs[0], node.outputs[0], node.fgraph)]
+            return [broadcast_to(node.inputs[0], node.outputs[0], node.fgraph)]
     else:
         return False
 
@@ -6405,7 +6405,7 @@ def local_zero_div(node):
         node.op.scalar_op, (ts.IntDiv, ts.TrueDiv)
     ):
         if local_mul_canonizer.get_constant(node.inputs[0]) == 0:
-            ret = broadcast_like(0, node.outputs[0], node.fgraph)
+            ret = broadcast_to(0, node.outputs[0], node.fgraph)
             ret.tag.values_eq_approx = values_eq_approx_remove_nan
             return [ret]
 
@@ -6557,7 +6557,7 @@ def local_mul_specialize(node):
                 has_neg ^= True  # toggles
             elif y == 0.0:
                 # if we find any zero, we just return right away
-                return [broadcast_like(0, node.outputs[0], node.fgraph)]
+                return [broadcast_to(0, node.outputs[0], node.fgraph)]
             else:
                 new_inputs.append(input)
 
@@ -6582,14 +6582,14 @@ def local_mul_specialize(node):
                         new_inputs = [m1] + new_inputs
                     rval = mul(*new_inputs)
 
-                return [broadcast_like(rval, node.outputs[0], node.fgraph)]
+                return [broadcast_to(rval, node.outputs[0], node.fgraph)]
             else:
                 # there are no variable inputs to mul
                 # N.B. this could have been constant-folded...
                 if has_neg:
-                    return [broadcast_like(-1, node.outputs[0], node.fgraph)]
+                    return [broadcast_to(-1, node.outputs[0], node.fgraph)]
                 else:
-                    return [broadcast_like(1, node.outputs[0], node.fgraph)]
+                    return [broadcast_to(1, node.outputs[0], node.fgraph)]
 
 
 register_specialize(local_mul_specialize)
