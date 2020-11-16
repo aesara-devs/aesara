@@ -92,29 +92,25 @@ class TensorType(Type):
                 "shared) variable instead of a numeric array?"
             )
 
-        if (type(data) is np.ndarray) and (data.dtype == self.numpy_dtype):
-            if data.dtype.num != self.numpy_dtype.num:
-                data = theano._asarray(data, dtype=self.dtype)
-            # -- now fall through to ndim check
-        elif (type(data) is np.memmap) and (data.dtype == self.numpy_dtype):
+        if isinstance(data, np.memmap) and (data.dtype == self.numpy_dtype):
             # numpy.memmap is a "safe" subclass of ndarray,
             # so we can use it wherever we expect a base ndarray.
             # however, casting it would defeat the purpose of not
             # loading the whole data into memory
             pass
+        elif isinstance(data, np.ndarray) and (data.dtype == self.numpy_dtype):
+            if data.dtype.num != self.numpy_dtype.num:
+                data = theano._asarray(data, dtype=self.dtype)
+            # -- now fall through to ndim check
         elif strict:
             # If any of the two conditions above was not met,
             # we raise a meaningful TypeError.
-            if not (type(data) is np.ndarray):
-                raise TypeError(
-                    "%s expected a ndarray object." % self, data, type(data)
-                )
+            if not isinstance(data, np.ndarray):
+                raise TypeError(f"{self} expected a ndarray object (got {type(data)}).")
             if data.dtype != self.numpy_dtype:
                 raise TypeError(
-                    ("%s expected a ndarray object with " "dtype = %s (got %s).")
-                    % (self, self.numpy_dtype, data.dtype)
+                    f"{self} expected an ndarray with dtype={self.numpy_dtype} (got {data.dtype})."
                 )
-            raise AssertionError("This point should never be reached.")
         else:
             if allow_downcast:
                 # Convert to self.dtype, regardless of the type of data
@@ -145,7 +141,7 @@ class TensorType(Type):
                         raise TypeError(err_msg)
                 elif (
                     allow_downcast is None
-                    and type(data) is float
+                    and isinstance(data, (float, np.floating))
                     and self.dtype == theano.config.floatX
                 ):
                     # Special case where we allow downcasting of Python float
@@ -177,7 +173,7 @@ class TensorType(Type):
                             '2) set "allow_input_downcast=True" when calling '
                             '"function".' % (self, data, converted_data, self.dtype)
                         )
-                        raise TypeError(err_msg, data)
+                        raise TypeError(err_msg)
 
         if self.ndim != data.ndim:
             raise TypeError(

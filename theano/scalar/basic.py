@@ -346,7 +346,7 @@ class Scalar(Type):
                 allow_downcast
                 or (
                     allow_downcast is None
-                    and type(data) is float
+                    and isinstance(data, (float, np.floating))
                     and self.dtype == theano.config.floatX
                 )
                 or data == converted_data
