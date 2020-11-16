@@ -108,6 +108,9 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         uses: conda-incubator/setup-miniconda@v2
         with:
+          mamba-version: "*"
+          channels: conda-forge,defaults
+          channel-priority: true
           python-version: ${{ matrix.python-version }}
           auto-update-conda: true
 
@@ -125,10 +128,10 @@ jobs:
       - name: Install dependencies
         shell: bash -l {0}
         run: |
-          conda install --yes -q mkl numpy scipy pip mkl-service graphviz cython libgpuarray pygpu
-          if [[ "$PYTHON_VERSION" != "3.6" ]]; then conda install --yes -q -c conda-forge jax jaxlib; fi
+          mamba install --yes -q mkl numpy scipy pip mkl-service graphviz cython libgpuarray pygpu
+          if [[ "$PYTHON_VERSION" != "3.6" ]]; then mamba install --yes -q -c conda-forge jax jaxlib; fi
           pip install -q -r requirements.txt
-          conda list && pip freeze
+          mamba list && pip freeze
           python -c 'import theano; print(theano.config.__str__(print_doc=False))'
           python -c 'import theano; assert(theano.config.blas.ldflags != "")'
         env:
