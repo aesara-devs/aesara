@@ -1,7 +1,8 @@
 """
-To update the scan Cython code in Theano you must
-- update the version in this file and scan_perform.py
-- call "cd theano/scan/; cython scan_perform.pyx; patch scan_perform.c numpy_api_changes.diff"
+
+To update the `Scan` Cython code you must
+- update the version value in this file and `scan_perform.py`, and
+- run `cython scan_perform.pyx; mv scan_perform.c c_code`
 
 """
 
@@ -24,7 +25,7 @@ from theano.gof.compilelock import get_lock, release_lock
 _logger = logging.getLogger("theano.scan.scan_perform")
 
 
-version = 0.296  # must match constant returned in function get_version()
+version = 0.297  # must match constant returned in function get_version()
 
 need_reload = False
 
@@ -143,7 +144,7 @@ except ImportError:
         release_lock()
 
 # This is caused as cython use the old NumPy C-API but we use the new one.
-# To fix it completly, we would need to modify Cython to use the new API.
+# To fix it completely, we would need to modify Cython to use the new API.
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message="numpy.ndarray size changed")
     from scan_perform.scan_perform import get_version, perform  # noqa: F401
