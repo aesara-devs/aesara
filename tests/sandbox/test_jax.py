@@ -281,6 +281,14 @@ def test_jax_basic_multiout():
     out_fg = theano.gof.FunctionGraph([x], outs)
     compare_jax_and_py(out_fg, [X.astype(tt.config.floatX)], assert_fn=assert_fn)
 
+    # Test that a single output of a multi-output `Op` can be used as input to
+    # another `Op`
+    x = tt.dvector()
+    mx, amx = theano.tensor.MaxAndArgmax([0])(x)
+    out = mx * amx
+    out_fg = theano.gof.FunctionGraph([x], [out])
+    compare_jax_and_py(out_fg, [np.r_[1, 2]])
+
 
 @pytest.mark.skip(reason="Not fully implemented, yet.")
 def test_jax_scan():
