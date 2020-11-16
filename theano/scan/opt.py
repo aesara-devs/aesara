@@ -1429,7 +1429,7 @@ class ScanSaveMem(gof.Optimizer):
                         flag_store = True
 
         orphane_outs = [
-            i for i, x in enumerate(store_steps) if (type(x) is int) and (x < 0)
+            i for i, x in enumerate(store_steps) if isinstance(x, int) and (x < 0)
         ]
         flag_store = flag_store or (len(orphane_outs) > 0)
         # 3. is there anything to change ?
@@ -1448,7 +1448,7 @@ class ScanSaveMem(gof.Optimizer):
             offset = 1 + op.n_seqs + op.n_mit_mot
             for idx, _val in enumerate(store_steps[op.n_mit_mot :]):
                 i = idx + op.n_mit_mot
-                if not (type(_val) is int and _val <= 0 and i not in required):
+                if not (isinstance(_val, int) and _val <= 0 and i not in required):
 
                     if idx + op.n_mit_mot in required:
                         val = 1
@@ -1611,7 +1611,7 @@ class ScanSaveMem(gof.Optimizer):
                     for k, old in enumerate(old_outs):
                         # Get the correct slice
                         cnf_slice, old_slices = slices[pos][k]
-                        if type(cnf_slice[0]) is slice:
+                        if isinstance(cnf_slice[0], slice):
                             start = (
                                 cnf_slice[0].start
                                 - nw_steps

@@ -13,6 +13,7 @@ import time
 import traceback
 import warnings
 from collections import OrderedDict, defaultdict, deque
+from collections.abc import Iterable
 from functools import reduce
 
 import numpy as np
@@ -3152,7 +3153,7 @@ def copy_stack_trace(from_var, to_var):
 
     # Store stack traces from from_var
     tr = []
-    if type(from_var) is list:
+    if isinstance(from_var, Iterable) and not isinstance(from_var, graph.Variable):
         # If from_var is a list, store concatenated stack traces
         for v in from_var:
             tr += getattr(v.tag, "trace", [])
@@ -3167,7 +3168,7 @@ def copy_stack_trace(from_var, to_var):
         tr = [tr]
 
     # Copy over stack traces to to_var
-    if type(to_var) is list:
+    if isinstance(to_var, Iterable) and not isinstance(to_var, graph.Variable):
         # Copy over stack traces from from_var to each variable in
         # to_var, including the stack_trace of the to_var before
         for v in to_var:
