@@ -290,18 +290,91 @@ def test_jax_basic_multiout():
     compare_jax_and_py(out_fg, [np.r_[1, 2]])
 
 
-@pytest.mark.skip(reason="Not fully implemented, yet.")
-def test_jax_scan():
+def test_jax_scan_multiple_output():
+    """Test a scan implementation of a SEIR model.
+
+    SEIR model definition:
+    S[t+1] = S[t] - B[t]
+    E[t+1] = E[t] +B[t] - C[t]
+    I[t+1] = I[t+1] + C[t] - D[t]
+
+    B[t] ~ Binom(S[t], beta)
+    C[t] ~ Binom(E[t], gamma)
+    D[t] ~ Binom(I[t], delta)
+    """
+
+    def binomln(n, k):
+        return tt.gammaln(n + 1) - tt.gammaln(k + 1) - tt.gammaln(n - k + 1)
+
+    def binom_log_prob(n, p, value):
+        return binomln(n, value) + value * tt.log(p) + (n - value) * tt.log(1 - p)
+
+    # sequences
+    tt_C = tt.ivector("C_t")
+    tt_D = tt.ivector("D_t")
+    # outputs_info (initial conditions)
+    st0 = tt.lscalar("s_t0")
+    et0 = tt.lscalar("e_t0")
+    it0 = tt.lscalar("i_t0")
+    logp_c = tt.scalar("logp_c")
+    logp_d = tt.scalar("logp_d")
+    # non_sequences
+    beta = tt.scalar("beta")
+    gamma = tt.scalar("gamma")
+    delta = tt.scalar("delta")
+
+    # TODO: Make the random stream version work after we fix the symbolic random.
+    # trng = tt.shared_randomstreams.RandomStreams(1234)
+
+    def seir_one_step(ct0, dt0, st0, et0, it0, logp_c, logp_d, beta, gamma, delta):
+        # bt0 = trng.binomial(n=st0, p=beta)
+        bt0 = st0 * beta
+        bt0 = bt0.astype(st0.dtype)
+
+        logp_c = binom_log_prob(et0, gamma, ct0)
+        logp_d = binom_log_prob(it0, delta, dt0)
+
+        st1 = st0 - bt0
+        et1 = et0 + bt0 - ct0
+        it1 = it0 + ct0 - dt0
+        return st1, et1, it1, logp_c, logp_d
+
+    s0, e0, i0 = 100, 50, 25
+    C = np.array([3, 5, 8, 13, 21, 26, 10, 3], dtype=np.int32)
+    D = np.array([1, 2, 3, 7, 9, 11, 5, 1], dtype=np.int32)
+
+    (st, et, it, logp_c_all, logp_d_all), _ = theano.scan(
+        fn=seir_one_step,
+        sequences=[tt_C, tt_D],
+        outputs_info=[st0, et0, it0, logp_c, logp_d],
+        non_sequences=[beta, gamma, delta],
+    )
+    st.name = "S_t"
+    et.name = "E_t"
+    it.name = "I_t"
+    logp_c_all.name = "C_t_logp"
+    logp_d_all.name = "D_t_logp"
+
+    out_fg = theano.gof.FunctionGraph(
+        [tt_C, tt_D, st0, et0, it0, logp_c, logp_d, beta, gamma, delta],
+        [st, et, it, logp_c_all, logp_d_all],
+    )
+
+    test_input_vals = [C, D, s0, e0, i0, 0.0, 0.0, 0.277792, 0.135330, 0.108753]
+    compare_jax_and_py(out_fg, test_input_vals)
+
+
+def test_jax_scan_tap_output():
 
     theano.config.compute_test_value = "raise"
 
     a_tt = tt.scalar("a")
     a_tt.tag.test_value = 3.0
 
-    def input_step_fn(y_tm1, y_tm2, a):
+    def input_step_fn(y_tm1, y_tm3, a):
         y_tm1.name = "y_tm1"
-        y_tm2.name = "y_tm2"
-        res = (y_tm1 + y_tm2) * a
+        y_tm3.name = "y_tm3"
+        res = (y_tm1 + y_tm3) * a
         res.name = "y_t"
         return res
 
@@ -310,9 +383,9 @@ def test_jax_scan():
         outputs_info=[
             {
                 "initial": tt.as_tensor_variable(
-                    np.r_[-1.0, 0.0].astype(tt.config.floatX)
+                    np.r_[-1.0, 1.3, 0.0].astype(tt.config.floatX)
                 ),
-                "taps": [-1, -2],
+                "taps": [-1, -3],
             },
         ],
         non_sequences=[a_tt],
@@ -322,8 +395,8 @@ def test_jax_scan():
     y_scan_tt.name = "y"
     y_scan_tt.owner.inputs[0].name = "y_all"
 
-    theano_scan_fn = theano.function([], y_scan_tt, givens={a_tt: 3.0})
-    theano_res = theano_scan_fn()
+    theano_scan_fn = theano.function([a_tt], y_scan_tt)
+    theano_res = theano_scan_fn(3.0)
 
     #
     # The equivalent JAX `scan`:
@@ -332,21 +405,19 @@ def test_jax_scan():
     import jax.numpy as jnp
 
     def jax_inner_scan(carry, x):
-        (y_tm1, y_tm2), a = carry
-        res = (y_tm1 + y_tm2) * a
-        return [jnp.array([res, y_tm1]), a], res
+        (y_tm1, y_tm2, y_tm3), a = carry
+        res = (y_tm1 + y_tm3) * a
+        return [jnp.array([res, y_tm1, y_tm2]), a], res
 
-    init_carry = [np.r_[0.0, -1.0].astype(tt.config.floatX), 3.0]
-    tmp, jax_res = jax.lax.scan(jax_inner_scan, init_carry, None, length=10)
+    init_carry = [np.r_[0.0, 1.3, -1.0].astype(tt.config.floatX), 3.0]
+    _, jax_res = jax.lax.scan(jax_inner_scan, init_carry, None, length=10)
 
     assert np.allclose(jax_res, theano_res)
 
     out_fg = theano.gof.FunctionGraph([a_tt], [y_scan_tt])
 
     test_input_vals = [np.array(10.0).astype(tt.config.floatX)]
-    (jax_res,) = compare_jax_and_py(out_fg, test_input_vals)
-
-    raise AssertionError()
+    compare_jax_and_py(out_fg, test_input_vals)
 
 
 def test_jax_Subtensors():

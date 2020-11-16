@@ -177,6 +177,7 @@ def compose_jax_funcs(out_node, fgraph_inputs, memo=None):
 
         def jax_func(*inputs):
             func_args = [fn(*inputs) for fn in input_funcs]
+            # func_args = jax.tree_map(lambda fn: fn(*inputs), input_funcs)
             return return_func(*func_args)
 
         jax_funcs.append(update_wrapper(jax_func, return_func))
@@ -412,7 +413,7 @@ def jax_funcify_Scan(op):
 
     def scan(*outer_inputs):
         scan_args = ScanArgs(
-            outer_inputs, [None] * op.n_outs, op.inputs, op.outputs, op.info
+            list(outer_inputs), [None] * op.n_outs, op.inputs, op.outputs, op.info
         )
 
         # `outer_inputs` is a list with the following composite form:
@@ -427,9 +428,9 @@ def jax_funcify_Scan(op):
         n_steps = scan_args.n_steps
         seqs = scan_args.outer_in_seqs
 
-        n_non_seqs = len(scan_args.outer_in_non_seqs)
+        # n_non_seqs = len(scan_args.outer_in_non_seqs)
 
-        # TODO: sit_sots
+        # TODO: mit_mots
         mit_sot_in_slices = []
         for tap, seq in zip(scan_args.mit_sot_in_slices, scan_args.outer_in_mit_sot):
             neg_taps = [abs(t) for t in tap if t < 0]
@@ -439,13 +440,18 @@ def jax_funcify_Scan(op):
             init_slice = seq[: max_neg + max_pos]
             mit_sot_in_slices.append(init_slice)
 
-        init_carry = [mit_sot_in_slices, scan_args.outer_in_non_seqs]
+        init_carry = (
+            mit_sot_in_slices,
+            scan_args.outer_in_sit_sot,
+            scan_args.outer_in_shared,
+            scan_args.outer_in_non_seqs,
+        )
 
         def jax_args_to_inner_scan(op, carry, x):
             # `carry` contains all inner-output taps, non_seqs, and shared
             # terms
             (
-                inner_in_mit_mot,
+                # inner_in_mit_mot,
                 inner_in_mit_sot,
                 inner_in_sit_sot,
                 inner_in_shared,
@@ -462,15 +468,24 @@ def jax_funcify_Scan(op):
             # + inner_in_sit_sot
             # + inner_in_shared
             # + inner_in_non_seqs
+            inner_in_mit_sot_flatten = []
+            for array, index in zip(inner_in_mit_sot, scan_args.mit_sot_in_slices):
+                for i in index:
+                    inner_in_mit_sot_flatten.append(array[i])
+
+            # inner_in_mit_sot_flatten = jax.tree_multimap(
+            #         lambda x, i: x[i],
+            #         inner_in_mit_sot,
+            #         scan_args.mit_sot_in_slices)
             inner_scan_inputs = [
                 inner_in_seqs,
-                inner_in_mit_mot,
-                inner_in_mit_sot,
+                # inner_in_mit_mot,
+                inner_in_mit_sot_flatten,
                 inner_in_sit_sot,
+                inner_in_shared,
                 inner_in_non_seqs,
             ]
 
-            raise NotImplementedError()
             return inner_scan_inputs
 
         def inner_scan_outs_to_jax_outs(
@@ -478,47 +493,49 @@ def jax_funcify_Scan(op):
             old_carry,
             inner_scan_outs,
         ):
-            # `inner_scan_outs` is a list with the following
-            # composite form:
-            # outer_out_mit_mot
-            # + outer_out_mit_sot
-            # + outer_out_sit_sot
-            # + outer_out_nit_sot
-            # + outer_out_shared
-            # + cond
             (
-                outer_out_mit_mot,
                 outer_out_mit_sot,
-                outer_out_sit_sot,
-                outer_out_nit_sot,
-                outer_out_shared,
-                cond,
-            ) = inner_scan_outs
-            outer_out_non_seqs = old_carry[:-n_non_seqs]
+                outer_in_sit_sot,
+                inner_in_shared,
+                outer_in_non_seqs,
+            ) = old_carry
+            if not outer_out_mit_sot:
+                outer_out_mit_sot_next = []
+            else:
+                outer_out_mit_sot_next = jax.tree_multimap(
+                    lambda mit_sot, new_val: jnp.concatenate(
+                        [mit_sot[1:], new_val[None, ...]], axis=0
+                    ),
+                    outer_out_mit_sot,
+                    inner_scan_outs,
+                )
 
             # This should contain all inner-output taps, non_seqs, and shared
             # terms
-            carry = [
-                outer_out_mit_mot,
-                outer_out_mit_sot,
-                outer_out_sit_sot,
-                outer_out_shared,
-                outer_out_non_seqs,
-            ]
-            # This should contain all inner-outputs that produce
-            # outer-outputs
-            y = []
+            if not outer_in_sit_sot:
+                outer_in_sit_sot_next = []
+            else:
+                outer_in_sit_sot_next = inner_scan_outs
+            new_carry = (
+                outer_out_mit_sot_next,
+                outer_in_sit_sot_next,
+                inner_in_shared,
+                outer_in_non_seqs,
+            )
 
-            raise NotImplementedError()
-            return (carry, y)
+            return new_carry
 
         def jax_inner_func(carry, x):
             inner_args = jax_args_to_inner_scan(op, carry, x)
-            inner_scan_outs = jax_tt_inner_func(*inner_args)
-            new_carry, y = inner_scan_outs_to_jax_outs(op, inner_scan_outs)
-            return new_carry, y
+            inner_args = jax.tree_leaves(inner_args)
+            inner_scan_outs = jax.tree_map(
+                lambda fn: fn(*inner_args), jax_tt_inner_func
+            )
+            new_carry = inner_scan_outs_to_jax_outs(op, carry, inner_scan_outs)
+            return (new_carry, inner_scan_outs)
 
-        return jax.lax.scan(jax_inner_func, init_carry, seqs, length=n_steps)
+        _, scan_out = jax.lax.scan(jax_inner_func, init_carry, seqs, length=n_steps)
+        return scan_out
 
     return scan
 
