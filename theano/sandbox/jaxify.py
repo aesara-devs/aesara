@@ -440,9 +440,11 @@ def jax_funcify_Scan(op):
             init_slice = seq[: max_neg + max_pos]
             mit_sot_in_slices.append(init_slice)
 
+        sit_sot_in_slices = [seq[0] for seq in scan_args.outer_in_sit_sot]
+
         init_carry = (
             mit_sot_in_slices,
-            scan_args.outer_in_sit_sot,
+            sit_sot_in_slices,
             scan_args.outer_in_shared,
             scan_args.outer_in_non_seqs,
         )
@@ -527,15 +529,31 @@ def jax_funcify_Scan(op):
 
         def jax_inner_func(carry, x):
             inner_args = jax_args_to_inner_scan(op, carry, x)
-            inner_args = jax.tree_leaves(inner_args)
-            inner_scan_outs = jax.tree_map(
-                lambda fn: fn(*inner_args), jax_tt_inner_func
-            )
+            inner_args = sum(inner_args, [])
+            inner_scan_outs = [fn(*inner_args) for fn in jax_tt_inner_func]
             new_carry = inner_scan_outs_to_jax_outs(op, carry, inner_scan_outs)
-            return (new_carry, inner_scan_outs)
+            return new_carry, inner_scan_outs
 
         _, scan_out = jax.lax.scan(jax_inner_func, init_carry, seqs, length=n_steps)
-        return scan_out
+
+        # Match shape and structure of the Scan Op as defined in theano/scan/basic.py
+        def append_scan_out(scan_in_part, scan_out_part):
+            return jnp.concatenate([scan_in_part[:-n_steps], scan_out_part], axis=0)
+
+        if scan_args.outer_in_mit_sot:
+            scan_out_final = [
+                append_scan_out(init, out)
+                for init, out in zip(scan_args.outer_in_mit_sot, scan_out)
+            ]
+        elif scan_args.outer_in_sit_sot:
+            scan_out_final = [
+                append_scan_out(init, out)
+                for init, out in zip(scan_args.outer_in_sit_sot, scan_out)
+            ]
+
+        if len(scan_out_final) == 1:
+            scan_out_final = scan_out_final[0]
+        return scan_out_final
 
     return scan
 
