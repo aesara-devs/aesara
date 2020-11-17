@@ -501,16 +501,14 @@ def jax_funcify_Scan(op):
                 inner_in_shared,
                 outer_in_non_seqs,
             ) = old_carry
-            if not outer_out_mit_sot:
-                outer_out_mit_sot_next = []
-            else:
-                outer_out_mit_sot_next = jax.tree_multimap(
-                    lambda mit_sot, new_val: jnp.concatenate(
-                        [mit_sot[1:], new_val[None, ...]], axis=0
-                    ),
-                    outer_out_mit_sot,
-                    inner_scan_outs,
-                )
+
+            def update_mit_sot(mit_sot, new_val):
+                return jnp.concatenate([mit_sot[1:], new_val[None, ...]], axis=0)
+
+            outer_out_mit_sot_next = [
+                update_mit_sot(mit_sot, new_val)
+                for mit_sot, new_val in zip(outer_out_mit_sot, inner_scan_outs)
+            ]
 
             # This should contain all inner-output taps, non_seqs, and shared
             # terms
