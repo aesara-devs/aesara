@@ -178,7 +178,7 @@ def broadcast_to(value, template, fgraph, dtype=None):
         return value
     if template not in fgraph.variables:
         raise NotImplementedError(
-            "broadcast_to currently requires the "
+            "broadcast_like currently requires the "
             "template Variable to be in the fgraph already"
         )
     if dtype is None:
