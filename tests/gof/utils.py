@@ -1,3 +1,5 @@
+import numpy as np
+
 from theano.gof.graph import Apply, Variable
 from theano.gof.op import Op
 from theano.gof.type import Type
@@ -20,8 +22,23 @@ class MyType(Type):
         return hash(MyType)
 
 
+class MyType2(Type):
+    def filter(self, data):
+        return data
+
+    def __eq__(self, other):
+        return isinstance(other, MyType)
+
+    def __hash__(self):
+        return hash(MyType)
+
+
 def MyVariable(name):
     return Variable(MyType(), None, None, name=name)
+
+
+def MyVariable2(name):
+    return Variable(MyType2(), None, None, name=name)
 
 
 class MyOp(Op):
@@ -39,6 +56,9 @@ class MyOp(Op):
                 raise Exception("Error 1")
         outputs = [MyType()()]
         return Apply(self, inputs, outputs)
+
+    def perform(self, node, inputs, outputs):
+        outputs[0] = np.array(inputs)
 
     def __str__(self):
         return self.name
