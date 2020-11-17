@@ -3236,7 +3236,7 @@ def merge_two_slices(slice1, len1, slice2, len2):
         constant_folding,
     ]
 
-    if type(slice1) is not slice:
+    if not isinstance(slice1, slice):
         raise ValueError(
             (
                 "First provided slice should actually be of type"
@@ -3247,7 +3247,7 @@ def merge_two_slices(slice1, len1, slice2, len2):
     sl1, reverse1 = get_canonical_form_slice(slice1, len1)
     sl2, reverse2 = get_canonical_form_slice(slice2, len2)
 
-    if type(sl2) is not slice:
+    if not isinstance(sl2, slice):
         if reverse1 is None:
             # The first slice is not in reverse, which makes things a lot
             # more clear.
@@ -3398,7 +3398,7 @@ def local_subtensor_merge(node):
             pos_1 = 0
             while (pos_1 < len(slices1)) and (pos_2 < len(slices2)):
                 slice1 = slices1[pos_1]
-                if type(slice1) is slice:
+                if isinstance(slice1, slice):
                     merged_slices.append(
                         merge_two_slices(
                             slice1, xshape[pos_1], slices2[pos_2], ushape[pos_2]
@@ -4360,7 +4360,9 @@ def local_useless_switch(node):
     """
     if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, ts.Switch):
         cond = tt.extract_constant(node.inputs[0], only_process_constants=True)
-        if (type(cond) is np.ndarray and cond.ndim == 0) or isinstance(cond, np.number):
+        if (isinstance(cond, np.ndarray) and cond.ndim == 0) or isinstance(
+            cond, np.number
+        ):
             if cond == 0:
                 correct_out = node.inputs[2]
             else:

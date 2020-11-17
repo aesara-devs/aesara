@@ -445,7 +445,7 @@ def makeTester(
 
                 new_v = []
                 for inp in v:
-                    if type(inp) is np.ndarray and inp.size > 0:
+                    if isinstance(inp, np.ndarray) and inp.size > 0:
                         f, fname = mkstemp()
                         self.tmp_files.append((f, fname))
                         new_inp = np.memmap(

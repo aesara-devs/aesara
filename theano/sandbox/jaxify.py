@@ -93,10 +93,13 @@ incsubtensor_ops = (IncSubtensor, AdvancedIncSubtensor1)
 def compose_jax_funcs(out_node, fgraph_inputs, memo=None):
     """Compose JAX implementations of node operations.
 
+    This function walks the graph given by the `Apply` node, `out_node`, and
+    creates JAX JIT-able functions for its input and output variables.
+
     Parameters
     ----------
-    out_node: Node
-        The output node.
+    out_node: theano.gof.graph.Apply
+        The node for which we want to construct a JAX JIT-able function.
     fgraph_inputs: List[Variable]
         The inputs--in a `FunctionGraph` sense--to `out_node`.
     memo: Mapping (Optional)
@@ -116,9 +119,13 @@ def compose_jax_funcs(out_node, fgraph_inputs, memo=None):
 
     jax_return_func = jax_funcify(out_node.op)
 
+    # We create a list of JAX-able functions that produce the values of each
+    # input variable for `out_node`.
     input_funcs = []
     for i in out_node.inputs:
         if i in fgraph_inputs:
+            # This input is a top-level input (i.e. an input to the
+            # `FunctionGraph` in which this `out_node` resides)
             idx = fgraph_inputs.index(i)
 
             i_dtype = getattr(i, "dtype", None)
@@ -129,6 +136,7 @@ def compose_jax_funcs(out_node, fgraph_inputs, memo=None):
             input_f = jax_inputs_func
 
         elif i.owner is None:
+            # This input is something like a `theano.gof.graph.Constant`
 
             i_dtype = getattr(i, "dtype", None)
             i_data = i.data
@@ -141,7 +149,23 @@ def compose_jax_funcs(out_node, fgraph_inputs, memo=None):
 
             input_f = jax_data_func
         else:
+            # This input is the output of another node, so we need to
+            # generate a JAX-able function for its subgraph
             input_f = compose_jax_funcs(i.owner, fgraph_inputs, memo)
+
+            if i.owner.nout > 1:
+                # This input is one of multiple outputs from the `i.owner`
+                # node, and we need to determine exactly which one it is and
+                # create a JAX-able function that returns only it.
+                out_idx = i.owner.outputs.index(i)
+                (out_fn,) = input_f
+
+                def jax_multiout_func(*inputs, out_idx=out_idx, out_fn=out_fn):
+                    return out_fn(*inputs)[out_idx]
+
+                input_f = jax_multiout_func
+
+        assert callable(input_f)
 
         input_funcs.append(input_f)
 

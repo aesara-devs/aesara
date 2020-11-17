@@ -1,3 +1,4 @@
+# cython: language_level=3
 """
  This code implements the operations that scan has to carry on when called
  as a stand alone function.
@@ -64,7 +65,7 @@ from theano import gof
 
 
 def get_version():
-    return 0.296
+    return 0.297
 
 @cython.boundscheck(False)
 def perform(
@@ -404,14 +405,15 @@ def perform(
                 # done by raise_with_op is not implemented in C.
                 if hasattr(fn, 'thunks'):
                     # For the CVM
-                    gof.link.raise_with_op(fn.nodes[fn.position_of_error],
+                    gof.link.raise_with_op(fn.maker.fgraph,
+                                           fn.nodes[fn.position_of_error],
                                            fn.thunks[fn.position_of_error])
                 else:
                     # For the c linker
                     # We don't have access from python to all the
                     # temps values So for now, we just don't print
                     # the extra shapes/strides info
-                    gof.vm.raise_with_op(fn.nodes[fn.position_of_error])
+                    gof.link.raise_with_op(fn.maker.fgraph, fn.nodes[fn.position_of_error])
             else:
                 # old-style linkers raise their own exceptions
                 raise
