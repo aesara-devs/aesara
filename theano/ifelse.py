@@ -345,14 +345,12 @@ def ifelse(condition, then_branch, else_branch, name=None):
     """
 
     rval_type = None
-    if type(then_branch) is list:
-        rval_type = list
-    elif type(then_branch) is tuple:
-        rval_type = tuple
-
-    if type(then_branch) not in (list, tuple):
+    if isinstance(then_branch, (list, tuple)):
+        rval_type = type(then_branch)
+    else:
         then_branch = [then_branch]
-    if type(else_branch) not in (list, tuple):
+
+    if not isinstance(else_branch, (list, tuple)):
         else_branch = [else_branch]
 
     # Some of the elements might be converted into another type,

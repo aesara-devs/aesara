@@ -937,7 +937,7 @@ class TensorConstantSignature(tuple):
             self._sum = self.no_nan.sum()
             # The following 2 lines are needede as in Python 3.3 with NumPy
             # 1.7.1, numpy.ndarray and numpy.memmap aren't hashable.
-            if type(self._sum) is np.memmap:
+            if isinstance(self._sum, np.memmap):
                 self._sum = np.asarray(self._sum).item()
             if self.has_nan and self.no_nan.mask.all():
                 # In this case the sum is not properly computed by numpy.

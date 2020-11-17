@@ -109,7 +109,7 @@ class PersistentNdarrayID:
         return name
 
     def __call__(self, obj):
-        if type(obj) is np.ndarray:
+        if isinstance(obj, np.ndarray):
             if id(obj) not in self.seen:
 
                 def write_array(f):

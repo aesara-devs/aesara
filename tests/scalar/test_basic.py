@@ -19,9 +19,7 @@ from theano.scalar.basic import (
     ComplexError,
     Composite,
     InRange,
-    IntDiv,
     Scalar,
-    TrueDiv,
     add,
     and_,
     arccos,
@@ -44,7 +42,6 @@ from theano.scalar.basic import (
     expm1,
     float16,
     float32,
-    float64,
     floats,
     int8,
     int32,
@@ -393,24 +390,6 @@ def test_mod_complex_fail():
     y = int32()
     with pytest.raises(ComplexError):
         x % y
-
-
-def test_div_types():
-    a = int8()
-    b = int32()
-    c = complex64()
-    d = float64()
-    f = float32()
-
-    assert isinstance((a // b).owner.op, IntDiv)
-    assert isinstance((b // a).owner.op, IntDiv)
-    assert isinstance((b / d).owner.op, TrueDiv)
-    assert isinstance((b / f).owner.op, TrueDiv)
-    assert isinstance((f / a).owner.op, TrueDiv)
-    assert isinstance((d / b).owner.op, TrueDiv)
-    assert isinstance((d / f).owner.op, TrueDiv)
-    assert isinstance((f / c).owner.op, TrueDiv)
-    assert isinstance((a / c).owner.op, TrueDiv)
 
 
 def test_grad_gt():
