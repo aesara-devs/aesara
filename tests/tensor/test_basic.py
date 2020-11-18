@@ -7136,21 +7136,36 @@ class TestChoose(utt.InferShapeTester):
         with pytest.raises(TypeError):
             choose(a, b)
 
-    def test_numpy_compare_tuple(self):
-
-        a = tt.tensor3(dtype="int32")
-        b = tt.tensor3(dtype="float32")
-        c = tt.tensor3(dtype="float32")
-
-        A = np.random.randint(0, 2, (2, 1, 1)).astype("int32")
-        B = np.asarray(np.random.rand(1, 6, 1), dtype="float32")
-        C = np.asarray(np.random.rand(1, 1, 5), dtype="float32")
-
+    @pytest.mark.parametrize(
+        "test_input",
+        [
+            (
+                tt.tensor3(dtype="int32"),
+                tt.tensor3(dtype="float32"),
+                tt.tensor3(dtype="float32"),
+                np.random.randint(0, 2, (2, 1, 1)).astype("int32"),
+                np.asarray(np.random.rand(1, 6, 1), dtype="float32"),
+                np.asarray(np.random.rand(1, 1, 5), dtype="float32"),
+            ),
+            (
+                tt.vector(dtype="int32"),
+                tt.scalar(),
+                tt.scalar(),
+                [0, 1, 1, 0],
+                0.1,
+                0.2,
+            ),
+        ],
+    )
+    def test_numpy_compare_tuple(self, test_input):
+        """Test with list and tuples of scalars and 3d tensors."""
+        a, b, c, A, B, C = test_input
         for m in self.modes:
-            f = function([a, b, c], choose(a, (b, c), mode=m))
-            t_c = f(A, B, C)
-            n_c = np.choose(A, (B, C), mode=m)
-            assert np.allclose(t_c, n_c)
+            for ls in [list, tuple]:
+                f = function([a, b, c], choose(a, ls([b, c]), mode=m))
+                t_c = f(A, B, C)
+                n_c = np.choose(A, ls([B, C]), mode=m)
+                assert np.allclose(t_c, n_c)
 
     def test_infer_shape(self):
         for shp1, shp2 in [

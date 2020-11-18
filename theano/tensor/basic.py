@@ -36,11 +36,6 @@ _logger = logging.getLogger("theano.tensor.basic")
 
 __docformat__ = "restructuredtext en"
 
-# This is needed as we will hide it later
-python_complex = complex
-python_any = any
-python_all = all
-
 # Define common subsets of dtypes (as strings).
 complex_dtypes = list(map(str, scal.complex_types))
 continuous_dtypes = list(map(str, scal.continuous_types))
@@ -66,7 +61,7 @@ def check_equal_numpy(x, y):
     if isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
         return x.dtype == y.dtype and x.shape == y.shape and np.all(abs(x - y) < 1e-10)
     elif isinstance(x, np.random.RandomState) and isinstance(y, np.random.RandomState):
-        return python_all(
+        return builtins.all(
             np.all(a == b) for a, b in zip(x.__getstate__(), y.__getstate__())
         )
     else:
@@ -553,7 +548,7 @@ def get_scalar_constant_value(
                     # Ensure the Join is joining only scalar variables (so that
                     # the constant value can be found at the same index as the
                     # one used in the sub-tensor).
-                    if python_all(
+                    if builtins.all(
                         var.ndim == 0 for var in v.owner.inputs[0].owner.inputs[1:]
                     ):
                         idx = v.owner.op.idx_list[0]
@@ -567,7 +562,7 @@ def get_scalar_constant_value(
                         ret = get_scalar_constant_value(ret, max_recur=max_recur)
                         # join can cast implicitly its input in some case.
                         return theano._asarray(ret, dtype=v.type.dtype)
-                    if python_all(
+                    if builtins.all(
                         var.ndim == 1 for var in v.owner.inputs[0].owner.inputs[1:]
                     ):
                         idx = v.owner.op.idx_list[0]
@@ -601,7 +596,9 @@ def get_scalar_constant_value(
                     and
                     # MakeVector normally accept only scalar as input.
                     # We put this check in case there is change in the future
-                    python_all(var.ndim == 0 for var in v.owner.inputs[0].owner.inputs)
+                    builtins.all(
+                        var.ndim == 0 for var in v.owner.inputs[0].owner.inputs
+                    )
                     and len(v.owner.op.idx_list) == 1
                 ):
 
@@ -4013,7 +4010,7 @@ class Split(Op):
                     np.sum(splits), len_along_axis
                 )
             )
-        if python_any([nb < 0 for nb in splits]):
+        if builtins.any([nb < 0 for nb in splits]):
             raise ValueError(
                 "Split: you tried to make an ndarray with a "
                 "negative number of elements."
@@ -4048,7 +4045,7 @@ class Split(Op):
         x, axis, n = inputs
         outputs = self(*inputs, **dict(return_list=True))
         # If all the output gradients are disconnected, then so are the inputs
-        if python_all([isinstance(g.type, DisconnectedType) for g in g_outputs]):
+        if builtins.all([isinstance(g.type, DisconnectedType) for g in g_outputs]):
             return [
                 DisconnectedType()(),
                 grad_undefined(self, 1, axis),
@@ -4391,7 +4388,7 @@ class Join(Op):
         )
 
     def _make_node_internal(self, axis, tensors, as_tensor_variable_args, output_maker):
-        if not python_all(targs.type.ndim for targs in as_tensor_variable_args):
+        if not builtins.all(targs.type.ndim for targs in as_tensor_variable_args):
             raise TypeError(
                 "Join cannot handle arguments of dimension 0."
                 " For joining scalar values, see @stack"
@@ -4453,7 +4450,7 @@ class Join(Op):
                 # broadcastable.
                 bcastable = [False] * len(as_tensor_variable_args[0].type.broadcastable)
 
-        if not python_all(
+        if not builtins.all(
             [x.ndim == len(bcastable) for x in as_tensor_variable_args[1:]]
         ):
             raise TypeError(
@@ -4883,7 +4880,7 @@ def stack(*tensors, **kwargs):
     # See ticket #660
     if np.all(
         [  # in case there is direct int in tensors.
-            isinstance(t, (np.number, float, int, python_complex))
+            isinstance(t, (np.number, float, int, builtins.complex))
             or (
                 isinstance(t, Variable)
                 and isinstance(t.type, TensorType)
@@ -5314,7 +5311,7 @@ class Flatten(Op):
         # it should be broadcastable iff all the collapsed dimensions were
         # broadcastable.
         bcast_kept_dims = x.broadcastable[: self.outdim - 1]
-        bcast_new_dim = python_all(x.broadcastable[self.outdim - 1 :])
+        bcast_new_dim = builtins.all(x.broadcastable[self.outdim - 1 :])
         broadcastable = bcast_kept_dims + (bcast_new_dim,)
 
         return gof.Apply(self, [t_x], [tensor(x.type.dtype, broadcastable)])
@@ -5504,7 +5501,7 @@ def flatten(x, ndim=None, outdim=None):
         dims = (-1,)
     x_reshaped = x.reshape(dims)
     bcast_kept_dims = x.broadcastable[: ndim - 1]
-    bcast_new_dim = python_all(x.broadcastable[ndim - 1 :])
+    bcast_new_dim = builtins.all(x.broadcastable[ndim - 1 :])
     broadcastable = bcast_kept_dims + (bcast_new_dim,)
     x_reshaped = theano.tensor.addbroadcast(
         x_reshaped, *filter(lambda i: broadcastable[i], range(ndim))
@@ -5841,7 +5838,7 @@ def arange(start, stop=None, step=1, dtype=None):
                     and numpy_dtype == "float64"
                     and
                     # No explicit float64 in the three arguments?
-                    python_all(
+                    builtins.all(
                         dt != "float64" for dt in [s.dtype for s in (start, stop, step)]
                     )
                 ):
@@ -5908,7 +5905,7 @@ class _nd_grid:
 
         ndim = len(args[0])
         for sl in args[0]:
-            if isinstance(sl.step, python_complex):
+            if isinstance(sl.step, builtins.complex):
                 raise NotImplementedError(
                     "Not implemented for slices " "whose step is complex"
                 )
@@ -7129,27 +7126,12 @@ class Choose(Op):
 
     def infer_shape(self, node, shapes):
 
-        if isinstance(node.inputs[1], TensorVariable):
-            # We have padded node.inputs[0] to the right number of
-            # dimensions for the output
-            l = []
-            for sh1, sh2, b1 in zip(
-                shapes[0], shapes[1][1:], node.inputs[0].broadcastable
-            ):
-                if b1:
-                    l.append(sh2)
-                else:
-                    l.append(sh1)
-            return [tuple(l)]
-        else:
-            import theano.typed_list
+        a_shape, choices_shape = shapes
+        out_shape = theano.tensor.extra_ops.broadcast_shape(
+            a_shape, choices_shape[1:], arrays_are_shapes=True
+        )
 
-            assert isinstance(node.inputs[1], theano.typed_list.TypedListVariable)
-            raise ShapeError("Case not implemented")
-            shape = shapes[0]
-            for i in range(len(shapes[0]) - 1):
-                shape[i] = shapes[1][i]
-            return [(shape)]
+        return [out_shape]
 
     def make_node(self, a, choices):
         # Import here as it isn't imported by default and we can't
@@ -7162,39 +7144,28 @@ class Choose(Op):
                 "choose first argument must have an [u]int* dtype. Got %s." % a.dtype
             )
 
-        if isinstance(choices, (tuple, list, theano.typed_list.TypedListVariable)):
+        # Only use make_list if choices have inconsistent shapes
+        # otherwise use as_tensor_variable
+        if isinstance(choices, (tuple, list)):
             choice = theano.typed_list.make_list(choices)
-            choice_ndim = choice.ttype.ndim
-            choice_bcast = choice.ttype.broadcastable
         else:
             choice = as_tensor_variable(choices)
-            choice_ndim = choice.ndim - 1
-            choice_bcast = choice.broadcastable[1:]
-        out_ndim = np.max([a.ndim, choice_ndim])
+        (out_shape,) = self.infer_shape(
+            None, [tuple(a.shape), tuple(theano.tensor.basic.shape(choice))]
+        )
 
-        # Make explicit all added broadcastable dimensions.
-        a = shape_padleft(a, out_ndim - a.ndim)
-        if len(choice_bcast) != out_ndim:
-            if isinstance(choice.type, TensorType):
-                choice = choice.dimshuffle(
-                    0,
-                    *(("x",) * (out_ndim - choice_ndim) + tuple(range(1, choice.ndim))),
-                )
-                choice_ndim = choice.ndim - 1
-                choice_bcast = choice.broadcastable[1:]
+        bcast = []
+        for s in out_shape:
+            try:
+                s_val = theano.get_scalar_constant_value(s)
+            except (theano.tensor.basic.NotScalarConstantError, AttributeError):
+                s_val = None
+
+            if s_val == 1:
+                bcast.append(True)
             else:
-                raise NotImplementedError(
-                    "We currently didn't implemented that case. "
-                    "To make it work, explicitly add dimensions "
-                    "of size one for dimensions that will be broadcasted"
-                )
+                bcast.append(False)
 
-        bcast = [False] * out_ndim
-        for idx, (b1, b2) in enumerate(
-            zip(a.broadcastable, (True,) * (out_ndim - choice_ndim) + choice_bcast)
-        ):
-            if b1 and b2:
-                bcast[idx] = True
         o = TensorType(choice.dtype, bcast)
         return Apply(self, [a, choice], [o()])
 
