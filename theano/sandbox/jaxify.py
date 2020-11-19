@@ -428,6 +428,8 @@ def jax_funcify_Scan(op):
         seqs = scan_args.outer_in_seqs
 
         # TODO: mit_mots
+        mit_mot_in_slices = []
+
         mit_sot_in_slices = []
         for tap, seq in zip(scan_args.mit_sot_in_slices, scan_args.outer_in_mit_sot):
             neg_taps = [abs(t) for t in tap if t < 0]
@@ -440,6 +442,7 @@ def jax_funcify_Scan(op):
         sit_sot_in_slices = [seq[0] for seq in scan_args.outer_in_sit_sot]
 
         init_carry = (
+            mit_mot_in_slices,
             mit_sot_in_slices,
             sit_sot_in_slices,
             scan_args.outer_in_shared,
@@ -450,7 +453,7 @@ def jax_funcify_Scan(op):
             # `carry` contains all inner-output taps, non_seqs, and shared
             # terms
             (
-                # inner_in_mit_mot,
+                inner_in_mit_mot,
                 inner_in_mit_sot,
                 inner_in_sit_sot,
                 inner_in_shared,
@@ -478,7 +481,7 @@ def jax_funcify_Scan(op):
             #         scan_args.mit_sot_in_slices)
             inner_scan_inputs = [
                 inner_in_seqs,
-                # inner_in_mit_mot,
+                inner_in_mit_mot,
                 inner_in_mit_sot_flatten,
                 inner_in_sit_sot,
                 inner_in_shared,
@@ -493,37 +496,40 @@ def jax_funcify_Scan(op):
             inner_scan_outs,
         ):
             (
-                outer_out_mit_sot,
-                outer_in_sit_sot,
+                inner_in_mit_mot,
+                inner_in_mit_sot,
+                inner_in_sit_sot,
                 inner_in_shared,
-                outer_in_non_seqs,
+                inner_in_non_seqs,
             ) = old_carry
 
             def update_mit_sot(mit_sot, new_val):
                 return jnp.concatenate([mit_sot[1:], new_val[None, ...]], axis=0)
 
-            outer_out_mit_sot_next = [
+            inner_out_mit_sot = [
                 update_mit_sot(mit_sot, new_val)
-                for mit_sot, new_val in zip(outer_out_mit_sot, inner_scan_outs)
+                for mit_sot, new_val in zip(inner_in_mit_sot, inner_scan_outs)
             ]
 
             # This should contain all inner-output taps, non_seqs, and shared
             # terms
-            if not outer_in_sit_sot:
-                outer_in_sit_sot_next = []
+            if not inner_in_sit_sot:
+                inner_out_sit_sot = []
             else:
-                outer_in_sit_sot_next = inner_scan_outs
+                inner_out_sit_sot = inner_scan_outs
             new_carry = (
-                outer_out_mit_sot_next,
-                outer_in_sit_sot_next,
+                inner_in_mit_mot,
+                inner_out_mit_sot,
+                inner_out_sit_sot,
                 inner_in_shared,
-                outer_in_non_seqs,
+                inner_in_non_seqs,
             )
 
             return new_carry
 
         def jax_inner_func(carry, x):
             inner_args = jax_args_to_inner_scan(op, carry, x)
+            # Remove the empty inputs and flatten the input args into a list
             inner_args = sum(inner_args, [])
             inner_scan_outs = [fn(*inner_args) for fn in jax_tt_inner_func]
             new_carry = inner_scan_outs_to_jax_outs(op, carry, inner_scan_outs)
