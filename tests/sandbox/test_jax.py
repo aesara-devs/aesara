@@ -696,6 +696,15 @@ def test_identity():
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
 
+def test_second():
+    a = tt.scalar("a")
+    b = tt.scalar("b")
+
+    out = theano.scalar.basic.second(a, b)
+    fgraph = theano.gof.FunctionGraph([a, b], [out])
+    compare_jax_and_py(fgraph, [10., 5.])
+
+
 def test_shared():
     a = theano.shared(np.array([1, 2, 3], dtype=theano.config.floatX))
 
