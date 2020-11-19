@@ -1075,9 +1075,8 @@ class scan_args:
             if k in info:
                 self.other_info[k] = info[k]
 
-    @property
-    def inner_inputs(self):
-        return (
+    inner_inputs = property(
+        lambda self: (
             self.inner_in_seqs
             + sum(self.inner_in_mit_mot, [])
             + sum(self.inner_in_mit_sot, [])
@@ -1085,10 +1084,10 @@ class scan_args:
             + self.inner_in_shared
             + self.inner_in_non_seqs
         )
+    )
 
-    @property
-    def outer_inputs(self):
-        return (
+    outer_inputs = property(
+        lambda self: (
             [self.n_steps]
             + self.outer_in_seqs
             + self.outer_in_mit_mot
@@ -1098,10 +1097,10 @@ class scan_args:
             + self.outer_in_nit_sot
             + self.outer_in_non_seqs
         )
+    )
 
-    @property
-    def inner_outputs(self):
-        return (
+    inner_outputs = property(
+        lambda self: (
             sum(self.inner_out_mit_mot, [])
             + self.inner_out_mit_sot
             + self.inner_out_sit_sot
@@ -1109,20 +1108,20 @@ class scan_args:
             + self.inner_out_shared
             + self.cond
         )
+    )
 
-    @property
-    def outer_outputs(self):
-        return (
+    outer_outputs = property(
+        lambda self: (
             self.outer_out_mit_mot
             + self.outer_out_mit_sot
             + self.outer_out_sit_sot
             + self.outer_out_nit_sot
             + self.outer_out_shared
         )
+    )
 
-    @property
-    def info(self):
-        return OrderedDict(
+    info = property(
+        lambda self: OrderedDict(
             n_seqs=len(self.outer_in_seqs),
             n_mit_mot=len(self.outer_in_mit_mot),
             n_mit_sot=len(self.outer_in_mit_sot),
@@ -1138,6 +1137,7 @@ class scan_args:
             mit_mot_out_slices=self.mit_mot_out_slices,
             **self.other_info,
         )
+    )
 
     def __copy__(self):
         res = object.__new__(type(self))

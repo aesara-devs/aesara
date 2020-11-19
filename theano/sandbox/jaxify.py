@@ -177,7 +177,6 @@ def compose_jax_funcs(out_node, fgraph_inputs, memo=None):
 
         def jax_func(*inputs):
             func_args = [fn(*inputs) for fn in input_funcs]
-            # func_args = jax.tree_map(lambda fn: fn(*inputs), input_funcs)
             return return_func(*func_args)
 
         jax_funcs.append(update_wrapper(jax_func, return_func))
@@ -428,8 +427,6 @@ def jax_funcify_Scan(op):
         n_steps = scan_args.n_steps
         seqs = scan_args.outer_in_seqs
 
-        # n_non_seqs = len(scan_args.outer_in_non_seqs)
-
         # TODO: mit_mots
         mit_sot_in_slices = []
         for tap, seq in zip(scan_args.mit_sot_in_slices, scan_args.outer_in_mit_sot):
@@ -535,6 +532,9 @@ def jax_funcify_Scan(op):
         _, scan_out = jax.lax.scan(jax_inner_func, init_carry, seqs, length=n_steps)
 
         # Match shape and structure of the Scan Op as defined in theano/scan/basic.py
+        # This prepending the initial values so that the JAX output will match the
+        # raw Scan Op output and, thus, work with a downstream Subtensor introduced
+        # by the scan helper function.
         def append_scan_out(scan_in_part, scan_out_part):
             return jnp.concatenate([scan_in_part[:-n_steps], scan_out_part], axis=0)
 
