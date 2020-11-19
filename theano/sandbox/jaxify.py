@@ -19,7 +19,7 @@ from theano.compile.ops import (
 )
 from theano.gof import FunctionGraph
 from theano.ifelse import IfElse
-from theano.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp
+from theano.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp, Second
 from theano.scan.op import Scan
 from theano.scan.utils import scan_args as ScanArgs
 from theano.tensor.basic import (
@@ -246,6 +246,13 @@ def jax_funcify_Identity(op):
         return x
 
     return identity
+
+
+@jax_funcify.register(Second)
+def jax_funcify_Second(op):
+    def second(x, y):
+        return y
+    return second
 
 
 @jax_funcify.register(ScalarSoftplus)

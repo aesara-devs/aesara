@@ -25,11 +25,9 @@ def compare_jax_and_py(
     must_be_device_array=True,
 ):
     """Function to compare python graph output and jax compiled output for testing equality
-
     In the tests below computational graphs are defined in Theano. These graphs are then passed to
     this function which then compiles the graphs in both jax and python, runs the calculation
     in both and checks if the results are the same
-
     Parameters
     ----------
     fgraph: theano.gof.FunctionGraph
@@ -42,11 +40,9 @@ def compare_jax_and_py(
     must_be_device_array: Bool
         Checks for instance of jax.interpreters.xla.DeviceArray. For testing purposes
         if this device array is found it indicates if the result was computed by jax
-
     Returns
     -------
     jax_res
-
     """
     if assert_fn is None:
         assert_fn = partial(np.testing.assert_allclose, rtol=1e-4)
@@ -769,6 +765,17 @@ def test_identity():
 
     out = theano.scalar.basic.identity(a)
     fgraph = theano.gof.FunctionGraph([a], [out])
+    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+
+def test_second():
+    a = tt.scalar("a")
+    b = tt.scalar("b")
+    a.tag.test_value = 10
+    b.tag.test_value = 5
+
+    out = theano.scalar.basic.second(a, b)
+    fgraph = theano.gof.FunctionGraph([a, b], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
 
