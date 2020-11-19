@@ -697,12 +697,17 @@ def test_identity():
 
 
 def test_second():
-    a = tt.scalar("a")
+    a0 = tt.scalar("a0")
     b = tt.scalar("b")
 
-    out = theano.scalar.basic.second(a, b)
-    fgraph = theano.gof.FunctionGraph([a, b], [out])
+    out = theano.scalar.basic.second(a0, b)
+    fgraph = theano.gof.FunctionGraph([a0, b], [out])
     compare_jax_and_py(fgraph, [10.0, 5.0])
+
+    a1 = tt.vector("a1")
+    out = tt.second(a1, b)
+    fgraph = theano.gof.FunctionGraph([a1, b], [out])
+    compare_jax_and_py(fgraph, [np.zeros([5], dtype=theano.config.floatX), 5.0])
 
 
 def test_shared():

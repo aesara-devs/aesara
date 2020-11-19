@@ -259,7 +259,7 @@ def jax_funcify_ScalarSoftplus(op):
 @jax_funcify.register(Second)
 def jax_funcify_Second(op):
     def second(x, y):
-        return y
+        return jnp.broadcast_to(y, x.shape)
 
     return second
 
