@@ -702,7 +702,7 @@ def test_second():
 
     out = theano.scalar.basic.second(a, b)
     fgraph = theano.gof.FunctionGraph([a, b], [out])
-    compare_jax_and_py(fgraph, [10., 5.])
+    compare_jax_and_py(fgraph, [10.0, 5.0])
 
 
 def test_shared():
