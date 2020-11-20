@@ -14,7 +14,7 @@ from theano.gof.op import get_test_value  # noqa: E402
 
 @pytest.fixture(scope="module", autouse=True)
 def set_theano_flags():
-    with theano.change_flags(cxx="", compute_test_value="warn"):
+    with theano.change_flags(cxx="", compute_test_value="ignore"):
         yield
 
 
