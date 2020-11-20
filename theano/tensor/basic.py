@@ -27,7 +27,13 @@ from theano.tensor import elemwise
 
 # set up the external interface
 from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise, Sum
-from theano.tensor.type import TensorType, values_eq_approx_always_true
+from theano.tensor.type import TensorType, values_eq_approx_always_true, fscalar, \
+    dscalar, iscalar, lscalar, fvector, dvector, ivector, lvector, fmatrix, dmatrix, imatrix, \
+    lmatrix, frow, drow, irow, lrow, int_types, int_vector_types, fcol, dcol, icol, lcol, ftensor3, \
+    dtensor3, itensor3, ltensor3, ftensor4, dtensor4, itensor4, ltensor4, ftensor5, dtensor5, \
+    itensor5, ltensor5, ftensor6, dtensor6, itensor6, ltensor6, ftensor7, dtensor7, itensor7, \
+    ltensor7
+
 from theano.tensor.type_other import NoneConst
 from theano.tensor.var import TensorConstant, TensorVariable, _tensor_py_operators
 

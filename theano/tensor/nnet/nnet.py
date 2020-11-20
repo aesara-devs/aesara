@@ -2439,7 +2439,7 @@ def h_softmax(
     --------
     The following example builds a simple hierarchical softmax layer.
 
-import theano.tensor as tt    >>> import numpy as np
+    >>> import numpy as np
     >>> import theano
     >>> import theano.tensor as tt
     >>> from theano.tensor.nnet import h_softmax

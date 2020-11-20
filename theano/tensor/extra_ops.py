@@ -246,7 +246,7 @@ def searchsorted(x, v, side="left", sorter=None):
 
     Examples
     --------
-import theano.tensor as tt    >>> from theano import tensor
+    >>> from theano import tensor
     >>> x = tt.dvector()
     >>> idx = x.searchsorted(3)
     >>> idx.eval({x: [1,2,3,4,5]})

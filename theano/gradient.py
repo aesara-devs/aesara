@@ -2388,7 +2388,7 @@ def grad_scale(x, multiplier):
 
     Examples
     --------
-import theano.tensor as tt    >>> x = tt.fscalar()
+    >>> x = tt.fscalar()
     >>> fx = theano.tensor.sin(x)
     >>> fp = theano.tensor.grad(fx, wrt=x)
     >>> fprime = theano.function([x], fp)
