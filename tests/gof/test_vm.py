@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 import theano
+import theano.tensor as tt
 from theano import function, tensor
 from theano.compile import Mode
 from theano.gof import OpWiseCLinker, vm
@@ -232,7 +233,7 @@ def test_partial_function_with_output_keys():
 )
 def test_partial_function_with_updates():
     def check_updates(linker_name):
-        x = tensor.lscalar("input")
+        x = tt.lscalar("input")
         y = theano.shared(np.asarray(1, "int64"), name="global")
         f = theano.function(
             [x],
@@ -322,7 +323,7 @@ if run_memory_usage_tests:
 
         def time_linker(name, linker):
             steps_a = 10
-            x = tensor.dvector()
+            x = tt.dvector()
             a = build_graph(x, steps_a)
 
             f_a = function([x], a, mode=Mode(optimizer=None, linker=linker()))
@@ -357,7 +358,7 @@ if run_memory_usage_tests:
 
         def time_linker(name, linker):
             steps_a = 10
-            x = tensor.dvector()
+            x = tt.dvector()
             a = build_graph(x, steps_a)
 
             f_a = function([x], a, mode=Mode(optimizer=None, linker=linker()))

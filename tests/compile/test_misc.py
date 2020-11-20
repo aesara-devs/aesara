@@ -1,5 +1,6 @@
 import numpy as np
 
+import theano.tensor as tt
 from theano import tensor
 from theano.compile.function.pfunc import pfunc
 from theano.compile.sharedvalue import shared
@@ -20,9 +21,9 @@ class NNet:
         super().__init__(**kw)
 
         if input is None:
-            input = tensor.dvector("input")
+            input = tt.dvector("input")
         if target is None:
-            target = tensor.dvector("target")
+            target = tt.dvector("target")
 
         self.input = input
         self.target = target

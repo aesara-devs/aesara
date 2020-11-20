@@ -1,5 +1,6 @@
 import pytest
 
+import theano.tensor as tt
 
 sp = pytest.importorskip("scipy", minversion="0.7.0")
 
@@ -13,7 +14,8 @@ from theano import config, sparse, tensor
 
 def test_local_csm_properties_csm():
     data = tensor.vector()
-    indices, indptr, shape = (tensor.ivector(), tensor.ivector(), tensor.ivector())
+    indices, indptr, shape = (
+    tt.ivector(), tt.ivector(), tt.ivector())
     mode = theano.compile.mode.get_default_mode()
     mode = mode.including("specialize", "local_csm_properties_csm")
     for CS, cast in [
@@ -39,7 +41,8 @@ def test_local_csm_properties_csm():
 )
 def test_local_csm_grad_c():
     data = tensor.vector()
-    indices, indptr, shape = (tensor.ivector(), tensor.ivector(), tensor.ivector())
+    indices, indptr, shape = (
+    tt.ivector(), tt.ivector(), tt.ivector())
     mode = theano.compile.mode.get_default_mode()
 
     if theano.config.mode == "FAST_COMPILE":

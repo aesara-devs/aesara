@@ -3,12 +3,13 @@ import copy
 import numpy as np
 
 import theano
+import theano.tensor as tt
 from theano import tensor
 from theano.tensor.nnet import crossentropy_softmax_argmax_1hot_with_bias
 
 
 def test_bug_2009_06_02_trac_387():
-    y = tensor.lvector("y")
+    y = tt.lvector("y")
     f = theano.function(
         [y], tensor.int_div(tensor.DimShuffle(y[0].broadcastable, ["x"])(y[0]), 2)
     )
@@ -19,8 +20,8 @@ def test_bug_2009_06_02_trac_387():
 
 def test_bug_2009_07_17_borrowed_output():
     # Regression test for a bug where output was borrowed by mistake.
-    a = theano.tensor.dmatrix()
-    b = theano.tensor.dmatrix()
+    a = tt.dmatrix()
+    b = tt.dmatrix()
     # The output should *NOT* be borrowed.
     g = theano.function([a, b], theano.Out(theano.tensor.dot(a, b), borrow=False))
 
@@ -42,9 +43,9 @@ def test_bug_2009_07_17_borrowed_output():
     # that it may better be moved into the test_nnet.py test file if it turns
     # out the bug was caused by 'crossentropy_softmax_argmax_1hot_with_bias',
     # and was not a more general issue.
-    test_output_activation_no_bias = theano.tensor.dmatrix()
-    test_b2 = theano.tensor.dvector()
-    test_target = theano.tensor.ivector()
+    test_output_activation_no_bias = tt.dmatrix()
+    test_b2 = tt.dvector()
+    test_target = tt.ivector()
     nll_softmax_argmax = crossentropy_softmax_argmax_1hot_with_bias(
         test_output_activation_no_bias, test_b2, test_target
     )

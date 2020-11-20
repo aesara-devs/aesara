@@ -9,6 +9,7 @@ import pytest
 
 import theano
 import theano.tensor as tensor
+import theano.tensor as tt
 from theano.printing import debugprint, min_informative_str
 
 
@@ -16,7 +17,7 @@ from theano.printing import debugprint, min_informative_str
 def test_pydotprint_cond_highlight():
     # This is a REALLY PARTIAL TEST.
     # I did them to help debug stuff.
-    x = tensor.dvector()
+    x = tt.dvector()
     f = theano.function([x], x * 2)
     f([1, 2, 3, 4])
 
@@ -41,7 +42,7 @@ def test_pydotprint_cond_highlight():
 
 @pytest.mark.skipif(not theano.printing.pydot_imported, reason="pydot not available")
 def test_pydotprint_return_image():
-    x = tensor.dvector()
+    x = tt.dvector()
     ret = theano.printing.pydotprint(x * 2, return_image=True)
     assert isinstance(ret, (str, bytes))
 
@@ -52,7 +53,7 @@ def test_pydotprint_long_name():
     # It prints a graph where there are variable and apply nodes whose long
     # names are different, but not the shortened names.
     # We should not merge those nodes in the dot graph.
-    x = tensor.dvector()
+    x = tt.dvector()
     mode = theano.compile.mode.get_default_mode().excluding("fusion")
     f = theano.function([x], [x * 2, x + x], mode=mode)
     f([1, 2, 3, 4])
@@ -275,8 +276,8 @@ def test_debugprint():
 
 
 def test_scan_debugprint1():
-    k = tensor.iscalar("k")
-    A = tensor.dvector("A")
+    k = tt.iscalar("k")
+    A = tt.dvector("A")
 
     # Symbolic description of the result
     result, updates = theano.scan(
@@ -392,11 +393,11 @@ def test_scan_debugprint2():
 
 
 def test_scan_debugprint3():
-    coefficients = theano.tensor.dvector("coefficients")
+    coefficients = tt.dvector("coefficients")
     max_coefficients_supported = 10
 
-    k = tensor.iscalar("k")
-    A = tensor.dvector("A")
+    k = tt.iscalar("k")
+    A = tt.dvector("A")
 
     # compute A**k
     def compute_A_k(A, k):
@@ -579,8 +580,8 @@ def test_scan_debugprint4():
 
 def test_scan_debugprint5():
 
-    k = tensor.iscalar("k")
-    A = tensor.dvector("A")
+    k = tt.iscalar("k")
+    A = tt.dvector("A")
 
     # Symbolic description of the result
     result, updates = theano.scan(
@@ -719,7 +720,7 @@ def test_printing_scan():
         return 2 * x_tm1
 
     state = theano.tensor.scalar("state")
-    n_steps = theano.tensor.iscalar("nsteps")
+    n_steps = tt.iscalar("nsteps")
     output, updates = theano.scan(
         f_pow2, [], state, [], n_steps=n_steps, truncate_gradient=-1, go_backwards=False
     )
@@ -731,6 +732,6 @@ def test_printing_scan():
 
 
 def test_subtensor():
-    x = theano.tensor.dvector()
+    x = tt.dvector()
     y = x[1]
     assert theano.pp(y) == "<TensorType(float64, vector)>[Constant{1}]"

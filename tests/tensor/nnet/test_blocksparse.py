@@ -6,6 +6,7 @@ from numpy.random import randn
 
 import tests.unittest_tools as utt
 import theano
+import theano.tensor as tt
 from theano import tensor
 from theano.tensor.nnet.blocksparse import (
     SparseBlockGemv,
@@ -129,11 +130,11 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
     def test_sparseblockdot(self):
         # Compares the numpy version of sparseblockgemv to sparse_block_dot.
 
-        b = tensor.fmatrix()
-        W = tensor.ftensor4()
-        h = tensor.ftensor3()
-        iIdx = tensor.imatrix()
-        oIdx = tensor.imatrix()
+        b = tt.fmatrix()
+        W = tt.ftensor4()
+        h = tt.ftensor3()
+        iIdx = tt.imatrix()
+        oIdx = tt.imatrix()
 
         o = sparse_block_dot(W, h, iIdx, b, oIdx)
 
@@ -152,11 +153,11 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
     def test_sparseblockgemv(self):
         # Compares the numpy and theano versions of sparseblockgemv.
 
-        b = tensor.fmatrix()
-        W = tensor.ftensor4()
-        h = tensor.ftensor3()
-        iIdx = tensor.imatrix()
-        oIdx = tensor.imatrix()
+        b = tt.fmatrix()
+        W = tt.ftensor4()
+        h = tt.ftensor3()
+        iIdx = tt.imatrix()
+        oIdx = tt.imatrix()
 
         o = self.gemv_op(b.take(oIdx, axis=0), W, h, iIdx, oIdx)
 
@@ -175,11 +176,11 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
         # Test the fortan order for W (which can happen in the grad for some
         # graphs).
 
-        b = tensor.fmatrix()
-        W = tensor.ftensor4()
-        h = tensor.ftensor3()
-        iIdx = tensor.imatrix()
-        oIdx = tensor.imatrix()
+        b = tt.fmatrix()
+        W = tt.ftensor4()
+        h = tt.ftensor3()
+        iIdx = tt.imatrix()
+        oIdx = tt.imatrix()
 
         o = self.gemv_op(
             b.take(oIdx, axis=0),
@@ -240,11 +241,11 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
         utt.verify_grad(op, [b_val, h_val, W_val], mode=self.mode)
 
     def test_sparseblockgemv_grad_shape(self):
-        b = tensor.fmatrix()
-        W = tensor.ftensor4()
-        h = tensor.ftensor3()
-        iIdx = tensor.imatrix()
-        oIdx = tensor.imatrix()
+        b = tt.fmatrix()
+        W = tt.ftensor4()
+        h = tt.ftensor3()
+        iIdx = tt.imatrix()
+        oIdx = tt.imatrix()
 
         o = self.gemv_op(b.take(oIdx, axis=0), W, h, iIdx, oIdx)
         go = theano.grad(o.sum(), [b, W, h])
@@ -261,11 +262,11 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
         assert W_g.shape == W_val.shape
 
     def test_sparseblockouter(self):
-        o = tensor.ftensor4()
-        x = tensor.ftensor3()
-        y = tensor.ftensor3()
-        xIdx = tensor.imatrix()
-        yIdx = tensor.imatrix()
+        o = tt.ftensor4()
+        x = tt.ftensor3()
+        y = tt.ftensor3()
+        xIdx = tt.imatrix()
+        yIdx = tt.imatrix()
 
         out = self.outer_op(o, x, y, xIdx, yIdx)
 
@@ -287,11 +288,11 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
         utt.assert_allclose(ref_out, th_out)
 
     def test_dot_infershape(self):
-        b = tensor.fmatrix()
-        W = tensor.ftensor4()
-        h = tensor.ftensor3()
-        iIdx = tensor.imatrix()
-        oIdx = tensor.imatrix()
+        b = tt.fmatrix()
+        W = tt.ftensor4()
+        h = tt.ftensor3()
+        iIdx = tt.imatrix()
+        oIdx = tt.imatrix()
 
         self._compile_and_check(
             [W, h, iIdx, b, oIdx],
@@ -301,11 +302,11 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
         )
 
     def test_gemv_infershape(self):
-        b = tensor.fmatrix()
-        W = tensor.ftensor4()
-        h = tensor.ftensor3()
-        iIdx = tensor.imatrix()
-        oIdx = tensor.imatrix()
+        b = tt.fmatrix()
+        W = tt.ftensor4()
+        h = tt.ftensor3()
+        iIdx = tt.imatrix()
+        oIdx = tt.imatrix()
 
         self._compile_and_check(
             [W, h, iIdx, b, oIdx],
@@ -315,11 +316,11 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
         )
 
     def test_outer_infershape(self):
-        o = tensor.ftensor4()
-        x = tensor.ftensor3()
-        y = tensor.ftensor3()
-        xIdx = tensor.imatrix()
-        yIdx = tensor.imatrix()
+        o = tt.ftensor4()
+        x = tt.ftensor3()
+        y = tt.ftensor3()
+        xIdx = tt.imatrix()
+        yIdx = tt.imatrix()
 
         self._compile_and_check(
             [o, x, y, xIdx, yIdx],

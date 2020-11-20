@@ -5,6 +5,7 @@ from numpy import inf
 from numpy.testing import assert_array_almost_equal
 
 import theano
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import config, function, tensor
 from theano.configparser import change_flags
@@ -495,9 +496,9 @@ class TestEighFloat32(TestEigh):
 
 class TestLstsq:
     def test_correct_solution(self):
-        x = tensor.lmatrix()
-        y = tensor.lmatrix()
-        z = tensor.lscalar()
+        x = tt.lmatrix()
+        y = tt.lmatrix()
+        z = tt.lscalar()
         b = theano.tensor.nlinalg.lstsq()(x, y, z)
         f = function([x, y, z], b)
         TestMatrix1 = np.asarray([[2, 1], [3, 4]])

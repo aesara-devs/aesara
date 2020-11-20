@@ -4,6 +4,9 @@ import theano.misc.pycuda_init
 from pycuda.compiler import SourceModule
 import theano.sandbox.cuda as cuda
 
+import theano.tensor as tt
+
+
 class PyCUDADoubleOp(theano.Op):
     def __eq__(self, other):
         return type(self) == type(other)
@@ -38,7 +41,7 @@ class PyCUDADoubleOp(theano.Op):
 
         return thunk
 
-x = theano.tensor.fmatrix()
+x = tt.fmatrix()
 f = theano.function([x], PyCUDADoubleOp()(x))
 xv=numpy.ones((4,5), dtype="float32")
 

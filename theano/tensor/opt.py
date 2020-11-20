@@ -17,6 +17,7 @@ import numpy as np
 
 import theano
 import theano.scalar.basic as ts
+import theano.tensor as tt
 from theano import compile, config, gof  # to register the optimizer built by this file
 from theano.compile.ops import Shape, Shape_i
 from theano.gof import (

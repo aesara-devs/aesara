@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import config, function, shared, tensor
 from theano.tensor.shared_randomstreams import RandomStreams
@@ -248,7 +249,7 @@ class TestSharedRandomStreams:
         # Note that this differs from np.random.shuffle, where all the elements
         # of the matrix are shuffled.
         random = RandomStreams(utt.fetch_seed())
-        m_input = tensor.dmatrix()
+        m_input = tt.dmatrix()
         f = function(
             [m_input], random.shuffle_row_elements(m_input), updates=random.updates()
         )
@@ -277,7 +278,7 @@ class TestSharedRandomStreams:
         # On vectors, the behaviour is the same as np.random.shuffle,
         # except that it does not work in place, but returns a shuffled vector.
         random1 = RandomStreams(utt.fetch_seed())
-        v_input = tensor.dvector()
+        v_input = tt.dvector()
         f1 = function([v_input], random1.shuffle_row_elements(v_input))
 
         in_vval = val_rng.uniform(-3, 3, size=(12,))
@@ -344,7 +345,7 @@ class TestSharedRandomStreams:
 
     def test_symbolic_shape(self):
         random = RandomStreams(utt.fetch_seed())
-        shape = tensor.lvector()
+        shape = tt.lvector()
         f = function([shape], random.uniform(size=shape, ndim=2))
 
         assert f([2, 3]).shape == (2, 3)
@@ -357,7 +358,7 @@ class TestSharedRandomStreams:
     def test_mixed_shape(self):
         # Test when the provided shape is a tuple of ints and scalar vars
         random = RandomStreams(utt.fetch_seed())
-        shape0 = tensor.lscalar()
+        shape0 = tt.lscalar()
         shape = (shape0, 3)
         f = function([shape0], random.uniform(size=shape, ndim=2))
         assert f(2).shape == (2, 3)
@@ -370,7 +371,7 @@ class TestSharedRandomStreams:
     def test_mixed_shape_bcastable(self):
         # Test when the provided shape is a tuple of ints and scalar vars
         random = RandomStreams(utt.fetch_seed())
-        shape0 = tensor.lscalar()
+        shape0 = tt.lscalar()
         shape = (shape0, 1)
         u = random.uniform(size=shape, ndim=2)
         assert u.broadcastable == (False, True)
@@ -410,7 +411,7 @@ class TestSharedRandomStreams:
 
     def test_vector_arguments(self):
         random = RandomStreams(utt.fetch_seed())
-        low = tensor.dvector()
+        low = tt.dvector()
         out = random.uniform(low=low, high=1)
         assert out.ndim == 1
         f = function([low], out)
@@ -442,7 +443,7 @@ class TestSharedRandomStreams:
         # with pytest.raises(ValueError):
         #    fb([-4., -2], [-1])
 
-        size = tensor.lvector()
+        size = tt.lvector()
         outc = random.uniform(low=low, high=high, size=size, ndim=1)
         fc = function([low, high, size], outc)
 
@@ -465,8 +466,8 @@ class TestSharedRandomStreams:
 
     def test_broadcast_arguments(self):
         random = RandomStreams(utt.fetch_seed())
-        low = tensor.dvector()
-        high = tensor.dcol()
+        low = tt.dvector()
+        high = tt.dcol()
         out = random.uniform(low=low, high=high)
         assert out.ndim == 2
         f = function([low, high], out)
@@ -487,8 +488,8 @@ class TestSharedRandomStreams:
 
     def test_uniform_vector(self):
         random = RandomStreams(utt.fetch_seed())
-        low = tensor.dvector()
-        high = tensor.dvector()
+        low = tt.dvector()
+        high = tt.dvector()
         out = random.uniform(low=low, high=high)
         assert out.ndim == 1
         f = function([low, high], out)
@@ -519,7 +520,7 @@ class TestSharedRandomStreams:
 
     def test_binomial_vector(self):
         random = RandomStreams(utt.fetch_seed())
-        n = tensor.lvector()
+        n = tt.lvector()
         prob = tensor.vector()
         out = random.binomial(n=n, p=prob)
         assert out.ndim == 1
@@ -551,8 +552,8 @@ class TestSharedRandomStreams:
 
     def test_normal_vector(self):
         random = RandomStreams(utt.fetch_seed())
-        avg = tensor.dvector()
-        std = tensor.dvector()
+        avg = tt.dvector()
+        std = tt.dvector()
         out = random.normal(avg=avg, std=std)
         assert out.ndim == 1
         f = function([avg, std], out)
@@ -583,8 +584,8 @@ class TestSharedRandomStreams:
 
     def test_random_integers_vector(self):
         random = RandomStreams(utt.fetch_seed())
-        low = tensor.lvector()
-        high = tensor.lvector()
+        low = tt.lvector()
+        high = tt.lvector()
         out = random.random_integers(low=low, high=high)
         assert out.ndim == 1
         f = function([low, high], out)
@@ -633,7 +634,7 @@ class TestSharedRandomStreams:
 
     def test_multinomial_vector(self):
         random = RandomStreams(utt.fetch_seed())
-        n = tensor.lvector()
+        n = tt.lvector()
         pvals = tensor.matrix()
         out = random.multinomial(n=n, pvals=pvals)
         assert out.ndim == 2
@@ -675,8 +676,8 @@ class TestSharedRandomStreams:
 
     def test_dtype(self):
         random = RandomStreams(utt.fetch_seed())
-        low = tensor.lscalar()
-        high = tensor.lscalar()
+        low = tt.lscalar()
+        high = tt.lscalar()
         out = random.random_integers(low=low, high=high, size=(20,), dtype="int8")
         assert out.dtype == "int8"
         f = function([low, high], out)
@@ -690,8 +691,8 @@ class TestSharedRandomStreams:
 
     def test_default_dtype(self):
         random = RandomStreams(utt.fetch_seed())
-        low = tensor.dscalar()
-        high = tensor.dscalar()
+        low = tt.dscalar()
+        high = tt.dscalar()
 
         # Should not silently downcast from low and high
         out0 = random.uniform(low=low, high=high, size=(42,))
@@ -708,8 +709,8 @@ class TestSharedRandomStreams:
         assert val1.dtype == "float32"
 
         # Should use floatX
-        lowf = tensor.fscalar()
-        highf = tensor.fscalar()
+        lowf = tt.fscalar()
+        highf = tt.fscalar()
         outf = random.uniform(low=lowf, high=highf, size=(42,))
         assert outf.dtype == config.floatX
         ff = function([lowf, highf], outf)

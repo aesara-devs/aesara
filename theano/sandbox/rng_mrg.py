@@ -18,6 +18,7 @@ import warnings
 import numpy as np
 
 import theano
+import theano.tensor as tt
 from theano import Apply, Op, Variable, config, function, gradient, shared, tensor
 from theano.compile import optdb
 from theano.gof import ParamsType, local_optimizer
@@ -55,12 +56,12 @@ def multMatVect(v, A, m1, B, m2):
 
     """
     if multMatVect.dot_modulo is None:
-        A_sym = tensor.lmatrix("A")
-        s_sym = tensor.ivector("s")
-        m_sym = tensor.iscalar("m")
-        A2_sym = tensor.lmatrix("A2")
-        s2_sym = tensor.ivector("s2")
-        m2_sym = tensor.iscalar("m2")
+        A_sym = tt.lmatrix("A")
+        s_sym = tt.ivector("s")
+        m_sym = tt.iscalar("m")
+        A2_sym = tt.lmatrix("A2")
+        s2_sym = tt.ivector("s2")
+        m2_sym = tt.iscalar("m2")
         o = DotModulo()(A_sym, s_sym, m_sym, A2_sym, s2_sym, m2_sym)
         multMatVect.dot_modulo = function(
             [A_sym, s_sym, m_sym, A2_sym, s2_sym, m2_sym], o, profile=False

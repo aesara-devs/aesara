@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import theano
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import change_flags, config, function
 from theano import tensor as tt
@@ -395,7 +396,7 @@ class TestCompress(utt.InferShapeTester):
 
     def test_op(self):
         for axis, cond, shape in zip(self.axis_list, self.cond_list, self.shape_list):
-            cond_var = theano.tensor.ivector()
+            cond_var = tt.ivector()
             data = np.random.random(size=shape).astype(theano.config.floatX)
             data_var = theano.tensor.matrix()
 
@@ -709,7 +710,7 @@ class TestFillDiagonalOffset(utt.InferShapeTester):
 
 
 def test_to_one_hot():
-    v = theano.tensor.ivector()
+    v = tt.ivector()
     o = to_one_hot(v, 10)
     f = theano.function([v], o)
     out = f([1, 2, 3, 5, 6])
@@ -725,7 +726,7 @@ def test_to_one_hot():
         ],
     )
 
-    v = theano.tensor.ivector()
+    v = tt.ivector()
     o = to_one_hot(v, 10, dtype="int32")
     f = theano.function([v], o)
     out = f([1, 2, 3, 5, 6])
@@ -1110,11 +1111,11 @@ class TestUnravelIndex(utt.InferShapeTester):
 
         # must specify ndim if length of dims is not fixed
         with pytest.raises(ValueError):
-            unravel_index(theano.tensor.ivector(), theano.tensor.ivector())
+            unravel_index(tt.ivector(), tt.ivector())
 
         # must provide integers
         with pytest.raises(TypeError):
-            unravel_index(theano.tensor.fvector(), (3, 4))
+            unravel_index(tt.fvector(), (3, 4))
         with pytest.raises(TypeError):
             unravel_index((3, 4), (3.4, 3.2))
 
@@ -1181,10 +1182,10 @@ class TestRavelMultiIndex(utt.InferShapeTester):
         # must provide integers
         with pytest.raises(TypeError):
             ravel_multi_index(
-                (theano.tensor.fvector(), theano.tensor.ivector()), (3, 4)
+                (tt.fvector(), tt.ivector()), (3, 4)
             )
         with pytest.raises(TypeError):
-            ravel_multi_index(((3, 4), theano.tensor.ivector()), (3.4, 3.2))
+            ravel_multi_index(((3, 4), tt.ivector()), (3.4, 3.2))
 
         # dims must be a 1D sequence
         with pytest.raises(TypeError):

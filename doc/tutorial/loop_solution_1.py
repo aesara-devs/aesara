@@ -9,6 +9,7 @@ import theano.tensor as tt
 
 
 # 1. First example
+import theano.tensor as tt
 
 theano.config.warn.subtensor_merge_bug = False
 

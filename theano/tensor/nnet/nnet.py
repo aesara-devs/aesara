@@ -19,6 +19,7 @@ import warnings
 import numpy as np
 
 import theano
+import theano.tensor as tt
 from theano import scalar
 from theano.compile import optdb
 from theano.gof.graph import Apply
@@ -2438,7 +2439,7 @@ def h_softmax(
     --------
     The following example builds a simple hierarchical softmax layer.
 
-    >>> import numpy as np
+import theano.tensor as tt    >>> import numpy as np
     >>> import theano
     >>> import theano.tensor as tt
     >>> from theano.tensor.nnet import h_softmax

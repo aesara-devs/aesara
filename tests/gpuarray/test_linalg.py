@@ -3,6 +3,7 @@ import pytest
 from numpy.linalg.linalg import LinAlgError
 
 import theano
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
 from tests.gpuarray.test_basic_ops import rand
@@ -392,7 +393,7 @@ class TestMagma:
             )
 
     def test_gpu_matrix_inverse(self):
-        A = theano.tensor.fmatrix("A")
+        A = tt.fmatrix("A")
 
         fn = theano.function([A], gpu_matrix_inverse(A), mode=mode_with_gpu)
         N = 1000
@@ -428,7 +429,7 @@ class TestMagma:
 
     @utt.assertFailure_fast
     def test_gpu_matrix_inverse_inplace_opt(self):
-        A = theano.tensor.fmatrix("A")
+        A = tt.fmatrix("A")
         fn = theano.function([A], matrix_inverse(A), mode=mode_with_gpu)
         assert any(
             [
@@ -439,7 +440,7 @@ class TestMagma:
         )
 
     def run_gpu_svd(self, A_val, full_matrices=True, compute_uv=True):
-        A = theano.tensor.fmatrix("A")
+        A = tt.fmatrix("A")
         f = theano.function(
             [A],
             gpu_svd(A, full_matrices=full_matrices, compute_uv=compute_uv),
@@ -486,7 +487,7 @@ class TestMagma:
         self.assert_column_orthonormal(VT.T)
 
     def test_gpu_singular_values(self):
-        A = theano.tensor.fmatrix("A")
+        A = tt.fmatrix("A")
         f_cpu = theano.function(
             [A], theano.tensor.nlinalg.svd(A, compute_uv=False), mode=mode_without_gpu
         )
@@ -499,7 +500,7 @@ class TestMagma:
         utt.assert_allclose(f_cpu(A_val), f_gpu(A_val))
 
     def run_gpu_cholesky(self, A_val, lower=True):
-        A = theano.tensor.fmatrix("A")
+        A = tt.fmatrix("A")
         f = theano.function(
             [A],
             GpuMagmaCholesky(lower=lower)(A),
@@ -558,7 +559,7 @@ class TestMagma:
 
     @utt.assertFailure_fast
     def test_gpu_cholesky_inplace_opt(self):
-        A = theano.tensor.fmatrix("A")
+        A = tt.fmatrix("A")
         fn = theano.function([A], GpuMagmaCholesky()(A), mode=mode_with_gpu)
         assert any(
             [
@@ -569,7 +570,7 @@ class TestMagma:
         )
 
     def run_gpu_qr(self, A_val, complete=True):
-        A = theano.tensor.fmatrix("A")
+        A = tt.fmatrix("A")
         fn = theano.function([A], gpu_qr(A, complete=complete), mode=mode_with_gpu)
         return fn(A_val)
 
@@ -592,7 +593,7 @@ class TestMagma:
         self.check_gpu_qr(500, 1000, complete=False, atol=1e-3)
 
     def test_gpu_qr_opt(self):
-        A = theano.tensor.fmatrix("A")
+        A = tt.fmatrix("A")
         fn = theano.function([A], qr(A), mode=mode_with_gpu)
         assert any(
             [
@@ -602,7 +603,7 @@ class TestMagma:
         )
 
     def test_gpu_qr_incomplete_opt(self):
-        A = theano.tensor.fmatrix("A")
+        A = tt.fmatrix("A")
         fn = theano.function([A], qr(A, mode="r"), mode=mode_with_gpu)
         assert any(
             [
@@ -612,7 +613,7 @@ class TestMagma:
         )
 
     def run_gpu_eigh(self, A_val, UPLO="L", compute_v=True):
-        A = theano.tensor.fmatrix("A")
+        A = tt.fmatrix("A")
         fn = theano.function(
             [A], GpuMagmaEigh(UPLO=UPLO, compute_v=compute_v)(A), mode=mode_with_gpu
         )
@@ -642,7 +643,7 @@ class TestMagma:
         self.check_gpu_eigh(1000, UPLO="U", compute_v=False, atol=1e-3)
 
     def test_gpu_eigh_opt(self):
-        A = theano.tensor.fmatrix("A")
+        A = tt.fmatrix("A")
         fn = theano.function([A], eigh(A), mode=mode_with_gpu)
         assert any(
             [isinstance(node.op, GpuMagmaEigh) for node in fn.maker.fgraph.toposort()]

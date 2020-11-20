@@ -1,7 +1,7 @@
 
 import theano
 import theano.tensor as tt
-
+import theano.tensor as tt
 
 k = tt.iscalar("k")
 A = tt.vector("A")

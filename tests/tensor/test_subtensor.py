@@ -9,6 +9,7 @@ from numpy.testing import assert_array_equal
 import theano
 import theano.scalar as scal
 import theano.tensor as tt
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.tensor.utils import inplace_func, rand, randint_ranged
 from theano import change_flags, config
@@ -18,7 +19,6 @@ from theano.gof.toolbox import is_same_graph
 from theano.tensor import (
     _shared,
     cscalar,
-    ctensor3,
     dmatrix,
     dscalar,
     dtensor4,
@@ -34,6 +34,7 @@ from theano.tensor import (
     matrix,
     vector,
 )
+from tt import ctensor3
 from theano.tensor.basic import DimShuffle
 from theano.tensor.subtensor import (
     AdvancedIncSubtensor,

@@ -3,7 +3,7 @@ import pytest
 
 import theano
 import theano.tensor as tt
-
+import theano.tensor as tt
 
 jax = pytest.importorskip("jax")
 

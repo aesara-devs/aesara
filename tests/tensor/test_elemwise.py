@@ -8,6 +8,7 @@ import pytest
 import tests.unittest_tools as utt
 import theano
 import theano.tensor as tt
+import theano.tensor as tt
 from tests import unittest_tools
 from theano import config, gof, scalar
 from theano.compile.mode import Mode, get_default_mode

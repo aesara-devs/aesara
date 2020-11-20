@@ -10,6 +10,7 @@ import warnings
 import numpy as np
 import numpy.fft
 
+import theano.tensor as tt
 from theano import tensor
 from theano.gof import Apply, Op, generic
 
@@ -76,7 +77,7 @@ class FFT(Op):
         _axis = tensor.as_tensor(axis, ndim=0)
         if self.half and _frames.type.dtype.startswith("complex"):
             raise TypeError("Argument to HalfFFT must not be complex", frames)
-        spectrogram = tensor.zmatrix()
+        spectrogram = tt.zmatrix()
         buf = generic()
         # The `buf` output is present for future work
         # when we call FFTW directly and re-use the 'plan' that FFTW creates.

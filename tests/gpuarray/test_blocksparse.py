@@ -3,6 +3,7 @@ import pytest
 
 import tests.unittest_tools as utt
 import theano
+import theano.tensor as tt
 from tests.gpuarray.config import mode_with_gpu, test_ctx_name
 from tests.tensor.nnet.test_blocksparse import TestBlockSparseGemvAndOuter
 from theano import tensor
@@ -33,10 +34,10 @@ class TestBlockSparseGemvAndOuterGPUarray(TestBlockSparseGemvAndOuter):
         """
     )
     def test_blocksparse_grad_merge(self):
-        b = tensor.fmatrix()
-        h = tensor.ftensor3()
-        iIdx = tensor.lmatrix()
-        oIdx = tensor.lmatrix()
+        b = tt.fmatrix()
+        h = tt.ftensor3()
+        iIdx = tt.lmatrix()
+        oIdx = tt.lmatrix()
 
         W_val, h_val, iIdx_val, b_val, oIdx_val = self.gemv_data()
         W = gpuarray_shared_constructor(W_val, context=test_ctx_name)

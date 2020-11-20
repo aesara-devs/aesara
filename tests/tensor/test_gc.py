@@ -5,6 +5,7 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
+import theano.tensor as tt
 
 
 def test_no_reuse():

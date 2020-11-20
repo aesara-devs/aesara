@@ -2,6 +2,7 @@ import numpy as np
 
 import theano
 import theano.tensor as tensor
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import config, function, scalar
 from theano.gof import FunctionGraph
@@ -119,7 +120,7 @@ def test_local_alloc_dimshuffle():
     alloc_dimshuffle = out2in(local_alloc_dimshuffle)
 
     x = tensor.vector("x")
-    m = tensor.iscalar("m")
+    m = tt.iscalar("m")
 
     y = x.dimshuffle("x", 0)
     out = tensor.alloc(y, m, 1, x.shape[0])
@@ -172,9 +173,9 @@ def test_local_dimshuffle_subtensor():
 
     dimshuffle_subtensor = out2in(local_dimshuffle_subtensor)
 
-    x = tensor.dtensor4("x")
+    x = tt.dtensor4("x")
     x = tensor.patternbroadcast(x, (False, True, False, False))
-    i = tensor.iscalar("i")
+    i = tt.iscalar("i")
 
     out = x[:, :, 10:30, ::i].dimshuffle(0, 2, 3)
 
@@ -206,7 +207,7 @@ def test_local_dimshuffle_subtensor():
     assert f(np.random.rand(5, 1, 4, 1), 2).shape == (4,)
 
     # Test a corner case that had Theano return a bug.
-    x = tensor.dtensor4("x")
+    x = tt.dtensor4("x")
     x = tensor.patternbroadcast(x, (False, True, False, False))
 
     assert x[:, :, 0:3, ::-1].dimshuffle(0, 2, 3).eval(

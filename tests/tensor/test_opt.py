@@ -10,6 +10,7 @@ import theano
 import theano.scalar as scal
 import theano.tensor as tt
 import theano.tensor.opt as opt
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import change_flags, compile, config, gof, pprint, shared
 from theano.compile import DeepCopyOp, deep_copy_op, get_mode

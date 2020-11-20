@@ -6,6 +6,7 @@ import pytest
 
 import theano
 import theano.tensor as tt
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, test_ctx_name
 from tests.tensor.test_extra_ops import TestCumOp

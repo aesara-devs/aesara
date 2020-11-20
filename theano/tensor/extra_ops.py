@@ -3,6 +3,7 @@ from collections.abc import Collection
 import numpy as np
 
 import theano
+import theano.tensor as tt
 from theano.gof import Apply, EnumList, Generic, Op, ParamsType
 from theano.gradient import (
     DisconnectedType,
@@ -118,7 +119,7 @@ class SearchsortedOp(Op):
                     "numpy.searchsorted with Python 32bit do not support a"
                     " sorter of int64."
                 )
-            if sorter.type not in basic.int_vector_types:
+            if sorter.type not in tt.int_vector_types:
                 raise TypeError("sorter must be an integer vector", sorter.type)
             return theano.Apply(self, [x, v, sorter], [out_type()])
 
@@ -245,8 +246,8 @@ def searchsorted(x, v, side="left", sorter=None):
 
     Examples
     --------
-    >>> from theano import tensor
-    >>> x = tensor.dvector()
+import theano.tensor as tt    >>> from theano import tensor
+    >>> x = tt.dvector()
     >>> idx = x.searchsorted(3)
     >>> idx.eval({x: [1,2,3,4,5]})
     array(2)
@@ -844,7 +845,7 @@ class Bartlett(Op):
         elif M.dtype not in theano.tensor.integer_dtypes:
             # dtype is a theano attribute here
             raise TypeError("%s only works on integer input" % self.__class__.__name__)
-        return Apply(self, [M], [basic.dvector()])
+        return Apply(self, [M], [tt.dvector()])
 
     def perform(self, node, inputs, out_):
         M = inputs[0]

@@ -3,9 +3,9 @@ import time
 import numpy as np
 
 import theano
+import theano.tensor as tt
 
-
-y = theano.tensor.fvector()
+y = tt.fvector()
 x = theano.shared(np.zeros(1, dtype="float32"))
 f1 = theano.function([y], updates={x: y})
 f2 = theano.function([], x.transfer("cpu"))

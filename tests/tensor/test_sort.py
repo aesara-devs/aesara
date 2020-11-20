@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 import theano
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import tensor
 from theano.tensor.sort import (
@@ -35,13 +36,13 @@ class TestSort:
         self.v_val = self.rng.rand(4)
 
     def test1(self):
-        a = tensor.dmatrix()
+        a = tt.dmatrix()
         w = sort(a)
         f = theano.function([a], w)
         utt.assert_allclose(f(self.m_val), np.sort(self.m_val))
 
     def test2(self):
-        a = tensor.dmatrix()
+        a = tt.dmatrix()
         axis = tensor.scalar()
         w = sort(a, axis)
         f = theano.function([a, axis], w)
@@ -51,7 +52,7 @@ class TestSort:
             utt.assert_allclose(gv, gt)
 
     def test3(self):
-        a = tensor.dvector()
+        a = tt.dvector()
         w2 = sort(a)
         f = theano.function([a], w2)
         gv = f(self.v_val)
@@ -59,7 +60,7 @@ class TestSort:
         utt.assert_allclose(gv, gt)
 
     def test4(self):
-        a = tensor.dmatrix()
+        a = tt.dmatrix()
         axis = tensor.scalar()
         l = sort(a, axis, "mergesort")
         f = theano.function([a, axis], l)
@@ -78,7 +79,7 @@ class TestSort:
         assert a2 == SortOp("quicksort", [])
 
     def test_None(self):
-        a = tensor.dmatrix()
+        a = tt.dmatrix()
         l = sort(a, None)
         f = theano.function([a], l)
         gv = f(self.m_val)
@@ -172,7 +173,7 @@ def test_argsort():
     v_val = rng.rand(4)
 
     # Example 1
-    a = tensor.dmatrix()
+    a = tt.dmatrix()
     w = argsort(a)
     f = theano.function([a], w)
     gv = f(m_val)
@@ -180,8 +181,8 @@ def test_argsort():
     utt.assert_allclose(gv, gt)
 
     # Example 2
-    a = tensor.dmatrix()
-    axis = tensor.lscalar()
+    a = tt.dmatrix()
+    axis = tt.lscalar()
     w = argsort(a, axis)
     f = theano.function([a, axis], w)
     for axis_val in 0, 1:
@@ -190,7 +191,7 @@ def test_argsort():
         utt.assert_allclose(gv, gt)
 
     # Example 3
-    a = tensor.dvector()
+    a = tt.dvector()
     w2 = argsort(a)
     f = theano.function([a], w2)
     gv = f(v_val)
@@ -198,8 +199,8 @@ def test_argsort():
     utt.assert_allclose(gv, gt)
 
     # Example 4
-    a = tensor.dmatrix()
-    axis = tensor.lscalar()
+    a = tt.dmatrix()
+    axis = tt.lscalar()
     l = argsort(a, axis, "mergesort")
     f = theano.function([a, axis], l)
     for axis_val in 0, 1:
@@ -208,8 +209,8 @@ def test_argsort():
         utt.assert_allclose(gv, gt)
 
     # Example 5
-    a = tensor.dmatrix()
-    axis = tensor.lscalar()
+    a = tt.dmatrix()
+    axis = tt.lscalar()
     a1 = ArgSortOp("mergesort", [])
     a2 = ArgSortOp("quicksort", [])
     # All the below should give true
@@ -218,7 +219,7 @@ def test_argsort():
     assert a2 == ArgSortOp("quicksort", [])
 
     # Example 6: Testing axis=None
-    a = tensor.dmatrix()
+    a = tt.dmatrix()
     w2 = argsort(a, None)
     f = theano.function([a], w2)
     gv = f(m_val)

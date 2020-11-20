@@ -5,6 +5,7 @@ import pytest
 
 import theano
 import theano.tensor as tt
+import theano.tensor as tt
 from theano import config, scalar
 from theano.gof import Apply, Op, Type, utils
 from theano.tensor.basic import _allclose

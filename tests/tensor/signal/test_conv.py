@@ -3,6 +3,7 @@ import pytest
 
 import theano
 import theano.tensor as tt
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano.tensor.basic import _allclose
 from theano.tensor.signal import conv

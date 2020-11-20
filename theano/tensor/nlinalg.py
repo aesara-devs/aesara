@@ -5,6 +5,7 @@ from functools import partial
 import numpy as np
 
 import theano
+import theano.tensor as tt
 from theano.gof import Apply, Op
 from theano.gradient import DisconnectedType
 from theano.tensor import basic as tensor
@@ -648,9 +649,9 @@ class lstsq(Op):
             [x, y, rcond],
             [
                 theano.tensor.matrix(),
-                theano.tensor.dvector(),
-                theano.tensor.lscalar(),
-                theano.tensor.dvector(),
+                tt.dvector(),
+                tt.lscalar(),
+                tt.dvector(),
             ],
         )
 

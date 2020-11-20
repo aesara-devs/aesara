@@ -17,6 +17,7 @@ import scipy.sparse
 from numpy.lib.stride_tricks import as_strided
 
 import theano
+import theano.tensor as tt
 from theano import config, gof, scalar, tensor
 from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
 from theano.sparse.type import SparseType, _is_sparse
@@ -309,10 +310,10 @@ class _sparse_py_operators:
 
         if len(args) == 2:
             scalar_arg_1 = (
-                np.isscalar(args[0]) or getattr(args[0], "type", None) == tensor.iscalar
+                    np.isscalar(args[0]) or getattr(args[0], "type", None) == tt.iscalar
             )
             scalar_arg_2 = (
-                np.isscalar(args[1]) or getattr(args[1], "type", None) == tensor.iscalar
+                    np.isscalar(args[1]) or getattr(args[1], "type", None) == tt.iscalar
             )
             if scalar_arg_1 and scalar_arg_2:
                 ret = get_item_scalar(self, args)
@@ -461,7 +462,7 @@ class CSMProperties(gof.Op):
         assert csm.format in ["csr", "csc"]
         data = tensor.TensorType(dtype=csm.type.dtype, broadcastable=(False,))()
         return gof.Apply(
-            self, [csm], [data, tensor.ivector(), tensor.ivector(), tensor.ivector()]
+            self, [csm], [data, tt.ivector(), tt.ivector(), tt.ivector()]
         )
 
     def perform(self, node, inputs, out):

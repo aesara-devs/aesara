@@ -4,6 +4,7 @@ from io import StringIO
 import numpy as np
 
 import theano
+import theano.tensor as tt
 
 
 def test_detect_nan():
@@ -21,7 +22,7 @@ def test_detect_nan():
                 nan_detected[0] = True
                 break
 
-    x = theano.tensor.dscalar("x")
+    x = tt.dscalar("x")
     f = theano.function(
         [x],
         [theano.tensor.log(x) * x],
@@ -51,7 +52,7 @@ def test_optimizer():
                 nan_detected[0] = True
                 break
 
-    x = theano.tensor.dscalar("x")
+    x = tt.dscalar("x")
     mode = theano.compile.MonitorMode(post_func=detect_nan)
     mode = mode.excluding("fusion")
     f = theano.function([x], [theano.tensor.log(x) * x], mode=mode)

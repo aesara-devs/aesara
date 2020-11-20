@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import theano
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import change_flags, config, gof, gradient
 from theano.gof.null_type import NullType
@@ -313,7 +314,7 @@ class TestGrad:
             g = gradient.grad(cost, X)
             return theano.function([X, W, b], g, on_unused_input="ignore")
 
-        int_func = make_grad_func(theano.tensor.imatrix())
+        int_func = make_grad_func(tt.imatrix())
         # we have to use float64 as the float type to get the results to match
         # using an integer for the input makes all the later functions use
         # float64
@@ -324,7 +325,7 @@ class TestGrad:
         n = 4
         rng = np.random.RandomState([2012, 9, 5])
 
-        int_type = theano.tensor.imatrix().dtype
+        int_type = tt.imatrix().dtype
         float_type = "float64"
 
         X = np.cast[int_type](rng.randn(m, d) * 127.0)
@@ -408,9 +409,9 @@ class TestGrad:
         # Test that the gradient of a cost wrt a float32 variable does not
         # get upcasted to float64.
         # x has dtype float32, regardless of the value of floatX
-        x = theano.tensor.fscalar("x")
+        x = tt.fscalar("x")
         y = x * 2
-        z = theano.tensor.lscalar("z")
+        z = tt.lscalar("z")
 
         c = y + z
         dc_dx, dc_dy, dc_dz, dc_dc = theano.grad(c, [x, y, z, c])
@@ -455,7 +456,7 @@ def test_known_grads():
 
     full_range = theano.tensor.arange(10)
     x = theano.tensor.scalar("x")
-    t = theano.tensor.iscalar("t")
+    t = tt.iscalar("t")
     ft = full_range[t]
     ft.name = "ft"
     coeffs = theano.tensor.vector("c")
@@ -502,7 +503,7 @@ def test_dxdx():
     # modifying the Op contract and should definitely get the approval
     # of multiple people on theano-dev.
 
-    x = theano.tensor.iscalar()
+    x = tt.iscalar()
     g = theano.tensor.grad(x, x)
 
     g = g.eval({x: 12})
@@ -513,7 +514,7 @@ def test_dxdx():
 def test_known_grads_integers():
     # Tests that known_grads works on integers
 
-    x = theano.tensor.iscalar()
+    x = tt.iscalar()
     g_expected = theano.tensor.scalar()
 
     g_grad = theano.gradient.grad(cost=None, known_grads={x: g_expected}, wrt=x)
@@ -535,8 +536,8 @@ def test_undefined_cost_grad():
     # This is so that Ops that are built around minigraphs like OpFromGraph
     # and scan can implement Op.grad by passing ograds to known_grads
 
-    x = theano.tensor.iscalar()
-    y = theano.tensor.iscalar()
+    x = tt.iscalar()
+    y = tt.iscalar()
     cost = x + y
     assert cost.dtype in theano.tensor.discrete_dtypes
     try:
@@ -553,8 +554,8 @@ def test_disconnected_cost_grad():
     # This is so that Ops that are built around minigraphs like OpFromGraph
     # and scan can implement Op.grad by passing ograds to known_grads
 
-    x = theano.tensor.iscalar()
-    y = theano.tensor.iscalar()
+    x = tt.iscalar()
+    y = tt.iscalar()
     cost = x + y
     assert cost.dtype in theano.tensor.discrete_dtypes
     try:
@@ -573,8 +574,8 @@ def test_subgraph_grad():
     # Tests that the grad method with no known_grads
     # matches what happens if you use successive subgraph_grads
 
-    x = theano.tensor.fvector("x")
-    t = theano.tensor.fvector("t")
+    x = tt.fvector("x")
+    t = tt.fvector("t")
     w1 = theano.shared(np.random.randn(3, 4))
     w2 = theano.shared(np.random.randn(4, 2))
     a1 = theano.tensor.tanh(theano.tensor.dot(x, w1))

@@ -3,6 +3,7 @@ import pytest
 
 import theano
 import theano.tensor as tt
+import theano.tensor as tt
 from theano.scan.basic import scan
 from theano.scan.checkpoints import scan_checkpoints
 

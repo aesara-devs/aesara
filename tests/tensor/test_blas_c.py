@@ -5,6 +5,7 @@ import pytest
 
 import theano
 import theano.tensor as tensor
+import theano.tensor as tt
 from tests import unittest_tools
 from tests.tensor.test_blas import BaseGemv, TestBlasStrides
 from tests.unittest_tools import OptimizationTestMixin
@@ -277,9 +278,9 @@ class TestCGemv(OptimizationTestMixin):
 
     def test_multiple_inplace(self):
         skip_if_blas_ldflags_empty()
-        x = tensor.dmatrix("x")
-        y = tensor.dvector("y")
-        z = tensor.dvector("z")
+        x = tt.dmatrix("x")
+        y = tt.dvector("y")
+        z = tt.dvector("z")
         f = theano.function(
             [x, y, z], [tensor.dot(y, x), tensor.dot(z, x)], mode=mode_blas_opt
         )

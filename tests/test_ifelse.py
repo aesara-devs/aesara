@@ -5,6 +5,7 @@ import pytest
 
 import theano
 import theano.ifelse
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import tensor
 from theano.ifelse import IfElse, ifelse
@@ -34,7 +35,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         # whatnot of same dtype)
         x = tensor.vector("x", dtype=self.dtype)
         y = tensor.vector("y", dtype=self.dtype)
-        c = tensor.iscalar("c")
+        c = tt.iscalar("c")
         f = theano.function([c, x, y], ifelse(c, x, y), mode=self.mode)
         self.assertFunctionContains1(f, self.get_ifelse(1))
         rng = np.random.RandomState(utt.fetch_seed())
@@ -53,7 +54,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         # we disable the inplace opt to speed up optimization
         x = tensor.vector("x", dtype=self.dtype)
         y = tensor.vector("y", dtype=self.dtype)
-        c = tensor.iscalar("c")
+        c = tt.iscalar("c")
         mode = theano.compile.get_mode(self.mode).excluding(
             # Disable many opt to keep the graph big enough to disable
             # the opt.
@@ -85,7 +86,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         x2 = tensor.vector("x2", dtype=self.dtype)
         y1 = tensor.vector("y1", dtype="int32")
         y2 = tensor.vector("y2", dtype=self.dtype)
-        c = tensor.iscalar("c")
+        c = tt.iscalar("c")
         f = theano.function(
             [c, x1, x2, y1, y2], ifelse(c, (x1, x2), (y1, y2)), mode=self.mode
         )
@@ -111,7 +112,7 @@ class TestIfelse(utt.OptimizationTestMixin):
     def test_lazy_if_on_generics(self):
         x = theano.generic()
         y = theano.generic()
-        c = tensor.iscalar("c")
+        c = tt.iscalar("c")
         f = theano.function([c, x, y], ifelse(c, x, y))
 
         vx = ["testX"]
@@ -123,7 +124,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         # Tests that we can compute the gradients through lazy if
         x = tensor.vector("x", dtype=self.dtype)
         y = tensor.vector("y", dtype=self.dtype)
-        c = tensor.iscalar("c")
+        c = tt.iscalar("c")
         z = ifelse(c, x, y)
         gx, gy = tensor.grad(z.sum(), [x, y])
 
@@ -156,7 +157,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         # Tests the gradient when both inputs are on the GPU.
         x = tensor.vector("x", dtype=self.dtype)
         y = tensor.vector("y", dtype=self.dtype)
-        c = tensor.iscalar("c")
+        c = tt.iscalar("c")
         z = ifelse(c, self.cast_output(x), self.cast_output(y))
         gx, gy = tensor.grad(z.sum(), [x, y])
 
@@ -167,7 +168,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         x2 = tensor.vector("x2", dtype=self.dtype)
         y1 = tensor.vector("y1", dtype=self.dtype)
         y2 = tensor.vector("y2", dtype=self.dtype)
-        c = tensor.iscalar("c")
+        c = tt.iscalar("c")
         z = ifelse(c, (x1, x2), (y1, y2))
         f = theano.function([c, x1, x2, y1, y2], z, mode=self.mode)
         self.assertFunctionContains1(f, self.get_ifelse(2))
@@ -200,7 +201,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         x2 = tensor.vector("x2")
         y1 = tensor.vector("y1")
         y2 = tensor.vector("y2")
-        c = tensor.iscalar("c")
+        c = tt.iscalar("c")
         z = ifelse(c, (x1, x2), (y1, y2))
         grads = tensor.grad(z[0].sum() + z[1].sum(), [x1, x2, y1, y2])
 
@@ -270,7 +271,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         data = rng.rand(5).astype(self.dtype)
         x = self.shared(data)
         y = tensor.cast(x * 10, "int8")
-        cond = theano.tensor.iscalar("cond")
+        cond = tt.iscalar("cond")
 
         with pytest.raises(TypeError):
             ifelse(cond, x, y)
@@ -282,7 +283,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         data = rng.rand(5).astype(self.dtype)
         x = self.shared(data)
         y = tensor.col("y", self.dtype)
-        cond = theano.tensor.iscalar("cond")
+        cond = tt.iscalar("cond")
 
         with pytest.raises(TypeError):
             ifelse(cond, x, y)
@@ -296,7 +297,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         # print x.broadcastable
         y = tensor.row("y", self.dtype)
         # print y.broadcastable
-        cond = theano.tensor.iscalar("cond")
+        cond = tt.iscalar("cond")
 
         with pytest.raises(TypeError):
             ifelse(cond, x, y)
@@ -313,7 +314,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         x = self.shared(data)
         y = theano.sparse.matrix("csc", dtype=self.dtype, name="y")
         z = theano.sparse.matrix("csr", dtype=self.dtype, name="z")
-        cond = theano.tensor.iscalar("cond")
+        cond = tt.iscalar("cond")
 
         with pytest.raises(TypeError):
             ifelse(cond, x, y)
@@ -332,7 +333,7 @@ class TestIfelse(utt.OptimizationTestMixin):
     def test_merge(self):
         x = tensor.vector("x")
         y = tensor.vector("y")
-        c = tensor.iscalar("c")
+        c = tt.iscalar("c")
         z1 = ifelse(c, x + 1, y + 1)
         z2 = ifelse(c, x + 2, y + 2)
         z = z1 + z2
@@ -345,7 +346,7 @@ class TestIfelse(utt.OptimizationTestMixin):
     def test_remove_useless_inputs1(self):
         x = tensor.vector("x")
         y = tensor.vector("y")
-        c = tensor.iscalar("c")
+        c = tt.iscalar("c")
         z = ifelse(c, (x, x), (y, y))
         f = theano.function([c, x, y], z)
 
@@ -358,7 +359,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         x2 = tensor.vector("x2")
         y1 = tensor.vector("y1")
         y2 = tensor.vector("y2")
-        c = tensor.iscalar("c")
+        c = tt.iscalar("c")
         z = ifelse(c, (x1, x1, x1, x2, x2), (y1, y1, y2, y2, y2))
         f = theano.function([c, x1, x2, y1, y2], z)
 
@@ -373,7 +374,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         y2 = tensor.scalar("y2")
         w1 = tensor.scalar("w1")
         w2 = tensor.scalar("w2")
-        c = tensor.iscalar("c")
+        c = tt.iscalar("c")
         x, y = ifelse(c, (x1, y1), (x2, y2), name="f1")
         z = ifelse(c, w1, w2, name="f2")
         out = x * z * y
@@ -396,7 +397,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         x1 = tensor.scalar("x1")
         y1 = tensor.scalar("x2")
         y2 = tensor.scalar("y2")
-        c = tensor.iscalar("c")
+        c = tt.iscalar("c")
         two = np.asarray(2, dtype=theano.config.floatX)
         x, y = ifelse(c, (x1, y1), (two, y2), name="f1")
         o3 = np.asarray(0.3, dtype=theano.config.floatX)
@@ -422,7 +423,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         y2 = tensor.scalar("y2")
         w1 = tensor.scalar("w1")
         w2 = tensor.scalar("w2")
-        c = tensor.iscalar("c")
+        c = tt.iscalar("c")
         x, y = ifelse(c, (x1, y1), (x2, y2), name="f1")
         z = ifelse(x > y, w1, w2, name="f2")
         out = x * z * y
@@ -456,7 +457,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         y2 = tensor.scalar("y2")
         w1 = tensor.scalar("w1")
         w2 = tensor.scalar("w2")
-        c = tensor.iscalar("c")
+        c = tt.iscalar("c")
 
         out = ifelse(
             c,

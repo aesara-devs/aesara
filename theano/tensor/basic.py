@@ -691,16 +691,6 @@ def _multi(*fns):
         return [partial(f2, f) for f in fns]
 
 
-cscalar = TensorType("complex64", ())
-zscalar = TensorType("complex128", ())
-fscalar = TensorType("float32", ())
-dscalar = TensorType("float64", ())
-bscalar = TensorType("int8", ())
-wscalar = TensorType("int16", ())
-iscalar = TensorType("int32", ())
-lscalar = TensorType("int64", ())
-
-
 def scalar(name=None, dtype=None):
     """Return a symbolic scalar variable.
 
@@ -721,22 +711,6 @@ def scalar(name=None, dtype=None):
 scalars, fscalars, dscalars, iscalars, lscalars = _multi(
     scalar, fscalar, dscalar, iscalar, lscalar
 )
-
-int_types = bscalar, wscalar, iscalar, lscalar
-float_types = fscalar, dscalar
-complex_types = cscalar, zscalar
-int_scalar_types = int_types
-float_scalar_types = float_types
-complex_scalar_types = complex_types
-
-cvector = TensorType("complex64", (False,))
-zvector = TensorType("complex128", (False,))
-fvector = TensorType("float32", (False,))
-dvector = TensorType("float64", (False,))
-bvector = TensorType("int8", (False,))
-wvector = TensorType("int16", (False,))
-ivector = TensorType("int32", (False,))
-lvector = TensorType("int64", (False,))
 
 
 def vector(name=None, dtype=None):
@@ -760,19 +734,6 @@ vectors, fvectors, dvectors, ivectors, lvectors = _multi(
     vector, fvector, dvector, ivector, lvector
 )
 
-int_vector_types = bvector, wvector, ivector, lvector
-float_vector_types = fvector, dvector
-complex_vector_types = cvector, zvector
-
-cmatrix = TensorType("complex64", (False, False))
-zmatrix = TensorType("complex128", (False, False))
-fmatrix = TensorType("float32", (False, False))
-dmatrix = TensorType("float64", (False, False))
-bmatrix = TensorType("int8", (False, False))
-wmatrix = TensorType("int16", (False, False))
-imatrix = TensorType("int32", (False, False))
-lmatrix = TensorType("int64", (False, False))
-
 
 def matrix(name=None, dtype=None):
     """Return a symbolic matrix variable.
@@ -795,19 +756,6 @@ matrices, fmatrices, dmatrices, imatrices, lmatrices = _multi(
     matrix, fmatrix, dmatrix, imatrix, lmatrix
 )
 
-int_matrix_types = bmatrix, wmatrix, imatrix, lmatrix
-float_matrix_types = fmatrix, dmatrix
-complex_matrix_types = cmatrix, zmatrix
-
-crow = TensorType("complex64", (True, False))
-zrow = TensorType("complex128", (True, False))
-frow = TensorType("float32", (True, False))
-drow = TensorType("float64", (True, False))
-brow = TensorType("int8", (True, False))
-wrow = TensorType("int16", (True, False))
-irow = TensorType("int32", (True, False))
-lrow = TensorType("int64", (True, False))
-
 
 def row(name=None, dtype=None):
     """Return a symbolic row variable (ndim=2, broadcastable=[True,False]).
@@ -828,15 +776,6 @@ def row(name=None, dtype=None):
 
 rows, frows, drows, irows, lrows = _multi(row, frow, drow, irow, lrow)
 
-ccol = TensorType("complex64", (False, True))
-zcol = TensorType("complex128", (False, True))
-fcol = TensorType("float32", (False, True))
-dcol = TensorType("float64", (False, True))
-bcol = TensorType("int8", (False, True))
-wcol = TensorType("int16", (False, True))
-icol = TensorType("int32", (False, True))
-lcol = TensorType("int64", (False, True))
-
 
 def col(name=None, dtype=None):
     """Return a symbolic column variable (ndim=2, broadcastable=[False,True]).
@@ -856,15 +795,6 @@ def col(name=None, dtype=None):
 
 
 cols, fcols, dcols, icols, lcols = _multi(col, fcol, dcol, icol, lcol)
-
-ctensor3 = TensorType("complex64", ((False,) * 3))
-ztensor3 = TensorType("complex128", ((False,) * 3))
-ftensor3 = TensorType("float32", ((False,) * 3))
-dtensor3 = TensorType("float64", ((False,) * 3))
-btensor3 = TensorType("int8", ((False,) * 3))
-wtensor3 = TensorType("int16", ((False,) * 3))
-itensor3 = TensorType("int32", ((False,) * 3))
-ltensor3 = TensorType("int64", ((False,) * 3))
 
 
 def tensor3(name=None, dtype=None):
@@ -888,15 +818,6 @@ tensor3s, ftensor3s, dtensor3s, itensor3s, ltensor3s = _multi(
     tensor3, ftensor3, dtensor3, itensor3, ltensor3
 )
 
-ctensor4 = TensorType("complex64", ((False,) * 4))
-ztensor4 = TensorType("complex128", ((False,) * 4))
-ftensor4 = TensorType("float32", ((False,) * 4))
-dtensor4 = TensorType("float64", ((False,) * 4))
-btensor4 = TensorType("int8", ((False,) * 4))
-wtensor4 = TensorType("int16", ((False,) * 4))
-itensor4 = TensorType("int32", ((False,) * 4))
-ltensor4 = TensorType("int64", ((False,) * 4))
-
 
 def tensor4(name=None, dtype=None):
     """Return a symbolic 4-D variable.
@@ -918,15 +839,6 @@ def tensor4(name=None, dtype=None):
 tensor4s, ftensor4s, dtensor4s, itensor4s, ltensor4s = _multi(
     tensor4, ftensor4, dtensor4, itensor4, ltensor4
 )
-
-ctensor5 = TensorType("complex64", ((False,) * 5))
-ztensor5 = TensorType("complex128", ((False,) * 5))
-ftensor5 = TensorType("float32", ((False,) * 5))
-dtensor5 = TensorType("float64", ((False,) * 5))
-btensor5 = TensorType("int8", ((False,) * 5))
-wtensor5 = TensorType("int16", ((False,) * 5))
-itensor5 = TensorType("int32", ((False,) * 5))
-ltensor5 = TensorType("int64", ((False,) * 5))
 
 
 def tensor5(name=None, dtype=None):
@@ -950,15 +862,6 @@ tensor5s, ftensor5s, dtensor5s, itensor5s, ltensor5s = _multi(
     tensor5, ftensor5, dtensor5, itensor5, ltensor5
 )
 
-ctensor6 = TensorType("complex64", ((False,) * 6))
-ztensor6 = TensorType("complex128", ((False,) * 6))
-ftensor6 = TensorType("float32", ((False,) * 6))
-dtensor6 = TensorType("float64", ((False,) * 6))
-btensor6 = TensorType("int8", ((False,) * 6))
-wtensor6 = TensorType("int16", ((False,) * 6))
-itensor6 = TensorType("int32", ((False,) * 6))
-ltensor6 = TensorType("int64", ((False,) * 6))
-
 
 def tensor6(name=None, dtype=None):
     """Return a symbolic 6-D variable.
@@ -980,15 +883,6 @@ def tensor6(name=None, dtype=None):
 tensor6s, ftensor6s, dtensor6s, itensor6s, ltensor6s = _multi(
     tensor6, ftensor6, dtensor6, itensor6, ltensor6
 )
-
-ctensor7 = TensorType("complex64", ((False,) * 7))
-ztensor7 = TensorType("complex128", ((False,) * 7))
-ftensor7 = TensorType("float32", ((False,) * 7))
-dtensor7 = TensorType("float64", ((False,) * 7))
-btensor7 = TensorType("int8", ((False,) * 7))
-wtensor7 = TensorType("int16", ((False,) * 7))
-itensor7 = TensorType("int32", ((False,) * 7))
-ltensor7 = TensorType("int64", ((False,) * 7))
 
 
 def tensor7(name=None, dtype=None):

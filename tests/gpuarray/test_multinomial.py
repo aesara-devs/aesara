@@ -3,6 +3,7 @@ import pytest
 
 import tests.unittest_tools as utt
 import theano
+import theano.tensor as tt
 from tests.gpuarray.config import mode_with_gpu
 from theano import config, function, tensor
 from theano.gpuarray.multinomial import (
@@ -17,8 +18,8 @@ def test_multinomial_output_dtype():
     # This tests the MultinomialFromUniform Op directly, not going through the
     # multinomial() call in GPU random generation.
 
-    p = tensor.fmatrix()
-    u = tensor.fvector()
+    p = tt.fmatrix()
+    u = tt.fvector()
 
     for dtype in ["int64", "float32", "float16", "float64", "int32", "auto"]:
         m = theano.sandbox.multinomial.MultinomialFromUniform(dtype)(p, u)
@@ -95,8 +96,8 @@ def test_multinomial_input_dtype():
 # TODO: check a bigger example (make sure blocking on GPU is handled correctly)
 def test_multinomial_large():
     # DEBUG_MODE will test this on GPU
-    p = tensor.fmatrix()
-    u = tensor.fvector()
+    p = tt.fmatrix()
+    u = tt.fvector()
     m = theano.sandbox.multinomial.MultinomialFromUniform("auto")(p, u)
     f = function([p, u], m * 2, allow_input_downcast=True, mode=mode_with_gpu)
     assert any(
@@ -128,8 +129,8 @@ def test_multinomial_large():
 def test_gpu_opt_dtypes():
     # Test if the returned samples are of the datatype specified
     for dtype in ["uint32", "float32", "int64", "float64"]:
-        p = tensor.fmatrix()
-        u = tensor.fvector()
+        p = tt.fmatrix()
+        u = tt.fvector()
         m = theano.sandbox.multinomial.MultinomialFromUniform(dtype)(p, u)
 
         f = function([p, u], m, allow_input_downcast=True, mode=mode_with_gpu)
@@ -151,8 +152,8 @@ def test_gpu_opt():
 
     # We test the case where we put the op on the gpu when the output
     # is moved to the gpu.
-    p = tensor.fmatrix()
-    u = tensor.fvector()
+    p = tt.fmatrix()
+    u = tt.fvector()
     m = theano.sandbox.multinomial.MultinomialFromUniform("auto")(p, u)
     assert m.dtype == "float32", m.dtype
 
@@ -169,7 +170,7 @@ def test_gpu_opt():
     f(pval, uval)
 
     # Test with a row, it was failing in the past.
-    r = tensor.frow()
+    r = tt.frow()
     m = theano.sandbox.multinomial.MultinomialFromUniform("auto")(r, u)
     assert m.dtype == "float32", m.dtype
 
@@ -190,9 +191,9 @@ class TestOPWor:
     def test_select_distinct(self):
         # Tests that ChoiceFromUniform always selects distinct elements
 
-        p = tensor.fmatrix()
-        u = tensor.fvector()
-        n = tensor.iscalar()
+        p = tt.fmatrix()
+        u = tt.fvector()
+        n = tt.iscalar()
         m = multinomial.ChoiceFromUniform(odtype="auto")(p, u, n)
 
         f = function([p, u, n], m, allow_input_downcast=True)
@@ -213,9 +214,9 @@ class TestOPWor:
         # Tests that ChoiceFromUniform fails when asked to sample more
         # elements than the actual number of elements
 
-        p = tensor.fmatrix()
-        u = tensor.fvector()
-        n = tensor.iscalar()
+        p = tt.fmatrix()
+        u = tt.fvector()
+        n = tt.iscalar()
         m = multinomial.ChoiceFromUniform(odtype="auto")(p, u, n)
 
         f = function([p, u, n], m, allow_input_downcast=True)
@@ -233,9 +234,9 @@ class TestOPWor:
         # Tests that ChoiceFromUniform selects elements, on average,
         # proportional to the their probabilities
 
-        p = tensor.fmatrix()
-        u = tensor.fvector()
-        n = tensor.iscalar()
+        p = tt.fmatrix()
+        u = tt.fvector()
+        n = tt.iscalar()
         m = multinomial.ChoiceFromUniform(odtype="auto")(p, u, n)
 
         f = function([p, u, n], m, allow_input_downcast=True)
@@ -264,8 +265,8 @@ class TestFunctionWor:
 
         th_rng = RandomStreams(12345)
 
-        p = tensor.fmatrix()
-        n = tensor.iscalar()
+        p = tt.fmatrix()
+        n = tt.iscalar()
         m = th_rng.multinomial_wo_replacement(pvals=p, n=n)
 
         f = function([p, n], m, allow_input_downcast=True)
@@ -287,8 +288,8 @@ class TestFunctionWor:
 
         th_rng = RandomStreams(12345)
 
-        p = tensor.fmatrix()
-        n = tensor.iscalar()
+        p = tt.fmatrix()
+        n = tt.iscalar()
         m = th_rng.multinomial_wo_replacement(pvals=p, n=n)
 
         f = function([p, n], m, allow_input_downcast=True)
@@ -307,8 +308,8 @@ class TestFunctionWor:
 
         th_rng = RandomStreams(12345)
 
-        p = tensor.fmatrix()
-        n = tensor.iscalar()
+        p = tt.fmatrix()
+        n = tt.iscalar()
         m = th_rng.multinomial_wo_replacement(pvals=p, n=n)
 
         f = function([p, n], m, allow_input_downcast=True)
@@ -333,9 +334,9 @@ class TestFunctionWor:
 def test_gpu_opt_wor():
     # We test the case where we put the op on the gpu when the output
     # is moved to the gpu.
-    p = tensor.fmatrix()
-    u = tensor.fvector()
-    n = tensor.iscalar()
+    p = tt.fmatrix()
+    u = tt.fvector()
+    n = tt.iscalar()
     for replace in [False, True]:
         m = multinomial.ChoiceFromUniform(odtype="auto", replace=replace)(p, u, n)
         assert m.dtype == "int64", m.dtype
@@ -354,7 +355,7 @@ def test_gpu_opt_wor():
         f(pval, uval, n_samples)
 
         # Test with a row, it was failing in the past.
-        r = tensor.frow()
+        r = tt.frow()
         m = multinomial.ChoiceFromUniform("auto", replace=replace)(r, u, n)
         assert m.dtype == "int64", m.dtype
 

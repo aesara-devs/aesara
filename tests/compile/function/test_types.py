@@ -8,6 +8,7 @@ import pytest
 import theano
 import theano.gpuarray
 import theano.tensor as tt
+import theano.tensor as tt
 from theano import config, gof
 from theano.compile.function import function
 from theano.compile.function.types import UnusedInputError

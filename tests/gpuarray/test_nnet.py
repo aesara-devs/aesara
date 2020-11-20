@@ -3,6 +3,7 @@ import numpy as np
 import tests.unittest_tools as utt
 import theano
 import theano.tensor as tt
+import theano.tensor as tt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
 from theano.gpuarray.nnet import (
     GpuCrossentropySoftmax1HotWithBiasDx,

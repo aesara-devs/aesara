@@ -4,6 +4,7 @@ import pytest
 import theano
 import theano.gof.op as op
 import theano.tensor as tt
+import theano.tensor as tt
 from theano import config, scalar, shared
 from theano.configparser import change_flags
 from theano.gof.graph import Apply, Variable

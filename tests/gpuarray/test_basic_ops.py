@@ -5,6 +5,7 @@ import theano
 import theano.tensor as tt
 
 # Don't import test classes otherwise they get tested as part of the file
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
 from tests.tensor.test_basic import (

@@ -3,6 +3,7 @@ from copy import copy
 import numpy as np
 
 import theano
+import theano.tensor as tt
 from theano import change_flags, gof, scalar
 from theano.gof import Apply, COp, Op, OpenMPOp, ParamsType
 from theano.gof.null_type import NullType
@@ -141,7 +142,7 @@ class DimShuffle(COp):
         # because of importation issues related to TensorType.
         return ParamsType(
             input_broadcastable=TensorType(dtype="bool", broadcastable=(False,)),
-            _new_order=theano.tensor.lvector,
+            _new_order=tt.lvector,
             transposition=TensorType(dtype="uint32", broadcastable=(False,)),
             inplace=theano.scalar.bool,
         )

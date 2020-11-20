@@ -7,6 +7,7 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
+import theano.tensor as tt
 from theano.ifelse import ifelse
 
 

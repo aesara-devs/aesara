@@ -12,6 +12,7 @@ from numpy.testing import assert_allclose, assert_almost_equal, assert_array_equ
 
 import theano
 import theano.tensor as tt
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.tensor.utils import (
     ALL_DTYPES,

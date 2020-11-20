@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 import theano
+import theano.tensor as tt
 from theano import tensor
 from theano.compile.function import function, function_dump
 from theano.compile.io import In
@@ -43,7 +44,7 @@ def test_function_name():
 class TestFunctionIn:
     def test_in_strict(self):
 
-        a = theano.tensor.dvector()
+        a = tt.dvector()
         b = theano.shared(7)
         out = a + b
 
@@ -76,7 +77,7 @@ class TestFunctionIn:
             function([a_wrapped])
 
     def test_in_mutable(self):
-        a = theano.tensor.dvector()
+        a = tt.dvector()
         a_out = a * 2  # assuming the op which makes this "in place" triggers
 
         # using mutable=True will let f change the value in aval
@@ -94,7 +95,7 @@ class TestFunctionIn:
         assert np.all(aval == aval2)
 
     def test_in_update(self):
-        a = theano.tensor.dscalar("a")
+        a = tt.dscalar("a")
         f = function([In(a, value=0.0, update=a + 1)], a, mode="FAST_RUN")
 
         # Ensure that, through the executions of the function, the state of the
@@ -106,8 +107,8 @@ class TestFunctionIn:
     def test_in_update_wrong_dtype(self):
         # Ensure that an error is raised if an In-wrapped variables has
         # an update of a different type
-        a = theano.tensor.dscalar("a")
-        b = theano.tensor.dvector("b")
+        a = tt.dscalar("a")
+        b = tt.dvector("b")
         with pytest.raises(TypeError):
             In(a, update=b)
 
@@ -115,7 +116,7 @@ class TestFunctionIn:
         # Test that using both In() with updates and shared variables with
         # updates in the same function behaves as expected
         shared_var = theano.shared(1.0)
-        a = theano.tensor.dscalar("a")
+        a = tt.dscalar("a")
         a_wrapped = In(a, value=0.0, update=shared_var)
         f = function([a_wrapped], [], updates={shared_var: a}, mode="FAST_RUN")
 
@@ -128,9 +129,9 @@ class TestFunctionIn:
             assert np.allclose(shared_var.get_value(), i % 2)
 
     def test_in_allow_downcast_int(self):
-        a = theano.tensor.wvector("a")  # int16
-        b = theano.tensor.bvector("b")  # int8
-        c = theano.tensor.bscalar("c")  # int8
+        a = tt.wvector("a")  # int16
+        b = tt.bvector("b")  # int8
+        c = tt.bscalar("c")  # int8
         f = function(
             [
                 In(a, allow_downcast=True),
@@ -162,9 +163,9 @@ class TestFunctionIn:
             f([3], [6], 806)
 
     def test_in_allow_downcast_floatX(self):
-        a = theano.tensor.fscalar("a")
-        b = theano.tensor.fscalar("b")
-        c = theano.tensor.fscalar("c")
+        a = tt.fscalar("a")
+        b = tt.fscalar("b")
+        c = tt.fscalar("c")
 
         f = function(
             [
@@ -193,9 +194,9 @@ class TestFunctionIn:
                 f(0, 0, 0.1)
 
     def test_in_allow_downcast_vector_floatX(self):
-        a = theano.tensor.fvector("a")
-        b = theano.tensor.fvector("b")
-        c = theano.tensor.fvector("c")
+        a = tt.fvector("a")
+        b = tt.fvector("b")
+        c = tt.fvector("c")
 
         f = function(
             [

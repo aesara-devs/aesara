@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import theano
+import theano.tensor as tt
 from theano.compile.sharedvalue import SharedVariable, generic, shared
 from theano.tensor import Tensor, TensorType
 
@@ -10,11 +11,11 @@ class TestSharedVariable:
     def test_ctors(self):
 
         if theano.configdefaults.python_int_bitwidth() == 32:
-            assert shared(7).type == theano.tensor.iscalar, shared(7).type
+            assert shared(7).type == tt.iscalar, shared(7).type
         else:
-            assert shared(7).type == theano.tensor.lscalar, shared(7).type
-        assert shared(7.0).type == theano.tensor.dscalar
-        assert shared(np.float32(7)).type == theano.tensor.fscalar
+            assert shared(7).type == tt.lscalar, shared(7).type
+        assert shared(7.0).type == tt.dscalar
+        assert shared(np.float32(7)).type == tt.fscalar
 
         # test tensor constructor
         b = shared(np.zeros((5, 5), dtype="int32"))
@@ -119,42 +120,42 @@ class TestSharedVariable:
             var.set_value(val)
 
         b = shared(np.int64(7), strict=True)
-        assert b.type == theano.tensor.lscalar
+        assert b.type == tt.lscalar
         with pytest.raises(TypeError):
             f(b, 8.23)
 
         b = shared(np.int32(7), strict=True)
-        assert b.type == theano.tensor.iscalar
+        assert b.type == tt.iscalar
         with pytest.raises(TypeError):
             f(b, 8.23)
 
         b = shared(np.int16(7), strict=True)
-        assert b.type == theano.tensor.wscalar
+        assert b.type == tt.wscalar
         with pytest.raises(TypeError):
             f(b, 8.23)
 
         b = shared(np.int8(7), strict=True)
-        assert b.type == theano.tensor.bscalar
+        assert b.type == tt.bscalar
         with pytest.raises(TypeError):
             f(b, 8.23)
 
         b = shared(np.float64(7.234), strict=True)
-        assert b.type == theano.tensor.dscalar
+        assert b.type == tt.dscalar
         with pytest.raises(TypeError):
             f(b, 8)
 
         b = shared(np.float32(7.234), strict=True)
-        assert b.type == theano.tensor.fscalar
+        assert b.type == tt.fscalar
         with pytest.raises(TypeError):
             f(b, 8)
 
         b = shared(np.float(7.234), strict=True)
-        assert b.type == theano.tensor.dscalar
+        assert b.type == tt.dscalar
         with pytest.raises(TypeError):
             f(b, 8)
 
         b = shared(7.234, strict=True)
-        assert b.type == theano.tensor.dscalar
+        assert b.type == tt.dscalar
         with pytest.raises(TypeError):
             f(b, 8)
 
@@ -167,32 +168,32 @@ class TestSharedVariable:
             var.set_value(val)
 
         b = shared(np.int64([7]), strict=True)
-        assert b.type == theano.tensor.lvector
+        assert b.type == tt.lvector
         with pytest.raises(TypeError):
             f(b, 8.23)
 
         b = shared(np.int32([7]), strict=True)
-        assert b.type == theano.tensor.ivector
+        assert b.type == tt.ivector
         with pytest.raises(TypeError):
             f(b, 8.23)
 
         b = shared(np.int16([7]), strict=True)
-        assert b.type == theano.tensor.wvector
+        assert b.type == tt.wvector
         with pytest.raises(TypeError):
             f(b, 8.23)
 
         b = shared(np.int8([7]), strict=True)
-        assert b.type == theano.tensor.bvector
+        assert b.type == tt.bvector
         with pytest.raises(TypeError):
             f(b, 8.23)
 
         b = shared(np.float64([7.234]), strict=True)
-        assert b.type == theano.tensor.dvector
+        assert b.type == tt.dvector
         with pytest.raises(TypeError):
             f(b, 8)
 
         b = shared(np.float32([7.234]), strict=True)
-        assert b.type == theano.tensor.fvector
+        assert b.type == tt.fvector
         with pytest.raises(TypeError):
             f(b, 8)
 
@@ -226,42 +227,42 @@ class TestSharedVariable:
             var.set_value(val)
 
         b = shared(np.int64(7), allow_downcast=True)
-        assert b.type == theano.tensor.lscalar
+        assert b.type == tt.lscalar
         f(b, 8.23)
         assert b.get_value() == 8
 
         b = shared(np.int32(7), allow_downcast=True)
-        assert b.type == theano.tensor.iscalar
+        assert b.type == tt.iscalar
         f(b, 8.23)
         assert b.get_value() == 8
 
         b = shared(np.int16(7), allow_downcast=True)
-        assert b.type == theano.tensor.wscalar
+        assert b.type == tt.wscalar
         f(b, 8.23)
         assert b.get_value() == 8
 
         b = shared(np.int8(7), allow_downcast=True)
-        assert b.type == theano.tensor.bscalar
+        assert b.type == tt.bscalar
         f(b, 8.23)
         assert b.get_value() == 8
 
         b = shared(np.float64(7.234), allow_downcast=True)
-        assert b.type == theano.tensor.dscalar
+        assert b.type == tt.dscalar
         f(b, 8)
         assert b.get_value() == 8
 
         b = shared(np.float32(7.234), allow_downcast=True)
-        assert b.type == theano.tensor.fscalar
+        assert b.type == tt.fscalar
         f(b, 8)
         assert b.get_value() == 8
 
         b = shared(np.float(7.234), allow_downcast=True)
-        assert b.type == theano.tensor.dscalar
+        assert b.type == tt.dscalar
         f(b, 8)
         assert b.get_value() == 8
 
         b = shared(7.234, allow_downcast=True)
-        assert b.type == theano.tensor.dscalar
+        assert b.type == tt.dscalar
         f(b, 8)
         assert b.get_value() == 8
 
@@ -274,32 +275,32 @@ class TestSharedVariable:
             var.set_value(val)
 
         b = shared(np.int64([7]), allow_downcast=True)
-        assert b.type == theano.tensor.lvector
+        assert b.type == tt.lvector
         f(b, [8.23])
         assert b.get_value() == 8
 
         b = shared(np.int32([7]), allow_downcast=True)
-        assert b.type == theano.tensor.ivector
+        assert b.type == tt.ivector
         f(b, [8.23])
         assert b.get_value() == 8
 
         b = shared(np.int16([7]), allow_downcast=True)
-        assert b.type == theano.tensor.wvector
+        assert b.type == tt.wvector
         f(b, [8.23])
         assert b.get_value() == 8
 
         b = shared(np.int8([7]), allow_downcast=True)
-        assert b.type == theano.tensor.bvector
+        assert b.type == tt.bvector
         f(b, [8.23])
         assert b.get_value() == 8
 
         b = shared(np.float64([7.234]), allow_downcast=True)
-        assert b.type == theano.tensor.dvector
+        assert b.type == tt.dvector
         f(b, [8])
         assert b.get_value() == 8
 
         b = shared(np.float32([7.234]), allow_downcast=True)
-        assert b.type == theano.tensor.fvector
+        assert b.type == tt.fvector
         f(b, [8])
         assert b.get_value() == 8
 

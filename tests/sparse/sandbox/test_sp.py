@@ -2,6 +2,7 @@ import time
 
 import pytest
 
+import theano.tensor as tt
 
 pytest.importorskip("scipy", minversion="0.7.0")
 
@@ -29,9 +30,9 @@ class TestSP:
         convmodes = ("full", "valid")
 
         # symbolic stuff
-        bias = tensor.dvector()
-        kerns = tensor.dmatrix()
-        input = tensor.dmatrix()
+        bias = tt.dvector()
+        kerns = tt.dmatrix()
+        input = tt.dmatrix()
         rng = np.random.RandomState(3423489)
         filters = rng.randn(nkern, np.prod(kshp))
         biasvals = rng.randn(nkern)
@@ -130,8 +131,8 @@ class TestSP:
         convmodes = ("full",)  # 'valid',)
 
         # symbolic stuff
-        kerns = [tensor.dmatrix(), tensor.dmatrix()]
-        input = tensor.dmatrix()
+        kerns = [tt.dmatrix(), tt.dmatrix()]
+        input = tt.dmatrix()
         # rng = np.random.RandomState(3423489)
 
         # build actual input images
@@ -185,7 +186,7 @@ class TestSP:
         maxpoolshps = ((2, 2), (3, 3), (4, 4), (5, 5), (6, 6))
         imval = np.random.rand(4, 5, 10, 10)
 
-        images = tensor.dmatrix()
+        images = tt.dmatrix()
         for maxpoolshp in maxpoolshps:
 
             # symbolic stuff

@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import theano
+import theano.tensor as tt
 from theano.gof import fg
 from theano.gof.cc import CLinker, DualLinker, OpWiseCLinker
 from theano.gof.graph import Apply, Constant, Variable
@@ -419,7 +420,7 @@ def test_shared_input_output():
     # Test bug reported on the mailing list by Alberto Orlandi
     # https://groups.google.com/d/topic/theano-users/6dLaEqc2R6g/discussion
     # The shared variable is both an input and an output of the function.
-    inc = theano.tensor.iscalar("inc")
+    inc = tt.iscalar("inc")
     state = theano.shared(0)
     state.name = "state"
     linker = theano.gof.CLinker()

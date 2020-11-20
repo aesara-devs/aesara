@@ -1,4 +1,5 @@
 import theano
+import theano.tensor as tt
 from tests.unittest_tools import assertFailure_fast
 from theano import tensor
 from theano.gof.opt import check_stack_trace
@@ -12,11 +13,11 @@ from theano.tensor.nnet.blocksparse import (
 
 
 def test_blocksparse_inplace_gemv_opt():
-    b = tensor.fmatrix()
-    W = tensor.ftensor4()
-    h = tensor.ftensor3()
-    iIdx = tensor.lmatrix()
-    oIdx = tensor.lmatrix()
+    b = tt.fmatrix()
+    W = tt.ftensor4()
+    h = tt.ftensor3()
+    iIdx = tt.lmatrix()
+    oIdx = tt.lmatrix()
 
     o = sparse_block_dot(W, h, iIdx, b, oIdx)
 
@@ -37,11 +38,11 @@ if theano.config.mode != "FAST_COMPILE":
 
 
 def test_blocksparse_inplace_outer_opt():
-    b = tensor.fmatrix()
-    W = tensor.ftensor4()
-    h = tensor.ftensor3()
-    iIdx = tensor.lmatrix()
-    oIdx = tensor.lmatrix()
+    b = tt.fmatrix()
+    W = tt.ftensor4()
+    h = tt.ftensor3()
+    iIdx = tt.lmatrix()
+    oIdx = tt.lmatrix()
 
     o = sparse_block_dot(W, h, iIdx, b, oIdx)
 

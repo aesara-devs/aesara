@@ -9,6 +9,8 @@ import theano
 
 
 # 1. Op returns x * y
+import theano.tensor as tt
+
 
 class ProdOp(theano.Op):
     def __eq__(self, other):
@@ -114,8 +116,8 @@ class TestProdOp(utt.InferShapeTester):
                         n_tests=1, rng=TestProdOp.rng)
 
     def test_infer_shape(self):
-        x = tensor.dmatrix()
-        y = tensor.dmatrix()
+        x = tt.dmatrix()
+        y = tt.dmatrix()
 
         self._compile_and_check([x, y], [self.op_class()(x, y)],
                                 [np.random.rand(5, 6),
@@ -155,8 +157,8 @@ class TestSumDiffOp(utt.InferShapeTester):
                         n_tests=1, rng=TestSumDiffOp.rng)
 
     def test_infer_shape(self):
-        x = tensor.dmatrix()
-        y = tensor.dmatrix()
+        x = tt.dmatrix()
+        y = tt.dmatrix()
 
         # adapt the choice of the next instruction to the op under test
 
@@ -177,8 +179,8 @@ def infer_shape_numpy_dot(node, input_shapes):
     return [ashp[:-1] + bshp[-1:]]
 
 
-@as_op(itypes=[theano.tensor.fmatrix, theano.tensor.fmatrix],
-       otypes=[theano.tensor.fmatrix], infer_shape=infer_shape_numpy_dot)
+@as_op(itypes=[tt.fmatrix, tt.fmatrix],
+       otypes=[tt.fmatrix], infer_shape=infer_shape_numpy_dot)
 def numpy_add(a, b):
     return np.add(a, b)
 
@@ -189,14 +191,14 @@ def infer_shape_numpy_add_sub(node, input_shapes):
     return [ashp[0]]
 
 
-@as_op(itypes=[theano.tensor.fmatrix, theano.tensor.fmatrix],
-       otypes=[theano.tensor.fmatrix], infer_shape=infer_shape_numpy_add_sub)
+@as_op(itypes=[tt.fmatrix, tt.fmatrix],
+       otypes=[tt.fmatrix], infer_shape=infer_shape_numpy_add_sub)
 def numpy_add(a, b):
     return np.add(a, b)
 
 
-@as_op(itypes=[theano.tensor.fmatrix, theano.tensor.fmatrix],
-       otypes=[theano.tensor.fmatrix], infer_shape=infer_shape_numpy_add_sub)
+@as_op(itypes=[tt.fmatrix, tt.fmatrix],
+       otypes=[tt.fmatrix], infer_shape=infer_shape_numpy_add_sub)
 def numpy_sub(a, b):
     return np.sub(a, b)
 

@@ -23,6 +23,7 @@ import pytest
 import theano
 import theano.sandbox.rng_mrg
 import theano.scalar.sharedvar
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import tensor
 from theano.compile.function.pfunc import rebuild_collect_shared
@@ -223,7 +224,7 @@ class TestScan:
             return 2 * x_tm1
 
         state = theano.tensor.scalar("state")
-        n_steps = theano.tensor.iscalar("nsteps")
+        n_steps = tt.iscalar("nsteps")
         output, updates = scan(
             f_pow2,
             [],
@@ -269,7 +270,7 @@ class TestScan:
             return 2 * x_tm1
 
         state = theano.tensor.scalar("state")
-        n_steps = theano.tensor.iscalar("nsteps")
+        n_steps = tt.iscalar("nsteps")
         output, updates = scan(f_pow2, [], state, [], n_steps=n_steps)
 
         f = theano.function(
@@ -304,7 +305,7 @@ class TestScan:
             return 2 * x_tm1
 
         state = theano.tensor.scalar("state")
-        n_steps = theano.tensor.iscalar("nsteps")
+        n_steps = tt.iscalar("nsteps")
         # Test return_list at the same time.
         output, updates = scan(
             f_pow2,
@@ -337,7 +338,7 @@ class TestScan:
             return 2 * x_tm1
 
         state = theano.tensor.vector("state")
-        n_steps = theano.tensor.iscalar("nsteps")
+        n_steps = tt.iscalar("nsteps")
         output, updates = scan(
             f_pow2,
             [],
@@ -347,7 +348,7 @@ class TestScan:
             truncate_gradient=-1,
             go_backwards=False,
         )
-        nw_shape = tensor.ivector("nw_shape")
+        nw_shape = tt.ivector("nw_shape")
         # Note that the output is reshaped to 3 dimensional tensor, and
         my_f = theano.function(
             [state, n_steps, nw_shape],
@@ -610,7 +611,7 @@ class TestScan:
     def test_using_taps_sequence(self):
         # this test refers to a bug reported by Nicolas
         # Boulanger-Lewandowski June 6th
-        x = theano.tensor.dvector()
+        x = tt.dvector()
         y, updates = scan(
             lambda x: [x], sequences=dict(input=x, taps=[-1]), outputs_info=[None]
         )
@@ -624,7 +625,7 @@ class TestScan:
         def lp(x, x2):
             return x
 
-        x = tensor.fvector("x")
+        x = tt.fvector("x")
         res, upd = scan(lp, sequences=dict(input=x, taps=[-2, -1]))
         f = theano.function([x], res, updates=upd)
 
@@ -775,7 +776,7 @@ class TestScan:
 
         # data input & output
         x = tensor.tensor3("x")
-        t = tensor.imatrix("t")
+        t = tt.imatrix("t")
 
         # forward pass
         W = theano.shared(
@@ -1148,9 +1149,9 @@ class TestScan:
         utt.assert_allclose(W2.get_value(), numpy_W2)
 
     def test_grad_dtype_change(self):
-        x = tensor.fscalar("x")
-        y = tensor.fscalar("y")
-        c = tensor.iscalar("c")
+        x = tt.fscalar("x")
+        y = tt.fscalar("y")
+        c = tt.iscalar("c")
 
         def inner_fn(cond, x, y):
             new_cond = tensor.cast(tensor.switch(cond, x, y), "int32")
@@ -1287,7 +1288,7 @@ class TestScan:
         def f_2():
             return OrderedDict([(state, 2 * state)])
 
-        n_steps = theano.tensor.iscalar("nstep")
+        n_steps = tt.iscalar("nstep")
         output, updates = scan(
             f_2, [], [], [], n_steps=n_steps, truncate_gradient=-1, go_backwards=False
         )
@@ -1826,7 +1827,7 @@ for{cpu,scan_fn}.2 [id H] ''
 
         W_in = theano.tensor.matrix("win")
         u = theano.tensor.matrix("u1")
-        u2 = theano.tensor.ivector("u2")
+        u2 = tt.ivector("u2")
         x0 = theano.tensor.vector("x0", dtype=theano.config.floatX)
         # trng  = theano.tensor.shared_randomstreams.RandomStreams(
         #                                               utt.fetch_seed())
@@ -2238,8 +2239,8 @@ for{cpu,scan_fn}.2 [id H] ''
         # function that scan uses internally and that pfunc uses now and
         # that users might want to use
         x = theano.tensor.vector("x")
-        y = theano.tensor.fvector("y")
-        y2 = theano.tensor.dvector("y2")
+        y = tt.fvector("y")
+        y2 = tt.dvector("y2")
         z = theano.shared(0.25)
 
         f1 = z * (x + y) ** 2 + 5
@@ -2272,8 +2273,8 @@ for{cpu,scan_fn}.2 [id H] ''
         # function that scan uses internally and that pfunc uses now and
         # that users might want to use
         x = theano.tensor.vector("x")
-        y = theano.tensor.fvector("y")
-        y2 = theano.tensor.dvector("y2")
+        y = tt.fvector("y")
+        y2 = tt.dvector("y2")
         z = theano.shared(0.25)
 
         f1 = z * (x + y) ** 2 + 5
@@ -2349,9 +2350,9 @@ for{cpu,scan_fn}.2 [id H] ''
     def test_scan_as_tensor_on_gradients(self):
         # Bug reported by cityhall on scan when computing the gradients
 
-        to_scan = theano.tensor.dvector("to_scan")
-        seq = theano.tensor.dmatrix("seq")
-        f1 = theano.tensor.dscalar("f1")
+        to_scan = tt.dvector("to_scan")
+        seq = tt.dmatrix("seq")
+        f1 = tt.dscalar("f1")
 
         def scanStep(prev, seq, f1):
             return prev + f1 * seq
@@ -2475,8 +2476,8 @@ for{cpu,scan_fn}.2 [id H] ''
             )
 
         u = theano.tensor.vector("u")
-        idx = theano.tensor.iscalar("idx")
-        jdx = theano.tensor.iscalar("jdx")
+        idx = tt.iscalar("idx")
+        jdx = tt.iscalar("jdx")
         [x1, x2, x3, x4, x5, x6, x7], updates = scan(
             f_rnn, u, n_steps=None, truncate_gradient=-1, go_backwards=False
         )
@@ -2610,8 +2611,8 @@ for{cpu,scan_fn}.2 [id H] ''
         # recurrent output of a scan node associated with a state with a
         # state with broadcastable dimensions
 
-        x = tensor.dcol()
-        seq = tensor.dcol()
+        x = tt.dcol()
+        seq = tt.dcol()
         outputs_info = [x, tensor.zeros_like(x)]
         (out1, out2), updates = scan(
             lambda a, b, c: (a + b, a + c), sequences=seq, outputs_info=outputs_info
@@ -2667,9 +2668,9 @@ for{cpu,scan_fn}.2 [id H] ''
         # case of a complicated inner graph involving sequences and recurrent
         # states
 
-        seq = tensor.lvector()
-        sitsot_init = tensor.lscalar()
-        mitsot_init = tensor.lvector()
+        seq = tt.lvector()
+        sitsot_init = tt.lscalar()
+        mitsot_init = tt.lvector()
 
         def step(seq1, sitsot_m1, mitsot_m2, mitsot_m1):
             # Every iteration, the sitsot state decreases and the mitsot state
@@ -2879,10 +2880,10 @@ for{cpu,scan_fn}.2 [id H] ''
 
         # variables used in the following expressions
         hyp = theano.shared(hypx)
-        inputs = tensor.dmatrix("X")
-        targets = tensor.dmatrix("Y")
-        x_star = tensor.dvector("x_star")
-        s_star = tensor.dmatrix("s_star")
+        inputs = tt.dmatrix("X")
+        targets = tt.dmatrix("Y")
+        x_star = tt.dvector("x_star")
+        s_star = tt.dmatrix("s_star")
 
         M = init_predictive_output(inputs, targets, hyp, x_star, s_star)
 
@@ -2978,7 +2979,7 @@ for{cpu,scan_fn}.2 [id H] ''
         # This test is checking a bug discovered by Arnaud and it is based
         # on his code
 
-        x = theano.tensor.fmatrix("x")
+        x = tt.fmatrix("x")
 
         mem_val = np.zeros((2,), dtype="float32")
         memory = theano.shared(mem_val)
@@ -3610,8 +3611,8 @@ for{cpu,scan_fn}.2 [id H] ''
     def test_bugFunctioProvidesIntermediateNodesAsInputs(self):
         # This is a bug recently reported by Ilya
         # made it CPU friendly
-        V = tensor.ftensor3("INPUT")
-        orig = tensor.fmatrix("PARAM")
+        V = tt.ftensor3("INPUT")
+        orig = tt.fmatrix("PARAM")
         # = gpu_from_host(orig)  # <-- this doesn't work
         W = orig + 2  # <-- has same effect but it works on CPU as well
         # W = T.fmatrix('PARAM') # <-- this line works
@@ -4188,7 +4189,7 @@ for{cpu,scan_fn}.2 [id H] ''
         cost = ((hidden_rec - target) ** 2).mean()
         d_cost_wrt_pars = tensor.grad(cost, pars)
 
-        p = tensor.dvector()
+        p = tt.dvector()
         tensor.Rop(d_cost_wrt_pars, pars, p)
 
     def test_seq_tap_bug_jeremiah(self):
@@ -4340,7 +4341,7 @@ for{cpu,scan_fn}.2 [id H] ''
         # gradient through a scan with a non-recurrent output which would
         # receive a disconnected gradient
 
-        v = tensor.dvector("v")
+        v = tt.dvector("v")
 
         def step(seq):
             out1 = seq + 1
@@ -4473,7 +4474,7 @@ for{cpu,scan_fn}.2 [id H] ''
 
     def test_grad_bug_disconnected_input(self):
         W = theano.shared(np.zeros((3, 3)), name="W")
-        v = theano.tensor.ivector(name="v")
+        v = tt.ivector(name="v")
         y, _ = theano.scan(
             lambda i, W: W[i], sequences=v, outputs_info=None, non_sequences=W
         )
@@ -4502,7 +4503,7 @@ for{cpu,scan_fn}.2 [id H] ''
 
     def test_grad_find_input(self):
         w = theano.shared(np.array(0, dtype="float32"), name="w")
-        init = tensor.fscalar("init")
+        init = tt.fscalar("init")
 
         out, _ = theano.scan(
             fn=lambda prev: w,
@@ -4538,7 +4539,7 @@ for{cpu,scan_fn}.2 [id H] ''
         # Test the opt remove_constants_and_unused_inputs_scan for
         # non sequences.
         W = theano.tensor.matrix(name="W")
-        v = theano.tensor.ivector(name="v")
+        v = tt.ivector(name="v")
         y1, _ = theano.scan(
             lambda i, W: W[i], sequences=v, outputs_info=None, non_sequences=[W]
         )
@@ -4597,7 +4598,7 @@ for{cpu,scan_fn}.2 [id H] ''
     def test_remove_constants_and_unused_inputs_scan_seqs(self):
         # Test the opt remove_constants_and_unused_inputs_scan for sequences.
         W = theano.tensor.matrix(name="W")
-        v = theano.tensor.ivector(name="v")
+        v = tt.ivector(name="v")
         vv = theano.tensor.matrix(name="vv")
         y1, _ = theano.scan(
             lambda i, W: W[i], sequences=v, outputs_info=None, non_sequences=[W]
@@ -4673,8 +4674,8 @@ for{cpu,scan_fn}.2 [id H] ''
         # NOTE : The test to reproduce the bug reported by Bitton Tenessi
         # was modified from its original version to be faster to run.
 
-        W = tensor.fvector(name="W")
-        n_steps = tensor.iscalar(name="Nb_steps")
+        W = tt.fvector(name="W")
+        n_steps = tt.iscalar(name="Nb_steps")
 
         def loss_outer(sum_outer, W):
             def loss_inner(sum_inner, W):
@@ -4756,7 +4757,7 @@ for{cpu,scan_fn}.2 [id H] ''
     def test_monitor_mode(self):
         # Test that it is possible to pass an instance of MonitorMode
         # to the inner function
-        k = tensor.iscalar("k")
+        k = tt.iscalar("k")
         A = tensor.vector("A")
 
         # Build a MonitorMode that counts how many values are greater than 10
@@ -5031,7 +5032,7 @@ def test_compute_test_value_grad():
     WEIGHT = np.array([1, 2, 1, 3, 4, 1, 5, 6, 1, 7, 8, 1], dtype="float32")
 
     with theano.change_flags(compute_test_value="raise", exception_verbosity="high"):
-        W_flat = tensor.fvector(name="W")
+        W_flat = tt.fvector(name="W")
         W_flat.tag.test_value = WEIGHT
         W = W_flat.reshape((2, 2, 3))
 
@@ -5101,8 +5102,8 @@ def test_constant_folding_n_steps():
 
 def test_outputs_taps_check():
     # Checks that errors are raised with bad output_info taps.
-    x = tensor.fvector("x")
-    y = tensor.fvector("y")
+    x = tt.fvector("x")
+    y = tt.fvector("y")
 
     def f(x, y):
         return [x]
@@ -5257,7 +5258,7 @@ class TestGradUntil:
 
 def test_condition_hidden_inp():
     max_value = theano.tensor.scalar("max_value")
-    n_steps = theano.tensor.iscalar("n_steps")
+    n_steps = tt.iscalar("n_steps")
 
     def accum(prev_value, step):
         new_value = prev_value + step
@@ -5273,7 +5274,7 @@ def test_condition_hidden_inp():
 
 
 def test_mintap_onestep():
-    seq = theano.tensor.ivector("seq")
+    seq = tt.ivector("seq")
     seq_info = dict(input=seq, taps=[2])
 
     def accum(seq_t, prev_sum):

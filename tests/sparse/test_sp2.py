@@ -1,5 +1,6 @@
 import pytest
 
+import theano.tensor as tt
 
 sp = pytest.importorskip("scipy", minversion="0.7.0")
 
@@ -60,7 +61,7 @@ class TestPoisson(utt.InferShapeTester):
 class TestBinomial(utt.InferShapeTester):
     n = tensor.scalar(dtype="int64")
     p = tensor.scalar()
-    shape = tensor.lvector()
+    shape = tt.lvector()
     _n = 5
     _p = 0.25
     _shape = np.asarray([3, 5], dtype="int64")
@@ -116,7 +117,7 @@ class TestMultinomial(utt.InferShapeTester):
         self.op_class = Multinomial
 
     def test_op(self):
-        n = tensor.lscalar()
+        n = tt.lscalar()
         f = theano.function([self.p, n], multinomial(n, self.p))
 
         _n = 5
@@ -125,7 +126,7 @@ class TestMultinomial(utt.InferShapeTester):
         assert np.allclose(np.floor(tested.todense()), tested.todense())
         assert tested[2, 1] == _n
 
-        n = tensor.lvector()
+        n = tt.lvector()
         f = theano.function([self.p, n], multinomial(n, self.p))
 
         _n = np.asarray([1, 2, 3, 4], dtype="int64")

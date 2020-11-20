@@ -5,6 +5,7 @@ import numpy.linalg
 import pytest
 
 import theano
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import config, function, grad, tensor
 from theano.tensor.slinalg import (
@@ -127,8 +128,8 @@ def test_cholesky_and_cholesky_grad_shape():
 def test_eigvalsh():
     scipy = pytest.importorskip("scipy")
 
-    A = theano.tensor.dmatrix("a")
-    B = theano.tensor.dmatrix("b")
+    A = tt.dmatrix("a")
+    B = tt.dmatrix("b")
     f = function([A, B], eigvalsh(A, B))
 
     rng = np.random.RandomState(utt.fetch_seed())

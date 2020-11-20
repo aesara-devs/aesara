@@ -13,6 +13,7 @@ from collections import OrderedDict
 import numpy as np
 
 import theano
+import theano.tensor as tt
 from theano.gof import Apply, Op, ParamsType, Variable
 
 
@@ -255,7 +256,7 @@ class Shape(Op):
         # This will fail at execution time.
         if not isinstance(x, theano.Variable):
             x = theano.tensor.as_tensor_variable(x)
-        return Apply(self, [x], [theano.tensor.lvector()])
+        return Apply(self, [x], [tt.lvector()])
 
     def perform(self, node, inp, out_):
         (x,) = inp
@@ -374,7 +375,7 @@ class Shape_i(Op):
             raise TypeError("x must be Variable with ndim attribute", x)
         if x.ndim <= self.i:
             raise TypeError("x has too few dimensions for Shape_i", (x, self.i))
-        return theano.Apply(self, [x], [theano.tensor.lscalar()])
+        return theano.Apply(self, [x], [tt.lscalar()])
 
     def perform(self, node, inp, out_, params):
         (x,) = inp

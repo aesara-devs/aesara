@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import theano
+import theano.tensor as tt
 from theano import function, tensor
 
 
@@ -36,7 +37,7 @@ class TestKeepDims:
     @pytest.mark.slow
     def test_keepdims(self):
 
-        x = tensor.dtensor3()
+        x = tt.dtensor3()
         a = np.random.rand(3, 2, 4)
         # We don't need to test all opt and C code, as this is tested
         # by the ops tests.
@@ -172,7 +173,7 @@ class TestKeepDims:
 
     def test_norm(self):
 
-        x = tensor.dtensor3()
+        x = tt.dtensor3()
         a = np.random.rand(3, 2, 4).astype(theano.config.floatX)
         mode = theano.compile.Mode(optimizer="fast_compile", linker="py")
 

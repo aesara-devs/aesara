@@ -1,5 +1,6 @@
 import numpy as np
 
+import theano.tensor as tt
 from theano import gof, tensor
 
 
@@ -24,7 +25,7 @@ class Minimal(gof.Op):
 
     def make_node(self, *args):
         # HERE `args` must be THEANO VARIABLES
-        return gof.Apply(op=self, inputs=args, outputs=[tensor.lscalar()])
+        return gof.Apply(op=self, inputs=args, outputs=[tt.lscalar()])
 
     def perform(self, node, inputs, out_):
         (output,) = out_

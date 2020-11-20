@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 import theano
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import change_flags, config, tensor
 from theano.sandbox import rng_mrg
@@ -862,12 +863,12 @@ def test_gradient_scan():
 
 
 def test_multMatVect():
-    A1 = tensor.lmatrix("A1")
-    s1 = tensor.ivector("s1")
-    m1 = tensor.iscalar("m1")
-    A2 = tensor.lmatrix("A2")
-    s2 = tensor.ivector("s2")
-    m2 = tensor.iscalar("m2")
+    A1 = tt.lmatrix("A1")
+    s1 = tt.ivector("s1")
+    m1 = tt.iscalar("m1")
+    A2 = tt.lmatrix("A2")
+    s2 = tt.ivector("s2")
+    m2 = tt.iscalar("m2")
 
     g0 = rng_mrg.DotModulo()(A1, s1, m1, A2, s2, m2)
     f0 = theano.function([A1, s1, m1, A2, s2, m2], g0)
@@ -898,7 +899,7 @@ def test_multMatVect():
 
 
 def test_seed_fn():
-    idx = tensor.ivector()
+    idx = tt.ivector()
 
     for new_seed, same in [(234, True), (None, True), (23, False)]:
         random = MRG_RandomStreams(234)

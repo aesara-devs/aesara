@@ -6,6 +6,7 @@ import pytest
 from packaging import version
 
 import theano
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.tensor.test_sharedvar import makeSharedTester
 from theano import config, gof, sparse, tensor
@@ -403,9 +404,9 @@ class TestSparseInferShape(utt.InferShapeTester):
     def test_csm(self):
         for sparsetype in ("csr", "csc"):
             x = tensor.vector()
-            y = tensor.ivector()
-            z = tensor.ivector()
-            s = tensor.ivector()
+            y = tt.ivector()
+            z = tt.ivector()
+            s = tt.ivector()
             call = getattr(sp.sparse, sparsetype + "_matrix")
             spm = call(random_lil((300, 400), config.floatX, 5))
             out = CSM(sparsetype)(x, y, z, s)
@@ -416,9 +417,9 @@ class TestSparseInferShape(utt.InferShapeTester):
     def test_csm_grad(self):
         for sparsetype in ("csr", "csc"):
             x = tensor.vector()
-            y = tensor.ivector()
-            z = tensor.ivector()
-            s = tensor.ivector()
+            y = tt.ivector()
+            z = tt.ivector()
+            s = tt.ivector()
             call = getattr(sp.sparse, sparsetype + "_matrix")
             spm = call(random_lil((300, 400), config.floatX, 5))
             out = tensor.grad(dense_from_sparse(CSM(sparsetype)(x, y, z, s)).sum(), x)
@@ -605,7 +606,7 @@ class TestSparseInferShape(utt.InferShapeTester):
     def test_sparse_from_list(self):
         x = tensor.matrix("x")
         vals = tensor.matrix("vals")
-        ilist = tensor.lvector("ilist")
+        ilist = tt.lvector("ilist")
 
         out = construct_sparse_from_list(x, vals, ilist)
         self._compile_and_check(
@@ -622,7 +623,7 @@ class TestSparseInferShape(utt.InferShapeTester):
 
 class TestConstructSparseFromList:
     def test_adv_sub1_sparse_grad(self):
-        v = theano.tensor.ivector()
+        v = tt.ivector()
 
         # Assert we don't create a sparse grad by default
         m = theano.tensor.matrix()
@@ -633,7 +634,7 @@ class TestConstructSparseFromList:
         # Test that we create a sparse grad when asked
         # USER INTERFACE
         m = theano.tensor.matrix()
-        v = theano.tensor.ivector()
+        v = tt.ivector()
         sub = theano.sparse_grad(m[v])
         g = theano.grad(sub.sum(), m)
         assert isinstance(g.owner.op, ConstructSparseFromList)
@@ -641,7 +642,7 @@ class TestConstructSparseFromList:
         # Test that we create a sparse grad when asked
         # Op INTERFACE
         m = theano.tensor.matrix()
-        v = theano.tensor.ivector()
+        v = tt.ivector()
         sub = theano.tensor.AdvancedSubtensor1(sparse_grad=True)(m, v)
         g = theano.grad(sub.sum(), m)
         assert isinstance(g.owner.op, ConstructSparseFromList)
@@ -662,7 +663,7 @@ class TestConstructSparseFromList:
             t = theano.tensor.TensorType(
                 dtype=config.floatX, broadcastable=(False,) * ndim
             )()
-            v = theano.tensor.ivector()
+            v = tt.ivector()
             sub = t[v]
 
             # Assert we don't create a sparse grad by default
@@ -1128,9 +1129,9 @@ class TestCsm:
         for format in ["csc", "csr"]:
             for dtype in ["float32", "float64"]:
                 x = tensor.tensor(dtype=dtype, broadcastable=(False,))
-                y = tensor.ivector()
-                z = tensor.ivector()
-                s = tensor.ivector()
+                y = tt.ivector()
+                z = tt.ivector()
+                s = tt.ivector()
 
                 a = as_sparse_variable(sp_types[format](random_lil((4, 3), dtype, 1)))
 
@@ -1181,9 +1182,9 @@ class TestCsm:
         for format in ["csc", "csr"]:
             for dtype in ["float32", "float64"]:
                 x = tensor.tensor(dtype=dtype, broadcastable=(False,))
-                y = tensor.ivector()
-                z = tensor.ivector()
-                s = tensor.ivector()
+                y = tt.ivector()
+                z = tt.ivector()
+                s = tt.ivector()
                 f = theano.function([x, y, z, s], CSM(format)(x, y, z, s))
 
                 spmat = sp_types[format](random_lil((4, 3), dtype, 3))
@@ -2380,12 +2381,12 @@ class TestGetItem:
         sparse_formats = ("csc", "csr")
         for format in sparse_formats:
             x = theano.sparse.matrix(format, name="x")
-            a = theano.tensor.iscalar("a")
-            b = theano.tensor.iscalar("b")
-            c = theano.tensor.iscalar("c")
-            d = theano.tensor.iscalar("d")
-            e = theano.tensor.iscalar("e")
-            f = theano.tensor.iscalar("f")
+            a = tt.iscalar("a")
+            b = tt.iscalar("b")
+            c = tt.iscalar("c")
+            d = tt.iscalar("d")
+            e = tt.iscalar("e")
+            f = tt.iscalar("f")
 
             # index
             m = 1
@@ -2526,11 +2527,11 @@ class TestGetItem:
 
                 # Advanced indexing is not supported
                 with pytest.raises(ValueError):
-                    x.__getitem__((tensor.ivector("l"), slice(a, b)))
+                    x.__getitem__((tt.ivector("l"), slice(a, b)))
 
                 # Indexing with random things is not supported either
                 with pytest.raises(ValueError):
-                    x.__getitem__(slice(tensor.fscalar("f"), None))
+                    x.__getitem__(slice(tt.fscalar("f"), None))
                 with pytest.raises(ValueError):
                     x.__getitem__((slice(None), slice([1, 3, 4], None)))
 
@@ -2538,8 +2539,8 @@ class TestGetItem:
         sparse_formats = ("csc", "csr")
         for format in sparse_formats:
             x = theano.sparse.csc_matrix("x")
-            a = theano.tensor.iscalar()
-            b = theano.tensor.iscalar()
+            a = tt.iscalar()
+            b = tt.iscalar()
 
             m = 50
             n = 42

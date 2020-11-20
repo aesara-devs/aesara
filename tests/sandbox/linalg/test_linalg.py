@@ -3,6 +3,7 @@ import numpy.linalg
 import pytest
 
 import theano
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.test_rop import break_op
 from theano import config, function, tensor
@@ -156,8 +157,8 @@ def test_tag_solve_triangular():
 def test_matrix_inverse_solve():
     if not imported_scipy:
         pytest.skip("Scipy needed for the Solve op.")
-    A = theano.tensor.dmatrix("A")
-    b = theano.tensor.dmatrix("b")
+    A = tt.dmatrix("A")
+    b = tt.dmatrix("b")
     node = matrix_inverse(A).dot(b).owner
     [out] = inv_as_solve.transform(node)
     assert isinstance(out.owner.op, Solve)

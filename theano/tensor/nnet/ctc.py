@@ -2,6 +2,7 @@ import os
 import sys
 
 import theano.tensor as tt
+import theano.tensor as tt
 from theano import config, gof
 from theano.gof import local_optimizer
 from theano.gof.cmodule import GCC_compiler

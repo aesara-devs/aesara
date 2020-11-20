@@ -13,6 +13,7 @@ import pytest
 
 import tests.unittest_tools as utt
 import theano
+import theano.tensor as tt
 from theano import gof
 from theano.gof import FunctionGraph
 from theano.scalar.basic import (
@@ -418,7 +419,7 @@ def test_grad_switch():
 
 def test_grad_identity():
     # Check that the grad method of Identity correctly handles int dytpes
-    x = theano.tensor.imatrix("x")
+    x = tt.imatrix("x")
     # tensor_copy is Elemwise{Identity}
     y = theano.tensor.tensor_copy(x)
     l = y.sum(dtype=theano.config.floatX)
@@ -429,9 +430,9 @@ def test_grad_inrange():
     for bound_definition in [(True, True), (False, False)]:
         # Instantiate op, and then take the gradient
         op = InRange(*bound_definition)
-        x = theano.tensor.fscalar("x")
-        low = theano.tensor.fscalar("low")
-        high = theano.tensor.fscalar("high")
+        x = tt.fscalar("x")
+        low = tt.fscalar("low")
+        high = tt.fscalar("high")
         out = op(x, low, high)
         gx, glow, ghigh = theano.tensor.grad(out, [x, low, high])
 
@@ -452,7 +453,7 @@ def test_grad_inrange():
 
 
 def test_grad_abs():
-    a = theano.tensor.fscalar("a")
+    a = tt.fscalar("a")
     b = theano.tensor.nnet.relu(a)
     c = theano.grad(b, a)
     f = theano.function([a], c, mode=theano.Mode(optimizer=None))

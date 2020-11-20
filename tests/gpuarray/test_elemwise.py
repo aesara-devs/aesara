@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import theano
-
+import theano.tensor as tt
 
 pygpu = pytest.importorskip("pygpu")
 gpuarray = pygpu.ndgpuarray
@@ -196,9 +196,9 @@ class TestMathErrorFunctions:
 
 class TestFloat16:
     def test_composite_elemwise_float16(self):
-        w = theano.tensor.bvector()
+        w = tt.bvector()
         x = theano.tensor.vector(dtype="float16")
-        y = theano.tensor.fvector()
+        y = tt.fvector()
 
         cz = tensor.tanh(x + tensor.cast(y, "float16"))
         o = (
@@ -223,8 +223,8 @@ class TestFloat16:
 
     def test_cast_float16(self):
         f16 = theano.tensor.vector(dtype="float16")
-        f32 = theano.tensor.fvector()
-        i8 = theano.tensor.bvector()
+        f32 = tt.fvector()
+        i8 = tt.bvector()
         f = theano.function(
             [f16, f32, i8],
             [
@@ -502,6 +502,6 @@ class TestGpuReduceDtype(test_elemwise.TestReduceDtype):
 
 def speed_reduce10():
     data = np.random.rand(1000, 1000).astype("float32")
-    m = theano.tensor.fmatrix()
+    m = tt.fmatrix()
     f = theano.function([m], [m.sum(axis=0), m.T.sum(axis=0)], mode=mode_with_gpu)
     f(data)

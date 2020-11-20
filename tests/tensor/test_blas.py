@@ -21,6 +21,7 @@ from numpy.testing import assert_array_almost_equal
 import theano
 import theano.tensor as tt
 import theano.tensor.blas_scipy
+import theano.tensor as tt
 from tests import unittest_tools
 from tests.tensor.utils import inplace_func
 from theano import In, config, shared

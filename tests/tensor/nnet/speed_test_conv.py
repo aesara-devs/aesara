@@ -3,6 +3,7 @@ import time
 import numpy as N
 
 import theano.tensor as tt
+import theano.tensor as tt
 from theano import Mode, function
 from theano.tensor.nnet.conv import ConvOp
 

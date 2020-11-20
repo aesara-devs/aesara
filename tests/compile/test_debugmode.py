@@ -5,13 +5,14 @@ import pytest
 
 import theano
 import theano.tensor
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import config, gof
 from theano.compile import debugmode
 
 
 def test_debugmode_basic():
-    x = theano.tensor.dvector()
+    x = tt.dvector()
     f = theano.function([x], ((2.0 * x) + 7) / 2.0, mode=debugmode.DebugMode())
     f([1, 2])
 
@@ -194,8 +195,8 @@ wb1 = WeirdBrokenOp("times1")
 )
 def test_badthunkoutput():
     # Check if the c and python code is consistent.
-    a = theano.tensor.dvector()
-    b = theano.tensor.dvector()
+    a = tt.dvector()
+    b = tt.dvector()
 
     f_good = theano.function(
         [a, b],
@@ -228,8 +229,8 @@ def test_badoptimization():
     edb.register("insert_broken_add", insert_broken_add, "all")
     opt = edb.query("+all")
 
-    a = theano.tensor.dvector()
-    b = theano.tensor.dvector()
+    a = tt.dvector()
+    b = tt.dvector()
 
     f = theano.function([a, b], a + b, mode=debugmode.DebugMode(optimizer=opt))
 
@@ -269,8 +270,8 @@ def test_badoptimization_opt_err():
     edb2.register("insert_bad_dtype", insert_bad_dtype, "all")
     opt2 = edb2.query("+all")
 
-    a = theano.tensor.dvector()
-    b = theano.tensor.dvector()
+    a = tt.dvector()
+    b = tt.dvector()
 
     f = theano.function([a, b], a + b, mode=debugmode.DebugMode(optimizer=opt))
     with pytest.raises(ValueError, match=r"insert_bigger_b_add"):
@@ -321,8 +322,8 @@ def test_stochasticoptimization():
     edb.register("insert_broken_add_sometimes", insert_broken_add_sometimes, "all")
     opt = edb.query("+all")
 
-    a = theano.tensor.dvector()
-    b = theano.tensor.dvector()
+    a = tt.dvector()
+    b = tt.dvector()
 
     with pytest.raises(debugmode.StochasticOrder):
         theano.function(
@@ -340,7 +341,7 @@ def test_stochasticoptimization():
     not theano.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_just_c_code():
-    x = theano.tensor.dvector()
+    x = tt.dvector()
     f = theano.function([x], wb2(x), mode=debugmode.DebugMode(check_py_code=False))
     assert np.all(f([1, 2]) == [2, 4])
 
@@ -357,8 +358,8 @@ def test_baddestroymap():
             c[0] = a
             c[0] += b
 
-    x = theano.tensor.dvector()
-    y = theano.tensor.dvector()
+    x = tt.dvector()
+    y = tt.dvector()
     f = theano.function([x, y], BadAdd()(x, y), mode="DEBUG_MODE")
 
     with pytest.raises(debugmode.BadDestroyMap):
@@ -369,7 +370,7 @@ def test_baddestroymap():
     not theano.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_baddestroymap_c():
-    x = theano.tensor.dvector()
+    x = tt.dvector()
     f = theano.function([x], wb2i(x), mode=debugmode.DebugMode(check_py_code=False))
     with pytest.raises(debugmode.BadDestroyMap):
         assert np.all(f([1, 2]) == [2, 4])
@@ -397,15 +398,15 @@ class TestViewMap:
             c[0] = b[1:3]
 
     def test_badviewmap_ref(self):
-        x = theano.tensor.dvector()
-        y = theano.tensor.dvector()
+        x = tt.dvector()
+        y = tt.dvector()
         f = theano.function([x, y], self.BadAddRef()(x, y), mode="DEBUG_MODE")
         with pytest.raises(debugmode.BadViewMap):
             f([1, 2], [3, 4])
 
     def test_badviewmap_slice(self):
-        x = theano.tensor.dvector()
-        y = theano.tensor.dvector()
+        x = tt.dvector()
+        y = tt.dvector()
         f = theano.function([x, y], self.BadAddSlice()(x, y), mode="DEBUG_MODE")
         with pytest.raises(debugmode.BadViewMap):
             f([1, 2], [3, 4])
@@ -413,8 +414,8 @@ class TestViewMap:
     def test_goodviewmap(self):
         goodop = self.BadAddRef()
         goodop.view_map = {0: [1]}
-        x = theano.tensor.dvector()
-        y = theano.tensor.dvector()
+        x = tt.dvector()
+        y = tt.dvector()
         f = theano.function([x, y], goodop(x, y), mode="DEBUG_MODE")
         # Shouldn't raise an error
         f([1, 5, 1], [3, 4, 2, 1, 4])
@@ -423,7 +424,7 @@ class TestViewMap:
         not theano.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_badviewmap_c(self):
-        x = theano.tensor.dvector()
+        x = tt.dvector()
         f = theano.function([x], wb1i(x), mode=debugmode.DebugMode(check_py_code=False))
         with pytest.raises(debugmode.BadViewMap):
             f([1, 2])
@@ -445,8 +446,8 @@ class TestViewMap:
                 c[0] = a
                 d[0] = a[1:]
 
-        x = theano.tensor.dvector("x")
-        y = theano.tensor.dvector("y")
+        x = tt.dvector("x")
+        y = tt.dvector("y")
         f = theano.function([x, y], CustomOp()(x, y), mode="DEBUG_MODE")
 
         r0, r1 = f([1, 2, 3, 4], [5, 6, 7, 8])
@@ -470,8 +471,8 @@ class TestViewMap:
                 c[0] = r
                 d[0] = r[1:]
 
-        x = theano.tensor.dvector()
-        y = theano.tensor.dvector()
+        x = tt.dvector()
+        y = tt.dvector()
         f = theano.function([x, y], CustomOp()(x, y), mode="DEBUG_MODE")
 
         r0, r1 = f([1, 2, 3, 4], [5, 6, 7, 8])
@@ -496,8 +497,8 @@ class TestViewMap:
                 c[0] = r
                 d[0] = r[1:]
 
-        x = theano.tensor.dvector("x")
-        y = theano.tensor.dvector("y")
+        x = tt.dvector("x")
+        y = tt.dvector("y")
         f = theano.function([x, y], CustomOp()(x, y)[0] * 2, mode="DEBUG_MODE")
 
         r0 = f([1, 2, 3, 4], [5, 6, 7, 8])
@@ -523,8 +524,8 @@ class TestViewMap:
 
         custom_op = CustomOp()
 
-        x = theano.tensor.dvector()
-        y = theano.tensor.dvector()
+        x = tt.dvector()
+        y = tt.dvector()
         bad_xy0, bad_xy1 = custom_op(x, y)
         out = bad_xy0 * 2 + bad_xy1 * 2
         f = theano.function([x, y], out, mode="DEBUG_MODE")
@@ -580,7 +581,7 @@ class TestCheckIsfinite:
         f(np.asarray(np.asarray([1.0, 1.0, 1.0]) / 0, dtype=config.floatX))
 
     def test_check_isfinite_disabled(self):
-        x = theano.tensor.dvector()
+        x = tt.dvector()
         f = theano.function(
             [x], (x + 2) * 5, mode=debugmode.DebugMode(check_isfinite=False)
         )
@@ -725,8 +726,8 @@ class TestPreallocatedOutput:
         self.rng = np.random.RandomState(seed=utt.fetch_seed())
 
     def test_f_contiguous(self):
-        a = theano.tensor.fmatrix("a")
-        b = theano.tensor.fmatrix("b")
+        a = tt.fmatrix("a")
+        b = tt.fmatrix("b")
         z = BrokenCImplementationAdd()(a, b)
         # In this test, we do not want z to be an output of the graph.
         out = theano.tensor.dot(z, np.eye(7))
@@ -758,8 +759,8 @@ class TestPreallocatedOutput:
     def test_f_contiguous_out(self):
         # Same test as test_f_contiguous, but check that it works
         # even if z _is_ the output of the graph
-        a = theano.tensor.fmatrix("a")
-        b = theano.tensor.fmatrix("b")
+        a = tt.fmatrix("a")
+        b = tt.fmatrix("b")
         out = BrokenCImplementationAdd()(a, b)
 
         a_val = self.rng.randn(7, 7).astype("float32")
@@ -787,7 +788,7 @@ class TestPreallocatedOutput:
             f(a_val, b_val)
 
     def test_output_broadcast_tensor(self):
-        v = theano.tensor.fvector("v")
+        v = tt.fvector("v")
         c, r = VecAsRowAndCol()(v)
         f = theano.function([v], [c, r])
 

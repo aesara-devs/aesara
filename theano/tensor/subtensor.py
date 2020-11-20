@@ -7,6 +7,7 @@ from textwrap import dedent
 import numpy as np
 
 import theano
+import theano.tensor as tt
 from theano import config, gof
 from theano import scalar as scal
 from theano.gof import Apply, MethodNotDefined, Op, ParamsType, Type, hashtype
@@ -469,16 +470,16 @@ class Subtensor(Op):
         invalid_scal_types = (scal.float64, scal.float32, scal.float16)
         scal_types = (scal.int64, scal.int32, scal.int16, scal.int8)
         tensor_types = (
-            theano.tensor.lscalar,
-            theano.tensor.iscalar,
-            theano.tensor.wscalar,
-            theano.tensor.bscalar,
+            tt.lscalar,
+            tt.iscalar,
+            tt.wscalar,
+            tt.bscalar,
         )
         invalid_tensor_types = (
-            theano.tensor.fscalar,
-            theano.tensor.dscalar,
-            theano.tensor.cscalar,
-            theano.tensor.zscalar,
+            tt.fscalar,
+            tt.dscalar,
+            tt.cscalar,
+            tt.zscalar,
         )
 
         if (

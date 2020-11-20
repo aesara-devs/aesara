@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import theano
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import tensor
 from theano.tensor.fourier import Fourier, fft
@@ -17,17 +18,17 @@ class TestFourier(utt.InferShapeTester):
         self.op = fft
 
     def test_perform(self):
-        a = tensor.dmatrix()
+        a = tt.dmatrix()
         f = theano.function([a], self.op(a, n=10, axis=0))
         a = np.random.rand(8, 6)
         assert np.allclose(f(a), np.fft.fft(a, 10, 0))
 
     def test_infer_shape(self):
-        a = tensor.dvector()
+        a = tt.dvector()
         self._compile_and_check(
             [a], [self.op(a, 16, 0)], [np.random.rand(12)], self.op_class
         )
-        a = tensor.dmatrix()
+        a = tt.dmatrix()
         for var in [
             self.op(a, 16, 1),
             self.op(a, None, 1),
@@ -35,7 +36,7 @@ class TestFourier(utt.InferShapeTester):
             self.op(a, None, None),
         ]:
             self._compile_and_check([a], [var], [np.random.rand(12, 4)], self.op_class)
-        b = tensor.iscalar()
+        b = tt.iscalar()
         for var in [self.op(a, 16, b), self.op(a, None, b)]:
             self._compile_and_check(
                 [a, b], [var], [np.random.rand(12, 4), 0], self.op_class

@@ -513,7 +513,7 @@ class Variable(Node):
         Examples
         --------
 
-        >>> import numpy as np
+import theano.tensor as tt        >>> import numpy as np
         >>> import theano.tensor as tt
         >>> x = tt.dscalar('x')
         >>> y = tt.dscalar('y')

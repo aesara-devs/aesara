@@ -1,14 +1,15 @@
 import numpy as np
 
 import tests.unittest_tools as utt
+import theano.tensor as tt
 from theano import config, function, tensor
 from theano.sandbox import multinomial
 
 
 def test_n_samples_1():
-    p = tensor.fmatrix()
-    u = tensor.fvector()
-    n = tensor.iscalar()
+    p = tt.fmatrix()
+    u = tt.fvector()
+    n = tt.iscalar()
     m = multinomial.MultinomialFromUniform("auto")(p, u, n)
 
     f = function([p, u, n], m, allow_input_downcast=True)
@@ -21,9 +22,9 @@ def test_n_samples_1():
 
 
 def test_n_samples_2():
-    p = tensor.fmatrix()
-    u = tensor.fvector()
-    n = tensor.iscalar()
+    p = tt.fmatrix()
+    u = tt.fvector()
+    n = tt.iscalar()
     m = multinomial.MultinomialFromUniform("auto")(p, u, n)
 
     f = function([p, u, n], m, allow_input_downcast=True)
@@ -48,8 +49,8 @@ def test_multinomial_0():
     # This tests the MultinomialFromUniform Op directly, not going through the
     # multinomial() call in GPU random generation.
 
-    p = tensor.fmatrix()
-    u = tensor.fvector()
+    p = tt.fmatrix()
+    u = tt.fvector()
 
     m = multinomial.MultinomialFromUniform("auto")(p, u)
 
@@ -76,8 +77,8 @@ def test_multinomial_0():
 
 # TODO: check a bigger example (make sure blocking on GPU is handled correctly)
 def test_multinomial_large():
-    p = tensor.fmatrix()
-    u = tensor.fvector()
+    p = tt.fmatrix()
+    u = tt.fvector()
     m = multinomial.MultinomialFromUniform("auto")(p, u)
     f = function([p, u], m * 2, allow_input_downcast=True)
 
@@ -101,17 +102,17 @@ def test_multinomial_large():
 
 
 def test_multinomial_dtypes():
-    p = tensor.dmatrix()
-    u = tensor.dvector()
+    p = tt.dmatrix()
+    u = tt.dvector()
     m = multinomial.MultinomialFromUniform("auto")(p, u)
     assert m.dtype == "float64", m.dtype
 
-    p = tensor.fmatrix()
-    u = tensor.fvector()
+    p = tt.fmatrix()
+    u = tt.fvector()
     m = multinomial.MultinomialFromUniform("auto")(p, u)
     assert m.dtype == "float32", m.dtype
 
-    p = tensor.fmatrix()
-    u = tensor.fvector()
+    p = tt.fmatrix()
+    u = tt.fvector()
     m = multinomial.MultinomialFromUniform("float64")(p, u)
     assert m.dtype == "float64", m.dtype

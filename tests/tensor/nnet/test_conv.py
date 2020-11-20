@@ -5,6 +5,7 @@ import pytest
 
 import theano
 import theano.tensor as tt
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano.tensor.basic import NotScalarConstantError, _allclose
 from theano.tensor.nnet import conv, conv2d

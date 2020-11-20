@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import theano
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import change_flags, tensor
 from theano.gof.opt import check_stack_trace
@@ -277,7 +278,7 @@ class TestConvGradInputsShape:
 
 class TestAssertConvShape:
     def test_basic(self):
-        shape = tuple(tensor.iscalar() for i in range(4))
+        shape = tuple(tt.iscalar() for i in range(4))
         f = theano.function(shape, assert_conv_shape(shape))
 
         assert [1, 2, 3, 4] == f(1, 2, 3, 4)
@@ -298,8 +299,8 @@ class TestAssertShape:
     @change_flags([("conv.assert_shape", True)])
     def test_basic(self):
         x = tensor.tensor4()
-        s1 = tensor.iscalar()
-        s2 = tensor.iscalar()
+        s1 = tt.iscalar()
+        s2 = tt.iscalar()
         expected_shape = [None, s1, s2, None]
         f = theano.function([x, s1, s2], assert_shape(x, expected_shape))
 
@@ -1380,10 +1381,10 @@ class TestCorrConv3d(BaseTestConv3d):
 def test_constant_shapes():
     # Check that the `imshp` and `kshp` parameters of the AbstractConv Ops
     # are rejected if not constant or None
-    dummy_t4 = tensor.ftensor4()
+    dummy_t4 = tt.ftensor4()
     alloc_dummy_t4 = tensor.zeros((3, 5, 7, 11), dtype="float32")
 
-    dummy_shape = tensor.lvector()
+    dummy_shape = tt.lvector()
     dummy_one_shape = tensor.ones(4, dtype="int64")
     constant_vec_shape = tensor.constant([3, 5, 7, 11])
 
@@ -1422,9 +1423,9 @@ def test_constant_shapes():
 
 class TestConvTypes:
     def setup_method(self):
-        self.input = tensor.ftensor4()
-        self.filters = tensor.ftensor4()
-        self.topgrad = tensor.ftensor4()
+        self.input = tt.ftensor4()
+        self.filters = tt.ftensor4()
+        self.topgrad = tt.ftensor4()
 
         self.constant_tensor = np.zeros((3, 5, 7, 11), dtype="float32")
 
@@ -1435,7 +1436,7 @@ class TestConvTypes:
         filters = self.filters
         topgrad = self.topgrad
 
-        out_shape = tensor.lvector()
+        out_shape = tt.lvector()
 
         output = conv.conv2d(input, filters)
         grad_input, grad_filters = theano.grad(output.sum(), wrt=(input, filters))
@@ -1492,7 +1493,7 @@ class TestConvTypes:
         filters = self.filters
         topgrad = self.topgrad
         constant_tensor = self.constant_tensor
-        out_shape = tensor.lvector()
+        out_shape = tt.lvector()
 
         # Check the forward Op
         output = conv.conv2d(constant_tensor, filters)
@@ -1615,7 +1616,7 @@ class TestBilinearUpsampling:
         # 1D kernel values used in bilinear upsampling
         # for some upsampling ratios.
 
-        rat = tensor.iscalar()
+        rat = tt.iscalar()
         kernel_ten = bilinear_kernel_1D(ratio=rat, normalize=False)
         f_ten = theano.function([rat], kernel_ten)
 
