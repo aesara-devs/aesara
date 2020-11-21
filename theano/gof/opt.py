@@ -21,13 +21,12 @@ import numpy as np
 
 import theano
 from theano import config
+from theano.gof import destroyhandler as dh
 from theano.gof import graph, op, unify
 from theano.gof.fg import InconsistencyError
 from theano.gof.toolbox import Feature, NodeFinder
 from theano.gof.utils import AssocList, flatten
 from theano.misc.ordered_set import OrderedSet
-
-from . import destroyhandler as dh
 
 
 _logger = logging.getLogger("theano.gof.opt")
