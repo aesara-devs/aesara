@@ -235,62 +235,62 @@ class Feature:
 
     """
 
-    def on_attach(self, function_graph):
+    def on_attach(self, fgraph):
         """
-        Called by FunctionGraph.attach_feature, the method that attaches
-        the feature to the FunctionGraph. Since this is called after the
-        FunctionGraph is initially populated, this is where you should
-        run checks on the initial contents of the FunctionGraph.
+        Called by `FunctionGraph.attach_feature`, the method that attaches the
+        feature to the `FunctionGraph`. Since this is called after the
+        `FunctionGraph` is initially populated, this is where you should run
+        checks on the initial contents of the `FunctionGraph`.
 
-        The on_attach method may raise the AlreadyThere exception to cancel
+        The on_attach method may raise the `AlreadyThere` exception to cancel
         the attach operation if it detects that another Feature instance
-        implementing the same functionality is already atttached to the
-        FunctionGraph.
+        implementing the same functionality is already attached to the
+        `FunctionGraph`.
 
-        The feature has great freedom in what it can do with the
-        function_graph: it may, for example, add methods to it dynamically.
-
-        """
-
-    def on_detach(self, function_graph):
-        """
-        Called by remove_feature(feature).  Should remove any dynamically-added
-        functionality that it installed into the function_graph.
+        The feature has great freedom in what it can do with the `fgraph`: it
+        may, for example, add methods to it dynamically.
 
         """
 
-    def on_import(self, function_graph, node, reason):
+    def on_detach(self, fgraph):
         """
-        Called whenever a node is imported into function_graph, which is
-        just before the node is actually connected to the graph.
-        Note: on_import is not called when the graph is created. If you
-        want to detect the first nodes to be implemented to the graph,
-        you should do this by implementing on_attach.
+        Called by `FunctionGraph.remove_feature`.  Should remove any
+        dynamically-added functionality that it installed into the fgraph.
 
         """
 
-    def on_prune(self, function_graph, node, reason):
+    def on_import(self, fgraph, node, reason):
         """
-        Called whenever a node is pruned (removed) from the function_graph,
-        after it is disconnected from the graph.
+        Called whenever a node is imported into `fgraph`, which is just before
+        the node is actually connected to the graph.
+
+        Note: this is not called when the graph is created. If you want to
+        detect the first nodes to be implemented to the graph, you should do
+        this by implementing `on_attach`.
 
         """
 
-    def on_change_input(self, function_graph, node, i, r, new_r, reason=None):
+    def on_change_input(self, fgraph, node, i, var, new_var, reason=None):
         """
-        Called whenever node.inputs[i] is changed from r to new_r.
-        At the moment the callback is done, the change has already
-        taken place.
+        Called whenever ``node.inputs[i]`` is changed from `var` to `new_var`.
+        At the moment the callback is done, the change has already taken place.
 
         If you raise an exception in this function, the state of the graph
         might be broken for all intents and purposes.
 
         """
 
-    def orderings(self, function_graph):
+    def on_prune(self, fgraph, node, reason):
         """
-        Called by toposort. It should return a dictionary of
-        {node: predecessors} where predecessors is a list of
+        Called whenever a node is pruned (removed) from the `fgraph`, after it
+        is disconnected from the graph.
+
+        """
+
+    def orderings(self, fgraph):
+        """
+        Called by `FunctionGraph.toposort`. It should return a dictionary of
+        ``{node: predecessors}`` where ``predecessors`` is a list of
         nodes that should be computed before the key node.
 
         If you raise an exception in this function, the state of the graph
