@@ -750,8 +750,6 @@ class MergeOptimizer(GlobalOptimizer):
     """
 
     def add_requirements(self, fgraph):
-        # Added by default
-        # fgraph.attach_feature(toolbox.ReplaceValidate())
         if not hasattr(fgraph, "merge_feature"):
             fgraph.attach_feature(MergeFeature())
 
@@ -773,12 +771,12 @@ class MergeOptimizer(GlobalOptimizer):
             success = True
             for pairs_ in pairs_list:
                 # We must check again the equivalence, as the graph
-                # can have changed. If so, doing the replacement can
-                # introduce node that depend on itself.  Doing the
-                # full check of such cycle everytimes is very time
-                # consumming. I think this double check is faster then
+                # could've changed. If so, doing the replacement can
+                # introduce a node that depends on itself.  Doing the
+                # full check of such cycles every time is very time
+                # consuming. I think this double check is faster than
                 # doing the full cycle check. The full cycle check is
-                # skipped by validate() if the graph don't contain
+                # skipped by validate() if the graph doesn't contain
                 # destroyers.
                 var, candidate, merge_mode = pairs_[0]
                 if merge_mode == "new_node" and var in fgraph.variables:
@@ -1404,7 +1402,7 @@ class LocalOptGroup(LocalOptimizer):
                     # Skip opt that have 0 times, they probably wasn't even tried.
                     print(blanc + "  ", f"  {t:.3f}s - {o}", file=stream)
         else:
-            print(blanc, " The Optimizer wasn't successful ", file=stream)
+            print(blanc, " The optimizer wasn't successful ", file=stream)
 
         print(file=stream)
 
@@ -2337,7 +2335,8 @@ class EquilibriumOptimizer(NavigatorOptimizer):
         Global optimizers that apply a list of pre determined optimization.
         They must not traverse the graph as they are called very frequently.
         The MergeOptimizer is one example of optimization that respect this.
-        They are applied after all global optimizer, then when one local optimizer is applied, then after all final optimizer.
+        They are applied after all global optimizers, then when one local
+        optimizer is applied, then after all final optimizers.
 
     """
 
@@ -2873,11 +2872,6 @@ class EquilibriumOptimizer(NavigatorOptimizer):
         )
 
 
-#################
-#   Utilities   #
-#################
-
-
 def _check_chain(r, chain):
     """
     WRITEME
@@ -2910,9 +2904,6 @@ def _check_chain(r, chain):
     return r is not None
 
 
-# _check_chain.n_calls = 0
-
-
 def check_chain(r, *chain):
     """
     WRITEME
@@ -2935,15 +2926,15 @@ def pre_greedy_local_optimizer(fgraph, optimizations, out):
     Its main use is to apply locally constant folding when generating
     the graph of the indices of a subtensor.
 
-    We should not apply optimizations on node that are in fgraph.
-    So we don't optimize node that have an attribute fgraph.
+    Changes should not be applied to nodes that are in an `fgraph`,
+    so we use `fgraph` to prevent that.
 
     Notes
     -----
-    This doesn't do an equilibrium... So if there is optimization
-    like local_upcast_elemwise_constant_inputs in the list, that
-    adds additional node to the inputs of the node, it can
-    be needed to call this function multiple times.
+    This doesn't do an equilibrium optimization, so, if there is optimization
+    like `local_upcast_elemwise_constant_inputs` in the list that adds
+    additional nodes to the inputs of the node, it might be necessary to call
+    this function multiple times.
 
     Parameters
     ----------
