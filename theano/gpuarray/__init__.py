@@ -65,7 +65,7 @@ def pygpu_parse_version(version_string):
         patch = int(pieces[2].split("+", 1)[0])
     else:  # Maybe it end with .devN
         patch = int(pieces[2].split(".", 1)[0])
-    fullversion = "%d.%d.%s" % (major, minor, pieces[2])
+    fullversion = f"{int(major)}.{int(minor)}.{pieces[2]}"
     return version_type(major=major, minor=minor, patch=patch, fullversion=fullversion)
 
 
@@ -93,11 +93,9 @@ def init_dev(dev, name=None, preallocate=None):
     if gpuarray_version_major_detected != gpuarray_version_major_supported:
         raise ValueError(
             "Your installed version of libgpuarray is not in sync with the current Theano"
-            " version. The installed libgpuarray version supports API version %d,"
-            " while current Theano supports API version %d. Change the version of"
+            f" version. The installed libgpuarray version supports API version {int(gpuarray_version_major_detected)},"
+            f" while current Theano supports API version {int(gpuarray_version_major_supported)}. Change the version of"
             " libgpuarray or Theano to fix this problem.",
-            gpuarray_version_major_detected,
-            gpuarray_version_major_supported,
         )
     if dev not in init_dev.devmap:
         args = dict()
@@ -129,8 +127,7 @@ def init_dev(dev, name=None, preallocate=None):
             # not even try a clear error.
             if avail and context.free_gmem < 75 * MB:
                 raise RuntimeError(
-                    "Can not enable cuDNN as there is only %d MB of free GPU memory."
-                    % (context.free_gmem / MB)
+                    f"Can not enable cuDNN as there is only {int(context.free_gmem / MB)} MB of free GPU memory."
                 )
             elif avail:
                 context.cudnn_handle = dnn._make_handle(context)
@@ -142,17 +139,16 @@ def init_dev(dev, name=None, preallocate=None):
             if config.print_active_device:
                 if avail:
                     print(
-                        "Using cuDNN version %d on context %s" % (dnn.version(), name),
+                        f"Using cuDNN version {int(dnn.version())} on context {name}",
                         file=sys.stderr,
                     )
                 else:
                     print(
-                        "Can not use cuDNN on context %s: %s"
-                        % (name, dnn.dnn_available.msg),
+                        f"Can not use cuDNN on context {name}: {dnn.dnn_available.msg}",
                         file=sys.stderr,
                     )
         if preallocate < 0:
-            print("Disabling allocation cache on {}".format(dev))
+            print(f"Disabling allocation cache on {dev}")
         elif preallocate > 0:
             if preallocate <= 1:
                 gmem = min(preallocate, 0.95) * context.total_gmem
@@ -160,8 +156,8 @@ def init_dev(dev, name=None, preallocate=None):
                 gmem = preallocate * MB
             if gmem > context.free_gmem:
                 raise RuntimeError(
-                    "Trying to preallocate %d MB of GPU memory while only"
-                    " %d MB are available." % (gmem / MB, context.free_gmem / MB)
+                    f"Trying to preallocate {int(gmem / MB)} MB of GPU memory while only"
+                    f" {int(context.free_gmem / MB)} MB are available."
                 )
             elif gmem > context.free_gmem - 50 * MB:
                 print(
@@ -173,13 +169,7 @@ def init_dev(dev, name=None, preallocate=None):
             pygpu.empty((gmem,), dtype="int8", context=context)
             if config.print_active_device:
                 print(
-                    "Preallocating %d/%d Mb (%f) on %s"
-                    % (
-                        gmem // MB,
-                        context.total_gmem // MB,
-                        gmem / context.total_gmem,
-                        dev,
-                    ),
+                    f"Preallocating {int(gmem // MB)}/{int(context.total_gmem // MB)} Mb ({gmem / context.total_gmem}) on {dev}",
                     file=sys.stderr,
                 )
 
@@ -200,8 +190,7 @@ def init_dev(dev, name=None, preallocate=None):
             unique_id = ""
 
         print(
-            "Mapped name %s to device %s: %s %s"
-            % (name, dev, context.devname, unique_id),
+            f"Mapped name {name} to device {dev}: {context.devname} {unique_id}",
             file=sys.stderr,
         )
     pygpu_activated = True

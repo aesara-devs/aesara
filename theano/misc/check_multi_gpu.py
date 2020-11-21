@@ -56,7 +56,7 @@ def main(dev1, dev2):
     t2 = time.time()
     r = None
 
-    print("one ctx async {:f}".format(t2 - t))
+    print(f"one ctx async {t2 - t:f}")
 
     t = time.time()
     r = f2.fn()
@@ -64,7 +64,7 @@ def main(dev1, dev2):
     t2 = time.time()
     r = None
 
-    print("two ctx async {:f}".format(t2 - t))
+    print(f"two ctx async {t2 - t:f}")
 
     t = time.time()
     r = f3.fn()
@@ -74,14 +74,14 @@ def main(dev1, dev2):
     t2 = time.time()
     r = None
 
-    print("two ctx, 2 fct async {:f}".format(t2 - t))
+    print(f"two ctx, 2 fct async {t2 - t:f}")
 
     t = time.time()
     r = f5.fn()
     r2 = f6.fn()
     t2 = time.time()
     r = None
-    print("two ctx, 2 fct with transfer {:f}".format(t2 - t))
+    print(f"two ctx, 2 fct with transfer {t2 - t:f}")
 
     # Multi-thread version
     class myThread(threading.Thread):
@@ -110,7 +110,7 @@ def main(dev1, dev2):
     thread2.join()
     t2 = time.time()
 
-    print("two ctx, 2 fct async, 2 threads {:f}".format(t2 - t))
+    print(f"two ctx, 2 fct async, 2 threads {t2 - t:f}")
 
     thread1 = myThread("Thread-5", f5, False)
     thread2 = myThread("Thread-6", f6, False)
@@ -121,7 +121,7 @@ def main(dev1, dev2):
     thread2.join()
     t2 = time.time()
 
-    print("two ctx, 2 fct with transfer, 2 threads {:f}".format(t2 - t))
+    print(f"two ctx, 2 fct with transfer, 2 threads {t2 - t:f}")
 
 
 if __name__ == "__main__":

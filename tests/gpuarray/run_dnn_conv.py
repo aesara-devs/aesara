@@ -179,10 +179,10 @@ if args.subsample is None:
 if args.dilation is None:
     args.dilation = (1,) * ndim
 if not (ndim == len(args.subsample) == len(args.dilation)):
-    raise ValueError("Expected parameters sized for %d dimensions." % ndim)
+    raise ValueError(f"Expected parameters sized for {int(ndim)} dimensions.")
 
 if isinstance(args.border_mode, tuple) and ndim != len(args.border_mode):
-    raise ValueError("Expected borders sized for %d dimensions." % ndim)
+    raise ValueError(f"Expected borders sized for {int(ndim)} dimensions.")
 
 if args.alpha == 0:
     raise ValueError("Nothing could be computed if alpha is 0.")
@@ -201,7 +201,7 @@ else:
     args.dtype, args.precision = data_type_configurations[args.dtype_config]
 if (args.dtype, args.precision) not in cudnn.get_supported_dtype_configs():
     raise ValueError(
-        "Unsupported data type configuration {} {}.".format(args.dtype, args.precision)
+        f"Unsupported data type configuration {args.dtype} {args.precision}."
     )
 
 if args.algo not in SUPPORTED_DNN_CONV_ALGO_RUNTIME:

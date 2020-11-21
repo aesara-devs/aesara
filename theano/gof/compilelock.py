@@ -103,7 +103,7 @@ def _get_lock(lock_dir=None, **kw):
             now = time.time()
             if now - get_lock.start_time > config.compile.timeout / 2:
                 lockpath = os.path.join(get_lock.lock_dir, "lock")
-                _logger.info("Refreshing lock %s", str(lockpath))
+                _logger.info(f"Refreshing lock {lockpath}")
                 refresh_lock(lockpath)
                 get_lock.start_time = now
     get_lock.n_lock += 1
@@ -238,12 +238,10 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
                     read_owner = "failure"
                 if other_dead:
                     if not no_display:
-                        msg = "process '%s'" % read_owner.split("_")[0]
+                        msg = f"process '{read_owner.split('_')[0]}'"
                         _logger.warning(
-                            "Overriding existing lock by dead %s "
-                            "(I am process '%s')",
-                            msg,
-                            my_pid,
+                            f"Overriding existing lock by dead {msg} "
+                            f"(I am process '{my_pid}')",
                         )
                     get_lock.unlocker.unlock(force=True)
                     continue
@@ -254,11 +252,10 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
                             if read_owner == "failure":
                                 msg = "unknown process"
                             else:
-                                msg = "process '%s'" % read_owner.split("_")[0]
+                                msg = f"process '{read_owner.split('_')[0]}'"
                             _logger.warning(
-                                "Overriding existing lock by %s " "(I am process '%s')",
-                                msg,
-                                my_pid,
+                                f"Overriding existing lock by {msg} "
+                                "(I am process '{my_pid}')",
                             )
                         get_lock.unlocker.unlock(force=True)
                         continue
@@ -270,13 +267,12 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
                     if read_owner == "failure":
                         msg = "unknown process"
                     else:
-                        msg = "process '%s'" % read_owner.split("_")[0]
+                        msg = f"process '{read_owner.split('_')[0]}'"
                     _logger.info(
-                        "Waiting for existing lock by %s (I am " "process '%s')",
-                        msg,
-                        my_pid,
+                        f"Waiting for existing lock by {msg} (I am "
+                        "process '{my_pid}')",
                     )
-                    _logger.info("To manually release the lock, delete %s", tmp_dir)
+                    _logger.info(f"To manually release the lock, delete {tmp_dir}")
                     if verbosity <= 1:
                         no_display = True
                 nb_wait += 1
@@ -312,7 +308,7 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
 
         except Exception as e:
             # If something wrong happened, we try again.
-            _logger.warning("Something wrong happened: %s %s", type(e), e)
+            _logger.warning(f"Something wrong happened: {type(e)} {e}")
             nb_error += 1
             if nb_error > 10:
                 raise

@@ -196,7 +196,7 @@ class FunctionGraph(utils.object2):
 
         """
         if hasattr(var, "fgraph") and var.fgraph is not None and var.fgraph is not self:
-            raise Exception("%s is already owned by another fgraph" % var)
+            raise Exception(f"{var} is already owned by another fgraph")
         var.fgraph = self
         var.clients = []
         # self.execute_callbacks('on_setup_variable', var)
@@ -210,23 +210,21 @@ class FunctionGraph(utils.object2):
 
         """
         if hasattr(node, "fgraph") and node.fgraph is not self:
-            raise Exception("%s is already owned by another fgraph" % node)
+            raise Exception(f"{node} is already owned by another fgraph")
         if hasattr(node.op, "view_map") and not all(
             isinstance(view, (list, tuple)) for view in node.op.view_map.values()
         ):
             raise Exception(
-                "Op '%s' have a bad view map '%s',"
+                f"Op '{node.op}' have a bad view map '{node.op.view_map}',"
                 " the values must be tuples or lists."
-                % (str(node.op), str(node.op.view_map))
             )
         if hasattr(node.op, "destroy_map") and not all(
             isinstance(destroy, (list, tuple))
             for destroy in node.op.destroy_map.values()
         ):
             raise Exception(
-                "Op '%s' have a bad destroy map '%s',"
+                f"Op '{node.op}' have a bad destroy map '{node.op.destroy_map}',"
                 " the values must be tuples or lists."
-                % (str(node.op), str(node.op.destroy_map))
             )
         node.fgraph = self
         node.deps = {}
@@ -402,10 +400,10 @@ class FunctionGraph(utils.object2):
         if check:
             for node in new_nodes:
                 if hasattr(node, "fgraph") and node.fgraph is not self:
-                    raise Exception("%s is already owned by another fgraph" % node)
+                    raise Exception(f"{node} is already owned by another fgraph")
                 for var in node.inputs:
                     if hasattr(var, "fgraph") and var.fgraph is not self:
-                        raise Exception("%s is already owned by another fgraph" % var)
+                        raise Exception(f"{var} is already owned by another fgraph")
                     if (
                         var.owner is None
                         and not isinstance(var, graph.Constant)
@@ -413,12 +411,11 @@ class FunctionGraph(utils.object2):
                     ):
                         # Standard error message
                         error_msg = (
-                            "Input %d of the graph (indices start "
-                            "from 0), used to compute %s, was not "
+                            f"Input {int(node.inputs.index(var))} of the graph (indices start "
+                            f"from 0), used to compute {node}, was not "
                             "provided and not given a value. Use the "
                             "Theano flag exception_verbosity='high', "
                             "for more information on this error."
-                            % (node.inputs.index(var), str(node))
                         )
                         raise MissingInputError(error_msg, variable=var)
 
@@ -475,8 +472,8 @@ class FunctionGraph(utils.object2):
         else:
             if node.fgraph is not self:
                 raise Exception(
-                    "Cannot operate on %s because it does not"
-                    " belong to this FunctionGraph" % node
+                    f"Cannot operate on {node} because it does not"
+                    " belong to this FunctionGraph"
                 )
             r = node.inputs[i]
             if not r.type == new_var.type:
@@ -524,9 +521,7 @@ class FunctionGraph(utils.object2):
 
         if hasattr(var, "fgraph") and var.fgraph is not self:
             raise Exception(
-                "Cannot replace %s because it does not belong "
-                "to this FunctionGraph" % var,
-                str(reason),
+                f"Cannot replace {var} because it does not belong to this FunctionGraph"
             )
         if var.type != new_var.type:
             new_var_2 = var.type.convert_variable(new_var)
@@ -583,11 +578,7 @@ class FunctionGraph(utils.object2):
                     raise AssertionError(
                         "The replacement variable has a test value with "
                         "a shape different from the original variable's "
-                        "test value. Original: %s, new: %s"
-                        % (tval_shape, new_tval_shape),
-                        var,
-                        new_var,
-                        str(reason),
+                        f"test value. Original: {tval_shape}, new: {new_tval_shape}"
                     )
 
         for node, i in list(var.clients):  # copy the client list for iteration
@@ -822,7 +813,7 @@ class FunctionGraph(utils.object2):
                     )
 
     def __str__(self):
-        return "[%s]" % ", ".join(graph.as_string(self.inputs, self.outputs))
+        return f"[{', '.join(graph.as_string(self.inputs, self.outputs))}]"
 
     def __repr__(self):
         return self.__str__()

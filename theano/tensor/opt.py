@@ -515,7 +515,7 @@ class InplaceElemwiseOptimizer(Optimizer):
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
         print(
-            "{}{} ({})".format((" " * level), self.__class__.__name__, self.op),
+            f"{' ' * level}{self.__class__.__name__} ({self.op})",
             file=stream,
         )
         return inplace_elemwise_optimizer
@@ -665,9 +665,7 @@ def local_0_dot_x(node):
                 "Optimization theano/opt.py:local_0_dot_x Found "
                 "that it could apply, but was not implemented "
                 "for dot product with these input types:\n"
-                "(%s, %s)",
-                x.type,
-                y.type,
+                f"({x.type}, {y.type})"
             )
 
 
@@ -894,8 +892,7 @@ class MakeVector(Op):
             if not all(self.dtype == tt.cast(i, dtype=dtype).dtype for i in inputs):
                 raise TypeError(
                     "MakeVector.make_node expected inputs"
-                    " upcastable to %s. got %s"
-                    % (self.dtype, str([i.dtype for i in inputs]))
+                    f" upcastable to {self.dtype}. got {[i.dtype for i in inputs]}"
                 )
             inputs = [tt.cast(i, dtype=dtype) for i in inputs]
         assert all(self.dtype == a.dtype for a in inputs)
@@ -934,7 +931,7 @@ class MakeVector(Op):
         out_dtype = node.outputs[0].type.dtype_specs()[1]
         if len(inp) > 0:
             assert self.dtype == node.inputs[0].dtype
-            out_num = "PyArray_TYPE(%s)" % inp[0]
+            out_num = f"PyArray_TYPE({inp[0]})"
 
         ret = (
             """
@@ -989,7 +986,7 @@ class MakeVectorPrinter:
                 s = [pstate.pprinter.process(input) for input in r.owner.inputs]
             finally:
                 pstate.precedence = old_precedence
-            return "[%s]" % ", ".join(s)
+            return f"[{', '.join(s)}]"
         else:
             raise TypeError("Can only print make_vector.")
 
@@ -1103,19 +1100,13 @@ class ShapeFeature:
                 "NotImplementedError. Raising NotImplementedError to "
                 "indicate that a shape cannot be computed is no longer "
                 "supported, and one should now use tensor.ShapeError "
-                "instead. The original exception message is: %s" % e
+                f"instead. The original exception message is: {e}"
             ).with_traceback(e.__traceback__)
         except Exception as e:
             msg = (
-                "Failed to infer_shape from Op %s.\nInput shapes: "
-                "%s\nException encountered during infer_shape: "
-                "%s\nException message: %s\nTraceback: %s"
-            ) % (
-                node.op,
-                [self.shape_of[r] for r in node.inputs],
-                type(e),
-                str(e),
-                traceback.format_exc(),
+                f"Failed to infer_shape from Op {node.op}.\nInput shapes: "
+                f"{[self.shape_of[r] for r in node.inputs]}\nException encountered during infer_shape: "
+                f"{type(e)}\nException message: {str(e)}\nTraceback: {traceback.format_exc()}"
             )
             if config.on_shape_error == "raise":
                 raise Exception(msg).with_traceback(e.__traceback__)
@@ -1308,9 +1299,9 @@ class ShapeFeature:
                 sio = StringIO()
                 theano.printing.debugprint(r, file=sio, print_type=True)
                 raise AssertionError(
-                    "Something inferred a shape with %d dimensions "
-                    "for a variable with %d dimensions"
-                    " for the variable:\n%s" % (len(s), r.ndim, sio.getvalue())
+                    f"Something inferred a shape with {len(s)} dimensions "
+                    f"for a variable with {int(r.ndim)} dimensions"
+                    f" for the variable:\n{sio.getvalue()}"
                 )
 
             shape_vars = []
@@ -1513,11 +1504,10 @@ class ShapeFeature:
         if len(o_shapes) != len(node.outputs):
             raise Exception(
                 (
-                    'The infer_shape method for the Op "%s" returned a list '
-                    + "with the wrong number of element: len(o_shapes) = %d "
-                    + " != len(node.outputs) = %d"
+                    f'The infer_shape method for the Op "{node.op}" returned a list '
+                    f"with the wrong number of element: len(o_shapes) = {len(o_shapes)} "
+                    f" != len(node.outputs) = {len(node.outputs)}"
                 )
-                % (str(node.op), len(o_shapes), len(node.outputs))
             )
 
         # Ensure shapes are in 'int64'. This is to make sure the assert
@@ -1527,8 +1517,8 @@ class ShapeFeature:
                 continue
             if not isinstance(sh, (list, tuple)):
                 raise ValueError(
-                    "infer_shape of %s didn't return a list of"
-                    " list. It returned '%s'" % (str(node), str(o_shapes))
+                    f"infer_shape of {node} didn't return a list of"
+                    f" list. It returned '{o_shapes}'"
                 )
             new_shape = []
             for i, d in enumerate(sh):
@@ -1599,7 +1589,7 @@ class ShapeFeature:
                 if shpnode.outputs[0] in gof.graph.ancestors([repl]):
                     raise InconsistencyError(
                         "This substitution would insert a cycle in the graph:"
-                        "node: %s, i: %i, r: %s, new_r: %s" % (node, i, r, new_r)
+                        f"node: {node}, i: {i}, r: {r}, new_r: {new_r}"
                     )
 
                 self.scheduled[shpnode] = new_r
@@ -2656,15 +2646,12 @@ class Assert(Op):
                 "%(fail)s}" % locals()
             )
         check = "\n".join(check)
-        return (
-            """
-        %(check)s
-        Py_XDECREF(%(out)s);
-        %(out)s = %(value)s;
-        Py_INCREF(%(value)s);
+        return f"""
+        {check}
+        Py_XDECREF({out});
+        {out} = {value};
+        Py_INCREF({value});
         """
-            % locals()
-        )
 
     def c_code_cache_version(self):
         return (3, 0)
@@ -3952,7 +3939,7 @@ def local_useless_inc_subtensor_alloc(node):
             # shape inference later because the variable must be part of the
             # function graph in order to call `same_shape` on it.
             if xi not in shape_of:
-                shape_feature.on_import(node.fgraph, xi.owner, "%s: add `xi`" % reason)
+                shape_feature.on_import(node.fgraph, xi.owner, f"{reason}: add `xi`")
 
             # `xi` may have more dimensions than `y` since the subtensor ops
             # do automatic broadcasting of the increment internally. Thus, we
@@ -3961,9 +3948,7 @@ def local_useless_inc_subtensor_alloc(node):
             if xi.ndim > y.ndim:
                 y = tt.shape_padleft(y, xi.ndim - y.ndim)
                 if y not in shape_of:
-                    shape_feature.on_import(
-                        node.fgraph, y.owner, "%s: add `y`" % reason
-                    )
+                    shape_feature.on_import(node.fgraph, y.owner, f"{reason}: add `y`")
 
             # Build `z_broad` explicitly to include extra implicit dimensions.
             z_broad = (True,) * (xi.ndim - z.ndim) + z.broadcastable
@@ -5466,7 +5451,7 @@ class Canonizer(LocalOptimizer):
         return getattr(
             self,
             "name",
-            "Canonizer({}, {}, {})".format(self.main, self.inverse, self.reciprocal),
+            f"Canonizer({self.main}, {self.inverse}, {self.reciprocal})",
         )
 
 

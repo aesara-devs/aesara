@@ -33,7 +33,7 @@ class SortOp(Op):
         self.order = order
 
     def __str__(self):
-        return self.__class__.__name__ + "{{{}, {}}}".format(self.kind, str(self.order))
+        return self.__class__.__name__ + f"{{{self.kind}, {self.order}}}"
 
     def make_node(self, input, axis=-1):
         input = theano.tensor.as_tensor_variable(input)
@@ -168,7 +168,7 @@ class ArgSortOp(Op):
         self.order = order
 
     def __str__(self):
-        return self.__class__.__name__ + "{{{}, {}}}".format(self.kind, str(self.order))
+        return self.__class__.__name__ + f"{{{self.kind}, {self.order}}}"
 
     def make_node(self, input, axis=-1):
         input = theano.tensor.as_tensor_variable(input)
@@ -250,7 +250,7 @@ def _topk_py_impl(op, x, k, axis, idx_dtype):
         raise ValueError("topk: kth cannot be zero")
     elif k > x.shape[axis]:
         raise ValueError(
-            "topk: kth cannot be larger than the size of specified axis %d" % axis
+            f"topk: kth cannot be larger than the size of specified axis {int(axis)}"
         )
     if abs(k) == 1:
         # negative k means min instead of max
@@ -374,14 +374,14 @@ class TopKOp(Op):
         # numpy always uses int64 as output dtype for arg*() routines
         # however, we add "idx_dtype" param as memory is more precious on gpu
         if not isinstance(axis, int):
-            raise TypeError('"axis" parameter must be integer, got "%s"' % type(axis))
+            raise TypeError(f'"axis" parameter must be integer, got "{type(axis)}"')
         if sorted:
             raise NotImplementedError(
                 "The sorted parameter is not yet implemented. Use sorted=False for now."
             )
         if idx_dtype not in theano.tensor.integer_dtypes:
             raise TypeError(
-                '"idx_dtype" parameter must be an integer dtype, got "%s"' % idx_dtype
+                f'"idx_dtype" parameter must be an integer dtype, got "{idx_dtype}"'
             )
 
         if not (return_indices or return_values):
@@ -408,7 +408,7 @@ class TopKOp(Op):
         if not -ndim <= self.axis < ndim:
             raise IndexError(
                 '"axis" parameter out of range,'
-                " expected integer within [%d, %d]" % (-ndim, ndim - 1)
+                f" expected integer within [{int(-ndim)}, {int(ndim - 1)}]"
             )
 
         kth = theano.tensor.as_tensor_variable(kth)

@@ -146,7 +146,7 @@ class BadThunkOutput(DebugModeError):
                 scalar_values.append(ipt)
             else:
                 scalar_values.append("not shown")
-        print("  Inputs values: %s" % scalar_values, file=sio)
+        print(f"  Inputs values: {scalar_values}", file=sio)
         print("  Bad Variable:", self.r, file=sio)
         print("  thunk1  :", self.thunk1, file=sio)
         print("  thunk2  :", self.thunk2, file=sio)
@@ -232,7 +232,7 @@ class BadDestroyMap(DebugModeError):
             )
             print("", file=sio)
         except Exception as e:
-            print("(Numpy-hints failed with: %s)" % str(e), file=sio)
+            print(f"(Numpy-hints failed with: {e})", file=sio)
         print(
             "  Hint: this can also be caused by a deficient "
             "values_eq_approx() or __eq__() implementation "
@@ -344,24 +344,22 @@ class InvalidValueError(DebugModeError):
         hint = self.hint
         specific_hint = self.specific_hint
         context = debugprint(r, prefix="  ", depth=12, file=StringIO()).getvalue()
-        return (
-            """InvalidValueError
-        type(variable) = %(type_r)s
-        variable       = %(r)s
-        type(value)    = %(type_v)s
-        dtype(value)   = %(v_dtype)s
-        shape(value)   = %(v_shape)s
-        value          = %(v_val)s
-        min(value)     = %(v_min)s
-        max(value)     = %(v_max)s
-        isfinite       = %(v_isfinite)s
-        client_node    = %(client_node)s
-        hint           = %(hint)s
-        specific_hint  = %(specific_hint)s
-        context        = ...\n%(context)s
+        return f"""InvalidValueError
+        type(variable) = {type_r}
+        variable       = {r}
+        type(value)    = {type_v}
+        dtype(value)   = {v_dtype}
+        shape(value)   = {v_shape}
+        value          = {v_val}
+        min(value)     = {v_min}
+        max(value)     = {v_max}
+        isfinite       = {v_isfinite}
+        client_node    = {client_node}
+        hint           = {hint}
+        specific_hint  = {specific_hint}
+        context        = ...
+{context}
         """
-            % locals()
-        )
 
 
 ########################
@@ -541,7 +539,7 @@ def debugprint(
         scan_ops = []
 
     if print_type:
-        type_str = " <%s>" % r.type
+        type_str = f" <{r.type}>"
     else:
         type_str = ""
 
@@ -557,11 +555,11 @@ def debugprint(
         elif obj == "output":
             id_str = "output"
         elif ids == "id":
-            id_str = "[id %s]" % str(id(r))
+            id_str = f"[id {id(r)}]"
         elif ids == "int":
-            id_str = "[id %s]" % str(len(used_ids))
+            id_str = f"[id {len(used_ids)}]"
         elif ids == "CHAR":
-            id_str = "[id %s]" % char_from_number(len(used_ids))
+            id_str = f"[id {char_from_number(len(used_ids))}]"
         elif ids == "":
             id_str = ""
         if get_printed:
@@ -604,7 +602,7 @@ def debugprint(
         if len(a.outputs) == 1:
             idx = ""
         else:
-            idx = ".%i" % a.outputs.index(r)
+            idx = f".{a.outputs.index(r)}"
         data = ""
         if smap:
             data = " " + str(smap.get(a.outputs[0], ""))
@@ -622,20 +620,7 @@ def debugprint(
             )
         if profile is None or a not in profile.apply_time:
             print(
-                "%s%s%s %s%s '%s' %s %s %s%s%s"
-                % (
-                    prefix,
-                    a.op,
-                    idx,
-                    id_str,
-                    type_str,
-                    r_name,
-                    destroy_map_str,
-                    view_map_str,
-                    o,
-                    data,
-                    clients,
-                ),
+                f"{prefix}{a.op}{idx} {id_str}{type_str} '{r_name}' {destroy_map_str} {view_map_str} {o}{data}{clients}",
                 file=file,
             )
         else:
@@ -648,7 +633,7 @@ def debugprint(
             if len(a.outputs) == 1:
                 idx = ""
             else:
-                idx = ".%i" % a.outputs.index(r)
+                idx = f".{a.outputs.index(r)}"
             print(
                 "%s%s%s %s%s '%s' %s %s %s%s%s --> "
                 "%8.2es %4.1f%% %8.2es %4.1f%%"
@@ -716,7 +701,7 @@ def debugprint(
             else:
                 outer_id_str = get_id_str(outer_r)
             print(
-                "{}{} {}{} -> {}".format(prefix, r, id_str, type_str, outer_id_str),
+                f"{prefix}{r} {id_str}{type_str} -> {outer_id_str}",
                 file=file,
             )
         else:
@@ -725,7 +710,7 @@ def debugprint(
             if smap:
                 data = " " + str(smap.get(r, ""))
             id_str = get_id_str(r)
-            print("{}{} {}{}{}".format(prefix, r, id_str, type_str, data), file=file)
+            print(f"{prefix}{r} {id_str}{type_str}{data}", file=file)
 
     return file
 
@@ -817,10 +802,8 @@ def _check_inputs(
                 continue
             if out_var is not in_var:
                 _logger.warning(
-                    "Optimization Warning: input idx %d marked "
-                    "as destroyed was not changed for node '%s'",
-                    ii[0],
-                    str(node),
+                    f"Optimization Warning: input idx {int(ii[0])} marked "
+                    f"as destroyed was not changed for node '{node}'"
                 )
 
     vmap = getattr(node.op, "view_map", {})
@@ -846,11 +829,9 @@ def _check_inputs(
                 continue
             if not may_share:
                 _logger.warning(
-                    "Optimization Warning: input idx %d marked "
+                    f"Optimization Warning: input idx {int(ii[0])} marked "
                     "as viewed but new memory allocated by node "
-                    "'%s'",
-                    ii[0],
-                    str(node),
+                    f"'{node}'"
                 )
 
     for r_idx, r in enumerate(node.inputs):
@@ -1353,7 +1334,7 @@ def _get_preallocated_maps(
                 steps = [step_signs[0]] * len(out_broadcastable[:-check_ndim])
                 steps += [s * step_size for s in step_signs[1:]]
 
-                name = "strided%s" % str(tuple(steps))
+                name = f"strided{tuple(steps)}"
                 for r in considered_outputs:
                     if r in init_strided:
                         strides = []
@@ -1387,7 +1368,7 @@ def _get_preallocated_maps(
                 shape_diff[dim] = diff
 
                 wrong_size = {}
-                name = "wrong_size%s" % str(tuple(shape_diff))
+                name = f"wrong_size{tuple(shape_diff)}"
 
                 for r in considered_outputs:
                     if isinstance(r.type, (TensorType, GpuArrayType)):
@@ -1432,7 +1413,7 @@ def _check_preallocated_output(
             fn = getattr(node.op, fn_attr_name, None)
             if not fn or not hasattr(fn, "maker") or not hasattr(fn.maker, "mode"):
                 _logger.warning(
-                    "Expected theano function not found in %s.%s", node.op, fn_attr_name
+                    f"Expected theano function not found in {node.op}.{fn_attr_name}"
                 )
             else:
                 if isinstance(fn.maker.mode, DebugMode):
@@ -1470,13 +1451,13 @@ def _check_preallocated_output(
             inplace_outs,
             init_outputs,
         ):
-            _logger.debug("  name = %s", name)
+            _logger.debug(f"  name = {name}")
 
-            thunk_name = "{} with {} output".format(perform, name)
+            thunk_name = f"{perform} with {name} output"
 
             if not out_map:
                 # Map is empty, there is no need to execute thunk() again
-                _logger.warning("%s: out_map is empty", name)
+                _logger.warning(f"{name}: out_map is empty")
                 continue
 
             # Copy the inputs over, if they were marked as destroyed or viewed
@@ -1899,8 +1880,7 @@ class _Linker(gof.link.LocalLinker):
 
             if not self.maker.mode.check_c_code and thunks_py[-1] is None:
                 _logger.warning(
-                    "Op %s doesn't have a perform, "
-                    "forcing check of the C code" % node.op
+                    f"Op {node.op} doesn't have a perform, forcing check of the C code"
                 )
                 node.op.prepare_node(node, storage_map, compute_map, "c")
                 thunk = node.op.make_c_thunk(
@@ -1917,8 +1897,8 @@ class _Linker(gof.link.LocalLinker):
                 else:
                     _logger.warning(
                         "We won't check the perform function "
-                        "of node '%s' but we will check its "
-                        "make_thunk function" % node
+                        f"of node '{node}' but we will check its "
+                        "make_thunk function"
                     )
                     thunks_py[-1] = thunk_other
 
@@ -1947,8 +1927,7 @@ class _Linker(gof.link.LocalLinker):
             #####
             _logger.debug("starting a DebugMode call")
             _logger.debug(
-                "self.maker.mode.check_preallocated_output: %s",
-                self.maker.mode.check_preallocated_output,
+                f"self.maker.mode.check_preallocated_output: {self.maker.mode.check_preallocated_output}"
             )
             for x in no_recycling_map:
                 x[0] = None
@@ -1988,14 +1967,14 @@ class _Linker(gof.link.LocalLinker):
                                 raise InvalidValueError(
                                     r,
                                     storage_map[r][0],
-                                    hint=("Graph Input '%s' is missing" % str(r)),
+                                    hint=f"Graph Input '{r}' is missing",
                                 )
                             raise InvalidValueError(
                                 r,
                                 storage_map[r][0],
                                 hint=(
-                                    "Graph Input '%s' has invalid value "
-                                    "%s" % (r, storage_map[r][0])
+                                    f"Graph Input '{r}' has invalid value "
+                                    f"{storage_map[r][0]}"
                                 ),
                             )
                         r_vals[r] = storage_map[r][0]
@@ -2025,7 +2004,7 @@ class _Linker(gof.link.LocalLinker):
                 for i, (thunk_py, thunk_c, node) in enumerate(
                     zip(thunks_py, thunks_c, order)
                 ):
-                    _logger.debug("%i - starting node %i %s", i, i, node)
+                    _logger.debug(f"{i} - starting node {i} {node}")
 
                     # put a copy of each input into the storage_map
                     # also, check that inputs have valid values
@@ -2042,7 +2021,7 @@ class _Linker(gof.link.LocalLinker):
                     # storage will be None
                     if thunk_py:
                         _logger.debug(
-                            "%i - running thunk_py with None as " "output storage", i
+                            f"{i} - running thunk_py with None as " "output storage"
                         )
                         try:
                             thunk_py()
@@ -2061,8 +2040,8 @@ class _Linker(gof.link.LocalLinker):
                                 raise
                             opt = str(reason[0][0])
                             msg = (
-                                "An optimization (probably %s) inserted an "
-                                "apply node that raise an error." % opt
+                                f"An optimization (probably {opt}) inserted an "
+                                "apply node that raise an error."
                                 + "\nThe information we have about this "
                                 "optimizations is:"
                                 + str(reason[0][1])
@@ -2114,9 +2093,8 @@ class _Linker(gof.link.LocalLinker):
                         if self.maker.mode.check_preallocated_output:
                             prealloc_modes = self.maker.mode.check_preallocated_output
                             _logger.debug(
-                                "%i - calling _check_preallocated_output "
-                                "with thunk_py",
-                                i,
+                                f"{i} - calling _check_preallocated_output "
+                                "with thunk_py"
                             )
                             _check_preallocated_output(
                                 node=node,
@@ -2160,7 +2138,7 @@ class _Linker(gof.link.LocalLinker):
 
                             clobber = False
 
-                        _logger.debug("%i - running thunk_c", i)
+                        _logger.debug(f"{i} - running thunk_c")
                         # First time, with None in output_storage
                         try:
                             thunk_c()
@@ -2174,8 +2152,8 @@ class _Linker(gof.link.LocalLinker):
                                 raise
                             opt = str(reason[0][0])
                             msg = (
-                                "An optimization (probably %s) inserted "
-                                "an apply node that raise an error." % opt
+                                f"An optimization (probably {opt}) inserted "
+                                "an apply node that raise an error."
                                 + "\nThe information we have about this "
                                 "optimizations is:"
                                 + str(reason[0][1])
@@ -2259,9 +2237,8 @@ class _Linker(gof.link.LocalLinker):
                                     raise_with_op(node, thunk_c)
 
                             _logger.debug(
-                                "%i - calling _check_preallocated_output "
+                                f"{i} - calling _check_preallocated_output "
                                 "with thunk_c",
-                                i,
                             )
                             _check_preallocated_output(
                                 node=node,
@@ -2283,13 +2260,13 @@ class _Linker(gof.link.LocalLinker):
                     # clear everything out of the storage_map
                     for r in node.inputs:
                         storage_map[r][0] = None
-                    _logger.debug("%i - done with node", i)
+                    _logger.debug(f"{i} - done with node")
                     for r in node.outputs:
                         if r not in r_vals:
                             idx = order.index(node)
                             assert thunks_py[idx] is None, node
                             assert thunks_c[idx] is None, node
-                            raise Exception("No code run for %s" % node)
+                            raise Exception(f"No code run for {node}")
 
                 if False:
                     # This could be useful to help finding refcount problem.
@@ -2567,9 +2544,9 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
                             o, _output_guard(o), reason="output_guard"
                         )
                     raise Exception(
-                        "Output variable %s required output_guard, "
+                        f"Output variable {o} required output_guard, "
                         "how was this output left unprotected against "
-                        "destructive operations?" % o
+                        "destructive operations?"
                     )
 
                 except gof.InconsistencyError:

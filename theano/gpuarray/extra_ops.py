@@ -73,7 +73,7 @@ class GpuCumOp(GpuKernelBase, Op):
             )
 
         if self.axis >= x.ndim or self.axis < -x.ndim:
-            raise ValueError("axis(={}) out of bounds".format(self.axis))
+            raise ValueError(f"axis(={self.axis}) out of bounds")
         return Apply(self, [x], [x.type()])
 
     def gpu_kernels(self, node, nodename):

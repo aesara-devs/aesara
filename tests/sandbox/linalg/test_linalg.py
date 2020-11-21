@@ -45,7 +45,7 @@ def test_rop_lop():
     v1 = rop_f(vx, vv)
     v2 = scan_f(vx, vv)
 
-    assert _allclose(v1, v2), "ROP mismatch: {} {}".format(v1, v2)
+    assert _allclose(v1, v2), f"ROP mismatch: {v1} {v2}"
 
     raised = False
     try:
@@ -67,7 +67,7 @@ def test_rop_lop():
 
     v1 = lop_f(vx, vv)
     v2 = scan_f(vx, vv)
-    assert _allclose(v1, v2), "LOP mismatch: {} {}".format(v1, v2)
+    assert _allclose(v1, v2), f"LOP mismatch: {v1} {v2}"
 
 
 def test_spectral_radius_bound():

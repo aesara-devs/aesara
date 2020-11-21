@@ -40,7 +40,9 @@ Theano.suo
 .ropeproject
 core
 .idea
+.vs
 .mypy_cache/
 /htmlcov/
 
 theano-venv/
+/notebooks/Sandbox*

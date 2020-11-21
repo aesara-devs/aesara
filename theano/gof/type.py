@@ -571,37 +571,25 @@ class Generic(SingletonType):
         return True
 
     def c_declare(self, name, sub, check_input=True):
-        return (
-            """
-        PyObject* %(name)s;
+        return f"""
+        PyObject* {name};
         """
-            % locals()
-        )
 
     def c_init(self, name, sub):
-        return (
-            """
-        %(name)s = NULL;
+        return f"""
+        {name} = NULL;
         """
-            % locals()
-        )
 
     def c_extract(self, name, sub, check_input=True):
-        return (
-            """
-        Py_INCREF(py_%(name)s);
-        %(name)s = py_%(name)s;
+        return f"""
+        Py_INCREF(py_{name});
+        {name} = py_{name};
         """
-            % locals()
-        )
 
     def c_cleanup(self, name, sub):
-        return (
-            """
-        Py_XDECREF(%(name)s);
+        return f"""
+        Py_XDECREF({name});
         """
-            % locals()
-        )
 
     def c_sync(self, name, sub):
         return (
@@ -768,7 +756,7 @@ class CDataType(Type):
         )
 
     def c_init(self, name, sub):
-        return "%(name)s = NULL;" % dict(name=name)
+        return f"{name} = NULL;"
 
     def c_extract(self, name, sub, check_input=True):
         return """
@@ -846,7 +834,7 @@ if (py_%(name)s == NULL) { %(freefunc)s(%(name)s); }
         return v
 
     def __str__(self):
-        return "{}{{{}}}".format(self.__class__.__name__, self.ctype)
+        return f"{self.__class__.__name__}{{{self.ctype}}}"
 
     def __setstate__(self, dct):
         self.__dict__.update(dct)
@@ -976,12 +964,12 @@ class EnumType(Type, dict):
         # We should check each part.
         ctype_parts = ctype.split()
         if not all(re.match("^[A-Za-z_][A-Za-z0-9_]*$", el) for el in ctype_parts):
-            raise TypeError("%s: invalid C type." % type(self).__name__)
+            raise TypeError(f"{type(self).__name__}: invalid C type.")
         self.ctype = " ".join(ctype_parts)
 
     def __init_cname(self, cname):
         if not re.match("^[A-Za-z_][A-Za-z0-9_]*$", cname):
-            raise TypeError("%s: invalid C name." % type(self).__name__)
+            raise TypeError(f"{type(self).__name__}: invalid C name.")
         self.cname = cname
 
     def __init__(self, **kwargs):
@@ -991,33 +979,29 @@ class EnumType(Type, dict):
         for k in kwargs:
             if re.match("^[A-Z][A-Z0-9_]*$", k) is None:
                 raise AttributeError(
-                    '%s: invalid enum name: "%s". '
+                    f'{type(self).__name__}: invalid enum name: "{k}". '
                     "Only capital letters, underscores and digits "
-                    "are allowed." % (type(self).__name__, k)
+                    "are allowed."
                 )
             if isinstance(kwargs[k], (list, tuple)):
                 if len(kwargs[k]) != 2:
                     raise TypeError(
-                        "%s: when using a tuple to define a constant, your tuple should contain 2 values: "
+                        f"{type(self).__name__}: when using a tuple to define a constant, your tuple should contain 2 values: "
                         "constant alias followed by constant value."
-                        % type(self).__name__
                     )
                 alias, value = kwargs[k]
                 if not isinstance(alias, str):
                     raise TypeError(
-                        '%s: constant alias should be a string, got "%s".'
-                        % (type(self).__name__, alias)
+                        f'{type(self).__name__}: constant alias should be a string, got "{alias}".'
                     )
                 if alias == k:
                     raise TypeError(
-                        "%s: it's useless to create an alias "
+                        f"{type(self).__name__}: it's useless to create an alias "
                         "with the same name as its associated constant."
-                        % type(self).__name__
                     )
                 if alias in self.aliases:
                     raise TypeError(
-                        '%s: consant alias "%s" already used.'
-                        % (type(self).__name__, alias)
+                        f'{type(self).__name__}: consant alias "{alias}" already used.'
                     )
                 self.aliases[alias] = k
                 kwargs[k] = value
@@ -1025,12 +1009,11 @@ class EnumType(Type, dict):
                 kwargs[k] = int(kwargs[k])
             elif not isinstance(kwargs[k], (int, float)):
                 raise TypeError(
-                    '%s: constant "%s": expected integer or floating value, got "%s".'
-                    % (type(self).__name__, k, type(kwargs[k]).__name__)
+                    f'{type(self).__name__}: constant "{k}": expected integer or floating value, got "{type(kwargs[k]).__name__}".'
                 )
         if [a for a in self.aliases if a in self]:
             raise TypeError(
-                "%s: some aliases have same names as constants." % type(self).__name__
+                f"{type(self).__name__}: some aliases have same names as constants."
             )
         super().__init__(**kwargs)
 
@@ -1057,7 +1040,7 @@ class EnumType(Type, dict):
     def __repr__(self):
         names_to_aliases = {constant_name: "" for constant_name in self}
         for alias in self.aliases:
-            names_to_aliases[self.aliases[alias]] = "(%s)" % alias
+            names_to_aliases[self.aliases[alias]] = f"({alias})"
         return "{}<{}>({})".format(
             type(self).__name__,
             self.ctype,
@@ -1196,10 +1179,10 @@ class EnumType(Type, dict):
         )
 
     def c_declare(self, name, sub, check_input=True):
-        return """%(ctype)s %(name)s;""" % dict(ctype=self.ctype, name=name)
+        return f"""{self.ctype} {name};"""
 
     def c_init(self, name, sub):
-        return "%(name)s = (%(ctype)s)0;" % dict(name=name, ctype=self.ctype)
+        return f"{name} = ({self.ctype})0;"
 
     def c_cleanup(self, name, sub):
         return ""
@@ -1267,15 +1250,13 @@ class EnumList(EnumType):
             if isinstance(arg, (list, tuple)):
                 if len(arg) != 2:
                     raise TypeError(
-                        "%s: when using a tuple to define a constant, your tuple should contain 2 values: "
+                        f"{type(self).__name__}: when using a tuple to define a constant, your tuple should contain 2 values: "
                         "constant name followed by constant alias."
-                        % type(self).__name__
                     )
                 constant_name, constant_alias = arg
                 if not isinstance(constant_alias, str):
                     raise TypeError(
-                        '%s: constant alias should be a string, got "%s".'
-                        % (type(self).__name__, constant_alias)
+                        f'{type(self).__name__}: constant alias should be a string, got "{constant_alias}".'
                     )
                 constant_value = (constant_alias, arg_rank)
             else:
@@ -1283,13 +1264,11 @@ class EnumList(EnumType):
                 constant_value = arg_rank
             if not isinstance(constant_name, str):
                 raise TypeError(
-                    '%s: constant name should be a string, got "%s".'
-                    % (type(self).__name__, constant_name)
+                    f'{type(self).__name__}: constant name should be a string, got "{constant_name}".'
                 )
             if constant_name in kwargs:
                 raise TypeError(
-                    '%s: constant name already used ("%s").'
-                    % (type(self).__name__, constant_name)
+                    f'{type(self).__name__}: constant name already used ("{constant_name}").'
                 )
             kwargs[constant_name] = constant_value
 

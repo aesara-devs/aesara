@@ -88,10 +88,10 @@ class StructOp(Op):
         return Apply(self, [i], [scalar.uint64()])
 
     def c_support_code_struct(self, node, name):
-        return "npy_uint64 counter{};".format(name)
+        return f"npy_uint64 counter{name};"
 
     def c_init_code_struct(self, node, name, sub):
-        return "counter{} = 0;".format(name)
+        return f"counter{name} = 0;"
 
     def c_code(self, node, name, input_names, outputs_names, sub):
         return """
@@ -204,7 +204,7 @@ class TestMakeThunk:
             def c_code(self, node, name, inputs, outputs, sub):
                 (x,) = inputs
                 (z,) = outputs
-                return "%(z)s = %(x)s + 1;" % locals()
+                return f"{z} = {x} + 1;"
 
         i = scalar.int32("i")
         o = IncOneC()(i)

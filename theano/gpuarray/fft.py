@@ -364,7 +364,7 @@ def cuirfft(inp, norm=None, is_odd=False):
     """
 
     if is_odd not in (True, False):
-        raise ValueError("Invalid value %s for id_odd, must be True or False" % is_odd)
+        raise ValueError(f"Invalid value {is_odd} for id_odd, must be True or False")
 
     s = inp.shape[1:-1]
     if is_odd:
@@ -385,7 +385,7 @@ def cuirfft(inp, norm=None, is_odd=False):
 def _unitary(norm):
     if norm not in (None, "ortho", "no_norm"):
         raise ValueError(
-            "Invalid value %s for norm, must be None, 'ortho' or " "'no norm'" % norm
+            f"Invalid value {norm} for norm, must be None, 'ortho' or 'no norm'"
         )
     return norm
 

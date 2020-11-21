@@ -97,7 +97,7 @@ class TestConv2D(utt.InferShapeTester):
             return rval
 
         output = sym_conv2d(input, filters)
-        output.name = "conv2d({},{})".format(input.name, filters.name)
+        output.name = f"conv2d({input.name},{filters.name})"
         theano_conv = theano.function([input, filters], output, mode=self.mode)
 
         # initialize input and compute result

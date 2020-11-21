@@ -711,7 +711,7 @@ class BaseGpuCorrMM(CGpuKernelBase):
         # of bottom and weights from top, so we require them to be given.
         # Similarly, when pad="half", we cannot infer the weight size.
         if height:
-            height = "(*(npy_int*)(PyArray_DATA(%s)))" % height
+            height = f"(*(npy_int*)(PyArray_DATA({height})))"
         else:
             if ((direction != 0) and (dH != 1)) or (
                 (direction == 1) and (padH_l == -1 or padH_r == -1)
@@ -721,7 +721,7 @@ class BaseGpuCorrMM(CGpuKernelBase):
                 )
             height = "-1"
         if width:
-            width = "(*(npy_int*)(PyArray_DATA(%s)))" % width
+            width = f"(*(npy_int*)(PyArray_DATA({width})))"
         else:
             if ((direction != 0) and (dW != 1)) or (
                 (direction == 1) and (padW_l == -1 or padW_r == -1)
@@ -1522,7 +1522,7 @@ class BaseGpuCorr3dMM(CGpuKernelBase):
         # of bottom and weights from top, so we require them to be given.
         # Similarly, when pad="half", we cannot infer the weight size.
         if height:
-            height = "(*(npy_int*)(PyArray_DATA(%s)))" % height
+            height = f"(*(npy_int*)(PyArray_DATA({height})))"
         else:
             if ((direction != 0) and (dH != 1)) or ((direction == 1) and (padH == -1)):
                 raise ValueError(
@@ -1530,7 +1530,7 @@ class BaseGpuCorr3dMM(CGpuKernelBase):
                 )
             height = "-1"
         if width:
-            width = "(*(npy_int*)(PyArray_DATA(%s)))" % width
+            width = f"(*(npy_int*)(PyArray_DATA({width})))"
         else:
             if ((direction != 0) and (dW != 1)) or ((direction == 1) and (padW == -1)):
                 raise ValueError(
@@ -1538,7 +1538,7 @@ class BaseGpuCorr3dMM(CGpuKernelBase):
                 )
             width = "-1"
         if depth:
-            depth = "(*(npy_int*)(PyArray_DATA(%s)))" % depth
+            depth = f"(*(npy_int*)(PyArray_DATA({depth})))"
         else:
             if ((direction != 0) and (dD != 1)) or ((direction == 1) and (padD == -1)):
                 raise ValueError(

@@ -347,7 +347,7 @@ class mrg_uniform_base(Op):
             s = "inplace"
         else:
             s = "no_inplace"
-        return self.__class__.__name__ + "{{{},{}}}".format(self.output_type, s)
+        return self.__class__.__name__ + f"{{{self.output_type},{s}}}"
 
     def grad(self, inputs, ograd):
         return [
@@ -693,9 +693,8 @@ def guess_n_streams(size, warn=False):
             warnings.warn(
                 (
                     "MRG_RandomStreams Can't determine #streams "
-                    "from size (%s), guessing 60*256"
-                )
-                % str(size),
+                    f"from size ({size}), guessing 60*256"
+                ),
                 stacklevel=3,
             )
         return 60 * 256
@@ -740,7 +739,7 @@ class MRG_RandomStreams:
             if seed == 0:
                 raise ValueError("seed should not be 0", seed)
             elif seed >= M2:
-                raise ValueError("seed should be less than %i" % M2, seed)
+                raise ValueError(f"seed should be less than {int(M2)}", seed)
             self.rstate = np.asarray([seed] * 6, dtype="int32")
         elif len(seed) == 6:
             if seed[0] == 0 and seed[1] == 0 and seed[2] == 0:
@@ -749,11 +748,11 @@ class MRG_RandomStreams:
                 raise ValueError("The last 3 values of seed should not be all 0", seed)
             if seed[0] >= M1 or seed[1] >= M1 or seed[2] >= M1:
                 raise ValueError(
-                    "The first 3 values of seed should be less than %i" % M1, seed
+                    f"The first 3 values of seed should be less than {int(M1)}", seed
                 )
             if seed[3] >= M2 or seed[4] >= M2 or seed[5] >= M2:
                 raise ValueError(
-                    "The last 3 values of seed should be less than %i" % M2, seed
+                    f"The last 3 values of seed should be less than {M2}", seed
                 )
             self.rstate = np.asarray(seed, dtype="int32")
         else:
@@ -918,7 +917,7 @@ class MRG_RandomStreams:
             d = dict(target=kwargs.pop("target"))
         if len(kwargs) > 0:
             raise TypeError(
-                "uniform() got unexpected keyword arguments %s" % (str(kwargs.keys()))
+                f"uniform() got unexpected keyword arguments {kwargs.keys()}"
             )
         node_rstate = shared(rstates, **d)
         u = self.pretty_return(

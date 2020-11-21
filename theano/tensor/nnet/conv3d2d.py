@@ -94,7 +94,7 @@ class DiagonalSubtensor(Op):
     def __str__(self):
         if self.inplace:
             return "%s{inplace}" % self.__class__.__name__
-        return "%s" % self.__class__.__name__
+        return f"{self.__class__.__name__}"
 
     def __init__(self, inplace=False):
         self.inplace = inplace
@@ -137,7 +137,7 @@ class IncDiagonalSubtensor(Op):
     def __str__(self):
         if self.inplace:
             return "%s{inplace}" % self.__class__.__name__
-        return "%s" % self.__class__.__name__
+        return f"{self.__class__.__name__}"
 
     def __init__(self, inplace=False):
         self.inplace = inplace

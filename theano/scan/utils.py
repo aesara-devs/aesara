@@ -217,10 +217,9 @@ def clone(
         raise ValueError(
             (
                 "replace is neither a dictionary, list, "
-                "tuple or None ! The value provided is %s,"
-                "of type %s"
+                f"tuple or None ! The value provided is {replace},"
+                f"of type {type(replace)}"
             )
-            % (str(replace), str(type(replace)))
         )
     tmp_replace = [(x, x.type()) for x, y in items]
     new_replace = [(x, y) for ((_, x), (_, y)) in zip(tmp_replace, items)]
@@ -410,7 +409,7 @@ def _map_variables_inner(
         # `fg` can take ownership of
         for input_ in constants:
             new_input = input_.clone()
-            new_input.name = "%s_copied" % new_input.name
+            new_input.name = f"{new_input.name}_copied"
             replacements.append((input_, new_input))
 
         for outer_input in foreign_inputs:
@@ -424,10 +423,10 @@ def _map_variables_inner(
                 # OpFromGraph are not supported at all, so we don't support
                 # introducing those either.
                 raise NotImplementedError(
-                    "Replacement introduces shared variable %s "
+                    f"Replacement introduces shared variable {outer_input} "
                     "which has an update associated with it into "
-                    "the inner graph of %s. This is not currently "
-                    "supported." % (outer_input, containing_op)
+                    f"the inner graph of {containing_op}. This is not currently "
+                    "supported."
                 )
             # if this foreign input is not already available
             # as an inner input, connect it through a new
@@ -538,8 +537,7 @@ def get_updates_and_outputs(ls):
     if is_updates(ls):
         return None, [], OrderedDict(ls)
     error_msg = (
-        "Scan cannot parse the return value of your lambda "
-        "expression, which is: %s" % (ls,)
+        f"Scan cannot parse the return value of your lambda expression, which is: {ls}"
     )
     if not isinstance(ls, (list, tuple)):
         raise ValueError(error_msg)
@@ -1075,8 +1073,9 @@ class scan_args:
             if k in info:
                 self.other_info[k] = info[k]
 
-    inner_inputs = property(
-        lambda self: (
+    @property
+    def inner_inputs(self):
+        return (
             self.inner_in_seqs
             + sum(self.inner_in_mit_mot, [])
             + sum(self.inner_in_mit_sot, [])
@@ -1084,10 +1083,10 @@ class scan_args:
             + self.inner_in_shared
             + self.inner_in_non_seqs
         )
-    )
 
-    outer_inputs = property(
-        lambda self: (
+    @property
+    def outer_inputs(self):
+        return (
             [self.n_steps]
             + self.outer_in_seqs
             + self.outer_in_mit_mot
@@ -1097,10 +1096,10 @@ class scan_args:
             + self.outer_in_nit_sot
             + self.outer_in_non_seqs
         )
-    )
 
-    inner_outputs = property(
-        lambda self: (
+    @property
+    def inner_outputs(self):
+        return (
             sum(self.inner_out_mit_mot, [])
             + self.inner_out_mit_sot
             + self.inner_out_sit_sot
@@ -1108,20 +1107,20 @@ class scan_args:
             + self.inner_out_shared
             + self.cond
         )
-    )
 
-    outer_outputs = property(
-        lambda self: (
+    @property
+    def outer_outputs(self):
+        return (
             self.outer_out_mit_mot
             + self.outer_out_mit_sot
             + self.outer_out_sit_sot
             + self.outer_out_nit_sot
             + self.outer_out_shared
         )
-    )
 
-    info = property(
-        lambda self: OrderedDict(
+    @property
+    def info(self):
+        return OrderedDict(
             n_seqs=len(self.outer_in_seqs),
             n_mit_mot=len(self.outer_in_mit_mot),
             n_mit_sot=len(self.outer_in_mit_sot),
@@ -1137,7 +1136,6 @@ class scan_args:
             mit_mot_out_slices=self.mit_mot_out_slices,
             **self.other_info,
         )
-    )
 
     def __copy__(self):
         res = object.__new__(type(self))

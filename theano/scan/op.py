@@ -201,7 +201,7 @@ class Scan(PureOp):
             for var in theano.gof.graph.inputs(self.outputs, self.inputs):
                 if var not in self.inputs and not isinstance(var, theano.Constant):
                     raise theano.gof.MissingInputError(
-                        "ScanOp is missing an input: %s" % repr(var)
+                        f"ScanOp is missing an input: {repr(var)}"
                     )
             self._cmodule_key = gof.CLinker().cmodule_key_variables(
                 self.inputs, self.outputs, []
@@ -236,11 +236,10 @@ class Scan(PureOp):
                 if type_input != type_output:
                     raise TypeError(
                         "Inconsistency in the inner graph of "
-                        "scan '%s' : an input and an output are "
+                        f"scan '{self.name}' : an input and an output are "
                         "associated with the same recurrent state "
                         "and should have the same type but have "
-                        "type '%s' and '%s' respectively."
-                        % (self.name, type_input, type_output)
+                        f"type '{type_input}' and '{type_output}' respectively."
                     )
 
         # If scan has the flag 'gpua' set to false (meaning that is shouldn't
@@ -253,7 +252,7 @@ class Scan(PureOp):
                 if isinstance(inp.type, GpuArrayType):
                     raise TypeError(
                         "Inconsistency in the inner graph of "
-                        "scan '%s' : one of the inputs to the "
+                        f"scan '{self.name}' : one of the inputs to the "
                         "inner graph is of type GpuArrayType but "
                         "the attributes of the scan op indicate "
                         "that it shouldn't be the case"
@@ -263,7 +262,7 @@ class Scan(PureOp):
                 if isinstance(out.type, GpuArrayType):
                     raise TypeError(
                         "Inconsistency in the inner graph of "
-                        "scan '%s' : one of the outputs to the "
+                        f"scan '{self.name}' : one of the outputs to the "
                         "inner graph is of type GpuArrayType but "
                         "the attributes of the scan op indicate "
                         "that it shouldn't be the case"
@@ -1262,7 +1261,7 @@ class Scan(PureOp):
             # History, in the past, this was used for backward
             # scan. Now we reverse the inputs outside of scan.
             raise IndexError(
-                "Scan was asked to run for negative number of step %d" % n_steps
+                f"Scan was asked to run for negative number of step {int(n_steps)}"
             )
         elif n_steps == 0:
             raise NotImplementedError(

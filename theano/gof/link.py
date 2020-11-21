@@ -25,7 +25,7 @@ def log_thunk_trace(value, f=sys.stderr):
     # in future, consider accepting `write` as arg rather than file
     # to support writing to a logger
     def write(msg):
-        print("log_thunk_trace: %s" % msg.strip(), file=f)
+        print(f"log_thunk_trace: {msg.strip()}", file=f)
 
     if hasattr(value, "__thunk_trace__"):
         trace2 = value.__thunk_trace__
@@ -142,10 +142,10 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
     hints = []
     detailed_err_msg = "\nApply node that caused the error: " + str(node)
     if exc_value.__applynode_index__ is not None:
-        detailed_err_msg += "\nToposort index: %d" % node_index
+        detailed_err_msg += f"\nToposort index: {int(node_index)}"
 
     types = [getattr(ipt, "type", "No type") for ipt in node.inputs]
-    detailed_err_msg += "\nInputs types: %s\n" % types
+    detailed_err_msg += f"\nInputs types: {types}\n"
 
     if thunk is not None:
         if hasattr(thunk, "inputs"):
@@ -163,18 +163,18 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
             scalar_values = "And can't print its inputs scalar value"
         clients = [[c[0] for c in var.clients] for var in node.outputs]
         detailed_err_msg += (
-            "Inputs shapes: %s" % shapes
-            + "\nInputs strides: %s" % strides
-            + "\nInputs values: %s" % scalar_values
+            f"Inputs shapes: {shapes}"
+            + f"\nInputs strides: {strides}"
+            + f"\nInputs values: {scalar_values}"
         )
         if theano.config.exception_verbosity == "high":
             detailed_err_msg += "\nInputs type_num: %s" % str(
                 [getattr(getattr(i[0], "dtype", ""), "num", "") for i in thunk.inputs]
             )
         if hasattr(node.op, "__input_name__"):
-            detailed_err_msg += "\nInputs name: %s\n" % str(node.op.__input_name__)
+            detailed_err_msg += f"\nInputs name: {node.op.__input_name__}\n"
 
-        detailed_err_msg += "\nOutputs clients: %s\n" % clients
+        detailed_err_msg += f"\nOutputs clients: {clients}\n"
     else:
         hints.append(
             "HINT: Use another linker then the c linker to"
@@ -308,10 +308,10 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
             elif item[4] is False:
                 detailed_err_msg += "Input, "
             if item[1] is not None:
-                detailed_err_msg += "Shape: %s, " % str(item[1])
-            detailed_err_msg += "ElemSize: %s Byte(s)" % item[2]
+                detailed_err_msg += f"Shape: {item[1]}, "
+            detailed_err_msg += f"ElemSize: {item[2]} Byte(s)"
             if item[3] is not None:
-                detailed_err_msg += ", TotalSize: %s Byte(s)\n" % item[3]
+                detailed_err_msg += f", TotalSize: {item[3]} Byte(s)\n"
             else:
                 detailed_err_msg += "\n"
         detailed_err_msg += " TotalSize: {} Byte(s) {:.3f} GB\n".format(
@@ -334,10 +334,7 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
             str(exc_value) + detailed_err_msg + "\n" + "\n".join(hints)
         )
     except TypeError:
-        print(
-            "WARNING: %s error does not allow us to add extra error message"
-            % str(exc_type)
-        )
+        print(f"WARNING: {exc_type} error does not allow us to add extra error message")
         # Some exception need extra parameter in inputs. So forget the
         # extra long error message in that case.
     raise exc_value.with_traceback(exc_trace)
@@ -405,11 +402,7 @@ class Linker:
 
         def execute(*args):
             def e_arity(takes, got):
-                return "Function call takes exactly %i %s (%i given)" % (
-                    takes,
-                    ["argument", "arguments"][takes > 1],
-                    got,
-                )
+                return f"Function call takes exactly {takes} {['argument', 'arguments'][takes > 1]} ({got} given)"
 
             if len(args) != len(inputs):
                 raise TypeError(e_arity(len(inputs), len(args)))
@@ -482,7 +475,7 @@ class Container:
 
     def __set__(self, value):
         if self.readonly:
-            raise Exception("Cannot set readonly storage: %s" % self.name)
+            raise Exception(f"Cannot set readonly storage: {self.name}")
         try:
             if value is None:
                 self.storage[0] = None
@@ -501,7 +494,7 @@ class Container:
                 self.storage[0] = self.type.filter(value, **kwargs)
 
         except Exception as e:
-            e.args = e.args + (('Container name "%s"' % self.name),)
+            e.args = e.args + (f'Container name "{self.name}"',)
             raise
 
     data = property(__get__, __set__)

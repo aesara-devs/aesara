@@ -12,7 +12,7 @@ try:
 except ImportError:
     pass
 
-names = ("sympy_func_%d" % i for i in it.count(0))
+names = (f"sympy_func_{int(i)}" for i in it.count(0))
 
 
 def include_line(line):
@@ -79,7 +79,7 @@ class SymPyCCode(ScalarOp):
         (y,) = output_names
         xs = ", ".join(input_names)
         f = self.name
-        return "%(y)s = %(f)s(%(xs)s);" % locals()
+        return f"{y} = {f}({xs});"
 
     def output_types_preference(self, *inputs):
         return [theano_dtype(self.expr)]
@@ -103,7 +103,7 @@ class SymPyCCode(ScalarOp):
     def grad(self, inputs, output_grads):
         return [
             SymPyCCode(
-                self.inputs, self.expr.diff(inp), name=self.name + "_grad_%d" % i
+                self.inputs, self.expr.diff(inp), name=self.name + f"_grad_{int(i)}"
             )(*inputs)
             for i, inp in enumerate(self.inputs)
         ]

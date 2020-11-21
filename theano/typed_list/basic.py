@@ -175,12 +175,9 @@ class Append(Op):
                 % locals()
             )
         else:
-            init = (
-                """
-            %(output_name)s =  %(x_name)s;
+            init = f"""
+            {output_name} =  {x_name};
             """
-                % locals()
-            )
         return (
             init
             + """
@@ -263,12 +260,9 @@ class Extend(Op):
                 % locals()
             )
         else:
-            init = (
-                """
-            %(output_name)s =  %(x_name)s;
+            init = f"""
+            {output_name} =  {x_name};
             """
-                % locals()
-            )
         return (
             init
             + """
@@ -358,12 +352,9 @@ class Insert(Op):
                 % locals()
             )
         else:
-            init = (
-                """
-            %(output_name)s =  %(x_name)s;
+            init = f"""
+            {output_name} =  {x_name};
             """
-                % locals()
-            )
         return (
             init
             + """
@@ -493,12 +484,9 @@ class Reverse(Op):
                 % locals()
             )
         else:
-            init = (
-                """
-            %(output_name)s =  %(x_name)s;
+            init = f"""
+            {output_name} =  {x_name};
             """
-                % locals()
-            )
         return (
             init
             + """

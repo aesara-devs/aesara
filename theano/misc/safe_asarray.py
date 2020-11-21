@@ -49,11 +49,10 @@ def _asarray(a, dtype, order=None):
             # Unexpected mismatch: better know what is going on!
             raise TypeError(
                 "numpy.array did not return the data type we "
-                "asked for (%s %s #%s), instead it returned type "
-                "%s %s #%s: function "
+                f"asked for ({dtype} {dtype.str} #{dtype.num}), instead it returned type "
+                f"{rval.dtype} {rval.str} #{rval.dtype.num}: function "
                 "theano._asarray may need to be modified to handle this "
                 "data type."
-                % (dtype, dtype.str, dtype.num, rval.dtype, rval.str, rval.dtype.num)
             )
     else:
         return rval

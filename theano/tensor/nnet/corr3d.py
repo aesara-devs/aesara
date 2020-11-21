@@ -300,7 +300,7 @@ class BaseCorr3dMM(gof.OpenMPOp):
         # of bottom and weights from top, so we require them to be given.
         # Similarly, when border_mode="half", we cannot infer the weight size.
         if height:
-            height = "(*(npy_int64 *)(PyArray_DATA(%s)))" % height
+            height = f"(*(npy_int64 *)(PyArray_DATA({height})))"
         else:
             if ((self.direction != 0) and (self.dH != 1)) or (
                 (self.direction == 1) and (self.padH == -1)
@@ -310,7 +310,7 @@ class BaseCorr3dMM(gof.OpenMPOp):
                 )
             height = "-1"
         if width:
-            width = "(*(npy_int64 *)(PyArray_DATA(%s)))" % width
+            width = f"(*(npy_int64 *)(PyArray_DATA({width})))"
         else:
             if ((self.direction != 0) and (self.dW != 1)) or (
                 (self.direction == 1) and (self.padW == -1)
@@ -320,7 +320,7 @@ class BaseCorr3dMM(gof.OpenMPOp):
                 )
             width = "-1"
         if depth:
-            depth = "(*(npy_int64 *)(PyArray_DATA(%s)))" % depth
+            depth = f"(*(npy_int64 *)(PyArray_DATA({depth})))"
         else:
             if ((self.direction != 0) and (self.dD != 1)) or (
                 (self.direction == 1) and (self.padD == -1)

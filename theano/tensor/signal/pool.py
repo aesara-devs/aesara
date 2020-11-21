@@ -431,7 +431,7 @@ class Pool(OpenMPOp):
             ndim = 2
         assert ndim > 0
         if len(imgshape) < ndim:
-            raise TypeError("imgshape must have at least {} dimensions".format(ndim))
+            raise TypeError(f"imgshape must have at least {ndim} dimensions")
 
         if stride is None:
             stride = ws
@@ -479,7 +479,7 @@ class Pool(OpenMPOp):
         if mode not in ["max", "average_inc_pad", "average_exc_pad", "sum"]:
             raise ValueError(
                 "Pool mode parameter only support 'max', 'sum',"
-                " 'average_inc_pad' and 'average_exc_pad'. Got %s" % mode
+                f" 'average_inc_pad' and 'average_exc_pad'. Got {mode}"
             )
         self.mode = mode
 
@@ -553,7 +553,7 @@ class Pool(OpenMPOp):
         assert ws.shape == stride.shape == pad.shape == (nd,)
         if len(x.shape) < nd:
             raise NotImplementedError(
-                "Pool requires input with {} or more dimensions".format(nd)
+                f"Pool requires input with {nd} or more dimensions"
             )
         z_shape = self.out_shape(x.shape, ws, params.ignore_border, stride, pad, nd)
         if not params.ignore_border:
@@ -937,7 +937,7 @@ class Pool(OpenMPOp):
                 """
             elif self.mode == "average_inc_pad" and self.ignore_border:
                 # region size = product over all pooling dimensions
-                region_size = " * ".join("ws[%d]" % i for i in range(nd))
+                region_size = " * ".join(f"ws[{i}]" for i in range(nd))
                 ccode += """
                   z[0] = collector / (%(region_size)s);
                 """ % dict(
@@ -945,9 +945,7 @@ class Pool(OpenMPOp):
                 )
             else:
                 # region size = number elements of in this region
-                region_size = " * ".join(
-                    "(r_end[%d]-r_st[%d])" % (i, i) for i in range(nd)
-                )
+                region_size = " * ".join(f"(r_end[{i}]-r_st[{i}])" for i in range(nd))
                 ccode += """
                   z[0] = collector / (%(region_size)s);
                 """ % dict(
@@ -1074,7 +1072,7 @@ class PoolGrad(OpenMPOp):
                 pad = padding
 
         if len(imgshape) < ndim:
-            raise TypeError("imgshape must have at least {} dimensions".format(ndim))
+            raise TypeError(f"imgshape must have at least {ndim} dimensions")
 
         if stride is None:
             stride = ws
@@ -1118,7 +1116,7 @@ class PoolGrad(OpenMPOp):
         if mode not in ["max", "sum", "average_inc_pad", "average_exc_pad"]:
             raise ValueError(
                 "Pool mode parameter only support 'max', 'sum',"
-                " 'average_inc_pad' and 'average_exc_pad'. Got %s" % mode
+                " 'average_inc_pad' and 'average_exc_pad'. Got {mode}"
             )
         self.mode = mode
         super().__init__(openmp=openmp)
@@ -1200,7 +1198,7 @@ class MaxPoolGrad(PoolGrad):
         assert ws.shape == stride.shape == pad.shape == (nd,)
         if len(x.shape) < nd:
             raise NotImplementedError(
-                "MaxPoolGrad requires input with {} or more dimensions".format(nd)
+                f"MaxPoolGrad requires input with {nd} or more dimensions"
             )
         pool_out_shp = maxout.shape[-nd:]
         img_shp = tuple(x.shape[-nd + i] + 2 * pad[i] for i in range(nd))
@@ -1530,7 +1528,7 @@ class AveragePoolGrad(PoolGrad):
         assert ws.shape == stride.shape == pad.shape == (nd,)
         if len(x.shape) < nd:
             raise NotImplementedError(
-                "AveragePoolGrad requires input with {} or more dimensions".format(nd)
+                f"AveragePoolGrad requires input with {nd} or more dimensions"
             )
         if self.mode == "average_exc_pad" and max(pad) != 0:
             raise NotImplementedError()
@@ -1788,7 +1786,7 @@ class AveragePoolGrad(PoolGrad):
                     val = gz[0] / (%(region_size)s);
                   }
         """
-        region_size = " * ".join("r_pad_width[%d]" % i for i in range(nd))
+        region_size = " * ".join(f"r_pad_width[{i}]" for i in range(nd))
         for i in range(nd):
             ccode += """
                   // go through the pooled region in the unpadded input
@@ -2219,7 +2217,7 @@ class MaxPoolRop(OpenMPOp):
         assert ws.shape == stride.shape == pad.shape == (nd,)
         if len(x.shape) < nd:
             raise NotImplementedError(
-                "Pool requires input with {} or more dimensions".format(nd)
+                f"Pool requires input with {nd} or more dimensions"
             )
         z_shape = Pool.out_shape(x.shape, ws, params.ignore_border, stride, pad, nd)
         if not self.ignore_border:

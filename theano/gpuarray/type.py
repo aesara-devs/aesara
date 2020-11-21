@@ -80,7 +80,7 @@ def reg_context(name, ctx):
 
     """
     if name in _context_reg:
-        raise ValueError("context name {} is already defined".format(name))
+        raise ValueError(f"context name {name} is already defined")
     if not isinstance(ctx, gpuarray.GpuContext):
         raise TypeError("context is not GpuContext")
     _context_reg[name] = ctx
@@ -101,7 +101,7 @@ def get_context(name):
 
     """
     if name not in _context_reg:
-        raise ContextNotDefined("context name {} not defined".format(name))
+        raise ContextNotDefined(f"context name {name} not defined")
     return _context_reg[name]
 
 
@@ -189,9 +189,7 @@ class GpuArrayType(Type):
             self.typecode = gpuarray.dtype_to_typecode(self.dtype)
         except gpuarray.GpuArrayException:
             raise TypeError(
-                "Unsupported dtype for {}: {}".format(
-                    self.__class__.__name__, self.dtype
-                )
+                f"Unsupported dtype for {self.__class__.__name__}: {self.dtype}"
             )
 
     def clone(self, dtype=None, broadcastable=None):
@@ -234,10 +232,8 @@ class GpuArrayType(Type):
             elif any(b):
                 bcast = str(b)
             else:
-                bcast = "%iD" % len(b)
-            return "GpuArrayType<{}>({}, {})".format(
-                self.context_name, self.dtype, bcast
-            )
+                bcast = f"{len(b)}D"
+            return f"GpuArrayType<{self.context_name}>({self.dtype}, {bcast})"
 
     def filter(self, data, strict=False, allow_downcast=None):
         return self.filter_inplace(
@@ -251,14 +247,11 @@ class GpuArrayType(Type):
             pass
         elif strict:
             if not isinstance(data, gpuarray.GpuArray):
-                raise TypeError(
-                    "%s expected a GpuArray object." % self, data, type(data)
-                )
+                raise TypeError(f"{self} expected a GpuArray object.", data, type(data))
             if self.typecode != data.typecode:
                 raise TypeError(
-                    "%s expected typecode %d (dtype %s), "
-                    "got %d (dtype %s)."
-                    % (self, self.typecode, self.dtype, data.typecode, str(data.dtype))
+                    f"{self} expected typecode {int(self.typecode)} (dtype {self.dtype}), "
+                    f"got {int(data.typecode)} (dtype {data.dtype})."
                 )
             if self.context != data.context:
                 raise TypeError("data context does not match type context")
@@ -298,14 +291,14 @@ class GpuArrayType(Type):
                     data = gpuarray.array(data, dtype=self.dtype, copy=False)
             else:
                 raise TypeError(
-                    "%s cannot store a value of dtype %s "
-                    "without risking loss of precision." % (self, data.dtype)
+                    f"{self} cannot store a value of dtype {data.dtype} "
+                    "without risking loss of precision."
                 )
 
         if self.ndim != data.ndim:
             raise TypeError(
-                "Wrong number of dimensions: expected %s, "
-                "got %s with shape %s." % (self.ndim, data.ndim, data.shape),
+                f"Wrong number of dimensions: expected {self.ndim}, "
+                f"got {data.ndim} with shape {data.shape}.",
                 data,
             )
         shp = data.shape
@@ -349,7 +342,7 @@ class GpuArrayType(Type):
         if other.type.ndim != self.ndim:
             raise TypeError(
                 "Incompatible number of dimensions."
-                " Expected %d, got %d." % (self.ndim, other.ndim)
+                f" Expected {int(self.ndim)}, got {int(other.ndim)}."
             )
         if other.type.broadcastable != self.broadcastable:
             if allow_convert:
@@ -360,8 +353,7 @@ class GpuArrayType(Type):
             if other2 is None:
                 raise TypeError(
                     "Incompatible broadcastable dimensions."
-                    " Expected %s, got %s."
-                    % (str(other.type.broadcastable), str(self.broadcastable))
+                    f" Expected {other.type.broadcastable}, got {self.broadcastable}."
                 )
             other = other2
 
@@ -454,9 +446,7 @@ class GpuArrayType(Type):
             }[self.dtype]
         except KeyError:
             raise TypeError(
-                "Unsupported dtype for {}: {}".format(
-                    self.__class__.__name__, self.dtype
-                )
+                f"Unsupported dtype for {self.__class__.__name__}: {self.dtype}"
             )
 
     def get_shape_info(self, obj):
@@ -472,15 +462,12 @@ class GpuArrayType(Type):
         return pygpu.gpuarray.dtype_to_ctype(self.dtype)
 
     def c_declare(self, name, sub, check_input=True):
-        return (
-            """
-        PyGpuArrayObject *%(name)s;
+        return f"""
+        PyGpuArrayObject *{name};
         """
-            % locals()
-        )
 
     def c_init(self, name, sub):
-        return "{} = NULL;".format(name)
+        return f"{name} = NULL;"
 
     def c_extract(self, name, sub, check_input=True):
         # TODO I don't check broadcast stuff for now.
@@ -920,10 +907,10 @@ class GpuContextType(Type):
         return a == b
 
     def c_declare(self, name, sub, check_input=True):
-        return "PyGpuContextObject *{};".format(name)
+        return f"PyGpuContextObject *{name};"
 
     def c_init(self, name, sub):
-        return "{} = NULL;".format(name)
+        return f"{name} = NULL;"
 
     def c_extract(self, name, sub, check_input=True):
         if check_input:
@@ -947,7 +934,7 @@ Py_INCREF(%(name)s);
         )
 
     def c_cleanup(self, name, sub):
-        return "Py_XDECREF(%(name)s); %(name)s = NULL;" % dict(name=name)
+        return f"Py_XDECREF({name}); {name} = NULL;"
 
     # c_sync is intentionally not declared to prevent normal usage
 

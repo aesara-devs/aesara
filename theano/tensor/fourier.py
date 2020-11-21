@@ -47,7 +47,7 @@ class Fourier(gof.Op):
         a = tensor.as_tensor_variable(a)
         if a.ndim < 1:
             raise TypeError(
-                "%s: input must be an array, not a scalar" % self.__class__.__name__
+                f"{self.__class__.__name__}: input must be an array, not a scalar"
             )
         if axis is None:
             axis = a.ndim - 1
@@ -64,9 +64,9 @@ class Fourier(gof.Op):
                 and (axis.data < 0 or axis.data > a.ndim - 1)
             ):
                 raise TypeError(
-                    "%s: index of the transformed axis must be"
+                    f"{self.__class__.__name__}: index of the transformed axis must be"
                     " a scalar not smaller than 0 and smaller than"
-                    " dimension of array" % self.__class__.__name__
+                    " dimension of array"
                 )
         if n is None:
             n = a.shape[axis]

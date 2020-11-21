@@ -66,10 +66,9 @@ class DB:
         # something in the DB is there only once.
         if obj.name in self.__db__:
             raise ValueError(
-                """You can\'t register the same optimization
-multiple time in a DB. Tryed to register "%s" again under the new name "%s".
+                f"""You can\'t register the same optimization
+multiple time in a DB. Tryed to register "{obj.name}" again under the new name "{name}".
  Use theano.gof.ProxyDB to work around that"""
-                % (obj.name, name)
             )
         self.__db__[name] = OrderedSet([obj])
         self._names.add(name)
@@ -153,9 +152,9 @@ multiple time in a DB. Tryed to register "%s" again under the new name "%s".
     def __getitem__(self, name):
         variables = self.__db__[name]
         if not variables:
-            raise KeyError("Nothing registered for '%s'" % name)
+            raise KeyError(f"Nothing registered for '{name}'")
         elif len(variables) > 1:
-            raise ValueError("More than one match for %s (please use query)" % name)
+            raise ValueError(f"More than one match for {name} (please use query)")
         for variable in variables:
             return variable
 
@@ -163,7 +162,7 @@ multiple time in a DB. Tryed to register "%s" again under the new name "%s".
         return name in self.__db__
 
     def print_summary(self, stream=sys.stdout):
-        print("%s (id %i)" % (self.__class__.__name__, id(self)), file=stream)
+        print(f"{self.__class__.__name__} (id {id(self)})", file=stream)
         print("  names", self._names, file=stream)
         print("  db", self.__db__, file=stream)
 
@@ -393,7 +392,7 @@ class SequenceDB(DB):
                     # class name for descriptiveness and id to avoid name
                     # collisions)
                     opt, position = extra_opt
-                    opt.name = "%s_%i" % (opt.__class__, id(opt))
+                    opt.name = f"{opt.__class__}_{id(opt)}"
 
                     # Add the extra optimization to the optimization sequence
                     if position < position_cutoff:
@@ -411,7 +410,7 @@ class SequenceDB(DB):
         return ret
 
     def print_summary(self, stream=sys.stdout):
-        print(self.__class__.__name__ + " (id %i)" % id(self), file=stream)
+        print(f"{self.__class__.__name__ } (id {id(self)})", file=stream)
         positions = list(self.__position__.items())
 
         def c(a, b):

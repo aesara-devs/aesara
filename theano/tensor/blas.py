@@ -197,8 +197,7 @@ except ImportError as e:
             "Theano flag blas.ldflags is empty. "
             "Falling back on slower implementations for "
             "dot(matrix, vector), dot(vector, matrix) and "
-            "dot(vector, vector) (%s)",
-            str(e),
+            f"dot(vector, vector) ({str(e)})"
         )
 
 
@@ -276,8 +275,7 @@ class Gemv(Op):
             if A.shape[0] != y.shape[0] or A.shape[1] != x.shape[0]:
                 raise ValueError(
                     "Incompatible shapes for gemv "
-                    "(beta * y + alpha * dot(A, x)). y: %s, A: %s, x: %s "
-                    % (y.shape, A.shape, x.shape)
+                    f"(beta * y + alpha * dot(A, x)). y: {y.shape}, A: {A.shape}, x: {x.shape}"
                 )
 
             if beta == 0 and check_init_y():
@@ -476,9 +474,7 @@ def _ldflags(ldflags_str, libs, flags, libs_dir, include_dir):
             t0, t1, t2 = t[0:3]
             assert t0 == "-"
         except Exception:
-            raise ValueError(
-                'invalid token "{}" in ldflags_str: "{}"'.format(t, ldflags_str)
-            )
+            raise ValueError(f'invalid token "{t}" in ldflags_str: "{ldflags_str}"')
         if libs_dir and t1 == "L":
             rval.append(t[2:])
         elif include_dir and t1 == "I":
@@ -880,7 +876,7 @@ class Gemm(GemmRelated):
             inplace_str = "inplace"
         else:
             inplace_str = "no_inplace"
-        return "{}{{{}}}".format(self.__class__.__name__, inplace_str)
+        return f"{self.__class__.__name__}{{{inplace_str}}}"
 
     def __setstate__(self, dct):
         self.__dict__.update(dct)
@@ -901,8 +897,7 @@ class Gemm(GemmRelated):
         inputs = list(map(tt.as_tensor_variable, inputs))
         if len(inputs) != 5:
             raise TypeError(
-                "Wrong number of inputs for %s (expected 5, got %s)"
-                % (self, len(inputs))
+                f"Wrong number of inputs for {self} (expected 5, got {len(inputs)})"
             )
         z, a, x, y, b = inputs
 
@@ -1083,7 +1078,7 @@ class Gemm(GemmRelated):
         _z, _a, _x, _y, _b = inp
         (_zout,) = out
         if node.inputs[0].type.dtype.startswith("complex"):
-            raise MethodNotDefined("%s.c_code" % self.__class__.__name__)
+            raise MethodNotDefined(f"{self.__class__.__name__}.c_code")
         full_code = self.build_gemm_call() % dict(locals(), **sub)
         return full_code
 
@@ -1669,7 +1664,7 @@ class Dot22(GemmRelated):
         _x, _y = inp
         (_zout,) = out
         if node.inputs[0].type.dtype.startswith("complex"):
-            raise MethodNotDefined("%s.c_code" % self.__class__.__name__)
+            raise MethodNotDefined(f"{self.__class__.__name__}.c_code")
         if len(self.c_libraries()) <= 0:
             return super().c_code(node, name, (_x, _y), (_zout,), sub)
         full_code = self.build_gemm_call() % dict(locals(), **sub)
@@ -1696,7 +1691,7 @@ def local_dot_to_dot22(node):
     x, y = node.inputs
     if y.type.dtype != x.type.dtype:
         # TODO: upcast one so the types match
-        _logger.info("Not optimizing dot with inputs %s %s %s %s", x, y, x.type, y.type)
+        _logger.info(f"Not optimizing dot with inputs {x} {y} {x.type} {y.type}")
         return
 
     if y.type.dtype in ["float16", "float32", "float64", "complex64", "complex128"]:
@@ -1710,7 +1705,7 @@ def local_dot_to_dot22(node):
             if x.ndim == 1 and y.ndim == 1:
                 return [_dot22(x.dimshuffle("x", 0), y.dimshuffle(0, "x")).dimshuffle()]
 
-    _logger.info("Not optimizing dot with inputs %s %s %s %s", x, y, x.type, y.type)
+    _logger.info(f"Not optimizing dot with inputs {x} {y} {x.type} {y.type}")
 
 
 @local_optimizer([gemm_no_inplace], inplace=True)
@@ -1939,7 +1934,7 @@ class Dot22Scalar(GemmRelated):
         _x, _y, _a = inp
         (_zout,) = out
         if node.inputs[0].type.dtype.startswith("complex"):
-            raise MethodNotDefined("%s.c_code" % self.__class__.__name__)
+            raise MethodNotDefined(f"{self.__class__.__name__}.c_code")
         if len(self.c_libraries()) <= 0:
             return super().c_code(node, name, (_x, _y), (_zout,), sub)
         full_code = self.build_gemm_call() % dict(locals(), **sub)
@@ -2022,11 +2017,9 @@ def local_dot22_to_dot22scalar(node):
 
         if scalar_idx < 0:
             _logger.info(
-                "Not optimizing dot22 with inputs %s %s, as the"
+                f"Not optimizing dot22 with inputs {node.inputs} {[x.type for x in node.inputs]}, as the"
                 " type of the scalar cannot be upcasted to the"
-                " matrix type",
-                node.inputs,
-                [x.type for x in node.inputs],
+                " matrix type"
             )
             return False
         a = tt.cast(_as_scalar(m.owner.inputs[scalar_idx], dtype=d.dtype), d.type.dtype)
@@ -2057,10 +2050,8 @@ def local_dot22_to_dot22scalar(node):
             break
     if scalar_idx < 0:
         _logger.info(
-            "Not optimizing dot22 with inputs %s %s, as the type "
-            "of the scalar cannot be upcasted to the matrix type",
-            node.inputs,
-            [x.type for x in node.inputs],
+            f"Not optimizing dot22 with inputs {node.inputs} {[x.type for x in node.inputs]}, as the type "
+            "of the scalar cannot be upcasted to the matrix type"
         )
         return False
     assert scalar_idx < len(node.inputs)
@@ -2099,19 +2090,19 @@ class BatchedDot(Op):
         if len(inputs) != 2:
             raise TypeError(
                 "theano.tensor.blas.BatchedDot: 2 arguments"
-                " required, %d given " % len(inputs)
+                f" required, {len(inputs)} given "
             )
         if inputs[0].ndim not in (2, 3):
             raise TypeError(
                 "theano.tensor.blas.BatchedDot: input 0 (0-indexed)"
-                " must have ndim of 2 or 3, %d given. Consider"
-                " calling theano.tensor.batched_dot instead." % inputs[0].ndim
+                f" must have ndim of 2 or 3, {int(inputs[0].ndim)} given. Consider"
+                " calling theano.tensor.batched_dot instead."
             )
         if inputs[1].ndim not in (2, 3):
             raise TypeError(
                 "theano.tensor.blas.BatchedDot: input 1 (0-indexed)"
-                " must have ndim of 2 or 3, %d given. Consider"
-                " calling theano.tensor.batched_dot instead." % inputs[1].ndim
+                f" must have ndim of 2 or 3, {int(inputs[1].ndim)} given. Consider"
+                " calling theano.tensor.batched_dot instead."
             )
 
         dtype = theano.scalar.upcast(*[input.type.dtype for input in inputs])
@@ -2130,9 +2121,8 @@ class BatchedDot(Op):
 
         if x.shape[0] != y.shape[0]:
             raise TypeError(
-                "theano.tensor.blas.BatchedDot: inputs [%s] must have the"
-                " same size in axis 0, but have sizes [%s]."
-                % (", ".join(map(str, inp)), ", ".join([str(i.shape[0]) for i in inp]))
+                f"theano.tensor.blas.BatchedDot: inputs [{', '.join(map(str, inp))}] must have the"
+                f" same size in axis 0, but have sizes [{', '.join([str(i.shape[0]) for i in inp])}]."
             )
 
         shape = self.infer_shape(node, [i.shape for i in inp])[0]
@@ -2252,9 +2242,9 @@ class BatchedDot(Op):
 
         # generate contiguity condition
         def contiguous(var, ndim):
-            strides = "PyArray_STRIDES(%s)" % var
+            strides = f"PyArray_STRIDES({var})"
             if ndim == 1:
-                return "{strides}[0] == type_size".format(strides=strides)
+                return f"{strides}[0] == type_size"
             return " && ".join(
                 [
                     " && ".join(
@@ -2278,11 +2268,11 @@ class BatchedDot(Op):
         )
 
         # generate code to allocate output based on runtime input shapes
-        z_dims = ["PyArray_DIMS(%s)[0]" % _x]
+        z_dims = [f"PyArray_DIMS({_x})[0]"]
         if x_ndim == 3:
-            z_dims.append("PyArray_DIMS(%s)[1]" % _x)
+            z_dims.append(f"PyArray_DIMS({_x})[1]")
         if y_ndim == 3:
-            z_dims.append("PyArray_DIMS(%s)[2]" % _y)
+            z_dims.append(f"PyArray_DIMS({_y})[2]")
         assert len(z_dims) == z_ndim
 
         z_shape_correct = " && ".join(
@@ -2545,8 +2535,7 @@ class BatchedDot(Op):
                         + " and eval_point "
                         + str(i)
                         + " to BatchedDot.R_op should have the same shape, but "
-                        "their shapes are %s and %s, respectively"
-                        % (str(input_values[i].shape), str(eval_point_values[i].shape))
+                        f"their shapes are {input_values[i].shape} and {eval_point_values[i].shape}, respectively"
                     )
         if eval_points[0]:
             t1 = self(eval_points[0], inputs[1])

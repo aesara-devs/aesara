@@ -544,25 +544,23 @@ def assert_conv_shape(shape):
             if i < 2:
                 if const_n < 0:
                     raise ValueError(
-                        "The convolution would produce an invalid shape (dim[%d]: %d < 0)."
-                        % (i, const_n)
+                        f"The convolution would produce an invalid shape (dim[{int(i)}]: {int(const_n)}< 0)."
                     )
             else:
                 if const_n <= 0:
                     raise ValueError(
-                        "The convolution would produce an invalid shape (dim[%d]: %d <= 0)."
-                        % (i, const_n)
+                        f"The convolution would produce an invalid shape (dim[{int(i)}]: {int(const_n)}< 0)."
                     )
             out_shape.append(n)
         except NotScalarConstantError:
             if i < 2:
                 assert_shp = Assert(
-                    "The convolution would produce an invalid shape (dim[%d] < 0)." % i
+                    f"The convolution would produce an invalid shape (dim[{int(i)}] < 0)."
                 )
                 out_shape.append(assert_shp(n, theano.tensor.ge(n, 0)))
             else:
                 assert_shp = Assert(
-                    "The convolution would produce an invalid shape (dim[%d] <= 0)." % i
+                    f"The convolution would produce an invalid shape (dim[{int(i)}] < 0)."
                 )
                 out_shape.append(assert_shp(n, theano.tensor.gt(n, 0)))
     return tuple(out_shape)
@@ -628,8 +626,7 @@ def border_mode_to_pad(mode, convdim, kshp):
     if isinstance(mode, tuple):
         if len(mode) != convdim:
             raise ValueError(
-                "invalid border_mode {} which must be a "
-                "tuple of length {}".format(mode, convdim)
+                f"invalid border_mode {mode} which must be a tuple of length {convdim}"
             )
         border = ()
         for m in mode:
@@ -642,7 +639,7 @@ def border_mode_to_pad(mode, convdim, kshp):
             ):
                 if len(m) != 2:
                     raise NotImplementedError(
-                        "Asymmetric padding not implemented " "for {}d".format(len(m))
+                        f"Asymmetric padding not implemented for {len(m)}d"
                     )
                 border += ((m[0], m[1]),)
             else:
@@ -1205,15 +1202,15 @@ def conv2d_grad_wrt_inputs(
         if not isinstance(
             input_shape[dim], (theano.tensor.TensorConstant, int, type(None))
         ):
-            raise ValueError("input_shape[%d] must be a constant or None." % dim)
+            raise ValueError(f"input_shape[{int(dim)}] must be a constant or None.")
     for dim in [2, 3]:
         if not isinstance(
             input_shape[dim],
             (theano.tensor.TensorVariable, theano.tensor.TensorConstant, int),
         ):
             raise ValueError(
-                "input_shape[%d] must be a symbolic variable,"
-                " a constant or None." % dim
+                f"input_shape[{int(dim)}] must be a symbolic variable,"
+                " a constant or None."
             )
 
     # checking the type of filter_shape
@@ -1225,8 +1222,7 @@ def conv2d_grad_wrt_inputs(
 
         if len(filter_shape) != expected_dim:
             raise ValueError(
-                "The lenght of filter_shape was %d, but we expected %d."
-                % (len(filter_shape), expected_dim)
+                f"The length of filter_shape was {len(filter_shape)}, but we expected {int(expected_dim)}."
             )
 
         for dim in range(expected_dim):
@@ -1234,7 +1230,7 @@ def conv2d_grad_wrt_inputs(
                 filter_shape[dim],
                 (theano.tensor.TensorConstant, int, type(None)),
             ):
-                raise ValueError("filter_shape[%d] must be a constant or None" % dim)
+                raise ValueError(f"filter_shape[{int(dim)}] must be a constant or None")
 
     # setting the last two dimensions of input_shape to None, if
     # the type of these dimensions is TensorVariable.
@@ -2257,7 +2253,7 @@ class BaseAbstractConv(Op):
                 if isinstance(mode, tuple):
                     if convdim != 2:
                         raise NotImplementedError(
-                            "Asymmetric padding not implemented for {}D".format(convdim)
+                            f"Asymmetric padding not implemented for {convdim}D"
                         )
                     if mode[0] == mode[1]:
                         mode = mode[0]
@@ -2301,17 +2297,17 @@ class BaseAbstractConv(Op):
         self.filter_flip = filter_flip
 
         if len(subsample) != convdim:
-            raise ValueError("subsample must have {} elements".format(convdim))
+            raise ValueError(f"subsample must have {convdim} elements")
         self.subsample = tuple(subsample)
         if len(filter_dilation) != convdim:
-            raise ValueError("filter_dilation must have {} elements".format(convdim))
+            raise ValueError(f"filter_dilation must have {convdim} elements")
         self.filter_dilation = tuple(filter_dilation)
         if num_groups < 1:
             raise ValueError("num_groups must have value greater than zero")
         self.num_groups = num_groups
         if unshared and self.convdim != 2:
             raise NotImplementedError(
-                "Unshared convolution not implemented for %dD" % self.convdim
+                f"Unshared convolution not implemented for {int(self.convdim)}D"
             )
         self.unshared = unshared
 
@@ -2368,7 +2364,7 @@ class BaseAbstractConv(Op):
             dilation = (dilation,) * self.convdim
         if len(dilation) != self.convdim:
             raise ValueError(
-                "invalid dilation {}, expected {} values".format(dilation, self.convdim)
+                f"invalid dilation {dilation}, expected {self.convdim} values"
             )
         if unshared and direction == "backprop weights":
             if mode != "valid":
@@ -2473,7 +2469,7 @@ class BaseAbstractConv(Op):
         """
         if self.convdim != 2:
             raise NotImplementedError(
-                "Unshared convolution not implemented for %dD" % self.convdim
+                f"Unshared convolution not implemented for {int(self.convdim)}D"
             )
         out = np.zeros(out_shape, dtype=inp.dtype)
 
@@ -2500,9 +2496,7 @@ class BaseAbstractConv(Op):
                         inp[row, col] * kern[row, col, ::-1, ::-1]
                     )
         else:
-            raise ValueError(
-                "unshared2d: invalid value '{}' for 'direction'".format(direction)
-            )
+            raise ValueError(f"unshared2d: invalid value '{direction}' for 'direction'")
         return out
 
 
@@ -2546,17 +2540,16 @@ class AbstractConv(BaseAbstractConv):
         kern = ktype.filter_variable(kern)
 
         if img.type.ndim != 2 + self.convdim:
-            raise TypeError("img must be %dD tensor" % (2 + self.convdim))
+            raise TypeError(f"img must be {int(2 + self.convdim)}D tensor")
 
         if self.unshared:
             if kern.type.ndim != 2 + 2 * self.convdim:
                 raise TypeError(
-                    "kern must be %dD tensor for unshared convolution"
-                    % (2 + 2 * self.convdim)
+                    f"kern must be {int(2 + 2 * self.convdim)}D tensor for unshared convolution"
                 )
         else:
             if kern.type.ndim != 2 + self.convdim:
-                raise TypeError("kern must be %dD tensor" % (2 + self.convdim))
+                raise TypeError(f"kern must be {int(2 + self.convdim)}D tensor")
 
         img = assert_shape(
             img,
@@ -2588,7 +2581,7 @@ class AbstractConv(BaseAbstractConv):
         )
         if self.unshared and self.convdim != 2:
             raise NotImplementedError(
-                "Unshared convolution not implemented for %dD" % self.convdim
+                f"Unshared convolution not implemented for {int(self.convdim)}D"
             )
         (o,) = out_
         mode = self.border_mode
@@ -2895,9 +2888,9 @@ class AbstractConv_gradWeights(BaseAbstractConv):
         topgrad = gtype.filter_variable(topgrad)
 
         if img.type.ndim != 2 + self.convdim:
-            raise TypeError("img must be %dD tensor" % (2 + self.convdim))
+            raise TypeError(f"img must be {int(2 + self.convdim)}D tensor")
         if topgrad.type.ndim != 2 + self.convdim:
-            raise TypeError("topgrad must be %dD tensor" % (2 + self.convdim))
+            raise TypeError(f"topgrad must be {int(2 + self.convdim)}D tensor")
         if add_assert_shape:
             img = assert_shape(
                 img,
@@ -2930,7 +2923,7 @@ class AbstractConv_gradWeights(BaseAbstractConv):
 
         if self.unshared and self.convdim != 2:
             raise NotImplementedError(
-                "Unshared convolution not implemented for %dD" % self.convdim
+                f"Unshared convolution not implemented for {int(self.convdim)}D"
             )
         dil_shape = tuple(
             (shape[i] - 1) * self.filter_dilation[i] + 1 for i in range(self.convdim)
@@ -3265,19 +3258,18 @@ class AbstractConv_gradInputs(BaseAbstractConv):
         if self.unshared:
             if self.convdim != 2:
                 raise NotImplementedError(
-                    "Unshared convolution not implemented for %dD" % self.convdim
+                    f"Unshared convolution not implemented for {int(self.convdim)}D"
                 )
             elif kern.type.ndim != 2 + 2 * self.convdim:
                 raise TypeError(
-                    "kern must be %dD tensor for unshared convolution"
-                    % (2 + 2 * self.convdim)
+                    f"kern must be {int(2 + 2 * self.convdim)}D tensor for unshared convolution"
                 )
         else:
             if kern.type.ndim != 2 + self.convdim:
-                raise TypeError("kern must be %dD tensor" % (2 + self.convdim))
+                raise TypeError(f"kern must be {int(2 + self.convdim)}D tensor")
 
         if topgrad.type.ndim != 2 + self.convdim:
-            raise TypeError("topgrad must be %dD tensor" % (2 + self.convdim))
+            raise TypeError(f"topgrad must be {int(2 + self.convdim)}D tensor")
 
         if add_assert_shape:
             kern = assert_shape(
@@ -3308,7 +3300,7 @@ class AbstractConv_gradInputs(BaseAbstractConv):
 
         if self.unshared and self.convdim != 2:
             raise NotImplementedError(
-                "Unshared convolution not implemented for %dD" % self.convdim
+                f"Unshared convolution not implemented for {int(self.convdim)}D"
             )
         dil_kernshp = tuple(
             (kern.shape[-self.convdim + i] - 1) * self.filter_dilation[i] + 1

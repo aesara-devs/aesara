@@ -587,12 +587,12 @@ def local_abstractconv_check(node):
         ),
     ):
         raise LocalMetaOptimizerSkipAssertionError(
-            "%s Theano optimization failed: there is no implementation "
+            f"{node.op.__class__.__name__} Theano optimization failed: there is no implementation "
             "available supporting the requested options. Did you exclude "
             'both "conv_dnn" and "conv_gemm" from the optimizer? If on GPU, '
             "is cuDNN available and does the GPU support it? If on CPU, "
             "do you have a BLAS library installed Theano can link against? "
-            "On the CPU we do not support float16." % node.op.__class__.__name__
+            "On the CPU we do not support float16."
         )
 
 
