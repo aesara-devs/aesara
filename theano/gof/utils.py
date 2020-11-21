@@ -284,6 +284,78 @@ class D:
         self.__dict__.update(d)
 
 
+class AssocList:
+    """An associative list.
+
+    This class is like a `dict` that accepts unhashable keys by using an
+    assoc list for internal use only
+    """
+
+    def __init__(self):
+        self._dict = {}
+        self._list = []
+
+    def __getitem__(self, item):
+        return self.get(item, None)
+
+    def __setitem__(self, item, value):
+        try:
+            self._dict[item] = value
+        except Exception:
+            for i, (key, val) in enumerate(self._list):
+                if key == item:
+                    self._list[i] = (item, value)
+                    return
+            self._list.append((item, value))
+
+    def __delitem__(self, item):
+        try:
+            if item in self._dict:
+                del self._dict[item]
+                return
+        except TypeError as e:
+            assert "unhashable type" in str(e)
+        for i, (key, val) in enumerate(self._list):
+            if key == item:
+                del self._list[i]
+                return
+            raise KeyError(item)
+
+    def discard(self, item):
+        try:
+            if item in self._dict:
+                del self._dict[item]
+                return
+        except TypeError as e:
+            assert "unhashable type" in str(e)
+        for i, (key, val) in enumerate(self._list):
+            if key == item:
+                del self._list[i]
+                return
+
+    def get(self, item, default):
+        try:
+            return self._dict[item]
+        except Exception:
+            for item2, value in self._list:
+                try:
+                    if item == item2:
+                        return value
+                    if item.equals(item2):
+                        return value
+                except Exception:
+                    if item is item2:
+                        return value
+            return default
+
+    def clear(self):
+        self._dict = {}
+        self._list = []
+
+    def __repr__(self):
+        return f"AssocList({self._dict}, {self._list})"
+
+
 def memoize(f):
     """
     Cache the return value for each tuple of arguments (which must be hashable).
