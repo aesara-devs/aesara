@@ -2874,15 +2874,16 @@ class TestLocalSubtensorLift:
         z = tt.matrix("z")
         f = function([x, y, z], tt.exp(x + y + z)[0], mode=mode_opt)
 
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f, ops_to_check=[Subtensor, tt.DimShuffle])
-
         prog = f.maker.fgraph.toposort()
         assert isinstance(prog[0].op, tt.Subtensor)
         assert isinstance(prog[1].op, tt.DimShuffle)
         assert isinstance(prog[2].op, tt.Subtensor)
         assert isinstance(prog[3].op.scalar_op, scal.Composite)  # Composite{add,add}
         assert len(prog) == 4
+
+        # Check stacktrace was copied over correctly after opt was applied
+        assert check_stack_trace(f, ops_to_check=[Subtensor])
+
         # let debugmode test something
         f([[0, 1], [2, 3]], 4, [[4, 5], [6, 7]])
 
@@ -2893,15 +2894,16 @@ class TestLocalSubtensorLift:
         z = tt.matrix("z")
         f = function([x, y, z], tt.exp(x + y + z)[0:2], mode=mode_opt)
 
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f, ops_to_check=[Subtensor, tt.DimShuffle])
-
         prog = f.maker.fgraph.toposort()
         assert isinstance(prog[0].op, tt.Subtensor)
         assert isinstance(prog[1].op, tt.DimShuffle)
         assert isinstance(prog[2].op, tt.Subtensor)
         assert isinstance(prog[3].op.scalar_op, scal.Composite)  # Composite{add,add}
         assert len(prog) == 4
+
+        # Check stacktrace was copied over correctly after opt was applied
+        assert check_stack_trace(f, ops_to_check=[Subtensor])
+
         # let debugmode test something
         f([[0, 1], [2, 3]], 4, [[4, 5], [6, 7]])
 
