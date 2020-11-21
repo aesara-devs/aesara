@@ -529,10 +529,7 @@ def jax_funcify_IfElse(op):
 
     def ifelse(cond, *args, n_outs=n_outs):
         res = jax.lax.cond(
-            cond,
-            lambda _: args[:n_outs],
-            lambda _: args[n_outs:],
-            operand=None
+            cond, lambda _: args[:n_outs], lambda _: args[n_outs:], operand=None
         )
         return res if n_outs > 1 else res[0]
 
