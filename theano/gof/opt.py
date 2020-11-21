@@ -22,7 +22,7 @@ import numpy as np
 import theano
 from theano import config
 from theano.gof import destroyhandler as dh
-from theano.gof import graph, op, unify
+from theano.gof import graph, op
 from theano.gof.fg import InconsistencyError
 from theano.gof.toolbox import Feature, NodeFinder
 from theano.gof.utils import AssocList, flatten
@@ -1671,6 +1671,8 @@ class PatternSub(LocalOptimizer):
         constructs out_pattern and performs the replacement.
 
         """
+        from theano.gof import unify
+
         if get_nodes and self.get_nodes is not None:
             for real_node in self.get_nodes(fgraph, node):
                 if real_node == "output":
