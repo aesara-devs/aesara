@@ -982,7 +982,7 @@ class MakeVectorPrinter:
 tt.pprint.assign(MakeVector, MakeVectorPrinter())
 
 
-class ShapeFeature:
+class ShapeFeature(toolbox.Feature):
     """Graph optimizer for removing all calls to shape().
 
     This optimizer replaces all Shapes and Subtensors of Shapes with
