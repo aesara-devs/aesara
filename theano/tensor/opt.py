@@ -32,14 +32,7 @@ from theano.gof import (
     toolbox,
 )
 from theano.gof.op import Op
-from theano.gof.opt import (
-    GlobalOptimizer,
-    copy_stack_trace,
-    in2out,
-    local_optimizer,
-    pre_constant_merge,
-    pre_greedy_local_optimizer,
-)
+from theano.gof.opt import GlobalOptimizer, copy_stack_trace, in2out, local_optimizer
 from theano.gof.utils import MethodNotDefined, TestValueError
 from theano.gradient import DisconnectedType
 
@@ -3201,13 +3194,6 @@ def merge_two_slices(fgraph, slice1, len1, slice2, len2):
     ``len1`` is the length of the tensor **before** applying the first slice,
     while ``len2`` is the length **after** applying the first slice.
     """
-    list_opt = [
-        local_abs_merge,
-        local_mul_switch_sink,
-        local_upcast_elemwise_constant_inputs,
-        local_useless_switch,
-        constant_folding,
-    ]
 
     if not isinstance(slice1, slice):
         raise ValueError(
@@ -3240,7 +3226,6 @@ def merge_two_slices(fgraph, slice1, len1, slice2, len2):
             val = tt.switch(tt.lt(sl2, 0), -len1 - 1, val)
             if sl1.step:
                 val = tt.switch(tt.eq(sl1.step, 0), len1 + 1, val)
-            val = pre_greedy_local_optimizer(fgraph, list_opt, val)
             return val
         else:
             # We are in the more complex case when we do not actually know
@@ -3266,7 +3251,6 @@ def merge_two_slices(fgraph, slice1, len1, slice2, len2):
             val = tt.switch(tt.lt(sl2, 0), -len1 - 1, val)
             if sl1.step:
                 val = tt.switch(tt.eq(sl1.step, 0), len1 + 1, val)
-            val = pre_greedy_local_optimizer(fgraph, list_opt, val)
             return val
     else:
         # We are deleaing with two slices that need to be put together
@@ -3316,20 +3300,6 @@ def merge_two_slices(fgraph, slice1, len1, slice2, len2):
         step = tt.switch(tt.lt(reverse2 * reverse1, 0), n_step, p_step)
         start = tt.switch(tt.le(flen, 0), 0, start)
         stop = tt.switch(tt.le(flen, 0), 0, stop)
-
-        # The canonical form of the slice is pretty complicated
-        # and is not simplified. We simplify it in advance here
-        # as otherwise this create too many useless optimization that
-        # DebugMode must check.
-        start = pre_greedy_local_optimizer(fgraph, list_opt, start)
-        stop = pre_greedy_local_optimizer(fgraph, list_opt, stop)
-        step = pre_greedy_local_optimizer(fgraph, list_opt, step)
-        start = pre_greedy_local_optimizer(fgraph, list_opt, start)
-        stop = pre_greedy_local_optimizer(fgraph, list_opt, stop)
-        step = pre_greedy_local_optimizer(fgraph, list_opt, step)
-
-        # Pre merge constant for the same reason.
-        start, stop, step = pre_constant_merge(fgraph, [start, stop, step])
 
         return slice(start, stop, step)
 

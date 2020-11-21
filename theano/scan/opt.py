@@ -63,11 +63,7 @@ from theano.compile import optdb
 from theano.compile.function.types import deep_copy_op
 from theano.gof import DestroyHandler, InconsistencyError, toolbox
 from theano.gof.graph import equal_computations
-from theano.gof.opt import (
-    GlobalOptimizer,
-    pre_constant_merge,
-    pre_greedy_local_optimizer,
-)
+from theano.gof.opt import GlobalOptimizer
 from theano.scan.op import Scan
 from theano.scan.utils import (
     clone,
@@ -1413,22 +1409,6 @@ class ScanSaveMem(gof.GlobalOptimizer):
                         if store_steps[i] != -1:
                             pval = select_max(pval, store_steps[i])
 
-                        # TODO: Simplify the number of steps needed.
-                        # FB: This need good testing, left to later.
-                        #     call get_scalar_constant_value()? it can
-                        # return python/numpy scalar or np.ndarray
-                        # currently.
-                        # pval = pre_greedy_local_optimizer(list_opt_slice,
-                        #                                  pval)
-                        # pval = pre_constant_merge(fgraph, [pval])[0]
-                        # if (isinstance(pval, theano.tensor.TensorConstant)
-                        # and
-                        #    pval.dtype.startswith('int')):
-                        #    try:
-                        #        pval = int(pval.data)
-                        #    except Exception:
-                        #        pass
-
                         store_steps[i] = pval
                         flag_store = True
 
@@ -1486,20 +1466,11 @@ class ScanSaveMem(gof.GlobalOptimizer):
                             tmp_idx = tensor.switch(
                                 cval < initl, cval + initl, cval - initl
                             )
-                            tmp = pre_greedy_local_optimizer(
-                                fgraph, list_opt_slice, tmp_idx
-                            )
-                            tmp = pre_constant_merge(fgraph, [tmp])[0]
-
-                            nw_input = expand_empty(_nw_input, tmp)
+                            nw_input = expand_empty(_nw_input, tmp_idx)
                         else:
                             tmp = tensor.as_tensor_variable(val)
                             initl = tensor.as_tensor_variable(init_l[i])
                             tmp = tensor.maximum(tmp, initl)
-                            tmp = pre_greedy_local_optimizer(
-                                fgraph, list_opt_slice, tmp
-                            )
-                            tmp = pre_constant_merge(fgraph, [tmp])[0]
                             nw_input = nw_inputs[offset + idx][:tmp]
 
                         nw_inputs[offset + idx] = nw_input
@@ -1565,10 +1536,6 @@ class ScanSaveMem(gof.GlobalOptimizer):
             for k, v in compress_map.items():
                 inv_compress_map[v] = k
 
-            node_ins = [
-                pre_greedy_local_optimizer(fgraph, list_opt_slice, x) for x in node_ins
-            ]
-            node_ins = pre_constant_merge(fgraph, node_ins)
             # 3.6 Compose the new scan
             # TODO: currently we don't support scan with 0 step. So
             # don't create one.
