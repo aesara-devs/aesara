@@ -110,7 +110,7 @@ class SparseBlockGemv(Op):
                     o[b, j, :] += np.dot(h[b, i], w)
         out_[0][0] = o
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [input_shapes[0]]
 
     def grad(self, inputs, grads):
@@ -200,7 +200,7 @@ class SparseBlockOuter(Op):
 
         return Apply(self, [o, x, y, xIdx, yIdx, alpha], [o.type()])
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [input_shapes[0]]
 
     def perform(self, node, inp, out_):

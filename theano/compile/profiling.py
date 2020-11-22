@@ -230,11 +230,11 @@ class ProfileStats:
     #
 
     apply_time = None
-    # dict from node -> float runtime
+    # dict from `(FunctionGraph, Variable)` to float runtime
     #
 
     apply_callcount = None
-    # dict from node -> number of executions
+    # dict from `(FunctionGraph, Variable)` to number of executions
     #
 
     apply_cimpl = None
@@ -278,9 +278,9 @@ class ProfileStats:
     line_width = config.profiling.output_line_width
 
     nb_nodes = -1
-    # The number of nodes in the graph. We need the infomartion
-    # separatly in case we print the profile when the function wasn't
-    # executed or if there is lazy operation in the graph.
+    # The number of nodes in the graph. We need the information separately in
+    # case we print the profile when the function wasn't executed, or if there
+    # is a lazy operation in the graph.
 
     optimizer_profile = None
     # None or tuple (the optimizer, the profile it returned)
@@ -323,6 +323,7 @@ class ProfileStats:
 
         self.apply_callcount = {}
         self.output_size = {}
+        # Keys are `(FunctionGraph, Variable)`
         self.apply_time = {}
         self.apply_cimpl = {}
         self.variable_shape = {}
@@ -349,7 +350,7 @@ class ProfileStats:
         """
         # timing is stored by node, we compute timing by class on demand
         rval = {}
-        for node, t in self.apply_time.items():
+        for (fgraph, node), t in self.apply_time.items():
             typ = type(node.op)
             rval.setdefault(typ, 0)
             rval[typ] += t
@@ -362,7 +363,7 @@ class ProfileStats:
         """
         # timing is stored by node, we compute timing by class on demand
         rval = {}
-        for node, count in self.apply_callcount.items():
+        for (fgraph, node), count in self.apply_callcount.items():
             typ = type(node.op)
             rval.setdefault(typ, 0)
             rval[typ] += count
@@ -375,7 +376,7 @@ class ProfileStats:
         """
         # timing is stored by node, we compute timing by class on demand
         rval = {}
-        for node, count in self.apply_callcount.items():
+        for (fgraph, node), count in self.apply_callcount.items():
             typ = type(node.op)
             rval.setdefault(typ, 0)
             rval[typ] += 1
@@ -388,7 +389,7 @@ class ProfileStats:
         """
         # timing is stored by node, we compute timing by class on demand
         rval = {}
-        for node in self.apply_callcount:
+        for (fgraph, node) in self.apply_callcount:
             typ = type(node.op)
             if self.apply_cimpl[node]:
                 impl = "C "
@@ -406,22 +407,22 @@ class ProfileStats:
         """
         # timing is stored by node, we compute timing by Op on demand
         rval = {}
-        for node, t in self.apply_time.items():
+        for (fgraph, node), t in self.apply_time.items():
             rval.setdefault(node.op, 0)
             rval[node.op] += t
         return rval
 
-    def fill_node_total_time(self, node, total_times):
+    def fill_node_total_time(self, fgraph, node, total_times):
         """
-        node -> fill total time icluding its parents (returns nothing)
+        node -> fill total time including its parents (returns nothing)
 
         """
         # timing is stored by node, we compute total time on demand
-        total = self.apply_time[node]
+        total = self.apply_time.get((fgraph, node), 0.0)
         for parent in node.get_parents():
-            if parent.owner in self.apply_time:
+            if (fgraph, parent.owner) in self.apply_time:
                 if parent.owner not in total_times:
-                    self.fill_node_total_time(parent.owner, total_times)
+                    self.fill_node_total_time(fgraph, parent.owner, total_times)
                 total += total_times[parent.owner]
         total_times[node] = total
 
@@ -431,9 +432,9 @@ class ProfileStats:
 
         """
         rval = {}
-        for node in self.apply_time:
+        for (fgraph, node) in self.apply_time:
             if node not in rval:
-                self.fill_node_total_time(node, rval)
+                self.fill_node_total_time(fgraph, node, rval)
         return rval
 
     def op_callcount(self):
@@ -443,7 +444,7 @@ class ProfileStats:
         """
         # timing is stored by node, we compute timing by Op on demand
         rval = {}
-        for node, count in self.apply_callcount.items():
+        for (fgraph, node), count in self.apply_callcount.items():
             rval.setdefault(node.op, 0)
             rval[node.op] += count
         return rval
@@ -455,7 +456,7 @@ class ProfileStats:
         """
         # timing is stored by node, we compute timing by Op on demand
         rval = {}
-        for node, count in self.apply_callcount.items():
+        for (fgraph, node), count in self.apply_callcount.items():
             rval.setdefault(node.op, 0)
             rval[node.op] += 1
         return rval
@@ -467,7 +468,7 @@ class ProfileStats:
         """
         # timing is stored by node, we compute timing by Op on demand
         rval = {}
-        for node in self.apply_callcount:
+        for (fgraph, node) in self.apply_callcount:
             if self.apply_cimpl[node]:
                 rval[node.op] = "C "
             else:
@@ -722,14 +723,20 @@ class ProfileStats:
 
         topos = {}  # Only do the topo once per fct.
         atimes = []
-        for a, t in self.apply_time.items():
-            if a.fgraph not in topos:
-                topo = a.fgraph.toposort()
-                topos[a.fgraph] = topo
+        for (fgraph, a), t in self.apply_time.items():
+            if fgraph not in topos:
+                topo = fgraph.toposort()
+                topos[fgraph] = topo
             else:
-                topo = topos[a.fgraph]
+                topo = topos[fgraph]
             atimes.append(
-                (t * 100 / local_time, t, a, topo.index(a), self.apply_callcount[a])
+                (
+                    t * 100 / local_time,
+                    t,
+                    a,
+                    topo.index(a),
+                    self.apply_callcount[(fgraph, a)],
+                )
             )
         del topos
 
@@ -863,13 +870,13 @@ class ProfileStats:
         fct_memory = {}  # fgraph->dict(node->[outputs size])
         fct_shapes = {}  # fgraph->dict(node->[outputs shapes]))
         var_mem = {}  # variable->size in bytes; don't include input variables
-        node_mem = {}  # node->total outputs size (only dense outputs)
+        node_mem = {}  # (fgraph, node)->total outputs size (only dense outputs)
 
-        for node in self.apply_callcount:
-            fct_memory.setdefault(node.fgraph, {})
-            fct_memory[node.fgraph].setdefault(node, [])
-            fct_shapes.setdefault(node.fgraph, {})
-            fct_shapes[node.fgraph].setdefault(node, [])
+        for (fgraph, node) in self.apply_callcount:
+            fct_memory.setdefault(fgraph, {})
+            fct_memory[fgraph].setdefault(node, [])
+            fct_shapes.setdefault(fgraph, {})
+            fct_shapes[fgraph].setdefault(node, [])
             sum_dense = 0
             for out in node.outputs:
                 if out in self.variable_shape:
@@ -883,9 +890,9 @@ class ProfileStats:
                     v = 0  # 'Variable isn't created'
 
                 var_mem[out] = v
-                fct_memory[node.fgraph][node].append(v)
-                fct_shapes[node.fgraph][node].append(sh)
-            node_mem[node] = sum_dense
+                fct_memory[fgraph][node].append(v)
+                fct_shapes[fgraph][node].append(sh)
+            node_mem[(fgraph, node)] = sum_dense
         del v
 
         # Find the function that used the most of that statistic
@@ -1419,13 +1426,13 @@ class ProfileStats:
         print("", file=file)
         items = list(node_mem.items())
         items.sort(key=lambda a: a[1], reverse=True)
-        for idx, (node, node_outputs_size) in enumerate(items[:N]):
+        for idx, ((fgraph, node), node_outputs_size) in enumerate(items[:N]):
             code = ["c"] * len(node.outputs)
             for out, inp in getattr(node.op, "destroy_map", {}).items():
                 code[out] = "i"
             for out, inp in getattr(node.op, "view_map", {}).items():
                 code[out] = "v"
-            shapes = str(fct_shapes[node.fgraph][node])
+            shapes = str(fct_shapes[fgraph][node])
 
             if all([hasattr(out.type, "get_size") for out in node.outputs]):
                 size = "{node_outputs_size:9d}B"
@@ -1448,7 +1455,8 @@ class ProfileStats:
             p = f"({float(sum_remaining) / size_sum_dense * 100:.2f}%)"
         print(
             (
-                f"   ... (remaining {max(0, len(node_mem) - N)} Apply account for {sum_remaining:4d}B/{size_sum_dense :d}B ({p}) of the"
+                f"   ... (remaining {max(0, len(node_mem) - N)} Apply account for "
+                f"{sum_remaining:4d}B/{size_sum_dense :d}B ({p}) of the"
                 " Apply with dense outputs sizes)"
             ),
             file=file,
@@ -1487,7 +1495,7 @@ class ProfileStats:
                 file=file,
             )
         if config.profiling.debugprint:
-            fcts = {n.fgraph for n in self.apply_time.keys()}
+            fcts = {fgraph for (fgraph, n) in self.apply_time.keys()}
             theano.printing.debugprint(fcts, print_type=True)
         if self.variable_shape or self.variable_strides:
             self.summary_memory(file, n_apply_to_print)
@@ -1611,7 +1619,7 @@ class ProfileStats:
 
         # tip 2
         if not config.lib.amdlibm and any(
-            [amdlibm_speed_up(a.op) for a in self.apply_time]
+            [amdlibm_speed_up(a.op) for (fgraph, a) in self.apply_time]
         ):
             print(
                 "  - Try installing amdlibm and set the Theano flag "
@@ -1625,7 +1633,7 @@ class ProfileStats:
         if not config.lib.amdlibm and any(
             [
                 exp_float32_op(a.op) and a.inputs[0].dtype == "float32"
-                for a in self.apply_time
+                for (fgraph, a) in self.apply_time
             ]
         ):
             print(
@@ -1637,7 +1645,7 @@ class ProfileStats:
             printed_tip = True
 
         # tip 4
-        for a in self.apply_time:
+        for (fgraph, a) in self.apply_time:
             node = a
             if isinstance(node.op, T.Dot) and all(
                 [len(i.type.broadcastable) == 2 for i in node.inputs]
@@ -1654,7 +1662,7 @@ class ProfileStats:
                 printed_tip = True
 
         # tip 5
-        for a in self.apply_time:
+        for (fgraph, a) in self.apply_time:
             node = a
             if isinstance(node.op, RandomFunction):
                 printed_tip = True
@@ -1674,7 +1682,7 @@ class ProfileStats:
                 break
 
         # tip 6
-        for a in self.apply_time:
+        for (fgraph, a) in self.apply_time:
             node = a
             if isinstance(node.op, T.Dot) and len({i.dtype for i in node.inputs}) != 1:
                 print(
@@ -1692,7 +1700,7 @@ class ProfileStats:
         import theano.tensor.signal.pool as pool
         from theano.tensor.nnet import LogSoftmax
 
-        for a in self.apply_time:
+        for (fgraph, a) in self.apply_time:
             node = a
             if isinstance(node.op, pool.Pool):
                 if not theano.gpuarray.dnn.dnn_present():

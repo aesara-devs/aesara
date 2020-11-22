@@ -303,7 +303,7 @@ class Gemv(Op):
                     out += y
             out_storage[0][0] = np.asarray(out, dtype=y.dtype)
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [input_shapes[0]]
 
 
@@ -372,7 +372,7 @@ class Ger(Op):
             A += np.outer(cx, cy)
         cZ[0] = A
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [input_shapes[0]]
 
 
@@ -969,7 +969,7 @@ class Gemm(GemmRelated):
                 z += a * np.dot(x, y)
             zout[0] = z
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [input_shapes[0]]
 
     setup_z_Nz_Sz_inplace = """
@@ -1599,7 +1599,7 @@ class Dot22(GemmRelated):
             e.args = e.args + (x.shape, y.shape)
             raise
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [[input_shapes[0][0], input_shapes[1][1]]]
 
     setup_z_Nz_Sz = """
@@ -1874,7 +1874,7 @@ class Dot22Scalar(GemmRelated):
             e.args = e.args + (x.shape, y.shape)
             raise
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [[input_shapes[0][0], input_shapes[1][1]]]
 
     setup_z_Nz_Sz = Dot22.setup_z_Nz_Sz
@@ -2099,7 +2099,7 @@ class BatchedDot(Op):
                 f" same size in axis 0, but have sizes [{', '.join([str(i.shape[0]) for i in inp])}]."
             )
 
-        shape = self.infer_shape(node, [i.shape for i in inp])[0]
+        shape = self.infer_shape(None, node, [i.shape for i in inp])[0]
         dtype = node.outputs[0].dtype
         z0 = z[0] = np.empty(shape, dtype=dtype)
         for i in range(z0.shape[0]):
@@ -2523,7 +2523,7 @@ class BatchedDot(Op):
         else:
             return [t2]
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         for shape_ in shapes:
             if len(shape_) not in (2, 3):
                 raise NotImplementedError()

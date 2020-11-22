@@ -946,7 +946,7 @@ class WrapLinker(Linker):
         For each node in the graph, each linker will provide a
         thunk.  This class makes it possible to iterate over each linker's
         program in parallel.
-    wrapper : lambda (i, i_node, i_thunk1, i_thunk2, ...) : None
+    wrapper : lambda (fgraph, i, i_node, i_thunk1, i_thunk2, ...) : None
         Does some user-defined action for the i'th element of the program.
         i_thunk<n> is the thunk returned by the n'th linker. (If you want
         to run the program, make sure to call the necessary thunks in this
@@ -1060,7 +1060,7 @@ class WrapLinker(Linker):
             pre(self, [input.data for input in input_lists[0]], order, thunk_groups)
             for i, (thunks, node) in enumerate(zip(thunk_groups, order)):
                 try:
-                    wrapper(i, node, *thunks)
+                    wrapper(self.fgraph, i, node, *thunks)
                 except Exception:
                     raise_with_op(self.fgraph, node, *thunks)
 

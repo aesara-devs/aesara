@@ -802,7 +802,7 @@ class GpuDnnConv(DnnBase):
 
         return get_conv_output_shape(ishape, kshape, border_mode, subsample, dilation)
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         return [shape[2]]
 
 
@@ -973,7 +973,7 @@ class GpuDnnConvGradW(DnnBase):
 
         return Apply(self, [img, topgrad, output, desc, alpha, beta], [output.type()])
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         return [shape[2]]
 
 
@@ -1109,7 +1109,7 @@ class GpuDnnConvGradI(DnnBase):
 
         return Apply(self, [kern, topgrad, output, desc, alpha, beta], [output.type()])
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         return [shape[2]]
 
 
@@ -1876,7 +1876,7 @@ class GpuDnnPool(GpuDnnPoolBase):
 
         return Apply(self, [img, ws, stride, pad], [img.type()])
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         w = node.inputs[1]
         s = node.inputs[2]
         p = node.inputs[3]
@@ -1960,7 +1960,7 @@ class GpuDnnPoolGrad(GpuDnnPoolBase):
 
         return Apply(self, [inp, out, out_grad, ws, stride, pad], [inp.type()])
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         return [shape[0]]
 
 
@@ -2046,7 +2046,7 @@ class GpuDnnSoftmaxBase(DnnBase):
         assert cudnn.cudnnSoftmaxMode_t.has_alias(mode)
         self.mode = mode
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         if self.direction == "forward":
             return [shape[0]]
         else:
@@ -2288,7 +2288,7 @@ class GpuDnnBatchNorm(DnnBase):
             self.inplace_output = False
             self.destroy_map = {}
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         return [shape[0]] + [shape[1]] * (len(node.outputs) - 1)
 
     def make_node(
@@ -2401,7 +2401,7 @@ class GpuDnnBatchNormInference(DnnBase):
         if not hasattr(self, "inplace"):
             self.inplace = False
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         return [shape[0]]
 
     def make_node(
@@ -2495,7 +2495,7 @@ class GpuDnnBatchNormGrad(DnnBase):
             [x.type(), scale.type(), scale.type()],
         )
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         return [shape[0], shape[2], shape[2]]
 
 

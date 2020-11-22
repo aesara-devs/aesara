@@ -216,13 +216,6 @@ class TestFunctionGraph:
         var5 = op3(var4, var2, var2)
         fg = FunctionGraph([var1, var2], [var3, var5], clone=False)
 
-        with pytest.raises(Exception, match="Cannot replace.*"):
-            var4.fgraph = object()
-            # Trigger a `FunctionGraph` ownership error
-            fg.replace(var4, var1, verbose=True)
-
-        var4.fgraph = fg
-
         with pytest.raises(BadOptimization):
             var0 = MyVariable2("var0")
             # The types don't match and one cannot be converted to the other
@@ -262,7 +255,6 @@ class TestFunctionGraph:
 
         with pytest.raises(MissingInputError):
             var0 = MyVariable("var0")
-            var0.fgraph = object()
 
             # FIXME TODO XXX: This breaks the state of the `FunctionGraph`,
             # because it doesn't check for validity of the replacement *first*.
@@ -299,7 +291,6 @@ class TestFunctionGraph:
 
         with pytest.raises(Exception, match="Undeclared input.*"):
             var6 = MyVariable2("var6")
-            var6.fgraph = fg
             fg.clients[var6] = [(var5.owner, 3)]
             fg.variables.add(var6)
             var5.owner.inputs.append(var6)

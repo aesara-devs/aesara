@@ -215,7 +215,7 @@ Optional methods or attributes
    will use your Op and build the graphs that you want and call that
    instead of the Op instance directly.
 
-.. function:: infer_shape(node, shapes)
+.. function:: infer_shape(fgraph, node, shapes)
 
    This function is needed for shape optimization. ``shapes`` is a
    list with one tuple for each input of the Apply node (which corresponds

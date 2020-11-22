@@ -1454,28 +1454,6 @@ class FunctionMaker:
                         t1 = output_new
                         t2 = f2.outputs[i]
 
-                        # Used to remove "already used by another graph error
-                        def removeAllFgraph(remove):
-                            if hasattr(remove, "fgraph"):
-                                del remove.fgraph
-                            if hasattr(remove, "owner"):
-                                if remove.owner is None:
-                                    pass
-                                else:
-                                    if hasattr(remove.owner, "fgraph"):
-                                        del remove.owner.fgraph
-                                    if hasattr(remove.owner, "inputs"):
-                                        remove.owner.inputs = [
-                                            removeAllFgraph(i)
-                                            for i in remove.owner.inputs
-                                        ]
-                                        for o in remove.owner.outputs:
-                                            if hasattr(o, "fgraph"):
-                                                del o.fgraph
-                            return remove
-
-                        t2 = removeAllFgraph(t2)
-
                         givens = dict(
                             zip(gof.graph.inputs([t1]), gof.graph.inputs([t2]))
                         )

@@ -146,7 +146,7 @@ class PyDotFormatter:
             __node_id = self.__node_id(node)
             nparams["name"] = __node_id
             nparams["label"] = apply_label(node)
-            nparams["profile"] = apply_profile(node, profile)
+            nparams["profile"] = apply_profile(fgraph, node, profile)
             nparams["node_type"] = "apply"
             nparams["apply_op"] = nparams["label"]
             nparams["shape"] = self.shapes["apply"]
@@ -298,11 +298,11 @@ def apply_label(node):
     return node.op.__class__.__name__
 
 
-def apply_profile(node, profile):
+def apply_profile(fgraph, node, profile):
     """Return apply profiling informaton."""
     if not profile or profile.fct_call_time == 0:
         return None
-    time = profile.apply_time.get(node, 0)
+    time = profile.apply_time.get((fgraph, node), 0)
     call_time = profile.fct_call_time
     return [time, call_time]
 

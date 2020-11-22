@@ -68,7 +68,7 @@ class Poisson(gof.op.Op):
             )
         ]
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         return ins_shapes
 
 
@@ -134,7 +134,7 @@ class Binomial(gof.op.Op):
             theano.gradient.disconnected_type(),
         ]
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         return [(node.inputs[2][0], node.inputs[2][1])]
 
 
@@ -213,7 +213,7 @@ class Multinomial(gof.op.Op):
             ),
         ]
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         return [ins_shapes[1]]
 
 

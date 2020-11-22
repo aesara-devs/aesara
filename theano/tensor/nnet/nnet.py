@@ -112,7 +112,7 @@ class SoftmaxWithBias(Op):
         db = tt.sum(dx, axis=0)
         return dx, db
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         return [shape[0]]
 
     def c_headers(self):
@@ -341,7 +341,7 @@ class SoftmaxGrad(Op):
 
         return g_dy, g_sm
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         return [shape[1]]
 
     def c_code_cache_version(self):
@@ -467,7 +467,7 @@ class Softmax(Op):
             return [None]
         return self.L_op(inputs, [self(*inputs)], eval_points)
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         return shape
 
     def c_headers(self):
@@ -665,7 +665,7 @@ class LogSoftmax(Op):
             return [None]
         return self.grad(inputs, eval_points)
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         return shape
 
     def c_headers(self):
@@ -1068,7 +1068,7 @@ class CrossentropySoftmaxArgmax1HotWithBias(Op):
         output_storage[1][0] = sm
         output_storage[2][0] = am
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         x_shp, b_shp, idx_shp = shapes
         nll_shp = (x_shp[0],)
         sm_shp = x_shp
@@ -1253,7 +1253,7 @@ class CrossentropySoftmax1HotWithBiasDx(Op):
             dx[i, y_idx[i]] -= dy_i  # scalar decrement
         output_storage[0][0] = dx
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[1]]
 
     def grad(self, inp, grads):
@@ -1439,7 +1439,7 @@ class CrossentropyCategorical1HotGrad(Op):
             g_coding[i, true_one_of_n[i]] = -g_y[i] / coding_dist[i, true_one_of_n[i]]
         g_coding_strg[0] = g_coding
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         return [in_shapes[1]]
 
 
@@ -1501,7 +1501,7 @@ class CrossentropyCategorical1Hot(Op):
             y[i] = -np.log(coding[i, one_of_n[i]])
         y_out[0] = y
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         return [(in_shapes[0][0],)]
 
     def grad(self, inp, grads):
@@ -1702,10 +1702,7 @@ def local_argmax_pushdown(fgraph, node):
             return ret
 
 
-# Utility function used by the two next optimizations
-
-
-def _check_rows_is_arange_len_labels(rows, labels):
+def _check_rows_is_arange_len_labels(fgraph, rows, labels):
     """Check that `rows` is the same node as `tt.arange(labels.shape[0])`.
 
     Also considers the case where `labels.shape[0]` is constant and equal to 1,
@@ -1714,8 +1711,8 @@ def _check_rows_is_arange_len_labels(rows, labels):
 
     """
 
-    if labels.owner and hasattr(labels.owner.fgraph, "shape_feature"):
-        shape_of = labels.owner.fgraph.shape_feature.shape_of
+    if hasattr(fgraph, "shape_feature"):
+        shape_of = fgraph.shape_feature.shape_of
         # TODO: consider cases where shape_of[labels] is constant, and
         # has a value different from 1.
         # This case is harder, as _is_const only accepts a scalar value
@@ -1744,7 +1741,7 @@ def _check_rows_is_arange_len_labels(rows, labels):
                 if shape_var.owner and shape_var.owner.op == tt.shape:
                     return shape_var.owner.inputs[0] is labels
         else:
-            shape_of = stop.owner.fgraph.shape_feature.shape_of
+            shape_of = fgraph.shape_feature.shape_of
             return shape_of[labels][0] is stop
 
 
@@ -1792,7 +1789,7 @@ def local_advanced_indexing_crossentropy_onehot(fgraph, node):
             b_var = tt.zeros_like(x_var[0])
 
         # Check that rows == arange(labels.shape[0])
-        if _check_rows_is_arange_len_labels(rows, labels):
+        if _check_rows_is_arange_len_labels(fgraph, rows, labels):
             if labels.ndim == 1 and x_var.ndim == 2:
                 minus_ret = crossentropy_softmax_argmax_1hot_with_bias(
                     x_var, b_var, labels
@@ -1942,7 +1939,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
             return
 
         # Check that rows is arange(labels.shape[0])
-        if not _check_rows_is_arange_len_labels(rows, labels):
+        if not _check_rows_is_arange_len_labels(fgraph, rows, labels):
             return
         # else, arguments of AdvancedIncSubtensor are OK,
         # it was really case 1.
@@ -1993,7 +1990,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
             out_grad = -incr
 
             # Check that rows is arange(labels.shape[0])
-            if not _check_rows_is_arange_len_labels(rows, labels):
+            if not _check_rows_is_arange_len_labels(fgraph, rows, labels):
                 return
             # else, arguments of AdvancedIncSubtensor are OK
         else:
@@ -2060,7 +2057,7 @@ def local_useless_crossentropy_softmax_1hot_with_bias_dx_alloc(fgraph, node):
             dz = dy.owner.inputs[0]
 
             try:
-                shape_feature = node.fgraph.shape_feature
+                shape_feature = fgraph.shape_feature
             except AttributeError:
                 # The shape feature may not be available in some mode, but we
                 # need it for this optimization, so don't continue.
@@ -2239,7 +2236,7 @@ class Prepend_scalar_constant_to_each_row(Op):
         out[:, 0].fill(self.val.data)
         out[:, 1:] = mat
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         shp = (in_shapes[0][0], in_shapes[0][1] + 1)
         return [shp]
 
@@ -2285,7 +2282,7 @@ class Prepend_scalar_to_each_row(Op):
         out[:, 0].fill(val)
         out[:, 1:] = mat
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         shp = (in_shapes[1][0], in_shapes[1][1] + 1)
         return [shp]
 

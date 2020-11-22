@@ -207,11 +207,11 @@ class VM:
         for node, thunk, t, c in zip(
             self.nodes, self.thunks, self.call_times, self.call_counts
         ):
-            profile.apply_time.setdefault(node, 0.0)
-            profile.apply_time[node] += t
+            profile.apply_time.setdefault((self.fgraph, node), 0.0)
+            profile.apply_time[(self.fgraph, node)] += t
 
-            profile.apply_callcount.setdefault(node, 0)
-            profile.apply_callcount[node] += c
+            profile.apply_callcount.setdefault((self.fgraph, node), 0)
+            profile.apply_callcount[(self.fgraph, node)] += c
 
             profile.apply_cimpl[node] = hasattr(thunk, "cthunk")
 

@@ -600,7 +600,7 @@ class Pool(OpenMPOp):
             for r in np.ndindex(*pool_out_shp):
                 zzk[r] = func(yk[[region_slices[i][r[i]] for i in range(nd)]])
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         ws, stride, pad = [node.inputs[1], node.inputs[2], node.inputs[3]]
         shp = self.out_shape(
             in_shapes[0], ws, self.ignore_border, stride, pad, self.ndim
@@ -1151,7 +1151,7 @@ class PoolGrad(OpenMPOp):
                 storage_map[pad] = [None]
                 compute_map[pad] = [False]
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         return [in_shapes[0]]
 
 
@@ -1927,7 +1927,7 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
                     if maxout_value == yk[c]:
                         ggzk[r] += ggxk[c]
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         return [in_shapes[1]]
 
     def grad(self, inp, grads):

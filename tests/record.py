@@ -3,11 +3,8 @@ from theano.compile import Mode
 from theano.printing import hex_digest
 
 
-__authors__ = "Ian Goodfellow"
-__credits__ = ["Ian Goodfellow"]
-__license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__authors__ = ["PyMC Team", "Ian Goodfellow"]
+__credits__ = ["PyMC Team", "Ian Goodfellow"]
 
 
 class MismatchError(Exception):
@@ -178,7 +175,7 @@ class RecordMode(Mode):
 
         self.set_record(record)
 
-        def handle_line(line, i, node, fn):
+        def handle_line(fgraph, line, i, node, fn):
             """
             Records new node computation.
 
@@ -198,8 +195,8 @@ class RecordMode(Mode):
             except MismatchError as e:
                 print("Got this MismatchError:")
                 print(e)
-                print("while processing node i=" + str(i) + ":")
-                print("str(node):", str(node))
+                print(f"while processing node i={i}:")
+                print(f"str(node):{node}")
                 print("Symbolic inputs: ")
                 for elem in node.inputs:
                     print(theano.printing.min_informative_str(elem))
@@ -208,15 +205,13 @@ class RecordMode(Mode):
                     assert isinstance(elem, list)
                     (elem,) = elem
                     print(str(elem))
-                print("function name: " + node.fgraph.name)
+                print(f"function name: {fgraph.name}")
                 raise MismatchError("Non-determinism detected by WrapLinker")
 
-        def callback(i, node, fn):
+        def callback(fgraph, i, node, fn):
             """
             Function called by Apply nodes at the end of each computation?
             """
-
-            fgraph = node.fgraph
 
             if fgraph.name is None:
                 raise ValueError(
@@ -231,19 +226,13 @@ class RecordMode(Mode):
                 )
                 self.known_fgraphs.add(fgraph)
                 num_app = len(fgraph.apply_nodes)
-                line = (
-                    "Function "
-                    + fgraph.name
-                    + " has "
-                    + str(num_app)
-                    + " apply nodes.\n"
-                )
-                handle_line(line, i, node, fn)
+                line = f"Function {fgraph.name} has {num_app} apply nodes.\n"
+                handle_line(fgraph, line, i, node, fn)
 
-            line = "Function name: " + fgraph.name + "\n"
-            handle_line(line, i, node, fn)
-            line = "Node " + str(i) + ":" + str(node) + "\n"
-            handle_line(line, i, node, fn)
+            line = f"Function name: {fgraph.name}\n"
+            handle_line(fgraph, line, i, node, fn)
+            line = f"Node {i}:{node}\n"
+            handle_line(fgraph, line, i, node, fn)
             assert all([isinstance(x, list) and len(x) == 1 for x in fn.inputs])
 
             def digest(x):
@@ -251,12 +240,12 @@ class RecordMode(Mode):
                 return hex_digest(x)
 
             inputs_digest = " ".join([digest(x) for x in fn.inputs])
-            line = "Inputs: " + inputs_digest + "\n"
-            handle_line(line, i, node, fn)
+            line = f"Inputs: {inputs_digest}\n"
+            handle_line(fgraph, line, i, node, fn)
             fn()
             outputs_digest = " ".join([digest(x) for x in fn.outputs])
-            line = "Outputs: " + outputs_digest + "\n"
-            handle_line(line, i, node, fn)
+            line = f"Outputs: {outputs_digest}\n"
+            handle_line(fgraph, line, i, node, fn)
 
         # linker = theano.gof.OpWiseCLinker()
         linker = theano.gof.vm.VM_Linker(use_cloop=bool(theano.config.cxx))

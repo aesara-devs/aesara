@@ -771,7 +771,7 @@ class ConvOp(OpenMPOp):
 
         return Apply(self, [_inputs, _kerns], [output])
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         imshp = input_shapes[0]  # 4D image shape
         kshp = input_shapes[1]  # 4D filter shape
         bsize, imshp = imshp[0], list(imshp[1:])

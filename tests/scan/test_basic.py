@@ -4731,7 +4731,7 @@ for{cpu,scan_fn}.2 [id H] ''
         A = tensor.vector("A")
 
         # Build a MonitorMode that counts how many values are greater than 10
-        def detect_large_outputs(i, node, fn):
+        def detect_large_outputs(fgraph, i, node, fn):
             for output in fn.outputs:
                 if isinstance(output[0], np.ndarray):
                     detect_large_outputs.large_count += (output[0] > 10).sum()

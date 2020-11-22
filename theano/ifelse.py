@@ -100,7 +100,7 @@ class IfElse(Op):
             args.append("gpu")
         return "if{{{','.join(args)}}}"
 
-    def infer_shape(self, node, inputs_shapes):
+    def infer_shape(self, fgraph, node, inputs_shapes):
         # By construction, corresponding then/else pairs have the same number
         # of dimensions
 

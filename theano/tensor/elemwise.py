@@ -281,7 +281,7 @@ class DimShuffle(COp):
 
         storage[0] = np.asarray(res)  # asarray puts scalars back into array
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         (ishp,) = shapes
         # transpose
         rval = [ishp[i] for i in self.shuffle]
@@ -866,7 +866,7 @@ second dimension
                 storage[0] = variable
             i += 1
 
-    def infer_shape(self, node, i_shapes):
+    def infer_shape(self, fgraph, node, i_shapes):
         rval = []
         for o in node.outputs:
             oshp = []
@@ -1481,7 +1481,7 @@ class CAReduce(Op):
             # Force a copy
             output[0] = np.array(variable, copy=True, dtype=node.outputs[0].type.dtype)
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         (ishape,) = shapes
         axis = self.axis
         if axis is None:

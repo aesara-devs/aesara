@@ -52,31 +52,21 @@ class Hint(Op):
         return g_out
 
 
-def is_hint_node(node):
-    return isinstance(node.op, Hint)
-
-
 def hints(variable):
-    if hasattr(variable, "fgraph"):
-        try:
-            return variable.fgraph.hints_feature.hints[variable]
-        except AttributeError:
-            return {}
+    if variable.owner and isinstance(variable.owner.op, Hint):
+        return dict(variable.owner.op.hints)
     else:
-        if is_hint_node(variable.owner):
-            return dict(variable.owner.op.hints)
-        else:
-            return {}
+        return {}
 
 
 @register_canonicalize
 @local_optimizer([Hint])
-def remove_hint_nodes(node):
-    if is_hint_node(node):
+def remove_hint_nodes(fgraph, node):
+    if isinstance(node, Hint):
         # transfer hints from graph to Feature
         try:
             for k, v in node.op.hints:
-                node.fgraph.hints_feature.add_hint(node.inputs[0], k, v)
+                fgraph.hints_feature.add_hint(node.inputs[0], k, v)
         except AttributeError:
             pass
         return node.inputs

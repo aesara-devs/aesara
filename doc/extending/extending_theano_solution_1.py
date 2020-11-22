@@ -34,7 +34,7 @@ class ProdOp(theano.Op):
         z = output_storage[0]
         z[0] = x * y
 
-    def infer_shape(self, node, i0_shapes):
+    def infer_shape(self, fgraph, node, i0_shapes):
         return [i0_shapes[0]]
 
     def grad(self, inputs, output_grads):
@@ -71,7 +71,7 @@ class SumDiffOp(theano.Op):
         z1[0] = x + y
         z2[0] = x - y
 
-    def infer_shape(self, node, i0_shapes):
+    def infer_shape(self, fgraph, node, i0_shapes):
         return [i0_shapes[0], i0_shapes[0]]
 
     def grad(self, inputs, output_grads):
@@ -172,7 +172,7 @@ import numpy as np
 from theano.compile.ops import as_op
 
 
-def infer_shape_numpy_dot(node, input_shapes):
+def infer_shape_numpy_dot(fgraph, node, input_shapes):
     ashp, bshp = input_shapes
     return [ashp[:-1] + bshp[-1:]]
 
@@ -183,7 +183,7 @@ def numpy_add(a, b):
     return np.add(a, b)
 
 
-def infer_shape_numpy_add_sub(node, input_shapes):
+def infer_shape_numpy_add_sub(fgraph, node, input_shapes):
     ashp, bshp = input_shapes
     # Both inputs should have that same shape, so we just return one of them.
     return [ashp[0]]

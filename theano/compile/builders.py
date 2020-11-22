@@ -780,7 +780,7 @@ class OpFromGraph(Op):
 
         return list(map(list, cpmat_self))
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
 
         out_shp = infer_shape(self.local_outputs, self.local_inputs, shapes)
 

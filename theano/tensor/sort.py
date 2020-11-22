@@ -51,7 +51,7 @@ class SortOp(Op):
         z = output_storage[0]
         z[0] = np.sort(a, axis, self.kind, self.order)
 
-    def infer_shape(self, node, inputs_shapes):
+    def infer_shape(self, fgraph, node, inputs_shapes):
         if _variable_is_none(node.inputs[1]):
             # That means axis = None,
             # So the array is flattened before being sorted
@@ -192,7 +192,7 @@ class ArgSortOp(Op):
             np.argsort(a, axis, self.kind, self.order), dtype=node.outputs[0].dtype
         )
 
-    def infer_shape(self, node, inputs_shapes):
+    def infer_shape(self, fgraph, node, inputs_shapes):
         if _variable_is_none(node.inputs[1]):
             return [(mul(*inputs_shapes[0]),)]
         # axis should not be None, so there should be the same number of
@@ -437,7 +437,7 @@ class TopKOp(Op):
             pzi = output_storage[0]
             pzi[0] = _topk_py_impl(self, x, k, axis, node.outputs[0].dtype)
 
-    def infer_shape(self, node, inp_shapes):
+    def infer_shape(self, fgraph, node, inp_shapes):
         shp = list(inp_shapes[0])
         shp[self.axis] = np.abs(node.inputs[1])
         shp = tuple(shp)

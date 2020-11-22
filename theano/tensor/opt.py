@@ -941,7 +941,7 @@ class MakeVector(Op):
             )
         return ret
 
-    def infer_shape(self, node, ishapes):
+    def infer_shape(self, fgraph, node, ishapes):
         return [(len(ishapes),)]
 
     def grad(self, inputs, output_gradients):
@@ -1008,7 +1008,7 @@ class ShapeFeature(toolbox.Feature):
 
     Lifting is done by using an `<Op>.infer_shape` function if one is
     present, or else using a conservative default.  An Op that
-    supports shape-lifting should define a infer_shape(self, node,
+    supports shape-lifting should define a infer_shape(self, fgraph, node,
     input_shapes) function.  The argument input_shapes is a tuple of
     tuples... there is an interior tuple for each input to the node.
     The tuple has as many elements as dimensions.  The element in
@@ -1077,10 +1077,12 @@ class ShapeFeature(toolbox.Feature):
             shape_infer = self.default_infer_shape
 
         try:
-            o_shapes = shape_infer(node, [self.shape_of[r] for r in node.inputs])
+            o_shapes = shape_infer(
+                self.fgraph, node, [self.shape_of[r] for r in node.inputs]
+            )
         except ShapeError:
             o_shapes = self.default_infer_shape(
-                node, [self.shape_of[r] for r in node.inputs]
+                self.fgraph, node, [self.shape_of[r] for r in node.inputs]
             )
         except NotImplementedError as e:
             raise NotImplementedError(
@@ -1101,7 +1103,7 @@ class ShapeFeature(toolbox.Feature):
             else:
                 _logger.warning(msg)
             o_shapes = self.default_infer_shape(
-                node, [self.shape_of[r] for r in node.inputs]
+                self.fgraph, node, [self.shape_of[r] for r in node.inputs]
             )
 
         return o_shapes
@@ -1171,7 +1173,7 @@ class ShapeFeature(toolbox.Feature):
             return None
         return tuple([self.shape_ir(i, r) for i in range(r.ndim)])
 
-    def default_infer_shape(self, node, i_shapes):
+    def default_infer_shape(self, fgraph, node, i_shapes):
         """Return a list of shape tuple or None for the outputs of node.
 
         This function is used for Ops that don't implement infer_shape.
@@ -1444,7 +1446,15 @@ class ShapeFeature(toolbox.Feature):
         return make_vector(*self.shape_of[r])
 
     def on_attach(self, fgraph):
-        assert not hasattr(fgraph, "shape_feature")
+
+        if getattr(self, "fgraph", None):
+            raise ValueError("This ShapeFeature is already attached to a graph")
+
+        self.fgraph = fgraph
+
+        if hasattr(fgraph, "shape_feature"):
+            raise ValueError("This FunctionGraph already has a ShapeFeature")
+
         fgraph.shape_feature = self
         # Must be local to the object as otherwise we reuse the same
         # variable for multiple fgraph!
@@ -2642,7 +2652,7 @@ class Assert(Op):
     def c_code_cache_version(self):
         return (3, 0)
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [input_shapes[0]]
 
 

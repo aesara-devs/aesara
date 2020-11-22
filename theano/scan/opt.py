@@ -1126,7 +1126,7 @@ class ScanInplaceOptimizer(GlobalOptimizer):
 
 class ScanSaveMem(gof.GlobalOptimizer):
     """
-    Graph Optimizer that reduces scan memory consumption.
+    Graph optimizer that reduces scan memory consumption.
 
     """
 
@@ -1160,7 +1160,7 @@ class ScanSaveMem(gof.GlobalOptimizer):
                 return tensor.as_tensor_variable(x)
 
         if hasattr(fgraph, "shape_feature"):
-            shape_of = node.fgraph.shape_feature.shape_of
+            shape_of = fgraph.shape_feature.shape_of
         else:
             # Each access to shape_of is in a try..except block in order to
             # use a default version when the variable is not in the shape_of
@@ -1671,7 +1671,7 @@ class ScanSaveMem(gof.GlobalOptimizer):
 
 class ScanMerge(gof.GlobalOptimizer):
     """
-    Graph Optimizer that merges different scan ops.
+    Graph optimizer that merges different scan ops.
 
     """
 

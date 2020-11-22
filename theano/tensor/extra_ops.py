@@ -120,7 +120,7 @@ class SearchsortedOp(Op):
                 raise TypeError("sorter must be an integer vector", sorter.type)
             return theano.Apply(self, [x, v, sorter], [out_type()])
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[1]]
 
     def perform(self, node, inputs, output_storage, params):
@@ -324,7 +324,7 @@ class CumOp(Op):
                 f'{type(self).__name__}: unknown gradient for mode "{self.mode}"'
             )
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         if self.axis is None:
             return [(basic.prod(shapes[0]),)]  # Flatten
 
@@ -491,7 +491,7 @@ class DiffOp(Op):
             z = _grad_helper(z)
         return [z]
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         i0_shapes = ins_shapes[0]
         out_shape = list(i0_shapes)
         out_shape[self.axis] = out_shape[self.axis] - self.n
@@ -724,7 +724,7 @@ class RepeatOp(Op):
         else:
             raise ValueError()
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         i0_shapes = ins_shapes[0]
         repeats = node.inputs[1]
         out_shape = list(i0_shapes)
@@ -843,7 +843,7 @@ class Bartlett(Op):
         (out,) = out_
         out[0] = np.bartlett(M)
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         temp = node.inputs[0]
         M = basic.switch(basic.lt(temp, 0), basic.cast(0, temp.dtype), temp)
         return [[M]]
@@ -887,7 +887,7 @@ class FillDiagonal(Op):
     # See function fill_diagonal for docstring
     __props__ = ()
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         return [in_shapes[0]]
 
     def make_node(self, a, val):
@@ -989,7 +989,7 @@ class FillDiagonalOffset(Op):
     # See function fill_diagonal_offset for docstring
     __props__ = ()
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         return [in_shapes[0]]
 
     def make_node(self, a, val, offset):
@@ -1245,8 +1245,8 @@ class Unique(Op):
             for i in range(len(outs)):
                 z[i][0] = outs[i]
 
-    def infer_shape(self, node, i0_shapes):
-        ret = node.fgraph.shape_feature.default_infer_shape(node, i0_shapes)
+    def infer_shape(self, fgraph, node, i0_shapes):
+        ret = fgraph.shape_feature.default_infer_shape(fgraph, node, i0_shapes)
         if self.axis is not None:
             self_axis = self.axis
             ndim = len(i0_shapes[0])
@@ -1257,10 +1257,7 @@ class Unique(Op):
                     f"Unique axis `{self.axis}` is outside of input ndim = {ndim}."
                 )
             ret[0] = tuple(
-                [
-                    node.fgraph.shape_feature.shape_ir(i, node.outputs[0])
-                    for i in range(ndim)
-                ]
+                [fgraph.shape_feature.shape_ir(i, node.outputs[0]) for i in range(ndim)]
             )
         if self.return_inverse:
             if self.axis is None:
@@ -1311,7 +1308,7 @@ class UnravelIndex(Op):
             ],
         )
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [input_shapes[0]] * len(node.outputs)
 
     def perform(self, node, inp, out):
@@ -1392,7 +1389,7 @@ class RavelMultiIndex(Op):
             ],
         )
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [input_shapes[0]]
 
     def perform(self, node, inp, out):
@@ -1584,7 +1581,7 @@ class BroadcastTo(Op):
             grad_undefined(self, i, shp) for i, shp in enumerate(shape, 1)
         ]
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         return [node.inputs[1:]]
 
 

@@ -144,7 +144,7 @@ class MatrixInverse(Op):
             return [None]
         return [-matrix_dot(xi, ev, xi)]
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return shapes
 
 
@@ -194,7 +194,7 @@ class AllocDiag(Op):
             raise TypeError(x)
         z[0] = np.diag(x)
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         (x_s,) = shapes
         return [(x_s[0], x_s[0])]
 
@@ -261,7 +261,7 @@ class Det(Op):
         (x,) = inputs
         return [gz * self(x) * matrix_inverse(x).T]
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [()]
 
     def __str__(self):
@@ -292,7 +292,7 @@ class Eig(Op):
         (w, v) = outputs
         w[0], v[0] = [z.astype(x.dtype) for z in self._numop(x)]
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         n = shapes[0][0]
         return [(n,), (n, n)]
 
@@ -434,7 +434,7 @@ class EighGrad(Op):
         # upcasting in self.tri0.
         outputs[0][0] = np.asarray(out, dtype=node.outputs[0].dtype)
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0]]
 
 
@@ -599,7 +599,7 @@ class SVD(Op):
             (s,) = outputs
             s[0] = self._numop(x, self.full_matrices, self.compute_uv)
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         (x_shape,) = shapes
         M, N = x_shape
         K = tensor.minimum(M, N)
@@ -762,7 +762,7 @@ class TensorInv(Op):
         (x,) = outputs
         x[0] = self._numop(a, self.ind)
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         sp = shapes[0][self.ind :] + shapes[0][: self.ind]
         return [sp]
 

@@ -181,7 +181,7 @@ class AddSD_ccode(gof.op.Op):
         )
         return code
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[3]]
 
     def c_code_cache_version(self):

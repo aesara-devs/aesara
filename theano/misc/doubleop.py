@@ -50,7 +50,7 @@ class DoubleOp(theano.Op):
         z = output_storage[0]
         z[0] = x * 2
 
-    def infer_shape(self, node, i0_shapes):
+    def infer_shape(self, fgraph, node, i0_shapes):
         return i0_shapes
 
     def grad(self, inputs, output_grads):

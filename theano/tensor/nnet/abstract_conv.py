@@ -812,7 +812,7 @@ def separable_conv2d(
         depthwise_op_shape = None
     else:
         depthwise_op_shape = conv_op.infer_shape(
-            None, [input_shape, depthwise_filter_shape]
+            None, None, [input_shape, depthwise_filter_shape]
         )[0]
     depthwise_op = conv_op(input, depthwise_filters)
 
@@ -944,7 +944,7 @@ def separable_conv3d(
         depthwise_op_shape = None
     else:
         depthwise_op_shape = conv_op.infer_shape(
-            None, [input_shape, depthwise_filter_shape]
+            None, None, [input_shape, depthwise_filter_shape]
         )[0]
     depthwise_op = conv_op(input, depthwise_filters)
 
@@ -2688,7 +2688,7 @@ class AbstractConv(BaseAbstractConv):
                 rval += self.make_node(inputs[0], eval_points[1]).outputs[0]
         return [rval]
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         imshp = input_shapes[0]
         kshp = input_shapes[1]
 
@@ -3033,7 +3033,7 @@ class AbstractConv_gradWeights(BaseAbstractConv):
     def connection_pattern(self, node):
         return [[1], [1], [0]]  # no connection to height, width
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         # We use self.kshp (that was passed when creating the Op) if possible,
         # or fall back to the `shape` input of the node.
         # TODO: when there is no subsampling, try to infer the kernel shape
@@ -3439,7 +3439,7 @@ class AbstractConv_gradInputs(BaseAbstractConv):
     def connection_pattern(self, node):
         return [[1], [1], [0]]  # no connection to height, width
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         # We use self.imshp (that was passed when creating the Op) if possible,
         # or fall back to the `shape` input of the node.
         # TODO: when there is no subsampling, try to infer the image shape

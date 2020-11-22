@@ -5027,7 +5027,7 @@ class TestShapeOptimizer:
                 (out,) = out_
                 out[0] = x.copy()
 
-            # def infer_shape(self, node, (xshp,)):
+            # def infer_shape(self, fgraph, node, (xshp,)):
             # return [tuple([self.shape_i(i)(r) for i in range(r.ndim)])]
 
         identity_noshape = IdentityNoShape()
@@ -5044,7 +5044,7 @@ class TestShapeOptimizer:
                 (out,) = out_
                 out[0] = x.copy()
 
-            def infer_shape(self, node, xshp_):
+            def infer_shape(self, fgraph, node, xshp_):
                 # Could also just return.
                 (xshp,) = xshp_
                 return (xshp,)

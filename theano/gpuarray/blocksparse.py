@@ -66,7 +66,7 @@ class GpuSparseBlockGemv(COp):
 
         return Apply(self, [o, W, h, inputIdx, outputIdx], [o.type()])
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [input_shapes[0]]
 
     def grad(self, inputs, grads):
@@ -124,7 +124,7 @@ class GpuSparseBlockOuter(COp):
             alpha = one
         return Apply(self, [o, x, y, xIdx, yIdx, alpha], [o.type()])
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [input_shapes[0]]
 
     def c_header_dirs(self):

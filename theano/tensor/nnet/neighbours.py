@@ -344,7 +344,7 @@ class Images2Neibs(Op):
                                     else:
                                         z[0][z_row, z_col] = ten4[n, s, ten4_2, ten4_3]
 
-    def infer_shape(self, node, input_shape):
+    def infer_shape(self, fgraph, node, input_shape):
         in_shape = input_shape[0]
         c, d = node.inputs[1]
         step_x, step_y = node.inputs[2]
