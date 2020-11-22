@@ -329,3 +329,18 @@ class TestFunctionGraph:
             fg.add_client(var4, (var3.owner, 0))
 
             fg.check_integrity()
+
+    def test_contains(self):
+
+        var1 = MyVariable("var1")
+        var2 = MyVariable("var2")
+        var3 = op1(var2, var1)
+        var4 = op2(var3, var2)
+        var5 = op3(var4, var2, var2)
+        fg = FunctionGraph([var1, var2], [var3, var5], clone=False)
+
+        assert var1 in fg
+        assert var3 in fg
+        assert var3.owner in fg
+        assert var5 in fg
+        assert var5.owner in fg
