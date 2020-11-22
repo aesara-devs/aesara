@@ -463,7 +463,6 @@ def debugprint(
     scan_inner_to_outer_inputs=None,
     smap=None,
     used_ids=None,
-    print_clients=False,
 ):
     """
     Print the graph leading to `r` to given depth.
@@ -511,8 +510,6 @@ def debugprint(
         Internal. Used to pass information when recursing.
         It is a dict from obj to the id used for it.
         It wasn't always printed, but at least a reference to it was printed.
-    print_clients
-        If True, we will print the clients of nodes when they have more then one clients.
     """
     if depth == 0:
         return
@@ -595,17 +592,6 @@ def debugprint(
         if smap:
             data = " " + str(smap.get(a.outputs[0], ""))
         clients = ""
-        if print_clients and len(getattr(r, "clients", [])) > 1:
-
-            def get_index(c):
-                try:
-                    return order.index(c)
-                except ValueError:
-                    return ""
-
-            clients = " clients:" + str(
-                [(get_id_str(c, False), get_index(c)) for c, i in r.clients]
-            )
         if profile is None or a not in profile.apply_time:
             print(
                 f"{prefix}{a.op}{idx} {id_str}{type_str} '{r_name}' {destroy_map_str} {view_map_str} {o}{data}{clients}",
@@ -676,7 +662,6 @@ def debugprint(
                         scan_inner_to_outer_inputs=scan_inner_to_outer_inputs,
                         smap=smap,
                         used_ids=used_ids,
-                        print_clients=print_clients,
                     )
     else:
         if scan_inner_to_outer_inputs is not None and r in scan_inner_to_outer_inputs:
@@ -844,7 +829,7 @@ def _check_inputs(
     return actually_inplace_outputs
 
 
-def _check_viewmap(node, storage_map):
+def _check_viewmap(fgraph, node, storage_map):
     """
     This functions raises a BadViewMap exception when it detects the
     following:
@@ -897,7 +882,7 @@ def _check_viewmap(node, storage_map):
             raise BadViewMap(node, oi, outstorage, list(bad_alias.values()))
 
         # if its not aliased to input, check output->output aliasing
-        if not good_alias and _is_used_in_graph(onode):
+        if not good_alias and _is_used_in_graph(fgraph, onode):
             for other_oi, other_onode in enumerate(node.outputs):
                 if other_oi == oi:
                     continue
@@ -906,14 +891,14 @@ def _check_viewmap(node, storage_map):
                 # check to see if we share memory with this other output
                 # this is not a problem if the node is not actually used
                 if (
-                    _is_used_in_graph(other_onode)
+                    _is_used_in_graph(fgraph, other_onode)
                     and hasattr(other_onode.type, "may_share_memory")
                     and other_onode.type.may_share_memory(outstorage, other_storage)
                 ):
                     raise BadViewMap(node, oi, outstorage, out_alias_idx=other_oi)
 
 
-def _is_used_in_graph(var):
+def _is_used_in_graph(fgraph, var):
     """
 
     Returns
@@ -922,7 +907,7 @@ def _is_used_in_graph(var):
         True if `var` is used by another node in the graph.
 
     """
-    return not (var.clients == [("output", 1)] or var.clients == [])
+    return not (fgraph.clients[var] == [("output", 1)] or fgraph.clients[var] == [])
 
 
 def _check_strides_match(a, b, warn_err, op):
@@ -1375,6 +1360,7 @@ def _get_preallocated_maps(
 
 
 def _check_preallocated_output(
+    fgraph,
     node,
     thunk,
     prealloc_modes,
@@ -1482,7 +1468,7 @@ def _check_preallocated_output(
                 warn_input_not_reused=False,
             )
 
-            _check_viewmap(node, storage_map)
+            _check_viewmap(fgraph, node, storage_map)
 
             for r in node.outputs:
                 if not check_eq(r, r_vals[r], storage_map[r][0]):
@@ -2067,7 +2053,7 @@ class _Linker(gof.link.LocalLinker):
                             perform="py",
                             warn_input_not_reused=warn_inp,
                         )
-                        _check_viewmap(node, storage_map)
+                        _check_viewmap(fgraph, node, storage_map)
 
                         # Retrieve each output from the storage_map.
                         # The return values of this first run will be
@@ -2085,6 +2071,7 @@ class _Linker(gof.link.LocalLinker):
                                 "with thunk_py"
                             )
                             _check_preallocated_output(
+                                fgraph=fgraph,
                                 node=node,
                                 thunk=thunk_py,
                                 prealloc_modes=prealloc_modes,
@@ -2189,7 +2176,7 @@ class _Linker(gof.link.LocalLinker):
                             warn_input_not_reused=warn_inp,
                         )
 
-                        _check_viewmap(node, storage_map)
+                        _check_viewmap(fgraph, node, storage_map)
 
                         # Check with Python result
                         for r in node.outputs:
@@ -2229,6 +2216,7 @@ class _Linker(gof.link.LocalLinker):
                                 "with thunk_c",
                             )
                             _check_preallocated_output(
+                                fgraph=fgraph,
                                 node=node,
                                 thunk=thunk,
                                 prealloc_modes=prealloc_modes,

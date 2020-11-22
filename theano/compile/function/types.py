@@ -65,7 +65,7 @@ def view_tree_set(fgraph, v, treeset):
 
     """
     treeset.add(v)
-    for cl, v_input_pos_to_cl in v.clients:
+    for cl, v_input_pos_to_cl in fgraph.clients[v]:
         if cl == "output":
             continue
         vmap = getattr(cl.op, "view_map", {})

@@ -3213,11 +3213,12 @@ class Alloc(gof.Op):
         return self(eval_points[0], *inputs[1:], **dict(return_list=True))
 
     def do_constant_folding(self, fgraph, node):
-        if not getattr(node.outputs[0], "clients", []):
-            # If there are no clients then there is no point doing constant
-            # folding.
+        clients = fgraph.clients[node.outputs[0]]
+
+        if not clients:
             return False
-        for client in node.outputs[0].clients:
+
+        for client in clients:
             if client[0] == "output":
                 # If the output is a constant, it will have to be deepcopied
                 # each time the function is called.  So we do not fold.

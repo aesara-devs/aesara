@@ -4173,7 +4173,7 @@ class Composite(ScalarOp):
                 r.name = f"o{int(i)}"
             io = set(self.fgraph.inputs + self.fgraph.outputs)
             for i, r in enumerate(self.fgraph.variables):
-                if r not in io and len(r.clients) > 1:
+                if r not in io and len(self.fgraph.clients[r]) > 1:
                     r.name = f"t{int(i)}"
             outputs_str = ", ".join([pprint(output) for output in self.fgraph.outputs])
             rval = f"Composite{{{outputs_str}}}"

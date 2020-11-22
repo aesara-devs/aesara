@@ -719,7 +719,7 @@ def local_dimshuffle_lift(fgraph, node):
     input = node.inputs[0]
     inode = input.owner
     new_order = op.new_order
-    if inode and isinstance(inode.op, Elemwise) and (len(input.clients) == 1):
+    if inode and isinstance(inode.op, Elemwise) and (len(fgraph.clients[input]) == 1):
         # Don't use make_node to have tag.test_value set.
         new_inputs = []
         for inp in inode.inputs:
@@ -1549,7 +1549,7 @@ class ShapeFeature(toolbox.Feature):
         # replace the shape_i of r with the shape of new_r.  Say that
         # r is *scheduled*.
         # At that point, node is no longer a client of r, but of new_r
-        for (shpnode, idx) in r.clients + [(node, i)]:
+        for (shpnode, idx) in fgraph.clients[r] + [(node, i)]:
             if isinstance(getattr(shpnode, "op", None), Shape_i):
                 idx = shpnode.op.i
                 repl = self.shape_of[new_r][idx]
@@ -1887,7 +1887,7 @@ def local_fill_sink(fgraph, node):
     # The newly created node c doesn't has 'clients',
     # so this iteration is took place with node.outputs[0]
     replacements = {node.outputs[0]: c}
-    for client, cl_idx in node.outputs[0].clients:
+    for client, cl_idx in fgraph.clients[node.outputs[0]]:
         if (
             hasattr(client, "op")
             and isinstance(client.op, Elemwise)
@@ -1898,7 +1898,9 @@ def local_fill_sink(fgraph, node):
             new_client = client.op(*client_inputs)
 
             # Add clients to new_client
-            new_client.owner.outputs[0].clients = client.outputs[0].clients
+            fgraph.clients[new_client.owner.outputs[0]] = fgraph.clients[
+                client.outputs[0]
+            ]
             r = local_fill_sink.transform(fgraph, new_client.owner)
             if not r:
                 continue
@@ -2041,7 +2043,7 @@ def local_canonicalize_alloc(fgraph, node):
         return [input]
 
     # Allow local_merge_alloc to do its work first
-    clients = getattr(output, "clients", [])
+    clients = fgraph.clients[output]
     for client, i in clients:
         if client != "output" and isinstance(client.op, Alloc):
             return
@@ -3086,7 +3088,7 @@ def local_subtensor_lift(fgraph, node):
     """
     if isinstance(node.op, Subtensor):
         u = node.inputs[0]
-        if not u.owner or len(u.clients) > 1:
+        if not u.owner or len(fgraph.clients[u]) > 1:
             return False
 
         if isinstance(u.owner.op, Elemwise) and len(u.owner.inputs) == 1:
@@ -3478,7 +3480,7 @@ def local_subtensor_of_dot(fgraph, node):
         return
     # If there is other node that use the outputs of the dot
     # We don't want to compute twice the sub part.
-    if len(node.inputs[0].clients) > 1:
+    if len(fgraph.clients[node.inputs[0]]) > 1:
         return
 
     a = node.inputs[0].owner.inputs[0]
@@ -3567,7 +3569,7 @@ def local_IncSubtensor_serialize(fgraph, node):
                 ),
             )
             and i.type == o_type
-            and len(i.clients) == 1
+            and len(fgraph.clients[i]) == 1
             and not i.owner.op.set_instead_of_inc
         )
 
@@ -4015,7 +4017,7 @@ def local_rebroadcast_lift(fgraph, node):
         # is called from `apply_rebroadcast_opt`, which in particular is used
         # by the `unbroadcast` function before we are in the actual function
         # compilation phase.
-        if hasattr(input, "clients") and len(input.clients) == 1:
+        if len(fgraph.clients[input]) == 1:
             rebroadcasted = Rebroadcast(*list(op.axis.items()))(inode.inputs[0])
             # Copy over stacktrace from previous output (after rebroadcasting)
             # to new output, because an error in the new graph right after
@@ -5312,24 +5314,22 @@ class Canonizer(LocalOptimizer):
         assert len(node.outputs) == 1
         out = node.outputs[0]
 
-        # out won't have a clients field when we didn't commit a
-        # started change in the graph.  We can't do the check if we
-        # want to skip it, so we force the skip it. It should be
-        # reapplied later.
-        if not hasattr(out, "clients"):
-            return
+        out_clients = fgraph.clients.get(out)
+
+        if not out_clients:
+            return False
 
         # check if any of the clients of this node would be part of
         # this canonized graph...  if so, we do nothing and wait for
         # them to be transformed.
-        for c, c_idx in out.clients:
+        for c, c_idx in out_clients:
             if c == "output":
                 continue
             while (
                 isinstance(getattr(c, "op", None), DimShuffle)
-                and len(c.outputs[0].clients) <= 1
+                and len(fgraph.clients[c.outputs[0]]) <= 1
             ):
-                c = c.outputs[0].clients[0][0]
+                c = fgraph.clients[c.outputs[0]][0][0]
             if getattr(c, "op", "") in [self.main, self.inverse, self.reciprocal]:
                 return False
 
@@ -5935,7 +5935,7 @@ def local_op_of_op(fgraph, node):
         out_dtype = node.op.dtype
         # We manipulate the graph so this is done to make sure the opt
         # doesn't affect other computations.
-        if len(node_inps.clients) == 1:
+        if len(fgraph.clients[node_inps]) == 1:
             if node_inps.owner and (isinstance(node_inps.owner.op, node.op.__class__)):
 
                 # check to see either the inner or outer prod is doing a
@@ -6228,12 +6228,12 @@ def local_neg_div_neg(fgraph, node):
             frac = node.inputs[0]
             num, denom = frac.owner.inputs
             if num.owner and num.owner.op == neg:
-                if len(frac.clients) == 1:
+                if len(fgraph.clients[frac]) == 1:
                     # No other clients of the original division
                     new_num = num.owner.inputs[0]
                     return [true_div(new_num, denom)]
             elif np.all(num.broadcastable) and isinstance(num, Constant):
-                if len(frac.clients) == 1:
+                if len(fgraph.clients[frac]) == 1:
                     new_num = -num.data
                     return [true_div(new_num, denom)]
 
@@ -7030,7 +7030,7 @@ def get_clients(fgraph, node):
     Used by erf/erfc opt to track less frequent op.
 
     """
-    return [c for c, i in node.outputs[0].clients if c != "output"]
+    return [c for c, i in fgraph.clients[node.outputs[0]] if c != "output"]
 
 
 def get_clients2(fgraph, node):
@@ -7039,10 +7039,10 @@ def get_clients2(fgraph, node):
 
     """
     l = []
-    for c, i in node.outputs[0].clients:
+    for c, i in fgraph.clients[node.outputs[0]]:
         if c != "output":
             for var in c.outputs:
-                l.extend([cc for cc, ii in var.clients if cc != "output"])
+                l.extend([cc for cc, ii in fgraph.clients[var] if cc != "output"])
     return l
 
 
@@ -7512,7 +7512,7 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
             if (
                 i.owner
                 and isinstance(i.owner.op, op_class)
-                and len({n for n, idx in i.clients}) == 1
+                and len({n for n, idx in fgraph.clients[i]}) == 1
                 and
                 # Do not merge elemwise that don't have the same
                 # broadcastable pattern to don't redo duplicate
@@ -7795,7 +7795,7 @@ def local_add_mul_fusion(fgraph, node):
             and isinstance(inp.owner.op.scalar_op, s_op)
             and
             # Do not duplicate the operation.
-            len(inp.clients) == 1
+            len(fgraph.clients[inp]) == 1
             and (nb_inputs + len(inp.owner.inputs) - 1) <= max_inputs
         ):
             new_inp.extend(inp.owner.inputs)
@@ -7869,7 +7869,7 @@ def local_useless_composite(fgraph, node):
     ):
         return
     comp = node.op.scalar_op
-    idx = [i for i, o_extern in enumerate(node.outputs) if o_extern.clients]
+    idx = [i for i, o_extern in enumerate(node.outputs) if fgraph.clients[o_extern]]
     if len(idx) < len(node.outputs):
         new_outputs = [comp.outputs[i] for i in idx]
         c = ts.Composite(inputs=comp.inputs, outputs=new_outputs)
@@ -7947,8 +7947,8 @@ def local_useless_topk(fgraph, node):
         return False
 
     x, k = node.inputs
-    ret_val = bool(node.outputs[0].clients)
-    ret_idx = bool(node.outputs[1].clients)
+    ret_val = bool(fgraph.clients[node.outputs[0]])
+    ret_idx = bool(fgraph.clients[node.outputs[1]])
 
     if not (ret_val ^ ret_idx):
         # both true -> nothing to remove

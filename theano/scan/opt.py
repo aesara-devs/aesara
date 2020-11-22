@@ -810,7 +810,7 @@ class PushOutScanOutput(gof.GlobalOptimizer):
                         # external Dot instead of the output of scan
                         # Modify the outer graph to add the outer Dot
                         outer_sitsot = new_scan_args.outer_out_sit_sot[sitsot_idx]
-                        subtensor_node = outer_sitsot.clients[0][0]
+                        subtensor_node = fgraph.clients[outer_sitsot][0][0]
                         outer_sitsot_last_step = subtensor_node.outputs[0]
 
                         fgraph.replace_all(
@@ -832,8 +832,8 @@ class PushOutScanOutput(gof.GlobalOptimizer):
         idx = scan_args.inner_out_sit_sot.index(var)
         outer_var = scan_args.outer_out_sit_sot[idx]
 
-        if len(outer_var.clients) == 1:
-            client = outer_var.clients[0][0]
+        if len(fgraph.clients[outer_var]) == 1:
+            client = fgraph.clients[outer_var][0][0]
             if client != "output" and isinstance(client.op, theano.tensor.Subtensor):
                 lst = theano.tensor.subtensor.get_idx_list(
                     client.inputs, client.op.idx_list
@@ -1014,7 +1014,7 @@ class ScanInplaceOptimizer(GlobalOptimizer):
         for i in range(len(ls)):
             inp = ls[i]
             if (
-                len(inp.clients) > 1
+                len(fgraph.clients[inp]) > 1
                 and inp.owner
                 and isinstance(inp.owner.op, alloc_ops)
             ):
@@ -1094,7 +1094,7 @@ class ScanInplaceOptimizer(GlobalOptimizer):
                 # attempt to be inplace on it if nothing else is currently
                 # inplace on it.
                 input_used_inplace = False
-                for c in original_node.inputs[inp_idx].clients:
+                for c in fgraph.clients[original_node.inputs[inp_idx]]:
                     client = c[0]
 
                     # Get the indices of this client's inputs on which it
@@ -1231,7 +1231,7 @@ class ScanSaveMem(gof.GlobalOptimizer):
         for i, out in enumerate(node.outputs[:c_outs]):
             # look at all its clients
             slices[i] = []
-            for cl, _ in out.clients:
+            for cl, _ in fgraph.clients[out]:
 
                 # 2.1 outputs of the function
                 # => output needs all its intermediate values
@@ -1345,7 +1345,7 @@ class ScanSaveMem(gof.GlobalOptimizer):
         # intermediate steps to store
         for i, out in enumerate(node.outputs[:c_outs]):
             # look at all its clients
-            for cl, _ in out.clients:
+            for cl, _ in fgraph.clients[out]:
                 if type(cl) == str:
                     store_steps[i] = 0
                     break
@@ -1477,7 +1477,13 @@ class ScanSaveMem(gof.GlobalOptimizer):
                         replaced_outs.append(op.n_mit_mot + idx)
                         odx = op.n_mit_mot + idx
                         old_outputs += [
-                            (odx, [x[0].outputs[0] for x in node.outputs[odx].clients])
+                            (
+                                odx,
+                                [
+                                    x[0].outputs[0]
+                                    for x in fgraph.clients[node.outputs[odx]]
+                                ],
+                            )
                         ]
                     # If there is no memory pre-allocated for this output
                     elif idx < op.n_mit_sot + op.n_sit_sot + op.n_nit_sot:
@@ -1488,7 +1494,13 @@ class ScanSaveMem(gof.GlobalOptimizer):
                         odx = op.n_mit_mot + idx
                         replaced_outs.append(odx)
                         old_outputs += [
-                            (odx, [x[0].outputs[0] for x in node.outputs[odx].clients])
+                            (
+                                odx,
+                                [
+                                    x[0].outputs[0]
+                                    for x in fgraph.clients[node.outputs[odx]]
+                                ],
+                            )
                         ]
             # 3.4. Recompute inputs for everything else based on the new
             # number of steps
@@ -1552,7 +1564,7 @@ class ScanSaveMem(gof.GlobalOptimizer):
             # the number of intermediate steps stored
             for idx, sl in enumerate(slices):
                 if global_nsteps and sl is not None and store_steps[idx] == 0:
-                    for hdx, cl in enumerate(node.outputs[idx].clients):
+                    for hdx, cl in enumerate(fgraph.clients[node.outputs[idx]]):
                         cnf_slice, old_slices = sl[hdx]
                         # Sanitize the nw_slice by converting ints back into
                         # constants :) I only need to do this for the first
@@ -2150,10 +2162,12 @@ class PushOutDot1(gof.GlobalOptimizer):
                 and isinstance(out.owner.op, theano.tensor.Elemwise)
                 and isinstance(out.owner.op.scalar_op, theano.scalar.Add)
                 and inp in out.owner.inputs
-                and len(outer_out.clients) == 1
-                and not isinstance(outer_out.clients[0][0], str)
-                and isinstance(outer_out.clients[0][0].op, theano.tensor.Subtensor)
-                and outer_out.clients[0][0].op.idx_list == (-1,)
+                and len(fgraph.clients[outer_out]) == 1
+                and not isinstance(fgraph.clients[outer_out][0][0], str)
+                and isinstance(
+                    fgraph.clients[outer_out][0][0].op, theano.tensor.Subtensor
+                )
+                and fgraph.clients[outer_out][0][0].op.idx_list == (-1,)
             ):
 
                 x = out.owner.inputs[0]
@@ -2293,7 +2307,7 @@ class PushOutDot1(gof.GlobalOptimizer):
 
                         pos = node.outputs.index(outer_out)
                         old_new = list(zip(node.outputs[:pos], new_outs[:pos]))
-                        old = node.outputs[pos].clients[0][0].outputs[0]
+                        old = fgraph.clients[node.outputs[pos]][0][0].outputs[0]
                         old_new.append((old, new_out))
                         old_new += list(zip(node.outputs[pos + 1 :], new_outs[pos:]))
                         fgraph.replace_all_validate_remove(

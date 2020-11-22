@@ -721,7 +721,7 @@ def make_c_gemv_destructive(fgraph, node):
         if (
             dest.owner
             and isinstance(dest.owner.op, tt.AllocEmpty)
-            and len(dest.clients) > 1
+            and len(fgraph.clients[dest]) > 1
         ):
             inputs[0] = tt.AllocEmpty(dest.dtype)(*dest.owner.inputs)
 

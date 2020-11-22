@@ -87,13 +87,13 @@ def find_node(fgraph, v, cls, ignore_clients=False):
         Whether to ignore multiple clients or not.
 
     """
-    if v.owner is not None and (ignore_clients or len(v.clients) == 1):
+    if v.owner is not None and (ignore_clients or len(fgraph.clients[v]) == 1):
         if isinstance(v.owner.op, cls):
             return v.owner
         elif (
             isinstance(v.owner.op, GpuFromHost)
             and v.owner.inputs[0].owner is not None
-            and (ignore_clients or len(v.owner.inputs[0].clients) == 1)
+            and (ignore_clients or len(fgraph.clients[v.owner.inputs[0]]) == 1)
             and isinstance(v.owner.inputs[0].owner.op, HostFromGpu)
         ):
             return find_node(fgraph, v.owner.inputs[0].owner.inputs[0], cls)
@@ -362,7 +362,7 @@ def inplace_allocempty(op, idx):
             if (
                 alloc.owner
                 and isinstance(alloc.owner.op, GpuAllocEmpty)
-                and len(alloc.clients) > 1
+                and len(fgraph.clients[alloc]) > 1
             ):
                 alloc_op = GpuAllocEmpty(
                     alloc.owner.op.dtype, alloc.owner.op.context_name
@@ -472,7 +472,7 @@ def op_lifter(OP, cuda_only=False):
 
                 if not replace:
                     # We replace if *all* clients are on the GPU
-                    clients = [c for o in node.outputs for c in o.clients]
+                    clients = [c for o in node.outputs for c in fgraph.clients[o]]
                     replace = len(clients) != 0
                     for c, idx in clients:
                         if c == "output" or not isinstance(c.op, GpuFromHost):

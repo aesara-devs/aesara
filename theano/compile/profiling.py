@@ -1079,7 +1079,7 @@ class ProfileStats:
             # Initial executable_nodes
             executable_nodes = set()
             for var in fgraph.inputs:
-                for c, _ in var.clients:
+                for c, _ in fgraph.clients[var]:
                     if c != "output":
                         deps = c.inputs + c.destroy_dependencies
                         if all(compute_map[v][0] for v in deps):
@@ -1205,7 +1205,7 @@ class ProfileStats:
                         done_dict[frozen_set] = max_mem_count
 
                         for var in node.outputs:
-                            for c, _ in var.clients:
+                            for c, _ in fgraph.clients[var]:
                                 if c != "output":
                                     deps = c.inputs + c.destroy_dependencies
                                     if all(compute_map[v][0] for v in deps):

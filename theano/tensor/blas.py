@@ -1098,13 +1098,13 @@ pprint.assign(gemm_inplace, FunctionPrinter("gemm_inplace"))
 pprint.assign(gemm_no_inplace, FunctionPrinter("gemm_no_inplace"))
 
 
-def res_is_a(node, op, maxclients=None):
-    if maxclients is not None:
-        retval = len(node.clients) <= maxclients
+def res_is_a(fgraph, var, op, maxclients=None):
+    if maxclients is not None and var in fgraph.clients:
+        retval = len(fgraph.get_clients(var)) <= maxclients
     else:
         retval = True
 
-    return node.owner and node.owner.op == op and retval
+    return var.owner and var.owner.op == op and retval
 
 
 def _as_scalar(res, dtype=None):
@@ -1190,45 +1190,13 @@ def _beta_L_plus_alpha_M(fgraph, beta, L, alpha, M, recurse_flip=True):
             rval = [g.dimshuffle()]
             return rval, MM
 
-    # this is False'd out because of inadequate testing.
-    # TODO see ticket #237
-    if False and res_is_a(M, gemm_no_inplace, 1):
-        # EXPRESSION: (beta * L) + (alpha * (gemm_no_inplace(G, a, u, v, b)))
-        # EXPRESSION: (beta * L) + alpha * (b * G) + alpha * a * dot(u, v)
-        G, a, u, v, b = M.owner.inputs
-        # print 'GEMM', G, L
-
-        if res_is_a(G, _dot22, 1):
-            # EXPRESSION: (beta * L) +
-            #            (alpha * (gemm_no_inplace(dot(x,y), a, u, v, b)))
-            x, y = G.owner.inputs
-
-            # EXPRESSION: (beta * L) + (alpha * ((b*dot(x,y) +
-            #            (a * dot(u, v)))))
-            # EXPRESSION: (beta * L) + (alpha*b*dot(x,y)) +
-            #            (alpha * a * dot(u, v))
-            rval = [
-                gemm_no_inplace(
-                    gemm_no_inplace(L, alpha * b, x, y, beta), alpha * a, u, v, 1.0
-                )
-            ]
-            return rval
-        if G is L:
-            # EXPRESSION: (beta * L) + (alpha*b*L) + (alpha * a * dot(u, v))
-            rval = [gemm_no_inplace(L, alpha * a, u, v, alpha * b + beta)]
-            return rval
-        if 1.0 != alpha:
-            # at the very least, move the alpha inside the gemm_no_inplace
-            rval = [beta * L + gemm_no_inplace(G, alpha * a, u, v, alpha * b)]
-            return rval
-
     if recurse_flip:
         return _beta_L_plus_alpha_M(fgraph, alpha, M, beta, L, recurse_flip=False)
     else:
         return False, False
 
 
-def _gemm_canonicalize(r, scale, rval, maxclients):
+def _gemm_canonicalize(fgraph, r, scale, rval, maxclients):
     # Tries to interpret node as a sum of scalars * (vectors or matrices)
     def scaled(thing):
         if scale == 1:
@@ -1253,20 +1221,20 @@ def _gemm_canonicalize(r, scale, rval, maxclients):
         rval.append(scaled(r))
         return rval
 
-    if maxclients and len(getattr(r, "clients", [])) > maxclients:
+    if maxclients and len(fgraph.clients[r]) > maxclients:
         rval.append((scale, r))
         return rval
 
     if r.owner and r.owner.op == tt.sub:
-        _gemm_canonicalize(r.owner.inputs[0], scale, rval, 1)
-        _gemm_canonicalize(r.owner.inputs[1], -scale, rval, 1)
+        _gemm_canonicalize(fgraph, r.owner.inputs[0], scale, rval, 1)
+        _gemm_canonicalize(fgraph, r.owner.inputs[1], -scale, rval, 1)
 
     elif r.owner and r.owner.op == tt.add:
         for i in r.owner.inputs:
-            _gemm_canonicalize(i, scale, rval, 1)
+            _gemm_canonicalize(fgraph, i, scale, rval, 1)
 
     elif r.owner and r.owner.op == tt.neg:
-        _gemm_canonicalize(r.owner.inputs[0], -scale, rval, 1)
+        _gemm_canonicalize(fgraph, r.owner.inputs[0], -scale, rval, 1)
 
     elif r.owner and r.owner.op == tt.mul:
         scalars = []
@@ -1292,20 +1260,24 @@ def _gemm_canonicalize(r, scale, rval, maxclients):
             assert len(vectors) == 0
             m = matrices[0]
             if len(scalars) == 0:
-                _gemm_canonicalize(m, scale, rval, 1)
+                _gemm_canonicalize(fgraph, m, scale, rval, 1)
             elif len(scalars) == 1:
-                _gemm_canonicalize(m, scaled(scalars[0]), rval, 1)
+                _gemm_canonicalize(fgraph, m, scaled(scalars[0]), rval, 1)
             else:
-                _gemm_canonicalize(m, tt.mul(scaled(scalars[0]), *scalars[1:]), rval, 1)
+                _gemm_canonicalize(
+                    fgraph, m, tt.mul(scaled(scalars[0]), *scalars[1:]), rval, 1
+                )
         elif len(vectors) == 1:
             assert len(matrices) == 0
             v = vectors[0]
             if len(scalars) == 0:
-                _gemm_canonicalize(v, scale, rval, 1)
+                _gemm_canonicalize(fgraph, v, scale, rval, 1)
             elif len(scalars) == 1:
-                _gemm_canonicalize(v, scaled(scalars[0]), rval, 1)
+                _gemm_canonicalize(fgraph, v, scaled(scalars[0]), rval, 1)
             else:
-                _gemm_canonicalize(v, tt.mul(scaled(scalars[0]), *scalars[1:]), rval, 1)
+                _gemm_canonicalize(
+                    fgraph, v, tt.mul(scaled(scalars[0]), *scalars[1:]), rval, 1
+                )
         else:  # lets not open this up
             rval.append((scale, r))
     else:
@@ -1426,7 +1398,7 @@ def _gemm_from_node2(fgraph, node):
     """
     lst = []
     t0 = time.time()
-    _gemm_canonicalize(node.outputs[0], 1.0, lst, 0)
+    _gemm_canonicalize(fgraph, node.outputs[0], 1.0, lst, 0)
     t1 = time.time()
 
     # print "GEMM CANON", lst

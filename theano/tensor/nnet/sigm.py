@@ -1051,7 +1051,7 @@ def local_1msigmoid(fgraph, node):
     """
     if node.op == tensor.sub:
         sub_l, sub_r = node.inputs
-        if len(sub_r.clients) > 1:
+        if len(fgraph.clients[sub_r]) > 1:
             return  # graph is using both sigm and 1-sigm
         if sub_r.owner and sub_r.owner.op == sigmoid:
             try:

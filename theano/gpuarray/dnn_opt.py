@@ -639,7 +639,7 @@ def local_log_softmax_dnn(fgraph, node):
         and isinstance(node.op.scalar_op, Log)
         and node.inputs[0].owner
         and isinstance(node.inputs[0].owner.op, GpuDnnSoftmax)
-        and len(node.inputs[0].clients) == 1
+        and len(fgraph.clients[node.inputs[0]]) == 1
     ):
         softmax_node = node.inputs[0].owner
         new_softmax = GpuDnnSoftmax("log", softmax_node.op.mode)

@@ -42,41 +42,37 @@ class MissingInputError(Exception):
 
 class FunctionGraph(utils.object2):
     """
-    A FunctionGraph represents a subgraph bound by a set of input variables and
+    A `FunctionGraph` represents a subgraph bound by a set of input variables and
     a set of output variables, ie a subgraph that specifies a theano function.
     The inputs list should contain all the inputs on which the outputs depend.
-    Variables of type Constant are not counted as inputs.
+    `Variable`s of type `Constant` are not counted as inputs.
 
-    The FunctionGraph supports the replace operation which allows to replace a
-    variable in the subgraph by another, e.g. replace (x + x).out by (2
-    * x).out. This is the basis for optimization in theano.
+    The `FunctionGraph` supports the replace operation which allows to replace
+    a variable in the subgraph by another, e.g. replace ``(x + x).out`` by ``(2
+    * x).out``. This is the basis for optimization in Theano.
 
     This class is also responsible for verifying that a graph is valid
     (ie, all the dtypes and broadcast patterns are compatible with the
-    way the the Variables are used) and for annotating the Variables with
-    a .clients field that specifies which Apply nodes use the variable.
-    The .clients field combined with the .owner field and the Apply nodes'
-    .inputs field allows the graph to be traversed in both directions.
+    way the the `Variable`s are used) and for tracking the `Variable`s with
+    a `clients` field that specifies which `Apply` nodes use the `Variable`.
+    The `clients` field combined with the `Variable.owner` field and the
+    `Apply` nodes' `Apply.inputs` field allows the graph to be traversed in
+    both directions.
 
     It can also be extended with new features using
-    FunctionGraph.attach_feature(<toolbox.Feature instance>).
-    See toolbox.Feature for event types and documentation.
-    Extra features allow the FunctionGraph to verify new properties of
+    `FunctionGraph.attach_feature`(<toolbox.Feature instance>).
+    See `toolbox.Feature` for event types and documentation.
+    Extra features allow the `FunctionGraph` to verify new properties of
     a graph as it is optimized.
-    # TODO: are there other things features can do to the fgraph?
 
-    Historically, the FunctionGraph was called an Env. Keep this in mind
+    Historically, the `FunctionGraph` was called an ``Env``. Keep this in mind
     while reading out-of-date documentation, e-mail support threads, etc.
 
-    The constructor creates a FunctionGraph which operates on the subgraph
+    The constructor creates a `FunctionGraph` which operates on the subgraph
     bound by the inputs and outputs sets.
 
     This class keeps a pointer to the inputs and outputs, and also modifies
     them.
-
-    #TODO: document what variables are[not] set in the FunctionGraph when a
-    feature is added via the constructor. How constructed is the
-    FunctionGraph?
 
     Parameters
     ----------
@@ -146,6 +142,7 @@ class FunctionGraph(utils.object2):
 
         # TODO FIXME: We should *not* be using a list created elsewhere!
         self.outputs = outputs
+        self.clients = {}
 
         for f in features:
             self.attach_feature(f)
@@ -167,7 +164,7 @@ class FunctionGraph(utils.object2):
         for output in outputs:
             self.import_var(output, reason="init")
         for i, output in enumerate(outputs):
-            output.clients.append(("output", i))
+            self.clients[output].append(("output", i))
 
         self.profile = None
         self.update_mapping = update_mapping
@@ -198,8 +195,7 @@ class FunctionGraph(utils.object2):
         if hasattr(var, "fgraph") and var.fgraph is not None and var.fgraph is not self:
             raise Exception(f"{var} is already owned by another fgraph")
         var.fgraph = self
-        var.clients = []
-        # self.execute_callbacks('on_setup_variable', var)
+        self.clients.setdefault(var, [])
 
     def setup_node(self, node):
         """Set up node so it belongs to this `FunctionGraph`.
@@ -228,7 +224,6 @@ class FunctionGraph(utils.object2):
             )
         node.fgraph = self
         node.deps = {}
-        # self.execute_callbacks('on_setup_node', node)
 
     def disown(self):
         """
@@ -245,7 +240,7 @@ class FunctionGraph(utils.object2):
             del apply_node.deps
         for variable in self.variables:
             del variable.fgraph
-            del variable.clients
+        self.clients = {}
         self.apply_nodes = set()
         self.variables = set()
         self.inputs = None
@@ -253,14 +248,9 @@ class FunctionGraph(utils.object2):
         self.profile = None
         self.update_mapping = None
 
-    def clients(self, var):
-        """Return a list of all the `(node, i)` pairs such that `node.inputs[i]` is `var`.
-
-        Told differently, a `list` of `(node, i)` such that each node have
-        `var` as input at index `i`.
-
-        """
-        return var.clients
+    def get_clients(self, var):
+        """Return a list of all the `(node, i)` pairs such that `node.inputs[i]` is `var`."""
+        return self.clients[var]
 
     def add_client(self, var, new_client):
         """Update the clients of `var` with `new_clients`.
@@ -272,7 +262,7 @@ class FunctionGraph(utils.object2):
             A `(node, i)` pair such that `node.inputs[i]` is `var`.
 
         """
-        var.clients.append(new_client)
+        self.clients[var].append(new_client)
 
     def remove_client(self, var, client_to_remove, reason=None):
         """Recursively removes clients of a variable.
@@ -299,15 +289,16 @@ class FunctionGraph(utils.object2):
             var, client_to_remove = removal_stack.pop()
 
             try:
-                var.clients.remove(client_to_remove)
+                var_clients = self.clients[var]
+                var_clients.remove(client_to_remove)
             except ValueError:
                 # In this case, the original `var` could've been removed from
                 # the current `var`'s client list before this call.
                 # There's nothing inherently wrong with that, so we continue as
                 # if it were removed here.
-                pass
+                var_clients = None
 
-            if var.clients:
+            if var_clients:
                 continue
 
             # Now, `var` has no more clients, so check if we need to remove it
@@ -316,14 +307,11 @@ class FunctionGraph(utils.object2):
                 # The `var` is a `Constant` or an input without a client, so we
                 # remove it
                 self.variables.remove(var)
-
-                # This allows us to quickly determine if `var` is still in the
-                # `FunctionGraph`
-                # TODO: It's a poor approach; remove it
-                del var.fgraph
             else:
                 apply_node = var.owner
-                if not any(output.clients for output in apply_node.outputs):
+                if not any(
+                    output for output in apply_node.outputs if self.clients[output]
+                ):
                     # The `Apply` node is not used and is not an output, so we
                     # remove it and its outputs
                     if not hasattr(apply_node.tag, "removed_by"):
@@ -581,7 +569,7 @@ class FunctionGraph(utils.object2):
                         f"test value. Original: {tval_shape}, new: {new_tval_shape}"
                     )
 
-        for node, i in list(var.clients):  # copy the client list for iteration
+        for node, i in list(self.clients[var]):
             assert (node == "output" and self.outputs[i] is var) or (
                 node.inputs[i] is var
             )
@@ -768,15 +756,10 @@ class FunctionGraph(utils.object2):
             if node.fgraph is not self:
                 raise Exception("Node should belong to the FunctionGraph.", node)
             for i, variable in enumerate(node.inputs):
-                if variable.fgraph is not self:
+                clients = self.clients[variable]
+                if (node, i) not in clients:
                     raise Exception(
-                        "Input of node should belong to the FunctionGraph.",
-                        variable,
-                        (node, i),
-                    )
-                if (node, i) not in variable.clients:
-                    raise Exception(
-                        "Inconsistent clients list.", (node, i), variable.clients
+                        f"Inconsistent clients list {(node, i)} in {clients}"
                     )
         variables = set(graph.variables(self.inputs, self.outputs))
         if set(self.variables) != variables:
@@ -798,18 +781,21 @@ class FunctionGraph(utils.object2):
                 raise Exception(
                     "Variable should belong to the FunctionGraph.", variable
                 )
-            for node, i in variable.clients:
+                raise Exception(f"Undeclared input: {variable}")
+            for node, i in self.clients[variable]:
                 if node == "output":
                     if self.outputs[i] is not variable:
                         raise Exception(
-                            "Inconsistent clients list.", variable, self.outputs[i]
+                            f"Inconsistent clients list: {variable}, {self.outputs[i]}"
                         )
                     continue
                 if node not in nodes:
-                    raise Exception("Client not in FunctionGraph.", variable, (node, i))
+                    raise Exception(
+                        f"Client not in FunctionGraph: {variable}, {(node, i)}"
+                    )
                 if node.inputs[i] is not variable:
                     raise Exception(
-                        "Inconsistent clients list.", variable, node.inputs[i]
+                        f"Inconsistent clients list: {variable}, {node.inputs[i]}"
                     )
 
     def __repr__(self):

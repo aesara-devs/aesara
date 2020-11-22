@@ -895,9 +895,9 @@ class VM_Linker(link.LocalLinker):
             # Fred guess: it could happen for node with multiple outputs when
             # we don't use all outputs.
 
-            if k.owner and k.clients:
+            if k.owner and self.fgraph.clients[k]:
                 ls = []
-                for cl in k.clients:
+                for cl in self.fgraph.clients[k]:
                     if cl[0] != "output":
                         ls += cl[0].outputs
                 dependencies[k] += ls

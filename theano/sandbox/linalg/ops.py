@@ -322,7 +322,7 @@ def local_det_chol(fgraph, node):
     """
     if node.op == det:
         (x,) = node.inputs
-        for (cl, xpos) in x.clients:
+        for (cl, xpos) in fgraph.clients[x]:
             if isinstance(cl.op, Cholesky):
                 L = cl.outputs[0]
                 return [tensor.prod(extract_diag(L) ** 2)]

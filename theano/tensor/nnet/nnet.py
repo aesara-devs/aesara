@@ -1647,7 +1647,7 @@ def local_argmax_pushdown(fgraph, node):
     if (
         isinstance(node.op, MaxAndArgmax)
         and node.inputs[0].owner
-        and len(node.outputs[0].clients) > 0
+        and len(fgraph.clients[node.outputs[0]]) > 0
         and node.inputs[0].owner.op
         in (
             softmax_op,
@@ -1673,7 +1673,7 @@ def local_argmax_pushdown(fgraph, node):
     if (
         isinstance(node.op, MaxAndArgmax)
         and node.inputs[0].owner
-        and len(node.outputs[0].clients) == 0
+        and len(fgraph.clients[node.outputs[0]]) == 0
     ):
         x_max, x_argmax = node.outputs
         x = node.inputs[0]
@@ -2021,10 +2021,10 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
 def graph_merge_softmax_with_crossentropy_softmax(fgraph, node):
     if node.op == softmax_with_bias:
         x, b = node.inputs
-        for x_client in x.clients:
+        for x_client in fgraph.clients[x]:
             if x_client[0].op == crossentropy_softmax_argmax_1hot_with_bias:
                 big_client = x_client[0]
-                if big_client in [b_client[0] for b_client in b.clients]:
+                if big_client in [b_client[0] for b_client in fgraph.clients[b]]:
                     xx, bb, ll = big_client.inputs
                     mergeable_client = big_client.op(x, b, ll)
                     copy_stack_trace(node.outputs[0], mergeable_client[1])

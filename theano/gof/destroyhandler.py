@@ -410,7 +410,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
 
             def recursive_destroys_finder(protected_var):
                 # protected_var is the idx'th input of app.
-                for (app, idx) in protected_var.clients:
+                for (app, idx) in fgraph.clients[protected_var]:
                     if app == "output":
                         continue
                     destroy_maps = getattr(app.op, "destroy_map", {}).values()
@@ -481,7 +481,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
                 self.fail_validate[app] = InconsistencyError(
                     f"Attempting to destroy indestructible variables: {inp}"
                 )
-            elif len(inp.clients) > 1:
+            elif len(fgraph.clients[inp]) > 1:
                 self.fail_validate[app] = theano.gof.InconsistencyError(
                     "Destroyed variable has more than one client. " + str(reason)
                 )

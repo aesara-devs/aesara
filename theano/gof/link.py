@@ -161,7 +161,7 @@ def raise_with_op(fgraph, node, thunk=None, exc_info=None, storage_map=None):
             shapes = "The thunk don't have an inputs attributes."
             strides = "So we can't access the strides of inputs values"
             scalar_values = "And can't print its inputs scalar value"
-        clients = [[c[0] for c in var.clients] for var in node.outputs]
+        clients = [[c[0] for c in fgraph.clients[var]] for var in node.outputs]
         detailed_err_msg += (
             f"Inputs shapes: {shapes}"
             + f"\nInputs strides: {strides}"

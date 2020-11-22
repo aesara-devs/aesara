@@ -227,7 +227,7 @@ class InputToGpuOptimizer(GlobalOptimizer):
             # If all clients are outputs or transfers don't do anything.
             if all(
                 cl[0] == "output" or isinstance(cl[0].op, GpuFromHost)
-                for cl in input.clients
+                for cl in fgraph.clients[input]
             ):
                 continue
 
@@ -341,7 +341,7 @@ class GraphToGPU(GlobalOptimizer):
                 # We approximate this by supposing that if we have an
                 # optimization for one of the clients op, then we will
                 # move the client to the GPU.
-                for c, _ in node.outputs[0].clients:
+                for c, _ in fgraph.clients[node.outputs[0]]:
                     if c != "output" and (
                         self.local_optimizers_map.get(c.op, [])
                         + self.local_optimizers_map.get(type(c.op), [])
@@ -622,7 +622,7 @@ def local_gpua_alloc2(fgraph, node):
             i.owner and i.owner.op in [host_from_gpu, tensor.alloc]
             for i in c.inputs[1:]
         )
-        for c, idx in node.outputs[0].clients
+        for c, idx in fgraph.clients[node.outputs[0]]
     ):
         return [GpuAlloc(None)(*node.inputs).transfer("cpu")]
 
@@ -942,7 +942,7 @@ def local_gpu_pdbbreakpoint_op(fgraph, node):
 
             input_is_from_gpu = inp.owner and isinstance(inp.owner.op, HostFromGpu)
             output_goes_to_gpu = False
-            for c in out.clients:
+            for c in fgraph.clients[out]:
                 if c == "output":
                     continue
                 if isinstance(c[0].op, GpuFromHost):
@@ -1051,7 +1051,7 @@ def local_gpua_subtensor(fgraph, op, context_name, inputs, outputs):
             # And it is a shared var or an input of the graph.
             not gpu_x.owner.inputs[0].owner
         ):
-            if len(x.clients) == 1:
+            if len(fgraph.clients[x]) == 1:
                 if any(
                     [
                         n == "output"
@@ -1061,7 +1061,7 @@ def local_gpua_subtensor(fgraph, op, context_name, inputs, outputs):
                                 for v in n.inputs + n.outputs
                             ]
                         )
-                        for n, _ in outputs[0].clients
+                        for n, _ in fgraph.clients[outputs[0]]
                     ]
                 ):
                     return
@@ -1085,8 +1085,8 @@ def local_gpua_subtensor_graph(fgraph, op, context_name, inputs, outputs):
         # And it is a shared var or an input of the graph.
         # and is used by only 1 node.
         # x is in the new graph, so we can't tests its number of clients.
-        if not cpu_x.owner and len(cpu_x.clients) == 1:
-            c = outputs[0].clients
+        if not cpu_x.owner and len(fgraph.clients[cpu_x]) == 1:
+            c = fgraph.clients[outputs[0]]
             # If the subtensor have only 1 client, do it on the CPU.
             # We let the other optimization to take care to move the
             # next node or not.
@@ -2533,7 +2533,7 @@ def local_assert_no_cpu_op(fgraph, node):
         [var.owner and isinstance(var.owner.op, HostFromGpu) for var in node.inputs]
     ) and any(
         [
-            [c for c in var.clients if isinstance(c[0].op, GpuFromHost)]
+            [c for c in fgraph.clients[var] if isinstance(c[0].op, GpuFromHost)]
             for var in node.outputs
         ]
     ):

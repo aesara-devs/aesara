@@ -121,13 +121,12 @@ class PyDotFormatter:
         self.__nodes = {}
 
         profile = None
+
         if isinstance(fct, Function):
             profile = getattr(fct, "profile", None)
-            outputs = fct.maker.fgraph.outputs
-            topo = fct.maker.fgraph.toposort()
+            fgraph = fct.maker.fgraph
         elif isinstance(fct, gof.FunctionGraph):
-            outputs = fct.outputs
-            topo = fct.toposort()
+            fgraph = fct
         else:
             if isinstance(fct, gof.Variable):
                 fct = [fct]
@@ -135,9 +134,10 @@ class PyDotFormatter:
                 fct = fct.outputs
             assert isinstance(fct, (list, tuple))
             assert all(isinstance(v, gof.Variable) for v in fct)
-            fct = gof.FunctionGraph(inputs=gof.graph.inputs(fct), outputs=fct)
-            outputs = fct.outputs
-            topo = fct.toposort()
+            fgraph = gof.FunctionGraph(inputs=gof.graph.inputs(fct), outputs=fct)
+
+        outputs = fgraph.outputs
+        topo = fgraph.toposort()
         outputs = list(outputs)
 
         # Loop over apply nodes
@@ -204,7 +204,7 @@ class PyDotFormatter:
             for id, var in enumerate(node.outputs):
                 var_id = self.__node_id(var)
 
-                if var in outputs or len(var.clients) == 0:
+                if var in outputs or len(fgraph.clients[var]) == 0:
                     vparams = {
                         "name": var_id,
                         "label": var_label(var),
@@ -213,7 +213,7 @@ class PyDotFormatter:
                         "tag": var_tag(var),
                         "style": "filled",
                     }
-                    if len(var.clients) == 0:
+                    if len(fgraph.clients[var]) == 0:
                         vparams["fillcolor"] = self.node_colors["unused"]
                     else:
                         vparams["fillcolor"] = self.node_colors["output"]

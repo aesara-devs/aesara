@@ -5,6 +5,7 @@ Defines Linkers that deal with C implementations.
 import logging
 import os
 import sys
+from collections import defaultdict
 from copy import copy
 from io import StringIO
 
@@ -356,7 +357,7 @@ def get_c_declare(fgraph, r, name, sub):
     if any(
         [
             getattr(c.op, "check_input", config.check_input)
-            for (c, _) in r.clients
+            for (c, _) in fgraph.clients[r]
             if not isinstance(c, str)
         ]
     ) or (r.owner and getattr(r.owner.op, "check_input", config.check_input)):
@@ -399,7 +400,7 @@ def get_c_extract(fgraph, r, name, sub):
     if any(
         [
             getattr(c.op, "check_input", config.check_input)
-            for (c, _) in r.clients
+            for (c, _) in fgraph.clients[r]
             if not isinstance(c, str)
         ]
     ):
@@ -409,7 +410,7 @@ def get_c_extract(fgraph, r, name, sub):
         if any(
             [
                 getattr(c.op, "check_broadcast", True)
-                for (c, _) in r.clients
+                for (c, _) in fgraph.clients[r]
                 if not isinstance(c, str)
             ]
         ):
@@ -624,7 +625,7 @@ class CLinker(link.Linker):
         # list(fgraph.variables)
         # We need to include the unused inputs in our variables,
         # otherwise we can't pass them to the module.
-        self.variables = [var for var in self.inputs if not len(var.clients)]
+        self.variables = [var for var in self.inputs if not len(fgraph.clients[var])]
         self.variables += graph.variables(self.inputs, self.outputs)
 
         # This adds a hidden input which is the params for each node
@@ -638,10 +639,10 @@ class CLinker(link.Linker):
                 if params in self.node_params:
                     var = self.node_params[params]
                     assert var.type == node.params_type
-                    var.clients.append((node, "params"))
+                    fgraph.clients[var].append((node, "params"))
                 else:
                     var = graph.Constant(node.params_type, params)
-                    var.clients = [(node, "params")]
+                    fgraph.clients[var] = [(node, "params")]
                     self.node_params[params] = var
                     self.variables.append(var)
 
@@ -1380,6 +1381,7 @@ class CLinker(link.Linker):
             def __init__(self, inputs, outputs):
                 self.inputs = inputs
                 self.outputs = outputs
+                self.clients = defaultdict(list)
 
             def toposort(self):
                 # Calling io_toposort() here is fine because the results will
@@ -1512,7 +1514,9 @@ class CLinker(link.Linker):
                 if i.owner is None:
                     assert all(all(out is not None for out in o.outputs) for o in order)
                     assert all(input.owner is None for input in fgraph.inputs)
-                    raise Exception("what is this?", (i, type(i), i.clients, fgraph))
+                    raise Exception(
+                        f"Owner of {i} (clients {fgraph.clients.get(i)}) is None"
+                    )
 
                 if i in fgraph.outputs:
                     isig = (
@@ -1570,7 +1574,7 @@ class CLinker(link.Linker):
         for ipos, var in [
             (i, var)
             for i, var in enumerate(fgraph.inputs)
-            if not len(getattr(var, "clients", []))
+            if not len(fgraph.clients[var])
         ]:
             sig.append((var.type, in_sig(var, -1, ipos)))
 

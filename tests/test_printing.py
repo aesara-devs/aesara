@@ -247,32 +247,6 @@ def test_debugprint():
 
     assert s == reference
 
-    # test clients
-    s = StringIO()
-    # We must force the mode as otherwise it can change the clients order
-    f = theano.function([A, B, D], [A + B, A + B - D], mode="FAST_COMPILE")
-    debugprint(f, file=s, print_clients=True)
-    s = s.getvalue()
-    # The additional white space are needed!
-    reference = (
-        "\n".join(
-            [
-                "Elemwise{add,no_inplace} [id A] ''   0 clients:[('output', ''), ('[id C]', 1)]",
-                " |A [id D]",
-                " |B [id E]",
-                "Elemwise{sub,no_inplace} [id C] ''   1",
-                " |Elemwise{add,no_inplace} [id A] ''   0 clients:[('output', ''), ('[id C]', 1)]",
-                " |D [id F]",
-            ]
-        )
-        + "\n"
-    )
-    if s != reference:
-        print("--" + s + "--")
-        print("--" + reference + "--")
-
-    assert s == reference
-
 
 def test_scan_debugprint1():
     k = tensor.iscalar("k")

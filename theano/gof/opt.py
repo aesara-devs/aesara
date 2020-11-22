@@ -521,7 +521,7 @@ class MergeFeature(Feature):
         if not node.inputs:
             self.noinput_nodes.discard(node)
         for c in node.inputs:
-            if isinstance(c, graph.Constant) and (len(c.clients) <= 1):
+            if isinstance(c, graph.Constant) and (len(fgraph.clients[c]) <= 1):
                 # This was the last node using this constant
                 sig = self.const_sig[c]
                 self.const_sig.discard(c)
@@ -570,10 +570,12 @@ class MergeFeature(Feature):
             # Always pick the smallest clints list between inputs 0
             # and -1 speed up optimization.
 
-            if len(node.inputs[0].clients) < len(node.inputs[-1].clients):
-                clients = node.inputs[0].clients
+            a_clients = fgraph.clients[node.inputs[0]]
+            b_clients = fgraph.clients[node.inputs[-1]]
+            if len(a_clients) < len(b_clients):
+                clients = a_clients
             else:
-                clients = node.inputs[-1].clients
+                clients = b_clients
             assert len(clients) > 0
 
             merge_candidates = [c for c, i in clients if c in self.nodes_seen]
@@ -584,16 +586,14 @@ class MergeFeature(Feature):
             for i in []:  # node.inputs:
                 if i.owner and isinstance(i.owner.op, theano.tensor.opt.Assert):
                     node_has_assert = True
-                    assert_clients = [
-                        c
-                        for (c, _) in i.owner.inputs[0].clients
-                        if c in self.nodes_seen
-                    ]
+                    i_clients = fgraph.clients[i.owner.inputs[0]]
+                    assert_clients = [c for (c, _) in i_clients if c in self.nodes_seen]
 
                     for idx in range(len(assert_clients)):
                         client = assert_clients[idx]
                         if isinstance(i.owner.op, theano.tensor.opt.Assert):
-                            for c in client.outputs[0].clients:
+                            o_clients = fgraph.clients[client.outputs[0]]
+                            for c in o_clients:
                                 if c[0] in self.nodes_seen:
                                     assert_clients.append(c[0])
 
@@ -823,9 +823,11 @@ class MergeOptimizer(GlobalOptimizer):
                         continue
 
                     if hasattr(fgraph, "destroy_handler"):
-                        # If both nodes have clients that destroy
-                        # them, we can't merge them.
-                        clients = pairs[0][0].clients + pairs[0][1].clients
+                        # If both nodes have clients that destroy them, we
+                        # can't merge them.
+                        clients = (
+                            fgraph.clients[pairs[0][0]] + fgraph.clients[pairs[0][1]]
+                        )
                         if (
                             sum(
                                 [
@@ -1707,7 +1709,7 @@ class PatternSub(LocalOptimizer):
                 if expr.owner is None:
                     return False
                 if not (expr.owner.op == pattern[0]) or (
-                    not allow_multiple_clients and len(expr.clients) > 1
+                    not allow_multiple_clients and len(fgraph.clients[expr]) > 1
                 ):
                     return retry_with_equiv()
                 if len(pattern) - 1 != len(expr.owner.inputs):
@@ -2031,7 +2033,7 @@ class NavigatorOptimizer(GlobalOptimizer):
         # None in the replacement mean that this variable isn't used
         # and we want to remove it
         for r, rnew in zip(old_vars, replacements):
-            if rnew is None and len(r.clients) > 0:
+            if rnew is None and len(fgraph.clients[r]) > 0:
                 raise ValueError(
                     "A local optimizer tried to remove a Variable that is used"
                 )

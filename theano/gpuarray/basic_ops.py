@@ -995,7 +995,7 @@ class GpuAlloc(HideC, Alloc):
     def do_constant_folding(self, fgraph, node):
         from . import blas, subtensor
 
-        for client in node.outputs[0].clients:
+        for client in fgraph.clients[node.outputs[0]]:
             if client[0] == "output":
                 # If the output is a constant, it will have to be deepcopied
                 # each time the function is called.  So we do not fold.

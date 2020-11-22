@@ -52,12 +52,12 @@ def local_max_and_argmax(fgraph, node):
     """
     if isinstance(node.op, tt.MaxAndArgmax):
         axis = node.op.get_params(node)
-        if len(node.outputs[1].clients) == 0:
+        if len(fgraph.clients[node.outputs[1]]) == 0:
             new = tt.Max(axis)(node.inputs[0])
             copy_stack_trace(node.outputs[0], new)
             return [new, None]
 
-        if len(node.outputs[0].clients) == 0:
+        if len(fgraph.clients[node.outputs[0]]) == 0:
             new = tt.Argmax(axis)(node.inputs[0])
             copy_stack_trace(node.outputs[0], new)
             return [None, new]
