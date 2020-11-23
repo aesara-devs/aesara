@@ -3,6 +3,7 @@ import linecache
 import sys
 import traceback
 from io import StringIO
+from warnings import warn
 
 from theano import config
 
@@ -397,7 +398,10 @@ def deprecated(filename, msg=""):
 
         def g(*args, **kwargs):
             if printme[0]:
-                print(f"WARNING: {filename}.{f.__name__} deprecated. {msg}")
+                warn(
+                    f"{filename}.{f.__name__} deprecated. {msg}",
+                    category=DeprecationWarning,
+                )
                 printme[0] = False
             return f(*args, **kwargs)
 

@@ -377,9 +377,8 @@ def scan(
     for i in range(n_outs):
         if outs_info[i] is not None:
             if isinstance(outs_info[i], dict):
-                # DEPRECATED :
                 if outs_info[i].get("return_steps", None) is not None:
-                    raise ValueError(
+                    raise DeprecationWarning(
                         "Using `return_steps` has been deprecated. "
                         "Simply select the entries you need using a "
                         "subtensor. Scan will optimize memory "
@@ -396,12 +395,9 @@ def scan(
             ):
                 # ^ no initial state but taps provided
                 raise ValueError(
-                    (
-                        "If you are using slices of an output "
-                        "you need to provide a initial state "
-                        "for it"
-                    ),
-                    outs_info[i],
+                    "If you are using slices of an output "
+                    "you need to provide a initial state "
+                    f"for it: {outs_info[i]}"
                 )
             elif (
                 outs_info[i].get("initial", None) is not None

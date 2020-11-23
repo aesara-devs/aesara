@@ -202,7 +202,8 @@ def clone(
     """
     if copy_inputs is not DEPRECATED_ARG:
         warnings.warn(
-            "In `clone()` function, the argument `copy_inputs` has been deprecated and renamed into `share_inputs`"
+            "In `clone()` function, the argument `copy_inputs` has been deprecated and renamed into `share_inputs`",
+            category=DeprecationWarning,
         )
         assert share_inputs  # since we used `copy_inputs` we should have default value for `share_inputs`
         share_inputs = copy_inputs

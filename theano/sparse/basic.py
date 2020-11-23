@@ -3,13 +3,11 @@ Classes for handling sparse matrices.
 
 To read about different sparse formats, see
 http://www-users.cs.umn.edu/~saad/software/SPARSKIT/paper.ps
+
+TODO: Automatic methods for determining best sparse format?
+
 """
-
-
-# TODO
-# Automatic methods for determining best sparse format?
-
-import sys
+from warnings import warn
 
 import numpy as np
 import scipy.sparse
@@ -907,9 +905,8 @@ class DenseFromSparse(gof.op.Op):
         (x,) = inputs
         (out,) = outputs
         if _is_dense(x):
-            print(
-                ("WARNING: You just called DenseFromSparse on a dense matrix."),
-                file=sys.stderr,
+            warn(
+                "You just called DenseFromSparse on a dense matrix.",
             )
             out[0] = x
         else:
@@ -2398,10 +2395,8 @@ class MulSD(gof.op.Op):
                         z_data[j_idx] *= y[i, j]
                 out[0] = z
             else:
-                print(
-                    ("WARNING: crappy implementation of MulSD"),
-                    x.format,
-                    file=sys.stderr,
+                warn(
+                    "This implementation of MulSD is deficient: {x.format}",
                 )
                 out[0] = type(x)(x.toarray() * y)
 

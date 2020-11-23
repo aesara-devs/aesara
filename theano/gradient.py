@@ -2157,6 +2157,7 @@ def consider_constant(x):
             "consider_constant() is deprecated, use zero_grad() or "
             "disconnected_grad() instead."
         ),
+        category=DeprecationWarning,
         stacklevel=3,
     )
 

@@ -101,14 +101,6 @@ list_opt_slice = [
 ]
 
 
-def warning(*msg):
-    _logger.warning("WARNING theano.scan: " + " ".join(msg))
-
-
-def info(*msg):
-    _logger.info("INFO theano.scan: " + " ".join(msg))
-
-
 @gof.local_optimizer([Scan])
 def remove_constants_and_unused_inputs_scan(fgraph, node):
     """

@@ -13,6 +13,7 @@ import sys
 from io import StringIO
 from itertools import chain
 from itertools import product as itertools_product
+from warnings import warn
 
 import numpy as np
 
@@ -934,7 +935,7 @@ def _check_strides_match(a, b, warn_err, op):
         if warn_err == 2:
             raise e
         else:
-            print("WARNING:", e, file=sys.stderr)
+            warn(str(e))
 
 
 def _lessbroken_deepcopy(a):
@@ -2459,7 +2460,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
                 l0 = fgraph0.equivalence_tracker.event_list
                 if li != l0:
                     infolog = StringIO()
-                    print("WARNING: Optimization process is unstable...", file=infolog)
+                    print("Optimization process is unstable...", file=infolog)
                     print(
                         "  (HINT: Ops that the nodes point to must compare " "equal)",
                         file=infolog,

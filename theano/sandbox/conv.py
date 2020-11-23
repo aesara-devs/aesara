@@ -1,8 +1,8 @@
-import sys
+from warnings import warn
 
 
-print(
-    "DEPRECATION: theano.sandbox.conv no longer provides conv. "
+warn(
+    "theano.sandbox.conv no longer provides conv. "
     "They have been moved to theano.tensor.nnet.conv",
-    file=sys.stderr,
+    category=DeprecationWarning,
 )

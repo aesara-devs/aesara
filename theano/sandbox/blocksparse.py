@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 warnings.warn(
-    "DEPRECATION: theano.sandbox.blocksparse does not exist anymore,"
+    "theano.sandbox.blocksparse does not exist anymore,"
     "it has been moved to theano.tensor.nnet.blocksparse.",
     category=DeprecationWarning,
 )

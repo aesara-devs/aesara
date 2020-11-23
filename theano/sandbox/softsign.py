@@ -1,9 +1,8 @@
 from theano.tensor.nnet.nnet import softsign  # noqa
-import sys
+from warnings import warn
 
 
-print(
-    "DEPRECATION WARNING: softsign was moved from theano.sandbox.softsign to "
-    "theano.tensor.nnet.nnet ",
-    file=sys.stderr,
+warn(
+    "softsign was moved from theano.sandbox.softsign to theano.tensor.nnet.nnet ",
+    category=DeprecationWarning,
 )
