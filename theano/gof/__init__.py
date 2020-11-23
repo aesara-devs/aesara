@@ -48,7 +48,7 @@ from theano.gof.toolbox import (
     NodeFinder,
     NoOutputFromInplace,
     PrintListener,
-    ReplacementDidntRemovedError,
+    ReplacementDidNotRemoveError,
     ReplaceValidate,
     Validator,
 )
