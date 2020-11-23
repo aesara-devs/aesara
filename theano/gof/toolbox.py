@@ -22,7 +22,7 @@ class AlreadyThere(Exception):
     """
 
 
-class ReplacementDidntRemovedError(Exception):
+class ReplacementDidNotRemoveError(Exception):
     """
     This exception should be thrown by replace_all_validate_remove
     when an optimization wanted to remove a Variable or a Node from
@@ -621,7 +621,7 @@ class ReplaceValidate(History, Validator):
                         file=out,
                     )
                     print(reason, replacements, file=out)
-                raise ReplacementDidntRemovedError()
+                raise ReplacementDidNotRemoveError()
 
     def __getstate__(self):
         d = self.__dict__.copy()

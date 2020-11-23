@@ -150,7 +150,7 @@ from theano.gof import (
     InconsistencyError,
     Op,
     Optimizer,
-    ReplacementDidntRemovedError,
+    ReplacementDidNotRemoveError,
     SequenceDB,
     local_optimizer,
     view_roots,
@@ -1535,7 +1535,7 @@ class GemmOptimizer(Optimizer):
                         # TODO: retry other applications of gemm (see comment
                         # in _gemm_from_node)
                         nb_inconsistency_replace += 1
-                    except ReplacementDidntRemovedError:
+                    except ReplacementDidNotRemoveError:
                         nb_replacement_didn_t_remove += 1
                         self.warned = True
         fgraph.remove_feature(u)
