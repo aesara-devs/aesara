@@ -2187,7 +2187,7 @@ class TopoOptimizer(NavigatorOptimizer):
         if order not in ["out_to_in", "in_to_out"]:
             raise ValueError("order must be 'out_to_in' or 'in_to_out'")
         self.order = order
-        NavigatorOptimizer.__init__(self, local_opt, ignore_newtrees, failure_callback)
+        super().__init__(local_opt, ignore_newtrees, failure_callback)
 
     def apply(self, fgraph, start_from=None):
         if start_from is None:
@@ -2343,7 +2343,7 @@ class OpKeyOptimizer(NavigatorOptimizer):
             raise TypeError(
                 "LocalOptimizer for OpKeyOptimizer must have " "an 'op_key' method."
             )
-        NavigatorOptimizer.__init__(self, local_opt, ignore_newtrees, failure_callback)
+        super().__init__(local_opt, ignore_newtrees, failure_callback)
 
     def apply(self, fgraph):
         op = self.local_opt.op_key()
