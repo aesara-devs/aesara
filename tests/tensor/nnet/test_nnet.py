@@ -327,7 +327,7 @@ class TestSoftmaxGrad(utt.InferShapeTester):
         )
 
 
-class TestCrossentropySoftmax1Hot:
+class TestCrossEntropySoftmax1Hot:
     def setup_method(self):
         utt.seed_rng()
 
@@ -363,7 +363,7 @@ class TestCrossentropySoftmax1Hot:
         utt.verify_grad(f, [np.random.rand(4), np.random.rand(4)])
 
 
-class TestCrossentropySoftmax1HotWithBiasDx(utt.InferShapeTester):
+class TestCrossEntropySoftmax1HotWithBiasDx(utt.InferShapeTester):
     def test_basic(self):
         def ff(class_dtype):
             def f(sm):
@@ -425,7 +425,7 @@ class TestCrossentropySoftmax1HotWithBiasDx(utt.InferShapeTester):
             f(advec_val, admat_val, alvec_val)
 
 
-class TestCrossentropySoftmaxArgmax1HotWithBias(utt.InferShapeTester):
+class TestCrossEntropySoftmaxArgmax1HotWithBias(utt.InferShapeTester):
     def setup_method(self):
         self.op = crossentropy_softmax_argmax_1hot_with_bias
         super().setup_method()
@@ -532,7 +532,7 @@ class TestPrepend(utt.InferShapeTester):
         )
 
 
-class TestCrossentropyCategorical1HotGrad(utt.InferShapeTester):
+class TestCrossEntropyCategorical1HotGrad(utt.InferShapeTester):
     def test_infer_shape(self):
         advec = vector()
         admat = matrix()
@@ -549,7 +549,7 @@ class TestCrossentropyCategorical1HotGrad(utt.InferShapeTester):
         )
 
 
-class TestCrossentropyCategorical1Hot(utt.InferShapeTester):
+class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
     def test_grad(self):
         x = tt.matrix("x")
         one_of_n = tt.lvector("one_of_n")
