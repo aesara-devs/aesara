@@ -54,7 +54,7 @@ class GpuEye(CGpuKernelBase, Op):
 
         return Apply(self, [n, m], [otype()])
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         out_shape = [node.inputs[0], node.inputs[1]]
         return [out_shape]
 

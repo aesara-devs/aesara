@@ -4,7 +4,7 @@ from theano.typed_list.basic import Append, Extend, Insert, Remove, Reverse
 
 
 @gof.local_optimizer([Append, Extend, Insert, Reverse, Remove], inplace=True)
-def typed_list_inplace_opt(node):
+def typed_list_inplace_opt(fgraph, node):
     if (
         isinstance(node.op, (Append, Extend, Insert, Reverse, Remove))
         and not node.op.inplace

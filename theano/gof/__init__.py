@@ -24,6 +24,7 @@ from theano.gof.op import (
 from theano.gof.opt import (
     CheckStackTraceOptimization,
     EquilibriumOptimizer,
+    GlobalOptimizer,
     LocalOptGroup,
     LocalOptimizer,
     MergeOptimizer,
@@ -31,7 +32,6 @@ from theano.gof.opt import (
     OpKeyOptimizer,
     OpRemove,
     OpSub,
-    Optimizer,
     PatternSub,
     SeqOptimizer,
     TopoOptimizer,

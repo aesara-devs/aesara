@@ -5,8 +5,11 @@ from theano.gof.optdb import DB, opt
 
 class TestDB:
     def test_name_clashes(self):
-        class Opt(opt.Optimizer):  # inheritance buys __hash__
+        class Opt(opt.GlobalOptimizer):  # inheritance buys __hash__
             name = "blah"
+
+            def apply(self, fgraph):
+                pass
 
         db = DB()
         db.register("a", Opt())

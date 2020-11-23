@@ -255,7 +255,7 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
                                 msg = f"process '{read_owner.split('_')[0]}'"
                             _logger.warning(
                                 f"Overriding existing lock by {msg} "
-                                "(I am process '{my_pid}')",
+                                f"(I am process '{my_pid}')",
                             )
                         get_lock.unlocker.unlock(force=True)
                         continue
@@ -270,7 +270,7 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
                         msg = f"process '{read_owner.split('_')[0]}'"
                     _logger.info(
                         f"Waiting for existing lock by {msg} (I am "
-                        "process '{my_pid}')",
+                        f"process '{my_pid}')",
                     )
                     _logger.info(f"To manually release the lock, delete {tmp_dir}")
                     if verbosity <= 1:

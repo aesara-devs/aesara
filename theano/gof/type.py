@@ -626,7 +626,7 @@ class _make_cdata(Op):
         assert isinstance(rtype, CDataType)
         self.rtype = rtype
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         return False
 
     def make_node(self, val):

@@ -329,7 +329,7 @@ class GPUA_mrg_uniform(GpuKernelBase, mrg_uniform_base):
 
 
 @register_opt2([mrg_uniform], "fast_compile")
-def local_gpua_mrg_graph(op, context_name, inputs, outputs):
+def local_gpua_mrg_graph(fgraph, op, context_name, inputs, outputs):
     if (
         type(op) == mrg_uniform
         and isinstance(inputs[0].type, GpuArrayType)
@@ -343,6 +343,8 @@ def local_gpua_mrg_graph(op, context_name, inputs, outputs):
 
 @register_opt("fast_compile")
 @local_optimizer([mrg_uniform])
-def local_gpua_mrg(node):
+def local_gpua_mrg(fgraph, node):
     context_name = infer_context_name(*node.inputs)
-    return local_gpua_mrg_graph(node.op, context_name, node.inputs, node.outputs)
+    return local_gpua_mrg_graph(
+        fgraph, node.op, context_name, node.inputs, node.outputs
+    )

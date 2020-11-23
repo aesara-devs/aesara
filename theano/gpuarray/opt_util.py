@@ -68,7 +68,7 @@ def grab_cpu_scalar(v, nd):
             return v.dimshuffle(())
 
 
-def find_node(v, cls, ignore_clients=False):
+def find_node(fgraph, v, cls, ignore_clients=False):
     """
     Find the node that has an op of of type `cls` in `v`.
 
@@ -87,16 +87,16 @@ def find_node(v, cls, ignore_clients=False):
         Whether to ignore multiple clients or not.
 
     """
-    if v.owner is not None and (ignore_clients or len(v.clients) == 1):
+    if v.owner is not None and (ignore_clients or len(fgraph.clients[v]) == 1):
         if isinstance(v.owner.op, cls):
             return v.owner
         elif (
             isinstance(v.owner.op, GpuFromHost)
             and v.owner.inputs[0].owner is not None
-            and (ignore_clients or len(v.owner.inputs[0].clients) == 1)
+            and (ignore_clients or len(fgraph.clients[v.owner.inputs[0]]) == 1)
             and isinstance(v.owner.inputs[0].owner.op, HostFromGpu)
         ):
-            return find_node(v.owner.inputs[0].owner.inputs[0], cls)
+            return find_node(fgraph, v.owner.inputs[0].owner.inputs[0], cls)
         else:
             return None
 
@@ -179,15 +179,15 @@ def alpha_merge(cls, alpha_in, beta_in):
     def wrapper(maker):
         @local_optimizer([GpuElemwise])
         @wraps(maker)
-        def opt(node):
+        def opt(fgraph, node):
             if (
                 isinstance(node.op, GpuElemwise)
                 and node.op.scalar_op == scal.mul
                 and node.nin == 2
             ):
-                targ = find_node(node.inputs[0], cls)
+                targ = find_node(fgraph, node.inputs[0], cls)
                 if targ is None:
-                    targ = find_node(node.inputs[1], cls)
+                    targ = find_node(fgraph, node.inputs[1], cls)
                     if targ is None:
                         return
                     lr = grab_cpu_scalar(node.inputs[0], nd=targ.outputs[0].ndim)
@@ -279,16 +279,16 @@ def output_merge(cls, alpha_in, beta_in, out_in):
     def wrapper(maker):
         @local_optimizer([GpuElemwise])
         @wraps(maker)
-        def opt(node):
+        def opt(fgraph, node):
             if (
                 isinstance(node.op, GpuElemwise)
                 and node.op.scalar_op == scal.add
                 and node.nin == 2
             ):
-                targ = find_node(node.inputs[0], cls)
+                targ = find_node(fgraph, node.inputs[0], cls)
                 W = node.inputs[1]
                 if targ is None:
-                    targ = find_node(node.inputs[1], cls)
+                    targ = find_node(fgraph, node.inputs[1], cls)
                     W = node.inputs[0]
                 if targ is None:
                     return None
@@ -354,7 +354,7 @@ def inplace_allocempty(op, idx):
     def wrapper(maker):
         @local_optimizer([op], inplace=True)
         @wraps(maker)
-        def opt(node):
+        def opt(fgraph, node):
             if type(node.op) != op or node.op.inplace:
                 return
             inputs = list(node.inputs)
@@ -362,7 +362,7 @@ def inplace_allocempty(op, idx):
             if (
                 alloc.owner
                 and isinstance(alloc.owner.op, GpuAllocEmpty)
-                and len(alloc.clients) > 1
+                and len(fgraph.clients[alloc]) > 1
             ):
                 alloc_op = GpuAllocEmpty(
                     alloc.owner.op.dtype, alloc.owner.op.context_name
@@ -456,7 +456,7 @@ def op_lifter(OP, cuda_only=False):
     """
 
     def f(maker):
-        def local_opt(node):
+        def local_opt(fgraph, node):
             if type(node.op) in OP:
                 # Either one of our inputs is on the gpu or
                 # all of our clients are on the gpu
@@ -472,7 +472,7 @@ def op_lifter(OP, cuda_only=False):
 
                 if not replace:
                     # We replace if *all* clients are on the GPU
-                    clients = [c for o in node.outputs for c in o.clients]
+                    clients = [c for o in node.outputs for c in fgraph.clients[o]]
                     replace = len(clients) != 0
                     for c, idx in clients:
                         if c == "output" or not isinstance(c.op, GpuFromHost):

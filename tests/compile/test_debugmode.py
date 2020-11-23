@@ -219,7 +219,7 @@ def test_badthunkoutput():
 
 def test_badoptimization():
     @gof.local_optimizer([theano.tensor.add])
-    def insert_broken_add(node):
+    def insert_broken_add(fgraph, node):
         if node.op == theano.tensor.add:
             return [off_by_half(*node.inputs)]
         return False
@@ -245,7 +245,7 @@ def test_badoptimization_opt_err():
     # This variant of test_badoptimization() replace the working code
     # with a new apply node that will raise an error.
     @gof.local_optimizer([theano.tensor.add])
-    def insert_bigger_b_add(node):
+    def insert_bigger_b_add(fgraph, node):
         if node.op == theano.tensor.add:
             inputs = list(node.inputs)
             if inputs[-1].owner is None:
@@ -254,7 +254,7 @@ def test_badoptimization_opt_err():
         return False
 
     @gof.local_optimizer([theano.tensor.add])
-    def insert_bad_dtype(node):
+    def insert_bad_dtype(fgraph, node):
         if node.op == theano.tensor.add:
             inputs = list(node.inputs)
             if inputs[-1].owner is None:
@@ -310,7 +310,7 @@ def test_stochasticoptimization():
     last_time_replaced = [False]
 
     @gof.local_optimizer([theano.tensor.add])
-    def insert_broken_add_sometimes(node):
+    def insert_broken_add_sometimes(fgraph, node):
         if node.op == theano.tensor.add:
             last_time_replaced[0] = not last_time_replaced[0]
             if last_time_replaced[0]:

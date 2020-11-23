@@ -286,7 +286,7 @@ def map_variables(replacer, graphs, additional_inputs=None):
     # perform any desired replacement of input variables.  these
     # aren't replaced by the local optimizer approach because they are
     # not outputs of any Apply node.
-    new_inputs = list(map(wrapped_replacer, inputs_))
+    new_inputs = [wrapped_replacer(i) for i in inputs_]
     replacements = [
         (input_, new_input)
         for input_, new_input in zip(inputs_, new_inputs)
@@ -295,23 +295,12 @@ def map_variables(replacer, graphs, additional_inputs=None):
     graphs = clone(graphs, share_inputs=True, replace=replacements)
     inputs_ = list(set(gof.graph.inputs(graphs) + list(additional_inputs)))
 
-    # clone cached constants or FunctionGraph will complain.  this has
-    # to occur in a separate pass from the replacement above because
-    # both may suggest different replacements for the same variables.
-    # since the replacements introduced above may involve cached
-    # constants, the replacement of said constants has to come after.
-    cached_constants = [x for x in inputs_ if getattr(x, "cached", False)]
-    copied_constants = clone(cached_constants, share_inputs=False)
-    replacements = list(zip(cached_constants, copied_constants))
-    inputs_ = list(set(inputs_) - set(cached_constants)) + list(copied_constants)
-    graphs = clone(graphs, share_inputs=True, replace=replacements)
-
     fg = gof.fg.FunctionGraph(inputs_, graphs, clone=False)
 
     nodes_seen = set()
 
     @gof.opt.local_optimizer(None)
-    def local_transform(node):
+    def local_transform(fgraph, node):
         if node in nodes_seen:
             return False
 
@@ -351,7 +340,13 @@ def map_variables(replacer, graphs, additional_inputs=None):
             return new_node.outputs
         else:
             nodes_seen.add(node)
-            return list(map(wrapped_replacer, node.outputs))
+            replacements = [wrapped_replacer(o) for o in node.outputs]
+
+            # Add inputs to replacement graphs as inputs to this `fgraph`
+            for i in gof.graph.inputs(replacements):
+                fgraph.add_input(i)
+
+            return replacements
 
     topo_transform = gof.opt.TopoOptimizer(local_transform, "out_to_in")
     topo_transform.optimize(fg)
@@ -436,10 +431,6 @@ def _map_variables_inner(
                 outer_to_inner[outer_input] = inner_input
                 extra_inner_inputs.append(inner_input)
                 extra_outer_inputs.append(outer_input)
-                # the inner FunctionGraph wants to know its inputs
-                # beforehand, but we don't always know.  so add them
-                # as we discover them.
-                graph.owner.fgraph.add_input(inner_input)
 
         replacements.extend(outer_to_inner.items())
 
@@ -684,19 +675,7 @@ class Validator:
 
             if out.owner is None:
                 if isinstance(out, tensor.TensorConstant):
-                    if hasattr(out, "fgraph") or getattr(out, "cached", False):
-                        # If out have an fgraph, we aren't sure if it
-                        # is from the inner graph or outer graph, so
-                        # clone it.
-                        # As it will be used as is in an FunctionGraph
-                        # (won't be cloned later), it can't be a
-                        # cached variable
-                        cloned_out = out.clone()
-                        self.valid.add(cloned_out)
-                        self.invalid.add(out)
-                        self.valid_equivalent[out] = cloned_out
-                    else:
-                        self.valid.add(out)
+                    self.valid.add(out)
                     continue
                 else:
                     # This is an input node and it has not been

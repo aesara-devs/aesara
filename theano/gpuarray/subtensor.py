@@ -1429,7 +1429,7 @@ class GpuExtractDiag(Op):
         (input_x,) = inputs
         return [grad_not_implemented(self, 0, input_x)]
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         (in_shape,) = shapes
         dim1 = in_shape[self.axis1]
         dim2 = in_shape[self.axis2]

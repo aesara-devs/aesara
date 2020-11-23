@@ -57,7 +57,7 @@ Global optimization
 A global optimization (or optimizer) is an object which defines the following
 methods:
 
-.. class:: Optimizer
+.. class:: GlobalOptimizer
 
     .. method:: apply(fgraph)
 
@@ -75,7 +75,7 @@ methods:
 
       This is the interface function called by Theano.
 
-      *Default:* this is defined by Optimizer as ``add_requirement(fgraph);
+      *Default:* this is defined by GlobalOptimizer as ``add_requirement(fgraph);
       apply(fgraph)``.
 
 See the section about :class:`FunctionGraph` to understand how to define these
@@ -89,14 +89,14 @@ A local optimization is an object which defines the following methods:
 
 .. class:: LocalOptimizer
 
-    .. method:: transform(node)
+    .. method:: transform(fgraph, node)
 
-      This method takes an :ref:`apply` node and returns either ``False`` to
-      signify that no changes are to be done or a list of Variables which
-      matches the length of the node's ``outputs`` list. When the
-      LocalOptimizer is applied by a Navigator, the outputs of the node
-      passed as argument to the LocalOptimizer will be replaced by the
-      list returned.
+      This method takes a :ref:`FunctionGraph` and an :ref:`Apply` node and
+      returns either ``False`` to signify that no changes are to be done or a
+      list of `Variable`s which matches the length of the node's ``outputs``
+      list. When the `LocalOptimizer` is applied by a `Navigator`, the outputs
+      of the node passed as argument to the `LocalOptimizer` will be replaced by
+      the list returned.
 
 
 
@@ -125,7 +125,7 @@ simplification described above:
    from theano import gof
    from theano.gof import toolbox
 
-   class Simplify(gof.Optimizer):
+   class Simplify(gof.GlobalOptimizer):
        def add_requirements(self, fgraph):
            fgraph.attach_feature(toolbox.ReplaceValidate())
        def apply(self, fgraph):
@@ -252,7 +252,7 @@ The local version of the above code would be the following:
 .. testcode::
 
    class LocalSimplify(gof.LocalOptimizer):
-       def transform(self, node):
+       def transform(self, fgraph, node):
            if node.op == true_div:
                x, y = node.inputs
                if x.owner and x.owner.op == mul:
@@ -471,7 +471,7 @@ Here are a few examples of how to use a Query on optdb to produce an
 Optimizer:
 
 .. testcode::
-   
+
    from theano.gof import Query
    from theano.compile import optdb
 

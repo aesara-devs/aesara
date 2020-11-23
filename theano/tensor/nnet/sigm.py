@@ -274,7 +274,7 @@ pprint.assign(ultra_fast_sigmoid, printing.FunctionPrinter("ultra_fast_sigmoid")
 
 # @opt.register_uncanonicalize
 @gof.local_optimizer([sigmoid])
-def local_ultra_fast_sigmoid(node):
+def local_ultra_fast_sigmoid(fgraph, node):
     """
     When enabled, change all sigmoid to ultra_fast_sigmoid.
 
@@ -329,7 +329,7 @@ def hard_sigmoid(x):
 
 # @opt.register_uncanonicalize
 @gof.local_optimizer([sigmoid])
-def local_hard_sigmoid(node):
+def local_hard_sigmoid(fgraph, node):
     if isinstance(node.op, tensor.Elemwise) and node.op.scalar_op == scalar_sigmoid:
         out = hard_sigmoid(node.inputs[0])
         copy_stack_trace(node.outputs[0], out)
@@ -631,7 +631,7 @@ def is_neg(var):
 
 @opt.register_stabilize
 @gof.local_optimizer([tensor.true_div])
-def local_exp_over_1_plus_exp(node):
+def local_exp_over_1_plus_exp(fgraph, node):
     """
     exp(x)/(1+exp(x)) -> sigm(x)
     c/(1+exp(x)) -> c*sigm(-x)
@@ -982,7 +982,7 @@ def perform_sigm_times_exp(
 
 @opt.register_stabilize
 @gof.local_optimizer([tensor.mul])
-def local_sigm_times_exp(node):
+def local_sigm_times_exp(fgraph, node):
     """
     exp(x) * sigm(-x) -> sigm(x)
     exp(-x) * sigm(x) -> sigm(-x)
@@ -1011,7 +1011,7 @@ def local_sigm_times_exp(node):
 
 @opt.register_stabilize
 @gof.local_optimizer([tensor.inv])
-def local_inv_1_plus_exp(node):
+def local_inv_1_plus_exp(fgraph, node):
     """
     1/(1+exp(x)) -> sigm(-x)
 
@@ -1044,14 +1044,14 @@ def local_inv_1_plus_exp(node):
 
 
 @gof.local_optimizer([tensor.sub])
-def local_1msigmoid(node):
+def local_1msigmoid(fgraph, node):
     """
     1-sigm(x) -> sigm(-x)
 
     """
     if node.op == tensor.sub:
         sub_l, sub_r = node.inputs
-        if len(sub_r.clients) > 1:
+        if len(fgraph.clients[sub_r]) > 1:
             return  # graph is using both sigm and 1-sigm
         if sub_r.owner and sub_r.owner.op == sigmoid:
             try:

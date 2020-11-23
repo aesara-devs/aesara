@@ -147,9 +147,9 @@ from theano.compile.mode import optdb
 from theano.gof import (
     Apply,
     EquilibriumOptimizer,
+    GlobalOptimizer,
     InconsistencyError,
     Op,
-    Optimizer,
     ReplacementDidNotRemoveError,
     SequenceDB,
     local_optimizer,
@@ -303,7 +303,7 @@ class Gemv(Op):
                     out += y
             out_storage[0][0] = np.asarray(out, dtype=y.dtype)
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [input_shapes[0]]
 
 
@@ -372,7 +372,7 @@ class Ger(Op):
             A += np.outer(cx, cy)
         cZ[0] = A
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [input_shapes[0]]
 
 
@@ -969,7 +969,7 @@ class Gemm(GemmRelated):
                 z += a * np.dot(x, y)
             zout[0] = z
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [input_shapes[0]]
 
     setup_z_Nz_Sz_inplace = """
@@ -1098,13 +1098,13 @@ pprint.assign(gemm_inplace, FunctionPrinter("gemm_inplace"))
 pprint.assign(gemm_no_inplace, FunctionPrinter("gemm_no_inplace"))
 
 
-def res_is_a(node, op, maxclients=None):
-    if maxclients is not None:
-        retval = len(node.clients) <= maxclients
+def res_is_a(fgraph, var, op, maxclients=None):
+    if maxclients is not None and var in fgraph.clients:
+        retval = len(fgraph.get_clients(var)) <= maxclients
     else:
         retval = True
 
-    return node.owner and node.owner.op == op and retval
+    return var.owner and var.owner.op == op and retval
 
 
 def _as_scalar(res, dtype=None):
@@ -1150,7 +1150,7 @@ def _is_real_vector(res):
     )
 
 
-def _beta_L_plus_alpha_M(beta, L, alpha, M, recurse_flip=True):
+def _beta_L_plus_alpha_M(fgraph, beta, L, alpha, M, recurse_flip=True):
     # print 'BETA L + ALPHA M', beta, L, alpha, M, recurse_flip
     # EXPRESSION: (beta * L) + (alpha * M)
 
@@ -1190,45 +1190,13 @@ def _beta_L_plus_alpha_M(beta, L, alpha, M, recurse_flip=True):
             rval = [g.dimshuffle()]
             return rval, MM
 
-    # this is False'd out because of inadequate testing.
-    # TODO see ticket #237
-    if False and res_is_a(M, gemm_no_inplace, 1):
-        # EXPRESSION: (beta * L) + (alpha * (gemm_no_inplace(G, a, u, v, b)))
-        # EXPRESSION: (beta * L) + alpha * (b * G) + alpha * a * dot(u, v)
-        G, a, u, v, b = M.owner.inputs
-        # print 'GEMM', G, L
-
-        if res_is_a(G, _dot22, 1):
-            # EXPRESSION: (beta * L) +
-            #            (alpha * (gemm_no_inplace(dot(x,y), a, u, v, b)))
-            x, y = G.owner.inputs
-
-            # EXPRESSION: (beta * L) + (alpha * ((b*dot(x,y) +
-            #            (a * dot(u, v)))))
-            # EXPRESSION: (beta * L) + (alpha*b*dot(x,y)) +
-            #            (alpha * a * dot(u, v))
-            rval = [
-                gemm_no_inplace(
-                    gemm_no_inplace(L, alpha * b, x, y, beta), alpha * a, u, v, 1.0
-                )
-            ]
-            return rval
-        if G is L:
-            # EXPRESSION: (beta * L) + (alpha*b*L) + (alpha * a * dot(u, v))
-            rval = [gemm_no_inplace(L, alpha * a, u, v, alpha * b + beta)]
-            return rval
-        if 1.0 != alpha:
-            # at the very least, move the alpha inside the gemm_no_inplace
-            rval = [beta * L + gemm_no_inplace(G, alpha * a, u, v, alpha * b)]
-            return rval
-
     if recurse_flip:
-        return _beta_L_plus_alpha_M(alpha, M, beta, L, recurse_flip=False)
+        return _beta_L_plus_alpha_M(fgraph, alpha, M, beta, L, recurse_flip=False)
     else:
         return False, False
 
 
-def _gemm_canonicalize(r, scale, rval, maxclients):
+def _gemm_canonicalize(fgraph, r, scale, rval, maxclients):
     # Tries to interpret node as a sum of scalars * (vectors or matrices)
     def scaled(thing):
         if scale == 1:
@@ -1253,20 +1221,20 @@ def _gemm_canonicalize(r, scale, rval, maxclients):
         rval.append(scaled(r))
         return rval
 
-    if maxclients and len(getattr(r, "clients", [])) > maxclients:
+    if maxclients and len(fgraph.clients[r]) > maxclients:
         rval.append((scale, r))
         return rval
 
     if r.owner and r.owner.op == tt.sub:
-        _gemm_canonicalize(r.owner.inputs[0], scale, rval, 1)
-        _gemm_canonicalize(r.owner.inputs[1], -scale, rval, 1)
+        _gemm_canonicalize(fgraph, r.owner.inputs[0], scale, rval, 1)
+        _gemm_canonicalize(fgraph, r.owner.inputs[1], -scale, rval, 1)
 
     elif r.owner and r.owner.op == tt.add:
         for i in r.owner.inputs:
-            _gemm_canonicalize(i, scale, rval, 1)
+            _gemm_canonicalize(fgraph, i, scale, rval, 1)
 
     elif r.owner and r.owner.op == tt.neg:
-        _gemm_canonicalize(r.owner.inputs[0], -scale, rval, 1)
+        _gemm_canonicalize(fgraph, r.owner.inputs[0], -scale, rval, 1)
 
     elif r.owner and r.owner.op == tt.mul:
         scalars = []
@@ -1292,20 +1260,24 @@ def _gemm_canonicalize(r, scale, rval, maxclients):
             assert len(vectors) == 0
             m = matrices[0]
             if len(scalars) == 0:
-                _gemm_canonicalize(m, scale, rval, 1)
+                _gemm_canonicalize(fgraph, m, scale, rval, 1)
             elif len(scalars) == 1:
-                _gemm_canonicalize(m, scaled(scalars[0]), rval, 1)
+                _gemm_canonicalize(fgraph, m, scaled(scalars[0]), rval, 1)
             else:
-                _gemm_canonicalize(m, tt.mul(scaled(scalars[0]), *scalars[1:]), rval, 1)
+                _gemm_canonicalize(
+                    fgraph, m, tt.mul(scaled(scalars[0]), *scalars[1:]), rval, 1
+                )
         elif len(vectors) == 1:
             assert len(matrices) == 0
             v = vectors[0]
             if len(scalars) == 0:
-                _gemm_canonicalize(v, scale, rval, 1)
+                _gemm_canonicalize(fgraph, v, scale, rval, 1)
             elif len(scalars) == 1:
-                _gemm_canonicalize(v, scaled(scalars[0]), rval, 1)
+                _gemm_canonicalize(fgraph, v, scaled(scalars[0]), rval, 1)
             else:
-                _gemm_canonicalize(v, tt.mul(scaled(scalars[0]), *scalars[1:]), rval, 1)
+                _gemm_canonicalize(
+                    fgraph, v, tt.mul(scaled(scalars[0]), *scalars[1:]), rval, 1
+                )
         else:  # lets not open this up
             rval.append((scale, r))
     else:
@@ -1354,7 +1326,7 @@ def _factor_canonicalized(lst):
     return lst
 
 
-def _gemm_from_factored_list(lst):
+def _gemm_from_factored_list(fgraph, lst):
     """
     Returns None, or a list to replace node.outputs.
 
@@ -1396,7 +1368,9 @@ def _gemm_from_factored_list(lst):
 
             # print 'TRYING', (s_i, M_i, s_j, M_j)
 
-            gemm_of_sM_list, old_dot22 = _beta_L_plus_alpha_M(s_i, M_i, s_j, M_j)
+            gemm_of_sM_list, old_dot22 = _beta_L_plus_alpha_M(
+                fgraph, s_i, M_i, s_j, M_j
+            )
             # print 'GOT IT', gemm_of_sM_list
             if gemm_of_sM_list:
 
@@ -1413,7 +1387,7 @@ def _gemm_from_factored_list(lst):
                 return rval, old_dot22
 
 
-def _gemm_from_node2(node):
+def _gemm_from_node2(fgraph, node):
     """
     :todo: In many expressions, there are many ways to turn it into a
         gemm.  For example dot(a,b) + c + d.  This function should
@@ -1424,14 +1398,14 @@ def _gemm_from_node2(node):
     """
     lst = []
     t0 = time.time()
-    _gemm_canonicalize(node.outputs[0], 1.0, lst, 0)
+    _gemm_canonicalize(fgraph, node.outputs[0], 1.0, lst, 0)
     t1 = time.time()
 
     # print "GEMM CANON", lst
     if len(lst) > 1:
         lst = _factor_canonicalized(lst)
         t2 = time.time()
-        rval = _gemm_from_factored_list(lst)
+        rval = _gemm_from_factored_list(fgraph, lst)
         t3 = time.time()
 
         # It can happen that _factor_canonicalized and
@@ -1449,11 +1423,11 @@ def _gemm_from_node2(node):
     return None, t1 - t0, 0, 0
 
 
-class GemmOptimizer(Optimizer):
+class GemmOptimizer(GlobalOptimizer):
     """Graph optimizer for inserting Gemm operations."""
 
     def __init__(self):
-        Optimizer.__init__(self)
+        super().__init__()
         self.warned = False
 
     def add_requirements(self, fgraph):
@@ -1507,7 +1481,7 @@ class GemmOptimizer(Optimizer):
                     # the graph
                     continue
                 try:
-                    new_outputs, time1, time2, time3 = _gemm_from_node2(node)
+                    new_outputs, time1, time2, time3 = _gemm_from_node2(fgraph, node)
                     time_canonicalize += time1
                     time_factor_can += time2
                     time_factor_list += time3
@@ -1625,7 +1599,7 @@ class Dot22(GemmRelated):
             e.args = e.args + (x.shape, y.shape)
             raise
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [[input_shapes[0][0], input_shapes[1][1]]]
 
     setup_z_Nz_Sz = """
@@ -1682,7 +1656,7 @@ _dot22 = Dot22()
 
 
 @local_optimizer([tt.Dot])
-def local_dot_to_dot22(node):
+def local_dot_to_dot22(fgraph, node):
     # This works for tensor.outer too because basic.outer is a macro that
     # produces a dot(dimshuffle,dimshuffle) of form 4 below
     if not isinstance(node.op, tt.Dot):
@@ -1709,28 +1683,28 @@ def local_dot_to_dot22(node):
 
 
 @local_optimizer([gemm_no_inplace], inplace=True)
-def local_inplace_gemm(node):
+def local_inplace_gemm(fgraph, node):
     if node.op == gemm_no_inplace:
         with inherit_stack_trace(node.outputs):
             return [gemm_inplace(*node.inputs)]
 
 
 @local_optimizer([gemv_no_inplace], inplace=True)
-def local_inplace_gemv(node):
+def local_inplace_gemv(fgraph, node):
     if node.op == gemv_no_inplace:
         with inherit_stack_trace(node.outputs):
             return [gemv_inplace(*node.inputs)]
 
 
 @local_optimizer([ger], inplace=True)
-def local_inplace_ger(node):
+def local_inplace_ger(fgraph, node):
     if node.op == ger:
         with inherit_stack_trace(node.outputs):
             return [ger_destructive(*node.inputs)]
 
 
 @local_optimizer([gemm_no_inplace])
-def local_gemm_to_gemv(node):
+def local_gemm_to_gemv(fgraph, node):
     """GEMM acting on row or column matrices -> GEMV."""
     if node.op == gemm_no_inplace:
         z, a, x, y, b = node.inputs
@@ -1744,7 +1718,7 @@ def local_gemm_to_gemv(node):
 
 
 @local_optimizer([gemm_no_inplace])
-def local_gemm_to_ger(node):
+def local_gemm_to_ger(fgraph, node):
     """GEMM computing an outer-product -> GER."""
     if node.op == gemm_no_inplace:
         z, a, x, y, b = node.inputs
@@ -1775,7 +1749,7 @@ def local_gemm_to_ger(node):
 # TODO: delete this optimization when we have the proper dot->gemm->ger pipeline
 #      working
 @local_optimizer([_dot22])
-def local_dot22_to_ger_or_gemv(node):
+def local_dot22_to_ger_or_gemv(fgraph, node):
     """dot22 computing an outer-product -> GER."""
     if node.op == _dot22:
         with inherit_stack_trace(node.outputs):
@@ -1900,7 +1874,7 @@ class Dot22Scalar(GemmRelated):
             e.args = e.args + (x.shape, y.shape)
             raise
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [[input_shapes[0][0], input_shapes[1][1]]]
 
     setup_z_Nz_Sz = Dot22.setup_z_Nz_Sz
@@ -1952,7 +1926,7 @@ _dot22scalar = Dot22Scalar()
 
 
 @local_optimizer([tt.mul])
-def local_dot22_to_dot22scalar(node):
+def local_dot22_to_dot22scalar(fgraph, node):
     """
     Notes
     -----
@@ -2125,7 +2099,7 @@ class BatchedDot(Op):
                 f" same size in axis 0, but have sizes [{', '.join([str(i.shape[0]) for i in inp])}]."
             )
 
-        shape = self.infer_shape(node, [i.shape for i in inp])[0]
+        shape = self.infer_shape(None, node, [i.shape for i in inp])[0]
         dtype = node.outputs[0].dtype
         z0 = z[0] = np.empty(shape, dtype=dtype)
         for i in range(z0.shape[0]):
@@ -2549,7 +2523,7 @@ class BatchedDot(Op):
         else:
             return [t2]
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         for shape_ in shapes:
             if len(shape_) not in (2, 3):
                 raise NotImplementedError()
@@ -2563,6 +2537,6 @@ batched_dot = BatchedDot()
 # from opt import register_specialize, register_canonicalize
 # @register_specialize
 @local_optimizer([tt.sub, tt.add])
-def local_print_as_we_go_along(node):
+def local_print_as_we_go_along(fgraph, node):
     if node.op in (tt.sub, tt.add):
         debugprint(node)

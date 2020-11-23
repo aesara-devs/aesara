@@ -63,7 +63,7 @@ from theano.compile import optdb
 from theano.compile.function.types import deep_copy_op
 from theano.gof import DestroyHandler, InconsistencyError, toolbox
 from theano.gof.graph import equal_computations
-from theano.gof.opt import Optimizer, pre_constant_merge, pre_greedy_local_optimizer
+from theano.gof.opt import GlobalOptimizer
 from theano.scan.op import Scan
 from theano.scan.utils import (
     clone,
@@ -110,7 +110,7 @@ def info(*msg):
 
 
 @gof.local_optimizer([Scan])
-def remove_constants_and_unused_inputs_scan(node):
+def remove_constants_and_unused_inputs_scan(fgraph, node):
     """
     Move constants into the inner graph, and remove unused inputs.
 
@@ -224,14 +224,14 @@ def remove_constants_and_unused_inputs_scan(node):
 
 # This is a global opt for historical reason
 # It should be possible to change it to a local opt.
-class PushOutNonSeqScan(gof.Optimizer):
+class PushOutNonSeqScan(gof.GlobalOptimizer):
     """
     A global optimizer for pushing out the variables inside the scan that depend
     only on non-sequences.
     """
 
     def __init__(self):
-        gof.Optimizer.__init__(self)
+        super().__init__()
 
     def add_requirements(self, fgraph):
         fgraph.attach_feature(gof.toolbox.ReplaceValidate())
@@ -440,14 +440,14 @@ class PushOutNonSeqScan(gof.Optimizer):
 
 # This is a global opt for historical reason
 # It should be possible to change it to a local opt.
-class PushOutSeqScan(gof.Optimizer):
+class PushOutSeqScan(gof.GlobalOptimizer):
     """
     A global optimizer for pushing out the variables inside the
     scan that depend only on constants and sequences.
     """
 
     def __init__(self):
-        gof.Optimizer.__init__(self)
+        super().__init__()
 
     def add_requirements(self, fgraph):
         fgraph.attach_feature(gof.toolbox.ReplaceValidate())
@@ -696,14 +696,14 @@ class PushOutSeqScan(gof.Optimizer):
             return False
 
 
-class PushOutScanOutput(gof.Optimizer):
+class PushOutScanOutput(gof.GlobalOptimizer):
     """
     This is an optimization that can push operations performed
     at the end of the inner graph of scan to outside of scan.
     """
 
     def __init__(self):
-        gof.Optimizer.__init__(self)
+        super().__init__()
 
     def add_requirements(self, fgraph):
         fgraph.attach_feature(gof.toolbox.ReplaceValidate())
@@ -742,7 +742,7 @@ class PushOutScanOutput(gof.Optimizer):
                 isinstance(nd.op, theano.tensor.elemwise.Elemwise)
                 and isinstance(nd.op.scalar_op, scalar.Add)
                 and nd.out in args.inner_out_sit_sot
-                and self.inner_sitsot_only_last_step_used(nd.out, args)
+                and self.inner_sitsot_only_last_step_used(fgraph, nd.out, args)
             ):
 
                 # Ensure that one of the input to the add is the output of
@@ -810,7 +810,7 @@ class PushOutScanOutput(gof.Optimizer):
                         # external Dot instead of the output of scan
                         # Modify the outer graph to add the outer Dot
                         outer_sitsot = new_scan_args.outer_out_sit_sot[sitsot_idx]
-                        subtensor_node = outer_sitsot.clients[0][0]
+                        subtensor_node = fgraph.clients[outer_sitsot][0][0]
                         outer_sitsot_last_step = subtensor_node.outputs[0]
 
                         fgraph.replace_all(
@@ -821,7 +821,7 @@ class PushOutScanOutput(gof.Optimizer):
                         break
         return new_scan_node
 
-    def inner_sitsot_only_last_step_used(self, var, scan_args):
+    def inner_sitsot_only_last_step_used(self, fgraph, var, scan_args):
         """
         Given a inner nit_sot output of scan, return True iff the outer
         nit_sot output has only one client and that client is a Subtensor
@@ -832,8 +832,8 @@ class PushOutScanOutput(gof.Optimizer):
         idx = scan_args.inner_out_sit_sot.index(var)
         outer_var = scan_args.outer_out_sit_sot[idx]
 
-        if len(outer_var.clients) == 1:
-            client = outer_var.clients[0][0]
+        if len(fgraph.clients[outer_var]) == 1:
+            client = fgraph.clients[outer_var][0][0]
             if client != "output" and isinstance(client.op, theano.tensor.Subtensor):
                 lst = theano.tensor.subtensor.get_idx_list(
                     client.inputs, client.op.idx_list
@@ -958,14 +958,14 @@ class PushOutScanOutput(gof.Optimizer):
         return new_scan_node
 
 
-class ScanInplaceOptimizer(Optimizer):
+class ScanInplaceOptimizer(GlobalOptimizer):
     """
     Graph optimizer for Scan (makes it run inplace).
 
     """
 
     def __init__(self, typeInfer=None, gpua_flag=False):
-        Optimizer.__init__(self)
+        super().__init__()
         self.typeInfer = typeInfer
         self.gpua_flag = gpua_flag
 
@@ -1014,7 +1014,7 @@ class ScanInplaceOptimizer(Optimizer):
         for i in range(len(ls)):
             inp = ls[i]
             if (
-                len(inp.clients) > 1
+                len(fgraph.clients[inp]) > 1
                 and inp.owner
                 and isinstance(inp.owner.op, alloc_ops)
             ):
@@ -1094,7 +1094,7 @@ class ScanInplaceOptimizer(Optimizer):
                 # attempt to be inplace on it if nothing else is currently
                 # inplace on it.
                 input_used_inplace = False
-                for c in original_node.inputs[inp_idx].clients:
+                for c in fgraph.clients[original_node.inputs[inp_idx]]:
                     client = c[0]
 
                     # Get the indices of this client's inputs on which it
@@ -1124,14 +1124,14 @@ class ScanInplaceOptimizer(Optimizer):
                     node = self.attempt_scan_inplace(fgraph, node, [pos], alloc_ops)
 
 
-class ScanSaveMem(gof.Optimizer):
+class ScanSaveMem(gof.GlobalOptimizer):
     """
-    Graph Optimizer that reduces scan memory consumption.
+    Graph optimizer that reduces scan memory consumption.
 
     """
 
     def __init__(self):
-        gof.Optimizer.__init__(self)
+        super().__init__()
 
     def add_requirements(self, fgraph):
         fgraph.attach_feature(gof.toolbox.ReplaceValidate())
@@ -1160,7 +1160,7 @@ class ScanSaveMem(gof.Optimizer):
                 return tensor.as_tensor_variable(x)
 
         if hasattr(fgraph, "shape_feature"):
-            shape_of = node.fgraph.shape_feature.shape_of
+            shape_of = fgraph.shape_feature.shape_of
         else:
             # Each access to shape_of is in a try..except block in order to
             # use a default version when the variable is not in the shape_of
@@ -1231,7 +1231,7 @@ class ScanSaveMem(gof.Optimizer):
         for i, out in enumerate(node.outputs[:c_outs]):
             # look at all its clients
             slices[i] = []
-            for cl, _ in out.clients:
+            for cl, _ in fgraph.clients[out]:
 
                 # 2.1 outputs of the function
                 # => output needs all its intermediate values
@@ -1345,7 +1345,7 @@ class ScanSaveMem(gof.Optimizer):
         # intermediate steps to store
         for i, out in enumerate(node.outputs[:c_outs]):
             # look at all its clients
-            for cl, _ in out.clients:
+            for cl, _ in fgraph.clients[out]:
                 if type(cl) == str:
                     store_steps[i] = 0
                     break
@@ -1409,22 +1409,6 @@ class ScanSaveMem(gof.Optimizer):
                         if store_steps[i] != -1:
                             pval = select_max(pval, store_steps[i])
 
-                        # TODO: Simplify the number of steps needed.
-                        # FB: This need good testing, left to later.
-                        #     call get_scalar_constant_value()? it can
-                        # return python/numpy scalar or np.ndarray
-                        # currently.
-                        # pval = pre_greedy_local_optimizer(list_opt_slice,
-                        #                                  pval)
-                        # pval = pre_constant_merge([pval])[0]
-                        # if (isinstance(pval, theano.tensor.TensorConstant)
-                        # and
-                        #    pval.dtype.startswith('int')):
-                        #    try:
-                        #        pval = int(pval.data)
-                        #    except Exception:
-                        #        pass
-
                         store_steps[i] = pval
                         flag_store = True
 
@@ -1482,23 +1466,24 @@ class ScanSaveMem(gof.Optimizer):
                             tmp_idx = tensor.switch(
                                 cval < initl, cval + initl, cval - initl
                             )
-                            tmp = pre_greedy_local_optimizer(list_opt_slice, tmp_idx)
-                            tmp = pre_constant_merge([tmp])[0]
-
-                            nw_input = expand_empty(_nw_input, tmp)
+                            nw_input = expand_empty(_nw_input, tmp_idx)
                         else:
                             tmp = tensor.as_tensor_variable(val)
                             initl = tensor.as_tensor_variable(init_l[i])
                             tmp = tensor.maximum(tmp, initl)
-                            tmp = pre_greedy_local_optimizer(list_opt_slice, tmp)
-                            tmp = pre_constant_merge([tmp])[0]
                             nw_input = nw_inputs[offset + idx][:tmp]
 
                         nw_inputs[offset + idx] = nw_input
                         replaced_outs.append(op.n_mit_mot + idx)
                         odx = op.n_mit_mot + idx
                         old_outputs += [
-                            (odx, [x[0].outputs[0] for x in node.outputs[odx].clients])
+                            (
+                                odx,
+                                [
+                                    x[0].outputs[0]
+                                    for x in fgraph.clients[node.outputs[odx]]
+                                ],
+                            )
                         ]
                     # If there is no memory pre-allocated for this output
                     elif idx < op.n_mit_sot + op.n_sit_sot + op.n_nit_sot:
@@ -1509,7 +1494,13 @@ class ScanSaveMem(gof.Optimizer):
                         odx = op.n_mit_mot + idx
                         replaced_outs.append(odx)
                         old_outputs += [
-                            (odx, [x[0].outputs[0] for x in node.outputs[odx].clients])
+                            (
+                                odx,
+                                [
+                                    x[0].outputs[0]
+                                    for x in fgraph.clients[node.outputs[odx]]
+                                ],
+                            )
                         ]
             # 3.4. Recompute inputs for everything else based on the new
             # number of steps
@@ -1557,8 +1548,6 @@ class ScanSaveMem(gof.Optimizer):
             for k, v in compress_map.items():
                 inv_compress_map[v] = k
 
-            node_ins = [pre_greedy_local_optimizer(list_opt_slice, x) for x in node_ins]
-            node_ins = pre_constant_merge(node_ins)
             # 3.6 Compose the new scan
             # TODO: currently we don't support scan with 0 step. So
             # don't create one.
@@ -1575,7 +1564,7 @@ class ScanSaveMem(gof.Optimizer):
             # the number of intermediate steps stored
             for idx, sl in enumerate(slices):
                 if global_nsteps and sl is not None and store_steps[idx] == 0:
-                    for hdx, cl in enumerate(node.outputs[idx].clients):
+                    for hdx, cl in enumerate(fgraph.clients[node.outputs[idx]]):
                         cnf_slice, old_slices = sl[hdx]
                         # Sanitize the nw_slice by converting ints back into
                         # constants :) I only need to do this for the first
@@ -1680,9 +1669,9 @@ class ScanSaveMem(gof.Optimizer):
             self.process_node(fgraph, node)
 
 
-class ScanMerge(gof.Optimizer):
+class ScanMerge(gof.GlobalOptimizer):
     """
-    Graph Optimizer that merges different scan ops.
+    Graph optimizer that merges different scan ops.
 
     """
 
@@ -1957,7 +1946,7 @@ def make_equiv(lo, li):
 
 
 @gof.local_optimizer([Scan])
-def scan_merge_inouts(node):
+def scan_merge_inouts(fgraph, node):
     if not isinstance(node.op, Scan):
         return False
 
@@ -2135,14 +2124,14 @@ def scan_merge_inouts(node):
     return na.outer_outputs
 
 
-class PushOutDot1(gof.Optimizer):
+class PushOutDot1(gof.GlobalOptimizer):
     """
     Graph optimizer for Scan(makes it run inplace).
 
     """
 
     def __init__(self):
-        Optimizer.__init__(self)
+        super().__init__()
 
     def add_requirements(self, fgraph):
         fgraph.attach_feature(toolbox.ReplaceValidate())
@@ -2173,10 +2162,12 @@ class PushOutDot1(gof.Optimizer):
                 and isinstance(out.owner.op, theano.tensor.Elemwise)
                 and isinstance(out.owner.op.scalar_op, theano.scalar.Add)
                 and inp in out.owner.inputs
-                and len(outer_out.clients) == 1
-                and not isinstance(outer_out.clients[0][0], str)
-                and isinstance(outer_out.clients[0][0].op, theano.tensor.Subtensor)
-                and outer_out.clients[0][0].op.idx_list == (-1,)
+                and len(fgraph.clients[outer_out]) == 1
+                and not isinstance(fgraph.clients[outer_out][0][0], str)
+                and isinstance(
+                    fgraph.clients[outer_out][0][0].op, theano.tensor.Subtensor
+                )
+                and fgraph.clients[outer_out][0][0].op.idx_list == (-1,)
             ):
 
                 x = out.owner.inputs[0]
@@ -2316,7 +2307,7 @@ class PushOutDot1(gof.Optimizer):
 
                         pos = node.outputs.index(outer_out)
                         old_new = list(zip(node.outputs[:pos], new_outs[:pos]))
-                        old = node.outputs[pos].clients[0][0].outputs[0]
+                        old = fgraph.clients[node.outputs[pos]][0][0].outputs[0]
                         old_new.append((old, new_out))
                         old_new += list(zip(node.outputs[pos + 1 :], new_outs[pos:]))
                         fgraph.replace_all_validate_remove(

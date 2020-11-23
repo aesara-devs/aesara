@@ -11,7 +11,7 @@ def test_detect_nan():
 
     nan_detected = [False]
 
-    def detect_nan(i, node, fn):
+    def detect_nan(fgraph, i, node, fn):
         for output in fn.outputs:
             if np.isnan(output[0]).any():
                 print("*** NaN detected ***")
@@ -41,7 +41,7 @@ def test_optimizer():
 
     nan_detected = [False]
 
-    def detect_nan(i, node, fn):
+    def detect_nan(fgraph, i, node, fn):
         for output in fn.outputs:
             if np.isnan(output[0]).any():
                 print("*** NaN detected ***")
@@ -73,7 +73,7 @@ def test_not_inplace():
 
     nan_detected = [False]
 
-    def detect_nan(i, node, fn):
+    def detect_nan(fgraph, i, node, fn):
         for output in fn.outputs:
             if np.isnan(output[0]).any():
                 print("*** NaN detected ***")

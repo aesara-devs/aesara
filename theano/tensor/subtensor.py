@@ -683,7 +683,7 @@ class Subtensor(Op):
 
         out[0] = np.asarray(x.__getitem__(cdata))
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         xshp = shapes[0]
         assert len(xshp) == node.inputs[0].ndim
         outshp = []
@@ -1769,7 +1769,7 @@ class IncSubtensor(Op):
             % locals()
         )
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0]]
 
     def R_op(self, inputs, eval_points):
@@ -1946,7 +1946,7 @@ class AdvancedSubtensor1(Op):
             return [None]
         return self.make_node(eval_points[0], *inputs[1:]).outputs
 
-    def infer_shape(self, node, ishapes):
+    def infer_shape(self, fgraph, node, ishapes):
         x, ilist = ishapes
         return [ilist + x[1:]]
 
@@ -2202,7 +2202,7 @@ class AdvancedIncSubtensor1(Op):
 
         out[0] = x
 
-    def infer_shape(self, node, ishapes):
+    def infer_shape(self, fgraph, node, ishapes):
         x, y, ilist = ishapes
         return [x]
 
@@ -2332,7 +2332,7 @@ class AdvancedSubtensor(Op):
             return [None]
         return self.make_node(eval_points[0], *inputs[1:]).outputs
 
-    def infer_shape(self, node, ishapes):
+    def infer_shape(self, fgraph, node, ishapes):
         indices = node.inputs[1:]
         index_shapes = list(ishapes[1:])
         for i, idx in enumerate(indices):
@@ -2451,7 +2451,7 @@ class AdvancedIncSubtensor(Op):
         else:
             np.add.at(out[0], tuple(inputs[2:]), inputs[1])
 
-    def infer_shape(self, node, ishapes):
+    def infer_shape(self, fgraph, node, ishapes):
         return [ishapes[0]]
 
     def connection_pattern(self, node):

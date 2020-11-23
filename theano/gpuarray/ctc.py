@@ -211,10 +211,10 @@ def gpu_ctc(activations, labels, input_lengths):
 # Disable gradient computation if not needed
 @register_canonicalize("fast_compile")
 @local_optimizer([GpuConnectionistTemporalClassification])
-def local_gpu_ctc_no_grad(node):
+def local_gpu_ctc_no_grad(fgraph, node):
     if isinstance(node.op, GpuConnectionistTemporalClassification):
         if len(node.outputs) > 1:
-            if len(node.outputs[1].clients) == 0:  # gradient is not used
+            if len(fgraph.clients[node.outputs[1]]) == 0:  # gradient is not used
                 return [
                     GpuConnectionistTemporalClassification(compute_grad=False)(
                         *node.inputs

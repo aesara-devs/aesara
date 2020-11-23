@@ -432,7 +432,7 @@ class AbstractBatchNormTrain(Op):
         axes = tuple(int(a) for a in axes)
         self.axes = axes
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         return [shape[0]] + [shape[1]] * (len(node.outputs) - 1)
 
     def make_node(
@@ -568,7 +568,7 @@ class AbstractBatchNormInference(Op):
         axes = tuple(int(a) for a in axes)
         self.axes = axes
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         return [shape[0]]
 
     def make_node(
@@ -749,7 +749,7 @@ class AbstractBatchNormTrainGrad(Op):
             [False, False, False],
         ]  # epsilon
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         return [shape[0], shape[2], shape[2]]
 
     def perform(self, node, inputs, output_storage):
@@ -774,7 +774,7 @@ class AbstractBatchNormTrainGrad(Op):
 
 
 @local_optimizer([AbstractBatchNormTrain])
-def local_abstract_batch_norm_train(node):
+def local_abstract_batch_norm_train(fgraph, node):
     if not isinstance(node.op, AbstractBatchNormTrain):
         return None
 
@@ -833,7 +833,7 @@ def local_abstract_batch_norm_train(node):
 
 
 @local_optimizer([AbstractBatchNormTrainGrad])
-def local_abstract_batch_norm_train_grad(node):
+def local_abstract_batch_norm_train_grad(fgraph, node):
     if not isinstance(node.op, AbstractBatchNormTrainGrad):
         return None
 
@@ -872,7 +872,7 @@ def local_abstract_batch_norm_train_grad(node):
 
 
 @local_optimizer([AbstractBatchNormInference])
-def local_abstract_batch_norm_inference(node):
+def local_abstract_batch_norm_inference(fgraph, node):
     if not isinstance(node.op, AbstractBatchNormInference):
         return None
 

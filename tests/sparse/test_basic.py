@@ -338,7 +338,7 @@ class TestVerifyGradSparse:
             else:
                 return (gz,)
 
-        def infer_shape(self, node, shapes):
+        def infer_shape(self, fgraph, node, shapes):
             return [shapes[0]]
 
     def test_grad_fail(self):

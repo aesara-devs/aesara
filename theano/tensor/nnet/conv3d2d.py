@@ -301,7 +301,7 @@ def conv3d(
 
 
 @theano.gof.local_optimizer([DiagonalSubtensor, IncDiagonalSubtensor])
-def local_inplace_DiagonalSubtensor(node):
+def local_inplace_DiagonalSubtensor(fgraph, node):
     """Also work for IncDiagonalSubtensor."""
     if (
         isinstance(node.op, (DiagonalSubtensor, IncDiagonalSubtensor))

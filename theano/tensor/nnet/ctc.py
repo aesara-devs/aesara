@@ -246,10 +246,10 @@ def ctc(activations, labels, input_lengths):
 # Disable gradient computation if not needed
 @register_canonicalize("fast_compile")
 @local_optimizer([ConnectionistTemporalClassification])
-def local_ctc_no_grad(node):
+def local_ctc_no_grad(fgraph, node):
     if isinstance(node.op, ConnectionistTemporalClassification):
         if len(node.outputs) > 1:
-            if len(node.outputs[1].clients) == 0:  # gradient is not used
+            if len(fgraph.clients[node.outputs[1]]) == 0:  # gradient is not used
                 return [
                     ConnectionistTemporalClassification(compute_grad=False)(
                         *node.inputs

@@ -217,6 +217,7 @@ def run_dnn_conv_invalid_precision(ndim):
 
     def dnn_conv(precision, border_mode, direction_hint):
         return dnn_conv_func(
+            None,
             img,
             kerns,
             border_mode=border_mode,
@@ -279,8 +280,8 @@ def test_dnn_conv3d_mixed_dtype():
         assert conv.owner.inputs[1].dtype == dt
         assert conv.owner.inputs[2].dtype == dt
 
-    assert_types(dnn.dnn_conv3d(md, mf, precision="as_input"))
-    assert_types(dnn.dnn_conv3d(mf, md, precision="as_input"))
+    assert_types(dnn.dnn_conv3d(None, md, mf, precision="as_input"))
+    assert_types(dnn.dnn_conv3d(None, mf, md, precision="as_input"))
     assert_types(dnn.dnn_gradweight3d(mf, md, kerns_shp=mf.shape, precision="as_input"))
     assert_types(dnn.dnn_gradweight3d(md, mf, kerns_shp=mf.shape, precision="as_input"))
     assert_types(dnn.dnn_gradinput3d(mf, md, img_shp=mf.shape, precision="as_input"))
@@ -1251,11 +1252,11 @@ def run_conv_small_batched_vs_multicall(inputs_shape, filters_shape, batch_sub):
         dnn_func = dnn.dnn_conv3d
     else:
         dnn_func = dnn.dnn_conv
-    conv = dnn_func(img=inputs, kerns=filters, algo=algo)
+    conv = dnn_func(None, img=inputs, kerns=filters, algo=algo)
     # Just compute first and last outputs, to reduce execution time.
-    sub_conv_top = dnn_func(img=inputs[:batch_sub], kerns=filters, algo=algo)
+    sub_conv_top = dnn_func(None, img=inputs[:batch_sub], kerns=filters, algo=algo)
     sub_conv_bottom = dnn_func(
-        img=inputs[(batch_size - batch_sub) :], kerns=filters, algo=algo
+        None, img=inputs[(batch_size - batch_sub) :], kerns=filters, algo=algo
     )
     f = theano.function([], [conv, sub_conv_top, sub_conv_bottom], mode=mode_with_gpu)
     res_all, res_batch_top, res_batch_bottom = f()
@@ -1306,6 +1307,7 @@ def test_conv3d_fwd():
 
         # Compile a theano function for the cuDNN implementation
         conv = dnn.dnn_conv3d(
+            None,
             img=inputs,
             kerns=filters,
             border_mode=border_mode,
@@ -1367,6 +1369,7 @@ def test_conv3d_bwd():
 
         # Compile a theano function for the cuDNN implementation
         conv = dnn.dnn_conv3d(
+            None,
             img=inputs,
             kerns=filters,
             border_mode=border_mode,

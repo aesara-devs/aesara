@@ -801,7 +801,7 @@ class GpuMagmaSVD(GpuMagmaBase):
     def get_params(self, node):
         return self.params_type.get_params(self, context=node.inputs[0].type.context)
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         (x_shape,) = shapes
         M, N = x_shape
         K = tensor.minimum(M, N)
@@ -870,7 +870,7 @@ class GpuMagmaMatrixInverse(GpuMagmaBase):
     def get_params(self, node):
         return self.params_type.get_params(self, context=node.inputs[0].type.context)
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return shapes
 
 
@@ -921,7 +921,7 @@ class GpuMagmaCholesky(GpuMagmaBase, CGpuKernelBase):
     def get_params(self, node):
         return self.params_type.get_params(self, context=node.inputs[0].type.context)
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0]]
 
 

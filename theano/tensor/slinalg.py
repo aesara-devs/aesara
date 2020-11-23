@@ -62,7 +62,7 @@ class Cholesky(Op):
             raise ValueError('on_error must be one of "raise" or ""nan"')
         self.on_error = on_error
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0]]
 
     def make_node(self, x):
@@ -203,7 +203,7 @@ class CholeskyGrad(Op):
                 F[k, k] /= 2 * L[k, k]
         dx[0] = F
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0]]
 
 
@@ -255,7 +255,7 @@ class Solve(Op):
         output_storage[0][0] = rval
 
     # computes shape of x where x = inv(A) * b
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         Ashape, Bshape = shapes
         rows = Ashape[1]
         if len(Bshape) == 1:  # b is a Vector
@@ -376,7 +376,7 @@ class Eigvalsh(Op):
         (gw,) = g_outputs
         return EigvalshGrad(self.lower)(a, b, gw)
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         n = shapes[0][0]
         return [(n,)]
 
@@ -436,7 +436,7 @@ class EigvalshGrad(Op):
         outputs[0][0] = np.asarray(out1, dtype=node.outputs[0].dtype)
         outputs[1][0] = np.asarray(out2, dtype=node.outputs[1].dtype)
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0], shapes[1]]
 
 
@@ -520,7 +520,7 @@ class Expm(Op):
         (g_out,) = outputs
         return [ExpmGrad()(A, g_out)]
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0]]
 
 
@@ -545,7 +545,7 @@ class ExpmGrad(Op):
             ],
         )
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0]]
 
     def perform(self, node, inputs, outputs):

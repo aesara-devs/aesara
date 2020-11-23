@@ -91,7 +91,7 @@ class ViewOp(Op):
 
         return tuple(version)
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return input_shapes
 
     def grad(self, args, g_outs):
@@ -262,7 +262,7 @@ class Shape(Op):
         (out,) = out_
         out[0] = theano._asarray(np.shape(x), dtype="int64")
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         return [[len(in_shapes[0])]]
 
     def connection_pattern(self, node):
@@ -421,7 +421,7 @@ class Shape_i(Op):
         # Else, no C code
         return super().c_code(node, name, inames, onames, sub)
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [()]
 
     def connection_pattern(self, node):
@@ -455,17 +455,13 @@ def shape_i(var, i, fgraph=None):
 
     Parameters
     ----------
-    var
+    var : Variable
         The variable we want to take the shape of.
-    i
+    i : int
         The shape dimensions we want
-    fgraph : optional
-        If var.fgraph do not exist, the fgraph that have the shape_feature to
-        introduce var in to get the optimized shape.
+    fgraph : FunctionGraph (optional)
 
     """
-    if fgraph is None and hasattr(var, "fgraph"):
-        fgraph = var.fgraph
     if fgraph and hasattr(fgraph, "shape_feature"):
         shape_feature = fgraph.shape_feature
         shape_of = shape_feature.shape_of
@@ -588,8 +584,8 @@ class FromFunctionOp(Op):
                 )
         return load_back, (mod, name)
 
-    def _infer_shape(self, node, input_shapes):
-        return self.__infer_shape(node, input_shapes)
+    def _infer_shape(self, fgraph, node, input_shapes):
+        return self.__infer_shape(fgraph, node, input_shapes)
 
 
 def as_op(itypes, otypes, infer_shape=None):
@@ -600,7 +596,7 @@ def as_op(itypes, otypes, infer_shape=None):
     It takes an optional infer_shape parameter that should be a callable with
     this signature:
 
-        def infer_shape(node, input_shapes):
+        def infer_shape(fgraph, node, input_shapes):
             ...
             return output_shapes
 
@@ -752,7 +748,7 @@ class Rebroadcast(Op):
             )(gz),
         )
 
-    def infer_shape(self, node, ishapes):
+    def infer_shape(self, fgraph, node, ishapes):
         assert len(ishapes) == 1
         l = []
         one = theano.tensor.basic.constant(1)
@@ -880,7 +876,7 @@ class SpecifyShape(Op):
         assert np.all(x.shape == shape), ("got shape", x.shape, "expected", shape)
         out[0] = x
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         xshape, sshape = shapes
         new_shape = []
         for dim in range(node.inputs[0].ndim):

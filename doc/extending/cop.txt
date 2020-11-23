@@ -177,13 +177,13 @@ There are less methods to define for an Op than for a Type:
     .. method:: c_cleanup_code_struct(node, name)
 
        Allows you to specify code that will be inserted in the struct
-       destructor of the Op.  This is for cleaninp up allocations and
+       destructor of the `Op`.  This is for cleaninp up allocations and
        stuff like this when the thunk is released (when you "free" a
        compiled function using this op).
 
-    .. method:: infer_shape(node, (i0_shapes,i1_shapes,...))
+    .. method:: infer_shape(fgraph, node, (i0_shapes,i1_shapes,...))
 
-       Allow optimizations to lift the Shape op over this op.  An
+       Allow optimizations to lift the `Shape` `Op` over this `Op`.  An
        example of why this is good is when we only need the shape of a
        variable: we will be able to obtain it without computing the
        variable itself.
@@ -192,8 +192,8 @@ There are less methods to define for an Op than for a Type:
        the shape of one output.
 
        For example, for the matrix-matrix product ``infer_shape`` will
-       have as inputs (node, ((x0,x1), (y0,y1))) and should return
-       [(x0, y1)]. Both the inputs and the return value may be Theano
+       have as inputs ``(fgraph, node, ((x0,x1), (y0,y1)))`` and should return
+       ``[(x0, y1)]``. Both the inputs and the return value may be Theano
        variables.
 
     .. method:: c_code_cache_version()

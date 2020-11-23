@@ -159,10 +159,10 @@ class MPIRecv(Op):
     def __str__(self):
         return f"MPIRecv{{source: {int(self.source)}, tag: {int(self.tag)}, shape: {self.shape}, dtype: {self.dtype}}}"
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [None, self.shape]
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         return False
 
 
@@ -201,7 +201,7 @@ class MPIRecvWait(Op):
 
         out[0][0] = data
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[1]]
 
     view_map = {0: [1]}

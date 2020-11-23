@@ -363,11 +363,11 @@ shows how to print all inputs and outputs:
     from __future__ import print_function
     import theano
 
-    def inspect_inputs(i, node, fn):
+    def inspect_inputs(fgraph, i, node, fn):
         print(i, node, "input(s) value(s):", [input[0] for input in fn.inputs],
               end='')
 
-    def inspect_outputs(i, node, fn):
+    def inspect_outputs(fgraph, i, node, fn):
         print(" output(s) value(s):", [output[0] for output in fn.outputs])
 
     x = theano.tensor.dscalar('x')
@@ -406,7 +406,7 @@ can be achieved as follows:
     # ``theano.compile.monitormode.detect_nan`` that will always
     # contain the current suggested version.
 
-    def detect_nan(i, node, fn):
+    def detect_nan(fgraph, i, node, fn):
         for output in fn.outputs:
             if (not isinstance(output[0], numpy.random.RandomState) and
                 numpy.isnan(output[0]).any()):

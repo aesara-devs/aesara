@@ -1164,7 +1164,7 @@ class TensorFromScalar(Op):
         (out,) = out_
         out[0] = np.asarray(s)
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         return [()]
 
     def grad(self, inp, grads):
@@ -1203,7 +1203,7 @@ class ScalarFromTensor(Op):
         (out,) = out_
         out[0] = s.flatten()[0]
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         return [()]
 
     def grad(self, inp, grads):
@@ -1467,7 +1467,7 @@ class MaxAndArgmax(Op):
     def c_code_cache_version(self):
         return (5,)
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         ishape = shapes[0]
         rval = tuple(
             ishape[i]
@@ -1667,7 +1667,7 @@ class Argmax(Op):
     def c_code_cache_version(self):
         return (1,)
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         (ishape,) = shapes
         if self.axis is None:
             return [()]
@@ -2849,7 +2849,7 @@ class Tri(gof.Op):
         (out,) = out_
         out[0] = np.tri(N, M, k, dtype=self.dtype)
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         out_shape = [node.inputs[0], node.inputs[1]]
         return [out_shape]
 
@@ -2963,7 +2963,7 @@ class Eye(gof.Op):
         (out,) = out_
         out[0] = np.eye(n, m, k, dtype=self.dtype)
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         out_shape = [node.inputs[0], node.inputs[1]]
         return [out_shape]
 
@@ -3139,7 +3139,7 @@ class Alloc(gof.Op):
     def c_code_cache_version(self):
         return (2,)
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [node.inputs[1:]]
 
     def connection_pattern(self, node):
@@ -3184,40 +3184,18 @@ class Alloc(gof.Op):
         # change.
         return [gx] + [DisconnectedType()() for i in inputs[1:]]
 
-    def __call__(self, val, *shapes, **kwargs):
-        """
-        If the alloc would be useless, this function returns val.
-
-        If this function is called outside of a graph optimization context
-        (for instance, it is manually called by a user building a graph),
-        then we always return an Alloc node, to allow for DebugMode to check
-        for size mismatches.
-
-        If you always want an Alloc node, call make_node.
-
-        """
-        ret = super().__call__(val, *shapes, **kwargs)
-        try:
-            # It makes optimization difficult when useless allocs are thrown
-            # into the graph at every stage of optimization.  This little logic
-            # tries to help at least in some cases.
-            if hasattr(val, "fgraph") and (val.type == ret.type):
-                return val
-        except AttributeError:
-            pass
-        return ret
-
     def R_op(self, inputs, eval_points):
         if eval_points[0] is None:
             return [None]
         return self(eval_points[0], *inputs[1:], **dict(return_list=True))
 
-    def do_constant_folding(self, node):
-        if not getattr(node.outputs[0], "clients", []):
-            # If there are no clients then there is no point doing constant
-            # folding.
+    def do_constant_folding(self, fgraph, node):
+        clients = fgraph.clients[node.outputs[0]]
+
+        if not clients:
             return False
-        for client in node.outputs[0].clients:
+
+        for client in clients:
             if client[0] == "output":
                 # If the output is a constant, it will have to be deepcopied
                 # each time the function is called.  So we do not fold.
@@ -4020,7 +3998,7 @@ class Split(Op):
             outputs[i][0] = x.__getitem__(tuple(general_key)).copy()
             lower_idx = upper_idx
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         axis = node.inputs[1]
         splits = node.inputs[2]
         shp_x, shp_axis, shp_splits = in_shapes
@@ -4586,7 +4564,7 @@ class Join(Op):
 
         return rval
 
-    def infer_shape(self, node, ishapes):
+    def infer_shape(self, fgraph, node, ishapes):
         # ishapes[0] contains the size of the axis on which we join
         # Join op should get at least one input to join
         assert len(ishapes) > 1
@@ -5125,7 +5103,7 @@ class Reshape(Op):
             return [None]
         return self(eval_points[0], *inputs[1:], **dict(return_list=True))
 
-    def infer_shape(self, node, ishapes):
+    def infer_shape(self, fgraph, node, ishapes):
         # inputs[1] can contain at most one value of '-1', meaning the actual
         # shape of the output will be automatically computed by reshape, so
         # that the total number of elements stays the same.
@@ -5324,7 +5302,7 @@ class Flatten(Op):
             newshape = x.shape[: outdim - 1] + (np.prod(x.shape[outdim - 1 :]),)
             out[0] = x.reshape(newshape)
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         (in_shp,) = in_shapes
         part1 = in_shp[: self.outdim - 1]
         part2 = in_shp[self.outdim - 1 :]
@@ -5571,7 +5549,7 @@ class Tile(Op):
                 res = res.copy()
         out[0] = res
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         # Note: in contrast with numpy, it is assumed that x.shape and reps
         # have equal length;  see also tile function below
 
@@ -5708,7 +5686,7 @@ class ARange(Op):
         return Apply(self, inputs, outputs)
 
     @theano.configparser.change_flags(warn_float64="ignore")
-    def infer_shape(self, node, i_shapes):
+    def infer_shape(self, fgraph, node, i_shapes):
         # Note start, stop and step can be float numbers.
         start, stop, step = node.inputs
 
@@ -6060,7 +6038,7 @@ class PermuteRowElements(Op):
 
         self._rec_perform(node, x, y, inverse, outs[0], curdim=0)
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         shp_x = in_shapes[0]
         shp_y = in_shapes[1]
         assert len(shp_x) == len(shp_y)
@@ -6268,7 +6246,7 @@ class Dot(Op):
         else:
             return [t2]
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         xshp, yshp = shapes
         x, y = node.inputs
 
@@ -6743,7 +6721,7 @@ class ExtractDiag(Op):
             )
             return [grad_not_implemented(self, 0, x)]
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         (in_shape,) = shapes
         dim1 = in_shape[self.axis1]
         dim2 = in_shape[self.axis2]
@@ -6902,7 +6880,7 @@ class AllocDiag(Op):
         (gz,) = gout
         return [diagonal(gz, offset=self.offset, axis1=self.axis1, axis2=self.axis2)]
 
-    def infer_shape(self, nodes, shapes):
+    def infer_shape(self, fgraph, nodes, shapes):
         (x_shape,) = shapes
         axis1 = np.minimum(self.axis1, self.axis2)
         axis2 = np.maximum(self.axis1, self.axis2)
@@ -7108,7 +7086,7 @@ class Choose(Op):
         assert mode in ("raise", "wrap", "clip")
         self.mode = mode
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
 
         a_shape, choices_shape = shapes
         out_shape = theano.tensor.extra_ops.broadcast_shape(
@@ -7135,7 +7113,7 @@ class Choose(Op):
         else:
             choice = as_tensor_variable(choices)
         (out_shape,) = self.infer_shape(
-            None, [tuple(a.shape), tuple(theano.tensor.basic.shape(choice))]
+            None, None, [tuple(a.shape), tuple(theano.tensor.basic.shape(choice))]
         )
 
         bcast = []
@@ -7244,13 +7222,13 @@ class AllocEmpty(gof.Op):
         )
         return str
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [node.inputs]
 
     def c_code_cache_version(self):
         return (4,)
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         return False
 
     def connection_pattern(self, node):

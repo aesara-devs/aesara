@@ -348,7 +348,7 @@ cger_no_inplace = CGer(False)
 
 
 @local_optimizer([ger, ger_destructive])
-def use_c_ger(node):
+def use_c_ger(fgraph, node):
     if not config.blas.ldflags:
         return
     # Only float32 and float64 are supported for now.
@@ -359,7 +359,7 @@ def use_c_ger(node):
 
 
 @local_optimizer([CGer(False)])
-def make_c_ger_destructive(node):
+def make_c_ger_destructive(fgraph, node):
     if isinstance(node.op, CGer) and not node.op.destructive:
         return [cger_inplace(*node.inputs)]
 
@@ -703,7 +703,7 @@ check_force_gemv_init._force_init_beta = None
 
 
 @local_optimizer([gemv_inplace, gemv_no_inplace])
-def use_c_gemv(node):
+def use_c_gemv(fgraph, node):
     if not config.blas.ldflags:
         return
     # Only float32 and float64 are supported for now.
@@ -714,14 +714,14 @@ def use_c_gemv(node):
 
 
 @local_optimizer([CGemv(inplace=False)])
-def make_c_gemv_destructive(node):
+def make_c_gemv_destructive(fgraph, node):
     if isinstance(node.op, CGemv) and not node.op.inplace:
         inputs = list(node.inputs)
         dest = inputs[0]
         if (
             dest.owner
             and isinstance(dest.owner.op, tt.AllocEmpty)
-            and len(dest.clients) > 1
+            and len(fgraph.clients[dest]) > 1
         ):
             inputs[0] = tt.AllocEmpty(dest.dtype)(*dest.owner.inputs)
 

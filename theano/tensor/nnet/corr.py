@@ -697,7 +697,7 @@ class CorrMM(BaseCorrMM):
         dtype = img.type.dtype
         return Apply(self, [img, kern], [TensorType(dtype, broadcastable)()])
 
-    def infer_shape(self, node, input_shape):
+    def infer_shape(self, fgraph, node, input_shape):
         imshp = input_shape[0]
         kshp = input_shape[1]
         res = get_conv_output_shape(
@@ -786,7 +786,7 @@ class CorrMM_gradWeights(BaseCorrMM):
             self, [img, topgrad] + height_width, [TensorType(dtype, broadcastable)()]
         )
 
-    def infer_shape(self, node, input_shape):
+    def infer_shape(self, fgraph, node, input_shape):
         if self.border_mode == "half":
             padH_l = padH_r = padW_l = padW_r = -1
         elif self.border_mode == "full":
@@ -914,7 +914,7 @@ class CorrMM_gradInputs(BaseCorrMM):
             self, [kern, topgrad] + height_width, [TensorType(dtype, broadcastable)()]
         )
 
-    def infer_shape(self, node, input_shape):
+    def infer_shape(self, fgraph, node, input_shape):
         if self.border_mode == "half":
             padH_l = padH_r = padW_l = padW_r = -1
         elif self.border_mode == "full":

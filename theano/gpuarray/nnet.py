@@ -520,7 +520,7 @@ class GpuSoftmax(GpuKernelBase, Op):
         x = as_gpuarray_variable(x, infer_context_name(x))
         return Apply(self, [x], [x.type()])
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         return shape
 
     def c_code_cache_version(self):
@@ -820,7 +820,7 @@ class GpuSoftmaxWithBias(GpuKernelBase, Op):
         b = as_gpuarray_variable(b, ctx_name)
         return Apply(self, [x, b], [x.type()])
 
-    def infer_shape(self, node, shape):
+    def infer_shape(self, fgraph, node, shape):
         return [shape[0]]
 
     def c_code_cache_version(self):

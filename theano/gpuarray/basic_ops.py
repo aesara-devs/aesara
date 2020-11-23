@@ -672,7 +672,7 @@ class HostFromGpu(Op):
         (ev,) = eval_points
         return [self(ev)]
 
-    def infer_shape(self, node, xshp):
+    def infer_shape(self, fgraph, node, xshp):
         return xshp
 
 
@@ -729,7 +729,7 @@ class GpuFromHost(Op):
         (ev,) = eval_points
         return [self(ev)]
 
-    def infer_shape(self, node, xshp):
+    def infer_shape(self, fgraph, node, xshp):
         return xshp
 
     def c_headers(self):
@@ -828,7 +828,7 @@ class GpuToGpu(Op):
     def R_op(self, inputs, eval_points):
         return self(eval_points[0])
 
-    def infer_shape(self, node, xshp):
+    def infer_shape(self, fgraph, node, xshp):
         return xshp
 
     def c_code(self, node, name, inputs, outputs, sub):
@@ -992,10 +992,10 @@ class GpuAlloc(HideC, Alloc):
     def c_code_cache_version(self):
         return (4,)
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         from . import blas, subtensor
 
-        for client in node.outputs[0].clients:
+        for client in fgraph.clients[node.outputs[0]]:
             if client[0] == "output":
                 # If the output is a constant, it will have to be deepcopied
                 # each time the function is called.  So we do not fold.
@@ -1117,10 +1117,10 @@ if (theano_prep_output(&%(zz)s, %(ndim)s, shape, %(params)s->typecode, GA_C_ORDE
     def c_code_cache_version(self):
         return (2,)
 
-    def do_constant_folding(self, node):
+    def do_constant_folding(self, fgraph, node):
         return False
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [node.inputs]
 
     def grad(self, *args):
@@ -1664,20 +1664,23 @@ def profile_printer(
     message, compile_time, fct_call_time, apply_time, apply_cimpl, outputs_size, file
 ):
     if any(
-        [x.op.__class__.__name__.lower().startswith("gpu") for x in apply_time.keys()]
+        [
+            x.op.__class__.__name__.lower().startswith("gpu")
+            for (fgraph, x) in apply_time.keys()
+        ]
     ):
         local_time = sum(apply_time.values())
         print("", file=file)
         print("Some info useful for gpu:", file=file)
 
         fgraphs = set()
-        for node in apply_time.keys():
-            fgraphs.add(node.fgraph)
+        for fgraph, node in apply_time.keys():
+            fgraphs.add(fgraph)
 
         cpu = 0
         gpu = 0
         trans = 0
-        for node, t in apply_time.items():
+        for (fgraph, node), t in apply_time.items():
             if isinstance(node.op, (HostFromGpu, GpuFromHost)):
                 trans += t
             elif node.op.__class__.__name__.lower().startswith("gpu"):
@@ -1773,7 +1776,7 @@ class GpuEye(GpuKernelBase, Op):
 
         return Apply(self, [n, m, k], [otype()])
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         out_shape = [node.inputs[0], node.inputs[1]]
         return [out_shape]
 
@@ -1907,7 +1910,7 @@ class GpuTri(GpuKernelBase, Op):
 
         return Apply(self, [n, m, k], [otype()])
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         out_shape = [node.inputs[0], node.inputs[1]]
         return [out_shape]
 

@@ -25,7 +25,7 @@ _is_dense = sparse._is_dense
 
 
 @gof.local_optimizer([csm_properties])
-def local_csm_properties_csm(node):
+def local_csm_properties_csm(fgraph, node):
     """
     If we find csm_properties(CSM(*args)), then we can replace that with the
     *args directly.
@@ -50,7 +50,7 @@ register_specialize(local_csm_properties_csm)
 
 # This is tested in tests/test_basic.py:test_remove0
 @gof.local_optimizer([sparse.Remove0])
-def local_inplace_remove0(node):
+def local_inplace_remove0(fgraph, node):
     """
     Optimization to insert inplace versions of Remove0.
 
@@ -181,7 +181,7 @@ class AddSD_ccode(gof.op.Op):
         )
         return code
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[3]]
 
     def c_code_cache_version(self):
@@ -189,7 +189,7 @@ class AddSD_ccode(gof.op.Op):
 
 
 @gof.local_optimizer([sparse.AddSD])
-def local_inplace_addsd_ccode(node):
+def local_inplace_addsd_ccode(fgraph, node):
     """
     Optimization to insert inplace versions of AddSD.
 
@@ -219,7 +219,7 @@ theano.compile.optdb.register(
 @register_canonicalize("fast_compile")
 @register_specialize
 @gof.local_optimizer([sparse.DenseFromSparse])
-def local_dense_from_sparse_sparse_from_dense(node):
+def local_dense_from_sparse_sparse_from_dense(fgraph, node):
     if isinstance(node.op, sparse.DenseFromSparse):
         inp = node.inputs[0]
         if inp.owner and isinstance(inp.owner.op, sparse.SparseFromDense):
@@ -227,7 +227,7 @@ def local_dense_from_sparse_sparse_from_dense(node):
 
 
 @gof.local_optimizer([sparse.AddSD])
-def local_addsd_ccode(node):
+def local_addsd_ccode(fgraph, node):
     """
     Convert AddSD to faster AddSD_ccode.
 
@@ -639,7 +639,7 @@ sd_csr = StructuredDotCSR()
 # register a specialization to replace StructuredDot -> StructuredDotCSx
 # This is tested in tests/test_basic.py:792
 @gof.local_optimizer([sparse._structured_dot])
-def local_structured_dot(node):
+def local_structured_dot(fgraph, node):
     if node.op == sparse._structured_dot:
         a, b = node.inputs
         if a.type.format == "csc":
@@ -951,7 +951,7 @@ register_specialize(local_usmm, name="local_usmm")
 # register a specialization to replace usmm_csc_dense -> usmm_csc_dense_inplace
 # This is tested in tests/test_basic.py:UsmmTests
 @gof.local_optimizer([usmm_csc_dense])
-def local_usmm_csc_dense_inplace(node):
+def local_usmm_csc_dense_inplace(fgraph, node):
     if node.op == usmm_csc_dense:
         return [usmm_csc_dense_inplace(*node.inputs)]
 
@@ -961,7 +961,7 @@ register_specialize(local_usmm_csc_dense_inplace, "cxx_only", "inplace")
 
 # This is tested in tests/test_basic.py:UsmmTests
 @gof.local_optimizer([usmm])
-def local_usmm_csx(node):
+def local_usmm_csx(fgraph, node):
     """
     usmm -> usmm_csc_dense
 
@@ -1121,7 +1121,7 @@ csm_grad_c = CSMGradC()
 # register a specialization to replace csm_grad -> csm_grad_c
 # This is tested in tests/test_opt.py:test_local_csm_grad_c
 @gof.local_optimizer([csm_grad(None)])
-def local_csm_grad_c(node):
+def local_csm_grad_c(fgraph, node):
     """
     csm_grad(None) -> csm_grad_c
 
@@ -1411,7 +1411,7 @@ mul_s_d_csr = MulSDCSR()
 
 # register a specialization to replace MulSD -> MulSDCSX
 @gof.local_optimizer([sparse.mul_s_d])
-def local_mul_s_d(node):
+def local_mul_s_d(fgraph, node):
     if node.op == sparse.mul_s_d:
         x, y = node.inputs
 
@@ -1591,7 +1591,7 @@ mul_s_v_csr = MulSVCSR()
 
 # register a specialization to replace MulSV -> MulSVCSR
 @gof.local_optimizer([sparse.mul_s_v])
-def local_mul_s_v(node):
+def local_mul_s_v(fgraph, node):
     if node.op == sparse.mul_s_v:
         x, y = node.inputs
 
@@ -1769,7 +1769,7 @@ structured_add_s_v_csr = StructuredAddSVCSR()
 # register a specialization to replace
 # structured_add_s_v -> structured_add_s_v_csr
 @gof.local_optimizer([sparse.structured_add_s_v])
-def local_structured_add_s_v(node):
+def local_structured_add_s_v(fgraph, node):
     if node.op == sparse.structured_add_s_v:
         x, y = node.inputs
 
@@ -2056,7 +2056,7 @@ sampling_dot_csr = SamplingDotCSR()
 
 # register a specialization to replace SamplingDot -> SamplingDotCsr
 @gof.local_optimizer([sparse.sampling_dot])
-def local_sampling_dot_csr(node):
+def local_sampling_dot_csr(fgraph, node):
     if not theano.config.blas.ldflags:
         # The C implementation of SamplingDotCsr relies on BLAS routines
         return

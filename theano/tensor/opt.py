@@ -32,14 +32,7 @@ from theano.gof import (
     toolbox,
 )
 from theano.gof.op import Op
-from theano.gof.opt import (
-    Optimizer,
-    copy_stack_trace,
-    in2out,
-    local_optimizer,
-    pre_constant_merge,
-    pre_greedy_local_optimizer,
-)
+from theano.gof.opt import GlobalOptimizer, copy_stack_trace, in2out, local_optimizer
 from theano.gof.utils import MethodNotDefined, TestValueError
 from theano.gradient import DisconnectedType
 
@@ -214,7 +207,7 @@ def broadcast_like(value, template, fgraph, dtype=None):
     return rval
 
 
-class InplaceElemwiseOptimizer(Optimizer):
+class InplaceElemwiseOptimizer(GlobalOptimizer):
     """
     We parametrise it to make it work for Elemwise and GpuElemwise op.
     """
@@ -626,7 +619,7 @@ def register_specialize_device(lopt, *tags, **kwargs):
 @register_canonicalize
 @register_stabilize
 @local_optimizer([Dot])
-def local_0_dot_x(node):
+def local_0_dot_x(fgraph, node):
     if not isinstance(node.op, Dot):
         return False
 
@@ -669,17 +662,12 @@ def local_0_dot_x(node):
             )
 
 
-######################
-# DimShuffle lifters #
-######################
-
-
-def apply_local_dimshuffle_lift(var):
+def apply_local_dimshuffle_lift(fgraph, var):
     # return var
     # lift recursively
     if not var.owner:
         return var
-    new = local_dimshuffle_lift.transform(var.owner)
+    new = local_dimshuffle_lift.transform(fgraph, var.owner)
     if new:
         return new[0]
     return var
@@ -710,7 +698,7 @@ def is_dimshuffle_useless(new_order, input):
 
 
 @local_optimizer([DimShuffle])
-def local_dimshuffle_lift(node):
+def local_dimshuffle_lift(fgraph, node):
     """
     "Lifts" DimShuffle through Elemwise operations and merges
     consecutive DimShuffles. Basically, applies the following
@@ -731,12 +719,12 @@ def local_dimshuffle_lift(node):
     input = node.inputs[0]
     inode = input.owner
     new_order = op.new_order
-    if inode and isinstance(inode.op, Elemwise) and (len(input.clients) == 1):
+    if inode and isinstance(inode.op, Elemwise) and (len(fgraph.clients[input]) == 1):
         # Don't use make_node to have tag.test_value set.
         new_inputs = []
         for inp in inode.inputs:
             new_inp = op.__class__(inp.type.broadcastable, op.new_order)(inp)
-            new_inputs.append(apply_local_dimshuffle_lift(new_inp))
+            new_inputs.append(apply_local_dimshuffle_lift(fgraph, new_inp))
         copy_stack_trace(node.outputs[0], new_inputs)
         ret = inode.op(*new_inputs, **dict(return_list=True))
         return ret
@@ -748,14 +736,14 @@ def local_dimshuffle_lift(node):
         return [input]
     elif inode and isinstance(inode.op, DimShuffle):
         ret = op.__class__(input.type.broadcastable, new_order)(input)
-        ret = apply_local_dimshuffle_lift(ret)
+        ret = apply_local_dimshuffle_lift(fgraph, ret)
         copy_stack_trace(node.outputs[0], ret)
         return [ret]
 
 
 @register_canonicalize
 @local_optimizer([Reshape])
-def local_useless_dimshuffle_in_reshape(node):
+def local_useless_dimshuffle_in_reshape(fgraph, node):
     """
     Removes useless DimShuffle operation inside Reshape:
 
@@ -794,7 +782,7 @@ def local_useless_dimshuffle_in_reshape(node):
 
 @register_canonicalize
 @local_optimizer([DimShuffle])
-def local_lift_transpose_through_dot(node):
+def local_lift_transpose_through_dot(fgraph, node):
     """
     dot(x,y).T -> dot(y.T, x.T)
 
@@ -833,7 +821,7 @@ register_specialize(local_dimshuffle_lift)
 @register_canonicalize
 @register_specialize
 @local_optimizer([TensorFromScalar])
-def local_tensor_scalar_tensor(node):
+def local_tensor_scalar_tensor(fgraph, node):
     """tensor_from_scalar(scalar_from_tensor(x)) -> x"""
     if isinstance(node.op, TensorFromScalar):
         s = node.inputs[0]
@@ -847,7 +835,7 @@ def local_tensor_scalar_tensor(node):
 @register_canonicalize
 @register_specialize
 @local_optimizer([ScalarFromTensor])
-def local_scalar_tensor_scalar(node):
+def local_scalar_tensor_scalar(fgraph, node):
     """scalar_from_tensor(tensor_from_scalar(x)) -> x"""
     if isinstance(node.op, ScalarFromTensor):
         t = node.inputs[0]
@@ -953,7 +941,7 @@ class MakeVector(Op):
             )
         return ret
 
-    def infer_shape(self, node, ishapes):
+    def infer_shape(self, fgraph, node, ishapes):
         return [(len(ishapes),)]
 
     def grad(self, inputs, output_gradients):
@@ -994,7 +982,7 @@ class MakeVectorPrinter:
 tt.pprint.assign(MakeVector, MakeVectorPrinter())
 
 
-class ShapeFeature:
+class ShapeFeature(toolbox.Feature):
     """Graph optimizer for removing all calls to shape().
 
     This optimizer replaces all Shapes and Subtensors of Shapes with
@@ -1020,7 +1008,7 @@ class ShapeFeature:
 
     Lifting is done by using an `<Op>.infer_shape` function if one is
     present, or else using a conservative default.  An Op that
-    supports shape-lifting should define a infer_shape(self, node,
+    supports shape-lifting should define a infer_shape(self, fgraph, node,
     input_shapes) function.  The argument input_shapes is a tuple of
     tuples... there is an interior tuple for each input to the node.
     The tuple has as many elements as dimensions.  The element in
@@ -1066,7 +1054,7 @@ class ShapeFeature:
     .. code-block:: python
 
         try:
-            shape_of = node.fgraph.shape_feature.shape_of
+            shape_of = fgraph.shape_feature.shape_of
         except AttributeError:
             # This can happen when the mode doesn't include the ShapeFeature.
             return
@@ -1089,10 +1077,12 @@ class ShapeFeature:
             shape_infer = self.default_infer_shape
 
         try:
-            o_shapes = shape_infer(node, [self.shape_of[r] for r in node.inputs])
+            o_shapes = shape_infer(
+                self.fgraph, node, [self.shape_of[r] for r in node.inputs]
+            )
         except ShapeError:
             o_shapes = self.default_infer_shape(
-                node, [self.shape_of[r] for r in node.inputs]
+                self.fgraph, node, [self.shape_of[r] for r in node.inputs]
             )
         except NotImplementedError as e:
             raise NotImplementedError(
@@ -1113,7 +1103,7 @@ class ShapeFeature:
             else:
                 _logger.warning(msg)
             o_shapes = self.default_infer_shape(
-                node, [self.shape_of[r] for r in node.inputs]
+                self.fgraph, node, [self.shape_of[r] for r in node.inputs]
             )
 
         return o_shapes
@@ -1130,7 +1120,7 @@ class ShapeFeature:
         if (
             r.owner
             and isinstance(r.owner.op, Shape_i)
-            and r.owner.inputs[0] not in var.fgraph.variables
+            and r.owner.inputs[0] not in self.fgraph.variables
         ):
             assert var.owner
             node = var.owner
@@ -1154,7 +1144,7 @@ class ShapeFeature:
                     if (
                         n_r.owner
                         and isinstance(n_r.owner.op, Shape_i)
-                        and n_r.owner.inputs[0] not in var.fgraph.variables
+                        and n_r.owner.inputs[0] not in self.fgraph.variables
                     ):
                         changed = True
                         merged_shps[i] = new_shps[i]
@@ -1183,7 +1173,7 @@ class ShapeFeature:
             return None
         return tuple([self.shape_ir(i, r) for i in range(r.ndim)])
 
-    def default_infer_shape(self, node, i_shapes):
+    def default_infer_shape(self, fgraph, node, i_shapes):
         """Return a list of shape tuple or None for the outputs of node.
 
         This function is used for Ops that don't implement infer_shape.
@@ -1455,26 +1445,29 @@ class ShapeFeature:
     def make_vector_shape(self, r):
         return make_vector(*self.shape_of[r])
 
-    #
-    # Feature interface
-    #
-    #
     def on_attach(self, fgraph):
-        assert not hasattr(fgraph, "shape_feature")
+
+        if getattr(self, "fgraph", None):
+            raise ValueError("This ShapeFeature is already attached to a graph")
+
+        self.fgraph = fgraph
+
+        if hasattr(fgraph, "shape_feature"):
+            raise ValueError("This FunctionGraph already has a ShapeFeature")
+
         fgraph.shape_feature = self
         # Must be local to the object as otherwise we reuse the same
         # variable for multiple fgraph!
         self.lscalar_one = tt.constant(1, dtype="int64")
         assert self.lscalar_one.type == tt.lscalar
 
-        self.shape_of = {}
+        self.fgraph = fgraph
         # Variable -> tuple(scalars) or None  (All tensor vars map to tuple)
-
-        self.scheduled = {}
+        self.shape_of = {}
         # Variable ->
-
-        self.shape_of_reverse_index = {}
+        self.scheduled = {}
         # shape var -> graph v
+        self.shape_of_reverse_index = {}
 
         for node in fgraph.toposort():
             self.on_import(fgraph, node, reason="on_attach")
@@ -1483,6 +1476,7 @@ class ShapeFeature:
         self.shape_of = {}
         self.scheduled = {}
         self.shape_of_reverse_index = {}
+        self.fgraph = None
         del fgraph.shape_feature
 
     def on_import(self, fgraph, node, reason):
@@ -1565,7 +1559,7 @@ class ShapeFeature:
         # replace the shape_i of r with the shape of new_r.  Say that
         # r is *scheduled*.
         # At that point, node is no longer a client of r, but of new_r
-        for (shpnode, idx) in r.clients + [(node, i)]:
+        for (shpnode, idx) in fgraph.clients[r] + [(node, i)]:
             if isinstance(getattr(shpnode, "op", None), Shape_i):
                 idx = shpnode.op.i
                 repl = self.shape_of[new_r][idx]
@@ -1664,7 +1658,7 @@ class ShapeFeature:
         return True
 
 
-class ShapeOptimizer(Optimizer):
+class ShapeOptimizer(GlobalOptimizer):
     """Optimizer that serves to add ShapeFeature as an fgraph feature."""
 
     def add_requirements(self, fgraph):
@@ -1674,7 +1668,7 @@ class ShapeOptimizer(Optimizer):
         pass
 
 
-class UnShapeOptimizer(Optimizer):
+class UnShapeOptimizer(GlobalOptimizer):
     """Optimizer remove ShapeFeature as an fgraph feature."""
 
     def apply(self, fgraph):
@@ -1695,7 +1689,7 @@ theano.compile.mode.optdb.register("UnShapeOpt", UnShapeOptimizer(), 10)
 
 
 def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
-    def local_elemwise_alloc(node):
+    def local_elemwise_alloc(fgraph, node):
         """
         elemwise(alloc(x, shp), ..., y.TensorType(BROADCAST CONDITION))
           -> elemwise(x, y.TensorType(BROADCAST CONDITION))
@@ -1798,7 +1792,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
         assert_op = node.inputs[assert_op_idx]
         cmp_op = assert_op
         new_i = []
-        same_shape = node.fgraph.shape_feature.same_shape
+        same_shape = fgraph.shape_feature.same_shape
         for i in node.inputs:
             # Remove alloc
             if (
@@ -1810,7 +1804,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
                 # will remove that alloc later
                 assert i.type.ndim == cmp_op.ndim
                 if theano.config.experimental.local_alloc_elemwise_assert:
-                    get_shape = node.fgraph.shape_feature.get_shape
+                    get_shape = fgraph.shape_feature.get_shape
                     cond = []
                     for idx in range(i.type.ndim):
                         if not i.type.broadcastable[idx] and not same_shape(
@@ -1878,7 +1872,7 @@ local_elemwise_alloc = register_specialize(
 
 
 @local_optimizer([Elemwise])
-def local_fill_sink(node):
+def local_fill_sink(fgraph, node):
     """
     f(fill(a, b), fill(c, d), e) -> fill(c, fill(a, f(b, d, e)))
     f need to be an elemwise that isn't a fill.
@@ -1903,7 +1897,7 @@ def local_fill_sink(node):
     # The newly created node c doesn't has 'clients',
     # so this iteration is took place with node.outputs[0]
     replacements = {node.outputs[0]: c}
-    for client, cl_idx in node.outputs[0].clients:
+    for client, cl_idx in fgraph.clients[node.outputs[0]]:
         if (
             hasattr(client, "op")
             and isinstance(client.op, Elemwise)
@@ -1914,8 +1908,10 @@ def local_fill_sink(node):
             new_client = client.op(*client_inputs)
 
             # Add clients to new_client
-            new_client.owner.outputs[0].clients = client.outputs[0].clients
-            r = local_fill_sink.transform(new_client.owner)
+            fgraph.clients[new_client.owner.outputs[0]] = fgraph.clients[
+                client.outputs[0]
+            ]
+            r = local_fill_sink.transform(fgraph, new_client.owner)
             if not r:
                 continue
             replacements.update(r)
@@ -1929,7 +1925,7 @@ register_canonicalize(local_fill_sink)
 @register_stabilize
 # @register_canonicalize  # We make full pass after the canonizer phase.
 @local_optimizer([fill])
-def local_fill_to_alloc(node):
+def local_fill_to_alloc(fgraph, node):
     """fill(s,v) -> alloc(v, shape(s))
 
     This is an important optimization because with the shape_to_shape_i
@@ -1946,7 +1942,7 @@ def local_fill_to_alloc(node):
             rval = [tt.cast(v, node.outputs[0].type.dtype)]
         elif r.type.broadcastable == node.outputs[0].type.broadcastable:
             # we are broadcasting v somehow, but not r
-            o = broadcast_like(v, r, node.fgraph, dtype=v.dtype)
+            o = broadcast_like(v, r, fgraph, dtype=v.dtype)
             copy_stack_trace(node.outputs[0], o)
             rval = [o]
         else:
@@ -1987,7 +1983,7 @@ compile.optdb.register(
 @register_canonicalize("fast_compile")
 @register_useless
 @local_optimizer([fill])
-def local_useless_fill(node):
+def local_useless_fill(fgraph, node):
     """fill(s,v) -> v
 
     This optimization is only needed in FAST_COMPILE to make the code
@@ -2008,7 +2004,7 @@ def local_useless_fill(node):
 @register_canonicalize
 @register_useless
 @local_optimizer([alloc])
-def local_useless_alloc(node):
+def local_useless_alloc(fgraph, node):
     """
     If the input type is the same as the output type (dtype and broadcast)
     there is no change in the shape of the input. So this is just a simple copy
@@ -2032,7 +2028,7 @@ def local_useless_alloc(node):
 @register_stabilize
 @register_canonicalize
 @local_optimizer([alloc])
-def local_canonicalize_alloc(node):
+def local_canonicalize_alloc(fgraph, node):
     """If the input type is the same as the output type (dtype and broadcast)
     there is no change in the shape of the input. So this is just a simple copy
     of the input. This is not needed. (as local_useless_alloc)
@@ -2057,7 +2053,7 @@ def local_canonicalize_alloc(node):
         return [input]
 
     # Allow local_merge_alloc to do its work first
-    clients = getattr(output, "clients", [])
+    clients = fgraph.clients[output]
     for client, i in clients:
         if client != "output" and isinstance(client.op, Alloc):
             return
@@ -2088,7 +2084,7 @@ def local_canonicalize_alloc(node):
 
 # Don't register by default.
 @local_optimizer([AllocEmpty])
-def local_alloc_empty_to_zeros(node):
+def local_alloc_empty_to_zeros(fgraph, node):
     """This convert AllocEmpty to Alloc of 0.
 
     This help investigate NaN with NanGuardMode.  Not registered by
@@ -2113,12 +2109,12 @@ compile.optdb.register(
 @register_specialize
 @register_canonicalize
 @local_optimizer([Shape])
-def local_shape_to_shape_i(node):
+def local_shape_to_shape_i(fgraph, node):
     if node.op == tt.shape:
         # This optimization needs ShapeOpt and fgraph.shape_feature
-        if not hasattr(node.fgraph, "shape_feature"):
+        if not hasattr(fgraph, "shape_feature"):
             return
-        shape_feature = node.fgraph.shape_feature
+        shape_feature = fgraph.shape_feature
         ret = shape_feature.make_vector_shape(node.inputs[0])
 
         # We need to copy over stack trace from input to output
@@ -2130,9 +2126,9 @@ def local_shape_to_shape_i(node):
 @register_specialize
 @register_canonicalize
 @local_optimizer(None)
-def local_track_shape_i(node):
+def local_track_shape_i(fgraph, node):
     try:
-        shape_feature = node.fgraph.shape_feature
+        shape_feature = fgraph.shape_feature
     except AttributeError:
         return
     if node in shape_feature.scheduled:
@@ -2147,7 +2143,7 @@ def local_track_shape_i(node):
 @register_specialize
 @register_canonicalize
 @local_optimizer([Subtensor])
-def local_subtensor_inc_subtensor(node):
+def local_subtensor_inc_subtensor(fgraph, node):
     """
     Subtensor(SetSubtensor(x, y, idx), idx) -> y
 
@@ -2183,7 +2179,7 @@ def local_subtensor_inc_subtensor(node):
 @register_specialize
 @register_canonicalize
 @local_optimizer([Subtensor])
-def local_subtensor_remove_broadcastable_index(node):
+def local_subtensor_remove_broadcastable_index(fgraph, node):
     """
     Remove broadcastable dimension with index 0 or -1
     a[:,:,:,0] -> a.dimshuffle(0,1,2), when
@@ -2232,7 +2228,7 @@ def local_subtensor_remove_broadcastable_index(node):
 @register_canonicalize("fast_compile_gpu")
 @register_useless
 @local_optimizer([Subtensor, AdvancedSubtensor1])
-def local_subtensor_make_vector(node):
+def local_subtensor_make_vector(fgraph, node):
     """
     Replace all subtensor(make_vector) like:
     [a,b,c][0] -> a
@@ -2319,7 +2315,7 @@ def local_subtensor_make_vector(node):
 @register_canonicalize("fast_compile")
 @register_specialize
 @local_optimizer([Elemwise])
-def local_useless_elemwise(node):
+def local_useless_elemwise(fgraph, node):
     """
     eq(x, x) -> 1
     neq(x, x) -> 0
@@ -2424,7 +2420,7 @@ def local_useless_elemwise(node):
 
 @register_specialize
 @local_optimizer([Elemwise])
-def local_alloc_unary(node):
+def local_alloc_unary(fgraph, node):
     """unary(alloc(x, shp)) -> alloc(unary(x), shp)"""
     if isinstance(node.op, Elemwise) and len(node.inputs) == 1:
         a = node.inputs[0]
@@ -2446,7 +2442,7 @@ def local_alloc_unary(node):
 @register_canonicalize
 @register_specialize
 @local_optimizer([Elemwise])
-def local_cast_cast(node):
+def local_cast_cast(fgraph, node):
     """cast(cast(x, dtype1), dtype2)
 
     when those contrain:
@@ -2524,7 +2520,7 @@ def is_an_upcast(type1, type2):
 @register_canonicalize
 @register_specialize
 @local_optimizer([Elemwise])
-def local_func_inv(node):
+def local_func_inv(fgraph, node):
     """
     Check for two consecutive operations that are functional inverses
     and remove them from the function graph.
@@ -2656,7 +2652,7 @@ class Assert(Op):
     def c_code_cache_version(self):
         return (3, 0)
 
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         return [input_shapes[0]]
 
 
@@ -2669,7 +2665,7 @@ assert_op = assert_
 
 @register_specialize
 @local_optimizer([Assert])
-def local_remove_useless_assert(node):
+def local_remove_useless_assert(fgraph, node):
     if isinstance(node.op, Assert):
         cond = []
         for c in node.inputs[1:]:
@@ -2695,7 +2691,7 @@ def local_remove_useless_assert(node):
 
 
 @local_optimizer([Assert])
-def local_remove_all_assert(node):
+def local_remove_all_assert(fgraph, node):
     """An optimization disabled by default that removes all asserts from
     the graph.
 
@@ -2744,7 +2740,7 @@ compile.optdb["useless"].register(
 
 @register_canonicalize
 @local_optimizer([Elemwise])
-def local_upcast_elemwise_constant_inputs(node):
+def local_upcast_elemwise_constant_inputs(fgraph, node):
     """This explicitly upcasts constant inputs to elemwise Ops, when
     those Ops do implicit upcasting anyway.
 
@@ -2754,7 +2750,7 @@ def local_upcast_elemwise_constant_inputs(node):
     if len(node.outputs) > 1:
         return
     try:
-        shape_i = node.fgraph.shape_feature.shape_i
+        shape_i = fgraph.shape_feature.shape_i
     except AttributeError:
         shape_i = None
     if isinstance(node.op, Elemwise):
@@ -2824,7 +2820,7 @@ def local_upcast_elemwise_constant_inputs(node):
 @register_canonicalize
 @register_specialize
 @local_optimizer([IncSubtensor])
-def local_useless_inc_subtensor(node):
+def local_useless_inc_subtensor(fgraph, node):
     """
     Remove IncSubtensor, when we overwrite the full inputs with the
     new value.
@@ -2865,9 +2861,9 @@ def local_useless_inc_subtensor(node):
     ):
         # IncSubtensor broadcast node.inputs[1] on node.inputs[0]
         # based on run time shapes, so we must check they are the same.
-        if not hasattr(node.fgraph, "shape_feature"):
+        if not hasattr(fgraph, "shape_feature"):
             return
-        if not node.fgraph.shape_feature.same_shape(node.inputs[0], node.inputs[1]):
+        if not fgraph.shape_feature.same_shape(node.inputs[0], node.inputs[1]):
             return
         # There is no reverse, so we don't need a replacement.
         if all(e.step is None for e in node.op.idx_list):
@@ -2881,7 +2877,7 @@ def local_useless_inc_subtensor(node):
 
 @register_canonicalize
 @local_optimizer([AdvancedIncSubtensor1])
-def local_set_to_inc_subtensor(node):
+def local_set_to_inc_subtensor(fgraph, node):
     """
     AdvancedIncSubtensor1(x, x[ilist]+other, ilist, set_instead_of_inc=True) ->
     AdvancedIncSubtensor1(x, other, ilist, set_instead_of_inc=False)
@@ -2923,7 +2919,7 @@ def local_set_to_inc_subtensor(node):
 @register_canonicalize
 @register_specialize
 @local_optimizer([Subtensor])
-def local_useless_slice(node):
+def local_useless_slice(fgraph, node):
     """
     Remove Subtensor of the form X[0, :] -> X[0]
     """
@@ -2959,7 +2955,7 @@ def local_useless_slice(node):
 @register_canonicalize
 @register_specialize
 @local_optimizer([Subtensor, AdvancedSubtensor1])
-def local_useless_subtensor(node):
+def local_useless_subtensor(fgraph, node):
     """
     Remove Subtensor/AdvancedSubtensor1 if it takes the full input. In the
     AdvancedSubtensor1 case, the full input is taken when the indices are
@@ -2967,16 +2963,11 @@ def local_useless_subtensor(node):
     list/vector or the ARange op.
 
     """
-
-    # If the optimization is tried over a node that is not a part of graph before
-    if not hasattr(node, "fgraph"):
-        return
-
     # This optimization needs ShapeOpt and fgraph.shape_feature
-    if not hasattr(node.fgraph, "shape_feature"):
+    if not hasattr(fgraph, "shape_feature"):
         return
 
-    shape_of = node.fgraph.shape_feature.shape_of
+    shape_of = fgraph.shape_feature.shape_of
 
     if isinstance(node.op, Subtensor):
         cdata = node.op.get_constant_idx(
@@ -3095,7 +3086,7 @@ def local_useless_subtensor(node):
 # fast_compile to allow opt subtensor(cast{float32}(make_vector))
 @register_canonicalize("fast_compile")
 @local_optimizer([Subtensor])
-def local_subtensor_lift(node):
+def local_subtensor_lift(fgraph, node):
     """
     unary(x)[idx] -> unary(x[idx])#any broadcast pattern.
 
@@ -3107,7 +3098,7 @@ def local_subtensor_lift(node):
     """
     if isinstance(node.op, Subtensor):
         u = node.inputs[0]
-        if not u.owner or len(u.clients) > 1:
+        if not u.owner or len(fgraph.clients[u]) > 1:
             return False
 
         if isinstance(u.owner.op, Elemwise) and len(u.owner.inputs) == 1:
@@ -3198,7 +3189,7 @@ def local_subtensor_lift(node):
             return [rbcast_subt_x]
 
 
-def merge_two_slices(slice1, len1, slice2, len2):
+def merge_two_slices(fgraph, slice1, len1, slice2, len2):
     """
      This function merges two slices into a single slice. The code works on
      the assumption that:
@@ -3215,13 +3206,6 @@ def merge_two_slices(slice1, len1, slice2, len2):
     ``len1`` is the length of the tensor **before** applying the first slice,
     while ``len2`` is the length **after** applying the first slice.
     """
-    list_opt = [
-        local_abs_merge,
-        local_mul_switch_sink,
-        local_upcast_elemwise_constant_inputs,
-        local_useless_switch,
-        constant_folding,
-    ]
 
     if not isinstance(slice1, slice):
         raise ValueError(
@@ -3254,7 +3238,6 @@ def merge_two_slices(slice1, len1, slice2, len2):
             val = tt.switch(tt.lt(sl2, 0), -len1 - 1, val)
             if sl1.step:
                 val = tt.switch(tt.eq(sl1.step, 0), len1 + 1, val)
-            val = pre_greedy_local_optimizer(list_opt, val)
             return val
         else:
             # We are in the more complex case when we do not actually know
@@ -3280,7 +3263,6 @@ def merge_two_slices(slice1, len1, slice2, len2):
             val = tt.switch(tt.lt(sl2, 0), -len1 - 1, val)
             if sl1.step:
                 val = tt.switch(tt.eq(sl1.step, 0), len1 + 1, val)
-            val = pre_greedy_local_optimizer(list_opt, val)
             return val
     else:
         # We are deleaing with two slices that need to be put together
@@ -3331,27 +3313,13 @@ def merge_two_slices(slice1, len1, slice2, len2):
         start = tt.switch(tt.le(flen, 0), 0, start)
         stop = tt.switch(tt.le(flen, 0), 0, stop)
 
-        # The canonical form of the slice is pretty complicated
-        # and is not simplified. We simplify it in advance here
-        # as otherwise this create too many useless optimization that
-        # DebugMode must check.
-        start = pre_greedy_local_optimizer(list_opt, start)
-        stop = pre_greedy_local_optimizer(list_opt, stop)
-        step = pre_greedy_local_optimizer(list_opt, step)
-        start = pre_greedy_local_optimizer(list_opt, start)
-        stop = pre_greedy_local_optimizer(list_opt, stop)
-        step = pre_greedy_local_optimizer(list_opt, step)
-
-        # Pre merge constant for the same reason.
-        start, stop, step = pre_constant_merge([start, stop, step])
-
         return slice(start, stop, step)
 
 
 @register_canonicalize
 @register_specialize
 @local_optimizer([Subtensor])
-def local_subtensor_merge(node):
+def local_subtensor_merge(fgraph, node):
     """
     Refactored optimization to deal with all cases of tensor merging.
     Given a subgraph of the form Subtensor(Subtensor(u)), the optimization
@@ -3371,8 +3339,8 @@ def local_subtensor_merge(node):
             # Get the shapes of the vectors !
             try:
                 # try not to introduce new shape into the graph
-                xshape = node.fgraph.shape_feature.shape_of[x]
-                ushape = node.fgraph.shape_feature.shape_of[u]
+                xshape = fgraph.shape_feature.shape_of[x]
+                ushape = fgraph.shape_feature.shape_of[u]
             except AttributeError:
                 # Following the suggested use of shape_feature which should
                 # consider the case when the compilation mode doesn't
@@ -3388,7 +3356,7 @@ def local_subtensor_merge(node):
                 if isinstance(slice1, slice):
                     merged_slices.append(
                         merge_two_slices(
-                            slice1, xshape[pos_1], slices2[pos_2], ushape[pos_2]
+                            fgraph, slice1, xshape[pos_1], slices2[pos_2], ushape[pos_2]
                         )
                     )
                     pos_2 += 1
@@ -3431,7 +3399,7 @@ def local_subtensor_merge(node):
 @register_canonicalize
 @register_specialize
 @local_optimizer([Subtensor])
-def local_subtensor_of_alloc(node):
+def local_subtensor_of_alloc(fgraph, node):
     """
 
     alloc(val)[x:y] -> alloc(val[...])
@@ -3505,7 +3473,7 @@ def local_subtensor_of_alloc(node):
 @register_stabilize
 @register_specialize
 @local_optimizer([Subtensor])
-def local_subtensor_of_dot(node):
+def local_subtensor_of_dot(fgraph, node):
     """
     This optimization translates T.dot(A, B)[idxs] into T.dot(A[idxs_a], B[idxs_b]),
     where idxs_a and idxs_b are defined appropriately.
@@ -3522,7 +3490,7 @@ def local_subtensor_of_dot(node):
         return
     # If there is other node that use the outputs of the dot
     # We don't want to compute twice the sub part.
-    if len(node.inputs[0].clients) > 1:
+    if len(fgraph.clients[node.inputs[0]]) > 1:
         return
 
     a = node.inputs[0].owner.inputs[0]
@@ -3566,7 +3534,7 @@ def local_subtensor_of_dot(node):
 
 @register_canonicalize
 @local_optimizer([add])
-def local_IncSubtensor_serialize(node):
+def local_IncSubtensor_serialize(fgraph, node):
     """
     When using Subtensor, gradient graphs can be ugly.
 
@@ -3611,7 +3579,7 @@ def local_IncSubtensor_serialize(node):
                 ),
             )
             and i.type == o_type
-            and len(i.clients) == 1
+            and len(fgraph.clients[i]) == 1
             and not i.owner.op.set_instead_of_inc
         )
 
@@ -3666,7 +3634,7 @@ compile.optdb.register(
 
 
 @local_optimizer([IncSubtensor], inplace=True)
-def local_inplace_setsubtensor(node):
+def local_inplace_setsubtensor(fgraph, node):
     """
     Also work for GpuIncSubtensor.
 
@@ -3703,7 +3671,7 @@ compile.optdb.register(
 
 
 @local_optimizer([AdvancedIncSubtensor1], inplace=True)
-def local_inplace_incsubtensor1(node):
+def local_inplace_incsubtensor1(fgraph, node):
     """
     Also work for GpuAdvancedIncSubtensor1.
 
@@ -3735,7 +3703,7 @@ compile.optdb.register(
 @register_canonicalize("local_incsubtensor_of_allocs")
 @register_stabilize("local_incsubtensor_of_allocs")
 @local_optimizer([IncSubtensor, AdvancedIncSubtensor, AdvancedIncSubtensor1])
-def local_incsubtensor_of_zeros(node):
+def local_incsubtensor_of_zeros(fgraph, node):
     """
     IncSubtensor(x, zeros, idx) -> x
 
@@ -3760,7 +3728,7 @@ def local_incsubtensor_of_zeros(node):
 @register_canonicalize
 @register_specialize
 @local_optimizer([IncSubtensor])
-def local_incsubtensor_of_zeros_to_setsubtensor(node):
+def local_incsubtensor_of_zeros_to_setsubtensor(fgraph, node):
     """
     IncSubtensor(zeros, x, ...) -> SetSubtensor(zeros, x, ...)
     """
@@ -3781,7 +3749,7 @@ def local_incsubtensor_of_zeros_to_setsubtensor(node):
 @register_canonicalize("local_setsubtensor_of_allocs")
 @register_stabilize("local_setsubtensor_of_allocs")
 @local_optimizer([IncSubtensor])
-def local_setsubtensor_of_constants(node):
+def local_setsubtensor_of_constants(fgraph, node):
     """
     SetSubtensor(x, x[idx], idx) -> x
 
@@ -3816,7 +3784,7 @@ def local_setsubtensor_of_constants(node):
 @register_canonicalize
 @register_stabilize
 @local_optimizer([AdvancedSubtensor1])
-def local_adv_sub1_adv_inc_sub1(node):
+def local_adv_sub1_adv_inc_sub1(fgraph, node):
     """Optimize the possible AdvSub1(AdvSetSub1(...), ...).
 
     AdvancedSubtensor1(AdvancedSetSubtensor1(x, y, idx), idx) -> y
@@ -3871,7 +3839,7 @@ def local_adv_sub1_adv_inc_sub1(node):
         return
 
     cond = [tt.all(tt.and_(tt.lt(idx, x.shape[0]), tt.ge(idx, -x.shape[0])))]
-    if not node.fgraph.shape_feature.same_shape(idx, y, 0, 0):
+    if not fgraph.shape_feature.same_shape(idx, y, 0, 0):
         cond.append(tt.eq(idx.shape[0], y.shape[0]))
     r = Assert(
         "Bad indexing or shapes in a AdvancedIncSubtensor1 " "that was optimized away"
@@ -3896,7 +3864,7 @@ def local_adv_sub1_adv_inc_sub1(node):
 @register_canonicalize
 @register_useless
 @local_optimizer([IncSubtensor, AdvancedIncSubtensor, AdvancedIncSubtensor1])
-def local_useless_inc_subtensor_alloc(node):
+def local_useless_inc_subtensor_alloc(fgraph, node):
     """
     Replaces an [Advanced]IncSubtensor[1], whose increment is an `alloc` of
     a fully or partially broadcastable variable, by one that skips the
@@ -3913,7 +3881,7 @@ def local_useless_inc_subtensor_alloc(node):
             z = y.owner.inputs[0]
 
             try:
-                shape_feature = node.fgraph.shape_feature
+                shape_feature = fgraph.shape_feature
             except AttributeError:
                 # The shape feature may not be available in some mode, but we
                 # need it for this optimization, so don't continue.
@@ -3939,7 +3907,7 @@ def local_useless_inc_subtensor_alloc(node):
             # shape inference later because the variable must be part of the
             # function graph in order to call `same_shape` on it.
             if xi not in shape_of:
-                shape_feature.on_import(node.fgraph, xi.owner, f"{reason}: add `xi`")
+                shape_feature.on_import(fgraph, xi.owner, f"{reason}: add `xi`")
 
             # `xi` may have more dimensions than `y` since the subtensor ops
             # do automatic broadcasting of the increment internally. Thus, we
@@ -3948,7 +3916,7 @@ def local_useless_inc_subtensor_alloc(node):
             if xi.ndim > y.ndim:
                 y = tt.shape_padleft(y, xi.ndim - y.ndim)
                 if y not in shape_of:
-                    shape_feature.on_import(node.fgraph, y.owner, f"{reason}: add `y`")
+                    shape_feature.on_import(fgraph, y.owner, f"{reason}: add `y`")
 
             # Build `z_broad` explicitly to include extra implicit dimensions.
             z_broad = (True,) * (xi.ndim - z.ndim) + z.broadcastable
@@ -4008,7 +3976,7 @@ def local_useless_inc_subtensor_alloc(node):
 @register_canonicalize
 @register_specialize
 @local_optimizer([Rebroadcast])
-def local_useless_rebroadcast(node):
+def local_useless_rebroadcast(fgraph, node):
     """
     Remove Rebroadcast if id does not actually change the broadcasting pattern.
 
@@ -4039,7 +4007,7 @@ def local_useless_rebroadcast(node):
 @register_canonicalize
 @register_specialize
 @local_optimizer([Rebroadcast])
-def local_rebroadcast_lift(node):
+def local_rebroadcast_lift(fgraph, node):
     """
     Lifts Rebroadcast through unary Elemwise operations,
     and merges consecutive Rebroadcasts.
@@ -4059,7 +4027,7 @@ def local_rebroadcast_lift(node):
         # is called from `apply_rebroadcast_opt`, which in particular is used
         # by the `unbroadcast` function before we are in the actual function
         # compilation phase.
-        if hasattr(input, "clients") and len(input.clients) == 1:
+        if len(fgraph.clients[input]) == 1:
             rebroadcasted = Rebroadcast(*list(op.axis.items()))(inode.inputs[0])
             # Copy over stacktrace from previous output (after rebroadcasting)
             # to new output, because an error in the new graph right after
@@ -4110,13 +4078,13 @@ def apply_rebroadcast_opt(rval):
     changed = True
     while changed and rval.owner:
         changed = False
-        rval2 = local_useless_rebroadcast.transform(rval.owner)
+        rval2 = local_useless_rebroadcast.transform(None, rval.owner)
         if rval2:
             assert len(rval2) == 1
             rval = rval2[0]
             changed = True
         if rval.owner:
-            rval2 = local_rebroadcast_lift.transform(rval.owner)
+            rval2 = local_rebroadcast_lift.transform(None, rval.owner)
             if rval2:
                 assert len(rval2) == 1
                 rval = rval2[0]
@@ -4131,7 +4099,7 @@ def apply_rebroadcast_opt(rval):
 @register_canonicalize
 @register_useless
 @local_optimizer([Join])
-def local_join_1(node):
+def local_join_1(fgraph, node):
     """Join(i, x) => x
 
     Remove Join() when only one element is joined.
@@ -4151,7 +4119,7 @@ def local_join_1(node):
 @register_specialize
 @register_canonicalize
 @local_optimizer([Join])
-def local_join_empty(node):
+def local_join_empty(fgraph, node):
     """Join(i, x, y, empty) => Join(i, x, y)
 
     Remove empty inputs to joins. The empty inputs can be anywhere.
@@ -4207,7 +4175,7 @@ def local_join_empty(node):
 @register_canonicalize
 @register_useless
 @local_optimizer([Join])
-def local_join_make_vector(node):
+def local_join_make_vector(fgraph, node):
     """Join(0, make_vector1, make_vector2, ...) => Join(0, make_vector12, ...)
 
     Merge MakeVector inputs to Join. This can make the join completly
@@ -4253,7 +4221,7 @@ def local_join_make_vector(node):
 @register_canonicalize
 @register_specialize
 @local_optimizer([Sum])
-def local_sumsqr2dot(node):
+def local_sumsqr2dot(fgraph, node):
     """
     This optimization detects T.sqr( W.dimshuffle('x',0,1) * G.dimshuffle(0,'x',1) ).sum(axis=(1,2))
      and converts this to T.dot(T.sqr(G), T.sqr(W).sum(axis=0)).
@@ -4302,7 +4270,7 @@ def local_sumsqr2dot(node):
 @register_specialize
 @register_canonicalize
 @local_optimizer([Elemwise])
-def local_expm1(node):
+def local_expm1(fgraph, node):
     """
     This optimization detects exp(a)-1 and converts this to expm1(a).
     """
@@ -4333,7 +4301,7 @@ def local_expm1(node):
 @register_canonicalize("fast_compile", "local_remove_switch_const_cond")
 @register_specialize
 @local_optimizer([Elemwise])
-def local_useless_switch(node):
+def local_useless_switch(fgraph, node):
     """
     This optimization makes the following changes in the graph:
         T.switch(cond,left,right) -->
@@ -4426,7 +4394,7 @@ def local_useless_switch(node):
 @register_specialize
 @register_canonicalize
 @local_optimizer([mul])
-def local_mul_switch_sink(node):
+def local_mul_switch_sink(fgraph, node):
     """
     This optimization makes the following changes in the graph:
     T.mul(A,T.switch(cond,0,iff),B) -->  T.switch(cond,0,T.mul(A,B,iff))
@@ -4514,7 +4482,7 @@ def local_mul_switch_sink(node):
 
 @register_canonicalize
 @local_optimizer([true_div, int_div])
-def local_div_switch_sink(node):
+def local_div_switch_sink(fgraph, node):
     """
     This optimization makes the following changes in the graph:
     T.div(T.switch(cond,0,iff),A) -->  T.switch(cond,0,T.div(iff,A))
@@ -4587,7 +4555,7 @@ def local_div_switch_sink(node):
 # Example: switch(c, a, b) + switch(c, x, y) -> switch(c, a+x, b+y)
 @register_canonicalize
 @local_optimizer([Elemwise])
-def local_merge_switch_same_cond(node):
+def local_merge_switch_same_cond(fgraph, node):
     # node must be binary elemwise or add or mul
     if not isinstance(node.op, Elemwise) or not isinstance(
         node.op.scalar_op, (ts.BinaryScalarOp, ts.Add, ts.Mul)
@@ -4622,7 +4590,7 @@ def local_merge_switch_same_cond(node):
 @register_canonicalize
 @register_stabilize
 @local_optimizer([Tile])
-def local_useless_tile(node):
+def local_useless_tile(fgraph, node):
     """Tile(x, (1,)*N) -> x
 
     This is useless tile. (1,)*N, just mean a vector with all element
@@ -4670,7 +4638,7 @@ def local_useless_tile(node):
 @register_canonicalize
 @register_specialize
 @local_optimizer([Split])
-def local_useless_split(node):
+def local_useless_split(fgraph, node):
     """Split{n_splits=1}(x, y) -> x
 
     Remove Split with only 1 split.
@@ -4695,7 +4663,7 @@ def local_useless_split(node):
 @register_canonicalize
 @register_stabilize
 @local_optimizer([Flatten])
-def local_flatten_lift(node):
+def local_flatten_lift(fgraph, node):
     """
     Flatten(UnaryElemwise(x)) -> UnaryElemwise(Flatten(x))
 
@@ -4732,7 +4700,7 @@ def local_flatten_lift(node):
 
 def local_reshape_chain(op):
     @local_optimizer([op])
-    def f(node):
+    def f(fgraph, node):
         """
         Reshape(Reshape(shape1),shape2) -> Reshape(shape2)
 
@@ -4772,7 +4740,7 @@ register_canonicalize(local_reshape_chain(Reshape), name="local_reshape_chain")
 @register_canonicalize
 @register_stabilize
 @local_optimizer([Reshape])
-def local_useless_reshape(node):
+def local_useless_reshape(fgraph, node):
     """
     Remove two kinds of useless reshape.
 
@@ -4812,10 +4780,7 @@ def local_useless_reshape(node):
     if output_shape.owner and isinstance(output_shape.owner.op, MakeVector):
         output_shape_is = output_shape.owner.inputs
 
-        if not hasattr(node, "fgraph"):
-            shape_feature = None
-        else:
-            shape_feature = getattr(node.fgraph, "shape_feature", None)
+        shape_feature = getattr(fgraph, "shape_feature", None)
 
         nb_m1 = 0
         shape_match = [False] * input.ndim
@@ -4876,7 +4841,7 @@ def local_useless_reshape(node):
 
 @register_canonicalize
 @local_optimizer([Reshape])
-def local_reshape_to_dimshuffle(node):
+def local_reshape_to_dimshuffle(fgraph, node):
     """
     Broadcastable dimensions in Reshape are replaced with dimshuffle.
 
@@ -4924,7 +4889,7 @@ def local_reshape_to_dimshuffle(node):
 @register_canonicalize
 @register_stabilize
 @local_optimizer([Reshape])
-def local_reshape_lift(node):
+def local_reshape_lift(fgraph, node):
     """
     Reshape(UnaryElemwise(x)) -> UnaryElemwise(Reshape(x))
 
@@ -5351,7 +5316,7 @@ class Canonizer(LocalOptimizer):
 
         return ct + num, denum
 
-    def transform(self, node):
+    def transform(self, fgraph, node):
         op = node.op
         if op not in [self.main, self.inverse, self.reciprocal]:
             return False
@@ -5359,24 +5324,22 @@ class Canonizer(LocalOptimizer):
         assert len(node.outputs) == 1
         out = node.outputs[0]
 
-        # out won't have a clients field when we didn't commit a
-        # started change in the graph.  We can't do the check if we
-        # want to skip it, so we force the skip it. It should be
-        # reapplied later.
-        if not hasattr(out, "clients"):
-            return
+        out_clients = fgraph.clients.get(out)
+
+        if not out_clients:
+            return False
 
         # check if any of the clients of this node would be part of
         # this canonized graph...  if so, we do nothing and wait for
         # them to be transformed.
-        for c, c_idx in out.clients:
+        for c, c_idx in out_clients:
             if c == "output":
                 continue
             while (
                 isinstance(getattr(c, "op", None), DimShuffle)
-                and len(c.outputs[0].clients) <= 1
+                and len(fgraph.clients[c.outputs[0]]) <= 1
             ):
-                c = c.outputs[0].clients[0][0]
+                c = fgraph.clients[c.outputs[0]][0][0]
             if getattr(c, "op", "") in [self.main, self.inverse, self.reciprocal]:
                 return False
 
@@ -5484,7 +5447,7 @@ register_canonicalize(local_mul_canonizer, name="local_mul_canonizer")
 
 
 @local_optimizer([neg])
-def local_neg_to_mul(node):
+def local_neg_to_mul(fgraph, node):
     if node.op == neg:
         return [mul(np.array(-1, dtype=node.inputs[0].dtype), node.inputs[0])]
 
@@ -5494,7 +5457,7 @@ register_canonicalize(local_neg_to_mul)
 
 @register_specialize
 @local_optimizer([Sum, Prod])
-def local_sum_prod_mul_by_scalar(node):
+def local_sum_prod_mul_by_scalar(fgraph, node):
     """
     sum(scalar * smth) -> scalar * sum(smth)
     sum(-smth) -> -sum(smth)
@@ -5581,7 +5544,7 @@ def local_sum_prod_mul_by_scalar(node):
 
 @register_specialize
 @local_optimizer([Elemwise])
-def local_elemwise_sub_zeros(node):
+def local_elemwise_sub_zeros(fgraph, node):
     """
     Elemwise{sub}(X,X) -> zeros_like(X)
     """
@@ -5603,7 +5566,7 @@ def local_elemwise_sub_zeros(node):
 @register_stabilize
 @register_canonicalize
 @local_optimizer([Elemwise])
-def local_useless_elemwise_comparison(node):
+def local_useless_elemwise_comparison(fgraph, node):
     """...
 
     :note: These cases appear in the graph generated by scan.
@@ -5817,7 +5780,7 @@ def local_useless_elemwise_comparison(node):
 @register_canonicalize
 @register_specialize
 @local_optimizer([Sum, Prod])
-def local_sum_prod_div_dimshuffle(node):
+def local_sum_prod_div_dimshuffle(fgraph, node):
     """
     sum(a / dimshuffle{...}(b), axis=l) -> sum(a, axis={...}) / b,
     if dimension l of the DimShuffle is 'x'
@@ -5951,7 +5914,7 @@ def local_sum_prod_div_dimshuffle(node):
 
 @register_canonicalize
 @local_optimizer([Sum, Prod])
-def local_sum_prod_all_to_none(node):
+def local_sum_prod_all_to_none(fgraph, node):
     """
     Sum{0,1,...N} -> Sum{} or
     Prod{0,1,...N} -> Prod{}
@@ -5969,7 +5932,7 @@ def local_sum_prod_all_to_none(node):
 
 @register_canonicalize
 @local_optimizer([Sum, Prod])
-def local_op_of_op(node):
+def local_op_of_op(fgraph, node):
     """
     Prod(Prod()) -> single Prod()
     or
@@ -5982,7 +5945,7 @@ def local_op_of_op(node):
         out_dtype = node.op.dtype
         # We manipulate the graph so this is done to make sure the opt
         # doesn't affect other computations.
-        if len(node_inps.clients) == 1:
+        if len(fgraph.clients[node_inps]) == 1:
             if node_inps.owner and (isinstance(node_inps.owner.op, node.op.__class__)):
 
                 # check to see either the inner or outer prod is doing a
@@ -6053,7 +6016,7 @@ ALL_REDUCE = [
 @register_canonicalize
 @register_uncanonicalize  # Needed for MaxAndArgmax -> CAReduce
 @local_optimizer(ALL_REDUCE)
-def local_reduce_join(node):
+def local_reduce_join(fgraph, node):
     """
     Reduce{scalar.op}(Join(axis=0, a, b), axis=0) -> Elemwise{scalar.op}(a, b)
 
@@ -6138,7 +6101,7 @@ def local_reduce_join(node):
 @register_canonicalize("fast_compile", "local_cut_useless_reduce")
 @register_useless("local_cut_useless_reduce")
 @local_optimizer(ALL_REDUCE)
-def local_useless_reduce(node):
+def local_useless_reduce(fgraph, node):
     """Sum(a, axis=[]) -> a  """
     if isinstance(node.op, tt.CAReduce):
         (summed,) = node.inputs
@@ -6151,7 +6114,7 @@ def local_useless_reduce(node):
 @register_uncanonicalize
 @register_specialize
 @local_optimizer(ALL_REDUCE)
-def local_reduce_broadcastable(node):
+def local_reduce_broadcastable(fgraph, node):
     """Remove reduction over broadcastable dimensions."""
     if isinstance(node.op, tt.CAReduce):
         (reduced,) = node.inputs
@@ -6189,7 +6152,7 @@ def local_reduce_broadcastable(node):
 
 @register_specialize
 @local_optimizer([Sum, Prod])
-def local_opt_alloc(node):
+def local_opt_alloc(fgraph, node):
     """
     sum(alloc(constant,shapes...)) => constant*prod(shapes)
     or
@@ -6253,7 +6216,7 @@ def local_opt_alloc(node):
 
 @register_specialize
 @local_optimizer([neg])
-def local_neg_neg(node):
+def local_neg_neg(fgraph, node):
     # other specializations shouldn't put this in,
     # but sometimes they do
     if node.op == neg:
@@ -6263,7 +6226,7 @@ def local_neg_neg(node):
 
 @register_specialize
 @local_optimizer([neg])
-def local_neg_div_neg(node):
+def local_neg_div_neg(fgraph, node):
     """
     - (-a / b) -> a / b
 
@@ -6275,18 +6238,18 @@ def local_neg_div_neg(node):
             frac = node.inputs[0]
             num, denom = frac.owner.inputs
             if num.owner and num.owner.op == neg:
-                if len(frac.clients) == 1:
+                if len(fgraph.clients[frac]) == 1:
                     # No other clients of the original division
                     new_num = num.owner.inputs[0]
                     return [true_div(new_num, denom)]
             elif np.all(num.broadcastable) and isinstance(num, Constant):
-                if len(frac.clients) == 1:
+                if len(fgraph.clients[frac]) == 1:
                     new_num = -num.data
                     return [true_div(new_num, denom)]
 
 
 @local_optimizer([mul])
-def local_mul_zero(node):
+def local_mul_zero(fgraph, node):
     """
     As part of canonicalization, we replace multiplication by zero
     with zero.
@@ -6310,7 +6273,7 @@ register_canonicalize(local_mul_zero)
 
 
 @local_optimizer([true_div])
-def local_div_to_inv(node):
+def local_div_to_inv(fgraph, node):
     if node.op == true_div and np.all(
         local_mul_canonizer.get_constant(node.inputs[0]) == 1.0
     ):
@@ -6321,7 +6284,7 @@ def local_div_to_inv(node):
             new_out = tt.cast(new_out, dtype=out.dtype)
         # The ones could have forced a specific length
         if new_out.type != out.type:
-            new_out = broadcast_like(new_out, out, node.fgraph)
+            new_out = broadcast_like(new_out, out, fgraph)
         return [new_out]
     else:
         return False
@@ -6331,7 +6294,7 @@ register_specialize(local_div_to_inv)
 
 
 @local_optimizer([inv])
-def local_inv_canon(node):
+def local_inv_canon(fgraph, node):
     if node.op == inv:
         return [pow(node.inputs[0], -1.0)]
     else:
@@ -6342,13 +6305,13 @@ register_canonicalize(local_inv_canon)
 
 
 @local_optimizer([pow])
-def local_pow_canonicalize(node):
+def local_pow_canonicalize(fgraph, node):
     if node.op == pow:
         cst = local_mul_canonizer.get_constant(node.inputs[1])
         if cst == 0:
-            return [broadcast_like(1, node.outputs[0], node.fgraph)]
+            return [broadcast_like(1, node.outputs[0], fgraph)]
         if cst == 1:
-            return [broadcast_like(node.inputs[0], node.outputs[0], node.fgraph)]
+            return [broadcast_like(node.inputs[0], node.outputs[0], fgraph)]
     else:
         return False
 
@@ -6358,7 +6321,7 @@ register_canonicalize(local_pow_canonicalize)
 
 @register_specialize
 @local_optimizer([mul])
-def local_mul_to_sqr(node):
+def local_mul_to_sqr(fgraph, node):
     """
     x*x -> sqr(x)
 
@@ -6374,7 +6337,7 @@ def local_mul_to_sqr(node):
 
 @register_canonicalize
 @local_optimizer([int_div])
-def local_intdiv_by_one(node):
+def local_intdiv_by_one(fgraph, node):
     """x // 1 -> x"""
     if node.op in [int_div]:
         if isinstance(node.inputs[1], tt.TensorConstant) and np.all(
@@ -6386,19 +6349,19 @@ def local_intdiv_by_one(node):
 @register_canonicalize
 @register_specialize
 @local_optimizer([int_div, true_div])
-def local_zero_div(node):
+def local_zero_div(fgraph, node):
     """0 / x -> 0"""
     if isinstance(node.op, Elemwise) and isinstance(
         node.op.scalar_op, (ts.IntDiv, ts.TrueDiv)
     ):
         if local_mul_canonizer.get_constant(node.inputs[0]) == 0:
-            ret = broadcast_like(0, node.outputs[0], node.fgraph)
+            ret = broadcast_like(0, node.outputs[0], fgraph)
             ret.tag.values_eq_approx = values_eq_approx_remove_nan
             return [ret]
 
 
 @local_optimizer([pow])
-def local_pow_specialize(node):
+def local_pow_specialize(fgraph, node):
     # here, we are past the point of canonicalization, so we don't want
     # to put in un-necessary fills.
     if node.op == pow:
@@ -6439,7 +6402,7 @@ register_specialize(local_pow_specialize)
 
 @register_specialize_device
 @local_optimizer([pow])
-def local_pow_specialize_device(node):
+def local_pow_specialize_device(fgraph, node):
     """
     This optimization is not the same on all device. We do it only on cpu here.
     """
@@ -6505,7 +6468,7 @@ def local_pow_specialize_device(node):
 
 
 @local_optimizer([mul])
-def local_mul_specialize(node):
+def local_mul_specialize(fgraph, node):
     """
     Remove special-case constants from mul arguments and useless neg in inputs.
 
@@ -6544,7 +6507,7 @@ def local_mul_specialize(node):
                 has_neg ^= True  # toggles
             elif y == 0.0:
                 # if we find any zero, we just return right away
-                return [broadcast_like(0, node.outputs[0], node.fgraph)]
+                return [broadcast_like(0, node.outputs[0], fgraph)]
             else:
                 new_inputs.append(input)
 
@@ -6569,21 +6532,21 @@ def local_mul_specialize(node):
                         new_inputs = [m1] + new_inputs
                     rval = mul(*new_inputs)
 
-                return [broadcast_like(rval, node.outputs[0], node.fgraph)]
+                return [broadcast_like(rval, node.outputs[0], fgraph)]
             else:
                 # there are no variable inputs to mul
                 # N.B. this could have been constant-folded...
                 if has_neg:
-                    return [broadcast_like(-1, node.outputs[0], node.fgraph)]
+                    return [broadcast_like(-1, node.outputs[0], fgraph)]
                 else:
-                    return [broadcast_like(1, node.outputs[0], node.fgraph)]
+                    return [broadcast_like(1, node.outputs[0], fgraph)]
 
 
 register_specialize(local_mul_specialize)
 
 
 @local_optimizer([add])
-def local_add_specialize(node):
+def local_add_specialize(fgraph, node):
     def fill_chain(v):
         out = _fill_chain(v, node.inputs)
         return out
@@ -6658,7 +6621,7 @@ local_mul_canonizer.add_simplifier(check_for_x_over_absX, "X_over_absX")
 
 @register_canonicalize
 @local_optimizer([abs_])
-def local_abs_lift(node):
+def local_abs_lift(fgraph, node):
     """
     Move the abs toward the input.
 
@@ -6676,7 +6639,7 @@ def local_abs_lift(node):
 
 @register_specialize
 @local_optimizer([mul, true_div])
-def local_abs_merge(node):
+def local_abs_merge(fgraph, node):
     """
     Merge abs generated by local_abs_lift when the canonizer don't
     need it anymore
@@ -6712,7 +6675,7 @@ def local_abs_merge(node):
 @register_stabilize
 @register_specialize
 @local_optimizer([log])
-def local_log1p(node):
+def local_log1p(fgraph, node):
     # log(1+x) -> log1p(x)
     # log(1-x) -> log1p(-x)
     if node.op == log:
@@ -6748,7 +6711,7 @@ def local_log1p(node):
 @register_stabilize
 @register_specialize
 @local_optimizer([log])
-def local_log_add(node):
+def local_log_add(fgraph, node):
     # log(exp(x)+exp(y))
     #
     # Suppose x >= y
@@ -6779,7 +6742,7 @@ def local_log_add(node):
 
 
 @local_optimizer([log])
-def local_log_sum_exp(node):
+def local_log_sum_exp(fgraph, node):
     # log(sum_i(exp(x_i))) = x_max + log(sum_i(exp(x_i - x_max)))
 
     if node.op != log:
@@ -6949,7 +6912,7 @@ def attempt_distribution(factor, num, denum, out_type):
 @register_canonicalize
 @register_stabilize
 @local_optimizer([mul, true_div, inv])
-def local_greedy_distributor(node):
+def local_greedy_distributor(fgraph, node):
     """
     Optimize by reducing the number of multiplications and/or divisions.
 
@@ -7022,12 +6985,12 @@ def local_greedy_distributor(node):
 
 
 @local_optimizer(None)
-def constant_folding(node):
+def constant_folding(fgraph, node):
     for input in node.inputs:
         if not isinstance(input, Constant):
             return False
     # condition:  all inputs are constant
-    if not node.op.do_constant_folding(node):
+    if not node.op.do_constant_folding(fgraph, node):
         # The op asks not to be constant folded.
         return False
 
@@ -7072,24 +7035,24 @@ register_stabilize(topo_constant_folding, "fast_compile", final_opt=True)
 register_specialize(topo_constant_folding, "fast_compile", final_opt=True)
 
 
-def get_clients(node):
+def get_clients(fgraph, node):
     """
     Used by erf/erfc opt to track less frequent op.
 
     """
-    return [c for c, i in node.outputs[0].clients if c != "output"]
+    return [c for c, i in fgraph.clients[node.outputs[0]] if c != "output"]
 
 
-def get_clients2(node):
+def get_clients2(fgraph, node):
     """
     Used by erf/erfc opt to track less frequent op.
 
     """
     l = []
-    for c, i in node.outputs[0].clients:
+    for c, i in fgraph.clients[node.outputs[0]]:
         if c != "output":
             for var in c.outputs:
-                l.extend([cc for cc, ii in var.clients if cc != "output"])
+                l.extend([cc for cc, ii in fgraph.clients[var] if cc != "output"])
     return l
 
 
@@ -7237,7 +7200,7 @@ register_specialize(local_erf_neg_minus_one2)
 @register_stabilize
 @register_specialize
 @local_optimizer([log])
-def local_log_erfc(node):
+def local_log_erfc(fgraph, node):
     """Stability optimization for `log(erfc(x))`.
 
     log(erfc(x)) => when x>threshold,
@@ -7280,7 +7243,7 @@ def local_log_erfc(node):
 @register_stabilize
 @register_specialize
 @local_optimizer([true_div])
-def local_grad_log_erfc_neg(node):
+def local_grad_log_erfc_neg(fgraph, node):
     """Stability optimization for the grad of `log(erfc(x))`.
 
     ([y*]exp(-(x**2)))/erfc(x) # The y* is optional
@@ -7483,9 +7446,8 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
         def maker(node, scalar_op):
             return op_class(scalar_op)
 
-    def local_fuse(node):
+    def local_fuse(fgraph, node):
         """Fuse `Elemwise` `Op`s in a node.
-
 
         As part of specialization, we fuse two consecutive elemwise `Op`s of the
         same shape.
@@ -7560,7 +7522,7 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
             if (
                 i.owner
                 and isinstance(i.owner.op, op_class)
-                and len({n for n, idx in i.clients}) == 1
+                and len({n for n, idx in fgraph.clients[i]}) == 1
                 and
                 # Do not merge elemwise that don't have the same
                 # broadcastable pattern to don't redo duplicate
@@ -7595,9 +7557,8 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
 
                     s_op = i.owner.op.scalar_op(*tmp_s_input, return_list=True)
 
-                    # if the scalar_op don't have a c implementation,
-                    # we skip its fusion to allow the fusion of the
-                    # other ops.
+                    # If the scalar_op doesn't have a C implementation, we skip
+                    # its fusion to allow fusion of the other ops
                     i.owner.op.scalar_op.c_code(
                         s_op[0].owner,
                         "test_presence_of_c_code",
@@ -7705,7 +7666,7 @@ your code will run correctly, but may be slower."""
         # we fuse as many that we can at the same time to make debug mode faster
         # debug mode will be faster as it won't test all intermediate step.
         while True:
-            ret = local_fuse(new_node)
+            ret = local_fuse(fgraph, new_node)
             if ret is not False and ret is not None:
                 assert len(ret) == len(new_node.outputs)
                 assert len(ret) == 1
@@ -7719,8 +7680,7 @@ your code will run correctly, but may be slower."""
 
 
 def elemwise_max_input_fct(node):
-    # The Elemwise.perform use numpy ufunc and they are limited to 31
-    # inputs.
+    # `Elemwise.perform` uses NumPy ufuncs and they are limited to 31 inputs.
     if not theano.config.cxx:
         return 31
     return 1024
@@ -7729,11 +7689,15 @@ def elemwise_max_input_fct(node):
 local_elemwise_fusion = local_elemwise_fusion_op(Elemwise, elemwise_max_input_fct)
 
 
-class FusionOptimizer(Optimizer):
-    """Graph optimizer for Fusion of elemwise operations."""
+class FusionOptimizer(GlobalOptimizer):
+    """Graph optimizer that simply runs local fusion operations.
+
+    TODO: This is basically a `EquilibriumOptimizer`; we should just use that.
+
+    """
 
     def __init__(self, local_optimizer):
-        Optimizer.__init__(self)
+        super().__init__()
         self.optimizer = local_optimizer
 
     def add_requirements(self, fgraph):
@@ -7758,7 +7722,7 @@ class FusionOptimizer(Optimizer):
             for node in nodelist:
                 # Don't try to fuse node that have already been fused.
                 if node in fgraph.apply_nodes:
-                    new_outputs = self.optimizer(node)
+                    new_outputs = self.optimizer(fgraph, node)
                     if new_outputs:
                         assert len(new_outputs) == len(node.outputs)
                         try:
@@ -7813,7 +7777,7 @@ class FusionOptimizer(Optimizer):
         print(blanc, " time_toposort", prof[7], file=stream)
 
 
-def local_add_mul_fusion(node):
+def local_add_mul_fusion(fgraph, node):
     """Fuse consecutive add or mul in one such node with more inputs.
 
     It is better to fuse add/mul that way then in a Composite node as
@@ -7841,7 +7805,7 @@ def local_add_mul_fusion(node):
             and isinstance(inp.owner.op.scalar_op, s_op)
             and
             # Do not duplicate the operation.
-            len(inp.clients) == 1
+            len(fgraph.clients[inp]) == 1
             and (nb_inputs + len(inp.owner.inputs) - 1) <= max_inputs
         ):
             new_inp.extend(inp.owner.inputs)
@@ -7858,14 +7822,14 @@ def local_add_mul_fusion(node):
         # Do the recursion here to help lower the number of
         # FusionOptimizer iteration.
         if output.owner:
-            output2 = local_add_mul_fusion(output.owner)
+            output2 = local_add_mul_fusion(fgraph, output.owner)
             if output2:
                 return output2
         return [output]
 
 
 if config.tensor.local_elemwise_fusion:
-    _logger.debug("enabling optimization fusion elemwise in fast_run")
+    _logger.debug("Enabling Elemwise fusion optimizations in fast_run")
     # Must be after gpu(48.5) and before AddDestroyHandler(49.5)
     fuse_seqopt = gof.SequenceDB()
     fuse_seqopt.register(
@@ -7905,7 +7869,7 @@ else:
 
 @register_canonicalize
 @local_optimizer([Elemwise])
-def local_useless_composite(node):
+def local_useless_composite(fgraph, node):
     """For elemwise Composite that have multiple outputs, remove the
     outputs that are not used.
 
@@ -7915,7 +7879,7 @@ def local_useless_composite(node):
     ):
         return
     comp = node.op.scalar_op
-    idx = [i for i, o_extern in enumerate(node.outputs) if o_extern.clients]
+    idx = [i for i, o_extern in enumerate(node.outputs) if fgraph.clients[o_extern]]
     if len(idx) < len(node.outputs):
         new_outputs = [comp.outputs[i] for i in idx]
         c = ts.Composite(inputs=comp.inputs, outputs=new_outputs)
@@ -7933,7 +7897,7 @@ def local_useless_composite(node):
 @register_canonicalize("fast_compile")
 @register_useless("fast_compile")
 @local_optimizer(None)
-def local_view_op(node):
+def local_view_op(fgraph, node):
     if isinstance(node.op, theano.compile.ops.ViewOp):
         return node.inputs
 
@@ -7943,7 +7907,7 @@ def local_view_op(node):
 @register_stabilize
 @register_specialize
 @local_optimizer([Alloc])
-def local_merge_alloc(node):
+def local_merge_alloc(fgraph, node):
     # This opt takes care of several cases:
     # Alloc(Alloc(m, x, 1, 1, 1), x, y, z, w) -> Alloc(m, x, y, z, w)
     # Alloc(Alloc(m, y, 1, 1), x, y, z, w) -> Alloc(m, x, y, z, w)
@@ -7980,7 +7944,7 @@ def local_merge_alloc(node):
 
 @register_useless("fast_compile")
 @local_optimizer([TopKOp])
-def local_useless_topk(node):
+def local_useless_topk(fgraph, node):
     """
     TopKOp generates two outputs by default
     This opt removes the useless ones
@@ -7993,8 +7957,8 @@ def local_useless_topk(node):
         return False
 
     x, k = node.inputs
-    ret_val = bool(node.outputs[0].clients)
-    ret_idx = bool(node.outputs[1].clients)
+    ret_val = bool(fgraph.clients[node.outputs[0]])
+    ret_idx = bool(fgraph.clients[node.outputs[1]])
 
     if not (ret_val ^ ret_idx):
         # both true -> nothing to remove

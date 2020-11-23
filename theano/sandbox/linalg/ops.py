@@ -3,7 +3,7 @@ import logging
 import theano.tensor
 from theano import tensor
 from theano.gof import Apply, Op, local_optimizer
-from theano.gof.opt import Optimizer
+from theano.gof.opt import GlobalOptimizer
 from theano.tensor import DimShuffle, Dot
 from theano.tensor.blas import Dot22
 from theano.tensor.nlinalg import (
@@ -52,31 +52,21 @@ class Hint(Op):
         return g_out
 
 
-def is_hint_node(node):
-    return isinstance(node.op, Hint)
-
-
 def hints(variable):
-    if hasattr(variable, "fgraph"):
-        try:
-            return variable.fgraph.hints_feature.hints[variable]
-        except AttributeError:
-            return {}
+    if variable.owner and isinstance(variable.owner.op, Hint):
+        return dict(variable.owner.op.hints)
     else:
-        if is_hint_node(variable.owner):
-            return dict(variable.owner.op.hints)
-        else:
-            return {}
+        return {}
 
 
 @register_canonicalize
 @local_optimizer([Hint])
-def remove_hint_nodes(node):
-    if is_hint_node(node):
+def remove_hint_nodes(fgraph, node):
+    if isinstance(node, Hint):
         # transfer hints from graph to Feature
         try:
             for k, v in node.op.hints:
-                node.fgraph.hints_feature.add_hint(node.inputs[0], k, v)
+                fgraph.hints_feature.add_hint(node.inputs[0], k, v)
         except AttributeError:
             pass
         return node.inputs
@@ -171,13 +161,13 @@ class HintsFeature:
         # 2) we are putting things back after a failed transaction.
 
 
-class HintsOptimizer(Optimizer):
+class HintsOptimizer(GlobalOptimizer):
     """
     Optimizer that serves to add HintsFeature as an fgraph feature.
     """
 
     def __init__(self):
-        Optimizer.__init__(self)
+        super().__init__()
 
     def add_requirements(self, fgraph):
         fgraph.attach_feature(HintsFeature())
@@ -227,7 +217,7 @@ def is_positive(v):
 
 @register_canonicalize
 @local_optimizer([DimShuffle])
-def transinv_to_invtrans(node):
+def transinv_to_invtrans(fgraph, node):
     if isinstance(node.op, DimShuffle):
         if node.op.new_order == (1, 0):
             (A,) = node.inputs
@@ -239,7 +229,7 @@ def transinv_to_invtrans(node):
 
 @register_stabilize
 @local_optimizer([Dot, Dot22])
-def inv_as_solve(node):
+def inv_as_solve(fgraph, node):
     if not imported_scipy:
         return False
     if isinstance(node.op, (Dot, Dot22)):
@@ -256,7 +246,7 @@ def inv_as_solve(node):
 @register_stabilize
 @register_canonicalize
 @local_optimizer([Solve])
-def tag_solve_triangular(node):
+def tag_solve_triangular(fgraph, node):
     """
     If a general solve() is applied to the output of a cholesky op, then
     replace it with a triangular solve.
@@ -287,7 +277,7 @@ def tag_solve_triangular(node):
 @register_stabilize
 @register_specialize
 @local_optimizer([DimShuffle])
-def no_transpose_symmetric(node):
+def no_transpose_symmetric(fgraph, node):
     if isinstance(node.op, DimShuffle):
         x = node.inputs[0]
         if x.type.ndim == 2 and is_symmetric(x):
@@ -298,7 +288,7 @@ def no_transpose_symmetric(node):
 
 @register_stabilize
 @local_optimizer(None)  # XXX: solve is defined later and can't be used here
-def psd_solve_with_chol(node):
+def psd_solve_with_chol(fgraph, node):
     if node.op == solve:
         A, b = node.inputs  # result is solution Ax=b
         if is_psd(A):
@@ -314,7 +304,7 @@ def psd_solve_with_chol(node):
 @register_stabilize
 @register_specialize
 @local_optimizer(None)  # XXX: det is defined later and can't be used here
-def local_det_chol(node):
+def local_det_chol(fgraph, node):
     """
     If we have det(X) and there is already an L=cholesky(X)
     floating around, then we can use prod(diag(L)) to get the determinant.
@@ -322,7 +312,7 @@ def local_det_chol(node):
     """
     if node.op == det:
         (x,) = node.inputs
-        for (cl, xpos) in x.clients:
+        for (cl, xpos) in fgraph.clients[x]:
             if isinstance(cl.op, Cholesky):
                 L = cl.outputs[0]
                 return [tensor.prod(extract_diag(L) ** 2)]
@@ -332,7 +322,7 @@ def local_det_chol(node):
 @register_stabilize
 @register_specialize
 @local_optimizer([tensor.log])
-def local_log_prod_sqr(node):
+def local_log_prod_sqr(fgraph, node):
     if node.op == tensor.log:
         (x,) = node.inputs
         if x.owner and isinstance(x.owner.op, tensor.elemwise.Prod):
@@ -352,7 +342,7 @@ def local_log_prod_sqr(node):
 @register_stabilize
 @register_specialize
 @local_optimizer([tensor.log])
-def local_log_pow(node):
+def local_log_pow(fgraph, node):
     if node.op == tensor.log:
         (x,) = node.inputs
         if x.owner and x.owner.op == tensor.pow:

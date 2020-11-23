@@ -119,9 +119,11 @@ class TestDimshuffleLift:
         x, y, z = inputs()
         e = ds(ds(x, (1, 0)), (1, 0))
         g = FunctionGraph([x], [e])
-        assert str(g) == "[InplaceDimShuffle{1,0}(InplaceDimShuffle{1,0}(x))]"
+        assert (
+            str(g) == "FunctionGraph(InplaceDimShuffle{1,0}(InplaceDimShuffle{1,0}(x)))"
+        )
         dimshuffle_lift.optimize(g)
-        assert str(g) == "[x]"
+        assert str(g) == "FunctionGraph(x)"
         # no need to check_stack_trace as graph is supposed to be empty
 
     def test_merge2(self):
@@ -129,10 +131,11 @@ class TestDimshuffleLift:
         e = ds(ds(x, (1, "x", 0)), (2, 0, "x", 1))
         g = FunctionGraph([x], [e])
         assert (
-            str(g) == "[InplaceDimShuffle{2,0,x,1}(InplaceDimShuffle{1,x,0}(x))]"
+            str(g)
+            == "FunctionGraph(InplaceDimShuffle{2,0,x,1}(InplaceDimShuffle{1,x,0}(x)))"
         ), str(g)
         dimshuffle_lift.optimize(g)
-        assert str(g) == "[InplaceDimShuffle{0,1,x,x}(x)]", str(g)
+        assert str(g) == "FunctionGraph(InplaceDimShuffle{0,1,x,x}(x))", str(g)
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(g, ops_to_check="all")
 
@@ -141,11 +144,11 @@ class TestDimshuffleLift:
         e = ds(ds(ds(x, (0, "x", 1)), (2, 0, "x", 1)), (1, 0))
         g = FunctionGraph([x], [e])
         assert str(g) == (
-            "[InplaceDimShuffle{1,0}(InplaceDimShuffle{2,0,x,1}"
-            "(InplaceDimShuffle{0,x,1}(x)))]"
+            "FunctionGraph(InplaceDimShuffle{1,0}(InplaceDimShuffle{2,0,x,1}"
+            "(InplaceDimShuffle{0,x,1}(x))))"
         ), str(g)
         dimshuffle_lift.optimize(g)
-        assert str(g) == "[x]", str(g)
+        assert str(g) == "FunctionGraph(x)", str(g)
         # no need to check_stack_trace as graph is supposed to be empty
 
     def test_lift(self):
@@ -156,22 +159,22 @@ class TestDimshuffleLift:
         # It does not really matter if the DimShuffles are inplace
         # or not.
         init_str_g_inplace = (
-            "[Elemwise{add,no_inplace}(InplaceDimShuffle{x,0,1}"
-            "(Elemwise{add,no_inplace}(InplaceDimShuffle{x,0}(x), y)), z)]"
+            "FunctionGraph(Elemwise{add,no_inplace}(InplaceDimShuffle{x,0,1}"
+            "(Elemwise{add,no_inplace}(InplaceDimShuffle{x,0}(x), y)), z))"
         )
         init_str_g_noinplace = (
-            "[Elemwise{add,no_inplace}(DimShuffle{x,0,1}"
-            "(Elemwise{add,no_inplace}(DimShuffle{x,0}(x), y)), z)]"
+            "FunctionGraph(Elemwise{add,no_inplace}(DimShuffle{x,0,1}"
+            "(Elemwise{add,no_inplace}(DimShuffle{x,0}(x), y)), z))"
         )
         assert str(g) in (init_str_g_inplace, init_str_g_noinplace), str(g)
 
         opt_str_g_inplace = (
-            "[Elemwise{add,no_inplace}(Elemwise{add,no_inplace}"
-            "(InplaceDimShuffle{x,x,0}(x), InplaceDimShuffle{x,0,1}(y)), z)]"
+            "FunctionGraph(Elemwise{add,no_inplace}(Elemwise{add,no_inplace}"
+            "(InplaceDimShuffle{x,x,0}(x), InplaceDimShuffle{x,0,1}(y)), z))"
         )
         opt_str_g_noinplace = (
-            "[Elemwise{add,no_inplace}(Elemwise{add,no_inplace}"
-            "(DimShuffle{x,x,0}(x), DimShuffle{x,0,1}(y)), z)]"
+            "FunctionGraph(Elemwise{add,no_inplace}(Elemwise{add,no_inplace}"
+            "(DimShuffle{x,x,0}(x), DimShuffle{x,0,1}(y)), z))"
         )
         dimshuffle_lift.optimize(g)
         assert str(g) in (opt_str_g_inplace, opt_str_g_noinplace), str(g)
@@ -184,24 +187,24 @@ class TestDimshuffleLift:
         out = ((v + 42) * (m + 84)).T
         g = FunctionGraph([v, m], [out])
         init_str_g = (
-            "[InplaceDimShuffle{1,0}(Elemwise{mul,no_inplace}"
+            "FunctionGraph(InplaceDimShuffle{1,0}(Elemwise{mul,no_inplace}"
             "(InplaceDimShuffle{x,0}(Elemwise{add,no_inplace}"
             "(<TensorType(float64, vector)>, "
             "InplaceDimShuffle{x}(TensorConstant{42}))), "
             "Elemwise{add,no_inplace}"
             "(<TensorType(float64, matrix)>, "
-            "InplaceDimShuffle{x,x}(TensorConstant{84}))))]"
+            "InplaceDimShuffle{x,x}(TensorConstant{84})))))"
         )
         assert str(g) == init_str_g
-        new_out = local_dimshuffle_lift.transform(g.outputs[0].owner)[0]
+        new_out = local_dimshuffle_lift.transform(g, g.outputs[0].owner)[0]
         new_g = FunctionGraph(g.inputs, [new_out])
         opt_str_g = (
-            "[Elemwise{mul,no_inplace}(Elemwise{add,no_inplace}"
+            "FunctionGraph(Elemwise{mul,no_inplace}(Elemwise{add,no_inplace}"
             "(InplaceDimShuffle{0,x}(<TensorType(float64, vector)>), "
             "InplaceDimShuffle{x,x}(TensorConstant{42})), "
             "Elemwise{add,no_inplace}(InplaceDimShuffle{1,0}"
             "(<TensorType(float64, matrix)>), "
-            "InplaceDimShuffle{x,x}(TensorConstant{84})))]"
+            "InplaceDimShuffle{x,x}(TensorConstant{84}))))"
         )
         assert str(new_g) == opt_str_g
         # Check stacktrace was copied over correctly after opt was applied
@@ -211,9 +214,9 @@ class TestDimshuffleLift:
         x, _, _ = inputs()
         e = ds(x, (0, 1))
         g = FunctionGraph([x], [e])
-        assert str(g) == "[InplaceDimShuffle{0,1}(x)]"
+        assert str(g) == "FunctionGraph(InplaceDimShuffle{0,1}(x))"
         dimshuffle_lift.optimize(g)
-        assert str(g) == "[x]"
+        assert str(g) == "FunctionGraph(x)"
         # Check stacktrace was copied over correctly after opt was applied
         assert hasattr(g.outputs[0].tag, "trace")
 
@@ -227,12 +230,12 @@ class TestDimshuffleLift:
         g = FunctionGraph([x, y, z, u], [ds_x, ds_y, ds_z, ds_u])
         assert (
             str(g)
-            == "[InplaceDimShuffle{0,x}(x), InplaceDimShuffle{2,1,0}(y), InplaceDimShuffle{2,1,0}(z), InplaceDimShuffle{x}(TensorConstant{1})]"
+            == "FunctionGraph(InplaceDimShuffle{0,x}(x), InplaceDimShuffle{2,1,0}(y), InplaceDimShuffle{2,1,0}(z), InplaceDimShuffle{x}(TensorConstant{1}))"
         )
         dimshuffle_lift.optimize(g)
         assert (
             str(g)
-            == "[x, y, InplaceDimShuffle{2,1,0}(z), InplaceDimShuffle{x}(TensorConstant{1})]"
+            == "FunctionGraph(x, y, InplaceDimShuffle{2,1,0}(z), InplaceDimShuffle{x}(TensorConstant{1}))"
         )
         # Check stacktrace was copied over correctly after opt was applied
         assert hasattr(g.outputs[0].tag, "trace")
@@ -261,18 +264,18 @@ def test_local_useless_dimshuffle_in_reshape():
 
     print(str(g))
     assert str(g) == (
-        "[Reshape{1}(InplaceDimShuffle{x,0}(vector), Shape(vector)), "
+        "FunctionGraph(Reshape{1}(InplaceDimShuffle{x,0}(vector), Shape(vector)), "
         "Reshape{2}(InplaceDimShuffle{x,0,x,1}(mat), Shape(mat)), "
         "Reshape{2}(InplaceDimShuffle{1,x}(row), Shape(row)), "
-        "Reshape{2}(InplaceDimShuffle{0}(col), Shape(col))]"
+        "Reshape{2}(InplaceDimShuffle{0}(col), Shape(col)))"
     )
     useless_dimshuffle_in_reshape = out2in(local_useless_dimshuffle_in_reshape)
     useless_dimshuffle_in_reshape.optimize(g)
     assert str(g) == (
-        "[Reshape{1}(vector, Shape(vector)), "
+        "FunctionGraph(Reshape{1}(vector, Shape(vector)), "
         "Reshape{2}(mat, Shape(mat)), "
         "Reshape{2}(row, Shape(row)), "
-        "Reshape{2}(col, Shape(col))]"
+        "Reshape{2}(col, Shape(col)))"
     )
 
     # Check stacktrace was copied over correctly after opt was applied
@@ -2871,15 +2874,16 @@ class TestLocalSubtensorLift:
         z = tt.matrix("z")
         f = function([x, y, z], tt.exp(x + y + z)[0], mode=mode_opt)
 
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f, ops_to_check=[Subtensor, tt.DimShuffle])
-
         prog = f.maker.fgraph.toposort()
         assert isinstance(prog[0].op, tt.Subtensor)
         assert isinstance(prog[1].op, tt.DimShuffle)
         assert isinstance(prog[2].op, tt.Subtensor)
         assert isinstance(prog[3].op.scalar_op, scal.Composite)  # Composite{add,add}
         assert len(prog) == 4
+
+        # Check stacktrace was copied over correctly after opt was applied
+        assert check_stack_trace(f, ops_to_check=[Subtensor])
+
         # let debugmode test something
         f([[0, 1], [2, 3]], 4, [[4, 5], [6, 7]])
 
@@ -2890,15 +2894,16 @@ class TestLocalSubtensorLift:
         z = tt.matrix("z")
         f = function([x, y, z], tt.exp(x + y + z)[0:2], mode=mode_opt)
 
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f, ops_to_check=[Subtensor, tt.DimShuffle])
-
         prog = f.maker.fgraph.toposort()
         assert isinstance(prog[0].op, tt.Subtensor)
         assert isinstance(prog[1].op, tt.DimShuffle)
         assert isinstance(prog[2].op, tt.Subtensor)
         assert isinstance(prog[3].op.scalar_op, scal.Composite)  # Composite{add,add}
         assert len(prog) == 4
+
+        # Check stacktrace was copied over correctly after opt was applied
+        assert check_stack_trace(f, ops_to_check=[Subtensor])
+
         # let debugmode test something
         f([[0, 1], [2, 3]], 4, [[4, 5], [6, 7]])
 
@@ -4762,7 +4767,7 @@ class TestLocalCanonicalizeAlloc:
 
         g = FunctionGraph([x, y, z, w], [alloc_x, alloc_y, alloc_z, alloc_w])
         assert str(g) == (
-            "[Alloc(<TensorType(float64, vector)>, "
+            "FunctionGraph(Alloc(<TensorType(float64, vector)>, "
             "TensorConstant{1}, "
             "TensorConstant{3}, "
             "TensorConstant{2}), "
@@ -4775,12 +4780,12 @@ class TestLocalCanonicalizeAlloc:
             "TensorConstant{2}), "
             "Alloc(<TensorType(float64, matrix)>, "
             "TensorConstant{1}, "
-            "TensorConstant{2})]"
+            "TensorConstant{2}))"
         )
 
         alloc_lift.optimize(g)
         assert str(g) == (
-            "[InplaceDimShuffle{x,0,1}"
+            "FunctionGraph(InplaceDimShuffle{x,0,1}"
             "(Alloc(<TensorType(float64, vector)>, "
             "TensorConstant{3}, "
             "TensorConstant{2})), "
@@ -4792,7 +4797,7 @@ class TestLocalCanonicalizeAlloc:
             "TensorConstant{2})), "
             "Alloc(<TensorType(float64, matrix)>, "
             "TensorConstant{1}, "
-            "TensorConstant{2})]"
+            "TensorConstant{2}))"
         )
 
         # Check stacktrace was copied over correctly after opt was applied
@@ -4913,7 +4918,7 @@ class TestLocalUselessIncSubtensorAlloc:
         assert check_stack_trace(f2, ops_to_check="last")
 
 
-class TestShapeoptimizer:
+class TestShapeOptimizer:
     def setup_method(self):
         utt.seed_rng()
 
@@ -5022,7 +5027,7 @@ class TestShapeoptimizer:
                 (out,) = out_
                 out[0] = x.copy()
 
-            # def infer_shape(self, node, (xshp,)):
+            # def infer_shape(self, fgraph, node, (xshp,)):
             # return [tuple([self.shape_i(i)(r) for i in range(r.ndim)])]
 
         identity_noshape = IdentityNoShape()
@@ -5039,7 +5044,7 @@ class TestShapeoptimizer:
                 (out,) = out_
                 out[0] = x.copy()
 
-            def infer_shape(self, node, xshp_):
+            def infer_shape(self, fgraph, node, xshp_):
                 # Could also just return.
                 (xshp,) = xshp_
                 return (xshp,)
@@ -5047,7 +5052,7 @@ class TestShapeoptimizer:
         identity_shape = IdentityShape()
 
         @gof.local_optimizer([IdentityNoShape])
-        def local_identity_noshape_to_identity_shape(node):
+        def local_identity_noshape_to_identity_shape(fgraph, node):
             """Optimization transforming the first Op into the second"""
             if isinstance(node.op, IdentityNoShape):
                 return [identity_shape(node.inputs[0])]
@@ -7430,18 +7435,18 @@ def test_local_add_specialize():
     # test of non-zero dimension
     a = tt.vector()
     s = tt.add(tt.zeros_like(a))
-    assert local_add_specialize.transform(s.owner)
+    assert local_add_specialize.transform(None, s.owner)
 
     # test of 0-d
     a = tt.scalar()
     s = tt.add(tt.zeros_like(a))
-    assert local_add_specialize.transform(s.owner)
+    assert local_add_specialize.transform(None, s.owner)
 
     # Test when the 0 input is forcing upcasting
     a = tt.constant(0, dtype="int64")
     b = tt.constant(1, dtype="int32")
     s = a + b
-    transformed = local_add_specialize.transform(s.owner)
+    transformed = local_add_specialize.transform(None, s.owner)
     assert transformed
     assert transformed[0].type == s.type
 
@@ -7666,22 +7671,22 @@ class TestLocalReshapeToDimshuffle:
 
         g = FunctionGraph([x, y], [reshape_x, reshape_y])
         assert str(g) == (
-            "[Reshape{2}"
+            "FunctionGraph(Reshape{2}"
             "(<TensorType(float64, vector)>, "
             "TensorConstant{[1 4]}), "
             "Reshape{6}"
             "(<TensorType(float64, matrix)>, "
-            "TensorConstant{[1 5 1 6 1 1]})]"
+            "TensorConstant{[1 5 1 6 1 1]}))"
         )
 
         reshape_lift.optimize(g)
         useless_reshape.optimize(g)
         assert str(g) == (
-            "[InplaceDimShuffle{x,0}"
+            "FunctionGraph(InplaceDimShuffle{x,0}"
             "(<TensorType(float64, vector)>), "
             "InplaceDimShuffle{x,0,x,1,x,x}"
             "(Reshape{2}(<TensorType(float64, matrix)>, "
-            "TensorConstant{[5 6]}))]"
+            "TensorConstant{[5 6]})))"
         )
 
         # Check stacktrace was copied over correctly after opt was applied
@@ -7713,7 +7718,7 @@ class TestLiftTransposeThroughDot:
     def test_matrix_matrix(self):
         a, b = matrices("ab")
         g = self.simple_optimize(FunctionGraph([a, b], [tt.dot(a, b).T]))
-        sg = "[dot(InplaceDimShuffle{1,0}(b), InplaceDimShuffle{1,0}(a))]"
+        sg = "FunctionGraph(dot(InplaceDimShuffle{1,0}(b), InplaceDimShuffle{1,0}(a)))"
         assert str(g) == sg, (str(g), sg)
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(g, ops_to_check="all")
@@ -7725,7 +7730,7 @@ class TestLiftTransposeThroughDot:
             FunctionGraph([a, b], [tt.dot(a.dimshuffle("x", 0), b).T]),
             level="stabilize",
         )
-        sg = "[dot(InplaceDimShuffle{1,0}(b), InplaceDimShuffle{0,x}(a))]"
+        sg = "FunctionGraph(dot(InplaceDimShuffle{1,0}(b), InplaceDimShuffle{0,x}(a)))"
         assert str(g) == sg, (str(g), sg)
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(g, ops_to_check="all")
@@ -7737,7 +7742,7 @@ class TestLiftTransposeThroughDot:
             FunctionGraph([a, b], [tt.dot(b, a.dimshuffle(0, "x")).T]),
             level="stabilize",
         )
-        sg = "[dot(InplaceDimShuffle{x,0}(a), InplaceDimShuffle{1,0}(b))]"
+        sg = "FunctionGraph(dot(InplaceDimShuffle{x,0}(a), InplaceDimShuffle{1,0}(b)))"
         assert str(g) == sg, (str(g), sg)
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(g, ops_to_check="all")

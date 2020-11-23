@@ -173,12 +173,12 @@ class TestComposite:
         gof.DualLinker().accept(g).make_function()
 
         assert str(g) == (
-            "[*1 -> Composite{((i0 + i1) + i2),"
+            "FunctionGraph(*1 -> Composite{((i0 + i1) + i2),"
             " (i0 + (i1 * i2)), (i0 / i1), "
             "(i0 // Constant{5}), "
             "(-i0), (i0 - i1), ((i0 ** i1) + (-i2)),"
             " (i0 % Constant{3})}(x, y, z), "
-            "*1::1, *1::2, *1::3, *1::4, *1::5, *1::6, *1::7]"
+            "*1::1, *1::2, *1::3, *1::4, *1::5, *1::6, *1::7)"
         )
 
     def test_make_node_continue_graph(self):

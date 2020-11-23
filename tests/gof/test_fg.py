@@ -54,10 +54,10 @@ class TestFunctionGraph:
         assert fg.update_mapping is None
         assert fg.check_integrity() is None
         assert fg.variables == {var1, var2, var3, var4}
-        assert fg.clients(var1) == [(var3.owner, 0)]
-        assert fg.clients(var2) == [(var4.owner, 1)]
-        assert fg.clients(var3) == [(var4.owner, 0), ("output", 0)]
-        assert fg.clients(var4) == [("output", 1)]
+        assert fg.get_clients(var1) == [(var3.owner, 0)]
+        assert fg.get_clients(var2) == [(var4.owner, 1)]
+        assert fg.get_clients(var3) == [(var4.owner, 0), ("output", 0)]
+        assert fg.get_clients(var4) == [("output", 1)]
 
     def test_remove_client(self):
         var1 = MyVariable("var1")
@@ -68,7 +68,7 @@ class TestFunctionGraph:
         fg = FunctionGraph([var1, var2], [var3, var5], clone=False)
 
         assert fg.variables == {var1, var2, var3, var4, var5}
-        assert fg.clients(var2) == [
+        assert fg.get_clients(var2) == [
             (var3.owner, 0),
             (var4.owner, 1),
             (var5.owner, 1),
@@ -77,7 +77,7 @@ class TestFunctionGraph:
 
         fg.remove_client(var2, (var4.owner, 1))
 
-        assert fg.clients(var2) == [
+        assert fg.get_clients(var2) == [
             (var3.owner, 0),
             (var5.owner, 1),
             (var5.owner, 2),
@@ -85,7 +85,7 @@ class TestFunctionGraph:
 
         fg.remove_client(var1, (var3.owner, 1))
 
-        assert fg.clients(var1) == []
+        assert fg.get_clients(var1) == []
 
         assert var4.owner in fg.apply_nodes
 
@@ -125,7 +125,7 @@ class TestFunctionGraph:
         assert hasattr(var6.owner.tag, "imported_by")
         assert var6 in fg.variables
         assert var6.owner in fg.apply_nodes
-        assert (var6.owner, 0) in var2.clients
+        assert (var6.owner, 0) in fg.get_clients(var2)
 
     def test_import_var(self):
 
@@ -171,20 +171,20 @@ class TestFunctionGraph:
 
         old_apply_nodes = set(fg.apply_nodes)
         old_variables = set(fg.variables)
-        old_var5_clients = list(var5.clients)
+        old_var5_clients = list(fg.get_clients(var5))
 
         # We're replacing with the same variable, so nothing should happen
         fg.change_input(var5.owner, 1, var2)
 
         assert old_apply_nodes == fg.apply_nodes
         assert old_variables == fg.variables
-        assert old_var5_clients == var5.clients
+        assert old_var5_clients == fg.get_clients(var5)
 
         # Perform a valid `Apply` node input change
         fg.change_input(var5.owner, 1, var1)
 
         assert var5.owner.inputs[1] is var1
-        assert (var5.owner, 1) not in var2.clients
+        assert (var5.owner, 1) not in fg.get_clients(var2)
 
     @change_flags(compute_test_value="raise")
     def test_replace_test_value(self):
@@ -215,13 +215,6 @@ class TestFunctionGraph:
         var4 = op2(var3, var2)
         var5 = op3(var4, var2, var2)
         fg = FunctionGraph([var1, var2], [var3, var5], clone=False)
-
-        with pytest.raises(Exception, match="Cannot replace.*"):
-            var4.fgraph = object()
-            # Trigger a `FunctionGraph` ownership error
-            fg.replace(var4, var1, verbose=True)
-
-        var4.fgraph = fg
 
         with pytest.raises(BadOptimization):
             var0 = MyVariable2("var0")
@@ -262,7 +255,6 @@ class TestFunctionGraph:
 
         with pytest.raises(MissingInputError):
             var0 = MyVariable("var0")
-            var0.fgraph = object()
 
             # FIXME TODO XXX: This breaks the state of the `FunctionGraph`,
             # because it doesn't check for validity of the replacement *first*.
@@ -284,11 +276,11 @@ class TestFunctionGraph:
 
         with pytest.raises(Exception, match="Inconsistent clients.*"):
             fg.apply_nodes.add(var5.owner)
-            var2.clients.remove((var5.owner, 1))
+            fg.remove_client(var2, (var5.owner, 1))
 
             fg.check_integrity()
 
-        var2.clients.append((var5.owner, 1))
+        fg.add_client(var2, (var5.owner, 1))
 
         with pytest.raises(Exception, match="The variables are.*"):
             fg.variables.remove(var4)
@@ -299,8 +291,7 @@ class TestFunctionGraph:
 
         with pytest.raises(Exception, match="Undeclared input.*"):
             var6 = MyVariable2("var6")
-            var6.fgraph = fg
-            var6.clients = [(var5.owner, 3)]
+            fg.clients[var6] = [(var5.owner, 3)]
             fg.variables.add(var6)
             var5.owner.inputs.append(var6)
 
@@ -312,20 +303,35 @@ class TestFunctionGraph:
         # TODO: What if the index value is greater than 1?  It will throw an
         # `IndexError`, but that doesn't sound like anything we'd want.
         with pytest.raises(Exception, match="Inconsistent clients list.*"):
-            var4.clients.append(("output", 1))
+            fg.add_client(var4, ("output", 1))
 
             fg.check_integrity()
 
-        var4.clients.remove(("output", 1))
+        fg.remove_client(var4, ("output", 1))
 
         with pytest.raises(Exception, match="Client not in FunctionGraph.*"):
-            var4.clients.append((var6.owner, 0))
+            fg.add_client(var4, (var6.owner, 0))
 
             fg.check_integrity()
 
-        var4.clients.remove((var6.owner, 0))
+        fg.remove_client(var4, (var6.owner, 0))
 
         with pytest.raises(Exception, match="Inconsistent clients list.*"):
-            var4.clients.append((var3.owner, 0))
+            fg.add_client(var4, (var3.owner, 0))
 
             fg.check_integrity()
+
+    def test_contains(self):
+
+        var1 = MyVariable("var1")
+        var2 = MyVariable("var2")
+        var3 = op1(var2, var1)
+        var4 = op2(var3, var2)
+        var5 = op3(var4, var2, var2)
+        fg = FunctionGraph([var1, var2], [var3, var5], clone=False)
+
+        assert var1 in fg
+        assert var3 in fg
+        assert var3.owner in fg
+        assert var5 in fg
+        assert var5.owner in fg

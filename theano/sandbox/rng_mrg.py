@@ -1344,7 +1344,7 @@ def _check_size(size):
 
 
 @local_optimizer((mrg_uniform_base,))
-def mrg_random_make_inplace(node):
+def mrg_random_make_inplace(fgraph, node):
 
     op = node.op
     if isinstance(op, mrg_uniform_base) and not op.inplace:

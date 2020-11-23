@@ -69,7 +69,7 @@ class TestOpDecorator(utt.InferShapeTester):
         y = dvector("y")
         y.tag.test_value = [0, 0, 0, 0]
 
-        def infer_shape(node, shapes):
+        def infer_shape(fgraph, node, shapes):
             x, y = shapes
             return [y]
 

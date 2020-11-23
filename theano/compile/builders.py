@@ -780,7 +780,7 @@ class OpFromGraph(Op):
 
         return list(map(list, cpmat_self))
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
 
         out_shp = infer_shape(self.local_outputs, self.local_inputs, shapes)
 
@@ -819,7 +819,7 @@ class OpFromGraph(Op):
 
 
 @local_optimizer([OpFromGraph])
-def inline_ofg_expansion(node):
+def inline_ofg_expansion(fgraph, node):
     """
     This optimization expands internal graph of OpFromGraph.
     Only performed if node.op.is_inline == True

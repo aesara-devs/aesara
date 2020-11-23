@@ -214,7 +214,7 @@ class RandomFunction(gof.Op):
 
         return gof.Apply(self, [r, shape] + args, [r.type(), self.outtype()])
 
-    def infer_shape(self, node, i_shapes):
+    def infer_shape(self, fgraph, node, i_shapes):
         r, shp = node.inputs[0:2]
 
         # if shp is a constant array of len 0, then it means 'automatic shape'
@@ -930,7 +930,7 @@ def multinomial(random_state, size=None, n=1, pvals=None, ndim=None, dtype="int6
 
 
 @gof.local_optimizer([RandomFunction])
-def random_make_inplace(node):
+def random_make_inplace(fgraph, node):
     op = node.op
     if isinstance(op, RandomFunction) and not op.inplace:
         # Read op_fn from op.state, not from op.fn, since op.fn

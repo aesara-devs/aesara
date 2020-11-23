@@ -46,18 +46,18 @@ _logger = logging.getLogger("theano.tensor.opt")
 
 @register_uncanonicalize
 @local_optimizer([tt.MaxAndArgmax])
-def local_max_and_argmax(node):
+def local_max_and_argmax(fgraph, node):
     """
     If we don't use the argmax, change it to a max only.
     """
     if isinstance(node.op, tt.MaxAndArgmax):
         axis = node.op.get_params(node)
-        if len(node.outputs[1].clients) == 0:
+        if len(fgraph.clients[node.outputs[1]]) == 0:
             new = tt.Max(axis)(node.inputs[0])
             copy_stack_trace(node.outputs[0], new)
             return [new, None]
 
-        if len(node.outputs[0].clients) == 0:
+        if len(fgraph.clients[node.outputs[0]]) == 0:
             new = tt.Argmax(axis)(node.inputs[0])
             copy_stack_trace(node.outputs[0], new)
             return [None, new]
@@ -65,7 +65,7 @@ def local_max_and_argmax(node):
 
 @register_uncanonicalize
 @local_optimizer([tt.neg])
-def local_max_to_min(node):
+def local_max_to_min(fgraph, node):
     """
     Change -(max(-x)) to min.
 
@@ -94,7 +94,7 @@ def local_max_to_min(node):
 
 @register_uncanonicalize
 @local_optimizer([tt.Alloc])
-def local_alloc_dimshuffle(node):
+def local_alloc_dimshuffle(fgraph, node):
     """
     If a dimshuffle is inside an alloc and only adds dimension to the
     left, remove it.
@@ -117,7 +117,7 @@ def local_alloc_dimshuffle(node):
 
 @register_uncanonicalize
 @local_optimizer([tt.Reshape])
-def local_reshape_dimshuffle(node):
+def local_reshape_dimshuffle(fgraph, node):
     """
     If a dimshuffle is inside a reshape and does not change the order
     of dimensions, remove it.
@@ -146,7 +146,7 @@ def local_reshape_dimshuffle(node):
 
 @register_uncanonicalize
 @local_optimizer([DimShuffle])
-def local_dimshuffle_alloc(node):
+def local_dimshuffle_alloc(fgraph, node):
     """
     If an alloc is inside a dimshuffle which only adds dimension to the left,
     scrap the dimshuffle and adds 1 into the alloc
@@ -174,7 +174,7 @@ def local_dimshuffle_alloc(node):
 
 @register_uncanonicalize
 @local_optimizer([DimShuffle])
-def local_dimshuffle_subtensor(node):
+def local_dimshuffle_subtensor(fgraph, node):
     """If a subtensor is inside a dimshuffle which only drop
     broadcastable dimensions, scrap the dimshuffle and index the
     subtensor with 0

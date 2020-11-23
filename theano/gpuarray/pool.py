@@ -86,7 +86,7 @@ class GpuPool(CGpuKernelBase):
 
         return Apply(self, [inp, ws, stride, pad], [inp.type()])
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         ws, stride, pad = [node.inputs[1], node.inputs[2], node.inputs[3]]
         shp = Pool.out_shape(
             in_shapes[0], ws, self.ignore_border, stride, pad, self.ndim
@@ -195,7 +195,7 @@ class GpuMaxPoolGrad(CGpuKernelBase):
 
         return Apply(self, [inp, out, out_grad, ws, stride, pad], [inp.type()])
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         return [in_shapes[0]]
 
     def grad(self, inp, grads):
@@ -278,7 +278,7 @@ class GpuAveragePoolGrad(CGpuKernelBase):
 
         return Apply(self, [inp, out_grad, ws, stride, pad], [inp.type()])
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         return [in_shapes[0]]
 
     def grad(self, inp, grads):
@@ -354,7 +354,7 @@ class GpuDownsampleFactorMaxGradGrad(CGpuKernelBase):
 
         return Apply(self, [inp, out, out_grad, ws, stride, pad], [inp.type()])
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         return [in_shapes[1]]
 
     def grad(self, inp, grads):
@@ -437,7 +437,7 @@ class GpuMaxPoolRop(CGpuKernelBase):
 
         return Apply(self, [inp, eval_point, ws, stride, pad], [eval_point.type()])
 
-    def infer_shape(self, node, in_shapes):
+    def infer_shape(self, fgraph, node, in_shapes):
         ws, stride, pad = [node.inputs[2], node.inputs[3], node.inputs[4]]
         shp = Pool.out_shape(
             in_shapes[0], ws, self.ignore_border, stride, pad, self.ndim

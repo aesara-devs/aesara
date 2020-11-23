@@ -653,7 +653,7 @@ class CSM(gof.Op):
             DisconnectedType()(),
         ]
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         # node.inputs[3] is of length as we only support sparse matrix.
         return [(node.inputs[3][0], node.inputs[3][1])]
 
@@ -794,7 +794,7 @@ class CSMGrad(gof.op.Op):
 
         g_out[0] = gout_data
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[1]]
 
 
@@ -840,7 +840,7 @@ class Cast(gof.op.Op):
             else:
                 return [Cast(inputs[0].dtype)(gz)]
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         return ins_shapes
 
     def __str__(self):
@@ -936,7 +936,7 @@ class DenseFromSparse(gof.op.Op):
         else:
             return [SparseFromDense(x.type.format)(gz)]
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0]]
 
 
@@ -1003,7 +1003,7 @@ class SparseFromDense(gof.op.Op):
         gx = tensor.patternbroadcast(gx, x.broadcastable)
         return (gx,)
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0]]
 
 
@@ -1045,7 +1045,7 @@ class GetItemList(gof.op.Op):
 
     __props__ = ()
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [(shapes[1][0], shapes[0][1])]
 
     def make_node(self, x, index):
@@ -1097,7 +1097,7 @@ class GetItemListGrad(gof.op.Op):
 
     __props__ = ()
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [(shapes[0])]
 
     def make_node(self, x, index, gz):
@@ -1198,7 +1198,7 @@ class GetItem2ListsGrad(gof.op.Op):
 
     __props__ = ()
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [(shapes[0])]
 
     def make_node(self, x, ind1, ind2, gz):
@@ -1243,7 +1243,7 @@ class GetItem2d(gof.op.Op):
 
     # Fred:Too complicated for now. If you need it, look at
     # the Subtensor.infer_shape.
-    #    def infer_shape(self, node, i0_shapes):
+    #    def infer_shape(self, fgraph, node, i0_shapes):
     #        return i0_shapes
     def make_node(self, x, index):
         scipy_ver = [int(n) for n in scipy.__version__.split(".")[:2]]
@@ -1379,7 +1379,7 @@ class GetItemScalar(gof.op.Op):
     # See doc in instance of this Op or function after this class definition.
     __props__ = ()
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [()]
 
     def make_node(self, x, index):
@@ -1473,7 +1473,7 @@ class Transpose(gof.op.Op):
         assert _is_sparse_variable(x) and _is_sparse_variable(gz)
         return (transpose(gz),)
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0][::-1]]
 
 
@@ -1526,7 +1526,7 @@ class Neg(gof.op.Op):
         assert _is_sparse_variable(x) and _is_sparse_variable(gz)
         return (-gz,)
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0]]
 
 
@@ -1591,7 +1591,7 @@ class ColScaleCSC(gof.op.Op):
         (gz,) = gout
         return [col_scale(gz, s), sp_sum(x * gz, axis=0)]
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         return [ins_shapes[0]]
 
 
@@ -1640,7 +1640,7 @@ class RowScaleCSC(gof.op.Op):
         (gz,) = gout
         return [row_scale(gz, s), sp_sum(x * gz, axis=1)]
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         return [ins_shapes[0]]
 
 
@@ -1768,7 +1768,7 @@ class SpSum(gof.op.Op):
             r = SparseFromDense(o_format)(r)
         return [r]
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         r = None
         if self.axis is None:
             r = [()]
@@ -1841,7 +1841,7 @@ class Diag(gof.op.Op):
         (gz,) = gout
         return [square_diagonal(gz)]
 
-    def infer_shape(self, nodes, shapes):
+    def infer_shape(self, fgraph, nodes, shapes):
         return [(tensor.minimum(*shapes[0]),)]
 
 
@@ -1895,7 +1895,7 @@ class SquareDiagonal(gof.op.Op):
         (gz,) = gout
         return [diag(gz)]
 
-    def infer_shape(self, nodes, shapes):
+    def infer_shape(self, fgraph, nodes, shapes):
         return [(shapes[0][0], shapes[0][0])]
 
 
@@ -1946,7 +1946,7 @@ class EnsureSortedIndices(gof.op.Op):
     def grad(self, inputs, output_grad):
         return [output_grad[0]]
 
-    def infer_shape(self, node, i0_shapes):
+    def infer_shape(self, fgraph, node, i0_shapes):
         return i0_shapes
 
     def __str__(self):
@@ -2038,7 +2038,7 @@ class AddSS(gof.op.Op):
         assert _is_sparse_variable(gz)
         return gz, gz
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0]]
 
 
@@ -2076,7 +2076,7 @@ class AddSSData(gof.op.Op):
         derivative = {True: gz, False: None}
         return [derivative[b] for b in is_continuous]
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         return [ins_shapes[0]]
 
 
@@ -2140,7 +2140,7 @@ class AddSD(gof.op.Op):
         assert _is_dense_variable(gz)
         return sp_ones_like(x) * gz, gz
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[1]]
 
 
@@ -2178,7 +2178,7 @@ class StructuredAddSV(gof.op.Op):
         assert _is_sparse_variable(gz)
         return gz, sp_sum(gz, axis=0, sparse_grad=True)
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         return [ins_shapes[0]]
 
 
@@ -2319,7 +2319,7 @@ class MulSS(gof.op.Op):
         (gz,) = gout
         return y * gz, x * gz
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0]]
 
 
@@ -2412,7 +2412,7 @@ class MulSD(gof.op.Op):
         assert _is_sparse_variable(gz)
         return y * gz, dense_from_sparse(x * gz)
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0]]
 
 
@@ -2462,7 +2462,7 @@ class MulSV(gof.op.Op):
 
         return mul_s_v(gz, y), sp_sum(x * gz, axis=0, sparse_grad=True)
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         return [ins_shapes[0]]
 
 
@@ -2582,7 +2582,7 @@ class __ComparisonOpSS(gof.op.Op):
         assert x.shape == y.shape
         out[0] = self.comparison(x, y).astype("uint8")
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         return [ins_shapes[0]]
 
 
@@ -2627,7 +2627,7 @@ class __ComparisonOpSD(gof.op.Op):
         o = np.asarray(o)
         out[0] = o
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         return [ins_shapes[0]]
 
 
@@ -2968,7 +2968,7 @@ class HStack(gof.op.Op):
 
         return [choose(c, d) for c, d in zip(is_continuous, derivative)]
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         def _get(l):
             return l[1]
 
@@ -3050,7 +3050,7 @@ class VStack(HStack):
 
         return [choose(c, d) for c, d in zip(is_continuous, derivative)]
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         def _get(l):
             return l[0]
 
@@ -3127,7 +3127,7 @@ class Remove0(gof.Op):
         (gz,) = gout
         return [gz]
 
-    def infer_shape(self, node, i0_shapes):
+    def infer_shape(self, fgraph, node, i0_shapes):
         return i0_shapes
 
 
@@ -3515,7 +3515,7 @@ class TrueDot(gof.op.Op):
                 rval[1] = dense_from_sparse(rval[1])
         return rval
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [(shapes[0][0], shapes[1][1])]
 
 
@@ -3647,7 +3647,7 @@ class StructuredDot(gof.Op):
         (g_out,) = gout
         return [structured_dot_grad(a, b, g_out), structured_dot(a.T, g_out)]
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [(shapes[0][0], shapes[1][1])]
 
 
@@ -3832,7 +3832,7 @@ class StructuredDotGradCSC(gof.Op):
             locals(), **sub
         )
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0]]
 
 
@@ -3969,7 +3969,7 @@ class StructuredDotGradCSR(gof.Op):
             locals(), **sub
         )
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         return [shapes[0]]
 
 
@@ -4033,7 +4033,7 @@ class SamplingDot(gof.op.Op):
 
         return rval
 
-    def infer_shape(self, node, ins_shapes):
+    def infer_shape(self, fgraph, node, ins_shapes):
         return [ins_shapes[2]]
 
 
@@ -4083,7 +4083,7 @@ class Dot(gof.op.Op):
     def __str__(self):
         return "Sparse" + self.__class__.__name__
 
-    def infer_shape(self, node, shapes):
+    def infer_shape(self, fgraph, node, shapes):
         xshp, yshp = shapes
         x, y = node.inputs
         if x.ndim == 2 and y.ndim == 2:
@@ -4379,7 +4379,7 @@ class ConstructSparseFromList(gof.Op):
             (data, indices, indptr), shape=out_shape, dtype=values.dtype
         )
 
-    def infer_shape(self, node, ishapes):
+    def infer_shape(self, fgraph, node, ishapes):
         x = node.inputs[0]
         return [[x[0], x[1]]]
 

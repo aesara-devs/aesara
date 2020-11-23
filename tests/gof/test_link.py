@@ -138,7 +138,7 @@ class TestWrapLinker:
     def test_0(self):
         nodes = []
 
-        def wrap(i, node, th):
+        def wrap(fgraph, i, node, th):
             nodes.append(node.op)
 
         x, y, z = inputs()
@@ -155,7 +155,7 @@ class TestWrapLinker:
     def test_1(self):
         nodes = []
 
-        def wrap(i, node, th):
+        def wrap(fgraph, i, node, th):
             nodes.append(node.op)
             th()
 

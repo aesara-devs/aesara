@@ -1466,6 +1466,7 @@ class Scan(PureOp):
                     if hasattr(fn, "thunks"):
                         # For the CVM
                         gof.link.raise_with_op(
+                            self.fn.maker.fgraph,
                             fn.nodes[fn.position_of_error],
                             fn.thunks[fn.position_of_error],
                         )
@@ -1474,7 +1475,9 @@ class Scan(PureOp):
                         # We don't have access from python to all the
                         # temps values So for now, we just don't print
                         # the extra shapes/strides info
-                        gof.vm.raise_with_op(fn.nodes[fn.position_of_error])
+                        gof.link.raise_with_op(
+                            self.fn.maker.fgraph, fn.nodes[fn.position_of_error]
+                        )
                 else:
                     # old-style linkers raise their own exceptions
                     raise
@@ -1716,7 +1719,7 @@ class Scan(PureOp):
         self.t_fn = t_fn
 
     # Infer Shape
-    def infer_shape(self, node, input_shapes):
+    def infer_shape(self, fgraph, node, input_shapes):
         # input_shapes correspond to the shapes of node.inputs
         for inp, inp_shp in zip(node.inputs, input_shapes):
             assert inp_shp is None or len(inp_shp) == inp.type.ndim
@@ -3050,7 +3053,12 @@ def profile_printer(
     message, compile_time, fct_call_time, apply_time, apply_cimpl, outputs_size, file
 ):
     # Scan overhead profile
-    if any([isinstance(node.op, Scan) and v > 0 for node, v in apply_time.items()]):
+    if any(
+        [
+            isinstance(node.op, Scan) and v > 0
+            for (fgraph, node), v in apply_time.items()
+        ]
+    ):
         print("", file=file)
         print("Scan overhead:", file=file)
         print(
@@ -3063,7 +3071,7 @@ def profile_printer(
         total_super_scan_time = 0
         total_scan_fct_time = 0
         total_scan_op_time = 0
-        for node, v in apply_time.items():
+        for (fgraph, node), v in apply_time.items():
             if isinstance(node.op, Scan) and not node.op.fn.profile:
                 print(
                     "  One scan node do not have its inner profile enabled. "

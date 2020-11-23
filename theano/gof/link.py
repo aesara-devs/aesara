@@ -83,7 +83,7 @@ sys.excepthook = thunk_hook
 
 
 # TODO: Make this work with linker defined schedule
-def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
+def raise_with_op(fgraph, node, thunk=None, exc_info=None, storage_map=None):
     """
     Re-raise an exception while annotating the exception object with
     debug info.
@@ -132,7 +132,7 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
             trace = ()
     exc_value.__thunk_trace__ = trace
     exc_value.__op_instance__ = node
-    topo = node.fgraph.toposort()
+    topo = fgraph.toposort()
     if node in topo:
         node_index = topo.index(node)
     else:
@@ -161,7 +161,7 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
             shapes = "The thunk don't have an inputs attributes."
             strides = "So we can't access the strides of inputs values"
             scalar_values = "And can't print its inputs scalar value"
-        clients = [[c[0] for c in var.clients] for var in node.outputs]
+        clients = [[c[0] for c in fgraph.clients[var]] for var in node.outputs]
         detailed_err_msg += (
             f"Inputs shapes: {shapes}"
             + f"\nInputs strides: {strides}"
@@ -212,12 +212,12 @@ def raise_with_op(node, thunk=None, exc_info=None, storage_map=None):
         detailed_err_msg += "\nStorage map footprint:\n"
         shared_input_list = [
             item
-            for item in node.fgraph.inputs
+            for item in fgraph.inputs
             if isinstance(item, theano.compile.SharedVariable)
         ]
         nonshared_input_list = [
             item
-            for item in node.fgraph.inputs
+            for item in fgraph.inputs
             if not isinstance(item, theano.compile.SharedVariable)
         ]
         storage_map_list = []
@@ -692,7 +692,7 @@ def streamline(
                     for old_s in old_storage:
                         old_s[0] = None
             except Exception:
-                raise_with_op(node, thunk)
+                raise_with_op(fgraph, node, thunk)
 
         f = streamline_default_f
     elif nice_errors:
@@ -704,7 +704,7 @@ def streamline(
                 for thunk, node in zip(thunks, order):
                     thunk()
             except Exception:
-                raise_with_op(node, thunk)
+                raise_with_op(fgraph, node, thunk)
 
         f = streamline_nice_errors_f
     else:
@@ -946,7 +946,7 @@ class WrapLinker(Linker):
         For each node in the graph, each linker will provide a
         thunk.  This class makes it possible to iterate over each linker's
         program in parallel.
-    wrapper : lambda (i, i_node, i_thunk1, i_thunk2, ...) : None
+    wrapper : lambda (fgraph, i, i_node, i_thunk1, i_thunk2, ...) : None
         Does some user-defined action for the i'th element of the program.
         i_thunk<n> is the thunk returned by the n'th linker. (If you want
         to run the program, make sure to call the necessary thunks in this
@@ -1060,9 +1060,9 @@ class WrapLinker(Linker):
             pre(self, [input.data for input in input_lists[0]], order, thunk_groups)
             for i, (thunks, node) in enumerate(zip(thunk_groups, order)):
                 try:
-                    wrapper(i, node, *thunks)
+                    wrapper(self.fgraph, i, node, *thunks)
                 except Exception:
-                    raise_with_op(node, *thunks)
+                    raise_with_op(self.fgraph, node, *thunks)
 
         f.thunk_groups = thunk_groups
 

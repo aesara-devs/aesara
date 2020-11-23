@@ -30,10 +30,8 @@ class Node(object2):
     """A `Node` in a Theano graph.
 
     Currently, graphs contain two kinds of `Nodes`: `Variable`s and `Apply`s.
-    Edges in the graph are not explicitly represented.
-    Instead each `Node` keeps track of its parents via
-    `Variable.owner` / `Apply.inputs` and its children
-    via Variable.clients / Apply.outputs.
+    Edges in the graph are not explicitly represented.  Instead each `Node`
+    keeps track of its parents via `Variable.owner` / `Apply.inputs`.
 
     """
 
@@ -287,46 +285,46 @@ class Variable(Node):
     - :literal:`type` a `Type` instance defining the kind of value this
       `Variable` can have,
 
-    - :literal:`owner` either None (for graph roots) or the `Apply` instance
+    - :literal:`owner` either `None` (for graph roots) or the `Apply` instance
       of which `self` is an output,
 
     - :literal:`index` the integer such that :literal:`owner.outputs[index] is
-      this_variable` (ignored if `owner` is None),
+      this_variable` (ignored if `owner` is `None`),
 
     - :literal:`name` a string to use in pretty-printing and debugging.
 
-    There are a few kinds of Variables to be aware of: A Variable which is the
-    output of a symbolic computation has a reference to the Apply instance to
+    There are a few kinds of `Variable`s to be aware of: A `Variable` which is the
+    output of a symbolic computation has a reference to the `Apply` instance to
     which it belongs (property: owner) and the position of itself in the owner's
     output list (property: index).
 
     - `Variable` (this base type) is typically the output of a symbolic
       computation.
 
-    - `Constant` (a subclass) which adds a default and un-replaceable
+    - `Constant`: a subclass which adds a default and un-replaceable
       :literal:`value`, and requires that owner is None.
 
-    - `TensorVariable` subclass of Variable that represents a numpy.ndarray
+    - `TensorVariable` subclass of `Variable` that represents a `numpy.ndarray`
        object.
 
-    - `TensorSharedVariable` Shared version of TensorVariable.
+    - `TensorSharedVariable`: a shared version of `TensorVariable`.
 
-    - `SparseVariable` subclass of Variable that represents
-      a scipy.sparse.{csc,csr}_matrix object.
+    - `SparseVariable`: a subclass of `Variable` that represents
+      a `scipy.sparse.{csc,csr}_matrix` object.
 
-    - `GpuArrayVariable` subclass of Variable that represents our object on
-      the GPU that is a subset of numpy.ndarray.
+    - `GpuArrayVariable`: a subclass of `Variable` that represents our object on
+      the GPU that is a subset of `numpy.ndarray`.
 
     - `RandomVariable`.
 
-    A Variable which is the output of a symbolic computation will have an owner
+    A `Variable` which is the output of a symbolic computation will have an owner
     not equal to None.
 
-    Using the Variables' owner field and the Apply nodes' inputs fields, one can
-    navigate a graph from an output all the way to the inputs. The opposite
-    direction is not possible until a FunctionGraph has annotated the Variables
-    with the clients field, ie, before the compilation process has begun a
-    Variable does not know which Apply nodes take it as input.
+    Using the `Variables`' owner field and the `Apply` nodes' inputs fields,
+    one can navigate a graph from an output all the way to the inputs. The
+    opposite direction is possible with a `FunctionGraph` and its
+    `FunctionGraph.clients` `dict`, which maps `Variable`s to a list of their
+    clients.
 
     Parameters
     ----------

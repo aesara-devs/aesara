@@ -66,7 +66,6 @@ def debugprint(
     stop_on_name=False,
     done=None,
     print_storage=False,
-    print_clients=False,
     used_ids=None,
 ):
     """Print a computation graph as text to stdout or a file.
@@ -94,10 +93,6 @@ def debugprint(
     :param print_storage: If True, this will print the storage map
         for Theano functions. Combined with allow_gc=False, after the
         execution of a Theano function, we see the intermediate result.
-    :type print_clients: bool
-    :param print_clients: If True, this will print for Apply node that
-         have more then 1 clients its clients. This help find who use
-         an Apply node.
     :type used_ids: dict or None
     :param used_ids: the id to use for some object, but maybe we only
          referred to it yet.
@@ -220,7 +215,6 @@ N.B.:
             profile=p,
             smap=s,
             used_ids=used_ids,
-            print_clients=print_clients,
         )
 
     if len(scan_ops) > 0:
@@ -254,7 +248,6 @@ N.B.:
                 scan_ops=scan_ops,
                 stop_on_name=stop_on_name,
                 scan_inner_to_outer_inputs=inner_to_outer_inputs,
-                print_clients=print_clients,
                 used_ids=used_ids,
             )
             if hasattr(s.owner.op, "fn"):
@@ -280,7 +273,6 @@ N.B.:
                     prefix_child=new_prefix_child,
                     scan_ops=scan_ops,
                     scan_inner_to_outer_inputs=inner_to_outer_inputs,
-                    print_clients=print_clients,
                     used_ids=used_ids,
                 )
 
@@ -812,12 +804,14 @@ def pydotprint(
 
     if isinstance(fct, Function):
         profile = getattr(fct, "profile", None)
-        outputs = fct.maker.fgraph.outputs
-        topo = fct.maker.fgraph.toposort()
+        fgraph = fct.maker.fgraph
+        outputs = fgraph.outputs
+        topo = fgraph.toposort()
     elif isinstance(fct, gof.FunctionGraph):
         profile = None
         outputs = fct.outputs
         topo = fct.toposort()
+        fgraph = fct
     else:
         if isinstance(fct, gof.Variable):
             fct = [fct]
@@ -829,6 +823,7 @@ def pydotprint(
         profile = None
         outputs = fct.outputs
         topo = fct.toposort()
+        fgraph = fct
     if not pydot_imported:
         raise RuntimeError(
             "Failed to import pydot. You must install graphviz"
@@ -920,7 +915,7 @@ def pydotprint(
             return apply_name_cache[node], apply_name_id[node]
         prof_str = ""
         if profile:
-            time = profile.apply_time.get(node, 0)
+            time = profile.apply_time.get((fgraph, node), 0)
             # second, %fct time in profiler
             if profile.fct_callcount == 0 or profile.fct_call_time == 0:
                 pf = 0
@@ -956,7 +951,7 @@ def pydotprint(
     # it, we must copy it.
     outputs = list(outputs)
     if isinstance(fct, Function):
-        function_inputs = zip(fct.maker.expanded_inputs, fct.maker.fgraph.inputs)
+        function_inputs = zip(fct.maker.expanded_inputs, fgraph.inputs)
         for i, fg_ii in reversed(list(function_inputs)):
             if i.update is not None:
                 k = outputs.pop()
@@ -1072,7 +1067,7 @@ def pydotprint(
                             shape=var_shape,
                         )
                     )
-            elif len(var.clients) == 0:
+            elif len(fgraph.clients[var]) == 0:
                 g.add_edge(pd.Edge(aid, varid, **param))
                 # grey mean that output var isn't used
                 if high_contrast:

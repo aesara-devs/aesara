@@ -222,7 +222,7 @@ def _build_droot_impact(destroy_handler):
     return droot, impact, root_destroyer
 
 
-def fast_inplace_check(inputs):
+def fast_inplace_check(fgraph, inputs):
     """
     Return the variables in inputs that are posible candidate for as inputs of
     inplace operation.
@@ -233,7 +233,6 @@ def fast_inplace_check(inputs):
         Inputs Variable that you want to use as inplace destination.
 
     """
-    fgraph = inputs[0].fgraph
     Supervisor = theano.compile.function.types.Supervisor
     protected_inputs = [
         f.protected for f in fgraph._features if isinstance(f, Supervisor)
@@ -411,7 +410,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
 
             def recursive_destroys_finder(protected_var):
                 # protected_var is the idx'th input of app.
-                for (app, idx) in protected_var.clients:
+                for (app, idx) in fgraph.clients[protected_var]:
                     if app == "output":
                         continue
                     destroy_maps = getattr(app.op, "destroy_map", {}).values()
@@ -458,7 +457,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
         delattr(self.fgraph, "destroy_handler")
         self.fgraph = None
 
-    def fast_destroy(self, app, reason):
+    def fast_destroy(self, fgraph, app, reason):
         """
         Do the check for only 1 level.
 
@@ -482,7 +481,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
                 self.fail_validate[app] = InconsistencyError(
                     f"Attempting to destroy indestructible variables: {inp}"
                 )
-            elif len(inp.clients) > 1:
+            elif len(fgraph.clients[inp]) > 1:
                 self.fail_validate[app] = theano.gof.InconsistencyError(
                     "Destroyed variable has more than one client. " + str(reason)
                 )
@@ -525,7 +524,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
         if dmap:
             self.destroyers.add(app)
             if self.algo == "fast":
-                self.fast_destroy(app, reason)
+                self.fast_destroy(fgraph, app, reason)
 
         # add this symbol to the forward and backward maps
         for o_idx, i_idx_list in vmap.items():
@@ -629,7 +628,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
             if self.algo == "fast":
                 if app in self.fail_validate:
                     del self.fail_validate[app]
-                self.fast_destroy(app, reason)
+                self.fast_destroy(fgraph, app, reason)
         self.stale_droot = True
 
     def validate(self, fgraph):
@@ -655,7 +654,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
                     # double check here.
                     for app in app_err_pairs:
                         if app in fgraph.apply_nodes:
-                            self.fast_destroy(app, "validate")
+                            self.fast_destroy(fgraph, app, "validate")
                     if self.fail_validate:
                         self.fail_validate = app_err_pairs
                         raise app_err_pairs[app]

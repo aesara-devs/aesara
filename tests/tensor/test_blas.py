@@ -24,6 +24,7 @@ import theano.tensor.blas_scipy
 from tests import unittest_tools
 from tests.tensor.utils import inplace_func
 from theano import In, config, shared
+from theano.gof.fg import FunctionGraph
 from theano.tensor import as_tensor_variable, inplace
 from theano.tensor.blas import (
     Dot22,
@@ -528,11 +529,14 @@ class TestGemmNoFlags:
 def test_res_is_a():
     X, Y, Z, a, b = XYZab()
 
-    assert not res_is_a(a, tt.sqrt)
-    assert not res_is_a(a + a, tt.sqrt)
-    assert res_is_a(tt.sqrt(a + a), tt.sqrt)
+    assert not res_is_a(None, a, tt.sqrt)
+    assert not res_is_a(None, a + a, tt.sqrt)
+    assert res_is_a(None, tt.sqrt(a + a), tt.sqrt)
 
-    # leave the maxclients  stuff untested because it requires being in an fgraph.
+    sqrt_term = tt.sqrt(a + a)
+    fg = FunctionGraph([a], [2 * sqrt_term], clone=False)
+    assert res_is_a(fg, sqrt_term, tt.sqrt, 2)
+    assert not res_is_a(fg, sqrt_term, tt.sqrt, 0)
 
 
 class TestAsScalar:
@@ -731,15 +735,20 @@ def test_gemm_canonicalize():
     w = tt.col("w")
 
     can = []
-    _gemm_canonicalize(X + Y + Z, 1.0, can, 0)
+    fg = FunctionGraph([X, Y, Z], [X + Y + Z], clone=False)
+    _gemm_canonicalize(fg, fg.outputs[0], 1.0, can, 0)
     assert can == [(1.0, X), (1.0, Y), (1.0, Z)]
+    fg.disown()
 
     can = []
-    _gemm_canonicalize(X + Y + u, 1.0, can, 0)
+    fg = FunctionGraph([X, Y, u], [X + Y + u], clone=False)
+    _gemm_canonicalize(fg, fg.outputs[0], 1.0, can, 0)
     assert can == [(1.0, X), (1.0, Y), (1.0, u)], can
+    fg.disown()
 
     can = []
-    _gemm_canonicalize(X + Y + v, 1.0, can, 0)
+    fg = FunctionGraph([X, Y, v], [X + Y + v], clone=False)
+    _gemm_canonicalize(fg, fg.outputs[0], 1.0, can, 0)
     # [(1.0, X), (1.0, Y), (1.0, InplaceDimShuffle{x,0}(v))]
     assert can[:2] == [(1.0, X), (1.0, Y)]
     assert isinstance(can[2], tuple)
@@ -748,23 +757,30 @@ def test_gemm_canonicalize():
     assert can[2][1].owner
     assert isinstance(can[2][1].owner.op, tt.DimShuffle)
     assert can[2][1].owner.inputs == [v]
+    fg.disown()
 
     can = []
-    _gemm_canonicalize(X + Y + w, 1.0, can, 0)
+    fg = FunctionGraph([X, Y, w], [X + Y + w], clone=False)
+    _gemm_canonicalize(fg, fg.outputs[0], 1.0, can, 0)
     assert can == [(1.0, X), (1.0, Y), (1.0, w)], can
+    fg.disown()
 
     can = []
-    _gemm_canonicalize(a * X + Y - b * Z * c, 1.0, can, 0)
+    fg = FunctionGraph([a, X, Y, b, Z, c], [a * X + Y - b * Z * c], clone=False)
+    _gemm_canonicalize(fg, fg.outputs[0], 1.0, can, 0)
     assert can[0] == (a, X)
     assert can[1] == (1.0, Y)
     assert can[2][0].owner.op == tt.mul
     assert can[2][0].owner.inputs[0].owner.op == tt.neg
     assert can[2][0].owner.inputs[0].owner.inputs[0] == c
     assert can[2][0].owner.inputs[1] == b
+    fg.disown()
 
     can = []
-    _gemm_canonicalize((-d) * X - (a * X + Y - b * Z * c), 1.0, can, 0)
-    # print can
+    fg = FunctionGraph(
+        [a, X, Y, b, Z, c, d], [(-d) * X - (a * X + Y - b * Z * c)], clone=False
+    )
+    _gemm_canonicalize(fg, fg.outputs[0], 1.0, can, 0)
     assert can[0][0].owner.op == tt.neg
     assert can[0][0].owner.inputs[0] == d
     assert can[0][1] == X
@@ -773,6 +789,7 @@ def test_gemm_canonicalize():
     assert can[2] == (-1.0, Y)
     assert can[3][0].owner.op == tt.mul
     assert can[3][0].owner.inputs == [c, b]
+    fg.disown()
 
 
 def test_gemm_factor():
@@ -1218,7 +1235,7 @@ def test_local_dot22_to_dot22scalar():
             tt.mul(_dot22(A, A), (r * m), (m * x)),
         ]
     ):
-        node2 = local_dot22_to_dot22scalar.transform(node.owner)
+        node2 = local_dot22_to_dot22scalar.transform(None, node.owner)
         assert node2
         f = theano.function(
             [x, y, z, m, r, A], node, mode=mode, on_unused_input="ignore"
@@ -1806,49 +1823,53 @@ class TestGer(unittest_tools.OptimizationTestMixin):
     def test_b_0_triggers_ger(self):
         # test local_gemm_to_ger opt
         assert local_gemm_to_ger.transform(
+            None,
             gemm_no_inplace(
                 self.A,
                 self.a,
                 self.x.dimshuffle(0, "x"),
                 self.y.dimshuffle("x", 0),
                 self.b(0),
-            ).owner
+            ).owner,
         )
 
     def test_b_1_triggers_ger(self):
         # test local_gemm_to_ger opt
         assert local_gemm_to_ger.transform(
+            None,
             gemm_no_inplace(
                 self.A,
                 self.a,
                 self.x.dimshuffle(0, "x"),
                 self.y.dimshuffle("x", 0),
                 self.b(1),
-            ).owner
+            ).owner,
         )
 
     def test_b_other_does_not_triggers_ger(self):
         # test local_gemm_to_ger opt
         assert not local_gemm_to_ger.transform(
+            None,
             gemm_no_inplace(
                 self.A,
                 self.a,
                 self.x.dimshuffle(0, "x"),
                 self.y.dimshuffle("x", 0),
                 self.b(1.5),
-            ).owner
+            ).owner,
         )
 
     def test_b_nonconst_does_not_triggers_ger(self):
         # test local_gemm_to_ger opt
         assert not local_gemm_to_ger.transform(
+            None,
             gemm_no_inplace(
                 self.A,
                 self.a,
                 self.x.dimshuffle(0, "x"),
                 self.y.dimshuffle("x", 0),
                 self.a,
-            ).owner
+            ).owner,
         )
 
     def test_outer(self):

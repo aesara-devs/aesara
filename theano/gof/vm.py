@@ -135,6 +135,8 @@ class VM:
 
     Parameters
     ----------
+    fgraph : FunctionGraph
+        The `FunctionGraph` associated with `nodes` and `thunks`.
     nodes
         A list of nodes in toposort order.
     thunks
@@ -160,10 +162,11 @@ class VM:
 
     """
 
-    def __init__(self, nodes, thunks, pre_call_clear):
+    def __init__(self, fgraph, nodes, thunks, pre_call_clear):
 
         if len(nodes) != len(thunks):
             raise ValueError()
+        self.fgraph = fgraph
         self.nodes = nodes
         self.thunks = thunks
         self.pre_call_clear = pre_call_clear
@@ -204,11 +207,11 @@ class VM:
         for node, thunk, t, c in zip(
             self.nodes, self.thunks, self.call_times, self.call_counts
         ):
-            profile.apply_time.setdefault(node, 0.0)
-            profile.apply_time[node] += t
+            profile.apply_time.setdefault((self.fgraph, node), 0.0)
+            profile.apply_time[(self.fgraph, node)] += t
 
-            profile.apply_callcount.setdefault(node, 0)
-            profile.apply_callcount[node] += c
+            profile.apply_callcount.setdefault((self.fgraph, node), 0)
+            profile.apply_callcount[(self.fgraph, node)] += c
 
             profile.apply_cimpl[node] = hasattr(thunk, "cthunk")
 
@@ -254,7 +257,7 @@ class Loop(VM):
                     self.call_counts[i] += 1
                     self.call_times[i] += t1 - t0
             except Exception:
-                link.raise_with_op(node, thunk)
+                link.raise_with_op(self.fgraph, node, thunk)
         else:
             for cont in self.pre_call_clear:
                 cont[0] = None
@@ -262,7 +265,7 @@ class Loop(VM):
                 for thunk, node in zip(self.thunks, self.nodes):
                     thunk()
             except Exception:
-                link.raise_with_op(node, thunk)
+                link.raise_with_op(self.fgraph, node, thunk)
 
 
 class LoopGC(VM):
@@ -272,8 +275,8 @@ class LoopGC(VM):
 
     """
 
-    def __init__(self, nodes, thunks, pre_call_clear, post_thunk_clear):
-        super().__init__(nodes, thunks, pre_call_clear)
+    def __init__(self, fgraph, nodes, thunks, pre_call_clear, post_thunk_clear):
+        super().__init__(fgraph, nodes, thunks, pre_call_clear)
         self.post_thunk_clear = post_thunk_clear
         # Some other part of Theano query that information
         self.allow_gc = True
@@ -298,7 +301,7 @@ class LoopGC(VM):
                         old_s[0] = None
                     i += 1
             except Exception:
-                link.raise_with_op(node, thunk)
+                link.raise_with_op(self.fgraph, node, thunk)
         else:
             for cont in self.pre_call_clear:
                 cont[0] = None
@@ -310,7 +313,7 @@ class LoopGC(VM):
                     for old_s in old_storage:
                         old_s[0] = None
             except Exception:
-                link.raise_with_op(node, thunk)
+                link.raise_with_op(self.fgraph, node, thunk)
 
 
 class Stack(VM):
@@ -341,19 +344,19 @@ class Stack(VM):
 
     def __init__(
         self,
+        fgraph,
         nodes,
         thunks,
         pre_call_clear,
         storage_map,
         compute_map,
-        fgraph,
         allow_gc,
         n_updates,
         dependencies=None,
         callback=None,
         callback_input=None,
     ):
-        super().__init__(nodes, thunks, pre_call_clear)
+        super().__init__(fgraph, nodes, thunks, pre_call_clear)
 
         self.allow_gc = allow_gc
         self.message = ""
@@ -539,6 +542,7 @@ class Stack(VM):
                                 self.variable_offset[var] = off
                     except Exception:
                         link.raise_with_op(
+                            self.fgraph,
                             current_apply,
                             self.thunks[self.node_idx[current_apply]],
                             storage_map=storage_map,
@@ -610,6 +614,7 @@ class Stack(VM):
 
                 except Exception:
                     link.raise_with_op(
+                        self.fgraph,
                         current_apply,
                         self.thunks[self.node_idx[current_apply]],
                         storage_map=storage_map,
@@ -697,7 +702,8 @@ try:
     from . import lazylinker_c
 
     class CVM(lazylinker_c.CLazyLinker, VM):
-        def __init__(self, *args, **kwargs):
+        def __init__(self, fgraph, *args, **kwargs):
+            self.fgraph = fgraph
             lazylinker_c.CLazyLinker.__init__(self, *args, **kwargs)
             # skip VM.__init__
 
@@ -889,9 +895,9 @@ class VM_Linker(link.LocalLinker):
             # Fred guess: it could happen for node with multiple outputs when
             # we don't use all outputs.
 
-            if k.owner and k.clients:
+            if k.owner and self.fgraph.clients[k]:
                 ls = []
-                for cl in k.clients:
+                for cl in self.fgraph.clients[k]:
                     if cl[0] != "output":
                         ls += cl[0].outputs
                 dependencies[k] += ls
@@ -932,12 +938,12 @@ class VM_Linker(link.LocalLinker):
             # Needed for allow_gc=True, profiling and storage_map reuse
             deps = self.compute_gc_dependencies(storage_map)
             vm = Stack(
+                self.fgraph,
                 nodes,
                 thunks,
                 pre_call_clear,
                 storage_map,
                 compute_map,
-                self.fgraph,
                 self.allow_gc,
                 len(updated_vars),
                 dependencies=deps,
@@ -1037,6 +1043,7 @@ class VM_Linker(link.LocalLinker):
                 c0 = sys.getrefcount(node_n_inputs)
 
             vm = CVM(
+                self.fgraph,
                 nodes,
                 thunks,
                 pre_call_clear,
@@ -1071,6 +1078,7 @@ class VM_Linker(link.LocalLinker):
                 # there is no conditional in the graph
                 if self.allow_gc:
                     vm = LoopGC(
+                        self.fgraph,
                         nodes,
                         thunks,
                         pre_call_clear,
@@ -1078,6 +1086,7 @@ class VM_Linker(link.LocalLinker):
                     )
                 else:
                     vm = Loop(
+                        self.fgraph,
                         nodes,
                         thunks,
                         pre_call_clear,
@@ -1086,12 +1095,12 @@ class VM_Linker(link.LocalLinker):
                 # Needed when allow_gc=True and profiling
                 deps = self.compute_gc_dependencies(storage_map)
                 vm = Stack(
+                    self.fgraph,
                     nodes,
                     thunks,
                     pre_call_clear,
                     storage_map,
                     compute_map,
-                    self.fgraph,
                     self.allow_gc,
                     len(updated_vars),
                     dependencies=deps,
