@@ -10,8 +10,20 @@ from theano.gof.graph import Constant
 from theano.gof.opt import EquilibriumOptimizer
 from theano.gof.optdb import Query
 from theano.tensor.elemwise import DimShuffle
-from theano.tensor.random.basic import dirichlet, multivariate_normal, normal, poisson
-from theano.tensor.random.opt import lift_rv_shapes, local_dimshuffle_rv_lift
+from theano.tensor.random.basic import (
+    dirichlet,
+    multivariate_normal,
+    normal,
+    poisson,
+    uniform,
+)
+from theano.tensor.random.op import RandomVariable
+from theano.tensor.random.opt import (
+    lift_rv_shapes,
+    local_dimshuffle_rv_lift,
+    local_subtensor_rv_lift,
+)
+from theano.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subtensor
 
 
 inplace_mode = Mode("py", Query(include=["random_make_inplace"], exclude=[]))
@@ -282,6 +294,187 @@ def test_DimShuffle_lift(ds_order, lifted, dist_op, dist_params, size, rtol):
     res_opt = f_opt(*arg_values)
 
     np.testing.assert_allclose(res_base, res_opt, rtol=rtol)
+
+
+@pytest.mark.parametrize(
+    "indices, lifted, dist_op, dist_params, size",
+    [
+        (
+            # `size`-less advanced boolean indexing
+            (np.r_[True, False, False, True],),
+            True,
+            uniform,
+            (
+                (0.1 - 1e-5) * np.arange(4).astype(dtype=config.floatX),
+                0.1 * np.arange(4).astype(dtype=config.floatX),
+            ),
+            (),
+        ),
+        (
+            # `size`-only advanced boolean indexing
+            (np.r_[True, False, False, True],),
+            True,
+            uniform,
+            (
+                np.array(0.9 - 1e-5, dtype=config.floatX),
+                np.array(0.9, dtype=config.floatX),
+            ),
+            (4,),
+        ),
+        (
+            # `size`-only slice
+            (slice(4, -6, -1),),
+            True,
+            uniform,
+            (
+                np.array(0.9 - 1e-5, dtype=config.floatX),
+                np.array(0.9, dtype=config.floatX),
+            ),
+            (5, 2),
+        ),
+        (
+            (slice(1, None), [0, 2]),
+            True,
+            normal,
+            (
+                np.array([1, 10, 100], dtype=config.floatX),
+                np.array([1e-5, 2e-5, 3e-5], dtype=config.floatX),
+            ),
+            (4, 3),
+        ),
+        (
+            (np.array([1]), 0),
+            True,
+            normal,
+            (
+                np.array([[-1, 20], [300, -4000]], dtype=config.floatX),
+                np.array([[1e-6, 2e-6]], dtype=config.floatX),
+            ),
+            (3, 2, 2),
+        ),
+        # A multi-dimensional case
+        (
+            (np.array([1]), 0),
+            False,
+            multivariate_normal,
+            (
+                np.array([[-1, 20], [300, -4000]], dtype=config.floatX),
+                np.eye(2).astype(config.floatX) * 1e-6,
+            ),
+            (),
+        ),
+        # Only one distribution parameter
+        (
+            (0,),
+            True,
+            poisson,
+            (np.array([[1, 2], [3, 4]], dtype=config.floatX),),
+            (3, 2, 2),
+        ),
+    ],
+)
+@change_flags(compute_test_value_opt="raise", compute_test_value="raise")
+def test_Subtensor_lift(indices, lifted, dist_op, dist_params, size):
+
+    rng = shared(np.random.RandomState(1233532), borrow=False)
+
+    dist_params_tt = []
+    for p in dist_params:
+        p_tt = tt.as_tensor(p).type()
+        p_tt.tag.test_value = p
+        dist_params_tt.append(p_tt)
+
+    size_tt = []
+    for s in size:
+        s_tt = tt.iscalar()
+        s_tt.tag.test_value = s
+        size_tt.append(s_tt)
+
+    from theano.tensor.subtensor import as_index_constant
+
+    indices_tt = ()
+    for i in indices:
+        i_tt = as_index_constant(i)
+        if not isinstance(i_tt, slice):
+            i_tt.tag.test_value = i
+        indices_tt += (i_tt,)
+
+    dist_st = dist_op(*dist_params_tt, size=size_tt, rng=rng)[indices_tt]
+
+    f_inputs = [
+        p
+        for p in dist_params_tt + size_tt + list(indices_tt)
+        if not isinstance(p, (slice, Constant))
+    ]
+
+    mode = Mode(
+        "py", EquilibriumOptimizer([local_subtensor_rv_lift], max_use_ratio=100)
+    )
+
+    f_opt = function(
+        f_inputs,
+        dist_st,
+        mode=mode,
+    )
+
+    (new_out,) = f_opt.maker.fgraph.outputs
+
+    if lifted:
+        assert isinstance(new_out.owner.op, RandomVariable)
+        assert all(
+            isinstance(i.owner.op, (AdvancedSubtensor, AdvancedSubtensor1, Subtensor))
+            for i in new_out.owner.inputs[3:]
+            if i.owner
+        )
+    else:
+        assert isinstance(
+            new_out.owner.op, (AdvancedSubtensor, AdvancedSubtensor1, Subtensor)
+        )
+        return
+
+    f_base = function(
+        f_inputs,
+        dist_st,
+        mode=no_mode,
+    )
+
+    arg_values = [p.get_test_value() for p in f_inputs]
+    res_base = f_base(*arg_values)
+    res_opt = f_opt(*arg_values)
+
+    np.testing.assert_allclose(res_base, res_opt, rtol=1e-3)
+
+
+def test_Subtensor_lift_restrictions():
+    rng = shared(np.random.RandomState(1233532), borrow=False)
+
+    std = tt.vector("std")
+    std.tag.test_value = np.array([1e-5, 2e-5, 3e-5], dtype=config.floatX)
+    x = normal(tt.arange(2), tt.ones(2), rng=rng)
+    y = x[1]
+    # The non-`Subtensor` client depends on the RNG state, so we can't perform
+    # the lift
+    z = x - y
+
+    fg = FunctionGraph([rng], [z], clone=False)
+    _ = EquilibriumOptimizer([local_subtensor_rv_lift], max_use_ratio=100).apply(fg)
+
+    subtensor_node = fg.outputs[0].owner.inputs[1].owner.inputs[0].owner
+    assert subtensor_node == y.owner
+    assert isinstance(subtensor_node.op, Subtensor)
+    assert subtensor_node.inputs[0].owner.op == normal
+
+    # The non-`Subtensor` client doesn't depend on the RNG state, so we can
+    # perform the lift
+    z = tt.ones(x.shape) - x[1]
+
+    fg = FunctionGraph([rng], [z], clone=False)
+    EquilibriumOptimizer([local_subtensor_rv_lift], max_use_ratio=100).apply(fg)
+
+    rv_node = fg.outputs[0].owner.inputs[1].owner.inputs[0].owner
+    assert rv_node.op == normal
+    assert isinstance(rv_node.inputs[-1].owner.op, Subtensor)
+    assert isinstance(rv_node.inputs[-2].owner.op, Subtensor)
 
 
 def test_Dimshuffle_lift_restrictions():
