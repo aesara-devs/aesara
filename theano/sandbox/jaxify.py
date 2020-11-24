@@ -623,7 +623,7 @@ _ = [jax_funcify.register(op, jax_funcify_Subtensor) for op in subtensor_ops]
 
 def jax_funcify_IncSubtensor(op):
 
-    idx_list = op.idx_list
+    idx_list = getattr(op, "idx_list", None)
 
     if getattr(op, "set_instead_of_inc", False):
         jax_fn = jax.ops.index_update
@@ -632,7 +632,11 @@ def jax_funcify_IncSubtensor(op):
 
     def incsubtensor(x, y, *ilist, jax_fn=jax_fn, idx_list=idx_list):
         _ilist = list(ilist)
-        cdata = tuple(convert_indices(_ilist, idx) for idx in idx_list)
+        cdata = (
+            tuple(convert_indices(_ilist, idx) for idx in idx_list)
+            if idx_list
+            else _ilist
+        )
         if len(cdata) == 1:
             cdata = cdata[0]
 

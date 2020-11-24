@@ -425,40 +425,40 @@ def test_jax_Subtensors():
     # Basic indices
     x_tt = tt.arange(3 * 4 * 5).reshape((3, 4, 5))
     out_tt = x_tt[1, 2, 0]
-
+    assert isinstance(out_tt.owner.op, tt.subtensor.Subtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     out_tt = x_tt[1:2, 1, :]
-
+    assert isinstance(out_tt.owner.op, tt.subtensor.Subtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     # Boolean indices
     out_tt = x_tt[x_tt < 0]
-
+    assert isinstance(out_tt.owner.op, tt.subtensor.AdvancedSubtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     # Advanced indexing
     out_tt = x_tt[[1, 2]]
-
+    assert isinstance(out_tt.owner.op, tt.subtensor.AdvancedSubtensor1)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     out_tt = x_tt[[1, 2], [2, 3]]
-
+    assert isinstance(out_tt.owner.op, tt.subtensor.AdvancedSubtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     # Advanced and basic indexing
     out_tt = x_tt[[1, 2], :]
-
+    assert isinstance(out_tt.owner.op, tt.subtensor.AdvancedSubtensor1)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     out_tt = x_tt[[1, 2], :, [3, 4]]
-
+    assert isinstance(out_tt.owner.op, tt.subtensor.AdvancedSubtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
@@ -470,64 +470,92 @@ def test_jax_IncSubtensor():
     # "Set" basic indices
     st_tt = tt.as_tensor_variable(np.array(-10.0, dtype=theano.config.floatX))
     out_tt = tt.set_subtensor(x_tt[1, 2, 3], st_tt)
+    assert isinstance(out_tt.owner.op, tt.subtensor.IncSubtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     st_tt = tt.as_tensor_variable(np.r_[-1.0, 0.0].astype(theano.config.floatX))
     out_tt = tt.set_subtensor(x_tt[:2, 0, 0], st_tt)
+    assert isinstance(out_tt.owner.op, tt.subtensor.IncSubtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     out_tt = tt.set_subtensor(x_tt[0, 1:3, 0], st_tt)
+    assert isinstance(out_tt.owner.op, tt.subtensor.IncSubtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     # "Set" advanced indices
+    st_tt = tt.as_tensor_variable(
+        np.random.uniform(-1, 1, size=(2, 4, 5)).astype(theano.config.floatX)
+    )
+    out_tt = tt.set_subtensor(x_tt[np.r_[0, 2]], st_tt)
+    assert isinstance(out_tt.owner.op, tt.subtensor.AdvancedIncSubtensor1)
+    out_fg = theano.gof.FunctionGraph([], [out_tt])
+    compare_jax_and_py(out_fg, [])
+
     st_tt = tt.as_tensor_variable(np.r_[-1.0, 0.0].astype(theano.config.floatX))
     out_tt = tt.set_subtensor(x_tt[[0, 2], 0, 0], st_tt)
+    assert isinstance(out_tt.owner.op, tt.subtensor.AdvancedIncSubtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     st_tt = tt.as_tensor_variable(x_np[[0, 2], 0, :3])
     out_tt = tt.set_subtensor(x_tt[[0, 2], 0, :3], st_tt)
+    assert isinstance(out_tt.owner.op, tt.subtensor.AdvancedIncSubtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     # "Set" boolean indices
     mask_tt = tt.as_tensor_variable(x_np) > 0
     out_tt = tt.set_subtensor(x_tt[mask_tt], 0.0)
+    assert isinstance(out_tt.owner.op, tt.subtensor.AdvancedIncSubtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     # "Increment" basic indices
     st_tt = tt.as_tensor_variable(np.array(-10.0, dtype=theano.config.floatX))
     out_tt = tt.inc_subtensor(x_tt[1, 2, 3], st_tt)
+    assert isinstance(out_tt.owner.op, tt.subtensor.IncSubtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     st_tt = tt.as_tensor_variable(np.r_[-1.0, 0.0].astype(theano.config.floatX))
     out_tt = tt.inc_subtensor(x_tt[:2, 0, 0], st_tt)
+    assert isinstance(out_tt.owner.op, tt.subtensor.IncSubtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     out_tt = tt.set_subtensor(x_tt[0, 1:3, 0], st_tt)
+    assert isinstance(out_tt.owner.op, tt.subtensor.IncSubtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     # "Increment" advanced indices
+    st_tt = tt.as_tensor_variable(
+        np.random.uniform(-1, 1, size=(2, 4, 5)).astype(theano.config.floatX)
+    )
+    out_tt = tt.inc_subtensor(x_tt[np.r_[0, 2]], st_tt)
+    assert isinstance(out_tt.owner.op, tt.subtensor.AdvancedIncSubtensor1)
+    out_fg = theano.gof.FunctionGraph([], [out_tt])
+    compare_jax_and_py(out_fg, [])
+
     st_tt = tt.as_tensor_variable(np.r_[-1.0, 0.0].astype(theano.config.floatX))
     out_tt = tt.inc_subtensor(x_tt[[0, 2], 0, 0], st_tt)
+    assert isinstance(out_tt.owner.op, tt.subtensor.AdvancedIncSubtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     st_tt = tt.as_tensor_variable(x_np[[0, 2], 0, :3])
     out_tt = tt.inc_subtensor(x_tt[[0, 2], 0, :3], st_tt)
+    assert isinstance(out_tt.owner.op, tt.subtensor.AdvancedIncSubtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     # "Increment" boolean indices
     mask_tt = tt.as_tensor_variable(x_np) > 0
     out_tt = tt.set_subtensor(x_tt[mask_tt], 1.0)
+    assert isinstance(out_tt.owner.op, tt.subtensor.AdvancedIncSubtensor)
     out_fg = theano.gof.FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
