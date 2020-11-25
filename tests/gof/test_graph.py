@@ -326,9 +326,30 @@ class TestAutoName:
 
 
 def test_equal_computations():
-    # This was a bug report by a Theano user.
+
+    a, b = tensor.iscalars(2)
+
+    with pytest.raises(ValueError):
+        equal_computations([a], [a, b])
+
+    assert equal_computations([a], [a])
+    assert equal_computations([tensor.as_tensor(1)], [tensor.as_tensor(1)])
+    assert not equal_computations([b], [a])
+    assert not equal_computations([tensor.as_tensor(1)], [tensor.as_tensor(2)])
+
+    assert equal_computations([2], [2])
+    assert equal_computations([np.r_[2, 1]], [np.r_[2, 1]])
+    assert equal_computations([np.r_[2, 1]], [tensor.as_tensor(np.r_[2, 1])])
+    assert equal_computations([tensor.as_tensor(np.r_[2, 1])], [np.r_[2, 1]])
+
+    assert not equal_computations([2], [a])
+    assert not equal_computations([np.r_[2, 1]], [a])
+    assert not equal_computations([a], [2])
+    assert not equal_computations([a], [np.r_[2, 1]])
+
     c = tensor.type_other.NoneConst
     assert equal_computations([c], [c])
+
     m = tensor.matrix()
     max_argmax1 = tensor.max_and_argmax(m)
     max_argmax2 = tensor.max_and_argmax(m)
