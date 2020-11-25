@@ -2387,6 +2387,16 @@ def test_get_vector_length():
     assert len(list(x.shape[1:-2])) == 1
     assert len(list(x.shape[1:-1])) == 2
 
+    z = join(0, as_tensor_variable(1, ndim=1), as_tensor_variable(x.shape[0], ndim=1))
+    assert isinstance(z.owner.op, Join)
+    assert get_vector_length(z) == 2
+
+    z = join(
+        0, as_tensor_variable([1, 2], ndim=1), as_tensor_variable(x.shape[0], ndim=1)
+    )
+    assert isinstance(z.owner.op, Join)
+    assert get_vector_length(z) == 3
+
     empty_tuple = as_tensor_variable(())
     assert 0 == get_vector_length(empty_tuple)
 
