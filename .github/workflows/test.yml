@@ -114,17 +114,16 @@ jobs:
           python-version: ${{ matrix.python-version }}
           auto-update-conda: true
 
-      - name: Get unique id
-        id: unique-id
+      - name: Create matrix id
+        id: matrix-id
         env:
-          STRATEGY_CONTEXT: ${{ toJson(strategy) }}
+          MATRIX_CONTEXT: ${{ toJson(matrix) }}
         run: |
-          echo $STRATEGY_CONTEXT
-          export JOB_ID=`echo $STRATEGY_CONTEXT | md5sum`
-          echo $JOB_ID
-          echo "::set-output name=id::$JOB_ID"
+          echo $MATRIX_CONTEXT
+          export MATRIX_ID=`echo $MATRIX_CONTEXT | md5sum | cut -c 1-32`
+          echo $MATRIX_ID
+          echo "::set-output name=id::$MATRIX_ID"
 
-      # Setup
       - name: Install dependencies
         shell: bash -l {0}
         run: |
@@ -143,8 +142,9 @@ jobs:
           if [[ $FAST_COMPILE == "1" ]]; then export THEANO_FLAGS=$THEANO_FLAGS,mode=FAST_COMPILE; fi
           if [[ $FLOAT32 == "1" ]]; then export THEANO_FLAGS=$THEANO_FLAGS,floatX=float32; fi
           export THEANO_FLAGS=$THEANO_FLAGS,warn.ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise,gcc.cxxflags=-pipe
-          python -m pytest -x -r A --verbose --runslow --cov=theano/ --cov-report=xml --no-cov-on-fail $PART
+          python -m pytest -x -r A --verbose --runslow --cov=theano/ --cov-report=xml:coverage/coverage-${MATRIX_ID}.xml --no-cov-on-fail $PART
         env:
+          MATRIX_ID: ${{ steps.matrix-id.outputs.id }}
           MKL_THREADING_LAYER: GNU
           MKL_NUM_THREADS: 1
           OMP_NUM_THREADS: 1
@@ -152,18 +152,41 @@ jobs:
           FAST_COMPILE: ${{ matrix.fast-compile }}
           FLOAT32: ${{ matrix.float32 }}
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+      - name: Upload coverage file
+        uses: actions/upload-artifact@v2
         with:
-          fail_ci_if_error: true
-          name: "py${{ matrix.python-version }}: ${{ matrix.part }}"
+          name: coverage
+          path: coverage/coverage-${{ steps.matrix-id.outputs.id }}.xml
 
   combine:
     if: ${{ always() }}
     runs-on: ubuntu-latest
-    name: "All tests"
+    name: "All tests and coverage"
     needs: [changes, style, test]
     steps:
       - name: Check build matrix status
         if: ${{ needs.changes.outputs.changes == 'true' && (needs.style.result != 'success' || needs.test.result != 'success') }}
         run: exit 1
+
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -U coverage>=5.1 coveralls
+
+      - name: Download coverage file
+        uses: actions/download-artifact@v2
+        with:
+          name: coverage
+          path: coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          directory: ./coverage/
+          fail_ci_if_error: true
