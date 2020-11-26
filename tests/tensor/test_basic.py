@@ -1111,6 +1111,18 @@ class TestAsTensorVariable:
         a_vector = as_tensor_variable(x_vector)
         assert x_vector is a_vector
 
+    def test_make_vector(self):
+        a = tt.iscalar()
+        x = tt.tile(a, (1, 1, 1))
+        y = (tt.constant(1, dtype="int64"), x.shape[2])
+        res = tt.as_tensor(y, ndim=1)
+        assert isinstance(res.owner.op, tt.opt.MakeVector)
+        assert tuple(res.owner.inputs) == y
+
+        y = (1, x.shape[2])
+        res = tt.as_tensor(y)
+        assert isinstance(res.owner.op, tt.opt.MakeVector)
+
 
 class TestAlloc:
     dtype = config.floatX

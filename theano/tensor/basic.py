@@ -101,7 +101,7 @@ def as_tensor_variable(x, name=None, ndim=None):
 
     Parameters
     ----------
-    x : Apply instance, Variable instance, numpy.ndarray, or number
+    x : Apply or Variable or numpy.ndarray or number
         This thing will be transformed into a `Variable` in a sensible way. An
         ndarray argument will not be copied, but a list of numbers will be
         copied to make an ndarray.
@@ -185,6 +185,16 @@ def as_tensor_variable(x, name=None, ndim=None):
         try:
             x = [extract_constants(i) for i in x]
         except TypeError:
+            if builtins.all(getattr(i, "ndim", None) == 0 for i in x) and (
+                ndim is None or ndim == 1
+            ):
+                # In this instance, we can avoid making a `Join` `Op`, because
+                # we know that the result should be a vector.
+                # `MakeVector` is a better option due to its `get_scalar_constant_value`
+                # support.
+                dtype = scal.upcast(*[i.dtype for i in x if hasattr(i, "dtype")])
+                return theano.tensor.opt.MakeVector(dtype)(*x)
+
             return stack(x)
 
     elif isinstance(x, bool):
