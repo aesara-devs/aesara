@@ -572,10 +572,12 @@ def test_jax_ifelse():
 
     compare_jax_and_py(x_fg, [])
 
-    x = theano.ifelse.ifelse(np.array(False), true_vals, false_vals)
-    x_fg = theano.gof.FunctionGraph([], [x])
+    a = tt.dscalar("a")
+    a.tag.test_value = np.array(0.2, dtype=theano.config.floatX)
+    x = theano.ifelse.ifelse(a < 0.5, true_vals, false_vals)
+    x_fg = theano.gof.FunctionGraph([a], [x])  # I.e. False
 
-    compare_jax_and_py(x_fg, [])
+    compare_jax_and_py(x_fg, [get_test_value(i) for i in x_fg.inputs])
 
 
 def test_jax_CAReduce():
