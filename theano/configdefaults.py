@@ -33,17 +33,6 @@ _logger = logging.getLogger("theano.configdefaults")
 config = TheanoConfigParser()
 
 
-def floatX_convert(s):
-    if s == "32":
-        return "float32"
-    elif s == "64":
-        return "float64"
-    elif s == "16":
-        return "float16"
-    else:
-        return s
-
-
 AddConfigVar(
     "floatX",
     "Default floating-point precision for python casts.\n"
@@ -53,7 +42,6 @@ AddConfigVar(
         "float64",
         "float32",
         "float16",
-        convert=floatX_convert,
     ),
     # TODO: see gh-4466 for how to remove it.
     in_c_key=True,
