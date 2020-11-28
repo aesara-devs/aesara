@@ -462,8 +462,6 @@ AddConfigVar(
 # The way to get FAST_RUN_NOGC is with the flag 'linker=c|py_nogc'.
 # The old all capital letter way of working is deprecated as it is not
 # scalable.
-# Also, please be careful not to modify the first item in the enum when adding
-# new modes, since it is the default mode.
 def filter_mode(val):
     str_options = [
         "Mode",
