@@ -17,6 +17,7 @@ from theano.configparser import (
     AddConfigVar,
     BoolParam,
     ConfigParam,
+    DeviceParam,
     EnumStr,
     FloatParam,
     IntParam,
@@ -109,38 +110,6 @@ AddConfigVar(
 # gpuX mean use the gpu number X.
 
 
-class DeviceParam(ConfigParam):
-    def __init__(self, default, *options, **kwargs):
-        self.default = default
-
-        def filter(val):
-            if (
-                val == self.default
-                or val.startswith("opencl")
-                or val.startswith("cuda")
-            ):
-                return val
-            elif val.startswith("gpu"):
-                raise ValueError(
-                    "You are tring to use the old GPU back-end. "
-                    "It was removed from Theano. Use device=cuda* now. "
-                    "See https://github.com/Theano/Theano/wiki/Converting-to-the-new-gpu-back-end%28gpuarray%29 "
-                    "for more information."
-                )
-            else:
-                raise ValueError(
-                    'Invalid value ("{val}") for configuration '
-                    'variable "{self.fullname}". Valid options start with '
-                    'one of "cpu", "opencl" or "cuda".'
-                )
-
-        over = kwargs.get("allow_override", True)
-        super().__init__(default, filter, over)
-
-    def __str__(self):
-        return f"{self.fullname} ({self.default}, opencl*, cuda*) "
-
-
 AddConfigVar(
     "device",
     (
@@ -148,7 +117,7 @@ AddConfigVar(
         "default to try to move computation to the GPU. Do not use upper case"
         "letters, only lower case even if NVIDIA uses capital letters."
     ),
-    DeviceParam("cpu", allow_override=False),
+    DeviceParam("cpu", mutable=False),
     in_c_key=False,
 )
 
@@ -160,14 +129,14 @@ AddConfigVar(
         "nor shared variables, to the specified GPU. "
         "It can be used to run GPU-specific tests on a particular GPU."
     ),
-    DeviceParam("", allow_override=False),
+    DeviceParam("", mutable=False),
     in_c_key=False,
 )
 
 AddConfigVar(
     "force_device",
     "Raise an error if we can't use the specified device",
-    BoolParam(False, allow_override=False),
+    BoolParam(False, mutable=False),
     in_c_key=False,
 )
 
@@ -205,7 +174,7 @@ class ContextsParam(ConfigParam):
                     raise ValueError(f"Cannot use {s[0]} as context name")
             return val
 
-        ConfigParam.__init__(self, "", filter, False)
+        ConfigParam.__init__(self, "", apply=filter, mutable=False)
 
 
 AddConfigVar(
@@ -226,23 +195,7 @@ AddConfigVar(
 AddConfigVar(
     "print_active_device",
     "Print active device at when the GPU device is initialized.",
-    BoolParam(True, allow_override=False),
-    in_c_key=False,
-)
-
-
-def deprecated_gpuarray_sync(val):
-    if val:
-        raise RuntimeError(
-            "Flag gpuarray.sync is deprecated and will be removed in next Theano release."
-        )
-    return False
-
-
-AddConfigVar(
-    "gpuarray.sync",
-    """This flag is deprecated and will be removed in next Theano release.""",
-    ConfigParam(False, allow_override=False, filter=deprecated_gpuarray_sync),
+    BoolParam(True, mutable=False),
     in_c_key=False,
 )
 
@@ -253,7 +206,7 @@ AddConfigVar(
              preallocates that fraction of the total GPU memory.  If 1
              or greater it will preallocate that amount of memory (in
              megabytes).""",
-    FloatParam(0, allow_override=False),
+    FloatParam(0, mutable=False),
     in_c_key=False,
 )
 
@@ -323,62 +276,6 @@ AddConfigVar(
 )
 
 
-def safe_no_dnn_workmem(workmem):
-    """
-    Make sure the user is not attempting to use dnn.conv.workmem`.
-    """
-    if workmem:
-        raise RuntimeError(
-            "The option `dnn.conv.workmem` has been removed and should "
-            "not be used anymore. Please use the option "
-            "`dnn.conv.algo_fwd` instead."
-        )
-    return True
-
-
-AddConfigVar(
-    "dnn.conv.workmem",
-    "This flag is deprecated; use dnn.conv.algo_fwd.",
-    ConfigParam("", allow_override=False, filter=safe_no_dnn_workmem),
-    in_c_key=False,
-)
-
-
-def safe_no_dnn_workmem_bwd(workmem):
-    """
-    Make sure the user is not attempting to use dnn.conv.workmem_bwd`.
-    """
-    if workmem:
-        raise RuntimeError(
-            "The option `dnn.conv.workmem_bwd` has been removed and "
-            "should not be used anymore. Please use the options "
-            "`dnn.conv.algo_bwd_filter` and `dnn.conv.algo_bwd_data` instead."
-        )
-    return True
-
-
-AddConfigVar(
-    "dnn.conv.workmem_bwd",
-    "This flag is deprecated; use `dnn.conv.algo_bwd_filter` "
-    "and `dnn.conv.algo_bwd_data` instead.",
-    ConfigParam("", allow_override=False, filter=safe_no_dnn_workmem_bwd),
-    in_c_key=False,
-)
-
-
-def safe_no_dnn_algo_bwd(algo):
-    """
-    Make sure the user is not attempting to use dnn.conv.algo_bwd`.
-    """
-    if algo:
-        raise RuntimeError(
-            "The option `dnn.conv.algo_bwd` has been removed and "
-            "should not be used anymore. Please use the options "
-            "`dnn.conv.algo_bwd_filter` and `dnn.conv.algo_bwd_data` instead."
-        )
-    return True
-
-
 # Those are the options provided by Theano to choose algorithms at runtime.
 SUPPORTED_DNN_CONV_ALGO_RUNTIME = (
     "guess_once",
@@ -423,14 +320,6 @@ SUPPORTED_DNN_CONV_PRECISION = (
     "float16",
     "float32",
     "float64",
-)
-
-AddConfigVar(
-    "dnn.conv.algo_bwd",
-    "This flag is deprecated; use dnn.conv.algo_bwd_data and "
-    "dnn.conv.algo_bwd_filter.",
-    ConfigParam("", allow_override=False, filter=safe_no_dnn_algo_bwd),
-    in_c_key=False,
 )
 
 AddConfigVar(
@@ -569,7 +458,7 @@ AddConfigVar(
 AddConfigVar(
     "assert_no_cpu_op",
     "Raise an error/warning if there is a CPU op in the computational graph.",
-    EnumStr("ignore", "warn", "raise", "pdb", allow_override=True),
+    EnumStr("ignore", "warn", "raise", "pdb", mutable=True),
     in_c_key=False,
 )
 
@@ -604,7 +493,10 @@ def filter_mode(val):
 
 
 AddConfigVar(
-    "mode", "Default compilation mode", ConfigParam("Mode", filter_mode), in_c_key=False
+    "mode",
+    "Default compilation mode",
+    ConfigParam("Mode", apply=filter_mode),
+    in_c_key=False,
 )
 
 param = "g++"
@@ -675,7 +567,7 @@ AddConfigVar(
     " supported, but supporting additional compilers should not be "
     "too difficult. "
     "If it is empty, no C++ code is compiled.",
-    StrParam(param, is_valid=warn_cxx),
+    StrParam(param, validate=warn_cxx),
     in_c_key=False,
 )
 del param
@@ -775,7 +667,7 @@ AddConfigVar(
 AddConfigVar(
     "tensor.cmp_sloppy",
     "Relax tensor._allclose (0) not at all, (1) a bit, (2) more",
-    IntParam(0, lambda i: i in (0, 1, 2), allow_override=False),
+    IntParam(0, lambda i: i in (0, 1, 2), mutable=False),
     in_c_key=False,
 )
 
@@ -864,9 +756,7 @@ AddConfigVar(
         "by the following flags: seterr_divide, seterr_over, "
         "seterr_under and seterr_invalid.",
     ),
-    EnumStr(
-        "ignore", "warn", "raise", "call", "print", "log", "None", allow_override=False
-    ),
+    EnumStr("ignore", "warn", "raise", "call", "print", "log", "None", mutable=False),
     in_c_key=False,
 )
 
@@ -876,9 +766,7 @@ AddConfigVar(
         "Sets numpy's behavior for division by zero, see numpy.seterr. "
         "'None' means using the default, defined by numpy.seterr_all."
     ),
-    EnumStr(
-        "None", "ignore", "warn", "raise", "call", "print", "log", allow_override=False
-    ),
+    EnumStr("None", "ignore", "warn", "raise", "call", "print", "log", mutable=False),
     in_c_key=False,
 )
 
@@ -889,9 +777,7 @@ AddConfigVar(
         "see numpy.seterr. "
         "'None' means using the default, defined by numpy.seterr_all."
     ),
-    EnumStr(
-        "None", "ignore", "warn", "raise", "call", "print", "log", allow_override=False
-    ),
+    EnumStr("None", "ignore", "warn", "raise", "call", "print", "log", mutable=False),
     in_c_key=False,
 )
 
@@ -902,9 +788,7 @@ AddConfigVar(
         "see numpy.seterr. "
         "'None' means using the default, defined by numpy.seterr_all."
     ),
-    EnumStr(
-        "None", "ignore", "warn", "raise", "call", "print", "log", allow_override=False
-    ),
+    EnumStr("None", "ignore", "warn", "raise", "call", "print", "log", mutable=False),
     in_c_key=False,
 )
 
@@ -915,9 +799,7 @@ AddConfigVar(
         "see numpy.seterr. "
         "'None' means using the default, defined by numpy.seterr_all."
     ),
-    EnumStr(
-        "None", "ignore", "warn", "raise", "call", "print", "log", allow_override=False
-    ),
+    EnumStr("None", "ignore", "warn", "raise", "call", "print", "log", mutable=False),
     in_c_key=False,
 )
 
@@ -955,7 +837,7 @@ AddConfigVar(
         "1.0.3",
         "1.0.4",
         "1.0.5",
-        allow_override=False,
+        mutable=False,
     ),
     in_c_key=False,
 )
@@ -1166,7 +1048,7 @@ AddConfigVar(
 AddConfigVar(
     "reoptimize_unpickled_function",
     "Re-optimize the graph when a theano function is unpickled from the disk.",
-    BoolParam(False, allow_override=True),
+    BoolParam(False, mutable=True),
     in_c_key=False,
 )
 
@@ -1280,7 +1162,7 @@ AddConfigVar(
     "unittests.rseed",
     "Seed to use for randomized unit tests. "
     "Special value 'random' means using a seed of None.",
-    StrParam(666, is_valid=good_seed_param),
+    StrParam(666, validate=good_seed_param),
     in_c_key=False,
 )
 
@@ -1318,7 +1200,7 @@ AddConfigVar(
         "When using the default mode, we will remove optimizer with "
         "these tags. Separate tags with ':'."
     ),
-    StrParam("", allow_override=False),
+    StrParam("", mutable=False),
     in_c_key=False,
 )
 
@@ -1328,7 +1210,7 @@ AddConfigVar(
         "When using the default mode, we will add optimizer with "
         "these tags. Separate tags with ':'."
     ),
-    StrParam("", allow_override=False),
+    StrParam("", mutable=False),
     in_c_key=False,
 )
 
@@ -1338,7 +1220,7 @@ AddConfigVar(
         "When using the default mode, we will require optimizer with "
         "these tags. Separate tags with ':'."
     ),
-    StrParam("", allow_override=False),
+    StrParam("", mutable=False),
     in_c_key=False,
 )
 
@@ -1423,7 +1305,7 @@ AddConfigVar(
         '"wrong_size" (larger and smaller dimensions), and '
         '"ALL" (all of the above).'
     ),
-    StrParam("", is_valid=is_valid_check_preallocated_output_param),
+    StrParam("", validate=is_valid_check_preallocated_output_param),
     in_c_key=False,
 )
 
@@ -1565,7 +1447,7 @@ AddConfigVar(
 AddConfigVar(
     "cmodule.preload_cache",
     "If set to True, will preload the C module cache at import time",
-    BoolParam(False, allow_override=False),
+    BoolParam(False, mutable=False),
     in_c_key=False,
 )
 
@@ -1573,7 +1455,7 @@ AddConfigVar(
     "cmodule.age_thresh_use",
     "In seconds. The time after which " "Theano won't reuse a compile c module.",
     # 24 days
-    IntParam(60 * 60 * 24 * 24, allow_override=False),
+    IntParam(60 * 60 * 24 * 24, mutable=False),
     in_c_key=False,
 )
 
@@ -1979,7 +1861,7 @@ AddConfigVar(
     " auto detect if lazy evaluation is needed and use the appropriate"
     " version. If lazy is True/False, force the version used between"
     " Loop/LoopGC and Stack.",
-    ConfigParam("None", filter_vm_lazy),
+    ConfigParam("None", apply=filter_vm_lazy),
     in_c_key=False,
 )
 
@@ -2012,7 +1894,7 @@ AddConfigVar(
     " Generates error if not True. Use"
     " optimizer_excluding=local_alloc_elemwise"
     " to dsiable.",
-    theano.configparser.BoolParam(True, is_valid=lambda x: x),
+    theano.configparser.BoolParam(True),
     in_c_key=False,
 )
 
@@ -2049,7 +1931,7 @@ AddConfigVar(
 AddConfigVar(
     "compile.wait",
     """Time to wait before retrying to acquire the compile lock.""",
-    IntParam(5, lambda i: i > 0, allow_override=False),
+    IntParam(5, validate=lambda i: i > 0, mutable=False),
     in_c_key=False,
 )
 
@@ -2091,7 +1973,7 @@ override an existing lock. An override only happens when the existing
 lock is held by the same owner *and* has not been 'refreshed' by this
 owner for more than this period. Refreshes are done every half timeout
 period for running processes.""",
-    IntParam(_timeout_default, lambda i: i >= 0, allow_override=False),
+    IntParam(_timeout_default, validate=lambda i: i >= 0, mutable=False),
     in_c_key=False,
 )
 
@@ -2240,7 +2122,7 @@ AddConfigVar(
              """
         )
     ),
-    StrParam(default_compiledir_format, allow_override=False),
+    StrParam(default_compiledir_format, mutable=False),
     in_c_key=False,
 )
 
@@ -2331,9 +2213,7 @@ else:
 AddConfigVar(
     "base_compiledir",
     "platform-independent root directory for compiled modules",
-    ConfigParam(
-        default_base_compiledir, filter=filter_base_compiledir, allow_override=False
-    ),
+    ConfigParam(default_base_compiledir, apply=filter_base_compiledir, mutable=False),
     in_c_key=False,
 )
 
@@ -2345,7 +2225,7 @@ def default_compiledir():
 AddConfigVar(
     "compiledir",
     "platform-dependent cache directory for compiled modules",
-    ConfigParam(default_compiledir, filter=filter_compiledir, allow_override=False),
+    ConfigParam(default_compiledir, apply=filter_compiledir, mutable=False),
     in_c_key=False,
 )
 
@@ -2354,8 +2234,8 @@ AddConfigVar(
     "Directory to cache pre-compiled kernels for the gpuarray backend.",
     ConfigParam(
         lambda: os.path.join(config.compiledir, "gpuarray_kernels"),
-        filter=filter_base_compiledir,
-        allow_override=False,
+        apply=filter_base_compiledir,
+        mutable=False,
     ),
     in_c_key=False,
 )
@@ -2365,7 +2245,7 @@ AddConfigVar(
     "Directory which contains the root of Baidu CTC library. It is assumed \
     that the compiled library is either inside the build, lib or lib64 \
     subdirectory, and the header inside the include directory.",
-    StrParam("", allow_override=False),
+    StrParam("", mutable=False),
     in_c_key=False,
 )
 
