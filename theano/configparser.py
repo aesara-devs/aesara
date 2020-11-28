@@ -1,9 +1,5 @@
-# For flag of bool type, we consider the strings 'False', 'false' and '0'
-# as False, and the string s'True', 'true', '1' as True.
-# We also accept the bool type as its corresponding value!
-
-
 import configparser as ConfigParser
+import hashlib
 import logging
 import os
 import shlex
@@ -11,8 +7,6 @@ import sys
 import warnings
 from functools import wraps
 from io import StringIO
-
-import theano
 
 
 _logger = logging.getLogger("theano.configparser")
@@ -188,6 +182,17 @@ def _config_print(thing, buf, print_doc=True):
         print("", file=buf)
 
 
+def _hash_from_code(msg):
+    """This function was copied from theano.gof.utils to get rid of that import."""
+    # hashlib.sha256() requires an object that supports buffer interface,
+    # but Python 3 (unicode) strings don't.
+    if isinstance(msg, str):
+        msg = msg.encode()
+    # Python 3 does not like module names that start with
+    # a digit.
+    return "m" + hashlib.sha256(msg).hexdigest()
+
+
 def get_config_hash():
     """
     Return a string sha256 of the current config options. In the past,
@@ -201,7 +206,7 @@ def get_config_hash():
     all_opts = sorted(
         [c for c in _config_var_list if c.in_c_key], key=lambda cv: cv.fullname
     )
-    return theano.gof.utils.hash_from_code(
+    return _hash_from_code(
         "\n".join(
             ["{} = {}".format(cv.fullname, cv.__get__(True, None)) for cv in all_opts]
         )
