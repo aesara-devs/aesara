@@ -85,22 +85,39 @@ def test_config_param_apply_and_validation():
         cp.__set__("cls", "THEDEFAULT")
 
 
-def test_config_types_bool():
-    valids = {
-        True: ["1", 1, True, "true", "True"],
-        False: ["0", 0, False, "false", "False"],
-    }
+class TestConfigTypes:
+    def test_bool(self):
+        valids = {
+            True: ["1", 1, True, "true", "True"],
+            False: ["0", 0, False, "false", "False"],
+        }
+        param = configparser.BoolParam(None)
+        assert isinstance(param, configparser.ConfigParam)
+        assert param.default is None
+        for outcome, inputs in valids.items():
+            for input in inputs:
+                applied = param.apply(input)
+                assert applied == outcome
+                assert param.validate(applied) is not False
+        with pytest.raises(ValueError, match="Invalid value"):
+            param.apply("notabool")
+        pass
 
-    param = configparser.BoolParam(None)
+    def test_enumstr(self):
+        cp = configparser.EnumStr("blue", ["red", "green", "yellow"])
+        assert len(cp.all) == 4
+        with pytest.raises(ValueError, match=r"Invalid value \('foo'\)"):
+            cp.apply("foo")
+        with pytest.raises(ValueError, match="Non-str value"):
+            configparser.EnumStr(default="red", options=["red", 12, "yellow"])
+        pass
 
-    assert isinstance(param, configparser.ConfigParam)
-    assert param.default is None
-
-    for outcome, inputs in valids.items():
-        for input in inputs:
-            applied = param.apply(input)
-            assert applied == outcome
-            assert param.validate(applied) is not False
-
-    with pytest.raises(ValueError, match="Invalid value"):
-        param.apply("notabool")
+    def test_deviceparam(self):
+        cp = configparser.DeviceParam("cpu", mutable=False)
+        assert cp.default == "cpu"
+        assert cp._apply("cuda123") == "cuda123"
+        with pytest.raises(ValueError, match="old GPU back-end"):
+            cp._apply("gpu123")
+        with pytest.raises(ValueError, match="Invalid value"):
+            cp._apply("notadevice")
+        assert str(cp) == "None (cpu, opencl*, cuda*) "

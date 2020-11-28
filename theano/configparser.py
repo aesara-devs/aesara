@@ -425,23 +425,37 @@ class ConfigParam:
 
 
 class EnumStr(ConfigParam):
-    def __init__(self, default, *options, **kwargs):
+    def __init__(
+        self, default: str, options: typing.Sequence[str], validate=None, mutable=True
+    ):
+        """Creates a str-based parameter that takes a predefined set of options.
+
+        Parameters
+        ----------
+        default : str
+            The default setting.
+        options : sequence
+            Further str values that the parameter may take.
+            May, but does not need to include the default.
+        validate : callable
+            See `ConfigParam`.
+        mutable : callable
+            See `ConfigParam`.
+        """
         self.all = {default, *options}
 
         # All options should be strings
         for val in self.all:
             if not isinstance(val, str):
                 raise ValueError(f"Non-str value '{val}' for an EnumStr parameter.")
-        super().__init__(
-            default, apply=self._apply, mutable=kwargs.get("mutable", True)
-        )
+        super().__init__(default, apply=self._apply, validate=validate, mutable=mutable)
 
     def _apply(self, val):
         if val in self.all:
             return val
         else:
             raise ValueError(
-                f'Invalid value ("{val}") for configuration variable "{self.fullname}". '
+                f"Invalid value ('{val}') for configuration variable '{self.fullname}'. "
                 f"Valid options are {self.all}"
             )
 
