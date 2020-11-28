@@ -121,3 +121,20 @@ class TestConfigTypes:
         with pytest.raises(ValueError, match="Invalid value"):
             cp._apply("notadevice")
         assert str(cp) == "None (cpu, opencl*, cuda*) "
+
+
+def test_mode_apply():
+    from theano import configdefaults
+
+    assert configdefaults.filter_mode("DebugMode") == "DebugMode"
+
+    with pytest.raises(ValueError, match="Expected one of"):
+        configdefaults.filter_mode("not_a_mode")
+
+    # test with theano.Mode instance
+    import theano.compile.mode
+
+    assert (
+        configdefaults.filter_mode(theano.compile.mode.FAST_COMPILE)
+        == theano.compile.mode.FAST_COMPILE
+    )

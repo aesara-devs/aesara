@@ -465,7 +465,7 @@ AddConfigVar(
 # Also, please be careful not to modify the first item in the enum when adding
 # new modes, since it is the default mode.
 def filter_mode(val):
-    if val in [
+    str_options = [
         "Mode",
         "DebugMode",
         "FAST_RUN",
@@ -473,18 +473,20 @@ def filter_mode(val):
         "FAST_COMPILE",
         "DEBUG_MODE",
         "JAX",
-    ]:
+    ]
+    if val in str_options:
         return val
     # This can be executed before Theano is completly imported, so
     # theano.Mode is not always available.
-    elif hasattr(theano, "Mode") and isinstance(val, theano.Mode):
-        return val
-    else:
-        raise ValueError(
-            "Expected one of those string 'Mode', 'DebugMode',"
-            " 'FAST_RUN', 'NanGuardMode', 'FAST_COMPILE',"
-            " 'DEBUG_MODE' or an instance of Mode."
-        )
+    # Instead of isinstance(val, theano.Mode),
+    # we can inspect the __mro__ of the object!
+    for type_ in type(val).__mro__:
+        if "theano.compile.mode.Mode" in str(type_):
+            return val
+    raise ValueError(
+        f"Expected one of {str_options}, or an instance of theano.Mode. "
+        f"Instead got: {val}."
+    )
 
 
 AddConfigVar(
