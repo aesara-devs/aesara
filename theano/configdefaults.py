@@ -24,7 +24,6 @@ from theano.configparser import (
     StrParam,
     TheanoConfigParser,
 )
-from theano.misc.cpucount import cpuCount
 from theano.misc.windows import call_subprocess_Popen, output_subprocess_Popen
 from theano.utils import maybe_add_to_os_environ_pathlist
 
@@ -1083,8 +1082,8 @@ if var:
         default_openmp = not int(var) == 1
 else:
     # Check the number of cores availables.
-    count = cpuCount()
-    if count == -1:
+    count = os.cpu_count()
+    if count is None:
         _logger.warning(
             "We are not able to detect the number of CPU cores."
             " We disable openmp by default. To remove this"
