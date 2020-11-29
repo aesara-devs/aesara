@@ -1584,12 +1584,12 @@ class FunctionMaker:
         optimizer, linker = mode.optimizer, copy.copy(mode.linker)
         if need_opt:
             compute_test_value_orig = theano.config.compute_test_value
-            limit_orig = theano.config.traceback.limit
+            limit_orig = theano.config.traceback__limit
             # Why we add stack on node when it get done in output var?
             try:
                 # optimize the fgraph
                 theano.config.compute_test_value = theano.config.compute_test_value_opt
-                theano.config.traceback.limit = theano.config.traceback.compile_limit
+                theano.config.traceback__limit = theano.config.traceback__compile_limit
                 start_optimizer = time.time()
 
                 # In case there is an error during optimization.
@@ -1612,7 +1612,7 @@ class FunctionMaker:
                 insert_deepcopy(fgraph, inputs, outputs + additional_outputs)
             finally:
                 theano.config.compute_test_value = compute_test_value_orig
-                theano.config.traceback.limit = limit_orig
+                theano.config.traceback__limit = limit_orig
 
                 # If the optimizer got interrupted
                 if opt_time is None:
@@ -1816,14 +1816,14 @@ class FunctionMaker:
         # Get a function instance
         start_linker = time.time()
         start_import_time = theano.gof.cmodule.import_time
-        limit_orig = theano.config.traceback.limit
+        limit_orig = theano.config.traceback__limit
         try:
-            theano.config.traceback.limit = theano.config.traceback.compile_limit
+            theano.config.traceback__limit = theano.config.traceback__compile_limit
             _fn, _i, _o = self.linker.make_thunk(
                 input_storage=input_storage_lists, storage_map=storage_map
             )
         finally:
-            theano.config.traceback.limit = limit_orig
+            theano.config.traceback__limit = limit_orig
 
         end_linker = time.time()
 

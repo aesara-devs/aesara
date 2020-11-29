@@ -22,7 +22,7 @@ class TheanoConfigWarning(Warning):
 
 THEANO_FLAGS = os.getenv("THEANO_FLAGS", "")
 # The THEANO_FLAGS environment variable should be a list of comma-separated
-# [section.]option=value entries. If the section part is omitted, there should
+# [section__]option=value entries. If the section part is omitted, there should
 # be only one section that contains the given option.
 
 
@@ -152,8 +152,8 @@ def fetch_val_for_key(key, delete_key=False):
 
     # next try to find it in the config file
 
-    # config file keys can be of form option, or section.option
-    key_tokens = key.rsplit(".", 1)
+    # config file keys can be of form option, or section__option
+    key_tokens = key.rsplit("__", 1)
     if len(key_tokens) > 2:
         raise KeyError(key)
 
@@ -227,95 +227,76 @@ class TheanoConfigParser:
 config = TheanoConfigParser()
 
 
-# The data structure at work here is a tree of CLASSES with
-# CLASS ATTRIBUTES/PROPERTIES that are either a) INSTANTIATED
-# dynamically-generated CLASSES, or b) ConfigParam instances.  The root
-# of this tree is the TheanoConfigParser CLASS, and the internal nodes
-# are the SubObj classes created inside of AddConfigVar().
-# Why this design ?
-# - The config object is a true singleton.  Every instance of
-#   TheanoConfigParser is an empty instance that looks up attributes/properties
-#   in the [single] TheanoConfigParser.__dict__
-# - The subtrees provide the same interface as the root
-# - ConfigParser subclasses control get/set of config properties to guard
-#   against craziness.
-
-
 def AddConfigVar(name, doc, configparam, root=config, in_c_key=True):
-    """Add a new variable to theano.config
+    """Add a new variable to `theano.config`.
 
-    :type name: string for form "[section0.[section1.[etc]]].option"
-    :param name: the full name for this configuration variable.
+    The data structure at work here is a tree of classes with class
+    attributes/properties that are either a) instantiated dynamically-generated
+    classes, or b) `ConfigParam` instances.  The root of this tree is the
+    `TheanoConfigParser` class, and the internal nodes are the ``SubObj``
+    classes created inside of `AddConfigVar`.
 
-    :type doc: string
-    :param doc: What does this variable specify?
+    Why this design?
+    - The config object is a true singleton.  Every instance of
+    `TheanoConfigParser` is an empty instance that looks up
+    attributes/properties in the [single] ``TheanoConfigParser.__dict__``
+    - The subtrees provide the same interface as the root
+    - `ConfigParser` subclasses control get/set of config properties to guard
+    against craziness.
 
-    :type configparam: ConfigParam instance
-    :param configparam: an object for getting and setting this configuration
-        parameter
+    This method also performs some of the work of initializing `ConfigParam`
+    instances
 
-    :type root: object
-    :param root: used for recursive calls -- do not provide an argument for
-        this parameter.
+    Parameters
+    ----------
+    name: string
+        The full name for this configuration variable. Takes the form
+        ``"[section0__[section1__[etc]]]_option"``.
+    doc: string
+        A string that provides documentation for the config variable.
+    configparam: ConfigParam
+        An object for getting and setting this configuration parameter
+    root: object
+        Used for recursive calls.  Do not provide a value for this parameter.
+    in_c_key: boolean
+        If ``True``, then whenever this config option changes, the key
+        associated to compiled C modules also changes, i.e. it may trigger a
+        compilation of these modules (this compilation will only be partial if it
+        turns out that the generated C code is unchanged). Set this option to False
+        only if you are confident this option should not affect C code compilation.
 
-    :type in_c_key: boolean
-    :param in_c_key: If True, then whenever this config option changes, the
-    key associated to compiled C modules also changes, i.e. it may trigger a
-    compilation of these modules (this compilation will only be partial if it
-    turns out that the generated C code is unchanged). Set this option to False
-    only if you are confident this option should not affect C code compilation.
-
-    :returns: None
     """
 
-    # This method also performs some of the work of initializing ConfigParam
-    # instances
-
     if root is config:
-        # only set the name in the first call, not the recursive ones
+        # Only set the name in the first call, not the recursive ones
         configparam.fullname = name
-    sections = name.split(".")
-    if len(sections) > 1:
-        # set up a subobject
-        if not hasattr(root, sections[0]):
-            # every internal node in the config tree is an instance of its own
-            # unique class
-            class SubObj:
-                _i_am_a_config_class = True
-
-            setattr(root.__class__, sections[0], SubObj())
-        newroot = getattr(root, sections[0])
-        if not getattr(newroot, "_i_am_a_config_class", False) or isinstance(
-            newroot, type
-        ):
-            raise TypeError(
-                "Internal config nodes must be config class instances", newroot
-            )
-        return AddConfigVar(
-            ".".join(sections[1:]), doc, configparam, root=newroot, in_c_key=in_c_key
+    if "." in name:
+        raise ValueError(
+            f"Dot-based sections were removed. Use double underscores! ({name})"
         )
+    if hasattr(root, name):
+        raise AttributeError(f"The name {configparam.fullname} is already taken")
+    configparam.doc = doc
+    configparam.in_c_key = in_c_key
+    # Trigger a read of the value from config files and env vars
+    # This allow to filter wrong value from the user.
+    if not callable(configparam.default):
+        configparam.__get__(root, type(root), delete_key=True)
     else:
-        if hasattr(root, name):
-            raise AttributeError("This name is already taken", configparam.fullname)
-        configparam.doc = doc
-        configparam.in_c_key = in_c_key
-        # Trigger a read of the value from config files and env vars
-        # This allow to filter wrong value from the user.
-        if not callable(configparam.default):
+        # We do not want to evaluate now the default value
+        # when it is a callable.
+        try:
+            fetch_val_for_key(configparam.fullname)
+            # The user provided a value, filter it now.
             configparam.__get__(root, type(root), delete_key=True)
-        else:
-            # We do not want to evaluate now the default value
-            # when it is a callable.
-            try:
-                fetch_val_for_key(configparam.fullname)
-                # The user provided a value, filter it now.
-                configparam.__get__(root, type(root), delete_key=True)
-            except KeyError:
-                _logger.error(
-                    f"Suppressed KeyError in AddConfigVar for parameter '{name}' with fullname '{configparam.fullname}'!"
-                )
-        setattr(root.__class__, sections[0], configparam)
-        _config_var_list.append(configparam)
+        except KeyError:
+            _logger.error(
+                f"Suppressed KeyError in AddConfigVar for parameter '{name}' with fullname '{configparam.fullname}'!"
+            )
+    setattr(root.__class__, name, configparam)
+    # TODO: After assigning the configvar to the "root" object, there should be
+    # no reason to keep the _config_var_list around!
+    _config_var_list.append(configparam)
 
 
 class ConfigParam:

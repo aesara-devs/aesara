@@ -261,13 +261,13 @@ def _obj_is_wrappable_as_tensor(x):
         return False
 
 
-if int(config.tensor.cmp_sloppy) > 1:
+if int(config.tensor__cmp_sloppy) > 1:
     # This config variable is a quick-and-dirty way to get low-precision
     # comparisons.  For a more precise setting of these tolerances set
     # them explicitly in your user code by assigning, for example,
     # "theano.tensor.basic.float32_atol = ..."
 
-    # When config.tensor.cmp_sloppy>1 we are even more sloppy. This is
+    # When config.tensor__cmp_sloppy>1 we are even more sloppy. This is
     # useful to test the GPU as they don't use extended precision and
     # this cause some difference bigger then the normal sloppy.
     float16_atol = 1e-2
@@ -278,7 +278,7 @@ if int(config.tensor.cmp_sloppy) > 1:
 
     float64_rtol = 1e-4
     float64_atol = 1e-3
-elif int(config.tensor.cmp_sloppy):
+elif int(config.tensor__cmp_sloppy):
     float16_atol = 5e-3
     float16_rtol = 1e-2
 
@@ -2284,12 +2284,12 @@ def round(a, mode=None):
     Default to half_to_even."""
     if mode is None:
         mode = "half_to_even"
-        if config.warn.round:
+        if config.warn__round:
             warnings.warn(
                 "theano.tensor.round() changed its default from"
                 " `half_away_from_zero` to `half_to_even` to have"
                 " the same default as NumPy. Use the Theano flag"
-                " `warn.round=False` to disable this warning."
+                " `warn__round=False` to disable this warning."
             )
     if mode == "half_away_from_zero":
         return round_half_away_from_zero(a)

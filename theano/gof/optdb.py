@@ -320,7 +320,7 @@ class EquilibriumDB(DB):
             cleanup_opts = None
         return opt.EquilibriumOptimizer(
             opts,
-            max_use_ratio=config.optdb.max_use_ratio,
+            max_use_ratio=config.optdb__max_use_ratio,
             ignore_newtrees=self.ignore_newtrees,
             tracks_on_change_inputs=self.tracks_on_change_inputs,
             failure_callback=opt.NavigatorOptimizer.warn_inplace,
@@ -373,7 +373,7 @@ class SequenceDB(DB):
         """
         opts = super().query(*tags, **kwtags)
 
-        position_cutoff = kwtags.pop("position_cutoff", config.optdb.position_cutoff)
+        position_cutoff = kwtags.pop("position_cutoff", config.optdb__position_cutoff)
         position_dict = self.__position__
 
         if len(tags) >= 1 and isinstance(tags[0], Query):

@@ -1,5 +1,5 @@
 /** C Implementation (with NumPy back-end) of BLAS functions used in Theano.
- * Used instead of BLAS when Theano flag ``blas.ldflags`` is empty.
+ * Used instead of BLAS when Theano flag ``blas__ldflags`` is empty.
  * This file contains some useful header code not templated.
  * File alt_blas_template.c currently contains template code for:
  * - [sd]gemm_

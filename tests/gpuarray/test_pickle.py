@@ -27,8 +27,8 @@ except ImportError:
 
 @pytest.mark.skipif(have_pygpu, reason="pygpu active")
 def test_unpickle_gpuarray_as_numpy_ndarray_flag1():
-    oldflag = config.experimental.unpickle_gpu_on_cpu
-    config.experimental.unpickle_gpu_on_cpu = False
+    oldflag = config.experimental__unpickle_gpu_on_cpu
+    config.experimental__unpickle_gpu_on_cpu = False
 
     try:
         testfile_dir = os.path.dirname(os.path.realpath(__file__))
@@ -39,12 +39,12 @@ def test_unpickle_gpuarray_as_numpy_ndarray_flag1():
             with pytest.raises((ImportError, ContextNotDefined)):
                 u.load()
     finally:
-        config.experimental.unpickle_gpu_on_cpu = oldflag
+        config.experimental__unpickle_gpu_on_cpu = oldflag
 
 
 def test_unpickle_gpuarray_as_numpy_ndarray_flag2():
-    oldflag = config.experimental.unpickle_gpu_on_cpu
-    config.experimental.unpickle_gpu_on_cpu = True
+    oldflag = config.experimental__unpickle_gpu_on_cpu
+    config.experimental__unpickle_gpu_on_cpu = True
 
     try:
         testfile_dir = os.path.dirname(os.path.realpath(__file__))
@@ -68,4 +68,4 @@ def test_unpickle_gpuarray_as_numpy_ndarray_flag2():
         assert mat[0] == -42.0
 
     finally:
-        config.experimental.unpickle_gpu_on_cpu = oldflag
+        config.experimental__unpickle_gpu_on_cpu = oldflag

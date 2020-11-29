@@ -52,12 +52,12 @@ def _atexit_print_fn():
     if config.profile:
         to_sum = []
 
-        if config.profiling.destination == "stderr":
+        if config.profiling__destination == "stderr":
             destination_file = sys.stderr
-        elif config.profiling.destination == "stdout":
+        elif config.profiling__destination == "stdout":
             destination_file = sys.stdout
         else:
-            destination_file = open(config.profiling.destination, "w")
+            destination_file = open(config.profiling__destination, "w")
 
         # Reverse sort in the order of compile+exec time
         for ps in sorted(
@@ -70,8 +70,8 @@ def _atexit_print_fn():
             ):
                 ps.summary(
                     file=destination_file,
-                    n_ops_to_print=config.profiling.n_ops,
-                    n_apply_to_print=config.profiling.n_apply,
+                    n_ops_to_print=config.profiling__n_ops,
+                    n_apply_to_print=config.profiling__n_apply,
                 )
                 if not isinstance(ps, ScanProfileStats):
                     to_sum.append(ps)
@@ -130,8 +130,8 @@ def _atexit_print_fn():
 
             cum.summary(
                 file=destination_file,
-                n_ops_to_print=config.profiling.n_ops,
-                n_apply_to_print=config.profiling.n_apply,
+                n_ops_to_print=config.profiling__n_ops,
+                n_apply_to_print=config.profiling__n_apply,
             )
 
     if config.print_global_stats:
@@ -148,12 +148,12 @@ def print_global_stats():
            -- on linker
     """
 
-    if config.profiling.destination == "stderr":
+    if config.profiling__destination == "stderr":
         destination_file = sys.stderr
-    elif config.profiling.destination == "stdout":
+    elif config.profiling__destination == "stdout":
         destination_file = sys.stdout
     else:
-        destination_file = open(config.profiling.destination, "w")
+        destination_file = open(config.profiling__destination, "w")
 
     print("=" * 50, file=destination_file)
     print(
@@ -275,7 +275,7 @@ class ProfileStats:
 
     linker_make_thunk_time = {}
 
-    line_width = config.profiling.output_line_width
+    line_width = config.profiling__output_line_width
 
     nb_nodes = -1
     # The number of nodes in the graph. We need the information separately in
@@ -313,10 +313,10 @@ class ProfileStats:
             and gpu_checks
             and hasattr(theano, "gpuarray")
             and theano.gpuarray.pygpu_activated
-            and not config.profiling.ignore_first_call
+            and not config.profiling__ignore_first_call
         ):
             warnings.warn(
-                "Theano flag profiling.ignore_first_call is False. "
+                "Theano flag profiling__ignore_first_call is False. "
                 "This cause bad profiling result in the gpu "
                 "back-end, as sometimes we compile at the first call."
             )
@@ -330,7 +330,7 @@ class ProfileStats:
         self.variable_strides = {}
         self.variable_offset = {}
         if flag_time_thunks is None:
-            self.flag_time_thunks = config.profiling.time_thunks
+            self.flag_time_thunks = config.profiling__time_thunks
         else:
             self.flag_time_thunks = flag_time_thunks
         self.__dict__.update(kwargs)
@@ -341,7 +341,7 @@ class ProfileStats:
             if not _atexit_registered:
                 atexit.register(_atexit_print_fn)
                 _atexit_registered = True
-        self.ignore_first_call = theano.config.profiling.ignore_first_call
+        self.ignore_first_call = theano.config.profiling__ignore_first_call
 
     def class_time(self):
         """
@@ -1329,7 +1329,7 @@ class ProfileStats:
                 stats[i] = compute_max_stats(running_memory, stats[i])
 
             # Config: whether print min memory peak
-            if config.profiling.min_peak_memory:
+            if config.profiling__min_peak_memory:
                 node_list = fgraph.apply_nodes
                 ttt = time.time()
                 min_peak = count_minimum_peak(node_list, fgraph, nodes_mem)
@@ -1436,7 +1436,7 @@ class ProfileStats:
 
             if all([hasattr(out.type, "get_size") for out in node.outputs]):
                 size = "{node_outputs_size:9d}B"
-                if node_outputs_size < config.profiling.min_memory_size:
+                if node_outputs_size < config.profiling__min_memory_size:
                     N = idx
                     break
             else:
@@ -1465,7 +1465,7 @@ class ProfileStats:
         if N == 0:
             print(
                 "    All Apply nodes have output sizes that take less "
-                f"than {int(config.profiling.min_memory_size)}B.",
+                f"than {int(config.profiling__min_memory_size)}B.",
                 file=file,
             )
         print(
@@ -1491,10 +1491,10 @@ class ProfileStats:
         elif self.fct_callcount > 0:
             print(
                 "  No execution time accumulated "
-                "(hint: try config profiling.time_thunks=1)",
+                "(hint: try config profiling__time_thunks=1)",
                 file=file,
             )
-        if config.profiling.debugprint:
+        if config.profiling__debugprint:
             fcts = {fgraph for (fgraph, n) in self.apply_time.keys()}
             theano.printing.debugprint(fcts, print_type=True)
         if self.variable_shape or self.variable_strides:
@@ -1618,19 +1618,19 @@ class ProfileStats:
             printed_tip = True
 
         # tip 2
-        if not config.lib.amdlibm and any(
+        if not config.lib__amblibm and any(
             [amdlibm_speed_up(a.op) for (fgraph, a) in self.apply_time]
         ):
             print(
                 "  - Try installing amdlibm and set the Theano flag "
-                "lib.amdlibm=True. This speeds up only some Elemwise "
+                "lib__amblibm=True. This speeds up only some Elemwise "
                 "operation.",
                 file=file,
             )
             printed_tip = True
 
         # tip 3
-        if not config.lib.amdlibm and any(
+        if not config.lib__amblibm and any(
             [
                 exp_float32_op(a.op) and a.inputs[0].dtype == "float32"
                 for (fgraph, a) in self.apply_time
@@ -1639,7 +1639,7 @@ class ProfileStats:
             print(
                 "  - With the default gcc libm, exp in float32 is slower "
                 "than in float64! Try Theano flag floatX=float64, or "
-                "install amdlibm and set the theano flags lib.amdlibm=True",
+                "install amdlibm and set the theano flags lib__amblibm=True",
                 file=file,
             )
             printed_tip = True

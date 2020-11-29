@@ -21,21 +21,17 @@ def test_invalid_default():
         # This should raise a ValueError because the default value is
         # invalid.
         AddConfigVar(
-            "T_config.test_invalid_default_a",
+            "T_config__test_invalid_default_a",
             doc="unittest",
             configparam=ConfigParam("invalid", validate=validate),
             in_c_key=False,
         )
 
-    THEANO_FLAGS_DICT["T_config.test_invalid_default_b"] = "ok"
-    # This should succeed since we defined a proper value, even
-    # though the default was invalid.
-
-    THEANO_FLAGS_DICT["T_config.test_invalid_default_b"] = "ok"
+    THEANO_FLAGS_DICT["T_config__test_invalid_default_b"] = "ok"
     # This should succeed since we defined a proper value, even
     # though the default was invalid.
     AddConfigVar(
-        "T_config.test_invalid_default_b",
+        "T_config__test_invalid_default_b",
         doc="unittest",
         configparam=ConfigParam("invalid", validate=validate),
         in_c_key=False,
@@ -43,7 +39,7 @@ def test_invalid_default():
 
     # TODO We should remove these dummy options on test exit.
     # Check that the flag has been removed
-    assert "T_config.test_invalid_default_b" not in THEANO_FLAGS_DICT
+    assert "T_config__test_invalid_default_b" not in THEANO_FLAGS_DICT
 
 
 @patch("theano.configdefaults.try_blas_flag", return_value=None)
@@ -156,8 +152,17 @@ def test_config_context():
 
     with configparser.change_flags(test_config_context="new_value"):
         assert root.test_config_context == "new_value"
-
     assert root.test_config_context == "test_default"
+
+
+def test_no_more_dotting():
+    with pytest.raises(ValueError, match="Dot-based"):
+        AddConfigVar(
+            "T_config.something",
+            doc="unittest",
+            configparam=ConfigParam("invalid"),
+            in_c_key=False,
+        )
 
 
 def test_mode_apply():

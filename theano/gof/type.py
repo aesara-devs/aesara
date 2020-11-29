@@ -1136,7 +1136,7 @@ class EnumType(Type, dict):
         If given value is unknown, the C function sets a Python ValueError exception and returns a non-zero.
 
         This C function may be useful to retrieve some runtime informations.
-        It is available in C code when theano flag ``config.cmodule.debug`` is set to ``True``.
+        It is available in C code when theano flag ``config.cmodule__debug`` is set to ``True``.
         """
         return """
         #ifdef DEBUG

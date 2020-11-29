@@ -132,7 +132,7 @@ jobs:
           pip install -q -r requirements.txt
           mamba list && pip freeze
           python -c 'import theano; print(theano.config.__str__(print_doc=False))'
-          python -c 'import theano; assert(theano.config.blas.ldflags != "")'
+          python -c 'import theano; assert(theano.config.blas__ldflags != "")'
         env:
           PYTHON_VERSION: ${{ matrix.python-version }}
 

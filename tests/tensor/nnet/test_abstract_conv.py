@@ -295,7 +295,7 @@ class TestAssertConvShape:
 
 
 class TestAssertShape:
-    @change_flags([("conv.assert_shape", True)])
+    @change_flags([("conv__assert_shape", True)])
     def test_basic(self):
         x = tensor.tensor4()
         s1 = tensor.iscalar()
@@ -318,7 +318,7 @@ class TestAssertShape:
         with pytest.raises(AssertionError):
             f(v, 7, 7)
 
-    @change_flags([("conv.assert_shape", True)])
+    @change_flags([("conv__assert_shape", True)])
     def test_shape_check_conv2d(self):
         input = tensor.tensor4()
         filters = tensor.tensor4()
@@ -340,7 +340,7 @@ class TestAssertShape:
                 np.zeros((7, 5, 2, 2), dtype="float32"),
             )
 
-    @change_flags([("conv.assert_shape", True)])
+    @change_flags([("conv__assert_shape", True)])
     @pytest.mark.skipif(theano.config.cxx == "", reason="test needs cxx")
     def test_shape_check_conv3d(self):
         input = tensor.tensor5()
@@ -363,7 +363,7 @@ class TestAssertShape:
                 np.zeros((7, 5, 2, 2, 2), dtype="float32"),
             )
 
-    @change_flags([("conv.assert_shape", True)])
+    @change_flags([("conv__assert_shape", True)])
     def test_shape_check_conv2d_grad_wrt_inputs(self):
         output_grad = tensor.tensor4()
         filters = tensor.tensor4()
@@ -382,7 +382,7 @@ class TestAssertShape:
                 np.zeros((7, 6, 3, 3), dtype="float32"),
             )
 
-    @change_flags([("conv.assert_shape", True)])
+    @change_flags([("conv__assert_shape", True)])
     @pytest.mark.skipif(theano.config.cxx == "", reason="test needs cxx")
     def test_shape_check_conv3d_grad_wrt_inputs(self):
         output_grad = tensor.tensor5()
@@ -402,7 +402,7 @@ class TestAssertShape:
                 np.zeros((7, 6, 3, 3, 3), dtype="float32"),
             )
 
-    @change_flags([("conv.assert_shape", True)])
+    @change_flags([("conv__assert_shape", True)])
     def test_shape_check_conv2d_grad_wrt_weights(self):
         input = tensor.tensor4()
         output_grad = tensor.tensor4()
@@ -421,7 +421,7 @@ class TestAssertShape:
                 np.zeros((3, 7, 5, 9), dtype="float32"),
             )
 
-    @change_flags([("conv.assert_shape", True)])
+    @change_flags([("conv__assert_shape", True)])
     @pytest.mark.skipif(theano.config.cxx == "", reason="test needs cxx")
     def test_shape_check_conv3d_grad_wrt_weights(self):
         input = tensor.tensor5()
@@ -757,7 +757,7 @@ class BaseTestConv:
 class BaseTestConv2d(BaseTestConv):
     @classmethod
     def setup_class(cls):
-        # This tests can run even when theano.config.blas.ldflags is empty.
+        # This tests can run even when theano.config.blas__ldflags is empty.
         cls.inputs_shapes = [
             (8, 1, 6, 6),
             (8, 1, 8, 8),
@@ -935,7 +935,7 @@ class BaseTestConv2d(BaseTestConv):
 class TestCorrConv2d(BaseTestConv2d):
     @classmethod
     def setup_class(cls):
-        # This tests can run even when theano.config.blas.ldflags is empty.
+        # This tests can run even when theano.config.blas__ldflags is empty.
         super().setup_class()
 
     def run_test_case(self, i, f, s, b, flip, provide_shape, fd=(1, 1)):
@@ -1026,7 +1026,7 @@ class TestCorrConv2d(BaseTestConv2d):
 class TestAbstractConvNoOptim(BaseTestConv2d):
     @classmethod
     def setup_class(cls):
-        # This tests can run even when theano.config.blas.ldflags is empty.
+        # This tests can run even when theano.config.blas__ldflags is empty.
         super().setup_class()
         cls.inputs_shapes = [(8, 1, 6, 6)]
         cls.filters_shapes = [(5, 1, 2, 2)]
@@ -1122,7 +1122,7 @@ class TestAbstractConvNoOptim(BaseTestConv2d):
 class BaseTestConv3d(BaseTestConv):
     @classmethod
     def setup_class(cls):
-        # This tests can run even when theano.config.blas.ldflags is empty.
+        # This tests can run even when theano.config.blas__ldflags is empty.
         cls.inputs_shapes = [
             (2, 1, 5, 5, 5),
             (1, 2, 7, 5, 6),
@@ -1296,12 +1296,12 @@ class BaseTestConv3d(BaseTestConv):
 class TestCorrConv3d(BaseTestConv3d):
     @classmethod
     def setup_class(cls):
-        # This tests can run even when theano.config.blas.ldflags is empty.
+        # This tests can run even when theano.config.blas__ldflags is empty.
         super().setup_class()
 
     def run_test_case(self, i, f, s, b, flip, provide_shape, fd=(1, 1, 1)):
         o = self.get_output_shape(i, f, s, b, fd)
-        # This test can run even when theano.config.blas.ldflags is empty.
+        # This test can run even when theano.config.blas__ldflags is empty.
         self.run_fwd(
             inputs_shape=i,
             filters_shape=f,
@@ -1344,7 +1344,7 @@ class TestCorrConv3d(BaseTestConv3d):
     def run_test_case_gi(
         self, i, f, o, s, b, flip, provide_shape, fd=(1, 1, 1), expect_error=False
     ):
-        # This test can run even when theano.config.blas.ldflags is empty.
+        # This test can run even when theano.config.blas__ldflags is empty.
         if not expect_error:
             self.run_gradinput(
                 inputs_shape=i,
@@ -1561,7 +1561,7 @@ class TestConvTypes:
 
 
 class TestBilinearUpsampling:
-    # If theano.config.blas.ldflags is empty, Theano will use
+    # If theano.config.blas__ldflags is empty, Theano will use
     # a NumPy C implementation of [sd]gemm_.
     compile_mode = theano.compile.mode.get_default_mode()
     if theano.config.mode == "FAST_COMPILE":

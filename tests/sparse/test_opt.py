@@ -129,7 +129,7 @@ def test_local_sampling_dot_csr():
 
         f = theano.function(inputs, sparse.sampling_dot(*inputs), mode=mode)
 
-        if theano.config.blas.ldflags:
+        if theano.config.blas__ldflags:
             assert not any(
                 isinstance(node.op, sparse.SamplingDot)
                 for node in f.maker.fgraph.toposort()

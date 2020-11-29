@@ -3124,7 +3124,7 @@ class TestDnnConv2DRuntimeAlgorithms:
         _broadcastable = [False] * (2 + self.ndim)
 
         def run_gradinput_runtime_algorithm(algo):
-            theano.config.dnn.conv.algo_bwd_data = algo
+            theano.config.dnn__conv__algo_bwd_data = algo
             inputs = tt.TensorType(dtype, _broadcastable)()
             filters = tt.TensorType(dtype, _broadcastable)()
             conv = dnn.dnn_conv(
@@ -3182,7 +3182,7 @@ class TestDnnConv2DRuntimeAlgorithms:
         _broadcastable = [False] * (2 + self.ndim)
 
         def run_gradweight_runtime_algorithm(algo):
-            theano.config.dnn.conv.algo_bwd_filter = algo
+            theano.config.dnn__conv__algo_bwd_filter = algo
             inputs = tt.TensorType(dtype, _broadcastable)()
             filters = tt.TensorType(dtype, _broadcastable)()
             conv = dnn.dnn_conv(

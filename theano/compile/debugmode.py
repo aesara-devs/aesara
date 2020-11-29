@@ -1261,14 +1261,14 @@ def _get_preallocated_maps(
         out_broadcastable = rev_out_broadcastable[::-1]
 
     if "strided" in prealloc_modes or "ALL" in prealloc_modes:
-        check_ndim = config.DebugMode.check_preallocated_output_ndim
+        check_ndim = config.DebugMode__check_preallocated_output_ndim
         # Initial allocation
         init_strided = {}
         for r in considered_outputs:
             if isinstance(r.type, (TensorType, GpuArrayType)):
                 # Create a buffer twice as large in every dimension,
                 # except if broadcastable, or for dimensions above
-                # config.DebugMode.check_preallocated_output_ndim
+                # config.DebugMode__check_preallocated_output_ndim
                 buf_shape = []
                 for s, b in zip(r_vals[r].shape, r.broadcastable):
                     if b or ((r.ndim - len(buf_shape)) > check_ndim):
@@ -1888,7 +1888,7 @@ class _Linker(gof.link.LocalLinker):
             ]
 
         # Precompute some things for storage pre-allocation
-        def_val = int(config.unittests.rseed)
+        def_val = int(config.unittests__rseed)
 
         #####
         # This is the function that runs when you evaluate the graph
@@ -2042,7 +2042,7 @@ class _Linker(gof.link.LocalLinker):
                                     hint="perform output",
                                     specific_hint=hint2,
                                 )
-                        warn_inp = config.DebugMode.warn_input_not_reused
+                        warn_inp = config.DebugMode__warn_input_not_reused
                         py_inplace_outs = _check_inputs(
                             node,
                             storage_map,
@@ -2164,7 +2164,7 @@ class _Linker(gof.link.LocalLinker):
                                     node.op,
                                 )
 
-                        warn_inp = config.DebugMode.warn_input_not_reused
+                        warn_inp = config.DebugMode__warn_input_not_reused
                         c_inplace_outs = _check_inputs(
                             node,
                             storage_map,
@@ -2609,33 +2609,33 @@ class DebugMode(Mode):
 
     """
 
-    stability_patience = config.DebugMode.patience
+    stability_patience = config.DebugMode__patience
     """
     When checking for the stability of optimization, recompile the
     graph this many times.
 
     """
 
-    check_c_code = config.DebugMode.check_c
+    check_c_code = config.DebugMode__check_c
     """
     Should we evaluate (and check) the `c_code` implementations?
 
     """
 
-    check_py_code = config.DebugMode.check_py
+    check_py_code = config.DebugMode__check_py
     """
     Should we evaluate (and check) the `perform` implementations?
     Always checked if no `c_code`.
 
     """
 
-    check_isfinite = config.DebugMode.check_finite
+    check_isfinite = config.DebugMode__check_finite
     """
     Should we check for (and complain about) NaN/Inf ndarray elements?
 
     """
 
-    require_matching_strides = config.DebugMode.check_strides
+    require_matching_strides = config.DebugMode__check_strides
     """
     Should we check for (and complain about) Ops whose python and C
     outputs are ndarrays with different strides? (This can catch bugs,
@@ -2643,7 +2643,7 @@ class DebugMode(Mode):
 
     """
 
-    check_preallocated_output = config.DebugMode.check_preallocated_output
+    check_preallocated_output = config.DebugMode__check_preallocated_output
     check_preallocated_output = check_preallocated_output.split(":")
     """
     List of strings representing ways to pre-allocate output memory in

@@ -125,13 +125,13 @@ class BaseCorrMM(gof.OpenMPOp):
         self.filter_dilation = tuple(filter_dilation)
         self.unshared = unshared
 
-        if not theano.config.blas.ldflags:
+        if not theano.config.blas__ldflags:
             # Theano will use a NumPy C implementation of [sd]gemm_ instead.
             self.blas_type = ""
         else:
-            if "openblas" in theano.config.blas.ldflags:
+            if "openblas" in theano.config.blas__ldflags:
                 self.blas_type = "openblas"
-            elif "mkl" in theano.config.blas.ldflags:
+            elif "mkl" in theano.config.blas__ldflags:
                 self.blas_type = "mkl"
             else:
                 self.blas_type = ""

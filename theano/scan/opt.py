@@ -1388,7 +1388,7 @@ class ScanSaveMem(gof.GlobalOptimizer):
                         # for mitsots and sitsots (because mitmots are not
                         # currently supported by the mechanism) and only if
                         # the pre-allocation mechanism is activated.
-                        prealloc_outs = theano.config.scan.allow_output_prealloc
+                        prealloc_outs = theano.config.scan__allow_output_prealloc
 
                         first_mitsot_idx = node.op.n_mit_mot
                         last_sitsot_idx = (

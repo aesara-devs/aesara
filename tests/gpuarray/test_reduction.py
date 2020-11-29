@@ -107,7 +107,7 @@ class BaseTest:
 
     # NB: In compute_host() and compute_gpu(),
     # the first call of the theano function should be ignored in profiling,
-    # with Theano config flag profiling.ignore_first_call=True.
+    # with Theano config flag profiling__ignore_first_call=True.
 
     def compute_host(self, test_tensor, axis):
         M = self.get_host_tensor()

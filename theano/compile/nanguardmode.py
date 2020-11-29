@@ -207,11 +207,11 @@ class NanGuardMode(Mode):
     ):
         self.provided_optimizer = optimizer
         if nan_is_error is None:
-            nan_is_error = config.NanGuardMode.nan_is_error
+            nan_is_error = config.NanGuardMode__nan_is_error
         if inf_is_error is None:
-            inf_is_error = config.NanGuardMode.inf_is_error
+            inf_is_error = config.NanGuardMode__inf_is_error
         if big_is_error is None:
-            big_is_error = config.NanGuardMode.big_is_error
+            big_is_error = config.NanGuardMode__big_is_error
 
         assert nan_is_error or inf_is_error or big_is_error
 
@@ -271,14 +271,14 @@ class NanGuardMode(Mode):
                     var = nd.outputs[0]
                 print(theano.gof.utils.get_variable_trace_string(var), file=sio)
                 msg = sio.getvalue()
-                if config.NanGuardMode.action == "raise":
+                if config.NanGuardMode__action == "raise":
                     raise AssertionError(msg)
-                elif config.NanGuardMode.action == "pdb":
+                elif config.NanGuardMode__action == "pdb":
                     print(msg)
                     import pdb
 
                     pdb.set_trace()
-                elif config.NanGuardMode.action == "warn":
+                elif config.NanGuardMode__action == "warn":
                     logger.error(msg)
 
         def nan_check(node, thunk, storage_map, compute_map):

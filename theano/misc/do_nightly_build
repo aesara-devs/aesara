@@ -46,7 +46,7 @@ echo "Number of elements in the compiledir:"
 ls ${COMPILEDIR}|wc -l
 
 # We don't want warnings in the buildbot for errors already fixed.
-FLAGS=${THEANO_FLAGS},warn.argmax_pushdown_bug=False,warn.gpusum_01_011_0111_bug=False,warn.sum_sum_bug=False,warn.sum_div_dimshuffle_bug=False,warn.subtensor_merge_bug=False,$FLAGS
+FLAGS=${THEANO_FLAGS},warn__argmax_pushdown_bug=False,warn__gpusum_01_011_0111_bug=False,warn__sum_sum_bug=False,warn__sum_div_dimshuffle_bug=False,warn__subtensor_merge_bug=False,$FLAGS
 
 # We want to see correctly optimization/shape errors, so make make them raise an
 # error.
@@ -88,9 +88,9 @@ fi
 
 echo "Executing tests with mode=FAST_RUN"
 FILE=${ROOT_CWD}/theano_fastrun_tests.xml
-echo "THEANO_FLAGS=cmodule.warn_no_version=True,${FLAGS},mode=FAST_RUN pytest ${PROFILING} ${ARGS} ${XUNIT}${FILE}"
+echo "THEANO_FLAGS=cmodule__warn_no_version=True,${FLAGS},mode=FAST_RUN pytest ${PROFILING} ${ARGS} ${XUNIT}${FILE}"
 date
-THEANO_FLAGS=cmodule.warn_no_version=True,${FLAGS},mode=FAST_RUN pytest ${PROFILING} ${ARGS} ${XUNIT}${FILE}
+THEANO_FLAGS=cmodule__warn_no_version=True,${FLAGS},mode=FAST_RUN pytest ${PROFILING} ${ARGS} ${XUNIT}${FILE}
 echo "Number of elements in the compiledir:"
 ls ${COMPILEDIR}|wc -l
 echo
@@ -104,11 +104,11 @@ echo "Number of elements in the compiledir:"
 ls ${COMPILEDIR}|wc -l
 echo
 
-echo "Executing tests with linker=vm,vm.lazy=True,floatX=float32"
+echo "Executing tests with linker=vm,vm__lazy=True,floatX=float32"
 FILE=${ROOT_CWD}/theano_fastrun_float32_lazyvm_tests.xml
-echo "THEANO_FLAGS=${FLAGS},linker=vm,vm.lazy=True,floatX=float32 pytest ${ARGS} ${XUNIT}${FILE}"
+echo "THEANO_FLAGS=${FLAGS},linker=vm,vm__lazy=True,floatX=float32 pytest ${ARGS} ${XUNIT}${FILE}"
 date
-THEANO_FLAGS=${FLAGS},linker=vm,vm.lazy=True,floatX=float32 pytest ${ARGS} ${XUNIT}${FILE}
+THEANO_FLAGS=${FLAGS},linker=vm,vm__lazy=True,floatX=float32 pytest ${ARGS} ${XUNIT}${FILE}
 echo "Number of elements in the compiledir:"
 ls ${COMPILEDIR}|wc -l
 echo
@@ -117,9 +117,9 @@ echo
 seed=$RANDOM
 echo "Executing tests with mode=DEBUG_MODE with seed of the day $seed"
 FILE=${ROOT_CWD}/theano_debug_tests.xml
-echo "THEANO_FLAGS=${FLAGS},unittests.rseed=$seed,mode=DEBUG_MODE,DebugMode.check_strides=0,DebugMode.patience=3,DebugMode.check_preallocated_output= pytest ${ARGS} ${XUNIT}${FILE}"
+echo "THEANO_FLAGS=${FLAGS},unittests__rseed=$seed,mode=DEBUG_MODE,DebugMode__check_strides=0,DebugMode__patience=3,DebugMode__check_preallocated_output= pytest ${ARGS} ${XUNIT}${FILE}"
 date
-THEANO_FLAGS=${FLAGS},unittests.rseed=$seed,mode=DEBUG_MODE,DebugMode.check_strides=0,DebugMode.patience=3,DebugMode.check_preallocated_output= pytest ${ARGS} ${XUNIT}${FILE}
+THEANO_FLAGS=${FLAGS},unittests__rseed=$seed,mode=DEBUG_MODE,DebugMode__check_strides=0,DebugMode__patience=3,DebugMode__check_preallocated_output= pytest ${ARGS} ${XUNIT}${FILE}
 
 echo "Number of elements in the compiledir:"
 ls ${COMPILEDIR}|wc -l

@@ -7,7 +7,7 @@ def pytest_sessionstart(session):
     os.environ["THEANO_FLAGS"] = ",".join(
         [
             os.environ.setdefault("THEANO_FLAGS", ""),
-            "warn.ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise",
+            "warn__ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise",
         ]
     )
 

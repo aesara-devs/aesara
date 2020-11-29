@@ -46,7 +46,7 @@ def log_thunk_trace(value, f=sys.stderr):
                 write(line)
             write(
                 "For the full definition stack trace set"
-                " the Theano flags traceback.limit to -1"
+                " the Theano flags traceback__limit to -1"
             )
 
 
@@ -184,7 +184,7 @@ def raise_with_op(fgraph, node, thunk=None, exc_info=None, storage_map=None):
     # Print node backtraces
     tr = getattr(node.outputs[0].tag, "trace", [])
     if isinstance(tr, list) and len(tr) > 0:
-        detailed_err_msg += "\nBacktrace when the node is created(use Theano flag traceback.limit=N to make it longer):\n"
+        detailed_err_msg += "\nBacktrace when the node is created(use Theano flag traceback__limit=N to make it longer):\n"
 
         # Print separate message for each element in the list of batcktraces
         sio = StringIO()

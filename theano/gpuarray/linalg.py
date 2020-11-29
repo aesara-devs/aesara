@@ -712,18 +712,18 @@ class GpuMagmaBase(COp):
         dirs = [
             gpuarray_helper_inc_dir(),
             pygpu.get_include(),
-            config.cuda.include_path,
+            config.cuda__include_path,
         ]
-        if config.magma.include_path:
-            dirs.append(config.magma.include_path)
+        if config.magma__include_path:
+            dirs.append(config.magma__include_path)
         return dirs
 
     def c_libraries(self):
         return ["magma"]
 
     def c_lib_dirs(self):
-        if config.magma.library_path:
-            return [config.magma.library_path]
+        if config.magma__library_path:
+            return [config.magma__library_path]
         return []
 
     def prepare_node(self, node, storage_map, compute_map, impl):

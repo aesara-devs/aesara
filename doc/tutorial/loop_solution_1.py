@@ -10,7 +10,7 @@ import theano.tensor as tt
 
 # 1. First example
 
-theano.config.warn.subtensor_merge_bug = False
+theano.config.warn__subtensor_merge_bug = False
 
 k = tt.iscalar("k")
 A = tt.vector("A")
@@ -58,7 +58,7 @@ print(calculate_polynomial1(test_coeff, 3))
 
 # 3. Reduction performed inside scan
 
-theano.config.warn.subtensor_merge_bug = False
+theano.config.warn__subtensor_merge_bug = False
 
 coefficients = tt.vector("coefficients")
 x = tt.scalar("x")

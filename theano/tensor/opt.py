@@ -282,7 +282,7 @@ class InplaceElemwiseOptimizer(GlobalOptimizer):
             "ndim": defaultdict(lambda: 0),
         }
 
-        check_each_change = config.tensor.insert_inplace_optimizer_validate_nb
+        check_each_change = config.tensor__insert_inplace_optimizer_validate_nb
         if check_each_change == -1:
             if len(fgraph.apply_nodes) > 500:
                 check_each_change = 10
@@ -1803,7 +1803,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
                 # when i.owner.inputs[0].type == i.owner.outputs[0].type we
                 # will remove that alloc later
                 assert i.type.ndim == cmp_op.ndim
-                if theano.config.experimental.local_alloc_elemwise_assert:
+                if theano.config.experimental__local_alloc_elemwise_assert:
                     get_shape = fgraph.shape_feature.get_shape
                     cond = []
                     for idx in range(i.type.ndim):
@@ -1820,7 +1820,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
             # Remove Alloc in DimShuffle
             elif i.owner and dimshuffled_alloc(i):
                 assert i.type.ndim == cmp_op.type.ndim
-                if theano.config.experimental.local_alloc_elemwise_assert:
+                if theano.config.experimental__local_alloc_elemwise_assert:
                     assert_cond = [
                         tt.eq(i.shape[idx], cmp_op.shape[idx])
                         for idx in range(i.type.ndim)
@@ -3248,12 +3248,12 @@ def merge_two_slices(fgraph, slice1, len1, slice2, len2):
             # the k-th element from sl.start but the k-th element from
             # sl.stop backwards
             n_val = sl1.stop - 1 - sl2 * sl1.step
-            if config.warn.subtensor_merge_bug:
+            if config.warn__subtensor_merge_bug:
                 warnings.warning(
                     "Your current code is fine, but Theano versions "
                     "prior to 0.5rc2 might have given an incorrect result. "
                     "To disable this warning, set the Theano flag "
-                    "warn.subtensor_merge_bug to False."
+                    "warn__subtensor_merge_bug to False."
                 )
             # we need to pick either n_val or p_val and then follow same
             # steps as above for covering the index error cases
@@ -3823,7 +3823,7 @@ def local_adv_sub1_adv_inc_sub1(fgraph, node):
         return
 
     if not inp.owner.op.set_instead_of_inc:
-        if config.warn.inc_subtensor1_opt:
+        if config.warn__inc_subtensor1_opt:
             warnings.warning(
                 "Your current code is fine, but Theano versions "
                 "between 0.7rc1 and 0.10 (or development versions "
@@ -3834,7 +3834,7 @@ def local_adv_sub1_adv_inc_sub1(fgraph, node):
                 'optimized to "x", which is incorrect if there are '
                 "duplicated indices in idx. "
                 "To disable this warning, set the Theano flag "
-                "warn.inc_subtensor1_opt to False."
+                "warn__inc_subtensor1_opt to False."
             )
         return
 
@@ -5806,7 +5806,7 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
 
             # Old, bugged logic, reproduced here only to warn users
             if (
-                config.warn.sum_div_dimshuffle_bug
+                config.warn__sum_div_dimshuffle_bug
                 and isinstance(node.op, Sum)
                 and numerator.owner
                 and isinstance(numerator.owner.op, tt.DimShuffle)
@@ -5827,7 +5827,7 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
                         " cfc6322e5ad4 (2010-08-03) would "
                         "have given an incorrect result. "
                         "To disable this warning, set the Theano"
-                        " flag warn.sum_div_dimshuffle_bug to"
+                        " flag warn__sum_div_dimshuffle_bug to"
                         " False."
                     )
 
@@ -5872,7 +5872,7 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
                             optimized_dimshuffle_order,
                         )(dimshuffle_input)
 
-                        if config.warn.sum_div_dimshuffle_bug and isinstance(
+                        if config.warn__sum_div_dimshuffle_bug and isinstance(
                             node.op, Sum
                         ):
                             _logger.warning(
@@ -5883,7 +5883,7 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
                                 "have given an incorrect result. "
                                 "To disable this warning, set the"
                                 " Theano flag "
-                                "warn.sum_div_dimshuffle_bug"
+                                "warn__sum_div_dimshuffle_bug"
                                 " to False."
                             )
 
@@ -5981,7 +5981,7 @@ def local_op_of_op(fgraph, node):
                 ]
 
                 if (
-                    theano.config.warn.sum_sum_bug
+                    theano.config.warn__sum_sum_bug
                     and newaxis != newaxis_old
                     and len(newaxis) == len(newaxis_old)
                 ):
@@ -5996,7 +5996,7 @@ def local_op_of_op(fgraph, node):
                         "are in one such case. To disable this warning "
                         "(that you can safely ignore since this bug has "
                         "been fixed) set the theano flag "
-                        "`warn.sum_sum_bug` to False."
+                        "`warn__sum_sum_bug` to False."
                     )
 
                 combined = opt_type(newaxis, dtype=out_dtype)
@@ -6070,13 +6070,13 @@ def local_reduce_join(fgraph, node):
 
         # I put this warning late to don't add extra warning.
         if len(reduce_axis) != 1 or 0 not in reduce_axis:
-            if theano.config.warn.reduce_join:
+            if theano.config.warn__reduce_join:
                 warnings.warning(
                     "Your current code is fine, but Theano versions "
                     "prior to 0.7 (or this development version Sept 2014) "
                     "might have given an incorrect result for this code. "
                     "To disable this warning, set the Theano flag "
-                    "warn.reduce_join to False. The problem was an "
+                    "warn__reduce_join to False. The problem was an "
                     "optimization, that modified the pattern "
                     '"Reduce{scalar.op}(Join(axis=0, a, b), axis=0)", '
                     "did not check the reduction axis. So if the "
@@ -7828,7 +7828,7 @@ def local_add_mul_fusion(fgraph, node):
         return [output]
 
 
-if config.tensor.local_elemwise_fusion:
+if config.tensor__local_elemwise_fusion:
     _logger.debug("Enabling Elemwise fusion optimizations in fast_run")
     # Must be after gpu(48.5) and before AddDestroyHandler(49.5)
     fuse_seqopt = gof.SequenceDB()

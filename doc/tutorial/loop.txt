@@ -362,7 +362,7 @@ Note that if you want to use a random variable ``d`` that will not be updated th
 
   import theano
   import theano.tensor as tt
-  theano.config.warn.subtensor_merge_bug = False
+  theano.config.warn__subtensor_merge_bug = False
 
   k = tt.iscalar("k")
   A = tt.vector("A")
@@ -396,7 +396,7 @@ Note that if you want to use a random variable ``d`` that will not be updated th
   import numpy
   import theano
   import theano.tensor as tt
-  theano.config.warn.subtensor_merge_bug = False
+  theano.config.warn__subtensor_merge_bug = False
 
   coefficients = theano.tensor.vector("coefficients")
   x = tt.scalar("x")

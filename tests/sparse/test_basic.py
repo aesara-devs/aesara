@@ -1703,7 +1703,7 @@ class TestUsmm:
 
             fast_compile = theano.config.mode == "FAST_COMPILE"
 
-            if not theano.config.blas.ldflags:
+            if not theano.config.blas__ldflags:
                 # Usmm should not be inserted, because it relies on BLAS
                 assert len(topo) == 4, topo
                 assert isinstance(topo[0].op, theano.sparse.Dot)

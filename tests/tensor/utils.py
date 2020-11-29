@@ -608,8 +608,8 @@ def makeTester(
         @pytest.mark.skipif(skip, reason="Skipped")
         def test_grad(self):
             # Disable old warning that may be triggered by this test.
-            backup = config.warn.sum_div_dimshuffle_bug
-            config.warn.sum_div_dimshuffle_bug = False
+            backup = config.warn__sum_div_dimshuffle_bug
+            config.warn__sum_div_dimshuffle_bug = False
             try:
                 for testname, inputs in self.grad.items():
                     inputs = [copy(input) for input in inputs]
@@ -630,7 +630,7 @@ def makeTester(
                         exc.args += (err_msg,)
                         raise
             finally:
-                config.warn.sum_div_dimshuffle_bug = backup
+                config.warn__sum_div_dimshuffle_bug = backup
 
         @pytest.mark.skipif(skip, reason="Skipped")
         def test_grad_none(self):

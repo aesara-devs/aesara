@@ -1273,9 +1273,9 @@ class TestSubtensor(utt.OptimizationTestMixin):
                         )
 
         # Actual test (we compile a single Theano function to make it faster).
-        orig_warn = theano.config.warn.gpu_set_subtensor1
+        orig_warn = theano.config.warn__gpu_set_subtensor1
         try:
-            theano.config.warn.gpu_set_subtensor1 = False
+            theano.config.warn__gpu_set_subtensor1 = False
             f = self.function(
                 all_inputs_var,
                 all_outputs_var,
@@ -1284,7 +1284,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 N=len(all_outputs_var),
             )
         finally:
-            theano.config.warn.gpu_set_subtensor1 = orig_warn
+            theano.config.warn__gpu_set_subtensor1 = orig_warn
 
         f_outs = f(*all_inputs_num)
         assert len(f_outs) == len(all_outputs_num)
@@ -1366,9 +1366,9 @@ class TestSubtensor(utt.OptimizationTestMixin):
         shape_val = ((3, 1), (3, 1, 1))
 
         # Disable the warning emitted for that case
-        orig_warn = config.warn.inc_set_subtensor1
+        orig_warn = config.warn__inc_set_subtensor1
         try:
-            config.warn.inc_set_subtensor1 = False
+            config.warn__inc_set_subtensor1 = False
 
             for i, shp_i, shp_v in zip(sym_i, shape_i, shape_val):
                 sub_m = m[:, i]
@@ -1389,7 +1389,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 assert np.allclose(m1_val, m1_ref), (m1_val, m1_ref)
                 assert np.allclose(m2_val, m2_ref), (m2_val, m2_ref)
         finally:
-            config.warn.inc_set_subtensor1 = orig_warn
+            config.warn__inc_set_subtensor1 = orig_warn
 
     def test_adv1_inc_sub_notlastdim_1_2dval_no_broadcast(self):
         # Test that taking 1-dimensional advanced indexing
@@ -1403,10 +1403,10 @@ class TestSubtensor(utt.OptimizationTestMixin):
         shape_val = ((3, 4), (3, 4, 2))
 
         # Disable the warning emitted for that case
-        orig_warn = config.warn.inc_set_subtensor1
+        orig_warn = config.warn__inc_set_subtensor1
 
         try:
-            config.warn.inc_set_subtensor1 = False
+            config.warn__inc_set_subtensor1 = False
             for i, shp_i, shp_v in zip(sym_i, shape_i, shape_val):
                 sub_m = m[:, i]
                 m1 = set_subtensor(sub_m, np.zeros(shp_v))
@@ -1429,7 +1429,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 assert np.allclose(m1_val, m1_ref), (m1_val, m1_ref)
                 assert np.allclose(m2_val, m2_ref), (m2_val, m2_ref)
         finally:
-            config.warn.inc_set_subtensor1 = orig_warn
+            config.warn__inc_set_subtensor1 = orig_warn
 
     def test_take(self):
         a = matrix()

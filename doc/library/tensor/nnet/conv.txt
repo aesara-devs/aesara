@@ -46,9 +46,9 @@ For the cuDNN version, there are different algorithms with different
 memory/speed trade-offs. Manual selection of the right one is very
 difficult as it depends on the shapes and hardware. So it can change
 for each layer. An auto-tuning mode exists and can be activated by
-those flags: ``dnn.conv.algo_fwd=time_once``,
-``dnn.conv.algo_bwd_data=time_once`` and
-``dnn.conv.algo_bwd_filter=time_once``. Note, they are good mostly
+those flags: ``dnn__conv__algo_fwd=time_once``,
+``dnn__conv__algo_bwd_data=time_once`` and
+``dnn__conv__algo_bwd_filter=time_once``. Note, they are good mostly
 when the shape do not change.
 
 This auto-tuning has the inconvenience that the first call is much
@@ -62,8 +62,8 @@ for each specific convolution in your graph. For each instance, it will
 compile and benchmark each applicable implementation and choose the
 fastest one. It can be enabled using ``optimizer_including=conv_meta``.
 The meta-optimizer can also selectively disable cudnn and gemm version
-using the Theano flag ``metaopt.optimizer_excluding=conv_dnn`` and
-``metaopt.optimizer_excluding=conv_gemm`` respectively.
+using the Theano flag ``metaopt__optimizer_excluding=conv_dnn`` and
+``metaopt__optimizer_excluding=conv_gemm`` respectively.
 
 
 .. note::

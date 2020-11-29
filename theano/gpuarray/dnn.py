@@ -59,7 +59,7 @@ except ImportError:
 WIN32_CUDNN_NAMES = ["cudnn64_7.dll", "cudnn64_6.dll", "cudnn64_5.dll"]
 
 if sys.platform == "win32":
-    theano.pathparse.PathParser(theano.config.dnn.bin_path)
+    theano.pathparse.PathParser(theano.config.dnn__bin_path)
 
 
 def _load_lib(name):
@@ -73,18 +73,20 @@ def _dnn_lib():
     if _dnn_lib.handle is None:
         import ctypes.util
 
-        if config.dnn.bin_path != "":
+        if config.dnn__bin_path != "":
             if sys.platform == "darwin":
                 dnn_handle = _load_lib(
-                    os.path.join(config.dnn.bin_path, "libcudnn.dylib")
+                    os.path.join(config.dnn__bin_path, "libcudnn.dylib")
                 )
             elif sys.platform == "win32":
                 for name in WIN32_CUDNN_NAMES:
-                    dnn_handle = _load_lib(os.path.join(config.dnn.bin_path, name))
+                    dnn_handle = _load_lib(os.path.join(config.dnn__bin_path, name))
                     if dnn_handle is not None:
                         break
             else:
-                dnn_handle = _load_lib(os.path.join(config.dnn.bin_path, "libcudnn.so"))
+                dnn_handle = _load_lib(
+                    os.path.join(config.dnn__bin_path, "libcudnn.so")
+                )
         else:
             lib_name = ctypes.util.find_library("cudnn")
             if lib_name is None and sys.platform == "win32":
@@ -96,7 +98,7 @@ def _dnn_lib():
                 raise RuntimeError(
                     "Could not find cudnn library (looked for v5* to v7*)."
                     " Check your cudnn installation. Maybe using the Theano"
-                    f' flag dnn.base_path can help you. Current value "{config.dnn.base_path}"'
+                    f' flag dnn__base_path can help you. Current value "{config.dnn__base_path}"'
                 )
             else:
                 dnn_handle = ctypes.cdll.LoadLibrary(lib_name)
@@ -104,7 +106,7 @@ def _dnn_lib():
             raise RuntimeError(
                 "Could not load cudnn library. Check your cudnn"
                 " installation. Maybe using the Theano"
-                f' flag dnn.base_path can help you. Current value "{config.dnn.base_path}"'
+                f' flag dnn__base_path can help you. Current value "{config.dnn__base_path}"'
             )
         _dnn_lib.handle = dnn_handle
         cudnn = _dnn_lib.handle
@@ -152,12 +154,12 @@ if ((err = cudnnCreate(&_handle)) != CUDNN_STATUS_SUCCESS) {
     path_wrapper = '"' if os.name == "nt" else ""
     params = ["-l", "cudnn"]
     params.extend([f"-I{path_wrapper}{gpuarray_helper_inc_dir()}{path_wrapper}"])
-    if config.dnn.include_path:
-        params.extend([f"-I{path_wrapper}{config.dnn.include_path}{path_wrapper}"])
-    if config.cuda.include_path:
-        params.extend([f"-I{path_wrapper}{config.cuda.include_path}{path_wrapper}"])
-    if config.dnn.library_path:
-        params.extend([f"-L{path_wrapper}{config.dnn.library_path}{path_wrapper}"])
+    if config.dnn__include_path:
+        params.extend([f"-I{path_wrapper}{config.dnn__include_path}{path_wrapper}"])
+    if config.cuda__include_path:
+        params.extend([f"-I{path_wrapper}{config.cuda__include_path}{path_wrapper}"])
+    if config.dnn__library_path:
+        params.extend([f"-L{path_wrapper}{config.dnn__library_path}{path_wrapper}"])
     # Do not run here the test program. It would run on the
     # default gpu, not the one selected by the user. If mixed
     # GPU are installed or if the GPUs are configured in
@@ -197,8 +199,8 @@ def _dnn_check_version():
 def dnn_present():
     if dnn_present.avail is not None:
         return dnn_present.avail
-    if config.dnn.enabled == "False":
-        dnn_present.msg = "Disabled by dnn.enabled flag"
+    if config.dnn__enabled == "False":
+        dnn_present.msg = "Disabled by dnn__enabled flag"
         dnn_present.avail = False
         return False
 
@@ -207,10 +209,10 @@ def dnn_present():
         dnn_present.avail = False
         return False
 
-    if config.dnn.enabled == "no_check":
+    if config.dnn__enabled == "no_check":
         dnn_present.avail, dnn_present.msg = (
             True,
-            "presence check disabled by dnn.enabled flag",
+            "presence check disabled by dnn__enabled flag",
         )
     else:
         dnn_present.avail, dnn_present.msg = _dnn_check_compile()
@@ -257,16 +259,16 @@ dnn_available.msg = None
 
 def CUDNNDataType(name, freefunc=None):
     cargs = []
-    if config.dnn.bin_path and sys.platform != "win32":
-        cargs.append("-Wl,-rpath," + config.dnn.bin_path)
+    if config.dnn__bin_path and sys.platform != "win32":
+        cargs.append("-Wl,-rpath," + config.dnn__bin_path)
 
     return CDataType(
         name,
         freefunc,
         headers=["cudnn.h"],
-        header_dirs=[config.dnn.include_path, config.cuda.include_path],
+        header_dirs=[config.dnn__include_path, config.cuda__include_path],
         libraries=["cudnn"],
-        lib_dirs=[config.dnn.library_path],
+        lib_dirs=[config.dnn__library_path],
         compile_args=cargs,
         version=version(raises=False),
     )
@@ -279,17 +281,17 @@ class DnnVersion(Op):
         return ["cudnn.h"]
 
     def c_header_dirs(self):
-        return [config.dnn.include_path, config.cuda.include_path]
+        return [config.dnn__include_path, config.cuda__include_path]
 
     def c_libraries(self):
         return ["cudnn"]
 
     def c_lib_dirs(self):
-        return [config.dnn.library_path]
+        return [config.dnn__library_path]
 
     def c_compile_args(self):
-        if config.dnn.bin_path and sys.platform != "win32":
-            return ["-Wl,-rpath," + config.dnn.bin_path]
+        if config.dnn__bin_path and sys.platform != "win32":
+            return ["-Wl,-rpath," + config.dnn__bin_path]
         return []
 
     def c_support_code(self):
@@ -369,7 +371,7 @@ def get_precision(precision, inputs, for_grad=False):
         raise TypeError("cuDNN convolution only works on real numbers")
 
     if precision is None:
-        precision = theano.config.dnn.conv.precision
+        precision = theano.config.dnn__conv__precision
     if precision == "as_input" or precision == "as_input_f32":
         if common_dtype == "float16" and precision == "as_input_f32":
             precision = "float32"
@@ -438,19 +440,19 @@ class DnnBase(COp):
         return [
             gpuarray_helper_inc_dir(),
             pygpu.get_include(),
-            config.dnn.include_path,
-            config.cuda.include_path,
+            config.dnn__include_path,
+            config.cuda__include_path,
         ]
 
     def c_libraries(self):
         return ["cudnn", "gpuarray"]
 
     def c_lib_dirs(self):
-        return [config.dnn.library_path]
+        return [config.dnn__library_path]
 
     def c_compile_args(self):
-        if config.dnn.bin_path and sys.platform != "win32":
-            return ["-Wl,-rpath," + config.dnn.bin_path]
+        if config.dnn__bin_path and sys.platform != "win32":
+            return ["-Wl,-rpath," + config.dnn__bin_path]
         return []
 
     def c_code_cache_version(self):
@@ -502,19 +504,19 @@ class GpuDnnConvDesc(COp):
     def c_header_dirs(self):
         return [
             gpuarray_helper_inc_dir(),
-            config.dnn.include_path,
-            config.cuda.include_path,
+            config.dnn__include_path,
+            config.cuda__include_path,
         ]
 
     def c_libraries(self):
         return ["cudnn"]
 
     def c_lib_dirs(self):
-        return [config.dnn.library_path]
+        return [config.dnn__library_path]
 
     def c_compile_args(self):
-        if config.dnn.bin_path and sys.platform != "win32":
-            return ["-Wl,-rpath," + config.dnn.bin_path]
+        if config.dnn__bin_path and sys.platform != "win32":
+            return ["-Wl,-rpath," + config.dnn__bin_path]
         return []
 
     def do_constant_folding(self, fgraph, node):
@@ -657,7 +659,7 @@ class GpuDnnConv(DnnBase):
         The convolution descriptor.
     algo : {'small', 'none', 'large', 'fft', 'fft_tiling', 'winograd', 'guess_once',
             'guess_on_shape_change', 'time_once', 'time_on_shape_change'}
-        Default is the value of :attr:`config.dnn.conv.algo_fwd`.
+        Default is the value of :attr:`config.dnn__conv__algo_fwd`.
     num_groups :
         Divides the image, kernel and output tensors into num_groups
         separate groups. Each which carry out convolutions separately
@@ -686,7 +688,7 @@ class GpuDnnConv(DnnBase):
         )
 
         if algo is None:
-            algo = config.dnn.conv.algo_fwd
+            algo = config.dnn__conv__algo_fwd
         self.algo = algo
 
         self.inplace = bool(inplace)
@@ -714,7 +716,7 @@ class GpuDnnConv(DnnBase):
             if hasattr(self, "workmem"):
                 self.algo = self.workmem
             else:
-                self.algo = config.dnn.conv.algo_fwd
+                self.algo = config.dnn__conv__algo_fwd
         if not hasattr(self, "inplace"):
             self.inplace = False
         if not hasattr(self, "num_groups"):
@@ -819,7 +821,7 @@ class GpuDnnConvGradW(DnnBase):
         The convolution descriptor.
     algo : {'none', 'deterministic', 'fft', 'small', 'guess_once',
             'guess_on_shape_change', 'time_once', 'time_on_shape_change'}
-        Default is the value of :attr:`config.dnn.conv.algo_bwd_filter`.
+        Default is the value of :attr:`config.dnn__conv__algo_bwd_filter`.
     num_groups :
         Divides the image, kernel and output tensors into num_groups
         separate groups. Each which carry out convolutions separately
@@ -850,7 +852,7 @@ class GpuDnnConvGradW(DnnBase):
         if self.inplace:
             self.destroy_map = {0: [2]}
         if algo is None:
-            algo = config.dnn.conv.algo_bwd_filter
+            algo = config.dnn__conv__algo_bwd_filter
         self.algo = algo
 
         assert (
@@ -873,7 +875,7 @@ class GpuDnnConvGradW(DnnBase):
         if not hasattr(self, "inplace"):
             self.inplace = False
         if not hasattr(self, "algo"):
-            self.algo = config.dnn.conv.algo_bwd_filter
+            self.algo = config.dnn__conv__algo_bwd_filter
         if not hasattr(self, "num_groups"):
             self.num_groups = 1
 
@@ -929,14 +931,14 @@ class GpuDnnConvGradW(DnnBase):
                 "cuDNN backward filter operation for 3D convolutions may produce bad results "
                 "with certain cuDNN algorithms depending on the compute capability of your GPU "
                 "if subsample is not (1, 1, 1). If you encounter problems, consider "
-                'setting the theano flag "dnn.conv.algo_bwd_filter" to "none".'
+                'setting the theano flag "dnn__conv__algo_bwd_filter" to "none".'
             )
         if self.op_may_fail_with_beta(img, beta):
             warnings.warn(
                 "cuDNN backward filter operation for convolutions may produce bad results "
                 "with certain cuDNN algorithms depending on the compute capability of your GPU "
                 "if beta != 1. If you encounter problems, consider "
-                'setting the theano flag "dnn.conv.algo_bwd_filter" to '
+                'setting the theano flag "dnn__conv__algo_bwd_filter" to '
                 '"none", "deterministic", "fft", or "small".'
             )
         ctx_name = infer_context_name(img, topgrad, output)
@@ -989,7 +991,7 @@ class GpuDnnConvGradI(DnnBase):
         The convolution descriptor.
     algo : {'none', 'deterministic', 'fft', 'fft_tiling', 'winograd', 'guess_once',
             'guess_on_shape_change', 'time_once', 'time_on_shape_change'}
-        Default is the value of :attr:`config.dnn.conv.algo_bwd_data`.
+        Default is the value of :attr:`config.dnn__conv__algo_bwd_data`.
     num_groups :
         Divides the image, kernel and output tensors into num_groups
         separate groups. Each which carry out convolutions separately
@@ -1020,7 +1022,7 @@ class GpuDnnConvGradI(DnnBase):
         if self.inplace:
             self.destroy_map = {0: [2]}
         if algo is None:
-            algo = config.dnn.conv.algo_bwd_data
+            algo = config.dnn__conv__algo_bwd_data
         self.algo = algo
         assert (
             cudnn.cudnnConvolutionBwdDataAlgo_t.has_alias(self.algo)
@@ -1040,7 +1042,7 @@ class GpuDnnConvGradI(DnnBase):
     def __setstate__(self, d):
         self.__dict__.update(d)
         if not hasattr(self, "algo"):
-            self.algo = config.dnn.conv.algo_bwd_data
+            self.algo = config.dnn__conv__algo_bwd_data
         if not hasattr(self, "inplace"):
             self.inplace = False
         if not hasattr(self, "num_groups"):
@@ -1321,12 +1323,12 @@ def dnn_conv(
     algo : {'none', 'small', 'large', 'fft', 'guess_once', 'guess_on_shape_change', 'time_once', 'time_on_shape_change'}
         Convolution implementation to use. Some of its values may
         require certain versions of cuDNN to be installed. Default is
-        the value of :attr:`config.dnn.conv.algo_fwd`.
+        the value of :attr:`config.dnn__conv__algo_fwd`.
     precision : {'as_input_f32', 'as_input', 'float16', 'float32', 'float64'}
         Description of the dtype in which the computation of the convolution
         should be done. Possible values are 'as_input', 'float16', 'float32'
         and 'float64'. Default is the value of
-        :attr:`config.dnn.conv.precision`.
+        :attr:`config.dnn__conv__precision`.
     num_groups :
         Divides the image, kernel and output tensors into num_groups
         separate groups. Each which carry out convolutions separately
@@ -1475,12 +1477,12 @@ def dnn_conv3d(
         This parameter is used internally by graph optimizers and may be
         removed at any time without a deprecation period. You have been warned.
     algo : convolution implementation to use. Only 'none' is implemented
-        for the conv3d. Default is the value of :attr:`config.dnn.conv.algo_fwd`.
+        for the conv3d. Default is the value of :attr:`config.dnn__conv__algo_fwd`.
     precision : {'as_input_f32', 'as_input', 'float16', 'float32', 'float64'}
         Description of the dtype in which the computation of the convolution
         should be done. Possible values are 'as_input', 'float16', 'float32'
         and 'float64'. Default is the value of
-        :attr:`config.dnn.conv.precision`.
+        :attr:`config.dnn__conv__precision`.
     num_groups :
         Divides the image, kernel and output tensors into num_groups
         separate groups. Each which carry out convolutions separately
@@ -1720,13 +1722,13 @@ class GpuDnnPoolDesc(Op):
         return ["cudnn.h", "cudnn_helper.h"]
 
     def c_header_dirs(self):
-        return [gpuarray_helper_inc_dir(), config.dnn.include_path]
+        return [gpuarray_helper_inc_dir(), config.dnn__include_path]
 
     def c_libraries(self):
         return ["cudnn"]
 
     def c_lib_dirs(self):
-        return [config.dnn.library_path]
+        return [config.dnn__library_path]
 
     def do_constant_folding(self, fgraph, node):
         return False

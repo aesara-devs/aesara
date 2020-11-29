@@ -89,12 +89,12 @@ Reference
 
     If there are internal errors, this mode will raise an `DebugModeError` exception.
 
-    .. attribute:: stability_patience = config.DebugMode.patience
+    .. attribute:: stability_patience = config.DebugMode__patience
 
         When checking for the stability of optimization, recompile the graph this many times.
         Default 10.
 
-    .. attribute:: check_c_code = config.DebugMode.check_c
+    .. attribute:: check_c_code = config.DebugMode__check_c
 
         Should we evaluate (and check) the `c_code` implementations?
 
@@ -102,7 +102,7 @@ Reference
 
         Default yes.
 
-    .. attribute:: check_py_code = config.DebugMode.check_py
+    .. attribute:: check_py_code = config.DebugMode__check_py
 
     Should we evaluate (and check) the `perform` implementations?
 
@@ -110,7 +110,7 @@ Reference
 
         Default yes.
 
-    .. attribute:: check_isfinite = config.DebugMode.check_finite
+    .. attribute:: check_isfinite = config.DebugMode__check_finite
 
         Should we check for (and complain about) ``NaN``/``Inf`` ndarray elements?
 
@@ -118,7 +118,7 @@ Reference
 
         Default yes.
 
-    .. attribute:: require_matching_strides = config.DebugMode.check_strides
+    .. attribute:: require_matching_strides = config.DebugMode__check_strides
 
         Check for (and complain about) Ops whose python and C
         outputs are ndarrays with different strides. (This can catch bugs, but

@@ -102,7 +102,7 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
         (x,) = inp
         (z,) = out
         if (
-            not theano.config.lib.amdlibm
+            not theano.config.lib__amblibm
             or node.inputs[0].dtype != node.outputs[0].dtype
         ):
             raise theano.gof.utils.MethodNotDefined()
@@ -506,14 +506,14 @@ def is_1pexp(t, only_process_constants=True):
                 # Before 7987b51 there used to be a bug where *any* constant
                 # was considered as if it was equal to 1, and thus this
                 # function would incorrectly identify it as (1 + exp(x)).
-                if config.warn.identify_1pexp_bug:
+                if config.warn__identify_1pexp_bug:
                     warnings.warn(
                         "Although your current code is fine, please note that "
                         "Theano versions prior to 0.5 (more specifically, "
                         "prior to commit 7987b51 on 2011-12-18) may have "
                         "yielded an incorrect result. To remove this warning, "
-                        "either set the `warn.identify_1pexp_bug` config "
-                        "option to False, or `warn.ignore_bug_before` to at "
+                        "either set the `warn__identify_1pexp_bug` config "
+                        "option to False, or `warn__ignore_bug_before` to at "
                         "least '0.4.1'."
                     )
     return None

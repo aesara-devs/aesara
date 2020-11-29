@@ -39,7 +39,7 @@ def test_GpuCrossentropySoftmaxArgmax1HotWithBias():
     # case.
     dot_result = tt.fmatrix("dot_result")
 
-    # Seed numpy.random with config.unittests.rseed
+    # Seed numpy.random with config.unittests__rseed
     utt.seed_rng()
 
     xx = np.asarray(np.random.rand(batch_size, n_in), dtype=np.float32)
@@ -92,7 +92,7 @@ def test_GpuCrossentropySoftmax1HotWithBiasDx():
     if not isinstance(mode_with_gpu, theano.compile.DebugMode):
         n_out = 4099
 
-    # Seed numpy.random with config.unittests.rseed
+    # Seed numpy.random with config.unittests__rseed
     utt.seed_rng()
 
     softmax_output_value = np.random.rand(batch_size, n_out).astype("float32")

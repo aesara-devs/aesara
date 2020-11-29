@@ -97,7 +97,7 @@ correct shape. The shape could change if the shapes of the inputs change.
 
 .. note::
 
-   With :attr:`preallocate <config.gpuarray.preallocate>`, this isn't
+   With :attr:`preallocate <config.gpuarray__preallocate>`, this isn't
    very useful with GPU anymore.
 
 .. _unsafe_optimization:
@@ -176,7 +176,7 @@ but requires that all nodes in the graph have a C implementation:
 New GPU backend using libgpuarray
 ---------------------------------
 
-The new theano GPU backend (:ref:`gpuarray`) uses ``config.gpuarray.preallocate`` for GPU memory allocation. 
+The new theano GPU backend (:ref:`gpuarray`) uses ``config.gpuarray__preallocate`` for GPU memory allocation. 
 
 Related Projects
 ----------------

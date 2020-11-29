@@ -331,7 +331,7 @@ def test_stochasticoptimization():
             mode=debugmode.DebugMode(
                 optimizer=opt,
                 check_c_code=True,
-                stability_patience=max(2, config.DebugMode.patience),
+                stability_patience=max(2, config.DebugMode__patience),
             ),
         )
 

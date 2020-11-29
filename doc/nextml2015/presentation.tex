@@ -904,7 +904,7 @@ print f(x, w, b)
 \begin{lstlisting}
 import theano
 import theano.tensor as tt
-theano.config.warn.subtensor_merge_bug = False
+theano.config.warn__subtensor_merge_bug = False
 
 k = tt.iscalar("k")
 A = tt.vector("A")

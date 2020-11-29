@@ -693,7 +693,7 @@ class ModuleCache:
         if do_refresh:
             self.refresh()
 
-    age_thresh_use = config.cmodule.age_thresh_use  # default 24 days
+    age_thresh_use = config.cmodule__age_thresh_use  # default 24 days
     """
     The default age threshold (in seconds) for cache files we want to use.
 
@@ -774,7 +774,7 @@ class ModuleCache:
                 continue
             root = os.path.join(self.dirname, subdirs_elem)
             # Don't delete the gpuarray kernel cache
-            if root == config.gpuarray.cache_path:
+            if root == config.gpuarray__cache_path:
                 continue
             key_pkl = os.path.join(root, "key.pkl")
             if key_pkl in self.loaded_key_pkl:
@@ -1129,7 +1129,7 @@ class ModuleCache:
             if not key_broken and self.check_for_broken_eq:
                 self.check_key(key, key_pkl)
             self.loaded_key_pkl.add(key_pkl)
-        elif config.cmodule.warn_no_version:
+        elif config.cmodule__warn_no_version:
             key_flat = flatten(key)
             ops = [k for k in key_flat if isinstance(k, theano.Op)]
             _logger.warning(
@@ -1295,7 +1295,7 @@ class ModuleCache:
         self.time_spent_in_check_key += time.time() - start_time
 
     # default 31 days
-    age_thresh_del = config.cmodule.age_thresh_use + 60 * 60 * 24 * 7
+    age_thresh_del = config.cmodule__age_thresh_use + 60 * 60 * 24 * 7
     age_thresh_del_unversioned = 60 * 60 * 24 * 7  # 7 days
     """
     The default age threshold for `clear_old` (in seconds).
@@ -1984,10 +1984,10 @@ class GCC_compiler(Compiler):
 
     @staticmethod
     def compile_args(march_flags=True):
-        cxxflags = [flag for flag in config.gcc.cxxflags.split(" ") if flag]
+        cxxflags = [flag for flag in config.gcc__cxxflags.split(" ") if flag]
         if "-fopenmp" in cxxflags:
             raise ValueError(
-                "Do not use -fopenmp in Theano flag gcc.cxxflags."
+                "Do not use -fopenmp in Theano flag gcc__cxxflags."
                 " To enable OpenMP, use the Theano flag openmp=True"
             )
         # Add the equivalent of -march=native flag.  We can't use
@@ -2019,7 +2019,7 @@ class GCC_compiler(Compiler):
                 " specific to g++ that tell to compile for a specific CPU."
                 " At worst, this could cause slow down.\n"
                 "         You can add those parameters to the compiler yourself"
-                " via the Theano flag `gcc.cxxflags`."
+                " via the Theano flag `gcc__cxxflags`."
             )
             detect_march = False
 
@@ -2440,7 +2440,7 @@ class GCC_compiler(Compiler):
         _logger.debug(f"Generating shared lib {lib_filename}")
         cmd = [theano.config.cxx, get_gcc_shared_library_arg(), "-g"]
 
-        if config.cmodule.remove_gxx_opt:
+        if config.cmodule__remove_gxx_opt:
             cmd.extend(p for p in preargs if not p.startswith("-O"))
         else:
             cmd.extend(preargs)
@@ -2524,7 +2524,7 @@ class GCC_compiler(Compiler):
             raise Exception(
                 f"Compilation failed (return status={status}): {compile_stderr}"
             )
-        elif config.cmodule.compilation_warning and compile_stderr:
+        elif config.cmodule__compilation_warning and compile_stderr:
             # Print errors just below the command line.
             print(compile_stderr)
 

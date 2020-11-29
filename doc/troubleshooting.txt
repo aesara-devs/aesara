@@ -143,7 +143,7 @@ Could speed up and lower memory usage:
 
 Could raise memory usage but speed up computation:
 
-- :attr:`config.gpuarray.preallocate` = 1  # Preallocates the GPU memory
+- :attr:`config.gpuarray__preallocate` = 1  # Preallocates the GPU memory
   and then manages it in a smart way. Does not raise much the memory
   usage, but if you are at the limit of GPU memory available you might
   need to specify a lower value. GPU only.
@@ -152,8 +152,8 @@ Could raise memory usage but speed up computation:
 
 Could lower the memory usage, but raise computation time:
 
-- :attr:`config.scan.allow_gc` = True # Probably not significant slowdown on the GPU if memory cache is not disabled
-- :attr:`config.scan.allow_output_prealloc` =False
+- :attr:`config.scan__allow_gc` = True # Probably not significant slowdown on the GPU if memory cache is not disabled
+- :attr:`config.scan__allow_output_prealloc` =False
 - Use :func:`batch_normalization()
   <theano.tensor.nnet.bn.batch_normalization>`. It use less memory
   then building a corresponding Theano graph.
@@ -175,16 +175,16 @@ How do I configure/test my BLAS library
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There are many ways to configure BLAS for Theano. This is done with the Theano
-flags ``blas.ldflags`` (:ref:`libdoc_config`). The default is to use the BLAS
+flags ``blas__ldflags`` (:ref:`libdoc_config`). The default is to use the BLAS
 installation information in NumPy, accessible via
 ``numpy.distutils.__config__.show()``.  You can tell theano to use a different
 version of BLAS, in case you did not compile NumPy with a fast BLAS or if NumPy
 was compiled with a static library of BLAS (the latter is not supported in
 Theano).
 
-The short way to configure the Theano flags ``blas.ldflags`` is by setting the
-environment variable :envvar:`THEANO_FLAGS` to ``blas.ldflags=XXX`` (in bash
-``export THEANO_FLAGS=blas.ldflags=XXX``)
+The short way to configure the Theano flags ``blas__ldflags`` is by setting the
+environment variable :envvar:`THEANO_FLAGS` to ``blas__ldflags=XXX`` (in bash
+``export THEANO_FLAGS=blas__ldflags=XXX``)
 
 The ``${HOME}/.theanorc`` file is the simplest way to set a relatively
 permanent option like this one.  Add a ``[blas]`` section with an ``ldflags``
@@ -209,8 +209,8 @@ compiled with a static library (e.g. ATLAS is compiled by default only as a
 static library).
 
 1) Disable the usage of BLAS and fall back on NumPy for dot products. To do
-this, set the value of ``blas.ldflags`` as the empty string (ex: ``export
-THEANO_FLAGS=blas.ldflags=``). Depending on the kind of matrix operations your
+this, set the value of ``blas__ldflags`` as the empty string (ex: ``export
+THEANO_FLAGS=blas__ldflags=``). Depending on the kind of matrix operations your
 Theano code performs, this might slow some things down (vs. linking with BLAS
 directly).
 
@@ -218,7 +218,7 @@ directly).
 (against which Theano links) does not work. If you have root or sudo access in
 fedora you can do ``sudo yum install blas blas-devel``. Under Ubuntu/Debian
 ``sudo apt-get install libblas-dev``. Then use the Theano flags
-``blas.ldflags=-lblas``. Note that the default version of blas is not optimized.
+``blas__ldflags=-lblas``. Note that the default version of blas is not optimized.
 Using an optimized version can give up to 10x speedups in the BLAS functions
 that we use.
 
@@ -229,11 +229,11 @@ speed-ups of up to 3x, especially on more recent computers, against the
 precompiled one). On Fedora, ``sudo yum install atlas-devel``. Under Ubuntu,
 ``sudo apt-get install libatlas-base-dev libatlas-base`` or
 ``libatlas3gf-sse2`` if your CPU supports SSE2 instructions. Then set the
-Theano flags ``blas.ldflags`` to ``-lf77blas -latlas -lgfortran``. Note that
+Theano flags ``blas__ldflags`` to ``-lf77blas -latlas -lgfortran``. Note that
 these flags are sometimes OS-dependent.
 
 4) Use a faster version like MKL, GOTO, ... You are on your own to install it.
-See the doc of that software and set the Theano flags ``blas.ldflags``
+See the doc of that software and set the Theano flags ``blas__ldflags``
 correctly (for example, for MKL this might be ``-lmkl -lguide -lpthread`` or
 ``-lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lguide -liomp5 -lmkl_mc
 -lpthread``).
@@ -270,7 +270,7 @@ correctly (for example, for MKL this might be ``-lmkl -lguide -lpthread`` or
     possible fixes:
 
     1) Uninstall ATLAS and install OpenBLAS.
-    2) Use the Theano flag "blas.ldflags=-lblas -lgfortran"
+    2) Use the Theano flag "blas__ldflags=-lblas -lgfortran"
 
     1) is better as OpenBLAS is faster then ATLAS and NumPy is
     probably already linked with it. So you won't need any other

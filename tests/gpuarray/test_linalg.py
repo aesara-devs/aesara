@@ -371,7 +371,7 @@ class TestGpuCholesky64:
 
 
 @pytest.mark.skipif(
-    not config.magma.enabled, reason="Magma is not enabled, skipping test"
+    not config.magma__enabled, reason="Magma is not enabled, skipping test"
 )
 class TestMagma:
     def test_magma_opt_float16(self):

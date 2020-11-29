@@ -1034,7 +1034,7 @@ Using GDB to debug Op's C code
 When debugging C code, it can be useful to use GDB for code compiled
 by Theano.
 
-For this, you must enable this Theano: `cmodule.remove_gxx_opt=True`.
+For this, you must enable this Theano: `cmodule__remove_gxx_opt=True`.
 For the GPU, you must add in this second flag `nvcc.flags=-g` (it slow
 down computation on the GPU, but it is enabled by default on the CPU).
 
