@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from theano import configparser
+from theano import configdefaults, configparser
 from theano.configdefaults import default_blas_ldflags
 from theano.configparser import THEANO_FLAGS_DICT, AddConfigVar, ConfigParam
 
@@ -85,6 +85,27 @@ def test_config_param_apply_and_validation():
         cp.__set__("cls", "THEDEFAULT")
 
 
+def test_config_hash():
+    # TODO: use custom config instance for the test
+    root = configparser.config
+    configparser.AddConfigVar(
+        "test_config_hash",
+        "A config var from a test case.",
+        configparser.StrParam("test_default"),
+        root=root,
+    )
+
+    h0 = configparser.get_config_hash()
+
+    with configparser.change_flags(test_config_hash="new_value"):
+        assert root.test_config_hash == "new_value"
+        h1 = configparser.get_config_hash()
+
+    h2 = configparser.get_config_hash()
+    assert h1 != h0
+    assert h2 == h0
+
+
 class TestConfigTypes:
     def test_bool(self):
         valids = {
@@ -101,7 +122,6 @@ class TestConfigTypes:
                 assert param.validate(applied) is not False
         with pytest.raises(ValueError, match="Invalid value"):
             param.apply("notabool")
-        pass
 
     def test_enumstr(self):
         cp = configparser.EnumStr("blue", ["red", "green", "yellow"])
@@ -110,7 +130,6 @@ class TestConfigTypes:
             cp.apply("foo")
         with pytest.raises(ValueError, match="Non-str value"):
             configparser.EnumStr(default="red", options=["red", 12, "yellow"])
-        pass
 
     def test_deviceparam(self):
         cp = configparser.DeviceParam("cpu", mutable=False)
@@ -123,8 +142,25 @@ class TestConfigTypes:
         assert str(cp) == "None (cpu, opencl*, cuda*) "
 
 
+def test_config_context():
+    # TODO: use custom config instance for the test
+    root = configparser.config
+    configparser.AddConfigVar(
+        "test_config_context",
+        "A config var from a test case.",
+        configparser.StrParam("test_default"),
+        root=root,
+    )
+    assert hasattr(root, "test_config_context")
+    assert root.test_config_context == "test_default"
+
+    with configparser.change_flags(test_config_context="new_value"):
+        assert root.test_config_context == "new_value"
+
+    assert root.test_config_context == "test_default"
+
+
 def test_mode_apply():
-    from theano import configdefaults
 
     assert configdefaults.filter_mode("DebugMode") == "DebugMode"
 
