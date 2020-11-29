@@ -413,11 +413,17 @@ AddConfigVar(
 )
 
 AddConfigVar(
-    "magma.include_path", "Location of the magma header", StrParam(""), in_c_key=False
+    "magma.include_path",
+    "Location of the magma header",
+    StrParam(""),
+    in_c_key=False,
 )
 
 AddConfigVar(
-    "magma.library_path", "Location of the magma library", StrParam(""), in_c_key=False
+    "magma.library_path",
+    "Location of the magma library",
+    StrParam(""),
+    in_c_key=False,
 )
 
 AddConfigVar(
@@ -1777,7 +1783,7 @@ AddConfigVar(
     "metaopt.verbose",
     "0 for silent, 1 for only warnings, 2 for full output with"
     "timings and selected implementation",
-    theano.configparser.IntParam(0),
+    IntParam(0),
     in_c_key=False,
 )
 
@@ -1852,14 +1858,14 @@ AddConfigVar(
 AddConfigVar(
     "on_shape_error",
     "warn: print a warning and use the default" " value. raise: raise an error",
-    theano.configparser.EnumStr("warn", ["raise"]),
+    EnumStr("warn", ["raise"]),
     in_c_key=False,
 )
 
 AddConfigVar(
     "tensor.insert_inplace_optimizer_validate_nb",
     "-1: auto, if graph have less then 500 nodes 1, else 10",
-    theano.configparser.IntParam(-1),
+    IntParam(-1),
     in_c_key=False,
 )
 
@@ -1870,7 +1876,7 @@ AddConfigVar(
     " Generates error if not True. Use"
     " optimizer_excluding=local_alloc_elemwise"
     " to dsiable.",
-    theano.configparser.BoolParam(True),
+    BoolParam(True),
     in_c_key=False,
 )
 
@@ -1879,7 +1885,7 @@ AddConfigVar(
     "experimental.local_alloc_elemwise_assert",
     "When the local_alloc_elemwise is applied, add"
     " an assert to highlight shape errors.",
-    theano.configparser.BoolParam(True),
+    BoolParam(True),
     in_c_key=False,
 )
 
