@@ -124,6 +124,7 @@ class change_flags:
             for k, v in self.confs.items():
                 v.__set__(None, self.new_vals[k])
         except Exception:
+            _logger.error(f"Failed to change flags for {self.confs}.")
             self.__exit__()
             raise
 
@@ -144,12 +145,10 @@ def fetch_val_for_key(key, delete_key=False):
     """
 
     # first try to find it in the FLAGS
-    try:
+    if key in THEANO_FLAGS_DICT:
         if delete_key:
             return THEANO_FLAGS_DICT.pop(key)
         return THEANO_FLAGS_DICT[key]
-    except KeyError:
-        pass
 
     # next try to find it in the config file
 
@@ -312,7 +311,9 @@ def AddConfigVar(name, doc, configparam, root=config, in_c_key=True):
                 # The user provided a value, filter it now.
                 configparam.__get__(root, type(root), delete_key=True)
             except KeyError:
-                pass
+                _logger.error(
+                    f"Suppressed KeyError in AddConfigVar for parameter '{name}' with fullname '{configparam.fullname}'!"
+                )
         setattr(root.__class__, sections[0], configparam)
         _config_var_list.append(configparam)
 
