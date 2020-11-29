@@ -17,6 +17,7 @@ from theano.configparser import (
     AddConfigVar,
     BoolParam,
     ConfigParam,
+    ContextsParam,
     DeviceParam,
     EnumStr,
     FloatParam,
@@ -100,17 +101,15 @@ AddConfigVar(
     in_c_key=False,
 )
 
-# gpu means let the driver select the gpu. Needed in case of gpu in
-# exclusive mode.
-# gpuX mean use the gpu number X.
-
 
 AddConfigVar(
     "device",
     (
         "Default device for computations. If cuda* or opencl*, change the"
         "default to try to move computation to the GPU. Do not use upper case"
-        "letters, only lower case even if NVIDIA uses capital letters."
+        "letters, only lower case even if NVIDIA uses capital letters. "
+        "'gpu' means let the driver select the gpu (needed for gpu in exclusive mode). "
+        "'gpuX' mean use the gpu number X."
     ),
     DeviceParam("cpu", mutable=False),
     in_c_key=False,
@@ -150,26 +149,6 @@ AddConfigVar(
     BoolParam(False),
     in_c_key=False,
 )
-
-
-class ContextsParam(ConfigParam):
-    def __init__(self):
-        def filter(val):
-            if val == "":
-                return val
-            for v in val.split(";"):
-                s = v.split("->")
-                if len(s) != 2:
-                    raise ValueError(f"Malformed context map: {v}")
-                if (
-                    s[0] == "cpu"
-                    or s[0].startswith("cuda")
-                    or s[0].startswith("opencl")
-                ):
-                    raise ValueError(f"Cannot use {s[0]} as context name")
-            return val
-
-        ConfigParam.__init__(self, "", apply=filter, mutable=False)
 
 
 AddConfigVar(

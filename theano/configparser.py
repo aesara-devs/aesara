@@ -528,3 +528,19 @@ class DeviceParam(ConfigParam):
 
     def __str__(self):
         return f"{self.fullname} ({self.default}, opencl*, cuda*) "
+
+
+class ContextsParam(ConfigParam):
+    def __init__(self):
+        super().__init__("", apply=self._apply, mutable=False)
+
+    def _apply(self, val):
+        if val == "":
+            return val
+        for v in val.split(";"):
+            s = v.split("->")
+            if len(s) != 2:
+                raise ValueError(f"Malformed context map: {v}")
+            if s[0] == "cpu" or s[0].startswith("cuda") or s[0].startswith("opencl"):
+                raise ValueError(f"Cannot use {s[0]} as context name")
+        return val
