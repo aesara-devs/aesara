@@ -3759,9 +3759,7 @@ def clip(x, min, max):
     """
     Clip x to be between min and max.
 
-    Notes
-    -----
-    When `x` is equal to the boundaries, the output is considered
+    Note that when `x` is equal to the boundaries, the output is considered
     to be `x`, so at these points, the gradient of the cost wrt the output
     will be propagated to `x`, not to `min` nor `max`. In other words,
     on these points, the gradient wrt `x` will be equal to the gradient wrt
