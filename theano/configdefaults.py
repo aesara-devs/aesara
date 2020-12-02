@@ -1835,7 +1835,7 @@ def default_blas_ldflags():
         # the fallback and test -lblas could give slow computation, so
         # warn about this.
         for warn in warn_record:
-            _logger.warning(*warn)
+            _logger.warning(warn)
         del warn_record
 
         # Some environment don't have the lib dir in LD_LIBRARY_PATH.
