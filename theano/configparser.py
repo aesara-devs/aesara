@@ -20,12 +20,6 @@ class TheanoConfigWarning(Warning):
     warn = classmethod(warn)
 
 
-THEANO_FLAGS = os.getenv("THEANO_FLAGS", "")
-# The THEANO_FLAGS environment variable should be a list of comma-separated
-# [section__]option=value entries. If the section part is omitted, there should
-# be only one section that contains the given option.
-
-
 def parse_config_string(config_string, issue_warnings=True):
     """
     Parses a config string (comma-separated key=value components) into a dict.
@@ -52,9 +46,6 @@ def parse_config_string(config_string, issue_warnings=True):
     return config_dict
 
 
-THEANO_FLAGS_DICT = parse_config_string(THEANO_FLAGS, issue_warnings=True)
-
-
 # THEANORC can contain a colon-delimited list of config files, like
 # THEANORC=~lisa/.theanorc:~/.theanorc
 # In that case, definitions in files on the right (here, ~/.theanorc) have
@@ -68,25 +59,6 @@ def config_files_from_theanorc():
         # to don't need to change the filename and make it open easily
         rval.append(os.path.expanduser("~/.theanorc.txt"))
     return rval
-
-
-config_files = config_files_from_theanorc()
-theano_cfg = ConfigParser.ConfigParser(
-    {
-        "USER": os.getenv("USER", os.path.split(os.path.expanduser("~"))[-1]),
-        "LSCRATCH": os.getenv("LSCRATCH", ""),
-        "TMPDIR": os.getenv("TMPDIR", ""),
-        "TEMP": os.getenv("TEMP", ""),
-        "TMP": os.getenv("TMP", ""),
-        "PID": str(os.getpid()),
-    }
-)
-theano_cfg.read(config_files)
-# Having a raw version of the config around as well enables us to pass
-# through config values that contain format strings.
-# The time required to parse the config twice is negligible.
-theano_raw_cfg = ConfigParser.RawConfigParser()
-theano_raw_cfg.read(config_files)
 
 
 class change_flags:
@@ -170,9 +142,6 @@ def fetch_val_for_key(key, delete_key=False):
         raise KeyError(key)
 
 
-_config_var_list = []
-
-
 def _config_print(thing, buf, print_doc=True):
     for cv in _config_var_list:
         print(cv, file=buf)
@@ -221,82 +190,6 @@ class TheanoConfigParser:
         sio = StringIO()
         _config_print(self.__class__, sio, print_doc=print_doc)
         return sio.getvalue()
-
-
-# N.B. all instances of TheanoConfigParser give access to the same properties.
-config = TheanoConfigParser()
-
-
-def AddConfigVar(name, doc, configparam, root=config, in_c_key=True):
-    """Add a new variable to `theano.config`.
-
-    The data structure at work here is a tree of classes with class
-    attributes/properties that are either a) instantiated dynamically-generated
-    classes, or b) `ConfigParam` instances.  The root of this tree is the
-    `TheanoConfigParser` class, and the internal nodes are the ``SubObj``
-    classes created inside of `AddConfigVar`.
-
-    Why this design?
-    - The config object is a true singleton.  Every instance of
-    `TheanoConfigParser` is an empty instance that looks up
-    attributes/properties in the [single] ``TheanoConfigParser.__dict__``
-    - The subtrees provide the same interface as the root
-    - `ConfigParser` subclasses control get/set of config properties to guard
-    against craziness.
-
-    This method also performs some of the work of initializing `ConfigParam`
-    instances
-
-    Parameters
-    ----------
-    name: string
-        The full name for this configuration variable. Takes the form
-        ``"[section0__[section1__[etc]]]_option"``.
-    doc: string
-        A string that provides documentation for the config variable.
-    configparam: ConfigParam
-        An object for getting and setting this configuration parameter
-    root: object
-        Used for recursive calls.  Do not provide a value for this parameter.
-    in_c_key: boolean
-        If ``True``, then whenever this config option changes, the key
-        associated to compiled C modules also changes, i.e. it may trigger a
-        compilation of these modules (this compilation will only be partial if it
-        turns out that the generated C code is unchanged). Set this option to False
-        only if you are confident this option should not affect C code compilation.
-
-    """
-
-    if root is config:
-        # Only set the name in the first call, not the recursive ones
-        configparam.fullname = name
-    if "." in name:
-        raise ValueError(
-            f"Dot-based sections were removed. Use double underscores! ({name})"
-        )
-    if hasattr(root, name):
-        raise AttributeError(f"The name {configparam.fullname} is already taken")
-    configparam.doc = doc
-    configparam.in_c_key = in_c_key
-    # Trigger a read of the value from config files and env vars
-    # This allow to filter wrong value from the user.
-    if not callable(configparam.default):
-        configparam.__get__(root, type(root), delete_key=True)
-    else:
-        # We do not want to evaluate now the default value
-        # when it is a callable.
-        try:
-            fetch_val_for_key(configparam.fullname)
-            # The user provided a value, filter it now.
-            configparam.__get__(root, type(root), delete_key=True)
-        except KeyError:
-            _logger.error(
-                f"Suppressed KeyError in AddConfigVar for parameter '{name}' with fullname '{configparam.fullname}'!"
-            )
-    setattr(root.__class__, name, configparam)
-    # TODO: After assigning the configvar to the "root" object, there should be
-    # no reason to keep the _config_var_list around!
-    _config_var_list.append(configparam)
 
 
 class ConfigParam:
@@ -526,3 +419,105 @@ class ContextsParam(ConfigParam):
             if s[0] == "cpu" or s[0].startswith("cuda") or s[0].startswith("opencl"):
                 raise ValueError(f"Cannot use {s[0]} as context name")
         return val
+
+
+# TODO: Not all of the following variables need to exist. Most should be private.
+THEANO_FLAGS = os.getenv("THEANO_FLAGS", "")
+# The THEANO_FLAGS environment variable should be a list of comma-separated
+# [section__]option=value entries. If the section part is omitted, there should
+# be only one section that contains the given option.
+THEANO_FLAGS_DICT = parse_config_string(THEANO_FLAGS, issue_warnings=True)
+_config_var_list = []
+
+config_files = config_files_from_theanorc()
+theano_cfg = ConfigParser.ConfigParser(
+    {
+        "USER": os.getenv("USER", os.path.split(os.path.expanduser("~"))[-1]),
+        "LSCRATCH": os.getenv("LSCRATCH", ""),
+        "TMPDIR": os.getenv("TMPDIR", ""),
+        "TEMP": os.getenv("TEMP", ""),
+        "TMP": os.getenv("TMP", ""),
+        "PID": str(os.getpid()),
+    }
+)
+theano_cfg.read(config_files)
+# Having a raw version of the config around as well enables us to pass
+# through config values that contain format strings.
+# The time required to parse the config twice is negligible.
+theano_raw_cfg = ConfigParser.RawConfigParser()
+theano_raw_cfg.read(config_files)
+
+# N.B. all instances of TheanoConfigParser give access to the same properties.
+config = TheanoConfigParser()
+
+
+def AddConfigVar(name, doc, configparam, root=config, in_c_key=True):
+    """Add a new variable to `theano.config`.
+
+    The data structure at work here is a tree of classes with class
+    attributes/properties that are either a) instantiated dynamically-generated
+    classes, or b) `ConfigParam` instances.  The root of this tree is the
+    `TheanoConfigParser` class, and the internal nodes are the ``SubObj``
+    classes created inside of `AddConfigVar`.
+
+    Why this design?
+    - The config object is a true singleton.  Every instance of
+    `TheanoConfigParser` is an empty instance that looks up
+    attributes/properties in the [single] ``TheanoConfigParser.__dict__``
+    - The subtrees provide the same interface as the root
+    - `ConfigParser` subclasses control get/set of config properties to guard
+    against craziness.
+
+    This method also performs some of the work of initializing `ConfigParam`
+    instances
+
+    Parameters
+    ----------
+    name: string
+        The full name for this configuration variable. Takes the form
+        ``"[section0__[section1__[etc]]]_option"``.
+    doc: string
+        A string that provides documentation for the config variable.
+    configparam: ConfigParam
+        An object for getting and setting this configuration parameter
+    root: object
+        Used for recursive calls.  Do not provide a value for this parameter.
+    in_c_key: boolean
+        If ``True``, then whenever this config option changes, the key
+        associated to compiled C modules also changes, i.e. it may trigger a
+        compilation of these modules (this compilation will only be partial if it
+        turns out that the generated C code is unchanged). Set this option to False
+        only if you are confident this option should not affect C code compilation.
+
+    """
+
+    if root is config:
+        # Only set the name in the first call, not the recursive ones
+        configparam.fullname = name
+    if "." in name:
+        raise ValueError(
+            f"Dot-based sections were removed. Use double underscores! ({name})"
+        )
+    if hasattr(root, name):
+        raise AttributeError(f"The name {configparam.fullname} is already taken")
+    configparam.doc = doc
+    configparam.in_c_key = in_c_key
+    # Trigger a read of the value from config files and env vars
+    # This allow to filter wrong value from the user.
+    if not callable(configparam.default):
+        configparam.__get__(root, type(root), delete_key=True)
+    else:
+        # We do not want to evaluate now the default value
+        # when it is a callable.
+        try:
+            fetch_val_for_key(configparam.fullname)
+            # The user provided a value, filter it now.
+            configparam.__get__(root, type(root), delete_key=True)
+        except KeyError:
+            _logger.error(
+                f"Suppressed KeyError in AddConfigVar for parameter '{name}' with fullname '{configparam.fullname}'!"
+            )
+    setattr(root.__class__, name, configparam)
+    # TODO: After assigning the configvar to the "root" object, there should be
+    # no reason to keep the _config_var_list around!
+    _config_var_list.append(configparam)
