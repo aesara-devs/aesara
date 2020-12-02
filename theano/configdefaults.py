@@ -31,185 +31,6 @@ from theano.utils import maybe_add_to_os_environ_pathlist
 
 _logger = logging.getLogger("theano.configdefaults")
 
-config = TheanoConfigParser()
-
-
-AddConfigVar(
-    "floatX",
-    "Default floating-point precision for python casts.\n"
-    "\n"
-    "Note: float16 support is experimental, use at your own risk.",
-    EnumStr("float64", ["float32", "float16"]),
-    # TODO: see gh-4466 for how to remove it.
-    in_c_key=True,
-)
-
-AddConfigVar(
-    "warn_float64",
-    "Do an action when a tensor variable with float64 dtype is"
-    " created. They can't be run on the GPU with the current(old)"
-    " gpu back-end and are slow with gamer GPUs.",
-    EnumStr("ignore", ["warn", "raise", "pdb"]),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "pickle_test_value",
-    "Dump test values while pickling model. "
-    "If True, test values will be dumped with model.",
-    BoolParam(True),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "cast_policy",
-    "Rules for implicit type casting",
-    EnumStr(
-        "custom",
-        ["numpy+floatX"],
-        # The 'numpy' policy was originally planned to provide a
-        # smooth transition from numpy. It was meant to behave the
-        # same as numpy+floatX, but keeping float64 when numpy
-        # would. However the current implementation of some cast
-        # mechanisms makes it a bit more complex to add than what
-        # was expected, so it is currently not available.
-        # numpy,
-    ),
-)
-
-# python 2.* define int / int to return int and int // int to return int.
-# python 3* define int / int to return float and int // int to return int.
-# numpy 1.6.1 behaves as python 2.*. I think we should not change it faster
-# than numpy. When we will do the transition, we should create an int_warn
-# and floatX_warn option.
-AddConfigVar(
-    "int_division",
-    "What to do when one computes x / y, where both x and y are of " "integer types",
-    EnumStr("int", ["raise", "floatX"]),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "deterministic",
-    "If `more`, sometimes we will select some implementation that "
-    "are more deterministic, but slower. In particular, on the GPU, "
-    "we will avoid using AtomicAdd. Sometimes we will still use "
-    "non-deterministic implementaion, e.g. when we do not have a GPU "
-    "implementation that is deterministic. Also see "
-    "the dnn.conv.algo* flags to cover more cases.",
-    EnumStr("default", ["more"]),
-    in_c_key=False,
-)
-
-
-AddConfigVar(
-    "device",
-    (
-        "Default device for computations. If cuda* or opencl*, change the"
-        "default to try to move computation to the GPU. Do not use upper case"
-        "letters, only lower case even if NVIDIA uses capital letters. "
-        "'gpu' means let the driver select the gpu (needed for gpu in exclusive mode). "
-        "'gpuX' mean use the gpu number X."
-    ),
-    DeviceParam("cpu", mutable=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "init_gpu_device",
-    (
-        "Initialize the gpu device to use, works only if device=cpu. "
-        "Unlike 'device', setting this option will NOT move computations, "
-        "nor shared variables, to the specified GPU. "
-        "It can be used to run GPU-specific tests on a particular GPU."
-    ),
-    DeviceParam("", mutable=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "force_device",
-    "Raise an error if we can't use the specified device",
-    BoolParam(False, mutable=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "conv__assert_shape",
-    "If True, AbstractConv* ops will verify that user-provided"
-    " shapes match the runtime shapes (debugging option,"
-    " may slow down compilation)",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "print_global_stats",
-    "Print some global statistics (time spent) at the end",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-
-AddConfigVar(
-    "contexts",
-    """
-    Context map for multi-gpu operation. Format is a
-    semicolon-separated list of names and device names in the
-    'name->dev_name' format. An example that would map name 'test' to
-    device 'cuda0' and name 'test2' to device 'opencl0:0' follows:
-    "test->cuda0;test2->opencl0:0".
-
-    Invalid context names are 'cpu', 'cuda*' and 'opencl*'
-    """,
-    ContextsParam(),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "print_active_device",
-    "Print active device at when the GPU device is initialized.",
-    BoolParam(True, mutable=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "gpuarray__preallocate",
-    """If negative it disables the allocation cache. If
-             between 0 and 1 it enables the allocation cache and
-             preallocates that fraction of the total GPU memory.  If 1
-             or greater it will preallocate that amount of memory (in
-             megabytes).""",
-    FloatParam(0, mutable=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "gpuarray__sched",
-    """The sched parameter passed for context creation to pygpu.
-                With CUDA, using "multi" is equivalent to using the parameter
-                cudaDeviceScheduleBlockingSync. This is useful to lower the
-                CPU overhead when waiting for GPU. One user found that it
-                speeds up his other processes that was doing data augmentation.
-             """,
-    EnumStr("default", ["multi", "single"]),
-)
-
-AddConfigVar(
-    "gpuarray__single_stream",
-    """
-             If your computations are mostly lots of small elements,
-             using single-stream will avoid the synchronization
-             overhead and usually be faster.  For larger elements it
-             does not make a difference yet.  In the future when true
-             multi-stream is enabled in libgpuarray, this may change.
-             If you want to make sure to have optimal performance,
-             check both options.
-             """,
-    BoolParam(True),
-    in_c_key=False,
-)
-
 
 def get_cuda_root():
     # We look for the cuda path since we need headers from there
@@ -228,110 +49,14 @@ def get_cuda_root():
     return ""
 
 
-AddConfigVar(
-    "cuda__root",
-    "Location of the cuda installation",
-    StrParam(get_cuda_root),
-    in_c_key=False,
-)
-
-
 def default_cuda_include():
     if theano.config.cuda__root:
         return os.path.join(theano.config.cuda__root, "include")
     return ""
 
 
-AddConfigVar(
-    "cuda__include_path",
-    "Location of the cuda includes",
-    StrParam(default_cuda_include),
-    in_c_key=False,
-)
-
-
-# Those are the options provided by Theano to choose algorithms at runtime.
-SUPPORTED_DNN_CONV_ALGO_RUNTIME = (
-    "guess_once",
-    "guess_on_shape_change",
-    "time_once",
-    "time_on_shape_change",
-)
-
-# Those are the supported algorithm by Theano,
-# The tests will reference those lists.
-SUPPORTED_DNN_CONV_ALGO_FWD = (
-    "small",
-    "none",
-    "large",
-    "fft",
-    "fft_tiling",
-    "winograd",
-    "winograd_non_fused",
-) + SUPPORTED_DNN_CONV_ALGO_RUNTIME
-
-SUPPORTED_DNN_CONV_ALGO_BWD_DATA = (
-    "none",
-    "deterministic",
-    "fft",
-    "fft_tiling",
-    "winograd",
-    "winograd_non_fused",
-) + SUPPORTED_DNN_CONV_ALGO_RUNTIME
-
-SUPPORTED_DNN_CONV_ALGO_BWD_FILTER = (
-    "none",
-    "deterministic",
-    "fft",
-    "small",
-    "winograd_non_fused",
-    "fft_tiling",
-) + SUPPORTED_DNN_CONV_ALGO_RUNTIME
-
-SUPPORTED_DNN_CONV_PRECISION = (
-    "as_input_f32",
-    "as_input",
-    "float16",
-    "float32",
-    "float64",
-)
-
-AddConfigVar(
-    "dnn__conv__algo_fwd",
-    "Default implementation to use for cuDNN forward convolution.",
-    EnumStr("small", SUPPORTED_DNN_CONV_ALGO_FWD),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "dnn__conv__algo_bwd_data",
-    "Default implementation to use for cuDNN backward convolution to "
-    "get the gradients of the convolution with regard to the inputs.",
-    EnumStr("none", SUPPORTED_DNN_CONV_ALGO_BWD_DATA),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "dnn__conv__algo_bwd_filter",
-    "Default implementation to use for cuDNN backward convolution to "
-    "get the gradients of the convolution with regard to the "
-    "filters.",
-    EnumStr("none", SUPPORTED_DNN_CONV_ALGO_BWD_FILTER),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "dnn__conv__precision",
-    "Default data precision to use for the computation in cuDNN "
-    "convolutions (defaults to the same dtype as the inputs of the "
-    "convolutions, or float32 if inputs are float16).",
-    EnumStr("as_input_f32", SUPPORTED_DNN_CONV_PRECISION),
-    in_c_key=False,
-)
-
-
-# We want to default to the cuda root if cudnn is installed there
 def default_dnn_base_path():
+    # We want to default to the cuda root if cudnn is installed there
     root = theano.config.cuda__root
     # The include doesn't change location between OS.
     if root and os.path.exists(os.path.join(root, "include", "cudnn.h")):
@@ -339,26 +64,10 @@ def default_dnn_base_path():
     return ""
 
 
-AddConfigVar(
-    "dnn__base_path",
-    "Install location of cuDNN.",
-    StrParam(default_dnn_base_path),
-    in_c_key=False,
-)
-
-
 def default_dnn_inc_path():
     if theano.config.dnn__base_path != "":
         return os.path.join(theano.config.dnn__base_path, "include")
     return ""
-
-
-AddConfigVar(
-    "dnn__include_path",
-    "Location of the cudnn header",
-    StrParam(default_dnn_inc_path),
-    in_c_key=False,
-)
 
 
 def default_dnn_lib_path():
@@ -374,14 +83,6 @@ def default_dnn_lib_path():
     return ""
 
 
-AddConfigVar(
-    "dnn__library_path",
-    "Location of the cudnn link library.",
-    StrParam(default_dnn_lib_path),
-    in_c_key=False,
-)
-
-
 def default_dnn_bin_path():
     if theano.config.dnn__base_path != "":
         if sys.platform == "win32":
@@ -391,63 +92,11 @@ def default_dnn_bin_path():
     return ""
 
 
-AddConfigVar(
-    "dnn__bin_path",
-    "Location of the cuDNN load library "
-    "(on non-windows platforms, "
-    "this is the same as dnn.library_path)",
-    StrParam(default_dnn_bin_path),
-    in_c_key=False,
-)
-
-
-AddConfigVar(
-    "dnn__enabled",
-    "'auto', use cuDNN if available, but silently fall back"
-    " to not using it if not present."
-    " If True and cuDNN can not be used, raise an error."
-    " If False, disable cudnn even if present."
-    " If no_check, assume present and the version between header and library match (so less compilation at context init)",
-    EnumStr("auto", ["True", "False", "no_check"]),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "magma__include_path",
-    "Location of the magma header",
-    StrParam(""),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "magma__library_path",
-    "Location of the magma library",
-    StrParam(""),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "magma__enabled",
-    " If True, use magma for matrix computation." " If False, disable magma",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-# This flag determines whether or not to raise error/warning message if
-# there is a CPU Op in the computational graph.
-AddConfigVar(
-    "assert_no_cpu_op",
-    "Raise an error/warning if there is a CPU op in the computational graph.",
-    EnumStr("ignore", ["warn", "raise", "pdb"], mutable=True),
-    in_c_key=False,
-)
-
-
-# Do not add FAST_RUN_NOGC to this list (nor any other ALL CAPS shortcut).
-# The way to get FAST_RUN_NOGC is with the flag 'linker=c|py_nogc'.
-# The old all capital letter way of working is deprecated as it is not
-# scalable.
 def filter_mode(val):
+    # Do not add FAST_RUN_NOGC to this list (nor any other ALL CAPS shortcut).
+    # The way to get FAST_RUN_NOGC is with the flag 'linker=c|py_nogc'.
+    # The old all capital letter way of working is deprecated as it is not
+    # scalable.
     str_options = [
         "Mode",
         "DebugMode",
@@ -472,65 +121,6 @@ def filter_mode(val):
     )
 
 
-AddConfigVar(
-    "mode",
-    "Default compilation mode",
-    ConfigParam("Mode", apply=filter_mode),
-    in_c_key=False,
-)
-
-param = "g++"
-
-# Test whether or not g++ is present: disable C code if it is not.
-try:
-    rc = call_subprocess_Popen(["g++", "-v"])
-except OSError:
-    rc = 1
-
-# Anaconda on Windows has mingw-w64 packages including GCC, but it may not be on PATH.
-if rc != 0:
-    if sys.platform == "win32":
-        mingw_w64_gcc = os.path.join(
-            os.path.dirname(sys.executable), "Library", "mingw-w64", "bin", "g++"
-        )
-        try:
-            rc = call_subprocess_Popen([mingw_w64_gcc, "-v"])
-            if rc == 0:
-                maybe_add_to_os_environ_pathlist("PATH", os.path.dirname(mingw_w64_gcc))
-        except OSError:
-            rc = 1
-        if rc != 0:
-            _logger.warning(
-                "g++ not available, if using conda: `conda install m2w64-toolchain`"
-            )
-
-if rc != 0:
-    param = ""
-
-# On Mac/FreeBSD we test for 'clang++' and use it by default
-if sys.platform == "darwin" or sys.platform.startswith("freebsd"):
-    try:
-        rc = call_subprocess_Popen(["clang++", "-v"])
-        if rc == 0:
-            param = "clang++"
-    except OSError:
-        pass
-
-# Try to find the full compiler path from the name
-if param != "":
-    import distutils.spawn
-
-    newp = distutils.spawn.find_executable(param)
-    if newp is not None:
-        param = newp
-    del newp
-    del distutils
-
-# to support path that includes spaces, we need to wrap it with double quotes on Windows
-if param and os.name == "nt":
-    param = f'"{param}"'
-
-
 def warn_cxx(val):
     """We only support clang++ as otherwise we hit strange g++/OSX bugs."""
     if sys.platform == "darwin" and val and "clang++" not in val:
@@ -539,292 +129,6 @@ def warn_cxx(val):
             " we end up with strange g++/OSX bugs."
         )
     return True
-
-
-AddConfigVar(
-    "cxx",
-    "The C++ compiler to use. Currently only g++ is"
-    " supported, but supporting additional compilers should not be "
-    "too difficult. "
-    "If it is empty, no C++ code is compiled.",
-    StrParam(param, validate=warn_cxx),
-    in_c_key=False,
-)
-del param
-
-if not config.cxx:
-    warnings.warn(
-        "DeprecationWarning: there is no c++ compiler."
-        "This is deprecated and with Theano 0.11 a c++ compiler will be mandatory"
-    )
-
-if rc == 0 and config.cxx != "":
-    # Keep the default linker the same as the one for the mode FAST_RUN
-    AddConfigVar(
-        "linker",
-        "Default linker used if the theano flags mode is Mode",
-        EnumStr("cvm", ["c|py", "py", "c", "c|py_nogc", "vm", "vm_nogc", "cvm_nogc"]),
-        in_c_key=False,
-    )
-else:
-    # g++ is not present or the user disabled it,
-    # linker should default to python only.
-    AddConfigVar(
-        "linker",
-        "Default linker used if the theano flags mode is Mode",
-        EnumStr("vm", ["py", "vm_nogc"]),
-        in_c_key=False,
-    )
-    if type(config).cxx.is_default:
-        # If the user provided an empty value for cxx, do not warn.
-        _logger.warning(
-            "g++ not detected ! Theano will be unable to execute "
-            "optimized C-implementations (for both CPU and GPU) and will "
-            "default to Python implementations. Performance will be severely "
-            "degraded. To remove this warning, set Theano flags cxx to an "
-            "empty string."
-        )
-
-
-# Keep the default value the same as the one for the mode FAST_RUN
-AddConfigVar(
-    "allow_gc",
-    "Do we default to delete intermediate results during Theano"
-    " function calls? Doing so lowers the memory requirement, but"
-    " asks that we reallocate memory at the next function call."
-    " This is implemented for the default linker, but may not work"
-    " for all linkers.",
-    BoolParam(True),
-    in_c_key=False,
-)
-
-# Keep the default optimizer the same as the one for the mode FAST_RUN
-AddConfigVar(
-    "optimizer",
-    "Default optimizer. If not None, will use this optimizer with the Mode",
-    EnumStr(
-        "o4", ["o3", "o2", "o1", "unsafe", "fast_run", "fast_compile", "merge", "None"]
-    ),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "optimizer_verbose",
-    "If True, we print all optimization being applied",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "on_opt_error",
-    (
-        "What to do when an optimization crashes: warn and skip it, raise "
-        "the exception, or fall into the pdb debugger."
-    ),
-    EnumStr("warn", ["raise", "pdb", "ignore"]),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "nocleanup",
-    "Suppress the deletion of code files that did not compile cleanly",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "on_unused_input",
-    "What to do if a variable in the 'inputs' list of "
-    " theano.function() is not used in the graph.",
-    EnumStr("raise", ["warn", "ignore"]),
-    in_c_key=False,
-)
-
-# This flag is used when we import Theano to initialize global variables.
-# So changing it after import will not modify these global variables.
-# This could be done differently... but for now we simply prevent it from being
-# changed at runtime.
-AddConfigVar(
-    "tensor__cmp_sloppy",
-    "Relax tensor._allclose (0) not at all, (1) a bit, (2) more",
-    IntParam(0, lambda i: i in (0, 1, 2), mutable=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "tensor__local_elemwise_fusion",
-    (
-        "Enable or not in fast_run mode(fast_run optimization) the elemwise "
-        "fusion optimization"
-    ),
-    BoolParam(True),
-    in_c_key=False,
-)
-
-# TODO: this setting is not used anywhere
-AddConfigVar(
-    "gpu__local_elemwise_fusion",
-    (
-        "Enable or not in fast_run mode(fast_run optimization) the gpu "
-        "elemwise fusion optimization"
-    ),
-    BoolParam(True),
-    in_c_key=False,
-)
-
-# http://developer.amd.com/CPU/LIBRARIES/LIBM/Pages/default.aspx
-AddConfigVar(
-    "lib__amblibm",
-    "Use amd's amdlibm numerical library",
-    BoolParam(False),
-    # Added elsewhere in the c key only when needed.
-    in_c_key=False,
-)
-
-# TODO: this setting is not used anywhere
-AddConfigVar(
-    "gpuelemwise__sync",
-    "when true, wait that the gpu fct finished and check it error code.",
-    BoolParam(True),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "traceback__limit",
-    "The number of stack to trace. -1 mean all.",
-    # We default to a number to be able to know where v1 + v2 is created in the
-    # user script. The bigger this number is, the more run time it takes.
-    # We need to default to 8 to support theano.tensor.tensor(...).
-    # import theano, numpy
-    # X = theano.tensor.matrix()
-    # y = X.reshape((5,3,1))
-    # assert y.tag.trace
-    IntParam(8),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "traceback__compile_limit",
-    "The number of stack to trace to keep during compilation. -1 mean all."
-    " If greater then 0, will also make us save Theano internal stack trace.",
-    IntParam(0),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "experimental__unpickle_gpu_on_cpu",
-    "Allow unpickling of pickled GpuArrays as numpy.ndarrays."
-    "This is useful, if you want to open a GpuArray without "
-    "having cuda installed."
-    "If you have cuda installed, this will force unpickling to"
-    "be done on the cpu to numpy.ndarray."
-    "Please be aware that this may get you access to the data,"
-    "however, trying to unpicke gpu functions will not succeed."
-    "This flag is experimental and may be removed any time, when"
-    "gpu<>cpu transparency is solved.",
-    BoolParam(default=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "numpy__seterr_all",
-    (
-        "Sets numpy's behaviour for floating-point errors, ",
-        "see numpy.seterr. "
-        "'None' means not to change numpy's default, which can be "
-        "different for different numpy releases. "
-        "This flag sets the default behaviour for all kinds of floating-"
-        "point errors, its effect can be overriden for specific errors "
-        "by the following flags: seterr_divide, seterr_over, "
-        "seterr_under and seterr_invalid.",
-    ),
-    EnumStr("ignore", ["warn", "raise", "call", "print", "log", "None"], mutable=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "numpy__seterr_divide",
-    (
-        "Sets numpy's behavior for division by zero, see numpy.seterr. "
-        "'None' means using the default, defined by numpy__seterr_all."
-    ),
-    EnumStr("None", ["ignore", "warn", "raise", "call", "print", "log"], mutable=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "numpy__seterr_over",
-    (
-        "Sets numpy's behavior for floating-point overflow, "
-        "see numpy.seterr. "
-        "'None' means using the default, defined by numpy__seterr_all."
-    ),
-    EnumStr("None", ["ignore", "warn", "raise", "call", "print", "log"], mutable=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "numpy__seterr_under",
-    (
-        "Sets numpy's behavior for floating-point underflow, "
-        "see numpy.seterr. "
-        "'None' means using the default, defined by numpy__seterr_all."
-    ),
-    EnumStr("None", ["ignore", "warn", "raise", "call", "print", "log"], mutable=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "numpy__seterr_invalid",
-    (
-        "Sets numpy's behavior for invalid floating-point operation, "
-        "see numpy.seterr. "
-        "'None' means using the default, defined by numpy__seterr_all."
-    ),
-    EnumStr("None", ["ignore", "warn", "raise", "call", "print", "log"], mutable=False),
-    in_c_key=False,
-)
-
-###
-# To disable some warning about old bug that are fixed now.
-###
-AddConfigVar(
-    "warn__ignore_bug_before",
-    (
-        "If 'None', we warn about all Theano bugs found by default. "
-        "If 'all', we don't warn about Theano bugs found by default. "
-        "If a version, we print only the warnings relative to Theano "
-        "bugs found after that version. "
-        "Warning for specific bugs can be configured with specific "
-        "[warn] flags."
-    ),
-    EnumStr(
-        "0.9",
-        [
-            "None",
-            "all",
-            "0.3",
-            "0.4",
-            "0.4.1",
-            "0.5",
-            "0.6",
-            "0.7",
-            "0.8",
-            "0.8.1",
-            "0.8.2",
-            "0.9",
-            "0.10",
-            "1.0",
-            "1.0.1",
-            "1.0.2",
-            "1.0.3",
-            "1.0.4",
-            "1.0.5",
-        ],
-        mutable=False,
-    ),
-    in_c_key=False,
-)
 
 
 def split_version(version):
@@ -847,292 +151,6 @@ def warn_default(version):
     return True
 
 
-# TODO: most of these bugfix-related warnings can probably be removed
-AddConfigVar(
-    "warn__argmax_pushdown_bug",
-    (
-        "Warn if in past version of Theano we generated a bug with the "
-        "theano.tensor.nnet.nnet.local_argmax_pushdown optimization. "
-        "Was fixed 27 may 2010"
-    ),
-    BoolParam(warn_default("0.3")),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "warn__gpusum_01_011_0111_bug",
-    (
-        "Warn if we are in a case where old version of Theano had a "
-        "silent bug with GpuSum pattern 01,011 and 0111 when the first "
-        "dimensions was bigger then 4096. Was fixed 31 may 2010"
-    ),
-    BoolParam(warn_default("0.3")),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "warn__sum_sum_bug",
-    (
-        "Warn if we are in a case where Theano version between version "
-        "9923a40c7b7a and the 2 august 2010 (fixed date), generated an "
-        "error in that case. This happens when there are 2 consecutive "
-        "sums in the graph, bad code was generated. "
-        "Was fixed 2 August 2010"
-    ),
-    BoolParam(warn_default("0.3")),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "warn__sum_div_dimshuffle_bug",
-    (
-        "Warn if previous versions of Theano (between rev. "
-        "3bd9b789f5e8, 2010-06-16, and cfc6322e5ad4, 2010-08-03) "
-        "would have given incorrect result. This bug was triggered by "
-        "sum of division of dimshuffled tensors."
-    ),
-    BoolParam(warn_default("0.3")),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "warn__subtensor_merge_bug",
-    "Warn if previous versions of Theano (before 0.5rc2) could have given "
-    "incorrect results when indexing into a subtensor with negative "
-    "stride (for instance, for instance, x[a:b:-1][c]).",
-    BoolParam(warn_default("0.5")),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "warn__gpu_set_subtensor1",
-    "Warn if previous versions of Theano (before 0.6) could have given "
-    "incorrect results when moving to the gpu "
-    "set_subtensor(x[int vector], new_value)",
-    BoolParam(warn_default("0.6")),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "warn__vm_gc_bug",
-    "There was a bug that existed in the default Theano configuration,"
-    " only in the development version between July 5th 2012"
-    " and July 30th 2012. This was not in a released version."
-    " If your code was affected by this bug, a warning"
-    " will be printed during the code execution if you use the"
-    " `linker=vm,vm__lazy=True,warn__vm_gc_bug=True` Theano flags."
-    " This warning is disabled by default as the bug was not released.",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "warn__signal_conv2d_interface",
-    ("Warn we use the new signal.conv2d() when its interface" " changed mid June 2014"),
-    BoolParam(warn_default("0.7")),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "warn__reduce_join",
-    (
-        "Your current code is fine, but Theano versions "
-        "prior to 0.7 (or this development version) "
-        "might have given an incorrect result. "
-        "To disable this warning, set the Theano flag "
-        "warn__reduce_join to False. The problem was an "
-        "optimization, that modified the pattern "
-        '"Reduce{scalar.op}(Join(axis=0, a, b), axis=0)", '
-        "did not check the reduction axis. So if the "
-        "reduction axis was not 0, you got a wrong answer."
-    ),
-    BoolParam(warn_default("0.7")),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "warn__inc_set_subtensor1",
-    (
-        "Warn if previous versions of Theano (before 0.7) could have "
-        "given incorrect results for inc_subtensor and set_subtensor "
-        "when using some patterns of advanced indexing (indexing with "
-        "one vector or matrix of ints)."
-    ),
-    BoolParam(warn_default("0.7")),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "warn__round",
-    "Warn when using `tensor.round` with the default mode. "
-    "Round changed its default from `half_away_from_zero` to "
-    "`half_to_even` to have the same default as NumPy.",
-    BoolParam(warn_default("0.9")),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "warn__inc_subtensor1_opt",
-    "Warn if previous versions of Theano (before 0.10) could have "
-    "given incorrect results when computing "
-    "inc_subtensor(zeros[idx], x)[idx], when idx is an array of integers "
-    "with duplicated values.",
-    BoolParam(warn_default("0.10")),
-    in_c_key=False,
-)
-
-
-AddConfigVar(
-    "compute_test_value",
-    (
-        "If 'True', Theano will run each op at graph build time, using "
-        "Constants, SharedVariables and the tag 'test_value' as inputs "
-        "to the function. This helps the user track down problems in the "
-        "graph before it gets optimized."
-    ),
-    EnumStr("off", ["ignore", "warn", "raise", "pdb"]),
-    in_c_key=False,
-)
-
-
-AddConfigVar(
-    "print_test_value",
-    (
-        "If 'True', the __eval__ of a Theano variable will return its test_value "
-        "when this is available. This has the practical conseguence that, e.g., "
-        "in debugging `my_var` will print the same as `my_var.tag.test_value` "
-        "when a test value is defined."
-    ),
-    BoolParam(False),
-    in_c_key=False,
-)
-
-
-AddConfigVar(
-    "compute_test_value_opt",
-    (
-        "For debugging Theano optimization only."
-        " Same as compute_test_value, but is used"
-        " during Theano optimization"
-    ),
-    EnumStr("off", ["ignore", "warn", "raise", "pdb"]),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "unpickle_function",
-    (
-        "Replace unpickled Theano functions with None. "
-        "This is useful to unpickle old graphs that pickled"
-        " them when it shouldn't"
-    ),
-    BoolParam(True),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "reoptimize_unpickled_function",
-    "Re-optimize the graph when a theano function is unpickled from the disk.",
-    BoolParam(False, mutable=True),
-    in_c_key=False,
-)
-
-"""Note to developers:
-    Generally your exceptions should use an apply node's __str__
-    method when exception_verbosity == 'low'. When exception_verbosity
-    == 'high', you should include a call to printing.min_informative_str
-    on all important apply nodes.
-"""
-AddConfigVar(
-    "exception_verbosity",
-    "If 'low', the text of exceptions will generally refer "
-    "to apply nodes with short names such as "
-    "Elemwise{add_no_inplace}. If 'high', some exceptions "
-    "will also refer to apply nodes with long descriptions "
-    """ like:
-    A. Elemwise{add_no_inplace}
-            B. log_likelihood_v_given_h
-            C. log_likelihood_h""",
-    EnumStr("low", ["high"]),
-    in_c_key=False,
-)
-
-# Test if the env variable is set
-var = os.getenv("OMP_NUM_THREADS", None)
-if var:
-    try:
-        int(var)
-    except ValueError:
-        raise TypeError(
-            f"The environment variable OMP_NUM_THREADS should be a number, got '{var}'."
-        )
-    else:
-        default_openmp = not int(var) == 1
-else:
-    # Check the number of cores availables.
-    count = os.cpu_count()
-    if count is None:
-        _logger.warning(
-            "We are not able to detect the number of CPU cores."
-            " We disable openmp by default. To remove this"
-            " warning, set the environment variable"
-            " OMP_NUM_THREADS to the number of threads you"
-            " want theano to use."
-        )
-    default_openmp = count > 1
-
-# Disable it by default for now as currently only the ConvOp supports
-# it, and this causes slowdown by default as we do not disable it for
-# too small convolution.
-default_openmp = False
-
-AddConfigVar(
-    "openmp",
-    "Allow (or not) parallel computation on the CPU with OpenMP. "
-    "This is the default value used when creating an Op that "
-    "supports OpenMP parallelization. It is preferable to define it "
-    "via the Theano configuration file ~/.theanorc or with the "
-    "environment variable THEANO_FLAGS. Parallelization is only "
-    "done for some operations that implement it, and even for "
-    "operations that implement parallelism, each operation is free "
-    "to respect this flag or not. You can control the number of "
-    "threads used with the environment variable OMP_NUM_THREADS."
-    " If it is set to 1, we disable openmp in Theano by default.",
-    BoolParam(default_openmp),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "openmp_elemwise_minsize",
-    "If OpenMP is enabled, this is the minimum size of vectors "
-    "for which the openmp parallelization is enabled "
-    "in element wise ops.",
-    IntParam(200000),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "check_input",
-    "Specify if types should check their input in their C code. "
-    "It can be used to speed up compilation, reduce overhead "
-    "(particularly for scalars) and reduce the number of generated C "
-    "files.",
-    BoolParam(True),
-    in_c_key=True,
-)
-
-AddConfigVar(
-    "cache_optimizations",
-    "WARNING: work in progress, does not work yet. "
-    "Specify if the optimization cache should be used. This cache will "
-    "any optimized graph and its optimization. Actually slow downs a lot "
-    "the first optimization, and could possibly still contains some bugs. "
-    "Use at your own risks.",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-
 def good_seed_param(seed):
     if seed == "random":
         return True
@@ -1141,122 +159,6 @@ def good_seed_param(seed):
     except Exception:
         return False
     return True
-
-
-AddConfigVar(
-    "unittests__rseed",
-    "Seed to use for randomized unit tests. "
-    "Special value 'random' means using a seed of None.",
-    StrParam(666, validate=good_seed_param),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "NanGuardMode__nan_is_error",
-    "Default value for nan_is_error",
-    BoolParam(True),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "NanGuardMode__inf_is_error",
-    "Default value for inf_is_error",
-    BoolParam(True),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "NanGuardMode__big_is_error",
-    "Default value for big_is_error",
-    BoolParam(True),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "NanGuardMode__action",
-    "What NanGuardMode does when it finds a problem",
-    EnumStr("raise", ["warn", "pdb"]),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "optimizer_excluding",
-    (
-        "When using the default mode, we will remove optimizer with "
-        "these tags. Separate tags with ':'."
-    ),
-    StrParam("", mutable=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "optimizer_including",
-    (
-        "When using the default mode, we will add optimizer with "
-        "these tags. Separate tags with ':'."
-    ),
-    StrParam("", mutable=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "optimizer_requiring",
-    (
-        "When using the default mode, we will require optimizer with "
-        "these tags. Separate tags with ':'."
-    ),
-    StrParam("", mutable=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "DebugMode__patience",
-    "Optimize graph this many times to detect inconsistency",
-    IntParam(10, lambda i: i > 0),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "DebugMode__check_c",
-    "Run C implementations where possible",
-    BoolParam(lambda: bool(theano.config.cxx)),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "DebugMode__check_py",
-    "Run Python implementations where possible",
-    BoolParam(True),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "DebugMode__check_finite",
-    "True -> complain about NaN/Inf results",
-    BoolParam(True),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "DebugMode__check_strides",
-    (
-        "Check that Python- and C-produced ndarrays have same strides. "
-        "On difference: (0) - ignore, (1) warn, or (2) raise error"
-    ),
-    IntParam(0, lambda i: i in (0, 1, 2)),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "DebugMode__warn_input_not_reused",
-    (
-        "Generate a warning when destroy_map or view_map says that an "
-        "op works inplace, but the op did not reuse the input for its "
-        "output."
-    ),
-    BoolParam(True),
-    in_c_key=False,
-)
 
 
 def is_valid_check_preallocated_output_param(param):
@@ -1276,176 +178,6 @@ def is_valid_check_preallocated_output_param(param):
         if p not in valid:
             return False
     return True
-
-
-AddConfigVar(
-    "DebugMode__check_preallocated_output",
-    (
-        "Test thunks with pre-allocated memory as output storage. "
-        'This is a list of strings separated by ":". Valid values are: '
-        '"initial" (initial storage in storage map, happens with Scan),'
-        '"previous" (previously-returned memory), '
-        '"c_contiguous", "f_contiguous", '
-        '"strided" (positive and negative strides), '
-        '"wrong_size" (larger and smaller dimensions), and '
-        '"ALL" (all of the above).'
-    ),
-    StrParam("", validate=is_valid_check_preallocated_output_param),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "DebugMode__check_preallocated_output_ndim",
-    (
-        'When testing with "strided" preallocated output memory, '
-        "test all combinations of strides over that number of "
-        "(inner-most) dimensions. You may want to reduce that number "
-        "to reduce memory or time usage, but it is advised to keep a "
-        "minimum of 2."
-    ),
-    IntParam(4, lambda i: i > 0),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "profiling__time_thunks",
-    """Time individual thunks when profiling""",
-    BoolParam(True),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "profiling__n_apply",
-    "Number of Apply instances to print by default",
-    IntParam(20, lambda i: i > 0),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "profiling__n_ops",
-    "Number of Ops to print by default",
-    IntParam(20, lambda i: i > 0),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "profiling__output_line_width",
-    "Max line width for the profiling output",
-    IntParam(512, lambda i: i > 0),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "profiling__min_memory_size",
-    """For the memory profile, do not print Apply nodes if the size
-             of their outputs (in bytes) is lower than this threshold""",
-    IntParam(1024, lambda i: i >= 0),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "profiling__min_peak_memory",
-    """The min peak memory usage of the order""",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "profiling__destination",
-    """
-             File destination of the profiling output
-             """,
-    StrParam("stderr"),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "profiling__debugprint",
-    """Do a debugprint of the profiled functions""",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "profiling__ignore_first_call",
-    """Do we ignore the first call of a Theano function.""",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "optdb__position_cutoff",
-    "Where to stop eariler during optimization. It represent the"
-    " position of the optimizer where to stop.",
-    FloatParam(np.inf),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "optdb__max_use_ratio",
-    "A ratio that prevent infinite loop in EquilibriumOptimizer.",
-    FloatParam(8),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "gcc__cxxflags",
-    "Extra compiler flags for gcc",
-    StrParam(""),
-    # Added elsewhere in the c key only when needed.
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "cmodule__warn_no_version",
-    "If True, will print a warning when compiling one or more Op "
-    "with C code that can't be cached because there is no "
-    "c_code_cache_version() function associated to at least one of "
-    "those Ops.",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "cmodule__remove_gxx_opt",
-    "If True, will remove the -O* parameter passed to g++."
-    "This is useful to debug in gdb modules compiled by Theano."
-    "The parameter -g is passed by default to g++",
-    BoolParam(False),
-    # TODO: change so that this isn't needed.
-    # This can be done by handing this in compile_args()
-    in_c_key=True,
-)
-
-AddConfigVar(
-    "cmodule__compilation_warning",
-    "If True, will print compilation warnings.",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-
-AddConfigVar(
-    "cmodule__preload_cache",
-    "If set to True, will preload the C module cache at import time",
-    BoolParam(False, mutable=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "cmodule__age_thresh_use",
-    "In seconds. The time after which " "Theano won't reuse a compile c module.",
-    # 24 days
-    IntParam(60 * 60 * 24 * 24, mutable=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "cmodule__debug",
-    "If True, define a DEBUG macro (if not exists) for any compiled C code.",
-    BoolParam(False),
-    in_c_key=True,
-)
 
 
 def check_mkl_openmp():
@@ -1488,6 +220,36 @@ you set this flag and don't set the appropriate environment or make
 sure you have the right version you *will* get wrong results.
 """
         )
+
+
+def _timeout_default():
+    return theano.config.compile__wait * 24
+
+
+def local_bitwidth():
+    """
+    Return 32 for 32bit arch, 64 for 64bit arch.
+
+    By "architecture", we mean the size of memory pointers (size_t in C),
+    *not* the size of long int, as it can be different.
+
+    """
+    # Note that according to Python documentation, `platform.architecture()` is
+    # not reliable on OS X with universal binaries.
+    # Also, sys.maxsize does not exist in Python < 2.6.
+    # 'P' denotes a void*, and the size is expressed in bytes.
+    return struct.calcsize("P") * 8
+
+
+def python_int_bitwidth():
+    """
+    Return the bit width of Python int (C long int).
+
+    Note that it can be different from the size of a memory pointer.
+
+    """
+    # 'l' denotes a C long int, and the size is expressed in bytes.
+    return struct.calcsize("l") * 8
 
 
 def default_blas_ldflags():
@@ -1763,65 +525,6 @@ def try_blas_flag(flags):
         return ""
 
 
-AddConfigVar(
-    "blas__ldflags",
-    "lib[s] to include for [Fortran] level-3 blas implementation",
-    StrParam(default_blas_ldflags),
-    # Added elsewhere in the c key only when needed.
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "blas__check_openmp",
-    "Check for openmp library conflict.\nWARNING: Setting this to False leaves you open to wrong results in blas-related operations.",
-    BoolParam(True),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "metaopt__verbose",
-    "0 for silent, 1 for only warnings, 2 for full output with"
-    "timings and selected implementation",
-    IntParam(0),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "metaopt__optimizer_excluding",
-    ("exclude optimizers with these tags. " "Separate tags with ':'."),
-    StrParam(""),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "metaopt__optimizer_including",
-    ("include optimizers with these tags. " "Separate tags with ':'."),
-    StrParam(""),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "profile",
-    "If VM should collect profile information",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "profile_optimizer",
-    "If VM should collect optimizer profile information",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "profile_memory",
-    "If VM should collect memory profile information and print it",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-
 def filter_vm_lazy(val):
     if val == "False" or val is False:
         return False
@@ -1834,176 +537,6 @@ def filter_vm_lazy(val):
             "Valid values for an vm__lazy parameter "
             f"should be None, False or True, not `{val}`."
         )
-
-
-AddConfigVar(
-    "vm__lazy",
-    "Useful only for the vm linkers. When lazy is None,"
-    " auto detect if lazy evaluation is needed and use the appropriate"
-    " version. If lazy is True/False, force the version used between"
-    " Loop/LoopGC and Stack.",
-    ConfigParam("None", apply=filter_vm_lazy),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "warn__identify_1pexp_bug",
-    "Warn if Theano versions prior to 7987b51 (2011-12-18) could have "
-    "yielded a wrong result due to a bug in the is_1pexp function",
-    BoolParam(warn_default("0.4.1")),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "on_shape_error",
-    "warn: print a warning and use the default" " value. raise: raise an error",
-    EnumStr("warn", ["raise"]),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "tensor__insert_inplace_optimizer_validate_nb",
-    "-1: auto, if graph have less then 500 nodes 1, else 10",
-    IntParam(-1),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "experimental__local_alloc_elemwise",
-    "DEPRECATED: If True, enable the experimental"
-    " optimization local_alloc_elemwise."
-    " Generates error if not True. Use"
-    " optimizer_excluding=local_alloc_elemwise"
-    " to dsiable.",
-    BoolParam(True),
-    in_c_key=False,
-)
-
-# False could make the graph faster but not as safe.
-AddConfigVar(
-    "experimental__local_alloc_elemwise_assert",
-    "When the local_alloc_elemwise is applied, add"
-    " an assert to highlight shape errors.",
-    BoolParam(True),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "scan__allow_gc",
-    "Allow/disallow gc inside of Scan (default: False)",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "scan__allow_output_prealloc",
-    "Allow/disallow memory preallocation for outputs inside of scan " "(default: True)",
-    BoolParam(True),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "scan__debug",
-    "If True, enable extra verbose output related to scan",
-    BoolParam(False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "compile__wait",
-    """Time to wait before retrying to acquire the compile lock.""",
-    IntParam(5, validate=lambda i: i > 0, mutable=False),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "cycle_detection",
-    "If cycle_detection is set to regular, most inplaces are allowed,"
-    "but it is slower. If cycle_detection is set to faster, less inplaces"
-    "are allowed, but it makes the compilation faster."
-    "The interaction of which one give the lower peak memory usage is"
-    "complicated and not predictable, so if you are close to the peak"
-    "memory usage, triyng both could give you a small gain.",
-    EnumStr("regular", ["fast"]),
-    in_c_key=False,
-)
-
-AddConfigVar(
-    "check_stack_trace",
-    "A flag for checking the stack trace during the optimization process. "
-    "default (off): does not check the stack trace of any optimization "
-    "log: inserts a dummy stack trace that identifies the optimization"
-    "that inserted the variable that had an empty stack trace."
-    "warn: prints a warning if a stack trace is missing and also a dummy"
-    "stack trace is inserted that indicates which optimization inserted"
-    "the variable that had an empty stack trace."
-    "raise: raises an exception if a stack trace is missing",
-    EnumStr("off", ["log", "warn", "raise"]),
-    in_c_key=False,
-)
-
-
-def _timeout_default():
-    return theano.config.compile__wait * 24
-
-
-AddConfigVar(
-    "compile__timeout",
-    """In seconds, time that a process will wait before deciding to
-override an existing lock. An override only happens when the existing
-lock is held by the same owner *and* has not been 'refreshed' by this
-owner for more than this period. Refreshes are done every half timeout
-period for running processes.""",
-    IntParam(_timeout_default, validate=lambda i: i >= 0, mutable=False),
-    in_c_key=False,
-)
-
-
-try:
-    p_out = output_subprocess_Popen([config.cxx, "-dumpversion"])
-    gcc_version_str = p_out[0].strip().decode()
-except OSError:
-    # Typically means gcc cannot be found.
-    gcc_version_str = "GCC_NOT_FOUND"
-
-
-def local_bitwidth():
-    """
-    Return 32 for 32bit arch, 64 for 64bit arch.
-
-    By "architecture", we mean the size of memory pointers (size_t in C),
-    *not* the size of long int, as it can be different.
-
-    """
-    # Note that according to Python documentation, `platform.architecture()` is
-    # not reliable on OS X with universal binaries.
-    # Also, sys.maxsize does not exist in Python < 2.6.
-    # 'P' denotes a void*, and the size is expressed in bytes.
-    return struct.calcsize("P") * 8
-
-
-def python_int_bitwidth():
-    """
-    Return the bit width of Python int (C long int).
-
-    Note that it can be different from the size of a memory pointer.
-
-    """
-    # 'l' denotes a C long int, and the size is expressed in bytes.
-    return struct.calcsize("l") * 8
-
-
-compiledir_format_dict = {
-    "platform": platform.platform(),
-    "processor": platform.processor(),
-    "python_version": platform.python_version(),
-    "python_bitwidth": local_bitwidth(),
-    "python_int_bitwidth": python_int_bitwidth(),
-    "theano_version": theano.__version__,
-    "numpy_version": np.__version__,
-    "gxx_version": gcc_version_str.replace(" ", "_"),
-    "hostname": socket.gethostname(),
-}
 
 
 def short_platform(r=None, p=None):
@@ -2083,153 +616,1662 @@ def short_platform(r=None, p=None):
     return p
 
 
-compiledir_format_dict["short_platform"] = short_platform()
-# Allow to have easily one compiledir per device.
-compiledir_format_dict["device"] = config.device
-compiledir_format_keys = ", ".join(sorted(compiledir_format_dict.keys()))
-default_compiledir_format = (
-    "compiledir_%(short_platform)s-%(processor)s-"
-    "%(python_version)s-%(python_bitwidth)s"
-)
+def add_basic_configvars():
 
-AddConfigVar(
-    "compiledir_format",
-    textwrap.fill(
-        textwrap.dedent(
-            f"""\
-                 Format string for platform-dependent compiled
-                 module subdirectory (relative to base_compiledir).
-                 Available keys: {compiledir_format_keys}. Defaults to {default_compiledir_format}.
-             """
-        )
-    ),
-    StrParam(default_compiledir_format, mutable=False),
-    in_c_key=False,
-)
+    AddConfigVar(
+        "floatX",
+        "Default floating-point precision for python casts.\n"
+        "\n"
+        "Note: float16 support is experimental, use at your own risk.",
+        EnumStr("float64", ["float32", "float16"]),
+        # TODO: see gh-4466 for how to remove it.
+        in_c_key=True,
+    )
+
+    AddConfigVar(
+        "warn_float64",
+        "Do an action when a tensor variable with float64 dtype is"
+        " created. They can't be run on the GPU with the current(old)"
+        " gpu back-end and are slow with gamer GPUs.",
+        EnumStr("ignore", ["warn", "raise", "pdb"]),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "pickle_test_value",
+        "Dump test values while pickling model. "
+        "If True, test values will be dumped with model.",
+        BoolParam(True),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "cast_policy",
+        "Rules for implicit type casting",
+        EnumStr(
+            "custom",
+            ["numpy+floatX"],
+            # The 'numpy' policy was originally planned to provide a
+            # smooth transition from numpy. It was meant to behave the
+            # same as numpy+floatX, but keeping float64 when numpy
+            # would. However the current implementation of some cast
+            # mechanisms makes it a bit more complex to add than what
+            # was expected, so it is currently not available.
+            # numpy,
+        ),
+    )
+
+    # python 2.* define int / int to return int and int // int to return int.
+    # python 3* define int / int to return float and int // int to return int.
+    # numpy 1.6.1 behaves as python 2.*. I think we should not change it faster
+    # than numpy. When we will do the transition, we should create an int_warn
+    # and floatX_warn option.
+    AddConfigVar(
+        "int_division",
+        "What to do when one computes x / y, where both x and y are of "
+        "integer types",
+        EnumStr("int", ["raise", "floatX"]),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "deterministic",
+        "If `more`, sometimes we will select some implementation that "
+        "are more deterministic, but slower. In particular, on the GPU, "
+        "we will avoid using AtomicAdd. Sometimes we will still use "
+        "non-deterministic implementaion, e.g. when we do not have a GPU "
+        "implementation that is deterministic. Also see "
+        "the dnn.conv.algo* flags to cover more cases.",
+        EnumStr("default", ["more"]),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "device",
+        (
+            "Default device for computations. If cuda* or opencl*, change the"
+            "default to try to move computation to the GPU. Do not use upper case"
+            "letters, only lower case even if NVIDIA uses capital letters. "
+            "'gpu' means let the driver select the gpu (needed for gpu in exclusive mode). "
+            "'gpuX' mean use the gpu number X."
+        ),
+        DeviceParam("cpu", mutable=False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "init_gpu_device",
+        (
+            "Initialize the gpu device to use, works only if device=cpu. "
+            "Unlike 'device', setting this option will NOT move computations, "
+            "nor shared variables, to the specified GPU. "
+            "It can be used to run GPU-specific tests on a particular GPU."
+        ),
+        DeviceParam("", mutable=False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "force_device",
+        "Raise an error if we can't use the specified device",
+        BoolParam(False, mutable=False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "conv__assert_shape",
+        "If True, AbstractConv* ops will verify that user-provided"
+        " shapes match the runtime shapes (debugging option,"
+        " may slow down compilation)",
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "print_global_stats",
+        "Print some global statistics (time spent) at the end",
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "contexts",
+        """
+        Context map for multi-gpu operation. Format is a
+        semicolon-separated list of names and device names in the
+        'name->dev_name' format. An example that would map name 'test' to
+        device 'cuda0' and name 'test2' to device 'opencl0:0' follows:
+        "test->cuda0;test2->opencl0:0".
+
+        Invalid context names are 'cpu', 'cuda*' and 'opencl*'
+        """,
+        ContextsParam(),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "print_active_device",
+        "Print active device at when the GPU device is initialized.",
+        BoolParam(True, mutable=False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "gpuarray__preallocate",
+        """If negative it disables the allocation cache. If
+                 between 0 and 1 it enables the allocation cache and
+                 preallocates that fraction of the total GPU memory.  If 1
+                 or greater it will preallocate that amount of memory (in
+                 megabytes).""",
+        FloatParam(0, mutable=False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "gpuarray__sched",
+        """The sched parameter passed for context creation to pygpu.
+                    With CUDA, using "multi" is equivalent to using the parameter
+                    cudaDeviceScheduleBlockingSync. This is useful to lower the
+                    CPU overhead when waiting for GPU. One user found that it
+                    speeds up his other processes that was doing data augmentation.
+                 """,
+        EnumStr("default", ["multi", "single"]),
+    )
+
+    AddConfigVar(
+        "gpuarray__single_stream",
+        """
+                 If your computations are mostly lots of small elements,
+                 using single-stream will avoid the synchronization
+                 overhead and usually be faster.  For larger elements it
+                 does not make a difference yet.  In the future when true
+                 multi-stream is enabled in libgpuarray, this may change.
+                 If you want to make sure to have optimal performance,
+                 check both options.
+                 """,
+        BoolParam(True),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "cuda__root",
+        "Location of the cuda installation",
+        StrParam(get_cuda_root),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "cuda__include_path",
+        "Location of the cuda includes",
+        StrParam(default_cuda_include),
+        in_c_key=False,
+    )
+
+    # This flag determines whether or not to raise error/warning message if
+    # there is a CPU Op in the computational graph.
+    AddConfigVar(
+        "assert_no_cpu_op",
+        "Raise an error/warning if there is a CPU op in the computational graph.",
+        EnumStr("ignore", ["warn", "raise", "pdb"], mutable=True),
+        in_c_key=False,
+    )
+    AddConfigVar(
+        "unpickle_function",
+        (
+            "Replace unpickled Theano functions with None. "
+            "This is useful to unpickle old graphs that pickled"
+            " them when it shouldn't"
+        ),
+        BoolParam(True),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "reoptimize_unpickled_function",
+        "Re-optimize the graph when a theano function is unpickled from the disk.",
+        BoolParam(False, mutable=True),
+        in_c_key=False,
+    )
 
 
-def default_compiledirname():
-    formatted = theano.config.compiledir_format % compiledir_format_dict
-    safe = re.sub(r"[\(\)\s,]+", "_", formatted)
-    return safe
+def add_dnn_configvars():
+    AddConfigVar(
+        "dnn__conv__algo_fwd",
+        "Default implementation to use for cuDNN forward convolution.",
+        EnumStr("small", SUPPORTED_DNN_CONV_ALGO_FWD),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "dnn__conv__algo_bwd_data",
+        "Default implementation to use for cuDNN backward convolution to "
+        "get the gradients of the convolution with regard to the inputs.",
+        EnumStr("none", SUPPORTED_DNN_CONV_ALGO_BWD_DATA),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "dnn__conv__algo_bwd_filter",
+        "Default implementation to use for cuDNN backward convolution to "
+        "get the gradients of the convolution with regard to the "
+        "filters.",
+        EnumStr("none", SUPPORTED_DNN_CONV_ALGO_BWD_FILTER),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "dnn__conv__precision",
+        "Default data precision to use for the computation in cuDNN "
+        "convolutions (defaults to the same dtype as the inputs of the "
+        "convolutions, or float32 if inputs are float16).",
+        EnumStr("as_input_f32", SUPPORTED_DNN_CONV_PRECISION),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "dnn__base_path",
+        "Install location of cuDNN.",
+        StrParam(default_dnn_base_path),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "dnn__include_path",
+        "Location of the cudnn header",
+        StrParam(default_dnn_inc_path),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "dnn__library_path",
+        "Location of the cudnn link library.",
+        StrParam(default_dnn_lib_path),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "dnn__bin_path",
+        "Location of the cuDNN load library "
+        "(on non-windows platforms, "
+        "this is the same as dnn__library_path)",
+        StrParam(default_dnn_bin_path),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "dnn__enabled",
+        "'auto', use cuDNN if available, but silently fall back"
+        " to not using it if not present."
+        " If True and cuDNN can not be used, raise an error."
+        " If False, disable cudnn even if present."
+        " If no_check, assume present and the version between header and library match (so less compilation at context init)",
+        EnumStr("auto", ["True", "False", "no_check"]),
+        in_c_key=False,
+    )
 
 
-def filter_base_compiledir(path):
-    # Expand '~' in path
-    return os.path.expanduser(str(path))
+def add_magma_configvars():
+    AddConfigVar(
+        "magma__include_path",
+        "Location of the magma header",
+        StrParam(""),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "magma__library_path",
+        "Location of the magma library",
+        StrParam(""),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "magma__enabled",
+        " If True, use magma for matrix computation." " If False, disable magma",
+        BoolParam(False),
+        in_c_key=False,
+    )
 
 
-def filter_compiledir(path):
-    # Expand '~' in path
-    path = os.path.expanduser(path)
-    # Turn path into the 'real' path. This ensures that:
-    #   1. There is no relative path, which would fail e.g. when trying to
-    #      import modules from the compile dir.
-    #   2. The path is stable w.r.t. e.g. symlinks (which makes it easier
-    #      to re-use compiled modules).
-    path = os.path.realpath(path)
-    if os.access(path, os.F_OK):  # Do it exist?
-        if not os.access(path, os.R_OK | os.W_OK | os.X_OK):
-            # If it exist we need read, write and listing access
-            raise ValueError(
-                f"compiledir '{path}' exists but you don't have read, write"
-                " or listing permissions."
+def add_compile_configvars():
+
+    AddConfigVar(
+        "mode",
+        "Default compilation mode",
+        ConfigParam("Mode", apply=filter_mode),
+        in_c_key=False,
+    )
+
+    param = "g++"
+
+    # Test whether or not g++ is present: disable C code if it is not.
+    try:
+        rc = call_subprocess_Popen(["g++", "-v"])
+    except OSError:
+        rc = 1
+
+    # Anaconda on Windows has mingw-w64 packages including GCC, but it may not be on PATH.
+    if rc != 0:
+        if sys.platform == "win32":
+            mingw_w64_gcc = os.path.join(
+                os.path.dirname(sys.executable), "Library", "mingw-w64", "bin", "g++"
             )
-    else:
-        try:
-            os.makedirs(path, 0o770)  # read-write-execute for user and group
-        except OSError as e:
-            # Maybe another parallel execution of theano was trying to create
-            # the same directory at the same time.
-            if e.errno != errno.EEXIST:
-                raise ValueError(
-                    "Unable to create the compiledir directory"
-                    f" '{path}'. Check the permissions."
+            try:
+                rc = call_subprocess_Popen([mingw_w64_gcc, "-v"])
+                if rc == 0:
+                    maybe_add_to_os_environ_pathlist(
+                        "PATH", os.path.dirname(mingw_w64_gcc)
+                    )
+            except OSError:
+                rc = 1
+            if rc != 0:
+                _logger.warning(
+                    "g++ not available, if using conda: `conda install m2w64-toolchain`"
                 )
 
-    # PROBLEM: sometimes the initial approach based on
-    # os.system('touch') returned -1 for an unknown reason; the
-    # alternate approach here worked in all cases... it was weird.
-    # No error should happen as we checked the permissions.
-    init_file = os.path.join(path, "__init__.py")
-    if not os.path.exists(init_file):
+    if rc != 0:
+        param = ""
+
+    # On Mac/FreeBSD we test for 'clang++' and use it by default
+    if sys.platform == "darwin" or sys.platform.startswith("freebsd"):
         try:
-            open(init_file, "w").close()
-        except OSError as e:
-            if os.path.exists(init_file):
-                pass  # has already been created
-            else:
-                e.args += (f"{path} exist? {os.path.exists(path)}",)
-                raise
-    return path
+            rc = call_subprocess_Popen(["clang++", "-v"])
+            if rc == 0:
+                param = "clang++"
+        except OSError:
+            pass
+
+    # Try to find the full compiler path from the name
+    if param != "":
+        import distutils.spawn
+
+        newp = distutils.spawn.find_executable(param)
+        if newp is not None:
+            param = newp
+        del newp
+        del distutils
+
+    # to support path that includes spaces, we need to wrap it with double quotes on Windows
+    if param and os.name == "nt":
+        param = f'"{param}"'
+
+    AddConfigVar(
+        "cxx",
+        "The C++ compiler to use. Currently only g++ is"
+        " supported, but supporting additional compilers should not be "
+        "too difficult. "
+        "If it is empty, no C++ code is compiled.",
+        StrParam(param, validate=warn_cxx),
+        in_c_key=False,
+    )
+    del param
+
+    if rc == 0 and config.cxx != "":
+        # Keep the default linker the same as the one for the mode FAST_RUN
+        AddConfigVar(
+            "linker",
+            "Default linker used if the theano flags mode is Mode",
+            EnumStr(
+                "cvm", ["c|py", "py", "c", "c|py_nogc", "vm", "vm_nogc", "cvm_nogc"]
+            ),
+            in_c_key=False,
+        )
+    else:
+        # g++ is not present or the user disabled it,
+        # linker should default to python only.
+        AddConfigVar(
+            "linker",
+            "Default linker used if the theano flags mode is Mode",
+            EnumStr("vm", ["py", "vm_nogc"]),
+            in_c_key=False,
+        )
+        if type(config).cxx.is_default:
+            # If the user provided an empty value for cxx, do not warn.
+            _logger.warning(
+                "g++ not detected ! Theano will be unable to execute "
+                "optimized C-implementations (for both CPU and GPU) and will "
+                "default to Python implementations. Performance will be severely "
+                "degraded. To remove this warning, set Theano flags cxx to an "
+                "empty string."
+            )
+
+    # Keep the default value the same as the one for the mode FAST_RUN
+    AddConfigVar(
+        "allow_gc",
+        "Do we default to delete intermediate results during Theano"
+        " function calls? Doing so lowers the memory requirement, but"
+        " asks that we reallocate memory at the next function call."
+        " This is implemented for the default linker, but may not work"
+        " for all linkers.",
+        BoolParam(True),
+        in_c_key=False,
+    )
+
+    # Keep the default optimizer the same as the one for the mode FAST_RUN
+    AddConfigVar(
+        "optimizer",
+        "Default optimizer. If not None, will use this optimizer with the Mode",
+        EnumStr(
+            "o4",
+            ["o3", "o2", "o1", "unsafe", "fast_run", "fast_compile", "merge", "None"],
+        ),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "optimizer_verbose",
+        "If True, we print all optimization being applied",
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "on_opt_error",
+        (
+            "What to do when an optimization crashes: warn and skip it, raise "
+            "the exception, or fall into the pdb debugger."
+        ),
+        EnumStr("warn", ["raise", "pdb", "ignore"]),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "nocleanup",
+        "Suppress the deletion of code files that did not compile cleanly",
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "on_unused_input",
+        "What to do if a variable in the 'inputs' list of "
+        " theano.function() is not used in the graph.",
+        EnumStr("raise", ["warn", "ignore"]),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "gcc__cxxflags",
+        "Extra compiler flags for gcc",
+        StrParam(""),
+        # Added elsewhere in the c key only when needed.
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "cmodule__warn_no_version",
+        "If True, will print a warning when compiling one or more Op "
+        "with C code that can't be cached because there is no "
+        "c_code_cache_version() function associated to at least one of "
+        "those Ops.",
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "cmodule__remove_gxx_opt",
+        "If True, will remove the -O* parameter passed to g++."
+        "This is useful to debug in gdb modules compiled by Theano."
+        "The parameter -g is passed by default to g++",
+        BoolParam(False),
+        # TODO: change so that this isn't needed.
+        # This can be done by handing this in compile_args()
+        in_c_key=True,
+    )
+
+    AddConfigVar(
+        "cmodule__compilation_warning",
+        "If True, will print compilation warnings.",
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "cmodule__preload_cache",
+        "If set to True, will preload the C module cache at import time",
+        BoolParam(False, mutable=False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "cmodule__age_thresh_use",
+        "In seconds. The time after which " "Theano won't reuse a compile c module.",
+        # 24 days
+        IntParam(60 * 60 * 24 * 24, mutable=False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "cmodule__debug",
+        "If True, define a DEBUG macro (if not exists) for any compiled C code.",
+        BoolParam(False),
+        in_c_key=True,
+    )
+
+    AddConfigVar(
+        "compile__wait",
+        """Time to wait before retrying to acquire the compile lock.""",
+        IntParam(5, validate=lambda i: i > 0, mutable=False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "compile__timeout",
+        """In seconds, time that a process will wait before deciding to
+    override an existing lock. An override only happens when the existing
+    lock is held by the same owner *and* has not been 'refreshed' by this
+    owner for more than this period. Refreshes are done every half timeout
+    period for running processes.""",
+        IntParam(_timeout_default, validate=lambda i: i >= 0, mutable=False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "ctc__root",
+        "Directory which contains the root of Baidu CTC library. It is assumed \
+        that the compiled library is either inside the build, lib or lib64 \
+        subdirectory, and the header inside the include directory.",
+        StrParam("", mutable=False),
+        in_c_key=False,
+    )
 
 
-def get_home_dir():
-    """
-    Return location of the user's home directory.
+def add_tensor_configvars():
 
-    """
-    home = os.getenv("HOME")
-    if home is None:
-        # This expanduser usually works on Windows (see discussion on
-        # theano-users, July 13 2010).
-        home = os.path.expanduser("~")
-        if home == "~":
-            # This might happen when expanduser fails. Although the cause of
-            # failure is a mystery, it has been seen on some Windows system.
-            home = os.getenv("USERPROFILE")
-    assert home is not None
-    return home
+    # This flag is used when we import Theano to initialize global variables.
+    # So changing it after import will not modify these global variables.
+    # This could be done differently... but for now we simply prevent it from being
+    # changed at runtime.
+    AddConfigVar(
+        "tensor__cmp_sloppy",
+        "Relax tensor._allclose (0) not at all, (1) a bit, (2) more",
+        IntParam(0, lambda i: i in (0, 1, 2), mutable=False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "tensor__local_elemwise_fusion",
+        (
+            "Enable or not in fast_run mode(fast_run optimization) the elemwise "
+            "fusion optimization"
+        ),
+        BoolParam(True),
+        in_c_key=False,
+    )
+
+    # http://developer.amd.com/CPU/LIBRARIES/LIBM/Pages/default.aspx
+    AddConfigVar(
+        "lib__amblibm",
+        "Use amd's amdlibm numerical library",
+        BoolParam(False),
+        # Added elsewhere in the c key only when needed.
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "tensor__insert_inplace_optimizer_validate_nb",
+        "-1: auto, if graph have less then 500 nodes 1, else 10",
+        IntParam(-1),
+        in_c_key=False,
+    )
 
 
-# On Windows we should avoid writing temporary files to a directory that is
-# part of the roaming part of the user profile. Instead we use the local part
-# of the user profile, when available.
-if sys.platform == "win32" and os.getenv("LOCALAPPDATA") is not None:
-    default_base_compiledir = os.path.join(os.getenv("LOCALAPPDATA"), "Theano")
-else:
-    default_base_compiledir = os.path.join(get_home_dir(), ".theano")
+def add_traceback_configvars():
+    AddConfigVar(
+        "traceback__limit",
+        "The number of stack to trace. -1 mean all.",
+        # We default to a number to be able to know where v1 + v2 is created in the
+        # user script. The bigger this number is, the more run time it takes.
+        # We need to default to 8 to support theano.tensor.tensor(...).
+        # import theano, numpy
+        # X = theano.tensor.matrix()
+        # y = X.reshape((5,3,1))
+        # assert y.tag.trace
+        IntParam(8),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "traceback__compile_limit",
+        "The number of stack to trace to keep during compilation. -1 mean all."
+        " If greater then 0, will also make us save Theano internal stack trace.",
+        IntParam(0),
+        in_c_key=False,
+    )
 
 
-AddConfigVar(
-    "base_compiledir",
-    "platform-independent root directory for compiled modules",
-    ConfigParam(default_base_compiledir, apply=filter_base_compiledir, mutable=False),
-    in_c_key=False,
+def add_experimental_configvars():
+    AddConfigVar(
+        "experimental__unpickle_gpu_on_cpu",
+        "Allow unpickling of pickled GpuArrays as numpy.ndarrays."
+        "This is useful, if you want to open a GpuArray without "
+        "having cuda installed."
+        "If you have cuda installed, this will force unpickling to"
+        "be done on the cpu to numpy.ndarray."
+        "Please be aware that this may get you access to the data,"
+        "however, trying to unpicke gpu functions will not succeed."
+        "This flag is experimental and may be removed any time, when"
+        "gpu<>cpu transparency is solved.",
+        BoolParam(default=False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "experimental__local_alloc_elemwise",
+        "DEPRECATED: If True, enable the experimental"
+        " optimization local_alloc_elemwise."
+        " Generates error if not True. Use"
+        " optimizer_excluding=local_alloc_elemwise"
+        " to dsiable.",
+        BoolParam(True),
+        in_c_key=False,
+    )
+
+    # False could make the graph faster but not as safe.
+    AddConfigVar(
+        "experimental__local_alloc_elemwise_assert",
+        "When the local_alloc_elemwise is applied, add"
+        " an assert to highlight shape errors.",
+        BoolParam(True),
+        in_c_key=False,
+    )
+
+
+def add_error_and_warning_configvars():
+    AddConfigVar(
+        "numpy__seterr_all",
+        (
+            "Sets numpy's behaviour for floating-point errors, ",
+            "see numpy.seterr. "
+            "'None' means not to change numpy's default, which can be "
+            "different for different numpy releases. "
+            "This flag sets the default behaviour for all kinds of floating-"
+            "point errors, its effect can be overriden for specific errors "
+            "by the following flags: seterr_divide, seterr_over, "
+            "seterr_under and seterr_invalid.",
+        ),
+        EnumStr(
+            "ignore", ["warn", "raise", "call", "print", "log", "None"], mutable=False
+        ),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "numpy__seterr_divide",
+        (
+            "Sets numpy's behavior for division by zero, see numpy.seterr. "
+            "'None' means using the default, defined by numpy__seterr_all."
+        ),
+        EnumStr(
+            "None", ["ignore", "warn", "raise", "call", "print", "log"], mutable=False
+        ),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "numpy__seterr_over",
+        (
+            "Sets numpy's behavior for floating-point overflow, "
+            "see numpy.seterr. "
+            "'None' means using the default, defined by numpy__seterr_all."
+        ),
+        EnumStr(
+            "None", ["ignore", "warn", "raise", "call", "print", "log"], mutable=False
+        ),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "numpy__seterr_under",
+        (
+            "Sets numpy's behavior for floating-point underflow, "
+            "see numpy.seterr. "
+            "'None' means using the default, defined by numpy__seterr_all."
+        ),
+        EnumStr(
+            "None", ["ignore", "warn", "raise", "call", "print", "log"], mutable=False
+        ),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "numpy__seterr_invalid",
+        (
+            "Sets numpy's behavior for invalid floating-point operation, "
+            "see numpy.seterr. "
+            "'None' means using the default, defined by numpy__seterr_all."
+        ),
+        EnumStr(
+            "None", ["ignore", "warn", "raise", "call", "print", "log"], mutable=False
+        ),
+        in_c_key=False,
+    )
+
+    ###
+    # To disable some warning about old bug that are fixed now.
+    ###
+    AddConfigVar(
+        "warn__ignore_bug_before",
+        (
+            "If 'None', we warn about all Theano bugs found by default. "
+            "If 'all', we don't warn about Theano bugs found by default. "
+            "If a version, we print only the warnings relative to Theano "
+            "bugs found after that version. "
+            "Warning for specific bugs can be configured with specific "
+            "[warn] flags."
+        ),
+        EnumStr(
+            "0.9",
+            [
+                "None",
+                "all",
+                "0.3",
+                "0.4",
+                "0.4.1",
+                "0.5",
+                "0.6",
+                "0.7",
+                "0.8",
+                "0.8.1",
+                "0.8.2",
+                "0.9",
+                "0.10",
+                "1.0",
+                "1.0.1",
+                "1.0.2",
+                "1.0.3",
+                "1.0.4",
+                "1.0.5",
+            ],
+            mutable=False,
+        ),
+        in_c_key=False,
+    )
+
+    # Note to developers:
+    # Generally your exceptions should use an apply node's __str__
+    # method when exception_verbosity == 'low'. When exception_verbosity
+    # == 'high', you should include a call to printing.min_informative_str
+    # on all important apply nodes.
+    AddConfigVar(
+        "exception_verbosity",
+        "If 'low', the text of exceptions will generally refer "
+        "to apply nodes with short names such as "
+        "Elemwise{add_no_inplace}. If 'high', some exceptions "
+        "will also refer to apply nodes with long descriptions "
+        """ like:
+        A. Elemwise{add_no_inplace}
+                B. log_likelihood_v_given_h
+                C. log_likelihood_h""",
+        EnumStr("low", ["high"]),
+        in_c_key=False,
+    )
+
+
+def add_testvalue_and_checking_configvars():
+    AddConfigVar(
+        "print_test_value",
+        (
+            "If 'True', the __eval__ of a Theano variable will return its test_value "
+            "when this is available. This has the practical conseguence that, e.g., "
+            "in debugging `my_var` will print the same as `my_var.tag.test_value` "
+            "when a test value is defined."
+        ),
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "compute_test_value",
+        (
+            "If 'True', Theano will run each op at graph build time, using "
+            "Constants, SharedVariables and the tag 'test_value' as inputs "
+            "to the function. This helps the user track down problems in the "
+            "graph before it gets optimized."
+        ),
+        EnumStr("off", ["ignore", "warn", "raise", "pdb"]),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "compute_test_value_opt",
+        (
+            "For debugging Theano optimization only."
+            " Same as compute_test_value, but is used"
+            " during Theano optimization"
+        ),
+        EnumStr("off", ["ignore", "warn", "raise", "pdb"]),
+        in_c_key=False,
+    )
+    AddConfigVar(
+        "check_input",
+        "Specify if types should check their input in their C code. "
+        "It can be used to speed up compilation, reduce overhead "
+        "(particularly for scalars) and reduce the number of generated C "
+        "files.",
+        BoolParam(True),
+        in_c_key=True,
+    )
+    AddConfigVar(
+        "NanGuardMode__nan_is_error",
+        "Default value for nan_is_error",
+        BoolParam(True),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "NanGuardMode__inf_is_error",
+        "Default value for inf_is_error",
+        BoolParam(True),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "NanGuardMode__big_is_error",
+        "Default value for big_is_error",
+        BoolParam(True),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "NanGuardMode__action",
+        "What NanGuardMode does when it finds a problem",
+        EnumStr("raise", ["warn", "pdb"]),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "DebugMode__patience",
+        "Optimize graph this many times to detect inconsistency",
+        IntParam(10, lambda i: i > 0),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "DebugMode__check_c",
+        "Run C implementations where possible",
+        BoolParam(lambda: bool(theano.config.cxx)),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "DebugMode__check_py",
+        "Run Python implementations where possible",
+        BoolParam(True),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "DebugMode__check_finite",
+        "True -> complain about NaN/Inf results",
+        BoolParam(True),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "DebugMode__check_strides",
+        (
+            "Check that Python- and C-produced ndarrays have same strides. "
+            "On difference: (0) - ignore, (1) warn, or (2) raise error"
+        ),
+        IntParam(0, lambda i: i in (0, 1, 2)),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "DebugMode__warn_input_not_reused",
+        (
+            "Generate a warning when destroy_map or view_map says that an "
+            "op works inplace, but the op did not reuse the input for its "
+            "output."
+        ),
+        BoolParam(True),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "DebugMode__check_preallocated_output",
+        (
+            "Test thunks with pre-allocated memory as output storage. "
+            'This is a list of strings separated by ":". Valid values are: '
+            '"initial" (initial storage in storage map, happens with Scan),'
+            '"previous" (previously-returned memory), '
+            '"c_contiguous", "f_contiguous", '
+            '"strided" (positive and negative strides), '
+            '"wrong_size" (larger and smaller dimensions), and '
+            '"ALL" (all of the above).'
+        ),
+        StrParam("", validate=is_valid_check_preallocated_output_param),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "DebugMode__check_preallocated_output_ndim",
+        (
+            'When testing with "strided" preallocated output memory, '
+            "test all combinations of strides over that number of "
+            "(inner-most) dimensions. You may want to reduce that number "
+            "to reduce memory or time usage, but it is advised to keep a "
+            "minimum of 2."
+        ),
+        IntParam(4, lambda i: i > 0),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "profiling__time_thunks",
+        """Time individual thunks when profiling""",
+        BoolParam(True),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "profiling__n_apply",
+        "Number of Apply instances to print by default",
+        IntParam(20, lambda i: i > 0),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "profiling__n_ops",
+        "Number of Ops to print by default",
+        IntParam(20, lambda i: i > 0),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "profiling__output_line_width",
+        "Max line width for the profiling output",
+        IntParam(512, lambda i: i > 0),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "profiling__min_memory_size",
+        """For the memory profile, do not print Apply nodes if the size
+                 of their outputs (in bytes) is lower than this threshold""",
+        IntParam(1024, lambda i: i >= 0),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "profiling__min_peak_memory",
+        """The min peak memory usage of the order""",
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "profiling__destination",
+        """File destination of the profiling output""",
+        StrParam("stderr"),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "profiling__debugprint",
+        """Do a debugprint of the profiled functions""",
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "profiling__ignore_first_call",
+        """Do we ignore the first call of a Theano function.""",
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "on_shape_error",
+        "warn: print a warning and use the default" " value. raise: raise an error",
+        EnumStr("warn", ["raise"]),
+        in_c_key=False,
+    )
+
+
+def add_multiprocessing_configvars():
+    # Test if the env variable is set
+    var = os.getenv("OMP_NUM_THREADS", None)
+    if var:
+        try:
+            int(var)
+        except ValueError:
+            raise TypeError(
+                f"The environment variable OMP_NUM_THREADS should be a number, got '{var}'."
+            )
+        else:
+            default_openmp = not int(var) == 1
+    else:
+        # Check the number of cores availables.
+        count = os.cpu_count()
+        if count is None:
+            _logger.warning(
+                "We are not able to detect the number of CPU cores."
+                " We disable openmp by default. To remove this"
+                " warning, set the environment variable"
+                " OMP_NUM_THREADS to the number of threads you"
+                " want theano to use."
+            )
+        default_openmp = count > 1
+
+    # Disable it by default for now as currently only the ConvOp supports
+    # it, and this causes slowdown by default as we do not disable it for
+    # too small convolution.
+    default_openmp = False
+
+    AddConfigVar(
+        "openmp",
+        "Allow (or not) parallel computation on the CPU with OpenMP. "
+        "This is the default value used when creating an Op that "
+        "supports OpenMP parallelization. It is preferable to define it "
+        "via the Theano configuration file ~/.theanorc or with the "
+        "environment variable THEANO_FLAGS. Parallelization is only "
+        "done for some operations that implement it, and even for "
+        "operations that implement parallelism, each operation is free "
+        "to respect this flag or not. You can control the number of "
+        "threads used with the environment variable OMP_NUM_THREADS."
+        " If it is set to 1, we disable openmp in Theano by default.",
+        BoolParam(default_openmp),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "openmp_elemwise_minsize",
+        "If OpenMP is enabled, this is the minimum size of vectors "
+        "for which the openmp parallelization is enabled "
+        "in element wise ops.",
+        IntParam(200000),
+        in_c_key=False,
+    )
+
+
+def add_optimizer_configvars():
+    AddConfigVar(
+        "optimizer_excluding",
+        (
+            "When using the default mode, we will remove optimizer with "
+            "these tags. Separate tags with ':'."
+        ),
+        StrParam("", mutable=False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "optimizer_including",
+        (
+            "When using the default mode, we will add optimizer with "
+            "these tags. Separate tags with ':'."
+        ),
+        StrParam("", mutable=False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "optimizer_requiring",
+        (
+            "When using the default mode, we will require optimizer with "
+            "these tags. Separate tags with ':'."
+        ),
+        StrParam("", mutable=False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "optdb__position_cutoff",
+        "Where to stop eariler during optimization. It represent the"
+        " position of the optimizer where to stop.",
+        FloatParam(np.inf),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "optdb__max_use_ratio",
+        "A ratio that prevent infinite loop in EquilibriumOptimizer.",
+        FloatParam(8),
+        in_c_key=False,
+    )
+    AddConfigVar(
+        "cycle_detection",
+        "If cycle_detection is set to regular, most inplaces are allowed,"
+        "but it is slower. If cycle_detection is set to faster, less inplaces"
+        "are allowed, but it makes the compilation faster."
+        "The interaction of which one give the lower peak memory usage is"
+        "complicated and not predictable, so if you are close to the peak"
+        "memory usage, triyng both could give you a small gain.",
+        EnumStr("regular", ["fast"]),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "check_stack_trace",
+        "A flag for checking the stack trace during the optimization process. "
+        "default (off): does not check the stack trace of any optimization "
+        "log: inserts a dummy stack trace that identifies the optimization"
+        "that inserted the variable that had an empty stack trace."
+        "warn: prints a warning if a stack trace is missing and also a dummy"
+        "stack trace is inserted that indicates which optimization inserted"
+        "the variable that had an empty stack trace."
+        "raise: raises an exception if a stack trace is missing",
+        EnumStr("off", ["log", "warn", "raise"]),
+        in_c_key=False,
+    )
+
+
+def add_blas_configvars():
+    AddConfigVar(
+        "blas__ldflags",
+        "lib[s] to include for [Fortran] level-3 blas implementation",
+        StrParam(default_blas_ldflags),
+        # Added elsewhere in the c key only when needed.
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "blas__check_openmp",
+        "Check for openmp library conflict.\nWARNING: Setting this to False leaves you open to wrong results in blas-related operations.",
+        BoolParam(True),
+        in_c_key=False,
+    )
+
+
+def add_metaopt_configvars():
+    AddConfigVar(
+        "metaopt__verbose",
+        "0 for silent, 1 for only warnings, 2 for full output with"
+        "timings and selected implementation",
+        IntParam(0),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "metaopt__optimizer_excluding",
+        ("exclude optimizers with these tags. " "Separate tags with ':'."),
+        StrParam(""),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "metaopt__optimizer_including",
+        ("include optimizers with these tags. " "Separate tags with ':'."),
+        StrParam(""),
+        in_c_key=False,
+    )
+
+
+def add_vm_configvars():
+    AddConfigVar(
+        "profile",
+        "If VM should collect profile information",
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "profile_optimizer",
+        "If VM should collect optimizer profile information",
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "profile_memory",
+        "If VM should collect memory profile information and print it",
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "vm__lazy",
+        "Useful only for the vm linkers. When lazy is None,"
+        " auto detect if lazy evaluation is needed and use the appropriate"
+        " version. If lazy is True/False, force the version used between"
+        " Loop/LoopGC and Stack.",
+        ConfigParam("None", apply=filter_vm_lazy),
+        in_c_key=False,
+    )
+
+
+def add_deprecated_configvars():
+    # TODO: remove this?
+    AddConfigVar(
+        "cache_optimizations",
+        "WARNING: work in progress, does not work yet. "
+        "Specify if the optimization cache should be used. This cache will "
+        "any optimized graph and its optimization. Actually slow downs a lot "
+        "the first optimization, and could possibly still contains some bugs. "
+        "Use at your own risks.",
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+    # TODO: remove this?
+    AddConfigVar(
+        "unittests__rseed",
+        "Seed to use for randomized unit tests. "
+        "Special value 'random' means using a seed of None.",
+        StrParam(666, validate=good_seed_param),
+        in_c_key=False,
+    )
+
+    # TODO: remove?
+    AddConfigVar(
+        "warn__identify_1pexp_bug",
+        "Warn if Theano versions prior to 7987b51 (2011-12-18) could have "
+        "yielded a wrong result due to a bug in the is_1pexp function",
+        BoolParam(warn_default("0.4.1")),
+        in_c_key=False,
+    )
+    # TODO: this setting is not used anywhere
+    AddConfigVar(
+        "gpu__local_elemwise_fusion",
+        (
+            "Enable or not in fast_run mode(fast_run optimization) the gpu "
+            "elemwise fusion optimization"
+        ),
+        BoolParam(True),
+        in_c_key=False,
+    )
+    # TODO: this setting is not used anywhere
+    AddConfigVar(
+        "gpuelemwise__sync",
+        "when true, wait that the gpu fct finished and check it error code.",
+        BoolParam(True),
+        in_c_key=False,
+    )
+    # TODO: most of these bugfix-related warnings can probably be removed
+    AddConfigVar(
+        "warn__argmax_pushdown_bug",
+        (
+            "Warn if in past version of Theano we generated a bug with the "
+            "theano.tensor.nnet.nnet.local_argmax_pushdown optimization. "
+            "Was fixed 27 may 2010"
+        ),
+        BoolParam(warn_default("0.3")),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "warn__gpusum_01_011_0111_bug",
+        (
+            "Warn if we are in a case where old version of Theano had a "
+            "silent bug with GpuSum pattern 01,011 and 0111 when the first "
+            "dimensions was bigger then 4096. Was fixed 31 may 2010"
+        ),
+        BoolParam(warn_default("0.3")),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "warn__sum_sum_bug",
+        (
+            "Warn if we are in a case where Theano version between version "
+            "9923a40c7b7a and the 2 august 2010 (fixed date), generated an "
+            "error in that case. This happens when there are 2 consecutive "
+            "sums in the graph, bad code was generated. "
+            "Was fixed 2 August 2010"
+        ),
+        BoolParam(warn_default("0.3")),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "warn__sum_div_dimshuffle_bug",
+        (
+            "Warn if previous versions of Theano (between rev. "
+            "3bd9b789f5e8, 2010-06-16, and cfc6322e5ad4, 2010-08-03) "
+            "would have given incorrect result. This bug was triggered by "
+            "sum of division of dimshuffled tensors."
+        ),
+        BoolParam(warn_default("0.3")),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "warn__subtensor_merge_bug",
+        "Warn if previous versions of Theano (before 0.5rc2) could have given "
+        "incorrect results when indexing into a subtensor with negative "
+        "stride (for instance, for instance, x[a:b:-1][c]).",
+        BoolParam(warn_default("0.5")),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "warn__gpu_set_subtensor1",
+        "Warn if previous versions of Theano (before 0.6) could have given "
+        "incorrect results when moving to the gpu "
+        "set_subtensor(x[int vector], new_value)",
+        BoolParam(warn_default("0.6")),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "warn__vm_gc_bug",
+        "There was a bug that existed in the default Theano configuration,"
+        " only in the development version between July 5th 2012"
+        " and July 30th 2012. This was not in a released version."
+        " If your code was affected by this bug, a warning"
+        " will be printed during the code execution if you use the"
+        " `linker=vm,vm__lazy=True,warn__vm_gc_bug=True` Theano flags."
+        " This warning is disabled by default as the bug was not released.",
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "warn__signal_conv2d_interface",
+        (
+            "Warn we use the new signal.conv2d() when its interface"
+            " changed mid June 2014"
+        ),
+        BoolParam(warn_default("0.7")),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "warn__reduce_join",
+        (
+            "Your current code is fine, but Theano versions "
+            "prior to 0.7 (or this development version) "
+            "might have given an incorrect result. "
+            "To disable this warning, set the Theano flag "
+            "warn__reduce_join to False. The problem was an "
+            "optimization, that modified the pattern "
+            '"Reduce{scalar.op}(Join(axis=0, a, b), axis=0)", '
+            "did not check the reduction axis. So if the "
+            "reduction axis was not 0, you got a wrong answer."
+        ),
+        BoolParam(warn_default("0.7")),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "warn__inc_set_subtensor1",
+        (
+            "Warn if previous versions of Theano (before 0.7) could have "
+            "given incorrect results for inc_subtensor and set_subtensor "
+            "when using some patterns of advanced indexing (indexing with "
+            "one vector or matrix of ints)."
+        ),
+        BoolParam(warn_default("0.7")),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "warn__round",
+        "Warn when using `tensor.round` with the default mode. "
+        "Round changed its default from `half_away_from_zero` to "
+        "`half_to_even` to have the same default as NumPy.",
+        BoolParam(warn_default("0.9")),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "warn__inc_subtensor1_opt",
+        "Warn if previous versions of Theano (before 0.10) could have "
+        "given incorrect results when computing "
+        "inc_subtensor(zeros[idx], x)[idx], when idx is an array of integers "
+        "with duplicated values.",
+        BoolParam(warn_default("0.10")),
+        in_c_key=False,
+    )
+
+
+def add_scan_configvars():
+    AddConfigVar(
+        "scan__allow_gc",
+        "Allow/disallow gc inside of Scan (default: False)",
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "scan__allow_output_prealloc",
+        "Allow/disallow memory preallocation for outputs inside of scan "
+        "(default: True)",
+        BoolParam(True),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "scan__debug",
+        "If True, enable extra verbose output related to scan",
+        BoolParam(False),
+        in_c_key=False,
+    )
+
+
+def add_caching_dir_configvars():
+    compiledir_format_dict = {
+        "platform": platform.platform(),
+        "processor": platform.processor(),
+        "python_version": platform.python_version(),
+        "python_bitwidth": local_bitwidth(),
+        "python_int_bitwidth": python_int_bitwidth(),
+        "theano_version": theano.__version__,
+        "numpy_version": np.__version__,
+        "gxx_version": gcc_version_str.replace(" ", "_"),
+        "hostname": socket.gethostname(),
+    }
+
+    compiledir_format_dict["short_platform"] = short_platform()
+    # Allow to have easily one compiledir per device.
+    compiledir_format_dict["device"] = config.device
+    compiledir_format_keys = ", ".join(sorted(compiledir_format_dict.keys()))
+    default_compiledir_format = (
+        "compiledir_%(short_platform)s-%(processor)s-"
+        "%(python_version)s-%(python_bitwidth)s"
+    )
+
+    AddConfigVar(
+        "compiledir_format",
+        textwrap.fill(
+            textwrap.dedent(
+                f"""\
+                     Format string for platform-dependent compiled
+                     module subdirectory (relative to base_compiledir).
+                     Available keys: {compiledir_format_keys}. Defaults to {default_compiledir_format}.
+                 """
+            )
+        ),
+        StrParam(default_compiledir_format, mutable=False),
+        in_c_key=False,
+    )
+
+    def default_compiledirname():
+        formatted = theano.config.compiledir_format % compiledir_format_dict
+        safe = re.sub(r"[\(\)\s,]+", "_", formatted)
+        return safe
+
+    def filter_base_compiledir(path):
+        # Expand '~' in path
+        return os.path.expanduser(str(path))
+
+    def filter_compiledir(path):
+        # Expand '~' in path
+        path = os.path.expanduser(path)
+        # Turn path into the 'real' path. This ensures that:
+        #   1. There is no relative path, which would fail e.g. when trying to
+        #      import modules from the compile dir.
+        #   2. The path is stable w.r.t. e.g. symlinks (which makes it easier
+        #      to re-use compiled modules).
+        path = os.path.realpath(path)
+        if os.access(path, os.F_OK):  # Do it exist?
+            if not os.access(path, os.R_OK | os.W_OK | os.X_OK):
+                # If it exist we need read, write and listing access
+                raise ValueError(
+                    f"compiledir '{path}' exists but you don't have read, write"
+                    " or listing permissions."
+                )
+        else:
+            try:
+                os.makedirs(path, 0o770)  # read-write-execute for user and group
+            except OSError as e:
+                # Maybe another parallel execution of theano was trying to create
+                # the same directory at the same time.
+                if e.errno != errno.EEXIST:
+                    raise ValueError(
+                        "Unable to create the compiledir directory"
+                        f" '{path}'. Check the permissions."
+                    )
+
+        # PROBLEM: sometimes the initial approach based on
+        # os.system('touch') returned -1 for an unknown reason; the
+        # alternate approach here worked in all cases... it was weird.
+        # No error should happen as we checked the permissions.
+        init_file = os.path.join(path, "__init__.py")
+        if not os.path.exists(init_file):
+            try:
+                open(init_file, "w").close()
+            except OSError as e:
+                if os.path.exists(init_file):
+                    pass  # has already been created
+                else:
+                    e.args += (f"{path} exist? {os.path.exists(path)}",)
+                    raise
+        return path
+
+    def get_home_dir():
+        """
+        Return location of the user's home directory.
+
+        """
+        home = os.getenv("HOME")
+        if home is None:
+            # This expanduser usually works on Windows (see discussion on
+            # theano-users, July 13 2010).
+            home = os.path.expanduser("~")
+            if home == "~":
+                # This might happen when expanduser fails. Although the cause of
+                # failure is a mystery, it has been seen on some Windows system.
+                home = os.getenv("USERPROFILE")
+        assert home is not None
+        return home
+
+    # On Windows we should avoid writing temporary files to a directory that is
+    # part of the roaming part of the user profile. Instead we use the local part
+    # of the user profile, when available.
+    if sys.platform == "win32" and os.getenv("LOCALAPPDATA") is not None:
+        default_base_compiledir = os.path.join(os.getenv("LOCALAPPDATA"), "Theano")
+    else:
+        default_base_compiledir = os.path.join(get_home_dir(), ".theano")
+
+    AddConfigVar(
+        "base_compiledir",
+        "platform-independent root directory for compiled modules",
+        ConfigParam(
+            default_base_compiledir, apply=filter_base_compiledir, mutable=False
+        ),
+        in_c_key=False,
+    )
+
+    def default_compiledir():
+        return os.path.join(theano.config.base_compiledir, default_compiledirname())
+
+    AddConfigVar(
+        "compiledir",
+        "platform-dependent cache directory for compiled modules",
+        ConfigParam(default_compiledir, apply=filter_compiledir, mutable=False),
+        in_c_key=False,
+    )
+
+    AddConfigVar(
+        "gpuarray__cache_path",
+        "Directory to cache pre-compiled kernels for the gpuarray backend.",
+        ConfigParam(
+            lambda: os.path.join(config.compiledir, "gpuarray_kernels"),
+            apply=filter_base_compiledir,
+            mutable=False,
+        ),
+        in_c_key=False,
+    )
+
+
+# Those are the options provided by Theano to choose algorithms at runtime.
+SUPPORTED_DNN_CONV_ALGO_RUNTIME = (
+    "guess_once",
+    "guess_on_shape_change",
+    "time_once",
+    "time_on_shape_change",
 )
 
+# Those are the supported algorithm by Theano,
+# The tests will reference those lists.
+SUPPORTED_DNN_CONV_ALGO_FWD = (
+    "small",
+    "none",
+    "large",
+    "fft",
+    "fft_tiling",
+    "winograd",
+    "winograd_non_fused",
+) + SUPPORTED_DNN_CONV_ALGO_RUNTIME
 
-def default_compiledir():
-    return os.path.join(theano.config.base_compiledir, default_compiledirname())
+SUPPORTED_DNN_CONV_ALGO_BWD_DATA = (
+    "none",
+    "deterministic",
+    "fft",
+    "fft_tiling",
+    "winograd",
+    "winograd_non_fused",
+) + SUPPORTED_DNN_CONV_ALGO_RUNTIME
 
+SUPPORTED_DNN_CONV_ALGO_BWD_FILTER = (
+    "none",
+    "deterministic",
+    "fft",
+    "small",
+    "winograd_non_fused",
+    "fft_tiling",
+) + SUPPORTED_DNN_CONV_ALGO_RUNTIME
 
-AddConfigVar(
-    "compiledir",
-    "platform-dependent cache directory for compiled modules",
-    ConfigParam(default_compiledir, apply=filter_compiledir, mutable=False),
-    in_c_key=False,
+SUPPORTED_DNN_CONV_PRECISION = (
+    "as_input_f32",
+    "as_input",
+    "float16",
+    "float32",
+    "float64",
 )
 
-AddConfigVar(
-    "gpuarray__cache_path",
-    "Directory to cache pre-compiled kernels for the gpuarray backend.",
-    ConfigParam(
-        lambda: os.path.join(config.compiledir, "gpuarray_kernels"),
-        apply=filter_base_compiledir,
-        mutable=False,
-    ),
-    in_c_key=False,
-)
+# TODO: we should add the configs explicitly to an instance of the TheanoConfigParser
+# Even if we treat it as a singleton, we should implement as if it wasn't, so we can
+# test it independently.
+config = TheanoConfigParser()
+add_basic_configvars()
+add_dnn_configvars()
+add_magma_configvars()
+add_compile_configvars()
+# TODO: "tensor", "gpuarray" and compilation options are closely related.. Grouping is not great.
+add_tensor_configvars()
+add_traceback_configvars()
+add_experimental_configvars()
+add_error_and_warning_configvars()
+add_testvalue_and_checking_configvars()
+add_multiprocessing_configvars()
+add_optimizer_configvars()
+# TODO: Module-specific configs should probably be added upon import of the module.
+# This would mean either calling the function from there, or even moving all the related code there.
+# Blas-related config are a special pain-point, because their addition depends on a lot of stuff from
+# that module, which introduces a circular dependency!
+add_blas_configvars()
+add_metaopt_configvars()
+add_vm_configvars()
+add_deprecated_configvars()
+# TODO: another example for config that should be added by the module itself:
+add_scan_configvars()
 
-AddConfigVar(
-    "ctc__root",
-    "Directory which contains the root of Baidu CTC library. It is assumed \
-    that the compiled library is either inside the build, lib or lib64 \
-    subdirectory, and the header inside the include directory.",
-    StrParam("", mutable=False),
-    in_c_key=False,
-)
+# TODO: `gcc_version_str` is used by other modules.. Should it become an immutable config var?
+try:
+    p_out = output_subprocess_Popen([config.cxx, "-dumpversion"])
+    gcc_version_str = p_out[0].strip().decode()
+except OSError:
+    # Typically means gcc cannot be found.
+    gcc_version_str = "GCC_NOT_FOUND"
+# TODO: The caching dir resolution is a procedural mess of helper functions, local variables
+# and config definitions. And the result is also not particularly pretty..
+add_caching_dir_configvars()
 
 # Check if there are remaining flags provided by the user through THEANO_FLAGS.
+# TODO: the global variable THEANO_FLAGS_DICT should probably become an attribute on the `config` singleton
 for key in THEANO_FLAGS_DICT.keys():
     warnings.warn(f"Theano does not recognise this flag: {key}")
