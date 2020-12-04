@@ -24,11 +24,21 @@ try:
 except ImportError:
     pygpu = None
 
-from . import ctc, dnn, extra_ops, fft, multinomial, opt, reduction, rng_mrg, sort
-from .basic_ops import as_gpuarray_variable
+from theano.gpuarray import (
+    ctc,
+    dnn,
+    extra_ops,
+    fft,
+    multinomial,
+    opt,
+    reduction,
+    rng_mrg,
+    sort,
+)
+from theano.gpuarray.basic_ops import as_gpuarray_variable
 
 # This is for documentation not to depend on the availability of pygpu
-from .type import (
+from theano.gpuarray.type import (
     ContextNotDefined,
     GpuArrayConstant,
     GpuArraySharedVariable,
@@ -160,8 +170,8 @@ def init_dev(dev, name=None, preallocate=None):
                     f" {int(context.free_gmem / MB)} MB are available."
                 )
             elif gmem > context.free_gmem - 50 * MB:
-                print(
-                    "WARNING: Preallocating too much memory can prevent cudnn and cublas from working properly"
+                warnings.warn(
+                    "Preallocating too much memory can prevent cudnn and cublas from working properly"
                 )
 
             # This will allocate and immediately free an object of size gmem

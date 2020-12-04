@@ -4114,7 +4114,7 @@ def test_make_column_matrix_broadcastable():
     assert (f(np.zeros((3, 1))) + np.ones(2) == np.ones((3, 2))).all()
 
 
-def test_flatten_outdimNone():
+def test_flatten_ndim_default():
     a = dmatrix()
     c = flatten(a)
     f = inplace_func([a], c)
@@ -4178,9 +4178,6 @@ def test_flatten_ndim2_of_3():
 
     flatten_2 = partial(flatten, ndim=2)
     utt.verify_grad(flatten_2, [a_val])
-    # test outdim parameter name
-    flatten_2 = partial(flatten, outdim=2)
-    utt.verify_grad(flatten_2, [a_val])
 
 
 def test_flatten_broadcastable():
@@ -4219,7 +4216,7 @@ def test_flatten_ndim_invalid():
 def test_is_flat():
     # tests is_flat method for constant and symbolic variables,
     # as well as reshaped constant and symbolic variables on the
-    # given outdim
+    # given `ndim`
 
     # Constant variable
     assert tt.is_flat(tt.as_tensor_variable(np.zeros(10)))
@@ -6251,10 +6248,10 @@ class TestInferShape(utt.InferShapeTester):
         # Flatten
         atens3 = tensor3()
         atens3_val = rand(4, 5, 3)
-        for outdim in (3, 2, 1):
+        for ndim in (3, 2, 1):
             self._compile_and_check(
                 [atens3],
-                [flatten(atens3, outdim)],
+                [flatten(atens3, ndim)],
                 [atens3_val],
                 Reshape,
                 excluding=["local_useless_reshape"],
@@ -6262,10 +6259,10 @@ class TestInferShape(utt.InferShapeTester):
 
         amat = matrix()
         amat_val = rand(4, 5)
-        for outdim in (2, 1):
+        for ndim in (2, 1):
             self._compile_and_check(
                 [amat],
-                [flatten(amat, outdim)],
+                [flatten(amat, ndim)],
                 [amat_val],
                 Reshape,
                 excluding=["local_useless_reshape"],
@@ -6273,10 +6270,10 @@ class TestInferShape(utt.InferShapeTester):
 
         avec = vector()
         avec_val = rand(4)
-        outdim = 1
+        ndim = 1
         self._compile_and_check(
             [avec],
-            [flatten(avec, outdim)],
+            [flatten(avec, ndim)],
             [avec_val],
             Reshape,
             excluding=["local_useless_reshape"],

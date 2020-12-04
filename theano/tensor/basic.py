@@ -5244,8 +5244,8 @@ class Flatten(Op):
     """
     Flatten a tensor.
 
-    Flattens a tensor to `outdim` dimensions by preserving the leading
-    outdim - 1 shape components.
+    Flattens a tensor to `ndim` dimensions by preserving the leading
+    ndim - 1 shape components.
 
     .. note:: The interface Flatten(Op) is deprecated, you should use flatten.
     """
@@ -5253,24 +5253,24 @@ class Flatten(Op):
     view_map = {0: [0]}
 
     check_input = False
-    __props__ = ("outdim",)
+    __props__ = ("ndim",)
 
-    def __init__(self, outdim=1):
+    def __init__(self, ndim=1):
         warnings.warn(
             "Flatten class is deprecated, " "please use flatten method instead.",
             DeprecationWarning,
             stacklevel=4,
         )
-        self.outdim = int(outdim)
+        self.ndim = int(ndim)
 
     def __str__(self):
-        return f"{self.__class__.__name__}{{{self.outdim}}}"
+        return f"{self.__class__.__name__}{{{self.ndim}}}"
 
     def make_node(self, x):
         t_x = as_tensor_variable(x)
-        if self.outdim < 1 or (x.ndim and self.outdim > x.ndim):
+        if self.ndim < 1 or (x.ndim and self.ndim > x.ndim):
             raise ValueError(
-                f"invalid output ndimensions ({self.outdim}) for tensor of "
+                f"invalid output ndimensions ({self.ndim}) for tensor of "
                 f"rank {t_x.ndim}"
             )
 
@@ -5279,8 +5279,8 @@ class Flatten(Op):
         # For the dimension resulting from the collapse of other dimensions,
         # it should be broadcastable iff all the collapsed dimensions were
         # broadcastable.
-        bcast_kept_dims = x.broadcastable[: self.outdim - 1]
-        bcast_new_dim = builtins.all(x.broadcastable[self.outdim - 1 :])
+        bcast_kept_dims = x.broadcastable[: self.ndim - 1]
+        bcast_new_dim = builtins.all(x.broadcastable[self.ndim - 1 :])
         broadcastable = bcast_kept_dims + (bcast_new_dim,)
 
         return gof.Apply(self, [t_x], [tensor(x.type.dtype, broadcastable)])
@@ -5288,22 +5288,22 @@ class Flatten(Op):
     def perform(self, node, inp, out_):
         (x,) = inp
         (out,) = out_
-        outdim = self.outdim
-        if outdim == 1:
+        ndim = self.ndim
+        if ndim == 1:
             try:
                 out[0] = x.reshape(x.size)
             except AttributeError:
                 out[0] = x.reshape((np.prod(x.shape),))
-        elif outdim == len(x.shape):
+        elif ndim == len(x.shape):
             out[0] = x
         else:
-            newshape = x.shape[: outdim - 1] + (np.prod(x.shape[outdim - 1 :]),)
+            newshape = x.shape[: ndim - 1] + (np.prod(x.shape[ndim - 1 :]),)
             out[0] = x.reshape(newshape)
 
     def infer_shape(self, fgraph, node, in_shapes):
         (in_shp,) = in_shapes
-        part1 = in_shp[: self.outdim - 1]
-        part2 = in_shp[self.outdim - 1 :]
+        part1 = in_shp[: self.ndim - 1]
+        part2 = in_shp[self.ndim - 1 :]
 
         if len(part2) > 1:
             part2 = (prod(part2, dtype="int64"),)
@@ -5311,11 +5311,11 @@ class Flatten(Op):
             # We do not want to force an upcast of part2 if its length is 1
             pass
         else:
-            if len(in_shp) == 0 and self.outdim == 1:
+            if len(in_shp) == 0 and self.ndim == 1:
                 part2 = (1,)
             else:
                 raise ValueError(
-                    f"invalid output ndimensions ({self.outdim}) for tensor "
+                    f"invalid output ndimensions ({self.ndim}) for tensor "
                     f"of rank {len(in_shp)}"
                 )
 
@@ -5338,11 +5338,11 @@ class Flatten(Op):
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
         (out,) = outputs
-        outdim = self.outdim
+        ndim = self.ndim
         fail = sub["fail"]
         return (
             """
-        if (%(outdim)s == PyArray_NDIM(%(x)s))
+        if (%(ndim)s == PyArray_NDIM(%(x)s))
         {
             Py_XDECREF(%(out)s);
             Py_XINCREF(%(x)s);
@@ -5352,7 +5352,7 @@ class Flatten(Op):
         {
             Py_XDECREF(%(out)s);
 
-            if (%(outdim)s == 1)
+            if (%(ndim)s == 1)
             {
                 npy_intp size = PyArray_SIZE(%(x)s);
                 PyArray_Dims newshape;
@@ -5365,20 +5365,20 @@ class Flatten(Op):
             else
             {
                 npy_intp *oldshape = PyArray_DIMS(%(x)s);
-                npy_intp newshape_dims[%(outdim)s];
+                npy_intp newshape_dims[%(ndim)s];
 
                 int i;
-                for (i = 0; i < %(outdim)s - 1; ++i)
+                for (i = 0; i < %(ndim)s - 1; ++i)
                     newshape_dims[i] = oldshape[i];
 
                 newshape_dims[i] = 1;
 
-                for (int j = %(outdim)s - 1; j < PyArray_NDIM(%(x)s); ++j)
+                for (int j = %(ndim)s - 1; j < PyArray_NDIM(%(x)s); ++j)
                     newshape_dims[i] *= oldshape[j];
 
                 PyArray_Dims newshape;
                 newshape.ptr = newshape_dims;
-                newshape.len = %(outdim)s;
+                newshape.len = %(ndim)s;
                 %(out)s = (PyArrayObject*)PyArray_Newshape(%(x)s,
                                                            &newshape,
                                                            NPY_CORDER);
@@ -5428,36 +5428,29 @@ def is_flat(var, ndim=None, outdim=None):
     return var.ndim == ndim
 
 
-def flatten(x, ndim=None, outdim=None):
-    """
-    Reshapes the variable x by keeping
-    the first outdim-1 dimension size(s) of x the same,
-    and making the last dimension size of x equal to
-    the multiplication of its remaining dimension size(s).
+def flatten(x, ndim=1):
+    """Return a copy of the array collapsed into one dimension.
+
+    Reshapes the variable `x` by keeping the first outdim-1 dimension size(s)
+    of `x` the same, and making the last dimension size of `x` equal to the
+    multiplication of its remaining dimension size(s).
 
     Parameters
     ----------
-        x : theano.tensor.var.TensorVariable
-            the variable that should be reshaped.
+    x : theano.tensor.var.TensorVariable
+        The variable to be reshaped.
+    ndim : int
+        The number of dimensions of the returned variable
+        The default value is ``1``.
 
-        ndim : int
-            the number of dimensions of the returned variable
-            Default 1.
-        outdim : int
-            DEPRECATED synonym for ndim
     Returns
     -------
     theano.tensor.var.TensorVariable
         the flattend variable with dimensionality of outdim
     """
-    if outdim is None and ndim is None:
+    if ndim is None:
         ndim = 1
-    elif outdim is not None and ndim is not None:
-        raise ValueError("You should only specify ndim")
-    elif outdim is not None:
-        warnings.warn("flatten outdim parameter is deprecated, use ndim instead.")
 
-        ndim = outdim
     # Any input variable can be flattened to have ndim of 1,
     # even if it's a scalar. Otherwise, ndim must be positive
     # and smaller than x.ndim.
@@ -5473,30 +5466,9 @@ def flatten(x, ndim=None, outdim=None):
     bcast_new_dim = builtins.all(x.broadcastable[ndim - 1 :])
     broadcastable = bcast_kept_dims + (bcast_new_dim,)
     x_reshaped = theano.tensor.addbroadcast(
-        x_reshaped, *filter(lambda i: broadcastable[i], range(ndim))
+        x_reshaped, *[i for i in range(ndim) if broadcastable[i]]
     )
     return x_reshaped
-
-
-# class TileGrad(Op):
-#     """
-#     Calculates the gradient of the Tile Op.
-#     """
-#     # this is so weird, I can't think of how to make this a general thing.
-#     def make_node(self, x, reps, g_out):
-#         return gof.Apply(self, [x, reps, g_out], [x.type()])
-#
-#     def perform(self, node, inp, out):
-#         x, reps, g_out = inp
-#         gx, = out
-#         xsh = x.shape
-#         if len(reps) == 2 and reps[1] == 1 and len(x.shape) == 1:
-#             gx[0] = numpy.sum(g_out, axis=0)
-#         else:
-#             raise NotImplementedError('x.shape, reps combination not '
-#                                       'supported', (x.shape, reps))
-#
-# tilegrad = TileGrad()
 
 
 class Tile(Op):

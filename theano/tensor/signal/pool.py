@@ -93,9 +93,10 @@ def pool_2d(
             )
         else:
             warnings.warn(
-                "DEPRECATION: the 'ds' parameter is not going to exist"
+                "The 'ds' parameter is not going to exist"
                 " anymore as it is going to be replaced by the parameter"
                 " 'ws'.",
+                category=DeprecationWarning,
                 stacklevel=2,
             )
             ws = ds
@@ -110,9 +111,10 @@ def pool_2d(
             )
         else:
             warnings.warn(
-                "DEPRECATION: the 'st' parameter is not going to exist"
+                "The 'st' parameter is not going to exist"
                 " anymore as it is going to be replaced by the parameter"
                 " 'stride'.",
+                category=DeprecationWarning,
                 stacklevel=2,
             )
             stride = st
@@ -125,9 +127,10 @@ def pool_2d(
             )
         else:
             warnings.warn(
-                "DEPRECATION: the 'padding' parameter is not going to exist"
+                "The 'padding' parameter is not going to exist"
                 " anymore as it is going to be replaced by the parameter"
                 " 'pad'.",
+                category=DeprecationWarning,
                 stacklevel=2,
             )
             pad = padding
@@ -145,6 +148,7 @@ def pool_2d(
             " GPU combination supported is when"
             " `ws == stride and pad == (0, 0) and mode == 'max'`."
             " Otherwise, the convolution will be executed on CPU.",
+            category=DeprecationWarning,
             stacklevel=2,
         )
         ignore_border = False
@@ -210,9 +214,10 @@ def pool_3d(
             )
         else:
             warnings.warn(
-                "DEPRECATION: the 'ds' parameter is not going to exist"
+                "The 'ds' parameter is not going to exist"
                 " anymore as it is going to be replaced by the parameter"
                 " 'ws'.",
+                category=DeprecationWarning,
                 stacklevel=2,
             )
             ws = ds
@@ -227,9 +232,10 @@ def pool_3d(
             )
         else:
             warnings.warn(
-                "DEPRECATION: the 'st' parameter is not going to exist"
+                "The 'st' parameter is not going to exist"
                 " anymore as it is going to be replaced by the parameter"
                 " 'stride'.",
+                category=DeprecationWarning,
                 stacklevel=2,
             )
             stride = st
@@ -242,9 +248,10 @@ def pool_3d(
             )
         else:
             warnings.warn(
-                "DEPRECATION: the 'padding' parameter is not going to exist"
+                "The 'padding' parameter is not going to exist"
                 " anymore as it is going to be replaced by the parameter"
                 " 'pad'.",
+                category=DeprecationWarning,
                 stacklevel=2,
             )
             pad = padding
@@ -262,6 +269,7 @@ def pool_3d(
             " GPU combination supported is when"
             " `ws == stride and pad == (0, 0, 0) and mode == 'max'`."
             " Otherwise, the convolution will be executed on CPU.",
+            category=DeprecationWarning,
             stacklevel=2,
         )
         ignore_border = False
@@ -387,9 +395,10 @@ class Pool(OpenMPOp):
                 )
             else:
                 warnings.warn(
-                    "DEPRECATION: the 'ds' parameter is not going to exist"
+                    "The 'ds' parameter is not going to exist"
                     " anymore as it is going to be replaced by the parameter"
                     " 'ws'.",
+                    category=DeprecationWarning,
                     stacklevel=2,
                 )
                 ws = ds
@@ -404,9 +413,10 @@ class Pool(OpenMPOp):
                 )
             else:
                 warnings.warn(
-                    "DEPRECATION: the 'st' parameter is not going to exist"
+                    "The 'st' parameter is not going to exist"
                     " anymore as it is going to be replaced by the parameter"
                     " 'stride'.",
+                    category=DeprecationWarning,
                     stacklevel=2,
                 )
                 stride = st
@@ -420,9 +430,10 @@ class Pool(OpenMPOp):
                 )
             else:
                 warnings.warn(
-                    "DEPRECATION: the 'padding' parameter is not going to"
+                    "The 'padding' parameter is not going to"
                     " exist anymore as it is going to be replaced by the"
                     " parameter 'pad'.",
+                    category=DeprecationWarning,
                     stacklevel=2,
                 )
                 pad = padding
@@ -1032,9 +1043,10 @@ class PoolGrad(OpenMPOp):
                 )
             else:
                 warnings.warn(
-                    "DEPRECATION: the 'ds' parameter in PoolGrad is not going"
+                    "The 'ds' parameter in PoolGrad is not going"
                     " to exist anymore as it is going to be replaced by the"
                     " parameter 'ws'.",
+                    category=DeprecationWarning,
                     stacklevel=2,
                 )
                 ws = ds
@@ -1049,9 +1061,10 @@ class PoolGrad(OpenMPOp):
                 )
             else:
                 warnings.warn(
-                    "DEPRECATION: the 'st' parameter in PoolGrad is not going"
+                    "The 'st' parameter in PoolGrad is not going"
                     " to exist anymore as it is going to be replaced by the"
                     " parameter 'stride'.",
+                    category=DeprecationWarning,
                     stacklevel=2,
                 )
                 stride = st
@@ -1064,9 +1077,10 @@ class PoolGrad(OpenMPOp):
                 )
             else:
                 warnings.warn(
-                    "DEPRECATION: the 'padding' parameter in PoolGrad is not"
+                    "The 'padding' parameter in PoolGrad is not"
                     " going to exist anymore as it is going to be replaced"
                     " by the parameter 'pad'.",
+                    category=DeprecationWarning,
                     stacklevel=2,
                 )
                 pad = padding

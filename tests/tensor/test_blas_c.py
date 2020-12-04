@@ -1,4 +1,4 @@
-import sys
+from warnings import warn
 
 import numpy as np
 import pytest
@@ -197,7 +197,7 @@ class TestCGemv(OptimizationTestMixin):
 
     def test_force_gemv_init(self):
         if check_force_gemv_init():
-            sys.stderr.write(
+            warn(
                 "WARNING: The current BLAS requires Theano to initialize"
                 + " memory for some GEMV calls which will result in a minor"
                 + " degradation in performance for such calls."

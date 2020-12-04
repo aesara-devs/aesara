@@ -376,36 +376,6 @@ def memoize(f):
     return rval
 
 
-def deprecated(filename, msg=""):
-    """
-    Decorator which will print a warning message on the first call.
-
-    Use it like this::
-
-      @deprecated('myfile', 'do something different...')
-      def fn_name(...)
-          ...
-
-    And it will print::
-
-      WARNING myfile.fn_name deprecated. do something different...
-
-    """
-
-    def _deprecated(f):
-        printme = [True]
-
-        def g(*args, **kwargs):
-            if printme[0]:
-                print(f"WARNING: {filename}.{f.__name__} deprecated. {msg}")
-                printme[0] = False
-            return f(*args, **kwargs)
-
-        return g
-
-    return _deprecated
-
-
 def uniq(seq):
     """
     Do not use set, this must always return the same value at the same index.
@@ -617,40 +587,11 @@ def flatten(a):
         return [a]
 
 
-def unique(x):
-    return len(set(x)) == len(x)
-
-
 def hist(coll):
     counts = {}
     for elem in coll:
         counts[elem] = counts.get(elem, 0) + 1
     return counts
-
-
-@deprecated("theano.gof.utils", msg="Use a_theano_variable.auto_name instead")
-def give_variables_names(variables):
-    """
-    Gives unique names to an iterable of variables. Modifies input.
-
-    This function is idempotent.
-
-    """
-    names = [var.name for var in variables]
-    h = hist(names)
-
-    def bad_var(var):
-        return not var.name or h[var.name] > 1
-
-    for i, var in enumerate(filter(bad_var, variables)):
-        var.name = (var.name or "") + f"_{int(i)}"
-
-    if not unique([str(v) for v in variables]):
-        raise ValueError(
-            "Not all variables have unique names. Maybe you've "
-            "named some of the variables identically"
-        )
-    return variables
 
 
 def remove(predicate, coll):

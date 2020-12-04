@@ -2014,7 +2014,7 @@ class GCC_compiler(Compiler):
             and "icpc" not in theano.config.cxx
         ):
             _logger.warning(
-                "OPTIMIZATION WARNING: your Theano flag `cxx` seems not to be"
+                "Your Theano flag `cxx` seems not to be"
                 " the g++ compiler. So we disable the compiler optimization"
                 " specific to g++ that tell to compile for a specific CPU."
                 " At worst, this could cause slow down.\n"
@@ -2083,7 +2083,7 @@ class GCC_compiler(Compiler):
                 else:
                     reported_lines = native_lines
                 _logger.warning(
-                    "OPTIMIZATION WARNING: Theano was not able to find the"
+                    "Theano was not able to find the"
                     " g++ parameters that tune the compilation to your "
                     " specific CPU. This can slow down the execution of Theano"
                     " functions. Please submit the following lines to"
@@ -2095,7 +2095,7 @@ class GCC_compiler(Compiler):
                 _logger.info(f"g++ default lines: {default_lines}")
                 if len(default_lines) < 1:
                     _logger.warning(
-                        "OPTIMIZATION WARNING: Theano was not able to find the"
+                        "Theano was not able to find the"
                         " default g++ parameters. This is needed to tune"
                         " the compilation to your specific"
                         " CPU. This can slow down the execution of Theano"

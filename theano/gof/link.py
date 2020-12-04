@@ -3,6 +3,7 @@ import traceback
 from copy import copy, deepcopy
 from io import StringIO
 from sys import getsizeof
+from warnings import warn
 
 import numpy as np
 
@@ -334,7 +335,7 @@ def raise_with_op(fgraph, node, thunk=None, exc_info=None, storage_map=None):
             str(exc_value) + detailed_err_msg + "\n" + "\n".join(hints)
         )
     except TypeError:
-        print(f"WARNING: {exc_type} error does not allow us to add extra error message")
+        warn(f"{exc_type} error does not allow us to add extra error message")
         # Some exception need extra parameter in inputs. So forget the
         # extra long error message in that case.
     raise exc_value.with_traceback(exc_trace)

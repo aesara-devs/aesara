@@ -55,9 +55,10 @@ class TensorType(Type):
         self.sparse_grad = sparse_grad
         if sparse_grad:
             warnings.warn(
-                "DEPRECATION WARNING: You use an old interface to"
+                "You use an old interface to"
                 " AdvancedSubtensor1 sparse_grad. Now use"
-                " theano.sparse_grad(a_tensor[an_int_vector])."
+                " theano.sparse_grad(a_tensor[an_int_vector]).",
+                category=DeprecationWarning,
             )
 
     def clone(self, dtype=None, broadcastable=None):

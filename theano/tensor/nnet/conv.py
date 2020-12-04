@@ -554,12 +554,12 @@ class ConvOp(OpenMPOp):
                     new -= 1
 
                 warnstr = (
-                    "OPTIMISATION WARNING: in ConvOp.__init__() "
-                    "unroll_batch(%i) must be 0 or a divisor of"
-                    " bsize(%i). We revert it to %i. This"
+                    "In ConvOp.__init__(): "
+                    f"unroll_batch({self.unroll_batch}) must be 0 or a divisor of"
+                    f" bsize({self.bsize}). We revert it to {new}. This"
                     " won't change the result, but may make it slower."
                 )
-                _logger.warning(warnstr, self.unroll_batch, self.bsize, new)
+                _logger.warning(warnstr)
 
                 self.unroll_batch = new
 
@@ -580,12 +580,12 @@ class ConvOp(OpenMPOp):
                     new -= 1
 
                 warnstr = (
-                    "OPTIMISATION WARNING: in ConvOp.__init__()"
-                    " unroll_kern(%i) should be 0 or a divisor of"
-                    " nkern(%i). We revert it to %i. This"
+                    "In ConvOp.__init__(): "
+                    f"unroll_kern({self.unroll_kern}) must be 0 or a divisor of"
+                    f" nkern({self.nkern}). We revert it to {new}. This"
                     " won't change the result, but may make it slower."
                 )
-                _logger.warning(warnstr, self.unroll_kern, self.nkern, new)
+                _logger.warning(warnstr)
                 self.unroll_kern = new
 
         self.outshp = get_conv_output_shape(

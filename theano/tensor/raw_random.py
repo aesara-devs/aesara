@@ -1,9 +1,8 @@
 """Define random number Type (`RandomStateType`) and Op (`RandomFunction`)."""
 
-
-import sys
 from copy import copy
 from functools import reduce
+from warnings import warn
 
 import numpy as np
 
@@ -200,10 +199,8 @@ class RandomFunction(gof.Op):
         assert shape.type.ndim == 1
         assert (shape.type.dtype == "int64") or (shape.type.dtype == "int32")
         if not isinstance(r.type, RandomStateType):
-            print(
-                "WARNING: RandomState instances should be in RandomStateType",
-                file=sys.stderr,
-            )
+            warn("RandomState instances should be in RandomStateType")
+
         # the following doesn't work because we want to ignore the
         # broadcastable flags in shape.type
         # assert shape.type == tensor.lvector
@@ -532,9 +529,9 @@ def binomial(random_state, size=None, n=1, p=0.5, ndim=None, dtype="int64", prob
     """
     if prob is not None:
         p = prob
-        print(
-            "DEPRECATION WARNING: the parameter prob to the binomal fct have been renamed to p to have the same name as np.",
-            file=sys.stderr,
+        warn(
+            "The parameter prob to the binomal fct have been renamed to p to have the same name as np.",
+            category=DeprecationWarning,
         )
     n = tensor.as_tensor_variable(n)
     p = tensor.as_tensor_variable(p)
@@ -964,9 +961,9 @@ class RandomStreamsBase:
         """
         if prob is not None:
             p = prob
-            print(
-                "DEPRECATION WARNING: the parameter prob to the binomal fct have been renamed to p to have the same name as numpy.",
-                file=sys.stderr,
+            warn(
+                "The parameter prob to the binomal fct have been renamed to p to have the same name as numpy.",
+                category=DeprecationWarning,
             )
         return self.gen(binomial, size, n, p, ndim=ndim, dtype=dtype)
 

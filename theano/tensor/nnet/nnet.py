@@ -440,9 +440,10 @@ class Softmax(Op):
             raise ValueError(f"x must be 1-d or 2-d tensor of floats. Got {x.type}")
         if x.ndim == 1:
             warnings.warn(
-                "DEPRECATION: If x is a vector, Softmax will not automatically pad x "
+                "If x is a vector, Softmax will not automatically pad x "
                 "anymore in next releases. If you need it, please do it manually. The "
                 "vector case is gonna be supported soon and the output will be a vector.",
+                category=PendingDeprecationWarning,
                 stacklevel=4,
             )
             x = tt.shape_padleft(x, n_ones=1)
@@ -638,9 +639,10 @@ class LogSoftmax(Op):
             raise ValueError(f"x must be 1-d or 2-d tensor of floats. Got {x.type}")
         if x.ndim == 1:
             warnings.warn(
-                "DEPRECATION: If x is a vector, LogSoftmax will not automatically pad x "
+                "If x is a vector, LogSoftmax will not automatically pad x "
                 "anymore in next releases. If you need it, please do it manually. The "
                 "vector case is gonna be supported soon and the output will be a vector.",
+                category=PendingDeprecationWarning,
                 stacklevel=4,
             )
             x = tt.shape_padleft(x, n_ones=1)
@@ -1661,8 +1663,7 @@ def local_argmax_pushdown(fgraph, node):
     ):
         if theano.config.warn__argmax_pushdown_bug:
             logging.getLogger("theano.tensor.nnet.nnet").warn(
-                "WARNING: there "
-                "was a bug in Theano fixed on May 27th, 2010 in this case."
+                "There was a bug in Theano fixed on May 27th, 2010 in this case."
                 " I.E. when we take the max of a softplus, softmax, exp, "
                 "log, tanh, sigmoid, softmax_with_bias op, we were doing "
                 "the max of the parent of the input. To remove this "

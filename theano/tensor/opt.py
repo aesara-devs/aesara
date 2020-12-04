@@ -5821,7 +5821,7 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
 
                 if compatible_dims:
                     _logger.warning(
-                        "WARNING: Your current code is fine, but"
+                        "Your current code is fine, but"
                         " Theano versions between "
                         "rev. 3bd9b789f5e8 (2010-06-16) and"
                         " cfc6322e5ad4 (2010-08-03) would "
@@ -5876,7 +5876,7 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
                             node.op, Sum
                         ):
                             _logger.warning(
-                                "WARNING: Your current code is fine,"
+                                "Your current code is fine,"
                                 " but Theano versions between "
                                 "rev. 3bd9b789f5e8 (2010-06-16) and"
                                 " cfc6322e5ad4 (2010-08-03) would "
@@ -5986,7 +5986,7 @@ def local_op_of_op(fgraph, node):
                     and len(newaxis) == len(newaxis_old)
                 ):
                     _logger.warning(
-                        "WARNING (YOUR CURRENT CODE IS FINE): Theano "
+                        "(YOUR CURRENT CODE IS FINE): Theano "
                         "versions between version 9923a40c7b7a and August "
                         "2nd, 2010 generated bugged code in this case. "
                         "This happens when there are two consecutive sums "

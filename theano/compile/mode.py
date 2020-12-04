@@ -123,7 +123,7 @@ class AddDestroyHandler(gof.GlobalOptimizer):
                 break
         if not supervisor_added:
             warnings.warn(
-                "WARNING: Supervisor is not added. Please build a FunctionGraph"
+                "Supervisor is not added. Please build a FunctionGraph"
                 "via theano.compile.function.types.std_graph()"
                 "or add the Supervisor class manually.",
                 stacklevel=3,

@@ -610,17 +610,15 @@ class ReplaceValidate(History, Validator):
             if rm in fgraph.apply_nodes or rm in fgraph.variables:
                 fgraph.revert(chk)
                 if warn:
-                    out = sys.stderr
-                    print(
-                        "WARNING: An optimization wanted to replace a Variable"
+                    warn(
+                        "An optimization wanted to replace a Variable"
                         " in the graph, but the replacement for it doesn't"
                         " remove it. We disabled the optimization."
                         " Your function runs correctly, but it would be"
                         " appreciated if you submit this problem to the"
-                        " mailing list theano-users so that we can fix it.",
-                        file=out,
+                        " mailing list theano-users so that we can fix it."
+                        f"{reason}: {replacements}",
                     )
-                    print(reason, replacements, file=out)
                 raise ReplacementDidNotRemoveError()
 
     def __getstate__(self):
