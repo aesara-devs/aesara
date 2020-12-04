@@ -4,13 +4,10 @@ from warnings import warn
 try:
     import scipy
 
-    scipy_ver = [int(n) for n in scipy.__version__.split(".")[:2]]
-    enable_sparse = bool(scipy_ver >= [0, 7])
-    if not enable_sparse:
-        warn(f"SciPy version is {scipy.__version__}.  We recommend a version >= 0.7.0")
+    enable_sparse = True
 except ImportError:
     enable_sparse = False
-    warn("scipy can't be imported." " We disable the sparse matrix code.")
+    warn("SciPy can't be imported.  Sparse matrix support is disabled.")
 
 from theano.sparse.type import *
 
