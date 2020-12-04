@@ -88,9 +88,9 @@ def _get_lock(lock_dir=None, **kw):
             get_lock.start_time = time.time()
         else:
             # Check whether we need to 'refresh' the lock. We do this
-            # every 'config.compile.timeout / 2' seconds to ensure
+            # every 'config.compile__timeout / 2' seconds to ensure
             # no one else tries to override our lock after their
-            # 'config.compile.timeout' timeout period.
+            # 'config.compile__timeout' timeout period.
             if get_lock.start_time is None:
                 # This should not happen. So if this happen, clean up
                 # the lock state and raise an error.
@@ -101,7 +101,7 @@ def _get_lock(lock_dir=None, **kw):
                     "taken, but no start time was registered."
                 )
             now = time.time()
-            if now - get_lock.start_time > config.compile.timeout / 2:
+            if now - get_lock.start_time > config.compile__timeout / 2:
                 lockpath = os.path.join(get_lock.lock_dir, "lock")
                 _logger.info(f"Refreshing lock {lockpath}")
                 refresh_lock(lockpath)
@@ -170,10 +170,10 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
         Lock directory that will be created when acquiring the lock.
     timeout : int or None
         Time (in seconds) to wait before replacing an existing lock (default
-        config 'compile.timeout').
+        config 'compile__timeout').
     min_wait: int
         Minimum time (in seconds) to wait before trying again to get the lock
-        (default config 'compile.wait').
+        (default config 'compile__wait').
     max_wait: int
         Maximum time (in seconds) to wait before trying again to get the lock
         (default 2 * min_wait).
@@ -182,11 +182,11 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
 
     """
     if min_wait is None:
-        min_wait = config.compile.wait
+        min_wait = config.compile__wait
     if max_wait is None:
         max_wait = min_wait * 2
     if timeout is notset:
-        timeout = config.compile.timeout
+        timeout = config.compile__timeout
     # Create base of lock directory if required.
     base_lock = os.path.dirname(tmp_dir)
     if not os.path.isdir(base_lock):

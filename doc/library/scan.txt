@@ -639,10 +639,10 @@ reuses memory between iterations of the same execution but frees the memory
 after the last iteration.
 
 There are two ways to achieve this, using the Theano flag
-``config.scan.allow_gc`` and setting it to False, or using the argument
+``config.scan__allow_gc`` and setting it to False, or using the argument
 ``allow_gc`` of the function theano.scan() and set it to False (when a value
 is not provided for this argument, the value of the flag
-``config.scan.allow_gc`` is used).
+``config.scan__allow_gc`` is used).
 
 
 Graph optimizations

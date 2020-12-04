@@ -967,7 +967,7 @@ class CLinker(link.Linker):
         The support code from Variables is added before the support code from Ops.This might contain duplicates.
         """
         ret = []
-        if config.cmodule.debug:
+        if config.cmodule__debug:
             ret.append(
                 """
             #ifndef DEBUG

@@ -42,14 +42,14 @@ def detect_macos_sdot_bug():
     if detect_macos_sdot_bug.tested:
         return detect_macos_sdot_bug.present
 
-    if sys.platform != "darwin" or not config.blas.ldflags:
+    if sys.platform != "darwin" or not config.blas__ldflags:
         _logger.info("Not Mac OS, no sdot_ bug")
         detect_macos_sdot_bug.tested = True
         return False
 
     # This code will return -1 if the dot product did not return
     # the right value (30.).
-    flags = config.blas.ldflags.split()
+    flags = config.blas__ldflags.split()
     for f in flags:
         # Library directories should also be added as rpath,
         # so that they can be loaded even if the environment
@@ -741,7 +741,7 @@ def blas_header_text():
     """C header for the fortran blas interface"""
 
     blas_code = ""
-    if not config.blas.ldflags:
+    if not config.blas__ldflags:
         # Include the Numpy version implementation of [sd]gemm_.
         current_filedir = dirname(__file__)
         blas_common_filepath = os.path.join(
@@ -1013,7 +1013,7 @@ def blas_header_text():
     return header + blas_code
 
 
-if not config.blas.ldflags:
+if not config.blas__ldflags:
     _logger.warning("Using NumPy C-API based implementation for BLAS functions.")
 
 

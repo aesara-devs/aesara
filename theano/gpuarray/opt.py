@@ -2269,8 +2269,8 @@ class ConvMetaOptimizer(LocalMetaOptimizer):
                 if opt in self.tag_dict["default"]
             ]
         )
-        include_tags = config.metaopt.optimizer_including.split(":")
-        exclude_tags = config.metaopt.optimizer_excluding.split(":")
+        include_tags = config.metaopt__optimizer_including.split(":")
+        exclude_tags = config.metaopt__optimizer_excluding.split(":")
 
         for in_opt in include_tags:
             opts.update(
@@ -2776,7 +2776,7 @@ def local_inplace_gpu_cholesky(fgraph, node):
 
 
 def local_gpu_magma_cholesky(fgraph, op, context_name, inputs, outputs):
-    if not config.magma.enabled:
+    if not config.magma__enabled:
         return
     if inputs[0].dtype not in ["float16", "float32"]:
         return
@@ -2819,7 +2819,7 @@ def local_inplace_gpu_magma_cholesky(fgraph, node):
 @op_lifter([nlinalg.QRFull])
 @register_opt2([theano.tensor.nlinalg.QRFull], "magma", "fast_compile")
 def local_gpu_magma_qr(fgraph, op, context_name, inputs, outputs):
-    if not config.magma.enabled or op.mode != "reduced":
+    if not config.magma__enabled or op.mode != "reduced":
         return
     if inputs[0].dtype not in ["float16", "float32"]:
         return
@@ -2836,7 +2836,7 @@ def local_gpu_magma_qr(fgraph, op, context_name, inputs, outputs):
 @op_lifter([nlinalg.QRIncomplete])
 @register_opt2([theano.tensor.nlinalg.QRIncomplete], "magma", "fast_compile")
 def local_gpu_magma_qr_incomplete(fgraph, op, context_name, inputs, outputs):
-    if not config.magma.enabled:
+    if not config.magma__enabled:
         return
     if inputs[0].dtype not in ["float16", "float32"]:
         return
@@ -2854,7 +2854,7 @@ def local_gpu_magma_qr_incomplete(fgraph, op, context_name, inputs, outputs):
 @op_lifter([nlinalg.MatrixInverse])
 @register_opt2([theano.tensor.nlinalg.MatrixInverse], "magma", "fast_compile")
 def local_gpu_magma_matrix_inverse(fgraph, op, context_name, inputs, outputs):
-    if not config.magma.enabled:
+    if not config.magma__enabled:
         return
     if inputs[0].dtype not in ["float16", "float32"]:
         return
@@ -2877,7 +2877,7 @@ def local_inplace_gpu_magma_matrix_inverse(fgraph, node):
 @op_lifter([nlinalg.Eigh])
 @register_opt2([theano.tensor.nlinalg.Eigh], "magma", "fast_compile")
 def local_gpu_magma_eigh(fgraph, op, context_name, inputs, outputs):
-    if not config.magma.enabled:
+    if not config.magma__enabled:
         return
     if inputs[0].dtype not in ["float16", "float32"]:
         return
@@ -2892,7 +2892,7 @@ def local_gpu_magma_eigh(fgraph, op, context_name, inputs, outputs):
 @op_lifter([nlinalg.SVD])
 @register_opt2([theano.tensor.nlinalg.SVD], "magma", "fast_compile")
 def local_gpu_magma_svd(fgraph, op, context_name, inputs, outputs):
-    if not config.magma.enabled:
+    if not config.magma__enabled:
         return
     if inputs[0].dtype not in ["float16", "float32"]:
         return

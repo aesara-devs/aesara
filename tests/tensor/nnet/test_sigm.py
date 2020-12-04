@@ -141,8 +141,8 @@ class TestSigmoidOpts:
         x = tt.vector()
         data = np.random.rand(54).astype(config.floatX)
 
-        backup = config.warn.identify_1pexp_bug
-        config.warn.identify_1pexp_bug = False
+        backup = config.warn__identify_1pexp_bug
+        config.warn__identify_1pexp_bug = False
         try:
             # tests exp_over_1_plus_exp
             f = theano.function([x], tt.exp(x) / (1 + tt.exp(x)), mode=m)
@@ -274,7 +274,7 @@ class TestSigmoidOpts:
 
         finally:
             # Restore config option.
-            config.warn.identify_1pexp_bug = backup
+            config.warn__identify_1pexp_bug = backup
 
     def test_1msigmoid(self):
         if not register_local_1msigmoid:
@@ -549,8 +549,8 @@ class TestSigmoidUtils:
         ]
 
     def test_is_1pexp(self):
-        backup = config.warn.identify_1pexp_bug
-        config.warn.identify_1pexp_bug = False
+        backup = config.warn__identify_1pexp_bug
+        config.warn__identify_1pexp_bug = False
         try:
             x = tt.vector("x")
             exp = tt.exp
@@ -568,4 +568,4 @@ class TestSigmoidUtils:
             assert is_1pexp(-1 + exp(x), False) is None
             assert is_1pexp(1 + 2 * exp(x), False) is None
         finally:
-            config.warn.identify_1pexp_bug = backup
+            config.warn__identify_1pexp_bug = backup

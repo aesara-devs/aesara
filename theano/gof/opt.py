@@ -1085,7 +1085,7 @@ class LocalMetaOptimizer(LocalOptimizer):
     """
 
     def __init__(self):
-        self.verbose = config.metaopt.verbose
+        self.verbose = config.metaopt__verbose
         self.track_dict = defaultdict(lambda: [])
         self.tag_dict = defaultdict(lambda: [])
         self._tracks = []
@@ -2591,7 +2591,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
             msg = (
                 f"EquilibriumOptimizer max'ed out by '{opt_name}'"
                 + ". You can safely raise the current threshold of "
-                + "{config.optdb.max_use_ratio:f} with the theano flag 'optdb.max_use_ratio'."
+                + "{config.optdb__max_use_ratio:f} with the theano flag 'optdb__max_use_ratio'."
             )
             if theano.config.on_opt_error == "raise":
                 raise AssertionError(msg)

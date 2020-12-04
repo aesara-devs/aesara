@@ -83,12 +83,12 @@ def add_tag_trace(thing, user_line=None):
 
     Notes
     -----
-    We also use config.traceback.limit for the maximum number of stack level
+    We also use config.traceback__limit for the maximum number of stack level
     we look.
 
     """
     if user_line is None:
-        user_line = config.traceback.limit
+        user_line = config.traceback__limit
 
     if user_line == -1:
         user_line = None
@@ -111,7 +111,7 @@ def add_tag_trace(thing, user_line=None):
         "theano\\typed_list\\",
     ]
 
-    if config.traceback.compile_limit > 0:
+    if config.traceback__compile_limit > 0:
         skips = []
 
     tr = simple_extract_stack(limit=user_line, skips=skips)

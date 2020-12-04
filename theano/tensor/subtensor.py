@@ -1306,7 +1306,7 @@ def inc_subtensor(
                 y_order[v - dim_offset] = i
 
         # Warn if this code path would have produced wrong results in the past
-        if config.warn.inc_set_subtensor1:
+        if config.warn__inc_set_subtensor1:
             # Dimshuffle pattern for y that would be equivalent to past code
             prev_y_order = ["x"] * (dim_offset) + list(range(y.ndim))
             if y_order != prev_y_order:
@@ -1316,8 +1316,8 @@ def inc_subtensor(
                     "version) may have yielded an incorrect result in "
                     "this `inc_subtensor` or `set_subtensor` operation. "
                     "To remove this warning, you can either set the "
-                    "`warn.inc_set_subtensor1` config option to `False`, "
-                    'or `warn.ignore_bug_before` to at least "0.7".',
+                    "`warn__inc_set_subtensor1` config option to `False`, "
+                    'or `warn__ignore_bug_before` to at least "0.7".',
                     stacklevel=2,
                 )
 
@@ -1354,7 +1354,7 @@ def inc_subtensor(
             flattened_y = y
 
         # Warn if this code path would have produced wrong results in the past
-        if config.warn.inc_set_subtensor1:
+        if config.warn__inc_set_subtensor1:
             if inner_x.ndim > 1 and sum(y.broadcastable) > 0:
                 warnings.warn(
                     "Although your current code is fine, please note that "
@@ -1362,8 +1362,8 @@ def inc_subtensor(
                     "version) may have yielded an incorrect result in "
                     "this `inc_subtensor` or `set_subtensor` operation. "
                     "To remove this warning, you can either set the "
-                    "`warn.inc_set_subtensor1` config option to `False`, "
-                    'or `warn.ignore_bug_before` to at least "0.7".',
+                    "`warn__inc_set_subtensor1` config option to `False`, "
+                    'or `warn__ignore_bug_before` to at least "0.7".',
                     stacklevel=2,
                 )
 

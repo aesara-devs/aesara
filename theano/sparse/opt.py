@@ -937,7 +937,7 @@ local_usmm = gof.opt.PatternSub(
             {
                 "pattern": "alpha",
                 "constraint": lambda expr: (
-                    np.all(expr.type.broadcastable) and theano.config.blas.ldflags
+                    np.all(expr.type.broadcastable) and theano.config.blas__ldflags
                 ),
             },
             (sparse._dot, "x", "y"),
@@ -2057,7 +2057,7 @@ sampling_dot_csr = SamplingDotCSR()
 # register a specialization to replace SamplingDot -> SamplingDotCsr
 @gof.local_optimizer([sparse.sampling_dot])
 def local_sampling_dot_csr(fgraph, node):
-    if not theano.config.blas.ldflags:
+    if not theano.config.blas__ldflags:
         # The C implementation of SamplingDotCsr relies on BLAS routines
         return
     if node.op == sparse.sampling_dot:

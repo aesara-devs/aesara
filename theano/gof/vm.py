@@ -571,7 +571,7 @@ class Stack(VM):
                                     # with some combination of inplace op.
                                     compute_map[i][0] = 2
                                     if (
-                                        config.warn.vm_gc_bug
+                                        config.warn__vm_gc_bug
                                         and current_apply in apply_stack
                                         and getattr(
                                             current_apply.op, "destroy_map", False
@@ -744,7 +744,7 @@ class VM_Linker(link.LocalLinker):
         'var', 'value'.
     lazy
         Useful only when use_cloop is False. When lazy is None, use the
-        theano flag vm.lazy value. Then if we have a None (default) we auto
+        theano flag vm__lazy value. Then if we have a None (default) we auto
         detect if lazy evaluation is needed and use the appropriate
         version. If lazy is True or False, we force the version used
         between Loop/LoopGC and Stack.
@@ -1071,7 +1071,7 @@ class VM_Linker(link.LocalLinker):
         else:
             lazy = self.lazy
             if lazy is None:
-                lazy = config.vm.lazy
+                lazy = config.vm__lazy
             if lazy is None:
                 lazy = not all([(not th.lazy) for th in thunks])
             if not lazy:
@@ -1178,7 +1178,7 @@ class VM_Linker(link.LocalLinker):
 
         lazy = self.lazy
         if lazy is None:
-            lazy = config.vm.lazy
+            lazy = config.vm__lazy
         if lazy is None:
             lazy = not all([(not th.lazy) for th in thunks])
         if not (

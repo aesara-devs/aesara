@@ -53,7 +53,7 @@ To get an error if Theano can not use cuDNN, use this Theano flag:
    it is possible to use heuristics to automatically choose a convolution
    implementation well suited to the parameters of the convolution.
 
-   The Theano flag ``dnn.conv.algo_fwd`` allows to specify the cuDNN
+   The Theano flag ``dnn__conv__algo_fwd`` allows to specify the cuDNN
    convolution implementation that Theano should use for forward convolutions.
    Possible values include :
 

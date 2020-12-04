@@ -19,7 +19,7 @@ mode_blas_opt = theano.compile.get_default_mode().including(
 
 
 def skip_if_blas_ldflags_empty(*functions_detected):
-    if theano.config.blas.ldflags == "":
+    if theano.config.blas__ldflags == "":
         functions_string = ""
         if functions_detected:
             functions_string = " (at least " + (", ".join(functions_detected)) + ")"
@@ -35,7 +35,7 @@ class TestCGer(OptimizationTestMixin):
         self.manual_setup_method()
 
     def manual_setup_method(self, dtype="float64"):
-        # This tests can run even when theano.config.blas.ldflags is empty.
+        # This tests can run even when theano.config.blas__ldflags is empty.
         self.dtype = dtype
         self.mode = theano.compile.get_default_mode().including("fast_run")
         self.A = tensor.tensor(dtype=dtype, broadcastable=(False, False))
@@ -125,7 +125,7 @@ class TestCGemv(OptimizationTestMixin):
     """
 
     def setup_method(self):
-        # This tests can run even when theano.config.blas.ldflags is empty.
+        # This tests can run even when theano.config.blas__ldflags is empty.
         dtype = "float64"
         self.dtype = dtype
         self.mode = theano.compile.get_default_mode().including("fast_run")
@@ -387,7 +387,7 @@ class TestCGemvNoFlags:
             ref_val += beta * y
         return ref_val
 
-    @theano.change_flags({"blas.ldflags": ""})
+    @theano.change_flags({"blas__ldflags": ""})
     def run_cgemv(self, dtype, ALPHA, BETA, transpose_A, slice_tensors):
         f = self.get_function(
             dtype, transpose_A=transpose_A, slice_tensors=slice_tensors

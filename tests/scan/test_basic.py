@@ -2999,7 +2999,7 @@ for{cpu,scan_fn}.2 [id H] ''
         # 1) provided to the inner function. Now, because of the memory-reuse
         # feature in Scan it can be 2 because SaveMem needs to keep a
         # larger buffer to avoid aliasing between the inputs and the outputs.
-        if theano.config.scan.allow_output_prealloc:
+        if theano.config.scan__allow_output_prealloc:
             assert f1().shape[0] == 2
         else:
             assert f1().shape[0] == 1
@@ -3033,7 +3033,7 @@ for{cpu,scan_fn}.2 [id H] ''
         # 1) provided to the inner function. Now, because of the memory-reuse
         # feature in Scan it can be 2 because SaveMem needs to keep a
         # larger buffer to avoid aliasing between the inputs and the outputs.
-        if theano.config.scan.allow_output_prealloc:
+        if theano.config.scan__allow_output_prealloc:
             assert f1().shape[0] == 2
         else:
             assert f1().shape[0] == 1
@@ -3068,7 +3068,7 @@ for{cpu,scan_fn}.2 [id H] ''
         # 1) provided to the inner function. Now, because of the memory-reuse
         # feature in Scan it can be 2 because SaveMem needs to keep a
         # larger buffer to avoid aliasing between the inputs and the outputs.
-        if theano.config.scan.allow_output_prealloc:
+        if theano.config.scan__allow_output_prealloc:
             assert f1().shape[0] == 2
         else:
             assert f1().shape[0] == 1

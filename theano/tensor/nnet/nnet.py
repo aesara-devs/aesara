@@ -1659,14 +1659,14 @@ def local_argmax_pushdown(fgraph, node):
             softmax_with_bias,
         )
     ):
-        if theano.config.warn.argmax_pushdown_bug:
+        if theano.config.warn__argmax_pushdown_bug:
             logging.getLogger("theano.tensor.nnet.nnet").warn(
                 "WARNING: there "
                 "was a bug in Theano fixed on May 27th, 2010 in this case."
                 " I.E. when we take the max of a softplus, softmax, exp, "
                 "log, tanh, sigmoid, softmax_with_bias op, we were doing "
                 "the max of the parent of the input. To remove this "
-                "warning set the Theano flags 'warn.argmax_pushdown_bug' "
+                "warning set the Theano flags 'warn__argmax_pushdown_bug' "
                 "to False"
             )
 

@@ -99,18 +99,18 @@ def init_dev(dev, name=None, preallocate=None):
         )
     if dev not in init_dev.devmap:
         args = dict()
-        if config.gpuarray.cache_path != "":
-            args["kernel_cache_path"] = config.gpuarray.cache_path
+        if config.gpuarray__cache_path != "":
+            args["kernel_cache_path"] = config.gpuarray__cache_path
         if preallocate is None:
-            preallocate = config.gpuarray.preallocate
+            preallocate = config.gpuarray__preallocate
         if preallocate < 0:
             args["max_cache_size"] = 0
         else:
             args["initial_cache_size"] = preallocate
         context = pygpu.init(
             dev,
-            sched=config.gpuarray.sched,
-            single_stream=config.gpuarray.single_stream,
+            sched=config.gpuarray__sched,
+            single_stream=config.gpuarray__single_stream,
             **args,
         )
         os.environ["THEANO_GPU_IS_ALREADY_ACTIVE"] = "Yes"
@@ -131,7 +131,7 @@ def init_dev(dev, name=None, preallocate=None):
                 )
             elif avail:
                 context.cudnn_handle = dnn._make_handle(context)
-            elif config.dnn.enabled == "True":
+            elif config.dnn__enabled == "True":
                 raise RuntimeError(
                     "You enabled cuDNN, but we aren't able to use it: %s"
                     % dnn.dnn_available.msg
@@ -226,7 +226,7 @@ def use(
         If gpu init succeeded, put new shared variables on the gpu.
     preallocate
         If specified, will use this value for preallocation instead of
-        gpuarray.preallocate.
+        gpuarray__preallocate.
 
     """
     if force:

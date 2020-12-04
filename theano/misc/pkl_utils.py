@@ -225,10 +225,10 @@ class PersistentNdarrayLoad:
             with self.zip_file.open(name) as f:
                 ctx_name = pickle.load(f)
                 array = np.lib.format.read_array(f)
-            if config.experimental.unpickle_gpu_on_cpu:
+            if config.experimental__unpickle_gpu_on_cpu:
                 # directly return numpy array
                 warnings.warn(
-                    "config.experimental.unpickle_gpu_on_cpu is set "
+                    "config.experimental__unpickle_gpu_on_cpu is set "
                     "to True. Unpickling GpuArray as numpy.ndarray"
                 )
                 ret = array

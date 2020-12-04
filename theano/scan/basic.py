@@ -269,7 +269,7 @@ def scan(
 
     allow_gc
         Set the value of allow gc for the internal graph of scan.  If
-        set to None, this will use the value of config.scan.allow_gc.
+        set to None, this will use the value of config.scan__allow_gc.
 
         The full scan behavior related to allocation is determined by
         this value and the Theano flag allow_gc. If the flag allow_gc
@@ -1032,7 +1032,7 @@ def scan(
 
     tap_array = mit_sot_tap_array + [[-1] for x in range(n_sit_sot)]
     if allow_gc is None:
-        allow_gc = config.scan.allow_gc
+        allow_gc = config.scan__allow_gc
     info = OrderedDict()
 
     info["tap_array"] = tap_array

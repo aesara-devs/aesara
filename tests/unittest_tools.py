@@ -27,7 +27,7 @@ def fetch_seed(pseed=None):
     >>> rng = np.random.RandomState(unittest_tools.fetch_seed())
     """
 
-    seed = pseed or config.unittests.rseed
+    seed = pseed or config.unittests__rseed
     if seed == "random":
         seed = None
 
@@ -39,7 +39,7 @@ def fetch_seed(pseed=None):
     except ValueError:
         print(
             (
-                "Error: config.unittests.rseed contains "
+                "Error: config.unittests__rseed contains "
                 "invalid seed, using None instead"
             ),
             file=sys.stderr,
@@ -58,7 +58,7 @@ def seed_rng(pseed=None):
     seed = fetch_seed(pseed)
     if pseed and pseed != seed:
         print(
-            "Warning: using seed given by config.unittests.rseed=%i"
+            "Warning: using seed given by config.unittests__rseed=%i"
             "instead of seed %i given as parameter" % (seed, pseed),
             file=sys.stderr,
         )
@@ -314,7 +314,7 @@ class AttemptManyTimes:
             # Keep a copy of the current seed for unittests so that we can use
             # a different seed for every run of the decorated test and restore
             # the original after
-            original_seed = config.unittests.rseed
+            original_seed = config.unittests__rseed
             current_seed = original_seed
 
             # If the decorator has received only one, unnamed, argument
@@ -339,7 +339,7 @@ class AttemptManyTimes:
             for i in range(self.n_attempts):
                 try:
                     # Attempt to make the test use the current seed
-                    config.unittests.rseed = current_seed
+                    config.unittests__rseed = current_seed
                     if test_in_class and hasattr(class_instance, "setUp"):
                         class_instance.setup_method()
 
@@ -360,7 +360,7 @@ class AttemptManyTimes:
 
                 finally:
                     # Clean up after the test
-                    config.unittests.rseed = original_seed
+                    config.unittests__rseed = original_seed
                     if test_in_class and hasattr(class_instance, "teardown_method"):
                         class_instance.teardown_method()
 

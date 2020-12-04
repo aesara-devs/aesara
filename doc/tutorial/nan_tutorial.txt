@@ -45,7 +45,7 @@ with ``NanGuardMode`` could be helpful to detect NaN, for more information pleas
 to :ref:`AllocEmpty`. 
 
 DebugMode can also help. Run your code in DebugMode with flag
-``mode=DebugMode,DebugMode.check_py=False``. This will give you clue about which
+``mode=DebugMode,DebugMode__check_py=False``. This will give you clue about which
 op is causing this problem, and then you can inspect that op in more detail. For
 details of using ``DebugMode``, please refer to :ref:`debugmode`.
 

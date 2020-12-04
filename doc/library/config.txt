@@ -51,7 +51,7 @@ Environment Variables
 
     .. code-block:: bash
 
-        THEANO_FLAGS='floatX=float32,device=cuda0,gpuarray.preallocate=1'  python <myscript>.py
+        THEANO_FLAGS='floatX=float32,device=cuda0,gpuarray__preallocate=1'  python <myscript>.py
 
     If a value is defined several times in ``THEANO_FLAGS``,
     the right-most definition is used. So, for instance, if
@@ -78,8 +78,8 @@ Environment Variables
     Configuration attributes that are available directly in ``config``
     (e.g. ``config.device``, ``config.mode``) should be defined in the
     ``[global]`` section.
-    Attributes from a subsection of ``config`` (e.g. ``config.gpuarray.preallocate``,
-    ``config.dnn.conv.algo_fwd``) should be defined in their corresponding
+    Attributes from a subsection of ``config`` (e.g. ``config.gpuarray__preallocate``,
+    ``config.dnn__conv__algo_fwd``) should be defined in their corresponding
     section (e.g. ``[gpuarray]``, ``[dnn.conv]``).
 
     Multiple configuration files can be specified by separating them with ':'
@@ -207,10 +207,10 @@ import theano and print the config variable, as in:
     significant speed up on functions with many ops that are fast to
     execute, but this increases Theano's memory usage.
 
-.. note:: if :attr:`config.gpuarray.preallocate` is the default value
+.. note:: if :attr:`config.gpuarray__preallocate` is the default value
     or not disabled (-1), this is not useful anymore on the GPU.
 
-.. attribute:: config.scan.allow_output_prealloc
+.. attribute:: config.scan__allow_output_prealloc
 
     Bool value, either ``True`` or ``False``
 
@@ -221,7 +221,7 @@ import theano and print the config variable, as in:
     give a significant speed up with Scan at the cost of slightly increased
     memory usage.
 
-.. attribute:: config.scan.allow_gc
+.. attribute:: config.scan__allow_gc
 
     Bool value, either ``True`` or ``False``
 
@@ -229,11 +229,11 @@ import theano and print the config variable, as in:
 
     Allow/disallow gc inside of Scan.
 
-    If :attr:`config.allow_gc` is ``True``, but :attr:`config.scan.allow_gc` is
+    If :attr:`config.allow_gc` is ``True``, but :attr:`config.scan__allow_gc` is
     ``False``, then we will gc the inner of scan after all
     iterations. This is the default.
 
-.. attribute:: config.scan.debug
+.. attribute:: config.scan__debug
 
     Bool value, either ``True`` or ``False``
 
@@ -371,26 +371,26 @@ import theano and print the config variable, as in:
     Do the vm/cvm linkers profile the optimization phase when compiling a Theano function?
     It only works when profile=True.
 
-.. attribute:: config.profiling.n_apply
+.. attribute:: config.profiling__n_apply
 
     Positive int value, default: 20.
 
     The number of Apply nodes to print in the profiler output
 
-.. attribute:: config.profiling.n_ops
+.. attribute:: config.profiling__n_ops
 
     Positive int value, default: 20.
 
     The number of Ops to print in the profiler output
 
-.. attribute:: config.profiling.min_memory_size
+.. attribute:: config.profiling__min_memory_size
 
     Positive int value, default: 1024.
 
     For the memory profile, do not print Apply nodes if the size
     of their outputs (in bytes) is lower than this.
 
-.. attribute:: config.profiling.min_peak_memory
+.. attribute:: config.profiling__min_peak_memory
 
     Bool value: either ``True`` or ``False``
 
@@ -399,7 +399,7 @@ import theano and print the config variable, as in:
     Does the memory profile print the min peak memory usage?
     It only works when profile=True, profile_memory=True
 
-.. attribute:: config.profiling.destination
+.. attribute:: config.profiling__destination
 
     String value: ``'stderr'``, ``'stdout'``, or a name of a
     file to be created
@@ -410,7 +410,7 @@ import theano and print the config variable, as in:
     The profiling output can be either directed to stderr
     (default), or stdout or an arbitrary file.
 
-.. attribute:: config.profiling.debugprint
+.. attribute:: config.profiling__debugprint
 
     Bool value: either ``True`` or ``False``
 
@@ -418,7 +418,7 @@ import theano and print the config variable, as in:
 
     Do a debugprint of the profiled functions
 
-.. attribute:: config.profiling.ignore_first_call
+.. attribute:: config.profiling__ignore_first_call
 
     Bool value: either ``True`` or ``False``
 
@@ -426,7 +426,7 @@ import theano and print the config variable, as in:
 
     Do we ignore the first call to a Theano function while profiling.
 
-.. attribute:: config.lib.amdlibm
+.. attribute:: config.lib__amblibm
 
     Bool value: either ``True`` or ``False``
 
@@ -436,7 +436,7 @@ import theano and print the config variable, as in:
     `amdlibm <https://developer.amd.com/amd-cpu-libraries/amd-math-library-libm/>`__
     library, which is faster than the standard libm.
 
-.. attribute:: config.gpuarray.preallocate
+.. attribute:: config.gpuarray__preallocate
 
     Float value
 
@@ -472,7 +472,7 @@ import theano and print the config variable, as in:
         fragmentation, see note above.
 
 
-.. attribute:: config.gpuarray.sched
+.. attribute:: config.gpuarray__sched
 
     String value: ``'default'``, ``'multi'``, ``'single'``
 
@@ -487,7 +487,7 @@ import theano and print the config variable, as in:
     processes that was doing data augmentation.
 
 
-.. attribute:: config.gpuarray.single_stream
+.. attribute:: config.gpuarray__single_stream
 
     Boolean value
 
@@ -503,7 +503,7 @@ import theano and print the config variable, as in:
     performance, check both options.
 
 
-.. attribute:: config.gpuarray.cache_path
+.. attribute:: config.gpuarray__cache_path
 
    Default: ``config.compiledir``/gpuarray_kernels
 
@@ -563,7 +563,7 @@ import theano and print the config variable, as in:
     raise the exception ('raise').
 
 
-.. attribute:: config.warn.ignore_bug_before
+.. attribute:: config.warn__ignore_bug_before
 
     String value: ``'None'``, ``'all'``, ``'0.3'``, ``'0.4'``, ``'0.4.1'``,
     ``'0.5'``, ``'0.6'``, ``'0.7'``, ``'0.8'``, ``'0.8.1'``, ``'0.8.2'``,
@@ -626,7 +626,7 @@ import theano and print the config variable, as in:
 
     This flag's value cannot be modified during the program execution.
 
-.. attribute:: config.blas.ldflags
+.. attribute:: config.blas__ldflags
 
     Default: ``'-lblas'``
 
@@ -634,7 +634,7 @@ import theano and print the config variable, as in:
     implementation.  The default will test if ``'-lblas'`` works. If not,
     we will disable our C code for BLAS.
 
-.. attribute:: config.experimental.local_alloc_elemwise_assert
+.. attribute:: config.experimental__local_alloc_elemwise_assert
 
     Bool value: either ``True`` or ``False``
 
@@ -648,7 +648,7 @@ import theano and print the config variable, as in:
     As such this optimization does not always introduce an assert in the graph.
     Removing the assert could speed up execution.
 
-.. attribute:: config.dnn.enabled
+.. attribute:: config.dnn__enabled
 
     String value: ``'auto'``, ``'True'``, ``'False'``
 
@@ -664,19 +664,19 @@ import theano and print the config variable, as in:
 
     If ``'no_check'``, assume present and the version between header and library match (so less compilation at context init)",
 
-.. attribute:: config.dnn.include_path
+.. attribute:: config.dnn__include_path
 
     Default: ``include`` sub-folder in CUDA root directory, or headers paths defined for the compiler.
 
     Location of the cudnn header.
 
-.. attribute:: config.dnn.library_path
+.. attribute:: config.dnn__library_path
 
     Default: Library sub-folder (``lib64`` on Linux) in CUDA root directory, or libraries paths defined for the compiler.
 
     Location of the cudnn library.
 
-.. attribute:: config.conv.assert_shape
+.. attribute:: config.conv__assert_shape
 
     If True, AbstractConv* ops will verify that user-provided
     shapes match the runtime shapes (debugging option,
@@ -684,15 +684,15 @@ import theano and print the config variable, as in:
 
 .. attribute:: config.dnn.conv.workmem
 
-    Deprecated, use :attr:`config.dnn.conv.algo_fwd`.
+    Deprecated, use :attr:`config.dnn__conv__algo_fwd`.
 
 
 .. attribute:: config.dnn.conv.workmem_bwd
 
-    Deprecated, use :attr:`config.dnn.conv.algo_bwd_filter` and
-    :attr:`config.dnn.conv.algo_bwd_data` instead.
+    Deprecated, use :attr:`config.dnn__conv__algo_bwd_filter` and
+    :attr:`config.dnn__conv__algo_bwd_data` instead.
 
-.. attribute:: config.dnn.conv.algo_fwd
+.. attribute:: config.dnn__conv__algo_fwd
 
     String value:
     ``'small'``, ``'none'``, ``'large'``, ``'fft'``, ``'fft_tiling'``,
@@ -706,10 +706,10 @@ import theano and print the config variable, as in:
 
 .. attribute:: config.dnn.conv.algo_bwd
 
-    Deprecated, use :attr:`config.dnn.conv.algo_bwd_filter` and
-    :attr:`config.dnn.conv.algo_bwd_data` instead.
+    Deprecated, use :attr:`config.dnn__conv__algo_bwd_filter` and
+    :attr:`config.dnn__conv__algo_bwd_data` instead.
 
-.. attribute:: config.dnn.conv.algo_bwd_filter
+.. attribute:: config.dnn__conv__algo_bwd_filter
 
     String value:
     ``'none'``, ``'deterministic'``, ``'fft'``, ``'small'``, ``'winograd_non_fused'``, ``'fft_tiling'``, ``'guess_once'``,
@@ -720,7 +720,7 @@ import theano and print the config variable, as in:
     3d convolution only supports ``'none'``, ``'small'``, ``'guess_once'``,
     ``'guess_on_shape_change'``, ``'time_once'``, ``'time_on_shape_change'``.
 
-.. attribute:: config.dnn.conv.algo_bwd_data
+.. attribute:: config.dnn__conv__algo_bwd_data
 
     String value:
     ``'none'``, ``'deterministic'``, ``'fft'``, ``'fft_tiling'``, ``'winograd'``,
@@ -733,7 +733,7 @@ import theano and print the config variable, as in:
     ``'guess_once'``, ``'guess_on_shape_change'``, ``'time_once'``,
     ``'time_on_shape_change'``.
 
-.. attribute:: config.magma.enabled
+.. attribute:: config.magma__enabled
 
     String value: ``'True'``, ``'False'``
 
@@ -744,19 +744,19 @@ import theano and print the config variable, as in:
 
     If ``'False'``, disable magma.
 
-.. attribute:: config.magma.include_path
+.. attribute:: config.magma__include_path
 
     Default: ``''``
 
     Location of the magma headers.
 
-.. attribute:: config.magma.library_path
+.. attribute:: config.magma__library_path
 
     Default: ``''``
 
     Location of the magma library.
 
-.. attribute:: config.ctc.root
+.. attribute:: config.ctc__root
 
     Default: ``''``
 
@@ -764,7 +764,7 @@ import theano and print the config variable, as in:
     lib or lib64 subfolder with the shared library (libwarpctc.so), and another
     subfolder called include, with the CTC library header.
 
-.. attribute:: config.gcc.cxxflags
+.. attribute:: config.gcc__cxxflags
 
     Default: ``""``
 
@@ -842,9 +842,9 @@ import theano and print the config variable, as in:
     of this section also have an influence over compilation, most
     notably 'cxx'.  This is not expected to change any time soon.
 
-.. attribute:: config.compile.timeout
+.. attribute:: config.compile__timeout
 
-    Positive int value, default: :attr:`compile.wait` * 24
+    Positive int value, default: :attr:`compile__wait` * 24
 
     Time to wait before an unrefreshed lock is broken and stolen.  This
     is in place to avoid manual cleanup of locks in case a process
@@ -852,13 +852,13 @@ import theano and print the config variable, as in:
 
     The refresh time is automatically set to half the timeout value.
 
-.. attribute:: config.compile.wait
+.. attribute:: config.compile__wait
 
     Positive int value, default: 5
 
     Time to wait between attempts at grabbing the lock if the first
     attempt is not successful. The actual time will be between
-    :attr:`compile.wait` and :attr:`compile.wait` * 2 to avoid a
+    :attr:`compile__wait` and :attr:`compile__wait` * 2 to avoid a
     crowding effect on lock.
 
 .. attribute:: DebugMode
@@ -867,7 +867,7 @@ import theano and print the config variable, as in:
     of mode :class:`~debugmode.DebugMode`. See directly this section
     for the documentation of more configuration options.
 
-.. attribute:: config.DebugMode.check_preallocated_output
+.. attribute:: config.DebugMode__check_preallocated_output
 
     Default: ``''``
 
@@ -885,7 +885,7 @@ import theano and print the config variable, as in:
 
     In order not to test with preallocated memory, use an empty string, ``""``.
 
-.. attribute:: config.DebugMode.check_preallocated_output_ndim
+.. attribute:: config.DebugMode__check_preallocated_output_ndim
 
     Positive int value, default: 4.
 
@@ -894,26 +894,26 @@ import theano and print the config variable, as in:
     dimensions. You may want to reduce that number to reduce memory or
     time usage, but it is advised to keep a minimum of 2.
 
-.. attribute:: config.DebugMode.warn_input_not_reused
+.. attribute:: config.DebugMode__warn_input_not_reused
 
     Bool value, default: ``True``
 
     Generate a warning when the destroy_map or view_map tell that an op work
     inplace, but the op did not reuse the input for its output.
 
-.. attribute:: config.NanGuardMode.nan_is_error
+.. attribute:: config.NanGuardMode__nan_is_error
 
     Bool value, default: ``True``
 
     Controls whether NanGuardMode generates an error when it sees a nan.
 
-.. attribute:: config.NanGuardMode.inf_is_error
+.. attribute:: config.NanGuardMode__inf_is_error
 
     Bool value, default: ``True``
 
     Controls whether NanGuardMode generates an error when it sees an inf.
 
-.. attribute:: config.NanGuardMode.big_is_error
+.. attribute:: config.NanGuardMode__big_is_error
 
     Bool value, default: ``True``
 
@@ -926,7 +926,7 @@ import theano and print the config variable, as in:
     behaviour, described by `numpy.seterr
     <http://docs.scipy.org/doc/numpy/reference/generated/numpy.seterr.html>`__.
 
-.. attribute:: config.numpy.seterr_all
+.. attribute:: config.numpy__seterr_all
 
     String Value: ``'ignore'``, ``'warn'``, ``'raise'``, ``'call'``,
     ``'print'``, ``'log'``, ``'None'``
@@ -937,7 +937,7 @@ import theano and print the config variable, as in:
     <http://docs.scipy.org/doc/numpy/reference/generated/numpy.seterr.html>`__.
 
     ``'None'`` means that numpy's default behaviour will not be changed (unless
-    one of the other ``config.numpy.seterr_*`` overrides it), but this behaviour
+    one of the other ``config.numpy__seterr_*`` overrides it), but this behaviour
     can change between numpy releases.
 
     This flag sets the default behaviour for all kinds of floating-point
@@ -946,7 +946,7 @@ import theano and print the config variable, as in:
 
     This flag's value cannot be modified during the program execution.
 
-.. attribute:: config.numpy.seterr_divide
+.. attribute:: config.numpy__seterr_divide
 
     String Value: ``'None'``, ``'ignore'``, ``'warn'``, ``'raise'``,
     ``'call'``, ``'print'``, ``'log'``
@@ -954,11 +954,11 @@ import theano and print the config variable, as in:
     Default: ``'None'``
 
     Sets numpy's behavior for division by zero. ``'None'`` means using the
-    default, defined by config.numpy.seterr_all.
+    default, defined by config.numpy__seterr_all.
 
     This flag's value cannot be modified during the program execution.
 
-.. attribute:: config.numpy.seterr_over
+.. attribute:: config.numpy__seterr_over
 
     String Value: ``'None'``, ``'ignore'``, ``'warn'``, ``'raise'``,
     ``'call'``, ``'print'``, ``'log'``
@@ -966,11 +966,11 @@ import theano and print the config variable, as in:
     Default: ``'None'``
 
     Sets numpy's behavior for floating-point overflow. ``'None'`` means
-    using the default, defined by config.numpy.seterr_all.
+    using the default, defined by config.numpy__seterr_all.
 
     This flag's value cannot be modified during the program execution.
 
-.. attribute:: config.numpy.seterr_under
+.. attribute:: config.numpy__seterr_under
 
     String Value: ``'None'``, ``'ignore'``, ``'warn'``, ``'raise'``,
     ``'call'``, ``'print'``, ``'log'``
@@ -978,11 +978,11 @@ import theano and print the config variable, as in:
     Default: ``'None'``
 
     Sets numpy's behavior for floating-point underflow. ``'None'`` means
-    using the default, defined by config.numpy.seterr_all.
+    using the default, defined by config.numpy__seterr_all.
 
     This flag's value cannot be modified during the program execution.
 
-.. attribute:: config.numpy.seterr_invalid
+.. attribute:: config.numpy__seterr_invalid
 
     String Value: ``'None'``, ``'ignore'``, ``'warn'``, ``'raise'``,
     ``'call'``, ``'print'``, ``'log'``
@@ -990,7 +990,7 @@ import theano and print the config variable, as in:
     Default: ``'None'``
 
     Sets numpy's behavior for invalid floating-point operation. ``'None'``
-    means using the default, defined by :attr:`config.numpy.seterr_all`.
+    means using the default, defined by :attr:`config.numpy__seterr_all`.
 
     This flag's value cannot be modified during the program execution.
 
@@ -1058,7 +1058,7 @@ import theano and print the config variable, as in:
               C. log_likelihood_h
 
 
-.. attribute:: config.cmodule.warn_no_version
+.. attribute:: config.cmodule__warn_no_version
 
     Bool value, default: ``False``
 
@@ -1066,7 +1066,7 @@ import theano and print the config variable, as in:
     code that can't be cached because there is no ``c_code_cache_version()``
     function associated to at least one of those Ops.
 
-.. attribute:: config.cmodule.remove_gxx_opt
+.. attribute:: config.cmodule__remove_gxx_opt
 
     Bool value, default: ``False``
 
@@ -1074,19 +1074,19 @@ import theano and print the config variable, as in:
     This is useful to debug in gdb modules compiled by Theano.
     The parameter ``-g`` is passed by default to g++.
 
-.. attribute:: config.cmodule.compilation_warning
+.. attribute:: config.cmodule__compilation_warning
 
     Bool value, default: ``False``
 
     If True, will print compilation warnings.
 
-.. attribute:: config.cmodule.preload_cache
+.. attribute:: config.cmodule__preload_cache
 
     Bool value, default: ``False``
 
     If set to True, will preload the C module cache at import time
 
-.. attribute:: config.cmodule.age_thresh_use
+.. attribute:: config.cmodule__age_thresh_use
 
     Int value, default: ``60 * 60 * 24 * 24``  # 24 days
 
@@ -1094,19 +1094,19 @@ import theano and print the config variable, as in:
     reused by Theano. Automatic deletion of those c module 7 days
     after that time.
 
-.. attribute:: config.cmodule.debug
+.. attribute:: config.cmodule__debug
 
     Bool value, default: ``False``
 
     If True, define a DEBUG macro (if not exists) for any compiled C code.
 
-.. attribute:: config.traceback.limit
+.. attribute:: config.traceback__limit
 
     Int value, default: 8
 
     The number of user stack level to keep for variables.
 
-.. attribute:: config.traceback.compile_limit
+.. attribute:: config.traceback__compile_limit
 
     Bool value, default: 0
 
@@ -1114,7 +1114,7 @@ import theano and print the config variable, as in:
     compilation. If higher then 0, will make us keep Theano internal
     stack trace.
 
-.. attribute:: config.metaopt.verbose
+.. attribute:: config.metaopt__verbose
 
     Int value, default: 0
 
@@ -1123,14 +1123,14 @@ import theano and print the config variable, as in:
     2 for full output of separate timings and selected implementation
 
 
-.. attribute:: config.metaopt.optimizer_excluding
+.. attribute:: config.metaopt__optimizer_excluding
 
     Default: ``""``
 
     A list of optimizer tags that we don't want included in the Meta-optimizer.
     If multiple tags, separate them by ':'.
 
-.. attribute:: config.metaopt.optimizer_including
+.. attribute:: config.metaopt__optimizer_including
 
     Default: ``""``
 

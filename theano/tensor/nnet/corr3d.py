@@ -111,13 +111,13 @@ class BaseCorr3dMM(gof.OpenMPOp):
             raise ValueError("Number of groups should be greater than 0")
         self.num_groups = num_groups
 
-        if not theano.config.blas.ldflags:
+        if not theano.config.blas__ldflags:
             # Theano will use a NumPy C implementation of [sd]gemm_ instead.
             self.blas_type = ""
         else:
-            if "openblas" in theano.config.blas.ldflags:
+            if "openblas" in theano.config.blas__ldflags:
                 self.blas_type = "openblas"
-            elif "mkl" in theano.config.blas.ldflags:
+            elif "mkl" in theano.config.blas__ldflags:
                 self.blas_type = "mkl"
             else:
                 self.blas_type = ""

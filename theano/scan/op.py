@@ -848,7 +848,7 @@ class Scan(PureOp):
         # scan is done
         slices = self.n_mit_mot_outs + self.n_mit_sot + self.n_sit_sot + self.n_nit_sot
 
-        if theano.config.scan.allow_output_prealloc:
+        if theano.config.scan__allow_output_prealloc:
 
             # Go through the mitmots. Whenever a mitmot has a tap both as an
             # input and an output, wrap the input such that the corresponding

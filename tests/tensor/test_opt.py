@@ -6567,14 +6567,14 @@ class TestLocalSumProd:
         assert len(f.maker.fgraph.apply_nodes) == 1
         utt.assert_allclose(f(input), input.prod())
 
-        backup = config.warn.sum_sum_bug
-        config.warn.sum_sum_bug = False
+        backup = config.warn__sum_sum_bug
+        config.warn__sum_sum_bug = False
         try:
             f = function([a], a.sum(0).sum(0).sum(0), mode=self.mode)
             assert len(f.maker.fgraph.apply_nodes) == 1
             utt.assert_allclose(f(input), input.sum())
         finally:
-            config.warn.sum_sum_bug = backup
+            config.warn__sum_sum_bug = backup
 
     def test_local_sum_sum_prod_prod(self):
         a = tt.tensor3()
@@ -6593,8 +6593,8 @@ class TestLocalSumProd:
             (2, (0, 1)),
         ]
 
-        backup = config.warn.sum_sum_bug
-        config.warn.sum_sum_bug = False
+        backup = config.warn__sum_sum_bug
+        config.warn__sum_sum_bug = False
 
         def my_prod(data, d, dd):
             # This prod when d or dd is a tuple of 2 dimensions.
@@ -6647,7 +6647,7 @@ class TestLocalSumProd:
             utt.assert_allclose(f(input), input.sum())
             assert len(f.maker.fgraph.apply_nodes) == 1
         finally:
-            config.warn.sum_sum_bug = backup
+            config.warn__sum_sum_bug = backup
 
         # test prod
         for d, dd in dims:
@@ -6743,8 +6743,8 @@ class TestLocalSumProd:
                 assert topo[-1].op == tt.alloc
                 assert not any([isinstance(node.op, Prod) for node in topo])
 
-            backup = config.warn.sum_sum_bug
-            config.warn.sum_sum_bug = False
+            backup = config.warn__sum_sum_bug
+            config.warn__sum_sum_bug = False
             try:
                 for d, dd in [(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1)]:
                     f = function([a], t_like(a).sum(d).sum(dd), mode=mode)
@@ -6754,7 +6754,7 @@ class TestLocalSumProd:
                     assert topo[-1].op == tt.alloc
                     assert not any([isinstance(node.op, tt.Sum) for node in topo])
             finally:
-                config.warn.sum_sum_bug = backup
+                config.warn__sum_sum_bug = backup
 
     def test_local_sum_sum_int8(self):
         # Test that local_sum_sum works when combining two sums on an int8 array.
@@ -6968,11 +6968,11 @@ class TestLocalReduce:
 
         # Test a case that was bugged in a old Theano bug
         try:
-            old = theano.config.warn.reduce_join
-            theano.config.warn.reduce_join = False
+            old = theano.config.warn__reduce_join
+            theano.config.warn__reduce_join = False
             f = function([], tt.sum(tt.stack([A, A]), axis=1), mode=self.mode)
         finally:
-            theano.config.warn.reduce_join = old
+            theano.config.warn__reduce_join = old
         utt.assert_allclose(f(), [15, 15])
         topo = f.maker.fgraph.toposort()
         assert not isinstance(topo[-1].op, tt.Elemwise)
@@ -6993,13 +6993,13 @@ class TestLocalReduce:
         # Test that the optimization does not crash in one case where it
         # is not applied.  Reported at
         # https://groups.google.com/d/topic/theano-users/EDgyCU00fFA/discussion
-        old = theano.config.warn.reduce_join
+        old = theano.config.warn__reduce_join
         try:
-            theano.config.warn.reduce_join = False
+            theano.config.warn__reduce_join = False
             out = tt.sum([vx, vy, vz], axis=None)
             f = function([vx, vy, vz], out)
         finally:
-            theano.config.warn.reduce_join = old
+            theano.config.warn__reduce_join = old
 
 
 class TestLocalSumProdDimshuffle:
@@ -7053,9 +7053,9 @@ class TestLocalSumProdDimshuffle:
         c_val = rng.randn(2, 2, 2).astype(config.floatX)
         d_val = np.asarray(rng.randn(), config.floatX)
 
-        backup = config.warn.sum_sum_bug, config.warn.sum_div_dimshuffle_bug
-        config.warn.sum_sum_bug = False
-        config.warn.sum_div_dimshuffle_bug = False
+        backup = config.warn__sum_sum_bug, config.warn__sum_div_dimshuffle_bug
+        config.warn__sum_sum_bug = False
+        config.warn__sum_div_dimshuffle_bug = False
         try:
             for i, s in enumerate(sums):
                 print(i)
@@ -7064,7 +7064,7 @@ class TestLocalSumProdDimshuffle:
                 assert isinstance(g[-1].op.scalar_op, scal.basic.TrueDiv)
                 f(a_val, b_val, c_val, d_val)
         finally:
-            config.warn.sum_sum_bug, config.warn.sum_div_dimshuffle_bug = backup
+            config.warn__sum_sum_bug, config.warn__sum_div_dimshuffle_bug = backup
 
     def test_local_prod_div_dimshuffle(self):
         a = tt.matrix("a")

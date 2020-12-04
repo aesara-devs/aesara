@@ -379,18 +379,18 @@ class Scalar(Type):
         # we declare them here and they will be re-used by TensorType
         l.append("<numpy/arrayobject.h>")
         l.append("<numpy/arrayscalars.h>")
-        if config.lib.amdlibm and c_compiler.supports_amdlibm:
+        if config.lib__amblibm and c_compiler.supports_amdlibm:
             l += ["<amdlibm.h>"]
         return l
 
     def c_libraries(self, c_compiler):
         l = []
-        if config.lib.amdlibm and c_compiler.supports_amdlibm:
+        if config.lib__amblibm and c_compiler.supports_amdlibm:
             l += ["amdlibm"]
         return l
 
     def c_compile_args(self, c_compiler):
-        if config.lib.amdlibm and c_compiler.supports_amdlibm:
+        if config.lib__amblibm and c_compiler.supports_amdlibm:
             return ["-DREPLACE_WITH_AMDLIBM"]
         else:
             return []
@@ -1231,7 +1231,7 @@ class UnaryScalarOp(ScalarOp):
         (x,) = inputs
         (z,) = outputs
         if (
-            not theano.config.lib.amdlibm
+            not theano.config.lib__amblibm
             or
             # We compare the dtype AND the broadcast flag
             # as this function do not broadcast
@@ -1251,7 +1251,7 @@ class UnaryScalarOp(ScalarOp):
         """
 
     def c_code_contiguous_raw(self, dtype, n, i, o):
-        if not config.lib.amdlibm:
+        if not config.lib__amblibm:
             raise theano.gof.utils.MethodNotDefined()
         if dtype.startswith("npy_"):
             dtype = dtype[4:]
@@ -2335,7 +2335,7 @@ class Pow(BinaryScalarOp):
     def c_code_contiguous(self, node, name, inputs, outputs, sub):
         (x, y) = inputs
         (z,) = outputs
-        if not theano.config.lib.amdlibm:
+        if not theano.config.lib__amblibm:
             raise theano.gof.utils.MethodNotDefined()
 
         # We compare the dtype AND the broadcast flag

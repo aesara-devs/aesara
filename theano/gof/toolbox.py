@@ -216,8 +216,8 @@ class BadOptimization(Exception):
         print("  New Graph:", file=sio)
         print(self.new_graph, file=sio)
         print("", file=sio)
-        print("Hint: relax the tolerance by setting tensor.cmp_sloppy=1", file=sio)
-        print("  or even tensor.cmp_sloppy=2 for less-strict comparison", file=sio)
+        print("Hint: relax the tolerance by setting tensor__cmp_sloppy=1", file=sio)
+        print("  or even tensor__cmp_sloppy=2 for less-strict comparison", file=sio)
         return sio.getvalue()
 
 
@@ -528,7 +528,7 @@ class ReplaceValidate(History, Validator):
         chk = fgraph.checkpoint()
         if verbose is None:
             verbose = config.optimizer_verbose
-        if config.scan.debug:
+        if config.scan__debug:
             from theano.scan.op import Scan
 
             scans = [n for n in fgraph.apply_nodes if isinstance(n.op, Scan)]
@@ -572,7 +572,7 @@ class ReplaceValidate(History, Validator):
             if verbose:
                 print(f"validate failed on node {r}.\n Reason: {reason}, {e}")
             raise
-        if config.scan.debug:
+        if config.scan__debug:
             from theano.scan.op import Scan
 
             scans2 = [n for n in fgraph.apply_nodes if isinstance(n.op, Scan)]

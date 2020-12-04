@@ -29,7 +29,7 @@ class TestCorr2D(utt.InferShapeTester):
         self.input.name = "default_V"
         self.filters = tt.tensor4("filters", dtype=self.dtype)
         self.filters.name = "default_filters"
-        # This tests can run even when theano.config.blas.ldflags is empty.
+        # This tests can run even when theano.config.blas__ldflags is empty.
         super().setup_method()
 
     def validate(

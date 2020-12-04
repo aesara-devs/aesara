@@ -129,7 +129,7 @@ class TestGemm:
             cmp_linker(copy(z), a, x, y, b, "py")
 
             if not dtype.startswith("complex") and theano.config.cxx:
-                # If theano.config.blas.ldflags is empty, Theano will use
+                # If theano.config.blas__ldflags is empty, Theano will use
                 # a NumPy C implementation of [sd]gemm_.
                 cmp_linker(copy(z), a, x, y, b, "c")
 
@@ -477,7 +477,7 @@ class TestGemmNoFlags:
         C = self.get_value(C, transpose_C, slice_C)
         return alpha * np.dot(A, B) + beta * C
 
-    @theano.change_flags({"blas.ldflags": ""})
+    @theano.change_flags({"blas__ldflags": ""})
     def run_gemm(
         self,
         dtype,

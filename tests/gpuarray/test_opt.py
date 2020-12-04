@@ -902,8 +902,8 @@ class TestConv_opt:
                 unshared=unshared,
             )(inp2, inp1, input_shapes[2][-2:])
 
-        theano.config.metaopt.optimizer_including = include_tags
-        theano.config.metaopt.optimizer_excluding = exclude_tags
+        theano.config.metaopt__optimizer_including = include_tags
+        theano.config.metaopt__optimizer_excluding = exclude_tags
         mode = (
             mode_with_gpu.including("conv_meta")
             .excluding("conv_dnn")
@@ -978,8 +978,8 @@ class TestConv_opt:
                 num_groups=num_groups,
             )(inp2, inp1, input_shapes[2][-3:])
 
-        theano.config.metaopt.optimizer_including = include_tags
-        theano.config.metaopt.optimizer_excluding = exclude_tags
+        theano.config.metaopt__optimizer_including = include_tags
+        theano.config.metaopt__optimizer_excluding = exclude_tags
         mode = (
             mode_with_gpu.including("conv_meta")
             .excluding("conv_dnn")

@@ -874,7 +874,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
-            with theano.change_flags([("warn.sum_div_dimshuffle_bug", False)]):
+            with theano.change_flags([("warn__sum_div_dimshuffle_bug", False)]):
                 fgraph = gof.FunctionGraph([x, b, y], [tt.grad(expr, x)])
                 optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
@@ -911,7 +911,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
-            with theano.change_flags([("warn.sum_div_dimshuffle_bug", False)]):
+            with theano.change_flags([("warn__sum_div_dimshuffle_bug", False)]):
                 fgraph = gof.FunctionGraph([x, b, y], [tt.grad(expr, x)])
                 optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
@@ -949,7 +949,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
-            with theano.change_flags([("warn.sum_div_dimshuffle_bug", False)]):
+            with theano.change_flags([("warn__sum_div_dimshuffle_bug", False)]):
                 fgraph = gof.FunctionGraph([x, b, y], [tt.grad(expr, x)])
                 optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
@@ -1056,12 +1056,12 @@ def test_argmax_pushdown():
         fgraph = gof.FunctionGraph([x], [out])
 
         assert hasattr(fgraph.outputs[0].tag, "trace")
-        backup = config.warn.argmax_pushdown_bug
-        config.warn.argmax_pushdown_bug = False
+        backup = config.warn__argmax_pushdown_bug
+        config.warn__argmax_pushdown_bug = False
         try:
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
         finally:
-            config.warn.argmax_pushdown_bug = backup
+            config.warn__argmax_pushdown_bug = backup
 
         # print 'AFTER'
         # for node in fgraph.toposort():
@@ -1097,12 +1097,12 @@ def test_argmax_pushdown_bias():
     out = tt.max_and_argmax(softmax_with_bias(x, b), axis=-1)[0]
     fgraph = gof.FunctionGraph([x, b], [out])
 
-    backup = config.warn.argmax_pushdown_bug
-    config.warn.argmax_pushdown_bug = False
+    backup = config.warn__argmax_pushdown_bug
+    config.warn__argmax_pushdown_bug = False
     try:
         optdb.query(OPT_FAST_RUN).optimize(fgraph)
     finally:
-        config.warn.argmax_pushdown_bug = backup
+        config.warn__argmax_pushdown_bug = backup
 
     # print 'AFTER'
     # for node in fgraph.toposort():
@@ -1213,12 +1213,12 @@ class TestSoftmaxOpt:
 
         # test that function contains softmax and softmaxgrad
         w = tt.matrix()
-        backup = config.warn.sum_div_dimshuffle_bug
-        config.warn.sum_div_dimshuffle_bug = False
+        backup = config.warn__sum_div_dimshuffle_bug
+        config.warn__sum_div_dimshuffle_bug = False
         try:
             g = theano.function([c, w], tt.grad((p_y * w).sum(), c))
         finally:
-            config.warn.sum_div_dimshuffle_bug = backup
+            config.warn__sum_div_dimshuffle_bug = backup
         g_ops = [n.op for n in g.maker.fgraph.toposort()]
         # print '--- g ='
         # printing.debugprint(g)
@@ -1240,12 +1240,12 @@ class TestSoftmaxOpt:
         # printing.debugprint(f)
 
         # test that function contains softmax and no div.
-        backup = config.warn.sum_div_dimshuffle_bug
-        config.warn.sum_div_dimshuffle_bug = False
+        backup = config.warn__sum_div_dimshuffle_bug
+        config.warn__sum_div_dimshuffle_bug = False
         try:
             theano.function([c], tt.grad(p_y.sum(), c))
         finally:
-            config.warn.sum_div_dimshuffle_bug = backup
+            config.warn__sum_div_dimshuffle_bug = backup
         # printing.debugprint(g)
 
     @pytest.mark.skip(reason="Optimization not enabled for the moment")
@@ -1259,12 +1259,12 @@ class TestSoftmaxOpt:
         # printing.debugprint(f)
 
         # test that function contains softmax and no div.
-        backup = config.warn.sum_div_dimshuffle_bug
-        config.warn.sum_div_dimshuffle_bug = False
+        backup = config.warn__sum_div_dimshuffle_bug
+        config.warn__sum_div_dimshuffle_bug = False
         try:
             theano.function([c], tt.grad(p_y.sum(), c))
         finally:
-            config.warn.sum_div_dimshuffle_bug = backup
+            config.warn__sum_div_dimshuffle_bug = backup
         # printing.debugprint(g)
 
     # REPEAT 3 CASES in presence of log(softmax) with the advanced indexing

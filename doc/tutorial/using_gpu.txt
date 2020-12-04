@@ -58,7 +58,7 @@ remainder of this section, whatever compute device you are using will
 be referred to as GPU.
 
 .. note::
-  GpuArray backend uses ``config.gpuarray.preallocate`` for GPU memory
+  GpuArray backend uses ``config.gpuarray__preallocate`` for GPU memory
   allocation.
 
 .. warning::

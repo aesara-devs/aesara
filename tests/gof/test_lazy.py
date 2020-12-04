@@ -114,7 +114,7 @@ def test_ifelse():
 
     lazys = [True]
     # We need lazy to end up being True for this test.
-    if theano.config.vm.lazy in [True, None]:
+    if theano.config.vm__lazy in [True, None]:
         lazys = [True, None]
 
     cloops = [True, False]

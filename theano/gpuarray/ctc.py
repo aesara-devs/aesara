@@ -75,10 +75,10 @@ class GpuConnectionistTemporalClassification(gof.COp):
         dirs = [
             gpuarray_helper_inc_dir(),
             pygpu.get_include(),
-            config.cuda.include_path,
+            config.cuda__include_path,
         ]
-        if config.ctc.root != "":
-            dirs.append(os.path.join(config.ctc.root, "include"))
+        if config.ctc__root != "":
+            dirs.append(os.path.join(config.ctc__root, "include"))
         return dirs
 
     def c_headers(self):

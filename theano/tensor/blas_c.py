@@ -349,7 +349,7 @@ cger_no_inplace = CGer(False)
 
 @local_optimizer([ger, ger_destructive])
 def use_c_ger(fgraph, node):
-    if not config.blas.ldflags:
+    if not config.blas__ldflags:
         return
     # Only float32 and float64 are supported for now.
     if node.op == ger and node.outputs[0].dtype in ["float32", "float64"]:
@@ -704,7 +704,7 @@ check_force_gemv_init._force_init_beta = None
 
 @local_optimizer([gemv_inplace, gemv_no_inplace])
 def use_c_gemv(fgraph, node):
-    if not config.blas.ldflags:
+    if not config.blas__ldflags:
         return
     # Only float32 and float64 are supported for now.
     if node.op == gemv_no_inplace and node.outputs[0].dtype in ["float32", "float64"]:

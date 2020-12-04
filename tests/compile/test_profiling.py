@@ -17,11 +17,11 @@ class TestProfiling:
 
         config1 = theano.config.profile
         config2 = theano.config.profile_memory
-        config3 = theano.config.profiling.min_peak_memory
+        config3 = theano.config.profiling__min_peak_memory
         try:
             theano.config.profile = True
             theano.config.profile_memory = True
-            theano.config.profiling.min_peak_memory = True
+            theano.config.profiling__min_peak_memory = True
 
             x = [tt.fvector("val%i" % i) for i in range(3)]
 
@@ -69,7 +69,7 @@ class TestProfiling:
         finally:
             theano.config.profile = config1
             theano.config.profile_memory = config2
-            theano.config.profiling.min_peak_memory = config3
+            theano.config.profiling__min_peak_memory = config3
 
     def test_ifelse(self):
         config1 = theano.config.profile

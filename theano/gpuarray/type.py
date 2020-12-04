@@ -967,10 +967,10 @@ gpu_context_type = GpuContextType()
 # the situation. The old back-end have this same comment and use the
 # same mechanism.
 def GpuArray_unpickler(npa, ctx_name):
-    if config.experimental.unpickle_gpu_on_cpu:
+    if config.experimental__unpickle_gpu_on_cpu:
         # directly return numpy array
         warnings.warn(
-            "config.experimental.unpickle_gpu_on_cpu is set to True. "
+            "config.experimental__unpickle_gpu_on_cpu is set to True. "
             "Unpickling GpuArray as numpy.ndarray"
         )
         return npa

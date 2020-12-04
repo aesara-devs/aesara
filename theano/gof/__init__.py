@@ -56,7 +56,7 @@ from theano.gof.type import CEnumType, EnumList, EnumType, Generic, Type, generi
 from theano.gof.utils import MethodNotDefined, hashtype, object2
 
 
-if theano.config.cmodule.preload_cache:
+if theano.config.cmodule__preload_cache:
     from theano.gof.cc import get_module_cache
 
     get_module_cache()

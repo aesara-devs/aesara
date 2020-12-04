@@ -969,7 +969,7 @@ class BaseTestDnnConv:
                 else:
                     self.run_conv_gradweight(dnn_case.get_case())
 
-    # The 3 following tests are intended to be run with theano flag `cmodule.debug=True`.
+    # The 3 following tests are intended to be run with theano flag `cmodule__debug=True`.
     # The output message should then be analyzed to check if runtime algorithms are
     # reused, reloaded from cache or updated, depending on what we expect from
     # dnn_fwd/dnn_gi/dnn_gw current codes. I currently don't know a better way
@@ -1027,7 +1027,7 @@ class BaseTestDnnConv:
         _broadcastable = [False] * (2 + self.ndim)
 
         def run_gradinput_runtime_algorithm(algo):
-            theano.config.dnn.conv.algo_bwd_data = algo
+            theano.config.dnn__conv__algo_bwd_data = algo
             inputs = theano.tensor.TensorType(dtype, _broadcastable)()
             filters = theano.tensor.TensorType(dtype, _broadcastable)()
             conv = dnn_conv(
@@ -1085,7 +1085,7 @@ class BaseTestDnnConv:
         _broadcastable = [False] * (2 + self.ndim)
 
         def run_gradweight_runtime_algorithm(algo):
-            theano.config.dnn.conv.algo_bwd_filter = algo
+            theano.config.dnn__conv__algo_bwd_filter = algo
             inputs = theano.tensor.TensorType(dtype, _broadcastable)()
             filters = theano.tensor.TensorType(dtype, _broadcastable)()
             conv = dnn_conv(

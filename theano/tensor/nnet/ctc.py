@@ -14,9 +14,9 @@ def _ctc_find_lib():
     """
     Find the directory that contains libwarpctc.so
     """
-    if config.ctc.root != "":
+    if config.ctc__root != "":
         for lib_dir in ["build", "lib", "lib64"]:
-            lib_path = os.path.join(config.ctc.root, lib_dir)
+            lib_path = os.path.join(config.ctc__root, lib_dir)
             if os.path.isdir(lib_path) and os.path.exists(lib_path):
                 lib_found = os.path.exists(os.path.join(lib_path, "libwarpctc.so"))
                 if lib_found:
@@ -39,7 +39,7 @@ options.num_threads = 1;
 
     params = [f"-I{os.path.dirname(__file__)}"]
     if ctc_lib_path is not None:
-        params.extend([f"-I{os.path.join(config.ctc.root, 'include')}"])
+        params.extend([f"-I{os.path.join(config.ctc__root, 'include')}"])
         params.extend([f"-L{ctc_lib_path}"])
     params.extend(["-l", "warpctc"])
     compiler_res = GCC_compiler.try_flags(
@@ -96,7 +96,7 @@ class ConnectionistTemporalClassification(gof.COp, gof.OpenMPOp):
     -----
     Using the wrapper requires that Baidu's warp-ctc library is installed.
     If the warp-ctc library is not on your compiler's default library path,
-    you must set the configuration variable ``config.ctc.root`` appropriately.
+    you must set the configuration variable ``config.ctc__root`` appropriately.
 
     Parameters
     ----------
@@ -146,10 +146,10 @@ class ConnectionistTemporalClassification(gof.COp, gof.OpenMPOp):
 
     def c_header_dirs(self):
         header_dirs = []
-        if config.ctc.root != "":
+        if config.ctc__root != "":
             # We assume here that the header is available at the include directory
             # of the CTC root directory.
-            header_dirs += [os.path.join(config.ctc.root, "include")]
+            header_dirs += [os.path.join(config.ctc__root, "include")]
         return header_dirs
 
     def c_headers(self):
@@ -215,7 +215,7 @@ def ctc(activations, labels, input_lengths):
     -----
     Using the loss function requires that the Baidu's warp-ctc library be installed.
     If the warp-ctc library is not on the compiler's default library path, the
-    configuration variable ``config.ctc.root`` must be properly set.
+    configuration variable ``config.ctc__root`` must be properly set.
 
     Parameters
     ----------
