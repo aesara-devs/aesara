@@ -40,20 +40,9 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ needs.changes.outputs.changes == 'true' }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.7
-      - name: Install dependencies
-        run: |
-          python -m pip install -U pip
-          python -m pip install -U black flake8 isort
-      - name: Check the style
-        run: |
-          black -t py36 --check theano/ tests/ setup.py conftest.py
-          isort --check theano/ tests/ setup.py conftest.py
-          flake8
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+    - uses: pre-commit/action@v2.0.0
 
   test:
     name: "Test py${{ matrix.python-version }}: ${{ matrix.part }}"
@@ -63,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ needs.changes.outputs.changes == 'true' && needs.style.result == 'success' }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         python-version: ["3.6", "3.7"]
         fast-compile: [0]
