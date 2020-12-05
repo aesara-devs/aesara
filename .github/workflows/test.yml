@@ -158,16 +158,22 @@ jobs:
           name: coverage
           path: coverage/coverage-${{ steps.matrix-id.outputs.id }}.xml
 
-  combine:
+  all-checks:
     if: ${{ always() }}
     runs-on: ubuntu-latest
-    name: "All tests and coverage"
+    name: "All tests"
     needs: [changes, style, test]
     steps:
       - name: Check build matrix status
         if: ${{ needs.changes.outputs.changes == 'true' && (needs.style.result != 'success' || needs.test.result != 'success') }}
         run: exit 1
 
+  upload-coverage:
+    runs-on: ubuntu-latest
+    name: "Upload coverage"
+    needs: [changes, all-checks]
+    if: ${{ needs.changes.outputs.changes == 'true' && needs.all-checks.result == 'success' }}
+    steps:
       - uses: actions/checkout@v2
 
       - name: Set up Python
