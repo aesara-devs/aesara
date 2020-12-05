@@ -481,7 +481,7 @@ def jax_funcify_Scan(op):
             # + inner_in_non_seqs
             inner_in_mit_sot_flatten = []
             for array, index in zip(inner_in_mit_sot, scan_args.mit_sot_in_slices):
-                inner_in_mit_sot_flatten.extend(array[index])
+                inner_in_mit_sot_flatten.extend(array[jnp.array(index)])
 
             inner_scan_inputs = sum(
                 [
