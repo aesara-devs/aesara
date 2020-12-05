@@ -23,7 +23,7 @@ Features
 Getting started
 ===============
 
-The legacy documentation is located `here <http://deeplearning.net/software/theano/>`__.
+The documentation is located `here <https://theano-pymc.readthedocs.io/en/latest/>`__.
 
 .. warning::
     As development progresses, the legacy documentation may become less applicable.
