@@ -12,8 +12,8 @@ import warnings
 import numpy as np
 
 import theano
+import theano.configparser
 from theano.configparser import (
-    THEANO_FLAGS_DICT,
     AddConfigVar,
     BoolParam,
     ConfigParam,
@@ -23,7 +23,6 @@ from theano.configparser import (
     FloatParam,
     IntParam,
     StrParam,
-    TheanoConfigParser,
 )
 from theano.misc.windows import call_subprocess_Popen, output_subprocess_Popen
 from theano.utils import maybe_add_to_os_environ_pathlist
@@ -2236,7 +2235,7 @@ SUPPORTED_DNN_CONV_PRECISION = (
 # TODO: we should add the configs explicitly to an instance of the TheanoConfigParser
 # Even if we treat it as a singleton, we should implement as if it wasn't, so we can
 # test it independently.
-config = TheanoConfigParser()
+config = theano.configparser.config
 add_basic_configvars()
 add_dnn_configvars()
 add_magma_configvars()
@@ -2272,6 +2271,5 @@ except OSError:
 add_caching_dir_configvars()
 
 # Check if there are remaining flags provided by the user through THEANO_FLAGS.
-# TODO: the global variable THEANO_FLAGS_DICT should probably become an attribute on the `config` singleton
-for key in THEANO_FLAGS_DICT.keys():
+for key in config._flags_dict.keys():
     warnings.warn(f"Theano does not recognise this flag: {key}")

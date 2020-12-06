@@ -6,12 +6,14 @@ import pytest
 
 from theano import configdefaults, configparser
 from theano.configdefaults import default_blas_ldflags
-from theano.configparser import THEANO_FLAGS_DICT, AddConfigVar, ConfigParam
+from theano.configparser import ConfigParam
 
 
 def test_invalid_default():
     # Ensure an invalid default value found in the Theano code only causes
     # a crash if it is not overridden by the user.
+
+    root = configdefaults.config
 
     def validate(val):
         if val == "invalid":
@@ -20,17 +22,17 @@ def test_invalid_default():
     with pytest.raises(ValueError, match="Test-triggered"):
         # This should raise a ValueError because the default value is
         # invalid.
-        AddConfigVar(
+        root.add(
             "T_config__test_invalid_default_a",
             doc="unittest",
             configparam=ConfigParam("invalid", validate=validate),
             in_c_key=False,
         )
 
-    THEANO_FLAGS_DICT["T_config__test_invalid_default_b"] = "ok"
+    root._flags_dict["T_config__test_invalid_default_b"] = "ok"
     # This should succeed since we defined a proper value, even
     # though the default was invalid.
-    AddConfigVar(
+    root.add(
         "T_config__test_invalid_default_b",
         doc="unittest",
         configparam=ConfigParam("invalid", validate=validate),
@@ -39,7 +41,7 @@ def test_invalid_default():
 
     # TODO We should remove these dummy options on test exit.
     # Check that the flag has been removed
-    assert "T_config__test_invalid_default_b" not in THEANO_FLAGS_DICT
+    assert "T_config__test_invalid_default_b" not in root._flags_dict
 
 
 @patch("theano.configdefaults.try_blas_flag", return_value=None)
@@ -84,20 +86,19 @@ def test_config_param_apply_and_validation():
 def test_config_hash():
     # TODO: use custom config instance for the test
     root = configparser.config
-    configparser.AddConfigVar(
+    root.add(
         "test_config_hash",
         "A config var from a test case.",
         configparser.StrParam("test_default"),
-        root=root,
     )
 
-    h0 = configparser.get_config_hash()
+    h0 = root.get_config_hash()
 
     with configparser.change_flags(test_config_hash="new_value"):
         assert root.test_config_hash == "new_value"
-        h1 = configparser.get_config_hash()
+        h1 = root.get_config_hash()
 
-    h2 = configparser.get_config_hash()
+    h2 = root.get_config_hash()
     assert h1 != h0
     assert h2 == h0
 
@@ -141,11 +142,10 @@ class TestConfigTypes:
 def test_config_context():
     # TODO: use custom config instance for the test
     root = configparser.config
-    configparser.AddConfigVar(
+    root.add(
         "test_config_context",
         "A config var from a test case.",
         configparser.StrParam("test_default"),
-        root=root,
     )
     assert hasattr(root, "test_config_context")
     assert root.test_config_context == "test_default"
@@ -156,8 +156,9 @@ def test_config_context():
 
 
 def test_no_more_dotting():
+    root = configparser.config
     with pytest.raises(ValueError, match="Dot-based"):
-        AddConfigVar(
+        root.add(
             "T_config.something",
             doc="unittest",
             configparam=ConfigParam("invalid"),

@@ -11,7 +11,6 @@ from io import StringIO
 
 import numpy as np
 
-import theano
 from theano import config
 from theano.gof import cmodule, graph, link, utils
 from theano.gof.callcache import CallCache
@@ -1472,7 +1471,7 @@ class CLinker(link.Linker):
         # NOTE: config md5 is not using md5 hash, but sha256 instead. Function
         # string instances of md5 will be updated at a later release.
         if insert_config_hash:
-            sig.append("md5:" + theano.configparser.get_config_hash())
+            sig.append("md5:" + config.get_config_hash())
         else:
             sig.append("md5: <omitted>")
 

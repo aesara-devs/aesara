@@ -13,7 +13,7 @@ import warnings
 from collections import defaultdict
 
 import theano.gof.cmodule
-from theano.configparser import _config_var_list, config
+from theano.configparser import config
 
 from . import link
 
@@ -715,9 +715,7 @@ except (OSError, theano.gof.cmodule.MissingGXX) as e:
     # already changed the default linker to something else then CVM.
     # Currently this is the py linker.
     # Here we assert that the default linker is not cvm.
-    assert not [x for x in _config_var_list if x.fullname == "linker"][
-        0
-    ].default.startswith("cvm"), e
+    assert not config._config_var_dict["linker"].default.startswith("cvm"), e
 
 
 class VM_Linker(link.LocalLinker):
