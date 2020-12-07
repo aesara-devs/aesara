@@ -23,10 +23,11 @@ class TheanoConfigWarning(Warning):
 class _ChangeFlagsDecorator:
     def __init__(self, *args, _root=None, **kwargs):
         # the old API supported passing a dict as the first argument:
-        args = dict(args)
-        args.update(kwargs)
-        self.confs = {k: _root._config_var_dict[k] for k in args}
-        self.new_vals = args
+        if args:
+            assert len(args) == 1 and isinstance(args[0], dict)
+            kwargs = dict(**args[0], **kwargs)
+        self.confs = {k: _root._config_var_dict[k] for k in kwargs}
+        self.new_vals = kwargs
         self._root = _root
 
     def __call__(self, f):

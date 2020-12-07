@@ -158,6 +158,9 @@ def test_config_context():
 
     with configparser.change_flags(test_config_context="new_value"):
         assert root.test_config_context == "new_value"
+        with root.change_flags({"test_config_context": "new_value2"}):
+            assert root.test_config_context == "new_value2"
+        assert root.test_config_context == "new_value"
     assert root.test_config_context == "test_default"
 
 
