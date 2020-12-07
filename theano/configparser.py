@@ -27,6 +27,7 @@ class _ChangeFlagsDecorator:
         args.update(kwargs)
         self.confs = {k: _root._config_var_dict[k] for k in args}
         self.new_vals = args
+        self._root = _root
 
     def __call__(self, f):
         @wraps(f)
@@ -39,10 +40,10 @@ class _ChangeFlagsDecorator:
     def __enter__(self):
         self.old_vals = {}
         for k, v in self.confs.items():
-            self.old_vals[k] = v.__get__(True, None)
+            self.old_vals[k] = v.__get__(self._root, self._root.__class__)
         try:
             for k, v in self.confs.items():
-                v.__set__(None, self.new_vals[k])
+                v.__set__(self._root, self.new_vals[k])
         except Exception:
             _logger.error(f"Failed to change flags for {self.confs}.")
             self.__exit__()
@@ -50,7 +51,7 @@ class _ChangeFlagsDecorator:
 
     def __exit__(self, *args):
         for k, v in self.confs.items():
-            v.__set__(None, self.old_vals[k])
+            v.__set__(self._root, self.old_vals[k])
 
 
 def _hash_from_code(msg):
@@ -84,7 +85,7 @@ class TheanoConfigParser:
             print(cv, file=buf)
             if print_doc:
                 print("    Doc: ", cv.doc, file=buf)
-            print("    Value: ", cv.__get__(True, None), file=buf)
+            print("    Value: ", cv.__get__(self, self.__class__), file=buf)
             print("", file=buf)
 
     def get_config_hash(self):
@@ -104,7 +105,7 @@ class TheanoConfigParser:
         return _hash_from_code(
             "\n".join(
                 [
-                    "{} = {}".format(cv.fullname, cv.__get__(True, None))
+                    "{} = {}".format(cv.fullname, cv.__get__(self, self.__class__))
                     for cv in all_opts
                 ]
             )

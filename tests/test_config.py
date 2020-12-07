@@ -103,6 +103,12 @@ def test_config_hash():
     assert h2 == h0
 
 
+def test_config_print():
+    root = configparser.config
+    result = str(root)
+    assert isinstance(result, str)
+
+
 class TestConfigTypes:
     def test_bool(self):
         valids = {
