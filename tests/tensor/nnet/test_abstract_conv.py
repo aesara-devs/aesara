@@ -295,7 +295,7 @@ class TestAssertConvShape:
 
 
 class TestAssertShape:
-    @change_flags([("conv__assert_shape", True)])
+    @change_flags(conv__assert_shape=True)
     def test_basic(self):
         x = tensor.tensor4()
         s1 = tensor.iscalar()
@@ -318,7 +318,7 @@ class TestAssertShape:
         with pytest.raises(AssertionError):
             f(v, 7, 7)
 
-    @change_flags([("conv__assert_shape", True)])
+    @change_flags(conv__assert_shape=True)
     def test_shape_check_conv2d(self):
         input = tensor.tensor4()
         filters = tensor.tensor4()
@@ -340,7 +340,7 @@ class TestAssertShape:
                 np.zeros((7, 5, 2, 2), dtype="float32"),
             )
 
-    @change_flags([("conv__assert_shape", True)])
+    @change_flags(conv__assert_shape=True)
     @pytest.mark.skipif(theano.config.cxx == "", reason="test needs cxx")
     def test_shape_check_conv3d(self):
         input = tensor.tensor5()
@@ -363,7 +363,7 @@ class TestAssertShape:
                 np.zeros((7, 5, 2, 2, 2), dtype="float32"),
             )
 
-    @change_flags([("conv__assert_shape", True)])
+    @change_flags(conv__assert_shape=True)
     def test_shape_check_conv2d_grad_wrt_inputs(self):
         output_grad = tensor.tensor4()
         filters = tensor.tensor4()
@@ -382,7 +382,7 @@ class TestAssertShape:
                 np.zeros((7, 6, 3, 3), dtype="float32"),
             )
 
-    @change_flags([("conv__assert_shape", True)])
+    @change_flags(conv__assert_shape=True)
     @pytest.mark.skipif(theano.config.cxx == "", reason="test needs cxx")
     def test_shape_check_conv3d_grad_wrt_inputs(self):
         output_grad = tensor.tensor5()
@@ -402,7 +402,7 @@ class TestAssertShape:
                 np.zeros((7, 6, 3, 3, 3), dtype="float32"),
             )
 
-    @change_flags([("conv__assert_shape", True)])
+    @change_flags(conv__assert_shape=True)
     def test_shape_check_conv2d_grad_wrt_weights(self):
         input = tensor.tensor4()
         output_grad = tensor.tensor4()
@@ -421,7 +421,7 @@ class TestAssertShape:
                 np.zeros((3, 7, 5, 9), dtype="float32"),
             )
 
-    @change_flags([("conv__assert_shape", True)])
+    @change_flags(conv__assert_shape=True)
     @pytest.mark.skipif(theano.config.cxx == "", reason="test needs cxx")
     def test_shape_check_conv3d_grad_wrt_weights(self):
         input = tensor.tensor5()

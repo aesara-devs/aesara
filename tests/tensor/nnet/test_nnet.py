@@ -874,7 +874,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
-            with theano.change_flags([("warn__sum_div_dimshuffle_bug", False)]):
+            with theano.change_flags(warn__sum_div_dimshuffle_bug=False):
                 fgraph = gof.FunctionGraph([x, b, y], [tt.grad(expr, x)])
                 optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
@@ -911,7 +911,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
-            with theano.change_flags([("warn__sum_div_dimshuffle_bug", False)]):
+            with theano.change_flags(warn__sum_div_dimshuffle_bug=False):
                 fgraph = gof.FunctionGraph([x, b, y], [tt.grad(expr, x)])
                 optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
@@ -949,7 +949,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
-            with theano.change_flags([("warn__sum_div_dimshuffle_bug", False)]):
+            with theano.change_flags(warn__sum_div_dimshuffle_bug=False):
                 fgraph = gof.FunctionGraph([x, b, y], [tt.grad(expr, x)])
                 optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
