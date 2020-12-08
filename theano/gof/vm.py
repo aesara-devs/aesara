@@ -13,7 +13,7 @@ import warnings
 from collections import defaultdict
 
 import theano.gof.cmodule
-from theano.configparser import config
+from theano import config
 
 from . import link
 
