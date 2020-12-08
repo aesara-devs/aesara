@@ -565,14 +565,17 @@ def _create_default_config():
     return config
 
 
-# will be overwritten by configdefaults
-class ConfigProxy:
+class _ConfigProxy:
+    """Like _SectionRedirect this class enables backwards-compatible access to the
+    config settings, but raises DeprecationWarnings with instructions to use `theano.config`.
+    """
+
     def __init__(self, actual):
-        ConfigProxy._actual = actual
+        _ConfigProxy._actual = actual
 
     def __getattr__(self, attr):
         if attr == "_actual":
-            return ConfigProxy._actual
+            return _ConfigProxy._actual
         warnings.warn(
             "Accessing config through `theano.configparser.config` is deprecated. "
             "Use `theano.config` instead.",
@@ -583,7 +586,7 @@ class ConfigProxy:
 
     def __setattr__(self, attr, value):
         if attr == "_actual":
-            return setattr(ConfigProxy._actual, attr, value)
+            return setattr(_ConfigProxy._actual, attr, value)
         warnings.warn(
             "Accessing config through `theano.configparser.config` is deprecated. "
             "Use `theano.config` instead.",
@@ -600,7 +603,7 @@ _config = _create_default_config()
 # The old API often imported the default config object from `configparser`.
 # These imports/accesses should be replaced with `theano.config`, so this wraps
 # it with warnings:
-config = ConfigProxy(_config)
+config = _ConfigProxy(_config)
 # We can't alias the methods of the `config` variable above without already
 # triggering the warning.  Instead, we wrap the methods of the actual instance
 # with warnings:
