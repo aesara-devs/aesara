@@ -9,6 +9,25 @@ from theano.configdefaults import default_blas_ldflags
 from theano.configparser import ConfigParam
 
 
+def test_api_deprecation_warning():
+    # accessing through configdefaults.config is the new best practice
+    with pytest.warns(None):
+        root = configdefaults.config
+        assert isinstance(str(root), str)
+
+    # accessing through configparser.config is discouraged
+    root = configparser.config
+    with pytest.warns(DeprecationWarning, match="instead"):
+        root.add(
+            "test_deprecationwarning",
+            "A config var from a test case.",
+            configparser.StrParam("test_default"),
+        )
+    with pytest.warns(DeprecationWarning, match="instead"):
+        with root.change_flags(test_deprecationwarning="new_value"):
+            pass
+
+
 def test_invalid_default():
     # Ensure an invalid default value found in the Theano code only causes
     # a crash if it is not overridden by the user.

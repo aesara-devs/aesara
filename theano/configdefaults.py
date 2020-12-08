@@ -2232,10 +2232,15 @@ SUPPORTED_DNN_CONV_PRECISION = (
     "float64",
 )
 
-# TODO: we should add the configs explicitly to an instance of the TheanoConfigParser
-# Even if we treat it as a singleton, we should implement as if it wasn't, so we can
-# test it independently.
-config = theano.configparser.config
+# Eventually, the instance of `TheanoConfigParser` should be created right here,
+# where it is also populated with settings.  But for a transition period, it
+# remains as `configparser._config`, while everybody accessing it through
+# `configparser.config` is flooded with deprecation warnings. These warnings
+# instruct one to use `theano.config`, which is an alias for
+# `theano.configdefaults.config`.
+config = theano.configparser._config
+
+# The functions below register config variables into the config instance above.
 add_basic_configvars()
 add_dnn_configvars()
 add_magma_configvars()

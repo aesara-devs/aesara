@@ -15,6 +15,8 @@ from configparser import (
 from functools import wraps
 from io import StringIO
 
+from theano.utils import deprecated
+
 
 _logger = logging.getLogger("theano.configparser")
 
@@ -161,8 +163,11 @@ class TheanoConfigParser:
                 # The user provided a value, filter it now.
                 configparam.__get__(self, type(self), delete_key=True)
             except KeyError:
-                _logger.error(
-                    f"Suppressed KeyError in AddConfigVar for parameter '{name}'!"
+                # This is raised because the underlying `ConfigParser` in
+                # `self._theano_cfg` does not contain an entry for the given
+                # section and/or value.
+                _logger.info(
+                    f"Suppressed KeyError in TheanoConfigParser.add for parameter '{name}'!"
                 )
 
         # the ConfigParam implements __get__/__set__, enabling us to create a property:
@@ -263,7 +268,7 @@ class ConfigParam:
         self.in_c_key = None
 
         # Note that we do not call `self.filter` on the default value: this
-        # will be done automatically in AddConfigVar, potentially with a
+        # will be done automatically in TheanoConfigParser.add, potentially with a
         # more appropriate user-provided default value.
         # Calling `filter` here may actually be harmful if the default value is
         # invalid and causes a crash or has unwanted side effects.
@@ -527,8 +532,48 @@ def _create_default_config():
     return config
 
 
-config = _create_default_config()
-# aliasing for old API
-AddConfigVar = config.add
-change_flags = config.change_flags
-_config_print = config.config_print
+# will be overwritten by configdefaults
+class ConfigProxy:
+    def __init__(self, actual):
+        ConfigProxy._actual = actual
+
+    def __getattr__(self, attr):
+        if attr == "_actual":
+            return ConfigProxy._actual
+        warnings.warn(
+            "Accessing config through `theano.configparser.config` is deprecated. "
+            "Use `theano.config` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return getattr(self._actual, attr)
+
+    def __setattr__(self, attr, value):
+        if attr == "_actual":
+            return setattr(ConfigProxy._actual, attr, value)
+        warnings.warn(
+            "Accessing config through `theano.configparser.config` is deprecated. "
+            "Use `theano.config` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return setattr(self._actual, attr, value)
+
+
+# Create the actual instance of the config. This one should eventually move to
+# `configdefaults`:
+_config = _create_default_config()
+
+# The old API often imported the default config object from `configparser`.
+# These imports/accesses should be replaced with `theano.config`, so this wraps
+# it with warnings:
+config = ConfigProxy(_config)
+# We can't alias the methods of the `config` variable above without already
+# triggering the warning.  Instead, we wrap the methods of the actual instance
+# with warnings:
+change_flags = deprecated("Use theano.config.change_flags instead!")(
+    _config.change_flags
+)
+_config_print = deprecated("Use theano.config.config_print instead!")(
+    _config.config_print
+)
