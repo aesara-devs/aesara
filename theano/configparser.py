@@ -130,12 +130,12 @@ class TheanoConfigParser:
         """
         all_opts = sorted(
             [c for c in self._config_var_dict.values() if c.in_c_key],
-            key=lambda cv: cv.fullname,
+            key=lambda cv: cv.name,
         )
         return _hash_from_code(
             "\n".join(
                 [
-                    "{} = {}".format(cv.fullname, cv.__get__(self, self.__class__))
+                    "{} = {}".format(cv.name, cv.__get__(self, self.__class__))
                     for cv in all_opts
                 ]
             )
@@ -170,7 +170,7 @@ class TheanoConfigParser:
         if hasattr(self, name):
             raise AttributeError(f"The name {name} is already taken")
         configparam.doc = doc
-        configparam.fullname = name
+        configparam.name = name
         configparam.in_c_key = in_c_key
         # Trigger a read of the value from config files and env vars
         # This allow to filter wrong value from the user.
@@ -296,7 +296,7 @@ class ConfigParam:
         self._mutable = mutable
         self.is_default = True
         # set by TheanoConfigParser.add:
-        self.fullname = None
+        self.name = None
         self.doc = None
         self.in_c_key = None
 
@@ -336,7 +336,7 @@ class ConfigParam:
             return True
         if self._validate(value) is False:
             raise ValueError(
-                f"Invalid value ({value}) for configuration variable '{self.fullname}'."
+                f"Invalid value ({value}) for configuration variable '{self.name}'."
             )
         return True
 
@@ -345,7 +345,7 @@ class ConfigParam:
             return self
         if not hasattr(self, "val"):
             try:
-                val_str = cls.fetch_val_for_key(self.fullname, delete_key=delete_key)
+                val_str = cls.fetch_val_for_key(self.name, delete_key=delete_key)
                 self.is_default = False
             except KeyError:
                 if callable(self.default):
@@ -358,7 +358,7 @@ class ConfigParam:
     def __set__(self, cls, val):
         if not self.mutable and hasattr(self, "val"):
             raise Exception(
-                "Can't change the value of {self.fullname} config parameter after initialization!"
+                "Can't change the value of {self.name} config parameter after initialization!"
             )
         applied = self.apply(val)
         self.validate(applied)
@@ -396,18 +396,18 @@ class EnumStr(ConfigParam):
             return val
         else:
             raise ValueError(
-                f"Invalid value ('{val}') for configuration variable '{self.fullname}'. "
+                f"Invalid value ('{val}') for configuration variable '{self.name}'. "
                 f"Valid options are {self.all}"
             )
 
     def __str__(self):
-        return f"{self.fullname} ({self.all}) "
+        return f"{self.name} ({self.all}) "
 
 
 class TypedParam(ConfigParam):
     def __str__(self):
         # The "_apply" callable is the type itself.
-        return f"{self.fullname} ({self._apply}) "
+        return f"{self.name} ({self._apply}) "
 
 
 class StrParam(TypedParam):
@@ -440,7 +440,7 @@ class BoolParam(TypedParam):
         elif value in {True, 1, "true", "True", "1"}:
             return True
         raise ValueError(
-            f"Invalid value ({value}) for configuration variable '{self.fullname}'."
+            f"Invalid value ({value}) for configuration variable '{self.name}'."
         )
 
 
@@ -463,12 +463,12 @@ class DeviceParam(ConfigParam):
         else:
             raise ValueError(
                 'Invalid value ("{val}") for configuration '
-                'variable "{self.fullname}". Valid options start with '
+                'variable "{self.name}". Valid options start with '
                 'one of "cpu", "opencl" or "cuda".'
             )
 
     def __str__(self):
-        return f"{self.fullname} ({self.default}, opencl*, cuda*) "
+        return f"{self.name} ({self.default}, opencl*, cuda*) "
 
 
 class ContextsParam(ConfigParam):
