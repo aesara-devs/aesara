@@ -1153,7 +1153,7 @@ def _pickle_Function(f):
 
 
 def _constructor_Function(maker, input_storage, inputs_data, trust_input=False):
-    if not theano.config.unpickle_function:
+    if not config.unpickle_function:
         return None
 
     f = maker.create(input_storage, trustme=True)
@@ -1360,7 +1360,7 @@ class FunctionMaker:
 
         from theano.gof.compilelock import get_lock, release_lock
 
-        graph_db_file = os.path.join(theano.config.compiledir, "optimized_graphs.pkl")
+        graph_db_file = os.path.join(config.compiledir, "optimized_graphs.pkl")
 
         # the inputs, outputs, and size of the graph to be optimized
         inputs_new = [inp.variable for inp in inputs]
@@ -1379,12 +1379,12 @@ class FunctionMaker:
                     print(f"create new graph_db in {graph_db_file}")
             # load the graph_db dictionary
             try:
-                with open(graph_db_file, "rb") as f:
+                with open(graph_db_file, "rb") as f, config.change_flags(
+                    unpickle_function=False
+                ):
                     # Temporary hack to allow
                     # tests.scan.test_scan.T_Scan to
                     # finish. Should be changed in definitive version.
-                    tmp = theano.config.unpickle_function
-                    theano.config.unpickle_function = False
                     graph_db = pickle.load(f)
                 print("graph_db loaded and it is not empty")
             except EOFError as e:
@@ -1392,8 +1392,6 @@ class FunctionMaker:
                 print(e)
                 print("graph_db loaded and it is empty")
                 graph_db = {}
-            finally:
-                theano.config.unpickle_function = tmp
 
             return graph_db
 
@@ -1583,50 +1581,52 @@ class FunctionMaker:
         # Fetch the optimizer and linker
         optimizer, linker = mode.optimizer, copy.copy(mode.linker)
         if need_opt:
-            compute_test_value_orig = theano.config.compute_test_value
-            limit_orig = theano.config.traceback__limit
             # Why we add stack on node when it get done in output var?
             try:
-                # optimize the fgraph
-                theano.config.compute_test_value = theano.config.compute_test_value_opt
-                theano.config.traceback__limit = theano.config.traceback__compile_limit
                 start_optimizer = time.time()
 
                 # In case there is an error during optimization.
                 optimizer_profile = None
                 opt_time = None
 
-                # now optimize the graph
-                if theano.config.cache_optimizations:
-                    optimizer_profile = self.optimize_graph_with_cache(
-                        optimizer, inputs, outputs
-                    )
-                else:
-                    optimizer_profile = optimizer(fgraph)
+                with config.change_flags(
+                    compute_test_value=config.compute_test_value_opt,
+                    traceback__limit=config.traceback__compile_limit,
+                ):
+                    # now optimize the graph
+                    if config.cache_optimizations:
+                        optimizer_profile = self.optimize_graph_with_cache(
+                            optimizer, inputs, outputs
+                        )
+                    else:
+                        optimizer_profile = optimizer(fgraph)
 
-                end_optimizer = time.time()
-                opt_time = end_optimizer - start_optimizer
-                _logger.debug(f"Optimizing took {opt_time:f} seconds")
+                    end_optimizer = time.time()
+                    opt_time = end_optimizer - start_optimizer
+                    _logger.debug(f"Optimizing took {opt_time:f} seconds")
 
-                # Add deep copy to respect the memory interface
-                insert_deepcopy(fgraph, inputs, outputs + additional_outputs)
+                    # Add deep copy to respect the memory interface
+                    insert_deepcopy(fgraph, inputs, outputs + additional_outputs)
             finally:
-                theano.config.compute_test_value = compute_test_value_orig
-                theano.config.traceback__limit = limit_orig
 
                 # If the optimizer got interrupted
                 if opt_time is None:
                     end_optimizer = time.time()
                     opt_time = end_optimizer - start_optimizer
+
                 theano.compile.profiling.total_graph_opt_time += opt_time
+
                 if profile:
                     if optimizer_profile is None and hasattr(optimizer, "pre_profile"):
                         optimizer_profile = optimizer.pre_profile
+
                     profile.optimizer_time += opt_time
-                    if theano.config.profile_optimizer:
+
+                    if config.profile_optimizer:
                         profile.optimizer_profile = (optimizer, optimizer_profile)
-                # IF False, if mean the profile for that function was explicitly disabled
-                elif theano.config.profile_optimizer and profile is not False:
+                # IF False, if mean the profile for that function was
+                # explicitly disabled
+                elif config.profile_optimizer and profile is not False:
                     warnings.warn(
                         (
                             "config.profile_optimizer requires config.profile to "
@@ -1687,7 +1687,7 @@ class FunctionMaker:
 
     def _check_unused_inputs(self, inputs, outputs, on_unused_input):
         if on_unused_input is None:
-            on_unused_input = theano.config.on_unused_input
+            on_unused_input = config.on_unused_input
 
         if on_unused_input == "ignore":
             return
@@ -1816,14 +1816,11 @@ class FunctionMaker:
         # Get a function instance
         start_linker = time.time()
         start_import_time = theano.gof.cmodule.import_time
-        limit_orig = theano.config.traceback__limit
-        try:
-            theano.config.traceback__limit = theano.config.traceback__compile_limit
+
+        with config.change_flags(traceback__limit=config.traceback__compile_limit):
             _fn, _i, _o = self.linker.make_thunk(
                 input_storage=input_storage_lists, storage_map=storage_map
             )
-        finally:
-            theano.config.traceback__limit = limit_orig
 
         end_linker = time.time()
 
@@ -1857,8 +1854,8 @@ class FunctionMaker:
 def _constructor_FunctionMaker(kwargs):
     # Needed for old pickle
     # Old pickle have at least the problem that output_keys where not saved.
-    if theano.config.unpickle_function:
-        if theano.config.reoptimize_unpickled_function:
+    if config.unpickle_function:
+        if config.reoptimize_unpickled_function:
             del kwargs["fgraph"]
         return FunctionMaker(**kwargs)
     else:
@@ -1965,7 +1962,7 @@ def orig_function(
             output_keys=output_keys,
             name=name,
         )
-        with theano.change_flags(compute_test_value="off"):
+        with config.change_flags(compute_test_value="off"):
             fn = m.create(defaults)
     finally:
         t2 = time.time()

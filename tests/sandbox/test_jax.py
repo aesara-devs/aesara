@@ -14,7 +14,7 @@ from theano.gof.op import get_test_value  # noqa: E402
 
 @pytest.fixture(scope="module", autouse=True)
 def set_theano_flags():
-    with theano.change_flags(cxx="", compute_test_value="ignore"):
+    with theano.config.change_flags(cxx="", compute_test_value="ignore"):
         yield
 
 
@@ -136,7 +136,7 @@ def test_jax_compile_ops():
 
     compare_jax_and_py(x_fg, [])
 
-    with theano.change_flags(compute_test_value="off"):
+    with theano.config.change_flags(compute_test_value="off"):
         x = theano.compile.ops.SpecifyShape()(tt.as_tensor_variable(x_np), (2, 3))
         x_fg = theano.gof.FunctionGraph([], [x])
 
@@ -151,7 +151,7 @@ def test_jax_compile_ops():
 
     compare_jax_and_py(x_fg, [])
 
-    with theano.change_flags(compute_test_value="off"):
+    with theano.config.change_flags(compute_test_value="off"):
         x = theano.compile.ops.Rebroadcast((0, True), (1, False), (2, False))(
             tt.as_tensor_variable(x_np)
         )

@@ -11,7 +11,7 @@ import platform
 import re
 
 import theano
-from theano import change_flags
+from theano import config
 from theano.gof import graph, utils
 
 ########
@@ -726,7 +726,7 @@ class CDataType(Type):
         from theano.scalar import get_scalar_type
 
         if self._fn is None:
-            with change_flags(compute_test_value="off"):
+            with config.change_flags(compute_test_value="off"):
                 v = get_scalar_type("int64")()
                 self._fn = theano.function(
                     [v],

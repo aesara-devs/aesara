@@ -722,7 +722,7 @@ class Subtensor(Op):
         x = inputs[0]
         rest = inputs[1:]
         if x.dtype in theano.tensor.discrete_dtypes:
-            first = x.zeros_like().astype(theano.config.floatX)
+            first = x.zeros_like().astype(config.floatX)
         else:
             # For best optimization, we let this as an inc.
             # This allow the opt local_IncSubtensor_serialize to apply first.
@@ -1797,9 +1797,9 @@ class IncSubtensor(Op):
 
         if x.dtype in theano.tensor.discrete_dtypes:
             # The output dtype is the same as x
-            gx = x.zeros_like(dtype=theano.config.floatX)
+            gx = x.zeros_like(dtype=config.floatX)
             if y.dtype in theano.tensor.discrete_dtypes:
-                gy = y.zeros_like(dtype=theano.config.floatX)
+                gy = y.zeros_like(dtype=config.floatX)
             else:
                 gy = y.zeros_like()
         elif x.dtype in theano.tensor.complex_dtypes:
@@ -1933,7 +1933,7 @@ class AdvancedSubtensor1(Op):
         else:
             if x.dtype in theano.tensor.discrete_dtypes:
                 # The output dtype is the same as x
-                gx = x.zeros_like(dtype=theano.config.floatX)
+                gx = x.zeros_like(dtype=config.floatX)
             elif x.dtype in theano.tensor.complex_dtypes:
                 raise NotImplementedError("No support for complex grad yet")
             else:
@@ -2221,9 +2221,9 @@ class AdvancedIncSubtensor1(Op):
         x, y, idx_list = inputs
         if x.dtype in theano.tensor.discrete_dtypes:
             # The output dtype is the same as x
-            gx = x.zeros_like(dtype=theano.config.floatX)
+            gx = x.zeros_like(dtype=config.floatX)
             if y.dtype in theano.tensor.discrete_dtypes:
-                gy = y.zeros_like(dtype=theano.config.floatX)
+                gy = y.zeros_like(dtype=config.floatX)
             else:
                 gy = y.zeros_like()
         elif x.dtype in theano.tensor.complex_dtypes:
@@ -2298,7 +2298,7 @@ class AdvancedSubtensor(Op):
         # `Subtensor` calls, so we create a fake symbolic shape tuple and
         # identify the broadcast dimensions from the shape result of this
         # entire subtensor operation.
-        with theano.change_flags(compute_test_value="off"):
+        with config.change_flags(compute_test_value="off"):
             fake_shape = tuple(
                 theano.tensor.tensor(dtype="int64", broadcastable=())
                 if not bcast
@@ -2380,7 +2380,7 @@ class AdvancedSubtensor(Op):
         x = inputs[0]
         if x.dtype in theano.tensor.discrete_dtypes:
             # The output dtype is the same as x
-            gx = x.zeros_like(dtype=theano.config.floatX)
+            gx = x.zeros_like(dtype=config.floatX)
         elif x.dtype in theano.tensor.complex_dtypes:
             raise NotImplementedError("No support for complex grad yet")
         else:
@@ -2474,9 +2474,9 @@ class AdvancedIncSubtensor(Op):
         (outgrad,) = output_gradients
         if x.dtype in theano.tensor.discrete_dtypes:
             # The output dtype is the same as x
-            gx = x.zeros_like(dtype=theano.config.floatX)
+            gx = x.zeros_like(dtype=config.floatX)
             if y.dtype in theano.tensor.discrete_dtypes:
-                gy = y.zeros_like(dtype=theano.config.floatX)
+                gy = y.zeros_like(dtype=config.floatX)
             else:
                 gy = y.zeros_like()
         elif x.dtype in theano.tensor.complex_dtypes:

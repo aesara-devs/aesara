@@ -11,7 +11,7 @@ import theano.scalar as scal
 import theano.tensor as tt
 import theano.tensor.opt as opt
 from tests import unittest_tools as utt
-from theano import change_flags, compile, config, gof, pprint, shared
+from theano import compile, config, gof, pprint, shared
 from theano.compile import DeepCopyOp, deep_copy_op, get_mode
 from theano.compile.function import function
 from theano.gof import FunctionGraph
@@ -72,7 +72,7 @@ from theano.tensor.opt import (
 from theano.tensor.type import values_eq_approx_remove_nan
 
 
-mode_opt = theano.config.mode
+mode_opt = config.mode
 if mode_opt == "FAST_COMPILE":
     mode_opt = "FAST_RUN"
 mode_opt = theano.compile.mode.get_mode(mode_opt)
@@ -996,7 +996,7 @@ class TestCanonize:
         x = tt.dscalar()
         # a = T.abs_(x)
 
-        if theano.config.mode == "FAST_COMPILE":
+        if config.mode == "FAST_COMPILE":
             mode = theano.compile.mode.get_mode("FAST_RUN").excluding(
                 "local_elemwise_fusion"
             )
@@ -1110,7 +1110,7 @@ def test_local_merge_abs():
     x_val = np.random.rand(5, 5).astype(config.floatX)
     y_val = np.random.rand(5, 5).astype(config.floatX)
     z_val = np.random.rand(5, 5).astype(config.floatX)
-    mode = theano.config.mode
+    mode = config.mode
     if mode == "FAST_COMPILE":
         mode = "FAST_RUN"
     mode = theano.compile.mode.get_mode(mode).excluding("local_elemwise_fusion")
@@ -1931,7 +1931,7 @@ class TestFusion:
         for idx in range(1, 35):
             out = tt.sin(inpts[idx] + out)
 
-        with theano.change_flags(cxx=""):
+        with config.change_flags(cxx=""):
             f = function(inpts, out, mode=self.mode)
 
         # Make sure they all weren't fused
@@ -1942,7 +1942,7 @@ class TestFusion:
         ]
         assert not any(len(node.inputs) > 31 for node in composite_nodes)
 
-    @pytest.mark.skipif(not theano.config.cxx, reason="No cxx compiler")
+    @pytest.mark.skipif(not config.cxx, reason="No cxx compiler")
     def test_big_fusion(self):
         # In the past, pickle of Composite generated in that case
         # crashed with max recursion limit. So we were not able to
@@ -1957,7 +1957,7 @@ class TestFusion:
         cst_m2 = tt.constant(-2)
         ones = tt.constant(np.ones(10))
         n = 85
-        if theano.config.mode in ["DebugMode", "DEBUG_MODE"]:
+        if config.mode in ["DebugMode", "DEBUG_MODE"]:
             n = 10
 
         for i in range(n):
@@ -2083,7 +2083,7 @@ class TestFusion:
             ),
         )
 
-    @pytest.mark.skipif(not theano.config.cxx, reason="No cxx compiler")
+    @pytest.mark.skipif(not config.cxx, reason="No cxx compiler")
     def test_no_c_code(self):
         """Make sure we avoid fusions for `Op`s without C code implementations."""
 
@@ -2198,7 +2198,7 @@ class TestCompositeCodegen:
 
 @utt.assertFailure_fast
 def test_log1p():
-    m = theano.config.mode
+    m = config.mode
     if m == "FAST_COMPILE":
         m = "FAST_RUN"
     m = compile.mode.get_mode(m)
@@ -2249,7 +2249,7 @@ def test_log1p():
     reason="log(add(exp)) is not stabilized when adding more than 2 elements, see #623"
 )
 def test_log_add():
-    m = theano.config.mode
+    m = config.mode
     if m == "FAST_COMPILE":
         m = "FAST_RUN"
     m = compile.mode.get_mode(m)
@@ -3327,7 +3327,7 @@ class TestLocalSubtensorMerge:
 
     def test_const5(self):
         # Bug reported by Razvan
-        data = np.asarray(np.arange(8), dtype=theano.config.floatX)
+        data = np.asarray(np.arange(8), dtype=config.floatX)
         x = tt.vector("x")
         y = x[7:1:-1]
         t = theano.shared(np.int64(0))
@@ -3339,11 +3339,11 @@ class TestLocalSubtensorMerge:
 
     def test_const6(self):
         # Bug reported by Graham
-        data = self.rng.uniform(size=(8, 8, 8)).astype(theano.config.floatX)
+        data = self.rng.uniform(size=(8, 8, 8)).astype(config.floatX)
         x = tt.tensor3("x")
 
         nops = 1
-        if theano.config.mode == "FAST_COMPILE":
+        if config.mode == "FAST_COMPILE":
             nops = 2
 
         # test 1)
@@ -3763,7 +3763,7 @@ class TestAllocZero:
 
         assert len(inc_nodes) == 1
         node_is_set_instead_of_inc = inc_nodes[0].op.set_instead_of_inc
-        mode = theano.config.mode
+        mode = config.mode
         assert (mode != "FAST_COMPILE" and node_is_set_instead_of_inc) or (
             mode == "FAST_COMPILE" and not node_is_set_instead_of_inc
         )
@@ -3866,10 +3866,10 @@ class TestAllocZero:
         v2 = tt.vector("v2")
         m1 = tt.matrix("m1")
         m2 = tt.matrix("m2")
-        vv2 = np.asarray([0, 1], dtype=theano.config.floatX)
-        vm2 = np.asarray([[1, 2], [4, 5]], dtype=theano.config.floatX)
-        vv3 = np.asarray([0, 1, 2], dtype=theano.config.floatX)
-        vm3 = np.asarray([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=theano.config.floatX)
+        vv2 = np.asarray([0, 1], dtype=config.floatX)
+        vm2 = np.asarray([[1, 2], [4, 5]], dtype=config.floatX)
+        vv3 = np.asarray([0, 1, 2], dtype=config.floatX)
+        vm3 = np.asarray([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=config.floatX)
         for _e1 in [(v1, vv2, vv3), (m1, vm2, vm3)]:
             for _e2 in [(v2, vv2, vv3), (m2, vm2, vm3)]:
                 for p in [0, 1]:
@@ -3899,7 +3899,7 @@ class TestAllocZero:
 
 def test_local_IncSubtensor_serialize():
     d = np.random.normal(0, 0.01, size=(100, 100))
-    d = d.astype(theano.config.floatX)
+    d = d.astype(config.floatX)
 
     W = theano.shared(d, name="W")
     i = tt.vector("i", dtype="int64")
@@ -4238,9 +4238,7 @@ def test_local_subtensor_of_alloc():
     # DebugMode should detect if something goes wrong.
     # test shape combination of odd and event shape.
     for shape in [(3, 5), (4, 6), (3, 8), (4, 7), (1, 5), (5, 1)]:
-        x = tt.tensor(
-            dtype=theano.config.floatX, broadcastable=(shape[0] == 1, shape[1] == 1)
-        )
+        x = tt.tensor(dtype=config.floatX, broadcastable=(shape[0] == 1, shape[1] == 1))
 
         xval = np.zeros(shape, dtype=config.floatX)
         yval = np.arange(shape[1], dtype=config.floatX)
@@ -4276,7 +4274,7 @@ def test_local_subtensor_of_alloc():
             for slices in slicess:
                 z = yx.__getitem__(slices)
                 f = function([x], z)
-                if theano.config.mode != "FAST_COMPILE":
+                if config.mode != "FAST_COMPILE":
                     # Subtensor can be in the input of Alloc
                     assert not isinstance(f.maker.fgraph.toposort()[-1].op, Subtensor)
                 val = f(xval)
@@ -4583,7 +4581,7 @@ class TestLocalUselessElemwiseComparison:
         self.assert_eqs_const(f, 1)
 
     @pytest.mark.skipif(
-        theano.config.mode == "FAST_COMPILE",
+        config.mode == "FAST_COMPILE",
         reason="Skip opt test as the opt is disabled",
     )
     def test_equality_shapes(self):
@@ -4694,7 +4692,7 @@ class TestLocalCanonicalizeAlloc:
     def setup_method(self):
         self.rng = np.random.RandomState(utt.fetch_seed())
 
-    @change_flags(compute_test_value="off")
+    @config.change_flags(compute_test_value="off")
     def test_basic(self):
         x = shared(self.rng.randn(3, 7))
         a = tt.alloc(x, 6, 7)
@@ -4810,7 +4808,7 @@ class TestLocalUselessIncSubtensorAlloc:
     def setup_method(self):
         # The optimization requires the shape feature so we need to compile in
         # FAST_RUN mode.
-        mode = theano.config.mode
+        mode = config.mode
         if mode == "FAST_COMPILE":
             mode = "FAST_RUN"
         self.mode = compile.mode.get_mode(mode)
@@ -4923,7 +4921,7 @@ class TestShapeOptimizer:
         utt.seed_rng()
 
     def test_basic(self):
-        mode = theano.config.mode
+        mode = config.mode
         if mode == "FAST_COMPILE":
             mode = "FAST_RUN"
         v = tt.vector()
@@ -4933,7 +4931,7 @@ class TestShapeOptimizer:
             assert node.op != tt.add
 
     def test_constant(self):
-        mode = theano.config.mode
+        mode = config.mode
         if mode == "FAST_COMPILE":
             mode = "FAST_RUN"
 
@@ -5120,7 +5118,7 @@ class TestAssert(utt.InferShapeTester):
 
     def test_local_remove_useless_assert1(self):
         # remove assert that are always true
-        mode = theano.config.mode
+        mode = config.mode
         if mode == "FAST_COMPILE":
             mode = "FAST_RUN"
         mode = compile.mode.get_mode(mode)
@@ -5135,7 +5133,7 @@ class TestAssert(utt.InferShapeTester):
 
     def test_test_local_remove_useless_assert2(self):
         # remove assert condition that are always true
-        mode = theano.config.mode
+        mode = config.mode
         if mode == "FAST_COMPILE":
             mode = "FAST_RUN"
         mode = compile.mode.get_mode(mode)
@@ -5152,7 +5150,7 @@ class TestAssert(utt.InferShapeTester):
 
     def test_local_remove_useless_assert3(self):
         # don't remove assert condition that are always false
-        mode = theano.config.mode
+        mode = config.mode
         if mode == "FAST_COMPILE":
             mode = "FAST_RUN"
         mode = compile.mode.get_mode(mode)
@@ -5169,7 +5167,7 @@ class TestAssert(utt.InferShapeTester):
 
     def test_local_remove_all_assert1(self):
         # remove assert condition that are unknown
-        mode = theano.config.mode
+        mode = config.mode
         if mode == "FAST_COMPILE":
             mode = "FAST_RUN"
         mode = compile.mode.get_mode(mode).including("local_remove_all_assert")
@@ -5215,7 +5213,7 @@ class TestAssert(utt.InferShapeTester):
 
 
 def test_local_mul_specialize():
-    mode = theano.config.mode
+    mode = config.mode
     if mode == "FAST_COMPILE":
         mode = "FAST_RUN"
     mode = compile.mode.get_mode(mode)
@@ -5258,7 +5256,7 @@ class TestTile:
         v = tt.vector()
         m = tt.matrix()
         mode = None
-        if theano.config.mode == "FAST_COMPILE":
+        if config.mode == "FAST_COMPILE":
             mode = "FAST_RUN"
         for var, data in [(v, [1, 2, 3]), (m, [[1, 2], [3, 4]])]:
             # When len(repeat pattern) <= var.ndim, everything is removed
@@ -5314,15 +5312,15 @@ def speed_local_pow_specialize_range():
 
 
 def test_local_pow_specialize():
-    mode = theano.config.mode
+    mode = config.mode
     if mode == "FAST_COMPILE":
         mode = "FAST_RUN"
     mode = compile.mode.get_mode(mode)
     mode = mode.excluding("fusion")
 
     v = tt.vector()
-    val = np.arange(10, dtype=theano.config.floatX)
-    val_no0 = np.arange(1, 10, dtype=theano.config.floatX)
+    val = np.arange(10, dtype=config.floatX)
+    val_no0 = np.arange(1, 10, dtype=config.floatX)
 
     f = function([v], v ** 0, mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
@@ -5367,15 +5365,15 @@ def test_local_pow_specialize():
 
 
 def test_local_pow_specialize_device_more_aggressive_on_cpu():
-    mode = theano.config.mode
+    mode = config.mode
     if mode == "FAST_COMPILE":
         mode = "FAST_RUN"
     mode = compile.mode.get_mode(mode)
     mode = mode.excluding("fusion").excluding("gpu")
 
     v = tt.vector()
-    val = np.arange(10, dtype=theano.config.floatX)
-    val_no0 = np.arange(1, 10, dtype=theano.config.floatX)
+    val = np.arange(10, dtype=config.floatX)
+    val_no0 = np.arange(1, 10, dtype=config.floatX)
     f = function([v], v ** (15), mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
     assert len(nodes) == 1
@@ -5820,7 +5818,7 @@ class TestLocalSwitchSink:
 
 
 @pytest.mark.skipif(
-    theano.config.cxx == "" and not scal.basic_scipy.imported_scipy_special,
+    config.cxx == "" and not scal.basic_scipy.imported_scipy_special,
     reason="erf need a c++ compiler or scipy",
 )
 class TestLocalErf:
@@ -5918,7 +5916,7 @@ class TestLocalErf:
 
 
 @pytest.mark.skipif(
-    theano.config.cxx == "" and not scal.basic_scipy.imported_scipy_special,
+    config.cxx == "" and not scal.basic_scipy.imported_scipy_special,
     reason="erf need a c++ compiler or scipy",
 )
 class TestLocalErfc:
@@ -5985,7 +5983,7 @@ class TestLocalErfc:
     @pytest.mark.xfail()
     def test_local_log_erfc(self):
         val = [-30, -27, -26, -11, -10, -3, -2, -1, 0, 1, 2, 3, 10, 11, 26, 27, 28, 30]
-        if theano.config.mode in ["DebugMode", "DEBUG_MODE", "FAST_COMPILE"]:
+        if config.mode in ["DebugMode", "DEBUG_MODE", "FAST_COMPILE"]:
             # python mode don't like the inv(0)
             val.remove(0)
         val = np.asarray(val, dtype=config.floatX)
@@ -5999,17 +5997,17 @@ class TestLocalErfc:
 
         f = function([x], tt.log(tt.erfc(x)), mode=mode)
         assert len(f.maker.fgraph.apply_nodes) == 23, len(f.maker.fgraph.apply_nodes)
-        assert f.maker.fgraph.outputs[0].dtype == theano.config.floatX
+        assert f.maker.fgraph.outputs[0].dtype == config.floatX
         assert all(np.isfinite(f(val)))
 
         f = function([x], tt.log(tt.erfc(-x)), mode=mode)
         assert len(f.maker.fgraph.apply_nodes) == 24, len(f.maker.fgraph.apply_nodes)
-        assert f.maker.fgraph.outputs[0].dtype == theano.config.floatX
+        assert f.maker.fgraph.outputs[0].dtype == config.floatX
         assert all(np.isfinite(f(-val)))
 
         f = function([x], tt.log(tt.erfc(x)), mode=mode_fusion)
         assert len(f.maker.fgraph.apply_nodes) == 1, len(f.maker.fgraph.apply_nodes)
-        assert f.maker.fgraph.outputs[0].dtype == theano.config.floatX
+        assert f.maker.fgraph.outputs[0].dtype == config.floatX
         assert (
             len(
                 f.maker.fgraph.toposort()[0]
@@ -6024,8 +6022,8 @@ class TestLocalErfc:
         )
         # TODO: fix this problem
         assert not (
-            theano.config.floatX == "float32"
-            and theano.config.mode
+            config.floatX == "float32"
+            and config.mode
             in [
                 "DebugMode",
                 "DEBUG_MODE",
@@ -6068,15 +6066,12 @@ class TestLocalErfc:
             30,
             100,
         ]
-        if theano.config.mode in ["DebugMode", "DEBUG_MODE", "FAST_COMPILE"]:
+        if config.mode in ["DebugMode", "DEBUG_MODE", "FAST_COMPILE"]:
             # python mode don't like the inv(0) in computation,
             # but the switch don't select this value.
             # So it is computed for no good reason.
             val.remove(0)
-        if (
-            theano.config.mode in ["DebugMode", "DEBUG_MODE"]
-            and theano.config.floatX == "float32"
-        ):
+        if config.mode in ["DebugMode", "DEBUG_MODE"] and config.floatX == "float32":
             # In float32 their is a plage of values close to 10 that we stabilize as it give bigger error then the stabilized version.
             # The orig value in float32 -30.0, the stab value -20.1 the orig value in float64 -18.1.
             val.remove(10)
@@ -6094,46 +6089,46 @@ class TestLocalErfc:
 
         assert len(f.maker.fgraph.apply_nodes) == 22, len(f.maker.fgraph.apply_nodes)
         assert all(np.isfinite(f(val)))
-        assert f.maker.fgraph.outputs[0].dtype == theano.config.floatX
+        assert f.maker.fgraph.outputs[0].dtype == config.floatX
 
         # test with a different mul constant
         f = function(
             [x], tt.mul(tt.exp(tt.neg(tt.sqr(x))), -10.12837917) / tt.erfc(x), mode=mode
         )
         assert len(f.maker.fgraph.apply_nodes) == 23, len(f.maker.fgraph.apply_nodes)
-        assert f.maker.fgraph.outputs[0].dtype == theano.config.floatX
+        assert f.maker.fgraph.outputs[0].dtype == config.floatX
         assert all(np.isfinite(f(val)))
 
         # test that we work without the mul
         f = function([x], tt.exp(tt.neg(tt.sqr(x))) / tt.erfc(x), mode=mode)
         assert len(f.maker.fgraph.apply_nodes) == 22, len(f.maker.fgraph.apply_nodes)
-        assert f.maker.fgraph.outputs[0].dtype == theano.config.floatX
+        assert f.maker.fgraph.outputs[0].dtype == config.floatX
         assert all(np.isfinite(f(val)))
 
         # test that we don't work if x!=y
         f = function([x, y], tt.exp(tt.neg(tt.sqr(x))) / tt.erfc(y), mode=mode)
         assert len(f.maker.fgraph.apply_nodes) == 5, len(f.maker.fgraph.apply_nodes)
-        assert f.maker.fgraph.outputs[0].dtype == theano.config.floatX
+        assert f.maker.fgraph.outputs[0].dtype == config.floatX
         f(val, val - 3)
 
         # test that we work without the sqr and neg
         f = function([x], tt.exp(tt.mul(-1, x, x)) / tt.erfc(x), mode=mode)
         assert len(f.maker.fgraph.apply_nodes) == 21, len(f.maker.fgraph.apply_nodes)
-        assert f.maker.fgraph.outputs[0].dtype == theano.config.floatX
+        assert f.maker.fgraph.outputs[0].dtype == config.floatX
         assert all(np.isfinite(f(val)))
 
         # test that it work correctly if x is x*2 in the graph.
         f = function([x], tt.grad(tt.log(tt.erfc(2 * x)).sum(), x), mode=mode)
         assert len(f.maker.fgraph.apply_nodes) == 23, len(f.maker.fgraph.apply_nodes)
         assert np.isfinite(f(val)).all()
-        assert f.maker.fgraph.outputs[0].dtype == theano.config.floatX
+        assert f.maker.fgraph.outputs[0].dtype == config.floatX
 
         f = function([x], tt.grad(tt.log(tt.erfc(x)).sum(), x), mode=mode_fusion)
         assert len(f.maker.fgraph.apply_nodes) == 1, len(f.maker.fgraph.apply_nodes)
-        assert f.maker.fgraph.outputs[0].dtype == theano.config.floatX
+        assert f.maker.fgraph.outputs[0].dtype == config.floatX
 
         # TODO: fix this problem
-        if theano.config.floatX == "float32" and theano.config.mode in [
+        if config.floatX == "float32" and config.mode in [
             "DebugMode",
             "DEBUG_MODE",
         ]:
@@ -6567,14 +6562,10 @@ class TestLocalSumProd:
         assert len(f.maker.fgraph.apply_nodes) == 1
         utt.assert_allclose(f(input), input.prod())
 
-        backup = config.warn__sum_sum_bug
-        config.warn__sum_sum_bug = False
-        try:
+        with config.change_flags(warn__sum_sum_bug=False):
             f = function([a], a.sum(0).sum(0).sum(0), mode=self.mode)
             assert len(f.maker.fgraph.apply_nodes) == 1
             utt.assert_allclose(f(input), input.sum())
-        finally:
-            config.warn__sum_sum_bug = backup
 
     def test_local_sum_sum_prod_prod(self):
         a = tt.tensor3()
@@ -6592,9 +6583,6 @@ class TestLocalSumProd:
             (1, (0, 1)),
             (2, (0, 1)),
         ]
-
-        backup = config.warn__sum_sum_bug
-        config.warn__sum_sum_bug = False
 
         def my_prod(data, d, dd):
             # This prod when d or dd is a tuple of 2 dimensions.
@@ -6629,7 +6617,7 @@ class TestLocalSumProd:
                 dd = sorted(dd)
                 return data.sum(d).prod(dd[1]).prod(dd[0])
 
-        try:
+        with config.change_flags(warn__sum_sum_bug=False):
             for d, dd in dims:
                 expected = my_sum(input, d, dd)
                 f = function([a], a.sum(d).sum(dd), mode=self.mode)
@@ -6646,8 +6634,6 @@ class TestLocalSumProd:
             f = function([a], a.sum(None).sum(), mode=self.mode)
             utt.assert_allclose(f(input), input.sum())
             assert len(f.maker.fgraph.apply_nodes) == 1
-        finally:
-            config.warn__sum_sum_bug = backup
 
         # test prod
         for d, dd in dims:
@@ -6743,9 +6729,7 @@ class TestLocalSumProd:
                 assert topo[-1].op == tt.alloc
                 assert not any([isinstance(node.op, Prod) for node in topo])
 
-            backup = config.warn__sum_sum_bug
-            config.warn__sum_sum_bug = False
-            try:
+            with config.change_flags(warn__sum_sum_bug=False):
                 for d, dd in [(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1)]:
                     f = function([a], t_like(a).sum(d).sum(dd), mode=mode)
                     utt.assert_allclose(f(input), n_like(input).sum(d).sum(dd))
@@ -6753,36 +6737,27 @@ class TestLocalSumProd:
                     topo = f.maker.fgraph.toposort()
                     assert topo[-1].op == tt.alloc
                     assert not any([isinstance(node.op, tt.Sum) for node in topo])
-            finally:
-                config.warn__sum_sum_bug = backup
 
     def test_local_sum_sum_int8(self):
         # Test that local_sum_sum works when combining two sums on an int8 array.
         # This is a regression test for ticket gh-356.
 
         x = tt.tensor3(dtype="int8")
-
         y = x.sum(axis=0).sum(axis=1)
-        backup = config.on_opt_error
-        config.on_opt_error = "raise"
-        try:
+
+        with config.change_flags(on_opt_error="raise"):
             # This compilation would fail prior to fix.
             function([x], y)
-        finally:
-            config.on_opt_error = backup
 
     def test_local_sum_sum_dtype(self):
         # Test that local_sum_sum works when specifying dtypes manually.
 
         x = tt.tensor3(dtype="int8")
         y = x.sum(axis=0, dtype="int32").sum(axis=1, dtype="int64")
-        backup = config.on_opt_error
-        config.on_opt_error = "raise"
-        try:
+
+        with config.change_flags(on_opt_error="raise"):
             # This compilation would fail prior to fix.
             function([x], y)
-        finally:
-            config.on_opt_error = backup
 
     def test_local_sum_prod_mul_by_scalar_stack_trace(self):
         # Test that stack trace is copied over correctly for local_sum_prod_mul_by_scalar.
@@ -6821,26 +6796,19 @@ class TestLocalOptAlloc:
     def test_sum_upcast(self):
         s = tt.lscalar()
         a = tt.alloc(np.asarray(5, dtype=self.dtype), s, s)
-        orig = theano.config.warn_float64
-        theano.config.warn_float64 = "raise"
-        try:
+        with config.change_flags(warn_float64="raise"):
             f = function([s], a.sum())
             f(5)
-        finally:
-            theano.config.warn_float64 = orig
 
     def test_prod_upcast(self):
         s = tt.lscalar()
         a = tt.alloc(np.asarray(5, dtype=self.dtype), s, s)
-        orig = theano.config.warn_float64
-        theano.config.warn_float64 = "raise"
-        try:
+
+        with config.change_flags(warn_float64="raise"):
             f = function([s], a.prod())
             f(5)
-        finally:
-            theano.config.warn_float64 = orig
 
-    @change_flags(on_opt_error="raise")
+    @config.change_flags(on_opt_error="raise")
     def test_sum_bool_upcast(self):
         s = tt.lscalar()
         a = tt.alloc(np.asarray(True, dtype="bool"), s, s)
@@ -6852,7 +6820,6 @@ class TestLocalOptAlloc:
         # test only 1 axis summed
         f = function([s], a.sum(axis=0, dtype=self.dtype))
         f(5)
-        print(self.dtype)
 
 
 class TestLocalOptAllocF16(TestLocalOptAlloc):
@@ -6967,12 +6934,9 @@ class TestLocalReduce:
         assert isinstance(topo[-1].op, tt.Elemwise)
 
         # Test a case that was bugged in a old Theano bug
-        try:
-            old = theano.config.warn__reduce_join
-            theano.config.warn__reduce_join = False
+        with config.change_flags(warn__reduce_join=False):
             f = function([], tt.sum(tt.stack([A, A]), axis=1), mode=self.mode)
-        finally:
-            theano.config.warn__reduce_join = old
+
         utt.assert_allclose(f(), [15, 15])
         topo = f.maker.fgraph.toposort()
         assert not isinstance(topo[-1].op, tt.Elemwise)
@@ -6993,13 +6957,9 @@ class TestLocalReduce:
         # Test that the optimization does not crash in one case where it
         # is not applied.  Reported at
         # https://groups.google.com/d/topic/theano-users/EDgyCU00fFA/discussion
-        old = theano.config.warn__reduce_join
-        try:
-            theano.config.warn__reduce_join = False
+        with config.change_flags(warn__reduce_join=False):
             out = tt.sum([vx, vy, vz], axis=None)
             f = function([vx, vy, vz], out)
-        finally:
-            theano.config.warn__reduce_join = old
 
 
 class TestLocalSumProdDimshuffle:
@@ -7053,18 +7013,14 @@ class TestLocalSumProdDimshuffle:
         c_val = rng.randn(2, 2, 2).astype(config.floatX)
         d_val = np.asarray(rng.randn(), config.floatX)
 
-        backup = config.warn__sum_sum_bug, config.warn__sum_div_dimshuffle_bug
-        config.warn__sum_sum_bug = False
-        config.warn__sum_div_dimshuffle_bug = False
-        try:
+        with config.change_flags(
+            warn__sum_sum_bug=False, warn__sum_div_dimshuffle_bug=False
+        ):
             for i, s in enumerate(sums):
-                print(i)
                 f = function([a, b, c, d], s, mode=self.mode, on_unused_input="ignore")
                 g = f.maker.fgraph.toposort()
                 assert isinstance(g[-1].op.scalar_op, scal.basic.TrueDiv)
                 f(a_val, b_val, c_val, d_val)
-        finally:
-            config.warn__sum_sum_bug, config.warn__sum_div_dimshuffle_bug = backup
 
     def test_local_prod_div_dimshuffle(self):
         a = tt.matrix("a")
@@ -7755,13 +7711,9 @@ def test_local_upcast_elemwise_constant_inputs():
     f([-42, -2.1, -1, -0.5, 0, 0.2, 1, 2, 12])
 
     # This test a corner where the optimization should not be applied.
-    old = theano.config.floatX
-    theano.config.floatX = "float32"
-    try:
+    with config.change_flags(floatX="float32"):
         v = lvector()
         function([v], tt.true_div(v, 2))
-    finally:
-        theano.config.floatX = old
 
 
 class TestShapeI(utt.InferShapeTester):
@@ -7852,7 +7804,7 @@ def test_assert_op_gradient():
     grad = tt.grad(cost, x)
     func = function([x], grad)
 
-    x_val = np.ones(shape=(1,), dtype=theano.config.floatX)
+    x_val = np.ones(shape=(1,), dtype=config.floatX)
     assert func(x_val) == 1
 
 

@@ -8,7 +8,7 @@ from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
 from tests.tensor.test_basic import TestSpecifyShape
 from tests.test_ifelse import TestIfelse
-from theano import tensor
+from theano import config, tensor
 from theano.breakpoint import PdbBreakpoint
 from theano.gof.opt import check_stack_trace
 from theano.gpuarray import basic_ops, blas, dnn, opt
@@ -354,7 +354,7 @@ class TestGpuIfelse(TestIfelse):
         z = tensor.constant(2.0)
 
         a = theano.ifelse.ifelse(x, y, z)
-        with theano.change_flags(on_opt_error="raise"):
+        with config.change_flags(on_opt_error="raise"):
             theano.function([x], [a], mode=mode_with_gpu)
 
 
@@ -417,7 +417,7 @@ def test_local_gpu_elemwise_careduce():
             assert isinstance(topo[1].op, GpuCAReduceCuda)
             assert topo[1].op.pre_scalar_op == pre_scalar_op
             assert _check_stack_trace(f)
-            data = np.random.rand(3, 4).astype(theano.config.floatX)
+            data = np.random.rand(3, 4).astype(config.floatX)
             utt.assert_allclose(fn(data, axis), f(data))
 
 
@@ -433,8 +433,8 @@ def test_local_lift_dot22scalar():
         for n in f_gpu.maker.fgraph.apply_nodes
     )
     assert any(isinstance(n.op, GpuGemm) for n in f_gpu.maker.fgraph.apply_nodes)
-    x_val = np.random.random((2, 3)).astype(theano.config.floatX)
-    y_val = np.random.random((3, 4)).astype(theano.config.floatX)
+    x_val = np.random.random((2, 3)).astype(config.floatX)
+    y_val = np.random.random((3, 4)).astype(config.floatX)
     a_val = 0.5
     utt.assert_allclose(f_cpu(x_val, y_val, a_val), f_gpu(x_val, y_val, a_val))
     assert _check_stack_trace(f_gpu)
@@ -616,7 +616,7 @@ def test_not_useless_scalar_gpuelemwise():
     # We don't want to move elemwise on scalar on the GPU when the
     # result will not be used on the GPU!
 
-    with theano.change_flags(warn_float64="ignore"):
+    with config.change_flags(warn_float64="ignore"):
         X = tensor.fmatrix()
         x = np.random.randn(32, 32).astype(np.float32)
         m1 = theano.shared(np.random.randn(32, 32).astype(np.float32))
@@ -635,17 +635,13 @@ def test_not_useless_scalar_gpuelemwise():
 
 
 def test_local_lift_abstractconv_gpu_shape():
-    prev = theano.config.on_opt_error
-    try:
-        theano.config.on_opt_error = "raise"
+    with config.change_flags(on_opt_error="raise"):
         s = tensor.ivector()
         a = tensor.ftensor4()
         b = tensor.ftensor4()
         c = tensor.nnet.abstract_conv.AbstractConv2d_gradWeights()(a, b, s)
         f = theano.function([s, a, b], c, mode=mode_with_gpu)
         assert _check_stack_trace(f)
-    finally:
-        theano.config.on_opt_error = prev
 
 
 def test_local_assert_no_cpu_op():
@@ -657,26 +653,13 @@ def test_local_assert_no_cpu_op():
     mode_local_assert = mode_with_gpu.including("assert_no_cpu_op")
     mode_local_assert = mode_local_assert.excluding("local_gpua_elemwise")
 
-    old = theano.config.assert_no_cpu_op
-    old2 = theano.config.on_opt_error
-    # If the flag is raise
-    try:
-        theano.config.assert_no_cpu_op = "raise"
-        theano.config.on_opt_error = "ignore"
-
+    with config.change_flags(assert_no_cpu_op="raise", on_opt_error="ignore"):
         with pytest.raises(AssertionError):
             theano.function([], out, mode=mode_local_assert)
-    finally:
-        theano.config.assert_no_cpu_op = old
-        theano.config.on_opt_error = old2
 
-    # If the flag is ignore
-    try:
-        theano.config.assert_no_cpu_op = "ignore"
+    with config.change_flags(assert_no_cpu_op="ignore"):
         f = theano.function([], out, mode=mode_local_assert)
         assert _check_stack_trace(f)
-    finally:
-        theano.config.assert_no_cpu_op = old
 
 
 def test_no_complex():
@@ -799,7 +782,7 @@ def test_batched_dot_lifter():
     rng = np.random.RandomState(utt.fetch_seed())
 
     def randX(*args):
-        return rng.rand(*args).astype(theano.config.floatX)
+        return rng.rand(*args).astype(config.floatX)
 
     cases = [
         (randX(3, 5, 7), randX(3, 7)),
@@ -839,7 +822,7 @@ def test_crossentropycategorical1hot_lifter():
         for n in f.maker.fgraph.apply_nodes
     )
     f(
-        rng.uniform(0.1, 0.9, (13, 5)).astype(theano.config.floatX),
+        rng.uniform(0.1, 0.9, (13, 5)).astype(config.floatX),
         rng.randint(5, size=(13,)),
     )
 
@@ -860,12 +843,8 @@ class TestConv_opt:
         optimiser=None,
     ):
 
-        inp1 = theano.shared(
-            np.random.random(input_shapes[0]).astype(theano.config.floatX)
-        )
-        inp2 = theano.shared(
-            np.random.random(input_shapes[1]).astype(theano.config.floatX)
-        )
+        inp1 = theano.shared(np.random.random(input_shapes[0]).astype(config.floatX))
+        inp2 = theano.shared(np.random.random(input_shapes[1]).astype(config.floatX))
         if op is None:
             inp1 = basic_ops.as_gpuarray_variable(inp1, test_ctx_name)
             inp2 = basic_ops.as_gpuarray_variable(inp2, test_ctx_name)
@@ -902,28 +881,33 @@ class TestConv_opt:
                 unshared=unshared,
             )(inp2, inp1, input_shapes[2][-2:])
 
-        theano.config.metaopt__optimizer_including = include_tags
-        theano.config.metaopt__optimizer_excluding = exclude_tags
-        mode = (
-            mode_with_gpu.including("conv_meta")
-            .excluding("conv_dnn")
-            .excluding("conv_gemm")
-        )
-
-        # All meta optimizer compile a new function. This need to know
-        # the current linker, but this information is not available,
-        # so it use the default mode.
-        if op is None:
-            # No convolutions optimization takes place
-            assert optimiser.transform(None, conv_op.owner) is None
-        else:
-            ref_func = theano.function([], conv_op, mode=mode_with_gpu)
-            with theano.change_flags(mode=mode):
-                conv_func = theano.function([], conv_op, mode=mode)
-            assert any(
-                [isinstance(node.op, op) for node in conv_func.maker.fgraph.toposort()]
+        with config.change_flags(
+            metaopt__optimizer_including=include_tags,
+            metaopt__optimizer_excluding=exclude_tags,
+        ):
+            mode = (
+                mode_with_gpu.including("conv_meta")
+                .excluding("conv_dnn")
+                .excluding("conv_gemm")
             )
-            utt.assert_allclose(conv_func(), ref_func())
+
+            # All meta optimizer compile a new function. This need to know
+            # the current linker, but this information is not available,
+            # so it use the default mode.
+            if op is None:
+                # No convolutions optimization takes place
+                assert optimiser.transform(None, conv_op.owner) is None
+            else:
+                ref_func = theano.function([], conv_op, mode=mode_with_gpu)
+                with config.change_flags(mode=mode):
+                    conv_func = theano.function([], conv_op, mode=mode)
+                assert any(
+                    [
+                        isinstance(node.op, op)
+                        for node in conv_func.maker.fgraph.toposort()
+                    ]
+                )
+                utt.assert_allclose(conv_func(), ref_func())
 
     def optimizer_3d(
         self,
@@ -938,12 +922,8 @@ class TestConv_opt:
         num_groups=1,
         optimiser=None,
     ):
-        inp1 = theano.shared(
-            np.random.random(input_shapes[0]).astype(theano.config.floatX)
-        )
-        inp2 = theano.shared(
-            np.random.random(input_shapes[1]).astype(theano.config.floatX)
-        )
+        inp1 = theano.shared(np.random.random(input_shapes[0]).astype(config.floatX))
+        inp2 = theano.shared(np.random.random(input_shapes[1]).astype(config.floatX))
 
         if op is None:
             inp1 = basic_ops.as_gpuarray_variable(inp1, None)
@@ -978,36 +958,42 @@ class TestConv_opt:
                 num_groups=num_groups,
             )(inp2, inp1, input_shapes[2][-3:])
 
-        theano.config.metaopt__optimizer_including = include_tags
-        theano.config.metaopt__optimizer_excluding = exclude_tags
-        mode = (
-            mode_with_gpu.including("conv_meta")
-            .excluding("conv_dnn")
-            .excluding("conv_gemm")
-        )
+        with config.change_flags(
+            metaopt__optimizer_including=include_tags,
+            metaopt__optimizer_excluding=exclude_tags,
+        ):
 
-        # All meta optimizer compile a new function. This need to know
-        # the current linker, but this information is not available,
-        # so it use the default mode.
-        if op is None:
-            # No convolutions optimization takes place
-            assert optimiser.transform(None, conv_op.owner) is None
-            return
-        elif op != "conv3d2d":
-            with theano.change_flags(mode=mode):
-                conv_func = theano.function([], conv_op, mode=mode)
-            assert any(
-                [isinstance(node.op, op) for node in conv_func.maker.fgraph.toposort()]
+            mode = (
+                mode_with_gpu.including("conv_meta")
+                .excluding("conv_dnn")
+                .excluding("conv_gemm")
             )
-        else:
-            with theano.change_flags(mode=mode):
-                conv_func = theano.function(
-                    [], conv_op, mode=mode_with_gpu.including("conv_meta")
-                )
-        ref_func = theano.function([], conv_op, mode=mode_with_gpu)
-        utt.assert_allclose(conv_func(), ref_func())
 
-    @pytest.mark.skipif(theano.config.cxx == "", reason="Need a c compiler.")
+            # All meta optimizer compile a new function. This need to know
+            # the current linker, but this information is not available,
+            # so it use the default mode.
+            if op is None:
+                # No convolutions optimization takes place
+                assert optimiser.transform(None, conv_op.owner) is None
+                return
+            elif op != "conv3d2d":
+                with config.change_flags(mode=mode):
+                    conv_func = theano.function([], conv_op, mode=mode)
+                assert any(
+                    [
+                        isinstance(node.op, op)
+                        for node in conv_func.maker.fgraph.toposort()
+                    ]
+                )
+            else:
+                with config.change_flags(mode=mode):
+                    conv_func = theano.function(
+                        [], conv_op, mode=mode_with_gpu.including("conv_meta")
+                    )
+            ref_func = theano.function([], conv_op, mode=mode_with_gpu)
+            utt.assert_allclose(conv_func(), ref_func())
+
+    @pytest.mark.skipif(config.cxx == "", reason="Need a c compiler.")
     def test_optimizers_2d(self):
         imshp2d = [(2, 3, 5, 5), (2, 2, 5, 7), (2, 1, 3, 3)]
         kshp2d = [(4, 3, 3, 3), (3, 2, 3, 5), (4, 1, 1, 1)]
@@ -1086,7 +1072,7 @@ class TestConv_opt:
                 dnn.GpuDnnConv,
             )
 
-    @pytest.mark.skipif(theano.config.cxx == "", reason="Need a c compiler.")
+    @pytest.mark.skipif(config.cxx == "", reason="Need a c compiler.")
     def test_optimizers_3d(self):
         imshp3d = [(2, 3, 5, 5, 5), (2, 2, 5, 7, 5), (2, 1, 3, 3, 3)]
         kshp3d = [(4, 3, 3, 3, 3), (3, 2, 3, 5, 3), (4, 1, 1, 1, 1)]
@@ -1175,7 +1161,7 @@ class TestConv_opt:
                 [tshp, kshp, imshp], 2, "", "conv_gemm:alternative", dnn.GpuDnnConvGradI
             )
 
-    @pytest.mark.skipif(theano.config.cxx == "", reason="Need a c compiler.")
+    @pytest.mark.skipif(config.cxx == "", reason="Need a c compiler.")
     def test_optimizers_non_default(self):
         # conv2d forward pass with Non-default border_mode and filter_dilation
         imshp2d = [(2, 3, 5, 5), (4, 2, 5, 5)]
@@ -1403,7 +1389,7 @@ class TestConv_opt:
                 num_groups=groups,
             )
 
-    @pytest.mark.skipif(theano.config.cxx == "", reason="Need a c compiler.")
+    @pytest.mark.skipif(config.cxx == "", reason="Need a c compiler.")
     def test_returns_none_2d(self):
         # values given don't matter since it returns None
         imshp = (2, 3, 5, 5)
@@ -1482,7 +1468,7 @@ class TestConv_opt:
                     perms, direction, "", "", None, unshared=True, optimiser=optimiser
                 )
 
-    @pytest.mark.skipif(theano.config.cxx == "", reason="Need a c compiler.")
+    @pytest.mark.skipif(config.cxx == "", reason="Need a c compiler.")
     def test_returns_none_3d(self):
         imshp = (2, 3, 5, 5, 5)
         kshp = (4, 3, 3, 3, 3)

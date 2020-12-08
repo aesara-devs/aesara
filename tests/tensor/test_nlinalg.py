@@ -7,7 +7,6 @@ from numpy.testing import assert_array_almost_equal
 import theano
 from tests import unittest_tools as utt
 from theano import config, function, tensor
-from theano.configparser import change_flags
 from theano.tensor.basic import _allclose
 from theano.tensor.nlinalg import (
     SVD,
@@ -39,7 +38,7 @@ def test_pseudoinverse_correctness():
     rng = np.random.RandomState(utt.fetch_seed())
     d1 = rng.randint(4) + 2
     d2 = rng.randint(4) + 2
-    r = rng.randn(d1, d2).astype(theano.config.floatX)
+    r = rng.randn(d1, d2).astype(config.floatX)
 
     x = tensor.matrix()
     xi = pinv(x)
@@ -57,7 +56,7 @@ def test_pseudoinverse_grad():
     rng = np.random.RandomState(utt.fetch_seed())
     d1 = rng.randint(4) + 2
     d2 = rng.randint(4) + 2
-    r = rng.randn(d1, d2).astype(theano.config.floatX)
+    r = rng.randn(d1, d2).astype(config.floatX)
 
     utt.verify_grad(pinv, [r])
 
@@ -71,7 +70,7 @@ class TestMatrixInverse(utt.InferShapeTester):
 
     def test_inverse_correctness(self):
 
-        r = self.rng.randn(4, 4).astype(theano.config.floatX)
+        r = self.rng.randn(4, 4).astype(config.floatX)
 
         x = tensor.matrix()
         xi = self.op(x)
@@ -88,7 +87,7 @@ class TestMatrixInverse(utt.InferShapeTester):
 
     def test_infer_shape(self):
 
-        r = self.rng.randn(4, 4).astype(theano.config.floatX)
+        r = self.rng.randn(4, 4).astype(config.floatX)
 
         x = tensor.matrix()
         xi = self.op(x)
@@ -102,7 +101,7 @@ def test_matrix_dot():
     rs = []
     xs = []
     for k in range(n):
-        rs += [rng.randn(4, 4).astype(theano.config.floatX)]
+        rs += [rng.randn(4, 4).astype(config.floatX)]
         xs += [tensor.matrix()]
     sol = matrix_dot(*xs)
 
@@ -117,8 +116,8 @@ def test_matrix_dot():
 def test_qr_modes():
     rng = np.random.RandomState(utt.fetch_seed())
 
-    A = tensor.matrix("A", dtype=theano.config.floatX)
-    a = rng.rand(4, 4).astype(theano.config.floatX)
+    A = tensor.matrix("A", dtype=config.floatX)
+    a = rng.rand(4, 4).astype(config.floatX)
 
     f = function([A], qr(A))
     t_qr = f(a)
@@ -189,15 +188,15 @@ class TestSvd(utt.InferShapeTester):
 def test_tensorsolve():
     rng = np.random.RandomState(utt.fetch_seed())
 
-    A = tensor.tensor4("A", dtype=theano.config.floatX)
-    B = tensor.matrix("B", dtype=theano.config.floatX)
+    A = tensor.tensor4("A", dtype=config.floatX)
+    B = tensor.matrix("B", dtype=config.floatX)
     X = tensorsolve(A, B)
     fn = function([A, B], [X])
 
     # slightly modified example from np.linalg.tensorsolve docstring
-    a = np.eye(2 * 3 * 4).astype(theano.config.floatX)
+    a = np.eye(2 * 3 * 4).astype(config.floatX)
     a.shape = (2 * 3, 4, 2, 3 * 4)
-    b = rng.rand(2 * 3, 4).astype(theano.config.floatX)
+    b = rng.rand(2 * 3, 4).astype(config.floatX)
 
     n_x = np.linalg.tensorsolve(a, b)
     t_x = fn(a, b)
@@ -233,7 +232,7 @@ def test_tensorsolve():
 
 
 def test_inverse_singular():
-    singular = np.array([[1, 0, 0]] + [[0, 1, 0]] * 2, dtype=theano.config.floatX)
+    singular = np.array([[1, 0, 0]] + [[0, 1, 0]] * 2, dtype=config.floatX)
     a = tensor.matrix()
     f = function([a], matrix_inverse(a))
     with pytest.raises(np.linalg.LinAlgError):
@@ -527,20 +526,20 @@ class TestLstsq:
 
 
 class TestMatrixPower:
-    @change_flags(compute_test_value="raise")
+    @config.change_flags(compute_test_value="raise")
     @pytest.mark.parametrize("n", [-1, 0, 1, 2, 3, 4, 5, 11])
     def test_numpy_compare(self, n):
         a = np.array([[0.1231101, 0.72381381], [0.28748201, 0.43036511]]).astype(
-            theano.config.floatX
+            config.floatX
         )
-        A = tensor.matrix("A", dtype=theano.config.floatX)
+        A = tensor.matrix("A", dtype=config.floatX)
         A.tag.test_value = a
         Q = matrix_power(A, n)
         n_p = np.linalg.matrix_power(a, n)
         assert np.allclose(n_p, Q.get_test_value())
 
     def test_non_square_matrix(self):
-        A = tensor.matrix("A", dtype=theano.config.floatX)
+        A = tensor.matrix("A", dtype=config.floatX)
         Q = matrix_power(A, 3)
         f = function([A], [Q])
         a = np.array(
@@ -549,7 +548,7 @@ class TestMatrixPower:
                 [0.74387558, 0.31780172],
                 [0.54381007, 0.28153101],
             ]
-        ).astype(theano.config.floatX)
+        ).astype(config.floatX)
         with pytest.raises(ValueError):
             f(a)
 
@@ -574,11 +573,11 @@ class TestNormTests:
     def test_numpy_compare(self):
         rng = np.random.RandomState(utt.fetch_seed())
 
-        M = tensor.matrix("A", dtype=theano.config.floatX)
-        V = tensor.vector("V", dtype=theano.config.floatX)
+        M = tensor.matrix("A", dtype=config.floatX)
+        V = tensor.vector("V", dtype=config.floatX)
 
-        a = rng.rand(4, 4).astype(theano.config.floatX)
-        b = rng.rand(4).astype(theano.config.floatX)
+        a = rng.rand(4, 4).astype(config.floatX)
+        b = rng.rand(4).astype(config.floatX)
 
         A = (
             [None, "fro", "inf", "-inf", 1, -1, None, "inf", "-inf", 0, 1, -1, 2, -2],
@@ -597,12 +596,12 @@ class TestNormTests:
 class TestTensorInv(utt.InferShapeTester):
     def setup_method(self):
         super().setup_method()
-        self.A = tensor.tensor4("A", dtype=theano.config.floatX)
-        self.B = tensor.tensor3("B", dtype=theano.config.floatX)
-        self.a = np.random.rand(4, 6, 8, 3).astype(theano.config.floatX)
-        self.b = np.random.rand(2, 15, 30).astype(theano.config.floatX)
+        self.A = tensor.tensor4("A", dtype=config.floatX)
+        self.B = tensor.tensor3("B", dtype=config.floatX)
+        self.a = np.random.rand(4, 6, 8, 3).astype(config.floatX)
+        self.b = np.random.rand(2, 15, 30).astype(config.floatX)
         self.b1 = np.random.rand(30, 2, 15).astype(
-            theano.config.floatX
+            config.floatX
         )  # for ind=1 since we need prod(b1.shape[:ind]) == prod(b1.shape[ind:])
 
     def test_infer_shape(self):

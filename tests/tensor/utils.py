@@ -8,7 +8,7 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import change_flags, config, function, gof, shared, tensor
+from theano import config, function, gof, shared, tensor
 from theano.compile.mode import get_default_mode
 from theano.tensor.type import TensorType
 
@@ -16,7 +16,7 @@ from theano.tensor.type import TensorType
 # Used to exclude random numbers too close to certain values
 _eps = 1e-2
 
-if theano.config.floatX == "float32":
+if config.floatX == "float32":
     angle_eps = 1e-4
 else:
     angle_eps = 1e-10
@@ -572,7 +572,7 @@ def makeTester(
                 # instantiated on the following bad inputs: %s"
                 # % (self.op, testname, node, inputs))
 
-        @change_flags(compute_test_value="off")
+        @config.change_flags(compute_test_value="off")
         @pytest.mark.skipif(skip, reason="Skipped")
         def test_bad_runtime(self):
             for testname, inputs in self.bad_runtime.items():

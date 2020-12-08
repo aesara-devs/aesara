@@ -14,7 +14,6 @@ import numpy as np
 import theano
 import theano.configparser
 from theano.configparser import (
-    AddConfigVar,
     BoolParam,
     ConfigParam,
     ContextsParam,
@@ -617,7 +616,7 @@ def short_platform(r=None, p=None):
 
 def add_basic_configvars():
 
-    AddConfigVar(
+    config.add(
         "floatX",
         "Default floating-point precision for python casts.\n"
         "\n"
@@ -627,7 +626,7 @@ def add_basic_configvars():
         in_c_key=True,
     )
 
-    AddConfigVar(
+    config.add(
         "warn_float64",
         "Do an action when a tensor variable with float64 dtype is"
         " created. They can't be run on the GPU with the current(old)"
@@ -636,7 +635,7 @@ def add_basic_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "pickle_test_value",
         "Dump test values while pickling model. "
         "If True, test values will be dumped with model.",
@@ -644,7 +643,7 @@ def add_basic_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "cast_policy",
         "Rules for implicit type casting",
         EnumStr(
@@ -665,7 +664,7 @@ def add_basic_configvars():
     # numpy 1.6.1 behaves as python 2.*. I think we should not change it faster
     # than numpy. When we will do the transition, we should create an int_warn
     # and floatX_warn option.
-    AddConfigVar(
+    config.add(
         "int_division",
         "What to do when one computes x / y, where both x and y are of "
         "integer types",
@@ -673,7 +672,7 @@ def add_basic_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "deterministic",
         "If `more`, sometimes we will select some implementation that "
         "are more deterministic, but slower. In particular, on the GPU, "
@@ -685,7 +684,7 @@ def add_basic_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "device",
         (
             "Default device for computations. If cuda* or opencl*, change the"
@@ -698,7 +697,7 @@ def add_basic_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "init_gpu_device",
         (
             "Initialize the gpu device to use, works only if device=cpu. "
@@ -710,14 +709,14 @@ def add_basic_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "force_device",
         "Raise an error if we can't use the specified device",
         BoolParam(False, mutable=False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "conv__assert_shape",
         "If True, AbstractConv* ops will verify that user-provided"
         " shapes match the runtime shapes (debugging option,"
@@ -726,14 +725,14 @@ def add_basic_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "print_global_stats",
         "Print some global statistics (time spent) at the end",
         BoolParam(False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "contexts",
         """
         Context map for multi-gpu operation. Format is a
@@ -748,14 +747,14 @@ def add_basic_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "print_active_device",
         "Print active device at when the GPU device is initialized.",
         BoolParam(True, mutable=False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "gpuarray__preallocate",
         """If negative it disables the allocation cache. If
                  between 0 and 1 it enables the allocation cache and
@@ -766,7 +765,7 @@ def add_basic_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "gpuarray__sched",
         """The sched parameter passed for context creation to pygpu.
                     With CUDA, using "multi" is equivalent to using the parameter
@@ -777,7 +776,7 @@ def add_basic_configvars():
         EnumStr("default", ["multi", "single"]),
     )
 
-    AddConfigVar(
+    config.add(
         "gpuarray__single_stream",
         """
                  If your computations are mostly lots of small elements,
@@ -792,14 +791,14 @@ def add_basic_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "cuda__root",
         "Location of the cuda installation",
         StrParam(get_cuda_root),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "cuda__include_path",
         "Location of the cuda includes",
         StrParam(default_cuda_include),
@@ -808,13 +807,13 @@ def add_basic_configvars():
 
     # This flag determines whether or not to raise error/warning message if
     # there is a CPU Op in the computational graph.
-    AddConfigVar(
+    config.add(
         "assert_no_cpu_op",
         "Raise an error/warning if there is a CPU op in the computational graph.",
         EnumStr("ignore", ["warn", "raise", "pdb"], mutable=True),
         in_c_key=False,
     )
-    AddConfigVar(
+    config.add(
         "unpickle_function",
         (
             "Replace unpickled Theano functions with None. "
@@ -825,7 +824,7 @@ def add_basic_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "reoptimize_unpickled_function",
         "Re-optimize the graph when a theano function is unpickled from the disk.",
         BoolParam(False, mutable=True),
@@ -834,14 +833,14 @@ def add_basic_configvars():
 
 
 def add_dnn_configvars():
-    AddConfigVar(
+    config.add(
         "dnn__conv__algo_fwd",
         "Default implementation to use for cuDNN forward convolution.",
         EnumStr("small", SUPPORTED_DNN_CONV_ALGO_FWD),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "dnn__conv__algo_bwd_data",
         "Default implementation to use for cuDNN backward convolution to "
         "get the gradients of the convolution with regard to the inputs.",
@@ -849,7 +848,7 @@ def add_dnn_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "dnn__conv__algo_bwd_filter",
         "Default implementation to use for cuDNN backward convolution to "
         "get the gradients of the convolution with regard to the "
@@ -858,7 +857,7 @@ def add_dnn_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "dnn__conv__precision",
         "Default data precision to use for the computation in cuDNN "
         "convolutions (defaults to the same dtype as the inputs of the "
@@ -867,28 +866,28 @@ def add_dnn_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "dnn__base_path",
         "Install location of cuDNN.",
         StrParam(default_dnn_base_path),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "dnn__include_path",
         "Location of the cudnn header",
         StrParam(default_dnn_inc_path),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "dnn__library_path",
         "Location of the cudnn link library.",
         StrParam(default_dnn_lib_path),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "dnn__bin_path",
         "Location of the cuDNN load library "
         "(on non-windows platforms, "
@@ -897,7 +896,7 @@ def add_dnn_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "dnn__enabled",
         "'auto', use cuDNN if available, but silently fall back"
         " to not using it if not present."
@@ -910,21 +909,21 @@ def add_dnn_configvars():
 
 
 def add_magma_configvars():
-    AddConfigVar(
+    config.add(
         "magma__include_path",
         "Location of the magma header",
         StrParam(""),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "magma__library_path",
         "Location of the magma library",
         StrParam(""),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "magma__enabled",
         " If True, use magma for matrix computation." " If False, disable magma",
         BoolParam(False),
@@ -934,7 +933,7 @@ def add_magma_configvars():
 
 def add_compile_configvars():
 
-    AddConfigVar(
+    config.add(
         "mode",
         "Default compilation mode",
         ConfigParam("Mode", apply=filter_mode),
@@ -994,7 +993,7 @@ def add_compile_configvars():
     if param and os.name == "nt":
         param = f'"{param}"'
 
-    AddConfigVar(
+    config.add(
         "cxx",
         "The C++ compiler to use. Currently only g++ is"
         " supported, but supporting additional compilers should not be "
@@ -1007,7 +1006,7 @@ def add_compile_configvars():
 
     if rc == 0 and config.cxx != "":
         # Keep the default linker the same as the one for the mode FAST_RUN
-        AddConfigVar(
+        config.add(
             "linker",
             "Default linker used if the theano flags mode is Mode",
             EnumStr(
@@ -1018,7 +1017,7 @@ def add_compile_configvars():
     else:
         # g++ is not present or the user disabled it,
         # linker should default to python only.
-        AddConfigVar(
+        config.add(
             "linker",
             "Default linker used if the theano flags mode is Mode",
             EnumStr("vm", ["py", "vm_nogc"]),
@@ -1035,7 +1034,7 @@ def add_compile_configvars():
             )
 
     # Keep the default value the same as the one for the mode FAST_RUN
-    AddConfigVar(
+    config.add(
         "allow_gc",
         "Do we default to delete intermediate results during Theano"
         " function calls? Doing so lowers the memory requirement, but"
@@ -1047,7 +1046,7 @@ def add_compile_configvars():
     )
 
     # Keep the default optimizer the same as the one for the mode FAST_RUN
-    AddConfigVar(
+    config.add(
         "optimizer",
         "Default optimizer. If not None, will use this optimizer with the Mode",
         EnumStr(
@@ -1057,14 +1056,14 @@ def add_compile_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "optimizer_verbose",
         "If True, we print all optimization being applied",
         BoolParam(False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "on_opt_error",
         (
             "What to do when an optimization crashes: warn and skip it, raise "
@@ -1074,14 +1073,14 @@ def add_compile_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "nocleanup",
         "Suppress the deletion of code files that did not compile cleanly",
         BoolParam(False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "on_unused_input",
         "What to do if a variable in the 'inputs' list of "
         " theano.function() is not used in the graph.",
@@ -1089,7 +1088,7 @@ def add_compile_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "gcc__cxxflags",
         "Extra compiler flags for gcc",
         StrParam(""),
@@ -1097,7 +1096,7 @@ def add_compile_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "cmodule__warn_no_version",
         "If True, will print a warning when compiling one or more Op "
         "with C code that can't be cached because there is no "
@@ -1107,7 +1106,7 @@ def add_compile_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "cmodule__remove_gxx_opt",
         "If True, will remove the -O* parameter passed to g++."
         "This is useful to debug in gdb modules compiled by Theano."
@@ -1118,21 +1117,21 @@ def add_compile_configvars():
         in_c_key=True,
     )
 
-    AddConfigVar(
+    config.add(
         "cmodule__compilation_warning",
         "If True, will print compilation warnings.",
         BoolParam(False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "cmodule__preload_cache",
         "If set to True, will preload the C module cache at import time",
         BoolParam(False, mutable=False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "cmodule__age_thresh_use",
         "In seconds. The time after which " "Theano won't reuse a compile c module.",
         # 24 days
@@ -1140,21 +1139,21 @@ def add_compile_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "cmodule__debug",
         "If True, define a DEBUG macro (if not exists) for any compiled C code.",
         BoolParam(False),
         in_c_key=True,
     )
 
-    AddConfigVar(
+    config.add(
         "compile__wait",
         """Time to wait before retrying to acquire the compile lock.""",
         IntParam(5, validate=lambda i: i > 0, mutable=False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "compile__timeout",
         """In seconds, time that a process will wait before deciding to
     override an existing lock. An override only happens when the existing
@@ -1165,7 +1164,7 @@ def add_compile_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "ctc__root",
         "Directory which contains the root of Baidu CTC library. It is assumed \
         that the compiled library is either inside the build, lib or lib64 \
@@ -1181,14 +1180,14 @@ def add_tensor_configvars():
     # So changing it after import will not modify these global variables.
     # This could be done differently... but for now we simply prevent it from being
     # changed at runtime.
-    AddConfigVar(
+    config.add(
         "tensor__cmp_sloppy",
         "Relax tensor._allclose (0) not at all, (1) a bit, (2) more",
         IntParam(0, lambda i: i in (0, 1, 2), mutable=False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "tensor__local_elemwise_fusion",
         (
             "Enable or not in fast_run mode(fast_run optimization) the elemwise "
@@ -1199,7 +1198,7 @@ def add_tensor_configvars():
     )
 
     # http://developer.amd.com/CPU/LIBRARIES/LIBM/Pages/default.aspx
-    AddConfigVar(
+    config.add(
         "lib__amblibm",
         "Use amd's amdlibm numerical library",
         BoolParam(False),
@@ -1207,7 +1206,7 @@ def add_tensor_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "tensor__insert_inplace_optimizer_validate_nb",
         "-1: auto, if graph have less then 500 nodes 1, else 10",
         IntParam(-1),
@@ -1216,7 +1215,7 @@ def add_tensor_configvars():
 
 
 def add_traceback_configvars():
-    AddConfigVar(
+    config.add(
         "traceback__limit",
         "The number of stack to trace. -1 mean all.",
         # We default to a number to be able to know where v1 + v2 is created in the
@@ -1230,7 +1229,7 @@ def add_traceback_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "traceback__compile_limit",
         "The number of stack to trace to keep during compilation. -1 mean all."
         " If greater then 0, will also make us save Theano internal stack trace.",
@@ -1240,7 +1239,7 @@ def add_traceback_configvars():
 
 
 def add_experimental_configvars():
-    AddConfigVar(
+    config.add(
         "experimental__unpickle_gpu_on_cpu",
         "Allow unpickling of pickled GpuArrays as numpy.ndarrays."
         "This is useful, if you want to open a GpuArray without "
@@ -1255,7 +1254,7 @@ def add_experimental_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "experimental__local_alloc_elemwise",
         "DEPRECATED: If True, enable the experimental"
         " optimization local_alloc_elemwise."
@@ -1267,7 +1266,7 @@ def add_experimental_configvars():
     )
 
     # False could make the graph faster but not as safe.
-    AddConfigVar(
+    config.add(
         "experimental__local_alloc_elemwise_assert",
         "When the local_alloc_elemwise is applied, add"
         " an assert to highlight shape errors.",
@@ -1277,7 +1276,7 @@ def add_experimental_configvars():
 
 
 def add_error_and_warning_configvars():
-    AddConfigVar(
+    config.add(
         "numpy__seterr_all",
         (
             "Sets numpy's behaviour for floating-point errors, ",
@@ -1295,7 +1294,7 @@ def add_error_and_warning_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "numpy__seterr_divide",
         (
             "Sets numpy's behavior for division by zero, see numpy.seterr. "
@@ -1307,7 +1306,7 @@ def add_error_and_warning_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "numpy__seterr_over",
         (
             "Sets numpy's behavior for floating-point overflow, "
@@ -1320,7 +1319,7 @@ def add_error_and_warning_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "numpy__seterr_under",
         (
             "Sets numpy's behavior for floating-point underflow, "
@@ -1333,7 +1332,7 @@ def add_error_and_warning_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "numpy__seterr_invalid",
         (
             "Sets numpy's behavior for invalid floating-point operation, "
@@ -1349,7 +1348,7 @@ def add_error_and_warning_configvars():
     ###
     # To disable some warning about old bug that are fixed now.
     ###
-    AddConfigVar(
+    config.add(
         "warn__ignore_bug_before",
         (
             "If 'None', we warn about all Theano bugs found by default. "
@@ -1392,7 +1391,7 @@ def add_error_and_warning_configvars():
     # method when exception_verbosity == 'low'. When exception_verbosity
     # == 'high', you should include a call to printing.min_informative_str
     # on all important apply nodes.
-    AddConfigVar(
+    config.add(
         "exception_verbosity",
         "If 'low', the text of exceptions will generally refer "
         "to apply nodes with short names such as "
@@ -1408,7 +1407,7 @@ def add_error_and_warning_configvars():
 
 
 def add_testvalue_and_checking_configvars():
-    AddConfigVar(
+    config.add(
         "print_test_value",
         (
             "If 'True', the __eval__ of a Theano variable will return its test_value "
@@ -1420,7 +1419,7 @@ def add_testvalue_and_checking_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "compute_test_value",
         (
             "If 'True', Theano will run each op at graph build time, using "
@@ -1432,7 +1431,7 @@ def add_testvalue_and_checking_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "compute_test_value_opt",
         (
             "For debugging Theano optimization only."
@@ -1442,7 +1441,7 @@ def add_testvalue_and_checking_configvars():
         EnumStr("off", ["ignore", "warn", "raise", "pdb"]),
         in_c_key=False,
     )
-    AddConfigVar(
+    config.add(
         "check_input",
         "Specify if types should check their input in their C code. "
         "It can be used to speed up compilation, reduce overhead "
@@ -1451,63 +1450,63 @@ def add_testvalue_and_checking_configvars():
         BoolParam(True),
         in_c_key=True,
     )
-    AddConfigVar(
+    config.add(
         "NanGuardMode__nan_is_error",
         "Default value for nan_is_error",
         BoolParam(True),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "NanGuardMode__inf_is_error",
         "Default value for inf_is_error",
         BoolParam(True),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "NanGuardMode__big_is_error",
         "Default value for big_is_error",
         BoolParam(True),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "NanGuardMode__action",
         "What NanGuardMode does when it finds a problem",
         EnumStr("raise", ["warn", "pdb"]),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "DebugMode__patience",
         "Optimize graph this many times to detect inconsistency",
         IntParam(10, lambda i: i > 0),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "DebugMode__check_c",
         "Run C implementations where possible",
         BoolParam(lambda: bool(theano.config.cxx)),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "DebugMode__check_py",
         "Run Python implementations where possible",
         BoolParam(True),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "DebugMode__check_finite",
         "True -> complain about NaN/Inf results",
         BoolParam(True),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "DebugMode__check_strides",
         (
             "Check that Python- and C-produced ndarrays have same strides. "
@@ -1517,7 +1516,7 @@ def add_testvalue_and_checking_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "DebugMode__warn_input_not_reused",
         (
             "Generate a warning when destroy_map or view_map says that an "
@@ -1528,7 +1527,7 @@ def add_testvalue_and_checking_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "DebugMode__check_preallocated_output",
         (
             "Test thunks with pre-allocated memory as output storage. "
@@ -1544,7 +1543,7 @@ def add_testvalue_and_checking_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "DebugMode__check_preallocated_output_ndim",
         (
             'When testing with "strided" preallocated output memory, '
@@ -1557,35 +1556,35 @@ def add_testvalue_and_checking_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "profiling__time_thunks",
         """Time individual thunks when profiling""",
         BoolParam(True),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "profiling__n_apply",
         "Number of Apply instances to print by default",
         IntParam(20, lambda i: i > 0),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "profiling__n_ops",
         "Number of Ops to print by default",
         IntParam(20, lambda i: i > 0),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "profiling__output_line_width",
         "Max line width for the profiling output",
         IntParam(512, lambda i: i > 0),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "profiling__min_memory_size",
         """For the memory profile, do not print Apply nodes if the size
                  of their outputs (in bytes) is lower than this threshold""",
@@ -1593,35 +1592,35 @@ def add_testvalue_and_checking_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "profiling__min_peak_memory",
         """The min peak memory usage of the order""",
         BoolParam(False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "profiling__destination",
         """File destination of the profiling output""",
         StrParam("stderr"),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "profiling__debugprint",
         """Do a debugprint of the profiled functions""",
         BoolParam(False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "profiling__ignore_first_call",
         """Do we ignore the first call of a Theano function.""",
         BoolParam(False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "on_shape_error",
         "warn: print a warning and use the default" " value. raise: raise an error",
         EnumStr("warn", ["raise"]),
@@ -1659,7 +1658,7 @@ def add_multiprocessing_configvars():
     # too small convolution.
     default_openmp = False
 
-    AddConfigVar(
+    config.add(
         "openmp",
         "Allow (or not) parallel computation on the CPU with OpenMP. "
         "This is the default value used when creating an Op that "
@@ -1675,7 +1674,7 @@ def add_multiprocessing_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "openmp_elemwise_minsize",
         "If OpenMP is enabled, this is the minimum size of vectors "
         "for which the openmp parallelization is enabled "
@@ -1686,7 +1685,7 @@ def add_multiprocessing_configvars():
 
 
 def add_optimizer_configvars():
-    AddConfigVar(
+    config.add(
         "optimizer_excluding",
         (
             "When using the default mode, we will remove optimizer with "
@@ -1696,7 +1695,7 @@ def add_optimizer_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "optimizer_including",
         (
             "When using the default mode, we will add optimizer with "
@@ -1706,7 +1705,7 @@ def add_optimizer_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "optimizer_requiring",
         (
             "When using the default mode, we will require optimizer with "
@@ -1716,7 +1715,7 @@ def add_optimizer_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "optdb__position_cutoff",
         "Where to stop eariler during optimization. It represent the"
         " position of the optimizer where to stop.",
@@ -1724,13 +1723,13 @@ def add_optimizer_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "optdb__max_use_ratio",
         "A ratio that prevent infinite loop in EquilibriumOptimizer.",
         FloatParam(8),
         in_c_key=False,
     )
-    AddConfigVar(
+    config.add(
         "cycle_detection",
         "If cycle_detection is set to regular, most inplaces are allowed,"
         "but it is slower. If cycle_detection is set to faster, less inplaces"
@@ -1742,7 +1741,7 @@ def add_optimizer_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "check_stack_trace",
         "A flag for checking the stack trace during the optimization process. "
         "default (off): does not check the stack trace of any optimization "
@@ -1758,7 +1757,7 @@ def add_optimizer_configvars():
 
 
 def add_blas_configvars():
-    AddConfigVar(
+    config.add(
         "blas__ldflags",
         "lib[s] to include for [Fortran] level-3 blas implementation",
         StrParam(default_blas_ldflags),
@@ -1766,7 +1765,7 @@ def add_blas_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "blas__check_openmp",
         "Check for openmp library conflict.\nWARNING: Setting this to False leaves you open to wrong results in blas-related operations.",
         BoolParam(True),
@@ -1775,7 +1774,7 @@ def add_blas_configvars():
 
 
 def add_metaopt_configvars():
-    AddConfigVar(
+    config.add(
         "metaopt__verbose",
         "0 for silent, 1 for only warnings, 2 for full output with"
         "timings and selected implementation",
@@ -1783,14 +1782,14 @@ def add_metaopt_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "metaopt__optimizer_excluding",
         ("exclude optimizers with these tags. " "Separate tags with ':'."),
         StrParam(""),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "metaopt__optimizer_including",
         ("include optimizers with these tags. " "Separate tags with ':'."),
         StrParam(""),
@@ -1799,28 +1798,28 @@ def add_metaopt_configvars():
 
 
 def add_vm_configvars():
-    AddConfigVar(
+    config.add(
         "profile",
         "If VM should collect profile information",
         BoolParam(False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "profile_optimizer",
         "If VM should collect optimizer profile information",
         BoolParam(False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "profile_memory",
         "If VM should collect memory profile information and print it",
         BoolParam(False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "vm__lazy",
         "Useful only for the vm linkers. When lazy is None,"
         " auto detect if lazy evaluation is needed and use the appropriate"
@@ -1833,7 +1832,7 @@ def add_vm_configvars():
 
 def add_deprecated_configvars():
     # TODO: remove this?
-    AddConfigVar(
+    config.add(
         "cache_optimizations",
         "WARNING: work in progress, does not work yet. "
         "Specify if the optimization cache should be used. This cache will "
@@ -1845,7 +1844,7 @@ def add_deprecated_configvars():
     )
 
     # TODO: remove this?
-    AddConfigVar(
+    config.add(
         "unittests__rseed",
         "Seed to use for randomized unit tests. "
         "Special value 'random' means using a seed of None.",
@@ -1854,7 +1853,7 @@ def add_deprecated_configvars():
     )
 
     # TODO: remove?
-    AddConfigVar(
+    config.add(
         "warn__identify_1pexp_bug",
         "Warn if Theano versions prior to 7987b51 (2011-12-18) could have "
         "yielded a wrong result due to a bug in the is_1pexp function",
@@ -1862,7 +1861,7 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
     # TODO: this setting is not used anywhere
-    AddConfigVar(
+    config.add(
         "gpu__local_elemwise_fusion",
         (
             "Enable or not in fast_run mode(fast_run optimization) the gpu "
@@ -1872,14 +1871,14 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
     # TODO: this setting is not used anywhere
-    AddConfigVar(
+    config.add(
         "gpuelemwise__sync",
         "when true, wait that the gpu fct finished and check it error code.",
         BoolParam(True),
         in_c_key=False,
     )
     # TODO: most of these bugfix-related warnings can probably be removed
-    AddConfigVar(
+    config.add(
         "warn__argmax_pushdown_bug",
         (
             "Warn if in past version of Theano we generated a bug with the "
@@ -1890,7 +1889,7 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "warn__gpusum_01_011_0111_bug",
         (
             "Warn if we are in a case where old version of Theano had a "
@@ -1901,7 +1900,7 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "warn__sum_sum_bug",
         (
             "Warn if we are in a case where Theano version between version "
@@ -1914,7 +1913,7 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "warn__sum_div_dimshuffle_bug",
         (
             "Warn if previous versions of Theano (between rev. "
@@ -1926,7 +1925,7 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "warn__subtensor_merge_bug",
         "Warn if previous versions of Theano (before 0.5rc2) could have given "
         "incorrect results when indexing into a subtensor with negative "
@@ -1935,7 +1934,7 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "warn__gpu_set_subtensor1",
         "Warn if previous versions of Theano (before 0.6) could have given "
         "incorrect results when moving to the gpu "
@@ -1944,7 +1943,7 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "warn__vm_gc_bug",
         "There was a bug that existed in the default Theano configuration,"
         " only in the development version between July 5th 2012"
@@ -1957,7 +1956,7 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "warn__signal_conv2d_interface",
         (
             "Warn we use the new signal.conv2d() when its interface"
@@ -1967,7 +1966,7 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "warn__reduce_join",
         (
             "Your current code is fine, but Theano versions "
@@ -1984,7 +1983,7 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "warn__inc_set_subtensor1",
         (
             "Warn if previous versions of Theano (before 0.7) could have "
@@ -1996,7 +1995,7 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "warn__round",
         "Warn when using `tensor.round` with the default mode. "
         "Round changed its default from `half_away_from_zero` to "
@@ -2005,7 +2004,7 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "warn__inc_subtensor1_opt",
         "Warn if previous versions of Theano (before 0.10) could have "
         "given incorrect results when computing "
@@ -2017,14 +2016,14 @@ def add_deprecated_configvars():
 
 
 def add_scan_configvars():
-    AddConfigVar(
+    config.add(
         "scan__allow_gc",
         "Allow/disallow gc inside of Scan (default: False)",
         BoolParam(False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "scan__allow_output_prealloc",
         "Allow/disallow memory preallocation for outputs inside of scan "
         "(default: True)",
@@ -2032,7 +2031,7 @@ def add_scan_configvars():
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "scan__debug",
         "If True, enable extra verbose output related to scan",
         BoolParam(False),
@@ -2062,7 +2061,7 @@ def add_caching_dir_configvars():
         "%(python_version)s-%(python_bitwidth)s"
     )
 
-    AddConfigVar(
+    config.add(
         "compiledir_format",
         textwrap.fill(
             textwrap.dedent(
@@ -2155,7 +2154,7 @@ def add_caching_dir_configvars():
     else:
         default_base_compiledir = os.path.join(get_home_dir(), ".theano")
 
-    AddConfigVar(
+    config.add(
         "base_compiledir",
         "platform-independent root directory for compiled modules",
         ConfigParam(
@@ -2167,14 +2166,14 @@ def add_caching_dir_configvars():
     def default_compiledir():
         return os.path.join(theano.config.base_compiledir, default_compiledirname())
 
-    AddConfigVar(
+    config.add(
         "compiledir",
         "platform-dependent cache directory for compiled modules",
         ConfigParam(default_compiledir, apply=filter_compiledir, mutable=False),
         in_c_key=False,
     )
 
-    AddConfigVar(
+    config.add(
         "gpuarray__cache_path",
         "Directory to cache pre-compiled kernels for the gpuarray backend.",
         ConfigParam(

@@ -7,7 +7,7 @@ import numpy as np
 from mpi4py import MPI
 
 import theano
-from theano.configparser import change_flags
+from theano import config
 from theano.gof.sched import sort_schedule_fn
 from theano.tensor.io import mpi_cmps, recv, send
 
@@ -31,7 +31,7 @@ dtype = "float32"
 scheduler = sort_schedule_fn(*mpi_cmps)
 mode = theano.Mode(optimizer=None, linker=theano.OpWiseCLinker(schedule=scheduler))
 
-with change_flags(compute_test_value="off"):
+with config.change_flags(compute_test_value="off"):
     if rank == 0:
         x = theano.tensor.matrix("x", dtype=dtype)
         y = x + 1

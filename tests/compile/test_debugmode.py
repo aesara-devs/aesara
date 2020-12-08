@@ -190,7 +190,7 @@ wb1 = WeirdBrokenOp("times1")
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_badthunkoutput():
     # Check if the c and python code is consistent.
@@ -200,12 +200,12 @@ def test_badthunkoutput():
     f_good = theano.function(
         [a, b],
         off_by_half(a, b),
-        mode=debugmode.DebugMode(check_c_code=theano.config.cxx),
+        mode=debugmode.DebugMode(check_c_code=config.cxx),
     )
     f_inconsistent = theano.function(
         [a, b],
         inconsistent(a, b),
-        mode=debugmode.DebugMode(check_c_code=theano.config.cxx),
+        mode=debugmode.DebugMode(check_c_code=config.cxx),
     )
 
     # this should evaluate with no error
@@ -283,7 +283,7 @@ def test_badoptimization_opt_err():
     with pytest.raises(
         theano.gof.toolbox.BadOptimization, match=r"insert_bad_dtype"
     ) as einfo:
-        with theano.change_flags(on_opt_error="raise"):
+        with config.change_flags(on_opt_error="raise"):
             f2 = theano.function(
                 [a, b],
                 a + b,
@@ -337,7 +337,7 @@ def test_stochasticoptimization():
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_just_c_code():
     x = theano.tensor.dvector()
@@ -366,7 +366,7 @@ def test_baddestroymap():
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_baddestroymap_c():
     x = theano.tensor.dvector()
@@ -420,7 +420,7 @@ class TestViewMap:
         f([1, 5, 1], [3, 4, 2, 1, 4])
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_badviewmap_c(self):
         x = theano.tensor.dvector()
@@ -748,7 +748,7 @@ class TestPreallocatedOutput:
 
         f = theano.function([a, b], out, mode=mode)
 
-        if theano.config.cxx:
+        if config.cxx:
             with pytest.raises(debugmode.BadThunkOutput):
                 f(a_val, b_val)
         else:
@@ -779,7 +779,7 @@ class TestPreallocatedOutput:
 
         f = theano.function([a, b], out, mode=mode)
 
-        if theano.config.cxx:
+        if config.cxx:
             with pytest.raises(debugmode.BadThunkOutput):
                 f(a_val, b_val)
         else:

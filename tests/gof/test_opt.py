@@ -1,5 +1,6 @@
 import theano.tensor as tt
 from tests.gof.utils import MyType, MyVariable, op1, op2, op3, op4, op5, op6, op_y, op_z
+from theano import config
 from theano.gof.fg import FunctionGraph
 from theano.gof.graph import Apply, Constant
 from theano.gof.op import Op
@@ -10,7 +11,6 @@ from theano.gof.opt import (
     OpSub,
     PatternSub,
     TopoOptimizer,
-    config,
     logging,
     pre_constant_merge,
     pre_greedy_local_optimizer,
@@ -305,12 +305,8 @@ class TestMergeOptimizer:
         x = MyVariable("x")
         y = Constant(MyType(), 2, name="y")
         z = Constant(MyType(), 2, name="z")
-        ctv_backup = config.compute_test_value
-        config.compute_test_value = "off"
-        try:
+        with config.change_flags(compute_test_value="off"):
             e1 = op1(y, z)
-        finally:
-            config.compute_test_value = ctv_backup
         g = FunctionGraph([x, y, z], [e1])
         MergeOptimizer().optimize(g)
         strg = str(g)
@@ -515,7 +511,7 @@ class TestEquilibrium:
         opt.optimize(g)
         assert str(g) == "FunctionGraph(Op2(x, y))"
 
-    @theano.change_flags(on_opt_error="ignore")
+    @config.change_flags(on_opt_error="ignore")
     def test_low_use_ratio(self):
         x, y, z = map(MyVariable, "xyz")
         e = op3(op4(x, y))
