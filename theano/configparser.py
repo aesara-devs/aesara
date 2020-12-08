@@ -74,6 +74,27 @@ def _hash_from_code(msg):
     return "m" + hashlib.sha256(msg).hexdigest()
 
 
+class _SectionRedirect:
+    """Functions as a mock property on the TheanoConfigParser.
+
+    It redirects attribute access (to config subsectinos) to the
+    new config variable properties that use "__" in their name.
+    """
+
+    def __init__(self, root, section_name):
+        self._root = root
+        self._section_name = section_name
+        super().__init__()
+
+    def __getattr__(self, attr):
+        warnings.warn(
+            f"Accessing section '{attr}' through old .-based API. "
+            f"This will be removed. Use 'config.{self._section_name}__{attr}' instead.",
+            DeprecationWarning,
+        )
+        return getattr(self._root, f"{self._section_name}__{attr}")
+
+
 class TheanoConfigParser:
     """ Object that holds configuration settings. """
 
@@ -174,6 +195,18 @@ class TheanoConfigParser:
         setattr(self.__class__, name, configparam)
         # keep the ConfigParam object in a dictionary:
         self._config_var_dict[name] = configparam
+
+        # The old API used dots for accessing a hierarchy of sections.
+        # The following code adds redirects that spill DeprecationWarnings
+        # while allowing backwards-compatible access to dot-based subsections.
+        # Because the subsectioning is recursive, redirects must be added for
+        # all levels. For example: ".test", ".test.subsection".
+        sections = name.split("__")
+        for s in range(1, len(sections)):
+            section_name = "__".join(sections[:s])
+            if not hasattr(self, section_name):
+                redirect = _SectionRedirect(self, section_name)
+                setattr(self.__class__, section_name, redirect)
 
     def fetch_val_for_key(self, key, delete_key=False):
         """Return the overriding config value for a key.

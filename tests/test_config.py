@@ -28,6 +28,33 @@ def test_api_deprecation_warning():
             pass
 
 
+def test_api_redirect():
+    root = configdefaults.config
+    # one section level
+    root.add(
+        "test__section_redirect",
+        "A config var from a test case.",
+        configparser.StrParam("test_default"),
+    )
+    assert hasattr(root, "test__section_redirect")
+    assert root.test__section_redirect == "test_default"
+    assert hasattr(root, "test")
+    assert isinstance(root.test, configparser._SectionRedirect)
+    with pytest.warns(DeprecationWarning):
+        assert root.test.section_redirect == "test_default"
+
+    # two section levels
+    root.add(
+        "test__subsection__redirect",
+        "A config var from a test case.",
+        configparser.StrParam("test_default2"),
+    )
+    assert hasattr(root, "test__subsection__redirect")
+    assert root.test__subsection__redirect == "test_default2"
+    with pytest.warns(DeprecationWarning):
+        assert root.test.subsection.redirect == "test_default2"
+
+
 def test_invalid_default():
     # Ensure an invalid default value found in the Theano code only causes
     # a crash if it is not overridden by the user.
