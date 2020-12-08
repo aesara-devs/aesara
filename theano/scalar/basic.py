@@ -799,9 +799,6 @@ class _scalar_py_operators:
     def __truediv__(self, other):
         return true_div(self, other)
 
-    def __intdiv__(self, other):
-        return int_div(self, other)
-
     def __floordiv__(self, other):
         return int_div(self, other)
 
