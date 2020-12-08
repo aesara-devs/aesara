@@ -3658,18 +3658,6 @@ def minimum(x, y):
     # see decorator for function body
 
 
-def div_proxy(x, y):
-    """Proxy for either true_div or int_div, depending on types of x, y."""
-    f = scal.int_or_true_div(
-        as_tensor_variable(x).dtype in discrete_dtypes,
-        as_tensor_variable(y).dtype in discrete_dtypes,
-    )
-    if f is scal.int_div:
-        return int_div(x, y)
-    else:
-        return true_div(x, y)
-
-
 def divmod(x, y):
     """elementvise divmod, using floor_div and mod_check"""
     return floor_div(x, y), mod_check(x, y)
