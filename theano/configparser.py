@@ -28,6 +28,10 @@ class TheanoConfigWarning(Warning):
     warn = classmethod(warn)
 
 
+class ConfigAccessViolation(AttributeError):
+    """ Raised when a config setting is accessed through the wrong config instance. """
+
+
 class _ChangeFlagsDecorator:
     def __init__(self, *args, _root=None, **kwargs):
         # the old API supported passing a dict as the first argument:
@@ -167,11 +171,18 @@ class TheanoConfigParser:
             raise ValueError(
                 f"Dot-based sections were removed. Use double underscores! ({name})"
             )
-        if hasattr(self, name):
-            raise AttributeError(f"The name {name} is already taken")
+        # Can't use hasattr here, because it returns False upon AttributeErrors
+        if name in dir(self):
+            raise AttributeError(
+                f"A config parameter with the name '{name}' was already registered on another config instance."
+            )
         configparam.doc = doc
         configparam.name = name
         configparam.in_c_key = in_c_key
+
+        # Register it on this instance before the code below already starts accessing it
+        self._config_var_dict[name] = configparam
+
         # Trigger a read of the value from config files and env vars
         # This allow to filter wrong value from the user.
         if not callable(configparam.default):
@@ -193,8 +204,6 @@ class TheanoConfigParser:
 
         # the ConfigParam implements __get__/__set__, enabling us to create a property:
         setattr(self.__class__, name, configparam)
-        # keep the ConfigParam object in a dictionary:
-        self._config_var_dict[name] = configparam
 
         # The old API used dots for accessing a hierarchy of sections.
         # The following code adds redirects that spill DeprecationWarnings
@@ -343,6 +352,11 @@ class ConfigParam:
     def __get__(self, cls, type_, delete_key=False):
         if cls is None:
             return self
+        if self.name not in cls._config_var_dict:
+            raise ConfigAccessViolation(
+                f"The config parameter '{self.name}' was registered on a different instance of the TheanoConfigParser."
+                f" It is not accessible through the instance with id '{id(cls)}' because of safeguarding."
+            )
         if not hasattr(self, "val"):
             try:
                 val_str = cls.fetch_val_for_key(self.name, delete_key=delete_key)
