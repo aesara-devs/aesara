@@ -1,4 +1,3 @@
-import configparser as ConfigParser
 import hashlib
 import logging
 import os
@@ -6,6 +5,13 @@ import shlex
 import sys
 import typing
 import warnings
+from configparser import (
+    ConfigParser,
+    InterpolationError,
+    NoOptionError,
+    NoSectionError,
+    RawConfigParser,
+)
 from functools import wraps
 from io import StringIO
 
@@ -195,9 +201,9 @@ class TheanoConfigParser:
         try:
             try:
                 return self._theano_cfg.get(section, option)
-            except ConfigParser.InterpolationError:
+            except InterpolationError:
                 return self._theano_raw_cfg.get(section, option)
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+        except (NoOptionError, NoSectionError):
             raise KeyError(key)
 
     def change_flags(self, *args, **kwargs) -> _ChangeFlagsDecorator:
@@ -494,7 +500,7 @@ def _create_default_config():
     THEANO_FLAGS_DICT = parse_config_string(THEANO_FLAGS, issue_warnings=True)
 
     config_files = config_files_from_theanorc()
-    theano_cfg = ConfigParser.ConfigParser(
+    theano_cfg = ConfigParser(
         {
             "USER": os.getenv("USER", os.path.split(os.path.expanduser("~"))[-1]),
             "LSCRATCH": os.getenv("LSCRATCH", ""),
@@ -508,7 +514,7 @@ def _create_default_config():
     # Having a raw version of the config around as well enables us to pass
     # through config values that contain format strings.
     # The time required to parse the config twice is negligible.
-    theano_raw_cfg = ConfigParser.RawConfigParser()
+    theano_raw_cfg = RawConfigParser()
     theano_raw_cfg.read(config_files)
 
     # Instances of TheanoConfigParser can have independent current values!
