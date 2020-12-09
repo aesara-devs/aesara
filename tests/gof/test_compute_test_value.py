@@ -12,7 +12,7 @@ from theano.tensor.basic import _allclose
 
 @pytest.fixture(scope="module", autouse=True)
 def set_theano_flags():
-    with theano.change_flags(compute_test_value="raise"):
+    with config.change_flags(compute_test_value="raise"):
         yield
 
 
@@ -92,26 +92,19 @@ class TestComputeTestValue:
         y.tag.test_value = np.random.rand(4, 5).astype(config.floatX)
 
         # should skip computation of test value
-        theano.config.compute_test_value = "off"
-        z = tt.dot(x, y)
-        assert not hasattr(z.tag, "test_value")
+        with config.change_flags(compute_test_value="off"):
+            z = tt.dot(x, y)
+            assert not hasattr(z.tag, "test_value")
 
         # should fail when asked by user
-        theano.config.compute_test_value = "raise"
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError), config.change_flags(compute_test_value="raise"):
             tt.dot(x, y)
 
         # test that a warning is raised if required
-        theano.config.compute_test_value = "warn"
-        warnings.simplefilter("error", UserWarning)
-        try:
+        with warnings.catch_warnings(), config.change_flags(compute_test_value="warn"):
+            warnings.simplefilter("error", UserWarning)
             with pytest.raises(UserWarning):
                 tt.dot(x, y)
-        finally:
-            # Restore the default behavior.
-            # TODO There is a cleaner way to do this in Python 2.6, once
-            # Theano drops support of Python 2.4 and 2.5.
-            warnings.simplefilter("default", UserWarning)
 
     def test_string_var(self):
         x = tt.matrix("x")
@@ -302,7 +295,7 @@ class TestComputeTestValue:
         assert o.tag.test_value == 4
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_no_perform(self):
         i = scalar.int32("i")

@@ -3,7 +3,7 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import change_flags, config, function
+from theano import config, function
 from theano import tensor as tt
 from theano.tensor.extra_ops import (
     Bartlett,
@@ -320,8 +320,8 @@ class TestSqueeze(utt.InferShapeTester):
 
     def test_op(self):
         for shape, broadcast in zip(self.shape_list, self.broadcast_list):
-            data = np.random.random(size=shape).astype(theano.config.floatX)
-            variable = tt.TensorType(theano.config.floatX, broadcast)()
+            data = np.random.random(size=shape).astype(config.floatX)
+            variable = tt.TensorType(config.floatX, broadcast)()
 
             f = theano.function([variable], self.op(variable))
 
@@ -333,8 +333,8 @@ class TestSqueeze(utt.InferShapeTester):
 
     def test_infer_shape(self):
         for shape, broadcast in zip(self.shape_list, self.broadcast_list):
-            data = np.random.random(size=shape).astype(theano.config.floatX)
-            variable = tt.TensorType(theano.config.floatX, broadcast)()
+            data = np.random.random(size=shape).astype(config.floatX)
+            variable = tt.TensorType(config.floatX, broadcast)()
 
             self._compile_and_check(
                 [variable], [self.op(variable)], [data], tt.DimShuffle, warn=False
@@ -342,15 +342,15 @@ class TestSqueeze(utt.InferShapeTester):
 
     def test_grad(self):
         for shape, broadcast in zip(self.shape_list, self.broadcast_list):
-            data = np.random.random(size=shape).astype(theano.config.floatX)
+            data = np.random.random(size=shape).astype(config.floatX)
 
             utt.verify_grad(self.op, [data])
 
     def test_var_interface(self):
         # same as test_op, but use a_theano_var.squeeze.
         for shape, broadcast in zip(self.shape_list, self.broadcast_list):
-            data = np.random.random(size=shape).astype(theano.config.floatX)
-            variable = tt.TensorType(theano.config.floatX, broadcast)()
+            data = np.random.random(size=shape).astype(config.floatX)
+            variable = tt.TensorType(config.floatX, broadcast)()
 
             f = theano.function([variable], variable.squeeze())
 
@@ -361,17 +361,17 @@ class TestSqueeze(utt.InferShapeTester):
             assert np.allclose(tested, expected)
 
     def test_axis(self):
-        variable = tt.TensorType(theano.config.floatX, [False, True, False])()
+        variable = tt.TensorType(config.floatX, [False, True, False])()
         res = squeeze(variable, axis=1)
 
         assert res.broadcastable == (False, False)
 
-        variable = tt.TensorType(theano.config.floatX, [False, True, False])()
+        variable = tt.TensorType(config.floatX, [False, True, False])()
         res = squeeze(variable, axis=(1,))
 
         assert res.broadcastable == (False, False)
 
-        variable = tt.TensorType(theano.config.floatX, [False, True, False, True])()
+        variable = tt.TensorType(config.floatX, [False, True, False, True])()
         res = squeeze(variable, axis=(1, 3))
 
         assert res.broadcastable == (False, False)
@@ -396,7 +396,7 @@ class TestCompress(utt.InferShapeTester):
     def test_op(self):
         for axis, cond, shape in zip(self.axis_list, self.cond_list, self.shape_list):
             cond_var = theano.tensor.ivector()
-            data = np.random.random(size=shape).astype(theano.config.floatX)
+            data = np.random.random(size=shape).astype(config.floatX)
             data_var = theano.tensor.matrix()
 
             f = theano.function(
@@ -713,7 +713,7 @@ def test_to_one_hot():
     o = to_one_hot(v, 10)
     f = theano.function([v], o)
     out = f([1, 2, 3, 5, 6])
-    assert out.dtype == theano.config.floatX
+    assert out.dtype == config.floatX
     assert np.allclose(
         out,
         [
@@ -1318,7 +1318,7 @@ class TestBroadcastTo(utt.InferShapeTester):
         self.op_class = BroadcastTo
         self.op = broadcast_to
 
-    @change_flags(compute_test_value="raise")
+    @config.change_flags(compute_test_value="raise")
     def test_perform(self):
         a = tt.scalar()
         a.tag.test_value = 5

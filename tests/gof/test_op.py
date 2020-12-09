@@ -5,7 +5,6 @@ import theano
 import theano.gof.op as op
 import theano.tensor as tt
 from theano import config, scalar, shared
-from theano.configparser import change_flags
 from theano.gof.graph import Apply, Variable
 from theano.gof.op import Op
 from theano.gof.type import Generic, Type
@@ -133,13 +132,13 @@ class TestOp:
         assert rval == "test Op no input"
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_op_struct(self):
         sop = StructOp()
         c = sop(theano.tensor.constant(0))
         mode = None
-        if theano.config.mode == "FAST_COMPILE":
+        if config.mode == "FAST_COMPILE":
             mode = "FAST_RUN"
         f = theano.function([], c, mode=mode)
         rval = f()
@@ -219,7 +218,7 @@ class TestMakeThunk:
         thunk = o.owner.op.make_thunk(
             o.owner, storage_map, compute_map, no_recycling=[]
         )
-        if theano.config.cxx:
+        if config.cxx:
             required = thunk()
             # Check everything went OK
             assert not required  # We provided all inputs
@@ -275,7 +274,7 @@ def test_test_value_shared():
     assert np.all(v == np.zeros((5, 5)))
 
 
-@change_flags(compute_test_value="raise")
+@config.change_flags(compute_test_value="raise")
 def test_test_value_op():
 
     x = tt.log(np.ones((5, 5)))
@@ -284,7 +283,7 @@ def test_test_value_op():
     assert np.allclose(v, np.zeros((5, 5)))
 
 
-@change_flags(compute_test_value="off")
+@config.change_flags(compute_test_value="off")
 def test_get_test_values_no_debugger():
     """Tests that `get_test_values` returns `[]` when debugger is off."""
 
@@ -292,7 +291,7 @@ def test_get_test_values_no_debugger():
     assert op.get_test_values(x) == []
 
 
-@change_flags(compute_test_value="ignore")
+@config.change_flags(compute_test_value="ignore")
 def test_get_test_values_ignore():
     """Tests that `get_test_values` returns `[]` when debugger is set to "ignore" and some values are missing."""
 
@@ -304,7 +303,7 @@ def test_get_test_values_success():
     """Tests that `get_test_values` returns values when available (and the debugger is on)."""
 
     for mode in ["ignore", "warn", "raise"]:
-        with change_flags(compute_test_value=mode):
+        with config.change_flags(compute_test_value=mode):
             x = tt.vector()
             x.tag.test_value = np.zeros((4,), dtype=config.floatX)
             y = np.zeros((5, 5))
@@ -321,7 +320,7 @@ def test_get_test_values_success():
             assert iters == 1
 
 
-@change_flags(compute_test_value="raise")
+@config.change_flags(compute_test_value="raise")
 def test_get_test_values_exc():
     """Tests that `get_test_values` raises an exception when debugger is set to raise and a value is missing."""
 

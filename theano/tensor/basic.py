@@ -1179,7 +1179,7 @@ class TensorFromScalar(Op):
         # Currently, theano.grad insists that the dtype of the returned
         # gradient has a float dtype, so we use floatX.
         if s.type.dtype in discrete_dtypes:
-            return [s.zeros_like().astype(theano.config.floatX)]
+            return [s.zeros_like().astype(config.floatX)]
 
         raise NotImplementedError("grad not implemented for complex dtypes")
 
@@ -5655,7 +5655,7 @@ class ARange(Op):
 
         return Apply(self, inputs, outputs)
 
-    @theano.configparser.change_flags(warn_float64="ignore")
+    @config.change_flags(warn_float64="ignore")
     def infer_shape(self, fgraph, node, i_shapes):
         # Note start, stop and step can be float numbers.
         start, stop, step = node.inputs

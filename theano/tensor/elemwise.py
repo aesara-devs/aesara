@@ -3,7 +3,7 @@ from copy import copy
 import numpy as np
 
 import theano
-from theano import change_flags, gof, scalar
+from theano import config, gof, scalar
 from theano.gof import Apply, COp, Op, OpenMPOp, ParamsType
 from theano.gof.null_type import NullType
 from theano.gradient import DisconnectedType
@@ -11,9 +11,6 @@ from theano.misc.frozendict import frozendict
 from theano.printing import pprint
 from theano.scalar import get_scalar_type
 from theano.tensor import elemwise_cgen as cgen
-
-
-config = theano.config
 
 
 _numpy_ver = [int(n) for n in np.__version__.split(".")[:2]]
@@ -308,7 +305,7 @@ class DimShuffle(COp):
         # canonicalization optimization phase will remove the inplace.
         # The inplace will be reintroduced automatically later in the graph.
         if inp[0].dtype in theano.tensor.discrete_dtypes:
-            return [inp[0].zeros_like(dtype=theano.config.floatX)]
+            return [inp[0].zeros_like(dtype=config.floatX)]
         else:
             return [
                 DimShuffle(gz.type.broadcastable, grad_order)(
@@ -591,7 +588,7 @@ second dimension
                 else:
                     elem = ipt.zeros_like()
                     if str(elem.type.dtype) not in theano.tensor.continuous_dtypes:
-                        elem = elem.astype(theano.config.floatX)
+                        elem = elem.astype(config.floatX)
                     assert str(elem.type.dtype) not in theano.tensor.discrete_dtypes
                     new_rval.append(elem)
             return new_rval
@@ -621,7 +618,7 @@ second dimension
     def _bgrad(self, inputs, outputs, ograds):
         # returns grad, with respect to broadcasted versions of inputs
 
-        with change_flags(compute_test_value="off"):
+        with config.change_flags(compute_test_value="off"):
 
             def as_scalar(t):
                 if isinstance(t.type, (NullType, DisconnectedType)):
@@ -1756,7 +1753,7 @@ class All(CAReduce):
 
     def grad(self, inp, grads):
         (x,) = inp
-        return [x.zeros_like(theano.config.floatX)]
+        return [x.zeros_like(config.floatX)]
 
 
 class Any(CAReduce):
@@ -1789,7 +1786,7 @@ class Any(CAReduce):
 
     def grad(self, inp, grads):
         (x,) = inp
-        return [x.zeros_like(theano.config.floatX)]
+        return [x.zeros_like(config.floatX)]
 
 
 class CAReduceDtype(CAReduce):
@@ -2019,7 +2016,7 @@ class Sum(CAReduceDtype):
         (x,) = inp
 
         if out[0].dtype not in theano.tensor.continuous_dtypes:
-            return [x.zeros_like(dtype=theano.config.floatX)]
+            return [x.zeros_like(dtype=config.floatX)]
 
         (gz,) = grads
         gz = as_tensor_variable(gz)
@@ -2127,7 +2124,7 @@ class Prod(CAReduceDtype):
             or self.acc_dtype in theano.tensor.discrete_dtypes
         ):
             # There is an int conversion in the way
-            return [prod_in.zeros_like(dtype=theano.config.floatX)]
+            return [prod_in.zeros_like(dtype=config.floatX)]
 
         # Prepare the broadcasting that is used everywhere to broadcast
         # over the original groups (ie. broadcast over the elements of a given

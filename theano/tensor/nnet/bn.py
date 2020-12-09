@@ -17,7 +17,7 @@ from theano.tensor.type import TensorType
 class BNComposite(Composite):
     init_param = ("dtype",)
 
-    @theano.change_flags(compute_test_value="off")
+    @theano.config.change_flags(compute_test_value="off")
     def __init__(self, dtype):
         self.dtype = dtype
         x = theano.scalar.Scalar(dtype=dtype).make_variable()

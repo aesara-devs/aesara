@@ -7,7 +7,7 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import change_flags, config, tensor
+from theano import config, tensor
 from theano.sandbox import rng_mrg
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 
@@ -78,18 +78,13 @@ def test_consistency_randomstreams():
 
 
 def test_get_substream_rstates():
-    try:
-        orig = theano.config.compute_test_value
-        theano.config.compute_test_value = "raise"
+    with config.change_flags(compute_test_value="raise"):
         n_streams = 100
 
         dtype = "float32"
         rng = MRG_RandomStreams(np.random.randint(2147462579))
 
         rng.get_substream_rstates(n_streams, dtype)
-
-    finally:
-        theano.config.compute_test_value = orig
 
 
 def test_consistency_cpu_serial():
@@ -949,7 +944,7 @@ def test_overflow_cpu():
     # run with THEANO_FLAGS=mode=FAST_RUN,device=cpu,floatX=float32
     rng = MRG_RandomStreams(np.random.randint(1234))
     fct = rng.uniform
-    with change_flags(compute_test_value="off"):
+    with config.change_flags(compute_test_value="off"):
         # should raise error as the size overflows
         sizes = [
             (2 ** 31,),

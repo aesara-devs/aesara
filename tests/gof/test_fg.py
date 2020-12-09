@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from tests.gof.utils import MyVariable, MyVariable2, op1, op2, op3
-from theano import change_flags
+from theano import config
 from theano.gof.fg import FunctionGraph, MissingInputError
 from theano.gof.toolbox import BadOptimization
 
@@ -186,7 +186,7 @@ class TestFunctionGraph:
         assert var5.owner.inputs[1] is var1
         assert (var5.owner, 1) not in fg.get_clients(var2)
 
-    @change_flags(compute_test_value="raise")
+    @config.change_flags(compute_test_value="raise")
     def test_replace_test_value(self):
 
         var1 = MyVariable("var1")

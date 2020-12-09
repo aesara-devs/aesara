@@ -5,7 +5,7 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import change_flags, config, gof, gradient
+from theano import config, gof, gradient
 from theano.gof.null_type import NullType
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
@@ -521,7 +521,7 @@ def test_known_grads_integers():
     f = theano.function([g_expected], g_grad)
 
     x = -3
-    gv = np.cast[theano.config.floatX](0.6)
+    gv = np.cast[config.floatX](0.6)
 
     g_actual = f(gv)
 
@@ -784,7 +784,7 @@ def test_grad_clip():
 
     f = theano.function([x], outputs=[z, z2])
 
-    if theano.config.mode != "FAST_COMPILE":
+    if config.mode != "FAST_COMPILE":
         topo = f.maker.fgraph.toposort()
         assert not any([isinstance(node.op, gradient.GradClip) for node in topo])
     out = f(2.0)
@@ -800,7 +800,7 @@ def test_grad_scale():
 
     f = theano.function([x], outputs=[z, z2])
 
-    if theano.config.mode != "FAST_COMPILE":
+    if config.mode != "FAST_COMPILE":
         topo = f.maker.fgraph.toposort()
         assert not any([isinstance(node.op, gradient.GradScale) for node in topo])
     out = f(2.0)
@@ -808,11 +808,11 @@ def test_grad_scale():
     assert np.allclose(out, (8, 4))
 
 
-@change_flags(compute_test_value="off")
+@config.change_flags(compute_test_value="off")
 def test_undefined_grad_opt():
     # Make sure that undefined grad get removed in optimized graph.
     random = RandomStreams(np.random.randint(1, 2147462579))
-    pvals = theano.shared(np.random.rand(10, 20).astype(theano.config.floatX))
+    pvals = theano.shared(np.random.rand(10, 20).astype(config.floatX))
     pvals = pvals / pvals.sum(axis=1)
     pvals = gradient.zero_grad(pvals)
     samples = random.multinomial(pvals=pvals, n=1)

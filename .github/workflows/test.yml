@@ -130,7 +130,7 @@ jobs:
         run: |
           if [[ $FAST_COMPILE == "1" ]]; then export THEANO_FLAGS=$THEANO_FLAGS,mode=FAST_COMPILE; fi
           if [[ $FLOAT32 == "1" ]]; then export THEANO_FLAGS=$THEANO_FLAGS,floatX=float32; fi
-          export THEANO_FLAGS=$THEANO_FLAGS,warn.ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise,gcc.cxxflags=-pipe
+          export THEANO_FLAGS=$THEANO_FLAGS,warn__ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise,gcc__cxxflags=-pipe
           python -m pytest -x -r A --verbose --runslow --cov=theano/ --cov-report=xml:coverage/coverage-${MATRIX_ID}.xml --no-cov-on-fail $PART
         env:
           MATRIX_ID: ${{ steps.matrix-id.outputs.id }}

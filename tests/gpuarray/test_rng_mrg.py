@@ -7,7 +7,7 @@ from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu as mode
 from tests.sandbox.test_rng_mrg import java_samples, rng_mrg_overflow
 from tests.sandbox.test_rng_mrg import test_f16_nonzero as cpu_f16_nonzero
-from theano import change_flags, tensor
+from theano import config, tensor
 from theano.gpuarray.rng_mrg import GPUA_mrg_uniform
 from theano.gpuarray.type import gpuarray_shared_constructor
 from theano.sandbox import rng_mrg
@@ -161,7 +161,7 @@ def test_overflow_gpu_new_backend():
 
 
 def test_validate_input_types_gpuarray_backend():
-    with change_flags(compute_test_value="raise"):
+    with config.change_flags(compute_test_value="raise"):
         rstate = np.zeros((7, 6), dtype="int32")
         rstate = gpuarray_shared_constructor(rstate)
         rng_mrg.mrg_uniform.new(rstate, ndim=None, dtype="float32", size=(3,))

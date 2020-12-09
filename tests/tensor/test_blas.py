@@ -128,8 +128,8 @@ class TestGemm:
             cmp_linker(copy(z), a, x, y, b, "c|py")
             cmp_linker(copy(z), a, x, y, b, "py")
 
-            if not dtype.startswith("complex") and theano.config.cxx:
-                # If theano.config.blas__ldflags is empty, Theano will use
+            if not dtype.startswith("complex") and config.cxx:
+                # If config.blas__ldflags is empty, Theano will use
                 # a NumPy C implementation of [sd]gemm_.
                 cmp_linker(copy(z), a, x, y, b, "c")
 
@@ -477,7 +477,7 @@ class TestGemmNoFlags:
         C = self.get_value(C, transpose_C, slice_C)
         return alpha * np.dot(A, B) + beta * C
 
-    @theano.change_flags({"blas__ldflags": ""})
+    @config.change_flags({"blas__ldflags": ""})
     def run_gemm(
         self,
         dtype,
@@ -819,13 +819,9 @@ def test_upcasting_scalar_nogemm():
     t = tt.fmatrix("t")
     alpha = tt.cscalar("a")
 
-    on_opt_error = config.on_opt_error
-    try:
-        config.on_opt_error = "raise"
+    with config.change_flags(on_opt_error="raise"):
         rval = tt.dot(w, v) * alpha + t
         f = theano.function([w, v, t, alpha], rval)
-    finally:
-        config.on_opt_error = on_opt_error
 
     t = f.maker.fgraph.toposort()
     assert np.sum([isinstance(n.op, Gemm) for n in t]) == 0

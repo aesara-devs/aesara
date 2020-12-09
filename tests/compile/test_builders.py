@@ -396,7 +396,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             OpFromGraph,
         )
 
-    @theano.change_flags(compute_test_value="raise")
+    @config.change_flags(compute_test_value="raise")
     def test_compute_test_value(self):
         x = tt.scalar("x")
         x.tag.test_value = np.array(1.0, dtype=config.floatX)
