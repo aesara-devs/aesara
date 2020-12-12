@@ -52,7 +52,7 @@ def compare_jax_and_py(
         assert_fn = partial(np.testing.assert_allclose, rtol=1e-4)
 
     opts = theano.gof.Query(include=[None], exclude=["cxx_only", "BlasOpt"])
-    jax_mode = theano.compile.mode.Mode(theano.sandbox.jax_linker.JAXLinker(), opts)
+    jax_mode = theano.compile.mode.Mode(theano.link.jax.JAXLinker(), opts)
     py_mode = theano.compile.Mode("py", opts)
 
     theano_jax_fn = theano.function(fgraph.inputs, fgraph.outputs, mode=jax_mode)

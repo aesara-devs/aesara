@@ -10,7 +10,7 @@ import theano
 import theano.gof.vm
 from theano import config, gof
 from theano.compile.function.types import Supervisor
-from theano.sandbox.jax_linker import JAXLinker
+from theano.link.jax import JAXLinker
 
 
 _logger = logging.getLogger("theano.compile.mode")
