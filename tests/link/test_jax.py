@@ -833,7 +833,7 @@ def test_jax_BatchedDot():
     # A dimension mismatch should raise a TypeError for compatibility
     inputs = [get_test_value(a)[:-1], get_test_value(b)]
     opts = theano.gof.Query(include=[None], exclude=["cxx_only", "BlasOpt"])
-    jax_mode = theano.compile.mode.Mode(theano.sandbox.jax_linker.JAXLinker(), opts)
+    jax_mode = theano.compile.mode.Mode(theano.link.jax.JAXLinker(), opts)
     theano_jax_fn = theano.function(fgraph.inputs, fgraph.outputs, mode=jax_mode)
     with pytest.raises(TypeError):
         theano_jax_fn(*inputs)
