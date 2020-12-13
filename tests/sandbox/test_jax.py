@@ -14,7 +14,7 @@ from theano.gof.op import get_test_value  # noqa: E402
 
 @pytest.fixture(scope="module", autouse=True)
 def set_theano_flags():
-    with theano.change_flags(cxx="", compute_test_value="ignore"):
+    with theano.config.change_flags(cxx="", compute_test_value="ignore"):
         yield
 
 
@@ -136,7 +136,7 @@ def test_jax_compile_ops():
 
     compare_jax_and_py(x_fg, [])
 
-    with theano.change_flags(compute_test_value="off"):
+    with theano.config.change_flags(compute_test_value="off"):
         x = theano.compile.ops.SpecifyShape()(tt.as_tensor_variable(x_np), (2, 3))
         x_fg = theano.gof.FunctionGraph([], [x])
 
@@ -151,7 +151,7 @@ def test_jax_compile_ops():
 
     compare_jax_and_py(x_fg, [])
 
-    with theano.change_flags(compute_test_value="off"):
+    with theano.config.change_flags(compute_test_value="off"):
         x = theano.compile.ops.Rebroadcast((0, True), (1, False), (2, False))(
             tt.as_tensor_variable(x_np)
         )
@@ -814,6 +814,42 @@ def test_second():
     out = tt.second(a1, b)
     fgraph = theano.gof.FunctionGraph([a1, b], [out])
     compare_jax_and_py(fgraph, [np.zeros([5], dtype=theano.config.floatX), 5.0])
+
+
+def test_jax_BatchedDot():
+    # tensor3 . tensor3
+    a = tt.tensor3("a")
+    a.tag.test_value = (
+        np.linspace(-1, 1, 10 * 5 * 3).astype(theano.config.floatX).reshape((10, 5, 3))
+    )
+    b = tt.tensor3("b")
+    b.tag.test_value = (
+        np.linspace(1, -1, 10 * 3 * 2).astype(theano.config.floatX).reshape((10, 3, 2))
+    )
+    out = tt.blas.BatchedDot()(a, b)
+    fgraph = theano.gof.FunctionGraph([a, b], [out])
+    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+    # A dimension mismatch should raise a TypeError for compatibility
+    inputs = [get_test_value(a)[:-1], get_test_value(b)]
+    opts = theano.gof.Query(include=[None], exclude=["cxx_only", "BlasOpt"])
+    jax_mode = theano.compile.mode.Mode(theano.sandbox.jax_linker.JAXLinker(), opts)
+    theano_jax_fn = theano.function(fgraph.inputs, fgraph.outputs, mode=jax_mode)
+    with pytest.raises(TypeError):
+        theano_jax_fn(*inputs)
+
+    # matrix . matrix
+    a = tt.matrix("a")
+    a.tag.test_value = (
+        np.linspace(-1, 1, 5 * 3).astype(theano.config.floatX).reshape((5, 3))
+    )
+    b = tt.matrix("b")
+    b.tag.test_value = (
+        np.linspace(1, -1, 5 * 3).astype(theano.config.floatX).reshape((5, 3))
+    )
+    out = tt.blas.BatchedDot()(a, b)
+    fgraph = theano.gof.FunctionGraph([a, b], [out])
+    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
 
 def test_shared():

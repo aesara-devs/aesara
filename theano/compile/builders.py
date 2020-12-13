@@ -401,7 +401,7 @@ class OpFromGraph(Op):
         is_inline = self.is_inline
         return "%(name)s{inline=%(is_inline)s}" % locals()
 
-    @theano.change_flags(compute_test_value="off")
+    @theano.config.change_flags(compute_test_value="off")
     def _recompute_lop_op(self):
         """
         converts self._lop_op from user supplied form to type(self) instance
@@ -541,7 +541,7 @@ class OpFromGraph(Op):
         self._lop_op_is_cached = True
         self._lop_type = "lop"
 
-    @theano.change_flags(compute_test_value="off")
+    @theano.config.change_flags(compute_test_value="off")
     def _recompute_rop_op(self):
         """
         converts self._rop_op from user supplied form to type(self) instance

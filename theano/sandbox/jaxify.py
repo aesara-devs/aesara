@@ -34,6 +34,7 @@ from theano.tensor.basic import (
     ScalarFromTensor,
     TensorFromScalar,
 )
+from theano.tensor.blas import BatchedDot
 from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from theano.tensor.extra_ops import (
     Bartlett,
@@ -1066,3 +1067,15 @@ def jax_funcify_Eye(op):
         return jnp.eye(N, M, k, dtype=dtype)
 
     return eye
+
+
+@jax_funcify.register(BatchedDot)
+def jax_funcify_BatchedDot(op):
+    def batched_dot(a, b):
+        if a.shape[0] != b.shape[0]:
+            raise TypeError("Shapes must match in the 0-th dimension")
+        if a.ndim == 2 or b.ndim == 2:
+            return jnp.einsum("n...j,nj...->n...", a, b)
+        return jnp.einsum("nij,njk->nik", a, b)
+
+    return batched_dot

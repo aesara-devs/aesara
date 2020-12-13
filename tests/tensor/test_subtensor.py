@@ -11,7 +11,7 @@ import theano.scalar as scal
 import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.tensor.utils import inplace_func, rand, randint_ranged
-from theano import change_flags, config
+from theano import config
 from theano.compile import DeepCopyOp
 from theano.gof.op import get_test_value
 from theano.gof.toolbox import is_same_graph
@@ -70,10 +70,10 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
     def setup_method(self):
         self.shared = _shared
-        self.dtype = theano.config.floatX
+        self.dtype = config.floatX
         mode = theano.compile.mode.get_default_mode()
         self.mode = mode.including("local_useless_subtensor")
-        self.fast_compile = theano.config.mode == "FAST_COMPILE"
+        self.fast_compile = config.mode == "FAST_COMPILE"
         utt.seed_rng()
 
     def function(
@@ -124,7 +124,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         with pytest.raises(IndexError):
             n.__getitem__(0)
 
-    @change_flags(compute_test_value="off")
+    @config.change_flags(compute_test_value="off")
     def test_err_bounds(self):
         n = self.shared(np.ones(3, dtype=self.dtype))
         t = n[7]
@@ -204,7 +204,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         assert tval.shape == (2,)
         assert (tval == [0.0, 2.0]).all()
 
-    @change_flags(compute_test_value="off")
+    @config.change_flags(compute_test_value="off")
     def test_err_bounds0(self):
         n = self.shared(np.ones((2, 3), dtype=self.dtype) * 5)
         for idx in [(0, 4), (0, -4)]:
@@ -220,7 +220,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             finally:
                 _logger.setLevel(oldlevel)
 
-    @change_flags(compute_test_value="off")
+    @config.change_flags(compute_test_value="off")
     def test_err_bounds1(self):
         n = self.shared(np.ones((2, 3), dtype=self.dtype) * 5)
         t = n[4:5, 3]
@@ -449,7 +449,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             inc_subtensor(n4[test_array > 2, ..., 0, 1], 1).eval(),
         )
 
-        with change_flags(compute_test_value="off"):
+        with config.change_flags(compute_test_value="off"):
             # the boolean mask should have the correct shape
             # - too large, padded with True
             mask = np.array([True, False, True])
@@ -783,7 +783,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         g = tt.grad(h.sum(), W)
         N = 2
         if (
-            theano.config.mode == "FAST_COMPILE"
+            config.mode == "FAST_COMPILE"
             and AdvancedIncSubtensor1 is AdvancedIncSubtensor1
         ):
             N = 3
@@ -1273,9 +1273,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                         )
 
         # Actual test (we compile a single Theano function to make it faster).
-        orig_warn = theano.config.warn__gpu_set_subtensor1
-        try:
-            theano.config.warn__gpu_set_subtensor1 = False
+        with config.change_flags(warn__gpu_set_subtensor1=False):
             f = self.function(
                 all_inputs_var,
                 all_outputs_var,
@@ -1283,8 +1281,6 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 op=AdvancedIncSubtensor1,
                 N=len(all_outputs_var),
             )
-        finally:
-            theano.config.warn__gpu_set_subtensor1 = orig_warn
 
         f_outs = f(*all_inputs_num)
         assert len(f_outs) == len(all_outputs_num)
@@ -1528,7 +1524,7 @@ class TestAdvancedSubtensor:
 
     def setup_method(self):
         self.shared = _shared
-        self.dtype = theano.config.floatX
+        self.dtype = config.floatX
         self.mode = theano.compile.mode.get_default_mode()
 
         self.s = iscalar()
@@ -2183,7 +2179,7 @@ class TestInferShape(utt.InferShapeTester):
         bivec.tag.test_value = bivec_val
 
         # Make sure it doesn't complain about test values
-        with theano.change_flags(compute_test_value="raise"):
+        with config.change_flags(compute_test_value="raise"):
             self._compile_and_check(
                 [admat, aivec],
                 [admat[1:3, aivec]],
@@ -2215,7 +2211,7 @@ class TestInferShape(utt.InferShapeTester):
         assert abs_res.broadcastable == (False,)
 
 
-@change_flags(compute_test_value="raise")
+@config.change_flags(compute_test_value="raise")
 def test_basic_shape():
     test_shape = (5, 4)
     test_indices = (make_slice(1, 3, None),)
@@ -2223,7 +2219,7 @@ def test_basic_shape():
     assert get_test_value(res) == (2,)
 
 
-@change_flags(compute_test_value="raise")
+@config.change_flags(compute_test_value="raise")
 def test_indexed_result_shape():
     _test_idx = np.ix_(np.array([True, True]), np.array([True]), np.array([True, True]))
 

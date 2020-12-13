@@ -4,7 +4,7 @@ from tempfile import mkdtemp
 import numpy as np
 import pytest
 
-from theano import change_flags, config
+from theano import config
 from theano.tensor.type import TensorType
 
 
@@ -42,7 +42,7 @@ def test_filter_ndarray_subclass():
 
 def test_filter_float_subclass():
     """Make sure `TensorType.filter` can handle `float` subclasses."""
-    with change_flags(floatX="float64"):
+    with config.change_flags(floatX="float64"):
         test_type = TensorType("float64", broadcastable=[])
 
         nan = np.array([np.nan], dtype="float64")[0]
@@ -51,7 +51,7 @@ def test_filter_float_subclass():
         filtered_nan = test_type.filter(nan)
         assert isinstance(filtered_nan, np.ndarray)
 
-    with change_flags(floatX="float32"):
+    with config.change_flags(floatX="float32"):
         # Try again, except this time `nan` isn't a `float`
         test_type = TensorType("float32", broadcastable=[])
 

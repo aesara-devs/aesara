@@ -68,7 +68,7 @@ from tests.tensor.utils import (
     upcast_float16_ufunc,
     upcast_int8_nfunc,
 )
-from theano import change_flags, compile, config, function, gof, shared
+from theano import compile, config, function, gof, shared
 from theano.compile import DeepCopyOp
 from theano.compile.mode import get_default_mode
 from theano.gof.graph import Variable
@@ -1034,7 +1034,7 @@ class TestAsTensorVariable:
         # Make sure our exception handling during `Sequence` processing doesn't
         # mask exceptions caused by unrelated logic (e.g.  computing test
         # values)
-        with change_flags(compute_test_value="raise"), pytest.raises(ValueError):
+        with config.change_flags(compute_test_value="raise"), pytest.raises(ValueError):
             a = tt.lscalar("a")
             y = (a, a, 1)
             _ = as_tensor_variable(y)
@@ -1079,7 +1079,7 @@ class TestAsTensorVariable:
         ],
     )
     def test_empty_dtype(self, dtype):
-        with theano.change_flags(floatX=dtype):
+        with config.change_flags(floatX=dtype):
             assert as_tensor_variable(()).dtype == dtype
             assert as_tensor_variable([]).dtype == dtype
 
@@ -1211,7 +1211,7 @@ def test_eye():
         M = M_
         # Currently DebugMode does not support None as inputs even if this is
         # allowed.
-        if M is None and theano.config.mode in ["DebugMode", "DEBUG_MODE"]:
+        if M is None and config.mode in ["DebugMode", "DEBUG_MODE"]:
             M = N
         N_symb = tt.iscalar()
         M_symb = tt.iscalar()
@@ -1245,7 +1245,7 @@ class TestTriangle:
             M = M_
             # Currently DebugMode does not support None as inputs even if this is
             # allowed.
-            if M is None and theano.config.mode in ["DebugMode", "DEBUG_MODE"]:
+            if M is None and config.mode in ["DebugMode", "DEBUG_MODE"]:
                 M = N
             N_symb = tt.iscalar()
             M_symb = tt.iscalar()
@@ -1310,7 +1310,7 @@ class TestTriangle:
 
 
 class TestNonzero:
-    @change_flags(compute_test_value="raise")
+    @config.change_flags(compute_test_value="raise")
     def test_nonzero(self):
         def check(m):
             m_symb = tt.tensor(dtype=m.dtype, broadcastable=(False,) * m.ndim)
@@ -1339,7 +1339,7 @@ class TestNonzero:
         rand2d[:4] = 0
         check(rand2d)
 
-    @change_flags(compute_test_value="raise")
+    @config.change_flags(compute_test_value="raise")
     def test_flatnonzero(self):
         def check(m):
             m_symb = tt.tensor(dtype=m.dtype, broadcastable=(False,) * m.ndim)
@@ -1362,7 +1362,7 @@ class TestNonzero:
         rand2d[:4] = 0
         check(rand2d)
 
-    @change_flags(compute_test_value="raise")
+    @config.change_flags(compute_test_value="raise")
     def test_nonzero_values(self):
         def check(m):
             m_symb = tt.tensor(dtype=m.dtype, broadcastable=(False,) * m.ndim)
@@ -1395,7 +1395,7 @@ def test_identity():
         assert obj.dtype == f(obj).dtype
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
-        if theano.config.mode != "FAST_COMPILE":
+        if config.mode != "FAST_COMPILE":
             assert isinstance(topo[0].op, DeepCopyOp)
 
     for dtype in ALL_DTYPES:
@@ -2398,7 +2398,7 @@ class TestJoinAndSplit:
         self.split_op_class = Split
         self.make_vector_op = opt.MakeVector()
         self.floatX = config.floatX
-        self.hide_error = theano.config.mode not in [
+        self.hide_error = config.mode not in [
             "DebugMode",
             "DEBUG_MODE",
             "FAST_COMPILE",
@@ -2985,7 +2985,7 @@ class TestJoinAndSplit:
 
         f = function([], b, mode=self.mode)
         topo = f.maker.fgraph.toposort()
-        if theano.config.mode != "FAST_COMPILE":
+        if config.mode != "FAST_COMPILE":
             assert not [
                 True for node in topo if isinstance(node.op, type(self.join_op))
             ]
@@ -3078,7 +3078,7 @@ class TestJoinAndSplit:
         out = f()
         assert (out == [6, 4]).all()
 
-        if theano.config.mode != "FAST_COMPILE":
+        if config.mode != "FAST_COMPILE":
             for node in f.maker.fgraph.toposort():
                 assert not isinstance(node.op, type(self.join_op))
 
@@ -3092,11 +3092,11 @@ class TestJoinAndSplit:
         out = f()
         assert (out == [3, 13]).all()
 
-        if theano.config.mode != "FAST_COMPILE":
+        if config.mode != "FAST_COMPILE":
             for node in topo:
                 assert not isinstance(node.op, type(self.join_op))
 
-        with change_flags(compute_test_value="off"):
+        with config.change_flags(compute_test_value="off"):
             # Test hide error
             x1.set_value(get_mat(3, 4))
             x2.set_value(get_mat(3, 4))
@@ -3123,7 +3123,7 @@ class TestJoinAndSplit:
         Tout = tt.concatenate([T_shared, T_shared])
         f = function([], Tout, mode=self.mode)
         out = f()
-        if theano.config.mode != "FAST_COMPILE":
+        if config.mode != "FAST_COMPILE":
             assert [
                 True
                 for node in f.maker.fgraph.toposort()
@@ -3155,7 +3155,7 @@ class TestJoinAndSplit:
         assert np.allclose(o1, m.get_value(borrow=True))
         assert np.allclose(o2, m.get_value(borrow=True)[4:])
 
-    @change_flags(compute_test_value="off")
+    @config.change_flags(compute_test_value="off")
     def test_split_neg(self):
         rng = np.random.RandomState(seed=utt.fetch_seed())
         m = self.shared(rng.rand(4, 6).astype(self.floatX))
@@ -3187,10 +3187,10 @@ def test_join_inplace():
 
     f = theano.function([theano.In(x, borrow=True), s], theano.Out(c, borrow=True))
 
-    data = np.array([3, 4, 5], dtype=theano.config.floatX)
+    data = np.array([3, 4, 5], dtype=config.floatX)
     print(f(data, 0))
 
-    if theano.config.mode not in ["DebugMode", "DEBUG_MODE"]:
+    if config.mode not in ["DebugMode", "DEBUG_MODE"]:
         assert f(data, 0) is data
     assert np.allclose(f(data, 0), [3, 4, 5])
 
@@ -3937,7 +3937,7 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
 
     def function(self, inputs, outputs, ignore_empty=False):
         f = function(inputs, outputs, mode=self.mode)
-        if self.mode is not None or theano.config.mode != "FAST_COMPILE":
+        if self.mode is not None or config.mode != "FAST_COMPILE":
             topo = f.maker.fgraph.toposort()
             topo_ = [node for node in topo if not isinstance(node.op, self.ignore_topo)]
             if ignore_empty:
@@ -4678,7 +4678,7 @@ class TestARange:
     def test_infer_shape(self):
         start, stop, step = iscalars("start", "stop", "step")
         out = arange(start, stop, step)
-        mode = theano.config.mode
+        mode = config.mode
         if mode == "FAST_COMPILE":
             mode = "FAST_RUN"
         mode = compile.mode.get_mode(mode).excluding("fusion")
@@ -5284,18 +5284,14 @@ def test_default_state():
 
 
 def test_autocast():
-    backup_config = config.cast_policy
     # Call test functions for all possible values of `config.cast_policy`.
     for autocast_cfg in (
         "custom",
         # 'numpy', # Commented out until it is implemented properly.
         "numpy+floatX",
     ):
-        config.cast_policy = autocast_cfg
-        try:
+        with config.change_flags(cast_policy=autocast_cfg):
             eval("_test_autocast_" + autocast_cfg.replace("+", "_"))()
-        finally:
-            config.cast_policy = backup_config
 
 
 def _test_autocast_custom():
@@ -5344,14 +5340,14 @@ def _test_autocast_custom():
     # Test that the autocasting dtype is used correctly in expression-building
     with autocast_float_as("float32", "float64"):
         assert (dvector() + 1.1).dtype == "float64"
-        assert (fvector() + 1.1).dtype == theano.config.floatX
+        assert (fvector() + 1.1).dtype == config.floatX
         assert (fvector() + 1.0).dtype == "float32"
         assert (dvector() + np.float32(1.1)).dtype == "float64"
         assert (dvector() + np.float64(1.1)).dtype == "float64"
         assert (dvector() + np.float(1.1)).dtype == "float64"
         assert (fvector() + np.float32(1.1)).dtype == "float32"
         assert (fvector() + np.float64(1.1)).dtype == "float64"
-        assert (fvector() + np.float(1.1)).dtype == theano.config.floatX
+        assert (fvector() + np.float(1.1)).dtype == config.floatX
         assert (lvector() + np.int64(1)).dtype == "int64"
         assert (lvector() + np.int32(1)).dtype == "int64"
         assert (lvector() + np.int16(1)).dtype == "int64"
@@ -5386,7 +5382,6 @@ def _test_autocast_numpy():
 def _test_autocast_numpy_floatX():
     # Called from `test_autocast`.
     assert config.cast_policy == "numpy+floatX"
-    backup_floatX = config.floatX
 
     def ok(z, floatX):
         if isinstance(z, float) and floatX == "float32" and not hasattr(z, "dtype"):
@@ -5395,27 +5390,24 @@ def _test_autocast_numpy_floatX():
         else:
             assert tt.constant(z).dtype == np.asarray(z).dtype
 
-    try:
-        # Test with various values of `config.floatX`.
-        for floatX in ("float32", "float64"):
-            config.floatX = floatX
-            # Go through some typical scalar values.
-            # We only consider 'int' and 'long' Python values that can fit
-            # into int64, as that is the maximal integer type that Theano
-            # supports, and that is the maximal type in Python indexing.
-            for x in (
-                [2 ** i - 1 for i in range(64)]
-                + [0, 0, 1, 2 ** 63 - 1]
-                + [0.0, 1.0, 1.1, 1.5]
-            ):
+    # Test with various values of `config.floatX`.
+    for floatX in ("float32", "float64"):
+        # Go through some typical scalar values.
+        # We only consider 'int' and 'long' Python values that can fit
+        # into int64, as that is the maximal integer type that Theano
+        # supports, and that is the maximal type in Python indexing.
+        for x in (
+            [2 ** i - 1 for i in range(64)]
+            + [0, 0, 1, 2 ** 63 - 1]
+            + [0.0, 1.0, 1.1, 1.5]
+        ):
+            with config.change_flags(floatX=floatX):
                 ok(x, floatX)
                 ok(-x, floatX)
                 ok(x - 1, floatX)
                 ok(-x + 1, floatX)
                 ok(np.asarray(x), floatX)
                 ok(np.float64(x), floatX)
-    finally:
-        config.floatX = backup_floatX
 
 
 class TestArithmeticCast:
@@ -5428,7 +5420,6 @@ class TestArithmeticCast:
     """
 
     def test_arithmetic_cast(self):
-        backup_config = config.cast_policy
         dtypes = get_numeric_types(with_complex=True)
 
         # Here:
@@ -5453,97 +5444,71 @@ class TestArithmeticCast:
         def numpy_i_scalar(dtype):
             return numpy_scalar(dtype)
 
-        try:
+        with warnings.catch_warnings():
+            # Avoid deprecation warning during tests.
+            warnings.simplefilter("ignore", category=DeprecationWarning)
             for cfg in ("numpy+floatX",):  # Used to test 'numpy' as well.
-                config.cast_policy = cfg
-                for op in (
-                    operator.add,
-                    operator.sub,
-                    operator.mul,
-                    operator.truediv,
-                    operator.floordiv,
-                ):
-                    for a_type in dtypes:
-                        for b_type in dtypes:
+                with config.change_flags(cast_policy=cfg):
+                    for op in (
+                        operator.add,
+                        operator.sub,
+                        operator.mul,
+                        operator.truediv,
+                        operator.floordiv,
+                    ):
+                        for a_type in dtypes:
+                            for b_type in dtypes:
 
-                            # We will test all meaningful combinations of
-                            # scalar and array operations.
-                            for combo in (
-                                ("scalar", "scalar"),
-                                ("array", "array"),
-                                ("scalar", "array"),
-                                ("array", "scalar"),
-                                ("i_scalar", "i_scalar"),
-                            ):
-
-                                theano_args = list(
-                                    map(eval, [f"theano_{c}" for c in combo])
-                                )
-                                numpy_args = list(
-                                    map(eval, [f"numpy_{c}" for c in combo])
-                                )
-
-                                theano_dtype = op(
-                                    theano_args[0](a_type), theano_args[1](b_type)
-                                ).type.dtype
-
-                                # For numpy we have a problem:
-                                #   http://projects.scipy.org/numpy/ticket/1827
-                                # As a result we only consider the highest data
-                                # type that numpy may return.
-                                numpy_dtypes = [
-                                    op(
-                                        numpy_args[0](a_type), numpy_args[1](b_type)
-                                    ).dtype,
-                                    op(
-                                        numpy_args[1](b_type), numpy_args[0](a_type)
-                                    ).dtype,
-                                ]
-                                numpy_dtype = theano.scalar.upcast(
-                                    *list(map(str, numpy_dtypes))
-                                )
-                                if numpy_dtype == theano_dtype:
-                                    # Same data type found, all is good!
-                                    continue
-                                if (
-                                    cfg == "numpy+floatX"
-                                    and config.floatX == "float32"
-                                    and a_type != "float64"
-                                    and b_type != "float64"
-                                    and numpy_dtype == "float64"
+                                # We will test all meaningful combinations of
+                                # scalar and array operations.
+                                for combo in (
+                                    ("scalar", "scalar"),
+                                    ("array", "array"),
+                                    ("scalar", "array"),
+                                    ("array", "scalar"),
+                                    ("i_scalar", "i_scalar"),
                                 ):
-                                    # We should keep float32.
-                                    assert theano_dtype == "float32"
-                                    continue
-                                if "array" in combo and "scalar" in combo:
-                                    # For mixed scalar / array operations,
-                                    # Theano may differ from numpy as it does
-                                    # not try to prevent the scalar from
-                                    # upcasting the array.
-                                    array_type, scalar_type = (
-                                        (a_type, b_type)[list(combo).index(arg)]
-                                        for arg in ("array", "scalar")
+
+                                    theano_args = list(
+                                        map(eval, [f"theano_{c}" for c in combo])
                                     )
-                                    up_type = theano.scalar.upcast(
-                                        array_type, scalar_type
+                                    numpy_args = list(
+                                        map(eval, [f"numpy_{c}" for c in combo])
                                     )
-                                    if (
-                                        # The two data types are different.
-                                        scalar_type != array_type
-                                        and
-                                        # The array type is not enough to hold
-                                        # the scalar type as well.
-                                        array_type != up_type
-                                        and
-                                        # Theano upcasted the result array.
-                                        theano_dtype == up_type
-                                        and
-                                        # But Numpy kept its original type.
-                                        array_type == numpy_dtype
-                                    ):
-                                        # Then we accept this difference in
-                                        # behavior.
+                                    theano_dtype = op(
+                                        theano_args[0](a_type),
+                                        theano_args[1](b_type),
+                                    ).type.dtype
+
+                                    # For numpy we have a problem:
+                                    #   http://projects.scipy.org/numpy/ticket/1827
+                                    # As a result we only consider the highest data
+                                    # type that numpy may return.
+                                    numpy_dtypes = [
+                                        op(
+                                            numpy_args[0](a_type), numpy_args[1](b_type)
+                                        ).dtype,
+                                        op(
+                                            numpy_args[1](b_type), numpy_args[0](a_type)
+                                        ).dtype,
+                                    ]
+                                    numpy_dtype = theano.scalar.upcast(
+                                        *list(map(str, numpy_dtypes))
+                                    )
+                                    if numpy_dtype == theano_dtype:
+                                        # Same data type found, all is good!
                                         continue
+                                    if (
+                                        cfg == "numpy+floatX"
+                                        and config.floatX == "float32"
+                                        and a_type != "float64"
+                                        and b_type != "float64"
+                                        and numpy_dtype == "float64"
+                                    ):
+                                        # We should keep float32.
+                                        assert theano_dtype == "float32"
+                                        continue
+<<<<<<< HEAD
 
                                 if (
                                     cfg == "numpy+floatX"
@@ -5563,6 +5528,59 @@ class TestArithmeticCast:
                                 raise AssertionError()
         finally:
             config.cast_policy = backup_config
+=======
+                                    if "array" in combo and "scalar" in combo:
+                                        # For mixed scalar / array operations,
+                                        # Theano may differ from numpy as it does
+                                        # not try to prevent the scalar from
+                                        # upcasting the array.
+                                        array_type, scalar_type = (
+                                            (a_type, b_type)[list(combo).index(arg)]
+                                            for arg in ("array", "scalar")
+                                        )
+                                        up_type = theano.scalar.upcast(
+                                            array_type, scalar_type
+                                        )
+                                        if (
+                                            # The two data types are different.
+                                            scalar_type != array_type
+                                            and
+                                            # The array type is not enough to hold
+                                            # the scalar type as well.
+                                            array_type != up_type
+                                            and
+                                            # Theano upcasted the result array.
+                                            theano_dtype == up_type
+                                            and
+                                            # But Numpy kept its original type.
+                                            array_type == numpy_dtype
+                                        ):
+                                            # Then we accept this difference in
+                                            # behavior.
+                                            continue
+                                    if (
+                                        is_int_division
+                                        and config.int_division == "floatX"
+                                    ):
+                                        assert theano_dtype == config.floatX
+                                        continue
+                                    if (
+                                        cfg == "numpy+floatX"
+                                        and a_type == "complex128"
+                                        and (b_type == "float32" or b_type == "float16")
+                                        and combo == ("scalar", "array")
+                                        and theano_dtype == "complex128"
+                                        and numpy_dtype == "complex64"
+                                    ):
+                                        # In numpy 1.6.x adding a complex128 with
+                                        # a float32 may result in a complex64. As
+                                        # of 1.9.2. this is still the case so it is
+                                        # probably by design
+                                        pytest.skip("Known issue with" "numpy see #761")
+                                    # In any other situation: something wrong is
+                                    # going on!
+                                    raise AssertionError()
+>>>>>>> ca215a2d5bf6c43cd87fe6836669ad056079d1f1
 
 
 class TestLongTensor:
@@ -5674,7 +5692,7 @@ class TestBroadcast:
         f = theano.function([x], y.shape)
         assert (f(np.zeros((1, 5), dtype=config.floatX)) == [1, 5]).all()
         topo = f.maker.fgraph.toposort()
-        if theano.config.mode != "FAST_COMPILE":
+        if config.mode != "FAST_COMPILE":
             assert len(topo) == 2
             assert isinstance(topo[0].op, opt.Shape_i)
             assert isinstance(topo[1].op, opt.MakeVector)
@@ -5684,7 +5702,7 @@ class TestBroadcast:
         f = theano.function([x], y.shape)
         assert (f(np.zeros((2, 5), dtype=config.floatX)) == [2, 5]).all()
         topo = f.maker.fgraph.toposort()
-        if theano.config.mode != "FAST_COMPILE":
+        if config.mode != "FAST_COMPILE":
             assert len(topo) == 3
             assert isinstance(topo[0].op, opt.Shape_i)
             assert isinstance(topo[1].op, opt.Shape_i)
@@ -5695,7 +5713,7 @@ class TestBroadcast:
         f = theano.function([x], y.shape)
         assert (f(np.zeros((1, 5), dtype=config.floatX)) == [1, 5]).all()
         topo = f.maker.fgraph.toposort()
-        if theano.config.mode != "FAST_COMPILE":
+        if config.mode != "FAST_COMPILE":
             assert len(topo) == 2
             assert isinstance(topo[0].op, opt.Shape_i)
             assert isinstance(topo[1].op, opt.MakeVector)
@@ -5889,7 +5907,7 @@ class TestGetScalarConstantValue:
         a = opt.Assert()(c, c > 1)
         assert get_scalar_constant_value(a) == 2
 
-        with change_flags(compute_test_value="off"):
+        with config.change_flags(compute_test_value="off"):
             # condition is always False
             a = opt.Assert()(c, c > 2)
             with pytest.raises(tt.NotScalarConstantError):
@@ -6997,10 +7015,10 @@ class TestSwapaxes:
 
     def test_numpy_compare(self):
         rng = np.random.RandomState(utt.fetch_seed())
-        A = tt.matrix("A", dtype=theano.config.floatX)
+        A = tt.matrix("A", dtype=config.floatX)
         Q = swapaxes(A, 0, 1)
         fn = function([A], [Q])
-        a = rng.rand(4, 4).astype(theano.config.floatX)
+        a = rng.rand(4, 4).astype(config.floatX)
 
         n_s = np.swapaxes(a, 0, 1)
         t_s = fn(a)
@@ -7010,10 +7028,10 @@ class TestSwapaxes:
 class TestPower:
     def test_numpy_compare(self):
         rng = np.random.RandomState(utt.fetch_seed())
-        A = tt.matrix("A", dtype=theano.config.floatX)
+        A = tt.matrix("A", dtype=config.floatX)
         Q = power(A, 3)
         fn = function([A], [Q])
-        a = rng.rand(4, 4).astype(theano.config.floatX)
+        a = rng.rand(4, 4).astype(config.floatX)
 
         n_p = np.power(a, 3)
         t_p = fn(a)
@@ -7202,5 +7220,5 @@ def test_allocempty():
 def test_symbolic_slice():
     x = tt.tensor4("x")
     a, b = x.shape[:2]
-    output = a.eval({x: np.zeros((5, 4, 3, 2), dtype=theano.config.floatX)})
+    output = a.eval({x: np.zeros((5, 4, 3, 2), dtype=config.floatX)})
     assert output == np.array(5)

@@ -3,7 +3,7 @@ from copy import copy
 import pytest
 
 from tests.unittest_tools import assertFailure_fast
-from theano import change_flags
+from theano import config
 from theano.gof import destroyhandler, graph
 from theano.gof.fg import FunctionGraph, InconsistencyError
 from theano.gof.graph import Apply, Variable
@@ -417,7 +417,7 @@ def test_value_repl():
     assert g.consistent()
 
 
-@change_flags(compute_test_value="off")
+@config.change_flags(compute_test_value="off")
 def test_value_repl_2():
     x, y, z = inputs()
     sy = sigmoid(y)

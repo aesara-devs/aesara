@@ -18,7 +18,7 @@ from warnings import warn
 import numpy as np
 
 import theano
-from theano import change_flags, config, gof
+from theano import config, gof
 from theano.compile.function.types import (
     Function,
     FunctionMaker,
@@ -2446,7 +2446,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
             )
             fgraph.equivalence_tracker = equivalence_tracker
 
-            with change_flags(compute_test_value=config.compute_test_value_opt):
+            with config.change_flags(compute_test_value=config.compute_test_value_opt):
                 optimizer(fgraph)
 
                 theano.compile.function.types.insert_deepcopy(
@@ -2506,7 +2506,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
                             file=sys.stderr,
                         )
         self.fgraph = fgraph
-        if theano.config.cycle_detection == "regular":
+        if config.cycle_detection == "regular":
             destroy_handler_added = False
             for feature in fgraph._features:
                 if isinstance(feature, gof.DestroyHandler):
@@ -2516,7 +2516,9 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
                 fgraph.attach_feature(gof.DestroyHandler())
             for o in fgraph.outputs:
                 try:
-                    with change_flags(compute_test_value=config.compute_test_value_opt):
+                    with config.change_flags(
+                        compute_test_value=config.compute_test_value_opt
+                    ):
                         fgraph.replace_validate(
                             o, _output_guard(o), reason="output_guard"
                         )

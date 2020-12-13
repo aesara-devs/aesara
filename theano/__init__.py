@@ -64,7 +64,12 @@ for p in sys.path:
     raise RuntimeError("You have the theano directory in your Python path.")
 
 from theano.configdefaults import config
-from theano.configparser import change_flags
+from theano.utils import deprecated
+
+
+change_flags = deprecated("Use theano.config.change_flags instead!")(
+    config.change_flags
+)
 
 
 # This is the api version for ops that generate C code.  External ops

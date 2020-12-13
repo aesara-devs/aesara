@@ -130,7 +130,7 @@ def test_advinc_subtensor1_dtype():
         assert np.allclose(rval, rep)
 
 
-@theano.change_flags(deterministic="more")
+@theano.config.change_flags(deterministic="more")
 def test_deterministic_flag():
     shp = (3, 4)
     for dtype1, dtype2 in [("float32", "int8")]:

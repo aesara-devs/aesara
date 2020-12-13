@@ -135,7 +135,7 @@ class TestSoftmaxWithBias(utt.InferShapeTester):
         # broadcasted inputs pattern
         initial_W = np.asarray(
             [[0.1, 0.1, 0.1], [0.1, 0.1, 0.1], [0.1, 0.1, 0.1]],
-            dtype=theano.config.floatX,
+            dtype=config.floatX,
         )
         W = theano.shared(value=initial_W, name="W")
         vbias = theano.shared(value=0.1, name="vbias")  # 0.01
@@ -210,7 +210,7 @@ class TestLogSoftmax(utt.InferShapeTester):
         utt.verify_grad(f, [np.random.rand(4)])
 
     def test_allclose(self):
-        m = theano.config.mode
+        m = config.mode
         m = theano.compile.get_mode(m)
         m.check_isfinite = False
         x, y = tt.matrices("xy")
@@ -225,9 +225,9 @@ class TestLogSoftmax(utt.InferShapeTester):
         grad = tt.grad(cm2.mean(), x)
 
         # create some inputs into a softmax that are large and labels
-        a = np.exp(10 * np.random.rand(5, 10).astype(theano.config.floatX))
+        a = np.exp(10 * np.random.rand(5, 10).astype(config.floatX))
         # create some one-hot coded labels
-        b = np.eye(5, 10).astype(theano.config.floatX)
+        b = np.eye(5, 10).astype(config.floatX)
 
         # show equivalence of softmax and exponentiated numerically stable
         # log-softmax
@@ -272,12 +272,12 @@ class TestLogSoftmax(utt.InferShapeTester):
         # grad and that the new operation does not explode for big inputs.
         # Note that only the grad is checked.
 
-        m = theano.config.mode
+        m = config.mode
         m = theano.compile.get_mode(m)
         m.check_isfinite = False
         # some inputs that are large to make the gradient explode in the non
         # optimized case
-        a = np.exp(10 * np.random.rand(5, 10).astype(theano.config.floatX))
+        a = np.exp(10 * np.random.rand(5, 10).astype(config.floatX))
 
         def myfunc(x):
             sm = softmax(x)
@@ -874,7 +874,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
-            with theano.change_flags([("warn__sum_div_dimshuffle_bug", False)]):
+            with config.change_flags(warn__sum_div_dimshuffle_bug=False):
                 fgraph = gof.FunctionGraph([x, b, y], [tt.grad(expr, x)])
                 optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
@@ -911,7 +911,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
-            with theano.change_flags([("warn__sum_div_dimshuffle_bug", False)]):
+            with config.change_flags(warn__sum_div_dimshuffle_bug=False):
                 fgraph = gof.FunctionGraph([x, b, y], [tt.grad(expr, x)])
                 optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
@@ -949,7 +949,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
-            with theano.change_flags([("warn__sum_div_dimshuffle_bug", False)]):
+            with config.change_flags(warn__sum_div_dimshuffle_bug=False):
                 fgraph = gof.FunctionGraph([x, b, y], [tt.grad(expr, x)])
                 optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
@@ -1056,12 +1056,9 @@ def test_argmax_pushdown():
         fgraph = gof.FunctionGraph([x], [out])
 
         assert hasattr(fgraph.outputs[0].tag, "trace")
-        backup = config.warn__argmax_pushdown_bug
-        config.warn__argmax_pushdown_bug = False
-        try:
+
+        with config.change_flags(warn__argmax_pushdown_bug=False):
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
-        finally:
-            config.warn__argmax_pushdown_bug = backup
 
         # print 'AFTER'
         # for node in fgraph.toposort():
@@ -1082,9 +1079,6 @@ def test_argmax_pushdown_bias():
 
     optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
-    # print 'AFTER'
-    # for node in fgraph.toposort():
-    #    print node.op
     types_to_check = (tt.DimShuffle, tt.Elemwise, tt.Argmax)
     assert len(fgraph.toposort()) == 3
 
@@ -1097,16 +1091,9 @@ def test_argmax_pushdown_bias():
     out = tt.max_and_argmax(softmax_with_bias(x, b), axis=-1)[0]
     fgraph = gof.FunctionGraph([x, b], [out])
 
-    backup = config.warn__argmax_pushdown_bug
-    config.warn__argmax_pushdown_bug = False
-    try:
+    with config.change_flags(warn__argmax_pushdown_bug=False):
         optdb.query(OPT_FAST_RUN).optimize(fgraph)
-    finally:
-        config.warn__argmax_pushdown_bug = backup
 
-    # print 'AFTER'
-    # for node in fgraph.toposort():
-    #    print node.op
     assert len(fgraph.toposort()) == 2
     assert isinstance(fgraph.toposort()[0].op, SoftmaxWithBias)
     assert isinstance(fgraph.toposort()[1].op, tt.CAReduce)
@@ -1138,7 +1125,7 @@ def test_asymptotic_32():
         for i in range(100):
             cval, gxval = f(xval, np.arange(5), x2val)
             xval -= 100.3 * gxval
-            # print cval, gxval
+
         assert cval == 0  # no problem going to zero error
 
         # what about when x gets really big?
@@ -1149,7 +1136,6 @@ def test_asymptotic_32():
 
             cval, gxval = f(xval, np.arange(5), x2val)
             xval += 100000.3 * gxval
-            # print cval, gxval
 
         assert cval > 61750000
         assert gxval[0, 0] == -1.0
@@ -1182,11 +1168,10 @@ class TestSoftmaxOpt:
         assert check_stack_trace(f, ops_to_check=softmax_op)
 
         f_ops = [n.op for n in f.maker.fgraph.toposort()]
-        # print '--- f ='
-        # printing.debugprint(f)
-        # print '==='
+
         assert len(f_ops) == 1
         assert softmax_op in f_ops
+
         f(self.rng.rand(3, 4).astype(config.floatX))
 
     def test_basic_keepdims(self):
@@ -1199,11 +1184,10 @@ class TestSoftmaxOpt:
         assert check_stack_trace(f, ops_to_check=softmax_op)
 
         f_ops = [n.op for n in f.maker.fgraph.toposort()]
-        # print '--- f ='
-        # printing.debugprint(f)
-        # print '==='
+
         assert len(f_ops) == 1
         assert softmax_op in f_ops
+
         f(self.rng.rand(3, 4).astype(config.floatX))
 
     @pytest.mark.skip(reason="Optimization not enabled for the moment")
@@ -1213,20 +1197,16 @@ class TestSoftmaxOpt:
 
         # test that function contains softmax and softmaxgrad
         w = tt.matrix()
-        backup = config.warn__sum_div_dimshuffle_bug
-        config.warn__sum_div_dimshuffle_bug = False
-        try:
+
+        with config.change_flags(warn__sum_div_dimshuffle_bug=False):
             g = theano.function([c, w], tt.grad((p_y * w).sum(), c))
-        finally:
-            config.warn__sum_div_dimshuffle_bug = backup
+
         g_ops = [n.op for n in g.maker.fgraph.toposort()]
-        # print '--- g ='
-        # printing.debugprint(g)
-        # print '==='
 
         assert len(g_ops) == 2
         assert softmax_op in g_ops
         assert softmax_grad in g_ops
+
         g(self.rng.rand(3, 4), self.rng.uniform(0.5, 1, (3, 4)))
 
     @pytest.mark.skip(reason="Optimization not enabled for the moment")
@@ -1237,16 +1217,10 @@ class TestSoftmaxOpt:
 
         # test that function contains softmax and no div.
         theano.function([c], p_y)
-        # printing.debugprint(f)
 
         # test that function contains softmax and no div.
-        backup = config.warn__sum_div_dimshuffle_bug
-        config.warn__sum_div_dimshuffle_bug = False
-        try:
+        with config.change_flags(warn__sum_div_dimshuffle_bug=False):
             theano.function([c], tt.grad(p_y.sum(), c))
-        finally:
-            config.warn__sum_div_dimshuffle_bug = backup
-        # printing.debugprint(g)
 
     @pytest.mark.skip(reason="Optimization not enabled for the moment")
     def test_1d_basic(self):
@@ -1256,19 +1230,10 @@ class TestSoftmaxOpt:
 
         # test that function contains softmax and no div.
         theano.function([c], p_y)
-        # printing.debugprint(f)
 
         # test that function contains softmax and no div.
-        backup = config.warn__sum_div_dimshuffle_bug
-        config.warn__sum_div_dimshuffle_bug = False
-        try:
+        with config.change_flags(warn__sum_div_dimshuffle_bug=False):
             theano.function([c], tt.grad(p_y.sum(), c))
-        finally:
-            config.warn__sum_div_dimshuffle_bug = backup
-        # printing.debugprint(g)
-
-    # REPEAT 3 CASES in presence of log(softmax) with the advanced indexing
-    # etc.
 
 
 def test_softmax_graph():
@@ -1349,47 +1314,36 @@ def test_h_softmax():
     # Tests the output dimensions of the h_softmax when a target is provided or
     # not.
 
-    #############
-    # Config
-    #############
-
     input_size = 4
     batch_size = 2
     h_softmax_level1_size = 5
     h_softmax_level2_size = 3
     output_size = h_softmax_level1_size * h_softmax_level2_size
 
-    #############
-    # Initialize shared variables
-    #############
-
-    floatX = theano.config.floatX
-    shared = theano.shared
-
     # First level of h_softmax
     W1 = np.asarray(
-        np.random.normal(size=(input_size, h_softmax_level1_size)), dtype=floatX
+        np.random.normal(size=(input_size, h_softmax_level1_size)), dtype=config.floatX
     )
-    W1 = shared(W1)
-    b1 = shared(np.asarray(np.zeros((h_softmax_level1_size,)), dtype=floatX))
+    W1 = theano.shared(W1)
+    b1 = theano.shared(
+        np.asarray(np.zeros((h_softmax_level1_size,)), dtype=config.floatX)
+    )
 
     # Second level of h_softmax
     W2 = np.asarray(
         np.random.normal(
             size=(h_softmax_level1_size, input_size, h_softmax_level2_size)
         ),
-        dtype=floatX,
+        dtype=config.floatX,
     )
-    W2 = shared(W2)
-    b2 = shared(
+    W2 = theano.shared(W2)
+    b2 = theano.shared(
         np.asarray(
-            np.zeros((h_softmax_level1_size, h_softmax_level2_size)), dtype=floatX
+            np.zeros((h_softmax_level1_size, h_softmax_level2_size)),
+            dtype=config.floatX,
         )
     )
 
-    #############
-    # Build graph
-    #############
     x = tt.matrix("x")
     y = tt.ivector("y")
 
@@ -1420,16 +1374,10 @@ def test_h_softmax():
         b2,
     )
 
-    #############
-    # Compile functions
-    #############
     fun_output_tg = theano.function([x, y], y_hat_tg)
     fun_output = theano.function([x], y_hat_all)
 
-    #############
-    # Test
-    #############
-    x_mat = np.random.normal(size=(batch_size, input_size)).astype(floatX)
+    x_mat = np.random.normal(size=(batch_size, input_size)).astype(config.floatX)
     y_mat = np.random.randint(0, output_size, batch_size).astype("int32")
     tg_output = fun_output_tg(x_mat, y_mat)
     all_outputs = fun_output(x_mat)

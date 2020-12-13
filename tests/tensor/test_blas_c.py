@@ -387,7 +387,7 @@ class TestCGemvNoFlags:
             ref_val += beta * y
         return ref_val
 
-    @theano.change_flags({"blas__ldflags": ""})
+    @theano.config.change_flags(blas__ldflags="")
     def run_cgemv(self, dtype, ALPHA, BETA, transpose_A, slice_tensors):
         f = self.get_function(
             dtype, transpose_A=transpose_A, slice_tensors=slice_tensors
