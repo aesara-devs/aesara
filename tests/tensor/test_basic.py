@@ -5458,19 +5458,7 @@ class TestArithmeticCast:
                     ):
                         for a_type in dtypes:
                             for b_type in dtypes:
-<<<<<<< HEAD
 
-=======
-                                # Note that we do not test division between
-                                # integers if it is forbidden.
-                                # Theano deals with integer division in its own
-                                # special way (depending on `config.int_division`).
-                                is_int_division = (
-                                    op is operator.truediv
-                                    and a_type in tt.discrete_dtypes
-                                    and b_type in tt.discrete_dtypes
-                                )
->>>>>>> ca215a2d5bf6c43cd87fe6836669ad056079d1f1
                                 # We will test all meaningful combinations of
                                 # scalar and array operations.
                                 for combo in (
@@ -5487,33 +5475,11 @@ class TestArithmeticCast:
                                     numpy_args = list(
                                         map(eval, [f"numpy_{c}" for c in combo])
                                     )
-<<<<<<< HEAD
                                     theano_dtype = op(
                                         theano_args[0](a_type),
                                         theano_args[1](b_type),
                                     ).type.dtype
 
-=======
-                                    try:
-                                        theano_dtype = op(
-                                            theano_args[0](a_type),
-                                            theano_args[1](b_type),
-                                        ).type.dtype
-                                        # Should have crashed if it is an integer
-                                        # division and `config.int_division` does
-                                        # not allow it.
-                                        assert not (
-                                            is_int_division
-                                            and config.int_division == "raise"
-                                        )
-                                    except theano.scalar.IntegerDivisionError:
-                                        assert (
-                                            is_int_division
-                                            and config.int_division == "raise"
-                                        )
-                                        # This is the expected behavior.
-                                        continue
->>>>>>> ca215a2d5bf6c43cd87fe6836669ad056079d1f1
                                     # For numpy we have a problem:
                                     #   http://projects.scipy.org/numpy/ticket/1827
                                     # As a result we only consider the highest data
@@ -5542,30 +5508,6 @@ class TestArithmeticCast:
                                         # We should keep float32.
                                         assert theano_dtype == "float32"
                                         continue
-<<<<<<< HEAD
-<<<<<<< HEAD
-
-                                if (
-                                    cfg == "numpy+floatX"
-                                    and a_type == "complex128"
-                                    and (b_type == "float32" or b_type == "float16")
-                                    and combo == ("scalar", "array")
-                                    and theano_dtype == "complex128"
-                                    and numpy_dtype == "complex64"
-                                ):
-                                    # In numpy 1.6.x adding a complex128 with
-                                    # a float32 may result in a complex64. As
-                                    # of 1.9.2. this is still the case so it is
-                                    # probably by design
-                                    pytest.skip("Known issue with" "numpy see #761")
-                                # In any other situation: something wrong is
-                                # going on!
-                                raise AssertionError()
-        finally:
-            config.cast_policy = backup_config
-=======
-=======
->>>>>>> ca215a2d5bf6c43cd87fe6836669ad056079d1f1
                                     if "array" in combo and "scalar" in combo:
                                         # For mixed scalar / array operations,
                                         # Theano may differ from numpy as it does
@@ -5595,12 +5537,7 @@ class TestArithmeticCast:
                                             # Then we accept this difference in
                                             # behavior.
                                             continue
-                                    if (
-                                        is_int_division
-                                        and config.int_division == "floatX"
-                                    ):
-                                        assert theano_dtype == config.floatX
-                                        continue
+
                                     if (
                                         cfg == "numpy+floatX"
                                         and a_type == "complex128"
@@ -5617,10 +5554,6 @@ class TestArithmeticCast:
                                     # In any other situation: something wrong is
                                     # going on!
                                     raise AssertionError()
-<<<<<<< HEAD
->>>>>>> ca215a2d5bf6c43cd87fe6836669ad056079d1f1
-=======
->>>>>>> ca215a2d5bf6c43cd87fe6836669ad056079d1f1
 
 
 class TestLongTensor:
