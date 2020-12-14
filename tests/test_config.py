@@ -1,12 +1,10 @@
 """Test config options."""
 import configparser as stdlib_configparser
-import logging
-from unittest.mock import patch
 
 import pytest
 
 from theano import configdefaults, configparser
-from theano.configdefaults import default_blas_ldflags, short_platform
+from theano.configdefaults import short_platform
 from theano.configparser import ConfigParam
 
 
@@ -287,15 +285,3 @@ class TestConfigHelperFunctions:
     def test_short_platform(self, release, platform, answer):
         o = short_platform(release, platform)
         assert o == answer, (o, answer)
-
-    @patch("theano.configdefaults.try_blas_flag", return_value=None)
-    @patch("theano.configdefaults.sys")
-    def test_default_blas_ldflags(self, sys_mock, try_blas_flag_mock, caplog):
-
-        sys_mock.version = "3.8.0 | packaged by conda-forge | (default, Nov 22 2019, 19:11:38) \n[GCC 7.3.0]"
-
-        with patch.dict("sys.modules", {"mkl": None}):
-            with caplog.at_level(logging.WARNING):
-                default_blas_ldflags()
-
-        assert "install mkl with" in caplog.text
