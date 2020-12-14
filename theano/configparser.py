@@ -262,6 +262,10 @@ class TheanoConfigParser:
         """
         return _ChangeFlagsDecorator(*args, _root=self, **kwargs)
 
+    def warn_unused_flags(self):
+        for key in self._flags_dict.keys():
+            warnings.warn(f"Theano does not recognise this flag: {key}")
+
 
 class ConfigParam:
     """Base class of all kinds of configuration parameters.

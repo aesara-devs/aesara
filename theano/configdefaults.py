@@ -2260,7 +2260,3 @@ except OSError:
 # TODO: The caching dir resolution is a procedural mess of helper functions, local variables
 # and config definitions. And the result is also not particularly pretty..
 add_caching_dir_configvars()
-
-# Check if there are remaining flags provided by the user through THEANO_FLAGS.
-for key in config._flags_dict.keys():
-    warnings.warn(f"Theano does not recognise this flag: {key}")
