@@ -13,19 +13,22 @@ from functools import wraps
 
 __all__ = [
     "cmp",
-    "decode",
-    "decode_with",
-    "decode_iter",
     "get_unbound_function",
     "maybe_add_to_os_environ_pathlist",
     "DefaultOrderedDict",
+    "deprecated",
+    "subprocess_Popen",
+    "call_subprocess_Popen",
+    "output_subprocess_Popen",
 ]
 
 
-# In python 3.x, when an exception is reraised it saves original
-# exception in its args, therefore in order to find the actual
-# message, we need to unpack arguments recursively.
 def exc_message(e):
+    """
+    In python 3.x, when an exception is reraised it saves original
+    exception in its args, therefore in order to find the actual
+    message, we need to unpack arguments recursively.
+    """
     msg = e.args[0]
     if isinstance(msg, Exception):
         return exc_message(msg)
@@ -44,19 +47,6 @@ def get_unbound_function(unbound):
     if hasattr(unbound, "__func__"):
         return unbound.__func__
     return unbound
-
-
-def decode(x):
-    return x.decode()
-
-
-def decode_iter(itr):
-    for x in itr:
-        yield x.decode()
-
-
-def decode_with(x, encoding):
-    return x.decode(encoding)
 
 
 class DefaultOrderedDict(OrderedDict):

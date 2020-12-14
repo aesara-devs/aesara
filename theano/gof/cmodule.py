@@ -28,7 +28,7 @@ from theano.configdefaults import gcc_version_str, local_bitwidth
 # we will abuse the lockfile mechanism when reading and writing the registry
 from theano.gof import compilelock
 from theano.gof.utils import flatten, hash_from_code
-from theano.utils import decode, decode_iter, output_subprocess_Popen, subprocess_Popen
+from theano.utils import output_subprocess_Popen, subprocess_Popen
 
 
 importlib = None
@@ -2042,7 +2042,7 @@ class GCC_compiler(Compiler):
                     return None
 
                 lines = BytesIO(stdout + stderr).readlines()
-                lines = decode_iter(lines)
+                lines = (l.decode() for l in lines)
                 if parse:
                     selected_lines = []
                     for line in lines:
@@ -2471,7 +2471,7 @@ class GCC_compiler(Compiler):
 
         try:
             p_out = output_subprocess_Popen(cmd)
-            compile_stderr = decode(p_out[1])
+            compile_stderr = p_out[1].decode()
         except Exception:
             # An exception can occur e.g. if `g++` is not found.
             print_command_line_error()

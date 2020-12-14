@@ -5,7 +5,6 @@ from locale import getpreferredencoding
 from optparse import OptionParser
 
 import theano
-from theano.utils import decode_with
 
 
 console_encoding = getpreferredencoding()
@@ -37,7 +36,7 @@ def runScript(N):
     if err:
         print(err)
         sys.exit()
-    return list(map(float, decode_with(out, console_encoding).split(" ")))
+    return list(map(float, out.decode(console_encoding).split(" ")))
 
 
 if __name__ == "__main__":
