@@ -2247,8 +2247,6 @@ add_blas_configvars()
 add_metaopt_configvars()
 add_vm_configvars()
 add_deprecated_configvars()
-# TODO: another example for config that should be added by the module itself:
-add_scan_configvars()
 
 # TODO: `gcc_version_str` is used by other modules.. Should it become an immutable config var?
 try:
