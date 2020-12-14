@@ -330,7 +330,7 @@ def test_jax_scan_multiple_output():
     delta = tt.scalar("delta")
 
     # TODO: Use random streams when their JAX conversions are implemented.
-    # trng = tt.shared_randomstreams.RandomStreams(1234)
+    # trng = tt.random.RandomStream(1234)
 
     def seir_one_step(ct0, dt0, st0, et0, it0, logp_c, logp_d, beta, gamma, delta):
         # bt0 = trng.binomial(n=st0, p=beta)

@@ -6,7 +6,7 @@ import numpy as np
 
 import theano
 from theano.misc.pkl_utils import StripPickler, dump, load
-from theano.sandbox.rng_mrg import MRG_RandomStreams
+from theano.sandbox.rng_mrg import MRG_RandomStream
 
 
 class TestDumpLoad:
@@ -23,7 +23,7 @@ class TestDumpLoad:
             shutil.rmtree(self.tmpdir)
 
     def test_dump_load_mrg(self):
-        rng = MRG_RandomStreams()
+        rng = MRG_RandomStream()
 
         with open("test", "wb") as f:
             dump(rng, f)
@@ -31,7 +31,7 @@ class TestDumpLoad:
         with open("test", "rb") as f:
             rng = load(f)
 
-        assert type(rng) == MRG_RandomStreams
+        assert type(rng) == MRG_RandomStream
 
     def test_dump_zip_names(self):
         foo_1 = theano.shared(0, name="foo")

@@ -369,7 +369,7 @@ class mrg_uniform(mrg_uniform_base):
         # error checking slightly redundant here, since
         # this op should not be called directly.
         #
-        # call through MRG_RandomStreams instead.
+        # call through MRG_RandomStream instead.
         broad = []
         for i in range(self.output_type.ndim):
             broad.append(tensor.extract_constant(size[i]) == 1)
@@ -669,7 +669,7 @@ def guess_n_streams(size, warn=False):
 
     """
     # TODO: a smart way of choosing the number of streams, see #612.
-    # Note that this code was moved out of `MRG_RandomStreams` so that it can
+    # Note that this code was moved out of `MRG_RandomStream` so that it can
     # be easily accessed from tests, where we want to disable the warning.
     if isinstance(size, (tuple, list)) and all([isinstance(i, int) for i in size]):
         # We can make a guess.
@@ -692,7 +692,7 @@ def guess_n_streams(size, warn=False):
         if warn:
             warnings.warn(
                 (
-                    "MRG_RandomStreams Can't determine #streams "
+                    "MRG_RandomStream Can't determine #streams "
                     f"from size ({size}), guessing 60*256"
                 ),
                 stacklevel=3,
@@ -700,7 +700,7 @@ def guess_n_streams(size, warn=False):
         return 60 * 256
 
 
-class MRG_RandomStreams:
+class MRG_RandomStream:
     """
     Module component with similar interface to numpy.random
     (numpy.random.RandomState).
@@ -723,7 +723,7 @@ class MRG_RandomStreams:
     def __init__(self, seed=12345):
         # A list of pairs of the form (input_r, output_r), representing the
         # update rules of all the random states generated
-        # by this RandomStreams.
+        # by this RandomStream.
         self.state_updates = []
 
         super().__init__()
@@ -948,7 +948,7 @@ class MRG_RandomStreams:
             x = self.uniform(size=size, nstreams=nstreams, **kwargs)
             return cast(x < p, dtype)
         else:
-            raise NotImplementedError("MRG_RandomStreams.binomial with n > 1")
+            raise NotImplementedError("MRG_RandomStream.binomial with n > 1")
 
     def multinomial(
         self,
@@ -993,12 +993,12 @@ class MRG_RandomStreams:
 
         if size is not None:
             raise ValueError(
-                "Provided a size argument to MRG_RandomStreams.multinomial, "
+                "Provided a size argument to MRG_RandomStream.multinomial, "
                 "which does not use the size argument."
             )
         if ndim is not None:
             raise ValueError(
-                "Provided an ndim argument to MRG_RandomStreams.multinomial, "
+                "Provided an ndim argument to MRG_RandomStream.multinomial, "
                 "which does not use the ndim argument."
             )
         if pvals.ndim == 2:
@@ -1009,7 +1009,7 @@ class MRG_RandomStreams:
             return op(pvals, unis, n_samples)
         else:
             raise NotImplementedError(
-                "MRG_RandomStreams.multinomial only" " implemented for pvals.ndim = 2"
+                "MRG_RandomStream.multinomial only" " implemented for pvals.ndim = 2"
             )
 
     def choice(
@@ -1065,31 +1065,31 @@ class MRG_RandomStreams:
         """
         if replace:
             raise NotImplementedError(
-                "MRG_RandomStreams.choice only works without replacement " "for now."
+                "MRG_RandomStream.choice only works without replacement " "for now."
             )
 
         if a is not None:
             raise TypeError(
                 "For now, a has to be None in "
-                "MRG_RandomStreams.choice. Sampled values are "
+                "MRG_RandomStream.choice. Sampled values are "
                 "between 0 and p.shape[1]-1"
             )
 
         if p is None:
             raise TypeError(
-                "For now, p has to be specified in " "MRG_RandomStreams.choice."
+                "For now, p has to be specified in " "MRG_RandomStream.choice."
             )
         p = as_tensor_variable(p)
         p = undefined_grad(p)
 
         if ndim is not None:
             raise ValueError(
-                "ndim argument to " "MRG_RandomStreams.choice " "is not used."
+                "ndim argument to " "MRG_RandomStream.choice " "is not used."
             )
 
         if p.ndim != 2:
             raise NotImplementedError(
-                "MRG_RandomStreams.choice is only implemented for p.ndim = 2"
+                "MRG_RandomStream.choice is only implemented for p.ndim = 2"
             )
 
         shape = p[:, 0].shape * size
@@ -1108,9 +1108,9 @@ class MRG_RandomStreams:
         **kwargs,
     ):
         warnings.warn(
-            "MRG_RandomStreams.multinomial_wo_replacement() is "
+            "MRG_RandomStream.multinomial_wo_replacement() is "
             "deprecated and will be removed in the next release of "
-            "Theano. Please use MRG_RandomStreams.choice() instead."
+            "Theano. Please use MRG_RandomStream.choice() instead."
         )
         assert size is None
         return self.choice(

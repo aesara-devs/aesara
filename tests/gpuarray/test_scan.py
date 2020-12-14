@@ -231,7 +231,7 @@ class TestScan:
             dtype="float32",
         )
         vsample = theano.shared(v_vsample)
-        trng = theano.sandbox.rng_mrg.MRG_RandomStreams(utt.fetch_seed())
+        trng = theano.sandbox.rng_mrg.MRG_RandomStream(utt.fetch_seed())
 
         def f(vsample_tm1):
             return (
@@ -513,7 +513,7 @@ class ScanGpuTests:
             dtype="float32",
         )
         vsample = theano.shared(v_vsample)
-        trng = theano.sandbox.rng_mrg.MRG_RandomStreams(utt.fetch_seed())
+        trng = theano.sandbox.rng_mrg.MRG_RandomStream(utt.fetch_seed())
 
         def f(vsample_tm1):
             return (

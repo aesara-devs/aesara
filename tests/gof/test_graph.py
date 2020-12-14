@@ -4,7 +4,7 @@ from itertools import count
 import numpy as np
 import pytest
 
-from theano import shared, sparse, tensor
+from theano import shared, tensor
 from theano.gof.graph import (
     Apply,
     Variable,
@@ -287,34 +287,6 @@ class TestAutoName:
         assert r2.auto_name == "auto_" + str(autoname_id + 1)
         assert r3.auto_name == "auto_" + str(autoname_id + 2)
 
-    @pytest.mark.skipif(
-        not sparse.enable_sparse, reason="Optional package SciPy not installed"
-    )
-    def test_sparsevariable(self):
-        # Get counter value
-        autoname_id = next(Variable.__count__)
-        Variable.__count__ = count(autoname_id)
-        r1 = sparse.csc_matrix(name="x", dtype="float32")
-        r2 = sparse.dense_from_sparse(r1)
-        r3 = sparse.csc_from_dense(r2)
-        assert r1.auto_name == "auto_" + str(autoname_id)
-        assert r2.auto_name == "auto_" + str(autoname_id + 1)
-        assert r3.auto_name == "auto_" + str(autoname_id + 2)
-
-    def test_randomvariable(self):
-        # Get counter value
-        autoname_id = next(Variable.__count__)
-        Variable.__count__ = count(autoname_id)
-        mytype = tensor.TensorType(dtype="int32", broadcastable=())
-        r1 = tensor.shared_randomstreams.RandomStateSharedVariable(
-            name="x", type=mytype, value=1, strict=False
-        )
-        r2 = tensor.shared_randomstreams.RandomStateSharedVariable(
-            name="x", type=mytype, value=1, strict=False
-        )
-        assert r1.auto_name == "auto_" + str(autoname_id)
-        assert r2.auto_name == "auto_" + str(autoname_id + 1)
-
     def test_clone(self):
         # Get counter value
         autoname_id = next(Variable.__count__)
@@ -326,9 +298,30 @@ class TestAutoName:
 
 
 def test_equal_computations():
-    # This was a bug report by a Theano user.
+
+    a, b = tensor.iscalars(2)
+
+    with pytest.raises(ValueError):
+        equal_computations([a], [a, b])
+
+    assert equal_computations([a], [a])
+    assert equal_computations([tensor.as_tensor(1)], [tensor.as_tensor(1)])
+    assert not equal_computations([b], [a])
+    assert not equal_computations([tensor.as_tensor(1)], [tensor.as_tensor(2)])
+
+    assert equal_computations([2], [2])
+    assert equal_computations([np.r_[2, 1]], [np.r_[2, 1]])
+    assert equal_computations([np.r_[2, 1]], [tensor.as_tensor(np.r_[2, 1])])
+    assert equal_computations([tensor.as_tensor(np.r_[2, 1])], [np.r_[2, 1]])
+
+    assert not equal_computations([2], [a])
+    assert not equal_computations([np.r_[2, 1]], [a])
+    assert not equal_computations([a], [2])
+    assert not equal_computations([a], [np.r_[2, 1]])
+
     c = tensor.type_other.NoneConst
     assert equal_computations([c], [c])
+
     m = tensor.matrix()
     max_argmax1 = tensor.max_and_argmax(m)
     max_argmax2 = tensor.max_and_argmax(m)

@@ -155,14 +155,14 @@ class multiple_outputs_numeric_grad:
 # verify_grad method so that other ops with multiple outputs can be tested.
 # DONE - rp
 def scan_project_sum(*args, **kwargs):
-    rng = theano.tensor.shared_randomstreams.RandomStreams(123)
+    rng = theano.tensor.random.utils.RandomStream(123)
     scan_outputs, updates = scan(*args, **kwargs)
     if type(scan_outputs) not in [list, tuple]:
         scan_outputs = [scan_outputs]
     # we should ignore the random-state updates so that
     # the uniform numbers are the same every evaluation and on every call
     rng.add_default_updates = False
-    factors = [rng.uniform(size=s.shape, low=0.1, high=0.9) for s in scan_outputs]
+    factors = [rng.uniform(0.1, 0.9, size=s.shape) for s in scan_outputs]
     # Random values (?)
     return (sum([(s * f).sum() for s, f in zip(scan_outputs, factors)]), updates)
 
@@ -407,7 +407,7 @@ class TestScan:
         )
         # get random initial values
         rng = np.random.RandomState(utt.fetch_seed())
-        v_u = rng.uniform(size=(4,), low=-5.0, high=5.0)
+        v_u = rng.uniform(-5.0, 5.0, size=(4,))
         v_x0 = rng.uniform()
         W = rng.uniform()
         W_in = rng.uniform()
@@ -446,7 +446,7 @@ class TestScan:
         )
         # get random initial values
 
-        v_u = rng.uniform(size=(4,), low=-5.0, high=5.0)
+        v_u = rng.uniform(-5.0, 5.0, size=(4,))
         v_x0 = rng.uniform()
         # compute the output i numpy
         v_out = np.zeros((4,))
@@ -461,13 +461,13 @@ class TestScan:
     # dimension instead of scalars/vectors
     def test_multiple_inputs_multiple_outputs(self):
         rng = np.random.RandomState(utt.fetch_seed())
-        vW_in2 = asarrayX(rng.uniform(size=(2,), low=-5.0, high=5.0))
-        vW = asarrayX(rng.uniform(size=(2, 2), low=-5.0, high=5.0))
-        vWout = asarrayX(rng.uniform(size=(2,), low=-5.0, high=5.0))
-        vW_in1 = asarrayX(rng.uniform(size=(2, 2), low=-5.0, high=5.0))
-        v_u1 = asarrayX(rng.uniform(size=(3, 2), low=-5.0, high=5.0))
-        v_u2 = asarrayX(rng.uniform(size=(3,), low=-5.0, high=5.0))
-        v_x0 = asarrayX(rng.uniform(size=(2,), low=-5.0, high=5.0))
+        vW_in2 = asarrayX(rng.uniform(-5.0, 5.0, size=(2,)))
+        vW = asarrayX(rng.uniform(-5.0, 5.0, size=(2, 2)))
+        vWout = asarrayX(rng.uniform(-5.0, 5.0, size=(2,)))
+        vW_in1 = asarrayX(rng.uniform(-5.0, 5.0, size=(2, 2)))
+        v_u1 = asarrayX(rng.uniform(-5.0, 5.0, size=(3, 2)))
+        v_u2 = asarrayX(rng.uniform(-5.0, 5.0, size=(3,)))
+        v_x0 = asarrayX(rng.uniform(-5.0, 5.0, size=(2,)))
         v_y0 = asarrayX(rng.uniform())
 
         W_in2 = theano.shared(vW_in2, name="win2")
@@ -517,13 +517,14 @@ class TestScan:
     def test_multiple_outs_taps(self):
         l = 5
         rng = np.random.RandomState(utt.fetch_seed())
-        vW_in2 = asarrayX(rng.uniform(size=(2,), low=-0.2, high=0.2))
-        vW = asarrayX(rng.uniform(size=(2, 2), low=-0.2, high=0.2))
-        vWout = asarrayX(rng.uniform(size=(2,), low=-0.2, high=0.2))
-        vW_in1 = asarrayX(rng.uniform(size=(2, 2), low=-0.2, high=0.2))
-        v_u1 = asarrayX(rng.uniform(size=(l, 2), low=-0.2, high=0.2))
-        v_u2 = asarrayX(rng.uniform(size=(l + 2, 2), low=-0.2, high=0.2))
-        v_x0 = asarrayX(rng.uniform(size=(2,), low=-0.2, high=0.2))
+
+        vW_in2 = asarrayX(rng.uniform(-2.0, 2.0, size=(2,)))
+        vW = asarrayX(rng.uniform(-2.0, 2.0, size=(2, 2)))
+        vWout = asarrayX(rng.uniform(-2.0, 2.0, size=(2,)))
+        vW_in1 = asarrayX(rng.uniform(-2.0, 2.0, size=(2, 2)))
+        v_u1 = asarrayX(rng.uniform(-2.0, 2.0, size=(l, 2)))
+        v_u2 = asarrayX(rng.uniform(-2.0, 2.0, size=(l + 2, 2)))
+        v_x0 = asarrayX(rng.uniform(-2.0, 2.0, size=(2,)))
         v_y0 = asarrayX(rng.uniform(size=(3,)))
 
         W_in2 = theano.shared(vW_in2, name="win2")
@@ -806,8 +807,8 @@ class TestScan:
         rng = np.random.RandomState(utt.fetch_seed())
         vW = asarrayX(rng.uniform())
         vW_in = asarrayX(rng.uniform())
-        vu = asarrayX(rng.uniform(size=(4,), low=-5.0, high=5.0))
-        vx0 = asarrayX(rng.uniform(size=(2,), low=-5.0, high=5.0))
+        vu = asarrayX(rng.uniform(-5.0, 5.0, size=(4,)))
+        vx0 = asarrayX(rng.uniform(-5.0, 5.0, size=(2,)))
 
         u = theano.tensor.vector("u")
         x0 = theano.tensor.vector("x0")
@@ -852,8 +853,8 @@ class TestScan:
         rng = np.random.RandomState(utt.fetch_seed())
         vW = asarrayX(rng.uniform())
         vW_in = asarrayX(rng.uniform())
-        vu = asarrayX(rng.uniform(size=(6,), low=-5.0, high=5.0))
-        vx0 = asarrayX(rng.uniform(size=(2,), low=-5.0, high=5.0))
+        vu = asarrayX(rng.uniform(-5.0, 5.0, size=(6,)))
+        vx0 = asarrayX(rng.uniform(-5.0, 5.0, size=(2,)))
 
         u = theano.tensor.vector("u")
         x0 = theano.tensor.vector("x0")
@@ -891,9 +892,9 @@ class TestScan:
         rng = np.random.RandomState(utt.fetch_seed())
         vW = asarrayX(np.random.uniform())
         vW_in = asarrayX(np.random.uniform())
-        vu0 = asarrayX(rng.uniform(size=(3,), low=-5.0, high=5.0))
-        vu1 = asarrayX(rng.uniform(size=(3,), low=-5.0, high=5.0))
-        vu2 = asarrayX(rng.uniform(size=(3,), low=-5.0, high=5.0))
+        vu0 = asarrayX(rng.uniform(-5.0, 5.0, size=(3,)))
+        vu1 = asarrayX(rng.uniform(-5.0, 5.0, size=(3,)))
+        vu2 = asarrayX(rng.uniform(-5.0, 5.0, size=(3,)))
         vx0 = asarrayX(rng.uniform())
         vx1 = asarrayX(rng.uniform())
 
@@ -958,9 +959,9 @@ class TestScan:
         rng = np.random.RandomState(utt.fetch_seed())
         vW = asarrayX(np.random.uniform())
         vW_in = asarrayX(np.random.uniform())
-        vu0 = asarrayX(rng.uniform(size=(3,), low=-5.0, high=5.0))
-        vu1 = asarrayX(rng.uniform(size=(4,), low=-5.0, high=5.0))
-        vu2 = asarrayX(rng.uniform(size=(5,), low=-5.0, high=5.0))
+        vu0 = asarrayX(rng.uniform(-5.0, 5.0, size=(3,)))
+        vu1 = asarrayX(rng.uniform(-5.0, 5.0, size=(4,)))
+        vu2 = asarrayX(rng.uniform(-5.0, 5.0, size=(5,)))
         vx0 = asarrayX(rng.uniform())
         vx1 = asarrayX(rng.uniform())
 
@@ -1141,29 +1142,11 @@ class TestScan:
         # Check for runtime errors
         f(np.int32(0), np.float32(1.0), np.float32(0.5))
 
-    def test_simple_shared_mrg_random(self):
-        theano_rng = theano.sandbox.rng_mrg.MRG_RandomStreams(utt.fetch_seed())
-
-        values, updates = scan(
-            lambda: theano_rng.uniform((2,), -1, 1),
-            [],
-            [],
-            [],
-            n_steps=5,
-            truncate_gradient=-1,
-            go_backwards=False,
-        )
-        my_f = theano.function([], values, updates=updates, allow_input_downcast=True)
-
-        # Just check for run-time errors
-        my_f()
-        my_f()
-
     def test_simple_shared_random(self):
-        theano_rng = theano.tensor.shared_randomstreams.RandomStreams(utt.fetch_seed())
+        theano_rng = theano.tensor.random.utils.RandomStream(utt.fetch_seed())
 
         values, updates = scan(
-            lambda: theano_rng.uniform((2,), -1, 1),
+            lambda: theano_rng.uniform(-1, 1, size=(2,)),
             [],
             [],
             [],
@@ -1202,20 +1185,20 @@ class TestScan:
         bhid = theano.shared(v_bhid, "vbhid")
         bvis = theano.shared(v_bvis, "vbvis")
         vsample = theano.tensor.matrix(dtype="float32")
-        trng = theano.tensor.shared_randomstreams.RandomStreams(utt.fetch_seed())
+        trng = theano.tensor.random.utils.RandomStream(utt.fetch_seed())
 
         def f(vsample_tm1):
             hmean_t = theano.tensor.nnet.sigmoid(
                 theano.tensor.dot(vsample_tm1, W) + bhid
             )
             hsample_t = theano.tensor.cast(
-                trng.binomial(hmean_t.shape, 1, hmean_t), dtype="float32"
+                trng.binomial(1, hmean_t, size=hmean_t.shape), dtype="float32"
             )
             vmean_t = theano.tensor.nnet.sigmoid(
                 theano.tensor.dot(hsample_t, W.T) + bvis
             )
             return theano.tensor.cast(
-                trng.binomial(vmean_t.shape, 1, vmean_t), dtype="float32"
+                trng.binomial(1, vmean_t, size=vmean_t.shape), dtype="float32"
             )
 
         theano_vsamples, updates = scan(
@@ -1283,7 +1266,7 @@ class TestScan:
         f2 = theano.function([u], outputs, updates=updates, allow_input_downcast=True)
         rng = np.random.RandomState(utt.fetch_seed())
 
-        v_u = rng.uniform(size=(5,), low=-5.0, high=5.0)
+        v_u = rng.uniform(-5.0, 5.0, size=(5,))
         numpy_result = v_u + 3
         theano_result = f2(v_u)
         utt.assert_allclose(theano_result, numpy_result)
@@ -1299,7 +1282,7 @@ class TestScan:
         )
 
         rng = np.random.RandomState(utt.fetch_seed())
-        vals = rng.uniform(size=(10,), low=-5.0, high=5.0)
+        vals = rng.uniform(-5.0, 5.0, size=(10,))
         abs_vals = abs(vals)
         theano_vals = f(vals)
         utt.assert_allclose(abs_vals, theano_vals)
@@ -1328,7 +1311,7 @@ class TestScan:
         )
         # get random initial values
         rng = np.random.RandomState(utt.fetch_seed())
-        v_u = rng.uniform(size=(4,), low=-5.0, high=5.0)
+        v_u = rng.uniform(-5.0, 5.0, size=(4,))
         v_x0 = rng.uniform()
         W = rng.uniform()
         W_in = rng.uniform()
@@ -1349,7 +1332,7 @@ class TestScan:
 
         f = theano.function([v, s], result, updates=updates, allow_input_downcast=True)
         rng = np.random.RandomState(utt.fetch_seed())
-        v_v = rng.uniform(size=(5,), low=-5.0, high=5.0)
+        v_v = rng.uniform(-5.0, 5.0, size=(5,))
         assert abs(np.sum(v_v) - f(v_v, 0.0)) < 1e-3
 
     def test_grad_one_output(self):
@@ -1388,10 +1371,11 @@ class TestScan:
 
         # get random initial values
         rng = np.random.RandomState(utt.fetch_seed())
-        v_u = np.array(rng.uniform(size=(10,), low=-0.5, high=0.5), dtype=config.floatX)
+        v_u = np.array(rng.uniform(-0.5, 0.5, size=(10,)), dtype=config.floatX)
         v_x0 = np.array(rng.uniform(), dtype=config.floatX)
         W = np.array(rng.uniform(), dtype=config.floatX)
         W_in = np.array(rng.uniform(), dtype=config.floatX)
+
         analytic_grad = grad_fn(v_u, v_x0, W_in, W)
 
         num_grad = multiple_outputs_numeric_grad(cost_fn, [v_u, v_x0, W_in, W])
@@ -1400,13 +1384,13 @@ class TestScan:
 
     def test_grad_multiple_outs(self):
         rng = np.random.RandomState(utt.fetch_seed())
-        vW_in2 = asarrayX(rng.uniform(size=(2,), low=-0.1, high=0.1))
-        vW = asarrayX(rng.uniform(size=(2, 2), low=-0.1, high=0.1))
-        vWout = asarrayX(rng.uniform(size=(2,), low=-0.1, high=0.1))
-        vW_in1 = asarrayX(rng.uniform(size=(2, 2), low=-0.1, high=0.1))
-        v_u1 = asarrayX(rng.uniform(size=(7, 2), low=-0.1, high=0.1))
-        v_u2 = asarrayX(rng.uniform(size=(7,), low=-0.1, high=0.1))
-        v_x0 = asarrayX(rng.uniform(size=(2,), low=-0.1, high=0.1))
+        vW_in2 = asarrayX(rng.uniform(-0.1, 0.1, size=(2,)))
+        vW = asarrayX(rng.uniform(-0.1, 0.1, size=(2, 2)))
+        vWout = asarrayX(rng.uniform(-0.1, 0.1, size=(2,)))
+        vW_in1 = asarrayX(rng.uniform(-0.1, 0.1, size=(2, 2)))
+        v_u1 = asarrayX(rng.uniform(-0.1, 0.1, size=(7, 2)))
+        v_u2 = asarrayX(rng.uniform(-0.1, 0.1, size=(7,)))
+        v_x0 = asarrayX(rng.uniform(0.1, 0.1, size=(2,)))
         v_y0 = asarrayX(rng.uniform())
 
         W_in2 = theano.shared(vW_in2, name="win2")
@@ -1465,13 +1449,15 @@ class TestScan:
     def test_grad_multiple_outs_taps(self):
         n = 5
         rng = np.random.RandomState(utt.fetch_seed())
-        vW_in2 = asarrayX(rng.uniform(size=(2,), low=-0.2, high=0.2))
-        vW = asarrayX(rng.uniform(size=(2, 2), low=-0.2, high=0.2))
-        vWout = asarrayX(rng.uniform(size=(2,), low=-0.2, high=0.2))
-        vW_in1 = asarrayX(rng.uniform(size=(2, 2), low=-0.2, high=0.2))
-        v_u1 = asarrayX(rng.uniform(size=(n, 2), low=-0.2, high=0.2))
-        v_u2 = asarrayX(rng.uniform(size=(n + 2, 2), low=-0.2, high=0.2))
-        v_x0 = asarrayX(rng.uniform(size=(2,), low=-0.2, high=0.2))
+
+        vW_in2 = asarrayX(rng.uniform(-0.2, 0.2, size=(2,)))
+        vW = asarrayX(rng.uniform(-0.2, 0.2, size=(2, 2)))
+        vWout = asarrayX(rng.uniform(-0.2, 0.2, size=(2,)))
+        vW_in1 = asarrayX(rng.uniform(-0.2, 0.2, size=(2, 2)))
+        v_u1 = asarrayX(rng.uniform(-0.2, 0.2, size=(n, 2)))
+        v_u2 = asarrayX(rng.uniform(-0.2, 0.2, size=(n + 2, 2)))
+        v_x0 = asarrayX(rng.uniform(0.2, 0.2, size=(2,)))
+
         v_y0 = asarrayX(rng.uniform(size=(3,)))
 
         W_in2 = theano.shared(vW_in2, name="win2")
@@ -1516,185 +1502,6 @@ class TestScan:
             )
             params = [u1, u2, x0, y0, W_in1]
             gparams = theano.tensor.grad(cost, params)
-            # Test the output including names
-            output_str = theano.printing.debugprint(cost, file="str")
-            lines = output_str.split("\n")
-            expected_output = """Elemwise{add,no_inplace} [id A] ''
- |Elemwise{add,no_inplace} [id B] ''
- | |Elemwise{add,no_inplace} [id C] ''
- | | |TensorConstant{0} [id D]
- | | |Sum{acc_dtype=float64} [id E] ''
- | |   |Elemwise{mul,no_inplace} [id F] ''
- | |     |Subtensor{int64::} [id G] ''
- | |     | |for{cpu,scan_fn}.1 [id H] ''
- | |     | | |Elemwise{minimum,no_inplace} [id I] ''
- | |     | | | |Elemwise{minimum,no_inplace} [id J] ''
- | |     | | | | |Elemwise{minimum,no_inplace} [id K] ''
- | |     | | | | | |Subtensor{int64} [id L] ''
- | |     | | | | | | |Shape [id M] ''
- | |     | | | | | | | |Subtensor{int64::} [id N] 'u1[0:]'
- | |     | | | | | | |   |u1 [id O]
- | |     | | | | | | |   |Constant{0} [id P]
- | |     | | | | | | |Constant{0} [id Q]
- | |     | | | | | |Subtensor{int64} [id R] ''
- | |     | | | | |   |Shape [id S] ''
- | |     | | | | |   | |Subtensor{int64:int64:} [id T] 'u2[0:-2]'
- | |     | | | | |   |   |u2 [id U]
- | |     | | | | |   |   |Constant{0} [id V]
- | |     | | | | |   |   |Constant{-2} [id W]
- | |     | | | | |   |Constant{0} [id X]
- | |     | | | | |Subtensor{int64} [id Y] ''
- | |     | | | |   |Shape [id Z] ''
- | |     | | | |   | |Subtensor{int64:int64:} [id BA] 'u2[1:-1]'
- | |     | | | |   |   |u2 [id U]
- | |     | | | |   |   |Constant{1} [id BB]
- | |     | | | |   |   |Constant{-1} [id BC]
- | |     | | | |   |Constant{0} [id BD]
- | |     | | | |Subtensor{int64} [id BE] ''
- | |     | | |   |Shape [id BF] ''
- | |     | | |   | |Subtensor{int64::} [id BG] 'u2[2:]'
- | |     | | |   |   |u2 [id U]
- | |     | | |   |   |Constant{2} [id BH]
- | |     | | |   |Constant{0} [id BI]
- | |     | | |Subtensor{:int64:} [id BJ] ''
- | |     | | | |Subtensor{int64::} [id N] 'u1[0:]'
- | |     | | | |ScalarFromTensor [id BK] ''
- | |     | | |   |Elemwise{minimum,no_inplace} [id I] ''
- | |     | | |Subtensor{:int64:} [id BL] ''
- | |     | | | |Subtensor{int64:int64:} [id T] 'u2[0:-2]'
- | |     | | | |ScalarFromTensor [id BM] ''
- | |     | | |   |Elemwise{minimum,no_inplace} [id I] ''
- | |     | | |Subtensor{:int64:} [id BN] ''
- | |     | | | |Subtensor{int64:int64:} [id BA] 'u2[1:-1]'
- | |     | | | |ScalarFromTensor [id BO] ''
- | |     | | |   |Elemwise{minimum,no_inplace} [id I] ''
- | |     | | |Subtensor{:int64:} [id BP] ''
- | |     | | | |Subtensor{int64::} [id BG] 'u2[2:]'
- | |     | | | |ScalarFromTensor [id BQ] ''
- | |     | | |   |Elemwise{minimum,no_inplace} [id I] ''
- | |     | | |IncSubtensor{Set;:int64:} [id BR] ''
- | |     | | | |AllocEmpty{dtype='%(float)s'} [id BS] ''
- | |     | | | | |Elemwise{add,no_inplace} [id BT] ''
- | |     | | | |   |Elemwise{minimum,no_inplace} [id I] ''
- | |     | | | |   |Subtensor{int64} [id BU] ''
- | |     | | | |     |Shape [id BV] ''
- | |     | | | |     | |Subtensor{:int64:} [id BW] ''
- | |     | | | |     |   |y0 [id BX]
- | |     | | | |     |   |Constant{3} [id BY]
- | |     | | | |     |Constant{0} [id BZ]
- | |     | | | |Subtensor{:int64:} [id BW] ''
- | |     | | | |ScalarFromTensor [id CA] ''
- | |     | | |   |Subtensor{int64} [id BU] ''
- | |     | | |IncSubtensor{Set;:int64:} [id CB] ''
- | |     | | | |AllocEmpty{dtype='%(float)s'} [id CC] ''
- | |     | | | | |Elemwise{add,no_inplace} [id CD] ''
- | |     | | | | | |Elemwise{minimum,no_inplace} [id I] ''
- | |     | | | | | |Subtensor{int64} [id CE] ''
- | |     | | | | |   |Shape [id CF] ''
- | |     | | | | |   | |Rebroadcast{0} [id CG] ''
- | |     | | | | |   |   |InplaceDimShuffle{x,0} [id CH] ''
- | |     | | | | |   |     |x0 [id CI]
- | |     | | | | |   |Constant{0} [id CJ]
- | |     | | | | |Subtensor{int64} [id CK] ''
- | |     | | | |   |Shape [id CL] ''
- | |     | | | |   | |Rebroadcast{0} [id CG] ''
- | |     | | | |   |Constant{1} [id CM]
- | |     | | | |Rebroadcast{0} [id CG] ''
- | |     | | | |ScalarFromTensor [id CN] ''
- | |     | | |   |Subtensor{int64} [id CE] ''
- | |     | | |Elemwise{minimum,no_inplace} [id I] ''
- | |     | | |win2 [id CO]
- | |     | | |w [id CP]
- | |     | | |wout [id CQ]
- | |     | | |win [id CR]
- | |     | |Constant{1} [id CS]
- | |     |RandomFunction{uniform}.1 [id CT] ''
- | |       |<RandomStateType> [id CU]
- | |       |Shape [id CV] ''
- | |       | |Subtensor{int64::} [id G] ''
- | |       |TensorConstant{0.1} [id CW]
- | |       |TensorConstant{0.9} [id CX]
- | |Sum{acc_dtype=float64} [id CY] ''
- |   |Elemwise{mul,no_inplace} [id CZ] ''
- |     |Subtensor{int64::} [id DA] ''
- |     | |for{cpu,scan_fn}.0 [id H] ''
- |     | |Constant{3} [id DB]
- |     |RandomFunction{uniform}.1 [id DC] ''
- |       |<RandomStateType> [id DD]
- |       |Shape [id DE] ''
- |       | |Subtensor{int64::} [id DA] ''
- |       |TensorConstant{0.1} [id DF]
- |       |TensorConstant{0.9} [id DG]
- |Sum{acc_dtype=float64} [id DH] ''
-   |Elemwise{mul,no_inplace} [id DI] ''
-     |for{cpu,scan_fn}.2 [id H] ''
-     |RandomFunction{uniform}.1 [id DJ] ''
-       |<RandomStateType> [id DK]
-       |Shape [id DL] ''
-       | |for{cpu,scan_fn}.2 [id H] ''
-       |TensorConstant{0.1} [id DM]
-       |TensorConstant{0.9} [id DN]
-
-Inner graphs of the scan ops:
-
-for{cpu,scan_fn}.1 [id H] ''
- >Elemwise{Composite{((i0 + i1) * i2)}} [id DO] ''
- > |y0[t-1] [id DP] -> [id BR]
- > |y0[t-3] [id DQ] -> [id BR]
- > |InplaceDimShuffle{} [id DR] ''
- >   |CGemv{inplace} [id DS] ''
- >     |AllocEmpty{dtype='%(float)s'} [id DT] ''
- >     | |TensorConstant{1} [id DU]
- >     |TensorConstant{1.0} [id DV]
- >     |InplaceDimShuffle{x,0} [id DW] ''
- >     | |wout_copy [id DX] -> [id CQ]
- >     |x0[t-1] [id DY] -> [id CB]
- >     |TensorConstant{0.0} [id DZ]
- >Elemwise{Composite{(i0 + ((i1 + (i2 * i3)) * i4) + i5)}} [id EA] ''
- > |CGemv{no_inplace} [id EB] ''
- > | |AllocEmpty{dtype='%(float)s'} [id EC] ''
- > | | |Shape_i{1} [id ED] ''
- > | |   |win_copy [id EE] -> [id CR]
- > | |TensorConstant{1.0} [id DV]
- > | |InplaceDimShuffle{1,0} [id EF] 'win_copy.T'
- > | | |win_copy [id EE] -> [id CR]
- > | |u1[t] [id EG] -> [id BJ]
- > | |TensorConstant{0.0} [id DZ]
- > |u2[t] [id EH] -> [id BN]
- > |u2[t-1] [id EI] -> [id BL]
- > |u2[t+1] [id EJ] -> [id BP]
- > |win2_copy [id EK] -> [id CO]
- > |CGemv{inplace} [id EL] ''
- >   |AllocEmpty{dtype='%(float)s'} [id EM] ''
- >   | |Shape_i{1} [id EN] ''
- >   |   |w_copy [id EO] -> [id CP]
- >   |TensorConstant{1.0} [id DV]
- >   |InplaceDimShuffle{1,0} [id EP] 'w_copy.T'
- >   | |w_copy [id EO] -> [id CP]
- >   |x0[t-1] [id DY] -> [id CB]
- >   |TensorConstant{0.0} [id DZ]
- >CGemv{no_inplace} [id EB] ''
-
-for{cpu,scan_fn}.0 [id H] ''
- >Elemwise{Composite{((i0 + i1) * i2)}} [id DO] ''
- >Elemwise{Composite{(i0 + ((i1 + (i2 * i3)) * i4) + i5)}} [id EA] ''
- >CGemv{no_inplace} [id EB] ''
-
-for{cpu,scan_fn}.2 [id H] ''
- >Elemwise{Composite{((i0 + i1) * i2)}} [id DO] ''
- >Elemwise{Composite{(i0 + ((i1 + (i2 * i3)) * i4) + i5)}} [id EA] ''
- >CGemv{no_inplace} [id EB] ''
-
-for{cpu,scan_fn}.2 [id H] ''
- >Elemwise{Composite{((i0 + i1) * i2)}} [id DO] ''
- >Elemwise{Composite{(i0 + ((i1 + (i2 * i3)) * i4) + i5)}} [id EA] ''
- >CGemv{no_inplace} [id EB] ''
-""" % {
-                "float": config.floatX
-            }
-            if config.mode != "FAST_COMPILE" and config.floatX == "float64":
-                for truth, out in zip(expected_output.split("\n"), lines):
-                    assert truth.strip() == out.strip(), (truth, out)
 
             cost_fn = theano.function(
                 [u1, u2, x0, y0, W_in1],
@@ -1723,13 +1530,13 @@ for{cpu,scan_fn}.2 [id H] ''
     def test_grad_multiple_outs_taps_backwards(self):
         n = 5
         rng = np.random.RandomState(utt.fetch_seed())
-        vW_in2 = asarrayX(rng.uniform(size=(2,), low=-0.2, high=0.2))
-        vW = asarrayX(rng.uniform(size=(2, 2), low=-0.2, high=0.2))
-        vWout = asarrayX(rng.uniform(size=(2,), low=-0.2, high=0.2))
-        vW_in1 = asarrayX(rng.uniform(size=(2, 2), low=-0.2, high=0.2))
-        v_u1 = asarrayX(rng.uniform(size=(n, 2), low=-0.2, high=0.2))
-        v_u2 = asarrayX(rng.uniform(size=(n + 2, 2), low=-0.2, high=0.2))
-        v_x0 = asarrayX(rng.uniform(size=(2,), low=-0.2, high=0.2))
+        vW_in2 = asarrayX(rng.uniform(-0.2, 0.2, size=(2,)))
+        vW = asarrayX(rng.uniform(-0.2, 0.2, size=(2, 2)))
+        vWout = asarrayX(rng.uniform(-0.2, 0.2, size=(2,)))
+        vW_in1 = asarrayX(rng.uniform(-0.2, 0.2, size=(2, 2)))
+        v_u1 = asarrayX(rng.uniform(-0.2, 0.2, size=(n, 2)))
+        v_u2 = asarrayX(rng.uniform(-0.2, 0.2, size=(n + 2, 2)))
+        v_x0 = asarrayX(rng.uniform(-0.2, 0.2, size=(2,)))
         v_y0 = asarrayX(rng.uniform(size=(3,)))
 
         W_in2 = theano.shared(vW_in2, name="win2")
@@ -1785,20 +1592,18 @@ for{cpu,scan_fn}.2 [id H] ''
 
     def test_grad_multiple_outs_some_uncomputable(self):
         rng = np.random.RandomState(utt.fetch_seed())
-        vW_in = asarrayX(rng.uniform(size=(2, 2), low=-3.0, high=3.0))
-        v_u = asarrayX(rng.uniform(size=(5, 2), low=-3.0, high=3.0))
+        vW_in = asarrayX(rng.uniform(-3.0, 3.0, size=(2, 2)))
+        v_u = asarrayX(rng.uniform(-3.0, 3.0, size=(5, 2)))
         v_u2 = np.array([1, 3, 4, 6, 8], dtype="int32")
-        v_x0 = asarrayX(rng.uniform(size=(2,), low=-3.0, high=3.0))
+        v_x0 = asarrayX(rng.uniform(-3.0, 3.0, size=(2,)))
 
         W_in = theano.tensor.matrix("win")
         u = theano.tensor.matrix("u1")
         u2 = theano.tensor.ivector("u2")
         x0 = theano.tensor.vector("x0", dtype=config.floatX)
-        # trng  = theano.tensor.shared_randomstreams.RandomStreams(
-        #                                               utt.fetch_seed())
 
         def f_rnn_cmpl(u_t, u2_t, x_tm1, W_in):
-            trng1 = theano.tensor.shared_randomstreams.RandomStreams(123)
+            trng1 = theano.tensor.random.utils.RandomStream(123)
             x_t = (
                 theano.tensor.cast(u2_t, config.floatX)
                 + theano.tensor.dot(u_t, W_in)
@@ -1870,19 +1675,19 @@ for{cpu,scan_fn}.2 [id H] ''
 
     def test_grad_multiple_outs_some_truncate(self):
         rng = np.random.RandomState(utt.fetch_seed())
-        vW_in = asarrayX(rng.uniform(size=(2, 2), low=-0.1, high=0.1))
-        v_u = asarrayX(rng.uniform(size=(5, 2), low=-0.1, high=0.1))
-        v_x0 = asarrayX(rng.uniform(size=(2,), low=-0.1, high=0.1))
+        vW_in = asarrayX(rng.uniform(-0.1, 0.1, size=(2, 2)))
+        v_u = asarrayX(rng.uniform(-0.1, 0.1, size=(5, 2)))
+        v_x0 = asarrayX(rng.uniform(-0.1, 0.1, size=(2,)))
 
         W_in = theano.tensor.matrix("win")
         u = theano.tensor.matrix("u1")
         x0 = theano.tensor.vector("x0")
-        # trng  = theano.tensor.shared_randomstreams.RandomStreams(
+        # trng  = theano.tensor.random.utils.RandomStream(
         #                                               utt.fetch_seed())
 
         def f_rnn_cmpl(u_t, x_tm1, W_in):
-            trng1 = theano.tensor.shared_randomstreams.RandomStreams(123)
-            rnd_nb = trng1.uniform(low=-0.1, high=0.1)
+            trng1 = theano.tensor.random.utils.RandomStream(123)
+            rnd_nb = trng1.uniform(-0.1, 0.1)
             x_t = theano.tensor.dot(u_t, W_in) + x_tm1 + rnd_nb
             x_t = theano.tensor.cast(x_t, dtype=config.floatX)
             return x_t
@@ -1951,12 +1756,12 @@ for{cpu,scan_fn}.2 [id H] ''
         n_in = 1
         n_out = 1
 
-        W_hh_v = asarrayX(rng.uniform(size=(n_hid, n_hid), low=-1, high=1))
-        h0_v = asarrayX(rng.uniform(size=(2, n_hid), low=-1, high=1))
-        b_h_v = asarrayX(rng.uniform(size=(n_hid), low=-0.01, high=0.01))
-        W_ih_v = asarrayX(rng.uniform(size=(n_in, n_hid), low=-1, high=1))
-        W_ho_v = asarrayX(rng.uniform(size=(n_hid, n_out), low=-1, high=1))
-        b_o_v = asarrayX(rng.uniform(size=(n_out), low=-0.01, high=0.01))
+        W_hh_v = asarrayX(rng.uniform(-1, 1, size=(n_hid, n_hid)))
+        h0_v = asarrayX(rng.uniform(-1, 1, size=(2, n_hid)))
+        b_h_v = asarrayX(rng.uniform(-0.01, 0.01, size=(n_hid)))
+        W_ih_v = asarrayX(rng.uniform(-1, 1, size=(n_in, n_hid)))
+        W_ho_v = asarrayX(rng.uniform(-1, 1, size=(n_hid, n_out)))
+        b_o_v = asarrayX(rng.uniform(-0.01, 0.01, size=(n_out)))
 
         # parameters of the rnn
         b_h = theano.shared(b_h_v, name="b_h")
@@ -2021,10 +1826,10 @@ for{cpu,scan_fn}.2 [id H] ''
         return cost
 
     def test_draw_as_input_to_scan(self):
-        trng = theano.tensor.shared_randomstreams.RandomStreams(123)
+        trng = theano.tensor.random.utils.RandomStream(123)
 
         x = theano.tensor.matrix("x")
-        y = trng.binomial(size=x.shape, p=x)
+        y = trng.binomial(1, x, size=x.shape)
         z, updates = scan(lambda a: a, non_sequences=y, n_steps=2)
 
         f = theano.function([x], [y, z], updates=updates, allow_input_downcast=True)
@@ -2254,13 +2059,14 @@ for{cpu,scan_fn}.2 [id H] ''
     # dimension instead of scalars/vectors
     def test_reordering(self):
         rng = np.random.RandomState(utt.fetch_seed())
-        vW_in2 = asarrayX(rng.uniform(size=(2,), low=-5.0, high=5.0))
-        vW = asarrayX(rng.uniform(size=(2, 2), low=-5.0, high=5.0))
-        vWout = asarrayX(rng.uniform(size=(2,), low=-5.0, high=5.0))
-        vW_in1 = asarrayX(rng.uniform(size=(2, 2), low=-5.0, high=5.0))
-        v_u1 = asarrayX(rng.uniform(size=(3, 2), low=-5.0, high=5.0))
-        v_u2 = asarrayX(rng.uniform(size=(3,), low=-5.0, high=5.0))
-        v_x0 = asarrayX(rng.uniform(size=(2,), low=-5.0, high=5.0))
+
+        vW_in2 = asarrayX(rng.uniform(-0.5, 0.5, size=(2,)))
+        vW = asarrayX(rng.uniform(-0.5, 0.5, size=(2, 2)))
+        vWout = asarrayX(rng.uniform(-0.5, 0.5, size=(2,)))
+        vW_in1 = asarrayX(rng.uniform(-0.5, 0.5, size=(2, 2)))
+        v_u1 = asarrayX(rng.uniform(-0.5, 0.5, size=(3, 2)))
+        v_u2 = asarrayX(rng.uniform(-0.5, 0.5, size=(3,)))
+        v_x0 = asarrayX(rng.uniform(-0.5, 0.5, size=(2,)))
         v_y0 = asarrayX(rng.uniform(size=(3,)))
 
         W_in2 = theano.shared(vW_in2, name="win2")
@@ -2338,13 +2144,14 @@ for{cpu,scan_fn}.2 [id H] ''
 
     def test_save_mem(self):
         rng = np.random.RandomState(utt.fetch_seed())
-        vW_in2 = asarrayX(rng.uniform(size=(2,), low=-5.0, high=5.0))
-        vW = asarrayX(rng.uniform(size=(2, 2), low=-5.0, high=5.0))
-        vWout = asarrayX(rng.uniform(size=(2,), low=-5.0, high=5.0))
-        vW_in1 = asarrayX(rng.uniform(size=(2, 2), low=-5.0, high=5.0))
-        v_u1 = asarrayX(rng.uniform(size=(8, 2), low=-5.0, high=5.0))
-        v_u2 = asarrayX(rng.uniform(size=(8,), low=-5.0, high=5.0))
-        v_x0 = asarrayX(rng.uniform(size=(2,), low=-5.0, high=5.0))
+
+        vW_in2 = asarrayX(rng.uniform(-0.5, 0.5, size=(2,)))
+        vW = asarrayX(rng.uniform(-0.5, 0.5, size=(2, 2)))
+        vWout = asarrayX(rng.uniform(-0.5, 0.5, size=(2,)))
+        vW_in1 = asarrayX(rng.uniform(-0.5, 0.5, size=(2, 2)))
+        v_u1 = asarrayX(rng.uniform(-0.5, 0.5, size=(8, 2)))
+        v_u2 = asarrayX(rng.uniform(-0.5, 0.5, size=(8,)))
+        v_x0 = asarrayX(rng.uniform(-0.5, 0.5, size=(2,)))
         v_y0 = asarrayX(rng.uniform(size=(3,)))
 
         W_in2 = theano.shared(vW_in2, name="win2")
@@ -2455,7 +2262,7 @@ for{cpu,scan_fn}.2 [id H] ''
         )
         # get random initial values
         rng = np.random.RandomState(utt.fetch_seed())
-        v_u = rng.uniform(size=(20,), low=-5.0, high=5.0)
+        v_u = rng.uniform(-5.0, 5.0, size=(20,))
 
         # compute the output in numpy
         tx1, tx2, tx3, tx4, tx5, tx6, tx7 = f2(v_u, 3, 15)
@@ -2514,7 +2321,7 @@ for{cpu,scan_fn}.2 [id H] ''
 
         # get random initial values
         rng = np.random.RandomState(utt.fetch_seed())
-        v_u = rng.uniform(size=(20,), low=-5.0, high=5.0)
+        v_u = rng.uniform(-5.0, 5.0, size=(20,))
 
         # compute the output in numpy
         tx1, tx2, tx3, tx4, tx5 = f2(v_u, [0, 0], 0, [0, 0], 0)
@@ -2608,7 +2415,7 @@ for{cpu,scan_fn}.2 [id H] ''
         # an until condition and random sampling in the inner function.
 
         x = tensor.scalar()
-        srng = theano.tensor.shared_randomstreams.RandomStreams(0)
+        srng = theano.tensor.random.utils.RandomStream(0)
 
         def inner_fct(previous_val):
             new_val = previous_val + srng.uniform()
@@ -2674,9 +2481,9 @@ for{cpu,scan_fn}.2 [id H] ''
         x = theano.tensor.vector("x")
 
         def lm(m):
-            trng = theano.tensor.shared_randomstreams.RandomStreams(utt.fetch_seed())
+            trng = theano.tensor.random.utils.RandomStream(utt.fetch_seed())
             return [
-                2 * m + trng.uniform(low=-1.1, high=1.1, dtype=config.floatX),
+                2 * m + trng.uniform(-1.1, 1.1, dtype=config.floatX),
                 m + trng.uniform(size=[3]),
             ]
 
@@ -3083,7 +2890,7 @@ for{cpu,scan_fn}.2 [id H] ''
 
         def rnn_fn(_u, _y, _W):
 
-            srng = theano.tensor.shared_randomstreams.RandomStreams(seed)
+            srng = theano.tensor.random.utils.RandomStream(seed)
             tmp_val = (
                 _u + _y + srng.uniform(size=v_h0.shape) * np.asarray(1e-6, dtype=floatX)
             )
@@ -3542,7 +3349,7 @@ for{cpu,scan_fn}.2 [id H] ''
         # the intermediary states of the random number generators used in the
         # test. The test case was modified from the original for simplicity
 
-        rand_stream = tensor.shared_randomstreams.RandomStreams()
+        rand_stream = tensor.random.utils.RandomStream()
         inp = tensor.matrix()
         norm_inp = inp / tensor.sum(inp, axis=0)
 
@@ -3551,7 +3358,7 @@ for{cpu,scan_fn}.2 [id H] ''
                 # sample the input matrix for each column according to the
                 # column values
                 pvals = norm_inp.T
-                sample = rand_stream.multinomial(n=1, pvals=pvals)
+                sample = rand_stream.multinomial(1, pvals)
                 return inp + sample
 
             pooled, updates_inner = theano.scan(
@@ -3559,7 +3366,7 @@ for{cpu,scan_fn}.2 [id H] ''
             )
 
             # randomly add stuff to units
-            rand_nums = rand_stream.binomial(size=pooled.shape)
+            rand_nums = rand_stream.binomial(1, 0.5, size=pooled.shape)
             return pooled + rand_nums, updates_inner
 
         out, updates_outer = theano.scan(
@@ -3670,7 +3477,7 @@ for{cpu,scan_fn}.2 [id H] ''
         # Test the mapping produces by
         # ScanOp.get_oinp_iinp_iout_oout_mappings()
 
-        rng = theano.tensor.shared_randomstreams.RandomStreams(123)
+        rng = theano.tensor.random.utils.RandomStream(123)
 
         def inner_fct(seq, mitsot, sitsot, nitsot, nseq):
             random_scalar = rng.uniform((1,))[0]
@@ -3907,13 +3714,14 @@ for{cpu,scan_fn}.2 [id H] ''
 
     def test_return_steps(self):
         rng = np.random.RandomState(utt.fetch_seed())
-        vW_in2 = asarrayX(rng.uniform(size=(2,), low=-5.0, high=5.0))
-        vW = asarrayX(rng.uniform(size=(2, 2), low=-5.0, high=5.0))
-        vWout = asarrayX(rng.uniform(size=(2,), low=-5.0, high=5.0))
-        vW_in1 = asarrayX(rng.uniform(size=(2, 2), low=-5.0, high=5.0))
-        v_u1 = asarrayX(rng.uniform(size=(8, 2), low=-5.0, high=5.0))
-        v_u2 = asarrayX(rng.uniform(size=(8,), low=-5.0, high=5.0))
-        v_x0 = asarrayX(rng.uniform(size=(2,), low=-5.0, high=5.0))
+
+        vW_in2 = asarrayX(rng.uniform(-0.5, 0.5, size=(2,)))
+        vW = asarrayX(rng.uniform(-0.5, 0.5, size=(2, 2)))
+        vWout = asarrayX(rng.uniform(-0.5, 0.5, size=(2,)))
+        vW_in1 = asarrayX(rng.uniform(-0.5, 0.5, size=(2, 2)))
+        v_u1 = asarrayX(rng.uniform(-0.5, 0.5, size=(8, 2)))
+        v_u2 = asarrayX(rng.uniform(-0.5, 0.5, size=(8,)))
+        v_x0 = asarrayX(rng.uniform(-0.5, 0.5, size=(2,)))
         v_y0 = asarrayX(rng.uniform(size=(3,)))
 
         W_in2 = theano.shared(vW_in2, name="win2")
@@ -4071,14 +3879,12 @@ for{cpu,scan_fn}.2 [id H] ''
         # and the numeric differentiation becomes unstable.
         # To fix this issue I ensure we are sampling numbers larger in
         # absolute value than 1.
-        v_x = np.array(
-            rng.uniform(size=(5, 2, 2), low=1.0, high=3.0), dtype=config.floatX
-        )
+        v_x = np.array(rng.uniform(1.0, 3.0, size=(5, 2, 2)), dtype=config.floatX)
         # Making some entries to be negative.
-        pos = rng.uniform(size=(5, 2, 2), low=0.0, high=1) < 0.5
+        pos = rng.uniform(0.0, 1, size=(5, 2, 2)) < 0.5
         v_x[pos] = -1 * v_x[pos]
-        v_w = np.array(rng.uniform(size=(2, 2), low=1.0, high=3.0), dtype=config.floatX)
-        pos = rng.uniform(size=(2, 2), low=0.0, high=1.0) < 0.5
+        v_w = np.array(rng.uniform(1.0, 3.0, size=(2, 2)), dtype=config.floatX)
+        pos = rng.uniform(0.0, 1.0, size=(2, 2)) < 0.5
         v_w[pos] = -1 * v_w[pos]
         analytic_grad = grad_fn(v_x, v_w)
         num_grad = multiple_outputs_numeric_grad(cost_fn, [v_x, v_w])
@@ -4856,7 +4662,8 @@ def test_speed_rnn():
     for i in range(1, L):
         r[i] = np.tanh(np.dot(r[i - 1], w))
     t1 = time.time()
-    print("python", t1 - t0)
+    python_duration = t1 - t0
+    print("python", python_duration)
 
     r = np.arange(L * N).astype(config.floatX).reshape(L, N)
     s_r = tensor.matrix()
@@ -4872,7 +4679,8 @@ def test_speed_rnn():
     t2 = time.time()
     f(r)
     t3 = time.time()
-    print("theano (cvm)", t1 - t0)
+    cvm_duration = t3 - t2
+    print("theano (cvm)", cvm_duration)
 
     r = np.arange(L * N).astype(config.floatX).reshape(L, N)
     shared_r = theano.shared(r)
@@ -4890,11 +4698,14 @@ def test_speed_rnn():
     )
 
     f_fn = f.fn
-    t2 = time.time()
+    t4 = time.time()
     f_fn(n_calls=L - 2)
     f()  # 999 to update the profiling timers
-    t3 = time.time()
-    print("theano (updates, cvm)", t3 - t2)
+    t5 = time.time()
+    cvm_shared_duration = t5 - t4
+    print("theano (updates, cvm)", cvm_shared_duration)
+
+    assert cvm_shared_duration < python_duration
 
 
 @pytest.mark.skipif(
@@ -4909,9 +4720,6 @@ def test_speed_batchrnn():
     change this code to use DebugMode this will test the correctness
     of the optimizations applied, but generally correctness-testing
     is not the goal of this test.
-
-    To be honest, it isn't really a unit test so much as a tool for testing
-    approaches to scan.
 
     The computation being tested here is a repeated tanh of a matrix-vector
     multiplication - the heart of an ESN or RNN.
@@ -4928,7 +4736,7 @@ def test_speed_batchrnn():
     for i in range(1, L):
         r[i] = np.tanh(np.dot(r[i - 1], w))
     t1 = time.time()
-    print("python", t1 - t0)
+    python_duration = t1 - t0
 
     r = np.arange(B * L * N).astype(config.floatX).reshape(L, B, N)
     shared_r = theano.shared(r)
@@ -4944,14 +4752,14 @@ def test_speed_batchrnn():
         updates=[(s_i, s_i + 1), (shared_r, s_rinc)],
         mode=theano.Mode(linker="cvm"),
     )
-    # theano.printing.debugprint(f)
     f_fn = f.fn
-    # print f_fn
     t2 = time.time()
     f_fn(n_calls=L - 2)
     f()  # 999 to update the profiling timers
     t3 = time.time()
-    print("theano (updates, cvm)", t3 - t2)
+    cvm_duration = t3 - t2
+
+    assert cvm_duration < python_duration
 
 
 def test_compute_test_value():

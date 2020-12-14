@@ -343,13 +343,13 @@ NumPy, though also not too complicated.
 
 The way to think about putting randomness into Theano's computations is
 to put random variables in your graph. Theano will allocate a NumPy
-RandomStream object (a random number generator) for each such
+`RandomStream` object (a random number generator) for each such
 variable, and draw from it as necessary. We will call this sort of
 sequence of random numbers a *random stream*. *Random streams* are at
 their core shared variables, so the observations on shared variables
 hold here as well. Theano's random objects are defined and implemented in
-:ref:`RandomStreams<libdoc_tensor_shared_randomstreams>` and, at a lower level,
-in :ref:`RandomStreamsBase<libdoc_tensor_raw_random>`.
+:ref:`RandomStream<libdoc_tensor_random_utils>` and, at a lower level,
+in :ref:`RandomVariable<libdoc_tensor_random_basic>`.
 
 Brief Example
 -------------
@@ -361,11 +361,11 @@ Here's a brief example.  The setup code is:
 
 .. testcode::
 
-    from theano.tensor.shared_randomstreams import RandomStreams
+    from theano.tensor.random.utils import RandomStream
     from theano import function
-    srng = RandomStreams(seed=234)
-    rv_u = srng.uniform((2,2))
-    rv_n = srng.normal((2,2))
+    srng = RandomStream(seed=234)
+    rv_u = srng.uniform(0, 1, size=(2,2))
+    rv_n = srng.normal(0, 1, size=(2,2))
     f = function([], rv_u)
     g = function([], rv_n, no_default_updates=True)    #Not updating rv_n.rng
     nearly_zeros = function([], rv_u + rv_u - 2 * rv_u)
@@ -373,8 +373,8 @@ Here's a brief example.  The setup code is:
 Here, 'rv_u' represents a random stream of 2x2 matrices of draws from a uniform
 distribution.  Likewise,  'rv_n' represents a random stream of 2x2 matrices of
 draws from a normal distribution.  The distributions that are implemented are
-defined in :class:`RandomStreams` and, at a lower level,
-in :ref:`raw_random<libdoc_tensor_raw_random>`. They only work on CPU.
+defined as :class:`RandomVariable`s
+in :ref:`basic<libdoc_tensor_random_basic>`. They only work on CPU.
 See `Other Implementations`_ for GPU version.
 
 
@@ -412,7 +412,7 @@ You can seed just one random variable by seeding or assigning to the
 >>> rng_val.seed(89234)                         # seeds the generator
 >>> rv_u.rng.set_value(rng_val, borrow=True)    # Assign back seeded rng
 
-You can also seed *all* of the random variables allocated by a :class:`RandomStreams`
+You can also seed *all* of the random variables allocated by a :class:`RandomStream`
 object by that object's ``seed`` method.  This seed will be used to seed a
 temporary random number generator, that will in turn generate seeds for each
 of the random variables.
@@ -447,11 +447,11 @@ number generators associated with a given theano graph (e.g. g1, with compiled
 function f1 below) to a second graph (e.g. g2, with function f2). This might
 arise for example if you are trying to initialize the state of a model, from
 the parameters of a pickled version of a previous model. For
-:class:`theano.tensor.shared_randomstreams.RandomStreams` and
-:class:`theano.sandbox.rng_mrg.MRG_RandomStreams`
+:class:`theano.tensor.random.utils.RandomStream` and
+:class:`theano.sandbox.rng_mrg.MRG_RandomStream`
 this can be achieved by copying elements of the `state_updates` parameter.
 
-Each time a random variable is drawn from a RandomStreams object, a tuple is
+Each time a random variable is drawn from a `RandomStream` object, a tuple is
 added to the `state_updates` list. The first element is a shared variable,
 which represents the state of the random number generator associated with this
 *particular* variable, while the second represents the theano graph
@@ -464,12 +464,12 @@ to another is shown below.
 >>> import theano
 >>> import numpy
 >>> import theano.tensor as tt
->>> from theano.sandbox.rng_mrg import MRG_RandomStreams
->>> from theano.tensor.shared_randomstreams import RandomStreams
+>>> from theano.sandbox.rng_mrg import MRG_RandomStream
+>>> from theano.tensor.random.utils import RandomStream
 
 >>> class Graph():
 ...     def __init__(self, seed=123):
-...         self.rng = RandomStreams(seed)
+...         self.rng = RandomStream(seed)
 ...         self.y = self.rng.uniform(size=(1,))
 
 >>> g1 = Graph(seed=123)
@@ -485,7 +485,7 @@ array([ 0.72803009])
 array([ 0.55056769])
 
 >>> def copy_random_state(g1, g2):
-...     if isinstance(g1.rng, MRG_RandomStreams):
+...     if isinstance(g1.rng, MRG_RandomStream):
 ...         g2.rng.rstate = g1.rng.rstate
 ...     for (su1, su2) in zip(g1.rng.state_updates, g2.rng.state_updates):
 ...         su2[0].set_value(su1[0].get_value())
@@ -501,7 +501,7 @@ array([ 0.59044123])
 Other Random Distributions
 --------------------------
 
-There are :ref:`other distributions implemented <libdoc_tensor_raw_random>`.
+There are :ref:`other distributions implemented <libdoc_tensor_random_basic>`.
 
 .. _example_other_random:
 
@@ -510,7 +510,7 @@ Other Implementations
 
 There is another implementations based on :ref:`MRG31k3p
 <libdoc_rng_mrg>`.
-The RandomStream only work on the CPU, MRG31k3p work on the CPU and GPU.
+The `RandomStream` only work on the CPU, MRG31k3p work on the CPU and GPU.
 
 .. note::
 
@@ -518,7 +518,7 @@ The RandomStream only work on the CPU, MRG31k3p work on the CPU and GPU.
 
         .. code-block:: python
 
-            from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
+            from theano.sandbox.rng_mrg import MRG_RandomStream as RandomStream
 
 .. _logistic_regression:
 

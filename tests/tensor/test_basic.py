@@ -108,6 +108,7 @@ from theano.tensor import (
     as_tensor_variable,
     batched_dot,
     bvector,
+    cast,
     choose,
     clip,
     constant,
@@ -1109,6 +1110,18 @@ class TestAsTensorVariable:
         )
         a_vector = as_tensor_variable(x_vector)
         assert x_vector is a_vector
+
+    def test_make_vector(self):
+        a = tt.iscalar()
+        x = tt.tile(a, (1, 1, 1))
+        y = (tt.constant(1, dtype="int64"), x.shape[2])
+        res = tt.as_tensor(y, ndim=1)
+        assert isinstance(res.owner.op, tt.opt.MakeVector)
+        assert tuple(res.owner.inputs) == y
+
+        y = (1, x.shape[2])
+        res = tt.as_tensor(y)
+        assert isinstance(res.owner.op, tt.opt.MakeVector)
 
 
 class TestAlloc:
@@ -2368,24 +2381,53 @@ class TestOuter:
             utt.verify_grad(tt.outer, [data0, data1])
 
 
-class TestGetVectorLength:
-    def test_get_vector_length(self):
-        x = theano.shared(np.zeros((2, 3, 4, 5)))
-        assert len(list(x.shape)) == 4
-        assert len(list(x.shape[2:4])) == 2
-        assert len(list(x.shape[2:])) == 2
-        assert len(list(x.shape[1:4])) == 3
-        assert len(list(x.shape[2:2])) == 0
-        assert len(list(x.shape[1:5])) == 3
-        assert len(list(x.shape[1:10])) == 3
-        # Test step
-        assert len(list(x.shape[1:10:2])) == 2
-        # Test neg start
-        assert len(list(x.shape[-1:4])) == 1
-        assert len(list(x.shape[-6:4])) == 4
-        # test neg stop
-        assert len(list(x.shape[1:-2])) == 1
-        assert len(list(x.shape[1:-1])) == 2
+def test_get_vector_length():
+    x = theano.shared(np.zeros((2, 3, 4, 5)))
+    assert len(list(x.shape)) == 4
+    assert len(list(x.shape[2:4])) == 2
+    assert len(list(x.shape[2:])) == 2
+    assert len(list(x.shape[1:4])) == 3
+    assert len(list(x.shape[2:2])) == 0
+    assert len(list(x.shape[1:5])) == 3
+    assert len(list(x.shape[1:10])) == 3
+    # Test step
+    assert len(list(x.shape[1:10:2])) == 2
+    # Test neg start
+    assert len(list(x.shape[-1:4])) == 1
+    assert len(list(x.shape[-6:4])) == 4
+    # test neg stop
+    assert len(list(x.shape[1:-2])) == 1
+    assert len(list(x.shape[1:-1])) == 2
+
+    z = join(0, as_tensor_variable(1, ndim=1), as_tensor_variable(x.shape[0], ndim=1))
+    assert isinstance(z.owner.op, Join)
+    assert get_vector_length(z) == 2
+
+    z = join(
+        0, as_tensor_variable([1, 2], ndim=1), as_tensor_variable(x.shape[0], ndim=1)
+    )
+    assert isinstance(z.owner.op, Join)
+    assert get_vector_length(z) == 3
+
+    empty_tuple = as_tensor_variable(())
+    assert 0 == get_vector_length(empty_tuple)
+
+    x = lscalar("x")
+    y = dscalar("y")
+
+    triple = as_tensor_variable((x, y, 9.0))
+    assert 3 == get_vector_length(triple)
+
+    triple = cast(as_tensor_variable((x, y, 9.0)), "int64")
+    assert 3 == get_vector_length(triple)
+
+    a, b, c = triple
+    mode = theano.compile.get_default_mode().excluding("constant_folding")
+    f = function([x, y], [b, c, a], mode=mode)
+    topo = f.maker.fgraph.toposort()
+    assert [True for node in topo if isinstance(node.op, opt.MakeVector)]
+
+    assert np.allclose(f(4, 5), [5, 9, 4])
 
 
 class TestJoinAndSplit:
@@ -2864,20 +2906,6 @@ class TestJoinAndSplit:
             join(-3, a, b)
 
         utt.verify_grad(lambda a, b: join(-1, a, b), [v, 2 * v], mode=self.mode)
-
-    def test_vector_len(self):
-        x = lscalar("x")
-        y = dscalar("y")
-
-        triple = as_tensor_variable((x, y, 9.0))
-        assert 3 == get_vector_length(triple)
-
-        a, b, c = triple
-        f = function([x, y], [b, c, a], mode=self.mode)
-        topo = f.maker.fgraph.toposort()
-        assert [True for node in topo if isinstance(node.op, opt.MakeVector)]
-
-        assert np.allclose(f(4, 5), [5, 9, 4])
 
     def test_broadcastable_flag_assignment_mixed_otheraxes(self):
         # Test that the broadcastable flags for the output of
@@ -5840,6 +5868,19 @@ class TestGetScalarConstantValue:
         # is broadcastable.
         v = tt.row()
         assert get_scalar_constant_value(v.shape[0]) == 1
+
+        res = tt.get_scalar_constant_value(tt.as_tensor([10, 20]).shape[0])
+        assert isinstance(res, np.ndarray)
+        assert 2 == res
+
+        res = tt.get_scalar_constant_value(
+            9 + tt.as_tensor([1.0]).shape[0],
+            elemwise=True,
+            only_process_constants=False,
+            max_recur=9,
+        )
+        assert isinstance(res, np.ndarray)
+        assert 10 == res
 
     def test_subtensor_of_constant(self):
         c = constant(rand(5))

@@ -2,7 +2,6 @@
 
 import builtins
 import logging
-import numbers
 import warnings
 from collections.abc import Sequence
 from functools import partial
@@ -102,7 +101,7 @@ def as_tensor_variable(x, name=None, ndim=None):
 
     Parameters
     ----------
-    x : Apply instance, Variable instance, numpy.ndarray, or number
+    x : Apply or Variable or numpy.ndarray or number
         This thing will be transformed into a `Variable` in a sensible way. An
         ndarray argument will not be copied, but a list of numbers will be
         copied to make an ndarray.
@@ -186,6 +185,16 @@ def as_tensor_variable(x, name=None, ndim=None):
         try:
             x = [extract_constants(i) for i in x]
         except TypeError:
+            if builtins.all(getattr(i, "ndim", None) == 0 for i in x) and (
+                ndim is None or ndim == 1
+            ):
+                # In this instance, we can avoid making a `Join` `Op`, because
+                # we know that the result should be a vector.
+                # `MakeVector` is a better option due to its `get_scalar_constant_value`
+                # support.
+                dtype = scal.upcast(*[i.dtype for i in x if hasattr(i, "dtype")])
+                return theano.tensor.opt.MakeVector(dtype)(*x)
+
             return stack(x)
 
     elif isinstance(x, bool):
@@ -658,6 +667,9 @@ def get_scalar_constant_value(
 
                     if gp_broadcastable[idx]:
                         return np.asarray(1)
+
+                    if isinstance(grandparent, Constant):
+                        return np.asarray(grandparent.data.shape[idx])
 
         raise NotScalarConstantError(v)
 
@@ -4924,63 +4936,62 @@ def get_vector_length(v):
         return len(v.owner.inputs)
     if v.owner and isinstance(v.owner.op, Shape):
         return v.owner.inputs[0].type.ndim
+
+    # We can skip `Op`s that don't affect the length, like unary `Elemwise`
+    # `Op`s
+    if (
+        v.owner
+        and isinstance(v.owner.op, theano.tensor.elemwise.Elemwise)
+        and len(v.owner.inputs) == 1
+        and len(v.owner.outputs) == 1
+    ):
+        return get_vector_length(v.owner.inputs[0])
+
+    if v.owner and isinstance(v.owner.op, Join):
+        axis, *arrays = v.owner.inputs
+        try:
+            axis = get_scalar_constant_value(axis)
+            if axis != 0:
+                raise ValueError()
+            if not builtins.all(a.ndim == 1 for a in arrays):
+                raise ValueError()
+            return builtins.sum(get_vector_length(a) for a in arrays)
+        except (ValueError, NotScalarConstantError):
+            raise ValueError(f"Length of {v} cannot be determined")
+
     # If we take a slice, we know how many elements it will result in
+    # TODO: We can cover more `*Subtensor` cases.
     if (
         v.owner
         and isinstance(v.owner.op, theano.tensor.subtensor.Subtensor)
         and isinstance(v.owner.op.idx_list[0], slice)
-        and v.owner.inputs[0].owner
-        and isinstance(v.owner.inputs[0].owner.op, theano.compile.ops.Shape)
     ):
-        start = extract_constant(
-            theano.tensor.subtensor.get_idx_list(v.owner.inputs, v.owner.op.idx_list)[
-                0
-            ].start
-        )
-        stop = extract_constant(
-            theano.tensor.subtensor.get_idx_list(v.owner.inputs, v.owner.op.idx_list)[
-                0
-            ].stop
-        )
-        step = extract_constant(
-            theano.tensor.subtensor.get_idx_list(v.owner.inputs, v.owner.op.idx_list)[
-                0
-            ].step
-        )
+        try:
+            indices = theano.tensor.subtensor.get_idx_list(
+                v.owner.inputs, v.owner.op.idx_list
+            )
+            start = (
+                None
+                if indices[0].start is None
+                else get_scalar_constant_value(indices[0].start)
+            )
+            stop = (
+                None
+                if indices[0].stop is None
+                else get_scalar_constant_value(indices[0].stop)
+            )
+            step = (
+                None
+                if indices[0].step is None
+                else get_scalar_constant_value(indices[0].step)
+            )
 
-        ndim = v.owner.inputs[0].owner.inputs[0].ndim
-        types = (numbers.Integral, np.integer)
-        if start is None:
-            start = 0
-        elif isinstance(start, types) and start < 0:
-            start += ndim
-            if start < 0:
-                start = 0
-        if stop is None:
-            stop = ndim
-        elif isinstance(stop, types):
-            if stop > ndim:
-                stop = ndim
-            elif stop < 0:
-                stop += ndim
-        if step is None:
-            step = 1
+            arg_len = get_vector_length(v.owner.inputs[0])
+            return len(range(*slice(start, stop, step).indices(arg_len)))
+        except (ValueError, NotScalarConstantError):
+            raise ValueError(f"Length of {v} cannot be determined")
 
-        if (
-            isinstance(stop, types)
-            and isinstance(start, types)
-            and isinstance(step, types)
-            and start >= 0
-            and stop >= 0
-            and step > 0
-            and stop >= start
-        ):
-            return (stop - start - 1) // step + 1
-    if isinstance(v, Variable):
-        msg = theano.printing.debugprint(v, file="str")
-    else:
-        msg = str(v)
-    raise ValueError(f"length not known: {msg}")
+    raise ValueError(f"Length of {v} cannot be determined")
 
 
 @constructor
