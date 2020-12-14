@@ -50,7 +50,7 @@ class JAXLinker(PerformLinker):
         """
         import jax
 
-        from theano.sandbox.jaxify import jax_funcify
+        from theano.link.jax.jax_dispatch import jax_funcify
 
         output_nodes = [o.owner for o in self.fgraph.outputs]
 
