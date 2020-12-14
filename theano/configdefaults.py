@@ -23,8 +23,11 @@ from theano.configparser import (
     IntParam,
     StrParam,
 )
-from theano.misc.windows import call_subprocess_Popen, output_subprocess_Popen
-from theano.utils import maybe_add_to_os_environ_pathlist
+from theano.utils import (
+    call_subprocess_Popen,
+    maybe_add_to_os_environ_pathlist,
+    output_subprocess_Popen,
+)
 
 
 _logger = logging.getLogger("theano.configdefaults")

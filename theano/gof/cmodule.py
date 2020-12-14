@@ -28,8 +28,7 @@ from theano.configdefaults import gcc_version_str, local_bitwidth
 # we will abuse the lockfile mechanism when reading and writing the registry
 from theano.gof import compilelock
 from theano.gof.utils import flatten, hash_from_code
-from theano.misc.windows import output_subprocess_Popen, subprocess_Popen
-from theano.utils import decode, decode_iter
+from theano.utils import decode, decode_iter, output_subprocess_Popen, subprocess_Popen
 
 
 importlib = None
