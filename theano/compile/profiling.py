@@ -1516,7 +1516,7 @@ class ProfileStats:
 
         import theano
 
-        RandomFunction = theano.tensor.raw_random.RandomFunction
+        RandomVariable = theano.tensor.random.op.RandomVariable
         scal = theano.scalar
         T = theano.tensor
         scalar_op_amdlibm_no_speed_up = [
@@ -1664,18 +1664,18 @@ class ProfileStats:
         # tip 5
         for (fgraph, a) in self.apply_time:
             node = a
-            if isinstance(node.op, RandomFunction):
+            if isinstance(node.op, RandomVariable):
                 printed_tip = True
                 print(
                     "  - Replace the default random number generator by "
-                    "'from theano.sandbox.rng_mrg import MRG_RandomStreams "
-                    "as RandomStreams', as this is is faster. It is still "
+                    "'from theano.sandbox.rng_mrg import MRG_RandomStream "
+                    "as RandomStream', as this is is faster. It is still "
                     "experimental, but seems to work correctly.",
                     file=file,
                 )
                 if config.device.startswith("gpu"):
                     print(
-                        "     - MRG_RandomStreams is the only random number"
+                        "     - MRG_RandomStream is the only random number"
                         " generator supported on the GPU.",
                         file=file,
                     )

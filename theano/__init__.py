@@ -197,5 +197,5 @@ def sparse_grad(var):
     return ret
 
 
-import theano.tensor.shared_randomstreams
+import theano.tensor.random.var
 from theano.scan import checkpoints, clone, foldl, foldr, map, reduce, scan

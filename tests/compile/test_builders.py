@@ -11,7 +11,7 @@ from theano.compile.builders import OpFromGraph
 from theano.compile.function import function
 from theano.gof.null_type import NullType
 from theano.gradient import DisconnectedType
-from theano.tensor.shared_randomstreams import RandomStreams
+from theano.tensor.random.utils import RandomStream
 
 
 class TestOpFromGraph(unittest_tools.InferShapeTester):
@@ -359,7 +359,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         assert results == expect_result
 
         # Inner graph where some computation doesn't rely on explicit inputs
-        srng = RandomStreams(seed=234)
+        srng = RandomStream(seed=234)
         rv_u = srng.uniform((2, 2))
         x, y = tt.matrices("xy")
         out1 = x + rv_u

@@ -9,8 +9,8 @@
    :synopsis: symbolic types and operations for n-dimensional arrays.
 .. moduleauthor:: LISA
 
-Theano's strength is in expressing symbolic calculations involving tensors.  
-There are many types of symbolic expressions for tensors. 
+Theano's strength is in expressing symbolic calculations involving tensors.
+There are many types of symbolic expressions for tensors.
 They are grouped into the following sections:
 
 
@@ -19,8 +19,7 @@ They are grouped into the following sections:
 
     basic
     nnet/index
-    raw_random
-    shared_randomstreams
+    random/index
     signal/index
     utils
     elemwise

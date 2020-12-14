@@ -39,7 +39,7 @@ class GPUA_mrg_uniform(GpuKernelBase, mrg_uniform_base):
         # error checking slightly redundant here, since
         # this op should not be called directly.
         #
-        # call through MRG_RandomStreams instead.
+        # call through MRG_RandomStream instead.
         broad = []
         for i in range(self.output_type.ndim):
             broad.append(tensor.extract_constant(size[i]) == 1)

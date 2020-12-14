@@ -7,7 +7,7 @@ import theano
 from tests import unittest_tools as utt
 from theano import config, gof, gradient
 from theano.gof.null_type import NullType
-from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
+from theano.sandbox.rng_mrg import MRG_RandomStream
 
 
 one = theano.tensor.as_tensor_variable(1.0)
@@ -811,17 +811,20 @@ def test_grad_scale():
 @config.change_flags(compute_test_value="off")
 def test_undefined_grad_opt():
     # Make sure that undefined grad get removed in optimized graph.
-    random = RandomStreams(np.random.randint(1, 2147462579))
+    random = MRG_RandomStream(np.random.randint(1, 2147462579))
+
     pvals = theano.shared(np.random.rand(10, 20).astype(config.floatX))
     pvals = pvals / pvals.sum(axis=1)
     pvals = gradient.zero_grad(pvals)
+
     samples = random.multinomial(pvals=pvals, n=1)
     samples = theano.tensor.cast(samples, pvals.dtype)
     samples = gradient.zero_grad(samples)
+
     cost = theano.tensor.sum(samples + pvals)
     grad = theano.tensor.grad(cost, samples)
+
     f = theano.function([], grad)
-    theano.printing.debugprint(f)
     assert not any(
         [
             isinstance(node.op, gradient.UndefinedGrad)

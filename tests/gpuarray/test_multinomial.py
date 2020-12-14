@@ -10,7 +10,7 @@ from theano.gpuarray.multinomial import (
     GPUAMultinomialFromUniform,
 )
 from theano.sandbox import multinomial
-from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
+from theano.sandbox.rng_mrg import MRG_RandomStream as RandomStream
 
 
 def test_multinomial_output_dtype():
@@ -262,7 +262,7 @@ class TestFunctionWor:
     def test_select_distinct(self):
         # Tests that multinomial_wo_replacement always selects distinct elements
 
-        th_rng = RandomStreams(12345)
+        th_rng = RandomStream(12345)
 
         p = tensor.fmatrix()
         n = tensor.iscalar()
@@ -285,7 +285,7 @@ class TestFunctionWor:
         # Tests that multinomial_wo_replacement fails when asked to sample more
         # elements than the actual number of elements
 
-        th_rng = RandomStreams(12345)
+        th_rng = RandomStream(12345)
 
         p = tensor.fmatrix()
         n = tensor.iscalar()
@@ -305,7 +305,7 @@ class TestFunctionWor:
         # Tests that multinomial_wo_replacement selects elements, on average,
         # proportional to the their probabilities
 
-        th_rng = RandomStreams(12345)
+        th_rng = RandomStream(12345)
 
         p = tensor.fmatrix()
         n = tensor.iscalar()

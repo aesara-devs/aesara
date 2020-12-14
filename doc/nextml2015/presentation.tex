@@ -866,7 +866,7 @@ X = tt.matrix("X")
 b_sym = tt.vector("b_sym")
 
 # define shared random stream
-trng = tt.shared_randomstreams.RandomStreams(1234)
+trng = tt.random.utils.RandomStream(1234)
 d=trng.binomial(size=W[1].shape)
 \end{lstlisting}
 \end{frame}

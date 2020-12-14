@@ -7,6 +7,8 @@ from collections import deque
 from copy import copy
 from itertools import count
 
+import numpy as np
+
 import theano
 from theano import config
 from theano.gof.utils import (
@@ -1420,14 +1422,37 @@ def equal_computations(xs, ys, in_xs=None, in_ys=None):
     `ys`, but also represent subgraphs of a computational graph in `xs`
     or `ys`.
 
+    Parameters
+    ----------
+    xs : list of Variable
+    ys : list of Variable
+
+    Returns
+    -------
+    bool
+
     """
-    assert len(xs) == len(ys)
+    if len(xs) != len(ys):
+        raise ValueError("The number of graphs/Variables in each argument must match.")
+
     if in_xs is None:
         in_xs = []
     if in_ys is None:
         in_ys = []
 
     for x, y in zip(xs, ys):
+        if not isinstance(x, Variable) and not isinstance(y, Variable):
+            return np.array_equal(x, y)
+        if not isinstance(x, Variable):
+            if isinstance(y, Constant):
+                return np.array_equal(y.data, x)
+            return False
+        if not isinstance(y, Variable):
+            if isinstance(x, Constant):
+                return np.array_equal(x.data, y)
+            return False
+        if not isinstance(y, Variable):
+            return False
         if x.owner and not y.owner:
             return False
         if y.owner and not x.owner:
@@ -1437,8 +1462,10 @@ def equal_computations(xs, ys, in_xs=None, in_ys=None):
                 return False
         if x not in in_xs and x.type != y.type:
             return False
+
     if len(in_xs) != len(in_ys):
         return False
+
     for _x, _y in zip(in_xs, in_ys):
         if _x.type != _y.type:
             return False
