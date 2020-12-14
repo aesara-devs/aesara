@@ -35,7 +35,6 @@ from theano.scalar.basic import (
     cos,
     cosh,
     deg2rad,
-    div_proxy,
     eq,
     exp,
     exp2,
@@ -66,9 +65,9 @@ from theano.scalar.basic import (
 )
 
 
-def test_mul_add_div_proxy():
+def test_mul_add_true():
     x, y, z = floats("xyz")
-    e = mul(add(x, y), div_proxy(x, y))
+    e = mul(add(x, y), true_div(x, y))
     g = FunctionGraph([x, y], [e])
     fn = gof.DualLinker().accept(g).make_function()
     assert fn(1.0, 2.0) == 1.5
@@ -114,7 +113,7 @@ class TestComposite:
 
     def test_straightforward(self):
         x, y, z = floats("xyz")
-        e = mul(add(x, y), div_proxy(x, y))
+        e = mul(add(x, y), true_div(x, y))
         C = Composite([x, y], [e])
         c = C.make_node(x, y)
         # print c.c_code(['x', 'y'], ['z'], dict(id = 0))
@@ -136,7 +135,7 @@ class TestComposite:
 
     def test_with_constants(self):
         x, y, z = floats("xyz")
-        e = mul(add(70.0, y), div_proxy(x, y))
+        e = mul(add(70.0, y), true_div(x, y))
         C = Composite([x, y], [e])
         c = C.make_node(x, y)
         assert "70.0" in c.op.c_code(c, "dummy", ["x", "y"], ["z"], dict(id=0))

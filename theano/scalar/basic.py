@@ -11,7 +11,6 @@ you probably want to use theano.tensor.[c,z,f,d,b,w,i,l,]scalar!
 """
 
 import math
-import warnings
 from collections.abc import Callable
 from copy import copy
 from functools import partial
@@ -798,10 +797,7 @@ class _scalar_py_operators:
         return mul(self, other)
 
     def __truediv__(self, other):
-        return div_proxy(self, other)
-
-    def __div__(self, other):
-        return div_proxy(self, other)
+        return true_div(self, other)
 
     def __floordiv__(self, other):
         return int_div(self, other)
@@ -821,9 +817,6 @@ class _scalar_py_operators:
 
     def __rmul__(self, other):
         return mul(other, self)
-
-    def __rdiv__(self, other):
-        return div_proxy(other, self)
 
     def __rmod__(self, other):
         return mod(other, self)
@@ -1945,71 +1938,6 @@ class Sub(BinaryScalarOp):
 
 
 sub = Sub(upcast_out_nobool, name="sub")
-
-
-def int_or_true_div(x_discrete, y_discrete):
-    """
-    Return 'int' or 'true' depending on the type of division used for x / y.
-
-    Parameters
-    ----------
-    x_discrete : bool
-        True if `x` is discrete ([unsigned] integer).
-    y_discrete : bool
-        True if `y` is discrete ([unsigned] integer).
-
-    Returns
-    -------
-    str
-        'int' if `x / y` should be an integer division, or `true` if it
-        should be a true division.
-
-    Raises
-    ------
-    IntegerDivisionError
-        If both `x_discrete` and `y_discrete` are True and `config.int_division`
-        is set to 'raise'.
-
-    Notes
-    -----
-    This function is used by both scalar/basic.py and tensor/basic.py.
-
-    """
-    if x_discrete and y_discrete:
-        if config.int_division == "raise":
-            raise IntegerDivisionError(
-                "With `config.int_division` set to 'raise', dividing two "
-                "integer types with '/' is forbidden to avoid confusion "
-                "between integer and floating point divisions. Please "
-                "use // for integer division, or if you want a float result "
-                "either cast one of the arguments to a float or directly call "
-                "`x.__truediv__(y)`."
-            )
-        elif config.int_division == "int":
-            warnings.warn(
-                "Division of two integer types with x / y is deprecated, "
-                "please use x // y for an integer division.",
-                DeprecationWarning,
-                stacklevel=4,
-            )
-            return int_div
-        elif config.int_division == "floatX":
-            return true_div
-        else:
-            raise NotImplementedError(config.int_division)
-    else:
-        return true_div
-
-
-def div_proxy(x, y):
-    """
-    Proxy for either true_div or int_div, depending on types of x, y.
-
-    """
-    f = int_or_true_div(
-        as_scalar(x).type in discrete_types, as_scalar(y).type in discrete_types
-    )
-    return f(x, y)
 
 
 class TrueDiv(BinaryScalarOp):
