@@ -28,8 +28,7 @@ from theano.configdefaults import gcc_version_str, local_bitwidth
 # we will abuse the lockfile mechanism when reading and writing the registry
 from theano.gof import compilelock
 from theano.gof.utils import flatten, hash_from_code
-from theano.misc.windows import output_subprocess_Popen, subprocess_Popen
-from theano.utils import decode, decode_iter
+from theano.utils import output_subprocess_Popen, subprocess_Popen
 
 
 importlib = None
@@ -1786,7 +1785,7 @@ def gcc_llvm():
     """
     if gcc_llvm.is_llvm is None:
         try:
-            p_out = output_subprocess_Popen([theano.config.cxx, "--version"])
+            p_out = output_subprocess_Popen([config.cxx, "--version"])
             output = p_out[0] + p_out[1]
         except OSError:
             # Typically means g++ cannot be found.
@@ -1942,6 +1941,41 @@ class Compiler:
         )
 
 
+def try_blas_flag(flags):
+    test_code = textwrap.dedent(
+        """\
+        extern "C" double ddot_(int*, double*, int*, double*, int*);
+        int main(int argc, char** argv)
+        {
+            int Nx = 5;
+            int Sx = 1;
+            double x[5] = {0, 1, 2, 3, 4};
+            double r = ddot_(&Nx, x, &Sx, x, &Sx);
+
+            if ((r - 30.) > 1e-6 || (r - 30.) < -1e-6)
+            {
+                return -1;
+            }
+            return 0;
+        }
+        """
+    )
+    cflags = list(flags)
+    # to support path that includes spaces, we need to wrap it with double quotes on Windows
+    path_wrapper = '"' if os.name == "nt" else ""
+    cflags.extend([f"-L{path_wrapper}{d}{path_wrapper}" for d in std_lib_dirs()])
+
+    res = GCC_compiler.try_compile_tmp(
+        test_code, tmp_prefix="try_blas_", flags=cflags, try_run=True
+    )
+    # res[0]: shows successful compilation
+    # res[1]: shows successful execution
+    if res and res[0] and res[1]:
+        return " ".join(flags)
+    else:
+        return ""
+
+
 def try_march_flag(flags):
     """
     Try to compile and run a simple C snippet using current flags.
@@ -1980,7 +2014,7 @@ class GCC_compiler(Compiler):
 
     @staticmethod
     def version_str():
-        return theano.config.cxx + " " + gcc_version_str
+        return config.cxx + " " + gcc_version_str
 
     @staticmethod
     def compile_args(march_flags=True):
@@ -2008,10 +2042,10 @@ class GCC_compiler(Compiler):
                     break
 
         if (
-            "g++" not in theano.config.cxx
-            and "clang++" not in theano.config.cxx
-            and "clang-omp++" not in theano.config.cxx
-            and "icpc" not in theano.config.cxx
+            "g++" not in config.cxx
+            and "clang++" not in config.cxx
+            and "clang-omp++" not in config.cxx
+            and "icpc" not in config.cxx
         ):
             _logger.warning(
                 "Your Theano flag `cxx` seems not to be"
@@ -2043,7 +2077,7 @@ class GCC_compiler(Compiler):
                     return None
 
                 lines = BytesIO(stdout + stderr).readlines()
-                lines = decode_iter(lines)
+                lines = (l.decode() for l in lines)
                 if parse:
                     selected_lines = []
                     for line in lines:
@@ -2063,7 +2097,7 @@ class GCC_compiler(Compiler):
 
             # The '-' at the end is needed. Otherwise, g++ do not output
             # enough information.
-            native_lines = get_lines(f"{theano.config.cxx} -march=native -E -v -")
+            native_lines = get_lines(f"{config.cxx} -march=native -E -v -")
             if native_lines is None:
                 _logger.info(
                     "Call to 'g++ -march=native' failed," "not setting -march flag"
@@ -2078,7 +2112,7 @@ class GCC_compiler(Compiler):
                     # That means we did not select the right lines, so
                     # we have to report all the lines instead
                     reported_lines = get_lines(
-                        f"{theano.config.cxx} -march=native -E -v -", parse=False
+                        f"{config.cxx} -march=native -E -v -", parse=False
                     )
                 else:
                     reported_lines = native_lines
@@ -2091,7 +2125,7 @@ class GCC_compiler(Compiler):
                     f" problem:\n {reported_lines}"
                 )
             else:
-                default_lines = get_lines(f"{theano.config.cxx} -E -v -")
+                default_lines = get_lines(f"{config.cxx} -E -v -")
                 _logger.info(f"g++ default lines: {default_lines}")
                 if len(default_lines) < 1:
                     _logger.warning(
@@ -2102,7 +2136,7 @@ class GCC_compiler(Compiler):
                         " functions. Please submit the following lines to"
                         " Theano's mailing list so that we can fix this"
                         " problem:\n %s",
-                        get_lines(f"{theano.config.cxx} -E -v -", parse=False),
+                        get_lines(f"{config.cxx} -E -v -", parse=False),
                     )
                 else:
                     # Some options are actually given as "-option value",
@@ -2330,7 +2364,7 @@ class GCC_compiler(Compiler):
         comp_args=True,
     ):
         return cls._try_compile_tmp(
-            src_code, tmp_prefix, flags, try_run, output, theano.config.cxx, comp_args
+            src_code, tmp_prefix, flags, try_run, output, config.cxx, comp_args
         )
 
     @classmethod
@@ -2344,7 +2378,7 @@ class GCC_compiler(Compiler):
         comp_args=True,
     ):
         return cls._try_flags(
-            flag_list, preambule, body, try_run, output, theano.config.cxx, comp_args
+            flag_list, preambule, body, try_run, output, config.cxx, comp_args
         )
 
     @staticmethod
@@ -2394,7 +2428,7 @@ class GCC_compiler(Compiler):
         """
         # TODO: Do not do the dlimport in this function
 
-        if not theano.config.cxx:
+        if not config.cxx:
             raise MissingGXX("g++ not available! We can't compile c code.")
 
         if include_dirs is None:
@@ -2438,7 +2472,7 @@ class GCC_compiler(Compiler):
         lib_filename = os.path.join(location, filepath)
 
         _logger.debug(f"Generating shared lib {lib_filename}")
-        cmd = [theano.config.cxx, get_gcc_shared_library_arg(), "-g"]
+        cmd = [config.cxx, get_gcc_shared_library_arg(), "-g"]
 
         if config.cmodule__remove_gxx_opt:
             cmd.extend(p for p in preargs if not p.startswith("-O"))
@@ -2472,7 +2506,7 @@ class GCC_compiler(Compiler):
 
         try:
             p_out = output_subprocess_Popen(cmd)
-            compile_stderr = decode(p_out[1])
+            compile_stderr = p_out[1].decode()
         except Exception:
             # An exception can occur e.g. if `g++` is not found.
             print_command_line_error()
@@ -2537,3 +2571,297 @@ class GCC_compiler(Compiler):
 
 def icc_module_compile_str(*args):
     raise NotImplementedError()
+
+
+def check_mkl_openmp():
+    if not config.blas__check_openmp:
+        return
+    if sys.platform == "darwin":
+        return
+    if (
+        "MKL_THREADING_LAYER" in os.environ
+        and os.environ["MKL_THREADING_LAYER"] == "GNU"
+    ):
+        return
+    try:
+        import numpy._mklinit  # noqa
+
+        return
+    except ImportError:
+        pass
+    try:
+        import mkl
+
+        if "2018" in mkl.get_version_string():
+            raise RuntimeError(
+                """
+To use MKL 2018 with Theano either update the numpy conda packages to
+their latest build or set "MKL_THREADING_LAYER=GNU" in your
+environment.
+"""
+            )
+    except ImportError:
+        raise RuntimeError(
+            """
+Could not import 'mkl'.  If you are using conda, update the numpy
+packages to the latest build otherwise, set MKL_THREADING_LAYER=GNU in
+your environment for MKL 2018.
+
+If you have MKL 2017 install and are not in a conda environment you
+can set the Theano flag blas__check_openmp to False.  Be warned that if
+you set this flag and don't set the appropriate environment or make
+sure you have the right version you *will* get wrong results.
+"""
+        )
+
+
+def default_blas_ldflags():
+    """Read local NumPy and MKL build settings and construct `ld` flags from them.
+
+    Returns
+    -------
+    str
+
+    """
+    import numpy.distutils  # noqa
+
+    warn_record = []
+    try:
+        if hasattr(numpy.distutils, "__config__") and numpy.distutils.__config__:
+            # If the old private interface is available use it as it
+            # don't print information to the user.
+            blas_info = numpy.distutils.__config__.blas_opt_info
+        else:
+            # We do this import only here, as in some setup, if we
+            # just import theano and exit, with the import at global
+            # scope, we get this error at exit: "Exception TypeError:
+            # "'NoneType' object is not callable" in <bound method
+            # Popen.__del__ of <subprocess.Popen object at 0x21359d0>>
+            # ignored"
+
+            # This happen with Python 2.7.3 |EPD 7.3-1 and numpy 1.8.1
+            # isort: off
+            import numpy.distutils.system_info  # noqa
+
+            # We need to catch warnings as in some cases NumPy print
+            # stuff that we don't want the user to see.
+            # I'm not able to remove all printed stuff
+            with warnings.catch_warnings(record=True):
+                numpy.distutils.system_info.system_info.verbosity = 0
+                blas_info = numpy.distutils.system_info.get_info("blas_opt")
+
+        # If we are in a EPD installation, mkl is available
+        if "EPD" in sys.version:
+            use_unix_epd = True
+            if sys.platform == "win32":
+                return " ".join(
+                    ['-L"%s"' % os.path.join(sys.prefix, "Scripts")]
+                    +
+                    # Why on Windows, the library used are not the
+                    # same as what is in
+                    # blas_info['libraries']?
+                    [f"-l{l}" for l in ["mk2_core", "mk2_intel_thread", "mk2_rt"]]
+                )
+            elif sys.platform == "darwin":
+                # The env variable is needed to link with mkl
+                new_path = os.path.join(sys.prefix, "lib")
+                v = os.getenv("DYLD_FALLBACK_LIBRARY_PATH", None)
+                if v is not None:
+                    # Explicit version could be replaced by a symbolic
+                    # link called 'Current' created by EPD installer
+                    # This will resolve symbolic links
+                    v = os.path.realpath(v)
+
+                # The python __import__ don't seam to take into account
+                # the new env variable "DYLD_FALLBACK_LIBRARY_PATH"
+                # when we set with os.environ['...'] = X or os.putenv()
+                # So we warn the user and tell him what todo.
+                if v is None or new_path not in v.split(":"):
+                    _logger.warning(
+                        "The environment variable "
+                        "'DYLD_FALLBACK_LIBRARY_PATH' does not contain "
+                        "the '{new_path}' path in its value. This will make "
+                        "Theano use a slow version of BLAS. Update "
+                        "'DYLD_FALLBACK_LIBRARY_PATH' to contain the "
+                        "said value, this will disable this warning."
+                    )
+
+                    use_unix_epd = False
+            if use_unix_epd:
+                return " ".join(
+                    ["-L%s" % os.path.join(sys.prefix, "lib")]
+                    + ["-l%s" % l for l in blas_info["libraries"]]
+                )
+
+                # Canopy
+        if "Canopy" in sys.prefix:
+            subsub = "lib"
+            if sys.platform == "win32":
+                subsub = "Scripts"
+            lib_path = os.path.join(sys.base_prefix, subsub)
+            if not os.path.exists(lib_path):
+                # Old logic to find the path. I don't think we still
+                # need it, but I don't have the time to test all
+                # installation configuration. So I keep this as a fall
+                # back in case the current expectation don't work.
+
+                # This old logic don't work when multiple version of
+                # Canopy is installed.
+                p = os.path.join(sys.base_prefix, "..", "..", "appdata")
+                assert os.path.exists(p), "Canopy changed the location of MKL"
+                lib_paths = os.listdir(p)
+                # Try to remove subdir that can't contain MKL
+                for sub in lib_paths:
+                    if not os.path.exists(os.path.join(p, sub, subsub)):
+                        lib_paths.remove(sub)
+                assert len(lib_paths) == 1, (
+                    "Unexpected case when looking for Canopy MKL libraries",
+                    p,
+                    lib_paths,
+                    [os.listdir(os.path.join(p, sub)) for sub in lib_paths],
+                )
+                lib_path = os.path.join(p, lib_paths[0], subsub)
+                assert os.path.exists(lib_path), "Canopy changed the location of MKL"
+
+            if sys.platform == "linux2" or sys.platform == "darwin":
+                return " ".join(
+                    ["-L%s" % lib_path] + ["-l%s" % l for l in blas_info["libraries"]]
+                )
+            elif sys.platform == "win32":
+                return " ".join(
+                    ['-L"%s"' % lib_path]
+                    +
+                    # Why on Windows, the library used are not the
+                    # same as what is in blas_info['libraries']?
+                    [f"-l{l}" for l in ["mk2_core", "mk2_intel_thread", "mk2_rt"]]
+                )
+
+        # MKL
+        # If mkl can be imported then use it. On conda:
+        # "conda install mkl-service" installs the Python wrapper and
+        # the low-level C libraries as well as optimised version of
+        # numpy and scipy.
+        try:
+            import mkl  # noqa
+        except ImportError as e:
+            if any([m for m in ("conda", "Continuum") if m in sys.version]):
+                warn_record.append(f"install mkl with `conda install mkl-service`: {e}")
+        else:
+            # This branch is executed if no exception was raised
+            if sys.platform == "win32":
+                lib_path = os.path.join(sys.prefix, "Library", "bin")
+                flags = [f'-L"{lib_path}"']
+            else:
+                lib_path = blas_info.get("library_dirs", [])
+                flags = []
+                if lib_path:
+                    flags = [f"-L{lib_path[0]}"]
+            if "2018" in mkl.get_version_string():
+                thr = "mkl_gnu_thread"
+            else:
+                thr = "mkl_intel_thread"
+            base_flags = list(flags)
+            flags += [f"-l{l}" for l in ["mkl_core", thr, "mkl_rt"]]
+            res = try_blas_flag(flags)
+
+            if not res and sys.platform == "win32" and thr == "mkl_gnu_thread":
+                # Check if it would work for intel OpenMP on windows
+                flags = base_flags + [
+                    f"-l{l}" for l in ["mkl_core", "mkl_intel_thread", "mkl_rt"]
+                ]
+                res = try_blas_flag(flags)
+
+            if res:
+                check_mkl_openmp()
+                return res
+
+            flags.extend(["-Wl,-rpath," + l for l in blas_info.get("library_dirs", [])])
+            res = try_blas_flag(flags)
+            if res:
+                check_mkl_openmp()
+                theano.utils.maybe_add_to_os_environ_pathlist("PATH", lib_path[0])
+                return res
+
+        # to support path that includes spaces, we need to wrap it with double quotes on Windows
+        path_wrapper = '"' if os.name == "nt" else ""
+        ret = (
+            # TODO: the Gemm op below should separate the
+            # -L and -l arguments into the two callbacks
+            # that CLinker uses for that stuff.  for now,
+            # we just pass the whole ldflags as the -l
+            # options part.
+            [
+                f"-L{path_wrapper}{l}{path_wrapper}"
+                for l in blas_info.get("library_dirs", [])
+            ]
+            + [f"-l{l}" for l in blas_info.get("libraries", [])]
+            + blas_info.get("extra_link_args", [])
+        )
+        # For some very strange reason, we need to specify -lm twice
+        # to get mkl to link correctly.  I have no idea why.
+        if any("mkl" in fl for fl in ret):
+            ret.extend(["-lm", "-lm"])
+        res = try_blas_flag(ret)
+        if res:
+            if "mkl" in res:
+                check_mkl_openmp()
+            return res
+
+        # If we are using conda and can't reuse numpy blas, then doing
+        # the fallback and test -lblas could give slow computation, so
+        # warn about this.
+        for warn in warn_record:
+            _logger.warning(warn)
+        del warn_record
+
+        # Some environment don't have the lib dir in LD_LIBRARY_PATH.
+        # So add it.
+        ret.extend(["-Wl,-rpath," + l for l in blas_info.get("library_dirs", [])])
+        res = try_blas_flag(ret)
+        if res:
+            if "mkl" in res:
+                check_mkl_openmp()
+            return res
+
+        # Add sys.prefix/lib to the runtime search path. On
+        # non-system installations of Python that use the
+        # system linker, this is generally necessary.
+        if sys.platform in ("linux", "darwin"):
+            lib_path = os.path.join(sys.prefix, "lib")
+            ret.append("-Wl,-rpath," + lib_path)
+            res = try_blas_flag(ret)
+            if res:
+                if "mkl" in res:
+                    check_mkl_openmp()
+                return res
+
+    except KeyError:
+        pass
+
+    # Even if we could not detect what was used for numpy, or if these
+    # libraries are not found, most Linux systems have a libblas.so
+    # readily available. We try to see if that's the case, rather
+    # than disable blas. To test it correctly, we must load a program.
+    # Otherwise, there could be problem in the LD_LIBRARY_PATH.
+    return try_blas_flag(["-lblas"])
+
+
+def add_blas_configvars():
+    config.add(
+        "blas__ldflags",
+        "lib[s] to include for [Fortran] level-3 blas implementation",
+        theano.configparser.StrParam(default_blas_ldflags),
+        # Added elsewhere in the c key only when needed.
+        in_c_key=False,
+    )
+
+    config.add(
+        "blas__check_openmp",
+        "Check for openmp library conflict.\nWARNING: Setting this to False leaves you open to wrong results in blas-related operations.",
+        theano.configparser.BoolParam(True),
+        in_c_key=False,
+    )
+
+
+# Register config parameters that are specific to this module:
+add_blas_configvars()

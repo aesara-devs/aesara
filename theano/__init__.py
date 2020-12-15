@@ -199,3 +199,8 @@ def sparse_grad(var):
 
 import theano.tensor.random.var
 from theano.scan import checkpoints, clone, foldl, foldr, map, reduce, scan
+
+
+# Some config variables are registered by submodules. Only after all those imports
+# were executed, we can warn about remaining flags provided by the user through THEANO_FLAGS.
+config.warn_unused_flags()

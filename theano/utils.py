@@ -1,7 +1,9 @@
-"""Utility functions for Theano."""
+"""Utility functions that only depend on the standard library."""
 
 
 import inspect
+import os
+import subprocess
 import traceback
 import warnings
 from collections import OrderedDict
@@ -11,19 +13,22 @@ from functools import wraps
 
 __all__ = [
     "cmp",
-    "decode",
-    "decode_with",
-    "decode_iter",
     "get_unbound_function",
     "maybe_add_to_os_environ_pathlist",
     "DefaultOrderedDict",
+    "deprecated",
+    "subprocess_Popen",
+    "call_subprocess_Popen",
+    "output_subprocess_Popen",
 ]
 
 
-# In python 3.x, when an exception is reraised it saves original
-# exception in its args, therefore in order to find the actual
-# message, we need to unpack arguments recursively.
 def exc_message(e):
+    """
+    In python 3.x, when an exception is reraised it saves original
+    exception in its args, therefore in order to find the actual
+    message, we need to unpack arguments recursively.
+    """
     msg = e.args[0]
     if isinstance(msg, Exception):
         return exc_message(msg)
@@ -42,19 +47,6 @@ def get_unbound_function(unbound):
     if hasattr(unbound, "__func__"):
         return unbound.__func__
     return unbound
-
-
-def decode(x):
-    return x.decode()
-
-
-def decode_iter(itr):
-    for x in itr:
-        yield x.decode()
-
-
-def decode_with(x, encoding):
-    return x.decode(encoding)
 
 
 class DefaultOrderedDict(OrderedDict):
@@ -146,3 +138,81 @@ def deprecated(message: str = ""):
         return function_wrapper
 
     return decorator_wrapper
+
+
+def subprocess_Popen(command, **params):
+    """
+    Utility function to work around windows behavior that open windows.
+
+    :see: call_subprocess_Popen and output_subprocess_Popen
+    """
+    startupinfo = None
+    if os.name == "nt":
+        startupinfo = subprocess.STARTUPINFO()
+        try:
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        except AttributeError:
+            startupinfo.dwFlags |= subprocess._subprocess.STARTF_USESHOWWINDOW
+
+        # Anaconda for Windows does not always provide .exe files
+        # in the PATH, they also have .bat files that call the corresponding
+        # executable. For instance, "g++.bat" is in the PATH, not "g++.exe"
+        # Unless "shell=True", "g++.bat" is not executed when trying to
+        # execute "g++" without extensions.
+        # (Executing "g++.bat" explicitly would also work.)
+        params["shell"] = True
+        # "If shell is True, it is recommended to pass args as a string rather than as a sequence." (cite taken from https://docs.python.org/2/library/subprocess.html#frequently-used-arguments)
+        # In case when command arguments have spaces, passing a command as a list will result in incorrect arguments break down, and consequently
+        # in "The filename, directory name, or volume label syntax is incorrect" error message.
+        # Passing the command as a single string solves this problem.
+        if isinstance(command, list):
+            command = " ".join(command)
+
+    # Using the dummy file descriptors below is a workaround for a
+    # crash experienced in an unusual Python 2.4.4 Windows environment
+    # with the default None values.
+    stdin = None
+    if "stdin" not in params:
+        stdin = open(os.devnull)
+        params["stdin"] = stdin.fileno()
+
+    try:
+        proc = subprocess.Popen(command, startupinfo=startupinfo, **params)
+    finally:
+        if stdin is not None:
+            stdin.close()
+    return proc
+
+
+def call_subprocess_Popen(command, **params):
+    """
+    Calls subprocess_Popen and discards the output, returning only the
+    exit code.
+    """
+    if "stdout" in params or "stderr" in params:
+        raise TypeError("don't use stderr or stdout with call_subprocess_Popen")
+    with open(os.devnull, "wb") as null:
+        # stdin to devnull is a workaround for a crash in a weird Windows
+        # environment where sys.stdin was None
+        params.setdefault("stdin", null)
+        params["stdout"] = null
+        params["stderr"] = null
+        p = subprocess_Popen(command, **params)
+        returncode = p.wait()
+    return returncode
+
+
+def output_subprocess_Popen(command, **params):
+    """
+    Calls subprocess_Popen, returning the output, error and exit code
+    in a tuple.
+    """
+    if "stdout" in params or "stderr" in params:
+        raise TypeError("don't use stderr or stdout with output_subprocess_Popen")
+    params["stdout"] = subprocess.PIPE
+    params["stderr"] = subprocess.PIPE
+    p = subprocess_Popen(command, **params)
+    # we need to use communicate to make sure we don't deadlock around
+    # the stdout/stderr pipe.
+    out = p.communicate()
+    return out + (p.returncode,)

@@ -1,12 +1,10 @@
 """Test config options."""
 import configparser as stdlib_configparser
-import logging
-from unittest.mock import patch
 
 import pytest
 
 from theano import configdefaults, configparser
-from theano.configdefaults import default_blas_ldflags
+from theano.configdefaults import short_platform
 from theano.configparser import ConfigParam
 
 
@@ -96,19 +94,6 @@ def test_invalid_default():
 
     # Check that the flag has been removed
     assert "test__test_invalid_default_b" not in root._flags_dict
-
-
-@patch("theano.configdefaults.try_blas_flag", return_value=None)
-@patch("theano.configdefaults.sys")
-def test_default_blas_ldflags(sys_mock, try_blas_flag_mock, caplog):
-
-    sys_mock.version = "3.8.0 | packaged by conda-forge | (default, Nov 22 2019, 19:11:38) \n[GCC 7.3.0]"
-
-    with patch.dict("sys.modules", {"mkl": None}):
-        with caplog.at_level(logging.WARNING):
-            default_blas_ldflags()
-
-    assert "install mkl with" in caplog.text
 
 
 def test_config_param_apply_and_validation():
@@ -269,3 +254,34 @@ def test_mode_apply():
         configdefaults.filter_mode(theano.compile.mode.FAST_COMPILE)
         == theano.compile.mode.FAST_COMPILE
     )
+
+
+class TestConfigHelperFunctions:
+    @pytest.mark.parametrize(
+        "release,platform,answer",
+        [
+            (
+                "3.2.0-70-generic",
+                "Linux-3.2.0-70-generic-x86_64-with-debian-wheezy-sid",
+                "Linux-3.2--generic-x86_64-with-debian-wheezy-sid",
+            ),
+            (
+                "3.2.0-70.1-generic",
+                "Linux-3.2.0-70.1-generic-x86_64-with-debian-wheezy-sid",
+                "Linux-3.2--generic-x86_64-with-debian-wheezy-sid",
+            ),
+            (
+                "3.2.0-70.1.2-generic",
+                "Linux-3.2.0-70.1.2-generic-x86_64-with-debian-wheezy-sid",
+                "Linux-3.2--generic-x86_64-with-debian-wheezy-sid",
+            ),
+            (
+                "2.6.35.14-106.fc14.x86_64",
+                "Linux-2.6.35.14-106.fc14.x86_64-x86_64-with-fedora-14-Laughlin",
+                "Linux-2.6-fc14.x86_64-x86_64-with-fedora-14-Laughlin",
+            ),
+        ],
+    )
+    def test_short_platform(self, release, platform, answer):
+        o = short_platform(release, platform)
+        assert o == answer, (o, answer)

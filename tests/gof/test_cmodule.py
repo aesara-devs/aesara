@@ -5,11 +5,13 @@ But this one tests a current behavior that isn't good: the c_code isn't
 deterministic based on the input type and the op.
 """
 
+import logging
+from unittest.mock import patch
 
 import numpy as np
 
 import theano
-from theano.gof.cmodule import GCC_compiler
+from theano.gof.cmodule import GCC_compiler, default_blas_ldflags
 
 
 class MyOp(theano.compile.ops.DeepCopyOp):
@@ -68,3 +70,16 @@ def test_flag_detection():
     # but was not detected because that path is not usually taken,
     # so we test it here directly.
     GCC_compiler.try_flags(["-lblas"])
+
+
+@patch("theano.gof.cmodule.try_blas_flag", return_value=None)
+@patch("theano.gof.cmodule.sys")
+def test_default_blas_ldflags(sys_mock, try_blas_flag_mock, caplog):
+
+    sys_mock.version = "3.8.0 | packaged by conda-forge | (default, Nov 22 2019, 19:11:38) \n[GCC 7.3.0]"
+
+    with patch.dict("sys.modules", {"mkl": None}):
+        with caplog.at_level(logging.WARNING):
+            default_blas_ldflags()
+
+    assert "install mkl with" in caplog.text
