@@ -458,7 +458,7 @@ class TestGpuCAReduceCuda(TestGpuCAReduceCPY):
         # ((5,4,3,10,11),[1,2]),
     ]
     op = GpuCAReduceCuda
-    reds = [scalar.add, scalar.mul, scalar.maximum, scalar.minimum]
+    reds = [scalar.add, scalar.mul, scalar.scalar_maximum, scalar.scalar_minimum]
     pre_scalar_op = None
 
     def test_perform_noopt(self):

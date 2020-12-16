@@ -8063,7 +8063,10 @@ def check_max_log_sum_exp(x, axis, dimshuffle_op=None):
 
     fgraph = f.maker.fgraph.toposort()
     for node in fgraph:
-        if hasattr(node.op, "scalar_op") and node.op.scalar_op == scal.basic.maximum:
+        if (
+            hasattr(node.op, "scalar_op")
+            and node.op.scalar_op == scal.basic.scalar_maximum
+        ):
             return
 
         # in mode FAST_COMPILE, the optimisations don't replace the

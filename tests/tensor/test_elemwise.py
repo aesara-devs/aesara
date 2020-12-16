@@ -458,13 +458,13 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             elif scalar_op == scalar.mul:
                 for axis in reversed(sorted(tosum)):
                     zv = np.multiply.reduce(zv, axis)
-            elif scalar_op == scalar.maximum:
+            elif scalar_op == scalar.scalar_maximum:
                 try:
                     for axis in reversed(sorted(tosum)):
                         zv = np.maximum.reduce(zv, axis)
                 except ValueError:
                     numpy_raised = True
-            elif scalar_op == scalar.minimum:
+            elif scalar_op == scalar.scalar_minimum:
                 try:
                     for axis in reversed(sorted(tosum)):
                         zv = np.minimum.reduce(zv, axis)
@@ -487,7 +487,10 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 raise Exception(
                     f"Test for CAReduce with scalar_op {scalar_op} not implemented"
                 )
-            if scalar_op in [scalar.maximum, scalar.minimum] and numpy_raised:
+            if (
+                scalar_op in [scalar.scalar_maximum, scalar.scalar_minimum]
+                and numpy_raised
+            ):
                 with pytest.raises(ValueError):
                     f(xv)
             else:
@@ -515,7 +518,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 tosum = list(range(len(xsh)))
             f = theano.function([x], e.shape, mode=mode)
             if not (
-                scalar_op in [scalar.maximum, scalar.minimum]
+                scalar_op in [scalar.scalar_maximum, scalar.scalar_minimum]
                 and (xsh == () or np.prod(xsh) == 0)
             ):
                 try:
@@ -531,8 +534,8 @@ class TestCAReduce(unittest_tools.InferShapeTester):
         for dtype in ["bool", "floatX", "complex64", "complex128", "int8", "uint8"]:
             self.with_mode(Mode(linker="py"), scalar.add, dtype=dtype)
             self.with_mode(Mode(linker="py"), scalar.mul, dtype=dtype)
-            self.with_mode(Mode(linker="py"), scalar.maximum, dtype=dtype)
-            self.with_mode(Mode(linker="py"), scalar.minimum, dtype=dtype)
+            self.with_mode(Mode(linker="py"), scalar.scalar_maximum, dtype=dtype)
+            self.with_mode(Mode(linker="py"), scalar.scalar_minimum, dtype=dtype)
             self.with_mode(
                 Mode(linker="py"), scalar.and_, dtype=dtype, tensor_op=tt.all
             )
@@ -547,10 +550,10 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             self.with_mode(Mode(linker="py"), scalar.add, dtype=dtype, test_nan=True)
             self.with_mode(Mode(linker="py"), scalar.mul, dtype=dtype, test_nan=True)
             self.with_mode(
-                Mode(linker="py"), scalar.maximum, dtype=dtype, test_nan=True
+                Mode(linker="py"), scalar.scalar_maximum, dtype=dtype, test_nan=True
             )
             self.with_mode(
-                Mode(linker="py"), scalar.minimum, dtype=dtype, test_nan=True
+                Mode(linker="py"), scalar.scalar_minimum, dtype=dtype, test_nan=True
             )
             self.with_mode(
                 Mode(linker="py"),
@@ -584,8 +587,8 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             self.with_mode(Mode(linker="c"), scalar.add, dtype=dtype)
             self.with_mode(Mode(linker="c"), scalar.mul, dtype=dtype)
         for dtype in ["bool", "floatX", "int8", "uint8"]:
-            self.with_mode(Mode(linker="c"), scalar.minimum, dtype=dtype)
-            self.with_mode(Mode(linker="c"), scalar.maximum, dtype=dtype)
+            self.with_mode(Mode(linker="c"), scalar.scalar_minimum, dtype=dtype)
+            self.with_mode(Mode(linker="c"), scalar.scalar_maximum, dtype=dtype)
             self.with_mode(Mode(linker="c"), scalar.and_, dtype=dtype, tensor_op=tt.all)
             self.with_mode(Mode(linker="c"), scalar.or_, dtype=dtype, tensor_op=tt.any)
         for dtype in ["bool", "int8", "uint8"]:
@@ -602,8 +605,12 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             self.with_mode(Mode(linker="c"), scalar.add, dtype=dtype, test_nan=True)
             self.with_mode(Mode(linker="c"), scalar.mul, dtype=dtype, test_nan=True)
         for dtype in ["floatX"]:
-            self.with_mode(Mode(linker="c"), scalar.minimum, dtype=dtype, test_nan=True)
-            self.with_mode(Mode(linker="c"), scalar.maximum, dtype=dtype, test_nan=True)
+            self.with_mode(
+                Mode(linker="c"), scalar.scalar_minimum, dtype=dtype, test_nan=True
+            )
+            self.with_mode(
+                Mode(linker="c"), scalar.scalar_maximum, dtype=dtype, test_nan=True
+            )
 
     def test_infer_shape(self, dtype=None, pre_scalar_op=None):
         if dtype is None:

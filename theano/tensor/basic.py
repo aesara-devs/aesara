@@ -380,7 +380,7 @@ def numpy_scalar(data):
         )
 
 
-get_scalar_constant_value_elemwises = (
+_scalar_constant_value_elemwise_ops = (
     scal.Cast,
     scal.Switch,
     scal.NEQ,
@@ -395,8 +395,8 @@ get_scalar_constant_value_elemwises = (
     scal.Mul,
     scal.IntDiv,
     scal.TrueDiv,
-    scal.Minimum,
-    scal.Maximum,
+    scal.ScalarMinimum,
+    scal.ScalarMaximum,
 )
 
 
@@ -502,7 +502,7 @@ def get_scalar_constant_value(
                     shp, val = v.owner.inputs
                     v = val
                     continue
-                if isinstance(v.owner.op, get_scalar_constant_value_elemwises):
+                if isinstance(v.owner.op, _scalar_constant_value_elemwise_ops):
                     const = [
                         get_scalar_constant_value(i, max_recur=max_recur)
                         for i in v.owner.inputs
@@ -520,7 +520,7 @@ def get_scalar_constant_value(
                     v = val
                     continue
                 elif elemwise and isinstance(
-                    v.owner.op.scalar_op, get_scalar_constant_value_elemwises
+                    v.owner.op.scalar_op, _scalar_constant_value_elemwise_ops
                 ):
                     const = [
                         get_scalar_constant_value(i, max_recur=max_recur)
@@ -1042,7 +1042,7 @@ elemwise.TensorConstant = TensorConstant
 #########################
 
 
-def _scal_elemwise_with_nfunc(nfunc, nin, nout):
+def _scal_elemwise(*symbol, nfunc=None, nin=None, nout=None, symbolname=None):
     """
     Replace a symbol definition with an elementwise version of the
     corresponding scalar Op.  If it is not None, the nfunc argument
@@ -1056,46 +1056,45 @@ def _scal_elemwise_with_nfunc(nfunc, nin, nout):
     """
 
     def construct(symbol):
-        symbolname = symbol.__name__
-        inplace = symbolname.endswith("_inplace")
-        if inplace:
-            msg = "inplace"
-        else:
-            msg = "no_inplace"
+        nonlocal symbolname
 
-        n = f"Elemwise{{{symbolname},{msg}}}"
+        symbolname = symbolname or symbol.__name__
 
-        if inplace:
+        if symbolname.endswith("_inplace"):
+            elemwise_name = f"Elemwise{{{symbolname},inplace}}"
             scalar_op = getattr(scal, symbolname[: -len("_inplace")])
             inplace_scalar_op = scalar_op.__class__(scal.transfer_type(0))
             rval = elemwise.Elemwise(
                 inplace_scalar_op,
                 {0: 0},
-                name=n,
+                name=elemwise_name,
                 nfunc_spec=(nfunc and (nfunc, nin, nout)),
             )
         else:
+            elemwise_name = f"Elemwise{{{symbolname},no_inplace}}"
             scalar_op = getattr(scal, symbolname)
             rval = elemwise.Elemwise(
-                scalar_op, name=n, nfunc_spec=(nfunc and (nfunc, nin, nout))
+                scalar_op, name=elemwise_name, nfunc_spec=(nfunc and (nfunc, nin, nout))
             )
 
-        if getattr(symbol, "__doc__", False):
+        if getattr(symbol, "__doc__"):
             rval.__doc__ = symbol.__doc__ + "\n" + rval.__doc__
 
         # for the meaning of this see the ./epydoc script
         # it makes epydoc display rval as if it were a function, not an object
         rval.__epydoc_asRoutine = symbol
-        rval.__module__ = "tensor"
+        rval.__module__ = symbol.__module__
 
-        pprint.assign(rval, printing.FunctionPrinter(symbolname))
+        pprint.assign(
+            rval, printing.FunctionPrinter(symbolname.replace("_inplace", "="))
+        )
 
         return rval
 
-    return construct
-
-
-_scal_elemwise = _scal_elemwise_with_nfunc(None, None, None)
+    if symbol:
+        return construct(symbol[0])
+    else:
+        return construct
 
 
 def _pack(x):
@@ -1772,14 +1771,14 @@ class Max(CAReduce):
     nfunc_spec = ("max", 1, 1)
 
     def __init__(self, axis):
-        super().__init__(scal.maximum, axis)
+        super().__init__(scal.scalar_maximum, axis)
 
 
 class Min(CAReduce):
     nfunc_spec = ("min", 1, 1)
 
     def __init__(self, axis):
-        super().__init__(scal.minimum, axis)
+        super().__init__(scal.scalar_minimum, axis)
 
 
 @constructor
@@ -3661,13 +3660,13 @@ setdefault = default  # legacy
 ##########################
 # Arithmetics
 ##########################
-@_scal_elemwise
+@_scal_elemwise(symbolname="scalar_maximum")
 def maximum(x, y):
     """elemwise maximum. See max for the maximum in one tensor"""
     # see decorator for function body
 
 
-@_scal_elemwise
+@_scal_elemwise(symbolname="scalar_minimum")
 def minimum(x, y):
     """elemwise minimum. See min for the minimum in one tensor"""
     # see decorator for function body

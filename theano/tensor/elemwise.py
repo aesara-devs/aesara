@@ -1348,9 +1348,9 @@ class CAReduce(COp):
             self.ufunc = np.add
         elif isinstance(scalar_op, theano.scalar.basic.Mul):
             self.ufunc = np.multiply
-        elif isinstance(scalar_op, theano.scalar.basic.Maximum):
+        elif isinstance(scalar_op, theano.scalar.basic.ScalarMaximum):
             self.ufunc = np.maximum
-        elif isinstance(scalar_op, theano.scalar.basic.Minimum):
+        elif isinstance(scalar_op, theano.scalar.basic.ScalarMinimum):
             self.ufunc = np.minimum
         elif isinstance(scalar_op, theano.scalar.basic.AND) and _numpy_ver >= [1, 12]:
             # numpy.bitwise_and.identity was incorrect for versions before
@@ -1570,8 +1570,8 @@ class CAReduce(COp):
 
         if hasattr(self.scalar_op, "identity"):
             identity = self.scalar_op.identity
-        elif self.scalar_op in [scalar.maximum, scalar.minimum]:
-            if self.scalar_op == scalar.maximum:
+        elif self.scalar_op in [scalar.scalar_maximum, scalar.scalar_minimum]:
+            if self.scalar_op == scalar.scalar_maximum:
                 scal_name = "maximum"
                 if input.type.dtype in ["float32", "float64"]:
                     identity = "-__builtin_inf()"
@@ -1580,7 +1580,7 @@ class CAReduce(COp):
                     identity = "0"
                 else:
                     identity = "NPY_MIN_" + str(input.type.dtype).upper()
-            if self.scalar_op == scalar.minimum:
+            if self.scalar_op == scalar.scalar_minimum:
                 scal_name = "minimum"
                 if input.type.dtype in ["float32", "float64"]:
                     identity = "__builtin_inf()"
