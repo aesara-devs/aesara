@@ -1881,9 +1881,9 @@ class OpWiseCLinker(link.LocalLinker):
         self.fgraph = None
         self.fallback_on_perform = fallback_on_perform
         self.nice_errors = nice_errors
-        self.allow_gc = allow_gc
         if schedule:
             self.schedule = schedule
+        super().__init__(allow_gc=allow_gc)
 
     def accept(self, fgraph, no_recycling=None, profile=None):
         """

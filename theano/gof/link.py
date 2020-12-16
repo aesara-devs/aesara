@@ -711,9 +711,9 @@ class PerformLinker(LocalLinker):
         if allow_gc is None:
             allow_gc = theano.config.allow_gc
         self.fgraph = None
-        self.allow_gc = allow_gc
         if schedule:
             self.schedule = schedule
+        super().__init__(allow_gc=allow_gc)
 
     def accept(self, fgraph, no_recycling=None, profile=None):
         """

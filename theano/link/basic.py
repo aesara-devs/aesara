@@ -1,19 +1,32 @@
+import typing
 from copy import copy
 
-from theano.gof import utils
-from theano.gof.utils import undef
+from theano.utils import deprecated
 
 
 class Linker:
     """
-    WRITEME
+    Base type for all linkers.
 
+    A linker takes a FunctionGraph and turns it into a callable.
     """
 
-    def clone(self, allow_gc=undef):
+    def __init__(self, *, allow_gc: typing.Optional[bool] = None):
+        self._allow_gc = allow_gc
+        super().__init__()
+
+    @property
+    def allow_gc(self) -> typing.Optional[bool]:
+        """Determines if the linker may allow garbage collection.
+
+        None means undefined.
+        """
+        return self._allow_gc
+
+    def clone(self, allow_gc: typing.Optional[bool] = None):
         new = copy(self)
-        if allow_gc is not undef:
-            new.allow_gc = allow_gc
+        if allow_gc is not None:
+            new._allow_gc = allow_gc
         return new
 
     def make_thunk(self):
@@ -38,9 +51,11 @@ class Linker:
         print e.data # 3.0 iff inplace == True (else unknown)
 
         """
-        raise utils.MethodNotDefined("make_thunk", type(self), self.__class__.__name__)
+        raise NotImplementedError(
+            f"make_thunk method of {type(self)} is not implemented."
+        )
 
-    # DELETEME #
+    @deprecated("Marked for deletion. Only tests use it.")
     def make_function(self, unpack_single=True, **kwargs):
         """
         Returns a function that takes values corresponding to the inputs of the
@@ -62,6 +77,8 @@ class Linker:
         length 1 will be returned.
 
         """
+        from theano.gof import utils
+
         thunk, inputs, outputs = self.make_thunk(**kwargs)
 
         def execute(*args):

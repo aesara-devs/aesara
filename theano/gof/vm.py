@@ -771,7 +771,6 @@ class VM_Linker(link.LocalLinker):
         if allow_gc is None:
             allow_gc = config.allow_gc
         self.fgraph = None
-        self.allow_gc = allow_gc
         self.use_cloop = use_cloop
         self.callback = callback
         self.callback_input = callback_input
@@ -783,6 +782,7 @@ class VM_Linker(link.LocalLinker):
         self.updated_vars = {}
         if schedule:
             self.schedule = schedule
+        super().__init__(allow_gc=allow_gc)
 
     def accept(self, fgraph, no_recycling=None, profile=None):
         """Check if fgraph is the first FunctionGraph that has ever been
