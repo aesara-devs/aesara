@@ -82,11 +82,12 @@ class Linker:
         thunk, inputs, outputs = self.make_thunk(**kwargs)
 
         def execute(*args):
-            def e_arity(takes, got):
-                return f"Function call takes exactly {takes} {['argument', 'arguments'][takes > 1]} ({got} given)"
-
-            if len(args) != len(inputs):
-                raise TypeError(e_arity(len(inputs), len(args)))
+            takes = len(inputs)
+            got = len(args)
+            if got != takes:
+                raise TypeError(
+                    f"Function call takes exactly {takes} args ({got} given)"
+                )
             for arg, variable in zip(args, inputs):
                 variable.data = arg
             thunk()
