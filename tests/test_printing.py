@@ -325,7 +325,7 @@ def test_scan_debugprint2():
 
     expected_output = """Sum{acc_dtype=float64} [id A] ''
      |for{cpu,scan_fn} [id B] ''
-       |Elemwise{minimum,no_inplace} [id C] ''
+       |Elemwise{scalar_minimum,no_inplace} [id C] ''
        | |Subtensor{int64} [id D] ''
        | | |Shape [id E] ''
        | | | |Subtensor{int64::} [id F] 'coefficients[0:]'
@@ -344,12 +344,12 @@ def test_scan_debugprint2():
        |Subtensor{:int64:} [id S] ''
        | |Subtensor{int64::} [id F] 'coefficients[0:]'
        | |ScalarFromTensor [id T] ''
-       |   |Elemwise{minimum,no_inplace} [id C] ''
+       |   |Elemwise{scalar_minimum,no_inplace} [id C] ''
        |Subtensor{:int64:} [id U] ''
        | |Subtensor{int64::} [id L] ''
        | |ScalarFromTensor [id V] ''
-       |   |Elemwise{minimum,no_inplace} [id C] ''
-       |Elemwise{minimum,no_inplace} [id C] ''
+       |   |Elemwise{scalar_minimum,no_inplace} [id C] ''
+       |Elemwise{scalar_minimum,no_inplace} [id C] ''
        |x [id W]
 
     Inner graphs of the scan ops:
@@ -404,7 +404,7 @@ def test_scan_debugprint3():
 
     expected_output = """Sum{acc_dtype=float64} [id A] ''
      |for{cpu,scan_fn} [id B] ''
-       |Elemwise{minimum,no_inplace} [id C] ''
+       |Elemwise{scalar_minimum,no_inplace} [id C] ''
        | |Subtensor{int64} [id D] ''
        | | |Shape [id E] ''
        | | | |Subtensor{int64::} [id F] 'coefficients[0:]'
@@ -423,12 +423,12 @@ def test_scan_debugprint3():
        |Subtensor{:int64:} [id S] ''
        | |Subtensor{int64::} [id F] 'coefficients[0:]'
        | |ScalarFromTensor [id T] ''
-       |   |Elemwise{minimum,no_inplace} [id C] ''
+       |   |Elemwise{scalar_minimum,no_inplace} [id C] ''
        |Subtensor{:int64:} [id U] ''
        | |Subtensor{int64::} [id L] ''
        | |ScalarFromTensor [id V] ''
-       |   |Elemwise{minimum,no_inplace} [id C] ''
-       |Elemwise{minimum,no_inplace} [id C] ''
+       |   |Elemwise{scalar_minimum,no_inplace} [id C] ''
+       |Elemwise{scalar_minimum,no_inplace} [id C] ''
        |A [id W]
        |k [id X]
 

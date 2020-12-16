@@ -1205,7 +1205,8 @@ def local_gpu_extract_diag(fgraph, op, context_name, inputs, outputs):
 @register_opt2([tensor.CAReduce, tensor.Sum, tensor.elemwise.Prod], "fast_compile")
 def local_gpua_careduce(fgraph, op, context_name, inputs, outputs):
     if isinstance(
-        op.scalar_op, (scalar.Add, scalar.Mul, scalar.Maximum, scalar.Minimum)
+        op.scalar_op,
+        (scalar.Add, scalar.Mul, scalar.ScalarMaximum, scalar.ScalarMinimum),
     ):
 
         ctx = get_context(context_name)

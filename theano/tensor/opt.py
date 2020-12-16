@@ -5624,7 +5624,7 @@ def local_useless_elemwise_comparison(fgraph, node):
         return [res]
     # Elemwise[{minimum,maximum}](X, X) -> X
     if (
-        isinstance(node.op.scalar_op, (ts.Minimum, ts.Maximum))
+        isinstance(node.op.scalar_op, (ts.ScalarMinimum, ts.ScalarMaximum))
         and node.inputs[0] is node.inputs[1]
     ):
         res = node.inputs[0]
@@ -5656,7 +5656,7 @@ def local_useless_elemwise_comparison(fgraph, node):
         return [res]
     # Elemwise[maximum](X.shape[i], 0) -> X.shape[i]
     if (
-        isinstance(node.op.scalar_op, ts.Maximum)
+        isinstance(node.op.scalar_op, ts.ScalarMaximum)
         and node.inputs[0].owner
         and isinstance(node.inputs[0].owner.op, Shape_i)
         and tt.extract_constant(node.inputs[1], only_process_constants=True) == 0
@@ -5665,7 +5665,7 @@ def local_useless_elemwise_comparison(fgraph, node):
         return [node.inputs[0]]
     # Elemwise[maximum](0, X.shape[i]) -> X.shape[i]
     if (
-        isinstance(node.op.scalar_op, ts.Maximum)
+        isinstance(node.op.scalar_op, ts.ScalarMaximum)
         and tt.extract_constant(node.inputs[0], only_process_constants=True) == 0
         and node.inputs[1].owner
         and isinstance(node.inputs[1].owner.op, Shape_i)
@@ -5674,7 +5674,7 @@ def local_useless_elemwise_comparison(fgraph, node):
         return [node.inputs[1]]
     # Elemwise[minimum](X.shape[i], 0) -> 0
     if (
-        isinstance(node.op.scalar_op, ts.Minimum)
+        isinstance(node.op.scalar_op, ts.ScalarMinimum)
         and node.inputs[0].owner
         and isinstance(node.inputs[0].owner.op, Shape_i)
         and tt.extract_constant(node.inputs[1], only_process_constants=True) == 0
@@ -5686,7 +5686,7 @@ def local_useless_elemwise_comparison(fgraph, node):
 
     # Elemwise[minimum](0, X.shape[i]) -> 0
     if (
-        isinstance(node.op.scalar_op, ts.Minimum)
+        isinstance(node.op.scalar_op, ts.ScalarMinimum)
         and tt.extract_constant(node.inputs[0], only_process_constants=True) == 0
         and node.inputs[1].owner
         and isinstance(node.inputs[1].owner.op, Shape_i)
@@ -6039,7 +6039,7 @@ def local_reduce_join(fgraph, node):
         if tt.extract_constant(join.inputs[0], only_process_constants=True) != 0:
             return
 
-        if isinstance(node.op.scalar_op, (ts.Maximum, ts.Minimum)):
+        if isinstance(node.op.scalar_op, (ts.ScalarMaximum, ts.ScalarMinimum)):
             # Support only 2 inputs for now
             if len(join.inputs) != 3:
                 return

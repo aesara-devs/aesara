@@ -1068,7 +1068,9 @@ def test_argmax_pushdown():
         assert isinstance(fgraph.toposort()[0].op, tt.Elemwise)
         assert isinstance(fgraph.toposort()[1].op, Softmax)
         assert isinstance(fgraph.toposort()[2].op, tt.CAReduce)
-        assert isinstance(fgraph.toposort()[2].op.scalar_op, theano.scalar.Maximum)
+        assert isinstance(
+            fgraph.toposort()[2].op.scalar_op, theano.scalar.ScalarMaximum
+        )
 
 
 def test_argmax_pushdown_bias():
@@ -1098,7 +1100,7 @@ def test_argmax_pushdown_bias():
     assert len(fgraph.toposort()) == 2
     assert isinstance(fgraph.toposort()[0].op, SoftmaxWithBias)
     assert isinstance(fgraph.toposort()[1].op, tt.CAReduce)
-    assert isinstance(fgraph.toposort()[1].op.scalar_op, theano.scalar.Maximum)
+    assert isinstance(fgraph.toposort()[1].op.scalar_op, theano.scalar.ScalarMaximum)
     assert check_stack_trace(fgraph, ops_to_check=(SoftmaxWithBias, tt.CAReduce))
 
 

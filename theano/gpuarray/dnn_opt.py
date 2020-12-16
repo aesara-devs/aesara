@@ -738,9 +738,9 @@ def local_dnn_reduction(fgraph, node):
                 scal = "norm1"
             else:
                 return
-        elif isinstance(node.op.scalar_op, theano.scalar.basic.Maximum) and isinstance(
-            node.op.pre_scalar_op, theano.scalar.basic.Abs
-        ):
+        elif isinstance(
+            node.op.scalar_op, theano.scalar.basic.ScalarMaximum
+        ) and isinstance(node.op.pre_scalar_op, theano.scalar.basic.Abs):
             scal = "absmax"
         else:
             return

@@ -703,7 +703,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         # It might be nice to use a property of the op class to do this,
         # but tensor.elemwise.CAReduce has this exact same check so I guess
         # this is OK to do
-        if self.scalar_op in [scalar.minimum, scalar.maximum]:
+        if self.scalar_op in [scalar.scalar_minimum, scalar.scalar_maximum]:
             conds = [
                 f"(PyGpuArray_DIMS({x})[{i}] == 0)"
                 for i in range(nd_in)
@@ -1083,7 +1083,9 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         if hasattr(self.scalar_op, "identity"):
             return str(self.scalar_op.identity)
         else:
-            assert isinstance(self.scalar_op, (scalar.Maximum, scalar.Minimum))
+            assert isinstance(
+                self.scalar_op, (scalar.ScalarMaximum, scalar.ScalarMinimum)
+            )
             if self.pre_scalar_op:  # TODO: multiple dtypes
                 # dtype = node.inputs[0].dtype
 

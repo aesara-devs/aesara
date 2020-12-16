@@ -82,7 +82,7 @@ def local_max_to_min(fgraph, node):
         if (
             max.owner
             and isinstance(max.owner.op, CAReduce)
-            and max.owner.op.scalar_op == scal.maximum
+            and max.owner.op.scalar_op == scal.scalar_maximum
         ):
             neg = max.owner.inputs[0]
             if neg.owner and neg.owner.op == tt.neg:
