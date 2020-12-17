@@ -28,7 +28,8 @@ from theano.compile.function.types import (
 from theano.compile.mode import Mode, register_mode
 from theano.compile.ops import OutputGuard, _output_guard
 from theano.gof import graph, ops_with_inner_function, utils
-from theano.gof.link import raise_with_op
+from theano.link.basic import LocalLinker
+from theano.link.debugging import raise_with_op
 from theano.utils import get_unbound_function
 
 
@@ -1739,14 +1740,14 @@ class _DummyLinker:
         return self
 
 
-class _Linker(link.LocalLinker):
+class _Linker(LocalLinker):
     """
     Special debugging linker.
 
     """
 
     def __init__(self, maker, schedule=None):
-        super(gof.LocalLinker, self).__init__()
+        super().__init__()
         self.fgraph = None
         self.maker = maker
         super().__init__(scheduler=schedule)
@@ -1792,7 +1793,7 @@ class _Linker(link.LocalLinker):
         # the function's outputs will always be freshly allocated.
         no_recycling = []
 
-        input_storage, output_storage, storage_map = theano.gof.link.map_storage(
+        input_storage, output_storage, storage_map = theano.link.map_storage(
             fgraph, order, input_storage_, output_storage_, storage_map
         )
 

@@ -3,14 +3,14 @@ from warnings import warn
 
 from theano.gof import utils
 from theano.gof.graph import Constant
-from theano.gof.link import (
+from theano.link.basic import (
+    Container,
     PerformLinker,
     add_clear_storage,
     gc_helper,
     map_storage,
     streamline,
 )
-from theano.link import Container
 
 
 class JAXLinker(PerformLinker):

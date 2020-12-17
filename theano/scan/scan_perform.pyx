@@ -61,7 +61,7 @@ cimport numpy
 import copy
 import time
 
-from theano import gof
+from theano import gof, link
 
 
 def get_version():
@@ -405,7 +405,7 @@ def perform(
                 # done by raise_with_op is not implemented in C.
                 if hasattr(fn, 'thunks'):
                     # For the CVM
-                    gof.link.raise_with_op(fn.maker.fgraph,
+                    link.raise_with_op(fn.maker.fgraph,
                                            fn.nodes[fn.position_of_error],
                                            fn.thunks[fn.position_of_error])
                 else:
@@ -413,7 +413,7 @@ def perform(
                     # We don't have access from python to all the
                     # temps values So for now, we just don't print
                     # the extra shapes/strides info
-                    gof.link.raise_with_op(fn.maker.fgraph, fn.nodes[fn.position_of_error])
+                    link.raise_with_op(fn.maker.fgraph, fn.nodes[fn.position_of_error])
             else:
                 # old-style linkers raise their own exceptions
                 raise

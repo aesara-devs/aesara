@@ -53,7 +53,7 @@ from collections import OrderedDict
 import numpy as np
 
 import theano
-from theano import compile, config, gof, gradient, tensor
+from theano import compile, config, gof, gradient, link, tensor
 from theano.compile.builders import infer_shape
 from theano.compile.function import function
 from theano.compile.io import In, Out
@@ -1465,7 +1465,7 @@ class Scan(PureOp):
                     # done by raise_with_op is not implemented in C.
                     if hasattr(fn, "thunks"):
                         # For the CVM
-                        gof.link.raise_with_op(
+                        link.raise_with_op(
                             self.fn.maker.fgraph,
                             fn.nodes[fn.position_of_error],
                             fn.thunks[fn.position_of_error],
@@ -1475,7 +1475,7 @@ class Scan(PureOp):
                         # We don't have access from python to all the
                         # temps values So for now, we just don't print
                         # the extra shapes/strides info
-                        gof.link.raise_with_op(
+                        link.raise_with_op(
                             self.fn.maker.fgraph, fn.nodes[fn.position_of_error]
                         )
                 else:

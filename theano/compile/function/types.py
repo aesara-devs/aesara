@@ -15,7 +15,7 @@ import numpy as np
 
 import theano
 import theano.compile.profiling
-from theano import config, gof
+from theano import config, gof, link
 from theano.compile.io import In, SymbolicInput, SymbolicOutput
 from theano.compile.ops import deep_copy_op, view_op
 from theano.gof import graph
@@ -978,7 +978,7 @@ class Function:
                 thunk = None
                 if hasattr(self.fn, "thunks"):
                     thunk = self.fn.thunks[self.fn.position_of_error]
-                gof.link.raise_with_op(
+                link.raise_with_op(
                     self.maker.fgraph,
                     node=self.fn.nodes[self.fn.position_of_error],
                     thunk=thunk,

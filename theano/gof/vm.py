@@ -13,9 +13,7 @@ import warnings
 from collections import defaultdict
 
 import theano.gof.cmodule
-from theano import config
-
-from . import link
+from theano import config, link
 
 
 logger = logging.getLogger(__name__)
