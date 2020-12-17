@@ -780,9 +780,7 @@ class VM_Linker(link.LocalLinker):
         self.c_thunks = c_thunks
         self.allow_partial_eval = allow_partial_eval
         self.updated_vars = {}
-        if schedule:
-            self.schedule = schedule
-        super().__init__(allow_gc=allow_gc)
+        super().__init__(allow_gc=allow_gc, scheduler=schedule)
 
     def accept(self, fgraph, no_recycling=None, profile=None):
         """Check if fgraph is the first FunctionGraph that has ever been

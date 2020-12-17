@@ -1,6 +1,8 @@
 import typing
 from copy import copy, deepcopy
 
+from theano.gof.fg import FunctionGraph
+from theano.gof.graph import Apply
 from theano.gof.type import Type
 from theano.utils import deprecated
 
@@ -97,10 +99,10 @@ class Container:
         r = type(self)(
             deepcopy(self.type, memo=memo),
             deepcopy(self.storage, memo=memo),
-            deepcopy(self.readonly, memo=memo),
-            deepcopy(self.strict, memo=memo),
-            deepcopy(self.allow_downcast, memo=memo),
-            deepcopy(self.name, memo=memo),
+            readonly=deepcopy(self.readonly, memo=memo),
+            strict=deepcopy(self.strict, memo=memo),
+            allow_downcast=deepcopy(self.allow_downcast, memo=memo),
+            name=deepcopy(self.name, memo=memo),
         )
         # Work around NumPy deepcopy of ndarray with 0 dimension that
         # don't return an ndarray.
@@ -120,10 +122,24 @@ class Linker:
     Base type for all linkers.
 
     A linker takes a FunctionGraph and turns it into a callable.
+
+    Parameters
+    ----------
+    allow_gc : optional, bool
+        Configures if garbage collection is enabled.
+    scheduler : callable
+        A scheduling function that takes a FunctionGraph and returns a list of Apply nodes.
+        Defaults to the .toposort() method of the FunctionGraph.
     """
 
-    def __init__(self, *, allow_gc: typing.Optional[bool] = None):
+    def __init__(
+        self,
+        *,
+        allow_gc: typing.Optional[bool] = None,
+        scheduler: typing.Callable[[FunctionGraph], typing.List[Apply]] = None,
+    ):
         self._allow_gc = allow_gc
+        self._scheduler = scheduler
         super().__init__()
 
     @property
@@ -219,7 +235,21 @@ class Linker:
 
         return execute
 
-    def schedule(self, fgraph):
+    def schedule(self, fgraph: FunctionGraph) -> typing.List[Apply]:
+        """Runs the scheduler (if set) or the toposort on the FunctionGraph.
+
+        Parameters
+        ----------
+        fgraph : FunctionGraph
+            A graph to compute the schedule for.
+
+        Returns
+        -------
+        nodes : list of Apply nodes
+            The result of the scheduling or toposort operation.
+        """
+        if callable(self._scheduler):
+            return self.scheduler(fgraph)
         return fgraph.toposort()
 
 

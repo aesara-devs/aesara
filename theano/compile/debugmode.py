@@ -1749,8 +1749,7 @@ class _Linker(link.LocalLinker):
         super(gof.LocalLinker, self).__init__()
         self.fgraph = None
         self.maker = maker
-        if schedule:
-            self.schedule = schedule
+        super().__init__(scheduler=schedule)
 
     def accept(self, fgraph, no_recycling=None, profile=None):
         if no_recycling is None:

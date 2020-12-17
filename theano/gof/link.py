@@ -447,6 +447,14 @@ def map_storage(fgraph, order, input_storage, output_storage, storage_map=None):
     return input_storage, output_storage, storage_map
 
 
+def add_clear_storage(f, computed, storage_map):
+    def clear_storage():
+        for c in computed:
+            storage_map[c][0] = None
+
+    f.clear_storage = clear_storage
+
+
 def streamline(
     fgraph,
     thunks,
@@ -579,9 +587,7 @@ class PerformLinker(LocalLinker):
         if allow_gc is None:
             allow_gc = theano.config.allow_gc
         self.fgraph = None
-        if schedule:
-            self.schedule = schedule
-        super().__init__(allow_gc=allow_gc)
+        super().__init__(allow_gc=allow_gc, scheduler=schedule)
 
     def accept(self, fgraph, no_recycling=None, profile=None):
         """
@@ -705,14 +711,6 @@ class PerformLinker(LocalLinker):
             thunks,
             order,
         )
-
-
-def add_clear_storage(f, computed, storage_map):
-    def clear_storage():
-        for c in computed:
-            storage_map[c][0] = None
-
-    f.clear_storage = clear_storage
 
 
 class WrapLinker(Linker):

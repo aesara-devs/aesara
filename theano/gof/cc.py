@@ -591,8 +591,7 @@ class CLinker(link.Linker):
 
     def __init__(self, schedule=None):
         self.fgraph = None
-        if schedule:
-            self.schedule = schedule
+        super().__init__(scheduler=schedule)
 
     def accept(self, fgraph, no_recycling=None, profile=None):
         """
@@ -1881,9 +1880,7 @@ class OpWiseCLinker(link.LocalLinker):
         self.fgraph = None
         self.fallback_on_perform = fallback_on_perform
         self.nice_errors = nice_errors
-        if schedule:
-            self.schedule = schedule
-        super().__init__(allow_gc=allow_gc)
+        super().__init__(allow_gc=allow_gc, scheduler=schedule)
 
     def accept(self, fgraph, no_recycling=None, profile=None):
         """
@@ -2049,8 +2046,7 @@ class DualLinker(link.Linker):
         """
         self.fgraph = None
         self.checker = checker
-        if schedule:
-            self.schedule = schedule
+        super().__init__(scheduler=schedule)
 
     def accept(self, fgraph, no_recycling=None, profile=None):
         """
