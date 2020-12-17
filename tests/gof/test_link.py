@@ -5,9 +5,10 @@ import numpy as np
 import theano
 from theano.gof import fg, graph
 from theano.gof.graph import Apply, Constant, Variable
-from theano.gof.link import Container, PerformLinker, WrapLinker
+from theano.gof.link import PerformLinker, WrapLinker
 from theano.gof.op import Op
 from theano.gof.type import Type
+from theano.link import Container
 from theano.utils import cmp
 
 

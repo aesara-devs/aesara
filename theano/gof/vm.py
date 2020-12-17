@@ -1228,7 +1228,7 @@ class VM_Linker(link.LocalLinker):
                 for input, storage in zip(fgraph.inputs, input_storage)
             ],
             [
-                link.Container(output, storage, True)
+                link.Container(output, storage, readonly=True)
                 for output, storage in zip(fgraph.outputs, output_storage)
             ],
             thunks,
