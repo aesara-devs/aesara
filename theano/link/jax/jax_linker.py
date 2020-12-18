@@ -3,14 +3,7 @@ from warnings import warn
 
 from theano.gof import utils
 from theano.gof.graph import Constant
-from theano.link.basic import (
-    Container,
-    PerformLinker,
-    add_clear_storage,
-    gc_helper,
-    map_storage,
-    streamline,
-)
+from theano.link import Container, PerformLinker, gc_helper, map_storage, streamline
 
 
 class JAXLinker(PerformLinker):
@@ -184,7 +177,6 @@ class JAXLinker(PerformLinker):
         )
 
         fn.allow_gc = self.allow_gc
-        add_clear_storage(fn, computed, storage_map)
         fn.storage_map = storage_map
 
         return (

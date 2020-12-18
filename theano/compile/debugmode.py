@@ -29,7 +29,7 @@ from theano.compile.mode import Mode, register_mode
 from theano.compile.ops import OutputGuard, _output_guard
 from theano.gof import graph, ops_with_inner_function, utils
 from theano.link.basic import LocalLinker
-from theano.link.debugging import raise_with_op
+from theano.link.utils import raise_with_op
 from theano.utils import get_unbound_function
 
 
