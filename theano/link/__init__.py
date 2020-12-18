@@ -1,6 +1,4 @@
-﻿import sys
-
-from theano.link.basic import (
+﻿from theano.link.basic import (
     Container,
     Linker,
     LocalLinker,
@@ -11,7 +9,7 @@ from theano.link.basic import (
     map_storage,
     streamline,
 )
-from theano.link.debugging import raise_with_op, set_excepthook
+from theano.link.debugging import raise_with_op, register_thunk_trace_excepthook
 
 
-set_excepthook(handler=sys.stdout)
+register_thunk_trace_excepthook()

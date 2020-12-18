@@ -6,72 +6,8 @@ from operator import itemgetter
 
 import numpy as np
 
-from theano import config
+from theano import config, utils
 from theano.gof.fg import FunctionGraph
-
-
-def __log_thunk_trace(value, handler):
-    """
-    Log Theano's diagnostic stack trace for an exception
-    raised by raise_with_op.
-    """
-
-    def write(msg):
-        print(f"log_thunk_trace: {msg.strip()}", file=handler)
-
-    if hasattr(value, "__thunk_trace__"):
-        trace2 = value.__thunk_trace__
-        write("There was a problem executing an Op.")
-        if trace2 is None:
-            write("Could not find where this Op was defined.")
-            write(
-                " * You might have instantiated this Op "
-                "directly instead of using a constructor."
-            )
-            write(
-                " * The Op you constructed might have been"
-                " optimized. Try turning off optimizations."
-            )
-        elif trace2:
-            write("Definition in: ")
-            for line in traceback.format_list(trace2):
-                write(line)
-            write(
-                "For the full definition stack trace set"
-                " the Theano flags traceback__limit to -1"
-            )
-
-
-def set_excepthook(handler: io.TextIOWrapper):
-    def thunk_hook(type, value, trace):
-        """
-        This function is meant to replace excepthook and do some
-        special work if the exception value has a __thunk_trace__
-        field.
-        In that case, it retrieves the field, which should
-        contain a trace as returned by L{traceback.extract_stack},
-        and prints it out on L{stderr}.
-
-        The normal excepthook is then called.
-
-        Parameters:
-        ----------
-        type
-            Exception class
-        value
-            Exception instance
-        trace
-            Traceback object
-
-        Notes
-        -----
-        This hook replaced in testing, so it does not run.
-
-        """
-        __log_thunk_trace(value, handler=handler)
-        sys.__excepthook__(type, value, trace)
-
-    sys.excepthook = thunk_hook
 
 
 def raise_with_op(
@@ -334,3 +270,54 @@ def raise_with_op(
         # Some exception need extra parameter in inputs. So forget the
         # extra long error message in that case.
     raise exc_value.with_traceback(exc_trace)
+
+
+def __log_thunk_trace(value, handler: io.TextIOWrapper):
+    """
+    Log Theano's diagnostic stack trace for an exception.
+
+    Uses custom attributes that are added to trace objects by raise_with_op.
+    """
+
+    def write(msg):
+        print(f"log_thunk_trace: {msg.strip()}", file=handler)
+
+    if hasattr(value, "__thunk_trace__"):
+        trace2 = value.__thunk_trace__
+        write("There was a problem executing an Op.")
+        if trace2 is None:
+            write("Could not find where this Op was defined.")
+            write(
+                " * You might have instantiated this Op "
+                "directly instead of using a constructor."
+            )
+            write(
+                " * The Op you constructed might have been"
+                " optimized. Try turning off optimizations."
+            )
+        elif trace2:
+            write("Definition in: ")
+            for line in traceback.format_list(trace2):
+                write(line)
+            write(
+                "For the full definition stack trace set"
+                " the Theano flags traceback__limit to -1"
+            )
+
+
+def register_thunk_trace_excepthook(handler: io.TextIOWrapper = sys.stdout):
+    """Adds the __log_thunk_trace except hook to the collection in theano.utils.
+
+    Parameters
+    ----------
+    handler : TextIOWrapper
+        Target for printing the output.
+    """
+
+    def wrapper(type, value, trace):
+        __log_thunk_trace(value, handler)
+
+    utils.add_excepthook(wrapper)
+
+
+register_thunk_trace_excepthook()
