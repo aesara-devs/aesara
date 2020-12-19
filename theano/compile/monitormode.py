@@ -40,8 +40,8 @@ class MonitorMode(Mode):
     def __init__(self, pre_func=None, post_func=None, optimizer="default", linker=None):
         self.pre_func = pre_func
         self.post_func = post_func
-        wrap_linker = theano.gof.WrapLinkerMany(
-            [theano.gof.OpWiseCLinker()], [self.eval]
+        wrap_linker = theano.link.WrapLinkerMany(
+            [theano.link.c.cc.OpWiseCLinker()], [self.eval]
         )
         if optimizer == "default":
             optimizer = theano.config.optimizer

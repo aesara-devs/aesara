@@ -440,7 +440,7 @@ class Function:
 
                 if value is not None:
                     # Always initialize the storage.
-                    if isinstance(value, gof.Container):
+                    if isinstance(value, link.Container):
                         # There is no point in obtaining the current value
                         # stored in the container, since the container is
                         # shared.
@@ -485,7 +485,7 @@ class Function:
                         "names of the inputs of your function "
                         "for duplicates."
                     )
-                if isinstance(s, gof.Container):
+                if isinstance(s, link.Container):
                     return s.value
                 else:
                     raise NotImplementedError
@@ -503,7 +503,7 @@ class Function:
                         "names of the inputs of your function "
                         "for duplicates."
                     )
-                if isinstance(s, gof.Container):
+                if isinstance(s, link.Container):
                     s.value = value
                     s.provided += 1
                 else:
@@ -812,7 +812,7 @@ class Function:
         def restore_defaults():
             for i, (required, refeed, value) in enumerate(self.defaults):
                 if refeed:
-                    if isinstance(value, gof.Container):
+                    if isinstance(value, link.Container):
                         value = value.storage[0]
                     self[i] = value
 
@@ -1534,7 +1534,7 @@ class FunctionMaker:
             #    too much execution time during testing as we compile
             #    much more functions then the number of compile c
             #    module.
-            theano.gof.cc.get_module_cache().refresh()
+            theano.link.c.cc.get_module_cache().refresh()
         # Handle the case where inputs and/or outputs is a single
         # Variable (not in a list)
         unpack_single = False
@@ -1679,7 +1679,7 @@ class FunctionMaker:
         self.refeed = [
             (
                 i.value is not None
-                and not isinstance(i.value, gof.Container)
+                and not isinstance(i.value, link.Container)
                 and i.update is None
             )
             for i in self.inputs
@@ -1772,8 +1772,8 @@ class FunctionMaker:
             if isinstance(input_storage_i, gof.Variable):
                 input_storage_i = input_storage_i.container
 
-            if isinstance(input_storage_i, gof.Container):
-                # If the default is a gof.Container, this means we want to
+            if isinstance(input_storage_i, link.Container):
+                # If the default is a link.Container, this means we want to
                 # share the same storage. This is done by appending
                 # input_storage_i.storage to input_storage_lists.
                 if indices is not None:
@@ -1815,7 +1815,7 @@ class FunctionMaker:
 
         # Get a function instance
         start_linker = time.time()
-        start_import_time = theano.gof.cmodule.import_time
+        start_import_time = theano.link.c.cmodule.import_time
 
         with config.change_flags(traceback__limit=config.traceback__compile_limit):
             _fn, _i, _o = self.linker.make_thunk(
@@ -1830,7 +1830,7 @@ class FunctionMaker:
         if self.profile:
             self.profile.linker_time += linker_time
             _fn.time_thunks = self.profile.flag_time_thunks
-            import_time = theano.gof.cmodule.import_time - start_import_time
+            import_time = theano.link.c.cmodule.import_time - start_import_time
             self.profile.import_time += import_time
 
         fn = self.function_builder(

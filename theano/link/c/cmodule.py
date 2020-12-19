@@ -37,7 +37,7 @@ try:
 except ImportError:
     pass
 
-_logger = logging.getLogger("theano.gof.cmodule")
+_logger = logging.getLogger("theano.link.c.cmodule")
 
 METH_VARARGS = "METH_VARARGS"
 METH_NOARGS = "METH_NOARGS"
@@ -1999,7 +1999,7 @@ def try_march_flag(flags):
             """
     )
 
-    cflags = flags + ["-L" + d for d in theano.gof.cmodule.std_lib_dirs()]
+    cflags = flags + ["-L" + d for d in theano.link.c.cmodule.std_lib_dirs()]
     compilation_result, execution_result = GCC_compiler.try_compile_tmp(
         test_code, tmp_prefix="try_march_", flags=cflags, try_run=True
     )

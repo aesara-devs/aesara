@@ -12,7 +12,7 @@ import time
 import warnings
 from collections import defaultdict
 
-import theano.gof.cmodule
+import theano.link.c.cmodule
 from theano import config, link
 
 
@@ -694,10 +694,10 @@ try:
     # If cxx is explicitely set to an empty string, we do not want to import neither lazylinker C code
     # nor lazylinker compiled C code from cache.
     if not theano.config.cxx:
-        raise theano.gof.cmodule.MissingGXX(
+        raise theano.link.c.cmodule.MissingGXX(
             "lazylinker will not be imported if theano.config.cxx is not set."
         )
-    from . import lazylinker_c
+    from theano.link.c import lazylinker_c
 
     class CVM(lazylinker_c.CLazyLinker, VM):
         def __init__(self, fgraph, *args, **kwargs):
@@ -708,7 +708,7 @@ try:
 
 except ImportError:
     pass
-except (OSError, theano.gof.cmodule.MissingGXX) as e:
+except (OSError, theano.link.c.cmodule.MissingGXX) as e:
     # OSError happens when g++ is not installed.  In that case, we
     # already changed the default linker to something else then CVM.
     # Currently this is the py linker.

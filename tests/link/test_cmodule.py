@@ -11,7 +11,7 @@ from unittest.mock import patch
 import numpy as np
 
 import theano
-from theano.gof.cmodule import GCC_compiler, default_blas_ldflags
+from theano.link.c.cmodule import GCC_compiler, default_blas_ldflags
 
 
 class MyOp(theano.compile.ops.DeepCopyOp):
@@ -72,8 +72,8 @@ def test_flag_detection():
     GCC_compiler.try_flags(["-lblas"])
 
 
-@patch("theano.gof.cmodule.try_blas_flag", return_value=None)
-@patch("theano.gof.cmodule.sys")
+@patch("theano.link.c.cmodule.try_blas_flag", return_value=None)
+@patch("theano.link.c.cmodule.sys")
 def test_default_blas_ldflags(sys_mock, try_blas_flag_mock, caplog):
 
     sys_mock.version = "3.8.0 | packaged by conda-forge | (default, Nov 22 2019, 19:11:38) \n[GCC 7.3.0]"

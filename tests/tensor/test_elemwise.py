@@ -11,6 +11,8 @@ import theano.tensor as tt
 from tests import unittest_tools
 from theano import config, gof, scalar
 from theano.compile.mode import Mode, get_default_mode
+from theano.link.basic import PerformLinker
+from theano.link.c.cc import CLinker, OpWiseCLinker
 from theano.tensor import TensorType, as_tensor_variable
 from theano.tensor.elemwise import (
     CAReduce,
@@ -79,12 +81,12 @@ class TestDimShuffle(unittest_tools.InferShapeTester):
             DimShuffle(ib, shuffle)
 
     def test_perform(self):
-        self.with_linker(gof.PerformLinker())
+        self.with_linker(PerformLinker())
 
     def test_c_or_py(self):
         # Shape op don't have C code.
         # But This will test DimShuffle c code
-        self.with_linker(gof.OpWiseCLinker())
+        self.with_linker(OpWiseCLinker())
 
     def test_infer_shape(self):
 
@@ -167,7 +169,7 @@ class TestBroadcast:
     openmp_minsize_sqrt = int(math.ceil(math.sqrt(openmp_minsize)))
 
     # The order is important if you change them.
-    linkers = [gof.PerformLinker, gof.CLinker]
+    linkers = [PerformLinker, CLinker]
 
     def rand_val(self, shp):
         return np.asarray(np.random.rand(*shp), dtype=theano.config.floatX)
@@ -207,7 +209,7 @@ class TestBroadcast:
 
             # test Elemwise.infer_shape
             # the Shape op don't implement c_code!
-            if isinstance(linker, gof.PerformLinker):
+            if isinstance(linker, PerformLinker):
                 x = type(theano.config.floatX, [(entry == 1) for entry in xsh])("x")
                 y = type(theano.config.floatX, [(entry == 1) for entry in ysh])("y")
                 e = op(scalar.add)(x, y)
@@ -242,7 +244,7 @@ class TestBroadcast:
             assert (xv == zv).all()
             # test Elemwise.infer_shape
             # the Shape op don't implement c_code!
-            if isinstance(linker, gof.PerformLinker):
+            if isinstance(linker, PerformLinker):
                 x = type(theano.config.floatX, [(entry == 1) for entry in xsh])("x")
                 y = type(theano.config.floatX, [(entry == 1) for entry in ysh])("y")
                 e = op(scalar.Add(scalar.transfer_type(0)), {0: 0})(x, y)
@@ -260,22 +262,22 @@ class TestBroadcast:
                 assert xv.shape == zv.shape
 
     def test_perform(self):
-        self.with_linker(gof.PerformLinker(), self.op, self.type, self.rand_val)
+        self.with_linker(PerformLinker(), self.op, self.type, self.rand_val)
 
     @pytest.mark.skipif(
         not theano.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_c(self):
-        self.with_linker(gof.CLinker(), self.cop, self.ctype, self.rand_cval)
+        self.with_linker(CLinker(), self.cop, self.ctype, self.rand_cval)
 
     def test_perform_inplace(self):
-        self.with_linker_inplace(gof.PerformLinker(), self.op, self.type, self.rand_val)
+        self.with_linker_inplace(PerformLinker(), self.op, self.type, self.rand_val)
 
     @pytest.mark.skipif(
         not theano.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_c_inplace(self):
-        self.with_linker_inplace(gof.CLinker(), self.cop, self.ctype, self.rand_cval)
+        self.with_linker_inplace(CLinker(), self.cop, self.ctype, self.rand_cval)
 
     @pytest.mark.skipif(
         not theano.config.cxx, reason="G++ not available, so we need to skip this test."

@@ -2566,7 +2566,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
         self.refeed = [
             (
                 i.value is not None
-                and not isinstance(i.value, gof.Container)
+                and not isinstance(i.value, link.Container)
                 and i.update is None
             )
             for i in self.inputs

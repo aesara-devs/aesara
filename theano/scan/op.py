@@ -53,7 +53,7 @@ from collections import OrderedDict
 import numpy as np
 
 import theano
-from theano import compile, config, gof, gradient, link, tensor
+from theano import compile, config, gof, gradient, tensor
 from theano.compile.builders import infer_shape
 from theano.compile.function import function
 from theano.compile.io import In, Out
@@ -63,6 +63,8 @@ from theano.gof import Apply, PureOp
 from theano.gof.graph import equal_computations, io_connection_pattern
 from theano.gof.toolbox import NoOutputFromInplace
 from theano.gradient import DisconnectedType, NullType, grad_undefined
+from theano.link.c.cc import CLinker
+from theano.link.utils import raise_with_op
 from theano.scan.utils import Validator, forced_replace, hash_listsDictsTuples, safe_new
 from theano.tensor import TensorType, as_tensor_variable
 from theano.tensor.opt import Shape_i
@@ -203,7 +205,7 @@ class Scan(PureOp):
                     raise theano.gof.MissingInputError(
                         f"ScanOp is missing an input: {repr(var)}"
                     )
-            self._cmodule_key = gof.CLinker().cmodule_key_variables(
+            self._cmodule_key = CLinker().cmodule_key_variables(
                 self.inputs, self.outputs, []
             )
             self._hash_inner_graph = hash(self._cmodule_key)
@@ -972,7 +974,7 @@ class Scan(PureOp):
 
         try:
             if impl == "py":
-                raise theano.gof.cmodule.MissingGXX
+                raise theano.link.c.cmodule.MissingGXX
             cython_mintaps = np.asarray(self.mintaps, dtype="int32")
             cython_tap_array_len = np.asarray(
                 [len(x) for x in self.tap_array], dtype="int32"
@@ -1049,7 +1051,7 @@ class Scan(PureOp):
                     node,
                 )
 
-        except (ImportError, theano.gof.cmodule.MissingGXX):
+        except (ImportError, theano.link.c.cmodule.MissingGXX):
             p = self.execute
         # default arguments are stored in the closure of `rval`
 
@@ -1465,7 +1467,7 @@ class Scan(PureOp):
                     # done by raise_with_op is not implemented in C.
                     if hasattr(fn, "thunks"):
                         # For the CVM
-                        link.raise_with_op(
+                        raise_with_op(
                             self.fn.maker.fgraph,
                             fn.nodes[fn.position_of_error],
                             fn.thunks[fn.position_of_error],
@@ -1475,7 +1477,7 @@ class Scan(PureOp):
                         # We don't have access from python to all the
                         # temps values So for now, we just don't print
                         # the extra shapes/strides info
-                        link.raise_with_op(
+                        raise_with_op(
                             self.fn.maker.fgraph, fn.nodes[fn.position_of_error]
                         )
                 else:

@@ -247,8 +247,8 @@ class RecordMode(Mode):
             line = f"Outputs: {outputs_digest}\n"
             handle_line(fgraph, line, i, node, fn)
 
-        # linker = theano.gof.OpWiseCLinker()
-        linker = theano.gof.vm.VM_Linker(use_cloop=bool(theano.config.cxx))
+        # linker = theano.link.c.cc.OpWiseCLinker()
+        linker = theano.link.c.vm.VM_Linker(use_cloop=bool(theano.config.cxx))
 
-        wrap_linker = theano.gof.WrapLinkerMany([linker], [callback])
+        wrap_linker = theano.link.WrapLinkerMany([linker], [callback])
         super().__init__(wrap_linker, optimizer="fast_run")

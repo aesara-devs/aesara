@@ -13,8 +13,8 @@ import pytest
 
 import tests.unittest_tools as utt
 import theano
-from theano import gof
 from theano.gof import FunctionGraph
+from theano.link.c.cc import DualLinker
 from theano.scalar.basic import (
     ComplexError,
     Composite,
@@ -69,7 +69,7 @@ def test_mul_add_true():
     x, y, z = floats("xyz")
     e = mul(add(x, y), true_div(x, y))
     g = FunctionGraph([x, y], [e])
-    fn = gof.DualLinker().accept(g).make_function()
+    fn = DualLinker().accept(g).make_function()
     assert fn(1.0, 2.0) == 1.5
 
 
@@ -118,7 +118,7 @@ class TestComposite:
         c = C.make_node(x, y)
         # print c.c_code(['x', 'y'], ['z'], dict(id = 0))
         g = FunctionGraph([x, y], [c.out])
-        fn = gof.DualLinker().accept(g).make_function()
+        fn = DualLinker().accept(g).make_function()
         assert fn(1.0, 2.0) == 1.5
 
     def test_flatten(self):
@@ -141,7 +141,7 @@ class TestComposite:
         assert "70.0" in c.op.c_code(c, "dummy", ["x", "y"], ["z"], dict(id=0))
         # print c.c_code(['x', 'y'], ['z'], dict(id = 0))
         g = FunctionGraph([x, y], [c.out])
-        fn = gof.DualLinker().accept(g).make_function()
+        fn = DualLinker().accept(g).make_function()
         assert fn(1.0, 2.0) == 36.0
 
     def test_many_outputs(self):
@@ -153,7 +153,7 @@ class TestComposite:
         c = C.make_node(x, y, z)
         # print c.c_code(['x', 'y', 'z'], ['out0', 'out1', 'out2'], dict(id = 0))
         g = FunctionGraph([x, y, z], c.outputs)
-        fn = gof.DualLinker().accept(g).make_function()
+        fn = DualLinker().accept(g).make_function()
         assert fn(1.0, 2.0, 3.0) == [6.0, 7.0, 0.5]
 
     def test_composite_printing(self):
@@ -169,7 +169,7 @@ class TestComposite:
         C = Composite([x, y, z], [e0, e1, e2, e3, e4, e5, e6, e7])
         c = C.make_node(x, y, z)
         g = FunctionGraph([x, y, z], c.outputs)
-        gof.DualLinker().accept(g).make_function()
+        DualLinker().accept(g).make_function()
 
         assert str(g) == (
             "FunctionGraph(*1 -> Composite{((i0 + i1) + i2),"
@@ -203,73 +203,71 @@ class TestComposite:
 class TestLogical:
     def test_gt(self):
         x, y, z = floats("xyz")
-        fn = gof.DualLinker().accept(FunctionGraph([x, y], [x > y])).make_function()
+        fn = DualLinker().accept(FunctionGraph([x, y], [x > y])).make_function()
         for a, b in ((3.0, 9), (3, 0.9), (3, 3)):
             assert fn(a, b) == (a > b)
 
     def test_lt(self):
         x, y, z = floats("xyz")
-        fn = gof.DualLinker().accept(FunctionGraph([x, y], [x < y])).make_function()
+        fn = DualLinker().accept(FunctionGraph([x, y], [x < y])).make_function()
         for a, b in ((3.0, 9), (3, 0.9), (3, 3)):
             assert fn(a, b) == (a < b)
 
     def test_le(self):
         x, y, z = floats("xyz")
-        fn = gof.DualLinker().accept(FunctionGraph([x, y], [x <= y])).make_function()
+        fn = DualLinker().accept(FunctionGraph([x, y], [x <= y])).make_function()
         for a, b in ((3.0, 9), (3, 0.9), (3, 3)):
             assert fn(a, b) == (a <= b)
 
     def test_ge(self):
         x, y, z = floats("xyz")
-        fn = gof.DualLinker().accept(FunctionGraph([x, y], [x >= y])).make_function()
+        fn = DualLinker().accept(FunctionGraph([x, y], [x >= y])).make_function()
         for a, b in ((3.0, 9), (3, 0.9), (3, 3)):
             assert fn(a, b) == (a >= b)
 
     def test_eq(self):
         x, y, z = floats("xyz")
-        fn = gof.DualLinker().accept(FunctionGraph([x, y], [eq(x, y)])).make_function()
+        fn = DualLinker().accept(FunctionGraph([x, y], [eq(x, y)])).make_function()
         for a, b in ((3.0, 9), (3, 0.9), (3, 3)):
             assert fn(a, b) == (a == b)
 
     def test_neq(self):
         x, y, z = floats("xyz")
-        fn = gof.DualLinker().accept(FunctionGraph([x, y], [neq(x, y)])).make_function()
+        fn = DualLinker().accept(FunctionGraph([x, y], [neq(x, y)])).make_function()
         for a, b in ((3.0, 9), (3, 0.9), (3, 3)):
             assert fn(a, b) == (a != b)
 
     def test_or(self):
         x, y, z = ints("xyz")
-        fn = gof.DualLinker().accept(FunctionGraph([x, y], [x | y])).make_function()
+        fn = DualLinker().accept(FunctionGraph([x, y], [x | y])).make_function()
         for a, b in ((0, 1), (0, 0), (1, 0), (1, 1)):
             assert fn(a, b) == (a | b), (a, b)
 
     def test_xor(self):
         x, y, z = ints("xyz")
-        fn = gof.DualLinker().accept(FunctionGraph([x, y], [x ^ y])).make_function()
+        fn = DualLinker().accept(FunctionGraph([x, y], [x ^ y])).make_function()
         for a, b in ((0, 1), (0, 0), (1, 0), (1, 1)):
             assert fn(a, b) == (a ^ b), (a, b)
 
     def test_and(self):
         x, y, z = ints("xyz")
-        fn = (
-            gof.DualLinker().accept(FunctionGraph([x, y], [and_(x, y)])).make_function()
-        )
+        fn = DualLinker().accept(FunctionGraph([x, y], [and_(x, y)])).make_function()
         for a, b in ((0, 1), (0, 0), (1, 0), (1, 1)):
             assert fn(a, b) == (a & b), (a, b)
 
         x, y, z = ints("xyz")
-        fn = gof.DualLinker().accept(FunctionGraph([x, y], [x & y])).make_function()
+        fn = DualLinker().accept(FunctionGraph([x, y], [x & y])).make_function()
         for a, b in ((0, 1), (0, 0), (1, 0), (1, 1)):
             assert fn(a, b) == (a & b), (a, b)
 
     def test_not(self):
         x, y, z = ints("xyz")
-        fn = gof.DualLinker().accept(FunctionGraph([x, y], [invert(x)])).make_function()
+        fn = DualLinker().accept(FunctionGraph([x, y], [invert(x)])).make_function()
         for a, b in ((0, 1), (0, 0), (1, 0), (1, 1)):
             assert fn(a, b) == ~a, (a,)
 
         x, y, z = ints("xyz")
-        fn = gof.DualLinker().accept(FunctionGraph([x, y], [~x])).make_function()
+        fn = DualLinker().accept(FunctionGraph([x, y], [~x])).make_function()
         for a, b in ((0, 1), (0, 0), (1, 0), (1, 1)):
             assert fn(a, b) == ~a, (a,)
 

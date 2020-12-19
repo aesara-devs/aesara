@@ -7,9 +7,11 @@ import logging
 import warnings
 
 import theano
-import theano.gof.vm
 from theano import config, gof
 from theano.compile.function.types import Supervisor
+from theano.link.basic import PerformLinker
+from theano.link.c.cc import CLinker, OpWiseCLinker
+from theano.link.c.vm import VM_Linker
 from theano.link.jax import JAXLinker
 
 
@@ -20,14 +22,14 @@ _logger = logging.getLogger("theano.compile.mode")
 # Mode, it will be used as the key to retrieve the real linker in this
 # dictionary
 predefined_linkers = {
-    "py": gof.PerformLinker(),  # Use allow_gc Theano flag
-    "c": gof.CLinker(),  # Don't support gc. so don't check allow_gc
-    "c|py": gof.OpWiseCLinker(),  # Use allow_gc Theano flag
-    "c|py_nogc": gof.OpWiseCLinker(allow_gc=False),
-    "vm": gof.vm.VM_Linker(use_cloop=False),  # Use allow_gc Theano flag
-    "cvm": gof.vm.VM_Linker(use_cloop=True),  # Use allow_gc Theano flag
-    "vm_nogc": gof.vm.VM_Linker(allow_gc=False, use_cloop=False),
-    "cvm_nogc": gof.vm.VM_Linker(allow_gc=False, use_cloop=True),
+    "py": PerformLinker(),  # Use allow_gc Theano flag
+    "c": CLinker(),  # Don't support gc. so don't check allow_gc
+    "c|py": OpWiseCLinker(),  # Use allow_gc Theano flag
+    "c|py_nogc": OpWiseCLinker(allow_gc=False),
+    "vm": VM_Linker(use_cloop=False),  # Use allow_gc Theano flag
+    "cvm": VM_Linker(use_cloop=True),  # Use allow_gc Theano flag
+    "vm_nogc": VM_Linker(allow_gc=False, use_cloop=False),
+    "cvm_nogc": VM_Linker(allow_gc=False, use_cloop=True),
     "jax": JAXLinker(),
 }
 
@@ -407,7 +409,7 @@ class Mode:
 # string as the key
 # Use VM_linker to allow lazy evaluation by default.
 FAST_COMPILE = Mode(
-    theano.gof.vm.VM_Linker(use_cloop=False, c_thunks=False), "fast_compile"
+    theano.link.c.vm.VM_Linker(use_cloop=False, c_thunks=False), "fast_compile"
 )
 if theano.config.cxx:
     FAST_RUN = Mode("cvm", "fast_run")

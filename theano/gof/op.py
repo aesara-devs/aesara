@@ -16,10 +16,8 @@ import warnings
 import numpy as np
 
 import theano
-import theano.gof.cc
 from theano import config
 from theano.gof import graph
-from theano.gof.cmodule import GCC_compiler
 from theano.gof.fg import FunctionGraph
 from theano.gof.utils import (
     MethodNotDefined,
@@ -842,6 +840,11 @@ class Op(object2, PureOp, CLinkerOp):
 
     def make_c_thunk(self, node, storage_map, compute_map, no_recycling):
         """Like make_thunk, but will only try to make a C thunk."""
+        # FIXME: Putting the following import on the module level causes an import cycle.
+        #        The conclusion should be that the antire "make_c_thunk" method should be defined
+        #        in theano.link.c and dispatched onto the Op!
+        import theano.link.c.cc
+
         node_input_storage = [storage_map[r] for r in node.inputs]
         node_output_storage = [storage_map[r] for r in node.outputs]
 
@@ -851,7 +854,7 @@ class Op(object2, PureOp, CLinkerOp):
             for (new_o, old_o) in zip(e.outputs, node.outputs)
             if old_o in no_recycling
         ]
-        cl = theano.gof.cc.CLinker().accept(e, no_recycling=e_no_recycling)
+        cl = theano.link.c.cc.CLinker().accept(e, no_recycling=e_no_recycling)
         # float16 gets special treatment since running
         # unprepared C code will get bad results.
         if not getattr(self, "_f16_ok", False):
@@ -1173,6 +1176,8 @@ class OpenMPOp(Op):
         """
         Check if openMP is supported
         """
+        from theano.link.c.cmodule import GCC_compiler
+
         code = """
         #include <omp.h>
 int main( int argc, const char* argv[] )

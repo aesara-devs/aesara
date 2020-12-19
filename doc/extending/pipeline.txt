@@ -73,7 +73,7 @@ extracted from the Mode. It is then called with the FunctionGraph as
 argument to
 produce a ``thunk``, which is a function with no arguments that
 returns nothing. Along with the thunk, one list of input containers (a
-theano.gof.Container is a sort of object that wraps another and does
+theano.link.Container is a sort of object that wraps another and does
 type casting) and one list of output containers are produced,
 corresponding to the input and output Variables as well as the updates
 defined for the inputs when applicable. To perform the computations,

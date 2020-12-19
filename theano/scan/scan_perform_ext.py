@@ -18,8 +18,8 @@ import numpy as np
 
 import theano
 from theano import config
-from theano.gof import cmodule
 from theano.gof.compilelock import get_lock, release_lock
+from theano.link.c import cmodule
 
 
 _logger = logging.getLogger("theano.scan.scan_perform")

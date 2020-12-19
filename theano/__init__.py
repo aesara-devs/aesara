@@ -99,19 +99,12 @@ from theano.compile.function import function, function_dump
 from theano.compile.function.types import FunctionMaker
 from theano.gof import (
     Apply,
-    CLinker,
     Constant,
-    Container,
-    DualLinker,
     FunctionGraph,
     Generic,
     InconsistencyError,
-    Linker,
-    LocalLinker,
     Op,
     OpenMPOp,
-    OpWiseCLinker,
-    PerformLinker,
     Type,
     Variable,
     generic,
@@ -121,6 +114,8 @@ from theano.gof import (
     utils,
 )
 from theano.gradient import Lop, Rop, grad, subgraph_grad
+from theano.link import Container, Linker, LocalLinker, PerformLinker
+from theano.link.c import CLinker, DualLinker, OpWiseCLinker
 from theano.misc.safe_asarray import _asarray
 from theano.printing import pp, pprint
 from theano.updates import OrderedUpdates
