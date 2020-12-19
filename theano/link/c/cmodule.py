@@ -28,6 +28,7 @@ from theano.configdefaults import gcc_version_str, local_bitwidth
 # we will abuse the lockfile mechanism when reading and writing the registry
 from theano.gof import compilelock
 from theano.gof.utils import flatten, hash_from_code
+from theano.link.c.exceptions import MissingGXX
 from theano.utils import output_subprocess_Popen, subprocess_Popen
 
 
@@ -43,14 +44,6 @@ METH_VARARGS = "METH_VARARGS"
 METH_NOARGS = "METH_NOARGS"
 # global variable that represent the total time spent in importing module.
 import_time = 0
-
-
-class MissingGXX(Exception):
-    """
-    This error is raised when we try to generate c code,
-    but g++ is not available.
-
-    """
 
 
 def debug_counter(name, every=1):

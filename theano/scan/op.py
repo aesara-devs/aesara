@@ -64,6 +64,7 @@ from theano.gof.graph import equal_computations, io_connection_pattern
 from theano.gof.toolbox import NoOutputFromInplace
 from theano.gradient import DisconnectedType, NullType, grad_undefined
 from theano.link.c.cc import CLinker
+from theano.link.c.exceptions import MissingGXX
 from theano.link.utils import raise_with_op
 from theano.scan.utils import Validator, forced_replace, hash_listsDictsTuples, safe_new
 from theano.tensor import TensorType, as_tensor_variable
@@ -974,7 +975,7 @@ class Scan(PureOp):
 
         try:
             if impl == "py":
-                raise theano.link.c.cmodule.MissingGXX
+                raise MissingGXX
             cython_mintaps = np.asarray(self.mintaps, dtype="int32")
             cython_tap_array_len = np.asarray(
                 [len(x) for x in self.tap_array], dtype="int32"
@@ -1051,7 +1052,7 @@ class Scan(PureOp):
                     node,
                 )
 
-        except (ImportError, theano.link.c.cmodule.MissingGXX):
+        except (ImportError, MissingGXX):
             p = self.execute
         # default arguments are stored in the closure of `rval`
 
