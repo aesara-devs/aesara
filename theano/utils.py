@@ -3,6 +3,7 @@
 
 import hashlib
 import inspect
+import logging
 import os
 import struct
 import subprocess
@@ -25,6 +26,7 @@ __all__ = [
     "output_subprocess_Popen",
     "LOCAL_BITWIDTH",
     "PYTHON_INT_BITWIDTH",
+    "NoDuplicateOptWarningFilter",
 ]
 
 
@@ -374,3 +376,19 @@ def flatten(a):
         return l
     else:
         return [a]
+
+
+class NoDuplicateOptWarningFilter(logging.Filter):
+    """Filter to avoid duplicating optimization warnings."""
+
+    prev_msgs = set()
+
+    def filter(self, record):
+        msg = record.getMessage()
+        if msg.startswith("Optimization Warning: "):
+            if msg in self.prev_msgs:
+                return False
+            else:
+                self.prev_msgs.add(msg)
+                return True
+        return True

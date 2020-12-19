@@ -102,12 +102,11 @@ from theano.tensor.type import (
     values_eq_approx_remove_inf_nan,
     values_eq_approx_remove_nan,
 )
-
-
-# import theano.tensor.basic as tt
+from theano.utils import NoDuplicateOptWarningFilter
 
 
 _logger = logging.getLogger("theano.tensor.opt")
+_logger.addFilter(NoDuplicateOptWarningFilter())
 
 
 def _fill_chain(new_out, orig_inputs):
