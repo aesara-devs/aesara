@@ -13,6 +13,7 @@ import sys
 from io import StringIO
 from itertools import chain
 from itertools import product as itertools_product
+from logging import Logger
 from warnings import warn
 
 import numpy as np
@@ -32,28 +33,11 @@ from theano.gof import graph, ops_with_inner_function
 from theano.gof.utils import MethodNotDefined
 from theano.link.basic import Container, LocalLinker
 from theano.link.utils import map_storage, raise_with_op
-from theano.utils import difference, get_unbound_function
+from theano.utils import NoDuplicateOptWarningFilter, difference, get_unbound_function
 
 
 __docformat__ = "restructuredtext en"
-_logger = logging.getLogger("theano.compile.debugmode")
-
-
-# Filter to avoid duplicating optimization warnings
-class NoDuplicateOptWarningFilter(logging.Filter):
-    prev_msgs = set()
-
-    def filter(self, record):
-        msg = record.getMessage()
-        if msg.startswith("Optimization Warning: "):
-            if msg in self.prev_msgs:
-                return False
-            else:
-                self.prev_msgs.add(msg)
-                return True
-        return True
-
-
+_logger: Logger = logging.getLogger("theano.compile.debugmode")
 _logger.addFilter(NoDuplicateOptWarningFilter())
 
 
@@ -538,7 +522,8 @@ def debugprint(
     if used_ids is None:
         used_ids = dict()
 
-    def get_id_str(obj, get_printed=True):
+    def get_id_str(obj, get_printed=True) -> str:
+        id_str: str = ""
         if obj in used_ids:
             id_str = used_ids[obj]
         elif obj == "output":
