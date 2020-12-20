@@ -65,8 +65,8 @@ class Apply(Node):
     Basically, an `Apply` instance is an object that represents the
     Python statement `outputs = op(*inputs)`.
 
-    This class is typically instantiated by a `PureOp.make_node` method, which
-    is called by `PureOp.__call__`.
+    This class is typically instantiated by a `Op.make_node` method, which
+    is called by `Op.__call__`.
 
     The function `theano.compile.function.function` uses `Apply.inputs`
     together with `Variable.owner` to search the expression graph and determine
@@ -77,7 +77,7 @@ class Apply(Node):
 
     Parameters
     ----------
-    op : A PureOp instance
+    op : A Op instance
     inputs : list of Variable instances
     outputs : list of Variable instances
 
