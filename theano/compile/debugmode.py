@@ -1,7 +1,7 @@
 """
 Provides `DebugMode`, an evaluation mode for debugging theano internals.
 
-TODO: add support for IfElse Op, LazyLinker, PureOp, etc.
+TODO: add support for IfElse Op, LazyLinker, etc.
 
 """
 
@@ -1823,12 +1823,6 @@ class _Linker(LocalLinker):
             try:
                 if not self.maker.mode.check_c_code or debug:
                     raise utils.MethodNotDefined()
-                # Ops that do not inherit from gof.op.Op don't have certain
-                # methods defined that the CLinker expects (Scan is an
-                # example, ifelse is another of such classes that inherit
-                # directly from PureOp)
-                if not isinstance(node.op, gof.op.Op):
-                    raise utils.MethodNotDefined()
 
                 node.op.prepare_node(node, storage_map, compute_map, "c")
                 thunk = node.op.make_c_thunk(
@@ -1843,7 +1837,7 @@ class _Linker(LocalLinker):
             # consider that we don't have a python implementation
             if (
                 (self.maker.mode.check_py_code or thunks_c[-1] is None)
-                and node.op.perform.__code__ != gof.op.PureOp.perform.__code__
+                and node.op.perform.__code__ != gof.op.Op.perform.__code__
             ) or debug:
                 node.op.prepare_node(node, storage_map, compute_map, "py")
                 thunk = node.op.make_py_thunk(

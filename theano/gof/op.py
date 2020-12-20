@@ -1,5 +1,5 @@
 """
-Defines base classes `Op`, `PureOp`, and `CLinkerOp`.
+Defines base classes `Op` and `CLinkerOp`.
 
 The `Op` class is the base interface for all operations
 compatible with `gof`'s :doc:`graph` routines.
@@ -11,6 +11,7 @@ import logging
 import os
 import re
 import sys
+import typing
 import warnings
 
 import numpy as np
@@ -19,6 +20,7 @@ import theano
 from theano import config
 from theano.gof import graph
 from theano.gof.fg import FunctionGraph
+from theano.gof.graph import Apply, Variable
 from theano.gof.utils import (
     MethodNotDefined,
     TestValueError,
@@ -26,6 +28,7 @@ from theano.gof.utils import (
     get_variable_trace_string,
     object2,
 )
+from theano.link.c.interface import CLinkerOp
 
 
 __authors__ = "theano-dev"
@@ -118,448 +121,20 @@ def compute_test_value(node):
         output.tag.test_value = storage_map[output][0]
 
 
-class CLinkerObject:
-    """
-    Standard elements of an Op or Type used with the CLinker.
-
-    """
-
-    def c_headers(self):
-        """
-        Optional: Return a list of header files required by code returned by
-        this class.
-
-        Examples
-        --------
-        return ['<iostream>', '<math.h>', '/full/path/to/header.h']
-
-        These strings will be prefixed with "#include " and inserted at the
-        beginning of the c source code.
-
-        Strings in this list that start neither with '<' nor '"' will be
-        enclosed in double-quotes.
-
-        Raises
-        ------
-        MethodNotDefined
-            Subclass does not implement this method.
-
-        """
-        raise MethodNotDefined("c_headers", type(self), self.__class__.__name__)
-
-    def c_header_dirs(self):
-        """
-        Optional: Return a list of header search paths required by code
-        returned by this class.
-
-        Examples
-        --------
-        return ['/usr/local/include', '/opt/weirdpath/src/include']
-
-        Provides search paths for headers, in addition to those in any relevant
-        environment variables.
-
-        Hint: for unix compilers, these are the things that get '-I' prefixed
-        in the compiler cmdline.
-
-        Raises
-        ------
-        MethodNotDefined
-            Subclass does not implement this method.
-
-        """
-        raise MethodNotDefined("c_header_dirs", type(self), self.__class__.__name__)
-
-    def c_libraries(self):
-        """
-        Optional: Return a list of libraries required by code returned by
-        this class.
-
-        Examples
-        --------
-        return ['gsl', 'gslcblas', 'm', 'fftw3', 'g2c'].
-
-        The compiler will search the directories specified by the environment
-        variable LD_LIBRARY_PATH in addition to any returned by `c_lib_dirs`.
-
-        Hint: for unix compilers, these are the things that get '-l' prefixed
-        in the compiler cmdline.
-
-        Raises
-        ------
-        MethodNotDefined
-            Subclass does not implement this method.
-
-        """
-        raise MethodNotDefined("c_libraries", type(self), self.__class__.__name__)
-
-    def c_lib_dirs(self):
-        """
-        Optional: Return a list of library search paths required by code
-        returned by this class.
-
-        Examples
-        --------
-        return ['/usr/local/lib', '/opt/weirdpath/build/libs'].
-
-        Provides search paths for libraries, in addition to those in any
-        relevant environment variables (e.g. LD_LIBRARY_PATH).
-
-        Hint: for unix compilers, these are the things that get '-L' prefixed
-        in the compiler cmdline.
-
-        Raises
-        ------
-        MethodNotDefined
-            Subclass does not implement this method.
-
-        """
-        raise MethodNotDefined("c_lib_dirs", type(self), self.__class__.__name__)
-
-    def c_support_code(self):
-        """
-        Optional: Return utility code (a string, or a list of strings) for use by a `Variable` or `Op` to be
-        included at global scope prior to the rest of the code for this class.
-
-        QUESTION: How many times will this support code be emitted for a graph
-        with many instances of the same type?
-
-        Raises
-        ------
-        MethodNotDefined
-            Subclass does not implement this method.
-
-        """
-        raise MethodNotDefined("c_support_code", type(self), self.__class__.__name__)
-
-    def c_code_cache_version(self):
-        """
-        Return a tuple of integers indicating the version of this Op.
-
-        An empty tuple indicates an 'unversioned' Op that will not be cached
-        between processes.
-
-        The cache mechanism may erase cached modules that have been superceded
-        by newer versions. See `ModuleCache` for details.
-
-        See Also
-        --------
-        c_code_cache_version_apply()
-
-        """
-        return ()
-
-    def c_compile_args(self):
-        """
-        Optional: Return a list of compile args recommended to compile the
-        code returned by other methods in this class.
-
-        Examples
-        --------
-        return ['-ffast-math']
-
-        Compiler arguments related to headers, libraries and search paths should
-        be provided via the functions `c_headers`, `c_libraries`,
-        `c_header_dirs`, and `c_lib_dirs`.
-
-        Raises
-        ------
-        MethodNotDefined
-            Subclass does not implement this method.
-
-        """
-        raise MethodNotDefined("c_compile_args", type(self), self.__class__.__name__)
-
-    def c_no_compile_args(self):
-        """
-        Optional: return a list of incompatible gcc compiler arguments.
-
-        We will remove those arguments from the command line of gcc. So if
-        another Op adds a compile arg in the graph that is incompatible
-        with this Op, the incompatible arg will not be used.
-        Useful for instance to remove -ffast-math.
-
-        EXAMPLE
-
-        WRITEME
-
-        Raises
-        ------
-        MethodNotDefined
-            The subclass does not override this method.
-
-        """
-        raise MethodNotDefined("c_no_compile_args", type(self), self.__class__.__name__)
-
-    def c_init_code(self):
-        """
-        Optional: return a list of code snippets to be inserted in module
-        initialization.
-
-        Raises
-        ------
-        MethodNotDefined
-            The subclass does not override this method.
-
-        """
-        raise MethodNotDefined("c_init_code", type(self), self.__class__.__name__)
-
-
-class CLinkerOp(CLinkerObject):
-    """
-    Interface definition for `Op` subclasses compiled by `CLinker`.
-
-    A subclass should implement WRITEME.
-
-    WRITEME: structure of automatically generated C code.
-    Put this in doc/code_structure.txt
-
-    """
-
-    def c_code(self, node, name, inputs, outputs, sub):
-        """
-        Required: return the C implementation of an Op.
-
-        Returns C code that does the computation associated to this `Op`,
-        given names for the inputs and outputs.
-
-        Parameters
-        ----------
-        node : Apply instance
-            The node for which we are compiling the current c_code.
-           The same Op may be used in more than one node.
-        name : str
-            A name that is automatically assigned and guaranteed to be
-            unique.
-        inputs : list of strings
-            There is a string for each input of the function, and the
-            string is the name of a C variable pointing to that input.
-            The type of the variable depends on the declared type of
-            the input.  There is a corresponding python variable that
-            can be accessed by prepending "py_" to the name in the
-            list.
-        outputs : list of strings
-            Each string is the name of a C variable where the Op should
-            store its output.  The type depends on the declared type of
-            the output.  There is a corresponding python variable that
-            can be accessed by prepending "py_" to the name in the
-            list.  In some cases the outputs will be preallocated and
-            the value of the variable may be pre-filled.  The value for
-            an unallocated output is type-dependent.
-        sub : dict of strings
-            Extra symbols defined in `CLinker` sub symbols (such as 'fail').
-            WRITEME
-
-        Raises
-        ------
-        MethodNotDefined
-            The subclass does not override this method.
-
-        """
-        raise MethodNotDefined(f"{self.__class__.__name__}.c_code")
-
-    def c_code_cache_version_apply(self, node):
-        """
-        Return a tuple of integers indicating the version of this Op.
-
-        An empty tuple indicates an 'unversioned' Op that will not be
-        cached between processes.
-
-        The cache mechanism may erase cached modules that have been
-        superceded by newer versions.  See `ModuleCache` for details.
-
-        See Also
-        --------
-        c_code_cache_version()
-
-        Notes
-        -----
-            This function overrides `c_code_cache_version` unless it explicitly
-            calls `c_code_cache_version`. The default implementation simply
-            calls `c_code_cache_version` and ignores the `node` argument.
-
-        """
-        return self.c_code_cache_version()
-
-    def c_code_cleanup(self, node, name, inputs, outputs, sub):
-        """
-        Optional: return C code to run after c_code, whether it failed or not.
-
-        This is a convenient place to clean up things allocated by c_code().
-
-        Parameters
-        ----------
-        node : Apply instance
-            WRITEME
-        name : str
-            A name that is automatically assigned and guaranteed to be
-            unique.
-        inputs : list of strings
-            There is a string for each input of the function, and the
-            string is the name of a C variable pointing to that input.
-            The type of the variable depends on the declared type of
-            the input. There is a corresponding python variable that
-            can be accessed by prepending "py_" to the name in the
-            list.
-        outputs : list of strings
-            Each string is the name of a C variable correspoinding to
-            one of the outputs of the Op. The type depends on the
-            declared type of the output. There is a corresponding
-            python variable that can be accessed by prepending "py_" to
-            the name in the list.
-        sub : dict of strings
-            extra symbols defined in `CLinker` sub symbols (such as 'fail').
-            WRITEME
-
-        Raises
-        ------
-        MethodNotDefined
-            The subclass does not override this method.
-
-        """
-        raise MethodNotDefined(f"{self.__class__.__name__}.c_code_cleanup")
-
-    def c_support_code_apply(self, node, name):
-        """
-        Optional: return utility code for use by an `Op` that will be
-        inserted at global scope, that can be specialized for the
-        support of a particular `Apply` node.
-
-        Parameters
-        ----------
-        node: an Apply instance in the graph being compiled
-        name: str
-            A string or number that serves to uniquely identify this node.
-            Symbol names defined by this support code should include the name,
-            so that they can be called from the c_code, and so that they do not
-            cause name collisions.
-
-        Notes
-        -----
-        This function is called in addition to c_support_code and will
-        supplement whatever is returned from there.
-
-        Raises
-        ------
-        MethodNotDefined
-            Subclass does not implement this method.
-
-        """
-        raise MethodNotDefined(
-            "c_support_code_apply", type(self), self.__class__.__name__
-        )
-
-    def c_init_code_apply(self, node, name):
-        """
-        Optional: return a code string specific to the apply
-        to be inserted in the module initialization code.
-
-        Parameters
-        ----------
-        node : an Apply instance in the graph being compiled
-        name : str
-            A string or number that serves to uniquely identify this node.
-            Symbol names defined by this support code should include the name,
-            so that they can be called from the c_code, and so that they do not
-            cause name collisions.
-
-        Notes
-        -----
-        This function is called in addition to c_init_code and will supplement
-        whatever is returned from there.
-
-        Raises
-        ------
-        MethodNotDefined
-            The subclass does not override this method.
-
-        """
-        raise MethodNotDefined("c_init_code_apply", type(self), self.__class__.__name__)
-
-    def c_init_code_struct(self, node, name, sub):
-        """
-        Optional: return a code string specific to the apply
-        to be inserted in the struct initialization code.
-
-        Parameters
-        ----------
-        node : an Apply instance in the graph being compiled
-        name : str
-            A unique name to distinguish variables from those of other nodes.
-        sub
-            A dictionary of values to substitute in the code.
-            Most notably it contains a 'fail' entry that you should place in
-            your code after setting a python exception to indicate an error.
-
-        Raises
-        ------
-        MethodNotDefined
-            The subclass does not override this method.
-
-        """
-        raise MethodNotDefined(
-            "c_init_code_struct", type(self), self.__class__.__name__
-        )
-
-    def c_support_code_struct(self, node, name):
-        """
-        Optional: return utility code for use by an `Op` that will be
-        inserted at struct scope, that can be specialized for the
-        support of a particular `Apply` node.
-
-        Parameters
-        ----------
-        node : an Apply instance in the graph being compiled
-        name : str
-            A unique name to distinguish you variables from those of other
-            nodes.
-
-        Raises
-        ------
-        MethodNotDefined
-            Subclass does not implement this method.
-
-        """
-        raise MethodNotDefined(
-            "c_support_code_struct", type(self), self.__class__.__name__
-        )
-
-    def c_cleanup_code_struct(self, node, name):
-        """
-        Optional: return a code string specific to the apply to be
-        inserted in the struct cleanup code.
-
-        Parameters
-        ----------
-        node : an Apply instance in the graph being compiled
-        name : str
-            A unique name to distinguish variables from those of other nodes.
-
-        Raises
-        ------
-        MethodNotDefined
-            The subclass does not override this method.
-
-        """
-        raise MethodNotDefined(
-            "c_cleanup_code_struct", type(self), self.__class__.__name__
-        )
-
-
-class PureOp:
+class Op(object2, CLinkerOp):
     """A class that models and constructs operations in a graph.
 
-    A `PureOp` instance has several responsibilities:
+    A `Op` instance has several responsibilities:
 
-    - construct `Apply` nodes via `PureOp.make_node` method,
+    - construct `Apply` nodes via `Op.make_node` method,
 
     - perform the numeric calculation of the modeled operation via
-    the `PureOp.perform` method,
+    the `Op.perform` method,
 
     - and (optionally) build the gradient-calculating sub-graphs via the
-    `PureOp.grad` method.
+    `Op.grad` method.
 
-    To see how `PureOp`, `Type`, `Variable`, and `Apply` fit together see the
+    To see how `Op`, `Type`, `Variable`, and `Apply` fit together see the
     page on :doc:`graph`.
 
     For more details regarding how these methods should behave: see the `Op
@@ -569,7 +144,7 @@ class PureOp:
 
     default_output = None
     """
-    An `int` that specifies which output `PureOp.__call__` should return.  If
+    An `int` that specifies which output `Op.__call__` should return.  If
     `None`, then all outputs are returned.
 
     A subclass should not change this class variable, but instead override it
@@ -577,7 +152,7 @@ class PureOp:
 
     """
 
-    def make_node(self, *inputs):
+    def make_node(self, *inputs) -> Apply:
         """Construct an `Apply` node that represent the application of this operation to the given inputs.
 
         This must be implemented by sub-classes.
@@ -588,12 +163,34 @@ class PureOp:
             The constructed `Apply` node.
 
         """
-        raise MethodNotDefined("make_node", type(self), self.__class__.__name__)
+        if not hasattr(self, "itypes"):
+            raise NotImplementedError(
+                "You can either define itypes and otypes,\
+             or implement make_node"
+            )
 
-    def __call__(self, *inputs, **kwargs):
+        if not hasattr(self, "otypes"):
+            raise NotImplementedError(
+                "You can either define itypes and otypes,\
+             or implement make_node"
+            )
+
+        if len(inputs) != len(self.itypes):
+            raise ValueError(
+                f"We expected {len(self.itypes)} inputs but got {len(inputs)}."
+            )
+        if not all(inp.type == it for inp, it in zip(inputs, self.itypes)):
+            raise TypeError(
+                f"We expected inputs of types '{str(self.itypes)}' but got types '{str([inp.type for inp in inputs])}'"
+            )
+        return theano.Apply(self, inputs, [o() for o in self.otypes])
+
+    def __call__(
+        self, *inputs, **kwargs
+    ) -> typing.Union[Variable, typing.List[Variable],]:
         """Construct an `Apply` node using `self.make_node` and return its outputs.
 
-        This method is just a wrapper around `PureOp.make_node`.
+        This method is just a wrapper around `Op.make_node`.
 
         It is called by code such as:
 
@@ -608,14 +205,14 @@ class PureOp:
         `Variable`, `y`.  The `Apply` node constructed by `self.make_node`
         behind the scenes is available via `y.owner`.
 
-        `PureOp` authors are able to determine which output is returned by this method
-        via the `PureOp.default_output` property., but subclasses are free to override this
+        `Op` authors are able to determine which output is returned by this method
+        via the `Op.default_output` property., but subclasses are free to override this
         function and ignore `default_output`.
 
         Parameters
         ----------
         inputs : tuple of Variable
-            The `PureOp`'s inputs.
+            The `Op`'s inputs.
         kwargs
             Additional keyword arguments to be forwarded to
             `make_node()` *except* for optional argument `return_list` (which
@@ -629,8 +226,8 @@ class PureOp:
         outputs : list of Variable or Variable
             Either a list of output `Variable`s, or a single `Variable`.
             This is determined by the number of outputs produced by the
-            `PureOp`, the value of the keyword `return_list`, and the value of
-            the `PureOp.default_output` property.
+            `Op`, the value of the keyword `return_list`, and the value of
+            the `Op.default_output` property.
 
         """
         return_list = kwargs.pop("return_list", False)
@@ -687,7 +284,7 @@ class PureOp:
         r"""Construct a graph for the L-operator.
 
         This method is primarily used by `tensor.Lop` and dispatches to
-        `PureOp.grad` by default.
+        `Op.grad` by default.
 
         The *L-operator* computes a *row* vector times the Jacobian. The
         mathematical relationship is
@@ -759,9 +356,9 @@ class PureOp:
         with the right number of dimensions and the correct dtype.
         Its shape and stride pattern can be arbitrary. It is not
         guaranteed that such pre-set values were produced by a previous call to
-        this `PureOp.perform`; they could've been allocated by another
-        `PureOp`'s `perform` method.
-        A `PureOp` is free to reuse `output_storage` as it sees fit, or to
+        this `Op.perform`; they could've been allocated by another
+        `Op`'s `perform` method.
+        A `Op` is free to reuse `output_storage` as it sees fit, or to
         discard it and allocate new memory.
 
         Raises
@@ -778,10 +375,10 @@ class PureOp:
             " You can use optimizer=fast_compile instead.",
         )
 
-    def do_constant_folding(self, fgraph, node):
+    def do_constant_folding(self, fgraph: FunctionGraph, node: Apply):
         """Determine whether or not constant folding should be performed for the given node.
 
-        This allows each `PureOp` to determine if it wants to be constant
+        This allows each `Op` to determine if it wants to be constant
         folded when all its inputs are constant. This allows it to choose where
         it puts its memory/speed trade-off. Also, it could make things faster
         as constants can't be used for in-place operations (see
@@ -798,13 +395,6 @@ class PureOp:
 
         """
         return True
-
-
-class Op(object2, PureOp, CLinkerOp):
-    """
-    Convenience class to bundle `PureOp` and `CLinkerOp`.
-
-    """
 
     # We add a default get_params() implementation which will try to detect params from the op
     # if params_type is set to a ParamsType. If not, we raise a MethodNotDefined exception.
@@ -990,32 +580,6 @@ class Op(object2, PureOp, CLinkerOp):
             node, storage_map=storage_map, compute_map=compute_map, impl="py"
         )
         return self.make_py_thunk(node, storage_map, compute_map, no_recycling)
-
-    def make_node(self, *inputs):
-        """
-        Create a "apply" nodes for the inputs in that order.
-        """
-        if not hasattr(self, "itypes"):
-            raise NotImplementedError(
-                "You can either define itypes and otypes,\
-             or implement make_node"
-            )
-
-        if not hasattr(self, "otypes"):
-            raise NotImplementedError(
-                "You can either define itypes and otypes,\
-             or implement make_node"
-            )
-
-        if len(inputs) != len(self.itypes):
-            raise ValueError(
-                f"We expected {len(self.itypes)} inputs but got {len(inputs)}."
-            )
-        if not all(inp.type == it for inp, it in zip(inputs, self.itypes)):
-            raise TypeError(
-                f"We expected inputs of types '{str(self.itypes)}' but got types '{str([inp.type for inp in inputs])}'"
-            )
-        return theano.Apply(self, inputs, [o() for o in self.otypes])
 
 
 def get_test_value(v):

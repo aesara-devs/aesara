@@ -59,7 +59,7 @@ from theano.compile.function import function
 from theano.compile.io import In, Out
 from theano.compile.mode import AddFeatureOptimizer
 from theano.compile.profiling import ScanProfileStats
-from theano.gof import Apply, PureOp
+from theano.gof import Apply, Op
 from theano.gof.graph import equal_computations, io_connection_pattern
 from theano.gof.toolbox import NoOutputFromInplace
 from theano.gradient import DisconnectedType, NullType, grad_undefined
@@ -80,7 +80,7 @@ __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 _logger = logging.getLogger("theano.scan.op")
 
 
-class Scan(PureOp):
+class Scan(Op):
     """
 
     Parameters

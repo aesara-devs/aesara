@@ -1231,7 +1231,7 @@ def local_optimizer(tracks, inplace=False, requirements=()):
                     f.__name__,
                 )
             for t in tracks:
-                if not (isinstance(t, op.Op) or issubclass(t, op.PureOp)):
+                if not (isinstance(t, op.Op) or issubclass(t, op.Op)):
                     raise ValueError(
                         "Tracks are op classes or instances", f.__module__, f.__name__
                     )

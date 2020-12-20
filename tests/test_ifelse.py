@@ -10,7 +10,7 @@ import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import Mode, function, tensor
 from theano.gof import Apply, generic
-from theano.gof.op import PureOp
+from theano.gof.op import Op
 from theano.ifelse import IfElse, ifelse
 
 
@@ -509,7 +509,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         [(param, param - 0.5 * tensor.grad(cost=loss, wrt=param)) for param in params]
 
 
-class IfElseIfElseIf(PureOp):
+class IfElseIfElseIf(Op):
     def __init__(self, inplace=False):
         # check destroyhandler and others to ensure that a view_map with
         self.inplace = inplace
@@ -591,7 +591,7 @@ class NotImplementedOpException(Exception):
     pass
 
 
-class NotImplementedOp(PureOp):
+class NotImplementedOp(Op):
     def make_node(self, x):
         return Apply(self, [x], [x.type()])
 
