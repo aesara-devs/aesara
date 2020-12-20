@@ -1,6 +1,8 @@
-import theano
 from theano.compile import Mode
-from theano.printing import hex_digest
+from theano.configdefaults import config
+from theano.link.basic import WrapLinkerMany
+from theano.link.c.vm import VM_Linker
+from theano.printing import hex_digest, min_informative_str
 
 
 __authors__ = ["PyMC Team", "Ian Goodfellow"]
@@ -199,7 +201,7 @@ class RecordMode(Mode):
                 print(f"str(node):{node}")
                 print("Symbolic inputs: ")
                 for elem in node.inputs:
-                    print(theano.printing.min_informative_str(elem))
+                    print(min_informative_str(elem))
                 print("str(output) of outputs: ")
                 for elem in fn.outputs:
                     assert isinstance(elem, list)
@@ -248,7 +250,7 @@ class RecordMode(Mode):
             handle_line(fgraph, line, i, node, fn)
 
         # linker = theano.link.c.cc.OpWiseCLinker()
-        linker = theano.link.c.vm.VM_Linker(use_cloop=bool(theano.config.cxx))
+        linker = VM_Linker(use_cloop=bool(config.cxx))
 
-        wrap_linker = theano.link.WrapLinkerMany([linker], [callback])
+        wrap_linker = WrapLinkerMany([linker], [callback])
         super().__init__(wrap_linker, optimizer="fast_run")

@@ -7,7 +7,7 @@ from theano.gof import fg, graph
 from theano.gof.graph import Apply, Constant, Variable
 from theano.gof.op import Op
 from theano.gof.type import Type
-from theano.link import Container, PerformLinker, WrapLinker
+from theano.link.basic import Container, PerformLinker, WrapLinker
 from theano.utils import cmp
 
 
