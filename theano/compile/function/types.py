@@ -15,12 +15,14 @@ import numpy as np
 
 import theano
 import theano.compile.profiling
-from theano import config, gof, link
+from theano import config, gof
 from theano.compile.io import In, SymbolicInput, SymbolicOutput
 from theano.compile.ops import deep_copy_op, view_op
 from theano.gof import graph
 from theano.gof.op import ops_with_inner_function
 from theano.gof.toolbox import is_same_graph
+from theano.link.basic import Container
+from theano.link.utils import raise_with_op
 
 
 _logger = logging.getLogger("theano.compile.function.types")
@@ -440,7 +442,7 @@ class Function:
 
                 if value is not None:
                     # Always initialize the storage.
-                    if isinstance(value, link.Container):
+                    if isinstance(value, Container):
                         # There is no point in obtaining the current value
                         # stored in the container, since the container is
                         # shared.
@@ -485,7 +487,7 @@ class Function:
                         "names of the inputs of your function "
                         "for duplicates."
                     )
-                if isinstance(s, link.Container):
+                if isinstance(s, Container):
                     return s.value
                 else:
                     raise NotImplementedError
@@ -503,7 +505,7 @@ class Function:
                         "names of the inputs of your function "
                         "for duplicates."
                     )
-                if isinstance(s, link.Container):
+                if isinstance(s, Container):
                     s.value = value
                     s.provided += 1
                 else:
@@ -812,7 +814,7 @@ class Function:
         def restore_defaults():
             for i, (required, refeed, value) in enumerate(self.defaults):
                 if refeed:
-                    if isinstance(value, link.Container):
+                    if isinstance(value, Container):
                         value = value.storage[0]
                     self[i] = value
 
@@ -978,7 +980,7 @@ class Function:
                 thunk = None
                 if hasattr(self.fn, "thunks"):
                     thunk = self.fn.thunks[self.fn.position_of_error]
-                link.raise_with_op(
+                raise_with_op(
                     self.maker.fgraph,
                     node=self.fn.nodes[self.fn.position_of_error],
                     thunk=thunk,
@@ -1679,7 +1681,7 @@ class FunctionMaker:
         self.refeed = [
             (
                 i.value is not None
-                and not isinstance(i.value, link.Container)
+                and not isinstance(i.value, Container)
                 and i.update is None
             )
             for i in self.inputs
@@ -1772,8 +1774,8 @@ class FunctionMaker:
             if isinstance(input_storage_i, gof.Variable):
                 input_storage_i = input_storage_i.container
 
-            if isinstance(input_storage_i, link.Container):
-                # If the default is a link.Container, this means we want to
+            if isinstance(input_storage_i, Container):
+                # If the default is a Container, this means we want to
                 # share the same storage. This is done by appending
                 # input_storage_i.storage to input_storage_lists.
                 if indices is not None:

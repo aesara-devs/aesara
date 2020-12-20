@@ -11,7 +11,7 @@ import numpy as np
 from theano.gof.graph import Variable
 from theano.gof.type import generic
 from theano.gof.utils import add_tag_trace
-from theano.link import Container
+from theano.link.basic import Container
 
 
 _logger = logging.getLogger("theano.compile.sharedvalue")

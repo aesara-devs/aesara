@@ -18,7 +18,7 @@ from warnings import warn
 import numpy as np
 
 import theano
-from theano import config, gof, link
+from theano import config, gof
 from theano.compile.function.types import (
     Function,
     FunctionMaker,
@@ -28,8 +28,8 @@ from theano.compile.function.types import (
 from theano.compile.mode import Mode, register_mode
 from theano.compile.ops import OutputGuard, _output_guard
 from theano.gof import graph, ops_with_inner_function, utils
-from theano.link.basic import LocalLinker
-from theano.link.utils import raise_with_op
+from theano.link.basic import Container, LocalLinker
+from theano.link.utils import map_storage, raise_with_op
 from theano.utils import get_unbound_function
 
 
@@ -1793,7 +1793,7 @@ class _Linker(LocalLinker):
         # the function's outputs will always be freshly allocated.
         no_recycling = []
 
-        input_storage, output_storage, storage_map = theano.link.map_storage(
+        input_storage, output_storage, storage_map = map_storage(
             fgraph, order, input_storage_, output_storage_, storage_map
         )
 
@@ -2341,11 +2341,11 @@ class _Linker(LocalLinker):
         return (
             f,
             [
-                link.Container(input, storage, readonly=False)
+                Container(input, storage, readonly=False)
                 for input, storage in zip(fgraph.inputs, input_storage)
             ],
             [
-                link.Container(output, storage, readonly=True)
+                Container(output, storage, readonly=True)
                 for output, storage in zip(fgraph.outputs, output_storage)
             ],
             thunks_py,
@@ -2566,7 +2566,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
         self.refeed = [
             (
                 i.value is not None
-                and not isinstance(i.value, link.Container)
+                and not isinstance(i.value, Container)
                 and i.update is None
             )
             for i in self.inputs
