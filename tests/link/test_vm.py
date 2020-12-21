@@ -6,11 +6,11 @@ import numpy as np
 import pytest
 
 import theano
-from theano import function, tensor
+from theano import config, function, tensor
 from theano.compile import Mode
 from theano.ifelse import ifelse
-from theano.link.c.cc import OpWiseCLinker
-from theano.link.c.vm import VMLinker
+from theano.link.c.exceptions import MissingGXX
+from theano.link.vm import VMLinker
 
 
 class TestCallbacks:
@@ -127,6 +127,8 @@ def test_speed():
         t_b = t3 - t2
 
         print(f"{name} takes {1000 * (t_b - t_a) / (steps_b - steps_a):f} s/Kop")
+
+    from theano.link.c.cc import OpWiseCLinker
 
     time_linker("c|py", OpWiseCLinker)
     time_linker("vmLinker", VMLinker)
@@ -443,3 +445,21 @@ def test_no_recycling():
         m1 = f.fn.thunks[0].thunk.module
         m2 = f2.fn.thunks[0].thunk.module
         assert m1 is m2
+
+
+def test_VMLinker_no_cxx():
+    from importlib import reload
+    from unittest.mock import patch
+
+    with config.change_flags(cxx=""):
+        with pytest.raises(MissingGXX):
+            import theano.link.c.cvm
+
+            reload(theano.link.c.cvm)
+
+        with patch.dict("sys.modules", {"theano.link.c.cvm": None}):
+            linker = VMLinker(allow_gc=False, use_cloop=True)
+            a = tensor.scalar()
+
+            with pytest.raises(ModuleNotFoundError):
+                _ = function([a], a, mode=Mode(optimizer=None, linker=linker))

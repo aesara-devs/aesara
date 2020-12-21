@@ -607,7 +607,7 @@ class TestConv2D(utt.InferShapeTester):
                             openmp=openmp,
                         )
                         mode = theano.Mode(
-                            linker=theano.link.c.vm.VMLinker(
+                            linker=theano.link.vm.VMLinker(
                                 allow_gc=False, use_cloop=True
                             )
                         )

@@ -15,7 +15,6 @@ from collections import defaultdict
 from theano import config
 from theano.gof import Constant, Variable
 from theano.link.basic import Container, LocalLinker
-from theano.link.c.exceptions import MissingGXX
 from theano.link.utils import gc_helper, map_storage, raise_with_op
 
 
@@ -693,32 +692,6 @@ class Stack(VM):
         self.node_cleared_order.append(final_index)
 
 
-try:
-    # If cxx is explicitely set to an empty string, we do not want to import neither lazylinker C code
-    # nor lazylinker compiled C code from cache.
-    if not config.cxx:
-        raise MissingGXX(
-            "lazylinker will not be imported if theano.config.cxx is not set."
-        )
-    from theano.link.c import lazylinker_c
-
-    class CVM(lazylinker_c.CLazyLinker, VM):
-        def __init__(self, fgraph, *args, **kwargs):
-            self.fgraph = fgraph
-            lazylinker_c.CLazyLinker.__init__(self, *args, **kwargs)
-            # skip VM.__init__
-
-
-except ImportError:
-    pass
-except (OSError, MissingGXX) as e:
-    # OSError happens when g++ is not installed.  In that case, we
-    # already changed the default linker to something else then CVM.
-    # Currently this is the py linker.
-    # Here we assert that the default linker is not cvm.
-    assert not config._config_var_dict["linker"].default.startswith("cvm"), e
-
-
 class VMLinker(LocalLinker):
     """
     Class that satisfies the Linker interface by acting as a VM factory.
@@ -948,6 +921,9 @@ class VMLinker(LocalLinker):
                 callback_input=self.callback_input,
             )
         elif self.use_cloop:
+
+            from theano.link.c.cvm import CVM
+
             # create a map from nodes to ints and vars to ints
             nodes_idx = {}
             vars_idx = {}

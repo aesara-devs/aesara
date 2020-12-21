@@ -1,7 +1,7 @@
 from theano.compile import Mode
 from theano.configdefaults import config
 from theano.link.basic import WrapLinkerMany
-from theano.link.c.vm import VMLinker
+from theano.link.vm import VMLinker
 from theano.printing import hex_digest, min_informative_str
 
 

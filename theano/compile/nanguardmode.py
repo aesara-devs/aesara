@@ -292,7 +292,7 @@ class NanGuardMode(Mode):
             if getattr(var.tag, "nan_guard_mode_check", True):
                 do_check_on(value, None, var=var)
 
-        wrap_linker = theano.link.c.vm.VMLinker(
+        wrap_linker = theano.link.vm.VMLinker(
             callback=nan_check, callback_input=nan_check_input
         )
         super().__init__(wrap_linker, optimizer=self.provided_optimizer)

@@ -11,8 +11,8 @@ from theano import config, gof
 from theano.compile.function.types import Supervisor
 from theano.link.basic import PerformLinker
 from theano.link.c.cc import CLinker, OpWiseCLinker
-from theano.link.c.vm import VMLinker
 from theano.link.jax import JAXLinker
+from theano.link.vm import VMLinker
 
 
 _logger = logging.getLogger("theano.compile.mode")
@@ -409,7 +409,7 @@ class Mode:
 # string as the key
 # Use VM_linker to allow lazy evaluation by default.
 FAST_COMPILE = Mode(
-    theano.link.c.vm.VMLinker(use_cloop=False, c_thunks=False), "fast_compile"
+    theano.link.vm.VMLinker(use_cloop=False, c_thunks=False), "fast_compile"
 )
 if theano.config.cxx:
     FAST_RUN = Mode("cvm", "fast_run")
