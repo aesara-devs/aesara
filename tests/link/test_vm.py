@@ -10,11 +10,11 @@ from theano import function, tensor
 from theano.compile import Mode
 from theano.ifelse import ifelse
 from theano.link.c.cc import OpWiseCLinker
-from theano.link.c.vm import VM_Linker
+from theano.link.c.vm import VMLinker
 
 
 class TestCallbacks:
-    # Test the VM_Linker's callback argument, which can be useful for debugging.
+    # Test the `VMLinker`'s callback argument, which can be useful for debugging.
 
     def setup_method(self):
         self.n_callbacks = {}
@@ -29,7 +29,7 @@ class TestCallbacks:
         f = function(
             [a, b, c],
             (a + b) + c,
-            mode=Mode(optimizer=None, linker=VM_Linker(callback=self.callback)),
+            mode=Mode(optimizer=None, linker=VMLinker(callback=self.callback)),
         )
 
         f(1, 2, 3)
@@ -42,7 +42,7 @@ class TestCallbacks:
         f = function(
             [a, b, c],
             ifelse(a, 2 * b, 2 * c),
-            mode=Mode(optimizer=None, linker=VM_Linker(callback=self.callback)),
+            mode=Mode(optimizer=None, linker=VMLinker(callback=self.callback)),
         )
 
         f(1, 2, 3)
@@ -60,7 +60,7 @@ def test_c_thunks():
             [a, b, c],
             ifelse(a, a * b, b * c),
             mode=Mode(
-                optimizer=None, linker=VM_Linker(c_thunks=c_thunks, use_cloop=False)
+                optimizer=None, linker=VMLinker(c_thunks=c_thunks, use_cloop=False)
             ),
         )
         f(1, [2], [3, 2])
@@ -129,10 +129,10 @@ def test_speed():
         print(f"{name} takes {1000 * (t_b - t_a) / (steps_b - steps_a):f} s/Kop")
 
     time_linker("c|py", OpWiseCLinker)
-    time_linker("vmLinker", VM_Linker)
-    time_linker("vmLinker_nogc", lambda: VM_Linker(allow_gc=False))
+    time_linker("vmLinker", VMLinker)
+    time_linker("vmLinker_nogc", lambda: VMLinker(allow_gc=False))
     if theano.config.cxx:
-        time_linker("vmLinker_CLOOP", lambda: VM_Linker(allow_gc=False, use_cloop=True))
+        time_linker("vmLinker_CLOOP", lambda: VMLinker(allow_gc=False, use_cloop=True))
     time_numpy()
 
 
@@ -169,10 +169,10 @@ def test_speed_lazy():
 
         print(f"{name} takes {1000 * (t_b - t_a) / (steps_b - steps_a):f} s/Kop")
 
-    time_linker("vmLinker", VM_Linker)
-    time_linker("vmLinker_nogc", lambda: VM_Linker(allow_gc=False))
+    time_linker("vmLinker", VMLinker)
+    time_linker("vmLinker_nogc", lambda: VMLinker(allow_gc=False))
     if theano.config.cxx:
-        time_linker("vmLinker_C", lambda: VM_Linker(allow_gc=False, use_cloop=True))
+        time_linker("vmLinker_C", lambda: VMLinker(allow_gc=False, use_cloop=True))
 
 
 def test_partial_function():
@@ -189,7 +189,7 @@ def test_partial_function():
         assert f(4, output_subset=[0, 2]) == [f(4)[0], f(4)[2]]
         utt.assert_allclose(f(5), np.array([32.0, 16.0, 1.7857142857142858]))
 
-    check_partial_function(VM_Linker(allow_partial_eval=True, use_cloop=False))
+    check_partial_function(VMLinker(allow_partial_eval=True, use_cloop=False))
     if not theano.config.cxx:
         pytest.skip("Need cxx for this test")
     check_partial_function("cvm")
@@ -209,7 +209,7 @@ def test_partial_function_with_output_keys():
         assert f(5, output_subset=["a"])["a"] == f(5)["a"]
 
     check_partial_function_output_keys(
-        VM_Linker(allow_partial_eval=True, use_cloop=False)
+        VMLinker(allow_partial_eval=True, use_cloop=False)
     )
     check_partial_function_output_keys("cvm")
 
@@ -240,7 +240,7 @@ def test_partial_function_with_updates():
         assert g(40, output_subset=[]) == []
         assert y.get_value() == 10
 
-    check_updates(VM_Linker(allow_partial_eval=True, use_cloop=False))
+    check_updates(VMLinker(allow_partial_eval=True, use_cloop=False))
     check_updates("cvm")
 
 
@@ -326,9 +326,9 @@ if run_memory_usage_tests:
                 # print(pre.ru_maxrss, post.ru_maxrss)
 
         print(1)
-        time_linker("vmLinker_C", lambda: VM_Linker(allow_gc=False, use_cloop=True))
+        time_linker("vmLinker_C", lambda: VMLinker(allow_gc=False, use_cloop=True))
         print(2)
-        time_linker("vmLinker", lambda: VM_Linker(allow_gc=False, use_cloop=False))
+        time_linker("vmLinker", lambda: VMLinker(allow_gc=False, use_cloop=False))
 
     def test_no_leak_many_call_nonlazy():
         # Verify no memory leaks when calling a function a lot of times
@@ -353,9 +353,9 @@ if run_memory_usage_tests:
                 f_a(inp)
 
         print(1)
-        time_linker("vmLinker_C", lambda: VM_Linker(allow_gc=False, use_cloop=True))
+        time_linker("vmLinker_C", lambda: VMLinker(allow_gc=False, use_cloop=True))
         print(2)
-        time_linker("vmLinker", lambda: VM_Linker(allow_gc=False, use_cloop=False))
+        time_linker("vmLinker", lambda: VMLinker(allow_gc=False, use_cloop=False))
 
 
 class RunOnce(theano.Op):
@@ -382,7 +382,7 @@ def test_vm_gc():
 
     x = theano.tensor.vector()
     p = RunOnce()(x)
-    mode = theano.Mode(linker=VM_Linker(lazy=True))
+    mode = theano.Mode(linker=VMLinker(lazy=True))
     f = theano.function([theano.In(x, mutable=True)], [p + 1, p + 2], mode=mode)
     f([1, 2, 3])
 
@@ -398,8 +398,8 @@ def test_reallocation():
     z = tensor.tanh(3 * x + y) + tensor.cosh(x + 5 * y)
     # The functinality is currently implement for non lazy and non c VM only.
     for linker in [
-        VM_Linker(allow_gc=False, lazy=False, use_cloop=False),
-        VM_Linker(allow_gc=True, lazy=False, use_cloop=False),
+        VMLinker(allow_gc=False, lazy=False, use_cloop=False),
+        VMLinker(allow_gc=True, lazy=False, use_cloop=False),
     ]:
         m = theano.compile.get_mode(theano.Mode(linker=linker))
         m = m.excluding("fusion", "inplace")
@@ -431,10 +431,10 @@ def test_reallocation():
 def test_no_recycling():
     x = theano.tensor.vector()
     for lnk in [
-        VM_Linker(use_cloop=True),
-        VM_Linker(use_cloop=False, lazy=True),
-        VM_Linker(use_cloop=False, lazy=False, allow_gc=True),
-        VM_Linker(use_cloop=False, lazy=False, allow_gc=False),
+        VMLinker(use_cloop=True),
+        VMLinker(use_cloop=False, lazy=True),
+        VMLinker(use_cloop=False, lazy=False, allow_gc=True),
+        VMLinker(use_cloop=False, lazy=False, allow_gc=False),
     ]:
 
         mode = theano.Mode(optimizer="fast_compile", linker=lnk)

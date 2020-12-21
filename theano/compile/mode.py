@@ -11,7 +11,7 @@ from theano import config, gof
 from theano.compile.function.types import Supervisor
 from theano.link.basic import PerformLinker
 from theano.link.c.cc import CLinker, OpWiseCLinker
-from theano.link.c.vm import VM_Linker
+from theano.link.c.vm import VMLinker
 from theano.link.jax import JAXLinker
 
 
@@ -26,10 +26,10 @@ predefined_linkers = {
     "c": CLinker(),  # Don't support gc. so don't check allow_gc
     "c|py": OpWiseCLinker(),  # Use allow_gc Theano flag
     "c|py_nogc": OpWiseCLinker(allow_gc=False),
-    "vm": VM_Linker(use_cloop=False),  # Use allow_gc Theano flag
-    "cvm": VM_Linker(use_cloop=True),  # Use allow_gc Theano flag
-    "vm_nogc": VM_Linker(allow_gc=False, use_cloop=False),
-    "cvm_nogc": VM_Linker(allow_gc=False, use_cloop=True),
+    "vm": VMLinker(use_cloop=False),  # Use allow_gc Theano flag
+    "cvm": VMLinker(use_cloop=True),  # Use allow_gc Theano flag
+    "vm_nogc": VMLinker(allow_gc=False, use_cloop=False),
+    "cvm_nogc": VMLinker(allow_gc=False, use_cloop=True),
     "jax": JAXLinker(),
 }
 
@@ -409,7 +409,7 @@ class Mode:
 # string as the key
 # Use VM_linker to allow lazy evaluation by default.
 FAST_COMPILE = Mode(
-    theano.link.c.vm.VM_Linker(use_cloop=False, c_thunks=False), "fast_compile"
+    theano.link.c.vm.VMLinker(use_cloop=False, c_thunks=False), "fast_compile"
 )
 if theano.config.cxx:
     FAST_RUN = Mode("cvm", "fast_run")

@@ -719,7 +719,7 @@ except (OSError, MissingGXX) as e:
     assert not config._config_var_dict["linker"].default.startswith("cvm"), e
 
 
-class VM_Linker(LocalLinker):
+class VMLinker(LocalLinker):
     """
     Class that satisfies the Linker interface by acting as a VM factory.
 
@@ -785,7 +785,7 @@ class VM_Linker(LocalLinker):
 
     def accept(self, fgraph, no_recycling=None, profile=None):
         """Check if fgraph is the first FunctionGraph that has ever been
-        associated to self, else, create a new VM_Linker
+        associated to self, else, create a new `VMLinker`
         associated to fgraph
 
         Parameters
@@ -805,7 +805,7 @@ class VM_Linker(LocalLinker):
             give to the user. We don't want to reuse those object in
             case the user have kept it.
 
-            VM_Linker make sure this happen by setting the list
+            `VMLinker` make sure this happen by setting the list
             element to None at the start of each call.
 
             Older Linker use not exactly the same mechanism. They will
@@ -824,13 +824,13 @@ class VM_Linker(LocalLinker):
         Returns
         -------
         Self if fgraph is the first FunctionGraph that has ever been
-        associated to self, else, a new VM_Linker associated to fgraph.
+        associated to self, else, a new `VMLinker` associated to fgraph.
 
         """
         if no_recycling is None:
             no_recycling = []
         if self.fgraph is not None and self.fgraph is not fgraph:
-            # Build a new VM_Linker, and call accept on that one.
+            # Build a new `VMLinker`, and call accept on that one.
             # Warning: make sure to forward the correct values of
             # all parameters to __init__ here.
             return type(self)(

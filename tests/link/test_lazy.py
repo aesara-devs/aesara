@@ -124,7 +124,7 @@ def test_ifelse():
 
     for cloop in cloops:
         for lazy in lazys:
-            linker = theano.link.c.vm.VM_Linker(use_cloop=cloop, lazy=lazy)
+            linker = theano.link.c.vm.VMLinker(use_cloop=cloop, lazy=lazy)
             f = function(
                 [a, b, c],
                 ifelse(a, notimpl(b), c),
@@ -154,11 +154,11 @@ def test_nested():
     t4 = ifelseifelseif(tt.eq(x1, x2), x1, tt.eq(x1, 5), x2, c2, t3, t3 + 0.5)
     t4.name = "t4"
 
-    linker = theano.link.c.vm.VM_Linker(lazy=False)
+    linker = theano.link.c.vm.VMLinker(lazy=False)
     f = function([c1, c2, x1, x2], t4, mode=Mode(linker=linker, optimizer="fast_run"))
     with pytest.raises(NotImplementedOpException):
         f(1, 0, np.array(10, dtype=x1.dtype), 0)
 
-    linker = theano.link.c.vm.VM_Linker(lazy=True)
+    linker = theano.link.c.vm.VMLinker(lazy=True)
     f = function([c1, c2, x1, x2], t4, mode=Mode(linker=linker, optimizer="fast_run"))
     assert f(1, 0, np.array(10, dtype=x1.dtype), 0) == 20.5

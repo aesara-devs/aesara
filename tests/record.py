@@ -1,7 +1,7 @@
 from theano.compile import Mode
 from theano.configdefaults import config
 from theano.link.basic import WrapLinkerMany
-from theano.link.c.vm import VM_Linker
+from theano.link.c.vm import VMLinker
 from theano.printing import hex_digest, min_informative_str
 
 
@@ -250,7 +250,7 @@ class RecordMode(Mode):
             handle_line(fgraph, line, i, node, fn)
 
         # linker = theano.link.c.cc.OpWiseCLinker()
-        linker = VM_Linker(use_cloop=bool(config.cxx))
+        linker = VMLinker(use_cloop=bool(config.cxx))
 
         wrap_linker = WrapLinkerMany([linker], [callback])
         super().__init__(wrap_linker, optimizer="fast_run")
