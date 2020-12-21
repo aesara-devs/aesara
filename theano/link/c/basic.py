@@ -27,7 +27,7 @@ from theano.link.c.cmodule import get_module_cache as _get_module_cache
 from theano.link.utils import gc_helper, map_storage, raise_with_op, streamline
 
 
-_logger = logging.getLogger("theano.link.c.cc")
+_logger = logging.getLogger("theano.link.c.basic")
 
 
 run_cthunk = None  # Will be imported only when needed.

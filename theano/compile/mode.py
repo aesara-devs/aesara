@@ -10,7 +10,7 @@ import theano
 from theano import config, gof
 from theano.compile.function.types import Supervisor
 from theano.link.basic import PerformLinker
-from theano.link.c.cc import CLinker, OpWiseCLinker
+from theano.link.c.basic import CLinker, OpWiseCLinker
 from theano.link.jax import JAXLinker
 from theano.link.vm import VMLinker
 

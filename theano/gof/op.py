@@ -843,7 +843,7 @@ class Op(object2, PureOp, CLinkerOp):
         # FIXME: Putting the following import on the module level causes an import cycle.
         #        The conclusion should be that the antire "make_c_thunk" method should be defined
         #        in theano.link.c and dispatched onto the Op!
-        import theano.link.c.cc
+        import theano.link.c.basic
 
         node_input_storage = [storage_map[r] for r in node.inputs]
         node_output_storage = [storage_map[r] for r in node.outputs]
@@ -854,7 +854,7 @@ class Op(object2, PureOp, CLinkerOp):
             for (new_o, old_o) in zip(e.outputs, node.outputs)
             if old_o in no_recycling
         ]
-        cl = theano.link.c.cc.CLinker().accept(e, no_recycling=e_no_recycling)
+        cl = theano.link.c.basic.CLinker().accept(e, no_recycling=e_no_recycling)
         # float16 gets special treatment since running
         # unprepared C code will get bad results.
         if not getattr(self, "_f16_ok", False):

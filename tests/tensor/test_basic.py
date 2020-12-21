@@ -72,7 +72,7 @@ from theano import compile, config, function, gof, shared
 from theano.compile import DeepCopyOp
 from theano.compile.mode import get_default_mode
 from theano.gof.graph import Variable
-from theano.link.c.cc import DualLinker
+from theano.link.c.basic import DualLinker
 from theano.scalar import autocast_float, autocast_float_as
 from theano.tensor import (
     Alloc,

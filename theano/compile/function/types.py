@@ -1536,7 +1536,7 @@ class FunctionMaker:
             #    too much execution time during testing as we compile
             #    much more functions then the number of compile c
             #    module.
-            theano.link.c.cc.get_module_cache().refresh()
+            theano.link.c.basic.get_module_cache().refresh()
         # Handle the case where inputs and/or outputs is a single
         # Variable (not in a list)
         unpack_single = False

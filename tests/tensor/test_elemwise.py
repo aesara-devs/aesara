@@ -12,7 +12,7 @@ from tests import unittest_tools
 from theano import config, gof, scalar
 from theano.compile.mode import Mode, get_default_mode
 from theano.link.basic import PerformLinker
-from theano.link.c.cc import CLinker, OpWiseCLinker
+from theano.link.c.basic import CLinker, OpWiseCLinker
 from theano.tensor import TensorType, as_tensor_variable
 from theano.tensor.elemwise import (
     CAReduce,

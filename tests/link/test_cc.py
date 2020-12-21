@@ -7,7 +7,7 @@ from theano.gof.graph import Apply, Constant, Variable
 from theano.gof.op import Op
 from theano.gof.type import Type
 from theano.link.basic import PerformLinker
-from theano.link.c.cc import CLinker, DualLinker, OpWiseCLinker
+from theano.link.c.basic import CLinker, DualLinker, OpWiseCLinker
 
 
 def as_variable(x):

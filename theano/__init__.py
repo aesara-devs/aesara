@@ -115,7 +115,7 @@ from theano.gof import (
 )
 from theano.gradient import Lop, Rop, grad, subgraph_grad
 from theano.link.basic import Container, Linker, LocalLinker, PerformLinker
-from theano.link.c.cc import CLinker, DualLinker, OpWiseCLinker
+from theano.link.c.basic import CLinker, DualLinker, OpWiseCLinker
 from theano.misc.safe_asarray import _asarray
 from theano.printing import pp, pprint
 from theano.updates import OrderedUpdates

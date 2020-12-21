@@ -5,7 +5,7 @@ import numpy as np
 from theano.compile.mode import Mode
 from theano.configdefaults import config
 from theano.link.basic import WrapLinkerMany
-from theano.link.c.cc import OpWiseCLinker
+from theano.link.c.basic import OpWiseCLinker
 
 
 class MonitorMode(Mode):

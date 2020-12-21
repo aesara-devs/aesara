@@ -249,7 +249,7 @@ class RecordMode(Mode):
             line = f"Outputs: {outputs_digest}\n"
             handle_line(fgraph, line, i, node, fn)
 
-        # linker = theano.link.c.cc.OpWiseCLinker()
+        # linker = theano.link.c.basic.OpWiseCLinker()
         linker = VMLinker(use_cloop=bool(config.cxx))
 
         wrap_linker = WrapLinkerMany([linker], [callback])

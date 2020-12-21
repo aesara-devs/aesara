@@ -128,7 +128,7 @@ def test_speed():
 
         print(f"{name} takes {1000 * (t_b - t_a) / (steps_b - steps_a):f} s/Kop")
 
-    from theano.link.c.cc import OpWiseCLinker
+    from theano.link.c.basic import OpWiseCLinker
 
     time_linker("c|py", OpWiseCLinker)
     time_linker("vmLinker", VMLinker)

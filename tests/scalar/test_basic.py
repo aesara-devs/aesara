@@ -14,7 +14,7 @@ import pytest
 import tests.unittest_tools as utt
 import theano
 from theano.gof import FunctionGraph
-from theano.link.c.cc import DualLinker
+from theano.link.c.basic import DualLinker
 from theano.scalar.basic import (
     ComplexError,
     Composite,

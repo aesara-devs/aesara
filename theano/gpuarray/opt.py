@@ -150,7 +150,7 @@ from theano.gpuarray.type import (
     move_to_gpu,
 )
 from theano.ifelse import IfElse
-from theano.link.c.cc import CLinker
+from theano.link.c.basic import CLinker
 from theano.misc.ordered_set import OrderedSet
 from theano.scalar.basic import Cast, Pow, Scalar, log, neg, true_div
 from theano.scalar.basic_scipy import Erfcinv, Erfinv

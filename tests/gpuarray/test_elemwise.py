@@ -26,7 +26,7 @@ from theano.gpuarray.elemwise import (
 )
 from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
 from theano.link.basic import PerformLinker
-from theano.link.c.cc import CLinker
+from theano.link.c.basic import CLinker
 
 
 # This is actually a test for GpuElemwise
