@@ -1,16 +1,10 @@
 from collections.abc import Sequence
 from warnings import warn
 
+from theano.gof import utils
 from theano.gof.graph import Constant
-from theano.gof.link import (
-    Container,
-    PerformLinker,
-    add_clear_storage,
-    gc_helper,
-    map_storage,
-    streamline,
-    utils,
-)
+from theano.link.basic import Container, PerformLinker
+from theano.link.utils import gc_helper, map_storage, streamline
 
 
 class JAXLinker(PerformLinker):
@@ -184,7 +178,6 @@ class JAXLinker(PerformLinker):
         )
 
         fn.allow_gc = self.allow_gc
-        add_clear_storage(fn, computed, storage_map)
         fn.storage_map = storage_map
 
         return (
@@ -194,7 +187,7 @@ class JAXLinker(PerformLinker):
                 for input, storage in zip(fgraph.inputs, input_storage)
             ],
             [
-                Container(output, storage, True)
+                Container(output, storage, readonly=True)
                 for output, storage in zip(fgraph.outputs, output_storage)
             ],
             thunks,

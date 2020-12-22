@@ -21,6 +21,8 @@ from theano.compile.ops import deep_copy_op, view_op
 from theano.gof import graph
 from theano.gof.op import ops_with_inner_function
 from theano.gof.toolbox import is_same_graph
+from theano.link.basic import Container
+from theano.link.utils import raise_with_op
 
 
 _logger = logging.getLogger("theano.compile.function.types")
@@ -440,7 +442,7 @@ class Function:
 
                 if value is not None:
                     # Always initialize the storage.
-                    if isinstance(value, gof.Container):
+                    if isinstance(value, Container):
                         # There is no point in obtaining the current value
                         # stored in the container, since the container is
                         # shared.
@@ -485,7 +487,7 @@ class Function:
                         "names of the inputs of your function "
                         "for duplicates."
                     )
-                if isinstance(s, gof.Container):
+                if isinstance(s, Container):
                     return s.value
                 else:
                     raise NotImplementedError
@@ -503,7 +505,7 @@ class Function:
                         "names of the inputs of your function "
                         "for duplicates."
                     )
-                if isinstance(s, gof.Container):
+                if isinstance(s, Container):
                     s.value = value
                     s.provided += 1
                 else:
@@ -812,7 +814,7 @@ class Function:
         def restore_defaults():
             for i, (required, refeed, value) in enumerate(self.defaults):
                 if refeed:
-                    if isinstance(value, gof.Container):
+                    if isinstance(value, Container):
                         value = value.storage[0]
                     self[i] = value
 
@@ -978,7 +980,7 @@ class Function:
                 thunk = None
                 if hasattr(self.fn, "thunks"):
                     thunk = self.fn.thunks[self.fn.position_of_error]
-                gof.link.raise_with_op(
+                raise_with_op(
                     self.maker.fgraph,
                     node=self.fn.nodes[self.fn.position_of_error],
                     thunk=thunk,
@@ -1534,7 +1536,7 @@ class FunctionMaker:
             #    too much execution time during testing as we compile
             #    much more functions then the number of compile c
             #    module.
-            theano.gof.cc.get_module_cache().refresh()
+            theano.link.c.basic.get_module_cache().refresh()
         # Handle the case where inputs and/or outputs is a single
         # Variable (not in a list)
         unpack_single = False
@@ -1679,7 +1681,7 @@ class FunctionMaker:
         self.refeed = [
             (
                 i.value is not None
-                and not isinstance(i.value, gof.Container)
+                and not isinstance(i.value, Container)
                 and i.update is None
             )
             for i in self.inputs
@@ -1772,8 +1774,8 @@ class FunctionMaker:
             if isinstance(input_storage_i, gof.Variable):
                 input_storage_i = input_storage_i.container
 
-            if isinstance(input_storage_i, gof.Container):
-                # If the default is a gof.Container, this means we want to
+            if isinstance(input_storage_i, Container):
+                # If the default is a Container, this means we want to
                 # share the same storage. This is done by appending
                 # input_storage_i.storage to input_storage_lists.
                 if indices is not None:
@@ -1815,7 +1817,7 @@ class FunctionMaker:
 
         # Get a function instance
         start_linker = time.time()
-        start_import_time = theano.gof.cmodule.import_time
+        start_import_time = theano.link.c.cmodule.import_time
 
         with config.change_flags(traceback__limit=config.traceback__compile_limit):
             _fn, _i, _o = self.linker.make_thunk(
@@ -1830,7 +1832,7 @@ class FunctionMaker:
         if self.profile:
             self.profile.linker_time += linker_time
             _fn.time_thunks = self.profile.flag_time_thunks
-            import_time = theano.gof.cmodule.import_time - start_import_time
+            import_time = theano.link.c.cmodule.import_time - start_import_time
             self.profile.import_time += import_time
 
         fn = self.function_builder(

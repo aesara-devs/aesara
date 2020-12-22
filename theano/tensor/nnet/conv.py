@@ -1184,7 +1184,7 @@ using namespace std;
     def c_no_compile_args(self):
         # when the ksph==(1,1) gcc 4.3.0 segfault during the
         # compilation with -O3.  This don't happen at -O2
-        if theano.gof.cmodule.gcc_version() in ["4.3.0"] and self.kshp == (1, 1):
+        if theano.link.c.cmodule.gcc_version() in ["4.3.0"] and self.kshp == (1, 1):
             return ["-O3"]
         else:
             return []
@@ -1194,7 +1194,7 @@ using namespace std;
 
         if self.use_blas():
             ret = blas.ldflags(libs=False, flags=True)
-        if theano.gof.cmodule.gcc_version() in ["4.3.0"] and self.kshp == (1, 1):
+        if theano.link.c.cmodule.gcc_version() in ["4.3.0"] and self.kshp == (1, 1):
             ret += ["-O2"]
         # Add the -fopenmp flags
         ret += super().c_compile_args()

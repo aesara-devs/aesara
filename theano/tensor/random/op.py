@@ -269,7 +269,7 @@ class RandomVariable(Op):
 
         return shape
 
-    @theano.change_flags(compute_test_value="off")
+    @theano.config.change_flags(compute_test_value="off")
     def compute_bcast(self, dist_params, size):
         """Compute the broadcast array for this distribution's `TensorType`.
 

@@ -6,6 +6,7 @@ from tests import unittest_tools as utt
 from theano import config, function, scalar
 from theano.gof import FunctionGraph
 from theano.gof.opt import out2in
+from theano.link.basic import PerformLinker
 
 # from theano.tensor import matrix,max_and_argmax,MaaxAndArgmax,neg
 from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
@@ -158,7 +159,7 @@ def test_local_dimshuffle_alloc():
     g = FunctionGraph([x], [out])
     reshape_dimshuffle(g)
 
-    l = theano.gof.PerformLinker()
+    l = PerformLinker()
     l.accept(g)
     f = l.make_function()
 

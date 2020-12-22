@@ -16,7 +16,7 @@ def test_view_op_c_code():
     # TODO: It might be good to make sure that the registered C code works
     # (even though it's basically copy-paste from other registered `Op`s).
     # from theano.compile.ops import view_op
-    # from theano.gof.cc import CLinker
+    # from theano.link.c.basic import CLinker
     # rng_var = random_state_type()
     # rng_view = view_op(rng_var)
     # function(

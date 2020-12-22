@@ -645,7 +645,7 @@ cgemv_no_inplace = CGemv(inplace=False)
 
 def check_force_gemv_init():
     if check_force_gemv_init._force_init_beta is None:
-        from theano.gof.cmodule import GCC_compiler
+        from theano.link.c.cmodule import GCC_compiler
 
         """
         Test issue 1569.

@@ -12,7 +12,7 @@ import textwrap
 from os.path import dirname
 
 from theano import config
-from theano.gof.cmodule import GCC_compiler
+from theano.link.c.cmodule import GCC_compiler
 
 
 _logger = logging.getLogger("theano.tensor.blas")

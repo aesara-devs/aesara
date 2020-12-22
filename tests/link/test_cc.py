@@ -3,11 +3,11 @@ import pytest
 
 import theano
 from theano.gof import fg
-from theano.gof.cc import CLinker, DualLinker, OpWiseCLinker
 from theano.gof.graph import Apply, Constant, Variable
-from theano.gof.link import PerformLinker
 from theano.gof.op import Op
 from theano.gof.type import Type
+from theano.link.basic import PerformLinker
+from theano.link.c.basic import CLinker, DualLinker, OpWiseCLinker
 
 
 def as_variable(x):
@@ -413,7 +413,7 @@ def test_shared_input_output():
     inc = theano.tensor.iscalar("inc")
     state = theano.shared(0)
     state.name = "state"
-    linker = theano.gof.CLinker()
+    linker = CLinker()
     mode = theano.Mode(linker=linker)
     f = theano.function([inc], state, updates=[(state, state + inc)], mode=mode)
     g = theano.function([inc], state, updates=[(state, state + inc)])

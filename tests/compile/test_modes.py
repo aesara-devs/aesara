@@ -35,7 +35,7 @@ class TestBunchOfModes:
 
         # regression check:
         # there should be
-        # - VM_Linker
+        # - `VMLinker`
         # - OpWiseCLinker (FAST_RUN)
         # - PerformLinker (FAST_COMPILE)
         # - DebugMode's Linker  (DEBUG_MODE)

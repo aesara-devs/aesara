@@ -12,12 +12,22 @@ from io import StringIO
 import numpy as np
 
 from theano import config
-from theano.gof import cmodule, graph, link, utils
+from theano.gof import graph, utils
 from theano.gof.callcache import CallCache
 from theano.gof.compilelock import get_lock, release_lock
+from theano.link.basic import Container, Linker, LocalLinker, PerformLinker
+from theano.link.c.cmodule import (
+    METH_VARARGS,
+    DynamicModule,
+    ExtFunction,
+    GCC_compiler,
+    dlimport_workdir,
+)
+from theano.link.c.cmodule import get_module_cache as _get_module_cache
+from theano.link.utils import gc_helper, map_storage, raise_with_op, streamline
 
 
-_logger = logging.getLogger("theano.gof.cc")
+_logger = logging.getLogger("theano.link.c.basic")
 
 
 run_cthunk = None  # Will be imported only when needed.
@@ -33,7 +43,7 @@ def get_module_cache(init_args=None):
         the ModuleCache constructor as keyword arguments.
 
     """
-    return cmodule.get_module_cache(config.compiledir, init_args=init_args)
+    return _get_module_cache(config.compiledir, init_args=init_args)
 
 
 _persistent_module_cache = None
@@ -577,7 +587,7 @@ def struct_variable_codeblocks(fgraph, variable, policies, id, symbol_table, sub
     return struct_builder, block
 
 
-class CLinker(link.Linker):
+class CLinker(Linker):
     """
     Creates C code for an fgraph, compiles it and returns callables
     through make_thunk and make_function that make use of the compiled
@@ -591,8 +601,7 @@ class CLinker(link.Linker):
 
     def __init__(self, schedule=None):
         self.fgraph = None
-        if schedule:
-            self.schedule = schedule
+        super().__init__(scheduler=schedule)
 
     def accept(self, fgraph, no_recycling=None, profile=None):
         """
@@ -1095,7 +1104,7 @@ class CLinker(link.Linker):
                         (c_compiler, x_compiler),
                     )
         if c_compiler is None:
-            return cmodule.GCC_compiler
+            return GCC_compiler
         else:
             return c_compiler
 
@@ -1210,11 +1219,11 @@ class CLinker(link.Linker):
             thunk,
             module,
             [
-                link.Container(input, storage)
+                Container(input, storage)
                 for input, storage in zip(self.fgraph.inputs, input_storage)
             ],
             [
-                link.Container(output, storage, True)
+                Container(output, storage, readonly=True)
                 for output, storage in zip(self.fgraph.outputs, output_storage)
             ],
             error_storage,
@@ -1598,7 +1607,7 @@ class CLinker(link.Linker):
 
         """
         if location is None:
-            location = cmodule.dlimport_workdir(config.compiledir)
+            location = dlimport_workdir(config.compiledir)
         mod = self.get_dynamic_module()
         c_compiler = self.c_compiler()
         libs = self.libraries()
@@ -1635,14 +1644,12 @@ class CLinker(link.Linker):
         if not hasattr(self, "_mod"):
             self.code_gen()
 
-            mod = cmodule.DynamicModule()
+            mod = DynamicModule()
 
             # The code of instantiate
             # the 1 is for error_storage
             code = self.instantiate_code(1 + len(self.args))
-            instantiate = cmodule.ExtFunction(
-                "instantiate", code, method=cmodule.METH_VARARGS
-            )
+            instantiate = ExtFunction("instantiate", code, method=METH_VARARGS)
             # ['error_storage'] + argnames,
             # local_dict = d,
             # global_dict = {})
@@ -1798,7 +1805,7 @@ class _CThunk:
         global run_cthunk
         if run_cthunk is None:
             # Lazy import to avoid compilation when importing theano.
-            from theano.gof.cutils import run_cthunk  # noqa
+            from theano.link.c.cutils import run_cthunk  # noqa
         self.cthunk = cthunk
         self.init_tasks = init_tasks
         self.tasks = tasks
@@ -1847,7 +1854,7 @@ class _CThunk:
             raise exc_value.with_traceback(exc_trace)
 
 
-class OpWiseCLinker(link.LocalLinker):
+class OpWiseCLinker(LocalLinker):
     """
     Uses CLinker on the individual Ops that comprise an fgraph and loops
     over them in Python. The variable is slower than a compiled version of
@@ -1881,9 +1888,7 @@ class OpWiseCLinker(link.LocalLinker):
         self.fgraph = None
         self.fallback_on_perform = fallback_on_perform
         self.nice_errors = nice_errors
-        self.allow_gc = allow_gc
-        if schedule:
-            self.schedule = schedule
+        super().__init__(allow_gc=allow_gc, scheduler=schedule)
 
     def accept(self, fgraph, no_recycling=None, profile=None):
         """
@@ -1918,11 +1923,11 @@ class OpWiseCLinker(link.LocalLinker):
             order = self.schedule(fgraph)
             no_recycling = self.no_recycling
 
-            input_storage, output_storage, storage_map = link.map_storage(
+            input_storage, output_storage, storage_map = map_storage(
                 fgraph, order, input_storage, output_storage, storage_map
             )
             if self.allow_gc:
-                computed, last_user = link.gc_helper(order)
+                computed, last_user = gc_helper(order)
                 post_thunk_old_storage = []
             else:
                 post_thunk_old_storage = None
@@ -1963,7 +1968,7 @@ class OpWiseCLinker(link.LocalLinker):
                     storage_map[r] for r in no_recycling if r not in fgraph.inputs
                 ]
 
-            f = link.streamline(
+            f = streamline(
                 fgraph,
                 thunks,
                 order,
@@ -1983,11 +1988,11 @@ class OpWiseCLinker(link.LocalLinker):
         return (
             f,
             [
-                link.Container(input, storage)
+                Container(input, storage)
                 for input, storage in zip(fgraph.inputs, input_storage)
             ],
             [
-                link.Container(output, storage, True)
+                Container(output, storage, readonly=True)
                 for output, storage in zip(fgraph.outputs, output_storage)
             ],
             thunks,
@@ -2010,7 +2015,7 @@ def _default_checker(x, y):
         raise Exception("Output mismatch.", {"performlinker": x[0], "clinker": y[0]})
 
 
-class DualLinker(link.Linker):
+class DualLinker(Linker):
     """
     Runs the fgraph in parallel using PerformLinker and CLinker.
 
@@ -2049,8 +2054,7 @@ class DualLinker(link.Linker):
         """
         self.fgraph = None
         self.checker = checker
-        if schedule:
-            self.schedule = schedule
+        super().__init__(scheduler=schedule)
 
     def accept(self, fgraph, no_recycling=None, profile=None):
         """
@@ -2075,7 +2079,7 @@ class DualLinker(link.Linker):
         no_recycling = self.no_recycling
 
         _f, i1, o1, thunks1, order1 = (
-            link.PerformLinker(schedule=self.schedule)
+            PerformLinker(schedule=self.schedule)
             .accept(fgraph, no_recycling=no_recycling)
             .make_all(**kwargs)
         )
@@ -2105,7 +2109,7 @@ class DualLinker(link.Linker):
                     for output1, output2 in zip(thunk1.outputs, thunk2.outputs):
                         self.checker(output1, output2)
                 except Exception:
-                    link.raise_with_op(fgraph, node1)
+                    raise_with_op(fgraph, node1)
 
         return f, i1, o1
 
@@ -2139,3 +2143,7 @@ class HideC:
 
     def c_code_cache_version_apply(self, node):
         return self.c_code_cache_version()
+
+
+if config.cmodule__preload_cache:
+    get_module_cache()

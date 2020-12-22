@@ -28,6 +28,7 @@ from theano.configdefaults import gcc_version_str, local_bitwidth
 # we will abuse the lockfile mechanism when reading and writing the registry
 from theano.gof import compilelock
 from theano.gof.utils import flatten, hash_from_code
+from theano.link.c.exceptions import MissingGXX
 from theano.utils import output_subprocess_Popen, subprocess_Popen
 
 
@@ -37,20 +38,12 @@ try:
 except ImportError:
     pass
 
-_logger = logging.getLogger("theano.gof.cmodule")
+_logger = logging.getLogger("theano.link.c.cmodule")
 
 METH_VARARGS = "METH_VARARGS"
 METH_NOARGS = "METH_NOARGS"
 # global variable that represent the total time spent in importing module.
 import_time = 0
-
-
-class MissingGXX(Exception):
-    """
-    This error is raised when we try to generate c code,
-    but g++ is not available.
-
-    """
 
 
 def debug_counter(name, every=1):
@@ -1999,7 +1992,7 @@ def try_march_flag(flags):
             """
     )
 
-    cflags = flags + ["-L" + d for d in theano.gof.cmodule.std_lib_dirs()]
+    cflags = flags + ["-L" + d for d in theano.link.c.cmodule.std_lib_dirs()]
     compilation_result, execution_result = GCC_compiler.try_compile_tmp(
         test_code, tmp_prefix="try_march_", flags=cflags, try_run=True
     )

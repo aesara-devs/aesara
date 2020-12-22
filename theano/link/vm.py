@@ -12,10 +12,10 @@ import time
 import warnings
 from collections import defaultdict
 
-import theano.gof.cmodule
 from theano import config
-
-from . import link
+from theano.gof import Constant, Variable
+from theano.link.basic import Container, LocalLinker
+from theano.link.utils import gc_helper, map_storage, raise_with_op
 
 
 logger = logging.getLogger(__name__)
@@ -57,7 +57,7 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
                 )
                 ins = node.inputs[idx_v[0]]
             if ins is not None:
-                assert isinstance(ins, theano.Variable)
+                assert isinstance(ins, Variable)
                 origin = view_of.get(ins, ins)
                 view_of[out] = origin
                 viewed_by[origin].append(out)
@@ -98,7 +98,7 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
                     if (
                         not viewed_by[origin]
                         and origin not in fgraph.inputs
-                        and not isinstance(origin, theano.Constant)
+                        and not isinstance(origin, Constant)
                     ):
                         # where gc
                         for i in range(idx + 1, len(order)):
@@ -257,7 +257,7 @@ class Loop(VM):
                     self.call_counts[i] += 1
                     self.call_times[i] += t1 - t0
             except Exception:
-                link.raise_with_op(self.fgraph, node, thunk)
+                raise_with_op(self.fgraph, node, thunk)
         else:
             for cont in self.pre_call_clear:
                 cont[0] = None
@@ -265,7 +265,7 @@ class Loop(VM):
                 for thunk, node in zip(self.thunks, self.nodes):
                     thunk()
             except Exception:
-                link.raise_with_op(self.fgraph, node, thunk)
+                raise_with_op(self.fgraph, node, thunk)
 
 
 class LoopGC(VM):
@@ -301,7 +301,7 @@ class LoopGC(VM):
                         old_s[0] = None
                     i += 1
             except Exception:
-                link.raise_with_op(self.fgraph, node, thunk)
+                raise_with_op(self.fgraph, node, thunk)
         else:
             for cont in self.pre_call_clear:
                 cont[0] = None
@@ -313,7 +313,7 @@ class LoopGC(VM):
                     for old_s in old_storage:
                         old_s[0] = None
             except Exception:
-                link.raise_with_op(self.fgraph, node, thunk)
+                raise_with_op(self.fgraph, node, thunk)
 
 
 class Stack(VM):
@@ -541,7 +541,7 @@ class Stack(VM):
                                 off = getattr(o[0], "offset", "")
                                 self.variable_offset[var] = off
                     except Exception:
-                        link.raise_with_op(
+                        raise_with_op(
                             self.fgraph,
                             current_apply,
                             self.thunks[self.node_idx[current_apply]],
@@ -613,7 +613,7 @@ class Stack(VM):
                     self.call_times[current_idx] += dt
 
                 except Exception:
-                    link.raise_with_op(
+                    raise_with_op(
                         self.fgraph,
                         current_apply,
                         self.thunks[self.node_idx[current_apply]],
@@ -692,33 +692,7 @@ class Stack(VM):
         self.node_cleared_order.append(final_index)
 
 
-try:
-    # If cxx is explicitely set to an empty string, we do not want to import neither lazylinker C code
-    # nor lazylinker compiled C code from cache.
-    if not theano.config.cxx:
-        raise theano.gof.cmodule.MissingGXX(
-            "lazylinker will not be imported if theano.config.cxx is not set."
-        )
-    from . import lazylinker_c
-
-    class CVM(lazylinker_c.CLazyLinker, VM):
-        def __init__(self, fgraph, *args, **kwargs):
-            self.fgraph = fgraph
-            lazylinker_c.CLazyLinker.__init__(self, *args, **kwargs)
-            # skip VM.__init__
-
-
-except ImportError:
-    pass
-except (OSError, theano.gof.cmodule.MissingGXX) as e:
-    # OSError happens when g++ is not installed.  In that case, we
-    # already changed the default linker to something else then CVM.
-    # Currently this is the py linker.
-    # Here we assert that the default linker is not cvm.
-    assert not config._config_var_dict["linker"].default.startswith("cvm"), e
-
-
-class VM_Linker(link.LocalLinker):
+class VMLinker(LocalLinker):
     """
     Class that satisfies the Linker interface by acting as a VM factory.
 
@@ -771,22 +745,20 @@ class VM_Linker(link.LocalLinker):
         if allow_gc is None:
             allow_gc = config.allow_gc
         self.fgraph = None
-        self.allow_gc = allow_gc
         self.use_cloop = use_cloop
         self.callback = callback
         self.callback_input = callback_input
         self.lazy = lazy
         if c_thunks is None:
-            c_thunks = bool(theano.config.cxx)
+            c_thunks = bool(config.cxx)
         self.c_thunks = c_thunks
         self.allow_partial_eval = allow_partial_eval
         self.updated_vars = {}
-        if schedule:
-            self.schedule = schedule
+        super().__init__(allow_gc=allow_gc, scheduler=schedule)
 
     def accept(self, fgraph, no_recycling=None, profile=None):
         """Check if fgraph is the first FunctionGraph that has ever been
-        associated to self, else, create a new VM_Linker
+        associated to self, else, create a new `VMLinker`
         associated to fgraph
 
         Parameters
@@ -806,7 +778,7 @@ class VM_Linker(link.LocalLinker):
             give to the user. We don't want to reuse those object in
             case the user have kept it.
 
-            VM_Linker make sure this happen by setting the list
+            `VMLinker` make sure this happen by setting the list
             element to None at the start of each call.
 
             Older Linker use not exactly the same mechanism. They will
@@ -825,13 +797,13 @@ class VM_Linker(link.LocalLinker):
         Returns
         -------
         Self if fgraph is the first FunctionGraph that has ever been
-        associated to self, else, a new VM_Linker associated to fgraph.
+        associated to self, else, a new `VMLinker` associated to fgraph.
 
         """
         if no_recycling is None:
             no_recycling = []
         if self.fgraph is not None and self.fgraph is not fgraph:
-            # Build a new VM_Linker, and call accept on that one.
+            # Build a new `VMLinker`, and call accept on that one.
             # Warning: make sure to forward the correct values of
             # all parameters to __init__ here.
             return type(self)(
@@ -949,6 +921,9 @@ class VM_Linker(link.LocalLinker):
                 callback_input=self.callback_input,
             )
         elif self.use_cloop:
+
+            from theano.link.c.cvm import CVM
+
             # create a map from nodes to ints and vars to ints
             nodes_idx = {}
             vars_idx = {}
@@ -1115,7 +1090,7 @@ class VM_Linker(link.LocalLinker):
         fgraph = self.fgraph
         order = self.schedule(fgraph)
 
-        input_storage, output_storage, storage_map = link.map_storage(
+        input_storage, output_storage, storage_map = map_storage(
             fgraph, order, input_storage, output_storage, storage_map
         )
         compute_map = {}
@@ -1189,7 +1164,7 @@ class VM_Linker(link.LocalLinker):
             for pair in reallocated_info.values():
                 storage_map[pair[1]] = storage_map[pair[0]]
 
-        computed, last_user = link.gc_helper(order)
+        computed, last_user = gc_helper(order)
         if self.allow_gc:
             post_thunk_clear = []
             for node in order:
@@ -1224,11 +1199,11 @@ class VM_Linker(link.LocalLinker):
         return (
             vm,
             [
-                link.Container(input, storage)
+                Container(input, storage)
                 for input, storage in zip(fgraph.inputs, input_storage)
             ],
             [
-                link.Container(output, storage, True)
+                Container(output, storage, readonly=True)
                 for output, storage in zip(fgraph.outputs, output_storage)
             ],
             thunks,

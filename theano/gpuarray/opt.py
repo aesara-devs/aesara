@@ -150,6 +150,7 @@ from theano.gpuarray.type import (
     move_to_gpu,
 )
 from theano.ifelse import IfElse
+from theano.link.c.basic import CLinker
 from theano.misc.ordered_set import OrderedSet
 from theano.scalar.basic import Cast, Pow, Scalar, log, neg, true_div
 from theano.scalar.basic_scipy import Erfcinv, Erfinv
@@ -2641,7 +2642,7 @@ def local_gpua_scan_to_gpua(fgraph, op, context_name, inputs, outputs):
     # handle graphs with inputs being on the gpu
     tmp_in, tmp_out = gpu_reconstruct_graph(scan_ins, scan_outs)
     local_fgraph = gof.FunctionGraph(tmp_in, tmp_out, clone=True)
-    _cmodule_key = gof.CLinker().cmodule_key_(local_fgraph, [])
+    _cmodule_key = CLinker().cmodule_key_(local_fgraph, [])
     info["gpu_hash"] = hash(_cmodule_key)
 
     def typebuild(dtype, broadcastable, context_name=context_name):

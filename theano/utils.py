@@ -4,6 +4,7 @@
 import inspect
 import os
 import subprocess
+import sys
 import traceback
 import warnings
 from collections import OrderedDict
@@ -21,6 +22,49 @@ __all__ = [
     "call_subprocess_Popen",
     "output_subprocess_Popen",
 ]
+
+
+__excepthooks = []
+
+
+def __call_excepthooks(type, value, trace):
+    """
+    This function is meant to replace excepthook and do some
+    special work if the exception value has a __thunk_trace__
+    field.
+    In that case, it retrieves the field, which should
+    contain a trace as returned by L{traceback.extract_stack},
+    and prints it out on L{stderr}.
+
+    The normal excepthook is then called.
+
+    Parameters:
+    ----------
+    type
+        Exception class
+    value
+        Exception instance
+    trace
+        Traceback object
+
+    Notes
+    -----
+    This hook replaced in testing, so it does not run.
+
+    """
+    for hook in __excepthooks:
+        hook(type, value, trace)
+    sys.__excepthook__(type, value, trace)
+
+
+def add_excepthook(hook):
+    """Adds an excepthook to a list of excepthooks that are called
+    when an unhandled exception happens.
+
+    See https://docs.python.org/3/library/sys.html#sys.excepthook for signature info.
+    """
+    __excepthooks.append(hook)
+    sys.excepthook = __call_excepthooks
 
 
 def exc_message(e):

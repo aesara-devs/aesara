@@ -7,10 +7,11 @@ import numpy as np
 
 import theano
 from theano import Apply, Op, Type, Variable, config, tensor
-from theano.gof import COp, HideC, ParamsType
+from theano.gof import COp, ParamsType
 from theano.gof.opt import copy_stack_trace
 from theano.gof.utils import MethodNotDefined
 from theano.gradient import grad_undefined
+from theano.link.c.basic import HideC
 from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int32_t
 from theano.tensor.basic import Alloc, AllocEmpty, Join, Split, alloc_validate_shape

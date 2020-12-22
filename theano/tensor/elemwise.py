@@ -1037,7 +1037,7 @@ second dimension
         if self.openmp:
             # If we are using openmp, we need to get rid of the "goto"
             # statement in sub['fail']. For now we recreate it here.
-            fail = gof.cc.failure_code(sub, use_goto=False)
+            fail = theano.link.c.basic.failure_code(sub, use_goto=False)
         else:
             fail = sub["fail"]
         task_code = self.scalar_op.c_code(

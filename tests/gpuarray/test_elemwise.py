@@ -13,7 +13,7 @@ from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
 from tests.gpuarray.test_basic_ops import rand_gpuarray
 from tests.tensor import test_elemwise
 from tests.unittest_tools import assert_allclose
-from theano import gof, scalar, tensor
+from theano import scalar, tensor
 from theano.compile import DebugMode, Mode
 from theano.gpuarray.dnn import GpuDnnReduction
 from theano.gpuarray.elemwise import (
@@ -25,6 +25,8 @@ from theano.gpuarray.elemwise import (
     GpuErfinv,
 )
 from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
+from theano.link.basic import PerformLinker
+from theano.link.c.basic import CLinker
 
 
 # This is actually a test for GpuElemwise
@@ -32,7 +34,7 @@ class TestGpuBroadcast(test_elemwise.TestBroadcast):
     cop = GpuElemwise
     ctype = GpuArrayType
     # The order is important
-    linkers = [gof.PerformLinker, gof.CLinker]
+    linkers = [PerformLinker, CLinker]
 
     def rand_cval(self, shp):
         return rand_gpuarray(*shp, **dict(cls=gpuarray))

@@ -72,6 +72,7 @@ from theano import compile, config, function, gof, shared
 from theano.compile import DeepCopyOp
 from theano.compile.mode import get_default_mode
 from theano.gof.graph import Variable
+from theano.link.c.basic import DualLinker
 from theano.scalar import autocast_float, autocast_float_as
 from theano.tensor import (
     Alloc,
@@ -5731,7 +5732,7 @@ def test_divmod():
     # Confirm that divmod is equivalent to the python version.
     x, y = fscalars("xy")
     d, r = divmod(x, y)
-    fn = gof.DualLinker().accept(gof.FunctionGraph([x, y], [d, r])).make_function()
+    fn = DualLinker().accept(gof.FunctionGraph([x, y], [d, r])).make_function()
     for a, b in (
         (0, 1),
         (1, 1),

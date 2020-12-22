@@ -7,11 +7,11 @@ from importlib import reload
 
 import theano
 from theano import config
-from theano.gof import cmodule
 from theano.gof.compilelock import get_lock, release_lock
+from theano.link.c.cmodule import GCC_compiler
 
 
-_logger = logging.getLogger("theano.gof.lazylinker_c")
+_logger = logging.getLogger(__file__)
 
 force_compile = False
 version = 0.211  # must match constant returned in function get_version()
@@ -108,7 +108,9 @@ except ImportError:
                 raise
             _logger.info("Compiling new CVM")
             dirname = "lazylinker_ext"
-            cfile = os.path.join(theano.__path__[0], "gof", "c_code", "lazylinker_c.c")
+            cfile = os.path.join(
+                theano.__path__[0], "link", "c", "c_code", "lazylinker_c.c"
+            )
             if not os.path.exists(cfile):
                 # This can happen in not normal case. We just
                 # disable the c clinker. If we are here the user
@@ -132,8 +134,8 @@ except ImportError:
                     assert e.errno == errno.EEXIST
                     assert os.path.exists(loc)
 
-            args = cmodule.GCC_compiler.compile_args()
-            cmodule.GCC_compiler.compile_str(dirname, code, location=loc, preargs=args)
+            args = GCC_compiler.compile_args()
+            GCC_compiler.compile_str(dirname, code, location=loc, preargs=args)
             # Save version into the __init__.py file.
             init_py = os.path.join(loc, "__init__.py")
             with open(init_py, "w") as f:

@@ -4,8 +4,7 @@ import sys
 
 from theano import config
 from theano.gof.compilelock import get_lock, release_lock
-
-from . import cmodule
+from theano.link.c import cmodule
 
 
 # TODO These two lines may be removed in the future, when we are 100% sure
