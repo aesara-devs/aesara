@@ -88,7 +88,7 @@ ctc_available.msg = None
 ctc_available.path = None
 
 
-class ConnectionistTemporalClassification(gof.COp, gof.OpenMPOp):
+class ConnectionistTemporalClassification(gof.ExternalCOp, gof.OpenMPOp):
     """
     CTC loss function wrapper.
 
@@ -120,7 +120,7 @@ class ConnectionistTemporalClassification(gof.COp, gof.OpenMPOp):
                 "can not be constructed."
             )
 
-        gof.COp.__init__(self, self.func_file, self.func_name)
+        gof.ExternalCOp.__init__(self, self.func_file, self.func_name)
         gof.OpenMPOp.__init__(self, openmp=openmp)
 
         self.compute_grad = compute_grad

@@ -20,7 +20,7 @@ from theano.tensor.nnet.ctc import ctc_available
 from theano.tensor.opt import register_canonicalize
 
 
-class GpuConnectionistTemporalClassification(gof.COp):
+class GpuConnectionistTemporalClassification(gof.ExternalCOp):
     """
     GPU wrapper for Baidu CTC loss function.
 
@@ -52,7 +52,7 @@ class GpuConnectionistTemporalClassification(gof.COp):
         # Return only the cost. Gradient will be returned by grad()
         self.default_output = 0
 
-        gof.COp.__init__(self, self.func_file, self.func_name)
+        gof.ExternalCOp.__init__(self, self.func_file, self.func_name)
 
     def c_lib_dirs(self):
         lib_dirs = []

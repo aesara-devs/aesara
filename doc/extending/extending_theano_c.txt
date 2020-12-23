@@ -720,8 +720,8 @@ simple but it still involves defining many methods as well as mixing, in the
 same file, both Python and C code which tends to make the result less
 readable.
 
-To help with this, Theano defines a class, ``COp``, from which new C ops
-can inherit. The class ``COp`` aims to simplify the process of implementing
+To help with this, Theano defines a class, ``ExternalCOp``, from which new C ops
+can inherit. The class ``ExternalCOp`` aims to simplify the process of implementing
 C ops by doing the following :
 
 *      It allows you to define the C implementation of your op in a distinct
@@ -732,12 +732,12 @@ C ops by doing the following :
        in addition to :meth:`Op.c_code_cache_version()` based on the
        provided external C implementation.
 
-To illustrate how much simpler the class ``COp`` makes the process of defining
+To illustrate how much simpler the class ``ExternalCOp`` makes the process of defining
 a new op with a C implementation, let's revisit the second example of this
 tutorial, the ``VectorTimesVector`` op. In that example, we implemented an op
 to perform the task of element-wise vector-vector multiplication. The two
 following blocks of code illustrate what the op would look like if it was
-implemented using the ``COp`` class.
+implemented using the ``ExternalCOp`` class.
 
 The new op is defined inside a Python file with the following code :
 
@@ -746,7 +746,7 @@ The new op is defined inside a Python file with the following code :
     import theano
     from theano import gof
 
-    class VectorTimesVector(gof.COp):
+    class VectorTimesVector(gof.ExternalCOp):
         __props__ = ()
 
         func_file = "./vectorTimesVector.c"
@@ -850,25 +850,25 @@ As you can see from this example, the Python and C implementations are nicely
 decoupled which makes them much more readable than when they were intertwined
 in the same file and the C code contained string formatting markers.
 
-Now that we have motivated the COp class, we can have a more precise look at
+Now that we have motivated the `ExternalCOp` class, we can have a more precise look at
 what it does for us. For this, we go through the various elements that make up
 this new version of the VectorTimesVector op :
 
 *       Parent class : instead of inheriting from the class :class:`Op`,
-        VectorTimesVector inherits from the class ``COp``.
+        VectorTimesVector inherits from the class ``ExternalCOp``.
 
-*       Constructor : in our new op, the ``__init__()`` method has an
-        important use; to inform the constructor of the ``COp`` class
+*       Constructor : in our new `Op`, the ``__init__()`` method has an
+        important use; to inform the constructor of the ``ExternalCOp`` class
         of the location, on the filesystem of the C implementation of
-        this op. To do this, it gives a list of file paths containing
+        this `Op`. To do this, it gives a list of file paths containing
         the C code for this op.  To auto-generate the c_code method
         with a function call you can specify the function name as the
         second parameter.  The paths should be given as a relative
-        path from the folder where the descendant of the ``COp`` class
+        path from the folder where the descendant of the ``ExternalCOp`` class
         is defined.
 
 *       ``make_node()`` : the ``make_node()`` method is absolutely
-        identical to the one in our old example. Using the ``COp``
+        identical to the one in our old example. Using the ``ExternalCOp``
         class doesn't change anything here.
 
 *       External C code : the external C code implements the various
@@ -880,7 +880,7 @@ Main function
 -------------
 
 If you pass a function name to the ``__init__()`` method of the
-``COp`` class, it must respect the following constraints:
+``ExternalCOp`` class, it must respect the following constraints:
 
 *       It must return an int. The value of that int indicates whether
         the op could perform its task or not. A value of 0 indicates
@@ -983,7 +983,7 @@ Certain section are limited in what you can place in them due to
 semantic and syntactic restrictions of the C++ language.  Most of
 these restrictions apply to the tags that end in ``_struct``.
 
-When we defined the VectorTimesVector op without using the ``COp``
+When we defined the VectorTimesVector op without using the ``ExternalCOp``
 class, we had to make a distinction between two types of support_code
 : the support code that was apply-specific and the support code that
 wasn't. The apply-specific code was defined in the
@@ -999,7 +999,7 @@ used when defining the functions ``vector_elemwise_mult()`` and
 ``vector_times_vector()`` as well as when calling function
 ``vector_elemwise_mult()`` from inside ``vector_times_vector()``.
 
-When using the ``COp`` class, we still have to make the distinction
+When using the ``ExternalCOp`` class, we still have to make the distinction
 between C code for each of the methods of a C class. These sections of
 code are separated by ``#section <tag>`` markers. The tag determines
 the name of the method this C code applies to with the rule that
@@ -1020,9 +1020,9 @@ arguments).
 
 In the above example, the ``function vector_same_shape()`` is
 apply-agnostic because it uses none of the macros defined by the class
-``COp`` and it doesn't rely on any apply-specific code. The function
+``ExternalCOp`` and it doesn't rely on any apply-specific code. The function
 ``vector_elemwise_mult()`` is apply-specific because it uses the
-macros defined by ``COp``. Finally, the function
+macros defined by ``ExternalCOp``. Finally, the function
 ``vector_times_vector()`` is apply-specific because it uses those same
 macros and also because it calls ``vector_elemwise_mult()`` which is
 an apply-specific function.

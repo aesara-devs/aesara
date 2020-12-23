@@ -4,7 +4,7 @@ import numpy as np
 
 import theano
 from theano import config, gof, scalar
-from theano.gof import Apply, COp, Op, OpenMPOp, ParamsType
+from theano.gof import Apply, ExternalCOp, Op, OpenMPOp, ParamsType
 from theano.gof.null_type import NullType
 from theano.gradient import DisconnectedType
 from theano.misc.frozendict import frozendict
@@ -51,7 +51,7 @@ def TensorConstant(*inputs, **kwargs):
 ##################
 
 
-class DimShuffle(COp):
+class DimShuffle(ExternalCOp):
     """
     Allows to reorder the dimensions of a tensor or insert or remove
     broadcastable dimensions.
@@ -155,7 +155,7 @@ class DimShuffle(COp):
         return self.shuffle + self.drop
 
     def __init__(self, input_broadcastable, new_order, inplace=True):
-        COp.__init__(self, [self.c_func_file], self.c_func_name)
+        ExternalCOp.__init__(self, [self.c_func_file], self.c_func_name)
         self.input_broadcastable = tuple(input_broadcastable)
         self.new_order = tuple(new_order)
         if inplace is True:
@@ -217,8 +217,8 @@ class DimShuffle(COp):
         self.__dict__.update(state)
         if not hasattr(self, "func_files"):
             # Perhaps we are loading an old `Op` version of DimShuffle.
-            # Let's just build the COp.
-            COp.__init__(self, [self.c_func_file], self.c_func_name)
+            # Let's just build the ExternalCOp.
+            ExternalCOp.__init__(self, [self.c_func_file], self.c_func_name)
 
     def make_node(self, _input):
         input = as_tensor_variable(_input)

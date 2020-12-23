@@ -4,7 +4,7 @@ import pytest
 import theano
 from tests import unittest_tools as utt
 from theano import Generic, tensor
-from theano.gof import Apply, COp, EnumList, Op, Params, ParamsType
+from theano.gof import Apply, EnumList, ExternalCOp, Op, Params, ParamsType
 from theano.scalar import Scalar
 from theano.tensor import TensorType
 
@@ -96,8 +96,9 @@ class QuadraticOpFunc(Op):
         )
 
 
-# Same op as above, but implemented as a COp (with C code in an external file).
-class QuadraticCOpFunc(COp):
+# Same op as above, but implemented as a ExternalCOp (with C code in an
+# external file).
+class QuadraticCOpFunc(ExternalCOp):
     __props__ = ("a", "b", "c")
     params_type = ParamsType(a=tensor_type_0d, b=scalar_type, c=generic_type)
 

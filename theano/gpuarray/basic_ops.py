@@ -7,7 +7,7 @@ import numpy as np
 
 import theano
 from theano import Apply, Op, Type, Variable, config, tensor
-from theano.gof import COp, ParamsType
+from theano.gof import ExternalCOp, ParamsType
 from theano.gof.opt import copy_stack_trace
 from theano.gof.utils import MethodNotDefined
 from theano.gradient import grad_undefined
@@ -493,7 +493,7 @@ def forward_string_meth(name):
     def f(*args):
         res = getattr(GpuKernelBase, name)(*args)
         try:
-            res = res + "\n" + getattr(COp, name)(*args)
+            res = res + "\n" + getattr(ExternalCOp, name)(*args)
         except MethodNotDefined:
             pass
         return res
@@ -513,15 +513,15 @@ def get_dtype(s):
         return np.dtype(s)
 
 
-class CGpuKernelBase(COp, GpuKernelBase):
+class CGpuKernelBase(ExternalCOp, GpuKernelBase):
     """
-    Class to combine GpuKernelBase and COp.
+    Class to combine GpuKernelBase and ExternalCOp.
 
     It adds a new section type 'kernels' where you can define kernels
     with the '#kernel' tag
     """
 
-    SECTIONS = copy.copy(COp.SECTIONS)
+    SECTIONS = copy.copy(ExternalCOp.SECTIONS)
     SECTIONS.add("kernels")
 
     kernel_re = re.compile(r"^#kernel ([a-zA-Z_].*?)$", re.MULTILINE)
