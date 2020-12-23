@@ -11,7 +11,7 @@ import theano.pathparse
 from theano import Apply, Op, Variable, config, tensor
 from theano.compile.ops import shape_i, shape_i_op
 from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
-from theano.gof import COp, EnumList, ParamsType
+from theano.gof import EnumList, ExternalCOp, ParamsType
 from theano.gof.type import CDataType, Generic
 from theano.gpuarray import cudnn_defs, pygpu
 from theano.gpuarray.basic_ops import (
@@ -384,7 +384,7 @@ def get_precision(precision, inputs, for_grad=False):
     return precision, common_dtype
 
 
-class DnnBase(COp):
+class DnnBase(ExternalCOp):
 
     """
     Creates a handle for cudnn and pulls in the cudnn libraries and headers.
@@ -420,7 +420,7 @@ class DnnBase(COp):
     def __init__(self, files=None, c_func=None):
         if files is None:
             files = []
-        COp.__init__(self, ["c_code/dnn_base.c"] + files, c_func)
+        ExternalCOp.__init__(self, ["c_code/dnn_base.c"] + files, c_func)
 
     def c_headers(self):
         return [
@@ -459,7 +459,7 @@ class DnnBase(COp):
         return (super().c_code_cache_version(), version(), 4)
 
 
-class GpuDnnConvDesc(COp):
+class GpuDnnConvDesc(ExternalCOp):
 
     """
     This Op builds a convolution descriptor for use in the other convolution
@@ -531,7 +531,7 @@ class GpuDnnConvDesc(COp):
         precision="float32",
         num_groups=1,
     ):
-        COp.__init__(self, ["c_code/conv_desc.c"], "APPLY_SPECIFIC(conv_desc)")
+        ExternalCOp.__init__(self, ["c_code/conv_desc.c"], "APPLY_SPECIFIC(conv_desc)")
 
         if version() < 6000 and any([d != 1 for d in dilation]):
             raise RuntimeError("Dilation > 1 not supported for cuDNN version < 6.")
@@ -3077,7 +3077,7 @@ class GpuDnnRNNGradInputs(DnnBase):
 
         return Apply(self, inputs, outputs)
 
-    # We have special requirements so this is hooking into COp
+    # We have special requirements so this is hooking into ExternalCOp
     def format_c_function_args(self, inp, out):
         rinp = inp[:7]
         others = inp[7:]
@@ -3094,7 +3094,7 @@ class GpuDnnRNNGradInputs(DnnBase):
         else:
             rinp.append("NULL")
         assert len(others) == 0
-        return COp.format_c_function_args(self, rinp, out)
+        return ExternalCOp.format_c_function_args(self, rinp, out)
 
 
 class GpuDnnRNNGradWeights(DnnBase):

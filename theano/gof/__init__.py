@@ -4,7 +4,13 @@ import theano
 from theano.gof.destroyhandler import DestroyHandler
 from theano.gof.fg import FunctionGraph, InconsistencyError, MissingInputError
 from theano.gof.graph import Apply, Constant, Variable, view_roots
-from theano.gof.op import COp, Op, OpenMPOp, get_test_value, ops_with_inner_function
+from theano.gof.op import (
+    ExternalCOp,
+    Op,
+    OpenMPOp,
+    get_test_value,
+    ops_with_inner_function,
+)
 from theano.gof.opt import (
     CheckStackTraceOptimization,
     EquilibriumOptimizer,

@@ -811,7 +811,7 @@ def apply_meth(tag):
     return f
 
 
-class COp(Op):
+class ExternalCOp(Op):
     """
     Class to allow an op to have an external C implementation.
 

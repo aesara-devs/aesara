@@ -6,7 +6,7 @@ from numpy.linalg.linalg import LinAlgError
 
 import theano
 from theano import Op, config, tensor
-from theano.gof import COp, ParamsType
+from theano.gof import ExternalCOp, ParamsType
 from theano.gpuarray.basic_ops import (
     CGpuKernelBase,
     as_gpuarray_variable,
@@ -694,7 +694,7 @@ def gpu_cholesky(A, lower=True):
 
 
 # TODO: add support for float64
-class GpuMagmaBase(COp):
+class GpuMagmaBase(ExternalCOp):
     """Base class for magma related operations. Add the necessary headers,
     libraries and optionally the location of headers and library.
     """
@@ -756,7 +756,7 @@ class GpuMagmaSVD(GpuMagmaBase):
     def __init__(self, full_matrices=True, compute_uv=True):
         self.full_matrices = full_matrices
         self.compute_uv = compute_uv
-        COp.__init__(self, ["c_code/magma_svd.c"], "APPLY_SPECIFIC(magma_svd)")
+        ExternalCOp.__init__(self, ["c_code/magma_svd.c"], "APPLY_SPECIFIC(magma_svd)")
 
     def make_node(self, A):
         ctx_name = infer_context_name(A)
@@ -849,7 +849,7 @@ class GpuMagmaMatrixInverse(GpuMagmaBase):
     params_type = ParamsType(inplace=bool_t, context=gpu_context_type)
 
     def __init__(self, inplace=False):
-        COp.__init__(self, ["c_code/magma_inv.c"], "APPLY_SPECIFIC(magma_inv)")
+        ExternalCOp.__init__(self, ["c_code/magma_inv.c"], "APPLY_SPECIFIC(magma_inv)")
         self.inplace = inplace
         if self.inplace:
             self.destroy_map = {0: [0]}
@@ -898,7 +898,7 @@ class GpuMagmaCholesky(GpuMagmaBase, CGpuKernelBase):
 
     def __init__(self, lower=True, inplace=False):
         self.lower = lower
-        COp.__init__(
+        ExternalCOp.__init__(
             self, ["c_code/magma_cholesky.c"], "APPLY_SPECIFIC(magma_cholesky)"
         )
         self.inplace = inplace
@@ -949,7 +949,7 @@ class GpuMagmaQR(GpuMagmaBase, CGpuKernelBase):
 
     def __init__(self, complete=True):
         self.complete = complete
-        COp.__init__(self, ["c_code/magma_qr.c"], "APPLY_SPECIFIC(magma_qr)")
+        ExternalCOp.__init__(self, ["c_code/magma_qr.c"], "APPLY_SPECIFIC(magma_qr)")
 
     def make_node(self, A):
         ctx_name = infer_context_name(A)
@@ -1021,7 +1021,9 @@ class GpuMagmaEigh(GpuMagmaBase):
         assert UPLO in ["L", "U"]
         self.lower = UPLO == "L"
         self.compute_v = compute_v
-        COp.__init__(self, ["c_code/magma_eigh.c"], "APPLY_SPECIFIC(magma_eigh)")
+        ExternalCOp.__init__(
+            self, ["c_code/magma_eigh.c"], "APPLY_SPECIFIC(magma_eigh)"
+        )
 
     def make_node(self, A):
         ctx_name = infer_context_name(A)

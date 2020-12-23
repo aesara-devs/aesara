@@ -96,7 +96,7 @@ that you will need to write a new kernel.  The best way to do this is
 to leverage :class:`GpuKernelBase
 <theano.gpuarray.basic_ops.GpuKernelBase>` (or :class:`CGpuKernelBase
 <theano.gpuarray.basic_ops.CGpuKernelBase>` if you want to use the
-:class:`COp <theano.gof.op.COp>` functionality).
+:class:`ExternalCOp <theano.gof.op.ExternalCOp>` functionality).
 
 For plain :class:`GpuKernelBase
 <theano.gpuarray.basic_ops.GpuKernelBase>`, you have to define a
@@ -118,7 +118,7 @@ this::
                 params=[gpuarray.GpuArray, gpuarray.SIZE, gpuarray.SIZE],
                 flags=Kernel.get_flags('float64'))]
 
-If you want to use ``COp``, then you should use ``CGpuKernelBase``
+If you want to use ``ExternalCOp``, then you should use ``CGpuKernelBase``
 instead.  It adds a new section to the parsed files whose tag is
 ``kernels``.  Inside that section you can define some kernels with
 ``#kernel name:params:flags``.

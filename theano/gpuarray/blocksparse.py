@@ -3,7 +3,7 @@ import logging
 import numpy as np
 
 from theano import Apply, tensor
-from theano.gof import COp, ParamsType
+from theano.gof import ExternalCOp, ParamsType
 from theano.gradient import grad_undefined
 from theano.scalar import bool as bool_t
 from theano.tensor import as_tensor_variable, discrete_dtypes
@@ -15,7 +15,7 @@ from .type import gpu_context_type
 _logger = logging.getLogger("theano.gpuarray.blocksparse")
 
 
-class GpuSparseBlockGemv(COp):
+class GpuSparseBlockGemv(ExternalCOp):
     """
     GPU version of SparseBlockGemv. Check SparseBlockGemv's docstring for more
     information.
@@ -30,7 +30,7 @@ class GpuSparseBlockGemv(COp):
     # NB: DTYPE_INPUT_* is used in C code, so I think we should not set check_input to False.
 
     def __init__(self, inplace=False):
-        COp.__init__(self, "c_code/blockgemv.c", "APPLY_SPECIFIC(blockgemv)")
+        ExternalCOp.__init__(self, "c_code/blockgemv.c", "APPLY_SPECIFIC(blockgemv)")
         self.inplace = inplace
         if self.inplace:
             self.destroy_map = {0: [0]}
@@ -90,7 +90,7 @@ gpu_sparse_block_gemv = GpuSparseBlockGemv(False)
 gpu_sparse_block_gemv_inplace = GpuSparseBlockGemv(True)
 
 
-class GpuSparseBlockOuter(COp):
+class GpuSparseBlockOuter(ExternalCOp):
     """
     GPU version of SparseBlockOuter. See SparseBlockOuter's docstring for more
     information.
@@ -104,7 +104,7 @@ class GpuSparseBlockOuter(COp):
     params_type = ParamsType(inplace=bool_t, context=gpu_context_type)
 
     def __init__(self, inplace=False):
-        COp.__init__(self, ["c_code/blockger.c"], "APPLY_SPECIFIC(blockger)")
+        ExternalCOp.__init__(self, ["c_code/blockger.c"], "APPLY_SPECIFIC(blockger)")
         self.inplace = inplace
         if self.inplace:
             self.destroy_map = {0: [0]}
