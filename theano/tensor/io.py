@@ -2,14 +2,10 @@ import numpy as np
 
 import theano
 from theano import gof
-from theano.gof import Constant, Generic, Op
+from theano.gof import Constant, Generic
+from theano.gof.op import Op
 from theano.gof.sched import key_to_cmp
 from theano.tensor import tensor
-
-
-##########################
-# Disk Access
-##########################
 
 
 class LoadFromDisk(Op):

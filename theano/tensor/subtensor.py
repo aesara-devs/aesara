@@ -9,7 +9,10 @@ import numpy as np
 import theano
 from theano import config, gof
 from theano import scalar as scal
-from theano.gof import Apply, MethodNotDefined, Op, ParamsType, Type, hashtype
+from theano.gof import MethodNotDefined, ParamsType, hashtype
+from theano.gof.graph import Apply
+from theano.gof.op import COp, Op
+from theano.gof.type import Type
 from theano.gradient import DisconnectedType
 from theano.printing import pprint
 from theano.tensor.basic import (
@@ -416,7 +419,7 @@ def indexed_result_shape(array_shape, indices, indices_are_shapes=False):
     return res_shape
 
 
-class Subtensor(Op):
+class Subtensor(COp):
     """Basic NumPy indexing operator."""
 
     check_input = False
@@ -1379,7 +1382,7 @@ def inc_subtensor(
         raise TypeError("x must be the result of a subtensor operation")
 
 
-class IncSubtensor(Op):
+class IncSubtensor(COp):
     """
     Increment a subtensor.
 
@@ -1852,7 +1855,7 @@ def _sum_grad_over_bcasted_dims(x, gx):
     return gx
 
 
-class AdvancedSubtensor1(Op):
+class AdvancedSubtensor1(COp):
     """
     Implement x[ilist] where ilist is a vector of integers.
 
@@ -2056,7 +2059,7 @@ class AdvancedSubtensor1(Op):
 advanced_subtensor1 = AdvancedSubtensor1()
 
 
-class AdvancedIncSubtensor1(Op):
+class AdvancedIncSubtensor1(COp):
     """
     Increments a subtensor using advanced slicing (list of index).
 

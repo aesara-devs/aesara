@@ -1,9 +1,11 @@
 import numpy as np
 
-from theano import gof, tensor
+from theano import tensor
+from theano.gof.graph import Apply
+from theano.gof.op import Op
 
 
-class Minimal(gof.Op):
+class Minimal(Op):
     # TODO : need description for class
 
     # if the Op has any attributes, consider using them in the eq function.
@@ -24,7 +26,7 @@ class Minimal(gof.Op):
 
     def make_node(self, *args):
         # HERE `args` must be THEANO VARIABLES
-        return gof.Apply(op=self, inputs=args, outputs=[tensor.lscalar()])
+        return Apply(op=self, inputs=args, outputs=[tensor.lscalar()])
 
     def perform(self, node, inputs, out_):
         (output,) = out_

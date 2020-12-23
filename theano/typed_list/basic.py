@@ -3,7 +3,8 @@ import numpy as np
 import theano
 import theano.tensor as tt
 from theano.compile.debugmode import _lessbroken_deepcopy
-from theano.gof import Apply, Constant, Op, Variable
+from theano.gof.graph import Apply, Constant, Variable
+from theano.gof.op import COp, Op
 from theano.tensor.type_other import SliceType
 from theano.typed_list.type import TypedListType
 
@@ -62,7 +63,7 @@ class TypedListConstant(_typed_list_py_operators, Constant):
 TypedListType.Constant = TypedListConstant
 
 
-class GetItem(Op):
+class GetItem(COp):
     # See doc in instance of this Op or function after this class definition.
     view_map = {0: [0]}
     __props__ = ()
@@ -127,7 +128,7 @@ index
 """
 
 
-class Append(Op):
+class Append(COp):
     # See doc in instance of this Op after the class definition.
     __props__ = ("inplace",)
 
@@ -210,7 +211,7 @@ y
 """
 
 
-class Extend(Op):
+class Extend(COp):
     # See doc in instance of this Op after the class definition.
     __props__ = ("inplace",)
 
@@ -299,7 +300,7 @@ toAppend
 """
 
 
-class Insert(Op):
+class Insert(COp):
     # See doc in instance of this Op after the class definition.
     __props__ = ("inplace",)
 
@@ -446,7 +447,7 @@ from a list. This implementation works in that case.
 """
 
 
-class Reverse(Op):
+class Reverse(COp):
     # See doc in instance of this Op after the class definition.
     __props__ = ("inplace",)
 
@@ -593,7 +594,7 @@ from a list. This implementation works in that case.
 """
 
 
-class Length(Op):
+class Length(COp):
     # See doc in instance of this Op after the class definition.
     __props__ = ()
 

@@ -152,7 +152,7 @@ The following ResultBase represents addition of two nonnegative doubles (we only
 
 .. code-block:: python
 
-    class Add(Op):
+    class Add(COp):
       # <snip>
       def c_var_names(self):
         return "[['x', 'y'], ['z']]"
@@ -253,5 +253,3 @@ Advantages of using a struct:
   * Output variables or temporary variables can reuse what they allocated the last time. This is not particularly useful with doubles (in fact it might be detrimental), but if z was a large tensor it might be interesting to recycle the memory over thousands of runs of the Op.
 
 No struct members will be made if a result's c_is_simple field is True. They will be allocated on the stack instead.
-
-

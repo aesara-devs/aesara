@@ -8,8 +8,10 @@ from packaging import version
 import theano
 from tests import unittest_tools as utt
 from tests.tensor.test_sharedvar import makeSharedTester
-from theano import config, gof, sparse, tensor
+from theano import config, sparse, tensor
 from theano.compile.function import function
+from theano.gof.graph import Apply
+from theano.gof.op import Op
 from theano.gradient import GradientError
 from theano.sparse import (
     CSC,
@@ -309,7 +311,7 @@ def verify_grad_sparse(op, pt, structured=False, *args, **kwargs):
 
 
 class TestVerifyGradSparse:
-    class FailOp(gof.op.Op):
+    class FailOp(Op):
         def __init__(self, structured):
             self.structured = structured
 
@@ -321,7 +323,7 @@ class TestVerifyGradSparse:
 
         def make_node(self, x):
             x = as_sparse_variable(x)
-            return gof.Apply(self, [x], [x.type()])
+            return Apply(self, [x], [x.type()])
 
         def perform(self, node, inputs, outputs):
             (x,) = inputs

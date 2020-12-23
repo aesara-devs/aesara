@@ -72,6 +72,7 @@ from theano import compile, config, function, gof, shared
 from theano.compile import DeepCopyOp
 from theano.compile.mode import get_default_mode
 from theano.gof.graph import Variable
+from theano.gof.op import Op
 from theano.link.c.basic import DualLinker
 from theano.scalar import autocast_float, autocast_float_as
 from theano.tensor import (
@@ -972,7 +973,7 @@ TestAllocDimshuffleGrad2Broadcast = makeBroadcastTester(
 )
 
 
-class ApplyDefaultTestOp(theano.Op):
+class ApplyDefaultTestOp(Op):
     def __init__(self, id):
         self.default_output = id
 
@@ -3843,7 +3844,7 @@ def test_ScalarFromTensor():
 
 
 class TestGrad:
-    class Obj1(gof.op.Op):
+    class Obj1(Op):
         def __init__(self):
             self.gval0 = scalar("e")
             self.gval1 = scalar("f")

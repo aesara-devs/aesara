@@ -475,10 +475,11 @@ storage with the right shape and number of dimensions.
     import numpy
     import theano
 
-    from theano import gof
+    from theano.gof.op import COp
+    from theano.gof.graph import Apply
 
 
-    class VectorTimesScalar(gof.Op):
+    class VectorTimesScalar(COp):
         __props__ = ()
 
         def make_node(self, x, y):
@@ -491,7 +492,7 @@ storage with the right shape and number of dimensions.
             # Create an output variable of the same type as x
             output_var = x.type()
 
-            return gof.Apply(self, [x, y], [output_var])
+            return Apply(self, [x, y], [output_var])
 
         def c_code_cache_version(self):
             return (1, 0)
@@ -603,7 +604,7 @@ C code.
 
 .. testcode:: examples
 
-    class VectorTimesVector(gof.Op):
+    class VectorTimesVector(COp):
         __props__ = ()
 
         def make_node(self, x, y):
@@ -618,7 +619,7 @@ C code.
                             dtype=theano.scalar.upcast(x.dtype, y.dtype),
                             broadcastable=[False])()
 
-            return gof.Apply(self, [x, y], [output_var])
+            return Apply(self, [x, y], [output_var])
 
         def c_code_cache_version(self):
             return (1, 0, 2)
@@ -744,17 +745,16 @@ The new op is defined inside a Python file with the following code :
 .. testcode::
 
     import theano
-    from theano import gof
+    from theano.gof.op import ExternalCOp
 
-    class VectorTimesVector(gof.ExternalCOp):
+    class VectorTimesVector(ExternalCOp):
         __props__ = ()
 
         func_file = "./vectorTimesVector.c"
         func_name = "APPLY_SPECIFIC(vector_times_vector)"
 
         def __init__(self):
-            super(VectorTimesVector, self).__init__(self.func_file,
-                                                    self.func_name)
+            super().__init__(self.func_file, self.func_name)
 
         def make_node(self, x, y):
             # Validate the inputs' type
@@ -768,7 +768,7 @@ The new op is defined inside a Python file with the following code :
                             dtype=theano.scalar.upcast(x.dtype, y.dtype),
                             broadcastable=[False])()
 
-            return gof.Apply(self, [x, y], [output_var])
+            return Apply(self, [x, y], [output_var])
 
 And the following is the C implementation of the op, defined in an external
 C file named vectorTimesVector.c :
@@ -852,16 +852,16 @@ in the same file and the C code contained string formatting markers.
 
 Now that we have motivated the `ExternalCOp` class, we can have a more precise look at
 what it does for us. For this, we go through the various elements that make up
-this new version of the VectorTimesVector op :
+this new version of the ``VectorTimesVector`` `Op` :
 
 *       Parent class : instead of inheriting from the class :class:`Op`,
         VectorTimesVector inherits from the class ``ExternalCOp``.
 
-*       Constructor : in our new `Op`, the ``__init__()`` method has an
+*       Constructor : in our new `COp`, the ``__init__()`` method has an
         important use; to inform the constructor of the ``ExternalCOp`` class
         of the location, on the filesystem of the C implementation of
-        this `Op`. To do this, it gives a list of file paths containing
-        the C code for this op.  To auto-generate the c_code method
+        this `COp`. To do this, it gives a list of file paths containing
+        the C code for this `COp`.  To auto-generate the c_code method
         with a function call you can specify the function name as the
         second parameter.  The paths should be given as a relative
         path from the folder where the descendant of the ``ExternalCOp`` class
@@ -872,7 +872,7 @@ this new version of the VectorTimesVector op :
         class doesn't change anything here.
 
 *       External C code : the external C code implements the various
-        functions associated with the op.  Writing this C code
+        functions associated with the `COp`.  Writing this C code
         involves a few subtleties which deserve their own respective
         sections.
 
@@ -883,29 +883,29 @@ If you pass a function name to the ``__init__()`` method of the
 ``ExternalCOp`` class, it must respect the following constraints:
 
 *       It must return an int. The value of that int indicates whether
-        the op could perform its task or not. A value of 0 indicates
+        the `Op` could perform its task or not. A value of 0 indicates
         success while any non-zero value will interrupt the execution
         of the Theano function.  When returning non-zero the function
         must set a python exception indicating the details of the
         problem.
 
-*       It must receive one argument for each input to the op followed
-        by one pointer to an argument for each output of the op.  The
+*       It must receive one argument for each input to the `Op` followed
+        by one pointer to an argument for each output of the `Op`.  The
         types for the argument is dependant on the Types (that is
         theano Types) of your inputs and outputs.
 
-*       You can sepcify the number of inputs and outputs for your op
+*       You can sepcify the number of inputs and outputs for your `Op`
         by setting the ``_cop_num_inputs`` and ``_cop_num_outputs``
-        attributes on your op.  The main function will always be
+        attributes on your `COp`.  The main function will always be
         called with that number of arguments, using NULL to fill in
-        for missing values at the end.  This can be used if your op
+        for missing values at the end.  This can be used if your `COp`
         has a variable number of inputs or outputs, but with a fixed
         maximum.
 
-For example, the main C function of an op that takes two TensorTypes
+For example, the main C function of an `COp` that takes two TensorTypes
 (which has ``PyArrayObject *`` as its C type) as inputs and returns
 both their sum and the difference between them would have four
-parameters (two for the op's inputs and two for its outputs) and it's
+parameters (two for the `COp`'s inputs and two for its outputs) and it's
 signature would look something like this :
 
 .. code-block:: c
@@ -922,19 +922,19 @@ pre-defined macros.  These section tags have no macros: ``init_code``,
 discussed below.
 
 *      ``APPLY_SPECIFIC(str)`` which will automatically append a name
-       unique to the :ref:`Apply` node that applies the Op at the end
+       unique to the :ref:`Apply` node that applies the `Op` at the end
        of the provided ``str``. The use of this macro is discussed
        futher below.
 
 For every input which has a :attr:`dtype` attribute (this means
 Tensors, and equivalent types on GPU), the following macros will be
-defined unless your Op class has an :attr:`Op.check_input` attribute
+defined unless your `Op` class has an :attr:`Op.check_input` attribute
 defined to False. In these descrptions 'i' refers to the position
 (indexed from 0) in the input array.
 
 *       ``DTYPE_INPUT_{i}`` : NumPy dtype of the data in the array.
         This is the variable type corresponding to the NumPy dtype, not the
-        string representation of the NumPy dtype. For instance, if the op's
+        string representation of the NumPy dtype. For instance, if the `Op`'s
         first input is a float32 ndarray, then the macro ``DTYPE_INPUT_0``
         corresponds to ``npy_float32`` and can directly be used to declare a
         new variable of the same dtype as the data in the array :
@@ -950,7 +950,7 @@ defined to False. In these descrptions 'i' refers to the position
 
 In the same way, the macros ``DTYPE_OUTPUT_{i}``,
 ``ITEMSIZE_OUTPUT_{i}`` and ``TYPENUM_OUTPUT_{i}`` are defined for
-every output 'i' of the op.
+every output 'i' of the `Op`.
 
 In addition to these macros, the ``init_code_struct``, ``code``, and
 ``code_cleanup`` section tags also have the following macros:
@@ -969,7 +969,7 @@ In addition to these macros, the ``init_code_struct``, ``code``, and
       happy.
 
 *     ``PARAMS`` : Name of the params variable for this node.  (only
-      for Ops which have params, which is discussed elsewhere)
+      for `Op`s which have params, which is discussed elsewhere)
 
 Finally the tag ``code`` and ``code_cleanup`` have macros to
 pass the inputs and output names.  These are name ``INPUT_{i}`` and
@@ -983,7 +983,7 @@ Certain section are limited in what you can place in them due to
 semantic and syntactic restrictions of the C++ language.  Most of
 these restrictions apply to the tags that end in ``_struct``.
 
-When we defined the VectorTimesVector op without using the ``ExternalCOp``
+When we defined the ``VectorTimesVector`` `Op` without using the ``ExternalCOp``
 class, we had to make a distinction between two types of support_code
 : the support code that was apply-specific and the support code that
 wasn't. The apply-specific code was defined in the
@@ -1009,7 +1009,7 @@ appear in the C files.
 
 The rules for knowing if where a piece of code should be put can be
 sometimes tricky.  The key thing to remember is that things that can
-be shared between instances of the op should be apply-agnostic and go
+be shared between instances of the `Op` should be apply-agnostic and go
 into a section which does not end in ``_apply`` or ``_struct``.  The
 distinction of ``_apply`` and ``_struct`` mostly hinghes on how you
 want to manange the lifetime of the object.  Note that to use an
@@ -1028,7 +1028,7 @@ macros and also because it calls ``vector_elemwise_mult()`` which is
 an apply-specific function.
 
 
-Using GDB to debug Op's C code
+Using GDB to debug COp's C code
 ==============================
 
 When debugging C code, it can be useful to use GDB for code compiled
@@ -1051,6 +1051,6 @@ process:
 Final Note
 ==========
 
-This tutorial focuses on providing C implementations to ops that manipulate
+This tutorial focuses on providing C implementations to `COp`s that manipulate
 Theano tensors. For more information about other Theano types, you can refer
 to the section :ref:`Alternate Theano Types <alternate_theano_types>`.

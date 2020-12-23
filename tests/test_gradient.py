@@ -5,8 +5,10 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import config, gof, gradient
+from theano import config, gradient
+from theano.gof.graph import Apply
 from theano.gof.null_type import NullType
+from theano.gof.op import Op
 from theano.sandbox.rng_mrg import MRG_RandomStream
 
 
@@ -36,13 +38,13 @@ def grad_sources_inputs(sources, inputs):
 class TestGradSourcesInputs:
     def test_retNone1(self):
         # Test that it is not ok to return None from op.grad()
-        class retNone(gof.op.Op):
+        class retNone(Op):
             __props__ = ()
 
             def make_node(self):
                 inputs = [theano.tensor.vector()]
                 outputs = [theano.tensor.vector()]
-                return gof.Apply(self, inputs, outputs)
+                return Apply(self, inputs, outputs)
 
             def grad(self, inp, grads):
                 (x,) = inp
@@ -55,12 +57,12 @@ class TestGradSourcesInputs:
     def test_wrong_rval_len1(self):
         # Test that it is not ok to return the wrong number of gradient terms
 
-        class retOne(gof.op.Op):
+        class retOne(Op):
             __props__ = ()
 
             def make_node(self, *inputs):
                 outputs = [theano.tensor.vector()]
-                return gof.Apply(self, inputs, outputs)
+                return Apply(self, inputs, outputs)
 
             def grad(self, inputs, grads):
                 return [inputs[0].zeros_like()]
@@ -77,13 +79,13 @@ class TestGradSourcesInputs:
         # Test grad is called correctly for a 1-to-1 op
         gval = theano.tensor.matrix()
 
-        class TestOp(gof.op.Op):
+        class TestOp(Op):
             __props__ = ()
 
             def make_node(self):
                 inputs = [theano.tensor.matrix()]
                 outputs = [theano.tensor.matrix()]
-                return gof.Apply(self, inputs, outputs)
+                return Apply(self, inputs, outputs)
 
             def grad(self, inp, grads):
                 return (gval,)
@@ -96,13 +98,13 @@ class TestGradSourcesInputs:
         # Test grad is called correctly for a 1-to-many op
         gval = theano.tensor.matrix()
 
-        class TestOp(gof.op.Op):
+        class TestOp(Op):
             __props__ = ()
 
             def make_node(self):
                 inputs = [theano.tensor.matrix()]
                 outputs = [theano.tensor.scalar(), theano.tensor.scalar()]
-                return gof.Apply(self, inputs, outputs)
+                return Apply(self, inputs, outputs)
 
             def grad(self, inp, grads):
                 (x,) = inp
@@ -118,13 +120,13 @@ class TestGradSourcesInputs:
         gval0 = theano.tensor.scalar()
         gval1 = theano.tensor.scalar()
 
-        class TestOp(gof.op.Op):
+        class TestOp(Op):
             __props__ = ()
 
             def make_node(self):
                 inputs = [theano.tensor.scalar(), theano.tensor.scalar()]
                 outputs = [theano.tensor.matrix()]
-                return gof.Apply(self, inputs, outputs)
+                return Apply(self, inputs, outputs)
 
             def grad(self, inp, grads):
                 x0, x1 = inp
@@ -141,13 +143,13 @@ class TestGradSourcesInputs:
         gval0 = theano.tensor.matrix()
         gval1 = theano.tensor.matrix()
 
-        class TestOp(gof.op.Op):
+        class TestOp(Op):
             __props__ = ()
 
             def make_node(self):
                 inputs = [theano.tensor.matrix(), theano.tensor.matrix()]
                 outputs = [theano.tensor.matrix(), theano.tensor.matrix()]
-                return gof.Apply(self, inputs, outputs)
+                return Apply(self, inputs, outputs)
 
             def grad(self, inp, grads):
                 return gval0, gval1
@@ -178,11 +180,11 @@ class TestGrad:
     def test_unimplemented_grad_grad(self):
         # tests that unimplemented grads are caught in the grad method
 
-        class DummyOp(gof.Op):
+        class DummyOp(Op):
             __props__ = ()
 
             def make_node(self, x):
-                return gof.Apply(self, [x], [x.type()])
+                return Apply(self, [x], [x.type()])
 
             def grad(self, inputs, output_grads):
                 return [theano.gradient.grad_not_implemented(self, 0, inputs[0])]
@@ -196,11 +198,11 @@ class TestGrad:
     def test_undefined_grad_grad(self):
         # tests that undefined grads are caught in the grad method
 
-        class DummyOp(gof.Op):
+        class DummyOp(Op):
             __props__ = ()
 
             def make_node(self, x):
-                return gof.Apply(self, [x], [x.type()])
+                return Apply(self, [x], [x.type()])
 
             def grad(self, inputs, output_grads):
                 return [theano.gradient.grad_undefined(self, 0, inputs[0])]
@@ -363,7 +365,7 @@ class TestGrad:
 
         # Op1 has two outputs, f and g
         # x is connected to f but not to g
-        class Op1(theano.gof.Op):
+        class Op1(Op):
             __props__ = ()
 
             def make_node(self, x):
@@ -379,7 +381,7 @@ class TestGrad:
 
         # Op2 has two inputs, f and g
         # Its gradient with respect to g is not defined
-        class Op2(theano.gof.Op):
+        class Op2(Op):
             __props__ = ()
 
             def make_node(self, f, g):

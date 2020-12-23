@@ -1,7 +1,8 @@
 import theano
 from theano import tensor
-from theano.gof import Apply, Op, TopoOptimizer
-from theano.gof.opt import copy_stack_trace
+from theano.gof.graph import Apply
+from theano.gof.op import Op
+from theano.gof.opt import TopoOptimizer, copy_stack_trace
 from theano.gradient import DisconnectedType
 
 

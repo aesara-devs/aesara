@@ -6,7 +6,7 @@ import theano.gof.op as op
 import theano.tensor as tt
 from theano import config, scalar, shared
 from theano.gof.graph import Apply, Variable
-from theano.gof.op import Op
+from theano.gof.op import COp, Op
 from theano.gof.type import Generic, Type
 from theano.gof.utils import MethodNotDefined, TestValueError
 
@@ -75,7 +75,7 @@ class NoInputOp(Op):
         output_storage[0][0] = "test Op no input"
 
 
-class StructOp(Op):
+class StructOp(COp):
     __props__ = ()
 
     def do_constant_folding(self, fgraph, node):
@@ -154,7 +154,7 @@ class TestOp:
 
 class TestMakeThunk:
     def test_no_c_code(self):
-        class IncOnePython(Op):
+        class IncOnePython(COp):
             """An Op with only a Python (perform) implementation"""
 
             __props__ = ()
@@ -190,7 +190,7 @@ class TestMakeThunk:
         assert storage_map[o][0] == 4
 
     def test_no_perform(self):
-        class IncOneC(Op):
+        class IncOneC(COp):
             """An Op with only a C (c_code) implementation"""
 
             __props__ = ()

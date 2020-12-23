@@ -53,8 +53,8 @@ following methods will be used for the type:
   - :meth:`__hash__ <PureType.__hash__>`
   - :meth:`values_eq <PureType.values_eq>`
 
-Additionaly if you want to use your params with C code, you need the
-following methods:
+Additionaly if you want to use your params with C code, you need to extend `COp`
+and implement the following methods:
 
   - :meth:`c_declare <CLinkerType.c_declare>`
   - :meth:`c_init <CLinkerType.c_init>`
@@ -124,26 +124,26 @@ extra parameter at the end which corresponds to the params object.
 Also, for the C code, the `sub` dictionary will contain an extra entry
 `'params'` which will map to the variable name of the params object.
 This is true for all methods that recieve a `sub` parameter, so this
-means that you can use your params in the :meth:`c_code <Op.c_code>`
-and :meth:`c_init_code_struct <Op.c_init_code_struct>` method.
+means that you can use your params in the :meth:`c_code <COp.c_code>`
+and :meth:`c_init_code_struct <COp.c_init_code_struct>` method.
 
 
 A simple example
 ----------------
 
 This is a simple example which uses a params object to pass a value.
-This Op will multiply a scalar input by a fixed floating point value.
+This `Op` will multiply a scalar input by a fixed floating point value.
 
 Since the value in this case is a python float, we chose Generic as
 the params type.
 
 .. testcode::
 
-   from theano import Op
+   from theano.gof.op import COp
    from theano.gof.type import Generic
    from theano.scalar import as_scalar
 
-   class MulOp(Op):
+   class MulOp(COp):
        params_type = Generic()
        __props__ = ('mul',)
 
@@ -193,7 +193,7 @@ weights.
                    self.beta == other.beta)
 
 
-   class Mix(Op):
+   class Mix(COp):
        params_type = Generic()
        __props__ = ('alpha', 'beta')
 
@@ -238,4 +238,3 @@ weights.
            return """
            %(z)s = alpha_%(name)s * %(x)s + beta_%(name)s * %(y)s;
            """ % dict(name=name, z=outputs[0], x=inputs[0], y=inputs[1])
-

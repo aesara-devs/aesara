@@ -21,7 +21,11 @@ import numpy as np
 
 import theano
 from theano import config, gof, printing
-from theano.gof import Apply, Constant, FunctionGraph, Op, Type, Variable, utils
+from theano.gof import utils
+from theano.gof.fg import FunctionGraph
+from theano.gof.graph import Apply, Constant, Variable
+from theano.gof.op import COp
+from theano.gof.type import Type
 from theano.gradient import DisconnectedType, grad_undefined
 from theano.misc.safe_asarray import _asarray
 from theano.printing import pprint
@@ -1063,7 +1067,7 @@ def real_out(type):
     return (type,)
 
 
-class ScalarOp(Op):
+class ScalarOp(COp):
 
     nin = -1
     nout = 1

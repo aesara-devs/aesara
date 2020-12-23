@@ -15,6 +15,7 @@ from numpy.lib.stride_tricks import as_strided
 
 import theano
 from theano import config, gof, scalar, tensor
+from theano.gof.op import COp, Op
 from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
 from theano.sparse.type import SparseType, _is_sparse
 from theano.sparse.utils import hash_from_sparse
@@ -423,7 +424,7 @@ discrete_dtypes = int_dtypes + uint_dtypes
 
 
 # CONSTRUCTION
-class CSMProperties(gof.Op):
+class CSMProperties(Op):
     # See doc in instance of this Op or function after this class definition.
     # NOTE
     # We won't implement infer_shape for this op now. This will
@@ -545,7 +546,7 @@ def csm_shape(csm):
     return csm_properties(csm)[3]
 
 
-class CSM(gof.Op):
+class CSM(Op):
     # See doc in instance of this Op or function after this class definition.
     """
     Indexing to speficied what part of the data parameter
@@ -717,7 +718,7 @@ The grad method returns a dense vector, so it provides a regular grad.
 """
 
 
-class CSMGrad(gof.op.Op):
+class CSMGrad(Op):
     # Note
     # This Op computes the gradient of the CSM Op. CSM creates a matrix from
     # data, indices, and indptr vectors; it's gradient is the gradient of
@@ -799,7 +800,7 @@ class CSMGrad(gof.op.Op):
 csm_grad = CSMGrad
 
 
-class Cast(gof.op.Op):
+class Cast(Op):
     # See doc in instance of this Op or function after this class definition.
     __props__ = ("out_type",)
 
@@ -883,7 +884,7 @@ def cast(variable, dtype):
 #
 
 
-class DenseFromSparse(gof.op.Op):
+class DenseFromSparse(Op):
     # See doc in instance of this Op or function after this class definition.
     __props__ = ()  # We don't put sparse_grad in the props.
 
@@ -960,7 +961,7 @@ will provide a regular grad. By default, the grad is structured.
 """
 
 
-class SparseFromDense(gof.op.Op):
+class SparseFromDense(Op):
 
     __props__ = ()
 
@@ -1038,7 +1039,7 @@ sparse matrix
 
 
 # Indexing
-class GetItemList(gof.op.Op):
+class GetItemList(Op):
 
     __props__ = ()
 
@@ -1090,7 +1091,7 @@ sparse matrix
 """
 
 
-class GetItemListGrad(gof.op.Op):
+class GetItemListGrad(Op):
 
     __props__ = ()
 
@@ -1134,7 +1135,7 @@ class GetItemListGrad(gof.op.Op):
 get_item_list_grad = GetItemListGrad()
 
 
-class GetItem2Lists(gof.op.Op):
+class GetItem2Lists(Op):
 
     __props__ = ()
 
@@ -1191,7 +1192,7 @@ theano.tensor.vector
 """
 
 
-class GetItem2ListsGrad(gof.op.Op):
+class GetItem2ListsGrad(Op):
 
     __props__ = ()
 
@@ -1233,7 +1234,7 @@ class GetItem2ListsGrad(gof.op.Op):
 get_item_2lists_grad = GetItem2ListsGrad()
 
 
-class GetItem2d(gof.op.Op):
+class GetItem2d(Op):
     # See doc in instance of this Op or function after this class definition.
 
     __props__ = ()
@@ -1372,7 +1373,7 @@ The grad is not implemented for this op.
 """
 
 
-class GetItemScalar(gof.op.Op):
+class GetItemScalar(Op):
     # See doc in instance of this Op or function after this class definition.
     __props__ = ()
 
@@ -1439,7 +1440,7 @@ The grad is not implemented for this op.
 
 
 # Linear Algebra
-class Transpose(gof.op.Op):
+class Transpose(Op):
     # See doc in instance of this Op or function after this class definition.
     view_map = {0: [0]}
 
@@ -1498,7 +1499,7 @@ The grad is regular, i.e. not structured.
 """
 
 
-class Neg(gof.op.Op):
+class Neg(Op):
     # See doc in instance of this Op or function after this class definition.
 
     __props__ = ()
@@ -1548,7 +1549,7 @@ The grad is regular, i.e. not structured.
 """
 
 
-class ColScaleCSC(gof.op.Op):
+class ColScaleCSC(Op):
     # Scale each columns of a sparse matrix by the corresponding
     # element of a dense vector
 
@@ -1592,7 +1593,7 @@ class ColScaleCSC(gof.op.Op):
         return [ins_shapes[0]]
 
 
-class RowScaleCSC(gof.op.Op):
+class RowScaleCSC(Op):
     # Scale each row of a sparse matrix by the corresponding element of
     # a dense vector
 
@@ -1698,7 +1699,7 @@ def row_scale(x, s):
     return col_scale(x.T, s).T
 
 
-class SpSum(gof.op.Op):
+class SpSum(Op):
     # See doc in instance of this Op or function after this class definition.
 
     __props__ = ("axis",)
@@ -1814,7 +1815,7 @@ def sp_sum(x, axis=None, sparse_grad=False):
     return SpSum(axis, sparse_grad)(x)
 
 
-class Diag(gof.op.Op):
+class Diag(Op):
     # See doc in instance of this Op or function after this class definition.
     __props__ = ()
 
@@ -1864,7 +1865,7 @@ dense vector.
 """
 
 
-class SquareDiagonal(gof.op.Op):
+class SquareDiagonal(Op):
     # See doc in instance of this Op or function after this class definition.
 
     __props__ = ()
@@ -1918,7 +1919,7 @@ The grad implemented is regular, i.e. not structured.
 """
 
 
-class EnsureSortedIndices(gof.op.Op):
+class EnsureSortedIndices(Op):
     # See doc in instance of this Op or function after this class definition.
     __props__ = ("inplace",)
 
@@ -2007,7 +2008,7 @@ def clean(x):
     return ensure_sorted_indices(remove0(x))
 
 
-class AddSS(gof.op.Op):
+class AddSS(Op):
     # add(sparse, sparse).
     # see the doc of add() for more detail.
     __props__ = ()
@@ -2042,7 +2043,7 @@ class AddSS(gof.op.Op):
 add_s_s = AddSS()
 
 
-class AddSSData(gof.op.Op):
+class AddSSData(Op):
     # See doc in instance of this Op or function after this class definition.
     __props__ = ()
 
@@ -2102,7 +2103,7 @@ The grad implemented is structured.
 """
 
 
-class AddSD(gof.op.Op):
+class AddSD(Op):
     # add(sparse, sparse).
     # see the doc of add() for more detail.
     __props__ = ()
@@ -2144,7 +2145,7 @@ class AddSD(gof.op.Op):
 add_s_d = AddSD()
 
 
-class StructuredAddSV(gof.op.Op):
+class StructuredAddSV(Op):
 
     __props__ = ()
 
@@ -2287,7 +2288,7 @@ def sub(x, y):
     return x + (-y)
 
 
-class MulSS(gof.op.Op):
+class MulSS(Op):
     # mul(sparse, sparse)
     # See the doc of mul() for more detail
     __props__ = ()
@@ -2323,7 +2324,7 @@ class MulSS(gof.op.Op):
 mul_s_s = MulSS()
 
 
-class MulSD(gof.op.Op):
+class MulSD(Op):
     # mul(sparse, dense)
     # See the doc of mul() for more detail
     __props__ = ()
@@ -2414,7 +2415,7 @@ class MulSD(gof.op.Op):
 mul_s_d = MulSD()
 
 
-class MulSV(gof.op.Op):
+class MulSV(Op):
 
     __props__ = ()
 
@@ -2536,7 +2537,7 @@ def mul(x, y):
         raise NotImplementedError()
 
 
-class __ComparisonOpSS(gof.op.Op):
+class __ComparisonOpSS(Op):
     """
     Used as a superclass for all comparisons between two sparses matrices.
 
@@ -2581,7 +2582,7 @@ class __ComparisonOpSS(gof.op.Op):
         return [ins_shapes[0]]
 
 
-class __ComparisonOpSD(gof.op.Op):
+class __ComparisonOpSD(Op):
     """
     Used as a superclass for all comparisons between sparse and dense matrix.
 
@@ -2902,7 +2903,7 @@ At least one of `x` and `y` must be a sparse matrix.
 """
 
 
-class HStack(gof.op.Op):
+class HStack(Op):
     # See doc in instance of this Op or function after this class definition.
     __props__ = ("format", "dtype")
 
@@ -3087,7 +3088,7 @@ def vstack(blocks, format=None, dtype=None):
     return VStack(format=format, dtype=dtype)(*blocks)
 
 
-class Remove0(gof.Op):
+class Remove0(Op):
     # See doc in instance of this Op or a function after the class definition.
     __props__ = ("inplace",)
 
@@ -3423,7 +3424,7 @@ def conj(x):
     # see decorator for function body
 
 
-class TrueDot(gof.op.Op):
+class TrueDot(Op):
 
     # TODO
     # Simplify code by splitting into DotSS and DotSD.
@@ -3564,7 +3565,7 @@ def true_dot(x, y, grad_preserves_dense=True):
 
 
 # Dot
-class StructuredDot(gof.Op):
+class StructuredDot(Op):
     # See doc in instance of this Op or function after this class definition.
     __props__ = ()
 
@@ -3700,7 +3701,7 @@ def structured_dot(x, y):
         return _structured_dot(y.T, x.T).T
 
 
-class StructuredDotGradCSC(gof.Op):
+class StructuredDotGradCSC(COp):
     # Op that produces the grad of StructuredDot.
 
     # :param a_indices: Matrix indices
@@ -3834,7 +3835,7 @@ class StructuredDotGradCSC(gof.Op):
 sdg_csc = StructuredDotGradCSC()
 
 
-class StructuredDotGradCSR(gof.Op):
+class StructuredDotGradCSR(COp):
     # Op that produces the grad of StructuredDot.
 
     # :param a_indices: Matrix indices
@@ -3989,7 +3990,7 @@ def structured_dot_grad(sparse_A, dense_B, ga):
         raise NotImplementedError()
 
 
-class SamplingDot(gof.op.Op):
+class SamplingDot(Op):
     # See doc in instance of this Op or function after this class definition.
     __props__ = ()
 
@@ -4071,7 +4072,7 @@ sparse matrix
 """
 
 
-class Dot(gof.op.Op):
+class Dot(Op):
     # See doc in instance of this Op or function after this class definition.
     __props__ = ()
 
@@ -4223,7 +4224,7 @@ def dot(x, y):
     return _dot(x, y)
 
 
-class Usmm(gof.op.Op):
+class Usmm(Op):
     # See doc in instance of this Op or function after this class definition.
     # We don't implement the infer_shape as it is
     # inserted by optimization only.
@@ -4312,7 +4313,7 @@ At least one of `x` or `y` must be a sparse matrix.
 """
 
 
-class ConstructSparseFromList(gof.Op):
+class ConstructSparseFromList(Op):
     # See doc in instance of this Op or function after this class definition.
     __props__ = ()
 

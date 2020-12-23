@@ -6,12 +6,15 @@ from collections import deque
 import numpy as np
 
 import theano
-from theano import Apply, Op, Type, Variable, config, tensor
-from theano.gof import ExternalCOp, ParamsType
+from theano import config, tensor
+from theano.gof.graph import Apply, Variable
+from theano.gof.op import COp, ExternalCOp, Op
 from theano.gof.opt import copy_stack_trace
+from theano.gof.params_type import ParamsType
+from theano.gof.type import Type
 from theano.gof.utils import MethodNotDefined
 from theano.gradient import grad_undefined
-from theano.link.c.basic import HideC
+from theano.link.c.interface import HideC
 from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int32_t
 from theano.tensor.basic import Alloc, AllocEmpty, Join, Split, alloc_validate_shape
@@ -587,7 +590,7 @@ class CGpuKernelBase(ExternalCOp, GpuKernelBase):
             return GpuKernelBase.gpu_kernels(self, node, name)
 
 
-class HostFromGpu(Op):
+class HostFromGpu(COp):
     """
     Transfer data to CPU.
 
@@ -680,7 +683,7 @@ class HostFromGpu(Op):
 host_from_gpu = HostFromGpu()
 
 
-class GpuFromHost(Op):
+class GpuFromHost(COp):
     """
     Transfer data to GPU.
 
@@ -783,7 +786,7 @@ class GpuFromHost(Op):
         return (10,)
 
 
-class GpuToGpu(Op):
+class GpuToGpu(COp):
     """
     Transfer data between GPUs.
 

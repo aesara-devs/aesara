@@ -18,9 +18,11 @@ import warnings
 import numpy as np
 
 import theano
-from theano import Apply, Op, Variable, config, function, gradient, shared, tensor
+from theano import config, function, gradient, shared, tensor
 from theano.compile import optdb
 from theano.gof import ParamsType, local_optimizer
+from theano.gof.graph import Apply, Variable
+from theano.gof.op import COp, Op
 from theano.gradient import undefined_grad
 from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int_t
@@ -83,7 +85,7 @@ def multMatVect(v, A, m1, B, m2):
 multMatVect.dot_modulo = None
 
 
-class DotModulo(Op):
+class DotModulo(COp):
     """
     Efficient and numerically stable implementation of a dot product followed
     by a modulo operation. This performs the same function as matVecModM.
@@ -361,7 +363,7 @@ class mrg_uniform_base(Op):
         return [None for i in eval_points]
 
 
-class mrg_uniform(mrg_uniform_base):
+class mrg_uniform(COp, mrg_uniform_base):
     # CPU VERSION
     _f16_ok = True
 

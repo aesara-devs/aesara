@@ -22,7 +22,7 @@ import theano
 from theano import scalar
 from theano.compile import optdb
 from theano.gof.graph import Apply
-from theano.gof.op import Op
+from theano.gof.op import COp, Op
 from theano.gof.opt import copy_stack_trace, local_optimizer, optimizer
 from theano.gradient import DisconnectedType, grad_not_implemented
 from theano.scalar import UnaryScalarOp
@@ -43,7 +43,7 @@ from theano.tensor.subtensor import AdvancedSubtensor
 from theano.tensor.type import values_eq_approx_remove_inf, values_eq_approx_remove_nan
 
 
-class SoftmaxWithBias(Op):
+class SoftmaxWithBias(COp):
     """
     An L{Op} for the output of neural-net multiclass classifiers.
 
@@ -299,7 +299,7 @@ class SoftmaxWithBias(Op):
 softmax_with_bias = SoftmaxWithBias()
 
 
-class SoftmaxGrad(Op):
+class SoftmaxGrad(COp):
     """
     Gradient wrt x of the Softmax Op.
 
@@ -420,7 +420,7 @@ class SoftmaxGrad(Op):
 softmax_grad = SoftmaxGrad()
 
 
-class Softmax(Op):
+class Softmax(COp):
     r"""
     Softmax activation function
     :math:`\\varphi(\\mathbf{x})_j =
@@ -621,7 +621,7 @@ class Softmax(Op):
 softmax_op = Softmax()
 
 
-class LogSoftmax(Op):
+class LogSoftmax(COp):
     r"""
     LogSoftmax activation function
     :math:`\\varphi(\\mathbf{x})_j =
@@ -960,7 +960,7 @@ def softmax_simplifier(numerators, denominators):
 opt.local_mul_canonizer.add_simplifier(softmax_simplifier, "softmax_simplifier")
 
 
-class CrossentropySoftmaxArgmax1HotWithBias(Op):
+class CrossentropySoftmaxArgmax1HotWithBias(COp):
     """
     A special compound L{Op} for the output of neural-net classifiers.
 
@@ -998,7 +998,7 @@ class CrossentropySoftmaxArgmax1HotWithBias(Op):
     __props__ = ()
 
     def __init__(self, **kwargs):
-        Op.__init__(self, **kwargs)
+        super().__init__(**kwargs)
 
     def make_node(self, x, b, y_idx):
         x = tt.as_tensor_variable(x)
@@ -1219,7 +1219,7 @@ class CrossentropySoftmaxArgmax1HotWithBias(Op):
         return code_template % dict(locals(), **sub)
 
 
-class CrossentropySoftmax1HotWithBiasDx(Op):
+class CrossentropySoftmax1HotWithBiasDx(COp):
     """
     Gradient wrt x of the CrossentropySoftmaxArgmax1HotWithBias Op.
 

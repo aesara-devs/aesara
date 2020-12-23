@@ -1,33 +1,25 @@
 #!/usr/bin/env python
 # Theano tutorial
 # Solution to Exercise in section 'Extending Theano'
-
-
 import unittest
 
 import theano
+from theano.gof.graph import Apply
+from theano.gof.op import Op
 
 
 # 1. Op returns x * y
 
-class ProdOp(theano.Op):
-    def __eq__(self, other):
-        return type(self) == type(other)
 
-    def __hash__(self):
-        return hash(type(self))
-
-    def __str__(self):
-        return self.__class__.__name__
-
+class ProdOp(Op):
     def make_node(self, x, y):
         x = theano.tensor.as_tensor_variable(x)
         y = theano.tensor.as_tensor_variable(y)
         outdim = x.ndim
-        output = (theano.tensor.TensorType
-                  (dtype=theano.scalar.upcast(x.dtype, y.dtype),
-                      broadcastable=[False] * outdim)())
-        return theano.Apply(self, inputs=[x, y], outputs=[output])
+        output = theano.tensor.TensorType(
+            dtype=theano.scalar.upcast(x.dtype, y.dtype), broadcastable=[False] * outdim
+        )()
+        return Apply(self, inputs=[x, y], outputs=[output])
 
     def perform(self, node, inputs, output_storage):
         x, y = inputs
@@ -43,27 +35,19 @@ class ProdOp(theano.Op):
 
 # 2. Op returns x + y and x - y
 
-class SumDiffOp(theano.Op):
-    def __eq__(self, other):
-        return type(self) == type(other)
 
-    def __hash__(self):
-        return hash(type(self))
-
-    def __str__(self):
-        return self.__class__.__name__
-
+class SumDiffOp(Op):
     def make_node(self, x, y):
         x = theano.tensor.as_tensor_variable(x)
         y = theano.tensor.as_tensor_variable(y)
         outdim = x.ndim
-        output1 = (theano.tensor.TensorType
-                  (dtype=theano.scalar.upcast(x.dtype, y.dtype),
-                      broadcastable=[False] * outdim)())
-        output2 = (theano.tensor.TensorType
-                  (dtype=theano.scalar.upcast(x.dtype, y.dtype),
-                      broadcastable=[False] * outdim)())
-        return theano.Apply(self, inputs=[x, y], outputs=[output1, output2])
+        output1 = theano.tensor.TensorType(
+            dtype=theano.scalar.upcast(x.dtype, y.dtype), broadcastable=[False] * outdim
+        )()
+        output2 = theano.tensor.TensorType(
+            dtype=theano.scalar.upcast(x.dtype, y.dtype), broadcastable=[False] * outdim
+        )()
+        return Apply(self, inputs=[x, y], outputs=[output1, output2])
 
     def perform(self, node, inputs, output_storage):
         x, y = inputs
@@ -86,9 +70,11 @@ class SumDiffOp(theano.Op):
 # 3. Testing apparatus
 
 import numpy as np
-from theano.gof import Op, Apply
-from theano import tensor, function, printing
+
 from tests import unittest_tools as utt
+from theano import function, printing, tensor
+from theano.gof.graph import Apply
+from theano.gof.op import Op
 
 
 class TestProdOp(utt.InferShapeTester):
@@ -109,18 +95,23 @@ class TestProdOp(utt.InferShapeTester):
         assert np.allclose(x_val * y_val, out)
 
     def test_gradient(self):
-        utt.verify_grad(self.op_class(), [np.random.rand(5, 4),
-                                np.random.rand(5, 4)],
-                        n_tests=1, rng=TestProdOp.rng)
+        utt.verify_grad(
+            self.op_class(),
+            [np.random.rand(5, 4), np.random.rand(5, 4)],
+            n_tests=1,
+            rng=TestProdOp.rng,
+        )
 
     def test_infer_shape(self):
         x = tensor.dmatrix()
         y = tensor.dmatrix()
 
-        self._compile_and_check([x, y], [self.op_class()(x, y)],
-                                [np.random.rand(5, 6),
-                                 np.random.rand(5, 6)],
-                                self.op_class)
+        self._compile_and_check(
+            [x, y],
+            [self.op_class()(x, y)],
+            [np.random.rand(5, 6), np.random.rand(5, 6)],
+            self.op_class,
+        )
 
 
 class TestSumDiffOp(utt.InferShapeTester):
@@ -147,12 +138,18 @@ class TestSumDiffOp(utt.InferShapeTester):
         def output_1(x, y):
             return self.op_class()(x, y)[1]
 
-        utt.verify_grad(output_0, [np.random.rand(5, 4),
-                                np.random.rand(5, 4)],
-                        n_tests=1, rng=TestSumDiffOp.rng)
-        utt.verify_grad(output_1, [np.random.rand(5, 4),
-                                np.random.rand(5, 4)],
-                        n_tests=1, rng=TestSumDiffOp.rng)
+        utt.verify_grad(
+            output_0,
+            [np.random.rand(5, 4), np.random.rand(5, 4)],
+            n_tests=1,
+            rng=TestSumDiffOp.rng,
+        )
+        utt.verify_grad(
+            output_1,
+            [np.random.rand(5, 4), np.random.rand(5, 4)],
+            n_tests=1,
+            rng=TestSumDiffOp.rng,
+        )
 
     def test_infer_shape(self):
         x = tensor.dmatrix()
@@ -160,15 +157,18 @@ class TestSumDiffOp(utt.InferShapeTester):
 
         # adapt the choice of the next instruction to the op under test
 
-        self._compile_and_check([x, y], self.op_class()(x, y),
-                                [np.random.rand(5, 6),
-                                 np.random.rand(5, 6)],
-                                self.op_class)
+        self._compile_and_check(
+            [x, y],
+            self.op_class()(x, y),
+            [np.random.rand(5, 6), np.random.rand(5, 6)],
+            self.op_class,
+        )
 
+
+import numpy as np
 
 # as_op exercice
 import theano
-import numpy as np
 from theano.compile.ops import as_op
 
 
@@ -177,8 +177,11 @@ def infer_shape_numpy_dot(fgraph, node, input_shapes):
     return [ashp[:-1] + bshp[-1:]]
 
 
-@as_op(itypes=[theano.tensor.fmatrix, theano.tensor.fmatrix],
-       otypes=[theano.tensor.fmatrix], infer_shape=infer_shape_numpy_dot)
+@as_op(
+    itypes=[theano.tensor.fmatrix, theano.tensor.fmatrix],
+    otypes=[theano.tensor.fmatrix],
+    infer_shape=infer_shape_numpy_dot,
+)
 def numpy_add(a, b):
     return np.add(a, b)
 
@@ -189,14 +192,20 @@ def infer_shape_numpy_add_sub(fgraph, node, input_shapes):
     return [ashp[0]]
 
 
-@as_op(itypes=[theano.tensor.fmatrix, theano.tensor.fmatrix],
-       otypes=[theano.tensor.fmatrix], infer_shape=infer_shape_numpy_add_sub)
+@as_op(
+    itypes=[theano.tensor.fmatrix, theano.tensor.fmatrix],
+    otypes=[theano.tensor.fmatrix],
+    infer_shape=infer_shape_numpy_add_sub,
+)
 def numpy_add(a, b):
     return np.add(a, b)
 
 
-@as_op(itypes=[theano.tensor.fmatrix, theano.tensor.fmatrix],
-       otypes=[theano.tensor.fmatrix], infer_shape=infer_shape_numpy_add_sub)
+@as_op(
+    itypes=[theano.tensor.fmatrix, theano.tensor.fmatrix],
+    otypes=[theano.tensor.fmatrix],
+    infer_shape=infer_shape_numpy_add_sub,
+)
 def numpy_sub(a, b):
     return np.sub(a, b)
 

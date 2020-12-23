@@ -4,7 +4,9 @@ import numpy as np
 import pytest
 
 import theano
-from theano import Apply, Op, scalar
+from theano import scalar
+from theano.gof.graph import Apply
+from theano.gof.op import COp
 from theano.gof.type import CDataType, CEnumType, EnumList, EnumType
 from theano.tensor import TensorType
 
@@ -12,7 +14,7 @@ from theano.tensor import TensorType
 # todo: test generic
 
 
-class ProdOp(Op):
+class ProdOp(COp):
     __props__ = ()
 
     def make_node(self, i):
@@ -38,7 +40,7 @@ Py_INCREF(%(inp)s);
         return (0,)
 
 
-class GetOp(Op):
+class GetOp(COp):
     __props__ = ()
 
     def make_node(self, c):
@@ -84,7 +86,7 @@ def test_cdata():
     assert (v2 == v).all()
 
 
-class MyOpEnumList(Op):
+class MyOpEnumList(COp):
     __props__ = ("op_chosen",)
     params_type = EnumList(
         ("ADD", "+"),
@@ -161,7 +163,7 @@ class MyOpEnumList(Op):
         )
 
 
-class MyOpCEnumType(Op):
+class MyOpCEnumType(COp):
     __props__ = ("python_value",)
     params_type = CEnumType(
         ("MILLION", "million"),

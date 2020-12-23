@@ -1,4 +1,5 @@
-from theano.gof import Apply, Op
+from theano.gof.graph import Apply
+from theano.gof.op import COp
 from theano.gof.type import Generic
 
 from .basic_ops import as_gpuarray_variable, gpuarray_helper_inc_dir, infer_context_name
@@ -11,7 +12,7 @@ except ImportError:
     pass
 
 
-class GpuMaxAndArgmax(Op):
+class GpuMaxAndArgmax(COp):
     """
     GPU version of MaxAndArgmax
 

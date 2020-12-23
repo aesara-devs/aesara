@@ -673,3 +673,34 @@ class CLinkerType(CLinkerObject):
 
         """
         return ()
+
+
+class HideC(CLinkerOp):
+    def __hide(*args):
+        raise MethodNotDefined()
+
+    c_code = __hide
+    c_code_cleanup = __hide
+
+    c_headers = __hide
+    c_header_dirs = __hide
+    c_libraries = __hide
+    c_lib_dirs = __hide
+
+    c_support_code = __hide
+    c_support_code_apply = __hide
+
+    c_compile_args = __hide
+    c_no_compile_args = __hide
+    c_init_code = __hide
+    c_init_code_apply = __hide
+
+    c_init_code_struct = __hide
+    c_support_code_struct = __hide
+    c_cleanup_code_struct = __hide
+
+    def c_code_cache_version(self):
+        return ()
+
+    def c_code_cache_version_apply(self, node):
+        return self.c_code_cache_version()

@@ -8,6 +8,7 @@ import theano.tensor
 from tests import unittest_tools as utt
 from theano import config, gof
 from theano.compile import debugmode
+from theano.gof.op import COp, Op
 
 
 def test_debugmode_basic():
@@ -16,12 +17,12 @@ def test_debugmode_basic():
     f([1, 2])
 
 
-class BROKEN_ON_PURPOSE_Add(gof.Op):
+class BROKEN_ON_PURPOSE_Add(COp):
 
     __props__ = ("py_offset",)
 
     def __init__(self, py_offset):
-        gof.Op.__init__(self)
+        super().__init__()
         self.py_offset = py_offset
 
     def make_node(self, a, b):
@@ -93,7 +94,7 @@ inconsistent = BROKEN_ON_PURPOSE_Add(False)
 off_by_half = BROKEN_ON_PURPOSE_Add(True)
 
 
-class WeirdBrokenOp(gof.Op):
+class WeirdBrokenOp(COp):
     """
     This op can be inplace if behaviour is 'times1_inplace'
     This op can be destructive if behaviour is 'times2_inplace'
@@ -105,7 +106,7 @@ class WeirdBrokenOp(gof.Op):
     __props__ = ("behaviour",)
 
     def __init__(self, behaviour):
-        gof.Op.__init__(self)
+        super().__init__()
         self.behaviour = behaviour
 
     def make_node(self, a):
@@ -346,7 +347,7 @@ def test_just_c_code():
 
 
 def test_baddestroymap():
-    class BadAdd(gof.Op):
+    class BadAdd(Op):
         def make_node(self, a, b):
             c = a.type()
             return gof.Apply(self, [a, b], [c])
@@ -376,7 +377,7 @@ def test_baddestroymap_c():
 
 
 class TestViewMap:
-    class BadAddRef(gof.Op):
+    class BadAddRef(Op):
         def make_node(self, a, b):
             c = b.type()
             return gof.Apply(self, [a, b], [c])
@@ -386,7 +387,7 @@ class TestViewMap:
             (c,) = out
             c[0] = b
 
-    class BadAddSlice(gof.Op):
+    class BadAddSlice(Op):
         def make_node(self, a, b):
             c = b.type()
             return gof.Apply(self, [a, b], [c])
@@ -431,7 +432,7 @@ class TestViewMap:
     def test_aliased_outputs_ok(self):
         # here aliased outputs is ok because they are both aliased to an input
         # as well
-        class CustomOp(gof.Op):
+        class CustomOp(Op):
             view_map = {0: [0], 1: [0]}
 
             def make_node(self, a, b):
@@ -457,7 +458,7 @@ class TestViewMap:
     def test_aliased_outputs_ok_output(self):
         # here aliased outputs is ok because they are both outputs of the
         # function as a whole and thus not destroy-able
-        class CustomOp(gof.Op):
+        class CustomOp(Op):
             def make_node(self, a, b):
                 c = a.type()
                 d = a.type()
@@ -483,7 +484,7 @@ class TestViewMap:
         # here the alias between outputs is ok because one of them is not used
         # for subsequent computation.  This is like the case where we use one
         # output as a memory buffer to serve another output.
-        class CustomOp(gof.Op):
+        class CustomOp(Op):
             def make_node(self, a, b):
                 c = a.type()
                 d = a.type()
@@ -508,7 +509,7 @@ class TestViewMap:
         # here the alias between outputs is not ok because destroying one
         # destroys the other, but there's no way to warn theano about it
         # through the view_map mechanism.
-        class CustomOp(gof.Op):
+        class CustomOp(Op):
             def make_node(self, a, b):
                 c = a.type()
                 d = a.type()
@@ -595,7 +596,7 @@ class TestCheckIsfinite:
         return
 
 
-class BrokenCImplementationAdd(gof.Op):
+class BrokenCImplementationAdd(COp):
 
     __props__ = ()
 
@@ -686,7 +687,7 @@ class BrokenCImplementationAdd(gof.Op):
         )
 
 
-class VecAsRowAndCol(gof.Op):
+class VecAsRowAndCol(Op):
     """
     Transforms a vector into a row and a column.
 

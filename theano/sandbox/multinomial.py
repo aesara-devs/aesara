@@ -5,11 +5,12 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
-from theano import Apply, Op
+from theano.gof.graph import Apply
+from theano.gof.op import COp
 from theano.scalar import as_scalar
 
 
-class MultinomialFromUniform(Op):
+class MultinomialFromUniform(COp):
     """
     Converts samples from a uniform into sample from a multinomial.
 

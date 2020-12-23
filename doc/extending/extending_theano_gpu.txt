@@ -235,7 +235,7 @@ tag your op with ``_f16_ok = True`` so that the linker will accept to
 generate C code on float16 types.  This is done by inserting it as a
 class property like this::
 
-    class SomeOp(Op):
+    class SomeOp(COp):
         _f16_ok = True
 
 If this attribute is not present or is False, the linker will print a

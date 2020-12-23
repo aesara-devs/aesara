@@ -145,17 +145,19 @@ import theano.scalar
 from theano import config
 from theano.compile.mode import optdb
 from theano.gof import (
-    Apply,
-    EquilibriumOptimizer,
-    GlobalOptimizer,
     InconsistencyError,
-    Op,
     ReplacementDidNotRemoveError,
     SequenceDB,
-    local_optimizer,
     view_roots,
 )
-from theano.gof.opt import inherit_stack_trace
+from theano.gof.graph import Apply
+from theano.gof.op import COp, Op
+from theano.gof.opt import (
+    EquilibriumOptimizer,
+    GlobalOptimizer,
+    inherit_stack_trace,
+    local_optimizer,
+)
 from theano.gof.params_type import ParamsType
 from theano.gof.toolbox import ReplaceValidate
 from theano.gof.utils import MethodNotDefined, TestValueError, memoize
@@ -496,7 +498,7 @@ def _ldflags(ldflags_str, libs, flags, libs_dir, include_dir):
     return rval
 
 
-class GemmRelated(Op):
+class GemmRelated(COp):
     """Base class for Gemm and Dot22.
 
     This class provides a kind of templated gemm Op.
@@ -2049,7 +2051,7 @@ blas_optdb.register(
 )
 
 
-class BatchedDot(Op):
+class BatchedDot(COp):
     """
     Computes the batched dot product of two variables:
 

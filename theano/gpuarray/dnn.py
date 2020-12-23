@@ -8,10 +8,12 @@ import numpy as np
 
 import theano
 import theano.pathparse
-from theano import Apply, Op, Variable, config, tensor
+from theano import config, tensor
 from theano.compile.ops import shape_i, shape_i_op
 from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
 from theano.gof import EnumList, ExternalCOp, ParamsType
+from theano.gof.graph import Apply, Variable
+from theano.gof.op import COp
 from theano.gof.type import CDataType, Generic
 from theano.gpuarray import cudnn_defs, pygpu
 from theano.gpuarray.basic_ops import (
@@ -274,7 +276,7 @@ def CUDNNDataType(name, freefunc=None):
     )
 
 
-class DnnVersion(Op):
+class DnnVersion(COp):
     __props__ = ()
 
     def c_headers(self):
@@ -1692,7 +1694,7 @@ def dnn_gradinput3d(
     )
 
 
-class GpuDnnPoolDesc(Op):
+class GpuDnnPoolDesc(COp):
 
     """
     This Op builds a pooling descriptor for use in the other

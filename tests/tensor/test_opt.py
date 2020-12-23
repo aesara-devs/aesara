@@ -14,7 +14,9 @@ from tests import unittest_tools as utt
 from theano import compile, config, gof, pprint, shared
 from theano.compile import DeepCopyOp, deep_copy_op, get_mode
 from theano.compile.function import function
-from theano.gof import FunctionGraph
+from theano.gof.fg import FunctionGraph
+from theano.gof.graph import Apply
+from theano.gof.op import Op
 from theano.gof.opt import check_stack_trace, out2in
 from theano.tensor import (
     AdvancedIncSubtensor,
@@ -2021,7 +2023,7 @@ class TestFusion:
         shp = (1000, 1000)
         nb_repeat = 50
         # linker=gof.CLinker
-        # linker=gof.OpWiseCLinker
+        # linker=OpWiseCLinker
 
         mode1 = copy.copy(self.mode)
         mode1._optimizer = mode1._optimizer.including("local_elemwise_fusion")
@@ -5013,12 +5015,12 @@ class TestShapeOptimizer:
         x1.eval()
 
     def test_local_track_shape_i(self):
-        class IdentityNoShape(gof.Op):
+        class IdentityNoShape(Op):
             """Op that does not infer the output shape from the input one"""
 
             def make_node(self, x):
                 x = as_tensor_variable(x)
-                return gof.Apply(self, [x], [x.type()])
+                return Apply(self, [x], [x.type()])
 
             def perform(self, node, inp, out_):
                 (x,) = inp
@@ -5030,12 +5032,12 @@ class TestShapeOptimizer:
 
         identity_noshape = IdentityNoShape()
 
-        class IdentityShape(gof.Op):
+        class IdentityShape(Op):
             """Op that does infer the output shape from the input one"""
 
             def make_node(self, x):
                 x = as_tensor_variable(x)
-                return gof.Apply(self, [x], [x.type()])
+                return Apply(self, [x], [x.type()])
 
             def perform(self, node, inp, out_):
                 (x,) = inp

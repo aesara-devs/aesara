@@ -31,7 +31,7 @@ from theano.gof import (
     opt,
     toolbox,
 )
-from theano.gof.op import Op
+from theano.gof.op import COp
 from theano.gof.opt import GlobalOptimizer, copy_stack_trace, in2out, local_optimizer
 from theano.gof.utils import MethodNotDefined, TestValueError
 from theano.gradient import DisconnectedType
@@ -851,7 +851,7 @@ def local_scalar_tensor_scalar(fgraph, node):
 #####################################
 
 
-class MakeVector(Op):
+class MakeVector(COp):
     """Concatenate a number of scalars together into a vector.
 
     This is a simple version of stack() that introduces far less cruft
@@ -2568,7 +2568,7 @@ def is_inverse_pair(node_op, prev_op, inv_pair):
     return (node_is_op0 and prev_is_op1) or (node_is_op1 and prev_is_op0)
 
 
-class Assert(Op):
+class Assert(COp):
     """
     Implements assertion in a computational graph.
 

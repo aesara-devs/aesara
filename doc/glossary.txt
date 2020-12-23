@@ -21,8 +21,8 @@ Glossary
         different numbers of dimensions to be used in element-by-element
         (elementwise) computations.  It works by
         (virtually) replicating the smaller tensor along
-        the dimensions that it is lacking.  
-        
+        the dimensions that it is lacking.
+
         For more detail, see :ref:`tutbroadcasting`, and also
         * `SciPy documentation about numpy's broadcasting <http://www.scipy.org/EricsBroadcastingDoc>`_
         * `OnLamp article about numpy's broadcasting <http://www.onlamp.com/pub/a/python/2000/09/27/numerically.html>`_
@@ -76,10 +76,10 @@ Glossary
         judiciously.
 
         Destructive Ops are indicated via a ``destroy_map`` Op attribute. (See
-        :class:`gof.Op`.
+        :class:`Op`.
 
 
-    Graph 
+    Graph
         see :term:`expression graph`
 
     Inplace
@@ -93,8 +93,8 @@ Glossary
     Linker
         Part of a function :term:`Mode` -- an object responsible for 'running'
         the compiled function.  Among other things, the linker determines whether computations are carried out with C or Python code.
-        
-    Mode 
+
+    Mode
         An object providing an :term:`optimizer` and a :term:`linker` that is
         passed to :term:`theano.function`.  It parametrizes how an expression
         graph is converted to a callable object.
@@ -107,7 +107,7 @@ Glossary
         library documentation is devoted to describing the various Ops that
         are provided with Theano, but you can add more.
 
-        See also :term:`Variable`, :term:`Type`, and :term:`Apply`, 
+        See also :term:`Variable`, :term:`Type`, and :term:`Apply`,
         or read more about :ref:`graphstructures`.
 
     Optimizer
@@ -138,9 +138,9 @@ Glossary
         :term:`Variable` indicates what kinds of values might be computed for it in a
         compiled graph.
         An instance that inherits from :class:`Type`, and is used as the
-        ``.type`` attribute of a :term:`Variable`.  
+        ``.type`` attribute of a :term:`Variable`.
 
-        See also :term:`Variable`, :term:`Op`, and :term:`Apply`, 
+        See also :term:`Variable`, :term:`Op`, and :term:`Apply`,
         or read more about :ref:`graphstructures`.
 
     Variable
@@ -152,7 +152,7 @@ Glossary
 
         ``x`` and ``y`` are both `Variables`, i.e. instances of the :class:`Variable` class.
 
-        See also :term:`Type`, :term:`Op`, and :term:`Apply`, 
+        See also :term:`Type`, :term:`Op`, and :term:`Apply`,
         or read more about :ref:`graphstructures`.
 
     View
@@ -165,5 +165,4 @@ Glossary
         Ops correctly.
 
         View Ops are indicated via a ``view_map`` Op attribute. (See
-        :class:`gof.Op`.
-
+        :class:`Op`.

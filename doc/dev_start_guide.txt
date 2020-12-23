@@ -293,8 +293,10 @@ Here is an example on how to add a docstring to a class.
 .. testcode:: python
 
     import theano
+    from theano.gof.op import Op
 
-    class DoubleOp(theano.Op):
+
+    class DoubleOp(Op):
         """
         Double each element of a tensor.
 

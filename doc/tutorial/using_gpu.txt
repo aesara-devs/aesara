@@ -546,8 +546,11 @@ Modify and execute to work for a matrix of shape (20, 10).
     import theano.misc.pycuda_init
     from pycuda.compiler import SourceModule
     import theano.sandbox.cuda as cuda
+    from theano.gof.graph import Apply
+    from theano.gof.op import Op
 
-    class PyCUDADoubleOp(theano.Op):
+
+    class PyCUDADoubleOp(Op):
 
         __props__ = ()
 
@@ -555,7 +558,7 @@ Modify and execute to work for a matrix of shape (20, 10).
             inp = cuda.basic_ops.gpu_contiguous(
                cuda.basic_ops.as_cuda_ndarray_variable(inp))
             assert inp.dtype == "float32"
-            return theano.Apply(self, [inp], [inp.type()])
+            return Apply(self, [inp], [inp.type()])
 
         def make_thunk(self, node, storage_map, _, _2, impl):
             mod = SourceModule("""

@@ -8,6 +8,8 @@ import pytest
 import theano
 from theano import config, function, tensor
 from theano.compile import Mode
+from theano.gof.graph import Apply
+from theano.gof.op import Op
 from theano.ifelse import ifelse
 from theano.link.c.exceptions import MissingGXX
 from theano.link.vm import VMLinker
@@ -360,7 +362,7 @@ if run_memory_usage_tests:
         time_linker("vmLinker", lambda: VMLinker(allow_gc=False, use_cloop=False))
 
 
-class RunOnce(theano.Op):
+class RunOnce(Op):
 
     __props__ = ("nb_run",)
 
@@ -368,7 +370,7 @@ class RunOnce(theano.Op):
         self.nb_run = 0
 
     def make_node(self, x):
-        return theano.Apply(self, [x], [x.type()])
+        return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, outputs):
         assert self.nb_run == 0

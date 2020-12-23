@@ -1,10 +1,9 @@
 # This is the example in the Theano/doc/tutorial/extending_theano.txt
-
-
 import theano
+from theano.gof.op import Op
 
 
-class DoubleOp(theano.Op):
+class DoubleOp(Op):
     """
     Double each element of a tensor.
 

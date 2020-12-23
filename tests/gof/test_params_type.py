@@ -4,7 +4,10 @@ import pytest
 import theano
 from tests import unittest_tools as utt
 from theano import Generic, tensor
-from theano.gof import Apply, EnumList, ExternalCOp, Op, Params, ParamsType
+from theano.gof.graph import Apply
+from theano.gof.op import COp, ExternalCOp
+from theano.gof.params_type import Params, ParamsType
+from theano.gof.type import EnumList
 from theano.scalar import Scalar
 from theano.tensor import TensorType
 
@@ -15,7 +18,7 @@ generic_type = Generic()
 
 
 # A test op to compute `y = a*x^2 + bx + c` for any tensor x, with a, b, c as op params.
-class QuadraticOpFunc(Op):
+class QuadraticOpFunc(COp):
     __props__ = ("a", "b", "c")
     params_type = ParamsType(a=tensor_type_0d, b=scalar_type, c=generic_type)
 
