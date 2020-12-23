@@ -3,9 +3,11 @@ from io import StringIO
 import numpy as np
 
 import theano.tensor as tt
-from theano import Op, gof
-from theano.gof import ParamsType
+from theano import gof
+from theano.gof.op import COp, Op
+from theano.gof.params_type import ParamsType
 from theano.gradient import grad_not_implemented
+from theano.link.c.interface import HideC
 from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int_t
 from theano.scalar import uint32 as size_t
@@ -28,7 +30,6 @@ except ImportError:
 
 from theano.gpuarray.basic_ops import (
     GpuKernelBase,
-    HideC,
     Kernel,
     as_gpuarray_variable,
     gpu_contiguous,
@@ -834,7 +835,7 @@ class GpuAdvancedIncSubtensor(HideC, BaseGpuAdvancedIncSubtensor, AdvancedIncSub
         return gof.Apply(self, [x, y] + rval.inputs[2:], [otype()])
 
 
-class GpuAdvancedIncSubtensor1(Op):
+class GpuAdvancedIncSubtensor1(COp):
     """
     Implement AdvancedIncSubtensor1 on the gpu.
 

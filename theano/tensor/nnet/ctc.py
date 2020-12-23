@@ -2,8 +2,10 @@ import os
 import sys
 
 import theano.tensor as tt
-from theano import config, gof
-from theano.gof import local_optimizer
+from theano import config
+from theano.gof.graph import Apply
+from theano.gof.op import ExternalCOp, OpenMPOp
+from theano.gof.opt import local_optimizer
 from theano.gradient import grad_undefined
 from theano.link.c.cmodule import GCC_compiler
 from theano.tensor.extra_ops import cpu_contiguous
@@ -88,7 +90,7 @@ ctc_available.msg = None
 ctc_available.path = None
 
 
-class ConnectionistTemporalClassification(gof.ExternalCOp, gof.OpenMPOp):
+class ConnectionistTemporalClassification(ExternalCOp, OpenMPOp):
     """
     CTC loss function wrapper.
 
@@ -120,8 +122,8 @@ class ConnectionistTemporalClassification(gof.ExternalCOp, gof.OpenMPOp):
                 "can not be constructed."
             )
 
-        gof.ExternalCOp.__init__(self, self.func_file, self.func_name)
-        gof.OpenMPOp.__init__(self, openmp=openmp)
+        super().__init__(self.func_file, self.func_name)
+        OpenMPOp.__init__(self, openmp=openmp)
 
         self.compute_grad = compute_grad
         # Return only the cost. Gradient will be returned by grad()
@@ -153,7 +155,7 @@ class ConnectionistTemporalClassification(gof.ExternalCOp, gof.OpenMPOp):
         return header_dirs
 
     def c_headers(self):
-        return ["ctc.h"] + gof.OpenMPOp.c_headers(self)
+        return ["ctc.h"] + OpenMPOp.c_headers(self)
 
     def make_node(self, activations, labels, input_lengths):
         t_activations = tt.as_tensor_variable(activations)
@@ -187,7 +189,7 @@ class ConnectionistTemporalClassification(gof.ExternalCOp, gof.OpenMPOp):
             gradients = tt.ftensor3(name="ctc_grad")
             outputs += [gradients]
 
-        return gof.Apply(
+        return Apply(
             self, inputs=[t_activations, t_labels, t_input_lengths], outputs=outputs
         )
 

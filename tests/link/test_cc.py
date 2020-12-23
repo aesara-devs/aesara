@@ -4,7 +4,7 @@ import pytest
 import theano
 from theano.gof import fg
 from theano.gof.graph import Apply, Constant, Variable
-from theano.gof.op import Op
+from theano.gof.op import COp
 from theano.gof.type import Type
 from theano.link.basic import PerformLinker
 from theano.link.c.basic import CLinker, DualLinker, OpWiseCLinker
@@ -81,7 +81,7 @@ def double(name):
     return Variable(tdouble, None, None, name=name)
 
 
-class MyOp(Op):
+class MyOp(COp):
 
     __props__ = ("nin", "name")
 

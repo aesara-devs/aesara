@@ -1,7 +1,8 @@
 import theano
-from theano import Apply, Op
 from theano.compile import optdb
 from theano.gof import LocalOptGroup, ParamsType
+from theano.gof.graph import Apply
+from theano.gof.op import COp
 from theano.scalar import bool as bool_t
 from theano.tensor.basic import as_tensor_variable
 from theano.tensor.opt import in2out
@@ -25,7 +26,7 @@ except ImportError:
     pass
 
 
-class BlasOp(Op):
+class BlasOp(COp):
     def c_headers(self):
         return ["<blas_api.h>", "<numpy_compat.h>", "<gpuarray_helper.h>"]
 

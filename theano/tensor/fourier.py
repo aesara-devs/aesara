@@ -2,10 +2,12 @@ import math
 
 import numpy as np
 
-from theano import gof, tensor
+from theano import tensor
+from theano.gof.graph import Apply
+from theano.gof.op import Op
 
 
-class Fourier(gof.Op):
+class Fourier(Op):
     """
     WARNING: for officially supported FFTs, use theano.tensor.fft, which
     provides real-input FFTs. Gradients are supported, as well as optimization
@@ -83,7 +85,7 @@ class Fourier(gof.Op):
                     "%s: length of the transformed axis must be a"
                     " strictly positive scalar" % self.__class__.__name__
                 )
-        return gof.Apply(
+        return Apply(
             self,
             [a, n, axis],
             [tensor.TensorType("complex128", a.type.broadcastable)()],

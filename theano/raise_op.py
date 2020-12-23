@@ -1,17 +1,17 @@
 """Symbolic Op for raising an exception."""
 
-from theano import gof
+from theano.gof.graph import Apply
+from theano.gof.op import Op
 
 
-__authors__ = "James Bergstra"
+__authors__ = "James Bergstra" "PyMC Dev Team"
 __copyright__ = "(c) 2011, Universite de Montreal"
 __license__ = "3-clause BSD License"
-__contact__ = "theano-dev <theano-dev@googlegroups.com>"
 
 __docformat__ = "restructuredtext en"
 
 
-class Raise(gof.Op):
+class Raise(Op):
     """Op whose perform() raises an exception."""
 
     __props__ = ("msg", "exc")
@@ -28,7 +28,7 @@ class Raise(gof.Op):
         return f"Raise{{{self.exc}({self.msg})}}"
 
     def make_node(self, x):
-        return gof.Apply(self, [x], [x.type()])
+        return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, out_storage):
         raise self.exc(self.msg)

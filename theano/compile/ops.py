@@ -13,7 +13,9 @@ from collections import OrderedDict
 import numpy as np
 
 import theano
-from theano.gof import Apply, Op, ParamsType, Variable
+from theano.gof import ParamsType
+from theano.gof.graph import Apply, Variable
+from theano.gof.op import COp, Op
 
 
 def register_view_op_c_code(type, code, version=()):
@@ -34,7 +36,7 @@ def register_view_op_c_code(type, code, version=()):
     ViewOp.c_code_and_version[type] = (code, version)
 
 
-class ViewOp(Op):
+class ViewOp(COp):
     """
     Returns an inplace view of the input. Used internally by Theano.
 
@@ -146,7 +148,7 @@ def register_deep_copy_op_c_code(typ, code, version=()):
     DeepCopyOp.c_code_and_version[typ] = (code, version)
 
 
-class DeepCopyOp(Op):
+class DeepCopyOp(COp):
     # Mapping from Type to C code (and version) to use.
     # In the C code, the name of the input variable is %(iname)s,
     # the output variable is %(oname)s.
@@ -230,7 +232,7 @@ def register_shape_c_code(type, code, version=()):
     Shape.c_code_and_version[type] = (code, version)
 
 
-class Shape(Op):
+class Shape(COp):
     """
     L{Op} to return the shape of a matrix.
 
@@ -324,7 +326,7 @@ shape = Shape()
 _shape = shape  # was used in the past, now use shape directly.
 
 
-class Shape_i(Op):
+class Shape_i(COp):
     """
     L{Op} to return the shape of a matrix.
 
@@ -654,7 +656,7 @@ def register_rebroadcast_c_code(typ, code, version=()):
     Rebroadcast.c_code_and_version[typ] = (code, version)
 
 
-class Rebroadcast(Op):
+class Rebroadcast(COp):
     """
     Change the input's broadcastable fields in some predetermined way.
 
@@ -832,7 +834,7 @@ def register_specify_shape_c_code(typ, code, version=(), c_support_code_apply=No
     SpecifyShape.c_code_and_version[typ] = (code, version, c_support_code_apply)
 
 
-class SpecifyShape(Op):
+class SpecifyShape(COp):
     """
     L{Op} that puts into the graph the user-provided shape.
 

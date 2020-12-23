@@ -3,9 +3,11 @@ from io import StringIO
 
 import numpy as np
 
-import theano
-from theano import Apply, Op, scalar
+from theano import scalar
+from theano.gof.graph import Apply
+from theano.gof.op import Op
 from theano.gof.utils import MethodNotDefined
+from theano.link.c.interface import HideC
 from theano.scalar import Composite, Scalar
 from theano.scalar.basic import complex_types, upgrade_to_float_no_complex
 from theano.scalar.basic_scipy import Erfcinv, Erfinv
@@ -21,13 +23,7 @@ try:
 except ImportError:
     pass
 
-from .basic_ops import (
-    GpuKernelBase,
-    HideC,
-    Kernel,
-    as_gpuarray_variable,
-    infer_context_name,
-)
+from .basic_ops import GpuKernelBase, Kernel, as_gpuarray_variable, infer_context_name
 from .fp16_help import load_w, write_w
 from .type import GpuArrayType, gpu_context_type
 
@@ -621,7 +617,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
         )
 
     def perform(self, node, inp, out, ctx):
-        theano.Op.perform(self, node, inp, out, ctx)
+        Op.perform(self, node, inp, out, ctx)
 
     def supports_c_code(self, inputs):
         """

@@ -1398,17 +1398,15 @@ class MyOp(Op):
 \frametitle{Op Example}
 \begin{Verbatim}
 import theano
+from theano.gof.graph import Apply
+from theano.gof.op import Op
 
-class DoubleOp(theano.Op):
-    def __eq__(self, other):
-        return type(self) == type(other)
-    def __hash__(self):
-        return hash(type(self))
-    def __str__(self):
-        return self.__class__.__name__
+
+class DoubleOp(Op):
     def make_node(self, x):
         x = theano.tensor.as_tensor_variable(x)
-        return theano.Apply(self, [x], [x.type()])
+        return Apply(self, [x], [x.type()])
+
     def perform(self, node, inputs, output_storage):
         x = inputs[0]
         z = output_storage[0]
@@ -1448,23 +1446,21 @@ print out
 \begin{frame}[fragile]
 \frametitle{Theano+PyCUDA Op Example}
 \begin{Verbatim}
-import numpy, theano
+import numpy
+import theano
 import theano.misc.pycuda_init
 from pycuda.compiler import SourceModule
 import theano.sandbox.cuda as cuda
+from theano.gof.graph import Apply
+from theano.gof.op import Op
 
-class PyCUDADoubleOp(theano.Op):
-    def __eq__(self, other):
-        return type(self) == type(other)
-    def __hash__(self):
-        return hash(type(self))
-    def __str__(self):
-        return self.__class__.__name__
+
+class PyCUDADoubleOp(Op):
     def make_node(self, inp):
         inp = cuda.basic_ops.gpu_contiguous(
            cuda.basic_ops.as_cuda_ndarray_variable(inp))
         assert inp.dtype == "float32"
-        return theano.Apply(self, [inp], [inp.type()])
+        return Apply(self, [inp], [inp.type()])
 \end{Verbatim}
 \end{frame}
 

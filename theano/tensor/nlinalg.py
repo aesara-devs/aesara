@@ -5,7 +5,8 @@ from functools import partial
 import numpy as np
 
 import theano
-from theano.gof import Apply, Op
+from theano.gof.graph import Apply
+from theano.gof.op import Op
 from theano.gradient import DisconnectedType
 from theano.tensor import basic as tensor
 from theano.tensor.basic import ExtractDiag, as_tensor_variable

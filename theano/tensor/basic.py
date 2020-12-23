@@ -15,7 +15,9 @@ from theano import scalar as scal
 
 # For history
 from theano.compile import Rebroadcast, Shape, shape
-from theano.gof import Apply, Constant, Op, ParamsType, Variable
+from theano.gof import Constant, ParamsType
+from theano.gof.graph import Apply, Variable
+from theano.gof.op import COp, Op
 from theano.gof.type import Generic
 
 # We use these exceptions as well.
@@ -1199,7 +1201,7 @@ class TensorFromScalar(Op):
 tensor_from_scalar = TensorFromScalar()
 
 
-class ScalarFromTensor(Op):
+class ScalarFromTensor(COp):
 
     __props__ = ()
 
@@ -1346,7 +1348,7 @@ def cast(x, dtype):
 ##########################
 
 
-class MaxAndArgmax(Op):
+class MaxAndArgmax(COp):
     """
     Calculate the max and argmax over a given axis or over all axes.
 
@@ -1560,7 +1562,7 @@ class MaxAndArgmax(Op):
         return (g_x,)
 
 
-class Argmax(Op):
+class Argmax(COp):
     """
     Calculate the argmax over a given axis or over all axes.
     """
@@ -2694,7 +2696,7 @@ def ones(shape, dtype=None):
     return alloc(np.array(1, dtype=dtype), *shape)
 
 
-class Nonzero(gof.Op):
+class Nonzero(Op):
     """
     Return the indices of the elements that are non-zero.
 
@@ -2837,7 +2839,7 @@ def nonzero_values(a):
     return a.flatten()[flatnonzero(a)]
 
 
-class Tri(gof.Op):
+class Tri(Op):
 
     __props__ = ("dtype",)
 
@@ -2948,7 +2950,7 @@ def triu(m, k=0):
     )
 
 
-class Eye(gof.Op):
+class Eye(Op):
 
     __props__ = ("dtype",)
 
@@ -3051,7 +3053,7 @@ def alloc_validate_shape(shape):
     return sh, bcast
 
 
-class Alloc(gof.Op):
+class Alloc(COp):
     """Create a Tensor from an initial value and a desired shape.
 
     alloc(value, shape0, shape1, ..., shapeN)
@@ -3385,7 +3387,7 @@ class Mean(elemwise.CAReduce):
 
     def c_code(self, node, name, inames, onames, sub):
         if self.axis is not None:
-            return super(Op, self).c_code(node, name, inames, onames, sub)
+            return super().c_code(node, name, inames, onames, sub)
         ret = super().c_code(node, name, inames, onames, sub)
         # TODO: c_code perform support only axis is None
         return (
@@ -3621,7 +3623,7 @@ def std(input, axis=None, ddof=0, keepdims=False, corrected=False):
     return ret
 
 
-class Default(gof.Op):
+class Default(Op):
     """
     Takes an input x and a default value.
 
@@ -3906,7 +3908,7 @@ def split(x, splits_size, n_splits, axis=0):
     return the_split(x, axis, splits_size)
 
 
-class Split(Op):
+class Split(COp):
     """Partition a `TensorVariable` along some axis.
 
     Examples
@@ -4272,7 +4274,7 @@ def patternbroadcast(x, broadcastable):
     return theano.tensor.opt.apply_rebroadcast_opt(rval)
 
 
-class Join(Op):
+class Join(COp):
     """
     Concatenate multiple `TensorVariable`s along some axis.
 
@@ -5012,7 +5014,7 @@ def vertical_stack(*args):
     return concatenate(args, axis=0)
 
 
-class Reshape(Op):
+class Reshape(COp):
     """Perform a reshape operation of the input x to the new shape shp.
     The number of dimensions to which to reshape to (ndim) must be
     known at graph build time.
@@ -5213,7 +5215,7 @@ class Reshape(Op):
                 % locals()
             )
         else:
-            return Op.c_code(self, node, name, inputs, outputs, sub)
+            return super().c_code(node, name, inputs, outputs, sub)
 
 
 def reshape(x, newshape, ndim=None):
@@ -5239,7 +5241,7 @@ def reshape(x, newshape, ndim=None):
     return rval
 
 
-class Flatten(Op):
+class Flatten(COp):
     """
     Flatten a tensor.
 
@@ -7108,7 +7110,7 @@ class Choose(Op):
         z[0] = np.choose(a, choice, mode=self.mode)
 
 
-class AllocEmpty(gof.Op):
+class AllocEmpty(COp):
     """Implement Alloc on the cpu, but without initializing memory."""
 
     __props__ = ("dtype",)

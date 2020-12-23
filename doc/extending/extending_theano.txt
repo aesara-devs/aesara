@@ -65,7 +65,7 @@ structure.
 Op's basic methods
 ------------------
 
-An op is any Python object which inherits from :class:`gof.Op`.
+An op is any Python object which inherits from :class:`Op`.
 This section provides an overview of the basic methods you typically have to
 implement to make a new op.  It does not provide extensive coverage of all the
 possibilities you may encounter or need.  For that refer to
@@ -74,8 +74,10 @@ possibilities you may encounter or need.  For that refer to
 .. testcode:: python
 
     import theano
+    from theano.gof.op import Op
 
-    class MyOp(theano.Op):
+
+    class MyOp(Op):
         # Properties attribute
         __props__ = ()
 
@@ -118,7 +120,7 @@ possibilities you may encounter or need.  For that refer to
             pass
 
 An op has to implement some methods defined in the the interface of
-:class:`gof.Op`. More specifically, it is mandatory for an op to define either
+:class:`Op`. More specifically, it is mandatory for an op to define either
 the method :func:`make_node` or :attr:`itypes`, :attr:`otypes` and one of the
 implementation methods, either :func:`perform`, :meth:`Op.c_code`
 or :func:`make_thunk`.
@@ -164,7 +166,7 @@ or :func:`make_thunk`.
   :func:`perform` method must be determined by the inputs. That is to say,
   when applied to identical inputs the method must return the same outputs.
 
-  :class:`gof.Op` allows some other way to define the op implentation.
+  :class:`Op` allows some other way to define the op implentation.
   For instance, it is possible to define :meth:`Op.c_code` to provide a
   C-implementation to the op. Please refers to tutorial
   :ref:`extending_theano_c` for a description of :meth:`Op.c_code` and other
@@ -284,18 +286,18 @@ Example: Op definition
 .. testcode:: example
 
     import theano
+    from theano.gof.op import Op
+    from theano.gof.graph import Apply
 
-    #Using make_node
 
-
-    class DoubleOp1(theano.Op):
+    class DoubleOp1(Op):
         __props__ = ()
 
         def make_node(self, x):
             x = theano.tensor.as_tensor_variable(x)
             # Note: using x_.type() is dangerous, as it copies x's broadcasting
             # behaviour
-            return theano.Apply(self, [x], [x.type()])
+            return Apply(self, [x], [x.type()])
 
         def perform(self, node, inputs, output_storage):
             x = inputs[0]
@@ -322,7 +324,7 @@ Example: Op definition
     #Using itypes and otypes
 
 
-    class DoubleOp2(theano.Op):
+    class DoubleOp2(Op):
         __props__ = ()
 
         itypes = [theano.tensor.dmatrix]
@@ -355,7 +357,7 @@ creates one instance of it (e.g., ``doubleOp1``).
 
 We often gloss over this distinction, but will be precise here:
 ``doubleOp1`` (the instance) is an Op, not ``DoubleOp1`` (the class which is a
-subclass of ``theano.Op``). You can call ``doubleOp1(tensor.vector())`` on a
+subclass of ``Op``). You can call ``doubleOp1(tensor.vector())`` on a
 Variable to build an expression, and in the expression there will be
 a ``.op`` attribute that refers to ``doubleOp1``.
 
@@ -487,8 +489,11 @@ and ``b`` are equal.
 .. testcode:: properties
 
     import theano
+    from theano.gof.op import Op
+    from theano.gof.graph import Apply
 
-    class AXPBOp(theano.Op):
+
+    class AXPBOp(Op):
         """
         This creates an Op that takes x to a*x+b.
         """
@@ -497,11 +502,11 @@ and ``b`` are equal.
         def __init__(self, a, b):
             self.a = a
             self.b = b
-            super(AXPBOp, self).__init__()
+            super().__init__()
 
         def make_node(self, x):
             x = theano.tensor.as_tensor_variable(x)
-            return theano.Apply(self, [x], [x.type()])
+            return Apply(self, [x], [x.type()])
 
         def perform(self, node, inputs, output_storage):
             x = inputs[0]

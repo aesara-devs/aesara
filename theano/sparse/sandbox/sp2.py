@@ -3,6 +3,7 @@ import scipy.sparse
 
 import theano
 from theano import gof, tensor
+from theano.gof.op import Op
 from theano.sparse.basic import (
     Remove0,
     SparseType,
@@ -30,7 +31,7 @@ eliminate_zeros = remove0
 
 
 # Probability
-class Poisson(gof.op.Op):
+class Poisson(Op):
     """Return a sparse having random values from a Poisson density
     with mean from the input.
 
@@ -75,7 +76,7 @@ class Poisson(gof.op.Op):
 poisson = Poisson()
 
 
-class Binomial(gof.op.Op):
+class Binomial(Op):
     """Return a sparse matrix having random values from a binomial
     density having number of experiment `n` and probability of succes
     `p`.
@@ -144,7 +145,7 @@ csr_dbinomial = Binomial("csr", "float64")
 csc_dbinomial = Binomial("csc", "float64")
 
 
-class Multinomial(gof.op.Op):
+class Multinomial(Op):
     """Return a sparse matrix having random values from a multinomial
     density having number of experiment `n` and probability of succes
     `p`.

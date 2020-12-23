@@ -16,8 +16,11 @@ you should check the strides and alignment.
 .. testcode::
 
    import theano
+   from theano.gof.op import Op
+   from theano.gof.graph import Apply
 
-   class Fibby(theano.Op):
+
+   class Fibby(Op):
        """
        An arbitrarily generalized Fibbonacci sequence
        """
@@ -26,7 +29,7 @@ you should check the strides and alignment.
        def make_node(self, x):
            x_ = tensor.as_tensor_variable(x)
            assert x_.ndim == 1
-           return theano.Apply(self,
+           return Apply(self,
                inputs=[x_],
                outputs=[x_.type()])
            # using x_.type() is dangerous, it copies x's broadcasting behaviour
@@ -109,7 +112,7 @@ TODO: talk about OPTIMIZATION STAGES
 
    # Remove any fibby(zeros(...))
    @theano.tensor.opt.register_specialize
-   @theano.gof.local_optimizer([fibby])
+   @theano.gof.opt.local_optimizer([fibby])
    def fibby_of_zero(fgraph, node):
        if node.op == fibby:
            x = node.inputs[0]

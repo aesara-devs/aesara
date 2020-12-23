@@ -153,7 +153,7 @@ class BadThunkOutput(DebugModeError):
         return ret
 
 
-class BadOptimization(DebugModeError, theano.gof.toolbox.BadOptimization):
+class BadOptimization(DebugModeError, gof.toolbox.BadOptimization):
     pass
 
 
@@ -1726,7 +1726,7 @@ class _VariableEquivalenceTracker:
 
 # List of default version of make thunk.
 # This is needed to know if the user overrided it.
-default_make_thunk = [get_unbound_function(theano.gof.Op.make_thunk)]
+default_make_thunk = [get_unbound_function(gof.op.COp.make_thunk)]
 
 
 # Debug mode cheats and initializes the linker in a different way in
@@ -1821,7 +1821,11 @@ class _Linker(LocalLinker):
             debug = hasattr(node.op, "debug_perform")
 
             try:
-                if not self.maker.mode.check_c_code or debug:
+                if (
+                    not self.maker.mode.check_c_code
+                    or debug
+                    or not isinstance(node.op, gof.op.COp)
+                ):
                     raise utils.MethodNotDefined()
 
                 node.op.prepare_node(node, storage_map, compute_map, "c")
@@ -1847,7 +1851,11 @@ class _Linker(LocalLinker):
             else:
                 thunks_py.append(None)
 
-            if not self.maker.mode.check_c_code and thunks_py[-1] is None:
+            if (
+                not self.maker.mode.check_c_code
+                and thunks_py[-1] is None
+                and isinstance(node.op, gof.op.COp)
+            ):
                 _logger.warning(
                     f"Op {node.op} doesn't have a perform, forcing check of the C code"
                 )

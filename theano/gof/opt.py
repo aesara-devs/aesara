@@ -22,8 +22,9 @@ import numpy as np
 import theano
 from theano import config
 from theano.gof import destroyhandler as dh
-from theano.gof import graph, op
+from theano.gof import graph
 from theano.gof.fg import InconsistencyError
+from theano.gof.op import Op
 from theano.gof.toolbox import Feature, NodeFinder
 from theano.gof.utils import AssocList, flatten
 from theano.misc.ordered_set import OrderedSet
@@ -1231,7 +1232,7 @@ def local_optimizer(tracks, inplace=False, requirements=()):
                     f.__name__,
                 )
             for t in tracks:
-                if not (isinstance(t, op.Op) or issubclass(t, op.Op)):
+                if not (isinstance(t, Op) or issubclass(t, Op)):
                     raise ValueError(
                         "Tracks are op classes or instances", f.__module__, f.__name__
                     )
@@ -2887,12 +2888,12 @@ def _check_chain(r, chain):
                 return False
         elif r.owner is None:
             return False
-        elif isinstance(elem, op.Op):
+        elif isinstance(elem, Op):
             if not r.owner.op == elem:
                 return False
         else:
             try:
-                if issubclass(elem, op.Op) and not isinstance(r.owner.op, elem):
+                if issubclass(elem, Op) and not isinstance(r.owner.op, elem):
                     return False
             except TypeError:
                 return False
@@ -3081,11 +3082,11 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
           theano.gof.fg.FunctionGraph
         The compiled function or the function graph to be analysed.
     ops_to_check: it can be of four different types:
-          - classes or instances inheriting from theano.gof.Op
-          - tuple/list of classes or instances inheriting from theano.gof.Op
+          - classes or instances inheriting from theano.gof.op.Op
+          - tuple/list of classes or instances inheriting from theano.gof.op.Op
           - string
           - function returning a boolean and taking as input an instance of
-            theano.gof.Op.
+            theano.gof.op.Op.
         - if ops_to_check is a string, it should be either 'last' or 'all'.
           'last' will check only the last op of the graph while 'all' will
           check all the ops of the graph.
@@ -3093,7 +3094,7 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
           check that all the outputs of their occurrences in the graph have a
           stack trace.
         - if ops_to_check is a function, it should take as input a
-          theano.gof.Op and return a boolean indicating if the input op should
+          theano.gof.op.Op and return a boolean indicating if the input op should
           be checked or not.
     bug_print: string belonging to {'raise', 'warn', 'ignore'}
         You can specify the behaviour of the function when the specified
@@ -3113,8 +3114,8 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
     else:
         raise ValueError("The type of f_or_fgraph is not supported")
 
-    if isinstance(ops_to_check, theano.gof.Op) or (
-        inspect.isclass(ops_to_check) and issubclass(ops_to_check, theano.gof.Op)
+    if isinstance(ops_to_check, Op) or (
+        inspect.isclass(ops_to_check) and issubclass(ops_to_check, Op)
     ):
         ops_to_check = (ops_to_check,)
 
@@ -3135,7 +3136,7 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
         op_instances = []
         op_classes = []
         for obj in ops_to_check:
-            if isinstance(obj, theano.gof.Op):
+            if isinstance(obj, Op):
                 op_instances.append(obj)
             else:
                 op_classes.append(obj)

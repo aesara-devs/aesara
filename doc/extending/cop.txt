@@ -1,7 +1,7 @@
 .. _cop:
 
 ====================================
-Implementing the arithmetic Ops in C
+Implementing the arithmetic COps in C
 ====================================
 
 Now that we have set up our ``double`` type properly to allow C
@@ -12,9 +12,9 @@ is to actually define these operations in C.
 How does it work?
 =================
 
-Before a C :ref:`op` is executed, the variables related to each of its
+Before a C :ref:`COp` is executed, the variables related to each of its
 inputs will be declared and will be filled appropriately, either from
-an input provided by the end user (using c_extract) or it might simply
+an input provided by the end user (using `c_extract`) or it might simply
 have been calculated by another operation. For each of the outputs,
 the variables associated to them will be declared and initialized.
 
@@ -25,9 +25,9 @@ input variables and place the variables in the output variables.
 What needs to be defined
 ========================
 
-There are less methods to define for an Op than for a Type:
+There are less methods to define for an `COp` than for a Type:
 
-.. class:: Op
+.. class:: COp
 
     .. method:: c_code(node, name, input_names, output_names, sub)
 
@@ -285,14 +285,14 @@ needs to put variables into. But this will be clear with the examples.
 Defining the methods
 ====================
 
-We will be defining C code for the multiplication Op on doubles.
+We will be defining C code for the multiplication `COp` on doubles.
 
 **c_code**
 
 .. testsetup::
 
-   from theano import Op
-   mul = Op()
+   from theano.gof.op import COp
+   mul = COp()
 
 .. testcode::
 
@@ -338,9 +338,11 @@ version that it produces in the code I gave above.
 
 .. testcode::
 
-   from theano import gof
+   from theano.gof.graph import Apply
+   from theano.gof.op import COp
 
-   class BinaryDoubleOp(gof.Op):
+
+   class BinaryDoubleOp(COp):
 
        __props__ = ("name", "fn", "ccode")
 
@@ -356,7 +358,7 @@ version that it produces in the code I gave above.
                y = gof.Constant(double, y)
            if x.type != double or y.type != double:
                raise TypeError('%s only works on doubles' % self.name)
-           return gof.Apply(self, [x, y], [double()])
+           return Apply(self, [x, y], [double()])
 
        def perform(self, node, inp, out):
            x, y = inp

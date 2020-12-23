@@ -7,7 +7,6 @@ compatible with `gof`'s :doc:`graph` routines.
 """
 import copy
 import inspect
-import logging
 import os
 import re
 import sys
@@ -37,8 +36,6 @@ __license__ = "3-clause BSD License"
 __contact__ = "theano-dev <theano-dev@googlegroups.com>"
 
 __docformat__ = "restructuredtext en"
-
-_logger = logging.getLogger("theano.gof.op.Op")
 
 
 def compute_test_value(node):
@@ -121,7 +118,7 @@ def compute_test_value(node):
         output.tag.test_value = storage_map[output][0]
 
 
-class Op(object2, CLinkerOp):
+class Op(object2):
     """A class that models and constructs operations in a graph.
 
     A `Op` instance has several responsibilities:
@@ -428,59 +425,6 @@ class Op(object2, CLinkerOp):
 
         """
 
-    def make_c_thunk(self, node, storage_map, compute_map, no_recycling):
-        """Like make_thunk, but will only try to make a C thunk."""
-        # FIXME: Putting the following import on the module level causes an import cycle.
-        #        The conclusion should be that the antire "make_c_thunk" method should be defined
-        #        in theano.link.c and dispatched onto the Op!
-        import theano.link.c.basic
-
-        node_input_storage = [storage_map[r] for r in node.inputs]
-        node_output_storage = [storage_map[r] for r in node.outputs]
-
-        e = FunctionGraph(node.inputs, node.outputs)
-        e_no_recycling = [
-            new_o
-            for (new_o, old_o) in zip(e.outputs, node.outputs)
-            if old_o in no_recycling
-        ]
-        cl = theano.link.c.basic.CLinker().accept(e, no_recycling=e_no_recycling)
-        # float16 gets special treatment since running
-        # unprepared C code will get bad results.
-        if not getattr(self, "_f16_ok", False):
-
-            def is_f16(t):
-                return getattr(t, "dtype", "") == "float16"
-
-            if any(is_f16(i.type) for i in node.inputs) or any(
-                is_f16(o.type) for o in node.outputs
-            ):
-                # get_dynamic_module is a subset of make_thunk that is reused.
-                # This just try to build the c code
-                # It will raise an error for ops
-                # that don't implement c code. In those cases, we
-                # don't want to print a warning.
-                cl.get_dynamic_module()
-                print(f"Disabling C code for {self} due to unsupported float16")
-                raise NotImplementedError("float16")
-        _logger.debug("Trying CLinker.make_thunk")
-        outputs = cl.make_thunk(
-            input_storage=node_input_storage, output_storage=node_output_storage
-        )
-        thunk, node_input_filters, node_output_filters = outputs
-
-        def rval():
-            thunk()
-            for o in node.outputs:
-                compute_map[o][0] = True
-
-        rval.thunk = thunk
-        rval.cthunk = thunk.cthunk
-        rval.inputs = node_input_storage
-        rval.outputs = node_output_storage
-        rval.lazy = False
-        return rval
-
     def make_py_thunk(self, node, storage_map, compute_map, no_recycling, debug=False):
         """
         Like make_thunk() but only makes python thunks.
@@ -526,7 +470,8 @@ class Op(object2, CLinkerOp):
         return rval
 
     def make_thunk(self, node, storage_map, compute_map, no_recycling, impl=None):
-        """
+        """Create a thunk.
+
         This function must return a thunk, that is a zero-arguments
         function that encapsulates the computation to be performed
         by this op on the arguments of the node.
@@ -546,9 +491,9 @@ class Op(object2, CLinkerOp):
         no_recycling
             List of variables for which it is forbidden to reuse memory
             allocated by a previous call.
-        impl
-            Currently, None, 'c' or 'py'. If 'c' or 'py' we will only try
-            that version of the code.
+        impl: str
+            Description for the type of node created (e.g. ``"c"``, ``"py"``,
+            etc.)
 
         Notes
         -----
@@ -561,7 +506,77 @@ class Op(object2, CLinkerOp):
         self.prepare_node(node, ...) is always called. If we try 'c' and it
         fail and we try again 'py', prepare_node will be called twice.
         """
+        self.prepare_node(
+            node, storage_map=storage_map, compute_map=compute_map, impl="py"
+        )
+        return self.make_py_thunk(node, storage_map, compute_map, no_recycling)
 
+
+class COp(Op, CLinkerOp):
+    def make_c_thunk(self, node, storage_map, compute_map, no_recycling):
+        """Like make_thunk, but will only try to make a C thunk."""
+        # FIXME: Putting the following import on the module level causes an import cycle.
+        #        The conclusion should be that the antire "make_c_thunk" method should be defined
+        #        in theano.link.c and dispatched onto the Op!
+        import theano.link.c.basic
+
+        node_input_storage = [storage_map[r] for r in node.inputs]
+        node_output_storage = [storage_map[r] for r in node.outputs]
+
+        e = FunctionGraph(node.inputs, node.outputs)
+        e_no_recycling = [
+            new_o
+            for (new_o, old_o) in zip(e.outputs, node.outputs)
+            if old_o in no_recycling
+        ]
+        cl = theano.link.c.basic.CLinker().accept(e, no_recycling=e_no_recycling)
+        # float16 gets special treatment since running
+        # unprepared C code will get bad results.
+        if not getattr(self, "_f16_ok", False):
+
+            def is_f16(t):
+                return getattr(t, "dtype", "") == "float16"
+
+            if any(is_f16(i.type) for i in node.inputs) or any(
+                is_f16(o.type) for o in node.outputs
+            ):
+                # get_dynamic_module is a subset of make_thunk that is reused.
+                # This just try to build the c code
+                # It will raise an error for ops
+                # that don't implement c code. In those cases, we
+                # don't want to print a warning.
+                cl.get_dynamic_module()
+                print(f"Disabling C code for {self} due to unsupported float16")
+                raise NotImplementedError("float16")
+        outputs = cl.make_thunk(
+            input_storage=node_input_storage, output_storage=node_output_storage
+        )
+        thunk, node_input_filters, node_output_filters = outputs
+
+        def rval():
+            thunk()
+            for o in node.outputs:
+                compute_map[o][0] = True
+
+        rval.thunk = thunk
+        rval.cthunk = thunk.cthunk
+        rval.inputs = node_input_storage
+        rval.outputs = node_output_storage
+        rval.lazy = False
+        return rval
+
+    def make_thunk(self, node, storage_map, compute_map, no_recycling, impl=None):
+        """Create a thunk.
+
+        See `Op.make_thunk`.
+
+        Parameters
+        ----------
+        impl
+            Currently, None, 'c' or 'py'. If 'c' or 'py' we will only try
+            that version of the code.
+
+        """
         if (impl is None and theano.config.cxx) or impl == "c":
             self.prepare_node(
                 node, storage_map=storage_map, compute_map=compute_map, impl="c"
@@ -572,14 +587,10 @@ class Op(object2, CLinkerOp):
                 # We requested the c code, so don't catch the error.
                 if impl == "c":
                     raise
-                _logger.debug("Falling back on perform")
 
-        # condition: either there was no c_code, or it failed or
-        # python code was requested.
-        self.prepare_node(
-            node, storage_map=storage_map, compute_map=compute_map, impl="py"
+        return super().make_thunk(
+            node, storage_map, compute_map, no_recycling, impl=impl
         )
-        return self.make_py_thunk(node, storage_map, compute_map, no_recycling)
 
 
 def get_test_value(v):
@@ -685,7 +696,7 @@ For instance, Scan will be registered here.
 """
 
 
-class OpenMPOp(Op):
+class OpenMPOp(COp):
     """
     All op using OpenMP code should inherit from this Op.
 
@@ -811,7 +822,7 @@ def apply_meth(tag):
     return f
 
 
-class ExternalCOp(Op):
+class ExternalCOp(COp):
     """
     Class to allow an op to have an external C implementation.
 

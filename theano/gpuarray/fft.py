@@ -2,7 +2,7 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
-from theano import Op
+from theano.gof.op import Op
 from theano.gpuarray.basic_ops import (
     as_gpuarray_variable,
     gpu_contiguous,

@@ -3,7 +3,9 @@ from collections.abc import Collection
 import numpy as np
 
 import theano
-from theano.gof import Apply, EnumList, Generic, Op, ParamsType
+from theano.gof import EnumList, Generic, ParamsType
+from theano.gof.graph import Apply
+from theano.gof.op import COp, Op
 from theano.gradient import (
     DisconnectedType,
     _float_zeros_like,
@@ -16,7 +18,7 @@ from theano.tensor import basic, nlinalg
 from theano.utils import LOCAL_BITWIDTH, PYTHON_INT_BITWIDTH
 
 
-class CpuContiguous(Op):
+class CpuContiguous(COp):
     """
     Check to see if the input is c-contiguous,
     if it is, do nothing, else return a contiguous array.
@@ -77,7 +79,7 @@ class CpuContiguous(Op):
 cpu_contiguous = CpuContiguous()
 
 
-class SearchsortedOp(Op):
+class SearchsortedOp(COp):
     """Wrapper of numpy.searchsorted.
 
     For full documentation, see :func:`searchsorted`.
@@ -256,7 +258,7 @@ def searchsorted(x, v, side="left", sorter=None):
     return SearchsortedOp(side=side)(x, v, sorter)
 
 
-class CumOp(Op):
+class CumOp(COp):
     # See function cumsum/cumprod for docstring
 
     __props__ = ("axis", "mode")

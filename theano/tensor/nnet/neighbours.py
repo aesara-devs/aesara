@@ -6,12 +6,13 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
-from theano import Apply, Op
 from theano.gof import EnumList
+from theano.gof.graph import Apply
+from theano.gof.op import COp
 from theano.gradient import grad_not_implemented, grad_undefined
 
 
-class Images2Neibs(Op):
+class Images2Neibs(COp):
     """
     Reshapes the input as a 2D tensor where each row is an pooling
     example.

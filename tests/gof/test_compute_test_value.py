@@ -6,7 +6,10 @@ import pytest
 import theano
 import theano.tensor as tt
 from theano import config, scalar
-from theano.gof import Apply, Op, Type, utils
+from theano.gof import utils
+from theano.gof.graph import Apply
+from theano.gof.op import COp, Op
+from theano.gof.type import Type
 from theano.tensor.basic import _allclose
 
 
@@ -17,7 +20,7 @@ def set_theano_flags():
 
 
 # Used in TestComputeTestValue.test_no_perform
-class IncOneC(Op):
+class IncOneC(COp):
     """
     An Op with only a C (c_code) implementation
     """
@@ -265,7 +268,7 @@ class TestComputeTestValue:
             )
 
     def test_no_c_code(self):
-        class IncOnePython(Op):
+        class IncOnePython(COp):
             """
             An Op with only a Python (perform) implementation
             """

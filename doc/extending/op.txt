@@ -5,9 +5,9 @@ Making arithmetic Ops on double
 
 .. testsetup:: *
 
-   from theano import gof
+   from theano.gof.type import Type
 
-   class Double(gof.Type):
+   class Double(Type):
 
        def filter(self, x, strict=False, allow_downcast=None):
            if strict:
@@ -44,7 +44,7 @@ computations. We'll start by defining multiplication.
 Op's contract
 =============
 
-An Op is any object which inherits from :class:`gof.Op`.  It has to
+An `Op` is any object which inherits from :class:`Op`.  It has to
 define the following methods.
 
 .. function:: make_node(*inputs)
@@ -57,7 +57,7 @@ define the following methods.
   instance, and return the Apply instance.
 
   This method creates an Apply node representing the application of
-  the Op on the inputs provided. If the Op cannot be applied to these
+  the `Op` on the inputs provided. If the `Op` cannot be applied to these
   inputs, it must raise an appropriate exception.
 
   The inputs of the Apply instance returned by this call must be
@@ -66,7 +66,7 @@ define the following methods.
 
 .. function:: perform(node, inputs, output_storage)
 
-  This method computes the function associated to this Op. ``node`` is
+  This method computes the function associated to this `Op`. ``node`` is
   an Apply node created by the Op's ``make_node`` method. ``inputs``
   is a list of references to data to operate on using non-symbolic
   statements, (i.e., statements in Python, Numpy). ``output_storage``
@@ -86,7 +86,7 @@ define the following methods.
     - ``output_storage``: This is a list of storage cells where the output is to be stored.
       A storage cell is a one-element list. It is forbidden to change
       the length of the list(s) contained in ``output_storage``.
-      There is one storage cell for each output of the Op.
+      There is one storage cell for each output of the `Op`.
 
       The data put in ``output_storage`` must match the type of the
       symbolic output. This is a situation where the ``node`` argument
@@ -95,7 +95,7 @@ define the following methods.
       A function Mode may allow ``output_storage`` elements to persist
       between evaluations, or it may reset ``output_storage`` cells to
       hold a value of ``None``.  It can also pre-allocate some memory
-      for the Op to use.  This feature can allow ``perform`` to reuse
+      for the `Op` to use.  This feature can allow ``perform`` to reuse
       memory between calls, for example. If there is something
       preallocated in the ``output_storage``, it will be of the good
       dtype, but can have the wrong shape and have any stride pattern.
@@ -116,10 +116,10 @@ documentation for :ref:`op`.
 
 .. function:: __eq__(other)
 
-  ``other`` is also an Op.
+  ``other`` is also an `Op`.
 
   Returning ``True`` here is a promise to the optimization system
-  that the other Op will produce exactly the same graph effects
+  that the other `Op` will produce exactly the same graph effects
   (from perform) as this one, given identical inputs. This means it
   will produce the same output values, it will destroy the same
   inputs (same destroy_map), and will alias outputs to the same
@@ -132,11 +132,11 @@ documentation for :ref:`op`.
 
 .. function:: __hash__()
 
-  If two Op instances compare equal, then they **must** return the
+  If two `Op` instances compare equal, then they **must** return the
   same hash value.
 
   Equally important, this hash value must not change during the
-  lifetime of self.  Op instances should be immutable in this
+  lifetime of self.  `Op` instances should be immutable in this
   sense.
 
    .. note::
@@ -212,8 +212,8 @@ Optional methods or attributes
 
    If you feel the need to override `__call__` to change the graph
    based on the arguments, you should instead create a function that
-   will use your Op and build the graphs that you want and call that
-   instead of the Op instance directly.
+   will use your `Op` and build the graphs that you want and call that
+   instead of the `Op` instance directly.
 
 .. function:: infer_shape(fgraph, node, shapes)
 
@@ -245,7 +245,7 @@ Optional methods or attributes
 .. function:: __str__()
 
    This allows you to specify a more informative string representation of your
-   Op. If an Op has parameters, it is highly recommended to have the
+   `Op`. If an `Op` has parameters, it is highly recommended to have the
    ``__str__`` method include the name of the op and the Op's parameters'
    values.
 
@@ -291,7 +291,7 @@ These are the function required to work with gradient.grad().
 
 .. function:: grad(inputs, output_gradients)
 
-  If the Op being defined is differentiable, its gradient may be
+  If the `Op` being defined is differentiable, its gradient may be
   specified symbolically in this method. Both ``inputs`` and
   ``output_gradients`` are lists of symbolic Theano Variables and
   those must be operated on using Theano's symbolic language. The grad
@@ -312,19 +312,19 @@ These are the function required to work with gradient.grad().
   If an element of output_gradient is of type
   theano.gradient.DisconnectedType, it means that the cost is not a
   function of this output. If any of the op's inputs participate in
-  the computation of only disconnected outputs, then Op.grad should
+  the computation of only disconnected outputs, then `Op.grad` should
   return DisconnectedType variables for those inputs.
 
   If the grad method is not defined, then Theano assumes it has been
   forgotten.  Symbolic differentiation will fail on a graph that
-  includes this Op.
+  includes this `Op`.
 
   It must be understood that the Op's grad method is not meant to
   return the gradient of the Op's output. theano.tensor.grad computes
-  gradients; Op.grad is a helper function that computes terms that
+  gradients; `Op.grad` is a helper function that computes terms that
   appear in gradients.
 
-  If an Op has a single vector-valued output y and a single
+  If an `Op` has a single vector-valued output y and a single
   vector-valued input x, then the grad method will be passed x and a
   second vector z. Define J to be the Jacobian of y with respect to
   x. The Op's grad method should return dot(J.T,z). When
@@ -358,7 +358,7 @@ These are the function required to work with gradient.grad().
   symbolic Variable x found in the list ``inputs``.  The grad method
   does this using ``output_gradients`` which provides the total
   derivative :math:`\frac{d C}{d f}` of C with respect to a symbolic
-  Variable that is returned by the Op (this is provided in
+  Variable that is returned by the `Op` (this is provided in
   ``output_gradients``), as well as the knowledge of the total
   derivative :math:`\frac{d f}{d x}` of the latter with respect to the
   primitive Variable (this has to be computed).
@@ -378,7 +378,7 @@ These are the function required to work with gradient.grad().
   Here, the chain rule must be implemented in a similar but slightly
   more complex setting: Theano provides in the list
   ``output_gradients`` one gradient for each of the Variables returned
-  by the Op. Where f is one such particular Variable, the
+  by the `Op`. Where f is one such particular Variable, the
   corresponding gradient found in ``output_gradients`` and
   representing :math:`\frac{d C}{d f}` is provided with a shape
   similar to f and thus not necessarily as a row vector of scalars.
@@ -389,7 +389,7 @@ These are the function required to work with gradient.grad().
   If the output list of the op is :math:`[f_1, ... f_n]`, then the
   list ``output_gradients`` is :math:`[grad_{f_1}(C), grad_{f_2}(C),
   ... , grad_{f_n}(C)]`.  If ``inputs`` consists of the list
-  :math:`[x_1, ..., x_m]`, then Op.grad should return the list
+  :math:`[x_1, ..., x_m]`, then `Op.grad` should return the list
   :math:`[grad_{x_1}(C), grad_{x_2}(C), ..., grad_{x_m}(C)]`, where
   :math:`(grad_{y}(Z))_i = \frac{\partial Z}{\partial y_i}` (and
   :math:`i` can stand for multiple dimensions).
@@ -406,7 +406,7 @@ These are the function required to work with gradient.grad().
   1) They must be Variable instances.
   2) When they are types that have dtypes, they must never have an integer dtype.
 
-  The output gradients passed *to* Op.grad will also obey these constraints.
+  The output gradients passed *to* `Op.grad` will also obey these constraints.
 
   Integers are a tricky subject. Integers are the main reason for
   having DisconnectedType, NullType or zero gradient. When you have an
@@ -450,7 +450,7 @@ These are the function required to work with gradient.grad().
 
   1) f(x,y) = dot product between x and y. x and y are integers.
         Since the output is also an integer, f is a step function.
-        Its gradient is zero almost everywhere, so Op.grad should return
+        Its gradient is zero almost everywhere, so `Op.grad` should return
         zeros in the shape of x and y.
   2) f(x,y) = dot product between x and y. x is floating point and y is an integer.
         In this case the output is floating point. It doesn't matter
@@ -479,7 +479,7 @@ These are the function required to work with gradient.grad().
 
   Returns a list of list of bools.
 
-  Op.connection_pattern[input_idx][output_idx] is true if the
+  ``Op.connection_pattern[input_idx][output_idx]`` is true if the
   elements of inputs[input_idx] have an effect on the elements of
   outputs[output_idx].
 
@@ -554,14 +554,16 @@ Defining an Op: ``mul``
 =======================
 
 We'll define multiplication as a *binary* operation, even though a
-multiplication Op could take an arbitrary number of arguments.
+multiplication `Op` could take an arbitrary number of arguments.
 
 First, we'll instantiate a ``mul`` Op:
 
 .. testcode:: mul
 
-   from theano import gof
-   mul = gof.Op()
+   from theano.gof.op import Op
+
+
+   mul = Op()
 
 
 **make_node**
@@ -587,7 +589,7 @@ want to multiply two arbitrary types, it would not make much sense
 (and we'd be screwed when we implement this in C!)
 
 The last line is the meat of the definition. There we create an Apply
-node representing the application of Op ``mul`` to inputs ``x`` and
+node representing the application of `Op` ``mul`` to inputs ``x`` and
 ``y``, giving a Variable instance of type ``double`` as the output.
 
 .. note::
@@ -635,7 +637,7 @@ Here, ``z`` is a list of one element. By default, ``z == [None]``.
 Trying out our new Op
 =====================
 
-In the following code, we use our new Op:
+In the following code, we use our new `Op`:
 
 .. doctest:: mul
 
@@ -665,7 +667,7 @@ they are magically cast to the right type. Now, what if we try this?
 Automatic Constant Wrapping
 ---------------------------
 
-Well, OK. We'd like our Op to be a bit more flexible. This can be done
+Well, OK. We'd like our `Op` to be a bit more flexible. This can be done
 by modifying ``make_node`` to accept Python ``int`` or ``float`` as
 ``x`` and/or ``y``:
 
@@ -717,9 +719,11 @@ arithmetic operators:
 
 .. testcode::
 
-   from theano import gof
+   from theano.gof.graph import Apply
+   from theano.gof.op import Op
 
-   class BinaryDoubleOp(gof.Op):
+
+   class BinaryDoubleOp(Op):
 
        __props__ = ("name", "fn")
 
@@ -734,7 +738,7 @@ arithmetic operators:
                y = gof.Constant(double, y)
            if x.type != double or y.type != double:
                raise TypeError('%s only works on doubles' % self.name)
-           return gof.Apply(self, [x, y], [double()])
+           return Apply(self, [x, y], [double()])
 
        def perform(self, node, inp, out):
            x, y = inp
@@ -756,24 +760,24 @@ arithmetic operators:
    div = BinaryDoubleOp(name='div',
                         fn=lambda x, y: x / y)
 
-Instead of working directly on an instance of Op, we create a subclass of
-Op that we can parametrize. All the operations we define are binary. They
+Instead of working directly on an instance of `Op`, we create a subclass of
+`Op` that we can parametrize. All the operations we define are binary. They
 all work on two inputs with type ``double``. They all return a single
 Variable of type ``double``. Therefore, ``make_node`` does the same thing
-for all these operations, except for the Op reference ``self`` passed
+for all these operations, except for the `Op` reference ``self`` passed
 as first argument to Apply.  We define ``perform`` using the function
 ``fn`` passed in the constructor.
 
 This design is a flexible way to define basic operations without
 duplicating code. The same way a Type subclass represents a set of
-structurally similar types (see previous section), an Op subclass
+structurally similar types (see previous section), an `Op` subclass
 represents a set of structurally similar operations: operations that
 have the same input/output types, operations that only differ in one
 small detail, etc. If you see common patterns in several Ops that you
 want to define, it can be a good idea to abstract out what you can.
-Remember that an Op is just an object which satisfies the contract
+Remember that an `Op` is just an object which satisfies the contract
 described above on this page and that you should use all the tools at
 your disposal to create these objects as efficiently as possible.
 
-**Exercise**: Make a generic DoubleOp, where the number of
+**Exercise**: Make a generic ``DoubleOp``, where the number of
 arguments can also be given as a parameter.

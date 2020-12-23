@@ -1,11 +1,12 @@
 import numpy as np
 
 import theano.tensor as tt
-from theano import gof
+from theano.gof.graph import Apply
+from theano.gof.op import Op
 from theano.gradient import DisconnectedType
 
 
-class RFFTOp(gof.Op):
+class RFFTOp(Op):
 
     __props__ = ()
 
@@ -31,7 +32,7 @@ class RFFTOp(gof.Op):
                     "%s: length of the transformed axis must be"
                     " of type integer" % self.__class__.__name__
                 )
-        return gof.Apply(self, [a, s], [self.output_type(a)()])
+        return Apply(self, [a, s], [self.output_type(a)()])
 
     def perform(self, node, inputs, output_storage):
         a = inputs[0]
@@ -66,7 +67,7 @@ class RFFTOp(gof.Op):
 rfft_op = RFFTOp()
 
 
-class IRFFTOp(gof.Op):
+class IRFFTOp(Op):
 
     __props__ = ()
 
@@ -93,7 +94,7 @@ class IRFFTOp(gof.Op):
                     "%s: length of the transformed axis must be"
                     " of type integer" % self.__class__.__name__
                 )
-        return gof.Apply(self, [a, s], [self.output_type(a)()])
+        return Apply(self, [a, s], [self.output_type(a)()])
 
     def perform(self, node, inputs, output_storage):
         a = inputs[0]
