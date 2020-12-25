@@ -58,6 +58,7 @@ from theano.tensor.nlinalg import (
     QRFull,
     QRIncomplete,
 )
+from theano.tensor.nnet import Softmax
 from theano.tensor.nnet.sigm import ScalarSoftplus
 from theano.tensor.opt import MakeVector
 from theano.tensor.slinalg import Cholesky, Solve
@@ -248,6 +249,14 @@ def jax_funcify_Identity(op):
         return x
 
     return identity
+
+
+@jax_funcify.register(Softmax)
+def jax_funcify_Softmax(op):
+    def softmax(x):
+        return jax.nn.softmax(x)
+
+    return softmax
 
 
 @jax_funcify.register(ScalarSoftplus)
