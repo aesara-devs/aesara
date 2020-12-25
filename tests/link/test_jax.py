@@ -743,6 +743,10 @@ def test_nnet():
     fgraph = theano.gof.FunctionGraph([x], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
+    out = tt.nnet.softmax(x)
+    fgraph = theano.gof.FunctionGraph([x], [out])
+    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
 
 def test_tensor_basics():
     y = tt.vector("y")
