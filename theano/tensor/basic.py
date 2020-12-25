@@ -22,6 +22,7 @@ from theano.gof.type import Generic
 
 # We use these exceptions as well.
 from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
+from theano.misc.safe_asarray import _asarray
 from theano.printing import min_informative_str, pprint
 from theano.scalar import int32
 from theano.tensor import elemwise
@@ -572,7 +573,7 @@ def get_scalar_constant_value(
                         ret = v.owner.inputs[0].owner.inputs[idx + 1]
                         ret = get_scalar_constant_value(ret, max_recur=max_recur)
                         # join can cast implicitly its input in some case.
-                        return theano._asarray(ret, dtype=v.type.dtype)
+                        return _asarray(ret, dtype=v.type.dtype)
                     if builtins.all(
                         var.ndim == 1 for var in v.owner.inputs[0].owner.inputs[1:]
                     ):
@@ -624,7 +625,7 @@ def get_scalar_constant_value(
                     ret = v.owner.inputs[0].owner.inputs[idx]
                     ret = get_scalar_constant_value(ret, max_recur=max_recur)
                     # MakeVector can cast implicitly its input in some case.
-                    return theano._asarray(ret, dtype=v.type.dtype)
+                    return _asarray(ret, dtype=v.type.dtype)
 
                 # This is needed when we take the grad as the Shape op
                 # are not already changed into MakeVector
@@ -1392,7 +1393,7 @@ class MaxAndArgmax(COp):
             axes = tuple(range(x.ndim))
         else:
             axes = tuple(int(ax) for ax in axes)
-        max[0] = theano._asarray(np.max(x, axes), dtype=node.outputs[0].dtype)
+        max[0] = _asarray(np.max(x, axes), dtype=node.outputs[0].dtype)
         # Numpy does not support multiple axes for argmax
         # Work around
         keep_axes = np.array([i for i in range(x.ndim) if i not in axes], dtype="int64")
@@ -1406,7 +1407,7 @@ class MaxAndArgmax(COp):
         new_shape = kept_shape + (np.prod(reduced_shape, dtype="int64"),)
         reshaped_x = transposed_x.reshape(new_shape)
 
-        max_idx[0] = theano._asarray(np.argmax(reshaped_x, axis=-1), dtype="int64")
+        max_idx[0] = _asarray(np.argmax(reshaped_x, axis=-1), dtype="int64")
 
     def c_code(self, node, name, inp, out, sub):
         if len(self.axis) != 1 and len(self.axis) != node.inputs[0].ndim:
@@ -1627,7 +1628,7 @@ class Argmax(COp):
         new_shape = kept_shape + (np.prod(reduced_shape),)
         reshaped_x = transposed_x.reshape(new_shape)
 
-        max_idx[0] = theano._asarray(np.argmax(reshaped_x, axis=-1), dtype="int64")
+        max_idx[0] = _asarray(np.argmax(reshaped_x, axis=-1), dtype="int64")
 
     def c_code(self, node, name, inp, out, sub):
         (x,) = inp
@@ -2085,32 +2086,32 @@ def isclose(a, b, rtol=1.0e-5, atol=1.0e-8, equal_nan=False):
     --------
     >>> import theano
     >>> import numpy as np
-    >>> a = theano._asarray([1e10, 1e-7], dtype="float64")
-    >>> b = theano._asarray([1.00001e10, 1e-8], dtype="float64")
+    >>> a = _asarray([1e10, 1e-7], dtype="float64")
+    >>> b = _asarray([1.00001e10, 1e-8], dtype="float64")
     >>> theano.tensor.isclose(a, b).eval()
     array([1, 0], dtype=int8)
-    >>> a = theano._asarray([1e10, 1e-8], dtype="float64")
-    >>> b = theano._asarray([1.00001e10, 1e-9], dtype="float64")
+    >>> a = _asarray([1e10, 1e-8], dtype="float64")
+    >>> b = _asarray([1.00001e10, 1e-9], dtype="float64")
     >>> theano.tensor.isclose(a, b).eval()
     array([1, 1], dtype=int8)
-    >>> a = theano._asarray([1e10, 1e-8], dtype="float64")
-    >>> b = theano._asarray([1.0001e10, 1e-9], dtype="float64")
+    >>> a = _asarray([1e10, 1e-8], dtype="float64")
+    >>> b = _asarray([1.0001e10, 1e-9], dtype="float64")
     >>> theano.tensor.isclose(a, b).eval()
     array([0, 1], dtype=int8)
-    >>> a = theano._asarray([1.0, np.nan], dtype="float64")
-    >>> b = theano._asarray([1.0, np.nan], dtype="float64")
+    >>> a = _asarray([1.0, np.nan], dtype="float64")
+    >>> b = _asarray([1.0, np.nan], dtype="float64")
     >>> theano.tensor.isclose(a, b).eval()
     array([1, 0], dtype==int8)
-    >>> a = theano._asarray([1.0, np.nan], dtype="float64")
-    >>> b = theano._asarray([1.0, np.nan], dtype="float64")
+    >>> a = _asarray([1.0, np.nan], dtype="float64")
+    >>> b = _asarray([1.0, np.nan], dtype="float64")
     >>> theano.tensor.isclose(a, b, equal_nan=True).eval()
     array([1, 1], dtype==int8)
-    >>> a = theano._asarray([1.0, np.inf], dtype="float64")
-    >>> b = theano._asarray([1.0, -np.inf], dtype="float64")
+    >>> a = _asarray([1.0, np.inf], dtype="float64")
+    >>> b = _asarray([1.0, -np.inf], dtype="float64")
     >>> theano.tensor.isclose(a, b).eval()
     array([1, 0], dtype==int8)
-    >>> a = theano._asarray([1.0, np.inf], dtype="float64")
-    >>> b = theano._asarray([1.0, np.inf], dtype="float64")
+    >>> a = _asarray([1.0, np.inf], dtype="float64")
+    >>> b = _asarray([1.0, np.inf], dtype="float64")
     >>> theano.tensor.isclose(a, b).eval()
     array([1, 1], dtype==int8)
 
@@ -4461,7 +4462,7 @@ class Join(COp):
                     f"Join axis {int(axis)} out of bounds [0, {int(ndim)})"
                 )
 
-            out[0] = theano._asarray(
+            out[0] = _asarray(
                 np.concatenate(tensors, axis=axis), dtype=node.outputs[0].type.dtype
             )
 

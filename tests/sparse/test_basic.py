@@ -13,6 +13,7 @@ from theano.compile.function import function
 from theano.gof.graph import Apply
 from theano.gof.op import Op
 from theano.gradient import GradientError
+from theano.misc.safe_asarray import _asarray
 from theano.sparse import (
     CSC,
     CSM,
@@ -227,7 +228,7 @@ def sparse_random_inputs(
     # Theano don't like ulonglong type_num
     dtype = np.dtype(out_dtype)  # Convert into dtype object.
     if data[0].dtype.num != dtype.num and dtype.str == data[0].dtype.str:
-        data[0].data = theano._asarray(data[0].data, out_dtype)
+        data[0].data = _asarray(data[0].data, out_dtype)
     assert data[0].dtype.num == dtype.num
     return (variable, data)
 
@@ -1868,7 +1869,7 @@ def test_may_share_memory():
     b = sp.sparse.csc_matrix(sp.sparse.eye(4, 3))
 
     def as_ar(a):
-        return theano._asarray(a, dtype="int32")
+        return _asarray(a, dtype="int32")
 
     for a_, b_, rep in [
         (a, a, True),

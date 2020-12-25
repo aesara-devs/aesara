@@ -17,6 +17,7 @@ import theano
 from theano import config, gof, scalar, tensor
 from theano.gof.op import COp, Op
 from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
+from theano.misc.safe_asarray import _asarray
 from theano.sparse.type import SparseType, _is_sparse
 from theano.sparse.utils import hash_from_sparse
 
@@ -466,11 +467,11 @@ class CSMProperties(Op):
         (csm,) = inputs
         out[0][0] = csm.data
         if str(csm.data.dtype) == "int32":
-            out[0][0] = theano._asarray(out[0][0], dtype="int32")
+            out[0][0] = _asarray(out[0][0], dtype="int32")
         # backport
-        out[1][0] = theano._asarray(csm.indices, dtype="int32")
-        out[2][0] = theano._asarray(csm.indptr, dtype="int32")
-        out[3][0] = theano._asarray(csm.shape, dtype="int32")
+        out[1][0] = _asarray(csm.indices, dtype="int32")
+        out[2][0] = _asarray(csm.indptr, dtype="int32")
+        out[3][0] = _asarray(csm.shape, dtype="int32")
 
     def grad(self, inputs, g):
 
@@ -574,17 +575,17 @@ class CSM(Op):
 
         if not isinstance(indices, gof.Variable):
             indices_ = np.asarray(indices)
-            indices_32 = theano._asarray(indices, dtype="int32")
+            indices_32 = _asarray(indices, dtype="int32")
             assert (indices_ == indices_32).all()
             indices = indices_32
         if not isinstance(indptr, gof.Variable):
             indptr_ = np.asarray(indptr)
-            indptr_32 = theano._asarray(indptr, dtype="int32")
+            indptr_32 = _asarray(indptr, dtype="int32")
             assert (indptr_ == indptr_32).all()
             indptr = indptr_32
         if not isinstance(shape, gof.Variable):
             shape_ = np.asarray(shape)
-            shape_32 = theano._asarray(shape, dtype="int32")
+            shape_32 = _asarray(shape, dtype="int32")
             assert (shape_ == shape_32).all()
             shape = shape_32
 
@@ -1409,7 +1410,7 @@ class GetItemScalar(Op):
         (x, ind1, ind2) = inputs
         (out,) = outputs
         assert _is_sparse(x)
-        out[0] = theano._asarray(x[ind1, ind2], x.dtype)
+        out[0] = _asarray(x[ind1, ind2], x.dtype)
 
 
 get_item_scalar = GetItemScalar()
@@ -2129,7 +2130,7 @@ class AddSD(Op):
 
         # The asarray is needed as in some case, this return a
         # numpy.matrixlib.defmatrix.matrix object and not an ndarray.
-        out[0] = theano._asarray(x + y, dtype=node.outputs[0].type.dtype)
+        out[0] = _asarray(x + y, dtype=node.outputs[0].type.dtype)
 
     def grad(self, inputs, gout):
         (x, y) = inputs
@@ -3632,8 +3633,8 @@ class StructuredDot(Op):
                 )
 
         # The cast is needed as otherwise we hit the bug mentioned into
-        # theano._asarray function documentation.
-        out[0] = theano._asarray(variable, str(variable.dtype))
+        # _asarray function documentation.
+        out[0] = _asarray(variable, str(variable.dtype))
 
     def grad(self, inputs, gout):
         # a is sparse, b is dense, g_out is dense
@@ -4158,7 +4159,7 @@ class Dot(Op):
         if x_is_sparse and y_is_sparse:
             rval = rval.toarray()
 
-        out[0] = theano._asarray(rval, dtype=node.outputs[0].dtype)
+        out[0] = _asarray(rval, dtype=node.outputs[0].dtype)
 
     def grad(self, inputs, gout):
         (x, y) = inputs

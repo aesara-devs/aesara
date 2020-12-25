@@ -25,6 +25,7 @@ from tests import unittest_tools
 from tests.tensor.utils import inplace_func
 from theano import In, config, shared
 from theano.gof.fg import FunctionGraph
+from theano.misc.safe_asarray import _asarray
 from theano.tensor import as_tensor_variable, inplace
 from theano.tensor.blas import (
     Dot22,
@@ -269,7 +270,7 @@ class TestGemm:
         C = self.rand(4, 5)[:, :4]
 
         def t(z, x, y, a=1.0, b=0.0, l="c|py", dt="float64"):
-            z, a, x, y, b = [theano._asarray(p, dtype=dt) for p in (z, a, x, y, b)]
+            z, a, x, y, b = [_asarray(p, dtype=dt) for p in (z, a, x, y, b)]
             # z_orig = z.copy()
             z_after = self._gemm(z, a, x, y, b)
 
@@ -327,7 +328,7 @@ class TestGemm:
         C = self.rand(4, 4, 3)
 
         def t(z, x, y, a=1.0, b=0.0, l="c|py", dt="float64"):
-            z, a, x, y, b = [theano._asarray(p, dtype=dt) for p in (z, a, x, y, b)]
+            z, a, x, y, b = [_asarray(p, dtype=dt) for p in (z, a, x, y, b)]
             z_orig = z.copy()
             z_after = np.zeros_like(z_orig)
             for i in range(3):
@@ -1430,8 +1431,8 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
     def test_gemv_dimensions(self):
         A = tt.matrix("A")
         x, y = tt.vectors("x", "y")
-        alpha = theano.shared(theano._asarray(1.0, dtype=config.floatX), name="alpha")
-        beta = theano.shared(theano._asarray(1.0, dtype=config.floatX), name="beta")
+        alpha = theano.shared(_asarray(1.0, dtype=config.floatX), name="alpha")
+        beta = theano.shared(_asarray(1.0, dtype=config.floatX), name="beta")
 
         z = beta * y + alpha * tt.dot(A, x)
         f = theano.function([A, x, y], z)
@@ -1997,7 +1998,7 @@ class TestBlasStrides:
     rng = np.random.RandomState(seed=unittest_tools.fetch_seed())
 
     def rand(self, *shape):
-        return theano._asarray(self.rng.rand(*shape), dtype=self.dtype)
+        return _asarray(self.rng.rand(*shape), dtype=self.dtype)
 
     def cmp_dot22(self, b_shp, c_shp):
         av = np.zeros((0, 0), dtype=self.dtype)

@@ -6,6 +6,7 @@ import numpy as np
 import theano
 from theano.gof.graph import Apply, Variable
 from theano.gof.op import Op
+from theano.misc.safe_asarray import _asarray
 from theano.tensor.basic import (
     NotScalarConstantError,
     all_dtypes,
@@ -415,7 +416,7 @@ class RandomVariable(Op):
             not isinstance(smpl_val, np.ndarray)
             or str(smpl_val.dtype) != out_var.type.dtype
         ):
-            smpl_val = theano._asarray(smpl_val, dtype=out_var.type.dtype)
+            smpl_val = _asarray(smpl_val, dtype=out_var.type.dtype)
 
         smpl_out[0] = smpl_val
 

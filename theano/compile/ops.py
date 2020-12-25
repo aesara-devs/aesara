@@ -16,6 +16,7 @@ import theano
 from theano.gof import ParamsType
 from theano.gof.graph import Apply, Variable
 from theano.gof.op import COp, Op
+from theano.misc.safe_asarray import _asarray
 
 
 def register_view_op_c_code(type, code, version=()):
@@ -262,7 +263,7 @@ class Shape(COp):
     def perform(self, node, inp, out_):
         (x,) = inp
         (out,) = out_
-        out[0] = theano._asarray(np.shape(x), dtype="int64")
+        out[0] = _asarray(np.shape(x), dtype="int64")
 
     def infer_shape(self, fgraph, node, in_shapes):
         return [[len(in_shapes[0])]]
@@ -382,7 +383,7 @@ class Shape_i(COp):
         (x,) = inp
         (out,) = out_
         if out[0] is None:
-            out[0] = theano._asarray(np.shape(x)[self.i], dtype="int64")
+            out[0] = _asarray(np.shape(x)[self.i], dtype="int64")
         else:
             out[0][...] = np.shape(x)[self.i]
 

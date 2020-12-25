@@ -87,9 +87,6 @@ from theano.compile import (
     Out,
     Param,
     ProfileStats,
-    SymbolicInput,
-    SymbolicOutput,
-    as_op,
     predefined_linkers,
     predefined_modes,
     predefined_optimizers,
@@ -108,15 +105,11 @@ from theano.gof import (
     Type,
     Variable,
     generic,
-    object2,
     opt,
     toolbox,
     utils,
 )
 from theano.gradient import Lop, Rop, grad, subgraph_grad
-from theano.link.basic import Container, Linker, LocalLinker, PerformLinker
-from theano.link.c.basic import CLinker, DualLinker, OpWiseCLinker
-from theano.misc.safe_asarray import _asarray
 from theano.printing import pp, pprint
 from theano.updates import OrderedUpdates
 

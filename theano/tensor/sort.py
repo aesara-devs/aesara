@@ -3,6 +3,7 @@ import numpy as np
 import theano
 from theano.gof.op import Op
 from theano.gradient import grad_undefined
+from theano.misc.safe_asarray import _asarray
 from theano.tensor.basic import arange, mul
 from theano.tensor.subtensor import set_subtensor
 
@@ -188,7 +189,7 @@ class ArgSortOp(Op):
                 raise ValueError("sort axis must be an integer or None")
             axis = int(axis)
         z = output_storage[0]
-        z[0] = theano._asarray(
+        z[0] = _asarray(
             np.argsort(a, axis, self.kind, self.order), dtype=node.outputs[0].dtype
         )
 

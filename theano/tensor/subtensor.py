@@ -14,6 +14,7 @@ from theano.gof.graph import Apply
 from theano.gof.op import COp, Op
 from theano.gof.type import Type
 from theano.gradient import DisconnectedType
+from theano.misc.safe_asarray import _asarray
 from theano.printing import pprint
 from theano.tensor.basic import (
     NotScalarConstantError,
@@ -1900,7 +1901,7 @@ class AdvancedSubtensor1(COp):
         # if they don't, that should be an error (no array can have that
         # many elements on a 32-bit arch).
         if i.dtype != np.intp:
-            i_ = theano._asarray(i, dtype=np.intp)
+            i_ = _asarray(i, dtype=np.intp)
             if not np.can_cast(i.dtype, np.intp):
                 # Check if there was actually an incorrect conversion
                 if np.any(i != i_):

@@ -7,6 +7,7 @@ import theano
 from theano import config
 from theano import scalar as scal
 from theano.gof import Type, Variable, hashtype
+from theano.misc.safe_asarray import _asarray
 
 
 _logger = logging.getLogger("theano.tensor.type")
@@ -101,7 +102,7 @@ class TensorType(Type):
             pass
         elif isinstance(data, np.ndarray) and (data.dtype == self.numpy_dtype):
             if data.dtype.num != self.numpy_dtype.num:
-                data = theano._asarray(data, dtype=self.dtype)
+                data = _asarray(data, dtype=self.dtype)
             # -- now fall through to ndim check
         elif strict:
             # If any of the two conditions above was not met,
@@ -115,7 +116,7 @@ class TensorType(Type):
         else:
             if allow_downcast:
                 # Convert to self.dtype, regardless of the type of data
-                data = theano._asarray(data, dtype=self.dtype)
+                data = _asarray(data, dtype=self.dtype)
                 # TODO: consider to pad shape with ones to make it consistent
                 # with self.broadcastable... like vector->row type thing
             else:
@@ -128,7 +129,7 @@ class TensorType(Type):
                         # scalar array, see
                         # http://projects.scipy.org/numpy/ticket/1611
                         # data = data.astype(self.dtype)
-                        data = theano._asarray(data, dtype=self.dtype)
+                        data = _asarray(data, dtype=self.dtype)
                     if up_dtype != self.dtype:
                         err_msg = (
                             f"{self} cannot store a value of dtype {data.dtype} without "
@@ -146,11 +147,11 @@ class TensorType(Type):
                 ):
                     # Special case where we allow downcasting of Python float
                     # literals to floatX, even when floatX=='float32'
-                    data = theano._asarray(data, self.dtype)
+                    data = _asarray(data, self.dtype)
                 else:
                     # data has to be converted.
                     # Check that this conversion is lossless
-                    converted_data = theano._asarray(data, self.dtype)
+                    converted_data = _asarray(data, self.dtype)
                     # We use the `values_eq` static function from TensorType
                     # to handle NaN values.
                     if TensorType.values_eq(

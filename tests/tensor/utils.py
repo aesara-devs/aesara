@@ -10,6 +10,7 @@ import theano
 from tests import unittest_tools as utt
 from theano import config, function, gof, shared, tensor
 from theano.compile.mode import get_default_mode
+from theano.misc.safe_asarray import _asarray
 from theano.tensor.type import TensorType
 
 
@@ -342,7 +343,7 @@ def _numpy_true_div(x, y):
     out = np.true_divide(x, y)
     # Use floatX as the result of int / int
     if x.dtype in tensor.discrete_dtypes and y.dtype in tensor.discrete_dtypes:
-        out = theano._asarray(out, dtype=config.floatX)
+        out = _asarray(out, dtype=config.floatX)
     return out
 
 

@@ -6,6 +6,7 @@ import pytest
 import theano
 from theano import config
 from theano.gof.sched import sort_schedule_fn
+from theano.link.c.basic import OpWiseCLinker
 from theano.tensor.io import (
     MPISend,
     MPISendWait,
@@ -18,7 +19,7 @@ from theano.tensor.io import (
 
 
 mpi_scheduler = sort_schedule_fn(*mpi_cmps)
-mpi_linker = theano.OpWiseCLinker(schedule=mpi_scheduler)
+mpi_linker = OpWiseCLinker(schedule=mpi_scheduler)
 mpi_mode = theano.Mode(linker=mpi_linker)
 
 

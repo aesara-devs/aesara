@@ -74,6 +74,7 @@ from theano.compile.mode import get_default_mode
 from theano.gof.graph import Variable
 from theano.gof.op import Op
 from theano.link.c.basic import DualLinker
+from theano.misc.safe_asarray import _asarray
 from theano.scalar import autocast_float, autocast_float_as
 from theano.tensor import (
     Alloc,
@@ -3459,8 +3460,8 @@ class TestBitwise:
         for dtype in self.dtype:
             x, y = vector(dtype=dtype), vector(dtype=dtype)
             fn = inplace_func([x, y], x | y)
-            l = theano._asarray([0, 0, 1, 1], dtype=dtype)
-            r = theano._asarray([0, 1, 0, 1], dtype=dtype)
+            l = _asarray([0, 0, 1, 1], dtype=dtype)
+            r = _asarray([0, 1, 0, 1], dtype=dtype)
             v = fn(l, r)
             assert np.all(v == (operator.or_(l, r))), (l, r, v)
 
@@ -3468,8 +3469,8 @@ class TestBitwise:
         for dtype in self.dtype:
             x, y = vector(dtype=dtype), vector(dtype=dtype)
             fn = inplace_func([x, y], x ^ y)
-            l = theano._asarray([0, 0, 1, 1], dtype=dtype)
-            r = theano._asarray([0, 1, 0, 1], dtype=dtype)
+            l = _asarray([0, 0, 1, 1], dtype=dtype)
+            r = _asarray([0, 1, 0, 1], dtype=dtype)
             v = fn(l, r)
             assert np.all(v == (operator.xor(l, r))), (l, r, v)
 
@@ -3477,8 +3478,8 @@ class TestBitwise:
         for dtype in self.dtype:
             x, y = vector(dtype=dtype), vector(dtype=dtype)
             fn = inplace_func([x, y], x & y)
-            l = theano._asarray([0, 0, 1, 1], dtype=dtype)
-            r = theano._asarray([0, 1, 0, 1], dtype=dtype)
+            l = _asarray([0, 0, 1, 1], dtype=dtype)
+            r = _asarray([0, 1, 0, 1], dtype=dtype)
             v = fn(l, r)
             assert np.all(v == (operator.and_(l, r))), (l, r, v)
 
@@ -3493,7 +3494,7 @@ class TestBitwise:
                 [0, 1, 0, 1],
                 [-1, 2 ** 16, 2 ** 16 - 1],
             ]:
-                l = theano._asarray([0, 0, 1, 1], dtype=dtype)
+                l = _asarray([0, 0, 1, 1], dtype=dtype)
                 v = fn(l)
                 assert np.all(v == (~l)), (l, v)
 
@@ -4034,9 +4035,9 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
         assert np.all(a_val == a_val_copy)
 
         # test that it works with inplace operations
-        a_val = theano._asarray([0, 1, 2, 3, 4, 5], dtype="float64")
-        a_val_copy = theano._asarray([0, 1, 2, 3, 4, 5], dtype="float64")
-        b_val = theano._asarray([[0, 1, 2], [3, 4, 5]], dtype="float64")
+        a_val = _asarray([0, 1, 2, 3, 4, 5], dtype="float64")
+        a_val_copy = _asarray([0, 1, 2, 3, 4, 5], dtype="float64")
+        b_val = _asarray([[0, 1, 2], [3, 4, 5]], dtype="float64")
 
         f_sub = self.function([a, b], c - b)
         assert np.all(f_sub(a_val, b_val) == 0.0)
@@ -4044,7 +4045,7 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
 
         # verify gradient
         def just_vals(v):
-            return Reshape(2)(v, theano._asarray([2, 3], dtype="int32"))
+            return Reshape(2)(v, _asarray([2, 3], dtype="int32"))
 
         utt.verify_grad(just_vals, [a_val], mode=self.mode)
 
@@ -4149,8 +4150,8 @@ def test_flatten_ndim_default():
     a = dmatrix()
     c = flatten(a)
     f = inplace_func([a], c)
-    a_val = theano._asarray([[0, 1, 2], [3, 4, 5]], dtype="float64")
-    c_val = theano._asarray([0, 1, 2, 3, 4, 5], dtype="float64")
+    a_val = _asarray([[0, 1, 2], [3, 4, 5]], dtype="float64")
+    c_val = _asarray([0, 1, 2, 3, 4, 5], dtype="float64")
     assert np.all(f(a_val) == c_val)
     f = inplace_func([a], c)
     assert np.all(f(a_val) == c_val)
@@ -4162,8 +4163,8 @@ def test_flatten_scalar():
     a = dscalar()
     c = flatten(a)
     f = inplace_func([a], c)
-    a_val = theano._asarray(3.0, dtype="float64")
-    c_val = theano._asarray([3.0], dtype="float64")
+    a_val = _asarray(3.0, dtype="float64")
+    c_val = _asarray([3.0], dtype="float64")
     assert np.all(f(a_val) == c_val)
     f = inplace_func([a], c)
     assert np.all(f(a_val) == c_val)
@@ -4175,8 +4176,8 @@ def test_flatten_ndim1():
     a = dmatrix()
     c = flatten(a, 1)
     f = inplace_func([a], c)
-    a_val = theano._asarray([[0, 1, 2], [3, 4, 5]], dtype="float64")
-    c_val = theano._asarray([0, 1, 2, 3, 4, 5], dtype="float64")
+    a_val = _asarray([[0, 1, 2], [3, 4, 5]], dtype="float64")
+    c_val = _asarray([0, 1, 2, 3, 4, 5], dtype="float64")
     assert np.all(f(a_val) == c_val)
     f = inplace_func([a], c)
     assert np.all(f(a_val) == c_val)
@@ -4188,7 +4189,7 @@ def test_flatten_ndim2():
     a = dmatrix()
     c = flatten(a, 2)
     f = inplace_func([a], c)
-    a_val = theano._asarray([[0, 1, 2], [3, 4, 5]], dtype="float64")
+    a_val = _asarray([[0, 1, 2], [3, 4, 5]], dtype="float64")
     assert np.all(f(a_val) == a_val)
     f = inplace_func([a], c)
     assert np.all(f(a_val) == a_val)
@@ -4201,8 +4202,8 @@ def test_flatten_ndim2_of_3():
     a = TensorType("float64", (False, False, False))()
     c = flatten(a, 2)
     f = inplace_func([a], c)
-    a_val = theano._asarray([[[0, 1], [2, 3]], [[4, 5], [6, 7]]], dtype="float64")
-    c_val = theano._asarray([[0, 1, 2, 3], [4, 5, 6, 7]], dtype="float64")
+    a_val = _asarray([[[0, 1], [2, 3]], [[4, 5], [6, 7]]], dtype="float64")
+    c_val = _asarray([[0, 1, 2, 3], [4, 5, 6, 7]], dtype="float64")
     assert np.all(f(a_val) == c_val)
     f = inplace_func([a], c)
     assert np.all(f(a_val) == c_val)
@@ -5351,8 +5352,8 @@ def _test_autocast_custom():
     with autocast_float_as("float32"):
         assert (dvector() + 1.1).dtype == "float64"
         assert (fvector() + 1.1).dtype == "float32"
-        assert (fvector() + theano._asarray(1.1, dtype="float64")).dtype == "float64"
-        assert (fvector() + theano._asarray(1.1, dtype="float32")).dtype == "float32"
+        assert (fvector() + _asarray(1.1, dtype="float64")).dtype == "float64"
+        assert (fvector() + _asarray(1.1, dtype="float32")).dtype == "float32"
 
         assert (dvector() + 1).dtype == "float64"
         assert (fvector() + 1).dtype == "float32"
@@ -5362,8 +5363,8 @@ def _test_autocast_custom():
         assert (dvector() + 1.1).dtype == "float64"
         assert (fvector() + 1.1).dtype == "float64"
         assert (fvector() + 1.0).dtype == "float64"
-        assert (fvector() + theano._asarray(1.1, dtype="float64")).dtype == "float64"
-        assert (fvector() + theano._asarray(1.1, dtype="float32")).dtype == "float32"
+        assert (fvector() + _asarray(1.1, dtype="float64")).dtype == "float64"
+        assert (fvector() + _asarray(1.1, dtype="float32")).dtype == "float32"
 
         assert (dvector() + 1).dtype == "float64"
         assert (fvector() + 1).dtype == "float32"

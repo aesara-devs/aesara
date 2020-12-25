@@ -33,7 +33,8 @@ from tests.tensor.utils import (
     makeBroadcastTester,
     upcast_float16_ufunc,
 )
-from theano import _asarray, config
+from theano import config
+from theano.misc.safe_asarray import _asarray
 from theano.scalar.basic import round_half_away_from_zero_vec, upcast
 from theano.tensor import vector
 from theano.tensor.inplace import (

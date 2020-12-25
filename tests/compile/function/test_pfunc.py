@@ -6,6 +6,7 @@ from theano import config, tensor
 from theano.compile.function import pfunc
 from theano.compile.io import In
 from theano.compile.sharedvalue import shared
+from theano.misc.safe_asarray import _asarray
 from theano.tensor import dmatrices, dmatrix, iscalar, lscalar
 from theano.utils import PYTHON_INT_BITWIDTH
 
@@ -387,7 +388,7 @@ class TestPfunc:
 
         z = tensor.ivector()
         c = z * y
-        f = pfunc([y], (c + 7), givens={z: theano._asarray([4, 4, 4], dtype="int32")})
+        f = pfunc([y], (c + 7), givens={z: _asarray([4, 4, 4], dtype="int32")})
         assert np.all(f([1, 1, 1]) == [11, 11, 11])
         assert x.get_value() == 0
 

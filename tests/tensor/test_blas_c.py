@@ -8,6 +8,7 @@ import theano.tensor as tensor
 from tests import unittest_tools
 from tests.tensor.test_blas import BaseGemv, TestBlasStrides
 from tests.unittest_tools import OptimizationTestMixin
+from theano.misc.safe_asarray import _asarray
 from theano.tensor.blas import Ger
 from theano.tensor.blas_c import CGemv, CGer, check_force_gemv_init
 from theano.tensor.blas_scipy import ScipyGer
@@ -252,8 +253,8 @@ class TestCGemv(OptimizationTestMixin):
         self.t_gemv1((0, 0))
 
     def test_gemv_dimensions(self, dtype="float32"):
-        alpha = theano.shared(theano._asarray(1.0, dtype=dtype), name="alpha")
-        beta = theano.shared(theano._asarray(1.0, dtype=dtype), name="beta")
+        alpha = theano.shared(_asarray(1.0, dtype=dtype), name="alpha")
+        beta = theano.shared(_asarray(1.0, dtype=dtype), name="beta")
 
         z = beta * self.y + alpha * tensor.dot(self.A, self.x)
         f = theano.function([self.A, self.x, self.y], z, mode=self.mode)
