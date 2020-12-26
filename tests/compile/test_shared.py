@@ -4,12 +4,13 @@ import pytest
 import theano
 from theano.compile.sharedvalue import SharedVariable, generic, shared
 from theano.tensor import Tensor, TensorType
+from theano.utils import PYTHON_INT_BITWIDTH
 
 
 class TestSharedVariable:
     def test_ctors(self):
 
-        if theano.configdefaults.python_int_bitwidth() == 32:
+        if PYTHON_INT_BITWIDTH == 32:
             assert shared(7).type == theano.tensor.iscalar, shared(7).type
         else:
             assert shared(7).type == theano.tensor.lscalar, shared(7).type

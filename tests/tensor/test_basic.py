@@ -201,6 +201,7 @@ from theano.tensor import (
     wvector,
     zvector,
 )
+from theano.utils import PYTHON_INT_BITWIDTH
 
 
 if config.mode == "FAST_COMPILE":
@@ -5587,7 +5588,7 @@ class TestArithmeticCast:
 
 class TestLongTensor:
     def test_fit_int64(self):
-        bitwidth = theano.configdefaults.python_int_bitwidth()
+        bitwidth = PYTHON_INT_BITWIDTH
         for exponent in range(bitwidth):
             val = 2 ** exponent - 1
             scalar_ct = constant(val)

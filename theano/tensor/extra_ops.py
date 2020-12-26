@@ -13,6 +13,7 @@ from theano.gradient import (
 from theano.scalar import int32 as int_t
 from theano.scalar import upcast
 from theano.tensor import basic, nlinalg
+from theano.utils import LOCAL_BITWIDTH, PYTHON_INT_BITWIDTH
 
 
 class CpuContiguous(Op):
@@ -108,10 +109,7 @@ class SearchsortedOp(Op):
             return theano.Apply(self, [x, v], [out_type()])
         else:
             sorter = basic.as_tensor(sorter, ndim=1)
-            if (
-                theano.configdefaults.python_int_bitwidth() == 32
-                and sorter.dtype == "int64"
-            ):
+            if PYTHON_INT_BITWIDTH == 32 and sorter.dtype == "int64":
                 raise TypeError(
                     "numpy.searchsorted with Python 32bit do not support a"
                     " sorter of int64."
@@ -658,7 +656,7 @@ class RepeatOp(Op):
         # Some dtypes are not supported by numpy's implementation of repeat.
         # Until another one is available, we should fail at graph construction
         # time, not wait for execution.
-        ptr_bitwidth = theano.configdefaults.local_bitwidth()
+        ptr_bitwidth = LOCAL_BITWIDTH
         if ptr_bitwidth == 64:
             numpy_unsupported_dtypes = ("uint64",)
         if ptr_bitwidth == 32:
