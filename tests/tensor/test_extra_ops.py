@@ -36,6 +36,7 @@ from theano.tensor.extra_ops import (
     to_one_hot,
     unravel_index,
 )
+from theano.utils import LOCAL_BITWIDTH, PYTHON_INT_BITWIDTH
 
 
 def test_cpu_contiguous():
@@ -105,7 +106,7 @@ class TestSearchsortedOp(utt.InferShapeTester):
 
     def test_searchsortedOp_on_int_sorter(self):
         compatible_types = ("int8", "int16", "int32")
-        if theano.configdefaults.python_int_bitwidth() == 64:
+        if PYTHON_INT_BITWIDTH == 64:
             compatible_types += ("int64",)
         # 'uint8', 'uint16', 'uint32', 'uint64')
         for dtype in compatible_types:
@@ -420,10 +421,9 @@ class TestRepeatOp(utt.InferShapeTester):
         self.op = RepeatOp()
         # uint64 always fails
         # int64 and uint32 also fail if python int are 32-bit
-        ptr_bitwidth = theano.configdefaults.local_bitwidth()
-        if ptr_bitwidth == 64:
+        if LOCAL_BITWIDTH == 64:
             self.numpy_unsupported_dtypes = ("uint64",)
-        if ptr_bitwidth == 32:
+        if LOCAL_BITWIDTH == 32:
             self.numpy_unsupported_dtypes = ("uint32", "int64", "uint64")
 
     def test_repeatOp(self):

@@ -7,6 +7,7 @@ from theano.compile.function import pfunc
 from theano.compile.io import In
 from theano.compile.sharedvalue import shared
 from theano.tensor import dmatrices, dmatrix, iscalar, lscalar
+from theano.utils import PYTHON_INT_BITWIDTH
 
 
 def data_of(s):
@@ -570,7 +571,7 @@ class TestPfunc:
     def test_default_updates_input(self):
         x = shared(0)
         y = shared(1)
-        if theano.configdefaults.python_int_bitwidth() == 32:
+        if PYTHON_INT_BITWIDTH == 32:
             a = iscalar("a")
         else:
             a = lscalar("a")
