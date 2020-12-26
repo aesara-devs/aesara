@@ -242,16 +242,16 @@ def test_no_more_dotting():
 
 def test_mode_apply():
 
-    assert configdefaults.filter_mode("DebugMode") == "DebugMode"
+    assert configdefaults._filter_mode("DebugMode") == "DebugMode"
 
     with pytest.raises(ValueError, match="Expected one of"):
-        configdefaults.filter_mode("not_a_mode")
+        configdefaults._filter_mode("not_a_mode")
 
     # test with theano.Mode instance
     import theano.compile.mode
 
     assert (
-        configdefaults.filter_mode(theano.compile.mode.FAST_COMPILE)
+        configdefaults._filter_mode(theano.compile.mode.FAST_COMPILE)
         == theano.compile.mode.FAST_COMPILE
     )
 

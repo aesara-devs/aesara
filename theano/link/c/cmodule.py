@@ -23,13 +23,13 @@ import numpy.distutils
 
 import theano
 from theano import config
-from theano.configdefaults import gcc_version_str, local_bitwidth
+from theano.configdefaults import gcc_version_str
 
 # we will abuse the lockfile mechanism when reading and writing the registry
 from theano.gof import compilelock
 from theano.gof.utils import flatten, hash_from_code
 from theano.link.c.exceptions import MissingGXX
-from theano.utils import output_subprocess_Popen, subprocess_Popen
+from theano.utils import LOCAL_BITWIDTH, output_subprocess_Popen, subprocess_Popen
 
 
 importlib = None
@@ -2308,7 +2308,7 @@ class GCC_compiler(Compiler):
         if not any(["arm" in flag for flag in cxxflags]) and not any(
             arch in platform.machine() for arch in ["arm", "aarch"]
         ):
-            n_bits = local_bitwidth()
+            n_bits = LOCAL_BITWIDTH
             cxxflags.append(f"-m{int(n_bits)}")
             _logger.debug(f"Compiling for {n_bits} bit architecture")
 
@@ -2317,7 +2317,7 @@ class GCC_compiler(Compiler):
             # '-fPIC ignored for target (all code is position independent)'
             cxxflags.append("-fPIC")
 
-        if sys.platform == "win32" and local_bitwidth() == 64:
+        if sys.platform == "win32" and LOCAL_BITWIDTH == 64:
             # Under 64-bit Windows installation, sys.platform is 'win32'.
             # We need to define MS_WIN64 for the preprocessor to be able to
             # link with libpython.

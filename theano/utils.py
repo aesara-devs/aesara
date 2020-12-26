@@ -3,6 +3,7 @@
 
 import inspect
 import os
+import struct
 import subprocess
 import sys
 import traceback
@@ -21,10 +22,33 @@ __all__ = [
     "subprocess_Popen",
     "call_subprocess_Popen",
     "output_subprocess_Popen",
+    "LOCAL_BITWIDTH",
+    "PYTHON_INT_BITWIDTH",
 ]
 
 
 __excepthooks = []
+
+
+LOCAL_BITWIDTH = struct.calcsize("P") * 8
+"""
+32 for 32bit arch, 64 for 64bit arch.
+By "architecture", we mean the size of memory pointers (size_t in C),
+*not* the size of long int, as it can be different.
+
+Note that according to Python documentation, `platform.architecture()` is
+not reliable on OS X with universal binaries.
+Also, sys.maxsize does not exist in Python < 2.6.
+'P' denotes a void*, and the size is expressed in bytes.
+"""
+
+PYTHON_INT_BITWIDTH = struct.calcsize("l") * 8
+"""
+The bit width of Python int (C long int).
+
+Note that it can be different from the size of a memory pointer.
+'l' denotes a C long int, and the size is expressed in bytes.
+"""
 
 
 def __call_excepthooks(type, value, trace):
