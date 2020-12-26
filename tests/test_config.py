@@ -1,5 +1,7 @@
 """Test config options."""
 import configparser as stdlib_configparser
+import io
+import pickle
 
 import pytest
 
@@ -254,6 +256,22 @@ def test_mode_apply():
         configdefaults._filter_mode(theano.compile.mode.FAST_COMPILE)
         == theano.compile.mode.FAST_COMPILE
     )
+
+
+def test_config_pickling():
+    # check that the real thing can be pickled
+    root = configdefaults.config
+    pickle.dump(root, io.BytesIO())
+
+    # and validate that the test would catch typical problems
+    root = _create_test_config()
+    root.add(
+        "test__lambda_kills_pickling",
+        "Lambda functions cause pickling problems.",
+        configparser.IntParam(5, lambda i: i > 0),
+    )
+    with pytest.raises(AttributeError, match="Can't pickle local object"):
+        pickle.dump(root, io.BytesIO())
 
 
 class TestConfigHelperFunctions:
