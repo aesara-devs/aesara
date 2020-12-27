@@ -6,8 +6,8 @@ import warnings
 from importlib import reload
 
 import theano
+from theano.compile.compilelock import get_lock, release_lock
 from theano.configdefaults import config
-from theano.gof.compilelock import get_lock, release_lock
 from theano.link.c.cmodule import GCC_compiler
 
 

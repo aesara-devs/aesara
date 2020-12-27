@@ -14,7 +14,7 @@ if sys.platform == "win32":
     os.environ["THEANO_FLAGS"] = theano_flags
 
 import theano
-import theano.gof.compiledir
+import theano.compile.compiledir
 from theano import config
 from theano.link.c.basic import get_module_cache
 
@@ -81,16 +81,16 @@ def main():
                 )
                 _logger.debug(f"Remaining elements ({len(items)}): {', '.join(items)}")
         elif sys.argv[1] == "list":
-            theano.gof.compiledir.print_compiledir_content()
+            theano.compile.compiledir.print_compiledir_content()
         elif sys.argv[1] == "cleanup":
-            theano.gof.compiledir.cleanup()
+            theano.compile.compiledir.cleanup()
             cache = get_module_cache(init_args=dict(do_refresh=False))
             cache.clear_old()
         elif sys.argv[1] == "unlock":
-            theano.gof.compilelock.force_unlock()
+            theano.compile.compilelock.force_unlock()
             print("Lock successfully removed!")
         elif sys.argv[1] == "purge":
-            theano.gof.compiledir.compiledir_purge()
+            theano.compile.compiledir.compiledir_purge()
         elif sys.argv[1] == "basecompiledir":
             # Simply print the base_compiledir
             print(theano.config.base_compiledir)
@@ -98,9 +98,9 @@ def main():
             print_help(exit_status=1)
     elif len(sys.argv) == 3 and sys.argv[1] == "basecompiledir":
         if sys.argv[2] == "list":
-            theano.gof.compiledir.basecompiledir_ls()
+            theano.compile.compiledir.basecompiledir_ls()
         elif sys.argv[2] == "purge":
-            theano.gof.compiledir.basecompiledir_purge()
+            theano.compile.compiledir.basecompiledir_purge()
         else:
             print_help(exit_status=1)
     else:

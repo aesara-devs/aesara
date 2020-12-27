@@ -1361,7 +1361,7 @@ class FunctionMaker:
         # This function is not finished
         import os.path
 
-        from theano.gof.compilelock import get_lock, release_lock
+        from theano.compile.compilelock import get_lock, release_lock
 
         graph_db_file = os.path.join(config.compiledir, "optimized_graphs.pkl")
 

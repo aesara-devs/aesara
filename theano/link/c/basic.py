@@ -11,9 +11,9 @@ from io import StringIO
 
 import numpy as np
 
+from theano.compile.compilelock import get_lock, release_lock
 from theano.configdefaults import config
 from theano.gof.callcache import CallCache
-from theano.gof.compilelock import get_lock, release_lock
 from theano.gof.graph import Constant, NoParams, io_toposort
 from theano.gof.graph import variables as get_variables
 from theano.gof.utils import MethodNotDefined

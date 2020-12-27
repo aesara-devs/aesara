@@ -1,3 +1,7 @@
+"""
+This module contains housekeeping functions for cleaning/purging the "compiledir".
+It is used by the "theano-cache" CLI tool, located in the /bin folder of the repository.
+"""
 import logging
 import os
 import pickle
@@ -10,7 +14,7 @@ from theano.configdefaults import config
 from theano.utils import flatten
 
 
-_logger = logging.getLogger("theano.gof.compiledir")
+_logger = logging.getLogger("theano.compile.compiledir")
 
 
 def cleanup():
