@@ -15,6 +15,7 @@ from theano.compile.function import function
 from theano.compile.mode import FAST_RUN, get_mode
 from theano.compile.ops import ViewOp
 from theano.compile.sharedvalue import shared
+from theano.configdefaults import config
 from theano.gof import Variable, utils
 from theano.gof.null_type import NullType, null_type
 from theano.gof.op import get_test_values
@@ -1451,7 +1452,7 @@ def _float_zeros_like(x):
     if rval.type.dtype.find("float") != -1:
         return rval
 
-    return rval.astype(theano.config.floatX)
+    return rval.astype(config.floatX)
 
 
 def _float_ones_like(x):
@@ -1460,7 +1461,7 @@ def _float_ones_like(x):
 
     dtype = x.type.dtype
     if dtype not in theano.tensor.float_dtypes:
-        dtype = theano.config.floatX
+        dtype = config.floatX
 
     return x.ones_like(dtype=dtype)
 

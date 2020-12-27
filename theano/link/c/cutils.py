@@ -2,7 +2,7 @@ import errno
 import os
 import sys
 
-from theano import config
+from theano.configdefaults import config
 from theano.gof.compilelock import get_lock, release_lock
 from theano.link.c import cmodule
 

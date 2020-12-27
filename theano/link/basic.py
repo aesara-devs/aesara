@@ -1,7 +1,8 @@
 import typing
 from copy import copy, deepcopy
 
-from theano import config, utils
+from theano import utils
+from theano.configdefaults import config
 from theano.gof.fg import FunctionGraph
 from theano.gof.graph import Apply
 from theano.gof.type import Type

@@ -22,6 +22,7 @@ import numpy as np
 import theano
 from theano import gof, scalar, tensor
 from theano.compile.function.pfunc import rebuild_collect_shared
+from theano.configdefaults import config
 from theano.gof.utils import TestValueError
 from theano.tensor.basic import get_scalar_constant_value
 
@@ -61,7 +62,7 @@ def safe_new(x, tag="", dtype=None):
         else:
             nw_x = x.type()
         nw_x.name = nw_name
-        if theano.config.compute_test_value != "off":
+        if config.compute_test_value != "off":
             # Copy test value, cast it if necessary
             try:
                 x_test_value = gof.op.get_test_value(x)
@@ -88,7 +89,7 @@ def safe_new(x, tag="", dtype=None):
     # The test value is deep-copied to ensure there can be no interactions
     # between test values, due to inplace operations for instance. This may
     # not be the most efficient memory-wise, though.
-    if theano.config.compute_test_value != "off":
+    if config.compute_test_value != "off":
         try:
             nw_x.tag.test_value = copy.deepcopy(gof.op.get_test_value(x))
         except TestValueError:

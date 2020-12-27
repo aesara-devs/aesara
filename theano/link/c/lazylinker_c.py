@@ -6,7 +6,7 @@ import warnings
 from importlib import reload
 
 import theano
-from theano import config
+from theano.configdefaults import config
 from theano.gof.compilelock import get_lock, release_lock
 from theano.link.c.cmodule import GCC_compiler
 
@@ -104,7 +104,7 @@ except ImportError:
             # It is useless to try to compile if there isn't any
             # compiler!  But we still want to try to load it, in case
             # the cache was copied from another computer.
-            if not theano.config.cxx:
+            if not config.cxx:
                 raise
             _logger.info("Compiling new CVM")
             dirname = "lazylinker_ext"

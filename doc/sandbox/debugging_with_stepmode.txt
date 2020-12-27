@@ -12,7 +12,7 @@ purpose of it is to hack it to investigate what your own particular program is d
 .. code-block:: python
 
     from theano.link import WrapLinkerMany
-    from theano import config
+    from theano.configdefaults import config
     from theano.compile.mode import (Mode, register_mode, predefined_modes, predefined_linkers,
             predefined_optimizers)
 

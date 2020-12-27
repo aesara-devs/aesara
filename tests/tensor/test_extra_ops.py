@@ -3,8 +3,9 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import config, function
+from theano import function
 from theano import tensor as tt
+from theano.configdefaults import config
 from theano.tensor.extra_ops import (
     Bartlett,
     BroadcastTo,

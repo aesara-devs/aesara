@@ -3,7 +3,8 @@ from copy import copy
 import numpy as np
 
 import theano
-from theano import config, gof, scalar
+from theano import gof, scalar
+from theano.configdefaults import config
 from theano.gof import ParamsType
 from theano.gof.graph import Apply
 from theano.gof.null_type import NullType

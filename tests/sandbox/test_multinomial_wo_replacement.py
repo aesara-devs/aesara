@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from theano import config, function, tensor
+from theano import function, tensor
+from theano.configdefaults import config
 from theano.sandbox import multinomial
 from theano.sandbox.rng_mrg import MRG_RandomStream as RandomStream
 

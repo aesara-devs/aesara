@@ -6,7 +6,8 @@ import numpy as np
 import theano
 from tests import disturb_mem
 from tests.record import Record, RecordMode
-from theano import config, shared
+from theano import shared
+from theano.configdefaults import config
 from theano.printing import var_descriptor
 
 

@@ -8,8 +8,9 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import config, function, gof, shared, tensor
+from theano import function, gof, shared, tensor
 from theano.compile.mode import get_default_mode
+from theano.configdefaults import config
 from theano.tensor.type import TensorType
 
 

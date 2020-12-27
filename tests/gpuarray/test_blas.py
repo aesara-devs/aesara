@@ -7,7 +7,8 @@ from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, test_ctx_name
 from tests.gpuarray.test_basic_ops import makeTester, rand
 from tests.tensor.test_blas import BaseGemv, TestGer
-from theano import config, tensor
+from theano import tensor
+from theano.configdefaults import config
 from theano.gpuarray import gpuarray_shared_constructor
 from theano.gpuarray.blas import (
     GpuGemm,

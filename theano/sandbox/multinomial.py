@@ -3,11 +3,11 @@ import warnings
 
 import numpy as np
 
-import theano
 import theano.tensor as tt
+from theano.configdefaults import config
 from theano.gof.graph import Apply
 from theano.gof.op import COp
-from theano.scalar import as_scalar
+from theano.scalar import Scalar, as_scalar
 
 
 class MultinomialFromUniform(COp):
@@ -50,7 +50,7 @@ class MultinomialFromUniform(COp):
         pvals, unis, n = ins
         (gz,) = outgrads
         return [
-            tt.zeros_like(x, dtype=theano.config.floatX)
+            tt.zeros_like(x, dtype=config.floatX)
             if x.dtype in tt.discrete_dtypes
             else tt.zeros_like(x)
             for x in ins
@@ -70,7 +70,7 @@ class MultinomialFromUniform(COp):
         if self.odtype == "auto":
             t = f"PyArray_TYPE({pvals})"
         else:
-            t = theano.scalar.Scalar(self.odtype).dtype_specs()[1]
+            t = Scalar(self.odtype).dtype_specs()[1]
             if t.startswith("theano_complex"):
                 t = t.replace("theano_complex", "NPY_COMPLEX")
             else:
@@ -262,7 +262,7 @@ class ChoiceFromUniform(MultinomialFromUniform):
         if self.odtype == "auto":
             t = "NPY_INT64"
         else:
-            t = theano.scalar.Scalar(self.odtype).dtype_specs()[1]
+            t = Scalar(self.odtype).dtype_specs()[1]
             if t.startswith("theano_complex"):
                 t = t.replace("theano_complex", "NPY_COMPLEX")
             else:

@@ -1,4 +1,4 @@
-from theano import config
+from theano.configdefaults import config
 from theano.link.c.exceptions import MissingGXX
 from theano.link.vm import VM
 

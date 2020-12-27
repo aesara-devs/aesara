@@ -1,8 +1,8 @@
 import numpy as np
 
-import theano
 import theano.tensor as tt
 from theano.compile.debugmode import _lessbroken_deepcopy
+from theano.configdefaults import config
 from theano.gof.graph import Apply, Constant, Variable
 from theano.gof.op import COp, Op
 from theano.tensor.type_other import SliceType
@@ -537,7 +537,7 @@ class Index(Op):
         (out,) = outputs
         for y in range(len(x)):
             if node.inputs[0].ttype.values_eq(x[y], elem):
-                out[0] = np.asarray(y, dtype=theano.config.floatX)
+                out[0] = np.asarray(y, dtype=config.floatX)
                 break
 
     def __str__(self):
@@ -568,7 +568,7 @@ class Count(Op):
         for y in range(len(x)):
             if node.inputs[0].ttype.values_eq(x[y], elem):
                 out[0] += 1
-        out[0] = np.asarray(out[0], dtype=theano.config.floatX)
+        out[0] = np.asarray(out[0], dtype=config.floatX)
 
     def __str__(self):
         return self.__class__.__name__
@@ -646,12 +646,12 @@ class MakeList(Op):
         assert isinstance(a, (tuple, list))
         a2 = []
         for elem in a:
-            if not isinstance(elem, theano.gof.Variable):
+            if not isinstance(elem, Variable):
                 elem = tt.as_tensor_variable(elem)
             a2.append(elem)
         if not all(a2[0].type == elem.type for elem in a2):
             raise TypeError("MakeList need all input variable to be of the same type.")
-        tl = theano.typed_list.TypedListType(a2[0].type)()
+        tl = TypedListType(a2[0].type)()
 
         return Apply(self, a2, [tl])
 

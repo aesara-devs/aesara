@@ -12,7 +12,7 @@ import time
 import warnings
 from collections import defaultdict
 
-from theano import config
+from theano.configdefaults import config
 from theano.gof import Constant, Variable
 from theano.link.basic import Container, LocalLinker
 from theano.link.utils import gc_helper, map_storage, raise_with_op

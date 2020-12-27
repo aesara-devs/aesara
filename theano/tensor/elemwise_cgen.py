@@ -1,4 +1,4 @@
-import theano
+from theano.configdefaults import config
 
 
 def make_declare(loop_orders, dtypes, sub):
@@ -215,7 +215,7 @@ def make_loop(loop_orders, dtypes, loop_tasks, sub, openmp=None):
             if index != "x":
                 suitable_n = f"{var}_n{index}"
         if openmp:
-            openmp_elemwise_minsize = theano.config.openmp_elemwise_minsize
+            openmp_elemwise_minsize = config.openmp_elemwise_minsize
             forloop = f"""#pragma omp parallel for if( {suitable_n} >={openmp_elemwise_minsize})\n"""
         else:
             forloop = ""
@@ -415,7 +415,7 @@ def make_reordered_loop(
             update = pointer_update
         if i == 0:
             if openmp:
-                openmp_elemwise_minsize = theano.config.openmp_elemwise_minsize
+                openmp_elemwise_minsize = config.openmp_elemwise_minsize
                 forloop += f"""#pragma omp parallel for if( {total} >={openmp_elemwise_minsize})\n"""
         forloop += f"for(int {iterv} = 0; {iterv}<{total}; {iterv}++)"
 

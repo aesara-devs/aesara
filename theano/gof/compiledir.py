@@ -6,7 +6,7 @@ import shutil
 import numpy as np
 
 import theano
-from theano import config
+from theano.configdefaults import config
 from theano.gof.utils import flatten
 
 
@@ -26,7 +26,7 @@ def cleanup():
     If there is no key left for a compiled module, we delete the module.
 
     """
-    compiledir = theano.config.compiledir
+    compiledir = config.compiledir
     for directory in os.listdir(compiledir):
         file = None
         try:
@@ -106,7 +106,7 @@ def print_compiledir_content():
     """
     max_key_file_size = 1 * 1024 * 1024  # 1M
 
-    compiledir = theano.config.compiledir
+    compiledir = config.compiledir
     table = []
     table_multiple_ops = []
     table_op_class = {}
@@ -254,7 +254,7 @@ def basecompiledir_ls():
     subdirs = sorted(subdirs)
     others = sorted(others)
 
-    print(f"Base compile dir is {theano.config.base_compiledir}")
+    print(f"Base compile dir is {config.base_compiledir}")
     print("Sub-directories (possible compile caches):")
     for d in subdirs:
         print(f"    {d}")

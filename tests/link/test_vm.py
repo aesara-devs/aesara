@@ -6,8 +6,9 @@ import numpy as np
 import pytest
 
 import theano
-from theano import config, function, tensor
+from theano import function, tensor
 from theano.compile import Mode
+from theano.configdefaults import config
 from theano.gof.graph import Apply
 from theano.gof.op import Op
 from theano.ifelse import ifelse

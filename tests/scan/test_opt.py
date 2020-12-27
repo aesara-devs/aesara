@@ -3,7 +3,7 @@ import numpy as np
 import theano
 import theano.tensor as tt
 from tests import unittest_tools as utt
-from theano import config
+from theano.configdefaults import config
 from theano.scan.op import Scan
 
 

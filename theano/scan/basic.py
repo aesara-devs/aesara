@@ -10,10 +10,11 @@ from collections import OrderedDict
 import numpy as np
 
 import theano.tensor as tt
-from theano import config, gof
+from theano import gof
 from theano.compile import SharedVariable, ops
 from theano.compile.function import function
 from theano.compile.mode import Mode
+from theano.configdefaults import config
 from theano.gof.utils import TestValueError
 from theano.scan import utils
 from theano.scan.op import Scan

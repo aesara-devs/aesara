@@ -16,6 +16,7 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
+from theano.configdefaults import config
 
 
 def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order="C"):
@@ -31,10 +32,10 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order=
 
     if verbose:
         print("Some Theano flags:")
-        print("    blas__ldflags=", theano.config.blas__ldflags)
-        print("    compiledir=", theano.config.compiledir)
-        print("    floatX=", theano.config.floatX)
-        print("    device=", theano.config.device)
+        print("    blas__ldflags=", config.blas__ldflags)
+        print("    compiledir=", config.compiledir)
+        print("    floatX=", config.floatX)
+        print("    device=", config.device)
         print("Some OS information:")
         print("    sys.platform=", sys.platform)
         print("    sys.version=", sys.version)
@@ -50,9 +51,9 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order=
         print("Numpy location:", np.__file__)
         print("Numpy version:", np.__version__)
 
-    a = theano.shared(np.ones((M, N), dtype=theano.config.floatX, order=order))
-    b = theano.shared(np.ones((N, K), dtype=theano.config.floatX, order=order))
-    c = theano.shared(np.ones((M, K), dtype=theano.config.floatX, order=order))
+    a = theano.shared(np.ones((M, N), dtype=config.floatX, order=order))
+    b = theano.shared(np.ones((N, K), dtype=config.floatX, order=order))
+    c = theano.shared(np.ones((M, K), dtype=config.floatX, order=order))
     f = theano.function([], updates=[(c, 0.4 * c + 0.8 * tt.dot(a, b))])
 
     if any([x.op.__class__.__name__ == "Gemm" for x in f.maker.fgraph.toposort()]):

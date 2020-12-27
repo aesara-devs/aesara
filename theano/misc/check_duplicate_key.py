@@ -2,7 +2,7 @@ import os
 import pickle
 import sys
 
-import theano
+from theano.configdefaults import config
 
 
 DISPLAY_DUPLICATE_KEYS = False
@@ -13,8 +13,8 @@ if len(sys.argv) > 1:
     for compiledir in sys.argv[1:]:
         dirs.extend([os.path.join(compiledir, d) for d in os.listdir(compiledir)])
 else:
-    dirs = os.listdir(theano.config.compiledir)
-    dirs = [os.path.join(theano.config.compiledir, d) for d in dirs]
+    dirs = os.listdir(config.compiledir)
+    dirs = [os.path.join(config.compiledir, d) for d in dirs]
 keys = {}  # key -> nb seen
 mods = {}
 for dir in dirs:

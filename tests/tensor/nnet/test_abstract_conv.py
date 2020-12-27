@@ -3,7 +3,8 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import config, tensor
+from theano import tensor
+from theano.configdefaults import config
 from theano.gof.opt import check_stack_trace
 from theano.tensor.nnet import abstract_conv as conv
 from theano.tensor.nnet import conv2d_transpose, corr, corr3d

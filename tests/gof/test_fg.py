@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from tests.gof.utils import MyVariable, MyVariable2, op1, op2, op3
-from theano import config
+from theano.configdefaults import config
 from theano.gof.fg import FunctionGraph, MissingInputError
 from theano.gof.toolbox import BadOptimization
 

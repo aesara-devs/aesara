@@ -4,7 +4,8 @@ import pytest
 import theano
 import theano.tensor as tt
 from tests import unittest_tools
-from theano import config, function, shared
+from theano import function, shared
+from theano.configdefaults import config
 from theano.tensor.nnet.neighbours import Images2Neibs, images2neibs, neibs2images
 
 

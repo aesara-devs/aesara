@@ -12,8 +12,8 @@ from pickle import Unpickler
 
 from tests.gpuarray.config import test_ctx_name
 from tests.gpuarray.test_basic_ops import rand_gpuarray
-from theano import config
 from theano.compile import DeepCopyOp, Rebroadcast, ViewOp
+from theano.configdefaults import config
 from theano.gpuarray.type import GpuArrayType, gpuarray_shared_constructor
 
 

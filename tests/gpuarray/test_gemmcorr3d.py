@@ -4,7 +4,7 @@ import theano
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, ref_cast
 from tests.tensor.nnet.test_abstract_conv import TestGroupedConv3dNoOptim
-from theano import config
+from theano.configdefaults import config
 from theano.gpuarray.blas import (
     GpuCorr3dMM,
     GpuCorr3dMM_gradInputs,

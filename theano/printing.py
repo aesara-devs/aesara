@@ -15,8 +15,9 @@ from io import StringIO
 import numpy as np
 
 import theano
-from theano import config, gof
+from theano import gof
 from theano.compile import Function, SharedVariable, debugmode
+from theano.configdefaults import config
 from theano.gof import Apply, Op
 
 

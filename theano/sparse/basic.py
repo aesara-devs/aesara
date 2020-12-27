@@ -14,7 +14,8 @@ import scipy.sparse
 from numpy.lib.stride_tricks import as_strided
 
 import theano
-from theano import config, gof, scalar, tensor
+from theano import gof, scalar, tensor
+from theano.configdefaults import config
 from theano.gof.op import COp, Op
 from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
 from theano.sparse.type import SparseType, _is_sparse
@@ -830,7 +831,7 @@ class Cast(Op):
 
         if gz.dtype in discrete_dtypes:
             if inputs[0].dtype in discrete_dtypes:
-                return [inputs[0].zeros_like(dtype=theano.config.floatX)]
+                return [inputs[0].zeros_like(dtype=config.floatX)]
             else:
                 return [inputs[0].zeros_like()]
         else:
@@ -1738,7 +1739,7 @@ class SpSum(Op):
         (x,) = inputs
         (gz,) = gout
         if x.dtype not in continuous_dtypes:
-            return [x.zeros_like(dtype=theano.config.floatX)]
+            return [x.zeros_like(dtype=config.floatX)]
         if self.structured:
             if self.axis is None:
                 r = gz * theano.sparse.sp_ones_like(x)

@@ -4,8 +4,8 @@ import sys
 import warnings
 
 import theano
-from theano import config
 from theano.compile import optdb
+from theano.configdefaults import config
 from theano.tensor.basic import register_transfer
 
 

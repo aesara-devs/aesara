@@ -2,10 +2,11 @@ import numpy as np
 import pytest
 
 import theano
-from theano import config, tensor
+from theano import tensor
 from theano.compile.function import pfunc
 from theano.compile.io import In
 from theano.compile.sharedvalue import shared
+from theano.configdefaults import config
 from theano.tensor import dmatrices, dmatrix, iscalar, lscalar
 from theano.utils import PYTHON_INT_BITWIDTH
 

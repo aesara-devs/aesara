@@ -8,8 +8,8 @@ import pytest
 
 import theano
 import theano.tensor as tt
-from theano import config
 from theano.compile.debugmode import str_diagnostic
+from theano.configdefaults import config
 
 
 _logger = logging.getLogger("tests.unittest_tools")
