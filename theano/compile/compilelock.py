@@ -5,7 +5,7 @@ in the same compilation directory (which can cause crashes).
 import atexit
 import logging
 import os
-import socket  # only used for gethostname()
+import socket
 import time
 from contextlib import contextmanager
 
@@ -14,15 +14,23 @@ import numpy as np
 from theano.configdefaults import config
 
 
-random = np.random.RandomState([2015, 8, 2])
+__all__ = [
+    "force_unlock",
+    "get_lock",
+    "lock",
+    "lock_ctx",
+    "release_lock",
+    "set_lock_status",
+]
 
-_logger = logging.getLogger("theano.gof.compilelock")
+
+_random = np.random.RandomState([2015, 8, 2])
+
+_logger = logging.getLogger("theano.compile.compilelock")
 # If the user provided a logging level, we don't want to override it.
 if _logger.level == logging.NOTSET:
     # INFO will show the "Refreshing lock" messages
     _logger.setLevel(logging.INFO)
-
-hostname = socket.gethostname()
 
 
 def force_unlock():
@@ -201,6 +209,7 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
 
     # Variable initialization.
     lock_file = os.path.join(tmp_dir, "lock")
+    hostname = socket.gethostname()
     my_pid = os.getpid()
     no_display = verbosity == 0
 
@@ -276,7 +285,7 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
                     if verbosity <= 1:
                         no_display = True
                 nb_wait += 1
-                time.sleep(random.uniform(min_wait, max_wait))
+                time.sleep(_random.uniform(min_wait, max_wait))
 
             try:
                 os.mkdir(tmp_dir)
@@ -312,7 +321,7 @@ def lock(tmp_dir, timeout=notset, min_wait=None, max_wait=None, verbosity=1):
             nb_error += 1
             if nb_error > 10:
                 raise
-            time.sleep(random.uniform(min_wait, max_wait))
+            time.sleep(_random.uniform(min_wait, max_wait))
             continue
 
 
@@ -324,8 +333,8 @@ def refresh_lock(lock_file):
     """
     unique_id = "{}_{}_{}".format(
         os.getpid(),
-        "".join([str(random.randint(0, 9)) for i in range(10)]),
-        hostname,
+        "".join([str(_random.randint(0, 9)) for i in range(10)]),
+        socket.gethostname(),
     )
     try:
         with open(lock_file, "w") as lock_write:
@@ -381,7 +390,7 @@ class Unlocker:
                 with open(lock_file) as f:
                     owner = f.readlines()[0].strip()
                     pid, _, hname = owner.split("_")
-                    if pid != str(os.getpid()) or hname != hostname:
+                    if pid != str(os.getpid()) or hname != socket.gethostname():
                         return
             except Exception:
                 pass

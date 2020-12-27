@@ -23,10 +23,10 @@ from io import BytesIO, StringIO
 import numpy.distutils
 
 import theano
-from theano.configdefaults import config, gcc_version_str
 
 # we will abuse the lockfile mechanism when reading and writing the registry
-from theano.gof import compilelock
+from theano.compile.compilelock import lock_ctx
+from theano.configdefaults import config, gcc_version_str
 from theano.link.c.exceptions import MissingGXX
 from theano.utils import (
     LOCAL_BITWIDTH,
@@ -1015,7 +1015,7 @@ class ModuleCache:
                     self.loaded_key_pkl.remove(pkl_file_to_remove)
 
         if to_delete or to_delete_empty:
-            with compilelock.lock_ctx():
+            with lock_ctx():
                 for a, kw in to_delete:
                     _rmtree(*a, **kw)
                 for a, kw in to_delete_empty:
@@ -1055,7 +1055,7 @@ class ModuleCache:
         if module_hash in self.module_hash_to_key_data:
             key_data = self.module_hash_to_key_data[module_hash]
             module = self._get_from_key(None, key_data)
-            with compilelock.lock_ctx(keep_lock=keep_lock):
+            with lock_ctx(keep_lock=keep_lock):
                 try:
                     key_data.add_key(key, save_pkl=bool(key[0]))
                     key_broken = False
@@ -1160,7 +1160,7 @@ class ModuleCache:
         if module is not None:
             return module
 
-        with compilelock.lock_ctx(keep_lock=keep_lock):
+        with lock_ctx(keep_lock=keep_lock):
             # 1) Maybe somebody else compiled it for us while we
             #    where waiting for the lock. Try to load it again.
             # 2) If other repo that import Theano have Theano ops defined,
@@ -1247,7 +1247,7 @@ class ModuleCache:
                 # same time.  This can happen as we read the cache
                 # without taking the lock.
                 if i == 2:
-                    with compilelock.lock_ctx():
+                    with lock_ctx():
                         with open(key_pkl, "rb") as f:
                             key_data = pickle.load(f)
                 time.sleep(2)
@@ -1334,7 +1334,7 @@ class ModuleCache:
         )
         if not too_old_to_use:
             return
-        with compilelock.lock_ctx():
+        with lock_ctx():
             # Update the age of modules that have been accessed by other
             # processes and get all module that are too old to use
             # (not loaded in self.entry_from_key).
@@ -1374,7 +1374,7 @@ class ModuleCache:
             See help of refresh() method.
 
         """
-        with compilelock.lock_ctx():
+        with lock_ctx():
             self.clear_old(age_thresh_del=-1.0, delete_if_problem=delete_if_problem)
             self.clear_unversioned(min_age=unversioned_min_age)
             if clear_base_files:
@@ -1391,7 +1391,7 @@ class ModuleCache:
         next time we clear the cache.
 
         """
-        with compilelock.lock_ctx():
+        with lock_ctx():
             for base_dir in ("cutils_ext", "lazylinker_ext", "scan_perform"):
                 to_delete = os.path.join(self.dirname, base_dir + ".delete.me")
                 if os.path.isdir(to_delete):
