@@ -16,10 +16,7 @@ from theano.configdefaults import config
 
 __all__ = [
     "force_unlock",
-    "get_lock",
-    "lock",
     "lock_ctx",
-    "release_lock",
 ]
 
 

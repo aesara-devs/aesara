@@ -6,7 +6,7 @@ import warnings
 from importlib import reload
 
 import theano
-from theano.compile.compilelock import get_lock, release_lock
+from theano.compile.compilelock import lock_ctx
 from theano.configdefaults import config
 from theano.link.c.cmodule import GCC_compiler
 
@@ -79,8 +79,7 @@ try:
                 f"Extra debug information: force_compile={force_compile}, _need_reload={_need_reload}"
             )
 except ImportError:
-    get_lock()
-    try:
+    with lock_ctx():
         # Maybe someone else already finished compiling it while we were
         # waiting for the lock?
         try:
@@ -152,9 +151,6 @@ except ImportError:
 
             assert lazylinker_ext._version == lazy_c.get_version()
             _logger.info(f"New version {lazylinker_ext._version}")
-    finally:
-        # Release lock on compilation directory.
-        release_lock()
 
 from lazylinker_ext.lazylinker_ext import *  # noqa
 
