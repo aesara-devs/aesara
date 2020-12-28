@@ -1,7 +1,5 @@
 from collections.abc import Sequence
-from functools import reduce
-from functools import singledispatch as dispatch
-from functools import update_wrapper
+from functools import reduce, singledispatch, update_wrapper
 from warnings import warn
 
 import jax
@@ -192,7 +190,7 @@ def compose_jax_funcs(out_node, fgraph_inputs, memo=None):
     return jax_funcs
 
 
-@dispatch
+@singledispatch
 def jax_funcify(op):
     """Create a JAX "perform" function for a Theano `Variable` and its `Op`."""
     raise NotImplementedError(f"No JAX conversion for the given `Op`: {op}")
