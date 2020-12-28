@@ -43,11 +43,10 @@ def force_unlock():
 
 
 @contextmanager
-def lock_ctx(lock_dir=None, keep_lock=False, **kw):
+def lock_ctx(lock_dir=None, **kw):
     get_lock(lock_dir=lock_dir, **kw)
     yield
-    if not keep_lock:
-        release_lock()
+    release_lock()
 
 
 # We define this name with an underscore so that python shutdown
