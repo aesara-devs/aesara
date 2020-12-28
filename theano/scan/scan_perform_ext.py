@@ -17,7 +17,7 @@ from importlib import reload
 import numpy as np
 
 import theano
-from theano.compile.compilelock import get_lock, release_lock
+from theano.compile.compilelock import lock_ctx
 from theano.configdefaults import config
 from theano.link.c import cmodule
 
@@ -50,8 +50,7 @@ try:
     if version != getattr(scan_perform, "_version", None):
         raise ImportError()
 except ImportError:
-    get_lock()
-    try:
+    with lock_ctx():
         # Maybe someone else already finished compiling it while we were
         # waiting for the lock?
         try:
@@ -139,9 +138,6 @@ except ImportError:
 
             assert scan_perform._version == scan_c.get_version()
             _logger.info(f"New version {scan_perform._version}")
-    finally:
-        # Release lock on compilation directory.
-        release_lock()
 
 # This is caused as cython use the old NumPy C-API but we use the new one.
 # To fix it completely, we would need to modify Cython to use the new API.

@@ -11,7 +11,7 @@ from io import StringIO
 
 import numpy as np
 
-from theano.compile.compilelock import get_lock, release_lock
+from theano.compile.compilelock import lock_ctx
 from theano.configdefaults import config
 from theano.gof.callcache import CallCache
 from theano.gof.graph import Constant, NoParams, io_toposort
@@ -1614,23 +1614,21 @@ class CLinker(Linker):
         preargs = self.compile_args()
         # We want to compute the code without the lock
         src_code = mod.code()
-        get_lock()
-        try:
-            _logger.debug(f"LOCATION {location}")
-            module = c_compiler.compile_str(
-                module_name=mod.code_hash,
-                src_code=src_code,
-                location=location,
-                include_dirs=self.header_dirs(),
-                lib_dirs=self.lib_dirs(),
-                libs=libs,
-                preargs=preargs,
-            )
-        except Exception as e:
-            e.args += (str(self.fgraph),)
-            raise
-        finally:
-            release_lock()
+        with lock_ctx():
+            try:
+                _logger.debug(f"LOCATION {location}")
+                module = c_compiler.compile_str(
+                    module_name=mod.code_hash,
+                    src_code=src_code,
+                    location=location,
+                    include_dirs=self.header_dirs(),
+                    lib_dirs=self.lib_dirs(),
+                    libs=libs,
+                    preargs=preargs,
+                )
+            except Exception as e:
+                e.args += (str(self.fgraph),)
+                raise
         return module
 
     def get_dynamic_module(self):
@@ -1908,78 +1906,63 @@ class OpWiseCLinker(LocalLinker):
         self, profiler=None, input_storage=None, output_storage=None, storage_map=None
     ):
 
-        # The lock will be acquired when we compile the first
-        # C code. We will keep the lock until all the function
-        # compilation will be finished. This allow to don't
-        # require the lock when all c code are already compiled!
-        orig_n_lock = getattr(get_lock, "n_lock", 0)
-        try:
+        fgraph = self.fgraph
+        order = self.schedule(fgraph)
+        no_recycling = self.no_recycling
 
-            fgraph = self.fgraph
-            order = self.schedule(fgraph)
-            no_recycling = self.no_recycling
+        input_storage, output_storage, storage_map = map_storage(
+            fgraph, order, input_storage, output_storage, storage_map
+        )
+        if self.allow_gc:
+            computed, last_user = gc_helper(order)
+            post_thunk_old_storage = []
+        else:
+            post_thunk_old_storage = None
 
-            input_storage, output_storage, storage_map = map_storage(
-                fgraph, order, input_storage, output_storage, storage_map
-            )
+        compute_map = {}
+        for k in storage_map:
+            compute_map[k] = [k.owner is None]
+
+        thunks = []
+        for node in order:
+            # make_thunk will try by default C code, otherwise
+            # it fall back to python.
+            thunks += [node.op.make_thunk(node, storage_map, compute_map, no_recycling)]
+            thunks[-1].inputs = [storage_map[v] for v in node.inputs]
+            thunks[-1].outputs = [storage_map[v] for v in node.outputs]
+
+        for node in order:
             if self.allow_gc:
-                computed, last_user = gc_helper(order)
-                post_thunk_old_storage = []
-            else:
-                post_thunk_old_storage = None
+                post_thunk_old_storage.append(
+                    [
+                        storage_map[input]
+                        for input in node.inputs
+                        if (
+                            (input in computed)
+                            and (input not in fgraph.outputs)
+                            and node == last_user[input]
+                        )
+                    ]
+                )
 
-            compute_map = {}
-            for k in storage_map:
-                compute_map[k] = [k.owner is None]
+        if no_recycling is True:
+            no_recycling = list(storage_map.values())
+            no_recycling = difference(no_recycling, input_storage)
+        else:
+            no_recycling = [
+                storage_map[r] for r in no_recycling if r not in fgraph.inputs
+            ]
 
-            thunks = []
-            for node in order:
-                # make_thunk will try by default C code, otherwise
-                # it fall back to python.
-                thunks += [
-                    node.op.make_thunk(node, storage_map, compute_map, no_recycling)
-                ]
-                thunks[-1].inputs = [storage_map[v] for v in node.inputs]
-                thunks[-1].outputs = [storage_map[v] for v in node.outputs]
+        f = streamline(
+            fgraph,
+            thunks,
+            order,
+            post_thunk_old_storage,
+            no_recycling=no_recycling,
+            nice_errors=self.nice_errors,
+        )
 
-            for node in order:
-                if self.allow_gc:
-                    post_thunk_old_storage.append(
-                        [
-                            storage_map[input]
-                            for input in node.inputs
-                            if (
-                                (input in computed)
-                                and (input not in fgraph.outputs)
-                                and node == last_user[input]
-                            )
-                        ]
-                    )
-
-            if no_recycling is True:
-                no_recycling = list(storage_map.values())
-                no_recycling = difference(no_recycling, input_storage)
-            else:
-                no_recycling = [
-                    storage_map[r] for r in no_recycling if r not in fgraph.inputs
-                ]
-
-            f = streamline(
-                fgraph,
-                thunks,
-                order,
-                post_thunk_old_storage,
-                no_recycling=no_recycling,
-                nice_errors=self.nice_errors,
-            )
-
-            f.allow_gc = self.allow_gc
-
-        finally:
-            # Release lock on compilation directory.
-            if getattr(get_lock, "n_lock", 0) > orig_n_lock:
-                release_lock()
-                assert get_lock.n_lock == orig_n_lock
+        f.allow_gc = self.allow_gc
 
         return (
             f,

@@ -6,6 +6,7 @@ Driver of graph construction, optimization, and linking.
 import copy
 import copyreg
 import logging
+import os
 import pickle
 import time
 import warnings
@@ -16,6 +17,7 @@ import numpy as np
 import theano
 import theano.compile.profiling
 from theano import gof
+from theano.compile.compilelock import lock_ctx
 from theano.compile.io import In, SymbolicInput, SymbolicOutput
 from theano.compile.ops import deep_copy_op, view_op
 from theano.configdefaults import config
@@ -1359,17 +1361,13 @@ class FunctionMaker:
 
     def optimize_graph_with_cache(self, optimizer, inputs, outputs):
         # This function is not finished
-        import os.path
-
-        from theano.compile.compilelock import get_lock, release_lock
-
         graph_db_file = os.path.join(config.compiledir, "optimized_graphs.pkl")
 
         # the inputs, outputs, and size of the graph to be optimized
         inputs_new = [inp.variable for inp in inputs]
         outputs_new = [out.variable for out in outputs]
         size_new = len(self.fgraph.apply_nodes)
-        get_lock()
+
         # Beginning of cache optimizations.
         # Could be refactored in different functions.
 
@@ -1480,29 +1478,30 @@ class FunctionMaker:
                         break
             return found_graph_in_db
 
-        graph_db = load_graph_db()
-        print(f"loaded graph_db from {graph_db_file}, size={len(graph_db)}")
-        found_graph = find_same_graph_in_db(graph_db)
-        if found_graph:
-            self.fgraph = found_graph
-            optimizer_profile = None
-        else:
-            # this is a brand new graph, optimize it, save it to graph_db
-            print("graph not found in graph_db, optimizing the graph")
-            self.fgraph.variables = set(
-                gof.graph.variables(self.fgraph.inputs, self.fgraph.outputs)
-            )
-            # check_integrity parameters was added to ignore
-            # "excess cached variables" errors. Works that way
-            # but once again the error couldbe worth
-            # investigating.
-            before_opt = self.fgraph.clone(check_integrity=False)
-            optimizer_profile = optimizer(self.fgraph)
-            graph_db.update({before_opt: self.fgraph})
-            with open(graph_db_file, "wb") as f:
-                pickle.dump(graph_db, f, -1)
-            print("new graph saved into graph_db")
-        release_lock()
+        with lock_ctx():
+            graph_db = load_graph_db()
+            print(f"loaded graph_db from {graph_db_file}, size={len(graph_db)}")
+            found_graph = find_same_graph_in_db(graph_db)
+            if found_graph:
+                self.fgraph = found_graph
+                optimizer_profile = None
+            else:
+                # this is a brand new graph, optimize it, save it to graph_db
+                print("graph not found in graph_db, optimizing the graph")
+                self.fgraph.variables = set(
+                    gof.graph.variables(self.fgraph.inputs, self.fgraph.outputs)
+                )
+                # check_integrity parameters was added to ignore
+                # "excess cached variables" errors. Works that way
+                # but once again the error couldbe worth
+                # investigating.
+                before_opt = self.fgraph.clone(check_integrity=False)
+                optimizer_profile = optimizer(self.fgraph)
+                graph_db.update({before_opt: self.fgraph})
+                with open(graph_db_file, "wb") as f:
+                    pickle.dump(graph_db, f, -1)
+                print("new graph saved into graph_db")
+
         return optimizer_profile
 
     def __init__(

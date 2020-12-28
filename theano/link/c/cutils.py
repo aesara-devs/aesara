@@ -2,7 +2,7 @@ import errno
 import os
 import sys
 
-from theano.compile.compilelock import get_lock, release_lock
+from theano.compile.compilelock import lock_ctx
 from theano.configdefaults import config
 from theano.link.c import cmodule
 
@@ -101,11 +101,10 @@ try:
     try:
         from cutils_ext.cutils_ext import *  # noqa
     except ImportError:
-        get_lock()
-        # Ensure no-one else is currently modifying the content of the compilation
-        # directory. This is important to prevent multiple processes from trying to
-        # compile the cutils_ext module simultaneously.
-        try:
+        with lock_ctx():
+            # Ensure no-one else is currently modifying the content of the compilation
+            # directory. This is important to prevent multiple processes from trying to
+            # compile the cutils_ext module simultaneously.
             try:
                 # We must retry to import it as some other process could
                 # have been compiling it between the first failed import
@@ -115,10 +114,6 @@ try:
 
                 compile_cutils()
                 from cutils_ext.cutils_ext import *  # noqa
-
-        finally:
-            # Release lock on compilation directory.
-            release_lock()
 finally:
     if sys.path[0] == config.compiledir:
         del sys.path[0]
