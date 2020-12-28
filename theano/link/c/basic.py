@@ -1174,7 +1174,10 @@ class CLinker(Linker):
         return [r for r in uniq(ret) if r]
 
     def __compile__(
-        self, input_storage=None, output_storage=None, storage_map=None, keep_lock=False
+        self,
+        input_storage=None,
+        output_storage=None,
+        storage_map=None,
     ):
         """
         Compiles this linker's fgraph.
@@ -1216,7 +1219,6 @@ class CLinker(Linker):
             input_storage,
             output_storage,
             storage_map,
-            keep_lock=keep_lock,
         )
         return (
             thunk,
@@ -1248,9 +1250,7 @@ class CLinker(Linker):
             id += 2
         return init_tasks, tasks
 
-    def make_thunk(
-        self, input_storage=None, output_storage=None, storage_map=None, keep_lock=False
-    ):
+    def make_thunk(self, input_storage=None, output_storage=None, storage_map=None):
         """
         Compiles this linker's fgraph and returns a function to perform the
         computations, as well as lists of storage cells for both the inputs
@@ -1269,9 +1269,6 @@ class CLinker(Linker):
         storage_map: dict that map variables to storages.
             This is used when you need to customize the storage of
             this thunk
-        keep_lock:
-            If True, we won't release the lock on the compiledir
-            at the end of this function call.
         Returns: thunk, input_storage, output_storage
 
         The return values can be used as follows:
@@ -1283,7 +1280,7 @@ class CLinker(Linker):
         """
         init_tasks, tasks = self.get_init_tasks()
         cthunk, module, in_storage, out_storage, error_storage = self.__compile__(
-            input_storage, output_storage, storage_map, keep_lock=keep_lock
+            input_storage, output_storage, storage_map
         )
 
         res = _CThunk(cthunk, init_tasks, tasks, error_storage, module)
@@ -1685,9 +1682,7 @@ class CLinker(Linker):
             self._mod = mod
         return self._mod
 
-    def cthunk_factory(
-        self, error_storage, in_storage, out_storage, storage_map=None, keep_lock=False
-    ):
+    def cthunk_factory(self, error_storage, in_storage, out_storage, storage_map=None):
         """
         Returns a thunk that points to an instance of a C struct that
         can carry on the computation of this linker's fgraph
@@ -1715,9 +1710,7 @@ class CLinker(Linker):
             # Set compute_map as None as clinker do not support lazy evaluation
             for node in self.node_order:
                 node.op.prepare_node(node, storage_map, None, "c")
-            module = get_module_cache().module_from_key(
-                key=key, lnk=self, keep_lock=keep_lock
-            )
+            module = get_module_cache().module_from_key(key=key, lnk=self)
 
         vars = self.inputs + self.outputs + self.orphans
         # List of indices that should be ignored when passing the arguments

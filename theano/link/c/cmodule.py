@@ -1051,11 +1051,11 @@ class ModuleCache:
             return None
         return self._get_module(name)
 
-    def _get_from_hash(self, module_hash, key, keep_lock=False):
+    def _get_from_hash(self, module_hash, key):
         if module_hash in self.module_hash_to_key_data:
             key_data = self.module_hash_to_key_data[module_hash]
             module = self._get_from_key(None, key_data)
-            with lock_ctx(keep_lock=keep_lock):
+            with lock_ctx():
                 try:
                     key_data.add_key(key, save_pkl=bool(key[0]))
                     key_broken = False
@@ -1130,7 +1130,7 @@ class ModuleCache:
         self._update_mappings(key, key_data, module.__file__, not key_broken)
         return key_data
 
-    def module_from_key(self, key, lnk=None, keep_lock=False):
+    def module_from_key(self, key, lnk=None):
         """
         Return a module from the cache, compiling it if necessary.
 
@@ -1144,8 +1144,6 @@ class ModuleCache:
             the `get_src_code()` and `compile_cmodule(location)` functions. The
             first one returns the source code of the module to load/compile and
             the second performs the actual compilation.
-        keep_lock : bool
-            If True, the compilation lock will not be released if taken.
 
         """
         # Is the module in the cache?
@@ -1156,11 +1154,11 @@ class ModuleCache:
         src_code = lnk.get_src_code()
         # Is the source code already in the cache?
         module_hash = get_module_hash(src_code, key)
-        module = self._get_from_hash(module_hash, key, keep_lock=keep_lock)
+        module = self._get_from_hash(module_hash, key)
         if module is not None:
             return module
 
-        with lock_ctx(keep_lock=keep_lock):
+        with lock_ctx():
             # 1) Maybe somebody else compiled it for us while we
             #    where waiting for the lock. Try to load it again.
             # 2) If other repo that import Theano have Theano ops defined,
