@@ -111,12 +111,9 @@ case if ``borrow`` was True, the thunk would be allowed to reuse (or
     :attr:`config.blas__ldflags`, you will need to manually remove your compile cache,
     using ``Theano/bin/theano-cache clear``
 
-    Theano also implements a lock mechanism that prevents
-    multiple compilations within the same compilation directory (to avoid
-    crashes with paralell execution of some scripts). This mechanism is
-    currently enabled by default, but if it causes any problem it may be
-    disabled using the function
-    ``theano.compile.compilelock.set_lock_status(..)``.
+    Theano also implements a lock mechanism that prevents multiple compilations
+    within the same compilation directory (to avoid crashes with parallel
+    execution of some scripts).
 
 Step 4 - Wrap the thunk in a pretty package
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -125,4 +122,3 @@ The thunk returned by the linker along with input and output
 containers is unwieldy. ``function`` hides that complexity away so
 that it can be used like a normal function with arguments and return
 values.
-

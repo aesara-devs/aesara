@@ -20,7 +20,6 @@ __all__ = [
     "lock",
     "lock_ctx",
     "release_lock",
-    "set_lock_status",
 ]
 
 
@@ -72,9 +71,6 @@ def _get_lock(lock_dir=None, **kw):
     if not hasattr(get_lock, "n_lock"):
         # Initialization.
         get_lock.n_lock = 0
-        if not hasattr(get_lock, "lock_is_enabled"):
-            # Enable lock by default.
-            get_lock.lock_is_enabled = True
         get_lock.lock_dir = lock_dir
         get_lock.unlocker = Unlocker(get_lock.lock_dir)
     else:
@@ -86,33 +82,32 @@ def _get_lock(lock_dir=None, **kw):
             get_lock.lock_dir = lock_dir
             get_lock.unlocker = Unlocker(get_lock.lock_dir)
 
-    if get_lock.lock_is_enabled:
-        # Only really try to acquire the lock if we do not have it already.
-        if get_lock.n_lock == 0:
-            lock(get_lock.lock_dir, **kw)
-            atexit.register(Unlocker.unlock, get_lock.unlocker)
-            # Store time at which the lock was set.
-            get_lock.start_time = time.time()
-        else:
-            # Check whether we need to 'refresh' the lock. We do this
-            # every 'config.compile__timeout / 2' seconds to ensure
-            # no one else tries to override our lock after their
-            # 'config.compile__timeout' timeout period.
-            if get_lock.start_time is None:
-                # This should not happen. So if this happen, clean up
-                # the lock state and raise an error.
-                while get_lock.n_lock > 0:
-                    release_lock()
-                raise Exception(
-                    "For some unknow reason, the lock was already "
-                    "taken, but no start time was registered."
-                )
-            now = time.time()
-            if now - get_lock.start_time > config.compile__timeout / 2:
-                lockpath = os.path.join(get_lock.lock_dir, "lock")
-                _logger.info(f"Refreshing lock {lockpath}")
-                refresh_lock(lockpath)
-                get_lock.start_time = now
+    # Only really try to acquire the lock if we do not have it already.
+    if get_lock.n_lock == 0:
+        lock(get_lock.lock_dir, **kw)
+        atexit.register(Unlocker.unlock, get_lock.unlocker)
+        # Store time at which the lock was set.
+        get_lock.start_time = time.time()
+    else:
+        # Check whether we need to 'refresh' the lock. We do this
+        # every 'config.compile__timeout / 2' seconds to ensure
+        # no one else tries to override our lock after their
+        # 'config.compile__timeout' timeout period.
+        if get_lock.start_time is None:
+            # This should not happen. So if this happen, clean up
+            # the lock state and raise an error.
+            while get_lock.n_lock > 0:
+                release_lock()
+            raise Exception(
+                "For some unknow reason, the lock was already "
+                "taken, but no start time was registered."
+            )
+        now = time.time()
+        if now - get_lock.start_time > config.compile__timeout / 2:
+            lockpath = os.path.join(get_lock.lock_dir, "lock")
+            _logger.info(f"Refreshing lock {lockpath}")
+            refresh_lock(lockpath)
+            get_lock.start_time = now
     get_lock.n_lock += 1
 
 
@@ -127,24 +122,9 @@ def release_lock():
     get_lock.n_lock -= 1
     assert get_lock.n_lock >= 0
     # Only really release lock once all lock requests have ended.
-    if get_lock.lock_is_enabled and get_lock.n_lock == 0:
+    if get_lock.n_lock == 0:
         get_lock.start_time = None
         get_lock.unlocker.unlock(force=False)
-
-
-def set_lock_status(use_lock):
-    """
-    Enable or disable the lock on the compilation directory (which is enabled
-    by default). Disabling may make compilation slightly faster (but is not
-    recommended for parallel execution).
-
-    Parameters
-    ----------
-    use_lock : bool
-        Whether to use the compilation lock or not.
-
-    """
-    get_lock.lock_is_enabled = use_lock
 
 
 # This is because None is a valid input for timeout
