@@ -261,7 +261,18 @@ def test_mode_apply():
 def test_config_pickling():
     # check that the real thing can be pickled
     root = configdefaults.config
-    pickle.dump(root, io.BytesIO())
+    buffer = io.BytesIO()
+    pickle.dump(root, buffer)
+    # and also unpickled...
+    buffer.seek(0)
+    restored = pickle.load(buffer)
+    # ...without a change in the config values
+    for name in root._config_var_dict.keys():
+        v_original = getattr(root, name)
+        v_restored = getattr(restored, name)
+        assert (
+            v_restored == v_original
+        ), f"{name} did not survive pickling ({v_restored} != {v_original})"
 
     # and validate that the test would catch typical problems
     root = _create_test_config()
