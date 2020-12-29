@@ -57,7 +57,7 @@ def lock_ctx(lock_dir: os.PathLike = None, *, timeout: typing.Optional[float] = 
         lock_dir = config.compiledir
     if timeout == -1:
         timeout = config.compile__timeout
-    elif timeout is not None or timeout <= 0:
+    elif not (timeout is None or timeout > 0):
         raise ValueError(f"Timeout parameter must be None or positive. Got {timeout}.")
 
     # locks are kept in a dictionary to account for changing compiledirs
