@@ -87,7 +87,7 @@ def main():
             cache = get_module_cache(init_args=dict(do_refresh=False))
             cache.clear_old()
         elif sys.argv[1] == "unlock":
-            theano.compile.compilelock.force_unlock()
+            theano.compile.compilelock.force_unlock(config.compiledir)
             print("Lock successfully removed!")
         elif sys.argv[1] == "purge":
             theano.compile.compiledir.compiledir_purge()

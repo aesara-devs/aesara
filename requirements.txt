@@ -1,4 +1,5 @@
 -e ./
+filelock
 flake8==3.8.4
 pep8
 pyflakes
