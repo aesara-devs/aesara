@@ -48,7 +48,7 @@ class NormalRV(RandomVariable):
     dtype = config.floatX
     _print_name = ("N", "\\operatorname{N}")
 
-    def __call__(self, loc=0.0, scale=1.1, size=None, **kwargs):
+    def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
         return super().__call__(loc, scale, size=size, **kwargs)
 
 
