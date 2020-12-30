@@ -10,8 +10,8 @@ import theano
 from tests import unittest_tools as utt
 from theano import function, gof, shared, tensor
 from theano.compile.mode import get_default_mode
-from theano.misc.safe_asarray import _asarray
 from theano.configdefaults import config
+from theano.misc.safe_asarray import _asarray
 from theano.tensor.type import TensorType
 
 
