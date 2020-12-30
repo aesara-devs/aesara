@@ -18,8 +18,9 @@ import warnings
 import numpy as np
 
 import theano
-from theano import config, function, gradient, shared, tensor
+from theano import function, gradient, shared, tensor
 from theano.compile import optdb
+from theano.configdefaults import config
 from theano.gof import ParamsType, local_optimizer
 from theano.gof.graph import Apply, Variable
 from theano.gof.op import COp, Op

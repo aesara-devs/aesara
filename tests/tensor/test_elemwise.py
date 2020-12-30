@@ -9,8 +9,9 @@ import tests.unittest_tools as utt
 import theano
 import theano.tensor as tt
 from tests import unittest_tools
-from theano import config, gof, scalar
+from theano import gof, scalar
 from theano.compile.mode import Mode, get_default_mode
+from theano.configdefaults import config
 from theano.link.basic import PerformLinker
 from theano.link.c.basic import CLinker, OpWiseCLinker
 from theano.tensor import TensorType, as_tensor_variable

@@ -24,8 +24,9 @@ import theano
 import theano.sandbox.rng_mrg
 import theano.scalar.sharedvar
 from tests import unittest_tools as utt
-from theano import config, tensor
+from theano import tensor
 from theano.compile.function.pfunc import rebuild_collect_shared
+from theano.configdefaults import config
 from theano.scan.basic import scan
 from theano.scan.op import Scan
 from theano.scan.opt import ScanMerge

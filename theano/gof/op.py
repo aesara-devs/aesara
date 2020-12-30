@@ -16,7 +16,7 @@ import warnings
 import numpy as np
 
 import theano
-from theano import config
+from theano.configdefaults import config
 from theano.gof import graph
 from theano.gof.fg import FunctionGraph
 from theano.gof.graph import Apply, Variable
@@ -577,7 +577,7 @@ class COp(Op, CLinkerOp):
             that version of the code.
 
         """
-        if (impl is None and theano.config.cxx) or impl == "c":
+        if (impl is None and config.cxx) or impl == "c":
             self.prepare_node(
                 node, storage_map=storage_map, compute_map=compute_map, impl="c"
             )
@@ -719,7 +719,7 @@ class OpenMPOp(COp):
 
     def __init__(self, openmp=None):
         if openmp is None:
-            openmp = theano.config.openmp
+            openmp = config.openmp
         self.openmp = openmp
 
     def __setstate__(self, d):
@@ -790,7 +790,7 @@ int main( int argc, const char* argv[] )
                     )
             if OpenMPOp.gxx_support_openmp is False:
                 self.openmp = False
-                theano.config.openmp = False
+                config.openmp = False
 
     def prepare_node(self, node, storage_map, compute_map, impl):
         if impl == "c":
@@ -992,7 +992,7 @@ class ExternalCOp(COp):
                 try:
                     # NB (reminder): These macros are currently used only in ParamsType example test
                     # (`theano/gof/tests/test_quadratic_function.c`), to demonstrate how we can
-                    # access params dtypes when dtypes may change (e.g. if based on theano.config.floatX).
+                    # access params dtypes when dtypes may change (e.g. if based on config.floatX).
                     # But in practice, params types generally have fixed types per op.
                     params.append(
                         (

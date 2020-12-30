@@ -15,6 +15,7 @@ from theano.compile.ops import (
     SpecifyShape,
     ViewOp,
 )
+from theano.configdefaults import config
 from theano.gof import FunctionGraph
 from theano.ifelse import IfElse
 from theano.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp, Second
@@ -72,7 +73,7 @@ from theano.tensor.subtensor import (  # This is essentially `np.take`; Boolean 
 from theano.tensor.type_other import MakeSlice
 
 
-if theano.config.floatX == "float64":
+if config.floatX == "float64":
     jax.config.update("jax_enable_x64", True)
 else:
     jax.config.update("jax_enable_x64", False)

@@ -7,7 +7,7 @@ import itertools
 from collections import OrderedDict, deque
 
 import theano
-from theano import config
+from theano.configdefaults import config
 from theano.misc.ordered_set import OrderedSet
 
 from . import graph, toolbox

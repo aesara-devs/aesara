@@ -4,7 +4,7 @@ import subprocess
 import pytest
 
 import theano
-from theano import config
+from theano.configdefaults import config
 from theano.gof.sched import sort_schedule_fn
 from theano.tensor.io import (
     MPISend,

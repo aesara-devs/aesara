@@ -11,7 +11,7 @@ from io import StringIO
 
 import numpy as np
 
-from theano import config
+from theano.configdefaults import config
 from theano.gof import graph, utils
 from theano.gof.callcache import CallCache
 from theano.gof.compilelock import get_lock, release_lock

@@ -53,12 +53,13 @@ from collections import OrderedDict
 import numpy as np
 
 import theano
-from theano import compile, config, gof, gradient, tensor
+from theano import compile, gof, gradient, tensor
 from theano.compile.builders import infer_shape
 from theano.compile.function import function
 from theano.compile.io import In, Out
 from theano.compile.mode import AddFeatureOptimizer
 from theano.compile.profiling import ScanProfileStats
+from theano.configdefaults import config
 from theano.gof import Apply, Op
 from theano.gof.graph import equal_computations, io_connection_pattern
 from theano.gof.toolbox import NoOutputFromInplace
@@ -851,7 +852,7 @@ class Scan(Op):
         # scan is done
         slices = self.n_mit_mot_outs + self.n_mit_sot + self.n_sit_sot + self.n_nit_sot
 
-        if theano.config.scan__allow_output_prealloc:
+        if config.scan__allow_output_prealloc:
 
             # Go through the mitmots. Whenever a mitmot has a tap both as an
             # input and an output, wrap the input such that the corresponding
@@ -941,7 +942,7 @@ class Scan(Op):
             compilation_mode = self.mode_instance
 
         profile = None
-        if theano.config.profile or (
+        if config.profile or (
             isinstance(self.profile, (str, bool, (int,))) and self.profile
         ):
             if isinstance(self.profile, str):
@@ -2249,7 +2250,7 @@ class Scan(Op):
                 if dtypes:
                     new_dtype = theano.scalar.upcast(*dtypes)
                 else:
-                    new_dtype = theano.config.floatX
+                    new_dtype = config.floatX
                 dC_dXt = safe_new(Xt, dtype=new_dtype)
             else:
                 if isinstance(dC_douts[idx].type, DisconnectedType):
@@ -2428,9 +2429,7 @@ class Scan(Op):
                     # We cannot use Null in the inner graph, so we
                     # use a zero tensor of the appropriate shape instead.
                     inner_out_mitmot.append(
-                        tensor.zeros(
-                            diff_inputs[ins_pos].shape, dtype=theano.config.floatX
-                        )
+                        tensor.zeros(diff_inputs[ins_pos].shape, dtype=config.floatX)
                     )
                     undefined_msg = dC_dinps_t[ins_pos].type.why_null
                 else:
@@ -2501,9 +2500,7 @@ class Scan(Op):
                     # We cannot use Null in the inner graph, so we
                     # use a zero tensor of the appropriate shape instead.
                     inner_out_mitmot.append(
-                        tensor.zeros(
-                            diff_inputs[ins_pos].shape, dtype=theano.config.floatX
-                        )
+                        tensor.zeros(diff_inputs[ins_pos].shape, dtype=config.floatX)
                     )
                     undefined_msg = dC_dinps_t[ins_pos].type.why_null
                 else:
@@ -2543,9 +2540,7 @@ class Scan(Op):
                     # floatX instead, as it is a dummy value that will not
                     # be used anyway.
                     outer_inp_mitmot.append(
-                        tensor.zeros(
-                            outs[idx + offset].shape, dtype=theano.config.floatX
-                        )
+                        tensor.zeros(outs[idx + offset].shape, dtype=config.floatX)
                     )
                 else:
                     outer_inp_mitmot.append(
@@ -2558,7 +2553,7 @@ class Scan(Op):
                 # We cannot use Null in the inner graph, so we
                 # use a zero tensor of the appropriate shape instead.
                 inner_out_mitmot.append(
-                    tensor.zeros(diff_inputs[ins_pos].shape, dtype=theano.config.floatX)
+                    tensor.zeros(diff_inputs[ins_pos].shape, dtype=config.floatX)
                 )
             else:
                 inner_out_mitmot.append(dC_dinps_t[ins_pos])
@@ -2595,7 +2590,7 @@ class Scan(Op):
                 # Replace the inner output with a zero tensor of
                 # the right shape
                 inner_out_sitsot[_p] = tensor.zeros(
-                    diff_inputs[ins_pos + _p].shape, dtype=theano.config.floatX
+                    diff_inputs[ins_pos + _p].shape, dtype=config.floatX
                 )
             elif through_shared:
                 type_outs.append("through_shared")
@@ -2614,7 +2609,7 @@ class Scan(Op):
                 # Replace the inner output with a zero tensor of
                 # the right shape
                 inner_out_nitsot[_p] = tensor.zeros(
-                    diff_inputs[_p].shape, dtype=theano.config.floatX
+                    diff_inputs[_p].shape, dtype=config.floatX
                 )
 
             if through_shared:
@@ -2633,12 +2628,12 @@ class Scan(Op):
                 outer_inp_sitsot.append(
                     tensor.zeros(
                         [grad_steps + 1] + [x.shape[i] for i in range(x.ndim)],
-                        dtype=theano.config.floatX,
+                        dtype=config.floatX,
                     )
                 )
                 # replace y by a zero tensor of the right shape
                 inner_inp_sitsot[_idx] = tensor.zeros(
-                    diff_inputs[ins_pos + _idx].shape, dtype=theano.config.floatX
+                    diff_inputs[ins_pos + _idx].shape, dtype=config.floatX
                 )
 
             else:

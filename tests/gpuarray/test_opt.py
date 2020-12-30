@@ -8,8 +8,9 @@ from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
 from tests.tensor.test_basic import TestSpecifyShape
 from tests.test_ifelse import TestIfelse
-from theano import config, tensor
+from theano import tensor
 from theano.breakpoint import PdbBreakpoint
+from theano.configdefaults import config
 from theano.gof.opt import check_stack_trace
 from theano.gpuarray import basic_ops, blas, dnn, opt
 from theano.gpuarray.basic_ops import (

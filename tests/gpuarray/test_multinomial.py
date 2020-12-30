@@ -4,7 +4,8 @@ import pytest
 import tests.unittest_tools as utt
 import theano
 from tests.gpuarray.config import mode_with_gpu
-from theano import config, function, tensor
+from theano import function, tensor
+from theano.configdefaults import config
 from theano.gpuarray.multinomial import (
     GPUAChoiceFromUniform,
     GPUAMultinomialFromUniform,

@@ -5,7 +5,8 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import config, gradient
+from theano import gradient
+from theano.configdefaults import config
 from theano.gof.graph import Apply
 from theano.gof.null_type import NullType
 from theano.gof.op import Op

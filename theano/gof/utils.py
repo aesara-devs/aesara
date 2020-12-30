@@ -4,7 +4,7 @@ import sys
 import traceback
 from io import StringIO
 
-from theano import config
+from theano.configdefaults import config
 
 
 def simple_extract_stack(f=None, limit=None, skips=None):

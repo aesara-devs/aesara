@@ -4,7 +4,7 @@ from tempfile import mkdtemp
 import numpy as np
 import pytest
 
-from theano import config
+from theano.configdefaults import config
 from theano.tensor.type import TensorType
 
 

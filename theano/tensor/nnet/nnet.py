@@ -21,6 +21,7 @@ import numpy as np
 import theano
 from theano import scalar
 from theano.compile import optdb
+from theano.configdefaults import config
 from theano.gof.graph import Apply
 from theano.gof.op import COp, Op
 from theano.gof.opt import copy_stack_trace, local_optimizer, optimizer
@@ -1661,7 +1662,7 @@ def local_argmax_pushdown(fgraph, node):
             softmax_with_bias,
         )
     ):
-        if theano.config.warn__argmax_pushdown_bug:
+        if config.warn__argmax_pushdown_bug:
             logging.getLogger("theano.tensor.nnet.nnet").warn(
                 "There was a bug in Theano fixed on May 27th, 2010 in this case."
                 " I.E. when we take the max of a softplus, softmax, exp, "

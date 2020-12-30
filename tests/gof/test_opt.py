@@ -1,6 +1,6 @@
 import theano.tensor as tt
 from tests.gof.utils import MyType, MyVariable, op1, op2, op3, op4, op5, op6, op_y, op_z
-from theano import config
+from theano.configdefaults import config
 from theano.gof.fg import FunctionGraph
 from theano.gof.graph import Apply, Constant
 from theano.gof.op import Op

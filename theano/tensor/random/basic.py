@@ -2,6 +2,7 @@ import numpy as np
 import scipy.stats as stats
 
 import theano
+from theano.configdefaults import config
 from theano.tensor.basic import as_tensor_variable
 from theano.tensor.random.op import RandomVariable, default_shape_from_params
 from theano.tensor.random.utils import broadcast_params
@@ -19,7 +20,7 @@ class UniformRV(RandomVariable):
     name = "uniform"
     ndim_supp = 0
     ndims_params = [0, 0]
-    dtype = theano.config.floatX
+    dtype = config.floatX
     _print_name = ("U", "\\operatorname{U}")
 
     def __call__(self, low=0.0, high=1.0, size=None, **kwargs):
@@ -33,7 +34,7 @@ class BetaRV(RandomVariable):
     name = "beta"
     ndim_supp = 0
     ndims_params = [0, 0]
-    dtype = theano.config.floatX
+    dtype = config.floatX
     _print_name = ("Beta", "\\operatorname{Beta}")
 
 
@@ -44,7 +45,7 @@ class NormalRV(RandomVariable):
     name = "normal"
     ndim_supp = 0
     ndims_params = [0, 0]
-    dtype = theano.config.floatX
+    dtype = config.floatX
     _print_name = ("N", "\\operatorname{N}")
 
     def __call__(self, loc=0.0, scale=1.1, size=None, **kwargs):
@@ -58,7 +59,7 @@ class HalfNormalRV(RandomVariable):
     name = "halfnormal"
     ndim_supp = 0
     ndims_params = [0, 0]
-    dtype = theano.config.floatX
+    dtype = config.floatX
     _print_name = ("N**+", "\\operatorname{N^{+}}")
 
     def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
@@ -76,7 +77,7 @@ class GammaRV(RandomVariable):
     name = "halfnormal"
     ndim_supp = 0
     ndims_params = [0, 0]
-    dtype = theano.config.floatX
+    dtype = config.floatX
     _print_name = ("Gamma", "\\operatorname{Gamma}")
 
     def __call__(self, shape, rate, size=None, **kwargs):
@@ -94,7 +95,7 @@ class ExponentialRV(RandomVariable):
     name = "exponential"
     ndim_supp = 0
     ndims_params = [0]
-    dtype = theano.config.floatX
+    dtype = config.floatX
     _print_name = ("Exp", "\\operatorname{Exp}")
 
     def __call__(self, scale=1.0, size=None, **kwargs):
@@ -129,7 +130,7 @@ class MvNormalRV(RandomVariable):
     name = "multivariate_normal"
     ndim_supp = 1
     ndims_params = [1, 2]
-    dtype = theano.config.floatX
+    dtype = config.floatX
     _print_name = ("N", "\\operatorname{N}")
 
     def __call__(self, mean=None, cov=None, size=None, **kwargs):
@@ -170,7 +171,7 @@ class DirichletRV(RandomVariable):
     name = "dirichlet"
     ndim_supp = 1
     ndims_params = [1]
-    dtype = theano.config.floatX
+    dtype = config.floatX
     _print_name = ("Dir", "\\operatorname{Dir}")
 
     @classmethod
@@ -208,7 +209,7 @@ class CauchyRV(RandomVariable):
     name = "cauchy"
     ndim_supp = 0
     ndims_params = [0, 0]
-    dtype = theano.config.floatX
+    dtype = config.floatX
     _print_name = ("C", "\\operatorname{C}")
 
     def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
@@ -226,7 +227,7 @@ class HalfCauchyRV(RandomVariable):
     name = "cauchy"
     ndim_supp = 0
     ndims_params = [0, 0]
-    dtype = theano.config.floatX
+    dtype = config.floatX
     _print_name = ("C**+", "\\operatorname{C^{+}}")
 
     def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
@@ -244,7 +245,7 @@ class InvGammaRV(RandomVariable):
     name = "invgamma"
     ndim_supp = 0
     ndims_params = [0, 0]
-    dtype = theano.config.floatX
+    dtype = config.floatX
     _print_name = ("InvGamma", "\\operatorname{Gamma^{-1}}")
 
     @classmethod
@@ -259,7 +260,7 @@ class TruncExponentialRV(RandomVariable):
     name = "truncexpon"
     ndim_supp = 0
     ndims_params = [0, 0, 0]
-    dtype = theano.config.floatX
+    dtype = config.floatX
     _print_name = ("TruncExp", "\\operatorname{TruncExp}")
 
     @classmethod
@@ -391,7 +392,7 @@ class PolyaGammaRV(RandomVariable):
     name = "polya-gamma"
     ndim_supp = 0
     ndims_params = [0, 0]
-    dtype = theano.config.floatX
+    dtype = config.floatX
     _print_name = ("PG", "\\operatorname{PG}")
 
     @classmethod

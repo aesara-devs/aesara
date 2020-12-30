@@ -567,7 +567,7 @@ returns the right answer. If you detect an error, you must raise an
     import theano
 
     from tests import unittest_tools as utt
-    from theano import config
+    from theano.configdefaults import config
     class TestDouble(utt.InferShapeTester):
         def setup_method(self):
             super().setup_method()
@@ -623,7 +623,7 @@ your op works only with such matrices, you can disable the warning with the
 .. testcode:: tests
 
     from tests import unittest_tools as utt
-    from theano import config
+    from theano.configdefaults import config
     class TestDouble(utt.InferShapeTester):
         # [...] as previous tests.
         def test_infer_shape(self):

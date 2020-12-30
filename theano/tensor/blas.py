@@ -142,8 +142,8 @@ except ImportError:
 from functools import reduce
 
 import theano.scalar
-from theano import config
 from theano.compile.mode import optdb
+from theano.configdefaults import config
 from theano.gof import (
     InconsistencyError,
     ReplacementDidNotRemoveError,
@@ -191,7 +191,7 @@ try:
 except ImportError as e:
     have_fblas = False
     # This is used in Gemv and ScipyGer. We use CGemv and CGer
-    # when theano.config.blas__ldflags is defined. So we don't need a
+    # when config.blas__ldflags is defined. So we don't need a
     # warning in that case.
     if not config.blas__ldflags:
         _logger.warning(
@@ -406,7 +406,7 @@ def ldflags(libs=True, flags=False, libs_dir=False, include_dir=False):
         Extracted flags.
 
     """
-    ldflags_str = theano.config.blas__ldflags
+    ldflags_str = config.blas__ldflags
     return _ldflags(
         ldflags_str=ldflags_str,
         libs=libs,
@@ -426,7 +426,7 @@ def _ldflags(ldflags_str, libs, flags, libs_dir, include_dir):
     ----------
     ldflags_str : string
         The string to process. Typically, this will be the content of
-        `theano.config.blas__ldflags`.
+        `config.blas__ldflags`.
     libs : bool
         Extract flags starting with "-l".
     flags: bool

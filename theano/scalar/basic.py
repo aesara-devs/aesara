@@ -20,7 +20,8 @@ from textwrap import dedent
 import numpy as np
 
 import theano
-from theano import config, gof, printing
+from theano import gof, printing
+from theano.configdefaults import config
 from theano.gof import utils
 from theano.gof.fg import FunctionGraph
 from theano.gof.graph import Apply, Constant, Variable

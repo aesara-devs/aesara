@@ -4,7 +4,8 @@ import pytest
 import theano
 import theano.gof.op as op
 import theano.tensor as tt
-from theano import config, scalar, shared
+from theano import scalar, shared
+from theano.configdefaults import config
 from theano.gof.graph import Apply, Variable
 from theano.gof.op import COp, Op
 from theano.gof.type import Generic, Type

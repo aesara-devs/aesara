@@ -7,7 +7,8 @@ from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu as mode
 from tests.sandbox.test_rng_mrg import java_samples, rng_mrg_overflow
 from tests.sandbox.test_rng_mrg import test_f16_nonzero as cpu_f16_nonzero
-from theano import config, tensor
+from theano import tensor
+from theano.configdefaults import config
 from theano.gpuarray.rng_mrg import GPUA_mrg_uniform
 from theano.gpuarray.type import gpuarray_shared_constructor
 from theano.sandbox import rng_mrg

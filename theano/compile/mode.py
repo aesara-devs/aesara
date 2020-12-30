@@ -7,8 +7,9 @@ import logging
 import warnings
 
 import theano
-from theano import config, gof
+from theano import gof
 from theano.compile.function.types import Supervisor
+from theano.configdefaults import config
 from theano.link.basic import PerformLinker
 from theano.link.c.basic import CLinker, OpWiseCLinker
 from theano.link.jax import JAXLinker
@@ -45,7 +46,7 @@ def register_linker(name, linker):
 # for Mode, it will be used as the key to retrieve the real optimizer
 # in this dictionary
 exclude = []
-if not theano.config.cxx:
+if not config.cxx:
     exclude = ["cxx_only"]
 OPT_NONE = gof.Query(include=[], exclude=exclude)
 # Even if multiple merge optimizer call will be there, this shouldn't
@@ -252,10 +253,10 @@ optdb.register("add_destroy_handler", AddDestroyHandler(), 49.5, "fast_run", "in
 # final pass just to make sure
 optdb.register("merge3", gof.MergeOptimizer(), 100, "fast_run", "merge")
 
-if theano.config.check_stack_trace in ["raise", "warn", "log"]:
+if config.check_stack_trace in ["raise", "warn", "log"]:
     _tags = ("fast_run", "fast_compile")
 
-if theano.config.check_stack_trace == "off":
+if config.check_stack_trace == "off":
     _tags = ()
 
 optdb.register("CheckStackTrace", gof.CheckStackTraceOptimization(), -1, *_tags)
@@ -411,7 +412,7 @@ class Mode:
 FAST_COMPILE = Mode(
     theano.link.vm.VMLinker(use_cloop=False, c_thunks=False), "fast_compile"
 )
-if theano.config.cxx:
+if config.cxx:
     FAST_RUN = Mode("cvm", "fast_run")
 else:
     FAST_RUN = Mode("vm", "fast_run")
@@ -472,12 +473,12 @@ def get_mode(orig_string):
 
     if orig_string is None:
         # Build and cache the default mode
-        if theano.config.optimizer_excluding:
-            ret = ret.excluding(*theano.config.optimizer_excluding.split(":"))
-        if theano.config.optimizer_including:
-            ret = ret.including(*theano.config.optimizer_including.split(":"))
-        if theano.config.optimizer_requiring:
-            ret = ret.requiring(*theano.config.optimizer_requiring.split(":"))
+        if config.optimizer_excluding:
+            ret = ret.excluding(*config.optimizer_excluding.split(":"))
+        if config.optimizer_including:
+            ret = ret.including(*config.optimizer_including.split(":"))
+        if config.optimizer_requiring:
+            ret = ret.requiring(*config.optimizer_requiring.split(":"))
         instantiated_default_mode = ret
 
     return ret

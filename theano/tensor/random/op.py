@@ -4,6 +4,7 @@ from copy import copy
 import numpy as np
 
 import theano
+from theano.configdefaults import config
 from theano.gof.graph import Apply, Variable
 from theano.gof.op import Op
 from theano.tensor.basic import (
@@ -269,7 +270,7 @@ class RandomVariable(Op):
 
         return shape
 
-    @theano.config.change_flags(compute_test_value="off")
+    @config.change_flags(compute_test_value="off")
     def compute_bcast(self, dist_params, size):
         """Compute the broadcast array for this distribution's `TensorType`.
 

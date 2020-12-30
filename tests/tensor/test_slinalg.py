@@ -6,7 +6,8 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import config, function, grad, tensor
+from theano import function, grad, tensor
+from theano.configdefaults import config
 from theano.tensor.slinalg import (
     Cholesky,
     CholeskyGrad,

@@ -18,7 +18,7 @@ from warnings import warn
 import numpy as np
 
 import theano
-from theano import config, gof
+from theano import gof
 from theano.compile.function.types import (
     Function,
     FunctionMaker,
@@ -27,6 +27,7 @@ from theano.compile.function.types import (
 )
 from theano.compile.mode import Mode, register_mode
 from theano.compile.ops import OutputGuard, _output_guard
+from theano.configdefaults import config
 from theano.gof import graph, ops_with_inner_function, utils
 from theano.link.basic import Container, LocalLinker
 from theano.link.utils import map_storage, raise_with_op

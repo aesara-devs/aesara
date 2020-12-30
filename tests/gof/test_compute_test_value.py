@@ -5,7 +5,8 @@ import pytest
 
 import theano
 import theano.tensor as tt
-from theano import config, scalar
+from theano import scalar
+from theano.configdefaults import config
 from theano.gof import utils
 from theano.gof.graph import Apply
 from theano.gof.op import COp, Op

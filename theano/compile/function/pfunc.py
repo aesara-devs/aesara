@@ -6,11 +6,11 @@ Provide a simple user friendly API.
 import logging
 import warnings
 
-from theano import config
 from theano.compile.function.types import UnusedInputError, orig_function
 from theano.compile.io import In, Out
 from theano.compile.profiling import ProfileStats
 from theano.compile.sharedvalue import SharedVariable, shared
+from theano.configdefaults import config
 from theano.gof import Constant, Variable
 
 

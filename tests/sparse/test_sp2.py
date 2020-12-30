@@ -8,7 +8,8 @@ import numpy as np
 import theano
 from tests import unittest_tools as utt
 from tests.sparse.test_basic import as_sparse_format
-from theano import config, sparse, tensor
+from theano import sparse, tensor
+from theano.configdefaults import config
 from theano.sparse.sandbox.sp2 import (
     Binomial,
     Multinomial,

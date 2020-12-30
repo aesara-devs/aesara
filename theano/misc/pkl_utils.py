@@ -26,8 +26,8 @@ try:
 except ImportError:
     DEFAULT_PROTOCOL = HIGHEST_PROTOCOL
 
-from theano import config
 from theano.compile.sharedvalue import SharedVariable
+from theano.configdefaults import config
 
 
 __docformat__ = "restructuredtext en"

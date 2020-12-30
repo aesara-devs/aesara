@@ -8,7 +8,7 @@ import os
 
 import numpy as np
 
-import theano
+from theano.configdefaults import config
 from theano.gradient import grad_not_implemented
 from theano.scalar.basic import (
     BinaryScalarOp,
@@ -52,7 +52,7 @@ class Erf(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -89,7 +89,7 @@ class Erfc(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -141,7 +141,7 @@ class Erfcx(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -181,7 +181,7 @@ class Erfinv(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -218,7 +218,7 @@ class Erfcinv(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -259,7 +259,7 @@ class Gamma(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -301,7 +301,7 @@ class GammaLn(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=config.floatX)]
             else:
                 return [x.zeros_like()]
 
@@ -348,7 +348,7 @@ class Psi(UnaryScalarOp):
             raise NotImplementedError()
         if outputs[0].type in discrete_types:
             if x.type in discrete_types:
-                return [x.zeros_like(dtype=theano.config.floatX)]
+                return [x.zeros_like(dtype=config.floatX)]
             else:
                 return [x.zeros_like()]
 

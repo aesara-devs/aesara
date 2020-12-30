@@ -4,7 +4,8 @@ import sys
 import theano
 import theano.tensor as tt
 import theano.tensor.nnet.ctc
-from theano import config, gof
+from theano import gof
+from theano.configdefaults import config
 from theano.gof import local_optimizer
 from theano.gpuarray import pygpu
 from theano.gpuarray.basic_ops import (

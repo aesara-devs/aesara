@@ -3,7 +3,7 @@ from copy import copy
 import pytest
 
 from tests.unittest_tools import assertFailure_fast
-from theano import config
+from theano.configdefaults import config
 from theano.gof import destroyhandler, graph
 from theano.gof.fg import FunctionGraph, InconsistencyError
 from theano.gof.graph import Apply, Variable

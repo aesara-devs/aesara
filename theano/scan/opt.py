@@ -61,6 +61,7 @@ import theano
 from theano import gof, scalar, tensor
 from theano.compile import optdb
 from theano.compile.function.types import deep_copy_op
+from theano.configdefaults import config
 from theano.gof import DestroyHandler, InconsistencyError, toolbox
 from theano.gof.graph import equal_computations
 from theano.gof.opt import GlobalOptimizer
@@ -1380,7 +1381,7 @@ class ScanSaveMem(gof.GlobalOptimizer):
                         # for mitsots and sitsots (because mitmots are not
                         # currently supported by the mechanism) and only if
                         # the pre-allocation mechanism is activated.
-                        prealloc_outs = theano.config.scan__allow_output_prealloc
+                        prealloc_outs = config.scan__allow_output_prealloc
 
                         first_mitsot_idx = node.op.n_mit_mot
                         last_sitsot_idx = (

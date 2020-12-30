@@ -6,9 +6,10 @@ import pytest
 import theano
 import theano.tensor as tt
 from tests import unittest_tools
-from theano import config, shared
+from theano import shared
 from theano.compile.builders import OpFromGraph
 from theano.compile.function import function
+from theano.configdefaults import config
 from theano.gof.null_type import NullType
 from theano.gradient import DisconnectedType
 from theano.tensor.random.utils import RandomStream

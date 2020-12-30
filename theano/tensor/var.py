@@ -6,7 +6,7 @@ from collections.abc import Iterable
 import numpy as np
 
 import theano
-from theano import config
+from theano.configdefaults import config
 from theano.gof import Constant, Variable
 from theano.gof.utils import hashtype
 from theano.scalar import ComplexError, IntegerDivisionError

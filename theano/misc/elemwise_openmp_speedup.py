@@ -4,7 +4,7 @@ import sys
 from locale import getpreferredencoding
 from optparse import OptionParser
 
-import theano
+from theano.configdefaults import config
 
 
 console_encoding = getpreferredencoding()
@@ -17,7 +17,7 @@ parser.add_option(
     "--N",
     action="store",
     dest="N",
-    default=theano.config.openmp_elemwise_minsize,
+    default=config.openmp_elemwise_minsize,
     type="int",
     help="Number of vector elements",
 )

@@ -7,8 +7,8 @@ generic 2D convolution.
 import logging
 import warnings
 
-import theano
 import theano.tensor as tensor
+from theano.configdefaults import config
 from theano.tensor.nnet import conv
 
 
@@ -112,7 +112,7 @@ def conv2d(
 
     # flatten to 3D tensor if convolving with single filter or single image
     if input.ndim == 2 and filters.ndim == 2:
-        if theano.config.warn__signal_conv2d_interface:
+        if config.warn__signal_conv2d_interface:
             warnings.warn(
                 "theano.tensor.signal.conv2d() now outputs a 2d tensor when both"
                 " inputs are 2d. To disable this warning, set the Theano flag"

@@ -1,6 +1,6 @@
 # import theano.tensor.basic as tt
 
-from theano import config
+from theano.configdefaults import config
 from theano.gof.op import COp
 from theano.gof.params_type import ParamsType
 from theano.scalar import bool as bool_t

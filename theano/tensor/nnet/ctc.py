@@ -2,7 +2,7 @@ import os
 import sys
 
 import theano.tensor as tt
-from theano import config
+from theano.configdefaults import config
 from theano.gof.graph import Apply
 from theano.gof.op import ExternalCOp, OpenMPOp
 from theano.gof.opt import local_optimizer

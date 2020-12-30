@@ -17,6 +17,7 @@ import warnings
 import numpy as np
 
 import theano
+from theano.configdefaults import config
 from theano.gof import Apply, Op
 from theano.tensor.basic import (
     NotScalarConstantError,
@@ -588,7 +589,7 @@ def assert_shape(x, expected_shape, msg="Unexpected shape."):
         will return `x` directly.
 
     """
-    if expected_shape is None or not theano.config.conv__assert_shape:
+    if expected_shape is None or not config.conv__assert_shape:
         return x
     shape = x.shape
     tests = []
@@ -1869,11 +1870,11 @@ def bilinear_kernel_1D(ratio, normalize=True):
     """
 
     T = theano.tensor
-    half_kern = T.arange(1, ratio + 1, dtype=theano.config.floatX)
+    half_kern = T.arange(1, ratio + 1, dtype=config.floatX)
     kern = T.concatenate([half_kern, half_kern[-2::-1]])
 
     if normalize:
-        kern /= T.cast(ratio, theano.config.floatX)
+        kern /= T.cast(ratio, config.floatX)
     return kern
 
 
@@ -1946,7 +1947,7 @@ def frac_bilinear_upsampling(input, frac_ratio):
 
     # build pyramidal kernel
     kern = bilinear_kernel_2D(ratio=ratio)[np.newaxis, np.newaxis, :, :].astype(
-        theano.config.floatX
+        config.floatX
     )
 
     # add corresponding padding
@@ -1954,23 +1955,23 @@ def frac_bilinear_upsampling(input, frac_ratio):
         (
             T.zeros(
                 tuple(kern.shape[:2]) + (pad[0], kern.shape[-1]),
-                dtype=theano.config.floatX,
+                dtype=config.floatX,
             ),
             kern,
             T.zeros(
                 tuple(kern.shape[:2]) + (double_pad[0] - pad[0], kern.shape[-1]),
-                dtype=theano.config.floatX,
+                dtype=config.floatX,
             ),
         ),
         axis=2,
     )
     pad_kern = T.concatenate(
         (
-            T.zeros(tuple(pad_kern.shape[:3]) + (pad[1],), dtype=theano.config.floatX),
+            T.zeros(tuple(pad_kern.shape[:3]) + (pad[1],), dtype=config.floatX),
             pad_kern,
             T.zeros(
                 tuple(pad_kern.shape[:3]) + (double_pad[1] - pad[1],),
-                dtype=theano.config.floatX,
+                dtype=config.floatX,
             ),
         ),
         axis=3,
