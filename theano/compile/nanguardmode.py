@@ -6,8 +6,8 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
-from theano import config
 from theano.compile.mode import Mode, get_mode
+from theano.configdefaults import config
 
 
 try:

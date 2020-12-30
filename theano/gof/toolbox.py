@@ -9,7 +9,7 @@ from io import StringIO
 import numpy as np
 
 import theano
-from theano import config
+from theano.configdefaults import config
 from theano.gof.graph import equal_computations, inputs, io_toposort, variables
 
 

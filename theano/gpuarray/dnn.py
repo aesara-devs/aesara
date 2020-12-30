@@ -8,9 +8,9 @@ import numpy as np
 
 import theano
 import theano.pathparse
-from theano import config, tensor
+from theano import tensor
 from theano.compile.ops import shape_i, shape_i_op
-from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME
+from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME, config
 from theano.gof import EnumList, ExternalCOp, ParamsType
 from theano.gof.graph import Apply, Variable
 from theano.gof.op import COp
@@ -61,7 +61,7 @@ except ImportError:
 WIN32_CUDNN_NAMES = ["cudnn64_7.dll", "cudnn64_6.dll", "cudnn64_5.dll"]
 
 if sys.platform == "win32":
-    theano.pathparse.PathParser(theano.config.dnn__bin_path)
+    theano.pathparse.PathParser(config.dnn__bin_path)
 
 
 def _load_lib(name):
@@ -373,7 +373,7 @@ def get_precision(precision, inputs, for_grad=False):
         raise TypeError("cuDNN convolution only works on real numbers")
 
     if precision is None:
-        precision = theano.config.dnn__conv__precision
+        precision = config.dnn__conv__precision
     if precision == "as_input" or precision == "as_input_f32":
         if common_dtype == "float16" and precision == "as_input_f32":
             precision = "float32"

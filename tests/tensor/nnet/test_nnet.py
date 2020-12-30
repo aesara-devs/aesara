@@ -10,8 +10,9 @@ from tests.tensor.utils import (
     makeBroadcastTester,
     upcast_int8_nfunc,
 )
-from theano import config, gof
+from theano import gof
 from theano.compile.mode import OPT_FAST_RUN, optdb
+from theano.configdefaults import config
 from theano.gof.opt import check_stack_trace
 from theano.tensor import lvector, matrix, scalar, vector
 from theano.tensor.nnet import (

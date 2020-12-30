@@ -20,7 +20,7 @@ from functools import reduce
 import numpy as np
 
 import theano
-from theano import config
+from theano.configdefaults import config
 from theano.gof import destroyhandler as dh
 from theano.gof import graph
 from theano.gof.fg import InconsistencyError
@@ -2594,7 +2594,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
                 + ". You can safely raise the current threshold of "
                 + "{config.optdb__max_use_ratio:f} with the theano flag 'optdb__max_use_ratio'."
             )
-            if theano.config.on_opt_error == "raise":
+            if config.on_opt_error == "raise":
                 raise AssertionError(msg)
             else:
                 _logger.error(msg)
@@ -3188,16 +3188,14 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
 class CheckStackTraceFeature(Feature):
     def on_import(self, fgraph, node, reason):
         # In optdb we only register the CheckStackTraceOptimization when
-        # theano.config.check_stack_trace is not off but we also double check here.
-        if theano.config.check_stack_trace != "off" and not check_stack_trace(
-            fgraph, "all"
-        ):
-            if theano.config.check_stack_trace == "raise":
+        # config.check_stack_trace is not off but we also double check here.
+        if config.check_stack_trace != "off" and not check_stack_trace(fgraph, "all"):
+            if config.check_stack_trace == "raise":
                 raise AssertionError(
                     "Empty stack trace! The optimization that inserted this variable is "
                     + str(reason)
                 )
-            elif theano.config.check_stack_trace in ["log", "warn"]:
+            elif config.check_stack_trace in ["log", "warn"]:
                 apply_nodes_to_check = fgraph.apply_nodes
                 for node in apply_nodes_to_check:
                     for output in node.outputs:
@@ -3214,7 +3212,7 @@ class CheckStackTraceFeature(Feature):
                                     )
                                 ]
                             ]
-                if theano.config.check_stack_trace == "warn":
+                if config.check_stack_trace == "warn":
                     warnings.warn(
                         "Empty stack trace! The optimization that inserted this variable is"
                         + str(reason)

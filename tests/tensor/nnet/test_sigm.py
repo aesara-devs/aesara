@@ -10,7 +10,7 @@ from tests.tensor.utils import (
     makeBroadcastTester,
     upcast_int8_nfunc,
 )
-from theano import config
+from theano.configdefaults import config
 from theano.gof.opt import check_stack_trace
 from theano.gof.toolbox import is_same_graph
 from theano.tensor.inplace import neg_inplace

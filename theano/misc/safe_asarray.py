@@ -5,7 +5,7 @@ Helper function to safely convert an array to a new data type.
 
 import numpy as np
 
-import theano
+from theano.configdefaults import config
 
 
 __docformat__ = "restructuredtext en"
@@ -30,7 +30,7 @@ def _asarray(a, dtype, order=None):
         _asarray
     """
     if str(dtype) == "floatX":
-        dtype = theano.config.floatX
+        dtype = config.floatX
     dtype = np.dtype(dtype)  # Convert into dtype object.
     rval = np.asarray(a, dtype=dtype, order=order)
     # Note that dtype comparison must be done by comparing their `num`

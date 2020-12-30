@@ -12,7 +12,8 @@ import warnings
 import numpy as np
 
 import theano
-from theano import config, gof, printing, scalar
+from theano import gof, printing, scalar
+from theano.configdefaults import config
 from theano.gof.opt import copy_stack_trace
 from theano.printing import pprint
 from theano.tensor import basic as tensor
@@ -101,10 +102,7 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
     def c_code_contiguous_disabled(self, node, name, inp, out, sub):
         (x,) = inp
         (z,) = out
-        if (
-            not theano.config.lib__amblibm
-            or node.inputs[0].dtype != node.outputs[0].dtype
-        ):
+        if not config.lib__amblibm or node.inputs[0].dtype != node.outputs[0].dtype:
             raise theano.gof.utils.MethodNotDefined()
         dtype = node.inputs[0].dtype
         if dtype == "float32" and self.amd_float32 is not None:

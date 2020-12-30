@@ -6,7 +6,7 @@ import theano
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
 from tests.gpuarray.test_basic_ops import rand
-from theano import config
+from theano.configdefaults import config
 from theano.gpuarray import gpuarray_shared_constructor
 from theano.gpuarray.linalg import (
     GpuCholesky,

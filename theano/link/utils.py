@@ -7,7 +7,8 @@ from operator import itemgetter
 
 import numpy as np
 
-from theano import config, utils
+from theano import utils
+from theano.configdefaults import config
 from theano.gof.fg import FunctionGraph
 from theano.gof.graph import Apply, Constant
 

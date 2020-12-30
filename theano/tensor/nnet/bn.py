@@ -1,6 +1,7 @@
 import numpy as np
 
 import theano
+from theano.configdefaults import config
 from theano.gof.graph import Apply
 from theano.gof.op import Op
 from theano.gof.opt import copy_stack_trace, local_optimizer
@@ -17,7 +18,7 @@ from theano.tensor.type import TensorType
 class BNComposite(Composite):
     init_param = ("dtype",)
 
-    @theano.config.change_flags(compute_test_value="off")
+    @config.change_flags(compute_test_value="off")
     def __init__(self, dtype):
         self.dtype = dtype
         x = theano.scalar.Scalar(dtype=dtype).make_variable()
@@ -229,7 +230,7 @@ def batch_normalization_train(
 
     # epsilon will be converted to floatX later. we need to check
     # for rounding errors now, since numpy.float32(1e-5) < 1e-5.
-    epsilon = np.cast[theano.config.floatX](epsilon)
+    epsilon = np.cast[config.floatX](epsilon)
     if epsilon < 1e-5:
         raise ValueError(f"epsilon must be at least 1e-5, got {epsilon}")
 
@@ -362,7 +363,7 @@ def batch_normalization_test(
 
     # epsilon will be converted to floatX later. we need to check
     # for rounding errors now, since numpy.float32(1e-5) < 1e-5.
-    epsilon = np.cast[theano.config.floatX](epsilon)
+    epsilon = np.cast[config.floatX](epsilon)
     if epsilon < 1e-5:
         raise ValueError(f"epsilon must be at least 1e-5, got {epsilon}")
 
@@ -813,7 +814,7 @@ def local_abstract_batch_norm_train(fgraph, node):
         )
         results.append(running_mean)
     if len(node.inputs) > 6:
-        m = tt.cast(tt.prod(x.shape) / tt.prod(scale.shape), theano.config.floatX)
+        m = tt.cast(tt.prod(x.shape) / tt.prod(scale.shape), config.floatX)
         running_var = node.inputs[6]
         running_var = (
             running_var * (1.0 - running_average_factor)

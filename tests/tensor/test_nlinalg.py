@@ -6,7 +6,8 @@ from numpy.testing import assert_array_almost_equal
 
 import theano
 from tests import unittest_tools as utt
-from theano import config, function, tensor
+from theano import function, tensor
+from theano.configdefaults import config
 from theano.tensor.basic import _allclose
 from theano.tensor.nlinalg import (
     SVD,

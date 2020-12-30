@@ -10,7 +10,7 @@ from itertools import count
 import numpy as np
 
 import theano
-from theano import config
+from theano.configdefaults import config
 from theano.gof.utils import (
     MethodNotDefined,
     Scratchpad,

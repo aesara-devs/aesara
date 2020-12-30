@@ -5,6 +5,7 @@ Optimizations addressing the ops in nnet root directory
 import theano
 from theano import compile, gof
 from theano.compile import optdb
+from theano.configdefaults import config
 from theano.gof.opt import (
     LocalMetaOptimizerSkipAssertionError,
     copy_stack_trace,
@@ -84,9 +85,9 @@ compile.optdb.register(
 # Conv opts
 @local_optimizer([AbstractConv2d])
 def local_abstractconv_gemm(fgraph, node):
-    # If theano.config.blas__ldflags is empty, Theano will use
+    # If config.blas__ldflags is empty, Theano will use
     # a NumPy C implementation of [sd]gemm_.
-    if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
+    if config.cxx == "" or node.inputs[0].dtype == "float16":
         return
     if not isinstance(node.op, AbstractConv2d):
         return None
@@ -112,9 +113,9 @@ def local_abstractconv_gemm(fgraph, node):
 
 @local_optimizer([AbstractConv3d])
 def local_abstractconv3d_gemm(fgraph, node):
-    # If theano.config.blas__ldflags is empty, Theano will use
+    # If config.blas__ldflags is empty, Theano will use
     # a NumPy C implementation of [sd]gemm_.
-    if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
+    if config.cxx == "" or node.inputs[0].dtype == "float16":
         return
     if not isinstance(node.op, AbstractConv3d):
         return None
@@ -138,9 +139,9 @@ def local_abstractconv3d_gemm(fgraph, node):
 
 @local_optimizer([AbstractConv2d_gradWeights])
 def local_abstractconv_gradweight_gemm(fgraph, node):
-    # If theano.config.blas__ldflags is empty, Theano will use
+    # If config.blas__ldflags is empty, Theano will use
     # a NumPy C implementation of [sd]gemm_.
-    if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
+    if config.cxx == "" or node.inputs[0].dtype == "float16":
         return
     if not isinstance(node.op, AbstractConv2d_gradWeights):
         return None
@@ -169,9 +170,9 @@ def local_abstractconv_gradweight_gemm(fgraph, node):
 
 @local_optimizer([AbstractConv3d_gradWeights])
 def local_abstractconv3d_gradweight_gemm(fgraph, node):
-    # If theano.config.blas__ldflags is empty, Theano will use
+    # If config.blas__ldflags is empty, Theano will use
     # a NumPy C implementation of [sd]gemm_.
-    if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
+    if config.cxx == "" or node.inputs[0].dtype == "float16":
         return
     if not isinstance(node.op, AbstractConv3d_gradWeights):
         return None
@@ -198,9 +199,9 @@ def local_abstractconv3d_gradweight_gemm(fgraph, node):
 
 @local_optimizer([AbstractConv2d_gradInputs])
 def local_abstractconv_gradinputs_gemm(fgraph, node):
-    # If theano.config.blas__ldflags is empty, Theano will use
+    # If config.blas__ldflags is empty, Theano will use
     # a NumPy C implementation of [sd]gemm_.
-    if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
+    if config.cxx == "" or node.inputs[0].dtype == "float16":
         return
     if not isinstance(node.op, AbstractConv2d_gradInputs):
         return None
@@ -228,9 +229,9 @@ def local_abstractconv_gradinputs_gemm(fgraph, node):
 
 @local_optimizer([AbstractConv3d_gradInputs])
 def local_abstractconv3d_gradinputs_gemm(fgraph, node):
-    # If theano.config.blas__ldflags is empty, Theano will use
+    # If config.blas__ldflags is empty, Theano will use
     # a NumPy C implementation of [sd]gemm_.
-    if theano.config.cxx == "" or node.inputs[0].dtype == "float16":
+    if config.cxx == "" or node.inputs[0].dtype == "float16":
         return
     if not isinstance(node.op, AbstractConv3d_gradInputs):
         return None

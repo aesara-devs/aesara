@@ -21,6 +21,7 @@ from collections import defaultdict
 import numpy as np
 
 import theano
+from theano.configdefaults import config
 from theano.gof import graph
 
 
@@ -38,7 +39,6 @@ theano_imported_time = time.time()
 total_fct_exec_time = 0.0
 total_graph_opt_time = 0.0
 total_time_linker = 0.0
-config = theano.config
 
 _atexit_print_list = []
 _atexit_registered = False
@@ -341,7 +341,7 @@ class ProfileStats:
             if not _atexit_registered:
                 atexit.register(_atexit_print_fn)
                 _atexit_registered = True
-        self.ignore_first_call = theano.config.profiling__ignore_first_call
+        self.ignore_first_call = config.profiling__ignore_first_call
 
     def class_time(self):
         """

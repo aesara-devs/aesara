@@ -5,8 +5,9 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import config, function
+from theano import function
 from theano.compile.ops import Rebroadcast, SpecifyShape, as_op, shape, shape_i
+from theano.configdefaults import config
 from theano.gof.fg import FunctionGraph
 from theano.tensor.basic import (
     TensorType,

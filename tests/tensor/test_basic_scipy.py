@@ -21,8 +21,9 @@ from tests.tensor.utils import (
     rand_ranged,
     randint_ranged,
 )
-from theano import config, tensor
+from theano import tensor
 from theano.compile.mode import get_default_mode
+from theano.configdefaults import config
 from theano.tensor import inplace
 
 

@@ -11,8 +11,8 @@ import theano.scalar as scal
 import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.tensor.utils import inplace_func, rand, randint_ranged
-from theano import config
 from theano.compile import DeepCopyOp
+from theano.configdefaults import config
 from theano.gof.op import get_test_value
 from theano.gof.toolbox import is_same_graph
 from theano.tensor import (

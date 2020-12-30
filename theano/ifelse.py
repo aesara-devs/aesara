@@ -19,6 +19,7 @@ import numpy as np
 import theano.tensor
 from theano import gof
 from theano.compile import optdb
+from theano.configdefaults import config
 from theano.gof import Apply, Op
 from theano.scan.utils import clone
 from theano.tensor import TensorType, opt
@@ -238,7 +239,7 @@ class IfElse(Op):
         # condition does affect the elements of the output so it is connected.
         # For the sake of making the gradient convenient we assume that
         # condition + epsilon always triggers the same branch as condition
-        condition_grad = condition.zeros_like().astype(theano.config.floatX)
+        condition_grad = condition.zeros_like().astype(config.floatX)
         return (
             [condition_grad]
             + if_true_op(*if_true, **dict(return_list=True))

@@ -6,8 +6,9 @@ import pytest
 import theano
 import theano.tensor
 from tests import unittest_tools as utt
-from theano import config, gof
+from theano import gof
 from theano.compile import debugmode
+from theano.configdefaults import config
 from theano.gof.op import COp, Op
 
 

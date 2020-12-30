@@ -13,7 +13,7 @@ from pickle import Unpickler
 import numpy as np
 import pytest
 
-from theano import config
+from theano.configdefaults import config
 from theano.gpuarray.type import ContextNotDefined
 
 

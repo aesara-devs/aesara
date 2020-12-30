@@ -15,9 +15,10 @@ import numpy as np
 
 import theano
 import theano.compile.profiling
-from theano import config, gof
+from theano import gof
 from theano.compile.io import In, SymbolicInput, SymbolicOutput
 from theano.compile.ops import deep_copy_op, view_op
+from theano.configdefaults import config
 from theano.gof import graph
 from theano.gof.op import ops_with_inner_function
 from theano.gof.toolbox import is_same_graph

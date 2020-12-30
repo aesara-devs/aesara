@@ -7,8 +7,9 @@ from textwrap import dedent
 import numpy as np
 
 import theano
-from theano import config, gof
+from theano import gof
 from theano import scalar as scal
+from theano.configdefaults import config
 from theano.gof import MethodNotDefined, ParamsType, hashtype
 from theano.gof.graph import Apply
 from theano.gof.op import COp, Op

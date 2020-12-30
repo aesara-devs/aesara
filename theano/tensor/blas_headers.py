@@ -11,7 +11,7 @@ import sys
 import textwrap
 from os.path import dirname
 
-from theano import config
+from theano.configdefaults import config
 from theano.link.c.cmodule import GCC_compiler
 
 

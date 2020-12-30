@@ -4,8 +4,8 @@ import warnings
 import numpy as np
 
 import theano
-from theano import config
 from theano import scalar as scal
+from theano.configdefaults import config
 from theano.gof import Type, Variable, hashtype
 from theano.misc.safe_asarray import _asarray
 
@@ -143,7 +143,7 @@ class TensorType(Type):
                 elif (
                     allow_downcast is None
                     and isinstance(data, (float, np.floating))
-                    and self.dtype == theano.config.floatX
+                    and self.dtype == config.floatX
                 ):
                     # Special case where we allow downcasting of Python float
                     # literals to floatX, even when floatX=='float32'

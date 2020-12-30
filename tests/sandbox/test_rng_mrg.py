@@ -7,7 +7,8 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import config, tensor
+from theano import tensor
+from theano.configdefaults import config
 from theano.sandbox import rng_mrg
 from theano.sandbox.rng_mrg import MRG_RandomStream
 

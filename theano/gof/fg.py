@@ -4,7 +4,7 @@ from collections import OrderedDict
 from io import StringIO
 
 import theano
-from theano import config
+from theano.configdefaults import config
 from theano.gof import toolbox, utils
 from theano.gof.graph import Apply, Constant, Variable
 from theano.gof.graph import as_string as graph_as_string
@@ -520,7 +520,7 @@ class FunctionGraph(utils.object2):
             # multiple-output ops
             return
 
-        if theano.config.compute_test_value != "off":
+        if config.compute_test_value != "off":
             try:
                 tval = theano.gof.op.get_test_value(var)
                 new_tval = theano.gof.op.get_test_value(new_var)

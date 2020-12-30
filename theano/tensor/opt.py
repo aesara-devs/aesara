@@ -17,8 +17,9 @@ import numpy as np
 
 import theano
 import theano.scalar.basic as ts
-from theano import compile, config, gof  # to register the optimizer built by this file
+from theano import compile, gof  # to register the optimizer built by this file
 from theano.compile.ops import Shape, Shape_i
+from theano.configdefaults import config
 from theano.gof import (
     Constant,
     InconsistencyError,
@@ -948,7 +949,7 @@ class MakeVector(COp):
     def grad(self, inputs, output_gradients):
         # If the output is of an integer dtype, no gradient shall pass
         if self.dtype in tt.discrete_dtypes:
-            return [ipt.zeros_like().astype(theano.config.floatX) for ipt in inputs]
+            return [ipt.zeros_like().astype(config.floatX) for ipt in inputs]
 
         grads = []
         for i, inp in enumerate(inputs):
@@ -1804,7 +1805,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
                 # when i.owner.inputs[0].type == i.owner.outputs[0].type we
                 # will remove that alloc later
                 assert i.type.ndim == cmp_op.ndim
-                if theano.config.experimental__local_alloc_elemwise_assert:
+                if config.experimental__local_alloc_elemwise_assert:
                     get_shape = fgraph.shape_feature.get_shape
                     cond = []
                     for idx in range(i.type.ndim):
@@ -1821,7 +1822,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
             # Remove Alloc in DimShuffle
             elif i.owner and dimshuffled_alloc(i):
                 assert i.type.ndim == cmp_op.type.ndim
-                if theano.config.experimental__local_alloc_elemwise_assert:
+                if config.experimental__local_alloc_elemwise_assert:
                     assert_cond = [
                         tt.eq(i.shape[idx], cmp_op.shape[idx])
                         for idx in range(i.type.ndim)
@@ -5982,7 +5983,7 @@ def local_op_of_op(fgraph, node):
                 ]
 
                 if (
-                    theano.config.warn__sum_sum_bug
+                    config.warn__sum_sum_bug
                     and newaxis != newaxis_old
                     and len(newaxis) == len(newaxis_old)
                 ):
@@ -6071,7 +6072,7 @@ def local_reduce_join(fgraph, node):
 
         # I put this warning late to don't add extra warning.
         if len(reduce_axis) != 1 or 0 not in reduce_axis:
-            if theano.config.warn__reduce_join:
+            if config.warn__reduce_join:
                 warnings.warning(
                     "Your current code is fine, but Theano versions "
                     "prior to 0.7 (or this development version Sept 2014) "
@@ -7608,7 +7609,7 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
                 else:
                     s = ts.get_scalar_type(i.dtype).make_variable()
                     try:
-                        if theano.config.compute_test_value != "off":
+                        if config.compute_test_value != "off":
                             v = gof.op.get_test_value(i)
                             if v.size > 0:
                                 s.tag.test_value = v.flatten()[0]
@@ -7682,7 +7683,7 @@ your code will run correctly, but may be slower."""
 
 def elemwise_max_input_fct(node):
     # `Elemwise.perform` uses NumPy ufuncs and they are limited to 31 inputs.
-    if not theano.config.cxx:
+    if not config.cxx:
         return 31
     return 1024
 

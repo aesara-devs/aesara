@@ -9,6 +9,7 @@ from theano.compile.function.pfunc import rebuild_collect_shared
 from theano.compile.function.types import orig_function
 from theano.compile.mode import optdb
 from theano.compile.sharedvalue import SharedVariable
+from theano.configdefaults import config
 from theano.gof import Variable, ops_with_inner_function
 from theano.gof.fg import FunctionGraph
 from theano.gof.graph import io_connection_pattern
@@ -401,7 +402,7 @@ class OpFromGraph(Op):
         is_inline = self.is_inline
         return "%(name)s{inline=%(is_inline)s}" % locals()
 
-    @theano.config.change_flags(compute_test_value="off")
+    @config.change_flags(compute_test_value="off")
     def _recompute_lop_op(self):
         """
         converts self._lop_op from user supplied form to type(self) instance
@@ -541,7 +542,7 @@ class OpFromGraph(Op):
         self._lop_op_is_cached = True
         self._lop_type = "lop"
 
-    @theano.config.change_flags(compute_test_value="off")
+    @config.change_flags(compute_test_value="off")
     def _recompute_rop_op(self):
         """
         converts self._rop_op from user supplied form to type(self) instance

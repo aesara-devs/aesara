@@ -8,6 +8,7 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
+from theano.configdefaults import config
 from theano.gpuarray import dnn
 from theano.tensor.nnet.abstract_conv import get_conv_output_shape
 
@@ -22,7 +23,7 @@ def burn():
     out = tt.tensor4("out")
 
     def rand(shp):
-        return np.random.rand(*shp).astype(theano.config.floatX)
+        return np.random.rand(*shp).astype(config.floatX)
 
     img = theano.shared(rand(img_shp))
     kern = theano.shared(rand(kern_shp))

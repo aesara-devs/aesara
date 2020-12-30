@@ -3,7 +3,7 @@ import math
 import sys
 from io import StringIO
 
-from theano import config
+from theano.configdefaults import config
 from theano.gof import opt
 from theano.misc.ordered_set import OrderedSet
 from theano.utils import DefaultOrderedDict

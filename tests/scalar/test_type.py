@@ -1,6 +1,6 @@
 import numpy as np
 
-from theano import config
+from theano.configdefaults import config
 from theano.scalar.basic import (
     IntDiv,
     Scalar,

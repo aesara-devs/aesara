@@ -9,7 +9,7 @@ from tests.tensor.nnet.test_abstract_conv import (
     TestGroupedConvNoOptim,
     TestUnsharedConv,
 )
-from theano import config
+from theano.configdefaults import config
 from theano.gpuarray.blas import GpuCorrMM, GpuCorrMM_gradInputs, GpuCorrMM_gradWeights
 from theano.gpuarray.type import gpuarray_shared_constructor
 from theano.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights

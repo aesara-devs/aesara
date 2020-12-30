@@ -22,8 +22,7 @@ from io import BytesIO, StringIO
 import numpy.distutils
 
 import theano
-from theano import config
-from theano.configdefaults import gcc_version_str
+from theano.configdefaults import config, gcc_version_str
 
 # we will abuse the lockfile mechanism when reading and writing the registry
 from theano.gof import compilelock

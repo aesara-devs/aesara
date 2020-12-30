@@ -8,8 +8,9 @@ from packaging import version
 import theano
 from tests import unittest_tools as utt
 from tests.tensor.test_sharedvar import makeSharedTester
-from theano import config, sparse, tensor
+from theano import sparse, tensor
 from theano.compile.function import function
+from theano.configdefaults import config
 from theano.gof.graph import Apply
 from theano.gof.op import Op
 from theano.gradient import GradientError

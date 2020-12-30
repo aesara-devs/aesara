@@ -6,7 +6,8 @@ from collections import deque
 import numpy as np
 
 import theano
-from theano import config, tensor
+from theano import tensor
+from theano.configdefaults import config
 from theano.gof.graph import Apply, Variable
 from theano.gof.op import COp, ExternalCOp, Op
 from theano.gof.opt import copy_stack_trace

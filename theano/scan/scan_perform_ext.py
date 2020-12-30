@@ -17,7 +17,7 @@ from importlib import reload
 import numpy as np
 
 import theano
-from theano import config
+from theano.configdefaults import config
 from theano.gof.compilelock import get_lock, release_lock
 from theano.link.c import cmodule
 
@@ -65,7 +65,7 @@ except ImportError:
             if version != getattr(scan_perform, "_version", None):
                 raise ImportError()
         except ImportError:
-            if not theano.config.cxx:
+            if not config.cxx:
                 raise ImportError("no c compiler, can't compile cython code")
             _logger.info("Compiling C code for scan")
             dirname = "scan_perform"

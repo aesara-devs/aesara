@@ -5,7 +5,8 @@ import pytest
 import theano
 from tests import unittest_tools as utt
 from tests.test_rop import break_op
-from theano import config, function, tensor
+from theano import function, tensor
+from theano.configdefaults import config
 
 # The one in comment are not tested...
 from theano.sandbox.linalg.ops import Cholesky  # PSD_hint,; op class

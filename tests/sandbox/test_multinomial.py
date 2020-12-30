@@ -1,7 +1,8 @@
 import numpy as np
 
 import tests.unittest_tools as utt
-from theano import config, function, tensor
+from theano import function, tensor
+from theano.configdefaults import config
 from theano.sandbox import multinomial
 
 

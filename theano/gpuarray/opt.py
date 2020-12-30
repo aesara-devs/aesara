@@ -11,10 +11,11 @@ import theano
 import theano.tensor.nlinalg as nlinalg
 import theano.tensor.signal.pool as pool
 import theano.tensor.slinalg as slinalg
-from theano import config, gof, scalar, tensor
+from theano import gof, scalar, tensor
 from theano.breakpoint import PdbBreakpoint
 from theano.compile import optdb
 from theano.compile.ops import shape_i
+from theano.configdefaults import config
 from theano.gof import GlobalOptimizer, graph, local_optimizer, toolbox
 from theano.gof.opt import LocalMetaOptimizer, copy_stack_trace, inherit_stack_trace
 from theano.gpuarray.basic_ops import (
