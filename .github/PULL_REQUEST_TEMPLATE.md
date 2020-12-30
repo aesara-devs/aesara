@@ -1,5 +1,5 @@
 
-**Thank your for opening a PR!**
+**Thank you for opening a PR!**
 
 Here are a few important guidelines and requirements to check before your PR can be merged:
 + [ ] There is an informative high-level description of the changes.
