@@ -4,6 +4,7 @@ import theano
 import theano.tensor.basic as basic
 from theano import function
 from theano.compile import In
+from theano.misc.safe_asarray import _asarray
 from theano.tensor import (
     TensorType,
     bvector,
@@ -31,7 +32,7 @@ class TestCasting:
                 x = type_fn()
                 f = function([x], op_fn(x))
 
-                xval = theano._asarray(np.random.rand(10) * 10, dtype=type_fn.dtype)
+                xval = _asarray(np.random.rand(10) * 10, dtype=type_fn.dtype)
                 yval = f(xval)
                 assert (
                     str(yval.dtype)

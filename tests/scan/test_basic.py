@@ -26,6 +26,7 @@ import theano.scalar.sharedvar
 from tests import unittest_tools as utt
 from theano import tensor
 from theano.compile.function.pfunc import rebuild_collect_shared
+from theano.misc.safe_asarray import _asarray
 from theano.configdefaults import config
 from theano.scan.basic import scan
 from theano.scan.op import Scan
@@ -169,7 +170,7 @@ def scan_project_sum(*args, **kwargs):
 
 
 def asarrayX(value):
-    return theano._asarray(value, dtype=config.floatX)
+    return _asarray(value, dtype=config.floatX)
 
 
 def clone_optimized_graph(f):

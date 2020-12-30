@@ -36,6 +36,7 @@ from theano.gof.op import COp
 from theano.gof.opt import GlobalOptimizer, copy_stack_trace, in2out, local_optimizer
 from theano.gof.utils import MethodNotDefined, TestValueError
 from theano.gradient import DisconnectedType
+from theano.misc.safe_asarray import _asarray
 
 # Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
 from theano.tensor import basic as tt
@@ -900,7 +901,7 @@ class MakeVector(COp):
         (out,) = out_
         # not calling theano._asarray as optimization
         if (out[0] is None) or (out[0].size != len(inputs)):
-            out[0] = theano._asarray(inputs, dtype=node.outputs[0].dtype)
+            out[0] = _asarray(inputs, dtype=node.outputs[0].dtype)
         else:
             # assume that out has correct dtype. there is no cheap way to check
             out[0][...] = inputs
@@ -5432,7 +5433,7 @@ def mul_calculate(num, denum, aslist=False, out_type=None):
         out_dtype = ts.upcast(*[v.dtype for v in (num + denum)])
     else:
         out_dtype = out_type.dtype
-    one = theano._asarray(1, dtype=out_dtype)
+    one = _asarray(1, dtype=out_dtype)
 
     v = reduce(np.multiply, num, one) / reduce(np.multiply, denum, one)
     if aslist:
@@ -6267,7 +6268,7 @@ def local_mul_zero(fgraph, node):
             # print 'MUL by value', value, node.inputs
             if value == 0:
                 # print '... returning zeros'
-                return _fill_chain(theano._asarray(0, dtype=otype.dtype), node.inputs)
+                return _fill_chain(_asarray(0, dtype=otype.dtype), node.inputs)
 
 
 register_canonicalize(local_mul_zero)
@@ -6792,8 +6793,8 @@ def add_calculate(num, denum, aslist=False, out_type=None):
     if out_type is None:
         zero = 0.0
     else:
-        zero = theano._asarray(0, dtype=out_type.dtype)
-    # zero = 0.0 if out_type is None else theano._asarray(0,
+        zero = _asarray(0, dtype=out_type.dtype)
+    # zero = 0.0 if out_type is None else _asarray(0,
     # dtype=out_type.dtype)
     if out_type and out_type.dtype == "bool":
         if len(denum) == 0:

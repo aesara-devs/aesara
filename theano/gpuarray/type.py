@@ -8,6 +8,7 @@ import numpy as np
 import theano
 from theano import Constant, Type, Variable, config, scalar, tensor
 from theano.compile import SharedVariable
+from theano.misc.safe_asarray import _asarray
 from theano.tensor.type import TensorType
 from theano.tensor.var import _tensor_py_operators
 
@@ -275,7 +276,7 @@ class GpuArrayType(Type):
                 )
         else:
             if not hasattr(data, "dtype"):
-                converted_data = theano._asarray(data, self.dtype)
+                converted_data = _asarray(data, self.dtype)
                 # We use the `values_eq` static function from TensorType
                 # to handle NaN values.
                 if TensorType.values_eq(

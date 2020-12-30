@@ -5,6 +5,8 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
+from theano.link.basic import PerformLinker
+from theano.link.c.basic import OpWiseCLinker
 
 
 def test_no_reuse():
@@ -33,10 +35,9 @@ def test_gc_never_pickles_temporaries():
     optimizer = "fast_run"
 
     for f_linker, g_linker in [
-        (theano.PerformLinker(allow_gc=True), theano.PerformLinker(allow_gc=False)),
-        (theano.OpWiseCLinker(allow_gc=True), theano.OpWiseCLinker(allow_gc=False)),
+        (PerformLinker(allow_gc=True), PerformLinker(allow_gc=False)),
+        (OpWiseCLinker(allow_gc=True), OpWiseCLinker(allow_gc=False)),
     ]:
-
         # f_linker has garbage collection
 
         # g_linker has no garbage collection
@@ -51,6 +52,7 @@ def test_gc_never_pickles_temporaries():
         pre_f = pickle.dumps(f)
         # pre_g = pickle.dumps(g)
         len_pre_f = len(pre_f)
+
         # len_pre_g = len(pre_g)
 
         # We can't compare the content or the length of the string

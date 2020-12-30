@@ -27,7 +27,7 @@ def _asarray(a, dtype, order=None):
 
     This function's name starts with a '_' to indicate that it is meant to be
     used internally. It is imported so as to be available directly through
-        theano._asarray
+        _asarray
     """
     if str(dtype) == "floatX":
         dtype = config.floatX
@@ -51,7 +51,7 @@ def _asarray(a, dtype, order=None):
                 "numpy.array did not return the data type we "
                 f"asked for ({dtype} {dtype.str} #{dtype.num}), instead it returned type "
                 f"{rval.dtype} {rval.str} #{rval.dtype.num}: function "
-                "theano._asarray may need to be modified to handle this "
+                "_asarray may need to be modified to handle this "
                 "data type."
             )
     else:

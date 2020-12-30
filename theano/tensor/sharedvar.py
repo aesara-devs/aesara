@@ -2,8 +2,8 @@ import traceback
 
 import numpy as np
 
-import theano.tensor.basic
 from theano.compile import SharedVariable, shared_constructor
+from theano.misc.safe_asarray import _asarray
 from theano.tensor.basic import TensorType, _tensor_py_operators
 
 
@@ -102,7 +102,7 @@ def scalar_constructor(
         dtype = np.asarray(value).dtype
 
     dtype = str(dtype)
-    value = theano._asarray(value, dtype=dtype)
+    value = _asarray(value, dtype=dtype)
     tensor_type = TensorType(dtype=str(value.dtype), broadcastable=[])
 
     try:

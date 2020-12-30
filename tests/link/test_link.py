@@ -8,6 +8,7 @@ from theano.gof.graph import Apply, Constant, Variable
 from theano.gof.op import Op
 from theano.gof.type import Type
 from theano.link.basic import Container, PerformLinker, WrapLinker
+from theano.link.c.basic import OpWiseCLinker
 from theano.utils import cmp
 
 
@@ -181,7 +182,7 @@ def test_sort_schedule_fn():
     def str_cmp(a, b):
         return cmp(str(a), str(b))  # lexicographical sort
 
-    linker = theano.OpWiseCLinker(schedule=sort_schedule_fn(str_cmp))
+    linker = OpWiseCLinker(schedule=sort_schedule_fn(str_cmp))
     mode = theano.Mode(linker=linker)
     f = theano.function((x,), (y,), mode=mode)
 

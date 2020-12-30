@@ -3,6 +3,7 @@ import pytest
 
 import theano
 from theano.compile.sharedvalue import SharedVariable, generic, shared
+from theano.misc.safe_asarray import _asarray
 from theano.tensor import Tensor, TensorType
 from theano.utils import PYTHON_INT_BITWIDTH
 
@@ -111,7 +112,7 @@ class TestSharedVariable:
             pass
 
         # check that an assignment of a perfect value results in no copying
-        uval = theano._asarray([5, 6, 7, 8], dtype="float64")
+        uval = _asarray([5, 6, 7, 8], dtype="float64")
         u.set_value(uval, borrow=True)
         assert u.get_value(borrow=True) is uval
 

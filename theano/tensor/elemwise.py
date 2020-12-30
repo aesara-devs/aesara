@@ -11,6 +11,7 @@ from theano.gof.null_type import NullType
 from theano.gof.op import COp, ExternalCOp, OpenMPOp
 from theano.gradient import DisconnectedType
 from theano.misc.frozendict import frozendict
+from theano.misc.safe_asarray import _asarray
 from theano.printing import pprint
 from theano.scalar import get_scalar_type
 from theano.tensor import elemwise_cgen as cgen
@@ -1461,7 +1462,7 @@ class CAReduce(COp):
                 # perhaps numpy is clever for reductions of size 1?
                 # We don't want this.
                 variable = variable.copy()
-            output[0] = theano._asarray(variable, dtype=node.outputs[0].type.dtype)
+            output[0] = _asarray(variable, dtype=node.outputs[0].type.dtype)
         else:
             # Force a copy
             output[0] = np.array(variable, copy=True, dtype=node.outputs[0].type.dtype)
