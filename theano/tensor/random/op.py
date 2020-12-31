@@ -110,16 +110,17 @@ class RandomVariable(Op):
             The `Op`'s display name.
         ndim_supp: int
             Total number of dimensions for a single draw of the random variable
-            (e.g. a multivariate normal draw is 1D, so `ndim_supp = 1`).
+            (e.g. a multivariate normal draw is 1D, so ``ndim_supp = 1``).
         ndims_params: list of int
             Number of dimensions for each distribution parameter when the
-            parameters only specify a single drawn of the random variable (e.g. a
-            multivariate normal's mean is 1D and covariance is 2D, so `ndims_params
-            = [1, 2]`).
-        dtype: Theano dtype (optional)
-            The dtype of the sampled output(s).  If `None` (the default), the
-            `dtype` keyword must be set when `RandomVariable.make_node` is
-            called.
+            parameters only specify a single drawn of the random variable
+            (e.g. a multivariate normal's mean is 1D and covariance is 2D, so
+            ``ndims_params = [1, 2]``).
+        dtype: str (optional)
+            The dtype of the sampled output.  If the value ``"floatX"`` is
+            given, then ``dtype`` is set to ``theano.config.floatX``.  If
+            ``None`` (the default), the `dtype` keyword must be set when
+            `RandomVariable.make_node` is called.
         inplace: boolean (optional)
             Determine whether or not the underlying rng state is updated
             in-place or not (i.e. copied).
@@ -135,6 +136,7 @@ class RandomVariable(Op):
             ndims_params if ndims_params is not None else getattr(self, "ndims_params")
         )
         self.dtype = dtype or getattr(self, "dtype", None)
+
         self.inplace = (
             inplace if inplace is not None else getattr(self, "inplace", False)
         )
@@ -333,9 +335,10 @@ class RandomVariable(Op):
             new one, if `None`.
         size: int or Sequence
             Numpy-like size of the output (i.e. replications).
-        dtype: Theano dtype
-            The dtype of the sampled output.  This value is only used when
-            `self.dtype` isn't set.
+        dtype: str
+            The dtype of the sampled output.  If the value ``"floatX"`` is
+            given, then ``dtype`` is set to ``theano.config.floatX``.  This
+            value is only used when `self.dtype` isn't set.
         dist_params: list
             Distribution parameters.
 
@@ -372,7 +375,9 @@ class RandomVariable(Op):
         bcast = self.compute_bcast(dist_params, size)
         dtype = self.dtype or dtype
 
-        if dtype is None or (isinstance(dtype, str) and dtype not in all_dtypes):
+        if dtype == "floatX":
+            dtype = config.floatX
+        elif dtype is None or (isinstance(dtype, str) and dtype not in all_dtypes):
             # dtype = tt.scal.upcast(self.dtype, *[p.dtype for p in dist_params])
             raise TypeError("dtype is unspecified")
 
