@@ -35,14 +35,14 @@ def test_default_shape_from_params():
     assert res == (3, 4)
 
 
-def test_RandomVariable():
+def test_RandomVariable_basics():
 
     str_res = str(
         RandomVariable(
             "normal",
             0,
             [0, 0],
-            "normal",
+            config.floatX,
             inplace=True,
         )
     )
@@ -128,6 +128,25 @@ def test_RandomVariable():
 
     res = rv.compute_bcast([mu, sd], (s1, s2, s3))
     assert res == [False] * 3
+
+
+def test_RandomVariable_floatX():
+    test_rv_op = RandomVariable(
+        "normal",
+        0,
+        [0, 0],
+        "floatX",
+        inplace=True,
+    )
+
+    assert test_rv_op.dtype == "floatX"
+
+    assert test_rv_op(0, 1).dtype == config.floatX
+
+    new_floatX = "float64" if config.floatX == "float32" else "float32"
+
+    with change_flags(floatX=new_floatX):
+        assert test_rv_op(0, 1).dtype == new_floatX
 
 
 def test_observed():
