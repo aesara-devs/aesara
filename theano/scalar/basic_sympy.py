@@ -1,6 +1,5 @@
 import itertools as it
 
-from theano.gof.utils import remove
 from theano.scalar.basic import Apply, ScalarOp, as_scalar, float32, float64, int64
 
 
@@ -65,7 +64,7 @@ class SymPyCCode(ScalarOp):
 
     def c_support_code(self):
         c_code = self._sympy_c_code()
-        return "\n".join(remove(include_line, c_code.split("\n")))
+        return "\n".join([x for x in c_code.split("\n") if not include_line(x)])
 
     def c_headers(self):
         c_code = self._sympy_c_code()
