@@ -16,6 +16,7 @@
     graph
     fgraph
     toolbox
+    op
     type
     params_type
     utils
