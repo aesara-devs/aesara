@@ -27,16 +27,11 @@ from theano.gof.graph import Apply, Constant, Variable, clone, list_of_nodes
 from theano.gof.op import COp
 from theano.gof.opt import MergeOptimizer
 from theano.gof.type import Type
-from theano.gof.utils import (
-    MetaObject,
-    MethodNotDefined,
-    difference,
-    from_return_values,
-    to_return_values,
-)
+from theano.gof.utils import MetaObject, MethodNotDefined
 from theano.gradient import DisconnectedType, grad_undefined
 from theano.misc.safe_asarray import _asarray
 from theano.printing import pprint
+from theano.utils import difference, from_return_values, to_return_values
 
 
 builtin_bool = bool

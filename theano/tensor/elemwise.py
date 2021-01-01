@@ -3,7 +3,7 @@ from copy import copy
 import numpy as np
 
 import theano
-from theano import gof, scalar
+from theano import scalar
 from theano.configdefaults import config
 from theano.gof import ParamsType
 from theano.gof.graph import Apply
@@ -15,6 +15,7 @@ from theano.misc.safe_asarray import _asarray
 from theano.printing import pprint
 from theano.scalar import get_scalar_type
 from theano.tensor import elemwise_cgen as cgen
+from theano.utils import uniq
 
 
 _numpy_ver = [int(n) for n in np.__version__.split(".")[:2]]
@@ -899,12 +900,12 @@ second dimension
         _inames = inames
         _onames = onames
 
-        inames = gof.utils.uniq(inames)
-        inputs = gof.utils.uniq(node.inputs)
+        inames = uniq(inames)
+        inputs = uniq(node.inputs)
         # assert that inames and inputs order stay consistent.
         # This is to protect again futur change of uniq.
         assert len(inames) == len(inputs)
-        ii, iii = list(zip(*gof.utils.uniq(list(zip(_inames, node.inputs)))))
+        ii, iii = list(zip(*uniq(list(zip(_inames, node.inputs)))))
         assert all([x == y for x, y in zip(ii, inames)])
         assert all([x == y for x, y in zip(iii, inputs)])
 

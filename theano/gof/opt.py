@@ -26,8 +26,9 @@ from theano.gof import graph
 from theano.gof.fg import InconsistencyError
 from theano.gof.op import Op
 from theano.gof.toolbox import Feature, NodeFinder
-from theano.gof.utils import AssocList, flatten
+from theano.gof.utils import AssocList
 from theano.misc.ordered_set import OrderedSet
+from theano.utils import flatten
 
 
 _logger = logging.getLogger("theano.gof.opt")

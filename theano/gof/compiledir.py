@@ -7,7 +7,7 @@ import numpy as np
 
 import theano
 from theano.configdefaults import config
-from theano.gof.utils import flatten
+from theano.utils import flatten
 
 
 _logger = logging.getLogger("theano.gof.compiledir")
