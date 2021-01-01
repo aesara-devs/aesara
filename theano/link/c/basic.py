@@ -12,9 +12,10 @@ from io import StringIO
 import numpy as np
 
 from theano.configdefaults import config
-from theano.gof import graph, utils
+from theano.gof import graph
 from theano.gof.callcache import CallCache
 from theano.gof.compilelock import get_lock, release_lock
+from theano.gof.utils import MethodNotDefined, difference, uniq
 from theano.link.basic import Container, Linker, LocalLinker, PerformLinker
 from theano.link.c.cmodule import (
     METH_VARARGS,
@@ -670,7 +671,7 @@ class CLinker(Linker):
                     variable.type.c_literal(variable.data)
                     self.consts.append(variable)
                     self.orphans.remove(variable)
-                except (utils.MethodNotDefined, NotImplementedError):
+                except (MethodNotDefined, NotImplementedError):
                     pass
 
         self.temps = list(
@@ -851,7 +852,7 @@ class CLinker(Linker):
             # type-specific support code
             try:
                 c_support_code_apply.append(op.c_support_code_apply(node, name))
-            except utils.MethodNotDefined:
+            except MethodNotDefined:
                 pass
             else:
                 # The following will be executed if the "try" block succeeds
@@ -861,7 +862,7 @@ class CLinker(Linker):
 
             try:
                 c_init_code_apply.append(op.c_init_code_apply(node, name))
-            except utils.MethodNotDefined:
+            except MethodNotDefined:
                 pass
             else:
                 assert isinstance(c_init_code_apply[-1], str), (
@@ -873,7 +874,7 @@ class CLinker(Linker):
                 assert isinstance(struct_init, str), (
                     str(node.op) + " didn't return a string for c_init_code_struct"
                 )
-            except utils.MethodNotDefined:
+            except MethodNotDefined:
                 pass
 
             try:
@@ -881,7 +882,7 @@ class CLinker(Linker):
                 assert isinstance(struct_support, str), (
                     str(node.op) + " didn't return a string for c_support_code_struct"
                 )
-            except utils.MethodNotDefined:
+            except MethodNotDefined:
                 pass
 
             try:
@@ -889,13 +890,13 @@ class CLinker(Linker):
                 assert isinstance(struct_cleanup, str), (
                     str(node.op) + " didn't return a string for c_cleanup_code_struct"
                 )
-            except utils.MethodNotDefined:
+            except MethodNotDefined:
                 pass
 
             # emit c_code
             try:
                 behavior = op.c_code(node, name, isyms, osyms, sub)
-            except utils.MethodNotDefined:
+            except MethodNotDefined:
                 raise NotImplementedError(f"{op} cannot produce C code")
             assert isinstance(
                 behavior, str
@@ -907,7 +908,7 @@ class CLinker(Linker):
 
             try:
                 cleanup = op.c_code_cleanup(node, name, isyms, osyms, sub)
-            except utils.MethodNotDefined:
+            except MethodNotDefined:
                 cleanup = ""
 
             _logger.info(f"compiling un-versioned Apply {node}")
@@ -930,7 +931,7 @@ class CLinker(Linker):
         args = []
         args += [
             f"storage_{symbol[variable]}"
-            for variable in utils.uniq(self.inputs + self.outputs + self.orphans)
+            for variable in uniq(self.inputs + self.outputs + self.orphans)
         ]
 
         # <<<<HASH_PLACEHOLDER>>>> will be replaced by a hash of the whole
@@ -991,7 +992,7 @@ class CLinker(Linker):
                     ret.extend(support_code)
                 else:
                     ret.append(support_code)
-            except utils.MethodNotDefined:
+            except MethodNotDefined:
                 pass
         return ret
 
@@ -1029,10 +1030,10 @@ class CLinker(Linker):
                     ret += x.c_compile_args(c_compiler)
                 except TypeError:
                     ret += x.c_compile_args()
-            except utils.MethodNotDefined:
+            except MethodNotDefined:
                 pass
 
-        ret = utils.uniq(ret)  # to remove duplicate
+        ret = uniq(ret)  # to remove duplicate
         # The args set by the compiler include the user flags. We do not want
         # to reorder them
         ret += c_compiler.compile_args()
@@ -1047,7 +1048,7 @@ class CLinker(Linker):
                         ret.remove(i)
                     except ValueError:
                         pass  # in case the value is not there
-            except utils.MethodNotDefined:
+            except MethodNotDefined:
                 pass
         return ret
 
@@ -1067,9 +1068,9 @@ class CLinker(Linker):
                     ret += x.c_headers(c_compiler)
                 except TypeError:
                     ret += x.c_headers()
-            except utils.MethodNotDefined:
+            except MethodNotDefined:
                 pass
-        return utils.uniq(ret)
+        return uniq(ret)
 
     def init_code(self):
         """
@@ -1083,9 +1084,9 @@ class CLinker(Linker):
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
             try:
                 ret += x.c_init_code()
-            except utils.MethodNotDefined:
+            except MethodNotDefined:
                 pass
-        return utils.uniq(ret)
+        return uniq(ret)
 
     def c_compiler(self):
         c_compiler = None
@@ -1124,10 +1125,10 @@ class CLinker(Linker):
                     ret += x.c_header_dirs(c_compiler)
                 except TypeError:
                     ret += x.c_header_dirs()
-            except utils.MethodNotDefined:
+            except MethodNotDefined:
                 pass
         # filter out empty strings/None
-        return [r for r in utils.uniq(ret) if r]
+        return [r for r in uniq(ret) if r]
 
     def libraries(self):
         """
@@ -1145,9 +1146,9 @@ class CLinker(Linker):
                     ret += x.c_libraries(c_compiler)
                 except TypeError:
                     ret += x.c_libraries()
-            except utils.MethodNotDefined:
+            except MethodNotDefined:
                 pass
-        return utils.uniq(ret)
+        return uniq(ret)
 
     def lib_dirs(self):
         """
@@ -1165,10 +1166,10 @@ class CLinker(Linker):
                     ret += x.c_lib_dirs(c_compiler)
                 except TypeError:
                     ret += x.c_lib_dirs()
-            except utils.MethodNotDefined:
+            except MethodNotDefined:
                 pass
         # filter out empty strings/None
-        return [r for r in utils.uniq(ret) if r]
+        return [r for r in uniq(ret) if r]
 
     def __compile__(
         self, input_storage=None, output_storage=None, storage_map=None, keep_lock=False
@@ -1962,7 +1963,7 @@ class OpWiseCLinker(LocalLinker):
 
             if no_recycling is True:
                 no_recycling = list(storage_map.values())
-                no_recycling = utils.difference(no_recycling, input_storage)
+                no_recycling = difference(no_recycling, input_storage)
             else:
                 no_recycling = [
                     storage_map[r] for r in no_recycling if r not in fgraph.inputs
