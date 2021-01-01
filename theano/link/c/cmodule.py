@@ -4,6 +4,7 @@ Generate and compile C modules for Python.
 """
 import atexit
 import distutils.sysconfig
+import importlib
 import logging
 import os
 import pickle
@@ -35,12 +36,6 @@ from theano.utils import (
     subprocess_Popen,
 )
 
-
-importlib = None
-try:
-    import importlib
-except ImportError:
-    pass
 
 _logger = logging.getLogger("theano.link.c.cmodule")
 
@@ -292,9 +287,7 @@ def dlimport(fullpath, suffix=None):
     sys.path[0:0] = [workdir]  # insert workdir at beginning (temporarily)
     global import_time
     try:
-        if importlib is not None:
-            if hasattr(importlib, "invalidate_caches"):
-                importlib.invalidate_caches()
+        importlib.invalidate_caches()
         t0 = time.time()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", message="numpy.ndarray size changed")
