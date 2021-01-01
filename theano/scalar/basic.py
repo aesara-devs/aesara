@@ -22,11 +22,17 @@ import numpy as np
 import theano
 from theano import gof, printing
 from theano.configdefaults import config
-from theano.gof import utils
 from theano.gof.fg import FunctionGraph
 from theano.gof.graph import Apply, Constant, Variable
 from theano.gof.op import COp
 from theano.gof.type import Type
+from theano.gof.utils import (
+    MetaObject,
+    MethodNotDefined,
+    difference,
+    from_return_values,
+    to_return_values,
+)
 from theano.gradient import DisconnectedType, grad_undefined
 from theano.misc.safe_asarray import _asarray
 from theano.printing import pprint
@@ -954,7 +960,7 @@ def same_out_float_only(type):
     return (type,)
 
 
-class transfer_type(gof.utils.object2):
+class transfer_type(MetaObject):
     __props__ = ("transfer",)
 
     def __init__(self, *transfer):
@@ -978,7 +984,7 @@ class transfer_type(gof.utils.object2):
         # return [upcast if i is None else types[i] for i in self.transfer]
 
 
-class specific_out(gof.utils.object2):
+class specific_out(MetaObject):
     __props__ = ("spec",)
 
     def __init__(self, *spec):
@@ -1027,7 +1033,7 @@ def float_out_nocomplex(*types):
     return (float64,)
 
 
-class unary_out_lookup(gof.utils.object2):
+class unary_out_lookup(MetaObject):
     """
     Get a output_types_preference object by passing a dictionary:
 
@@ -1126,16 +1132,16 @@ class ScalarOp(COp):
         if self.nout == 1:
             output_storage[0][0] = self.impl(*inputs)
         else:
-            variables = utils.from_return_values(self.impl(*inputs))
+            variables = from_return_values(self.impl(*inputs))
             assert len(variables) == len(output_storage)
             for storage, variable in zip(output_storage, variables):
                 storage[0] = variable
 
     def impl(self, *inputs):
-        raise utils.MethodNotDefined("impl", type(self), self.__class__.__name__)
+        raise MethodNotDefined("impl", type(self), self.__class__.__name__)
 
     def grad(self, inputs, output_gradients):
-        raise utils.MethodNotDefined("grad", type(self), self.__class__.__name__)
+        raise MethodNotDefined("grad", type(self), self.__class__.__name__)
 
     def L_op(self, inputs, outputs, output_gradients):
         return self.grad(inputs, output_gradients)
@@ -1183,7 +1189,7 @@ class ScalarOp(COp):
               the inputs/outputs types)
 
         """
-        raise theano.gof.utils.MethodNotDefined()
+        raise MethodNotDefined()
 
     def supports_c_code(self, inputs, outputs):
         """Returns True if the current op has functioning C code for
@@ -1215,7 +1221,7 @@ class ScalarOp(COp):
                 ["z" for z in outputs],
                 {"fail": "%(fail)s"},
             )
-        except (theano.gof.utils.MethodNotDefined, NotImplementedError):
+        except (MethodNotDefined, NotImplementedError):
             return False
         return True
 
@@ -1235,7 +1241,7 @@ class UnaryScalarOp(ScalarOp):
             # as this function do not broadcast
             node.inputs[0].type != node.outputs[0].type
         ):
-            raise theano.gof.utils.MethodNotDefined()
+            raise MethodNotDefined()
 
         dtype = node.inputs[0].type.dtype_specs()[1]
         fct_call = self.c_code_contiguous_raw(dtype, "n", "x", "z")
@@ -1250,7 +1256,7 @@ class UnaryScalarOp(ScalarOp):
 
     def c_code_contiguous_raw(self, dtype, n, i, o):
         if not config.lib__amblibm:
-            raise theano.gof.utils.MethodNotDefined()
+            raise MethodNotDefined()
         if dtype.startswith("npy_"):
             dtype = dtype[4:]
         if dtype == "float32" and self.amd_float32 is not None:
@@ -1260,7 +1266,7 @@ class UnaryScalarOp(ScalarOp):
             dtype = "double"
             fct = self.amd_float64
         else:
-            raise theano.gof.utils.MethodNotDefined()
+            raise MethodNotDefined()
         return f"{fct}({n}, {i}, {o})"
 
 
@@ -1895,7 +1901,7 @@ class Mul(ScalarOp):
             if gz.type in complex_types:
                 # zr+zi = (xr + xi)(yr + yi)
                 # zr+zi = (xr*yr - xi*yi) + (xr yi + xi yr )
-                otherprod = mul(*(utils.difference(inputs, [input])))
+                otherprod = mul(*(difference(inputs, [input])))
                 yr = real(otherprod)
                 yi = imag(otherprod)
                 if input.type in complex_types:
@@ -1907,7 +1913,7 @@ class Mul(ScalarOp):
                 else:
                     retval += [yr * real(gz) + yi * imag(gz)]
             else:
-                retval += [mul(*([gz] + utils.difference(inputs, [input])))]
+                retval += [mul(*([gz] + difference(inputs, [input])))]
         return retval
 
 
@@ -2269,7 +2275,7 @@ class Pow(BinaryScalarOp):
         (x, y) = inputs
         (z,) = outputs
         if not config.lib__amblibm:
-            raise theano.gof.utils.MethodNotDefined()
+            raise MethodNotDefined()
 
         # We compare the dtype AND the broadcast flag
         # as this function do not broadcast
@@ -2310,7 +2316,7 @@ class Pow(BinaryScalarOp):
         {fct}(n, x, *y, z);
         """
 
-        raise theano.gof.utils.MethodNotDefined()
+        raise MethodNotDefined()
 
 
 pow = Pow(upcast_out_min8, name="pow")
@@ -4224,7 +4230,7 @@ class Composite(ScalarOp):
     def impl(self, *inputs):
         output_storage = [[None] for i in range(self.nout)]
         self.perform(None, inputs, output_storage)
-        ret = utils.to_return_values([storage[0] for storage in output_storage])
+        ret = to_return_values([storage[0] for storage in output_storage])
         if self.nout > 1:
             ret = tuple(ret)
         return ret
@@ -4265,7 +4271,7 @@ class Composite(ScalarOp):
         for subnode in self.fgraph.toposort():
             try:
                 rval.append(subnode.op.c_support_code().strip())
-            except gof.utils.MethodNotDefined:
+            except MethodNotDefined:
                 pass
         # remove duplicate code blocks
         return "\n".join(sorted(set(rval)))
@@ -4280,7 +4286,7 @@ class Composite(ScalarOp):
                 )
                 if subnode_support_code:
                     rval.append(subnode_support_code)
-            except gof.utils.MethodNotDefined:
+            except MethodNotDefined:
                 pass
         # there should be no need to remove duplicate code blocks because
         # each block should have been specialized for the given nodename.

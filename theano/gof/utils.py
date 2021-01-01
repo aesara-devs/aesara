@@ -157,7 +157,7 @@ class MethodNotDefined(Exception):
     """
 
 
-class MetaObject(type):
+class MetaType(type):
     def __new__(cls, name, bases, dct):
         props = dct.get("__props__", None)
         if props is not None:
@@ -223,7 +223,7 @@ class MetaObject(type):
         return type.__new__(cls, name, bases, dct)
 
 
-class object2(metaclass=MetaObject):
+class MetaObject(metaclass=MetaType):
     __slots__ = []
 
     def __ne__(self, other):

@@ -21,11 +21,11 @@ from theano.gof import graph
 from theano.gof.fg import FunctionGraph
 from theano.gof.graph import Apply, Variable
 from theano.gof.utils import (
+    MetaObject,
     MethodNotDefined,
     TestValueError,
     add_tag_trace,
     get_variable_trace_string,
-    object2,
 )
 from theano.link.c.interface import CLinkerOp
 
@@ -118,7 +118,7 @@ def compute_test_value(node):
         output.tag.test_value = storage_map[output][0]
 
 
-class Op(object2):
+class Op(MetaObject):
     """A class that models and constructs operations in a graph.
 
     A `Op` instance has several responsibilities:
