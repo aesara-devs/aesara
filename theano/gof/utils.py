@@ -464,21 +464,6 @@ def flatten(a):
         return [a]
 
 
-def remove(predicate, coll):
-    """
-    Return those items of collection for which predicate(item) is true.
-
-    Examples
-    --------
-    >>> def even(x):
-    ...     return x % 2 == 0
-    >>> remove(even, [1, 2, 3, 4])
-    [1, 3]
-
-    """
-    return [x for x in coll if not predicate(x)]
-
-
 def hash_from_code(msg):
     # hashlib.sha256() requires an object that supports buffer interface,
     # but Python 3 (unicode) strings don't.
