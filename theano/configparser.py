@@ -1,4 +1,3 @@
-import hashlib
 import logging
 import os
 import shlex
@@ -15,7 +14,7 @@ from configparser import (
 from functools import wraps
 from io import StringIO
 
-from theano.utils import deprecated
+from theano.utils import deprecated, hash_from_code
 
 
 _logger = logging.getLogger("theano.configparser")
@@ -65,17 +64,6 @@ class _ChangeFlagsDecorator:
     def __exit__(self, *args):
         for k, v in self.confs.items():
             v.__set__(self._root, self.old_vals[k])
-
-
-def _hash_from_code(msg):
-    """This function was copied from theano.gof.utils to get rid of that import."""
-    # hashlib.sha256() requires an object that supports buffer interface,
-    # but Python 3 (unicode) strings don't.
-    if isinstance(msg, str):
-        msg = msg.encode()
-    # Python 3 does not like module names that start with
-    # a digit.
-    return "m" + hashlib.sha256(msg).hexdigest()
 
 
 class _SectionRedirect:
@@ -136,7 +124,7 @@ class TheanoConfigParser:
             [c for c in self._config_var_dict.values() if c.in_c_key],
             key=lambda cv: cv.name,
         )
-        return _hash_from_code(
+        return hash_from_code(
             "\n".join(
                 [
                     "{} = {}".format(cv.name, cv.__get__(self, self.__class__))
