@@ -16,7 +16,7 @@ if sys.platform == "win32":
 import theano
 import theano.gof.compiledir
 from theano import config
-from theano.link.c.cc import get_module_cache
+from theano.link.c.basic import get_module_cache
 
 
 _logger = logging.getLogger("theano.bin.theano-cache")
