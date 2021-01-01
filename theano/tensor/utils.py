@@ -1,7 +1,7 @@
 import numpy as np
 
 import theano
-from theano.gof.utils import hash_from_code
+from theano.utils import hash_from_code
 
 
 def hash_from_ndarray(data):

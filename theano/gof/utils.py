@@ -1,4 +1,3 @@
-import hashlib
 import linecache
 import sys
 import traceback
@@ -462,23 +461,3 @@ def flatten(a):
         return l
     else:
         return [a]
-
-
-def hash_from_code(msg):
-    # hashlib.sha256() requires an object that supports buffer interface,
-    # but Python 3 (unicode) strings don't.
-    if isinstance(msg, str):
-        msg = msg.encode()
-    # Python 3 does not like module names that start with
-    # a digit.
-    return "m" + hashlib.sha256(msg).hexdigest()
-
-
-def hash_from_file(file_path):
-    """
-    Return the SHA256 hash of a file.
-
-    """
-    with open(file_path, "rb") as f:
-        file_content = f.read()
-    return hash_from_code(file_content)

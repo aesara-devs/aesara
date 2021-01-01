@@ -1,6 +1,7 @@
 """Utility functions that only depend on the standard library."""
 
 
+import hashlib
 import inspect
 import os
 import struct
@@ -284,3 +285,14 @@ def output_subprocess_Popen(command, **params):
     # the stdout/stderr pipe.
     out = p.communicate()
     return out + (p.returncode,)
+
+
+def hash_from_code(msg):
+    """Return the SHA256 hash of a string or bytes."""
+    # hashlib.sha256() requires an object that supports buffer interface,
+    # but Python 3 (unicode) strings don't.
+    if isinstance(msg, str):
+        msg = msg.encode()
+    # Python 3 does not like module names that start with
+    # a digit.
+    return "m" + hashlib.sha256(msg).hexdigest()
