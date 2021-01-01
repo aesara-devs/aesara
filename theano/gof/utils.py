@@ -4,8 +4,6 @@ import sys
 import traceback
 from io import StringIO
 
-from theano.configdefaults import config
-
 
 def simple_extract_stack(f=None, limit=None, skips=None):
     """This is traceback.extract_stack from python 2.7 with this change:
@@ -86,6 +84,8 @@ def add_tag_trace(thing, user_line=None):
     we look.
 
     """
+    from theano.configdefaults import config
+
     if user_line is None:
         user_line = config.traceback__limit
 
