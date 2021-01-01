@@ -41,7 +41,7 @@ class MissingInputError(Exception):
         Exception.__init__(self, s)
 
 
-class FunctionGraph(utils.object2):
+class FunctionGraph(utils.MetaObject):
     """
     A `FunctionGraph` represents a subgraph bound by a set of input variables and
     a set of output variables, ie a subgraph that specifies a theano function.

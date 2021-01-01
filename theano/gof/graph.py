@@ -12,13 +12,13 @@ import numpy as np
 import theano
 from theano.configdefaults import config
 from theano.gof.utils import (
+    MetaObject,
     MethodNotDefined,
     Scratchpad,
     TestValueError,
     ValidatingScratchpad,
     add_tag_trace,
     get_variable_trace_string,
-    object2,
 )
 from theano.misc.ordered_set import OrderedSet
 
@@ -28,7 +28,7 @@ __docformat__ = "restructuredtext en"
 NoParams = object()
 
 
-class Node(object2):
+class Node(MetaObject):
     """A `Node` in a Theano graph.
 
     Currently, graphs contain two kinds of `Nodes`: `Variable`s and `Apply`s.

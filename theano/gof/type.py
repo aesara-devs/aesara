@@ -14,7 +14,7 @@ import theano
 from theano.configdefaults import config
 from theano.gof import graph, utils
 from theano.gof.op import COp
-from theano.gof.utils import MethodNotDefined, object2
+from theano.gof.utils import MetaObject, MethodNotDefined
 from theano.link.c.interface import CLinkerType
 
 
@@ -221,7 +221,7 @@ _nothing = """
        """
 
 
-class Type(object2, PureType, CLinkerType):
+class Type(MetaObject, PureType, CLinkerType):
     """
     Convenience wrapper combining `PureType` and `CLinkerType`.
 

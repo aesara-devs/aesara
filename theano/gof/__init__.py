@@ -43,4 +43,4 @@ from theano.gof.toolbox import (
     Validator,
 )
 from theano.gof.type import CEnumType, EnumList, EnumType, Generic, Type, generic
-from theano.gof.utils import MethodNotDefined, object2
+from theano.gof.utils import MetaObject, MethodNotDefined
