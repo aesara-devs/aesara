@@ -13,8 +13,9 @@ import warnings
 from collections import defaultdict
 
 from theano.configdefaults import config
-from theano.gof import Constant, Variable
+from theano.gof.graph import Constant, Variable
 from theano.link.basic import Container, LocalLinker
+from theano.link.c.exceptions import MissingGXX
 from theano.link.utils import gc_helper, map_storage, raise_with_op
 
 
@@ -888,6 +889,11 @@ class VMLinker(LocalLinker):
 
         pre_call_clear = [storage_map[v] for v in self.no_recycling]
 
+        try:
+            from theano.link.c.cvm import CVM
+        except (MissingGXX, ImportError):
+            CVM = None
+
         if (
             self.callback is not None
             or self.callback_input is not None
@@ -920,9 +926,7 @@ class VMLinker(LocalLinker):
                 callback=self.callback,
                 callback_input=self.callback_input,
             )
-        elif self.use_cloop:
-
-            from theano.link.c.cvm import CVM
+        elif self.use_cloop and CVM:
 
             # create a map from nodes to ints and vars to ints
             nodes_idx = {}

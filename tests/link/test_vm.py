@@ -13,7 +13,7 @@ from theano.gof.graph import Apply
 from theano.gof.op import Op
 from theano.ifelse import ifelse
 from theano.link.c.exceptions import MissingGXX
-from theano.link.vm import VMLinker
+from theano.link.vm import Loop, VMLinker
 
 
 class TestCallbacks:
@@ -450,19 +450,39 @@ def test_no_recycling():
         assert m1 is m2
 
 
-def test_VMLinker_no_cxx():
+@pytest.mark.skipif(
+    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+)
+def test_VMLinker_make_vm_cvm():
+    # We don't want this at module level, since CXX might not be present
+    from theano.link.c.cvm import CVM
+
+    a = tensor.scalar()
+    linker = VMLinker(allow_gc=False, use_cloop=True)
+
+    f = function([a], a, mode=Mode(optimizer=None, linker=linker))
+    assert isinstance(f.fn, CVM)
+
+
+def test_VMLinker_make_vm_no_cvm():
     from importlib import reload
     from unittest.mock import patch
 
     with config.change_flags(cxx=""):
+
+        # Make sure that GXX isn't present
         with pytest.raises(MissingGXX):
             import theano.link.c.cvm
 
             reload(theano.link.c.cvm)
 
+        # Make sure that `cvm` module is missing
         with patch.dict("sys.modules", {"theano.link.c.cvm": None}):
-            linker = VMLinker(allow_gc=False, use_cloop=True)
             a = tensor.scalar()
+            linker = VMLinker(allow_gc=False, use_cloop=True)
 
             with pytest.raises(ModuleNotFoundError):
-                _ = function([a], a, mode=Mode(optimizer=None, linker=linker))
+                import theano.link.c.cvm
+
+            f = function([a], a, mode=Mode(optimizer=None, linker=linker))
+            assert isinstance(f.fn, Loop)
