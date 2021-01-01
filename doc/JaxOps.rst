@@ -1,4 +1,4 @@
-A tutorial JAX Ops and Aesara
+Tutorial on adding JAX Ops to Aesara
 =============================
 
 A core feature of Aesara, previously named Theano-PyMC, is the JAX
