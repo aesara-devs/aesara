@@ -8,7 +8,6 @@ import numpy as np
 import theano
 from theano.configdefaults import config
 from theano.gof import Constant, Variable
-from theano.gof.utils import hashtype
 from theano.scalar import ComplexError, IntegerDivisionError
 from theano.tensor.type import TensorType
 from theano.tensor.utils import hash_from_ndarray
@@ -923,7 +922,7 @@ class TensorConstantSignature(tuple):
 
     def __hash__(self):
         t, d = self
-        return hashtype(self) ^ hash(t) ^ hash(d.shape) ^ hash(self.sum)
+        return hash((type(self), t, d.shape, self.sum))
 
     def theano_hash(self):
         _, d = self

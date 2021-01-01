@@ -69,8 +69,7 @@ def simple_extract_stack(f=None, limit=None, skips=None):
 
 
 def add_tag_trace(thing, user_line=None):
-    """
-    Add tag.trace to an node or variable.
+    """Add tag.trace to a node or variable.
 
     The argument is returned after being affected (inplace).
 
@@ -143,11 +142,6 @@ def get_variable_trace_string(v):
                     print(f"trace {int(idx)}", file=sio)
                 traceback.print_list(subtr, sio)
     return sio.getvalue()
-
-
-def hashtype(self):
-    t = type(self)
-    return hash(t.__name__) ^ hash(t.__module__)
 
 
 # Object to mark that a parameter is undefined (useful in cases where
