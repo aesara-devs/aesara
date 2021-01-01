@@ -28,10 +28,11 @@ from theano.compile.function.types import (
 from theano.compile.mode import Mode, register_mode
 from theano.compile.ops import OutputGuard, _output_guard
 from theano.configdefaults import config
-from theano.gof import graph, ops_with_inner_function, utils
+from theano.gof import graph, ops_with_inner_function
+from theano.gof.utils import MethodNotDefined
 from theano.link.basic import Container, LocalLinker
 from theano.link.utils import map_storage, raise_with_op
-from theano.utils import get_unbound_function
+from theano.utils import difference, get_unbound_function
 
 
 __docformat__ = "restructuredtext en"
@@ -1827,14 +1828,14 @@ class _Linker(LocalLinker):
                     or debug
                     or not isinstance(node.op, gof.op.COp)
                 ):
-                    raise utils.MethodNotDefined()
+                    raise MethodNotDefined()
 
                 node.op.prepare_node(node, storage_map, compute_map, "c")
                 thunk = node.op.make_c_thunk(
                     node, storage_map, compute_map, no_recycling
                 )
                 thunks_c.append(thunk)
-            except (NotImplementedError, utils.MethodNotDefined):
+            except (NotImplementedError, MethodNotDefined):
                 thunks_c.append(None)
 
             # Pure ops don't really have a perform ( or their perform just
@@ -1885,7 +1886,7 @@ class _Linker(LocalLinker):
         # function's outputs. no_recycling_map will be used in f() below.
         if self.no_recycling is True:
             no_recycling_map = list(storage_map.values())
-            no_recycling_map = utils.difference(no_recycling_map, input_storage)
+            no_recycling_map = difference(no_recycling_map, input_storage)
         else:
             no_recycling_map = [
                 storage_map[r] for r in self.no_recycling if r not in fgraph.inputs
@@ -2003,7 +2004,7 @@ class _Linker(LocalLinker):
                         )
                         try:
                             thunk_py()
-                        except (utils.MethodNotDefined, NotImplementedError):
+                        except (MethodNotDefined, NotImplementedError):
                             # shouldn't have put it into the list in
                             # the first place
                             thunk_py = None

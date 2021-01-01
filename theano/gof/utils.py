@@ -344,70 +344,6 @@ class AssocList:
         return f"AssocList({self._dict}, {self._list})"
 
 
-def memoize(f):
-    """
-    Cache the return value for each tuple of arguments (which must be hashable).
-
-    """
-    cache = {}
-
-    def rval(*args, **kwargs):
-        kwtup = tuple(kwargs.items())
-        key = (args, kwtup)
-        if key not in cache:
-            val = f(*args, **kwargs)
-            cache[key] = val
-        else:
-            val = cache[key]
-        return val
-
-    return rval
-
-
-def uniq(seq):
-    """
-    Do not use set, this must always return the same value at the same index.
-    If we just exchange other values, but keep the same pattern of duplication,
-    we must keep the same order.
-
-    """
-    # TODO: consider building a set out of seq so that the if condition
-    # is constant time -JB
-    return [x for i, x in enumerate(seq) if seq.index(x) == i]
-
-
-def difference(seq1, seq2):
-    r"""
-    Returns all elements in seq1 which are not in seq2: i.e ``seq1\seq2``.
-
-    """
-    try:
-        # try to use O(const * len(seq1)) algo
-        if len(seq2) < 4:  # I'm guessing this threshold -JB
-            raise Exception("not worth it")
-        set2 = set(seq2)
-        return [x for x in seq1 if x not in set2]
-    except Exception:
-        # maybe a seq2 element is not hashable
-        # maybe seq2 is too short
-        # -> use O(len(seq1) * len(seq2)) algo
-        return [x for x in seq1 if x not in seq2]
-
-
-def to_return_values(values):
-    if len(values) == 1:
-        return values[0]
-    else:
-        return values
-
-
-def from_return_values(values):
-    if isinstance(values, (list, tuple)):
-        return values
-    else:
-        return [values]
-
-
 def toposort(prereqs_d):
     """
     Sorts prereqs_d.keys() topologically.
@@ -447,17 +383,3 @@ def toposort(prereqs_d):
             "some orderings contain invalid elements."
         )
     return seq
-
-
-def flatten(a):
-    """
-    Recursively flatten tuple, list and set in a list.
-
-    """
-    if isinstance(a, (tuple, list, set)):
-        l = []
-        for item in a:
-            l.extend(flatten(item))
-        return l
-    else:
-        return [a]

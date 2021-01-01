@@ -26,10 +26,10 @@ from theano.configdefaults import config, gcc_version_str
 
 # we will abuse the lockfile mechanism when reading and writing the registry
 from theano.gof import compilelock
-from theano.gof.utils import flatten
 from theano.link.c.exceptions import MissingGXX
 from theano.utils import (
     LOCAL_BITWIDTH,
+    flatten,
     hash_from_code,
     output_subprocess_Popen,
     subprocess_Popen,

@@ -160,13 +160,14 @@ from theano.gof.opt import (
 )
 from theano.gof.params_type import ParamsType
 from theano.gof.toolbox import ReplaceValidate
-from theano.gof.utils import MethodNotDefined, TestValueError, memoize
+from theano.gof.utils import MethodNotDefined, TestValueError
 from theano.printing import FunctionPrinter, debugprint, pprint
 from theano.scalar import bool as bool_t
 from theano.tensor import basic as tt
 from theano.tensor.blas_headers import blas_header_text, blas_header_version
 from theano.tensor.opt import in2out, local_dimshuffle_lift
 from theano.tensor.type import values_eq_approx_remove_inf_nan
+from theano.utils import memoize
 
 
 _logger = logging.getLogger("theano.tensor.blas")

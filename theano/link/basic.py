@@ -1,13 +1,12 @@
 import typing
 from copy import copy, deepcopy
 
-from theano import utils
 from theano.configdefaults import config
 from theano.gof.fg import FunctionGraph
 from theano.gof.graph import Apply
 from theano.gof.type import Type
-from theano.gof.utils import to_return_values
 from theano.link.utils import gc_helper, map_storage, raise_with_op, streamline
+from theano.utils import deprecated, difference, to_return_values
 
 
 class Container:
@@ -191,7 +190,7 @@ class Linker:
             f"make_thunk method of {type(self)} is not implemented."
         )
 
-    @utils.deprecated("Marked for deletion. Only tests use it.")
+    @deprecated("Marked for deletion. Only tests use it.")
     def make_function(self, unpack_single=True, **kwargs):
         """
         Returns a function that takes values corresponding to the inputs of the
@@ -387,7 +386,7 @@ class PerformLinker(LocalLinker):
             # True seems like some special code for *everything*?? -JB
             # FunctionMaker always passes a list I think   -JB
             no_recycling = list(storage_map.values())
-            no_recycling = utils.difference(no_recycling, input_storage)
+            no_recycling = difference(no_recycling, input_storage)
         else:
             no_recycling = [
                 storage_map[r] for r in no_recycling if r not in fgraph.inputs

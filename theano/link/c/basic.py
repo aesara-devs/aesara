@@ -16,7 +16,7 @@ from theano.gof.callcache import CallCache
 from theano.gof.compilelock import get_lock, release_lock
 from theano.gof.graph import Constant, NoParams, io_toposort
 from theano.gof.graph import variables as get_variables
-from theano.gof.utils import MethodNotDefined, difference, uniq
+from theano.gof.utils import MethodNotDefined
 from theano.link.basic import Container, Linker, LocalLinker, PerformLinker
 from theano.link.c.cmodule import (
     METH_VARARGS,
@@ -27,6 +27,7 @@ from theano.link.c.cmodule import (
 )
 from theano.link.c.cmodule import get_module_cache as _get_module_cache
 from theano.link.utils import gc_helper, map_storage, raise_with_op, streamline
+from theano.utils import difference, uniq
 
 
 _logger = logging.getLogger("theano.link.c.basic")

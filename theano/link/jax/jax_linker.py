@@ -1,10 +1,10 @@
 from collections.abc import Sequence
 from warnings import warn
 
-from theano.gof import utils
 from theano.gof.graph import Constant
 from theano.link.basic import Container, PerformLinker
 from theano.link.utils import gc_helper, map_storage, streamline
+from theano.utils import difference
 
 
 class JAXLinker(PerformLinker):
@@ -167,7 +167,7 @@ class JAXLinker(PerformLinker):
 
         if no_recycling is True:
             no_recycling = list(storage_map.values())
-            no_recycling = utils.difference(no_recycling, input_storage)
+            no_recycling = difference(no_recycling, input_storage)
         else:
             no_recycling = [
                 storage_map[r] for r in no_recycling if r not in fgraph.inputs
