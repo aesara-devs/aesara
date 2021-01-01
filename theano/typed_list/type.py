@@ -1,7 +1,7 @@
-from theano import gof
+from theano.gof.type import Type
 
 
-class TypedListType(gof.Type):
+class TypedListType(Type):
     """
 
     Parameters
@@ -18,7 +18,7 @@ class TypedListType(gof.Type):
 
         if depth < 0:
             raise ValueError("Please specify a depth superior or" "equal to 0")
-        if not isinstance(ttype, gof.Type):
+        if not isinstance(ttype, Type):
             raise TypeError("Expected a Theano Type")
 
         if depth == 0:
@@ -59,7 +59,7 @@ class TypedListType(gof.Type):
         return type(self) == type(other) and self.ttype == other.ttype
 
     def __hash__(self):
-        return gof.hashtype(self) ^ hash(self.ttype)
+        return hash((type(self), self.ttype))
 
     def __str__(self):
         return "TypedList <" + str(self.ttype) + ">"

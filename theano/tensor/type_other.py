@@ -5,7 +5,9 @@
 import numpy as np
 
 import theano
-from theano.gof import Apply, Constant, Generic, Op, Type, hashtype
+from theano.gof.graph import Apply, Constant
+from theano.gof.op import Op
+from theano.gof.type import Generic, Type
 from theano.gradient import DisconnectedType
 
 
@@ -61,7 +63,7 @@ class SliceType(Type):
         return type(self) == type(other)
 
     def __hash__(self):
-        return hashtype(self)
+        return hash(type(self))
 
     @staticmethod
     def may_share_memory(a, b):

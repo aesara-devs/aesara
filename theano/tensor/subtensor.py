@@ -10,7 +10,7 @@ import theano
 from theano import gof
 from theano import scalar as scal
 from theano.configdefaults import config
-from theano.gof import MethodNotDefined, ParamsType, hashtype
+from theano.gof import MethodNotDefined, ParamsType
 from theano.gof.graph import Apply
 from theano.gof.op import COp, Op
 from theano.gof.type import Type
@@ -1422,25 +1422,11 @@ class IncSubtensor(COp):
         self.set_instead_of_inc = set_instead_of_inc
 
     def __hash__(self):
-        msg = []
-        for entry in self.idx_list:
-            if isinstance(entry, slice):
-                msg += [(entry.start, entry.stop, entry.step)]
-            else:
-                msg += [entry]
-
-        idx_list = tuple(msg)
-        # backport
-        # idx_list = tuple((entry.start, entry.stop, entry.step)
-        #                 if isinstance(entry, slice)
-        #                 else entry
-        #                 for entry in self.idx_list)
-        return (
-            hashtype(self)
-            ^ hash(idx_list)
-            ^ hash(self.inplace)
-            ^ hash(self.set_instead_of_inc)
+        idx_list = tuple(
+            (entry.start, entry.stop, entry.step) if isinstance(entry, slice) else entry
+            for entry in self.idx_list
         )
+        return hash((type(self), idx_list, self.inplace, self.set_instead_of_inc))
 
     def __str__(self):
         indices = []

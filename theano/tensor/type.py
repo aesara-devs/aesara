@@ -6,7 +6,8 @@ import numpy as np
 import theano
 from theano import scalar as scal
 from theano.configdefaults import config
-from theano.gof import Type, Variable, hashtype
+from theano.gof.graph import Variable
+from theano.gof.type import Type
 from theano.misc.safe_asarray import _asarray
 
 
@@ -343,8 +344,7 @@ class TensorType(Type):
         return values_eq_approx(a, b, allow_remove_inf, allow_remove_nan, rtol, atol)
 
     def __hash__(self):
-        """Hash equal for same kinds of TensorType"""
-        return hashtype(self) ^ hash(self.dtype) ^ hash(self.broadcastable)
+        return hash((type(self), self.dtype, self.broadcastable))
 
     ndim = property(lambda self: len(self.broadcastable), doc="number of dimensions")
     """
