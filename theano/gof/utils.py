@@ -144,11 +144,6 @@ def get_variable_trace_string(v):
     return sio.getvalue()
 
 
-# Object to mark that a parameter is undefined (useful in cases where
-# None is a valid value with defined semantics)
-undef = object()
-
-
 class TestValueError(Exception):
     """Base exception class for all test value errors."""
 
@@ -467,13 +462,6 @@ def flatten(a):
         return l
     else:
         return [a]
-
-
-def hist(coll):
-    counts = {}
-    for elem in coll:
-        counts[elem] = counts.get(elem, 0) + 1
-    return counts
 
 
 def remove(predicate, coll):
