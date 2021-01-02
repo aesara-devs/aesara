@@ -710,7 +710,7 @@ class FunctionGraph(utils.MetaObject):
         Call this for a diagnosis if things go awry.
 
         """
-        nodes = ops_between(self.inputs, self.outputs)
+        nodes = set(ops_between(self.inputs, self.outputs))
         if self.apply_nodes != nodes:
             missing = nodes.difference(self.apply_nodes)
             excess = self.apply_nodes.difference(nodes)

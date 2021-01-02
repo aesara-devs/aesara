@@ -35,10 +35,6 @@ _logger = logging.getLogger("theano.gof.opt")
 _optimizer_idx = [0]
 
 
-def _list_of_nodes(fgraph):
-    return list(graph.io_toposort(fgraph.inputs, fgraph.outputs))
-
-
 class LocalMetaOptimizerSkipAssertionError(AssertionError):
     """This is an AssertionError, but instead of having the
     LocalMetaOptimizer print the error, it just skip that
@@ -1344,7 +1340,9 @@ class LocalOptGroup(LocalOptimizer):
                 else:  # It must be a dict
                     new_vars = list(new_repl.values())
                 if self.profile:
-                    self.node_created[opt] += len(graph.ops(fgraph.variables, new_vars))
+                    self.node_created[opt] += len(
+                        list(graph.ops(fgraph.variables, new_vars))
+                    )
                     self.applied_true[opt] += 1
                 break  # break from the for loop over optimization.
             if not new_repl:  # No optimization applied in the last iteration
@@ -1454,7 +1452,9 @@ class GraphToGPULocalOptGroup(LocalOptGroup):
             if not new_repl:
                 continue
             if self.profile:
-                self.node_created[opt] += len(graph.ops(fgraph.variables, new_repl))
+                self.node_created[opt] += len(
+                    list(graph.ops(fgraph.variables, new_repl))
+                )
                 self.applied_true[opt] += 1
 
             return new_repl

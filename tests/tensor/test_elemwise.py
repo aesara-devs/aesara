@@ -1336,7 +1336,6 @@ def test_grad_useless_sum():
     x = TensorType(theano.config.floatX, (True,))("x")
     l = tt.log(1.0 - sigmoid(x))[0]
     g = tt.grad(l, x)
-    nodes = theano.gof.graph.ops([x], [g])
 
     f = theano.function([x], g, mode=mode)
     test_values = [-100, -1, 0, 1, 100]
@@ -1349,7 +1348,9 @@ def test_grad_useless_sum():
     finally:
         TensorType.values_eq_approx = old_values_eq_approx
 
-    assert not any([isinstance(node.op, Sum) for node in nodes])
+    assert not any(
+        [isinstance(node.op, Sum) for node in theano.gof.graph.ops([x], [g])]
+    )
     assert np.allclose(
         outputs, [[-3.72007598e-44], [-0.26894142], [-0.5], [-0.73105858], [-1.0]]
     )

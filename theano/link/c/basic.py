@@ -637,7 +637,7 @@ class CLinker(Linker):
         # We need to include the unused inputs in our variables,
         # otherwise we can't pass them to the module.
         self.variables = [var for var in self.inputs if not len(fgraph.clients[var])]
-        self.variables += get_variables(self.inputs, self.outputs)
+        self.variables += list(get_variables(self.inputs, self.outputs))
 
         # This adds a hidden input which is the params for each node
         # that needs it

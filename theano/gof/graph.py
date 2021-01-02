@@ -1,11 +1,24 @@
-"""
-Node classes (`Apply`, `Variable`) and expression graph algorithms.
-"""
+"""Core graph classes."""
 import contextlib
 import warnings
 from collections import deque
 from copy import copy
 from itertools import count
+from typing import (
+    Callable,
+    Collection,
+    Deque,
+    Dict,
+    Generator,
+    Hashable,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    TypeVar,
+    Union,
+)
 
 import numpy as np
 
@@ -23,7 +36,7 @@ from theano.gof.utils import (
 from theano.misc.ordered_set import OrderedSet
 
 
-__docformat__ = "restructuredtext en"
+T = TypeVar("T")
 
 NoParams = object()
 
@@ -648,76 +661,92 @@ class Constant(Variable):
     # index is not defined, because the `owner` attribute must necessarily be None
 
 
-def stack_search(start, expand, mode="bfs", build_inv=False):
-    """
-    Search through a graph, either breadth- or depth-first.
+def stack_search(
+    nodes: Iterable[T],
+    expand: Callable[[T], Optional[Sequence[T]]],
+    bfs: bool = True,
+    return_children: bool = False,
+    hash_fn: Callable[[T], Hashable] = id,
+) -> Generator[T, None, Dict[T, List[T]]]:
+    """Walk through a graph, either breadth- or depth-first.
 
     Parameters
     ----------
-    start : deque
-        Search from these nodes.
-    expand : callable
-        When we get to a node, add expand(node) to the list of nodes to visit.
-        This function should return a list, or None.
-    mode : string
-        'bfs' or 'dfs' for breath first search or depth first search.
+    nodes: deque
+        The nodes from which to start walking.
+    expand: callable
+        A callable that is applied to each node in `nodes`, the results of
+        which are either new nodes to visit or ``None``.
+    bfs: bool
+        If ``True``, breath first search is used; otherwise, depth first
+        search.
+    return_children: bool
+        If ``True``, each output node will be accompanied by the output of
+        `expand` (i.e. the corresponding child nodes).
+    hash_fn: callable
+        The function used to produce hashes of the elements in `nodes`.
+        The default is ``id``.
 
-    Returns
-    -------
-    list of `Variable` or `Apply` instances (depends on `expend`)
-        The list of nodes in order of traversal.
+    Yields
+    ------
+    nodes
+        When `build_inv` is ``True``, a inverse map is returned.
 
     Notes
     -----
     A node will appear at most once in the return value, even if it
-    appears multiple times in the start parameter.
-
-    :postcondition: every element of start is transferred to the returned list.
-    :postcondition: start is empty.
+    appears multiple times in the `nodes` parameter.
 
     """
 
-    if mode not in ("bfs", "dfs"):
-        raise ValueError("mode should be bfs or dfs", mode)
-    rval_set = set()
-    rval_list = list()
-    if mode == "bfs":
-        start_pop = start.popleft
+    nodes = deque(nodes)
+
+    rval_set: Set[T] = set()
+
+    if bfs:
+        nodes_pop: Callable[[], T] = nodes.popleft
     else:
-        start_pop = start.pop
-    expand_inv = {}  # var: clients
-    while start:
-        l = start_pop()
-        if id(l) not in rval_set:
-            rval_list.append(l)
-            rval_set.add(id(l))
-            expand_l = expand(l)
-            if expand_l:
-                if build_inv:
-                    for r in expand_l:
-                        expand_inv.setdefault(r, []).append(l)
-                start.extend(expand_l)
-    assert len(rval_list) == len(rval_set)
-    if build_inv:
-        return rval_list, expand_inv
-    return rval_list
+        nodes_pop: Callable[[], T] = nodes.pop
+
+    while nodes:
+        node: T = nodes_pop()
+
+        node_hash: Hashable = hash_fn(node)
+
+        if node_hash not in rval_set:
+
+            rval_set.add(node_hash)
+
+            new_nodes: Sequence[T] = expand(node)
+
+            if return_children:
+                yield node, new_nodes
+            else:
+                yield node
+
+            if new_nodes:
+                nodes.extend(new_nodes)
 
 
-def ancestors(variable_list, blockers=None):
-    """
-    Return the variables that contribute to those in variable_list (inclusive).
+def ancestors(
+    graphs: Iterable[Variable], blockers: Collection[Variable] = None
+) -> Generator[Variable, None, None]:
+    """Return the variables that contribute to those in given graphs (inclusive).
 
     Parameters
     ----------
-    variable_list : list of `Variable` instances
+    graphs: list of `Variable` instances
         Output `Variable` instances from which to search backward through
         owners.
+    blockers: list of `Variable` instances
+        A collection of `Variable`s that, when found, prevent the graph search
+        from preceding from that point.
 
-    Returns
-    -------
-    list of `Variable` instances
+    Yields
+    ------
+    `Variable`s
         All input nodes, in the order found by a left-recursive depth-first
-        search started at the nodes in `variable_list`.
+        search started at the nodes in `graphs`.
 
     """
 
@@ -725,142 +754,124 @@ def ancestors(variable_list, blockers=None):
         if r.owner and (not blockers or r not in blockers):
             return reversed(r.owner.inputs)
 
-    dfs_variables = stack_search(deque(variable_list), expand, "dfs")
-    return dfs_variables
+    yield from stack_search(graphs, expand, False)
 
 
-def inputs(variable_list, blockers=None):
-    """
-    Return the inputs required to compute the given Variables.
+def inputs(
+    graphs: Iterable[Variable], blockers: Collection[Variable] = None
+) -> Generator[Variable, None, None]:
+    """Return the inputs required to compute the given Variables.
 
     Parameters
     ----------
-    variable_list : list of `Variable` instances
+    graphs: list of `Variable` instances
         Output `Variable` instances from which to search backward through
         owners.
+    blockers: list of `Variable` instances
+        A collection of `Variable`s that, when found, prevent the graph search
+        from preceding from that point.
 
-    Returns
-    -------
-    list of `Variable` instances
+    Yields
+    ------
+    `Variable`s
         Input nodes with no owner, in the order found by a left-recursive
-        depth-first search started at the nodes in `variable_list`.
+        depth-first search started at the nodes in `graphs`.
 
     """
-    vlist = ancestors(variable_list, blockers)
-    rval = [r for r in vlist if r.owner is None]
-    return rval
+    yield from (r for r in ancestors(graphs, blockers) if r.owner is None)
 
 
-def variables_and_orphans(i, o):
-    """
-    Extract list of variables between i and o nodes via
-    dfs traversal and chooses the orphans among them
+def variables(
+    ins: Collection[Variable], outs: Iterable[Variable]
+) -> Generator[Variable, None, None]:
+    """Extract the `Variable`s within the sub-graph between input and output nodes.
 
     Parameters
     ----------
-    i : list
-         Input variables.
-    o : list
-         Output variables.
+    ins: list
+        Input `Variable`s.
+    outs: list
+        Output `Variable`s.
+
+    Yields
+    ------
+    `Variable`s
+        The `Variable`s that are involved in the subgraph that lies
+        between `ins` and `outs`. This includes `ins`, `outs`,
+        ``orphans(ins, outs)`` and all values of all intermediary steps from
+        `ins` to `outs`.
 
     """
 
     def expand(r):
-        if r.owner and r not in i:
-            l = list(r.owner.inputs) + list(r.owner.outputs)
-            l.reverse()
-            return l
+        if r.owner and r not in ins:
+            return reversed(r.owner.inputs + r.owner.outputs)
 
-    variables = stack_search(deque(o), expand, "dfs")
-    orphans = [r for r in variables if r.owner is None and r not in i]
-    return variables, orphans
+    yield from stack_search(outs, expand)
 
 
-def ops(i, o):
-    """
-    Set of Ops contained within the subgraph between i and o
+def orphans(
+    ins: Collection[Variable], outs: Iterable[Variable]
+) -> Generator[Variable, None, None]:
+    """Extract the `Variable`s not within the sub-graph between input and output nodes.
 
     Parameters
     ----------
-    i : list
-        Input variables.
-    o : list
-        Output variables.
+    ins: list
+        Input `Variable`s.
+    outs: list
+        Output `Variable`s.
 
-    Returns
+    Yields
     -------
-    object
-        The set of ops that are contained within the subgraph that lies
-        between i and o, including the owners of the variables in o and
-        intermediary ops between i and o, but not the owners of the variables
-        in i.
-
-    """
-    ops = set()
-    variables, orphans = variables_and_orphans(i, o)
-    for r in variables:
-        if r not in i and r not in orphans:
-            if r.owner is not None:
-                ops.add(r.owner)
-    return ops
-
-
-def variables(i, o):
-    """
-    Extracts list of variables within input and output nodes via dfs travesal
-
-    Parameters
-    ----------
-    i : list
-        Input variables.
-    o : list
-        Output variables.
-
-    Returns
-    -------
-    object
-        The set of Variables that are involved in the subgraph that lies
-        between i and o. This includes i, o, orphans(i, o) and all values of
-        all intermediary steps from i to o.
-
-    """
-    return variables_and_orphans(i, o)[0]
-
-
-def orphans(i, o):
-    """
-    Extracts list of variables within input and output nodes
-    via dfs travesal and returns the orphans among them
-
-    Parameters
-    ----------
-    i : list
-        Input Variables.
-    o : list
-        Output Variables.
-
-    Returns
-    -------
-    object
-        The set of Variables which one or more Variables in o depend on but are
-        neither in i nor in the subgraph that lies between i and o.
+    `Variable`s
+        The `Variable`s upon which one or more Variables in `outs`
+        depend, but are neither in `ins` nor in the sub-graph that lies between
+        them.
 
     Examples
     --------
-    orphans([x], [(x+y).out]) => [y]
+    >>> orphans([x], [(x+y).out])
+    [y]
 
     """
-    return variables_and_orphans(i, o)[1]
+    yield from (r for r in variables(ins, outs) if r.owner is None and r not in ins)
 
 
-def clone(i, o, copy_inputs=True, copy_orphans=None):
-    """Copies the subgraph contained between i and o.
+def ops(
+    ins: Collection[Variable], outs: Iterable[Variable]
+) -> Generator[Apply, None, None]:
+    """Extract the `Apply`s contained within the sub-graph between given input and output variables.
 
     Parameters
     ----------
-    i : list
+    ins: list
+        Input `Variable`s.
+    outs: list
+        Output `Variable`s.
+
+    Yields
+    ------
+    `Apply`s
+        The `Apply`s that are contained within the sub-graph that lies
+        between `ins` and `outs`, including the owners of the `Variable`s in
+        `outs` and intermediary `Apply`s between `ins` and `outs`, but not the
+        owners of the `Variable`s in `ins`.
+
+    """
+    yield from (
+        r.owner for r in variables(ins, outs) if r not in ins and r.owner is not None
+    )
+
+
+def clone(inputs, outputs, copy_inputs=True, copy_orphans=None):
+    """Copies the sub-graph contained between inputs and outputs.
+
+    Parameters
+    ----------
+    inputs : list
         Input Variables.
-    o : list
+    outputs : list
         Output Variables.
     copy_inputs : bool
         If True, the inputs will be copied (defaults to True).
@@ -877,15 +888,15 @@ def clone(i, o, copy_inputs=True, copy_orphans=None):
     Notes
     -----
 
-    A constant, if in the ``i`` list is not an orpha. So it will be
-    copied depending of the ``copy_inputs`` parameter. Otherwise it
-    will be copied depending of the ``copy_orphans`` parameter.
+    A constant, if in the `inputs` list is not an orphan. So it will be copied
+    depending of the `copy_inputs` parameter. Otherwise it will be copied
+    depending of the `copy_orphans` parameter.
 
     """
     if copy_orphans is None:
         copy_orphans = copy_inputs
-    equiv = clone_get_equiv(i, o, copy_inputs, copy_orphans)
-    return [equiv[input] for input in i], [equiv[output] for output in o]
+    equiv = clone_get_equiv(inputs, outputs, copy_inputs, copy_orphans)
+    return [equiv[input] for input in inputs], [equiv[output] for output in outputs]
 
 
 def clone_get_equiv(inputs, outputs, copy_inputs=True, copy_orphans=True, memo=None):
@@ -951,28 +962,27 @@ def clone_get_equiv(inputs, outputs, copy_inputs=True, copy_orphans=True, memo=N
 
 
 def general_toposort(
-    outputs,
-    deps,
-    debug_print=False,
-    compute_deps_cache=None,
-    deps_cache=None,
-    clients=None,
-):
-    """
-    WRITEME
+    outputs: Iterable[T],
+    deps: Callable[[T], Union[OrderedSet, List[T]]],
+    compute_deps_cache: Optional[Callable[[T], Union[OrderedSet, List[T]]]] = None,
+    deps_cache: Optional[Dict[T, List[T]]] = None,
+    clients: Optional[Dict[T, List[T]]] = None,
+) -> List[T]:
+    """Perform a topological sort of all nodes starting from a given node.
 
     Parameters
     ----------
-    deps
+    deps: callable
         A python function that takes a node as input and returns its dependence.
-    compute_deps_cache : optional
+    compute_deps_cache: optional
         If provided deps_cache should also be provided. This is a function like
         deps, but that also cache its results in a dict passed as deps_cache.
-    deps_cache : dict
-        Must be used with compute_deps_cache.
-    clients : dict
-        If a dict is passed it will be filled with a mapping of node
-        -> clients for each node in the subgraph.
+    deps_cache: dict
+        A dict mapping nodes to their children.  This is populated by
+        `compute_deps_cache`.
+    clients: dict
+        If a dict is passed it will be filled with a mapping of
+        nodes-to-clients for each node in the subgraph.
 
     Notes
     -----
@@ -991,37 +1001,53 @@ def general_toposort(
 
     """
     if compute_deps_cache is None:
-        deps_cache = {}
+
+        if deps_cache is None:
+            deps_cache = {}
 
         def compute_deps_cache(io):
             if io not in deps_cache:
                 d = deps(io)
+
                 if d:
                     if not isinstance(d, (list, OrderedSet)):
                         raise TypeError(
-                            "Non-deterministic collections here make"
+                            "Non-deterministic collections found; make"
                             " toposort non-deterministic."
                         )
                     deps_cache[io] = list(d)
                 else:
-                    deps_cache[io] = d
+                    deps_cache[io] = None
+
                 return d
             else:
                 return deps_cache[io]
 
-    assert deps_cache is not None
+    if deps_cache is None:
+        raise ValueError("deps_cache cannot be None")
 
-    assert isinstance(outputs, (tuple, list, deque))
+    search_res: List[T, Optional[List[T]]] = list(
+        stack_search(outputs, compute_deps_cache, bfs=False, return_children=True)
+    )
 
-    reachable, _clients = stack_search(deque(outputs), compute_deps_cache, "dfs", True)
+    _clients: Dict[T, List[T]] = {}
+    sources: Deque[T] = deque()
+    search_res_len: int = 0
+    for node, children in search_res:
+        search_res_len += 1
+        if children:
+            for child in children:
+                _clients.setdefault(child, []).append(node)
+        if not deps_cache.get(node):
+            sources.append(node)
+
     if clients is not None:
         clients.update(_clients)
-    sources = deque([r for r in reachable if not deps_cache.get(r, None)])
 
-    rset = set()
-    rlist = []
+    rset: Set[T] = set()
+    rlist: List[T] = []
     while sources:
-        node = sources.popleft()
+        node: T = sources.popleft()
         if node not in rset:
             rlist.append(node)
             rset.add(node)
@@ -1031,31 +1057,31 @@ def general_toposort(
                 if not d:
                     sources.append(client)
 
-    if len(rlist) != len(reachable):
-        if debug_print:
-            print("")
-            print(reachable)
-            print(rlist)
+    if len(rlist) != search_res_len:
         raise ValueError("graph contains cycles")
 
     return rlist
 
 
-def io_toposort(inputs, outputs, orderings=None, clients=None):
-    """
-    Perform topological sort from input and output nodes
+def io_toposort(
+    inputs: List[Variable],
+    outputs: List[Variable],
+    orderings: Optional[Dict[Apply, List[Apply]]] = None,
+    clients: Optional[Dict[Variable, List[Variable]]] = None,
+) -> List[Apply]:
+    """Perform topological sort from input and output nodes.
 
     Parameters
     ----------
     inputs : list or tuple of Variable instances
+        Graph inputs.
     outputs : list or tuple of Apply instances
+        Graph outputs.
     orderings : dict
-        Key: Apply instance. Value: list of Apply instance.
-        It is important that the value be a container with a deterministic
-        iteration order. No sets allowed!
+        Keys are `Apply` instances, values are lists of `Apply` instances.
     clients : dict
-        If a dict is provided it will be filled with mappings of
-        node->clients for each node in the subgraph that is sorted
+        If provided, it will be filled with mappings of nodes-to-clients for
+        each node in the subgraph that is sorted.
 
     """
     if not orderings and clients is None:  # ordering can be None or empty dict
@@ -1100,11 +1126,6 @@ def io_toposort(inputs, outputs, orderings=None, clients=None):
                 elif isinstance(obj, Apply):
                     rval = list(obj.inputs)
                 if rval:
-                    if not isinstance(rval, (list, OrderedSet)):
-                        raise TypeError(
-                            "Non-deterministic collections here make"
-                            " toposort non-deterministic."
-                        )
                     deps_cache[obj] = list(rval)
                 else:
                     deps_cache[obj] = rval
@@ -1228,16 +1249,18 @@ def op_as_string(
 
 
 def as_string(
-    i, o, leaf_formatter=default_leaf_formatter, node_formatter=default_node_formatter
-):
-    """
-    Returns a string representation of the subgraph between i and o
+    inputs: List[Variable],
+    outputs: List[Variable],
+    leaf_formatter=default_leaf_formatter,
+    node_formatter=default_node_formatter,
+) -> List[str]:
+    """Returns a string representation of the subgraph between inputs and outputs.
 
     Parameters
     ----------
-    i : list
+    inputs : list
         Input `Variable` s.
-    o : list
+    outputs : list
         Output `Variable` s.
     leaf_formatter : callable
         Takes a `Variable`  and returns a string to describe it.
@@ -1247,28 +1270,28 @@ def as_string(
 
     Returns
     -------
-    str
-        Returns a string representation of the subgraph between i and o. If the
-        same op is used by several other ops, the first occurrence will be
-        marked as :literal:`*n -> description` and all subsequent occurrences
-        will be marked as :literal:`*n`, where n is an id number (ids are
-        attributed in an unspecified order and only exist for viewing
-        convenience).
+    list of str
+        Returns a string representation of the subgraph between `inputs` and
+        `outputs`. If the same node is used by several other nodes, the first
+        occurrence will be marked as :literal:`*n -> description` and all
+        subsequent occurrences will be marked as :literal:`*n`, where n is an id
+        number (ids are attributed in an unspecified order and only exist for
+        viewing convenience).
 
     """
-    i = set(i)
+    i = set(inputs)
 
-    orph = orphans(i, o)
+    orph = list(orphans(i, outputs))
 
     multi = set()
     seen = set()
-    for output in o:
+    for output in outputs:
         op = output.owner
         if op in seen:
             multi.add(op)
         else:
             seen.add(op)
-    for op in ops(i, o):
+    for op in ops(i, outputs):
         for input in op.inputs:
             op2 = input.owner
             if input in i or input in orph or op2 is None:
@@ -1303,60 +1326,72 @@ def as_string(
         else:
             return leaf_formatter(r)
 
-    return [describe(output) for output in o]
+    return [describe(output) for output in outputs]
 
 
-def view_roots(r):
-    """
-    Utility function that returns the leaves of a search through
-    consecutive view_map()s.
-
-    WRITEME
-
-    """
-    owner = r.owner
+def view_roots(node: Variable) -> List[Variable]:
+    """Return the leaves from a search through consecutive view-maps."""
+    owner = node.owner
     if owner is not None:
         try:
             view_map = owner.op.view_map
             view_map = {owner.outputs[o]: i for o, i in view_map.items()}
         except AttributeError:
-            return [r]
-        if r in view_map:
+            return [node]
+        if node in view_map:
             answer = []
-            for i in view_map[r]:
+            for i in view_map[node]:
                 answer += view_roots(owner.inputs[i])
             return answer
         else:
-            return [r]
+            return [node]
     else:
-        return [r]
+        return [node]
 
 
-def list_of_nodes(inputs, outputs):
+def list_of_nodes(
+    inputs: Collection[Variable], outputs: Iterable[Variable]
+) -> List[Apply]:
+
+    """Return the `Apply` nodes of the graph between `inputs` and `outputs`.
+
+    Parameters
+    ----------
+    inputs: list of Variable
+        Input `Variable`s.
+    outputs: list of Variable
+        Output `Variable`s.
+
     """
-    Return the apply nodes of the graph between inputs and outputs.
-
-    """
-    return stack_search(
-        deque([o.owner for o in outputs]),
-        lambda o: [
-            inp.owner
-            for inp in o.inputs
-            if inp.owner and not any(i in inp.owner.outputs for i in inputs)
-        ],
+    return list(
+        stack_search(
+            [o.owner for o in outputs],
+            lambda o: [
+                inp.owner
+                for inp in o.inputs
+                if inp.owner and not any(i in inp.owner.outputs for i in inputs)
+            ],
+        )
     )
 
 
-def is_in_ancestors(l_node, f_node):
-    r"""
-    Goes up in the graph and returns True if the apply node f_node is found.
+def is_in_ancestors(l_apply: Apply, f_node: Apply) -> bool:
+    """Determine if `f_node` is in the graph given by `l_apply`.
 
-    Use a stack implementation as the vm algo.
-    We suppose all nodes are not lazy
-    (i.e. for IfElse we suppose all inputs are computed)
+    Parameters
+    ----------
+    l_apply: Apply
+        The node to walk.
+    f_apply: Apply
+        The node to find in `l_apply`.
+
+    Returns
+    -------
+    bool
+
     """
     computed = set()
-    todo = [l_node]
+    todo = [l_apply]
     while todo:
         cur = todo.pop()
         if cur.outputs[0] in computed:
@@ -1375,7 +1410,7 @@ def is_in_ancestors(l_node, f_node):
 def nodes_constructed():
     """
     A contextmanager that is used in inherit_stack_trace and keeps track
-    of all the newly created varaible nodes inside an optimization. A list
+    of all the newly created variable nodes inside an optimization. A list
     of new_nodes is instantiated but will be filled in a lazy manner (when
     Variable.notify_construction_observers is called).
 
