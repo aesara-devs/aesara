@@ -393,7 +393,7 @@ class NoDuplicateOptWarningFilter(logging.Filter):
         return True
 
 
-def _multi(*fns):
+def apply_across_args(*fns):
     """Create new functions that distributes the wrapped functions across iterable arguments.
 
     For example, a function, `fn`, that uses this decorator satisfies

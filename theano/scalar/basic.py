@@ -30,7 +30,12 @@ from theano.gof.utils import MetaObject, MethodNotDefined
 from theano.gradient import DisconnectedType, grad_undefined
 from theano.misc.safe_asarray import _asarray
 from theano.printing import pprint
-from theano.utils import _multi, difference, from_return_values, to_return_values
+from theano.utils import (
+    apply_across_args,
+    difference,
+    from_return_values,
+    to_return_values,
+)
 
 
 builtin_bool = bool
@@ -860,11 +865,11 @@ Scalar.Constant = ScalarConstant
 
 # Easy constructors
 
-ints = _multi(int64)
-floats = _multi(float64)
-complexs = _multi(complex128)
-complexs64 = _multi(complex64)
-complexs128 = _multi(complex128)
+ints = apply_across_args(int64)
+floats = apply_across_args(float64)
+complexs = apply_across_args(complex128)
+complexs64 = apply_across_args(complex64)
+complexs128 = apply_across_args(complex128)
 
 
 def upcast_out(*types):
