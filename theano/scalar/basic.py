@@ -13,7 +13,6 @@ you probably want to use theano.tensor.[c,z,f,d,b,w,i,l,]scalar!
 import math
 from collections.abc import Callable
 from copy import copy
-from functools import partial
 from itertools import chain
 from textwrap import dedent
 
@@ -31,7 +30,7 @@ from theano.gof.utils import MetaObject, MethodNotDefined
 from theano.gradient import DisconnectedType, grad_undefined
 from theano.misc.safe_asarray import _asarray
 from theano.printing import pprint
-from theano.utils import difference, from_return_values, to_return_values
+from theano.utils import _multi, difference, from_return_values, to_return_values
 
 
 builtin_bool = bool
@@ -860,20 +859,6 @@ Scalar.Constant = ScalarConstant
 
 
 # Easy constructors
-
-
-def _multi(*fns):
-    def f2(f, names):
-        if len(names) == 1:
-            return f(names)
-        else:
-            return [f(name) for name in names]
-
-    if len(fns) == 1:
-        return partial(f2, fns[0])
-    else:
-        return [partial(f2, f) for f in fns]
-
 
 ints = _multi(int64)
 floats = _multi(float64)

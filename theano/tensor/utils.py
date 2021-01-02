@@ -97,3 +97,13 @@ def shape_of_variables(fgraph, input_shapes):
             sym_to_num_dict[sym] for sym in fgraph.shape_feature.shape_of[var]
         )
     return l
+
+
+def _pack(x):
+    """
+    Convert x to a list if it is an iterable, otherwise wrap it in a list.
+    """
+    try:
+        return list(x)
+    except TypeError:
+        return [x]

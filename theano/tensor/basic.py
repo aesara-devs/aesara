@@ -4,7 +4,6 @@ import builtins
 import logging
 import warnings
 from collections.abc import Sequence
-from functools import partial
 
 import numpy as np
 
@@ -28,10 +27,12 @@ from theano.scalar import int32
 from theano.tensor import elemwise
 
 # set up the external interface
-from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise, Sum
+from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise, Sum, _scal_elemwise
 from theano.tensor.type import TensorType, values_eq_approx_always_true
 from theano.tensor.type_other import NoneConst
+from theano.tensor.utils import _pack
 from theano.tensor.var import TensorConstant, TensorVariable, _tensor_py_operators
+from theano.utils import _multi
 
 
 _logger = logging.getLogger("theano.tensor.basic")
@@ -685,27 +686,6 @@ def tensor(*args, **kwargs):
     return TensorType(*args, **kwargs)(name=name)
 
 
-def _multi(*fns):
-    def f2(f, *names):
-        if names and isinstance(names[0], int):
-            if names == 1:
-                return f()
-            else:
-                return [f() for i in range(names[0])]
-        if isinstance(names, tuple):
-            if len(names) == 1:
-                names = names[0]
-        if len(names) == 1:
-            return f(names)
-        else:
-            return [f(name) for name in names]
-
-    if len(fns) == 1:
-        return partial(f2, fns)
-    else:
-        return [partial(f2, f) for f in fns]
-
-
 cscalar = TensorType("complex64", ())
 zscalar = TensorType("complex128", ())
 fscalar = TensorType("float32", ())
@@ -1036,129 +1016,6 @@ elemwise.as_tensor_variable = as_tensor_variable
 elemwise.TensorType = TensorType
 elemwise.TensorVariable = TensorVariable
 elemwise.TensorConstant = TensorConstant
-
-#########################
-# Utilities
-#########################
-
-
-def _scal_elemwise(*symbol, nfunc=None, nin=None, nout=None, symbolname=None):
-    """
-    Replace a symbol definition with an elementwise version of the
-    corresponding scalar Op.  If it is not None, the nfunc argument
-    should be a string such that getattr(numpy, nfunc) implements
-    a vectorized version of the elemwise operation. nin is the number
-    of inputs expected by that function, and nout is the number of
-    **destination** inputs it takes. That is, the function should
-    take nin+nout inputs. nout == 0 means that the numpy function
-    does not take a numpy array argument to put its result in.
-
-    """
-
-    def construct(symbol):
-        nonlocal symbolname
-
-        symbolname = symbolname or symbol.__name__
-
-        if symbolname.endswith("_inplace"):
-            elemwise_name = f"Elemwise{{{symbolname},inplace}}"
-            scalar_op = getattr(scal, symbolname[: -len("_inplace")])
-            inplace_scalar_op = scalar_op.__class__(scal.transfer_type(0))
-            rval = elemwise.Elemwise(
-                inplace_scalar_op,
-                {0: 0},
-                name=elemwise_name,
-                nfunc_spec=(nfunc and (nfunc, nin, nout)),
-            )
-        else:
-            elemwise_name = f"Elemwise{{{symbolname},no_inplace}}"
-            scalar_op = getattr(scal, symbolname)
-            rval = elemwise.Elemwise(
-                scalar_op, name=elemwise_name, nfunc_spec=(nfunc and (nfunc, nin, nout))
-            )
-
-        if getattr(symbol, "__doc__"):
-            rval.__doc__ = symbol.__doc__ + "\n" + rval.__doc__
-
-        # for the meaning of this see the ./epydoc script
-        # it makes epydoc display rval as if it were a function, not an object
-        rval.__epydoc_asRoutine = symbol
-        rval.__module__ = symbol.__module__
-
-        pprint.assign(
-            rval, printing.FunctionPrinter(symbolname.replace("_inplace", "="))
-        )
-
-        return rval
-
-    if symbol:
-        return construct(symbol[0])
-    else:
-        return construct
-
-
-def _pack(x):
-    """
-    Convert x to a list if it is an iterable, otherwise wrap it in a list.
-    """
-    try:
-        return list(x)
-    except TypeError:
-        return [x]
-
-
-def check_and_normalize_axes(x, axis):
-    """
-    Check axes, normalize and convert them to a Python list of integers.
-    Return an empty list if argument is None.
-
-    Parameters
-    ----------
-    x: Tensor variable
-    axis = Integer, tuple or list of integers
-
-    Returns
-    -------
-    axis: list of integers
-    """
-    x = as_tensor_variable(x)
-    if axis is None:
-        axis = []
-    elif isinstance(axis, (int, np.integer)) or (
-        isinstance(axis, np.ndarray) and axis.ndim == 0
-    ):
-        axis = [int(axis)]
-    elif isinstance(axis, (tuple, list, np.ndarray)):
-        axis = [int(i) for i in axis]
-    elif isinstance(axis, Variable):
-        if NoneConst.equals(axis):
-            axis = []
-        elif not isinstance(axis, TensorConstant):
-            raise TypeError(f"Computation needs a constant axis. Got {axis}")
-        else:
-            assert axis.dtype in integer_dtypes
-            if isinstance(axis.data, (int, np.integer)) or (
-                isinstance(axis.data, np.ndarray) and axis.data.ndim == 0
-            ):
-                axis = [int(axis.data)]
-            elif isinstance(axis.data, (list, np.ndarray)):
-                axis = [int(i) for i in axis.data]
-    else:
-        raise TypeError(
-            f"Axis must be an integer, tuple, list of integers or a TensorVariable. Got {axis}"
-        )
-    if len(axis) > 0:
-        for i in range(len(axis)):
-            if axis[i] < 0:
-                axis[i] += x.type.ndim
-            if axis[i] < 0 or axis[i] >= x.type.ndim:
-                raise ValueError(
-                    f"Computation needs a valid axis number for {int(x.type.ndim)}-D tensor. Got {int(axis[i])}"
-                )
-        axis = list(set(axis))
-        axis.sort()
-    return axis
-
 
 #########################
 # Casting Operations
@@ -1734,6 +1591,59 @@ def makeKeepDims(x, y, axis):
             new_dims.append(i)
             i += 1
     return DimShuffle(y.type.broadcastable, new_dims)(y)
+
+
+def check_and_normalize_axes(x, axis):
+    """
+    Check axes, normalize and convert them to a Python list of integers.
+    Return an empty list if argument is None.
+
+    Parameters
+    ----------
+    x: Tensor variable
+    axis = Integer, tuple or list of integers
+
+    Returns
+    -------
+    axis: list of integers
+    """
+    x = as_tensor_variable(x)
+    if axis is None:
+        axis = []
+    elif isinstance(axis, (int, np.integer)) or (
+        isinstance(axis, np.ndarray) and axis.ndim == 0
+    ):
+        axis = [int(axis)]
+    elif isinstance(axis, (tuple, list, np.ndarray)):
+        axis = [int(i) for i in axis]
+    elif isinstance(axis, Variable):
+        if NoneConst.equals(axis):
+            axis = []
+        elif not isinstance(axis, TensorConstant):
+            raise TypeError(f"Computation needs a constant axis. Got {axis}")
+        else:
+            assert axis.dtype in integer_dtypes
+            if isinstance(axis.data, (int, np.integer)) or (
+                isinstance(axis.data, np.ndarray) and axis.data.ndim == 0
+            ):
+                axis = [int(axis.data)]
+            elif isinstance(axis.data, (list, np.ndarray)):
+                axis = [int(i) for i in axis.data]
+    else:
+        raise TypeError(
+            f"Axis must be an integer, tuple, list of integers or a TensorVariable. Got {axis}"
+        )
+    if len(axis) > 0:
+        for i in range(len(axis)):
+            if axis[i] < 0:
+                axis[i] += x.type.ndim
+            if axis[i] < 0 or axis[i] >= x.type.ndim:
+                raise ValueError(
+                    f"Computation needs a valid axis number for {int(x.type.ndim)}-D tensor. Got {int(axis[i])}"
+                )
+        axis = list(set(axis))
+        axis.sort()
+    return axis
 
 
 @constructor

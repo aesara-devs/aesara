@@ -1,6 +1,5 @@
 """Utility functions that only depend on the standard library."""
 
-
 import hashlib
 import inspect
 import logging
@@ -12,7 +11,7 @@ import traceback
 import warnings
 from collections import OrderedDict
 from collections.abc import Callable
-from functools import wraps
+from functools import partial, wraps
 
 
 __all__ = [
@@ -392,3 +391,30 @@ class NoDuplicateOptWarningFilter(logging.Filter):
                 self.prev_msgs.add(msg)
                 return True
         return True
+
+
+def _multi(*fns):
+    """Create new functions that distributes the wrapped functions across iterable arguments.
+
+    For example, a function, `fn`, that uses this decorator satisfies
+    `fn("hi") == [fn("h"), fn("i")]`.
+    """
+
+    def f2(f, *names):
+        if names and isinstance(names[0], int):
+            if names == 1:
+                return f()
+            else:
+                return [f() for i in range(names[0])]
+        if isinstance(names, tuple):
+            if len(names) == 1:
+                names = names[0]
+        if len(names) == 1:
+            return f(names)
+        else:
+            return [f(name) for name in names]
+
+    if len(fns) == 1:
+        return partial(f2, fns[0])
+    else:
+        return [partial(f2, f) for f in fns]
