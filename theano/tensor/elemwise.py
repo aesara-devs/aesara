@@ -12,7 +12,7 @@ from theano.gof.op import COp, ExternalCOp, OpenMPOp
 from theano.gradient import DisconnectedType
 from theano.misc.frozendict import frozendict
 from theano.misc.safe_asarray import _asarray
-from theano.printing import pprint
+from theano.printing import FunctionPrinter, pprint
 from theano.scalar import get_scalar_type
 from theano.tensor import elemwise_cgen as cgen
 from theano.utils import uniq
@@ -2240,3 +2240,55 @@ class ProdWithoutZeros(CAReduceDtype):
             "`product(a, no_zeros_in_input=True)`.",
         )
         return [a_grad]
+
+
+def _scal_elemwise(*symbol, nfunc=None, nin=None, nout=None, symbolname=None):
+    """Replace a symbol definition with an `Elemwise`-wrapped version of the corresponding scalar `Op`.
+
+    If it is not ``None``, the `nfunc` argument should be a string such that
+    ``getattr(numpy, nfunc)`` implements a vectorized version of the `Elemwise`
+    operation.  `nin` is the number of inputs expected by that function, and nout
+    is the number of **destination** inputs it takes.  That is, the function
+    should take nin + nout inputs. `nout == 0` means that the numpy function does
+    not take a NumPy array argument to put its result in.
+
+    """
+
+    def construct(symbol):
+        nonlocal symbolname
+
+        symbolname = symbolname or symbol.__name__
+
+        if symbolname.endswith("_inplace"):
+            elemwise_name = f"Elemwise{{{symbolname},inplace}}"
+            scalar_op = getattr(scalar, symbolname[: -len("_inplace")])
+            inplace_scalar_op = scalar_op.__class__(scalar.transfer_type(0))
+            rval = Elemwise(
+                inplace_scalar_op,
+                {0: 0},
+                name=elemwise_name,
+                nfunc_spec=(nfunc and (nfunc, nin, nout)),
+            )
+        else:
+            elemwise_name = f"Elemwise{{{symbolname},no_inplace}}"
+            scalar_op = getattr(scalar, symbolname)
+            rval = Elemwise(
+                scalar_op, name=elemwise_name, nfunc_spec=(nfunc and (nfunc, nin, nout))
+            )
+
+        if getattr(symbol, "__doc__"):
+            rval.__doc__ = symbol.__doc__ + "\n" + rval.__doc__
+
+        # for the meaning of this see the ./epydoc script
+        # it makes epydoc display rval as if it were a function, not an object
+        rval.__epydoc_asRoutine = symbol
+        rval.__module__ = symbol.__module__
+
+        pprint.assign(rval, FunctionPrinter(symbolname.replace("_inplace", "=")))
+
+        return rval
+
+    if symbol:
+        return construct(symbol[0])
+    else:
+        return construct

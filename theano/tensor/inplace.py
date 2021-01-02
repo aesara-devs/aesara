@@ -1,7 +1,6 @@
 from theano import printing
 from theano.printing import pprint
-from theano.tensor import elemwise
-from theano.tensor.basic import _scal_elemwise
+from theano.tensor.elemwise import DimShuffle, _scal_elemwise
 
 
 @_scal_elemwise
@@ -360,4 +359,4 @@ pprint.assign(pow_inplace, printing.OperatorPrinter("**=", 1, "right"))
 def transpose_inplace(x, **kwargs):
     "Perform a transpose on a tensor without copying the underlying storage"
     dims = list(range(x.ndim - 1, -1, -1))
-    return elemwise.DimShuffle(x.broadcastable, dims, inplace=True)(x)
+    return DimShuffle(x.broadcastable, dims, inplace=True)(x)
