@@ -2242,7 +2242,7 @@ class ProdWithoutZeros(CAReduceDtype):
         return [a_grad]
 
 
-def _scal_elemwise(*symbol, nfunc=None, nin=None, nout=None, symbolname=None):
+def scalar_elemwise(*symbol, nfunc=None, nin=None, nout=None, symbolname=None):
     """Replace a symbol definition with an `Elemwise`-wrapped version of the corresponding scalar `Op`.
 
     If it is not ``None``, the `nfunc` argument should be a string such that
