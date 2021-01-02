@@ -30,7 +30,7 @@ from theano.tensor import elemwise
 from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise, Sum, _scal_elemwise
 from theano.tensor.type import TensorType, values_eq_approx_always_true
 from theano.tensor.type_other import NoneConst
-from theano.tensor.utils import _pack
+from theano.tensor.utils import as_list
 from theano.tensor.var import TensorConstant, TensorVariable, _tensor_py_operators
 from theano.utils import apply_across_args
 
@@ -6317,7 +6317,7 @@ def _tensordot_as_dot(a, b, axes, dot, batched):
     # if 'axes' is a list, transpose a and b such that the summed axes of a
     # are last and the summed axes of b are first.
     else:
-        axes = [_pack(axes_) for axes_ in axes]
+        axes = [as_list(axes_) for axes_ in axes]
 
         if len(axes[0]) != len(axes[1]):
             raise ValueError("Axes elements must have the same length.")
