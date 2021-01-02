@@ -27,7 +27,7 @@ from theano.scalar import int32
 from theano.tensor import elemwise
 
 # set up the external interface
-from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise, Sum, _scal_elemwise
+from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise, Sum, scalar_elemwise
 from theano.tensor.type import TensorType, values_eq_approx_always_true
 from theano.tensor.type_other import NoneConst
 from theano.tensor.utils import as_list
@@ -1853,37 +1853,37 @@ def largest(*args):
 ##########################
 
 
-@_scal_elemwise
+@scalar_elemwise
 def lt(a, b):
     """a < b"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def gt(a, b):
     """a > b"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def le(a, b):
     """a <= b"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def ge(a, b):
     """a >= b"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def eq(a, b):
     """a == b"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def neq(a, b):
     """a != b"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def isnan(a):
     """isnan(a)"""
 
@@ -1903,7 +1903,7 @@ def isnan(a):
     return isnan_(a)
 
 
-@_scal_elemwise
+@scalar_elemwise
 def isinf(a):
     """isinf(a)"""
 
@@ -2068,7 +2068,7 @@ def isclose(a, b, rtol=1.0e-5, atol=1.0e-8, equal_nan=False):
 ##########################
 
 
-@_scal_elemwise
+@scalar_elemwise
 def switch(cond, ift, iff):
     """if cond then ift else iff"""
 
@@ -2079,7 +2079,7 @@ where = switch
 ##########################
 
 
-@_scal_elemwise
+@scalar_elemwise
 def and_(a, b):
     """bitwise a & b"""
 
@@ -2087,7 +2087,7 @@ def and_(a, b):
 bitwise_and = and_  # numpy name for it
 
 
-@_scal_elemwise
+@scalar_elemwise
 def or_(a, b):
     """bitwise a | b"""
 
@@ -2095,7 +2095,7 @@ def or_(a, b):
 bitwise_or = or_  # numpy name for it
 
 
-@_scal_elemwise
+@scalar_elemwise
 def xor(a, b):
     """bitwise a ^ b"""
 
@@ -2103,7 +2103,7 @@ def xor(a, b):
 bitwise_xor = xor  # numpy name for it
 
 
-@_scal_elemwise
+@scalar_elemwise
 def invert(a):
     """bitwise ~a"""
 
@@ -2116,7 +2116,7 @@ bitwise_not = invert  # numpy alias for it
 ##########################
 
 
-@_scal_elemwise
+@scalar_elemwise
 def abs_(a):
     """|`a`|
 
@@ -2129,69 +2129,69 @@ def abs_(a):
 pprint.assign(abs_, printing.PatternPrinter(("|%(0)s|", -1000)))
 
 
-@_scal_elemwise
+@scalar_elemwise
 def exp(a):
     """e^`a`"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def exp2(a):
     """2^`a`"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def expm1(a):
     """e^`a` - 1"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def neg(a):
     """-a"""
 
 
 # numpy.reciprocal does integer division on integer inputs
 # (which is not very interesting)
-@_scal_elemwise
+@scalar_elemwise
 def inv(a):
     """1.0/a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def log(a):
     """base e logarithm of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def log2(a):
     """base 2 logarithm of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def log10(a):
     """base 10 logarithm of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def log1p(a):
     """log(1+a)"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def sgn(a):
     """sign of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def ceil(a):
     """ceiling of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def floor(a):
     """floor of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def trunc(a):
     """trunc of a"""
 
@@ -2223,17 +2223,17 @@ def round(a, mode=None):
         raise Exception(f"round mode {mode} is not implemented.")
 
 
-@_scal_elemwise
+@scalar_elemwise
 def round_half_to_even(a):
     """round_half_to_even(a)"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def round_half_away_from_zero(a):
     """round_half_away_from_zero(a)"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def sqr(a):
     """square of a"""
 
@@ -2303,187 +2303,187 @@ def cov(m, y=None, rowvar=True, bias=False, ddof=None, fweights=None, aweights=N
     return c.squeeze()
 
 
-@_scal_elemwise
+@scalar_elemwise
 def sqrt(a):
     """square root of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def deg2rad(a):
     """convert degree a to radian"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def rad2deg(a):
     """convert radian a to degree"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def cos(a):
     """cosine of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def arccos(a):
     """arccosine of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def sin(a):
     """sine of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def arcsin(a):
     """arcsine of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def tan(a):
     """tangent of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def arctan(a):
     """arctangent of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def arctan2(a, b):
     """arctangent of a / b"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def cosh(a):
     """hyperbolic cosine of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def arccosh(a):
     """hyperbolic arc cosine of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def sinh(a):
     """hyperbolic sine of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def arcsinh(a):
     """hyperbolic arc sine of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def tanh(a):
     """hyperbolic tangent of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def arctanh(a):
     """hyperbolic arc tangent of a"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def erf(a):
     """error function"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def erfc(a):
     """complementary error function"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def erfcx(a):
     """scaled complementary error function"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def erfinv(a):
     """inverse error function"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def erfcinv(a):
     """inverse complementary error function"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def gamma(a):
     """gamma function"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def gammaln(a):
     """log gamma function"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def psi(a):
     """derivative of log gamma function"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def tri_gamma(a):
     """second derivative of the log gamma function"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def chi2sf(x, k):
     """chi squared survival function"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def gammainc(k, x):
     """Regularized lower gamma function"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def gammaincc(k, x):
     """Regularized upper gamma function"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def gammau(k, x):
     """Upper incomplete gamma function."""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def gammal(k, x):
     """Lower incomplete gamma function."""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def j0(x):
     """Bessel function of the first kind of order 0."""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def j1(x):
     """Bessel function of the first kind of order 1."""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def jv(v, x):
     """Bessel function of the first kind of order v (real)."""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def i0(x):
     """Modified Bessel function of the first kind of order 0."""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def i1(x):
     """Modified Bessel function of the first kind of order 1."""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def iv(v, x):
     """Modified Bessel function of the first kind of order v (real)."""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def real(z):
     """Return real component of complex-valued tensor `z`"""
 
@@ -2491,7 +2491,7 @@ def real(z):
 _tensor_py_operators.real = property(real)
 
 
-@_scal_elemwise
+@scalar_elemwise
 def imag(z):
     """Return imaginary component of complex-valued tensor `z`"""
 
@@ -2499,22 +2499,22 @@ def imag(z):
 _tensor_py_operators.imag = property(imag)
 
 
-@_scal_elemwise
+@scalar_elemwise
 def angle(z):
     """Return polar-coordinate angle of complex-valued tensor `z`"""
 
 
-@_scal_elemwise  # numpy.complex cannot build tensors
+@scalar_elemwise  # numpy.complex cannot build tensors
 def complex(real, imag):
     """Return complex-valued tensor with `real` and `imag` components"""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def conj(z):
     """Return the complex conjugate of `z`."""
 
 
-@_scal_elemwise
+@scalar_elemwise
 def complex_from_polar(abs, angle):
     """Return complex-valued tensor from polar coordinate specification."""
 
@@ -2526,7 +2526,7 @@ def complex_from_polar(abs, angle):
 
 # fill, _fill_inplace = _elemwise(scal.second, 'fill',
 # """fill WRITEME (elemwise)""")
-@_scal_elemwise
+@scalar_elemwise
 def second(a, b):
     """Create a matrix by filling the shape of a with b"""
 
@@ -3570,13 +3570,13 @@ setdefault = default  # legacy
 ##########################
 # Arithmetics
 ##########################
-@_scal_elemwise(symbolname="scalar_maximum")
+@scalar_elemwise(symbolname="scalar_maximum")
 def maximum(x, y):
     """elemwise maximum. See max for the maximum in one tensor"""
     # see decorator for function body
 
 
-@_scal_elemwise(symbolname="scalar_minimum")
+@scalar_elemwise(symbolname="scalar_minimum")
 def minimum(x, y):
     """elemwise minimum. See min for the minimum in one tensor"""
     # see decorator for function body
@@ -3587,31 +3587,31 @@ def divmod(x, y):
     return floor_div(x, y), mod_check(x, y)
 
 
-@_scal_elemwise
+@scalar_elemwise
 def add(a, *other_terms):
     """elementwise addition"""
     # see decorator for function body
 
 
-@_scal_elemwise
+@scalar_elemwise
 def sub(a, b):
     """elementwise subtraction"""
     # see decorator for function body
 
 
-@_scal_elemwise
+@scalar_elemwise
 def mul(a, *other_terms):
     """elementwise multiplication"""
     # see decorator for function body
 
 
-@_scal_elemwise
+@scalar_elemwise
 def true_div(a, b):
     """elementwise [true] division (inverse of multiplication)"""
     # see decorator for function body
 
 
-@_scal_elemwise
+@scalar_elemwise
 def int_div(a, b):
     """elementwise [floor] division (inverse of multiplication)"""
     # see decorator for function body
@@ -3654,19 +3654,19 @@ def mod_check(x, y):
         return mod(x, y)
 
 
-@_scal_elemwise
+@scalar_elemwise
 def mod(a, b):
     """elementwise modulo"""
     # see decorator for function body
 
 
-@_scal_elemwise
+@scalar_elemwise
 def pow(a, b):
     """elementwise power"""
     # see decorator for function body
 
 
-@_scal_elemwise
+@scalar_elemwise
 def clip(x, min, max):
     """
     Clip x to be between min and max.
