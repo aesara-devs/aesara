@@ -807,7 +807,7 @@ def is_same_graph_with_merge(var1, var2, givens=None):
     vars = copied[0:2]
     givens = copied[2]
     # Create FunctionGraph.
-    graph_inputs = inputs(vars)
+    graph_inputs = list(inputs(vars))
     # The clone isn't needed as we did a deepcopy and we cloning will
     # break the mapping in givens.
     fgraph = theano.gof.fg.FunctionGraph(graph_inputs, vars, clone=False)

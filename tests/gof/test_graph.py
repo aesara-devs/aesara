@@ -8,20 +8,22 @@ from theano import shared, tensor
 from theano.gof.graph import (
     Apply,
     Variable,
+    ancestors,
     as_string,
     clone,
     equal_computations,
     general_toposort,
     inputs,
     io_toposort,
+    is_in_ancestors,
+    list_of_nodes,
+    ops,
+    orphans,
+    stack_search,
+    variables,
 )
 from theano.gof.op import Op
 from theano.gof.type import Type
-
-
-def as_variable(x):
-    assert isinstance(x, Variable)
-    return x
 
 
 class MyType(Type):
@@ -47,30 +49,14 @@ class MyOp(Op):
     __props__ = ()
 
     def make_node(self, *inputs):
-        inputs = list(map(as_variable, inputs))
         for input in inputs:
-            if not isinstance(input.type, MyType):
-                print(input, input.type, type(input), type(input.type))
-                raise Exception("Error 1")
-        outputs = [MyVariable(sum([input.type.thingy for input in inputs]))]
-        return Apply(self, inputs, outputs)
+            assert isinstance(input, Variable)
+            assert isinstance(input.type, MyType)
+        outputs = [MyVariable(sum(input.type.thingy for input in inputs))]
+        return Apply(self, list(inputs), outputs)
 
 
 MyOp = MyOp()
-
-
-class TestInputs:
-    def test_inputs(self):
-        r1, r2 = MyVariable(1), MyVariable(2)
-        node = MyOp.make_node(r1, r2)
-        assert inputs(node.outputs) == [r1, r2]
-
-    def test_inputs_deep(self):
-        r1, r2, r5 = MyVariable(1), MyVariable(2), MyVariable(5)
-        node = MyOp.make_node(r1, r2)
-        node2 = MyOp.make_node(node.outputs[0], r5)
-        i = inputs(node2.outputs)
-        assert i == [r1, r2, r5], i
 
 
 class X:
@@ -145,7 +131,7 @@ class TestClone(X):
         node = MyOp.make_node(MyOp.make_node(r1, r2).outputs[0], r5)
         _, new = clone([r1, r2, r5], node.outputs, False)
         new_node = new[0].owner
-        new_node.inputs = MyVariable(7), MyVariable(8)
+        new_node.inputs = [MyVariable(7), MyVariable(8)]
         assert self.str(inputs(new_node.outputs), new_node.outputs) == ["MyOp(R7, R8)"]
         assert self.str(inputs(node.outputs), node.outputs) == [
             "MyOp(MyOp(R1, R2), R5)"
@@ -156,7 +142,7 @@ class TestClone(X):
         node = MyOp.make_node(MyOp.make_node(r1, r2).outputs[0], r5)
         _, new = clone([r1, r2, r5], node.outputs, False)
         new_node = new[0].owner
-        new_node.inputs = MyVariable(7), MyVariable(8)
+        new_node.inputs = [MyVariable(7), MyVariable(8)]
         c1 = tensor.constant(1.5)
 
         i, o = clone([c1], [c1])
@@ -181,19 +167,36 @@ def prenode(obj):
 
 
 class TestToposort:
-    def test_0(self):
+    def test_simple(self):
         # Test a simple graph
         r1, r2, r5 = MyVariable(1), MyVariable(2), MyVariable(5)
-        o = MyOp.make_node(r1, r2)
-        o2 = MyOp.make_node(o.outputs[0], r5)
+        o = MyOp(r1, r2)
+        o.name = "o1"
+        o2 = MyOp(o, r5)
+        o2.name = "o2"
 
-        all = general_toposort(o2.outputs, prenode)
-        assert all == [r5, r2, r1, o, o.outputs[0], o2, o2.outputs[0]]
+        clients = {}
+        res = general_toposort([o2], prenode, clients=clients)
 
-        all = io_toposort([r5], o2.outputs)
-        assert all == [o, o2]
+        assert clients == {
+            o2.owner: [o2],
+            o: [o2.owner],
+            r5: [o2.owner],
+            o.owner: [o],
+            r1: [o.owner],
+            r2: [o.owner],
+        }
+        assert res == [r5, r2, r1, o.owner, o, o2.owner, o2]
 
-    def test_1(self):
+        with pytest.raises(ValueError):
+            general_toposort(
+                [o2], prenode, compute_deps_cache=lambda x: None, deps_cache=None
+            )
+
+        res = io_toposort([r5], [o2])
+        assert res == [o.owner, o2.owner]
+
+    def test_double_dependencies(self):
         # Test a graph with double dependencies
         r1, r5 = MyVariable(1), MyVariable(5)
         o = MyOp.make_node(r1, r1)
@@ -201,7 +204,7 @@ class TestToposort:
         all = general_toposort(o2.outputs, prenode)
         assert all == [r5, r1, o, o.outputs[0], o2, o2.outputs[0]]
 
-    def test_2(self):
+    def test_inputs_owners(self):
         # Test a graph where the inputs have owners
         r1, r5 = MyVariable(1), MyVariable(5)
         o = MyOp.make_node(r1, r1)
@@ -214,7 +217,7 @@ class TestToposort:
         all = io_toposort([r2b], o2.outputs)
         assert all == [o2]
 
-    def test_3(self):
+    def test_not_connected(self):
         # Test a graph which is not connected
         r1, r2, r3, r4 = MyVariable(1), MyVariable(2), MyVariable(3), MyVariable(4)
         o0 = MyOp.make_node(r1, r2)
@@ -222,7 +225,7 @@ class TestToposort:
         all = io_toposort([r1, r2, r3, r4], o0.outputs + o1.outputs)
         assert all == [o1, o0] or all == [o0, o1]
 
-    def test_4(self):
+    def test_io_chain(self):
         # Test inputs and outputs mixed together in a chain graph
         r1, r2 = MyVariable(1), MyVariable(2)
         o0 = MyOp.make_node(r1, r2)
@@ -230,7 +233,7 @@ class TestToposort:
         all = io_toposort([r1, o0.outputs[0]], [o0.outputs[0], o1.outputs[0]])
         assert all == [o1]
 
-    def test_5(self):
+    def test_outputs_clients(self):
         # Test when outputs have clients
         r1, r2, r4 = MyVariable(1), MyVariable(2), MyVariable(4)
         o0 = MyOp.make_node(r1, r2)
@@ -326,3 +329,134 @@ def test_equal_computations():
     max_argmax1 = tensor.max_and_argmax(m)
     max_argmax2 = tensor.max_and_argmax(m)
     assert equal_computations(max_argmax1, max_argmax2)
+
+
+def test_stack_search():
+
+    r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
+    o1 = MyOp(r1, r2)
+    o1.name = "o1"
+    o2 = MyOp(r3, o1)
+    o2.name = "o2"
+
+    def expand(r):
+        if r.owner:
+            return r.owner.inputs
+
+    res = stack_search([o2], expand, bfs=True, return_children=False)
+    res_list = list(res)
+    assert res_list == [o2, r3, o1, r1, r2]
+
+    res = stack_search([o2], expand, bfs=False, return_children=False)
+    res_list = list(res)
+    assert res_list == [o2, o1, r2, r1, r3]
+
+    res = stack_search([o2], expand, bfs=True, return_children=True)
+    res_list = list(res)
+    assert res_list == [
+        (o2, [r3, o1]),
+        (r3, None),
+        (o1, [r1, r2]),
+        (r1, None),
+        (r2, None),
+    ]
+
+
+def test_ancestors():
+
+    r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
+    o1 = MyOp(r1, r2)
+    o1.name = "o1"
+    o2 = MyOp(r3, o1)
+    o2.name = "o2"
+
+    res = ancestors([o2], blockers=None)
+    res_list = list(res)
+    assert res_list == [o2, r3, o1, r1, r2]
+
+    res = ancestors([o2], blockers=None)
+    assert r3 in res
+    res_list = list(res)
+    assert res_list == [o1, r1, r2]
+
+    res = ancestors([o2], blockers=[o1])
+    res_list = list(res)
+    assert res_list == [o2, r3, o1]
+
+
+def test_inputs():
+
+    r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
+    o1 = MyOp(r1, r2)
+    o1.name = "o1"
+    o2 = MyOp(r3, o1)
+    o2.name = "o2"
+
+    res = inputs([o2], blockers=None)
+    res_list = list(res)
+    assert res_list == [r3, r1, r2]
+
+
+def test_variables_and_orphans():
+
+    r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
+    o1 = MyOp(r1, r2)
+    o1.name = "o1"
+    o2 = MyOp(r3, o1)
+    o2.name = "o2"
+
+    vars_res = variables([r1, r2], [o2])
+    orphans_res = orphans([r1, r2], [o2])
+
+    vars_res_list = list(vars_res)
+    orphans_res_list = list(orphans_res)
+    assert vars_res_list == [o2, o1, r3, r2, r1]
+    assert orphans_res_list == [r3]
+
+
+def test_ops():
+
+    r1, r2, r3, r4 = MyVariable(1), MyVariable(2), MyVariable(3), MyVariable(4)
+    o1 = MyOp(r1, r2)
+    o1.name = "o1"
+    o2 = MyOp(r3, r4)
+    o2.name = "o2"
+    o3 = MyOp(r3, o1, o2)
+    o3.name = "o3"
+
+    res = ops([r1, r2], [o3])
+    res_list = list(res)
+    assert res_list == [o3.owner, o2.owner, o1.owner]
+
+
+def test_list_of_nodes():
+
+    r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
+    o1 = MyOp(r1, r2)
+    o1.name = "o1"
+    o2 = MyOp(r3, o1)
+    o2.name = "o2"
+
+    res = list_of_nodes([r1, r2], [o2])
+    assert res == [o2.owner, o1.owner]
+
+
+def test_is_in_ancestors():
+
+    r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
+    o1 = MyOp(r1, r2)
+    o1.name = "o1"
+    o2 = MyOp(r3, o1)
+    o2.name = "o2"
+
+    assert is_in_ancestors(o2.owner, o1.owner)
+
+
+@pytest.mark.xfail(reason="Not implemented")
+def test_io_connection_pattern():
+    raise AssertionError()
+
+
+@pytest.mark.xfail(reason="Not implemented")
+def test_view_roots():
+    raise AssertionError()

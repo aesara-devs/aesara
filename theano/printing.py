@@ -820,7 +820,7 @@ def pydotprint(
             fct = fct.outputs
         assert isinstance(fct, (list, tuple))
         assert all(isinstance(v, gof.Variable) for v in fct)
-        fct = gof.FunctionGraph(inputs=gof.graph.inputs(fct), outputs=fct)
+        fct = gof.FunctionGraph(inputs=list(gof.graph.inputs(fct)), outputs=fct)
         profile = None
         outputs = fct.outputs
         topo = fct.toposort()

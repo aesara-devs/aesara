@@ -1206,7 +1206,7 @@ def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
     }
 
     # We can't use fgraph.inputs as this don't include Constant Value.
-    all_graph_inputs = gof.graph.inputs(fgraph.outputs)
+    all_graph_inputs = list(gof.graph.inputs(fgraph.outputs))
     has_destroyers_attr = hasattr(fgraph, "has_destroyers")
 
     for i in range(len(fgraph.outputs)):
@@ -1553,9 +1553,11 @@ class FunctionMaker:
         # Wrap them in In or Out instances if needed.
         inputs = [self.wrap_in(i) for i in inputs]
         outputs = [self.wrap_out(o) for o in outputs]
-        _inputs = gof.graph.inputs(
-            [o.variable for o in outputs]
-            + [i.update for i in inputs if getattr(i, "update", False)]
+        _inputs = list(
+            gof.graph.inputs(
+                [o.variable for o in outputs]
+                + [i.update for i in inputs if getattr(i, "update", False)]
+            )
         )
 
         # Check if some input variables are unused
@@ -1697,12 +1699,14 @@ class FunctionMaker:
         # There should be two categories of variables in inputs:
         #  - variables that have to be provided (used_inputs)
         #  - shared variables that will be updated
-        used_inputs = gof.graph.ancestors(
-            (
-                [o.variable for o in outputs]
-                + [i.update for i in inputs if getattr(i, "update", False)]
-            ),
-            blockers=[i.variable for i in inputs],
+        used_inputs = list(
+            gof.graph.ancestors(
+                (
+                    [o.variable for o in outputs]
+                    + [i.update for i in inputs if getattr(i, "update", False)]
+                ),
+                blockers=[i.variable for i in inputs],
+            )
         )
 
         msg = (
