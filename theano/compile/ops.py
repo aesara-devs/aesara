@@ -16,6 +16,7 @@ import theano
 from theano.gof import ParamsType
 from theano.gof.graph import Apply, Variable
 from theano.gof.op import COp, Op
+from theano.gof.type import CType
 from theano.misc.safe_asarray import _asarray
 
 
@@ -619,11 +620,11 @@ def as_op(itypes, otypes, infer_shape=None):
     """
     if not isinstance(itypes, (list, tuple)):
         itypes = [itypes]
-    if any(not isinstance(t, theano.Type) for t in itypes):
+    if any(not isinstance(t, CType) for t in itypes):
         raise TypeError("itypes has to be a list of Theano types")
     if not isinstance(otypes, (list, tuple)):
         otypes = [otypes]
-    if any(not isinstance(t, theano.Type) for t in otypes):
+    if any(not isinstance(t, CType) for t in otypes):
         raise TypeError("otypes has to be a list of Theano types")
 
     # make sure they are lists and not tuples

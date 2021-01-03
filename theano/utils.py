@@ -119,39 +119,6 @@ def get_unbound_function(unbound):
     return unbound
 
 
-class DefaultOrderedDict(OrderedDict):
-    def __init__(self, default_factory=None, *a, **kw):
-        if default_factory is not None and not isinstance(default_factory, Callable):
-            raise TypeError("first argument must be callable")
-        OrderedDict.__init__(self, *a, **kw)
-        self.default_factory = default_factory
-
-    def __getitem__(self, key):
-        try:
-            return OrderedDict.__getitem__(self, key)
-        except KeyError:
-            return self.__missing__(key)
-
-    def __missing__(self, key):
-        if self.default_factory is None:
-            raise KeyError(key)
-        self[key] = value = self.default_factory()
-        return value
-
-    def __reduce__(self):
-        if self.default_factory is None:
-            args = tuple()
-        else:
-            args = (self.default_factory,)
-        return type(self), args, None, None, list(self.items())
-
-    def copy(self):
-        return self.__copy__()
-
-    def __copy__(self):
-        return type(self)(self.default_factory, self)
-
-
 def maybe_add_to_os_environ_pathlist(var, newpath):
     """Unfortunately, Conda offers to make itself the default Python
     and those who use it that way will probably not activate envs
@@ -377,22 +344,6 @@ def flatten(a):
         return [a]
 
 
-class NoDuplicateOptWarningFilter(logging.Filter):
-    """Filter to avoid duplicating optimization warnings."""
-
-    prev_msgs = set()
-
-    def filter(self, record):
-        msg = record.getMessage()
-        if msg.startswith("Optimization Warning: "):
-            if msg in self.prev_msgs:
-                return False
-            else:
-                self.prev_msgs.add(msg)
-                return True
-        return True
-
-
 def apply_across_args(*fns):
     """Create new functions that distributes the wrapped functions across iterable arguments.
 
@@ -418,3 +369,85 @@ def apply_across_args(*fns):
         return partial(f2, fns[0])
     else:
         return [partial(f2, f) for f in fns]
+
+
+class NoDuplicateOptWarningFilter(logging.Filter):
+    """Filter to avoid duplicating optimization warnings."""
+
+    prev_msgs = set()
+
+    def filter(self, record):
+        msg = record.getMessage()
+        if msg.startswith("Optimization Warning: "):
+            if msg in self.prev_msgs:
+                return False
+            else:
+                self.prev_msgs.add(msg)
+                return True
+        return True
+
+
+class Singleton:
+    """Convenient base class for a singleton.
+
+    It saves having to implement __eq__ and __hash__.
+
+    """
+
+    __instance = None
+
+    def __new__(cls):
+        # If sub-subclass of SingletonType don't redeclare __instance
+        # when we look for it, we will find it in the subclass.  We
+        # don't want that, so we check the class.  When we add one, we
+        # add one only to the current class, so all is working
+        # correctly.
+        if cls.__instance is None or not isinstance(cls.__instance, cls):
+            cls.__instance = super().__new__(cls)
+        return cls.__instance
+
+    def __str__(self):
+        return self.__class__.__name__
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if type(self) is type(other):
+            return True
+        return False
+
+    def __hash__(self):
+        return hash(type(self))
+
+
+class DefaultOrderedDict(OrderedDict):
+    def __init__(self, default_factory=None, *a, **kw):
+        if default_factory is not None and not isinstance(default_factory, Callable):
+            raise TypeError("first argument must be callable")
+        OrderedDict.__init__(self, *a, **kw)
+        self.default_factory = default_factory
+
+    def __getitem__(self, key):
+        try:
+            return OrderedDict.__getitem__(self, key)
+        except KeyError:
+            return self.__missing__(key)
+
+    def __missing__(self, key):
+        if self.default_factory is None:
+            raise KeyError(key)
+        self[key] = value = self.default_factory()
+        return value
+
+    def __reduce__(self):
+        if self.default_factory is None:
+            args = tuple()
+        else:
+            args = (self.default_factory,)
+        return type(self), args, None, None, list(self.items())
+
+    def copy(self):
+        return self.__copy__()
+
+    def __copy__(self):
+        return type(self)(self.default_factory, self)

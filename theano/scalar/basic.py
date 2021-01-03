@@ -25,7 +25,7 @@ from theano.gof.fg import FunctionGraph
 from theano.gof.graph import Apply, Constant, Variable, clone, list_of_nodes
 from theano.gof.op import COp
 from theano.gof.opt import MergeOptimizer
-from theano.gof.type import Type
+from theano.gof.type import CType
 from theano.gof.utils import MetaObject, MethodNotDefined
 from theano.gradient import DisconnectedType, grad_undefined
 from theano.misc.safe_asarray import _asarray
@@ -313,7 +313,7 @@ def constant(x, name=None, dtype=None):
     return ScalarConstant(get_scalar_type(str(x.dtype)), x, name=name)
 
 
-class Scalar(Type):
+class Scalar(CType):
 
     """
     Internal class, should not be used by clients.
@@ -1096,7 +1096,7 @@ class ScalarOp(COp):
         if hasattr(self, "output_types_preference"):
             variables = self.output_types_preference(*types)
             if not isinstance(variables, (list, tuple)) or any(
-                not isinstance(x, Type) for x in variables
+                not isinstance(x, CType) for x in variables
             ):
                 raise TypeError(
                     "output_types_preference should return a list or a tuple of types",

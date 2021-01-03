@@ -119,7 +119,7 @@ def grad_undefined(op, x_pos, x, comment=""):
     )()
 
 
-class DisconnectedType(theano.gof.type.Type):
+class DisconnectedType(theano.gof.type.CType):
 
     """A type indicating that a variable is a result
     of taking the gradient of c with respect to x

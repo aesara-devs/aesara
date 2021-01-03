@@ -1,7 +1,7 @@
-from theano.gof.type import Type
+from theano.gof.type import CType
 
 
-class NullType(Type):
+class NullType(CType):
     """
     A type that allows no values.
 

@@ -7,13 +7,13 @@ from textwrap import dedent
 import numpy as np
 
 import theano
-from theano import gof
 from theano import scalar as scal
 from theano.configdefaults import config
-from theano.gof import MethodNotDefined, ParamsType
-from theano.gof.graph import Apply
+from theano.gof.graph import Apply, Variable
 from theano.gof.op import COp, Op
-from theano.gof.type import Type
+from theano.gof.params_type import ParamsType
+from theano.gof.type import CType
+from theano.gof.utils import MethodNotDefined
 from theano.gradient import DisconnectedType
 from theano.misc.safe_asarray import _asarray
 from theano.printing import pprint
@@ -56,7 +56,7 @@ def as_index_constant(a):
         )
     elif isinstance(a, (int, np.integer)):
         return scal.ScalarConstant(scal.int64, a)
-    elif not isinstance(a, theano.tensor.Variable):
+    elif not isinstance(a, Variable):
         return theano.tensor.as_tensor(a)
     else:
         return a
@@ -82,7 +82,7 @@ def get_idx_list(inputs, idx_list, get_count=False):
 
     # General case
     def convert(entry):
-        if isinstance(entry, gof.Type):
+        if isinstance(entry, CType):
             return indices.pop()
         elif isinstance(entry, slice):
             return slice(convert(entry.start), convert(entry.stop), convert(entry.step))
@@ -115,7 +115,7 @@ def get_canonical_form_slice(theslice, length):
             try:
                 x_constant = get_scalar_constant_value(x)
                 is_constant = True
-            except theano.tensor.NotScalarConstantError:
+            except NotScalarConstantError:
                 x_constant = theano.tensor.extract_constant(x)
                 is_constant = False
             return x_constant, is_constant
@@ -487,30 +487,30 @@ class Subtensor(COp):
         )
 
         if (
-            isinstance(entry, (np.ndarray, theano.tensor.Variable))
+            isinstance(entry, (np.ndarray, Variable))
             and hasattr(entry, "dtype")
             and entry.dtype == "bool"
         ):
             raise AdvancedIndexingError("Invalid index type or slice for Subtensor")
 
-        if isinstance(entry, gof.Variable) and (
+        if isinstance(entry, Variable) and (
             entry.type in invalid_scal_types or entry.type in invalid_tensor_types
         ):
             raise TypeError("Expected an integer")
 
-        if isinstance(entry, gof.Variable) and entry.type in scal_types:
+        if isinstance(entry, Variable) and entry.type in scal_types:
             return entry.type
-        elif isinstance(entry, gof.Type) and entry in scal_types:
+        elif isinstance(entry, CType) and entry in scal_types:
             return entry
 
         if (
-            isinstance(entry, gof.Variable)
+            isinstance(entry, Variable)
             and entry.type in tensor_types
             and np.all(entry.type.broadcastable)
         ):
             return scal.get_scalar_type(entry.type.dtype)
         elif (
-            isinstance(entry, gof.Type)
+            isinstance(entry, CType)
             and entry in tensor_types
             and np.all(entry.broadcastable)
         ):
@@ -553,7 +553,7 @@ class Subtensor(COp):
         """
         Return the idx_list with constant inputs replaced by their
         python scalar equivalent.
-        May raise `theano.tensor.NotScalarConstantError` if the idx contains
+        May raise `NotScalarConstantError` if the idx contains
         non-constant entries.
 
         If allow_partial is True, then entries that are not constant will
@@ -594,7 +594,7 @@ class Subtensor(COp):
                         only_process_constants=only_process_constants,
                         elemwise=elemwise,
                     )
-                except theano.tensor.NotScalarConstantError:
+                except NotScalarConstantError:
                     if allow_partial:
                         return val
                     else:
@@ -610,7 +610,7 @@ class Subtensor(COp):
         # Since scal.as_scalar does not know about tensor types (it would
         # create a circular import) , this method converts either a
         # TensorVariable or a ScalarVariable to a scalar.
-        if isinstance(a, gof.Variable) and isinstance(a.type, TensorType):
+        if isinstance(a, Variable) and isinstance(a.type, TensorType):
             return theano.tensor.scalar_from_tensor(a)
         else:
             return scal.as_scalar(a)
@@ -633,7 +633,7 @@ class Subtensor(COp):
             raise IndexError("too many indices for array")
 
         input_types = Subtensor.collapse(
-            idx_list, lambda entry: isinstance(entry, gof.Type)
+            idx_list, lambda entry: isinstance(entry, CType)
         )
         if len(inputs) != len(input_types):
             raise IndexError(
@@ -672,7 +672,7 @@ class Subtensor(COp):
 
                 broadcastable.append(False)
 
-        return gof.Apply(
+        return Apply(
             self,
             (x,) + inputs,
             [theano.tensor.tensor(dtype=x.type.dtype, broadcastable=broadcastable)],
@@ -851,7 +851,7 @@ class Subtensor(COp):
                 inc_spec_pos(1)
                 if depth == 0:
                     is_slice.append(0)
-            elif isinstance(entry, Type):
+            elif isinstance(entry, CType):
                 init_cmds.append(
                     "subtensor_spec[%i] = %s;" % (spec_pos(), inputs[input_pos()])
                 )
@@ -1050,7 +1050,7 @@ class Subtensor(COp):
         return (9,)
 
     def c_code(self, node, name, inputs, outputs, sub):  # DEBUG
-        if not isinstance(node.inputs[0].type, theano.tensor.TensorType):
+        if not isinstance(node.inputs[0].type, TensorType):
             raise NotImplementedError()
 
         x = inputs[0]
@@ -1469,7 +1469,7 @@ class IncSubtensor(COp):
             raise IndexError("too many indices for array")
 
         input_types = Subtensor.collapse(
-            idx_list, lambda entry: isinstance(entry, gof.Type)
+            idx_list, lambda entry: isinstance(entry, CType)
         )
         if len(inputs) != len(input_types):
             raise IndexError(
@@ -1482,7 +1482,7 @@ class IncSubtensor(COp):
                     % (input.type, expected_type)
                 )
 
-        return gof.Apply(self, (x, y) + inputs, [x.type()])
+        return Apply(self, (x, y) + inputs, [x.type()])
 
     def decl_view(self):
         return "PyArrayObject * zview = NULL;"
@@ -1493,7 +1493,7 @@ class IncSubtensor(COp):
         indices = list(reversed(inputs[2:]))
 
         def convert(entry):
-            if isinstance(entry, gof.Type):
+            if isinstance(entry, CType):
                 return indices.pop()
             elif isinstance(entry, slice):
                 return slice(
@@ -1645,7 +1645,7 @@ class IncSubtensor(COp):
 
         """
 
-        if not isinstance(node.inputs[0].type, theano.tensor.TensorType):
+        if not isinstance(node.inputs[0].type, TensorType):
             raise NotImplementedError()
 
     def c_code_cache_version(self):
@@ -2239,9 +2239,9 @@ def as_index_variable(idx):
         return NoneConst.clone()
     if isinstance(idx, slice):
         return make_slice(idx)
-    if isinstance(idx, gof.Variable) and isinstance(idx.type, SliceType):
+    if isinstance(idx, Variable) and isinstance(idx.type, SliceType):
         return idx
-    if isinstance(idx, gof.Variable) and isinstance(idx.type, NoneTypeT):
+    if isinstance(idx, Variable) and isinstance(idx.type, NoneTypeT):
         return idx
     idx = theano.tensor.as_tensor_variable(idx)
     if idx.type.dtype not in theano.tensor.discrete_dtypes:
@@ -2312,7 +2312,7 @@ class AdvancedSubtensor(Op):
                 for i in indexed_result_shape(fake_shape, bcast_index)
             ]
 
-        return gof.Apply(
+        return Apply(
             self,
             (x,) + index,
             [theano.tensor.tensor(dtype=x.type.dtype, broadcastable=bcast)],
@@ -2415,7 +2415,7 @@ class AdvancedIncSubtensor(Op):
             if isinstance(inp, (list, tuple)):
                 inp = theano.tensor.as_tensor_variable(inp)
             new_inputs.append(inp)
-        return gof.Apply(
+        return Apply(
             self,
             (x, y) + tuple(new_inputs),
             [

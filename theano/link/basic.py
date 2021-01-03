@@ -4,7 +4,7 @@ from copy import copy, deepcopy
 from theano.configdefaults import config
 from theano.gof.fg import FunctionGraph
 from theano.gof.graph import Apply
-from theano.gof.type import Type
+from theano.gof.type import CType
 from theano.link.utils import gc_helper, map_storage, raise_with_op, streamline
 from theano.utils import deprecated, difference, to_return_values
 
@@ -45,7 +45,7 @@ class Container:
     ):
         if not isinstance(storage, list) or not len(storage) >= 1:
             raise TypeError("storage must be a list of length at least one")
-        if isinstance(r, Type):
+        if isinstance(r, CType):
             self.type = r
         else:
             self.type = r.type

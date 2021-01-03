@@ -565,7 +565,7 @@ def get_scalar_constant_value(
                         var.ndim == 0 for var in v.owner.inputs[0].owner.inputs[1:]
                     ):
                         idx = v.owner.op.idx_list[0]
-                        if isinstance(idx, gof.Type):
+                        if isinstance(idx, gof.CType):
                             idx = get_scalar_constant_value(
                                 v.owner.inputs[1], max_recur=max_recur
                             )
@@ -579,7 +579,7 @@ def get_scalar_constant_value(
                         var.ndim == 1 for var in v.owner.inputs[0].owner.inputs[1:]
                     ):
                         idx = v.owner.op.idx_list[0]
-                        if isinstance(idx, gof.Type):
+                        if isinstance(idx, gof.CType):
                             idx = get_scalar_constant_value(
                                 v.owner.inputs[1], max_recur=max_recur
                             )
@@ -616,7 +616,7 @@ def get_scalar_constant_value(
                 ):
 
                     idx = v.owner.op.idx_list[0]
-                    if isinstance(idx, gof.Type):
+                    if isinstance(idx, gof.CType):
                         idx = get_scalar_constant_value(
                             v.owner.inputs[1], max_recur=max_recur
                         )
@@ -638,7 +638,7 @@ def get_scalar_constant_value(
                     op = owner.op
                     idx_list = op.idx_list
                     idx = idx_list[0]
-                    if isinstance(idx, gof.Type):
+                    if isinstance(idx, gof.CType):
                         idx = get_scalar_constant_value(
                             owner.inputs[1], max_recur=max_recur
                         )

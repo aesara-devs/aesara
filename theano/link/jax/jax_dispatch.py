@@ -6,7 +6,6 @@ import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
 
-import theano
 from theano.compile.ops import (
     DeepCopyOp,
     Rebroadcast,
@@ -17,6 +16,7 @@ from theano.compile.ops import (
 )
 from theano.configdefaults import config
 from theano.gof import FunctionGraph
+from theano.gof.type import CType
 from theano.ifelse import IfElse
 from theano.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp, Second
 from theano.scan.op import Scan
@@ -589,7 +589,7 @@ def jax_funcify_IfElse(op):
 
 
 def convert_indices(indices, entry):
-    if indices and isinstance(entry, theano.gof.Type):
+    if indices and isinstance(entry, CType):
         rval = indices.pop(0)
         return rval
     elif isinstance(entry, slice):

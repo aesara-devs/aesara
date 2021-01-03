@@ -25,7 +25,7 @@ input variables and place the variables in the output variables.
 What needs to be defined
 ========================
 
-There are less methods to define for an `COp` than for a Type:
+There are less methods to define for a `COp` than for a `Type`:
 
 .. class:: COp
 
@@ -213,9 +213,9 @@ There are less methods to define for an `COp` than for a Type:
 
        Optional. If present this method will be called before doing
        constant folding of a node, with that node as a parameter. If
-       it return True, we will not generate c code when doing constant
+       it return True, we will not generate C code when doing constant
        folding of this node.  This is useful when the compilation of
-       the c code will be longer then the computation in python
+       the C code will be longer then the computation in python
        (e.g. Elemwise of scalars).
 
        In addition, this allow to lower the number of compiled module
@@ -233,7 +233,7 @@ There are less methods to define for an `COp` than for a Type:
        considered the same as if the method was not defined.
 
        If this method is defined and does not return `None`, then the
-       Op *must* have a `params_type` property with the Type to use
+       `Op` *must* have a `params_type` property with the `Type` to use
        for the params variable.
 
     .. attribute:: _f16_ok
@@ -252,7 +252,7 @@ There are less methods to define for an `COp` than for a Type:
        developpment if a better solution is found.
 
 The ``name`` argument is currently given an invalid value, so steer
-away from it. As was the case with Type, ``sub['fail']`` provides
+away from it. As was the case with `Type`, ``sub['fail']`` provides
 failure code that you *must* use if you want to raise an exception,
 after setting the exception message.
 

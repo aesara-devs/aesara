@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 from collections import defaultdict
+from contextlib import suppress
 from copy import copy
 from io import StringIO
 
@@ -25,6 +26,7 @@ from theano.link.c.cmodule import (
     dlimport_workdir,
 )
 from theano.link.c.cmodule import get_module_cache as _get_module_cache
+from theano.link.c.interface import CLinkerObject, CLinkerOp, CLinkerType
 from theano.link.utils import gc_helper, map_storage, raise_with_op, streamline
 from theano.utils import difference, uniq
 
@@ -667,13 +669,13 @@ class CLinker(Linker):
         self.consts = []
         # Move c type from orphans (theano.scalar.Scalar) to self.consts
         for variable in self.orphans:
-            if isinstance(variable, Constant):
-                try:
+            if isinstance(variable, Constant) and isinstance(
+                variable.type, CLinkerType
+            ):
+                with suppress(MethodNotDefined, NotImplementedError):
                     variable.type.c_literal(variable.data)
                     self.consts.append(variable)
                     self.orphans.remove(variable)
-                except (MethodNotDefined, NotImplementedError):
-                    pass
 
         self.temps = list(
             set(self.variables)
@@ -721,6 +723,10 @@ class CLinker(Linker):
         id = 1
 
         for variable in self.variables:
+
+            if not isinstance(variable.type, CLinkerType):
+                raise NotImplementedError(f"Type of {variable} cannot produce C code")
+
             sub = dict(failure_var=failure_var)
 
             # it might be possible to inline constant variables as C literals
@@ -816,6 +822,11 @@ class CLinker(Linker):
 
         for node_num, node in enumerate(self.node_order):
 
+            op = node.op
+
+            if not isinstance(op, CLinkerOp):
+                raise NotImplementedError(f"{op} cannot produce C code")
+
             sub = dict(failure_var=failure_var)
 
             params = node.run_params()
@@ -849,56 +860,43 @@ class CLinker(Linker):
             struct_init = ""
             struct_cleanup = ""
 
-            op = node.op
-            # type-specific support code
-            try:
+            with suppress(MethodNotDefined):
                 c_support_code_apply.append(op.c_support_code_apply(node, name))
-            except MethodNotDefined:
-                pass
-            else:
-                # The following will be executed if the "try" block succeeds
+
                 assert isinstance(c_support_code_apply[-1], str), (
                     str(node.op) + " didn't return a string for c_support_code_apply"
                 )
 
-            try:
+            with suppress(MethodNotDefined):
                 c_init_code_apply.append(op.c_init_code_apply(node, name))
-            except MethodNotDefined:
-                pass
-            else:
                 assert isinstance(c_init_code_apply[-1], str), (
                     str(node.op) + " didn't return a string for c_init_code_apply"
                 )
 
-            try:
+            with suppress(MethodNotDefined):
                 struct_init = op.c_init_code_struct(node, name, sub_struct)
                 assert isinstance(struct_init, str), (
                     str(node.op) + " didn't return a string for c_init_code_struct"
                 )
-            except MethodNotDefined:
-                pass
 
-            try:
+            with suppress(MethodNotDefined):
                 struct_support = op.c_support_code_struct(node, name)
                 assert isinstance(struct_support, str), (
                     str(node.op) + " didn't return a string for c_support_code_struct"
                 )
-            except MethodNotDefined:
-                pass
 
-            try:
+            with suppress(MethodNotDefined):
                 struct_cleanup = op.c_cleanup_code_struct(node, name)
                 assert isinstance(struct_cleanup, str), (
                     str(node.op) + " didn't return a string for c_cleanup_code_struct"
                 )
-            except MethodNotDefined:
-                pass
 
             # emit c_code
             try:
                 behavior = op.c_code(node, name, isyms, osyms, sub)
             except MethodNotDefined:
                 raise NotImplementedError(f"{op} cannot produce C code")
+
             assert isinstance(
                 behavior, str
             ), f"{node.op} didn't return a string for c_code"
@@ -987,14 +985,12 @@ class CLinker(Linker):
             )
         # generic support code
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
-            try:
+            with suppress(MethodNotDefined):
                 support_code = x.c_support_code()
                 if isinstance(support_code, list):
                     ret.extend(support_code)
                 else:
                     ret.append(support_code)
-            except MethodNotDefined:
-                pass
         return ret
 
     def compile_args(self):
@@ -1026,31 +1022,29 @@ class CLinker(Linker):
         c_compiler = self.c_compiler()
 
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
-            try:
-                try:
-                    ret += x.c_compile_args(c_compiler)
-                except TypeError:
-                    ret += x.c_compile_args()
-            except MethodNotDefined:
-                pass
+            if isinstance(x, CLinkerObject):
+                with suppress(MethodNotDefined):
+                    try:
+                        ret += x.c_compile_args(c_compiler)
+                    except TypeError:
+                        ret += x.c_compile_args()
 
         ret = uniq(ret)  # to remove duplicate
         # The args set by the compiler include the user flags. We do not want
         # to reorder them
         ret += c_compiler.compile_args()
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
-            try:
-                try:
-                    no_comp = x.c_no_compile_args(c_compiler)
-                except TypeError:
-                    no_comp = x.c_no_compile_args()
-                for i in no_comp:
+            if isinstance(x, CLinkerObject):
+                with suppress(MethodNotDefined):
                     try:
-                        ret.remove(i)
-                    except ValueError:
-                        pass  # in case the value is not there
-            except MethodNotDefined:
-                pass
+                        no_comp = x.c_no_compile_args(c_compiler)
+                    except TypeError:
+                        no_comp = x.c_no_compile_args()
+                    for i in no_comp:
+                        try:
+                            ret.remove(i)
+                        except ValueError:
+                            pass  # in case the value is not there
         return ret
 
     def headers(self):
@@ -1064,13 +1058,12 @@ class CLinker(Linker):
         ret = []
         c_compiler = self.c_compiler()
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
-            try:
-                try:
-                    ret += x.c_headers(c_compiler)
-                except TypeError:
-                    ret += x.c_headers()
-            except MethodNotDefined:
-                pass
+            if isinstance(x, CLinkerObject):
+                with suppress(MethodNotDefined):
+                    try:
+                        ret += x.c_headers(c_compiler)
+                    except TypeError:
+                        ret += x.c_headers()
         return uniq(ret)
 
     def init_code(self):
@@ -1083,15 +1076,15 @@ class CLinker(Linker):
         """
         ret = []
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
-            try:
-                ret += x.c_init_code()
-            except MethodNotDefined:
-                pass
+            if isinstance(x, CLinkerObject):
+                with suppress(MethodNotDefined):
+                    ret += x.c_init_code()
         return uniq(ret)
 
     def c_compiler(self):
         c_compiler = None
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
+            # FIXME: Why would a `Type` have a `c_compiler` field?!
             if hasattr(x, "c_compiler"):
                 x_compiler = x.c_compiler()
             else:
@@ -1121,13 +1114,12 @@ class CLinker(Linker):
         ret = []
         c_compiler = self.c_compiler()
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
-            try:
-                try:
-                    ret += x.c_header_dirs(c_compiler)
-                except TypeError:
-                    ret += x.c_header_dirs()
-            except MethodNotDefined:
-                pass
+            if isinstance(x, CLinkerObject):
+                with suppress(MethodNotDefined):
+                    try:
+                        ret += x.c_header_dirs(c_compiler)
+                    except TypeError:
+                        ret += x.c_header_dirs()
         # filter out empty strings/None
         return [r for r in uniq(ret) if r]
 
@@ -1142,13 +1134,12 @@ class CLinker(Linker):
         ret = []
         c_compiler = self.c_compiler()
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
-            try:
-                try:
-                    ret += x.c_libraries(c_compiler)
-                except TypeError:
-                    ret += x.c_libraries()
-            except MethodNotDefined:
-                pass
+            if isinstance(x, CLinkerObject):
+                with suppress(MethodNotDefined):
+                    try:
+                        ret += x.c_libraries(c_compiler)
+                    except TypeError:
+                        ret += x.c_libraries()
         return uniq(ret)
 
     def lib_dirs(self):
@@ -1162,13 +1153,12 @@ class CLinker(Linker):
         ret = []
         c_compiler = self.c_compiler()
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
-            try:
-                try:
-                    ret += x.c_lib_dirs(c_compiler)
-                except TypeError:
-                    ret += x.c_lib_dirs()
-            except MethodNotDefined:
-                pass
+            if isinstance(x, CLinkerObject):
+                with suppress(MethodNotDefined):
+                    try:
+                        ret += x.c_lib_dirs(c_compiler)
+                    except TypeError:
+                        ret += x.c_lib_dirs()
         # filter out empty strings/None
         return [r for r in uniq(ret) if r]
 
@@ -1542,9 +1532,11 @@ class CLinker(Linker):
             if hasattr(node.op, "__props__"):
                 version.append(node.op.__props__)
             for i in node.inputs:
-                version.append(i.type.c_code_cache_version())
+                if isinstance(i.type, CLinkerObject):
+                    version.append(i.type.c_code_cache_version())
             for o in node.outputs:
-                version.append(o.type.c_code_cache_version())
+                if isinstance(o.type, CLinkerObject):
+                    version.append(o.type.c_code_cache_version())
 
             # add the signature for this node
             sig.append(

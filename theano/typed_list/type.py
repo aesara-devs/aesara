@@ -1,7 +1,7 @@
-from theano.gof.type import Type
+from theano.gof.type import CType, Type
 
 
-class TypedListType(Type):
+class TypedListType(CType):
     """
 
     Parameters

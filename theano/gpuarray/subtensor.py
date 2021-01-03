@@ -6,6 +6,7 @@ import theano.tensor as tt
 from theano import gof
 from theano.gof.op import COp, Op
 from theano.gof.params_type import ParamsType
+from theano.gof.type import CType
 from theano.gradient import grad_not_implemented
 from theano.link.c.interface import HideC
 from theano.scalar import bool as bool_t
@@ -160,7 +161,7 @@ class GpuSubtensor(HideC, Subtensor):
                 return "0", 1
             elif isinstance(idx, (np.integer, int)):
                 return str(idx), 0
-            elif isinstance(idx, gof.Type):
+            elif isinstance(idx, CType):
                 return indices.pop(0), 0
             else:
                 assert 0, idx
@@ -195,7 +196,7 @@ class GpuSubtensor(HideC, Subtensor):
                     file=sio,
                 )
             else:
-                if isinstance(idx, gof.Type):
+                if isinstance(idx, CType):
                     start = indices.pop(0)
                 elif isinstance(idx, (np.integer, int)):
                     start = idx
@@ -263,7 +264,7 @@ class GpuIncSubtensor(IncSubtensor):
         indices = list(reversed(inputs[2:]))
 
         def convert(entry):
-            if isinstance(entry, gof.Type):
+            if isinstance(entry, CType):
                 rval = indices.pop()
                 return rval
             elif isinstance(entry, slice):

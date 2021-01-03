@@ -6,7 +6,7 @@ Implementing double in C
 ========================
 
 The previous two sections described how to define a double :ref:`type`
-and arithmetic operations on that Type, but all of them were
+and arithmetic operations on that `Type`, but all of them were
 implemented in pure Python. In this section we will see how to define
 the double type in such a way that it can be used by operations
 implemented in C (which we will define in the section after that).
@@ -15,15 +15,15 @@ implemented in C (which we will define in the section after that).
 How does it work?
 =================
 
-In order to be C-compatible, a Type must provide a C interface to the
+In order to be C-compatible, a `Type` must provide a C interface to the
 Python data that satisfy the constraints it puts forward. In other
 words, it must define C code that can convert a Python reference into
 some type suitable for manipulation in C and it must define C code
 that can convert some C structure in which the C implementation of an
 operation stores its variables into a reference to an object that can be
-used from Python and is a valid value for the Type.
+used from Python and is a valid value for the `Type`.
 
-For example, in the current example, we have a Type which represents a
+For example, in the current example, we have a `Type` which represents a
 Python float. First, we will choose a corresponding C type. The
 natural choice would be the primitive ``double`` type. Then, we need
 to write code that will take a ``PyObject*``, check that it is a
@@ -42,10 +42,10 @@ find here_.
 What needs to be defined
 ========================
 
-In order to be C-compatible, a Type must define several additional
-methods, which all start with the ``c_`` prefix. The complete list can
-be found in the documentation for :class:`.gof.type.Type`. Here, we'll focus on
-the most important ones:
+In order to be C-compatible, the `Type` subclass interface `CType` must be used.
+It defines several additional methods, which all start with the ``c_``
+prefix. The complete list can be found in the documentation for
+:class:`.gof.type.CType`. Here, we'll focus on the most important ones:
 
 
 .. class:: CLinkerType
@@ -144,7 +144,7 @@ the most important ones:
 Each of these functions take two arguments, ``name`` and ``sub`` which
 must be used to parameterize the C code they return. ``name`` is a
 string which is chosen by the compiler to represent a :ref:`variable` of
-the Type in such a way that there are no name conflicts between
+the `CType` in such a way that there are no name conflicts between
 different pieces of data. Therefore, all variables declared in
 ``c_declare`` should have a name which includes ``name``. Furthermore,
 the name of the variable containing a pointer to the Python object
@@ -154,7 +154,7 @@ associated to the Variable is ``py_<name>``.
 suitable for use in certain situations. For instance, ``sub['fail']``
 contains code that should be inserted wherever an error is identified.
 
-``c_declare`` and ``c_extract`` also accept a third ``check_input`` 
+``c_declare`` and ``c_extract`` also accept a third ``check_input``
 optional argument. If you want your type to validate its inputs, it must
 only do it when ``check_input`` is True.
 
@@ -180,20 +180,19 @@ out:
 Defining the methods
 ====================
 
-.. testsetup:: 
-
-    import theano
-    double = theano.Type()
-
 **c_declare**
 
 .. testcode::
 
-    def c_declare(name, sub):
-        return """
-        double %(name)s;
-        """ % dict(name = name)
-    double.c_declare = c_declare
+    from theano.gof.type import Generic
+
+
+    class double(Generic):
+        def c_declare(self, name, sub, check_input=True):
+            return """
+            double %(name)s;
+            """ % dict(name = name)
+
 
 Very straightforward. All we need to do is write C code to declare a
 double. That double will be named whatever is passed to our function
@@ -211,7 +210,7 @@ here). Also note that you cannot declare a variable called
 them.
 
 What you declare there is basically the C interface you are giving to
-your Type. If you wish people to develop operations that make use of
+your `CType`. If you wish people to develop operations that make use of
 it, it's best to publish it somewhere.
 
 
@@ -219,11 +218,10 @@ it, it's best to publish it somewhere.
 
 .. testcode::
 
-    def c_init(name, sub):
-        return """
-        %(name)s = 0.0;
-        """ % dict(name = name)
-    double.c_init = c_init
+        def c_init(self, name, sub):
+            return """
+            %(name)s = 0.0;
+            """ % dict(name = name)
 
 This function has to initialize the
 double we declared previously to a suitable value. This is useful if
@@ -245,15 +243,14 @@ called, without knowing for sure which of the two.
 
 .. testcode::
 
-    def c_extract(name, sub):
-        return """
-        if (!PyFloat_Check(py_%(name)s)) {
-            PyErr_SetString(PyExc_TypeError, "expected a float");
-            %(fail)s
-        }
-        %(name)s = PyFloat_AsDouble(py_%(name)s);
-        """ % dict(name = name, fail = sub['fail'])
-    double.c_extract = c_extract
+        def c_extract(self, name, sub, check_input=True):
+            return """
+            if (!PyFloat_Check(py_%(name)s)) {
+                PyErr_SetString(PyExc_TypeError, "expected a float");
+                %(fail)s
+            }
+            %(name)s = PyFloat_AsDouble(py_%(name)s);
+            """ % dict(name = name, fail = sub['fail'])
 
 This method is slightly more sophisticated. What happens here is that
 we have a reference to a Python object which Theano has placed in
@@ -385,7 +382,7 @@ that Variable. For instance, imagine you define the following function
 and call it:
 
 .. code-block:: python
-   
+
    x, y, z = double('x'), double('y'), double('z')
    a = add(x, y)
    b = mul(a, z)
@@ -469,9 +466,9 @@ Final version
 
 .. testcode::
 
-   from theano import gof
+   from theano.gof.type import
 
-   class Double(gof.Type):
+   class Double(Type):
 
        def filter(self, x, strict=False, allow_downcast=None):
            if strict and not isinstance(x, float):
