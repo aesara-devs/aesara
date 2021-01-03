@@ -798,7 +798,7 @@ def vars_between(
     `Variable`s
         The `Variable`s that are involved in the subgraph that lies
         between `ins` and `outs`. This includes `ins`, `outs`,
-        ``orphans(ins, outs)`` and all values of all intermediary steps from
+        ``orphans_between(ins, outs)`` and all values of all intermediary steps from
         `ins` to `outs`.
 
     """
@@ -810,7 +810,7 @@ def vars_between(
     yield from walk(outs, expand)
 
 
-def orphans(
+def orphans_between(
     ins: Collection[Variable], outs: Iterable[Variable]
 ) -> Generator[Variable, None, None]:
     """Extract the `Variable`s not within the sub-graph between input and output nodes.
@@ -831,7 +831,7 @@ def orphans(
 
     Examples
     --------
-    >>> orphans([x], [(x+y).out])
+    >>> orphans_between([x], [(x+y).out])
     [y]
 
     """
@@ -1281,7 +1281,7 @@ def as_string(
     """
     i = set(inputs)
 
-    orph = list(orphans(i, outputs))
+    orph = list(orphans_between(i, outputs))
 
     multi = set()
     seen = set()
