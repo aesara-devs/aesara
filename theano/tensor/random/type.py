@@ -3,10 +3,10 @@ import sys
 import numpy as np
 
 import theano
-from theano.gof.type import Type
+from theano.gof.type import CType
 
 
-class RandomStateType(Type):
+class RandomStateType(CType):
     """A Type wrapper for `numpy.random.RandomState`.
 
     The reason this exists (and `Generic` doesn't suffice) is that

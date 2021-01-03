@@ -10,7 +10,7 @@ Making the double type
 Type's contract
 ===============
 
-In Theano's framework, a ``Type`` (:class:`.gof.type.Type`)
+In Theano's framework, a ``Type`` (:class:`Type`)
 is any object which defines the following
 methods. To obtain the default methods described below, the Type should
 be an instance of ``Type`` or should be an instance of a
@@ -22,7 +22,7 @@ i.e.  the same default argument names and values. If you wish to add
 extra arguments to any of these methods, these extra arguments must have
 default values.
 
-.. class:: PureType
+.. class:: Type
 
     .. method:: filter(value, strict=False, allow_downcast=None)
 
@@ -265,21 +265,21 @@ the Type is to instantiate a plain Type and set the needed fields:
 
 .. testcode::
 
-   from theano import gof
+   from theano.gof.type import Type
 
-   double = gof.Type()
+   double = Type()
    double.filter = filter
    double.values_eq_approx = values_eq_approx
 
 
-Another way to make this Type is to make a subclass of ``gof.Type``
+Another way to make this Type is to make a subclass of ``Type``
 and define ``filter`` and ``values_eq_approx`` in the subclass:
 
 .. code-block:: python
 
-   from theano import gof
+   from theano.gof.type import Type
 
-   class Double(gof.Type):
+   class Double(Type):
 
        def filter(self, x, strict=False, allow_downcast=None):
            # See code above.
@@ -300,9 +300,9 @@ instances of ``Double`` are technically the same Type. However, different
 
 .. testsetup::
 
-   from theano import gof
+   from theano.gof.type import Type
 
-   class Double(gof.Type):
+   class Double(Type):
 
        def filter(self, x, strict=False, allow_downcast=None):
            if strict:
@@ -399,9 +399,9 @@ Final version
 
 .. testcode::
 
-   from theano import gof
+   from theano.gof.type import Type
 
-   class Double(gof.Type):
+   class Double(Type):
 
        def filter(self, x, strict=False, allow_downcast=None):
            if strict:
@@ -432,4 +432,3 @@ Final version
 
 We add one utility function, ``__str__``. That way, when we print
 ``double``, it will print out something intelligible.
-

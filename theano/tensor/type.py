@@ -7,14 +7,14 @@ import theano
 from theano import scalar as scal
 from theano.configdefaults import config
 from theano.gof.graph import Variable
-from theano.gof.type import Type
+from theano.gof.type import CType
 from theano.misc.safe_asarray import _asarray
 
 
 _logger = logging.getLogger("theano.tensor.type")
 
 
-class TensorType(Type):
+class TensorType(CType):
     """
     Symbolic `Type` representing a numpy.ndarray value.
 

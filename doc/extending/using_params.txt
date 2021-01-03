@@ -48,10 +48,10 @@ The first thing you need to do is to define a Theano Type for your
 params object.  It doesn't have to be complete type because only the
 following methods will be used for the type:
 
-  - :meth:`filter <PureType.filter>`
-  - :meth:`__eq__ <PureType.__eq__>`
-  - :meth:`__hash__ <PureType.__hash__>`
-  - :meth:`values_eq <PureType.values_eq>`
+  - :meth:`filter <Type.filter>`
+  - :meth:`__eq__ <Type.__eq__>`
+  - :meth:`__hash__ <Type.__hash__>`
+  - :meth:`values_eq <Type.values_eq>`
 
 Additionaly if you want to use your params with C code, you need to extend `COp`
 and implement the following methods:

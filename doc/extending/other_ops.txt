@@ -266,8 +266,8 @@ along with pointers to the relevant documentation.
         primitive type. The C type associated with this Theano type is the
         represented C primitive itself.
 
-*       :ref:`SparseType <sparse_ops>` : Theano type used to represent sparse
-        tensors. There is no equivalent C type for this Theano Type but you
+*       :ref:`SparseType <sparse_ops>` : Theano `Type` used to represent sparse
+        tensors. There is no equivalent C type for this Theano `Type` but you
         can split a sparse variable into its parts as TensorVariables. Those
         can then be used as inputs to an op with C code.
 

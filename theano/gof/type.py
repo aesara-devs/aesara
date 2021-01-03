@@ -1,9 +1,4 @@
-"""
-WRITEME
-
-Defines the `Type` class.
-
-"""
+"""The `Type` classes."""
 
 
 import ctypes
@@ -16,12 +11,13 @@ from theano.gof import graph, utils
 from theano.gof.op import COp
 from theano.gof.utils import MetaObject, MethodNotDefined
 from theano.link.c.interface import CLinkerType
+from theano.utils import Singleton
 
 
 __docformat__ = "restructuredtext en"
 
 
-class PureType:
+class Type:
     """
     Interface specification for variable type instances.
 
@@ -35,10 +31,10 @@ class PureType:
 
     """
 
-    # the type that will be created by call to make_variable.
+    # the type that will be created by a call to make_variable.
     Variable = graph.Variable
 
-    # the type that will be created by call to make_constant
+    # the type that will be created by a call to make_constant
     Constant = graph.Constant
 
     def filter(self, data, strict=False, allow_downcast=None):
@@ -217,13 +213,9 @@ class PureType:
         """
 
 
-_nothing = """
-       """
-
-
-class Type(MetaObject, PureType, CLinkerType):
+class CType(MetaObject, Type, CLinkerType):
     """
-    Convenience wrapper combining `PureType` and `CLinkerType`.
+    Convenience wrapper combining `Type` and `CLinkerType`.
 
     Theano comes with several subclasses of such as:
 
@@ -265,48 +257,11 @@ class Type(MetaObject, PureType, CLinkerType):
     """
 
 
-class SingletonType(Type):
-    """
-    Convenient Base class for a Type subclass with no attributes.
-
-    It saves having to implement __eq__ and __hash__.
-
-    """
-
-    __instance = None
-
-    def __new__(cls):
-        # If sub-subclass of SingletonType don't redeclare __instance
-        # when we look for it, we will find it in the subclass.  We
-        # don't want that, so we check the class.  When we add one, we
-        # add one only to the current class, so all is working
-        # correctly.
-        if cls.__instance is None or not isinstance(cls.__instance, cls):
-            cls.__instance = Type.__new__(cls)
-        return cls.__instance
-
-    def __str__(self):
-        return self.__class__.__name__
-
-    # even if we try to make a singleton, this do not always work.  So
-    # we compare the type. See test_type_other.test_none_Constant for
-    # an exmple. So we need to implement __eq__ and __hash__
-    def __eq__(self, other):
-        if self is other:
-            return True
-        if type(self) is type(other):
-            return True
-        return False
-
-    def __hash__(self):
-        return hash(type(self))
-
-
-class Generic(SingletonType):
+class Generic(CType, Singleton):
     """
     Represents a generic Python object.
 
-    This class implements the `PureType` and `CLinkerType` interfaces
+    This class implements the `CType` and `CLinkerType` interfaces
     for generic PyObject instances.
 
     EXAMPLE of what this means, or when you would use this type.
@@ -400,7 +355,7 @@ class _make_cdata(COp):
         return (0, self.rtype.version)
 
 
-class CDataType(Type):
+class CDataType(CType):
     """
     Represents opaque C data to be passed around. The intent is to
     ease passing arbitrary data between ops C code.
@@ -613,7 +568,7 @@ class CDataTypeConstant(graph.Constant):
 CDataType.Constant = CDataTypeConstant
 
 
-class EnumType(Type, dict):
+class EnumType(CType, dict):
     """
     Main subclasses:
      - :class:`EnumList`
@@ -804,12 +759,12 @@ class EnumType(Type, dict):
     def __getattr__(self, key):
         if key in self:
             return self[key]
-        return Type.__getattr__(self, key)
+        return CType.__getattr__(self, key)
 
     def __setattr__(self, key, value):
         if key in self:
             raise NotImplementedError("constant values are immutable.")
-        Type.__setattr__(self, key, value)
+        CType.__setattr__(self, key, value)
 
     def __setitem__(self, key, value):
         raise NotImplementedError("constant values are immutable.")

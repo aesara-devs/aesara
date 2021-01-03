@@ -17,7 +17,7 @@ write a new one. Don't worry, Theano was designed to make it easy to add new
 Ops, Types, and Optimizations.
 
 .. These first few pages will walk you through the definition of a new :ref:`type`,
-.. ``double``, and a basic arithmetic :ref:`operations <op>` on that Type.
+.. ``double``, and a basic arithmetic :ref:`operations <op>` on that `Type`.
 
 As an illustration, this tutorial shows how to write a simple Python-based
 :ref:`operations <op>` which performs operations on
@@ -134,7 +134,7 @@ or :func:`make_thunk`.
     - it operates on the Variables found in
       ``*inputs`` in Theano's symbolic language to infer the type of
       the symbolic output Variables. It creates output Variables of a suitable
-      symbolic Type to serve as the outputs of this op's
+      symbolic `Type` to serve as the outputs of this op's
       application.
     - it creates an Apply instance with the input and output Variable, and
       return the Apply instance.
@@ -397,7 +397,7 @@ A common and easy way to ensure inputs are variables is to run them through
 ``as_tensor_variable``. This function leaves TensorType variables alone, raises
 an error for non-TensorType variables, and copies any ``numpy.ndarray`` into
 the storage for a TensorType Constant. The ``make_node`` method dictates the
-appropriate Type for all output variables.
+appropriate `Type` for all output variables.
 
 The ``perform`` method implements the Op's mathematical logic in Python.
 The inputs (here ``x``) are passed by value, but a single output is returned

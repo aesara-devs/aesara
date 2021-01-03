@@ -116,7 +116,7 @@ for more info about enumeration aliases).
 import hashlib
 import re
 
-from theano.gof.type import EnumType, Type
+from theano.gof.type import CType, EnumType
 from theano.gof.utils import MethodNotDefined
 
 
@@ -315,14 +315,15 @@ class Params(dict):
         return not self.__eq__(other)
 
 
-class ParamsType(Type):
+class ParamsType(CType):
     """
-    This class can create a struct of Theano types (like TensorType, GpuArrayType, etc.)
-    to be used as a convenience op parameter wrapping many data.
+    This class can create a struct of Theano types (like `TensorType`,
+    `GpuArrayType`, etc.)  to be used as a convenience op parameter wrapping
+    many data.
 
-    ParamsType constructor takes key-value args.
-    Key will be the name of the attribute in the struct.
-    Value is the Theano type of this attribute, ie. an instance of (a subclass of) :class:`Type`
+    `ParamsType` constructor takes key-value args.  Key will be the name of the
+    attribute in the struct.  Value is the Theano type of this attribute,
+    ie. an instance of (a subclass of) :class:`CType`
     (eg. ``TensorType('int64', (False,))``).
 
     In a Python code any attribute named ``key`` will be available via::
@@ -337,7 +338,8 @@ class ParamsType(Type):
 
     .. note::
 
-        This Type is not complete and should never be used for regular graph operations.
+        This `Type` is not complete and should never be used for regular graph
+        operations.
 
     """
 
@@ -358,9 +360,9 @@ class ParamsType(Type):
                 )
             type_instance = kwargs[attribute_name]
             type_name = type_instance.__class__.__name__
-            if not isinstance(type_instance, Type):
+            if not isinstance(type_instance, CType):
                 raise TypeError(
-                    'ParamsType: attribute "%s" should inherit from Theano Type, got "%s".'
+                    'ParamsType: attribute "%s" should inherit from Theano CType, got "%s".'
                     % (attribute_name, type_name)
                 )
 

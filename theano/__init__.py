@@ -97,12 +97,12 @@ from theano.compile.function.types import FunctionMaker
 from theano.gof import (
     Apply,
     Constant,
+    CType,
     FunctionGraph,
     Generic,
     InconsistencyError,
     Op,
     OpenMPOp,
-    Type,
     Variable,
     generic,
     opt,

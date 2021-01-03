@@ -6,7 +6,7 @@ import warnings
 import numpy as np
 
 import theano
-from theano import Constant, Type, Variable, config, scalar, tensor
+from theano import Constant, CType, Variable, config, scalar, tensor
 from theano.compile import SharedVariable
 from theano.misc.safe_asarray import _asarray
 from theano.tensor.type import TensorType
@@ -127,7 +127,7 @@ def _unreg_context(name):
     del _context_reg[name]
 
 
-class GpuArrayType(Type):
+class GpuArrayType(CType):
     """
     The type that represents an array on a gpu.
 
@@ -173,7 +173,7 @@ class GpuArrayType(Type):
 
     See Also
     --------
-    theano.gof.type.PureType
+    theano.gof.type.Type
 
     """
 
@@ -883,7 +883,7 @@ theano.compile.register_specify_shape_c_code(
 )
 
 
-class GpuContextType(Type):
+class GpuContextType(CType):
     """
     Minimal type used for passing contexts to nodes.
 

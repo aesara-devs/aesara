@@ -223,27 +223,26 @@ class Apply(Node):
         return cp
 
     def clone_with_new_inputs(self, inputs, strict=True):
-        """
-        Duplicate this Apply instance in a new graph.
+        """Duplicate this `Apply` instance in a new graph.
 
         Parameters
         ----------
-        inputs
-            List of Variable instances to use as inputs.
+        inputs : list of Variables
+            List of `Variable` instances to use as inputs.
         strict : bool
-            If True, the type fields of all the inputs must be equal
-            to the current ones (or compatible, for instance Tensor /
-            GpuArray of the same dtype and broadcastable patterns,
-            in which case they will be converted into current Type), and
+            If ``True``, the type fields of all the inputs must be equal
+            to the current ones (or compatible, for instance `Tensor` /
+            `GpuArray` of the same dtype and broadcastable patterns,
+            in which case they will be converted into current `Type`), and
             returned outputs are guaranteed to have the same types as
-            self.outputs.  If False, then there's no guarantee that the
-            clone's outputs will have the same types as self.outputs,
-            and cloning may not even be possible (it depends on the Op).
+            ``self.outputs``.  If ``False``, then there's no guarantee that the
+            clone's outputs will have the same types as ``self.outputs``,
+            and cloning may not even be possible (it depends on the `Op`).
 
         Returns
         -------
         object
-            An Apply instance with the same op but different outputs.
+            An `Apply` instance with the same `Op` but different outputs.
 
         """
         assert isinstance(inputs, (list, tuple))
@@ -672,18 +671,18 @@ def walk(
 
     Parameters
     ----------
-    nodes: deque
+    nodes : deque
         The nodes from which to start walking.
-    expand: callable
+    expand : callable
         A callable that is applied to each node in `nodes`, the results of
         which are either new nodes to visit or ``None``.
-    bfs: bool
+    bfs : bool
         If ``True``, breath first search is used; otherwise, depth first
         search.
-    return_children: bool
+    return_children : bool
         If ``True``, each output node will be accompanied by the output of
         `expand` (i.e. the corresponding child nodes).
-    hash_fn: callable
+    hash_fn : callable
         The function used to produce hashes of the elements in `nodes`.
         The default is ``id``.
 
@@ -735,10 +734,10 @@ def ancestors(
 
     Parameters
     ----------
-    graphs: list of `Variable` instances
+    graphs : list of `Variable` instances
         Output `Variable` instances from which to search backward through
         owners.
-    blockers: list of `Variable` instances
+    blockers : list of `Variable` instances
         A collection of `Variable`s that, when found, prevent the graph search
         from preceding from that point.
 
@@ -764,10 +763,10 @@ def graph_inputs(
 
     Parameters
     ----------
-    graphs: list of `Variable` instances
+    graphs : list of `Variable` instances
         Output `Variable` instances from which to search backward through
         owners.
-    blockers: list of `Variable` instances
+    blockers : list of `Variable` instances
         A collection of `Variable`s that, when found, prevent the graph search
         from preceding from that point.
 
@@ -788,9 +787,9 @@ def vars_between(
 
     Parameters
     ----------
-    ins: list
+    ins : list
         Input `Variable`s.
-    outs: list
+    outs : list
         Output `Variable`s.
 
     Yields
@@ -817,9 +816,9 @@ def orphans_between(
 
     Parameters
     ----------
-    ins: list
+    ins : list
         Input `Variable`s.
-    outs: list
+    outs : list
         Output `Variable`s.
 
     Yields
@@ -845,9 +844,9 @@ def applys_between(
 
     Parameters
     ----------
-    ins: list
+    ins : list
         Input `Variable`s.
-    outs: list
+    outs : list
         Output `Variable`s.
 
     Yields
@@ -972,15 +971,15 @@ def general_toposort(
 
     Parameters
     ----------
-    deps: callable
+    deps : callable
         A python function that takes a node as input and returns its dependence.
-    compute_deps_cache: optional
+    compute_deps_cache : optional
         If provided deps_cache should also be provided. This is a function like
         deps, but that also cache its results in a dict passed as deps_cache.
-    deps_cache: dict
+    deps_cache : dict
         A dict mapping nodes to their children.  This is populated by
         `compute_deps_cache`.
-    clients: dict
+    clients : dict
         If a dict is passed it will be filled with a mapping of
         nodes-to-clients for each node in the subgraph.
 
@@ -1357,9 +1356,9 @@ def list_of_nodes(
 
     Parameters
     ----------
-    inputs: list of Variable
+    inputs : list of Variable
         Input `Variable`s.
-    outputs: list of Variable
+    outputs : list of Variable
         Output `Variable`s.
 
     """
@@ -1380,9 +1379,9 @@ def is_in_ancestors(l_apply: Apply, f_node: Apply) -> bool:
 
     Parameters
     ----------
-    l_apply: Apply
+    l_apply : Apply
         The node to walk.
-    f_apply: Apply
+    f_apply : Apply
         The node to find in `l_apply`.
 
     Returns

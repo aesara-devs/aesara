@@ -32,7 +32,7 @@ def _is_sparse(x):
     return isinstance(x, scipy.sparse.spmatrix)
 
 
-class SparseType(gof.Type):
+class SparseType(gof.CType):
     """
     Fundamental way to create a sparse node.
 

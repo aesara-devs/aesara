@@ -12,7 +12,7 @@ from theano.gof.graph import Apply, Variable
 from theano.gof.op import COp, ExternalCOp, Op
 from theano.gof.opt import copy_stack_trace
 from theano.gof.params_type import ParamsType
-from theano.gof.type import Type
+from theano.gof.type import CType
 from theano.gof.utils import MethodNotDefined
 from theano.gradient import grad_undefined
 from theano.link.c.interface import HideC
@@ -220,7 +220,7 @@ class Kernel:
         def get_dtype(t):
             if isinstance(t, str):
                 return np.dtype(t)
-            elif isinstance(t, Type):
+            elif isinstance(t, CType):
                 return t.dtype
             elif isinstance(t, Variable):
                 return t.type.dtype

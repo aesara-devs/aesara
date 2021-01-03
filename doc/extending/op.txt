@@ -50,7 +50,7 @@ define the following methods.
 .. function:: make_node(*inputs)
 
   This method is responsible for creating output Variables of a
-  suitable symbolic Type to serve as the outputs of this Op's
+  suitable symbolic `Type` to serve as the outputs of this Op's
   application.  The Variables found in ``*inputs`` must be operated on
   using Theano's symbolic language to compute the symbolic output
   Variables. This method should put these outputs into an Apply
@@ -769,7 +769,7 @@ as first argument to Apply.  We define ``perform`` using the function
 ``fn`` passed in the constructor.
 
 This design is a flexible way to define basic operations without
-duplicating code. The same way a Type subclass represents a set of
+duplicating code. The same way a `Type` subclass represents a set of
 structurally similar types (see previous section), an `Op` subclass
 represents a set of structurally similar operations: operations that
 have the same input/output types, operations that only differ in one

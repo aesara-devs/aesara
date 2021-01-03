@@ -42,5 +42,5 @@ from theano.gof.toolbox import (
     ReplaceValidate,
     Validator,
 )
-from theano.gof.type import CEnumType, EnumList, EnumType, Generic, Type, generic
+from theano.gof.type import CEnumType, CType, EnumList, EnumType, Generic, generic
 from theano.gof.utils import MetaObject, MethodNotDefined

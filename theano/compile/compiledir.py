@@ -55,7 +55,7 @@ def cleanup():
                                 elif obj.startswith("c_compiler_str="):
                                     have_c_compiler = True
                             elif isinstance(
-                                obj, (theano.gof.Op, theano.gof.Type)
+                                obj, (theano.gof.Op, theano.gof.CType)
                             ) and hasattr(obj, "c_code_cache_version"):
                                 v = obj.c_code_cache_version()
                                 if v not in [(), None] and v not in key[0]:
@@ -139,7 +139,7 @@ def print_compiledir_content():
                         {
                             x
                             for x in flatten(keydata.keys)
-                            if isinstance(x, theano.gof.Type)
+                            if isinstance(x, theano.gof.CType)
                         }
                     )
                     compile_start = compile_end = float("nan")
