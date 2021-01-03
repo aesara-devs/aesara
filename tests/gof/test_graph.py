@@ -18,7 +18,7 @@ from theano.gof.graph import (
     io_toposort,
     is_in_ancestors,
     list_of_nodes,
-    orphans,
+    orphans_between,
     vars_between,
     walk,
 )
@@ -406,7 +406,7 @@ def test_variables_and_orphans():
     o2.name = "o2"
 
     vars_res = vars_between([r1, r2], [o2])
-    orphans_res = orphans([r1, r2], [o2])
+    orphans_res = orphans_between([r1, r2], [o2])
 
     vars_res_list = list(vars_res)
     orphans_res_list = list(orphans_res)
