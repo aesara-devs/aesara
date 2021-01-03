@@ -14,8 +14,7 @@ import numpy as np
 from theano.compile.compilelock import lock_ctx
 from theano.configdefaults import config
 from theano.gof.callcache import CallCache
-from theano.gof.graph import Constant, NoParams, io_toposort
-from theano.gof.graph import variables as get_variables
+from theano.gof.graph import Constant, NoParams, io_toposort, vars_between
 from theano.gof.utils import MethodNotDefined
 from theano.link.basic import Container, Linker, LocalLinker, PerformLinker
 from theano.link.c.cmodule import (
@@ -637,7 +636,7 @@ class CLinker(Linker):
         # We need to include the unused inputs in our variables,
         # otherwise we can't pass them to the module.
         self.variables = [var for var in self.inputs if not len(fgraph.clients[var])]
-        self.variables += list(get_variables(self.inputs, self.outputs))
+        self.variables += list(vars_between(self.inputs, self.outputs))
 
         # This adds a hidden input which is the params for each node
         # that needs it

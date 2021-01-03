@@ -9,8 +9,7 @@ from theano.gof import toolbox, utils
 from theano.gof.graph import Apply, Constant, Variable, applys_between
 from theano.gof.graph import as_string as graph_as_string
 from theano.gof.graph import clone as clone_graph
-from theano.gof.graph import clone_get_equiv, io_toposort
-from theano.gof.graph import variables as variables_between
+from theano.gof.graph import clone_get_equiv, io_toposort, vars_between
 from theano.gof.utils import TestValueError, get_variable_trace_string
 from theano.misc.ordered_set import OrderedSet
 
@@ -725,7 +724,7 @@ class FunctionGraph(utils.MetaObject):
                     raise Exception(
                         f"Inconsistent clients list {(node, i)} in {clients}"
                     )
-        variables = set(variables_between(self.inputs, self.outputs))
+        variables = set(vars_between(self.inputs, self.outputs))
         if set(self.variables) != variables:
             missing = variables.difference(self.variables)
             excess = self.variables.difference(variables)

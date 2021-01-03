@@ -19,7 +19,7 @@ from theano.gof.graph import (
     is_in_ancestors,
     list_of_nodes,
     orphans,
-    variables,
+    vars_between,
     walk,
 )
 from theano.gof.op import Op
@@ -405,7 +405,7 @@ def test_variables_and_orphans():
     o2 = MyOp(r3, o1)
     o2.name = "o2"
 
-    vars_res = variables([r1, r2], [o2])
+    vars_res = vars_between([r1, r2], [o2])
     orphans_res = orphans([r1, r2], [o2])
 
     vars_res_list = list(vars_res)

@@ -781,7 +781,7 @@ def inputs(
     yield from (r for r in ancestors(graphs, blockers) if r.owner is None)
 
 
-def variables(
+def vars_between(
     ins: Collection[Variable], outs: Iterable[Variable]
 ) -> Generator[Variable, None, None]:
     """Extract the `Variable`s within the sub-graph between input and output nodes.
@@ -835,7 +835,7 @@ def orphans(
     [y]
 
     """
-    yield from (r for r in variables(ins, outs) if r.owner is None and r not in ins)
+    yield from (r for r in vars_between(ins, outs) if r.owner is None and r not in ins)
 
 
 def applys_between(
@@ -860,7 +860,7 @@ def applys_between(
 
     """
     yield from (
-        r.owner for r in variables(ins, outs) if r not in ins and r.owner is not None
+        r.owner for r in vars_between(ins, outs) if r not in ins and r.owner is not None
     )
 
 

@@ -10,7 +10,7 @@ import numpy as np
 
 import theano
 from theano.configdefaults import config
-from theano.gof.graph import equal_computations, inputs, io_toposort, variables
+from theano.gof.graph import equal_computations, inputs, io_toposort, vars_between
 
 
 class AlreadyThere(Exception):
@@ -895,7 +895,7 @@ def is_same_graph(var1, var2, givens=None):
         # Compute the sets of all variables found in each computational graph.
         inputs_var = list(map(inputs, ([var1], [var2])))
         all_vars = [
-            set(variables(v_i, v_o))
+            set(vars_between(v_i, v_o))
             for v_i, v_o in ((inputs_var[0], [var1]), (inputs_var[1], [var2]))
         ]
 
