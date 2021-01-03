@@ -9,6 +9,7 @@ from theano.gof.graph import (
     Apply,
     Variable,
     ancestors,
+    applys_between,
     as_string,
     clone,
     equal_computations,
@@ -17,7 +18,6 @@ from theano.gof.graph import (
     io_toposort,
     is_in_ancestors,
     list_of_nodes,
-    ops,
     orphans,
     variables,
     walk,
@@ -424,7 +424,7 @@ def test_ops():
     o3 = MyOp(r3, o1, o2)
     o3.name = "o3"
 
-    res = ops([r1, r2], [o3])
+    res = applys_between([r1, r2], [o3])
     res_list = list(res)
     assert res_list == [o3.owner, o2.owner, o1.owner]
 

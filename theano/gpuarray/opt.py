@@ -397,7 +397,7 @@ class GraphToGPU(GlobalOptimizer):
 
             if new_ops:
                 node_created[lopt] += len(
-                    graph.ops([mapping[i] for i in node.inputs], outputs)
+                    graph.applys_between([mapping[i] for i in node.inputs], outputs)
                 )
                 if any(
                     [

@@ -4154,9 +4154,6 @@ class Composite(ScalarOp):
             assert len(res[0]) == len(inputs)
             assert res[0] != inputs
             inputs, outputs = res[0], res2[1]
-            # Next assert comment just for speed
-            # assert not any([isinstance(node.op, Composite) for node in
-            #                ops(inputs, outputs)])
 
         self.inputs = copy(inputs)
         self.outputs = copy(outputs)

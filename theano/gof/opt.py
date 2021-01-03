@@ -1341,7 +1341,7 @@ class LocalOptGroup(LocalOptimizer):
                     new_vars = list(new_repl.values())
                 if self.profile:
                     self.node_created[opt] += len(
-                        list(graph.ops(fgraph.variables, new_vars))
+                        list(graph.applys_between(fgraph.variables, new_vars))
                     )
                     self.applied_true[opt] += 1
                 break  # break from the for loop over optimization.
@@ -1453,7 +1453,7 @@ class GraphToGPULocalOptGroup(LocalOptGroup):
                 continue
             if self.profile:
                 self.node_created[opt] += len(
-                    list(graph.ops(fgraph.variables, new_repl))
+                    list(graph.applys_between(fgraph.variables, new_repl))
                 )
                 self.applied_true[opt] += 1
 
