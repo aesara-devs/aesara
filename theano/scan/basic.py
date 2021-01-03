@@ -803,7 +803,7 @@ def scan(
             and not isinstance(x, SharedVariable)
             and not isinstance(x, gof.Constant)
         ),
-        gof.graph.inputs(fake_outputs),
+        gof.graph.graph_inputs(fake_outputs),
     )
     extra_inputs = [x for x in all_inputs if x not in args + fake_nonseqs]
     non_seqs += extra_inputs

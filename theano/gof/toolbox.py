@@ -10,7 +10,7 @@ import numpy as np
 
 import theano
 from theano.configdefaults import config
-from theano.gof.graph import equal_computations, inputs, io_toposort, vars_between
+from theano.gof.graph import equal_computations, graph_inputs, io_toposort, vars_between
 
 
 class AlreadyThere(Exception):
@@ -807,10 +807,10 @@ def is_same_graph_with_merge(var1, var2, givens=None):
     vars = copied[0:2]
     givens = copied[2]
     # Create FunctionGraph.
-    graph_inputs = list(inputs(vars))
+    inputs = list(graph_inputs(vars))
     # The clone isn't needed as we did a deepcopy and we cloning will
     # break the mapping in givens.
-    fgraph = theano.gof.fg.FunctionGraph(graph_inputs, vars, clone=False)
+    fgraph = theano.gof.fg.FunctionGraph(inputs, vars, clone=False)
     # Perform Variable substitution.
     for to_replace, replace_by in givens.items():
         fgraph.replace(to_replace, replace_by)
@@ -893,7 +893,7 @@ def is_same_graph(var1, var2, givens=None):
         in_xs = []
         in_ys = []
         # Compute the sets of all variables found in each computational graph.
-        inputs_var = list(map(inputs, ([var1], [var2])))
+        inputs_var = list(map(graph_inputs, ([var1], [var2])))
         all_vars = [
             set(vars_between(v_i, v_o))
             for v_i, v_o in ((inputs_var[0], [var1]), (inputs_var[1], [var2]))

@@ -8,8 +8,7 @@ from pytest import fixture, importorskip, raises
 import theano.tensor as tt
 from theano import change_flags, config
 from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Variable
-from theano.gof.graph import inputs as tt_inputs
+from theano.gof.graph import Variable, graph_inputs
 from theano.gof.op import get_test_value
 from theano.tensor.random.basic import (
     bernoulli,
@@ -145,7 +144,7 @@ def test_normal_ShapeFeature():
     d_rv.tag.test_value
 
     fg = FunctionGraph(
-        [i for i in tt_inputs([d_rv]) if not isinstance(i, tt.Constant)],
+        [i for i in graph_inputs([d_rv]) if not isinstance(i, tt.Constant)],
         [d_rv],
         clone=False,
         features=[tt.opt.ShapeFeature()],
@@ -296,7 +295,7 @@ def test_mvnormal_ShapeFeature():
     d_rv = multivariate_normal(tt.ones((M_tt,)), tt.eye(M_tt), size=2)
 
     fg = FunctionGraph(
-        [i for i in tt_inputs([d_rv]) if not isinstance(i, tt.Constant)],
+        [i for i in graph_inputs([d_rv]) if not isinstance(i, tt.Constant)],
         [d_rv],
         clone=False,
         features=[tt.opt.ShapeFeature()],
@@ -305,7 +304,7 @@ def test_mvnormal_ShapeFeature():
     s1, s2 = fg.shape_feature.shape_of[d_rv]
 
     assert get_test_value(s1) == 2
-    assert M_tt in tt_inputs([s2])
+    assert M_tt in graph_inputs([s2])
 
     # Test broadcasted shapes
     mean = tt.tensor(config.floatX, [True, False])
@@ -319,7 +318,7 @@ def test_mvnormal_ShapeFeature():
     d_rv = multivariate_normal(mean, cov, size=[2, 3])
 
     fg = FunctionGraph(
-        [i for i in tt_inputs([d_rv]) if not isinstance(i, tt.Constant)],
+        [i for i in graph_inputs([d_rv]) if not isinstance(i, tt.Constant)],
         [d_rv],
         clone=False,
         features=[tt.opt.ShapeFeature()],
@@ -392,7 +391,7 @@ def test_dirichlet_ShapeFeature():
     d_rv = dirichlet(tt.ones((M_tt, N_tt)), name="Gamma")
 
     fg = FunctionGraph(
-        [i for i in tt_inputs([d_rv]) if not isinstance(i, tt.Constant)],
+        [i for i in graph_inputs([d_rv]) if not isinstance(i, tt.Constant)],
         [d_rv],
         clone=False,
         features=[tt.opt.ShapeFeature()],
@@ -400,8 +399,8 @@ def test_dirichlet_ShapeFeature():
 
     s1, s2 = fg.shape_feature.shape_of[d_rv]
 
-    assert M_tt in tt_inputs([s1])
-    assert N_tt in tt_inputs([s2])
+    assert M_tt in graph_inputs([s1])
+    assert N_tt in graph_inputs([s2])
 
 
 def test_poisson_samples():

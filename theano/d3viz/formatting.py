@@ -11,7 +11,7 @@ import theano
 from theano.compile import Function, builders
 from theano.gof.fg import FunctionGraph
 from theano.gof.graph import Apply, Constant, Variable
-from theano.gof.graph import inputs as graph_inputs
+from theano.gof.graph import graph_inputs as graph_inputs
 from theano.printing import pydot_imported, pydot_imported_msg
 
 

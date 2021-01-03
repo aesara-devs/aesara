@@ -339,7 +339,9 @@ class OpFromGraph(Op):
         # To correctly support shared variables the inner fct should
         # not see them. Otherwise there is a problem with the gradient.
         self.shared_inputs = [
-            var for var in gof.graph.inputs(outputs) if isinstance(var, SharedVariable)
+            var
+            for var in gof.graph.graph_inputs(outputs)
+            if isinstance(var, SharedVariable)
         ]
         shared_vars = [var.type() for var in self.shared_inputs]
 

@@ -1966,7 +1966,7 @@ class TestScan:
 
         f1 = z * (x + y) ** 2 + 5
         f2 = theano.clone(f1, replace=None, strict=True, share_inputs=True)
-        f2_inp = theano.gof.graph.inputs([f2])
+        f2_inp = theano.gof.graph.graph_inputs([f2])
 
         assert z in f2_inp
         assert x in f2_inp
@@ -1982,7 +1982,7 @@ class TestScan:
 
         f1 = z * (x + y) ** 2 + 5
         f2 = theano.clone(f1, replace=None, strict=True, share_inputs=False)
-        f2_inp = theano.gof.graph.inputs([f2])
+        f2_inp = theano.gof.graph.graph_inputs([f2])
 
         assert z not in f2_inp
         assert x not in f2_inp
@@ -2001,7 +2001,7 @@ class TestScan:
         f2 = theano.clone(
             f1, replace=OrderedDict([(y, y2)]), strict=True, share_inputs=True
         )
-        f2_inp = theano.gof.graph.inputs([f2])
+        f2_inp = theano.gof.graph.graph_inputs([f2])
         assert z in f2_inp
         assert x in f2_inp
         assert y2 in f2_inp
@@ -2019,7 +2019,7 @@ class TestScan:
         f2 = theano.clone(
             f1, replace=OrderedDict([(y, y2)]), strict=False, share_inputs=True
         )
-        f2_inp = theano.gof.graph.inputs([f2])
+        f2_inp = theano.gof.graph.graph_inputs([f2])
         assert z in f2_inp
         assert x in f2_inp
         assert y2 in f2_inp
@@ -2035,7 +2035,7 @@ class TestScan:
 
         f1 = z * (x + y) ** 2 + 5
         f2 = theano.clone(f1, replace=[(y, y2)], strict=True, share_inputs=False)
-        f2_inp = theano.gof.graph.inputs([f2])
+        f2_inp = theano.gof.graph.graph_inputs([f2])
         assert z not in f2_inp
         assert x not in f2_inp
         assert y2 not in f2_inp
@@ -2051,7 +2051,7 @@ class TestScan:
 
         f1 = z * (x + y) ** 2 + 5
         f2 = theano.clone(f1, replace=[(y, y2)], strict=False, share_inputs=False)
-        f2_inp = theano.gof.graph.inputs([f2])
+        f2_inp = theano.gof.graph.graph_inputs([f2])
         assert z not in f2_inp
         assert x not in f2_inp
         assert y2 not in f2_inp

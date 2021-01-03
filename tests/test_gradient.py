@@ -22,7 +22,7 @@ def grad_sources_inputs(sources, inputs):
     the new interface so the tests don't need to be rewritten.
     """
     if inputs is None:
-        inputs = list(theano.gof.graph.inputs([source[0] for source in sources]))
+        inputs = list(theano.gof.graph.graph_inputs([source[0] for source in sources]))
     return dict(
         zip(
             inputs,

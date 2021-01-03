@@ -150,7 +150,7 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
     # Same for the outer graph, initialized w/ number of steps
     nw_outer = [node.inputs[0]]
 
-    all_ins = list(gof.graph.inputs(op_outs))
+    all_ins = list(gof.graph.graph_inputs(op_outs))
     for idx in range(op.n_seqs):
         node_inp = node.inputs[idx + 1]
         if (

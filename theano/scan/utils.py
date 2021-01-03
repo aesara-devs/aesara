@@ -268,7 +268,7 @@ def map_variables(replacer, graphs, additional_inputs=None):
             return new_graph
 
     graphs = list(graphs)
-    inputs_ = list(set(list(gof.graph.inputs(graphs)) + list(additional_inputs)))
+    inputs_ = list(set(list(gof.graph.graph_inputs(graphs)) + list(additional_inputs)))
 
     # perform any desired replacement of input variables.  these
     # aren't replaced by the local optimizer approach because they are
@@ -280,7 +280,7 @@ def map_variables(replacer, graphs, additional_inputs=None):
         if new_input is not input_
     ]
     graphs = clone(graphs, share_inputs=True, replace=replacements)
-    inputs_ = list(set(list(gof.graph.inputs(graphs)) + list(additional_inputs)))
+    inputs_ = list(set(list(gof.graph.graph_inputs(graphs)) + list(additional_inputs)))
 
     fg = gof.fg.FunctionGraph(inputs_, graphs, clone=False)
 
@@ -330,7 +330,7 @@ def map_variables(replacer, graphs, additional_inputs=None):
             replacements = [wrapped_replacer(o) for o in node.outputs]
 
             # Add inputs to replacement graphs as inputs to this `fgraph`
-            for i in gof.graph.inputs(replacements):
+            for i in gof.graph.graph_inputs(replacements):
                 fgraph.add_input(i)
 
             return replacements
@@ -370,7 +370,7 @@ def _map_variables_inner(
 
         other_inputs = []
         constants = []
-        for input_ in gof.graph.inputs([new_graph]):
+        for input_ in gof.graph.graph_inputs([new_graph]):
             if isinstance(input_, gof.Variable):
                 if isinstance(input_, gof.Constant):
                     constants.append(input_)
@@ -714,7 +714,7 @@ def scan_can_remove_outs(op, out_idxs):
 
     """
     non_removable = [o for i, o in enumerate(op.outputs) if i not in out_idxs]
-    required_inputs = list(gof.graph.inputs(non_removable))
+    required_inputs = list(gof.graph.graph_inputs(non_removable))
 
     out_ins = []
     offset = op.n_seqs
@@ -734,7 +734,7 @@ def scan_can_remove_outs(op, out_idxs):
             if out_idxs_mask[pos] and any([x in required_inputs for x in out_ins[idx]]):
                 # This output is required ..
                 out_idxs_mask[pos] = 0
-                required_inputs += list(gof.graph.inputs([op.outputs[idx]]))
+                required_inputs += list(gof.graph.graph_inputs([op.outputs[idx]]))
                 added = True
 
     required_outs = [x for i, x in enumerate(out_idxs) if out_idxs_mask[i] == 0]
@@ -900,7 +900,7 @@ def reconstruct_graph(inputs, outputs, tag=None):
     givens = OrderedDict()
     for nw_x, x in zip(nw_inputs, inputs):
         givens[x] = nw_x
-    allinputs = list(theano.gof.graph.inputs(outputs))
+    allinputs = list(theano.gof.graph.graph_inputs(outputs))
     for inp in allinputs:
         if isinstance(inp, theano.Constant):
             givens[inp] = inp.clone()

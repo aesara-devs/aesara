@@ -2416,7 +2416,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
         outputs = [self.wrap_out(o) for o in outputs]
 
         _inputs = list(
-            gof.graph.inputs(
+            gof.graph.graph_inputs(
                 [o.variable for o in outputs]
                 + [i.update for i in inputs if getattr(i, "update", False)]
             )
