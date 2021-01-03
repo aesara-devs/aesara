@@ -19,8 +19,8 @@ from theano.gof.graph import (
     list_of_nodes,
     ops,
     orphans,
-    stack_search,
     variables,
+    walk,
 )
 from theano.gof.op import Op
 from theano.gof.type import Type
@@ -331,7 +331,7 @@ def test_equal_computations():
     assert equal_computations(max_argmax1, max_argmax2)
 
 
-def test_stack_search():
+def test_walk():
 
     r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
     o1 = MyOp(r1, r2)
@@ -343,15 +343,15 @@ def test_stack_search():
         if r.owner:
             return r.owner.inputs
 
-    res = stack_search([o2], expand, bfs=True, return_children=False)
+    res = walk([o2], expand, bfs=True, return_children=False)
     res_list = list(res)
     assert res_list == [o2, r3, o1, r1, r2]
 
-    res = stack_search([o2], expand, bfs=False, return_children=False)
+    res = walk([o2], expand, bfs=False, return_children=False)
     res_list = list(res)
     assert res_list == [o2, o1, r2, r1, r3]
 
-    res = stack_search([o2], expand, bfs=True, return_children=True)
+    res = walk([o2], expand, bfs=True, return_children=True)
     res_list = list(res)
     assert res_list == [
         (o2, [r3, o1]),

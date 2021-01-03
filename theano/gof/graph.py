@@ -661,7 +661,7 @@ class Constant(Variable):
     # index is not defined, because the `owner` attribute must necessarily be None
 
 
-def stack_search(
+def walk(
     nodes: Iterable[T],
     expand: Callable[[T], Optional[Sequence[T]]],
     bfs: bool = True,
@@ -754,7 +754,7 @@ def ancestors(
         if r.owner and (not blockers or r not in blockers):
             return reversed(r.owner.inputs)
 
-    yield from stack_search(graphs, expand, False)
+    yield from walk(graphs, expand, False)
 
 
 def inputs(
@@ -807,7 +807,7 @@ def variables(
         if r.owner and r not in ins:
             return reversed(r.owner.inputs + r.owner.outputs)
 
-    yield from stack_search(outs, expand)
+    yield from walk(outs, expand)
 
 
 def orphans(
@@ -1027,7 +1027,7 @@ def general_toposort(
         raise ValueError("deps_cache cannot be None")
 
     search_res: List[T, Optional[List[T]]] = list(
-        stack_search(outputs, compute_deps_cache, bfs=False, return_children=True)
+        walk(outputs, compute_deps_cache, bfs=False, return_children=True)
     )
 
     _clients: Dict[T, List[T]] = {}
@@ -1364,7 +1364,7 @@ def list_of_nodes(
 
     """
     return list(
-        stack_search(
+        walk(
             [o.owner for o in outputs],
             lambda o: [
                 inp.owner
