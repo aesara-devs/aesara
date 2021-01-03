@@ -827,7 +827,7 @@ def local_abstract_batch_norm_train(fgraph, node):
         for (r, r_orig) in zip(results, node.outputs)
     ]
 
-    for var in theano.gof.graph.variables(node.inputs, results):
+    for var in theano.gof.graph.vars_between(node.inputs, results):
         if var not in node.inputs:
             copy_stack_trace(node.outputs[0], var)
     return results
@@ -866,7 +866,7 @@ def local_abstract_batch_norm_train_grad(fgraph, node):
         for (r, r_orig) in zip(results, node.outputs)
     ]
 
-    for var in theano.gof.graph.variables(node.inputs, results):
+    for var in theano.gof.graph.vars_between(node.inputs, results):
         if var not in node.inputs:
             copy_stack_trace(node.outputs[0], var)
     return results
@@ -898,7 +898,7 @@ def local_abstract_batch_norm_inference(fgraph, node):
     ) + bias
     result = tt.patternbroadcast(result, node.outputs[0].broadcastable)
 
-    for var in theano.gof.graph.variables(node.inputs, [result]):
+    for var in theano.gof.graph.vars_between(node.inputs, [result]):
         if var not in node.inputs:
             copy_stack_trace(node.outputs[0], var)
     return [result]

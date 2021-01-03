@@ -1444,7 +1444,7 @@ class FunctionMaker:
                     ):
                         print("loop through outputs node for both graphs")
                         graph_old.variables = set(
-                            gof.graph.variables(graph_old.inputs, graph_old.outputs)
+                            gof.graph.vars_between(graph_old.inputs, graph_old.outputs)
                         )
 
                         # using clone allowed to avoid a lot of errors
@@ -1489,7 +1489,7 @@ class FunctionMaker:
                 # this is a brand new graph, optimize it, save it to graph_db
                 print("graph not found in graph_db, optimizing the graph")
                 self.fgraph.variables = set(
-                    gof.graph.variables(self.fgraph.inputs, self.fgraph.outputs)
+                    gof.graph.vars_between(self.fgraph.inputs, self.fgraph.outputs)
                 )
                 # check_integrity parameters was added to ignore
                 # "excess cached variables" errors. Works that way
