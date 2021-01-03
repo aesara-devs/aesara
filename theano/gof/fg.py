@@ -6,11 +6,10 @@ from io import StringIO
 import theano
 from theano.configdefaults import config
 from theano.gof import toolbox, utils
-from theano.gof.graph import Apply, Constant, Variable
+from theano.gof.graph import Apply, Constant, Variable, applys_between
 from theano.gof.graph import as_string as graph_as_string
 from theano.gof.graph import clone as clone_graph
 from theano.gof.graph import clone_get_equiv, io_toposort
-from theano.gof.graph import ops as ops_between
 from theano.gof.graph import variables as variables_between
 from theano.gof.utils import TestValueError, get_variable_trace_string
 from theano.misc.ordered_set import OrderedSet
@@ -710,7 +709,7 @@ class FunctionGraph(utils.MetaObject):
         Call this for a diagnosis if things go awry.
 
         """
-        nodes = set(ops_between(self.inputs, self.outputs))
+        nodes = set(applys_between(self.inputs, self.outputs))
         if self.apply_nodes != nodes:
             missing = nodes.difference(self.apply_nodes)
             excess = self.apply_nodes.difference(nodes)

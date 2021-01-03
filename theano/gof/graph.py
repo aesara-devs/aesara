@@ -838,7 +838,7 @@ def orphans(
     yield from (r for r in variables(ins, outs) if r.owner is None and r not in ins)
 
 
-def ops(
+def applys_between(
     ins: Collection[Variable], outs: Iterable[Variable]
 ) -> Generator[Apply, None, None]:
     """Extract the `Apply`s contained within the sub-graph between given input and output variables.
@@ -1291,7 +1291,7 @@ def as_string(
             multi.add(op)
         else:
             seen.add(op)
-    for op in ops(i, outputs):
+    for op in applys_between(i, outputs):
         for input in op.inputs:
             op2 = input.owner
             if input in i or input in orph or op2 is None:
