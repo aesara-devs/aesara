@@ -62,7 +62,7 @@ from theano.compile.profiling import ScanProfileStats, register_profiler_printer
 from theano.configdefaults import config
 from theano.gof.fg import MissingInputError
 from theano.gof.graph import Apply, Variable, equal_computations
-from theano.gof.graph import inputs as graph_inputs
+from theano.gof.graph import graph_inputs as graph_inputs
 from theano.gof.graph import io_connection_pattern
 from theano.gof.op import Op, ops_with_inner_function
 from theano.gof.toolbox import NoOutputFromInplace

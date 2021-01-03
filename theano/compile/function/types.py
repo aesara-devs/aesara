@@ -1206,7 +1206,7 @@ def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
     }
 
     # We can't use fgraph.inputs as this don't include Constant Value.
-    all_graph_inputs = list(gof.graph.inputs(fgraph.outputs))
+    all_graph_inputs = list(gof.graph.graph_inputs(fgraph.outputs))
     has_destroyers_attr = hasattr(fgraph, "has_destroyers")
 
     for i in range(len(fgraph.outputs)):
@@ -1454,10 +1454,18 @@ class FunctionMaker:
                         t2 = f2.outputs[i]
 
                         givens = dict(
-                            zip(gof.graph.inputs([t1]), gof.graph.inputs([t2]))
+                            zip(
+                                gof.graph.graph_inputs([t1]),
+                                gof.graph.graph_inputs([t2]),
+                            )
                         )
 
-                        temp = dict(zip(gof.graph.inputs([t1]), gof.graph.inputs([t2])))
+                        temp = dict(
+                            zip(
+                                gof.graph.graph_inputs([t1]),
+                                gof.graph.graph_inputs([t2]),
+                            )
+                        )
 
                         # hack to remove inconstent entry in givens
                         # seems to work that but source of inconsistency
@@ -1554,7 +1562,7 @@ class FunctionMaker:
         inputs = [self.wrap_in(i) for i in inputs]
         outputs = [self.wrap_out(o) for o in outputs]
         _inputs = list(
-            gof.graph.inputs(
+            gof.graph.graph_inputs(
                 [o.variable for o in outputs]
                 + [i.update for i in inputs if getattr(i, "update", False)]
             )

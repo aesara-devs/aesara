@@ -757,7 +757,7 @@ def ancestors(
     yield from walk(graphs, expand, False)
 
 
-def inputs(
+def graph_inputs(
     graphs: Iterable[Variable], blockers: Collection[Variable] = None
 ) -> Generator[Variable, None, None]:
     """Return the inputs required to compute the given Variables.

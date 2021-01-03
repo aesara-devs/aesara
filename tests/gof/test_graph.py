@@ -14,7 +14,7 @@ from theano.gof.graph import (
     clone,
     equal_computations,
     general_toposort,
-    inputs,
+    graph_inputs,
     io_toposort,
     is_in_ancestors,
     list_of_nodes,
@@ -132,8 +132,10 @@ class TestClone(X):
         _, new = clone([r1, r2, r5], node.outputs, False)
         new_node = new[0].owner
         new_node.inputs = [MyVariable(7), MyVariable(8)]
-        assert self.str(inputs(new_node.outputs), new_node.outputs) == ["MyOp(R7, R8)"]
-        assert self.str(inputs(node.outputs), node.outputs) == [
+        assert self.str(graph_inputs(new_node.outputs), new_node.outputs) == [
+            "MyOp(R7, R8)"
+        ]
+        assert self.str(graph_inputs(node.outputs), node.outputs) == [
             "MyOp(MyOp(R1, R2), R5)"
         ]
 
@@ -384,7 +386,7 @@ def test_ancestors():
     assert res_list == [o2, r3, o1]
 
 
-def test_inputs():
+def test_graph_inputs():
 
     r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
     o1 = MyOp(r1, r2)
@@ -392,7 +394,7 @@ def test_inputs():
     o2 = MyOp(r3, o1)
     o2.name = "o2"
 
-    res = inputs([o2], blockers=None)
+    res = graph_inputs([o2], blockers=None)
     res_list = list(res)
     assert res_list == [r3, r1, r2]
 
