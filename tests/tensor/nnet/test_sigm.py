@@ -110,6 +110,7 @@ class TestSoftplus:
 
     def test_elemwise(self):
         utt.verify_grad(softplus, [np.random.rand(3, 4)])
+        utt.verify_grad(softplus, [np.linspace(-40, 40, 20)])
 
 
 class TestSigmoidOpts:
