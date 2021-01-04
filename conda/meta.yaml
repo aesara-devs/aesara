@@ -21,6 +21,7 @@ requirements:
     - scipy >=0.14.0
     - {{ pin_compatible('pygpu', '0.7', max_pin='0.8') }}   # [not osx]
     - jax  # [py>=37 and not win]
+    - filelock
 
 test:
   imports:
