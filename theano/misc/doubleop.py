@@ -1,5 +1,6 @@
 # This is the example in the Theano/doc/tutorial/extending_theano.txt
 import theano
+from theano.gof.graph import Apply
 from theano.gof.op import Op
 
 
@@ -42,7 +43,7 @@ class DoubleOp(Op):
 
     def make_node(self, x):
         x = theano.tensor.as_tensor_variable(x)
-        return theano.Apply(self, [x], [x.type()])
+        return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, output_storage):
         x = inputs[0]

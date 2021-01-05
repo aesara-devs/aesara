@@ -399,7 +399,7 @@ class TestSigmoidOpts:
         # Before the optimization, inf and NaN will be produced in the graph,
         # and DebugMode will complain. Everything is fine afterwards.
         mode = self.get_mode()
-        if not isinstance(mode, theano.compile.DebugMode):
+        if not isinstance(mode, theano.compile.debugmode.DebugMode):
             f = theano.function([x, lr], ux, mode=mode)
             ux_v = f([[50]], 0.1)
             assert not np.isnan(ux_v)

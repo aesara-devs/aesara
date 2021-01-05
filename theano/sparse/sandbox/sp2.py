@@ -2,7 +2,8 @@ import numpy as np
 import scipy.sparse
 
 import theano
-from theano import gof, tensor
+from theano import tensor
+from theano.gof.graph import Apply
 from theano.gof.op import Op
 from theano.sparse.basic import (
     Remove0,
@@ -49,7 +50,7 @@ class Poisson(Op):
 
     def make_node(self, x):
         x = as_sparse_variable(x)
-        return gof.Apply(self, [x], [x.type()])
+        return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, outputs):
         (x,) = inputs
@@ -108,7 +109,7 @@ class Binomial(Op):
         assert p.dtype in float_dtypes
         assert shape.dtype in discrete_dtypes
 
-        return gof.Apply(
+        return Apply(
             self, [n, p, shape], [SparseType(dtype=self.dtype, format=self.format)()]
         )
 
@@ -174,7 +175,7 @@ class Multinomial(Op):
         p = as_sparse_variable(p)
         assert p.format in ["csr", "csc"]
 
-        return gof.Apply(self, [n, p], [p.type()])
+        return Apply(self, [n, p], [p.type()])
 
     def perform(self, node, inputs, outputs):
         (n, p) = inputs

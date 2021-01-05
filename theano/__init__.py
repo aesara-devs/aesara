@@ -94,21 +94,6 @@ from theano.compile import (
 )
 from theano.compile.function import function, function_dump
 from theano.compile.function.types import FunctionMaker
-from theano.gof import (
-    Apply,
-    Constant,
-    CType,
-    FunctionGraph,
-    Generic,
-    InconsistencyError,
-    Op,
-    OpenMPOp,
-    Variable,
-    generic,
-    opt,
-    toolbox,
-    utils,
-)
 from theano.gradient import Lop, Rop, grad, subgraph_grad
 from theano.printing import pp, pprint
 from theano.updates import OrderedUpdates

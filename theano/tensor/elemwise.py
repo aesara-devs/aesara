@@ -5,10 +5,10 @@ import numpy as np
 import theano
 from theano import scalar
 from theano.configdefaults import config
-from theano.gof import ParamsType
 from theano.gof.graph import Apply
 from theano.gof.null_type import NullType
 from theano.gof.op import COp, ExternalCOp, OpenMPOp
+from theano.gof.params_type import ParamsType
 from theano.gradient import DisconnectedType
 from theano.misc.frozendict import frozendict
 from theano.misc.safe_asarray import _asarray

@@ -68,10 +68,11 @@ from tests.tensor.utils import (
     upcast_float16_ufunc,
     upcast_int8_nfunc,
 )
-from theano import compile, config, function, gof, shared
+from theano import compile, config, function, shared
 from theano.compile import DeepCopyOp
 from theano.compile.mode import get_default_mode
-from theano.gof.graph import Variable
+from theano.gof.fg import FunctionGraph
+from theano.gof.graph import Apply, Variable
 from theano.gof.op import Op
 from theano.link.c.basic import DualLinker
 from theano.misc.safe_asarray import _asarray
@@ -981,7 +982,7 @@ class ApplyDefaultTestOp(Op):
 
     def make_node(self, x):
         x = tt.as_tensor_variable(x)
-        return theano.Apply(self, [x], [x.type()])
+        return Apply(self, [x], [x.type()])
 
 
 def test_constant():
@@ -3854,7 +3855,7 @@ class TestGrad:
         def make_node(self):
             inputs = [scalar("a"), scalar("c")]
             outputs = [scalar("b"), scalar("d")]
-            return gof.Apply(self, inputs, outputs)
+            return Apply(self, inputs, outputs)
 
         def grad(self, inp, grads):
             x0, x1 = inp
@@ -5735,7 +5736,7 @@ def test_divmod():
     # Confirm that divmod is equivalent to the python version.
     x, y = fscalars("xy")
     d, r = divmod(x, y)
-    fn = DualLinker().accept(gof.FunctionGraph([x, y], [d, r])).make_function()
+    fn = DualLinker().accept(FunctionGraph([x, y], [d, r])).make_function()
     for a, b in (
         (0, 1),
         (1, 1),

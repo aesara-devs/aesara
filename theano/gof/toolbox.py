@@ -634,7 +634,9 @@ class ReplaceValidate(History, Validator):
     def validate(self, fgraph):
         if self.fail_validate:
             self.fail_validate = False
-            raise theano.gof.InconsistencyError("Trying to reintroduce a removed node")
+            raise theano.gof.fg.InconsistencyError(
+                "Trying to reintroduce a removed node"
+            )
 
 
 class NodeFinder(Bookkeeper):
@@ -779,15 +781,11 @@ class NoOutputFromInplace(Feature):
             op = node.op
             out_idx = node.outputs.index(out)
             if hasattr(op, "destroy_map") and out_idx in op.destroy_map:
-                raise theano.gof.InconsistencyError(
-                    "A function graph Feature has requested (probably for ",
-                    "efficiency reasons for scan) that outputs of the graph",
-                    "be prevented from being the result of inplace ",
-                    "operations. This has prevented output ",
-                    out,
-                    " from ",
-                    "being computed by modifying another variable ",
-                    "inplace.",
+                raise theano.gof.fg.InconsistencyError(
+                    "A function graph Feature has requested that outputs of the graph "
+                    "be prevented from being the result of in-place "
+                    f"operations. This has prevented the output {out} from "
+                    "being computed by modifying another variable in-place."
                 )
 
 

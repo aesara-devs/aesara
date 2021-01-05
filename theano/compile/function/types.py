@@ -16,14 +16,23 @@ import numpy as np
 
 import theano
 import theano.compile.profiling
-from theano import gof
 from theano.compile.compilelock import lock_ctx
 from theano.compile.io import In, SymbolicInput, SymbolicOutput
 from theano.compile.ops import deep_copy_op, view_op
 from theano.configdefaults import config
-from theano.gof import graph
+from theano.gof.destroyhandler import DestroyHandler
+from theano.gof.fg import FunctionGraph, InconsistencyError
+from theano.gof.graph import (
+    Constant,
+    Variable,
+    ancestors,
+    clone_get_equiv,
+    graph_inputs,
+    vars_between,
+)
 from theano.gof.op import ops_with_inner_function
-from theano.gof.toolbox import is_same_graph
+from theano.gof.toolbox import PreserveVariableAttributes, is_same_graph
+from theano.gof.utils import get_variable_trace_string
 from theano.link.basic import Container
 from theano.link.utils import raise_with_op
 
@@ -135,17 +144,13 @@ class Supervisor:
     def validate(self, fgraph):
         if config.cycle_detection == "fast" and hasattr(fgraph, "has_destroyers"):
             if fgraph.has_destroyers(self.protected):
-                raise gof.InconsistencyError(
-                    "Trying to destroy a protected" "Variable."
-                )
+                raise InconsistencyError("Trying to destroy a protected" "Variable.")
             return True
         if not hasattr(fgraph, "destroyers"):
             return True
         for r in self.protected + list(fgraph.outputs):
             if fgraph.destroyers(r):
-                raise gof.InconsistencyError(
-                    "Trying to destroy a protected" "Variable.", r
-                )
+                raise InconsistencyError("Trying to destroy a protected" "Variable.", r)
 
 
 def std_fgraph(input_specs, output_specs, accept_inplace=False):
@@ -180,9 +185,7 @@ def std_fgraph(input_specs, output_specs, accept_inplace=False):
 
     orig_outputs = [spec.variable for spec in output_specs] + updates
 
-    fgraph = gof.fg.FunctionGraph(
-        orig_inputs, orig_outputs, update_mapping=update_mapping
-    )
+    fgraph = FunctionGraph(orig_inputs, orig_outputs, update_mapping=update_mapping)
 
     for node in fgraph.apply_nodes:
         if getattr(node.op, "destroy_map", None):
@@ -191,7 +194,7 @@ def std_fgraph(input_specs, output_specs, accept_inplace=False):
                     "Graph must not contain inplace operations", node, node.op
                 )
             else:
-                fgraph.attach_feature(gof.DestroyHandler())
+                fgraph.attach_feature(DestroyHandler())
                 break
 
     # We need to protect all immutable inputs from inplace operations.
@@ -212,7 +215,7 @@ def std_fgraph(input_specs, output_specs, accept_inplace=False):
     return fgraph, list(map(SymbolicOutput, updates))
 
 
-std_fgraph.features = [gof.toolbox.PreserveVariableAttributes]
+std_fgraph.features = [PreserveVariableAttributes]
 
 
 class AliasedMemoryError(Exception):
@@ -647,8 +650,8 @@ class Function:
 
         # Init new fgraph using copied variables and get memo
         # memo: a dict that map old variables to new variables
-        memo = graph.clone_get_equiv(maker.fgraph.inputs, out_vars)
-        fg_cpy = gof.fg.FunctionGraph(
+        memo = clone_get_equiv(maker.fgraph.inputs, out_vars)
+        fg_cpy = FunctionGraph(
             [memo[i] for i in maker.fgraph.inputs],
             [memo[o] for o in out_vars],
             clone=False,
@@ -865,9 +868,7 @@ class Function:
                             function_name += ' with name "' + self.name + '"'
                         if hasattr(arg, "name") and arg.name:
                             argument_name += ' with name "' + arg.name + '"'
-                        where = theano.gof.utils.get_variable_trace_string(
-                            self.maker.inputs[i].variable
-                        )
+                        where = get_variable_trace_string(self.maker.inputs[i].variable)
                         if len(e.args) == 1:
                             e.args = (
                                 "Bad input "
@@ -1092,7 +1093,7 @@ class Function:
         # 2.has allow_gc, if allow_gc is False, return True
         if not getattr(self.fn, "allow_gc", True):
             for key in self.fn.storage_map:
-                if not isinstance(key, theano.gof.Constant):
+                if not isinstance(key, Constant):
                     self.fn.storage_map[key][0] = None
 
             for node in self.nodes_with_inner_function:
@@ -1206,7 +1207,7 @@ def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
     }
 
     # We can't use fgraph.inputs as this don't include Constant Value.
-    all_graph_inputs = list(gof.graph.graph_inputs(fgraph.outputs))
+    all_graph_inputs = list(graph_inputs(fgraph.outputs))
     has_destroyers_attr = hasattr(fgraph, "has_destroyers")
 
     for i in range(len(fgraph.outputs)):
@@ -1321,7 +1322,7 @@ class FunctionMaker:
     def wrap_in(input):
         if isinstance(input, (SymbolicInput)):
             return input
-        elif isinstance(input, gof.Variable):
+        elif isinstance(input, Variable):
             # r -> SymbolicInput(variable=r)
             return SymbolicInput(input)
         elif isinstance(input, (list, tuple)):
@@ -1354,7 +1355,7 @@ class FunctionMaker:
     def wrap_out(output):
         if isinstance(output, SymbolicOutput):
             return output
-        elif isinstance(output, gof.Variable):
+        elif isinstance(output, Variable):
             return SymbolicOutput(output)
         else:
             raise TypeError(f"Unknown output type: {type(output)} ({output})")
@@ -1444,7 +1445,7 @@ class FunctionMaker:
                     ):
                         print("loop through outputs node for both graphs")
                         graph_old.variables = set(
-                            gof.graph.vars_between(graph_old.inputs, graph_old.outputs)
+                            vars_between(graph_old.inputs, graph_old.outputs)
                         )
 
                         # using clone allowed to avoid a lot of errors
@@ -1455,15 +1456,15 @@ class FunctionMaker:
 
                         givens = dict(
                             zip(
-                                gof.graph.graph_inputs([t1]),
-                                gof.graph.graph_inputs([t2]),
+                                graph_inputs([t1]),
+                                graph_inputs([t2]),
                             )
                         )
 
                         temp = dict(
                             zip(
-                                gof.graph.graph_inputs([t1]),
-                                gof.graph.graph_inputs([t2]),
+                                graph_inputs([t1]),
+                                graph_inputs([t2]),
                             )
                         )
 
@@ -1497,7 +1498,7 @@ class FunctionMaker:
                 # this is a brand new graph, optimize it, save it to graph_db
                 print("graph not found in graph_db, optimizing the graph")
                 self.fgraph.variables = set(
-                    gof.graph.vars_between(self.fgraph.inputs, self.fgraph.outputs)
+                    vars_between(self.fgraph.inputs, self.fgraph.outputs)
                 )
                 # check_integrity parameters was added to ignore
                 # "excess cached variables" errors. Works that way
@@ -1562,7 +1563,7 @@ class FunctionMaker:
         inputs = [self.wrap_in(i) for i in inputs]
         outputs = [self.wrap_out(o) for o in outputs]
         _inputs = list(
-            gof.graph.graph_inputs(
+            graph_inputs(
                 [o.variable for o in outputs]
                 + [i.update for i in inputs if getattr(i, "update", False)]
             )
@@ -1708,7 +1709,7 @@ class FunctionMaker:
         #  - variables that have to be provided (used_inputs)
         #  - shared variables that will be updated
         used_inputs = list(
-            gof.graph.ancestors(
+            ancestors(
                 (
                     [o.variable for o in outputs]
                     + [i.update for i in inputs if getattr(i, "update", False)]
@@ -1783,7 +1784,7 @@ class FunctionMaker:
             # context of shared variables, but for now we avoid
             # dealing directly with them to avoid dependency on the
             # shared variables work-in-progress repository.
-            if isinstance(input_storage_i, gof.Variable):
+            if isinstance(input_storage_i, Variable):
                 input_storage_i = input_storage_i.container
 
             if isinstance(input_storage_i, Container):
@@ -2011,9 +2012,9 @@ def convert_function_input(input):
     """
     if isinstance(input, SymbolicInput):
         return input
-    elif isinstance(input, gof.Constant):
+    elif isinstance(input, Constant):
         raise TypeError("A Constant instance is not a legal function input", input)
-    elif isinstance(input, gof.Variable):
+    elif isinstance(input, Variable):
         return In(input)
     elif isinstance(input, (list, tuple)):
         orig = input
@@ -2031,7 +2032,7 @@ def convert_function_input(input):
                     "documentation or use an In instance)"
                 )
             (variable, update), value = input
-        elif isinstance(input[0], gof.Variable):
+        elif isinstance(input[0], Variable):
             if len(input) == 1:
                 variable, update, value = input[0], None, None
             elif len(input) == 2:
@@ -2053,17 +2054,17 @@ def convert_function_input(input):
         else:
             raise TypeError(f"The input specification is not valid: {input}")
 
-        if not isinstance(variable, gof.Variable):
+        if not isinstance(variable, Variable):
             raise TypeError(
                 f"Unknown input type: {type(variable)}, expected Variable instance",
                 variable,
             )
-        if update is not None and not isinstance(update, gof.Variable):
+        if update is not None and not isinstance(update, Variable):
             raise TypeError(
                 f"Unknown update type: {type(update)}, expected Variable instance",
                 update,
             )
-        if value is not None and isinstance(value, (gof.Variable, SymbolicInput)):
+        if value is not None and isinstance(value, (Variable, SymbolicInput)):
             raise TypeError(
                 f"The value for input {variable} should not be a Variable "
                 f"or SymbolicInput instance (got: {value})"

@@ -718,11 +718,11 @@ class TestScanCheckpoint:
         data = np.ones(free_gmem // 3000, dtype=np.float32)
         # Check that it works with the checkpoints
         size = 1000
-        if isinstance(mode_with_gpu, theano.compile.DebugMode):
+        if isinstance(mode_with_gpu, theano.compile.debugmode.DebugMode):
             size = 100
         f_check(data, size)
         # Check that the basic scan fails in that case
         # Skip that check in DebugMode, as it can fail in different ways
-        if not isinstance(mode_with_gpu, theano.compile.DebugMode):
+        if not isinstance(mode_with_gpu, theano.compile.debugmode.DebugMode):
             with pytest.raises(GpuArrayException):
                 f(data, 1000)

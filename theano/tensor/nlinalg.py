@@ -644,7 +644,7 @@ class lstsq(Op):
         x = theano.tensor.as_tensor_variable(x)
         y = theano.tensor.as_tensor_variable(y)
         rcond = theano.tensor.as_tensor_variable(rcond)
-        return theano.Apply(
+        return Apply(
             self,
             [x, y, rcond],
             [

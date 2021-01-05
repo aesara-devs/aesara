@@ -1,6 +1,6 @@
 import theano
-from theano import Apply
-from theano.gof import ParamsType
+from theano.gof.graph import Apply
+from theano.gof.params_type import ParamsType
 from theano.scalar import bool as bool_t
 from theano.tensor.basic import as_tensor_variable
 from theano.tensor.signal.pool import Pool, PoolingMode_t

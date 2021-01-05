@@ -338,7 +338,7 @@ version that it produces in the code I gave above.
 
 .. testcode::
 
-   from theano.gof.graph import Apply
+   from theano.gof.graph import Apply, Constant
    from theano.gof.op import COp
 
 
@@ -353,9 +353,9 @@ version that it produces in the code I gave above.
 
        def make_node(self, x, y):
            if isinstance(x, (int, float)):
-               x = gof.Constant(double, x)
+               x = Constant(double, x)
            if isinstance(y, (int, float)):
-               y = gof.Constant(double, y)
+               y = Constant(double, y)
            if x.type != double or y.type != double:
                raise TypeError('%s only works on doubles' % self.name)
            return Apply(self, [x, y], [double()])

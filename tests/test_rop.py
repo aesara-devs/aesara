@@ -20,7 +20,8 @@ import pytest
 import theano
 from tests import unittest_tools as utt
 from theano import function, tensor
-from theano.gof import Apply, Op
+from theano.gof.graph import Apply
+from theano.gof.op import Op
 from theano.gradient import grad_undefined
 from theano.tensor.nnet import conv, conv2d
 from theano.tensor.signal.pool import Pool

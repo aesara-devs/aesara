@@ -12,20 +12,15 @@ import warnings
 import numpy as np
 
 import theano
-from theano import gof, printing, scalar
+from theano import printing, scalar
 from theano.configdefaults import config
-from theano.gof.opt import copy_stack_trace
+from theano.gof.opt import PatternSub, copy_stack_trace, local_optimizer
+from theano.gof.utils import MethodNotDefined
 from theano.printing import pprint
 from theano.tensor import basic as tensor
 from theano.tensor import elemwise, opt
 from theano.tensor.basic import NotScalarConstantError
 from theano.tensor.type import values_eq_approx_remove_inf
-
-
-############
-#
-# SCALAR OPS
-#
 
 
 class ScalarSigmoid(scalar.UnaryScalarOp):
@@ -103,7 +98,7 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
         (x,) = inp
         (z,) = out
         if not config.lib__amblibm or node.inputs[0].dtype != node.outputs[0].dtype:
-            raise theano.gof.utils.MethodNotDefined()
+            raise MethodNotDefined()
         dtype = node.inputs[0].dtype
         if dtype == "float32" and self.amd_float32 is not None:
             dtype = "float"
@@ -112,7 +107,7 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
             dtype = "double"
             fct = "amd_vrda_exp"
         else:
-            raise theano.gof.utils.MethodNotDefined()
+            raise MethodNotDefined()
         return (
             """
         npy_intp n = PyArray_SIZE(%(z)s);
@@ -135,7 +130,7 @@ class ScalarSigmoid(scalar.UnaryScalarOp):
         """
             % locals()
         )
-        raise theano.gof.utils.MethodNotDefined()
+        raise MethodNotDefined()
 
     @staticmethod
     def gen_graph():
@@ -271,7 +266,7 @@ pprint.assign(ultra_fast_sigmoid, printing.FunctionPrinter("ultra_fast_sigmoid")
 
 
 # @opt.register_uncanonicalize
-@gof.local_optimizer([sigmoid])
+@local_optimizer([sigmoid])
 def local_ultra_fast_sigmoid(fgraph, node):
     """
     When enabled, change all sigmoid to ultra_fast_sigmoid.
@@ -326,7 +321,7 @@ def hard_sigmoid(x):
 
 
 # @opt.register_uncanonicalize
-@gof.local_optimizer([sigmoid])
+@local_optimizer([sigmoid])
 def local_hard_sigmoid(fgraph, node):
     if isinstance(node.op, tensor.Elemwise) and node.op.scalar_op == scalar_sigmoid:
         out = hard_sigmoid(node.inputs[0])
@@ -453,7 +448,7 @@ def _skip_mul_1(r):
             return not_is_1[0]
 
 
-logsigm_to_softplus = gof.PatternSub(
+logsigm_to_softplus = PatternSub(
     (tensor.log, (sigmoid, "x")),
     (tensor.neg, (softplus, (tensor.neg, "x"))),
     allow_multiple_clients=True,
@@ -478,7 +473,7 @@ def _is_1(expr):
         return False
 
 
-log1msigm_to_softplus = gof.PatternSub(
+log1msigm_to_softplus = PatternSub(
     (tensor.log, (tensor.sub, dict(pattern="y", constraint=_is_1), (sigmoid, "x"))),
     (tensor.neg, (softplus, "x")),
     allow_multiple_clients=True,
@@ -487,14 +482,14 @@ log1msigm_to_softplus = gof.PatternSub(
 )
 
 
-log1pexp_to_softplus = gof.PatternSub(
+log1pexp_to_softplus = PatternSub(
     (tensor.log1p, (tensor.exp, "x")),
     (softplus, "x"),
     values_eq_approx=values_eq_approx_remove_inf,
     allow_multiple_clients=True,
 )
 
-log1p_neg_sigmoid = gof.PatternSub(
+log1p_neg_sigmoid = PatternSub(
     (tensor.log1p, (tensor.neg, (sigmoid, "x"))),
     (tensor.neg, (softplus, "x")),
     values_eq_approx=values_eq_approx_remove_inf,
@@ -659,7 +654,7 @@ def is_neg(var):
 
 
 @opt.register_stabilize
-@gof.local_optimizer([tensor.true_div])
+@local_optimizer([tensor.true_div])
 def local_exp_over_1_plus_exp(fgraph, node):
     """
     exp(x)/(1+exp(x)) -> sigm(x)
@@ -1010,7 +1005,7 @@ def perform_sigm_times_exp(
 
 
 @opt.register_stabilize
-@gof.local_optimizer([tensor.mul])
+@local_optimizer([tensor.mul])
 def local_sigm_times_exp(fgraph, node):
     """
     exp(x) * sigm(-x) -> sigm(x)
@@ -1039,7 +1034,7 @@ def local_sigm_times_exp(fgraph, node):
 
 
 @opt.register_stabilize
-@gof.local_optimizer([tensor.inv])
+@local_optimizer([tensor.inv])
 def local_inv_1_plus_exp(fgraph, node):
     """
     1/(1+exp(x)) -> sigm(-x)
@@ -1072,7 +1067,7 @@ def local_inv_1_plus_exp(fgraph, node):
 # Registration is below, and conditional.
 
 
-@gof.local_optimizer([tensor.sub])
+@local_optimizer([tensor.sub])
 def local_1msigmoid(fgraph, node):
     """
     1-sigm(x) -> sigm(-x)

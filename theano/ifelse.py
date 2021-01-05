@@ -17,16 +17,23 @@ from copy import deepcopy
 import numpy as np
 
 import theano.tensor
-from theano import gof
 from theano.compile import optdb
 from theano.configdefaults import config
-from theano.gof import Apply, Op
+from theano.gof.graph import Apply, Variable, is_in_ancestors
+from theano.gof.op import Op
+from theano.gof.opt import GlobalOptimizer, local_optimizer
 from theano.scan.utils import clone
 from theano.tensor import TensorType, opt
 
 
 __docformat__ = "restructedtext en"
-__authors__ = "Razvan Pascanu " "James Bergstra " "Dumitru Erhan " "David Warde-Farley"
+__authors__ = (
+    "Razvan Pascanu "
+    "James Bergstra "
+    "Dumitru Erhan "
+    "David Warde-Farley"
+    "PyMC Developers"
+)
 __copyright__ = "(c) 2010, Universite de Montreal"
 __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
@@ -169,7 +176,7 @@ class IfElse(Op):
             for x in args:
                 if hasattr(x, "_as_TensorVariable"):
                     nw_args.append(x._as_TensorVariable())
-                elif isinstance(x, theano.Variable):
+                elif isinstance(x, Variable):
                     nw_args.append(x)
                 else:
                     nw_args.append(theano.tensor.as_tensor_variable(x))
@@ -356,9 +363,9 @@ def ifelse(condition, then_branch, else_branch, name=None):
     new_then_branch = []
     new_else_branch = []
     for then_branch_elem, else_branch_elem in zip(then_branch, else_branch):
-        if not isinstance(then_branch_elem, theano.Variable):
+        if not isinstance(then_branch_elem, Variable):
             then_branch_elem = theano.tensor.as_tensor_variable(then_branch_elem)
-        if not isinstance(else_branch_elem, theano.Variable):
+        if not isinstance(else_branch_elem, Variable):
             else_branch_elem = theano.tensor.as_tensor_variable(else_branch_elem)
 
         if then_branch_elem.type != else_branch_elem.type:
@@ -415,7 +422,7 @@ def ifelse(condition, then_branch, else_branch, name=None):
         return tuple(rval)
 
 
-@gof.local_optimizer([IfElse])
+@local_optimizer([IfElse])
 def cond_make_inplace(fgraph, node):
     op = node.op
     if (
@@ -446,8 +453,8 @@ optdb.register(
 # XXX: Optimizations commented pending further debugging (certain optimizations
 # make computation less lazy than it should be currently).
 #
-# ifelse_equilibrium = gof.EquilibriumDB()
-# ifelse_seqopt = gof.SequenceDB()
+# ifelse_equilibrium = gof.optdb.EquilibriumDB()
+# ifelse_seqopt = gof.optdb.SequenceDB()
 # ifelse_equilibrium.register('seq_ifelse', ifelse_seqopt, 'fast_run',
 #                             'ifelse')
 """ Comments:
@@ -492,7 +499,7 @@ acceptable_ops = (
 )
 
 
-@gof.local_optimizer(acceptable_ops)
+@local_optimizer(acceptable_ops)
 def ifelse_lift_single_if_through_acceptable_ops(fgraph, main_node):
     """This optimization lifts up certain ifelse instances.
 
@@ -539,7 +546,7 @@ def ifelse_lift_single_if_through_acceptable_ops(fgraph, main_node):
     return nw_outs
 
 
-@gof.local_optimizer([IfElse])
+@local_optimizer([IfElse])
 def cond_merge_ifs_true(fgraph, node):
     op = node.op
     if not isinstance(op, IfElse):
@@ -566,7 +573,7 @@ def cond_merge_ifs_true(fgraph, node):
     return op(*old_ins, **dict(return_list=True))
 
 
-@gof.local_optimizer([IfElse])
+@local_optimizer([IfElse])
 def cond_merge_ifs_false(fgraph, node):
     op = node.op
     if not isinstance(op, IfElse):
@@ -593,11 +600,13 @@ def cond_merge_ifs_false(fgraph, node):
     return op(*old_ins, **dict(return_list=True))
 
 
-class CondMerge(gof.GlobalOptimizer):
+class CondMerge(GlobalOptimizer):
     """ Graph Optimizer that merges different cond ops """
 
     def add_requirements(self, fgraph):
-        fgraph.add_feature(gof.toolbox.ReplaceValidate())
+        from theano.gof.toolbox import ReplaceValidate
+
+        fgraph.add_feature(ReplaceValidate())
 
     def apply(self, fgraph):
         nodelist = list(fgraph.toposort())
@@ -606,9 +615,9 @@ class CondMerge(gof.GlobalOptimizer):
             return False
         merging_node = cond_nodes[0]
         for proposal in cond_nodes[1:]:
-            if proposal.inputs[0] == merging_node.inputs[
-                0
-            ] and not gof.graph.is_in_ancestors(proposal, merging_node):
+            if proposal.inputs[0] == merging_node.inputs[0] and not is_in_ancestors(
+                proposal, merging_node
+            ):
                 # Create a list of replacements for proposal
                 mn_ts = merging_node.inputs[1:][: merging_node.op.n_outs]
                 mn_fs = merging_node.inputs[1:][merging_node.op.n_outs :]
@@ -645,7 +654,7 @@ class CondMerge(gof.GlobalOptimizer):
                 fgraph.replace_all_validate(pairs, reason="cond_merge")
 
 
-@gof.local_optimizer([IfElse])
+@local_optimizer([IfElse])
 def cond_remove_identical(fgraph, node):
     op = node.op
 
@@ -691,7 +700,7 @@ def cond_remove_identical(fgraph, node):
     return rval
 
 
-@gof.local_optimizer([IfElse])
+@local_optimizer([IfElse])
 def cond_merge_random_op(fgraph, main_node):
     if isinstance(main_node.op, IfElse):
         return False
@@ -708,8 +717,8 @@ def cond_merge_random_op(fgraph, main_node):
     for proposal in cond_nodes[1:]:
         if (
             proposal.inputs[0] == merging_node.inputs[0]
-            and not gof.graph.is_in_ancestors(proposal, merging_node)
-            and not gof.graph.is_in_ancestors(merging_node, proposal)
+            and not is_in_ancestors(proposal, merging_node)
+            and not is_in_ancestors(merging_node, proposal)
         ):
             # Create a list of replacements for proposal
             mn_ts = merging_node.inputs[1:][: merging_node.op.n_outs]
@@ -749,7 +758,7 @@ def cond_merge_random_op(fgraph, main_node):
 # XXX: Optimizations commented pending further debugging (certain optimizations
 # make computation less lazy than it should be currently).
 #
-# pushout_equilibrium = gof.EquilibriumDB()
+# pushout_equilibrium = gof.optdb.EquilibriumDB()
 #
 # XXX: This optimization doesn't seem to exist anymore?
 # pushout_equilibrium.register("cond_lift_single_if",
@@ -764,7 +773,7 @@ def cond_merge_random_op(fgraph, main_node):
 #
 #
 # pushout_equilibrium.register("ifelse_merge",
-#                              gof.MergeOptimizer(skip_const_merge=False),
+#                              gof.opt.MergeOptimizer(skip_const_merge=False),
 #                              'fast_run', 'ifelse')
 #
 # pushout_equilibrium.register("ifelse_remove_identical_inside",
@@ -787,7 +796,7 @@ def cond_merge_random_op(fgraph, main_node):
 #                        1, 'fast_run', 'ifelse')
 #
 # ifelse_seqopt.register('merge_nodes_1',
-#                        gof.MergeOptimizer(skip_const_merge=False),
+#                        gof.opt.MergeOptimizer(skip_const_merge=False),
 #                        2, 'fast_run', 'ifelse')
 #
 #

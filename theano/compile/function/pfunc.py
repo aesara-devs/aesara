@@ -11,7 +11,7 @@ from theano.compile.io import In, Out
 from theano.compile.profiling import ProfileStats
 from theano.compile.sharedvalue import SharedVariable, shared
 from theano.configdefaults import config
-from theano.gof import Constant, Variable
+from theano.gof.graph import Constant, Variable
 
 
 _logger = logging.getLogger("theano.compile.function.pfunc")

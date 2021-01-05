@@ -3,7 +3,7 @@ from io import StringIO
 import numpy as np
 
 import theano.tensor as tt
-from theano import gof
+from theano.gof.graph import Apply
 from theano.gof.op import COp, Op
 from theano.gof.params_type import ParamsType
 from theano.gof.type import CType
@@ -71,7 +71,7 @@ class GpuSubtensor(HideC, Subtensor):
             context_name=ctx_name,
         )
         x = as_gpuarray_variable(x, ctx_name)
-        return gof.Apply(self, [x] + rval.inputs[1:], [otype()])
+        return Apply(self, [x] + rval.inputs[1:], [otype()])
 
     def perform(self, node, inputs, out_):
         (out,) = out_
@@ -252,7 +252,7 @@ class GpuIncSubtensor(IncSubtensor):
         x = as_gpuarray_variable(x, ctx_name)
         y = as_gpuarray_variable(y, ctx_name)
         rval = IncSubtensor.make_node(self, x, y, *inputs)
-        ret = gof.Apply(self, [x, y] + rval.inputs[2:], [x.type()])
+        ret = Apply(self, [x, y] + rval.inputs[2:], [x.type()])
         return ret
 
     def get_params(self, node):
@@ -486,7 +486,7 @@ class GpuAdvancedSubtensor1(HideC, AdvancedSubtensor1):
             raise TypeError("cannot index into a scalar")
 
         bcast = ilist_.broadcastable + x_.broadcastable[1:]
-        return gof.Apply(
+        return Apply(
             self,
             [x_, ilist_],
             [GpuArrayType(dtype=x.dtype, context_name=ctx_name, broadcastable=bcast)()],
@@ -698,7 +698,7 @@ class GpuAdvancedSubtensor(HideC, BaseGpuAdvancedSubtensor, AdvancedSubtensor):
             context_name=ctx_name,
         )
         x = as_gpuarray_variable(x, ctx_name)
-        return gof.Apply(self, [x] + rval.inputs[1:], [otype()])
+        return Apply(self, [x] + rval.inputs[1:], [otype()])
 
 
 class BaseGpuAdvancedIncSubtensor:
@@ -833,7 +833,7 @@ class GpuAdvancedIncSubtensor(HideC, BaseGpuAdvancedIncSubtensor, AdvancedIncSub
         )
         x = as_gpuarray_variable(x, ctx_name)
         y = as_gpuarray_variable(y, ctx_name)
-        return gof.Apply(self, [x, y] + rval.inputs[2:], [otype()])
+        return Apply(self, [x, y] + rval.inputs[2:], [otype()])
 
 
 class GpuAdvancedIncSubtensor1(COp):
@@ -889,7 +889,7 @@ class GpuAdvancedIncSubtensor1(COp):
                 % (opname, x_.type.ndim, y_.type.ndim)
             )
 
-        return gof.Apply(self, [x_, y_, ilist_], [x_.type()])
+        return Apply(self, [x_, y_, ilist_], [x_.type()])
 
     def get_params(self, node):
         return self.params_type.get_params(
@@ -1128,7 +1128,7 @@ class GpuAdvancedIncSubtensor1_dev20(GpuKernelBase, HideC, GpuAdvancedIncSubtens
                 % (opname, x_.type.ndim, y_.type.ndim)
             )
 
-        return gof.Apply(self, [x_, y_, ilist_], [x_.type()])
+        return Apply(self, [x_, y_, ilist_], [x_.type()])
 
     def perform(self, node, inp, out, params):
         return super().perform(node, inp, out)
@@ -1361,7 +1361,7 @@ class GpuExtractDiag(Op):
             + x.broadcastable[axis_large + 1 :]
             + (False,)
         )
-        return gof.Apply(self, [x], [x.type.clone(broadcastable=broadcastable)()])
+        return Apply(self, [x], [x.type.clone(broadcastable=broadcastable)()])
 
     def perform(self, node, inputs, outputs):
         (x,) = inputs
@@ -1460,7 +1460,7 @@ class GpuAllocDiag(AllocDiag):
             raise ValueError(
                 "AllocDiag needs an input with 1 or more " "dimensions", diag.type
             )
-        return gof.Apply(
+        return Apply(
             self,
             [diag],
             [

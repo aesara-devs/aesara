@@ -370,7 +370,7 @@ class TestGrad:
             __props__ = ()
 
             def make_node(self, x):
-                return theano.Apply(
+                return Apply(
                     self, inputs=[x], outputs=[x.type(), theano.tensor.scalar()]
                 )
 
@@ -386,9 +386,7 @@ class TestGrad:
             __props__ = ()
 
             def make_node(self, f, g):
-                return theano.Apply(
-                    self, inputs=[f, g], outputs=[theano.tensor.scalar()]
-                )
+                return Apply(self, inputs=[f, g], outputs=[theano.tensor.scalar()])
 
             def grad(self, inputs, output_grads):
                 return [inputs[0].zeros_like(), NullType()()]

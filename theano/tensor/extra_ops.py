@@ -3,9 +3,10 @@ from collections.abc import Collection
 import numpy as np
 
 import theano
-from theano.gof import EnumList, Generic, ParamsType
-from theano.gof.graph import Apply
+from theano.gof.graph import Apply, equal_computations
 from theano.gof.op import COp, Op
+from theano.gof.params_type import ParamsType
+from theano.gof.type import EnumList, Generic
 from theano.gradient import (
     DisconnectedType,
     _float_zeros_like,
@@ -31,7 +32,7 @@ class CpuContiguous(COp):
 
     def make_node(self, x):
         x_ = theano.tensor.as_tensor_variable(x)
-        return theano.Apply(self, [x_], [x_.type()])
+        return Apply(self, [x_], [x_.type()])
 
     def perform(self, node, inputs, output_storage):
         (x,) = inputs
@@ -109,7 +110,7 @@ class SearchsortedOp(COp):
         v = basic.as_tensor(v)
         out_type = v.type.clone(dtype="int64")
         if sorter is None:
-            return theano.Apply(self, [x, v], [out_type()])
+            return Apply(self, [x, v], [out_type()])
         else:
             sorter = basic.as_tensor(sorter, ndim=1)
             if PYTHON_INT_BITWIDTH == 32 and sorter.dtype == "int64":
@@ -119,7 +120,7 @@ class SearchsortedOp(COp):
                 )
             if sorter.type not in basic.int_vector_types:
                 raise TypeError("sorter must be an integer vector", sorter.type)
-            return theano.Apply(self, [x, v, sorter], [out_type()])
+            return Apply(self, [x, v, sorter], [out_type()])
 
     def infer_shape(self, fgraph, node, shapes):
         return [shapes[1]]
@@ -285,7 +286,7 @@ class CumOp(COp):
         elif self.axis >= x.ndim or self.axis < -x.ndim:
             raise ValueError(f"axis(={self.axis}) out of bounds")
 
-        return theano.Apply(self, [x], [out_type])
+        return Apply(self, [x], [out_type])
 
     def perform(self, node, inputs, output_storage, params):
         x = inputs[0]
@@ -465,7 +466,7 @@ class DiffOp(Op):
 
     def make_node(self, x):
         x = basic.as_tensor_variable(x)
-        return theano.Apply(self, [x], [x.type()])
+        return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, output_storage):
         x = inputs[0]
@@ -689,7 +690,7 @@ class RepeatOp(Op):
 
         out_type = theano.tensor.TensorType(x.dtype, broadcastable)
 
-        return theano.Apply(self, [x, repeats], [out_type()])
+        return Apply(self, [x, repeats], [out_type()])
 
     def perform(self, node, inputs, output_storage):
         x = inputs[0]
@@ -1221,7 +1222,7 @@ class Unique(Op):
             outputs.append(typ())
         if self.return_counts:
             outputs.append(typ())
-        return theano.Apply(self, [x], outputs)
+        return Apply(self, [x], outputs)
 
     def perform(self, node, inputs, output_storage):
         x = inputs[0]
@@ -1509,7 +1510,7 @@ def broadcast_shape_iter(arrays, **kwargs):
                 for dim in non_bcast_shapes
                 # TODO FIXME: This is a largely deficient means of comparing graphs
                 # (and especially shapes)
-                if not theano.gof.graph.equal_computations([i_dim], [dim])
+                if not equal_computations([i_dim], [dim])
             ]
 
             if potentially_unequal_dims:
@@ -1551,7 +1552,7 @@ class BroadcastTo(Op):
 
         out = type(a.type)(dtype=a.type.dtype, broadcastable=bcast)()
 
-        return theano.Apply(self, [a] + shape, [out])
+        return Apply(self, [a] + shape, [out])
 
     def perform(self, node, inputs, output_storage):
         a, *shape = inputs

@@ -122,12 +122,12 @@ simplification described above:
 .. testcode::
 
    import theano
-   from theano import gof
-   from theano.gof import toolbox
+   from theano.gof.opt import GlobalOptimizer
+   from theano.gof.toolbox import ReplaceValidate
 
-   class Simplify(gof.GlobalOptimizer):
+   class Simplify(GlobalOptimizer):
        def add_requirements(self, fgraph):
-           fgraph.attach_feature(toolbox.ReplaceValidate())
+           fgraph.attach_feature(ReplaceValidate())
        def apply(self, fgraph):
            for node in fgraph.toposort():
                if node.op == true_div:
@@ -186,7 +186,7 @@ Test time:
 >>> y = float64('y')
 >>> z = float64('z')
 >>> a = add(z, mul(true_div(mul(y, x), y), true_div(z, x)))
->>> e = gof.FunctionGraph([x, y, z], [a])
+>>> e = gof.fg.FunctionGraph([x, y, z], [a])
 >>> e
 [add(z, mul(true_div(mul(y, x), y), true_div(z, x)))]
 >>> simplify.optimize(e)
@@ -202,7 +202,7 @@ optimization you wrote. For example, consider the following:
 >>> y = float64('y')
 >>> z = float64('z')
 >>> a = true_div(mul(add(y, z), x), add(y, z))
->>> e = gof.FunctionGraph([x, y, z], [a])
+>>> e = gof.fg.FunctionGraph([x, y, z], [a])
 >>> e
 [true_div(mul(add(y, z), x), add(y, z))]
 >>> simplify.optimize(e)
@@ -251,7 +251,7 @@ The local version of the above code would be the following:
 
 .. testcode::
 
-   class LocalSimplify(gof.LocalOptimizer):
+   class LocalSimplify(gof.opt.LocalOptimizer):
        def transform(self, fgraph, node):
            if node.op == true_div:
                x, y = node.inputs
@@ -290,10 +290,10 @@ subset of them) and applies one or several local optimizers on them.
 >>> y = float64('y')
 >>> z = float64('z')
 >>> a = add(z, mul(true_div(mul(y, x), y), true_div(z, x)))
->>> e = gof.FunctionGraph([x, y, z], [a])
+>>> e = gof.fg.FunctionGraph([x, y, z], [a])
 >>> e
 [add(z, mul(true_div(mul(y, x), y), true_div(z, x)))]
->>> simplify = gof.TopoOptimizer(local_simplify)
+>>> simplify = gof.opt.TopoOptimizer(local_simplify)
 >>> simplify.optimize(e)
 (<theano.gof.opt.TopoOptimizer object at 0x...>, 1, 5, 3, ..., ..., ...)
 >>> e
@@ -431,7 +431,7 @@ A Query is built by the following call:
 
 .. code-block:: python
 
-   theano.gof.Query(include, require=None, exclude=None, subquery=None)
+   theano.gof.optdb.Query(include, require=None, exclude=None, subquery=None)
 
 .. class:: Query
 
@@ -472,7 +472,7 @@ Optimizer:
 
 .. testcode::
 
-   from theano.gof import Query
+   from theano.gof.optdb import Query
    from theano.compile import optdb
 
    # This is how the optimizer for the fast_run mode is defined

@@ -6,11 +6,8 @@ import re
 from abc import abstractmethod
 from typing import Any, NoReturn, Optional, Text, TypeVar, Union
 
-import theano
-from theano.configdefaults import config
 from theano.gof import utils
 from theano.gof.graph import Constant, Variable
-from theano.gof.op import COp
 from theano.gof.utils import MetaObject
 from theano.link.c.interface import CLinkerType
 from theano.utils import Singleton
@@ -352,36 +349,6 @@ if platform.python_implementation() != "PyPy":
     ).value
 
 
-class _make_cdata(COp):
-    __props__ = ("rtype",)
-
-    def __init__(self, rtype):
-        assert isinstance(rtype, CDataType)
-        self.rtype = rtype
-
-    def do_constant_folding(self, fgraph, node):
-        return False
-
-    def make_node(self, val):
-        from theano import Apply
-        from theano.scalar import as_scalar
-
-        val = as_scalar(val).astype("uint64")
-        return Apply(self, [val], [self.rtype()])
-
-    def c_code(self, node, name, inputs, outputs, sub):
-        return """
-        %(out)s = (%(ctype)s)%(inp)s;
-        """ % dict(
-            ctype=self.rtype.ctype, out=outputs[0], inp=inputs[0]
-        )
-
-    def c_code_cache_version(self):
-        if self.rtype.version is None:
-            return None
-        return (0, self.rtype.version)
-
-
 class CDataType(CType):
     """
     Represents opaque C data to be passed around. The intent is to
@@ -448,38 +415,6 @@ class CDataType(CType):
                 raise TypeError("expected None or a PyCapsule")
 
         return data
-
-    def _get_func(self):
-        """
-        Return a function that makes a value from an integer.
-
-        The integer value is assumed to be a valid pointer for the
-        type and no check is done to ensure that.
-        """
-        from theano.scalar import get_scalar_type
-
-        if self._fn is None:
-            with config.change_flags(compute_test_value="off"):
-                v = get_scalar_type("int64")()
-                self._fn = theano.function(
-                    [v],
-                    _make_cdata(self)(v),
-                    mode=theano.Mode(optimizer=None),
-                    profile=False,
-                )
-        return self._fn
-
-    def make_value(self, ptr):
-        """
-        Make a value of this type.
-
-        Parameters
-        ----------
-        ptr : int
-            Integer representation of a valid pointer value
-
-        """
-        return self._get_func()(ptr)
 
     def c_declare(self, name, sub, check_input=True):
         return """
@@ -664,7 +599,7 @@ class EnumType(CType, dict):
 
     .. code-block:: python
 
-        from theano.gof import EnumType
+        from theano.gof.type import EnumType
 
         # You can remark that constant 'C' does not have an alias.
         enum = EnumType(A=('alpha', 1), B=('beta', 2), C=3, D=('delta', 4))

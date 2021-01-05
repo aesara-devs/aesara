@@ -22,8 +22,15 @@ import numpy as np
 import theano
 from theano.configdefaults import config
 from theano.gof import destroyhandler as dh
-from theano.gof import graph
 from theano.gof.fg import InconsistencyError
+from theano.gof.graph import (
+    Apply,
+    Constant,
+    Variable,
+    applys_between,
+    io_toposort,
+    nodes_constructed,
+)
 from theano.gof.op import Op
 from theano.gof.toolbox import Feature, NodeFinder
 from theano.gof.utils import AssocList
@@ -504,12 +511,12 @@ class MergeFeature(Feature):
         if not isinstance(node, str):
             assert node.inputs
 
-        if isinstance(new_r, graph.Constant):
+        if isinstance(new_r, Constant):
             self.process_constant(fgraph, new_r)
 
     def on_import(self, fgraph, node, reason):
         for c in node.inputs:
-            if isinstance(c, graph.Constant):
+            if isinstance(c, Constant):
                 self.process_constant(fgraph, c)
 
         self.process_node(fgraph, node)
@@ -519,7 +526,7 @@ class MergeFeature(Feature):
         if not node.inputs:
             self.noinput_nodes.discard(node)
         for c in node.inputs:
-            if isinstance(c, graph.Constant) and (len(fgraph.clients[c]) <= 1):
+            if isinstance(c, Constant) and (len(fgraph.clients[c]) <= 1):
                 # This was the last node using this constant
                 sig = self.const_sig[c]
                 self.const_sig.discard(c)
@@ -851,7 +858,7 @@ class MergeOptimizer(GlobalOptimizer):
                     # If all Constants, no need to call validate.
                     # Only need to check one of the var of each pairs.
                     # If it is a Constant, the other must also be a Constant as we merge them.
-                    if all([isinstance(old, graph.Constant) for old, new in pairs]):
+                    if all([isinstance(old, Constant) for old, new in pairs]):
                         fgraph.replace_all(pairs, "MergeOptimizer")
                     else:
                         fgraph.replace_all_validate(pairs, "MergeOptimizer")
@@ -864,7 +871,7 @@ class MergeOptimizer(GlobalOptimizer):
 
                 if success:
                     nb_merged += len(pairs)
-                    if isinstance(pairs[0][0], graph.Constant):
+                    if isinstance(pairs[0][0], Constant):
                         nb_constant += 1
                         # print pairs, pairs[0][0].type
                     break
@@ -982,7 +989,7 @@ def pre_constant_merge(fgraph, variables):
     seen_var = set()
     # signature -> variable (for constants)
     const_sig_inv = {}
-    if isinstance(variables, graph.Variable):
+    if isinstance(variables, Variable):
         variables = [variables]
 
     def recursive_merge(var):
@@ -1000,7 +1007,7 @@ def pre_constant_merge(fgraph, variables):
 
         seen_var.add(var)
 
-        if isinstance(var, graph.Constant):
+        if isinstance(var, Constant):
             sig = var.signature()
 
             if sig in const_sig_inv:
@@ -1341,7 +1348,7 @@ class LocalOptGroup(LocalOptimizer):
                     new_vars = list(new_repl.values())
                 if self.profile:
                     self.node_created[opt] += len(
-                        list(graph.applys_between(fgraph.variables, new_vars))
+                        list(applys_between(fgraph.variables, new_vars))
                     )
                     self.applied_true[opt] += 1
                 break  # break from the for loop over optimization.
@@ -1453,7 +1460,7 @@ class GraphToGPULocalOptGroup(LocalOptGroup):
                 continue
             if self.profile:
                 self.node_created[opt] += len(
-                    list(graph.applys_between(fgraph.variables, new_repl))
+                    list(applys_between(fgraph.variables, new_repl))
                 )
                 self.applied_true[opt] += 1
 
@@ -1743,14 +1750,14 @@ class PatternSub(LocalOptimizer):
                     return retry_with_equiv()
                 else:
                     u = u.merge(expr, v)
-            elif isinstance(pattern, (int, float)) and isinstance(expr, graph.Constant):
+            elif isinstance(pattern, (int, float)) and isinstance(expr, Constant):
                 if np.all(theano.tensor.constant(pattern).value == expr.value):
                     return u
                 else:
                     return retry_with_equiv()
             elif (
-                isinstance(pattern, graph.Constant)
-                and isinstance(expr, graph.Constant)
+                isinstance(pattern, Constant)
+                and isinstance(expr, Constant)
                 and pattern.equals(expr)
             ):
                 return u
@@ -2097,7 +2104,7 @@ class TopoOptimizer(NavigatorOptimizer):
         callback_before = fgraph.execute_callbacks_time
         nb_nodes_start = len(fgraph.apply_nodes)
         t0 = time.time()
-        q = deque(graph.io_toposort(fgraph.inputs, start_from))
+        q = deque(io_toposort(fgraph.inputs, start_from))
         io_t = time.time() - t0
 
         def importer(node):
@@ -2493,7 +2500,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
 
             # apply local optimizer
             topo_t0 = time.time()
-            q = deque(graph.io_toposort(fgraph.inputs, start_from))
+            q = deque(io_toposort(fgraph.inputs, start_from))
             io_toposort_timing.append(time.time() - topo_t0)
 
             nb_nodes.append(len(q))
@@ -2913,7 +2920,7 @@ def check_chain(r, *chain):
     WRITEME
 
     """
-    if isinstance(r, graph.Apply):
+    if isinstance(r, Apply):
         r = r.outputs[0]
     return _check_chain(r, reduce(list.__iadd__, ([x, 0] for x in chain)))
 
@@ -3027,7 +3034,7 @@ def copy_stack_trace(from_var, to_var):
 
     # Store stack traces from from_var
     tr = []
-    if isinstance(from_var, Iterable) and not isinstance(from_var, graph.Variable):
+    if isinstance(from_var, Iterable) and not isinstance(from_var, Variable):
         # If from_var is a list, store concatenated stack traces
         for v in from_var:
             tr += getattr(v.tag, "trace", [])
@@ -3042,7 +3049,7 @@ def copy_stack_trace(from_var, to_var):
         tr = [tr]
 
     # Copy over stack traces to to_var
-    if isinstance(to_var, Iterable) and not isinstance(to_var, graph.Variable):
+    if isinstance(to_var, Iterable) and not isinstance(to_var, Variable):
         # Copy over stack traces from from_var to each variable in
         # to_var, including the stack_trace of the to_var before
         for v in to_var:
@@ -3067,7 +3074,7 @@ def inherit_stack_trace(from_var):
         Variable node or a list of variable nodes to copy stack traces from.
 
     """
-    with graph.nodes_constructed() as new_nodes:
+    with nodes_constructed() as new_nodes:
         yield
     copy_stack_trace(from_var, new_nodes)
 

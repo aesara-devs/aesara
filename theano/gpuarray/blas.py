@@ -1,8 +1,9 @@
 import theano
 from theano.compile import optdb
-from theano.gof import LocalOptGroup, ParamsType
 from theano.gof.graph import Apply
 from theano.gof.op import COp
+from theano.gof.opt import LocalOptGroup
+from theano.gof.params_type import ParamsType
 from theano.scalar import bool as bool_t
 from theano.tensor.basic import as_tensor_variable
 from theano.tensor.opt import in2out

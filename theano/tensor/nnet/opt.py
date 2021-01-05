@@ -3,11 +3,12 @@ Optimizations addressing the ops in nnet root directory
 """
 
 import theano
-from theano import compile, gof
+from theano import compile
 from theano.compile import optdb
 from theano.configdefaults import config
 from theano.gof.opt import (
     LocalMetaOptimizerSkipAssertionError,
+    TopoOptimizer,
     copy_stack_trace,
     local_optimizer,
 )
@@ -35,7 +36,7 @@ from theano.tensor.opt import in2out, register_specialize_device
 from theano.tensor.type import TensorType
 
 
-@gof.local_optimizer([SparseBlockGemv], inplace=True)
+@local_optimizer([SparseBlockGemv], inplace=True)
 def local_inplace_sparse_block_gemv(fgraph, node):
     """
     SparseBlockGemv(inplace=False) -> SparseBlockGemv(inplace=True)
@@ -49,8 +50,8 @@ def local_inplace_sparse_block_gemv(fgraph, node):
 
 compile.optdb.register(
     "local_inplace_sparse_block_gemv",
-    gof.TopoOptimizer(
-        local_inplace_sparse_block_gemv, failure_callback=gof.TopoOptimizer.warn_inplace
+    TopoOptimizer(
+        local_inplace_sparse_block_gemv, failure_callback=TopoOptimizer.warn_inplace
     ),
     60,
     "fast_run",
@@ -58,7 +59,7 @@ compile.optdb.register(
 )  # DEBUG
 
 
-@gof.local_optimizer([SparseBlockOuter], inplace=True)
+@local_optimizer([SparseBlockOuter], inplace=True)
 def local_inplace_sparse_block_outer(fgraph, node):
     """
     SparseBlockOuter(inplace=False) -> SparseBlockOuter(inplace=True)
@@ -72,9 +73,9 @@ def local_inplace_sparse_block_outer(fgraph, node):
 
 compile.optdb.register(
     "local_inplace_sparse_block_outer",
-    gof.TopoOptimizer(
+    TopoOptimizer(
         local_inplace_sparse_block_outer,
-        failure_callback=gof.TopoOptimizer.warn_inplace,
+        failure_callback=TopoOptimizer.warn_inplace,
     ),
     60,
     "fast_run",

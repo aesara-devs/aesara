@@ -1,8 +1,8 @@
 import numpy as np
 
-import theano
 import theano.tensor as tt
-from theano.gof import Apply, Op
+from theano.gof.graph import Apply, Variable
+from theano.gof.op import Op
 from theano.gradient import DisconnectedType
 
 
@@ -71,7 +71,7 @@ class PdbBreakpoint(Op):
     def make_node(self, condition, *monitored_vars):
 
         # Ensure that condition is a theano tensor
-        if not isinstance(condition, theano.Variable):
+        if not isinstance(condition, Variable):
             condition = tt.as_tensor_variable(condition)
 
         # Validate that the condition is a scalar (else it is not obvious how

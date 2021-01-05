@@ -8,17 +8,18 @@ import pytest
 import theano
 import theano.gpuarray
 import theano.tensor as tt
-from theano import gof
 from theano.compile.function import function
 from theano.compile.function.types import UnusedInputError
 from theano.compile.io import In, Out
 from theano.configdefaults import config
-from theano.gof import MissingInputError
+from theano.gof.fg import MissingInputError
+from theano.gof.graph import Constant
+from theano.gof.opt import OpKeyOptimizer, PatternSub
 from theano.utils import exc_message
 
 
 def PatternOptimizer(p1, p2, ign=True):
-    return gof.OpKeyOptimizer(gof.PatternSub(p1, p2), ignore_newtrees=ign)
+    return OpKeyOptimizer(PatternSub(p1, p2), ignore_newtrees=ign)
 
 
 def checkfor(testcase, fn, E):
@@ -322,7 +323,7 @@ class TestFunction:
             l = [
                 val
                 for key, val in storage_map_cpy.items()
-                if key not in i_o_variables or isinstance(key, tt.Constant)
+                if key not in i_o_variables or isinstance(key, Constant)
             ]
             for storage in l:
                 assert any([storage is s for s in ori_storages])
@@ -573,7 +574,9 @@ class TestFunction:
         out[0] = 3
         out2 = f()
 
-        if isinstance(theano.compile.mode.get_default_mode(), theano.compile.DebugMode):
+        if isinstance(
+            theano.compile.mode.get_default_mode(), theano.compile.debugmode.DebugMode
+        ):
             # In DebugMode, we don't implement optimization based on borrow on the output.
             assert (out2 == 4).all()
         else:
@@ -660,14 +663,14 @@ class TestFunction:
 
         check_list = []
         for key, val in func.fn.storage_map.items():
-            if not isinstance(key, theano.gof.Constant):
+            if not isinstance(key, Constant):
                 check_list.append(val)
         assert any([val[0] for val in check_list])
 
         func.free()
 
         for key, val in func.fn.storage_map.items():
-            if not isinstance(key, theano.gof.Constant):
+            if not isinstance(key, Constant):
                 assert val[0] is None
 
     def test_default_values(self):

@@ -1,4 +1,5 @@
-from theano import Apply, Op
+from theano.gof.graph import Apply
+from theano.gof.op import Op
 from theano.tensor.extra_ops import CumOp
 
 
@@ -8,9 +9,8 @@ except ImportError:
     pass
 
 import theano.scalar as scalar
-from theano.gof import ParamsType
-
-from .basic_ops import (
+from theano.gof.params_type import ParamsType
+from theano.gpuarray.basic_ops import (
     GpuKernelBase,
     GpuReshape,
     Kernel,
@@ -18,8 +18,8 @@ from .basic_ops import (
     gpuarray_helper_inc_dir,
     infer_context_name,
 )
-from .opt import op_lifter, register_opt, register_opt2
-from .type import gpu_context_type
+from theano.gpuarray.opt import op_lifter, register_opt, register_opt2
+from theano.gpuarray.type import gpu_context_type
 
 
 class GpuCumOp(GpuKernelBase, Op):

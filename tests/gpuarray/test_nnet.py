@@ -24,7 +24,7 @@ def test_GpuCrossentropySoftmaxArgmax1HotWithBias():
     batch_size = 4097
     n_out = 1250
 
-    if not isinstance(mode_with_gpu, theano.compile.DebugMode):
+    if not isinstance(mode_with_gpu, theano.compile.debugmode.DebugMode):
         n_in = 4098
         n_out = 4099
 
@@ -89,7 +89,7 @@ def test_GpuCrossentropySoftmax1HotWithBiasDx():
     batch_size = 4097
     n_out = 1250
 
-    if not isinstance(mode_with_gpu, theano.compile.DebugMode):
+    if not isinstance(mode_with_gpu, theano.compile.debugmode.DebugMode):
         n_out = 4099
 
     # Seed numpy.random with config.unittests__rseed

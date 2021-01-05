@@ -170,7 +170,7 @@ An Apply instance has three important fields:
   A list of :ref:`Variables <variable>` that represent the return values
   of the function.
 
-An Apply instance can be created by calling ``gof.Apply(op, inputs, outputs)``.
+An Apply instance can be created by calling ``gof.graph.Apply(op, inputs, outputs)``.
 
 
 

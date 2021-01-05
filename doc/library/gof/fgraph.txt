@@ -16,8 +16,8 @@
 FunctionGraph
 -------------
 
-.. autoclass:: theano.gof.FunctionGraph
-    :members: 
+.. autoclass:: theano.gof.fg.FunctionGraph
+    :members:
 
     ***TODO***
 
@@ -33,8 +33,8 @@ FunctionGraph
 FunctionGraph Features
 ----------------------
 
-.. autoclass:: theano.gof.toolbox.Feature 
-    :members: 
+.. autoclass:: theano.gof.toolbox.Feature
+    :members:
 
 .. _libdoc_gof_fgraphfeaturelist:
 
@@ -42,4 +42,3 @@ FunctionGraph Feature List
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 * ReplaceValidate
 * DestroyHandler
-

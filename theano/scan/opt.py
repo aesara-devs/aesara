@@ -58,13 +58,23 @@ from sys import maxsize
 import numpy as np
 
 import theano
-from theano import gof, scalar, tensor
+from theano import scalar, tensor
 from theano.compile import optdb
 from theano.compile.function.types import deep_copy_op
 from theano.configdefaults import config
-from theano.gof import DestroyHandler, InconsistencyError, toolbox
-from theano.gof.graph import equal_computations
-from theano.gof.opt import GlobalOptimizer
+from theano.gof.destroyhandler import DestroyHandler
+from theano.gof.fg import InconsistencyError
+from theano.gof.graph import (
+    Constant,
+    Variable,
+    equal_computations,
+    graph_inputs,
+    io_toposort,
+    is_in_ancestors,
+)
+from theano.gof.opt import GlobalOptimizer, local_optimizer
+from theano.gof.optdb import EquilibriumDB, SequenceDB
+from theano.gof.toolbox import ReplaceValidate
 from theano.scan.op import Scan
 from theano.scan.utils import (
     clone,
@@ -85,9 +95,9 @@ __authors__ = (
     "James Bergstra "
     "Pascal Lamblin "
     "Arnaud Bergeron "
+    "PyMC Developers "
 )
 __copyright__ = "(c) 2010, Universite de Montreal"
-__contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 
 # Logging function for sending warning or info
@@ -102,7 +112,7 @@ list_opt_slice = [
 ]
 
 
-@gof.local_optimizer([Scan])
+@local_optimizer([Scan])
 def remove_constants_and_unused_inputs_scan(fgraph, node):
     """
     Move constants into the inner graph, and remove unused inputs.
@@ -150,7 +160,7 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
     # Same for the outer graph, initialized w/ number of steps
     nw_outer = [node.inputs[0]]
 
-    all_ins = list(gof.graph.graph_inputs(op_outs))
+    all_ins = list(graph_inputs(op_outs))
     for idx in range(op.n_seqs):
         node_inp = node.inputs[idx + 1]
         if (
@@ -184,7 +194,7 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
     nw_inner_nonseq = []
     nw_outer_nonseq = []
     for idx, (nw_in, nw_out) in enumerate(zip(non_seqs, outer_non_seqs)):
-        if isinstance(nw_out, tensor.Constant):
+        if isinstance(nw_out, Constant):
             givens[nw_in] = nw_out.clone()
         elif nw_in in all_ins:
             # Indices of elements of nw_outer_nonseq that are equivalent
@@ -217,7 +227,7 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
 
 # This is a global opt for historical reason
 # It should be possible to change it to a local opt.
-class PushOutNonSeqScan(gof.GlobalOptimizer):
+class PushOutNonSeqScan(GlobalOptimizer):
     """
     A global optimizer for pushing out the variables inside the scan that depend
     only on non-sequences.
@@ -227,7 +237,7 @@ class PushOutNonSeqScan(gof.GlobalOptimizer):
         super().__init__()
 
     def add_requirements(self, fgraph):
-        fgraph.attach_feature(gof.toolbox.ReplaceValidate())
+        fgraph.attach_feature(ReplaceValidate())
 
     def apply(self, fgraph):
         nodelist = [x for x in fgraph.toposort() if isinstance(x.op, Scan)]
@@ -245,7 +255,7 @@ class PushOutNonSeqScan(gof.GlobalOptimizer):
         # this flag tells if there was any change during the last iterations
         clean_inputs, clean_outputs = reconstruct_graph(node.op.inputs, node.op.outputs)
 
-        local_fgraph_topo = theano.gof.graph.io_toposort(clean_inputs, clean_outputs)
+        local_fgraph_topo = io_toposort(clean_inputs, clean_outputs)
         local_fgraph_outs_set = set(clean_outputs)
         local_fgraph_outs_map = {v: k for k, v in enumerate(clean_outputs)}
 
@@ -285,7 +295,7 @@ class PushOutNonSeqScan(gof.GlobalOptimizer):
                         (
                             (x in inner_non_seqs_set)
                             or (x.owner in to_remove_set)
-                            or isinstance(x, tensor.Constant)
+                            or isinstance(x, Constant)
                         )
                         for x in nd.inputs
                     ]
@@ -308,7 +318,7 @@ class PushOutNonSeqScan(gof.GlobalOptimizer):
                         outside_ins.append(outer_non_seqs[_idx])
                     elif x in to_replace_set:
                         outside_ins.append(replace_with_out[to_replace_map[x]])
-                    elif isinstance(x, theano.Constant):
+                    elif isinstance(x, Constant):
                         outside_ins.append(x.clone())
                     else:
                         raise Exception(
@@ -369,7 +379,7 @@ class PushOutNonSeqScan(gof.GlobalOptimizer):
             for to_repl, repl_in, repl_out in zip(
                 clean_to_replace, clean_replace_with_in, clean_replace_with_out
             ):
-                if isinstance(repl_out, theano.Constant):
+                if isinstance(repl_out, Constant):
                     repl_in = repl_out.clone()
                 else:
                     nw_inner.append(repl_in)
@@ -433,7 +443,7 @@ class PushOutNonSeqScan(gof.GlobalOptimizer):
 
 # This is a global opt for historical reason
 # It should be possible to change it to a local opt.
-class PushOutSeqScan(gof.GlobalOptimizer):
+class PushOutSeqScan(GlobalOptimizer):
     """
     A global optimizer for pushing out the variables inside the
     scan that depend only on constants and sequences.
@@ -443,7 +453,7 @@ class PushOutSeqScan(gof.GlobalOptimizer):
         super().__init__()
 
     def add_requirements(self, fgraph):
-        fgraph.attach_feature(gof.toolbox.ReplaceValidate())
+        fgraph.attach_feature(ReplaceValidate())
 
     def apply(self, fgraph):
         nodelist = [x for x in fgraph.toposort() if isinstance(x.op, Scan)]
@@ -461,7 +471,7 @@ class PushOutSeqScan(gof.GlobalOptimizer):
         # this flag tells if there was any change during the last iterations
         clean_inputs, clean_outputs = reconstruct_graph(node.op.inputs, node.op.outputs)
 
-        local_fgraph_topo = theano.gof.graph.io_toposort(clean_inputs, clean_outputs)
+        local_fgraph_topo = io_toposort(clean_inputs, clean_outputs)
         local_fgraph_outs_set = set(clean_outputs)
         local_fgraph_outs_map = {v: k for k, v in enumerate(clean_outputs)}
 
@@ -501,7 +511,7 @@ class PushOutSeqScan(gof.GlobalOptimizer):
                     [
                         (x in inner_non_seqs_set)
                         or (x.owner in to_remove_set)
-                        or isinstance(x, tensor.Constant)
+                        or isinstance(x, Constant)
                         or (x in inner_seqs_set)
                         for x in nd.inputs
                     ]
@@ -522,7 +532,7 @@ class PushOutSeqScan(gof.GlobalOptimizer):
                     elif x in to_replace_set:
                         outside_ins.append(replace_with_out[to_replace_map[x]])
                         depends_on_seqs = True
-                    elif isinstance(x, theano.Constant):
+                    elif isinstance(x, Constant):
                         outside_ins.append(x.clone())
                     else:
                         raise Exception(
@@ -627,7 +637,7 @@ class PushOutSeqScan(gof.GlobalOptimizer):
             for to_repl, repl_in, repl_out in zip(
                 clean_to_replace, clean_replace_with_in, clean_replace_with_out
             ):
-                if isinstance(repl_out, theano.Constant):
+                if isinstance(repl_out, Constant):
                     repl_in = repl_out.clone()
                 else:
                     nw_inner.append(repl_in)
@@ -689,7 +699,7 @@ class PushOutSeqScan(gof.GlobalOptimizer):
             return False
 
 
-class PushOutScanOutput(gof.GlobalOptimizer):
+class PushOutScanOutput(GlobalOptimizer):
     """
     This is an optimization that can push operations performed
     at the end of the inner graph of scan to outside of scan.
@@ -699,7 +709,7 @@ class PushOutScanOutput(gof.GlobalOptimizer):
         super().__init__()
 
     def add_requirements(self, fgraph):
-        fgraph.attach_feature(gof.toolbox.ReplaceValidate())
+        fgraph.attach_feature(ReplaceValidate())
 
     def apply(self, fgraph):
         # Don't perform the optimization on as_while scans. Because these scans
@@ -726,7 +736,7 @@ class PushOutScanOutput(gof.GlobalOptimizer):
 
         new_scan_node = None
         clients = {}
-        local_fgraph_topo = theano.gof.graph.io_toposort(
+        local_fgraph_topo = io_toposort(
             args.inner_inputs, args.inner_outputs, clients=clients
         )
 
@@ -840,7 +850,7 @@ class PushOutScanOutput(gof.GlobalOptimizer):
 
         # Given a variable, determine the number of dimension it would have if
         # it was pushed out of scan
-        if var in scan_args.inner_in_non_seqs or isinstance(var, theano.Constant):
+        if var in scan_args.inner_in_non_seqs or isinstance(var, Constant):
 
             outer_ndim = var.ndim
         else:
@@ -868,7 +878,7 @@ class PushOutScanOutput(gof.GlobalOptimizer):
                 idx_non_seq = old_scan_args.inner_in_non_seqs.index(var)
                 outer_vars[idx] = old_scan_args.outer_in_non_seqs[idx_non_seq]
 
-            elif isinstance(var, theano.Constant):
+            elif isinstance(var, Constant):
                 outer_vars[idx] = var.clone()
 
             elif var in old_scan_args.inner_out_nit_sot:
@@ -963,7 +973,7 @@ class ScanInplaceOptimizer(GlobalOptimizer):
         self.gpua_flag = gpua_flag
 
     def add_requirements(self, fgraph):
-        fgraph.attach_feature(toolbox.ReplaceValidate())
+        fgraph.attach_feature(ReplaceValidate())
         fgraph.attach_feature(DestroyHandler())
 
     def attempt_scan_inplace(self, fgraph, node, output_indices, alloc_ops):
@@ -1117,7 +1127,7 @@ class ScanInplaceOptimizer(GlobalOptimizer):
                     node = self.attempt_scan_inplace(fgraph, node, [pos], alloc_ops)
 
 
-class ScanSaveMem(gof.GlobalOptimizer):
+class ScanSaveMem(GlobalOptimizer):
     """
     Graph optimizer that reduces scan memory consumption.
 
@@ -1127,7 +1137,7 @@ class ScanSaveMem(gof.GlobalOptimizer):
         super().__init__()
 
     def add_requirements(self, fgraph):
-        fgraph.attach_feature(gof.toolbox.ReplaceValidate())
+        fgraph.attach_feature(ReplaceValidate())
 
     def process_node(self, fgraph, node):
 
@@ -1288,7 +1298,7 @@ class ScanSaveMem(gof.GlobalOptimizer):
                     # 2.3.3 we might get away with less number of steps
                     if stop is not None and global_nsteps is not None:
                         # yes if it is a tensor
-                        if isinstance(stop, tensor.Variable):
+                        if isinstance(stop, Variable):
                             global_nsteps["sym"] += [stop]
                         # not if it is maxsize
                         elif type(stop) == int and stop == maxsize:
@@ -1578,7 +1588,7 @@ class ScanSaveMem(gof.GlobalOptimizer):
                         subtens = tensor.Subtensor(nw_slice)
                         # slice inputs
                         sl_ins = tensor.Subtensor.collapse(
-                            nw_slice, lambda entry: isinstance(entry, tensor.Variable)
+                            nw_slice, lambda entry: isinstance(entry, Variable)
                         )
                         new_o = subtens(new_outs[nw_pos], *sl_ins)
                         if new_o.ndim > 0:
@@ -1628,7 +1638,7 @@ class ScanSaveMem(gof.GlobalOptimizer):
                             nw_slice = (sanitize(position),) + tuple(old_slices[1:])
                         subtens = tensor.Subtensor(nw_slice)
                         sl_ins = tensor.Subtensor.collapse(
-                            nw_slice, lambda entry: isinstance(entry, tensor.Variable)
+                            nw_slice, lambda entry: isinstance(entry, Variable)
                         )
                         new_o = subtens(new_outs[nw_pos], *sl_ins)
                         if new_o.ndim > 0:
@@ -1643,7 +1653,7 @@ class ScanSaveMem(gof.GlobalOptimizer):
                         old_new += [(o, new_outs[nw_pos])]
                 # Check if the new outputs depend on the old scan node
                 old_scan_is_used = [
-                    gof.graph.is_in_ancestors(new.owner, node) for old, new in old_new
+                    is_in_ancestors(new.owner, node) for old, new in old_new
                 ]
                 if any(old_scan_is_used):
                     return False
@@ -1662,14 +1672,14 @@ class ScanSaveMem(gof.GlobalOptimizer):
             self.process_node(fgraph, node)
 
 
-class ScanMerge(gof.GlobalOptimizer):
+class ScanMerge(GlobalOptimizer):
     """
     Graph optimizer that merges different scan ops.
 
     """
 
     def add_requirements(self, fgraph):
-        fgraph.attach_feature(gof.toolbox.ReplaceValidate())
+        fgraph.attach_feature(ReplaceValidate())
 
     def merge(self, nodes):
 
@@ -1869,9 +1879,7 @@ class ScanMerge(gof.GlobalOptimizer):
 
         # Check to see if it is an input of a different node
         for nd in set_nodes:
-            if gof.graph.is_in_ancestors(node, nd) or gof.graph.is_in_ancestors(
-                nd, node
-            ):
+            if is_in_ancestors(node, nd) or is_in_ancestors(nd, node):
                 return False
 
         if not node.op.as_while:
@@ -1938,7 +1946,7 @@ def make_equiv(lo, li):
     return left, right
 
 
-@gof.local_optimizer([Scan])
+@local_optimizer([Scan])
 def scan_merge_inouts(fgraph, node):
     if not isinstance(node.op, Scan):
         return False
@@ -2117,7 +2125,7 @@ def scan_merge_inouts(fgraph, node):
     return na.outer_outputs
 
 
-class PushOutDot1(gof.GlobalOptimizer):
+class PushOutDot1(GlobalOptimizer):
     """
     Graph optimizer for Scan(makes it run inplace).
 
@@ -2127,7 +2135,7 @@ class PushOutDot1(gof.GlobalOptimizer):
         super().__init__()
 
     def add_requirements(self, fgraph):
-        fgraph.attach_feature(toolbox.ReplaceValidate())
+        fgraph.attach_feature(ReplaceValidate())
 
     def apply(self, fgraph):
 
@@ -2311,9 +2319,9 @@ class PushOutDot1(gof.GlobalOptimizer):
 # I've added an equilibrium because later scan optimization in the sequence
 # can make it such that earlier optimizations should apply. However, in
 # general I do not expect the sequence to run more then once
-scan_eqopt1 = theano.gof.EquilibriumDB()
-scan_seqopt1 = theano.gof.SequenceDB()
-scan_eqopt2 = theano.gof.EquilibriumDB()
+scan_eqopt1 = EquilibriumDB()
+scan_seqopt1 = SequenceDB()
+scan_eqopt2 = EquilibriumDB()
 
 # scan_eqopt1 before ShapeOpt at 0.1
 # This is needed to don't have ShapeFeature trac old Scan that we

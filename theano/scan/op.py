@@ -61,7 +61,7 @@ from theano.compile.mode import AddFeatureOptimizer, get_mode
 from theano.compile.profiling import ScanProfileStats, register_profiler_printer
 from theano.configdefaults import config
 from theano.gof.fg import MissingInputError
-from theano.gof.graph import Apply, Variable, equal_computations
+from theano.gof.graph import Apply, Constant, Variable, equal_computations
 from theano.gof.graph import graph_inputs as graph_inputs
 from theano.gof.graph import io_connection_pattern
 from theano.gof.op import Op, ops_with_inner_function
@@ -70,16 +70,27 @@ from theano.gradient import DisconnectedType, NullType, grad, grad_undefined
 from theano.link.c.basic import CLinker
 from theano.link.c.exceptions import MissingGXX
 from theano.link.utils import raise_with_op
-from theano.scan.utils import Validator, forced_replace, hash_listsDictsTuples, safe_new
+from theano.scan.utils import (
+    Validator,
+    clone,
+    forced_replace,
+    hash_listsDictsTuples,
+    safe_new,
+)
 from theano.tensor.basic import as_tensor_variable
 from theano.tensor.opt import Shape_i
 from theano.tensor.type import TensorType
 
 
 __docformat__ = "restructedtext en"
-__authors__ = "Razvan Pascanu " "Frederic Bastien " "James Bergstra " "Pascal Lamblin "
+__authors__ = (
+    "Razvan Pascanu "
+    "Frederic Bastien "
+    "James Bergstra "
+    "Pascal Lamblin "
+    "PyMC Developers"
+)
 __copyright__ = "(c) 2010, Universite de Montreal"
-__contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 # Logging function for sending warning or info
 _logger = logging.getLogger("theano.scan.op")
@@ -207,7 +218,7 @@ class Scan(Op):
         else:
             # Do the missing inputs check here to have the error early.
             for var in graph_inputs(self.outputs, self.inputs):
-                if var not in self.inputs and not isinstance(var, theano.Constant):
+                if var not in self.inputs and not isinstance(var, Constant):
                     raise MissingInputError(f"ScanOp is missing an input: {repr(var)}")
             self._cmodule_key = CLinker().cmodule_key_variables(
                 self.inputs, self.outputs, []
@@ -2448,7 +2459,7 @@ class Scan(Op):
                         replacement = inner_inp_mitmot[-replacement_idx]
 
                         self.tap_array[idx]
-                        new_inner_out_mitmot = theano.clone(
+                        new_inner_out_mitmot = clone(
                             new_inner_out_mitmot, replace=[(to_replace, replacement)]
                         )
 

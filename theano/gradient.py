@@ -9,14 +9,14 @@ from functools import partial, reduce
 import numpy as np
 
 import theano
-from theano import gof
 from theano.compile.debugmode import DebugMode
 from theano.compile.function import function
 from theano.compile.mode import FAST_RUN, get_mode
 from theano.compile.ops import ViewOp
 from theano.compile.sharedvalue import shared
 from theano.configdefaults import config
-from theano.gof import Variable, utils
+from theano.gof import utils
+from theano.gof.graph import Variable
 from theano.gof.null_type import NullType, null_type
 from theano.gof.op import get_test_values
 from theano.gof.type import Type
@@ -227,9 +227,9 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
     for pack in enumerate(zip(wrt, eval_points)):
         i = pack[0]
         wrt_elem, eval_point = pack[1]
-        if not isinstance(wrt_elem, gof.Variable):
+        if not isinstance(wrt_elem, Variable):
             wrt_elem = theano.tensor.as_tensor_variable(wrt_elem)
-        if not isinstance(eval_point, gof.Variable):
+        if not isinstance(eval_point, Variable):
             eval_point = theano.tensor.as_tensor_variable(eval_point)
 
         try:
@@ -289,9 +289,9 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
         same_type_eval_points = []
         for x, y in zip(inputs, local_eval_points):
             if y is not None:
-                if not isinstance(x, gof.Variable):
+                if not isinstance(x, Variable):
                     x = theano.tensor.as_tensor_variable(x)
-                if not isinstance(y, gof.Variable):
+                if not isinstance(y, Variable):
                     y = theano.tensor.as_tensor_variable(y)
                 try:
                     y = x.type.filter_variable(y)
@@ -369,11 +369,10 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
 
 
 def Lop(f, wrt, eval_points, consider_constant=None, disconnected_inputs="raise"):
-    """
-    Computes the L operation on `f` wrt to `wrt` at `eval_points`.
+    """Computes the L operation on `f` with respect to `wrt` at `eval_points`.
 
-    Mathematically this stands for the jacobian of `f` wrt
-    to `wrt` left muliplied by the eval points.
+    Mathematically this stands for the Jacobian of `f` with respect to `wrt`
+    left muliplied by the `eval_points`.
 
     Parameters
     ----------
@@ -388,9 +387,9 @@ def Lop(f, wrt, eval_points, consider_constant=None, disconnected_inputs="raise"
 
     Returns
     -------
-    :class:`~theano.gof.Variable` or list/tuple of Variables depending on type of f
+    :class:`~theano.gof.graph.Variable` or list/tuple of Variables depending on type of `f`
         Symbolic expression such that
-        L_op[i] = sum_i (d f[i] / d wrt[j]) eval_point[i]
+        ``L_op[i] = sum_i (d f[i] / d wrt[j]) eval_point[i]``
         where the indices in that expression are magic multidimensional
         indices that specify both the position within a list and all
         coordinates of the tensor element in the last
@@ -734,7 +733,7 @@ def subgraph_grad(wrt, end, start=None, cost=None, details=False):
         to the variables in `end` (they are used as known_grad in
         theano.grad).
 
-    cost : :class:`~theano.gof.Variable` scalar (0-dimensional) variable
+    cost : :class:`~theano.gof.graph.Variable` scalar (0-dimensional) variable
         Additional costs for which to compute the gradients.  For
         example, these could be weight decay, an l1 constraint, MSE,
         NLL, etc. May optionally be None if start is provided.
@@ -906,7 +905,7 @@ def _populate_var_to_app_to_idx(outputs, wrt, consider_constant):
                 " got " + str(type(consider_constant))
             )
         for elem in consider_constant:
-            if not isinstance(elem, gof.Variable):
+            if not isinstance(elem, Variable):
                 raise TypeError(
                     "Elements of consider_constant must be "
                     "variables, but got " + str(type(elem))
@@ -1393,7 +1392,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
 
                         term = access_term_cache(node)[idx]
 
-                        if not isinstance(term, gof.Variable):
+                        if not isinstance(term, Variable):
                             raise TypeError(
                                 f"{node.op}.grad returned {type(term)}, expected"
                                 " Variable instance."

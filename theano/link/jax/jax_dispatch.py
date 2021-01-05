@@ -15,7 +15,7 @@ from theano.compile.ops import (
     ViewOp,
 )
 from theano.configdefaults import config
-from theano.gof import FunctionGraph
+from theano.gof.fg import FunctionGraph
 from theano.gof.type import CType
 from theano.ifelse import IfElse
 from theano.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp, Second

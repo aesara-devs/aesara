@@ -17,13 +17,13 @@ import warnings
 
 import numpy as np
 
-import theano
 from theano import function, gradient, shared, tensor
 from theano.compile import optdb
 from theano.configdefaults import config
-from theano.gof import ParamsType, local_optimizer
-from theano.gof.graph import Apply, Variable
+from theano.gof.graph import Apply, Constant, Variable
 from theano.gof.op import COp, Op
+from theano.gof.opt import local_optimizer
+from theano.gof.params_type import ParamsType
 from theano.gradient import undefined_grad
 from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int_t
@@ -1179,7 +1179,7 @@ class MRG_RandomStream:
 
         # generate even number of uniform samples
         # Do manual constant folding to lower optiimizer work.
-        if isinstance(size, theano.Constant):
+        if isinstance(size, Constant):
             n_odd_samples = size.prod(dtype="int64")
         else:
             n_odd_samples = tensor.prod(size, dtype="int64")
@@ -1232,7 +1232,7 @@ class MRG_RandomStream:
             norm_samples = tensor.join(0, z0_valid, z0_fixed, z1_valid, z1_fixed)
         else:
             norm_samples = tensor.join(0, z0, z1)
-        if isinstance(n_odd_samples, theano.Variable):
+        if isinstance(n_odd_samples, Variable):
             samples = norm_samples[:n_odd_samples]
         elif n_odd_samples % 2 == 1:
             samples = norm_samples[:-1]
@@ -1312,7 +1312,7 @@ def _check_size(size):
         If this method can not build a valid size from the input.
     """
     # non-tuple checks and scalar-to-tuple transform
-    if isinstance(size, theano.Variable):
+    if isinstance(size, Variable):
         if size.ndim == 1:
             return size
         elif size.ndim == 0:
@@ -1328,7 +1328,7 @@ def _check_size(size):
 
     # check entries of list or tuple
     for i in size:
-        if isinstance(i, theano.Variable):
+        if isinstance(i, Variable):
             if i.ndim != 0:
                 raise ValueError("Non-scalar Theano variable in size", size, i)
         elif isinstance(i, (np.integer, int)):

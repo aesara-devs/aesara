@@ -18,7 +18,8 @@ import numpy as np
 
 import theano
 from theano.configdefaults import config
-from theano.gof import Apply, Op
+from theano.gof.graph import Apply, Variable
+from theano.gof.op import Op
 from theano.tensor.basic import (
     NotScalarConstantError,
     as_tensor_variable,
@@ -2533,9 +2534,9 @@ class AbstractConv(BaseAbstractConv):
 
     def make_node(self, img, kern):
         # Make sure both inputs are Variables with the same Type
-        if not isinstance(img, theano.Variable):
+        if not isinstance(img, Variable):
             img = as_tensor_variable(img)
-        if not isinstance(kern, theano.Variable):
+        if not isinstance(kern, Variable):
             kern = as_tensor_variable(kern)
         ktype = img.type.clone(dtype=kern.dtype, broadcastable=kern.broadcastable)
         kern = ktype.filter_variable(kern)
@@ -2881,9 +2882,9 @@ class AbstractConv_gradWeights(BaseAbstractConv):
     # Update shape/height_width
     def make_node(self, img, topgrad, shape, add_assert_shape=True):
         # Make sure both inputs are Variables with the same Type
-        if not isinstance(img, theano.Variable):
+        if not isinstance(img, Variable):
             img = as_tensor_variable(img)
-        if not isinstance(topgrad, theano.Variable):
+        if not isinstance(topgrad, Variable):
             topgrad = as_tensor_variable(topgrad)
         gtype = img.type.clone(dtype=topgrad.dtype, broadcastable=topgrad.broadcastable)
         topgrad = gtype.filter_variable(topgrad)
@@ -3247,9 +3248,9 @@ class AbstractConv_gradInputs(BaseAbstractConv):
     # Update shape/height_width
     def make_node(self, kern, topgrad, shape, add_assert_shape=True):
         # Make sure both inputs are Variables with the same Type
-        if not isinstance(kern, theano.Variable):
+        if not isinstance(kern, Variable):
             kern = as_tensor_variable(kern)
-        if not isinstance(topgrad, theano.Variable):
+        if not isinstance(topgrad, Variable):
             topgrad = as_tensor_variable(topgrad)
         gtype = kern.type.clone(
             dtype=topgrad.dtype, broadcastable=topgrad.broadcastable

@@ -7,8 +7,9 @@ http://www.iro.umontreal.ca/~simardr/ssj/indexe.html
 """
 
 
-from theano import Apply, tensor
-from theano.gof import local_optimizer
+from theano import tensor
+from theano.gof.graph import Apply
+from theano.gof.opt import local_optimizer
 from theano.sandbox.rng_mrg import mrg_uniform, mrg_uniform_base
 from theano.scalar import int32 as int_t
 from theano.tensor import as_tensor_variable, get_vector_length

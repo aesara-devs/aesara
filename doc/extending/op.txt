@@ -579,7 +579,7 @@ Apply node with an output Variable of type ``double``.
    def make_node(x, y):
        if x.type != double or y.type != double:
            raise TypeError('mul only works on doubles')
-       return gof.Apply(mul, [x, y], [double()])
+       return Apply(mul, [x, y], [double()])
    mul.make_node = make_node
 
 
@@ -675,16 +675,16 @@ by modifying ``make_node`` to accept Python ``int`` or ``float`` as
 
    def make_node(x, y):
        if isinstance(x, (int, float)):
-           x = gof.Constant(double, x)
+           x = Constant(double, x)
        if isinstance(y, (int, float)):
-           y = gof.Constant(double, y)
+           y = Constant(double, y)
        if x.type != double or y.type != double:
            raise TypeError('mul only works on doubles')
-       return gof.Apply(mul, [x, y], [double()])
+       return Apply(mul, [x, y], [double()])
    mul.make_node = make_node
 
 Whenever we pass a Python int or float instead of a Variable as ``x`` or
-``y``, ``make_node`` will convert it to :ref:`constant` for us. ``gof.Constant``
+``y``, ``make_node`` will convert it to :ref:`constant` for us. ``Constant``
 is a :ref:`variable` we statically know the value of.
 
 .. doctest:: mul
@@ -719,7 +719,7 @@ arithmetic operators:
 
 .. testcode::
 
-   from theano.gof.graph import Apply
+   from theano.gof.graph import Apply, Constant
    from theano.gof.op import Op
 
 
@@ -733,9 +733,9 @@ arithmetic operators:
 
        def make_node(self, x, y):
            if isinstance(x, (int, float)):
-               x = gof.Constant(double, x)
+               x = Constant(double, x)
            if isinstance(y, (int, float)):
-               y = gof.Constant(double, y)
+               y = Constant(double, y)
            if x.type != double or y.type != double:
                raise TypeError('%s only works on doubles' % self.name)
            return Apply(self, [x, y], [double()])

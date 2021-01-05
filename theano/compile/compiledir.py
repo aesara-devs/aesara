@@ -55,7 +55,7 @@ def cleanup():
                                 elif obj.startswith("c_compiler_str="):
                                     have_c_compiler = True
                             elif isinstance(
-                                obj, (theano.gof.Op, theano.gof.CType)
+                                obj, (theano.gof.op.Op, theano.gof.type.CType)
                             ) and hasattr(obj, "c_code_cache_version"):
                                 v = obj.c_code_cache_version()
                                 if v not in [(), None] and v not in key[0]:
@@ -126,7 +126,11 @@ def print_compiledir_content():
             try:
                 keydata = pickle.load(file)
                 ops = list(
-                    {x for x in flatten(keydata.keys) if isinstance(x, theano.gof.Op)}
+                    {
+                        x
+                        for x in flatten(keydata.keys)
+                        if isinstance(x, theano.gof.op.Op)
+                    }
                 )
                 # Whatever the case, we count compilations for OP classes.
                 for op_class in {op.__class__ for op in ops}:
@@ -139,7 +143,7 @@ def print_compiledir_content():
                         {
                             x
                             for x in flatten(keydata.keys)
-                            if isinstance(x, theano.gof.CType)
+                            if isinstance(x, theano.gof.type.CType)
                         }
                     )
                     compile_start = compile_end = float("nan")

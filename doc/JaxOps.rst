@@ -89,7 +89,7 @@ https://github.com/pymc-devs/Theano-PyMC/blob/master/tests/link/test_jax.py
    def test_jax_eye():
        """Tests jaxification of the Eye operator"""
        out = tt.eye(3) # Initialize a Theano Op
-       out_fg = theano.gof.FunctionGraph([], [out]) # Create a Theano FunctionGraph
+       out_fg = theano.gof.fg.FunctionGraph([], [out]) # Create a Theano FunctionGraph
 
        compare_jax_and_py(out_fg, []) # Pas the graph and any inputs to testing function
 

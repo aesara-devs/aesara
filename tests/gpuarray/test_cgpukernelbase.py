@@ -2,8 +2,10 @@ import numpy as np
 import pytest
 
 import theano
-from theano import Apply, Op, config, tensor
-from theano.gof import ParamsType
+from theano import config, tensor
+from theano.gof.graph import Apply
+from theano.gof.op import Op
+from theano.gof.params_type import ParamsType
 from theano.gpuarray.basic_ops import CGpuKernelBase
 from theano.gpuarray.type import GpuArrayType, get_context, gpu_context_type
 from theano.gradient import grad_undefined

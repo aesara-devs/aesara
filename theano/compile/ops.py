@@ -13,9 +13,9 @@ from collections import OrderedDict
 import numpy as np
 
 import theano
-from theano.gof import ParamsType
 from theano.gof.graph import Apply, Variable
 from theano.gof.op import COp, Op
+from theano.gof.params_type import ParamsType
 from theano.gof.type import CType
 from theano.misc.safe_asarray import _asarray
 
@@ -257,7 +257,7 @@ class Shape(COp):
     def make_node(self, x):
         # Must work for all type that have a shape attribute.
         # This will fail at execution time.
-        if not isinstance(x, theano.Variable):
+        if not isinstance(x, Variable):
             x = theano.tensor.as_tensor_variable(x)
         return Apply(self, [x], [theano.tensor.lvector()])
 
@@ -374,11 +374,11 @@ class Shape_i(COp):
         return "%s{%i}" % (self.__class__.__name__, self.i)
 
     def make_node(self, x):
-        if not isinstance(x, theano.Variable):
+        if not isinstance(x, Variable):
             raise TypeError("x must be Variable with ndim attribute", x)
         if x.ndim <= self.i:
             raise TypeError("x has too few dimensions for Shape_i", (x, self.i))
-        return theano.Apply(self, [x], [theano.tensor.lscalar()])
+        return Apply(self, [x], [theano.tensor.lscalar()])
 
     def perform(self, node, inp, out_, params):
         (x,) = inp

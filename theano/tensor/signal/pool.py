@@ -9,8 +9,12 @@ import warnings
 import numpy as np
 
 import theano
-from theano import Apply, OpenMPOp, Variable, gof, tensor
-from theano.gof import EnumList, ParamsType
+from theano import tensor
+from theano.gof.graph import Apply, Constant, Variable
+from theano.gof.op import OpenMPOp
+from theano.gof.params_type import ParamsType
+from theano.gof.type import EnumList
+from theano.gof.utils import MethodNotDefined
 from theano.gradient import DisconnectedType
 from theano.scalar import bool as bool_t
 
@@ -459,12 +463,12 @@ class Pool(OpenMPOp):
                     return v // stride
                 else:
                     out = (v - downsample) // stride + 1
-                    if isinstance(out, theano.Variable):
+                    if isinstance(out, Variable):
                         return tensor.maximum(out, 0)
                     else:
                         return np.maximum(out, 0)
             else:
-                if isinstance(v, theano.Variable):
+                if isinstance(v, Variable):
                     return tensor.switch(
                         tensor.ge(stride, downsample),
                         (v - 1) // stride + 1,
@@ -505,19 +509,19 @@ class Pool(OpenMPOp):
             node.inputs.append(ws)
             node.inputs.append(st)
             node.inputs.append(pad)
-            if isinstance(ws, theano.Constant):
+            if isinstance(ws, Constant):
                 storage_map[ws] = [ws.data]
                 compute_map[ws] = [True]
             else:
                 storage_map[ws] = [None]
                 compute_map[ws] = [False]
-            if isinstance(st, theano.Constant):
+            if isinstance(st, Constant):
                 storage_map[st] = [st.data]
                 compute_map[st] = [True]
             else:
                 storage_map[st] = [None]
                 compute_map[st] = [False]
-            if isinstance(pad, theano.Constant):
+            if isinstance(pad, Constant):
                 storage_map[pad] = [pad.data]
                 compute_map[pad] = [True]
             else:
@@ -555,7 +559,7 @@ class Pool(OpenMPOp):
         # If the input shape are broadcastable we can have 0 in the output shape
         broad = x.broadcastable[:-nd] + (False,) * nd
         out = tensor.TensorType(x.dtype, broad)
-        return gof.Apply(self, [x, ws, stride, pad], [out()])
+        return Apply(self, [x, ws, stride, pad], [out()])
 
     def perform(self, node, inp, out, params):
         x, ws, stride, pad = inp
@@ -665,7 +669,7 @@ class Pool(OpenMPOp):
 
     def c_code(self, node, name, inp, out, sub):
         if self.mode not in ("max", "sum", "average_exc_pad", "average_inc_pad"):
-            raise theano.gof.utils.MethodNotDefined()
+            raise MethodNotDefined()
         x, ws, stride, pad = inp
         (z,) = out
         nd = self.ndim
@@ -1100,12 +1104,12 @@ class PoolGrad(OpenMPOp):
         def compute_out(v, downsample, stride):
             if ignore_border:
                 out = (v - downsample) // stride + 1
-                if isinstance(out, theano.Variable):
+                if isinstance(out, Variable):
                     return tensor.maximum(out, 0)
                 else:
                     return np.maximum(out, 0)
             else:
-                if isinstance(v, theano.Variable):
+                if isinstance(v, Variable):
                     return tensor.switch(
                         tensor.ge(stride, downsample),
                         (v - 1) // stride + 1,
@@ -1146,19 +1150,19 @@ class PoolGrad(OpenMPOp):
             node.inputs.append(ws)
             node.inputs.append(st)
             node.inputs.append(pad)
-            if isinstance(ws, theano.Constant):
+            if isinstance(ws, Constant):
                 storage_map[ws] = [ws.data]
                 compute_map[ws] = [True]
             else:
                 storage_map[ws] = [None]
                 compute_map[ws] = [False]
-            if isinstance(st, theano.Constant):
+            if isinstance(st, Constant):
                 storage_map[st] = [st.data]
                 compute_map[st] = [True]
             else:
                 storage_map[st] = [None]
                 compute_map[st] = [False]
-            if isinstance(pad, theano.Constant):
+            if isinstance(pad, Constant):
                 storage_map[pad] = [pad.data]
                 compute_map[pad] = [True]
             else:
@@ -1963,7 +1967,7 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
 
     def c_code(self, node, name, inp, out, sub):
         if self.mode != "max":
-            raise theano.gof.utils.MethodNotDefined()
+            raise MethodNotDefined()
         x, maxout, ggx, ws, stride, pad = inp
         (z,) = out  # the grad of grad
         nd = self.ndim
@@ -2222,7 +2226,7 @@ class MaxPoolRop(OpenMPOp):
         # If the input shape are broadcastable we can have 0 in the output shape
         broad = x.broadcastable[:-nd] + (False,) * nd
         out = tensor.TensorType(eval_point.dtype, broad)
-        return gof.Apply(self, [x, eval_point, ws, stride, pad], [out()])
+        return Apply(self, [x, eval_point, ws, stride, pad], [out()])
 
     def perform(self, node, inp, out, params):
         x, ex, ws, stride, pad = inp
@@ -2293,7 +2297,7 @@ class MaxPoolRop(OpenMPOp):
 
     def c_code(self, node, name, inp, out, sub):
         if self.mode != "max":
-            raise theano.gof.utils.MethodNotDefined()
+            raise MethodNotDefined()
         x, ex, ws, stride, pad = inp
         (z,) = out
         nd = self.ndim

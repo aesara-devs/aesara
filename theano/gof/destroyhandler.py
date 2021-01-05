@@ -8,10 +8,10 @@ from collections import OrderedDict, deque
 
 import theano
 from theano.configdefaults import config
+from theano.gof.fg import InconsistencyError
+from theano.gof.graph import Constant
+from theano.gof.toolbox import AlreadyThere, Bookkeeper
 from theano.misc.ordered_set import OrderedSet
-
-from . import graph, toolbox
-from .fg import InconsistencyError
 
 
 class ProtocolError(Exception):
@@ -243,14 +243,14 @@ def fast_inplace_check(fgraph, inputs):
     inputs = [
         i
         for i in inputs
-        if not isinstance(i, graph.Constant)
+        if not isinstance(i, Constant)
         and not fgraph.has_destroyers([i])
         and i not in protected_inputs
     ]
     return inputs
 
 
-class DestroyHandler(toolbox.Bookkeeper):  # noqa
+class DestroyHandler(Bookkeeper):  # noqa
     """
     The DestroyHandler class detects when a graph is impossible to evaluate
     because of aliasing and destructive operations.
@@ -362,7 +362,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
 
         if already_there:
             # FunctionGraph.attach_feature catches AlreadyThere and cancels the attachment
-            raise toolbox.AlreadyThere(
+            raise AlreadyThere(
                 "DestroyHandler feature is already present"
                 " or in conflict with another plugin."
             )
@@ -385,7 +385,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
 
         self.debug_all_apps = set()
         if self.do_imports_on_attach:
-            toolbox.Bookkeeper.on_attach(self, fgraph)
+            Bookkeeper.on_attach(self, fgraph)
 
     def unpickle(self, fgraph):
         def get_destroyers_of(r):
@@ -475,14 +475,12 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
         )  # list of app's destroyed inputs
         for inp_idx in inputs:
             inp = app.inputs[inp_idx]
-            if getattr(inp.tag, "indestructible", False) or isinstance(
-                inp, graph.Constant
-            ):
+            if getattr(inp.tag, "indestructible", False) or isinstance(inp, Constant):
                 self.fail_validate[app] = InconsistencyError(
                     f"Attempting to destroy indestructible variables: {inp}"
                 )
             elif len(fgraph.clients[inp]) > 1:
-                self.fail_validate[app] = theano.gof.InconsistencyError(
+                self.fail_validate[app] = InconsistencyError(
                     "Destroyed variable has more than one client. " + str(reason)
                 )
             elif inp.owner:
@@ -493,13 +491,13 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
                 if v:
                     v = v.get(inp_idx2, [])
                     if len(v) > 0:
-                        self.fail_validate[app] = theano.gof.InconsistencyError(
+                        self.fail_validate[app] = InconsistencyError(
                             "Destroyed variable has view_map. " + str(reason)
                         )
                 elif d:
                     d = d.get(inp_idx2, [])
                     if len(d) > 0:
-                        self.fail_validate[app] = theano.gof.InconsistencyError(
+                        self.fail_validate[app] = InconsistencyError(
                             "Destroyed variable has destroy_map. " + str(reason)
                         )
 
@@ -703,8 +701,7 @@ class DestroyHandler(toolbox.Bookkeeper):  # noqa
             illegal_destroy = [
                 r
                 for r in droot
-                if getattr(r.tag, "indestructible", False)
-                or isinstance(r, graph.Constant)
+                if getattr(r.tag, "indestructible", False) or isinstance(r, Constant)
             ]
             if illegal_destroy:
                 raise InconsistencyError(

@@ -417,7 +417,7 @@ class TestTopK:
         # DebugMode won't like the index change on collision on CPU
         # So don't use DebugMode here.
         mode = self.mode
-        if isinstance(self.mode, theano.compile.DebugMode):
+        if isinstance(self.mode, theano.compile.debugmode.DebugMode):
             mode = theano.Mode(optimizer=mode.optimizer)
         fn = theano.function([x], y, mode=mode)
         assert any(

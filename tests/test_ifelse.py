@@ -8,9 +8,11 @@ import theano
 import theano.ifelse
 import theano.tensor as tt
 from tests import unittest_tools as utt
-from theano import Mode, function, tensor
-from theano.gof import Apply, generic
+from theano import function
+from theano.compile.mode import Mode, get_mode
+from theano.gof.graph import Apply
 from theano.gof.op import Op
+from theano.gof.type import generic
 from theano.ifelse import IfElse, ifelse
 
 
@@ -22,7 +24,7 @@ __copyright__ = "(c) 2010, Universite de Montreal"
 class TestIfelse(utt.OptimizationTestMixin):
     mode = None
     dtype = theano.config.floatX
-    cast_output = staticmethod(tensor.as_tensor_variable)
+    cast_output = staticmethod(tt.as_tensor_variable)
     shared = staticmethod(theano.shared)
 
     def get_ifelse(self, n):
@@ -35,10 +37,10 @@ class TestIfelse(utt.OptimizationTestMixin):
         # Tests that lazy if works .. even if the two results have different
         # shapes but the same type (i.e. both vectors, or matrices or
         # whatnot of same dtype)
-        x = tensor.vector("x", dtype=self.dtype)
-        y = tensor.vector("y", dtype=self.dtype)
-        c = tensor.iscalar("c")
-        f = theano.function([c, x, y], ifelse(c, x, y), mode=self.mode)
+        x = tt.vector("x", dtype=self.dtype)
+        y = tt.vector("y", dtype=self.dtype)
+        c = tt.iscalar("c")
+        f = function([c, x, y], ifelse(c, x, y), mode=self.mode)
         self.assertFunctionContains1(f, self.get_ifelse(1))
         rng = np.random.RandomState(utt.fetch_seed())
 
@@ -54,10 +56,10 @@ class TestIfelse(utt.OptimizationTestMixin):
     def test_not_lazy_if_inplace(self):
         # Tests that if the outputs are scalars and the graph is big,
         # we disable the inplace opt to speed up optimization
-        x = tensor.vector("x", dtype=self.dtype)
-        y = tensor.vector("y", dtype=self.dtype)
-        c = tensor.iscalar("c")
-        mode = theano.compile.get_mode(self.mode).excluding(
+        x = tt.vector("x", dtype=self.dtype)
+        y = tt.vector("y", dtype=self.dtype)
+        c = tt.iscalar("c")
+        mode = get_mode(self.mode).excluding(
             # Disable many opt to keep the graph big enough to disable
             # the opt.
             "fusion",
@@ -67,7 +69,7 @@ class TestIfelse(utt.OptimizationTestMixin):
             "constant_folding",
         )
         y2 = reduce(lambda x, y: x + y, [y] + list(range(200)))
-        f = theano.function([c, x, y], ifelse(c, x, y2), mode=mode)
+        f = function([c, x, y], ifelse(c, x, y2), mode=mode)
         # For not inplace ifelse
         ifnode = [n for n in f.maker.fgraph.toposort() if isinstance(n.op, IfElse)]
         assert len(ifnode) == 1
@@ -84,14 +86,12 @@ class TestIfelse(utt.OptimizationTestMixin):
         assert np.allclose(vy + sum(range(200)), f(0, vx, vy))
 
     def test_mixed_dtype(self):
-        x1 = tensor.vector("x1", dtype="int32")
-        x2 = tensor.vector("x2", dtype=self.dtype)
-        y1 = tensor.vector("y1", dtype="int32")
-        y2 = tensor.vector("y2", dtype=self.dtype)
-        c = tensor.iscalar("c")
-        f = theano.function(
-            [c, x1, x2, y1, y2], ifelse(c, (x1, x2), (y1, y2)), mode=self.mode
-        )
+        x1 = tt.vector("x1", dtype="int32")
+        x2 = tt.vector("x2", dtype=self.dtype)
+        y1 = tt.vector("y1", dtype="int32")
+        y2 = tt.vector("y2", dtype=self.dtype)
+        c = tt.iscalar("c")
+        f = function([c, x1, x2, y1, y2], ifelse(c, (x1, x2), (y1, y2)), mode=self.mode)
         self.assertFunctionContains1(f, self.get_ifelse(2))
         rng = np.random.RandomState(utt.fetch_seed())
 
@@ -112,10 +112,10 @@ class TestIfelse(utt.OptimizationTestMixin):
         assert np.allclose(vy2, o2)
 
     def test_lazy_if_on_generics(self):
-        x = theano.generic()
-        y = theano.generic()
-        c = tensor.iscalar("c")
-        f = theano.function([c, x, y], ifelse(c, x, y))
+        x = generic()
+        y = generic()
+        c = tt.iscalar("c")
+        f = function([c, x, y], ifelse(c, x, y))
 
         vx = ["testX"]
         vy = ["testY"]
@@ -124,13 +124,13 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     def test_grad_lazy_if(self):
         # Tests that we can compute the gradients through lazy if
-        x = tensor.vector("x", dtype=self.dtype)
-        y = tensor.vector("y", dtype=self.dtype)
-        c = tensor.iscalar("c")
+        x = tt.vector("x", dtype=self.dtype)
+        y = tt.vector("y", dtype=self.dtype)
+        c = tt.iscalar("c")
         z = ifelse(c, x, y)
-        gx, gy = tensor.grad(z.sum(), [x, y])
+        gx, gy = theano.grad(z.sum(), [x, y])
 
-        f = theano.function(
+        f = function(
             [c, x, y], [self.cast_output(gx), self.cast_output(gy)], mode=self.mode
         )
         # There is only 2 of the 3 ifelse that are moved on the GPU.
@@ -157,22 +157,22 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     def test_grad_cast_input(self):
         # Tests the gradient when both inputs are on the GPU.
-        x = tensor.vector("x", dtype=self.dtype)
-        y = tensor.vector("y", dtype=self.dtype)
-        c = tensor.iscalar("c")
+        x = tt.vector("x", dtype=self.dtype)
+        y = tt.vector("y", dtype=self.dtype)
+        c = tt.iscalar("c")
         z = ifelse(c, self.cast_output(x), self.cast_output(y))
-        gx, gy = tensor.grad(z.sum(), [x, y])
+        gx, gy = theano.grad(z.sum(), [x, y])
 
-        theano.function([c, x, y], [gx, gy], mode=self.mode)
+        function([c, x, y], [gx, gy], mode=self.mode)
 
     def test_multiple_out(self):
-        x1 = tensor.vector("x1", dtype=self.dtype)
-        x2 = tensor.vector("x2", dtype=self.dtype)
-        y1 = tensor.vector("y1", dtype=self.dtype)
-        y2 = tensor.vector("y2", dtype=self.dtype)
-        c = tensor.iscalar("c")
+        x1 = tt.vector("x1", dtype=self.dtype)
+        x2 = tt.vector("x2", dtype=self.dtype)
+        y1 = tt.vector("y1", dtype=self.dtype)
+        y2 = tt.vector("y2", dtype=self.dtype)
+        c = tt.iscalar("c")
         z = ifelse(c, (x1, x2), (y1, y2))
-        f = theano.function([c, x1, x2, y1, y2], z, mode=self.mode)
+        f = function([c, x1, x2, y1, y2], z, mode=self.mode)
         self.assertFunctionContains1(f, self.get_ifelse(2))
 
         ifnode = [x for x in f.maker.fgraph.toposort() if isinstance(x.op, IfElse)][0]
@@ -199,15 +199,15 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     def test_multiple_out_grad(self):
         # Tests that we can compute the gradients through lazy if
-        x1 = tensor.vector("x1")
-        x2 = tensor.vector("x2")
-        y1 = tensor.vector("y1")
-        y2 = tensor.vector("y2")
-        c = tensor.iscalar("c")
+        x1 = tt.vector("x1")
+        x2 = tt.vector("x2")
+        y1 = tt.vector("y1")
+        y2 = tt.vector("y2")
+        c = tt.iscalar("c")
         z = ifelse(c, (x1, x2), (y1, y2))
-        grads = tensor.grad(z[0].sum() + z[1].sum(), [x1, x2, y1, y2])
+        grads = theano.grad(z[0].sum() + z[1].sum(), [x1, x2, y1, y2])
 
-        f = theano.function([c, x1, x2, y1, y2], grads)
+        f = function([c, x1, x2, y1, y2], grads)
         rng = np.random.RandomState(utt.fetch_seed())
 
         lens = [rng.randint(200) for i in range(4)]
@@ -237,10 +237,10 @@ class TestIfelse(utt.OptimizationTestMixin):
         p = [p0, p1, p2, p3]
 
         # in my code these vars are the result of applying scan
-        ften0 = tensor.tensor3("ft0", dtype=self.dtype)
-        fmat1 = tensor.matrix("fm1", dtype=self.dtype)
-        ften2 = tensor.tensor3("ft2", dtype=self.dtype)
-        fmat3 = tensor.matrix("fm3", dtype=self.dtype)
+        ften0 = tt.tensor3("ft0", dtype=self.dtype)
+        fmat1 = tt.matrix("fm1", dtype=self.dtype)
+        ften2 = tt.tensor3("ft2", dtype=self.dtype)
+        fmat3 = tt.matrix("fm3", dtype=self.dtype)
 
         # then I keep only the last iteration
         fsub0 = ften0[-1]
@@ -250,13 +250,13 @@ class TestIfelse(utt.OptimizationTestMixin):
 
         fsub = [fsub0, fsub1, fsub2, fsub3]
 
-        acc = theano.tensor.constant(1, "int8") >= 0
+        acc = tt.constant(1, "int8") >= 0
 
-        new_positions = theano.ifelse.ifelse(acc, fsub, p)
+        new_positions = ifelse(acc, fsub, p)
 
         new_updates = [(p[0], new_positions[0])]
 
-        f = theano.function(
+        f = function(
             [ften0, fmat1, ften2, fmat3], [], updates=new_updates, mode=self.mode
         )
         self.assertFunctionContains1(f, self.get_ifelse(4))
@@ -272,8 +272,8 @@ class TestIfelse(utt.OptimizationTestMixin):
         rng = np.random.RandomState(utt.fetch_seed())
         data = rng.rand(5).astype(self.dtype)
         x = self.shared(data)
-        y = tensor.cast(x * 10, "int8")
-        cond = theano.tensor.iscalar("cond")
+        y = tt.cast(x * 10, "int8")
+        cond = tt.iscalar("cond")
 
         with pytest.raises(TypeError):
             ifelse(cond, x, y)
@@ -284,8 +284,8 @@ class TestIfelse(utt.OptimizationTestMixin):
         rng = np.random.RandomState(utt.fetch_seed())
         data = rng.rand(5).astype(self.dtype)
         x = self.shared(data)
-        y = tensor.col("y", self.dtype)
-        cond = theano.tensor.iscalar("cond")
+        y = tt.col("y", self.dtype)
+        cond = tt.iscalar("cond")
 
         with pytest.raises(TypeError):
             ifelse(cond, x, y)
@@ -297,9 +297,9 @@ class TestIfelse(utt.OptimizationTestMixin):
         data = rng.rand(5).astype(self.dtype)
         x = self.shared(data)
         # print x.broadcastable
-        y = tensor.row("y", self.dtype)
+        y = tt.row("y", self.dtype)
         # print y.broadcastable
-        cond = theano.tensor.iscalar("cond")
+        cond = tt.iscalar("cond")
 
         with pytest.raises(TypeError):
             ifelse(cond, x, y)
@@ -316,7 +316,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         x = self.shared(data)
         y = theano.sparse.matrix("csc", dtype=self.dtype, name="y")
         z = theano.sparse.matrix("csr", dtype=self.dtype, name="z")
-        cond = theano.tensor.iscalar("cond")
+        cond = tt.iscalar("cond")
 
         with pytest.raises(TypeError):
             ifelse(cond, x, y)
@@ -333,55 +333,55 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     @pytest.mark.skip(reason="Optimization temporarily disabled")
     def test_merge(self):
-        x = tensor.vector("x")
-        y = tensor.vector("y")
-        c = tensor.iscalar("c")
+        x = tt.vector("x")
+        y = tt.vector("y")
+        c = tt.iscalar("c")
         z1 = ifelse(c, x + 1, y + 1)
         z2 = ifelse(c, x + 2, y + 2)
         z = z1 + z2
-        f = theano.function([c, x, y], z)
+        f = function([c, x, y], z)
         assert (
             len([n for n in f.maker.fgraph.toposort() if isinstance(n.op, IfElse)]) == 1
         )
 
     @pytest.mark.skip(reason="Optimization temporarily disabled")
     def test_remove_useless_inputs1(self):
-        x = tensor.vector("x")
-        y = tensor.vector("y")
-        c = tensor.iscalar("c")
+        x = tt.vector("x")
+        y = tt.vector("y")
+        c = tt.iscalar("c")
         z = ifelse(c, (x, x), (y, y))
-        f = theano.function([c, x, y], z)
+        f = function([c, x, y], z)
 
         ifnode = [n for n in f.maker.fgraph.toposort() if isinstance(n.op, IfElse)][0]
         assert len(ifnode.inputs) == 3
 
     @pytest.mark.skip(reason="Optimization temporarily disabled")
     def test_remove_useless_inputs2(self):
-        x1 = tensor.vector("x1")
-        x2 = tensor.vector("x2")
-        y1 = tensor.vector("y1")
-        y2 = tensor.vector("y2")
-        c = tensor.iscalar("c")
+        x1 = tt.vector("x1")
+        x2 = tt.vector("x2")
+        y1 = tt.vector("y1")
+        y2 = tt.vector("y2")
+        c = tt.iscalar("c")
         z = ifelse(c, (x1, x1, x1, x2, x2), (y1, y1, y2, y2, y2))
-        f = theano.function([c, x1, x2, y1, y2], z)
+        f = function([c, x1, x2, y1, y2], z)
 
         ifnode = [x for x in f.maker.fgraph.toposort() if isinstance(x.op, IfElse)][0]
         assert len(ifnode.outputs) == 3
 
     @pytest.mark.skip(reason="Optimization temporarily disabled")
     def test_pushout1(self):
-        x1 = tensor.scalar("x1")
-        x2 = tensor.scalar("x2")
-        y1 = tensor.scalar("y1")
-        y2 = tensor.scalar("y2")
-        w1 = tensor.scalar("w1")
-        w2 = tensor.scalar("w2")
-        c = tensor.iscalar("c")
+        x1 = tt.scalar("x1")
+        x2 = tt.scalar("x2")
+        y1 = tt.scalar("y1")
+        y2 = tt.scalar("y2")
+        w1 = tt.scalar("w1")
+        w2 = tt.scalar("w2")
+        c = tt.iscalar("c")
         x, y = ifelse(c, (x1, y1), (x2, y2), name="f1")
         z = ifelse(c, w1, w2, name="f2")
         out = x * z * y
 
-        f = theano.function([x1, x2, y1, y2, w1, w2, c], out, allow_input_downcast=True)
+        f = function([x1, x2, y1, y2, w1, w2, c], out, allow_input_downcast=True)
         assert isinstance(f.maker.fgraph.toposort()[-1].op, IfElse)
         rng = np.random.RandomState(utt.fetch_seed())
         vx1 = rng.uniform()
@@ -396,10 +396,10 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     @pytest.mark.skip(reason="Optimization temporarily disabled")
     def test_pushout3(self):
-        x1 = tensor.scalar("x1")
-        y1 = tensor.scalar("x2")
-        y2 = tensor.scalar("y2")
-        c = tensor.iscalar("c")
+        x1 = tt.scalar("x1")
+        y1 = tt.scalar("x2")
+        y2 = tt.scalar("y2")
+        c = tt.iscalar("c")
         two = np.asarray(2, dtype=theano.config.floatX)
         x, y = ifelse(c, (x1, y1), (two, y2), name="f1")
         o3 = np.asarray(0.3, dtype=theano.config.floatX)
@@ -407,7 +407,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         z = ifelse(c, o3, o2, name="f2")
         out = x * z * y
 
-        f = theano.function([x1, y1, y2, c], out, allow_input_downcast=True)
+        f = function([x1, y1, y2, c], out, allow_input_downcast=True)
         assert isinstance(f.maker.fgraph.toposort()[-1].op, IfElse)
         rng = np.random.RandomState(utt.fetch_seed())
         vx1 = rng.uniform()
@@ -419,18 +419,18 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     @pytest.mark.skip(reason="Optimization temporarily disabled")
     def test_pushout2(self):
-        x1 = tensor.scalar("x1")
-        x2 = tensor.scalar("x2")
-        y1 = tensor.scalar("y1")
-        y2 = tensor.scalar("y2")
-        w1 = tensor.scalar("w1")
-        w2 = tensor.scalar("w2")
-        c = tensor.iscalar("c")
+        x1 = tt.scalar("x1")
+        x2 = tt.scalar("x2")
+        y1 = tt.scalar("y1")
+        y2 = tt.scalar("y2")
+        w1 = tt.scalar("w1")
+        w2 = tt.scalar("w2")
+        c = tt.iscalar("c")
         x, y = ifelse(c, (x1, y1), (x2, y2), name="f1")
         z = ifelse(x > y, w1, w2, name="f2")
         out = x * z * y
 
-        f = theano.function([x1, x2, y1, y2, w1, w2, c], out, allow_input_downcast=True)
+        f = function([x1, x2, y1, y2, w1, w2, c], out, allow_input_downcast=True)
         assert isinstance(f.maker.fgraph.toposort()[-1].op, IfElse)
         rng = np.random.RandomState(utt.fetch_seed())
         vx1 = rng.uniform()
@@ -453,20 +453,20 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     @pytest.mark.skip(reason="Optimization temporarily disabled")
     def test_merge_ifs_true_false(self):
-        x1 = tensor.scalar("x1")
-        x2 = tensor.scalar("x2")
-        y1 = tensor.scalar("y1")
-        y2 = tensor.scalar("y2")
-        w1 = tensor.scalar("w1")
-        w2 = tensor.scalar("w2")
-        c = tensor.iscalar("c")
+        x1 = tt.scalar("x1")
+        x2 = tt.scalar("x2")
+        y1 = tt.scalar("y1")
+        y2 = tt.scalar("y2")
+        w1 = tt.scalar("w1")
+        w2 = tt.scalar("w2")
+        c = tt.iscalar("c")
 
         out = ifelse(
             c,
             ifelse(c, x1, x2) + ifelse(c, y1, y2) + w1,
             ifelse(c, x1, x2) + ifelse(c, y1, y2) + w2,
         )
-        f = theano.function([x1, x2, y1, y2, w1, w2, c], out, allow_input_downcast=True)
+        f = function([x1, x2, y1, y2, w1, w2, c], out, allow_input_downcast=True)
         assert (
             len([x for x in f.maker.fgraph.toposort() if isinstance(x.op, IfElse)]) == 1
         )
@@ -483,30 +483,25 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     def test_grad_test_values(self):
         # Regression test for test values of `ifelse` gradient.
-
-        backup = theano.config.compute_test_value
-        theano.config.compute_test_value = "raise"
-        try:
-            x = tensor.scalar("x")
+        with theano.config.change_flags(compute_test_value="raise"):
+            x = tt.scalar("x")
             x.tag.test_value = 1
             # Used to crash due to undefined test value.
-            tensor.grad(ifelse(0, x, x), x)
-        finally:
-            theano.config.compute_test_value = backup
+            theano.grad(ifelse(0, x, x), x)
 
     def test_grad_int_value(self):
         w = theano.shared(np.random.rand(10))
         b = theano.shared(np.random.rand())
         params = [w, b]
 
-        x = tensor.vector()
-        y = tensor.scalar()
+        x = tt.vector()
+        y = tt.scalar()
 
         score = w.dot(x) + b
         correct = score * y > 0
 
         loss = ifelse(correct, 0, 1)
-        [(param, param - 0.5 * tensor.grad(cost=loss, wrt=param)) for param in params]
+        [(param, param - 0.5 * theano.grad(cost=loss, wrt=param)) for param in params]
 
 
 class IfElseIfElseIf(Op):

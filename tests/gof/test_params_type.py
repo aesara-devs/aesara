@@ -3,11 +3,11 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import Generic, tensor
+from theano import tensor
 from theano.gof.graph import Apply
 from theano.gof.op import COp, ExternalCOp
 from theano.gof.params_type import Params, ParamsType
-from theano.gof.type import EnumList
+from theano.gof.type import EnumList, Generic
 from theano.scalar import Scalar
 from theano.tensor import TensorType
 

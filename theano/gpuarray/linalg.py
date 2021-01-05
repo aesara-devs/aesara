@@ -4,9 +4,10 @@ import numpy as np
 import pkg_resources
 from numpy.linalg.linalg import LinAlgError
 
-import theano
-from theano import Op, config, tensor
-from theano.gof import ExternalCOp, ParamsType
+from theano import config, tensor
+from theano.gof.graph import Apply
+from theano.gof.op import ExternalCOp, Op
+from theano.gof.params_type import ParamsType
 from theano.gpuarray.basic_ops import (
     CGpuKernelBase,
     as_gpuarray_variable,
@@ -161,7 +162,7 @@ class GpuCusolverSolve(Op):
         assert inp2.ndim == 2
         assert inp1.dtype == inp2.dtype
 
-        return theano.Apply(
+        return Apply(
             self,
             [inp1, inp2],
             [
@@ -379,7 +380,7 @@ class GpuCublasTriangularSolve(Op):
         assert inp2.ndim in [1, 2]
         assert inp1.dtype == inp2.dtype
 
-        return theano.Apply(
+        return Apply(
             self,
             [inp1, inp2],
             [
@@ -568,7 +569,7 @@ class GpuCholesky(Op):
 
         assert inp.ndim == 2
 
-        return theano.Apply(self, [inp], [inp.type()])
+        return Apply(self, [inp], [inp.type()])
 
     def prepare_node(self, node, storage_map, compute_map, impl):
         ctx = node.inputs[0].type.context
@@ -767,7 +768,7 @@ class GpuMagmaSVD(GpuMagmaBase):
         if A.dtype != "float32":
             raise TypeError("only `float32` is supported for now")
         if self.compute_uv:
-            return theano.Apply(
+            return Apply(
                 self,
                 [A],
                 # return S, U, VT
@@ -780,7 +781,7 @@ class GpuMagmaSVD(GpuMagmaBase):
                 ],
             )
         else:
-            return theano.Apply(
+            return Apply(
                 self,
                 [A],
                 # return only S
@@ -865,7 +866,7 @@ class GpuMagmaMatrixInverse(GpuMagmaBase):
             raise LinAlgError("Matrix rank error")
         if A.dtype != "float32":
             raise TypeError("only `float32` is supported for now")
-        return theano.Apply(self, [A], [A.type()])
+        return Apply(self, [A], [A.type()])
 
     def get_params(self, node):
         return self.params_type.get_params(self, context=node.inputs[0].type.context)
@@ -916,7 +917,7 @@ class GpuMagmaCholesky(GpuMagmaBase, CGpuKernelBase):
             raise LinAlgError("Matrix rank error")
         if A.dtype != "float32":
             raise TypeError("only `float32` is supported for now")
-        return theano.Apply(self, [A], [A.type()])
+        return Apply(self, [A], [A.type()])
 
     def get_params(self, node):
         return self.params_type.get_params(self, context=node.inputs[0].type.context)
@@ -960,14 +961,14 @@ class GpuMagmaQR(GpuMagmaBase, CGpuKernelBase):
         if A.dtype != "float32":
             raise TypeError("only `float32` is supported for now")
         if self.complete:
-            return theano.Apply(
+            return Apply(
                 self,
                 [A],
                 # return R, Q
                 [A.type(), A.type()],
             )
         else:
-            return theano.Apply(
+            return Apply(
                 self,
                 [A],
                 # return R
@@ -1034,7 +1035,7 @@ class GpuMagmaEigh(GpuMagmaBase):
         if A.dtype != "float32":
             raise TypeError("only `float32` is supported for now")
         if self.compute_v:
-            return theano.Apply(
+            return Apply(
                 self,
                 [A],
                 # return D, V
@@ -1046,7 +1047,7 @@ class GpuMagmaEigh(GpuMagmaBase):
                 ],
             )
         else:
-            return theano.Apply(
+            return Apply(
                 self,
                 [A],
                 # return D

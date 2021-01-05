@@ -1,4 +1,3 @@
-from theano.compile.debugmode import DebugMode
 from theano.compile.function.pfunc import Param, pfunc, rebuild_collect_shared
 from theano.compile.function.types import (
     AliasedMemoryError,

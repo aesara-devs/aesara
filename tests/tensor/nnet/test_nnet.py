@@ -10,9 +10,9 @@ from tests.tensor.utils import (
     makeBroadcastTester,
     upcast_int8_nfunc,
 )
-from theano import gof
 from theano.compile.mode import OPT_FAST_RUN, optdb
 from theano.configdefaults import config
+from theano.gof.fg import FunctionGraph
 from theano.gof.opt import check_stack_trace
 from theano.tensor import lvector, matrix, scalar, vector
 from theano.tensor.nnet import (
@@ -308,7 +308,7 @@ class TestLogSoftmax(utt.InferShapeTester):
         # We replace the elemwise true_div op by an elemwise add.
         new_g = softmax_grad(tt.add(*true_div_node.inputs), softmax_grad_node.inputs[1])
 
-        fgraph = gof.FunctionGraph([x], [new_g])
+        fgraph = FunctionGraph([x], [new_g])
         optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
         assert softmax_grad in [n.op for n in fgraph.toposort()]
@@ -585,7 +585,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         op = crossentropy_categorical_1hot
         # xe = op(x, one_of_n)
 
-        fgraph = gof.FunctionGraph([x, one_of_n], [op(softmax_op(x), one_of_n)])
+        fgraph = FunctionGraph([x, one_of_n], [op(softmax_op(x), one_of_n)])
         assert fgraph.outputs[0].owner.op == op
 
         optdb.query(OPT_FAST_RUN).optimize(fgraph)
@@ -595,7 +595,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         x = tt.vector("x")
         one_of_n = tt.lvector("one_of_n")
         op = crossentropy_categorical_1hot
-        fgraph = gof.FunctionGraph([x, one_of_n], [op(softmax_op(x), one_of_n)])
+        fgraph = FunctionGraph([x, one_of_n], [op(softmax_op(x), one_of_n)])
         assert fgraph.outputs[0].owner.op == op
 
         optdb.query(OPT_FAST_RUN).optimize(fgraph)
@@ -607,7 +607,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         one_of_n = tt.lvector("one_of_n")
         op = crossentropy_categorical_1hot
 
-        fgraph = gof.FunctionGraph([x, b, one_of_n], [op(softmax_op(x + b), one_of_n)])
+        fgraph = FunctionGraph([x, b, one_of_n], [op(softmax_op(x + b), one_of_n)])
         assert fgraph.outputs[0].owner.op == op
 
         optdb.query(OPT_FAST_RUN).optimize(fgraph)
@@ -622,7 +622,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         one_of_n = tt.lvector("one_of_n")
         op = crossentropy_categorical_1hot
 
-        fgraph = gof.FunctionGraph(
+        fgraph = FunctionGraph(
             [x, b, c, one_of_n], [op(softmax_op(tt.add(x, b, c)), one_of_n)]
         )
         assert fgraph.outputs[0].owner.op == op
@@ -637,7 +637,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         b = tt.vector("b")
         one_of_n = tt.lvector("one_of_n")
         op = crossentropy_categorical_1hot
-        fgraph = gof.FunctionGraph([x, b, one_of_n], [op(softmax_op(x + b), one_of_n)])
+        fgraph = FunctionGraph([x, b, one_of_n], [op(softmax_op(x + b), one_of_n)])
         assert fgraph.outputs[0].owner.op == op
 
         optdb.query(OPT_FAST_RUN).optimize(fgraph)
@@ -652,7 +652,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         xe = op(softmax_op(x), one_of_n)
         sum_xe = tt.sum(xe)
         g_x = tt.grad(sum_xe, x)
-        fgraph = gof.FunctionGraph([x, one_of_n], [g_x])
+        fgraph = FunctionGraph([x, one_of_n], [g_x])
         assert check_stack_trace(
             fgraph, ops_to_check=[crossentropy_softmax_1hot_with_bias_dx, softmax_op]
         )
@@ -672,7 +672,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         xe = op(softmax_op(x), one_of_n)
         sum_xe = tt.sum(xe)
         g_x = tt.grad(sum_xe, x)
-        fgraph = gof.FunctionGraph([x, one_of_n], [g_x])
+        fgraph = FunctionGraph([x, one_of_n], [g_x])
 
         optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
@@ -696,7 +696,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         ]
         for expr in expressions:
 
-            fgraph = gof.FunctionGraph([x, y], [expr])
+            fgraph = FunctionGraph([x, y], [expr])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -705,7 +705,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
             # Also verify the gradient wrt x
-            fgraph = gof.FunctionGraph([x, y], [tt.grad(expr, x)])
+            fgraph = FunctionGraph([x, y], [tt.grad(expr, x)])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -723,14 +723,14 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         ]
 
         for expr in bias_expressions:
-            fgraph = gof.FunctionGraph([x, b, y], [expr, x])
+            fgraph = FunctionGraph([x, b, y], [expr, x])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
             assert len(ops) == 2  # [big_op, sum]
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
 
-            fgraph = gof.FunctionGraph([x, b, y], [tt.grad(expr, x)])
+            fgraph = FunctionGraph([x, b, y], [tt.grad(expr, x)])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -749,7 +749,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         for expr in mean_expressions:
 
-            fgraph = gof.FunctionGraph([x, y], [expr])
+            fgraph = FunctionGraph([x, y], [expr])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -757,7 +757,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
-            fgraph = gof.FunctionGraph([x, y], [tt.grad(expr, x)])
+            fgraph = FunctionGraph([x, y], [tt.grad(expr, x)])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -777,7 +777,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         for expr in mean_bias_expressions:
 
-            fgraph = gof.FunctionGraph([x, b, y], [expr])
+            fgraph = FunctionGraph([x, b, y], [expr])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -785,7 +785,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
-            fgraph = gof.FunctionGraph([x, b, y], [tt.grad(expr, x)])
+            fgraph = FunctionGraph([x, b, y], [tt.grad(expr, x)])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -806,7 +806,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         ]
 
         for expr in expressions:
-            fgraph = gof.FunctionGraph([x, y], [expr])
+            fgraph = FunctionGraph([x, y], [expr])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -815,7 +815,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
             # Also verify the gradient wrt x
-            fgraph = gof.FunctionGraph([x, y], [tt.grad(expr, x)])
+            fgraph = FunctionGraph([x, y], [tt.grad(expr, x)])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -835,7 +835,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         ]
 
         for expr in bias_expressions:
-            fgraph = gof.FunctionGraph([x, y], [expr])
+            fgraph = FunctionGraph([x, y], [expr])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -843,7 +843,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
-            fgraph = gof.FunctionGraph([x, y], [tt.grad(expr, x)])
+            fgraph = FunctionGraph([x, y], [tt.grad(expr, x)])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -866,7 +866,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         ]
 
         for expr in bias_expressions:
-            fgraph = gof.FunctionGraph([x, b, y], [expr])
+            fgraph = FunctionGraph([x, b, y], [expr])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -876,7 +876,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
             with config.change_flags(warn__sum_div_dimshuffle_bug=False):
-                fgraph = gof.FunctionGraph([x, b, y], [tt.grad(expr, x)])
+                fgraph = FunctionGraph([x, b, y], [tt.grad(expr, x)])
                 optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -903,7 +903,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         ]
 
         for expr in bias_expressions:
-            fgraph = gof.FunctionGraph([x, b, y_], [expr])
+            fgraph = FunctionGraph([x, b, y_], [expr])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -913,7 +913,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
             with config.change_flags(warn__sum_div_dimshuffle_bug=False):
-                fgraph = gof.FunctionGraph([x, b, y], [tt.grad(expr, x)])
+                fgraph = FunctionGraph([x, b, y], [tt.grad(expr, x)])
                 optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -941,7 +941,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         ]
 
         for expr in bias_expressions:
-            fgraph = gof.FunctionGraph([x, b, y_], [expr])
+            fgraph = FunctionGraph([x, b, y_], [expr])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -951,7 +951,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert not [1 for o in ops if isinstance(o, tt.AdvancedSubtensor)]
 
             with config.change_flags(warn__sum_div_dimshuffle_bug=False):
-                fgraph = gof.FunctionGraph([x, b, y], [tt.grad(expr, x)])
+                fgraph = FunctionGraph([x, b, y], [tt.grad(expr, x)])
                 optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
@@ -1003,7 +1003,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         ]
 
         for expr in expressions:
-            fgraph = gof.FunctionGraph([x, y, a], [expr])
+            fgraph = FunctionGraph([x, y, a], [expr])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             assert 5 <= len(fgraph.toposort()) <= 10
@@ -1013,7 +1013,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert softmax_op not in ops
 
             # Verify the gradient wrt x
-            fgraph = gof.FunctionGraph([x, y, a], [tt.grad(expr, x)])
+            fgraph = FunctionGraph([x, y, a], [tt.grad(expr, x)])
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             assert 3 <= len(fgraph.toposort()) <= 6
@@ -1024,7 +1024,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert softmax_grad not in ops
 
             # Verify the gradient when providing output gradient
-            fgraph = gof.FunctionGraph(
+            fgraph = FunctionGraph(
                 [x, y, a], [tt.grad(expr, x, known_grads={expr: a * x.sum()})]
             )
             optdb.query(OPT_FAST_RUN).optimize(fgraph)
@@ -1042,7 +1042,7 @@ def test_argmax_pushdown():
     for sm in [softmax_graph, softmax_op]:
         # test that the max_and_argmax is pushed down if the max is not used
         out = tt.max_and_argmax(sm(tt.exp(tt.tanh(sigmoid(x)))), axis=-1)[1]
-        fgraph = gof.FunctionGraph([x], [out])
+        fgraph = FunctionGraph([x], [out])
         optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
         # print 'AFTER'
@@ -1054,7 +1054,7 @@ def test_argmax_pushdown():
         x = tt.matrix()
         # test that the max_and_argmax is not pushed down if the max is used
         out = tt.max_and_argmax(sm(tt.exp(tt.tanh(sigmoid(x)))), axis=-1)[0]
-        fgraph = gof.FunctionGraph([x], [out])
+        fgraph = FunctionGraph([x], [out])
 
         assert hasattr(fgraph.outputs[0].tag, "trace")
 
@@ -1078,7 +1078,7 @@ def test_argmax_pushdown_bias():
     b = tt.vector()
 
     out = tt.argmax(softmax_with_bias(x, b), axis=-1)
-    fgraph = gof.FunctionGraph([x, b], [out])
+    fgraph = FunctionGraph([x, b], [out])
 
     optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
@@ -1092,7 +1092,7 @@ def test_argmax_pushdown_bias():
     x = tt.matrix()
     b = tt.vector()
     out = tt.max_and_argmax(softmax_with_bias(x, b), axis=-1)[0]
-    fgraph = gof.FunctionGraph([x, b], [out])
+    fgraph = FunctionGraph([x, b], [out])
 
     with config.change_flags(warn__argmax_pushdown_bug=False):
         optdb.query(OPT_FAST_RUN).optimize(fgraph)

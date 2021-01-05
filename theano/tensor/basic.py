@@ -1,4 +1,4 @@
-"""A `Type` and `Op` classes to work with numpy.ndarrays symbolically."""
+"""`Op` classes for working with ``numpy.ndarrays`` symbolically."""
 
 import builtins
 import logging
@@ -9,24 +9,18 @@ import numpy as np
 
 import theano
 import theano.scalar.sharedvar
-from theano import compile, config, gof, printing
+from theano import compile, config, printing
 from theano import scalar as scal
-
-# For history
 from theano.compile import Rebroadcast, Shape, shape
-from theano.gof import Constant, ParamsType
-from theano.gof.graph import Apply, Variable
+from theano.gof.graph import Apply, Constant, Variable
 from theano.gof.op import COp, Op
-from theano.gof.type import Generic
-
-# We use these exceptions as well.
+from theano.gof.params_type import ParamsType
+from theano.gof.type import CType, Generic
 from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
 from theano.misc.safe_asarray import _asarray
 from theano.printing import min_informative_str, pprint
 from theano.scalar import int32
 from theano.tensor import elemwise
-
-# set up the external interface
 from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise, Sum, scalar_elemwise
 from theano.tensor.type import TensorType, values_eq_approx_always_true
 from theano.tensor.type_other import NoneConst
@@ -131,7 +125,7 @@ def as_tensor_variable(x, name=None, ndim=None):
     if hasattr(x, "_as_TensorVariable"):
         return x._as_TensorVariable()  # TODO: pass name and ndim arguments
 
-    if isinstance(x, gof.Apply):
+    if isinstance(x, Apply):
         # use Apply's default output mechanism
         if (x.op.default_output is None) and (len(x.outputs) != 1):
             raise TypeError(
@@ -565,7 +559,7 @@ def get_scalar_constant_value(
                         var.ndim == 0 for var in v.owner.inputs[0].owner.inputs[1:]
                     ):
                         idx = v.owner.op.idx_list[0]
-                        if isinstance(idx, gof.CType):
+                        if isinstance(idx, CType):
                             idx = get_scalar_constant_value(
                                 v.owner.inputs[1], max_recur=max_recur
                             )
@@ -579,7 +573,7 @@ def get_scalar_constant_value(
                         var.ndim == 1 for var in v.owner.inputs[0].owner.inputs[1:]
                     ):
                         idx = v.owner.op.idx_list[0]
-                        if isinstance(idx, gof.CType):
+                        if isinstance(idx, CType):
                             idx = get_scalar_constant_value(
                                 v.owner.inputs[1], max_recur=max_recur
                             )
@@ -616,7 +610,7 @@ def get_scalar_constant_value(
                 ):
 
                     idx = v.owner.op.idx_list[0]
-                    if isinstance(idx, gof.CType):
+                    if isinstance(idx, CType):
                         idx = get_scalar_constant_value(
                             v.owner.inputs[1], max_recur=max_recur
                         )
@@ -638,7 +632,7 @@ def get_scalar_constant_value(
                     op = owner.op
                     idx_list = op.idx_list
                     idx = idx_list[0]
-                    if isinstance(idx, gof.CType):
+                    if isinstance(idx, CType):
                         idx = get_scalar_constant_value(
                             owner.inputs[1], max_recur=max_recur
                         )
@@ -2637,7 +2631,7 @@ class Nonzero(Op):
         output = [
             TensorType(dtype="int64", broadcastable=(False,))() for i in range(a.ndim)
         ]
-        return gof.Apply(self, [a], output)
+        return Apply(self, [a], output)
 
     def perform(self, node, inp, out_):
         a = inp[0]
@@ -2762,7 +2756,7 @@ class Tri(Op):
         N = as_tensor_variable(N)
         M = as_tensor_variable(M)
         k = as_tensor_variable(k)
-        return gof.Apply(
+        return Apply(
             self,
             [N, M, k],
             [TensorType(dtype=self.dtype, broadcastable=(False, False))()],
@@ -2876,7 +2870,7 @@ class Eye(Op):
         assert n.ndim == 0
         assert m.ndim == 0
         assert k.ndim == 0
-        return gof.Apply(
+        return Apply(
             self,
             [n, m, k],
             [TensorType(dtype=self.dtype, broadcastable=(False, False))()],
@@ -2999,7 +2993,7 @@ class Alloc(COp):
                 len(sh),
             )
         otype = TensorType(dtype=v.dtype, broadcastable=bcast)
-        return gof.Apply(self, [v] + sh, [otype()])
+        return Apply(self, [v] + sh, [otype()])
 
     def perform(self, node, inputs, out_):
         (out,) = out_
@@ -3553,7 +3547,7 @@ class Default(Op):
         x, default = as_tensor_variable(x), as_tensor_variable(default)
         if x.type != default.type:
             raise TypeError("Both default() arguments must have same type", x, default)
-        return gof.Apply(self, [x, default], [default.type()])
+        return Apply(self, [x, default], [default.type()])
 
     def perform(self, node, inp, out_):
         x, default = inp
@@ -3862,7 +3856,7 @@ class Split(COp):
             raise TypeError("axis must have type lscalar", axis.type)
 
         #         # The following lines are necessary if we allow splits of zero
-        #         if isinstance(axis, gof.Constant):
+        #         if isinstance(axis, Constant):
         #             x = unbroadcast(x, int(axis.data))
         #         else:
         #             x = unbroadcast(x, *range(x.type.ndim))
@@ -4833,7 +4827,7 @@ def get_vector_length(v):
         return 1
     if isinstance(v, theano.tensor.sharedvar.TensorSharedVariable) and v.type.ndim == 1:
         return len(v.get_value())
-    if isinstance(v, gof.Constant) and v.type.ndim == 1:
+    if isinstance(v, Constant) and v.type.ndim == 1:
         return len(v.data)
     if v.owner and isinstance(v.owner.op, theano.tensor.opt.MakeVector):
         return len(v.owner.inputs)
@@ -4965,7 +4959,7 @@ class Reshape(COp):
         assert shp.ndim == 1
         if isinstance(shp, TensorConstant):
             bcast = [s == 1 for s in shp.data]
-            return gof.Apply(self, [x, shp], [tensor(x.type.dtype, bcast)])
+            return Apply(self, [x, shp], [tensor(x.type.dtype, bcast)])
         else:
             bcasts = [False] * self.ndim
             shp_list = shp_orig
@@ -4983,7 +4977,7 @@ class Reshape(COp):
                     )
                 except NotScalarConstantError:
                     pass
-            return gof.Apply(self, [x, shp], [tensor(x.type.dtype, bcasts)])
+            return Apply(self, [x, shp], [tensor(x.type.dtype, bcasts)])
 
     def perform(self, node, inp, out_, params):
         x, shp = inp
@@ -5197,7 +5191,7 @@ class Flatten(COp):
         bcast_new_dim = builtins.all(x.broadcastable[self.ndim - 1 :])
         broadcastable = bcast_kept_dims + (bcast_new_dim,)
 
-        return gof.Apply(self, [t_x], [tensor(x.type.dtype, broadcastable)])
+        return Apply(self, [t_x], [tensor(x.type.dtype, broadcastable)])
 
     def perform(self, node, inp, out_):
         (x,) = inp
@@ -5416,7 +5410,7 @@ class Tile(Op):
         )
         x = as_tensor_variable(x)
         reps = as_tensor_variable(reps)
-        return gof.Apply(self, [x, reps], [tensor(x.type.dtype, [False] * self.ndim)])
+        return Apply(self, [x, reps], [tensor(x.type.dtype, [False] * self.ndim)])
 
     def perform(self, node, inp, out_):
         x, reps = inp

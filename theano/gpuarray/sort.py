@@ -4,7 +4,7 @@ from string import Template
 import numpy as np
 
 import theano
-from theano import Apply
+from theano.gof.graph import Apply
 from theano.tensor import as_tensor_variable
 from theano.tensor.sort import TopKOp
 

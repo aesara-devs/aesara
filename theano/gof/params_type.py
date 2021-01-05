@@ -18,7 +18,7 @@ Importation:
 .. code-block:: python
 
     # Import ParamsType class.
-    from theano.gof import ParamsType
+    from theano.gof.params_type import ParamsType
 
     # If you want to use a tensor and a scalar as parameters,
     # you should import required Theano types.
@@ -74,7 +74,8 @@ enumerations will be directly available as ParamsType attributes.
 
 **Example**::
 
-    from theano.gof import ParamsType, EnumType, EnumList
+    from theano.gof.params_type import ParamsType
+    from theano.gof.type import EnumType, EnumList
 
     wrapper = ParamsType(enum1=EnumList('CONSTANT_1', 'CONSTANT_2', 'CONSTANT_3'),
                          enum2=EnumType(PI=3.14, EPSILON=0.001))
@@ -234,7 +235,7 @@ class Params(dict):
 
     .. code-block:: python
 
-        from theano.gof import ParamsType, Params
+        from theano.gof.params_type import ParamsType, Params
         from theano.scalar import Scalar
         # You must create a ParamsType first:
         params_type = ParamsType(attr1=Scalar('int32'),
@@ -495,7 +496,8 @@ class ParamsType(CType):
 
         **Example**::
 
-            from theano.gof import ParamsType, EnumType, EnumList
+            from theano.gof.params_type import ParamsType
+            from theano.gof.type import EnumType, EnumList
             from theano.scalar import Scalar
 
             wrapper = ParamsType(scalar=Scalar('int32'),
@@ -523,7 +525,8 @@ class ParamsType(CType):
 
         **Example**::
 
-            from theano.gof import ParamsType, EnumType, EnumList
+            from theano.gof.params_type import ParamsType
+            from theano.gof.type import EnumType, EnumList
             from theano.scalar import Scalar
 
             wrapper = ParamsType(scalar=Scalar('int32'),
@@ -569,7 +572,7 @@ class ParamsType(CType):
         **Example**::
 
             import numpy
-            from theano.gof import ParamsType
+            from theano.gof.params_type import ParamsType
             from theano.tensor import dmatrix
             from theano.scalar import Scalar
 
