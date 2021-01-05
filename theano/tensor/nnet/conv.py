@@ -1141,13 +1141,13 @@ class ConvOp(OpenMPOp):
         dw = patternbroadcast(dw, kerns.broadcastable)
         return [din, dw]
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<numpy/noprefix.h>", "<iostream>", "<sstream>"]
 
     def c_code_cache_version(self):
         return (15, self.openmp, blas.blas_header_version())
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return (
             """
 #define STRIDES(arr) (PyArray_STRIDES(arr))
@@ -1176,12 +1176,12 @@ using namespace std;
             return True
         return False
 
-    def c_libraries(self):
+    def c_libraries(self, **kwargs):
         if self.use_blas():
             return blas.ldflags()
         return []
 
-    def c_no_compile_args(self):
+    def c_no_compile_args(self, **kwargs):
         # when the ksph==(1,1) gcc 4.3.0 segfault during the
         # compilation with -O3.  This don't happen at -O2
         if theano.link.c.cmodule.gcc_version() in ["4.3.0"] and self.kshp == (1, 1):
@@ -1189,7 +1189,7 @@ using namespace std;
         else:
             return []
 
-    def c_compile_args(self):
+    def c_compile_args(self, **kwargs):
         ret = []
 
         if self.use_blas():
@@ -1197,16 +1197,16 @@ using namespace std;
         if theano.link.c.cmodule.gcc_version() in ["4.3.0"] and self.kshp == (1, 1):
             ret += ["-O2"]
         # Add the -fopenmp flags
-        ret += super().c_compile_args()
+        ret += super().c_compile_args(**kwargs)
 
         return ret
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         if self.use_blas():
             return blas.ldflags(libs=False, libs_dir=True)
         return []
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         if self.use_blas():
             return blas.ldflags(libs=False, include_dir=True)
         return []

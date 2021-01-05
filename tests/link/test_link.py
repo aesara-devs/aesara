@@ -92,7 +92,9 @@ class TestPerformLinker:
         e = mul(add(x, y), div(x, y))
         fn, i, o = perform_linker(FunctionGraph([x, y, z], [e])).make_thunk()
         i[0].data = 1
+        assert i[0].data == 1
         i[1].data = 2
+        assert i[1].data == 2
         fn()
         assert o[0].data == 1.5
 

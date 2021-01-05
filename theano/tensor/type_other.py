@@ -7,7 +7,7 @@ import numpy as np
 import theano
 from theano.gof.graph import Apply, Constant
 from theano.gof.op import Op
-from theano.gof.type import CType, Generic
+from theano.gof.type import Generic, Type
 from theano.gradient import DisconnectedType
 
 
@@ -49,7 +49,7 @@ class MakeSlice(Op):
 make_slice = MakeSlice()
 
 
-class SliceType(CType):
+class SliceType(Type):
     def filter(self, x, strict=False, allow_downcast=None):
         if isinstance(x, slice):
             return x

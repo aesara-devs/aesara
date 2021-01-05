@@ -20,7 +20,7 @@ class ProdOp(COp):
     def make_node(self, i):
         return Apply(self, [i], [CDataType("void *", "py_decref")()])
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return """
 void py_decref(void *p) {
   Py_XDECREF((PyObject *)p);
@@ -46,7 +46,7 @@ class GetOp(COp):
     def make_node(self, c):
         return Apply(self, [c], [TensorType("float32", (False,))()])
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return """
 void py_decref(void *p) {
   Py_XDECREF((PyObject *)p);
@@ -172,10 +172,10 @@ class MyOpCEnumType(COp):
         ctype="size_t",
     )
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [os.path.join(os.path.dirname(__file__), "c_code")]
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["test_cenum.h"]
 
     def __init__(self, value_name):

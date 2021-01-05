@@ -116,7 +116,7 @@ class SoftmaxWithBias(COp):
     def infer_shape(self, fgraph, node, shape):
         return [shape[0]]
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<iostream>", "<cmath>"]
 
     @staticmethod
@@ -472,7 +472,7 @@ class Softmax(COp):
     def infer_shape(self, fgraph, node, shape):
         return shape
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<iostream>", "<cmath>"]
 
     @staticmethod
@@ -671,7 +671,7 @@ class LogSoftmax(COp):
     def infer_shape(self, fgraph, node, shape):
         return shape
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<cmath>"]
 
     @staticmethod
@@ -1121,7 +1121,7 @@ class CrossentropySoftmaxArgmax1HotWithBias(COp):
 
         return [fancy_sum(terms) for terms in [dx_terms, db_terms, d_idx_terms]]
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<iostream>", "<cmath>"]
 
     @staticmethod

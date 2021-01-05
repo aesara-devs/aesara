@@ -74,7 +74,7 @@ class ViewOp(COp):
             return code % locals()
 
         # Else, no C code
-        return super().c_code(node, nodename, inp, out, sub)
+        raise NotImplementedError()
 
     def c_code_cache_version(self):
         version = []
@@ -209,7 +209,7 @@ class DeepCopyOp(COp):
             return code % locals()
 
         # Else, no C code
-        return super().c_code(node, name, inames, onames, sub)
+        raise NotImplementedError()
 
 
 deep_copy_op = DeepCopyOp()
@@ -299,7 +299,7 @@ class Shape(COp):
             return code % locals()
 
         # Else, no C code
-        return super().c_code(node, name, inames, onames, sub)
+        raise NotImplementedError()
 
     def c_code_cache_version(self):
         version = []
@@ -423,7 +423,7 @@ class Shape_i(COp):
             return (check_input + code) % locals()
 
         # Else, no C code
-        return super().c_code(node, name, inames, onames, sub)
+        raise NotImplementedError()
 
     def infer_shape(self, fgraph, node, input_shapes):
         return [()]
@@ -789,7 +789,7 @@ class Rebroadcast(COp):
             Py_XINCREF({oname});
             """
             )
-        return super().c_code(node, nodename, inp, out, sub)
+        raise NotImplementedError()
 
     def c_code_cache_version(self):
         version = []
@@ -933,7 +933,7 @@ class SpecifyShape(COp):
             code, version, _ = self.c_code_and_version[itype]
             return code % locals()
 
-        return super().c_code(node, node, inames, onames, sub)
+        raise NotImplementedError()
 
     def c_code_cache_version(self):
         version = []

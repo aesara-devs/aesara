@@ -354,7 +354,7 @@ class Psi(UnaryScalarOp):
 
         return [gz * tri_gamma(x)]
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return """
             // For GPU support
             #ifdef WITHIN_KERNEL
@@ -438,7 +438,7 @@ class TriGamma(UnaryScalarOp):
     def grad(self, inputs, outputs_gradients):
         raise NotImplementedError()
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         # The implementation has been copied from
         # http://people.sc.fsu.edu/~jburkardt/cpp_src/asa121/asa121.html
         return """
@@ -524,7 +524,7 @@ class Chi2SF(BinaryScalarOp):
         else:
             super().impl(x, k)
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         with open(os.path.join(os.path.dirname(__file__), "c_code", "gamma.c")) as f:
             raw = f.read()
             return raw
@@ -568,7 +568,7 @@ class GammaInc(BinaryScalarOp):
         else:
             super().impl(k, x)
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         with open(os.path.join(os.path.dirname(__file__), "c_code", "gamma.c")) as f:
             raw = f.read()
             return raw
@@ -612,7 +612,7 @@ class GammaIncC(BinaryScalarOp):
         else:
             super().impl(k, x)
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         with open(os.path.join(os.path.dirname(__file__), "c_code", "gamma.c")) as f:
             raw = f.read()
             return raw
@@ -656,7 +656,7 @@ class GammaU(BinaryScalarOp):
         else:
             super().impl(k, x)
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         with open(os.path.join(os.path.dirname(__file__), "c_code", "gamma.c")) as f:
             raw = f.read()
             return raw
@@ -700,7 +700,7 @@ class GammaL(BinaryScalarOp):
         else:
             super().impl(k, x)
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         with open(os.path.join(os.path.dirname(__file__), "c_code", "gamma.c")) as f:
             raw = f.read()
             return raw

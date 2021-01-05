@@ -1,15 +1,17 @@
 """The `Type` classes."""
 
-
 import ctypes
 import platform
 import re
+from abc import abstractmethod
+from typing import Any, NoReturn, Optional, Text, TypeVar, Union
 
 import theano
 from theano.configdefaults import config
-from theano.gof import graph, utils
+from theano.gof import utils
+from theano.gof.graph import Constant, Variable
 from theano.gof.op import COp
-from theano.gof.utils import MetaObject, MethodNotDefined
+from theano.gof.utils import MetaObject
 from theano.link.c.interface import CLinkerType
 from theano.utils import Singleton
 
@@ -17,7 +19,10 @@ from theano.utils import Singleton
 __docformat__ = "restructuredtext en"
 
 
-class Type:
+D = TypeVar("D")
+
+
+class Type(MetaObject):
     """
     Interface specification for variable type instances.
 
@@ -32,54 +37,79 @@ class Type:
     """
 
     # the type that will be created by a call to make_variable.
-    Variable = graph.Variable
+    Variable = Variable
 
     # the type that will be created by a call to make_constant
-    Constant = graph.Constant
+    Constant = Constant
 
-    def filter(self, data, strict=False, allow_downcast=None):
-        """
-        Required: Return data or an appropriately wrapped/converted data.
+    @abstractmethod
+    def filter(
+        self, data: D, strict: bool = False, allow_downcast: Optional[bool] = None
+    ) -> Union[D, Any]:
+        """Return data or an appropriately wrapped/converted data.
 
-        Subclass implementation should raise a TypeError exception if
+        Subclass implementations should raise a TypeError exception if
         the data is not of an acceptable type.
 
-        If strict is True, the data returned must be the same as the
-        data passed as an argument. If it is False, and allow_downcast
-        is True, filter may cast it to an appropriate type. If
-        allow_downcast is False, filter may only upcast it, not lose
-        precision. If allow_downcast is None (default), the behaviour can be
-        Type-dependent, but for now it means only Python floats can be
-        downcasted, and only to floatX scalars.
+        Parameters
+        ----------
+        data: array-like
+            The data to be filtered/converted.
+        strict: bool (optional)
+            If ``True``, the data returned must be the same as the
+            data passed as an argument.
+        allow_downcast: bool (optional)
+            If `strict` is ``False``, and `allow_downcast` is ``True``, the
+            data may be cast to an appropriate type. If `allow_downcast` is
+            ``False``, it may only be up-cast and not lose precision. If
+            `allow_downcast` is ``None`` (default), the behaviour can be
+            type-dependent, but for now it means only Python floats can be
+            down-casted, and only to floatX scalars.
+
+        """
+
+    def filter_inplace(
+        self,
+        value: D,
+        storage: Any,
+        strict: bool = False,
+        allow_downcast: Optional[bool] = None,
+    ) -> NoReturn:
+        """Return data or an appropriately wrapped/converted data by converting it in-place.
+
+        This method allows one to reuse old allocated memory.  If this method
+        is implemented, it will be called instead of `Type.filter`.
+
+        As of now, this method is only used when we transfer new data to a
+        shared variable on a GPU.
+
+        Parameters
+        ----------
+        value: array-like
+        storage: array-like
+            The old value (e.g. the old NumPy array, CudaNdarray, etc.)
+        strict: bool
+        allow_downcast: bool (optional)
 
         Raises
         ------
-        MethodNotDefined
-            Subclass doesn't implement this function.
+        NotImplementedError
+        """
+        raise NotImplementedError()
+
+    def filter_variable(
+        self, other: Union[Variable, D], allow_convert: bool = True
+    ) -> Variable:
+        """Convert a symbolic variable into this `Type`, if compatible.
+
+        For the moment, the only `Type`s compatible with one another are
+        `TensorType` and `GpuArrayType`, provided they have the same number of
+        dimensions, same broadcasting pattern, and same dtype.
+
+        If `Type`s are not compatible, a ``TypeError`` should be raised.
 
         """
-        raise MethodNotDefined("filter", type(self), self.__class__.__name__)
-
-    # If filter_inplace is defined, it will be called instead of
-    # filter() This is to allow reusing the old allocated memory. As
-    # of this writing this is used only when we transfer new data to a
-    # shared variable on the gpu.
-
-    # def filter_inplace(value, storage, strict=False, allow_downcast=None)
-
-    def filter_variable(self, other, allow_convert=True):
-        """
-        Convert a symbolic variable into this Type, if compatible.
-
-        For the moment, the only Types compatible with one another are
-        TensorType and GpuArrayType, provided they have the same
-        number of dimensions, same broadcasting pattern, and same
-        dtype.
-
-        If Types are not compatible, a TypeError should be raised.
-
-        """
-        if not isinstance(other, graph.Variable):
+        if not isinstance(other, Variable):
             # The value is not a Variable: we cast it into
             # a Constant of the appropriate Type.
             other = self.Constant(type=self, data=other)
@@ -98,9 +128,8 @@ class Type:
             )
         return other
 
-    def convert_variable(self, var):
-        """
-        Patch variable so that its type will match self, if possible.
+    def convert_variable(self, var: Union[Variable, D]) -> Optional[Variable]:
+        """Patch a variable so that its `Type` will match ``self``, if possible.
 
         If the variable can't be converted, this should return None.
 
@@ -118,44 +147,44 @@ class Type:
         """
         return None
 
-    def is_valid_value(self, a):
-        """
-        Required: Return True for any python object `a` that would be a
-        legal value for a Variable of this Type.
-
-        """
+    def is_valid_value(self, data: D) -> bool:
+        """Return ``True`` for any python object that would be a legal value for a `Variable` of this `Type`."""
         try:
-            self.filter(a, strict=True)
+            self.filter(data, strict=True)
             return True
         except (TypeError, ValueError):
             return False
 
-    def value_validity_msg(self, a):
-        """
-        Optional: Return a message explaining the output of
-        is_valid_value.
-
-        """
+    def value_validity_msg(self, data: D) -> Text:
+        """Return a message explaining the output of `Type.is_valid_value`."""
         return "none"
 
-    def make_variable(self, name=None):
-        """
-        Return a new `Variable` instance of Type `self`.
+    def make_variable(self, name: Optional[Text] = None) -> Variable:
+        """Return a new `Variable` instance of this `Type`.
 
         Parameters
         ----------
-        name : None or str
+        name: None or str
             A pretty string for printing and debugging.
 
         """
         return self.Variable(self, name=name)
 
-    def make_constant(self, value, name=None):
+    def make_constant(self, value: D, name: Optional[Text] = None) -> Constant:
+        """Return a new `Constant` instance of this `Type`.
+
+        Parameters
+        ----------
+        value: array-like
+            The constant value.
+        name: None or str
+            A pretty string for printing and debugging.
+
+        """
         return self.Constant(type=self, data=value, name=name)
 
-    def __call__(self, name=None):
-        """
-        Return a new `Variable` instance of Type `self`.
+    def __call__(self, name: Optional[Text] = None) -> Variable:
+        """Return a new `Variable` instance of Type `self`.
 
         Parameters
         ----------
@@ -165,20 +194,20 @@ class Type:
         """
         return utils.add_tag_trace(self.make_variable(name))
 
-    def values_eq(self, a, b):
-        """
-        Return True if a and b can be considered exactly equal.
+    @classmethod
+    def values_eq(cls, a: Any, b: Any) -> bool:
+        """Return ``True`` if `a` and `b` can be considered exactly equal.
 
-        a and b are assumed to be valid values of this Type.
+        `a` and `b` are assumed to be valid values of this `Type`.
 
         """
         return a == b
 
-    def values_eq_approx(self, a, b):
-        """
-        Return True if a and b can be considered approximately equal.
+    @classmethod
+    def values_eq_approx(cls, a: Any, b: Any):
+        """Return ``True`` if `a` and `b` can be considered approximately equal.
 
-        This function is used by theano debugging tools to decide
+        This function is used by Theano debugging tools to decide
         whether two values are equivalent, admitting a certain amount
         of numerical instability. For example, for floating-point
         numbers this function should be an approximate comparison.
@@ -187,18 +216,17 @@ class Type:
 
         Parameters
         ----------
-        a
-            A potential value for a Variable of this Type.
-
-        b
-            A potential value for a Variable of this Type.
+        a: array-like
+            A potential value for a `Variable` of this `Type`.
+        b: array-like
+            A potential value for a `Variable` of this `Type`.
 
         Returns
         -------
         bool
 
         """
-        return self.values_eq(a, b)
+        return cls.values_eq(a, b)
 
         #    def get_shape_info(self, obj):
         """
@@ -213,9 +241,8 @@ class Type:
         """
 
 
-class CType(MetaObject, Type, CLinkerType):
-    """
-    Convenience wrapper combining `Type` and `CLinkerType`.
+class CType(Type, CLinkerType):
+    """Convenience wrapper combining `Type` and `CLinkerType`.
 
     Theano comes with several subclasses of such as:
 
@@ -286,7 +313,7 @@ class Generic(CType, Singleton):
         {name} = NULL;
         """
 
-    def c_extract(self, name, sub, check_input=True):
+    def c_extract(self, name, sub, check_input=True, **kwargs):
         return f"""
         Py_INCREF(py_{name});
         {name} = py_{name};
@@ -464,25 +491,12 @@ class CDataType(CType):
     def c_init(self, name, sub):
         return f"{name} = NULL;"
 
-    def c_extract(self, name, sub, check_input=True):
+    def c_extract(self, name, sub, check_input=True, **kwargs):
         return """
   %(name)s = (%(ctype)s)PyCapsule_GetPointer(py_%(name)s, NULL);
   if (%(name)s == NULL) %(fail)s
         """ % dict(
             name=name, ctype=self.ctype, fail=sub["fail"]
-        )
-
-    def c_support_code(self):
-        return (
-            """
-void _capsule_destructor(PyObject *o) {
-    void *d = PyCapsule_GetContext(o);
-    void *p = PyCapsule_GetPointer(o, NULL);
-    void (*f)(void *) = (void (*)(void *))d;
-    if (f != NULL) f(p);
-}
-"""
-            + self.extra_support_code
         )
 
     def c_sync(self, name, sub):
@@ -518,19 +532,32 @@ if (py_%(name)s == NULL) { %(freefunc)s(%(name)s); }
         # free the data for us when released.
         return ""
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return self.headers
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return self.header_dirs
 
-    def c_libraries(self):
+    def c_libraries(self, **kwargs):
         return self.libraries
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         return self.lib_dirs
 
-    def c_compile_args(self):
+    def c_support_code(self, **kwargs):
+        return (
+            """
+void _capsule_destructor(PyObject *o) {
+    void *d = PyCapsule_GetContext(o);
+    void *p = PyCapsule_GetPointer(o, NULL);
+    void (*f)(void *) = (void (*)(void *))d;
+    if (f != NULL) f(p);
+}
+"""
+            + self.extra_support_code
+        )
+
+    def c_compile_args(self, **kwargs):
         return self.compile_args
 
     def c_code_cache_version(self):
@@ -553,7 +580,7 @@ if (py_%(name)s == NULL) { %(freefunc)s(%(name)s); }
             self.version = None
 
 
-class CDataTypeConstant(graph.Constant):
+class CDataTypeConstant(Constant):
     def merge_signature(self):
         # We don't want to merge constants that don't point to the
         # same object.
@@ -871,7 +898,7 @@ class EnumType(CType, dict):
             ),
         )
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return (
             self.pyint_compat_code
             + "".join(
@@ -893,7 +920,7 @@ class EnumType(CType, dict):
     def c_cleanup(self, name, sub):
         return ""
 
-    def c_extract(self, name, sub, check_input=True):
+    def c_extract(self, name, sub, check_input=True, **kwargs):
         return """
         if (PyInt_Check(py_%(name)s)) {
             %(name)s = (%(ctype)s)PyInt_AsLong(py_%(name)s);
@@ -909,6 +936,9 @@ class EnumType(CType, dict):
 
     def c_code_cache_version(self):
         return (2, self.ctype, self.cname, tuple(self.items()))
+
+    def c_sync(self, name, sub):
+        raise NotImplementedError("Variables of this type cannot be graph outputs")
 
 
 class EnumList(EnumType):
@@ -1015,10 +1045,10 @@ class CEnumType(EnumList):
 
     """
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return self.pyint_compat_code + self.c_to_string()
 
-    def c_extract(self, name, sub, check_input=True):
+    def c_extract(self, name, sub, check_input=True, **kwargs):
         swapped_dict = {v: k for (k, v) in self.items()}
         # swapped_dict's keys are integers.
 

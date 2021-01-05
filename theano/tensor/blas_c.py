@@ -25,19 +25,19 @@ from theano.tensor.opt import in2out
 
 
 class BaseBLAS(COp):
-    def c_libraries(self):
+    def c_libraries(self, **kwargs):
         return ldflags()
 
-    def c_compile_args(self):
+    def c_compile_args(self, **kwargs):
         return ldflags(libs=False, flags=True)
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         return ldflags(libs=False, libs_dir=True)
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return ldflags(libs=False, include_dir=True)
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return blas_header_text()
 
 

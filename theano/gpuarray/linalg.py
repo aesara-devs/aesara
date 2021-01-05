@@ -699,7 +699,7 @@ class GpuMagmaBase(ExternalCOp):
     libraries and optionally the location of headers and library.
     """
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return [
             "gpuarray/types.h",
             "gpuarray/array.h",
@@ -708,7 +708,7 @@ class GpuMagmaBase(ExternalCOp):
             "magma.h",
         ]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         dirs = [
             gpuarray_helper_inc_dir(),
             pygpu.get_include(),
@@ -718,10 +718,10 @@ class GpuMagmaBase(ExternalCOp):
             dirs.append(config.magma__include_path)
         return dirs
 
-    def c_libraries(self):
+    def c_libraries(self, **kwargs):
         return ["magma"]
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         if config.magma__library_path:
             return [config.magma__library_path]
         return []

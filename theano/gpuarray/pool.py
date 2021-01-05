@@ -46,10 +46,10 @@ class GpuPool(CGpuKernelBase):
     def get_params(self, node):
         return self.params_type.get_params(self, context=node.inputs[0].type.context)
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["gpuarray_api.h", "gpuarray_helper.h", "numpy_compat.h"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir(), pygpu.get_include()]
 
     def make_node(self, inp, ws, stride=None, pad=None):
@@ -154,10 +154,10 @@ class GpuMaxPoolGrad(CGpuKernelBase):
         assert mode == "max"
         assert ndim in [2, 3]
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["gpuarray_api.h", "gpuarray_helper.h", "numpy_compat.h"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir(), pygpu.get_include()]
 
     def make_node(self, inp, out, out_grad, ws, stride=None, pad=None):
@@ -237,10 +237,10 @@ class GpuAveragePoolGrad(CGpuKernelBase):
     def get_params(self, node):
         return self.params_type.get_params(self, context=node.inputs[0].type.context)
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["gpuarray_api.h", "gpuarray_helper.h", "numpy_compat.h"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir(), pygpu.get_include()]
 
     def make_node(self, inp, out_grad, ws, stride=None, pad=None):
@@ -313,10 +313,10 @@ class GpuDownsampleFactorMaxGradGrad(CGpuKernelBase):
         assert self.mode == "max"
         assert self.ndim in [2, 3]
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["gpuarray_api.h", "gpuarray_helper.h", "numpy_compat.h"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir(), pygpu.get_include()]
 
     def make_node(self, inp, out, out_grad, ws, stride=None, pad=None):
@@ -394,10 +394,10 @@ class GpuMaxPoolRop(CGpuKernelBase):
     def get_params(self, node):
         return self.params_type.get_params(self, context=node.inputs[0].type.context)
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["gpuarray_api.h", "gpuarray_helper.h", "numpy_compat.h"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir(), pygpu.get_include()]
 
     def make_node(self, inp, eval_point, ws, stride=None, pad=None):

@@ -38,7 +38,7 @@ class GpuEye(CGpuKernelBase, Op):
             context=get_context(self.context_name),
         )
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<gpuarray/types.h>", "<gpuarray/kernel.h>"]
 
     def make_node(self, n, m):

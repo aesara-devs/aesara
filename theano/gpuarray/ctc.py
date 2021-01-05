@@ -55,13 +55,13 @@ class GpuConnectionistTemporalClassification(gof.ExternalCOp):
 
         gof.ExternalCOp.__init__(self, self.func_file, self.func_name)
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         lib_dirs = []
         if ctc_available.path is not None:
             lib_dirs += [ctc_available.path]
         return lib_dirs
 
-    def c_compile_args(self):
+    def c_compile_args(self, **kwargs):
         if ctc_available.path is not None:
             if sys.platform != "darwin" and " " in ctc_available.path:
                 return ['-Wl,-rpath,"' + ctc_available.path + '"']
@@ -69,10 +69,10 @@ class GpuConnectionistTemporalClassification(gof.ExternalCOp):
                 return ["-Wl,-rpath," + ctc_available.path]
         return []
 
-    def c_libraries(self):
+    def c_libraries(self, **kwargs):
         return ["warpctc", "gpuarray"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         dirs = [
             gpuarray_helper_inc_dir(),
             pygpu.get_include(),
@@ -82,7 +82,7 @@ class GpuConnectionistTemporalClassification(gof.ExternalCOp):
             dirs.append(os.path.join(config.ctc__root, "include"))
         return dirs
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return [
             "ctc.h",
             "numpy_compat.h",

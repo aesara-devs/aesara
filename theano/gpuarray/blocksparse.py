@@ -38,10 +38,10 @@ class GpuSparseBlockGemv(ExternalCOp):
     def get_params(self, node):
         return self.params_type.get_params(self, context=node.inputs[0].type.context)
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir()]
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return [
             "<gpuarray/buffer_blas.h>",
             "<gpuarray/buffer.h>",
@@ -127,10 +127,10 @@ class GpuSparseBlockOuter(ExternalCOp):
     def infer_shape(self, fgraph, node, input_shapes):
         return [input_shapes[0]]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir()]
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return [
             "<gpuarray/buffer_blas.h>",
             "<gpuarray/buffer.h>",

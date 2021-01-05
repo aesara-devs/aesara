@@ -744,19 +744,19 @@ class UsmmCscDense(COp):
         )
         return r
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return blas.blas_header_text()
 
-    def c_libraries(self):
+    def c_libraries(self, **kwargs):
         return blas.ldflags()
 
-    def c_compile_args(self):
+    def c_compile_args(self, **kwargs):
         return blas.ldflags(libs=False, flags=True)
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         return blas.ldflags(libs=False, libs_dir=True)
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return blas.ldflags(libs=False, include_dir=True)
 
     def c_code(self, node, name, inputs, outputs, sub):
@@ -1885,19 +1885,19 @@ class SamplingDotCSR(COp):
     def c_code_cache_version(self):
         return (4, blas.blas_header_version())
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return blas.blas_header_text()
 
-    def c_libraries(self):
+    def c_libraries(self, **kwargs):
         return blas.ldflags()
 
-    def c_compile_args(self):
+    def c_compile_args(self, **kwargs):
         return blas.ldflags(libs=False, flags=True)
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         return blas.ldflags(libs=False, libs_dir=True)
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return blas.ldflags(libs=False, include_dir=True)
 
     def c_code(self, node, name, inputs, outputs, sub):

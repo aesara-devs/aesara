@@ -129,13 +129,13 @@ class ConnectionistTemporalClassification(ExternalCOp, OpenMPOp):
         # Return only the cost. Gradient will be returned by grad()
         self.default_output = 0
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         lib_dirs = []
         if ctc_available.path is not None:
             lib_dirs += [ctc_available.path]
         return lib_dirs
 
-    def c_compile_args(self):
+    def c_compile_args(self, **kwargs):
         if ctc_available.path is not None:
             if sys.platform != "darwin" and " " in ctc_available.path:
                 return ['-Wl,-rpath,"' + ctc_available.path + '"']
@@ -143,10 +143,10 @@ class ConnectionistTemporalClassification(ExternalCOp, OpenMPOp):
                 return ["-Wl,-rpath," + ctc_available.path]
         return []
 
-    def c_libraries(self):
+    def c_libraries(self, **kwargs):
         return ["warpctc"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         header_dirs = []
         if config.ctc__root != "":
             # We assume here that the header is available at the include directory
@@ -154,8 +154,8 @@ class ConnectionistTemporalClassification(ExternalCOp, OpenMPOp):
             header_dirs += [os.path.join(config.ctc__root, "include")]
         return header_dirs
 
-    def c_headers(self):
-        return ["ctc.h"] + OpenMPOp.c_headers(self)
+    def c_headers(self, **kwargs):
+        return ["ctc.h"] + super().c_headers(**kwargs)
 
     def make_node(self, activations, labels, input_lengths):
         t_activations = tt.as_tensor_variable(activations)

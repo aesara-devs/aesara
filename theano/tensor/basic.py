@@ -3296,9 +3296,12 @@ class Mean(elemwise.CAReduce):
         output[0] = np.asarray(np.mean(input, dtype="float64", axis=axis))
 
     def c_code(self, node, name, inames, onames, sub):
-        if self.axis is not None:
-            return super().c_code(node, name, inames, onames, sub)
+
         ret = super().c_code(node, name, inames, onames, sub)
+
+        if self.axis is not None:
+            return ret
+
         # TODO: c_code perform support only axis is None
         return (
             ret
@@ -3953,7 +3956,7 @@ class Split(COp):
     def c_code_cache_version(self):
         return (2,)
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return """
         /* Return 1 if output has the correct shape. */
         int split_output_shape_is_correct (
@@ -5125,7 +5128,7 @@ class Reshape(COp):
                 % locals()
             )
         else:
-            return super().c_code(node, name, inputs, outputs, sub)
+            raise NotImplementedError()
 
 
 def reshape(x, newshape, ndim=None):

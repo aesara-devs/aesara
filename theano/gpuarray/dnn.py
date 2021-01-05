@@ -279,24 +279,24 @@ def CUDNNDataType(name, freefunc=None):
 class DnnVersion(COp):
     __props__ = ()
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["cudnn.h"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [config.dnn__include_path, config.cuda__include_path]
 
-    def c_libraries(self):
+    def c_libraries(self, **kwargs):
         return ["cudnn"]
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         return [config.dnn__library_path]
 
-    def c_compile_args(self):
+    def c_compile_args(self, **kwargs):
         if config.dnn__bin_path and sys.platform != "win32":
             return ["-Wl,-rpath," + config.dnn__bin_path]
         return []
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return """
 #if PY_MAJOR_VERSION >= 3
 #define PyInt_FromLong PyLong_FromLong
@@ -424,7 +424,7 @@ class DnnBase(ExternalCOp):
             files = []
         ExternalCOp.__init__(self, ["c_code/dnn_base.c"] + files, c_func)
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return [
             "gpuarray/types.h",
             "gpuarray/array.h",
@@ -438,7 +438,7 @@ class DnnBase(ExternalCOp):
             "gpuarray_helper.h",
         ]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [
             gpuarray_helper_inc_dir(),
             pygpu.get_include(),
@@ -446,13 +446,13 @@ class DnnBase(ExternalCOp):
             config.cuda__include_path,
         ]
 
-    def c_libraries(self):
+    def c_libraries(self, **kwargs):
         return ["cudnn", "gpuarray"]
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         return [config.dnn__library_path]
 
-    def c_compile_args(self):
+    def c_compile_args(self, **kwargs):
         if config.dnn__bin_path and sys.platform != "win32":
             return ["-Wl,-rpath," + config.dnn__bin_path]
         return []
@@ -500,23 +500,23 @@ class GpuDnnConvDesc(ExternalCOp):
         num_groups=int_t,
     )
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["cudnn.h", "cudnn_helper.h"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [
             gpuarray_helper_inc_dir(),
             config.dnn__include_path,
             config.cuda__include_path,
         ]
 
-    def c_libraries(self):
+    def c_libraries(self, **kwargs):
         return ["cudnn"]
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         return [config.dnn__library_path]
 
-    def c_compile_args(self):
+    def c_compile_args(self, **kwargs):
         if config.dnn__bin_path and sys.platform != "win32":
             return ["-Wl,-rpath," + config.dnn__bin_path]
         return []
@@ -649,7 +649,6 @@ def ensure_dt(val, default, name, dtype):
 
 
 class GpuDnnConv(DnnBase):
-
     """
     The forward convolution.
 
@@ -1695,7 +1694,6 @@ def dnn_gradinput3d(
 
 
 class GpuDnnPoolDesc(COp):
-
     """
     This Op builds a pooling descriptor for use in the other
     pooling operations.
@@ -1720,16 +1718,16 @@ class GpuDnnPoolDesc(COp):
 
     __props__ = ("ws", "stride", "mode", "pad")
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["cudnn.h", "cudnn_helper.h"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir(), config.dnn__include_path]
 
-    def c_libraries(self):
+    def c_libraries(self, **kwargs):
         return ["cudnn"]
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         return [config.dnn__library_path]
 
     def do_constant_folding(self, fgraph, node):

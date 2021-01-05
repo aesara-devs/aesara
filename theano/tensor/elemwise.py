@@ -1226,15 +1226,15 @@ second dimension
             getattr(self.scalar_op, "inner_float16", False)
         ):
             # Disable C code for float16 vars
-            super().c_code(node, nodename, inames, onames, sub)
+            raise NotImplementedError()
         code = "\n".join(self._c_all(node, nodename, inames, onames, sub))
         return code
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<vector>", "<algorithm>"]
 
-    def c_support_code(self):
-        return self.scalar_op.c_support_code()
+    def c_support_code(self, **kwargs):
+        return self.scalar_op.c_support_code(**kwargs)
 
     def c_support_code_apply(self, node, nodename):
         support_code = self.scalar_op.c_support_code_apply(node, nodename + "_scalar_")
@@ -1684,7 +1684,7 @@ class CAReduce(COp):
         code = "\n".join(self._c_all(node, name, inames, onames, sub))
         return code
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         # Sometimes, Elemwise's c_code is returned, so we need its headers
         return ["<vector>", "<algorithm>"]
 

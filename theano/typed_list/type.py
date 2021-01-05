@@ -109,7 +109,7 @@ class TypedListType(CType):
         {name} = NULL;
         """
 
-    def c_extract(self, name, sub, check_input=True):
+    def c_extract(self, name, sub, check_input=True, **kwargs):
         if check_input:
             pre = """
             if (!PyList_Check(py_%(name)s)) {

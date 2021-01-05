@@ -659,82 +659,49 @@ class ParamsType(CType):
             for i in range(self.length)
         )
 
-    def c_compile_args(self, c_compiler):
+    def c_compile_args(self, **kwargs):
         c_compile_args_list = []
         for _type in self.types:
-            try:
-                try:
-                    c_compile_args_list.extend(_type.c_compile_args(c_compiler))
-                except TypeError:
-                    c_compile_args_list.extend(_type.c_compile_args())
-            except MethodNotDefined:
-                pass
+            c_compile_args_list.extend(_type.c_compile_args(**kwargs))
         return c_compile_args_list
 
-    def c_no_compile_args(self, c_compiler):
+    def c_no_compile_args(self, **kwargs):
         c_no_compile_args_list = []
         for _type in self.types:
-            try:
-                try:
-                    c_no_compile_args_list.extend(_type.c_no_compile_args(c_compiler))
-                except TypeError:
-                    c_no_compile_args_list.extend(_type.c_no_compile_args())
-            except MethodNotDefined:
-                pass
+            c_no_compile_args_list.extend(_type.c_no_compile_args(**kwargs))
         return c_no_compile_args_list
 
-    def c_headers(self, c_compiler):
+    def c_headers(self, **kwargs):
         c_headers_list = []
         for _type in self.types:
-            try:
-                try:
-                    c_headers_list.extend(_type.c_headers(c_compiler))
-                except TypeError:
-                    c_headers_list.extend(_type.c_headers())
-            except MethodNotDefined:
-                pass
+            c_headers_list.extend(_type.c_headers(**kwargs))
         return c_headers_list
 
-    def c_libraries(self, c_compiler):
+    def c_libraries(self, **kwargs):
         c_libraries_list = []
         for _type in self.types:
-            try:
-                try:
-                    c_libraries_list.extend(_type.c_libraries(c_compiler))
-                except TypeError:
-                    c_libraries_list.extend(_type.c_libraries())
-            except MethodNotDefined:
-                pass
+            c_libraries_list.extend(_type.c_libraries(**kwargs))
         return c_libraries_list
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         c_header_dirs_list = []
         for _type in self.types:
-            try:
-                c_header_dirs_list.extend(_type.c_header_dirs())
-            except MethodNotDefined:
-                pass
+            c_header_dirs_list.extend(_type.c_header_dirs(**kwargs))
         return c_header_dirs_list
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         c_lib_dirs_list = []
         for _type in self.types:
-            try:
-                c_lib_dirs_list.extend(_type.c_lib_dirs())
-            except MethodNotDefined:
-                pass
+            c_lib_dirs_list.extend(_type.c_lib_dirs(**kwargs))
         return c_lib_dirs_list
 
-    def c_init_code(self):
+    def c_init_code(self, **kwargs):
         c_init_code_list = []
         for _type in self.types:
-            try:
-                c_init_code_list.extend(_type.c_init_code())
-            except MethodNotDefined:
-                pass
+            c_init_code_list.extend(_type.c_init_code(**kwargs))
         return c_init_code_list
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         sub = {"fail": "{this->setErrorOccurred(); return;}"}
         struct_name = self.name
         struct_name_defined = struct_name.upper()
@@ -853,9 +820,10 @@ class ParamsType(CType):
     def c_code_cache_version(self):
         return ((3,), tuple(t.c_code_cache_version() for t in self.types))
 
-    # As this struct has constructor and destructor, it could be instanciated on stack,
-    # but current implementations of C ops will then pass the instance by value at functions,
-    # so it's better to work directly with pointers.
+    # As this struct has constructor and destructor, it could be instantiated
+    # on stack, but current implementations of C ops will then pass the
+    # instance by value to functions, so it's better to work directly with
+    # pointers.
 
     def c_declare(self, name, sub, check_input=True):
         return """
@@ -877,7 +845,7 @@ class ParamsType(CType):
         {name} = NULL;
         """
 
-    def c_extract(self, name, sub, check_input=True):
+    def c_extract(self, name, sub, check_input=True, **kwargs):
         return """
         /* Seems c_init() is not called for a op param. So I call `new` here. */
         %(name)s = new %(struct_name)s;
@@ -910,3 +878,11 @@ class ParamsType(CType):
             fail=sub["fail"],
             fields_list='"%s"' % '", "'.join(self.fields),
         )
+
+    def c_sync(self, name, sub):
+        # FIXME: Looks like we need to decrement a reference count our two.
+        # Not sure if this means we should not consider this a `CType`.
+        # It seems like this means this actually means that objects of this
+        # `Type` cannot be (compiled) graph _outputs_, because that's when
+        # `CType.c_sync` is used.
+        raise NotImplementedError("Variables of this type cannot be graph outputs")

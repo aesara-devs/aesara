@@ -50,10 +50,10 @@ class GpuCumOp(GpuKernelBase, Op):
     def c_code_cache_version(self):
         return (7,)
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<numpy_compat.h>", "<gpuarray/types.h>", "<gpuarray_helper.h>"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir()]
 
     def get_params(self, node):

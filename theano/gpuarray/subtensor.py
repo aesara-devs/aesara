@@ -83,7 +83,7 @@ class GpuSubtensor(HideC, Subtensor):
 
         out[0] = x.__getitem__(cdata)
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return """
         static int fix_indices(ssize_t *start, ssize_t *stop, ssize_t *step,
                                int start_n, int stop_n, int step_n,
@@ -390,7 +390,7 @@ class GpuIncSubtensor(IncSubtensor):
         """
         return f"""sub_setarray(&{view}->ga, &{source}->ga)"""
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return [
             "<numpy_compat.h>",
             "<gpuarray/error.h>",
@@ -398,7 +398,7 @@ class GpuIncSubtensor(IncSubtensor):
             "<gpuarray/elemwise.h>",
         ]
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return """
 int sub_setarray(GpuArray *dst, GpuArray *src) {
   int err;
@@ -495,7 +495,7 @@ class GpuAdvancedSubtensor1(HideC, AdvancedSubtensor1):
     def perform(self, node, inp, out_):
         raise NotImplementedError()
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return """
 int take1_match_dims(GpuArray *a, GpuArray *v) {
   if (a->nd != v->nd) return 0;
@@ -952,7 +952,7 @@ class GpuAdvancedIncSubtensor1(COp):
                 for i in idx:
                     k(x[i], reshaped_y, broadcast=True)
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return [
             "<numpy_compat.h>",
             "<gpuarray/error.h>",
@@ -961,7 +961,7 @@ class GpuAdvancedIncSubtensor1(COp):
             "gpuarray_helper.h",
         ]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir()]
 
     def c_support_code_struct(self, node, nodename):
@@ -1136,10 +1136,10 @@ class GpuAdvancedIncSubtensor1_dev20(GpuKernelBase, HideC, GpuAdvancedIncSubtens
     def c_code_cache_version(self):
         return (14,)
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<numpy_compat.h>", "<gpuarray_helper.h>", "<gpuarray/types.h>"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir()]
 
     def c_code(self, node, name, inputs, outputs, sub):

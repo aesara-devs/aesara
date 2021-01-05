@@ -64,10 +64,10 @@ class GpuTopKOp(GpuKernelBase, TopKOp):
     def perform(self, node, inputs, output_storage, params):
         raise NotImplementedError()
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["gpuarray_api.h", "gpuarray_helper.h", "numpy_compat.h"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [
             os.path.dirname(__file__),
             gpuarray_helper_inc_dir(),

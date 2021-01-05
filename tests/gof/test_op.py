@@ -174,7 +174,7 @@ class TestMakeThunk:
         o = IncOnePython()(i)
 
         # Check that the c_code function is not implemented
-        with pytest.raises((NotImplementedError, MethodNotDefined)):
+        with pytest.raises(NotImplementedError):
             o.owner.op.c_code(o.owner, "o", ["x"], "z", {"fail": ""})
 
         storage_map = {i: [np.int32(3)], o: [None]}

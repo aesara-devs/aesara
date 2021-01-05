@@ -124,7 +124,7 @@ There are less methods to define for a `COp` than for a `Type`:
 
        Allows you to specify code that will be executed once when the
        module is initialized, before anything else is executed and is
-       specialized for a particular apply of an :ref:`op`.
+       specialized for a particular `Apply` of an :ref:`Op`.
 
     .. method:: c_init_code_struct(node, name, sub)
 
