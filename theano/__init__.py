@@ -123,33 +123,6 @@ if (
 ):
     import theano.gpuarray
 
-# Use config.numpy to call numpy.seterr
-import numpy as np
-
-
-if config.numpy__seterr_all == "None":
-    _all = None
-else:
-    _all = config.numpy__seterr_all
-if config.numpy__seterr_divide == "None":
-    _divide = None
-else:
-    _divide = config.numpy__seterr_divide
-if config.numpy__seterr_over == "None":
-    _over = None
-else:
-    _over = config.numpy__seterr_over
-if config.numpy__seterr_under == "None":
-    _under = None
-else:
-    _under = config.numpy__seterr_under
-if config.numpy__seterr_invalid == "None":
-    _invalid = None
-else:
-    _invalid = config.numpy__seterr_invalid
-np.seterr(all=_all, divide=_divide, over=_over, under=_under, invalid=_invalid)
-del _all, _divide, _over, _under, _invalid
-
 
 def get_scalar_constant_value(v):
     """Return the constant scalar (i.e. 0-D) value underlying variable `v`.
