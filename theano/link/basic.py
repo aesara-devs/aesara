@@ -488,7 +488,7 @@ class WrapLinker(Linker):
 
         Parameters
         ----------
-        fgraph : gof.FunctionGraph
+        fgraph : FunctionGraph
             The fgraph which we will link.
         no_recycling : a list of Variables that belong to fgraph.
             If a Variable is in no_recycling, L{WrapLinker} will clear

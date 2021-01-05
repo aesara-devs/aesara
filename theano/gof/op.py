@@ -17,9 +17,9 @@ import numpy as np
 
 import theano
 from theano.configdefaults import config
-from theano.gof import graph
 from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Apply, Variable
+from theano.gof.graph import Apply, NoParams, Variable
+from theano.gof.params_type import ParamsType
 from theano.gof.utils import (
     MetaObject,
     MethodNotDefined,
@@ -180,7 +180,7 @@ class Op(MetaObject):
             raise TypeError(
                 f"We expected inputs of types '{str(self.itypes)}' but got types '{str([inp.type for inp in inputs])}'"
             )
-        return theano.Apply(self, inputs, [o() for o in self.otypes])
+        return Apply(self, inputs, [o() for o in self.otypes])
 
     def __call__(
         self, *inputs, **kwargs
@@ -396,9 +396,7 @@ class Op(MetaObject):
     # We add a default get_params() implementation which will try to detect params from the op
     # if params_type is set to a ParamsType. If not, we raise a MethodNotDefined exception.
     def get_params(self, node):
-        if hasattr(self, "params_type") and isinstance(
-            self.params_type, theano.gof.ParamsType
-        ):
+        if hasattr(self, "params_type") and isinstance(self.params_type, ParamsType):
             wrapper = self.params_type
             if not all(hasattr(self, field) for field in wrapper.fields):
                 # Let's print missing attributes for debugging.
@@ -440,7 +438,7 @@ class Op(MetaObject):
 
         params = node.run_params()
 
-        if params is graph.NoParams:
+        if params is NoParams:
             # default arguments are stored in the closure of `rval`
             def rval(p=p, i=node_input_storage, o=node_output_storage, n=node):
                 r = p(n, [x[0] for x in i], o)
@@ -606,7 +604,7 @@ def get_test_value(v):
     AttributeError if no test value is set.
 
     """
-    if not isinstance(v, graph.Variable):
+    if not isinstance(v, Variable):
         v = theano.tensor.as_tensor_variable(v)
 
     return v.get_test_value()
@@ -960,9 +958,7 @@ class ExternalCOp(COp):
            associated to ``key``.
 
         """
-        if hasattr(self, "params_type") and isinstance(
-            self.params_type, theano.gof.ParamsType
-        ):
+        if hasattr(self, "params_type") and isinstance(self.params_type, ParamsType):
             wrapper = self.params_type
             params = [("PARAMS_TYPE", wrapper.name)]
             for i in range(wrapper.length):

@@ -2,7 +2,7 @@ import theano
 from theano import tensor
 from theano.gof.graph import Apply
 from theano.gof.op import Op
-from theano.gof.opt import TopoOptimizer, copy_stack_trace
+from theano.gof.opt import TopoOptimizer, copy_stack_trace, local_optimizer
 from theano.gradient import DisconnectedType
 
 
@@ -301,7 +301,7 @@ def conv3d(
     return out_5d
 
 
-@theano.gof.local_optimizer([DiagonalSubtensor, IncDiagonalSubtensor])
+@local_optimizer([DiagonalSubtensor, IncDiagonalSubtensor])
 def local_inplace_DiagonalSubtensor(fgraph, node):
     """Also work for IncDiagonalSubtensor."""
     if (

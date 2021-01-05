@@ -551,7 +551,7 @@ def test_Gpujoin_inplace():
     c = join(0, x, z)
 
     f = theano.function([s], theano.Out(c, borrow=True))
-    if not isinstance(mode_with_gpu, theano.compile.DebugMode):
+    if not isinstance(mode_with_gpu, theano.compile.debugmode.DebugMode):
         assert x.get_value(borrow=True, return_internal_type=True) is f(0)
     assert np.allclose(f(0), [3, 4, 5])
 

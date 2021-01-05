@@ -7,7 +7,7 @@ import numpy as np
 
 import theano
 from theano.configdefaults import config
-from theano.gof import Constant, Variable
+from theano.gof.graph import Constant, Variable
 from theano.scalar import ComplexError, IntegerDivisionError
 from theano.tensor.type import TensorType
 from theano.tensor.utils import hash_from_ndarray

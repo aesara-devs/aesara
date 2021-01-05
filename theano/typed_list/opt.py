@@ -1,9 +1,9 @@
-from theano import compile, gof
-from theano.gof import TopoOptimizer
+from theano.compile import optdb
+from theano.gof.opt import TopoOptimizer, local_optimizer
 from theano.typed_list.basic import Append, Extend, Insert, Remove, Reverse
 
 
-@gof.local_optimizer([Append, Extend, Insert, Reverse, Remove], inplace=True)
+@local_optimizer([Append, Extend, Insert, Reverse, Remove], inplace=True)
 def typed_list_inplace_opt(fgraph, node):
     if (
         isinstance(node.op, (Append, Extend, Insert, Reverse, Remove))
@@ -16,7 +16,7 @@ def typed_list_inplace_opt(fgraph, node):
     return False
 
 
-compile.optdb.register(
+optdb.register(
     "typed_list_inplace_opt",
     TopoOptimizer(typed_list_inplace_opt, failure_callback=TopoOptimizer.warn_inplace),
     60,

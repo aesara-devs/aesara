@@ -4,17 +4,15 @@ from collections import OrderedDict
 from functools import partial, reduce
 
 import theano
-from theano import gof
 from theano.compile.function.pfunc import rebuild_collect_shared
 from theano.compile.function.types import orig_function
 from theano.compile.mode import optdb
 from theano.compile.sharedvalue import SharedVariable
 from theano.configdefaults import config
-from theano.gof import Variable, ops_with_inner_function
 from theano.gof.fg import FunctionGraph
-from theano.gof.graph import io_connection_pattern
+from theano.gof.graph import Apply, Variable, graph_inputs, io_connection_pattern
 from theano.gof.null_type import NullType
-from theano.gof.op import Op
+from theano.gof.op import Op, ops_with_inner_function
 from theano.gof.opt import in2out, local_optimizer
 from theano.gradient import DisconnectedType
 from theano.tensor.opt import ShapeFeature
@@ -331,7 +329,7 @@ class OpFromGraph(Op):
         if not isinstance(outputs, list):
             raise TypeError(f"outputs must be list, got {type(outputs)}")
         for i in inputs + outputs:
-            if not isinstance(i, gof.Variable):
+            if not isinstance(i, Variable):
                 raise TypeError("inputs and outputs must be Variable instances", i)
         if "updates" in kwargs or "givens" in kwargs:
             raise TypeError("updates and givens are not allowed here")
@@ -339,9 +337,7 @@ class OpFromGraph(Op):
         # To correctly support shared variables the inner fct should
         # not see them. Otherwise there is a problem with the gradient.
         self.shared_inputs = [
-            var
-            for var in gof.graph.graph_inputs(outputs)
-            if isinstance(var, SharedVariable)
+            var for var in graph_inputs(outputs) if isinstance(var, SharedVariable)
         ]
         shared_vars = [var.type() for var in self.shared_inputs]
 
@@ -741,7 +737,7 @@ class OpFromGraph(Op):
         inputs = [
             inp_t.filter_variable(inp) for inp, inp_t in zip(inputs, self.input_types)
         ]
-        apply_node = gof.Apply(
+        apply_node = Apply(
             self,
             list(inputs) + self.shared_inputs,
             [type() for type in self.output_types],

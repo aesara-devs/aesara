@@ -1,7 +1,7 @@
 import numpy as np
 
-import theano
 import theano.tensor as tt
+from theano.gof.graph import Apply
 from theano.gof.op import Op
 from theano.gpuarray.basic_ops import (
     as_gpuarray_variable,
@@ -77,7 +77,7 @@ class CuRFFTOp(Op):
         assert s.ndim == 1
         assert s.dtype in tt.integer_dtypes
 
-        return theano.Apply(self, [inp, s], [self.output_type(inp)()])
+        return Apply(self, [inp, s], [self.output_type(inp)()])
 
     def make_thunk(self, node, storage_map, _, _2, impl=None):
 
@@ -208,7 +208,7 @@ class CuIRFFTOp(Op):
         assert inp.dtype == "float32"
         assert s.ndim == 1
 
-        return theano.Apply(self, [inp, s], [self.output_type(inp)()])
+        return Apply(self, [inp, s], [self.output_type(inp)()])
 
     def make_thunk(self, node, storage_map, _, _2, impl=None):
 

@@ -7,9 +7,16 @@ import logging
 import warnings
 
 import theano
-from theano import gof
 from theano.compile.function.types import Supervisor
 from theano.configdefaults import config
+from theano.gof.destroyhandler import DestroyHandler
+from theano.gof.opt import (
+    CheckStackTraceOptimization,
+    GlobalOptimizer,
+    MergeOptimizer,
+    NavigatorOptimizer,
+)
+from theano.gof.optdb import EquilibriumDB, LocalGroupDB, Query, SequenceDB, TopoDB
 from theano.link.basic import PerformLinker
 from theano.link.c.basic import CLinker, OpWiseCLinker
 from theano.link.jax import JAXLinker
@@ -48,21 +55,19 @@ def register_linker(name, linker):
 exclude = []
 if not config.cxx:
     exclude = ["cxx_only"]
-OPT_NONE = gof.Query(include=[], exclude=exclude)
+OPT_NONE = Query(include=[], exclude=exclude)
 # Even if multiple merge optimizer call will be there, this shouldn't
 # impact performance.
-OPT_MERGE = gof.Query(include=["merge"], exclude=exclude)
-OPT_FAST_RUN = gof.Query(include=["fast_run"], exclude=exclude)
+OPT_MERGE = Query(include=["merge"], exclude=exclude)
+OPT_FAST_RUN = Query(include=["fast_run"], exclude=exclude)
 OPT_FAST_RUN_STABLE = OPT_FAST_RUN.requiring("stable")
 # We need fast_compile_gpu here.  As on the GPU, we don't have all
 # operation that exist in fast_compile, but have some that get
 # introduced in fast_run, we want those optimization to also run in
 # fast_compile+gpu. We can't tag them just as 'gpu', as this would
 # exclude them if we exclude 'gpu'.
-OPT_FAST_COMPILE = gof.Query(
-    include=["fast_compile", "fast_compile_gpu"], exclude=exclude
-)
-OPT_STABILIZE = gof.Query(include=["fast_run"], exclude=exclude)
+OPT_FAST_COMPILE = Query(include=["fast_compile", "fast_compile_gpu"], exclude=exclude)
+OPT_STABILIZE = Query(include=["fast_run"], exclude=exclude)
 OPT_STABILIZE.position_cutoff = 1.5000001
 OPT_NONE.name = "OPT_NONE"
 OPT_MERGE.name = "OPT_MERGE"
@@ -102,7 +107,7 @@ def register_optimizer(name, opt):
     predefined_optimizers[name] = opt
 
 
-class AddDestroyHandler(gof.GlobalOptimizer):
+class AddDestroyHandler(GlobalOptimizer):
     """
     This optimizer performs two important functions:
 
@@ -134,10 +139,10 @@ class AddDestroyHandler(gof.GlobalOptimizer):
 
     def add_requirements(self, fgraph):
         super().add_requirements(fgraph)
-        fgraph.attach_feature(gof.DestroyHandler())
+        fgraph.attach_feature(DestroyHandler())
 
 
-class AddFeatureOptimizer(gof.GlobalOptimizer):
+class AddFeatureOptimizer(GlobalOptimizer):
     """
     This optimizer adds a provided feature to the function graph.
     """
@@ -153,7 +158,7 @@ class AddFeatureOptimizer(gof.GlobalOptimizer):
         pass
 
 
-class PrintCurrentFunctionGraph(gof.GlobalOptimizer):
+class PrintCurrentFunctionGraph(GlobalOptimizer):
     """
     This optimizer is for debugging.
 
@@ -172,33 +177,29 @@ class PrintCurrentFunctionGraph(gof.GlobalOptimizer):
         theano.printing.debugprint(fgraph.outputs)
 
 
-optdb = gof.SequenceDB()
-optdb.register("merge1", gof.MergeOptimizer(), 0, "fast_run", "fast_compile", "merge")
+optdb = SequenceDB()
+optdb.register("merge1", MergeOptimizer(), 0, "fast_run", "fast_compile", "merge")
 
 # After scan1 opt at 0.5 and before ShapeOpt at 1
 # This should only remove nodes.
 # The opt should not do anything that need shape inference.
 # New nodes that don't have infer_shape need that the original node
 # also don't have infer_shape
-local_useless = gof.optdb.LocalGroupDB(apply_all_opts=True, profile=True)
+local_useless = LocalGroupDB(apply_all_opts=True, profile=True)
 optdb.register(
     "useless",
-    gof.optdb.TopoDB(
-        local_useless, failure_callback=gof.opt.NavigatorOptimizer.warn_inplace
-    ),
+    TopoDB(local_useless, failure_callback=NavigatorOptimizer.warn_inplace),
     0.6,
     "fast_run",
     "fast_compile",
 )
 
-optdb.register(
-    "merge1.1", gof.MergeOptimizer(), 0.65, "fast_run", "fast_compile", "merge"
-)
+optdb.register("merge1.1", MergeOptimizer(), 0.65, "fast_run", "fast_compile", "merge")
 
 # rearranges elemwise expressions
 optdb.register(
     "canonicalize",
-    gof.EquilibriumDB(ignore_newtrees=False),
+    EquilibriumDB(ignore_newtrees=False),
     1,
     "fast_run",
     "fast_compile",
@@ -212,12 +213,10 @@ optdb.register(
 # We need a new instance of MergeOptimizer to don't have its name
 # changed by other usage of it.
 optdb["canonicalize"].register(
-    "merge", gof.opt.MergeOptimizer(), "fast_run", "fast_compile", cleanup=True
+    "merge", MergeOptimizer(), "fast_run", "fast_compile", cleanup=True
 )
 
-optdb.register(
-    "merge1.2", gof.MergeOptimizer(), 1.2, "fast_run", "fast_compile", "merge"
-)
+optdb.register("merge1.2", MergeOptimizer(), 1.2, "fast_run", "fast_compile", "merge")
 
 optdb.register(
     "Print1.21",
@@ -226,7 +225,7 @@ optdb.register(
 )  # 'fast_run', 'fast_compile')
 
 # replace unstable subgraphs
-optdb.register("stabilize", gof.EquilibriumDB(), 1.5, "fast_run")
+optdb.register("stabilize", EquilibriumDB(), 1.5, "fast_run")
 
 optdb.register(
     "Print1.51",
@@ -235,23 +234,23 @@ optdb.register(
 )  # 'fast_run', 'fast_compile')
 
 # misc special cases for speed
-optdb.register("specialize", gof.EquilibriumDB(), 2, "fast_run", "fast_compile_gpu")
+optdb.register("specialize", EquilibriumDB(), 2, "fast_run", "fast_compile_gpu")
 
 # misc special cases for speed that break canonicalization
-optdb.register("uncanonicalize", gof.EquilibriumDB(), 3, "fast_run")
+optdb.register("uncanonicalize", EquilibriumDB(), 3, "fast_run")
 
 # misc special cases for speed that are dependent on the device.
 optdb.register(
-    "specialize_device", gof.EquilibriumDB(), 48.6, "fast_compile", "fast_run"
+    "specialize_device", EquilibriumDB(), 48.6, "fast_compile", "fast_run"
 )  # must be after gpu stuff at 48.5
 
 # especially constant merge
-optdb.register("merge2", gof.MergeOptimizer(), 49, "fast_run", "merge")
+optdb.register("merge2", MergeOptimizer(), 49, "fast_run", "merge")
 
 optdb.register("add_destroy_handler", AddDestroyHandler(), 49.5, "fast_run", "inplace")
 
 # final pass just to make sure
-optdb.register("merge3", gof.MergeOptimizer(), 100, "fast_run", "merge")
+optdb.register("merge3", MergeOptimizer(), 100, "fast_run", "merge")
 
 if config.check_stack_trace in ["raise", "warn", "log"]:
     _tags = ("fast_run", "fast_compile")
@@ -259,7 +258,7 @@ if config.check_stack_trace in ["raise", "warn", "log"]:
 if config.check_stack_trace == "off":
     _tags = ()
 
-optdb.register("CheckStackTrace", gof.CheckStackTraceOptimization(), -1, *_tags)
+optdb.register("CheckStackTrace", CheckStackTraceOptimization(), -1, *_tags)
 del _tags
 
 
@@ -312,7 +311,7 @@ class Mode:
         self.linker = linker
         if isinstance(optimizer, str) or optimizer is None:
             optimizer = predefined_optimizers[optimizer]
-        if isinstance(optimizer, gof.Query):
+        if isinstance(optimizer, Query):
             self.provided_optimizer = optimizer
         self._optimizer = optimizer
         self.call_time = 0
@@ -326,7 +325,7 @@ class Mode:
         )
 
     def __get_optimizer(self):
-        if isinstance(self._optimizer, gof.Query):
+        if isinstance(self._optimizer, Query):
             return optdb.query(self._optimizer)
         else:
             return self._optimizer
@@ -417,9 +416,7 @@ if config.cxx:
 else:
     FAST_RUN = Mode("vm", "fast_run")
 
-JAX = Mode(
-    JAXLinker(), gof.Query(include=["fast_run"], exclude=["cxx_only", "BlasOpt"])
-)
+JAX = Mode(JAXLinker(), Query(include=["fast_run"], exclude=["cxx_only", "BlasOpt"]))
 
 
 predefined_modes = {

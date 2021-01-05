@@ -22,14 +22,11 @@ import numpy as np
 
 import theano
 from theano.configdefaults import config
-from theano.gof import graph
+from theano.gof.graph import Constant, Variable
 
 
-__authors__ = "James Bergstra"
-__reviewer__ = "Razvan Pascanu"
+__authors__ = "James Bergstra" "PyMC Developers"
 __copyright__ = "(c) 2011, Universite de Montreal"
-__license__ = "3-clause BSD License"
-__contact__ = "theano-dev <theano-dev@googlegroups.com>"
 
 __docformat__ = "restructuredtext en"
 
@@ -1008,7 +1005,7 @@ class ProfileStats:
                         # return a partial view that is destroyed.  So
                         # the output could be different then the
                         # input.
-                        assert isinstance(ins, theano.Variable)
+                        assert isinstance(ins, Variable)
                         # we keep trac of view only again the origin
                         origin = view_of.get(ins, ins)
                         view_of[out] = origin
@@ -1047,7 +1044,7 @@ class ProfileStats:
                             if (
                                 not viewed_by[origin]
                                 and origin not in fgraph.inputs
-                                and not isinstance(origin, theano.Constant)
+                                and not isinstance(origin, Constant)
                             ):
                                 running_memory_size[cg] -= var_mem[origin]
                     else:
@@ -1080,7 +1077,7 @@ class ProfileStats:
                 compute_map[var][0] = 1
             for var in node_list:
                 for val in var.inputs:
-                    if isinstance(val, graph.Constant):
+                    if isinstance(val, Constant):
                         compute_map[val][0] = 1
 
             # Initial executable_nodes
@@ -1157,7 +1154,7 @@ class ProfileStats:
                             # return a partial view that is destroyed. So
                             # the output could be different then the
                             # input.
-                            assert isinstance(ins, theano.Variable)
+                            assert isinstance(ins, Variable)
                             # We keep track of view only again the original
                             origin = view_of.get(ins, ins)
                             view_of[out] = origin
@@ -1191,7 +1188,7 @@ class ProfileStats:
                                 if (
                                     not viewed_by[origin]
                                     and origin not in fgraph.inputs
-                                    and not isinstance(origin, theano.Constant)
+                                    and not isinstance(origin, Constant)
                                 ):
                                     mem_freed += var_mem[origin]
                         else:

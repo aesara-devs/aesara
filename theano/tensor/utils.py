@@ -38,7 +38,7 @@ def shape_of_variables(fgraph, input_shapes):
     Parameters
     ----------
     fgraph
-        The theano.FunctionGraph in question.
+        The FunctionGraph in question.
     input_shapes : dict
         A dict mapping input to shape.
 
@@ -54,7 +54,7 @@ def shape_of_variables(fgraph, input_shapes):
     >>> import theano
     >>> x = theano.tensor.matrix('x')
     >>> y = x[512:]; y.name = 'y'
-    >>> fgraph = theano.FunctionGraph([x], [y], clone=False)
+    >>> fgraph = FunctionGraph([x], [y], clone=False)
     >>> d = shape_of_variables(fgraph, {x: (1024, 1024)})
     >>> d[y]
     (array(512), array(1024))

@@ -4,9 +4,9 @@ import pytest
 
 from tests.unittest_tools import assertFailure_fast
 from theano.configdefaults import config
-from theano.gof import destroyhandler, graph
+from theano.gof.destroyhandler import DestroyHandler
 from theano.gof.fg import FunctionGraph, InconsistencyError
-from theano.gof.graph import Apply, Variable
+from theano.gof.graph import Apply, Constant, Variable, clone
 from theano.gof.op import Op
 from theano.gof.opt import (
     NavigatorOptimizer,
@@ -45,7 +45,7 @@ def MyVariable(name):
 
 
 def MyConstant(data):
-    return graph.Constant(MyType(), data=data)
+    return Constant(MyType(), data=data)
 
 
 class MyOp(Op):
@@ -115,7 +115,7 @@ def inputs():
 
 def Env(inputs, outputs, validate=True):
     e = FunctionGraph(inputs, outputs, clone=False)
-    e.attach_feature(destroyhandler.DestroyHandler())
+    e.attach_feature(DestroyHandler())
     e.attach_feature(ReplaceValidate())
     if validate:
         e.validate()
@@ -331,7 +331,7 @@ def test_long_destroyers_loop():
     )
     e2 = dot(dot(add_in_place(x, y), add_in_place(y, z)), add_in_place(z, x))
     with pytest.raises(InconsistencyError):
-        Env(*graph.clone([x, y, z], [e2]))
+        Env(*clone([x, y, z], [e2]))
 
 
 def test_misc_2():

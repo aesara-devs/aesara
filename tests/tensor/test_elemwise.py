@@ -9,9 +9,11 @@ import tests.unittest_tools as utt
 import theano
 import theano.tensor as tt
 from tests import unittest_tools
-from theano import gof, scalar
+from theano import scalar
 from theano.compile.mode import Mode, get_default_mode
 from theano.configdefaults import config
+from theano.gof.fg import FunctionGraph
+from theano.gof.graph import Variable
 from theano.link.basic import PerformLinker
 from theano.link.c.basic import CLinker, OpWiseCLinker
 from theano.tensor import TensorType, as_tensor_variable
@@ -25,11 +27,6 @@ from theano.tensor.elemwise import (
 )
 from theano.tensor.nnet import sigmoid
 from theano.tensor.type import values_eq_approx_remove_nan
-
-
-def FunctionGraph(i, o):
-    e = gof.FunctionGraph(i, o)
-    return e
 
 
 class TestDimShuffle(unittest_tools.InferShapeTester):
@@ -1394,7 +1391,7 @@ def test_not_implemented_elemwise_grad():
 
     test_op = tt.Elemwise(TestOp())
     x = tt.scalar()
-    assert isinstance(tt.grad(test_op(2, x), x), gof.graph.Variable)
+    assert isinstance(tt.grad(test_op(2, x), x), Variable)
 
     # Verify that trying to use the not implemented gradient fails.
     with pytest.raises(theano.gradient.NullTypeGradError):

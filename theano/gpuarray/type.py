@@ -6,8 +6,10 @@ import warnings
 import numpy as np
 
 import theano
-from theano import Constant, CType, Variable, config, scalar, tensor
+from theano import config, scalar, tensor
 from theano.compile import SharedVariable
+from theano.gof.graph import Constant, Variable
+from theano.gof.type import CType
 from theano.misc.safe_asarray import _asarray
 from theano.tensor.type import TensorType
 from theano.tensor.var import _tensor_py_operators

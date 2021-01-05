@@ -38,7 +38,7 @@ from theano.tensor.nnet import abstract_conv
 
 def _check_stack_trace(thing):
     def _ops_to_check(op):
-        if not isinstance(op, theano.gof.Op):
+        if not isinstance(op, theano.gof.op.Op):
             op = op.op  # assume it is an apply node
         return not isinstance(
             op,

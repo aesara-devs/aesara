@@ -2,12 +2,11 @@ from functools import wraps
 
 import numpy as np
 
-from theano import Constant
 from theano import scalar as scal
 from theano import tensor
-from theano.gof import local_optimizer
+from theano.gof.graph import Constant
 from theano.gof.op import Op
-from theano.gof.opt import copy_stack_trace, inherit_stack_trace
+from theano.gof.opt import copy_stack_trace, inherit_stack_trace, local_optimizer
 from theano.gpuarray.basic_ops import (
     GpuAllocEmpty,
     GpuFromHost,

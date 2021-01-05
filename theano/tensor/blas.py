@@ -144,13 +144,8 @@ from functools import reduce
 import theano.scalar
 from theano.compile.mode import optdb
 from theano.configdefaults import config
-from theano.gof import (
-    InconsistencyError,
-    ReplacementDidNotRemoveError,
-    SequenceDB,
-    view_roots,
-)
-from theano.gof.graph import Apply
+from theano.gof.fg import InconsistencyError
+from theano.gof.graph import Apply, view_roots
 from theano.gof.op import COp, Op
 from theano.gof.opt import (
     EquilibriumOptimizer,
@@ -158,8 +153,9 @@ from theano.gof.opt import (
     inherit_stack_trace,
     local_optimizer,
 )
+from theano.gof.optdb import SequenceDB
 from theano.gof.params_type import ParamsType
-from theano.gof.toolbox import ReplaceValidate
+from theano.gof.toolbox import ReplacementDidNotRemoveError, ReplaceValidate
 from theano.gof.utils import MethodNotDefined, TestValueError
 from theano.printing import FunctionPrinter, debugprint, pprint
 from theano.scalar import bool as bool_t

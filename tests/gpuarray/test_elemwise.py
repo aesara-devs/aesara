@@ -14,7 +14,8 @@ from tests.gpuarray.test_basic_ops import rand_gpuarray
 from tests.tensor import test_elemwise
 from tests.unittest_tools import assert_allclose
 from theano import scalar, tensor
-from theano.compile import DebugMode, Mode
+from theano.compile.debugmode import DebugMode
+from theano.compile.mode import Mode
 from theano.gpuarray.dnn import GpuDnnReduction
 from theano.gpuarray.elemwise import (
     GpuCAReduceCPY,

@@ -6,9 +6,9 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
-from theano.gof import EnumList
 from theano.gof.graph import Apply
 from theano.gof.op import COp
+from theano.gof.type import EnumList
 from theano.gradient import grad_not_implemented, grad_undefined
 
 

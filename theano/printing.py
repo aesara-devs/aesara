@@ -15,10 +15,12 @@ from io import StringIO
 import numpy as np
 
 import theano
-from theano import gof
 from theano.compile import Function, SharedVariable, debugmode
 from theano.configdefaults import config
-from theano.gof import Apply, Op
+from theano.gof.fg import FunctionGraph
+from theano.gof.graph import Apply, Constant, Node, Variable, graph_inputs, io_toposort
+from theano.gof.op import Op
+from theano.gof.utils import Scratchpad
 
 
 pydot_imported = False
@@ -71,7 +73,7 @@ def debugprint(
 ):
     """Print a computation graph as text to stdout or a file.
 
-    :type obj: :class:`~theano.gof.Variable`, Apply, or Function instance
+    :type obj: :class:`~theano.gof.graph.Variable`, Apply, or Function instance
     :param obj: symbolic thing to print
     :type depth: integer
     :param depth: print graph to this depth (-1 for unlimited)
@@ -140,12 +142,12 @@ def debugprint(
     else:
         lobj = [obj]
     for obj in lobj:
-        if isinstance(obj, gof.Variable):
+        if isinstance(obj, Variable):
             results_to_print.append(obj)
             profile_list.append(None)
             smap.append(None)
             order.append(None)
-        elif isinstance(obj, gof.Apply):
+        elif isinstance(obj, Apply):
             results_to_print.extend(obj.outputs)
             profile_list.extend([None for item in obj.outputs])
             smap.extend([None for item in obj.outputs])
@@ -159,7 +161,7 @@ def debugprint(
                 smap.extend([None for item in obj.maker.fgraph.outputs])
             topo = obj.maker.fgraph.toposort()
             order.extend([topo for item in obj.maker.fgraph.outputs])
-        elif isinstance(obj, gof.FunctionGraph):
+        elif isinstance(obj, FunctionGraph):
             results_to_print.extend(obj.outputs)
             profile_list.extend([getattr(obj, "profile", None) for item in obj.outputs])
             smap.extend([getattr(obj, "storage_map", None) for item in obj.outputs])
@@ -355,11 +357,11 @@ class Print(Op):
         return (1,)
 
 
-class PrinterState(gof.utils.Scratchpad):
+class PrinterState(Scratchpad):
     def __init__(self, props=None, **more_props):
         if props is None:
             props = {}
-        elif isinstance(props, gof.utils.Scratchpad):
+        elif isinstance(props, Scratchpad):
             self.__update__(props)
         else:
             self.__dict__.update(props)
@@ -565,7 +567,7 @@ class PPrinter:
 
     def assign(self, condition, printer):
         # condition can be a class or an instance of an Op.
-        if isinstance(condition, (gof.Op, type)):
+        if isinstance(condition, (Op, type)):
             self.printers_dict[condition] = printer
             return
         self.printers.insert(0, (condition, printer))
@@ -614,7 +616,7 @@ class PPrinter:
         )
         inv_updates = {b: a for (a, b) in updates.items()}
         i = 1
-        for node in gof.graph.io_toposort(
+        for node in io_toposort(
             list(inputs) + updates.keys(), list(outputs) + updates.values()
         ):
             for output in node.outputs:
@@ -808,19 +810,19 @@ def pydotprint(
         fgraph = fct.maker.fgraph
         outputs = fgraph.outputs
         topo = fgraph.toposort()
-    elif isinstance(fct, gof.FunctionGraph):
+    elif isinstance(fct, FunctionGraph):
         profile = None
         outputs = fct.outputs
         topo = fct.toposort()
         fgraph = fct
     else:
-        if isinstance(fct, gof.Variable):
+        if isinstance(fct, Variable):
             fct = [fct]
-        elif isinstance(fct, gof.Apply):
+        elif isinstance(fct, Apply):
             fct = fct.outputs
         assert isinstance(fct, (list, tuple))
-        assert all(isinstance(v, gof.Variable) for v in fct)
-        fct = gof.FunctionGraph(inputs=list(gof.graph.graph_inputs(fct)), outputs=fct)
+        assert all(isinstance(v, Variable) for v in fct)
+        fct = FunctionGraph(inputs=list(graph_inputs(fct)), outputs=fct)
         profile = None
         outputs = fct.outputs
         topo = fct.toposort()
@@ -886,7 +888,7 @@ def pydotprint(
                 varstr = var.name
             else:
                 varstr = "name=" + var.name + " " + str(var.type)
-        elif isinstance(var, gof.Constant):
+        elif isinstance(var, Constant):
             dstr = "val=" + str(np.asarray(var.data))
             if "\n" in dstr:
                 dstr = dstr[: dstr.index("\n")]
@@ -971,13 +973,13 @@ def pydotprint(
                 use_color = color
 
         if use_color is None:
-            nw_node = pd.Node(aid, label=astr, shape=apply_shape)
+            nw_node = Node(aid, label=astr, shape=apply_shape)
         elif high_contrast:
-            nw_node = pd.Node(
+            nw_node = Node(
                 aid, label=astr, style="filled", fillcolor=use_color, shape=apply_shape
             )
         else:
-            nw_node = pd.Node(aid, label=astr, color=use_color, shape=apply_shape)
+            nw_node = Node(aid, label=astr, color=use_color, shape=apply_shape)
         g.add_node(nw_node)
         if cond_highlight:
             if node in middle:
@@ -1011,7 +1013,7 @@ def pydotprint(
                     color = "cyan"
                 if high_contrast:
                     g.add_node(
-                        pd.Node(
+                        Node(
                             varid,
                             style="filled",
                             fillcolor=color,
@@ -1020,9 +1022,7 @@ def pydotprint(
                         )
                     )
                 else:
-                    g.add_node(
-                        pd.Node(varid, color=color, label=varstr, shape=var_shape)
-                    )
+                    g.add_node(Node(varid, color=color, label=varstr, shape=var_shape))
                 g.add_edge(pd.Edge(varid, aid, **param))
             elif var.name or not compact or var in outputs:
                 g.add_edge(pd.Edge(varid, aid, **param))
@@ -1051,7 +1051,7 @@ def pydotprint(
                 g.add_edge(pd.Edge(aid, varid, **param))
                 if high_contrast:
                     g.add_node(
-                        pd.Node(
+                        Node(
                             varid,
                             style="filled",
                             label=varstr,
@@ -1061,7 +1061,7 @@ def pydotprint(
                     )
                 else:
                     g.add_node(
-                        pd.Node(
+                        Node(
                             varid,
                             color=colorCodes["Output"],
                             label=varstr,
@@ -1073,7 +1073,7 @@ def pydotprint(
                 # grey mean that output var isn't used
                 if high_contrast:
                     g.add_node(
-                        pd.Node(
+                        Node(
                             varid,
                             style="filled",
                             label=varstr,
@@ -1082,9 +1082,7 @@ def pydotprint(
                         )
                     )
                 else:
-                    g.add_node(
-                        pd.Node(varid, label=varstr, color="grey", shape=var_shape)
-                    )
+                    g.add_node(Node(varid, label=varstr, color="grey", shape=var_shape))
             elif var.name or not compact:
                 if not (not compact):
                     if label:
@@ -1094,7 +1092,7 @@ def pydotprint(
                         label = label[: max_label_size - 3] + "..."
                     param["label"] = label
                 g.add_edge(pd.Edge(aid, varid, **param))
-                g.add_node(pd.Node(varid, shape=var_shape, label=varstr))
+                g.add_node(Node(varid, shape=var_shape, label=varstr))
     #            else:
     # don't add egde here as it is already added from the inputs.
 
@@ -1336,7 +1334,7 @@ def var_descriptor(obj, _prev_obs=None, _tag_generator=None):
 
 
 def position_independent_str(obj):
-    if isinstance(obj, theano.gof.graph.Variable):
+    if isinstance(obj, Variable):
         rval = "theano_var"
         rval += "{type=" + str(obj.type) + "}"
     else:

@@ -11,10 +11,10 @@ import theano.pathparse
 from theano import tensor
 from theano.compile.ops import shape_i, shape_i_op
 from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME, config
-from theano.gof import EnumList, ExternalCOp, ParamsType
 from theano.gof.graph import Apply, Variable
-from theano.gof.op import COp
-from theano.gof.type import CDataType, Generic
+from theano.gof.op import COp, ExternalCOp
+from theano.gof.params_type import ParamsType
+from theano.gof.type import CDataType, EnumList, Generic
 from theano.gpuarray import cudnn_defs, pygpu
 from theano.gpuarray.basic_ops import (
     GpuAllocEmpty,
@@ -259,12 +259,86 @@ def dnn_available(context_name):
 dnn_available.msg = None
 
 
+class MakerCDataType(CDataType):
+    """This `CDataType` provides a `make_value` method.
+
+    It also has `CDataType._fn` field that caches a compiled function used
+    by `CDataType.make_value`.
+
+    This was a very lame hack that was removed from `CDataType` itself.
+
+    """
+
+    def _get_func(self):
+        """
+        Return a function that makes a value from an integer.
+
+        The integer value is assumed to be a valid pointer for the
+        type and no check is done to ensure that.
+        """
+        from theano.scalar import get_scalar_type
+
+        if self._fn is None:
+            with config.change_flags(compute_test_value="off"):
+                v = get_scalar_type("int64")()
+                self._fn = theano.function(
+                    [v],
+                    CDataMaker(self)(v),
+                    mode=theano.Mode(optimizer=None),
+                    profile=False,
+                )
+        return self._fn
+
+    def make_value(self, ptr):
+        """
+        Make a value of this type.
+
+        Parameters
+        ----------
+        ptr : int
+            Integer representation of a valid pointer value
+
+        """
+        return self._get_func()(ptr)
+
+
+class CDataMaker(COp):
+    """This is the equally lame `Op` that accompanies `MakerCDataType`."""
+
+    __props__ = ("rtype",)
+
+    def __init__(self, rtype):
+        assert isinstance(rtype, MakerCDataType)
+        self.rtype = rtype
+
+    def do_constant_folding(self, fgraph, node):
+        return False
+
+    def make_node(self, val):
+        from theano.scalar import as_scalar
+
+        val = as_scalar(val).astype("uint64")
+        return Apply(self, [val], [self.rtype()])
+
+    def c_code(self, node, name, inputs, outputs, sub):
+        return """
+        %(out)s = (%(ctype)s)%(inp)s;
+        """ % dict(
+            ctype=self.rtype.ctype, out=outputs[0], inp=inputs[0]
+        )
+
+    def c_code_cache_version(self):
+        if self.rtype.version is None:
+            return None
+        return (0, self.rtype.version)
+
+
 def CUDNNDataType(name, freefunc=None):
     cargs = []
     if config.dnn__bin_path and sys.platform != "win32":
         cargs.append("-Wl,-rpath," + config.dnn__bin_path)
 
-    return CDataType(
+    return MakerCDataType(
         name,
         freefunc,
         headers=["cudnn.h"],

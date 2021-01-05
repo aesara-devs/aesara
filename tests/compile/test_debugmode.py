@@ -6,10 +6,13 @@ import pytest
 import theano
 import theano.tensor
 from tests import unittest_tools as utt
-from theano import gof
 from theano.compile import debugmode
 from theano.configdefaults import config
+from theano.gof.graph import Apply, Variable
 from theano.gof.op import COp, Op
+from theano.gof.opt import local_optimizer
+from theano.gof.optdb import EquilibriumDB
+from theano.gof.toolbox import BadOptimization
 
 
 def test_debugmode_basic():
@@ -32,7 +35,7 @@ class BROKEN_ON_PURPOSE_Add(COp):
         assert a.type.dtype == "float64"
         assert a.type.dtype == b.type.dtype
         assert a.type.ndim == 1
-        r = gof.Apply(self, [a, b], [a.type()])
+        r = Apply(self, [a, b], [a.type()])
         return r
 
     def perform(self, node, inp, out_):
@@ -112,7 +115,7 @@ class WeirdBrokenOp(COp):
 
     def make_node(self, a):
         a_ = theano.tensor.as_tensor_variable(a)
-        r = gof.Apply(self, [a_], [a_.type()])
+        r = Apply(self, [a_], [a_.type()])
         return r
 
     def dontuse_perform(self, node, inp, out_):
@@ -220,13 +223,13 @@ def test_badthunkoutput():
 
 
 def test_badoptimization():
-    @gof.local_optimizer([theano.tensor.add])
+    @local_optimizer([theano.tensor.add])
     def insert_broken_add(fgraph, node):
         if node.op == theano.tensor.add:
             return [off_by_half(*node.inputs)]
         return False
 
-    edb = gof.EquilibriumDB()
+    edb = EquilibriumDB()
     edb.register("insert_broken_add", insert_broken_add, "all")
     opt = edb.query("+all")
 
@@ -246,7 +249,7 @@ def test_badoptimization():
 def test_badoptimization_opt_err():
     # This variant of test_badoptimization() replace the working code
     # with a new apply node that will raise an error.
-    @gof.local_optimizer([theano.tensor.add])
+    @local_optimizer([theano.tensor.add])
     def insert_bigger_b_add(fgraph, node):
         if node.op == theano.tensor.add:
             inputs = list(node.inputs)
@@ -255,7 +258,7 @@ def test_badoptimization_opt_err():
                 return [node.op(*inputs)]
         return False
 
-    @gof.local_optimizer([theano.tensor.add])
+    @local_optimizer([theano.tensor.add])
     def insert_bad_dtype(fgraph, node):
         if node.op == theano.tensor.add:
             inputs = list(node.inputs)
@@ -264,10 +267,10 @@ def test_badoptimization_opt_err():
                 return [node.outputs[0].astype("float32")]
         return False
 
-    edb = gof.EquilibriumDB()
+    edb = EquilibriumDB()
     edb.register("insert_bigger_b_add", insert_bigger_b_add, "all")
     opt = edb.query("+all")
-    edb2 = gof.EquilibriumDB()
+    edb2 = EquilibriumDB()
     edb2.register("insert_bad_dtype", insert_bad_dtype, "all")
     opt2 = edb2.query("+all")
 
@@ -282,9 +285,7 @@ def test_badoptimization_opt_err():
         )
 
     # Test that opt that do an illegal change still get the error from gof.
-    with pytest.raises(
-        theano.gof.toolbox.BadOptimization, match=r"insert_bad_dtype"
-    ) as einfo:
+    with pytest.raises(BadOptimization, match=r"insert_bad_dtype") as einfo:
         with config.change_flags(on_opt_error="raise"):
             f2 = theano.function(
                 [a, b],
@@ -297,7 +298,7 @@ def test_badoptimization_opt_err():
         )
 
     # Test that we can reraise the error with an extended message
-    with pytest.raises(theano.gof.toolbox.BadOptimization):
+    with pytest.raises(BadOptimization):
         e = einfo.value
         new_e = e.__class__("TTT" + str(e))
         exc_type, exc_value, exc_trace = sys.exc_info()
@@ -311,7 +312,7 @@ def test_stochasticoptimization():
 
     last_time_replaced = [False]
 
-    @gof.local_optimizer([theano.tensor.add])
+    @local_optimizer([theano.tensor.add])
     def insert_broken_add_sometimes(fgraph, node):
         if node.op == theano.tensor.add:
             last_time_replaced[0] = not last_time_replaced[0]
@@ -319,7 +320,7 @@ def test_stochasticoptimization():
                 return [off_by_half(*node.inputs)]
         return False
 
-    edb = gof.EquilibriumDB()
+    edb = EquilibriumDB()
     edb.register("insert_broken_add_sometimes", insert_broken_add_sometimes, "all")
     opt = edb.query("+all")
 
@@ -351,7 +352,7 @@ def test_baddestroymap():
     class BadAdd(Op):
         def make_node(self, a, b):
             c = a.type()
-            return gof.Apply(self, [a, b], [c])
+            return Apply(self, [a, b], [c])
 
         def perform(self, node, inp, out):
             a, b = inp
@@ -381,7 +382,7 @@ class TestViewMap:
     class BadAddRef(Op):
         def make_node(self, a, b):
             c = b.type()
-            return gof.Apply(self, [a, b], [c])
+            return Apply(self, [a, b], [c])
 
         def perform(self, node, inp, out):
             a, b = inp
@@ -391,7 +392,7 @@ class TestViewMap:
     class BadAddSlice(Op):
         def make_node(self, a, b):
             c = b.type()
-            return gof.Apply(self, [a, b], [c])
+            return Apply(self, [a, b], [c])
 
         def perform(self, node, inp, out):
             a, b = inp
@@ -439,7 +440,7 @@ class TestViewMap:
             def make_node(self, a, b):
                 c = a.type()
                 d = a.type()
-                return gof.Apply(self, [a, b], [c, d])
+                return Apply(self, [a, b], [c, d])
 
             def perform(self, node, inp, out):
                 a, b = inp
@@ -463,7 +464,7 @@ class TestViewMap:
             def make_node(self, a, b):
                 c = a.type()
                 d = a.type()
-                return gof.Apply(self, [a, b], [c, d])
+                return Apply(self, [a, b], [c, d])
 
             def perform(self, node, inp, out):
                 a, b = inp
@@ -489,7 +490,7 @@ class TestViewMap:
             def make_node(self, a, b):
                 c = a.type()
                 d = a.type()
-                return gof.Apply(self, [a, b], [c, d])
+                return Apply(self, [a, b], [c, d])
 
             def perform(self, node, inp, out):
                 a, b = inp
@@ -514,7 +515,7 @@ class TestViewMap:
             def make_node(self, a, b):
                 c = a.type()
                 d = a.type()
-                return gof.Apply(self, [a, b], [c, d])
+                return Apply(self, [a, b], [c, d])
 
             def perform(self, node, inp, out):
                 a, b = inp
@@ -607,7 +608,7 @@ class BrokenCImplementationAdd(COp):
         assert a.type.dtype == "float32"
         assert a.type.dtype == b.type.dtype
         assert a.type.ndim == 2
-        r = gof.Apply(self, [a, b], [a.type()])
+        r = Apply(self, [a, b], [a.type()])
         return r
 
     def perform(self, node, inp, out_):
@@ -699,13 +700,13 @@ class VecAsRowAndCol(Op):
     __props__ = ()
 
     def make_node(self, v):
-        if not isinstance(v, gof.Variable):
+        if not isinstance(v, Variable):
             v = theano.tensor.as_tensor_variable(v)
         assert v.type.ndim == 1
         type_class = type(v.type)
         out_r_type = type_class(dtype=v.dtype, broadcastable=(True, False))
         out_c_type = type_class(dtype=v.dtype, broadcastable=(False, True))
-        return gof.Apply(self, [v], [out_r_type(), out_c_type()])
+        return Apply(self, [v], [out_r_type(), out_c_type()])
 
     def perform(self, node, inp, out):
         (v,) = inp

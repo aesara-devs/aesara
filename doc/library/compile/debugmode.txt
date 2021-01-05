@@ -30,7 +30,7 @@ DebugMode can be used as follows:
     import theano
     from theano import tensor
     from theano.compile.debugmode import DebugMode
-    
+
     x = tensor.dscalar('x')
 
     f = theano.function([x], 10*x, mode='DebugMode')
@@ -39,8 +39,8 @@ DebugMode can be used as follows:
     f(0)
     f(7)
 
-It can also be used by setting the configuration variable :attr:`config.mode`.
-It can also be used by passing a DebugMode instance as the mode, as in 
+It can also be used by setting the configuration variable :attr:`config.mode`,
+or passing a `DebugMode` instance, as in
 
 >>> f = theano.function([x], 10*x, mode=DebugMode(check_c_code=False))
 
@@ -54,9 +54,9 @@ Some kinds of errors can only be detected for certain input value combinations.
 In the example above, there is no way to guarantee that a future call to say,
 ``f(-1)`` won't cause a problem.  DebugMode is not a silver bullet.
 
-If you instantiate DebugMode using the constructor ``compile.DebugMode``
-rather than the keyword ``DebugMode`` you can configure its behaviour via
-constructor arguments. 
+If you use `DebugMode` by constructing a `DebugMode` object explicitly, rather
+than using the keyword ``mode="DebugMode"``, you can configure its behaviour via
+constructor arguments.
 
 Reference
 ==========
@@ -218,7 +218,4 @@ There following are DebugMode exceptions you might encounter:
     This can also be triggered when floating-point values such as NaN and Inf are
     introduced into the computations.  It indicates which Op created the first
     NaN.  These floating-point values can be allowed by passing the
-    ``check_isfinite=False`` argument to DebugMode. 
-
-
-
+    ``check_isfinite=False`` argument to DebugMode.

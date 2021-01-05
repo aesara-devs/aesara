@@ -11,13 +11,21 @@ import theano
 import theano.tensor.nlinalg as nlinalg
 import theano.tensor.signal.pool as pool
 import theano.tensor.slinalg as slinalg
-from theano import gof, scalar, tensor
+from theano import scalar, tensor
 from theano.breakpoint import PdbBreakpoint
 from theano.compile import optdb
 from theano.compile.ops import shape_i
 from theano.configdefaults import config
-from theano.gof import GlobalOptimizer, graph, local_optimizer, toolbox
-from theano.gof.opt import LocalMetaOptimizer, copy_stack_trace, inherit_stack_trace
+from theano.gof import graph, toolbox
+from theano.gof.fg import FunctionGraph
+from theano.gof.graph import Constant, Variable
+from theano.gof.opt import (
+    GlobalOptimizer,
+    LocalMetaOptimizer,
+    copy_stack_trace,
+    inherit_stack_trace,
+    local_optimizer,
+)
 from theano.gpuarray.basic_ops import (
     GpuAlloc,
     GpuAllocEmpty,
@@ -301,7 +309,7 @@ class GraphToGPU(GlobalOptimizer):
             else:
                 mapping[i] = i
         for i in fgraph.variables:
-            if isinstance(i, theano.Constant):
+            if isinstance(i, Constant):
                 mapping[i] = i
         for node in topo:
             for lopt in (
@@ -377,7 +385,7 @@ class GraphToGPU(GlobalOptimizer):
                         break
             outputs = []
 
-            if isinstance(new_ops, theano.Op):
+            if isinstance(new_ops, theano.gof.op.Op):
                 with inherit_stack_trace(node.outputs):
                     outputs = new_ops(
                         *[mapping[i] for i in node.inputs], return_list=True
@@ -389,7 +397,7 @@ class GraphToGPU(GlobalOptimizer):
                 outputs = newnode.outputs
             elif isinstance(new_ops, (tuple, list)):
                 outputs = new_ops
-            elif isinstance(new_ops, theano.Variable):
+            elif isinstance(new_ops, Variable):
                 outputs = [new_ops]
 
             for old_output, new_output in zip(node.outputs, outputs):
@@ -661,7 +669,7 @@ def local_gpualloc_memset_0(fgraph, node):
 
 
 # Don't register by default.
-@gof.local_optimizer([GpuAllocEmpty])
+@local_optimizer([GpuAllocEmpty])
 def local_gpua_alloc_empty_to_zeros(fgraph, node):
     if isinstance(node.op, GpuAllocEmpty):
         context_name = infer_context_name(*node.inputs)
@@ -2585,7 +2593,7 @@ def gpu_safe_new(x, tag=""):
     else:
         nw_name = None
 
-    if isinstance(x, theano.Constant):
+    if isinstance(x, Constant):
         return x.clone()
 
     nw_x = x.type()
@@ -2643,7 +2651,7 @@ def local_gpua_scan_to_gpua(fgraph, op, context_name, inputs, outputs):
     # __init__ does not know about the gpu and can not
     # handle graphs with inputs being on the gpu
     tmp_in, tmp_out = gpu_reconstruct_graph(scan_ins, scan_outs)
-    local_fgraph = gof.FunctionGraph(tmp_in, tmp_out, clone=True)
+    local_fgraph = FunctionGraph(tmp_in, tmp_out, clone=True)
     _cmodule_key = CLinker().cmodule_key_(local_fgraph, [])
     info["gpu_hash"] = hash(_cmodule_key)
 

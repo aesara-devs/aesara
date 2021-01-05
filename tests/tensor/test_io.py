@@ -4,7 +4,9 @@ import numpy as np
 import pytest
 
 import theano
-from theano import Generic, Variable, function, tensor
+from theano import function, tensor
+from theano.gof.graph import Variable
+from theano.gof.type import Generic
 
 
 class TestLoadTensor:

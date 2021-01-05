@@ -1,10 +1,9 @@
 import numpy as np
 
-import theano
-from theano import gof
-from theano.gof import Constant, Generic
+from theano.gof.graph import Apply, Constant, Variable
 from theano.gof.op import Op
 from theano.gof.sched import key_to_cmp
+from theano.gof.type import Generic
 from theano.tensor import tensor
 
 
@@ -37,7 +36,7 @@ class LoadFromDisk(Op):
     def make_node(self, path):
         if isinstance(path, str):
             path = Constant(Generic(), path)
-        return gof.Apply(
+        return Apply(
             self, [path], [tensor(self.dtype, broadcastable=self.broadcastable)]
         )
 
@@ -135,11 +134,11 @@ class MPIRecv(Op):
         self.broadcastable = (False,) * len(shape)
 
     def make_node(self):
-        return gof.Apply(
+        return Apply(
             self,
             [],
             [
-                theano.Variable(Generic()),
+                Variable(Generic()),
                 tensor(self.dtype, broadcastable=self.broadcastable),
             ],
         )
@@ -182,7 +181,7 @@ class MPIRecvWait(Op):
         self.tag = tag
 
     def make_node(self, request, data):
-        return gof.Apply(
+        return Apply(
             self,
             [request, data],
             [tensor(data.dtype, broadcastable=data.broadcastable)],
@@ -225,7 +224,7 @@ class MPISend(Op):
         self.tag = tag
 
     def make_node(self, data):
-        return gof.Apply(self, [data], [theano.Variable(Generic()), data.type()])
+        return Apply(self, [data], [Variable(Generic()), data.type()])
 
     view_map = {1: [0]}
 
@@ -262,7 +261,7 @@ class MPISendWait(Op):
         self.tag = tag
 
     def make_node(self, request, data):
-        return gof.Apply(self, [request, data], [theano.Variable(Generic())])
+        return Apply(self, [request, data], [Variable(Generic())])
 
     def perform(self, node, inp, out):
         request = inp[0]

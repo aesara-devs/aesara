@@ -66,9 +66,9 @@ class DB:
         # something in the DB is there only once.
         if obj.name in self.__db__:
             raise ValueError(
-                f"""You can\'t register the same optimization
-multiple time in a DB. Tryed to register "{obj.name}" again under the new name "{name}".
- Use theano.gof.ProxyDB to work around that"""
+                f"Tried to register {obj.name} again under the new name {name}. "
+                "You can't register the same optimization multiple time in a DB. "
+                "Use ProxyDB to work around that."
             )
         self.__db__[name] = OrderedSet([obj])
         self._names.add(name)

@@ -11,7 +11,7 @@ from tests.tensor.test_sharedvar import makeSharedTester
 from theano import sparse, tensor
 from theano.compile.function import function
 from theano.configdefaults import config
-from theano.gof.graph import Apply
+from theano.gof.graph import Apply, Constant
 from theano.gof.op import Op
 from theano.gradient import GradientError
 from theano.misc.safe_asarray import _asarray
@@ -795,7 +795,7 @@ class TestAddMul:
                         assert np.all(val == (array1 + b))
                         ans = np.array([[1.0, 2], [3, 4], [5, 6]])
                         assert np.all(val == ans)
-                        if isinstance(a, theano.Constant):
+                        if isinstance(a, Constant):
                             a = a.data
                         if getattr(a, "owner", None):
                             continue
@@ -807,7 +807,7 @@ class TestAddMul:
                         assert np.all(
                             val.todense() == np.array([[1, 0], [9, 0], [0, 36]])
                         )
-                        if isinstance(a, theano.Constant):
+                        if isinstance(a, Constant):
                             a = a.data
                         if getattr(a, "owner", None):
                             continue
@@ -851,7 +851,7 @@ class TestAddMul:
                         assert np.all(val == (a + array2))
                         ans = np.array([[1.0, 2], [3, 4], [5, 6]])
                         assert np.all(val == ans)
-                        if isinstance(b, theano.Constant):
+                        if isinstance(b, Constant):
                             b = b.data
                         if dtype1.startswith("float") and dtype2.startswith("float"):
                             verify_grad_sparse(op, [a, b], structured=True)
@@ -860,7 +860,7 @@ class TestAddMul:
                         ans = np.array([[1, 0], [9, 0], [0, 36]])
                         assert np.all(val.todense() == (a.multiply(array2)))
                         assert np.all(val.todense() == ans)
-                        if isinstance(b, theano.Constant):
+                        if isinstance(b, Constant):
                             b = b.data
                         if dtype1.startswith("float") and dtype2.startswith("float"):
                             verify_grad_sparse(op, [a, b], structured=False)
@@ -2408,7 +2408,7 @@ class TestGetItem:
             )
 
             # mode_no_debug = theano.compile.mode.get_default_mode()
-            # if isinstance(mode_no_debug, theano.compile.DebugMode):
+            # if isinstance(mode_no_debug, theano.compile.debugmode.DebugMode):
             #    mode_no_debug = 'FAST_RUN'
             if is_supported_version:
                 f1 = theano.function([x, a, b, c, d, e, f], x[a:b:e, c:d:f])

@@ -1,7 +1,12 @@
 __docformat__ = "restructedtext en"
-__authors__ = "Razvan Pascanu " "Frederic Bastien " "James Bergstra " "Pascal Lamblin "
+__authors__ = (
+    "Razvan Pascanu "
+    "Frederic Bastien "
+    "James Bergstra "
+    "Pascal Lamblin "
+    "PyMC Developers"
+)
 __copyright__ = "(c) 2010, Universite de Montreal"
-__contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 
 import logging
@@ -10,11 +15,13 @@ from collections import OrderedDict
 import numpy as np
 
 import theano.tensor as tt
-from theano import gof
 from theano.compile import SharedVariable, ops
 from theano.compile.function import function
 from theano.compile.mode import Mode
 from theano.configdefaults import config
+from theano.gof.fg import MissingInputError
+from theano.gof.graph import Constant, Variable, graph_inputs
+from theano.gof.op import get_test_value
 from theano.gof.utils import TestValueError
 from theano.scan import utils
 from theano.scan.op import Scan
@@ -336,7 +343,7 @@ def scan(
     # passed as inputs to scan
     non_seqs = []
     for elem in wrap_into_list(non_sequences):
-        if not isinstance(elem, gof.Variable):
+        if not isinstance(elem, Variable):
             non_seqs.append(tt.as_tensor_variable(elem))
         else:
             non_seqs.append(elem)
@@ -479,7 +486,7 @@ def scan(
                 # Try to transfer test_value to the new variable
                 if config.compute_test_value != "off":
                     try:
-                        nw_slice.tag.test_value = gof.get_test_value(_seq_val_slice)
+                        nw_slice.tag.test_value = get_test_value(_seq_val_slice)
                     except TestValueError:
                         if config.compute_test_value != "ignore":
                             # No need to print a warning or raise an error now,
@@ -599,10 +606,10 @@ def scan(
         if init_out.get("taps", None) == [-1]:
 
             actual_arg = init_out["initial"]
-            if not isinstance(actual_arg, tt.Variable):
+            if not isinstance(actual_arg, Variable):
                 actual_arg = tt.as_tensor_variable(actual_arg)
             arg = safe_new(actual_arg)
-            if isinstance(arg, tt.Constant):
+            if isinstance(arg, Constant):
                 # safe new returns a clone of the constants, but that is not
                 # what we need for initial states
                 arg = arg.type()
@@ -610,7 +617,7 @@ def scan(
             # Try to transfer test_value to the new variable
             if config.compute_test_value != "off":
                 try:
-                    arg.tag.test_value = gof.get_test_value(actual_arg)
+                    arg.tag.test_value = get_test_value(actual_arg)
                 except TestValueError:
                     if config.compute_test_value != "ignore":
                         _logger.warning(
@@ -668,9 +675,7 @@ def scan(
                 # Try to transfer test_value to the new variable
                 if config.compute_test_value != "off":
                     try:
-                        nw_slice.tag.test_value = gof.get_test_value(
-                            _init_out_var_slice
-                        )
+                        nw_slice.tag.test_value = get_test_value(_init_out_var_slice)
                     except TestValueError:
                         if config.compute_test_value != "ignore":
                             _logger.warning(
@@ -734,7 +739,7 @@ def scan(
     dummy_args = [
         arg
         for arg in args
-        if (not isinstance(arg, SharedVariable) and not isinstance(arg, tt.Constant))
+        if (not isinstance(arg, SharedVariable) and not isinstance(arg, Constant))
     ]
     # when we apply the lambda expression we get a mixture of update rules
     # and outputs that needs to be separated
@@ -799,11 +804,11 @@ def scan(
     )
     all_inputs = filter(
         lambda x: (
-            isinstance(x, gof.Variable)
+            isinstance(x, Variable)
             and not isinstance(x, SharedVariable)
-            and not isinstance(x, gof.Constant)
+            and not isinstance(x, Constant)
         ),
-        gof.graph.graph_inputs(fake_outputs),
+        graph_inputs(fake_outputs),
     )
     extra_inputs = [x for x in all_inputs if x not in args + fake_nonseqs]
     non_seqs += extra_inputs
@@ -823,13 +828,13 @@ def scan(
             on_unused_input="ignore",
             profile=False,
         )
-    except gof.fg.MissingInputError as err:
+    except MissingInputError as err:
         msg = (
             "\nPlease pass this variable to the scan's inner function. Do "
             "not forget to also pass it to the `non_sequences` attribute "
             "of scan."
         )
-        raise gof.fg.MissingInputError(err.args[0] + msg)
+        raise MissingInputError(err.args[0] + msg)
     ##
     # Step 5. Re-arange inputs of scan into a more strict order
     ##
@@ -928,14 +933,14 @@ def scan(
     other_scan_args += [
         arg
         for arg in non_seqs
-        if (not isinstance(arg, SharedVariable) and not isinstance(arg, tt.Constant))
+        if (not isinstance(arg, SharedVariable) and not isinstance(arg, Constant))
     ]
 
     # Step 5.6 all shared variables with no update rules
     other_inner_args += [
         safe_new(arg, "_copy")
         for arg in non_seqs
-        if (not isinstance(arg, SharedVariable) and not isinstance(arg, tt.Constant))
+        if (not isinstance(arg, SharedVariable) and not isinstance(arg, Constant))
     ]
 
     givens.update(OrderedDict(zip(other_scan_args, other_inner_args)))

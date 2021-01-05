@@ -154,7 +154,7 @@ class HiddenLayer:
         :type n_out: int
         :param n_out: number of hidden units
 
-        :type activation: theano.Op or function
+        :type activation: theano.gof.op.Op or function
         :param activation: Non linearity to be applied in the hidden
                               layer
         """

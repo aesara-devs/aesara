@@ -225,9 +225,9 @@ class NanGuardMode(Mode):
             ----------
             value : numpy.ndarray
                 The value to be checked.
-            nd : theano.gof.Apply
+            nd : theano.gof.graph.Apply
                 The Apply node being executed.
-            var : theano.gof.Variable
+            var : theano.gof.graph.Variable
                 Not used if nd is there. Otherwise, used to print the stack
                 trace for inputs of the graph.
 

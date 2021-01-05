@@ -17,24 +17,34 @@ import numpy as np
 
 import theano
 import theano.scalar.basic as ts
-from theano import compile, gof  # to register the optimizer built by this file
-from theano.compile.ops import Shape, Shape_i
+from theano import compile
+from theano.compile.ops import Shape, Shape_i, ViewOp
 from theano.configdefaults import config
-from theano.gof import (
+from theano.gof import toolbox
+from theano.gof.fg import InconsistencyError
+from theano.gof.graph import (
+    Apply,
     Constant,
-    InconsistencyError,
+    Variable,
+    ancestors,
+    equal_computations,
+    io_toposort,
+)
+from theano.gof.op import COp, get_test_value
+from theano.gof.opt import (
+    GlobalOptimizer,
+    LocalOptGroup,
     LocalOptimizer,
     OpRemove,
     PatternSub,
     TopoOptimizer,
-    Variable,
-    graph,
-    opt,
-    toolbox,
+    check_chain,
+    copy_stack_trace,
+    in2out,
+    local_optimizer,
 )
-from theano.gof.op import COp
-from theano.gof.opt import GlobalOptimizer, copy_stack_trace, in2out, local_optimizer
-from theano.gof.utils import MethodNotDefined, TestValueError
+from theano.gof.optdb import SequenceDB
+from theano.gof.utils import MethodNotDefined, TestValueError, get_variable_trace_string
 from theano.gradient import DisconnectedType
 from theano.misc.safe_asarray import _asarray
 
@@ -217,7 +227,9 @@ class InplaceElemwiseOptimizer(GlobalOptimizer):
         self.op = OP
 
     def add_requirements(self, fgraph):
-        fgraph.attach_feature(gof.destroyhandler.DestroyHandler())
+        from theano.gof.destroyhandler import DestroyHandler
+
+        fgraph.attach_feature(DestroyHandler())
 
     @staticmethod
     def print_profile(stream, prof, level=0):
@@ -305,7 +317,7 @@ class InplaceElemwiseOptimizer(GlobalOptimizer):
         ]
         protected_inputs = sum(protected_inputs, [])  # flatten the list
         protected_inputs.extend(fgraph.outputs)
-        for node in list(graph.io_toposort(fgraph.inputs, fgraph.outputs)):
+        for node in list(io_toposort(fgraph.inputs, fgraph.outputs)):
             op = node.op
             # gpuarray GpuElemwise inherit from Elemwise
             if not type(op) == self.op:
@@ -894,7 +906,7 @@ class MakeVector(COp):
         # bcastable = (len(inputs) == 1)
         bcastable = False
         otype = tt.TensorType(broadcastable=(bcastable,), dtype=dtype)
-        return tt.Apply(self, inputs, [otype()])
+        return Apply(self, inputs, [otype()])
 
     def perform(self, node, inputs, out_):
         (out,) = out_
@@ -1213,7 +1225,7 @@ class ShapeFeature(toolbox.Feature):
             # this shape is a constant
             if s_i < 0:
                 msg = "There is a negative shape in the graph!"
-                msg += gof.utils.get_variable_trace_string(var)
+                msg += get_variable_trace_string(var)
                 # The rest of the pipeline don't handle correctly this
                 # case.  So we have 2 choices, stop compilation or
                 # consider the shape as unknow.  As we have more
@@ -1377,7 +1389,7 @@ class ShapeFeature(toolbox.Feature):
                 # This mean the shape is equivalent
                 # We do not want to do the ancestor check in those cases
                 merged_shape.append(r_shape[i])
-            elif r_shape[i] in gof.graph.ancestors([other_shape[i]]):
+            elif r_shape[i] in ancestors([other_shape[i]]):
                 # Another case where we want to use r_shape[i] is when
                 # other_shape[i] actually depends on r_shape[i]. In that case,
                 # we do not want to substitute an expression with another that
@@ -1526,7 +1538,7 @@ class ShapeFeature(toolbox.Feature):
                     assert d.dtype in tt.discrete_dtypes, (node, d.dtype)
                     assert str(d.dtype) != "uint64", node
                     new_shape += sh[len(new_shape) : i + 1]
-                    if isinstance(d, tt.Constant):
+                    if isinstance(d, Constant):
                         casted_d = tt.constant(d.data, dtype="int64")
                     else:
                         casted_d = tt.cast(d, "int64")
@@ -1581,7 +1593,7 @@ class ShapeFeature(toolbox.Feature):
                     # replacement.
                     continue
 
-                if shpnode.outputs[0] in gof.graph.ancestors([repl]):
+                if shpnode.outputs[0] in ancestors([repl]):
                     raise InconsistencyError(
                         "This substitution would insert a cycle in the graph:"
                         f"node: {node}, i: {i}, r: {r}, new_r: {new_r}"
@@ -1652,8 +1664,6 @@ class ShapeFeature(toolbox.Feature):
             # To be sure to cover all case, call equal_computation.
             # Can't use theano.gof.graph.is_same_graph(dx, dy)
             # As it currently expect that dx and dy aren't in a FunctionGraph
-            from theano.gof.graph import equal_computations
-
             if not equal_computations([dx], [dy]):
                 return False
         return True
@@ -2282,7 +2292,7 @@ def local_subtensor_make_vector(fgraph, node):
                 return ret
             except NotScalarConstantError:
                 pass
-        elif idx.ndim == 1 and isinstance(idx, tt.Constant):
+        elif idx.ndim == 1 and isinstance(idx, Constant):
             values = list(map(int, list(idx.value)))
             ret = make_vector(*[x.owner.inputs[v] for v in values])
 
@@ -2614,7 +2624,7 @@ class Assert(COp):
             value = tt.as_tensor_variable(value)
         cond = [tt.as_tensor_variable(c) for c in conds]
         assert np.all([c.type.ndim == 0 for c in cond])
-        return gof.Apply(self, [value] + cond, [value.type()])
+        return Apply(self, [value] + cond, [value.type()])
 
     def perform(self, node, inputs, out_):
         (out,) = out_
@@ -3003,7 +3013,7 @@ def local_useless_subtensor(fgraph, node):
 
                 if idx.stop < length_pos_data:
                     return False
-            elif isinstance(idx.stop, gof.Variable):
+            elif isinstance(idx.stop, Variable):
                 length_pos_shape_i = idx.stop
                 # length_pos is a tensor variable, but length_pos_shape_i
                 # is a scalar variable. We try to see if they represent
@@ -3053,7 +3063,7 @@ def local_useless_subtensor(fgraph, node):
 
         # `idx` must be equivalent to [0,1,...,shape[0] - 1] to qualify for
         # this optimization
-        if isinstance(idx, tt.Constant):
+        if isinstance(idx, Constant):
             idx = idx.value
             if len(idx) != length:
                 return False
@@ -3736,7 +3746,7 @@ def local_incsubtensor_of_zeros_to_setsubtensor(fgraph, node):
     if isinstance(node.op, (IncSubtensor)) and not node.op.set_instead_of_inc:
         x = node.inputs[0]
 
-        if isinstance(x, tt.Constant) and not np.any(x.data):
+        if isinstance(x, Constant) and not np.any(x.data):
             return [
                 IncSubtensor(
                     node.op.idx_list,
@@ -4141,7 +4151,7 @@ def local_join_empty(fgraph, node):
         # to 2,0.  This trigger DebugMode error. This happen with
         # stack(...,[]) as this add a dimshuffle on [], that add a
         # dimensions with shape 1.
-        if isinstance(inp, theano.Constant) and inp.data.shape[join_idx] == 0:
+        if isinstance(inp, Constant) and inp.data.shape[join_idx] == 0:
             continue
         new_inputs.append(inp)
     if len(new_inputs) < len(node.inputs) - 1:
@@ -4706,7 +4716,7 @@ def local_reshape_chain(op):
         Reshape(Reshape(shape1),shape2) -> Reshape(shape2)
 
         """
-        if not opt.check_chain(node, op, op):
+        if not check_chain(node, op, op):
             return False
 
         # TODO: this can permit a failing program to run by eliminating
@@ -5149,7 +5159,7 @@ class Canonizer(LocalOptimizer):
         if not ld:
             if ln == 1:
                 # num[0] should always be a variable
-                assert isinstance(num[0], gof.Variable)
+                assert isinstance(num[0], Variable)
                 return num[0]
             else:
                 return self.main(*num)
@@ -6591,7 +6601,7 @@ def local_add_specialize(fgraph, node):
 register_specialize(local_add_specialize)
 
 mul_canonizer = in2out(
-    gof.LocalOptGroup(local_mul_canonizer, local_fill_sink, apply_all_opts=True),
+    LocalOptGroup(local_mul_canonizer, local_fill_sink, apply_all_opts=True),
     name="mul_canonizer_groups",
 )
 
@@ -6816,7 +6826,7 @@ def add_calculate(num, denum, aslist=False, out_type=None):
 
 local_add_canonizer = Canonizer(add, sub, neg, add_calculate)
 add_canonizer = in2out(
-    gof.LocalOptGroup(local_add_canonizer, local_fill_sink, apply_all_opts=True),
+    LocalOptGroup(local_add_canonizer, local_fill_sink, apply_all_opts=True),
     name="add_canonizer_group",
 )
 
@@ -7541,7 +7551,7 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
                         else:
                             tmp = ts.get_scalar_type(ii.dtype).make_variable()
                             try:
-                                tv = gof.op.get_test_value(ii)
+                                tv = get_test_value(ii)
                                 if tv.size > 0:
                                     tmp.tag.test_value = tv.flatten()[0]
                                 else:
@@ -7609,7 +7619,7 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
                     s = ts.get_scalar_type(i.dtype).make_variable()
                     try:
                         if config.compute_test_value != "off":
-                            v = gof.op.get_test_value(i)
+                            v = get_test_value(i)
                             if v.size > 0:
                                 s.tag.test_value = v.flatten()[0]
                     except TestValueError:
@@ -7832,7 +7842,7 @@ def local_add_mul_fusion(fgraph, node):
 if config.tensor__local_elemwise_fusion:
     _logger.debug("Enabling Elemwise fusion optimizations in fast_run")
     # Must be after gpu(48.5) and before AddDestroyHandler(49.5)
-    fuse_seqopt = gof.SequenceDB()
+    fuse_seqopt = SequenceDB()
     fuse_seqopt.register(
         "local_add_mul_fusion",
         FusionOptimizer(local_add_mul_fusion),
@@ -7899,7 +7909,7 @@ def local_useless_composite(fgraph, node):
 @register_useless("fast_compile")
 @local_optimizer(None)
 def local_view_op(fgraph, node):
-    if isinstance(node.op, theano.compile.ops.ViewOp):
+    if isinstance(node.op, ViewOp):
         return node.inputs
 
 

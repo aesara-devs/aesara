@@ -1,12 +1,11 @@
 import os
 import sys
 
-import theano
 import theano.tensor as tt
-import theano.tensor.nnet.ctc
-from theano import gof
 from theano.configdefaults import config
-from theano.gof import local_optimizer
+from theano.gof.graph import Apply
+from theano.gof.op import ExternalCOp
+from theano.gof.opt import local_optimizer
 from theano.gpuarray import pygpu
 from theano.gpuarray.basic_ops import (
     as_gpuarray_variable,
@@ -21,7 +20,7 @@ from theano.tensor.nnet.ctc import ctc_available
 from theano.tensor.opt import register_canonicalize
 
 
-class GpuConnectionistTemporalClassification(gof.ExternalCOp):
+class GpuConnectionistTemporalClassification(ExternalCOp):
     """
     GPU wrapper for Baidu CTC loss function.
 
@@ -53,7 +52,7 @@ class GpuConnectionistTemporalClassification(gof.ExternalCOp):
         # Return only the cost. Gradient will be returned by grad()
         self.default_output = 0
 
-        gof.ExternalCOp.__init__(self, self.func_file, self.func_name)
+        super().__init__(self.func_file, self.func_name)
 
     def c_lib_dirs(self, **kwargs):
         lib_dirs = []
@@ -143,7 +142,7 @@ class GpuConnectionistTemporalClassification(gof.ExternalCOp):
             )()
             outputs += [gradients]
 
-        return theano.Apply(
+        return Apply(
             self, inputs=[t_activations, t_labels, t_input_lengths], outputs=outputs
         )
 

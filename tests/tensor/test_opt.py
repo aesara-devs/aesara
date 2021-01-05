@@ -11,13 +11,20 @@ import theano.scalar as scal
 import theano.tensor as tt
 import theano.tensor.opt as opt
 from tests import unittest_tools as utt
-from theano import compile, config, gof, pprint, shared
+from theano import compile, config, pprint, shared
 from theano.compile import DeepCopyOp, deep_copy_op, get_mode
 from theano.compile.function import function
 from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Apply
+from theano.gof.graph import Apply, Constant
 from theano.gof.op import Op
-from theano.gof.opt import check_stack_trace, out2in
+from theano.gof.opt import (
+    LocalOptGroup,
+    TopoOptimizer,
+    check_stack_trace,
+    local_optimizer,
+    out2in,
+)
+from theano.gof.optdb import Query
 from theano.misc.safe_asarray import _asarray
 from theano.tensor import (
     AdvancedIncSubtensor,
@@ -82,15 +89,15 @@ mode_opt = theano.compile.mode.get_mode(mode_opt)
 
 dimshuffle_lift = out2in(local_dimshuffle_lift)
 
-_optimizer_stabilize = gof.Query(include=["fast_run"])
+_optimizer_stabilize = Query(include=["fast_run"])
 _optimizer_stabilize.position_cutoff = 1.51
 _optimizer_stabilize = compile.optdb.query(_optimizer_stabilize)
 
-_optimizer_specialize = gof.Query(include=["fast_run"])
+_optimizer_specialize = Query(include=["fast_run"])
 _optimizer_specialize.position_cutoff = 2.01
 _optimizer_specialize = compile.optdb.query(_optimizer_specialize)
 
-_optimizer_fast_run = gof.Query(include=["fast_run"])
+_optimizer_fast_run = Query(include=["fast_run"])
 _optimizer_fast_run = compile.optdb.query(_optimizer_fast_run)
 
 
@@ -317,8 +324,8 @@ class TestGreedyDistribute:
         g = FunctionGraph([a, b, c, d, x, y, z], [e])
         # print pprint(g.outputs[0])
         mul_canonizer.optimize(g)
-        gof.TopoOptimizer(
-            gof.LocalOptGroup(local_greedy_distributor), order="out_to_in"
+        TopoOptimizer(
+            LocalOptGroup(local_greedy_distributor), order="out_to_in"
         ).optimize(g)
         # print pprint(g.outputs[0])
         assert str(pprint(g.outputs[0])) == "((a * x) + (b * z))"
@@ -328,8 +335,8 @@ class TestGreedyDistribute:
         g = FunctionGraph([a, b, x], [e])
         # print pprint(g.outputs[0])
         mul_canonizer.optimize(g)
-        gof.TopoOptimizer(
-            gof.LocalOptGroup(local_greedy_distributor), order="out_to_in"
+        TopoOptimizer(
+            LocalOptGroup(local_greedy_distributor), order="out_to_in"
         ).optimize(g)
         # print pprint(g.outputs[0])
         assert str(pprint(g.outputs[0])) == "(a + (b * x))"
@@ -491,7 +498,7 @@ class TestCanonize:
         # We must be sure that the Canonizer is working, but that we don't have other
         # optimisation that could hide bug in the Canonizer as local_elemwise_fusion
         mode = compile.mode.get_default_mode()
-        opt = gof.Query(["canonicalize"])
+        opt = Query(["canonicalize"])
         opt = opt.excluding("local_elemwise_fusion")
         mode = mode.__class__(linker=mode.linker, optimizer=opt)
         for id, [g, sym_inputs, val_inputs, nb_elemwise, out_dtype] in enumerate(cases):
@@ -626,7 +633,7 @@ class TestCanonize:
         # We must be sure that the Canonizer is working, but that we don't have other
         # optimisation that could hide bug in the Canonizer as local_elemwise_fusion
         mode = compile.mode.get_default_mode()
-        mode._optimizer = gof.Query(["canonicalize"])
+        mode._optimizer = Query(["canonicalize"])
         mode._optimizer = mode._optimizer.excluding("local_elemwise_fusion")
         for id, [g, sym_inputs, val_inputs, nb_elemwise, out_dtype] in enumerate(cases):
             f = function(
@@ -674,7 +681,7 @@ class TestCanonize:
         # optimisation that could hide bug in the Canonizer as local_elemwise_fusion
         mode = compile.mode.get_default_mode()
 
-        opt = gof.Query(["canonicalize"])
+        opt = Query(["canonicalize"])
         opt = opt.including("ShapeOpt", "local_fill_to_alloc")
         opt = opt.excluding("local_elemwise_fusion")
         mode = mode.__class__(linker=mode.linker, optimizer=opt)
@@ -1045,7 +1052,7 @@ class TestCanonize:
         # optimisation that could hide bug in the Canonizer as local_elemwise_fusion
         mode = compile.mode.get_default_mode()
 
-        opt = gof.Query(["canonicalize"])
+        opt = Query(["canonicalize"])
         opt = opt.excluding("local_elemwise_fusion")
         mode = mode.__class__(linker=mode.linker, optimizer=opt)
         # test fail!
@@ -1200,7 +1207,7 @@ def test_cast_in_mul_canonizer():
 
 
 class TestFusion:
-    opts = theano.gof.Query(
+    opts = Query(
         include=[
             "local_elemwise_fusion",
             "composite_elemwise_fusion",
@@ -1898,10 +1905,7 @@ class TestFusion:
                     # Elemwise is ok
                     if len(set(g.owner.inputs)) == len(g.owner.inputs):
                         expected_len_sym_inputs = np.sum(
-                            [
-                                not isinstance(x, theano.gof.Constant)
-                                for x in topo_[0].inputs
-                            ]
+                            [not isinstance(x, Constant) for x in topo_[0].inputs]
                         )
                         assert expected_len_sym_inputs == len(sym_inputs)
 
@@ -1977,7 +1981,7 @@ class TestFusion:
 
     def test_add_mul_fusion_inplace(self):
 
-        opts = theano.gof.Query(
+        opts = Query(
             include=[
                 "local_elemwise_fusion",
                 "composite_elemwise_fusion",
@@ -2015,7 +2019,7 @@ class TestFusion:
         shp = (3000, 3000)
         shp = (1000, 1000)
         nb_repeat = 50
-        # linker=gof.CLinker
+        # linker=CLinker
         # linker=OpWiseCLinker
 
         mode1 = copy.copy(self.mode)
@@ -4701,7 +4705,7 @@ class TestLocalCanonicalizeAlloc:
         assert [node.op for node in f.maker.fgraph.toposort()] == [deep_copy_op]
 
         # In DebugMode, the shape mismatch should be detected
-        if isinstance(mode_opt, compile.DebugMode):
+        if isinstance(mode_opt, compile.debugmode.DebugMode):
             with pytest.raises(ValueError):
                 f
 
@@ -5044,7 +5048,7 @@ class TestShapeOptimizer:
 
         identity_shape = IdentityShape()
 
-        @gof.local_optimizer([IdentityNoShape])
+        @local_optimizer([IdentityNoShape])
         def local_identity_noshape_to_identity_shape(fgraph, node):
             """Optimization transforming the first Op into the second"""
             if isinstance(node.op, IdentityNoShape):

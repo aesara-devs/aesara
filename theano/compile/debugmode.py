@@ -19,7 +19,6 @@ from warnings import warn
 import numpy as np
 
 import theano
-from theano import gof
 from theano.compile.function.types import (
     Function,
     FunctionMaker,
@@ -29,7 +28,11 @@ from theano.compile.function.types import (
 from theano.compile.mode import Mode, register_mode
 from theano.compile.ops import OutputGuard, _output_guard
 from theano.configdefaults import config
-from theano.gof import graph, ops_with_inner_function
+from theano.gof.destroyhandler import DestroyHandler
+from theano.gof.fg import InconsistencyError
+from theano.gof.graph import Variable, graph_inputs, io_toposort
+from theano.gof.op import COp, Op, ops_with_inner_function
+from theano.gof.toolbox import BadOptimization
 from theano.gof.utils import MethodNotDefined
 from theano.link.basic import Container, LocalLinker
 from theano.link.utils import map_storage, raise_with_op
@@ -139,7 +142,7 @@ class BadThunkOutput(DebugModeError):
         return ret
 
 
-class BadOptimization(DebugModeError, gof.toolbox.BadOptimization):
+class BadOptimization(DebugModeError, BadOptimization):
     pass
 
 
@@ -1713,7 +1716,7 @@ class _VariableEquivalenceTracker:
 
 # List of default version of make thunk.
 # This is needed to know if the user overrided it.
-default_make_thunk = [get_unbound_function(gof.op.COp.make_thunk)]
+default_make_thunk = [get_unbound_function(COp.make_thunk)]
 
 
 # Debug mode cheats and initializes the linker in a different way in
@@ -1768,7 +1771,7 @@ class _Linker(LocalLinker):
         order_outputs = copy.copy(fgraph_equiv.all_variables_ever)
         del fgraph_equiv
         order_outputs.reverse()
-        order = graph.io_toposort(fgraph.inputs, order_outputs)
+        order = io_toposort(fgraph.inputs, order_outputs)
 
         # an ordering of just the active nodes
         active_order = self.schedule(fgraph)
@@ -1811,7 +1814,7 @@ class _Linker(LocalLinker):
                 if (
                     not self.maker.mode.check_c_code
                     or debug
-                    or not isinstance(node.op, gof.op.COp)
+                    or not isinstance(node.op, COp)
                 ):
                     raise MethodNotDefined()
 
@@ -1828,7 +1831,7 @@ class _Linker(LocalLinker):
             # consider that we don't have a python implementation
             if (
                 (self.maker.mode.check_py_code or thunks_c[-1] is None)
-                and node.op.perform.__code__ != gof.op.Op.perform.__code__
+                and node.op.perform.__code__ != Op.perform.__code__
             ) or debug:
                 node.op.prepare_node(node, storage_map, compute_map, "py")
                 thunk = node.op.make_py_thunk(
@@ -1841,7 +1844,7 @@ class _Linker(LocalLinker):
             if (
                 not self.maker.mode.check_c_code
                 and thunks_py[-1] is None
-                and isinstance(node.op, gof.op.COp)
+                and isinstance(node.op, COp)
             ):
                 _logger.warning(
                     f"Op {node.op} doesn't have a perform, forcing check of the C code"
@@ -1973,7 +1976,7 @@ class _Linker(LocalLinker):
                     # put a copy of each input into the storage_map
                     # also, check that inputs have valid values
                     for r in node.inputs:
-                        assert isinstance(r, gof.Variable)
+                        assert isinstance(r, Variable)
                         assert r in r_vals
                         storage_map[r][0] = _lessbroken_deepcopy(r_vals[r])
                         if not r.type.is_valid_value(storage_map[r][0]):
@@ -2416,7 +2419,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
         outputs = [self.wrap_out(o) for o in outputs]
 
         _inputs = list(
-            gof.graph.graph_inputs(
+            graph_inputs(
                 [o.variable for o in outputs]
                 + [i.update for i in inputs if getattr(i, "update", False)]
             )
@@ -2500,11 +2503,11 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
         if config.cycle_detection == "regular":
             destroy_handler_added = False
             for feature in fgraph._features:
-                if isinstance(feature, gof.DestroyHandler):
+                if isinstance(feature, DestroyHandler):
                     destroy_handler_added = True
                     break
             if not destroy_handler_added:
-                fgraph.attach_feature(gof.DestroyHandler())
+                fgraph.attach_feature(DestroyHandler())
             for o in fgraph.outputs:
                 try:
                     with config.change_flags(
@@ -2519,7 +2522,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
                         "destructive operations?"
                     )
 
-                except gof.InconsistencyError:
+                except InconsistencyError:
                     # This output is already impossible to destroy.
                     # No guard necessary
                     pass

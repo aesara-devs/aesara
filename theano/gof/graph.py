@@ -287,7 +287,7 @@ class Variable(Node):
     A :term:`Variable` is a node in an expression graph that represents a
     variable.
 
-    The inputs and outputs of every `Apply` (theano.gof.Apply) are `Variable`
+    The inputs and outputs of every `Apply` (theano.gof.graph.Apply) are `Variable`
     instances. The input and output arguments to create a `function` are also
     `Variable` instances. A `Variable` is like a strongly-typed variable in
     some other languages; each `Variable` contains a reference to a `Type`

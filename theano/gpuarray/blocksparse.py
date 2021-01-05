@@ -2,8 +2,10 @@ import logging
 
 import numpy as np
 
-from theano import Apply, tensor
-from theano.gof import ExternalCOp, ParamsType
+from theano import tensor
+from theano.gof.graph import Apply
+from theano.gof.op import ExternalCOp
+from theano.gof.params_type import ParamsType
 from theano.gradient import grad_undefined
 from theano.scalar import bool as bool_t
 from theano.tensor import as_tensor_variable, discrete_dtypes

@@ -19,10 +19,13 @@ from collections import OrderedDict
 
 import numpy as np
 
-import theano
-from theano import gof, scalar, tensor
+from theano import scalar, tensor
 from theano.compile.function.pfunc import rebuild_collect_shared
 from theano.configdefaults import config
+from theano.gof.fg import FunctionGraph
+from theano.gof.graph import Constant, Variable, equal_computations, graph_inputs
+from theano.gof.op import get_test_value
+from theano.gof.opt import TopoOptimizer, local_optimizer
 from theano.gof.utils import TestValueError
 from theano.tensor.basic import get_scalar_constant_value
 
@@ -45,7 +48,7 @@ def safe_new(x, tag="", dtype=None):
     else:
         nw_name = None
 
-    if isinstance(x, theano.Constant):
+    if isinstance(x, Constant):
         if dtype and x.dtype != dtype:
             casted_x = x.astype(dtype)
             nwx = x.__class__(casted_x.type, x.data, x.name)
@@ -65,7 +68,7 @@ def safe_new(x, tag="", dtype=None):
         if config.compute_test_value != "off":
             # Copy test value, cast it if necessary
             try:
-                x_test_value = gof.op.get_test_value(x)
+                x_test_value = get_test_value(x)
             except TestValueError:
                 pass
             else:
@@ -91,7 +94,7 @@ def safe_new(x, tag="", dtype=None):
     # not be the most efficient memory-wise, though.
     if config.compute_test_value != "off":
         try:
-            nw_x.tag.test_value = copy.deepcopy(gof.op.get_test_value(x))
+            nw_x.tag.test_value = copy.deepcopy(get_test_value(x))
         except TestValueError:
             pass
 
@@ -268,7 +271,7 @@ def map_variables(replacer, graphs, additional_inputs=None):
             return new_graph
 
     graphs = list(graphs)
-    inputs_ = list(set(list(gof.graph.graph_inputs(graphs)) + list(additional_inputs)))
+    inputs_ = list(set(list(graph_inputs(graphs)) + list(additional_inputs)))
 
     # perform any desired replacement of input variables.  these
     # aren't replaced by the local optimizer approach because they are
@@ -280,13 +283,13 @@ def map_variables(replacer, graphs, additional_inputs=None):
         if new_input is not input_
     ]
     graphs = clone(graphs, share_inputs=True, replace=replacements)
-    inputs_ = list(set(list(gof.graph.graph_inputs(graphs)) + list(additional_inputs)))
+    inputs_ = list(set(list(graph_inputs(graphs)) + list(additional_inputs)))
 
-    fg = gof.fg.FunctionGraph(inputs_, graphs, clone=False)
+    fg = FunctionGraph(inputs_, graphs, clone=False)
 
     nodes_seen = set()
 
-    @gof.opt.local_optimizer(None)
+    @local_optimizer(None)
     def local_transform(fgraph, node):
         if node in nodes_seen:
             return False
@@ -330,12 +333,12 @@ def map_variables(replacer, graphs, additional_inputs=None):
             replacements = [wrapped_replacer(o) for o in node.outputs]
 
             # Add inputs to replacement graphs as inputs to this `fgraph`
-            for i in gof.graph.graph_inputs(replacements):
+            for i in graph_inputs(replacements):
                 fgraph.add_input(i)
 
             return replacements
 
-    topo_transform = gof.opt.TopoOptimizer(local_transform, "out_to_in")
+    topo_transform = TopoOptimizer(local_transform, "out_to_in")
     topo_transform.optimize(fg)
 
     new_graphs = fg.outputs
@@ -362,7 +365,6 @@ def _map_variables_inner(
 
     from itertools import chain
 
-    from theano import gof
     from theano.scan import utils
 
     def inner_replacer(graph):
@@ -370,9 +372,9 @@ def _map_variables_inner(
 
         other_inputs = []
         constants = []
-        for input_ in gof.graph.graph_inputs([new_graph]):
-            if isinstance(input_, gof.Variable):
-                if isinstance(input_, gof.Constant):
+        for input_ in graph_inputs([new_graph]):
+            if isinstance(input_, Variable):
+                if isinstance(input_, Constant):
                     constants.append(input_)
                 else:
                     other_inputs.append(input_)
@@ -421,9 +423,7 @@ def _map_variables_inner(
 
         replacements.extend(outer_to_inner.items())
 
-        (new_graph,) = theano.clone(
-            [new_graph], share_inputs=True, replace=replacements
-        )
+        (new_graph,) = clone([new_graph], share_inputs=True, replace=replacements)
         return new_graph
 
     new_inner_outputs = map_variables(inner_replacer, inner_outputs)
@@ -447,10 +447,10 @@ def get_updates_and_outputs(ls):
 
     def is_outputs(elem):
         if isinstance(elem, (list, tuple)) and all(
-            [isinstance(x, theano.Variable) for x in elem]
+            [isinstance(x, Variable) for x in elem]
         ):
             return True
-        if isinstance(elem, theano.Variable):
+        if isinstance(elem, Variable):
             return True
         return False
 
@@ -498,7 +498,7 @@ def get_updates_and_outputs(ls):
         if iter_on is not None:
             return all(_filter(y) for y in iter_on)
         else:
-            return isinstance(x, theano.Variable) or isinstance(x, until)
+            return isinstance(x, Variable) or isinstance(x, until)
 
     if not _filter(ls):
         raise ValueError(
@@ -576,7 +576,7 @@ def isNaN_or_Inf_or_None(x):
         except Exception:
             isNaN = False
             isInf = False
-    if isinstance(x, gof.Constant) and isinstance(x.data, str):
+    if isinstance(x, Constant) and isinstance(x.data, str):
         isStr = True
     else:
         isStr = False
@@ -714,7 +714,7 @@ def scan_can_remove_outs(op, out_idxs):
 
     """
     non_removable = [o for i, o in enumerate(op.outputs) if i not in out_idxs]
-    required_inputs = list(gof.graph.graph_inputs(non_removable))
+    required_inputs = list(graph_inputs(non_removable))
 
     out_ins = []
     offset = op.n_seqs
@@ -734,7 +734,7 @@ def scan_can_remove_outs(op, out_idxs):
             if out_idxs_mask[pos] and any([x in required_inputs for x in out_ins[idx]]):
                 # This output is required ..
                 out_idxs_mask[pos] = 0
-                required_inputs += list(gof.graph.graph_inputs([op.outputs[idx]]))
+                required_inputs += list(graph_inputs([op.outputs[idx]]))
                 added = True
 
     required_outs = [x for i, x in enumerate(out_idxs) if out_idxs_mask[i] == 0]
@@ -900,9 +900,9 @@ def reconstruct_graph(inputs, outputs, tag=None):
     givens = OrderedDict()
     for nw_x, x in zip(nw_inputs, inputs):
         givens[x] = nw_x
-    allinputs = list(theano.gof.graph.graph_inputs(outputs))
+    allinputs = list(graph_inputs(outputs))
     for inp in allinputs:
-        if isinstance(inp, theano.Constant):
+        if isinstance(inp, Constant):
             givens[inp] = inp.clone()
 
     nw_outputs = clone(outputs, replace=givens)
@@ -1177,7 +1177,7 @@ def forced_replace(out, x, y):
         if graph in visited:
             continue
         visited.add(graph)
-        if gof.graph.equal_computations([graph], [x]):
+        if equal_computations([graph], [x]):
             to_replace.append((graph, y))
         elif graph.owner:
             q.extendleft(graph.owner.inputs)

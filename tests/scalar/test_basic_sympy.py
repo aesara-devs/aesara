@@ -1,12 +1,11 @@
 import pytest
 
 import theano
+from theano.scalar.basic import floats
+from theano.scalar.basic_sympy import SymPyCCode
 
 
 sympy = pytest.importorskip("sympy")
-
-from theano.scalar.basic import floats
-from theano.scalar.basic_sympy import SymPyCCode
 
 
 xs = sympy.Symbol("x")
@@ -19,7 +18,7 @@ xt, yt = floats("xy")
 def test_SymPyCCode():
     op = SymPyCCode([xs, ys], xs + ys)
     e = op(xt, yt)
-    g = theano.gof.FunctionGraph([xt, yt], [e])
+    g = theano.gof.fg.FunctionGraph([xt, yt], [e])
     fn = theano.link.c.basic.CLinker().accept(g).make_function()
     assert fn(1.0, 2.0) == 3.0
 

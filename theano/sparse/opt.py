@@ -2,9 +2,11 @@ import numpy as np
 import scipy
 
 import theano
-from theano import gof, scalar, tensor
+from theano import scalar, tensor
 from theano.configdefaults import config
+from theano.gof.graph import Apply
 from theano.gof.op import COp
+from theano.gof.opt import PatternSub, TopoOptimizer, local_optimizer
 from theano.misc.safe_asarray import _asarray
 from theano.sparse import basic as sparse
 from theano.sparse.basic import (
@@ -27,7 +29,7 @@ _is_dense = sparse._is_dense
 # This is tested in tests/test_opt.py:test_local_csm_properties_csm
 
 
-@gof.local_optimizer([csm_properties])
+@local_optimizer([csm_properties])
 def local_csm_properties_csm(fgraph, node):
     """
     If we find csm_properties(CSM(*args)), then we can replace that with the
@@ -52,7 +54,7 @@ register_specialize(local_csm_properties_csm)
 
 
 # This is tested in tests/test_basic.py:test_remove0
-@gof.local_optimizer([sparse.Remove0])
+@local_optimizer([sparse.Remove0])
 def local_inplace_remove0(fgraph, node):
     """
     Optimization to insert inplace versions of Remove0.
@@ -69,9 +71,7 @@ def local_inplace_remove0(fgraph, node):
 
 theano.compile.optdb.register(
     "local_inplace_remove0",
-    gof.TopoOptimizer(
-        local_inplace_remove0, failure_callback=gof.TopoOptimizer.warn_inplace
-    ),
+    TopoOptimizer(local_inplace_remove0, failure_callback=TopoOptimizer.warn_inplace),
     60,
     "fast_run",
     "inplace",
@@ -129,7 +129,7 @@ class AddSD_ccode(COp):
         # objects must be matrices (have dimension 2)
         assert y.type.ndim == 2
         out = tensor.TensorType(dtype=out_dtype, broadcastable=y.type.broadcastable)()
-        return gof.Apply(self, [data, indices, indptr, y], [out])
+        return Apply(self, [data, indices, indptr, y], [out])
 
     def c_code(self, node, name, inputs, outputs, sub):
         (_data, _indices, _indptr, y) = inputs
@@ -191,7 +191,7 @@ class AddSD_ccode(COp):
         return (2,)
 
 
-@gof.local_optimizer([sparse.AddSD])
+@local_optimizer([sparse.AddSD])
 def local_inplace_addsd_ccode(fgraph, node):
     """
     Optimization to insert inplace versions of AddSD.
@@ -210,8 +210,8 @@ def local_inplace_addsd_ccode(fgraph, node):
 
 theano.compile.optdb.register(
     "local_inplace_addsd_ccode",
-    gof.TopoOptimizer(
-        local_inplace_addsd_ccode, failure_callback=gof.TopoOptimizer.warn_inplace
+    TopoOptimizer(
+        local_inplace_addsd_ccode, failure_callback=TopoOptimizer.warn_inplace
     ),
     60,
     "fast_run",
@@ -221,7 +221,7 @@ theano.compile.optdb.register(
 
 @register_canonicalize("fast_compile")
 @register_specialize
-@gof.local_optimizer([sparse.DenseFromSparse])
+@local_optimizer([sparse.DenseFromSparse])
 def local_dense_from_sparse_sparse_from_dense(fgraph, node):
     if isinstance(node.op, sparse.DenseFromSparse):
         inp = node.inputs[0]
@@ -229,7 +229,7 @@ def local_dense_from_sparse_sparse_from_dense(fgraph, node):
             return inp.owner.inputs
 
 
-@gof.local_optimizer([sparse.AddSD])
+@local_optimizer([sparse.AddSD])
 def local_addsd_ccode(fgraph, node):
     """
     Convert AddSD to faster AddSD_ccode.
@@ -243,7 +243,7 @@ def local_addsd_ccode(fgraph, node):
 
 theano.compile.optdb.register(
     "local_addsd_ccode",
-    gof.TopoOptimizer(local_addsd_ccode),
+    TopoOptimizer(local_addsd_ccode),
     # Must be after local_inplace_addsd_ccode at 60
     61,
     "fast_run",
@@ -280,7 +280,7 @@ class StructuredDotCSC(COp):
 
     def make_node(self, a_val, a_ind, a_ptr, a_nrows, b):
         dtype_out = scalar.upcast(a_val.type.dtype, b.type.dtype)
-        r = gof.Apply(
+        r = Apply(
             self,
             [a_val, a_ind, a_ptr, a_nrows, b],
             [tensor.tensor(dtype_out, (False, b.type.broadcastable[1]))],
@@ -486,7 +486,7 @@ class StructuredDotCSR(COp):
 
     def make_node(self, a_val, a_ind, a_ptr, b):
         self.dtype_out = scalar.upcast(a_val.type.dtype, b.type.dtype)
-        r = gof.Apply(
+        r = Apply(
             self,
             [a_val, a_ind, a_ptr, b],
             [tensor.tensor(self.dtype_out, (False, b.type.broadcastable[1]))],
@@ -641,7 +641,7 @@ sd_csr = StructuredDotCSR()
 
 # register a specialization to replace StructuredDot -> StructuredDotCSx
 # This is tested in tests/test_basic.py:792
-@gof.local_optimizer([sparse._structured_dot])
+@local_optimizer([sparse._structured_dot])
 def local_structured_dot(fgraph, node):
     if node.op == sparse._structured_dot:
         a, b = node.inputs
@@ -737,7 +737,7 @@ class UsmmCscDense(COp):
         if dtype_out != z.type.dtype:
             z = tensor.cast(z, dtype_out)
 
-        r = gof.Apply(
+        r = Apply(
             self,
             [alpha, x_val, x_ind, x_ptr, x_nrows, y, z],
             [tensor.tensor(dtype_out, (False, y.type.broadcastable[1]))],
@@ -931,7 +931,7 @@ usmm_csc_dense_inplace = UsmmCscDense(inplace=True)
 
 
 # This is tested in tests/test_basic.py:UsmmTests
-local_usmm = gof.opt.PatternSub(
+local_usmm = PatternSub(
     (
         theano.tensor.sub,
         "z",
@@ -953,7 +953,7 @@ register_specialize(local_usmm, name="local_usmm")
 
 # register a specialization to replace usmm_csc_dense -> usmm_csc_dense_inplace
 # This is tested in tests/test_basic.py:UsmmTests
-@gof.local_optimizer([usmm_csc_dense])
+@local_optimizer([usmm_csc_dense])
 def local_usmm_csc_dense_inplace(fgraph, node):
     if node.op == usmm_csc_dense:
         return [usmm_csc_dense_inplace(*node.inputs)]
@@ -963,7 +963,7 @@ register_specialize(local_usmm_csc_dense_inplace, "cxx_only", "inplace")
 
 
 # This is tested in tests/test_basic.py:UsmmTests
-@gof.local_optimizer([usmm])
+@local_optimizer([usmm])
 def local_usmm_csx(fgraph, node):
     """
     usmm -> usmm_csc_dense
@@ -1000,7 +1000,7 @@ class CSMGradC(COp):
     __props__ = ()
 
     def make_node(self, a_val, a_ind, a_ptr, a_dim, b_val, b_ind, b_ptr, b_dim):
-        return gof.Apply(
+        return Apply(
             self,
             [a_val, a_ind, a_ptr, a_dim, b_val, b_ind, b_ptr, b_dim],
             [b_val.type()],
@@ -1123,7 +1123,7 @@ csm_grad_c = CSMGradC()
 
 # register a specialization to replace csm_grad -> csm_grad_c
 # This is tested in tests/test_opt.py:test_local_csm_grad_c
-@gof.local_optimizer([csm_grad(None)])
+@local_optimizer([csm_grad(None)])
 def local_csm_grad_c(fgraph, node):
     """
     csm_grad(None) -> csm_grad_c
@@ -1174,7 +1174,7 @@ class MulSDCSC(COp):
 
     def make_node(self, a_data, a_indices, a_indptr, b):
         assert b.type.ndim == 2
-        return gof.Apply(
+        return Apply(
             self, [a_data, a_indices, a_indptr, b], [tensor.tensor(b.dtype, (False,))]
         )
 
@@ -1311,7 +1311,7 @@ class MulSDCSR(COp):
 
     def make_node(self, a_data, a_indices, a_indptr, b):
         assert b.type.ndim == 2
-        return gof.Apply(
+        return Apply(
             self, [a_data, a_indices, a_indptr, b], [tensor.tensor(b.dtype, (False,))]
         )
 
@@ -1413,7 +1413,7 @@ mul_s_d_csr = MulSDCSR()
 
 
 # register a specialization to replace MulSD -> MulSDCSX
-@gof.local_optimizer([sparse.mul_s_d])
+@local_optimizer([sparse.mul_s_d])
 def local_mul_s_d(fgraph, node):
     if node.op == sparse.mul_s_d:
         x, y = node.inputs
@@ -1499,7 +1499,7 @@ class MulSVCSR(COp):
 
     def make_node(self, a_data, a_indices, a_indptr, b):
         assert b.type.ndim == 1
-        return gof.Apply(
+        return Apply(
             self, [a_data, a_indices, a_indptr, b], [tensor.tensor(b.dtype, (False,))]
         )
 
@@ -1593,7 +1593,7 @@ mul_s_v_csr = MulSVCSR()
 
 
 # register a specialization to replace MulSV -> MulSVCSR
-@gof.local_optimizer([sparse.mul_s_v])
+@local_optimizer([sparse.mul_s_v])
 def local_mul_s_v(fgraph, node):
     if node.op == sparse.mul_s_v:
         x, y = node.inputs
@@ -1669,7 +1669,7 @@ class StructuredAddSVCSR(COp):
         assert a_indices.type.ndim == 1
         assert a_indptr.type.ndim == 1
         assert b.type.ndim == 1
-        return gof.Apply(
+        return Apply(
             self, [a_data, a_indices, a_indptr, b], [tensor.tensor(b.dtype, (False,))]
         )
 
@@ -1771,7 +1771,7 @@ structured_add_s_v_csr = StructuredAddSVCSR()
 
 # register a specialization to replace
 # structured_add_s_v -> structured_add_s_v_csr
-@gof.local_optimizer([sparse.structured_add_s_v])
+@local_optimizer([sparse.structured_add_s_v])
 def local_structured_add_s_v(fgraph, node):
     if node.op == sparse.structured_add_s_v:
         x, y = node.inputs
@@ -1872,7 +1872,7 @@ class SamplingDotCSR(COp):
         x = tensor.cast(x, dot_out)
         y = tensor.cast(y, dot_out)
 
-        return gof.Apply(
+        return Apply(
             self,
             [x, y, p_data, p_ind, p_ptr, p_ncols],
             [
@@ -2058,7 +2058,7 @@ sampling_dot_csr = SamplingDotCSR()
 
 
 # register a specialization to replace SamplingDot -> SamplingDotCsr
-@gof.local_optimizer([sparse.sampling_dot])
+@local_optimizer([sparse.sampling_dot])
 def local_sampling_dot_csr(fgraph, node):
     if not config.blas__ldflags:
         # The C implementation of SamplingDotCsr relies on BLAS routines

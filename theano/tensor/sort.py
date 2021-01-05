@@ -1,6 +1,7 @@
 import numpy as np
 
 import theano
+from theano.gof.graph import Apply, Constant
 from theano.gof.op import Op
 from theano.gradient import grad_undefined
 from theano.misc.safe_asarray import _asarray
@@ -9,7 +10,7 @@ from theano.tensor.subtensor import set_subtensor
 
 
 def _variable_is_none(var):
-    return isinstance(var, theano.Constant) and var.data is None
+    return isinstance(var, Constant) and var.data is None
 
 
 def _check_tensor_is_scalar(var):
@@ -40,7 +41,7 @@ class SortOp(Op):
         input = theano.tensor.as_tensor_variable(input)
         axis = theano.tensor.as_tensor_variable(axis)
         out_type = input.type()
-        return theano.Apply(self, [input, axis], [out_type])
+        return Apply(self, [input, axis], [out_type])
 
     def perform(self, node, inputs, output_storage):
         a = inputs[0]
@@ -175,7 +176,7 @@ class ArgSortOp(Op):
         input = theano.tensor.as_tensor_variable(input)
         axis = theano.tensor.as_tensor_variable(axis)
         bcast = input.type.broadcastable
-        return theano.Apply(
+        return Apply(
             self,
             [input, axis],
             [theano.tensor.TensorType(dtype="int64", broadcastable=bcast)()],
@@ -422,7 +423,7 @@ class TopKOp(Op):
             outs.append(
                 theano.tensor.TensorType(dtype=self.idx_dtype, broadcastable=bcast)()
             )
-        return theano.Apply(self, [inp, kth], outs)
+        return Apply(self, [inp, kth], outs)
 
     def perform(self, node, inputs, output_storage):
         x, k = inputs
