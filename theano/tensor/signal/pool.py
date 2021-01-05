@@ -658,9 +658,9 @@ class Pool(OpenMPOp):
             )
         ]
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         headers = ["<algorithm>"]
-        headers += super().c_headers()
+        headers += super().c_headers(**kwargs)
         return headers
 
     def c_code(self, node, name, inp, out, sub):
@@ -2286,9 +2286,9 @@ class MaxPoolRop(OpenMPOp):
                 idx = np.unravel_index(np.argmax(ykslice), ykslice.shape)
                 zzk[r] = eykslice[idx]
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         headers = ["<algorithm>"]
-        headers += super().c_headers()
+        headers += super().c_headers(**kwargs)
         return headers
 
     def c_code(self, node, name, inp, out, sub):

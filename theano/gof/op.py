@@ -513,6 +513,8 @@ class Op(MetaObject):
 
 
 class COp(Op, CLinkerOp):
+    """An `Op` with a C implementation."""
+
     def make_c_thunk(self, node, storage_map, compute_map, no_recycling):
         """Like make_thunk, but will only try to make a C thunk."""
         # FIXME: Putting the following import on the module level causes an import cycle.
@@ -728,7 +730,7 @@ class OpenMPOp(COp):
         if not hasattr(self, "openmp"):
             self.openmp = False
 
-    def c_compile_args(self):
+    def c_compile_args(self, **kwargs):
         """
         Return the compilation arg "fopenmp" if openMP is supported
         """
@@ -737,7 +739,7 @@ class OpenMPOp(COp):
             return ["-fopenmp"]
         return []
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         """
         Return the header file name "omp.h" if openMP is supported
         """
@@ -795,31 +797,6 @@ int main( int argc, const char* argv[] )
     def prepare_node(self, node, storage_map, compute_map, impl):
         if impl == "c":
             self.update_self_openmp()
-
-
-def simple_meth(tag):
-    def f(self):
-        if tag in self.code_sections:
-            return self.code_sections[tag]
-        else:
-            raise MethodNotDefined("c_" + tag, type(self), type(self).__name__)
-
-    f.__name__ = "c_" + tag
-    return f
-
-
-def apply_meth(tag):
-    def f(self, node, name):
-        if tag in self.code_sections:
-            code = self.code_sections[tag]
-
-            define_macros, undef_macros = self.get_c_macros(node, name)
-            return "\n".join(["", define_macros, code, undef_macros])
-        else:
-            raise MethodNotDefined("c_" + tag, type(self), type(self).__name__)
-
-    f.__name__ = "c_" + tag
-    return f
 
 
 class ExternalCOp(COp):
@@ -989,7 +966,8 @@ class ExternalCOp(COp):
             wrapper = self.params_type
             params = [("PARAMS_TYPE", wrapper.name)]
             for i in range(wrapper.length):
-                try:
+                c_type = wrapper.types[i].c_element_type()
+                if c_type:
                     # NB (reminder): These macros are currently used only in ParamsType example test
                     # (`theano/gof/tests/test_quadratic_function.c`), to demonstrate how we can
                     # access params dtypes when dtypes may change (e.g. if based on config.floatX).
@@ -997,11 +975,9 @@ class ExternalCOp(COp):
                     params.append(
                         (
                             "DTYPE_PARAM_" + wrapper.fields[i],
-                            wrapper.types[i].c_element_type(),
+                            c_type,
                         )
                     )
-                except MethodNotDefined:
-                    pass
             return params
         return []
 
@@ -1011,20 +987,53 @@ class ExternalCOp(COp):
             version += (self.params_type.c_code_cache_version(),)
         return version
 
-    def c_init_code(self):
-        """
-        Get the code section for init_code
-        """
+    def c_init_code(self, **kwargs):
         if "init_code" in self.code_sections:
             return [self.code_sections["init_code"]]
         else:
-            raise MethodNotDefined("c_init_code", type(self), type(self).__name__)
+            return super().c_init_code(**kwargs)
 
-    c_init_code_apply = apply_meth("init_code_apply")
-    c_support_code = simple_meth("support_code")
-    c_support_code_apply = apply_meth("support_code_apply")
-    c_support_code_struct = apply_meth("support_code_struct")
-    c_cleanup_code_struct = apply_meth("cleanup_code_struct")
+    def c_support_code(self, **kwargs):
+        if "support_code" in self.code_sections:
+            return self.code_sections["support_code"]
+        else:
+            return super().c_support_code(**kwargs)
+
+    def c_init_code_apply(self, node, name):
+        if "init_code_apply" in self.code_sections:
+            code = self.code_sections["init_code_apply"]
+
+            define_macros, undef_macros = self.get_c_macros(node, name)
+            return "\n".join(["", define_macros, code, undef_macros])
+        else:
+            return super().c_init_code_apply(node, name)
+
+    def c_support_code_apply(self, node, name):
+        if "support_code_apply" in self.code_sections:
+            code = self.code_sections["support_code_apply"]
+
+            define_macros, undef_macros = self.get_c_macros(node, name)
+            return "\n".join(["", define_macros, code, undef_macros])
+        else:
+            return super().c_support_code_apply(node, name)
+
+    def c_support_code_struct(self, node, name):
+        if "support_code_struct" in self.code_sections:
+            code = self.code_sections["support_code_struct"]
+
+            define_macros, undef_macros = self.get_c_macros(node, name)
+            return "\n".join(["", define_macros, code, undef_macros])
+        else:
+            return super().c_support_code_struct(node, name)
+
+    def c_cleanup_code_struct(self, node, name):
+        if "cleanup_code_struct" in self.code_sections:
+            code = self.code_sections["cleanup_code_struct"]
+
+            define_macros, undef_macros = self.get_c_macros(node, name)
+            return "\n".join(["", define_macros, code, undef_macros])
+        else:
+            return super().c_cleanup_code_struct(node, name)
 
     def format_c_function_args(self, inp, out):
         # Generate an string containing the arguments sent to the external C
@@ -1138,9 +1147,7 @@ class ExternalCOp(COp):
                 ["", def_macros, def_sub, op_code, undef_sub, undef_macros]
             )
         else:
-            raise MethodNotDefined(
-                "c_init_code_struct", type(self), type(self).__name__
-            )
+            return super().c_init_code_struct(node, name, sub)
 
     def c_code(self, node, name, inp, out, sub):
         if self.func_name is not None:
@@ -1191,7 +1198,7 @@ class ExternalCOp(COp):
                     ]
                 )
             else:
-                raise MethodNotDefined("c_code", type(self), type(self).__name__)
+                raise NotImplementedError()
 
     def c_code_cleanup(self, node, name, inputs, outputs, sub):
         """
@@ -1216,4 +1223,4 @@ class ExternalCOp(COp):
                 ]
             )
         else:
-            raise MethodNotDefined("c_code_cleanup", type(self), type(self).__name__)
+            return super().c_code_cleanup(node, name, inputs, outputs, sub)

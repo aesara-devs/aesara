@@ -396,10 +396,6 @@ class TensorType(CType):
         return self.dtype_specs()[1]
 
     def c_declare(self, name, sub, check_input=True):
-        """
-        Override `CLinkerType.c_declare`.
-
-        """
         if check_input:
             check = """
             typedef %(dtype)s dtype_%(name)s;
@@ -417,21 +413,13 @@ class TensorType(CType):
         return declaration + check
 
     def c_init(self, name, sub):
-        """
-        Override `CLinkerType.c_init`.
-
-        """
         return """
         %(name)s = NULL;
         """ % dict(
             sub, name=name, type_num=self.dtype_specs()[2]
         )
 
-    def c_extract(self, name, sub, check_input=True):
-        """
-        Override `CLinkerType.c_extract`.
-
-        """
+    def c_extract(self, name, sub, check_input=True, **kwargs):
         if check_input:
             check = """
             %(name)s = NULL;
@@ -496,10 +484,6 @@ class TensorType(CType):
         )
 
     def c_cleanup(self, name, sub):
-        """
-        Override `CLinkerType.c_cleanup`.
-
-        """
         return (
             """
         if (%(name)s) {
@@ -510,10 +494,6 @@ class TensorType(CType):
         )
 
     def c_sync(self, name, sub):
-        """
-        Override `CLinkerType.c_sync`.
-
-        """
         fail = sub["fail"]
         type_num = self.dtype_specs()[2]
         return (
@@ -556,28 +536,20 @@ class TensorType(CType):
             % locals()
         )
 
-    def c_headers(self, c_compiler):
-        """
-        Override `CLinkerObject.c_headers`.
+    def c_headers(self, **kwargs):
+        return scal.get_scalar_type(self.dtype).c_headers(**kwargs)
 
-        """
-        return scal.get_scalar_type(self.dtype).c_headers(c_compiler)
+    def c_libraries(self, **kwargs):
+        return scal.get_scalar_type(self.dtype).c_libraries(**kwargs)
 
-    def c_libraries(self, c_compiler):
-        return scal.get_scalar_type(self.dtype).c_libraries(c_compiler)
+    def c_compile_args(self, **kwargs):
+        return scal.get_scalar_type(self.dtype).c_compile_args(**kwargs)
 
-    def c_compile_args(self, c_compiler):
-        return scal.get_scalar_type(self.dtype).c_compile_args(c_compiler)
+    def c_support_code(self, **kwargs):
+        return scal.get_scalar_type(self.dtype).c_support_code(**kwargs)
 
-    def c_support_code(self):
-        """
-        Override `CLinkerObject.c_support_code`.
-
-        """
-        return scal.get_scalar_type(self.dtype).c_support_code()
-
-    def c_init_code(self):
-        return scal.get_scalar_type(self.dtype).c_init_code()
+    def c_init_code(self, **kwargs):
+        return scal.get_scalar_type(self.dtype).c_init_code(**kwargs)
 
     def c_code_cache_version(self):
         scalar_version = scal.get_scalar_type(self.dtype).c_code_cache_version()
@@ -587,15 +559,11 @@ class TensorType(CType):
             return ()
 
     def value_zeros(self, shape):
-        """
-        Create an numpy ndarray full of 0 values.
-
-        """
+        """Create an numpy ndarray full of 0 values."""
         return np.zeros(shape, dtype=self.dtype)
 
     def get_shape_info(self, obj):
-        """
-        Return the information needed to compute the memory size of ``obj``.
+        """Return the information needed to compute the memory size of ``obj``.
 
         The memory size is only the data, so this excludes the container.
         For an ndarray, this is the data, but not the ndarray object and
@@ -624,8 +592,7 @@ class TensorType(CType):
         return obj.shape
 
     def get_size(self, shape_info):
-        """
-        Number of bytes taken by the object represented by shape_info.
+        """Number of bytes taken by the object represented by `shape_info`.
 
         Parameters
         ----------

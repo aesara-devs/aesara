@@ -45,10 +45,10 @@ class GpuCrossentropySoftmaxArgmax1HotWithBias(GpuKernelBase, Op):
         am = y_idx.type()
         return Apply(self, [x, b, y_idx], [nll, sm, am])
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<numpy_compat.h>", "<gpuarray/types.h>", "gpuarray_helper.h"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir()]
 
     def gpu_kernels(self, node, nodename):
@@ -305,7 +305,7 @@ class GpuCrossentropySoftmax1HotWithBiasDx(GpuKernelBase, Op):
     def c_code_cache_version(self):
         return (14,)
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<numpy_compat.h>", "<gpuarray/types.h>"]
 
     def c_code(self, node, nodename, inp, out, sub):
@@ -526,7 +526,7 @@ class GpuSoftmax(GpuKernelBase, Op):
     def c_code_cache_version(self):
         return (17,)
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<numpy_compat.h>", "<gpuarray/types.h>"]
 
     def c_code(self, node, nodename, inp, out, sub):
@@ -826,7 +826,7 @@ class GpuSoftmaxWithBias(GpuKernelBase, Op):
     def c_code_cache_version(self):
         return (16,)
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<numpy_compat.h>", "<gpuarray/types.h>"]
 
     def c_code(self, node, nodename, inp, out, sub):

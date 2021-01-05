@@ -383,7 +383,7 @@ class Scalar(CType):
     def c_element_type(self):
         return self.dtype_specs()[1]
 
-    def c_headers(self, c_compiler):
+    def c_headers(self, c_compiler=None, **kwargs):
         l = ["<math.h>"]
         # These includes are needed by Scalar and TensorType,
         # we declare them here and they will be re-used by TensorType
@@ -393,14 +393,14 @@ class Scalar(CType):
             l += ["<amdlibm.h>"]
         return l
 
-    def c_libraries(self, c_compiler):
+    def c_libraries(self, c_compiler=None, **kwargs):
         l = []
-        if config.lib__amblibm and c_compiler.supports_amdlibm:
+        if config.lib__amblibm and c_compiler and c_compiler.supports_amdlibm:
             l += ["amdlibm"]
         return l
 
-    def c_compile_args(self, c_compiler):
-        if config.lib__amblibm and c_compiler.supports_amdlibm:
+    def c_compile_args(self, c_compiler=None, **kwargs):
+        if config.lib__amblibm and c_compiler and c_compiler.supports_amdlibm:
             return ["-DREPLACE_WITH_AMDLIBM"]
         else:
             return []
@@ -461,7 +461,7 @@ class Scalar(CType):
 
     def c_literal(self, data):
         if "complex" in self.dtype:
-            raise NotImplementedError("No literal for complex values.")
+            return None
         if self.dtype == "bool":
             return "1" if data else "0"
         return str(data)
@@ -485,7 +485,7 @@ class Scalar(CType):
         {name} = 0;
         """
 
-    def c_extract(self, name, sub, check_input=True):
+    def c_extract(self, name, sub, check_input=True, **kwargs):
         if self.dtype == "float16":
             # This doesn't work at the numpy level
             raise NotImplementedError("float16")
@@ -532,7 +532,7 @@ class Scalar(CType):
     def c_cleanup(self, name, sub):
         return ""
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
 
         if self.dtype.startswith("complex"):
             cplx_types = ["theano_complex64", "theano_complex128"]
@@ -693,7 +693,7 @@ class Scalar(CType):
         else:
             return ""
 
-    def c_init_code(self):
+    def c_init_code(self, **kwargs):
         return ["import_array();"]
 
     def c_code_cache_version(self):
@@ -2014,7 +2014,7 @@ class IntDiv(BinaryScalarOp):
     def impl(self, x, y):
         return x // y
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         # We use a macro as python use % as a special string character,
         # and the output of c_code may be run through another level
         # of string formatting.
@@ -2127,7 +2127,7 @@ class Mod(BinaryScalarOp):
     def c_code_cache_version(self):
         return (9,)
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         # We use a macro as python use % as a special string character,
         # and the output of c_code may be run through another level
         # of string formatting.
@@ -3979,6 +3979,8 @@ class Composite(ScalarOp):
 
         The result is assigned to `self._c_code`.
         """
+        from theano.link.c.interface import CLinkerType
+
         # It was already called
         if hasattr(self, "_c_code"):
             return
@@ -3993,12 +3995,12 @@ class Composite(ScalarOp):
             if var.owner is None:
                 if var not in self.fgraph.inputs:
                     # This is an orphan
-                    if isinstance(var, Constant):
+                    if isinstance(var, Constant) and isinstance(var.type, CLinkerType):
                         subd[var] = var.type.c_literal(var.data)
                     else:
                         raise ValueError(
                             "All orphans in the fgraph to Composite must"
-                            " be Constant instances."
+                            " be Constant, CLinkerType instances."
                         )
             elif any(i.dtype == "float16" for i in var.owner.inputs) or any(
                 o.dtype == "float16" for o in var.owner.outputs
@@ -4249,28 +4251,23 @@ class Composite(ScalarOp):
                 return ()
         return tuple(rval)
 
-    def c_support_code(self):
-        rval = []
-        for subnode in self.fgraph.toposort():
-            try:
-                rval.append(subnode.op.c_support_code().strip())
-            except MethodNotDefined:
-                pass
-        # remove duplicate code blocks
-        return "\n".join(sorted(set(rval)))
+    def c_support_code(self, **kwargs):
+        # Remove duplicate code blocks by using a `set`
+        rval = {
+            subnode.op.c_support_code(**kwargs).strip()
+            for subnode in self.fgraph.toposort()
+        }
+        return "\n".join(sorted(rval))
 
     def c_support_code_apply(self, node, name):
         self.init_c_code()
         rval = []
         for subnode, subnodename in zip(self.fgraph.toposort(), self.nodenames):
-            try:
-                subnode_support_code = subnode.op.c_support_code_apply(
-                    subnode, subnodename % dict(nodename=name)
-                )
-                if subnode_support_code:
-                    rval.append(subnode_support_code)
-            except MethodNotDefined:
-                pass
+            subnode_support_code = subnode.op.c_support_code_apply(
+                subnode, subnodename % dict(nodename=name)
+            )
+            if subnode_support_code:
+                rval.append(subnode_support_code)
         # there should be no need to remove duplicate code blocks because
         # each block should have been specialized for the given nodename.
         # Any block that isn't specialized should be returned via

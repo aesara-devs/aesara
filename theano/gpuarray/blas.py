@@ -27,13 +27,13 @@ except ImportError:
 
 
 class BlasOp(COp):
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<blas_api.h>", "<numpy_compat.h>", "<gpuarray_helper.h>"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [pygpu.get_include(), gpuarray_helper_inc_dir()]
 
-    def c_init_code(self):
+    def c_init_code(self, **kwargs):
         return ["import_pygpu__blas();"]
 
 
@@ -444,8 +444,8 @@ class GpuGemmBatch(BlasOp):
             assert "float32" == alpha.dtype == beta.dtype
         return Apply(self, [C, alpha, A, B, beta], [C.type()])
 
-    def c_headers(self):
-        return super().c_headers() + ["<gpuarray/blas.h>"]
+    def c_headers(self, **kwargs):
+        return super().c_headers(**kwargs) + ["<gpuarray/blas.h>"]
 
     def c_code(self, node, name, inp, out, sub):
         vars = dict(
@@ -626,10 +626,10 @@ class BaseGpuCorrMM(CGpuKernelBase):
         flops *= inputs[1] * filters[0] * inputs[0] / self.num_groups
         return flops
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<gpuarray/array.h>", "<gpuarray/blas.h>", "gpuarray_helper.h"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir()]
 
     def c_code_cache_version(self):
@@ -1431,10 +1431,10 @@ class BaseGpuCorr3dMM(CGpuKernelBase):
         flops *= inputs[1] * filters[0] * inputs[0] / self.num_groups
         return flops
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<gpuarray/array.h>", "<gpuarray/blas.h>", "gpuarray_helper.h"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir()]
 
     def c_code_cache_version(self):

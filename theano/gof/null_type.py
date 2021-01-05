@@ -1,7 +1,7 @@
-from theano.gof.type import CType
+from theano.gof.type import Type
 
 
-class NullType(CType):
+class NullType(Type):
     """
     A type that allows no values.
 
@@ -29,7 +29,7 @@ class NullType(CType):
     def may_share_memory(a, b):
         return False
 
-    def values_eq(a, b, force_same_dtype=True):
+    def values_eq(self, a, b, force_same_dtype=True):
         raise ValueError("NullType has no values to compare")
 
     def __eq__(self, other):

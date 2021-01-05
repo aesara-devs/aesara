@@ -10,7 +10,7 @@ except ImportError:
 
 
 import theano
-from theano import gof
+from theano.gof.type import Type
 
 
 def _is_sparse(x):
@@ -32,7 +32,7 @@ def _is_sparse(x):
     return isinstance(x, scipy.sparse.spmatrix)
 
 
-class SparseType(gof.CType):
+class SparseType(Type):
     """
     Fundamental way to create a sparse node.
 

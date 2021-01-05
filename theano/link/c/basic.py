@@ -6,7 +6,6 @@ import logging
 import os
 import sys
 from collections import defaultdict
-from contextlib import suppress
 from copy import copy
 from io import StringIO
 
@@ -16,7 +15,6 @@ from theano.compile.compilelock import lock_ctx
 from theano.configdefaults import config
 from theano.gof.callcache import CallCache
 from theano.gof.graph import Constant, NoParams, io_toposort, vars_between
-from theano.gof.utils import MethodNotDefined
 from theano.link.basic import Container, Linker, LocalLinker, PerformLinker
 from theano.link.c.cmodule import (
     METH_VARARGS,
@@ -429,10 +427,7 @@ def get_c_extract(fgraph, r, name, sub):
         ):
             c_extract = r.type.c_extract(name, sub, True)
         else:
-            try:
-                c_extract = r.type.c_extract(name, sub, True, check_broadcast=False)
-            except TypeError:
-                c_extract = r.type.c_extract(name, sub, True)
+            c_extract = r.type.c_extract(name, sub, True, check_broadcast=False)
     else:
         c_extract = r.type.c_extract(name, sub, False)
 
@@ -466,12 +461,7 @@ def get_c_extract_out(fgraph, r, name, sub):
     if getattr(r.owner.op, "check_broadcast", True):
         c_extract = r.type.c_extract_out(name, sub, check_input)
     else:
-        try:
-            c_extract = r.type.c_extract_out(
-                name, sub, check_input, check_broadcast=False
-            )
-        except TypeError:
-            c_extract = r.type.c_extract_out(name, sub, check_input)
+        c_extract = r.type.c_extract_out(name, sub, check_input, check_broadcast=False)
 
     pre = (
         """
@@ -669,13 +659,15 @@ class CLinker(Linker):
         self.consts = []
         # Move c type from orphans (theano.scalar.Scalar) to self.consts
         for variable in self.orphans:
-            if isinstance(variable, Constant) and isinstance(
-                variable.type, CLinkerType
+            if (
+                isinstance(variable, Constant)
+                and isinstance(variable.type, CLinkerType)
+                # This apparently checks--in a somewhat "dynamic" way--whether
+                # or not a literal value is available (in C).
+                and variable.type.c_literal(variable.data)
             ):
-                with suppress(MethodNotDefined, NotImplementedError):
-                    variable.type.c_literal(variable.data)
-                    self.consts.append(variable)
-                    self.orphans.remove(variable)
+                self.consts.append(variable)
+                self.orphans.remove(variable)
 
         self.temps = list(
             set(self.variables)
@@ -751,8 +743,8 @@ class CLinker(Linker):
             elif variable in self.orphans:
                 if not isinstance(variable, Constant):
                     raise TypeError(
-                        "All orphans to CLinker must be Constant" " instances.",
-                        variable,
+                        "All orphans to CLinker must be Constant instances.  "
+                        f"Got {variable}"
                     )
                 # orphans are not inputs so we'll just get fetch them
                 # when we initialize the struct and assume they stay
@@ -856,46 +848,14 @@ class CLinker(Linker):
                 # guaranteed to be available in the struct init code.
                 sub_struct["params"] = params_var
 
-            struct_support = ""
-            struct_init = ""
-            struct_cleanup = ""
+            c_support_code_apply.append(op.c_support_code_apply(node, name))
+            c_init_code_apply.append(op.c_init_code_apply(node, name))
+            struct_init = op.c_init_code_struct(node, name, sub_struct)
 
-            with suppress(MethodNotDefined):
-                c_support_code_apply.append(op.c_support_code_apply(node, name))
+            struct_support = op.c_support_code_struct(node, name)
+            struct_cleanup = op.c_cleanup_code_struct(node, name)
 
-                assert isinstance(c_support_code_apply[-1], str), (
-                    str(node.op) + " didn't return a string for c_support_code_apply"
-                )
-
-            with suppress(MethodNotDefined):
-                c_init_code_apply.append(op.c_init_code_apply(node, name))
-                assert isinstance(c_init_code_apply[-1], str), (
-                    str(node.op) + " didn't return a string for c_init_code_apply"
-                )
-
-            with suppress(MethodNotDefined):
-                struct_init = op.c_init_code_struct(node, name, sub_struct)
-                assert isinstance(struct_init, str), (
-                    str(node.op) + " didn't return a string for c_init_code_struct"
-                )
-
-            with suppress(MethodNotDefined):
-                struct_support = op.c_support_code_struct(node, name)
-                assert isinstance(struct_support, str), (
-                    str(node.op) + " didn't return a string for c_support_code_struct"
-                )
-
-            with suppress(MethodNotDefined):
-                struct_cleanup = op.c_cleanup_code_struct(node, name)
-                assert isinstance(struct_cleanup, str), (
-                    str(node.op) + " didn't return a string for c_cleanup_code_struct"
-                )
-
-            # emit c_code
-            try:
-                behavior = op.c_code(node, name, isyms, osyms, sub)
-            except MethodNotDefined:
-                raise NotImplementedError(f"{op} cannot produce C code")
+            behavior = op.c_code(node, name, isyms, osyms, sub)
 
             assert isinstance(
                 behavior, str
@@ -905,10 +865,7 @@ class CLinker(Linker):
             # to be merged, I suppose this won't happen...
             behavior = "// Op class " + node.op.__class__.__name__ + "\n" + behavior
 
-            try:
-                cleanup = op.c_code_cleanup(node, name, isyms, osyms, sub)
-            except MethodNotDefined:
-                cleanup = ""
+            cleanup = op.c_code_cleanup(node, name, isyms, osyms, sub)
 
             _logger.info(f"compiling un-versioned Apply {node}")
 
@@ -985,12 +942,11 @@ class CLinker(Linker):
             )
         # generic support code
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
-            with suppress(MethodNotDefined):
-                support_code = x.c_support_code()
-                if isinstance(support_code, list):
-                    ret.extend(support_code)
-                else:
-                    ret.append(support_code)
+            support_code = x.c_support_code()
+            if isinstance(support_code, list):
+                ret.extend(support_code)
+            else:
+                ret.append(support_code)
         return ret
 
     def compile_args(self):
@@ -1023,11 +979,7 @@ class CLinker(Linker):
 
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
             if isinstance(x, CLinkerObject):
-                with suppress(MethodNotDefined):
-                    try:
-                        ret += x.c_compile_args(c_compiler)
-                    except TypeError:
-                        ret += x.c_compile_args()
+                ret += x.c_compile_args(c_compiler=c_compiler)
 
         ret = uniq(ret)  # to remove duplicate
         # The args set by the compiler include the user flags. We do not want
@@ -1035,16 +987,13 @@ class CLinker(Linker):
         ret += c_compiler.compile_args()
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
             if isinstance(x, CLinkerObject):
-                with suppress(MethodNotDefined):
+                no_comp = x.c_no_compile_args(c_compiler=c_compiler)
+
+                for i in no_comp:
                     try:
-                        no_comp = x.c_no_compile_args(c_compiler)
-                    except TypeError:
-                        no_comp = x.c_no_compile_args()
-                    for i in no_comp:
-                        try:
-                            ret.remove(i)
-                        except ValueError:
-                            pass  # in case the value is not there
+                        ret.remove(i)
+                    except ValueError:
+                        pass  # in case the value is not there
         return ret
 
     def headers(self):
@@ -1059,11 +1008,7 @@ class CLinker(Linker):
         c_compiler = self.c_compiler()
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
             if isinstance(x, CLinkerObject):
-                with suppress(MethodNotDefined):
-                    try:
-                        ret += x.c_headers(c_compiler)
-                    except TypeError:
-                        ret += x.c_headers()
+                ret += x.c_headers(c_compiler=c_compiler)
         return uniq(ret)
 
     def init_code(self):
@@ -1077,8 +1022,7 @@ class CLinker(Linker):
         ret = []
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
             if isinstance(x, CLinkerObject):
-                with suppress(MethodNotDefined):
-                    ret += x.c_init_code()
+                ret += x.c_init_code()
         return uniq(ret)
 
     def c_compiler(self):
@@ -1115,11 +1059,7 @@ class CLinker(Linker):
         c_compiler = self.c_compiler()
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
             if isinstance(x, CLinkerObject):
-                with suppress(MethodNotDefined):
-                    try:
-                        ret += x.c_header_dirs(c_compiler)
-                    except TypeError:
-                        ret += x.c_header_dirs()
+                ret += x.c_header_dirs(c_compiler=c_compiler)
         # filter out empty strings/None
         return [r for r in uniq(ret) if r]
 
@@ -1135,11 +1075,7 @@ class CLinker(Linker):
         c_compiler = self.c_compiler()
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
             if isinstance(x, CLinkerObject):
-                with suppress(MethodNotDefined):
-                    try:
-                        ret += x.c_libraries(c_compiler)
-                    except TypeError:
-                        ret += x.c_libraries()
+                ret += x.c_libraries(c_compiler=c_compiler)
         return uniq(ret)
 
     def lib_dirs(self):
@@ -1154,11 +1090,7 @@ class CLinker(Linker):
         c_compiler = self.c_compiler()
         for x in [y.type for y in self.variables] + [y.op for y in self.node_order]:
             if isinstance(x, CLinkerObject):
-                with suppress(MethodNotDefined):
-                    try:
-                        ret += x.c_lib_dirs(c_compiler)
-                    except TypeError:
-                        ret += x.c_lib_dirs()
+                ret += x.c_lib_dirs(c_compiler=c_compiler)
         # filter out empty strings/None
         return [r for r in uniq(ret) if r]
 

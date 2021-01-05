@@ -179,7 +179,7 @@ class BaseCorr3dMM(OpenMPOp):
         if not hasattr(self, "num_groups"):
             self.num_groups = 1
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         ccodes = blas_headers.blas_header_text()
         if self.blas_type == "openblas":
             ccodes += blas_headers.openblas_threads_text()
@@ -187,23 +187,23 @@ class BaseCorr3dMM(OpenMPOp):
             ccodes += blas_headers.mkl_threads_text()
         return ccodes
 
-    def c_libraries(self):
+    def c_libraries(self, **kwargs):
         return ldflags()
 
-    def c_compile_args(self):
+    def c_compile_args(self, **kwargs):
         compile_args = ldflags(libs=False, flags=True)
-        compile_args += super().c_compile_args()
+        compile_args += super().c_compile_args(**kwargs)
         return compile_args
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         return ldflags(libs=False, libs_dir=True)
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return ldflags(libs=False, include_dir=True)
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         headers = ["<stdio.h>"]
-        headers += super().c_headers()
+        headers += super().c_headers(**kwargs)
         return headers
 
     def c_code_cache_version(self):
@@ -250,12 +250,13 @@ class BaseCorr3dMM(OpenMPOp):
             sub["blas_set_num_threads"] = ""
             sub["blas_get_num_threads"] = "0"
 
-        files = [os.path.join("c_code", "corr3d_gemm.c")]
-        codes = [
-            open(os.path.join(os.path.split(__file__)[0], f)).read() for f in files
-        ]
         final_code = ""
-        for code in codes:
+        with open(
+            os.path.join(
+                os.path.split(__file__)[0], os.path.join("c_code", "corr3d_gemm.c")
+            )
+        ) as f:
+            code = f.read()
             final_code += code
         return final_code % sub
 

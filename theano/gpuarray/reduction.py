@@ -44,10 +44,10 @@ class GpuMaxAndArgmax(COp):
         ]
         return Apply(self, inputs, outputs)
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<numpy_compat.h>", "<gpuarray_helper.h>"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [pygpu.get_include(), gpuarray_helper_inc_dir()]
 
     def c_code(self, node, name, input_names, output_names, sub):

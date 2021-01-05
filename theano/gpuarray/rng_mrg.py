@@ -58,8 +58,8 @@ class GPUA_mrg_uniform(GpuKernelBase, mrg_uniform_base):
         op = cls(GpuArrayType(dtype, (False,) * ndim))
         return op(rstate, v_size)
 
-    def c_headers(self):
-        return super().c_headers() + ["numpy_compat.h"]
+    def c_headers(self, **kwargs):
+        return super().c_headers(**kwargs) + ["numpy_compat.h"]
 
     def gpu_kernels(self, node, name):
         write = write_w(self.output_type.dtype)

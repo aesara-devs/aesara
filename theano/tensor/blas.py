@@ -508,7 +508,7 @@ class GemmRelated(COp):
 
     __props__ = ()
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         # return cblas_header_text()
         mod_str = """
         #ifndef MOD
@@ -523,24 +523,24 @@ class GemmRelated(COp):
         """
         return blas_header_text() + mod_str
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         # std.cout doesn't require the '%' symbol to print stuff...
         # so it works much better with python's string-substitution stuff.
         return ["<iostream>", "<time.h>", "<sys/time.h>"]
 
-    def c_libraries(self):
+    def c_libraries(self, **kwargs):
         return ldflags()
 
     # code_cache_version is built by subclasses from
     # build_gemm_version
 
-    def c_compile_args(self):
+    def c_compile_args(self, **kwargs):
         return ldflags(libs=False, flags=True)
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         return ldflags(libs=False, libs_dir=True)
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return ldflags(libs=False, include_dir=True)
 
     declare_NS = """
@@ -1643,7 +1643,7 @@ class Dot22(GemmRelated):
         if node.inputs[0].type.dtype.startswith("complex"):
             raise MethodNotDefined(f"{self.__class__.__name__}.c_code")
         if len(self.c_libraries()) <= 0:
-            return super().c_code(node, name, (_x, _y), (_zout,), sub)
+            raise NotImplementedError()
         full_code = self.build_gemm_call() % dict(locals(), **sub)
         return full_code
 
@@ -1913,7 +1913,7 @@ class Dot22Scalar(GemmRelated):
         if node.inputs[0].type.dtype.startswith("complex"):
             raise MethodNotDefined(f"{self.__class__.__name__}.c_code")
         if len(self.c_libraries()) <= 0:
-            return super().c_code(node, name, (_x, _y), (_zout,), sub)
+            raise NotImplementedError()
         full_code = self.build_gemm_call() % dict(locals(), **sub)
         return full_code
 
@@ -2108,7 +2108,7 @@ class BatchedDot(COp):
         for i in range(z0.shape[0]):
             z0[i] = np.dot(x[i], y[i])
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         batch_gemm_defn = """
         template<typename dtype>
         bool batch_gemm(void (*gemm)(char*, char*, const int*, const int*, const int*, const dtype*, const dtype*, const int*, const dtype*, const int*, const dtype*, dtype*, const int*),
@@ -2192,16 +2192,16 @@ class BatchedDot(COp):
         """
         return blas_header_text() + batch_gemm_defn
 
-    def c_libraries(self):
+    def c_libraries(self, **kwargs):
         return ldflags()
 
-    def c_compile_args(self):
+    def c_compile_args(self, **kwargs):
         return ldflags(libs=False, flags=True)
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         return ldflags(libs=False, libs_dir=True)
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return ldflags(libs=False, include_dir=True)
 
     def c_code_cleanup(self, node, name, inputs, outputs, sub):

@@ -1941,7 +1941,7 @@ class AdvancedSubtensor1(COp):
         x, ilist = ishapes
         return [ilist + x[1:]]
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         # In some versions of numpy, NPY_MIN_INTP is defined as MIN_LONG,
         # which is not defined. It should be NPY_MIN_LONG instead in that case.
         return dedent(
@@ -2128,7 +2128,7 @@ class AdvancedIncSubtensor1(COp):
         return f"""(PyArrayObject*)PyArray_FromAny(py_{x}, NULL, 0, 0,
                 NPY_ARRAY_ENSURECOPY, NULL)"""
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return inc_code()
 
     def c_code(self, node, name, input_names, output_names, sub):

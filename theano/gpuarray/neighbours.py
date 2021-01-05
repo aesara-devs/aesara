@@ -58,7 +58,7 @@ class GpuImages2Neibs(GpuKernelBase, Images2Neibs, Op):
     def c_code_cache_version(self):
         return (14,)
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<numpy_compat.h>", "<gpuarray/types.h>"]
 
     def gpu_kernels(self, node, nodename):
@@ -319,7 +319,7 @@ class GpuImages2Neibs(GpuKernelBase, Images2Neibs, Op):
         )
         return kernels
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return """
         template <typename T>
         static T ceil_intdiv(T a, T b)

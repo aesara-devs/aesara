@@ -205,7 +205,7 @@ class GpuElemwise(HideC, Elemwise):
             kop = kop.replace(npy, ga)
         return support_code, kop
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<numpy_compat.h>", "<gpuarray/types.h>", "<gpuarray/elemwise.h>"]
 
     def c_support_code_struct(self, node, name):
@@ -656,10 +656,10 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
             return False
         return True
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<numpy_compat.h>", "<gpuarray/types.h>"]
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return """
         template <typename T>
         static T ceil_intdiv(T a, T b)
@@ -2955,7 +2955,7 @@ class GpuErfinv(Erfinv):
 
     """
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["math_functions.h", "cublas_v2.h"]
 
     def c_code(self, node, name, inp, out, sub):
@@ -2982,7 +2982,7 @@ class GpuErfcinv(Erfcinv):
 
     """
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["math_functions.h", "cublas_v2.h"]
 
     def c_code(self, node, name, inp, out, sub):

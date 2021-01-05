@@ -33,7 +33,7 @@ class TDouble(CType):
     def c_literal(self, data):
         return str(data)
 
-    def c_extract(self, name, sub, check_input=True):
+    def c_extract(self, name, sub, check_input=True, **kwargs):
         return """
         if (!PyFloat_Check(py_%(name)s)) {
             PyErr_SetString(PyExc_TypeError, "not a double!");

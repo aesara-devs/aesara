@@ -296,43 +296,43 @@ code. This allows for faster compilation times.
 See :ref:`cop` for the full documentation of the various methods of the
 class Op that are related to the C implementation. Of particular interest are:
 
-*       The methods :meth:`Op.c_libraries` and :meth:`Op.c_lib_dirs` to allow
+*       The methods :meth:`CLinkerObject.c_libraries` and :meth:`CLinkerObject.c_lib_dirs` to allow
         your op to use external libraries.
 
-*       The method :meth:`Op.c_code_cleanup` to specify how the op should
+*       The method :meth:`CLinkerOp.c_code_cleanup` to specify how the op should
         clean up what it has allocated during its execution.
 
-*       The methods :meth:`Op.c_init_code` and :meth:`Op.c_init_code_apply`
+*       The methods :meth:`COp.c_init_code` and :meth:`CLinkerOp.c_init_code_apply`
         to specify code that should be executed once when the module is
         initialized, before anything else is executed.
 
-*       The methods :meth:`Op.c_compile_args` and
-        :meth:`Op.c_no_compile_args` to specify requirements regarding how
-        the op's C code should be compiled.
+*       The methods :meth:`CLinkerObject.c_compile_args` and
+        :meth:`CLinkerObject.c_no_compile_args` to specify requirements regarding how
+        the `Op`'s C code should be compiled.
 
-This section describes the methods :meth:`Op.c_code`,
-:meth:`Op.c_support_code`, :meth:`Op.c_support_code_apply` and
-:meth:`Op.c_code_cache_version` because they are the ones that are most
+This section describes the methods :meth:`CLinkerOp.c_code`,
+:meth:`CLinkerObject.c_support_code`, :meth:`Op.c_support_code_apply` and
+:meth:`CLinkerObject.c_code_cache_version` because they are the ones that are most
 commonly used.
 
 .. method:: c_code(node, name, input_names, output_names, sub)
 
     This method returns a string containing the C code to perform the
-    computation required by this op.
+    computation required by this `Op`.
 
     The ``node`` argument is an :ref:`apply` node representing an
-    application of the current Op on a list of inputs, producing a list of
+    application of the current `Op` on a list of inputs, producing a list of
     outputs.
 
     ``input_names`` is a sequence of strings which contains as many strings
-    as the op has inputs. Each string contains the name of the C variable
+    as the `Op` has inputs. Each string contains the name of the C variable
     to which the corresponding input has been assigned. For example, the name
-    of the C variable representing the first input of the op is given by
+    of the C variable representing the first input of the `Op` is given by
     ``input_names[0]``. You should therefore use this name in your
     C code to interact with that variable. ``output_names`` is used
-    identically to ``input_names``, but for the op's outputs.
+    identically to ``input_names``, but for the `Op`'s outputs.
 
-    Finally, ``sub`` is a dictionary of extras parameters to the c_code
+    Finally, ``sub`` is a dictionary of extras parameters to the `c_code`
     method. Among other things, it contains ``sub['fail']`` which is a string
     of C code that you should include in your C code (after ensuring that a
     Python exception is set) if it needs to raise an exception. Ex:
@@ -367,41 +367,41 @@ commonly used.
         rather put the results in the C variables whose names are contained in
         the ``output_names``.
 
-.. method:: c_support_code()
+.. method:: c_support_code(**kwargs)
 
-    Returns a string or a list of strings containing some support C code for this op. This code
+    Returns a string or a list of strings containing some support C code for this `Op`. This code
     will be included at the global scope level and can be used to define
-    functions and structs that will be used by every apply of this op.
+    functions and structs that will be used by every apply of this `Op`.
 
 .. method:: c_support_code_apply(node, name)
 
-    Returns a string containing some support C code for this op. This code
+    Returns a string containing some support C code for this `Op`. This code
     will be included at the global scope level and can be used to define
-    functions and structs that will be used by this op. The difference between
-    this method and ``c_support_code()`` is that the C code specified in
-    ``c_support_code_apply()`` should be specific to each apply of the Op,
-    while ``c_support_code()`` is for support code that is not specific to
+    functions and structs that will be used by this `Op`. The difference between
+    this method and ``c_support_code`` is that the C code specified in
+    ``c_support_code_apply`` should be specific to each apply of the `Op`,
+    while ``c_support_code`` is for support code that is not specific to
     each apply.
 
-    Both ``c_support_code()`` and ``c_support_code_apply ()`` are necessary
-    because a Theano op can be used more than once in a given Theano
-    function. For example, an op that adds two matrices could be used at some
+    Both ``c_support_code`` and ``c_support_code_apply`` are necessary
+    because a Theano `Op` can be used more than once in a given Theano
+    function. For example, an `Op` that adds two matrices could be used at some
     point in the Theano function to add matrices of integers and, at another
     point, to add matrices of doubles. Because the dtype of the inputs and
-    outputs can change between different applies of the op, any support code
-    that relies on a certain dtype is specific to a given apply of the op and
-    should therefore be defined in ``c_support_code_apply()``.
+    outputs can change between different applies of the `Op`, any support code
+    that relies on a certain dtype is specific to a given `Apply` of the `Op` and
+    should therefore be defined in ``c_support_code_apply``.
 
 .. method:: c_code_cache_version()
 
     Returns a tuple of integers representing the version of the C code in this
     op. Ex : (1, 4, 0) for version 1.4.0
 
-    This tuple is used by Theano to cache the compiled C code for this op. As
+    This tuple is used by Theano to cache the compiled C code for this `Op`. As
     such, the return value **MUST BE CHANGED** every time the C code is altered
     or else Theano will disregard the change in the code and simply load a
-    previous version of the op from the cache. If you want to avoid caching of
-    the C code of this op, return an empty tuple or do not implement this
+    previous version of the `Op` from the cache. If you want to avoid caching of
+    the C code of this `Op`, return an empty tuple or do not implement this
     method.
 
     :note:
@@ -410,44 +410,44 @@ commonly used.
         this function should return a tuple of integers as previously
         described.
 
-Important restrictions when implementing an Op
+Important restrictions when implementing a COp
 ==============================================
 
-There are some important restrictions to remember when implementing an Op.
-Unless your Op correctly defines a ``view_map`` attribute, the ``perform`` and ``c_code`` must not
+There are some important restrictions to remember when implementing an `COp`.
+Unless your `COp` correctly defines a ``view_map`` attribute, the ``perform`` and ``c_code`` must not
 produce outputs whose memory is aliased to any input (technically, if changing the
 output could change the input object in some sense, they are aliased).
-Unless your Op correctly defines a ``destroy_map`` attribute, ``perform`` and ``c_code`` must
+Unless your `COp` correctly defines a ``destroy_map`` attribute, ``perform`` and ``c_code`` must
 not modify any of the inputs.
 
 TODO: EXPLAIN DESTROYMAP and VIEWMAP BETTER AND GIVE EXAMPLE.
 
-When developing an Op, you should run computations in DebugMode, by using
-argument ``mode='DebugMode'`` to ``theano.function``. DebugMode is
-slow, but it can catch many common violations of the Op contract.
+When developing a `COp`, you should run computations in `DebugMode`, by using
+argument ``mode='DebugMode'`` to ``theano.function``. `DebugMode` is
+slow, but it can catch many common violations of the `Op` contract.
 
 TODO: Like what? How? Talk about Python vs. C too.
 
-DebugMode is no silver bullet though.
-For example, if you modify an Op ``self.*`` during any of
+`DebugMode` is no silver bullet though.
+For example, if you modify an `Op` ``self.*`` during any of
 ``make_node``, ``perform``, or ``c_code``, you are probably doing something
 wrong but DebugMode will not detect this.
 
 TODO: jpt: I don't understand the following sentence.
 
-Ops and Types should usually be considered immutable -- you should
+`Op`s and `Type`s should usually be considered immutable -- you should
 definitely not make a change that would have an impact on ``__eq__``,
 ``__hash__``, or the mathematical value that would be computed by  ``perform``
 or ``c_code``.
 
 
-Simple C Op example
+Simple COp example
 ===================
 
 In this section, we put together the concepts that were covered in this
 tutorial to generate an op which multiplies every element in a vector
 by a scalar and returns the resulting vector. This is intended to be a simple
-example so the methods ``c_support_code()`` and ``c_support_code_apply()`` are
+example so the methods ``c_support_code`` and ``c_support_code_apply`` are
 not used because they are not required.
 
 In the C code below notice how the reference count on the output variable is
@@ -569,11 +569,11 @@ More complex C Op example
 This section introduces a new example, slightly more complex than the previous
 one, with an op to perform an element-wise multiplication between the elements
 of two vectors. This new example differs from the previous one in its use
-of the methods ``c_support_code()`` and ``c_support_code_apply()`` (it does
+of the methods ``c_support_code`` and ``c_support_code_apply`` (it does
 not `need` to use them but it does so to explain their use) and its capacity
 to support inputs of different dtypes.
 
-Recall the method ``c_support_code()`` is meant to produce code that will
+Recall the method ``c_support_code`` is meant to produce code that will
 be used for every apply of the op. This means that the C code in this
 method must be valid in every setting your op supports. If the op is meant
 to supports inputs of various dtypes, the C code in this method should be
@@ -581,16 +581,16 @@ generic enough to work with every supported dtype. If the op operates on
 inputs that can be vectors or matrices, the C code in this method should
 be able to accomodate both kinds of inputs.
 
-In our example, the method ``c_support_code()`` is used to declare a C
+In our example, the method ``c_support_code`` is used to declare a C
 function to validate that two vectors have the same shape. Because our
 op only supports vectors as inputs, this function is allowed to rely
 on its inputs being vectors. However, our op should support multiple
 dtypes so this function cannot rely on a specific dtype in its inputs.
 
-The method ``c_support_code_apply()``, on the other hand, is allowed
+The method ``c_support_code_apply``, on the other hand, is allowed
 to depend on the inputs to the op because it is apply-specific. Therefore, we
 use it to define a function to perform the multiplication between two vectors.
-Variables or functions defined in the method ``c_support_code_apply()`` will
+Variables or functions defined in the method ``c_support_code_apply`` will
 be included at the global scale for every apply of the Op. Because of this,
 the names of those variables and functions should include the name of the op,
 like in the example. Otherwise, using the op twice in the same graph will give
@@ -624,7 +624,7 @@ C code.
         def c_code_cache_version(self):
             return (1, 0, 2)
 
-        def c_support_code(self):
+        def c_support_code(self, **kwargs):
             c_support_code = """
             bool vector_same_shape(PyArrayObject* arr1,
                 PyArrayObject* arr2)
@@ -987,17 +987,17 @@ When we defined the ``VectorTimesVector`` `Op` without using the ``ExternalCOp``
 class, we had to make a distinction between two types of support_code
 : the support code that was apply-specific and the support code that
 wasn't. The apply-specific code was defined in the
-``c_support_code_apply()`` method and the elements defined in that
+``c_support_code_apply`` method and the elements defined in that
 code (global variables and functions) had to include the name of the
 Apply node in their own names to avoid conflicts between the different
 versions of the apply-specific code. The code that wasn't
-apply-specific was simply defined in the ``c_support_code()`` method.
+apply-specific was simply defined in the ``c_support_code`` method.
 
 To make indentifiers that include the :ref:`Apply` node name use the
 ``APPLY_SPECIFIC(str)`` macro. In the above example, this macro is
-used when defining the functions ``vector_elemwise_mult()`` and
-``vector_times_vector()`` as well as when calling function
-``vector_elemwise_mult()`` from inside ``vector_times_vector()``.
+used when defining the functions ``vector_elemwise_mult`` and
+``vector_times_vector`` as well as when calling function
+``vector_elemwise_mult`` from inside ``vector_times_vector``.
 
 When using the ``ExternalCOp`` class, we still have to make the distinction
 between C code for each of the methods of a C class. These sections of
@@ -1018,13 +1018,13 @@ some portions of the code that might seem apply-agnostic may still be
 apply-specific because of the data they use (this does not include
 arguments).
 
-In the above example, the ``function vector_same_shape()`` is
+In the above example, the ``function vector_same_shape`` is
 apply-agnostic because it uses none of the macros defined by the class
 ``ExternalCOp`` and it doesn't rely on any apply-specific code. The function
-``vector_elemwise_mult()`` is apply-specific because it uses the
+``vector_elemwise_mult`` is apply-specific because it uses the
 macros defined by ``ExternalCOp``. Finally, the function
-``vector_times_vector()`` is apply-specific because it uses those same
-macros and also because it calls ``vector_elemwise_mult()`` which is
+``vector_times_vector`` is apply-specific because it uses those same
+macros and also because it calls ``vector_elemwise_mult`` which is
 an apply-specific function.
 
 

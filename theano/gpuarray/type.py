@@ -470,7 +470,7 @@ class GpuArrayType(CType):
     def c_init(self, name, sub):
         return f"{name} = NULL;"
 
-    def c_extract(self, name, sub, check_input=True):
+    def c_extract(self, name, sub, check_input=True, **kwargs):
         # TODO I don't check broadcast stuff for now.
         return """
         %(name)s = NULL;
@@ -510,13 +510,13 @@ class GpuArrayType(CType):
             "name": name
         }
 
-    def c_init_code(self):
+    def c_init_code(self, **kwargs):
         # We don't actually need the numpy API except in
         # HostFromGpu and GpuFromHost and those case will be covered
         # by the TensorType parameter
         return ["import_pygpu__gpuarray();"]
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         # We need arrayobject for the PyArrayDescr struct def
         # (even if we just use a pointer to it in a function def)
         return [
@@ -529,7 +529,7 @@ class GpuArrayType(CType):
             "<gpuarray_api.h>",
         ]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         other_dirs = []
         for dir_to_add in ["Library/include", "include"]:
             alt_inc_dir = os.path.abspath(
@@ -539,7 +539,7 @@ class GpuArrayType(CType):
                 other_dirs.append(alt_inc_dir)
         return [pygpu.get_include(), np.get_include()] + other_dirs
 
-    def c_lib_dirs(self):
+    def c_lib_dirs(self, **kwargs):
         dirs = []
         for dir_to_add in ["Library/lib", "lib"]:
             alt_lib_dir = os.path.abspath(
@@ -549,7 +549,7 @@ class GpuArrayType(CType):
                 dirs.append(alt_lib_dir)
         return dirs
 
-    def c_libraries(self):
+    def c_libraries(self, **kwargs):
         return ["gpuarray"]
 
     def c_code_cache_version(self):
@@ -913,7 +913,7 @@ class GpuContextType(CType):
     def c_init(self, name, sub):
         return f"{name} = NULL;"
 
-    def c_extract(self, name, sub, check_input=True):
+    def c_extract(self, name, sub, check_input=True, **kwargs):
         if check_input:
             res = """
 if (!PyObject_TypeCheck(py_%(name)s, &PyGpuContextType)) {
@@ -937,15 +937,17 @@ Py_INCREF(%(name)s);
     def c_cleanup(self, name, sub):
         return f"Py_XDECREF({name}); {name} = NULL;"
 
-    # c_sync is intentionally not declared to prevent normal usage
+    def c_sync(self, name, sub):
+        # c_sync is intentionally not declared to prevent normal usage
+        raise NotImplementedError("Variables of this type cannot be graph outputs")
 
-    def c_init_code(self):
+    def c_init_code(self, **kwargs):
         return ["import_pygpu__gpuarray();"]
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<gpuarray_api.h>"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [pygpu.get_include()]
 
     def c_code_cache_version(self):

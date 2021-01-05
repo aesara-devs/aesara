@@ -62,11 +62,11 @@ class SymPyCCode(ScalarOp):
         )
         return c_code
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         c_code = self._sympy_c_code()
         return "\n".join([x for x in c_code.split("\n") if not include_line(x)])
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         c_code = self._sympy_c_code()
         return [
             line.replace("#include", "").strip()

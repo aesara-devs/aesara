@@ -61,7 +61,7 @@ prefix. The complete list can be found in the documentation for
         This must return C code which initializes the variables declared in
         ``c_declare``. Either this or ``c_extract`` will be called.
 
-    .. method:: c_extract(name, sub, check_input=True)
+    .. method:: c_extract(name, sub, check_input=True, **kwargs)
 
         This must return C code which takes a reference to a Python object
         and initializes the variables declared in ``c_declare`` to match the
@@ -243,7 +243,7 @@ called, without knowing for sure which of the two.
 
 .. testcode::
 
-        def c_extract(self, name, sub, check_input=True):
+        def c_extract(self, name, sub, check_input=True, **kwargs):
             return """
             if (!PyFloat_Check(py_%(name)s)) {
                 PyErr_SetString(PyExc_TypeError, "expected a float");
@@ -491,7 +491,7 @@ Final version
            %(name)s = 0.0;
            """ % dict(name = name)
 
-       def c_extract(self, name, sub):
+       def c_extract(self, name, sub, **kwargs):
            return """
            if (!PyFloat_Check(py_%(name)s)) {
                PyErr_SetString(PyExc_TypeError, "expected a float");

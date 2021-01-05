@@ -39,10 +39,10 @@ class GPUAMultinomialFromUniform(GpuKernelBase, Op):
     def get_params(self, node):
         return node.outputs[0].type.context
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<numpy_compat.h>", "gpuarray_helper.h"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir()]
 
     def make_node(self, pvals, unis):
@@ -275,10 +275,10 @@ class GPUAChoiceFromUniform(GpuKernelBase, Op):
     def get_params(self, node):
         return node.outputs[0].type.context
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<numpy_compat.h>", "gpuarray_helper.h"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir()]
 
     def make_node(self, pvals, unis, n):

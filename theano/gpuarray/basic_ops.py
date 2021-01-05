@@ -350,16 +350,16 @@ class GpuKernelBase:
         """
         raise MethodNotDefined("gpu_kernels")
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         try:
-            o = super().c_headers()
+            o = super().c_headers(**kwargs)
         except MethodNotDefined:
             o = []
         return o + ["gpuarray/types.h", "numpy/npy_common.h"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         try:
-            o = super().c_header_dirs()
+            o = super().c_header_dirs(**kwargs)
         except MethodNotDefined:
             o = []
         # We rely on the input types for the directory to gpuarray includes
@@ -737,10 +737,10 @@ class GpuFromHost(COp):
     def infer_shape(self, fgraph, node, xshp):
         return xshp
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["gpuarray_helper.h"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir()]
 
     def c_code(self, node, name, inputs, outputs, sub):
@@ -909,7 +909,7 @@ class GpuAlloc(HideC, Alloc):
         otype = value.type.clone(broadcastable=bcast)
         return Apply(self, [value] + sh, [otype()])
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<numpy_compat.h>"]
 
     def perform(self, node, inputs, outs, params):
@@ -1081,10 +1081,10 @@ class GpuAllocEmpty(HideC, AllocEmpty):
             out[0] = pygpu.empty(sh, dtype=self.dtype, context=params.context)
         # if out[0] is the right shape, we just return it
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<gpuarray_helper.h>"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir()]
 
     def c_code(self, node, name, inp, out, sub):
@@ -1161,10 +1161,10 @@ class GpuContiguous(Op):
         input = as_gpuarray_variable(input, context_name=infer_context_name(input))
         return Apply(self, [input], [input.type()])
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [gpuarray_helper_inc_dir()]
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<gpuarray_helper.h>"]
 
     def c_code_cache_version(self):
@@ -1419,14 +1419,14 @@ class GpuJoin(HideC, Join):
     def c_code_cache_version(self):
         return (3,)
 
-    def c_support_code(self):
+    def c_support_code(self, **kwargs):
         return """
         #if PY_MAJOR_VERSION >= 3
         #define PyInt_AsLong PyLong_AsLong
         #endif
         """
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<numpy_compat.h>"]
 
     def c_code(self, node, name, inputs, out_, sub):
@@ -1531,10 +1531,10 @@ class GpuSplit(HideC, Split):
     def c_code_cache_version(self):
         return (2,)
 
-    def c_headers(self):
+    def c_headers(self, **kwargs):
         return ["<numpy_compat.h>", "<gpuarray_helper.h>"]
 
-    def c_header_dirs(self):
+    def c_header_dirs(self, **kwargs):
         return [pygpu.get_include(), gpuarray_helper_inc_dir()]
 
     def c_code(self, node, name, inputs, outputs, sub):

@@ -19,12 +19,14 @@ from theano.configdefaults import config
 from theano.gof import Variable, utils
 from theano.gof.null_type import NullType, null_type
 from theano.gof.op import get_test_values
+from theano.gof.type import Type
 
 
-__authors__ = "James Bergstra, Razvan Pascanu, Arnaud Bergeron, Ian Goodfellow"
+__authors__ = (
+    "James Bergstra, Razvan Pascanu, Arnaud Bergeron, Ian Goodfellow, PyMC Developers"
+)
 __copyright__ = "(c) 2011, Universite de Montreal"
 __license__ = "3-clause BSD License"
-__contact__ = "theano-dev <theano-dev@googlegroups.com>"
 
 __docformat__ = "restructuredtext en"
 _logger = logging.getLogger("theano.gradient")
@@ -119,14 +121,12 @@ def grad_undefined(op, x_pos, x, comment=""):
     )()
 
 
-class DisconnectedType(theano.gof.type.CType):
+class DisconnectedType(Type):
+    """A type indicating that a variable is the result of taking the gradient of
+    ``c`` with respect to ``x`` when ``c`` is not a function of ``x``.
 
-    """A type indicating that a variable is a result
-    of taking the gradient of c with respect to x
-    when c is not a function of x.
-    A symbolic placeholder for 0, but to convey
-    the extra information that this gradient is 0
-    because it is disconnected.
+    It serves as a symbolic placeholder for ``0``, but conveys the extra
+    information that this gradient is ``0`` because it is disconnected.
     """
 
     def filter(self, data, strict=False, allow_downcast=None):
