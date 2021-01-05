@@ -406,27 +406,27 @@ class ScalarSoftplus(scalar.UnaryScalarOp):
         ):
             return (
                 """
-                    %(z)s = (
-                        %(x)s < -103.0f ? 0.0 :
-                        %(x)s < -37.0f ? exp(%(x)s) :
-                        %(x)s < 18.0f ? log1p(exp(%(x)s)) :
-                        %(x)s < 33.3f ? %(x)s + exp(-%(x)s) :
-                        %(x)s
-                    );
-                    """
+                %(z)s = (
+                    %(x)s < -103.0f ? 0.0 :
+                    %(x)s < -37.0f ? exp(%(x)s) :
+                    %(x)s < 18.0f ? log1p(exp(%(x)s)) :
+                    %(x)s < 33.3f ? %(x)s + exp(-%(x)s) :
+                    %(x)s
+                );
+                """
                 % locals()
             )
         elif node.inputs[0].type == scalar.float64:
             return (
                 """
-                    %(z)s = (
-                        %(x)s < -745.0 ? 0.0 :
-                        %(x)s < -37.0 ? exp(%(x)s) :
-                        %(x)s < 18.0 ? log1p(exp(%(x)s)) :
-                        %(x)s < 33.3 ? %(x)s + exp(-%(x)s) :
-                        %(x)s
-                    );
-                    """
+                %(z)s = (
+                    %(x)s < -745.0 ? 0.0 :
+                    %(x)s < -37.0 ? exp(%(x)s) :
+                    %(x)s < 18.0 ? log1p(exp(%(x)s)) :
+                    %(x)s < 33.3 ? %(x)s + exp(-%(x)s) :
+                    %(x)s
+                );
+                """
                 % locals()
             )
         else:
