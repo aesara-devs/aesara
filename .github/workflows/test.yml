@@ -116,8 +116,8 @@ jobs:
       - name: Install dependencies
         shell: bash -l {0}
         run: |
-          mamba install --yes -q mkl numpy scipy pip mkl-service graphviz cython libgpuarray pygpu
-          if [[ "$PYTHON_VERSION" != "3.6" ]]; then mamba install --yes -q -c conda-forge jax jaxlib; fi
+          mamba install --yes -q "python~=${PYTHON_VERSION}=*_cpython" mkl numpy scipy pip mkl-service graphviz cython libgpuarray pygpu
+          if [[ "$PYTHON_VERSION" != "3.6" ]]; then mamba install --yes -q -c conda-forge "python~=${PYTHON_VERSION}=*_cpython" jax jaxlib; fi
           pip install -q -r requirements.txt
           mamba list && pip freeze
           python -c 'import theano; print(theano.config.__str__(print_doc=False))'
