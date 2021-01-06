@@ -357,9 +357,9 @@ class ScalarSoftplus(scalar.UnaryScalarOp):
     https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
 
     References
-        ----------
-        .. [Machler2012] Martin Mächler (2012).
-            "Accurately computing `\log(1-\exp(- \mid a \mid))` Assessed by the Rmpfr package"
+    ----------
+    .. [Machler2012] Martin Mächler (2012).
+        "Accurately computing `\log(1-\exp(- \mid a \mid))` Assessed by the Rmpfr package"
     """
 
     @staticmethod
