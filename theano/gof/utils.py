@@ -1,6 +1,7 @@
 import linecache
 import sys
 import traceback
+from abc import ABCMeta
 from io import StringIO
 
 
@@ -157,7 +158,7 @@ class MethodNotDefined(Exception):
     """
 
 
-class MetaType(type):
+class MetaType(ABCMeta):
     def __new__(cls, name, bases, dct):
         props = dct.get("__props__", None)
         if props is not None:
@@ -220,7 +221,7 @@ class MetaType(type):
 
                 dct["__str__"] = __str__
 
-        return type.__new__(cls, name, bases, dct)
+        return super().__new__(cls, name, bases, dct)
 
 
 class MetaObject(metaclass=MetaType):

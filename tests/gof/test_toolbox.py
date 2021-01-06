@@ -12,6 +12,9 @@ class TestNodeFinder:
             def __init__(self, name):
                 self.name = name
 
+            def filter(self, *args, **kwargs):
+                raise NotImplementedError()
+
             def __str__(self):
                 return self.name
 
