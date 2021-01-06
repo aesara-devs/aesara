@@ -27,7 +27,7 @@ You can also provide the ``--proxy=[user:pass@]url:port`` parameter
 to pip. The ``[user:pass@]`` portion is optional.
 
 .. _TensorVariable_TypeError:
- 
+
 How to solve TypeError: object of type 'TensorVariable' has no len()
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -107,14 +107,15 @@ Also, check the following outputs :
     theano.__version__
 
 
-Once you have installed Theano, you should run the test suite.
- 
+Once you have installed Theano, you should run the test suite in the ``tests`` directory.
+
 .. code-block:: bash
- 
+
     python -c "import numpy; numpy.test()"
     python -c "import scipy; scipy.test()"
-    THEANO_FLAGS=''; python -c "import theano; theano.test()"
- 
+    pip install pytest
+    THEANO_FLAGS='' pytest tests/
+
 All Theano tests should pass (skipped tests and known failures are normal). If
 some test fails on your machine, you are encouraged to tell us what went
 wrong on the ``theano-users@googlegroups.com`` mailing list.
@@ -125,7 +126,7 @@ wrong on the ``theano-users@googlegroups.com`` mailing list.
     needed. If you don't want Theano to ever use the gpu when running tests,
     you can set :attr:`config.device` to ``cpu`` and
     :attr:`config.force_device` to ``True``.
- 
+
 .. _slow_or_memory:
 
 Why is my code so slow/uses so much memory
@@ -279,7 +280,7 @@ correctly (for example, for MKL this might be ``-lmkl -lguide -lpthread`` or
 Testing BLAS
 ------------
 
-It is recommended to test your Theano/BLAS integration. There are many versions 
+It is recommended to test your Theano/BLAS integration. There are many versions
 of BLAS that exist and there can be up to 10x speed difference between them.
 Also, having Theano link directly against BLAS instead of using NumPy/SciPy as
 an intermediate layer reduces the computational overhead. This is
