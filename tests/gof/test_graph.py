@@ -30,6 +30,9 @@ class MyType(Type):
     def __init__(self, thingy):
         self.thingy = thingy
 
+    def filter(self, *args, **kwargs):
+        raise NotImplementedError()
+
     def __eq__(self, other):
         return isinstance(other, MyType) and other.thingy == self.thingy
 
