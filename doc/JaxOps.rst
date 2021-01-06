@@ -58,8 +58,9 @@ Here’s an example for the Eye Op.
 .. code:: python
 
    from theano.tensor.basic import Eye
-   @jax_funcify.register(Eye) # The decorater 
-   def jax_funcify_Eye(op): # The function that takes an individual Theano-PyMC Op and returned the JAXified op
+
+   @jax_funcify.register(Eye) # The decorator
+   def jax_funcify_Eye(op): # The function that takes an Op and returns its JAX equivalent
        dtype = op.dtype
 
        def eye(N, M, k):
@@ -87,7 +88,7 @@ https://github.com/pymc-devs/Theano-PyMC/blob/master/tests/link/test_jax.py
 
    def test_jax_eye():
        """Tests jaxification of the Eye operator"""
-       out = tt.eye(3) # Initialize a Theano Op 
+       out = tt.eye(3) # Initialize a Theano Op
        out_fg = theano.gof.FunctionGraph([], [out]) # Create a Theano FunctionGraph
 
        compare_jax_and_py(out_fg, []) # Pas the graph and any inputs to testing function
@@ -116,31 +117,31 @@ https://docs.python.org/3/library/functools.html#functools.singledispatch
 .. code:: ipython3
 
     from functools import singledispatch
-    
+
     class Cow:
         pass
     cow = Cow()
-    
+
     class Dog:
         pass
     dog = Dog()
-    
+
     @singledispatch
     def greeting(animal):
         print("This animal has not been registered")
-    
+
     @greeting.register(Cow)
     def cow_greeting(animal):
         print("Mooooo")
-    
+
     @greeting.register(Dog)
     def dog_greeting(animal):
         print("Woof")
-        
-        
-    greeting(cow) 
-    greeting(dog) 
-    greeting("A string object") 
+
+
+    greeting(cow)
+    greeting(dog)
+    greeting("A string object")
 
 
 .. parsed-literal::
