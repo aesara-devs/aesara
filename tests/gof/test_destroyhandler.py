@@ -85,6 +85,9 @@ class MyOp(Op):
         outputs = [MyVariable(self.name + "_R") for i in range(self.nout)]
         return Apply(self, inputs, outputs)
 
+    def perform(self, *args, **kwargs):
+        raise NotImplementedError("No Python implementation available.")
+
     def __str__(self):
         return self.name
 

@@ -51,6 +51,9 @@ class TestGradSourcesInputs:
                 (x,) = inp
                 (gz,) = grads
 
+            def perform(self, *args, **kwargs):
+                raise NotImplementedError()
+
         a = retNone().make_node()
         with pytest.raises(TypeError):
             grad_sources_inputs([(a.out, one)], None)
@@ -67,6 +70,9 @@ class TestGradSourcesInputs:
 
             def grad(self, inputs, grads):
                 return [inputs[0].zeros_like()]
+
+            def perform(self, *args, **kwargs):
+                raise NotImplementedError()
 
         i = theano.tensor.vector()
         j = theano.tensor.vector()
@@ -91,6 +97,9 @@ class TestGradSourcesInputs:
             def grad(self, inp, grads):
                 return (gval,)
 
+            def perform(self, *args, **kwargs):
+                raise NotImplementedError()
+
         a1 = TestOp().make_node()
         g = grad_sources_inputs([(a1.outputs[0], one)], None)
         assert g[a1.inputs[0]] is gval
@@ -111,6 +120,9 @@ class TestGradSourcesInputs:
                 (x,) = inp
                 gz1, gz2 = grads
                 return (gval,)
+
+            def perform(self, *args, **kwargs):
+                raise NotImplementedError()
 
         a1 = TestOp().make_node()
         g = grad_sources_inputs([(a1.outputs[0], one)], None)
@@ -134,6 +146,9 @@ class TestGradSourcesInputs:
                 (gz,) = grads
                 return (gval0, gval1)
 
+            def perform(self, *args, **kwargs):
+                raise NotImplementedError()
+
         a1 = TestOp().make_node()
         g = grad_sources_inputs([(a1.outputs[0], one)], None)
         assert g[a1.inputs[0]] is gval0
@@ -154,6 +169,9 @@ class TestGradSourcesInputs:
 
             def grad(self, inp, grads):
                 return gval0, gval1
+
+            def perform(self, *args, **kwargs):
+                raise NotImplementedError()
 
         a1 = TestOp().make_node()
         g = grad_sources_inputs([(a1.outputs[0], one)], None)
@@ -190,6 +208,9 @@ class TestGrad:
             def grad(self, inputs, output_grads):
                 return [theano.gradient.grad_not_implemented(self, 0, inputs[0])]
 
+            def perform(self, *args, **kwargs):
+                raise NotImplementedError()
+
         a = theano.tensor.scalar()
         b = DummyOp()(a)
 
@@ -207,6 +228,9 @@ class TestGrad:
 
             def grad(self, inputs, output_grads):
                 return [theano.gradient.grad_undefined(self, 0, inputs[0])]
+
+            def perform(self, *args, **kwargs):
+                raise NotImplementedError()
 
         a = theano.tensor.scalar()
         b = DummyOp()(a)
@@ -380,6 +404,9 @@ class TestGrad:
             def grad(self, inputs, output_grads):
                 return [inputs[0].zeros_like()]
 
+            def perform(self, *args, **kwargs):
+                raise NotImplementedError()
+
         # Op2 has two inputs, f and g
         # Its gradient with respect to g is not defined
         class Op2(Op):
@@ -390,6 +417,9 @@ class TestGrad:
 
             def grad(self, inputs, output_grads):
                 return [inputs[0].zeros_like(), NullType()()]
+
+            def perform(self, *args, **kwargs):
+                raise NotImplementedError()
 
         x = theano.tensor.vector()
         f, g = Op1()(x)

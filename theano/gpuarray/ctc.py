@@ -4,7 +4,7 @@ import sys
 import theano.tensor as tt
 from theano.configdefaults import config
 from theano.gof.graph import Apply
-from theano.gof.op import ExternalCOp
+from theano.gof.op import _NoPythonExternalCOp
 from theano.gof.opt import local_optimizer
 from theano.gpuarray import pygpu
 from theano.gpuarray.basic_ops import (
@@ -20,7 +20,7 @@ from theano.tensor.nnet.ctc import ctc_available
 from theano.tensor.opt import register_canonicalize
 
 
-class GpuConnectionistTemporalClassification(ExternalCOp):
+class GpuConnectionistTemporalClassification(_NoPythonExternalCOp):
     """
     GPU wrapper for Baidu CTC loss function.
 

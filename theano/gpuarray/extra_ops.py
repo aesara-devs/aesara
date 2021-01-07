@@ -1,5 +1,5 @@
 from theano.gof.graph import Apply
-from theano.gof.op import Op
+from theano.gof.op import _NoPythonOp
 from theano.tensor.extra_ops import CumOp
 
 
@@ -11,7 +11,7 @@ except ImportError:
 import theano.scalar as scalar
 from theano.gof.params_type import ParamsType
 from theano.gpuarray.basic_ops import (
-    GpuKernelBase,
+    GpuKernelBaseCOp,
     GpuReshape,
     Kernel,
     as_gpuarray_variable,
@@ -22,7 +22,7 @@ from theano.gpuarray.opt import op_lifter, register_opt, register_opt2
 from theano.gpuarray.type import gpu_context_type
 
 
-class GpuCumOp(GpuKernelBase, Op):
+class GpuCumOp(GpuKernelBaseCOp, _NoPythonOp):
     """
     Parameters
     ----------
@@ -505,7 +505,7 @@ class GpuCumOp(GpuKernelBase, Op):
 
 # GpuCumsumOp exists only to serve backward compatibility.
 # Once an object is created, it will be converted to CumOp object.
-class GpuCumsumOp(GpuKernelBase, Op):
+class GpuCumsumOp(GpuKernelBaseCOp, _NoPythonOp):
     SUPPORTED_NDIMS = 3
     __props__ = ("axis",)
 

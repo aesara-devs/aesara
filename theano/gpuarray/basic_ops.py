@@ -9,7 +9,7 @@ import theano
 from theano import tensor
 from theano.configdefaults import config
 from theano.gof.graph import Apply, Variable
-from theano.gof.op import COp, ExternalCOp, Op
+from theano.gof.op import COp, ExternalCOp, Op, _NoPythonOp
 from theano.gof.opt import copy_stack_trace
 from theano.gof.params_type import ParamsType
 from theano.gof.type import CType
@@ -493,6 +493,14 @@ int {sname}(unsigned int _nd, size_t *_n, size_t _shared, {args}) {{
         return (9,)
 
 
+class GpuKernelBaseCOp(GpuKernelBase, COp):
+    pass
+
+
+class GpuKernelBaseExternalCOp(GpuKernelBase, ExternalCOp):
+    pass
+
+
 def forward_string_meth(name):
     def f(*args):
         res = getattr(GpuKernelBase, name)(*args)
@@ -517,7 +525,7 @@ def get_dtype(s):
         return np.dtype(s)
 
 
-class CGpuKernelBase(ExternalCOp, GpuKernelBase):
+class CGpuKernelBase(GpuKernelBaseExternalCOp, _NoPythonOp):
     """
     Class to combine GpuKernelBase and ExternalCOp.
 
@@ -1498,7 +1506,7 @@ class GpuJoin(HideC, Join):
 gpu_join = GpuJoin()
 
 
-class GpuSplit(HideC, Split):
+class GpuSplit(HideC, Split, _NoPythonOp):
     """
     Split for GPU.
 
@@ -1748,7 +1756,7 @@ def profile_printer(
         print("", file=file)
 
 
-class GpuEye(GpuKernelBase, Op):
+class GpuEye(GpuKernelBaseCOp, _NoPythonOp):
     """
     Eye for GPU.
 
@@ -1882,7 +1890,7 @@ KERNEL void eye(GLOBAL_MEM %(ctype)s *a, ga_size a_off,
         return (10,)
 
 
-class GpuTri(GpuKernelBase, Op):
+class GpuTri(GpuKernelBaseCOp, _NoPythonOp):
     """
     Tri for GPU.
 

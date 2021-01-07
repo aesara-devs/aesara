@@ -2,7 +2,7 @@ import numpy as np
 
 import theano.tensor as tt
 from theano.gof.graph import Apply
-from theano.gof.op import Op
+from theano.gof.op import _NoPythonOp
 from theano.gpuarray.basic_ops import (
     as_gpuarray_variable,
     gpu_contiguous,
@@ -37,7 +37,7 @@ except Exception:
     skcuda_available = False
 
 
-class CuRFFTOp(Op):
+class CuRFFTOp(_NoPythonOp):
 
     __props__ = ()
 
@@ -168,7 +168,7 @@ class CuRFFTOp(Op):
 curfft_op = CuRFFTOp()
 
 
-class CuIRFFTOp(Op):
+class CuIRFFTOp(_NoPythonOp):
 
     __props__ = ()
 

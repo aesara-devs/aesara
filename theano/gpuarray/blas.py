@@ -1,7 +1,7 @@
 import theano
 from theano.compile import optdb
 from theano.gof.graph import Apply
-from theano.gof.op import COp
+from theano.gof.op import _NoPythonCOp
 from theano.gof.opt import LocalOptGroup
 from theano.gof.params_type import ParamsType
 from theano.scalar import bool as bool_t
@@ -27,7 +27,7 @@ except ImportError:
     pass
 
 
-class BlasOp(COp):
+class BlasOp(_NoPythonCOp):
     def c_headers(self, **kwargs):
         return ["<blas_api.h>", "<numpy_compat.h>", "<gpuarray_helper.h>"]
 
@@ -412,7 +412,7 @@ class GpuDot22(BlasOp):
 gpu_dot22 = GpuDot22()
 
 
-class GpuGemmBatch(BlasOp):
+class GpuGemmBatch(BlasOp, _NoPythonCOp):
     params_type = ParamsType(inplace=bool_t)
     __props__ = ("inplace",)
     _f16_ok = True
@@ -1009,7 +1009,7 @@ class BaseGpuCorrMM(CGpuKernelBase):
         )
 
 
-class GpuCorrMM(BaseGpuCorrMM):
+class GpuCorrMM(BaseGpuCorrMM, _NoPythonCOp):
     """
     GPU correlation implementation using Matrix Multiplication.
 
@@ -1129,7 +1129,7 @@ class GpuCorrMM(BaseGpuCorrMM):
         return d_bottom, d_weights
 
 
-class GpuCorrMM_gradWeights(BaseGpuCorrMM):
+class GpuCorrMM_gradWeights(BaseGpuCorrMM, _NoPythonCOp):
     """
     Gradient wrt. filters for `GpuCorrMM`.
 
@@ -1235,7 +1235,7 @@ class GpuCorrMM_gradWeights(BaseGpuCorrMM):
             return [[1], [1], [0], [0]]  # no connection to height, width
 
 
-class GpuCorrMM_gradInputs(BaseGpuCorrMM):
+class GpuCorrMM_gradInputs(BaseGpuCorrMM, _NoPythonCOp):
     """
     Gradient wrt. inputs for `GpuCorrMM`.
 
@@ -1337,7 +1337,7 @@ class GpuCorrMM_gradInputs(BaseGpuCorrMM):
             return [[1], [1], [0], [0]]  # no connection to height, width
 
 
-class BaseGpuCorr3dMM(CGpuKernelBase):
+class BaseGpuCorr3dMM(CGpuKernelBase, _NoPythonCOp):
     """
     Base class for `GpuCorr3dMM`, `GpuCorr3dMM_gradWeights` and
     `GpuCorr3dMM_gradInputs`. Cannot be used directly.
@@ -1777,7 +1777,7 @@ class BaseGpuCorr3dMM(CGpuKernelBase):
         )
 
 
-class GpuCorr3dMM(BaseGpuCorr3dMM):
+class GpuCorr3dMM(BaseGpuCorr3dMM, _NoPythonCOp):
     """
     GPU correlation implementation using Matrix Multiplication.
 
@@ -1881,7 +1881,7 @@ class GpuCorr3dMM(BaseGpuCorr3dMM):
         return d_bottom, d_weights
 
 
-class GpuCorr3dMM_gradWeights(BaseGpuCorr3dMM):
+class GpuCorr3dMM_gradWeights(BaseGpuCorr3dMM, _NoPythonCOp):
     """
     Gradient wrt. filters for `GpuCorr3dMM`.
 
@@ -1970,7 +1970,7 @@ class GpuCorr3dMM_gradWeights(BaseGpuCorr3dMM):
             return [[1], [1], [0], [0], [0]]  # no connection to height, width, depth
 
 
-class GpuCorr3dMM_gradInputs(BaseGpuCorr3dMM):
+class GpuCorr3dMM_gradInputs(BaseGpuCorr3dMM, _NoPythonCOp):
     """
     Gradient wrt. inputs for `GpuCorr3dMM`.
 

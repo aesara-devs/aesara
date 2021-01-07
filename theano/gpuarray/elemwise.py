@@ -5,7 +5,7 @@ import numpy as np
 
 from theano import scalar
 from theano.gof.graph import Apply
-from theano.gof.op import Op
+from theano.gof.op import _NoPythonOp
 from theano.gof.utils import MethodNotDefined
 from theano.link.c.interface import HideC
 from theano.scalar import Composite, Scalar
@@ -84,7 +84,7 @@ def max_inputs_to_GpuElemwise(node_or_outputs):
     return max_nb_inputs
 
 
-class GpuElemwise(HideC, Elemwise):
+class GpuElemwise(_NoPythonOp, HideC, Elemwise):
     """
     Elemwise on the GPU.
 
@@ -414,9 +414,6 @@ class GpuElemwise(HideC, Elemwise):
 
         return str(code)
 
-    # To disable the superclass perform.
-    perform = Op.perform
-
     # Since we don't have a perform ...
     def python_constant_folding(self, node):
         return False
@@ -482,7 +479,7 @@ class GpuDimShuffle(DimShuffle):
         storage[0] = res
 
 
-class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
+class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype, _NoPythonOp):
     """
     GpuCAReduceCuda is a Reduction along some dimensions by a scalar op.
 
@@ -615,9 +612,6 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype):
                 )()
             ],
         )
-
-    def perform(self, node, inp, out, ctx):
-        Op.perform(self, node, inp, out, ctx)
 
     def supports_c_code(self, inputs):
         """

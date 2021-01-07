@@ -20,7 +20,7 @@ import theano.tensor
 from theano.compile import optdb
 from theano.configdefaults import config
 from theano.gof.graph import Apply, Variable, is_in_ancestors
-from theano.gof.op import Op
+from theano.gof.op import _NoPythonOp
 from theano.gof.opt import GlobalOptimizer, local_optimizer
 from theano.scan.utils import clone
 from theano.tensor import TensorType, opt
@@ -40,7 +40,7 @@ __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 _logger = logging.getLogger("theano.ifelse")
 
 
-class IfElse(Op):
+class IfElse(_NoPythonOp):
     """
     Op that provides conditional graph evaluation if used with the CVM/VM
     linkers. Note that there exist a helpful function `ifelse` that should

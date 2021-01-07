@@ -58,6 +58,9 @@ class MyOp(Op):
         outputs = [MyVariable(sum(input.type.thingy for input in inputs))]
         return Apply(self, list(inputs), outputs)
 
+    def perform(self, *args, **kwargs):
+        raise NotImplementedError("No Python implementation available.")
+
 
 MyOp = MyOp()
 

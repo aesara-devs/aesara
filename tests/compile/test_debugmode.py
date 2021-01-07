@@ -118,6 +118,9 @@ class WeirdBrokenOp(COp):
         r = Apply(self, [a_], [a_.type()])
         return r
 
+    def perform(*args, **kwargs):
+        raise NotImplementedError()
+
     def dontuse_perform(self, node, inp, out_):
         (a,) = inp
         (out,) = out_

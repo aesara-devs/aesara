@@ -1,6 +1,6 @@
 import theano.tensor as tt
 from theano.gof.graph import Apply
-from theano.gof.op import Op
+from theano.gof.op import _NoPythonOp
 from theano.gof.params_type import ParamsType
 from theano.tensor.nnet.neighbours import Images2Neibs
 
@@ -11,7 +11,7 @@ except ImportError:
     pass
 
 from theano.gpuarray.basic_ops import (
-    GpuKernelBase,
+    GpuKernelBaseCOp,
     Kernel,
     as_gpuarray_variable,
     infer_context_name,
@@ -19,7 +19,7 @@ from theano.gpuarray.basic_ops import (
 from theano.gpuarray.type import GpuArrayType, gpu_context_type
 
 
-class GpuImages2Neibs(GpuKernelBase, Images2Neibs, Op):
+class GpuImages2Neibs(GpuKernelBaseCOp, Images2Neibs, _NoPythonOp):
     """
     Images2Neibs for the GPU.
 
@@ -627,7 +627,3 @@ class GpuImages2Neibs(GpuKernelBase, Images2Neibs, Op):
             params=sub["params"],
             fail=sub["fail"],
         )
-
-    def perform(self, node, inp, out, params):
-        # Disable the perform method from the CPU version
-        Op.perform(self, node, inp, out, params)

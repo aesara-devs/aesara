@@ -38,6 +38,9 @@ class MyOp(Op):
         outputs = [MyType()()]
         return Apply(self, inputs, outputs)
 
+    def perform(self, *args, **kwargs):
+        raise NotImplementedError("No Python implementation available.")
+
     def __str__(self):
         return self.name
 

@@ -10,8 +10,22 @@ import inspect
 import os
 import re
 import sys
-import typing
 import warnings
+from abc import abstractmethod
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    List,
+    NoReturn,
+    Optional,
+    Pattern,
+    Set,
+    Text,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 
@@ -19,7 +33,7 @@ import theano
 from theano.configdefaults import config
 from theano.gof.fg import FunctionGraph
 from theano.gof.graph import Apply, NoParams, Variable
-from theano.gof.params_type import ParamsType
+from theano.gof.params_type import Params, ParamsType
 from theano.gof.utils import (
     MetaObject,
     MethodNotDefined,
@@ -30,15 +44,22 @@ from theano.gof.utils import (
 from theano.link.c.interface import CLinkerOp
 
 
-__authors__ = "theano-dev"
+__authors__ = "theano-dev" "PyMC Developers"
 __copyright__ = "(c) 2010, Universite de Montreal"
-__license__ = "3-clause BSD License"
-__contact__ = "theano-dev <theano-dev@googlegroups.com>"
 
 __docformat__ = "restructuredtext en"
 
+StorageMapType = List[Optional[List[Any]]]
+ComputeMapType = List[bool]
+OutputStorageType = List[Optional[List[Any]]]
+ParamsInputType = Optional[Tuple[Any]]
+PerformMethodType = Callable[
+    [Apply, List[Any], OutputStorageType, ParamsInputType], NoReturn
+]
+ThunkType = Callable[[PerformMethodType, StorageMapType, ComputeMapType, Apply], Any]
 
-def compute_test_value(node):
+
+def compute_test_value(node: Apply):
     """Computes the test value of a node.
 
     Parameters
@@ -149,7 +170,7 @@ class Op(MetaObject):
 
     """
 
-    def make_node(self, *inputs) -> Apply:
+    def make_node(self, *inputs: Variable) -> Apply:
         """Construct an `Apply` node that represent the application of this operation to the given inputs.
 
         This must be implemented by sub-classes.
@@ -182,9 +203,7 @@ class Op(MetaObject):
             )
         return Apply(self, inputs, [o() for o in self.otypes])
 
-    def __call__(
-        self, *inputs, **kwargs
-    ) -> typing.Union[Variable, typing.List[Variable],]:
+    def __call__(self, *inputs: Any, **kwargs) -> Union[Variable, List[Variable]]:
         """Construct an `Apply` node using `self.make_node` and return its outputs.
 
         This method is just a wrapper around `Op.make_node`.
@@ -246,14 +265,16 @@ class Op(MetaObject):
             else:
                 return node.outputs
 
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> bool:
         return not (self == other)
 
     # Convenience so that subclass implementers don't have to import utils
     # just to self.add_tag_trace
     add_tag_trace = staticmethod(add_tag_trace)
 
-    def grad(self, inputs, output_grads):
+    def grad(
+        self, inputs: List[Variable], output_grads: List[Variable]
+    ) -> List[Variable]:
         """Construct a graph for the gradient with respect to each input variable.
 
         Each returned `Variable` represents the gradient with respect to that
@@ -277,7 +298,12 @@ class Op(MetaObject):
         """
         raise NotImplementedError()
 
-    def L_op(self, inputs, outputs, output_grads):
+    def L_op(
+        self,
+        inputs: List[Variable],
+        outputs: List[Variable],
+        output_grads: List[Variable],
+    ) -> List[Variable]:
         r"""Construct a graph for the L-operator.
 
         This method is primarily used by `tensor.Lop` and dispatches to
@@ -298,7 +324,9 @@ class Op(MetaObject):
         """
         return self.grad(inputs, output_grads)
 
-    def R_op(self, inputs, eval_points):
+    def R_op(
+        self, inputs: List[Variable], eval_points: Union[Variable, List[Variable]]
+    ) -> List[Variable]:
         """Construct a graph for the R-operator.
 
         This method is primarily used by tensor.Rop
@@ -325,10 +353,15 @@ class Op(MetaObject):
         """
         raise NotImplementedError()
 
-    def perform(self, node, inputs, output_storage, params=None):
-        """
-        Required: Calculate the function on the inputs and put the variables in
-        the output storage. Return None.
+    @abstractmethod
+    def perform(
+        self,
+        node: Apply,
+        inputs: List[Variable],
+        output_storage: OutputStorageType,
+        params: ParamsInputType = None,
+    ) -> NoReturn:
+        """Calculate the function on the inputs and put the variables in the output storage.
 
         Parameters
         ----------
@@ -358,21 +391,9 @@ class Op(MetaObject):
         A `Op` is free to reuse `output_storage` as it sees fit, or to
         discard it and allocate new memory.
 
-        Raises
-        ------
-        MethodNotDefined
-            The subclass does not override this method.
-
         """
-        raise MethodNotDefined(
-            "perform",
-            type(self),
-            self.__class__.__name__,
-            "Did you used Theano flags mode=FAST_COMPILE?"
-            " You can use optimizer=fast_compile instead.",
-        )
 
-    def do_constant_folding(self, fgraph: FunctionGraph, node: Apply):
+    def do_constant_folding(self, fgraph: FunctionGraph, node: Apply) -> bool:
         """Determine whether or not constant folding should be performed for the given node.
 
         This allows each `Op` to determine if it wants to be constant
@@ -393,9 +414,8 @@ class Op(MetaObject):
         """
         return True
 
-    # We add a default get_params() implementation which will try to detect params from the op
-    # if params_type is set to a ParamsType. If not, we raise a MethodNotDefined exception.
-    def get_params(self, node):
+    def get_params(self, node: Apply) -> Params:
+        """Try to detect params from the op if `Op.params_type` is set to a `ParamsType`."""
         if hasattr(self, "params_type") and isinstance(self.params_type, ParamsType):
             wrapper = self.params_type
             if not all(hasattr(self, field) for field in wrapper.fields):
@@ -410,10 +430,14 @@ class Op(MetaObject):
             return self.params_type.get_params(self)
         raise MethodNotDefined("get_params")
 
-    def prepare_node(self, node, storage_map, compute_map, impl):
-        """
-        Make any special modifications that the Op needs before doing
-        make_thunk().
+    def prepare_node(
+        self,
+        node: Apply,
+        storage_map: StorageMapType,
+        compute_map: ComputeMapType,
+        impl: Optional[Text],
+    ) -> NoReturn:
+        """Make any special modifications that the Op needs before doing `Op.make_thunk`.
 
         This can modify the node inplace and should return nothing.
 
@@ -423,9 +447,17 @@ class Op(MetaObject):
 
         """
 
-    def make_py_thunk(self, node, storage_map, compute_map, no_recycling, debug=False):
-        """
-        Like make_thunk() but only makes python thunks.
+    def make_py_thunk(
+        self,
+        node: Apply,
+        storage_map: StorageMapType,
+        compute_map: ComputeMapType,
+        no_recycling: bool,
+        debug: bool = False,
+    ) -> ThunkType:
+        """Make a Python thunk.
+
+        Like `Op.make_thunk` but only makes python thunks.
 
         """
         node_input_storage = [storage_map[r] for r in node.inputs]
@@ -467,7 +499,14 @@ class Op(MetaObject):
         rval.lazy = False
         return rval
 
-    def make_thunk(self, node, storage_map, compute_map, no_recycling, impl=None):
+    def make_thunk(
+        self,
+        node: Apply,
+        storage_map: StorageMapType,
+        compute_map: ComputeMapType,
+        no_recycling: bool,
+        impl: Optional[Text] = None,
+    ) -> ThunkType:
         """Create a thunk.
 
         This function must return a thunk, that is a zero-arguments
@@ -513,8 +552,18 @@ class Op(MetaObject):
 class COp(Op, CLinkerOp):
     """An `Op` with a C implementation."""
 
-    def make_c_thunk(self, node, storage_map, compute_map, no_recycling):
-        """Like make_thunk, but will only try to make a C thunk."""
+    def make_c_thunk(
+        self,
+        node: Apply,
+        storage_map: StorageMapType,
+        compute_map: ComputeMapType,
+        no_recycling: bool,
+    ) -> ThunkType:
+        """Create a thunk for a C implementation.
+
+        Like `Op.make_thunk`, but will only try to make a C thunk.
+
+        """
         # FIXME: Putting the following import on the module level causes an import cycle.
         #        The conclusion should be that the antire "make_c_thunk" method should be defined
         #        in theano.link.c and dispatched onto the Op!
@@ -593,7 +642,7 @@ class COp(Op, CLinkerOp):
         )
 
 
-def get_test_value(v):
+def get_test_value(v: Variable) -> Any:
     """Get the test value for `v`.
 
     If input `v` is not already a variable, it is turned into one by calling
@@ -610,7 +659,7 @@ def get_test_value(v):
     return v.get_test_value()
 
 
-def missing_test_message(msg):
+def missing_test_message(msg: Text) -> NoReturn:
     """
     Displays msg, a message saying that some test_value is missing,
     in the appropriate form based on config.compute_test_value:
@@ -635,8 +684,9 @@ def missing_test_message(msg):
         assert action in ["ignore", "off"]
 
 
-def get_test_values(*args):
-    """
+def get_test_values(*args: Variable) -> Union[Any, List[Any]]:
+    """Get test values for multiple `Variable`s.
+
     Intended use:
 
         for val_1, ..., val_n in get_debug_values(var_1, ..., var_n):
@@ -681,7 +731,7 @@ def get_test_values(*args):
     return [tuple(rval)]
 
 
-ops_with_inner_function = {}
+ops_with_inner_function: Dict[Op, Text] = {}
 """
 Registry of Ops that have an inner compiled Theano function.
 
@@ -711,18 +761,18 @@ class OpenMPOp(COp):
 
     """
 
-    gxx_support_openmp = None
+    gxx_support_openmp: Optional[bool] = None
     """
     True/False after we tested this.
 
     """
 
-    def __init__(self, openmp=None):
+    def __init__(self, openmp: Optional[bool] = None):
         if openmp is None:
             openmp = config.openmp
         self.openmp = openmp
 
-    def __setstate__(self, d):
+    def __setstate__(self, d: Dict):
         self.__dict__.update(d)
         # If we unpickle old op
         if not hasattr(self, "openmp"):
@@ -748,9 +798,7 @@ class OpenMPOp(COp):
 
     @staticmethod
     def test_gxx_support():
-        """
-        Check if openMP is supported
-        """
+        """Check if openMP is supported."""
         from theano.link.c.cmodule import GCC_compiler
 
         code = """
@@ -769,7 +817,7 @@ int main( int argc, const char* argv[] )
         )
         return default_openmp
 
-    def update_self_openmp(self):
+    def update_self_openmp(self) -> NoReturn:
         """
         Make sure self.openmp is not True if there is no support in gxx.
 
@@ -797,21 +845,60 @@ int main( int argc, const char* argv[] )
             self.update_self_openmp()
 
 
+def lquote_macro(txt: Text) -> Text:
+    """Turn the last line of text into a ``\\``-commented line."""
+    res = []
+    spl = txt.split("\n")
+    for l in spl[:-1]:
+        res.append(l + " \\")
+    res.append(spl[-1])
+    return "\n".join(res)
+
+
+def get_sub_macros(sub: Dict[Text, Text]) -> Tuple[Text]:
+    define_macros = []
+    undef_macros = []
+    define_macros.append(f"#define FAIL {lquote_macro(sub['fail'])}")
+    undef_macros.append("#undef FAIL")
+    if "params" in sub:
+        define_macros.append(f"#define PARAMS {sub['params']}")
+        undef_macros.append("#undef PARAMS")
+
+    return "\n".join(define_macros), "\n".join(undef_macros)
+
+
+def get_io_macros(inputs: List[Text], outputs: List[Text]) -> Tuple[List[Text]]:
+    define_macros = []
+    undef_macros = []
+
+    for i, inp in enumerate(inputs):
+        define_macros.append(f"#define INPUT_{int(i)} {inp}")
+        undef_macros.append(f"#undef INPUT_{int(i)}")
+
+    for i, out in enumerate(outputs):
+        define_macros.append(f"#define OUTPUT_{int(i)} {out}")
+        undef_macros.append(f"#undef OUTPUT_{int(i)}")
+
+    return "\n".join(define_macros), "\n".join(undef_macros)
+
+
 class ExternalCOp(COp):
-    """
-    Class to allow an op to have an external C implementation.
+    """Class for an `Op` with an external C implementation.
 
-    An op can use this class by inheriting from it and calling its
-    __init__() method, providing it with a path to an external file containing
-    the C implementation and the name of the function, in that file, to call
-    to perform the computations for the op.
+    One can inherit from this class, provide its constructor with a path to
+    an external C source file and the name of a function within it, and define
+    an `Op` for said function.
 
     """
 
-    section_re = re.compile(r"^#section ([a-zA-Z0-9_]+)$", re.MULTILINE)
-    backward_re = re.compile(r"^THEANO_(APPLY|SUPPORT)_CODE_SECTION$", re.MULTILINE)
+    section_re: ClassVar[Pattern] = re.compile(
+        r"^#section ([a-zA-Z0-9_]+)$", re.MULTILINE
+    )
+    backward_re: ClassVar[Pattern] = re.compile(
+        r"^THEANO_(APPLY|SUPPORT)_CODE_SECTION$", re.MULTILINE
+    )
     # This is the set of allowed markers
-    SECTIONS = {
+    SECTIONS: ClassVar[Set[Text]] = {
         "init_code",
         "init_code_apply",
         "init_code_struct",
@@ -824,11 +911,10 @@ class ExternalCOp(COp):
     }
 
     @classmethod
-    def get_path(cls, f):
-        """
-        Convert a path relative to the location of the class file into
-        an aboslute path. Paths that are already absolute are passed
-        through unchanged.
+    def get_path(cls, f: Text) -> Text:
+        """Convert a path relative to the location of the class file into an absolute path.
+
+        Paths that are already absolute are passed through unchanged.
 
         """
         if not os.path.isabs(f):
@@ -837,7 +923,9 @@ class ExternalCOp(COp):
             f = os.path.realpath(os.path.join(class_dir, f))
         return f
 
-    def __init__(self, func_files, func_name=None):
+    def __init__(
+        self, func_files: Union[Text, List[Text]], func_name: Optional[Text] = None
+    ):
         """
         Sections are loaded from files in order with sections in later
         files overriding sections in previous files.
@@ -868,10 +956,8 @@ class ExternalCOp(COp):
                     "and specify the func_name"
                 )
 
-    def load_c_code(self, func_files):
-        """
-        Loads the c code to perform the Op
-        """
+    def load_c_code(self, func_files: List[Text]) -> NoReturn:
+        """Loads the C code to perform the `Op`."""
         func_files = [self.get_path(f) for f in func_files]
         self.func_codes = []
         for func_file in func_files:
@@ -940,10 +1026,8 @@ class ExternalCOp(COp):
                     f"No valid section marker was found in file {func_files[i]}"
                 )
 
-    def __get_op_params(self):
-        """
-        Returns a list of (name, value) pairs that will be turned into
-        macros for use within the op code.
+    def __get_op_params(self) -> List[Text]:
+        """Construct name, value pairs that will be turned into macros for use within the `Op`'s code.
 
         The names must be strings that are not a C keyword and the
         values must be strings of literal C representations.
@@ -1031,10 +1115,12 @@ class ExternalCOp(COp):
         else:
             return super().c_cleanup_code_struct(node, name)
 
-    def format_c_function_args(self, inp, out):
-        # Generate an string containing the arguments sent to the external C
-        # function. The argstring will be of format :
-        # "input0, input1, input2, &output0, &output1"
+    def format_c_function_args(self, inp: List[Text], out: List[Text]) -> Text:
+        """Generate a string containing the arguments sent to the external C function.
+
+        The result will have the format: ``"input0, input1, input2, &output0, &output1"``.
+
+        """
         inp = list(inp)
         numi = getattr(self, "_cop_num_inputs", len(inp))
         while len(inp) < numi:
@@ -1045,7 +1131,10 @@ class ExternalCOp(COp):
             out.append("NULL")
         return ", ".join(inp + out)
 
-    def get_c_macros(self, node, name, check_input=None):
+    def get_c_macros(
+        self, node: Apply, name: Text, check_input: Optional[bool] = None
+    ) -> Tuple[Text]:
+        "Construct a pair of C ``#define`` and ``#undef`` code strings."
         define_template = "#define %s %s"
         undef_template = "#undef %s"
         define_macros = []
@@ -1097,37 +1186,6 @@ class ExternalCOp(COp):
 
         return "\n".join(define_macros), "\n".join(undef_macros)
 
-    def _lquote_macro(self, txt):
-        res = []
-        spl = txt.split("\n")
-        for l in spl[:-1]:
-            res.append(l + " \\")
-        res.append(spl[-1])
-        return "\n".join(res)
-
-    def get_sub_macros(self, sub):
-        define_macros = []
-        undef_macros = []
-        define_macros.append(f"#define FAIL {self._lquote_macro(sub['fail'])}")
-        undef_macros.append("#undef FAIL")
-        if "params" in sub:
-            define_macros.append(f"#define PARAMS {sub['params']}")
-            undef_macros.append("#undef PARAMS")
-
-        return "\n".join(define_macros), "\n".join(undef_macros)
-
-    def get_io_macros(self, inputs, outputs):
-        define_macros = []
-        undef_macros = []
-
-        for i, inp in enumerate(inputs):
-            define_macros.append(f"#define INPUT_{int(i)} {inp}")
-            undef_macros.append(f"#undef INPUT_{int(i)}")
-
-        for i, out in enumerate(outputs):
-            define_macros.append(f"#define OUTPUT_{int(i)} {inp}")
-            undef_macros.append(f"#undef OUTPUT_{int(i)}")
-
     def c_init_code_struct(self, node, name, sub):
         """
         Stitches all the macros and "init_code" together
@@ -1137,7 +1195,7 @@ class ExternalCOp(COp):
             op_code = self.code_sections["init_code_struct"]
 
             def_macros, undef_macros = self.get_c_macros(node, name)
-            def_sub, undef_sub = self.get_sub_macros(sub)
+            def_sub, undef_sub = get_sub_macros(sub)
 
             return "\n".join(
                 ["", def_macros, def_sub, op_code, undef_sub, undef_macros]
@@ -1179,8 +1237,8 @@ class ExternalCOp(COp):
                 op_code = self.code_sections["code"]
 
                 def_macros, undef_macros = self.get_c_macros(node, name)
-                def_sub, undef_sub = self.get_sub_macros(sub)
-                def_io, undef_io = self.get_io_macros(inp, out)
+                def_sub, undef_sub = get_sub_macros(sub)
+                def_io, undef_io = get_io_macros(inp, out)
 
                 return "\n".join(
                     [
@@ -1204,8 +1262,8 @@ class ExternalCOp(COp):
             op_code = self.code_sections["code_cleanup"]
 
             def_macros, undef_macros = self.get_c_macros(node, name)
-            def_sub, undef_sub = self.get_sub_macros(sub)
-            def_io, undef_io = self.get_io_macros(inputs, outputs)
+            def_sub, undef_sub = get_sub_macros(sub)
+            def_io, undef_io = get_io_macros(inputs, outputs)
 
             return "\n".join(
                 [
@@ -1220,3 +1278,38 @@ class ExternalCOp(COp):
             )
         else:
             return super().c_code_cleanup(node, name, inputs, outputs, sub)
+
+
+class _NoPythonOp(Op):
+    """A class used to indicate that an `Op` does not provide a Python implementation.
+
+    XXX: Do not use this class; it's only for tracking bad implementations internally.
+
+    """
+
+    def perform(self, node, inputs, output_storage, params=None):
+        raise NotImplementedError("No Python implementation is provided by this Op.")
+
+
+class _NoPythonCOp(COp):
+    """A class used to indicate that a `COp` does not provide a Python implementation.
+
+    XXX: Do not use this class; it's only for tracking bad implementations internally.
+
+    """
+
+    def perform(self, node, inputs, output_storage, params=None):
+        raise NotImplementedError("No Python implementation is provided by this COp.")
+
+
+class _NoPythonExternalCOp(ExternalCOp):
+    """A class used to indicate that a `ExternalCOp` does not provide a Python implementation.
+
+    XXX: Do not use this class; it's only for tracking bad implementations internally.
+
+    """
+
+    def perform(self, node, inputs, output_storage, params=None):
+        raise NotImplementedError(
+            "No Python implementation is provided by this ExternalCOp."
+        )
