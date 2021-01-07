@@ -3,7 +3,7 @@ from io import StringIO
 import numpy as np
 
 from theano.gof.graph import Apply
-from theano.gof.op import Op
+from theano.gof.op import _NoPythonOp
 
 
 try:
@@ -12,18 +12,18 @@ try:
 except ImportError:
     pass
 
-from .basic_ops import (
-    GpuKernelBase,
+from theano.gpuarray.basic_ops import (
+    GpuKernelBaseCOp,
     Kernel,
     as_gpuarray_variable,
     gpuarray_helper_inc_dir,
     infer_context_name,
 )
-from .fp16_help import load_w, work_dtype, write_w
-from .type import GpuArrayType
+from theano.gpuarray.fp16_help import load_w, work_dtype, write_w
+from theano.gpuarray.type import GpuArrayType
 
 
-class GpuCrossentropySoftmaxArgmax1HotWithBias(GpuKernelBase, Op):
+class GpuCrossentropySoftmaxArgmax1HotWithBias(GpuKernelBaseCOp, _NoPythonOp):
     """
     Implement CrossentropySoftmaxArgmax1HotWithBias on the gpu.
 
@@ -283,7 +283,7 @@ gpu_crossentropy_softmax_argmax_1hot_with_bias = (
 )
 
 
-class GpuCrossentropySoftmax1HotWithBiasDx(GpuKernelBase, Op):
+class GpuCrossentropySoftmax1HotWithBiasDx(GpuKernelBaseCOp, _NoPythonOp):
     """
     Implement CrossentropySoftmax1HotWithBiasDx on the gpu.
 
@@ -508,7 +508,7 @@ class GpuCrossentropySoftmax1HotWithBiasDx(GpuKernelBase, Op):
 gpu_crossentropy_softmax_1hot_with_bias_dx = GpuCrossentropySoftmax1HotWithBiasDx()
 
 
-class GpuSoftmax(GpuKernelBase, Op):
+class GpuSoftmax(GpuKernelBaseCOp, _NoPythonOp):
     """
     Implement Softmax on the gpu.
 
@@ -804,7 +804,7 @@ class GpuSoftmax(GpuKernelBase, Op):
 gpu_softmax = GpuSoftmax()
 
 
-class GpuSoftmaxWithBias(GpuKernelBase, Op):
+class GpuSoftmaxWithBias(GpuKernelBaseCOp, _NoPythonOp):
     """
     Implement SoftmaxWithBias on the gpu.
 

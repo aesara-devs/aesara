@@ -5,7 +5,7 @@ import theano
 from theano import scalar, tensor
 from theano.configdefaults import config
 from theano.gof.graph import Apply
-from theano.gof.op import COp
+from theano.gof.op import COp, _NoPythonCOp
 from theano.gof.opt import PatternSub, TopoOptimizer, local_optimizer
 from theano.misc.safe_asarray import _asarray
 from theano.sparse import basic as sparse
@@ -78,7 +78,7 @@ theano.compile.optdb.register(
 )
 
 
-class AddSD_ccode(COp):
+class AddSD_ccode(_NoPythonCOp):
     """
     Add a sparse and a dense matrix.
 
@@ -663,7 +663,7 @@ def local_structured_dot(fgraph, node):
 # register_specialize(local_structured_dot)
 
 
-class UsmmCscDense(COp):
+class UsmmCscDense(_NoPythonCOp):
     """
     Performs the expression is `alpha` * `x` `y` + `z`.
 
@@ -995,7 +995,7 @@ def local_usmm_csx(fgraph, node):
 register_specialize(local_usmm_csx, "cxx_only")
 
 
-class CSMGradC(COp):
+class CSMGradC(_NoPythonCOp):
 
     __props__ = ()
 
@@ -1138,7 +1138,7 @@ def local_csm_grad_c(fgraph, node):
 # register_specialize(local_csm_grad_c, 'cxx_only')
 
 
-class MulSDCSC(COp):
+class MulSDCSC(_NoPythonCOp):
     """
     Multiplication of sparse matrix by a broadcasted dense vector
     element wise.
@@ -1180,9 +1180,6 @@ class MulSDCSC(COp):
 
     def c_code_cache_version(self):
         return (3,)
-
-    # def perform(self, node, (a_data, a_indices, a_indptr, b), (out,)):
-    #    return NotImplementedError()
 
     def c_code(self, node, name, inputs, outputs, sub):
 
@@ -1275,7 +1272,7 @@ class MulSDCSC(COp):
 mul_s_d_csc = MulSDCSC()
 
 
-class MulSDCSR(COp):
+class MulSDCSR(_NoPythonCOp):
     """
     Multiplication of sparse matrix by a broadcasted dense vector
     element wise.
@@ -1317,9 +1314,6 @@ class MulSDCSR(COp):
 
     def c_code_cache_version(self):
         return (3,)
-
-    # def perform(self, node, (a_data, a_indices, a_indptr, b), (out,)):
-    #    return NotImplemented()
 
     def c_code(self, node, name, inputs, outputs, sub):
 
@@ -1463,7 +1457,7 @@ def local_mul_s_d(fgraph, node):
 register_specialize(local_mul_s_d, "cxx_only")
 
 
-class MulSVCSR(COp):
+class MulSVCSR(_NoPythonCOp):
     """
     Multiplication of sparse matrix by a broadcasted dense vector
     element wise.
@@ -1627,7 +1621,7 @@ def local_mul_s_v(fgraph, node):
 register_specialize(local_mul_s_v, "cxx_only")
 
 
-class StructuredAddSVCSR(COp):
+class StructuredAddSVCSR(_NoPythonCOp):
     """
     Structured addition of a sparse matrix and a dense vector.
     The elements of the vector are are only added to the corresponding
@@ -1806,7 +1800,7 @@ def local_structured_add_s_v(fgraph, node):
 register_specialize(local_structured_add_s_v, "cxx_only")
 
 
-class SamplingDotCSR(COp):
+class SamplingDotCSR(_NoPythonCOp):
     """
     Operand optimized for calculating the dot product dot(`x`, `y`.T) = `z`
     when you only want to calculate a subset of `z`.

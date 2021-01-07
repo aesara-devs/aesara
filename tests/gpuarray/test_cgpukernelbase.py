@@ -4,7 +4,6 @@ import pytest
 import theano
 from theano import config, tensor
 from theano.gof.graph import Apply
-from theano.gof.op import Op
 from theano.gof.params_type import ParamsType
 from theano.gpuarray.basic_ops import CGpuKernelBase
 from theano.gpuarray.type import GpuArrayType, get_context, gpu_context_type
@@ -12,11 +11,11 @@ from theano.gradient import grad_undefined
 from theano.scalar import int32 as int_t
 
 
-# This is an implementation to test that CGpuKernelBase works and also
-# to use as an example in the docs.  It is not used for user graphs.
-class GpuEye(CGpuKernelBase, Op):
-    """
-    Eye for GPU.
+class GpuEye(CGpuKernelBase):
+    """Eye for GPU.
+
+    This is an implementation to test that `CGpuKernelBase` works and also
+    to use as an example in the docs.  It is not used for user graphs.
 
     """
 
@@ -28,9 +27,7 @@ class GpuEye(CGpuKernelBase, Op):
             dtype = config.floatX
         self.dtype = dtype
         self.context_name = context_name
-        CGpuKernelBase.__init__(
-            self, ["c_code/tstgpueye.c"], "APPLY_SPECIFIC(tstgpueye)"
-        )
+        super().__init__(["c_code/tstgpueye.c"], "APPLY_SPECIFIC(tstgpueye)")
 
     def get_params(self, node):
         pygpu_gpuarray = pytest.importorskip("pygpu.gpuarray")

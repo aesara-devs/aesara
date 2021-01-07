@@ -39,6 +39,9 @@ Py_INCREF(%(inp)s);
     def c_code_cache_version(self):
         return (0,)
 
+    def perform(self, *args, **kwargs):
+        raise NotImplementedError()
+
 
 class GetOp(COp):
     __props__ = ()
@@ -64,6 +67,9 @@ Py_INCREF(%(out)s);
 
     def c_code_cache_version(self):
         return (0,)
+
+    def perform(self, *args, **kwargs):
+        raise NotImplementedError()
 
 
 @pytest.mark.skipif(
@@ -191,6 +197,9 @@ class MyOpCEnumType(COp):
 
     def make_node(self):
         return Apply(self, [], [scalar.uint32()])
+
+    def perform(self, *args, **kwargs):
+        raise NotImplementedError()
 
     def c_code_cache_version(self):
         return (3,)

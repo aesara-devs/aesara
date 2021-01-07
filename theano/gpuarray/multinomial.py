@@ -11,12 +11,12 @@ except ImportError:
 import theano
 import theano.sandbox.multinomial
 from theano.gof.graph import Apply
-from theano.gof.op import Op
+from theano.gof.op import _NoPythonOp
 from theano.scalar import as_scalar
 from theano.tensor import NotScalarConstantError, get_scalar_constant_value
 
 from .basic_ops import (
-    GpuKernelBase,
+    GpuKernelBaseCOp,
     Kernel,
     as_gpuarray_variable,
     gpuarray_helper_inc_dir,
@@ -28,12 +28,12 @@ from .opt import op_lifter, register_opt, register_opt2
 from .type import GpuArrayType
 
 
-class GPUAMultinomialFromUniform(GpuKernelBase, Op):
+class GPUAMultinomialFromUniform(GpuKernelBaseCOp, _NoPythonOp):
     __props__ = ("odtype",)
     _f16_ok = True
 
     def __init__(self, odtype):
-        Op.__init__(self)
+        super().__init__(self)
         self.odtype = odtype
 
     def get_params(self, node):
@@ -251,7 +251,7 @@ KERNEL void k_multi_warp_multinomial(
         return (7,)
 
 
-class GPUAChoiceFromUniform(GpuKernelBase, Op):
+class GPUAChoiceFromUniform(GpuKernelBaseCOp, _NoPythonOp):
     """
     The output is transposed compared to MultinomialWOReplacementFromUniform.
     We must insert a Transpose op after it.
@@ -263,7 +263,7 @@ class GPUAChoiceFromUniform(GpuKernelBase, Op):
     __props__ = ("odtype", "replace")
 
     def __init__(self, odtype, replace=False):
-        Op.__init__(self)
+        super().__init__(self)
         self.odtype = odtype
         self.replace = replace
 

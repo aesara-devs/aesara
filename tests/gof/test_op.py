@@ -60,6 +60,9 @@ class MyOp(Op):
             outputs = [MyType(sum([input.type.thingy for input in inputs]))()]
             return Apply(self, inputs, outputs)
 
+    def perform(self, *args, **kwargs):
+        raise NotImplementedError("No Python implementation available.")
+
 
 MyOp = MyOp()
 
@@ -103,6 +106,9 @@ counter%(name)s++;
 
     def c_code_cache_version(self):
         return (1,)
+
+    def perform(self, *args, **kwargs):
+        raise NotImplementedError("No Python implementation available.")
 
 
 class TestOp:
@@ -205,6 +211,9 @@ class TestMakeThunk:
                 (x,) = inputs
                 (z,) = outputs
                 return f"{z} = {x} + 1;"
+
+            def perform(self, *args, **kwargs):
+                raise NotImplementedError("No Python implementation available.")
 
         i = scalar.int32("i")
         o = IncOneC()(i)

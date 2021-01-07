@@ -984,6 +984,9 @@ class ApplyDefaultTestOp(Op):
         x = tt.as_tensor_variable(x)
         return Apply(self, [x], [x.type()])
 
+    def perform(self, *args, **kwargs):
+        raise NotImplementedError()
+
 
 def test_constant():
     int8_vector_type = tt.TensorType(dtype="int8", broadcastable=(False,))
@@ -3861,6 +3864,9 @@ class TestGrad:
             x0, x1 = inp
             gz0, gz1 = grads
             return self.gval0, self.gval1
+
+        def perform(self, *args, **kwargs):
+            raise NotImplementedError()
 
     def test_1param(self):
         # grad: Test passing a single variable param

@@ -41,6 +41,9 @@ class IncOneC(COp):
         (z,) = outputs
         return f"{z} = {x} + 1;"
 
+    def perform(self, *args, **kwargs):
+        raise NotImplementedError()
+
 
 class TestComputeTestValue:
     def test_destroy_map(self):

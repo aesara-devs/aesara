@@ -48,6 +48,9 @@ class TestNodeFinder:
             def __str__(self):
                 return self.name
 
+            def perform(self, *args, **kwargs):
+                raise NotImplementedError()
+
         sigmoid = MyOp(1, "Sigmoid")
         add = MyOp(2, "Add")
         dot = MyOp(2, "Dot")

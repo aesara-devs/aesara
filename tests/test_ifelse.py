@@ -581,6 +581,9 @@ class IfElseIfElseIf(Op):
         thunk.lazy = True
         return thunk
 
+    def perform(self, *args, **kwargs):
+        raise NotImplementedError()
+
 
 class NotImplementedOpException(Exception):
     pass
@@ -596,6 +599,9 @@ class NotImplementedOp(Op):
 
         thunk.lazy = False
         return thunk
+
+    def perform(self, *args, **kwargs):
+        raise NotImplementedError()
 
 
 def test_ifelse():

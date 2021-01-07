@@ -4,7 +4,7 @@ import os
 import theano
 from theano.configdefaults import config
 from theano.gof.graph import Apply
-from theano.gof.op import OpenMPOp
+from theano.gof.op import OpenMPOp, _NoPythonOp
 from theano.gof.params_type import ParamsType
 from theano.gof.type import EnumList
 from theano.scalar import int64
@@ -18,7 +18,7 @@ from theano.tensor.type import TensorType
 _logger = logging.getLogger(__name__)
 
 
-class BaseCorr3dMM(OpenMPOp):
+class BaseCorr3dMM(OpenMPOp, _NoPythonOp):
     """
     Base class for `Corr3dMM`, `Corr3dMM_gradWeights` and
     `Corr3dMM_gradInputs`. Cannot be used directly.
