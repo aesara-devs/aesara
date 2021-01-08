@@ -8,11 +8,11 @@ import theano.tensor
 from tests import unittest_tools as utt
 from theano.compile import debugmode
 from theano.configdefaults import config
-from theano.gof.graph import Apply, Variable
-from theano.gof.op import COp, Op
-from theano.gof.opt import local_optimizer
-from theano.gof.optdb import EquilibriumDB
-from theano.gof.toolbox import BadOptimization
+from theano.graph.basic import Apply, Variable
+from theano.graph.op import COp, Op
+from theano.graph.opt import local_optimizer
+from theano.graph.optdb import EquilibriumDB
+from theano.graph.toolbox import BadOptimization
 
 
 def test_debugmode_basic():
@@ -287,7 +287,7 @@ def test_badoptimization_opt_err():
             [2, 3, 4],
         )
 
-    # Test that opt that do an illegal change still get the error from gof.
+    # Test that opt that do an illegal change still get the error from graph.
     with pytest.raises(BadOptimization, match=r"insert_bad_dtype") as einfo:
         with config.change_flags(on_opt_error="raise"):
             f2 = theano.function(

@@ -8,9 +8,9 @@ import logging
 
 import numpy as np
 
-from theano.gof.graph import Variable
-from theano.gof.type import generic
-from theano.gof.utils import add_tag_trace
+from theano.graph.basic import Variable
+from theano.graph.type import generic
+from theano.graph.utils import add_tag_trace
 from theano.link.basic import Container
 
 

@@ -19,10 +19,10 @@ from theano.compile import SharedVariable, ops
 from theano.compile.function import function
 from theano.compile.mode import Mode
 from theano.configdefaults import config
-from theano.gof.fg import MissingInputError
-from theano.gof.graph import Constant, Variable, graph_inputs
-from theano.gof.op import get_test_value
-from theano.gof.utils import TestValueError
+from theano.graph.basic import Constant, Variable, graph_inputs
+from theano.graph.fg import MissingInputError
+from theano.graph.op import get_test_value
+from theano.graph.utils import TestValueError
 from theano.scan import utils
 from theano.scan.op import Scan
 from theano.scan.utils import safe_new, traverse

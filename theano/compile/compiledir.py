@@ -55,7 +55,7 @@ def cleanup():
                                 elif obj.startswith("c_compiler_str="):
                                     have_c_compiler = True
                             elif isinstance(
-                                obj, (theano.gof.op.Op, theano.gof.type.CType)
+                                obj, (theano.graph.op.Op, theano.graph.type.CType)
                             ) and hasattr(obj, "c_code_cache_version"):
                                 v = obj.c_code_cache_version()
                                 if v not in [(), None] and v not in key[0]:
@@ -129,7 +129,7 @@ def print_compiledir_content():
                     {
                         x
                         for x in flatten(keydata.keys)
-                        if isinstance(x, theano.gof.op.Op)
+                        if isinstance(x, theano.graph.op.Op)
                     }
                 )
                 # Whatever the case, we count compilations for OP classes.
@@ -143,7 +143,7 @@ def print_compiledir_content():
                         {
                             x
                             for x in flatten(keydata.keys)
-                            if isinstance(x, theano.gof.type.CType)
+                            if isinstance(x, theano.graph.type.CType)
                         }
                     )
                     compile_start = compile_end = float("nan")

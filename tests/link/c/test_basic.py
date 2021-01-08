@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 
 import theano
-from theano.gof import fg
-from theano.gof.graph import Apply, Constant, Variable
-from theano.gof.op import COp
-from theano.gof.type import CType
+from theano.graph import fg
+from theano.graph.basic import Apply, Constant, Variable
+from theano.graph.op import COp
+from theano.graph.type import CType
 from theano.link.basic import PerformLinker
 from theano.link.c.basic import CLinker, DualLinker, OpWiseCLinker
 

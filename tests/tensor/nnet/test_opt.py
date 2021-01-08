@@ -1,7 +1,7 @@
 import theano
 from tests.unittest_tools import assertFailure_fast
 from theano import tensor
-from theano.gof.opt import check_stack_trace
+from theano.graph.opt import check_stack_trace
 from theano.tensor.nnet.blocksparse import (
     sparse_block_dot,
     sparse_block_gemv,

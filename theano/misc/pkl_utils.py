@@ -70,7 +70,7 @@ class StripPickler(Pickler):
 
     def save(self, obj):
         # Remove the tag.trace attribute from Variable and Apply nodes
-        if isinstance(obj, theano.gof.utils.Scratchpad):
+        if isinstance(obj, theano.graph.utils.Scratchpad):
             for tag in self.tag_to_remove:
                 if hasattr(obj, tag):
                     del obj.__dict__[tag]

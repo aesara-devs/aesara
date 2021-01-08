@@ -3,10 +3,10 @@ import os
 
 import theano
 from theano.configdefaults import config
-from theano.gof.graph import Apply
-from theano.gof.op import OpenMPOp, _NoPythonOp
-from theano.gof.params_type import ParamsType
-from theano.gof.type import EnumList
+from theano.graph.basic import Apply
+from theano.graph.op import OpenMPOp, _NoPythonOp
+from theano.graph.params_type import ParamsType
+from theano.graph.type import EnumList
 from theano.scalar import int64
 from theano.tensor import blas_headers
 from theano.tensor.basic import as_tensor_variable

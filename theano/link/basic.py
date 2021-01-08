@@ -2,9 +2,9 @@ import typing
 from copy import copy, deepcopy
 
 from theano.configdefaults import config
-from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Apply
-from theano.gof.type import CType
+from theano.graph.basic import Apply
+from theano.graph.fg import FunctionGraph
+from theano.graph.type import CType
 from theano.link.utils import gc_helper, map_storage, raise_with_op, streamline
 from theano.utils import deprecated, difference, to_return_values
 

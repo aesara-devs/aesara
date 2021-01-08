@@ -39,7 +39,7 @@ def _is_numeric_value(arr, var):
         `True` the value is non-numeric.
 
     """
-    if isinstance(arr, theano.gof.type._cdata_type):
+    if isinstance(arr, theano.graph.type._cdata_type):
         return False
     elif isinstance(arr, np.random.mtrand.RandomState):
         return False
@@ -225,9 +225,9 @@ class NanGuardMode(Mode):
             ----------
             value : numpy.ndarray
                 The value to be checked.
-            nd : theano.gof.graph.Apply
+            nd : theano.graph.basic.Apply
                 The Apply node being executed.
-            var : theano.gof.graph.Variable
+            var : theano.graph.basic.Variable
                 Not used if nd is there. Otherwise, used to print the stack
                 trace for inputs of the graph.
 
@@ -269,7 +269,7 @@ class NanGuardMode(Mode):
                 # Add the stack trace
                 if nd:
                     var = nd.outputs[0]
-                print(theano.gof.utils.get_variable_trace_string(var), file=sio)
+                print(theano.graph.utils.get_variable_trace_string(var), file=sio)
                 msg = sio.getvalue()
                 if config.NanGuardMode__action == "raise":
                     raise AssertionError(msg)

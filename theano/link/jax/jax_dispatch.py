@@ -15,8 +15,8 @@ from theano.compile.ops import (
     ViewOp,
 )
 from theano.configdefaults import config
-from theano.gof.fg import FunctionGraph
-from theano.gof.type import CType
+from theano.graph.fg import FunctionGraph
+from theano.graph.type import CType
 from theano.ifelse import IfElse
 from theano.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp, Second
 from theano.scan.op import Scan
@@ -99,7 +99,7 @@ def compose_jax_funcs(out_node, fgraph_inputs, memo=None):
 
     Parameters
     ----------
-    out_node: theano.gof.graph.Apply
+    out_node: theano.graph.basic.Apply
         The node for which we want to construct a JAX JIT-able function.
     fgraph_inputs: List[Variable]
         The inputs--in a `FunctionGraph` sense--to `out_node`.
@@ -137,7 +137,7 @@ def compose_jax_funcs(out_node, fgraph_inputs, memo=None):
             input_f = jax_inputs_func
 
         elif i.owner is None:
-            # This input is something like a `theano.gof.graph.Constant`
+            # This input is something like a `theano.graph.basic.Constant`
 
             i_dtype = getattr(i, "dtype", None)
             i_data = i.data

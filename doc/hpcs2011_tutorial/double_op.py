@@ -1,8 +1,8 @@
 import numpy as np
 
 import theano
-from theano.gof.graph import Apply
-from theano.gof.op import Op
+from theano.graph.basic import Apply
+from theano.graph.op import Op
 
 
 class DoubleOp(Op):

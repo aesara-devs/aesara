@@ -3,8 +3,8 @@ import scipy.sparse
 
 import theano
 from theano import tensor
-from theano.gof.graph import Apply
-from theano.gof.op import Op
+from theano.graph.basic import Apply
+from theano.graph.op import Op
 from theano.sparse.basic import (
     Remove0,
     SparseType,

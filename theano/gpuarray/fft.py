@@ -1,8 +1,6 @@
 import numpy as np
 
 import theano.tensor as tt
-from theano.gof.graph import Apply
-from theano.gof.op import _NoPythonOp
 from theano.gpuarray.basic_ops import (
     as_gpuarray_variable,
     gpu_contiguous,
@@ -11,6 +9,8 @@ from theano.gpuarray.basic_ops import (
 from theano.gpuarray.opt import op_lifter, register_opt, register_opt2
 from theano.gpuarray.type import GpuArrayType
 from theano.gradient import DisconnectedType
+from theano.graph.basic import Apply
+from theano.graph.op import _NoPythonOp
 from theano.tensor.fft import IRFFTOp
 
 

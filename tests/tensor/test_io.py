@@ -5,8 +5,8 @@ import pytest
 
 import theano
 from theano import function, tensor
-from theano.gof.graph import Variable
-from theano.gof.type import Generic
+from theano.graph.basic import Variable
+from theano.graph.type import Generic
 
 
 class TestLoadTensor:

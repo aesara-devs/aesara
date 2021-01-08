@@ -7,9 +7,9 @@ from pytest import fixture, importorskip, raises
 
 import theano.tensor as tt
 from theano import change_flags, config
-from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Constant, Variable, graph_inputs
-from theano.gof.op import get_test_value
+from theano.graph.basic import Constant, Variable, graph_inputs
+from theano.graph.fg import FunctionGraph
+from theano.graph.op import get_test_value
 from theano.tensor.random.basic import (
     bernoulli,
     beta,

@@ -16,7 +16,7 @@ Currently supported cuDNN APIs:
 """
 
 
-from theano.gof.type import CEnumType
+from theano.graph.type import CEnumType
 
 
 HALF, FLOAT, DOUBLE = ("float16", "float32", "float64")

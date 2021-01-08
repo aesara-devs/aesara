@@ -20,11 +20,11 @@ import numpy as np
 from theano import function, gradient, shared, tensor
 from theano.compile import optdb
 from theano.configdefaults import config
-from theano.gof.graph import Apply, Constant, Variable
-from theano.gof.op import COp, Op
-from theano.gof.opt import local_optimizer
-from theano.gof.params_type import ParamsType
 from theano.gradient import undefined_grad
+from theano.graph.basic import Apply, Constant, Variable
+from theano.graph.op import COp, Op
+from theano.graph.opt import local_optimizer
+from theano.graph.params_type import ParamsType
 from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int_t
 from theano.tensor import (

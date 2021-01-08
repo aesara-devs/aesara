@@ -190,9 +190,9 @@ following error message, which properly identifies *line 24* as the culprit.
         h1 = tt.dot(x, func_of_W1)
       File "PATH_TO_THEANO/theano/tensor/basic.py", line 4734, in dot
         return _dot(a, b)
-      File "PATH_TO_THEANO/theano/gof/op.py", line 545, in __call__
+      File "PATH_TO_THEANO/theano/graph/op.py", line 545, in __call__
         required = thunk()
-      File "PATH_TO_THEANO/theano/gof/op.py", line 752, in rval
+      File "PATH_TO_THEANO/theano/graph/op.py", line 752, in rval
         r = p(n, [x[0] for x in i], o)
       File "PATH_TO_THEANO/theano/tensor/basic.py", line 4554, in perform
         z[0] = numpy.asarray(numpy.dot(x, y))
@@ -528,9 +528,9 @@ illustrative purposes. As the matrices can't be multiplied element-wise
     File "ex.py", line 14, in <module>
       f(mat1, mat2)
     File "/u/username/Theano/theano/compile/function/types.py", line 451, in __call__
-    File "/u/username/Theano/theano/gof/link.py", line 271, in streamline_default_f
-    File "/u/username/Theano/theano/gof/link.py", line 267, in streamline_default_f
-    File "/u/username/Theano/theano/gof/cc.py", line 1049, in execute ValueError: ('Input dimension mis-match. (input[0].shape[0] = 3, input[1].shape[0] = 5)', Elemwise{mul,no_inplace}(a, b), Elemwise{mul,no_inplace}(a, b))
+    File "/u/username/Theano/theano/graph/link.py", line 271, in streamline_default_f
+    File "/u/username/Theano/theano/graph/link.py", line 267, in streamline_default_f
+    File "/u/username/Theano/theano/graph/cc.py", line 1049, in execute ValueError: ('Input dimension mis-match. (input[0].shape[0] = 3, input[1].shape[0] = 5)', Elemwise{mul,no_inplace}(a, b), Elemwise{mul,no_inplace}(a, b))
 
 The call stack contains some useful information to trace back the source
 of the error. There's the script where the compiled function was called --

@@ -8,7 +8,7 @@ from mpi4py import MPI
 
 import theano
 from theano.configdefaults import config
-from theano.gof.sched import sort_schedule_fn
+from theano.graph.sched import sort_schedule_fn
 from theano.tensor.io import mpi_cmps, recv, send
 
 

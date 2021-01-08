@@ -1,4 +1,4 @@
-from theano.gof.type import CType, Type
+from theano.graph.type import CType, Type
 
 
 class TypedListType(CType):

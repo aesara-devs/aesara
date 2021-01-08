@@ -11,10 +11,6 @@ import theano.pathparse
 from theano import tensor
 from theano.compile.ops import shape_i, shape_i_op
 from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME, config
-from theano.gof.graph import Apply, Variable
-from theano.gof.op import ExternalCOp, _NoPythonCOp, _NoPythonExternalCOp
-from theano.gof.params_type import ParamsType
-from theano.gof.type import CDataType, EnumList, Generic
 from theano.gpuarray import cudnn_defs, pygpu
 from theano.gpuarray.basic_ops import (
     GpuAllocEmpty,
@@ -28,6 +24,10 @@ from theano.gpuarray.basic_ops import (
 )
 from theano.gpuarray.type import GpuArraySharedVariable, get_context, gpu_context_type
 from theano.gradient import DisconnectedType, grad_not_implemented
+from theano.graph.basic import Apply, Variable
+from theano.graph.op import ExternalCOp, _NoPythonCOp, _NoPythonExternalCOp
+from theano.graph.params_type import ParamsType
+from theano.graph.type import CDataType, EnumList, Generic
 from theano.link.c.cmodule import GCC_compiler
 from theano.scalar import as_scalar
 from theano.scalar import bool as bool_t

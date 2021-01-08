@@ -45,7 +45,7 @@ What needs to be defined
 In order to be C-compatible, the `Type` subclass interface `CType` must be used.
 It defines several additional methods, which all start with the ``c_``
 prefix. The complete list can be found in the documentation for
-:class:`.gof.type.CType`. Here, we'll focus on the most important ones:
+:class:`.graph.type.CType`. Here, we'll focus on the most important ones:
 
 
 .. class:: CLinkerType
@@ -184,7 +184,7 @@ Defining the methods
 
 .. testcode::
 
-    from theano.gof.type import Generic
+    from theano.graph.type import Generic
 
 
     class double(Generic):
@@ -466,7 +466,7 @@ Final version
 
 .. testcode::
 
-   from theano.gof.type import
+   from theano.graph.type import
 
    class Double(Type):
 

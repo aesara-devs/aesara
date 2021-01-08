@@ -14,7 +14,7 @@ from scipy import sparse as scipy_sparse
 import theano
 import theano.sparse
 from theano import sparse, tensor
-from theano.gof.op import Op
+from theano.graph.op import Op
 
 
 def register_specialize(lopt, *tags, **kwargs):

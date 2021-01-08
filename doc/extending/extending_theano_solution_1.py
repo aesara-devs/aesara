@@ -4,8 +4,8 @@
 import unittest
 
 import theano
-from theano.gof.graph import Apply
-from theano.gof.op import Op
+from theano.graph.basic import Apply
+from theano.graph.op import Op
 
 
 # 1. Op returns x * y
@@ -73,8 +73,8 @@ import numpy as np
 
 from tests import unittest_tools as utt
 from theano import function, printing, tensor
-from theano.gof.graph import Apply
-from theano.gof.op import Op
+from theano.graph.basic import Apply
+from theano.graph.op import Op
 
 
 class TestProdOp(utt.InferShapeTester):

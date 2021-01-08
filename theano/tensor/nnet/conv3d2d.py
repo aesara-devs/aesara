@@ -1,9 +1,9 @@
 import theano
 from theano import tensor
-from theano.gof.graph import Apply
-from theano.gof.op import Op
-from theano.gof.opt import TopoOptimizer, copy_stack_trace, local_optimizer
 from theano.gradient import DisconnectedType
+from theano.graph.basic import Apply
+from theano.graph.op import Op
+from theano.graph.opt import TopoOptimizer, copy_stack_trace, local_optimizer
 
 
 def get_diagonal_subtensor_view(x, i0, i1):

@@ -12,8 +12,8 @@ from tests.tensor.utils import (
 )
 from theano.compile.mode import OPT_FAST_RUN, optdb
 from theano.configdefaults import config
-from theano.gof.fg import FunctionGraph
-from theano.gof.opt import check_stack_trace
+from theano.graph.fg import FunctionGraph
+from theano.graph.opt import check_stack_trace
 from theano.tensor import lvector, matrix, scalar, vector
 from theano.tensor.nnet import (
     CrossentropyCategorical1Hot,

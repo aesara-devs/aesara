@@ -3,9 +3,6 @@ import sys
 
 import theano.tensor as tt
 from theano.configdefaults import config
-from theano.gof.graph import Apply
-from theano.gof.op import _NoPythonExternalCOp
-from theano.gof.opt import local_optimizer
 from theano.gpuarray import pygpu
 from theano.gpuarray.basic_ops import (
     as_gpuarray_variable,
@@ -16,6 +13,9 @@ from theano.gpuarray.basic_ops import (
 from theano.gpuarray.elemwise import GpuDimShuffle
 from theano.gpuarray.type import GpuArrayType, gpu_context_type
 from theano.gradient import grad_undefined
+from theano.graph.basic import Apply
+from theano.graph.op import _NoPythonExternalCOp
+from theano.graph.opt import local_optimizer
 from theano.tensor.nnet.ctc import ctc_available
 from theano.tensor.opt import register_canonicalize
 

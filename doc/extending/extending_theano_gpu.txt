@@ -96,7 +96,7 @@ that you will need to write a new kernel.  The best way to do this is
 to leverage :class:`GpuKernelBase
 <theano.gpuarray.basic_ops.GpuKernelBase>` (or :class:`CGpuKernelBase
 <theano.gpuarray.basic_ops.CGpuKernelBase>` if you want to use the
-:class:`ExternalCOp <theano.gof.op.ExternalCOp>` functionality).
+:class:`ExternalCOp <theano.graph.op.ExternalCOp>` functionality).
 
 For plain :class:`GpuKernelBase
 <theano.gpuarray.basic_ops.GpuKernelBase>`, you have to define a

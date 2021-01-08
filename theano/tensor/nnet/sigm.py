@@ -14,8 +14,8 @@ import numpy as np
 import theano
 from theano import printing, scalar
 from theano.configdefaults import config
-from theano.gof.opt import PatternSub, copy_stack_trace, local_optimizer
-from theano.gof.utils import MethodNotDefined
+from theano.graph.opt import PatternSub, copy_stack_trace, local_optimizer
+from theano.graph.utils import MethodNotDefined
 from theano.printing import pprint
 from theano.tensor import basic as tensor
 from theano.tensor import elemwise, opt

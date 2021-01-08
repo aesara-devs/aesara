@@ -5,8 +5,8 @@ import theano.tensor as tensor
 from tests import unittest_tools as utt
 from theano import function, scalar
 from theano.configdefaults import config
-from theano.gof.fg import FunctionGraph
-from theano.gof.opt import out2in
+from theano.graph.fg import FunctionGraph
+from theano.graph.opt import out2in
 from theano.link.basic import PerformLinker
 
 # from theano.tensor import matrix,max_and_argmax,MaaxAndArgmax,neg

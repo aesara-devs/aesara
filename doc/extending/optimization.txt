@@ -68,7 +68,7 @@ methods:
     .. method:: add_requirements(fgraph)
 
       This method takes a FunctionGraph object and adds :ref:`features
-      <libdoc_gof_fgraphfeature>` to it. These features are "plugins" that are needed
+      <libdoc_graph_fgraphfeature>` to it. These features are "plugins" that are needed
       for the ``apply`` method to do its job properly.
 
     .. method:: optimize(fgraph)
@@ -122,8 +122,8 @@ simplification described above:
 .. testcode::
 
    import theano
-   from theano.gof.opt import GlobalOptimizer
-   from theano.gof.toolbox import ReplaceValidate
+   from theano.graph.opt import GlobalOptimizer
+   from theano.graph.toolbox import ReplaceValidate
 
    class Simplify(GlobalOptimizer):
        def add_requirements(self, fgraph):
@@ -148,8 +148,8 @@ simplification described above:
    requirements we might want to  know about?
 
 Here's how it works: first, in ``add_requirements``, we add the
-``ReplaceValidate`` :ref:`libdoc_gof_fgraphfeature` located in
-:ref:`libdoc_gof_toolbox`. This feature adds the ``replace_validate``
+``ReplaceValidate`` :ref:`libdoc_graph_fgraphfeature` located in
+:ref:`libdoc_graph_toolbox`. This feature adds the ``replace_validate``
 method to ``fgraph``, which is an enhanced version of ``replace`` that
 does additional checks to ensure that we are not messing up the
 computation graph (note: if ``ReplaceValidate`` was already added by
@@ -157,7 +157,7 @@ another optimizer, ``extend`` will do nothing). In a nutshell,
 ``toolbox.ReplaceValidate`` grants access to ``fgraph.replace_validate``,
 and ``fgraph.replace_validate`` allows us to replace a Variable with
 another while respecting certain validation constraints. You can
-browse the list of :ref:`libdoc_gof_fgraphfeaturelist` and see if some of
+browse the list of :ref:`libdoc_graph_fgraphfeaturelist` and see if some of
 them might be useful to write optimizations with. For example, as an
 exercise, try to rewrite Simplify using :class:`NodeFinder`. (Hint: you
 want to use the method it publishes instead of the call to toposort!)
@@ -186,7 +186,7 @@ Test time:
 >>> y = float64('y')
 >>> z = float64('z')
 >>> a = add(z, mul(true_div(mul(y, x), y), true_div(z, x)))
->>> e = gof.fg.FunctionGraph([x, y, z], [a])
+>>> e = graph.fg.FunctionGraph([x, y, z], [a])
 >>> e
 [add(z, mul(true_div(mul(y, x), y), true_div(z, x)))]
 >>> simplify.optimize(e)
@@ -202,7 +202,7 @@ optimization you wrote. For example, consider the following:
 >>> y = float64('y')
 >>> z = float64('z')
 >>> a = true_div(mul(add(y, z), x), add(y, z))
->>> e = gof.fg.FunctionGraph([x, y, z], [a])
+>>> e = graph.fg.FunctionGraph([x, y, z], [a])
 >>> e
 [true_div(mul(add(y, z), x), add(y, z))]
 >>> simplify.optimize(e)
@@ -213,9 +213,9 @@ Nothing happened here. The reason is: ``add(y, z) != add(y,
 z)``. That is the case for efficiency reasons. To fix this problem we
 first need to merge the parts of the graph that represent the same
 computation, using the ``MergeOptimizer`` defined in
-``theano.gof.opt``.
+``theano.graph.opt``.
 
->>> from theano.gof.opt import MergeOptimizer
+>>> from theano.graph.opt import MergeOptimizer
 >>> MergeOptimizer().optimize(e)  # doctest: +ELLIPSIS
 (0, ..., None, None, {}, 1, 0)
 >>> e
@@ -251,7 +251,7 @@ The local version of the above code would be the following:
 
 .. testcode::
 
-   class LocalSimplify(gof.opt.LocalOptimizer):
+   class LocalSimplify(graph.opt.LocalOptimizer):
        def transform(self, fgraph, node):
            if node.op == true_div:
                x, y = node.inputs
@@ -290,12 +290,12 @@ subset of them) and applies one or several local optimizers on them.
 >>> y = float64('y')
 >>> z = float64('z')
 >>> a = add(z, mul(true_div(mul(y, x), y), true_div(z, x)))
->>> e = gof.fg.FunctionGraph([x, y, z], [a])
+>>> e = graph.fg.FunctionGraph([x, y, z], [a])
 >>> e
 [add(z, mul(true_div(mul(y, x), y), true_div(z, x)))]
->>> simplify = gof.opt.TopoOptimizer(local_simplify)
+>>> simplify = graph.opt.TopoOptimizer(local_simplify)
 >>> simplify.optimize(e)
-(<theano.gof.opt.TopoOptimizer object at 0x...>, 1, 5, 3, ..., ..., ...)
+(<theano.graph.opt.TopoOptimizer object at 0x...>, 1, 5, 3, ..., ..., ...)
 >>> e
 [add(z, mul(x, true_div(z, x)))]
 
@@ -328,7 +328,7 @@ Theano defines some shortcuts to make LocalOptimizers:
 
 .. testcode::
 
-   from theano.gof.opt import OpSub, OpRemove, PatternSub
+   from theano.graph.opt import OpSub, OpRemove, PatternSub
 
    # Replacing add by mul (this is not recommended for primarily
    # mathematical reasons):
@@ -431,7 +431,7 @@ A Query is built by the following call:
 
 .. code-block:: python
 
-   theano.gof.optdb.Query(include, require=None, exclude=None, subquery=None)
+   theano.graph.optdb.Query(include, require=None, exclude=None, subquery=None)
 
 .. class:: Query
 
@@ -472,7 +472,7 @@ Optimizer:
 
 .. testcode::
 
-   from theano.gof.optdb import Query
+   from theano.graph.optdb import Query
    from theano.compile import optdb
 
    # This is how the optimizer for the fast_run mode is defined

@@ -1,7 +1,7 @@
 """ This file don't test everything. It only test one past crash error."""
 
 import theano
-from theano.gof.graph import Constant
+from theano.graph.basic import Constant
 from theano.tensor.type_other import MakeSlice, NoneConst, NoneTypeT, make_slice
 
 

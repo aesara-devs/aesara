@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from warnings import warn
 
-from theano.gof.graph import Constant
+from theano.graph.basic import Constant
 from theano.link.basic import Container, PerformLinker
 from theano.link.utils import gc_helper, map_storage, streamline
 from theano.utils import difference

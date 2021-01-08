@@ -13,8 +13,8 @@ import numpy as np
 
 from theano.compile.compilelock import lock_ctx
 from theano.configdefaults import config
-from theano.gof.callcache import CallCache
-from theano.gof.graph import Constant, NoParams, io_toposort, vars_between
+from theano.graph.basic import Constant, NoParams, io_toposort, vars_between
+from theano.graph.callcache import CallCache
 from theano.link.basic import Container, Linker, LocalLinker, PerformLinker
 from theano.link.c.cmodule import (
     METH_VARARGS,

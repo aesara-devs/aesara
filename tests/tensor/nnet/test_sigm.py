@@ -11,8 +11,8 @@ from tests.tensor.utils import (
     upcast_int8_nfunc,
 )
 from theano.configdefaults import config
-from theano.gof.opt import check_stack_trace
-from theano.gof.toolbox import is_same_graph
+from theano.graph.opt import check_stack_trace
+from theano.graph.toolbox import is_same_graph
 from theano.tensor.inplace import neg_inplace
 from theano.tensor.nnet import (
     hard_sigmoid,

@@ -1,9 +1,9 @@
 import numpy as np
 
 import theano
-from theano.gof.graph import Apply
-from theano.gof.op import Op
 from theano.gradient import grad_undefined
+from theano.graph.basic import Apply
+from theano.graph.op import Op
 from theano.tensor.basic import discrete_dtypes
 
 

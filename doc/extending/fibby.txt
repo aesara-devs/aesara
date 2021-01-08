@@ -16,8 +16,8 @@ you should check the strides and alignment.
 .. testcode::
 
    import theano
-   from theano.gof.op import Op
-   from theano.gof.graph import Apply
+   from theano.graph.op import Op
+   from theano.graph.basic import Apply
 
 
    class Fibby(Op):
@@ -112,7 +112,7 @@ TODO: talk about OPTIMIZATION STAGES
 
    # Remove any fibby(zeros(...))
    @theano.tensor.opt.register_specialize
-   @theano.gof.opt.local_optimizer([fibby])
+   @theano.graph.opt.local_optimizer([fibby])
    def fibby_of_zero(fgraph, node):
        if node.op == fibby:
            x = node.inputs[0]

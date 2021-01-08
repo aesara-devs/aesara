@@ -13,8 +13,8 @@ from tests import unittest_tools as utt
 from tests.tensor.utils import inplace_func, rand, randint_ranged
 from theano.compile import DeepCopyOp
 from theano.configdefaults import config
-from theano.gof.op import get_test_value
-from theano.gof.toolbox import is_same_graph
+from theano.graph.op import get_test_value
+from theano.graph.toolbox import is_same_graph
 from theano.tensor import (
     _shared,
     cscalar,
@@ -130,7 +130,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         t = n[7]
         assert isinstance(t.owner.op, Subtensor)
         # Silence expected error messages
-        _logger = logging.getLogger("theano.gof.opt")
+        _logger = logging.getLogger("theano.graph.opt")
         oldlevel = _logger.level
         _logger.setLevel(logging.CRITICAL)
         try:
@@ -211,7 +211,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             t = n[idx]
             assert isinstance(t.owner.op, Subtensor)
             # Silence expected warnings
-            _logger = logging.getLogger("theano.gof.opt")
+            _logger = logging.getLogger("theano.graph.opt")
             oldlevel = _logger.level
             _logger.setLevel(logging.CRITICAL)
             try:

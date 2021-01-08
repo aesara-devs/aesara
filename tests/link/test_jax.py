@@ -4,8 +4,8 @@ import pytest
 import theano
 import theano.tensor as tt
 from theano.compile.mode import Mode
-from theano.gof.fg import FunctionGraph
-from theano.gof.optdb import Query
+from theano.graph.fg import FunctionGraph
+from theano.graph.optdb import Query
 from theano.link.jax import JAXLinker
 
 
@@ -13,7 +13,7 @@ jax = pytest.importorskip("jax")
 
 from functools import partial  # noqa: E402
 
-from theano.gof.op import get_test_value  # noqa: E402
+from theano.graph.op import get_test_value  # noqa: E402
 
 
 @pytest.fixture(scope="module", autouse=True)

@@ -71,9 +71,9 @@ from tests.tensor.utils import (
 from theano import compile, config, function, shared
 from theano.compile import DeepCopyOp
 from theano.compile.mode import get_default_mode
-from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Apply, Variable
-from theano.gof.op import Op
+from theano.graph.basic import Apply, Variable
+from theano.graph.fg import FunctionGraph
+from theano.graph.op import Op
 from theano.link.c.basic import DualLinker
 from theano.misc.safe_asarray import _asarray
 from theano.scalar import autocast_float, autocast_float_as

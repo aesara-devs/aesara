@@ -10,8 +10,8 @@ from theano import shared
 from theano.compile.builders import OpFromGraph
 from theano.compile.function import function
 from theano.configdefaults import config
-from theano.gof.null_type import NullType
 from theano.gradient import DisconnectedType
+from theano.graph.null_type import NullType
 from theano.tensor.random.utils import RandomStream
 
 

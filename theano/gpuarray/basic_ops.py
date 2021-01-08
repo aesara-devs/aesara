@@ -8,13 +8,13 @@ import numpy as np
 import theano
 from theano import tensor
 from theano.configdefaults import config
-from theano.gof.graph import Apply, Variable
-from theano.gof.op import COp, ExternalCOp, Op, _NoPythonOp
-from theano.gof.opt import copy_stack_trace
-from theano.gof.params_type import ParamsType
-from theano.gof.type import CType
-from theano.gof.utils import MethodNotDefined
 from theano.gradient import grad_undefined
+from theano.graph.basic import Apply, Variable
+from theano.graph.op import COp, ExternalCOp, Op, _NoPythonOp
+from theano.graph.opt import copy_stack_trace
+from theano.graph.params_type import ParamsType
+from theano.graph.type import CType
+from theano.graph.utils import MethodNotDefined
 from theano.link.c.interface import HideC
 from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int32_t

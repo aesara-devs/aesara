@@ -1,7 +1,7 @@
 """Symbolic Op for raising an exception."""
 
-from theano.gof.graph import Apply
-from theano.gof.op import Op
+from theano.graph.basic import Apply
+from theano.graph.op import Op
 
 
 __authors__ = "James Bergstra" "PyMC Dev Team"

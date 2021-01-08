@@ -3,7 +3,7 @@ import pytest
 import theano
 import theano.tensor as tt
 from theano.compile.mode import AddFeatureOptimizer, Mode
-from theano.gof.toolbox import NoOutputFromInplace
+from theano.graph.toolbox import NoOutputFromInplace
 
 
 @pytest.mark.skipif(

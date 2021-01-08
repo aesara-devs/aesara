@@ -9,8 +9,8 @@ import theano
 from theano import function, tensor
 from theano.compile import Mode
 from theano.configdefaults import config
-from theano.gof.graph import Apply
-from theano.gof.op import Op
+from theano.graph.basic import Apply
+from theano.graph.op import Op
 from theano.ifelse import ifelse
 from theano.link.c.exceptions import MissingGXX
 from theano.link.vm import Loop, VMLinker

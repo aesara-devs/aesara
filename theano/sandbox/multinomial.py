@@ -5,8 +5,8 @@ import numpy as np
 
 import theano.tensor as tt
 from theano.configdefaults import config
-from theano.gof.graph import Apply
-from theano.gof.op import COp
+from theano.graph.basic import Apply
+from theano.graph.op import COp
 from theano.scalar import Scalar, as_scalar
 
 

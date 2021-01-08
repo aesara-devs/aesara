@@ -14,17 +14,17 @@ from tests import unittest_tools as utt
 from theano import compile, config, pprint, shared
 from theano.compile import DeepCopyOp, deep_copy_op, get_mode
 from theano.compile.function import function
-from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Apply, Constant
-from theano.gof.op import Op
-from theano.gof.opt import (
+from theano.graph.basic import Apply, Constant
+from theano.graph.fg import FunctionGraph
+from theano.graph.op import Op
+from theano.graph.opt import (
     LocalOptGroup,
     TopoOptimizer,
     check_stack_trace,
     local_optimizer,
     out2in,
 )
-from theano.gof.optdb import Query
+from theano.graph.optdb import Query
 from theano.misc.safe_asarray import _asarray
 from theano.tensor import (
     AdvancedIncSubtensor,
@@ -1094,12 +1094,12 @@ class TestCanonize:
         sio = StringIO()
         handler = logging.StreamHandler(sio)
         handler.setLevel(logging.ERROR)
-        logging.getLogger("theano.gof.opt").addHandler(handler)
+        logging.getLogger("theano.graph.opt").addHandler(handler)
         try:
             x = vector()
             function([x], x + np.nan)
         finally:
-            logging.getLogger("theano.gof.opt").removeHandler(handler)
+            logging.getLogger("theano.graph.opt").removeHandler(handler)
         # Ideally this test would only catch the maxed out equilibrium
         # optimizer error message, but to be safe in case this message
         # is modified in the future, we assert that there is no error

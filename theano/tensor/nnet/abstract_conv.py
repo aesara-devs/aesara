@@ -18,8 +18,8 @@ import numpy as np
 
 import theano
 from theano.configdefaults import config
-from theano.gof.graph import Apply, Variable
-from theano.gof.op import Op
+from theano.graph.basic import Apply, Variable
+from theano.graph.op import Op
 from theano.tensor.basic import (
     NotScalarConstantError,
     as_tensor_variable,

@@ -3,10 +3,10 @@ from copy import deepcopy
 import numpy as np
 
 import theano
-from theano.gof import fg, graph
-from theano.gof.graph import Apply, Constant, Variable
-from theano.gof.op import Op
-from theano.gof.type import Type
+from theano.graph import basic, fg
+from theano.graph.basic import Apply, Constant, Variable
+from theano.graph.op import Op
+from theano.graph.type import Type
 from theano.link.basic import Container, PerformLinker, WrapLinker
 from theano.link.c.basic import OpWiseCLinker
 from theano.utils import cmp
@@ -120,7 +120,7 @@ class TestPerformLinker:
         x, y, z = inputs()
         a, d = add(x, y), div(x, y)
         e = mul(a, d)
-        fn = perform_linker(FunctionGraph(*graph.clone([x, y, a], [e]))).make_function()
+        fn = perform_linker(FunctionGraph(*basic.clone([x, y, a], [e]))).make_function()
         assert fn(1.0, 2.0, 9.0) == 4.5
 
     def test_skiphole(self):
@@ -128,7 +128,7 @@ class TestPerformLinker:
         a = add(x, y)
         r = raise_err(a)
         e = add(r, a)
-        fn = perform_linker(FunctionGraph(*graph.clone([x, y, r], [e]))).make_function()
+        fn = perform_linker(FunctionGraph(*basic.clone([x, y, r], [e]))).make_function()
         assert fn(1.0, 2.0, 4.5) == 7.5
 
 
@@ -176,7 +176,7 @@ class TestWrapLinker:
 
 def test_sort_schedule_fn():
     import theano
-    from theano.gof.sched import make_depends, sort_schedule_fn
+    from theano.graph.sched import make_depends, sort_schedule_fn
 
     x = theano.tensor.matrix("x")
     y = theano.tensor.dot(x[:5] * 2, x.T + 1).T

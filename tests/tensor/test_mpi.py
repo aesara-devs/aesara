@@ -5,7 +5,7 @@ import pytest
 
 import theano
 from theano.configdefaults import config
-from theano.gof.sched import sort_schedule_fn
+from theano.graph.sched import sort_schedule_fn
 from theano.link.c.basic import OpWiseCLinker
 from theano.tensor.io import (
     MPISend,

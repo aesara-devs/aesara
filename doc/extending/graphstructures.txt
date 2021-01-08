@@ -83,7 +83,7 @@ Take for example the following code:
 >>> x = theano.tensor.dmatrix('x')
 >>> y = x * 2.
 
-If you enter ``type(y.owner)`` you get ``<class 'theano.gof.graph.Apply'>``,
+If you enter ``type(y.owner)`` you get ``<class 'theano.graph.basic.Apply'>``,
 which is the apply node that connects the op and the inputs to get this
 output. You can now print the name of the op that is applied to get
 *y*:
@@ -108,7 +108,7 @@ same shape as *x*. This is done by using the op ``DimShuffle`` :
 >>> type(y.owner.inputs[1])
 <class 'theano.tensor.var.TensorVariable'>
 >>> type(y.owner.inputs[1].owner)
-<class 'theano.gof.graph.Apply'>
+<class 'theano.graph.basic.Apply'>
 >>> y.owner.inputs[1].owner.op # doctest: +SKIP
 <theano.tensor.elemwise.DimShuffle object at 0x106fcaf10>
 >>> y.owner.inputs[1].owner.inputs
@@ -170,7 +170,7 @@ An Apply instance has three important fields:
   A list of :ref:`Variables <variable>` that represent the return values
   of the function.
 
-An Apply instance can be created by calling ``gof.graph.Apply(op, inputs, outputs)``.
+An Apply instance can be created by calling ``graph.basic.Apply(op, inputs, outputs)``.
 
 
 
@@ -370,7 +370,7 @@ Sum{acc_dtype=float64} [id A] ''   1
 >>> client
 (Sum{acc_dtype=float64}(Elemwise{add,no_inplace}.0), 0)
 >>> type(client[0])
-<class 'theano.gof.graph.Apply'>
+<class 'theano.graph.basic.Apply'>
 >>> assert client[0].inputs[client[1]] is var
 
 >>> # An output of the graph

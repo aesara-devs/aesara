@@ -1,6 +1,6 @@
-from theano.gof.graph import Apply
-from theano.gof.op import COp
-from theano.gof.type import Generic
+from theano.graph.basic import Apply
+from theano.graph.op import COp
+from theano.graph.type import Generic
 
 from .basic_ops import as_gpuarray_variable, gpuarray_helper_inc_dir, infer_context_name
 from .type import GpuArrayType

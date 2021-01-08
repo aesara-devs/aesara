@@ -15,8 +15,8 @@ import warnings
 import numpy as np
 
 import theano
-from theano.gof.graph import Apply
-from theano.gof.op import OpenMPOp
+from theano.graph.basic import Apply
+from theano.graph.op import OpenMPOp
 from theano.tensor import blas
 from theano.tensor.basic import (
     NotScalarConstantError,
@@ -808,7 +808,7 @@ class ConvOp(OpenMPOp):
         img2d, filtersflipped = inp
         (z,) = out
         if not imported_scipy_signal:
-            raise theano.gof.utils.MethodNotDefined(
+            raise theano.graph.utils.MethodNotDefined(
                 "c_headers",
                 type(self),
                 self.__class__.__name__,

@@ -19,9 +19,9 @@ import numpy as np
 import theano.tensor
 from theano.compile import optdb
 from theano.configdefaults import config
-from theano.gof.graph import Apply, Variable, is_in_ancestors
-from theano.gof.op import _NoPythonOp
-from theano.gof.opt import GlobalOptimizer, local_optimizer
+from theano.graph.basic import Apply, Variable, is_in_ancestors
+from theano.graph.op import _NoPythonOp
+from theano.graph.opt import GlobalOptimizer, local_optimizer
 from theano.scan.utils import clone
 from theano.tensor import TensorType, opt
 
@@ -453,8 +453,8 @@ optdb.register(
 # XXX: Optimizations commented pending further debugging (certain optimizations
 # make computation less lazy than it should be currently).
 #
-# ifelse_equilibrium = gof.optdb.EquilibriumDB()
-# ifelse_seqopt = gof.optdb.SequenceDB()
+# ifelse_equilibrium = graph.optdb.EquilibriumDB()
+# ifelse_seqopt = graph.optdb.SequenceDB()
 # ifelse_equilibrium.register('seq_ifelse', ifelse_seqopt, 'fast_run',
 #                             'ifelse')
 """ Comments:
@@ -604,7 +604,7 @@ class CondMerge(GlobalOptimizer):
     """ Graph Optimizer that merges different cond ops """
 
     def add_requirements(self, fgraph):
-        from theano.gof.toolbox import ReplaceValidate
+        from theano.graph.toolbox import ReplaceValidate
 
         fgraph.add_feature(ReplaceValidate())
 
@@ -758,7 +758,7 @@ def cond_merge_random_op(fgraph, main_node):
 # XXX: Optimizations commented pending further debugging (certain optimizations
 # make computation less lazy than it should be currently).
 #
-# pushout_equilibrium = gof.optdb.EquilibriumDB()
+# pushout_equilibrium = graph.optdb.EquilibriumDB()
 #
 # XXX: This optimization doesn't seem to exist anymore?
 # pushout_equilibrium.register("cond_lift_single_if",
@@ -773,7 +773,7 @@ def cond_merge_random_op(fgraph, main_node):
 #
 #
 # pushout_equilibrium.register("ifelse_merge",
-#                              gof.opt.MergeOptimizer(skip_const_merge=False),
+#                              graph.opt.MergeOptimizer(skip_const_merge=False),
 #                              'fast_run', 'ifelse')
 #
 # pushout_equilibrium.register("ifelse_remove_identical_inside",
@@ -796,7 +796,7 @@ def cond_merge_random_op(fgraph, main_node):
 #                        1, 'fast_run', 'ifelse')
 #
 # ifelse_seqopt.register('merge_nodes_1',
-#                        gof.opt.MergeOptimizer(skip_const_merge=False),
+#                        graph.opt.MergeOptimizer(skip_const_merge=False),
 #                        2, 'fast_run', 'ifelse')
 #
 #

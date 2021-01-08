@@ -475,8 +475,8 @@ storage with the right shape and number of dimensions.
     import numpy
     import theano
 
-    from theano.gof.op import COp
-    from theano.gof.graph import Apply
+    from theano.graph.op import COp
+    from theano.graph.basic import Apply
 
 
     class VectorTimesScalar(COp):
@@ -745,7 +745,7 @@ The new op is defined inside a Python file with the following code :
 .. testcode::
 
     import theano
-    from theano.gof.op import ExternalCOp
+    from theano.graph.op import ExternalCOp
 
     class VectorTimesVector(ExternalCOp):
         __props__ = ()

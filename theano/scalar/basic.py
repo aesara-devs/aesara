@@ -21,13 +21,13 @@ import numpy as np
 import theano
 from theano import printing
 from theano.configdefaults import config
-from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Apply, Constant, Variable, clone, list_of_nodes
-from theano.gof.op import COp
-from theano.gof.opt import MergeOptimizer
-from theano.gof.type import CType
-from theano.gof.utils import MetaObject, MethodNotDefined
 from theano.gradient import DisconnectedType, grad_undefined
+from theano.graph.basic import Apply, Constant, Variable, clone, list_of_nodes
+from theano.graph.fg import FunctionGraph
+from theano.graph.op import COp
+from theano.graph.opt import MergeOptimizer
+from theano.graph.type import CType
+from theano.graph.utils import MetaObject, MethodNotDefined
 from theano.misc.safe_asarray import _asarray
 from theano.printing import pprint
 from theano.utils import (

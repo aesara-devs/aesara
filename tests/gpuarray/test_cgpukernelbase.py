@@ -3,11 +3,11 @@ import pytest
 
 import theano
 from theano import config, tensor
-from theano.gof.graph import Apply
-from theano.gof.params_type import ParamsType
 from theano.gpuarray.basic_ops import CGpuKernelBase
 from theano.gpuarray.type import GpuArrayType, get_context, gpu_context_type
 from theano.gradient import grad_undefined
+from theano.graph.basic import Apply
+from theano.graph.params_type import ParamsType
 from theano.scalar import int32 as int_t
 
 

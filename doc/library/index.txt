@@ -15,7 +15,7 @@ Types and Ops that you can use to build and compile expression graphs.
    compile/index
    config
    d3viz/index
-   gof/index
+   graph/index
    gpuarray/index
    gradient
    misc/pkl_utils
@@ -38,7 +38,7 @@ There are also some top-level imports that you might find more convenient:
 .. moduleauthor:: LISA
 
 .. function:: function(...)
-    
+
     Alias for :func:`theano.compile.function.function`
 
 
@@ -47,7 +47,7 @@ There are also some top-level imports that you might find more convenient:
     Alias for :func:`theano.compile.function.function_dump`
 
 .. function:: shared(...)
-    
+
     Alias for :func:`theano.compile.sharedvalue.shared`
 
 .. class:: In

@@ -11,9 +11,9 @@ import numpy as np
 import numpy.fft
 
 from theano import tensor
-from theano.gof.graph import Apply
-from theano.gof.op import Op
-from theano.gof.type import generic
+from theano.graph.basic import Apply
+from theano.graph.op import Op
+from theano.graph.type import generic
 
 
 message = (

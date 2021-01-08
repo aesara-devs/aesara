@@ -12,7 +12,7 @@ except ImportError:
     ndimage = None
 
 import tests.unittest_tools as utt
-from theano.gof.opt import check_stack_trace
+from theano.graph.opt import check_stack_trace
 from theano.tensor.nnet.conv3d2d import (
     DiagonalSubtensor,
     IncDiagonalSubtensor,

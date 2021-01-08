@@ -24,7 +24,7 @@ import theano.tensor.blas_scipy
 from tests import unittest_tools
 from tests.tensor.utils import inplace_func
 from theano import In, config, shared
-from theano.gof.fg import FunctionGraph
+from theano.graph.fg import FunctionGraph
 from theano.misc.safe_asarray import _asarray
 from theano.tensor import as_tensor_variable, inplace
 from theano.tensor.blas import (

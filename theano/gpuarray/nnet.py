@@ -2,8 +2,8 @@ from io import StringIO
 
 import numpy as np
 
-from theano.gof.graph import Apply
-from theano.gof.op import _NoPythonOp
+from theano.graph.basic import Apply
+from theano.graph.op import _NoPythonOp
 
 
 try:

@@ -74,7 +74,7 @@ possibilities you may encounter or need.  For that refer to
 .. testcode:: python
 
     import theano
-    from theano.gof.op import Op
+    from theano.graph.op import Op
 
 
     class MyOp(Op):
@@ -286,8 +286,8 @@ Example: Op definition
 .. testcode:: example
 
     import theano
-    from theano.gof.op import Op
-    from theano.gof.graph import Apply
+    from theano.graph.op import Op
+    from theano.graph.basic import Apply
 
 
     class DoubleOp1(Op):
@@ -489,8 +489,8 @@ and ``b`` are equal.
 .. testcode:: properties
 
     import theano
-    from theano.gof.op import Op
-    from theano.gof.graph import Apply
+    from theano.graph.op import Op
+    from theano.graph.basic import Apply
 
 
     class AXPBOp(Op):

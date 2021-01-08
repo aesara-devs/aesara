@@ -11,7 +11,6 @@ from tests.test_ifelse import TestIfelse
 from theano import tensor
 from theano.breakpoint import PdbBreakpoint
 from theano.configdefaults import config
-from theano.gof.opt import check_stack_trace
 from theano.gpuarray import basic_ops, blas, dnn, opt
 from theano.gpuarray.basic_ops import (
     GpuAlloc,
@@ -33,12 +32,13 @@ from theano.gpuarray.elemwise import (
 from theano.gpuarray.linalg import GpuCholesky, GpuCusolverSolve, cusolver_available
 from theano.gpuarray.subtensor import GpuSubtensor
 from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
+from theano.graph.opt import check_stack_trace
 from theano.tensor.nnet import abstract_conv
 
 
 def _check_stack_trace(thing):
     def _ops_to_check(op):
-        if not isinstance(op, theano.gof.op.Op):
+        if not isinstance(op, theano.graph.op.Op):
             op = op.op  # assume it is an apply node
         return not isinstance(
             op,
