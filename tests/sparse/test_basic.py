@@ -11,9 +11,9 @@ from tests.tensor.test_sharedvar import makeSharedTester
 from theano import sparse, tensor
 from theano.compile.function import function
 from theano.configdefaults import config
-from theano.gof.graph import Apply, Constant
-from theano.gof.op import Op
 from theano.gradient import GradientError
+from theano.graph.basic import Apply, Constant
+from theano.graph.op import Op
 from theano.misc.safe_asarray import _asarray
 from theano.sparse import (
     CSC,

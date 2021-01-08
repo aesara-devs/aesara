@@ -5,7 +5,7 @@ import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import change_flags, config, function
 from theano.compile.mode import Mode
-from theano.gof.optdb import Query
+from theano.graph.optdb import Query
 from theano.tensor.random.utils import RandomStream, broadcast_params
 
 

@@ -7,7 +7,7 @@ import numpy as np
 
 import theano
 from theano.configdefaults import config
-from theano.gof.graph import Constant, Variable
+from theano.graph.basic import Constant, Variable
 from theano.scalar import ComplexError, IntegerDivisionError
 from theano.tensor.type import TensorType
 from theano.tensor.utils import hash_from_ndarray
@@ -844,7 +844,7 @@ class TensorVariable(_tensor_py_operators, Variable):
             )
             if config.warn_float64 == "warn":
                 # Get the user stack. We don't want function inside the
-                # tensor and gof directory to be shown to the user.
+                # tensor and graph directory to be shown to the user.
                 x = tb.extract_stack()
                 nb_rm = 0
                 while x:
@@ -853,7 +853,7 @@ class TensorVariable(_tensor_py_operators, Variable):
                     for p in [
                         "theano/tensor/",
                         "theano\\tensor\\",
-                        "theano/gof/",
+                        "theano/graph/",
                         "theano\\tensor\\",
                     ]:
                         if p in file_path:

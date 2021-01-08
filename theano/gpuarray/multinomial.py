@@ -10,8 +10,8 @@ except ImportError:
 
 import theano
 import theano.sandbox.multinomial
-from theano.gof.graph import Apply
-from theano.gof.op import _NoPythonOp
+from theano.graph.basic import Apply
+from theano.graph.op import _NoPythonOp
 from theano.scalar import as_scalar
 from theano.tensor import NotScalarConstantError, get_scalar_constant_value
 

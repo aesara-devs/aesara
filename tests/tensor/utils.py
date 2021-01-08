@@ -8,7 +8,7 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import function, gof, shared, tensor
+from theano import function, graph, shared, tensor
 from theano.compile.mode import get_default_mode
 from theano.configdefaults import config
 from theano.misc.safe_asarray import _asarray
@@ -676,7 +676,7 @@ def makeTester(
 
                 try:
                     in_grad_vars = self.op.grad(inputrs, out_grad_vars)
-                except (gof.utils.MethodNotDefined, NotImplementedError):
+                except (graph.utils.MethodNotDefined, NotImplementedError):
                     pass
                 else:
                     assert None not in in_grad_vars

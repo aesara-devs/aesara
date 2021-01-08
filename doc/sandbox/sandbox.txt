@@ -35,7 +35,7 @@ Gradients for a particular variable can be one of four kinds:
 
 You will get an exception of the following form.
 
-theano.gof.utils.MethodNotDefined: ('grad', <class 'pylearn.algorithms.sandbox.cost.LogFactorial'>, 'LogFactorial')
+theano.graph.utils.MethodNotDefined: ('grad', <class 'pylearn.algorithms.sandbox.cost.LogFactorial'>, 'LogFactorial')
 
 2) a symbolic variable
 3) None / zero

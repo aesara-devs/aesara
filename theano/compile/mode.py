@@ -9,14 +9,14 @@ import warnings
 import theano
 from theano.compile.function.types import Supervisor
 from theano.configdefaults import config
-from theano.gof.destroyhandler import DestroyHandler
-from theano.gof.opt import (
+from theano.graph.destroyhandler import DestroyHandler
+from theano.graph.opt import (
     CheckStackTraceOptimization,
     GlobalOptimizer,
     MergeOptimizer,
     NavigatorOptimizer,
 )
-from theano.gof.optdb import EquilibriumDB, LocalGroupDB, Query, SequenceDB, TopoDB
+from theano.graph.optdb import EquilibriumDB, LocalGroupDB, Query, SequenceDB, TopoDB
 from theano.link.basic import PerformLinker
 from theano.link.c.basic import CLinker, OpWiseCLinker
 from theano.link.jax import JAXLinker

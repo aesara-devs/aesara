@@ -8,8 +8,8 @@ import numpy as np
 import theano
 from theano import config, scalar, tensor
 from theano.compile import SharedVariable
-from theano.gof.graph import Constant, Variable
-from theano.gof.type import CType
+from theano.graph.basic import Constant, Variable
+from theano.graph.type import CType
 from theano.misc.safe_asarray import _asarray
 from theano.tensor.type import TensorType
 from theano.tensor.var import _tensor_py_operators
@@ -175,7 +175,7 @@ class GpuArrayType(CType):
 
     See Also
     --------
-    theano.gof.type.Type
+    theano.graph.type.Type
 
     """
 
@@ -654,7 +654,7 @@ class GpuArrayVariable(_operators, Variable):
 
     # override the default
     def __repr_test_value__(self):
-        return repr(np.array(theano.gof.op.get_test_value(self)))
+        return repr(np.array(theano.graph.op.get_test_value(self)))
 
 
 GpuArrayType.Variable = GpuArrayVariable

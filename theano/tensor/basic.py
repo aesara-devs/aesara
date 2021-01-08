@@ -12,11 +12,11 @@ import theano.scalar.sharedvar
 from theano import compile, config, printing
 from theano import scalar as scal
 from theano.compile import Rebroadcast, Shape, shape
-from theano.gof.graph import Apply, Constant, Variable
-from theano.gof.op import COp, Op
-from theano.gof.params_type import ParamsType
-from theano.gof.type import CType, Generic
 from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
+from theano.graph.basic import Apply, Constant, Variable
+from theano.graph.op import COp, Op
+from theano.graph.params_type import ParamsType
+from theano.graph.type import CType, Generic
 from theano.misc.safe_asarray import _asarray
 from theano.printing import min_informative_str, pprint
 from theano.scalar import int32

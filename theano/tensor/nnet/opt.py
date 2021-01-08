@@ -6,7 +6,7 @@ import theano
 from theano import compile
 from theano.compile import optdb
 from theano.configdefaults import config
-from theano.gof.opt import (
+from theano.graph.opt import (
     LocalMetaOptimizerSkipAssertionError,
     TopoOptimizer,
     copy_stack_trace,
@@ -490,7 +490,7 @@ def local_conv2d_gradinputs_cpu(fgraph, node):
 
 
 # Register Cpu Optmization
-conv_groupopt = theano.gof.optdb.LocalGroupDB()
+conv_groupopt = theano.graph.optdb.LocalGroupDB()
 conv_groupopt.__name__ = "conv_opts"
 register_specialize_device(conv_groupopt, "fast_compile", "fast_run")
 

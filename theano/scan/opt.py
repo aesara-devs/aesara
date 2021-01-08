@@ -62,9 +62,7 @@ from theano import scalar, tensor
 from theano.compile import optdb
 from theano.compile.function.types import deep_copy_op
 from theano.configdefaults import config
-from theano.gof.destroyhandler import DestroyHandler
-from theano.gof.fg import InconsistencyError
-from theano.gof.graph import (
+from theano.graph.basic import (
     Constant,
     Variable,
     equal_computations,
@@ -72,9 +70,11 @@ from theano.gof.graph import (
     io_toposort,
     is_in_ancestors,
 )
-from theano.gof.opt import GlobalOptimizer, local_optimizer
-from theano.gof.optdb import EquilibriumDB, SequenceDB
-from theano.gof.toolbox import ReplaceValidate
+from theano.graph.destroyhandler import DestroyHandler
+from theano.graph.fg import InconsistencyError
+from theano.graph.opt import GlobalOptimizer, local_optimizer
+from theano.graph.optdb import EquilibriumDB, SequenceDB
+from theano.graph.toolbox import ReplaceValidate
 from theano.scan.op import Scan
 from theano.scan.utils import (
     clone,

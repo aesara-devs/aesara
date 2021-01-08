@@ -3,16 +3,16 @@ from collections.abc import Collection
 import numpy as np
 
 import theano
-from theano.gof.graph import Apply, equal_computations
-from theano.gof.op import COp, Op
-from theano.gof.params_type import ParamsType
-from theano.gof.type import EnumList, Generic
 from theano.gradient import (
     DisconnectedType,
     _float_zeros_like,
     disconnected_type,
     grad_undefined,
 )
+from theano.graph.basic import Apply, equal_computations
+from theano.graph.op import COp, Op
+from theano.graph.params_type import ParamsType
+from theano.graph.type import EnumList, Generic
 from theano.misc.safe_asarray import _asarray
 from theano.scalar import int32 as int_t
 from theano.scalar import upcast

@@ -48,9 +48,8 @@
 """
 
 
-__authors__ = "Razvan Pascanu"
+__authors__ = "Razvan Pascanu" "PyMC Developers"
 __copyright__ = "(c) 2011, Universite de Montreal"
-__contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 
 import cython
@@ -61,12 +60,11 @@ cimport numpy
 import copy
 import time
 
-from theano import gof
 from theano.link.utils import raise_with_op
 
 
 def get_version():
-    return 0.297
+    return 0.298
 
 @cython.boundscheck(False)
 def perform(
@@ -151,7 +149,7 @@ def perform(
     fn: callable
         This is the linker, i.e. the function that will loop over the
         computational graph and call the perform of each operation. For this
-        linker there is a c version in gof/lazy_linker.c that will be the
+        linker there is a c version in graph/lazy_linker.c that will be the
         starting point of implementing this function in C ( we need to take
         all the code around the call of this function and put in C inside
         that code)
@@ -407,8 +405,8 @@ def perform(
                 if hasattr(fn, 'thunks'):
                     # For the CVM
                     raise_with_op(fn.maker.fgraph,
-                                           fn.nodes[fn.position_of_error],
-                                           fn.thunks[fn.position_of_error])
+                                  fn.nodes[fn.position_of_error],
+                                  fn.thunks[fn.position_of_error])
                 else:
                     # For the c linker
                     # We don't have access from python to all the

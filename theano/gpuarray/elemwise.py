@@ -4,9 +4,9 @@ from io import StringIO
 import numpy as np
 
 from theano import scalar
-from theano.gof.graph import Apply
-from theano.gof.op import _NoPythonOp
-from theano.gof.utils import MethodNotDefined
+from theano.graph.basic import Apply
+from theano.graph.op import _NoPythonOp
+from theano.graph.utils import MethodNotDefined
 from theano.link.c.interface import HideC
 from theano.scalar import Composite, Scalar
 from theano.scalar.basic import complex_types, upgrade_to_float_no_complex

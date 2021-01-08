@@ -144,19 +144,19 @@ from functools import reduce
 import theano.scalar
 from theano.compile.mode import optdb
 from theano.configdefaults import config
-from theano.gof.fg import InconsistencyError
-from theano.gof.graph import Apply, view_roots
-from theano.gof.op import COp, Op
-from theano.gof.opt import (
+from theano.graph.basic import Apply, view_roots
+from theano.graph.fg import InconsistencyError
+from theano.graph.op import COp, Op
+from theano.graph.opt import (
     EquilibriumOptimizer,
     GlobalOptimizer,
     inherit_stack_trace,
     local_optimizer,
 )
-from theano.gof.optdb import SequenceDB
-from theano.gof.params_type import ParamsType
-from theano.gof.toolbox import ReplacementDidNotRemoveError, ReplaceValidate
-from theano.gof.utils import MethodNotDefined, TestValueError
+from theano.graph.optdb import SequenceDB
+from theano.graph.params_type import ParamsType
+from theano.graph.toolbox import ReplacementDidNotRemoveError, ReplaceValidate
+from theano.graph.utils import MethodNotDefined, TestValueError
 from theano.printing import FunctionPrinter, debugprint, pprint
 from theano.scalar import bool as bool_t
 from theano.tensor import basic as tt
@@ -1452,12 +1452,12 @@ class GemmOptimizer(GlobalOptimizer):
             if new_node is not node:
                 nodelist.append(new_node)
 
-        u = theano.gof.opt.Updater(on_import, None, None, name="GemmOptimizer")
+        u = theano.graph.opt.Updater(on_import, None, None, name="GemmOptimizer")
         fgraph.attach_feature(u)
         while did_something:
             nb_iter += 1
             t0 = time.time()
-            nodelist = theano.gof.graph.io_toposort(fgraph.inputs, fgraph.outputs)
+            nodelist = theano.graph.basic.io_toposort(fgraph.inputs, fgraph.outputs)
             time_toposort += time.time() - t0
             did_something = False
             nodelist.reverse()
@@ -2459,35 +2459,35 @@ class BatchedDot(COp):
 
         if test_values_enabled:
             try:
-                iv0 = theano.gof.op.get_test_value(inputs[0])
+                iv0 = theano.graph.op.get_test_value(inputs[0])
             except TestValueError:
-                theano.gof.op.missing_test_message(
+                theano.graph.op.missing_test_message(
                     "first input passed to BatchedDot.R_op has no test value"
                 )
                 test_values_enabled = False
 
             try:
-                iv1 = theano.gof.op.get_test_value(inputs[1])
+                iv1 = theano.graph.op.get_test_value(inputs[1])
             except TestValueError:
-                theano.gof.op.missing_test_message(
+                theano.graph.op.missing_test_message(
                     "second input passed to BatchedDot.R_op has no test value"
                 )
                 test_values_enabled = False
 
             if eval_points[0]:
                 try:
-                    ev0 = theano.gof.op.get_test_value(eval_points[0])
+                    ev0 = theano.graph.op.get_test_value(eval_points[0])
                 except TestValueError:
-                    theano.gof.op.missing_test_message(
+                    theano.graph.op.missing_test_message(
                         "first eval point passed to BatchedDot.R_op "
                         "has no test value"
                     )
                     test_values_enabled = False
             if eval_points[1]:
                 try:
-                    ev1 = theano.gof.op.get_test_value(eval_points[1])
+                    ev1 = theano.graph.op.get_test_value(eval_points[1])
                 except TestValueError:
-                    theano.gof.op.missing_test_message(
+                    theano.graph.op.missing_test_message(
                         "second eval point passed to BatchedDot.R_op "
                         "has no test value"
                     )

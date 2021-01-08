@@ -3,7 +3,7 @@ import sys
 import numpy as np
 
 import theano
-from theano.gof.type import Type
+from theano.graph.type import Type
 
 
 class RandomStateType(Type):

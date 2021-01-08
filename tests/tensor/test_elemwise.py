@@ -12,8 +12,8 @@ from tests import unittest_tools
 from theano import scalar
 from theano.compile.mode import Mode, get_default_mode
 from theano.configdefaults import config
-from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Variable
+from theano.graph.basic import Variable
+from theano.graph.fg import FunctionGraph
 from theano.link.basic import PerformLinker
 from theano.link.c.basic import CLinker, OpWiseCLinker
 from theano.tensor import TensorType, as_tensor_variable
@@ -1346,7 +1346,10 @@ def test_grad_useless_sum():
         TensorType.values_eq_approx = old_values_eq_approx
 
     assert not any(
-        [isinstance(node.op, Sum) for node in theano.gof.graph.applys_between([x], [g])]
+        [
+            isinstance(node.op, Sum)
+            for node in theano.graph.basic.applys_between([x], [g])
+        ]
     )
     assert np.allclose(
         outputs, [[-3.72007598e-44], [-0.26894142], [-0.5], [-0.73105858], [-1.0]]

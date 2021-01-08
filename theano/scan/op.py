@@ -60,13 +60,18 @@ from theano.compile.io import In, Out
 from theano.compile.mode import AddFeatureOptimizer, get_mode
 from theano.compile.profiling import ScanProfileStats, register_profiler_printer
 from theano.configdefaults import config
-from theano.gof.fg import MissingInputError
-from theano.gof.graph import Apply, Constant, Variable, equal_computations
-from theano.gof.graph import graph_inputs as graph_inputs
-from theano.gof.graph import io_connection_pattern
-from theano.gof.op import Op, ops_with_inner_function
-from theano.gof.toolbox import NoOutputFromInplace
 from theano.gradient import DisconnectedType, NullType, grad, grad_undefined
+from theano.graph.basic import (
+    Apply,
+    Constant,
+    Variable,
+    equal_computations,
+    graph_inputs,
+    io_connection_pattern,
+)
+from theano.graph.fg import MissingInputError
+from theano.graph.op import Op, ops_with_inner_function
+from theano.graph.toolbox import NoOutputFromInplace
 from theano.link.c.basic import CLinker
 from theano.link.c.exceptions import MissingGXX
 from theano.link.utils import raise_with_op

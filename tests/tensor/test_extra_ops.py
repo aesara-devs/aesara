@@ -6,7 +6,7 @@ from tests import unittest_tools as utt
 from theano import function
 from theano import tensor as tt
 from theano.configdefaults import config
-from theano.gof.graph import applys_between
+from theano.graph.basic import applys_between
 from theano.tensor.extra_ops import (
     Bartlett,
     BroadcastTo,

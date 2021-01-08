@@ -20,9 +20,9 @@ import theano.scalar.basic as ts
 from theano import compile
 from theano.compile.ops import Shape, Shape_i, ViewOp
 from theano.configdefaults import config
-from theano.gof import toolbox
-from theano.gof.fg import InconsistencyError
-from theano.gof.graph import (
+from theano.gradient import DisconnectedType
+from theano.graph import toolbox
+from theano.graph.basic import (
     Apply,
     Constant,
     Variable,
@@ -30,8 +30,9 @@ from theano.gof.graph import (
     equal_computations,
     io_toposort,
 )
-from theano.gof.op import COp, get_test_value
-from theano.gof.opt import (
+from theano.graph.fg import InconsistencyError
+from theano.graph.op import COp, get_test_value
+from theano.graph.opt import (
     GlobalOptimizer,
     LocalOptGroup,
     LocalOptimizer,
@@ -43,9 +44,12 @@ from theano.gof.opt import (
     in2out,
     local_optimizer,
 )
-from theano.gof.optdb import SequenceDB
-from theano.gof.utils import MethodNotDefined, TestValueError, get_variable_trace_string
-from theano.gradient import DisconnectedType
+from theano.graph.optdb import SequenceDB
+from theano.graph.utils import (
+    MethodNotDefined,
+    TestValueError,
+    get_variable_trace_string,
+)
 from theano.misc.safe_asarray import _asarray
 
 # Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
@@ -227,7 +231,7 @@ class InplaceElemwiseOptimizer(GlobalOptimizer):
         self.op = OP
 
     def add_requirements(self, fgraph):
-        from theano.gof.destroyhandler import DestroyHandler
+        from theano.graph.destroyhandler import DestroyHandler
 
         fgraph.attach_feature(DestroyHandler())
 
@@ -268,7 +272,7 @@ class InplaceElemwiseOptimizer(GlobalOptimizer):
         """
         # We should not validate too often as this takes too much time to
         # execute!
-        # It is the _dfs_toposort() fct in theano/gof/destroyhandler.py
+        # It is the _dfs_toposort() fct in theano/graph/destroyhandler.py
         # that takes so much time.
         # Should we try to use another lib that does toposort?
         #   igraph: http://igraph.sourceforge.net/
@@ -1662,7 +1666,7 @@ class ShapeFeature(toolbox.Feature):
             if dx.owner.inputs[0] == dy.owner.inputs[0]:
                 continue
             # To be sure to cover all case, call equal_computation.
-            # Can't use theano.gof.graph.is_same_graph(dx, dy)
+            # Can't use theano.graph.basic.is_same_graph(dx, dy)
             # As it currently expect that dx and dy aren't in a FunctionGraph
             if not equal_computations([dx], [dy]):
                 return False

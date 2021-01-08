@@ -2,8 +2,8 @@ import theano.tensor as tt
 from theano.compile import optdb
 from theano.compile.ops import Shape
 from theano.configdefaults import config
-from theano.gof.op import compute_test_value
-from theano.gof.opt import local_optimizer
+from theano.graph.op import compute_test_value
+from theano.graph.opt import local_optimizer
 from theano.tensor.elemwise import DimShuffle
 from theano.tensor.extra_ops import broadcast_to
 from theano.tensor.opt import in2out

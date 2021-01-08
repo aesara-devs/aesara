@@ -546,8 +546,8 @@ Modify and execute to work for a matrix of shape (20, 10).
     import theano.misc.pycuda_init
     from pycuda.compiler import SourceModule
     import theano.sandbox.cuda as cuda
-    from theano.gof.graph import Apply
-    from theano.gof.op import Op
+    from theano.graph.basic import Apply
+    from theano.graph.op import Op
 
 
     class PyCUDADoubleOp(Op):

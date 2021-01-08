@@ -291,7 +291,7 @@ We will be defining C code for the multiplication `COp` on doubles.
 
 .. testsetup::
 
-   from theano.gof.op import COp
+   from theano.graph.op import COp
    mul = COp()
 
 .. testcode::
@@ -338,8 +338,8 @@ version that it produces in the code I gave above.
 
 .. testcode::
 
-   from theano.gof.graph import Apply, Constant
-   from theano.gof.op import COp
+   from theano.graph.basic import Apply, Constant
+   from theano.graph.op import COp
 
 
    class BinaryDoubleOp(COp):

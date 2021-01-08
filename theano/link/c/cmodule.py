@@ -1120,7 +1120,7 @@ class ModuleCache:
             self.loaded_key_pkl.add(key_pkl)
         elif config.cmodule__warn_no_version:
             key_flat = flatten(key)
-            ops = [k for k in key_flat if isinstance(k, theano.gof.op.Op)]
+            ops = [k for k in key_flat if isinstance(k, theano.graph.op.Op)]
             _logger.warning(
                 "not all the"
                 " following op(s) implement"

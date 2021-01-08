@@ -10,12 +10,12 @@ import numpy as np
 
 import theano
 from theano import tensor
-from theano.gof.graph import Apply, Constant, Variable
-from theano.gof.op import OpenMPOp
-from theano.gof.params_type import ParamsType
-from theano.gof.type import EnumList
-from theano.gof.utils import MethodNotDefined
 from theano.gradient import DisconnectedType
+from theano.graph.basic import Apply, Constant, Variable
+from theano.graph.op import OpenMPOp
+from theano.graph.params_type import ParamsType
+from theano.graph.type import EnumList
+from theano.graph.utils import MethodNotDefined
 from theano.scalar import bool as bool_t
 
 

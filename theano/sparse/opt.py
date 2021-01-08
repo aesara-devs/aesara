@@ -4,9 +4,9 @@ import scipy
 import theano
 from theano import scalar, tensor
 from theano.configdefaults import config
-from theano.gof.graph import Apply
-from theano.gof.op import COp, _NoPythonCOp
-from theano.gof.opt import PatternSub, TopoOptimizer, local_optimizer
+from theano.graph.basic import Apply
+from theano.graph.op import COp, _NoPythonCOp
+from theano.graph.opt import PatternSub, TopoOptimizer, local_optimizer
 from theano.misc.safe_asarray import _asarray
 from theano.sparse import basic as sparse
 from theano.sparse.basic import (

@@ -58,7 +58,7 @@ def test_determinism_1():
             s = sharedX(0.0, name="s_" + str(i))
             updates.append((s, val))
 
-        for var in theano.gof.graph.ancestors(update for _, update in updates):
+        for var in theano.graph.basic.ancestors(update for _, update in updates):
             if var.name is not None and var.name != "b":
                 if var.name[0] != "s" or len(var.name) != 2:
                     var.name = None

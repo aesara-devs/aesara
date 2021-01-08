@@ -10,9 +10,9 @@ import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import function
 from theano.compile.mode import Mode, get_mode
-from theano.gof.graph import Apply
-from theano.gof.op import Op
-from theano.gof.type import generic
+from theano.graph.basic import Apply
+from theano.graph.op import Op
+from theano.graph.type import generic
 from theano.ifelse import IfElse, ifelse
 
 

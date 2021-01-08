@@ -5,10 +5,10 @@
 import numpy as np
 
 import theano
-from theano.gof.graph import Apply, Constant
-from theano.gof.op import Op
-from theano.gof.type import Generic, Type
 from theano.gradient import DisconnectedType
+from theano.graph.basic import Apply, Constant
+from theano.graph.op import Op
+from theano.graph.type import Generic, Type
 
 
 def as_int_none_variable(x):

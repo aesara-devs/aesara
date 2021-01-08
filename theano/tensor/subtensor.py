@@ -9,12 +9,12 @@ import numpy as np
 import theano
 from theano import scalar as scal
 from theano.configdefaults import config
-from theano.gof.graph import Apply, Variable
-from theano.gof.op import COp, Op
-from theano.gof.params_type import ParamsType
-from theano.gof.type import CType
-from theano.gof.utils import MethodNotDefined
 from theano.gradient import DisconnectedType
+from theano.graph.basic import Apply, Variable
+from theano.graph.op import COp, Op
+from theano.graph.params_type import ParamsType
+from theano.graph.type import CType
+from theano.graph.utils import MethodNotDefined
 from theano.misc.safe_asarray import _asarray
 from theano.printing import pprint
 from theano.tensor.basic import (

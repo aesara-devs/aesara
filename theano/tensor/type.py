@@ -6,8 +6,8 @@ import numpy as np
 import theano
 from theano import scalar as scal
 from theano.configdefaults import config
-from theano.gof.graph import Variable
-from theano.gof.type import CType
+from theano.graph.basic import Variable
+from theano.graph.type import CType
 from theano.misc.safe_asarray import _asarray
 
 

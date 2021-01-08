@@ -9,12 +9,12 @@ from theano.compile.function.types import orig_function
 from theano.compile.mode import optdb
 from theano.compile.sharedvalue import SharedVariable
 from theano.configdefaults import config
-from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Apply, Variable, graph_inputs, io_connection_pattern
-from theano.gof.null_type import NullType
-from theano.gof.op import Op, ops_with_inner_function
-from theano.gof.opt import in2out, local_optimizer
 from theano.gradient import DisconnectedType
+from theano.graph.basic import Apply, Variable, graph_inputs, io_connection_pattern
+from theano.graph.fg import FunctionGraph
+from theano.graph.null_type import NullType
+from theano.graph.op import Op, ops_with_inner_function
+from theano.graph.opt import in2out, local_optimizer
 from theano.tensor.opt import ShapeFeature
 
 
@@ -84,9 +84,9 @@ class OpFromGraph(Op):
     Parameters
     ----------
 
-    inputs: list of :class:`Variable <theano.gof.graph.Variable>`
+    inputs: list of :class:`Variable <theano.graph.basic.Variable>`
 
-    outputs: list of :class:`Variable <theano.gof.graph.Variable>`
+    outputs: list of :class:`Variable <theano.graph.basic.Variable>`
 
     inline: bool, optional
         Defaults to ``False``
@@ -108,15 +108,15 @@ class OpFromGraph(Op):
         arguments as one would specify in grad() method.
 
         callable : Should take two args: ``inputs`` and ``output_grads``.
-        Each argument is expected to be a list of :class:`Variable <theano.gof.graph.Variable>`.
-        Must return list of :class:`Variable <theano.gof.graph.Variable>`.
+        Each argument is expected to be a list of :class:`Variable <theano.graph.basic.Variable>`.
+        Must return list of :class:`Variable <theano.graph.basic.Variable>`.
 
         Variable :
             ``NullType() instance`` : Treat as non-differentiable
             ``DisconnectedType() instance`` : Treat as disconnected gradient, numerically gives zero
 
         list: Each OpFromGraph/callable must return a single
-        :class:`Variable <theano.gof.graph.Variable>`. Each list element corresponds to gradient of
+        :class:`Variable <theano.graph.basic.Variable>`. Each list element corresponds to gradient of
         a specific input, length of list must be equal to number of inputs.
 
     lop_overrides : single or list of {'default', OpFromGraph, callable, Variable with special type}, optional
@@ -130,15 +130,15 @@ class OpFromGraph(Op):
         arguments as one would specify in grad() method.
 
         callable : Should take three args: ``inputs``, ``outputs`` and ``output_grads``.
-        Each argument is expected to be a list of :class:`Variable <theano.gof.graph.Variable>`.
-        Must return list of :class:`Variable <theano.gof.graph.Variable>`.
+        Each argument is expected to be a list of :class:`Variable <theano.graph.basic.Variable>`.
+        Must return list of :class:`Variable <theano.graph.basic.Variable>`.
 
         Variable :
             ``NullType() instance`` : Treat as non-differentiable
             ``DisconnectedType() instance`` : Treat as disconnected gradient, numerically gives zero
 
         list: Each OpFromGraph/callable must return a single
-        :class:`Variable <theano.gof.graph.Variable>`. Each list element corresponds to gradient of
+        :class:`Variable <theano.graph.basic.Variable>`. Each list element corresponds to gradient of
         a specific input, length of list must be equal to number of inputs.
 
     rop_overrides : single or list of {'default', OpFromGraph, callable, Variable with special type}, optional
@@ -151,15 +151,15 @@ class OpFromGraph(Op):
         arguments as one would specify in R_op() method.
 
         callable : Should take two args: ``inputs`` and ``eval_points``.
-        Each argument is expected to be a list of :class:`Variable <theano.gof.graph.Variable>`.
-        Must return list of :class:`Variable <theano.gof.graph.Variable>`.
+        Each argument is expected to be a list of :class:`Variable <theano.graph.basic.Variable>`.
+        Must return list of :class:`Variable <theano.graph.basic.Variable>`.
 
         Variable :
             ``NullType() instance`` : Treat as non-differentiable
             ``DisconnectedType() instance`` : Treat as zero since DisconnectedType is not yet supported in R_op
 
         list: Each OpFromGraph/callable must return a single
-        :class:`Variable <theano.gof.graph.Variable>`. Each list element corresponds
+        :class:`Variable <theano.graph.basic.Variable>`. Each list element corresponds
         to a specific output of R_op, length of list must be equal to number of outputs.
 
     connection_pattern : list of list

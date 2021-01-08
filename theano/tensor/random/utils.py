@@ -4,7 +4,7 @@ from itertools import zip_longest
 import numpy as np
 
 from theano.compile.sharedvalue import shared
-from theano.gof.graph import Variable
+from theano.graph.basic import Variable
 from theano.tensor.basic import maximum
 from theano.tensor.extra_ops import broadcast_to
 

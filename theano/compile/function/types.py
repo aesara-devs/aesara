@@ -20,9 +20,7 @@ from theano.compile.compilelock import lock_ctx
 from theano.compile.io import In, SymbolicInput, SymbolicOutput
 from theano.compile.ops import deep_copy_op, view_op
 from theano.configdefaults import config
-from theano.gof.destroyhandler import DestroyHandler
-from theano.gof.fg import FunctionGraph, InconsistencyError
-from theano.gof.graph import (
+from theano.graph.basic import (
     Constant,
     Variable,
     ancestors,
@@ -30,9 +28,11 @@ from theano.gof.graph import (
     graph_inputs,
     vars_between,
 )
-from theano.gof.op import ops_with_inner_function
-from theano.gof.toolbox import PreserveVariableAttributes, is_same_graph
-from theano.gof.utils import get_variable_trace_string
+from theano.graph.destroyhandler import DestroyHandler
+from theano.graph.fg import FunctionGraph, InconsistencyError
+from theano.graph.op import ops_with_inner_function
+from theano.graph.toolbox import PreserveVariableAttributes, is_same_graph
+from theano.graph.utils import get_variable_trace_string
 from theano.link.basic import Container
 from theano.link.utils import raise_with_op
 

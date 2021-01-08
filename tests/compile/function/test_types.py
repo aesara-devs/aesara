@@ -12,9 +12,9 @@ from theano.compile.function import function
 from theano.compile.function.types import UnusedInputError
 from theano.compile.io import In, Out
 from theano.configdefaults import config
-from theano.gof.fg import MissingInputError
-from theano.gof.graph import Constant
-from theano.gof.opt import OpKeyOptimizer, PatternSub
+from theano.graph.basic import Constant
+from theano.graph.fg import MissingInputError
+from theano.graph.opt import OpKeyOptimizer, PatternSub
 from theano.utils import exc_message
 
 

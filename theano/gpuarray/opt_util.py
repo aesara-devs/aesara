@@ -4,9 +4,6 @@ import numpy as np
 
 from theano import scalar as scal
 from theano import tensor
-from theano.gof.graph import Constant
-from theano.gof.op import Op
-from theano.gof.opt import copy_stack_trace, inherit_stack_trace, local_optimizer
 from theano.gpuarray.basic_ops import (
     GpuAllocEmpty,
     GpuFromHost,
@@ -16,6 +13,9 @@ from theano.gpuarray.basic_ops import (
 )
 from theano.gpuarray.elemwise import GpuDimShuffle, GpuElemwise
 from theano.gpuarray.type import GpuArrayType, get_context, move_to_gpu
+from theano.graph.basic import Constant
+from theano.graph.op import Op
+from theano.graph.opt import copy_stack_trace, inherit_stack_trace, local_optimizer
 from theano.tensor import DimShuffle, NotScalarConstantError, get_scalar_constant_value
 
 

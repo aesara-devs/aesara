@@ -22,10 +22,10 @@ import theano
 from theano import scalar
 from theano.compile import optdb
 from theano.configdefaults import config
-from theano.gof.graph import Apply
-from theano.gof.op import COp, Op
-from theano.gof.opt import copy_stack_trace, local_optimizer, optimizer
 from theano.gradient import DisconnectedType, grad_not_implemented
+from theano.graph.basic import Apply
+from theano.graph.op import COp, Op
+from theano.graph.opt import copy_stack_trace, local_optimizer, optimizer
 from theano.scalar import UnaryScalarOp
 
 # Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
@@ -276,7 +276,7 @@ class SoftmaxWithBias(COp):
             """
                 % locals()
             )
-        except theano.gof.utils.MethodNotDefined:
+        except theano.graph.utils.MethodNotDefined:
             pass
         end_row_loop = """
         }
@@ -598,7 +598,7 @@ class Softmax(COp):
             """
                 % locals()
             )
-        except theano.gof.utils.MethodNotDefined:
+        except theano.graph.utils.MethodNotDefined:
             pass
 
         end_row_loop = """

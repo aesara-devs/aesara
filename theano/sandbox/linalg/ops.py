@@ -2,9 +2,9 @@ import logging
 
 import theano.tensor
 from theano import tensor
-from theano.gof.graph import Apply
-from theano.gof.op import Op
-from theano.gof.opt import GlobalOptimizer, local_optimizer
+from theano.graph.basic import Apply
+from theano.graph.op import Op
+from theano.graph.opt import GlobalOptimizer, local_optimizer
 from theano.tensor import DimShuffle, Dot
 from theano.tensor.blas import Dot22
 from theano.tensor.nlinalg import (

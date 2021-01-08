@@ -1,9 +1,9 @@
 import numpy as np
 
-from theano.gof.graph import Apply, Constant, Variable
-from theano.gof.op import Op
-from theano.gof.sched import key_to_cmp
-from theano.gof.type import Generic
+from theano.graph.basic import Apply, Constant, Variable
+from theano.graph.op import Op
+from theano.graph.sched import key_to_cmp
+from theano.graph.type import Generic
 from theano.tensor import tensor
 
 

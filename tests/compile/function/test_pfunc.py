@@ -607,7 +607,7 @@ class TestPfunc:
         assert y.get_value() == 2
 
         # a is needed as input if y.default_update is used
-        with pytest.raises(theano.gof.fg.MissingInputError):
+        with pytest.raises(theano.graph.fg.MissingInputError):
             pfunc([], x)
 
     def test_default_updates_partial_graph(self):

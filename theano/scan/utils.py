@@ -22,11 +22,11 @@ import numpy as np
 from theano import scalar, tensor
 from theano.compile.function.pfunc import rebuild_collect_shared
 from theano.configdefaults import config
-from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Constant, Variable, equal_computations, graph_inputs
-from theano.gof.op import get_test_value
-from theano.gof.opt import TopoOptimizer, local_optimizer
-from theano.gof.utils import TestValueError
+from theano.graph.basic import Constant, Variable, equal_computations, graph_inputs
+from theano.graph.fg import FunctionGraph
+from theano.graph.op import get_test_value
+from theano.graph.opt import TopoOptimizer, local_optimizer
+from theano.graph.utils import TestValueError
 from theano.tensor.basic import get_scalar_constant_value
 
 

@@ -5,9 +5,6 @@ import pkg_resources
 from numpy.linalg.linalg import LinAlgError
 
 from theano import config, tensor
-from theano.gof.graph import Apply
-from theano.gof.op import ExternalCOp, Op
-from theano.gof.params_type import ParamsType
 from theano.gpuarray.basic_ops import (
     CGpuKernelBase,
     as_gpuarray_variable,
@@ -16,6 +13,9 @@ from theano.gpuarray.basic_ops import (
     infer_context_name,
 )
 from theano.gpuarray.type import GpuArrayType, gpu_context_type
+from theano.graph.basic import Apply
+from theano.graph.op import ExternalCOp, Op
+from theano.graph.params_type import ParamsType
 from theano.scalar import bool as bool_t
 
 

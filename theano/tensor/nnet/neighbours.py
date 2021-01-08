@@ -6,10 +6,10 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
-from theano.gof.graph import Apply
-from theano.gof.op import COp
-from theano.gof.type import EnumList
 from theano.gradient import grad_not_implemented, grad_undefined
+from theano.graph.basic import Apply
+from theano.graph.op import COp
+from theano.graph.type import EnumList
 
 
 class Images2Neibs(COp):
@@ -193,7 +193,7 @@ class Images2Neibs(COp):
         (z,) = out_
         # GpuImages2Neibs should not run this perform in DebugMode
         if type(self) != Images2Neibs:
-            raise theano.gof.utils.MethodNotDefined()
+            raise theano.graph.utils.MethodNotDefined()
 
         def CEIL_INTDIV(a, b):
             if a % b:

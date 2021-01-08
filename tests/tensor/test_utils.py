@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import theano
-from theano.gof.fg import FunctionGraph
+from theano.graph.fg import FunctionGraph
 from theano.tensor.utils import hash_from_ndarray, shape_of_variables
 
 

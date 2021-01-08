@@ -3,11 +3,11 @@ from io import StringIO
 import numpy as np
 
 import theano.tensor as tt
-from theano.gof.graph import Apply
-from theano.gof.op import COp, Op
-from theano.gof.params_type import ParamsType
-from theano.gof.type import CType
 from theano.gradient import grad_not_implemented
+from theano.graph.basic import Apply
+from theano.graph.op import COp, Op
+from theano.graph.params_type import ParamsType
+from theano.graph.type import CType
 from theano.link.c.interface import HideC
 from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int_t

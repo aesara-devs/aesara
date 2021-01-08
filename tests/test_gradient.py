@@ -7,9 +7,9 @@ import theano
 from tests import unittest_tools as utt
 from theano import gradient
 from theano.configdefaults import config
-from theano.gof.graph import Apply
-from theano.gof.null_type import NullType
-from theano.gof.op import Op
+from theano.graph.basic import Apply
+from theano.graph.null_type import NullType
+from theano.graph.op import Op
 from theano.sandbox.rng_mrg import MRG_RandomStream
 
 
@@ -22,7 +22,9 @@ def grad_sources_inputs(sources, inputs):
     the new interface so the tests don't need to be rewritten.
     """
     if inputs is None:
-        inputs = list(theano.gof.graph.graph_inputs([source[0] for source in sources]))
+        inputs = list(
+            theano.graph.basic.graph_inputs([source[0] for source in sources])
+        )
     return dict(
         zip(
             inputs,

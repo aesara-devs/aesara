@@ -49,7 +49,7 @@ instruction. Behind the scene, *f* was being compiled into C code.
   >>> y = -x
 
   *x* and *y* are both Variables, i.e. instances of the
-  ``theano.gof.graph.Variable`` class. The
+  ``theano.graph.basic.Variable`` class. The
   type of both *x* and *y* is ``theano.tensor.ivector``.
 
 
@@ -117,7 +117,7 @@ then be used like a normal Python function.
 .. note::
 
     As a shortcut, you can skip step 3, and just use a variable's
-    :func:`eval <theano.gof.graph.Variable.eval>` method.
+    :func:`eval <theano.graph.basic.Variable.eval>` method.
     The :func:`eval` method is not as flexible
     as :func:`function` but it can do everything we've covered in
     the tutorial so far. It has the added benefit of not requiring

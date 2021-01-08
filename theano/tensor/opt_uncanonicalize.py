@@ -34,7 +34,7 @@ supposed to be canonical.
 import logging
 
 from theano import scalar as scal
-from theano.gof.opt import copy_stack_trace, local_optimizer
+from theano.graph.opt import copy_stack_trace, local_optimizer
 from theano.tensor import basic as tt
 from theano.tensor.elemwise import CAReduce, DimShuffle
 from theano.tensor.opt import register_uncanonicalize

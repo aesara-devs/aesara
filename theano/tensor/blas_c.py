@@ -1,8 +1,8 @@
 # import theano.tensor.basic as tt
 
 from theano.configdefaults import config
-from theano.gof.op import COp
-from theano.gof.params_type import ParamsType
+from theano.graph.op import COp
+from theano.graph.params_type import ParamsType
 from theano.scalar import bool as bool_t
 
 # Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`

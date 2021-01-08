@@ -28,12 +28,12 @@ from theano.compile.function.types import (
 from theano.compile.mode import Mode, register_mode
 from theano.compile.ops import OutputGuard, _output_guard
 from theano.configdefaults import config
-from theano.gof.destroyhandler import DestroyHandler
-from theano.gof.fg import InconsistencyError
-from theano.gof.graph import Variable, graph_inputs, io_toposort
-from theano.gof.op import COp, Op, ops_with_inner_function
-from theano.gof.toolbox import BadOptimization
-from theano.gof.utils import MethodNotDefined
+from theano.graph.basic import Variable, graph_inputs, io_toposort
+from theano.graph.destroyhandler import DestroyHandler
+from theano.graph.fg import InconsistencyError
+from theano.graph.op import COp, Op, ops_with_inner_function
+from theano.graph.toolbox import BadOptimization
+from theano.graph.utils import MethodNotDefined
 from theano.link.basic import Container, LocalLinker
 from theano.link.utils import map_storage, raise_with_op
 from theano.utils import NoDuplicateOptWarningFilter, difference, get_unbound_function
@@ -948,7 +948,7 @@ def _lessbroken_deepcopy(a):
     """
     # this exists because copy.deepcopy on numpy arrays is broken
     # This logic is also in link.py
-    from theano.gof.type import _cdata_type
+    from theano.graph.type import _cdata_type
 
     if type(a) in (np.ndarray, np.memmap):
         rval = a.copy(order="K")

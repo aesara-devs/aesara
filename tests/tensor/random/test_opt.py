@@ -5,10 +5,10 @@ import theano.tensor as tt
 from theano import change_flags, config, shared
 from theano.compile.function import function
 from theano.compile.mode import Mode
-from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Constant
-from theano.gof.opt import EquilibriumOptimizer
-from theano.gof.optdb import Query
+from theano.graph.basic import Constant
+from theano.graph.fg import FunctionGraph
+from theano.graph.opt import EquilibriumOptimizer
+from theano.graph.optdb import Query
 from theano.tensor.elemwise import DimShuffle
 from theano.tensor.random.basic import (
     dirichlet,

@@ -15,11 +15,11 @@ from theano.compile.mode import FAST_RUN, get_mode
 from theano.compile.ops import ViewOp
 from theano.compile.sharedvalue import shared
 from theano.configdefaults import config
-from theano.gof import utils
-from theano.gof.graph import Variable
-from theano.gof.null_type import NullType, null_type
-from theano.gof.op import get_test_values
-from theano.gof.type import Type
+from theano.graph import utils
+from theano.graph.basic import Variable
+from theano.graph.null_type import NullType, null_type
+from theano.graph.op import get_test_values
+from theano.graph.type import Type
 
 
 __authors__ = (
@@ -174,13 +174,13 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
 
     Parameters
     ----------
-    f : :class:`~theano.gof.graph.Variable` or list of Variables
+    f : :class:`~theano.graph.basic.Variable` or list of Variables
         `f` stands for the output of the computational graph to which you
         want to apply the R operator
-    wrt : :class:`~theano.gof.graph.Variable` or list of Variables
+    wrt : :class:`~theano.graph.basic.Variable` or list of Variables
         variables for which you compute the R operator of the expression
         described by `f`
-    eval_points : :class:`~theano.gof.graph.Variable` or list of Variables
+    eval_points : :class:`~theano.graph.basic.Variable` or list of Variables
         evalutation points for each of the variables in `wrt`
     disconnected_outputs : str
         Defines the behaviour if some of the variables in `f`
@@ -200,7 +200,7 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
 
     Returns
     -------
-    :class:`~theano.gof.graph.Variable` or list/tuple of Variables depending on type of f
+    :class:`~theano.graph.basic.Variable` or list/tuple of Variables depending on type of f
         Symbolic expression such that
         R_op[i] = sum_j (d f[i] / d wrt[j]) eval_point[j]
         where the indices in that expression are magic multidimensional
@@ -376,18 +376,18 @@ def Lop(f, wrt, eval_points, consider_constant=None, disconnected_inputs="raise"
 
     Parameters
     ----------
-    f : :class:`~theano.gof.graph.Variable` or list of Variables
+    f : :class:`~theano.graph.basic.Variable` or list of Variables
         `f` stands for the output of the computational graph to which you
         want to apply the L operator
-    wrt : :class:`~theano.gof.graph.Variable` or list of Variables
+    wrt : :class:`~theano.graph.basic.Variable` or list of Variables
         variables for which you compute the L operator of the expression
         described by `f`
-    eval_points : :class:`~theano.gof.graph.Variable` or list of Variables
+    eval_points : :class:`~theano.graph.basic.Variable` or list of Variables
         evalutation points for each of the variables in `f`
 
     Returns
     -------
-    :class:`~theano.gof.graph.Variable` or list/tuple of Variables depending on type of `f`
+    :class:`~theano.graph.basic.Variable` or list/tuple of Variables depending on type of `f`
         Symbolic expression such that
         ``L_op[i] = sum_i (d f[i] / d wrt[j]) eval_point[i]``
         where the indices in that expression are magic multidimensional
@@ -449,10 +449,10 @@ def grad(
 
     Parameters
     ----------
-    cost : :class:`~theano.gof.graph.Variable` scalar (0-dimensional) tensor variable or ``None``
+    cost : :class:`~theano.graph.basic.Variable` scalar (0-dimensional) tensor variable or ``None``
         Value that we are differentiating (that we want the gradient of).
         May be `None` if `known_grads` is provided.
-    wrt : :class:`~theano.gof.graph.Variable` or list of Variables
+    wrt : :class:`~theano.graph.basic.Variable` or list of Variables
         Term[s] with respect to which we want gradients
     consider_constant : list of variables
         Expressions not to backpropagate through
@@ -733,7 +733,7 @@ def subgraph_grad(wrt, end, start=None, cost=None, details=False):
         to the variables in `end` (they are used as known_grad in
         theano.grad).
 
-    cost : :class:`~theano.gof.graph.Variable` scalar (0-dimensional) variable
+    cost : :class:`~theano.graph.basic.Variable` scalar (0-dimensional) variable
         Additional costs for which to compute the gradients.  For
         example, these could be weight decay, an l1 constraint, MSE,
         NLL, etc. May optionally be None if start is provided.
@@ -1927,9 +1927,9 @@ def jacobian(expression, wrt, consider_constant=None, disconnected_inputs="raise
 
     Parameters
     ----------
-    expression : Vector (1-dimensional) :class:`~theano.gof.graph.Variable`
+    expression : Vector (1-dimensional) :class:`~theano.graph.basic.Variable`
         Values that we are differentiating (that we want the Jacobian of)
-    wrt : :class:`~theano.gof.graph.Variable` or list of Variables
+    wrt : :class:`~theano.graph.basic.Variable` or list of Variables
         Term[s] with respect to which we compute the Jacobian
     consider_constant : list of variables
         Expressions not to backpropagate through
@@ -1945,7 +1945,7 @@ def jacobian(expression, wrt, consider_constant=None, disconnected_inputs="raise
 
     Returns
     -------
-    :class:`~theano.gof.graph.Variable` or list/tuple of Variables (depending upon `wrt`)
+    :class:`~theano.graph.basic.Variable` or list/tuple of Variables (depending upon `wrt`)
         The Jacobian of `expression` with respect to (elements of) `wrt`.
         If an element of `wrt` is not differentiable with respect to the
         output, then a zero variable is returned. The return value is
@@ -2033,7 +2033,7 @@ def hessian(cost, wrt, consider_constant=None, disconnected_inputs="raise"):
 
     Returns
     -------
-    :class:`~theano.gof.graph.Variable` or list/tuple of Variables
+    :class:`~theano.graph.basic.Variable` or list/tuple of Variables
         The Hessian of the `cost` with respect to (elements of) `wrt`.
         If an element of `wrt` is not differentiable with respect to the
         output, then a zero variable is returned. The return value is
@@ -2190,12 +2190,12 @@ def zero_grad(x):
 
     Parameters
     ----------
-    x: :class:`~theano.gof.graph.Variable`
+    x: :class:`~theano.graph.basic.Variable`
         A Theano expression whose gradient should be truncated.
 
     Returns
     -------
-    :class:`~theano.gof.graph.Variable`
+    :class:`~theano.graph.basic.Variable`
         An expression equivalent to ``x``, with its gradient
         truncated to 0.
     """
@@ -2229,12 +2229,12 @@ def undefined_grad(x):
 
     Parameters
     ----------
-    x: :class:`~theano.gof.graph.Variable`
+    x: :class:`~theano.graph.basic.Variable`
         A Theano expression whose gradient should be undefined.
 
     Returns
     -------
-    :class:`~theano.gof.graph.Variable`
+    :class:`~theano.graph.basic.Variable`
         An expression equivalent to ``x``, with its gradient undefined.
     """
     return undefined_grad_(x)
@@ -2270,13 +2270,13 @@ def disconnected_grad(x):
 
     Parameters
     ----------
-    x: :class:`~theano.gof.graph.Variable`
+    x: :class:`~theano.graph.basic.Variable`
         A Theano expression whose gradient should not be
         backpropagated through.
 
     Returns
     -------
-    :class:`~theano.gof.graph.Variable`
+    :class:`~theano.graph.basic.Variable`
         An expression equivalent to ``x``, with its gradient
         now effectively truncated to 0.
     """

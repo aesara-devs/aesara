@@ -3,10 +3,10 @@ import sys
 
 import theano.tensor as tt
 from theano.configdefaults import config
-from theano.gof.graph import Apply
-from theano.gof.op import ExternalCOp, OpenMPOp
-from theano.gof.opt import local_optimizer
 from theano.gradient import grad_undefined
+from theano.graph.basic import Apply
+from theano.graph.op import ExternalCOp, OpenMPOp
+from theano.graph.opt import local_optimizer
 from theano.link.c.cmodule import GCC_compiler
 from theano.tensor.extra_ops import cpu_contiguous
 from theano.tensor.opt import register_canonicalize

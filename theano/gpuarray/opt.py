@@ -16,16 +16,6 @@ from theano.breakpoint import PdbBreakpoint
 from theano.compile import optdb
 from theano.compile.ops import shape_i
 from theano.configdefaults import config
-from theano.gof import graph, toolbox
-from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Constant, Variable
-from theano.gof.opt import (
-    GlobalOptimizer,
-    LocalMetaOptimizer,
-    copy_stack_trace,
-    inherit_stack_trace,
-    local_optimizer,
-)
 from theano.gpuarray.basic_ops import (
     GpuAlloc,
     GpuAllocEmpty,
@@ -157,6 +147,16 @@ from theano.gpuarray.type import (
     GpuArrayType,
     get_context,
     move_to_gpu,
+)
+from theano.graph import toolbox
+from theano.graph.basic import Constant, Variable, applys_between
+from theano.graph.fg import FunctionGraph
+from theano.graph.opt import (
+    GlobalOptimizer,
+    LocalMetaOptimizer,
+    copy_stack_trace,
+    inherit_stack_trace,
+    local_optimizer,
 )
 from theano.ifelse import IfElse
 from theano.link.c.basic import CLinker
@@ -385,7 +385,7 @@ class GraphToGPU(GlobalOptimizer):
                         break
             outputs = []
 
-            if isinstance(new_ops, theano.gof.op.Op):
+            if isinstance(new_ops, theano.graph.op.Op):
                 with inherit_stack_trace(node.outputs):
                     outputs = new_ops(
                         *[mapping[i] for i in node.inputs], return_list=True
@@ -405,7 +405,7 @@ class GraphToGPU(GlobalOptimizer):
 
             if new_ops:
                 node_created[lopt] += len(
-                    graph.applys_between([mapping[i] for i in node.inputs], outputs)
+                    applys_between([mapping[i] for i in node.inputs], outputs)
                 )
                 if any(
                     [

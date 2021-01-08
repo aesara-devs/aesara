@@ -74,9 +74,9 @@ attribute :attr:`params_type` to an instance of your params Type.
 .. note::
 
    If you want to have multiple parameters, Theano provides the convenient class
-   :class:`theano.gof.params_type.ParamsType` that allows to bundle many parameters into
+   :class:`theano.graph.params_type.ParamsType` that allows to bundle many parameters into
    one object that will be available in both Python (as a Python object) and C code (as a struct).
-   See :ref:`ParamsType tutorial and API documentation <libdoc_gof_params_type>` for more infos.
+   See :ref:`ParamsType tutorial and API documentation <libdoc_graph_params_type>` for more infos.
 
 For example if we decide to use an int as the params the following
 would be appropriate:
@@ -139,8 +139,8 @@ the params type.
 
 .. testcode::
 
-   from theano.gof.op import COp
-   from theano.gof.type import Generic
+   from theano.graph.op import COp
+   from theano.graph.type import Generic
    from theano.scalar import as_scalar
 
    class MulOp(COp):
@@ -176,7 +176,7 @@ weights.
 .. testcode::
 
    from theano import Op
-   from theano.gof.type import Generic
+   from theano.graph.type import Generic
    from theano.scalar import as_scalar
 
    class ab(object):

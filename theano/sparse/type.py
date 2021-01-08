@@ -10,7 +10,7 @@ except ImportError:
 
 
 import theano
-from theano.gof.type import Type
+from theano.graph.type import Type
 
 
 def _is_sparse(x):

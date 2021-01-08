@@ -1,5 +1,5 @@
 from theano.compile import optdb
-from theano.gof.opt import TopoOptimizer, local_optimizer
+from theano.graph.opt import TopoOptimizer, local_optimizer
 from theano.typed_list.basic import Append, Extend, Insert, Remove, Reverse
 
 

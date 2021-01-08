@@ -1,8 +1,8 @@
 from abc import abstractmethod
 from typing import Dict, List, Text, Tuple
 
-from theano.gof.graph import Apply, Constant
-from theano.gof.utils import MethodNotDefined
+from theano.graph.basic import Apply, Constant
+from theano.graph.utils import MethodNotDefined
 
 
 class CLinkerObject:

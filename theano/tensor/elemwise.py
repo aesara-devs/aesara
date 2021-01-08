@@ -5,11 +5,11 @@ import numpy as np
 import theano
 from theano import scalar
 from theano.configdefaults import config
-from theano.gof.graph import Apply
-from theano.gof.null_type import NullType
-from theano.gof.op import COp, ExternalCOp, OpenMPOp
-from theano.gof.params_type import ParamsType
 from theano.gradient import DisconnectedType
+from theano.graph.basic import Apply
+from theano.graph.null_type import NullType
+from theano.graph.op import COp, ExternalCOp, OpenMPOp
+from theano.graph.params_type import ParamsType
 from theano.misc.frozendict import frozendict
 from theano.misc.safe_asarray import _asarray
 from theano.printing import FunctionPrinter, pprint
@@ -1139,7 +1139,7 @@ second dimension
                 contig = self.scalar_op.c_code_contiguous(
                     node, nodename + "_scalar_contig_", _inames, onames, sub
                 )
-            except theano.gof.utils.MethodNotDefined:
+            except theano.graph.utils.MethodNotDefined:
                 # Try to make one generic version, this will help the
                 # compiler to vectorize the code as their won't be as
                 # many ptr and the stride will be hard coded.
@@ -1494,7 +1494,7 @@ class CAReduce(COp):
 
         if hasattr(self, "acc_dtype") and self.acc_dtype is not None:
             if self.acc_dtype == "float16":
-                raise theano.gof.utils.MethodNotDefined("no c_code for " "float16")
+                raise theano.graph.utils.MethodNotDefined("no c_code for " "float16")
             acc_type = TensorType(
                 broadcastable=node.outputs[0].broadcastable, dtype=self.acc_dtype
             )

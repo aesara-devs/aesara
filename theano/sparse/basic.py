@@ -16,9 +16,9 @@ from numpy.lib.stride_tricks import as_strided
 import theano
 from theano import scalar, tensor
 from theano.configdefaults import config
-from theano.gof.graph import Apply, Constant, Variable
-from theano.gof.op import COp, Op
 from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
+from theano.graph.basic import Apply, Constant, Variable
+from theano.graph.op import COp, Op
 from theano.misc.safe_asarray import _asarray
 from theano.sparse.type import SparseType, _is_sparse
 from theano.sparse.utils import hash_from_sparse
@@ -1249,7 +1249,7 @@ class GetItem2d(Op):
         assert len(index) in [1, 2]
 
         input_op = [x]
-        generic_None = Constant(theano.gof.type.generic, None)
+        generic_None = Constant(theano.graph.type.generic, None)
 
         for ind in index:
             if isinstance(ind, slice):

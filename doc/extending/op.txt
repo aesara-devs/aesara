@@ -5,7 +5,7 @@ Making arithmetic Ops on double
 
 .. testsetup:: *
 
-   from theano.gof.type import Type
+   from theano.graph.type import Type
 
    class Double(Type):
 
@@ -560,7 +560,7 @@ First, we'll instantiate a ``mul`` Op:
 
 .. testcode:: mul
 
-   from theano.gof.op import Op
+   from theano.graph.op import Op
 
 
    mul = Op()
@@ -660,7 +660,7 @@ they are magically cast to the right type. Now, what if we try this?
    >>> z = mul(x, 2)
    Traceback (most recent call last):
      File "<stdin>", line 1, in <module>
-     File "/u/breuleuo/hg/theano/theano/gof/op.py", line 207, in __call__
+     File "/u/breuleuo/hg/theano/theano/graph/op.py", line 207, in __call__
      File "<stdin>", line 2, in make_node
    AttributeError: 'int' object has no attribute 'type'
 
@@ -719,8 +719,8 @@ arithmetic operators:
 
 .. testcode::
 
-   from theano.gof.graph import Apply, Constant
-   from theano.gof.op import Op
+   from theano.graph.basic import Apply, Constant
+   from theano.graph.op import Op
 
 
    class BinaryDoubleOp(Op):

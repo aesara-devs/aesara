@@ -2,9 +2,9 @@ import numpy as np
 
 import theano
 from theano.configdefaults import config
-from theano.gof.graph import Apply
-from theano.gof.op import Op
-from theano.gof.opt import copy_stack_trace, local_optimizer
+from theano.graph.basic import Apply
+from theano.graph.op import Op
+from theano.graph.opt import copy_stack_trace, local_optimizer
 from theano.scalar import Composite, add, as_common_dtype, mul, sub, true_div
 
 # Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
@@ -827,7 +827,7 @@ def local_abstract_batch_norm_train(fgraph, node):
         for (r, r_orig) in zip(results, node.outputs)
     ]
 
-    for var in theano.gof.graph.vars_between(node.inputs, results):
+    for var in theano.graph.basic.vars_between(node.inputs, results):
         if var not in node.inputs:
             copy_stack_trace(node.outputs[0], var)
     return results
@@ -866,7 +866,7 @@ def local_abstract_batch_norm_train_grad(fgraph, node):
         for (r, r_orig) in zip(results, node.outputs)
     ]
 
-    for var in theano.gof.graph.vars_between(node.inputs, results):
+    for var in theano.graph.basic.vars_between(node.inputs, results):
         if var not in node.inputs:
             copy_stack_trace(node.outputs[0], var)
     return results
@@ -898,14 +898,14 @@ def local_abstract_batch_norm_inference(fgraph, node):
     ) + bias
     result = tt.patternbroadcast(result, node.outputs[0].broadcastable)
 
-    for var in theano.gof.graph.vars_between(node.inputs, [result]):
+    for var in theano.graph.basic.vars_between(node.inputs, [result]):
         if var not in node.inputs:
             copy_stack_trace(node.outputs[0], var)
     return [result]
 
 
 # Register Cpu Optmization
-bn_groupopt = theano.gof.optdb.LocalGroupDB()
+bn_groupopt = theano.graph.optdb.LocalGroupDB()
 bn_groupopt.__name__ = "batchnorm_opts"
 register_specialize_device(bn_groupopt, "fast_compile", "fast_run")
 

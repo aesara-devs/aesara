@@ -36,7 +36,7 @@ Glossary
 
         Then a `constant` is created to represent the ``3`` in the graph.
 
-        See also: :class:`gof.graph.Constant`
+        See also: :class:`graph.basic.Constant`
 
 
     Elementwise

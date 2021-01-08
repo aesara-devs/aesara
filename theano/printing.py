@@ -17,10 +17,17 @@ import numpy as np
 import theano
 from theano.compile import Function, SharedVariable, debugmode
 from theano.configdefaults import config
-from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Apply, Constant, Node, Variable, graph_inputs, io_toposort
-from theano.gof.op import Op
-from theano.gof.utils import Scratchpad
+from theano.graph.basic import (
+    Apply,
+    Constant,
+    Node,
+    Variable,
+    graph_inputs,
+    io_toposort,
+)
+from theano.graph.fg import FunctionGraph
+from theano.graph.op import Op
+from theano.graph.utils import Scratchpad
 
 
 pydot_imported = False
@@ -73,7 +80,7 @@ def debugprint(
 ):
     """Print a computation graph as text to stdout or a file.
 
-    :type obj: :class:`~theano.gof.graph.Variable`, Apply, or Function instance
+    :type obj: :class:`~theano.graph.basic.Variable`, Apply, or Function instance
     :param obj: symbolic thing to print
     :type depth: integer
     :param depth: print graph to this depth (-1 for unlimited)

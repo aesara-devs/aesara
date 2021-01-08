@@ -1,7 +1,6 @@
 import theano
 from theano.compile import optdb
 from theano.compile.ops import shape_i_op
-from theano.gof.opt import GlobalOptimizer, inherit_stack_trace, local_optimizer
 from theano.gpuarray.basic_ops import (
     GpuAllocEmpty,
     GpuArrayType,
@@ -50,6 +49,7 @@ from theano.gpuarray.optdb import (
 )
 from theano.gpuarray.reduction import GpuMaxAndArgmax
 from theano.gpuarray.type import list_contexts
+from theano.graph.opt import GlobalOptimizer, inherit_stack_trace, local_optimizer
 from theano.scalar import Log
 from theano.tensor import Argmax
 from theano.tensor.nnet import LogSoftmax, SoftmaxGrad

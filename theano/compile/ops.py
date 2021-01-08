@@ -13,10 +13,10 @@ from collections import OrderedDict
 import numpy as np
 
 import theano
-from theano.gof.graph import Apply, Variable
-from theano.gof.op import COp, Op
-from theano.gof.params_type import ParamsType
-from theano.gof.type import CType
+from theano.graph.basic import Apply, Variable
+from theano.graph.op import COp, Op
+from theano.graph.params_type import ParamsType
+from theano.graph.type import CType
 from theano.misc.safe_asarray import _asarray
 
 
@@ -477,7 +477,7 @@ def shape_i(var, i, fgraph=None):
                         recur(inp.owner)
                 # If the output var isn't marked as being in the graph,
                 # we need to add it in the ShapeFeature.
-                shape_feature.on_import(fgraph, node, "gof.ops.shape_i")
+                shape_feature.on_import(fgraph, node, "graph.ops.shape_i")
 
         if var not in shape_of:
             recur(var.owner)

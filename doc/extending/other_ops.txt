@@ -208,7 +208,7 @@ To allow consistent interface of Ops that support OpenMP, we have some
 helper code. Doing this also allows to enable/disable OpenMP globally
 or per op for fine-grained control.
 
-Your Op needs to inherit from ``theano.gof.op.OpenMPOp``. If it overrides
+Your Op needs to inherit from ``theano.graph.op.OpenMPOp``. If it overrides
 the ``__init__()`` method, it must have an ``openmp=None`` parameter
 and must call ``super(MyOpClass, self).__init__(openmp=openmp)``.
 
@@ -271,11 +271,11 @@ along with pointers to the relevant documentation.
         can split a sparse variable into its parts as TensorVariables. Those
         can then be used as inputs to an op with C code.
 
-*       :class:`Generic <theano.gof.type.Generic>` : Theano type that
+*       :class:`Generic <theano.graph.type.Generic>` : Theano type that
         represents a simple Python Object. Variables of this Theano type are
         represented in C as objects of class `PyObject
         <https://docs.python.org/2/c-api/structures.html#c.PyObject>`_.
 
-*       :class:`CDataType <theano.gof.type.CDataType>` :  Theano type that
+*       :class:`CDataType <theano.graph.type.CDataType>` :  Theano type that
         represents a C data type. The C type associated with this Theano type
         depends on the data being represented.

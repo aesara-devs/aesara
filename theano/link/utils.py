@@ -9,8 +9,8 @@ import numpy as np
 
 from theano import utils
 from theano.configdefaults import config
-from theano.gof.fg import FunctionGraph
-from theano.gof.graph import Apply, Constant
+from theano.graph.basic import Apply, Constant
+from theano.graph.fg import FunctionGraph
 
 
 def map_storage(

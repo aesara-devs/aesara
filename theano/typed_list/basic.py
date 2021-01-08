@@ -3,8 +3,8 @@ import numpy as np
 import theano.tensor as tt
 from theano.compile.debugmode import _lessbroken_deepcopy
 from theano.configdefaults import config
-from theano.gof.graph import Apply, Constant, Variable
-from theano.gof.op import COp, Op
+from theano.graph.basic import Apply, Constant, Variable
+from theano.graph.op import COp, Op
 from theano.tensor.type_other import SliceType
 from theano.typed_list.type import TypedListType
 

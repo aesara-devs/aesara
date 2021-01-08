@@ -1,7 +1,7 @@
 import theano.tensor as tt
-from theano.gof.graph import Apply
-from theano.gof.op import _NoPythonOp
-from theano.gof.params_type import ParamsType
+from theano.graph.basic import Apply
+from theano.graph.op import _NoPythonOp
+from theano.graph.params_type import ParamsType
 from theano.tensor.nnet.neighbours import Images2Neibs
 
 

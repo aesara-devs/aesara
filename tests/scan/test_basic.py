@@ -1966,7 +1966,7 @@ class TestScan:
 
         f1 = z * (x + y) ** 2 + 5
         f2 = theano.clone(f1, replace=None, strict=True, share_inputs=True)
-        f2_inp = theano.gof.graph.graph_inputs([f2])
+        f2_inp = theano.graph.basic.graph_inputs([f2])
 
         assert z in f2_inp
         assert x in f2_inp
@@ -1982,7 +1982,7 @@ class TestScan:
 
         f1 = z * (x + y) ** 2 + 5
         f2 = theano.clone(f1, replace=None, strict=True, share_inputs=False)
-        f2_inp = theano.gof.graph.graph_inputs([f2])
+        f2_inp = theano.graph.basic.graph_inputs([f2])
 
         assert z not in f2_inp
         assert x not in f2_inp
@@ -2001,7 +2001,7 @@ class TestScan:
         f2 = theano.clone(
             f1, replace=OrderedDict([(y, y2)]), strict=True, share_inputs=True
         )
-        f2_inp = theano.gof.graph.graph_inputs([f2])
+        f2_inp = theano.graph.basic.graph_inputs([f2])
         assert z in f2_inp
         assert x in f2_inp
         assert y2 in f2_inp
@@ -2019,7 +2019,7 @@ class TestScan:
         f2 = theano.clone(
             f1, replace=OrderedDict([(y, y2)]), strict=False, share_inputs=True
         )
-        f2_inp = theano.gof.graph.graph_inputs([f2])
+        f2_inp = theano.graph.basic.graph_inputs([f2])
         assert z in f2_inp
         assert x in f2_inp
         assert y2 in f2_inp
@@ -2035,7 +2035,7 @@ class TestScan:
 
         f1 = z * (x + y) ** 2 + 5
         f2 = theano.clone(f1, replace=[(y, y2)], strict=True, share_inputs=False)
-        f2_inp = theano.gof.graph.graph_inputs([f2])
+        f2_inp = theano.graph.basic.graph_inputs([f2])
         assert z not in f2_inp
         assert x not in f2_inp
         assert y2 not in f2_inp
@@ -2051,7 +2051,7 @@ class TestScan:
 
         f1 = z * (x + y) ** 2 + 5
         f2 = theano.clone(f1, replace=[(y, y2)], strict=False, share_inputs=False)
-        f2_inp = theano.gof.graph.graph_inputs([f2])
+        f2_inp = theano.graph.basic.graph_inputs([f2])
         assert z not in f2_inp
         assert x not in f2_inp
         assert y2 not in f2_inp
@@ -4517,7 +4517,7 @@ class TestScan:
         def _scan_loose(x):
             return tensor.dot(x, w_)
 
-        with pytest.raises(theano.gof.fg.MissingInputError):
+        with pytest.raises(theano.graph.fg.MissingInputError):
             scan(_scan_loose, sequences=[], outputs_info=[x0_], n_steps=n, strict=True)
 
     def test_monitor_mode(self):
@@ -4911,7 +4911,7 @@ class TestInconsistentBroadcast:
 
 
 class TestMissingInputError:
-    @pytest.mark.xfail(raises=theano.gof.fg.MissingInputError)
+    @pytest.mark.xfail(raises=theano.graph.fg.MissingInputError)
     def test_raise_error(self):
         c = theano.shared(0.0)
         inc = tensor.scalar("inc")

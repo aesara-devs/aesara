@@ -1,9 +1,9 @@
 import numpy as np
 
 import theano
-from theano.gof.graph import Apply, Constant
-from theano.gof.op import Op
 from theano.gradient import grad_undefined
+from theano.graph.basic import Apply, Constant
+from theano.graph.op import Op
 from theano.misc.safe_asarray import _asarray
 from theano.tensor.basic import arange, mul
 from theano.tensor.subtensor import set_subtensor

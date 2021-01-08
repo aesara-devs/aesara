@@ -22,7 +22,7 @@ import numpy as np
 
 import theano
 from theano.configdefaults import config
-from theano.gof.graph import Constant, Variable
+from theano.graph.basic import Constant, Variable
 
 
 __authors__ = "James Bergstra" "PyMC Developers"

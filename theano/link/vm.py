@@ -13,7 +13,7 @@ import warnings
 from collections import defaultdict
 
 from theano.configdefaults import config
-from theano.gof.graph import Constant, Variable
+from theano.graph.basic import Constant, Variable
 from theano.link.basic import Container, LocalLinker
 from theano.link.c.exceptions import MissingGXX
 from theano.link.utils import gc_helper, map_storage, raise_with_op

@@ -5,8 +5,8 @@ import numpy as np
 
 import theano
 from theano.configdefaults import config
-from theano.gof.graph import Apply, Variable
-from theano.gof.op import Op
+from theano.graph.basic import Apply, Variable
+from theano.graph.op import Op
 from theano.misc.safe_asarray import _asarray
 from theano.tensor.basic import (
     NotScalarConstantError,
@@ -47,7 +47,7 @@ def default_shape_from_params(
     ndim_supp: int
         Total number of dimensions for a single draw of the random variable
         (e.g. a multivariate normal draw is 1D, so `ndim_supp = 1`).
-    dist_params: list of `theano.gof.graph.Variable`
+    dist_params: list of `theano.graph.basic.Variable`
         The distribution parameters.
     param_shapes: list of tuple of `ScalarVariable` (optional)
         Symbolic shapes for each distribution parameter.  These will

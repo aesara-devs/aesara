@@ -1,0 +1,15 @@
+.. _libdoc_graph_graph:
+
+==============================================
+:mod:`graph` -- Interface for the Theano graph
+==============================================
+
+---------
+Reference
+---------
+
+.. automodule:: theano.graph.basic
+   :platform: Unix, Windows
+   :synopsis: Interface for types of symbolic variables
+   :members:
+.. moduleauthor:: LISA
