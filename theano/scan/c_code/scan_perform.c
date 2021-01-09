@@ -9,7 +9,7 @@
 #else
 #define CYTHON_ABI "0_29_21"
 #define CYTHON_HEX_VERSION 0x001D15F0
-#define CYTHON_FUTURE_DIVISION 0
+#define CYTHON_FUTURE_DIVISION 1
 #include <stddef.h>
 #ifndef offsetof
   #define offsetof(type, member) ( (size_t) & ((type*)0) -> member )
@@ -883,7 +883,7 @@ typedef struct {
 } __Pyx_BufFmt_Context;
 
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":689
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":689
  * # in Cython to enable them only on the right systems.
  * 
  * ctypedef npy_int8       int8_t             # <<<<<<<<<<<<<<
@@ -892,7 +892,7 @@ typedef struct {
  */
 typedef npy_int8 __pyx_t_5numpy_int8_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":690
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":690
  * 
  * ctypedef npy_int8       int8_t
  * ctypedef npy_int16      int16_t             # <<<<<<<<<<<<<<
@@ -901,7 +901,7 @@ typedef npy_int8 __pyx_t_5numpy_int8_t;
  */
 typedef npy_int16 __pyx_t_5numpy_int16_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":691
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":691
  * ctypedef npy_int8       int8_t
  * ctypedef npy_int16      int16_t
  * ctypedef npy_int32      int32_t             # <<<<<<<<<<<<<<
@@ -910,7 +910,7 @@ typedef npy_int16 __pyx_t_5numpy_int16_t;
  */
 typedef npy_int32 __pyx_t_5numpy_int32_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":692
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":692
  * ctypedef npy_int16      int16_t
  * ctypedef npy_int32      int32_t
  * ctypedef npy_int64      int64_t             # <<<<<<<<<<<<<<
@@ -919,7 +919,7 @@ typedef npy_int32 __pyx_t_5numpy_int32_t;
  */
 typedef npy_int64 __pyx_t_5numpy_int64_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":696
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":696
  * #ctypedef npy_int128     int128_t
  * 
  * ctypedef npy_uint8      uint8_t             # <<<<<<<<<<<<<<
@@ -928,7 +928,7 @@ typedef npy_int64 __pyx_t_5numpy_int64_t;
  */
 typedef npy_uint8 __pyx_t_5numpy_uint8_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":697
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":697
  * 
  * ctypedef npy_uint8      uint8_t
  * ctypedef npy_uint16     uint16_t             # <<<<<<<<<<<<<<
@@ -937,7 +937,7 @@ typedef npy_uint8 __pyx_t_5numpy_uint8_t;
  */
 typedef npy_uint16 __pyx_t_5numpy_uint16_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":698
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":698
  * ctypedef npy_uint8      uint8_t
  * ctypedef npy_uint16     uint16_t
  * ctypedef npy_uint32     uint32_t             # <<<<<<<<<<<<<<
@@ -946,7 +946,7 @@ typedef npy_uint16 __pyx_t_5numpy_uint16_t;
  */
 typedef npy_uint32 __pyx_t_5numpy_uint32_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":699
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":699
  * ctypedef npy_uint16     uint16_t
  * ctypedef npy_uint32     uint32_t
  * ctypedef npy_uint64     uint64_t             # <<<<<<<<<<<<<<
@@ -955,7 +955,7 @@ typedef npy_uint32 __pyx_t_5numpy_uint32_t;
  */
 typedef npy_uint64 __pyx_t_5numpy_uint64_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":703
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":703
  * #ctypedef npy_uint128    uint128_t
  * 
  * ctypedef npy_float32    float32_t             # <<<<<<<<<<<<<<
@@ -964,7 +964,7 @@ typedef npy_uint64 __pyx_t_5numpy_uint64_t;
  */
 typedef npy_float32 __pyx_t_5numpy_float32_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":704
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":704
  * 
  * ctypedef npy_float32    float32_t
  * ctypedef npy_float64    float64_t             # <<<<<<<<<<<<<<
@@ -973,7 +973,7 @@ typedef npy_float32 __pyx_t_5numpy_float32_t;
  */
 typedef npy_float64 __pyx_t_5numpy_float64_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":713
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":713
  * # The int types are mapped a bit surprising --
  * # numpy.int corresponds to 'l' and numpy.long to 'q'
  * ctypedef npy_long       int_t             # <<<<<<<<<<<<<<
@@ -982,7 +982,7 @@ typedef npy_float64 __pyx_t_5numpy_float64_t;
  */
 typedef npy_long __pyx_t_5numpy_int_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":714
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":714
  * # numpy.int corresponds to 'l' and numpy.long to 'q'
  * ctypedef npy_long       int_t
  * ctypedef npy_longlong   long_t             # <<<<<<<<<<<<<<
@@ -991,7 +991,7 @@ typedef npy_long __pyx_t_5numpy_int_t;
  */
 typedef npy_longlong __pyx_t_5numpy_long_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":715
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":715
  * ctypedef npy_long       int_t
  * ctypedef npy_longlong   long_t
  * ctypedef npy_longlong   longlong_t             # <<<<<<<<<<<<<<
@@ -1000,7 +1000,7 @@ typedef npy_longlong __pyx_t_5numpy_long_t;
  */
 typedef npy_longlong __pyx_t_5numpy_longlong_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":717
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":717
  * ctypedef npy_longlong   longlong_t
  * 
  * ctypedef npy_ulong      uint_t             # <<<<<<<<<<<<<<
@@ -1009,7 +1009,7 @@ typedef npy_longlong __pyx_t_5numpy_longlong_t;
  */
 typedef npy_ulong __pyx_t_5numpy_uint_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":718
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":718
  * 
  * ctypedef npy_ulong      uint_t
  * ctypedef npy_ulonglong  ulong_t             # <<<<<<<<<<<<<<
@@ -1018,7 +1018,7 @@ typedef npy_ulong __pyx_t_5numpy_uint_t;
  */
 typedef npy_ulonglong __pyx_t_5numpy_ulong_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":719
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":719
  * ctypedef npy_ulong      uint_t
  * ctypedef npy_ulonglong  ulong_t
  * ctypedef npy_ulonglong  ulonglong_t             # <<<<<<<<<<<<<<
@@ -1027,7 +1027,7 @@ typedef npy_ulonglong __pyx_t_5numpy_ulong_t;
  */
 typedef npy_ulonglong __pyx_t_5numpy_ulonglong_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":721
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":721
  * ctypedef npy_ulonglong  ulonglong_t
  * 
  * ctypedef npy_intp       intp_t             # <<<<<<<<<<<<<<
@@ -1036,7 +1036,7 @@ typedef npy_ulonglong __pyx_t_5numpy_ulonglong_t;
  */
 typedef npy_intp __pyx_t_5numpy_intp_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":722
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":722
  * 
  * ctypedef npy_intp       intp_t
  * ctypedef npy_uintp      uintp_t             # <<<<<<<<<<<<<<
@@ -1045,7 +1045,7 @@ typedef npy_intp __pyx_t_5numpy_intp_t;
  */
 typedef npy_uintp __pyx_t_5numpy_uintp_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":724
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":724
  * ctypedef npy_uintp      uintp_t
  * 
  * ctypedef npy_double     float_t             # <<<<<<<<<<<<<<
@@ -1054,7 +1054,7 @@ typedef npy_uintp __pyx_t_5numpy_uintp_t;
  */
 typedef npy_double __pyx_t_5numpy_float_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":725
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":725
  * 
  * ctypedef npy_double     float_t
  * ctypedef npy_double     double_t             # <<<<<<<<<<<<<<
@@ -1063,7 +1063,7 @@ typedef npy_double __pyx_t_5numpy_float_t;
  */
 typedef npy_double __pyx_t_5numpy_double_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":726
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":726
  * ctypedef npy_double     float_t
  * ctypedef npy_double     double_t
  * ctypedef npy_longdouble longdouble_t             # <<<<<<<<<<<<<<
@@ -1098,7 +1098,7 @@ static CYTHON_INLINE __pyx_t_double_complex __pyx_t_double_complex_from_parts(do
 
 /*--- Type declarations ---*/
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":728
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":728
  * ctypedef npy_longdouble longdouble_t
  * 
  * ctypedef npy_cfloat      cfloat_t             # <<<<<<<<<<<<<<
@@ -1107,7 +1107,7 @@ static CYTHON_INLINE __pyx_t_double_complex __pyx_t_double_complex_from_parts(do
  */
 typedef npy_cfloat __pyx_t_5numpy_cfloat_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":729
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":729
  * 
  * ctypedef npy_cfloat      cfloat_t
  * ctypedef npy_cdouble     cdouble_t             # <<<<<<<<<<<<<<
@@ -1116,7 +1116,7 @@ typedef npy_cfloat __pyx_t_5numpy_cfloat_t;
  */
 typedef npy_cdouble __pyx_t_5numpy_cdouble_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":730
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":730
  * ctypedef npy_cfloat      cfloat_t
  * ctypedef npy_cdouble     cdouble_t
  * ctypedef npy_clongdouble clongdouble_t             # <<<<<<<<<<<<<<
@@ -1125,7 +1125,7 @@ typedef npy_cdouble __pyx_t_5numpy_cdouble_t;
  */
 typedef npy_clongdouble __pyx_t_5numpy_clongdouble_t;
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":732
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":732
  * ctypedef npy_clongdouble clongdouble_t
  * 
  * ctypedef npy_cdouble     complex_t             # <<<<<<<<<<<<<<
@@ -1522,6 +1522,14 @@ static PyObject* __Pyx_PyInt_AddObjC(PyObject *op1, PyObject *op2, long intval, 
     (inplace ? PyNumber_InPlaceAdd(op1, op2) : PyNumber_Add(op1, op2))
 #endif
 
+/* SwapException.proto */
+#if CYTHON_FAST_THREAD_STATE
+#define __Pyx_ExceptionSwap(type, value, tb)  __Pyx__ExceptionSwap(__pyx_tstate, type, value, tb)
+static CYTHON_INLINE void __Pyx__ExceptionSwap(PyThreadState *tstate, PyObject **type, PyObject **value, PyObject **tb);
+#else
+static CYTHON_INLINE void __Pyx_ExceptionSwap(PyObject **type, PyObject **value, PyObject **tb);
+#endif
+
 /* None.proto */
 static CYTHON_INLINE long __Pyx_mod_long(long, long);
 
@@ -1784,7 +1792,6 @@ static const char __pyx_k_k[] = "k";
 static const char __pyx_k_l[] = "l";
 static const char __pyx_k_fn[] = "fn";
 static const char __pyx_k_end[] = "end";
-static const char __pyx_k_gof[] = "gof";
 static const char __pyx_k_i_s[] = "i_s";
 static const char __pyx_k_idx[] = "_idx";
 static const char __pyx_k_inp[] = "inp";
@@ -1804,7 +1811,6 @@ static const char __pyx_k_copy[] = "copy";
 static const char __pyx_k_data[] = "data";
 static const char __pyx_k_fnct[] = "fnct";
 static const char __pyx_k_jout[] = "jout";
-static const char __pyx_k_link[] = "link";
 static const char __pyx_k_main[] = "__main__";
 static const char __pyx_k_name[] = "__name__";
 static const char __pyx_k_node[] = "node";
@@ -1832,12 +1838,10 @@ static const char __pyx_k_n_outs[] = "n_outs";
 static const char __pyx_k_n_seqs[] = "n_seqs";
 static const char __pyx_k_offset[] = "offset";
 static const char __pyx_k_t_call[] = "t_call";
-static const char __pyx_k_theano[] = "theano";
 static const char __pyx_k_thunks[] = "thunks";
 static const char __pyx_k_update[] = "update";
 static const char __pyx_k_xrange[] = "xrange";
 static const char __pyx_k_authors[] = "__authors__";
-static const char __pyx_k_contact[] = "__contact__";
 static const char __pyx_k_gpudata[] = "gpudata";
 static const char __pyx_k_inp_idx[] = "inp_idx";
 static const char __pyx_k_mintaps[] = "mintaps";
@@ -1882,7 +1886,6 @@ static const char __pyx_k_n_shared_outs[] = "n_shared_outs";
 static const char __pyx_k_output_reused[] = "output_reused";
 static const char __pyx_k_raise_with_op[] = "raise_with_op";
 static const char __pyx_k_tap_array_len[] = "tap_array_len";
-static const char __pyx_k_Razvan_Pascanu[] = "Razvan Pascanu";
 static const char __pyx_k_inps_is_tensor[] = "inps_is_tensor";
 static const char __pyx_k_mitmot_out_idx[] = "mitmot_out_idx";
 static const char __pyx_k_n_mit_mot_outs[] = "n_mit_mot_outs";
@@ -1897,6 +1900,7 @@ static const char __pyx_k_scan_perform_pyx[] = "scan_perform.pyx";
 static const char __pyx_k_mitmot_inp_offset[] = "mitmot_inp_offset";
 static const char __pyx_k_position_of_error[] = "position_of_error";
 static const char __pyx_k_shared_arg_offset[] = "shared_arg_offset";
+static const char __pyx_k_theano_link_utils[] = "theano.link.utils";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
 static const char __pyx_k_len_output_storage[] = "len_output_storage";
 static const char __pyx_k_mit_mot_out_slices[] = "mit_mot_out_slices";
@@ -1909,8 +1913,8 @@ static const char __pyx_k_mitmots_preallocated[] = "mitmots_preallocated";
 static const char __pyx_k_old_mitmot_input_data[] = "old_mitmot_input_data";
 static const char __pyx_k_old_mitmot_input_storage[] = "old_mitmot_input_storage";
 static const char __pyx_k_theano_scan_scan_perform[] = "theano.scan.scan_perform";
+static const char __pyx_k_Razvan_PascanuPyMC_Developers[] = "Razvan PascanuPyMC Developers";
 static const char __pyx_k_c_2011_Universite_de_Montreal[] = "(c) 2011, Universite de Montreal";
-static const char __pyx_k_Razvan_Pascanu_r_pascanu_gmail[] = "Razvan Pascanu <r.pascanu@gmail>";
 static const char __pyx_k_This_code_implements_the_operat[] = "\n This code implements the operations that scan has to carry on when called\n as a stand alone function.\n\n IF anything this is the entire code that needs to be transported to C.\n\n Short description of how this code works:\n     Scan divides its inputs ( Op's inputs) into different classes of inputs\n     as follows:\n         i) sequences : inputs over which scan loops to get data. Nothing is\n         written into them ( they are readonly, loop over)\n\n         ii) mit_mot : multiple input taps multiple output taps arguments.\n         These are inputs over which scan loops and gets data but into which\n         scan also writes data. The shorthand mit_mot describes how scan\n         deal with them at each step : at each step take several slices as\n         input and produce sevaral slices as outputs\n\n         iii) mit_sot : multiple input taps single output tap arguments.\n         As before scan reads from these but also writes. At each step scan\n         uses several slices as input but produces only one as output\n\n         iv) sit_sot : single input tap single output tap arguments.\n         At each step use only the previous slice as input, produce only one\n         slice as output\n\n         v) nit_sot: no input tap single output tap arguments.\n         At each step don't use any previous values, only produce new onese\n\n         vi) shared_outs: arguments corresponding to shared variables with\n         updates.\n         At each step use its value as input, and afterwards replace it with\n         a new value.\n         vii) other_args: arguments that are passed to every call of the\n         inner function as they are ( no slicing is perfomed)\n\n    All these outputs are one after the other in the inputs list (named in\n    this code as args) in a given order ( namely the one described above\n    with little discrepencies depending if we are talking about the outputs\n    of the Scan op or the inputs of the Scan op Node, and if we are tal""king\n    about the inputs of the inner function of scan or of the scan op).\n\n    Because of this, all we need to be able to separate and tell arguments\n    apart is how many of which we have as well as how many taps and which\n    ones (where applicable). All this information is desribed (more or less)\n    by describing the arguments of this function)\n";
 static const char __pyx_k_numpy_core_multiarray_failed_to[] = "numpy.core.multiarray failed to import";
 static const char __pyx_k_An_output_of_the_scan_has_change[] = "An output of the scan has changed shape. This may be caused by a pushout optimization. Try adding 'optimizer_excluding=scanOp_pushout_output' to your Theano flags.";
@@ -1918,27 +1922,25 @@ static const char __pyx_k_Scan_was_asked_to_run_for_negati[] = "Scan was asked t
 static const char __pyx_k_Sequence_is_shorter_than_the_req[] = "Sequence is shorter than the required number of steps : (n_steps, seq, seq.shape):";
 static const char __pyx_k_We_didn_t_implemented_yet_the_ca[] = "We didn't implemented yet the case where scan do 0 iteration";
 static const char __pyx_k_numpy_core_umath_failed_to_impor[] = "numpy.core.umath failed to import";
-static PyObject *__pyx_kp_s_An_output_of_the_scan_has_change;
+static PyObject *__pyx_kp_u_An_output_of_the_scan_has_change;
 static PyObject *__pyx_n_s_ImportError;
 static PyObject *__pyx_n_s_IndexError;
 static PyObject *__pyx_n_s_NotImplementedError;
-static PyObject *__pyx_kp_s_Razvan_Pascanu;
-static PyObject *__pyx_kp_s_Razvan_Pascanu_r_pascanu_gmail;
-static PyObject *__pyx_kp_s_Scan_was_asked_to_run_for_negati;
-static PyObject *__pyx_kp_s_Sequence_is_shorter_than_the_req;
+static PyObject *__pyx_kp_u_Razvan_PascanuPyMC_Developers;
+static PyObject *__pyx_kp_u_Scan_was_asked_to_run_for_negati;
+static PyObject *__pyx_kp_u_Sequence_is_shorter_than_the_req;
 static PyObject *__pyx_n_s_ValueError;
-static PyObject *__pyx_kp_s_We_didn_t_implemented_yet_the_ca;
+static PyObject *__pyx_kp_u_We_didn_t_implemented_yet_the_ca;
 static PyObject *__pyx_n_s_a_offset;
 static PyObject *__pyx_n_s_args;
 static PyObject *__pyx_n_s_as_while;
 static PyObject *__pyx_n_s_authors;
 static PyObject *__pyx_n_s_begin;
-static PyObject *__pyx_kp_s_c_2011_Universite_de_Montreal;
+static PyObject *__pyx_kp_u_c_2011_Universite_de_Montreal;
 static PyObject *__pyx_n_s_call_time;
 static PyObject *__pyx_n_s_callcount;
 static PyObject *__pyx_n_s_cline_in_traceback;
 static PyObject *__pyx_n_s_cond;
-static PyObject *__pyx_n_s_contact;
 static PyObject *__pyx_n_s_copy;
 static PyObject *__pyx_n_s_copyright;
 static PyObject *__pyx_n_s_data;
@@ -1952,7 +1954,6 @@ static PyObject *__pyx_n_s_fgraph;
 static PyObject *__pyx_n_s_fn;
 static PyObject *__pyx_n_s_fnct;
 static PyObject *__pyx_n_s_get_version;
-static PyObject *__pyx_n_s_gof;
 static PyObject *__pyx_n_s_gpudata;
 static PyObject *__pyx_n_s_i;
 static PyObject *__pyx_n_s_i_s;
@@ -1972,7 +1973,6 @@ static PyObject *__pyx_n_s_l;
 static PyObject *__pyx_n_s_len_output_storage;
 static PyObject *__pyx_n_s_len_store_steps;
 static PyObject *__pyx_n_s_lenpos;
-static PyObject *__pyx_n_s_link;
 static PyObject *__pyx_n_s_main;
 static PyObject *__pyx_n_s_maker;
 static PyObject *__pyx_n_s_mintaps;
@@ -1993,14 +1993,14 @@ static PyObject *__pyx_n_s_n_steps;
 static PyObject *__pyx_n_s_name;
 static PyObject *__pyx_n_s_nb_mitmot_in;
 static PyObject *__pyx_n_s_nbsteps;
-static PyObject *__pyx_n_s_need_update_inputs;
+static PyObject *__pyx_n_u_need_update_inputs;
 static PyObject *__pyx_n_s_new_var;
 static PyObject *__pyx_n_s_nit_sot_arg_offset;
 static PyObject *__pyx_n_s_node;
 static PyObject *__pyx_n_s_nodes;
 static PyObject *__pyx_n_s_numpy;
-static PyObject *__pyx_kp_s_numpy_core_multiarray_failed_to;
-static PyObject *__pyx_kp_s_numpy_core_umath_failed_to_impor;
+static PyObject *__pyx_kp_u_numpy_core_multiarray_failed_to;
+static PyObject *__pyx_kp_u_numpy_core_umath_failed_to_impor;
 static PyObject *__pyx_n_s_o_offset;
 static PyObject *__pyx_n_s_o_s;
 static PyObject *__pyx_n_s_offset;
@@ -2021,7 +2021,9 @@ static PyObject *__pyx_n_s_pdx;
 static PyObject *__pyx_n_s_perform;
 static PyObject *__pyx_n_s_pos;
 static PyObject *__pyx_n_s_position_of_error;
+static PyObject *__pyx_n_u_position_of_error;
 static PyObject *__pyx_n_s_profile;
+static PyObject *__pyx_n_u_profile;
 static PyObject *__pyx_n_s_raise_with_op;
 static PyObject *__pyx_n_s_range;
 static PyObject *__pyx_n_s_reshape;
@@ -2043,14 +2045,16 @@ static PyObject *__pyx_n_s_tap_array;
 static PyObject *__pyx_n_s_tap_array_len;
 static PyObject *__pyx_n_s_tdx;
 static PyObject *__pyx_n_s_test;
-static PyObject *__pyx_n_s_theano;
+static PyObject *__pyx_n_s_theano_link_utils;
 static PyObject *__pyx_n_s_theano_scan_scan_perform;
 static PyObject *__pyx_n_s_thunks;
+static PyObject *__pyx_n_u_thunks;
 static PyObject *__pyx_n_s_time;
 static PyObject *__pyx_n_s_tmp;
 static PyObject *__pyx_n_s_type;
 static PyObject *__pyx_n_s_update;
 static PyObject *__pyx_n_s_update_profile;
+static PyObject *__pyx_n_u_update_profile;
 static PyObject *__pyx_n_s_value_zeros;
 static PyObject *__pyx_n_s_var;
 static PyObject *__pyx_n_s_vector_outs;
@@ -2060,7 +2064,7 @@ static PyObject *__pyx_n_s_xrange;
 static PyObject *__pyx_n_s_zip;
 static PyObject *__pyx_pf_6theano_4scan_12scan_perform_get_version(CYTHON_UNUSED PyObject *__pyx_self); /* proto */
 static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED PyObject *__pyx_self, unsigned int __pyx_v_n_shared_outs, unsigned int __pyx_v_n_mit_mot_outs, unsigned int __pyx_v_n_seqs, unsigned int __pyx_v_n_mit_mot, unsigned int __pyx_v_n_mit_sot, unsigned int __pyx_v_n_sit_sot, unsigned int __pyx_v_n_nit_sot, int __pyx_v_n_steps, int __pyx_v_as_while, PyArrayObject *__pyx_v_mintaps, PyArrayObject *__pyx_v_tap_array, PyArrayObject *__pyx_v_tap_array_len, PyArrayObject *__pyx_v_vector_seqs, PyArrayObject *__pyx_v_vector_outs, CYTHON_UNUSED PyArrayObject *__pyx_v_mit_mot_out_slices, CYTHON_UNUSED PyArrayObject *__pyx_v_mit_mot_out_nslices, PyArrayObject *__pyx_v_mitmots_preallocated, PyArrayObject *__pyx_v_inps_is_tensor, PyArrayObject *__pyx_v_outs_is_tensor, PyObject *__pyx_v_fn, PyObject *__pyx_v_fnct, PyArrayObject *__pyx_v_destroy_map, PyObject *__pyx_v_args, PyObject *__pyx_v_outs, PyObject *__pyx_v_self, PyObject *__pyx_v_node); /* proto */
-static PyObject *__pyx_float_0_297;
+static PyObject *__pyx_float_0_298;
 static PyObject *__pyx_int_0;
 static PyObject *__pyx_int_1;
 static PyObject *__pyx_int_neg_1;
@@ -2080,7 +2084,7 @@ static PyObject *__pyx_codeobj__10;
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
- *     return 0.297
+ *     return 0.298
  * 
  */
 
@@ -2106,20 +2110,20 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_get_version(CYTHON_UNUSED
   /* "theano/scan/scan_perform.pyx":67
  * 
  * def get_version():
- *     return 0.297             # <<<<<<<<<<<<<<
+ *     return 0.298             # <<<<<<<<<<<<<<
  * 
  * @cython.boundscheck(False)
  */
   __Pyx_XDECREF(__pyx_r);
-  __Pyx_INCREF(__pyx_float_0_297);
-  __pyx_r = __pyx_float_0_297;
+  __Pyx_INCREF(__pyx_float_0_298);
+  __pyx_r = __pyx_float_0_298;
   goto __pyx_L0;
 
   /* "theano/scan/scan_perform.pyx":66
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
- *     return 0.297
+ *     return 0.298
  * 
  */
 
@@ -2140,7 +2144,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_get_version(CYTHON_UNUSED
 
 /* Python wrapper */
 static PyObject *__pyx_pw_6theano_4scan_12scan_perform_3perform(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static char __pyx_doc_6theano_4scan_12scan_perform_2perform[] = "\n    Parameters\n    ----------\n    n_shared_outs: unsigned int\n        Number of arugments that correspond to shared variables with\n        updates\n    n_mit_mot_outs: unsigned int\n        Sum over the number of output taps for each mit_mot sequence\n    n_seqs: unsigned int\n        Number of sequences provided as input\n    n_mit_mot : unsigned int\n        Number of mit_mot arguemnts\n    n_mit_sot: unsigned int\n        Number of mit_sot arguments\n    n_sit_sot: unsigned int\n        Number of sit sot arguemnts\n    n_nit_sot: unsigned int\n        Number of nit_sot arguments\n    n_steps: unsigned int\n        Number of steps to loop over\n    mintaps: int32 ndarray (can also be a simple python list if that is better !)\n        For any of the mit_mot, mit_sot, sit_sot says which is the furtherst\n        away input tap from current position. For example, if the taps where [-2,\n        -5, -9], the mintap would be -9. For sit_sot this is always -1 since\n        is the only allowed tap.\n    tap_array: int32 ndarray( can be replaced by a list of list in python if better)\n        For each of the mit_mot, mit_sot, sit_sot (the first dimension) says\n        which are the corresponding input taps. While this is a matrix, not all\n        values in a row are needed and tap_array_len is there to say up to\n        which entry we are dealing with valid taps ( afterwards there are\n        just 0s to ensure the fix format)\n    tap_array_len: int32 ndarray( can be replaced by a list if better)\n        For each of the mit_mot, mit_sot, sit_sot says how many input taps\n        each has. For sit_sot this will always be 1.\n    vector_seqs: int32 ndarray (can be replaced by a list of bools if better)\n        For each sequence the corresponding entry is either a 1, is the\n        sequence is a vector or 0 if it has more than 1 dimension\n    vector_outs: int32 ndarray( can be replaced by list of bools if better)\n        For each output ( mit_mot, mit_sot, si""t_sot, nit_sot in this order)\n        the entry is 1 if the corresponding argument is a 1 dimensional\n        tensor, 0 otherwise.\n    mit_mot_out_slices : int32 ndarray( can be replaced by list of lists)\n        Same as tap_array, but for the output taps of mit_mot sequences\n    mit_mot_out_nslices: int32 ndarray (Can be replaced by a list)\n        Same as tap_array_len, but is the number of output taps of the\n        mit_mot sequences (i.e. it corresponds to mit_mot_out_slices)\n    inps_is_tensor : int32 ndarray (Can be replaced by a list)\n        Array of boolean indicating, for every input, whether it is a tensor\n        or not\n    outs_is_tensor : int32 ndarray (Can be replaced by a list)\n        Array of boolean indicating, for every output, whether it is a tensor\n        or not\n    fn: callable\n        This is the linker, i.e. the function that will loop over the\n        computational graph and call the perform of each operation. For this\n        linker there is a c version in gof/lazy_linker.c that will be the\n        starting point of implementing this function in C ( we need to take\n        all the code around the call of this function and put in C inside\n        that code)\n    fnct: python object\n        Only used to attach some timings for the profile mode ( can be\n        skiped if we don't care about Theano's profile mode)\n    destroy_map\n        Array of boolean saying if an output is computed inplace\n    args: list of ndarrays (and random states)\n        The inputs of scan in a given order ( n_steps, sequences, mit_mot,\n        mit_sot, sit_sot, nit_sot, shared_outs, other_args)\n    outs: list of 1 element list ( or storage objects?)\n        This is where we need to copy our outputs ( we don't return the\n        results, though we can change the code such that we return, and\n        figure things out on the outside - python)\n    self: python object\n        The scan op itself. I only use it to attach to it some timing""\n        informations .. but I don;t need to.\n\n    ";
+static char __pyx_doc_6theano_4scan_12scan_perform_2perform[] = "\n    Parameters\n    ----------\n    n_shared_outs: unsigned int\n        Number of arugments that correspond to shared variables with\n        updates\n    n_mit_mot_outs: unsigned int\n        Sum over the number of output taps for each mit_mot sequence\n    n_seqs: unsigned int\n        Number of sequences provided as input\n    n_mit_mot : unsigned int\n        Number of mit_mot arguemnts\n    n_mit_sot: unsigned int\n        Number of mit_sot arguments\n    n_sit_sot: unsigned int\n        Number of sit sot arguemnts\n    n_nit_sot: unsigned int\n        Number of nit_sot arguments\n    n_steps: unsigned int\n        Number of steps to loop over\n    mintaps: int32 ndarray (can also be a simple python list if that is better !)\n        For any of the mit_mot, mit_sot, sit_sot says which is the furtherst\n        away input tap from current position. For example, if the taps where [-2,\n        -5, -9], the mintap would be -9. For sit_sot this is always -1 since\n        is the only allowed tap.\n    tap_array: int32 ndarray( can be replaced by a list of list in python if better)\n        For each of the mit_mot, mit_sot, sit_sot (the first dimension) says\n        which are the corresponding input taps. While this is a matrix, not all\n        values in a row are needed and tap_array_len is there to say up to\n        which entry we are dealing with valid taps ( afterwards there are\n        just 0s to ensure the fix format)\n    tap_array_len: int32 ndarray( can be replaced by a list if better)\n        For each of the mit_mot, mit_sot, sit_sot says how many input taps\n        each has. For sit_sot this will always be 1.\n    vector_seqs: int32 ndarray (can be replaced by a list of bools if better)\n        For each sequence the corresponding entry is either a 1, is the\n        sequence is a vector or 0 if it has more than 1 dimension\n    vector_outs: int32 ndarray( can be replaced by list of bools if better)\n        For each output ( mit_mot, mit_sot, si""t_sot, nit_sot in this order)\n        the entry is 1 if the corresponding argument is a 1 dimensional\n        tensor, 0 otherwise.\n    mit_mot_out_slices : int32 ndarray( can be replaced by list of lists)\n        Same as tap_array, but for the output taps of mit_mot sequences\n    mit_mot_out_nslices: int32 ndarray (Can be replaced by a list)\n        Same as tap_array_len, but is the number of output taps of the\n        mit_mot sequences (i.e. it corresponds to mit_mot_out_slices)\n    inps_is_tensor : int32 ndarray (Can be replaced by a list)\n        Array of boolean indicating, for every input, whether it is a tensor\n        or not\n    outs_is_tensor : int32 ndarray (Can be replaced by a list)\n        Array of boolean indicating, for every output, whether it is a tensor\n        or not\n    fn: callable\n        This is the linker, i.e. the function that will loop over the\n        computational graph and call the perform of each operation. For this\n        linker there is a c version in graph/lazy_linker.c that will be the\n        starting point of implementing this function in C ( we need to take\n        all the code around the call of this function and put in C inside\n        that code)\n    fnct: python object\n        Only used to attach some timings for the profile mode ( can be\n        skiped if we don't care about Theano's profile mode)\n    destroy_map\n        Array of boolean saying if an output is computed inplace\n    args: list of ndarrays (and random states)\n        The inputs of scan in a given order ( n_steps, sequences, mit_mot,\n        mit_sot, sit_sot, nit_sot, shared_outs, other_args)\n    outs: list of 1 element list ( or storage objects?)\n        This is where we need to copy our outputs ( we don't return the\n        results, though we can change the code such that we return, and\n        figure things out on the outside - python)\n    self: python object\n        The scan op itself. I only use it to attach to it some timi""ng\n        informations .. but I don;t need to.\n\n    ";
 static PyMethodDef __pyx_mdef_6theano_4scan_12scan_perform_3perform = {"perform", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_6theano_4scan_12scan_perform_3perform, METH_VARARGS|METH_KEYWORDS, __pyx_doc_6theano_4scan_12scan_perform_2perform};
 static PyObject *__pyx_pw_6theano_4scan_12scan_perform_3perform(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   unsigned int __pyx_v_n_shared_outs;
@@ -2597,6 +2601,14 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
   PyObject *__pyx_t_29 = NULL;
   PyObject *(*__pyx_t_30)(PyObject *);
   PyObject *(*__pyx_t_31)(PyObject *);
+  int __pyx_t_32;
+  char const *__pyx_t_33;
+  PyObject *__pyx_t_34 = NULL;
+  PyObject *__pyx_t_35 = NULL;
+  PyObject *__pyx_t_36 = NULL;
+  PyObject *__pyx_t_37 = NULL;
+  PyObject *__pyx_t_38 = NULL;
+  PyObject *__pyx_t_39 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -2831,7 +2843,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *             n_steps)
  *     elif n_steps == 0:
  */
-    __pyx_t_3 = __Pyx_PyString_Format(__pyx_kp_s_Scan_was_asked_to_run_for_negati, __pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 214, __pyx_L1_error)
+    __pyx_t_3 = PyUnicode_Format(__pyx_kp_u_Scan_was_asked_to_run_for_negati, __pyx_t_1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 214, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
@@ -2972,9 +2984,9 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  */
         __pyx_t_1 = PyTuple_New(4); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 222, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
-        __Pyx_INCREF(__pyx_kp_s_Sequence_is_shorter_than_the_req);
-        __Pyx_GIVEREF(__pyx_kp_s_Sequence_is_shorter_than_the_req);
-        PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_kp_s_Sequence_is_shorter_than_the_req);
+        __Pyx_INCREF(__pyx_kp_u_Sequence_is_shorter_than_the_req);
+        __Pyx_GIVEREF(__pyx_kp_u_Sequence_is_shorter_than_the_req);
+        PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_kp_u_Sequence_is_shorter_than_the_req);
         __Pyx_GIVEREF(__pyx_t_2);
         PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_t_2);
         __Pyx_GIVEREF(__pyx_t_3);
@@ -4822,7 +4834,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                 # this is a new vm-provided function
  *                 # the C VM needs this because the exception manipulation
  */
-        __pyx_t_4 = __Pyx_HasAttr(__pyx_v_fn, __pyx_n_s_position_of_error); if (unlikely(__pyx_t_4 == ((int)-1))) __PYX_ERR(0, 401, __pyx_L67_except_error)
+        __pyx_t_4 = __Pyx_HasAttr(__pyx_v_fn, __pyx_n_u_position_of_error); if (unlikely(__pyx_t_4 == ((int)-1))) __PYX_ERR(0, 401, __pyx_L67_except_error)
         __pyx_t_15 = (__pyx_t_4 != 0);
         if (likely(__pyx_t_15)) {
 
@@ -4831,27 +4843,21 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                 # done by raise_with_op is not implemented in C.
  *                 if hasattr(fn, 'thunks'):             # <<<<<<<<<<<<<<
  *                     # For the CVM
- *                     gof.link.raise_with_op(fn.maker.fgraph,
+ *                     raise_with_op(fn.maker.fgraph,
  */
-          __pyx_t_15 = __Pyx_HasAttr(__pyx_v_fn, __pyx_n_s_thunks); if (unlikely(__pyx_t_15 == ((int)-1))) __PYX_ERR(0, 405, __pyx_L67_except_error)
+          __pyx_t_15 = __Pyx_HasAttr(__pyx_v_fn, __pyx_n_u_thunks); if (unlikely(__pyx_t_15 == ((int)-1))) __PYX_ERR(0, 405, __pyx_L67_except_error)
           __pyx_t_4 = (__pyx_t_15 != 0);
           if (__pyx_t_4) {
 
             /* "theano/scan/scan_perform.pyx":407
  *                 if hasattr(fn, 'thunks'):
  *                     # For the CVM
- *                     gof.link.raise_with_op(fn.maker.fgraph,             # <<<<<<<<<<<<<<
- *                                            fn.nodes[fn.position_of_error],
- *                                            fn.thunks[fn.position_of_error])
+ *                     raise_with_op(fn.maker.fgraph,             # <<<<<<<<<<<<<<
+ *                                   fn.nodes[fn.position_of_error],
+ *                                   fn.thunks[fn.position_of_error])
  */
-            __Pyx_GetModuleGlobalName(__pyx_t_24, __pyx_n_s_gof); if (unlikely(!__pyx_t_24)) __PYX_ERR(0, 407, __pyx_L67_except_error)
+            __Pyx_GetModuleGlobalName(__pyx_t_24, __pyx_n_s_raise_with_op); if (unlikely(!__pyx_t_24)) __PYX_ERR(0, 407, __pyx_L67_except_error)
             __Pyx_GOTREF(__pyx_t_24);
-            __pyx_t_25 = __Pyx_PyObject_GetAttrStr(__pyx_t_24, __pyx_n_s_link); if (unlikely(!__pyx_t_25)) __PYX_ERR(0, 407, __pyx_L67_except_error)
-            __Pyx_GOTREF(__pyx_t_25);
-            __Pyx_DECREF(__pyx_t_24); __pyx_t_24 = 0;
-            __pyx_t_24 = __Pyx_PyObject_GetAttrStr(__pyx_t_25, __pyx_n_s_raise_with_op); if (unlikely(!__pyx_t_24)) __PYX_ERR(0, 407, __pyx_L67_except_error)
-            __Pyx_GOTREF(__pyx_t_24);
-            __Pyx_DECREF(__pyx_t_25); __pyx_t_25 = 0;
             __pyx_t_25 = __Pyx_PyObject_GetAttrStr(__pyx_v_fn, __pyx_n_s_maker); if (unlikely(!__pyx_t_25)) __PYX_ERR(0, 407, __pyx_L67_except_error)
             __Pyx_GOTREF(__pyx_t_25);
             __pyx_t_26 = __Pyx_PyObject_GetAttrStr(__pyx_t_25, __pyx_n_s_fgraph); if (unlikely(!__pyx_t_26)) __PYX_ERR(0, 407, __pyx_L67_except_error)
@@ -4860,9 +4866,9 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
 
             /* "theano/scan/scan_perform.pyx":408
  *                     # For the CVM
- *                     gof.link.raise_with_op(fn.maker.fgraph,
- *                                            fn.nodes[fn.position_of_error],             # <<<<<<<<<<<<<<
- *                                            fn.thunks[fn.position_of_error])
+ *                     raise_with_op(fn.maker.fgraph,
+ *                                   fn.nodes[fn.position_of_error],             # <<<<<<<<<<<<<<
+ *                                   fn.thunks[fn.position_of_error])
  *                 else:
  */
             __pyx_t_25 = __Pyx_PyObject_GetAttrStr(__pyx_v_fn, __pyx_n_s_nodes); if (unlikely(!__pyx_t_25)) __PYX_ERR(0, 408, __pyx_L67_except_error)
@@ -4875,9 +4881,9 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
             __Pyx_DECREF(__pyx_t_27); __pyx_t_27 = 0;
 
             /* "theano/scan/scan_perform.pyx":409
- *                     gof.link.raise_with_op(fn.maker.fgraph,
- *                                            fn.nodes[fn.position_of_error],
- *                                            fn.thunks[fn.position_of_error])             # <<<<<<<<<<<<<<
+ *                     raise_with_op(fn.maker.fgraph,
+ *                                   fn.nodes[fn.position_of_error],
+ *                                   fn.thunks[fn.position_of_error])             # <<<<<<<<<<<<<<
  *                 else:
  *                     # For the c linker
  */
@@ -4891,7 +4897,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
             __Pyx_DECREF(__pyx_t_25); __pyx_t_25 = 0;
             __pyx_t_25 = NULL;
             __pyx_t_11 = 0;
-            if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_24))) {
+            if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_24))) {
               __pyx_t_25 = PyMethod_GET_SELF(__pyx_t_24);
               if (likely(__pyx_t_25)) {
                 PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_24);
@@ -4950,7 +4956,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                 # done by raise_with_op is not implemented in C.
  *                 if hasattr(fn, 'thunks'):             # <<<<<<<<<<<<<<
  *                     # For the CVM
- *                     gof.link.raise_with_op(fn.maker.fgraph,
+ *                     raise_with_op(fn.maker.fgraph,
  */
             goto __pyx_L76;
           }
@@ -4958,19 +4964,13 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
           /* "theano/scan/scan_perform.pyx":415
  *                     # temps values So for now, we just don't print
  *                     # the extra shapes/strides info
- *                     gof.link.raise_with_op(fn.maker.fgraph, fn.nodes[fn.position_of_error])             # <<<<<<<<<<<<<<
+ *                     raise_with_op(fn.maker.fgraph, fn.nodes[fn.position_of_error])             # <<<<<<<<<<<<<<
  *             else:
  *                 # old-style linkers raise their own exceptions
  */
           /*else*/ {
-            __Pyx_GetModuleGlobalName(__pyx_t_24, __pyx_n_s_gof); if (unlikely(!__pyx_t_24)) __PYX_ERR(0, 415, __pyx_L67_except_error)
+            __Pyx_GetModuleGlobalName(__pyx_t_24, __pyx_n_s_raise_with_op); if (unlikely(!__pyx_t_24)) __PYX_ERR(0, 415, __pyx_L67_except_error)
             __Pyx_GOTREF(__pyx_t_24);
-            __pyx_t_27 = __Pyx_PyObject_GetAttrStr(__pyx_t_24, __pyx_n_s_link); if (unlikely(!__pyx_t_27)) __PYX_ERR(0, 415, __pyx_L67_except_error)
-            __Pyx_GOTREF(__pyx_t_27);
-            __Pyx_DECREF(__pyx_t_24); __pyx_t_24 = 0;
-            __pyx_t_24 = __Pyx_PyObject_GetAttrStr(__pyx_t_27, __pyx_n_s_raise_with_op); if (unlikely(!__pyx_t_24)) __PYX_ERR(0, 415, __pyx_L67_except_error)
-            __Pyx_GOTREF(__pyx_t_24);
-            __Pyx_DECREF(__pyx_t_27); __pyx_t_27 = 0;
             __pyx_t_27 = __Pyx_PyObject_GetAttrStr(__pyx_v_fn, __pyx_n_s_maker); if (unlikely(!__pyx_t_27)) __PYX_ERR(0, 415, __pyx_L67_except_error)
             __Pyx_GOTREF(__pyx_t_27);
             __pyx_t_29 = __Pyx_PyObject_GetAttrStr(__pyx_t_27, __pyx_n_s_fgraph); if (unlikely(!__pyx_t_29)) __PYX_ERR(0, 415, __pyx_L67_except_error)
@@ -4986,7 +4986,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
             __Pyx_DECREF(__pyx_t_28); __pyx_t_28 = 0;
             __pyx_t_28 = NULL;
             __pyx_t_11 = 0;
-            if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_24))) {
+            if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_24))) {
               __pyx_t_28 = PyMethod_GET_SELF(__pyx_t_24);
               if (likely(__pyx_t_28)) {
                 PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_24);
@@ -5206,7 +5206,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *             # Update the inputs that have an update function
  *             for inp, storage in zip(self.fn.maker.expanded_inputs[::-1],
  */
-    __pyx_t_10 = __Pyx_GetAttr3(__pyx_v_fn, __pyx_n_s_need_update_inputs, Py_True); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 430, __pyx_L1_error)
+    __pyx_t_10 = __Pyx_GetAttr3(__pyx_v_fn, __pyx_n_u_need_update_inputs, Py_True); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 430, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_10);
     __pyx_t_4 = __Pyx_PyObject_IsTrue(__pyx_t_10); if (unlikely(__pyx_t_4 < 0)) __PYX_ERR(0, 430, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
@@ -6869,30 +6869,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
               __Pyx_GOTREF(__pyx_t_2);
               __Pyx_INCREF(__pyx_t_1);
               __pyx_v_e = __pyx_t_1;
-
-              /* "theano/scan/scan_perform.pyx":551
- *                         outs[j][0][pos[j]] = output_storage[j+offset_out].storage[0]
- *                     except ValueError as e:
- *                         if i == 0:             # <<<<<<<<<<<<<<
- *                             raise
- *                         raise ValueError(
- */
-              __pyx_t_14 = ((__pyx_v_i == 0) != 0);
-              if (unlikely(__pyx_t_14)) {
-
-                /* "theano/scan/scan_perform.pyx":552
- *                     except ValueError as e:
- *                         if i == 0:
- *                             raise             # <<<<<<<<<<<<<<
- *                         raise ValueError(
- *                             "An output of the scan has changed shape. "
- */
-                __Pyx_GIVEREF(__pyx_t_10);
-                __Pyx_GIVEREF(__pyx_t_1);
-                __Pyx_XGIVEREF(__pyx_t_2);
-                __Pyx_ErrRestoreWithState(__pyx_t_10, __pyx_t_1, __pyx_t_2);
-                __pyx_t_10 = 0; __pyx_t_1 = 0; __pyx_t_2 = 0; 
-                __PYX_ERR(0, 552, __pyx_L115_except_error)
+              /*try:*/ {
 
                 /* "theano/scan/scan_perform.pyx":551
  *                         outs[j][0][pos[j]] = output_storage[j+offset_out].storage[0]
@@ -6901,20 +6878,94 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                             raise
  *                         raise ValueError(
  */
-              }
+                __pyx_t_14 = ((__pyx_v_i == 0) != 0);
+                if (unlikely(__pyx_t_14)) {
 
-              /* "theano/scan/scan_perform.pyx":553
+                  /* "theano/scan/scan_perform.pyx":552
+ *                     except ValueError as e:
+ *                         if i == 0:
+ *                             raise             # <<<<<<<<<<<<<<
+ *                         raise ValueError(
+ *                             "An output of the scan has changed shape. "
+ */
+                  __Pyx_GIVEREF(__pyx_t_10);
+                  __Pyx_GIVEREF(__pyx_t_1);
+                  __Pyx_XGIVEREF(__pyx_t_2);
+                  __Pyx_ErrRestoreWithState(__pyx_t_10, __pyx_t_1, __pyx_t_2);
+                  __pyx_t_10 = 0; __pyx_t_1 = 0; __pyx_t_2 = 0; 
+                  __PYX_ERR(0, 552, __pyx_L126_error)
+
+                  /* "theano/scan/scan_perform.pyx":551
+ *                         outs[j][0][pos[j]] = output_storage[j+offset_out].storage[0]
+ *                     except ValueError as e:
+ *                         if i == 0:             # <<<<<<<<<<<<<<
+ *                             raise
+ *                         raise ValueError(
+ */
+                }
+
+                /* "theano/scan/scan_perform.pyx":553
  *                         if i == 0:
  *                             raise
  *                         raise ValueError(             # <<<<<<<<<<<<<<
  *                             "An output of the scan has changed shape. "
  *                             "This may be caused by a pushout optimization."
  */
-              __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__5, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 553, __pyx_L115_except_error)
-              __Pyx_GOTREF(__pyx_t_3);
-              __Pyx_Raise(__pyx_t_3, 0, 0, 0);
-              __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-              __PYX_ERR(0, 553, __pyx_L115_except_error)
+                __pyx_t_3 = __Pyx_PyObject_Call(__pyx_builtin_ValueError, __pyx_tuple__5, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 553, __pyx_L126_error)
+                __Pyx_GOTREF(__pyx_t_3);
+                __Pyx_Raise(__pyx_t_3, 0, 0, 0);
+                __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+                __PYX_ERR(0, 553, __pyx_L126_error)
+              }
+
+              /* "theano/scan/scan_perform.pyx":550
+ *                     try:
+ *                         outs[j][0][pos[j]] = output_storage[j+offset_out].storage[0]
+ *                     except ValueError as e:             # <<<<<<<<<<<<<<
+ *                         if i == 0:
+ *                             raise
+ */
+              /*finally:*/ {
+                __pyx_L126_error:;
+                /*exception exit:*/{
+                  __Pyx_PyThreadState_declare
+                  __Pyx_PyThreadState_assign
+                  __pyx_t_34 = 0; __pyx_t_35 = 0; __pyx_t_36 = 0; __pyx_t_37 = 0; __pyx_t_38 = 0; __pyx_t_39 = 0;
+                  __Pyx_XDECREF(__pyx_t_24); __pyx_t_24 = 0;
+                  __Pyx_XDECREF(__pyx_t_25); __pyx_t_25 = 0;
+                  __Pyx_XDECREF(__pyx_t_26); __pyx_t_26 = 0;
+                  __Pyx_XDECREF(__pyx_t_27); __pyx_t_27 = 0;
+                  __Pyx_XDECREF(__pyx_t_28); __pyx_t_28 = 0;
+                  __Pyx_XDECREF(__pyx_t_29); __pyx_t_29 = 0;
+                  __Pyx_XDECREF(__pyx_t_3); __pyx_t_3 = 0;
+                  if (PY_MAJOR_VERSION >= 3) __Pyx_ExceptionSwap(&__pyx_t_37, &__pyx_t_38, &__pyx_t_39);
+                  if ((PY_MAJOR_VERSION < 3) || unlikely(__Pyx_GetException(&__pyx_t_34, &__pyx_t_35, &__pyx_t_36) < 0)) __Pyx_ErrFetch(&__pyx_t_34, &__pyx_t_35, &__pyx_t_36);
+                  __Pyx_XGOTREF(__pyx_t_34);
+                  __Pyx_XGOTREF(__pyx_t_35);
+                  __Pyx_XGOTREF(__pyx_t_36);
+                  __Pyx_XGOTREF(__pyx_t_37);
+                  __Pyx_XGOTREF(__pyx_t_38);
+                  __Pyx_XGOTREF(__pyx_t_39);
+                  __pyx_t_11 = __pyx_lineno; __pyx_t_32 = __pyx_clineno; __pyx_t_33 = __pyx_filename;
+                  {
+                    __Pyx_DECREF(__pyx_v_e);
+                    __pyx_v_e = NULL;
+                  }
+                  if (PY_MAJOR_VERSION >= 3) {
+                    __Pyx_XGIVEREF(__pyx_t_37);
+                    __Pyx_XGIVEREF(__pyx_t_38);
+                    __Pyx_XGIVEREF(__pyx_t_39);
+                    __Pyx_ExceptionReset(__pyx_t_37, __pyx_t_38, __pyx_t_39);
+                  }
+                  __Pyx_XGIVEREF(__pyx_t_34);
+                  __Pyx_XGIVEREF(__pyx_t_35);
+                  __Pyx_XGIVEREF(__pyx_t_36);
+                  __Pyx_ErrRestore(__pyx_t_34, __pyx_t_35, __pyx_t_36);
+                  __pyx_t_34 = 0; __pyx_t_35 = 0; __pyx_t_36 = 0; __pyx_t_37 = 0; __pyx_t_38 = 0; __pyx_t_39 = 0;
+                  __pyx_lineno = __pyx_t_11; __pyx_clineno = __pyx_t_32; __pyx_filename = __pyx_t_33;
+                  goto __pyx_L115_except_error;
+                }
+              }
             }
             goto __pyx_L115_except_error;
             __pyx_L115_except_error:;
@@ -7086,7 +7137,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
     if (__pyx_t_4) {
     } else {
       __pyx_t_14 = __pyx_t_4;
-      goto __pyx_L131_bool_binop_done;
+      goto __pyx_L140_bool_binop_done;
     }
 
     /* "theano/scan/scan_perform.pyx":577
@@ -7098,7 +7149,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  */
     __pyx_t_4 = (((__pyx_v_pos[__pyx_v_idx]) < (__pyx_v_store_steps[__pyx_v_idx])) != 0);
     __pyx_t_14 = __pyx_t_4;
-    __pyx_L131_bool_binop_done:;
+    __pyx_L140_bool_binop_done:;
 
     /* "theano/scan/scan_perform.pyx":576
  *     end   = n_outs + n_nit_sot
@@ -7260,7 +7311,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                 # It seems inefficient to copy the bigger part of the
  *                 # array over, and back, but it is the only way that
  */
-        goto __pyx_L133;
+        goto __pyx_L142;
       }
 
       /* "theano/scan/scan_perform.pyx":594
@@ -7389,7 +7440,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
         if (__Pyx_PyObject_SetSlice(__pyx_t_1, __pyx_v_tmp, 0, ((__pyx_v_store_steps[__pyx_v_idx]) - __pyx_v_pdx), NULL, NULL, NULL, 0, 1, 1) < 0) __PYX_ERR(0, 598, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
       }
-      __pyx_L133:;
+      __pyx_L142:;
 
       /* "theano/scan/scan_perform.pyx":576
  *     end   = n_outs + n_nit_sot
@@ -7398,7 +7449,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *             pos[idx] < store_steps[idx] ):
  * 
  */
-      goto __pyx_L130;
+      goto __pyx_L139;
     }
 
     /* "theano/scan/scan_perform.pyx":603
@@ -7530,7 +7581,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  */
     }
-    __pyx_L130:;
+    __pyx_L139:;
   }
 
   /* "theano/scan/scan_perform.pyx":625
@@ -7717,7 +7768,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  */
   __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_fnct, __pyx_n_s_maker); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 632, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_14 = __Pyx_HasAttr(__pyx_t_1, __pyx_n_s_profile); if (unlikely(__pyx_t_14 == ((int)-1))) __PYX_ERR(0, 632, __pyx_L1_error)
+  __pyx_t_14 = __Pyx_HasAttr(__pyx_t_1, __pyx_n_u_profile); if (unlikely(__pyx_t_14 == ((int)-1))) __PYX_ERR(0, 632, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_t_4 = (__pyx_t_14 != 0);
   if (__pyx_t_4) {
@@ -7749,11 +7800,11 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
     if (__pyx_t_15) {
     } else {
       __pyx_t_4 = __pyx_t_15;
-      goto __pyx_L141_bool_binop_done;
+      goto __pyx_L150_bool_binop_done;
     }
     __pyx_t_15 = __Pyx_PyObject_IsTrue(__pyx_v_profile); if (unlikely(__pyx_t_15 < 0)) __PYX_ERR(0, 634, __pyx_L1_error)
     __pyx_t_4 = __pyx_t_15;
-    __pyx_L141_bool_binop_done:;
+    __pyx_L150_bool_binop_done:;
     if (__pyx_t_4) {
 
       /* "theano/scan/scan_perform.pyx":635
@@ -7826,7 +7877,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                 fn.update_profile(profile)
  * 
  */
-      __pyx_t_4 = __Pyx_HasAttr(__pyx_v_fn, __pyx_n_s_update_profile); if (unlikely(__pyx_t_4 == ((int)-1))) __PYX_ERR(0, 639, __pyx_L1_error)
+      __pyx_t_4 = __Pyx_HasAttr(__pyx_v_fn, __pyx_n_u_update_profile); if (unlikely(__pyx_t_4 == ((int)-1))) __PYX_ERR(0, 639, __pyx_L1_error)
       __pyx_t_15 = (__pyx_t_4 != 0);
       if (__pyx_t_15) {
 
@@ -7991,7 +8042,7 @@ static PyObject *__pyx_pf_6theano_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
   return __pyx_r;
 }
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":734
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":734
  * ctypedef npy_cdouble     complex_t
  * 
  * cdef inline object PyArray_MultiIterNew1(a):             # <<<<<<<<<<<<<<
@@ -8008,7 +8059,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyArray_MultiIterNew1(PyObject *__
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("PyArray_MultiIterNew1", 0);
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":735
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":735
  * 
  * cdef inline object PyArray_MultiIterNew1(a):
  *     return PyArray_MultiIterNew(1, <void*>a)             # <<<<<<<<<<<<<<
@@ -8022,7 +8073,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyArray_MultiIterNew1(PyObject *__
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":734
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":734
  * ctypedef npy_cdouble     complex_t
  * 
  * cdef inline object PyArray_MultiIterNew1(a):             # <<<<<<<<<<<<<<
@@ -8041,7 +8092,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyArray_MultiIterNew1(PyObject *__
   return __pyx_r;
 }
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":737
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":737
  *     return PyArray_MultiIterNew(1, <void*>a)
  * 
  * cdef inline object PyArray_MultiIterNew2(a, b):             # <<<<<<<<<<<<<<
@@ -8058,7 +8109,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyArray_MultiIterNew2(PyObject *__
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("PyArray_MultiIterNew2", 0);
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":738
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":738
  * 
  * cdef inline object PyArray_MultiIterNew2(a, b):
  *     return PyArray_MultiIterNew(2, <void*>a, <void*>b)             # <<<<<<<<<<<<<<
@@ -8072,7 +8123,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyArray_MultiIterNew2(PyObject *__
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":737
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":737
  *     return PyArray_MultiIterNew(1, <void*>a)
  * 
  * cdef inline object PyArray_MultiIterNew2(a, b):             # <<<<<<<<<<<<<<
@@ -8091,7 +8142,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyArray_MultiIterNew2(PyObject *__
   return __pyx_r;
 }
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":740
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":740
  *     return PyArray_MultiIterNew(2, <void*>a, <void*>b)
  * 
  * cdef inline object PyArray_MultiIterNew3(a, b, c):             # <<<<<<<<<<<<<<
@@ -8108,7 +8159,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyArray_MultiIterNew3(PyObject *__
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("PyArray_MultiIterNew3", 0);
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":741
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":741
  * 
  * cdef inline object PyArray_MultiIterNew3(a, b, c):
  *     return PyArray_MultiIterNew(3, <void*>a, <void*>b, <void*> c)             # <<<<<<<<<<<<<<
@@ -8122,7 +8173,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyArray_MultiIterNew3(PyObject *__
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":740
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":740
  *     return PyArray_MultiIterNew(2, <void*>a, <void*>b)
  * 
  * cdef inline object PyArray_MultiIterNew3(a, b, c):             # <<<<<<<<<<<<<<
@@ -8141,7 +8192,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyArray_MultiIterNew3(PyObject *__
   return __pyx_r;
 }
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":743
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":743
  *     return PyArray_MultiIterNew(3, <void*>a, <void*>b, <void*> c)
  * 
  * cdef inline object PyArray_MultiIterNew4(a, b, c, d):             # <<<<<<<<<<<<<<
@@ -8158,7 +8209,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyArray_MultiIterNew4(PyObject *__
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("PyArray_MultiIterNew4", 0);
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":744
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":744
  * 
  * cdef inline object PyArray_MultiIterNew4(a, b, c, d):
  *     return PyArray_MultiIterNew(4, <void*>a, <void*>b, <void*>c, <void*> d)             # <<<<<<<<<<<<<<
@@ -8172,7 +8223,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyArray_MultiIterNew4(PyObject *__
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":743
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":743
  *     return PyArray_MultiIterNew(3, <void*>a, <void*>b, <void*> c)
  * 
  * cdef inline object PyArray_MultiIterNew4(a, b, c, d):             # <<<<<<<<<<<<<<
@@ -8191,7 +8242,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyArray_MultiIterNew4(PyObject *__
   return __pyx_r;
 }
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":746
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":746
  *     return PyArray_MultiIterNew(4, <void*>a, <void*>b, <void*>c, <void*> d)
  * 
  * cdef inline object PyArray_MultiIterNew5(a, b, c, d, e):             # <<<<<<<<<<<<<<
@@ -8208,7 +8259,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyArray_MultiIterNew5(PyObject *__
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("PyArray_MultiIterNew5", 0);
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":747
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":747
  * 
  * cdef inline object PyArray_MultiIterNew5(a, b, c, d, e):
  *     return PyArray_MultiIterNew(5, <void*>a, <void*>b, <void*>c, <void*> d, <void*> e)             # <<<<<<<<<<<<<<
@@ -8222,7 +8273,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyArray_MultiIterNew5(PyObject *__
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":746
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":746
  *     return PyArray_MultiIterNew(4, <void*>a, <void*>b, <void*>c, <void*> d)
  * 
  * cdef inline object PyArray_MultiIterNew5(a, b, c, d, e):             # <<<<<<<<<<<<<<
@@ -8241,7 +8292,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyArray_MultiIterNew5(PyObject *__
   return __pyx_r;
 }
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":749
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":749
  *     return PyArray_MultiIterNew(5, <void*>a, <void*>b, <void*>c, <void*> d, <void*> e)
  * 
  * cdef inline tuple PyDataType_SHAPE(dtype d):             # <<<<<<<<<<<<<<
@@ -8255,7 +8306,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyDataType_SHAPE(PyArray_Descr *__
   int __pyx_t_1;
   __Pyx_RefNannySetupContext("PyDataType_SHAPE", 0);
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":750
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":750
  * 
  * cdef inline tuple PyDataType_SHAPE(dtype d):
  *     if PyDataType_HASSUBARRAY(d):             # <<<<<<<<<<<<<<
@@ -8265,7 +8316,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyDataType_SHAPE(PyArray_Descr *__
   __pyx_t_1 = (PyDataType_HASSUBARRAY(__pyx_v_d) != 0);
   if (__pyx_t_1) {
 
-    /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":751
+    /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":751
  * cdef inline tuple PyDataType_SHAPE(dtype d):
  *     if PyDataType_HASSUBARRAY(d):
  *         return <tuple>d.subarray.shape             # <<<<<<<<<<<<<<
@@ -8277,7 +8328,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyDataType_SHAPE(PyArray_Descr *__
     __pyx_r = ((PyObject*)__pyx_v_d->subarray->shape);
     goto __pyx_L0;
 
-    /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":750
+    /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":750
  * 
  * cdef inline tuple PyDataType_SHAPE(dtype d):
  *     if PyDataType_HASSUBARRAY(d):             # <<<<<<<<<<<<<<
@@ -8286,7 +8337,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyDataType_SHAPE(PyArray_Descr *__
  */
   }
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":753
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":753
  *         return <tuple>d.subarray.shape
  *     else:
  *         return ()             # <<<<<<<<<<<<<<
@@ -8300,7 +8351,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyDataType_SHAPE(PyArray_Descr *__
     goto __pyx_L0;
   }
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":749
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":749
  *     return PyArray_MultiIterNew(5, <void*>a, <void*>b, <void*>c, <void*> d, <void*> e)
  * 
  * cdef inline tuple PyDataType_SHAPE(dtype d):             # <<<<<<<<<<<<<<
@@ -8315,7 +8366,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_PyDataType_SHAPE(PyArray_Descr *__
   return __pyx_r;
 }
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":868
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":868
  *     int _import_umath() except -1
  * 
  * cdef inline void set_array_base(ndarray arr, object base):             # <<<<<<<<<<<<<<
@@ -8327,7 +8378,7 @@ static CYTHON_INLINE void __pyx_f_5numpy_set_array_base(PyArrayObject *__pyx_v_a
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("set_array_base", 0);
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":869
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":869
  * 
  * cdef inline void set_array_base(ndarray arr, object base):
  *     Py_INCREF(base) # important to do this before stealing the reference below!             # <<<<<<<<<<<<<<
@@ -8336,7 +8387,7 @@ static CYTHON_INLINE void __pyx_f_5numpy_set_array_base(PyArrayObject *__pyx_v_a
  */
   Py_INCREF(__pyx_v_base);
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":870
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":870
  * cdef inline void set_array_base(ndarray arr, object base):
  *     Py_INCREF(base) # important to do this before stealing the reference below!
  *     PyArray_SetBaseObject(arr, base)             # <<<<<<<<<<<<<<
@@ -8345,7 +8396,7 @@ static CYTHON_INLINE void __pyx_f_5numpy_set_array_base(PyArrayObject *__pyx_v_a
  */
   (void)(PyArray_SetBaseObject(__pyx_v_arr, __pyx_v_base));
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":868
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":868
  *     int _import_umath() except -1
  * 
  * cdef inline void set_array_base(ndarray arr, object base):             # <<<<<<<<<<<<<<
@@ -8357,7 +8408,7 @@ static CYTHON_INLINE void __pyx_f_5numpy_set_array_base(PyArrayObject *__pyx_v_a
   __Pyx_RefNannyFinishContext();
 }
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":872
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":872
  *     PyArray_SetBaseObject(arr, base)
  * 
  * cdef inline object get_array_base(ndarray arr):             # <<<<<<<<<<<<<<
@@ -8372,7 +8423,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_get_array_base(PyArrayObject *__py
   int __pyx_t_1;
   __Pyx_RefNannySetupContext("get_array_base", 0);
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":873
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":873
  * 
  * cdef inline object get_array_base(ndarray arr):
  *     base = PyArray_BASE(arr)             # <<<<<<<<<<<<<<
@@ -8381,7 +8432,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_get_array_base(PyArrayObject *__py
  */
   __pyx_v_base = PyArray_BASE(__pyx_v_arr);
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":874
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":874
  * cdef inline object get_array_base(ndarray arr):
  *     base = PyArray_BASE(arr)
  *     if base is NULL:             # <<<<<<<<<<<<<<
@@ -8391,7 +8442,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_get_array_base(PyArrayObject *__py
   __pyx_t_1 = ((__pyx_v_base == NULL) != 0);
   if (__pyx_t_1) {
 
-    /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":875
+    /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":875
  *     base = PyArray_BASE(arr)
  *     if base is NULL:
  *         return None             # <<<<<<<<<<<<<<
@@ -8402,7 +8453,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_get_array_base(PyArrayObject *__py
     __pyx_r = Py_None; __Pyx_INCREF(Py_None);
     goto __pyx_L0;
 
-    /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":874
+    /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":874
  * cdef inline object get_array_base(ndarray arr):
  *     base = PyArray_BASE(arr)
  *     if base is NULL:             # <<<<<<<<<<<<<<
@@ -8411,7 +8462,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_get_array_base(PyArrayObject *__py
  */
   }
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":876
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":876
  *     if base is NULL:
  *         return None
  *     return <object>base             # <<<<<<<<<<<<<<
@@ -8423,7 +8474,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_get_array_base(PyArrayObject *__py
   __pyx_r = ((PyObject *)__pyx_v_base);
   goto __pyx_L0;
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":872
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":872
  *     PyArray_SetBaseObject(arr, base)
  * 
  * cdef inline object get_array_base(ndarray arr):             # <<<<<<<<<<<<<<
@@ -8438,7 +8489,7 @@ static CYTHON_INLINE PyObject *__pyx_f_5numpy_get_array_base(PyArrayObject *__py
   return __pyx_r;
 }
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":880
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":880
  * # Versions of the import_* functions which are more suitable for
  * # Cython code.
  * cdef inline int import_array() except -1:             # <<<<<<<<<<<<<<
@@ -8462,7 +8513,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_array(void) {
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("import_array", 0);
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":881
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":881
  * # Cython code.
  * cdef inline int import_array() except -1:
  *     try:             # <<<<<<<<<<<<<<
@@ -8478,7 +8529,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_array(void) {
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":882
+      /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":882
  * cdef inline int import_array() except -1:
  *     try:
  *         __pyx_import_array()             # <<<<<<<<<<<<<<
@@ -8487,7 +8538,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_array(void) {
  */
       __pyx_t_4 = _import_array(); if (unlikely(__pyx_t_4 == ((int)-1))) __PYX_ERR(1, 882, __pyx_L3_error)
 
-      /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":881
+      /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":881
  * # Cython code.
  * cdef inline int import_array() except -1:
  *     try:             # <<<<<<<<<<<<<<
@@ -8501,7 +8552,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_array(void) {
     goto __pyx_L8_try_end;
     __pyx_L3_error:;
 
-    /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":883
+    /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":883
  *     try:
  *         __pyx_import_array()
  *     except Exception:             # <<<<<<<<<<<<<<
@@ -8516,7 +8567,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_array(void) {
       __Pyx_GOTREF(__pyx_t_6);
       __Pyx_GOTREF(__pyx_t_7);
 
-      /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":884
+      /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":884
  *         __pyx_import_array()
  *     except Exception:
  *         raise ImportError("numpy.core.multiarray failed to import")             # <<<<<<<<<<<<<<
@@ -8532,7 +8583,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_array(void) {
     goto __pyx_L5_except_error;
     __pyx_L5_except_error:;
 
-    /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":881
+    /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":881
  * # Cython code.
  * cdef inline int import_array() except -1:
  *     try:             # <<<<<<<<<<<<<<
@@ -8547,7 +8598,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_array(void) {
     __pyx_L8_try_end:;
   }
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":880
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":880
  * # Versions of the import_* functions which are more suitable for
  * # Cython code.
  * cdef inline int import_array() except -1:             # <<<<<<<<<<<<<<
@@ -8570,7 +8621,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_array(void) {
   return __pyx_r;
 }
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":886
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":886
  *         raise ImportError("numpy.core.multiarray failed to import")
  * 
  * cdef inline int import_umath() except -1:             # <<<<<<<<<<<<<<
@@ -8594,7 +8645,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_umath(void) {
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("import_umath", 0);
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":887
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":887
  * 
  * cdef inline int import_umath() except -1:
  *     try:             # <<<<<<<<<<<<<<
@@ -8610,7 +8661,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_umath(void) {
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":888
+      /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":888
  * cdef inline int import_umath() except -1:
  *     try:
  *         _import_umath()             # <<<<<<<<<<<<<<
@@ -8619,7 +8670,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_umath(void) {
  */
       __pyx_t_4 = _import_umath(); if (unlikely(__pyx_t_4 == ((int)-1))) __PYX_ERR(1, 888, __pyx_L3_error)
 
-      /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":887
+      /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":887
  * 
  * cdef inline int import_umath() except -1:
  *     try:             # <<<<<<<<<<<<<<
@@ -8633,7 +8684,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_umath(void) {
     goto __pyx_L8_try_end;
     __pyx_L3_error:;
 
-    /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":889
+    /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":889
  *     try:
  *         _import_umath()
  *     except Exception:             # <<<<<<<<<<<<<<
@@ -8648,7 +8699,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_umath(void) {
       __Pyx_GOTREF(__pyx_t_6);
       __Pyx_GOTREF(__pyx_t_7);
 
-      /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":890
+      /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":890
  *         _import_umath()
  *     except Exception:
  *         raise ImportError("numpy.core.umath failed to import")             # <<<<<<<<<<<<<<
@@ -8664,7 +8715,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_umath(void) {
     goto __pyx_L5_except_error;
     __pyx_L5_except_error:;
 
-    /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":887
+    /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":887
  * 
  * cdef inline int import_umath() except -1:
  *     try:             # <<<<<<<<<<<<<<
@@ -8679,7 +8730,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_umath(void) {
     __pyx_L8_try_end:;
   }
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":886
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":886
  *         raise ImportError("numpy.core.multiarray failed to import")
  * 
  * cdef inline int import_umath() except -1:             # <<<<<<<<<<<<<<
@@ -8702,7 +8753,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_umath(void) {
   return __pyx_r;
 }
 
-/* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":892
+/* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":892
  *         raise ImportError("numpy.core.umath failed to import")
  * 
  * cdef inline int import_ufunc() except -1:             # <<<<<<<<<<<<<<
@@ -8726,7 +8777,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_ufunc(void) {
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("import_ufunc", 0);
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":893
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":893
  * 
  * cdef inline int import_ufunc() except -1:
  *     try:             # <<<<<<<<<<<<<<
@@ -8742,7 +8793,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_ufunc(void) {
     __Pyx_XGOTREF(__pyx_t_3);
     /*try:*/ {
 
-      /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":894
+      /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":894
  * cdef inline int import_ufunc() except -1:
  *     try:
  *         _import_umath()             # <<<<<<<<<<<<<<
@@ -8751,7 +8802,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_ufunc(void) {
  */
       __pyx_t_4 = _import_umath(); if (unlikely(__pyx_t_4 == ((int)-1))) __PYX_ERR(1, 894, __pyx_L3_error)
 
-      /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":893
+      /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":893
  * 
  * cdef inline int import_ufunc() except -1:
  *     try:             # <<<<<<<<<<<<<<
@@ -8765,7 +8816,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_ufunc(void) {
     goto __pyx_L8_try_end;
     __pyx_L3_error:;
 
-    /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":895
+    /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":895
  *     try:
  *         _import_umath()
  *     except Exception:             # <<<<<<<<<<<<<<
@@ -8780,7 +8831,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_ufunc(void) {
       __Pyx_GOTREF(__pyx_t_6);
       __Pyx_GOTREF(__pyx_t_7);
 
-      /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":896
+      /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":896
  *         _import_umath()
  *     except Exception:
  *         raise ImportError("numpy.core.umath failed to import")             # <<<<<<<<<<<<<<
@@ -8796,7 +8847,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_ufunc(void) {
     goto __pyx_L5_except_error;
     __pyx_L5_except_error:;
 
-    /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":893
+    /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":893
  * 
  * cdef inline int import_ufunc() except -1:
  *     try:             # <<<<<<<<<<<<<<
@@ -8811,7 +8862,7 @@ static CYTHON_INLINE int __pyx_f_5numpy_import_ufunc(void) {
     __pyx_L8_try_end:;
   }
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":892
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":892
  *         raise ImportError("numpy.core.umath failed to import")
  * 
  * cdef inline int import_ufunc() except -1:             # <<<<<<<<<<<<<<
@@ -8880,27 +8931,25 @@ static struct PyModuleDef __pyx_moduledef = {
 #endif
 
 static __Pyx_StringTabEntry __pyx_string_tab[] = {
-  {&__pyx_kp_s_An_output_of_the_scan_has_change, __pyx_k_An_output_of_the_scan_has_change, sizeof(__pyx_k_An_output_of_the_scan_has_change), 0, 0, 1, 0},
+  {&__pyx_kp_u_An_output_of_the_scan_has_change, __pyx_k_An_output_of_the_scan_has_change, sizeof(__pyx_k_An_output_of_the_scan_has_change), 0, 1, 0, 0},
   {&__pyx_n_s_ImportError, __pyx_k_ImportError, sizeof(__pyx_k_ImportError), 0, 0, 1, 1},
   {&__pyx_n_s_IndexError, __pyx_k_IndexError, sizeof(__pyx_k_IndexError), 0, 0, 1, 1},
   {&__pyx_n_s_NotImplementedError, __pyx_k_NotImplementedError, sizeof(__pyx_k_NotImplementedError), 0, 0, 1, 1},
-  {&__pyx_kp_s_Razvan_Pascanu, __pyx_k_Razvan_Pascanu, sizeof(__pyx_k_Razvan_Pascanu), 0, 0, 1, 0},
-  {&__pyx_kp_s_Razvan_Pascanu_r_pascanu_gmail, __pyx_k_Razvan_Pascanu_r_pascanu_gmail, sizeof(__pyx_k_Razvan_Pascanu_r_pascanu_gmail), 0, 0, 1, 0},
-  {&__pyx_kp_s_Scan_was_asked_to_run_for_negati, __pyx_k_Scan_was_asked_to_run_for_negati, sizeof(__pyx_k_Scan_was_asked_to_run_for_negati), 0, 0, 1, 0},
-  {&__pyx_kp_s_Sequence_is_shorter_than_the_req, __pyx_k_Sequence_is_shorter_than_the_req, sizeof(__pyx_k_Sequence_is_shorter_than_the_req), 0, 0, 1, 0},
+  {&__pyx_kp_u_Razvan_PascanuPyMC_Developers, __pyx_k_Razvan_PascanuPyMC_Developers, sizeof(__pyx_k_Razvan_PascanuPyMC_Developers), 0, 1, 0, 0},
+  {&__pyx_kp_u_Scan_was_asked_to_run_for_negati, __pyx_k_Scan_was_asked_to_run_for_negati, sizeof(__pyx_k_Scan_was_asked_to_run_for_negati), 0, 1, 0, 0},
+  {&__pyx_kp_u_Sequence_is_shorter_than_the_req, __pyx_k_Sequence_is_shorter_than_the_req, sizeof(__pyx_k_Sequence_is_shorter_than_the_req), 0, 1, 0, 0},
   {&__pyx_n_s_ValueError, __pyx_k_ValueError, sizeof(__pyx_k_ValueError), 0, 0, 1, 1},
-  {&__pyx_kp_s_We_didn_t_implemented_yet_the_ca, __pyx_k_We_didn_t_implemented_yet_the_ca, sizeof(__pyx_k_We_didn_t_implemented_yet_the_ca), 0, 0, 1, 0},
+  {&__pyx_kp_u_We_didn_t_implemented_yet_the_ca, __pyx_k_We_didn_t_implemented_yet_the_ca, sizeof(__pyx_k_We_didn_t_implemented_yet_the_ca), 0, 1, 0, 0},
   {&__pyx_n_s_a_offset, __pyx_k_a_offset, sizeof(__pyx_k_a_offset), 0, 0, 1, 1},
   {&__pyx_n_s_args, __pyx_k_args, sizeof(__pyx_k_args), 0, 0, 1, 1},
   {&__pyx_n_s_as_while, __pyx_k_as_while, sizeof(__pyx_k_as_while), 0, 0, 1, 1},
   {&__pyx_n_s_authors, __pyx_k_authors, sizeof(__pyx_k_authors), 0, 0, 1, 1},
   {&__pyx_n_s_begin, __pyx_k_begin, sizeof(__pyx_k_begin), 0, 0, 1, 1},
-  {&__pyx_kp_s_c_2011_Universite_de_Montreal, __pyx_k_c_2011_Universite_de_Montreal, sizeof(__pyx_k_c_2011_Universite_de_Montreal), 0, 0, 1, 0},
+  {&__pyx_kp_u_c_2011_Universite_de_Montreal, __pyx_k_c_2011_Universite_de_Montreal, sizeof(__pyx_k_c_2011_Universite_de_Montreal), 0, 1, 0, 0},
   {&__pyx_n_s_call_time, __pyx_k_call_time, sizeof(__pyx_k_call_time), 0, 0, 1, 1},
   {&__pyx_n_s_callcount, __pyx_k_callcount, sizeof(__pyx_k_callcount), 0, 0, 1, 1},
   {&__pyx_n_s_cline_in_traceback, __pyx_k_cline_in_traceback, sizeof(__pyx_k_cline_in_traceback), 0, 0, 1, 1},
   {&__pyx_n_s_cond, __pyx_k_cond, sizeof(__pyx_k_cond), 0, 0, 1, 1},
-  {&__pyx_n_s_contact, __pyx_k_contact, sizeof(__pyx_k_contact), 0, 0, 1, 1},
   {&__pyx_n_s_copy, __pyx_k_copy, sizeof(__pyx_k_copy), 0, 0, 1, 1},
   {&__pyx_n_s_copyright, __pyx_k_copyright, sizeof(__pyx_k_copyright), 0, 0, 1, 1},
   {&__pyx_n_s_data, __pyx_k_data, sizeof(__pyx_k_data), 0, 0, 1, 1},
@@ -8914,7 +8963,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_fn, __pyx_k_fn, sizeof(__pyx_k_fn), 0, 0, 1, 1},
   {&__pyx_n_s_fnct, __pyx_k_fnct, sizeof(__pyx_k_fnct), 0, 0, 1, 1},
   {&__pyx_n_s_get_version, __pyx_k_get_version, sizeof(__pyx_k_get_version), 0, 0, 1, 1},
-  {&__pyx_n_s_gof, __pyx_k_gof, sizeof(__pyx_k_gof), 0, 0, 1, 1},
   {&__pyx_n_s_gpudata, __pyx_k_gpudata, sizeof(__pyx_k_gpudata), 0, 0, 1, 1},
   {&__pyx_n_s_i, __pyx_k_i, sizeof(__pyx_k_i), 0, 0, 1, 1},
   {&__pyx_n_s_i_s, __pyx_k_i_s, sizeof(__pyx_k_i_s), 0, 0, 1, 1},
@@ -8934,7 +8982,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_len_output_storage, __pyx_k_len_output_storage, sizeof(__pyx_k_len_output_storage), 0, 0, 1, 1},
   {&__pyx_n_s_len_store_steps, __pyx_k_len_store_steps, sizeof(__pyx_k_len_store_steps), 0, 0, 1, 1},
   {&__pyx_n_s_lenpos, __pyx_k_lenpos, sizeof(__pyx_k_lenpos), 0, 0, 1, 1},
-  {&__pyx_n_s_link, __pyx_k_link, sizeof(__pyx_k_link), 0, 0, 1, 1},
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
   {&__pyx_n_s_maker, __pyx_k_maker, sizeof(__pyx_k_maker), 0, 0, 1, 1},
   {&__pyx_n_s_mintaps, __pyx_k_mintaps, sizeof(__pyx_k_mintaps), 0, 0, 1, 1},
@@ -8955,14 +9002,14 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_name, __pyx_k_name, sizeof(__pyx_k_name), 0, 0, 1, 1},
   {&__pyx_n_s_nb_mitmot_in, __pyx_k_nb_mitmot_in, sizeof(__pyx_k_nb_mitmot_in), 0, 0, 1, 1},
   {&__pyx_n_s_nbsteps, __pyx_k_nbsteps, sizeof(__pyx_k_nbsteps), 0, 0, 1, 1},
-  {&__pyx_n_s_need_update_inputs, __pyx_k_need_update_inputs, sizeof(__pyx_k_need_update_inputs), 0, 0, 1, 1},
+  {&__pyx_n_u_need_update_inputs, __pyx_k_need_update_inputs, sizeof(__pyx_k_need_update_inputs), 0, 1, 0, 1},
   {&__pyx_n_s_new_var, __pyx_k_new_var, sizeof(__pyx_k_new_var), 0, 0, 1, 1},
   {&__pyx_n_s_nit_sot_arg_offset, __pyx_k_nit_sot_arg_offset, sizeof(__pyx_k_nit_sot_arg_offset), 0, 0, 1, 1},
   {&__pyx_n_s_node, __pyx_k_node, sizeof(__pyx_k_node), 0, 0, 1, 1},
   {&__pyx_n_s_nodes, __pyx_k_nodes, sizeof(__pyx_k_nodes), 0, 0, 1, 1},
   {&__pyx_n_s_numpy, __pyx_k_numpy, sizeof(__pyx_k_numpy), 0, 0, 1, 1},
-  {&__pyx_kp_s_numpy_core_multiarray_failed_to, __pyx_k_numpy_core_multiarray_failed_to, sizeof(__pyx_k_numpy_core_multiarray_failed_to), 0, 0, 1, 0},
-  {&__pyx_kp_s_numpy_core_umath_failed_to_impor, __pyx_k_numpy_core_umath_failed_to_impor, sizeof(__pyx_k_numpy_core_umath_failed_to_impor), 0, 0, 1, 0},
+  {&__pyx_kp_u_numpy_core_multiarray_failed_to, __pyx_k_numpy_core_multiarray_failed_to, sizeof(__pyx_k_numpy_core_multiarray_failed_to), 0, 1, 0, 0},
+  {&__pyx_kp_u_numpy_core_umath_failed_to_impor, __pyx_k_numpy_core_umath_failed_to_impor, sizeof(__pyx_k_numpy_core_umath_failed_to_impor), 0, 1, 0, 0},
   {&__pyx_n_s_o_offset, __pyx_k_o_offset, sizeof(__pyx_k_o_offset), 0, 0, 1, 1},
   {&__pyx_n_s_o_s, __pyx_k_o_s, sizeof(__pyx_k_o_s), 0, 0, 1, 1},
   {&__pyx_n_s_offset, __pyx_k_offset, sizeof(__pyx_k_offset), 0, 0, 1, 1},
@@ -8983,7 +9030,9 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_perform, __pyx_k_perform, sizeof(__pyx_k_perform), 0, 0, 1, 1},
   {&__pyx_n_s_pos, __pyx_k_pos, sizeof(__pyx_k_pos), 0, 0, 1, 1},
   {&__pyx_n_s_position_of_error, __pyx_k_position_of_error, sizeof(__pyx_k_position_of_error), 0, 0, 1, 1},
+  {&__pyx_n_u_position_of_error, __pyx_k_position_of_error, sizeof(__pyx_k_position_of_error), 0, 1, 0, 1},
   {&__pyx_n_s_profile, __pyx_k_profile, sizeof(__pyx_k_profile), 0, 0, 1, 1},
+  {&__pyx_n_u_profile, __pyx_k_profile, sizeof(__pyx_k_profile), 0, 1, 0, 1},
   {&__pyx_n_s_raise_with_op, __pyx_k_raise_with_op, sizeof(__pyx_k_raise_with_op), 0, 0, 1, 1},
   {&__pyx_n_s_range, __pyx_k_range, sizeof(__pyx_k_range), 0, 0, 1, 1},
   {&__pyx_n_s_reshape, __pyx_k_reshape, sizeof(__pyx_k_reshape), 0, 0, 1, 1},
@@ -9005,14 +9054,16 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_tap_array_len, __pyx_k_tap_array_len, sizeof(__pyx_k_tap_array_len), 0, 0, 1, 1},
   {&__pyx_n_s_tdx, __pyx_k_tdx, sizeof(__pyx_k_tdx), 0, 0, 1, 1},
   {&__pyx_n_s_test, __pyx_k_test, sizeof(__pyx_k_test), 0, 0, 1, 1},
-  {&__pyx_n_s_theano, __pyx_k_theano, sizeof(__pyx_k_theano), 0, 0, 1, 1},
+  {&__pyx_n_s_theano_link_utils, __pyx_k_theano_link_utils, sizeof(__pyx_k_theano_link_utils), 0, 0, 1, 1},
   {&__pyx_n_s_theano_scan_scan_perform, __pyx_k_theano_scan_scan_perform, sizeof(__pyx_k_theano_scan_scan_perform), 0, 0, 1, 1},
   {&__pyx_n_s_thunks, __pyx_k_thunks, sizeof(__pyx_k_thunks), 0, 0, 1, 1},
+  {&__pyx_n_u_thunks, __pyx_k_thunks, sizeof(__pyx_k_thunks), 0, 1, 0, 1},
   {&__pyx_n_s_time, __pyx_k_time, sizeof(__pyx_k_time), 0, 0, 1, 1},
   {&__pyx_n_s_tmp, __pyx_k_tmp, sizeof(__pyx_k_tmp), 0, 0, 1, 1},
   {&__pyx_n_s_type, __pyx_k_type, sizeof(__pyx_k_type), 0, 0, 1, 1},
   {&__pyx_n_s_update, __pyx_k_update, sizeof(__pyx_k_update), 0, 0, 1, 1},
   {&__pyx_n_s_update_profile, __pyx_k_update_profile, sizeof(__pyx_k_update_profile), 0, 0, 1, 1},
+  {&__pyx_n_u_update_profile, __pyx_k_update_profile, sizeof(__pyx_k_update_profile), 0, 1, 0, 1},
   {&__pyx_n_s_value_zeros, __pyx_k_value_zeros, sizeof(__pyx_k_value_zeros), 0, 0, 1, 1},
   {&__pyx_n_s_var, __pyx_k_var, sizeof(__pyx_k_var), 0, 0, 1, 1},
   {&__pyx_n_s_vector_outs, __pyx_k_vector_outs, sizeof(__pyx_k_vector_outs), 0, 0, 1, 1},
@@ -9050,7 +9101,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  *             "We didn't implemented yet the case where scan do 0 iteration")
  *     else:
  */
-  __pyx_tuple_ = PyTuple_Pack(1, __pyx_kp_s_We_didn_t_implemented_yet_the_ca); if (unlikely(!__pyx_tuple_)) __PYX_ERR(0, 217, __pyx_L1_error)
+  __pyx_tuple_ = PyTuple_Pack(1, __pyx_kp_u_We_didn_t_implemented_yet_the_ca); if (unlikely(!__pyx_tuple_)) __PYX_ERR(0, 217, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple_);
   __Pyx_GIVEREF(__pyx_tuple_);
 
@@ -9094,29 +9145,29 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  *                             "An output of the scan has changed shape. "
  *                             "This may be caused by a pushout optimization."
  */
-  __pyx_tuple__5 = PyTuple_Pack(1, __pyx_kp_s_An_output_of_the_scan_has_change); if (unlikely(!__pyx_tuple__5)) __PYX_ERR(0, 553, __pyx_L1_error)
+  __pyx_tuple__5 = PyTuple_Pack(1, __pyx_kp_u_An_output_of_the_scan_has_change); if (unlikely(!__pyx_tuple__5)) __PYX_ERR(0, 553, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__5);
   __Pyx_GIVEREF(__pyx_tuple__5);
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":884
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":884
  *         __pyx_import_array()
  *     except Exception:
  *         raise ImportError("numpy.core.multiarray failed to import")             # <<<<<<<<<<<<<<
  * 
  * cdef inline int import_umath() except -1:
  */
-  __pyx_tuple__6 = PyTuple_Pack(1, __pyx_kp_s_numpy_core_multiarray_failed_to); if (unlikely(!__pyx_tuple__6)) __PYX_ERR(1, 884, __pyx_L1_error)
+  __pyx_tuple__6 = PyTuple_Pack(1, __pyx_kp_u_numpy_core_multiarray_failed_to); if (unlikely(!__pyx_tuple__6)) __PYX_ERR(1, 884, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__6);
   __Pyx_GIVEREF(__pyx_tuple__6);
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":890
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":890
  *         _import_umath()
  *     except Exception:
  *         raise ImportError("numpy.core.umath failed to import")             # <<<<<<<<<<<<<<
  * 
  * cdef inline int import_ufunc() except -1:
  */
-  __pyx_tuple__7 = PyTuple_Pack(1, __pyx_kp_s_numpy_core_umath_failed_to_impor); if (unlikely(!__pyx_tuple__7)) __PYX_ERR(1, 890, __pyx_L1_error)
+  __pyx_tuple__7 = PyTuple_Pack(1, __pyx_kp_u_numpy_core_umath_failed_to_impor); if (unlikely(!__pyx_tuple__7)) __PYX_ERR(1, 890, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__7);
   __Pyx_GIVEREF(__pyx_tuple__7);
 
@@ -9124,7 +9175,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
- *     return 0.297
+ *     return 0.298
  * 
  */
   __pyx_codeobj__8 = (PyObject*)__Pyx_PyCode_New(0, 0, 0, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_scan_perform_pyx, __pyx_n_s_get_version, 66, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__8)) __PYX_ERR(0, 66, __pyx_L1_error)
@@ -9149,7 +9200,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
 
 static CYTHON_SMALL_CODE int __Pyx_InitGlobals(void) {
   if (__Pyx_InitStrings(__pyx_string_tab) < 0) __PYX_ERR(0, 1, __pyx_L1_error);
-  __pyx_float_0_297 = PyFloat_FromDouble(0.297); if (unlikely(!__pyx_float_0_297)) __PYX_ERR(0, 1, __pyx_L1_error)
+  __pyx_float_0_298 = PyFloat_FromDouble(0.298); if (unlikely(!__pyx_float_0_298)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_0 = PyInt_FromLong(0); if (unlikely(!__pyx_int_0)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_1 = PyInt_FromLong(1); if (unlikely(!__pyx_int_1)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_neg_1 = PyInt_FromLong(-1); if (unlikely(!__pyx_int_neg_1)) __PYX_ERR(0, 1, __pyx_L1_error)
@@ -9457,32 +9508,23 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
 
-  /* "theano/scan/scan_perform.pyx":50
- * 
- * 
- * __authors__ = "Razvan Pascanu"             # <<<<<<<<<<<<<<
- * __copyright__ = "(c) 2011, Universite de Montreal"
- * __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
- */
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_authors, __pyx_kp_s_Razvan_Pascanu) < 0) __PYX_ERR(0, 50, __pyx_L1_error)
-
   /* "theano/scan/scan_perform.pyx":51
  * 
- * __authors__ = "Razvan Pascanu"
- * __copyright__ = "(c) 2011, Universite de Montreal"             # <<<<<<<<<<<<<<
- * __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
+ * 
+ * __authors__ = "Razvan Pascanu" "PyMC Developers"             # <<<<<<<<<<<<<<
+ * __copyright__ = "(c) 2011, Universite de Montreal"
  * 
  */
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_copyright, __pyx_kp_s_c_2011_Universite_de_Montreal) < 0) __PYX_ERR(0, 51, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_authors, __pyx_kp_u_Razvan_PascanuPyMC_Developers) < 0) __PYX_ERR(0, 51, __pyx_L1_error)
 
   /* "theano/scan/scan_perform.pyx":52
- * __authors__ = "Razvan Pascanu"
- * __copyright__ = "(c) 2011, Universite de Montreal"
- * __contact__ = "Razvan Pascanu <r.pascanu@gmail>"             # <<<<<<<<<<<<<<
+ * 
+ * __authors__ = "Razvan Pascanu" "PyMC Developers"
+ * __copyright__ = "(c) 2011, Universite de Montreal"             # <<<<<<<<<<<<<<
  * 
  * 
  */
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_contact, __pyx_kp_s_Razvan_Pascanu_r_pascanu_gmail) < 0) __PYX_ERR(0, 52, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_copyright, __pyx_kp_u_c_2011_Universite_de_Montreal) < 0) __PYX_ERR(0, 52, __pyx_L1_error)
 
   /* "theano/scan/scan_perform.pyx":56
  * 
@@ -9491,7 +9533,7 @@ if (!__Pyx_RefNanny) {
  * 
  * cimport numpy
  */
-  __pyx_t_1 = __Pyx_Import(__pyx_n_s_numpy, 0, -1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 56, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_Import(__pyx_n_s_numpy, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 56, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_numpy, __pyx_t_1) < 0) __PYX_ERR(0, 56, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
@@ -9503,7 +9545,7 @@ if (!__Pyx_RefNanny) {
  * import time
  * 
  */
-  __pyx_t_1 = __Pyx_Import(__pyx_n_s_copy, 0, -1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 60, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_Import(__pyx_n_s_copy, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 60, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_copy, __pyx_t_1) < 0) __PYX_ERR(0, 60, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
@@ -9513,9 +9555,9 @@ if (!__Pyx_RefNanny) {
  * import copy
  * import time             # <<<<<<<<<<<<<<
  * 
- * from theano import gof
+ * from theano.link.utils import raise_with_op
  */
-  __pyx_t_1 = __Pyx_Import(__pyx_n_s_time, 0, -1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 61, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_Import(__pyx_n_s_time, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 61, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_time, __pyx_t_1) < 0) __PYX_ERR(0, 61, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
@@ -9523,21 +9565,21 @@ if (!__Pyx_RefNanny) {
   /* "theano/scan/scan_perform.pyx":63
  * import time
  * 
- * from theano import gof             # <<<<<<<<<<<<<<
+ * from theano.link.utils import raise_with_op             # <<<<<<<<<<<<<<
  * 
  * 
  */
   __pyx_t_1 = PyList_New(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 63, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_INCREF(__pyx_n_s_gof);
-  __Pyx_GIVEREF(__pyx_n_s_gof);
-  PyList_SET_ITEM(__pyx_t_1, 0, __pyx_n_s_gof);
-  __pyx_t_2 = __Pyx_Import(__pyx_n_s_theano, __pyx_t_1, -1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 63, __pyx_L1_error)
+  __Pyx_INCREF(__pyx_n_s_raise_with_op);
+  __Pyx_GIVEREF(__pyx_n_s_raise_with_op);
+  PyList_SET_ITEM(__pyx_t_1, 0, __pyx_n_s_raise_with_op);
+  __pyx_t_2 = __Pyx_Import(__pyx_n_s_theano_link_utils, __pyx_t_1, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 63, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_gof); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 63, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_raise_with_op); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 63, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_gof, __pyx_t_1) < 0) __PYX_ERR(0, 63, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_raise_with_op, __pyx_t_1) < 0) __PYX_ERR(0, 63, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
@@ -9545,7 +9587,7 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
- *     return 0.297
+ *     return 0.298
  * 
  */
   __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_6theano_4scan_12scan_perform_1get_version, NULL, __pyx_n_s_theano_scan_scan_perform); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 66, __pyx_L1_error)
@@ -9566,16 +9608,16 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "theano/scan/scan_perform.pyx":1
- * """             # <<<<<<<<<<<<<<
+ * # cython: language_level=3             # <<<<<<<<<<<<<<
+ * """
  *  This code implements the operations that scan has to carry on when called
- *  as a stand alone function.
  */
   __pyx_t_2 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_test, __pyx_t_2) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "../../../../../../apps/anaconda3/envs/theano-3.6/lib/python3.6/site-packages/numpy/__init__.pxd":892
+  /* "../../../../../../apps/anaconda3/envs/theano-3.7/lib/python3.7/site-packages/numpy/__init__.pxd":892
  *         raise ImportError("numpy.core.umath failed to import")
  * 
  * cdef inline int import_ufunc() except -1:             # <<<<<<<<<<<<<<
@@ -11731,6 +11773,41 @@ static PyObject* __Pyx_PyInt_AddObjC(PyObject *op1, PyObject *op2, CYTHON_UNUSED
             return PyFloat_FromDouble(result);
     }
     return (inplace ? PyNumber_InPlaceAdd : PyNumber_Add)(op1, op2);
+}
+#endif
+
+/* SwapException */
+  #if CYTHON_FAST_THREAD_STATE
+static CYTHON_INLINE void __Pyx__ExceptionSwap(PyThreadState *tstate, PyObject **type, PyObject **value, PyObject **tb) {
+    PyObject *tmp_type, *tmp_value, *tmp_tb;
+    #if CYTHON_USE_EXC_INFO_STACK
+    _PyErr_StackItem *exc_info = tstate->exc_info;
+    tmp_type = exc_info->exc_type;
+    tmp_value = exc_info->exc_value;
+    tmp_tb = exc_info->exc_traceback;
+    exc_info->exc_type = *type;
+    exc_info->exc_value = *value;
+    exc_info->exc_traceback = *tb;
+    #else
+    tmp_type = tstate->exc_type;
+    tmp_value = tstate->exc_value;
+    tmp_tb = tstate->exc_traceback;
+    tstate->exc_type = *type;
+    tstate->exc_value = *value;
+    tstate->exc_traceback = *tb;
+    #endif
+    *type = tmp_type;
+    *value = tmp_value;
+    *tb = tmp_tb;
+}
+#else
+static CYTHON_INLINE void __Pyx_ExceptionSwap(PyObject **type, PyObject **value, PyObject **tb) {
+    PyObject *tmp_type, *tmp_value, *tmp_tb;
+    PyErr_GetExcInfo(&tmp_type, &tmp_value, &tmp_tb);
+    PyErr_SetExcInfo(*type, *value, *tb);
+    *type = tmp_type;
+    *value = tmp_value;
+    *tb = tmp_tb;
 }
 #endif
 
