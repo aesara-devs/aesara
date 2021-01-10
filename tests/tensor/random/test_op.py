@@ -3,8 +3,8 @@ from pytest import fixture, raises
 
 import theano.tensor as tt
 from theano import change_flags, config
+from theano.assert_op import Assert
 from theano.gradient import NullTypeGradError
-from theano.tensor.opt import Assert
 from theano.tensor.random.basic import normal
 from theano.tensor.random.op import RandomVariable, default_shape_from_params, observed
 from theano.tensor.type_other import NoneTypeT

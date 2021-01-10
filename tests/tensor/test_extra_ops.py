@@ -5,6 +5,7 @@ import theano
 from tests import unittest_tools as utt
 from theano import function
 from theano import tensor as tt
+from theano.assert_op import Assert
 from theano.configdefaults import config
 from theano.graph.basic import applys_between
 from theano.tensor.extra_ops import (
@@ -1221,8 +1222,7 @@ def test_broadcast_shape():
         arrays_are_shapes=True,
     )
     assert any(
-        isinstance(node.op, tt.opt.Assert)
-        for node in applys_between([x_tt, y_tt], b_tt)
+        isinstance(node.op, Assert) for node in applys_between([x_tt, y_tt], b_tt)
     )
     assert np.array_equal([z.eval() for z in b_tt], b.shape)
     b_tt = broadcast_shape(shape_tuple(x_tt), shape_tuple(y_tt), arrays_are_shapes=True)
@@ -1230,8 +1230,7 @@ def test_broadcast_shape():
     # These are all constants, so there shouldn't be any asserts in the
     # resulting graph.
     assert not any(
-        isinstance(node.op, tt.opt.Assert)
-        for node in applys_between([x_tt, y_tt], b_tt)
+        isinstance(node.op, Assert) for node in applys_between([x_tt, y_tt], b_tt)
     )
 
     x = np.array([1, 2, 3])
@@ -1246,7 +1245,7 @@ def test_broadcast_shape():
     # TODO: This will work when/if we use a more sophisticated `is_same_graph`
     # implementation.
     # assert not any(
-    #     isinstance(node.op, tt.opt.Assert)
+    #     isinstance(node.op, Assert)
     #     for node in graph_ops([x_tt, y_tt], b_tt)
     # )
 
@@ -1259,8 +1258,7 @@ def test_broadcast_shape():
     assert b_tt[0].value == 1
     assert np.array_equal([z.eval() for z in b_tt], b.shape)
     assert not any(
-        isinstance(node.op, tt.opt.Assert)
-        for node in applys_between([x_tt, y_tt], b_tt)
+        isinstance(node.op, Assert) for node in applys_between([x_tt, y_tt], b_tt)
     )
     b_tt = broadcast_shape(shape_tuple(x_tt), shape_tuple(y_tt), arrays_are_shapes=True)
     assert np.array_equal([z.eval() for z in b_tt], b.shape)
@@ -1276,7 +1274,7 @@ def test_broadcast_shape():
     # TODO: This will work when/if we use a more sophisticated `is_same_graph`
     # implementation.
     # assert not any(
-    #     isinstance(node.op, tt.opt.Assert)
+    #     isinstance(node.op, Assert)
     #     for node in graph_ops([x_tt, y_tt], b_tt)
     # )
     b_tt = broadcast_shape(shape_tuple(x_tt), shape_tuple(y_tt), arrays_are_shapes=True)
@@ -1293,7 +1291,7 @@ def test_broadcast_shape():
     # TODO: This will work when/if we use a more sophisticated `is_same_graph`
     # implementation.
     # assert not any(
-    #     isinstance(node.op, tt.opt.Assert)
+    #     isinstance(node.op, Assert)
     #     for node in graph_ops([x_tt, y_tt], b_tt)
     # )
     res = tt.as_tensor(b_tt).eval(
@@ -1308,7 +1306,7 @@ def test_broadcast_shape():
     y_shapes = (y1_shp_tt, 1, y1_shp_tt)
     y_tt = tt.ones(y_shapes)
     b_tt = broadcast_shape(x_tt, y_tt)
-    assert isinstance(b_tt[-1].owner.op, tt.opt.Assert)
+    assert isinstance(b_tt[-1].owner.op, Assert)
 
 
 class TestBroadcastTo(utt.InferShapeTester):

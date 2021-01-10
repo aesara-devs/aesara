@@ -9,6 +9,7 @@ from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
 from tests.tensor.test_basic import TestSpecifyShape
 from tests.test_ifelse import TestIfelse
 from theano import tensor
+from theano.assert_op import Assert
 from theano.breakpoint import PdbBreakpoint
 from theano.configdefaults import config
 from theano.gpuarray import basic_ops, blas, dnn, opt
@@ -63,7 +64,7 @@ def test_local_assert():
     a = theano.tensor.opt.assert_op(x, theano.tensor.eq(x, 0).any())
     f = theano.function([x], a, mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
-    a_op = [n for n in topo if isinstance(n.op, theano.tensor.opt.Assert)]
+    a_op = [n for n in topo if isinstance(n.op, Assert)]
     assert len(a_op) == 1
     assert isinstance(a_op[0].inputs[0].type, GpuArrayType)
 
@@ -75,19 +76,19 @@ def test_local_remove_all_assert():
     # By default `unsafe` should not be there
     f = theano.function([x], a, mode=mode_with_gpu.excluding("unsafe"))
     topo = f.maker.fgraph.toposort()
-    a_op = [n for n in topo if isinstance(n.op, theano.tensor.opt.Assert)]
+    a_op = [n for n in topo if isinstance(n.op, Assert)]
     assert len(a_op) == 1
 
     # Put `unsafe`
     f = theano.function([x], a, mode=mode_with_gpu.including("unsafe"))
     topo = f.maker.fgraph.toposort()
-    a_op = [n for n in topo if isinstance(n.op, theano.tensor.opt.Assert)]
+    a_op = [n for n in topo if isinstance(n.op, Assert)]
     assert len(a_op) == 0
 
     # Remove `unsafe`
     f = theano.function([x], a, mode=mode_with_gpu.excluding("unsafe"))
     topo = f.maker.fgraph.toposort()
-    a_op = [n for n in topo if isinstance(n.op, theano.tensor.opt.Assert)]
+    a_op = [n for n in topo if isinstance(n.op, Assert)]
     assert len(a_op) == 1
 
 

@@ -9,6 +9,7 @@ import numpy as np
 import theano
 import theano.pathparse
 from theano import tensor
+from theano.assert_op import Assert
 from theano.compile.ops import shape_i, shape_i_op
 from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME, config
 from theano.gpuarray import cudnn_defs, pygpu
@@ -46,7 +47,6 @@ from theano.tensor.nnet.abstract_conv import (
     assert_conv_shape,
     get_conv_output_shape,
 )
-from theano.tensor.opt import Assert
 
 
 DNN_CONV_ALGO_CHOOSE_ONCE = ["guess_once", "time_once"]

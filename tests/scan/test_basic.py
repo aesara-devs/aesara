@@ -4022,14 +4022,15 @@ class TestScan:
         #    input of the inner graph and the view op is NOT removed by the
         #    optimization process
         #  - An output of the inner graph is not obtained through any of the
-        #    previously mentionned cases (standard case)
+        #    previously mentioned cases (standard case)
+        from theano.assert_op import assert_op
 
         def inner_fn(tap_m3, tap_m2, tap_m1):
             return (
                 tap_m2,
                 (tap_m1 * 1),
                 theano.gradient.disconnected_grad(tap_m2),
-                theano.tensor.opt.assert_(tap_m2, 1),
+                assert_op(tap_m2, 1),
                 tap_m3 + tap_m2 + tap_m1,
             )
 

@@ -9,9 +9,7 @@ from functools import partial, reduce
 import numpy as np
 
 import theano
-from theano.compile.debugmode import DebugMode
 from theano.compile.function import function
-from theano.compile.mode import FAST_RUN, get_mode
 from theano.compile.ops import ViewOp
 from theano.compile.sharedvalue import shared
 from theano.configdefaults import config
@@ -1682,6 +1680,9 @@ class numeric_grad:
 
 
 def mode_not_slow(mode):
+    from theano.compile.debugmode import DebugMode
+    from theano.compile.mode import FAST_RUN, get_mode
+
     if mode == "FAST_COMPILE":
         return FAST_RUN
     mode = get_mode(mode)

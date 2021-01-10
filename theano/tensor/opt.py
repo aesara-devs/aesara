@@ -18,9 +18,9 @@ import numpy as np
 import theano
 import theano.scalar.basic as ts
 from theano import compile
+from theano.assert_op import Assert, assert_op
 from theano.compile.ops import Shape, Shape_i, ViewOp
 from theano.configdefaults import config
-from theano.gradient import DisconnectedType
 from theano.graph import toolbox
 from theano.graph.basic import (
     Apply,
@@ -659,16 +659,16 @@ def local_0_dot_x(fgraph, node):
     if replace:
         constant_zero = tt.constant(0, dtype=node.outputs[0].type.dtype)
         if x.ndim == 2 and y.ndim == 2:
-            constant_zero = assert_(constant_zero, tt.eq(x.shape[1], y.shape[0]))
+            constant_zero = assert_op(constant_zero, tt.eq(x.shape[1], y.shape[0]))
             return [alloc(constant_zero, x.shape[0], y.shape[1])]
         elif x.ndim == 1 and y.ndim == 2:
-            constant_zero = assert_(constant_zero, tt.eq(x.shape[0], y.shape[0]))
+            constant_zero = assert_op(constant_zero, tt.eq(x.shape[0], y.shape[0]))
             return [alloc(constant_zero, y.shape[1])]
         elif x.ndim == 2 and y.ndim == 1:
-            constant_zero = assert_(constant_zero, tt.eq(x.shape[1], y.shape[0]))
+            constant_zero = assert_op(constant_zero, tt.eq(x.shape[1], y.shape[0]))
             return [alloc(constant_zero, x.shape[0])]
         elif x.ndim == 1 and y.ndim == 1:
-            constant_zero = assert_(constant_zero, tt.eq(x.shape[0], y.shape[0]))
+            constant_zero = assert_op(constant_zero, tt.eq(x.shape[0], y.shape[0]))
             return [constant_zero]
         else:
             _logger.warning(
@@ -1805,8 +1805,8 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
                 # Nothing would be optimized!
                 return False
 
-        assert_op = node.inputs[assert_op_idx]
-        cmp_op = assert_op
+        assert_op_in = node.inputs[assert_op_idx]
+        cmp_op = assert_op_in
         new_i = []
         same_shape = fgraph.shape_feature.same_shape
         for i in node.inputs:
@@ -1830,7 +1830,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
                             cmp_shp = get_shape(cmp_op, idx)
                             cond.append(tt.eq(i_shp, cmp_shp))
                     if cond:
-                        assert_op = assert_(assert_op, *cond)
+                        assert_op_in = assert_op(assert_op_in, *cond)
                 new_i.append(i.owner.inputs[0])
 
             # Remove Alloc in DimShuffle
@@ -1844,7 +1844,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
                         and not same_shape(i, cmp_op, idx, idx)
                     ]
                     if assert_cond:
-                        assert_op = assert_(assert_op, *assert_cond)
+                        assert_op_in = assert_op(assert_op_in, *assert_cond)
                 alloc_input = i.owner.inputs[0].owner.inputs[0]
                 if alloc_input.ndim != i.owner.inputs[0].ndim:
                     # The alloc can add dimension to the value
@@ -1864,7 +1864,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
                 new_i.append(r_i)
             else:
                 new_i.append(i)
-        new_i[assert_op_idx] = assert_op
+        new_i[assert_op_idx] = assert_op_in
 
         ret = node.op(*new_i, return_list=True)
 
@@ -2584,101 +2584,6 @@ def is_inverse_pair(node_op, prev_op, inv_pair):
     return (node_is_op0 and prev_is_op1) or (node_is_op1 and prev_is_op0)
 
 
-class Assert(COp):
-    """
-    Implements assertion in a computational graph.
-
-    Returns the first parameter if the condition is true, otherwise, triggers
-    AssertionError.
-
-    Notes
-    -----
-    This Op is a debugging feature. It can be removed from the graph
-    because of optimizations, and can hide some possible optimizations to
-    the optimizer. Specifically, removing happens if it can be determined
-    that condition will always be true. Also, the output of the Op must be
-    used in the function computing the graph, but it doesn't have to be
-    returned.
-
-    Examples
-    --------
-    >>> import theano
-    >>> T = theano.tensor
-    >>> x = T.vector('x')
-    >>> assert_op = T.opt.Assert()
-    >>> func = theano.function([x], assert_op(x, x.size<2))
-
-    """
-
-    _f16_ok = True
-    __props__ = ("msg",)
-    view_map = {0: [0]}
-
-    check_input = False
-
-    def __init__(self, msg="Theano Assert failed!"):
-        self.msg = msg
-
-    def __setstate__(self, attrs):
-        self.__dict__.update(attrs)
-        if not hasattr(self, "msg"):
-            self.msg = "Theano Assert failed!"
-
-    def make_node(self, value, *conds):
-        if not isinstance(value, Variable):
-            value = tt.as_tensor_variable(value)
-        cond = [tt.as_tensor_variable(c) for c in conds]
-        assert np.all([c.type.ndim == 0 for c in cond])
-        return Apply(self, [value] + cond, [value.type()])
-
-    def perform(self, node, inputs, out_):
-        (out,) = out_
-        v = inputs[0]
-        out[0] = v
-        assert np.all(inputs[1:]), self.msg
-
-    def grad(self, input, output_gradients):
-        return output_gradients + [DisconnectedType()()] * (len(input) - 1)
-
-    def connection_pattern(self, node):
-        return [[1]] + [[0]] * (len(node.inputs) - 1)
-
-    def c_code(self, node, name, inames, onames, props):
-        value = inames[0]
-        out = onames[0]
-        check = []
-        fail = props["fail"]
-        msg = self.msg.replace('"', '\\"').replace("\n", "\\n")
-        for idx in range(len(inames) - 1):
-            i = inames[idx + 1]
-            dtype = node.inputs[idx + 1].dtype
-            check.append(
-                "if(!((npy_%(dtype)s*)PyArray_DATA(%(i)s))[0])"
-                '{PyErr_SetString(PyExc_AssertionError,"%(msg)s");'
-                "%(fail)s}" % locals()
-            )
-        check = "\n".join(check)
-        return f"""
-        {check}
-        Py_XDECREF({out});
-        {out} = {value};
-        Py_INCREF({value});
-        """
-
-    def c_code_cache_version(self):
-        return (3, 0)
-
-    def infer_shape(self, fgraph, node, input_shapes):
-        return [input_shapes[0]]
-
-
-assert_ = Assert()
-# Unittest.assert_ is a deprecated name for assertTrue.
-# 2to3 convert tt.opt.assert_ to tt.opt.assertTrue
-# So I define a new name as a work around.
-assert_op = assert_
-
-
 @register_specialize
 @local_optimizer([Assert])
 def local_remove_useless_assert(fgraph, node):
@@ -2699,7 +2604,7 @@ def local_remove_useless_assert(fgraph, node):
             # We don't need to copy over any stack traces here
             return [node.inputs[0]]
         if len(cond) != len(node.inputs) - 1:
-            ret = assert_(node.inputs[0], *cond)
+            ret = assert_op(node.inputs[0], *cond)
 
             # We copy over stack trace from the output of the original assert
             copy_stack_trace(node.outputs[0], ret)

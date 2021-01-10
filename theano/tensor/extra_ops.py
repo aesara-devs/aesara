@@ -3,6 +3,7 @@ from collections.abc import Collection
 import numpy as np
 
 import theano
+from theano.assert_op import Assert
 from theano.gradient import (
     DisconnectedType,
     _float_zeros_like,
@@ -555,8 +556,6 @@ def bincount(x, weights=None, minlength=None, assert_nonneg=False):
         raise TypeError("Inputs must be of dimension 1.")
 
     if assert_nonneg:
-        from theano.tensor.opt import Assert
-
         assert_op = Assert("Input to bincount has negative values!")
         x = assert_op(x, theano.tensor.all(x >= 0))
 
@@ -1514,8 +1513,6 @@ def broadcast_shape_iter(arrays, **kwargs):
             ]
 
             if potentially_unequal_dims:
-                from theano.tensor.opt import Assert
-
                 # In this case, we can't tell whether or not the dimensions are
                 # equal, so we'll need to assert their equality and move the error
                 # handling to evaluation time.
