@@ -1,3 +1,5 @@
+import pytest
+
 import theano.tensor as tt
 from tests.graph.utils import (
     MyType,
@@ -324,7 +326,8 @@ class TestMergeOptimizer:
         strg = str(g)
         assert strg == "FunctionGraph(Op1(y, y))" or strg == "FunctionGraph(Op1(z, z))"
 
-    def est_one_assert_merge(self):
+    @pytest.mark.skip(reason="This was disabled for some unknown reason")
+    def test_one_assert_merge(self):
         # Merge two nodes, one has assert, the other not.
         x1 = tt.matrix("x1")
         x2 = tt.matrix("x2")
@@ -370,7 +373,8 @@ class TestMergeOptimizer:
         # print(strg)
         assert strg == strref, (strg, strref)
 
-    def est_both_assert_merge_1(self):
+    @pytest.mark.skip(reason="This was disabled for some unknown reason")
+    def test_both_assert_merge_1(self):
         # Merge two nodes, both have assert on the same node
         # with different conditions.
         x1 = tt.matrix("x1")
@@ -415,7 +419,8 @@ class TestMergeOptimizer:
         # print(strg)
         assert strg == strref1 or strg == strref2, (strg, strref1, strref2)
 
-    def est_both_assert_merge_2(self):
+    @pytest.mark.skip(reason="This was disabled for some unknown reason")
+    def test_both_assert_merge_2(self):
         # Merge two nodes, both have assert on different node
         x1 = tt.matrix("x1")
         x2 = tt.matrix("x2")
@@ -445,7 +450,8 @@ class TestMergeOptimizer:
         # print(strg)
         assert strg == strref, (strg, strref)
 
-    def est_both_assert_merge_2_reverse(self):
+    @pytest.mark.skip(reason="This was disabled for some unknown reason")
+    def test_both_assert_merge_2_reverse(self):
         # Test case "test_both_assert_merge_2" but in reverse order
         x1 = tt.matrix("x1")
         x2 = tt.matrix("x2")
