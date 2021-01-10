@@ -12,6 +12,7 @@ import theano.tensor as tt
 import theano.tensor.opt as opt
 from tests import unittest_tools as utt
 from theano import compile, config, pprint, shared
+from theano.assert_op import Assert
 from theano.compile import DeepCopyOp, deep_copy_op, get_mode
 from theano.compile.function import function
 from theano.graph.basic import Apply, Constant
@@ -63,7 +64,6 @@ from theano.tensor.blas_c import CGemv
 from theano.tensor.elemwise import DimShuffle, Elemwise, Prod
 from theano.tensor.nnet.sigm import softplus
 from theano.tensor.opt import (
-    Assert,
     MakeVector,
     Shape_i,
     assert_op,

@@ -20,6 +20,7 @@ from functools import reduce
 import numpy as np
 
 import theano
+from theano.assert_op import Assert, assert_op
 from theano.configdefaults import config
 from theano.graph import destroyhandler as dh
 from theano.graph.basic import (
@@ -589,14 +590,14 @@ class MergeFeature(Feature):
             # TODO: Deactivated for now as this cause cycle in the graph.
             # (There is a second deactivation part below.)
             for i in []:  # node.inputs:
-                if i.owner and isinstance(i.owner.op, theano.tensor.opt.Assert):
+                if i.owner and isinstance(i.owner.op, Assert):
                     node_has_assert = True
                     i_clients = fgraph.clients[i.owner.inputs[0]]
                     assert_clients = [c for (c, _) in i_clients if c in self.nodes_seen]
 
                     for idx in range(len(assert_clients)):
                         client = assert_clients[idx]
-                        if isinstance(i.owner.op, theano.tensor.opt.Assert):
+                        if isinstance(i.owner.op, Assert):
                             o_clients = fgraph.clients[client.outputs[0]]
                             for c in o_clients:
                                 if c[0] in self.nodes_seen:
@@ -622,7 +623,7 @@ class MergeFeature(Feature):
             cand_inputs_assert_removed = []
             # TODO: Deactivated while Assert merging is disabled. (See above and below.)
             for i in []:  # candidate.inputs:
-                if i.owner and isinstance(i.owner.op, theano.tensor.opt.Assert):
+                if i.owner and isinstance(i.owner.op, Assert):
                     cand_has_assert = True
                     cand_inputs_assert_removed.append(i.owner.inputs[0])
                 else:
@@ -637,7 +638,7 @@ class MergeFeature(Feature):
             if node_has_assert:
                 node_inputs_assert_removed = []
                 for i in node.inputs:
-                    if i.owner and isinstance(i.owner.op, theano.tensor.opt.Assert):
+                    if i.owner and isinstance(i.owner.op, Assert):
                         node_inputs_assert_removed.append(i.owner.inputs[0])
                     else:
                         node_inputs_assert_removed.append(i)
@@ -715,20 +716,16 @@ class MergeFeature(Feature):
         new_inputs = []
         for node_i, cand_i in zip(node.inputs, candidate.inputs):
             # if node_i is assert
-            if node_i.owner and isinstance(node_i.owner.op, theano.tensor.opt.Assert):
+            if node_i.owner and isinstance(node_i.owner.op, Assert):
                 # node_i is assert, cand_i is assert
-                if cand_i.owner and isinstance(
-                    cand_i.owner.op, theano.tensor.opt.Assert
-                ):
+                if cand_i.owner and isinstance(cand_i.owner.op, Assert):
                     # Here two assert nodes are merged.
                     # Step 1. Merge conditions of both assert nodes.
                     # Step 2. Make the new assert node
                     node_cond = node_i.owner.inputs[1:]
                     cand_cond = cand_i.owner.inputs[1:]
                     new_cond = list(set(node_cond + cand_cond))
-                    new_inputs.append(
-                        theano.tensor.opt.assert_op(node_i.owner.inputs[0], *new_cond)
-                    )
+                    new_inputs.append(assert_op(node_i.owner.inputs[0], *new_cond))
 
                 # node_i is assert, cand_i is not assert
                 else:
@@ -800,7 +797,7 @@ class MergeOptimizer(GlobalOptimizer):
                     # nodes removed
                     cand_inputs_assert_removed = []
                     for i in candidate.inputs:
-                        if i.owner and isinstance(i.owner.op, theano.tensor.opt.Assert):
+                        if i.owner and isinstance(i.owner.op, Assert):
                             cand_inputs_assert_removed.append(i.owner.inputs[0])
                         else:
                             cand_inputs_assert_removed.append(i)
@@ -808,7 +805,7 @@ class MergeOptimizer(GlobalOptimizer):
                     # Get input list of the node with assert nodes removed
                     node_inputs_assert_removed = []
                     for i in node.inputs:
-                        if i.owner and isinstance(i.owner.op, theano.tensor.opt.Assert):
+                        if i.owner and isinstance(i.owner.op, Assert):
                             node_inputs_assert_removed.append(i.owner.inputs[0])
                         else:
                             node_inputs_assert_removed.append(i)

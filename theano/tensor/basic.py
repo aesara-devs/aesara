@@ -11,6 +11,7 @@ import theano
 import theano.scalar.sharedvar
 from theano import compile, config, printing
 from theano import scalar as scal
+from theano.assert_op import Assert, assert_op
 from theano.compile import Rebroadcast, Shape, shape
 from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
 from theano.graph.basic import Apply, Constant, Variable
@@ -482,7 +483,7 @@ def get_scalar_constant_value(
             elif isinstance(v.owner.op, (ScalarFromTensor, TensorFromScalar)):
                 v = v.owner.inputs[0]
                 continue
-            elif isinstance(v.owner.op, theano.tensor.opt.Assert):
+            elif isinstance(v.owner.op, Assert):
                 # check if all conditions are constant and true
                 cond = [
                     get_scalar_constant_value(c, max_recur=max_recur)
@@ -5022,7 +5023,7 @@ class Reshape(COp):
         # because it tries to replace the Shape_i node by the switch
         # statement, which depends on Shape_i.
         # return [tuple([switch(eq(node.inputs[1][i], -1),
-        #                      theano.tensor.opt.Shape_i(i)(node.outputs[0]),
+        #                      Shape_i(i)(node.outputs[0]),
         #                      node.inputs[1][i])
         #                    for i in range(self.ndim)]
         #    )]
@@ -5495,7 +5496,7 @@ def tile(x, reps, ndim=None):
                 offset = ndim - reps.shape[0]
 
                 # assert that reps.shape[0] does not exceed ndim
-                offset = theano.tensor.opt.assert_(offset, ge(offset, 0))
+                offset = assert_op(offset, ge(offset, 0))
 
                 # if reps.ndim is less than x.ndim, we pad the reps with
                 # "1" so that reps will have the same ndim as x.

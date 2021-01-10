@@ -11,6 +11,7 @@ from tests.graph.utils import (
     op_y,
     op_z,
 )
+from theano.assert_op import assert_op
 from theano.configdefaults import config
 from theano.graph.basic import Apply, Constant
 from theano.graph.fg import FunctionGraph
@@ -327,7 +328,7 @@ class TestMergeOptimizer:
         # Merge two nodes, one has assert, the other not.
         x1 = tt.matrix("x1")
         x2 = tt.matrix("x2")
-        e = tt.dot(x1, x2) + tt.dot(tt.opt.assert_op(x1, (x1 > x2).all()), x2)
+        e = tt.dot(x1, x2) + tt.dot(assert_op(x1, (x1 > x2).all()), x2)
         g = FunctionGraph([x1, x2], [e])
         MergeOptimizer().optimize(g)
         strg = theano.printing.debugprint(g, file="str")
@@ -349,8 +350,8 @@ class TestMergeOptimizer:
         # with the same conditions.
         x1 = tt.matrix("x1")
         x2 = tt.matrix("x2")
-        e = tt.dot(tt.opt.assert_op(x1, (x1 > x2).all()), x2) + tt.dot(
-            tt.opt.assert_op(x1, (x1 > x2).all()), x2
+        e = tt.dot(assert_op(x1, (x1 > x2).all()), x2) + tt.dot(
+            assert_op(x1, (x1 > x2).all()), x2
         )
         g = FunctionGraph([x1, x2], [e])
         MergeOptimizer().optimize(g)
@@ -375,8 +376,8 @@ class TestMergeOptimizer:
         x1 = tt.matrix("x1")
         x2 = tt.matrix("x2")
         x3 = tt.matrix("x3")
-        e = tt.dot(tt.opt.assert_op(x1, (x1 > x3).all()), x2) + tt.dot(
-            tt.opt.assert_op(x1, (x1 > x2).all()), x2
+        e = tt.dot(assert_op(x1, (x1 > x3).all()), x2) + tt.dot(
+            assert_op(x1, (x1 > x2).all()), x2
         )
         g = FunctionGraph([x1, x2, x3], [e])
         MergeOptimizer().optimize(g)
@@ -419,8 +420,8 @@ class TestMergeOptimizer:
         x1 = tt.matrix("x1")
         x2 = tt.matrix("x2")
         x3 = tt.matrix("x3")
-        e = tt.dot(tt.opt.assert_op(x1, (x1 > x3).all()), x2) + tt.dot(
-            x1, tt.opt.assert_op(x2, (x2 > x3).all())
+        e = tt.dot(assert_op(x1, (x1 > x3).all()), x2) + tt.dot(
+            x1, assert_op(x2, (x2 > x3).all())
         )
         g = FunctionGraph([x1, x2, x3], [e])
         MergeOptimizer().optimize(g)
@@ -449,8 +450,8 @@ class TestMergeOptimizer:
         x1 = tt.matrix("x1")
         x2 = tt.matrix("x2")
         x3 = tt.matrix("x3")
-        e = tt.dot(x1, tt.opt.assert_op(x2, (x2 > x3).all())) + tt.dot(
-            tt.opt.assert_op(x1, (x1 > x3).all()), x2
+        e = tt.dot(x1, assert_op(x2, (x2 > x3).all())) + tt.dot(
+            assert_op(x1, (x1 > x3).all()), x2
         )
         g = FunctionGraph([x1, x2, x3], [e])
         MergeOptimizer().optimize(g)

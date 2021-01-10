@@ -20,6 +20,7 @@ import numpy as np
 
 import theano
 from theano import scalar
+from theano.assert_op import Assert
 from theano.compile import optdb
 from theano.configdefaults import config
 from theano.gradient import DisconnectedType, grad_not_implemented
@@ -2086,7 +2087,7 @@ def local_useless_crossentropy_softmax_1hot_with_bias_dx_alloc(fgraph, node):
                 # equal to 1.
                 cond = tt.or_(tt.eq(dy.shape[0], 1), tt.eq(dy.shape[0], sm.shape[0]))
                 msg = "`sm` and `dy` do not have the same shape."
-                dz = opt.Assert(msg)(dz, cond)
+                dz = Assert(msg)(dz, cond)
 
             ret = node.op(dz, sm, y_idx)
             copy_stack_trace(node.outputs[0], ret)

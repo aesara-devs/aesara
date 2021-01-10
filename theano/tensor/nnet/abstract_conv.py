@@ -17,6 +17,7 @@ import warnings
 import numpy as np
 
 import theano
+from theano.assert_op import Assert
 from theano.configdefaults import config
 from theano.graph.basic import Apply, Variable
 from theano.graph.op import Op
@@ -26,7 +27,6 @@ from theano.tensor.basic import (
     get_scalar_constant_value,
     patternbroadcast,
 )
-from theano.tensor.opt import Assert
 
 
 try:

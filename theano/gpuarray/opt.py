@@ -12,6 +12,7 @@ import theano.tensor.nlinalg as nlinalg
 import theano.tensor.signal.pool as pool
 import theano.tensor.slinalg as slinalg
 from theano import scalar, tensor
+from theano.assert_op import Assert
 from theano.breakpoint import PdbBreakpoint
 from theano.compile import optdb
 from theano.compile.ops import shape_i
@@ -1506,14 +1507,14 @@ def local_gpu_crossentropycategorical1hotgrad(
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.tensor.opt.Assert])
+@op_lifter([Assert])
 def local_gpua_assert(fgraph, op, context_name, inputs, outputs):
     if isinstance(inputs[0].type, GpuArrayType):
         return
     return local_gpua_assert_graph(op, context_name, inputs, outputs)
 
 
-@register_opt2([theano.tensor.opt.Assert], "fast_compile")
+@register_opt2([Assert], "fast_compile")
 def local_gpua_assert_graph(fgraph, op, context_name, inputs, outputs):
     return [op(as_gpuarray_variable(inputs[0], context_name), *inputs[1:])]
 

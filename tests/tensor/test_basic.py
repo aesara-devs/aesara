@@ -69,6 +69,7 @@ from tests.tensor.utils import (
     upcast_int8_nfunc,
 )
 from theano import compile, config, function, shared
+from theano.assert_op import Assert
 from theano.compile import DeepCopyOp
 from theano.compile.mode import get_default_mode
 from theano.graph.basic import Apply, Variable
@@ -5929,17 +5930,17 @@ class TestGetScalarConstantValue:
         x = tt.scalar()
 
         # condition is always True
-        a = opt.Assert()(c, c > 1)
+        a = Assert()(c, c > 1)
         assert get_scalar_constant_value(a) == 2
 
         with config.change_flags(compute_test_value="off"):
             # condition is always False
-            a = opt.Assert()(c, c > 2)
+            a = Assert()(c, c > 2)
             with pytest.raises(tt.NotScalarConstantError):
                 get_scalar_constant_value(a)
 
         # condition is not constant
-        a = opt.Assert()(c, c > x)
+        a = Assert()(c, c > x)
         with pytest.raises(tt.NotScalarConstantError):
             get_scalar_constant_value(a)
 
