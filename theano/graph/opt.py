@@ -294,7 +294,7 @@ class SeqOptimizer(GlobalOptimizer, UserList):
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
         name = getattr(self, "name", None)
         print(
-            f"{' ' * level}{self.__class_.__name__} {name} id={id(self)}", file=stream
+            f"{' ' * level}{self.__class__.__name__} {name} id={id(self)}", file=stream
         )
         # This way, -1 will do all depth
         if depth != 0:
@@ -1072,7 +1072,7 @@ class LocalOptimizer(abc.ABC):
         """
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
-        print(f"{' ' * level}{self.__class_.__name__} id={id(self)}", file=stream)
+        print(f"{' ' * level}{self.__class__.__name__} id={id(self)}", file=stream)
 
 
 class LocalMetaOptimizer(LocalOptimizer):
@@ -1416,7 +1416,7 @@ class LocalOptGroup(LocalOptimizer):
         raise NotImplementedError
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
-        print(f"{' ' * level}{self.__class_.__name__} id={id(self)}", file=stream)
+        print(f"{' ' * level}{self.__class__.__name__} id={id(self)}", file=stream)
         if depth != 0:
             depth -= 1
             for lopt in self.opts:
@@ -1542,7 +1542,8 @@ class OpRemove(LocalOptimizer):
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
         print(
-            f"{' ' * level}{self.__class_.__name__}(self.op) id={id(self)}", file=stream
+            f"{' ' * level}{self.__class__.__name__}(self.op) id={id(self)}",
+            file=stream,
         )
 
 
@@ -1817,7 +1818,7 @@ class PatternSub(LocalOptimizer):
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
         name = getattr(self, "__name__", getattr(self, "name", None))
         print(
-            f"{' ' * level}{self.__class_.__name__} {name}({self.in_pattern}, {self.out_pattern}) id={id(self)}",
+            f"{' ' * level}{self.__class__.__name__} {name}({self.in_pattern}, {self.out_pattern}) id={id(self)}",
             file=stream,
         )
 
@@ -2075,7 +2076,7 @@ class NavigatorOptimizer(GlobalOptimizer):
             self.local_opt.add_requirements(fgraph)
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
-        print(f"{' ' * level}{self.__class_.__name__} id={id(self)}", file=stream)
+        print(f"{' ' * level}{self.__class__.__name__} id={id(self)}", file=stream)
         if depth != 0:
             self.local_opt.print_summary(stream, level=(level + 2), depth=(depth - 1))
 
@@ -2629,7 +2630,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
         name = getattr(self, "name", None)
         print(
-            f"{' ' * level}{self.__class_.__name__} {name} id={id(self)}", file=stream
+            f"{' ' * level}{self.__class__.__name__} {name} id={id(self)}", file=stream
         )
         if depth != 0:
             for lopt in self.get_local_optimizers():
