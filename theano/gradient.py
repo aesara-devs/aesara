@@ -9,9 +9,7 @@ from functools import partial, reduce
 import numpy as np
 
 import theano
-from theano.compile.function import function
 from theano.compile.ops import ViewOp
-from theano.compile.sharedvalue import shared
 from theano.configdefaults import config
 from theano.graph import utils
 from theano.graph.basic import Variable
@@ -1760,6 +1758,8 @@ def verify_grad(
     that case as well by using random projections.
 
     """
+    from theano.compile.function import function
+    from theano.compile.sharedvalue import shared
 
     assert isinstance(pt, (list, tuple))
     pt = [np.array(p) for p in pt]
