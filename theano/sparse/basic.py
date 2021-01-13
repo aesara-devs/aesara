@@ -14,7 +14,8 @@ import scipy.sparse
 from numpy.lib.stride_tricks import as_strided
 
 import theano
-from theano import scalar, tensor
+from theano import scalar as ts
+from theano import tensor as tt
 from theano.configdefaults import config
 from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
 from theano.graph.basic import Apply, Constant, Variable
@@ -22,6 +23,10 @@ from theano.graph.op import COp, Op
 from theano.misc.safe_asarray import _asarray
 from theano.sparse.type import SparseType, _is_sparse
 from theano.sparse.utils import hash_from_sparse
+from theano.tensor.type import TensorType
+from theano.tensor.type import continuous_dtypes as tensor_continuous_dtypes
+from theano.tensor.type import discrete_dtypes as tensor_discrete_dtypes
+from theano.tensor.type import iscalar, ivector, scalar, tensor, vector
 
 
 sparse_formats = ["csc", "csr"]
@@ -45,7 +50,7 @@ def _is_sparse_variable(x):
     Returns
     -------
     boolean
-        True iff x is a L{SparseVariable} (and not a L{tensor.TensorType},
+        True iff x is a L{SparseVariable} (and not a L{TensorType},
         for instance).
 
     """
@@ -53,7 +58,7 @@ def _is_sparse_variable(x):
         raise NotImplementedError(
             "this function should only be called on "
             "*variables* (of type sparse.SparseType "
-            "or tensor.TensorType, for instance), not ",
+            "or TensorType, for instance), not ",
             x,
         )
     return isinstance(x.type, SparseType)
@@ -65,7 +70,7 @@ def _is_dense_variable(x):
     Returns
     -------
     boolean
-        True if x is a L{tensor.TensorType} (and not a L{SparseVariable},
+        True if x is a L{TensorType} (and not a L{SparseVariable},
         for instance).
 
     """
@@ -73,10 +78,10 @@ def _is_dense_variable(x):
         raise NotImplementedError(
             "this function should only be called on "
             "*variables* (of type sparse.SparseType or "
-            "tensor.TensorType, for instance), not ",
+            "TensorType, for instance), not ",
             x,
         )
-    return isinstance(x.type, tensor.TensorType)
+    return isinstance(x.type, TensorType)
 
 
 def _is_dense(x):
@@ -163,7 +168,7 @@ def as_sparse_or_tensor_variable(x, name=None):
     try:
         return as_sparse_variable(x, name)
     except (ValueError, TypeError):
-        return theano.tensor.as_tensor_variable(x, name)
+        return tt.as_tensor_variable(x, name)
 
 
 def constant(x, name=None):
@@ -194,7 +199,7 @@ def sp_ones_like(x):
     """
     # TODO: don't restrict to CSM formats
     data, indices, indptr, shape = csm_properties(x)
-    return CSM(format=x.format)(tensor.ones_like(data), indices, indptr, shape)
+    return CSM(format=x.format)(tt.ones_like(data), indices, indptr, shape)
 
 
 def sp_zeros_like(x):
@@ -218,7 +223,7 @@ def sp_zeros_like(x):
     return CSM(format=x.format)(
         data=np.array([], dtype=x.type.dtype),
         indices=np.array([], dtype="int32"),
-        indptr=tensor.zeros_like(indptr),
+        indptr=tt.zeros_like(indptr),
         shape=shape,
     )
 
@@ -287,9 +292,9 @@ class _sparse_py_operators:
     def toarray(self):
         return dense_from_sparse(self)
 
-    shape = property(lambda self: tensor.shape(dense_from_sparse(self)))
+    shape = property(lambda self: tt.shape(dense_from_sparse(self)))
     # don't worry!
-    # the plan is that the ShapeFeature in tensor.opt will do shape propagation
+    # the plan is that the ShapeFeature in tt.opt will do shape propagation
     # and remove the dense_from_sparse from the graph.  This will *NOT*
     # actually expand your sparse matrix just to get the shape.
     ndim = property(lambda self: self.type.ndim)
@@ -310,10 +315,10 @@ class _sparse_py_operators:
 
         if len(args) == 2:
             scalar_arg_1 = (
-                np.isscalar(args[0]) or getattr(args[0], "type", None) == tensor.iscalar
+                np.isscalar(args[0]) or getattr(args[0], "type", None) == iscalar
             )
             scalar_arg_2 = (
-                np.isscalar(args[1]) or getattr(args[1], "type", None) == tensor.iscalar
+                np.isscalar(args[1]) or getattr(args[1], "type", None) == iscalar
             )
             if scalar_arg_1 and scalar_arg_2:
                 ret = get_item_scalar(self, args)
@@ -460,10 +465,8 @@ class CSMProperties(Op):
     def make_node(self, csm):
         csm = as_sparse_variable(csm)
         assert csm.format in ["csr", "csc"]
-        data = tensor.TensorType(dtype=csm.type.dtype, broadcastable=(False,))()
-        return Apply(
-            self, [csm], [data, tensor.ivector(), tensor.ivector(), tensor.ivector()]
-        )
+        data = TensorType(dtype=csm.type.dtype, broadcastable=(False,))()
+        return Apply(self, [csm], [data, ivector(), ivector(), ivector()])
 
     def perform(self, node, inputs, out):
         (csm,) = inputs
@@ -573,7 +576,7 @@ class CSM(Op):
         self.view_map = {0: [0]}
 
     def make_node(self, data, indices, indptr, shape):
-        data = tensor.as_tensor_variable(data)
+        data = tt.as_tensor_variable(data)
 
         if not isinstance(indices, Variable):
             indices_ = np.asarray(indices)
@@ -591,9 +594,9 @@ class CSM(Op):
             assert (shape_ == shape_32).all()
             shape = shape_32
 
-        indices = tensor.as_tensor_variable(indices)
-        indptr = tensor.as_tensor_variable(indptr)
-        shape = tensor.as_tensor_variable(shape)
+        indices = tt.as_tensor_variable(indices)
+        indptr = tt.as_tensor_variable(indptr)
+        shape = tt.as_tensor_variable(shape)
 
         if data.type.ndim != 1:
             raise TypeError("data argument must be a vector", data.type, data.type.ndim)
@@ -900,7 +903,7 @@ class DenseFromSparse(Op):
         return Apply(
             self,
             [x],
-            [tensor.TensorType(dtype=x.type.dtype, broadcastable=(False, False))()],
+            [TensorType(dtype=x.type.dtype, broadcastable=(False, False))()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -973,7 +976,7 @@ class SparseFromDense(Op):
         return f"{self.__class__.__name__}{{{self.format}}}"
 
     def make_node(self, x):
-        x = tensor.as_tensor_variable(x)
+        x = tt.as_tensor_variable(x)
         if x.ndim > 2:
             raise TypeError(
                 "Theano does not have sparse tensor types with more "
@@ -997,7 +1000,7 @@ class SparseFromDense(Op):
         (x,) = inputs
         (gz,) = gout
         gx = dense_from_sparse(gz)
-        gx = tensor.patternbroadcast(gx, x.broadcastable)
+        gx = tt.patternbroadcast(gx, x.broadcastable)
         return (gx,)
 
     def infer_shape(self, fgraph, node, shapes):
@@ -1049,7 +1052,7 @@ class GetItemList(Op):
         x = as_sparse_variable(x)
         assert x.format in ["csr", "csc"]
 
-        ind = tensor.as_tensor_variable(index)
+        ind = tt.as_tensor_variable(index)
         assert ind.ndim == 1
         assert ind.dtype in integer_dtypes
 
@@ -1104,7 +1107,7 @@ class GetItemListGrad(Op):
         assert x.format in ["csr", "csc"]
         assert gz.format in ["csr", "csc"]
 
-        ind = tensor.as_tensor_variable(index)
+        ind = tt.as_tensor_variable(index)
         assert ind.ndim == 1
         assert ind.dtype in integer_dtypes
 
@@ -1141,12 +1144,12 @@ class GetItem2Lists(Op):
     def make_node(self, x, ind1, ind2):
         x = as_sparse_variable(x)
         assert x.format in ["csr", "csc"]
-        ind1 = tensor.as_tensor_variable(ind1)
-        ind2 = tensor.as_tensor_variable(ind2)
+        ind1 = tt.as_tensor_variable(ind1)
+        ind2 = tt.as_tensor_variable(ind2)
         assert ind1.dtype in integer_dtypes
         assert ind2.dtype in integer_dtypes
 
-        return Apply(self, [x, ind1, ind2], [theano.tensor.vector()])
+        return Apply(self, [x, ind1, ind2], [vector()])
 
     def perform(self, node, inp, outputs):
         (out,) = outputs
@@ -1203,8 +1206,8 @@ class GetItem2ListsGrad(Op):
 
         assert x.format in ["csr", "csc"]
 
-        ind1 = tensor.as_tensor_variable(ind1)
-        ind2 = tensor.as_tensor_variable(ind2)
+        ind1 = tt.as_tensor_variable(ind1)
+        ind2 = tt.as_tensor_variable(ind2)
         assert ind1.ndim == 1
         assert ind2.ndim == 1
         assert ind1.dtype in integer_dtypes
@@ -1269,8 +1272,8 @@ class GetItem2d(Op):
                     step = generic_None
                 else:
                     if not isinstance(step, Variable):
-                        step = tensor.as_tensor_variable(step)
-                    if not (step.ndim == 0 and step.dtype in tensor.discrete_dtypes):
+                        step = tt.as_tensor_variable(step)
+                    if not (step.ndim == 0 and step.dtype in tensor_discrete_dtypes):
                         raise ValueError(
                             (
                                 "Impossible to index into a sparse matrix with "
@@ -1284,8 +1287,8 @@ class GetItem2d(Op):
                     start = generic_None
                 else:
                     if not isinstance(start, Variable):
-                        start = tensor.as_tensor_variable(start)
-                    if not (start.ndim == 0 and start.dtype in tensor.discrete_dtypes):
+                        start = tt.as_tensor_variable(start)
+                    if not (start.ndim == 0 and start.dtype in tensor_discrete_dtypes):
                         raise ValueError(
                             (
                                 "Impossible to index into a sparse matrix with "
@@ -1299,8 +1302,8 @@ class GetItem2d(Op):
                     stop = generic_None
                 else:
                     if not isinstance(stop, Variable):
-                        stop = tensor.as_tensor_variable(stop)
-                    if not (stop.ndim == 0 and stop.dtype in tensor.discrete_dtypes):
+                        stop = tt.as_tensor_variable(stop)
+                    if not (stop.ndim == 0 and stop.dtype in tensor_discrete_dtypes):
                         raise ValueError(
                             (
                                 "Impossible to index into a sparse matrix with "
@@ -1393,7 +1396,7 @@ class GetItemScalar(Op):
 
             # in case of indexing using int instead of theano variable
             elif isinstance(ind, int):
-                ind = theano.tensor.constant(ind)
+                ind = tt.constant(ind)
                 input_op += [ind]
 
             # in case of indexing using theano variable
@@ -1402,7 +1405,7 @@ class GetItemScalar(Op):
             else:
                 raise NotImplementedError
 
-        return Apply(self, input_op, [tensor.scalar(dtype=x.dtype)])
+        return Apply(self, input_op, [scalar(dtype=x.dtype)])
 
     def perform(self, node, inputs, outputs):
         (x, ind1, ind2) = inputs
@@ -1428,7 +1431,7 @@ index
 
 Returns
 -------
-theano.tensor.scalar
+TheanoVariable
     The corresponding item in `x`.
 
 Notes
@@ -1722,7 +1725,7 @@ class SpSum(Op):
         if self.axis is not None:
             b = (False,)
 
-        z = tensor.TensorType(broadcastable=b, dtype=x.dtype)()
+        z = TensorType(broadcastable=b, dtype=x.dtype)()
         return Apply(self, [x], [z])
 
     def perform(self, node, inputs, outputs):
@@ -1753,13 +1756,13 @@ class SpSum(Op):
             if _is_sparse_variable(gz):
                 gz = dense_from_sparse(gz)
             if self.axis is None:
-                r = tensor.second(x, gz)
+                r = tt.second(x, gz)
             else:
-                ones = tensor.ones_like(x)
+                ones = tt.ones_like(x)
                 if self.axis == 0:
-                    r = tensor.addbroadcast(gz.dimshuffle("x", 0), 0) * ones
+                    r = tt.addbroadcast(gz.dimshuffle("x", 0), 0) * ones
                 elif self.axis == 1:
-                    r = tensor.addbroadcast(gz.dimshuffle(0, "x"), 1) * ones
+                    r = tt.addbroadcast(gz.dimshuffle(0, "x"), 1) * ones
                 else:
                     raise ValueError("Illegal value for self.axis.")
             r = SparseFromDense(o_format)(r)
@@ -1821,7 +1824,7 @@ class Diag(Op):
     def make_node(self, x):
         x = as_sparse_variable(x)
         assert x.format in ["csr", "csc"]
-        return Apply(self, [x], [tensor.tensor(broadcastable=(False,), dtype=x.dtype)])
+        return Apply(self, [x], [tensor(broadcastable=(False,), dtype=x.dtype)])
 
     def perform(self, node, inputs, outputs):
         (x,) = inputs
@@ -1837,7 +1840,7 @@ class Diag(Op):
         return [square_diagonal(gz)]
 
     def infer_shape(self, fgraph, nodes, shapes):
-        return [(tensor.minimum(*shapes[0]),)]
+        return [(tt.minimum(*shapes[0]),)]
 
 
 diag = Diag()
@@ -1851,7 +1854,7 @@ x
 
 Returns
 -------
-theano.tensor.vector
+TensorVariable
     A dense vector representing the diagonal elements.
 
 Notes
@@ -1868,7 +1871,7 @@ class SquareDiagonal(Op):
     __props__ = ()
 
     def make_node(self, diag):
-        diag = tensor.as_tensor_variable(diag)
+        diag = tt.as_tensor_variable(diag)
         if diag.type.ndim != 1:
             raise TypeError("data argument must be a vector", diag.type)
 
@@ -2014,7 +2017,7 @@ class AddSS(Op):
         x, y = map(as_sparse_variable, [x, y])
         assert x.format in ["csr", "csc"]
         assert y.format in ["csr", "csc"]
-        out_dtype = scalar.upcast(x.type.dtype, y.type.dtype)
+        out_dtype = ts.upcast(x.type.dtype, y.type.dtype)
         return Apply(
             self, [x, y], [SparseType(dtype=out_dtype, format=x.type.format)()]
         )
@@ -2106,9 +2109,9 @@ class AddSD(Op):
     __props__ = ()
 
     def make_node(self, x, y):
-        x, y = as_sparse_variable(x), tensor.as_tensor_variable(y)
+        x, y = as_sparse_variable(x), tt.as_tensor_variable(y)
         assert x.format in ["csr", "csc"]
-        out_dtype = scalar.upcast(x.type.dtype, y.type.dtype)
+        out_dtype = ts.upcast(x.type.dtype, y.type.dtype)
 
         # The magic number two here arises because L{scipy.sparse}
         # objects must be matrices (have dimension 2)
@@ -2116,7 +2119,7 @@ class AddSD(Op):
         return Apply(
             self,
             [x, y],
-            [tensor.TensorType(dtype=out_dtype, broadcastable=y.type.broadcastable)()],
+            [TensorType(dtype=out_dtype, broadcastable=y.type.broadcastable)()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -2149,7 +2152,7 @@ class StructuredAddSV(Op):
     def make_node(self, x, y):
         x = as_sparse_variable(x)
         assert x.format in ["csr", "csc"]
-        y = tensor.as_tensor_variable(y)
+        y = tt.as_tensor_variable(y)
 
         assert y.type.ndim == 1
 
@@ -2237,9 +2240,9 @@ def add(x, y):
     if hasattr(y, "getnnz"):
         y = as_sparse_variable(y)
     if not isinstance(x, Variable):
-        x = theano.tensor.as_tensor_variable(x)
+        x = tt.as_tensor_variable(x)
     if not isinstance(y, Variable):
-        y = theano.tensor.as_tensor_variable(y)
+        y = tt.as_tensor_variable(y)
 
     x_is_sparse_variable = _is_sparse_variable(x)
     y_is_sparse_variable = _is_sparse_variable(y)
@@ -2294,7 +2297,7 @@ class MulSS(Op):
         x, y = as_sparse_variable(x), as_sparse_variable(y)
         assert x.format in ["csr", "csc"]
         assert y.format in ["csr", "csc"]
-        out_dtype = scalar.upcast(x.type.dtype, y.type.dtype)
+        out_dtype = ts.upcast(x.type.dtype, y.type.dtype)
         return Apply(
             self, [x, y], [SparseType(dtype=out_dtype, format=x.type.format)()]
         )
@@ -2327,12 +2330,12 @@ class MulSD(Op):
     __props__ = ()
 
     def make_node(self, x, y):
-        x, y = as_sparse_variable(x), tensor.as_tensor_variable(y)
+        x, y = as_sparse_variable(x), tt.as_tensor_variable(y)
 
         assert x.format in ["csr", "csc"]
 
         # upcast the tensor. Is the cast of sparse done implemented?
-        dtype = scalar.upcast(x.type.dtype, y.type.dtype)
+        dtype = ts.upcast(x.type.dtype, y.type.dtype)
 
         # The magic number two here arises because L{scipy.sparse}
         # objects must be matrices (have dimension 2)
@@ -2419,7 +2422,7 @@ class MulSV(Op):
     def make_node(self, x, y):
         x = as_sparse_variable(x)
         assert x.format in ["csr", "csc"]
-        y = tensor.as_tensor_variable(y)
+        y = tt.as_tensor_variable(y)
 
         assert y.type.ndim == 1
 
@@ -2602,10 +2605,10 @@ class __ComparisonOpSD(Op):
         raise NotImplementedError()
 
     def make_node(self, x, y):
-        x, y = as_sparse_variable(x), tensor.as_tensor_variable(y)
+        x, y = as_sparse_variable(x), tt.as_tensor_variable(y)
 
         assert y.type.ndim == 2
-        out = tensor.TensorType(dtype="uint8", broadcastable=(False, False))()
+        out = TensorType(dtype="uint8", broadcastable=(False, False))()
         return Apply(self, [x, y], [out])
 
     def perform(self, node, inputs, outputs):
@@ -2658,9 +2661,9 @@ def __ComparisonSwitch(SS, SD, DS):
         if hasattr(y, "getnnz"):
             y = as_sparse_variable(y)
         if not isinstance(x, Variable):
-            x = theano.tensor.as_tensor_variable(x)
+            x = tt.as_tensor_variable(x)
         if not isinstance(y, Variable):
-            y = theano.tensor.as_tensor_variable(y)
+            y = tt.as_tensor_variable(y)
 
         x_is_sparse_variable = _is_sparse_variable(x)
         y_is_sparse_variable = _is_sparse_variable(y)
@@ -2935,15 +2938,13 @@ class HStack(Op):
     def grad(self, inputs, gout):
         (gz,) = gout
         is_continuous = [
-            (inputs[i].dtype in tensor.continuous_dtypes) for i in range(len(inputs))
+            (inputs[i].dtype in tensor_continuous_dtypes) for i in range(len(inputs))
         ]
 
         if _is_sparse_variable(gz):
             gz = dense_from_sparse(gz)
 
-        split = tensor.Split(len(inputs))(
-            gz, 1, tensor.stack([x.shape[1] for x in inputs])
-        )
+        split = tt.Split(len(inputs))(gz, 1, tt.stack([x.shape[1] for x in inputs]))
         if not isinstance(split, list):
             split = [split]
 
@@ -2998,7 +2999,7 @@ def hstack(blocks, format=None, dtype=None):
 
     blocks = [as_sparse_variable(i) for i in blocks]
     if dtype is None:
-        dtype = theano.scalar.upcast(*[i.dtype for i in blocks])
+        dtype = ts.upcast(*[i.dtype for i in blocks])
     return HStack(format=format, dtype=dtype)(*blocks)
 
 
@@ -3017,15 +3018,13 @@ class VStack(HStack):
     def grad(self, inputs, gout):
         (gz,) = gout
         is_continuous = [
-            (inputs[i].dtype in tensor.continuous_dtypes) for i in range(len(inputs))
+            (inputs[i].dtype in tensor_continuous_dtypes) for i in range(len(inputs))
         ]
 
         if _is_sparse_variable(gz):
             gz = dense_from_sparse(gz)
 
-        split = tensor.Split(len(inputs))(
-            gz, 0, tensor.stack([x.shape[0] for x in inputs])
-        )
+        split = tt.Split(len(inputs))(gz, 0, tt.stack([x.shape[0] for x in inputs]))
         if not isinstance(split, list):
             split = [split]
 
@@ -3077,7 +3076,7 @@ def vstack(blocks, format=None, dtype=None):
 
     blocks = [as_sparse_variable(i) for i in blocks]
     if dtype is None:
-        dtype = theano.scalar.upcast(*[i.dtype for i in blocks])
+        dtype = ts.upcast(*[i.dtype for i in blocks])
     return VStack(format=format, dtype=dtype)(*blocks)
 
 
@@ -3154,7 +3153,7 @@ def structured_monoid(tensor_op):
             x = as_sparse_variable(args[0])
             assert x.format in ["csr", "csc"]
 
-            xs = [scalar.as_scalar(arg) for arg in args[1:]]
+            xs = [ts.as_scalar(arg) for arg in args[1:]]
 
             data, ind, ptr, shape = csm_properties(x)
 
@@ -3168,7 +3167,7 @@ def structured_monoid(tensor_op):
     return decorator
 
 
-@structured_monoid(tensor.nnet.sigmoid)
+@structured_monoid(theano.tensor.nnet.sigmoid)
 def structured_sigmoid(x):
     """
     Structured elemwise sigmoid.
@@ -3177,7 +3176,7 @@ def structured_sigmoid(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.exp)
+@structured_monoid(tt.exp)
 def structured_exp(x):
     """
     Structured elemwise exponential.
@@ -3186,7 +3185,7 @@ def structured_exp(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.log)
+@structured_monoid(tt.log)
 def structured_log(x):
     """
     Structured elemwise logarithm.
@@ -3195,7 +3194,7 @@ def structured_log(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.pow)
+@structured_monoid(tt.pow)
 def structured_pow(x, y):
     """
     Structured elemwise power of sparse matrix x by scalar y.
@@ -3204,7 +3203,7 @@ def structured_pow(x, y):
     # see decorator for function body
 
 
-@structured_monoid(tensor.minimum)
+@structured_monoid(tt.minimum)
 def structured_minimum(x, y):
     """
     Structured elemwise minimum of sparse matrix x by scalar y.
@@ -3213,7 +3212,7 @@ def structured_minimum(x, y):
     # see decorator for function body
 
 
-@structured_monoid(tensor.maximum)
+@structured_monoid(tt.maximum)
 def structured_maximum(x, y):
     """
     Structured elemwise maximum of sparse matrix x by scalar y.
@@ -3222,7 +3221,7 @@ def structured_maximum(x, y):
     # see decorator for function body
 
 
-@structured_monoid(tensor.add)
+@structured_monoid(tt.add)
 def structured_add(x):
     """
     Structured addition of sparse matrix x and scalar y.
@@ -3232,7 +3231,7 @@ def structured_add(x):
 
 
 # Sparse operation (map 0 to 0)
-@structured_monoid(tensor.sin)
+@structured_monoid(tt.sin)
 def sin(x):
     """
     Elemwise sinus of `x`.
@@ -3241,7 +3240,7 @@ def sin(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.tan)
+@structured_monoid(tt.tan)
 def tan(x):
     """
     Elemwise tan of `x`.
@@ -3250,7 +3249,7 @@ def tan(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.arcsin)
+@structured_monoid(tt.arcsin)
 def arcsin(x):
     """
     Elemwise arcsinus of `x`.
@@ -3259,7 +3258,7 @@ def arcsin(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.arctan)
+@structured_monoid(tt.arctan)
 def arctan(x):
     """
     Elemwise arctan of `x`.
@@ -3268,7 +3267,7 @@ def arctan(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.sinh)
+@structured_monoid(tt.sinh)
 def sinh(x):
     """
     Elemwise sinh of `x`.
@@ -3277,7 +3276,7 @@ def sinh(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.arcsinh)
+@structured_monoid(tt.arcsinh)
 def arcsinh(x):
     """
     Elemwise arcsinh of `x`.
@@ -3286,7 +3285,7 @@ def arcsinh(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.tanh)
+@structured_monoid(tt.tanh)
 def tanh(x):
     """
     Elemwise tanh of `x`.
@@ -3295,7 +3294,7 @@ def tanh(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.arctanh)
+@structured_monoid(tt.arctanh)
 def arctanh(x):
     """
     Elemwise arctanh of `x`.
@@ -3304,7 +3303,7 @@ def arctanh(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.round_half_to_even)
+@structured_monoid(tt.round_half_to_even)
 def rint(x):
     """
     Elemwise round half to even of `x`.
@@ -3314,11 +3313,11 @@ def rint(x):
 
 
 # Give it a simple name instead of the complex one that would automatically
-# be derived from `tensor.round_half_to_even`.
+# be derived from `tt.round_half_to_even`.
 rint.__name__ = "rint"
 
 
-@structured_monoid(tensor.sgn)
+@structured_monoid(tt.sgn)
 def sgn(x):
     """
     Elemwise signe of `x`.
@@ -3327,7 +3326,7 @@ def sgn(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.ceil)
+@structured_monoid(tt.ceil)
 def ceil(x):
     """
     Elemwise ceiling of `x`.
@@ -3336,7 +3335,7 @@ def ceil(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.floor)
+@structured_monoid(tt.floor)
 def floor(x):
     """
     Elemwise floor of `x`.
@@ -3345,7 +3344,7 @@ def floor(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.log1p)
+@structured_monoid(tt.log1p)
 def log1p(x):
     """
     Elemwise log(1 + `x`).
@@ -3354,7 +3353,7 @@ def log1p(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.expm1)
+@structured_monoid(tt.expm1)
 def expm1(x):
     """
     Elemwise e^`x` - 1.
@@ -3363,7 +3362,7 @@ def expm1(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.deg2rad)
+@structured_monoid(tt.deg2rad)
 def deg2rad(x):
     """
     Elemwise degree to radian.
@@ -3372,7 +3371,7 @@ def deg2rad(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.rad2deg)
+@structured_monoid(tt.rad2deg)
 def rad2deg(x):
     """
     Elemwise radian to degree.
@@ -3381,7 +3380,7 @@ def rad2deg(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.trunc)
+@structured_monoid(tt.trunc)
 def trunc(x):
     """
     Elemwise truncature.
@@ -3390,7 +3389,7 @@ def trunc(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.sqr)
+@structured_monoid(tt.sqr)
 def sqr(x):
     """
     Elemwise `x` * `x`.
@@ -3399,7 +3398,7 @@ def sqr(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.sqrt)
+@structured_monoid(tt.sqrt)
 def sqrt(x):
     """
     Elemwise square root of `x`.
@@ -3408,7 +3407,7 @@ def sqrt(x):
     # see decorator for function body
 
 
-@structured_monoid(tensor.conj)
+@structured_monoid(tt.conj)
 def conj(x):
     """
     Elemwise complex conjugate of `x`.
@@ -3571,7 +3570,7 @@ class StructuredDot(Op):
             raise TypeError(
                 "First argument must be of type SparseVariable " "or SparseConstant"
             )
-        dtype_out = scalar.upcast(a.type.dtype, b.type.dtype)
+        dtype_out = ts.upcast(a.type.dtype, b.type.dtype)
         if b.type.ndim != 2:
             raise NotImplementedError("non-matrix b")
 
@@ -3581,7 +3580,7 @@ class StructuredDot(Op):
             return Apply(
                 self,
                 [a, b],
-                [tensor.tensor(dtype_out, (False, b.type.broadcastable[1]))],
+                [tensor(dtype_out, (False, b.type.broadcastable[1]))],
             )
 
     def perform(self, node, inputs, outputs):
@@ -3712,7 +3711,7 @@ class StructuredDotGradCSC(COp):
 
     def make_node(self, a_indices, a_indptr, b, g_ab):
         return Apply(
-            self, [a_indices, a_indptr, b, g_ab], [tensor.tensor(g_ab.dtype, (False,))]
+            self, [a_indices, a_indptr, b, g_ab], [tensor(g_ab.dtype, (False,))]
         )
 
     def perform(self, node, inputs, outputs):
@@ -3845,9 +3844,7 @@ class StructuredDotGradCSR(COp):
     __props__ = ()
 
     def make_node(self, a_indices, a_indptr, b, g_ab):
-        return Apply(
-            self, [a_indices, a_indptr, b, g_ab], [tensor.tensor(b.dtype, (False,))]
-        )
+        return Apply(self, [a_indices, a_indptr, b, g_ab], [tensor(b.dtype, (False,))])
 
     def perform(self, node, inputs, outputs):
         (a_indices, a_indptr, b, g_ab) = inputs
@@ -3988,8 +3985,8 @@ class SamplingDot(Op):
     __props__ = ()
 
     def make_node(self, x, y, p):
-        x = tensor.as_tensor_variable(x)
-        y = tensor.as_tensor_variable(y)
+        x = tt.as_tensor_variable(x)
+        y = tt.as_tensor_variable(y)
         p = as_sparse_variable(p)
         assert p.format in ["csr", "csc"]
 
@@ -3997,7 +3994,7 @@ class SamplingDot(Op):
             raise TypeError(p)
 
         # TODO: use it.
-        dtype_out = scalar.upcast(x.type.dtype, y.type.dtype, p.type.dtype)  # noqa
+        # dtype_out = ts.upcast(x.type.dtype, y.type.dtype, p.type.dtype)
 
         return Apply(self, [x, y, p], [p.type()])
 
@@ -4086,7 +4083,7 @@ class Dot(Op):
         raise NotImplementedError()
 
     def make_node(self, x, y):
-        dtype_out = scalar.upcast(x.dtype, y.dtype)
+        dtype_out = ts.upcast(x.dtype, y.dtype)
 
         # Sparse dot product should have at least one sparse variable
         # as input. If the other one is not sparse, it has to be converted
@@ -4108,7 +4105,7 @@ class Dot(Op):
         if x_is_sparse_var:
             broadcast_x = (False,) * x.ndim
         else:
-            x = tensor.as_tensor_variable(x)
+            x = tt.as_tensor_variable(x)
             broadcast_x = x.type.broadcastable
             assert y.format in ["csr", "csc"]
             if x.ndim not in (1, 2):
@@ -4120,7 +4117,7 @@ class Dot(Op):
         if y_is_sparse_var:
             broadcast_y = (False,) * y.ndim
         else:
-            y = tensor.as_tensor_variable(y)
+            y = tt.as_tensor_variable(y)
             broadcast_y = y.type.broadcastable
             assert x.format in ["csr", "csc"]
             if y.ndim not in (1, 2):
@@ -4134,7 +4131,7 @@ class Dot(Op):
         elif len(broadcast_y) == 1:
             broadcast_out = broadcast_x[:-1]
         return Apply(
-            self, [x, y], [tensor.tensor(dtype=dtype_out, broadcastable=broadcast_out)]
+            self, [x, y], [tensor(dtype=dtype_out, broadcastable=broadcast_out)]
         )
 
     def perform(self, node, inputs, out):
@@ -4160,11 +4157,11 @@ class Dot(Op):
         rval = []
 
         if _is_dense_variable(y):
-            rval.append(tensor.dot(gz, y.T))
+            rval.append(tt.dot(gz, y.T))
         else:
             rval.append(dot(gz, y.T))
         if _is_dense_variable(x):
-            rval.append(tensor.dot(x.T, gz))
+            rval.append(tt.dot(x.T, gz))
         else:
             rval.append(dot(x.T, gz))
 
@@ -4232,27 +4229,27 @@ class Usmm(Op):
             # We should use Dot22 and Gemm in that case.
             raise TypeError(x)
 
-        dtype_out = scalar.upcast(
+        dtype_out = ts.upcast(
             alpha.type.dtype, x.type.dtype, y.type.dtype, z.type.dtype
         )
-        alpha = tensor.as_tensor_variable(alpha)
-        z = tensor.as_tensor_variable(z)
+        alpha = tt.as_tensor_variable(alpha)
+        z = tt.as_tensor_variable(z)
 
         assert z.ndim == 2
         assert alpha.type.broadcastable == (True,) * alpha.ndim
         if not _is_sparse_variable(x):
-            x = tensor.as_tensor_variable(x)
+            x = tt.as_tensor_variable(x)
             assert y.format in ["csr", "csc"]
             assert x.ndim == 2
         if not _is_sparse_variable(y):
-            y = tensor.as_tensor_variable(y)
+            y = tt.as_tensor_variable(y)
             assert x.format in ["csr", "csc"]
             assert y.ndim == 2
 
         return Apply(
             self,
             [alpha, x, y, z],
-            [tensor.tensor(dtype=dtype_out, broadcastable=(False, False))],
+            [tensor(dtype=dtype_out, broadcastable=(False, False))],
         )
 
     def perform(self, node, inputs, outputs):
@@ -4331,9 +4328,9 @@ class ConstructSparseFromList(Op):
                 output[out_idx] = values[in_idx]
 
         """
-        x_ = theano.tensor.as_tensor_variable(x)
-        values_ = theano.tensor.as_tensor_variable(values)
-        ilist_ = theano.tensor.as_tensor_variable(ilist)
+        x_ = tt.as_tensor_variable(x)
+        values_ = tt.as_tensor_variable(values)
+        ilist_ = tt.as_tensor_variable(ilist)
 
         if ilist_.type.dtype not in integer_dtypes:
             raise TypeError("index must be integers")
@@ -4388,7 +4385,7 @@ class ConstructSparseFromList(Op):
         idx_list = inputs[2:]
 
         gx = g_output
-        gy = theano.tensor.advanced_subtensor1(g_output, *idx_list)
+        gy = theano.tensor.subtensor.advanced_subtensor1(g_output, *idx_list)
 
         return [gx, gy] + [DisconnectedType()()] * len(idx_list)
 

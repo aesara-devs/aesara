@@ -3,7 +3,7 @@ from io import StringIO
 
 import numpy as np
 
-from theano import scalar
+from theano import scalar as ts
 from theano.graph.basic import Apply
 from theano.graph.op import _NoPythonOp
 from theano.graph.utils import MethodNotDefined
@@ -39,7 +39,7 @@ def as_C_string_const(s):
 def get_scal(dt):
     if dt == "float16":
         dt = "float32"
-    return scalar.get_scalar_type(dt)
+    return ts.get_scalar_type(dt)
 
 
 def max_inputs_to_GpuElemwise(node_or_outputs):
@@ -163,7 +163,7 @@ class GpuElemwise(_NoPythonOp, HideC, Elemwise):
         # load in float16 and cast to float32 and do the reverse for
         # the output.
         scalar_op = self.scalar_op
-        if isinstance(scalar_op, (scalar.Cast, Composite)):
+        if isinstance(scalar_op, (ts.Cast, Composite)):
             scalar_op = scalar_op.clone_float32()
         fake_node = scalar_op.make_node(*scal_v_ins)
         scal_v_out = fake_node.outputs
@@ -697,7 +697,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype, _NoPythonOp):
         # It might be nice to use a property of the op class to do this,
         # but tensor.elemwise.CAReduce has this exact same check so I guess
         # this is OK to do
-        if self.scalar_op in [scalar.scalar_minimum, scalar.scalar_maximum]:
+        if self.scalar_op in [ts.scalar_minimum, ts.scalar_maximum]:
             conds = [
                 f"(PyGpuArray_DIMS({x})[{i}] == 0)"
                 for i in range(nd_in)
@@ -1077,13 +1077,11 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype, _NoPythonOp):
         if hasattr(self.scalar_op, "identity"):
             return str(self.scalar_op.identity)
         else:
-            assert isinstance(
-                self.scalar_op, (scalar.ScalarMaximum, scalar.ScalarMinimum)
-            )
+            assert isinstance(self.scalar_op, (ts.ScalarMaximum, ts.ScalarMinimum))
             if self.pre_scalar_op:  # TODO: multiple dtypes
                 # dtype = node.inputs[0].dtype
 
-                dummy_var = scalar.Scalar(dtype=dtype)()
+                dummy_var = ts.Scalar(dtype=dtype)()
 
                 dummy_node = self.pre_scalar_op.make_node(dummy_var)
 
@@ -3299,9 +3297,9 @@ class GpuCAReduceCPY(GpuKernelBase, HideC, CAReduceDtype):
         return (4, self.kernel_version(node))
 
     def generate_kernel(self, node, odtype, redux):
-        if isinstance(self.scalar_op, scalar.basic.Add):
+        if isinstance(self.scalar_op, ts.Add):
             reduce_expr = "a + b"
-        elif isinstance(self.scalar_op, scalar.basic.Mul):
+        elif isinstance(self.scalar_op, ts.Mul):
             reduce_expr = "a * b"
         else:
             raise NotImplementedError()

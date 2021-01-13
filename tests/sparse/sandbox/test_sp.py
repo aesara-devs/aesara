@@ -9,8 +9,9 @@ import numpy as np
 from scipy.signal import convolve2d
 
 from tests import unittest_tools as utt
-from theano import function, tensor
+from theano import function
 from theano.sparse.sandbox import sp
+from theano.tensor.type import dmatrix, dvector
 
 
 class TestSP:
@@ -29,9 +30,9 @@ class TestSP:
         convmodes = ("full", "valid")
 
         # symbolic stuff
-        bias = tensor.dvector()
-        kerns = tensor.dmatrix()
-        input = tensor.dmatrix()
+        bias = dvector()
+        kerns = dmatrix()
+        input = dmatrix()
         rng = np.random.RandomState(3423489)
         filters = rng.randn(nkern, np.prod(kshp))
         biasvals = rng.randn(nkern)
@@ -88,7 +89,7 @@ class TestSP:
                     assert (temp < 1e-5).all()
 
                     # test downward propagation -- symbolic stuff
-                    # vis = tensor.grad(output, input, output)
+                    # vis = theano.gradient.grad(output, input, output)
                     # downprop = function([kerns,input], vis, mode=mode)
                     # visval = downprop(filters,img1d)
                     # test downward propagation -- reference implementation
@@ -130,8 +131,8 @@ class TestSP:
         convmodes = ("full",)  # 'valid',)
 
         # symbolic stuff
-        kerns = [tensor.dmatrix(), tensor.dmatrix()]
-        input = tensor.dmatrix()
+        kerns = [dmatrix(), dmatrix()]
+        input = dmatrix()
         # rng = np.random.RandomState(3423489)
 
         # build actual input images
@@ -185,7 +186,7 @@ class TestSP:
         maxpoolshps = ((2, 2), (3, 3), (4, 4), (5, 5), (6, 6))
         imval = np.random.rand(4, 5, 10, 10)
 
-        images = tensor.dmatrix()
+        images = dmatrix()
         for maxpoolshp in maxpoolshps:
 
             # symbolic stuff

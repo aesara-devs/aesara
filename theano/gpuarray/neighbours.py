@@ -3,6 +3,7 @@ from theano.graph.basic import Apply
 from theano.graph.op import _NoPythonOp
 from theano.graph.params_type import ParamsType
 from theano.tensor.nnet.neighbours import Images2Neibs
+from theano.tensor.type import integer_dtypes
 
 
 try:
@@ -41,8 +42,8 @@ class GpuImages2Neibs(GpuKernelBaseCOp, Images2Neibs, _NoPythonOp):
         assert ten4.ndim == 4
         assert neib_shape.ndim == 1
         assert neib_step.ndim == 1
-        assert neib_shape.dtype in tt.integer_dtypes
-        assert neib_step.dtype in tt.integer_dtypes
+        assert neib_shape.dtype in integer_dtypes
+        assert neib_step.dtype in integer_dtypes
 
         return Apply(
             self,

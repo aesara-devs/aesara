@@ -5,6 +5,7 @@ from theano.compile.debugmode import _lessbroken_deepcopy
 from theano.configdefaults import config
 from theano.graph.basic import Apply, Constant, Variable
 from theano.graph.op import COp, Op
+from theano.tensor.type import scalar
 from theano.tensor.type_other import SliceType
 from theano.typed_list.type import TypedListType
 
@@ -525,7 +526,7 @@ class Index(Op):
     def make_node(self, x, elem):
         assert isinstance(x.type, TypedListType)
         assert x.ttype == elem.type
-        return Apply(self, [x, elem], [tt.scalar()])
+        return Apply(self, [x, elem], [scalar()])
 
     def perform(self, node, inputs, outputs):
         """
@@ -554,7 +555,7 @@ class Count(Op):
     def make_node(self, x, elem):
         assert isinstance(x.type, TypedListType)
         assert x.ttype == elem.type
-        return Apply(self, [x, elem], [tt.scalar()])
+        return Apply(self, [x, elem], [scalar()])
 
     def perform(self, node, inputs, outputs):
         """
@@ -600,7 +601,7 @@ class Length(COp):
 
     def make_node(self, x):
         assert isinstance(x.type, TypedListType)
-        return Apply(self, [x], [tt.scalar(dtype="int64")])
+        return Apply(self, [x], [scalar(dtype="int64")])
 
     def perform(self, node, x, outputs):
         (out,) = outputs

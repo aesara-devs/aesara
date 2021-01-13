@@ -4,14 +4,26 @@ import warnings
 import numpy as np
 
 import theano
-from theano import scalar as scal
+from theano import scalar as ts
 from theano.configdefaults import config
 from theano.graph.basic import Variable
 from theano.graph.type import CType
 from theano.misc.safe_asarray import _asarray
+from theano.utils import apply_across_args
 
 
 _logger = logging.getLogger("theano.tensor.type")
+
+
+# Define common subsets of dtypes (as strings).
+complex_dtypes = list(map(str, ts.complex_types))
+continuous_dtypes = list(map(str, ts.continuous_types))
+float_dtypes = list(map(str, ts.float_types))
+integer_dtypes = list(map(str, ts.integer_types))
+discrete_dtypes = list(map(str, ts.discrete_types))
+all_dtypes = list(map(str, ts.all_types))
+int_dtypes = list(map(str, ts.int_types))
+uint_dtypes = list(map(str, ts.uint_types))
 
 
 class TensorType(CType):
@@ -124,7 +136,7 @@ class TensorType(CType):
                 if isinstance(data, np.ndarray):
                     # Check if self.dtype can accurately represent data
                     # (do not try to convert the data)
-                    up_dtype = scal.upcast(self.dtype, data.dtype)
+                    up_dtype = ts.upcast(self.dtype, data.dtype)
                     if up_dtype == self.dtype:
                         # Bug in the following line when data is a
                         # scalar array, see
@@ -284,7 +296,7 @@ class TensorType(CType):
             )
 
     def to_scalar_type(self):
-        return scal.get_scalar_type(dtype=self.dtype)
+        return ts.get_scalar_type(dtype=self.dtype)
 
     def __eq__(self, other):
         """
@@ -537,22 +549,22 @@ class TensorType(CType):
         )
 
     def c_headers(self, **kwargs):
-        return scal.get_scalar_type(self.dtype).c_headers(**kwargs)
+        return ts.get_scalar_type(self.dtype).c_headers(**kwargs)
 
     def c_libraries(self, **kwargs):
-        return scal.get_scalar_type(self.dtype).c_libraries(**kwargs)
+        return ts.get_scalar_type(self.dtype).c_libraries(**kwargs)
 
     def c_compile_args(self, **kwargs):
-        return scal.get_scalar_type(self.dtype).c_compile_args(**kwargs)
+        return ts.get_scalar_type(self.dtype).c_compile_args(**kwargs)
 
     def c_support_code(self, **kwargs):
-        return scal.get_scalar_type(self.dtype).c_support_code(**kwargs)
+        return ts.get_scalar_type(self.dtype).c_support_code(**kwargs)
 
     def c_init_code(self, **kwargs):
-        return scal.get_scalar_type(self.dtype).c_init_code(**kwargs)
+        return ts.get_scalar_type(self.dtype).c_init_code(**kwargs)
 
     def c_code_cache_version(self):
-        scalar_version = scal.get_scalar_type(self.dtype).c_code_cache_version()
+        scalar_version = ts.get_scalar_type(self.dtype).c_code_cache_version()
         if scalar_version:
             return (11,) + scalar_version
         else:
@@ -637,7 +649,7 @@ def values_eq_approx(
             return False
         if a.dtype != b.dtype:
             return False
-        if str(a.dtype) not in theano.tensor.continuous_dtypes:
+        if str(a.dtype) not in continuous_dtypes:
             return np.all(a == b)
         else:
             cmp = theano.tensor.basic._allclose(a, b, rtol=rtol, atol=atol)
@@ -832,4 +844,331 @@ theano.compile.register_specify_shape_c_code(
         Py_XINCREF(%(oname)s);
     """,
     version=1,
+)
+
+
+def tensor(*args, **kwargs):
+    name = kwargs.pop("name", None)
+    return TensorType(*args, **kwargs)(name=name)
+
+
+cscalar = TensorType("complex64", ())
+zscalar = TensorType("complex128", ())
+fscalar = TensorType("float32", ())
+dscalar = TensorType("float64", ())
+bscalar = TensorType("int8", ())
+wscalar = TensorType("int16", ())
+iscalar = TensorType("int32", ())
+lscalar = TensorType("int64", ())
+
+
+def scalar(name=None, dtype=None):
+    """Return a symbolic scalar variable.
+
+    Parameters
+    ----------
+    dtype: numeric
+        None means to use theano.config.floatX.
+    name
+        A name to attach to this variable.
+
+    """
+    if dtype is None:
+        dtype = config.floatX
+    type = TensorType(dtype, ())
+    return type(name)
+
+
+scalars, fscalars, dscalars, iscalars, lscalars = apply_across_args(
+    scalar, fscalar, dscalar, iscalar, lscalar
+)
+
+int_types = bscalar, wscalar, iscalar, lscalar
+float_types = fscalar, dscalar
+complex_types = cscalar, zscalar
+int_scalar_types = int_types
+float_scalar_types = float_types
+complex_scalar_types = complex_types
+
+cvector = TensorType("complex64", (False,))
+zvector = TensorType("complex128", (False,))
+fvector = TensorType("float32", (False,))
+dvector = TensorType("float64", (False,))
+bvector = TensorType("int8", (False,))
+wvector = TensorType("int16", (False,))
+ivector = TensorType("int32", (False,))
+lvector = TensorType("int64", (False,))
+
+
+def vector(name=None, dtype=None):
+    """Return a symbolic vector variable.
+
+    Parameters
+    ----------
+    dtype: numeric
+        None means to use theano.config.floatX.
+    name
+        A name to attach to this variable
+
+    """
+    if dtype is None:
+        dtype = config.floatX
+    type = TensorType(dtype, (False,))
+    return type(name)
+
+
+vectors, fvectors, dvectors, ivectors, lvectors = apply_across_args(
+    vector, fvector, dvector, ivector, lvector
+)
+
+int_vector_types = bvector, wvector, ivector, lvector
+float_vector_types = fvector, dvector
+complex_vector_types = cvector, zvector
+
+cmatrix = TensorType("complex64", (False, False))
+zmatrix = TensorType("complex128", (False, False))
+fmatrix = TensorType("float32", (False, False))
+dmatrix = TensorType("float64", (False, False))
+bmatrix = TensorType("int8", (False, False))
+wmatrix = TensorType("int16", (False, False))
+imatrix = TensorType("int32", (False, False))
+lmatrix = TensorType("int64", (False, False))
+
+
+def matrix(name=None, dtype=None):
+    """Return a symbolic matrix variable.
+
+    Parameters
+    ----------
+    dtype: numeric
+        None means to use theano.config.floatX.
+    name
+        A name to attach to this variable.
+
+    """
+    if dtype is None:
+        dtype = config.floatX
+    type = TensorType(dtype, (False, False))
+    return type(name)
+
+
+matrices, fmatrices, dmatrices, imatrices, lmatrices = apply_across_args(
+    matrix, fmatrix, dmatrix, imatrix, lmatrix
+)
+
+int_matrix_types = bmatrix, wmatrix, imatrix, lmatrix
+float_matrix_types = fmatrix, dmatrix
+complex_matrix_types = cmatrix, zmatrix
+
+crow = TensorType("complex64", (True, False))
+zrow = TensorType("complex128", (True, False))
+frow = TensorType("float32", (True, False))
+drow = TensorType("float64", (True, False))
+brow = TensorType("int8", (True, False))
+wrow = TensorType("int16", (True, False))
+irow = TensorType("int32", (True, False))
+lrow = TensorType("int64", (True, False))
+
+
+def row(name=None, dtype=None):
+    """Return a symbolic row variable (ndim=2, broadcastable=[True,False]).
+
+    Parameters
+    ----------
+    dtype: numeric type
+        None means to use theano.config.floatX.
+    name
+        A name to attach to this variable.
+
+    """
+    if dtype is None:
+        dtype = config.floatX
+    type = TensorType(dtype, (True, False))
+    return type(name)
+
+
+rows, frows, drows, irows, lrows = apply_across_args(row, frow, drow, irow, lrow)
+
+ccol = TensorType("complex64", (False, True))
+zcol = TensorType("complex128", (False, True))
+fcol = TensorType("float32", (False, True))
+dcol = TensorType("float64", (False, True))
+bcol = TensorType("int8", (False, True))
+wcol = TensorType("int16", (False, True))
+icol = TensorType("int32", (False, True))
+lcol = TensorType("int64", (False, True))
+
+
+def col(name=None, dtype=None):
+    """Return a symbolic column variable (ndim=2, broadcastable=[False,True]).
+
+    Parameters
+    ----------
+    dtype : numeric
+        None means to use theano.config.floatX.
+    name
+        A name to attach to this variable.
+
+    """
+    if dtype is None:
+        dtype = config.floatX
+    type = TensorType(dtype, (False, True))
+    return type(name)
+
+
+cols, fcols, dcols, icols, lcols = apply_across_args(col, fcol, dcol, icol, lcol)
+
+ctensor3 = TensorType("complex64", ((False,) * 3))
+ztensor3 = TensorType("complex128", ((False,) * 3))
+ftensor3 = TensorType("float32", ((False,) * 3))
+dtensor3 = TensorType("float64", ((False,) * 3))
+btensor3 = TensorType("int8", ((False,) * 3))
+wtensor3 = TensorType("int16", ((False,) * 3))
+itensor3 = TensorType("int32", ((False,) * 3))
+ltensor3 = TensorType("int64", ((False,) * 3))
+
+
+def tensor3(name=None, dtype=None):
+    """Return a symbolic 3-D variable.
+
+    Parameters
+    ----------
+    dtype: numeric type
+        None means to use theano.config.floatX.
+    name
+        A name to attach to this variable.
+
+    """
+    if dtype is None:
+        dtype = config.floatX
+    type = TensorType(dtype, (False, False, False))
+    return type(name)
+
+
+tensor3s, ftensor3s, dtensor3s, itensor3s, ltensor3s = apply_across_args(
+    tensor3, ftensor3, dtensor3, itensor3, ltensor3
+)
+
+ctensor4 = TensorType("complex64", ((False,) * 4))
+ztensor4 = TensorType("complex128", ((False,) * 4))
+ftensor4 = TensorType("float32", ((False,) * 4))
+dtensor4 = TensorType("float64", ((False,) * 4))
+btensor4 = TensorType("int8", ((False,) * 4))
+wtensor4 = TensorType("int16", ((False,) * 4))
+itensor4 = TensorType("int32", ((False,) * 4))
+ltensor4 = TensorType("int64", ((False,) * 4))
+
+
+def tensor4(name=None, dtype=None):
+    """Return a symbolic 4-D variable.
+
+    Parameters
+    ----------
+    dtype: numeric type
+        None means to use theano.config.floatX.
+    name
+        A name to attach to this variable.
+
+    """
+    if dtype is None:
+        dtype = config.floatX
+    type = TensorType(dtype, (False, False, False, False))
+    return type(name)
+
+
+tensor4s, ftensor4s, dtensor4s, itensor4s, ltensor4s = apply_across_args(
+    tensor4, ftensor4, dtensor4, itensor4, ltensor4
+)
+
+ctensor5 = TensorType("complex64", ((False,) * 5))
+ztensor5 = TensorType("complex128", ((False,) * 5))
+ftensor5 = TensorType("float32", ((False,) * 5))
+dtensor5 = TensorType("float64", ((False,) * 5))
+btensor5 = TensorType("int8", ((False,) * 5))
+wtensor5 = TensorType("int16", ((False,) * 5))
+itensor5 = TensorType("int32", ((False,) * 5))
+ltensor5 = TensorType("int64", ((False,) * 5))
+
+
+def tensor5(name=None, dtype=None):
+    """Return a symbolic 5-D variable.
+
+    Parameters
+    ----------
+    dtype: numeric type
+        None means to use theano.config.floatX.
+    name
+        A name to attach to this variable.
+
+    """
+    if dtype is None:
+        dtype = config.floatX
+    type = TensorType(dtype, (False, False, False, False, False))
+    return type(name)
+
+
+tensor5s, ftensor5s, dtensor5s, itensor5s, ltensor5s = apply_across_args(
+    tensor5, ftensor5, dtensor5, itensor5, ltensor5
+)
+
+ctensor6 = TensorType("complex64", ((False,) * 6))
+ztensor6 = TensorType("complex128", ((False,) * 6))
+ftensor6 = TensorType("float32", ((False,) * 6))
+dtensor6 = TensorType("float64", ((False,) * 6))
+btensor6 = TensorType("int8", ((False,) * 6))
+wtensor6 = TensorType("int16", ((False,) * 6))
+itensor6 = TensorType("int32", ((False,) * 6))
+ltensor6 = TensorType("int64", ((False,) * 6))
+
+
+def tensor6(name=None, dtype=None):
+    """Return a symbolic 6-D variable.
+
+    Parameters
+    ----------
+    dtype: numeric type
+        None means to use theano.config.floatX.
+    name
+        A name to attach to this variable.
+
+    """
+    if dtype is None:
+        dtype = config.floatX
+    type = TensorType(dtype, (False,) * 6)
+    return type(name)
+
+
+tensor6s, ftensor6s, dtensor6s, itensor6s, ltensor6s = apply_across_args(
+    tensor6, ftensor6, dtensor6, itensor6, ltensor6
+)
+
+ctensor7 = TensorType("complex64", ((False,) * 7))
+ztensor7 = TensorType("complex128", ((False,) * 7))
+ftensor7 = TensorType("float32", ((False,) * 7))
+dtensor7 = TensorType("float64", ((False,) * 7))
+btensor7 = TensorType("int8", ((False,) * 7))
+wtensor7 = TensorType("int16", ((False,) * 7))
+itensor7 = TensorType("int32", ((False,) * 7))
+ltensor7 = TensorType("int64", ((False,) * 7))
+
+
+def tensor7(name=None, dtype=None):
+    """Return a symbolic 7-D variable.
+
+    Parameters
+    ----------
+    dtype: numeric type
+        None means to use theano.config.floatX.
+    name
+        A name to attach to this variable.
+
+    """
+    if dtype is None:
+        dtype = config.floatX
+    type = TensorType(dtype, (False,) * 7)
+    return type(name)
+
+
+tensor7s, ftensor7s, dtensor7s, itensor7s, ltensor7s = apply_across_args(
+    tensor7, ftensor7, dtensor7, itensor7, ltensor7
 )

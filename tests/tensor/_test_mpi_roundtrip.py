@@ -10,6 +10,7 @@ import theano
 from theano.configdefaults import config
 from theano.graph.sched import sort_schedule_fn
 from theano.tensor.io import mpi_cmps, recv, send
+from theano.tensor.type import matrix
 
 
 comm = MPI.COMM_WORLD
@@ -29,11 +30,13 @@ shape = (2, 2)
 dtype = "float32"
 
 scheduler = sort_schedule_fn(*mpi_cmps)
-mode = theano.Mode(optimizer=None, linker=theano.OpWiseCLinker(schedule=scheduler))
+mode = theano.compile.mode.Mode(
+    optimizer=None, linker=theano.link.c.basic.OpWiseCLinker(schedule=scheduler)
+)
 
 with config.change_flags(compute_test_value="off"):
     if rank == 0:
-        x = theano.tensor.matrix("x", dtype=dtype)
+        x = matrix("x", dtype=dtype)
         y = x + 1
         send_request = send(y, 1, 11)
 

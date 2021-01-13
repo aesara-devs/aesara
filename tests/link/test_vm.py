@@ -6,7 +6,8 @@ import numpy as np
 import pytest
 
 import theano
-from theano import function, tensor
+from theano import function
+from theano import tensor as tt
 from theano.compile import Mode
 from theano.configdefaults import config
 from theano.graph.basic import Apply
@@ -14,6 +15,7 @@ from theano.graph.op import Op
 from theano.ifelse import ifelse
 from theano.link.c.exceptions import MissingGXX
 from theano.link.vm import Loop, VMLinker
+from theano.tensor.type import dvector, lscalar, scalar, scalars, vector, vectors
 
 
 class TestCallbacks:
@@ -28,7 +30,7 @@ class TestCallbacks:
         self.n_callbacks[key] += 1
 
     def test_callback(self):
-        a, b, c = tensor.scalars("abc")
+        a, b, c = scalars("abc")
         f = function(
             [a, b, c],
             (a + b) + c,
@@ -41,7 +43,7 @@ class TestCallbacks:
         assert sum(self.n_callbacks.values()) == len(f.maker.fgraph.toposort()) * 2
 
     def test_callback_with_ifelse(self):
-        a, b, c = tensor.scalars("abc")
+        a, b, c = scalars("abc")
         f = function(
             [a, b, c],
             ifelse(a, 2 * b, 2 * c),
@@ -53,8 +55,8 @@ class TestCallbacks:
 
 
 def test_c_thunks():
-    a = tensor.scalars("a")
-    b, c = tensor.vectors("bc")
+    a = scalars("a")
+    b, c = vectors("bc")
     cases = [False]
     if theano.config.cxx:
         cases.append(True)
@@ -108,7 +110,7 @@ def test_speed():
     def time_linker(name, linker):
         steps_a = 5
         steps_b = 100
-        x = tensor.vector()
+        x = vector()
         a = build_graph(x, steps_a)
         b = build_graph(x, steps_b)
 
@@ -151,7 +153,7 @@ def test_speed_lazy():
     def time_linker(name, linker):
         steps_a = 10
         steps_b = 100
-        x = tensor.vector()
+        x = vector()
         a = build_graph(x, steps_a)
         b = build_graph(x, steps_b)
 
@@ -184,7 +186,7 @@ def test_partial_function():
     from tests import unittest_tools as utt
 
     def check_partial_function(linker_name):
-        x = tensor.scalar("input")
+        x = scalar("input")
         y = x ** 2
         f = theano.function(
             [x], [y + 7, y - 9, y / 14.0], mode=Mode(optimizer=None, linker=linker_name)
@@ -205,7 +207,7 @@ def test_partial_function():
 )
 def test_partial_function_with_output_keys():
     def check_partial_function_output_keys(linker_name):
-        x = tensor.scalar("input")
+        x = scalar("input")
         y = 3 * x
         f = theano.function(
             [x], {"a": y * 5, "b": y - 7}, mode=Mode(optimizer=None, linker=linker_name)
@@ -224,7 +226,7 @@ def test_partial_function_with_output_keys():
 )
 def test_partial_function_with_updates():
     def check_updates(linker_name):
-        x = tensor.lscalar("input")
+        x = lscalar("input")
         y = theano.shared(np.asarray(1, "int64"), name="global")
         f = theano.function(
             [x],
@@ -254,7 +256,7 @@ def test_allow_gc_cvm():
     if mode in ["DEBUG_MODE", "DebugMode"]:
         mode = "FAST_RUN"
 
-    v = theano.tensor.vector()
+    v = vector()
     f = theano.function([v], v + 1, mode=mode)
 
     f([1])
@@ -283,10 +285,10 @@ if run_memory_usage_tests:
         # This isn't really a unit test, you have to run it and look at top to
         # see if there's a leak
         for i in range(10000):
-            x = tensor.vector()
+            x = vector()
             z = x
             for d in range(10):
-                z = tensor.sin(-z + 1)
+                z = tt.sin(-z + 1)
 
             f = function([x], z, mode=Mode(optimizer=None, linker="cvm"))
             if not i % 100:
@@ -314,7 +316,7 @@ if run_memory_usage_tests:
 
         def time_linker(name, linker):
             steps_a = 10
-            x = tensor.dvector()
+            x = dvector()
             a = build_graph(x, steps_a)
 
             f_a = function([x], a, mode=Mode(optimizer=None, linker=linker()))
@@ -344,12 +346,12 @@ if run_memory_usage_tests:
         def build_graph(x, depth=5):
             z = x
             for d in range(depth):
-                z = tensor.sin(-z + 1)
+                z = tt.sin(-z + 1)
             return z
 
         def time_linker(name, linker):
             steps_a = 10
-            x = tensor.dvector()
+            x = dvector()
             a = build_graph(x, steps_a)
 
             f_a = function([x], a, mode=Mode(optimizer=None, linker=linker()))
@@ -385,7 +387,7 @@ def test_vm_gc():
     # The bug was introduced in the trunk on July 5th, 2012 and fixed on
     # July 30th.
 
-    x = theano.tensor.vector()
+    x = vector()
     p = RunOnce()(x)
     mode = theano.Mode(linker=VMLinker(lazy=True))
     f = theano.function([theano.In(x, mutable=True)], [p + 1, p + 2], mode=mode)
@@ -398,9 +400,9 @@ def test_vm_gc():
 
 
 def test_reallocation():
-    x = tensor.scalar("x")
-    y = tensor.scalar("y")
-    z = tensor.tanh(3 * x + y) + tensor.cosh(x + 5 * y)
+    x = scalar("x")
+    y = scalar("y")
+    z = tt.tanh(3 * x + y) + tt.cosh(x + 5 * y)
     # The functinality is currently implement for non lazy and non c VM only.
     for linker in [
         VMLinker(allow_gc=False, lazy=False, use_cloop=False),
@@ -434,7 +436,7 @@ def test_reallocation():
     not theano.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_no_recycling():
-    x = theano.tensor.vector()
+    x = vector()
     for lnk in [
         VMLinker(use_cloop=True),
         VMLinker(use_cloop=False, lazy=True),
@@ -457,7 +459,7 @@ def test_VMLinker_make_vm_cvm():
     # We don't want this at module level, since CXX might not be present
     from theano.link.c.cvm import CVM
 
-    a = tensor.scalar()
+    a = scalar()
     linker = VMLinker(allow_gc=False, use_cloop=True)
 
     f = function([a], a, mode=Mode(optimizer=None, linker=linker))
@@ -478,7 +480,7 @@ def test_VMLinker_make_vm_no_cvm():
 
         # Make sure that `cvm` module is missing
         with patch.dict("sys.modules", {"theano.link.c.cvm": None}):
-            a = tensor.scalar()
+            a = scalar()
             linker = VMLinker(allow_gc=False, use_cloop=True)
 
             with pytest.raises(ModuleNotFoundError):

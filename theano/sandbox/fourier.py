@@ -10,10 +10,11 @@ import warnings
 import numpy as np
 import numpy.fft
 
-from theano import tensor
 from theano.graph.basic import Apply
 from theano.graph.op import Op
 from theano.graph.type import generic
+from theano.tensor.basic import as_tensor
+from theano.tensor.type import zmatrix
 
 
 message = (
@@ -73,12 +74,12 @@ class FFT(Op):
         Compute an n-point fft of frames along given axis.
 
         """
-        _frames = tensor.as_tensor(frames, ndim=2)
-        _n = tensor.as_tensor(n, ndim=0)
-        _axis = tensor.as_tensor(axis, ndim=0)
+        _frames = as_tensor(frames, ndim=2)
+        _n = as_tensor(n, ndim=0)
+        _axis = as_tensor(axis, ndim=0)
         if self.half and _frames.type.dtype.startswith("complex"):
             raise TypeError("Argument to HalfFFT must not be complex", frames)
-        spectrogram = tensor.zmatrix()
+        spectrogram = zmatrix()
         buf = generic()
         # The `buf` output is present for future work
         # when we call FFTW directly and re-use the 'plan' that FFTW creates.

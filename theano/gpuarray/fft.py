@@ -12,6 +12,7 @@ from theano.gradient import DisconnectedType
 from theano.graph.basic import Apply
 from theano.graph.op import _NoPythonOp
 from theano.tensor.fft import IRFFTOp
+from theano.tensor.type import integer_dtypes
 
 
 try:
@@ -75,7 +76,7 @@ class CuRFFTOp(_NoPythonOp):
 
         assert inp.dtype == "float32"
         assert s.ndim == 1
-        assert s.dtype in tt.integer_dtypes
+        assert s.dtype in integer_dtypes
 
         return Apply(self, [inp, s], [self.output_type(inp)()])
 

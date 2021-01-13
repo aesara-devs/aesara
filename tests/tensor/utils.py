@@ -8,11 +8,12 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import function, graph, shared, tensor
+from theano import function, shared
 from theano.compile.mode import get_default_mode
 from theano.configdefaults import config
+from theano.graph.utils import MethodNotDefined
 from theano.misc.safe_asarray import _asarray
-from theano.tensor.type import TensorType
+from theano.tensor.type import TensorType, complex_dtypes, discrete_dtypes, float_dtypes
 
 
 # Used to exclude random numbers too close to certain values
@@ -303,11 +304,11 @@ def randc128_ranged(min, max, shape):
 
 
 def rand_of_dtype(shape, dtype):
-    if dtype in tensor.discrete_dtypes:
+    if dtype in discrete_dtypes:
         return randint(*shape).astype(dtype)
-    elif dtype in tensor.float_dtypes:
+    elif dtype in float_dtypes:
         return rand(*shape).astype(dtype)
-    elif dtype in tensor.complex_dtypes:
+    elif dtype in complex_dtypes:
         return randcomplex(*shape).astype(dtype)
     else:
         raise TypeError()
@@ -343,7 +344,7 @@ def _numpy_true_div(x, y):
     # because simply calling np.true_divide could cause a dtype mismatch.
     out = np.true_divide(x, y)
     # Use floatX as the result of int / int
-    if x.dtype in tensor.discrete_dtypes and y.dtype in tensor.discrete_dtypes:
+    if x.dtype in discrete_dtypes and y.dtype in discrete_dtypes:
         out = _asarray(out, dtype=config.floatX)
     return out
 
@@ -666,7 +667,7 @@ def makeTester(
 
                 out_grad_vars = []
                 for out in expecteds:
-                    if str(out.dtype) in tensor.discrete_dtypes:
+                    if str(out.dtype) in discrete_dtypes:
                         dtype = config.floatX
                     else:
                         dtype = str(out.dtype)
@@ -676,7 +677,7 @@ def makeTester(
 
                 try:
                     in_grad_vars = self.op.grad(inputrs, out_grad_vars)
-                except (graph.utils.MethodNotDefined, NotImplementedError):
+                except (MethodNotDefined, NotImplementedError):
                     pass
                 else:
                     assert None not in in_grad_vars

@@ -19,6 +19,7 @@ from itertools import chain, product
 
 import numpy as np
 import pytest
+from theanot.tensor.type import TensorType
 
 import tests.unittest_tools as utt
 import theano
@@ -981,8 +982,8 @@ class BaseTestDnnConv:
         _broadcastable = [False] * (2 + self.ndim)
 
         def run_fwd_runtime_algorithm(algo):
-            inputs = theano.tensor.TensorType(dtype, _broadcastable)()
-            filters = theano.tensor.TensorType(dtype, _broadcastable)()
+            inputs = TensorType(dtype, _broadcastable)()
+            filters = TensorType(dtype, _broadcastable)()
             # Scale down the input values to prevent very large absolute errors
             # due to float rounding
             lower_inputs = inputs / 10
@@ -1028,8 +1029,8 @@ class BaseTestDnnConv:
 
         def run_gradinput_runtime_algorithm(algo):
             theano.config.dnn__conv__algo_bwd_data = algo
-            inputs = theano.tensor.TensorType(dtype, _broadcastable)()
-            filters = theano.tensor.TensorType(dtype, _broadcastable)()
+            inputs = TensorType(dtype, _broadcastable)()
+            filters = TensorType(dtype, _broadcastable)()
             conv = dnn_conv(
                 img=inputs,
                 kerns=filters,
@@ -1038,7 +1039,7 @@ class BaseTestDnnConv:
                 subsample=unit_shape,
                 dilation=unit_shape,
             )
-            grad_i = theano.tensor.grad(conv.sum(), [inputs])
+            grad_i = theano.gradient.grad(conv.sum(), [inputs])
             f = theano.function([inputs, filters], grad_i, mode=mode_with_gpu)
             assert 1 == len(
                 [
@@ -1061,7 +1062,7 @@ class BaseTestDnnConv:
             conv_ref = self.cpu_conv_class(subsample=unit_shape)(
                 ref_cast(inputs), flipped_filters
             )
-            grad_i_ref = theano.tensor.grad(conv_ref.sum(), [inputs])
+            grad_i_ref = theano.gradient.grad(conv_ref.sum(), [inputs])
             f_ref = theano.function([inputs, filters], grad_i_ref, mode="FAST_RUN")
             runtime_shapes = self.runtime_shapes
             if algo in ("time_once", "guess_once"):
@@ -1086,8 +1087,8 @@ class BaseTestDnnConv:
 
         def run_gradweight_runtime_algorithm(algo):
             theano.config.dnn__conv__algo_bwd_filter = algo
-            inputs = theano.tensor.TensorType(dtype, _broadcastable)()
-            filters = theano.tensor.TensorType(dtype, _broadcastable)()
+            inputs = TensorType(dtype, _broadcastable)()
+            filters = TensorType(dtype, _broadcastable)()
             conv = dnn_conv(
                 img=inputs,
                 kerns=filters,
@@ -1096,7 +1097,7 @@ class BaseTestDnnConv:
                 subsample=unit_shape,
                 dilation=unit_shape,
             )
-            grad_w = theano.tensor.grad(conv.sum(), [filters])
+            grad_w = theano.gradient.grad(conv.sum(), [filters])
             f = theano.function([inputs, filters], grad_w, mode=mode_with_gpu)
             assert 1 == len(
                 [
@@ -1119,7 +1120,7 @@ class BaseTestDnnConv:
             conv_ref = self.cpu_conv_class(subsample=unit_shape)(
                 ref_cast(inputs), flipped_filters
             )
-            grad_w_ref = theano.tensor.grad(conv_ref.sum(), [filters])
+            grad_w_ref = theano.gradient.grad(conv_ref.sum(), [filters])
             f_ref = theano.function([inputs, filters], grad_w_ref, mode="FAST_RUN")
             runtime_shapes = self.runtime_shapes
             if algo in ("time_once", "guess_once"):

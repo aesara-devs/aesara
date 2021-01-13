@@ -10,6 +10,7 @@ from theano.graph.opt import local_optimizer
 from theano.link.c.cmodule import GCC_compiler
 from theano.tensor.extra_ops import cpu_contiguous
 from theano.tensor.opt import register_canonicalize
+from theano.tensor.type import ftensor3, fvector
 
 
 def _ctc_find_lib():
@@ -183,10 +184,10 @@ class ConnectionistTemporalClassification(ExternalCOp, OpenMPOp):
         if t_input_lengths.ndim != 1:
             raise ValueError("input_lengths must have 1 dimension.")
 
-        costs = tt.fvector(name="ctc_cost")
+        costs = fvector(name="ctc_cost")
         outputs = [costs]
         if self.compute_grad:
-            gradients = tt.ftensor3(name="ctc_grad")
+            gradients = ftensor3(name="ctc_grad")
             outputs += [gradients]
 
         return Apply(

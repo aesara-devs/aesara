@@ -1,19 +1,19 @@
 import numpy as np
 import pytest
 
-import theano.tensor as tt
 from tests import unittest_tools as utt
-from theano import change_flags, config, function
+from theano import config, function
 from theano.compile.mode import Mode
 from theano.graph.optdb import Query
 from theano.tensor.random.utils import RandomStream, broadcast_params
+from theano.tensor.type import matrix, tensor
 
 
 @pytest.fixture(scope="module", autouse=True)
 def set_theano_flags():
     opts = Query(include=[None], exclude=[])
     py_mode = Mode("py", opts)
-    with change_flags(mode=py_mode, compute_test_value="warn"):
+    with config.change_flags(mode=py_mode, compute_test_value="warn"):
         yield
 
 
@@ -68,10 +68,10 @@ def test_broadcast_params():
     assert np.array_equal(res[1], np.broadcast_to(cov, (3, 1, 1)))
 
     # Try it in Theano
-    with change_flags(compute_test_value="raise"):
-        mean = tt.tensor(config.floatX, [False, True])
+    with config.change_flags(compute_test_value="raise"):
+        mean = tensor(config.floatX, [False, True])
         mean.tag.test_value = np.array([[0], [10], [100]], dtype=config.floatX)
-        cov = tt.matrix()
+        cov = matrix()
         cov.tag.test_value = np.diag(np.array([1e-6], dtype=config.floatX))
         params = [mean, cov]
         res = broadcast_params(params, ndims_params)

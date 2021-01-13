@@ -32,6 +32,7 @@ from theano.graph.opt import (
 )
 from theano.tensor.opt import constant_folding
 from theano.tensor.subtensor import AdvancedSubtensor
+from theano.tensor.type import matrix
 from theano.tensor.type_other import MakeSlice, SliceConstant, slicetype
 
 
@@ -329,8 +330,8 @@ class TestMergeOptimizer:
     @pytest.mark.skip(reason="This was disabled for some unknown reason")
     def test_one_assert_merge(self):
         # Merge two nodes, one has assert, the other not.
-        x1 = tt.matrix("x1")
-        x2 = tt.matrix("x2")
+        x1 = matrix("x1")
+        x2 = matrix("x2")
         e = tt.dot(x1, x2) + tt.dot(assert_op(x1, (x1 > x2).all()), x2)
         g = FunctionGraph([x1, x2], [e])
         MergeOptimizer().optimize(g)
@@ -351,8 +352,8 @@ class TestMergeOptimizer:
     def test_both_assert_merge_identical(self):
         # Merge two nodes, both have assert on the same node
         # with the same conditions.
-        x1 = tt.matrix("x1")
-        x2 = tt.matrix("x2")
+        x1 = matrix("x1")
+        x2 = matrix("x2")
         e = tt.dot(assert_op(x1, (x1 > x2).all()), x2) + tt.dot(
             assert_op(x1, (x1 > x2).all()), x2
         )
@@ -377,9 +378,9 @@ class TestMergeOptimizer:
     def test_both_assert_merge_1(self):
         # Merge two nodes, both have assert on the same node
         # with different conditions.
-        x1 = tt.matrix("x1")
-        x2 = tt.matrix("x2")
-        x3 = tt.matrix("x3")
+        x1 = matrix("x1")
+        x2 = matrix("x2")
+        x3 = matrix("x3")
         e = tt.dot(assert_op(x1, (x1 > x3).all()), x2) + tt.dot(
             assert_op(x1, (x1 > x2).all()), x2
         )
@@ -422,9 +423,9 @@ class TestMergeOptimizer:
     @pytest.mark.skip(reason="This was disabled for some unknown reason")
     def test_both_assert_merge_2(self):
         # Merge two nodes, both have assert on different node
-        x1 = tt.matrix("x1")
-        x2 = tt.matrix("x2")
-        x3 = tt.matrix("x3")
+        x1 = matrix("x1")
+        x2 = matrix("x2")
+        x3 = matrix("x3")
         e = tt.dot(assert_op(x1, (x1 > x3).all()), x2) + tt.dot(
             x1, assert_op(x2, (x2 > x3).all())
         )
@@ -453,9 +454,9 @@ class TestMergeOptimizer:
     @pytest.mark.skip(reason="This was disabled for some unknown reason")
     def test_both_assert_merge_2_reverse(self):
         # Test case "test_both_assert_merge_2" but in reverse order
-        x1 = tt.matrix("x1")
-        x2 = tt.matrix("x2")
-        x3 = tt.matrix("x3")
+        x1 = matrix("x1")
+        x2 = matrix("x2")
+        x3 = matrix("x3")
         e = tt.dot(x1, assert_op(x2, (x2 > x3).all())) + tt.dot(
             assert_op(x1, (x1 > x3).all()), x2
         )
@@ -594,7 +595,7 @@ def test_pre_constant_merge():
 
     assert isinstance(const_slice, Constant)
 
-    adv = AdvancedSubtensor()(tt.matrix(), [2, 3], const_slice)
+    adv = AdvancedSubtensor()(matrix(), [2, 3], const_slice)
 
     res = pre_constant_merge(empty_fgraph, adv)
     assert res == [adv]

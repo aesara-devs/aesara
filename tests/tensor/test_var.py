@@ -4,9 +4,9 @@ from numpy.testing import assert_equal, assert_string_equal
 
 import tests.unittest_tools as utt
 import theano
-import theano.tensor as tt
 from theano.tensor.elemwise import DimShuffle
 from theano.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subtensor
+from theano.tensor.type import TensorType, dmatrix, iscalar, ivector, matrix
 from theano.tensor.type_other import MakeSlice
 from theano.tensor.var import TensorConstant
 
@@ -41,7 +41,7 @@ from theano.tensor.var import TensorConstant
 )
 def test_numpy_method(fct):
     # This type of code is used frequently by PyMC3 users
-    x = tt.dmatrix("x")
+    x = dmatrix("x")
     data = np.random.rand(5, 5)
     x.tag.test_value = data
     y = fct(x)
@@ -53,7 +53,7 @@ def test_empty_list_indexing():
     ynp = np.zeros((2, 2))[:, []]
     znp = np.zeros((2, 2))[:, ()]
     data = [[0, 0], [0, 0]]
-    x = tt.dmatrix("x")
+    x = dmatrix("x")
     y = x[:, []]
     z = x[:, ()]
     fy = theano.function([x], y)
@@ -63,7 +63,7 @@ def test_empty_list_indexing():
 
 
 def test_copy():
-    x = tt.dmatrix("x")
+    x = dmatrix("x")
     data = np.random.rand(5, 5)
     y = x.copy(name="y")
     f = theano.function([x], y)
@@ -73,8 +73,8 @@ def test_copy():
 
 def test__getitem__Subtensor():
     # Make sure we get `Subtensor`s for basic indexing operations
-    x = tt.matrix("x")
-    i = tt.iscalar("i")
+    x = matrix("x")
+    i = iscalar("i")
 
     z = x[i]
     op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
@@ -116,19 +116,19 @@ def test__getitem__Subtensor():
 
 
 def test__getitem__AdvancedSubtensor_bool():
-    x = tt.matrix("x")
-    i = tt.type.TensorType("bool", (False, False))("i")
+    x = matrix("x")
+    i = TensorType("bool", (False, False))("i")
 
     z = x[i]
     op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == AdvancedSubtensor
 
-    i = tt.type.TensorType("bool", (False,))("i")
+    i = TensorType("bool", (False,))("i")
     z = x[:, i]
     op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == AdvancedSubtensor
 
-    i = tt.type.TensorType("bool", (False,))("i")
+    i = TensorType("bool", (False,))("i")
     z = x[..., i]
     op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == AdvancedSubtensor
@@ -136,15 +136,15 @@ def test__getitem__AdvancedSubtensor_bool():
     with pytest.raises(TypeError):
         z = x[[True, False], i]
 
-    z = x[tt.ivector("b"), i]
+    z = x[ivector("b"), i]
     op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == AdvancedSubtensor
 
 
 def test__getitem__AdvancedSubtensor():
     # Make sure we get `AdvancedSubtensor`s for basic indexing operations
-    x = tt.matrix("x")
-    i = tt.ivector("i")
+    x = matrix("x")
+    i = ivector("i")
 
     # This is a `__getitem__` call that's redirected to `_tensor_py_operators.take`
     z = x[i]

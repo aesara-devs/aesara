@@ -251,7 +251,7 @@ Most ops in Theano are used to manipulate tensors. However, Theano also
 supports many other variable types. The supported types are listed below,
 along with pointers to the relevant documentation.
 
-*       :class:`TensorType <tensor.TensorType>` : Theano type that represents
+*       :class:`TensorType <tensor.type.TensorType>` : Theano type that represents
         a multidimensional array containing elements that all have the same
         type. Variables of this Theano type are represented in C as objects of
         class

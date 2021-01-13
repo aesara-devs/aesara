@@ -19,6 +19,7 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
+from theano.tensor.type import fmatrix
 
 
 floatX = "float32"
@@ -28,8 +29,8 @@ def test_pickle_unpickle_with_reoptimization():
     mode = theano.config.mode
     if mode in ["DEBUG_MODE", "DebugMode"]:
         mode = "FAST_RUN"
-    x1 = tt.fmatrix("x1")
-    x2 = tt.fmatrix("x2")
+    x1 = fmatrix("x1")
+    x2 = fmatrix("x2")
     x3 = theano.shared(np.ones((10, 10), dtype=floatX))
     x4 = theano.shared(np.ones((10, 10), dtype=floatX))
     y = tt.sum(tt.sum(tt.sum(x1 ** 2 + x2) + x3) + x4)
@@ -60,8 +61,8 @@ def test_pickle_unpickle_without_reoptimization():
     mode = theano.config.mode
     if mode in ["DEBUG_MODE", "DebugMode"]:
         mode = "FAST_RUN"
-    x1 = tt.fmatrix("x1")
-    x2 = tt.fmatrix("x2")
+    x1 = fmatrix("x1")
+    x2 = fmatrix("x2")
     x3 = theano.shared(np.ones((10, 10), dtype=floatX))
     x4 = theano.shared(np.ones((10, 10), dtype=floatX))
     y = tt.sum(tt.sum(tt.sum(x1 ** 2 + x2) + x3) + x4)
@@ -87,8 +88,3 @@ def test_pickle_unpickle_without_reoptimization():
         assert f(in1, in2) == f_(in1, in2)
     finally:
         theano.config.reoptimize_unpickled_function = default
-
-
-if __name__ == "__main__":
-    test_pickle_unpickle_with_reoptimization()
-    test_pickle_unpickle_without_reoptimization()

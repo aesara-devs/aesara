@@ -306,7 +306,7 @@ class Op(MetaObject):
     ) -> List[Variable]:
         r"""Construct a graph for the L-operator.
 
-        This method is primarily used by `tensor.Lop` and dispatches to
+        This method is primarily used by `Lop` and dispatches to
         `Op.grad` by default.
 
         The *L-operator* computes a *row* vector times the Jacobian. The
@@ -329,7 +329,7 @@ class Op(MetaObject):
     ) -> List[Variable]:
         """Construct a graph for the R-operator.
 
-        This method is primarily used by tensor.Rop
+        This method is primarily used by `Rop`
 
         Suppose the op outputs
 

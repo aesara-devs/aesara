@@ -259,7 +259,7 @@ class Shape(COp):
         # This will fail at execution time.
         if not isinstance(x, Variable):
             x = theano.tensor.as_tensor_variable(x)
-        return Apply(self, [x], [theano.tensor.lvector()])
+        return Apply(self, [x], [theano.tensor.type.lvector()])
 
     def perform(self, node, inp, out_):
         (x,) = inp
@@ -353,7 +353,7 @@ class Shape_i(COp):
         # As i will be used in the hash and that ndarray are not hashable,
         # we need to convert it to an int as it is hashable.
         if isinstance(i, np.ndarray):
-            assert i.dtype in theano.tensor.integer_dtypes
+            assert i.dtype in theano.tensor.type.integer_dtypes
         assert i == int(i)
         i = int(i)
         self.i = i
@@ -378,7 +378,7 @@ class Shape_i(COp):
             raise TypeError("x must be Variable with ndim attribute", x)
         if x.ndim <= self.i:
             raise TypeError("x has too few dimensions for Shape_i", (x, self.i))
-        return Apply(self, [x], [theano.tensor.lscalar()])
+        return Apply(self, [x], [theano.tensor.type.lscalar()])
 
     def perform(self, node, inp, out_, params):
         (x,) = inp
@@ -840,7 +840,7 @@ class SpecifyShape(COp):
     """
     L{Op} that puts into the graph the user-provided shape.
 
-    In the case where this op stays in the final graph, we assert the shape.
+    In the case where this `Op` stays in the final graph, we assert the shape.
     For this the output of this op must be used in the graph. This is not
     the case most of the time if we only take the shape of the output.
     Maybe there are other optimizations that will mess with this.
@@ -864,20 +864,26 @@ class SpecifyShape(COp):
     _f16_ok = True
 
     def make_node(self, x, shape):
+        from theano.tensor.var import TensorConstant
+
         if not isinstance(x, Variable):
             x = theano.tensor.as_tensor_variable(x)
         shape = theano.tensor.as_tensor_variable(shape)
-        assert shape.ndim == 1
-        assert shape.dtype in theano.tensor.integer_dtypes
-        if isinstance(shape, theano.tensor.TensorConstant):
-            assert shape.data.size == x.ndim
+        if shape.ndim > 1:
+            raise AssertionError()
+        if shape.dtype not in theano.tensor.type.integer_dtypes:
+            raise AssertionError()
+        if isinstance(shape, TensorConstant) and shape.data.size != x.ndim:
+            raise AssertionError()
         return Apply(self, [x, shape], [x.type()])
 
     def perform(self, node, inp, out_):
         x, shape = inp
         (out,) = out_
-        assert x.ndim == shape.size
-        assert np.all(x.shape == shape), ("got shape", x.shape, "expected", shape)
+        if x.ndim != shape.size:
+            raise AssertionError()
+        if not np.all(x.shape == shape):
+            raise AssertionError(f"Got shape {x.shape}, expected {shape}")
         out[0] = x
 
     def infer_shape(self, fgraph, node, shapes):

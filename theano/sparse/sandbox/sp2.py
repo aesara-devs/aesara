@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse
 
 import theano
-from theano import tensor
+from theano import tensor as tt
 from theano.graph.basic import Apply
 from theano.graph.op import Op
 from theano.sparse.basic import (
@@ -12,9 +12,7 @@ from theano.sparse.basic import (
     as_sparse_variable,
     remove0,
 )
-
-# Also for compatibility
-from theano.tensor import discrete_dtypes, float_dtypes
+from theano.tensor.type import discrete_dtypes, float_dtypes
 
 
 # Probability Ops are currently back in sandbox, because they do not respect
@@ -101,9 +99,9 @@ class Binomial(Op):
         self.dtype = dtype
 
     def make_node(self, n, p, shape):
-        n = tensor.as_tensor_variable(n)
-        p = tensor.as_tensor_variable(p)
-        shape = tensor.as_tensor_variable(shape)
+        n = tt.as_tensor_variable(n)
+        p = tt.as_tensor_variable(p)
+        shape = tt.as_tensor_variable(shape)
 
         assert n.dtype in discrete_dtypes
         assert p.dtype in float_dtypes
@@ -171,7 +169,7 @@ class Multinomial(Op):
     __props__ = ()
 
     def make_node(self, n, p):
-        n = tensor.as_tensor_variable(n)
+        n = tt.as_tensor_variable(n)
         p = as_sparse_variable(p)
         assert p.format in ["csr", "csc"]
 

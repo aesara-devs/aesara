@@ -4,6 +4,7 @@ import theano
 import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano.breakpoint import PdbBreakpoint
+from theano.tensor.type import fmatrix, fscalar
 
 
 class TestPdbBreakpoint(utt.InferShapeTester):
@@ -12,8 +13,8 @@ class TestPdbBreakpoint(utt.InferShapeTester):
 
         # Sample computation that involves tensors with different numbers
         # of dimensions
-        self.input1 = tt.fmatrix()
-        self.input2 = tt.fscalar()
+        self.input1 = fmatrix()
+        self.input2 = fscalar()
         self.output = tt.dot(
             (self.input1 - self.input2), (self.input1 - self.input2).transpose()
         )
@@ -45,8 +46,8 @@ class TestPdbBreakpoint(utt.InferShapeTester):
         input2_value = 10.0
 
         grads = [
-            tt.grad(self.monitored_input1.sum(), self.input1),
-            tt.grad(self.monitored_input2.sum(), self.input2),
+            theano.grad(self.monitored_input1.sum(), self.input1),
+            theano.grad(self.monitored_input2.sum(), self.input2),
         ]
 
         # Add self.monitored_input1 as an output to the Theano function to

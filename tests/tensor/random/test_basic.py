@@ -6,7 +6,7 @@ import scipy.stats as stats
 from pytest import fixture, importorskip, raises
 
 import theano.tensor as tt
-from theano import change_flags, config
+from theano.configdefaults import config
 from theano.graph.basic import Constant, Variable, graph_inputs
 from theano.graph.fg import FunctionGraph
 from theano.graph.op import get_test_value
@@ -35,11 +35,12 @@ from theano.tensor.random.basic import (
     truncexpon,
     uniform,
 )
+from theano.tensor.type import iscalar, scalar, tensor
 
 
 @fixture(scope="module", autouse=True)
 def set_theano_flags():
-    with change_flags(cxx="", compute_test_value="raise"):
+    with config.change_flags(cxx="", compute_test_value="raise"):
         yield
 
 
@@ -102,9 +103,9 @@ def test_beta_samples():
 
 
 def test_normal_infer_shape():
-    M_tt = tt.iscalar("M")
+    M_tt = iscalar("M")
     M_tt.tag.test_value = 3
-    sd_tt = tt.scalar("sd")
+    sd_tt = scalar("sd")
     sd_tt.tag.test_value = np.array(1.0, dtype=config.floatX)
 
     test_params = [
@@ -135,9 +136,9 @@ def test_normal_infer_shape():
 
 
 def test_normal_ShapeFeature():
-    M_tt = tt.iscalar("M")
+    M_tt = iscalar("M")
     M_tt.tag.test_value = 3
-    sd_tt = tt.scalar("sd")
+    sd_tt = scalar("sd")
     sd_tt.tag.test_value = np.array(1.0, dtype=config.floatX)
 
     d_rv = normal(tt.ones((M_tt,)), sd_tt, size=(2, M_tt))
@@ -289,7 +290,7 @@ def test_mvnormal_samples():
 
 
 def test_mvnormal_ShapeFeature():
-    M_tt = tt.iscalar("M")
+    M_tt = iscalar("M")
     M_tt.tag.test_value = 2
 
     d_rv = multivariate_normal(tt.ones((M_tt,)), tt.eye(M_tt), size=2)
@@ -307,7 +308,7 @@ def test_mvnormal_ShapeFeature():
     assert M_tt in graph_inputs([s2])
 
     # Test broadcasted shapes
-    mean = tt.tensor(config.floatX, [True, False])
+    mean = tensor(config.floatX, [True, False])
     mean.tag.test_value = np.array([[0, 1, 2]], dtype=config.floatX)
 
     test_covar = np.diag(np.array([1, 10, 100], dtype=config.floatX))
@@ -364,7 +365,7 @@ def test_dirichlet_samples():
 
 
 def test_dirichlet_infer_shape():
-    M_tt = tt.iscalar("M")
+    M_tt = iscalar("M")
     M_tt.tag.test_value = 3
 
     test_params = [
@@ -383,9 +384,9 @@ def test_dirichlet_infer_shape():
 
 def test_dirichlet_ShapeFeature():
     """Make sure `RandomVariable.infer_shape` works with `ShapeFeature`."""
-    M_tt = tt.iscalar("M")
+    M_tt = iscalar("M")
     M_tt.tag.test_value = 2
-    N_tt = tt.iscalar("N")
+    N_tt = iscalar("N")
     N_tt.tag.test_value = 3
 
     d_rv = dirichlet(tt.ones((M_tt, N_tt)), name="Gamma")
@@ -642,7 +643,7 @@ def test_permutation_samples():
     rv_numpy_tester(permutation, np.array([1.0, 2.0, 3.0], dtype=config.floatX))
 
 
-@change_flags(compute_test_value="off")
+@config.change_flags(compute_test_value="off")
 def test_pickle():
     # This is an interesting `Op` case, because it has `None` types and a
     # conditional dtype

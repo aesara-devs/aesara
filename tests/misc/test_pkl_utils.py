@@ -7,6 +7,7 @@ import numpy as np
 import theano
 from theano.misc.pkl_utils import StripPickler, dump, load
 from theano.sandbox.rng_mrg import MRG_RandomStream
+from theano.tensor.type import matrix
 
 
 class TestDumpLoad:
@@ -63,7 +64,7 @@ class TestStripPickler:
 
     def test_basic(self):
         with open("test.pkl", "wb") as f:
-            m = theano.tensor.matrix()
+            m = matrix()
             dest_pkl = "my_test.pkl"
             f = open(dest_pkl, "wb")
             strip_pickler = StripPickler(f, protocol=-1)

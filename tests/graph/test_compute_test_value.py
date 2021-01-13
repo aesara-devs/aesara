@@ -5,13 +5,14 @@ import pytest
 
 import theano
 import theano.tensor as tt
-from theano import scalar
+from theano import scalar as ts
 from theano.configdefaults import config
 from theano.graph import utils
 from theano.graph.basic import Apply
 from theano.graph.op import COp, Op
 from theano.graph.type import Type
 from theano.tensor.basic import _allclose
+from theano.tensor.type import fmatrix, iscalar, matrix, vector
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -29,7 +30,7 @@ class IncOneC(COp):
     __props__ = ()
 
     def make_node(self, input):
-        input = scalar.as_scalar(input)
+        input = ts.as_scalar(input)
         output = input.type()
         return Apply(self, [input], [output])
 
@@ -77,9 +78,9 @@ class TestComputeTestValue:
         assert res.tag.test_value is not orig_object
 
     def test_variable_only(self):
-        x = tt.matrix("x")
+        x = matrix("x")
         x.tag.test_value = np.random.rand(3, 4).astype(config.floatX)
-        y = tt.matrix("y")
+        y = matrix("y")
         y.tag.test_value = np.random.rand(4, 5).astype(config.floatX)
 
         # should work
@@ -94,8 +95,8 @@ class TestComputeTestValue:
             tt.dot(x, y)
 
     def test_compute_flag(self):
-        x = tt.matrix("x")
-        y = tt.matrix("y")
+        x = matrix("x")
+        y = matrix("y")
         y.tag.test_value = np.random.rand(4, 5).astype(config.floatX)
 
         # should skip computation of test value
@@ -114,9 +115,9 @@ class TestComputeTestValue:
                 tt.dot(x, y)
 
     def test_string_var(self):
-        x = tt.matrix("x")
+        x = matrix("x")
         x.tag.test_value = np.random.rand(3, 4).astype(config.floatX)
-        y = tt.matrix("y")
+        y = matrix("y")
         y.tag.test_value = np.random.rand(4, 5).astype(config.floatX)
 
         z = theano.shared(np.random.rand(5, 6).astype(config.floatX))
@@ -136,7 +137,7 @@ class TestComputeTestValue:
             f(x, y, z)
 
     def test_shared(self):
-        x = tt.matrix("x")
+        x = matrix("x")
         x.tag.test_value = np.random.rand(3, 4).astype(config.floatX)
         y = theano.shared(np.random.rand(4, 6).astype(config.floatX), "y")
 
@@ -192,12 +193,12 @@ class TestComputeTestValue:
 
     def test_incorrect_type(self):
 
-        x = tt.vector("x")
+        x = vector("x")
         with pytest.raises(TypeError):
             # Incorrect shape for test value
             x.tag.test_value = np.empty((2, 2))
 
-        x = tt.fmatrix("x")
+        x = fmatrix("x")
         with pytest.raises(TypeError):
             # Incorrect dtype (float64) for test value
             x.tag.test_value = np.random.rand(3, 4)
@@ -205,17 +206,17 @@ class TestComputeTestValue:
     def test_overided_function(self):
         # We need to test those as they mess with Exception
         # And we don't want the exception to be changed.
-        x = tt.matrix()
+        x = matrix()
         x.tag.test_value = np.zeros((2, 3), dtype=config.floatX)
-        y = tt.matrix()
+        y = matrix()
         y.tag.test_value = np.zeros((2, 2), dtype=config.floatX)
         with pytest.raises(ValueError):
             x.__mul__(y)
 
     def test_scan(self):
         # Test the compute_test_value mechanism Scan.
-        k = tt.iscalar("k")
-        A = tt.vector("A")
+        k = iscalar("k")
+        A = vector("A")
         k.tag.test_value = 3
         A.tag.test_value = np.random.rand(5).astype(config.floatX)
 
@@ -235,8 +236,8 @@ class TestComputeTestValue:
 
     def test_scan_err1(self):
         # This test should fail when building fx for the first time
-        k = tt.iscalar("k")
-        A = tt.matrix("A")
+        k = iscalar("k")
+        A = matrix("A")
         k.tag.test_value = 3
         A.tag.test_value = np.random.rand(5, 3).astype(config.floatX)
 
@@ -253,8 +254,8 @@ class TestComputeTestValue:
     def test_scan_err2(self):
         # This test should not fail when building fx for the first time,
         # but when calling the scan's perform()
-        k = tt.iscalar("k")
-        A = tt.matrix("A")
+        k = iscalar("k")
+        A = matrix("A")
         k.tag.test_value = 3
         A.tag.test_value = np.random.rand(5, 3).astype(config.floatX)
 
@@ -280,7 +281,7 @@ class TestComputeTestValue:
             __props__ = ()
 
             def make_node(self, input):
-                input = scalar.as_scalar(input)
+                input = ts.as_scalar(input)
                 output = input.type()
                 return Apply(self, [input], [output])
 
@@ -289,7 +290,7 @@ class TestComputeTestValue:
                 (output,) = outputs
                 output[0] = input + 1
 
-        i = scalar.int32("i")
+        i = ts.int32("i")
         i.tag.test_value = 3
 
         o = IncOnePython()(i)
@@ -305,7 +306,7 @@ class TestComputeTestValue:
         not config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_no_perform(self):
-        i = scalar.int32("i")
+        i = ts.int32("i")
         i.tag.test_value = 3
 
         # Class IncOneC is defined outside of the TestComputeTestValue

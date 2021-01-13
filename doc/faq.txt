@@ -140,7 +140,7 @@ For example, replace the following
     import theano
     from theano import function
 
-    x = theano.tensor.scalar('x')
+    x = theano.tensor.type.scalar('x')
     f = function([x], x + 1.)
     f(10.)
 
@@ -152,7 +152,7 @@ with
     import theano
     from theano import function
 
-    x = theano.tensor.scalar('x')
+    x = theano.tensor.type.scalar('x')
     f = function([x], x + 1.)
     f.trust_input = True
     f(numpy.array([10.], dtype=theano.config.floatX))
@@ -169,14 +169,14 @@ but requires that all nodes in the graph have a C implementation:
 
 .. code-block:: python
 
-    x = theano.tensor.scalar('x')
-    f = function([x], (x + 1.) * 2, mode=theano.Mode(linker='c'))
+    x = theano.tensor.type.scalar('x')
+    f = function([x], (x + 1.) * 2, mode=theano.compile.mode.Mode(linker='c'))
     f(10.)
 
 New GPU backend using libgpuarray
 ---------------------------------
 
-The new theano GPU backend (:ref:`gpuarray`) uses ``config.gpuarray__preallocate`` for GPU memory allocation. 
+The new theano GPU backend (:ref:`gpuarray`) uses ``config.gpuarray__preallocate`` for GPU memory allocation.
 
 Related Projects
 ----------------

@@ -2,7 +2,8 @@ import numpy as np
 import scipy
 
 import theano
-from theano import scalar, tensor
+import theano.scalar as ts
+import theano.tensor as tt
 from theano.configdefaults import config
 from theano.graph.basic import Apply
 from theano.graph.op import COp, _NoPythonCOp
@@ -21,6 +22,7 @@ from theano.sparse.basic import (
 )
 from theano.tensor import blas
 from theano.tensor.opt import register_canonicalize, register_specialize
+from theano.tensor.type import TensorType, tensor
 
 
 _is_sparse_variable = sparse._is_sparse_variable
@@ -42,7 +44,7 @@ def local_csm_properties_csm(fgraph, node):
             # csm.owner.inputs could be broadcastable. In that case, we have
             # to adjust the broadcasting flag here.
             ret_var = [
-                theano.tensor.patternbroadcast(i, o.broadcastable)
+                tt.patternbroadcast(i, o.broadcastable)
                 for i, o in zip(csm.owner.inputs, node.outputs)
             ]
             return ret_var
@@ -117,8 +119,8 @@ class AddSD_ccode(_NoPythonCOp):
         return f"{self.__class__.__name__}{{{self.format}{inp}}}"
 
     def make_node(self, x, y):
-        x, y = sparse.as_sparse_variable(x), tensor.as_tensor_variable(y)
-        out_dtype = scalar.upcast(x.type.dtype, y.type.dtype)
+        x, y = sparse.as_sparse_variable(x), tt.as_tensor_variable(y)
+        out_dtype = ts.upcast(x.type.dtype, y.type.dtype)
         if self.inplace:
             assert out_dtype == y.dtype
 
@@ -128,7 +130,7 @@ class AddSD_ccode(_NoPythonCOp):
         # The magic number two here arises because L{scipy.sparse}
         # objects must be matrices (have dimension 2)
         assert y.type.ndim == 2
-        out = tensor.TensorType(dtype=out_dtype, broadcastable=y.type.broadcastable)()
+        out = TensorType(dtype=out_dtype, broadcastable=y.type.broadcastable)()
         return Apply(self, [data, indices, indptr, y], [out])
 
     def c_code(self, node, name, inputs, outputs, sub):
@@ -198,7 +200,7 @@ def local_inplace_addsd_ccode(fgraph, node):
 
     """
     if isinstance(node.op, sparse.AddSD) and config.cxx:
-        out_dtype = scalar.upcast(*node.inputs)
+        out_dtype = ts.upcast(*node.inputs)
         if out_dtype != node.inputs[1].dtype:
             return
         new_node = AddSD_ccode(format=node.inputs[0].type.format, inplace=True)(
@@ -279,11 +281,11 @@ class StructuredDotCSC(COp):
     __props__ = ()
 
     def make_node(self, a_val, a_ind, a_ptr, a_nrows, b):
-        dtype_out = scalar.upcast(a_val.type.dtype, b.type.dtype)
+        dtype_out = ts.upcast(a_val.type.dtype, b.type.dtype)
         r = Apply(
             self,
             [a_val, a_ind, a_ptr, a_nrows, b],
-            [tensor.tensor(dtype_out, (False, b.type.broadcastable[1]))],
+            [tensor(dtype_out, (False, b.type.broadcastable[1]))],
         )
         return r
 
@@ -485,11 +487,11 @@ class StructuredDotCSR(COp):
     __props__ = ()
 
     def make_node(self, a_val, a_ind, a_ptr, b):
-        self.dtype_out = scalar.upcast(a_val.type.dtype, b.type.dtype)
+        self.dtype_out = ts.upcast(a_val.type.dtype, b.type.dtype)
         r = Apply(
             self,
             [a_val, a_ind, a_ptr, b],
-            [tensor.tensor(self.dtype_out, (False, b.type.broadcastable[1]))],
+            [tensor(self.dtype_out, (False, b.type.broadcastable[1]))],
         )
         return r
 
@@ -530,7 +532,7 @@ class StructuredDotCSR(COp):
         """
         (a_val, a_ind, a_ptr, b) = inputs
         (z,) = outputs
-        typenum_z = tensor.TensorType(self.dtype_out, []).dtype_specs()[2]
+        typenum_z = TensorType(self.dtype_out, []).dtype_specs()[2]
         if node.inputs[0].type.dtype in ("complex64", "complex128"):
             raise NotImplementedError("Complex types are not supported for a_val")
         if node.inputs[3].type.dtype in ("complex64", "complex128"):
@@ -702,13 +704,13 @@ class UsmmCscDense(_NoPythonCOp):
             return "UsmmCscDense{no_inplace}"
 
     def make_node(self, alpha, x_val, x_ind, x_ptr, x_nrows, y, z):
-        alpha = tensor.as_tensor_variable(alpha)
-        x_val = tensor.as_tensor_variable(x_val)
-        x_ind = tensor.as_tensor_variable(x_ind)
-        x_ptr = tensor.as_tensor_variable(x_ptr)
-        x_nrows = tensor.as_tensor_variable(x_nrows)
-        y = tensor.as_tensor_variable(y)
-        z = tensor.as_tensor_variable(z)
+        alpha = tt.as_tensor_variable(alpha)
+        x_val = tt.as_tensor_variable(x_val)
+        x_ind = tt.as_tensor_variable(x_ind)
+        x_ptr = tt.as_tensor_variable(x_ptr)
+        x_nrows = tt.as_tensor_variable(x_nrows)
+        y = tt.as_tensor_variable(y)
+        z = tt.as_tensor_variable(z)
         assert x_ind.dtype == "int32"
         assert x_ptr.dtype == "int32"
         assert x_nrows.dtype == "int32"
@@ -717,7 +719,7 @@ class UsmmCscDense(_NoPythonCOp):
         assert y.ndim == 2
         assert z.ndim == 2
 
-        dtype_out = scalar.upcast(
+        dtype_out = ts.upcast(
             alpha.type.dtype, x_val.type.dtype, y.type.dtype, z.type.dtype
         )
 
@@ -729,18 +731,18 @@ class UsmmCscDense(_NoPythonCOp):
 
         # axpy work only with the same dtype, so we should upcast the input
         if dtype_out != alpha.type.dtype:
-            alpha = tensor.cast(alpha, dtype_out)
+            alpha = tt.cast(alpha, dtype_out)
         if dtype_out != x_val.type.dtype:
-            x_val = tensor.cast(x_val, dtype_out)
+            x_val = tt.cast(x_val, dtype_out)
         if dtype_out != y.type.dtype:
-            y = tensor.cast(y, dtype_out)
+            y = tt.cast(y, dtype_out)
         if dtype_out != z.type.dtype:
-            z = tensor.cast(z, dtype_out)
+            z = tt.cast(z, dtype_out)
 
         r = Apply(
             self,
             [alpha, x_val, x_ind, x_ptr, x_nrows, y, z],
-            [tensor.tensor(dtype_out, (False, y.type.broadcastable[1]))],
+            [tensor(dtype_out, (False, y.type.broadcastable[1]))],
         )
         return r
 
@@ -933,10 +935,10 @@ usmm_csc_dense_inplace = UsmmCscDense(inplace=True)
 # This is tested in tests/test_basic.py:UsmmTests
 local_usmm = PatternSub(
     (
-        theano.tensor.sub,
+        tt.sub,
         "z",
         (
-            theano.tensor.mul,
+            tt.mul,
             {
                 "pattern": "alpha",
                 "constraint": lambda expr: (
@@ -946,7 +948,7 @@ local_usmm = PatternSub(
             (sparse._dot, "x", "y"),
         ),
     ),
-    (usmm, (theano.tensor.neg, "alpha"), "x", "y", "z"),
+    (usmm, (tt.neg, "alpha"), "x", "y", "z"),
 )
 register_specialize(local_usmm, name="local_usmm")
 
@@ -979,7 +981,7 @@ def local_usmm_csx(fgraph, node):
             if x.type.format == "csc":
                 x_val, x_ind, x_ptr, x_shape = csm_properties(x)
                 x_nsparse = x_shape[0]
-                dtype_out = scalar.upcast(
+                dtype_out = ts.upcast(
                     alpha.type.dtype, x.type.dtype, y.type.dtype, z.type.dtype
                 )
                 if dtype_out not in ("float32", "float64"):
@@ -1175,7 +1177,7 @@ class MulSDCSC(_NoPythonCOp):
     def make_node(self, a_data, a_indices, a_indptr, b):
         assert b.type.ndim == 2
         return Apply(
-            self, [a_data, a_indices, a_indptr, b], [tensor.tensor(b.dtype, (False,))]
+            self, [a_data, a_indices, a_indptr, b], [tensor(b.dtype, (False,))]
         )
 
     def c_code_cache_version(self):
@@ -1309,7 +1311,7 @@ class MulSDCSR(_NoPythonCOp):
     def make_node(self, a_data, a_indices, a_indptr, b):
         assert b.type.ndim == 2
         return Apply(
-            self, [a_data, a_indices, a_indptr, b], [tensor.tensor(b.dtype, (False,))]
+            self, [a_data, a_indices, a_indptr, b], [tensor(b.dtype, (False,))]
         )
 
     def c_code_cache_version(self):
@@ -1494,7 +1496,7 @@ class MulSVCSR(_NoPythonCOp):
     def make_node(self, a_data, a_indices, a_indptr, b):
         assert b.type.ndim == 1
         return Apply(
-            self, [a_data, a_indices, a_indptr, b], [tensor.tensor(b.dtype, (False,))]
+            self, [a_data, a_indices, a_indptr, b], [tensor(b.dtype, (False,))]
         )
 
     def c_code_cache_version(self):
@@ -1655,16 +1657,16 @@ class StructuredAddSVCSR(_NoPythonCOp):
     __props__ = ()
 
     def make_node(self, a_data, a_indices, a_indptr, b):
-        b = tensor.as_tensor_variable(b)
-        a_data = tensor.as_tensor_variable(a_data)
-        a_indices = tensor.as_tensor_variable(a_indices)
-        a_indptr = tensor.as_tensor_variable(a_indptr)
+        b = tt.as_tensor_variable(b)
+        a_data = tt.as_tensor_variable(a_data)
+        a_indices = tt.as_tensor_variable(a_indices)
+        a_indptr = tt.as_tensor_variable(a_indptr)
         assert a_data.type.ndim == 1
         assert a_indices.type.ndim == 1
         assert a_indptr.type.ndim == 1
         assert b.type.ndim == 1
         return Apply(
-            self, [a_data, a_indices, a_indptr, b], [tensor.tensor(b.dtype, (False,))]
+            self, [a_data, a_indices, a_indptr, b], [tensor(b.dtype, (False,))]
         )
 
     def c_code_cache_version(self):
@@ -1850,29 +1852,29 @@ class SamplingDotCSR(_NoPythonCOp):
     __props__ = ()
 
     def make_node(self, x, y, p_data, p_ind, p_ptr, p_ncols):
-        x = tensor.as_tensor_variable(x)
-        y = tensor.as_tensor_variable(y)
-        p_data = tensor.as_tensor_variable(p_data)
-        p_ind = tensor.as_tensor_variable(p_ind)
-        p_ptr = tensor.as_tensor_variable(p_ptr)
-        p_ncols = tensor.as_tensor_variable(p_ncols)
+        x = tt.as_tensor_variable(x)
+        y = tt.as_tensor_variable(y)
+        p_data = tt.as_tensor_variable(p_data)
+        p_ind = tt.as_tensor_variable(p_ind)
+        p_ptr = tt.as_tensor_variable(p_ptr)
+        p_ncols = tt.as_tensor_variable(p_ncols)
 
         assert p_ncols.dtype == "int32"
 
-        dtype_out = scalar.upcast(x.type.dtype, y.type.dtype, p_data.type.dtype)
-        dot_out = scalar.upcast(x.type.dtype, y.type.dtype)
+        dtype_out = ts.upcast(x.type.dtype, y.type.dtype, p_data.type.dtype)
+        dot_out = ts.upcast(x.type.dtype, y.type.dtype)
 
         # We call blas ?dot function that take only param of the same type
-        x = tensor.cast(x, dot_out)
-        y = tensor.cast(y, dot_out)
+        x = tt.cast(x, dot_out)
+        y = tt.cast(y, dot_out)
 
         return Apply(
             self,
             [x, y, p_data, p_ind, p_ptr, p_ncols],
             [
-                tensor.tensor(dtype=dtype_out, broadcastable=(False,)),
-                tensor.tensor(dtype=p_ind.type.dtype, broadcastable=(False,)),
-                tensor.tensor(dtype=p_ptr.type.dtype, broadcastable=(False,)),
+                tensor(dtype=dtype_out, broadcastable=(False,)),
+                tensor(dtype=p_ind.type.dtype, broadcastable=(False,)),
+                tensor(dtype=p_ptr.type.dtype, broadcastable=(False,)),
             ],
         )
 
@@ -1904,7 +1906,7 @@ class SamplingDotCSR(_NoPythonCOp):
         if node.inputs[2].type.dtype in ("complex64", "complex128"):
             raise NotImplementedError("Complex types are not supported for pattern")
 
-        dot_out = scalar.upcast(node.inputs[0].type.dtype, node.inputs[1].type.dtype)
+        dot_out = ts.upcast(node.inputs[0].type.dtype, node.inputs[1].type.dtype)
 
         if dot_out == "float32":
             conv_type = "float"
@@ -1917,9 +1919,9 @@ class SamplingDotCSR(_NoPythonCOp):
         typenum_x = node.inputs[0].type.dtype_specs()[2]
         typenum_y = node.inputs[1].type.dtype_specs()[2]
         typenum_p = node.inputs[2].type.dtype_specs()[2]
-        typenum_zd = tensor.TensorType(node.outputs[0].dtype, []).dtype_specs()[2]
-        typenum_zi = tensor.TensorType(node.outputs[1].dtype, []).dtype_specs()[2]
-        typenum_zp = tensor.TensorType(node.outputs[2].dtype, []).dtype_specs()[2]
+        typenum_zd = TensorType(node.outputs[0].dtype, []).dtype_specs()[2]
+        typenum_zi = TensorType(node.outputs[1].dtype, []).dtype_specs()[2]
+        typenum_zp = TensorType(node.outputs[2].dtype, []).dtype_specs()[2]
 
         rval = """
         if (PyArray_NDIM(%(x)s) != 2) {

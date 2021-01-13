@@ -53,14 +53,14 @@ from collections import OrderedDict
 import numpy as np
 
 import theano
-from theano import tensor
+from theano import tensor as tt
 from theano.compile.builders import infer_shape
 from theano.compile.function import function
 from theano.compile.io import In, Out
 from theano.compile.mode import AddFeatureOptimizer, get_mode
 from theano.compile.profiling import ScanProfileStats, register_profiler_printer
 from theano.configdefaults import config
-from theano.gradient import DisconnectedType, NullType, grad, grad_undefined
+from theano.gradient import DisconnectedType, NullType, Rop, grad, grad_undefined
 from theano.graph.basic import (
     Apply,
     Constant,
@@ -84,7 +84,8 @@ from theano.scan.utils import (
 )
 from theano.tensor.basic import as_tensor_variable
 from theano.tensor.opt import Shape_i
-from theano.tensor.type import TensorType
+from theano.tensor.type import TensorType, integer_dtypes
+from theano.tensor.var import TensorVariable
 
 
 __docformat__ = "restructedtext en"
@@ -311,11 +312,11 @@ class Scan(Op):
                 # compilation time, of the location of the inputs and outputs.
                 # Perform this analysis here.
                 self.inps_is_tensor = [
-                    isinstance(out, theano.tensor.TensorVariable)
+                    isinstance(out, TensorVariable)
                     for out in self.fn.maker.fgraph.inputs
                 ]
                 self.outs_is_tensor = [
-                    isinstance(out, theano.tensor.TensorVariable)
+                    isinstance(out, TensorVariable)
                     for out in self.fn.maker.fgraph.outputs
                 ]
 
@@ -713,7 +714,7 @@ class Scan(Op):
             # depicts the size in memory for that sequence. This feature is
             # used by truncated BPTT and by scan space optimization
             if (
-                str(outer_nitsot.type.dtype) not in tensor.integer_dtypes
+                str(outer_nitsot.type.dtype) not in integer_dtypes
                 or outer_nitsot.ndim != 0
             ):
                 raise ValueError(
@@ -726,7 +727,7 @@ class Scan(Op):
         # strange NumPy behavior: vector_ndarray[int] return a NumPy
         # scalar and not a NumPy ndarray of 0 dimensions.
         def is_cpu_vector(s):
-            return isinstance(s.type, tensor.TensorType) and s.ndim == 1
+            return isinstance(s.type, TensorType) and s.ndim == 1
 
         self.vector_seqs = [
             is_cpu_vector(seq) for seq in new_inputs[1 : 1 + self.n_seqs]
@@ -736,7 +737,7 @@ class Scan(Op):
             for arg in new_inputs[1 + self.n_seqs : (1 + self.n_seqs + self.n_outs)]
         ]
         self.vector_outs += [
-            isinstance(t.type, tensor.TensorType) and t.ndim == 0
+            isinstance(t.type, TensorType) and t.ndim == 0
             for t in self.outer_nitsot_outs(self.outputs)
         ]
 
@@ -984,12 +985,10 @@ class Scan(Op):
         # Analyse the compile inner function to determine which inputs and
         # outputs are on the gpu and speed up some checks during the execution
         self.inps_is_tensor = [
-            isinstance(out, theano.tensor.TensorVariable)
-            for out in self.fn.maker.fgraph.inputs
+            isinstance(out, TensorVariable) for out in self.fn.maker.fgraph.inputs
         ]
         self.outs_is_tensor = [
-            isinstance(out, theano.tensor.TensorVariable)
-            for out in self.fn.maker.fgraph.outputs
+            isinstance(out, TensorVariable) for out in self.fn.maker.fgraph.outputs
         ]
 
         try:
@@ -2138,7 +2137,7 @@ class Scan(Op):
         # Restrict the number of grad steps according to
         # self.truncate_gradient
         if self.truncate_gradient != -1:
-            grad_steps = tensor.minimum(grad_steps, self.truncate_gradient)
+            grad_steps = tt.minimum(grad_steps, self.truncate_gradient)
 
         self_inputs = self.inputs
         self_outputs = self.outputs
@@ -2197,7 +2196,7 @@ class Scan(Op):
             g_y_s = known_grads.values()
 
             for g_y in g_y_s:
-                if str(g_y.dtype) in tensor.integer_dtypes:
+                if str(g_y.dtype) in integer_dtypes:
                     raise TypeError(
                         "Gradients may never be integers but g_y "
                         "has type " + str(g_y.type)
@@ -2321,7 +2320,7 @@ class Scan(Op):
         # mask inputs that get no gradients
         for dx in range(len(dC_dinps_t)):
             if not dC_dinps_t[dx]:
-                dC_dinps_t[dx] = tensor.zeros_like(diff_inputs[dx])
+                dC_dinps_t[dx] = tt.zeros_like(diff_inputs[dx])
             else:
                 disconnected_dC_dinps_t[dx] = False
                 for Xt, Xt_placeholder in zip(diff_outputs[self.n_mit_mot_outs :], Xts):
@@ -2442,7 +2441,7 @@ class Scan(Op):
         for idx in range(self.n_mit_mot):
             if isinstance(dC_douts[idx].type, DisconnectedType):
                 out = outs[idx]
-                outer_inp_mitmot.append(tensor.zeros_like(out))
+                outer_inp_mitmot.append(tt.zeros_like(out))
             else:
                 outer_inp_mitmot.append(dC_douts[idx][::-1])
             mitmot_inp_taps.append([])
@@ -2469,7 +2468,7 @@ class Scan(Op):
                     # We cannot use Null in the inner graph, so we
                     # use a zero tensor of the appropriate shape instead.
                     inner_out_mitmot.append(
-                        tensor.zeros(diff_inputs[ins_pos].shape, dtype=config.floatX)
+                        tt.zeros(diff_inputs[ins_pos].shape, dtype=config.floatX)
                     )
                     undefined_msg = dC_dinps_t[ins_pos].type.why_null
                 else:
@@ -2540,7 +2539,7 @@ class Scan(Op):
                     # We cannot use Null in the inner graph, so we
                     # use a zero tensor of the appropriate shape instead.
                     inner_out_mitmot.append(
-                        tensor.zeros(diff_inputs[ins_pos].shape, dtype=config.floatX)
+                        tt.zeros(diff_inputs[ins_pos].shape, dtype=config.floatX)
                     )
                     undefined_msg = dC_dinps_t[ins_pos].type.why_null
                 else:
@@ -2580,11 +2579,11 @@ class Scan(Op):
                     # floatX instead, as it is a dummy value that will not
                     # be used anyway.
                     outer_inp_mitmot.append(
-                        tensor.zeros(outs[idx + offset].shape, dtype=config.floatX)
+                        tt.zeros(outs[idx + offset].shape, dtype=config.floatX)
                     )
                 else:
                     outer_inp_mitmot.append(
-                        tensor.zeros(
+                        tt.zeros(
                             outs[idx + offset].shape, dtype=dC_dinps_t[ins_pos].dtype
                         )
                     )
@@ -2593,7 +2592,7 @@ class Scan(Op):
                 # We cannot use Null in the inner graph, so we
                 # use a zero tensor of the appropriate shape instead.
                 inner_out_mitmot.append(
-                    tensor.zeros(diff_inputs[ins_pos].shape, dtype=config.floatX)
+                    tt.zeros(diff_inputs[ins_pos].shape, dtype=config.floatX)
                 )
             else:
                 inner_out_mitmot.append(dC_dinps_t[ins_pos])
@@ -2629,7 +2628,7 @@ class Scan(Op):
                 type_outs.append(vl.type.why_null)
                 # Replace the inner output with a zero tensor of
                 # the right shape
-                inner_out_sitsot[_p] = tensor.zeros(
+                inner_out_sitsot[_p] = tt.zeros(
                     diff_inputs[ins_pos + _p].shape, dtype=config.floatX
                 )
             elif through_shared:
@@ -2648,7 +2647,7 @@ class Scan(Op):
                 type_outs.append(vl.type.why_null)
                 # Replace the inner output with a zero tensor of
                 # the right shape
-                inner_out_nitsot[_p] = tensor.zeros(
+                inner_out_nitsot[_p] = tt.zeros(
                     diff_inputs[_p].shape, dtype=config.floatX
                 )
 
@@ -2666,19 +2665,19 @@ class Scan(Op):
             if isinstance(y.type, NullType):
                 # Cannot use dC_dXtm1s.dtype, so we use floatX instead.
                 outer_inp_sitsot.append(
-                    tensor.zeros(
+                    tt.zeros(
                         [grad_steps + 1] + [x.shape[i] for i in range(x.ndim)],
                         dtype=config.floatX,
                     )
                 )
                 # replace y by a zero tensor of the right shape
-                inner_inp_sitsot[_idx] = tensor.zeros(
+                inner_inp_sitsot[_idx] = tt.zeros(
                     diff_inputs[ins_pos + _idx].shape, dtype=config.floatX
                 )
 
             else:
                 outer_inp_sitsot.append(
-                    tensor.zeros(
+                    tt.zeros(
                         [grad_steps + 1] + [x.shape[i] for i in range(x.ndim)],
                         dtype=y.dtype,
                     )
@@ -2751,8 +2750,8 @@ class Scan(Op):
                     shp = (n_zeros,)
                     if x.ndim > 1:
                         shp = shp + tuple(x.shape[i] for i in range(1, x.ndim))
-                    z = tensor.zeros(shp, dtype=x.dtype)
-                    x = tensor.concatenate([x[::-1], z], axis=0)
+                    z = tt.zeros(shp, dtype=x.dtype)
+                    x = tt.concatenate([x[::-1], z], axis=0)
                     gradients.append(x)
                 else:
                     gradients.append(x[::-1])
@@ -2779,8 +2778,8 @@ class Scan(Op):
                     shp = (n_zeros,)
                     if x.ndim > 1:
                         shp = shp + tuple(x.shape[i] for i in range(1, x.ndim))
-                    z = tensor.zeros(shp, dtype=x.dtype)
-                    x = tensor.concatenate([x[::-1], z], axis=0)
+                    z = tt.zeros(shp, dtype=x.dtype)
+                    x = tt.concatenate([x[::-1], z], axis=0)
                     gradients.append(x)
                 else:
                     gradients.append(x[::-1])
@@ -2873,7 +2872,7 @@ class Scan(Op):
             rop_self_outputs = self_outputs
         if self.info["n_shared_outs"] > 0:
             rop_self_outputs = rop_self_outputs[: -self.info["n_shared_outs"]]
-        rop_outs = tensor.Rop(rop_self_outputs, rop_of_inputs, inner_eval_points)
+        rop_outs = Rop(rop_self_outputs, rop_of_inputs, inner_eval_points)
         if type(rop_outs) not in (list, tuple):
             rop_outs = [rop_outs]
         # Step 2. Figure out what corresponds to what in the scan

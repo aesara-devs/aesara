@@ -4,14 +4,14 @@ import time
 import numpy as np
 
 import theano
-import theano.tensor as tt
 from theano.link.basic import PerformLinker
 from theano.link.c.basic import OpWiseCLinker
+from theano.tensor.type import dvector, lvector
 
 
 def test_no_reuse():
-    x = tt.lvector()
-    y = tt.lvector()
+    x = lvector()
+    y = lvector()
     f = theano.function([x, y], x + y)
 
     # provide both inputs in the first call
@@ -25,7 +25,7 @@ def test_no_reuse():
 
 
 def test_gc_never_pickles_temporaries():
-    x = tt.dvector()
+    x = dvector()
 
     r = x
     for i in range(2):  # TODO: 30 causes like LONG compilation due to MERGE
@@ -106,7 +106,7 @@ def test_merge_opt_runtime():
     #
     # Ironically, there is actually no merging to do in this graph.
 
-    x = tt.dvector()
+    x = dvector()
     r = x
     for i in range(50):
         r = r + r / 10

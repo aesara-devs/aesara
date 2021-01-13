@@ -8,8 +8,9 @@ import theano
 from theano.gradient import DisconnectedType
 from theano.graph.basic import Apply
 from theano.graph.op import Op
-from theano.tensor import basic as tensor
+from theano.tensor import basic as tt
 from theano.tensor.basic import ExtractDiag, as_tensor_variable
+from theano.tensor.type import dvector, lscalar, matrix, scalar, vector
 
 
 logger = logging.getLogger(__name__)
@@ -63,13 +64,13 @@ class MatrixPinv(Op):
         (z,) = outputs
         (gz,) = g_outputs
 
-        x_dot_z = theano.tensor.dot(x, z)
-        z_dot_x = theano.tensor.dot(z, x)
+        x_dot_z = tt.dot(x, z)
+        z_dot_x = tt.dot(z, x)
 
         grad = (
             -matrix_dot(z, gz.T, z)
-            + matrix_dot(z, z.T, gz, (theano.tensor.identity_like(x_dot_z) - x_dot_z))
-            + matrix_dot((theano.tensor.identity_like(z_dot_x) - z_dot_x), gz, z.T, z)
+            + matrix_dot(z, z.T, gz, (tt.identity_like(x_dot_z) - x_dot_z))
+            + matrix_dot((tt.identity_like(z_dot_x) - z_dot_x), gz, z.T, z)
         ).T
         return [grad]
 
@@ -162,7 +163,7 @@ def matrix_dot(*args):
     """
     rval = args[0]
     for a in args[1:]:
-        rval = theano.tensor.dot(rval, a)
+        rval = tt.dot(rval, a)
     return rval
 
 
@@ -183,7 +184,7 @@ class AllocDiag(Op):
         x = as_tensor_variable(_x)
         if x.type.ndim != 1:
             raise TypeError("AllocDiag only works on vectors", _x)
-        return Apply(self, [x], [theano.tensor.matrix(dtype=x.type.dtype)])
+        return Apply(self, [x], [matrix(dtype=x.type.dtype)])
 
     def grad(self, inputs, g_outputs):
         return [extract_diag(g_outputs[0])]
@@ -245,7 +246,7 @@ class Det(Op):
     def make_node(self, x):
         x = as_tensor_variable(x)
         assert x.ndim == 2
-        o = theano.tensor.scalar(dtype=x.dtype)
+        o = scalar(dtype=x.dtype)
         return Apply(self, [x], [o])
 
     def perform(self, node, inputs, outputs):
@@ -284,8 +285,8 @@ class Eig(Op):
     def make_node(self, x):
         x = as_tensor_variable(x)
         assert x.ndim == 2
-        w = theano.tensor.vector(dtype=x.dtype)
-        v = theano.tensor.matrix(dtype=x.dtype)
+        w = vector(dtype=x.dtype)
+        v = matrix(dtype=x.dtype)
         return Apply(self, [x], [w, v])
 
     def perform(self, node, inputs, outputs):
@@ -323,8 +324,8 @@ class Eigh(Eig):
         # involved) logic, we just probe linalg.eigh with a trivial
         # input.
         w_dtype = self._numop([[np.dtype(x.dtype).type()]])[0].dtype.name
-        w = theano.tensor.vector(dtype=w_dtype)
-        v = theano.tensor.matrix(dtype=x.dtype)
+        w = vector(dtype=w_dtype)
+        v = matrix(dtype=x.dtype)
         return Apply(self, [x], [w, v])
 
     def perform(self, node, inputs, outputs):
@@ -399,7 +400,7 @@ class EighGrad(Op):
         assert gw.ndim == 1
         assert gv.ndim == 2
         out_dtype = theano.scalar.upcast(x.dtype, w.dtype, v.dtype, gw.dtype, gv.dtype)
-        out = theano.tensor.matrix(dtype=out_dtype)
+        out = matrix(dtype=out_dtype)
         return Apply(self, [x, w, v, gw, gv], [out])
 
     def perform(self, node, inputs, outputs):
@@ -462,11 +463,11 @@ class QRFull(Op):
     def make_node(self, x):
         x = as_tensor_variable(x)
         assert x.ndim == 2, "The input of qr function should be a matrix."
-        q = theano.tensor.matrix(dtype=x.dtype)
+        q = matrix(dtype=x.dtype)
         if self.mode != "raw":
-            r = theano.tensor.matrix(dtype=x.dtype)
+            r = matrix(dtype=x.dtype)
         else:
-            r = theano.tensor.vector(dtype=x.dtype)
+            r = vector(dtype=x.dtype)
 
         return Apply(self, [x], [q, r])
 
@@ -495,7 +496,7 @@ class QRIncomplete(Op):
     def make_node(self, x):
         x = as_tensor_variable(x)
         assert x.ndim == 2, "The input of qr function should be a matrix."
-        r = theano.tensor.matrix(dtype=x.dtype)
+        r = matrix(dtype=x.dtype)
         return Apply(self, [x], [r])
 
     def perform(self, node, inputs, outputs):
@@ -582,10 +583,10 @@ class SVD(Op):
     def make_node(self, x):
         x = as_tensor_variable(x)
         assert x.ndim == 2, "The input of svd function should be a matrix."
-        s = theano.tensor.vector(dtype=x.dtype)
+        s = vector(dtype=x.dtype)
         if self.compute_uv:
-            u = theano.tensor.matrix(dtype=x.dtype)
-            vt = theano.tensor.matrix(dtype=x.dtype)
+            u = matrix(dtype=x.dtype)
+            vt = matrix(dtype=x.dtype)
             return Apply(self, [x], [u, s, vt])
         else:
             return Apply(self, [x], [s])
@@ -603,7 +604,7 @@ class SVD(Op):
     def infer_shape(self, fgraph, node, shapes):
         (x_shape,) = shapes
         M, N = x_shape
-        K = tensor.minimum(M, N)
+        K = tt.minimum(M, N)
         s_shape = (K,)
         if self.compute_uv:
             u_shape = (M, M) if self.full_matrices else (M, K)
@@ -641,17 +642,17 @@ class lstsq(Op):
     __props__ = ()
 
     def make_node(self, x, y, rcond):
-        x = theano.tensor.as_tensor_variable(x)
-        y = theano.tensor.as_tensor_variable(y)
-        rcond = theano.tensor.as_tensor_variable(rcond)
+        x = as_tensor_variable(x)
+        y = as_tensor_variable(y)
+        rcond = as_tensor_variable(rcond)
         return Apply(
             self,
             [x, y, rcond],
             [
-                theano.tensor.matrix(),
-                theano.tensor.dvector(),
-                theano.tensor.lscalar(),
-                theano.tensor.dvector(),
+                matrix(),
+                dvector(),
+                lscalar(),
+                dvector(),
             ],
         )
 
@@ -664,8 +665,8 @@ class lstsq(Op):
 
 
 def matrix_power(M, n):
-    r"""
-    Raise a square matrix to the (integer) power n.
+    r"""Raise a square matrix, ``M``, to the (integer) power ``n``.
+
     This implementation uses exponentiation by squaring which is
     significantly faster than the naive implementation.
     The time complexity for exponentiation by squaring is
@@ -673,8 +674,9 @@ def matrix_power(M, n):
 
     Parameters
     ----------
-    M : Tensor variable
-    n : Python int
+    M: TensorVariable
+    n: int
+
     """
     if n < 0:
         M = pinv(M)
@@ -682,24 +684,24 @@ def matrix_power(M, n):
 
     # Shortcuts when 0 < n <= 3
     if n == 0:
-        return tensor.eye(M.shape[-2])
+        return tt.eye(M.shape[-2])
 
     elif n == 1:
         return M
 
     elif n == 2:
-        return theano.tensor.dot(M, M)
+        return tt.dot(M, M)
 
     elif n == 3:
-        return theano.tensor.dot(theano.tensor.dot(M, M), M)
+        return tt.dot(tt.dot(M, M), M)
 
     result = z = None
 
     while n > 0:
-        z = M if z is None else theano.tensor.dot(z, z)
+        z = M if z is None else tt.dot(z, z)
         n, bit = divmod(n, 2)
         if bit:
-            result = z if result is None else theano.tensor.dot(result, z)
+            result = z if result is None else tt.dot(result, z)
 
     return result
 
@@ -711,30 +713,30 @@ def norm(x, ord):
         raise ValueError("'axis' entry is out of bounds.")
     elif ndim == 1:
         if ord is None:
-            return tensor.sum(x ** 2) ** 0.5
+            return tt.sum(x ** 2) ** 0.5
         elif ord == "inf":
-            return tensor.max(abs(x))
+            return tt.max(abs(x))
         elif ord == "-inf":
-            return tensor.min(abs(x))
+            return tt.min(abs(x))
         elif ord == 0:
             return x[x.nonzero()].shape[0]
         else:
             try:
-                z = tensor.sum(abs(x ** ord)) ** (1.0 / ord)
+                z = tt.sum(abs(x ** ord)) ** (1.0 / ord)
             except TypeError:
                 raise ValueError("Invalid norm order for vectors.")
             return z
     elif ndim == 2:
         if ord is None or ord == "fro":
-            return tensor.sum(abs(x ** 2)) ** (0.5)
+            return tt.sum(abs(x ** 2)) ** (0.5)
         elif ord == "inf":
-            return tensor.max(tensor.sum(abs(x), 1))
+            return tt.max(tt.sum(abs(x), 1))
         elif ord == "-inf":
-            return tensor.min(tensor.sum(abs(x), 1))
+            return tt.min(tt.sum(abs(x), 1))
         elif ord == 1:
-            return tensor.max(tensor.sum(abs(x), 0))
+            return tt.max(tt.sum(abs(x), 0))
         elif ord == -1:
-            return tensor.min(tensor.sum(abs(x), 0))
+            return tt.min(tt.sum(abs(x), 0))
         else:
             raise ValueError(0)
     elif ndim > 2:
@@ -818,7 +820,7 @@ class TensorSolve(Op):
         a = as_tensor_variable(a)
         b = as_tensor_variable(b)
         out_dtype = theano.scalar.upcast(a.dtype, b.dtype)
-        x = theano.tensor.matrix(dtype=out_dtype)
+        x = matrix(dtype=out_dtype)
         return Apply(self, [a, b], [x])
 
     def perform(self, node, inputs, outputs):

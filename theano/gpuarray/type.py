@@ -6,13 +6,25 @@ import warnings
 import numpy as np
 
 import theano
-from theano import config, scalar, tensor
+import theano.scalar as ts
+import theano.tensor as tt
 from theano.compile import SharedVariable
+from theano.configdefaults import config
 from theano.graph.basic import Constant, Variable
 from theano.graph.type import CType
 from theano.misc.safe_asarray import _asarray
-from theano.tensor.type import TensorType
-from theano.tensor.var import _tensor_py_operators
+from theano.tensor.type import TensorType, complex_dtypes, discrete_dtypes
+from theano.tensor.type import values_eq_approx as tensor_values_eq_approx
+from theano.tensor.type import (
+    values_eq_approx_remove_inf as tensor_values_eq_approx_remove_inf,
+)
+from theano.tensor.type import (
+    values_eq_approx_remove_inf_nan as tensor_values_eq_approx_remove_inf_nan,
+)
+from theano.tensor.type import (
+    values_eq_approx_remove_nan as tensor_values_eq_approx_remove_nan,
+)
+from theano.tensor.var import TensorConstantSignature, _tensor_py_operators
 
 
 # Make sure this is importable even if pygpu is absent
@@ -38,7 +50,7 @@ def gpu_supported(data):
     data : numpy.ndarray or TensorVariable
            (it must have dtype and ndim parameter)
     """
-    return str(data.dtype) not in tensor.basic.complex_dtypes
+    return str(data.dtype) not in complex_dtypes
 
 
 def move_to_gpu(data):
@@ -286,7 +298,7 @@ class GpuArrayType(CType):
                 ):
                     data = converted_data
 
-            up_dtype = scalar.upcast(self.dtype, data.dtype)
+            up_dtype = ts.upcast(self.dtype, data.dtype)
             if up_dtype == self.dtype:
                 if not isinstance(data, gpuarray.GpuArray):
                     data = np.array(data, dtype=self.dtype, copy=False)
@@ -417,7 +429,7 @@ class GpuArrayType(CType):
                 sb == ob or ob for sb, ob in zip(self.broadcastable, vt.broadcastable)
             )
         ):
-            return theano.tensor.patternbroadcast(var, self.broadcastable)
+            return tt.patternbroadcast(var, self.broadcastable)
 
     def __hash__(self):
         return hash((type(self), self.typecode, self.broadcastable, self.context_name))
@@ -565,7 +577,7 @@ def values_eq_approx(
 ):
     if a.shape != b.shape or a.dtype != b.dtype:
         return False
-    if str(a.dtype) in theano.tensor.discrete_dtypes:
+    if str(a.dtype) in discrete_dtypes:
         return GpuArrayType.values_eq(a, b)
     else:
         if not (allow_remove_inf or allow_remove_nan):
@@ -589,7 +601,7 @@ def values_eq_approx(
 
         an = np.asarray(a)
         bn = np.asarray(b)
-        return tensor.TensorType.values_eq_approx(
+        return TensorType.values_eq_approx(
             an,
             bn,
             allow_remove_inf=allow_remove_inf,
@@ -613,10 +625,10 @@ def values_eq_approx_remove_inf_nan(a, b):
 
 # This is to map ndarray-specific versions of these functions to the GPU.
 EQ_MAP = {
-    theano.tensor.type.values_eq_approx: values_eq_approx,
-    theano.tensor.type.values_eq_approx_remove_inf: values_eq_approx_remove_inf,
-    theano.tensor.type.values_eq_approx_remove_nan: values_eq_approx_remove_nan,
-    theano.tensor.type.values_eq_approx_remove_inf_nan: values_eq_approx_remove_inf_nan,
+    tensor_values_eq_approx: values_eq_approx,
+    tensor_values_eq_approx_remove_inf: values_eq_approx_remove_inf,
+    tensor_values_eq_approx_remove_nan: values_eq_approx_remove_nan,
+    tensor_values_eq_approx_remove_inf_nan: values_eq_approx_remove_inf_nan,
 }
 
 
@@ -660,7 +672,7 @@ class GpuArrayVariable(_operators, Variable):
 GpuArrayType.Variable = GpuArrayVariable
 
 
-class GpuArraySignature(tensor.TensorConstantSignature):
+class GpuArraySignature(TensorConstantSignature):
     # might do something better if we can run the sum on the GPU, but
     # for now this will suffice.
     pass

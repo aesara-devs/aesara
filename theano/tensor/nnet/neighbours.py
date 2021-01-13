@@ -111,7 +111,7 @@ class Images2Neibs(COp):
         assert neib_step.ndim == 1
 
         return Apply(
-            self, [ten4, neib_shape, neib_step], [tt.matrix(dtype=ten4.type.dtype)]
+            self, [ten4, neib_shape, neib_step], [tt.type.matrix(dtype=ten4.type.dtype)]
         )
 
     def grad(self, inp, grads):
@@ -719,7 +719,7 @@ def images2neibs(ten4, neib_shape, neib_step=None, mode="valid"):
     .. code-block:: python
 
         # Defining variables
-        images = T.tensor4('images')
+        images = theano.tensor.type.tensor4('images')
         neibs = images2neibs(images, neib_shape=(5, 5))
 
         # Constructing theano function

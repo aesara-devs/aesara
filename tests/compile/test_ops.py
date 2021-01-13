@@ -9,7 +9,9 @@ from theano import function
 from theano.compile.ops import Rebroadcast, SpecifyShape, as_op, shape, shape_i
 from theano.configdefaults import config
 from theano.graph.fg import FunctionGraph
-from theano.tensor.basic import (
+from theano.tensor.opt import ShapeFeature
+from theano.tensor.subtensor import Subtensor
+from theano.tensor.type import (
     TensorType,
     dmatrix,
     dtensor4,
@@ -19,8 +21,6 @@ from theano.tensor.basic import (
     tensor3,
     vector,
 )
-from theano.tensor.opt import ShapeFeature
-from theano.tensor.subtensor import Subtensor
 from theano.tensor.type_other import NoneConst
 from theano.typed_list import make_list
 

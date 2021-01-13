@@ -3,13 +3,13 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import tensor
+from theano import tensor as tt
 from theano.graph.basic import Apply
 from theano.graph.op import COp, ExternalCOp
 from theano.graph.params_type import Params, ParamsType
 from theano.graph.type import EnumList, Generic
 from theano.scalar import Scalar
-from theano.tensor import TensorType
+from theano.tensor.type import TensorType, matrix
 
 
 tensor_type_0d = TensorType("float64", tuple())
@@ -28,7 +28,7 @@ class QuadraticOpFunc(COp):
         self.c = c
 
     def make_node(self, x):
-        x = tensor.as_tensor_variable(x)
+        x = tt.as_tensor_variable(x)
         return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, output_storage, coefficients):
@@ -114,7 +114,7 @@ class QuadraticCOpFunc(ExternalCOp):
         self.c = c
 
     def make_node(self, x):
-        x = tensor.as_tensor_variable(x)
+        x = tt.as_tensor_variable(x)
         return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, output_storage, coefficients):
@@ -341,7 +341,7 @@ class TestParamsType:
 
     def test_op_params(self):
         a, b, c = 2, 3, -7
-        x = tensor.matrix(dtype="float64")
+        x = matrix(dtype="float64")
         y1 = QuadraticOpFunc(a, b, c)(x)
         y2 = QuadraticCOpFunc(a, b, c)(x)
         f1 = theano.function([x], y1)

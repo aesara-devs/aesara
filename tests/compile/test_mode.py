@@ -4,14 +4,15 @@ import theano
 import theano.tensor as tt
 from theano.compile.mode import AddFeatureOptimizer, Mode
 from theano.graph.toolbox import NoOutputFromInplace
+from theano.tensor.type import matrix
 
 
 @pytest.mark.skipif(
     not theano.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_no_output_from_implace():
-    x = tt.matrix()
-    y = tt.matrix()
+    x = matrix()
+    y = matrix()
     a = tt.dot(x, y)
     b = tt.tanh(a)
 

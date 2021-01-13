@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 
 import theano
-import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano.tensor.basic import _allclose
 from theano.tensor.signal import conv
+from theano.tensor.type import TensorType, dtensor3, dtensor4, dvector, matrix
 
 
 _ = pytest.importorskip("scipy.signal")
@@ -19,8 +19,8 @@ class TestSignalConv2D:
 
         image_dim = len(image_shape)
         filter_dim = len(filter_shape)
-        input = tt.TensorType("float64", [False] * image_dim)()
-        filters = tt.TensorType("float64", [False] * filter_dim)()
+        input = TensorType("float64", [False] * image_dim)()
+        filters = TensorType("float64", [False] * filter_dim)()
 
         bsize = image_shape[0]
         if image_dim != 3:
@@ -102,15 +102,15 @@ class TestSignalConv2D:
         # Test that conv2d fails for dimensions other than 2 or 3.
 
         with pytest.raises(Exception):
-            conv.conv2d(tt.dtensor4(), tt.dtensor3())
+            conv.conv2d(dtensor4(), dtensor3())
         with pytest.raises(Exception):
-            conv.conv2d(tt.dtensor3(), tt.dvector())
+            conv.conv2d(dtensor3(), dvector())
 
     def test_bug_josh_reported(self):
         # Test refers to a bug reported by Josh, when due to a bad merge these
         # few lines of code failed. See
         # http://groups.google.com/group/theano-dev/browse_thread/thread/8856e7ca5035eecb
 
-        m1 = tt.matrix()
-        m2 = tt.matrix()
+        m1 = matrix()
+        m2 = matrix()
         conv.conv2d(m1, m2)

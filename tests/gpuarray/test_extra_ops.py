@@ -12,6 +12,7 @@ from tests.tensor.test_extra_ops import TestCumOp
 from theano.gpuarray.extra_ops import GpuCumOp
 from theano.gpuarray.type import get_context
 from theano.tensor.extra_ops import CumOp
+from theano.tensor.type import fmatrix, ftensor3, ftensor4, fvector, tensor3
 
 
 class TestGpuCumOp(TestCumOp):
@@ -44,7 +45,7 @@ class TestGpuCumOp(TestCumOp):
     @pytest.mark.parametrized("mode", ["mul", "add"])
     def test_infer_shape(self, mode):
         op_class = partial(self.op_class, mode=mode)
-        x = tt.tensor3("x")
+        x = tensor3("x")
         a = np.random.random((3, 5, 2)).astype(theano.config.floatX)
 
         for axis in range(-len(a.shape), len(a.shape)):
@@ -54,7 +55,7 @@ class TestGpuCumOp(TestCumOp):
     def test_Strides1D(self, mode):
         op_class = partial(self.op_class, mode=mode)
         np_func = dict(add=np.cumsum, mul=np.cumprod)[mode]
-        x = tt.fvector("x")
+        x = fvector("x")
 
         for axis in [0, None, -1]:
             a = np.random.random((42,)).astype("float32")
@@ -85,7 +86,7 @@ class TestGpuCumOp(TestCumOp):
     def test_Strides2D(self, mode):
         np_func = dict(add=np.cumsum, mul=np.cumprod)[mode]
         op_class = partial(self.op_class, mode=mode)
-        x = tt.fmatrix("x")
+        x = fmatrix("x")
 
         for axis in [0, 1, None, -1, -2]:
             a = np.random.random((42, 30)).astype("float32")
@@ -116,7 +117,7 @@ class TestGpuCumOp(TestCumOp):
     def test_Strides3D(self, mode):
         np_func = dict(add=np.cumsum, mul=np.cumprod)[mode]
         op_class = partial(self.op_class, mode=mode)
-        x = tt.ftensor3("x")
+        x = ftensor3("x")
 
         for axis in [0, 1, 2, None, -1, -2, -3]:
             a = np.random.random((42, 30, 25)).astype("float32")
@@ -149,7 +150,7 @@ class TestGpuCumOp(TestCumOp):
         op_class = partial(self.op_class, mode=mode)
         block_max_size = self.max_threads_dim0 * 2
 
-        x = tt.fvector("x")
+        x = fvector("x")
         f = theano.function([x], op_class(axis=0)(x), mode=self.mode)
         assert [n for n in f.maker.fgraph.toposort() if isinstance(n.op, GpuCumOp)]
 
@@ -172,7 +173,7 @@ class TestGpuCumOp(TestCumOp):
         op_class = partial(self.op_class, mode=mode)
         block_max_size = self.max_threads_dim0 * 2
 
-        x = tt.fmatrix("x")
+        x = fmatrix("x")
         for shape_axis, axis in zip([0, 1, 0, 1, 0], [0, 1, None, -1, -2]):
             f = theano.function([x], op_class(axis=axis)(x), mode=self.mode)
             assert [n for n in f.maker.fgraph.toposort() if isinstance(n.op, GpuCumOp)]
@@ -213,7 +214,7 @@ class TestGpuCumOp(TestCumOp):
         op_class = partial(self.op_class, mode=mode)
         block_max_size = self.max_threads_dim0 * 2
 
-        x = tt.ftensor3("x")
+        x = ftensor3("x")
         for shape_axis, axis in zip([0, 1, 2, 0, 2, 1, 0], [0, 1, 2, None, -1, -2, -3]):
             f = theano.function([x], op_class(axis=axis)(x), mode=self.mode)
             assert [n for n in f.maker.fgraph.toposort() if isinstance(n.op, GpuCumOp)]
@@ -263,6 +264,6 @@ class TestGpuCumOp(TestCumOp):
     def test_GpuCumOp4D(self, mode):
         op_class = partial(self.op_class, mode=mode)
         # Should not use the GPU version.
-        x = tt.ftensor4("x")
+        x = ftensor4("x")
         f = theano.function([x], op_class(axis=1)(x), mode=self.mode)
         assert [n for n in f.maker.fgraph.toposort() if isinstance(n.op, CumOp)]

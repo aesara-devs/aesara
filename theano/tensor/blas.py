@@ -162,7 +162,7 @@ from theano.scalar import bool as bool_t
 from theano.tensor import basic as tt
 from theano.tensor.blas_headers import blas_header_text, blas_header_version
 from theano.tensor.opt import in2out, local_dimshuffle_lift
-from theano.tensor.type import values_eq_approx_remove_inf_nan
+from theano.tensor.type import integer_dtypes, values_eq_approx_remove_inf_nan
 from theano.utils import memoize
 
 
@@ -1118,7 +1118,7 @@ def _as_scalar(res, dtype=None):
             rval = res.dimshuffle()
         else:
             rval = res
-        if rval.type.dtype in theano.tensor.integer_dtypes:
+        if rval.type.dtype in integer_dtypes:
             # We check that the upcast of res and dtype won't change dtype.
             # If dtype is float64, we will cast int64 to float64.
             # This is valid when res is a scalar used as input to a dot22

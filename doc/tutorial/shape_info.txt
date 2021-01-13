@@ -29,7 +29,7 @@ MakeVector{dtype='int64'} [id A] ''   2
  | |x [id C]
  |Shape_i{1} [id D] ''   0
    |x [id C]
-    
+
 
 The output of this compiled function does not contain any multiplication
 or power. Theano has removed them to compute directly the shape of the
@@ -118,7 +118,7 @@ upgrade.  Here is the current state of what can be done:
 
 >>> import theano
 >>> x = theano.tensor.matrix()
->>> x_specify_shape = theano.tensor.specify_shape(x, (2, 2))
+>>> x_specify_shape = theano.compile.ops.specify_shape(x, (2, 2))
 >>> f = theano.function([x], (x_specify_shape ** 2).shape)
 >>> theano.printing.debugprint(f) # doctest: +NORMALIZE_WHITESPACE
 DeepCopyOp [id A] ''   0

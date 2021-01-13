@@ -1,18 +1,18 @@
 import theano
-from theano.graph.basic import Apply
-from theano.graph.params_type import ParamsType
-from theano.scalar import bool as bool_t
-from theano.tensor.basic import as_tensor_variable
-from theano.tensor.signal.pool import Pool, PoolingMode_t
-
-from .basic_ops import (
+from theano.gpuarray.basic_ops import (
     CGpuKernelBase,
     as_gpuarray_variable,
     gpu_contiguous,
     gpuarray_helper_inc_dir,
     infer_context_name,
 )
-from .type import gpu_context_type
+from theano.gpuarray.type import gpu_context_type
+from theano.graph.basic import Apply
+from theano.graph.params_type import ParamsType
+from theano.scalar import bool as bool_t
+from theano.tensor.basic import as_tensor_variable
+from theano.tensor.signal.pool import Pool, PoolingMode_t
+from theano.tensor.type import int_dtypes
 
 
 try:
@@ -73,11 +73,11 @@ class GpuPool(CGpuKernelBase):
         pad = as_tensor_variable(pad)
         assert ws.ndim == stride.ndim and ws.ndim == pad.ndim
         assert ws.ndim == 1
-        if ws.dtype not in theano.tensor.int_dtypes:
+        if ws.dtype not in int_dtypes:
             raise TypeError("Window shape parameters must be ints.")
-        if stride.dtype not in theano.tensor.int_dtypes:
+        if stride.dtype not in int_dtypes:
             raise TypeError("Stride parameters must be ints.")
-        if pad.dtype not in theano.tensor.int_dtypes:
+        if pad.dtype not in int_dtypes:
             raise TypeError("Padding parameters must be ints.")
 
         ws = theano.tensor.cast(ws, "int64")
@@ -182,11 +182,11 @@ class GpuMaxPoolGrad(CGpuKernelBase):
         pad = as_tensor_variable(pad)
         assert ws.ndim == stride.ndim and ws.ndim == pad.ndim
         assert ws.ndim == 1
-        if ws.dtype not in theano.tensor.int_dtypes:
+        if ws.dtype not in int_dtypes:
             raise TypeError("Window shape parameters must be ints.")
-        if stride.dtype not in theano.tensor.int_dtypes:
+        if stride.dtype not in int_dtypes:
             raise TypeError("Stride parameters must be ints.")
-        if pad.dtype not in theano.tensor.int_dtypes:
+        if pad.dtype not in int_dtypes:
             raise TypeError("Padding parameters must be ints.")
 
         ws = theano.tensor.cast(ws, "int64")
@@ -265,11 +265,11 @@ class GpuAveragePoolGrad(CGpuKernelBase):
         pad = as_tensor_variable(pad)
         assert ws.ndim == stride.ndim and ws.ndim == pad.ndim
         assert ws.ndim == 1
-        if ws.dtype not in theano.tensor.int_dtypes:
+        if ws.dtype not in int_dtypes:
             raise TypeError("Window shape parameters must be ints.")
-        if stride.dtype not in theano.tensor.int_dtypes:
+        if stride.dtype not in int_dtypes:
             raise TypeError("Stride parameters must be ints.")
-        if pad.dtype not in theano.tensor.int_dtypes:
+        if pad.dtype not in int_dtypes:
             raise TypeError("Padding parameters must be ints.")
 
         ws = theano.tensor.cast(ws, "int64")
@@ -341,11 +341,11 @@ class GpuDownsampleFactorMaxGradGrad(CGpuKernelBase):
         pad = as_tensor_variable(pad)
         assert ws.ndim == stride.ndim and ws.ndim == pad.ndim
         assert ws.ndim == 1
-        if ws.dtype not in theano.tensor.int_dtypes:
+        if ws.dtype not in int_dtypes:
             raise TypeError("Window shape parameters must be ints.")
-        if stride.dtype not in theano.tensor.int_dtypes:
+        if stride.dtype not in int_dtypes:
             raise TypeError("Stride parameters must be ints.")
-        if pad.dtype not in theano.tensor.int_dtypes:
+        if pad.dtype not in int_dtypes:
             raise TypeError("Padding parameters must be ints.")
 
         ws = theano.tensor.cast(ws, "int64")
@@ -424,11 +424,11 @@ class GpuMaxPoolRop(CGpuKernelBase):
         pad = as_tensor_variable(pad)
         assert ws.ndim == stride.ndim and ws.ndim == pad.ndim
         assert ws.ndim == 1
-        if ws.dtype not in theano.tensor.int_dtypes:
+        if ws.dtype not in int_dtypes:
             raise TypeError("Window shape parameters must be ints.")
-        if stride.dtype not in theano.tensor.int_dtypes:
+        if stride.dtype not in int_dtypes:
             raise TypeError("Stride parameters must be ints.")
-        if pad.dtype not in theano.tensor.int_dtypes:
+        if pad.dtype not in int_dtypes:
             raise TypeError("Padding parameters must be ints.")
 
         ws = theano.tensor.cast(ws, "int64")

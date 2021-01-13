@@ -41,7 +41,13 @@ from theano.scalar.basic import (
     upcast_out,
 )
 from theano.tensor import elemwise_cgen as cgen
-from theano.tensor.type import TensorType
+from theano.tensor.type import (
+    TensorType,
+    continuous_dtypes,
+    discrete_dtypes,
+    float_dtypes,
+    lvector,
+)
 from theano.utils import uniq
 
 
@@ -135,7 +141,7 @@ class DimShuffle(ExternalCOp):
         # because of importation issues related to TensorType.
         return ParamsType(
             input_broadcastable=TensorType(dtype="bool", broadcastable=(False,)),
-            _new_order=theano.tensor.basic.lvector,
+            _new_order=lvector,
             transposition=TensorType(dtype="uint32", broadcastable=(False,)),
             inplace=scalar_bool,
         )
@@ -291,7 +297,7 @@ class DimShuffle(ExternalCOp):
         return self(*eval_points, **dict(return_list=True))
 
     def grad(self, inp, grads):
-        from theano.tensor.basic import as_tensor_variable, discrete_dtypes
+        from theano.tensor.basic import as_tensor_variable
 
         (x,) = inp
         (gz,) = grads
@@ -558,7 +564,6 @@ second dimension
         return [[True for output in node.outputs] for ipt in node.inputs]
 
     def L_op(self, inputs, outs, ograds):
-        from theano.tensor.basic import continuous_dtypes, discrete_dtypes
         from theano.tensor.basic import sum as tt_sum
 
         # Compute grad with respect to broadcasted input
@@ -718,9 +723,9 @@ second dimension
         # when the input is complex. So add it only when inputs is int.
         out_dtype = node.outputs[0].dtype
         if (
-            out_dtype in theano.tensor.basic.float_dtypes
+            out_dtype in float_dtypes
             and isinstance(self.nfunc, np.ufunc)
-            and node.inputs[0].dtype in theano.tensor.basic.discrete_dtypes
+            and node.inputs[0].dtype in discrete_dtypes
         ):
             char = np.sctype2char(out_dtype)
             sig = char * node.nin + "->" + char * node.nout
@@ -1900,10 +1905,7 @@ class CAReduceDtype(CAReduce):
                 float32="float64",
                 complex64="complex128",
             ).get(idtype, idtype)
-        elif (
-            acc_dtype in theano.tensor.basic.continuous_dtypes
-            and idtype in theano.tensor.basic.discrete_dtypes
-        ):
+        elif acc_dtype in continuous_dtypes and idtype in discrete_dtypes:
             # Specifying a continuous accumulator for discrete input is OK
             return acc_dtype
         else:
@@ -2016,7 +2018,7 @@ class Sum(CAReduceDtype):
 
         (x,) = inp
 
-        if out[0].dtype not in theano.tensor.basic.continuous_dtypes:
+        if out[0].dtype not in continuous_dtypes:
             return [x.zeros_like(dtype=config.floatX)]
 
         (gz,) = grads
@@ -2115,7 +2117,7 @@ class Prod(CAReduceDtype):
         based on the result of this count.
 
         """
-        from theano.tensor.basic import as_tensor_variable, discrete_dtypes, eq, neq
+        from theano.tensor.basic import as_tensor_variable, eq, neq
         from theano.tensor.basic import sum as tt_sum
         from theano.tensor.basic import switch
 

@@ -19,7 +19,8 @@ from collections import OrderedDict
 
 import numpy as np
 
-from theano import scalar, tensor
+from theano import scalar as ts
+from theano import tensor as tt
 from theano.compile.function.pfunc import rebuild_collect_shared
 from theano.configdefaults import config
 from theano.graph.basic import Constant, Variable, equal_computations, graph_inputs
@@ -28,6 +29,8 @@ from theano.graph.op import get_test_value
 from theano.graph.opt import TopoOptimizer, local_optimizer
 from theano.graph.utils import TestValueError
 from theano.tensor.basic import get_scalar_constant_value
+from theano.tensor.subtensor import set_subtensor
+from theano.tensor.var import TensorConstant
 
 
 # Logging function for sending warning or info
@@ -59,9 +62,9 @@ def safe_new(x, tag="", dtype=None):
     # Note, as_tensor_variable will convert the Scalar into a
     # TensorScalar that will require a ScalarFromTensor op,
     # making the pushout optimization fail
-    elif isinstance(x, scalar.ScalarVariable):
+    elif isinstance(x, ts.ScalarVariable):
         if dtype:
-            nw_x = scalar.get_scalar_type(dtype=dtype)()
+            nw_x = ts.get_scalar_type(dtype=dtype)()
         else:
             nw_x = x.type()
         nw_x.name = nw_name
@@ -77,7 +80,7 @@ def safe_new(x, tag="", dtype=None):
         return nw_x
     else:
         try:
-            x = tensor.as_tensor_variable(x)
+            x = tt.as_tensor_variable(x)
         except TypeError:
             # This could happen for example for random states
             pass
@@ -116,7 +119,7 @@ class until:
     """
 
     def __init__(self, condition):
-        self.condition = tensor.as_tensor_variable(condition)
+        self.condition = tt.as_tensor_variable(condition)
         assert self.condition.ndim == 0
 
 
@@ -154,7 +157,7 @@ def traverse(out, x, x_copy, d, visited=None):
     elif out.owner is None:
         return d
     elif pygpu_activated and out.owner.op == host_from_gpu and out.owner.inputs == [x]:
-        d[out] = tensor.as_tensor_variable(x_copy)
+        d[out] = tt.as_tensor_variable(x_copy)
         return d
     else:
         for inp in out.owner.inputs:
@@ -242,9 +245,9 @@ def map_variables(replacer, graphs, additional_inputs=None):
 
         tag = "replaceme"
 
-        a = tensor.scalar("a")
-        b = tensor.scalar("b")
-        c = tensor.scalar("c")
+        a = theano.tensor.type.scalar("a")
+        b = theano.tensor.type.scalar("b")
+        c = theano.tensor.type.scalar("c")
 
         ab = a + b
         ab.tag.replacement = a * b
@@ -594,9 +597,9 @@ def expand_empty(tensor_var, size):
         return tensor_var
     shapes = [tensor_var.shape[x] for x in range(tensor_var.ndim)]
     new_shape = [size + shapes[0]] + shapes[1:]
-    empty = tensor.AllocEmpty(tensor_var.dtype)(*new_shape)
+    empty = tt.AllocEmpty(tensor_var.dtype)(*new_shape)
 
-    ret = tensor.set_subtensor(empty[: shapes[0]], tensor_var)
+    ret = set_subtensor(empty[: shapes[0]], tensor_var)
     ret.tag.nan_guard_mode_check = False
     return ret
 
@@ -661,7 +664,7 @@ class Validator:
                 continue
 
             if out.owner is None:
-                if isinstance(out, tensor.TensorConstant):
+                if isinstance(out, TensorConstant):
                     self.valid.add(out)
                     continue
                 else:

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import theano
-import theano.tensor as tensor
+import theano.tensor as tt
 from tests import unittest_tools
 from tests.tensor.test_blas import BaseGemv, TestBlasStrides
 from tests.unittest_tools import OptimizationTestMixin
@@ -12,6 +12,7 @@ from theano.misc.safe_asarray import _asarray
 from theano.tensor.blas import Ger
 from theano.tensor.blas_c import CGemv, CGer, check_force_gemv_init
 from theano.tensor.blas_scipy import ScipyGer
+from theano.tensor.type import dmatrix, dvector, matrix, scalar, tensor, vector
 
 
 mode_blas_opt = theano.compile.get_default_mode().including(
@@ -39,10 +40,10 @@ class TestCGer(OptimizationTestMixin):
         # This tests can run even when theano.config.blas__ldflags is empty.
         self.dtype = dtype
         self.mode = theano.compile.get_default_mode().including("fast_run")
-        self.A = tensor.tensor(dtype=dtype, broadcastable=(False, False))
-        self.a = tensor.tensor(dtype=dtype, broadcastable=())
-        self.x = tensor.tensor(dtype=dtype, broadcastable=(False,))
-        self.y = tensor.tensor(dtype=dtype, broadcastable=(False,))
+        self.A = tensor(dtype=dtype, broadcastable=(False, False))
+        self.a = tensor(dtype=dtype, broadcastable=())
+        self.x = tensor(dtype=dtype, broadcastable=(False,))
+        self.y = tensor(dtype=dtype, broadcastable=(False,))
         self.Aval = np.ones((2, 3), dtype=dtype)
         self.xval = np.asarray([1, 2], dtype=dtype)
         self.yval = np.asarray([1.5, 2.7, 3.9], dtype=dtype)
@@ -60,7 +61,7 @@ class TestCGer(OptimizationTestMixin):
         f(self.Aval[::-1, ::-1], self.xval, self.yval)
 
     def b(self, bval):
-        return tensor.as_tensor_variable(np.asarray(bval, dtype=self.dtype))
+        return tt.as_tensor_variable(np.asarray(bval, dtype=self.dtype))
 
     def test_eq(self):
         assert CGer(True) == CGer(True)
@@ -83,35 +84,33 @@ class TestCGer(OptimizationTestMixin):
 
     def test_optimization_pipeline(self):
         skip_if_blas_ldflags_empty()
-        f = self.function([self.x, self.y], tensor.outer(self.x, self.y))
+        f = self.function([self.x, self.y], tt.outer(self.x, self.y))
         self.assertFunctionContains(f, CGer(destructive=True))
         f(self.xval, self.yval)  # DebugMode tests correctness
 
     def test_optimization_pipeline_float(self):
         skip_if_blas_ldflags_empty()
         self.manual_setup_method("float32")
-        f = self.function([self.x, self.y], tensor.outer(self.x, self.y))
+        f = self.function([self.x, self.y], tt.outer(self.x, self.y))
         self.assertFunctionContains(f, CGer(destructive=True))
         f(self.xval, self.yval)  # DebugMode tests correctness
 
     def test_int_fails(self):
         self.manual_setup_method("int32")
-        f = self.function([self.x, self.y], tensor.outer(self.x, self.y))
+        f = self.function([self.x, self.y], tt.outer(self.x, self.y))
         self.assertFunctionContains0(f, CGer(destructive=True))
         self.assertFunctionContains0(f, CGer(destructive=False))
 
     def test_A_plus_outer(self):
         skip_if_blas_ldflags_empty()
-        f = self.function(
-            [self.A, self.x, self.y], self.A + tensor.outer(self.x, self.y)
-        )
+        f = self.function([self.A, self.x, self.y], self.A + tt.outer(self.x, self.y))
         self.assertFunctionContains(f, CGer(destructive=False))
         self.run_f(f)  # DebugMode tests correctness
 
     def test_A_plus_scaled_outer(self):
         skip_if_blas_ldflags_empty()
         f = self.function(
-            [self.A, self.x, self.y], self.A + 0.1 * tensor.outer(self.x, self.y)
+            [self.A, self.x, self.y], self.A + 0.1 * tt.outer(self.x, self.y)
         )
         self.assertFunctionContains(f, CGer(destructive=False))
         self.run_f(f)  # DebugMode tests correctness
@@ -131,24 +130,24 @@ class TestCGemv(OptimizationTestMixin):
         self.dtype = dtype
         self.mode = theano.compile.get_default_mode().including("fast_run")
         # matrix
-        self.A = tensor.tensor(dtype=dtype, broadcastable=(False, False))
+        self.A = tensor(dtype=dtype, broadcastable=(False, False))
         self.Aval = np.ones((2, 3), dtype=dtype)
 
         # vector
-        self.x = tensor.tensor(dtype=dtype, broadcastable=(False,))
-        self.y = tensor.tensor(dtype=dtype, broadcastable=(False,))
+        self.x = tensor(dtype=dtype, broadcastable=(False,))
+        self.y = tensor(dtype=dtype, broadcastable=(False,))
         self.xval = np.asarray([1, 2], dtype=dtype)
         self.yval = np.asarray([1.5, 2.7, 3.9], dtype=dtype)
 
         # scalar
-        self.a = tensor.tensor(dtype=dtype, broadcastable=())
+        self.a = tensor(dtype=dtype, broadcastable=())
 
     def test_nan_beta_0(self):
         mode = self.mode.including()
         mode.check_isfinite = False
         f = theano.function(
             [self.A, self.x, self.y, self.a],
-            self.a * self.y + theano.tensor.dot(self.A, self.x),
+            self.a * self.y + tt.dot(self.A, self.x),
             mode=mode,
         )
         Aval = np.ones((3, 1), dtype=self.dtype)
@@ -160,12 +159,10 @@ class TestCGemv(OptimizationTestMixin):
     def test_optimizations_vm(self):
         skip_if_blas_ldflags_empty()
         """ Test vector dot matrix """
-        f = theano.function(
-            [self.x, self.A], theano.tensor.dot(self.x, self.A), mode=self.mode
-        )
+        f = theano.function([self.x, self.A], tt.dot(self.x, self.A), mode=self.mode)
 
         # Assert that the dot was optimized somehow
-        self.assertFunctionContains0(f, tensor.dot)
+        self.assertFunctionContains0(f, tt.dot)
         self.assertFunctionContains1(f, CGemv(inplace=True))
 
         # Assert they produce the same output
@@ -180,12 +177,10 @@ class TestCGemv(OptimizationTestMixin):
     def test_optimizations_mv(self):
         skip_if_blas_ldflags_empty()
         """ Test matrix dot vector """
-        f = theano.function(
-            [self.A, self.y], theano.tensor.dot(self.A, self.y), mode=self.mode
-        )
+        f = theano.function([self.A, self.y], tt.dot(self.A, self.y), mode=self.mode)
 
         # Assert that the dot was optimized somehow
-        self.assertFunctionContains0(f, tensor.dot)
+        self.assertFunctionContains0(f, tt.dot)
         self.assertFunctionContains1(f, CGemv(inplace=True))
 
         # Assert they produce the same output
@@ -212,7 +207,7 @@ class TestCGemv(OptimizationTestMixin):
         v2 = theano.shared(v2_orig)
         m = theano.shared(np.array(rng.uniform(size=m_shp), dtype="float32"))
 
-        f = theano.function([], v2 + tensor.dot(m, v1), mode=self.mode)
+        f = theano.function([], v2 + tt.dot(m, v1), mode=self.mode)
 
         # Assert they produce the same output
         assert np.allclose(f(), np.dot(m.get_value(), v1.get_value()) + v2_orig)
@@ -220,9 +215,7 @@ class TestCGemv(OptimizationTestMixin):
         assert topo == [CGemv(inplace=False)], topo
 
         # test the inplace version
-        g = theano.function(
-            [], [], updates=[(v2, v2 + theano.tensor.dot(m, v1))], mode=self.mode
-        )
+        g = theano.function([], [], updates=[(v2, v2 + tt.dot(m, v1))], mode=self.mode)
 
         # Assert they produce the same output
         g()
@@ -256,7 +249,7 @@ class TestCGemv(OptimizationTestMixin):
         alpha = theano.shared(_asarray(1.0, dtype=dtype), name="alpha")
         beta = theano.shared(_asarray(1.0, dtype=dtype), name="beta")
 
-        z = beta * self.y + alpha * tensor.dot(self.A, self.x)
+        z = beta * self.y + alpha * tt.dot(self.A, self.x)
         f = theano.function([self.A, self.x, self.y], z, mode=self.mode)
 
         # Matrix value
@@ -278,12 +271,10 @@ class TestCGemv(OptimizationTestMixin):
 
     def test_multiple_inplace(self):
         skip_if_blas_ldflags_empty()
-        x = tensor.dmatrix("x")
-        y = tensor.dvector("y")
-        z = tensor.dvector("z")
-        f = theano.function(
-            [x, y, z], [tensor.dot(y, x), tensor.dot(z, x)], mode=mode_blas_opt
-        )
+        x = dmatrix("x")
+        y = dvector("y")
+        z = dvector("z")
+        f = theano.function([x, y, z], [tt.dot(y, x), tt.dot(z, x)], mode=mode_blas_opt)
         vx = np.random.rand(3, 3)
         vy = np.random.rand(3)
         vz = np.random.rand(3)
@@ -295,7 +286,7 @@ class TestCGemv(OptimizationTestMixin):
                 [
                     n
                     for n in f.maker.fgraph.apply_nodes
-                    if isinstance(n.op, tensor.AllocEmpty)
+                    if isinstance(n.op, tt.AllocEmpty)
                 ]
             )
             == 2
@@ -333,11 +324,11 @@ class TestCGemvNoFlags:
         unittest_tools.seed_rng()
 
     def get_function(self, dtype, transpose_A=False, slice_tensors=False):
-        alpha = theano.tensor.scalar(dtype=dtype)
-        beta = theano.tensor.scalar(dtype=dtype)
-        A = theano.tensor.matrix(dtype=dtype)
-        x = theano.tensor.vector(dtype=dtype)
-        y = theano.tensor.vector(dtype=dtype)
+        alpha = scalar(dtype=dtype)
+        beta = scalar(dtype=dtype)
+        A = matrix(dtype=dtype)
+        x = vector(dtype=dtype)
+        y = vector(dtype=dtype)
         if transpose_A:
             A_1 = A.T
         else:

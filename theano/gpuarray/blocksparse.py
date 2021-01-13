@@ -2,16 +2,20 @@ import logging
 
 import numpy as np
 
-from theano import tensor
+from theano import tensor as tt
+from theano.gpuarray.basic_ops import (
+    as_gpuarray_variable,
+    gpuarray_helper_inc_dir,
+    infer_context_name,
+)
+from theano.gpuarray.type import gpu_context_type
 from theano.gradient import grad_undefined
 from theano.graph.basic import Apply
 from theano.graph.op import _NoPythonExternalCOp
 from theano.graph.params_type import ParamsType
 from theano.scalar import bool as bool_t
-from theano.tensor import as_tensor_variable, discrete_dtypes
-
-from .basic_ops import as_gpuarray_variable, gpuarray_helper_inc_dir, infer_context_name
-from .type import gpu_context_type
+from theano.tensor import as_tensor_variable
+from theano.tensor.type import discrete_dtypes
 
 
 _logger = logging.getLogger("theano.gpuarray.blocksparse")
@@ -116,7 +120,7 @@ class GpuSparseBlockOuter(_NoPythonExternalCOp):
 
     def make_node(self, o, x, y, xIdx, yIdx, alpha=None):
         ctx = infer_context_name(o, x, y)
-        one = tensor.constant(np.asarray(1.0, dtype="float32"))
+        one = tt.constant(np.asarray(1.0, dtype="float32"))
         o = as_gpuarray_variable(o, ctx)
         x = as_gpuarray_variable(x, ctx)
         y = as_gpuarray_variable(y, ctx)

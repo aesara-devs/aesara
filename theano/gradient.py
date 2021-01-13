@@ -70,11 +70,10 @@ def format_as(use_list, use_tuple, outputs):
 
 
 def grad_not_implemented(op, x_pos, x, comment=""):
-    """
-    Return an un-computable symbolic variable of type `x.type`.
+    """Return an un-computable symbolic variable of type `x.type`.
 
-    If any call to tensor.grad results in an expression containing this
-    un-computable variable, an exception (NotImplementedError) will be
+    If any call to `grad` results in an expression containing this
+    un-computable variable, an exception (e.g. `NotImplementedError`) will be
     raised indicating that the gradient on the
     `x_pos`'th input of `op` has not been implemented. Likewise if
     any call to theano.function involves this variable.
@@ -94,11 +93,10 @@ def grad_not_implemented(op, x_pos, x, comment=""):
 
 
 def grad_undefined(op, x_pos, x, comment=""):
-    """
-    Return an un-computable symbolic variable of type `x.type`.
+    """Return an un-computable symbolic variable of type `x.type`.
 
-    If any call to tensor.grad results in an expression containing this
-    un-computable variable, an exception (GradUndefinedError) will be
+    If any call to `grad` results in an expression containing this
+    un-computable variable, an exception (e.g. `GradUndefinedError`) will be
     raised indicating that the gradient on the
     `x_pos`'th input of `op` is mathematically undefined. Likewise if
     any call to theano.function involves this variable.
@@ -551,7 +549,7 @@ def grad(
         # So before we try to cast it make sure it even has a dtype
         if (
             hasattr(g_cost.type, "dtype")
-            and cost.type.dtype in theano.tensor.continuous_dtypes
+            and cost.type.dtype in theano.tensor.type.continuous_dtypes
         ):
             # Here we enforce the constraint that floating point variables
             # have the same dtype as their gradient.
@@ -560,7 +558,7 @@ def grad(
         # This is to be enforced by the Op.grad method for the
         # Op that outputs cost.
         if hasattr(g_cost.type, "dtype"):
-            assert g_cost.type.dtype in theano.tensor.continuous_dtypes
+            assert g_cost.type.dtype in theano.tensor.type.continuous_dtypes
 
         grad_dict[cost] = g_cost
 
@@ -630,7 +628,7 @@ def grad(
     for var in grad_dict:
         g = grad_dict[var]
         if hasattr(g.type, "dtype"):
-            assert g.type.dtype in theano.tensor.float_dtypes
+            assert g.type.dtype in theano.tensor.type.float_dtypes
 
     rval = _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name)
 
@@ -638,7 +636,7 @@ def grad(
         if isinstance(rval[i].type, NullType):
             if null_gradients == "raise":
                 raise NullTypeGradError(
-                    "theano.tensor.grad encountered a NaN. " + rval[i].type.why_null
+                    f"grad encountered a NaN. {rval[i].type.why_null}"
                 )
             else:
                 assert null_gradients == "return"
@@ -1080,7 +1078,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
             # List of bools indicating if each output is an integer dtype
             output_is_int = [
                 hasattr(output.type, "dtype")
-                and output.type.dtype in theano.tensor.discrete_dtypes
+                and output.type.dtype in theano.tensor.type.discrete_dtypes
                 for output in node.outputs
             ]
 
@@ -1160,7 +1158,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                     o_dt = getattr(o.type, "dtype", None)
                     og_dt = getattr(og.type, "dtype", None)
                     if (
-                        o_dt not in theano.tensor.discrete_dtypes
+                        o_dt not in theano.tensor.type.discrete_dtypes
                         and og_dt
                         and o_dt != og_dt
                     ):
@@ -1173,7 +1171,10 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                 for o, ng in zip(node.outputs, new_output_grads):
                     o_dt = getattr(o.type, "dtype", None)
                     ng_dt = getattr(ng.type, "dtype", None)
-                    if ng_dt is not None and o_dt not in theano.tensor.discrete_dtypes:
+                    if (
+                        ng_dt is not None
+                        and o_dt not in theano.tensor.type.discrete_dtypes
+                    ):
                         assert ng_dt == o_dt
 
                 # Someone who had obviously not read the Op contract tried
@@ -1186,7 +1187,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                 for ng in new_output_grads:
                     assert (
                         getattr(ng.type, "dtype", None)
-                        not in theano.tensor.discrete_dtypes
+                        not in theano.tensor.type.discrete_dtypes
                     )
 
                 # If config.compute_test_value is turned on, check that the
@@ -1303,7 +1304,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                             )
 
                 if not isinstance(term.type, (NullType, DisconnectedType)):
-                    if term.type.dtype not in theano.tensor.float_dtypes:
+                    if term.type.dtype not in theano.tensor.type.float_dtypes:
                         raise TypeError(
                             str(node.op) + ".grad illegally "
                             " returned an integer-valued variable."
@@ -1455,7 +1456,7 @@ def _float_ones_like(x):
     floating point dtype"""
 
     dtype = x.type.dtype
-    if dtype not in theano.tensor.float_dtypes:
+    if dtype not in theano.tensor.type.float_dtypes:
         dtype = config.floatX
 
     return x.ones_like(dtype=dtype)
@@ -1726,12 +1727,12 @@ def verify_grad(
         Input values, points where the gradient is estimated.
         These arrays must be either float16, float32, or float64 arrays.
     n_tests : int
-        number of times to run the test
-    rng : numpy.random.RandomState, optional
-        random number generator used to sample the output random projection `u`,
+        Number of times to run the test
+    rng : numpy.random.RandomState
+        Random number generator used to sample the output random projection `u`,
         we test gradient of sum(u * fun) at `pt`
     eps : float, optional
-        stepsize used in the Finite Difference Method (Default
+        Step size used in the Finite Difference Method (Default
         None is type-dependent).
         Raising the value of eps can raise or lower the absolute
         and relative errors of the verification depending on the
@@ -1739,13 +1740,13 @@ def verify_grad(
         linear operations. It is better to raise `eps` than raising
         `abs_tol` or `rel_tol`.
     out_type : string
-        dtype of output, if complex (i.e., 'complex32' or 'complex64')
+        Dtype of output, if complex (i.e., 'complex32' or 'complex64')
     abs_tol : float
-        absolute tolerance used as threshold for gradient comparison
+        Absolute tolerance used as threshold for gradient comparison
     rel_tol : float
-        relative tolerance used as threshold for gradient comparison
+        Relative tolerance used as threshold for gradient comparison
     cast_to_output_type : bool
-        if the output is float32 and cast_to_output_type is True, cast
+        If the output is float32 and cast_to_output_type is True, cast
         the random projection to float32. Otherwise it is float64.
         float16 is not handled here.
     no_debug_ref : bool
@@ -1803,7 +1804,7 @@ def verify_grad(
     )
 
     tensor_pt = [
-        theano.tensor.TensorType(
+        theano.tensor.type.TensorType(
             theano.tensor.as_tensor_variable(p).dtype,
             theano.tensor.as_tensor_variable(p).broadcastable,
         )(name=f"input {i}")
@@ -2319,9 +2320,9 @@ def grad_clip(x, lower_bound, upper_bound):
 
     Examples
     --------
-    >>> x = theano.tensor.scalar()
-    >>> z = theano.tensor.grad(grad_clip(x, -1, 1)**2, x)
-    >>> z2 = theano.tensor.grad(x**2, x)
+    >>> x = theano.tensor.type.scalar()
+    >>> z = theano.gradient.grad(grad_clip(x, -1, 1)**2, x)
+    >>> z2 = theano.gradient.grad(x**2, x)
     >>> f = theano.function([x], outputs = [z, z2])
     >>> print(f(2.0))
     [array(1.0), array(4.0)]
@@ -2358,12 +2359,12 @@ def grad_scale(x, multiplier):
     --------
     >>> x = theano.tensor.fscalar()
     >>> fx = theano.tensor.sin(x)
-    >>> fp = theano.tensor.grad(fx, wrt=x)
+    >>> fp = theano.grad(fx, wrt=x)
     >>> fprime = theano.function([x], fp)
     >>> print(fprime(2))  # doctest: +ELLIPSIS
     -0.416...
     >>> f_inverse=grad_scale(fx, -1.)
-    >>> fpp = theano.tensor.grad(f_inverse, wrt=x)
+    >>> fpp = theano.grad(f_inverse, wrt=x)
     >>> fpprime = theano.function([x], fpp)
     >>> print(fpprime(2))  # doctest: +ELLIPSIS
     0.416...

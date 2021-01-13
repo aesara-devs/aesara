@@ -36,7 +36,6 @@ from tests.tensor.utils import (
 from theano import config
 from theano.misc.safe_asarray import _asarray
 from theano.scalar.basic import round_half_away_from_zero_vec, upcast
-from theano.tensor import vector
 from theano.tensor.inplace import (
     abs__inplace,
     add_inplace,
@@ -83,6 +82,7 @@ from theano.tensor.inplace import (
     trunc_inplace,
     xor_inplace,
 )
+from theano.tensor.type import vector
 
 
 TestAddInplaceBroadcast = makeBroadcastTester(

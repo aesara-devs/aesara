@@ -4,7 +4,8 @@ import numpy as np
 import pkg_resources
 from numpy.linalg.linalg import LinAlgError
 
-from theano import config, tensor
+from theano import tensor as tt
+from theano.configdefaults import config
 from theano.gpuarray.basic_ops import (
     CGpuKernelBase,
     as_gpuarray_variable,
@@ -338,7 +339,7 @@ class GpuCusolverSolve(Op):
         # no need to handle A_structure like slinalg.py?
         trans_solve_op = GpuCusolverSolve("general")
         b_bar = trans_solve_op(A.T, c_bar)
-        A_bar = -tensor.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
+        A_bar = -tt.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
         return [A_bar, b_bar]
 
 
@@ -493,12 +494,12 @@ class GpuCublasTriangularSolve(Op):
         trans_solve_op = GpuCublasTriangularSolve(not self.lower)
         b_bar = trans_solve_op(A.T, c_bar)
 
-        A_bar = -tensor.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
+        A_bar = -tt.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
 
         if self.lower:
-            A_bar = tensor.tril(A_bar)
+            A_bar = tt.tril(A_bar)
         else:
-            A_bar = tensor.triu(A_bar)
+            A_bar = tt.triu(A_bar)
         return [A_bar, b_bar]
 
 
@@ -659,9 +660,9 @@ class GpuCholesky(Op):
 
         # this is for nan mode
         #
-        # ok = ~tensor.any(tensor.isnan(chol_x))
-        # chol_x = tensor.switch(ok, chol_x, 1)
-        # dz = tensor.switch(ok, dz, 1)
+        # ok = ~tt.any(tt.isnan(chol_x))
+        # chol_x = tt.switch(ok, chol_x, 1)
+        # dz = tt.switch(ok, dz, 1)
 
         # deal with upper triangular by converting to lower triangular
         if not self.lower:
@@ -670,7 +671,7 @@ class GpuCholesky(Op):
 
         def tril_and_halve_diagonal(mtx):
             """Extracts lower triangle of square matrix and halves diagonal."""
-            return tensor.tril(mtx) - tensor.diag(tensor.diagonal(mtx) / 2.0)
+            return tt.tril(mtx) - tt.diag(tt.diagonal(mtx) / 2.0)
 
         def conjugate_solve_triangular(outer, inner):
             """Computes L^{-T} P L^{-1} for lower-triangular L."""
@@ -683,9 +684,9 @@ class GpuCholesky(Op):
         )
 
         if self.lower:
-            grad = tensor.tril(s + s.T) - tensor.diag(tensor.diagonal(s))
+            grad = tt.tril(s + s.T) - tt.diag(tt.diagonal(s))
         else:
-            grad = tensor.triu(s + s.T) - tensor.diag(tensor.diagonal(s))
+            grad = tt.triu(s + s.T) - tt.diag(tt.diagonal(s))
 
         return [grad]
 
@@ -805,7 +806,7 @@ class GpuMagmaSVD(GpuMagmaBase):
     def infer_shape(self, fgraph, node, shapes):
         (x_shape,) = shapes
         M, N = x_shape
-        K = tensor.minimum(M, N)
+        K = tt.minimum(M, N)
         s_shape = (K,)
         if self.compute_uv:
             u_shape = (M, M) if self.full_matrices else (M, K)

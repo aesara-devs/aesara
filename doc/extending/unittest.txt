@@ -187,9 +187,9 @@ Example:
         ...
         def test_3D_dot_fail(self):
             def func():
-                a = T.TensorType('float64', (False,False,False)) # create 3d tensor
-                b = T.dmatrix()
-                c = T.dot(a,b) # we expect this to fail
+                a = TensorType('float64', (False,False,False)) # create 3d tensor
+                b = dmatrix()
+                c = dot(a,b) # we expect this to fail
             # above should fail as dot operates on 2D tensors only
             self.assertRaises(TypeError, func)
 

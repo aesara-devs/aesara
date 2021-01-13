@@ -232,14 +232,14 @@ you have GPU (I'm skipping some dtype-details which we'll come back to).
     import numpy as np
 
     import theano
-    import theano.tensor as tensor
+    import theano.tensor as tt
 
     x = np.load('data_x.npy')
     y = np.load('data_y.npy')
 
     # symbol declarations
-    sx = tensor.matrix()
-    sy = tensor.matrix()
+    sx = tt.matrix()
+    sy = tt.matrix()
     w = theano.shared(np.random.normal(avg=0, std=.1,
                                        size=(784, 500)))
     b = theano.shared(np.zeros(500))
@@ -247,10 +247,10 @@ you have GPU (I'm skipping some dtype-details which we'll come back to).
     c = theano.shared(np.zeros(10))
 
     # symbolic expression-building
-    hid = tensor.tanh(tensor.dot(sx, w) + b)
-    out = tensor.tanh(tensor.dot(hid, v) + c)
-    err = 0.5 * tensor.sum(out - sy) ** 2
-    gw, gb, gv, gc = tensor.grad(err, [w, b, v, c])
+    hid = tt.tanh(tt.dot(sx, w) + b)
+    out = tt.tanh(tt.dot(hid, v) + c)
+    err = 0.5 * tt.sum(out - sy) ** 2
+    gw, gb, gv, gc = theano.grad(err, [w, b, v, c])
 
     # compile a fast training function
     train = theano.function([sx, sy], err,

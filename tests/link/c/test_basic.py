@@ -8,6 +8,7 @@ from theano.graph.op import COp
 from theano.graph.type import CType
 from theano.link.basic import PerformLinker
 from theano.link.c.basic import CLinker, DualLinker, OpWiseCLinker
+from theano.tensor.type import iscalar, matrix, vector
 
 
 def as_variable(x):
@@ -221,8 +222,8 @@ def test_clinker_literal_inlining():
 def test_clinker_literal_cache():
     mode = theano.Mode(linker="c")
 
-    A = theano.tensor.matrix()
-    input1 = theano.tensor.vector()
+    A = matrix()
+    input1 = vector()
 
     normal_svd = np.array(
         [
@@ -410,7 +411,7 @@ def test_shared_input_output():
     # Test bug reported on the mailing list by Alberto Orlandi
     # https://groups.google.com/d/topic/theano-users/6dLaEqc2R6g/discussion
     # The shared variable is both an input and an output of the function.
-    inc = theano.tensor.iscalar("inc")
+    inc = iscalar("inc")
     state = theano.shared(0)
     state.name = "state"
     linker = CLinker()

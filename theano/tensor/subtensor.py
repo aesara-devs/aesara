@@ -7,7 +7,7 @@ from textwrap import dedent
 import numpy as np
 
 import theano
-from theano import scalar as scal
+from theano import scalar as ts
 from theano.configdefaults import config
 from theano.gradient import DisconnectedType
 from theano.graph.basic import Apply, Variable
@@ -28,10 +28,39 @@ from theano.tensor.basic import (
 from theano.tensor.elemwise import DimShuffle
 from theano.tensor.extra_ops import broadcast_shape
 from theano.tensor.inc_code import inc_code
+from theano.tensor.type import (
+    bscalar,
+    complex_dtypes,
+    cscalar,
+    discrete_dtypes,
+    dscalar,
+    fscalar,
+    integer_dtypes,
+    iscalar,
+    lscalar,
+    tensor,
+    wscalar,
+    zscalar,
+)
 from theano.tensor.type_other import NoneConst, NoneTypeT, SliceType, make_slice
 
 
 _logger = logging.getLogger("theano.tensor.subtensor")
+
+invalid_scal_types = (ts.float64, ts.float32, ts.float16)
+scal_types = (ts.int64, ts.int32, ts.int16, ts.int8)
+tensor_types = (
+    lscalar,
+    iscalar,
+    wscalar,
+    bscalar,
+)
+invalid_tensor_types = (
+    fscalar,
+    dscalar,
+    cscalar,
+    zscalar,
+)
 
 
 class AdvancedIndexingError(TypeError):
@@ -55,7 +84,7 @@ def as_index_constant(a):
             as_index_constant(a.step),
         )
     elif isinstance(a, (int, np.integer)):
-        return scal.ScalarConstant(scal.int64, a)
+        return ts.ScalarConstant(ts.int64, a)
     elif not isinstance(a, Variable):
         return theano.tensor.as_tensor(a)
     else:
@@ -107,7 +136,7 @@ def get_canonical_form_slice(theslice, length):
     if the resulting set of numbers needs to be reversed or not.
 
     """
-    from theano.tensor import ge, lt, sgn, switch
+    from theano.tensor import extract_constant, ge, lt, sgn, switch
 
     if isinstance(theslice, slice):
 
@@ -116,7 +145,7 @@ def get_canonical_form_slice(theslice, length):
                 x_constant = get_scalar_constant_value(x)
                 is_constant = True
             except NotScalarConstantError:
-                x_constant = theano.tensor.extract_constant(x)
+                x_constant = extract_constant(x)
                 is_constant = False
             return x_constant, is_constant
 
@@ -257,7 +286,7 @@ def get_canonical_form_slice(theslice, length):
         else:
             return slice(nw_start, nw_stop, nw_step), 1
     else:
-        value = theano.tensor.extract_constant(theslice)
+        value = extract_constant(theslice)
         value = switch(lt(value, 0), (value + length), value)
 
         return value, 1
@@ -280,7 +309,7 @@ def range_len(slc):
         switch(
             and_(lt(step, 0), gt(start, stop)),
             1 + (start - 1 - stop) // (-step),
-            scal.ScalarConstant(scal.int64, 0),
+            ts.ScalarConstant(ts.int64, 0),
         ),
     )
 
@@ -335,9 +364,9 @@ def basic_shape(shape, indices):
                 idx_inputs = (None,)
             res_shape += (slice_len(slice(*idx_inputs), n),)
         elif idx is None:
-            res_shape += (scal.ScalarConstant(scal.int64, 1),)
+            res_shape += (ts.ScalarConstant(ts.int64, 1),)
         elif isinstance(getattr(idx, "type", None), NoneTypeT):
-            res_shape += (scal.ScalarConstant(scal.int64, 1),)
+            res_shape += (ts.ScalarConstant(ts.int64, 1),)
         else:
             raise ValueError(f"Invalid index type: {idx}")
     return res_shape
@@ -471,21 +500,6 @@ class Subtensor(COp):
             when would that happen?
 
         """
-        invalid_scal_types = (scal.float64, scal.float32, scal.float16)
-        scal_types = (scal.int64, scal.int32, scal.int16, scal.int8)
-        tensor_types = (
-            theano.tensor.lscalar,
-            theano.tensor.iscalar,
-            theano.tensor.wscalar,
-            theano.tensor.bscalar,
-        )
-        invalid_tensor_types = (
-            theano.tensor.fscalar,
-            theano.tensor.dscalar,
-            theano.tensor.cscalar,
-            theano.tensor.zscalar,
-        )
-
         if (
             isinstance(entry, (np.ndarray, Variable))
             and hasattr(entry, "dtype")
@@ -508,13 +522,13 @@ class Subtensor(COp):
             and entry.type in tensor_types
             and np.all(entry.type.broadcastable)
         ):
-            return scal.get_scalar_type(entry.type.dtype)
+            return ts.get_scalar_type(entry.type.dtype)
         elif (
             isinstance(entry, CType)
             and entry in tensor_types
             and np.all(entry.broadcastable)
         ):
-            return scal.get_scalar_type(entry.dtype)
+            return ts.get_scalar_type(entry.dtype)
         elif slice_ok and isinstance(entry, slice):
             a = entry.start
             b = entry.stop
@@ -607,13 +621,13 @@ class Subtensor(COp):
 
     @staticmethod
     def my_as_scalar(a):
-        # Since scal.as_scalar does not know about tensor types (it would
+        # Since ts.as_scalar does not know about tensor types (it would
         # create a circular import) , this method converts either a
         # TensorVariable or a ScalarVariable to a scalar.
         if isinstance(a, Variable) and isinstance(a.type, TensorType):
             return theano.tensor.scalar_from_tensor(a)
         else:
-            return scal.as_scalar(a)
+            return ts.as_scalar(a)
 
     def make_node(self, x, *inputs):
         """
@@ -675,7 +689,7 @@ class Subtensor(COp):
         return Apply(
             self,
             (x,) + inputs,
-            [theano.tensor.tensor(dtype=x.type.dtype, broadcastable=broadcastable)],
+            [tensor(dtype=x.type.dtype, broadcastable=broadcastable)],
         )
 
     def perform(self, node, inputs, out_):
@@ -726,7 +740,7 @@ class Subtensor(COp):
         (gz,) = grads
         x = inputs[0]
         rest = inputs[1:]
-        if x.dtype in theano.tensor.discrete_dtypes:
+        if x.dtype in discrete_dtypes:
             first = x.zeros_like().astype(config.floatX)
         else:
             # For best optimization, we let this as an inc.
@@ -1142,7 +1156,7 @@ class SubtensorPrinter:
                 for entry in idxs:
                     if isinstance(entry, int):
                         sidxs.append(str(entry))
-                    elif isinstance(entry, scal.Scalar):
+                    elif isinstance(entry, ts.Scalar):
                         sidxs.append(pstate.pprinter.process(inputs.pop()))
                     elif isinstance(entry, slice):
                         if entry.start is None or entry.start == 0:
@@ -1786,14 +1800,14 @@ class IncSubtensor(COp):
         x, y = inputs[:2]
         idx_list = inputs[2:]
 
-        if x.dtype in theano.tensor.discrete_dtypes:
+        if x.dtype in discrete_dtypes:
             # The output dtype is the same as x
             gx = x.zeros_like(dtype=config.floatX)
-            if y.dtype in theano.tensor.discrete_dtypes:
+            if y.dtype in discrete_dtypes:
                 gy = y.zeros_like(dtype=config.floatX)
             else:
                 gy = y.zeros_like()
-        elif x.dtype in theano.tensor.complex_dtypes:
+        elif x.dtype in complex_dtypes:
             raise NotImplementedError("No support for complex grad yet")
         else:
             if self.set_instead_of_inc:
@@ -1861,7 +1875,7 @@ class AdvancedSubtensor1(COp):
     def make_node(self, x, ilist):
         x_ = theano.tensor.as_tensor_variable(x)
         ilist_ = theano.tensor.as_tensor_variable(ilist)
-        if ilist_.type.dtype not in theano.tensor.integer_dtypes:
+        if ilist_.type.dtype not in integer_dtypes:
             raise TypeError("index must be integers")
         if ilist_.type.ndim != 1:
             raise TypeError("index must be vector")
@@ -1922,10 +1936,10 @@ class AdvancedSubtensor1(COp):
 
             rval1 = [theano.sparse.construct_sparse_from_list(x, gz, ilist)]
         else:
-            if x.dtype in theano.tensor.discrete_dtypes:
+            if x.dtype in discrete_dtypes:
                 # The output dtype is the same as x
                 gx = x.zeros_like(dtype=config.floatX)
-            elif x.dtype in theano.tensor.complex_dtypes:
+            elif x.dtype in complex_dtypes:
                 raise NotImplementedError("No support for complex grad yet")
             else:
                 gx = x.zeros_like()
@@ -2055,7 +2069,7 @@ class AdvancedIncSubtensor1(COp):
 
     __props__ = ("inplace", "set_instead_of_inc")
     check_input = False
-    params_type = ParamsType(inplace=scal.bool, set_instead_of_inc=scal.bool)
+    params_type = ParamsType(inplace=ts.bool, set_instead_of_inc=ts.bool)
 
     def __init__(self, inplace=False, set_instead_of_inc=False):
         self.inplace = bool(inplace)
@@ -2083,7 +2097,7 @@ class AdvancedIncSubtensor1(COp):
         y_ = theano.tensor.as_tensor_variable(y)
         ilist_ = theano.tensor.as_tensor_variable(ilist)
 
-        if ilist_.type.dtype not in theano.tensor.integer_dtypes:
+        if ilist_.type.dtype not in integer_dtypes:
             raise TypeError("index must be integers")
         if ilist_.type.ndim != 1:
             raise TypeError("index must be vector")
@@ -2210,14 +2224,14 @@ class AdvancedIncSubtensor1(COp):
     def grad(self, inputs, grads):
         (g_output,) = grads
         x, y, idx_list = inputs
-        if x.dtype in theano.tensor.discrete_dtypes:
+        if x.dtype in discrete_dtypes:
             # The output dtype is the same as x
             gx = x.zeros_like(dtype=config.floatX)
-            if y.dtype in theano.tensor.discrete_dtypes:
+            if y.dtype in discrete_dtypes:
                 gy = y.zeros_like(dtype=config.floatX)
             else:
                 gy = y.zeros_like()
-        elif x.dtype in theano.tensor.complex_dtypes:
+        elif x.dtype in complex_dtypes:
             raise NotImplementedError("No support for complex grad yet")
         else:
             if self.set_instead_of_inc:
@@ -2244,7 +2258,7 @@ def as_index_variable(idx):
     if isinstance(idx, Variable) and isinstance(idx.type, NoneTypeT):
         return idx
     idx = theano.tensor.as_tensor_variable(idx)
-    if idx.type.dtype not in theano.tensor.discrete_dtypes:
+    if idx.type.dtype not in discrete_dtypes:
         raise TypeError("index must be integers or a boolean mask")
     return idx
 
@@ -2291,9 +2305,7 @@ class AdvancedSubtensor(Op):
         # entire subtensor operation.
         with config.change_flags(compute_test_value="off"):
             fake_shape = tuple(
-                theano.tensor.tensor(dtype="int64", broadcastable=())
-                if not bcast
-                else 1
+                tensor(dtype="int64", broadcastable=()) if not bcast else 1
                 for bcast in x.broadcastable
             )
 
@@ -2315,7 +2327,7 @@ class AdvancedSubtensor(Op):
         return Apply(
             self,
             (x,) + index,
-            [theano.tensor.tensor(dtype=x.type.dtype, broadcastable=bcast)],
+            [tensor(dtype=x.type.dtype, broadcastable=bcast)],
         )
 
     def R_op(self, inputs, eval_points):
@@ -2369,10 +2381,10 @@ class AdvancedSubtensor(Op):
     def grad(self, inputs, grads):
         (gz,) = grads
         x = inputs[0]
-        if x.dtype in theano.tensor.discrete_dtypes:
+        if x.dtype in discrete_dtypes:
             # The output dtype is the same as x
             gx = x.zeros_like(dtype=config.floatX)
-        elif x.dtype in theano.tensor.complex_dtypes:
+        elif x.dtype in complex_dtypes:
             raise NotImplementedError("No support for complex grad yet")
         else:
             gx = x.zeros_like()
@@ -2418,11 +2430,7 @@ class AdvancedIncSubtensor(Op):
         return Apply(
             self,
             (x, y) + tuple(new_inputs),
-            [
-                theano.tensor.tensor(
-                    dtype=x.type.dtype, broadcastable=x.type.broadcastable
-                )
-            ],
+            [tensor(dtype=x.type.dtype, broadcastable=x.type.broadcastable)],
         )
 
     def perform(self, node, inputs, out_):
@@ -2463,14 +2471,14 @@ class AdvancedIncSubtensor(Op):
         x, y = inpt[:2]
         idxs = inpt[2:]
         (outgrad,) = output_gradients
-        if x.dtype in theano.tensor.discrete_dtypes:
+        if x.dtype in discrete_dtypes:
             # The output dtype is the same as x
             gx = x.zeros_like(dtype=config.floatX)
-            if y.dtype in theano.tensor.discrete_dtypes:
+            if y.dtype in discrete_dtypes:
                 gy = y.zeros_like(dtype=config.floatX)
             else:
                 gy = y.zeros_like()
-        elif x.dtype in theano.tensor.complex_dtypes:
+        elif x.dtype in complex_dtypes:
             raise NotImplementedError("No support for complex grad yet")
         else:
             if self.set_instead_of_inc:
@@ -2501,9 +2509,9 @@ def take(a, indices, axis=None, mode="raise"):
 
     Parameters
     ----------
-    a : Tensor
+    a : TensorVariable
         The source array.
-    indices : Tensor, ndarray, list, tuple
+    indices : TensorVariable, ndarray, list, tuple
         The indices of the values to extract.
     axis : int, optional
         The axis over which to select values. By default, the flattened

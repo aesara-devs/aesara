@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 
 import theano
-from theano import config, tensor
+from theano import config
+from theano import tensor as tt
 from theano.gpuarray.basic_ops import CGpuKernelBase
 from theano.gpuarray.type import GpuArrayType, get_context, gpu_context_type
 from theano.gradient import grad_undefined
@@ -41,8 +42,8 @@ class GpuEye(CGpuKernelBase):
         return ["<gpuarray/types.h>", "<gpuarray/kernel.h>"]
 
     def make_node(self, n, m):
-        n = tensor.as_tensor_variable(n)
-        m = tensor.as_tensor_variable(m)
+        n = tt.as_tensor_variable(n)
+        m = tt.as_tensor_variable(m)
         assert n.ndim == 0
         assert m.ndim == 0
         otype = GpuArrayType(

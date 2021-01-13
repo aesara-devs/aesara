@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import theano
-import theano.tensor
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano.compile import debugmode
 from theano.configdefaults import config
@@ -13,10 +13,11 @@ from theano.graph.op import COp, Op
 from theano.graph.opt import local_optimizer
 from theano.graph.optdb import EquilibriumDB
 from theano.graph.toolbox import BadOptimization
+from theano.tensor.type import TensorType, dvector, fmatrix, fvector, vector
 
 
 def test_debugmode_basic():
-    x = theano.tensor.dvector()
+    x = dvector()
     f = theano.function([x], ((2.0 * x) + 7) / 2.0, mode=debugmode.DebugMode())
     f([1, 2])
 
@@ -30,8 +31,8 @@ class BROKEN_ON_PURPOSE_Add(COp):
         self.py_offset = py_offset
 
     def make_node(self, a, b):
-        a = theano.tensor.as_tensor_variable(a)
-        b = theano.tensor.as_tensor_variable(b)
+        a = tt.as_tensor_variable(a)
+        b = tt.as_tensor_variable(b)
         assert a.type.dtype == "float64"
         assert a.type.dtype == b.type.dtype
         assert a.type.ndim == 1
@@ -114,7 +115,7 @@ class WeirdBrokenOp(COp):
         self.behaviour = behaviour
 
     def make_node(self, a):
-        a_ = theano.tensor.as_tensor_variable(a)
+        a_ = tt.as_tensor_variable(a)
         r = Apply(self, [a_], [a_.type()])
         return r
 
@@ -202,8 +203,8 @@ wb1 = WeirdBrokenOp("times1")
 )
 def test_badthunkoutput():
     # Check if the c and python code is consistent.
-    a = theano.tensor.dvector()
-    b = theano.tensor.dvector()
+    a = dvector()
+    b = dvector()
 
     f_good = theano.function(
         [a, b],
@@ -226,9 +227,9 @@ def test_badthunkoutput():
 
 
 def test_badoptimization():
-    @local_optimizer([theano.tensor.add])
+    @local_optimizer([tt.add])
     def insert_broken_add(fgraph, node):
-        if node.op == theano.tensor.add:
+        if node.op == tt.add:
             return [off_by_half(*node.inputs)]
         return False
 
@@ -236,8 +237,8 @@ def test_badoptimization():
     edb.register("insert_broken_add", insert_broken_add, "all")
     opt = edb.query("+all")
 
-    a = theano.tensor.dvector()
-    b = theano.tensor.dvector()
+    a = dvector()
+    b = dvector()
 
     f = theano.function([a, b], a + b, mode=debugmode.DebugMode(optimizer=opt))
 
@@ -252,18 +253,18 @@ def test_badoptimization():
 def test_badoptimization_opt_err():
     # This variant of test_badoptimization() replace the working code
     # with a new apply node that will raise an error.
-    @local_optimizer([theano.tensor.add])
+    @local_optimizer([tt.add])
     def insert_bigger_b_add(fgraph, node):
-        if node.op == theano.tensor.add:
+        if node.op == tt.add:
             inputs = list(node.inputs)
             if inputs[-1].owner is None:
-                inputs[-1] = theano.tensor.concatenate((inputs[-1], inputs[-1]))
+                inputs[-1] = tt.concatenate((inputs[-1], inputs[-1]))
                 return [node.op(*inputs)]
         return False
 
-    @local_optimizer([theano.tensor.add])
+    @local_optimizer([tt.add])
     def insert_bad_dtype(fgraph, node):
-        if node.op == theano.tensor.add:
+        if node.op == tt.add:
             inputs = list(node.inputs)
             if inputs[-1].owner is None:
 
@@ -277,8 +278,8 @@ def test_badoptimization_opt_err():
     edb2.register("insert_bad_dtype", insert_bad_dtype, "all")
     opt2 = edb2.query("+all")
 
-    a = theano.tensor.dvector()
-    b = theano.tensor.dvector()
+    a = dvector()
+    b = dvector()
 
     f = theano.function([a, b], a + b, mode=debugmode.DebugMode(optimizer=opt))
     with pytest.raises(ValueError, match=r"insert_bigger_b_add"):
@@ -315,9 +316,9 @@ def test_stochasticoptimization():
 
     last_time_replaced = [False]
 
-    @local_optimizer([theano.tensor.add])
+    @local_optimizer([tt.add])
     def insert_broken_add_sometimes(fgraph, node):
-        if node.op == theano.tensor.add:
+        if node.op == tt.add:
             last_time_replaced[0] = not last_time_replaced[0]
             if last_time_replaced[0]:
                 return [off_by_half(*node.inputs)]
@@ -327,13 +328,13 @@ def test_stochasticoptimization():
     edb.register("insert_broken_add_sometimes", insert_broken_add_sometimes, "all")
     opt = edb.query("+all")
 
-    a = theano.tensor.dvector()
-    b = theano.tensor.dvector()
+    a = dvector()
+    b = dvector()
 
     with pytest.raises(debugmode.StochasticOrder):
         theano.function(
             [a, b],
-            theano.tensor.add(a, b),
+            tt.add(a, b),
             mode=debugmode.DebugMode(
                 optimizer=opt,
                 check_c_code=True,
@@ -346,7 +347,7 @@ def test_stochasticoptimization():
     not config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_just_c_code():
-    x = theano.tensor.dvector()
+    x = dvector()
     f = theano.function([x], wb2(x), mode=debugmode.DebugMode(check_py_code=False))
     assert np.all(f([1, 2]) == [2, 4])
 
@@ -363,8 +364,8 @@ def test_baddestroymap():
             c[0] = a
             c[0] += b
 
-    x = theano.tensor.dvector()
-    y = theano.tensor.dvector()
+    x = dvector()
+    y = dvector()
     f = theano.function([x, y], BadAdd()(x, y), mode="DEBUG_MODE")
 
     with pytest.raises(debugmode.BadDestroyMap):
@@ -375,7 +376,7 @@ def test_baddestroymap():
     not config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_baddestroymap_c():
-    x = theano.tensor.dvector()
+    x = dvector()
     f = theano.function([x], wb2i(x), mode=debugmode.DebugMode(check_py_code=False))
     with pytest.raises(debugmode.BadDestroyMap):
         assert np.all(f([1, 2]) == [2, 4])
@@ -403,15 +404,15 @@ class TestViewMap:
             c[0] = b[1:3]
 
     def test_badviewmap_ref(self):
-        x = theano.tensor.dvector()
-        y = theano.tensor.dvector()
+        x = dvector()
+        y = dvector()
         f = theano.function([x, y], self.BadAddRef()(x, y), mode="DEBUG_MODE")
         with pytest.raises(debugmode.BadViewMap):
             f([1, 2], [3, 4])
 
     def test_badviewmap_slice(self):
-        x = theano.tensor.dvector()
-        y = theano.tensor.dvector()
+        x = dvector()
+        y = dvector()
         f = theano.function([x, y], self.BadAddSlice()(x, y), mode="DEBUG_MODE")
         with pytest.raises(debugmode.BadViewMap):
             f([1, 2], [3, 4])
@@ -419,8 +420,8 @@ class TestViewMap:
     def test_goodviewmap(self):
         goodop = self.BadAddRef()
         goodop.view_map = {0: [1]}
-        x = theano.tensor.dvector()
-        y = theano.tensor.dvector()
+        x = dvector()
+        y = dvector()
         f = theano.function([x, y], goodop(x, y), mode="DEBUG_MODE")
         # Shouldn't raise an error
         f([1, 5, 1], [3, 4, 2, 1, 4])
@@ -429,7 +430,7 @@ class TestViewMap:
         not config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_badviewmap_c(self):
-        x = theano.tensor.dvector()
+        x = dvector()
         f = theano.function([x], wb1i(x), mode=debugmode.DebugMode(check_py_code=False))
         with pytest.raises(debugmode.BadViewMap):
             f([1, 2])
@@ -451,8 +452,8 @@ class TestViewMap:
                 c[0] = a
                 d[0] = a[1:]
 
-        x = theano.tensor.dvector("x")
-        y = theano.tensor.dvector("y")
+        x = dvector("x")
+        y = dvector("y")
         f = theano.function([x, y], CustomOp()(x, y), mode="DEBUG_MODE")
 
         r0, r1 = f([1, 2, 3, 4], [5, 6, 7, 8])
@@ -476,8 +477,8 @@ class TestViewMap:
                 c[0] = r
                 d[0] = r[1:]
 
-        x = theano.tensor.dvector()
-        y = theano.tensor.dvector()
+        x = dvector()
+        y = dvector()
         f = theano.function([x, y], CustomOp()(x, y), mode="DEBUG_MODE")
 
         r0, r1 = f([1, 2, 3, 4], [5, 6, 7, 8])
@@ -502,8 +503,8 @@ class TestViewMap:
                 c[0] = r
                 d[0] = r[1:]
 
-        x = theano.tensor.dvector("x")
-        y = theano.tensor.dvector("y")
+        x = dvector("x")
+        y = dvector("y")
         f = theano.function([x, y], CustomOp()(x, y)[0] * 2, mode="DEBUG_MODE")
 
         r0 = f([1, 2, 3, 4], [5, 6, 7, 8])
@@ -529,8 +530,8 @@ class TestViewMap:
 
         custom_op = CustomOp()
 
-        x = theano.tensor.dvector()
-        y = theano.tensor.dvector()
+        x = dvector()
+        y = dvector()
         bad_xy0, bad_xy1 = custom_op(x, y)
         out = bad_xy0 * 2 + bad_xy1 * 2
         f = theano.function([x, y], out, mode="DEBUG_MODE")
@@ -548,17 +549,17 @@ class TestViewMap:
 
 class TestCheckIsfinite:
     def setup_method(self):
-        self.old_ts = theano.tensor.TensorType.filter_checks_isfinite
+        self.old_ts = TensorType.filter_checks_isfinite
         self.old_dm = theano.compile.mode.predefined_modes["DEBUG_MODE"].check_isfinite
 
     def teardown_method(self):
-        theano.tensor.TensorType.filter_checks_isfinite = self.old_ts
+        TensorType.filter_checks_isfinite = self.old_ts
         theano.compile.mode.predefined_modes["DEBUG_MODE"].check_isfinite = self.old_dm
 
     def test_check_isfinite(self):
-        x = theano.tensor.vector()
+        x = vector()
         f = theano.function([x], (x + 2) * 5, mode="DEBUG_MODE")
-        g = theano.function([x], theano.tensor.log(x), mode="DEBUG_MODE")
+        g = theano.function([x], tt.log(x), mode="DEBUG_MODE")
 
         # this should work
         f(np.log([3, 4, 5]).astype(config.floatX))
@@ -580,13 +581,13 @@ class TestCheckIsfinite:
             g(np.asarray([3, -4, 5], dtype=config.floatX))
 
         # this should disable the exception
-        theano.tensor.TensorType.filter_checks_isfinite = False
+        TensorType.filter_checks_isfinite = False
         theano.compile.mode.predefined_modes["DEBUG_MODE"].check_isfinite = False
         # insert several Inf
         f(np.asarray(np.asarray([1.0, 1.0, 1.0]) / 0, dtype=config.floatX))
 
     def test_check_isfinite_disabled(self):
-        x = theano.tensor.dvector()
+        x = dvector()
         f = theano.function(
             [x], (x + 2) * 5, mode=debugmode.DebugMode(check_isfinite=False)
         )
@@ -606,8 +607,8 @@ class BrokenCImplementationAdd(COp):
     __props__ = ()
 
     def make_node(self, a, b):
-        a = theano.tensor.as_tensor_variable(a)
-        b = theano.tensor.as_tensor_variable(b)
+        a = tt.as_tensor_variable(a)
+        b = tt.as_tensor_variable(b)
         assert a.type.dtype == "float32"
         assert a.type.dtype == b.type.dtype
         assert a.type.ndim == 2
@@ -704,7 +705,7 @@ class VecAsRowAndCol(Op):
 
     def make_node(self, v):
         if not isinstance(v, Variable):
-            v = theano.tensor.as_tensor_variable(v)
+            v = tt.as_tensor_variable(v)
         assert v.type.ndim == 1
         type_class = type(v.type)
         out_r_type = type_class(dtype=v.dtype, broadcastable=(True, False))
@@ -731,11 +732,11 @@ class TestPreallocatedOutput:
         self.rng = np.random.RandomState(seed=utt.fetch_seed())
 
     def test_f_contiguous(self):
-        a = theano.tensor.fmatrix("a")
-        b = theano.tensor.fmatrix("b")
+        a = fmatrix("a")
+        b = fmatrix("b")
         z = BrokenCImplementationAdd()(a, b)
         # In this test, we do not want z to be an output of the graph.
-        out = theano.tensor.dot(z, np.eye(7))
+        out = tt.dot(z, np.eye(7))
 
         a_val = self.rng.randn(7, 7).astype("float32")
         b_val = self.rng.randn(7, 7).astype("float32")
@@ -764,8 +765,8 @@ class TestPreallocatedOutput:
     def test_f_contiguous_out(self):
         # Same test as test_f_contiguous, but check that it works
         # even if z _is_ the output of the graph
-        a = theano.tensor.fmatrix("a")
-        b = theano.tensor.fmatrix("b")
+        a = fmatrix("a")
+        b = fmatrix("b")
         out = BrokenCImplementationAdd()(a, b)
 
         a_val = self.rng.randn(7, 7).astype("float32")
@@ -793,7 +794,7 @@ class TestPreallocatedOutput:
             f(a_val, b_val)
 
     def test_output_broadcast_tensor(self):
-        v = theano.tensor.fvector("v")
+        v = fvector("v")
         c, r = VecAsRowAndCol()(v)
         f = theano.function([v], [c, r])
 

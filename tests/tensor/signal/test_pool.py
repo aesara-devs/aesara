@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import theano
-import theano.tensor as tensor
+import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import function
 from theano.tensor.signal.pool import (
@@ -16,6 +16,17 @@ from theano.tensor.signal.pool import (
     max_pool_2d_same_size,
     pool_2d,
     pool_3d,
+)
+from theano.tensor.type import (
+    TensorType,
+    dmatrix,
+    dtensor3,
+    dtensor4,
+    ftensor4,
+    ivector,
+    tensor,
+    tensor4,
+    vector,
 )
 
 
@@ -493,7 +504,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
             (4, 10, 0, 0),
             (4, 10, 1, 1),
         )
-        images = tensor.dtensor4()
+        images = dtensor4()
         for indx in np.arange(len(maxpoolshps)):
             imvsize = imvsizs[indx]
             imval = rng.rand(4, 10, imvsize[0], imvsize[1])
@@ -919,12 +930,12 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
     def test_DownsampleFactorMax_hessian(self):
         # Example provided by Frans Cronje, see
         # https://groups.google.com/d/msg/theano-users/qpqUy_3glhw/JMwIvlN5wX4J
-        x_vec = tensor.vector("x")
-        z = tensor.dot(x_vec.dimshuffle(0, "x"), x_vec.dimshuffle("x", 0))
+        x_vec = vector("x")
+        z = tt.dot(x_vec.dimshuffle(0, "x"), x_vec.dimshuffle("x", 0))
         y = pool_2d(input=z, ws=(2, 2), ignore_border=True)
-        C = tensor.exp(tensor.sum(y))
+        C = tt.exp(tt.sum(y))
 
-        grad_hess = tensor.hessian(cost=C, wrt=x_vec)
+        grad_hess = theano.gradient.hessian(cost=C, wrt=x_vec)
         fn_hess = function(inputs=[x_vec], outputs=grad_hess)
 
         # The value has been manually computed from the theoretical gradient,
@@ -982,7 +993,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         rng = np.random.RandomState(utt.fetch_seed())
         maxpoolshps = ((1, 1), (3, 2))
         imval = rng.rand(4, 5)
-        images = tensor.dmatrix()
+        images = dmatrix()
 
         for maxpoolshp, ignore_border, mode in product(
             maxpoolshps,
@@ -1007,7 +1018,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         rng = np.random.RandomState(utt.fetch_seed())
         maxpoolshps = ((1, 1, 1), (3, 2, 1))
         imval = rng.rand(4, 5, 6)
-        images = tensor.dtensor3()
+        images = dtensor3()
 
         for maxpoolshp, ignore_border, mode in product(
             maxpoolshps,
@@ -1032,7 +1043,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         rng = np.random.RandomState(utt.fetch_seed())
         maxpoolshps = ((1, 1, 1), (3, 2, 1))
         imval = rng.rand(4, 5, 6)
-        images = tensor.dtensor3()
+        images = dtensor3()
 
         for maxpoolshp, ignore_border, mode in product(
             maxpoolshps,
@@ -1066,7 +1077,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         test_answer_array = np.array(
             [[[[0.0, 0.0, 0.0, 0.0], [0.0, 6.0, 0.0, 8.0]]]]
         ).astype(theano.config.floatX)
-        input = tensor.tensor4(name="input")
+        input = tensor4(name="input")
         patch_size = (2, 2)
         op = max_pool_2d_same_size(input, patch_size)
         op_output = function([input], op)(test_input_array)
@@ -1081,7 +1092,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         rng = np.random.RandomState(utt.fetch_seed())
         maxpoolshps = [(1, 2)]
         imval = rng.rand(2, 3, 4)
-        images = tensor.dtensor3()
+        images = dtensor3()
 
         for maxpoolshp, ignore_border, mode in product(
             maxpoolshps,
@@ -1107,7 +1118,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         rng = np.random.RandomState(utt.fetch_seed())
         maxpoolshps = [(3, 2)]
         imval = rng.rand(2, 1, 1, 1, 3, 4)
-        images = tensor.TensorType("float64", [False] * 6)()
+        images = TensorType("float64", [False] * 6)()
 
         for maxpoolshp, ignore_border, mode in product(
             maxpoolshps,
@@ -1130,9 +1141,9 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
     #                utt.verify_grad(mp, [imval], rng=rng)
 
     def test_infer_shape(self):
-        image = tensor.dtensor4()
-        maxout = tensor.dtensor4()
-        gz = tensor.dtensor4()
+        image = dtensor4()
+        maxout = dtensor4()
+        gz = dtensor4()
         rng = np.random.RandomState(utt.fetch_seed())
         maxpoolshps = ((1, 1), (2, 2), (3, 3), (2, 3), (3, 2))
 
@@ -1189,7 +1200,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
                         warn=False,
                     )
         # checking with broadcastable input
-        image = tensor.tensor(dtype="float64", broadcastable=(False, False, True, True))
+        image = tensor(dtype="float64", broadcastable=(False, False, True, True))
         image_val = rng.rand(4, 6, 1, 1)
         self._compile_and_check(
             [image],
@@ -1199,10 +1210,10 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         )
 
     def test_pooling_with_tensor_vars(self):
-        x = tensor.ftensor4()
-        window_size = tensor.ivector()
-        stride = tensor.ivector()
-        padding = tensor.ivector()
+        x = ftensor4()
+        window_size = ivector()
+        stride = ivector()
+        padding = ivector()
         data = np.random.normal(0, 1, (1, 1, 5, 5)).astype("float32")
 
         # checking variable params vs fixed params
@@ -1234,10 +1245,10 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
                             utt.assert_allclose(var_dx, fix_dx)
 
     def test_pooling_with_tensor_vars_deprecated_interface(self):
-        x = tensor.ftensor4()
-        window_size = tensor.ivector()
-        stride = tensor.ivector()
-        padding = tensor.ivector()
+        x = ftensor4()
+        window_size = ivector()
+        stride = ivector()
+        padding = ivector()
         data = np.random.normal(0, 1, (1, 1, 5, 5)).astype("float32")
 
         # checking variable params vs fixed params

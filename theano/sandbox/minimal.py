@@ -1,8 +1,8 @@
 import numpy as np
 
-from theano import tensor
 from theano.graph.basic import Apply
 from theano.graph.op import Op
+from theano.tensor.type import lscalar
 
 
 class Minimal(Op):
@@ -26,7 +26,7 @@ class Minimal(Op):
 
     def make_node(self, *args):
         # HERE `args` must be THEANO VARIABLES
-        return Apply(op=self, inputs=args, outputs=[tensor.lscalar()])
+        return Apply(op=self, inputs=args, outputs=[lscalar()])
 
     def perform(self, node, inputs, out_):
         (output,) = out_

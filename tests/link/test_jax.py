@@ -7,6 +7,18 @@ from theano.compile.mode import Mode
 from theano.graph.fg import FunctionGraph
 from theano.graph.optdb import Query
 from theano.link.jax import JAXLinker
+from theano.tensor.type import (
+    dscalar,
+    dvector,
+    iscalar,
+    ivector,
+    lscalar,
+    matrix,
+    scalar,
+    tensor,
+    tensor3,
+    vector,
+)
 
 
 jax = pytest.importorskip("jax")
@@ -105,13 +117,13 @@ def test_jax_Alloc():
 
     compare_jax_and_py(x_fg, [], assert_fn=compare_shape_dtype)
 
-    a = tt.scalar("a")
+    a = scalar("a")
     x = tt.alloc(a, 20)
     x_fg = FunctionGraph([a], [x])
 
     compare_jax_and_py(x_fg, [10.0])
 
-    a = tt.vector("a")
+    a = vector("a")
     x = tt.alloc(a, 20, 10)
     x_fg = FunctionGraph([a], [x])
 
@@ -171,9 +183,9 @@ def test_jax_compile_ops():
 
 
 def test_jax_basic():
-    x = tt.matrix("x")
-    y = tt.matrix("y")
-    b = tt.vector("b")
+    x = matrix("x")
+    y = matrix("y")
+    b = vector("b")
 
     # `ScalarOp`
     z = tt.cosh(x ** 2 + y / 3.0)
@@ -265,7 +277,7 @@ def test_jax_basic_multiout():
     M = np.random.normal(size=(3, 3))
     X = M.dot(M.T)
 
-    x = tt.matrix("x")
+    x = matrix("x")
 
     outs = tt.nlinalg.eig(x)
     out_fg = FunctionGraph([x], outs)
@@ -293,7 +305,7 @@ def test_jax_basic_multiout():
 
     # Test that a single output of a multi-output `Op` can be used as input to
     # another `Op`
-    x = tt.dvector()
+    x = dvector()
     mx, amx = theano.tensor.MaxAndArgmax([0])(x)
     out = mx * amx
     out_fg = FunctionGraph([x], [out])
@@ -320,18 +332,18 @@ def test_jax_scan_multiple_output():
         return binomln(n, value) + value * tt.log(p) + (n - value) * tt.log(1 - p)
 
     # sequences
-    tt_C = tt.ivector("C_t")
-    tt_D = tt.ivector("D_t")
+    tt_C = ivector("C_t")
+    tt_D = ivector("D_t")
     # outputs_info (initial conditions)
-    st0 = tt.lscalar("s_t0")
-    et0 = tt.lscalar("e_t0")
-    it0 = tt.lscalar("i_t0")
-    logp_c = tt.scalar("logp_c")
-    logp_d = tt.scalar("logp_d")
+    st0 = lscalar("s_t0")
+    et0 = lscalar("e_t0")
+    it0 = lscalar("i_t0")
+    logp_c = scalar("logp_c")
+    logp_d = scalar("logp_d")
     # non_sequences
-    beta = tt.scalar("beta")
-    gamma = tt.scalar("gamma")
-    delta = tt.scalar("delta")
+    beta = scalar("beta")
+    gamma = scalar("gamma")
+    delta = scalar("delta")
 
     # TODO: Use random streams when their JAX conversions are implemented.
     # trng = tt.random.RandomStream(1234)
@@ -393,7 +405,7 @@ def test_jax_scan_multiple_output():
 
 def test_jax_scan_tap_output():
 
-    a_tt = tt.scalar("a")
+    a_tt = scalar("a")
 
     def input_step_fn(y_tm1, y_tm3, a):
         y_tm1.name = "y_tm1"
@@ -576,7 +588,7 @@ def test_jax_ifelse():
 
     compare_jax_and_py(x_fg, [])
 
-    a = tt.dscalar("a")
+    a = dscalar("a")
     a.tag.test_value = np.array(0.2, dtype=theano.config.floatX)
     x = theano.ifelse.ifelse(a < 0.5, true_vals, false_vals)
     x_fg = FunctionGraph([a], [x])  # I.e. False
@@ -585,7 +597,7 @@ def test_jax_ifelse():
 
 
 def test_jax_CAReduce():
-    a_tt = tt.vector("a")
+    a_tt = vector("a")
     a_tt.tag.test_value = np.r_[1, 2, 3].astype(theano.config.floatX)
 
     x = tt.sum(a_tt, axis=None)
@@ -593,7 +605,7 @@ def test_jax_CAReduce():
 
     compare_jax_and_py(x_fg, [np.r_[1, 2, 3].astype(theano.config.floatX)])
 
-    a_tt = tt.matrix("a")
+    a_tt = matrix("a")
     a_tt.tag.test_value = np.c_[[1, 2, 3], [1, 2, 3]].astype(theano.config.floatX)
 
     x = tt.sum(a_tt, axis=0)
@@ -606,7 +618,7 @@ def test_jax_CAReduce():
 
     compare_jax_and_py(x_fg, [np.c_[[1, 2, 3], [1, 2, 3]].astype(theano.config.floatX)])
 
-    a_tt = tt.matrix("a")
+    a_tt = matrix("a")
     a_tt.tag.test_value = np.c_[[1, 2, 3], [1, 2, 3]].astype(theano.config.floatX)
 
     x = tt.prod(a_tt, axis=0)
@@ -628,7 +640,7 @@ def test_jax_MakeVector():
 
 
 def test_jax_Reshape():
-    a = tt.vector("a")
+    a = vector("a")
     x = tt.basic.reshape(a, (2, 2))
     x_fg = FunctionGraph([a], [x])
     compare_jax_and_py(x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(theano.config.floatX)])
@@ -642,8 +654,8 @@ def test_jax_Reshape():
 
 @pytest.mark.xfail(reason="jax.numpy.arange requires concrete inputs")
 def test_jax_Reshape_nonconcrete():
-    a = tt.vector("a")
-    b = tt.iscalar("b")
+    a = vector("a")
+    b = iscalar("b")
     x = tt.basic.reshape(a, (b, b))
     x_fg = FunctionGraph([a, b], [x])
     compare_jax_and_py(
@@ -652,7 +664,7 @@ def test_jax_Reshape_nonconcrete():
 
 
 def test_jax_Dimshuffle():
-    a_tt = tt.matrix("a")
+    a_tt = matrix("a")
 
     x = a_tt.T
     x_fg = FunctionGraph([a_tt], [x])
@@ -666,21 +678,21 @@ def test_jax_Dimshuffle():
         x_fg, [np.c_[[1.0, 2.0], [3.0, 4.0]].astype(theano.config.floatX)]
     )
 
-    a_tt = tt.tensor(dtype=theano.config.floatX, broadcastable=[False, True])
+    a_tt = tensor(dtype=theano.config.floatX, broadcastable=[False, True])
     x = a_tt.dimshuffle((0,))
     x_fg = FunctionGraph([a_tt], [x])
     compare_jax_and_py(x_fg, [np.c_[[1.0, 2.0, 3.0, 4.0]].astype(theano.config.floatX)])
 
-    a_tt = tt.tensor(dtype=theano.config.floatX, broadcastable=[False, True])
+    a_tt = tensor(dtype=theano.config.floatX, broadcastable=[False, True])
     x = tt.elemwise.DimShuffle([False, True], (0,), inplace=True)(a_tt)
     x_fg = FunctionGraph([a_tt], [x])
     compare_jax_and_py(x_fg, [np.c_[[1.0, 2.0, 3.0, 4.0]].astype(theano.config.floatX)])
 
 
 def test_jax_variadic_Scalar():
-    mu = tt.vector("mu", dtype=theano.config.floatX)
+    mu = vector("mu", dtype=theano.config.floatX)
     mu.tag.test_value = np.r_[0.1, 1.1].astype(theano.config.floatX)
-    tau = tt.vector("tau", dtype=theano.config.floatX)
+    tau = vector("tau", dtype=theano.config.floatX)
     tau.tag.test_value = np.r_[1.0, 2.0].astype(theano.config.floatX)
 
     res = -tau * mu
@@ -698,13 +710,13 @@ def test_jax_variadic_Scalar():
 
 def test_jax_logp():
 
-    mu = tt.vector("mu")
+    mu = vector("mu")
     mu.tag.test_value = np.r_[0.0, 0.0].astype(theano.config.floatX)
-    tau = tt.vector("tau")
+    tau = vector("tau")
     tau.tag.test_value = np.r_[1.0, 1.0].astype(theano.config.floatX)
-    sigma = tt.vector("sigma")
+    sigma = vector("sigma")
     sigma.tag.test_value = (1.0 / get_test_value(tau)).astype(theano.config.floatX)
-    value = tt.vector("value")
+    value = vector("value")
     value.tag.test_value = np.r_[0.1, -10].astype(theano.config.floatX)
 
     logp = (-tau * (value - mu) ** 2 + tt.log(tau / np.pi / 2.0)) / 2.0
@@ -718,9 +730,9 @@ def test_jax_logp():
 
 
 def test_jax_multioutput():
-    x = tt.vector("x")
+    x = vector("x")
     x.tag.test_value = np.r_[1.0, 2.0].astype(theano.config.floatX)
-    y = tt.vector("y")
+    y = vector("y")
     y.tag.test_value = np.r_[3.0, 4.0].astype(theano.config.floatX)
 
     w = tt.cosh(x ** 2 + y / 3.0)
@@ -732,7 +744,7 @@ def test_jax_multioutput():
 
 
 def test_nnet():
-    x = tt.vector("x")
+    x = vector("x")
     x.tag.test_value = np.r_[1.0, 2.0].astype(theano.config.floatX)
 
     out = tt.nnet.sigmoid(x)
@@ -753,15 +765,15 @@ def test_nnet():
 
 
 def test_tensor_basics():
-    y = tt.vector("y")
+    y = vector("y")
     y.tag.test_value = np.r_[1.0, 2.0].astype(theano.config.floatX)
-    x = tt.vector("x")
+    x = vector("x")
     x.tag.test_value = np.r_[3.0, 4.0].astype(theano.config.floatX)
-    A = tt.matrix("A")
+    A = matrix("A")
     A.tag.test_value = np.empty((2, 2), dtype=theano.config.floatX)
-    alpha = tt.scalar("alpha")
+    alpha = scalar("alpha")
     alpha.tag.test_value = np.array(3.0, dtype=theano.config.floatX)
-    beta = tt.scalar("beta")
+    beta = scalar("beta")
     beta.tag.test_value = np.array(5.0, dtype=theano.config.floatX)
 
     # This should be converted into a `Gemv` `Op` when the non-JAX compatible
@@ -783,7 +795,7 @@ def test_tensor_basics():
 @pytest.mark.xfail(reason="jax.numpy.arange requires concrete inputs")
 def test_arange_nonconcrete():
 
-    a = tt.scalar("a")
+    a = scalar("a")
     a.tag.test_value = 10
 
     out = tt.arange(a)
@@ -793,7 +805,7 @@ def test_arange_nonconcrete():
 
 @pytest.mark.xfail(reason="jax.numpy.arange requires concrete inputs")
 def test_unique_nonconcrete():
-    a = tt.matrix("a")
+    a = matrix("a")
     a.tag.test_value = np.arange(6, dtype=theano.config.floatX).reshape((3, 2))
 
     out = tt.extra_ops.Unique()(a)
@@ -802,7 +814,7 @@ def test_unique_nonconcrete():
 
 
 def test_identity():
-    a = tt.scalar("a")
+    a = scalar("a")
     a.tag.test_value = 10
 
     out = theano.scalar.basic.identity(a)
@@ -811,14 +823,14 @@ def test_identity():
 
 
 def test_second():
-    a0 = tt.scalar("a0")
-    b = tt.scalar("b")
+    a0 = scalar("a0")
+    b = scalar("b")
 
     out = theano.scalar.basic.second(a0, b)
     fgraph = FunctionGraph([a0, b], [out])
     compare_jax_and_py(fgraph, [10.0, 5.0])
 
-    a1 = tt.vector("a1")
+    a1 = vector("a1")
     out = tt.second(a1, b)
     fgraph = FunctionGraph([a1, b], [out])
     compare_jax_and_py(fgraph, [np.zeros([5], dtype=theano.config.floatX), 5.0])
@@ -826,11 +838,11 @@ def test_second():
 
 def test_jax_BatchedDot():
     # tensor3 . tensor3
-    a = tt.tensor3("a")
+    a = tensor3("a")
     a.tag.test_value = (
         np.linspace(-1, 1, 10 * 5 * 3).astype(theano.config.floatX).reshape((10, 5, 3))
     )
-    b = tt.tensor3("b")
+    b = tensor3("b")
     b.tag.test_value = (
         np.linspace(1, -1, 10 * 3 * 2).astype(theano.config.floatX).reshape((10, 3, 2))
     )
@@ -847,11 +859,11 @@ def test_jax_BatchedDot():
         theano_jax_fn(*inputs)
 
     # matrix . matrix
-    a = tt.matrix("a")
+    a = matrix("a")
     a.tag.test_value = (
         np.linspace(-1, 1, 5 * 3).astype(theano.config.floatX).reshape((5, 3))
     )
-    b = tt.matrix("b")
+    b = matrix("b")
     b.tag.test_value = (
         np.linspace(1, -1, 5 * 3).astype(theano.config.floatX).reshape((5, 3))
     )
@@ -886,7 +898,7 @@ def test_shared():
 
 
 def test_extra_ops():
-    a = tt.matrix("a")
+    a = matrix("a")
     a.tag.test_value = np.arange(6, dtype=theano.config.floatX).reshape((3, 2))
 
     out = tt.extra_ops.cumsum(a, axis=0)

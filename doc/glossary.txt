@@ -6,7 +6,7 @@ Glossary
 .. testsetup::
 
    import theano
-   from theano import tensor
+   from theano import tensor as tt
 
 .. glossary::
 
@@ -39,8 +39,8 @@ Glossary
         See also: :class:`graph.basic.Constant`
 
 
-    Elementwise
-        An elementwise operation ``f`` on two tensor variables ``M`` and ``N``
+    Elemwise (i.e. element-wise)
+        An element-wise operation ``f`` on two tensor variables ``M`` and ``N``
         is one such that:
 
         ``f(M, N)[i, j] == f(M[i, j], N[i, j])``
@@ -48,8 +48,8 @@ Glossary
         In other words, each element of an input matrix is combined
         with the corresponding element of the other(s). There are no
         dependencies between elements whose ``[i, j]`` coordinates do
-        not correspond, so an elementwise operation is like a scalar
-        operation generalized along several dimensions.  Elementwise
+        not correspond, so an element-wise operation is like a scalar
+        operation generalized along several dimensions.  Element-wise
         operations are defined for tensors of different numbers of dimensions by
         :term:`broadcasting` the smaller ones.
 

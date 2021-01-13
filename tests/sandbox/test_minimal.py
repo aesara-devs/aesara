@@ -2,8 +2,9 @@ import numpy as np
 import pytest
 
 from tests import unittest_tools as utt
-from theano import function, tensor
+from theano import function
 from theano.sandbox.minimal import minimal
+from theano.tensor.type import matrix, vector
 
 
 @pytest.mark.skip(reason="Unfinished test")
@@ -18,8 +19,8 @@ class TestMinimal:
         self.rng = np.random.RandomState(utt.fetch_seed(666))
 
     def test_minimal(self):
-        A = tensor.matrix()
-        b = tensor.vector()
+        A = matrix()
+        b = vector()
 
         print("building function")
         f = function([A, b], minimal(A, A, b, b, A))

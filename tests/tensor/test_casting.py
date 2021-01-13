@@ -5,16 +5,6 @@ import theano.tensor.basic as basic
 from theano import function
 from theano.compile import In
 from theano.misc.safe_asarray import _asarray
-from theano.tensor import (
-    TensorType,
-    bvector,
-    cast,
-    dmatrix,
-    dvector,
-    fvector,
-    ivector,
-    zmatrix,
-)
 from theano.tensor.basic import (
     _convert_to_float32,
     _convert_to_float64,
@@ -22,6 +12,16 @@ from theano.tensor.basic import (
     _convert_to_int16,
     _convert_to_int32,
     _convert_to_int64,
+    cast,
+)
+from theano.tensor.type import (
+    TensorType,
+    bvector,
+    dmatrix,
+    dvector,
+    fvector,
+    ivector,
+    zmatrix,
 )
 
 

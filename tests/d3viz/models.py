@@ -2,6 +2,7 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
+from theano.tensor.type import dmatrix, scalars
 
 
 class Mlp:
@@ -15,14 +16,14 @@ class Mlp:
         self.noutputs = noutputs
         self.nhiddens = nhiddens
 
-        x = tt.dmatrix("x")
+        x = dmatrix("x")
         wh = theano.shared(self.rng.normal(0, 1, (nfeatures, nhiddens)), borrow=True)
         bh = theano.shared(np.zeros(nhiddens), borrow=True)
-        h = tt.nnet.sigmoid(tt.dot(x, wh) + bh)
+        h = theano.tensor.nnet.sigmoid(tt.dot(x, wh) + bh)
 
         wy = theano.shared(self.rng.normal(0, 1, (nhiddens, noutputs)))
         by = theano.shared(np.zeros(noutputs), borrow=True)
-        y = tt.nnet.softmax(tt.dot(h, wy) + by)
+        y = theano.tensor.nnet.softmax(tt.dot(h, wy) + by)
 
         self.inputs = [x]
         self.outputs = [y]
@@ -30,7 +31,7 @@ class Mlp:
 
 class OfgNested:
     def __init__(self):
-        x, y, z = tt.scalars("xyz")
+        x, y, z = scalars("xyz")
         e = x * y
         op = theano.compile.builders.OpFromGraph([x, y], [e])
         e2 = op(x, y) + z
@@ -43,8 +44,8 @@ class OfgNested:
 
 class Ofg:
     def __init__(self):
-        x, y, z = tt.scalars("xyz")
-        e = tt.nnet.sigmoid((x + y + z) ** 2)
+        x, y, z = scalars("xyz")
+        e = theano.tensor.nnet.sigmoid((x + y + z) ** 2)
         op = theano.compile.builders.OpFromGraph([x, y, z], [e])
         e2 = op(x, y, z) + op(z, y, x)
 
@@ -54,8 +55,8 @@ class Ofg:
 
 class OfgSimple:
     def __init__(self):
-        x, y, z = tt.scalars("xyz")
-        e = tt.nnet.sigmoid((x + y + z) ** 2)
+        x, y, z = scalars("xyz")
+        e = theano.tensor.nnet.sigmoid((x + y + z) ** 2)
         op = theano.compile.builders.OpFromGraph([x, y, z], [e])
         e2 = op(x, y, z)
 

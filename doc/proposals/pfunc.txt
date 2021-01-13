@@ -190,14 +190,15 @@ simple one.
 
     from pfunc import pfunc
     from sharedvalue import shared
-    from theano import tensor
+    from theano import tensor as tt
+    from theano.gradient import grad
     from theano.tensor.nnet import sigmoid
 
     class NNet(object):
 
         def __init__(self,
-                input = tensor.dvector('input'),
-                target = tensor.dvector('target'),
+                input = tt.dvector('input'),
+                target = tt.dvector('target'),
                 n_input=1, n_hidden=1, n_output=1, lr=1e-3, **kw):
             super(NNet, self).__init__(**kw)
 
@@ -207,13 +208,13 @@ simple one.
             self.w1 = shared(numpy.zeros((n_hidden, n_input)), 'w1')
             self.w2 = shared(numpy.zeros((n_output, n_hidden)), 'w2')
 
-            self.hidden = sigmoid(tensor.dot(self.w1, self.input))
-            self.output = tensor.dot(self.w2, self.hidden)
-            self.cost = tensor.sum((self.output - self.target)**2)
+            self.hidden = sigmoid(tt.dot(self.w1, self.input))
+            self.output = tt.dot(self.w2, self.hidden)
+            self.cost = tt.sum((self.output - self.target)**2)
 
             self.sgd_updates = {
-                        self.w1: self.w1 - self.lr * tensor.grad(self.cost, self.w1),
-                        self.w2: self.w2 - self.lr * tensor.grad(self.cost, self.w2)}
+                        self.w1: self.w1 - self.lr * grad(self.cost, self.w1),
+                        self.w2: self.w2 - self.lr * grad(self.cost, self.w2)}
 
             self.sgd_step = pfunc(
                     params = [self.input, self.target],
@@ -223,4 +224,3 @@ simple one.
             self.compute_output = pfunc([self.input],  self.output)
 
             self.output_from_hidden = pfunc([self.hidden], self.output)
-

@@ -4,7 +4,7 @@ from theano.graph.basic import Apply, Constant, Variable
 from theano.graph.op import Op
 from theano.graph.sched import key_to_cmp
 from theano.graph.type import Generic
-from theano.tensor import tensor
+from theano.tensor.type import tensor
 
 
 class LoadFromDisk(Op):

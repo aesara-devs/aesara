@@ -12,6 +12,7 @@ import numpy as np
 
 import theano
 from theano.link.c.cmodule import GCC_compiler, default_blas_ldflags
+from theano.tensor.type import dvectors
 
 
 class MyOp(theano.compile.ops.DeepCopyOp):
@@ -46,7 +47,7 @@ def test_inter_process_cache():
     # This is to know if the c_code can add information specific to the
     # node.inputs[*].owner like the name of the variable.
 
-    x, y = theano.tensor.dvectors("xy")
+    x, y = dvectors("xy")
     f = theano.function([x, y], [MyOp()(x), MyOp()(y)])
     f(np.arange(60), np.arange(60))
     if theano.config.mode == "FAST_COMPILE" or theano.config.cxx == "":
@@ -55,7 +56,7 @@ def test_inter_process_cache():
         assert MyOp.nb_called == 1
 
     # What if we compile a new function with new variables?
-    x, y = theano.tensor.dvectors("xy")
+    x, y = dvectors("xy")
     f = theano.function([x, y], [MyOp()(x), MyOp()(y)])
     f(np.arange(60), np.arange(60))
     if theano.config.mode == "FAST_COMPILE" or theano.config.cxx == "":

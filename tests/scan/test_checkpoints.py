@@ -5,12 +5,13 @@ import theano
 import theano.tensor as tt
 from theano.scan.basic import scan
 from theano.scan.checkpoints import scan_checkpoints
+from theano.tensor.type import iscalar, vector
 
 
 class TestScanCheckpoint:
     def setup_method(self):
-        self.k = tt.iscalar("k")
-        self.A = tt.vector("A")
+        self.k = iscalar("k")
+        self.A = vector("A")
         result, _ = scan(
             fn=lambda prior_result, A: prior_result * A,
             outputs_info=tt.ones_like(self.A),

@@ -23,7 +23,8 @@ from theano.graph.basic import Apply, Variable, is_in_ancestors
 from theano.graph.op import _NoPythonOp
 from theano.graph.opt import GlobalOptimizer, local_optimizer
 from theano.scan.utils import clone
-from theano.tensor import TensorType, opt
+from theano.tensor import opt
+from theano.tensor.type import TensorType
 
 
 __docformat__ = "restructedtext en"
@@ -488,10 +489,10 @@ acceptable_ops = (
     theano.tensor.basic.Dot,
     theano.tensor.basic.Reshape,
     theano.tensor.basic.Shape,
-    theano.tensor.SpecifyShape,
+    theano.compile.ops.SpecifyShape,
     theano.tensor.basic.MaxAndArgmax,
-    theano.tensor.Subtensor,
-    theano.tensor.IncSubtensor,
+    theano.tensor.subtensor.Subtensor,
+    theano.tensor.subtensor.IncSubtensor,
     theano.tensor.basic.Rebroadcast,
     theano.tensor.basic.Alloc,
     theano.tensor.elemwise.Elemwise,

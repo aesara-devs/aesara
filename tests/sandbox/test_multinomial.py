@@ -1,16 +1,17 @@
 import numpy as np
 
 import tests.unittest_tools as utt
-from theano import function, tensor
+from theano import function
 from theano.configdefaults import config
-from theano.sandbox import multinomial
+from theano.sandbox.multinomial import MultinomialFromUniform
+from theano.tensor.type import dmatrix, dvector, fmatrix, fvector, iscalar
 
 
 def test_n_samples_1():
-    p = tensor.fmatrix()
-    u = tensor.fvector()
-    n = tensor.iscalar()
-    m = multinomial.MultinomialFromUniform("auto")(p, u, n)
+    p = fmatrix()
+    u = fvector()
+    n = iscalar()
+    m = MultinomialFromUniform("auto")(p, u, n)
 
     f = function([p, u, n], m, allow_input_downcast=True)
 
@@ -22,10 +23,10 @@ def test_n_samples_1():
 
 
 def test_n_samples_2():
-    p = tensor.fmatrix()
-    u = tensor.fvector()
-    n = tensor.iscalar()
-    m = multinomial.MultinomialFromUniform("auto")(p, u, n)
+    p = fmatrix()
+    u = fvector()
+    n = iscalar()
+    m = MultinomialFromUniform("auto")(p, u, n)
 
     f = function([p, u, n], m, allow_input_downcast=True)
 
@@ -49,10 +50,10 @@ def test_multinomial_0():
     # This tests the MultinomialFromUniform Op directly, not going through the
     # multinomial() call in GPU random generation.
 
-    p = tensor.fmatrix()
-    u = tensor.fvector()
+    p = fmatrix()
+    u = fvector()
 
-    m = multinomial.MultinomialFromUniform("auto")(p, u)
+    m = MultinomialFromUniform("auto")(p, u)
 
     # the m*2 allows the multinomial to reuse output
     f = function([p, u], m * 2, allow_input_downcast=True)
@@ -77,9 +78,9 @@ def test_multinomial_0():
 
 # TODO: check a bigger example (make sure blocking on GPU is handled correctly)
 def test_multinomial_large():
-    p = tensor.fmatrix()
-    u = tensor.fvector()
-    m = multinomial.MultinomialFromUniform("auto")(p, u)
+    p = fmatrix()
+    u = fvector()
+    m = MultinomialFromUniform("auto")(p, u)
     f = function([p, u], m * 2, allow_input_downcast=True)
 
     pval = np.arange(10000 * 4, dtype="float32").reshape((10000, 4)) + 0.1
@@ -102,17 +103,17 @@ def test_multinomial_large():
 
 
 def test_multinomial_dtypes():
-    p = tensor.dmatrix()
-    u = tensor.dvector()
-    m = multinomial.MultinomialFromUniform("auto")(p, u)
+    p = dmatrix()
+    u = dvector()
+    m = MultinomialFromUniform("auto")(p, u)
     assert m.dtype == "float64", m.dtype
 
-    p = tensor.fmatrix()
-    u = tensor.fvector()
-    m = multinomial.MultinomialFromUniform("auto")(p, u)
+    p = fmatrix()
+    u = fvector()
+    m = MultinomialFromUniform("auto")(p, u)
     assert m.dtype == "float32", m.dtype
 
-    p = tensor.fmatrix()
-    u = tensor.fvector()
-    m = multinomial.MultinomialFromUniform("float64")(p, u)
+    p = fmatrix()
+    u = fvector()
+    m = MultinomialFromUniform("float64")(p, u)
     assert m.dtype == "float64", m.dtype

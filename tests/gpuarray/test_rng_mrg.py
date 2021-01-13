@@ -7,7 +7,7 @@ from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu as mode
 from tests.sandbox.test_rng_mrg import java_samples, rng_mrg_overflow
 from tests.sandbox.test_rng_mrg import test_f16_nonzero as cpu_f16_nonzero
-from theano import tensor
+from theano import tensor as tt
 from theano.configdefaults import config
 from theano.gpuarray.rng_mrg import GPUA_mrg_uniform
 from theano.gpuarray.type import gpuarray_shared_constructor
@@ -48,7 +48,7 @@ def test_consistency_GPUA_serial():
             sample.update = (rstate, new_rstate)
 
             # We need the sample back in the main memory
-            cpu_sample = tensor.as_tensor_variable(sample)
+            cpu_sample = tt.as_tensor_variable(sample)
             f = theano.function([], cpu_sample, mode=mode)
             for k in range(n_samples):
                 s = f()
@@ -95,7 +95,7 @@ def test_consistency_GPUA_parallel():
         sample.update = (rstate, new_rstate)
 
         # We need the sample back in the main memory
-        cpu_sample = tensor.as_tensor_variable(sample)
+        cpu_sample = tt.as_tensor_variable(sample)
         f = theano.function([], cpu_sample, mode=mode)
 
         for k in range(n_samples):

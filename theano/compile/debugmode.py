@@ -1138,7 +1138,7 @@ def _get_preallocated_maps(
 
     # To avoid circular imports
     from theano.gpuarray import GpuArrayType
-    from theano.tensor import TensorType
+    from theano.tensor.type import TensorType
 
     try:
         import pygpu
@@ -1758,7 +1758,7 @@ class _Linker(LocalLinker):
         # can't import at toplevel because of circular import TODO:
         # don't do this ugly hacky way of setting the
         # filter_checks_isfinite
-        from theano.tensor import TensorType  # to set filter_check_isfinite
+        from theano.tensor.type import TensorType  # to set filter_check_isfinite
 
         fgraph = self.fgraph
         input_storage_ = input_storage

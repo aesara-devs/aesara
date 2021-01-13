@@ -112,7 +112,7 @@
 
    .. testcode::
 
-       x,y,b = tt.dvectors('x','y','b')
+       x, y, b = tt.dvectors('x', 'y', 'b')
        W = tt.dmatrix('W')
        y = tt.nnet.softplus(tt.dot(W,x) + b)
 
@@ -143,7 +143,7 @@
 
    .. testcode::
 
-       x,y,b = tt.dvectors('x','y','b')
+       x, y, b = tt.dvectors('x', 'y', 'b')
        W = tt.dmatrix('W')
        y = tt.nnet.softmax(tt.dot(W,x) + b)
 

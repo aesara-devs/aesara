@@ -10,7 +10,7 @@ import numpy as np
 import theano
 import theano.scalar.sharedvar
 from theano import compile, config, printing
-from theano import scalar as scal
+from theano import scalar as ts
 from theano.assert_op import Assert, assert_op
 from theano.compile import Rebroadcast, Shape, shape
 from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
@@ -23,26 +23,27 @@ from theano.printing import min_informative_str, pprint
 from theano.scalar import int32
 from theano.tensor import elemwise
 from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise, Sum, scalar_elemwise
-from theano.tensor.type import TensorType, values_eq_approx_always_true
+from theano.tensor.type import (
+    TensorType,
+    complex_dtypes,
+    discrete_dtypes,
+    float_dtypes,
+    int_dtypes,
+    int_types,
+    int_vector_types,
+    integer_dtypes,
+    tensor,
+    uint_dtypes,
+    values_eq_approx_always_true,
+)
 from theano.tensor.type_other import NoneConst
 from theano.tensor.utils import as_list
 from theano.tensor.var import TensorConstant, TensorVariable, _tensor_py_operators
-from theano.utils import apply_across_args
 
 
 _logger = logging.getLogger("theano.tensor.basic")
 
 __docformat__ = "restructuredtext en"
-
-# Define common subsets of dtypes (as strings).
-complex_dtypes = list(map(str, scal.complex_types))
-continuous_dtypes = list(map(str, scal.continuous_types))
-float_dtypes = list(map(str, scal.float_types))
-integer_dtypes = list(map(str, scal.integer_types))
-discrete_dtypes = list(map(str, scal.discrete_types))
-all_dtypes = list(map(str, scal.all_types))
-int_dtypes = list(map(str, scal.int_types))
-uint_dtypes = list(map(str, scal.uint_types))
 
 
 class ShapeError(Exception):
@@ -141,7 +142,7 @@ def as_tensor_variable(x, name=None, ndim=None):
         if isinstance(x, Constant):
             return as_tensor_variable(x.data, name=name, ndim=ndim)
 
-        if isinstance(x.type, scal.Scalar):
+        if isinstance(x.type, ts.Scalar):
             x = tensor_from_scalar(x)
 
         if not isinstance(x.type, TensorType):
@@ -191,7 +192,7 @@ def as_tensor_variable(x, name=None, ndim=None):
                 # we know that the result should be a vector.
                 # `MakeVector` is a better option due to its `get_scalar_constant_value`
                 # support.
-                dtype = scal.upcast(*[i.dtype for i in x if hasattr(i, "dtype")])
+                dtype = ts.upcast(*[i.dtype for i in x if hasattr(i, "dtype")])
                 return theano.tensor.opt.MakeVector(dtype)(*x)
 
             return stack(x)
@@ -238,7 +239,7 @@ def constant(x, name=None, ndim=None, dtype=None):
         else:
             x = x.data
 
-    x_ = scal.convert(x, dtype=dtype)
+    x_ = ts.convert(x, dtype=dtype)
 
     if ndim is not None:
         if x_.ndim < ndim:
@@ -377,22 +378,22 @@ def numpy_scalar(data):
 
 
 _scalar_constant_value_elemwise_ops = (
-    scal.Cast,
-    scal.Switch,
-    scal.NEQ,
-    scal.EQ,
-    scal.LT,
-    scal.GT,
-    scal.LE,
-    scal.GE,
-    scal.Sub,
-    scal.Add,
-    scal.Mod,
-    scal.Mul,
-    scal.IntDiv,
-    scal.TrueDiv,
-    scal.ScalarMinimum,
-    scal.ScalarMaximum,
+    ts.Cast,
+    ts.Switch,
+    ts.NEQ,
+    ts.EQ,
+    ts.LT,
+    ts.GT,
+    ts.LE,
+    ts.GE,
+    ts.Sub,
+    ts.Add,
+    ts.Mod,
+    ts.Mul,
+    ts.IntDiv,
+    ts.TrueDiv,
+    ts.ScalarMinimum,
+    ts.ScalarMaximum,
 )
 
 
@@ -492,8 +493,8 @@ def get_scalar_constant_value(
                 if builtins.all([0 == c.ndim and c != 0 for c in cond]):
                     v = v.owner.inputs[0]
                     continue
-            elif isinstance(v.owner.op, scal.ScalarOp):
-                if isinstance(v.owner.op, scal.Second):
+            elif isinstance(v.owner.op, ts.ScalarOp):
+                if isinstance(v.owner.op, ts.Second):
                     # We don't need both input to be constant for second
                     shp, val = v.owner.inputs
                     v = val
@@ -510,7 +511,7 @@ def get_scalar_constant_value(
             # we need to investigate Second as Alloc. So elemwise
             # don't disable the check for Second.
             elif isinstance(v.owner.op, Elemwise):
-                if isinstance(v.owner.op.scalar_op, scal.Second):
+                if isinstance(v.owner.op.scalar_op, ts.Second):
                     # We don't need both input to be constant for second
                     shp, val = v.owner.inputs
                     v = val
@@ -673,339 +674,6 @@ def get_scalar_constant_value(
         raise NotScalarConstantError(v)
 
 
-# Easy constructors
-
-
-def tensor(*args, **kwargs):
-    name = kwargs.pop("name", None)
-    return TensorType(*args, **kwargs)(name=name)
-
-
-cscalar = TensorType("complex64", ())
-zscalar = TensorType("complex128", ())
-fscalar = TensorType("float32", ())
-dscalar = TensorType("float64", ())
-bscalar = TensorType("int8", ())
-wscalar = TensorType("int16", ())
-iscalar = TensorType("int32", ())
-lscalar = TensorType("int64", ())
-
-
-def scalar(name=None, dtype=None):
-    """Return a symbolic scalar variable.
-
-    Parameters
-    ----------
-    dtype: numeric
-        None means to use theano.config.floatX.
-    name
-        A name to attach to this variable.
-
-    """
-    if dtype is None:
-        dtype = config.floatX
-    type = TensorType(dtype, ())
-    return type(name)
-
-
-scalars, fscalars, dscalars, iscalars, lscalars = apply_across_args(
-    scalar, fscalar, dscalar, iscalar, lscalar
-)
-
-int_types = bscalar, wscalar, iscalar, lscalar
-float_types = fscalar, dscalar
-complex_types = cscalar, zscalar
-int_scalar_types = int_types
-float_scalar_types = float_types
-complex_scalar_types = complex_types
-
-cvector = TensorType("complex64", (False,))
-zvector = TensorType("complex128", (False,))
-fvector = TensorType("float32", (False,))
-dvector = TensorType("float64", (False,))
-bvector = TensorType("int8", (False,))
-wvector = TensorType("int16", (False,))
-ivector = TensorType("int32", (False,))
-lvector = TensorType("int64", (False,))
-
-
-def vector(name=None, dtype=None):
-    """Return a symbolic vector variable.
-
-    Parameters
-    ----------
-    dtype: numeric
-        None means to use theano.config.floatX.
-    name
-        A name to attach to this variable
-
-    """
-    if dtype is None:
-        dtype = config.floatX
-    type = TensorType(dtype, (False,))
-    return type(name)
-
-
-vectors, fvectors, dvectors, ivectors, lvectors = apply_across_args(
-    vector, fvector, dvector, ivector, lvector
-)
-
-int_vector_types = bvector, wvector, ivector, lvector
-float_vector_types = fvector, dvector
-complex_vector_types = cvector, zvector
-
-cmatrix = TensorType("complex64", (False, False))
-zmatrix = TensorType("complex128", (False, False))
-fmatrix = TensorType("float32", (False, False))
-dmatrix = TensorType("float64", (False, False))
-bmatrix = TensorType("int8", (False, False))
-wmatrix = TensorType("int16", (False, False))
-imatrix = TensorType("int32", (False, False))
-lmatrix = TensorType("int64", (False, False))
-
-
-def matrix(name=None, dtype=None):
-    """Return a symbolic matrix variable.
-
-    Parameters
-    ----------
-    dtype: numeric
-        None means to use theano.config.floatX.
-    name
-        A name to attach to this variable.
-
-    """
-    if dtype is None:
-        dtype = config.floatX
-    type = TensorType(dtype, (False, False))
-    return type(name)
-
-
-matrices, fmatrices, dmatrices, imatrices, lmatrices = apply_across_args(
-    matrix, fmatrix, dmatrix, imatrix, lmatrix
-)
-
-int_matrix_types = bmatrix, wmatrix, imatrix, lmatrix
-float_matrix_types = fmatrix, dmatrix
-complex_matrix_types = cmatrix, zmatrix
-
-crow = TensorType("complex64", (True, False))
-zrow = TensorType("complex128", (True, False))
-frow = TensorType("float32", (True, False))
-drow = TensorType("float64", (True, False))
-brow = TensorType("int8", (True, False))
-wrow = TensorType("int16", (True, False))
-irow = TensorType("int32", (True, False))
-lrow = TensorType("int64", (True, False))
-
-
-def row(name=None, dtype=None):
-    """Return a symbolic row variable (ndim=2, broadcastable=[True,False]).
-
-    Parameters
-    ----------
-    dtype: numeric type
-        None means to use theano.config.floatX.
-    name
-        A name to attach to this variable.
-
-    """
-    if dtype is None:
-        dtype = config.floatX
-    type = TensorType(dtype, (True, False))
-    return type(name)
-
-
-rows, frows, drows, irows, lrows = apply_across_args(row, frow, drow, irow, lrow)
-
-ccol = TensorType("complex64", (False, True))
-zcol = TensorType("complex128", (False, True))
-fcol = TensorType("float32", (False, True))
-dcol = TensorType("float64", (False, True))
-bcol = TensorType("int8", (False, True))
-wcol = TensorType("int16", (False, True))
-icol = TensorType("int32", (False, True))
-lcol = TensorType("int64", (False, True))
-
-
-def col(name=None, dtype=None):
-    """Return a symbolic column variable (ndim=2, broadcastable=[False,True]).
-
-    Parameters
-    ----------
-    dtype : numeric
-        None means to use theano.config.floatX.
-    name
-        A name to attach to this variable.
-
-    """
-    if dtype is None:
-        dtype = config.floatX
-    type = TensorType(dtype, (False, True))
-    return type(name)
-
-
-cols, fcols, dcols, icols, lcols = apply_across_args(col, fcol, dcol, icol, lcol)
-
-ctensor3 = TensorType("complex64", ((False,) * 3))
-ztensor3 = TensorType("complex128", ((False,) * 3))
-ftensor3 = TensorType("float32", ((False,) * 3))
-dtensor3 = TensorType("float64", ((False,) * 3))
-btensor3 = TensorType("int8", ((False,) * 3))
-wtensor3 = TensorType("int16", ((False,) * 3))
-itensor3 = TensorType("int32", ((False,) * 3))
-ltensor3 = TensorType("int64", ((False,) * 3))
-
-
-def tensor3(name=None, dtype=None):
-    """Return a symbolic 3-D variable.
-
-    Parameters
-    ----------
-    dtype: numeric type
-        None means to use theano.config.floatX.
-    name
-        A name to attach to this variable.
-
-    """
-    if dtype is None:
-        dtype = config.floatX
-    type = TensorType(dtype, (False, False, False))
-    return type(name)
-
-
-tensor3s, ftensor3s, dtensor3s, itensor3s, ltensor3s = apply_across_args(
-    tensor3, ftensor3, dtensor3, itensor3, ltensor3
-)
-
-ctensor4 = TensorType("complex64", ((False,) * 4))
-ztensor4 = TensorType("complex128", ((False,) * 4))
-ftensor4 = TensorType("float32", ((False,) * 4))
-dtensor4 = TensorType("float64", ((False,) * 4))
-btensor4 = TensorType("int8", ((False,) * 4))
-wtensor4 = TensorType("int16", ((False,) * 4))
-itensor4 = TensorType("int32", ((False,) * 4))
-ltensor4 = TensorType("int64", ((False,) * 4))
-
-
-def tensor4(name=None, dtype=None):
-    """Return a symbolic 4-D variable.
-
-    Parameters
-    ----------
-    dtype: numeric type
-        None means to use theano.config.floatX.
-    name
-        A name to attach to this variable.
-
-    """
-    if dtype is None:
-        dtype = config.floatX
-    type = TensorType(dtype, (False, False, False, False))
-    return type(name)
-
-
-tensor4s, ftensor4s, dtensor4s, itensor4s, ltensor4s = apply_across_args(
-    tensor4, ftensor4, dtensor4, itensor4, ltensor4
-)
-
-ctensor5 = TensorType("complex64", ((False,) * 5))
-ztensor5 = TensorType("complex128", ((False,) * 5))
-ftensor5 = TensorType("float32", ((False,) * 5))
-dtensor5 = TensorType("float64", ((False,) * 5))
-btensor5 = TensorType("int8", ((False,) * 5))
-wtensor5 = TensorType("int16", ((False,) * 5))
-itensor5 = TensorType("int32", ((False,) * 5))
-ltensor5 = TensorType("int64", ((False,) * 5))
-
-
-def tensor5(name=None, dtype=None):
-    """Return a symbolic 5-D variable.
-
-    Parameters
-    ----------
-    dtype: numeric type
-        None means to use theano.config.floatX.
-    name
-        A name to attach to this variable.
-
-    """
-    if dtype is None:
-        dtype = config.floatX
-    type = TensorType(dtype, (False, False, False, False, False))
-    return type(name)
-
-
-tensor5s, ftensor5s, dtensor5s, itensor5s, ltensor5s = apply_across_args(
-    tensor5, ftensor5, dtensor5, itensor5, ltensor5
-)
-
-ctensor6 = TensorType("complex64", ((False,) * 6))
-ztensor6 = TensorType("complex128", ((False,) * 6))
-ftensor6 = TensorType("float32", ((False,) * 6))
-dtensor6 = TensorType("float64", ((False,) * 6))
-btensor6 = TensorType("int8", ((False,) * 6))
-wtensor6 = TensorType("int16", ((False,) * 6))
-itensor6 = TensorType("int32", ((False,) * 6))
-ltensor6 = TensorType("int64", ((False,) * 6))
-
-
-def tensor6(name=None, dtype=None):
-    """Return a symbolic 6-D variable.
-
-    Parameters
-    ----------
-    dtype: numeric type
-        None means to use theano.config.floatX.
-    name
-        A name to attach to this variable.
-
-    """
-    if dtype is None:
-        dtype = config.floatX
-    type = TensorType(dtype, (False,) * 6)
-    return type(name)
-
-
-tensor6s, ftensor6s, dtensor6s, itensor6s, ltensor6s = apply_across_args(
-    tensor6, ftensor6, dtensor6, itensor6, ltensor6
-)
-
-ctensor7 = TensorType("complex64", ((False,) * 7))
-ztensor7 = TensorType("complex128", ((False,) * 7))
-ftensor7 = TensorType("float32", ((False,) * 7))
-dtensor7 = TensorType("float64", ((False,) * 7))
-btensor7 = TensorType("int8", ((False,) * 7))
-wtensor7 = TensorType("int16", ((False,) * 7))
-itensor7 = TensorType("int32", ((False,) * 7))
-ltensor7 = TensorType("int64", ((False,) * 7))
-
-
-def tensor7(name=None, dtype=None):
-    """Return a symbolic 7-D variable.
-
-    Parameters
-    ----------
-    dtype: numeric type
-        None means to use theano.config.floatX.
-    name
-        A name to attach to this variable.
-
-    """
-    if dtype is None:
-        dtype = config.floatX
-    type = TensorType(dtype, (False,) * 7)
-    return type(name)
-
-
-tensor7s, ftensor7s, dtensor7s, itensor7s, ltensor7s = apply_across_args(
-    tensor7, ftensor7, dtensor7, itensor7, ltensor7
-)
-
-
-Tensor = TensorType
-
-
 #########################
 # Casting Operations
 #########################
@@ -1016,7 +684,7 @@ class TensorFromScalar(Op):
     __props__ = ()
 
     def make_node(self, s):
-        assert isinstance(s.type, scal.Scalar)
+        assert isinstance(s.type, ts.Scalar)
         return Apply(self, [s], [tensor(dtype=s.type.dtype, broadcastable=())])
 
     def perform(self, node, inp, out_):
@@ -1055,7 +723,7 @@ class ScalarFromTensor(COp):
         assert isinstance(t.type, TensorType)
         assert t.type.broadcastable == ()
         return Apply(
-            self, [t], [scal.get_scalar_type(dtype=t.type.dtype).make_variable()]
+            self, [t], [ts.get_scalar_type(dtype=t.type.dtype).make_variable()]
         )
 
     def perform(self, node, inp, out_):
@@ -1108,46 +776,46 @@ def _conversion(real_value, name):
 # what types you are casting to what.  That logic is implemented by the
 # `cast()` function below.
 
-_convert_to_bool = _conversion(Elemwise(scal.convert_to_bool), "bool")
+_convert_to_bool = _conversion(Elemwise(ts.convert_to_bool), "bool")
 """Cast to boolean"""
 
-_convert_to_int8 = _conversion(Elemwise(scal.convert_to_int8), "int8")
+_convert_to_int8 = _conversion(Elemwise(ts.convert_to_int8), "int8")
 """Cast to 8-bit integer"""
 
-_convert_to_int16 = _conversion(Elemwise(scal.convert_to_int16), "int16")
+_convert_to_int16 = _conversion(Elemwise(ts.convert_to_int16), "int16")
 """Cast to 16-bit integer"""
 
-_convert_to_int32 = _conversion(Elemwise(scal.convert_to_int32), "int32")
+_convert_to_int32 = _conversion(Elemwise(ts.convert_to_int32), "int32")
 """Cast to 32-bit integer"""
 
-_convert_to_int64 = _conversion(Elemwise(scal.convert_to_int64), "int64")
+_convert_to_int64 = _conversion(Elemwise(ts.convert_to_int64), "int64")
 """Cast to 64-bit integer"""
 
-_convert_to_uint8 = _conversion(Elemwise(scal.convert_to_uint8), "uint8")
+_convert_to_uint8 = _conversion(Elemwise(ts.convert_to_uint8), "uint8")
 """Cast to unsigned 8-bit integer"""
 
-_convert_to_uint16 = _conversion(Elemwise(scal.convert_to_uint16), "uint16")
+_convert_to_uint16 = _conversion(Elemwise(ts.convert_to_uint16), "uint16")
 """Cast to unsigned 16-bit integer"""
 
-_convert_to_uint32 = _conversion(Elemwise(scal.convert_to_uint32), "uint32")
+_convert_to_uint32 = _conversion(Elemwise(ts.convert_to_uint32), "uint32")
 """Cast to unsigned 32-bit integer"""
 
-_convert_to_uint64 = _conversion(Elemwise(scal.convert_to_uint64), "uint64")
+_convert_to_uint64 = _conversion(Elemwise(ts.convert_to_uint64), "uint64")
 """Cast to unsigned 64-bit integer"""
 
-_convert_to_float16 = _conversion(Elemwise(scal.convert_to_float16), "float16")
+_convert_to_float16 = _conversion(Elemwise(ts.convert_to_float16), "float16")
 """Cast to half-precision floating point"""
 
-_convert_to_float32 = _conversion(Elemwise(scal.convert_to_float32), "float32")
+_convert_to_float32 = _conversion(Elemwise(ts.convert_to_float32), "float32")
 """Cast to single-precision floating point"""
 
-_convert_to_float64 = _conversion(Elemwise(scal.convert_to_float64), "float64")
+_convert_to_float64 = _conversion(Elemwise(ts.convert_to_float64), "float64")
 """Cast to double-precision floating point"""
 
-_convert_to_complex64 = _conversion(Elemwise(scal.convert_to_complex64), "complex64")
+_convert_to_complex64 = _conversion(Elemwise(ts.convert_to_complex64), "complex64")
 """Cast to single-precision complex"""
 
-_convert_to_complex128 = _conversion(Elemwise(scal.convert_to_complex128), "complex128")
+_convert_to_complex128 = _conversion(Elemwise(ts.convert_to_complex128), "complex128")
 """Cast to double-precision complex"""
 
 _cast_mapping = {
@@ -1415,7 +1083,7 @@ class Argmax(COp):
     __props__ = ("axis",)
     _f16_ok = True
 
-    params_type = ParamsType(c_axis=scal.int64)
+    params_type = ParamsType(c_axis=ts.int64)
 
     def __init__(self, axis):
         if axis is not None:
@@ -1579,18 +1247,18 @@ def makeKeepDims(x, y, axis):
 
 
 def check_and_normalize_axes(x, axis):
-    """
-    Check axes, normalize and convert them to a Python list of integers.
-    Return an empty list if argument is None.
+    """Check axes, normalize and convert them to a Python list of integers.
 
     Parameters
     ----------
-    x: Tensor variable
-    axis = Integer, tuple or list of integers
+    x: TensorVariable
+    axis: int, tuple or list of integers
 
     Returns
     -------
     axis: list of integers
+        Return an empty list if argument is None.
+
     """
     x = as_tensor_variable(x)
     if axis is None:
@@ -1666,14 +1334,14 @@ class Max(CAReduce):
     nfunc_spec = ("max", 1, 1)
 
     def __init__(self, axis):
-        super().__init__(scal.scalar_maximum, axis)
+        super().__init__(ts.scalar_maximum, axis)
 
 
 class Min(CAReduce):
     nfunc_spec = ("min", 1, 1)
 
     def __init__(self, axis):
-        super().__init__(scal.scalar_minimum, axis)
+        super().__init__(ts.scalar_minimum, axis)
 
 
 @constructor
@@ -2509,7 +2177,7 @@ def complex_from_polar(abs, angle):
 ##########################
 
 
-# fill, _fill_inplace = _elemwise(scal.second, 'fill',
+# fill, _fill_inplace = _elemwise(ts.second, 'fill',
 # """fill WRITEME (elemwise)""")
 @scalar_elemwise
 def second(a, b):
@@ -2570,9 +2238,7 @@ def zeros_like(model, dtype=None, opt=False):
 
 
 def zeros(shape, dtype=None):
-    """
-    Create a Tensor filled with zeros, closer to Numpy's syntax than ``alloc``.
-    """
+    """Create a `TensorVariable` filled with zeros, closer to NumPy's syntax than ``alloc``."""
     if not isinstance(shape, (np.ndarray, Sequence, TensorVariable)):
         shape = [shape]
     if dtype is None:
@@ -2581,9 +2247,7 @@ def zeros(shape, dtype=None):
 
 
 def ones(shape, dtype=None):
-    """
-    Create a Tensor filled with ones, closer to Numpy's syntax than ``alloc``.
-    """
+    """Create a `TensorVariable` filled with ones, closer to NumPy's syntax than ``alloc``."""
     if not isinstance(shape, (np.ndarray, Sequence, TensorVariable)):
         shape = [shape]
     if dtype is None:
@@ -2949,21 +2613,22 @@ def alloc_validate_shape(shape):
 
 
 class Alloc(COp):
-    """Create a Tensor from an initial value and a desired shape.
+    """Create a `TensorVariable` from an initial value and a desired shape.
 
     alloc(value, shape0, shape1, ..., shapeN)
 
-    Returns an N-dimensional tensor initialized by `value` using something
+    Returns an N-dimensional tensor initialized by a value, using something
     equivalent to
 
         z = numpy.zeros(shape, value.dtype)
         z += value
 
-    The result has N dimensions, has the dtype of `value` and is obtained by
-    broadcasting value over the output ndarray.
+    The result has N dimensions, has the dtype of the given value, and is
+    obtained by broadcasting value over the output array.
 
-    This Op is used to replace fill() during optimizations because after shapes
-    are lifted, the first argument to fill can often be pruned from the graph.
+    This `Op` is used to replace ``fill`` during optimizations, because, after
+    shapes are lifted, the first argument to ``fill`` can often be pruned from
+    the graph.
 
     """
 
@@ -3184,7 +2849,7 @@ def register_transfer(fn):
 
 
 """Create a duplicate of `a` (with duplicated storage)"""
-tensor_copy = Elemwise(scal.identity)
+tensor_copy = Elemwise(ts.identity)
 pprint.assign(tensor_copy, printing.IgnorePrinter())
 
 
@@ -3256,7 +2921,7 @@ def prod(
 
 class Mean(CAReduce):
     def __init__(self, axis=None):
-        super().__init__(scal.add, axis)
+        super().__init__(ts.add, axis)
         assert self.axis is None or len(self.axis) == 1
 
     def __str__(self):
@@ -3620,13 +3285,13 @@ def ceil_intdiv(a, b):
     # cast them to float to avoid doing the modulo. We do not know if this
     # is faster or not. But this is not safe for int64 as the cast will
     # lose precision.
-    # e.g.: cast(cast(a, scalar.upcast(a, 'float32')) / b, scal.upcast(a, b))
+    # e.g.: cast(cast(a, scalar.upcast(a, 'float32')) / b, ts.upcast(a, b))
 
     # We cast for the case when a and b are uint*. Otherwise neq will
     # force their upcast to int.
     div = int_div(a, b)
     ret = cast(neq(a % b, 0), div.dtype) + div
-    assert ret.dtype == scal.upcast(div.owner.inputs[0], div.owner.inputs[1])
+    assert ret.dtype == ts.upcast(div.owner.inputs[0], div.owner.inputs[1])
     return ret
 
 
@@ -3637,7 +3302,7 @@ def mod_check(x, y):
         or as_tensor_variable(y).dtype in complex_dtypes
     ):
         # Currently forbidden.
-        raise scal.Mod.complex_error
+        raise ts.Mod.complex_error
     else:
         return mod(x, y)
 
@@ -3699,8 +3364,8 @@ def extract_constant(x, elemwise=True, only_process_constants=False):
         x = get_scalar_constant_value(x, elemwise, only_process_constants)
     except NotScalarConstantError:
         pass
-    if isinstance(x, scal.ScalarVariable) or isinstance(
-        x, scal.sharedvar.ScalarSharedVariable
+    if isinstance(x, ts.ScalarVariable) or isinstance(
+        x, ts.sharedvar.ScalarSharedVariable
     ):
         if x.owner and isinstance(x.owner.op, ScalarFromTensor):
             x = x.owner.inputs[0]
@@ -3763,8 +3428,7 @@ def batched_dot(a, b):
 
 
 def batched_tensordot(x, y, axes=2):
-    """
-    Compute a batched tensordot product.
+    """Compute a batched tensordot product.
 
     A hybrid of batched_dot and tensordot, this function computes the
     tensordot product between the two tensors, by iterating over the
@@ -3772,10 +3436,10 @@ def batched_tensordot(x, y, axes=2):
 
     Parameters
     ----------
-    x : tensor
-        A Tensor with sizes e.g.: for 3D (dim1, dim3, dim2)
-    y : tensor
-        A Tensor with sizes e.g.: for 3D (dim1, dim2, dim4)
+    x: TensorVariable
+        A tensor with sizes e.g.: for 3D (dim1, dim3, dim2)
+    y: TensorVariable
+        A tensor with sizes e.g.: for 3D (dim1, dim2, dim4)
     axes: int or array-like of length 2
         If an integer, the number of axes to sum over.
         If an array, it must have two array elements containing the axes to sum
@@ -4246,7 +3910,7 @@ class Join(COp):
         as_tensor_variable_args = [as_tensor_variable(x) for x in tensors]
 
         dtypes = [x.type.dtype for x in as_tensor_variable_args]
-        out_dtype = scal.upcast(*dtypes)
+        out_dtype = ts.upcast(*dtypes)
 
         def output_maker(bcastable):
             return tensor(dtype=out_dtype, broadcastable=bcastable)
@@ -4439,7 +4103,7 @@ class Join(COp):
         rval = [grad_undefined(self, 0, axis)]
 
         dtypes = [as_tensor_variable(x).type.dtype for x in tensors]
-        out_dtype = scal.upcast(*dtypes)
+        out_dtype = ts.upcast(*dtypes)
 
         if "float" in out_dtype or "complex" in out_dtype:
             # assume that this is differentiable
@@ -4623,7 +4287,7 @@ def shape_padaxis(t, axis):
 
     Examples
     --------
-    >>> tensor = theano.tensor.tensor3()
+    >>> tensor = theano.tensor.type.tensor3()
     >>> theano.tensor.shape_padaxis(tensor, axis=0)
     DimShuffle{x,0,1,2}.0
     >>> theano.tensor.shape_padaxis(tensor, axis=1)
@@ -4674,15 +4338,15 @@ def stack(*tensors, **kwargs):
 
     Examples
     --------
-    >>> a = theano.tensor.scalar()
-    >>> b = theano.tensor.scalar()
-    >>> c = theano.tensor.scalar()
+    >>> a = theano.tensor.type.scalar()
+    >>> b = theano.tensor.type.scalar()
+    >>> c = theano.tensor.type.scalar()
     >>> x = theano.tensor.stack([a, b, c])
     >>> x.ndim # x is a vector of length 3.
     1
-    >>> a = theano.tensor.tensor4()
-    >>> b = theano.tensor.tensor4()
-    >>> c = theano.tensor.tensor4()
+    >>> a = theano.tensor.type.tensor4()
+    >>> b = theano.tensor.type.tensor4()
+    >>> c = theano.tensor.type.tensor4()
     >>> x = theano.tensor.stack([a, b, c])
     >>> x.ndim # x is a 5d tensor.
     5
@@ -4760,7 +4424,7 @@ def stack(*tensors, **kwargs):
     ):
         # in case there is direct int
         tensors = list(map(as_tensor_variable, tensors))
-        dtype = scal.upcast(*[i.dtype for i in tensors])
+        dtype = ts.upcast(*[i.dtype for i in tensors])
         return theano.tensor.opt.MakeVector(dtype)(*tensors)
     return join(axis, *[shape_padaxis(t, axis) for t in tensors])
 
@@ -5028,7 +4692,7 @@ class Reshape(COp):
 
         requ = node.inputs[1]
         input_size = mul(*ishapes[0])
-        if isinstance(requ, theano.tensor.TensorConstant):
+        if isinstance(requ, TensorConstant):
             requ = list(requ.data)
             requ_part = [ele for ele in requ if ele != -1]
             crit = len(requ) - len(requ_part)
@@ -5465,18 +5129,18 @@ def tile(x, reps, ndim=None):
     if ndim is not None and ndim < x.ndim:
         raise ValueError("ndim should be equal or larger than x.ndim")
 
-    # if reps is tensor.scalar, integer or tensor.vector, we convert it to a list.
+    # If reps is a scalar, integer or vector, we convert it to a list.
     if not isinstance(reps, (list, tuple)):
         reps_astensor = as_tensor_variable(reps)
         ndim_check = reps_astensor.ndim
-        if reps_astensor.dtype not in theano.tensor.discrete_dtypes:
+        if reps_astensor.dtype not in discrete_dtypes:
             raise ValueError("elements of reps must be integer dtype")
 
-        # tensor.scalar/integer case
+        # The scalar/integer case
         if ndim_check == 0:
             reps = [reps]
 
-        # tensor.vector case
+        # The vector case
         elif ndim_check == 1:
             if ndim is None:
                 raise ValueError(
@@ -5493,7 +5157,7 @@ def tile(x, reps, ndim=None):
                 reps_ = [switch(i < offset, 1, reps[i - offset]) for i in range(ndim)]
                 reps = reps_
 
-        # other raise error
+        # For others, raise an error
         else:
             raise ValueError("the dimension of reps should not exceed 1")
     else:
@@ -5502,17 +5166,14 @@ def tile(x, reps, ndim=None):
         if not np.all(
             [
                 isinstance(r, int)
-                or (
-                    isinstance(r, TensorVariable)
-                    and r.dtype in theano.tensor.discrete_dtypes
-                )
+                or (isinstance(r, TensorVariable) and r.dtype in discrete_dtypes)
                 for r in reps
             ]
         ):
             raise ValueError("elements of reps must be scalars of integer dtype")
 
-    # if reps.ndim is less than x.ndim, we pad the reps with
-    # "1" so that reps will have the same ndim as x.
+    # If reps.ndim is less than x.ndim, we pad the reps with
+    # "1" so that reps will have the same ndim as x
     reps = list(reps)
     if ndim is None:
         ndim = builtins.max(len(reps), x.ndim)
@@ -5576,7 +5237,7 @@ class ARange(Op):
                 # this give float64. This is safer then checking for
                 # uint64 in case we support [u]int128 or other in the
                 # future.
-                scal.upcast(var.dtype, "int64") == "int64"
+                ts.upcast(var.dtype, "int64") == "int64"
             ):
                 return cast(var, "int64")
             return var
@@ -5652,7 +5313,7 @@ def arange(start, stop=None, step=1, dtype=None):
     start, stop, step = map(as_tensor_variable, (start, stop, step))
     # If dtype is not provided, infer it from the other arguments
     if dtype is None:
-        dtype = scal.upcast(start.type.dtype, stop.type.dtype, step.type.dtype)
+        dtype = ts.upcast(start.type.dtype, stop.type.dtype, step.type.dtype)
         # don't try to be stingy and byte-optimize, this leads to
         # overflow problems.
         if dtype in int_dtypes:
@@ -5847,16 +5508,16 @@ class PermuteRowElements(Op):
 
         Parameters
         ----------
-        x : tensor
+        x: TensorVariable
             The input tensor, on which the permutation is applied.
-        y : tensor
+        y: TensorVariable
             Tensor containing the permutations to apply.
-        out : tensor
+        inverse: bool
+            Whether to apply permutations or their inverse.
+        out: TensorVariable
             Tensor storing the output result.
-        curdim : int
+        curdim: int
             Counter of the current depth of recursion.
-        inverse
-            Wether to apply permutations or their inverse.
 
         """
         if len(x.shape) == 1:
@@ -6040,7 +5701,7 @@ class Dot(Op):
             bz = bx[:-1]
 
         i_dtypes = [input.type.dtype for input in inputs]
-        outputs = [tensor(scal.upcast(*i_dtypes), bz)]
+        outputs = [tensor(ts.upcast(*i_dtypes), bz)]
         return Apply(self, inputs, outputs)
 
     def perform(self, node, inp, out):
@@ -6812,7 +6473,8 @@ def stacklists(arg):
 
     Examples
     --------
-    >>> from theano.tensor import stacklists, scalars, matrices
+    >>> from theano.tensor import stacklists
+    >>> from theano.tensor.type import scalars, matrices
     >>> from theano import function
     >>> a, b, c, d = scalars('abcd')
     >>> X = stacklists([[a, b], [c, d]])
@@ -6970,7 +6632,7 @@ class Choose(Op):
         import theano.typed_list
 
         a = as_tensor_variable(a)
-        if a.dtype not in theano.tensor.discrete_dtypes:
+        if a.dtype not in discrete_dtypes:
             raise TypeError(
                 f"choose first argument must have an [u]int* dtype. Got {a.dtype}."
             )

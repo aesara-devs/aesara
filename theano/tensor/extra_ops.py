@@ -18,6 +18,14 @@ from theano.misc.safe_asarray import _asarray
 from theano.scalar import int32 as int_t
 from theano.scalar import upcast
 from theano.tensor import basic, nlinalg
+from theano.tensor.type import (
+    TensorType,
+    dvector,
+    int_dtypes,
+    int_vector_types,
+    integer_dtypes,
+    vector,
+)
 from theano.utils import LOCAL_BITWIDTH, PYTHON_INT_BITWIDTH
 
 
@@ -119,7 +127,7 @@ class SearchsortedOp(COp):
                     "numpy.searchsorted with Python 32bit do not support a"
                     " sorter of int64."
                 )
-            if sorter.type not in basic.int_vector_types:
+            if sorter.type not in int_vector_types:
                 raise TypeError("sorter must be an integer vector", sorter.type)
             return Apply(self, [x, v, sorter], [out_type()])
 
@@ -243,16 +251,17 @@ def searchsorted(x, v, side="left", sorter=None):
 
     Examples
     --------
-    >>> from theano import tensor
-    >>> x = tensor.dvector()
+    >>> from theano import tensor as tt
+    >>> from theano.tensor import extra_ops
+    >>> x = tt.dvector()
     >>> idx = x.searchsorted(3)
     >>> idx.eval({x: [1,2,3,4,5]})
     array(2)
-    >>> tensor.extra_ops.searchsorted([1,2,3,4,5], 3).eval()
+    >>> extra_ops.searchsorted([1,2,3,4,5], 3).eval()
     array(2)
-    >>> tensor.extra_ops.searchsorted([1,2,3,4,5], 3, side='right').eval()
+    >>> extra_ops.searchsorted([1,2,3,4,5], 3, side='right').eval()
     array(3)
-    >>> tensor.extra_ops.searchsorted([1,2,3,4,5], [-10, 10, 2, 3]).eval()
+    >>> extra_ops.searchsorted([1,2,3,4,5], [-10, 10, 2, 3]).eval()
     array([0, 5, 1, 2])
 
     .. versionadded:: 0.9
@@ -283,7 +292,7 @@ class CumOp(COp):
         out_type = x.type()
 
         if self.axis is None:
-            out_type = theano.tensor.vector(dtype=x.dtype)  # Flatten
+            out_type = vector(dtype=x.dtype)  # Flatten
         elif self.axis >= x.ndim or self.axis < -x.ndim:
             raise ValueError(f"axis(={self.axis}) out of bounds")
 
@@ -637,7 +646,7 @@ def compress(condition, x, axis=None):
         `x` with selected slices.
 
     """
-    indices = theano.tensor.basic.flatnonzero(condition)
+    indices = basic.flatnonzero(condition)
     return x.take(indices, axis=axis)
 
 
@@ -653,7 +662,7 @@ class RepeatOp(Op):
         x = basic.as_tensor_variable(x)
         repeats = basic.as_tensor_variable(repeats)
 
-        if repeats.dtype not in basic.integer_dtypes:
+        if repeats.dtype not in integer_dtypes:
             raise TypeError("repeats.dtype must be an integer.")
 
         # Some dtypes are not supported by numpy's implementation of repeat.
@@ -687,7 +696,7 @@ class RepeatOp(Op):
                 broadcastable = list(x.broadcastable)
                 broadcastable[self.axis] = False
 
-        out_type = theano.tensor.TensorType(x.dtype, broadcastable)
+        out_type = TensorType(x.dtype, broadcastable)
 
         return Apply(self, [x, repeats], [out_type()])
 
@@ -834,10 +843,10 @@ class Bartlett(Op):
         M = basic.as_tensor_variable(M)
         if M.ndim != 0:
             raise TypeError(f"{self.__class__.__name__} only works on scalar input")
-        elif M.dtype not in theano.tensor.integer_dtypes:
+        elif M.dtype not in integer_dtypes:
             # dtype is a theano attribute here
             raise TypeError(f"{self.__class__.__name__} only works on integer input")
-        return Apply(self, [M], [basic.dvector()])
+        return Apply(self, [M], [dvector()])
 
     def perform(self, node, inputs, out_):
         M = inputs[0]
@@ -1016,7 +1025,7 @@ class FillDiagonalOffset(Op):
                 "%s: type of second parameter must be the same"
                 " as the first's" % self.__class__.__name__
             )
-        elif offset.dtype not in theano.tensor.integer_dtypes:
+        elif offset.dtype not in integer_dtypes:
             raise TypeError(
                 f"{self.__class__.__name__}: type of third parameter must be as integer"
                 " use theano.tensor.cast( input, 'int32/int64')"
@@ -1213,8 +1222,8 @@ class Unique(Op):
                 b if axis != self_axis else False
                 for axis, b in enumerate(x.broadcastable)
             ]
-        outputs = [basic.TensorType(broadcastable=broadcastable, dtype=x.dtype)()]
-        typ = basic.TensorType(broadcastable=[False], dtype="int64")
+        outputs = [TensorType(broadcastable=broadcastable, dtype=x.dtype)()]
+        typ = TensorType(broadcastable=[False], dtype="int64")
         if self.return_index:
             outputs.append(typ())
         if self.return_inverse:
@@ -1291,11 +1300,11 @@ class UnravelIndex(Op):
         indices = basic.as_tensor_variable(indices)
         dims = basic.as_tensor_variable(dims)
 
-        if indices.dtype not in basic.int_dtypes:
+        if indices.dtype not in int_dtypes:
             raise TypeError(
                 f"'{indices.dtype}' object cannot be interpreted as an index"
             )
-        if dims.dtype not in basic.int_dtypes:
+        if dims.dtype not in int_dtypes:
             raise TypeError(f"'{dims.dtype}' object cannot be interpreted as an index")
         if dims.ndim != 1:
             raise TypeError("dims must be a 1D array")
@@ -1304,7 +1313,7 @@ class UnravelIndex(Op):
             self,
             [indices, dims],
             [
-                basic.TensorType(dtype="int64", broadcastable=(False,) * indices.ndim)()
+                TensorType(dtype="int64", broadcastable=(False,) * indices.ndim)()
                 for i in range(basic.get_vector_length(dims))
             ],
         )
@@ -1373,9 +1382,9 @@ class RavelMultiIndex(Op):
         dims = basic.as_tensor_variable(inp[-1])
 
         for i in multi_index:
-            if i.dtype not in basic.int_dtypes:
+            if i.dtype not in int_dtypes:
                 raise TypeError(f"'{i.dtype}' object cannot be interpreted as an index")
-        if dims.dtype not in basic.int_dtypes:
+        if dims.dtype not in int_dtypes:
             raise TypeError(f"'{dims.dtype}' object cannot be interpreted as an index")
         if dims.ndim != 1:
             raise TypeError("dims must be a 1D array")
@@ -1383,11 +1392,7 @@ class RavelMultiIndex(Op):
         return Apply(
             self,
             multi_index + [dims],
-            [
-                basic.TensorType(
-                    dtype="int64", broadcastable=(False,) * multi_index[0].ndim
-                )()
-            ],
+            [TensorType(dtype="int64", broadcastable=(False,) * multi_index[0].ndim)()],
         )
 
     def infer_shape(self, fgraph, node, input_shapes):

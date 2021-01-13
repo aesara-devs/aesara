@@ -39,12 +39,29 @@ from theano.tensor.extra_ops import (
     to_one_hot,
     unravel_index,
 )
+from theano.tensor.type import (
+    TensorType,
+    dmatrix,
+    dscalar,
+    dtensor3,
+    fmatrix,
+    fvector,
+    integer_dtypes,
+    iscalar,
+    ivector,
+    lscalar,
+    matrix,
+    scalar,
+    tensor,
+    tensor3,
+    vector,
+)
 from theano.utils import LOCAL_BITWIDTH, PYTHON_INT_BITWIDTH
 
 
 def test_cpu_contiguous():
-    a = tt.fmatrix("a")
-    i = tt.iscalar("i")
+    a = fmatrix("a")
+    i = iscalar("i")
     a_val = np.asarray(np.random.rand(4, 5), dtype="float32")
     f = theano.function([a, i], cpu_contiguous(a.reshape((5, 4))[::i]))
     topo = f.maker.fgraph.toposort()
@@ -63,8 +80,8 @@ class TestSearchsortedOp(utt.InferShapeTester):
         self.op_class = SearchsortedOp
         self.op = SearchsortedOp()
 
-        self.x = tt.vector("x")
-        self.v = tt.tensor3("v")
+        self.x = vector("x")
+        self.v = tensor3("v")
 
         self.a = 30 * np.random.random(50).astype(config.floatX)
         self.b = 30 * np.random.random((8, 10, 5)).astype(config.floatX)
@@ -77,7 +94,7 @@ class TestSearchsortedOp(utt.InferShapeTester):
             f(self.a[self.idx_sorted], self.b),
         )
 
-        sorter = tt.vector("sorter", dtype="int32")
+        sorter = vector("sorter", dtype="int32")
         f = theano.function(
             [self.x, self.v, sorter],
             self.x.searchsorted(self.v, sorter=sorter, side="right"),
@@ -96,14 +113,14 @@ class TestSearchsortedOp(utt.InferShapeTester):
             searchsorted(self.x, self.v, side="asdfa")
 
     def test_searchsortedOp_on_no_1d_inp(self):
-        no_1d = tt.dmatrix("no_1d")
+        no_1d = dmatrix("no_1d")
         with pytest.raises(ValueError):
             searchsorted(no_1d, self.v)
         with pytest.raises(ValueError):
             searchsorted(self.x, self.v, sorter=no_1d)
 
     def test_searchsortedOp_on_float_sorter(self):
-        sorter = tt.vector("sorter", dtype="float32")
+        sorter = vector("sorter", dtype="float32")
         with pytest.raises(TypeError):
             searchsorted(self.x, self.v, sorter=sorter)
 
@@ -113,7 +130,7 @@ class TestSearchsortedOp(utt.InferShapeTester):
             compatible_types += ("int64",)
         # 'uint8', 'uint16', 'uint32', 'uint64')
         for dtype in compatible_types:
-            sorter = tt.vector("sorter", dtype=dtype)
+            sorter = vector("sorter", dtype=dtype)
             f = theano.function(
                 [self.x, self.v, sorter],
                 searchsorted(self.x, self.v, sorter=sorter),
@@ -142,7 +159,7 @@ class TestSearchsortedOp(utt.InferShapeTester):
         )
 
         # Test parameter ``sorter``
-        sorter = tt.vector("sorter", dtype="int32")
+        sorter = vector("sorter", dtype="int32")
         self._compile_and_check(
             [self.x, self.v, sorter],
             [searchsorted(self.x, self.v, sorter=sorter)],
@@ -171,7 +188,7 @@ class TestCumOp(utt.InferShapeTester):
         self.op = CumOp()
 
     def test_cum_op(self):
-        x = tt.tensor3("x")
+        x = tensor3("x")
         a = np.random.random((3, 5, 2)).astype(config.floatX)
 
         # Test axis out of bounds
@@ -196,7 +213,7 @@ class TestCumOp(utt.InferShapeTester):
             assert np.allclose(np.cumprod(a, axis=axis), p)
 
     def test_infer_shape(self):
-        x = tt.tensor3("x")
+        x = tensor3("x")
         a = np.random.random((3, 5, 2)).astype(config.floatX)
 
         # Test axis=None
@@ -218,7 +235,7 @@ class TestCumOp(utt.InferShapeTester):
 
 class TestBinCount(utt.InferShapeTester):
     def test_bincountFn(self):
-        w = tt.vector("w")
+        w = vector("w")
 
         def ref(data, w=None, minlength=None):
             size = int(data.max() + 1)
@@ -244,7 +261,7 @@ class TestBinCount(utt.InferShapeTester):
             "uint32",
             "uint64",
         ):
-            x = tt.vector("x", dtype=dtype)
+            x = vector("x", dtype=dtype)
 
             a = np.random.randint(1, 51, size=(25)).astype(dtype)
             weights = np.random.random((25,)).astype(config.floatX)
@@ -275,7 +292,7 @@ class TestDiffOp(utt.InferShapeTester):
         self.op = DiffOp()
 
     def test_diffOp(self):
-        x = tt.matrix("x")
+        x = matrix("x")
         a = np.random.random((30, 50)).astype(config.floatX)
 
         f = theano.function([x], diff(x))
@@ -287,7 +304,7 @@ class TestDiffOp(utt.InferShapeTester):
                 assert np.allclose(np.diff(a, n=k, axis=axis), g(a))
 
     def test_infer_shape(self):
-        x = tt.matrix("x")
+        x = matrix("x")
         a = np.random.random((30, 50)).astype(config.floatX)
 
         self._compile_and_check([x], [self.op(x)], [a], self.op_class)
@@ -299,7 +316,7 @@ class TestDiffOp(utt.InferShapeTester):
                 )
 
     def test_grad(self):
-        x = tt.vector("x")
+        x = vector("x")
         a = np.random.random(50).astype(config.floatX)
 
         theano.function([x], tt.grad(tt.sum(diff(x)), x))
@@ -325,7 +342,7 @@ class TestSqueeze(utt.InferShapeTester):
     def test_op(self):
         for shape, broadcast in zip(self.shape_list, self.broadcast_list):
             data = np.random.random(size=shape).astype(config.floatX)
-            variable = tt.TensorType(config.floatX, broadcast)()
+            variable = TensorType(config.floatX, broadcast)()
 
             f = theano.function([variable], self.op(variable))
 
@@ -338,7 +355,7 @@ class TestSqueeze(utt.InferShapeTester):
     def test_infer_shape(self):
         for shape, broadcast in zip(self.shape_list, self.broadcast_list):
             data = np.random.random(size=shape).astype(config.floatX)
-            variable = tt.TensorType(config.floatX, broadcast)()
+            variable = TensorType(config.floatX, broadcast)()
 
             self._compile_and_check(
                 [variable], [self.op(variable)], [data], tt.DimShuffle, warn=False
@@ -354,7 +371,7 @@ class TestSqueeze(utt.InferShapeTester):
         # same as test_op, but use a_theano_var.squeeze.
         for shape, broadcast in zip(self.shape_list, self.broadcast_list):
             data = np.random.random(size=shape).astype(config.floatX)
-            variable = tt.TensorType(config.floatX, broadcast)()
+            variable = TensorType(config.floatX, broadcast)()
 
             f = theano.function([variable], variable.squeeze())
 
@@ -365,17 +382,17 @@ class TestSqueeze(utt.InferShapeTester):
             assert np.allclose(tested, expected)
 
     def test_axis(self):
-        variable = tt.TensorType(config.floatX, [False, True, False])()
+        variable = TensorType(config.floatX, [False, True, False])()
         res = squeeze(variable, axis=1)
 
         assert res.broadcastable == (False, False)
 
-        variable = tt.TensorType(config.floatX, [False, True, False])()
+        variable = TensorType(config.floatX, [False, True, False])()
         res = squeeze(variable, axis=(1,))
 
         assert res.broadcastable == (False, False)
 
-        variable = tt.TensorType(config.floatX, [False, True, False, True])()
+        variable = TensorType(config.floatX, [False, True, False, True])()
         res = squeeze(variable, axis=(1, 3))
 
         assert res.broadcastable == (False, False)
@@ -399,9 +416,9 @@ class TestCompress(utt.InferShapeTester):
 
     def test_op(self):
         for axis, cond, shape in zip(self.axis_list, self.cond_list, self.shape_list):
-            cond_var = theano.tensor.ivector()
+            cond_var = ivector()
             data = np.random.random(size=shape).astype(config.floatX)
-            data_var = theano.tensor.matrix()
+            data_var = matrix()
 
             f = theano.function(
                 [cond_var, data_var], self.op(cond_var, data_var, axis=axis)
@@ -431,12 +448,12 @@ class TestRepeatOp(utt.InferShapeTester):
 
     def test_repeatOp(self):
         for ndim in [1, 3]:
-            x = tt.TensorType(config.floatX, [False] * ndim)()
+            x = TensorType(config.floatX, [False] * ndim)()
             a = np.random.random((10,) * ndim).astype(config.floatX)
 
             for axis in self._possible_axis(ndim):
-                for dtype in tt.integer_dtypes:
-                    r_var = tt.scalar(dtype=dtype)
+                for dtype in integer_dtypes:
+                    r_var = scalar(dtype=dtype)
                     r = np.asarray(3, dtype=dtype)
                     if dtype == "uint64" or (
                         dtype in self.numpy_unsupported_dtypes and r_var.ndim == 1
@@ -447,7 +464,7 @@ class TestRepeatOp(utt.InferShapeTester):
                         f = theano.function([x, r_var], repeat(x, r_var, axis=axis))
                         assert np.allclose(np.repeat(a, r, axis=axis), f(a, r))
 
-                        r_var = tt.vector(dtype=dtype)
+                        r_var = vector(dtype=dtype)
                         if axis is None:
                             r = np.random.randint(1, 6, size=a.size).astype(dtype)
                         else:
@@ -472,9 +489,7 @@ class TestRepeatOp(utt.InferShapeTester):
                         )
 
                         # check when r is  theano tensortype that broadcastable is (True,)
-                        r_var = theano.tensor.TensorType(
-                            broadcastable=(True,), dtype=dtype
-                        )()
+                        r_var = TensorType(broadcastable=(True,), dtype=dtype)()
                         r = np.random.randint(1, 6, size=(1,)).astype(dtype)
                         f = theano.function([x, r_var], repeat(x, r_var, axis=axis))
                         assert np.allclose(np.repeat(a, r[0], axis=axis), f(a, r))
@@ -488,16 +503,16 @@ class TestRepeatOp(utt.InferShapeTester):
     @pytest.mark.slow
     def test_infer_shape(self):
         for ndim in [1, 3]:
-            x = tt.TensorType(config.floatX, [False] * ndim)()
+            x = TensorType(config.floatX, [False] * ndim)()
             shp = (np.arange(ndim) + 1) * 3
             a = np.random.random(shp).astype(config.floatX)
 
             for axis in self._possible_axis(ndim):
                 for dtype in ["int8", "uint8", "uint64"]:
-                    r_var = tt.scalar(dtype=dtype)
+                    r_var = scalar(dtype=dtype)
                     r = np.asarray(3, dtype=dtype)
                     if dtype in self.numpy_unsupported_dtypes:
-                        r_var = tt.vector(dtype=dtype)
+                        r_var = vector(dtype=dtype)
                         with pytest.raises(TypeError):
                             repeat(x, r_var)
                     else:
@@ -508,7 +523,7 @@ class TestRepeatOp(utt.InferShapeTester):
                             self.op_class,
                         )
 
-                        r_var = tt.vector(dtype=dtype)
+                        r_var = vector(dtype=dtype)
                         if axis is None:
                             r = np.random.randint(1, 6, size=a.size).astype(dtype)
                         elif a.size > 0:
@@ -533,7 +548,7 @@ class TestRepeatOp(utt.InferShapeTester):
                 utt.verify_grad(lambda x: RepeatOp(axis=axis)(x, 3), [a])
 
     def test_broadcastable(self):
-        x = tt.TensorType(config.floatX, [False, True, False])()
+        x = TensorType(config.floatX, [False, True, False])()
         r = RepeatOp(axis=1)(x, 2)
         assert r.broadcastable == (False, False, False)
         r = RepeatOp(axis=1)(x, 1)
@@ -549,7 +564,7 @@ class TestBartlett(utt.InferShapeTester):
         self.op = bartlett
 
     def test_perform(self):
-        x = tt.lscalar()
+        x = lscalar()
         f = function([x], self.op(x))
         M = np.random.randint(3, 51, size=())
         assert np.allclose(f(M), np.bartlett(M))
@@ -559,7 +574,7 @@ class TestBartlett(utt.InferShapeTester):
         assert np.allclose(f(b[0]), np.bartlett(b[0]))
 
     def test_infer_shape(self):
-        x = tt.lscalar()
+        x = lscalar()
         self._compile_and_check(
             [x], [self.op(x)], [np.random.randint(3, 51, size=())], self.op_class
         )
@@ -577,8 +592,8 @@ class TestFillDiagonal(utt.InferShapeTester):
         self.op = fill_diagonal
 
     def test_perform(self):
-        x = tt.matrix()
-        y = tt.scalar()
+        x = matrix()
+        y = scalar()
         f = function([x, y], fill_diagonal(x, y))
         for shp in [(8, 8), (5, 8), (8, 5)]:
             a = np.random.rand(*shp).astype(config.floatX)
@@ -590,8 +605,8 @@ class TestFillDiagonal(utt.InferShapeTester):
 
         # test for 3dtt
         a = np.random.rand(3, 3, 3).astype(config.floatX)
-        x = tt.tensor3()
-        y = tt.scalar()
+        x = tensor3()
+        y = scalar()
         f = function([x, y], fill_diagonal(x, y))
         val = np.cast[config.floatX](np.random.rand() + 10)
         out = f(a, val)
@@ -617,9 +632,9 @@ class TestFillDiagonal(utt.InferShapeTester):
         )
 
     def test_infer_shape(self):
-        z = tt.dtensor3()
-        x = tt.dmatrix()
-        y = tt.dscalar()
+        z = dtensor3()
+        x = dmatrix()
+        y = dscalar()
         self._compile_and_check(
             [x, y],
             [self.op(x, y)],
@@ -646,9 +661,9 @@ class TestFillDiagonalOffset(utt.InferShapeTester):
         self.op = fill_diagonal_offset
 
     def test_perform(self):
-        x = tt.matrix()
-        y = tt.scalar()
-        z = tt.iscalar()
+        x = matrix()
+        y = scalar()
+        z = iscalar()
 
         f = function([x, y, z], fill_diagonal_offset(x, y, z))
         for test_offset in (-5, -4, -1, 0, 1, 4, 5):
@@ -693,9 +708,9 @@ class TestFillDiagonalOffset(utt.InferShapeTester):
             )
 
     def test_infer_shape(self):
-        x = tt.dmatrix()
-        y = tt.dscalar()
-        z = tt.iscalar()
+        x = dmatrix()
+        y = dscalar()
+        z = iscalar()
         for test_offset in (-5, -4, -1, 0, 1, 4, 5):
             self._compile_and_check(
                 [x, y, z],
@@ -712,7 +727,7 @@ class TestFillDiagonalOffset(utt.InferShapeTester):
 
 
 def test_to_one_hot():
-    v = theano.tensor.ivector()
+    v = ivector()
     o = to_one_hot(v, 10)
     f = theano.function([v], o)
     out = f([1, 2, 3, 5, 6])
@@ -728,7 +743,7 @@ def test_to_one_hot():
         ],
     )
 
-    v = theano.tensor.ivector()
+    v = ivector()
     o = to_one_hot(v, 10, dtype="int32")
     f = theano.function([v], o)
     out = f([1, 2, 3, 5, 6])
@@ -764,7 +779,7 @@ class TestUnique(utt.InferShapeTester):
         # Basic test for a vector.
         # Done by using the op and checking that it returns the right answer.
 
-        x = theano.tensor.vector()
+        x = vector()
         inp = np.asarray([2, 1, 3, 2], dtype=config.floatX)
         list_outs_expected = [
             [np.unique(inp)],
@@ -787,7 +802,7 @@ class TestUnique(utt.InferShapeTester):
         # Basic test for a matrix.
         # Done by using the op and checking that it returns the right answer.
 
-        x = theano.tensor.matrix()
+        x = matrix()
         inp = np.asarray([[2, 1], [3, 2], [2, 1]], dtype=config.floatX)
         list_outs_expected = [
             [np.unique(inp)],
@@ -809,7 +824,7 @@ class TestUnique(utt.InferShapeTester):
     def test_infer_shape_vector(self):
         # Testing the infer_shape with a vector.
 
-        x = theano.tensor.vector()
+        x = vector()
 
         for op in self.ops:
             if not op.return_inverse:
@@ -828,7 +843,7 @@ class TestUnique(utt.InferShapeTester):
     def test_infer_shape_matrix(self):
         # Testing the infer_shape with a matrix.
 
-        x = theano.tensor.matrix()
+        x = matrix()
 
         for op in self.ops:
             if not op.return_inverse:
@@ -974,7 +989,7 @@ class TestUniqueAxis(utt.InferShapeTester):
         # Done by using the op and checking that it returns the right
         # answer.
 
-        x = theano.tensor.vector()
+        x = vector()
         ops = [self.op_class(*args, **kwargs) for args, kwargs in self.ops_pars]
         inp = np.asarray([2, 1, 3, 2], dtype=config.floatX)
         list_outs_expected = [
@@ -997,7 +1012,7 @@ class TestUniqueAxis(utt.InferShapeTester):
         # Done by using the op and checking that it returns the right
         # answer.
 
-        x = theano.tensor.matrix()
+        x = matrix()
         ops = [self.op_class(*args, **kwargs) for args, kwargs in self.ops_pars]
         inp = np.asarray([[2, 1], [3, 2], [2, 1]], dtype=config.floatX)
         list_outs_expected = [
@@ -1018,7 +1033,7 @@ class TestUniqueAxis(utt.InferShapeTester):
             raise pytest.skip("Requires numpy >= 1.13")
         # Testing the infer_shape with a vector.
 
-        x = theano.tensor.vector()
+        x = vector()
 
         ops = [self.op_class(*args, **kwargs) for args, kwargs in self.ops_pars]
         for op in ops:
@@ -1040,7 +1055,7 @@ class TestUniqueAxis(utt.InferShapeTester):
             raise pytest.skip("Requires numpy >= 1.13")
         # Testing the infer_shape with a matrix.
 
-        x = theano.tensor.matrix()
+        x = matrix()
 
         ops = [self.op_class(*args, **kwargs) for args, kwargs in self.ops_pars]
         for op in ops:
@@ -1113,11 +1128,11 @@ class TestUnravelIndex(utt.InferShapeTester):
 
         # must specify ndim if length of dims is not fixed
         with pytest.raises(ValueError):
-            unravel_index(theano.tensor.ivector(), theano.tensor.ivector())
+            unravel_index(ivector(), ivector())
 
         # must provide integers
         with pytest.raises(TypeError):
-            unravel_index(theano.tensor.fvector(), (3, 4))
+            unravel_index(fvector(), (3, 4))
         with pytest.raises(TypeError):
             unravel_index((3, 4), (3.4, 3.2))
 
@@ -1183,11 +1198,9 @@ class TestRavelMultiIndex(utt.InferShapeTester):
 
         # must provide integers
         with pytest.raises(TypeError):
-            ravel_multi_index(
-                (theano.tensor.fvector(), theano.tensor.ivector()), (3, 4)
-            )
+            ravel_multi_index((fvector(), ivector()), (3, 4))
         with pytest.raises(TypeError):
-            ravel_multi_index(((3, 4), theano.tensor.ivector()), (3.4, 3.2))
+            ravel_multi_index(((3, 4), ivector()), (3.4, 3.2))
 
         # dims must be a 1D sequence
         with pytest.raises(TypeError):
@@ -1280,9 +1293,9 @@ def test_broadcast_shape():
     b_tt = broadcast_shape(shape_tuple(x_tt), shape_tuple(y_tt), arrays_are_shapes=True)
     assert np.array_equal([z.eval() for z in b_tt], b.shape)
 
-    x1_shp_tt = tt.iscalar("x1")
-    x2_shp_tt = tt.iscalar("x2")
-    y1_shp_tt = tt.iscalar("y1")
+    x1_shp_tt = iscalar("x1")
+    x2_shp_tt = iscalar("x2")
+    y1_shp_tt = iscalar("y1")
     x_shapes = (1, x1_shp_tt, x2_shp_tt)
     x_tt = tt.ones(x_shapes)
     y_shapes = (y1_shp_tt, 1, x2_shp_tt)
@@ -1320,10 +1333,10 @@ class TestBroadcastTo(utt.InferShapeTester):
 
     @config.change_flags(compute_test_value="raise")
     def test_perform(self):
-        a = tt.scalar()
+        a = scalar()
         a.tag.test_value = 5
 
-        s_1 = tt.iscalar("s_1")
+        s_1 = iscalar("s_1")
         s_1.tag.test_value = 4
         shape = (s_1, 1)
 
@@ -1355,7 +1368,7 @@ class TestBroadcastTo(utt.InferShapeTester):
         )
 
     def test_infer_shape(self):
-        a = tt.tensor(config.floatX, [False, True, False])
+        a = tensor(config.floatX, [False, True, False])
         shape = list(a.shape)
         out = self.op(a, shape)
 
@@ -1366,8 +1379,8 @@ class TestBroadcastTo(utt.InferShapeTester):
             self.op_class,
         )
 
-        a = tt.tensor(config.floatX, [False, True, False])
-        shape = [tt.iscalar() for i in range(4)]
+        a = tensor(config.floatX, [False, True, False])
+        shape = [iscalar() for i in range(4)]
         self._compile_and_check(
             [a] + shape,
             [self.op(a, shape)],

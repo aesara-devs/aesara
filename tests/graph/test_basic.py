@@ -4,7 +4,8 @@ from itertools import count
 import numpy as np
 import pytest
 
-from theano import shared, tensor
+from theano import shared
+from theano import tensor as tt
 from theano.graph.basic import (
     Apply,
     Variable,
@@ -24,6 +25,9 @@ from theano.graph.basic import (
 )
 from theano.graph.op import Op
 from theano.graph.type import Type
+from theano.tensor.type import TensorType, iscalars, matrix, scalars
+from theano.tensor.type_other import NoneConst
+from theano.tensor.var import TensorVariable
 
 
 class MyType(Type):
@@ -151,7 +155,7 @@ class TestClone(X):
         _, new = clone([r1, r2, r5], node.outputs, False)
         new_node = new[0].owner
         new_node.inputs = [MyVariable(7), MyVariable(8)]
-        c1 = tensor.constant(1.5)
+        c1 = tt.constant(1.5)
 
         i, o = clone([c1], [c1])
         assert i[0] is not c1 and o[0] is not c1
@@ -252,7 +256,7 @@ class TestToposort:
 
 class TestEval:
     def setup_method(self):
-        self.x, self.y = tensor.scalars("x", "y")
+        self.x, self.y = scalars("x", "y")
         self.z = self.x + self.y
         self.w = 2 * self.z
 
@@ -278,21 +282,21 @@ class TestAutoName:
         # Get counter value
         autoname_id = next(Variable.__count__)
         Variable.__count__ = count(autoname_id)
-        r1 = tensor.constant(1.5)
+        r1 = tt.constant(1.5)
         assert r1.auto_name == "auto_" + str(autoname_id), (
             r1.auto_name,
             "auto_" + str(autoname_id),
         )
 
-        r3 = tensor.constant(1.6)
+        r3 = tt.constant(1.6)
         assert r3.auto_name == "auto_" + str(autoname_id + 1)
 
     def test_tensorvariable(self):
         # Get counter value
         autoname_id = next(Variable.__count__)
         Variable.__count__ = count(autoname_id)
-        r1 = tensor.TensorType(dtype="int32", broadcastable=())("myvar")
-        r2 = tensor.TensorVariable(tensor.TensorType(dtype="int32", broadcastable=()))
+        r1 = TensorType(dtype="int32", broadcastable=())("myvar")
+        r2 = TensorVariable(TensorType(dtype="int32", broadcastable=()))
         r3 = shared(np.random.randn(3, 4))
         assert r1.auto_name == "auto_" + str(autoname_id)
         assert r2.auto_name == "auto_" + str(autoname_id + 1)
@@ -310,32 +314,31 @@ class TestAutoName:
 
 def test_equal_computations():
 
-    a, b = tensor.iscalars(2)
+    a, b = iscalars(2)
 
     with pytest.raises(ValueError):
         equal_computations([a], [a, b])
 
     assert equal_computations([a], [a])
-    assert equal_computations([tensor.as_tensor(1)], [tensor.as_tensor(1)])
+    assert equal_computations([tt.as_tensor(1)], [tt.as_tensor(1)])
     assert not equal_computations([b], [a])
-    assert not equal_computations([tensor.as_tensor(1)], [tensor.as_tensor(2)])
+    assert not equal_computations([tt.as_tensor(1)], [tt.as_tensor(2)])
 
     assert equal_computations([2], [2])
     assert equal_computations([np.r_[2, 1]], [np.r_[2, 1]])
-    assert equal_computations([np.r_[2, 1]], [tensor.as_tensor(np.r_[2, 1])])
-    assert equal_computations([tensor.as_tensor(np.r_[2, 1])], [np.r_[2, 1]])
+    assert equal_computations([np.r_[2, 1]], [tt.as_tensor(np.r_[2, 1])])
+    assert equal_computations([tt.as_tensor(np.r_[2, 1])], [np.r_[2, 1]])
 
     assert not equal_computations([2], [a])
     assert not equal_computations([np.r_[2, 1]], [a])
     assert not equal_computations([a], [2])
     assert not equal_computations([a], [np.r_[2, 1]])
 
-    c = tensor.type_other.NoneConst
-    assert equal_computations([c], [c])
+    assert equal_computations([NoneConst], [NoneConst])
 
-    m = tensor.matrix()
-    max_argmax1 = tensor.max_and_argmax(m)
-    max_argmax2 = tensor.max_and_argmax(m)
+    m = matrix()
+    max_argmax1 = tt.max_and_argmax(m)
+    max_argmax2 = tt.max_and_argmax(m)
     assert equal_computations(max_argmax1, max_argmax2)
 
 

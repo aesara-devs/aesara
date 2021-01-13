@@ -4,6 +4,7 @@ import pytest
 import theano
 import theano.tensor as tt
 from tests import unittest_tools as utt
+from theano.tensor.type import col, dmatrix, dscalar, dtensor3, lscalar, matrix, vector
 
 
 class TestIncSubtensor:
@@ -29,10 +30,10 @@ class TestIncSubtensor:
         # Increments or sets part of a tensor by a scalar using full slice and
         # a partial slice depending on a scalar.
 
-        a = tt.dmatrix()
-        increment = tt.dscalar()
+        a = dmatrix()
+        increment = dscalar()
         sl1 = slice(None)
-        sl2_end = tt.lscalar()
+        sl2_end = lscalar()
         sl2 = slice(sl2_end)
 
         for do_set in [False, True]:
@@ -59,8 +60,8 @@ class TestIncSubtensor:
             utt.assert_allclose(result, expected_result)
 
     def test_wrong_dims(self):
-        a = tt.matrix()
-        increment = tt.matrix()
+        a = matrix()
+        increment = matrix()
         index = 0
 
         with pytest.raises(TypeError):
@@ -69,8 +70,8 @@ class TestIncSubtensor:
             tt.inc_subtensor(a[index], increment)
 
     def test_wrong_broadcast(self):
-        a = tt.col()
-        increment = tt.vector()
+        a = col()
+        increment = vector()
 
         # These symbolic graphs legitimate, as long as increment has exactly
         # one element. So it should fail at runtime, not at compile time.
@@ -97,10 +98,10 @@ class TestIncSubtensor:
         # Increments or sets part of a tensor by a scalar using full slice and
         # a partial slice depending on a scalar.
 
-        a = tt.dtensor3()
-        increment = tt.dscalar()
+        a = dtensor3()
+        increment = dscalar()
         sl1 = slice(None)
-        sl2_end = tt.lscalar()
+        sl2_end = lscalar()
         sl2 = slice(sl2_end)
         sl3 = 2
 

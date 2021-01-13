@@ -8,8 +8,8 @@ from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
 from tests.tensor.test_basic import TestSpecifyShape
 from tests.test_ifelse import TestIfelse
-from theano import tensor
-from theano.assert_op import Assert
+from theano import tensor as tt
+from theano.assert_op import Assert, assert_op
 from theano.breakpoint import PdbBreakpoint
 from theano.configdefaults import config
 from theano.gpuarray import basic_ops, blas, dnn, opt
@@ -35,6 +35,22 @@ from theano.gpuarray.subtensor import GpuSubtensor
 from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
 from theano.graph.opt import check_stack_trace
 from theano.tensor.nnet import abstract_conv
+from theano.tensor.type import (
+    TensorType,
+    bmatrix,
+    cscalar,
+    fmatrix,
+    fscalar,
+    ftensor4,
+    iscalar,
+    ivector,
+    lscalar,
+    lvector,
+    matrix,
+    scalar,
+    tensor3,
+    vector,
+)
 
 
 def _check_stack_trace(thing):
@@ -60,8 +76,8 @@ def _check_stack_trace(thing):
 
 
 def test_local_assert():
-    x = theano.tensor.fmatrix()
-    a = theano.tensor.opt.assert_op(x, theano.tensor.eq(x, 0).any())
+    x = fmatrix()
+    a = assert_op(x, tt.eq(x, 0).any())
     f = theano.function([x], a, mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     a_op = [n for n in topo if isinstance(n.op, Assert)]
@@ -70,8 +86,8 @@ def test_local_assert():
 
 
 def test_local_remove_all_assert():
-    x = theano.tensor.fmatrix()
-    a = theano.tensor.opt.assert_op(x, theano.tensor.eq(x, 0).any())
+    x = fmatrix()
+    a = assert_op(x, tt.eq(x, 0).any())
 
     # By default `unsafe` should not be there
     f = theano.function([x], a, mode=mode_with_gpu.excluding("unsafe"))
@@ -93,7 +109,7 @@ def test_local_remove_all_assert():
 
 
 def test_local_gpu_contiguous_gpu_contiguous():
-    a = tensor.fmatrix()
+    a = fmatrix()
     o1 = basic_ops.gpu_contiguous(a)
     o2 = basic_ops.gpu_contiguous(o1)
     f1 = theano.function([a], o1, mode=mode_with_gpu)
@@ -117,8 +133,8 @@ def test_local_gpu_contiguous_gpu_contiguous():
 
 
 def test_local_gpu_contiguous():
-    a = tensor.fmatrix()
-    o = tensor.extra_ops.cpu_contiguous(a)
+    a = fmatrix()
+    o = theano.tensor.extra_ops.cpu_contiguous(a)
     f = theano.function([a], o, mode=mode_with_gpu)
     assert 1 == len(
         [
@@ -132,7 +148,7 @@ def test_local_gpu_contiguous():
 
 
 def test_flatten():
-    m = theano.tensor.fmatrix()
+    m = fmatrix()
     f = theano.function([m], m.flatten(), mode=mode_with_gpu)
     val = np.random.rand(10, 11).astype("float32")
     res = f(val)
@@ -156,7 +172,7 @@ def test_flatten():
     assert GpuReshape in [type(node.op) for node in f.maker.fgraph.toposort()]
     assert _check_stack_trace(f)
 
-    m = theano.tensor.tensor3()
+    m = tensor3()
     f = theano.function([m], m.flatten(ndim=2), mode=mode_with_gpu)
     val = np.random.rand(10, 11, 12).astype("float32")
     res = f(val)
@@ -175,7 +191,7 @@ def test_reduce():
         ("max", {}),
         ("min", {}),
     ]:
-        m = theano.tensor.fmatrix()
+        m = fmatrix()
         f = theano.function(
             [m], getattr(m, method)(axis=0, **param), mode=mode_with_gpu
         )
@@ -204,24 +220,24 @@ def test_reduce():
 
 
 def test_local_gpualloc_memset_0():
-    i = theano.tensor.iscalar()
+    i = iscalar()
     z = np.zeros((1,), dtype="float32")
     o = np.ones((1,), dtype="float32")
     ones = np.ones((2,), dtype="float32")
 
     # Test with 0 from CPU op.
     # Should not be transferred as the only client is the output
-    a = tensor.alloc(z, i)
+    a = tt.alloc(z, i)
     f = theano.function([i], a, mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 1
-    assert isinstance(topo[0].op, theano.tensor.Alloc)
+    assert isinstance(topo[0].op, tt.Alloc)
     assert (np.asarray(f(6)) == 0).all()
     assert _check_stack_trace(f)
 
     # Test with 0 from CPU op.
     # Should be transferred as it is used by another op.
-    a = tensor.alloc(z, i)
+    a = tt.alloc(z, i)
     f = theano.function([i], a.cumsum(), mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 3
@@ -260,23 +276,23 @@ def test_local_gpualloc_memset_0():
 
 
 def test_local_gpualloc_empty():
-    i = theano.tensor.iscalar()
-    ii = theano.tensor.iscalar()
+    i = iscalar()
+    ii = iscalar()
 
     # Test with vector
     # Should not be moved as the only client is the output
-    a = tensor.AllocEmpty("float32")(i)
+    a = tt.AllocEmpty("float32")(i)
     f = theano.function([i], a, mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 1
-    assert isinstance(topo[0].op, theano.tensor.AllocEmpty)
+    assert isinstance(topo[0].op, tt.AllocEmpty)
     # This return not initilized data, so we can only check the shape
     assert f(3).shape == (3,)
     assert _check_stack_trace(f)
 
     # Test with vector
     # Should be moved
-    a = tensor.AllocEmpty("float32")(i)
+    a = tt.AllocEmpty("float32")(i)
     f = theano.function([i], a.cumsum(), mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 3
@@ -286,7 +302,7 @@ def test_local_gpualloc_empty():
     assert _check_stack_trace(f)
 
     # Test with matrix
-    a = tensor.AllocEmpty("float32")(i, ii)
+    a = tt.AllocEmpty("float32")(i, ii)
     f = theano.function([i, ii], a.cumsum(axis=0), mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 3
@@ -298,14 +314,14 @@ def test_local_gpualloc_empty():
 
 def test_rebroadcast():
     d = np.random.rand(10, 10).astype("float32")
-    v = theano.tensor.fmatrix()
-    up = tensor.unbroadcast(v.sum().dimshuffle("x", "x"), 0, 1)
+    v = fmatrix()
+    up = tt.unbroadcast(v.sum().dimshuffle("x", "x"), 0, 1)
     f = theano.function([v], [up], mode=mode_with_gpu)
 
     f(d)
 
     topo = f.maker.fgraph.toposort()
-    rebrs = [node for node in topo if isinstance(node.op, tensor.Rebroadcast)]
+    rebrs = [node for node in topo if isinstance(node.op, tt.Rebroadcast)]
     assert len(rebrs) == 1
     rebr = rebrs[0]
 
@@ -332,16 +348,16 @@ class TestGpuIfelse(TestIfelse):
         return theano.ifelse.IfElse(n, gpu=True, as_view=True)
 
     def test_lifter_with_inputs_of_graph(self):
-        x = tensor.vector()
-        cond = tensor.iscalar()
+        x = vector()
+        cond = iscalar()
         f = theano.function(
             [x, cond], theano.ifelse.ifelse(cond, x.mean(), x.sum()), mode=mode_with_gpu
         )
         assert f(np.float32([1, 2, 3]), 0) == 6
         assert _check_stack_trace(f)
 
-        x = tensor.vector()
-        cond = tensor.scalar()
+        x = vector()
+        cond = scalar()
         f = theano.function(
             [x, cond], theano.ifelse.ifelse(cond, x.mean(), x.sum()), mode=mode_with_gpu
         )
@@ -349,11 +365,11 @@ class TestGpuIfelse(TestIfelse):
         assert _check_stack_trace(f)
 
     def test_lifter_with_shared_var(self):
-        x = tensor.lscalar("x")
+        x = lscalar("x")
         y = gpuarray_shared_constructor(
             np.asarray(1, dtype="float32"), target=test_ctx_name
         )
-        z = tensor.constant(2.0)
+        z = tt.constant(2.0)
 
         a = theano.ifelse.ifelse(x, y, z)
         with config.change_flags(on_opt_error="raise"):
@@ -362,7 +378,7 @@ class TestGpuIfelse(TestIfelse):
 
 def test_print_op():
     # Test that print ops don't block gpu optimization
-    b = tensor.fmatrix()
+    b = fmatrix()
     f = theano.function([b], theano.printing.Print()(b) * 2, mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     assert isinstance(topo[0].op, GpuFromHost)
@@ -375,11 +391,11 @@ def test_print_op():
 
 def test_pdbbreakpoint_op():
     # Test that PdbBreakpoint ops don't block gpu optimization
-    b = tensor.fmatrix()
+    b = fmatrix()
 
     # Create a function composed of a breakpoint followed by
     # some computation
-    condition = tensor.gt(b.sum(), 0)
+    condition = tt.gt(b.sum(), 0)
     b_monitored = PdbBreakpoint(name="TestBreakpoint")(condition, b)
     output = b_monitored ** 2
 
@@ -395,7 +411,7 @@ def test_pdbbreakpoint_op():
 
 def test_local_gpu_elemwise_careduce():
     mode_with_gpu_no_cudnn = mode_with_gpu.excluding("cudnn")
-    x = theano.tensor.matrix()
+    x = matrix()
 
     def fn_sum_square(x, axis):
         return (x * x).sum(axis=axis)
@@ -424,14 +440,14 @@ def test_local_gpu_elemwise_careduce():
 
 
 def test_local_lift_dot22scalar():
-    x = tensor.matrix()
-    y = tensor.matrix()
-    a = tensor.scalar()
-    o = tensor.blas.Dot22Scalar()(x, y, a)
+    x = matrix()
+    y = matrix()
+    a = scalar()
+    o = theano.tensor.blas.Dot22Scalar()(x, y, a)
     f_cpu = theano.function([x, y, a], o)
     f_gpu = theano.function([x, y, a], o, mode=mode_with_gpu)
     assert not any(
-        isinstance(n.op, tensor.blas.Dot22Scalar)
+        isinstance(n.op, theano.tensor.blas.Dot22Scalar)
         for n in f_gpu.maker.fgraph.apply_nodes
     )
     assert any(isinstance(n.op, GpuGemm) for n in f_gpu.maker.fgraph.apply_nodes)
@@ -444,59 +460,63 @@ def test_local_lift_dot22scalar():
 
 def test_local_gpu_subtensor():
     # Test shared forced on CPU.
-    t = tensor._shared(np.zeros(20, "float32"))
+    t = theano.shared(np.zeros(20, "float32"))
     f = theano.function([], t[3:4], mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
-    assert any([type(node.op) is tensor.Subtensor for node in topo])
+    assert any([type(node.op) is theano.tensor.subtensor.Subtensor for node in topo])
     assert not any([isinstance(node.op, GpuSubtensor) for node in topo])
     assert _check_stack_trace(f)
 
     # Test graph input.
-    t = tensor.fmatrix()
+    t = fmatrix()
     f = theano.function([t], t[3:4], mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
-    assert any([type(node.op) is tensor.Subtensor for node in topo])
+    assert any([type(node.op) is theano.tensor.subtensor.Subtensor for node in topo])
     assert not any([isinstance(node.op, GpuSubtensor) for node in topo])
     assert _check_stack_trace(f)
 
     # Test multiple use of the input
     # We want the subtensor to be on the GPU to prevent multiple transfer.
-    t = tensor.fmatrix()
+    t = fmatrix()
     f = theano.function([t], [t[3:4], t + 1], mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
-    assert not any([type(node.op) is tensor.Subtensor for node in topo])
+    assert not any(
+        [type(node.op) is theano.tensor.subtensor.Subtensor for node in topo]
+    )
     assert any([isinstance(node.op, GpuSubtensor) for node in topo])
     assert _check_stack_trace(f)
 
     # Test multiple use of the input + input as output
     # We want the subtensor to be on the GPU to prevent multiple transfer.
-    t = tensor.fmatrix()
+    t = fmatrix()
     f = theano.function([t], [t[3:4], t + 1, t], mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
-    assert not any([type(node.op) is tensor.Subtensor for node in topo])
+    assert not any(
+        [type(node.op) is theano.tensor.subtensor.Subtensor for node in topo]
+    )
     assert any([isinstance(node.op, GpuSubtensor) for node in topo])
     assert _check_stack_trace(f)
 
     # Test shared forced on CPU end we do computation on the output of
     # the subtensor.
-    t = tensor._shared(np.zeros(20, "float32"))
+    t = theano.shared(np.zeros(20, "float32"))
     f = theano.function([], t[3:4] + 1, mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
-    assert any([type(node.op) is tensor.Subtensor for node in topo])
+    assert any([type(node.op) is theano.tensor.subtensor.Subtensor for node in topo])
     assert not any([isinstance(node.op, GpuSubtensor) for node in topo])
     # Our optimizer isn't smart enough to move to the GPU Elemwise.
     # If it where just a little bit smarter, it could wrongly move it to the GPU.
     # If it where super smart, it would know it should not move it to the GPU.
-    assert any([isinstance(node.op, tensor.Elemwise) for node in topo])
+    assert any([isinstance(node.op, theano.tensor.elemwise.Elemwise) for node in topo])
     assert _check_stack_trace(f)
 
 
 def test_local_gpu_elemwise():
     # Test local_gpu_elemwise when there is a dtype upcastable to float32
 
-    a = tensor.bmatrix()
-    b = tensor.fmatrix()
-    c = tensor.fmatrix()
+    a = bmatrix()
+    b = fmatrix()
+    c = fmatrix()
 
     a_v = (np.random.rand(4, 5) * 10).astype("int8")
     b_v = (np.random.rand(4, 5) * 10).astype("float32")
@@ -507,7 +527,7 @@ def test_local_gpu_elemwise():
     f = theano.function([a, b, c], a + b + c, mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     assert sum(isinstance(node.op, GpuElemwise) for node in topo) == 1
-    assert sum(type(node.op) == tensor.Elemwise for node in topo) == 0
+    assert sum(type(node.op) == theano.tensor.elemwise.Elemwise for node in topo) == 0
     utt.assert_allclose(f(a_v, b_v, c_v), a_v + b_v + c_v)
     assert _check_stack_trace(f)
 
@@ -517,28 +537,28 @@ def test_local_gpu_elemwise():
     b_s = theano.scalar.float32()
     c_s = theano.scalar.float32()
     out_s = theano.scalar.Composite([a_s, b_s, c_s], [a_s + b_s + c_s])
-    out_op = tensor.Elemwise(out_s)
+    out_op = theano.tensor.elemwise.Elemwise(out_s)
     f = theano.function([a, b, c], out_op(a, b, c), mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     assert sum(isinstance(node.op, GpuElemwise) for node in topo) == 1
-    assert sum(type(node.op) == tensor.Elemwise for node in topo) == 0
+    assert sum(type(node.op) == theano.tensor.elemwise.Elemwise for node in topo) == 0
     utt.assert_allclose(f(a_v, b_v, c_v), a_v + b_v + c_v)
     assert _check_stack_trace(f)
 
     return  # Not yet implemeted
     # Test multiple output
     a_s = theano.scalar.float32()
-    a = tensor.fmatrix()
+    a = fmatrix()
     from theano.scalar.basic import identity
 
     out_s = theano.scalar.Composite(
         [a_s, b_s, c_s], [identity(a_s), identity(c_s), identity(b_s)]
     )
-    outs_op = tensor.Elemwise(out_s)
+    outs_op = theano.tensor.elemwise.Elemwise(out_s)
     f = theano.function([a, b, c], outs_op(a, b, c), mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     assert sum(isinstance(node.op, GpuElemwise) for node in topo) == 1
-    assert sum(type(node.op) == tensor.Elemwise for node in topo) == 0
+    assert sum(type(node.op) == theano.tensor.elemwise.Elemwise for node in topo) == 0
     out = f(a_v, b_v, c_v)
     utt.assert_allclose(out[0], a_v)
     utt.assert_allclose(out[1], c_v)
@@ -547,11 +567,11 @@ def test_local_gpu_elemwise():
 
     # Test multiple output
     out_s = theano.scalar.Composite([a_s, b_s, c_s], [a_s + b_s, a_s * b_s])
-    outs_op = tensor.Elemwise(out_s)
+    outs_op = theano.tensor.elemwise.Elemwise(out_s)
     f = theano.function([a, b, c], outs_op(a, b, c), mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     assert sum(isinstance(node.op, GpuElemwise) for node in topo) == 1
-    assert sum(type(node.op) == tensor.Elemwise for node in topo) == 0
+    assert sum(type(node.op) == theano.tensor.elemwise.Elemwise for node in topo) == 0
     out = f(a_v, b_v, c_v)
     utt.assert_allclose(out[0], a_v + b_v)
     utt.assert_allclose(out[1], a_v * c_v)
@@ -581,7 +601,7 @@ def test_many_arg_elemwise():
                 ]
 
                 symb_args = [
-                    theano.tensor.TensorType("float32", (False,) * nb_dim)()
+                    TensorType("float32", (False,) * nb_dim)()
                     for arg in range(0, num_args)
                 ]
 
@@ -619,12 +639,12 @@ def test_not_useless_scalar_gpuelemwise():
     # result will not be used on the GPU!
 
     with config.change_flags(warn_float64="ignore"):
-        X = tensor.fmatrix()
+        X = fmatrix()
         x = np.random.randn(32, 32).astype(np.float32)
         m1 = theano.shared(np.random.randn(32, 32).astype(np.float32))
-        loss = (X - tensor.dot(X, m1)).norm(L=2)
+        loss = (X - tt.dot(X, m1)).norm(L=2)
         lr = theano.shared(np.asarray(0.001, dtype=np.float32))
-        grad = tensor.grad(loss, m1)
+        grad = theano.grad(loss, m1)
 
         train = theano.function(
             inputs=[X], updates=[(m1, m1 - lr * grad)], mode=mode_with_gpu
@@ -633,15 +653,15 @@ def test_not_useless_scalar_gpuelemwise():
         topo = train.maker.fgraph.toposort()
         gemms = [app for app in topo if isinstance(app.op, GpuGemm)]
         assert len(gemms) == 2
-        assert isinstance(gemms[1].inputs[1].owner.op, tensor.Elemwise)
+        assert isinstance(gemms[1].inputs[1].owner.op, theano.tensor.elemwise.Elemwise)
 
 
 def test_local_lift_abstractconv_gpu_shape():
     with config.change_flags(on_opt_error="raise"):
-        s = tensor.ivector()
-        a = tensor.ftensor4()
-        b = tensor.ftensor4()
-        c = tensor.nnet.abstract_conv.AbstractConv2d_gradWeights()(a, b, s)
+        s = ivector()
+        a = ftensor4()
+        b = ftensor4()
+        c = theano.tensor.nnet.abstract_conv.AbstractConv2d_gradWeights()(a, b, s)
         f = theano.function([s, a, b], c, mode=mode_with_gpu)
         assert _check_stack_trace(f)
 
@@ -650,7 +670,7 @@ def test_local_assert_no_cpu_op():
     rng = np.random.RandomState(utt.fetch_seed())
     m = rng.uniform(-1, 1, (10, 10)).astype("float32")
     ms = gpuarray_shared_constructor(m, name="m_shared")
-    out = theano.tensor.tanh(ms).dot(ms.T)
+    out = tt.tanh(ms).dot(ms.T)
 
     mode_local_assert = mode_with_gpu.including("assert_no_cpu_op")
     mode_local_assert = mode_local_assert.excluding("local_gpua_elemwise")
@@ -665,10 +685,10 @@ def test_local_assert_no_cpu_op():
 
 
 def test_no_complex():
-    width_var = tensor.cscalar()
-    freq_var = tensor.fscalar()
-    signal_var = tensor.fscalar()
-    stft_out = tensor.exp(width_var * freq_var) * signal_var
+    width_var = cscalar()
+    freq_var = fscalar()
+    signal_var = fscalar()
+    stft_out = tt.exp(width_var * freq_var) * signal_var
     f = theano.function([width_var, freq_var, signal_var], stft_out, mode=mode_with_gpu)
     assert _check_stack_trace(f)
 
@@ -678,8 +698,8 @@ def test_no_complex():
     not cusolver_available or not slinalg.imported_scipy, reason="No cuSolver or SciPy"
 )
 def test_local_lift_solve():
-    A = tensor.fmatrix()
-    b = tensor.fmatrix()
+    A = fmatrix()
+    b = fmatrix()
     o = slinalg.solve(A, b)
     f_cpu = theano.function([A, b], o, mode_without_gpu)
     f_gpu = theano.function([A, b], o, mode=mode_with_gpu)
@@ -700,10 +720,10 @@ def test_local_lift_solve():
     not cusolver_available or not slinalg.imported_scipy, reason="No cuSolver or SciPy"
 )
 def test_gpu_solve_not_inplace():
-    A = tensor.fmatrix()
-    b = tensor.fmatrix()
+    A = fmatrix()
+    b = fmatrix()
     s = slinalg.solve(A, b)
-    o = tensor.dot(A, s)
+    o = tt.dot(A, s)
     f_cpu = theano.function([A, b], o, mode_without_gpu)
     f_gpu = theano.function([A, b], o, mode=mode_with_gpu)
     count_not_inplace = len(
@@ -724,7 +744,7 @@ def test_gpu_solve_not_inplace():
     not cusolver_available or not slinalg.imported_scipy, reason="No cuSolver or SciPy"
 )
 def test_local_lift_cholesky():
-    A = tensor.fmatrix()
+    A = fmatrix()
     o = slinalg.cholesky(A)
     f_cpu = theano.function([A], o, mode=mode_without_gpu)
     f_gpu = theano.function([A], o, mode=mode_with_gpu)
@@ -746,7 +766,7 @@ def test_local_lift_cholesky():
     not cusolver_available or not slinalg.imported_scipy, reason="No cuSolver or SciPy"
 )
 def test_gpu_cholesky_not_inplace():
-    A = tensor.fmatrix()
+    A = fmatrix()
     A_squared = A ** 2
     B = slinalg.cholesky(A_squared)
     D = B + A_squared
@@ -769,11 +789,11 @@ def test_gpu_cholesky_not_inplace():
 
 def test_local_gpua_advanced_incsubtensor():
     # test a corner case reported at gh-5589
-    target = tensor.ftensor4()
+    target = ftensor4()
     y = target.dimshuffle(1, 0, 2, 3).flatten(ndim=1)
-    w = tensor.ones_like(y)
-    w = tensor.set_subtensor(w[tensor.eq(y, 1.0).nonzero()], 100)
-    w = tensor.set_subtensor(w[tensor.eq(y, -1.0).nonzero()], 0)
+    w = tt.ones_like(y)
+    w = theano.tensor.subtensor.set_subtensor(w[tt.eq(y, 1.0).nonzero()], 100)
+    w = theano.tensor.subtensor.set_subtensor(w[tt.eq(y, -1.0).nonzero()], 0)
     f = theano.function([target], w)
     assert _check_stack_trace(f)
 
@@ -794,13 +814,13 @@ def test_batched_dot_lifter():
         (rng.rand(3, 5, 7).astype("float64"), randX(3, 7, 9)),
     ]
     for x_val, y_val in cases:
-        x = tensor.TensorType(
-            broadcastable=[s == 1 for s in x_val.shape], dtype=x_val.dtype
-        )("x")
-        y = tensor.TensorType(
-            broadcastable=[s == 1 for s in y_val.shape], dtype=y_val.dtype
-        )("y")
-        z = tensor.batched_dot(x, y)
+        x = TensorType(broadcastable=[s == 1 for s in x_val.shape], dtype=x_val.dtype)(
+            "x"
+        )
+        y = TensorType(broadcastable=[s == 1 for s in y_val.shape], dtype=y_val.dtype)(
+            "y"
+        )
+        z = tt.batched_dot(x, y)
         f = theano.function([x, y], z, mode=mode_with_gpu)
         f(x_val, y_val)
         assert check_stack_trace(f, ops_to_check="all")
@@ -808,17 +828,17 @@ def test_batched_dot_lifter():
 
 def test_crossentropycategorical1hot_lifter():
     rng = np.random.RandomState(utt.fetch_seed())
-    x = tensor.matrix()
-    y = tensor.lvector()
-    z = tensor.nnet.crossentropy_categorical_1hot(x, y)
+    x = matrix()
+    y = lvector()
+    z = theano.tensor.nnet.crossentropy_categorical_1hot(x, y)
     gx = theano.grad(z.mean(), x)
     f = theano.function([x, y], [z, gx], mode=mode_with_gpu)
     assert not any(
         isinstance(
             n.op,
             (
-                tensor.nnet.CrossentropyCategorical1Hot,
-                tensor.nnet.CrossentropyCategorical1HotGrad,
+                theano.tensor.nnet.CrossentropyCategorical1Hot,
+                theano.tensor.nnet.CrossentropyCategorical1HotGrad,
             ),
         )
         for n in f.maker.fgraph.apply_nodes

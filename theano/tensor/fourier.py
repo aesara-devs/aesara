@@ -2,9 +2,12 @@ import math
 
 import numpy as np
 
-from theano import tensor
+import theano.tensor as tt
 from theano.graph.basic import Apply
 from theano.graph.op import Op
+from theano.tensor.subtensor import set_subtensor
+from theano.tensor.type import TensorType, integer_dtypes
+from theano.tensor.var import TensorConstant
 
 
 class Fourier(Op):
@@ -46,23 +49,23 @@ class Fourier(Op):
     __props__ = ()
 
     def make_node(self, a, n, axis):
-        a = tensor.as_tensor_variable(a)
+        a = tt.as_tensor_variable(a)
         if a.ndim < 1:
             raise TypeError(
                 f"{self.__class__.__name__}: input must be an array, not a scalar"
             )
         if axis is None:
             axis = a.ndim - 1
-            axis = tensor.as_tensor_variable(axis)
+            axis = tt.as_tensor_variable(axis)
         else:
-            axis = tensor.as_tensor_variable(axis)
-            if axis.dtype not in tensor.integer_dtypes:
+            axis = tt.as_tensor_variable(axis)
+            if axis.dtype not in integer_dtypes:
                 raise TypeError(
                     "%s: index of the transformed axis must be"
                     " of type integer" % self.__class__.__name__
                 )
             elif axis.ndim != 0 or (
-                isinstance(axis, tensor.TensorConstant)
+                isinstance(axis, TensorConstant)
                 and (axis.data < 0 or axis.data > a.ndim - 1)
             ):
                 raise TypeError(
@@ -72,15 +75,15 @@ class Fourier(Op):
                 )
         if n is None:
             n = a.shape[axis]
-            n = tensor.as_tensor_variable(n)
+            n = tt.as_tensor_variable(n)
         else:
-            n = tensor.as_tensor_variable(n)
-            if n.dtype not in tensor.integer_dtypes:
+            n = tt.as_tensor_variable(n)
+            if n.dtype not in integer_dtypes:
                 raise TypeError(
                     "%s: length of the transformed axis must be"
                     " of type integer" % self.__class__.__name__
                 )
-            elif n.ndim != 0 or (isinstance(n, tensor.TensorConstant) and n.data < 1):
+            elif n.ndim != 0 or (isinstance(n, TensorConstant) and n.data < 1):
                 raise TypeError(
                     "%s: length of the transformed axis must be a"
                     " strictly positive scalar" % self.__class__.__name__
@@ -88,7 +91,7 @@ class Fourier(Op):
         return Apply(
             self,
             [a, n, axis],
-            [tensor.TensorType("complex128", a.type.broadcastable)()],
+            [TensorType("complex128", a.type.broadcastable)()],
         )
 
     def infer_shape(self, fgraph, node, in_shapes):
@@ -97,7 +100,7 @@ class Fourier(Op):
         axis = node.inputs[2]
         if len(shape_a) == 1:
             return [(n,)]
-        elif isinstance(axis, tensor.TensorConstant):
+        elif isinstance(axis, TensorConstant):
             out_shape = (
                 list(shape_a[0 : axis.data.item()])
                 + [n]
@@ -105,10 +108,10 @@ class Fourier(Op):
             )
         else:
             l = len(shape_a)
-            shape_a = tensor.stack(shape_a)
-            out_shape = tensor.concatenate((shape_a[0:axis], [n], shape_a[axis + 1 :]))
+            shape_a = tt.stack(shape_a)
+            out_shape = tt.concatenate((shape_a[0:axis], [n], shape_a[axis + 1 :]))
             n_splits = [1] * l
-            out_shape = tensor.split(out_shape, n_splits, l)
+            out_shape = tt.split(out_shape, n_splits, l)
             out_shape = [a[0] for a in out_shape]
         return [out_shape]
 
@@ -127,7 +130,7 @@ class Fourier(Op):
         n = inputs[1]
         axis = inputs[2]
         grad = cost_grad[0]
-        if not isinstance(axis, tensor.TensorConstant):
+        if not isinstance(axis, TensorConstant):
             raise NotImplementedError(
                 "%s: gradient is currently implemented"
                 " only for axis being a Theano constant" % self.__class__.__name__
@@ -135,23 +138,23 @@ class Fourier(Op):
         axis = int(axis.data)
         # notice that the number of actual elements in wrto is independent of
         # possible padding or truncation:
-        elem = tensor.arange(0, tensor.shape(a)[axis], 1)
+        elem = tt.arange(0, tt.shape(a)[axis], 1)
         # accounts for padding:
-        freq = tensor.arange(0, n, 1)
-        outer = tensor.outer(freq, elem)
-        pow_outer = tensor.exp(((-2 * math.pi * 1j) * outer) / (1.0 * n))
-        res = tensor.tensordot(grad, pow_outer, (axis, 0))
+        freq = tt.arange(0, n, 1)
+        outer = tt.outer(freq, elem)
+        pow_outer = tt.exp(((-2 * math.pi * 1j) * outer) / (1.0 * n))
+        res = tt.tensordot(grad, pow_outer, (axis, 0))
 
         # This would be simpler but not implemented by theano:
-        # res = tensor.switch(tensor.lt(n, tensor.shape(a)[axis]),
-        # tensor.set_subtensor(res[...,n::], 0, False, False), res)
+        # res = tt.switch(tt.lt(n, tt.shape(a)[axis]),
+        # set_subtensor(res[...,n::], 0, False, False), res)
 
         # Instead we resort to that to account for truncation:
         flip_shape = list(np.arange(0, a.ndim)[::-1])
         res = res.dimshuffle(flip_shape)
-        res = tensor.switch(
-            tensor.lt(n, tensor.shape(a)[axis]),
-            tensor.set_subtensor(
+        res = tt.switch(
+            tt.lt(n, tt.shape(a)[axis]),
+            set_subtensor(
                 res[
                     n::,
                 ],

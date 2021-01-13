@@ -4,6 +4,7 @@ import theano.tensor as tt
 from theano.gradient import DisconnectedType
 from theano.graph.basic import Apply
 from theano.graph.op import Op
+from theano.tensor.type import TensorType, integer_dtypes
 
 
 class RFFTOp(Op):
@@ -12,7 +13,7 @@ class RFFTOp(Op):
 
     def output_type(self, inp):
         # add extra dim for real/imag
-        return tt.TensorType(inp.dtype, broadcastable=[False] * (inp.type.ndim + 1))
+        return TensorType(inp.dtype, broadcastable=[False] * (inp.type.ndim + 1))
 
     def make_node(self, a, s=None):
         a = tt.as_tensor_variable(a)
@@ -27,7 +28,7 @@ class RFFTOp(Op):
             s = tt.as_tensor_variable(s)
         else:
             s = tt.as_tensor_variable(s)
-            if s.dtype not in tt.integer_dtypes:
+            if s.dtype not in integer_dtypes:
                 raise TypeError(
                     "%s: length of the transformed axis must be"
                     " of type integer" % self.__class__.__name__
@@ -73,7 +74,7 @@ class IRFFTOp(Op):
 
     def output_type(self, inp):
         # remove extra dim for real/imag
-        return tt.TensorType(inp.dtype, broadcastable=[False] * (inp.type.ndim - 1))
+        return TensorType(inp.dtype, broadcastable=[False] * (inp.type.ndim - 1))
 
     def make_node(self, a, s=None):
         a = tt.as_tensor_variable(a)
@@ -89,7 +90,7 @@ class IRFFTOp(Op):
             s = tt.as_tensor_variable(s)
         else:
             s = tt.as_tensor_variable(s)
-            if s.dtype not in tt.integer_dtypes:
+            if s.dtype not in integer_dtypes:
                 raise TypeError(
                     "%s: length of the transformed axis must be"
                     " of type integer" % self.__class__.__name__

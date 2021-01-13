@@ -56,11 +56,11 @@ Theano's features, but it illustrates concretely what Theano is.
 .. code-block:: python
 
     import theano
-    from theano import tensor
+    from theano import tensor as tt
 
     # declare two symbolic floating-point scalars
-    a = tensor.dscalar()
-    b = tensor.dscalar()
+    a = tt.dscalar()
+    b = tt.dscalar()
 
     # create a simple expression
     c = a + b

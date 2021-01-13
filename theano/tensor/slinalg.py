@@ -13,10 +13,11 @@ except ImportError:
     imported_scipy = False
 
 import theano.tensor
-from theano import tensor
+import theano.tensor as tt
 from theano.graph.basic import Apply
 from theano.graph.op import Op
 from theano.tensor import as_tensor_variable
+from theano.tensor.type import matrix, tensor, vector
 
 
 logger = logging.getLogger(__name__)
@@ -104,9 +105,9 @@ class Cholesky(Op):
         # Replace the cholesky decomposition with 1 if there are nans
         # or solve_upper_triangular will throw a ValueError.
         if self.on_error == "nan":
-            ok = ~tensor.any(tensor.isnan(chol_x))
-            chol_x = tensor.switch(ok, chol_x, 1)
-            dz = tensor.switch(ok, dz, 1)
+            ok = ~tt.any(tt.isnan(chol_x))
+            chol_x = tt.switch(ok, chol_x, 1)
+            dz = tt.switch(ok, dz, 1)
 
         # deal with upper triangular by converting to lower triangular
         if not self.lower:
@@ -115,7 +116,7 @@ class Cholesky(Op):
 
         def tril_and_halve_diagonal(mtx):
             """Extracts lower triangle of square matrix and halves diagonal."""
-            return tensor.tril(mtx) - tensor.diag(tensor.diagonal(mtx) / 2.0)
+            return tt.tril(mtx) - tt.diag(tt.diagonal(mtx) / 2.0)
 
         def conjugate_solve_triangular(outer, inner):
             """Computes L^{-T} P L^{-1} for lower-triangular L."""
@@ -128,12 +129,12 @@ class Cholesky(Op):
         )
 
         if self.lower:
-            grad = tensor.tril(s + s.T) - tensor.diag(tensor.diagonal(s))
+            grad = tt.tril(s + s.T) - tt.diag(tt.diagonal(s))
         else:
-            grad = tensor.triu(s + s.T) - tensor.diag(tensor.diagonal(s))
+            grad = tt.triu(s + s.T) - tt.diag(tt.diagonal(s))
 
         if self.on_error == "nan":
-            return [tensor.switch(ok, grad, np.nan)]
+            return [tt.switch(ok, grad, np.nan)]
         else:
             return [grad]
 
@@ -242,7 +243,7 @@ class Solve(Op):
         o_dtype = scipy.linalg.solve(
             np.eye(1).astype(A.dtype), np.eye(1).astype(b.dtype)
         ).dtype
-        x = tensor.tensor(broadcastable=b.broadcastable, dtype=o_dtype)
+        x = tensor(broadcastable=b.broadcastable, dtype=o_dtype)
         return Apply(self, [A, b], [x])
 
     def perform(self, node, inputs, output_storage):
@@ -292,11 +293,11 @@ class Solve(Op):
         )
         b_bar = trans_solve_op(A.T, c_bar)
         # force outer product if vector second input
-        A_bar = -tensor.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
+        A_bar = -tt.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
         if self.A_structure == "lower_triangular":
-            A_bar = tensor.tril(A_bar)
+            A_bar = tt.tril(A_bar)
         elif self.A_structure == "upper_triangular":
-            A_bar = tensor.triu(A_bar)
+            A_bar = tt.triu(A_bar)
         return [A_bar, b_bar]
 
 
@@ -348,12 +349,12 @@ class Eigvalsh(Op):
             imported_scipy
         ), "Scipy not  available. Scipy is needed for the Eigvalsh op"
 
-        if b == theano.tensor.NoneConst:
+        if b == theano.tensor.type_other.NoneConst:
             a = as_tensor_variable(a)
             assert a.ndim == 2
 
             out_dtype = theano.scalar.upcast(a.dtype)
-            w = theano.tensor.vector(dtype=out_dtype)
+            w = vector(dtype=out_dtype)
             return Apply(self, [a], [w])
         else:
             a = as_tensor_variable(a)
@@ -362,7 +363,7 @@ class Eigvalsh(Op):
             assert b.ndim == 2
 
             out_dtype = theano.scalar.upcast(a.dtype, b.dtype)
-            w = theano.tensor.vector(dtype=out_dtype)
+            w = vector(dtype=out_dtype)
             return Apply(self, [a, b], [w])
 
     def perform(self, node, inputs, outputs):
@@ -421,8 +422,8 @@ class EigvalshGrad(Op):
         assert gw.ndim == 1
 
         out_dtype = theano.scalar.upcast(a.dtype, b.dtype, gw.dtype)
-        out1 = theano.tensor.matrix(dtype=out_dtype)
-        out2 = theano.tensor.matrix(dtype=out_dtype)
+        out1 = matrix(dtype=out_dtype)
+        out2 = matrix(dtype=out_dtype)
         return Apply(self, [a, b, gw], [out1, out2])
 
     def perform(self, node, inputs, outputs):
@@ -466,15 +467,15 @@ def kron(a, b):
     a.ndim != b.ndim != 2.
 
     """
-    a = tensor.as_tensor_variable(a)
-    b = tensor.as_tensor_variable(b)
+    a = as_tensor_variable(a)
+    b = as_tensor_variable(b)
     if a.ndim + b.ndim <= 2:
         raise TypeError(
             "kron: inputs dimensions must sum to 3 or more. "
             f"You passed {int(a.ndim)} and {int(b.ndim)}."
         )
-    o = tensor.outer(a, b)
-    o = o.reshape(tensor.concatenate((a.shape, b.shape)), a.ndim + b.ndim)
+    o = tt.outer(a, b)
+    o = o.reshape(tt.concatenate((a.shape, b.shape)), a.ndim + b.ndim)
     shf = o.dimshuffle(0, 2, 1, *list(range(3, o.ndim)))
     if shf.ndim == 3:
         shf = o.dimshuffle(1, 0, 2)
@@ -500,7 +501,7 @@ class Expm(Op):
 
         A = as_tensor_variable(A)
         assert A.ndim == 2
-        expm = theano.tensor.matrix(dtype=A.dtype)
+        expm = matrix(dtype=A.dtype)
         return Apply(
             self,
             [
@@ -537,7 +538,7 @@ class ExpmGrad(Op):
         assert imported_scipy, "Scipy not available. Scipy is needed for the Expm op"
         A = as_tensor_variable(A)
         assert A.ndim == 2
-        out = theano.tensor.matrix(dtype=A.dtype)
+        out = matrix(dtype=A.dtype)
         return Apply(
             self,
             [A, gw],

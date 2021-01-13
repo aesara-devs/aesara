@@ -21,6 +21,7 @@ from theano.tensor.subtensor import (
     Subtensor,
     get_idx_list,
 )
+from theano.tensor.type import integer_dtypes
 
 
 try:
@@ -471,7 +472,7 @@ class GpuAdvancedSubtensor1(HideC, AdvancedSubtensor1):
         x_ = as_gpuarray_variable(x, ctx_name)
 
         ilist__ = tt.as_tensor_variable(ilist)
-        if ilist__.type.dtype not in tt.integer_dtypes:
+        if ilist__.type.dtype not in integer_dtypes:
             raise TypeError("index must be integers")
         if ilist__.type.dtype != "int64":
             ilist__ = tt.cast(ilist__, "int64")
@@ -873,7 +874,7 @@ class GpuAdvancedIncSubtensor1(COp):
 
         assert x_.type.ndim >= y_.type.ndim
 
-        if ilist_.type.dtype not in tt.integer_dtypes:
+        if ilist_.type.dtype not in integer_dtypes:
             raise TypeError("index must be integers")
         if ilist_.type.ndim != 1:
             raise TypeError("index must be vector")
@@ -1112,7 +1113,7 @@ class GpuAdvancedIncSubtensor1_dev20(GpuKernelBase, HideC, GpuAdvancedIncSubtens
 
         assert x_.type.ndim >= y_.type.ndim
 
-        if ilist_.type.dtype not in tt.integer_dtypes:
+        if ilist_.type.dtype not in integer_dtypes:
             raise TypeError("index must be integers")
         if ilist_.type.ndim != 1:
             raise TypeError("index must be vector")

@@ -2,13 +2,28 @@ import numpy as np
 import pytest
 
 import theano
-from theano import tensor
+from theano import tensor as tt
 from theano.compile.function import pfunc
 from theano.compile.io import In
 from theano.compile.sharedvalue import shared
 from theano.configdefaults import config
 from theano.misc.safe_asarray import _asarray
-from theano.tensor import dmatrices, dmatrix, iscalar, lscalar
+from theano.tensor.type import (
+    bscalar,
+    bvector,
+    dmatrices,
+    dmatrix,
+    dscalar,
+    dvector,
+    fscalar,
+    fvector,
+    imatrix,
+    iscalar,
+    ivector,
+    ivectors,
+    lscalar,
+    wvector,
+)
 from theano.utils import PYTHON_INT_BITWIDTH
 
 
@@ -35,7 +50,7 @@ class TestPfunc:
         assert f1(3) == 3
 
         # Example #2.
-        a = tensor.lscalar()
+        a = lscalar()
         b = shared(7)
         f1 = pfunc([a], a + b)
         f2 = pfunc([a], a * b)
@@ -77,7 +92,7 @@ class TestPfunc:
         with pytest.raises(
             TypeError, match=r"^Cannot use a shared variable \(w\) as explicit input"
         ):
-            pfunc([w], theano.tensor.sum(w * w))
+            pfunc([w], tt.sum(w * w))
 
     def test_default_container(self):
         # Ensure it is possible to (implicitly) use a shared variable in a
@@ -86,7 +101,7 @@ class TestPfunc:
         rng = np.random.RandomState(1827)
         w_init = rng.rand(5)
         w = shared(w_init.copy(), "w")
-        reg = theano.tensor.sum(w * w)
+        reg = tt.sum(w * w)
         f = pfunc([], reg)
 
         assert f() == np.sum(w_init * w_init)
@@ -105,7 +120,7 @@ class TestPfunc:
 
     def test_param_strict(self):
 
-        a = tensor.dvector()
+        a = dvector()
         b = shared(7)
         out = a + b
 
@@ -123,7 +138,7 @@ class TestPfunc:
             pass
 
     def test_param_mutable(self):
-        a = tensor.dvector()
+        a = dvector()
         a_out = a * 2  # assuming the op which makes this "in place" triggers
 
         # using mutable=True will let fip change the value in aval
@@ -176,9 +191,9 @@ class TestPfunc:
         assert not (bval == b.get_value(borrow=True)).all()
 
     def test_param_allow_downcast_int(self):
-        a = tensor.wvector("a")  # int16
-        b = tensor.bvector("b")  # int8
-        c = tensor.bscalar("c")  # int8
+        a = wvector("a")  # int16
+        b = bvector("b")  # int8
+        c = bscalar("c")  # int8
         f = pfunc(
             [
                 In(a, allow_downcast=True),
@@ -210,9 +225,9 @@ class TestPfunc:
             f([3], [6], 806)
 
     def test_param_allow_downcast_floatX(self):
-        a = tensor.fscalar("a")
-        b = tensor.fscalar("b")
-        c = tensor.fscalar("c")
+        a = fscalar("a")
+        b = fscalar("b")
+        c = fscalar("c")
 
         f = pfunc(
             [
@@ -241,9 +256,9 @@ class TestPfunc:
                 f(0, 0, 0.1)
 
     def test_param_allow_downcast_vector_floatX(self):
-        a = tensor.fvector("a")
-        b = tensor.fvector("b")
-        c = tensor.fvector("c")
+        a = fvector("a")
+        b = fvector("b")
+        c = fvector("c")
 
         f = pfunc(
             [
@@ -270,9 +285,9 @@ class TestPfunc:
             f(z, z, [0.1])
 
     def test_allow_input_downcast_int(self):
-        a = tensor.wvector("a")  # int16
-        b = tensor.bvector("b")  # int8
-        c = tensor.bscalar("c")  # int8
+        a = wvector("a")  # int16
+        b = bvector("b")  # int8
+        c = bscalar("c")  # int8
 
         f = pfunc([a, b, c], (a + b + c), allow_input_downcast=True)
         # Value too big for a, b, or c, silently ignored
@@ -304,8 +319,8 @@ class TestPfunc:
             h([3], [312], 0)
 
     def test_allow_downcast_floatX(self):
-        a = tensor.fscalar("a")
-        b = tensor.fvector("b")
+        a = fscalar("a")
+        b = fvector("b")
 
         f = pfunc([a, b], (a + b), allow_input_downcast=True)
         g = pfunc([a, b], (a + b), allow_input_downcast=False)
@@ -382,12 +397,12 @@ class TestPfunc:
         assert assign() == 3
         assert x.get_value(borrow=True) == 0
 
-        y = tensor.ivector()
+        y = ivector()
         f = pfunc([y], (y * x), givens={x: 6})
         assert np.all(f([1, 1, 1]) == [6, 6, 6])
         assert x.get_value() == 0
 
-        z = tensor.ivector()
+        z = ivector()
         c = z * y
         f = pfunc([y], (c + 7), givens={z: _asarray([4, 4, 4], dtype="int32")})
         assert np.all(f([1, 1, 1]) == [11, 11, 11])
@@ -623,7 +638,7 @@ class TestPfunc:
     def test_givens_replaces_shared_variable(self):
         a = shared(1.0, "a")
         a.default_update = a + 3.0
-        b = tensor.dscalar("b")
+        b = dscalar("b")
         c = a + 10
         f = pfunc([b], c, givens={a: b})
 
@@ -640,7 +655,7 @@ class TestPfunc:
         assert f() == 34
 
     def test_duplicate_inputs(self):
-        x = theano.tensor.lscalar("x")
+        x = lscalar("x")
         with pytest.raises(theano.compile.UnusedInputError):
             theano.function([x, x, x], x)
 
@@ -711,7 +726,7 @@ class TestAliasingRules:
     # library code.
 
     def shared(self, x):
-        return tensor._shared(x)
+        return theano.shared(x)
 
     def test_shared_constructor_copies(self):
         # shared constructor makes copy
@@ -736,7 +751,7 @@ class TestAliasingRules:
         x = sparse.SparseType("csc", dtype="float64")()
         y = sparse.SparseType("csc", dtype="float64")()
         f = theano.function(
-            [theano.In(x, mutable=True), theano.In(y, mutable=True)], (x + y) + (x + y)
+            [In(x, mutable=True), In(y, mutable=True)], (x + y) + (x + y)
         )
         # Test 1. If the same variable is given twice
 
@@ -780,18 +795,18 @@ class TestAliasingRules:
         #        you need to make in inputs mutable (so that inplace
         #        operations are used) and to break the elemwise composition
         #        with some non-elemwise op (here dot)
-        x = theano.tensor.dvector()
-        y = theano.tensor.dvector()
-        m1 = theano.tensor.dmatrix()
-        m2 = theano.tensor.dmatrix()
+        x = dvector()
+        y = dvector()
+        m1 = dmatrix()
+        m2 = dmatrix()
         f = theano.function(
             [
-                theano.In(x, mutable=True),
-                theano.In(y, mutable=True),
-                theano.In(m1, mutable=True),
-                theano.In(m2, mutable=True),
+                In(x, mutable=True),
+                In(y, mutable=True),
+                In(m1, mutable=True),
+                In(m2, mutable=True),
             ],
-            theano.tensor.dot((x * 2), m1) + theano.tensor.dot((y * 3), m2),
+            tt.dot((x * 2), m1) + tt.dot((y * 3), m2),
         )
         # Test 1. If the same variable is given twice
 
@@ -834,12 +849,12 @@ class TestAliasingRules:
         #        you need to make in inputs mutable ( so that inplace
         #        operations are used) and to break the elemwise composition
         #        with some non-elemwise op ( here dot )
-        x = theano.tensor.dvector()
-        y = theano.tensor.dvector()
-        z = theano.tensor.dvector()
-        m1 = theano.tensor.dmatrix()
-        m2 = theano.tensor.dmatrix()
-        m3 = theano.tensor.dmatrix()
+        x = dvector()
+        y = dvector()
+        z = dvector()
+        m1 = dmatrix()
+        m2 = dmatrix()
+        m3 = dmatrix()
 
         # Test 2. If variables only partial overlap
         #   more exactly we care about the case when we have a,b,c
@@ -848,18 +863,14 @@ class TestAliasingRules:
 
         f = theano.function(
             [
-                theano.In(x, mutable=True),
-                theano.In(y, mutable=True),
-                theano.In(z, mutable=True),
-                theano.In(m1, mutable=True),
-                theano.In(m2, mutable=True),
-                theano.In(m3, mutable=True),
+                In(x, mutable=True),
+                In(y, mutable=True),
+                In(z, mutable=True),
+                In(m1, mutable=True),
+                In(m2, mutable=True),
+                In(m3, mutable=True),
             ],
-            (
-                theano.tensor.dot((x * 2), m1)
-                + theano.tensor.dot((y * 3), m2)
-                + theano.tensor.dot((z * 4), m3)
-            ),
+            (tt.dot((x * 2), m1) + tt.dot((y * 3), m2) + tt.dot((z * 4), m3)),
         )
 
         # Compute bogus values
@@ -884,7 +895,7 @@ class TestAliasingRules:
         A = self.shared(np.zeros((2, 2)))
         B = self.shared(np.zeros((2, 2)))
         C = np.zeros((2, 2))
-        D = tensor.dmatrix()
+        D = dmatrix()
         DD = D + 5
 
         f = pfunc([D], [], updates=[(A, D), (B, D)])
@@ -941,7 +952,7 @@ class TestAliasingRules:
         # to avoid aliasing shared variables.
         A = self.shared(np.zeros((2, 2)) + 0.5)
         B = self.shared(np.zeros((2, 2)) - 0.5)
-        C = tensor.dmatrix()
+        C = dmatrix()
         f = pfunc([C], [], updates=[(A, B), (B, C)])
         z = np.zeros((2, 2))
         f(z)
@@ -1027,8 +1038,8 @@ class TestRebuildStrict:
     def test_rebuild_strict(self):
         # Test fix for error reported at
         # https://groups.google.com/d/topic/theano-users/BRK0UEB72XA/discussion
-        w = tensor.imatrix()
-        x, y = tensor.ivectors("x", "y")
+        w = imatrix()
+        x, y = ivectors("x", "y")
         z = x * y
         f = theano.function([w, y], z, givens=[(x, w)], rebuild_strict=False)
         z_val = f(np.ones((3, 5), dtype="int32"), np.arange(5, dtype="int32"))

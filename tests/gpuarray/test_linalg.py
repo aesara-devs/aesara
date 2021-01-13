@@ -35,6 +35,7 @@ from theano.tensor.nlinalg import (
     qr,
 )
 from theano.tensor.slinalg import Cholesky, cholesky, imported_scipy
+from theano.tensor.type import fmatrix, matrix, tensor3, vector
 
 
 @pytest.mark.skipif(
@@ -46,9 +47,9 @@ class TestCusolver:
         b_val = np.dot(A_val, x_val)
         b_val_trans = np.dot(A_val.T, x_val)
 
-        A = theano.tensor.matrix("A", dtype="float32")
-        b = theano.tensor.matrix("b", dtype="float32")
-        b_trans = theano.tensor.matrix("b", dtype="float32")
+        A = matrix("A", dtype="float32")
+        b = matrix("b", dtype="float32")
+        b_trans = matrix("b", dtype="float32")
 
         if A_struct is None:
             solver = gpu_solve(A, b)
@@ -110,8 +111,8 @@ class TestCusolver:
         # make A singular
         A_val[:, 2] = A_val[:, 1] + A_val[:, 3]
 
-        A = theano.tensor.matrix("A", dtype="float32")
-        b = theano.tensor.matrix("b", dtype="float32")
+        A = matrix("A", dtype="float32")
+        b = matrix("b", dtype="float32")
         solver = gpu_solve(A, b, "symmetric")
 
         fn = theano.function([A, b], [solver], mode=mode_with_gpu)
@@ -125,8 +126,8 @@ class TestCusolver:
         # make A singular
         A_val[:, 2] = 0
 
-        A = theano.tensor.matrix("A", dtype="float32")
-        b = theano.tensor.matrix("b", dtype="float32")
+        A = matrix("A", dtype="float32")
+        b = matrix("b", dtype="float32")
         solver = gpu_solve(A, b, trans="T")
 
         fn = theano.function([A, b], [solver], mode=mode_with_gpu)
@@ -178,7 +179,7 @@ class TestGpuCholesky:
 
     def get_gpu_cholesky_func(self, lower=True, inplace=False):
         # Helper function to compile function from GPU Cholesky op.
-        A = theano.tensor.matrix("A", dtype="float32")
+        A = matrix("A", dtype="float32")
         cholesky_op = GpuCholesky(lower=lower, inplace=inplace)
         chol_A = cholesky_op(A)
         return theano.function([A], chol_A, accept_inplace=inplace, mode=mode_with_gpu)
@@ -197,7 +198,7 @@ class TestGpuCholesky:
         not imported_scipy, reason="SciPy is not enabled, skipping test"
     )
     def test_gpu_cholesky_opt(self):
-        A = theano.tensor.matrix("A", dtype="float32")
+        A = matrix("A", dtype="float32")
         fn = theano.function([A], cholesky(A), mode=mode_with_gpu)
         assert any(
             [isinstance(node.op, GpuCholesky) for node in fn.maker.fgraph.toposort()]
@@ -213,7 +214,7 @@ class TestGpuCholesky:
     def test_invalid_input_fail_vector(self):
         # Invalid Cholesky input test with vector as input.
         def invalid_input_func():
-            A = theano.tensor.vector("A", dtype="float32")
+            A = vector("A", dtype="float32")
             GpuCholesky(lower=True, inplace=False)(A)
 
         with pytest.raises(AssertionError):
@@ -222,7 +223,7 @@ class TestGpuCholesky:
     def test_invalid_input_fail_tensor3(self):
         # Invalid Cholesky input test with 3D tensor as input.
         def invalid_input_func():
-            A = theano.tensor.tensor3("A", dtype="float32")
+            A = tensor3("A", dtype="float32")
             GpuCholesky(lower=True, inplace=False)(A)
 
         with pytest.raises(AssertionError):
@@ -279,7 +280,7 @@ class TestGpuCholesky64:
 
     def get_gpu_cholesky_func(self, lower=True, inplace=False):
         # Helper function to compile function from GPU Cholesky op.
-        A = theano.tensor.matrix("A", dtype="float64")
+        A = matrix("A", dtype="float64")
         cholesky_op = GpuCholesky(lower=lower, inplace=inplace)
         chol_A = cholesky_op(A)
         return theano.function([A], chol_A, accept_inplace=inplace, mode=mode_with_gpu)
@@ -298,7 +299,7 @@ class TestGpuCholesky64:
         not imported_scipy, reason="SciPy is not enabled, skipping test"
     )
     def test_gpu_cholesky_opt(self):
-        A = theano.tensor.matrix("A", dtype="float64")
+        A = matrix("A", dtype="float64")
         fn = theano.function([A], cholesky(A), mode=mode_with_gpu)
         assert any(
             [isinstance(node.op, GpuCholesky) for node in fn.maker.fgraph.toposort()]
@@ -314,7 +315,7 @@ class TestGpuCholesky64:
     def test_invalid_input_fail_vector(self):
         # Invalid Cholesky input test with vector as input.
         def invalid_input_func():
-            A = theano.tensor.vector("A", dtype="float64")
+            A = vector("A", dtype="float64")
             GpuCholesky(lower=True, inplace=False)(A)
 
         with pytest.raises(AssertionError):
@@ -323,7 +324,7 @@ class TestGpuCholesky64:
     def test_invalid_input_fail_tensor3(self):
         # Invalid Cholesky input test with 3D tensor as input.
         def invalid_input_func():
-            A = theano.tensor.tensor3("A", dtype="float64")
+            A = tensor3("A", dtype="float64")
             GpuCholesky(lower=True, inplace=False)(A)
 
         with pytest.raises(AssertionError):
@@ -385,14 +386,14 @@ class TestMagma:
             (Cholesky(), GpuMagmaCholesky),
         ]
         for op, gpu_op in ops_to_gpu:
-            A = theano.tensor.matrix("A", dtype="float16")
+            A = matrix("A", dtype="float16")
             fn = theano.function([A], op(A), mode=mode_with_gpu.excluding("cusolver"))
             assert any(
                 [isinstance(node.op, gpu_op) for node in fn.maker.fgraph.toposort()]
             )
 
     def test_gpu_matrix_inverse(self):
-        A = theano.tensor.fmatrix("A")
+        A = fmatrix("A")
 
         fn = theano.function([A], gpu_matrix_inverse(A), mode=mode_with_gpu)
         N = 1000
@@ -428,7 +429,7 @@ class TestMagma:
 
     @utt.assertFailure_fast
     def test_gpu_matrix_inverse_inplace_opt(self):
-        A = theano.tensor.fmatrix("A")
+        A = fmatrix("A")
         fn = theano.function([A], matrix_inverse(A), mode=mode_with_gpu)
         assert any(
             [
@@ -439,7 +440,7 @@ class TestMagma:
         )
 
     def run_gpu_svd(self, A_val, full_matrices=True, compute_uv=True):
-        A = theano.tensor.fmatrix("A")
+        A = fmatrix("A")
         f = theano.function(
             [A],
             gpu_svd(A, full_matrices=full_matrices, compute_uv=compute_uv),
@@ -486,7 +487,7 @@ class TestMagma:
         self.assert_column_orthonormal(VT.T)
 
     def test_gpu_singular_values(self):
-        A = theano.tensor.fmatrix("A")
+        A = fmatrix("A")
         f_cpu = theano.function(
             [A], theano.tensor.nlinalg.svd(A, compute_uv=False), mode=mode_without_gpu
         )
@@ -499,7 +500,7 @@ class TestMagma:
         utt.assert_allclose(f_cpu(A_val), f_gpu(A_val))
 
     def run_gpu_cholesky(self, A_val, lower=True):
-        A = theano.tensor.fmatrix("A")
+        A = fmatrix("A")
         f = theano.function(
             [A],
             GpuMagmaCholesky(lower=lower)(A),
@@ -529,7 +530,7 @@ class TestMagma:
         self.check_cholesky(1000, lower=False, atol=1e-3)
 
     def test_gpu_cholesky_opt(self):
-        A = theano.tensor.matrix("A", dtype="float32")
+        A = matrix("A", dtype="float32")
         fn = theano.function([A], cholesky(A), mode=mode_with_gpu.excluding("cusolver"))
         assert any(
             [
@@ -558,7 +559,7 @@ class TestMagma:
 
     @utt.assertFailure_fast
     def test_gpu_cholesky_inplace_opt(self):
-        A = theano.tensor.fmatrix("A")
+        A = fmatrix("A")
         fn = theano.function([A], GpuMagmaCholesky()(A), mode=mode_with_gpu)
         assert any(
             [
@@ -569,7 +570,7 @@ class TestMagma:
         )
 
     def run_gpu_qr(self, A_val, complete=True):
-        A = theano.tensor.fmatrix("A")
+        A = fmatrix("A")
         fn = theano.function([A], gpu_qr(A, complete=complete), mode=mode_with_gpu)
         return fn(A_val)
 
@@ -592,7 +593,7 @@ class TestMagma:
         self.check_gpu_qr(500, 1000, complete=False, atol=1e-3)
 
     def test_gpu_qr_opt(self):
-        A = theano.tensor.fmatrix("A")
+        A = fmatrix("A")
         fn = theano.function([A], qr(A), mode=mode_with_gpu)
         assert any(
             [
@@ -602,7 +603,7 @@ class TestMagma:
         )
 
     def test_gpu_qr_incomplete_opt(self):
-        A = theano.tensor.fmatrix("A")
+        A = fmatrix("A")
         fn = theano.function([A], qr(A, mode="r"), mode=mode_with_gpu)
         assert any(
             [
@@ -612,7 +613,7 @@ class TestMagma:
         )
 
     def run_gpu_eigh(self, A_val, UPLO="L", compute_v=True):
-        A = theano.tensor.fmatrix("A")
+        A = fmatrix("A")
         fn = theano.function(
             [A], GpuMagmaEigh(UPLO=UPLO, compute_v=compute_v)(A), mode=mode_with_gpu
         )
@@ -642,7 +643,7 @@ class TestMagma:
         self.check_gpu_eigh(1000, UPLO="U", compute_v=False, atol=1e-3)
 
     def test_gpu_eigh_opt(self):
-        A = theano.tensor.fmatrix("A")
+        A = fmatrix("A")
         fn = theano.function([A], eigh(A), mode=mode_with_gpu)
         assert any(
             [isinstance(node.op, GpuMagmaEigh) for node in fn.maker.fgraph.toposort()]
@@ -665,12 +666,12 @@ def test_cholesky_grad():
 
 
 def test_cholesky_grad_indef():
-    x = theano.tensor.matrix()
-    matrix = np.array([[1, 0.2], [0.2, -2]]).astype(config.floatX)
+    x = matrix()
+    mat = np.array([[1, 0.2], [0.2, -2]]).astype(config.floatX)
     cholesky = GpuCholesky(lower=True)
-    chol_f = theano.function([x], theano.tensor.grad(cholesky(x).sum(), [x]))
+    chol_f = theano.function([x], theano.gradient.grad(cholesky(x).sum(), [x]))
     with pytest.raises(LinAlgError):
-        chol_f(matrix)
+        chol_f(mat)
     # cholesky = GpuCholesky(lower=True, on_error='nan')
     # chol_f = function([x], grad(gpu_cholesky(x).sum(), [x]))
     # assert np.all(np.isnan(chol_f(matrix)))

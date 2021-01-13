@@ -5,6 +5,7 @@ import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano.configdefaults import config
 from theano.scan.op import Scan
+from theano.tensor.type import matrix, tensor3, vector
 
 
 mode = theano.compile.mode.get_mode(config.mode)
@@ -39,11 +40,11 @@ class TestGaussNewton:
 
         # create symbolic inputs and targets variables
         if batch_size == 1:
-            x = tt.matrix("inputs")
-            t = tt.matrix("targets")
+            x = matrix("inputs")
+            t = matrix("targets")
         else:
-            x = tt.tensor3("inputs")
-            t = tt.tensor3("inputs")
+            x = tensor3("inputs")
+            t = tensor3("inputs")
         x.tag.test_value = inputs.get_value(borrow=True)
         t.tag.test_value = targets.get_value(borrow=True)
 
@@ -143,8 +144,8 @@ class TestPushOutScanOutputDot:
         # Test the case where the vector input to the dot is not already an
         # output of the inner function.
 
-        v = tt.vector()
-        m = tt.matrix()
+        v = vector()
+        m = matrix()
         output = tt.dot(v, m)
 
         # Compile the function twice, once with the optimization and once
@@ -178,8 +179,8 @@ class TestPushOutScanOutputDot:
         # Test the case where the vector input to the dot is already a nitsot
         # output of the inner function.
 
-        a = tt.matrix()
-        b = tt.matrix()
+        a = matrix()
+        b = matrix()
 
         def inner_fct(vect, mat):
             vect_squared = vect ** 2
@@ -223,8 +224,8 @@ class TestPushOutScanOutputDot:
         # Test the case where the vector input to the dot is not already a
         # non-nitsot (in this case a sitsot) output of the inner function.
 
-        a = tt.matrix()
-        b = tt.matrix()
+        a = matrix()
+        b = matrix()
 
         def inner_fct(seq1, previous_output1, nonseq1):
             output1 = previous_output1 + seq1
@@ -294,15 +295,15 @@ class TestPushOutSumOfDot:
         W.name = "W"
 
         # Variables and their values
-        x = tt.tensor3("x")
+        x = tensor3("x")
         x_value = np.random.normal(
             size=(seq_len, batch_size, dim), scale=0.0001
         ).astype(config.floatX)
 
-        ri = tt.tensor3("ri")
+        ri = tensor3("ri")
         ri_value = x_value
 
-        zi = tt.tensor3("zi")
+        zi = tensor3("zi")
         zi_value = x_value
 
         init = tt.alloc(np.cast[config.floatX](0), batch_size, dim)
@@ -374,9 +375,9 @@ class TestPushOutSumOfDot:
     def test_non_zero_init(self):
         # Test the case where the initial value for the nitsot output is non-zero
 
-        input1 = tt.tensor3()
-        input2 = tt.tensor3()
-        input3 = tt.tensor3()
+        input1 = tensor3()
+        input2 = tensor3()
+        input3 = tensor3()
 
         W = theano.shared(np.random.normal(size=(4, 5))).astype(config.floatX)
         U = theano.shared(np.random.normal(size=(6, 7))).astype(config.floatX)

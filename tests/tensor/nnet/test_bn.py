@@ -6,14 +6,22 @@ import pytest
 import theano
 import theano.tensor as tt
 from tests import unittest_tools as utt
+from theano.configdefaults import config
 from theano.tensor.nnet import bn
+from theano.tensor.type import (
+    TensorType,
+    matrix,
+    scalar,
+    tensor3,
+    tensor4,
+    tensor5,
+    vector,
+)
 
 
 def test_BNComposite():
-    try:
-        orig = theano.config.compute_test_value
 
-        theano.config.compute_test_value = "raise"
+    with config.change_flags(compute_test_value="raise"):
 
         def bn_ref(x, G, B, M, V):
             n = (x - M) / V
@@ -26,11 +34,11 @@ def test_BNComposite():
         M = 1 + np.random.random([20]).astype("float32")
         V = 1 + np.random.random([20]).astype("float32")
 
-        x = tt.matrix("x")
-        b = tt.vector("b")
-        g = tt.vector("g")
-        m = tt.vector("m")
-        v = tt.vector("v")
+        x = matrix("x")
+        b = vector("b")
+        g = vector("g")
+        m = vector("m")
+        v = vector("v")
 
         x.tag.test_value = np.random.rand(2, 2).astype(theano.config.floatX)
         b.tag.test_value = np.random.rand(2).astype(theano.config.floatX)
@@ -46,8 +54,6 @@ def test_BNComposite():
             f = theano.function([x, b, g, m, v], [bn_op])
             res = f(X, G, B, M, V)
             utt.assert_allclose(res_ref, res)
-    finally:
-        theano.config.compute_test_value = orig
 
 
 def test_batch_normalization():
@@ -62,11 +68,11 @@ def test_batch_normalization():
     M = 1 + np.random.random([20]).astype("float32")
     V = 1 + np.random.random([20]).astype("float32")
 
-    x = tt.matrix("x")
-    b = tt.vector("b")
-    g = tt.vector("g")
-    m = tt.vector("m")
-    v = tt.vector("v")
+    x = matrix("x")
+    b = vector("b")
+    g = vector("g")
+    m = vector("m")
+    v = vector("v")
 
     bn_ref_op = bn_ref(x, g, b, m, v)
     f_ref = theano.function([x, g, b, m, v], [bn_ref_op])
@@ -120,11 +126,11 @@ def test_bn_feature_maps():
     M = 1 + np.random.random([3]).astype("float32")
     V = 1 + np.random.random([3]).astype("float32")
 
-    x = tt.tensor4("x")
-    b = tt.vector("b")
-    g = tt.vector("g")
-    m = tt.vector("m")
-    v = tt.vector("v")
+    x = tensor4("x")
+    b = vector("b")
+    g = vector("g")
+    m = vector("m")
+    v = vector("v")
 
     bn_ref_op = bn_ref(
         x,
@@ -167,7 +173,7 @@ def test_batch_normalization_train():
     utt.seed_rng()
 
     for axes in ("per-activation", "spatial", (1, 2, 3, 4)):
-        for vartype in (tt.tensor5, tt.tensor3, tt.vector):
+        for vartype in (tensor5, tensor3, vector):
             x, scale, bias, running_mean, running_var = (
                 vartype(n)
                 for n in ("x", "scale", "bias", "running_mean", "running_var")
@@ -351,7 +357,7 @@ def test_batch_normalization_train_grad_grad():
     utt.seed_rng()
 
     for axes in ("per-activation", "spatial", (1, 2, 3, 4)):
-        for vartype in (tt.tensor5, tt.tensor4, tt.tensor3, tt.matrix, tt.vector):
+        for vartype in (tensor5, tensor4, tensor3, matrix, vector):
             # run these experiments with float64 for sufficient numerical stability
             x, dy, scale, x_mean, x_invstd = (
                 vartype(n, dtype="float64")
@@ -422,10 +428,10 @@ def test_batch_normalization_train_without_running_averages():
     utt.seed_rng()
 
     x, scale, bias, dy = (
-        tt.tensor4("x"),
-        tt.tensor4("scale"),
-        tt.tensor4("bias"),
-        tt.tensor4("dy"),
+        tensor4("x"),
+        tensor4("scale"),
+        tensor4("bias"),
+        tensor4("dy"),
     )
     data_shape = (5, 10, 30, 25)
     param_shape = (1, 10, 30, 25)
@@ -462,7 +468,7 @@ def test_batch_normalization_train_without_running_averages():
 
 def test_batch_normalization_train_broadcast():
     for axes in ("per-activation", "spatial", (1, 2, 3, 4)):
-        for vartype in (tt.tensor5, tt.tensor4, tt.tensor3, tt.matrix, tt.vector):
+        for vartype in (tensor5, tensor4, tensor3, matrix, vector):
             x = vartype("x")
             ndim = x.ndim
             eps = 5e-3  # some non-standard value to test if it's used
@@ -489,7 +495,7 @@ def test_batch_normalization_train_broadcast():
                 params_dimshuffle[axis] = i
 
             # construct non-broadcasted parameter variables
-            param_type = tt.TensorType(x.dtype, (False,) * len(non_bc_axes))
+            param_type = TensorType(x.dtype, (False,) * len(non_bc_axes))
             scale, bias, running_mean, running_var = (
                 param_type(n) for n in ("scale", "bias", "running_mean", "running_var")
             )
@@ -567,7 +573,7 @@ def test_batch_normalization_train_broadcast():
 @pytest.mark.slow
 def test_batch_normalization_test():
     for axes in ("per-activation", "spatial", (1, 2, 3, 4)):
-        for vartype in (tt.tensor5, tt.tensor3, tt.vector):
+        for vartype in (tensor5, tensor3, vector):
             x, scale, bias, mean, var = (
                 vartype(n) for n in ("x", "scale", "bias", "mean", "var")
             )
@@ -648,7 +654,7 @@ def test_batch_normalization_test():
 def test_batch_normalization_broadcastable():
     # check if the broadcastable pattern is preserved by the optimizations
     x, dy, scale, bias, mean, var = (
-        tt.scalar(n).dimshuffle(["x"] * 5)
+        scalar(n).dimshuffle(["x"] * 5)
         for n in ("x", "dy", "scale", "bias", "mean", "var")
     )
 

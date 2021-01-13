@@ -116,7 +116,8 @@ get_scalar_type.cache = {}
 
 
 def as_scalar(x, name=None):
-    from ..tensor import TensorType, scalar_from_tensor
+    from theano.tensor.basic import scalar_from_tensor
+    from theano.tensor.type import TensorType
 
     if isinstance(x, Apply):
         if len(x.outputs) != 1:

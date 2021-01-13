@@ -12,6 +12,7 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
+from theano.tensor.type import ivector, lscalar, matrix
 
 
 def gen_data():
@@ -75,7 +76,7 @@ class LogisticRegression:
     def __init__(self, input, n_in, n_out, name_prefix=""):
         """Initialize the parameters of the logistic regression
 
-        :type input: theano.tensor.TensorType
+        :type input: TensorType
         :param input: symbolic variable that describes the input of the
                       architecture (one minibatch)
 
@@ -115,7 +116,7 @@ class LogisticRegression:
             \frac{1}{|\mathcal{D}|} \sum_{i=0}^{|\mathcal{D}|} \log(P(Y=y^{(i)}|x^{(i)}, W,b)) \\
                 \ell (\theta=\{W,b\}, \mathcal{D})
 
-        :type y: theano.tensor.TensorType
+        :type y: TensorType
         :param y: corresponds to a vector that gives for each example the
                   correct label
 
@@ -145,7 +146,7 @@ class HiddenLayer:
         :type rng: numpy.random.RandomState
         :param rng: a random number generator used to initialize weights
 
-        :type input: theano.tensor.dmatrix
+        :type input: dmatrix
         :param input: a symbolic tensor of shape (n_examples, n_in)
 
         :type n_in: int
@@ -196,7 +197,7 @@ class MLP:
         :type rng: numpy.random.RandomState
         :param rng: a random number generator used to initialize weights
 
-        :type input: theano.tensor.TensorType
+        :type input: TensorType
         :param input: symbolic variable that describes the input of the
         architecture (one minibatch)
 
@@ -284,9 +285,9 @@ def test_mlp():
     # print '... building the model'
 
     # allocate symbolic variables for the data
-    index = tt.lscalar()  # index to a [mini]batch
-    x = tt.matrix("x")  # the data is presented as rasterized images
-    y = tt.ivector("y")  # the labels are presented as 1D vector of
+    index = lscalar()  # index to a [mini]batch
+    x = matrix("x")  # the data is presented as rasterized images
+    y = ivector("y")  # the labels are presented as 1D vector of
     # [int] labels
 
     rng = np.random.RandomState(1234)

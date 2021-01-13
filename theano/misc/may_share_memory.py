@@ -6,7 +6,7 @@ numpy version support only ndarray.
 
 import numpy as np
 
-from theano.tensor.basic import TensorType
+from theano.tensor.type import TensorType
 
 
 try:

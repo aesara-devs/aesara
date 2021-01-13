@@ -40,10 +40,8 @@ class TestDnnConv2d(BaseTestConv2d):
         # provide_shape is not used by the cuDNN impementation
         cls.provide_shape = [False]
 
+    @pytest.mark.skipif(dnn_available(test_ctx_name), reason=dnn_available.msg)
     def run_test_case(self, i, f, s, b, flip, provide_shape, fd=(1, 1)):
-        if not dnn_available(test_ctx_name):
-            pytest.skip(dnn_available.msg)
-
         mode = mode_with_gpu
 
         if fd != (1, 1):
@@ -87,12 +85,10 @@ class TestDnnConv2d(BaseTestConv2d):
             target_op=GpuDnnConvGradI,
         )
 
+    @pytest.mark.skipif(dnn_available(test_ctx_name), reason=dnn_available.msg)
     def run_test_case_gi(
         self, i, f, o, s, b, flip, provide_shape, fd=(1, 1), expect_error=False
     ):
-        if not dnn_available(test_ctx_name):
-            pytest.skip(dnn_available.msg)
-
         if fd != (1, 1):
             pytest.skip("Doesn't have CUDNN implementation")
 
@@ -138,10 +134,8 @@ class TestDnnConv3d(BaseTestConv3d):
         # provide_shape is not used by the cuDNN impementation
         cls.provide_shape = [False]
 
+    @pytest.mark.skipif(dnn_available(test_ctx_name), reason=dnn_available.msg)
     def run_test_case(self, i, f, s, b, flip, provide_shape, fd=(1, 1, 1)):
-        if not dnn_available(test_ctx_name):
-            pytest.skip(dnn_available.msg)
-
         mode = mode_with_gpu
 
         if fd != (1, 1, 1):
@@ -185,12 +179,10 @@ class TestDnnConv3d(BaseTestConv3d):
             target_op=GpuDnnConvGradI,
         )
 
+    @pytest.mark.skipif(dnn_available(test_ctx_name), reason=dnn_available.msg)
     def run_test_case_gi(
         self, i, f, o, s, b, flip, provide_shape, fd=(1, 1, 1), expect_error=False
     ):
-        if not dnn_available(test_ctx_name):
-            pytest.skip(dnn_available.msg)
-
         if fd != (1, 1, 1):
             pytest.skip("Doesn't have CUDNN implementation")
 

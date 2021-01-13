@@ -15,6 +15,18 @@ from theano.configdefaults import config
 from theano.graph.basic import Constant
 from theano.graph.fg import MissingInputError
 from theano.graph.opt import OpKeyOptimizer, PatternSub
+from theano.tensor.type import (
+    dmatrix,
+    dscalar,
+    dscalars,
+    dvector,
+    fscalar,
+    iscalar,
+    matrix,
+    scalar,
+    scalars,
+    vector,
+)
 from theano.utils import exc_message
 
 
@@ -51,83 +63,83 @@ class TestFunction:
         assert fn() == []
 
     def test_extra_inputs(self):
-        x, s = tt.scalars("xs")
+        x, s = scalars("xs")
         fn = function([x], [x])
         with pytest.raises(TypeError):
             fn(1, 2)
 
     def test_missing_inputs(self):
         def fn():
-            x, s = tt.scalars("xs")
+            x, s = scalars("xs")
             function([], [x])
 
         checkfor(self, fn, MissingInputError)
 
         def fn():
-            x, s = tt.scalars("xs")
+            x, s = scalars("xs")
             # Ignore unused input s, as it hides the other error
             function([s], [x], on_unused_input="ignore")
 
         checkfor(self, fn, MissingInputError)
 
         def fn():
-            x, s = tt.scalars("xs")
+            x, s = scalars("xs")
             function([s], [x])
 
         checkfor(self, fn, UnusedInputError)
 
         def fn():
-            x, s = tt.scalars("xs")
+            x, s = scalars("xs")
             # Ignore unused input s, as it hides the other error
             function([s], x, on_unused_input="ignore")
 
         checkfor(self, fn, MissingInputError)
 
         def fn():
-            x, s = tt.scalars("xs")
+            x, s = scalars("xs")
             function([s], x)
 
         checkfor(self, fn, UnusedInputError)
 
         def fn():
-            x, s = tt.scalars("xs")
+            x, s = scalars("xs")
             # Ignore unused input s, as it hides the other error
             function([s], Out(x), on_unused_input="ignore")
 
         checkfor(self, fn, MissingInputError)
 
         def fn():
-            x, s = tt.scalars("xs")
+            x, s = scalars("xs")
             function([s], Out(x))
 
         checkfor(self, fn, UnusedInputError)
 
         def fn():
-            x, s = tt.scalars("xs")
+            x, s = scalars("xs")
             function([In(x, update=s + x)], x)
 
         checkfor(self, fn, MissingInputError)
 
         def fn():
-            x, s = tt.scalars("xs")
+            x, s = scalars("xs")
             function([In(x, update=((s * s) + x))], x)
 
         checkfor(self, fn, MissingInputError)
 
     def test_input_anon_singleton(self):
-        x, s = tt.scalars("xs")
+        x, s = scalars("xs")
         fn = function([s, x], [x + s])
         assert fn(2, 3) == [5]
         # no state
         assert fn(2, 3) == [5]
 
     def test_input_anon_unpack(self):
-        x, s = tt.scalars("xs")
+        x, s = scalars("xs")
         fn = function([s, x], x + s)
         assert fn(2, 3) == 5
 
     def test_naming_rule0(self):
-        x, s = tt.scalars("xs")
+        x, s = scalars("xs")
         f = function([x, s], x / s)
         assert f(1, 2) == 0.5
         assert f(2, 1) == 2.0
@@ -145,8 +157,8 @@ class TestFunction:
         )  # takes exactly 2 non-keyword arguments (0 given)
 
     def test_naming_rule1(self):
-        a = tt.scalar()  # the a is for 'anonymous' (un-named).
-        x, s = tt.scalars("xs")
+        a = scalar()  # the a is for 'anonymous' (un-named).
+        x, s = scalars("xs")
         f = function([a, s], a / s)
         assert f(1, 2) == 0.5
         assert f(2, 1) == 2.0
@@ -159,8 +171,8 @@ class TestFunction:
         )  # got unexpected keyword argument 'a'
 
     def test_naming_rule2(self):
-        a = tt.scalar()  # the a is for 'anonymous' (un-named).
-        x, s = tt.scalars("xs")
+        a = scalar()  # the a is for 'anonymous' (un-named).
+        x, s = scalars("xs")
 
         # x's name is ignored because it is followed by anonymous parameter a.
         # Ignore unused input x, as it hides the other error
@@ -176,8 +188,8 @@ class TestFunction:
         )  # got unexpected keyword argument 'x'
 
     def test_naming_rule3(self):
-        a = tt.scalar()  # the a is for 'anonymous' (un-named).
-        x, s = tt.scalars("xs")
+        a = scalar()  # the a is for 'anonymous' (un-named).
+        x, s = scalars("xs")
 
         # x's name is not ignored (as in test_naming_rule2) because a has a default value.
         f = function([x, In(a, value=1.0), s], a / s + x)
@@ -196,8 +208,8 @@ class TestFunction:
         )  # takes exactly 3 non-keyword arguments (1 given)
 
     def test_naming_rule4(self):
-        a = tt.scalar()  # the a is for 'anonymous' (un-named).
-        x, s = tt.scalars("xs")
+        a = scalar()  # the a is for 'anonymous' (un-named).
+        x, s = scalars("xs")
 
         f = function([x, In(a, value=1.0, name="a"), s], a / s + x)
 
@@ -215,8 +227,8 @@ class TestFunction:
         )  # got multiple values for keyword argument 'x'
 
     def test_state_access(self):
-        a = tt.scalar()  # the a is for 'anonymous' (un-named).
-        x, s = tt.scalars("xs")
+        a = scalar()  # the a is for 'anonymous' (un-named).
+        x, s = scalars("xs")
 
         f = function(
             [x, In(a, value=1.0, name="a"), In(s, value=0.0, update=s + a * x)],
@@ -240,14 +252,14 @@ class TestFunction:
         assert f[s] == 24.0
 
     def test_same_names(self):
-        a, x, s = tt.scalars("xxx")
+        a, x, s = scalars("xxx")
         # implicit names would cause error.  What do we do?
         f = function([a, x, s], a + x + s)
         assert f(1, 2, 3) == 6
         checkfor(self, lambda: f(1, 2, x=3), TypeError)
 
     def test_weird_names(self):
-        a, x, s = tt.scalars("xxx")
+        a, x, s = scalars("xxx")
 
         checkfor(self, lambda: function([In(a, name=[])], []), TypeError)
 
@@ -256,7 +268,7 @@ class TestFunction:
                 [
                     In(a, name={"adsf", ()}, value=1.0),
                     In(x, name=(), value=2.0),
-                    In(s, name=tt.scalar(), value=3.0),
+                    In(s, name=scalar(), value=3.0),
                 ],
                 a + x + s,
             )
@@ -265,8 +277,8 @@ class TestFunction:
         checkfor(self, t, TypeError)
 
     def test_copy(self):
-        a = tt.scalar()  # the a is for 'anonymous' (un-named).
-        x, s = tt.scalars("xs")
+        a = scalar()  # the a is for 'anonymous' (un-named).
+        x, s = scalars("xs")
 
         f = function(
             [
@@ -300,7 +312,7 @@ class TestFunction:
         assert f(1, 2) != g(1, 2)  # they should not be equal anymore.
 
     def test_copy_share_memory(self):
-        x = tt.fscalar("x")
+        x = fscalar("x")
         # SharedVariable for tests, one of them has update
         y = theano.shared(value=1)
         z = theano.shared(value=2)
@@ -335,10 +347,10 @@ class TestFunction:
                 assert here.data is there.data
 
     def test_swap_SharedVariable(self):
-        i = tt.iscalar()
+        i = iscalar()
         x_list = theano.shared(value=np.random.rand(10).astype(config.floatX))
 
-        x = tt.scalar("x")
+        x = scalar("x")
         # SharedVariable for tests, one of them has update
         y = theano.shared(value=1, name="y")
         z = theano.shared(value=2, name="z")
@@ -409,9 +421,9 @@ class TestFunction:
         train_y = theano.shared(value=np.random.rand(10, 1).astype(config.floatX))
         test_y = theano.shared(value=np.random.rand(10, 1).astype(config.floatX))
 
-        i = tt.iscalar("index")
-        x = tt.vector("x")
-        y = tt.vector("y")
+        i = iscalar("index")
+        x = vector("x")
+        y = vector("y")
         # this formular has no sense but for a test
         out = (tt.sum(x) - y) ** 2
         train = theano.function(
@@ -430,8 +442,8 @@ class TestFunction:
             assert in1.value is in2.value
 
     def test_copy_delete_updates(self):
-        w = tt.iscalar("w")
-        x = tt.fscalar("x")
+        w = iscalar("w")
+        x = fscalar("x")
         # SharedVariable for tests, one of them has update
         y = theano.shared(value=1, name="y")
         z = theano.shared(value=2, name="z")
@@ -458,8 +470,8 @@ class TestFunction:
             cpy = ori.copy(delete_updates=True)
 
     def test_shared_state0(self):
-        a = tt.scalar()  # the a is for 'anonymous' (un-named).
-        x, s = tt.scalars("xs")
+        a = scalar()  # the a is for 'anonymous' (un-named).
+        x, s = scalars("xs")
 
         f = function(
             [
@@ -486,8 +498,8 @@ class TestFunction:
         assert g[s] == 0
 
     def test_shared_state1(self):
-        a = tt.scalar()  # the a is for 'anonymous' (un-named).
-        x, s = tt.scalars("xs")
+        a = scalar()  # the a is for 'anonymous' (un-named).
+        x, s = scalars("xs")
 
         f = function(
             [
@@ -510,8 +522,8 @@ class TestFunction:
         assert g[s] == 4
 
     def test_shared_state2(self):
-        a = tt.scalar()  # the a is for 'anonymous' (un-named).
-        x, s = tt.scalars("xs")
+        a = scalar()  # the a is for 'anonymous' (un-named).
+        x, s = scalars("xs")
 
         f = function(
             [
@@ -540,7 +552,7 @@ class TestFunction:
         # doc/topics/function.txt. If it does not pass anymore and yet the
         # behavior is still intended the doc and the test should both be
         # updated accordingly.
-        x, s = tt.scalars("xs")
+        x, s = scalars("xs")
         inc = function([x, In(s, update=(s + x), value=10.0)], [])
         dec = function(
             [x, In(s, update=(s - x), value=inc.container[s], implicit=False)], []
@@ -589,7 +601,7 @@ class TestFunction:
         # either through a view-map or a destroy map. New tests should be added in the future
         # when borrow=True is implemented.
 
-        a = tt.dmatrix()
+        a = dmatrix()
         aval = np.random.rand(3, 3)
 
         # when borrow=False, test that a destroy map cannot alias output to input
@@ -603,7 +615,7 @@ class TestFunction:
         assert not np.may_share_memory(aval, f(aval))
 
     def test_borrow_output(self):
-        a = tt.dmatrix()
+        a = dmatrix()
         f = function([a], Out(a, borrow=False))
         o = np.ones((3, 3))
         assert o is not f(o)  # function no longer permits aliasing outputs to inputs
@@ -630,15 +642,15 @@ class TestFunction:
             assert np.all(four == 4)
 
     def test_disconnected_input(self):
-        a = tt.scalar("a")
-        v = tt.vector("v")
+        a = scalar("a")
+        v = vector("v")
         with pytest.raises(UnusedInputError):
             function([a, v], v * 2)
 
         function([a, v], v * 2, on_unused_input="ignore")
 
     def test_masked_input(self):
-        m = tt.matrix("m")
+        m = matrix("m")
         mt = m.T
         mt.name = "m.T"
         with pytest.raises(UnusedInputError):
@@ -648,7 +660,7 @@ class TestFunction:
     def test_givens_input_var(self):
         # Ensure error is raised when trying to replace an input variable.
 
-        x = tt.scalar("x")
+        x = scalar("x")
         y = x * 2
         with pytest.raises(RuntimeError):
             function([x], y, givens={x: x + 1})
@@ -656,7 +668,7 @@ class TestFunction:
     def test_free(self):
         # Make test on free() function
 
-        x = tt.vector("x")
+        x = vector("x")
         func = function([x], x + 1)
         func.fn.allow_gc = False
         func([1])
@@ -677,7 +689,7 @@ class TestFunction:
         # Check that default values are restored
         # when an exception occurs in interactive mode.
 
-        a, b = tt.dscalars("a", "b")
+        a, b = dscalars("a", "b")
         c = a + b
         func = theano.function(
             [theano.In(a, name="first"), theano.In(b, value=1, name="second")], c
@@ -692,7 +704,7 @@ class TestFunction:
         b = np.random.rand(5, 4)
         s1 = theano.shared(b)
         s2 = theano.shared(b)
-        x1 = tt.vector()
+        x1 = vector()
 
         # Assert cases we should not check for aliased inputs
         for d in [
@@ -733,8 +745,8 @@ class TestFunction:
 
 class TestPicklefunction:
     def test_deepcopy(self):
-        a = tt.scalar()  # the a is for 'anonymous' (un-named).
-        x, s = tt.scalars("xs")
+        a = scalar()  # the a is for 'anonymous' (un-named).
+        x, s = scalars("xs")
 
         f = function(
             [
@@ -789,8 +801,8 @@ class TestPicklefunction:
         assert f(3) == g(3)  # They should be in sync again.
 
     def test_deepcopy_trust_input(self):
-        a = tt.dscalar()  # the a is for 'anonymous' (un-named).
-        x, s = tt.dscalars("xs")
+        a = dscalar()  # the a is for 'anonymous' (un-named).
+        x, s = dscalars("xs")
 
         f = function(
             [
@@ -821,7 +833,7 @@ class TestPicklefunction:
             g(2.0)
 
     def test_output_keys(self):
-        x = tt.vector()
+        x = vector()
         f = theano.function([x], {"vec": x ** 2})
         o = f([2, 3, 4])
         assert isinstance(o, dict)
@@ -833,7 +845,7 @@ class TestPicklefunction:
 
     def test_deepcopy_shared_container(self):
         # Ensure that shared containers remain shared after a deep copy.
-        a, x = tt.scalars("ax")
+        a, x = scalars("ax")
 
         h = function([In(a, value=0.0)], a)
         f = function([x, In(a, value=h.container[a], implicit=True)], x + a)
@@ -856,8 +868,8 @@ class TestPicklefunction:
         assert fc[ac] == 2
 
     def test_pickle(self):
-        a = tt.scalar()  # the a is for 'anonymous' (un-named).
-        x, s = tt.scalars("xs")
+        a = scalar()  # the a is for 'anonymous' (un-named).
+        x, s = scalars("xs")
 
         f = function(
             [
@@ -904,11 +916,11 @@ class TestPicklefunction:
         assert f(1, 2) != g(1, 2)  # they should not be equal anymore.
 
     def test_optimizations_preserved(self):
-        a = tt.dvector()  # the a is for 'anonymous' (un-named).
-        x = tt.dvector("x")
-        s = tt.dvector("s")
-        xm = tt.dmatrix("x")
-        sm = tt.dmatrix("s")
+        a = dvector()  # the a is for 'anonymous' (un-named).
+        x = dvector("x")
+        s = dvector("s")
+        xm = dmatrix("x")
+        sm = dmatrix("s")
 
         f = function(
             [a, x, s, xm, sm],
@@ -950,9 +962,9 @@ class TestPicklefunction:
             assert [i.type for i in nf.outputs] == [i.type for i in ng.outputs]
 
     def test_multiple_functions(self):
-        a = tt.scalar()  # the a is for 'anonymous' (un-named).
-        x, s = tt.scalars("xs")
-        v = tt.vector("v")
+        a = scalar()  # the a is for 'anonymous' (un-named).
+        x, s = scalars("xs")
+        v = vector("v")
 
         # put in some inputs
         list_of_things = [s, x, v]
@@ -1049,7 +1061,7 @@ class TestPicklefunction:
 
         b = np.random.rand(5, 4)
 
-        x = tt.matrix()
+        x = matrix()
         y = theano.shared(b)
 
         f = theano.function([x], tt.dot(x, y))
@@ -1098,9 +1110,9 @@ class TestPicklefunction:
 
 class SomethingToPickle:
     def __init__(self):
-        a = tt.scalar()  # the a is for 'anonymous' (un-named).
-        x, s = tt.scalars("xs")
-        v = tt.vector("v")
+        a = scalar()  # the a is for 'anonymous' (un-named).
+        x, s = scalars("xs")
+        v = vector("v")
 
         self.s = s
         self.x = x
@@ -1132,7 +1144,7 @@ def test_empty_givens_updates():
 
     # Empty givens / updates dictionaries were not properly detected before,
     # triggering useless crashes at compile time.
-    x = tt.scalar()
+    x = scalar()
     y = x * 2
     function([theano.In(x)], y, givens={})
     function([theano.In(x)], y, updates={})

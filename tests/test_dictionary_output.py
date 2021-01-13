@@ -1,12 +1,14 @@
+import pytest
+
 import theano
-import theano.tensor as tt
+from theano.tensor.type import scalar
 
 
 class TestDictionaryOutput:
     def test_output_dictionary(self):
         # Tests that theano.function works when outputs is a dictionary
 
-        x = tt.scalar()
+        x = scalar()
         f = theano.function([x], outputs={"a": x, "c": x * 2, "b": x * 3, "1": x * 4})
 
         outputs = f(10.0)
@@ -19,8 +21,8 @@ class TestDictionaryOutput:
     def test_input_named_variables(self):
         # Tests that named variables work when outputs is a dictionary
 
-        x = tt.scalar("x")
-        y = tt.scalar("y")
+        x = scalar("x")
+        y = scalar("y")
 
         f = theano.function([x, y], outputs={"a": x + y, "b": x * y})
 
@@ -31,11 +33,11 @@ class TestDictionaryOutput:
     def test_output_order_sorted(self):
         # Tests that the output keys are sorted correctly.
 
-        x = tt.scalar("x")
-        y = tt.scalar("y")
-        z = tt.scalar("z")
-        e1 = tt.scalar("1")
-        e2 = tt.scalar("2")
+        x = scalar("x")
+        y = scalar("y")
+        z = scalar("z")
+        e1 = scalar("1")
+        e2 = scalar("2")
 
         f = theano.function(
             [x, y, z, e1, e2], outputs={"x": x, "y": y, "z": z, "1": e1, "2": e2}
@@ -51,16 +53,16 @@ class TestDictionaryOutput:
         # Tests that one can compose two theano functions when the outputs are
         # provided in a dictionary.
 
-        x = tt.scalar("x")
-        y = tt.scalar("y")
+        x = scalar("x")
+        y = scalar("y")
 
         a = x + y
         b = x * y
 
         f = theano.function([x, y], outputs={"a": a, "b": b})
 
-        a = tt.scalar("a")
-        b = tt.scalar("b")
+        a = scalar("a")
+        b = scalar("b")
 
         l = a + b
         r = a * b
@@ -75,7 +77,7 @@ class TestDictionaryOutput:
     def test_output_list_still_works(self):
         # Test that theano.function works if outputs is a list.
 
-        x = tt.scalar("x")
+        x = scalar("x")
 
         f = theano.function([x], outputs=[x * 3, x * 2, x * 4, x])
 
@@ -89,7 +91,7 @@ class TestDictionaryOutput:
     def test_debug_mode_dict(self):
         # Tests that debug mode works where outputs is a dictionary.
 
-        x = tt.scalar("x")
+        x = scalar("x")
 
         f = theano.function(
             [x], outputs={"1": x, "2": 2 * x, "3": 3 * x}, mode="DEBUG_MODE"
@@ -104,7 +106,7 @@ class TestDictionaryOutput:
     def test_debug_mode_list(self):
         # Tests that debug mode works where the outputs argument is a list.
 
-        x = tt.scalar("x")
+        x = scalar("x")
 
         f = theano.function([x], outputs=[x, 2 * x, 3 * x], mode="DEBUG_MODE")
 
@@ -117,20 +119,13 @@ class TestDictionaryOutput:
     def test_key_string_requirement(self):
         # Tests that an exception is thrown if a non-string key is used in
         # the outputs dictionary.
+        x = scalar("x")
 
-        x = tt.scalar("x")
-        try:
+        with pytest.raises(AssertionError):
             theano.function([x], outputs={1.0: x})
-            raise Exception("Did not throw exception with 1.0 as only key")
-        except AssertionError:
-            pass
-        try:
+
+        with pytest.raises(AssertionError):
             theano.function([x], outputs={1.0: x, "a": x ** 2})
-            raise Exception("Did not throw exception with 1.0 as one key")
-        except AssertionError:
-            pass
-        try:
+
+        with pytest.raises(AssertionError):
             theano.function([x], outputs={(1, "b"): x, 1.0: x ** 2})
-            raise Exception("Did not throw exception with tuple as key")
-        except AssertionError:
-            pass
